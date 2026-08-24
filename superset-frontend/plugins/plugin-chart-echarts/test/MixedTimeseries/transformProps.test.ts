@@ -27,6 +27,7 @@ import {
   VizType,
   ChartDataResponseResult,
   TimeGranularity,
+  TooltipTruncationMode,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import {
@@ -1164,6 +1165,110 @@ test('x-axis dedup keeps the forced min label when the endpoints format identica
   expect(formatter(min)).toBe('May');
 });
 
+test('#39899 - x-axis dates do not overlap and last label stays visible at 0° rotation (mixed)', () => {
+  // When showMaxLabel is active on a time axis with 0° rotation,
+  // hideOverlap must be off so ECharts cannot suppress the forced
+  // max label (the end-of-axis date).
+  const chartProps = createEchartsTimeseriesTestChartProps<
+    EchartsMixedTimeseriesFormData,
+    EchartsMixedTimeseriesProps
+  >({
+    ...MIXED_TIMESERIES_CHART_PROPS_DEFAULTS,
+    defaultQueriesData: [
+      createTestQueryData(
+        [
+          {
+            __timestamp: Date.UTC(2026, 0, 1),
+            sum__num: 100,
+          },
+          {
+            __timestamp: Date.UTC(2026, 6, 1),
+            sum__num: 200,
+          },
+        ],
+        {
+          colnames: ['__timestamp', 'sum__num'],
+          coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+          label_map: { __timestamp: ['__timestamp'], sum__num: ['sum__num'] },
+        },
+      ),
+      createTestQueryData(
+        [
+          {
+            __timestamp: Date.UTC(2026, 0, 1),
+            sum__num: 100,
+          },
+          {
+            __timestamp: Date.UTC(2026, 6, 1),
+            sum__num: 200,
+          },
+        ],
+        {
+          colnames: ['__timestamp', 'sum__num'],
+          coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+          label_map: { __timestamp: ['__timestamp'], sum__num: ['sum__num'] },
+        },
+      ),
+    ],
+    formData: {
+      ...formData,
+      x_axis: '__timestamp',
+      metrics: ['sum__num'],
+      metricsB: ['sum__num'],
+      groupby: [],
+      groupbyB: [],
+      xAxisLabelRotation: 0,
+      // showMaxLabel (and therefore hideOverlap: false) only activates when
+      // a time grain resolves, so this needs one set to actually exercise
+      // the #39899 fix rather than silently no-op.
+      timeGrainSqla: TimeGranularity.MONTH,
+    },
+    queriesData: [
+      createTestQueryData(
+        [
+          {
+            __timestamp: Date.UTC(2026, 0, 1),
+            sum__num: 100,
+          },
+          {
+            __timestamp: Date.UTC(2026, 6, 1),
+            sum__num: 200,
+          },
+        ],
+        {
+          colnames: ['__timestamp', 'sum__num'],
+          coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+          label_map: { __timestamp: ['__timestamp'], sum__num: ['sum__num'] },
+        },
+      ),
+      createTestQueryData(
+        [
+          {
+            __timestamp: Date.UTC(2026, 0, 1),
+            sum__num: 100,
+          },
+          {
+            __timestamp: Date.UTC(2026, 6, 1),
+            sum__num: 200,
+          },
+        ],
+        {
+          colnames: ['__timestamp', 'sum__num'],
+          coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+          label_map: { __timestamp: ['__timestamp'], sum__num: ['sum__num'] },
+        },
+      ),
+    ],
+  });
+
+  const { echartOptions } = transformProps(chartProps);
+  const { axisLabel } = echartOptions.xAxis as Record<string, any>;
+
+  expect(axisLabel.showMaxLabel).toBe(true);
+  expect(axisLabel.alignMaxLabel).toBe('right');
+  expect(axisLabel.hideOverlap).toBe(false);
+});
+
 test('regression #37921: multi-metric Query A with groupby does not duplicate first metric in series names', () => {
   // Regression test for https://github.com/apache/superset/issues/37921
   // ("Residual" follow-up to #37055).
@@ -1294,4 +1399,60 @@ test('y-axis title position: non-Left sets nameLocation to end', () => {
   expect(yAxis[0].nameLocation).toEqual('end');
   expect(yAxis[1].nameGap).toEqual(30);
   expect(yAxis[1].nameLocation).toEqual('end');
+});
+describe('EchartsMixedTimeseries tooltip truncation', () => {
+  const longSeriesName = 'prod-us-east-1-service-checkout-latency-p99';
+  const marker = '<span style="background-color:#1f77b4;"></span>';
+
+  const buildTooltip = (tooltipTruncation?: TooltipTruncationMode) => {
+    const chartProps = createEchartsTimeseriesTestChartProps<
+      EchartsMixedTimeseriesFormData,
+      EchartsMixedTimeseriesProps
+    >({
+      ...MIXED_TIMESERIES_CHART_PROPS_DEFAULTS,
+      defaultQueriesData: queriesData,
+      formData: {
+        ...formData,
+        ...(tooltipTruncation ? { tooltipTruncation } : {}),
+      },
+      queriesData,
+    });
+    const { echartOptions } = transformProps(chartProps);
+    const { formatter } = echartOptions.tooltip as {
+      formatter: (params: unknown) => string;
+    };
+    // richTooltip is false in this fixture, so the trigger is 'item' and the
+    // formatter receives a single param object rather than an array.
+    return formatter({
+      seriesId: longSeriesName,
+      seriesName: longSeriesName,
+      value: [599616000000, 1],
+      marker,
+    });
+  };
+
+  test('keeps full text with the CSS cap by default', () => {
+    const html = buildTooltip();
+    expect(html.replace(/\s/g, '')).toContain('max-width:300px');
+    expect(html).toContain(longSeriesName);
+  });
+
+  test('removes the cap and keeps full text when off', () => {
+    const html = buildTooltip('off');
+    expect(html).not.toContain('max-width');
+    expect(html).toContain(longSeriesName);
+  });
+
+  test('drops the shared prefix when truncating from the start', () => {
+    const html = buildTooltip('start');
+    expect(html).not.toContain('prod-us-east');
+    expect(html).toContain('latency-p99');
+    expect(html).toContain('background-color:#1f77b4');
+  });
+
+  test('keeps both ends when truncating the middle', () => {
+    const html = buildTooltip('middle');
+    expect(html).toContain('prod-us-east-1-servi…heckout-latency-p99');
+    expect(html).not.toContain(longSeriesName);
+  });
 });
