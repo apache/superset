@@ -20,7 +20,6 @@ import logging
 from typing import Any, Optional
 
 import rison
-from cron_descriptor import get_description
 from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
 from sqlalchemy import (
@@ -44,6 +43,7 @@ from superset.models.helpers import AuditMixinNullable, ExtraJSONMixin
 from superset.models.slice import Slice
 from superset.reports.types import ReportScheduleExtra
 from superset.subjects.models import report_schedule_editors, Subject
+from superset.tasks.cron_util import get_cron_description
 from superset.utils.backports import StrEnum
 from superset.utils.core import MediumText
 
@@ -188,12 +188,16 @@ class ReportSchedule(AuditMixinNullable, ExtraJSONMixin, Model):
 
     email_subject = Column(String(255))
 
+    # (Alerts/Reports) Include the call-to-action link back to Superset in
+    # notifications? NULL is treated as True.
+    include_cta = Column(Boolean, default=True, nullable=True)
+
     def __repr__(self) -> str:
         return str(self.name)
 
     @renders("crontab")
     def crontab_humanized(self) -> str:
-        return get_description(self.crontab)
+        return get_cron_description(self.crontab)
 
     def get_native_filters_params(self) -> tuple[str, list[str]]:
         """
@@ -388,7 +392,15 @@ class ReportRecipients(Model, AuditMixinNullable):
     )
     report_schedule = relationship(
         ReportSchedule,
-        backref=backref("recipients", cascade="all,delete,delete-orphan"),
+        backref=backref(
+            "recipients",
+            cascade="all,delete,delete-orphan",
+            # SQLAlchemy 2.0 behavior: assigning `recipient.report_schedule`
+            # no longer cascades the ReportRecipients into the
+            # ReportSchedule's session; callers must add objects to a
+            # session explicitly.
+            cascade_backrefs=False,
+        ),
         foreign_keys=[report_schedule_id],
     )
 
@@ -424,7 +436,15 @@ class ReportExecutionLog(Model):  # pylint: disable=too-few-public-methods
     )
     report_schedule = relationship(
         ReportSchedule,
-        backref=backref("logs", cascade="all,delete,delete-orphan"),
+        backref=backref(
+            "logs",
+            cascade="all,delete,delete-orphan",
+            # SQLAlchemy 2.0 behavior: assigning `log.report_schedule` no
+            # longer cascades the ReportExecutionLog into the
+            # ReportSchedule's session; callers must add objects to a
+            # session explicitly.
+            cascade_backrefs=False,
+        ),
         foreign_keys=[report_schedule_id],
     )
 

@@ -16,9 +16,17 @@
 # under the License.
 """Tests for superset.views.utils module"""
 
-from flask import current_app
+from unittest.mock import patch
 
-from superset.views.utils import get_form_data
+from flask import current_app
+from sqlalchemy.orm.session import Session
+
+from superset import db
+from superset.connectors.sqla.models import Database, SqlaTable
+from superset.models.dashboard import Dashboard
+from superset.models.slice import Slice
+from superset.utils import json
+from superset.views.utils import get_dashboard_extra_filters, get_form_data
 
 
 def test_get_form_data_handles_non_json_body_with_json_content_type() -> None:
@@ -51,3 +59,78 @@ def test_get_form_data_handles_non_dict_json_body() -> None:
 
     assert form_data == {}
     assert slc is None
+
+
+def test_get_dashboard_extra_filters_includes_native_filter_defaults(
+    session: Session,
+) -> None:
+    """Native filter defaults are included in dashboard cache warming."""
+    Dashboard.metadata.create_all(session.get_bind())
+
+    dataset = SqlaTable(
+        table_name="extra_filters_table",
+        database=Database(database_name="extra_filters_db", sqlalchemy_uri="sqlite://"),
+    )
+    db.session.add(dataset)
+    db.session.flush()
+
+    chart = Slice(
+        slice_name="chart_with_native_filter",
+        datasource_id=dataset.id,
+        datasource_type="table",
+    )
+    dashboard = Dashboard(
+        dashboard_title="native_filter_dash",
+        slices=[chart],
+        published=True,
+        json_metadata=json.dumps(
+            {
+                "native_filter_configuration": [
+                    {
+                        "id": "NATIVE_FILTER-1",
+                        "name": "Region filter",
+                        "type": "NATIVE_FILTER",
+                        "scope": {"rootPath": ["ROOT_ID"], "excluded": []},
+                        "targets": [{"column": {"name": "region"}}],
+                        "defaultDataMask": {
+                            "extraFormData": {
+                                "filters": [
+                                    {"col": "region", "op": "IN", "val": ["APAC"]}
+                                ]
+                            },
+                            "filterState": {"value": ["APAC"]},
+                        },
+                        "controlValues": {},
+                    }
+                ]
+            }
+        ),
+        position_json="{}",
+    )
+    db.session.add_all([chart, dashboard])
+    db.session.flush()
+
+    with patch("superset.charts.data.dashboard_filter_context._check_dashboard_access"):
+        extra_filters = get_dashboard_extra_filters(chart.id, dashboard.id)
+
+    assert extra_filters == [{"col": "region", "op": "IN", "val": ["APAC"]}]
+
+    legacy_filter = {"col": "country", "op": "in", "val": ["Brazil"]}
+    metadata = json.loads(dashboard.json_metadata)
+    metadata["default_filters"] = json.dumps({"legacy-filter": {"country": ["Brazil"]}})
+    metadata["filter_scopes"] = {}
+    dashboard.json_metadata = json.dumps(metadata)
+
+    with (
+        patch("superset.charts.data.dashboard_filter_context._check_dashboard_access"),
+        patch(
+            "superset.views.utils.build_extra_filters",
+            return_value=[legacy_filter],
+        ),
+    ):
+        extra_filters = get_dashboard_extra_filters(chart.id, dashboard.id)
+
+    assert extra_filters == [
+        legacy_filter,
+        {"col": "region", "op": "IN", "val": ["APAC"]},
+    ]

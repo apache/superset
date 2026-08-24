@@ -160,6 +160,7 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         "restore",
         "purge",
         "viz_types",
+        "deck_layers",
         "favorite_status",
         "add_favorite",
         "remove_favorite",
@@ -185,6 +186,11 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         "restore": "write",
         "restore_version": "write",
         "purge": "write",
+        # Reuses the same "can_read on Chart" permission as ``get``, so any
+        # principal (including an embedded guest) who can already fetch a
+        # single chart's metadata can resolve a Multiple Layers container's
+        # declared layers too.
+        "deck_layers": "read",
     }
 
     list_columns = [
@@ -403,6 +409,111 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             )
         except ChartNotFoundError:
             return self.response_404()
+
+    @expose("/<pk>/deck_layers/", methods=("GET",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: (f"{self.__class__.__name__}.deck_layers"),
+        log_to_statsd=False,
+    )
+    def deck_layers(self, pk: int) -> Response:
+        """Gets the sub-layer charts declared by a deck.gl Multiple Layers chart
+        ---
+        get:
+          summary: >-
+            Get the sub-layer charts declared by a deck.gl Multiple Layers chart
+          description: >-
+            Multiple Layers charts (viz_type "deck_multi") reference other
+            saved charts as layers via their `deck_slices` config, but those
+            layer charts typically sit on no dashboard of their own, so a
+            per-layer `GET /api/v1/chart/<id>` can 404 for a principal
+            (e.g. an embedded guest) who is only entitled to the container.
+            This endpoint gates on the container chart and resolves the
+            layers it declares, mirroring the access the legacy explore_json
+            pipeline granted server-side.
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+            description: The id of the Multiple Layers container chart
+          responses:
+            200:
+              description: The container's declared layer charts
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            slice_id:
+                              type: integer
+                            viz_type:
+                              type: string
+                            params:
+                              type: string
+                            datasource_id:
+                              type: integer
+                            datasource_type:
+                              type: string
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        try:
+            container = ChartDAO.get_by_id_or_uuid(str(pk))
+        except ChartNotFoundError:
+            return self.response_404()
+
+        try:
+            container_params = json.loads(container.params or "{}")
+        except (TypeError, ValueError):
+            container_params = {}
+
+        deck_slice_ids = [
+            slice_id
+            for slice_id in container_params.get("deck_slices", [])
+            if isinstance(slice_id, int)
+        ]
+        if not deck_slice_ids:
+            return self.response(200, result=[])
+
+        # The container's own access has already been checked above. Layer
+        # charts sit on no dashboard of their own, so for an embedded guest
+        # (the intended use case, mirroring what the legacy explore_json
+        # pipeline granted server-side) they are resolved without the base
+        # filter. An ordinary logged-in principal is not entitled to read an
+        # arbitrary chart's params/datasource just by naming it in a
+        # container they can edit, so the base filter still applies to them:
+        # a referenced layer they can't otherwise read is silently omitted
+        # below rather than leaked.
+        layers = ChartDAO.find_by_ids(
+            deck_slice_ids, skip_base_filter=security_manager.is_guest_user()
+        )
+        layers_by_id = {layer.id: layer for layer in layers}
+        result = [
+            {
+                "slice_id": slice_id,
+                "viz_type": layers_by_id[slice_id].viz_type,
+                "params": layers_by_id[slice_id].params,
+                "datasource_id": layers_by_id[slice_id].datasource_id,
+                "datasource_type": layers_by_id[slice_id].datasource_type,
+            }
+            for slice_id in deck_slice_ids
+            if slice_id in layers_by_id
+        ]
+        return self.response(200, result=result)
 
     @expose("/", methods=("POST",))
     @protect()
@@ -939,7 +1050,7 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
                 task_status=cache_payload.get_status(),
             )
 
-        if cache_payload.should_trigger_task(force):
+        if cache_payload.should_trigger_task(force, expected_scope=f"chart:{chart.id}"):
             logger.info("Triggering screenshot ASYNC")
             screenshot_obj.cache.set(cache_key, ScreenshotCachePayload().to_dict())
             cache_chart_thumbnail.delay(
@@ -1001,6 +1112,12 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             return self.response_404()
 
         if cache_payload := ChartScreenshot.get_from_cache_key(digest):
+            # The digest is caller-supplied and cache entries are shared
+            # across every chart (and, via the same backend, dashboards) --
+            # without this check any cache_key learned for one chart would
+            # serve its image under a different, merely-accessible `pk`.
+            if cache_payload.get_scope() != f"chart:{chart.id}":
+                return self.response_404()
             if cache_payload.status == StatusValues.UPDATED:
                 try:
                     image = cache_payload.get_image()
@@ -1336,7 +1453,7 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             Warms up the cache for the chart.
             Note for slices a force refresh occurs.
             In terms of the `extra_filters` these can be obtained from records in the JSON
-            encoded `logs.json` column associated with the `explore_json` action.
+            encoded `logs.json` column associated with the `explore` action.
           requestBody:
             description: >-
               Identifies the chart to warm up cache for, and any additional dashboard or
