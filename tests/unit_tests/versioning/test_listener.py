@@ -188,6 +188,7 @@ def test_terminal_event_clears_transaction_state(
             listener.ACTION_META_KEY: {"headline": "restored"},
             listener._INITIAL_STATES_KEY: {("chart", 7): object()},
             listener._FINALIZING_KEY: True,
+            listener.NORMALIZATION_CONTEXT_KEY: {"pending": True},
             "unrelated": "preserved",
         }
     )
