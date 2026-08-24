@@ -209,13 +209,13 @@ def _purge_model(
 def _finalize_blocked(record_id: UUID | None, result: CascadeResult) -> None:
     """Finalize a blocked retention outcome and count suppression metrics."""
     if result.blocked_reason_code is None:
-        # Fail open: never let a reason-threading gap block the purge
-        # audit; the row is finalized blocked with a NULL reason and the
-        # suppression path independently refuses to suppress on it.
-        logger.warning(
-            "deletion_retention: blocked outcome for %s uuid=%s carries no reason code",
-            result.entity_type,
-            result.entity_uuid,
+        # Fail open: never let a reason-threading gap block the purge audit.
+        # The row is finalized blocked with a NULL reason, and the
+        # suppression path both refuses to suppress on it and logs the
+        # detail -- counted rather than logged again here, so one gap
+        # produces one alertable signal instead of two log lines.
+        stats_logger_manager.instance.incr(
+            f"{_METRIC_PREFIX}.blocked_audit_missing_reason"
         )
     disposition: audit.RetentionBlockedDisposition = audit.finalize_retention_blocked(
         record_id, result.blocked_reason_code

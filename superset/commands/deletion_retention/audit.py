@@ -142,8 +142,18 @@ def write_ahead(
         session.close()
 
 
-def finalize(record_id: UUID | None, status: str, **details: Any) -> None:
-    """Finalize a pending attempt on the dedicated audit session."""
+def finalize(
+    record_id: UUID | None,
+    status: str,
+    *,
+    reason: str | None = None,
+    **details: Any,
+) -> None:
+    """Finalize a pending attempt on the dedicated audit session.
+
+    ``reason`` is persisted only for blocked outcomes; the audit records a
+    cause for a purge that did not happen, never for one that did.
+    """
     if record_id is None:
         return
     session = _dedicated_session()
@@ -154,8 +164,7 @@ def finalize(record_id: UUID | None, status: str, **details: Any) -> None:
         referrers = details.get("affected_referrers")
         if referrers:
             values["affected_referrers"] = ",".join(referrers)
-        reason = details.get("reason")
-        if reason is not None:
+        if reason is not None and status == STATUS_BLOCKED:
             values["reason"] = reason
         removed_dashboard_slices = details.get("removed_dashboard_slices")
         if removed_dashboard_slices is not None:
@@ -279,8 +288,7 @@ def _suppress_redundant_block(
     predecessor: PurgeAuditLog | None,
     reason: str | None,
 ) -> bool:
-    """Delete only a pending row with a strictly older same-reason blocked
-    predecessor."""
+    """Delete a pending row only against a strictly older same-reason block."""
     if not reason:
         # Fail safe on a threading gap: a missing current code must retain
         # the row (and be visible), never silently revive the status-only
@@ -441,6 +449,12 @@ def reconcile_pending(stale_before: datetime | None = None) -> dict[str, int]:
     ``confirmed``. A surviving or unresolvable entity means the attempt did
     not durably purge it and is finalized as failed; normal selection may
     retry.
+
+    An attempt that had already decided ``blocked`` when its worker died is
+    indistinguishable here from any other stalled attempt, so it reconciles
+    as failed with no reason: pending rows carry no reason by design, and
+    inventing one would assert evidence this process never witnessed. The
+    next scheduled attempt re-anchors the entity with its real code.
     """
     cutoff = stale_before or _utc_now() - _PENDING_STALE_AFTER
     reconciled = absent = failed = 0

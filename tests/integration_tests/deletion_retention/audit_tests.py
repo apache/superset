@@ -211,6 +211,28 @@ class TestPurgeAudit(DeletionRetentionTestBase):
         assert record.status == audit.STATUS_BLOCKED
         assert record.reason == REASON_REPORT_SCHEDULE
 
+    def test_reason_is_persisted_only_for_blocked_outcomes(self) -> None:
+        """A reason offered for a non-blocked outcome is refused, not stored.
+
+        The audit records a cause for a purge that did not happen; a
+        confirmed or failed row asserting a blocker would misreport its own
+        outcome.
+        """
+        for status in (
+            audit.STATUS_CONFIRMED,
+            audit.STATUS_FAILED,
+            audit.STATUS_TARGET_ABSENT,
+        ):
+            record_id: UUID = self._write_retention_record(
+                entity_uuid=f"non-blocked-{status}"
+            )
+            audit.finalize(record_id, status, reason=REASON_REPORT_SCHEDULE)
+
+            record: PurgeAuditLog = self._get_audit_record(record_id)
+            db.session.refresh(record)
+            assert record.status == status
+            assert record.reason is None
+
     def test_finalized_reason_is_immutable(self) -> None:
         """A second finalization attempt never rewrites the recorded reason."""
         record_id: UUID = self._write_retention_record(entity_uuid="reason-immutable")

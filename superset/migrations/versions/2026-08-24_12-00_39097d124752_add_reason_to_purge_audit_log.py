@@ -23,6 +23,15 @@ blocked outcomes only; NULL for confirmed, failed, non-blocked, and
 pre-existing rows. No backfill: the information was never captured for
 historical records, and readers treat the column as optional.
 
+Apply this migration before deploying the code that depends on it. The
+audit model declares the column, so a worker running the new code against
+the un-migrated table cannot write its write-ahead record; the scheduled
+purge then fails closed (nothing is purged unaudited) and logs a
+write-ahead warning every run until the migration lands.
+
+The downgrade discards every recorded block reason -- the rows survive and
+revert to reason-less, exactly like pre-feature history.
+
 Revision ID: 39097d124752
 Revises: 1072de5ed955
 Create Date: 2026-08-24 12:00:00.000000

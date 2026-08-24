@@ -18,6 +18,7 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 from unittest.mock import MagicMock
 
 import pytest
@@ -82,7 +83,12 @@ def test_unhandled_reference_code_is_reserved_for_the_cascade() -> None:
 
 
 def _session_matching_blockers(*matches: bool) -> MagicMock:
-    """A mock session whose Nth blocker query reports a match iff matches[N]."""
+    """A mock session whose Nth blocker query reports a match iff matches[N].
+
+    Deliberately positional: which blocker matches first is the audit
+    contract under test, so these cases are coupled to the order (and the
+    count) of the queries ``validate_deletion_allowed`` issues.
+    """
     session = MagicMock()
     session.execute.side_effect = [
         MagicMock(first=MagicMock(return_value=(1,) if match else None))
@@ -93,6 +99,9 @@ def _session_matching_blockers(*matches: bool) -> MagicMock:
 
 def test_report_block_raises_with_the_report_schedule_code() -> None:
     """A chart blocked by a report reference carries REASON_REPORT_SCHEDULE."""
+    # avoid app-init regression: superset.models.* evaluates
+    # encrypted_field_factory at class-definition time, which fails
+    # in a partial-collection unit run with no Flask app active.
     from superset.models.slice import Slice
 
     with pytest.raises(PurgeBlockedError) as info:
@@ -105,6 +114,9 @@ def test_report_block_raises_with_the_report_schedule_code() -> None:
 
 def test_welcome_dashboard_block_raises_with_the_user_attribute_code() -> None:
     """A welcome-page block carries a code distinct from the report code."""
+    # avoid app-init regression: superset.models.* evaluates
+    # encrypted_field_factory at class-definition time, which fails
+    # in a partial-collection unit run with no Flask app active.
     from superset.models.dashboard import Dashboard
 
     with pytest.raises(PurgeBlockedError) as info:
@@ -114,8 +126,40 @@ def test_welcome_dashboard_block_raises_with_the_user_attribute_code() -> None:
     assert info.value.reason_code == REASON_USER_ATTRIBUTE
 
 
+def test_reason_code_survives_a_related_table_rename() -> None:
+    """A renamed table keeps the blocker's declared code.
+
+    The code is declared on the blocker, never derived from the physical
+    table name, so a schema rename changes only which table the blocker
+    looks at — persisted audit history and the suppression predicate keep
+    comparing the same literal.
+    """
+    # avoid app-init regression: superset.models.* evaluates
+    # encrypted_field_factory at class-definition time, which fails
+    # in a partial-collection unit run with no Flask app active.
+    from superset.models.slice import Slice
+
+    policy = get_purge_policy(Slice)
+    renamed = tuple(
+        replace(dependency, key=replace(dependency.key, related_table="reports_v2"))
+        if dependency.classification is DependencyClassification.BLOCK
+        else dependency
+        for dependency in policy.dependencies
+    )
+    blocker = next(
+        dependency
+        for dependency in renamed
+        if dependency.classification is DependencyClassification.BLOCK
+    )
+    assert blocker.key.related_table == "reports_v2"
+    assert blocker.blocked_reason_code == REASON_REPORT_SCHEDULE
+
+
 def test_first_declared_blocker_wins_when_several_match() -> None:
     """A dashboard matching both blockers records the first-declared code."""
+    # avoid app-init regression: superset.models.* evaluates
+    # encrypted_field_factory at class-definition time, which fails
+    # in a partial-collection unit run with no Flask app active.
     from superset.models.dashboard import Dashboard
 
     with pytest.raises(PurgeBlockedError) as info:
