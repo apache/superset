@@ -1513,4 +1513,28 @@ class TestGetChartSqlTool:
 
             data = result.structured_content.get("result", result.structured_content)
             assert data["error_type"] == "ValidationError"
-            assert "Invalid chart query data" in data["error"]
+            # The saved query_context path names the offending input directly
+            # instead of deferring to the form_data fallback's generic message.
+            assert "Invalid extra_form_data filter" in data["error"]
+
+    def test_stale_query_context_falls_back_instead_of_erroring(self):
+        """A saved query_context missing "datasource" is stale, not bad input.
+
+        Filter merging needs the datasource id/type, so it cannot run. That must
+        hand control back to the caller (return None) so the SQL is rebuilt from
+        the chart's form_data — not surface a filter ValidationError.
+        """
+        from superset.utils import json as _json
+
+        mock_chart = Mock()
+        mock_chart.id = 41
+        mock_chart.query_context = _json.dumps(
+            {"queries": [{"columns": ["country"], "filters": []}]}
+        )
+
+        result = _get_chart_sql_mod._sql_from_saved_query_context(
+            mock_chart,
+            {"filters": [{"col": "country", "op": "==", "val": "USA"}]},
+        )
+
+        assert result is None

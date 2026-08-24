@@ -176,13 +176,32 @@ def _sql_from_saved_query_context(
         qc_json["force"] = False
 
         if extra_form_data:
+            # Resolve the pieces of the saved context the merge depends on first.
+            # Failures here mean the context itself is stale, not that the
+            # request's filters are bad, so the caller should rebuild it from
+            # form_data rather than surfacing a validation error.
             try:
-                for query in qc_json.get("queries", []):
+                datasource_id = qc_json["datasource"]["id"]
+                datasource_type = qc_json["datasource"]["type"]
+                queries = qc_json.get("queries", [])
+                if not isinstance(queries, list):
+                    raise TypeError("queries must be a list")
+            except (AttributeError, KeyError, TypeError) as ex:
+                logger.warning(
+                    "Saved query context is unusable for chart %s; "
+                    "falling back to form_data: %s",
+                    chart.id,
+                    ex,
+                )
+                return None
+
+            try:
+                for query in queries:
                     merge_extra_form_data_filters_into_query(
                         query,
                         extra_form_data,
-                        qc_json["datasource"]["id"],
-                        qc_json["datasource"]["type"],
+                        datasource_id,
+                        datasource_type,
                     )
             except (AttributeError, KeyError, TypeError) as ex:
                 return ChartError(
