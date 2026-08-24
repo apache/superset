@@ -204,8 +204,7 @@ const VirtualTable = <RecordType extends object>(
   if (totalWidth < columnSizingWidth) {
     const lastColumn = mergedColumns[mergedColumns.length - 1];
     lastColumn.width =
-      (lastColumn.width as number) +
-      Math.floor(columnSizingWidth - totalWidth);
+      (lastColumn.width as number) + Math.floor(columnSizingWidth - totalWidth);
   }
 
   const gridRef = useRef<GridImperativeAPI>(null);
