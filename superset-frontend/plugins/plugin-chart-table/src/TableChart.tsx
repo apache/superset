@@ -1138,7 +1138,8 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                 ?.backgroundColor || backgroundColor;
             arrow =
               column.label === comparisonLabels[0]
-                ? basicColorColumnFormatters[row.index]?.[column.key]?.mainArrow
+                ? (basicColorColumnFormatters[row.index]?.[column.key]
+                    ?.mainArrow ?? arrow)
                 : '';
           }
           const rowSurfaceColor =
@@ -1209,15 +1210,18 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             basicColorColumnFormatters &&
             basicColorColumnFormatters?.length > 0
           ) {
-            arrowStyles = css`
-              color: ${
-                basicColorColumnFormatters[row.index]?.[column.key]
-                  ?.arrowColor === ColorSchemeEnum.Green
-                  ? theme.colorSuccess
-                  : theme.colorError
-              };
-              margin-right: ${theme.sizeUnit}px;
-            `;
+            const columnArrowColor =
+              basicColorColumnFormatters[row.index]?.[column.key]?.arrowColor;
+            if (columnArrowColor) {
+              arrowStyles = css`
+                color: ${
+                  columnArrowColor === ColorSchemeEnum.Green
+                    ? theme.colorSuccess
+                    : theme.colorError
+                };
+                margin-right: ${theme.sizeUnit}px;
+              `;
+            }
           }
 
           const cellProps = {
