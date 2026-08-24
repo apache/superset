@@ -323,7 +323,7 @@ def test_update_command_skips_removal_of_inaccessible_objects(
         side_effect=can_modify,
     )
     mocker.patch(
-        "superset.daos.tag.current_user_can_modify_object",
+        "superset.commands.utils.current_user_can_modify_object",
         side_effect=can_modify,
     )
 
@@ -397,7 +397,7 @@ def test_update_command_empty_objects_to_tag_only_removes_accessible(
         side_effect=can_modify,
     )
     mocker.patch(
-        "superset.daos.tag.current_user_can_modify_object",
+        "superset.commands.utils.current_user_can_modify_object",
         side_effect=can_modify,
     )
 
