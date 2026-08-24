@@ -88,6 +88,15 @@ const mockCharts = [
 // list so `_info` requests resolve to it rather than the broader list glob.
 // withToasts injects the toast callbacks as props; the harness renders no
 // toast container, so the spy is the only way to pin what the user is told.
+// The type label for the dataset concept is flag-aware (SEMANTIC_LAYERS →
+// "Datasource"); mock the flag reader so tests can exercise both states. The
+// default (false for every flag) matches the real test environment, where no
+// bootstrap flags are set.
+jest.mock('@superset-ui/core', () => ({
+  ...jest.requireActual('@superset-ui/core'),
+  isFeatureEnabled: jest.fn(() => false),
+}));
+
 const mockAddDangerToast = jest.fn();
 jest.mock('src/components/MessageToasts/withToasts', () => ({
   __esModule: true,
@@ -572,4 +581,55 @@ test('a viewer who can read none of the types gets an empty state, not three 403
   ).toBeInTheDocument();
   // No list fetch was ever issued.
   expect(fetchMock.callHistory.calls(/chart\/\?q/)).toHaveLength(0);
+});
+
+test('labels the dataset type "Datasource" when semantic layers is enabled', async () => {
+  const { isFeatureEnabled } = jest.requireMock('@superset-ui/core');
+  (isFeatureEnabled as jest.Mock).mockImplementation(
+    (flag: string) => flag === 'SEMANTIC_LAYERS',
+  );
+  mockRoutes();
+  try {
+    renderArchivedList();
+    await screen.findByText('Deleted Chart One');
+
+    userEvent.click(screen.getByRole('combobox', { name: 'Type' }));
+    expect(
+      await screen.findByRole('option', { name: 'Datasource' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('option', { name: 'Dataset' }),
+    ).not.toBeInTheDocument();
+
+    // Selecting the renamed option still drives the dataset resource —
+    // the underlying type value is flag-independent.
+    await selectOption('Datasource', 'Type');
+    await screen.findByText('deleted_table_one');
+    expect(
+      fetchMock.callHistory.calls(datasetListEndpoint).length,
+    ).toBeGreaterThan(0);
+    expect(screen.getAllByText('Datasource').length).toBeGreaterThan(0);
+  } finally {
+    (isFeatureEnabled as jest.Mock).mockImplementation(() => false);
+  }
+});
+
+test('labels the dataset type "Dataset" when semantic layers is disabled', async () => {
+  mockRoutes();
+  renderArchivedList();
+  await screen.findByText('Deleted Chart One');
+
+  userEvent.click(screen.getByRole('combobox', { name: 'Type' }));
+  expect(
+    await screen.findByRole('option', { name: 'Dataset' }),
+  ).toBeInTheDocument();
+  expect(
+    screen.queryByRole('option', { name: 'Datasource' }),
+  ).not.toBeInTheDocument();
+
+  await selectOption('Dataset', 'Type');
+  await screen.findByText('deleted_table_one');
+  expect(
+    fetchMock.callHistory.calls(datasetListEndpoint).length,
+  ).toBeGreaterThan(0);
 });
