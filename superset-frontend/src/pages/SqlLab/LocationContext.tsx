@@ -41,12 +41,14 @@ export const LocationProvider: FC<{ children?: ReactNode }> = ({
   const queryParams = new URLSearchParams(location.search);
   const permalink = location.pathname.match(/\/p\/\w+/)?.[0].slice(3);
   if (queryParams.size > 0 || permalink) {
-    const autorun = queryParams.get('autorun') === 'true';
+    // Deep links (querystring or permalink) prefill the editor and wait
+    // for the user to press Run. Only in-app navigations that pass
+    // `location.state` (handled above) may request autorun.
     const isDataset = queryParams.get('isDataset') === 'true';
     const queryParamsState = {
       requestedQuery: {
         ...Object.fromEntries(queryParams),
-        autorun,
+        autorun: false,
         permalink,
       },
       isDataset,
