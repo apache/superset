@@ -25,7 +25,6 @@ from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
 from flask import current_app
 from flask.cli import with_appcontext
-from flask_appbuilder import Model
 from flask_appbuilder.api import BaseApi
 from flask_appbuilder.api.manager import resolver
 
@@ -51,22 +50,6 @@ logger = logging.getLogger(__name__)
 def set_database_uri(database_name: str, uri: str, skip_create: bool) -> None:
     """Updates a database connection URI"""
     database_utils.get_or_create_db(database_name, uri, not skip_create)
-
-
-@click.command()
-@with_appcontext
-@transaction()
-def sync_tags() -> None:
-    """Rebuilds special tags (owner, type, favorited by)."""
-    # pylint: disable=no-member
-    metadata = Model.metadata
-
-    # pylint: disable=import-outside-toplevel
-    from superset.common.tags import add_favorites, add_owners, add_types
-
-    add_types(metadata)
-    add_owners(metadata)
-    add_favorites(metadata)
 
 
 @click.command()
