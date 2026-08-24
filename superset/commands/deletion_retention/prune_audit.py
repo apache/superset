@@ -66,18 +66,17 @@ survivor to promote, so a selected duplicate may be removed slightly ahead
 of its retention window in that case. It was redundant either way and the
 streak's earliest row is untouched.
 
-Known limitation — these guards are evaluated when candidates are selected,
-not when they are deleted, so they cover rows that exist at selection time.
-``created_on`` is stamped by the writing process rather than the database
-(:func:`audit.utc_now`), and ``_recover_retention_blocked`` re-inserts a row
-at its original timestamp, so a row *can* become visible with a timestamp in
-the past. A pending row appearing between an entity's survivor and an
-already-selected row, in the window between this module's SELECT and its
-DELETE, would evade the guard. Closing that completely requires evaluating
-candidacy inside the DELETE statement, serializing pruning against the audit
-writers, or a database-assigned ``created_on``; the exposure is bounded by
-the writers' clock spread and by how closely spaced an entity's blocked rows
-are, so it is tracked as follow-up rather than solved here.
+Candidate selection is embedded in each ``DELETE`` statement. The derived-table
+wrapper keeps that shape legal on MySQL while ensuring that a pending or
+recovered row committed before the delete is evaluated participates in the
+survivor and boundary predicates. No stale list of candidate ids crosses a
+transaction boundary.
+
+Audit creation/recovery and every pruning batch take the same singleton
+database write lock before assigning a timestamp or evaluating candidates.
+The lock is held through commit, so an audit row cannot become visible in an
+already-processed logical past. Automatic pruning still ships disabled by
+default so operators explicitly choose their retention policy.
 """
 
 from __future__ import annotations
@@ -87,14 +86,16 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from functools import partial
-from typing import Any, NamedTuple
-from uuid import UUID
+from typing import Any, Literal, NamedTuple, TypeAlias
 
 import sqlalchemy as sa
 from flask import current_app
 
 from superset import db
-from superset.commands.deletion_retention.audit import utc_now
+from superset.commands.deletion_retention.audit import (
+    acquire_coordination_lock,
+    utc_now,
+)
 from superset.models.purge_audit_log import (
     PurgeAuditLog,
     STATUS_BLOCKED,
@@ -131,8 +132,8 @@ BATCH_SIZE: int = 500
 #: remaining backlog carries over to the next scheduled run (FR-004/SC-004).
 MAX_BATCHES_PER_RUN: int = 10
 
-OPERATIONAL_RETENTION_KEY = "PURGE_AUDIT_OPERATIONAL_RETENTION_DAYS"
-EVIDENCE_RETENTION_KEY = "PURGE_AUDIT_EVIDENCE_RETENTION_DAYS"
+OPERATIONAL_RETENTION_KEY: str = "PURGE_AUDIT_OPERATIONAL_RETENTION_DAYS"
+EVIDENCE_RETENTION_KEY: str = "PURGE_AUDIT_EVIDENCE_RETENTION_DAYS"
 
 
 class ResolvedWindow(NamedTuple):
@@ -147,11 +148,6 @@ class ResolvedWindow(NamedTuple):
     days: int | None
     invalid_key: str | None = None
 
-    @property
-    def enabled(self) -> bool:
-        """Whether this category should run at all."""
-        return self.days is not None
-
 
 def _validated_window(key: str, value: Any) -> ResolvedWindow:
     """Validate a configured day count, failing closed on anything odd.
@@ -163,7 +159,7 @@ def _validated_window(key: str, value: Any) -> ResolvedWindow:
     # config mistakes, not day counts, on a knob that deletes rows.
     if not isinstance(value, bool) and not isinstance(value, float):
         try:
-            days = int(value)
+            days: int = int(value)
         except (TypeError, ValueError):
             days = 0
         if days > 0:
@@ -190,7 +186,7 @@ def resolve_evidence_retention_days() -> ResolvedWindow:
     Unset is the documented "never expire evidence" default (FR-006), not an
     error, so it produces a disabled window with no warning.
     """
-    value = current_app.config.get(EVIDENCE_RETENTION_KEY)
+    value: Any = current_app.config.get(EVIDENCE_RETENTION_KEY)
     if value is None:
         return ResolvedWindow(None)
     return _validated_window(EVIDENCE_RETENTION_KEY, value)
@@ -236,7 +232,7 @@ def _streak_boundary_subquery(now: datetime) -> sa.Subquery:
     excluded so a skewed writer clock cannot push the boundary ahead of a
     live streak and make its rows look resolved.
     """
-    table = PurgeAuditLog.__table__
+    table: sa.Table = PurgeAuditLog.__table__
     return (
         sa.select(
             table.c.entity_type.label("entity_type"),
@@ -260,8 +256,8 @@ def _survivor_subquery(now: datetime) -> sa.Subquery:
     with microsecond precision ties are pathological, and keeping an extra
     row errs on the preserving side.
     """
-    table = PurgeAuditLog.__table__
-    boundary = _streak_boundary_subquery(now)
+    table: sa.Table = PurgeAuditLog.__table__
+    boundary: sa.Subquery = _streak_boundary_subquery(now)
     return (
         sa.select(
             table.c.entity_type.label("entity_type"),
@@ -302,7 +298,7 @@ def _preceded_by_unresolved_attempt(table: sa.Table) -> sa.ColumnElement[bool]:
     appear at any moment, and the blocked row after it would become the new
     streak's survivor — the very row pruning must never delete.
     """
-    pending = table.alias("unresolved_attempt")
+    pending: sa.Table = table.alias("unresolved_attempt")
     return sa.exists(
         sa.select(sa.literal(1))
         .select_from(pending)
@@ -317,8 +313,8 @@ def _preceded_by_unresolved_attempt(table: sa.Table) -> sa.ColumnElement[bool]:
     )
 
 
-def _duplicate_candidate_ids(now: datetime, limit: int) -> list[UUID]:
-    """Ids of current-streak blocked rows that are not the streak survivor.
+def _duplicate_candidates(now: datetime, limit: int) -> sa.sql.Select:
+    """Select current-streak blocked rows that are not the streak survivor.
 
     Age-independent by design (FR-003): a duplicate is prunable the moment a
     streak has a survivor, regardless of the retention window. Trigger is not
@@ -332,9 +328,9 @@ def _duplicate_candidate_ids(now: datetime, limit: int) -> list[UUID]:
     a deployment may have disabled or left in dry-run — so a long-lived
     pending row defers its successors indefinitely rather than risking them.
     """
-    table = PurgeAuditLog.__table__
-    survivor = _survivor_subquery(now)
-    stmt = (
+    table: sa.Table = PurgeAuditLog.__table__
+    survivor: sa.Subquery = _survivor_subquery(now)
+    return (
         sa.select(table.c.id)
         .select_from(
             table.join(
@@ -352,13 +348,12 @@ def _duplicate_candidate_ids(now: datetime, limit: int) -> list[UUID]:
         .order_by(table.c.created_on)
         .limit(limit)
     )
-    return [row[0] for row in db.session.execute(stmt)]
 
 
-def _operational_candidate_ids(
+def _operational_candidates(
     now: datetime, cutoff: datetime, limit: int
-) -> list[UUID]:
-    """Ids of aged-out operational rows, excluding current-streak survivors.
+) -> sa.sql.Select:
+    """Select aged-out operational rows, excluding current-streak survivors.
 
     Covers ``failed`` rows and resolved-streak ``blocked`` rows older than
     the cutoff. A current streak's survivor is exempt regardless of age
@@ -375,9 +370,9 @@ def _operational_candidate_ids(
     category needs the guard as much as the duplicate category does.
     ``failed`` rows neither join nor break streaks, so they are unaffected.
     """
-    table = PurgeAuditLog.__table__
-    survivor = _survivor_subquery(now)
-    is_survivor = sa.exists(
+    table: sa.Table = PurgeAuditLog.__table__
+    survivor: sa.Subquery = _survivor_subquery(now)
+    is_survivor: sa.ColumnElement[bool] = sa.exists(
         sa.select(sa.literal(1))
         .select_from(survivor)
         .where(
@@ -388,7 +383,7 @@ def _operational_candidate_ids(
             )
         )
     )
-    unstable_block = sa.and_(
+    unstable_block: sa.ColumnElement[bool] = sa.and_(
         table.c.status == STATUS_BLOCKED,
         sa.or_(
             # No identity, so no streak to be proven redundant against.
@@ -398,7 +393,7 @@ def _operational_candidate_ids(
             is_survivor,
         ),
     )
-    stmt = (
+    return (
         sa.select(table.c.id)
         .where(table.c.status.in_(OPERATIONAL_STATUSES))
         .where(table.c.created_on < cutoff)
@@ -407,15 +402,14 @@ def _operational_candidate_ids(
         # Oldest first, so a budget-truncated run makes progress on the
         # rows closest to expiry. (Blocked rows never outlive the boundary
         # that resolved them, but that is enforced by the boundary guard in
-        # _evidence_candidate_ids, not by this ordering.)
+        # _evidence_candidates, not by this ordering.)
         .order_by(table.c.created_on)
         .limit(limit)
     )
-    return [row[0] for row in db.session.execute(stmt)]
 
 
-def _evidence_candidate_ids(now: datetime, cutoff: datetime, limit: int) -> list[UUID]:
-    """Ids of protected-evidence rows older than the explicit opt-in window.
+def _evidence_candidates(now: datetime, cutoff: datetime, limit: int) -> sa.sql.Select:
+    """Select protected-evidence rows older than the opt-in window.
 
     Excludes any row that still acts as a streak boundary — that is, one with
     a surviving ``blocked`` row older than it for the same entity. Deleting
@@ -426,12 +420,12 @@ def _evidence_candidate_ids(now: datetime, cutoff: datetime, limit: int) -> list
     true under overlapping runs, and it makes an evidence window shorter
     than the operational window safe rather than corrupting.
     """
-    table = PurgeAuditLog.__table__
-    older = table.alias("older_blocked")
+    table: sa.Table = PurgeAuditLog.__table__
+    older: sa.Table = table.alias("older_blocked")
     # ``pending`` counts alongside ``blocked``: the purge path finalizes a
     # pending row in place to ``blocked``, so an older pending row is a
     # blocked row that has not announced itself yet.
-    bounds_surviving_blocks = sa.exists(
+    bounds_surviving_blocks: sa.ColumnElement[bool] = sa.exists(
         sa.select(sa.literal(1))
         .select_from(older)
         .where(
@@ -443,7 +437,7 @@ def _evidence_candidate_ids(now: datetime, cutoff: datetime, limit: int) -> list
             )
         )
     )
-    stmt = (
+    return (
         sa.select(table.c.id)
         .where(table.c.status.in_(PROTECTED_STATUSES))
         .where(table.c.created_on < cutoff)
@@ -452,58 +446,86 @@ def _evidence_candidate_ids(now: datetime, cutoff: datetime, limit: int) -> list
         .order_by(table.c.created_on)
         .limit(limit)
     )
-    return [row[0] for row in db.session.execute(stmt)]
 
 
-def _delete_batch(ids: list[UUID], expected_statuses: frozenset[str]) -> int:
-    """Conditionally delete a candidate batch; return the actual rowcount.
+def _delete_statement(
+    select_candidates: Callable[[int], sa.sql.Select],
+) -> sa.sql.Delete:
+    """Build a portable delete that re-evaluates candidate safety."""
+    table: sa.Table = PurgeAuditLog.__table__
+    candidates: sa.Subquery = select_candidates(BATCH_SIZE).subquery("prune_candidates")
+    candidate_ids: sa.sql.Select = sa.select(candidates.c.id)
+    return sa.delete(table).where(table.c.id.in_(candidate_ids))
 
-    The status re-check makes overlapping runs and racing writers safe: a row
-    that changed status (or was already deleted) since candidate selection is
-    simply not matched, and the count reflects only what this statement
-    removed (FR-010). Deleting by primary key rather than by re-running the
-    selection predicate also keeps the statement portable — a self-referencing
-    subquery in a ``DELETE`` is rejected outright by MySQL.
+
+def _delete_batch(select_candidates: Callable[[int], sa.sql.Select]) -> int:
+    """Atomically select and delete one candidate batch.
+
+    The nested derived table is evaluated as part of the DELETE, so every
+    survivor, boundary, status, and age predicate sees the same committed
+    database state as the mutation. The extra SELECT layer is required by
+    MySQL, which rejects a direct self-referencing subquery in DELETE.
     """
-    if not ids:
-        return 0
-    result = db.session.execute(
-        sa.delete(PurgeAuditLog.__table__).where(
-            PurgeAuditLog.__table__.c.id.in_(ids),
-            PurgeAuditLog.__table__.c.status.in_(expected_statuses),
-        )
-    )
+    acquire_coordination_lock(db.session)
+    execution_result: Any = db.session.execute(_delete_statement(select_candidates))
     db.session.commit()  # pylint: disable=consider-using-transaction
-    return int(result.rowcount or 0)
+    return int(execution_result.rowcount or 0)
+
+
+def _has_candidates(select_candidates: Callable[[int], sa.sql.Select]) -> bool:
+    """Return whether a category still has at least one candidate."""
+    return db.session.execute(select_candidates(1)).first() is not None
+
+
+_CategoryName: TypeAlias = Literal[
+    "blocked_duplicates", "operational_expired", "evidence_expired"
+]
 
 
 class _Category(NamedTuple):
     """One delete category: what to select, what to delete, where to count."""
 
-    field_name: str
-    expected_statuses: frozenset[str]
-    select_ids: Callable[[int], list[UUID]]
+    name: _CategoryName
+    select_candidates: Callable[[int], sa.sql.Select]
 
 
-def _drain(category: _Category, allowance: int) -> tuple[int, int, bool]:
-    """Delete one category in batches. Returns (removed, unused, drained).
+class _DrainResult(NamedTuple):
+    """Outcome of draining one pruning category."""
 
-    Candidates are re-selected per batch rather than paged from one snapshot:
-    each delete changes the streak picture, and re-selecting is what keeps a
-    budget-truncated run's view consistent with the rows still present.
+    removed: int
+    unused_allowance: int
+    drained: bool
+
+
+def _drain(category: _Category, allowance: int) -> _DrainResult:
+    """Delete one category in batches and report its budget outcome.
+
+    Candidates are re-evaluated in each DELETE rather than paged from one
+    snapshot. Each mutation changes the streak picture, so re-evaluation keeps
+    a budget-truncated run consistent with the rows still present.
     """
-    removed = 0
+    removed: int = 0
     while allowance > 0:
-        ids = category.select_ids(BATCH_SIZE)
-        if not ids:
-            return removed, allowance, True
-        removed += _delete_batch(ids, category.expected_statuses)
+        batch_removed: int = _delete_batch(category.select_candidates)
+        removed += batch_removed
         allowance -= 1
-        if len(ids) < BATCH_SIZE:
-            return removed, allowance, True
+        if batch_removed < BATCH_SIZE:
+            return _DrainResult(removed, allowance, True)
     # Out of allowance. Distinguish "nothing left anyway" from a real
     # backlog, so the carried_over signal only fires when rows remain.
-    return removed, 0, not category.select_ids(1)
+    return _DrainResult(removed, 0, not _has_candidates(category.select_candidates))
+
+
+def _record_removed(
+    result: PruneRunResult, category: _CategoryName, removed: int
+) -> None:
+    """Record a category count without string-based attribute mutation."""
+    if category == "blocked_duplicates":
+        result.blocked_duplicates = removed
+    elif category == "operational_expired":
+        result.operational_expired = removed
+    else:
+        result.evidence_expired = removed
 
 
 def run_prune() -> PruneRunResult:
@@ -518,32 +540,30 @@ def run_prune() -> PruneRunResult:
     this feature exists to stop. ``pending`` rows are structurally excluded
     (no candidate query selects them).
     """
-    now = utc_now()
-    result = PruneRunResult()
-    budget = MAX_BATCHES_PER_RUN
+    now: datetime = utc_now()
+    result: PruneRunResult = PruneRunResult()
+    budget: int = MAX_BATCHES_PER_RUN
 
-    operational = resolve_operational_retention_days()
-    evidence = resolve_evidence_retention_days()
+    operational: ResolvedWindow = resolve_operational_retention_days()
+    evidence: ResolvedWindow = resolve_evidence_retention_days()
     result.invalid_config_keys = [
         window.invalid_key
         for window in (operational, evidence)
         if window.invalid_key is not None
     ]
 
-    categories = [
+    categories: list[_Category] = [
         _Category(
             "blocked_duplicates",
-            frozenset({STATUS_BLOCKED}),
-            partial(_duplicate_candidate_ids, now),
+            partial(_duplicate_candidates, now),
         )
     ]
     if operational.days is not None:
         categories.append(
             _Category(
                 "operational_expired",
-                OPERATIONAL_STATUSES,
                 partial(
-                    _operational_candidate_ids,
+                    _operational_candidates,
                     now,
                     now - timedelta(days=operational.days),
                 ),
@@ -553,10 +573,7 @@ def run_prune() -> PruneRunResult:
         categories.append(
             _Category(
                 "evidence_expired",
-                PROTECTED_STATUSES,
-                partial(
-                    _evidence_candidate_ids, now, now - timedelta(days=evidence.days)
-                ),
+                partial(_evidence_candidates, now, now - timedelta(days=evidence.days)),
             )
         )
 
@@ -565,17 +582,17 @@ def run_prune() -> PruneRunResult:
         # past the run's budget — the floor exists to prevent starvation, not
         # to license overrun if the budget is ever set below the category
         # count.
-        reserved = len(categories) - index - 1
-        allowance = max(1, budget - reserved) if budget > 0 else 0
-        removed, unused, drained = _drain(category, allowance)
-        budget -= allowance - unused
-        setattr(result, category.field_name, removed)
-        result.carried_over = result.carried_over or not drained
+        reserved: int = len(categories) - index - 1
+        allowance: int = max(1, budget - reserved) if budget > 0 else 0
+        drain_result: _DrainResult = _drain(category, allowance)
+        budget -= allowance - drain_result.unused_allowance
+        _record_removed(result, category.name, drain_result.removed)
+        result.carried_over = result.carried_over or not drain_result.drained
 
     return result
 
 
-__all__ = [
+__all__: list[str] = [
     "BATCH_SIZE",
     "EVIDENCE_RETENTION_KEY",
     "MAX_BATCHES_PER_RUN",
