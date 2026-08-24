@@ -176,6 +176,26 @@ def test_happy_path_uploads_and_emails(mocks: dict[str, Any]) -> None:
     assert _no_temp_files_left(JOB_ID)
 
 
+def test_upload_uses_configured_storage_backend(mocks: dict[str, Any]) -> None:
+    # EXCEL_EXPORT_STORAGE (e.g. GCSExportStorage()) takes over the upload
+    # entirely; the default boto3/S3 helper must not also run.
+    from flask import current_app
+
+    mocks["get_charts_in_layout_order"].return_value = [_chart(10, "Good")]
+    mocks["ChartDataCommand"].return_value.run.return_value = {
+        "queries": [{"colnames": ["a"], "data": [{"a": 1}]}]
+    }
+    mock_storage = mock.MagicMock()
+    current_app.config["EXCEL_EXPORT_STORAGE"] = mock_storage
+    try:
+        _run()
+    finally:
+        current_app.config["EXCEL_EXPORT_STORAGE"] = None
+
+    mock_storage.upload_file.assert_called_once()
+    mocks["s3"].upload_file_to_s3.assert_not_called()
+
+
 def test_chart_without_query_context_is_skipped(mocks: dict[str, Any]) -> None:
     mocks["get_charts_in_layout_order"].return_value = [
         _chart(10, "Good"),

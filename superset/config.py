@@ -66,6 +66,7 @@ from superset.tasks.types import ExecutorType
 from superset.themes.types import Theme
 from superset.utils import core as utils
 from superset.utils.encrypt import SQLAlchemyUtilsAdapter
+from superset.utils.export_storage import ExportStorage
 from superset.utils.log import DBEventLogger
 from superset.utils.logging_configurator import DefaultLoggingConfigurator
 from superset.utils.version import get_dev_env_label
@@ -1538,6 +1539,13 @@ EXCEL_EXPORT_LINK_TTL_SECONDS = 86400
 # endpoint_url for S3-compatible stores (MinIO/LocalStack). Credentials
 # otherwise resolve through the standard boto3 chain.
 EXCEL_EXPORT_S3_CLIENT_KWARGS: dict[str, Any] = {}
+# Optional pluggable storage backend (an instance implementing
+# superset.utils.export_storage.ExportStorage), the same pattern as
+# RESULTS_BACKEND or CUSTOM_SECURITY_MANAGER. When unset, the built-in
+# superset.utils.s3 (boto3/AWS S3) backend is used. Set this to e.g.
+# GCSExportStorage() (superset.utils.gcs) for a deployment whose
+# EXCEL_EXPORT_S3_BUCKET names a native Google Cloud Storage bucket.
+EXCEL_EXPORT_STORAGE: ExportStorage | None = None
 # Viz types treated as tables in the "Export Images to Excel" mode: these charts
 # stay tabular (one worksheet of data) while every other viz type is embedded as
 # a rendered image. Set to None to fall back to the built-in default.

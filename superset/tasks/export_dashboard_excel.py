@@ -449,6 +449,17 @@ def _handle_export_failure(
         logger.exception("Failed to record export failure status for %s", job_id)
 
 
+def _upload_export_file(tmp_path: str, bucket: str, key: str) -> None:
+    """Upload the generated workbook via EXCEL_EXPORT_STORAGE if configured
+    (e.g. a GCS backend for a deployment whose bucket isn't S3), else the
+    built-in boto3/S3 helper."""
+    storage = current_app.config.get("EXCEL_EXPORT_STORAGE")
+    if storage is not None:
+        storage.upload_file(tmp_path, bucket, key)
+    else:
+        s3.upload_file_to_s3(tmp_path, bucket, key)
+
+
 @celery_app.task(
     name="export_dashboard_excel",
     bind=True,
@@ -521,7 +532,7 @@ def export_dashboard_excel(
                 f"{dashboard_id}/{job_id}.xlsx"
             )
 
-            s3.upload_file_to_s3(tmp_path, bucket, key)
+            _upload_export_file(tmp_path, bucket, key)
             expires_at = datetime.now(tz=timezone.utc) + timedelta(seconds=ttl)
             # KeyValueEntry.expires_on comparisons use naive datetime.now(), so
             # the stored expiry must be naive UTC too, not tz-aware.
