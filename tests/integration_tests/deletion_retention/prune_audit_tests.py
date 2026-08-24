@@ -341,6 +341,39 @@ class TestPruneAudit(SupersetTestCase):
         assert after.operational_expired == 1  # the pre-attempt block
         assert set(self.remaining_ids("ua")) == {attempt, later_block}
 
+    def test_age_does_not_make_an_unstable_block_expirable(self) -> None:
+        """The same instability applies to age-based expiry, and there it
+        needs no concurrency at all: the duplicate category defers the row
+        and the operational category deletes it in the very same run.
+
+        Seeded entirely outside the retention window, so only the guard —
+        not the cutoff — can save the row.
+        """
+        blocked_since = self.add_row(STATUS_BLOCKED, entity="ao", age_days=100)
+        attempt = self.add_row(STATUS_PENDING, entity="ao", age_days=98)
+        later_block = self.add_row(STATUS_BLOCKED, entity="ao", age_days=95)
+
+        result = self.run_prune()
+
+        assert result.blocked_duplicates == 0
+        assert result.operational_expired == 0
+        assert set(self.remaining_ids("ao")) == {blocked_since, attempt, later_block}
+
+        # Resolving the attempt makes the boundary real: the later block is
+        # the current streak's survivor and is exempt regardless of age,
+        # while the pre-attempt block ages out.
+        db.session.execute(
+            sa.update(PurgeAuditLog.__table__)
+            .where(PurgeAuditLog.__table__.c.id == attempt)
+            .values(status=STATUS_TARGET_ABSENT)
+        )
+        db.session.commit()
+
+        after = self.run_prune()
+
+        assert after.operational_expired == 1
+        assert set(self.remaining_ids("ao")) == {attempt, later_block}
+
     def test_evidence_guard_also_defers_to_an_unresolved_older_attempt(self) -> None:
         """A pending row can finalize to ``blocked``, so it counts as an
         older blocked row for the boundary guard's purposes."""
