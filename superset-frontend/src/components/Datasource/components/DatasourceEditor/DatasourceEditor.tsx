@@ -36,6 +36,7 @@ import {
   SupersetClient,
   getClientErrorObject,
   getExtensionsRegistry,
+  getNumberFormatter,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import { t } from '@apache-superset/core/translation';
@@ -780,12 +781,20 @@ const ResultTable =
   extensionsRegistry.get('sqleditor.extension.resultTable') ?? FilterableTable;
 
 // D3's '%' type is a valid spec that multiplies by 100, so it never trips
-// the "Invalid format" fallback even when applied to a raw count.
-const isPercentD3Format = (d3format?: string): boolean =>
-  !!d3format && d3format.trim().endsWith('%');
+// the "Invalid format" fallback even when applied to a raw count. Parsing
+// via the same registry the chart uses excludes garbage like "foo%" that
+// merely ends in '%' without being a valid D3 spec.
+export const isPercentD3Format = (d3format?: string): boolean => {
+  const trimmed = d3format?.trim();
+  return (
+    !!trimmed && trimmed.endsWith('%') && !getNumberFormatter(trimmed).isInvalid
+  );
+};
 
-const isCountExpression = (expression?: string): boolean =>
-  !!expression && /^\s*count\s*\(/i.test(expression);
+// Anchored to the whole expression so a ratio like `COUNT(*) / COUNT(*)`
+// isn't misclassified as a raw count just because it starts with COUNT(.
+export const isCountExpression = (expression?: string): boolean =>
+  !!expression && /^count\([^()]*\)$/i.test(expression.trim());
 
 function renderMetricFormatWarning(item: Record<string, any>): ReactNode {
   if (
