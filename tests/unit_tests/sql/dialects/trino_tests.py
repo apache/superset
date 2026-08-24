@@ -15,12 +15,28 @@
 # specific language governing permissions and limitations
 # under the License.
 
+import hashlib
+import inspect
+
 import pytest
 import sqlglot
+from sqlglot.parser import Parser as SqlglotParser
 
 from superset.exceptions import SupersetParseError
 from superset.sql.dialects.trino import InlineUDF, Trino
 from superset.sql.parse import SQLScript, SQLStatement, Table
+
+# Hash of ``sqlglot.parser.Parser._parse``'s source, verified against
+# sqlglot 30.16.0 (the version pinned in ``requirements/base.txt``) when
+# ``Trino.Parser._parse`` was copied from it. ``Trino.Parser._parse`` is a
+# hand-maintained copy rather than an extension through a public hook (see
+# its own docstring), so it silently drifts if sqlglot changes this method.
+# This test is a tripwire: a hash mismatch means sqlglot's ``_parse`` moved
+# out from under the copy, and ``Trino.Parser._parse`` needs a re-diff (and
+# this hash needs updating) before the next sqlglot bump.
+_UPSTREAM_PARSE_SOURCE_SHA256 = (
+    "674878e8b6c33a06cffe58c3565dba54e6e3c82c2ad8a5449ac790698f2bd519"
+)
 
 # example from https://trino.io/docs/current/udf/sql/begin.html, reported in
 # https://github.com/apache/superset/issues/26162
@@ -518,3 +534,75 @@ SELECT whoami()
     """.strip()
     script = SQLScript(sql, "trino")
     assert script.statements[0].check_functions_present({"current_user"})
+
+
+def test_udf_body_bare_no_paren_function_call_visible_to_check_functions_present() -> (
+    None
+):
+    """
+    Trino also permits calling a handful of scalar functions with no
+    parentheses at all, e.g. plain ``current_user`` rather than
+    ``current_user()``. That bare form must still be caught, since it
+    otherwise would not have looked like a call at all (nothing follows it).
+    """
+    sql = """
+WITH FUNCTION whoami()
+  RETURNS varchar
+  RETURN current_user
+SELECT whoami()
+    """.strip()
+    script = SQLScript(sql, "trino")
+    assert script.statements[0].check_functions_present({"current_user"})
+
+
+def test_upstream_parse_source_is_unchanged() -> None:
+    """
+    ``Trino.Parser._parse`` is a hand-maintained copy of
+    ``sqlglot.parser.Parser._parse``, not an extension through a public
+    hook (see its own docstring). If sqlglot ever changes that method, this
+    copy silently drifts out of sync instead of failing loudly, so this
+    hashes the upstream source and compares it against the version this
+    copy was last verified against.
+
+    A failure here does not mean anything is broken; it means
+    ``Trino.Parser._parse`` needs a re-diff against the new sqlglot source,
+    and this hash needs updating once that's done.
+    """
+    upstream_source = inspect.getsource(SqlglotParser._parse)
+    upstream_hash = hashlib.sha256(upstream_source.encode()).hexdigest()
+    assert upstream_hash == _UPSTREAM_PARSE_SOURCE_SHA256, (
+        "sqlglot.parser.Parser._parse has changed since Trino.Parser._parse "
+        "was copied from it. Re-diff superset/sql/dialects/trino.py's "
+        "_parse against the new sqlglot source, update its docstring, and "
+        "update _UPSTREAM_PARSE_SOURCE_SHA256 above to match."
+    )
+
+
+@pytest.mark.xfail(
+    reason=(
+        "known limitation: a bare `if`/`loop`/`while`/`repeat` identifier "
+        "right after THEN in a scalar CASE expression is misread as a "
+        "procedural block opener, since THEN also opens a nested statement "
+        "in a procedural IF/CASE statement and both share the same tokens; "
+        "see _STATEMENT_START_PREV_TEXTS"
+    ),
+    strict=True,
+)
+def test_udf_body_case_expression_then_bare_identifier_known_limitation() -> None:
+    """
+    Pins the known limitation documented on ``_STATEMENT_START_PREV_TEXTS``:
+    a scalar ``CASE`` expression whose ``THEN`` branch is a bare identifier
+    spelled like a block-opening keyword fails to parse inside a routine
+    body, because it is indistinguishable from a procedural statement
+    starting there without tracking statement-vs-expression context.
+    """
+    sql = """
+WITH FUNCTION f(x int)
+  RETURNS int
+  BEGIN
+    DECLARE a int DEFAULT CASE x WHEN 1 THEN if ELSE 0 END;
+    RETURN a;
+  END
+SELECT f(1)
+    """.strip()
+    SQLScript(sql, "trino")

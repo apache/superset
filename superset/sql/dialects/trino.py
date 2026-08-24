@@ -37,6 +37,15 @@ AMBIGUOUS_OPENERS: set[str] = {"IF", "REPEAT"}
 
 BODY_KEYWORDS: tuple[str, str] = ("RETURN", "BEGIN")
 
+# Scalar functions Trino allows calling without parentheses, e.g. plain
+# ``current_user`` rather than ``current_user()``. These are the same
+# no-paren functions sqlglot's base parser special-cases (unmodified by the
+# Trino dialect), reused here rather than duplicated so this stays in sync
+# with future sqlglot upgrades.
+_NO_PAREN_FUNCTION_TOKEN_TYPES: frozenset[TokenType] = frozenset(
+    SqlglotTrino.Parser.NO_PAREN_FUNCTIONS
+)
+
 # ``BEGIN``, ``CASE``, and ``END`` are reserved words in sqlglot's Trino
 # tokenizer, so they always carry one of these dedicated token types when
 # used as keywords, and a different one (``STRING``/``IDENTIFIER``) when
@@ -60,6 +69,16 @@ _RESERVED_BLOCK_TOKEN_TYPES: dict[str, TokenType] = {
 # keyword (``IF``, ``LOOP``, ``REPEAT``, ``WHILE``) apart from an unquoted
 # routine parameter or column reference spelled the same way, since Trino
 # does not reserve these words and its tokenizer emits ``VAR`` for both.
+#
+# Known limitation: ``THEN`` precedes a new statement in a procedural ``IF``
+# or ``CASE`` *statement*, but also precedes a scalar value in a ``CASE``
+# *expression* (e.g. ``DEFAULT CASE x WHEN 1 THEN if ELSE 0 END``), and both
+# forms share the same tokens. A bare identifier spelled exactly ``if``,
+# ``loop``, ``while``, or ``repeat`` immediately after ``THEN`` in a scalar
+# ``CASE`` expression is therefore misread as a block opener. Resolving this
+# would need to track statement-vs-expression context rather than a single
+# lookback token, which is a bigger change than this heuristic scanner is
+# meant to carry.
 _STATEMENT_START_PREV_TEXTS: frozenset[str] = frozenset(
     {"BEGIN", ";", "THEN", "ELSE", "DO", "LOOP", "REPEAT", ":"}
 )
@@ -139,12 +158,20 @@ def _extract_function_calls(tokens: t.Sequence[Token]) -> list[exp.Anonymous]:
     positives are harmless here, since this list is only used to check for
     the presence of specific denylisted function names, not to validate the
     call itself.
+
+    A few functions (e.g. ``current_user``, ``current_timestamp``) are also
+    callable with no parentheses at all, so those are matched separately by
+    token type, regardless of what follows.
     """
     return [
         exp.Anonymous(this=tokens[i - 1].text)
         for i in range(1, len(tokens))
         if tokens[i].token_type == TokenType.L_PAREN
         and tokens[i - 1].text.isidentifier()
+    ] + [
+        exp.Anonymous(this=token.text)
+        for token in tokens
+        if token.token_type in _NO_PAREN_FUNCTION_TOKEN_TYPES
     ]
 
 
@@ -284,7 +311,7 @@ class Trino(SqlglotTrino):
 
             This is a copy of ``sqlglot.parser.Parser._parse`` (verified to
             match through sqlglot 30.16.0, the version pinned in
-            ``requirements/base.txt`` as of this writing) with one change:
+            ``requirements/base.txt``) with one change:
             when a statement starts with ``WITH FUNCTION``, ``CREATE
             FUNCTION``, or ``CREATE OR REPLACE FUNCTION``, semicolons inside
             ``BEGIN ... END`` blocks do not split the statement. Because this
