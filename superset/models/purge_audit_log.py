@@ -45,6 +45,20 @@ STATUS_BLOCKED = "blocked"
 #: the compliance record never attributes a success it did not witness.
 STATUS_TARGET_ABSENT = "target_absent"
 
+#: Every status a row may carry. Retention classification (see
+#: ``superset.commands.deletion_retention.prune_audit``) partitions this set;
+#: a status added here without a retention category is never pruned, so the
+#: partition is asserted against this constant rather than restated.
+ALL_STATUSES: frozenset[str] = frozenset(
+    {
+        STATUS_PENDING,
+        STATUS_CONFIRMED,
+        STATUS_FAILED,
+        STATUS_BLOCKED,
+        STATUS_TARGET_ABSENT,
+    }
+)
+
 
 class PurgeAuditLog(Model):
     """Content-free provisional record or immutable retained purge outcome."""

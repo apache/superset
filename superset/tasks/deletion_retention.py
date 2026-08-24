@@ -301,9 +301,9 @@ def _purge_one(
     return result
 
 
-#: The prune task's metric family deliberately nests under the deletion
-#: retention prefix so audit-subsystem dashboards share one namespace.
-_PRUNE_METRIC_PREFIX: str = "deletion_retention.prune_audit"
+#: Metric family for the prune task. The leaf matches the task name so an
+#: operator grepping dashboards for ``prune_purge_audit`` finds its metrics.
+_PRUNE_METRIC_PREFIX: str = "deletion_retention.prune_purge_audit"
 
 
 @celery_app.task(name="deletion_retention.prune_purge_audit")
@@ -326,21 +326,24 @@ def prune_purge_audit() -> dict[str, Any]:
     try:
         result = prune_audit.run_prune()
     except Exception:  # pylint: disable=broad-except
+        # The session may be mid-transaction after a failed DELETE; leaving it
+        # dirty would fail the next statement on a reused session rather than
+        # here, where the traceback is.
+        db.session.rollback()  # pylint: disable=consider-using-transaction
         logger.exception("deletion_retention.prune_purge_audit: task failed")
         stats_logger_manager.instance.incr(f"{_PRUNE_METRIC_PREFIX}.failed")
         return {"error": 1}
     stats_logger_manager.instance.incr(f"{_PRUNE_METRIC_PREFIX}.success")
+    for category, count in result.as_dict()["removed"].items():
+        stats_logger_manager.instance.gauge(
+            f"{_PRUNE_METRIC_PREFIX}.removed.{category}", count
+        )
+    # Backlog convergence (SC-004) is only observable if "the budget ran out
+    # and rows remain" is a metric — a deployment producing prunable rows
+    # faster than one run removes them otherwise shows healthy success
+    # counters forever.
     stats_logger_manager.instance.gauge(
-        f"{_PRUNE_METRIC_PREFIX}.removed.blocked_duplicates",
-        result.blocked_duplicates,
-    )
-    stats_logger_manager.instance.gauge(
-        f"{_PRUNE_METRIC_PREFIX}.removed.operational_expired",
-        result.operational_expired,
-    )
-    stats_logger_manager.instance.gauge(
-        f"{_PRUNE_METRIC_PREFIX}.removed.evidence_expired",
-        result.evidence_expired,
+        f"{_PRUNE_METRIC_PREFIX}.carried_over", int(result.carried_over)
     )
     logger.info(
         "prune_audit: removed blocked_duplicates=%d operational_expired=%d "
