@@ -35,6 +35,7 @@ const mockedProps = {
   onSave: () => {},
   saveQueryWarning: null,
   columns: [],
+  canSaveDataset: true,
 };
 
 const mockState = {

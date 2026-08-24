@@ -1162,7 +1162,7 @@ def test_get_oauth2_fresh_token_raises_on_auth_error(
 
     mock_post = mocker.patch("superset.db_engine_specs.base.requests.post")
     mock_post.return_value.status_code = status_code
-    mock_post.return_value.text = '{"error": "invalid_grant"}'
+    mock_post.return_value.text = '{"error": "provider-payload-sentinel"}'
 
     config: OAuth2ClientConfig = {
         "id": "client-id",
@@ -1177,7 +1177,7 @@ def test_get_oauth2_fresh_token_raises_on_auth_error(
     with pytest.raises(OAuth2TokenRefreshError) as exc_info:
         BaseEngineSpec.get_oauth2_fresh_token(config, "refresh-token")
 
-    assert exc_info.value.error.extra["error"] == '{"error": "invalid_grant"}'
+    assert "provider-payload-sentinel" not in str(exc_info.value.to_dict())
 
 
 @with_config({"DATABASE_OAUTH2_TIMEOUT": timedelta(seconds=30)})
@@ -1480,3 +1480,50 @@ def test_get_parameters_from_uri_keeps_unrelated_query_parameters() -> None:
     )
 
     assert parameters["query"] == {"application_name": "superset"}
+
+
+def test_get_public_information_exposes_ansi_identifier_quote() -> None:
+    """The base spec advertises ANSI double quotes for identifier quoting,
+    escaped by doubling the closing character."""
+    assert BaseEngineSpec.get_public_information()["identifier_quote"] == {
+        "start": '"',
+        "end": '"',
+        "escape_by_doubling": True,
+    }
+
+
+def test_multivalue_columns_disabled_by_default() -> None:
+    """Engines must opt in to multi-value support; base defaults to off."""
+    assert BaseEngineSpec.supports_multivalue_columns is False
+
+
+@pytest.mark.parametrize(
+    "method", ["array_contains_any", "array_contains_all", "array_length"]
+)
+def test_array_capabilities_raise_when_unsupported(method: str) -> None:
+    """Array capability methods raise NotImplementedError unless overridden."""
+    from sqlalchemy import column
+
+    fn = getattr(BaseEngineSpec, method)
+    args = (column("c"), ["v"]) if "contains" in method else (column("c"),)
+    with pytest.raises(NotImplementedError):
+        fn(*args)
+
+
+@pytest.mark.parametrize("aggregate", ["MEDIAN", "STDDEV_SAMP", "VAR_SAMP"])
+def test_base_spec_extended_aggregation_func_defaults_to_unsupported(
+    aggregate: str,
+) -> None:
+    """
+    By default, an engine spec has no verified expression for the "extended"
+    aggregates (MEDIAN/STDDEV_SAMP/VAR_SAMP) -- they must be explicitly opted
+    into per engine spec, the same way `supports_grouping_sets` and
+    `_time_grain_expressions` work. Silence here means "unsupported", not
+    "untested" -- callers must not fall back to guessing SQL.
+    """
+    assert BaseEngineSpec.get_extended_aggregation_func(aggregate) is None
+
+
+def test_base_spec_extended_aggregation_func_unknown_name_is_unsupported() -> None:
+    """An aggregate name outside the known extended set is also just None."""
+    assert BaseEngineSpec.get_extended_aggregation_func("NOT_A_REAL_AGGREGATE") is None

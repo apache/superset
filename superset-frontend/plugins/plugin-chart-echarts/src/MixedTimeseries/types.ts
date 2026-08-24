@@ -24,6 +24,7 @@ import {
   ContributionType,
   TimeFormatter,
   AxisType,
+  TooltipTruncationMode,
 } from '@superset-ui/core';
 import {
   BaseChartProps,
@@ -59,6 +60,7 @@ export type EchartsMixedTimeseriesFormData = QueryFormData & {
   timeGrainSqla?: TimeGranularity;
   forceMaxInterval?: boolean;
   tooltipTimeFormat?: string;
+  tooltipTruncation?: TooltipTruncationMode;
   zoomable: boolean;
   richTooltip: boolean;
   showQueryIdentifiers?: boolean;
@@ -108,6 +110,7 @@ export const DEFAULT_FORM_DATA: EchartsMixedTimeseriesFormData = {
   yAxisFormatSecondary: TIMESERIES_DEFAULTS.yAxisFormat,
   yAxisTitleSecondary: DEFAULT_TITLE_FORM_DATA.yAxisTitle,
   tooltipTimeFormat: TIMESERIES_DEFAULTS.tooltipTimeFormat,
+  tooltipTruncation: TIMESERIES_DEFAULTS.tooltipTruncation,
   xAxisBounds: TIMESERIES_DEFAULTS.xAxisBounds,
   xAxisForceCategorical: TIMESERIES_DEFAULTS.xAxisForceCategorical,
   xAxisTimeFormat: TIMESERIES_DEFAULTS.xAxisTimeFormat,
