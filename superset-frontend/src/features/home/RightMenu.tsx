@@ -614,7 +614,7 @@ const RightMenu = ({
         key: 'new-dropdown',
         label: <Icons.PlusOutlined data-test="new-dropdown-icon" />,
         className: 'submenu-with-caret',
-        icon: <Icons.DownOutlined iconSize="xs" />,
+        icon: <Icons.CaretDownOutlined iconSize="xs" />,
         children: buildNewDropdownItems(),
         popupOffset: NAVBAR_MENU_POPUP_OFFSET,
       });
@@ -631,7 +631,7 @@ const RightMenu = ({
     items.push({
       key: 'settings',
       label: t('Settings'),
-      icon: <Icons.DownOutlined iconSize="xs" />,
+      icon: <Icons.CaretDownOutlined iconSize="xs" />,
       children: buildSettingsMenuItems(),
       className: 'submenu-with-caret',
       popupOffset: NAVBAR_MENU_POPUP_OFFSET,

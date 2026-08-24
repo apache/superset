@@ -136,7 +136,7 @@ export const useThemeMenuItems = ({
   return {
     key: 'theme-sub-menu',
     label: selectedThemeModeIcon,
-    icon: <Icons.DownOutlined iconSize="xs" />,
+    icon: <Icons.CaretDownOutlined iconSize="xs" />,
     className: 'submenu-with-caret',
     children,
     popupOffset: NAVBAR_MENU_POPUP_OFFSET,
