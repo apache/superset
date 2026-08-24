@@ -2153,10 +2153,18 @@ def test_get_rendered_sql_filter_values_index_error_on_empty_list() -> None:
         pytest.param("SELECT 1 {# a comment #}", True, id="comment"),
         # A whole query that is one macro lexes without a `data` token at all.
         pytest.param("{{ dataset(1) }}", True, id="template_only"),
-        # Merely containing braces is not templating: Jinja cannot lex either of
-        # these, so there is nothing here it would expand.
+        # Merely containing braces is not templating: the array literal opens
+        # like a template and is abandoned unterminated, and the JSON literal is
+        # never even mistaken for one.
         pytest.param("SELECT '{{1,2},{3,4}}'::int[]", False, id="postgres_array"),
         pytest.param("""SELECT '{"a": 1}'::json""", False, id="json_literal"),
+        # A real template alongside an array literal is still a template: the
+        # first construct closes before the lexer gives up on the second.
+        pytest.param(
+            "SELECT '{{ current_username() }}', '{{1,2},{3,4}}'::int[]",
+            True,
+            id="template_beside_array",
+        ),
     ],
 )
 def test_has_template(sql: str, expected: bool) -> None:

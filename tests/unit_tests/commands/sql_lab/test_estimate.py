@@ -28,8 +28,8 @@ from superset.commands.sql_lab.estimate import (
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     SupersetErrorException,
+    SupersetParseError,
     SupersetSecurityException,
-    SupersetTemplatedQueryNotEstimableException,
 )
 
 
@@ -401,36 +401,28 @@ def test_run_wraps_raw_jinja_undefined_error(
     undefined attribute/subscript access, e.g. ``{{ foo.bar }}``) must not
     leak past ``run()`` -- it should surface as a typed
     ``SupersetErrorException``, matching the ``ExecuteSqlCommand`` sibling's
-    broad-catch pattern in ``commands/sql_lab/execute.py``.
-
-    ``has_template`` is stubbed to False so that the templating gate lets the
-    SQL through and this test covers the wrapping alone. The gate reaches
-    ``process_template()`` for SQL that Jinja cannot lex, where ``from_string``
-    then raises for itself.
-    """
+    broad-catch pattern in ``commands/sql_lab/execute.py``."""
     from jinja2.exceptions import UndefinedError
 
     mock_database = MagicMock()
     mock_db.session.query.return_value.get.return_value = mock_database
     mock_security_manager.raise_for_access.return_value = None
-    mock_get_template_processor.return_value.has_template.return_value = False
     mock_get_template_processor.return_value.process_template.side_effect = (
         UndefinedError("'foo' is undefined")
     )
 
     command = QueryEstimationCommand(
-        _make_params(sql="SELECT 1", template_params={"x": 1})
+        _make_params(sql="SELECT {{ foo.bar }}", template_params={"x": 1})
     )
     with pytest.raises(SupersetErrorException) as exc_info:
         command.run()
 
-    mock_get_template_processor.return_value.process_template.assert_called_once()
     assert exc_info.value.status == 400
     assert exc_info.value.error.error_type == SupersetErrorType.GENERIC_COMMAND_ERROR
 
 
 # ---------------------------------------------------------------------------
-# A templated query is refused rather than estimated for one expansion of it
+# Templates are rendered before estimating, as on the execution path
 # ---------------------------------------------------------------------------
 
 
@@ -438,74 +430,16 @@ def test_run_wraps_raw_jinja_undefined_error(
 @patch("superset.commands.sql_lab.estimate.get_template_processor")
 @patch("superset.commands.sql_lab.estimate.security_manager", new_callable=MagicMock)
 @patch("superset.commands.sql_lab.estimate.db")
-def test_run_refuses_a_templated_query(
+def test_run_renders_a_template_without_template_params(
     mock_db: MagicMock,
     mock_security_manager: MagicMock,
     mock_get_template_processor: MagicMock,
     mock_app: MagicMock,
 ) -> None:
-    """A query the template processor reports as templated is refused, and the
-    engine is never asked for a cost.
-
-    The refusal is not a syntax error: leaving the raw ``{%`` to ``SQLScript``
-    reports a parse failure, which reads as a typo in a query that is valid.
-    """
-    mock_app.config = {"DISALLOWED_SQL_FUNCTIONS": {}, "DISALLOWED_SQL_TABLES": {}}
-    mock_database = MagicMock()
-    mock_db.session.query.return_value.get.return_value = mock_database
-    mock_security_manager.raise_for_access.return_value = None
-    mock_get_template_processor.return_value.has_template.return_value = True
-
-    command = QueryEstimationCommand(_make_params(sql="{% set a = 1 %}SELECT {{ a }}"))
-    with pytest.raises(SupersetTemplatedQueryNotEstimableException) as exc_info:
-        command.run()
-
-    assert exc_info.value.status == 400
-    assert exc_info.value.error.error_type != SupersetErrorType.SYNTAX_ERROR
-    mock_database.db_engine_spec.estimate_query_cost.assert_not_called()
-
-
-@patch("superset.commands.sql_lab.estimate.app")
-@patch("superset.commands.sql_lab.estimate.get_template_processor")
-@patch("superset.commands.sql_lab.estimate.security_manager", new_callable=MagicMock)
-@patch("superset.commands.sql_lab.estimate.db")
-def test_run_refuses_a_templated_query_with_template_params(
-    mock_db: MagicMock,
-    mock_security_manager: MagicMock,
-    mock_get_template_processor: MagicMock,
-    mock_app: MagicMock,
-) -> None:
-    """Supplying ``template_params`` does not pin down a context function such
-    as ``get_time_filter()``, so it does not make the estimate representative
-    and the query is refused all the same."""
-    mock_app.config = {"DISALLOWED_SQL_FUNCTIONS": {}, "DISALLOWED_SQL_TABLES": {}}
-    mock_db.session.query.return_value.get.return_value = MagicMock()
-    mock_security_manager.raise_for_access.return_value = None
-    mock_get_template_processor.return_value.has_template.return_value = True
-
-    command = QueryEstimationCommand(
-        _make_params(
-            sql="SELECT {{ get_time_filter('ds') }}",
-            template_params={"unrelated": 1},
-        )
-    )
-    with pytest.raises(SupersetTemplatedQueryNotEstimableException):
-        command.run()
-
-    mock_get_template_processor.return_value.process_template.assert_not_called()
-
-
-@patch("superset.commands.sql_lab.estimate.app")
-@patch("superset.commands.sql_lab.estimate.get_template_processor")
-@patch("superset.commands.sql_lab.estimate.security_manager", new_callable=MagicMock)
-@patch("superset.commands.sql_lab.estimate.db")
-def test_run_estimates_an_untemplated_query(
-    mock_db: MagicMock,
-    mock_security_manager: MagicMock,
-    mock_get_template_processor: MagicMock,
-    mock_app: MagicMock,
-) -> None:
-    """SQL with no template still reaches the engine unchanged."""
+    """A query needs no declared parameter to need rendering: ``get_time_filter()``
+    and friends take none, and SQL Lab posts an empty ``template_params`` for an
+    estimate, so gating the render on it left the template in place for the
+    parser to choke on."""
     mock_app.config = {
         "DISALLOWED_SQL_FUNCTIONS": {},
         "DISALLOWED_SQL_TABLES": {},
@@ -518,11 +452,117 @@ def test_run_estimates_an_untemplated_query(
     mock_database.db_engine_spec.query_cost_formatter.return_value = [{"Cost": "1"}]
     mock_db.session.query.return_value.get.return_value = mock_database
     mock_security_manager.raise_for_access.return_value = None
-    mock_get_template_processor.return_value.has_template.return_value = False
+    mock_get_template_processor.return_value.process_template.return_value = "SELECT 1"
 
-    command = QueryEstimationCommand(_make_params(sql="SELECT 1"))
+    sql = "{% set tf = get_time_filter('ds') %}SELECT 1 {% if tf %}{% endif %}"
+    command = QueryEstimationCommand(_make_params(sql=sql))
 
     assert command.run() == [{"Cost": "1"}]
+    mock_get_template_processor.return_value.process_template.assert_called_once_with(
+        sql
+    )
+    # What reaches the engine is the rendered SQL.
     assert (
         mock_database.db_engine_spec.estimate_query_cost.call_args.args[3] == "SELECT 1"
     )
+
+
+@patch("superset.commands.sql_lab.estimate.app")
+@patch("superset.commands.sql_lab.estimate.get_template_processor")
+@patch("superset.commands.sql_lab.estimate.security_manager", new_callable=MagicMock)
+@patch("superset.commands.sql_lab.estimate.db")
+def test_run_estimates_a_template_its_parameters_fully_bind(
+    mock_db: MagicMock,
+    mock_security_manager: MagicMock,
+    mock_get_template_processor: MagicMock,
+    mock_app: MagicMock,
+) -> None:
+    """A template whose parameters are all supplied renders to the same SQL the
+    query would run, so it is estimated rather than refused."""
+    mock_app.config = {
+        "DISALLOWED_SQL_FUNCTIONS": {},
+        "DISALLOWED_SQL_TABLES": {},
+        "SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT": 10,
+        "QUERY_COST_FORMATTERS_BY_ENGINE": {},
+    }
+    mock_database = MagicMock()
+    mock_database.db_engine_spec.engine = "postgresql"
+    mock_database.allow_dml = False
+    mock_database.db_engine_spec.query_cost_formatter.return_value = [{"Cost": "2"}]
+    mock_db.session.query.return_value.get.return_value = mock_database
+    mock_security_manager.raise_for_access.return_value = None
+    mock_get_template_processor.return_value.process_template.return_value = (
+        "SELECT '2026-08-20'"
+    )
+
+    command = QueryEstimationCommand(
+        _make_params(sql="SELECT '{{ ds }}'", template_params={"ds": "2026-08-20"})
+    )
+
+    assert command.run() == [{"Cost": "2"}]
+    mock_get_template_processor.return_value.process_template.assert_called_once_with(
+        "SELECT '{{ ds }}'", ds="2026-08-20"
+    )
+
+
+@patch("superset.commands.sql_lab.estimate.app")
+@patch("superset.commands.sql_lab.estimate.get_template_processor")
+@patch("superset.commands.sql_lab.estimate.security_manager", new_callable=MagicMock)
+@patch("superset.commands.sql_lab.estimate.db")
+def test_run_names_an_unprovided_parameter_rather_than_a_typo(
+    mock_db: MagicMock,
+    mock_security_manager: MagicMock,
+    mock_get_template_processor: MagicMock,
+    mock_app: MagicMock,
+) -> None:
+    """``DebugUndefined`` leaves an unprovided parameter in place instead of
+    raising, and in some positions the leftover then fails to parse. Reported as
+    written that reads as a typo, so the cause is named instead."""
+    mock_app.config = {"DISALLOWED_SQL_FUNCTIONS": {}, "DISALLOWED_SQL_TABLES": {}}
+    mock_database = MagicMock()
+    mock_database.db_engine_spec.engine = "postgresql"
+    mock_database.allow_dml = False
+    mock_db.session.query.return_value.get.return_value = mock_database
+    mock_security_manager.raise_for_access.return_value = None
+    processor = mock_get_template_processor.return_value
+    processor.process_template.return_value = "SELECT * FROM {{ tbl }}"
+    processor.has_template.return_value = True
+
+    command = QueryEstimationCommand(_make_params(sql="SELECT * FROM {{ tbl }}"))
+    with pytest.raises(SupersetParseError) as exc_info:
+        command.run()
+
+    message = exc_info.value.error.message
+    assert "template parameters that were not provided" in message
+    assert "typo" not in message
+    # Still the same error type, so the client keeps handling it as invalid SQL.
+    assert exc_info.value.error.error_type == SupersetErrorType.INVALID_SQL_ERROR
+
+
+@patch("superset.commands.sql_lab.estimate.app")
+@patch("superset.commands.sql_lab.estimate.get_template_processor")
+@patch("superset.commands.sql_lab.estimate.security_manager", new_callable=MagicMock)
+@patch("superset.commands.sql_lab.estimate.db")
+def test_run_leaves_a_genuine_syntax_error_alone(
+    mock_db: MagicMock,
+    mock_security_manager: MagicMock,
+    mock_get_template_processor: MagicMock,
+    mock_app: MagicMock,
+) -> None:
+    """SQL that fails to parse with no template left in it keeps the parser's own
+    message -- the query really is malformed."""
+    mock_app.config = {"DISALLOWED_SQL_FUNCTIONS": {}, "DISALLOWED_SQL_TABLES": {}}
+    mock_database = MagicMock()
+    mock_database.db_engine_spec.engine = "postgresql"
+    mock_database.allow_dml = False
+    mock_db.session.query.return_value.get.return_value = mock_database
+    mock_security_manager.raise_for_access.return_value = None
+    processor = mock_get_template_processor.return_value
+    processor.process_template.return_value = "SELECT FROM FROM"
+    processor.has_template.return_value = False
+
+    command = QueryEstimationCommand(_make_params(sql="SELECT FROM FROM"))
+    with pytest.raises(SupersetParseError) as exc_info:
+        command.run()
+
+    assert "template parameters" not in exc_info.value.error.message

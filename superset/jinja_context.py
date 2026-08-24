@@ -812,20 +812,20 @@ class BaseTemplateProcessor:
         >>> has_template("SELECT '{{1,2},{3,4}}'::int[]")
         False
         """
+        kinds = set()
         try:
-            # The whole stream is consumed before deciding, rather than stopping
-            # at the first non-`data` token: `'{{1,2},{3,4}}'` opens like a
-            # template and only turns out not to be one further along, where the
-            # lexer gives up.
-            kinds = {kind for _, kind, _ in self.env.lex(sql)}
+            for _, kind, _ in self.env.lex(sql):
+                kinds.add(kind)
         except TemplateSyntaxError:
-            # Jinja does not recognize this as one of its own constructs, so
-            # there is nothing here it would expand.
-            return False
+            # Jinja gave up partway. Whatever it had already closed off before
+            # that is still a template, so the tokens seen so far are kept.
+            pass
 
-        # SQL that is nothing but a template produces no `data` token at all, so
-        # this asks for any other kind rather than for `data` plus another.
-        return bool(kinds - {"data"})
+        # Only a closed construct counts. `'{{1,2},{3,4}}'` opens like one and
+        # is abandoned unterminated, so requiring the closing token keeps an
+        # array literal out while still catching a real template that happens
+        # to sit alongside one.
+        return bool(kinds & {"variable_end", "block_end", "comment_end"})
 
     def process_template(self, sql: str, **kwargs: Any) -> str:
         """Processes a sql template

@@ -494,26 +494,6 @@ class SupersetDMLNotAllowedException(SupersetErrorException):
         super().__init__(error)
 
 
-class SupersetTemplatedQueryNotEstimableException(SupersetErrorException):
-    """
-    Cost estimation requested for a query that still contains a template
-    """
-
-    status = 400
-
-    def __init__(self) -> None:
-        error = SupersetError(
-            message=_(
-                "The cost of a query using Jinja templating cannot be estimated, "
-                "because the template is only expanded when the query runs. "
-                "Replace the template with literal values to estimate one case."
-            ),
-            error_type=SupersetErrorType.GENERIC_COMMAND_ERROR,
-            level=ErrorLevel.ERROR,
-        )
-        super().__init__(error)
-
-
 class SupersetInvalidCTASException(SupersetErrorException):
     def __init__(self) -> None:
         error = SupersetError(
