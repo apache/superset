@@ -88,6 +88,9 @@ function attachMockApi(
 
 beforeEach(() => {
   jest.clearAllMocks();
+  // clearAllMocks does not clear a mockReturnValue, so reset the instance lookup explicitly to
+  // stop a return value leaking into any clone-path test added after the ECharts ones below.
+  mockGetInstanceByDom.mockReset();
   mockToJpeg.mockResolvedValue('data:image/jpeg;base64,test');
   mockToPng.mockResolvedValue('data:image/png;base64,test');
 });
@@ -793,10 +796,12 @@ test('re-renders an ECharts canvas at PNG_SCALE pixel ratio so the export is cri
 
   // Instance recovered from the canvas's echarts-host ancestor...
   expect(mockGetInstanceByDom).toHaveBeenCalledWith(host);
-  // ...and re-rendered at PNG_SCALE (2) on a transparent background
+  // ...and re-rendered at PNG_SCALE (2). No backgroundColor is forced, so the chart keeps its
+  // own background (matching the on-screen canvas).
   expect(renderToCanvas).toHaveBeenCalledWith(
-    expect.objectContaining({ pixelRatio: 2, backgroundColor: 'transparent' }),
+    expect.objectContaining({ pixelRatio: 2 }),
   );
+  expect(renderToCanvas.mock.calls[0][0]).not.toHaveProperty('backgroundColor');
   // The cloned canvas dom-to-image serializes is the 2× high-res source
   expect(clonedCanvasWidth).toBe(800);
   expect(clonedCanvasHeight).toBe(600);
@@ -808,7 +813,6 @@ test('re-renders an ECharts canvas at PNG_SCALE pixel ratio so the export is cri
 
 test('preserves a non-ECharts canvas at its on-screen resolution (no re-render)', async () => {
   const { drawImage, restore } = stubCanvasContext();
-  mockGetInstanceByDom.mockReturnValue(undefined);
 
   const container = document.createElement('div');
   const canvas = document.createElement('canvas');
@@ -832,9 +836,97 @@ test('preserves a non-ECharts canvas at its on-screen resolution (no re-render)'
   );
   await handler(syntheticEventFor(container));
 
-  // No echarts-host ancestor → the on-screen bitmap is copied 1:1, not re-rendered
+  // No echarts-host ancestor → echarts is never imported/consulted and the on-screen bitmap is
+  // copied 1:1.
+  expect(mockGetInstanceByDom).not.toHaveBeenCalled();
   expect(clonedCanvasWidth).toBe(400);
   expect(drawImage).toHaveBeenCalled();
+
+  restore();
+  document.body.removeChild(container);
+});
+
+test('falls back to a 1:1 copy when the ECharts instance is gone (getInstanceByDom returns undefined)', async () => {
+  const { drawImage, restore } = stubCanvasContext();
+  // Disposed / not-yet-initialised chart: the host is in the DOM but has no live instance.
+  mockGetInstanceByDom.mockReturnValue(undefined);
+
+  const container = document.createElement('div');
+  const host = document.createElement('div');
+  host.className = 'echarts-host';
+  const canvas = document.createElement('canvas');
+  canvas.width = 400;
+  canvas.height = 300;
+  host.appendChild(canvas);
+  container.appendChild(host);
+  document.body.appendChild(container);
+
+  let clonedCanvasWidth: number | undefined;
+  mockToPng.mockImplementation((cloneRoot: HTMLElement) => {
+    clonedCanvasWidth = cloneRoot.querySelector('canvas')?.width;
+    return Promise.resolve('data:image/png;base64,test');
+  });
+
+  const handler = downloadAsImageOptimized(
+    'div',
+    'Sunburst',
+    false,
+    undefined,
+    { format: 'png' },
+  );
+  await handler(syntheticEventFor(container));
+
+  expect(mockGetInstanceByDom).toHaveBeenCalledWith(host);
+  // No instance → the on-screen bitmap is copied 1:1 and the export still completes
+  expect(clonedCanvasWidth).toBe(400);
+  expect(drawImage).toHaveBeenCalled();
+  expect(mockToPng).toHaveBeenCalled();
+  expect(mockAddWarningToast).not.toHaveBeenCalled();
+
+  restore();
+  document.body.removeChild(container);
+});
+
+test('falls back to a 1:1 copy (and still exports) when renderToCanvas throws', async () => {
+  const { drawImage, restore } = stubCanvasContext();
+  // A valid but unhealthy instance (mid-dispose, errored chart) whose re-render throws.
+  const renderToCanvas = jest.fn(() => {
+    throw new Error('chart is disposing');
+  });
+  mockGetInstanceByDom.mockReturnValue({ renderToCanvas });
+
+  const container = document.createElement('div');
+  const host = document.createElement('div');
+  host.className = 'echarts-host';
+  const canvas = document.createElement('canvas');
+  canvas.width = 400;
+  canvas.height = 300;
+  host.appendChild(canvas);
+  container.appendChild(host);
+  document.body.appendChild(container);
+
+  let clonedCanvasWidth: number | undefined;
+  mockToPng.mockImplementation((cloneRoot: HTMLElement) => {
+    clonedCanvasWidth = cloneRoot.querySelector('canvas')?.width;
+    return Promise.resolve('data:image/png;base64,test');
+  });
+
+  const handler = downloadAsImageOptimized(
+    'div',
+    'Sunburst',
+    false,
+    undefined,
+    { format: 'png' },
+  );
+  await handler(syntheticEventFor(container));
+
+  // The throw is swallowed per-canvas: the export completes via the on-screen 1:1 copy rather
+  // than aborting the whole capture.
+  expect(renderToCanvas).toHaveBeenCalled();
+  expect(clonedCanvasWidth).toBe(400);
+  expect(drawImage).toHaveBeenCalled();
+  expect(mockToPng).toHaveBeenCalled();
+  expect(mockAddWarningToast).not.toHaveBeenCalled();
 
   restore();
   document.body.removeChild(container);

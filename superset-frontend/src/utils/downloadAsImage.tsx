@@ -244,8 +244,9 @@ const preserveCanvasContent = (
   const originalCanvases = original.querySelectorAll('canvas');
   const clonedCanvases = clone.querySelectorAll('canvas');
   // `renderToCanvas` flattens all of an ECharts instance's zrender layers into a single canvas,
-  // so a host that owns several <canvas> layers (e.g. a hover layer) must be re-rendered once.
-  const renderedHosts = new WeakSet<Element>();
+  // so once a host is re-rendered its other <canvas> layers (e.g. a hover layer) are skipped;
+  // if the re-render throws, the host is marked 'failed' so each layer falls back to a 1:1 copy.
+  const hostRenderState = new Map<Element, 'rendered' | 'failed'>();
 
   originalCanvases.forEach((originalCanvas, i) => {
     const clonedCanvas = clonedCanvases[i] as HTMLCanvasElement | undefined;
@@ -255,25 +256,36 @@ const preserveCanvasContent = (
 
     // For ECharts (canvas renderer) charts such as sunburst, re-render the chart at a higher
     // pixel ratio instead of copying the on-screen bitmap, so the PNG path upscales a matching
-    // high-resolution source rather than stretching a low-resolution one.
+    // high-resolution source rather than stretching a low-resolution one. `getInstanceByDom` is
+    // only supplied on the PNG path, so JPEG (and non-ECharts canvases) keep the 1:1 copy below.
     const host = originalCanvas.closest(`.${ECHARTS_HOST_CLASS}`);
-    const instance = host ? getInstanceByDom?.(host as HTMLElement) : undefined;
+    const hostState = host ? hostRenderState.get(host) : undefined;
+    // Sibling layer of a host already re-rendered: the flattened render covers it.
+    if (hostState === 'rendered') return;
+    const instance =
+      host && hostState !== 'failed'
+        ? getInstanceByDom?.(host as HTMLElement)
+        : undefined;
     if (host && instance) {
-      // A secondary layer of an already re-rendered host is fully covered by the flattened
-      // render above; leave its blank clone untouched so the chart is not drawn twice.
-      if (renderedHosts.has(host)) return;
-      renderedHosts.add(host);
-      const hiResCanvas = instance.renderToCanvas({
-        pixelRatio: EXPORT_CANVAS_PIXEL_RATIO,
-        backgroundColor: 'transparent',
-      });
-      clonedCanvas.width = hiResCanvas.width;
-      clonedCanvas.height = hiResCanvas.height;
-      ctx.drawImage(hiResCanvas, 0, 0);
-      return;
+      try {
+        const hiResCanvas = instance.renderToCanvas({
+          pixelRatio: EXPORT_CANVAS_PIXEL_RATIO,
+        });
+        clonedCanvas.width = hiResCanvas.width;
+        clonedCanvas.height = hiResCanvas.height;
+        ctx.drawImage(hiResCanvas, 0, 0);
+        hostRenderState.set(host, 'rendered');
+        return;
+      } catch {
+        // A valid but unhealthy instance (mid-dispose, errored chart) can throw. Mark the host
+        // 'failed' and fall back to the on-screen 1:1 copy below so a single bad chart can never
+        // abort the whole export (e.g. a 20-chart dashboard capture).
+        hostRenderState.set(host, 'failed');
+      }
     }
 
-    // Non-ECharts canvases (deck.gl/WebGL and friends): preserve the on-screen bitmap as-is.
+    // Non-ECharts canvases (deck.gl/WebGL and friends), and the fallback when a re-render is
+    // unavailable or threw: preserve the on-screen bitmap as-is.
     clonedCanvas.width = originalCanvas.width;
     clonedCanvas.height = originalCanvas.height;
     ctx.drawImage(originalCanvas, 0, 0);
@@ -545,14 +557,19 @@ export default function downloadAsImageOptimized(
     // All other chart types: use the clone-based approach
     let cleanup: (() => void) | null = null;
 
-    // Canvas-rendered charts (e.g. ECharts sunburst) must be re-rendered at a higher pixel ratio
-    // for a crisp export. Pull in echarts lazily so it stays out of the core bundle; fall back to
-    // a 1:1 canvas copy if it is unavailable.
+    // Only the PNG path upscales the layout (transform: scale(PNG_SCALE)), so only there does a
+    // higher-resolution canvas help; JPEG keeps the throw-free 1:1 copy. Re-render ECharts
+    // (canvas renderer) charts, e.g. sunburst, at a higher pixel ratio so the upscale samples a
+    // matching source instead of stretching the on-screen bitmap. echarts is pulled in lazily —
+    // only when a chart is actually present — so it stays out of the core bundle; if the import
+    // fails the canvases fall back to a 1:1 copy.
     let getInstanceByDom: EChartsGetInstanceByDom | undefined;
-    try {
-      ({ getInstanceByDom } = await import('echarts/core'));
-    } catch {
-      // echarts not available in this context; canvases keep their on-screen resolution.
+    if (isPng && elementToPrint.querySelector(`.${ECHARTS_HOST_CLASS}`)) {
+      try {
+        ({ getInstanceByDom } = await import('echarts/core'));
+      } catch {
+        // echarts not available in this context; canvases keep their on-screen resolution.
+      }
     }
 
     try {
