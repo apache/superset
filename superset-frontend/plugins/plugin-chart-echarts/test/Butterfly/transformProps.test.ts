@@ -50,7 +50,8 @@ type ButterflyTestEchartOptions = {
 
 const getEchartOptions = (
   props: ButterflyTransformedProps,
-): ButterflyTestEchartOptions => props.echartOptions as ButterflyTestEchartOptions;
+): ButterflyTestEchartOptions =>
+  props.echartOptions as ButterflyTestEchartOptions;
 
 const extractSeriesValues = (props: ButterflyTransformedProps) => {
   const series = getEchartOptions(props).series ?? [];

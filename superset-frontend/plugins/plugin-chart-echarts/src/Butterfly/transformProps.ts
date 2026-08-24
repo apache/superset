@@ -144,8 +144,15 @@ export default function transformProps(
     };
   });
 
-  const labelFormatter = (params: CallbackDataParams) =>
-    defaultFormatter(Math.abs(params.value as number));
+  const labelFormatter = (params: CallbackDataParams) => {
+    const value = Math.abs(params.value as number);
+
+    if (value === 0) {
+      return '';
+    }
+
+    return defaultFormatter(value);
+  };
 
   const series: BarSeriesOption[] = [
     {
