@@ -46,6 +46,12 @@ class ChatProvider {
 
   private panel: ComponentType | undefined;
 
+  // The Disposable for the active chat's own `options.tools`, if it
+  // registered any — tracked separately from `clientTools` itself so a
+  // displaced chat's tools can be torn down below, even though the map they
+  // live in is otherwise deliberately decoupled from any one chat.
+  private activeChatTools: Disposable | undefined;
+
   private opened: boolean;
 
   private stateSubscribers = new Set<() => void>();
@@ -116,6 +122,12 @@ class ChatProvider {
       );
       this.unregisterEmitter.fire(this.chat);
       if (this.opened) this.closePanel();
+      // The chat being discarded here is never getting its own returned
+      // Disposable called by whoever registered it (they still think
+      // they're the active chat) — so its own options.tools, if any, would
+      // otherwise never get torn down. Do it now, on its behalf.
+      this.activeChatTools?.dispose();
+      this.activeChatTools = undefined;
     }
 
     this.chat = chat;
@@ -123,6 +135,11 @@ class ChatProvider {
     this.panel = panel;
     this.registerEmitter.fire(chat);
     this.notifyState();
+
+    const chatTools = options?.tools?.length
+      ? this.registerClientTools(options.tools)
+      : undefined;
+    this.activeChatTools = chatTools;
 
     const disposeChat = new Disposable(() => {
       if (this.chat !== chat) return;
@@ -132,11 +149,13 @@ class ChatProvider {
       this.unregisterEmitter.fire(chat);
       if (this.opened) this.closePanel();
       this.notifyState();
+      // Only clear the field if it's still this registration's own tools —
+      // a later registerChat() call may have already displaced (and
+      // disposed) them, in the branch above.
+      if (this.activeChatTools === chatTools) this.activeChatTools = undefined;
     });
 
-    return options?.tools?.length
-      ? Disposable.from(disposeChat, this.registerClientTools(options.tools))
-      : disposeChat;
+    return chatTools ? Disposable.from(disposeChat, chatTools) : disposeChat;
   }
 
   public getChat(): Chat | undefined {
@@ -247,6 +266,7 @@ class ChatProvider {
     this.chat = undefined;
     this.trigger = undefined;
     this.panel = undefined;
+    this.activeChatTools = undefined;
     this.opened = false;
     this.registerEmitter = createEventEmitter<Chat>();
     this.unregisterEmitter = createEventEmitter<Chat>();

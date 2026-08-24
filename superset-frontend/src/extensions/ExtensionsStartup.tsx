@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 // eslint-disable-next-line no-restricted-syntax
 import * as supersetCore from '@apache-superset/core';
@@ -48,6 +48,7 @@ const ExtensionsStartup: React.FC<{ children?: React.ReactNode }> = ({
   const userId = useSelector<RootState, number | undefined>(
     ({ user }) => user.userId,
   );
+  const coreClientToolsRegistered = useRef(false);
 
   useEffect(() => {
     if (userId == null) return;
@@ -70,15 +71,23 @@ const ExtensionsStartup: React.FC<{ children?: React.ReactNode }> = ({
       views,
     };
 
-    // "core." is added explicitly here because this call isn't
-    // extension-scoped (see ExtensionsLoader's per-extension registerClientTool(s)
-    // rebind, which does this automatically for an extension's own calls).
-    chat.registerClientTools(
-      getCoreClientTools(chat).map(tool => ({
-        ...tool,
-        name: `core.${tool.name}`,
-      })),
-    );
+    // Guarded to run once per mount: this effect re-runs on every userId
+    // change (e.g. switching accounts without a full reload), but the core
+    // tool list itself never depends on which user is logged in — repeating
+    // this call would just re-warn-and-overwrite every tool by name and leak
+    // a fresh, uncaptured Disposable each time.
+    if (!coreClientToolsRegistered.current) {
+      coreClientToolsRegistered.current = true;
+      // "core." is added explicitly here because this call isn't
+      // extension-scoped (see ExtensionsLoader's per-extension registerClientTool(s)
+      // rebind, which does this automatically for an extension's own calls).
+      chat.registerClientTools(
+        getCoreClientTools(chat).map(tool => ({
+          ...tool,
+          name: `core.${tool.name}`,
+        })),
+      );
+    }
 
     if (isFeatureEnabled(FeatureFlag.EnableExtensions)) {
       ExtensionsLoader.getInstance().initializeExtensions();

@@ -35,6 +35,7 @@ const getActiveDashboardId: ClientTool = {
   name: 'dashboard__get_active_id',
   description: 'Get the ID of the currently active dashboard',
   inputSchema: { type: 'object', properties: {} },
+  annotations: { readOnlyHint: true, destructiveHint: false },
   handler: () => {
     const dashboardId = dashboard.getDashboardId();
     if (dashboardId == null) {

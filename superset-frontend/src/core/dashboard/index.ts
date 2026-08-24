@@ -39,6 +39,7 @@ import { store } from 'src/views/store';
 import { provider, useDashboardRevision } from './store';
 import { fetchQueryData } from './chartData';
 import { registerBuiltInWidgets } from './registerBuiltInWidgets';
+import { navigation } from '../navigation';
 
 // Built-in widget types (canvas/markdown/echarts) are registered the same
 // way an extension registers its own — see registerBuiltInWidgets.
@@ -50,8 +51,13 @@ export { useDashboardRevision };
 
 // The classic dashboard's id lives in the ordinary Redux store (populated
 // when its own page mounts), not in `provider` — that class only ever knows
-// about the separate, unpersisted "Dashboard v2" canvas tree.
+// about the separate, unpersisted "Dashboard v2" canvas tree. `dashboardInfo`
+// itself is never reset on navigation (only ever merged/hydrated), so without
+// the page check below, navigating away from a dashboard within the SPA
+// (no full reload) would leave this returning the *previous* dashboard's id
+// instead of "no dashboard active."
 function getDashboardId(): number | undefined {
+  if (navigation.getPage() !== 'dashboard') return undefined;
   return store.getState().dashboardInfo?.id;
 }
 

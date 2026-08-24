@@ -203,6 +203,44 @@ export interface ClientTool {
   inputSchema: Record<string, unknown>;
   /** Invoked with the model's tool-call arguments; return value is reported back as the tool result. */
   handler: (input: unknown) => Promise<unknown> | unknown;
+  /**
+   * Optional behavior hints for this tool. See {@link ClientToolAnnotations}.
+   * Not required, and nothing in this namespace enforces or acts on them
+   * today — the host doesn't yet gate execution (e.g. a confirmation prompt
+   * before a destructive call) on either hint. Setting them now means a
+   * future consumer that does can rely on tools already carrying this
+   * metadata, rather than that being a breaking change to `ClientTool`
+   * itself.
+   */
+  annotations?: ClientToolAnnotations;
+}
+
+/**
+ * Behavior hints for a {@link ClientTool}, named to match the backend MCP
+ * tools' own `readOnlyHint`/`destructiveHint` (`superset/mcp_service/*`'s
+ * `@tool(..., annotations=ToolAnnotations(readOnlyHint=..., destructiveHint=...))`,
+ * from the official `mcp.types.ToolAnnotations`) — so a tool that exists in
+ * both a client and a backend form can describe itself the same way in
+ * either one. Like their backend counterparts, these are hints an agent or
+ * host UI may use to decide things like whether to ask for confirmation
+ * before calling the tool — they are not enforced by this namespace itself.
+ */
+export interface ClientToolAnnotations {
+  /**
+   * True if the tool only reads state and never modifies anything visible
+   * on screen or persisted — e.g. reading the active dashboard's id.
+   * Defaults to `false` (i.e. assume a tool may write) when omitted, same
+   * as the backend's `ToolAnnotations.readOnlyHint`.
+   */
+  readOnlyHint?: boolean;
+  /**
+   * True if calling the tool may destructively change state (data loss,
+   * irreversible UI changes) — only meaningful when {@link readOnlyHint}
+   * is falsy. Defaults to `true` (i.e. assume a non-read-only tool may be
+   * destructive) when omitted, same as the backend's
+   * `ToolAnnotations.destructiveHint`.
+   */
+  destructiveHint?: boolean;
 }
 
 /**

@@ -275,6 +275,20 @@ test('registerClientTool registers a tool under its own full name', () => {
   ]);
 });
 
+test("getTools() preserves a tool's own annotations", () => {
+  const provider = ChatProvider.getInstance();
+  provider.registerClientTool({
+    ...noopTool,
+    name: 'core.dashboard__get_root',
+    annotations: { readOnlyHint: true, destructiveHint: false },
+  });
+
+  expect(provider.getTools()[0].annotations).toEqual({
+    readOnlyHint: true,
+    destructiveHint: false,
+  });
+});
+
 test('registerClientTools registers every tool in the list', () => {
   const provider = ChatProvider.getInstance();
   provider.registerClientTools([
@@ -383,6 +397,36 @@ test('disposing a registerChat() call also removes its options.tools', () => {
   expect(provider.getTools().map(tool => tool.name)).toEqual([
     'core.dashboard__unrelated',
   ]);
+});
+
+test('registering a second chat also unregisters the displaced chat options.tools', () => {
+  const provider = ChatProvider.getInstance();
+  jest.spyOn(console, 'warn').mockImplementation(() => {});
+
+  const firstDisposable = provider.registerChat(
+    { id: 'first.chat', name: 'First' },
+    trigger,
+    panel,
+    { tools: [{ ...noopTool, name: 'first.dashboard__get_root' }] },
+  );
+  provider.registerChat({ id: 'second.chat', name: 'Second' }, trigger, panel, {
+    tools: [{ ...noopTool, name: 'second.dashboard__get_root' }],
+  });
+
+  // The first chat's own tools are gone the moment it's displaced, without
+  // its own returned Disposable ever being called.
+  expect(provider.getTools().map(tool => tool.name)).toEqual([
+    'second.dashboard__get_root',
+  ]);
+
+  // The displaced chat's own handle is a safe no-op afterwards — it must not
+  // clear the second chat's now-active tools.
+  firstDisposable.dispose();
+  expect(provider.getTools().map(tool => tool.name)).toEqual([
+    'second.dashboard__get_root',
+  ]);
+
+  jest.restoreAllMocks();
 });
 
 test('getTools aggregates every registered tool', () => {

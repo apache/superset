@@ -21,6 +21,7 @@ import { SupersetClient } from '@superset-ui/core';
 import { logging } from '@apache-superset/core/utils';
 import type { common as core, chat as chatApi } from '@apache-superset/core';
 import { makeUrl } from 'src/utils/navigationUtils';
+import { Disposable } from 'src/core/models';
 import 'src/extensions/Namespaces';
 import { createExtensionContext } from './ExtensionContext';
 
@@ -128,6 +129,18 @@ class ExtensionsLoader {
     extension: LoadedExtension,
   ): Promise<boolean> {
     try {
+      if (extension.id === 'core') {
+        // "core." is the prefix the host itself uses for its own built-in
+        // registrations (see ExtensionsStartup.tsx's client tools, prefixed
+        // explicitly since that call isn't extension-scoped) — an extension
+        // with this id would get the same "core."-prefixed tool names via
+        // its own per-extension rebind (see loadModule below) and silently
+        // overwrite (or be overwritten by) the host's own tools.
+        throw new Error(
+          'Extension id "core" is reserved for Superset\'s own built-in ' +
+            'registrations and cannot be used by an extension.',
+        );
+      }
       if (extension.remoteEntry) {
         await this.loadModule(extension);
       }
@@ -221,6 +234,13 @@ class ExtensionsLoader {
     // own module never has to (see ClientTool.name's own docs on why this
     // only applies to calls made through this scoped instance, not to a
     // host-code call like ExtensionsStartup's own "core." tools).
+    //
+    // Every Disposable these three hand back is also collected into
+    // `registrations`, below — factory() (where these are actually called)
+    // can throw partway through an extension's own registrations, and
+    // without rolling those back, a "failed to initialize" extension would
+    // still leave its chat/tools registered and callable.
+    const registrations: Disposable[] = [];
     const qualifyToolName = (tool: chatApi.ClientTool) => ({
       ...tool,
       name: `${extension.id}.${tool.name}`,
@@ -232,17 +252,35 @@ class ExtensionsLoader {
         trigger: ComponentType,
         panel: ComponentType,
         options?: chatApi.RegisterChatOptions,
-      ) =>
-        window.superset.chat.registerChat(chat, trigger, panel, {
-          ...options,
-          ...(options?.tools && {
-            tools: options.tools.map(qualifyToolName),
-          }),
-        }),
-      registerClientTool: (tool: chatApi.ClientTool) =>
-        window.superset.chat.registerClientTool(qualifyToolName(tool)),
-      registerClientTools: (tools: chatApi.ClientTool[]) =>
-        window.superset.chat.registerClientTools(tools.map(qualifyToolName)),
+      ) => {
+        const disposable = window.superset.chat.registerChat(
+          chat,
+          trigger,
+          panel,
+          {
+            ...options,
+            ...(options?.tools && {
+              tools: options.tools.map(qualifyToolName),
+            }),
+          },
+        );
+        registrations.push(disposable);
+        return disposable;
+      },
+      registerClientTool: (tool: chatApi.ClientTool) => {
+        const disposable = window.superset.chat.registerClientTool(
+          qualifyToolName(tool),
+        );
+        registrations.push(disposable);
+        return disposable;
+      },
+      registerClientTools: (tools: chatApi.ClientTool[]) => {
+        const disposable = window.superset.chat.registerClientTools(
+          tools.map(qualifyToolName),
+        );
+        registrations.push(disposable);
+        return disposable;
+      },
     };
     const scopedCore = {
       ...window.superset,
@@ -278,7 +316,17 @@ class ExtensionsLoader {
     await container.init(customScope);
 
     const factory = await container.get('./index');
-    factory();
+    try {
+      factory();
+    } catch (error) {
+      // factory() may have already called registerChat/registerClientTool(s)
+      // (via scopedChat above) before throwing — roll those back so a failed
+      // init doesn't leave this extension's chat/tools registered and
+      // reachable. initializeExtension() reports this extension as failed
+      // regardless; this only prevents it from leaking state on top of that.
+      Disposable.from(...registrations).dispose();
+      throw error;
+    }
   }
 
   /**

@@ -20,7 +20,7 @@ import type { chat as chatApi } from '@apache-superset/core';
 
 type ClientTool = chatApi.ClientTool;
 
-// Not yet implemented — see the client MCP tools SIP's "Chart (Explore)"
+// Not yet implemented — see the client tools SIP's "Chart (Explore)"
 // candidate core actions table (update_config, apply_filter,
 // export_chart_data, view_query, get_form_data).
 const chartTools: ClientTool[] = [];
