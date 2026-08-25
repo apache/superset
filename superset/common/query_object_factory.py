@@ -37,6 +37,13 @@ if TYPE_CHECKING:
     from superset.daos.datasource import DatasourceDAO
 
 
+class _RowLimitUnset:
+    """Sentinel distinguishing omitted row_limit from explicit null."""
+
+
+_ROW_LIMIT_UNSET = _RowLimitUnset()
+
+
 class QueryObjectFactory:  # pylint: disable=too-few-public-methods
     _config: dict[str, Any]
     _datasource_dao: DatasourceDAO
@@ -54,7 +61,7 @@ class QueryObjectFactory:  # pylint: disable=too-few-public-methods
         parent_result_type: ChartDataResultType,
         datasource: DatasourceDict | None = None,
         extras: dict[str, Any] | None = None,
-        row_limit: int | None = None,
+        row_limit: int | None | _RowLimitUnset = _ROW_LIMIT_UNSET,
         time_range: str | None = None,
         time_shift: str | None = None,
         server_pagination: bool | None = None,
@@ -109,10 +116,10 @@ class QueryObjectFactory:  # pylint: disable=too-few-public-methods
 
     def _process_row_limit(
         self,
-        row_limit: int | None,
+        row_limit: int | None | _RowLimitUnset,
         result_type: ChartDataResultType,
         server_pagination: bool | None = None,
-    ) -> int:
+    ) -> int | None:
         """Process row limit taking into account server pagination.
 
         :param row_limit: The requested row limit
@@ -120,13 +127,21 @@ class QueryObjectFactory:  # pylint: disable=too-few-public-methods
         :param server_pagination: Whether server-side pagination is enabled
         :return: The processed row limit
         """
+        if row_limit is None:
+            return None
+
         default_row_limit = (
             self._config["SAMPLES_ROW_LIMIT"]
             if result_type == ChartDataResultType.SAMPLES
             else self._config["ROW_LIMIT"]
         )
+        requested_limit = (
+            default_row_limit
+            if row_limit is _ROW_LIMIT_UNSET or row_limit == 0
+            else cast(int, row_limit)
+        )
         return apply_max_row_limit(
-            row_limit or default_row_limit,
+            requested_limit,
             server_pagination=server_pagination,
         )
 

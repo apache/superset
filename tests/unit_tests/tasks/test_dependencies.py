@@ -220,3 +220,76 @@ class TestPersistDependencies:
         # find_by_uuids received normalized UUIDs, not entities/strings
         (resolved,), _ = dao.find_by_uuids.call_args
         assert set(resolved) == {u1, u2, u3}
+
+
+def test_task_context_get_dependency_payloads_uses_dao() -> None:
+    from superset.tasks.context import TaskContext
+
+    task = _task()
+    task.properties_dict = {}
+    task.payload_dict = {}
+    with patch("superset.tasks.context.current_app") as current_app:
+        current_app.config = {"TASK_PROGRESS_UPDATE_THROTTLE_INTERVAL": 0}
+        current_app._get_current_object.side_effect = RuntimeError()
+        ctx = TaskContext(task)
+
+    with patch("superset.daos.tasks.TaskDAO.get_dependency_payloads") as get_payloads:
+        get_payloads.return_value = [{"cache_key": "parent-cache-key"}]
+
+        assert ctx.get_dependency_payloads() == [{"cache_key": "parent-cache-key"}]
+
+    get_payloads.assert_called_once_with(task.uuid)
+
+
+def test_task_dao_get_dependency_payloads(app_context) -> None:
+    from superset.daos.tasks import TaskDAO
+    from superset.extensions import db
+    from superset.models.task_dependencies import TaskDependency
+    from superset.models.task_subscribers import TaskSubscriber
+    from superset.models.tasks import Task
+
+    parent_one = TaskDAO.create_task(
+        task_type="test.parent",
+        task_key=str(uuid4()),
+        scope="shared",
+        payload={"cache_key": "first"},
+    )
+    parent_two = TaskDAO.create_task(
+        task_type="test.parent",
+        task_key=str(uuid4()),
+        scope="shared",
+        payload={"cache_key": "second"},
+    )
+    child = TaskDAO.create_task(
+        task_type="test.child",
+        task_key=str(uuid4()),
+        scope="shared",
+    )
+    db.session.flush()
+    TaskDAO.add_dependencies(child.id, [parent_one.id, parent_two.id])
+    db.session.commit()
+
+    try:
+        assert TaskDAO.get_dependency_payloads(child.uuid) == [
+            {"cache_key": "first"},
+            {"cache_key": "second"},
+        ]
+
+        parent_two.payload = "{not-json"
+        db.session.commit()
+
+        assert TaskDAO.get_dependency_payloads(child.uuid) == [
+            {"cache_key": "first"},
+            {},
+        ]
+    finally:
+        db.session.query(TaskDependency).filter(
+            TaskDependency.task_id == child.id
+        ).delete(synchronize_session=False)
+        db.session.query(TaskSubscriber).filter(
+            TaskSubscriber.task_id.in_([parent_one.id, parent_two.id, child.id])
+        ).delete(synchronize_session=False)
+        db.session.query(Task).filter(
+            Task.id.in_([parent_one.id, parent_two.id, child.id])
+        ).delete(synchronize_session=False)
+        db.session.commit()

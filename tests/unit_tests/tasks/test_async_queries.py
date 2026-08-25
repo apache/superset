@@ -19,7 +19,10 @@
 from unittest import mock
 from uuid import uuid4
 
+import pytest
 from pytest_mock import MockerFixture
+
+from superset.common.query_serialization import SerializedQuery
 
 
 def _fake_query_context(num_queries: int, contribution_idx: int | None = None):
@@ -37,6 +40,18 @@ def _fake_query_context(num_queries: int, contribution_idx: int | None = None):
     else:
         ctx.prepare_contribution_totals.return_value = ([], None)
     return ctx
+
+
+def _serialized_query() -> SerializedQuery:
+    return SerializedQuery(
+        datasource={"id": 1, "type": "table"},
+        query={"metrics": ["count"], "columns": ["name"], "time_range": "No filter"},
+        form_data=None,
+        result_type="full",
+        result_format="json",
+        force=False,
+        custom_cache_timeout=None,
+    )
 
 
 def _patch_schedule(mocker: MockerFixture):
@@ -77,10 +92,10 @@ def test_fan_out_schedules_one_task_per_query(mocker: MockerFixture) -> None:
     assert result["task_ids"] == [str(s["task"].uuid) for s in scheduled]
     # ...plus a status-poll cursor captured before the tasks were scheduled.
     assert isinstance(result["cursor"], str)
-    # Independent queries carry no dependency and no totals key.
+    # Independent queries carry no dependency and do not read dependency payloads.
     for call in scheduled:
         assert call["kwargs"]["options"].depends_on is None
-        assert call["args"][3] is None  # totals_cache_key
+        assert call["args"][3] is False  # requires_totals
 
 
 def test_contribution_query_depends_on_totals(mocker: MockerFixture) -> None:
@@ -95,14 +110,101 @@ def test_contribution_query_depends_on_totals(mocker: MockerFixture) -> None:
     # Totals query (index 0) is scheduled first with no dependency.
     totals_call = scheduled[0]
     assert totals_call["kwargs"]["options"].depends_on is None
-    # The totals query's row_limit is normalized so its key matches the entry
-    # its dependents read.
-    assert ctx.cache_values["queries"][0]["row_limit"] is None
+    assert totals_call["args"][3] is False  # requires_totals
 
-    # The contribution query depends on the totals task and receives its key.
+    # The contribution query depends on the totals task and reads its payload.
     dep_call = next(c for c in scheduled if c["args"][0] == {"query": 1})
     assert dep_call["kwargs"]["options"].depends_on == [totals_call["task"]]
-    assert dep_call["args"][3] == "key-0"  # totals_cache_key
+    assert dep_call["args"][3] is True  # requires_totals
+
+
+def test_execute_chart_query_publishes_cache_key_payload(
+    mocker: MockerFixture,
+) -> None:
+    from superset.tasks.async_queries import execute_chart_query
+
+    query_obj = mocker.MagicMock()
+    query_context = mocker.MagicMock()
+    query_context.queries = [query_obj]
+    query_context.get_df_payload_result.return_value.payload = {
+        "cache_key": "chart-cache-key"
+    }
+    task_context = mocker.MagicMock()
+
+    mocker.patch(
+        "superset.tasks.async_queries._resolve_user",
+        return_value=mocker.MagicMock(),
+    )
+    mocker.patch("superset.tasks.async_queries.override_user")
+    mocker.patch(
+        "superset.tasks.async_queries.load_serialized_query",
+        return_value=query_context,
+    )
+    mocker.patch(
+        "superset.tasks.async_queries.get_context",
+        return_value=task_context,
+    )
+
+    execute_chart_query.func(_serialized_query(), user_id=7)
+
+    query_context.get_df_payload_result.assert_called_once_with(query_obj)
+    task_context.update_task.assert_called_once_with(
+        payload={"cache_key": "chart-cache-key"}
+    )
+
+
+def test_execute_chart_query_reads_totals_key_from_dependency_payload(
+    mocker: MockerFixture,
+) -> None:
+    from superset.tasks.async_queries import execute_chart_query
+
+    query_obj = mocker.MagicMock()
+    query_context = mocker.MagicMock()
+    query_context.queries = [query_obj]
+    query_context.get_df_payload_result.return_value.payload = {
+        "cache_key": "main-cache-key"
+    }
+    task_context = mocker.MagicMock()
+    task_context.get_dependency_payloads.return_value = [
+        {"cache_key": "totals-cache-key"}
+    ]
+    inject = mocker.patch("superset.tasks.async_queries._inject_contribution_totals")
+
+    mocker.patch(
+        "superset.tasks.async_queries._resolve_user",
+        return_value=mocker.MagicMock(),
+    )
+    mocker.patch("superset.tasks.async_queries.override_user")
+    mocker.patch(
+        "superset.tasks.async_queries.load_serialized_query",
+        return_value=query_context,
+    )
+    mocker.patch(
+        "superset.tasks.async_queries.get_context",
+        return_value=task_context,
+    )
+
+    execute_chart_query.func(_serialized_query(), user_id=7, requires_totals=True)
+
+    inject.assert_called_once_with(query_obj, "totals-cache-key")
+    task_context.update_task.assert_called_once_with(
+        payload={"cache_key": "main-cache-key"}
+    )
+
+
+def test_get_dependency_cache_key_requires_payload(mocker: MockerFixture) -> None:
+    from superset.exceptions import SupersetException
+    from superset.tasks.async_queries import _get_dependency_cache_key
+
+    task_context = mocker.MagicMock()
+    task_context.get_dependency_payloads.return_value = [{}]
+    mocker.patch(
+        "superset.tasks.async_queries.get_context",
+        return_value=task_context,
+    )
+
+    with pytest.raises(SupersetException):
+        _get_dependency_cache_key()
 
 
 def test_guest_token_forwarded(mocker: MockerFixture) -> None:

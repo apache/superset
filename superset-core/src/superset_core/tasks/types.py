@@ -202,6 +202,17 @@ class TaskContext(ABC):
         ...
 
     @abstractmethod
+    def get_dependency_payloads(self) -> list[dict[str, Any]]:
+        """
+        Return payloads published by prerequisite tasks.
+
+        The payloads are returned in dependency edge order. They let dependent
+        task code consume small pieces of output metadata from tasks that have
+        already satisfied the DAG all-success gate.
+        """
+        ...
+
+    @abstractmethod
     def on_cleanup(self, handler: Callable[[], None]) -> Callable[[], None]:
         """
         Register a cleanup handler that runs when the task ends.

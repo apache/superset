@@ -56,6 +56,8 @@ class QueryContext:
     result_format: ChartDataResultFormat
     force: bool
     custom_cache_timeout: int | None
+    contribution_queries: list[int]
+    contribution_totals_idx: int | None
 
     # Set by the async chart-data execution path (see
     # superset.tasks.async_queries.execute_chart_query). The async flow caches a
@@ -92,7 +94,41 @@ class QueryContext:
         self.force = force
         self.custom_cache_timeout = custom_cache_timeout
         self.cache_values = cache_values
+        (
+            self.contribution_queries,
+            self.contribution_totals_idx,
+        ) = self._normalize_contribution_totals()
         self._processor = QueryContextProcessor(self)
+
+    def _normalize_contribution_totals(self) -> tuple[list[int], int | None]:
+        """Normalize contribution totals before any cache key is computed."""
+        queries_needing_totals: list[int] = []
+        totals_idx: int | None = None
+
+        for index, query in enumerate(self.queries):
+            if any(
+                post_processing.get("operation") == "contribution"
+                for post_processing in query.post_processing or []
+            ):
+                queries_needing_totals.append(index)
+
+            if (
+                totals_idx is None
+                and not query.columns
+                and query.metrics
+                and not query.post_processing
+            ):
+                totals_idx = index
+
+        if queries_needing_totals and totals_idx is not None:
+            self.queries[totals_idx].row_limit = None
+            raw_queries = self.cache_values.get("queries", [])
+            if totals_idx < len(raw_queries) and isinstance(
+                raw_queries[totals_idx], dict
+            ):
+                raw_queries[totals_idx]["row_limit"] = None
+
+        return queries_needing_totals, totals_idx
 
     def get_data(
         self,
@@ -145,11 +181,13 @@ class QueryContext:
 
         Returns the indices of queries whose contribution post-processing needs a
         shared totals row, and the index of the totals query itself (or ``None``).
-        As a side effect the totals query's ``row_limit`` is cleared so its cache
-        key matches the entry its dependents read — see the synchronous equivalent
-        in ``QueryContextProcessor.get_payload_result``.
+        The normalization is idempotent and runs at construction time as well.
         """
-        return self._processor._prepare_contribution_totals()
+        (
+            self.contribution_queries,
+            self.contribution_totals_idx,
+        ) = self._normalize_contribution_totals()
+        return self.contribution_queries, self.contribution_totals_idx
 
     def get_df_payload(
         self,

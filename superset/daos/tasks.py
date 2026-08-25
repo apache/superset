@@ -552,6 +552,36 @@ class TaskDAO(BaseDAO[Task]):
         )
 
     @classmethod
+    def get_dependency_payloads(cls, task_uuid: UUID) -> list[dict[str, Any]]:
+        """
+        Return payload dictionaries for a task's prerequisite dependencies.
+
+        The query reads scalar payload columns through the dependency table so
+        task code observes committed prerequisite output without relying on
+        identity-map state from an earlier relationship load.
+
+        :param task_uuid: UUID of the dependent task
+        :returns: prerequisite payloads in dependency edge order
+        """
+        task_id = (
+            db.session.query(Task.id).filter(Task.uuid == task_uuid).scalar_subquery()
+        )
+        rows = (
+            db.session.query(Task.payload)
+            .join(TaskDependency, TaskDependency.depends_on_task_id == Task.id)
+            .filter(TaskDependency.task_id == task_id)
+            .order_by(TaskDependency.id.asc())
+            .all()
+        )
+        payloads: list[dict[str, Any]] = []
+        for (payload,) in rows:
+            try:
+                payloads.append(json.loads(payload or "{}"))
+            except (json.JSONDecodeError, TypeError):
+                payloads.append({})
+        return payloads
+
+    @classmethod
     def set_properties_and_payload(
         cls,
         task_uuid: UUID,

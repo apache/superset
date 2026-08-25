@@ -109,6 +109,32 @@ class TestQueryObjectFactory:
         assert query_object.row_limit == 100
         assert query_object.row_offset == 200
 
+    def test_query_context_explicit_null_limit(
+        self,
+        query_object_factory: QueryObjectFactory,
+        raw_query_context: dict[str, Any],
+    ):
+        raw_query_object = raw_query_context["queries"][0]
+        raw_query_object["row_limit"] = None
+        query_object = query_object_factory.create(
+            raw_query_context["result_type"], **raw_query_object
+        )
+
+        assert query_object.row_limit is None
+
+    def test_query_context_zero_limit_uses_default(
+        self,
+        query_object_factory: QueryObjectFactory,
+        raw_query_context: dict[str, Any],
+    ):
+        raw_query_object = raw_query_context["queries"][0]
+        raw_query_object["row_limit"] = 0
+        query_object = query_object_factory.create(
+            raw_query_context["result_type"], **raw_query_object
+        )
+
+        assert query_object.row_limit == 5000
+
     def test_query_context_null_post_processing_op(
         self,
         query_object_factory: QueryObjectFactory,

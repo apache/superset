@@ -233,6 +233,17 @@ class TaskContext(CoreTaskContext):
                     self._deferred_flush_timer.daemon = True
                     self._deferred_flush_timer.start()
 
+    def get_dependency_payloads(self) -> list[dict[str, Any]]:
+        """
+        Return payloads published by prerequisite tasks.
+
+        Reads through the DAO so callers observe committed prerequisite output
+        after the DAG gate has accepted those tasks as successful.
+        """
+        from superset.daos.tasks import TaskDAO
+
+        return TaskDAO.get_dependency_payloads(self._task_uuid)
+
     def _write_to_db(self) -> None:
         """
         Write current cached state to database.
