@@ -1,4 +1,3 @@
-#
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -15,9 +14,3 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-#
--e .[development,bigquery,cockroachdb,crate,druid,duckdb,fastmcp,gevent,gsheets,mysql,postgres,presto,prophet,trino,thumbnails]
--e ./superset-extensions-cli[test]
-# testcontainers-backed db_engine_specs tests (tests/testcontainers/), run
-# nightly rather than on every merge -- see .github/workflows/nightly-testcontainers.yml
-testcontainers[cockroachdb,cratedb,trino]>=4.15.0,<5

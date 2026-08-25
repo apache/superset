@@ -162,6 +162,8 @@ click-repl==0.3.0
     #   celery
 cmdstanpy==1.1.0
     # via prophet
+cockroachdb==0.3.5
+    # via apache-superset
 colorama==0.4.6
     # via
     #   -c requirements/base-constraint.txt
@@ -171,6 +173,8 @@ contourpy==1.0.7
     # via matplotlib
 coverage==7.6.8
     # via pytest-cov
+crate==2.2.1
+    # via sqlalchemy-cratedb
 cron-descriptor==1.4.5
     # via
     #   -c requirements/base-constraint.txt
@@ -217,7 +221,9 @@ dnspython==2.7.0
     #   -c requirements/base-constraint.txt
     #   email-validator
 docker==7.0.0
-    # via apache-superset
+    # via
+    #   apache-superset
+    #   testcontainers
 docstring-parser==0.17.0
     # via cyclopts
 docutils==0.22.2
@@ -333,6 +339,8 @@ geographiclib==2.0
     # via
     #   -c requirements/base-constraint.txt
     #   geopy
+geojson==3.3.0
+    # via sqlalchemy-cratedb
 geopy==2.4.1
     # via
     #   -c requirements/base-constraint.txt
@@ -414,6 +422,7 @@ httpx==0.28.1
     # via
     #   fastmcp-slim
     #   mcp
+    #   testcontainers
 httpx-sse==0.4.1
     # via mcp
 humanize==4.12.3
@@ -612,7 +621,9 @@ ordered-set==4.1.0
     #   -c requirements/base-constraint.txt
     #   flask-limiter
 orjson==3.11.9
-    # via trino
+    # via
+    #   crate
+    #   trino
 packaging==25.0
     # via
     #   -c requirements/base-constraint.txt
@@ -834,6 +845,7 @@ python-dotenv==1.2.2
     #   apache-superset
     #   fastmcp-slim
     #   pydantic-settings
+    #   testcontainers
 python-ldap==3.4.7
     # via apache-superset
 python-multipart==0.0.29
@@ -963,6 +975,7 @@ sqlalchemy==2.0.52
     #   sqlalchemy-bigquery
     #   sqlalchemy-cockroachdb
     #   sqlalchemy-continuum
+    #   sqlalchemy-cratedb
     #   sqlalchemy-utils
 sqlalchemy-bigquery==1.17.2
     # via apache-superset
@@ -972,6 +985,10 @@ sqlalchemy-continuum==1.7.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
+sqlalchemy-cratedb==0.43.1
+    # via
+    #   apache-superset
+    #   testcontainers
 sqlalchemy-utils==0.42.1
     # via
     #   -c requirements/base-constraint.txt
@@ -1003,6 +1020,8 @@ tabulate==0.10.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
+testcontainers==4.15.0
+    # via -r requirements/development.in
 tiktoken==0.14.0
     # via apache-superset
 tomli-w==1.2.0
@@ -1014,7 +1033,9 @@ tqdm==4.67.1
     #   cmdstanpy
     #   prophet
 trino==0.339.0
-    # via apache-superset
+    # via
+    #   apache-superset
+    #   testcontainers
 typing-extensions==4.16.0
     # via
     #   -c requirements/base-constraint.txt
@@ -1037,6 +1058,7 @@ typing-extensions==4.16.0
     #   shillelagh
     #   sqlalchemy
     #   starlette
+    #   testcontainers
     #   typing-inspection
 typing-inspection==0.4.2
     # via
@@ -1064,13 +1086,19 @@ urllib3==2.7.0
     # via
     #   -c requirements/base-constraint.txt
     #   botocore
+    #   crate
     #   docker
     #   requests
     #   requests-cache
+    #   testcontainers
 uvicorn==0.37.0
     # via
     #   fastmcp-slim
     #   mcp
+verlib2==0.3.2
+    # via
+    #   crate
+    #   sqlalchemy-cratedb
 vine==5.1.0
     # via
     #   -c requirements/base-constraint.txt
@@ -1104,6 +1132,7 @@ wrapt==1.17.2
     # via
     #   -c requirements/base-constraint.txt
     #   deprecated
+    #   testcontainers
 wtforms==3.2.2
     # via
     #   -c requirements/base-constraint.txt
