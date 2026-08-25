@@ -2489,6 +2489,7 @@ describe('plugin-chart-table', () => {
       formData: {
         ...testData.basic.formData,
         server_pagination: true,
+        server_page_length: 20,
       },
     });
     props.serverPagination = true;
@@ -2506,12 +2507,15 @@ describe('plugin-chart-table', () => {
 
     // Initial page size selector text
     const pageSizeSelector = container.querySelector('.dt-select-page-size');
+    expect(pageSizeSelector).not.toBeNull();
     expect(pageSizeSelector).toHaveTextContent('20');
 
-    // Open dropdown to check options
-    const selectTrigger = container.querySelector('.ant-select-selector');
-    expect(selectTrigger).not.toBeNull();
-    fireEvent.mouseDown(selectTrigger!);
+    // Page size combobox control exists and is accessible
+    const selectTrigger = screen.getByRole('combobox', {
+      name: 'Show entries per page',
+    });
+    expect(selectTrigger).toBeInTheDocument();
+    fireEvent.mouseDown(selectTrigger);
 
     await waitFor(() => {
       const options = screen.getAllByRole('option');
