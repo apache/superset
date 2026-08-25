@@ -24,6 +24,7 @@ import pytest
 import sshtunnel
 from flask import Flask, Response
 from flask_babel import Babel
+from sqlalchemy.exc import IntegrityError, OperationalError, ProgrammingError
 
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import QueryObjectValidationError, SupersetException
@@ -66,6 +67,43 @@ class TestHandleApiExceptionSSHTunnelError:
             and "BaseSSHTunnelForwarderError" in record.message
             for record in caplog.records
         )
+
+
+class TestHandleApiExceptionDatabaseErrors:
+    """
+    `OperationalError` is a `DatabaseError` subclass, so it must be matched by
+    its own clause ahead of the 422 handler for other `DatabaseError`s.
+    """
+
+    def _run(self, app, ex: Exception) -> Response:
+        @handle_api_exception
+        def view(self: object) -> FlaskResponse:
+            raise ex
+
+        with app.test_request_context():
+            return cast(Response, view(self=object()))
+
+    def test_operational_error_returns_500(self, app):
+        response = self._run(
+            app, OperationalError("SELECT 1", {}, Exception("connection closed"))
+        )
+
+        assert response.status_code == 500
+
+    def test_non_connection_database_error_still_returns_422(self, app):
+        response = self._run(
+            app,
+            ProgrammingError("SELECT 1", {}, Exception("relation does not exist")),
+        )
+
+        assert response.status_code == 422
+
+    def test_integrity_error_still_returns_422(self, app):
+        response = self._run(
+            app, IntegrityError("INSERT", {}, Exception("duplicate key"))
+        )
+
+        assert response.status_code == 422
 
 
 class TestShowUnexpectedException:
