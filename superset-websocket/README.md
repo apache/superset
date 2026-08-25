@@ -40,17 +40,19 @@ same host.
 
 Realtime events are published to Redis **Pub/Sub** by the Superset Flask app
 (`superset/tasks/manager.py`). Pub/Sub is intentionally lossy (fire-and-forget):
-a missed message is reconciled by the frontend's interval poll of the authorized
-REST API, so no message is authoritative and none needs to be replayed.
+a missed message must be reconciled by a frontend poll or REST refetch. Broad
+broadcast messages therefore carry only nudges; per-principal messages may carry
+feature-specific state only when the producer derives the target channel from
+principals authorized to receive it.
 
 The server tails two channel-prefix patterns and routes by name only:
 
-1. **Tier 1 — public entity-change nudges** (`entity-changes:<type>`, e.g.
-   `entity-changes:task`). Broadcast to **every** connected socket. The payload
-   carries only opaque ids (`{entity_type, id}`) — no status or sensitive data —
-   so a list view can learn "an entity of this type changed" and re-fetch just
-   the affected rows through the authorized API. Each client filters to the ids
-   it renders.
+1. **Tier 1 — authenticated entity-change nudges** (`entity-changes:<type>`,
+   e.g. `entity-changes:task`). Broadcast to every connected realtime socket.
+   The payload carries only opaque ids (`{entity_type, id}`) — no status or
+   sensitive data — so a list view can learn "an entity of this type changed"
+   and re-fetch just the affected rows through the authorized API. Each client
+   filters to the ids it renders.
 2. **Tier 2 — per-principal messages** (`realtime:<channel_id>`, where
    `channel_id` is `user:<id>` or `guest-<hmac>`). Delivered **only** to sockets
    whose JWT bound that principal channel. Because delivery is scoped to a
@@ -67,10 +69,14 @@ When a user's browser connects, it does so over HTTP, including the JWT
 authentication cookie set by the Flask app (`WEBSOCKET_JWT_COOKIE_NAME`, default
 `superset-ws-token`). _Because authentication is cookie-based, the WebSocket
 server must run on the same host as the web application._ The server verifies
-the JWT with the shared secret (`jwtSecret` / `WEBSOCKET_JWT_SECRET`) and binds
-the socket to the `channel` claim (the principal channel), which is how tier-2
-messages are routed to it. A principal may have multiple sockets (e.g. several
-browser tabs); all matching messages are sent to all of them.
+the JWT with the shared secret (`jwtSecret` / `WEBSOCKET_JWT_SECRET`).
+Superset mints the token only after the request principal has `can_read` on the
+`Realtime` resource. The token carries `aud`, `iss`, `sub`, `principal_type`,
+`permissions`, `channel`, and `exp`; the server rejects tokens whose realtime
+permission is missing or whose channel does not match the principal identity.
+The socket is then bound to the `channel` claim, which is how tier-2 messages are
+routed to it. A principal may have multiple sockets (e.g. several browser tabs);
+all matching messages are sent to all of them.
 
 ### Connection Management
 
@@ -79,7 +85,8 @@ The server uses standard WebSocket
 to detect dead connections. Active sockets are pinged regularly (config:
 `pingSocketsIntervalMs`) and the internal registry records the last _pong_
 timestamp; a socket that has not responded within `socketResponseTimeoutMs` is
-terminated. The channel registry is periodically cleaned
+terminated. Sockets are also terminated after the JWT `exp` time passes. The
+channel registry is periodically cleaned
 (`gcChannelsIntervalMs`) to release stale references.
 
 ## Install
@@ -124,6 +131,10 @@ WEBSOCKET_ENABLED = True
 WEBSOCKET_URL = "ws://<host>:<port>/"
 WEBSOCKET_JWT_SECRET = "<a strong random secret, >= 32 bytes>"
 ```
+
+Grant `can_read` on `Realtime` to roles that should receive websocket
+notifications. Without that permission, Superset masks `WEBSOCKET_ENABLED` to
+`False` for the request and does not mint the websocket JWT cookie.
 
 Note that the WebSocket server must be run on the same hostname (different port)
 for the JWT cookie to be shared between the Flask app and the WebSocket server.

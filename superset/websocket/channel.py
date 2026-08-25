@@ -16,16 +16,16 @@
 # under the License.
 """Per-principal websocket channel identity and connection tokens.
 
-The realtime transport delivers a **per-principal** channel's events only to
-that principal's sockets. A channel is derived deterministically from the
-authenticated request principal — ``user:<id>`` for a logged-in user, a stable
-HMAC for an embedded guest — so the task layer can publish a user's events to
-their channel without threading a per-request channel id (unlike the legacy
-per-session-random channel). The channel is minted into a JWT cookie that the
-``superset-websocket`` server verifies to bind a socket to its channel.
+The realtime transport requires a JWT cookie minted by Superset after the
+request principal passes the ``can_read Realtime`` gate. The JWT carries the
+principal identity and a deterministic routing channel — ``user:<id>`` for a
+logged-in user, a stable HMAC for an embedded guest — so the
+``superset-websocket`` server can validate the socket and bind it to that
+channel.
 
-This is the connection-auth tier. The lossy public list-view pub/sub
-(``entity-changes:*``) needs no per-principal channel — see
+Per-principal messages are delivered only to sockets bound to that principal's
+channel. The lossy list-view Pub/Sub tier (``entity-changes:*``) is broadcast to
+all authenticated realtime sockets, but carries only opaque entity nudges — see
 ``TaskManager.publish_entity_change``.
 """
 
@@ -33,15 +33,32 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timedelta, timezone
+from typing import Literal, NotRequired, TypedDict
 
 import jwt
-from flask import Flask, request, Response
+from flask import Flask, g, request, Response
 
 from superset import security_manager
 from superset.tasks.guest import get_current_guest_subscriber_key
 from superset.utils.core import get_user_id
+from superset.websocket.permissions import (
+    can_access_realtime_notifications,
+    REALTIME_NOTIFICATION_CLAIM,
+    REALTIME_NOTIFICATION_JWT_AUDIENCE,
+    REALTIME_NOTIFICATION_JWT_ISSUER,
+)
 
 logger = logging.getLogger(__name__)
+
+
+PrincipalType = Literal["user", "guest"]
+
+
+class RealtimePrincipal(TypedDict):
+    channel: str
+    principal_type: PrincipalType
+    sub: str
+    username: NotRequired[str]
 
 
 def channel_id_for(user_id: int | None, guest_key: str | None) -> str | None:
@@ -74,20 +91,82 @@ def get_channel_id() -> str | None:
     return channel_id_for(get_user_id(), None)
 
 
-def mint_channel_token(channel_id: str) -> str:
-    """Sign a JWT binding a websocket connection to ``channel_id``.
+def get_realtime_principal() -> RealtimePrincipal | None:
+    """Return JWT principal claims for the current websocket-eligible principal."""
+    if security_manager.get_current_guest_user_if_guest():
+        guest_key = get_current_guest_subscriber_key()
+        if not guest_key:
+            return None
+        return {
+            "channel": guest_key,
+            "principal_type": "guest",
+            "sub": guest_key,
+        }
 
-    The ``superset-websocket`` server verifies this with the same secret and
-    reads the ``channel`` claim to route per-principal events to the socket.
+    user_id = get_user_id()
+    if user_id is None:
+        return None
+    channel = channel_id_for(user_id, None)
+    if channel is None:
+        return None
+
+    claims: RealtimePrincipal = {
+        "channel": channel,
+        "principal_type": "user",
+        "sub": str(user_id),
+    }
+    username = getattr(getattr(g, "user", None), "username", None)
+    if username:
+        claims["username"] = str(username)
+    return claims
+
+
+def mint_channel_token(principal: RealtimePrincipal) -> str:
+    """Sign a JWT binding a websocket connection to ``principal``.
+
+    The ``superset-websocket`` server verifies this with the same secret, checks
+    the principal and permission claims, then uses ``channel`` as the routing key
+    for per-principal messages.
     """
     from flask import current_app
 
     now = datetime.now(tz=timezone.utc)
     expiration = current_app.config["WEBSOCKET_JWT_EXPIRATION_SECONDS"]
-    payload = {"channel": channel_id, "exp": now + timedelta(seconds=expiration)}
+    payload = {
+        **principal,
+        "aud": REALTIME_NOTIFICATION_JWT_AUDIENCE,
+        "iat": now,
+        "iss": REALTIME_NOTIFICATION_JWT_ISSUER,
+        "permissions": [REALTIME_NOTIFICATION_CLAIM],
+        "exp": now + timedelta(seconds=expiration),
+    }
     return jwt.encode(
         payload, current_app.config["WEBSOCKET_JWT_SECRET"], algorithm="HS256"
     )
+
+
+def _valid_payload_channel(payload: dict[str, object]) -> str | None:
+    channel = payload.get("channel")
+    subject = payload.get("sub")
+    principal_type = payload.get("principal_type")
+    permissions = payload.get("permissions")
+
+    if not isinstance(channel, str) or not channel:
+        return None
+    if not isinstance(subject, str) or not subject:
+        return None
+    if principal_type not in ("user", "guest"):
+        return None
+    if not isinstance(permissions, list) or REALTIME_NOTIFICATION_CLAIM not in {
+        permission for permission in permissions if isinstance(permission, str)
+    }:
+        return None
+
+    if principal_type == "user" and channel != f"user:{subject}":
+        return None
+    if principal_type == "guest" and channel != subject:
+        return None
+    return channel
 
 
 def _cookie_channel(token: str) -> str | None:
@@ -96,11 +175,17 @@ def _cookie_channel(token: str) -> str | None:
 
     try:
         payload = jwt.decode(
-            token, current_app.config["WEBSOCKET_JWT_SECRET"], algorithms=["HS256"]
+            token,
+            current_app.config["WEBSOCKET_JWT_SECRET"],
+            algorithms=["HS256"],
+            audience=REALTIME_NOTIFICATION_JWT_AUDIENCE,
+            issuer=REALTIME_NOTIFICATION_JWT_ISSUER,
         )
     except jwt.InvalidTokenError:
         return None
-    return payload.get("channel")
+    if not isinstance(payload, dict):
+        return None
+    return _valid_payload_channel(payload)
 
 
 def register_ws_channel_cookie(app: Flask) -> None:
@@ -118,15 +203,20 @@ def register_ws_channel_cookie(app: Flask) -> None:
 
     @app.after_request
     def set_ws_channel_cookie(response: Response) -> Response:
-        channel_id = get_channel_id()
+        principal = (
+            get_realtime_principal() if can_access_realtime_notifications() else None
+        )
         existing = request.cookies.get(cookie_name)
 
-        if channel_id is None:
+        if principal is None:
             # No channel for this principal (anonymous / just logged out): drop any
-            # stale cookie so it can't be reused by a later session.
+            # stale cookie so it can't be reused by a later session or after the
+            # realtime notification permission is removed.
             if existing:
                 response.delete_cookie(cookie_name, domain=cookie_domain)
             return response
+
+        channel_id = principal["channel"]
 
         # Leave a cookie that already binds the current channel; re-mint when it is
         # missing, invalid/expired, or bound to a different principal's channel.
@@ -135,7 +225,7 @@ def register_ws_channel_cookie(app: Flask) -> None:
 
         response.set_cookie(
             cookie_name,
-            value=mint_channel_token(channel_id),
+            value=mint_channel_token(principal),
             httponly=True,
             secure=app.config["WEBSOCKET_JWT_COOKIE_SECURE"],
             domain=cookie_domain,

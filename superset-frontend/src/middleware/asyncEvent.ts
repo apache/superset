@@ -121,9 +121,9 @@ const fetchStatusChanges = makeApi<
 });
 
 const cancelTask = (taskId: string) => {
-  // Best-effort server-side cancel so an abandoned query stops consuming
-  // warehouse resources. Failures are non-fatal: the client has already stopped
-  // waiting on the task.
+  // Best-effort task abort/unsubscribe. This can prevent pending work from
+  // starting, but chart tasks do not cancel an underlying warehouse query after
+  // execution starts. Failures are non-fatal: the client has stopped waiting.
   SupersetClient.post({
     endpoint: `/api/v1/task/${taskId}/cancel`,
   }).catch(error => {

@@ -50,6 +50,22 @@ vi.mock('ioredis', () => {
 const wsMock = WebSocket as unknown as Mock<typeof WebSocket>;
 const channelId = 'user:5';
 
+const realtimeClaims = (overrides: Record<string, unknown> = {}) => ({
+  channel: channelId,
+  sub: '5',
+  principal_type: 'user',
+  permissions: ['can_read:Realtime'],
+  aud: 'superset-websocket',
+  iss: 'superset',
+  exp: Math.floor(Date.now() / 1000) + 3600,
+  ...overrides,
+});
+
+const signRealtimeToken = (
+  overrides: Record<string, unknown> = {},
+  secret = config.jwtSecret,
+) => jwt.sign(realtimeClaims(overrides), secret);
+
 describe('server', () => {
   let statsdIncrementMock: Mock<typeof statsd.increment>;
 
@@ -396,6 +412,13 @@ describe('server', () => {
       socketInstanceExpected = {
         ws,
         channel: channelId,
+        identity: {
+          channel: channelId,
+          principalType: 'user',
+          subject: '5',
+          tokenExpiresAtMs: 1615377718000,
+          username: undefined,
+        },
         pongTs: 1615374118135,
       };
     });
@@ -406,7 +429,7 @@ describe('server', () => {
     });
 
     test('invalid JWT', async () => {
-      const invalidToken = jwt.sign({ channel: channelId }, 'invalid secret');
+      const invalidToken = signRealtimeToken({}, 'invalid secret');
       const request = getRequest(invalidToken, 'http://localhost');
 
       expect(() => {
@@ -415,7 +438,7 @@ describe('server', () => {
     });
 
     test('valid JWT binds the socket to its channel', async () => {
-      const validToken = jwt.sign({ channel: channelId }, config.jwtSecret);
+      const validToken = signRealtimeToken();
       const request = getRequest(validToken, 'http://localhost');
 
       server.wsConnection(ws, request);
@@ -430,8 +453,47 @@ describe('server', () => {
       expect(wsEventMock).toHaveBeenCalledWith('pong', expect.any(Function));
     });
 
+    test('valid guest JWT binds the socket to its guest channel', async () => {
+      const guestChannelId = 'guest-abc';
+      const validToken = signRealtimeToken({
+        channel: guestChannelId,
+        sub: guestChannelId,
+        principal_type: 'guest',
+      });
+      const request = getRequest(validToken, 'http://localhost');
+
+      server.wsConnection(ws, request);
+
+      const channelSockets = server.channels[guestChannelId];
+      expect(channelSockets.sockets).toHaveLength(1);
+      const socketId = channelSockets.sockets[0];
+      expect(server.sockets[socketId].identity).toMatchObject({
+        channel: guestChannelId,
+        principalType: 'guest',
+        subject: guestChannelId,
+      });
+    });
+
+    test('JWT without realtime permission is rejected', async () => {
+      const token = signRealtimeToken({ permissions: [] });
+      const request = getRequest(token, 'http://localhost');
+
+      expect(() => {
+        server.wsConnection(ws, request);
+      }).toThrow();
+    });
+
+    test('JWT with mismatched channel and subject is rejected', async () => {
+      const token = signRealtimeToken({ channel: 'user:6' });
+      const request = getRequest(token, 'http://localhost');
+
+      expect(() => {
+        server.wsConnection(ws, request);
+      }).toThrow();
+    });
+
     test('unsolicited pong payload cannot pollute Object.prototype', async () => {
-      const validToken = jwt.sign({ channel: channelId }, config.jwtSecret);
+      const validToken = signRealtimeToken();
       const request = getRequest(validToken, 'http://localhost');
 
       server.wsConnection(ws, request);
@@ -621,7 +683,7 @@ describe('server', () => {
 
       const trackClientSpy = vi.spyOn(server, 'trackClient');
       const ws = new wsMock('localhost');
-      const validToken = jwt.sign({ channel: channelId }, config.jwtSecret);
+      const validToken = signRealtimeToken();
       server.wsConnection(ws, getRequest(validToken, 'http://localhost'));
 
       expect(ws.close).toHaveBeenCalledWith(
@@ -657,7 +719,7 @@ describe('server', () => {
     });
 
     test('invalid JWT', async () => {
-      const invalidToken = jwt.sign({ channel: channelId }, 'invalid secret');
+      const invalidToken = signRealtimeToken({}, 'invalid secret');
       const request = getRequest(invalidToken, 'http://localhost');
 
       server.httpUpgrade(request, socket, Buffer.alloc(5));
@@ -668,7 +730,10 @@ describe('server', () => {
     });
 
     test('valid JWT, no channel', async () => {
-      const validToken = jwt.sign({ foo: 'bar' }, config.jwtSecret);
+      const validToken = jwt.sign(
+        realtimeClaims({ channel: undefined }),
+        config.jwtSecret,
+      );
       const request = getRequest(validToken, 'http://localhost');
 
       server.httpUpgrade(request, socket, Buffer.alloc(5));
@@ -678,7 +743,7 @@ describe('server', () => {
     });
 
     test('valid upgrade', async () => {
-      const validToken = jwt.sign({ channel: channelId }, config.jwtSecret);
+      const validToken = signRealtimeToken();
       const request = getRequest(validToken, 'http://localhost');
 
       server.httpUpgrade(request, socket, Buffer.alloc(5));
@@ -706,7 +771,7 @@ describe('server', () => {
 
       test('rejects upgrade from a disallowed origin', () => {
         server.opts.allowedOrigins = ['https://superset.example.com'];
-        const validToken = jwt.sign({ channel: channelId }, config.jwtSecret);
+        const validToken = signRealtimeToken();
         const request = getRequestWithOrigin(
           validToken,
           'https://evil.example',
@@ -720,7 +785,7 @@ describe('server', () => {
 
       test('rejects upgrade with no origin when an allowlist is set', () => {
         server.opts.allowedOrigins = ['https://superset.example.com'];
-        const validToken = jwt.sign({ channel: channelId }, config.jwtSecret);
+        const validToken = signRealtimeToken();
         const request = getRequestWithOrigin(validToken);
 
         server.httpUpgrade(request, socket, Buffer.alloc(5));
@@ -731,7 +796,7 @@ describe('server', () => {
 
       test('allows upgrade from an allowed origin', () => {
         server.opts.allowedOrigins = ['https://superset.example.com'];
-        const validToken = jwt.sign({ channel: channelId }, config.jwtSecret);
+        const validToken = signRealtimeToken();
         const request = getRequestWithOrigin(
           validToken,
           'https://superset.example.com',
@@ -809,6 +874,26 @@ describe('server', () => {
       expect(pingSpy).toHaveBeenCalled();
       expect(terminateSpy).not.toHaveBeenCalled();
       expect(Object.keys(server.sockets).length).toBe(1);
+    });
+
+    test('sockets with expired JWTs are terminated', () => {
+      vi.spyOn(ws, 'readyState', 'get').mockReturnValue(WebSocket.OPEN);
+      socketInstance.identity = {
+        channel: channelId,
+        principalType: 'user',
+        subject: '5',
+        tokenExpiresAtMs: Date.now() - 1,
+      };
+      server.trackClient(channelId, socketInstance);
+
+      server.checkSockets();
+
+      expect(pingSpy).not.toHaveBeenCalled();
+      expect(terminateSpy).toHaveBeenCalled();
+      expect(Object.keys(server.sockets).length).toBe(0);
+      expect(statsdIncrementMock).toHaveBeenCalledWith(
+        'ws_token_expired_disconnect',
+      );
     });
 
     test('stale sockets', () => {

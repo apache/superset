@@ -2962,10 +2962,12 @@ GLOBAL_ASYNC_QUERIES_DEFAULT = True
 # Realtime websocket transport (the `superset-websocket` server) config.
 # When enabled, GTF task changes are pushed to the browser so charts and list
 # views update without waiting for the interval poll (which stays as the
-# fallback). Requires the superset-websocket server and a Redis coordination
-# backend (DISTRIBUTED_COORDINATION_CONFIG). Two channel tiers:
-#   - a public per-entity-type pub/sub (e.g. entity-changes:task) for lossy
-#     list-view activity (opaque id + status), and
+# fallback). Requires the superset-websocket server, a Redis coordination
+# backend (DISTRIBUTED_COORDINATION_CONFIG), and `can_read` on `Realtime`.
+# Two channel tiers:
+#   - an authenticated broadcast per-entity-type pub/sub
+#     (e.g. entity-changes:task) for lossy list-view activity (opaque entity
+#     ids only), and
 #   - a per-principal channel (user:<id> / guest:<hmac>) for the dashboard
 #     chart-data path, authenticated by the JWT cookie below.
 # The JWT authenticates the socket connection and binds it to its channel; the

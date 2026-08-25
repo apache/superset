@@ -73,6 +73,7 @@ from superset.utils import core as utils, json
 from superset.utils.filters import get_dataset_access_filters
 from superset.utils.version import get_version_metadata, visible_version_metadata
 from superset.views.error_handling import json_error_response
+from superset.websocket.permissions import can_access_realtime_notifications
 
 from .utils import bootstrap_user_data, get_config_value
 
@@ -658,6 +659,12 @@ def common_bootstrap_payload() -> dict[str, Any]:
     # Convert locale to string for proper cache key hashing
     locale_str = str(locale) if locale else None
     payload = dict(cached_common_bootstrap_data(utils.get_user_id(), locale_str))
+    frontend_config = payload.get("conf")
+    if isinstance(frontend_config, dict) and frontend_config.get("WEBSOCKET_ENABLED"):
+        payload["conf"] = {
+            **frontend_config,
+            "WEBSOCKET_ENABLED": can_access_realtime_notifications(),
+        }
     # The language pack itself is NOT embedded in the payload: spa.html loads
     # it through the content-addressed /language_pack/<lang>/<version>/script.js
     # tag before the entry bundle, keeping HTML small while still configuring
