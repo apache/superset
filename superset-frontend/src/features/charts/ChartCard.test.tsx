@@ -18,9 +18,15 @@
  */
 import { createMemoryHistory, type Update } from 'history';
 import { Router } from 'react-router-dom';
-import { isFeatureEnabled } from '@superset-ui/core';
-import { render, screen, fireEvent } from 'spec/helpers/testing-library';
+import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
+import {
+  render,
+  screen,
+  fireEvent,
+  within,
+} from 'spec/helpers/testing-library';
 import type Chart from 'src/types/Chart';
+import type { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import ChartCard from './ChartCard';
 
 jest.mock('@superset-ui/core', () => ({
@@ -37,7 +43,18 @@ const mockChart = {
   thumbnail_url: '/thumbnail.png',
 } as Chart;
 
-const renderCard = (history: ReturnType<typeof createMemoryHistory>) =>
+// Admin qualifies as editor, so the card's delete entry is enabled.
+const adminUser = {
+  userId: 1,
+  username: 'admin',
+  roles: { Admin: [] },
+  permissions: {},
+} as unknown as UserWithPermissionsAndRoles;
+
+const renderCard = (
+  history: ReturnType<typeof createMemoryHistory>,
+  props: Partial<React.ComponentProps<typeof ChartCard>> = {},
+) =>
   render(
     <Router history={history}>
       <ChartCard
@@ -52,6 +69,7 @@ const renderCard = (history: ReturnType<typeof createMemoryHistory>) =>
         favoriteStatus={false}
         showThumbnails
         handleBulkChartExport={jest.fn()}
+        {...props}
       />
     </Router>,
   );
@@ -105,4 +123,45 @@ test('clicking the card outside the thumbnail navigates to the chart', () => {
   fireEvent.click(screen.getByText('Sample Chart'));
 
   expect(navigations).toEqual(['PUSH /explore/?slice_id=1']);
+});
+
+test('with soft delete on, the card delete flow shows the archive dialog', async () => {
+  (isFeatureEnabled as jest.Mock).mockImplementation(
+    flag => flag === FeatureFlag.SoftDelete,
+  );
+  renderCard(createMemoryHistory(), { user: adminUser });
+
+  fireEvent.click(screen.getByTestId('chart-card-menu'));
+  fireEvent.click(await screen.findByText('Archive'));
+
+  const dialog = await screen.findByRole('dialog');
+  expect(within(dialog).getByText('Archive Sample Chart?')).toBeInTheDocument();
+  // The body comes from the shared soft-delete copy module; its exact
+  // wording evolves there (location hint, retention clause), so pin the
+  // stable prefix rather than a full sentence.
+  expect(
+    within(dialog).getByText(/This chart will be moved to Recently Archived/),
+  ).toBeInTheDocument();
+  expect(
+    within(dialog).getByRole('button', { name: 'Archive' }),
+  ).toBeInTheDocument();
+  // Recoverable deletes drop the type-DELETE friction.
+  expect(
+    within(dialog).queryByTestId('delete-modal-input'),
+  ).not.toBeInTheDocument();
+});
+
+test('with soft delete off, the card delete dialog is the permanent-delete one', async () => {
+  (isFeatureEnabled as jest.Mock).mockReturnValue(false);
+  renderCard(createMemoryHistory(), { user: adminUser });
+
+  fireEvent.click(screen.getByTestId('chart-card-menu'));
+  fireEvent.click(await screen.findByText('Delete'));
+
+  const dialog = await screen.findByRole('dialog');
+  expect(within(dialog).getByText('Please confirm')).toBeInTheDocument();
+  expect(
+    within(dialog).getByText(/Are you sure you want to delete/),
+  ).toBeInTheDocument();
+  expect(within(dialog).getByTestId('delete-modal-input')).toBeInTheDocument();
 });
