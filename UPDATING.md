@@ -278,13 +278,13 @@ row cap).
 
 A new dashboard action exports every chart's data to a single multi-sheet
 `.xlsx` asynchronously. It is disabled by default and turns on only when
-`EXCEL_EXPORT_STORAGE` is configured with both a `bucket` and a `backend` (the
+`EXPORT_STORAGE` is configured with both a `bucket` and a `backend` (the
 endpoint returns `501` otherwise) — there is no implicit storage default:
 
 ```python
 from superset.utils.s3 import S3ExportStorage  # or superset.utils.gcs.GCSExportStorage
 
-EXCEL_EXPORT_STORAGE = {
+EXPORT_STORAGE = {
     "bucket": "my-export-bucket",
     "backend": S3ExportStorage(),
 }
@@ -292,7 +292,7 @@ EXCEL_EXPORT_STORAGE = {
 
 It also requires a running Celery worker and a configured SMTP transport, since
 the task emails the requesting user a pre-signed download link. New config keys:
-`EXCEL_EXPORT_STORAGE`, `EXCEL_EXPORT_LINK_TTL_SECONDS`,
+`EXPORT_STORAGE`, `EXCEL_EXPORT_LINK_TTL_SECONDS`,
 `EXCEL_EXPORT_TABLE_VIZ_TYPES`, and `EXCEL_EXPORT_QUERY_CONTEXT_BUILDER`.
 
 The storage backends depend on SDKs that are **not** installed by default:

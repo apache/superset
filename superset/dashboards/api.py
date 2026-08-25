@@ -1776,7 +1776,7 @@ class DashboardRestApi(
             501:
               description: Excel export is not configured on this server
         """
-        storage_config = current_app.config["EXCEL_EXPORT_STORAGE"]
+        storage_config = current_app.config["EXPORT_STORAGE"]
         if not storage_config.get("bucket") or storage_config.get("backend") is None:
             return self.response(
                 501, message="Excel export is not configured on this server."
@@ -1947,7 +1947,7 @@ class DashboardRestApi(
         if resolved is None:
             return self.response(410, message="This download link has expired.")
         bucket, key = resolved
-        storage_backend = current_app.config["EXCEL_EXPORT_STORAGE"].get("backend")
+        storage_backend = current_app.config["EXPORT_STORAGE"].get("backend")
         if storage_backend is None:
             # A link can only exist if a backend was configured when the export
             # ran, so reaching this means the config was cleared since then.
