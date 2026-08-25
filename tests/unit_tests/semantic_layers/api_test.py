@@ -957,6 +957,11 @@ def test_get_list_semantic_layers(
     layer2.configuration = '{"account": "test"}'
     layer2.changed_on_delta_humanized.return_value = "2 hours ago"
 
+    mocker.patch.dict(
+        "superset.semantic_layers.api.registry",
+        {"snowflake": MagicMock(get_configuration_schema=lambda: {"properties": {}})},
+        clear=True,
+    )
     mock_dao = mocker.patch("superset.semantic_layers.api.SemanticLayerDAO")
     mock_dao.find_all.return_value = [layer1, layer2]
 
@@ -1017,6 +1022,11 @@ def test_get_semantic_layer(
     layer.configuration = '{"account": "test"}'
     layer.changed_on_delta_humanized.return_value = "1 day ago"
 
+    mocker.patch.dict(
+        "superset.semantic_layers.api.registry",
+        {"snowflake": MagicMock(get_configuration_schema=lambda: {"properties": {}})},
+        clear=True,
+    )
     mock_dao = mocker.patch("superset.semantic_layers.api.SemanticLayerDAO")
     mock_dao.find_by_uuid.return_value = layer
 
@@ -1102,6 +1112,11 @@ def test_serialize_layer_string_config(
     layer.configuration = '{"account": "test"}'
     layer.changed_on_delta_humanized.return_value = "1 day ago"
 
+    mocker.patch.dict(
+        "superset.semantic_layers.api.registry",
+        {"snowflake": MagicMock(get_configuration_schema=lambda: {"properties": {}})},
+        clear=True,
+    )
     mock_dao = mocker.patch("superset.semantic_layers.api.SemanticLayerDAO")
     mock_dao.find_by_uuid.return_value = layer
 
@@ -1127,6 +1142,11 @@ def test_serialize_layer_dict_config(
     layer.configuration = {"account": "test"}
     layer.changed_on_delta_humanized.return_value = "1 day ago"
 
+    mocker.patch.dict(
+        "superset.semantic_layers.api.registry",
+        {"snowflake": MagicMock(get_configuration_schema=lambda: {"properties": {}})},
+        clear=True,
+    )
     mock_dao = mocker.patch("superset.semantic_layers.api.SemanticLayerDAO")
     mock_dao.find_by_uuid.return_value = layer
 
@@ -1228,16 +1248,16 @@ def test_mask_configuration_no_write_only_properties(mocker: MockerFixture) -> N
 
 
 def test_mask_configuration_no_registered_class(mocker: MockerFixture) -> None:
-    """Test _mask_configuration is a no-op when the type has no connector."""
+    """Test _mask_configuration fails closed when the type has no connector."""
     layer = MagicMock()
     layer.type = "unregistered"
 
     mocker.patch.dict("superset.semantic_layers.api.registry", {}, clear=True)
 
-    config = {"password": "hunter2"}
+    config = {"account": "test", "password": "hunter2"}
     result = _mask_configuration(layer, config)
 
-    assert result is config
+    assert result == {"account": PASSWORD_MASK, "password": PASSWORD_MASK}
 
 
 def test_mask_configuration_schema_error(mocker: MockerFixture) -> None:

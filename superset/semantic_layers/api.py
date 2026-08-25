@@ -91,18 +91,20 @@ def _mask_configuration(layer: SemanticLayer, config: dict[str, Any]) -> dict[st
     key) is replaced with ``PASSWORD_MASK`` here rather than returned in the
     clear.
     """
-    cls = registry.get(layer.type)
-    if not cls:
-        return config
+    schema: dict[str, Any] | None = None
+    if cls := registry.get(layer.type):
+        try:
+            schema = cls.get_configuration_schema()
+        except Exception:  # pylint: disable=broad-except
+            schema = None
 
-    try:
-        schema = cls.get_configuration_schema()
-    except Exception:  # pylint: disable=broad-except
-        # We can't tell which fields are secret, so fail closed: mask every
-        # truthy value rather than risk echoing a credential back in the clear.
+    if schema is None:
+        # Either the type isn't registered or its schema couldn't load, so we
+        # can't tell which fields are secret. Fail closed: mask every truthy
+        # value rather than risk echoing a credential back in the clear.
         logger.warning(
-            "Failed to load configuration schema for semantic layer type %s; "
-            "masking all configuration values.",
+            "Could not determine the configuration schema for semantic layer "
+            "type %s; masking all configuration values.",
             layer.type,
         )
         return {key: PASSWORD_MASK if value else value for key, value in config.items()}
