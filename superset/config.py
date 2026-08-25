@@ -2973,6 +2973,9 @@ GLOBAL_ASYNC_QUERIES_DEFAULT = True
 # The JWT authenticates the socket connection and binds it to its channel; the
 # server delivers targeted task-status events only to matching principal
 # sockets. Set a strong random WEBSOCKET_JWT_SECRET (>= 32 bytes) in production.
+# The websocket server validates permission claims at connection time and
+# terminates sockets after JWT expiry, so post-mint permission revocation is
+# bounded by this lifetime plus the server ping interval.
 ENABLE_WEBSOCKET = False
 WEBSOCKET_URL = "ws://127.0.0.1:8080/"
 WEBSOCKET_JWT_SECRET = CHANGE_ME_WEBSOCKET_JWT_SECRET
@@ -2980,7 +2983,7 @@ WEBSOCKET_JWT_COOKIE_NAME = "superset-ws-token"  # noqa: S105
 WEBSOCKET_JWT_COOKIE_SECURE = False
 WEBSOCKET_JWT_COOKIE_SAMESITE: None | (Literal["None", "Lax", "Strict"]) = None
 WEBSOCKET_JWT_COOKIE_DOMAIN = None
-WEBSOCKET_JWT_EXPIRATION_SECONDS = int(timedelta(hours=1).total_seconds())
+WEBSOCKET_JWT_EXPIRATION_SECONDS = int(timedelta(minutes=15).total_seconds())
 
 # Embedded config options
 GUEST_ROLE_NAME = "Public"

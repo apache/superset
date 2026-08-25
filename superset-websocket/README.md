@@ -76,7 +76,10 @@ Superset mints the token only after the request principal has `can_read` on the
 permission is missing or whose channel does not match the principal identity.
 The socket is then bound to the `channel` claim, which is how task-status fanout
 selects recipient sockets. A principal may have multiple sockets (e.g. several
-browser tabs); all matching messages are sent to all of them.
+browser tabs); all matching messages are sent to all of them. Because permission
+is checked when Superset mints the JWT and when the websocket server accepts the
+upgrade, revocation after minting is bounded by the token lifetime; the Superset
+default is 15 minutes.
 
 ### Connection Management
 
