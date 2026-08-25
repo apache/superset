@@ -32,14 +32,12 @@ import pytest
 from sqlalchemy import (
     Column,
     create_engine,
-    insert,
     inspect,
     Integer,
     MetaData,
-    select,
     Table as SATable,
 )
-from sqlalchemy.engine import Engine
+from sqlalchemy.engine import Connection, Engine
 
 from superset.db_engine_specs.crate import CrateEngineSpec
 from superset.sql.parse import Table
@@ -48,11 +46,19 @@ pytest.importorskip("testcontainers.community.cratedb")
 
 from testcontainers.community.cratedb import CrateDBContainer  # noqa: E402
 
+from ._pagination import assert_paginated_query_returns_correct_rows_in_order
+
 
 @pytest.fixture(scope="module")
 def engine() -> Iterator[Engine]:
     with CrateDBContainer() as container:
         yield create_engine(container.get_connection_url())
+
+
+def _refresh_pilot_pagination(conn: Connection) -> None:
+    # CrateDB is eventually consistent: a row is not guaranteed visible to
+    # subsequent selects immediately after insert.
+    conn.exec_driver_sql("REFRESH TABLE pilot_pagination")
 
 
 def test_paginated_query_returns_correct_rows_in_order(engine: Engine) -> None:
@@ -62,24 +68,9 @@ def test_paginated_query_returns_correct_rows_in_order(engine: Engine) -> None:
     incorrectly (see apache/superset#42899, where Trino emitted OFFSET
     before LIMIT) -- only real execution can.
     """
-    metadata = MetaData()
-    t = SATable(
-        "pilot_pagination",
-        metadata,
-        Column("id", Integer, primary_key=True),
+    assert_paginated_query_returns_correct_rows_in_order(
+        engine, after_insert=_refresh_pilot_pagination
     )
-    metadata.create_all(engine)
-    with engine.begin() as conn:
-        conn.execute(insert(t), [{"id": i} for i in range(10)])
-        # CrateDB is eventually consistent: a row is not guaranteed visible
-        # to subsequent selects immediately after insert.
-        conn.exec_driver_sql(f"REFRESH TABLE {t.name}")
-
-    with engine.connect() as conn:
-        stmt = select(t.c.id).order_by(t.c.id).limit(3).offset(4)
-        rows = conn.execute(stmt).fetchall()
-
-    assert [row.id for row in rows] == [4, 5, 6]
 
 
 def test_get_columns_maps_native_types(engine: Engine) -> None:

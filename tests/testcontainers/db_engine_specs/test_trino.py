@@ -28,11 +28,9 @@ import pytest
 from sqlalchemy import (
     Column,
     create_engine,
-    insert,
     inspect,
     Integer,
     MetaData,
-    select,
     Table as SATable,
 )
 from sqlalchemy.engine import Engine
@@ -44,6 +42,8 @@ from superset.utils.core import GenericDataType
 pytest.importorskip("testcontainers.community.trino")
 
 from testcontainers.community.trino import TrinoContainer  # noqa: E402
+
+from ._pagination import assert_paginated_query_returns_correct_rows_in_order
 
 
 @pytest.fixture(scope="module")
@@ -69,21 +69,7 @@ def test_paginated_query_returns_correct_rows_in_order(engine: Engine) -> None:
     dialect-compiler bug invisible to mocked tests, only catchable by
     actually executing the compiled SQL.
     """
-    metadata = MetaData()
-    t = SATable(
-        "pilot_pagination",
-        metadata,
-        Column("id", Integer, primary_key=True),
-    )
-    metadata.create_all(engine)
-    with engine.begin() as conn:
-        conn.execute(insert(t), [{"id": i} for i in range(10)])
-
-    with engine.connect() as conn:
-        stmt = select(t.c.id).order_by(t.c.id).limit(3).offset(4)
-        rows = conn.execute(stmt).fetchall()
-
-    assert [row.id for row in rows] == [4, 5, 6]
+    assert_paginated_query_returns_correct_rows_in_order(engine)
 
 
 def test_get_columns_maps_native_types(engine: Engine) -> None:
