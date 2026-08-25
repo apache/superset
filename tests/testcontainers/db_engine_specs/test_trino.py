@@ -39,6 +39,7 @@ from sqlalchemy.engine import Engine
 
 from superset.db_engine_specs.trino import TrinoEngineSpec
 from superset.sql.parse import Table
+from superset.utils.core import GenericDataType
 
 pytest.importorskip("testcontainers.community.trino")
 
@@ -108,3 +109,5 @@ def test_get_columns_maps_native_types(engine: Engine) -> None:
     for col in by_name.values():
         spec = TrinoEngineSpec.get_column_spec(str(col["type"]))
         assert spec is not None
+        assert spec.generic_type == GenericDataType.NUMERIC
+        assert isinstance(spec.sqla_type, Integer)
