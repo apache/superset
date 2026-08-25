@@ -27,7 +27,7 @@ from fastmcp.exceptions import ToolError, ValidationError as FastMCPValidationEr
 from fastmcp.server.middleware import Middleware, MiddlewareContext
 from fastmcp.server.middleware.middleware import CallNext
 from fastmcp.tools.tool import Tool, ToolResult
-from flask import g
+from flask import g, has_app_context
 from pydantic import ValidationError
 from sqlalchemy.exc import OperationalError, TimeoutError
 from starlette.exceptions import HTTPException
@@ -702,8 +702,13 @@ class LoggingMiddleware(Middleware):
 # initial render; ``render_chart_requery`` returns the fresh data the widget
 # renders after a drill-down / zoom, so it must be exempt too.
 # Overridable via the ``MCP_STRUCTURED_CONTENT_KEEP_TOOLS`` config key.
+# Fallback used when no Flask app context is available to read
+# MCP_STRUCTURED_CONTENT_KEEP_TOOLS from. Must stay in sync with that config
+# default — a tool present in one and not the other keeps its structured
+# content in a running server and loses it outside one, which is the kind of
+# difference that only shows up in the environment you did not test.
 DEFAULT_STRUCTURED_CONTENT_KEEP_TOOLS: frozenset[str] = frozenset(
-    {"render_chart", "render_chart_requery"}
+    {"render_chart", "render_chart_requery", "render_dashboard"}
 )
 
 

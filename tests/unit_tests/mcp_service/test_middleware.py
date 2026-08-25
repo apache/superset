@@ -2103,3 +2103,23 @@ class TestStructuredContentStripperErrorHook:
         assert "s3cret" not in text
         assert "db.internal" not in text
         assert "[REDACTED]" in text
+
+
+class TestKeepListDefaultsStayInSync:
+    """The two keep-list defaults must not drift.
+
+    `render_dashboard` was added to MCP_STRUCTURED_CONTENT_KEEP_TOOLS but not
+    to DEFAULT_STRUCTURED_CONTENT_KEEP_TOOLS, so it kept its structured content
+    inside a Flask app context and lost it outside one. Nothing failed, because
+    the server always has a context — the divergence was only reachable in the
+    environment nobody runs.
+    """
+
+    def test_module_default_matches_config_default(self) -> None:
+        from superset.mcp_service.mcp_config import (
+            MCP_STRUCTURED_CONTENT_KEEP_TOOLS,
+        )
+
+        assert DEFAULT_STRUCTURED_CONTENT_KEEP_TOOLS == frozenset(
+            MCP_STRUCTURED_CONTENT_KEEP_TOOLS
+        )
