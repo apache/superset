@@ -81,6 +81,7 @@ class TaskProperties(TypedDict, total=False):
     progress_percent: float
     progress_current: int
     progress_total: int
+    dedupe_count: int
 
     # Error info - set when task fails
     error_message: str
