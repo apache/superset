@@ -453,9 +453,9 @@ def _upload_export_file(tmp_path: str, bucket: str, key: str) -> None:
     """Upload the generated workbook via EXCEL_EXPORT_STORAGE's "backend" if
     configured (e.g. a GCS backend for a deployment whose bucket isn't S3),
     else the built-in boto3/S3 helper."""
-    backend = current_app.config["EXCEL_EXPORT_STORAGE"].get("backend")
-    if backend is not None:
-        backend.upload_file(tmp_path, bucket, key)
+    storage_backend = current_app.config["EXCEL_EXPORT_STORAGE"].get("backend")
+    if storage_backend is not None:
+        storage_backend.upload_file(tmp_path, bucket, key)
     else:
         s3.upload_file_to_s3(tmp_path, bucket, key)
 
