@@ -1049,6 +1049,19 @@ test('does not query for values when the dataset disables them', async () => {
   expect(fetchMock.callHistory.calls(COLUMN_VALUES_ENDPOINT)).toHaveLength(0);
 });
 
+test('stores the picked value, not the option object', async () => {
+  // AsyncSelect is labelInValue: taking its argument at face value puts
+  // {label, value} into the comparator, and the engine then fails to render it
+  // as a literal.
+  const props = setupWithFilterValues(['Michael']);
+  await openComparator();
+  userEvent.click(await screen.findByTitle('Michael'));
+
+  await waitFor(() => expect(props.onChange).toHaveBeenCalled());
+  const [filter] = props.onChange.mock.calls.at(-1);
+  expect(filter.comparator).toEqual(['Michael']);
+});
+
 test('says the list is partial when the server capped it', async () => {
   setupWithFilterValues(['alpha', 'beta'], 2);
   await openComparator();

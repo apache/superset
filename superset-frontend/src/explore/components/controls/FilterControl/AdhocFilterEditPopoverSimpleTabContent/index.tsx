@@ -32,6 +32,7 @@ import {
   Select,
   Tooltip,
   type AsyncSelectRef,
+  type LabeledValue,
   type SelectOptionsTypePage,
   type SelectValue,
 } from '@superset-ui/core/components';
@@ -463,6 +464,23 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
     (operatorId && MULTI_OPERATORS.has(operatorId as Operators)) ||
     canSuggestComparatorValues;
 
+  // AsyncSelect is labelInValue, so it emits {label, value} rather than the
+  // raw value a plain Select would. Storing the object as the comparator puts
+  // it straight into the query, where the engine cannot render it as a literal.
+  const unwrapComparator = (value: unknown): unknown => {
+    if (Array.isArray(value)) {
+      return value.map(unwrapComparator);
+    }
+    if (value !== null && typeof value === 'object' && 'value' in value) {
+      return (value as LabeledValue).value;
+    }
+    return value;
+  };
+
+  const handleComparatorChange = (value: unknown) => {
+    onComparatorChange(unwrapComparator(value) as string);
+  };
+
   const comparatorSelectProps = {
     allowClear: true,
     allowNewOptions: true,
@@ -482,8 +500,8 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
         ? ('multiple' as const)
         : ('single' as const),
     value: comparator as SelectValue,
-    onChange: onComparatorChange,
-    notFoundContent: t('No match in the data. Type a value to use it anyway.'),
+    onChange: handleComparatorChange,
+    notFoundContent: t('Type a value here'),
     placeholder: createSuggestionsPlaceholder(),
   };
 
