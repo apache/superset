@@ -194,6 +194,28 @@ def test_happy_path_uploads_and_emails(mocks: dict[str, Any]) -> None:
     assert _no_temp_files_left(JOB_ID)
 
 
+def test_callable_key_prefix_is_resolved_per_export(mocks: dict[str, Any]) -> None:
+    # A multi-tenant deployment computes the prefix in task context (e.g. from
+    # the tenant in current_app.config), so a callable must be invoked rather
+    # than interpolated into the object key as-is.
+    mocks["get_charts_in_layout_order"].return_value = [_chart(10, "Good")]
+    mocks["ChartDataCommand"].return_value.run.return_value = {
+        "queries": [{"colnames": ["a"], "data": [{"a": 1}]}]
+    }
+    original_storage_config = current_app.config["EXPORT_STORAGE"]
+    current_app.config["EXPORT_STORAGE"] = {
+        **original_storage_config,
+        "key_prefix": lambda: "tenant-a/dashboard-exports/",
+    }
+    try:
+        _run()
+    finally:
+        current_app.config["EXPORT_STORAGE"] = original_storage_config
+
+    _, _, key = mocks["storage_backend"].upload_file.call_args[0]
+    assert key == f"tenant-a/dashboard-exports/1/{JOB_ID}.xlsx"
+
+
 @pytest.mark.parametrize(
     "storage_config",
     [

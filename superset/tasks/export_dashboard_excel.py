@@ -473,6 +473,11 @@ def _resolve_export_storage(
             "(e.g. superset.utils.s3.S3ExportStorage())."
         )
     key_prefix = storage_config.get("key_prefix", "dashboard-exports/")
+    if callable(key_prefix):
+        # A callable prefix is resolved per export, for deployments where it
+        # is only known in task context (e.g. a multi-tenant installation
+        # scoping a shared bucket per tenant).
+        key_prefix = key_prefix()
     return storage_backend, bucket, f"{key_prefix}{dashboard_id}/{job_id}.xlsx"
 
 

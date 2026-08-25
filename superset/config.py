@@ -1536,7 +1536,10 @@ class ExportStorageConfig(TypedDict, total=False):
     # disabled until this is set: the export endpoint returns 501 while absent.
     bucket: str
     # Key/blob prefix for export objects: {prefix}{dashboard_id}/{job_id}.xlsx
-    key_prefix: str
+    # A callable is invoked per export, for deployments where the prefix is
+    # only known in request/task context (e.g. a multi-tenant installation
+    # scoping a shared bucket per tenant).
+    key_prefix: str | Callable[[], str]
     # The storage backend (an instance implementing
     # superset.utils.export_storage.ExportStorage), the same pattern as
     # RESULTS_BACKEND or CUSTOM_SECURITY_MANAGER. There is no implicit
