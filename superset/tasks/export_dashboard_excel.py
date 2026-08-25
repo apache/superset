@@ -17,7 +17,7 @@
 """
 Celery task that exports every chart on a dashboard to a single multi-sheet
 ``.xlsx`` file, uploads it to the configured export storage (see
-``EXCEL_EXPORT_STORAGE``), and records a download link (see
+``EXPORT_STORAGE``), and records a download link (see
 ``superset.dashboards.excel_export.download_link``) that emails to the
 requesting user when they have an address on file, and/or is resolved by
 polling ``GET .../export_xlsx/status/<job_id>/`` when they don't.
@@ -459,17 +459,17 @@ def _resolve_export_storage(
 
     The API already rejects the request with 501 when either the bucket or
     the backend is unset, so reaching this unconfigured normally means
-    EXCEL_EXPORT_STORAGE was cleared after the job was enqueued (or the task
+    EXPORT_STORAGE was cleared after the job was enqueued (or the task
     was invoked directly, bypassing the API). Fail with a clear message
     instead of an opaque storage-SDK error.
     """
-    storage_config = current_app.config["EXCEL_EXPORT_STORAGE"]
+    storage_config = current_app.config["EXPORT_STORAGE"]
     bucket = storage_config.get("bucket")
     storage_backend = storage_config.get("backend")
     if not bucket or storage_backend is None:
         raise SupersetException(
             "Excel export is not configured on this server: "
-            "EXCEL_EXPORT_STORAGE needs both a 'bucket' and a 'backend' "
+            "EXPORT_STORAGE needs both a 'bucket' and a 'backend' "
             "(e.g. superset.utils.s3.S3ExportStorage())."
         )
     key_prefix = storage_config.get("key_prefix", "dashboard-exports/")

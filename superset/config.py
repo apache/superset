@@ -1527,11 +1527,12 @@ EXCEL_EXPORT: dict[str, Any] = {}
 # ---------------------------------------------------
 # Dashboard "Export Data to Excel" (async, object-storage-backed)
 # ---------------------------------------------------
-class ExcelExportStorageConfig(TypedDict, total=False):
-    """Where dashboard Excel exports are uploaded, and how the download
-    redirect resolves them back to a fresh URL. See EXCEL_EXPORT_STORAGE."""
+class ExportStorageConfig(TypedDict, total=False):
+    """Where generated export artifacts (dashboard Excel exports, and
+    potentially other export file types) are uploaded, and how the download
+    redirect resolves them back to a fresh URL. See EXPORT_STORAGE."""
 
-    # Destination bucket for generated dashboard .xlsx exports. The feature is
+    # Destination bucket for generated export artifacts. The export feature is
     # disabled until this is set: the export endpoint returns 501 while absent.
     bucket: str
     # Key/blob prefix for export objects: {prefix}{dashboard_id}/{job_id}.xlsx
@@ -1543,7 +1544,7 @@ class ExcelExportStorageConfig(TypedDict, total=False):
     # until one is set explicitly, matching the bucket's provider:
     #   from superset.utils.s3 import S3ExportStorage      # AWS S3
     #   from superset.utils.gcs import GCSExportStorage    # Google Cloud Storage
-    #   EXCEL_EXPORT_STORAGE["backend"] = S3ExportStorage()
+    #   EXPORT_STORAGE["backend"] = S3ExportStorage()
     # S3ExportStorage accepts client_kwargs for boto3.client("s3", ...)
     # overrides (region_name, or an endpoint_url for S3-compatible stores
     # such as MinIO/LocalStack); credentials otherwise resolve through each
@@ -1551,11 +1552,11 @@ class ExcelExportStorageConfig(TypedDict, total=False):
     backend: ExportStorage
 
 
-EXCEL_EXPORT_STORAGE: ExcelExportStorageConfig = {
+EXPORT_STORAGE: ExportStorageConfig = {
     "key_prefix": "dashboard-exports/",
 }
 # Lifetime (seconds) of the download link emailed to the user (24h). Not part
-# of ExcelExportStorageConfig: it bounds the Superset-issued redirect link
+# of ExportStorageConfig: it bounds the Superset-issued redirect link
 # itself (see superset.dashboards.excel_export.download_link), independent of
 # how long the underlying storage backend's own credentials or URLs last.
 # Note: AWS S3 caps pre-signed URL lifetime at 7 days (604800 seconds), so

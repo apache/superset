@@ -15,12 +15,13 @@
 # specific language governing permissions and limitations
 # under the License.
 """
-Pluggable storage backend interface for dashboard Excel export artifacts.
+Pluggable storage backend interface for generated export artifacts
+(dashboard Excel exports, and potentially other export file types).
 
-``EXCEL_EXPORT_STORAGE["backend"]`` in ``superset_config.py`` must be set to
+``EXPORT_STORAGE["backend"]`` in ``superset_config.py`` must be set to
 an instance of a class implementing this protocol (the same "instance in
 config" pattern as ``RESULTS_BACKEND`` or ``CUSTOM_SECURITY_MANAGER``): it is
-where the export task uploads the generated ``.xlsx`` and how the download
+where an export task uploads its generated file and how the download
 redirect mints a fresh, time-limited URL for it. There is no implicit
 default -- pick the backend matching the bucket's provider:
 ``superset.utils.s3.S3ExportStorage`` (boto3/AWS S3) or

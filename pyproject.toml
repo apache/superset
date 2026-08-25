@@ -181,11 +181,11 @@ elasticsearch = ["elasticsearch-dbapi>=0.2.13, <0.3.0"]
 exasol = ["sqlalchemy-exasol>=6.0.0, <8.0"]
 excel = ["xlrd>=2.0.2, <2.1"]
 # S3 storage backend for the async dashboard "Export Data/Images to Excel"
-# feature (EXCEL_EXPORT_STORAGE["backend"] = S3ExportStorage()). boto3 is
+# feature (EXPORT_STORAGE["backend"] = S3ExportStorage()). boto3 is
 # imported lazily by superset.utils.s3, so installing this extra is only
 # required to actually run exports.
 excel-export = ["boto3"]
-# Google Cloud Storage backend for the same feature (EXCEL_EXPORT_STORAGE
+# Google Cloud Storage backend for the same feature (EXPORT_STORAGE
 # ["backend"] = GCSExportStorage()), for a deployment whose export bucket is a
 # native GCS bucket rather than S3. google-cloud-storage is imported lazily by
 # superset.utils.gcs, so this extra is an alternative to excel-export, not an

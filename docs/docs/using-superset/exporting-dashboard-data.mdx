@@ -47,7 +47,7 @@ Notes on the generated workbook:
 
 This feature is **disabled by default**. It requires:
 
-1. **A storage bucket and backend.** Configure `EXCEL_EXPORT_STORAGE` with both
+1. **A storage bucket and backend.** Configure `EXPORT_STORAGE` with both
    a `bucket` and a `backend` matching the bucket's provider — there is no
    implicit default:
 
@@ -55,7 +55,7 @@ This feature is **disabled by default**. It requires:
    from superset.utils.s3 import S3ExportStorage       # AWS S3
    # from superset.utils.gcs import GCSExportStorage   # Google Cloud Storage
 
-   EXCEL_EXPORT_STORAGE = {
+   EXPORT_STORAGE = {
        "bucket": "my-export-bucket",
        "backend": S3ExportStorage(),
    }
@@ -89,9 +89,9 @@ will not register.
 
 | Key                                    | Default                | Description                                                                                                                                                                       |
 | -------------------------------------- | ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `EXCEL_EXPORT_STORAGE["bucket"]`       | unset                  | Destination bucket. Required; `501` if unset.                                                                                                                                     |
-| `EXCEL_EXPORT_STORAGE["backend"]`      | unset                  | Storage backend instance: `S3ExportStorage()` (`superset.utils.s3`), `GCSExportStorage()` (`superset.utils.gcs`), or a custom `superset.utils.export_storage.ExportStorage` implementation. Required; `501` if unset. |
-| `EXCEL_EXPORT_STORAGE["key_prefix"]`   | `"dashboard-exports/"` | Object key/blob prefix: `{prefix}{dashboard_id}/{job_id}.xlsx`.                                                                                                                   |
+| `EXPORT_STORAGE["bucket"]`             | unset                  | Destination bucket. Required; `501` if unset.                                                                                                                                     |
+| `EXPORT_STORAGE["backend"]`            | unset                  | Storage backend instance: `S3ExportStorage()` (`superset.utils.s3`), `GCSExportStorage()` (`superset.utils.gcs`), or a custom `superset.utils.export_storage.ExportStorage` implementation. Required; `501` if unset. |
+| `EXPORT_STORAGE["key_prefix"]`         | `"dashboard-exports/"` | Object key/blob prefix: `{prefix}{dashboard_id}/{job_id}.xlsx`.                                                                                                                   |
 | `EXCEL_EXPORT_LINK_TTL_SECONDS`        | `86400`                | Lifetime of the pre-signed download URL (24h).                                                                                                                                    |
 | `EXCEL_EXPORT_TABLE_VIZ_TYPES`         | `None`                 | Viz types kept tabular in **Export Images to Excel** mode; every other type is embedded as an image. `None` uses the built-in default (`table`, `pivot_table`, `pivot_table_v2`). |
 | `EXCEL_EXPORT_QUERY_CONTEXT_BUILDER`   | `None`                 | Optional `Callable[[form_data_dict], dict \| None]` to build a query context for a chart missing a saved one, tried before the built-in form-data rebuild. Point it at a service that runs the chart's real frontend `buildQuery` to faithfully export viz types the built-in rebuild can't handle. Must return `None` when it can't build faithfully, so the export falls back. |

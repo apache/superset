@@ -86,7 +86,7 @@ def mocks() -> Iterator[dict[str, Any]]:
             mock.patch.dict(
                 current_app.config,
                 {
-                    "EXCEL_EXPORT_STORAGE": {
+                    "EXPORT_STORAGE": {
                         "bucket": "test-bucket",
                         "backend": storage_backend,
                     }
@@ -206,7 +206,7 @@ def test_fails_clearly_when_storage_unconfigured(
     mocks: dict[str, Any], storage_config: dict[str, Any]
 ) -> None:
     # The API already rejects export_xlsx with 501 before enqueueing when
-    # EXCEL_EXPORT_STORAGE lacks a bucket or backend, so this path is normally
+    # EXPORT_STORAGE lacks a bucket or backend, so this path is normally
     # unreachable -- but if the config is cleared after enqueue (or the task
     # is invoked directly), it must fail with a clear message rather than an
     # opaque storage-SDK error.
@@ -214,13 +214,13 @@ def test_fails_clearly_when_storage_unconfigured(
     mocks["ChartDataCommand"].return_value.run.return_value = {
         "queries": [{"colnames": ["a"], "data": [{"a": 1}]}]
     }
-    original_storage_config = current_app.config["EXCEL_EXPORT_STORAGE"]
-    current_app.config["EXCEL_EXPORT_STORAGE"] = storage_config
+    original_storage_config = current_app.config["EXPORT_STORAGE"]
+    current_app.config["EXPORT_STORAGE"] = storage_config
     try:
         with pytest.raises(SupersetException, match="not configured"):
             _run()
     finally:
-        current_app.config["EXCEL_EXPORT_STORAGE"] = original_storage_config
+        current_app.config["EXPORT_STORAGE"] = original_storage_config
 
     mocks["storage_backend"].upload_file.assert_not_called()
     mocks["email"].build_failure_email.assert_called_once()
@@ -357,7 +357,7 @@ def _builder_hook(builder: Any) -> Iterator[None]:
     # Real values for the keys the task subscripts directly, so a full export can
     # run under the hook (a MagicMock ttl would blow up building the link expiry).
     fake_app.config.__getitem__.side_effect = {
-        "EXCEL_EXPORT_STORAGE": {
+        "EXPORT_STORAGE": {
             "bucket": "bucket",
             "key_prefix": "dashboard-exports/",
             "backend": mock.MagicMock(),

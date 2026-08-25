@@ -15,16 +15,16 @@
 # specific language governing permissions and limitations
 # under the License.
 """
-The AWS S3 dashboard-Excel-export storage backend.
+The AWS S3 export storage backend.
 
-Set ``EXCEL_EXPORT_STORAGE["backend"] = S3ExportStorage()`` in
+Set ``EXPORT_STORAGE["backend"] = S3ExportStorage()`` in
 ``superset_config.py`` when the export bucket is an S3 (or S3-compatible)
 bucket. Credentials and region come from the standard boto3 resolution chain
 (env vars, shared config, instance role); client construction can be overridden
 via the constructor (e.g. ``region_name``, or an ``endpoint_url`` for
 S3-compatible stores such as MinIO/LocalStack):
 
-    EXCEL_EXPORT_STORAGE["backend"] = S3ExportStorage(
+    EXPORT_STORAGE["backend"] = S3ExportStorage(
         client_kwargs={"endpoint_url": "http://minio:9000"}
     )
 """
@@ -38,7 +38,7 @@ logger = logging.getLogger(__name__)
 
 
 class S3ExportStorage:
-    """Store dashboard Excel exports in AWS S3 via boto3.
+    """Store export artifacts in AWS S3 via boto3.
 
     Implements ``superset.utils.export_storage.ExportStorage``.
 
@@ -50,7 +50,7 @@ class S3ExportStorage:
 
     def _client(self) -> Any:
         # boto3 is imported lazily so that importing this module (which happens
-        # at config-load time if EXCEL_EXPORT_STORAGE references this class)
+        # at config-load time if EXPORT_STORAGE references this class)
         # does not require boto3 to be installed. The dependency is only needed
         # when an export actually runs; if it is missing, surface an actionable
         # install hint rather than a bare ImportError.
