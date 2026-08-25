@@ -72,6 +72,26 @@ def test_serialized_query_is_json_safe() -> None:
     assert json.loads(json.dumps(payload)) == payload
 
 
+def test_serialize_query_does_not_preserve_defaulted_null_row_limit(
+    mocker: MockerFixture,
+) -> None:
+    ctx = mocker.MagicMock()
+    ctx.cache_values = {
+        "datasource": {"id": 1, "type": "table"},
+        "queries": [{"row_limit": None}],
+    }
+    ctx.queries = [mocker.MagicMock(row_limit=5000)]
+    ctx.form_data = None
+    ctx.result_type = ChartDataResultType.FULL
+    ctx.result_format = ChartDataResultFormat.JSON
+    ctx.force = False
+    ctx.custom_cache_timeout = None
+
+    payload = serialize_query(ctx, 0)
+
+    assert "preserve_null_row_limit" not in payload
+
+
 def test_load_serialized_query_rebuilds_via_factory(mocker: MockerFixture) -> None:
     factory_cls = mocker.patch(
         "superset.common.query_context_factory.QueryContextFactory"
@@ -158,6 +178,7 @@ def test_contribution_totals_round_trip_preserves_cache_key(
     serialized = serialize_query(query_context, totals_idx)
     rebuilt = load_serialized_query(serialized)
 
+    assert serialized["preserve_null_row_limit"] is True
     assert serialized["query"]["row_limit"] is None
     assert rebuilt.queries[0].row_limit is None
     assert rebuilt.query_cache_key(rebuilt.queries[0]) == totals_key

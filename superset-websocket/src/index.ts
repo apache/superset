@@ -301,6 +301,7 @@ export const sendToChannel = (
     logger.debug(`channel ${channel} is unknown, skipping`);
     return;
   }
+  let sentCount = 0;
   channels[channel].sockets.forEach(socketId => {
     const socketInstance: SocketInstance = sockets[socketId];
     if (!socketInstance) return cleanChannel(channel);
@@ -328,6 +329,7 @@ export const sendToChannel = (
     }
     try {
       socketInstance.ws.send(strData);
+      sentCount += 1;
     } catch (err) {
       statsd.increment('ws_client_send_error');
       logger.debug(`Error sending to socket: ${err}`);
@@ -335,6 +337,9 @@ export const sendToChannel = (
       cleanChannel(channel);
     }
   });
+  logger.debug(
+    `Forwarded message ${message.channel} to ${sentCount} socket(s) on channel ${channel}`,
+  );
 };
 
 /**

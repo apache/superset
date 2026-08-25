@@ -102,9 +102,8 @@ let pollingActive = false;
 // subscribed handler may run applyStatus even when async queries are off, and
 // must find a map rather than undefined.
 let waitersByTaskId: Map<string, Set<Waiter>> = new Map();
-// Server-issued watermark: fetched as a baseline at init (before any chart query
-// is triggered) so no task created afterwards is missed, then advanced by each
-// poll. Always the server's own clock, never the browser's.
+// Server-issued watermark: seeded from a chart request's 202 pre-task cursor
+// and advanced by each poll. Always the server's own clock, never the browser's.
 let cursor: string | null;
 // Incremented on every init() so an in-flight poll can detect it is stale and
 // stop instead of scheduling a second loop or mutating fresh state.

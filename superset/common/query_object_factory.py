@@ -37,13 +37,6 @@ if TYPE_CHECKING:
     from superset.daos.datasource import DatasourceDAO
 
 
-class _RowLimitUnset:
-    """Sentinel distinguishing omitted row_limit from explicit null."""
-
-
-_ROW_LIMIT_UNSET = _RowLimitUnset()
-
-
 class QueryObjectFactory:  # pylint: disable=too-few-public-methods
     _config: dict[str, Any]
     _datasource_dao: DatasourceDAO
@@ -61,11 +54,12 @@ class QueryObjectFactory:  # pylint: disable=too-few-public-methods
         parent_result_type: ChartDataResultType,
         datasource: DatasourceDict | None = None,
         extras: dict[str, Any] | None = None,
-        row_limit: int | None | _RowLimitUnset = _ROW_LIMIT_UNSET,
+        row_limit: int | None = None,
         time_range: str | None = None,
         time_shift: str | None = None,
         server_pagination: bool | None = None,
         datasource_model_instance: BaseDatasource | None = None,
+        preserve_null_row_limit: bool = False,
         **kwargs: Any,
     ) -> QueryObject:
         if datasource_model_instance is None and datasource:
@@ -81,7 +75,10 @@ class QueryObjectFactory:  # pylint: disable=too-few-public-methods
 
         # Process row limit taking server pagination into account
         row_limit = self._process_row_limit(
-            row_limit, result_type, server_pagination=server_pagination
+            row_limit,
+            result_type,
+            server_pagination=server_pagination,
+            preserve_null_row_limit=preserve_null_row_limit,
         )
 
         processed_time_range = self._process_time_range(
@@ -116,18 +113,20 @@ class QueryObjectFactory:  # pylint: disable=too-few-public-methods
 
     def _process_row_limit(
         self,
-        row_limit: int | None | _RowLimitUnset,
+        row_limit: int | None,
         result_type: ChartDataResultType,
         server_pagination: bool | None = None,
+        preserve_null_row_limit: bool = False,
     ) -> int | None:
         """Process row limit taking into account server pagination.
 
         :param row_limit: The requested row limit
         :param result_type: The type of result being processed
         :param server_pagination: Whether server-side pagination is enabled
+        :param preserve_null_row_limit: Whether explicit null means no limit
         :return: The processed row limit
         """
-        if row_limit is None:
+        if row_limit is None and preserve_null_row_limit:
             return None
 
         default_row_limit = (
@@ -135,13 +134,8 @@ class QueryObjectFactory:  # pylint: disable=too-few-public-methods
             if result_type == ChartDataResultType.SAMPLES
             else self._config["ROW_LIMIT"]
         )
-        requested_limit = (
-            default_row_limit
-            if row_limit is _ROW_LIMIT_UNSET or row_limit == 0
-            else cast(int, row_limit)
-        )
         return apply_max_row_limit(
-            requested_limit,
+            row_limit or default_row_limit,
             server_pagination=server_pagination,
         )
 
