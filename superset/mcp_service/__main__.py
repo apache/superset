@@ -58,6 +58,7 @@ if os.environ.get("FASTMCP_TRANSPORT", "stdio") == "stdio":
     click.secho = secho_to_stderr
 
 from superset.mcp_service.app import init_fastmcp_server, mcp
+from superset.mcp_service.caching import create_response_caching_middleware
 from superset.mcp_service.middleware import create_response_size_guard_middleware
 from superset.mcp_service.server import build_middleware_list
 
@@ -67,8 +68,9 @@ def _add_default_middlewares() -> None:
 
     Delegates to ``server.build_middleware_list()`` for the core stack so
     the stdio entry point stays in sync with the HTTP server without
-    duplicating middleware ordering.  The optional response size guard is
-    appended separately (innermost position, same as in run_server()).
+    duplicating middleware ordering.  The optional response size guard and
+    response caching middleware are appended separately (innermost
+    position, same order as in run_server()).
 
     FastMCP wraps handlers so that the FIRST-added middleware is outermost.
     ``build_middleware_list()`` already returns middlewares in the correct
@@ -77,11 +79,15 @@ def _add_default_middlewares() -> None:
     for middleware in build_middleware_list():
         mcp.add_middleware(middleware)
 
-    # Response size guard is innermost (added last)
+    # Response size guard is innermost (added last), then response caching.
     if size_guard := create_response_size_guard_middleware():
         mcp.add_middleware(size_guard)
         limit = size_guard.token_limit
         sys.stderr.write(f"[MCP] Response size guard enabled (token_limit={limit})\n")
+
+    if caching_middleware := create_response_caching_middleware():
+        mcp.add_middleware(caching_middleware)
+        sys.stderr.write("[MCP] Response caching enabled\n")
 
 
 def main() -> None:
@@ -157,8 +163,19 @@ def main() -> None:
                 sys.stderr.write(f"[MCP] Client disconnected: {e}\n")
                 sys.exit(0)
     else:
-        # For other transports, use normal initialization
-        init_fastmcp_server()
+        # For other transports (network listeners), install the same auth
+        # provider as the supported entry point (`superset mcp run` ->
+        # server.run_server()) instead of starting with no verifier at all.
+        # _create_auth_provider fails closed (raises MCPAuthConfigError) when
+        # auth is configured but a verifier could not be built, so letting
+        # that propagate here refuses to start rather than silently running
+        # this transport unauthenticated.
+        from superset.mcp_service.flask_singleton import get_flask_app
+        from superset.mcp_service.server import _create_auth_provider
+
+        flask_app = get_flask_app()
+        auth_provider = _create_auth_provider(flask_app)
+        init_fastmcp_server(auth=auth_provider)
         _add_default_middlewares()
 
         # Run with specified transport
