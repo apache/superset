@@ -35,20 +35,30 @@ jest.mock('src/utils/cachedSupersetGet');
 // only need a stand-in that lets us trigger onDrillBy with a distinguishable
 // config, so we can assert ChartContextMenu wires it into the modal.
 jest.mock('../DrillBy/DrillBySubmenu', () => ({
-  DrillBySubmenu: ({ onDrillBy }: any) => (
-    <button
-      type="button"
-      data-test="fake-drill-by-submenu"
-      onClick={() =>
-        onDrillBy(
-          { column_name: 'city', groupby: true },
-          { id: 1, columns: [], metrics: [] },
-          { filters: [{ col: 'selected_scope' }], groupbyFieldName: 'groupby' },
-        )
-      }
-    >
-      Fake Drill By
-    </button>
+  DrillBySubmenu: ({ onDrillBy, dataset }: any) => (
+    <>
+      <button
+        type="button"
+        data-test="fake-drill-by-submenu"
+        onClick={() =>
+          onDrillBy(
+            { column_name: 'city', groupby: true },
+            { id: 1, columns: [], metrics: [] },
+            {
+              filters: [{ col: 'selected_scope' }],
+              groupbyFieldName: 'groupby',
+            },
+          )
+        }
+      >
+        Fake Drill By
+      </button>
+      <div data-test="drillable-columns">
+        {(dataset?.drillable_columns ?? [])
+          .map((col: any) => col.column_name)
+          .join(',')}
+      </div>
+    </>
   ),
 }));
 
@@ -209,4 +219,36 @@ test('drill by modal uses the scope selected in the submenu over the raw context
     screen.getByTestId('drill-by-modal').textContent || '{}',
   );
   expect(modalConfig.filters).toEqual([{ col: 'selected_scope' }]);
+});
+
+test('drill by only offers dimension columns', async () => {
+  // drill_info returns every column so the results grid can label non-dimension
+  // ones; narrowing to dimensions is this component's job, not the API's.
+  mockCachedSupersetGet.mockResolvedValue({
+    response: {} as Response,
+    json: {
+      result: {
+        columns: [
+          { column_name: 'city', verbose_name: 'City', groupby: true },
+          { column_name: 'revenue', verbose_name: 'Revenue', groupby: false },
+        ],
+        metrics: [],
+      },
+    },
+  } as any);
+  setup({
+    drillBy: {
+      filters: [{ col: 'raw_scope', op: '==', val: 'raw' }],
+      groupbyFieldName: 'groupby',
+    },
+  });
+
+  userEvent.click(screen.getByTestId('open-context-menu'));
+
+  await waitFor(() => {
+    expect(screen.getByTestId('drillable-columns')).toHaveTextContent('city');
+  });
+  expect(screen.getByTestId('drillable-columns')).not.toHaveTextContent(
+    'revenue',
+  );
 });
