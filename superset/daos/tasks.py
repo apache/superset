@@ -54,6 +54,10 @@ class TaskDAO(BaseDAO[Task]):
     """
 
     base_filter = TaskFilter
+    # Task rows are cross-worker state. A Celery worker can hold a ``Task``
+    # instance while another worker commits a status transition for the same row,
+    # so TaskDAO entity lookups refresh identity-map instances by default.
+    force_fetch = True
 
     @classmethod
     def get_status(cls, task_uuid: UUID) -> str | None:
@@ -68,7 +72,7 @@ class TaskDAO(BaseDAO[Task]):
         :returns: Task status string, or None if task not found or not accessible
         """
         # Start with query on Task model so base filter can be applied
-        query = db.session.query(Task)
+        query = cls._query()
         query = cls._apply_base_filter(query)
         query = query.filter(Task.uuid == task_uuid)
 
@@ -173,7 +177,7 @@ class TaskDAO(BaseDAO[Task]):
         )
 
         # Simple single-column query with unique index
-        return db.session.query(Task).filter(Task.dedup_key == dedup_key).one_or_none()
+        return cls._query().filter(Task.dedup_key == dedup_key).one_or_none()
 
     @classmethod
     def create_task(
@@ -519,7 +523,7 @@ class TaskDAO(BaseDAO[Task]):
         """
         if not uuids:
             return []
-        return db.session.query(Task).filter(Task.uuid.in_(uuids)).all()
+        return cls._query().filter(Task.uuid.in_(uuids)).all()
 
     @classmethod
     def add_dependencies(cls, task_id: int, depends_on_task_ids: list[int]) -> None:
