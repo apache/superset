@@ -1,0 +1,50 @@
+# Nightly db_engine_specs tests against real databases (testcontainers)
+name: Nightly-Testcontainers
+
+# Deliberately NOT run on every merge to master. These spin up real Docker
+# containers (CockroachDB, CrateDB, Trino today; see tests/testcontainers/
+# for the full list) via testcontainers-python, which is slower and more
+# prone to transient flakiness (image pulls, container startup races) than
+# the mocked db_engine_specs unit tests that already run on every PR. A
+# nightly cadence catches real dialect/driver regressions -- the kind mocks
+# structurally cannot, e.g. apache/superset#42899 (Trino emitting OFFSET
+# before LIMIT) -- without adding that risk to the merge-blocking path.
+permissions:
+  contents: read
+
+on:
+  schedule:
+    - cron: "0 5 * * *"
+  workflow_dispatch: {}
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
+
+jobs:
+  testcontainers:
+    runs-on: ubuntu-26.04
+    timeout-minutes: 30
+    env:
+      PYTHONPATH: ${{ github.workspace }}
+      SUPERSET_TESTENV: true
+      SUPERSET_SECRET_KEY: not-a-secret
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Setup Python
+        uses: ./.github/actions/setup-backend/
+        with:
+          python-version: current
+      - name: Run testcontainers db_engine_specs tests
+        run: |
+          pytest --durations-min=2 -v ./tests/testcontainers --junit-xml=test-results/junit-testcontainers.xml
+      - name: Upload JUnit test results
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: junit-results-testcontainers
+          path: test-results/
+          retention-days: 7
