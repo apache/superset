@@ -277,6 +277,117 @@ UNHIDE_TAB_PANELS_JS = """
 }
 """
 
+# When a Superset table chart has page_length > 0 (client-side pagination),
+# react-table's usePagination hook only renders the current page's rows into
+# the DOM — rows on other pages are simply absent.  Expanding the scroll
+# container reveals only the rows already present (the current page), so a
+# 100-row table with page_length=10 would still show only 10 rows in the PDF.
+#
+# Fix: before expanding containers, find every paginated table and trigger a
+# page-size change to 0 (= "All rows") via React's internal fiber, which
+# causes react-table to re-render with every row visible.
+#
+# Server-side paginated tables (serverPagination=true) cannot be expanded
+# this way — only the rows fetched for the current page exist in memory.
+# Those are logged as a warning; operators should configure server-paginated
+# tables with a large page size for dashboards intended for PDF export.
+#
+# This snippet must be evaluated AFTER chart holders are ready (so the
+# react-table instance exists) and BEFORE EXPAND_TABLE_CONTAINERS_JS (so
+# the newly rendered rows are present when container heights are released).
+# After calling it, wait ~500 ms for React to complete the re-render before
+# calling EXPAND_TABLE_CONTAINERS_JS.
+SHOW_ALL_TABLE_ROWS_JS = """
+() => {
+    // Resolve an antd Select component's onChange handler from its React fiber.
+    // antd v5/v6 stores the fiber on the DOM node as __reactFiber$<hash>.
+    function getReactFiber(el) {
+        const key = Object.keys(el).find(
+            k => k.startsWith('__reactFiber') || k.startsWith('__reactInternalInstance')
+        );
+        return key ? el[key] : null;
+    }
+
+    // Walk up a React fiber tree to find a fiber with a given prop key.
+    function findFiberWithProp(fiber, propName) {
+        let f = fiber;
+        let depth = 0;
+        while (f && depth < 40) {
+            if (f.memoizedProps && propName in f.memoizedProps) return f;
+            f = f.return;
+            depth++;
+        }
+        return null;
+    }
+
+    const results = { clientExpanded: 0, serverWarning: 0, alreadyAll: 0 };
+
+    // Each .superset-chart-table is a client-side table.
+    // Each [data-test-viz-type="table"] wraps the whole TableChart component.
+    const vizSel = '[data-test-viz-type="table"],'
+        + ' [data-test-viz-type="TableChartTransformed"]';
+    for (const vizRoot of document.querySelectorAll(vizSel)) {
+
+        // Detect server-side pagination: a server-paginated table has no
+        // .dt-select-page-size (it uses a different UI) and its wrapper has a
+        // data attribute indicating server mode.
+        const isServerPaginated = vizRoot.querySelector(
+            '[data-test="dt-select-page-size-wrapper"] .ant-select') === null
+            && vizRoot.querySelector('.dt-pagination') !== null;
+        // More reliable: check the pageSizeSelect antd dropdown
+        const pageSizeSelect = vizRoot.querySelector(
+            '.dt-select-page-size .ant-select');
+
+        if (!pageSizeSelect) {
+            // No page-size selector: either already showing all rows (pageSize=0
+            // means no pagination — hasPagination is false) or server-paginated.
+            const hasPaginationEl = vizRoot.querySelector('.dt-pagination');
+            if (hasPaginationEl && isServerPaginated) {
+                results.serverWarning++;
+            } else {
+                results.alreadyAll++;
+            }
+            continue;
+        }
+
+        // Get the current selected value from the antd Select.
+        const selectValueEl = pageSizeSelect.querySelector(
+            '.ant-select-selection-item');
+        const currentText = selectValueEl ? selectValueEl.textContent.trim() : '';
+        // "All" / "all" means pageSize=0 (already showing everything).
+        if (currentText.toLowerCase() === 'all'
+                || currentText === '0'
+                || currentText === '') {
+            results.alreadyAll++;
+            continue;
+        }
+
+        // Find the antd Select's React onChange handler by walking the fiber.
+        const fiber = getReactFiber(pageSizeSelect);
+        if (!fiber) { results.alreadyAll++; continue; }
+
+        // antd Select renders a div.ant-select; the onChange prop is on an
+        // ancestor InternalSelect fiber.
+        const selectorFiber = findFiberWithProp(fiber, 'onChange');
+        if (!selectorFiber) { results.alreadyAll++; continue; }
+
+        const onChange = selectorFiber.memoizedProps.onChange;
+        if (typeof onChange !== 'function') { results.alreadyAll++; continue; }
+
+        // Trigger pageSize = 0 (the "All rows" option value in PAGE_SIZE_OPTIONS).
+        try {
+            onChange(0);
+            results.clientExpanded++;
+        } catch (e) {
+            // Ignore errors — fall through to container expansion with
+            // whatever rows are currently visible.
+        }
+    }
+
+    return results;
+}
+"""
+
 # The Superset table viz renders all rows into the DOM but wraps them in a
 # fixed-height scroll container with an inline style such as:
 #   style="height: 828px; overflow: auto; width: 1496px; ..."
@@ -286,6 +397,9 @@ UNHIDE_TAB_PANELS_JS = """
 # so all rows flow into the print output.  It must be evaluated after the
 # readiness wait (so the chart has finished rendering and populated the DOM)
 # and immediately before page.pdf().
+#
+# Also clears inline width constraints on scroll containers so wide tables
+# (with many columns) are not clipped horizontally in the PDF.
 EXPAND_TABLE_CONTAINERS_JS = """
 () => {
     let count = 0;
@@ -310,17 +424,31 @@ EXPAND_TABLE_CONTAINERS_JS = """
 
     const roots = document.querySelectorAll(sel);
     for (const root of roots) {
-        // 1. Expand every height/overflow-constrained div inside the table viz.
-        //    The Superset table plugin wraps its rows in a div with inline
-        //    style="height:Xpx; overflow:auto" — release those unconditionally.
+        // 1. Expand every height/overflow/width-constrained div inside the
+        //    table viz.  The table plugin wraps rows in:
+        //      style="height:Xpx; overflow:auto; width:Ypx"
+        //    Clearing both height AND width ensures tall AND wide tables are
+        //    fully visible in the PDF without clipping.
         for (const el of root.querySelectorAll('div[style]')) {
             const s = el.style;
-            if (s.height && s.height !== '' && s.height !== 'auto') {
+            const hasHeight = s.height && s.height !== '' && s.height !== 'auto';
+            // Also release width constraints on scroll containers that would
+            // clip a wide table (many columns) at the authored pixel width.
+            const hasWidthClip = (s.overflow === 'auto' || s.overflow === 'scroll'
+                || s.overflowX === 'auto' || s.overflowX === 'scroll')
+                && s.width && s.width !== '' && s.width !== '100%';
+            if (hasHeight) {
                 s.height = 'auto';
                 s.maxHeight = 'none';
                 s.overflow = 'visible';
                 s.overflowY = 'visible';
+                s.overflowX = 'visible';
                 count++;
+            }
+            if (hasWidthClip) {
+                s.width = '100%';
+                s.maxWidth = 'none';
+                s.overflowX = 'visible';
             }
         }
 

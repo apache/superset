@@ -57,6 +57,7 @@ from superset.utils.screenshot_utils import (
     resolve_screenshot_task_budget_seconds,
     ScreenshotTaskBudgetExceededError,
     SET_PRINT_FONT_SIZE_JS,
+    SHOW_ALL_TABLE_ROWS_JS,
     take_tiled_screenshot,
     UNHIDE_TAB_PANELS_JS,
 )
@@ -1298,6 +1299,35 @@ class WebDriverPlaywright(WebDriverProxy):
                 PRINT_ALL_CHART_HOLDERS_READY_JS,
                 timeout=effective_wait * 1000,
             )
+
+            # Show all rows on client-side paginated tables before expanding
+            # containers.  react-table's usePagination only renders the current
+            # page's rows; calling onChange(0) on the page-size selector forces
+            # it to re-render with pageSize=0 (all rows).  Server-side paginated
+            # tables cannot be expanded this way — only the fetched page is
+            # available in memory — so those are logged as warnings.
+            page_size_result = page.evaluate(SHOW_ALL_TABLE_ROWS_JS)
+            if page_size_result.get("clientExpanded", 0):
+                logger.info(
+                    "browser_print_pdf_show_all_rows url=%s "
+                    "client_tables_expanded=%d server_warning=%d log_context=%s",
+                    render_url,
+                    page_size_result["clientExpanded"],
+                    page_size_result.get("serverWarning", 0),
+                    log_context or "",
+                )
+                # Wait for React to re-render with all rows before expanding.
+                page.wait_for_timeout(600)
+            if page_size_result.get("serverWarning", 0):
+                logger.warning(
+                    "browser_print_pdf_server_pagination url=%s "
+                    "server_paginated_tables=%d — only the current page is "
+                    "included in the PDF; configure a larger page_length for "
+                    "dashboards intended for PDF export log_context=%s",
+                    render_url,
+                    page_size_result["serverWarning"],
+                    log_context or "",
+                )
 
             expanded = page.evaluate(EXPAND_TABLE_CONTAINERS_JS)
             if expanded:
