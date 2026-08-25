@@ -132,6 +132,16 @@ import { mergeCustomEChartOptions } from '../utils/mergeCustomEChartOptions';
 
 // Smallest height that still leaves the plot structure usable below the legend.
 const MIN_TIMESERIES_PLOT_HEIGHT = 80;
+const ECHARTS_LEGEND_ITEM_GAP = 8;
+const ECHARTS_LEGEND_ITEM_HEIGHT = 14;
+// ECharts line legend symbols use 80% of itemHeight plus a 2px stroke.
+const ECHARTS_LINE_LEGEND_ITEM_HEIGHT = ECHARTS_LEGEND_ITEM_HEIGHT * 0.8 + 2;
+// The line icon stroke extends 1px beyond the nominal item width.
+const ECHARTS_LINE_LEGEND_ITEM_WIDTH_ADJUSTMENT = 1;
+const ECHARTS_LINE_LEGEND_ROW_HEIGHT =
+  ECHARTS_LINE_LEGEND_ITEM_HEIGHT + ECHARTS_LEGEND_ITEM_GAP;
+const ECHARTS_FULL_HEIGHT_LEGEND_ROW_HEIGHT =
+  ECHARTS_LEGEND_ITEM_HEIGHT + ECHARTS_LEGEND_ITEM_GAP;
 
 const visibleDashPatterns: ([number, number] | 'dashed' | 'dotted')[] = [
   'dashed',
@@ -1128,6 +1138,17 @@ export default function transformProps(
   }));
   const isSmallChart = height < TIMESERIES_CONSTANTS.compactChartHeight;
   const isLegendVisible = showLegend && !isSmallChart;
+  const hasFullHeightLegendItems =
+    seriesType === EchartsTimeseriesSeriesType.Bar ||
+    seriesType === EchartsTimeseriesSeriesType.Scatter ||
+    forecastEnabled ||
+    annotationLayers.length > 0;
+  const horizontalPlainLegendItemWidthAdjustment = hasFullHeightLegendItems
+    ? 0
+    : ECHARTS_LINE_LEGEND_ITEM_WIDTH_ADJUSTMENT;
+  const horizontalPlainLegendRowHeight = hasFullHeightLegendItems
+    ? ECHARTS_FULL_HEIGHT_LEGEND_ROW_HEIGHT
+    : ECHARTS_LINE_LEGEND_ROW_HEIGHT;
   const getLegendLayout = (candidateLegendMargin?: string | number | null) => {
     const padding = getPadding(
       isLegendVisible,
@@ -1155,6 +1176,8 @@ export default function transformProps(
           : undefined,
       chartHeight: height,
       chartWidth: width,
+      horizontalPlainLegendItemWidthAdjustment,
+      horizontalPlainLegendRowHeight,
       legendItems:
         colorByPrimaryAxis && groupBy.length === 0
           ? colorByPrimaryAxisLegendData

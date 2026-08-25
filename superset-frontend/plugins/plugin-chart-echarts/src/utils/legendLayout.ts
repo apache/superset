@@ -78,6 +78,8 @@ export function resolveLegendLayout(args: {
   availableWidth?: number;
   chartHeight: number;
   chartWidth: number;
+  horizontalPlainLegendItemWidthAdjustment?: number;
+  horizontalPlainLegendRowHeight?: number;
   legendItems?: LegendDataItem[];
   legendMargin?: string | number | null;
   orientation: LegendOrientation;

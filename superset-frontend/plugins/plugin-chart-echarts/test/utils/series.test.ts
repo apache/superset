@@ -72,6 +72,8 @@ const {
     availableWidth?: number;
     chartHeight: number;
     chartWidth: number;
+    horizontalPlainLegendItemWidthAdjustment?: number;
+    horizontalPlainLegendRowHeight?: number;
     legendItems?: (
       | string
       | number
@@ -100,6 +102,8 @@ const {
     availableWidth?: number;
     chartHeight: number;
     chartWidth: number;
+    horizontalPlainLegendItemWidthAdjustment?: number;
+    horizontalPlainLegendRowHeight?: number;
     legendItems?: (
       | string
       | number
@@ -1278,7 +1282,7 @@ test('getLegendLayoutResult reserves every row when full-margin layout is reques
   expect(layout.effectiveMargin).toBe(236);
 });
 
-test('getLegendLayoutResult tracks ECharts rows when one dense Plain legend item exceeds the row width', () => {
+test('getLegendLayoutResult tracks ECharts height for a dense Plain legend', () => {
   const chartWidth = 300;
   const platforms = ['PS2', 'PS3', 'PSP', 'PSV', 'Wii', 'X360', 'DS', 'PC'];
   const publishers = [
@@ -1329,6 +1333,7 @@ test('getLegendLayoutResult tracks ECharts rows when one dense Plain legend item
     width: chartWidth,
   });
 
+  let renderedLegendHeight: number;
   let renderedRows: number;
   try {
     chart.setOption({
@@ -1372,6 +1377,17 @@ test('getLegendLayoutResult tracks ECharts rows when one dense Plain legend item
         )
         .map(element => element.transform?.[5]),
     ).size;
+    type LegendView = {
+      __model?: { mainType?: string };
+      getContentGroup: () => {
+        getBoundingRect: () => { height: number };
+      };
+    };
+    const legendView = (
+      chart as unknown as { _componentsViews: LegendView[] }
+    )._componentsViews.find(view => view.__model?.mainType === 'legend');
+    renderedLegendHeight =
+      legendView?.getContentGroup().getBoundingRect().height ?? 0;
   } finally {
     chart.dispose();
   }
@@ -1381,6 +1397,8 @@ test('getLegendLayoutResult tracks ECharts rows when one dense Plain legend item
       availableWidth: chartWidth - 20,
       chartHeight: 600,
       chartWidth,
+      horizontalPlainLegendItemWidthAdjustment: 1,
+      horizontalPlainLegendRowHeight: 21.2,
       legendItems,
       legendMargin: null,
       orientation: LegendOrientation.Top,
@@ -1396,11 +1414,15 @@ test('getLegendLayoutResult tracks ECharts rows when one dense Plain legend item
   const estimatedRows =
     (Number(layout.effectiveMargin) -
       defaultLegendPadding[LegendOrientation.Top]) /
-      24 +
+      21.2 +
     1;
   expect(renderedRows).toBe(117);
-  expect(estimatedRows).toBeGreaterThanOrEqual(renderedRows);
-  expect(estimatedRows - renderedRows).toBeLessThanOrEqual(1);
+  expect(estimatedRows).toBe(renderedRows);
+  const proportionalHeightExcess =
+    (Number(layout.effectiveMargin) - renderedLegendHeight) /
+    renderedLegendHeight;
+  expect(proportionalHeightExcess).toBeGreaterThanOrEqual(0);
+  expect(proportionalHeightExcess).toBeLessThanOrEqual(0.01);
 });
 
 test('getLegendLayoutResult reserves the full required margin for opted-in overflowing horizontal legends', () => {

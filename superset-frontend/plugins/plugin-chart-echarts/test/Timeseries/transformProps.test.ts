@@ -1095,14 +1095,14 @@ test('reserves every Plain legend row before applying zoomable chart padding', (
   expect(typeof grid.top).toBe('number');
   expect(typeof grid.bottom).toBe('number');
   // Six items fit per row, producing seven rows: 20px base legend margin plus
-  // six 24px rows, followed by the fixed 20px top grid offset.
-  expect(grid.top).toBe(184);
+  // six 21.2px line-legend rows, followed by the fixed 20px top grid offset.
+  expect(grid.top).toBeCloseTo(167.2);
   expect(grid.bottom).toBe(80);
   expect(transformed.height).toBe(chartHeight);
-  expect(transformed.contentHeight).toBe(344);
+  expect(transformed.contentHeight).toBeCloseTo(327.2);
   expect(
     transformed.contentHeight - (Number(grid.top) + Number(grid.bottom)),
-  ).toBe(80);
+  ).toBeCloseTo(80);
 });
 
 test('uses post-swap padding while reserving every horizontal Plain legend row', () => {
@@ -1143,12 +1143,12 @@ test('uses post-swap padding while reserving every horizontal Plain legend row',
   expect(typeof grid.top).toBe('number');
   expect(typeof grid.bottom).toBe('number');
   // The axis-title padding reduces the legend's usable width, so five items
-  // fit per row and eight rows reserve a 188px legend margin.
-  expect(grid.top).toBe(208);
+  // fit per row and eight rows reserve a 168.4px legend margin.
+  expect(grid.top).toBeCloseTo(188.4);
   // The final bottom is the pre-swap left padding, including the axis title.
   expect(grid.bottom).toBe(70);
   expect(transformed.height).toBe(chartHeight);
-  expect(transformed.contentHeight).toBe(358);
+  expect(transformed.contentHeight).toBeCloseTo(338.4);
   expect(
     transformed.contentHeight - (Number(grid.top) + Number(grid.bottom)),
   ).toBe(80);
@@ -1188,14 +1188,14 @@ test('reserves the complete dense Plain legend at a realistic Explore chart size
     LegendType.Plain,
   );
   // Three labels fit per row, producing 22 rows: 20px base legend margin plus
-  // twenty-one 24px rows, followed by the fixed 20px top grid offset.
-  expect(grid.top).toBe(544);
+  // twenty-one 21.2px rows, followed by the fixed 20px top grid offset.
+  expect(grid.top).toBeCloseTo(485.2);
   expect(grid.bottom).toBe(20);
   expect(transformed.height).toBe(chartHeight);
-  expect(transformed.contentHeight).toBe(644);
+  expect(transformed.contentHeight).toBe(chartHeight);
   expect(
     transformed.contentHeight - (Number(grid.top) + Number(grid.bottom)),
-  ).toBe(80);
+  ).toBeCloseTo(94.8);
 });
 
 test('grows the content instead of using a negative offset for a pathological Plain legend', () => {
