@@ -18,8 +18,9 @@
 from __future__ import annotations
 
 import enum
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date, datetime, time, timedelta
+from typing import Any
 
 import isodate
 import pyarrow as pa
@@ -90,6 +91,8 @@ class Dimension:
     definition: str | None = None
     description: str | None = None
     grain: Grain | None = None
+    verbose_name: str | None = field(default=None, compare=False)
+    metadata: dict[str, Any] = field(default_factory=dict, compare=False)
 
 
 class AggregationType(str, enum.Enum):
@@ -121,6 +124,9 @@ class Metric:
     definition: str
     description: str | None = None
     aggregation: AggregationType | None = None
+    verbose_name: str | None = field(default=None, compare=False)
+    d3format: str | None = field(default=None, compare=False)
+    metadata: dict[str, Any] = field(default_factory=dict, compare=False)
 
 
 @dataclass(frozen=True)

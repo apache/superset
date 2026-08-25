@@ -33,7 +33,7 @@
     "mapbox-gl": "^3.28.1",
     "maplibre-gl": "^5.24.0",
     "react-map-gl": "^8.1.2",
-    "supercluster": "^8.0.1"
+    "supercluster": "^9.0.0"
   },
   "peerDependencies": {
     "@apache-superset/core": "*",
