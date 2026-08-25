@@ -83,7 +83,11 @@ function DashboardCard({
   const canEdit = hasPerm('can_write');
   const canDelete = hasPerm('can_write');
   const canExport = hasPerm('can_export');
-  const allowEdit = isUserEditorOrAdmin(user, dashboard.editors);
+  const allowEdit = isUserEditorOrAdmin(
+    user,
+    dashboard.editors,
+    dashboard.extra_editors,
+  );
   const digest = dashboard.changed_on_utc || dashboard.changed_on;
   const thumbnailUrl =
     isFeatureEnabled(FeatureFlag.Thumbnails) && dashboard.id && digest

@@ -163,6 +163,7 @@ export function useListViewResource<D extends object = any>(
   );
 
   const lastFetchDataConfigRef = useRef<FetchDataConfig | null>(null);
+  const latestRequestIdRef = useRef(0);
 
   const fetchData = useCallback(
     ({
@@ -171,6 +172,9 @@ export function useListViewResource<D extends object = any>(
       sortBy,
       filters: filterValues,
     }: FetchDataConfig) => {
+      const requestId = latestRequestIdRef.current + 1;
+      latestRequestIdRef.current = requestId;
+      const isLatest = () => latestRequestIdRef.current === requestId;
       const config: FetchDataConfig = {
         filters: filterValues,
         pageIndex,
@@ -211,24 +215,31 @@ export function useListViewResource<D extends object = any>(
       })
         .then(
           ({ json = {} }) => {
+            if (!isLatest()) {
+              return;
+            }
             updateState({
               collection: json.result,
               count: json.count,
               lastFetched: new Date().toISOString(),
             });
           },
-          createErrorHandler(errMsg =>
-            handleErrorMsg(
-              t(
-                'An error occurred while fetching %ss: %s',
-                resourceLabel,
-                errMsg,
-              ),
-            ),
-          ),
+          createErrorHandler(errMsg => {
+            if (isLatest()) {
+              handleErrorMsg(
+                t(
+                  'An error occurred while fetching %ss: %s',
+                  resourceLabel,
+                  errMsg,
+                ),
+              );
+            }
+          }),
         )
         .finally(() => {
-          updateState({ loading: false });
+          if (isLatest()) {
+            updateState({ loading: false });
+          }
         });
     },
     [

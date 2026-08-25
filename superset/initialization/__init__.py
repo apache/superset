@@ -788,16 +788,9 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         Must be called after all versioned model classes have been imported so
         that VERSIONED_MODELS can be populated and configure_mappers() has run.
 
-        ``ENABLE_VERSIONING_CAPTURE`` (ships default ``False``) gates the two
-        before-flush listener registrations. The flag is operational, not
-        feature: with it off the infrastructure is inert (no save writes
-        shadow rows); flipping it on activates capture. The switch also lets
-        an operator who observes a versioning-induced regression (e.g. a
-        save-path slowdown attributable to the change-record listener)
-        disable capture in ``superset_config.py`` and restart workers — a
-        30-second recovery instead of revert-and-redeploy. Shadow tables
-        already created by the migration stay; they just stop accumulating
-        new rows.
+        ``ENABLE_VERSIONING_CAPTURE`` gates the baseline and change-record
+        listener registrations. When disabled, initialization also detaches
+        SQLAlchemy-Continuum's write listeners.
 
         The fallback here is ``False`` so that any app-factory path that
         does not load ``superset.config`` (some test factories, embedded
