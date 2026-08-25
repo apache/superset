@@ -14,18 +14,19 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""Per-principal websocket channel identity and connection tokens.
+"""Per-principal websocket routing identity and connection tokens.
 
 The realtime transport requires a JWT cookie minted by Superset after the
 request principal passes the ``can_read Realtime`` gate. The JWT carries the
-principal identity and a deterministic routing channel — ``user:<id>`` for a
-logged-in user, a stable HMAC for an embedded guest — so the
+principal identity and a deterministic routing key - ``user:<id>`` for a
+logged-in user, a stable HMAC for an embedded guest - so the
 ``superset-websocket`` server can validate the socket and bind it to that
-channel.
+routing key.
 
-Per-principal messages are delivered only to sockets bound to that principal's
-channel. The lossy list-view Pub/Sub tier (``entity-changes:*``) is broadcast to
-all authenticated realtime sockets, but carries only opaque entity nudges — see
+Targeted messages are delivered only to sockets bound to the intended
+principal's routing key. The lossy list-view Pub/Sub tier (``entity-changes:*``)
+is broadcast to all authenticated realtime sockets, but carries only opaque
+entity nudges - see
 ``TaskManager.publish_entity_change``.
 """
 
@@ -64,13 +65,11 @@ class RealtimePrincipal(TypedDict):
 def channel_id_for(user_id: int | None, guest_key: str | None) -> str | None:
     """Derive a principal's realtime channel from its identity, or ``None``.
 
-    The single source of truth for the channel-id format, shared by the
-    request-scoped :func:`get_channel_id` (cookie minting) and the task layer's
-    per-subscriber publish (``TaskDAO.get_subscriber_channels``) so a message
-    published to a subscriber's channel lands on the socket whose cookie bound
-    that same channel. ``user:<id>`` for an authenticated user; the guest's
-    token-derived key (already namespaced ``guest:<hmac>``) for an embedded guest;
-    ``None`` when neither identifies a principal.
+    The single source of truth for the socket routing-key format used by the
+    JWT cookie and the websocket server's targeted fanout. ``user:<id>`` for an
+    authenticated user; the guest's token-derived key (already namespaced
+    ``guest:<hmac>``) for an embedded guest; ``None`` when neither identifies a
+    principal.
     """
     if user_id is not None:
         return f"user:{user_id}"
@@ -126,7 +125,7 @@ def mint_channel_token(principal: RealtimePrincipal) -> str:
 
     The ``superset-websocket`` server verifies this with the same secret, checks
     the principal and permission claims, then uses ``channel`` as the routing key
-    for per-principal messages.
+    for targeted fanout.
     """
     from flask import current_app
 

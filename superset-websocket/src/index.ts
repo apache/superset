@@ -46,24 +46,30 @@ interface RealtimeJwtPayload extends JsonWebTokenPayload {
 }
 
 /**
- * The generic, feature-agnostic message the server forwards to browsers. The
- * server does not understand any feature's payload — it only routes by Redis
- * `channel` name — so `payload` is passed through verbatim. Every connected
- * socket has a valid realtime JWT; a browser client
- * routes on `channel`:
- *   - `entity-changes:<type>` — a lossy "an entity of this type changed"
+ * The generic message the server forwards to browsers. Every connected socket
+ * has a valid realtime JWT; a browser client routes on `channel`:
+ *   - `entity-changes:<type>` - a lossy "an entity of this type changed"
  *     nudge, broadcast to every authenticated socket; `payload` carries opaque
  *     ids only (`{entity_type, id}`).
- *   - `<realtimeChannelPrefix><principalChannel>` — a per-principal message
- *     (e.g. a task's status), delivered only to sockets whose JWT proves that
- *     principal identity and binds it to that channel; `payload` is
- *     feature-defined (e.g. `{task_id, status}`).
- * Any future feature (thumbnails, reports, exports, …) reuses this envelope
- * without a server change: its specifics live entirely in `payload`.
+ *   - `realtime:<principalChannel>` - a targeted task/status browser message,
+ *     delivered only to sockets whose JWT proves that principal identity and
+ *     binds it to that channel; `payload` is feature-defined (e.g.
+ *     `{task_id, status}`).
  */
 export interface OutboundMessage {
   channel: string;
   payload: unknown;
+}
+
+interface TaskStatusSubscriber {
+  principal_type: PrincipalType;
+  sub: string;
+}
+
+interface TaskStatusRedisPayload {
+  task_id: string;
+  status: string;
+  subscribers: TaskStatusSubscriber[];
 }
 
 export interface SocketIdentity {
@@ -167,20 +173,20 @@ const SOCKET_ACTIVE_STATES: number[] = [WebSocket.OPEN, WebSocket.CONNECTING];
 
 // The Pub/Sub channel prefixes the server tails. These are a wire-protocol
 // contract with the Superset producer (superset/tasks/manager.py:
-// ENTITY_CHANGES_CHANNEL_PREFIX / REALTIME_CHANNEL_PREFIX), NOT a deployment
-// knob — an independent override on this side with no matching producer config
+// ENTITY_CHANGES_CHANNEL_PREFIX / TASK_STATUS_CHANNEL), NOT a deployment
+// knob - an independent override on this side with no matching producer config
 // would silently subscribe to channels nothing publishes to, so they are fixed
 // constants that must stay in lockstep with the producer.
 //
 // Tier-1 entity-change nudges are broadcast to every authenticated socket;
-// tier-2 per-principal channels are routed to the matching principal only (see
-// routeRedisMessage). Both are lossy (Pub/Sub is fire-and-forget); the browser's
-// interval poll is the correctness backstop, so no stream replay / reconnection
-// catch-up is needed.
+// tier-2 task-status messages carry subscriber principals and are fanned out by
+// this server to matching sockets only (see routeRedisMessage). Both are lossy
+// (Pub/Sub is fire-and-forget); the browser's interval poll is the correctness
+// backstop, so no stream replay / reconnection catch-up is needed.
 const ENTITY_CHANGES_CHANNEL_PREFIX = 'entity-changes:';
-const PER_PRINCIPAL_CHANNEL_PREFIX = 'realtime:';
+const TASK_STATUS_CHANNEL = 'task-status';
+const REALTIME_BROWSER_CHANNEL_PREFIX = 'realtime:';
 const ENTITY_CHANGES_PATTERN = `${ENTITY_CHANGES_CHANNEL_PREFIX}*`;
-const PER_PRINCIPAL_PATTERN = `${PER_PRINCIPAL_CHANNEL_PREFIX}*`;
 
 // Backoff before retrying an initial Pub/Sub subscription that failed (e.g.
 // Redis unreachable at startup); see subscribeToChannels.
@@ -326,7 +332,7 @@ export const sendToChannel = (
 /**
  * Sends a message to every connected socket, regardless of channel. Used for
  * the lossy tier-1 entity-change nudges (`entity-changes:*`), which carry only
- * opaque ids and are broadcast to authenticated sockets — each client filters
+ * opaque ids and are broadcast to authenticated sockets - each client filters
  * to the ids it renders. Reuses `sendToChannel` per channel so backpressure and
  * cleanup apply uniformly.
  */
@@ -336,14 +342,88 @@ export const broadcastToAll = (message: OutboundMessage): void => {
   }
 };
 
+function isTaskStatusSubscriber(
+  subscriber: unknown,
+): subscriber is TaskStatusSubscriber {
+  if (!subscriber || typeof subscriber !== 'object') {
+    return false;
+  }
+  const candidate = subscriber as {
+    principal_type?: unknown;
+    sub?: unknown;
+  };
+  return (
+    PRINCIPAL_TYPES.includes(candidate.principal_type as PrincipalType) &&
+    typeof candidate.sub === 'string' &&
+    candidate.sub.length > 0
+  );
+}
+
+function isTaskStatusRedisPayload(
+  payload: unknown,
+): payload is TaskStatusRedisPayload {
+  if (!payload || typeof payload !== 'object') {
+    return false;
+  }
+  const candidate = payload as {
+    task_id?: unknown;
+    status?: unknown;
+    subscribers?: unknown;
+  };
+  return (
+    typeof candidate.task_id === 'string' &&
+    typeof candidate.status === 'string' &&
+    Array.isArray(candidate.subscribers) &&
+    candidate.subscribers.every(isTaskStatusSubscriber)
+  );
+}
+
+function channelForSubscriber(subscriber: TaskStatusSubscriber): string | null {
+  if (subscriber.principal_type === 'user') {
+    return `user:${subscriber.sub}`;
+  }
+  if (subscriber.sub.startsWith('guest:')) {
+    return subscriber.sub;
+  }
+  return null;
+}
+
+/**
+ * Fan out one task-status Redis message to every subscriber principal in the
+ * payload. `subscribers` is a server-side routing field produced by Superset
+ * from task subscribers; it is intentionally stripped from the browser payload.
+ */
+export const sendTaskStatusToSubscribers = (payload: unknown): void => {
+  if (!isTaskStatusRedisPayload(payload)) {
+    logger.error(`Invalid task status message on ${TASK_STATUS_CHANNEL}`);
+    return;
+  }
+
+  const outboundPayload = {
+    task_id: payload.task_id,
+    status: payload.status,
+  };
+  const sent = new Set<string>();
+  payload.subscribers.forEach(subscriber => {
+    const channel = channelForSubscriber(subscriber);
+    if (channel === null) return;
+    if (sent.has(channel)) return;
+    sent.add(channel);
+    sendToChannel(channel, {
+      channel: `${REALTIME_BROWSER_CHANNEL_PREFIX}${channel}`,
+      payload: outboundPayload,
+    });
+  });
+};
+
 /**
  * Routes a raw Redis Pub/Sub message to the appropriate sockets.
  *
- * Per-principal messages (`realtime:<principalChannel>`, e.g.
- * `realtime:user:5`) are delivered only to sockets whose JWT bound that
- * principal channel. Entity-change messages (`entity-changes:<type>`) are
- * broadcast to all sockets. The full Redis channel name is forwarded to the
- * browser in the envelope so the client can route by it too.
+ * Task-status messages (`task-status`) include subscriber principals and are
+ * fanned out to sockets whose JWT bound a matching routing key. Entity-change
+ * messages (`entity-changes:<type>`) are broadcast to all sockets. Entity-change
+ * messages forward the Redis channel name; task-status messages forward
+ * `realtime:<routingKey>` and strip server-side routing fields.
  */
 export const routeRedisMessage = (
   channel: string,
@@ -356,12 +436,10 @@ export const routeRedisMessage = (
     logger.error(`Failed to parse message on channel ${channel}: ${err}`);
     return;
   }
-  const message: OutboundMessage = { channel, payload };
-
-  if (channel.startsWith(PER_PRINCIPAL_CHANNEL_PREFIX)) {
-    const principalChannel = channel.slice(PER_PRINCIPAL_CHANNEL_PREFIX.length);
-    sendToChannel(principalChannel, message);
+  if (channel === TASK_STATUS_CHANNEL) {
+    sendTaskStatusToSubscribers(payload);
   } else if (channel.startsWith(ENTITY_CHANGES_CHANNEL_PREFIX)) {
+    const message: OutboundMessage = { channel, payload };
     broadcastToAll(message);
   } else {
     logger.debug(`Ignoring message on unrecognized channel ${channel}`);
@@ -369,14 +447,14 @@ export const routeRedisMessage = (
 };
 
 /**
- * Subscribes the Redis connection to the tier-1 (broadcast) and tier-2
- * (per-principal) channel patterns and routes each received message.
+ * Subscribes the Redis connection to tier-1 entity-change nudges and tier-2
+ * task-status fanout messages.
  *
  * Failure is observable and self-healing rather than silent: if the initial
  * ``psubscribe`` rejects (e.g. Redis unreachable at startup) it is logged and
  * retried, so the transport can't end up running with no subscription. ioredis
  * additionally re-establishes these subscriptions automatically across
- * reconnects once they exist. Delivery is best-effort regardless — the browser's
+ * reconnects once they exist. Delivery is best-effort regardless - the browser's
  * interval poll is the correctness backstop.
  */
 let pmessageBound = false;
@@ -396,10 +474,10 @@ export const subscribeToChannels = async (): Promise<void> => {
   try {
     await redisSubscriber.psubscribe(
       ENTITY_CHANGES_PATTERN,
-      PER_PRINCIPAL_PATTERN,
+      TASK_STATUS_CHANNEL,
     );
     logger.info(
-      `Subscribed to Redis channels: ${ENTITY_CHANGES_PATTERN}, ${PER_PRINCIPAL_PATTERN}`,
+      `Subscribed to Redis channels: ${ENTITY_CHANGES_PATTERN}, ${TASK_STATUS_CHANNEL}`,
     );
   } catch (err) {
     logger.error(

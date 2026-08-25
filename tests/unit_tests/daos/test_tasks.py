@@ -359,23 +359,25 @@ def test_add_subscriber_idempotent(session_with_task: Session) -> None:
     assert len(task.subscribers) == 1
 
 
-def test_get_subscriber_channels(session_with_task: Session) -> None:
-    """get_subscriber_channels maps each subscriber to its per-principal channel."""
+def test_get_subscriber_principals(session_with_task: Session) -> None:
+    """get_subscriber_principals returns subscriber identities."""
     from superset.daos.tasks import TaskDAO
 
     task = create_task(
         session_with_task,
-        task_key="shared-channels",
+        task_key="shared-subscriber-principals",
         scope=TaskScope.SHARED,
         user_id=None,
     )
     TaskDAO.add_subscriber(task.id, user_id=7)
     TaskDAO.add_guest_subscriber(task.id, guest_key="guest:abc")
 
-    channels = TaskDAO.get_subscriber_channels(task.id)
+    subscribers = TaskDAO.get_subscriber_principals(task.id)
 
-    # A user subscriber → user:<id>; a guest subscriber → its token-derived key.
-    assert set(channels) == {"user:7", "guest:abc"}
+    assert subscribers == [
+        {"principal_type": "user", "sub": "7"},
+        {"principal_type": "guest", "sub": "guest:abc"},
+    ]
 
 
 def test_add_guest_subscriber_full_length_key(session_with_task: Session) -> None:
@@ -400,8 +402,8 @@ def test_add_guest_subscriber_full_length_key(session_with_task: Session) -> Non
     assert task.subscribers[0].guest_key == guest_key
 
 
-def test_get_subscriber_channels_empty(session_with_task: Session) -> None:
-    """get_subscriber_channels returns [] for a task with no subscribers."""
+def test_get_subscriber_principals_empty(session_with_task: Session) -> None:
+    """get_subscriber_principals returns [] for a task with no subscribers."""
     from superset.daos.tasks import TaskDAO
 
     task = create_task(
@@ -411,7 +413,7 @@ def test_get_subscriber_channels_empty(session_with_task: Session) -> None:
         user_id=None,
     )
 
-    assert TaskDAO.get_subscriber_channels(task.id) == []
+    assert TaskDAO.get_subscriber_principals(task.id) == []
 
 
 def test_remove_subscriber(session_with_task: Session) -> None:

@@ -192,8 +192,9 @@ describe('server', () => {
   });
 
   describe('routeRedisMessage', () => {
-    test('routes a per-principal message to the matching channel only', () => {
-      // Two principals connected; a realtime:user:5 message reaches only user:5.
+    test('fans a task-status message out to subscriber principals only', () => {
+      // Two principals connected; a task-status message targeting user:5 reaches
+      // only user:5 and is forwarded as a per-principal browser message.
       const wsA = new wsMock('localhost');
       const sendA = vi.spyOn(wsA, 'send');
       server.trackClient('user:5', {
@@ -210,17 +211,24 @@ describe('server', () => {
         pongTs: Date.now(),
       });
 
-      const payload = { task_id: 'abc', status: 'success' };
-      server.routeRedisMessage('realtime:user:5', JSON.stringify(payload));
+      const payload = {
+        task_id: 'abc',
+        status: 'success',
+        subscribers: [{ principal_type: 'user', sub: '5' }],
+      };
+      server.routeRedisMessage('task-status', JSON.stringify(payload));
 
       expect(sendA).toHaveBeenCalledTimes(1);
       expect(sendA).toHaveBeenCalledWith(
-        JSON.stringify({ channel: 'realtime:user:5', payload }),
+        JSON.stringify({
+          channel: 'realtime:user:5',
+          payload: { task_id: 'abc', status: 'success' },
+        }),
       );
       expect(sendB).not.toHaveBeenCalled();
     });
 
-    test('routes a per-principal message to a guest channel', () => {
+    test('fans a task-status message out to a guest subscriber principal', () => {
       const ws = new wsMock('localhost');
       const send = vi.spyOn(ws, 'send');
       server.trackClient('guest:abc', {
@@ -229,12 +237,43 @@ describe('server', () => {
         pongTs: Date.now(),
       });
 
-      const payload = { task_id: 'xyz', status: 'failure' };
-      server.routeRedisMessage('realtime:guest:abc', JSON.stringify(payload));
+      const payload = {
+        task_id: 'xyz',
+        status: 'failure',
+        subscribers: [{ principal_type: 'guest', sub: 'guest:abc' }],
+      };
+      server.routeRedisMessage('task-status', JSON.stringify(payload));
 
       expect(send).toHaveBeenCalledWith(
-        JSON.stringify({ channel: 'realtime:guest:abc', payload }),
+        JSON.stringify({
+          channel: 'realtime:guest:abc',
+          payload: { task_id: 'xyz', status: 'failure' },
+        }),
       );
+    });
+
+    test('deduplicates subscriber principals within a task-status message', () => {
+      const ws = new wsMock('localhost');
+      const send = vi.spyOn(ws, 'send');
+      server.trackClient('user:5', {
+        ws,
+        channel: 'user:5',
+        pongTs: Date.now(),
+      });
+
+      server.routeRedisMessage(
+        'task-status',
+        JSON.stringify({
+          task_id: 'abc',
+          status: 'success',
+          subscribers: [
+            { principal_type: 'user', sub: '5' },
+            { principal_type: 'user', sub: '5' },
+          ],
+        }),
+      );
+
+      expect(send).toHaveBeenCalledTimes(1);
     });
 
     test('broadcasts an entity-change nudge to every socket', () => {
@@ -290,8 +329,25 @@ describe('server', () => {
 
       // Must not throw; simply drops the unparseable message.
       expect(() =>
-        server.routeRedisMessage('realtime:user:5', 'not json'),
+        server.routeRedisMessage('task-status', 'not json'),
       ).not.toThrow();
+      expect(send).not.toHaveBeenCalled();
+    });
+
+    test('drops a malformed task-status message', () => {
+      const ws = new wsMock('localhost');
+      const send = vi.spyOn(ws, 'send');
+      server.trackClient('user:5', {
+        ws,
+        channel: 'user:5',
+        pongTs: Date.now(),
+      });
+
+      server.routeRedisMessage(
+        'task-status',
+        JSON.stringify({ task_id: 'abc', status: 'success' }),
+      );
+
       expect(send).not.toHaveBeenCalled();
     });
   });

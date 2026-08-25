@@ -110,9 +110,10 @@ let cursor: string | null;
 // stop instead of scheduling a second loop or mutating fresh state.
 let pollingGeneration = 0;
 
-// Per-principal channel prefix (mirrors superset-websocket routing and
-// TaskManager.REALTIME_CHANNEL_PREFIX). The browser socket is JWT-bound to its
-// own principal channel, so it only ever receives its own realtime messages.
+// Browser channel prefix for per-principal messages emitted by
+// superset-websocket after it fans out backend task-status events. The browser
+// socket is JWT-bound to its own principal routing key, so it only ever receives
+// its own realtime messages.
 // The shared realtime client (src/middleware/realtime.ts) owns the socket; here
 // we only consume the tier-2 messages relevant to chart-data completion. The
 // socket is best-effort — the interval poll below is the correctness backstop.

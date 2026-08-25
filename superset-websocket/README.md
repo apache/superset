@@ -20,10 +20,9 @@ under the License.
 # Superset WebSocket Server
 
 A Node.js WebSocket server that pushes realtime events from the Superset backend
-to the web frontend. It is a **generic, feature-agnostic transport**: it routes
-messages by Redis channel name and never interprets their contents, so any
-Superset feature (async chart data, background tasks, and future producers such
-as thumbnails, reports, or exports) can push over it without a server change.
+to the web frontend. It is a shared transport for authenticated realtime
+sockets: it broadcasts opaque entity-change nudges and fans targeted task-status
+events out to JWT-bound socket routing keys.
 
 ## Requirements
 
@@ -40,28 +39,29 @@ same host.
 
 Realtime events are published to Redis **Pub/Sub** by the Superset Flask app
 (`superset/tasks/manager.py`). Pub/Sub is intentionally lossy (fire-and-forget):
-a missed message must be reconciled by a frontend poll or REST refetch. Broad
-broadcast messages therefore carry only nudges; per-principal messages may carry
-feature-specific state only when the producer derives the target channel from
-principals authorized to receive it.
+a missed message must be reconciled by a frontend poll or REST refetch.
+Broadcast messages therefore carry only nudges; targeted task-status messages
+carry a server-side `subscribers` routing field derived from task subscribers.
 
-The server tails two channel-prefix patterns and routes by name only:
+The server tails two Pub/Sub channels/patterns:
 
-1. **Tier 1 — authenticated entity-change nudges** (`entity-changes:<type>`,
+1. **Tier 1 - authenticated entity-change nudges** (`entity-changes:<type>`,
    e.g. `entity-changes:task`). Broadcast to every connected realtime socket.
-   The payload carries only opaque ids (`{entity_type, id}`) — no status or
-   sensitive data — so a list view can learn "an entity of this type changed"
+   The payload carries only opaque ids (`{entity_type, id}`) - no status or
+   sensitive data - so a list view can learn "an entity of this type changed"
    and re-fetch just the affected rows through the authorized API. Each client
    filters to the ids it renders.
-2. **Tier 2 — per-principal messages** (`realtime:<channel_id>`, where
-   `channel_id` is `user:<id>` or `guest:<hmac>`). Delivered **only** to sockets
-   whose JWT bound that principal channel. Because delivery is scoped to a
-   principal already entitled to see the entity, the payload may carry
-   feature-specific detail (e.g. a task's `{task_id, status}`).
+2. **Tier 2 - targeted task-status fanout** (`task-status`). Published once per
+   task status transition with `{task_id, status, subscribers}`. Each subscriber
+   is a principal identity such as `{principal_type: "user", sub: "42"}` or
+   `{principal_type: "guest", sub: "guest:<hmac>"}`. The websocket server strips
+   `subscribers` and forwards `{task_id, status}` to each matching
+   `realtime:<channel_id>` browser channel.
 
-The server forwards each message to the browser in a generic envelope
-`{ channel, payload }` (the full Redis channel name plus the parsed payload), so
-the client routes on `channel` exactly as the server does.
+The server forwards each browser message as `{channel, payload}`. Entity-change
+messages preserve the Redis channel (`entity-changes:task`). Task-status
+messages use the derived browser channel (`realtime:user:42` or
+`realtime:guest:<hmac>`) and do not expose the subscriber list to the browser.
 
 ### Connection
 
@@ -74,9 +74,9 @@ Superset mints the token only after the request principal has `can_read` on the
 `Realtime` resource. The token carries `aud`, `iss`, `sub`, `principal_type`,
 `permissions`, `channel`, and `exp`; the server rejects tokens whose realtime
 permission is missing or whose channel does not match the principal identity.
-The socket is then bound to the `channel` claim, which is how tier-2 messages are
-routed to it. A principal may have multiple sockets (e.g. several browser tabs);
-all matching messages are sent to all of them.
+The socket is then bound to the `channel` claim, which is how task-status fanout
+selects recipient sockets. A principal may have multiple sockets (e.g. several
+browser tabs); all matching messages are sent to all of them.
 
 ### Connection Management
 

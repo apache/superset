@@ -18,7 +18,7 @@
 
 import logging
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, Literal, TypedDict
 from uuid import UUID
 
 from superset_core.tasks.types import TaskProperties, TaskScope, TaskStatus
@@ -34,6 +34,14 @@ from superset.tasks.filters import TaskFilter
 from superset.tasks.utils import get_active_dedup_key, get_finished_dedup_key, json
 
 logger = logging.getLogger(__name__)
+
+
+SubscriberPrincipalType = Literal["user", "guest"]
+
+
+class TaskSubscriberPrincipal(TypedDict):
+    principal_type: SubscriberPrincipalType
+    sub: str
 
 
 class TaskDAO(BaseDAO[Task]):
@@ -329,34 +337,38 @@ class TaskDAO(BaseDAO[Task]):
     # Subscription management methods
 
     @classmethod
-    def get_subscriber_channels(cls, task_id: int) -> list[str]:
-        """Return the per-principal realtime channels of a task's subscribers.
+    def get_subscriber_principals(cls, task_id: int) -> list[TaskSubscriberPrincipal]:
+        """Return the principals subscribed to a task.
 
-        Maps each subscriber row (a user or an embedded guest) to its channel id
-        via the shared :func:`superset.websocket.channel.channel_id_for`
-        formatter, so a tier-2 completion event published to one of these
-        channels reaches exactly the socket whose cookie bound the same channel
-        (see ``TaskManager.publish_completion``). Skips the base filter: this is
-        internal plumbing for a task the executor already owns, not a user-facing
-        listing.
+        Skips the base filter: this is internal plumbing for a task the executor
+        already owns, not a user-facing listing. The websocket server maps these
+        principal identities to its own socket routing keys.
 
         :param task_id: internal id of the task
-        :returns: distinct channel ids (``user:<id>`` / ``guest:<hmac>``); empty
+        :returns: distinct subscriber principals; empty
             when the task has no resolvable subscribers
         """
-        from superset.websocket.channel import channel_id_for
-
         rows = (
             db.session.query(TaskSubscriber.user_id, TaskSubscriber.guest_key)
             .filter(TaskSubscriber.task_id == task_id)
+            .order_by(TaskSubscriber.id.asc())
             .all()
         )
-        channels: list[str] = []
+        principals: list[TaskSubscriberPrincipal] = []
+        seen: set[tuple[SubscriberPrincipalType, str]] = set()
         for user_id, guest_key in rows:
-            channel = channel_id_for(user_id, guest_key)
-            if channel is not None and channel not in channels:
-                channels.append(channel)
-        return channels
+            principal: TaskSubscriberPrincipal | None = None
+            if user_id is not None:
+                principal = {"principal_type": "user", "sub": str(user_id)}
+            elif guest_key:
+                principal = {"principal_type": "guest", "sub": guest_key}
+            if principal is None:
+                continue
+            key = (principal["principal_type"], principal["sub"])
+            if key not in seen:
+                seen.add(key)
+                principals.append(principal)
+        return principals
 
     @classmethod
     def add_subscriber(cls, task_id: int, user_id: int) -> bool:
