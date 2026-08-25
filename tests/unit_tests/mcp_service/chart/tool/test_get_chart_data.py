@@ -1446,7 +1446,7 @@ class TestSavedChartExtraFormDataFilters:
 
         def fake_load(self: Any, data: dict[str, Any]) -> Any:
             captured["loaded_query_context_json"] = data
-            return SimpleNamespace(queries=[SimpleNamespace(filter=[])])
+            return SimpleNamespace(queries=[SimpleNamespace(filter=[])], form_data={})
 
         class _Command:
             def __init__(self, query_context: Any) -> None: ...
