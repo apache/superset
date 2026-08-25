@@ -220,7 +220,7 @@ dnspython==2.7.0
     # via
     #   -c requirements/base-constraint.txt
     #   email-validator
-docker==7.0.0
+docker==7.2.0
     # via
     #   apache-superset
     #   testcontainers
@@ -631,7 +631,6 @@ packaging==25.0
     #   apispec
     #   db-dtypes
     #   deprecation
-    #   docker
     #   duckdb-engine
     #   fastmcp-slim
     #   google-cloud-bigquery
