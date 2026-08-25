@@ -100,21 +100,18 @@ describe('ChartPage', () => {
     );
   });
 
-  test('displays the dataset name and error when it is prohibited', async () => {
+  test('displays an error when the dataset is prohibited', async () => {
     const chartApiRoute = `glob:*/api/v1/chart/*`;
     const exploreApiRoute = 'glob:*/api/v1/explore/*';
-    const expectedDatasourceName = 'failed datasource name';
     (getParsedExploreURLParams as jest.Mock).mockReturnValue(
       new Map([['datasource_id', 1]]),
     );
     fetchMock.get(exploreApiRoute, () => {
       class Extra {
-        datasource = 123;
-
-        datasource_name = expectedDatasourceName;
+        is_access_denial = true;
       }
       class SupersetSecurityError {
-        message = 'You do not have a permission to the table';
+        message = 'You do not have permission to access this datasource';
 
         extra = new Extra();
       }
@@ -129,10 +126,7 @@ describe('ChartPage', () => {
     await waitFor(
       () =>
         expect(getByTestId('mock-explore-chart-panel')).toHaveTextContent(
-          JSON.stringify({ datasource_name: expectedDatasourceName }).slice(
-            1,
-            -1,
-          ),
+          'is_access_denial',
         ),
       {
         timeout: 5000,
@@ -155,10 +149,10 @@ describe('ChartPage', () => {
 
     fetchMock.get(exploreApiRoute, () => {
       class Extra {
-        datasource = 123;
+        is_access_denial = true;
       }
       class SupersetSecurityError {
-        message = 'You do not have a permission to the table';
+        message = 'You do not have permission to access this datasource';
 
         extra = new Extra();
       }
@@ -187,7 +181,7 @@ describe('ChartPage', () => {
     ).toBeGreaterThanOrEqual(1);
     expect(getByTestId('mock-explore-chart-panel')).toBeInTheDocument();
     expect(getByTestId('mock-explore-chart-panel')).toHaveTextContent(
-      JSON.stringify({ datasource: 123 }).slice(1, -1),
+      'is_access_denial',
     );
     expect(getByText(expectedChartName)).toBeInTheDocument();
   });
