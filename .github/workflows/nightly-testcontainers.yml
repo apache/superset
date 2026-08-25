@@ -16,6 +16,12 @@ on:
   schedule:
     - cron: "0 5 * * *"
   workflow_dispatch: {}
+  # TEMPORARY: pull_request lets this run on this PR itself to get real GHA
+  # timing before merge. Revert before merge -- see apache/superset#43502.
+  pull_request:
+    paths:
+      - ".github/workflows/nightly-testcontainers.yml"
+      - "tests/testcontainers/**"
 
 concurrency:
   group: ${{ github.workflow }}
@@ -48,3 +54,12 @@ jobs:
           name: junit-results-testcontainers
           path: test-results/
           retention-days: 7
+
+  actions-timeline:
+    needs: [testcontainers]
+    if: always()
+    runs-on: ubuntu-26.04
+    permissions:
+      actions: read
+    steps:
+      - uses: Kesin11/actions-timeline@57fc93f20c6da7fbc14063c6d24a2a5627c799ad # v3.2.0
