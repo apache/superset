@@ -44,6 +44,7 @@ from superset.mcp_service.chart.tool.get_chart_data import (
     _rejected_requested_filter_columns,
     _requested_filter_columns,
 )
+from superset.utils import json
 from superset.utils.core import GenericDataType
 
 
@@ -1427,7 +1428,12 @@ class TestSavedChartExtraFormDataFilters:
             params=None,
         )
 
-    async def _run(self, extra_form_data: dict[str, Any], mcp_server: Any) -> Any:
+    async def _run(
+        self,
+        extra_form_data: dict[str, Any],
+        mcp_server: Any,
+        rejected_filter_columns: list[str] | None = None,
+    ) -> tuple[Any, Any]:
         from unittest.mock import patch
 
         from fastmcp import Client
@@ -1452,6 +1458,7 @@ class TestSavedChartExtraFormDataFilters:
                             "data": [{"country": "USA"}],
                             "colnames": ["country"],
                             "rowcount": 1,
+                            "rejected_filter_columns": rejected_filter_columns or [],
                         }
                     ]
                 }
@@ -1475,7 +1482,7 @@ class TestSavedChartExtraFormDataFilters:
             ),
         ):
             async with Client(mcp_server) as client:
-                await client.call_tool(
+                tool_result = await client.call_tool(
                     "get_chart_data",
                     {
                         "request": {
@@ -1485,14 +1492,14 @@ class TestSavedChartExtraFormDataFilters:
                     },
                 )
 
-        return captured["loaded_query_context_json"]
+        return captured["loaded_query_context_json"], tool_result
 
     @pytest.mark.asyncio
     async def test_filters_key_reaches_executed_query(
         self, mcp_server: Any, mock_auth: Any
     ) -> None:
         """extra_form_data using the native 'filters' format is applied."""
-        loaded = await self._run(
+        loaded, _ = await self._run(
             {"filters": [{"col": "country", "op": "==", "val": "USA"}]}, mcp_server
         )
         filters = loaded["queries"][0].get("filters", [])
@@ -1503,7 +1510,7 @@ class TestSavedChartExtraFormDataFilters:
         self, mcp_server: Any, mock_auth: Any
     ) -> None:
         """extra_form_data using the 'adhoc_filters' format is also applied."""
-        loaded = await self._run(
+        loaded, _ = await self._run(
             {
                 "adhoc_filters": [
                     {
@@ -1525,7 +1532,7 @@ class TestSavedChartExtraFormDataFilters:
         self, mcp_server: Any, mock_auth: Any
     ) -> None:
         """A TEMPORAL_RANGE filter narrows the query, not just simple filters."""
-        loaded = await self._run(
+        loaded, _ = await self._run(
             {
                 "filters": [
                     {
@@ -1543,6 +1550,32 @@ class TestSavedChartExtraFormDataFilters:
             "op": "TEMPORAL_RANGE",
             "val": "2024-01-01 : 2024-02-01",
         } in filters
+
+    @pytest.mark.asyncio
+    async def test_unknown_adhoc_filter_column_returns_validation_error(
+        self, mcp_server: Any, mock_auth: Any
+    ) -> None:
+        """A rejected request filter must not return plausible unfiltered data."""
+        _, result = await self._run(
+            {
+                "adhoc_filters": [
+                    {
+                        "clause": "WHERE",
+                        "expressionType": "SIMPLE",
+                        "subject": "does_not_exist",
+                        "operator": "==",
+                        "comparator": "value",
+                    }
+                ]
+            },
+            mcp_server,
+            rejected_filter_columns=["does_not_exist"],
+        )
+        data = json.loads(result.content[0].text)
+
+        assert data["success"] is False
+        assert data["error_type"] == "ValidationError"
+        assert "does_not_exist" in data["error"]
 
 
 class TestOAuthErrorRouting:
