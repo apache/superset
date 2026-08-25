@@ -1980,7 +1980,9 @@ class DashboardRestApi(
             )
 
         if cache_payload.should_trigger_task(
-            force, expected_scope=f"dashboard:{dashboard.id}"
+            force,
+            expected_scope=f"dashboard:{dashboard.id}",
+            check_updated_staleness=screenshot_obj.supports_updated_staleness,
         ):
             logger.info("Triggering screenshot ASYNC")
             cache_dashboard_screenshot.delay(
@@ -2178,6 +2180,8 @@ class DashboardRestApi(
             "DashboardRestApi.thumbnail", pk=dashboard.id, digest=cache_key
         )
 
+        # No check_updated_staleness here on purpose: this high-traffic card-list
+        # thumbnail path must never opt into updated-staleness recompute.
         if cache_payload.should_trigger_task():
             self.incr_stats("async", self.thumbnail.__name__)
             logger.info(
