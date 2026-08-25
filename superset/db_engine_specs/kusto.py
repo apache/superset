@@ -131,6 +131,17 @@ class KustoSqlEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
                 "notes": "Use native Kusto Query Language for advanced analytics.",
             },
         ],
+        "known_incompatibilities": [
+            {
+                "dependency": "SQLAlchemy 2.0",
+                "reason": (
+                    "setup.py on the sqlalchemy-kusto main branch hard-pins "
+                    "sqlalchemy==1.4.*; no SQLAlchemy 2.0 work has started."
+                ),
+                "tracking_url": "https://github.com/dodopizza/sqlalchemy-kusto",
+                "since": "2026-07-28",
+            }
+        ],
     }
 
     _time_grain_expressions = {

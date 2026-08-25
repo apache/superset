@@ -135,6 +135,7 @@ const SqlEditorLeftBar = ({
       data-test="DatabaseSelector"
       css={css`
         min-width: 500px;
+        max-width: 500px;
       `}
     >
       <Typography.Title level={5} style={{ margin: 0 }}>

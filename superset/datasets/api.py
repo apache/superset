@@ -30,7 +30,7 @@ from flask_appbuilder.api.schemas import get_item_schema
 from flask_appbuilder.const import API_RESULT_RES_KEY, API_SELECT_COLUMNS_RIS_KEY
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
-from jinja2.exceptions import TemplateSyntaxError
+from jinja2.exceptions import TemplateError
 from marshmallow import ValidationError
 from sqlalchemy.orm.exc import MultipleResultsFound
 
@@ -1545,7 +1545,7 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             Warms up the cache for the table.
             Note for slices a force refresh occurs.
             In terms of the `extra_filters` these can be obtained from records in the JSON
-            encoded `logs.json` column associated with the `explore_json` action.
+            encoded `logs.json` column associated with the `explore` action.
           requestBody:
             description: >-
               Identifies the database and table to warm up cache for, and any
@@ -1835,7 +1835,7 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
 
             try:
                 data[new_key] = func(data[key])
-            except (TemplateSyntaxError, SupersetSyntaxErrorException) as ex:
+            except (TemplateError, SupersetSyntaxErrorException) as ex:
                 template_exception = SupersetTemplateException(
                     f"Unable to render expression from dataset {item_type}.",
                 )

@@ -25,6 +25,7 @@ import { TableRenderer } from '../../src/react-pivottable/TableRenderers';
 import {
   aggregatorTemplates,
   groupingValueSort,
+  PivotData,
 } from '../../src/react-pivottable/utilities';
 
 jest.mock(
@@ -759,4 +760,403 @@ test('TableRenderer renders correct number of thead and tbody sections', () => {
   const tbodyEl = table.querySelector('tbody');
   expect(theadEl).toBeInTheDocument();
   expect(tbodyEl).toBeInTheDocument();
+});
+
+/**
+ * "Show values as" a fraction (percent_row/percent_col/percent_total): a pure
+ * display transform over the already DB-correct rollup values in
+ * TAGGED_COUNT_DATA (leaf cells = 1, row/col totals = 2, grand total = 4).
+ * Reintroduces the pre-SIP-216 "Sum as Fraction of ..." display, but as a
+ * standalone control rather than resurrecting the removed per-metric
+ * "Aggregation function" selector -- see PivotData's constructor in
+ * ../../src/react-pivottable/utilities.ts.
+ */
+function getCellTexts(className: string) {
+  return screen
+    .getAllByRole('gridcell')
+    .filter(cell => cell.classList.contains(className))
+    .map(cell => cell.textContent);
+}
+
+test('TableRenderer shows values as a percentage of the grand total', () => {
+  const props = buildDefaultProps({
+    data: TAGGED_COUNT_DATA,
+    vals: ['value'],
+    tableOptions: { rowTotals: true, colTotals: true },
+    showValuesAs: 'percent_total',
+  });
+  renderWithTheme(<TableRenderer {...props} />);
+
+  // Each leaf cell is 1 out of a grand total of 4.
+  expect(getCellTexts('pvtVal')).toEqual(
+    expect.arrayContaining(['25.0%', '25.0%', '25.0%', '25.0%']),
+  );
+  // Row and column totals are 2 out of 4.
+  const rowTotalCells = getCellTexts('pvtTotal').filter(
+    text => text === '50.0%',
+  );
+  expect(rowTotalCells.length).toBeGreaterThan(0);
+  // The grand total is always 100% of itself.
+  const grandTotalCells = screen
+    .getAllByRole('gridcell')
+    .filter(cell => cell.classList.contains('pvtGrandTotal'));
+  expect(grandTotalCells).toHaveLength(1);
+  expect(grandTotalCells[0]).toHaveTextContent('100.0%');
+});
+
+test('TableRenderer shows values as a percentage of the row total', () => {
+  const props = buildDefaultProps({
+    data: TAGGED_COUNT_DATA,
+    vals: ['value'],
+    tableOptions: { rowTotals: true, colTotals: true },
+    showValuesAs: 'percent_row',
+  });
+  renderWithTheme(<TableRenderer {...props} />);
+
+  // Each leaf cell (1) is half of its row's total (2).
+  expect(getCellTexts('pvtVal')).toEqual(
+    expect.arrayContaining(['50.0%', '50.0%', '50.0%', '50.0%']),
+  );
+  // A row total is 100% of itself.
+  expect(getCellTexts('pvtTotal')).toEqual(expect.arrayContaining(['100.0%']));
+});
+
+test('TableRenderer shows values as a percentage of the column total', () => {
+  const props = buildDefaultProps({
+    data: TAGGED_COUNT_DATA,
+    vals: ['value'],
+    tableOptions: { rowTotals: true, colTotals: true },
+    showValuesAs: 'percent_col',
+  });
+  renderWithTheme(<TableRenderer {...props} />);
+
+  // Each leaf cell (1) is half of its column's total (2).
+  expect(getCellTexts('pvtVal')).toEqual(
+    expect.arrayContaining(['50.0%', '50.0%', '50.0%', '50.0%']),
+  );
+  // A column total is 100% of itself.
+  expect(getCellTexts('pvtTotal')).toEqual(expect.arrayContaining(['100.0%']));
+});
+
+/**
+ * Regression guard: when the metric pseudo-dimension collapses to the only
+ * thing on an axis (the grand-total level), each metric's own grand total
+ * must be used as the `showValuesAs` denominator -- not whichever metric's
+ * record was pushed last into the shared "Metric-collapse totals" slot (see
+ * `processRecord` in ../../src/react-pivottable/utilities.ts).
+ */
+const TAGGED_MULTI_METRIC_ON_COLUMNS = [
+  // leaf cells for metric m1 (grand total 30)
+  {
+    color: 'blue',
+    Metric: 'm1',
+    value: 10,
+    __rows: ['color'],
+    __columns: ['Metric'],
+    __metricKey: 'Metric',
+  },
+  {
+    color: 'red',
+    Metric: 'm1',
+    value: 20,
+    __rows: ['color'],
+    __columns: ['Metric'],
+    __metricKey: 'Metric',
+  },
+  // leaf cells for metric m2 (grand total 300) -- a different ratio so a
+  // cross-metric mixup produces a distinctly wrong percentage.
+  {
+    color: 'blue',
+    Metric: 'm2',
+    value: 250,
+    __rows: ['color'],
+    __columns: ['Metric'],
+    __metricKey: 'Metric',
+  },
+  {
+    color: 'red',
+    Metric: 'm2',
+    value: 50,
+    __rows: ['color'],
+    __columns: ['Metric'],
+    __metricKey: 'Metric',
+  },
+  // grand total level: rows = [], columns = [Metric]. m2 is pushed last.
+  {
+    Metric: 'm1',
+    value: 30,
+    __rows: [],
+    __columns: ['Metric'],
+    __metricKey: 'Metric',
+  },
+  {
+    Metric: 'm2',
+    value: 300,
+    __rows: [],
+    __columns: ['Metric'],
+    __metricKey: 'Metric',
+  },
+];
+
+test("TableRenderer divides percent_total by each metric's own grand total", () => {
+  const props = buildDefaultProps({
+    data: TAGGED_MULTI_METRIC_ON_COLUMNS,
+    rows: ['color'],
+    cols: ['Metric'],
+    vals: ['value'],
+    tableOptions: { rowTotals: true, colTotals: true },
+    showValuesAs: 'percent_total',
+  });
+  renderWithTheme(<TableRenderer {...props} />);
+
+  const cellTexts = getCellTexts('pvtVal');
+  // m1: 10/30 and 20/30 -- correct only if m1's own grand total (30) is used.
+  expect(cellTexts).toEqual(expect.arrayContaining(['33.3%', '66.7%']));
+  // m2: 250/300 and 50/300.
+  expect(cellTexts).toEqual(expect.arrayContaining(['83.3%', '16.7%']));
+  // A "last metric wins" bug would divide m1's cells by m2's grand total
+  // (300) instead, producing 3.3%/6.7%.
+  expect(cellTexts).not.toEqual(expect.arrayContaining(['3.3%']));
+  expect(cellTexts).not.toEqual(expect.arrayContaining(['6.7%']));
+});
+
+test('TableRenderer shows actual values when showValuesAs is unset (default)', () => {
+  const props = buildDefaultProps({
+    data: TAGGED_COUNT_DATA,
+    vals: ['value'],
+    tableOptions: { rowTotals: true, colTotals: true },
+  });
+  renderWithTheme(<TableRenderer {...props} />);
+
+  // No percent signs anywhere -- the DB-computed values render as-is.
+  const allCellTexts = screen
+    .getAllByRole('gridcell')
+    .map(cell => cell.textContent);
+  expect(allCellTexts.some(text => text?.includes('%'))).toBe(false);
+  expect(getCellTexts('pvtVal')).toEqual(
+    expect.arrayContaining(['1.00', '1.00', '1.00', '1.00']),
+  );
+});
+
+/**
+ * Regression guard: the grand-total corner cell is a single shared aggregator
+ * slot that "Metric-collapse totals" mirrors every metric's grand-total
+ * record into (see `processRecord`), so both its own value and `metricAxis`
+ * reflect the last metric pushed (m2). The denominator lookup must resolve
+ * against that same metric's own total (m2's 300, not m1's 30) so the corner
+ * cell reads a self-consistent 100% instead of an obviously wrong
+ * cross-metric ratio (300 / 30 = "1000.0%").
+ */
+test('TableRenderer keeps the grand-total corner cell self-consistent when it mixes multiple metrics in fraction mode', () => {
+  const props = buildDefaultProps({
+    data: TAGGED_MULTI_METRIC_ON_COLUMNS,
+    rows: ['color'],
+    cols: ['Metric'],
+    vals: ['value'],
+    tableOptions: { rowTotals: true, colTotals: true },
+    showValuesAs: 'percent_total',
+  });
+  renderWithTheme(<TableRenderer {...props} />);
+
+  const grandTotalCells = screen
+    .getAllByRole('gridcell')
+    .filter(cell => cell.classList.contains('pvtGrandTotal'));
+  expect(grandTotalCells).toHaveLength(1);
+  expect(grandTotalCells[0]).toHaveTextContent('100.0%');
+});
+
+/**
+ * Regression guard: a DB-computed value can be a genuine SQL NULL (e.g. AVG
+ * over an empty group). `null / acc` coerces to `0` in JS, which would
+ * previously render a measured "0.0%" for a cell that renders blank in
+ * "Actual values" mode. Fraction mode must preserve that blank instead of
+ * turning an undefined value into a measured zero.
+ */
+const TAGGED_DATA_WITH_NULL_LEAF = [
+  {
+    color: 'blue',
+    shape: 'circle',
+    value: null,
+    __rows: ['color'],
+    __columns: ['shape'],
+  },
+  {
+    color: 'blue',
+    shape: 'square',
+    value: 20,
+    __rows: ['color'],
+    __columns: ['shape'],
+  },
+  {
+    color: 'red',
+    shape: 'circle',
+    value: 30,
+    __rows: ['color'],
+    __columns: ['shape'],
+  },
+  {
+    color: 'red',
+    shape: 'square',
+    value: 40,
+    __rows: ['color'],
+    __columns: ['shape'],
+  },
+  { color: 'blue', value: 20, __rows: ['color'], __columns: [] },
+  { color: 'red', value: 70, __rows: ['color'], __columns: [] },
+  { shape: 'circle', value: 30, __rows: [], __columns: ['shape'] },
+  { shape: 'square', value: 60, __rows: [], __columns: ['shape'] },
+  { value: 90, __rows: [], __columns: [] },
+];
+
+test('TableRenderer keeps a null metric value blank in fraction mode instead of showing 0.0%', () => {
+  const props = buildDefaultProps({
+    data: TAGGED_DATA_WITH_NULL_LEAF,
+    rows: ['color'],
+    cols: ['shape'],
+    vals: ['value'],
+    tableOptions: { rowTotals: true, colTotals: true },
+    showValuesAs: 'percent_row',
+  });
+  renderWithTheme(<TableRenderer {...props} />);
+
+  const cellTexts = getCellTexts('pvtVal');
+  expect(cellTexts).not.toContain('0.0%');
+  expect(cellTexts).toContain('');
+  // The non-null sibling cell in the same row still divides correctly
+  // (20 / 20 row total).
+  expect(cellTexts).toContain('100.0%');
+});
+
+/**
+ * Regression guard: the denominator (not just the numerator) can itself be a
+ * genuine SQL NULL -- e.g. a row total that's an AVG over an empty group.
+ * `numerator / null` coerces to `numerator / 0` in JS, producing `Infinity`
+ * (for a nonzero numerator) instead of the blank cell that a missing/null
+ * total should render as everywhere else.
+ */
+const TAGGED_DATA_WITH_NULL_ROW_TOTAL = [
+  {
+    color: 'blue',
+    shape: 'circle',
+    value: 10,
+    __rows: ['color'],
+    __columns: ['shape'],
+  },
+  {
+    color: 'blue',
+    shape: 'square',
+    value: 20,
+    __rows: ['color'],
+    __columns: ['shape'],
+  },
+  // blue's row total is itself null (e.g. AVG over an empty group).
+  { color: 'blue', value: null, __rows: ['color'], __columns: [] },
+];
+
+test('TableRenderer keeps cells blank in fraction mode when the denominator total is null', () => {
+  const props = buildDefaultProps({
+    data: TAGGED_DATA_WITH_NULL_ROW_TOTAL,
+    rows: ['color'],
+    cols: ['shape'],
+    vals: ['value'],
+    tableOptions: { rowTotals: true, colTotals: true },
+    showValuesAs: 'percent_row',
+  });
+  renderWithTheme(<TableRenderer {...props} />);
+
+  const cellTexts = getCellTexts('pvtVal');
+  expect(cellTexts).not.toEqual(
+    expect.arrayContaining([expect.stringContaining('Infinity')]),
+  );
+  expect(cellTexts).not.toEqual(
+    expect.arrayContaining([expect.stringContaining('NaN')]),
+  );
+  expect(cellTexts).toEqual(['', '']);
+});
+
+/**
+ * The rendered text alone can't distinguish `null` from `Infinity`/`NaN` --
+ * the shared number formatter already blanks any non-finite value, so the
+ * DOM-level test above would pass even without the `acc === null` guard.
+ * Assert the aggregator's own value() contract directly: it must return
+ * `null` (not a non-finite number) when the denominator total is null, since
+ * other code paths that read `.value()` outside of `.format()` -- e.g.
+ * value-based row/column sorting -- rely on that contract to treat it as "no
+ * value" the same way an actually-missing total does.
+ */
+test("fractionOf's value() returns null, not Infinity, when the denominator total is null", () => {
+  const pivotData = new PivotData({
+    data: TAGGED_DATA_WITH_NULL_ROW_TOTAL,
+    rows: ['color'],
+    cols: ['shape'],
+    vals: ['value'],
+    showValuesAs: 'percent_row',
+  });
+
+  expect(pivotData.getAggregator(['blue'], ['circle']).value()).toBeNull();
+  expect(pivotData.getAggregator(['blue'], ['square']).value()).toBeNull();
+});
+
+/**
+ * Regression guard: `buildGroupbyCombinations` requests the denominator's
+ * rollup level whenever a percent `showValuesAs` is active, but if a cached
+ * response predates that (e.g. a stale query result), the level a percent
+ * mode needs can be absent from the data entirely. The denominator aggregator
+ * then never receives a push and its underlying value stays `null`, which
+ * would produce `Infinity` (JS coerces `null` to `0` under `/`) rather than
+ * throwing -- the shared number formatter must render that as blank instead
+ * of leaking `Infinity%`/`NaN%` into the cell.
+ */
+test('TableRenderer renders blank instead of NaN%/Infinity% when the denominator level is missing', () => {
+  // Leaf cells and the grand total are present, but the row-total level
+  // (`__rows: ['color'], __columns: []`) that `percent_row` needs is not --
+  // simulating a response fetched before the denominator level was requested.
+  const dataMissingRowTotals = TAGGED_COUNT_DATA.filter(
+    record => !(record.__rows.length === 1 && record.__columns.length === 0),
+  );
+  const props = buildDefaultProps({
+    data: dataMissingRowTotals,
+    vals: ['value'],
+    tableOptions: { rowTotals: false, colTotals: true },
+    showValuesAs: 'percent_row',
+  });
+  renderWithTheme(<TableRenderer {...props} />);
+
+  const cellTexts = getCellTexts('pvtVal');
+  expect(cellTexts.length).toBeGreaterThan(0);
+  cellTexts.forEach(text => {
+    expect(text).not.toMatch(/NaN|Infinity/);
+  });
+  expect(cellTexts).toEqual(expect.arrayContaining(['']));
+});
+
+/**
+ * Regression guard: a per-metric custom formatter (currency, decimal
+ * precision, etc.) doesn't apply to a ratio, so `PivotData` disables
+ * `formattedAggregators` entirely whenever a fraction `showValuesAs` is
+ * active (see the constructor in ../../src/react-pivottable/utilities.ts).
+ * A cell whose group would otherwise pick up a custom formatter must still
+ * render as a plain percentage.
+ */
+test('TableRenderer ignores customFormatters while showValuesAs is a percentage', () => {
+  const customFormatters = {
+    color: {
+      blue: () => 'CUSTOM',
+    },
+  };
+  const props = buildDefaultProps({
+    data: TAGGED_COUNT_DATA,
+    vals: ['value'],
+    tableOptions: { rowTotals: true, colTotals: true },
+    showValuesAs: 'percent_row',
+    customFormatters,
+  });
+  renderWithTheme(<TableRenderer {...props} />);
+
+  const cellTexts = getCellTexts('pvtVal');
+  expect(cellTexts).not.toEqual(expect.arrayContaining(['CUSTOM']));
+  // Each leaf cell (1) is still half of its row's total (2).
+  expect(cellTexts).toEqual(
+    expect.arrayContaining(['50.0%', '50.0%', '50.0%', '50.0%']),
+  );
 });

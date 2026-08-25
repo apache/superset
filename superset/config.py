@@ -350,10 +350,24 @@ SQLALCHEMY_ENCRYPTED_FIELD_TYPE_ADAPTER = (  # pylint: disable=invalid-name
 # (database passwords, SSH tunnel credentials, OAuth tokens, ...) will make
 # those values undecryptable unless they are re-encrypted first. See the
 # authenticated-encryption SIP/migration before switching an existing install.
+# Leaving this at "aes" logs a startup warning
+# (SupersetAppInitializer.check_encryption_engine) pointing at the
+# `superset re-encrypt-secrets --engine aes-gcm` migration path.
 SQLALCHEMY_ENCRYPTED_FIELD_ENGINE: Literal["aes", "aes-gcm"] = "aes"
 
 # Extends the default SQLGlot dialects with additional dialects
 SQLGLOT_DIALECTS_EXTENSIONS: DialectExtensions | Callable[[], DialectExtensions] = {}
+
+# Extra pandas post-processing operations to register alongside the built-in ones.
+# Each entry must be a named callable (i.e. have a __name__ attribute) with the
+# signature:
+#   def my_op(df: pandas.DataFrame, **options: Any) -> pandas.DataFrame
+# The function is registered under its __name__ as the operation name. Callables
+# without __name__ (e.g. functools.partial, lambda) are silently ignored.
+# Example:
+#   from mypackage.ops import my_custom_op
+#   EXTRA_PANDAS_POSTPROCESSING_OPS = [my_custom_op]
+EXTRA_PANDAS_POSTPROCESSING_OPS: list[Callable[..., Any]] = []
 
 # The limit of queries fetched for query search
 QUERY_SEARCH_LIMIT = 1000
@@ -365,7 +379,6 @@ WTF_CSRF_ENABLED = True
 WTF_CSRF_EXEMPT_LIST = [
     "superset.charts.data.api.data",
     "superset.dashboards.api.cache_dashboard_screenshot",
-    "superset.views.core.explore_json",
     "superset.views.core.log",
     "superset.views.datasource.views.samples",
     "flask_appbuilder.security.views.acs",
@@ -486,8 +499,7 @@ FAB_API_SWAGGER_UI_SUPERSET_APP_ROOT = False
 # AUTH_REMOTE_USER : Is for using REMOTE_USER from web server
 AUTH_TYPE = AUTH_DB
 
-# Uncomment to setup Full admin role name
-# AUTH_ROLE_ADMIN = 'Admin'
+# AUTH_ROLE_ADMIN = "Admin"
 
 # Uncomment to setup Public role name, no authentication needed
 # AUTH_ROLE_PUBLIC = 'Public'
@@ -552,6 +564,7 @@ LANGUAGES = {
     "fi": {"flag": "fi", "name": "Finnish"},
     "th": {"flag": "th", "name": "Thai"},
     "tr": {"flag": "tr", "name": "Turkish"},
+    "ta": {"flag": "in", "name": "Tamil"},
 }
 # Turning off i18n by default as translation in most languages are
 # incomplete and not well maintained.
@@ -689,13 +702,14 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # can_copy_clipboard) instead of the single can_csv permission
     # @lifecycle: development
     "GRANULAR_EXPORT_CONTROLS": False,
-    # Temporary rollout / kill-switch gate for soft delete (default off = legacy
-    # hard delete). An emergency stop, not a clean rollback: flipping ON->OFF
-    # resurrects already-soft-deleted rows. Removed (along with its two gate
-    # points — BaseDAO.delete routing and the do_orm_execute visibility listener)
-    # once soft delete is stable.
+    # Temporary rollout / kill-switch gate for soft delete (off = legacy hard
+    # delete). An emergency stop, not a clean rollback: flipping ON->OFF
+    # resurrects already-soft-deleted rows. Retained through this release as
+    # the move-back lever; removed (along with its two gate points —
+    # BaseDAO.delete routing and the do_orm_execute visibility listener) once
+    # post-flip confidence is established.
     # @lifecycle: development
-    "SOFT_DELETE": False,
+    "SOFT_DELETE": True,
     # Enable semantic layers and show semantic views alongside datasets
     # @lifecycle: development
     "SEMANTIC_LAYERS": False,
@@ -708,6 +722,11 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Enable Matrixify feature for matrix-style chart layouts
     # @lifecycle: development
     "MATRIXIFY": False,
+    # Serve a consumption-only mobile experience (dashboards, dashboard list,
+    # and home page) on small screens; other views show a "not supported on
+    # mobile" screen. Authoring features are hidden on mobile when enabled.
+    # @lifecycle: development
+    "MOBILE_CONSUMPTION_MODE": False,
     # Try to optimize SQL queries — for now only predicate pushdown is supported
     # @lifecycle: development
     "OPTIMIZE_SQL": False,
@@ -721,6 +740,12 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Enables the tagging system for organizing assets
     # @lifecycle: development
     "TAGGING_SYSTEM": False,
+    # Enables the version history panel on Explore and Dashboard pages.
+    # History only accrues while ``ENABLE_VERSIONING_CAPTURE`` is also on;
+    # with capture off the panel renders but stays empty, so the two ship
+    # with matching defaults and should be changed together.
+    # @lifecycle: development
+    "VERSION_HISTORY": True,
     # =================================================================
     # IN TESTING
     # =================================================================
@@ -786,10 +811,6 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # When impersonating a user, use the email prefix instead of username
     # @lifecycle: testing
     "IMPERSONATE_WITH_EMAIL_PREFIX": False,
-    # Replace Selenium with Playwright for reports and thumbnails.
-    # Supports deck.gl visualizations. Requires playwright pip package.
-    # @lifecycle: testing
-    "PLAYWRIGHT_REPORTS_AND_THUMBNAILS": False,
     # Apply RLS rules to SQL Lab queries. Requires query parsing/manipulation.
     # May break queries or allow RLS bypass. Use with care!
     # @lifecycle: testing
@@ -998,10 +1019,11 @@ USER_AGENT_FUNC: Callable[[Database, utils.QuerySource | None], str] | None = No
 FEATURE_FLAGS: dict[str, bool] = {}
 
 # Retention policy for soft-deleted dashboards, charts, and datasets. A value of
-# zero disables scheduled purging. Dry-run mode is enabled by default so operators
-# must explicitly opt in to irreversible deletion.
+# zero disables scheduled purging. Purging is live by default, so the retention
+# promise above is real on a stock deployment; set SOFT_DELETE_PURGE_DRY_RUN back
+# to True to have the task log ``would_purge`` counts without deleting anything.
 SOFT_DELETE_RETENTION_DAYS: int = 30
-SOFT_DELETE_PURGE_DRY_RUN: bool = True
+SOFT_DELETE_PURGE_DRY_RUN: bool = False
 
 # A function that receives a dict of all feature flags
 # (DEFAULT_FEATURE_FLAGS merged with FEATURE_FLAGS)
@@ -1055,6 +1077,12 @@ COMMON_BOOTSTRAP_OVERRIDES_FUNC: Callable[  # noqa: E731
 
 # This is merely a default
 EXTRA_CATEGORICAL_COLOR_SCHEMES: list[dict[str, Any]] = []
+
+# EXTRA_THEME_TOKENS lets a deployment register additional custom theme token
+# names so they validate cleanly in the theme editor instead of being flagged as
+# unknown Ant Design tokens. Deployments and plugins that consume their own
+# tokens via useTheme add them here. This is merely a default.
+EXTRA_THEME_TOKENS: list[str] = []
 
 # -----------------------------------------------------------------------------
 # Theme System Configuration
@@ -1295,24 +1323,12 @@ SUPERSET_CACHE_WARMUP_USER: str | None = None
 SCREENSHOT_LOCATE_WAIT = int(timedelta(seconds=10).total_seconds())
 # Time before screenshot capture times out while waiting for chart readiness.
 SCREENSHOT_LOAD_WAIT = int(timedelta(minutes=1).total_seconds())
-# Maximum time (in seconds) selenium waits for an initial page navigation
-# (driver.get) to complete. Without it the navigation blocks indefinitely when
-# the target page never finishes loading (e.g. an unreachable WEBDRIVER_BASEURL),
-# which leaves the report schedule stuck in the WORKING state. Set to None to
-# disable (not recommended).
-SCREENSHOT_PAGE_LOAD_WAIT = int(timedelta(minutes=2).total_seconds())
-# Selenium destroy retries
-SCREENSHOT_SELENIUM_RETRIES = 5
-# Give selenium an headstart, in seconds
+# Give the browser an initial headstart, in seconds
 SCREENSHOT_SELENIUM_HEADSTART = 3
 # Wait for the chart animation, in seconds
 SCREENSHOT_SELENIUM_ANIMATION_WAIT = 5
 # Replace unexpected errors in screenshots with real error messages
 SCREENSHOT_REPLACE_UNEXPECTED_ERRORS = False
-# Max time to wait for error message modal to show up, in seconds
-SCREENSHOT_WAIT_FOR_ERROR_MODAL_VISIBLE = 5
-# Max time to wait for error message modal to close, in seconds
-SCREENSHOT_WAIT_FOR_ERROR_MODAL_INVISIBLE = 5
 # Event that Playwright waits for when loading a new page
 # Possible values: "load", "commit", "domcontentloaded", "networkidle"
 # Docs: https://playwright.dev/python/docs/api/class-page#page-goto-option-wait-until
@@ -1537,6 +1553,22 @@ EXCEL_EXPORT_S3_CLIENT_KWARGS: dict[str, Any] = {}
 # a rendered image. Set to None to fall back to the built-in default.
 EXCEL_EXPORT_TABLE_VIZ_TYPES: set[str] | None = None
 
+# Optional hook to build a query context for a chart that has no saved
+# ``query_context``, called before the built-in form-data rebuild. Receives the
+# chart's form data (its ``params`` with ``viz_type`` and the
+# ``datasource="{id}__{type}"`` string injected — i.e. ``Slice.form_data``) and
+# returns a query-context payload dict (the shape ``ChartDataQueryContextSchema``
+# loads) or ``None``. A deployment can point this at a service that runs the
+# chart's real frontend ``buildQuery`` (faithful post-processing / multi-query)
+# for viz types the built-in rebuild can't handle. Must return ``None`` — not a
+# partial/stub context — whenever it cannot build the chart faithfully, so the
+# export falls through to the built-in rebuild. The export deep-copies whatever
+# it returns before applying dashboard filters, so a builder is free to memoize
+# or share its payloads. Defaults to ``None`` (built-in behavior only).
+EXCEL_EXPORT_QUERY_CONTEXT_BUILDER: (
+    Callable[[dict[str, Any]], dict[str, Any] | None] | None
+) = None
+
 # ---------------------------------------------------
 # Time grain configurations
 # ---------------------------------------------------
@@ -1662,19 +1694,19 @@ DATETIME_FORMAT_DETECTION_SAMPLE_SIZE = 1000
 # The limit for the Superset Meta DB when the feature flag ENABLE_SUPERSET_META_DB is on
 SUPERSET_META_DB_LIMIT: int | None = 1000
 
-# Master switch for entity-version-history capture. Ships defaulted ``False``
-# so the versioning infrastructure (schema + Continuum wiring) lands inert:
-# no save writes shadow rows or a ``version_transaction``/``version_changes``
-# record, while the /versions/ endpoints stay available read-only (returning
-# empty). Set to ``True`` in ``superset_config.py`` (or via the env var of the
-# same name) to enable the before-flush listeners that drive capture.
-# Capture is activated by flipping this default to on once validated in
-# production. It is an operational escape hatch — for use when a
-# versioning-induced regression needs a 30-second recovery instead of
-# revert-and-redeploy — not a feature flag, and remains as the permanent
-# kill-switch.
+# Master switch for entity-version-history capture. Capture is enabled by
+# default, so saves write shadow rows and a ``version_transaction`` /
+# ``version_changes`` record. Set this to a falsy value in
+# ``superset_config.py`` (or via the environment variable of the same name) to
+# disable the before-flush listeners while keeping the /versions/ endpoints
+# available read-only.
+# Capture ships on. It is an operational escape hatch — set the environment
+# variable to a falsy value when a versioning-induced regression needs a
+# 30-second recovery instead of revert-and-redeploy — not a feature flag,
+# and it remains permanently as the kill-switch rather than being removed
+# with the rollout toggles.
 ENABLE_VERSIONING_CAPTURE: bool = utils.parse_boolean_string(
-    os.environ.get("ENABLE_VERSIONING_CAPTURE", "false")
+    os.environ.get("ENABLE_VERSIONING_CAPTURE", "true")
 )
 
 # Retention window (days) for entity version history. Version rows
@@ -2088,7 +2120,16 @@ TROUBLESHOOTING_LINK = ""
 WTF_CSRF_TIME_LIMIT = int(timedelta(weeks=1).total_seconds())
 
 # This link should lead to a page with instructions on how to gain access to a
-# Datasource. It will be placed at the bottom of permissions errors.
+# Datasource. It is surfaced as a "Request Access" link on data-permission
+# errors (e.g. when a viewer opens a chart whose dataset they cannot access).
+# The URL may include any of these placeholders, which are substituted with
+# URL-encoded values so the link can deep-link into an access-request system:
+#   {datasource_id}    - id of the denied dataset (datasource errors)
+#   {datasource_name}  - name of the denied dataset (datasource errors)
+#   {table_names}      - comma-separated denied table names (table/SQL errors)
+#   {username}         - the requesting user's username
+# A URL with no placeholders is used as-is. Example:
+#   "https://access.example.com/request?dataset={datasource_id}&user={username}"
 PERMISSION_INSTRUCTIONS_LINK = ""
 
 # Integrate external Blueprints to the app by passing them to your
@@ -2447,6 +2488,37 @@ ALERT_REPORTS_WORKING_TIME_OUT_LAG = int(timedelta(seconds=10).total_seconds())
 ALERT_REPORTS_WORKING_SOFT_TIME_OUT_LAG = int(timedelta(seconds=1).total_seconds())
 # Default values that user using when creating alert
 ALERT_REPORTS_DEFAULT_WORKING_TIMEOUT = 3600
+# End-to-end wall-clock budget for a scheduled report execution. A single
+# monotonic deadline derived from this value is shared by browser setup,
+# readiness, capture/PDF generation, and notification delivery. The effective
+# budget for a given schedule is min(this value, the schedule's
+# working_timeout), so the per-schedule field keeps its historical meaning as
+# a user-facing cap. The default matches the historical effective ceiling
+# (the working_timeout model default of one hour), so upgrading changes no
+# default behavior; deployments with tighter SLAs should lower it. Alerts
+# retain their per-schedule ``working_timeout`` + lag behavior because query
+# evaluation and grace handling have different runtime characteristics.
+ALERT_REPORTS_EXECUTION_BUDGET_SECONDS = int(timedelta(hours=1).total_seconds())
+# Capacity inside the execution budget reserved from chart-readiness polling
+# for image capture/PDF construction, notification delivery, and the terminal
+# execution-log transition, respectively. Their sum must be less than the total;
+# unused capacity flows to later phases.
+ALERT_REPORTS_EXECUTION_CAPTURE_RESERVE_SECONDS = int(
+    timedelta(minutes=1).total_seconds()
+)
+ALERT_REPORTS_EXECUTION_DELIVERY_RESERVE_SECONDS = int(
+    timedelta(minutes=2).total_seconds()
+)
+ALERT_REPORTS_EXECUTION_CLEANUP_RESERVE_SECONDS = int(
+    timedelta(seconds=30).total_seconds()
+)
+# Celery raises the soft timeout at the execution deadline when
+# ALERT_REPORTS_WORKING_TIME_OUT_KILL is enabled. The application deadline is
+# enforced independently. The hard timeout leaves this additional window for
+# the soft-timeout handler to persist ERROR.
+ALERT_REPORTS_EXECUTION_HARD_TIMEOUT_GRACE_SECONDS = int(
+    timedelta(seconds=30).total_seconds()
+)
 ALERT_REPORTS_DEFAULT_RETENTION = 90
 ALERT_REPORTS_DEFAULT_CRON_VALUE = "0 0 * * *"  # every day
 # Retry backoff: first retry waits base seconds, each subsequent retry doubles.
@@ -2477,6 +2549,12 @@ ALERT_MINIMUM_INTERVAL = int(timedelta(minutes=0).total_seconds())
 REPORT_MINIMUM_INTERVAL = int(timedelta(minutes=0).total_seconds())
 # Enforce HTTPS for webhook alerts/reports
 ALERT_REPORTS_WEBHOOK_HTTPS_ONLY = True
+
+# Socket timeout (in seconds) for the HTTP request that dispatches webhook
+# alerts/reports. Without a timeout the request blocks indefinitely if the
+# webhook target is unreachable, which leaves the report schedule stuck in
+# the WORKING state. Set to None to disable (not recommended).
+ALERT_REPORTS_WEBHOOK_TIMEOUT = 60
 
 # When True, webhook alert/report dispatch is permitted to call private/internal
 # IP addresses (RFC-1918, loopback, link-local). Intended for deployments where
@@ -2520,23 +2598,20 @@ SLACK_CACHE_TIMEOUT = int(timedelta(days=1).total_seconds())
 # For workspaces with 10k+ channels, consider increasing to 10
 SLACK_API_RATE_LIMIT_RETRY_COUNT = 2
 
+# Cooldown (in seconds) after an on-demand Slack channel-cache refresh.
+SLACK_CHANNEL_REFRESH_COOLDOWN_SECONDS = 300
+
 # Timeout (in seconds) for outbound Slack API calls. The Slack SDK defaults to 30s;
 # exposing it here lets operators grant more time for large file uploads (multi-MB
 # CSVs, PDFs, screenshot sets) to congested or rate-limited Slack endpoints without
 # patching code, consistent with the SMTP/CSV/screenshot timeouts.
 SLACK_API_TIMEOUT = 30
 
-# The webdriver to use for generating reports when using Selenium (not Playwright).
-# This setting is ignored when PLAYWRIGHT_REPORTS_AND_THUMBNAILS is enabled, as
-# Playwright always uses Chromium regardless of this value.
-# Use one of the following:
-# firefox
-#   Requires: geckodriver and firefox installations
-#   Limitations: can be buggy at times
-# chrome:
-#   Requires: headless chrome
-#   Limitations: unable to generate screenshots of elements
-WEBDRIVER_TYPE = "firefox"
+# Application retry budget (in seconds) shared by all Slack channels, files, and
+# upload phases in one report execution. Increase this for slow or large-file
+# reports. The effective configured value is floored at one second longer than
+# SLACK_API_TIMEOUT, then clamped to the report's remaining working timeout.
+SLACK_SEND_RETRY_MAX_TIME = 150
 
 # Window size - this will impact the rendering of the data
 WEBDRIVER_WINDOW = {
@@ -2545,20 +2620,12 @@ WEBDRIVER_WINDOW = {
     "pixel_density": 1,
 }
 
-# An optional override to the default auth hook used to provide auth to the offline
-# webdriver (when using Selenium) or browser context (when using Playwright - see
-# PLAYWRIGHT_REPORTS_AND_THUMBNAILS feature flag)
+# An optional override to the default auth hook used to provide auth to the
+# browser context when using Playwright
 WEBDRIVER_AUTH_FUNC = None
 
-# Any config options to be passed as-is to the webdriver
-WEBDRIVER_CONFIGURATION = {
-    "options": {"capabilities": {}, "preferences": {}, "binary_location": ""},
-    "service": {"log_output": "/dev/null", "service_args": [], "port": 0, "env": {}},
-}
-
-# Additional args to be passed as arguments to the config object
-# Note: If using Chrome, you'll want to add the "--marionette" arg.
-WEBDRIVER_OPTION_ARGS = ["--headless"]
+# Additional args to be passed to the Playwright browser launch.
+WEBDRIVER_OPTION_ARGS: list[str] = []
 
 # The base URL to query for accessing the user interface
 WEBDRIVER_BASEURL = "http://0.0.0.0:8080/"

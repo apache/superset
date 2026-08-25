@@ -149,6 +149,19 @@ class UpdateReportScheduleCommand(UpdateMixin, BaseReportScheduleCommand):
                 exceptions.append(DatabaseNotFoundValidationError())
             self._properties["database"] = database
 
+        # Re-validate the alert SQL whenever the SQL or the target database
+        # changes, using the stored value for whichever half is absent from
+        # the payload.
+        if report_type == ReportScheduleType.ALERT and (
+            "sql" in self._properties or "database" in self._properties
+        ):
+            effective_database = (
+                self._properties.get("database") or self._model.database
+            )
+            effective_sql = self._properties.get("sql", self._model.sql)
+            if effective_database and effective_sql:
+                self.validate_alert_query(effective_database, effective_sql, exceptions)
+
         # validate report frequency
         try:
             self.validate_report_frequency(

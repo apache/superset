@@ -103,7 +103,6 @@ describe('ChartContainer', () => {
       new ChartMetadata({
         name: 'fake table',
         thumbnail: '.png',
-        useLegacyApi: false,
       }),
     );
     render(<ChartContainer {...props} />, { useRedux: true });

@@ -223,14 +223,26 @@ const createAceEditorHandle = (
 
 /**
  * Converts generic EditorKeyword to Ace's AceCompleterKeyword format.
+ *
+ * `completer` and `caption` aren't part of the provider-agnostic
+ * EditorKeyword contract (other editor providers have no notion of an Ace
+ * completer), but this is specifically the Ace provider, and Ace-aware
+ * producers such as SQL Lab's useKeywords already build AceCompleterKeyword
+ * objects and pass them in as EditorKeyword. Carry those two fields through
+ * when present so per-keyword selection behavior isn't silently dropped.
  */
-const toAceKeyword = (keyword: EditorKeyword): AceCompleterKeyword => ({
+export const toAceKeyword = (
+  keyword: EditorKeyword &
+    Partial<Pick<AceCompleterKeyword, 'completer' | 'caption'>>,
+): AceCompleterKeyword => ({
   name: keyword.name,
   value: keyword.value ?? keyword.name,
   score: keyword.score ?? 0,
   meta: keyword.meta ?? '',
   docText: keyword.detail,
   docHTML: keyword.documentation,
+  completer: keyword.completer,
+  caption: keyword.caption,
 });
 
 /**

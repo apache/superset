@@ -101,21 +101,29 @@ import json
 import ast
 import os
 
-def eval_node(node):
-    """Safely evaluate an AST node as a Python literal."""
+def eval_node(node, constants=None):
+    """Safely evaluate an AST node as a Python literal.
+
+    \`constants\` is an optional dict of module-level constant names -> already
+    -resolved Python values. It lets us resolve references like
+    \`AURORA_DATA_API_KNOWN_INCOMPATIBILITIES\` that point at a list/dict
+    defined (and potentially imported across files) elsewhere in
+    db_engine_specs, instead of falling through to the bare identifier
+    string.
+    """
     if node is None:
         return None
     if isinstance(node, ast.Constant):
         return node.value
     elif isinstance(node, ast.List):
-        return [eval_node(e) for e in node.elts]
+        return [eval_node(e, constants) for e in node.elts]
     elif isinstance(node, ast.Dict):
         result = {}
         for k, v in zip(node.keys, node.values):
             if k is not None:
-                key = eval_node(k)
+                key = eval_node(k, constants)
                 if key is not None:
-                    result[key] = eval_node(v)
+                    result[key] = eval_node(v, constants)
         return result
     elif isinstance(node, ast.Name):
         # Handle True, False, None constants
@@ -125,12 +133,14 @@ def eval_node(node):
             return False
         elif node.id == 'None':
             return None
+        if constants and node.id in constants:
+            return constants[node.id]
         return node.id
     elif isinstance(node, ast.Attribute):
         # Handle DatabaseCategory.SOMETHING - return just the attribute name
         return node.attr
     elif isinstance(node, ast.BinOp) and isinstance(node.op, ast.Add):
-        left, right = eval_node(node.left), eval_node(node.right)
+        left, right = eval_node(node.left, constants), eval_node(node.right, constants)
         if isinstance(left, str) and isinstance(right, str):
             return left + right
         return None
@@ -274,6 +284,37 @@ CAP_METHODS = {
 # Intermediate base classes (e.g. PrestoBaseEngineSpec) do count as overrides.
 TRUE_BASE_CLASS = 'BaseEngineSpec'
 
+# Pass 0: collect module-level literal constants across every engine spec
+# file (e.g. AURORA_DATA_API_KNOWN_INCOMPATIBILITIES in base.py, imported
+# into mysql.py's \`compatible_databases\` metadata) so \`metadata\` dicts
+# that reference a shared constant by name resolve to its actual value
+# instead of the bare identifier string. Only module-scope assignments
+# (tree.body, not nested in classes/functions) are considered.
+MODULE_CONSTANTS = {}
+for filename in sorted(os.listdir(specs_dir)):
+    if not filename.endswith('.py') or filename in ('__init__.py', 'lib.py', 'lint_metadata.py'):
+        continue
+    filepath = os.path.join(specs_dir, filename)
+    try:
+        with open(filepath) as f:
+            source = f.read()
+        tree = ast.parse(source)
+        for item in tree.body:
+            targets = []
+            if isinstance(item, ast.Assign):
+                targets = item.targets
+            elif isinstance(item, ast.AnnAssign) and item.value is not None:
+                # Handle annotated module-level constants, e.g.
+                # \`AURORA_DATA_API_KNOWN_INCOMPATIBILITIES: list[KnownIncompatibility] = [...]\`
+                targets = [item.target]
+            for target in targets:
+                if isinstance(target, ast.Name) and target.id.isupper():
+                    val = eval_node(item.value, MODULE_CONSTANTS)
+                    if val is not None:
+                        MODULE_CONSTANTS[target.id] = val
+    except Exception:
+        continue
+
 # First pass: collect all class info (name, bases, metadata, cap_attrs, direct_methods)
 class_info = {}  # class_name -> {bases: [], metadata: {}, engine_name: str, filename: str, ...}
 
@@ -330,7 +371,7 @@ for filename in sorted(os.listdir(specs_dir)):
                             if isinstance(val, str):
                                 engine_attr = val
                         elif target.id == 'metadata':
-                            metadata = eval_node(item.value)
+                            metadata = eval_node(item.value, MODULE_CONSTANTS)
                         elif target.id in CAP_ATTR_DEFAULTS:
                             val = eval_node(item.value)
                             if isinstance(val, bool):

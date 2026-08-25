@@ -472,6 +472,9 @@ describe('UploadDataModal - Form Submission', () => {
     fileType: string,
     fileName: string,
     mimeType = 'text/csv',
+    // when true, the schema field is left untouched so the submitted
+    // form data must not contain a schema entry
+    { omitSchema = false } = {},
   ) => {
     const selectButton = screen.getByRole('button', { name: 'Select' });
     await userEvent.click(selectButton);
@@ -488,11 +491,13 @@ describe('UploadDataModal - Form Submission', () => {
     await waitFor(() => screen.getByText('database1'));
     await userEvent.click(screen.getByText('database1'));
 
-    const selectSchema = screen.getByRole('combobox', { name: /schema/i });
-    await userEvent.click(selectSchema);
+    if (!omitSchema) {
+      const schemaCombobox = screen.getByRole('combobox', { name: /schema/i });
+      await userEvent.click(schemaCombobox);
 
-    await waitFor(() => screen.getAllByText('public'));
-    await userEvent.click(screen.getAllByText('public')[1]);
+      await waitFor(() => screen.getAllByText('public'));
+      await userEvent.click(screen.getAllByText('public')[1]);
+    }
 
     const inputTableName = screen.getByRole('textbox', { name: /table name/i });
     await userEvent.type(inputTableName, 'table1');
@@ -521,6 +526,20 @@ describe('UploadDataModal - Form Submission', () => {
     expect((formData.get('file') as File).name).toBe('test.csv');
   }, 60000);
 
+  test('CSV form submission without schema omits schema from form data', async () => {
+    render(<UploadDataModal {...csvProps} />, { useRedux: true });
+
+    const { options } = await fillForm('csv', 'test.csv', 'text/csv', {
+      omitSchema: true,
+    });
+    const formData = options?.body as FormData;
+
+    expect(formData.get('type')).toBe('csv');
+    expect(formData.get('table_name')).toBe('table1');
+    expect(formData.has('schema')).toBe(false);
+    expect((formData.get('file') as File).name).toBe('test.csv');
+  }, 60000);
+
   test('Excel form submission', async () => {
     render(<UploadDataModal {...excelProps} />, { useRedux: true });
 
@@ -530,6 +549,7 @@ describe('UploadDataModal - Form Submission', () => {
     expect(formData.get('type')).toBe('excel');
     expect(formData.get('table_name')).toBe('table1');
     expect(formData.get('schema')).toBe('public');
+    expect(formData.has('sheet_name')).toBe(false);
     expect((formData.get('file') as File).name).toBe('test.xls');
   }, 60000);
 

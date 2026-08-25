@@ -125,7 +125,6 @@ class AsyncQueryManager:
         self._jwt_expiration_seconds: int = 0
         self._load_chart_data_into_cache_job: Any = None
         # pylint: disable=invalid-name
-        self._load_explore_json_into_cache_job: Any = None
 
     def init_app(self, app: Flask) -> None:
         cache_type = app.config.get("CACHE_CONFIG", {}).get("CACHE_TYPE")
@@ -166,13 +165,9 @@ class AsyncQueryManager:
             self.register_request_handlers(app)
 
         # pylint: disable=import-outside-toplevel
-        from superset.tasks.async_queries import (
-            load_chart_data_into_cache,
-            load_explore_json_into_cache,
-        )
+        from superset.tasks.async_queries import load_chart_data_into_cache
 
         self._load_chart_data_into_cache_job = load_chart_data_into_cache
-        self._load_explore_json_into_cache_job = load_explore_json_into_cache
 
     def register_request_handlers(self, app: Flask) -> None:
         @app.after_request
@@ -310,35 +305,6 @@ class AsyncQueryManager:
             json.dumps({"channel_id": channel_id, "user_id": user_id}),
             ex=self._jwt_expiration_seconds or None,
         )
-
-    # pylint: disable=too-many-arguments
-    def submit_explore_json_job(
-        self,
-        channel_id: str,
-        form_data: dict[str, Any],
-        response_type: str,
-        force: Optional[bool] = False,
-        user_id: Optional[int] = None,
-    ) -> dict[str, Any]:
-        # pylint: disable=import-outside-toplevel
-        from superset import security_manager
-
-        job_metadata = self.init_job(channel_id, user_id)
-        self._load_explore_json_into_cache_job.apply_async(
-            args=[
-                {**job_metadata, "guest_token": guest_user.guest_token}
-                if (guest_user := security_manager.get_current_guest_user_if_guest())
-                else job_metadata,
-                form_data,
-                response_type,
-                force,
-            ],
-            # Use job_id as the Celery task id so the cancel endpoint can revoke
-            # the running task by the id the client already holds.
-            task_id=job_metadata["job_id"],
-            expires=self._jwt_expiration_seconds,
-        )
-        return job_metadata
 
     def submit_chart_data_job(
         self,

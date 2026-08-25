@@ -54,6 +54,9 @@ import copyTextToClipboard from 'src/utils/copy';
 import { useHeaderReportMenuItems } from 'src/features/reports/ReportModal/HeaderReportDropdown';
 import { MenuItemTooltip } from 'src/components/Chart/DisabledMenuItemTooltip';
 import { logEvent } from 'src/logger/actions';
+import { openVersionHistoryPanel } from 'src/features/versionHistory/reducer';
+import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+import { canOverwriteSlice } from 'src/explore/exploreUtils/canOverwriteSlice';
 import {
   LOG_ACTIONS_CHART_DOWNLOAD_AS_IMAGE,
   LOG_ACTIONS_CHART_DOWNLOAD_AS_PNG,
@@ -74,6 +77,37 @@ import { useDashboardsMenuItems } from './DashboardsSubMenu';
 import { useExploreDataExport } from './useExploreDataExport';
 
 export const SEARCH_THRESHOLD = 10;
+
+/**
+ * Escape a single CSV cell value.
+ *
+ * Mirrors the server-side chokepoint (superset/utils/csv.py escape_value):
+ * values starting with a spreadsheet formula prefix (=, +, -, @, |, %, or a
+ * leading tab/carriage return, optionally behind leading whitespace) are
+ * neutralized with a leading single quote so exported cells cannot execute
+ * as formulas when opened in Excel/LibreOffice/Google Sheets. Plain negative
+ * numbers are left untouched. RFC-4180 quoting is applied afterwards.
+ */
+export const escapeCsvValue = (v: unknown): string => {
+  if (v === null || v === undefined) return '';
+  let s = String(v);
+  if (s.length > 0) {
+    const stripped = s.replace(/^\s+/, '');
+    const startsLikeFormula =
+      s[0] === '\t' ||
+      s[0] === '\r' ||
+      (stripped.length > 0 && '-@+|=%'.includes(stripped[0]));
+    const isNegativeNumber = s.length > 1 && /^-[0-9.]+$/.test(s);
+    if (startsLikeFormula && !isNegativeNumber) {
+      // Escape pipe to be extra safe (DDE payloads), then prefix with a
+      // single quote to prevent formula evaluation. Existing backslashes
+      // must be escaped first so the resulting `\|`/`\\` sequences are
+      // unambiguous to a downstream unescaper.
+      s = `'${s.replace(/\\/g, '\\\\').replace(/\|/g, '\\|')}`;
+    }
+  }
+  return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+};
 
 const MENU_KEYS = {
   EDIT_PROPERTIES: 'edit_properties',
@@ -109,6 +143,7 @@ const MENU_KEYS = {
   DELETE_REPORT: 'delete_report',
   VIEW_QUERY: 'view_query',
   RUN_IN_SQL_LAB: 'run_in_sql_lab',
+  VERSION_HISTORY: 'version_history',
 };
 
 const VIZ_TYPES_PIVOTABLE = [VizType.PivotTable];
@@ -274,12 +309,15 @@ interface ExploreState {
   explore?: ExploreSlice & {
     chartStates?: Record<number, JsonObject>;
     can_export_image?: boolean;
+    can_overwrite?: boolean;
+    can_add?: boolean;
   };
   common?: {
     conf?: {
       CSV_STREAMING_ROW_THRESHOLD?: number;
     };
   };
+  user?: UserWithPermissionsAndRoles;
 }
 
 export type UseExploreAdditionalActionsMenuReturn = [
@@ -326,6 +364,33 @@ export const useExploreAdditionalActionsMenu = (
   const canExportImage = useSelector<ExploreState, boolean>(
     state => state.explore?.can_export_image ?? false,
   );
+  const canOverwrite = useSelector<ExploreState, boolean>(
+    state => state.explore?.can_overwrite ?? false,
+  );
+  // Mirrors the `can_write` permission on the `Chart` view, the same
+  // permission `ChartRestApi.put` (and `restore_version`) require. An editor
+  // who satisfies `canOverwriteSlice` but lacks it would still be turned away
+  // by the API, so the properties editor stays hidden for them too.
+  const canWriteChart = useSelector<ExploreState, boolean>(
+    state => state.explore?.can_add ?? false,
+  );
+  const user = useSelector<
+    ExploreState,
+    UserWithPermissionsAndRoles | undefined
+  >(state => state.user);
+  // `can_overwrite` alone hides version history (and edit-properties) on any
+  // chart without explicit editors — every seeded chart — even from admins.
+  // Same predicate SaveModal uses, so a user who can save a chart can also
+  // see its history and edit its properties.
+  const canModifySlice = useMemo(
+    () => canOverwriteSlice({ slice, user, canOverwrite }),
+    [slice, user, canOverwrite],
+  );
+  // `canModifySlice` alone governs version history, whose own read-only
+  // listing needs no write permission (only its restore action does, and
+  // that's gated server-side). Editing properties, however, always PUTs the
+  // chart, so it additionally needs the write permission above.
+  const canEditProperties = canModifySlice && canWriteChart;
 
   const dataExportDisabled = !canDownloadCSV;
   const imageExportDisabled = !canExportImage;
@@ -454,15 +519,11 @@ export const useExploreAdditionalActionsMenu = (
     filename: string,
   ) => {
     if (!rows?.length || !columns?.length) return;
-    const esc = (v: unknown): string => {
-      if (v === null || v === undefined) return '';
-      const s = String(v);
-      const wrapped = /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-      return wrapped;
-    };
-    const header = columns.map(c => esc(c.label ?? c.key ?? '')).join(',');
+    const header = columns
+      .map(c => escapeCsvValue(c.label ?? c.key ?? ''))
+      .join(',');
     const body = rows
-      .map(r => columns.map(c => esc(r[c.key])).join(','))
+      .map(r => columns.map(c => escapeCsvValue(r[c.key])).join(','))
       .join('\n');
     const csv = `${header}\n${body}`;
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -581,7 +642,7 @@ export const useExploreAdditionalActionsMenu = (
     const menuItems = [];
 
     // Edit chart properties
-    if (slice) {
+    if (slice && canEditProperties) {
       menuItems.push({
         key: MENU_KEYS.EDIT_PROPERTIES,
         label: t('Edit chart properties'),
@@ -1007,6 +1068,21 @@ export const useExploreAdditionalActionsMenu = (
       menuItems.push(reportMenuItem);
     }
 
+    if (
+      isFeatureEnabled(FeatureFlag.VersionHistory) &&
+      canModifySlice &&
+      slice?.slice_id
+    ) {
+      menuItems.push({
+        key: MENU_KEYS.VERSION_HISTORY,
+        label: t('View version history'),
+        onClick: () => {
+          dispatch(openVersionHistoryPanel('chart'));
+          setIsDropdownVisible(false);
+        },
+      });
+    }
+
     // View query
     menuItems.push({
       key: MENU_KEYS.VIEW_QUERY,
@@ -1049,6 +1125,8 @@ export const useExploreAdditionalActionsMenu = (
   }, [
     addDangerToast,
     canDownloadCSV,
+    canEditProperties,
+    canModifySlice,
     copyLink,
     dashboards,
     dashboardMenuItems,

@@ -242,11 +242,9 @@ def _validate_adhoc_filter_columns(
     represented on the new config — those would otherwise bypass validation
     and surface only when Explore tries to run the query.
     """
-    adhoc_filters = form_data.get("adhoc_filters") or []
+    adhoc_filters = _active_adhoc_filters(form_data.get("adhoc_filters") or [])
     invalid: List[str] = []
     for f in adhoc_filters:
-        if not isinstance(f, dict):
-            continue
         # SIMPLE filters expose the column via "subject"; SQL-expression
         # filters carry a free-form ``sqlExpression`` we can't safely parse,
         # so skip those.
@@ -282,11 +280,33 @@ def _validate_adhoc_filter_columns(
         details=(
             "Adhoc filter columns must exist on the dataset. "
             "If these filters were preserved from a previous chart preview, "
-            "remove them or pass an explicit ``filters`` list on the new config."
+            "pass an explicit 'filters' list on the new config; use "
+            "'filters': [] to clear them."
         ),
         suggestions=suggestions,
         error_code="CHART_VALIDATION_FAILED",
     )
+
+
+def _is_inert_adhoc_filter(filter_: dict[str, Any]) -> bool:
+    """Whether a saved filter is Superset's non-filtering placeholder."""
+    operator = filter_.get("operator", filter_.get("op"))
+    comparator = filter_.get("comparator", filter_.get("val"))
+    return (
+        isinstance(operator, str)
+        and operator.casefold() == "temporal_range"
+        and isinstance(comparator, str)
+        and comparator.casefold() == "no filter"
+    )
+
+
+def _active_adhoc_filters(filters: list[Any]) -> list[dict[str, Any]]:
+    """Return structurally valid filters that can produce a predicate."""
+    return [
+        filter_
+        for filter_ in filters
+        if isinstance(filter_, dict) and not _is_inert_adhoc_filter(filter_)
+    ]
 
 
 def _classify_as_database_error(exc: BaseException, dataset_id: int) -> bool:

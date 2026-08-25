@@ -54,7 +54,6 @@ def database(mocker: MockerFixture, session: Session) -> Database:
         "sqlite://",
         connect_args={"check_same_thread": False},
         poolclass=StaticPool,
-        future=True,
     )
     database = Database(database_name="db", sqlalchemy_uri="sqlite://")
 
@@ -126,7 +125,6 @@ def test_values_for_column_passes_catalog_and_schema(
         "sqlite://",
         connect_args={"check_same_thread": False},
         poolclass=StaticPool,
-        future=True,
     )
     database = Database(database_name="db", sqlalchemy_uri="sqlite://")
 
@@ -187,7 +185,6 @@ def test_values_for_column_passes_none_catalog_and_schema(
         "sqlite://",
         connect_args={"check_same_thread": False},
         poolclass=StaticPool,
-        future=True,
     )
     database = Database(database_name="db", sqlalchemy_uri="sqlite://")
 
@@ -2133,6 +2130,76 @@ def test_adhoc_metric_to_sqla_invalid_simple_aggregate_raises_validation_error(
         table.adhoc_metric_to_sqla(metric, {})
 
 
+@pytest.mark.parametrize(
+    "aggregate,expected_substring",
+    [
+        ("MEDIAN", "percentile_cont"),
+        ("STDDEV_SAMP", "stddev_samp"),
+        ("VAR_SAMP", "var_samp"),
+    ],
+)
+def test_adhoc_metric_to_sqla_extended_aggregate_on_supported_engine(
+    aggregate: str,
+    expected_substring: str,
+) -> None:
+    """
+    MEDIAN/STDDEV_SAMP/VAR_SAMP compile correctly end-to-end on an engine that
+    supports them (Postgres), via the same `adhoc_metric_to_sqla` path every
+    other aggregate uses -- no pivot-table-specific code involved.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.models.core import Database
+
+    pg_database = Database(database_name="pg", sqlalchemy_uri="postgresql://u:p@h/d")
+    table = SqlaTable(
+        database=pg_database,
+        schema=None,
+        table_name="t",
+        columns=[TableColumn(column_name="sales")],
+    )
+    metric: AdhocMetric = {
+        "expressionType": "SIMPLE",
+        "column": {"column_name": "sales"},
+        "aggregate": aggregate,
+        "label": f"{aggregate} sales",
+    }
+
+    sqla_metric = table.adhoc_metric_to_sqla(metric, {})
+
+    assert expected_substring in str(sqla_metric).lower()
+
+
+def test_adhoc_metric_to_sqla_extended_aggregate_on_unsupported_engine_raises_specific_error(  # noqa: E501
+    database: Database,
+) -> None:
+    """
+    A recognized extended aggregate (MEDIAN) that this engine (SQLite, via the
+    `database` fixture) has no verified expression for raises a specific
+    "not supported on this database" error, distinct from the generic
+    "invalid aggregate" error a bogus aggregate name gets -- callers should be
+    able to tell "this isn't a real thing" from "this engine can't do it"
+    without emitting unverified SQL either way.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.exceptions import QueryObjectValidationError
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[TableColumn(column_name="a")],
+    )
+    metric: AdhocMetric = {
+        "expressionType": "SIMPLE",
+        "column": {"column_name": "a"},
+        "aggregate": "MEDIAN",
+        "label": "Median a",
+    }
+
+    with pytest.raises(QueryObjectValidationError, match="not supported"):
+        table.adhoc_metric_to_sqla(metric, {})
+
+
 @pytest.mark.parametrize("sql_expression", [None, "", "   "])
 def test_adhoc_metric_to_sqla_invalid_sql_expression_raises_validation_error(
     database: Database,
@@ -2754,6 +2821,106 @@ def test_calculated_column_non_boolean_filter_is_parenthesized(
     )
 
 
+def test_get_sqla_query_in_filter_preserves_float_precision(
+    database: Database,
+) -> None:
+    """
+    Test that mixing integer and float values in an "IN" filter does not
+    truncate the float value's decimal precision when the compiled query
+    binds parameters (see #33206).
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(column_name="global_sales", type="FLOAT"),
+        ],
+    )
+
+    sqla_query = table.get_sqla_query(
+        columns=["global_sales"],
+        filter=[
+            {
+                "col": "global_sales",
+                "op": "IN",
+                "val": [33, 29.02],
+            },
+        ],
+        extras={},
+        is_timeseries=False,
+        metrics=[],
+    )
+
+    with database.get_sqla_engine() as engine:
+        sql = str(
+            sqla_query.sqla_query.compile(
+                dialect=engine.dialect,
+                compile_kwargs={"literal_binds": True},
+            )
+        )
+
+    # The decimal value must retain its precision in the compiled SQL,
+    # rather than being silently truncated to the integer 29.
+    assert "29.02" in sql, (
+        f"Expected float value 29.02 to be preserved in the IN clause, "
+        f"but it was likely truncated. Generated SQL: {sql}"
+    )
+
+
+def test_get_sqla_query_in_filter_preserves_float_precision_with_null(
+    database: Database,
+) -> None:
+    """
+    Test that mixing integer and float values with a NULL in an "IN" filter
+    does not truncate the float value's decimal precision, even though this
+    triggers the separate `eq_without_none` code path (see #33206).
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(column_name="global_sales", type="FLOAT"),
+        ],
+    )
+
+    sqla_query = table.get_sqla_query(
+        columns=["global_sales"],
+        filter=[
+            {
+                "col": "global_sales",
+                "op": "IN",
+                "val": [33, 29.02, None],  # type: ignore[list-item]
+            },
+        ],
+        extras={},
+        is_timeseries=False,
+        metrics=[],
+    )
+
+    with database.get_sqla_engine() as engine:
+        sql = str(
+            sqla_query.sqla_query.compile(
+                dialect=engine.dialect,
+                compile_kwargs={"literal_binds": True},
+            )
+        )
+
+    # The decimal value must retain its precision in the compiled SQL,
+    # rather than being silently truncated to the integer 29, even when
+    # the filter list also contains a NULL value.
+    assert "29.02" in sql, (
+        f"Expected float value 29.02 to be preserved in the IN clause "
+        f"even with a NULL present, but it was likely truncated. "
+        f"Generated SQL: {sql}"
+    )
+
+
 def test_multiple_calculated_columns_each_parenthesized(
     database: Database,
 ) -> None:
@@ -2897,6 +3064,51 @@ def test_adhoc_column_type_probe_uses_where_false(database: Database) -> None:
     assert "limit" not in probe_sql, (
         f"WHERE false probe must not contain LIMIT, but got: {probe_sql}"
     )
+
+
+def test_adhoc_column_type_probe_propagates_db_error(database: Database) -> None:
+    """
+    Regression test for SUPERSET-PYTHON-WE6.
+
+    A real DB/connectivity failure during the type-probe (surfaced by
+    get_columns_description as a SupersetGenericDBErrorException) must propagate
+    unchanged. It must NOT be relabeled as ColumnNotFoundException, which would
+    cause the calling adhoc-filter code in models/helpers.py to silently drop
+    the filter as if the column didn't exist.
+    """
+    from unittest.mock import patch
+
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.exceptions import (
+        ColumnNotFoundException,
+        SupersetGenericDBErrorException,
+    )
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[TableColumn(column_name="a", type="INTEGER")],
+    )
+
+    adhoc_col: AdhocColumn = {
+        "sqlExpression": "round(a / 50) * 50 / 1000",
+        "label": "Duration",
+        "columnType": "BASE_AXIS",
+        "timeGrain": "P1D",
+    }
+
+    db_error_message = "SSL error: unexpected eof while reading"
+
+    with patch(
+        "superset.connectors.sqla.models.get_columns_description",
+        side_effect=SupersetGenericDBErrorException(db_error_message),
+    ):
+        with pytest.raises(SupersetGenericDBErrorException) as excinfo:
+            table.adhoc_column_to_sqla(adhoc_col, force_type_check=True)
+
+    assert db_error_message in str(excinfo.value)
+    assert not isinstance(excinfo.value, ColumnNotFoundException)
 
 
 def test_adhoc_column_type_probe_uses_limit_1_for_row_dependent_engines(

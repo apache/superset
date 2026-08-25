@@ -47,8 +47,9 @@ from superset.db_engine_specs.hana import HanaEngineSpec
 from superset.errors import SupersetError
 from superset.models.core import Database, ConfigurationMethod
 from superset.reports.models import ReportSchedule, ReportScheduleType
-from superset.utils.database import get_example_database, get_main_database
 from superset.utils import json
+from superset.utils.core import shortid
+from superset.utils.database import get_example_database, get_main_database
 from tests.conftest import with_config
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.constants import ADMIN_USERNAME, GAMMA_USERNAME
@@ -206,6 +207,50 @@ class TestDatabaseApi(SupersetTestCase):
 
         assert response["count"] > 0
         assert list(response["result"][0].keys()) == expected_columns
+
+    def test_get_items_with_jwt_auth(self):
+        """
+        Database API: Test get items with JWT authentication
+        """
+        example_db = get_example_database()
+        test_database = self.insert_database(
+            f"jwt-test-database-{shortid()}",
+            example_db.sqlalchemy_uri_decrypted,
+            expose_in_sqllab=True,
+        )
+        headers = self.get_bearer_auth_header()
+
+        try:
+            client = self.create_app().test_client()
+            arguments = {
+                "filters": [
+                    {
+                        "col": "database_name",
+                        "opr": "eq",
+                        "value": test_database.database_name,
+                    }
+                ]
+            }
+            uri = f"api/v1/database/?q={rison.dumps(arguments)}"
+            rv = client.get(uri, headers=headers)
+            assert rv.status_code == 200
+            response = json.loads(rv.data.decode("utf-8"))
+            assert response["count"] == 1
+            assert response["result"][0]["id"] == test_database.id
+        finally:
+            db.session.delete(test_database)
+            db.session.commit()
+
+    def test_get_items_with_invalid_jwt_auth(self):
+        """
+        Database API: Test get items with invalid JWT authentication
+        """
+        client = self.create_app().test_client()
+        rv = client.get(
+            "api/v1/database/",
+            headers={"Authorization": "Bearer not-a-token"},
+        )
+        assert rv.status_code == 422
 
     def test_get_items_filter(self):
         """
@@ -3471,6 +3516,7 @@ class TestDatabaseApi(SupersetTestCase):
                                 "description": "Database port",
                                 "maximum": 65536,
                                 "minimum": 0,
+                                "nullable": True,
                                 "type": "integer",
                             },
                             "query": {
@@ -3488,7 +3534,10 @@ class TestDatabaseApi(SupersetTestCase):
                                 "type": "string",
                             },
                         },
-                        "required": ["database", "host", "port", "username"],
+                        # ``port`` is intentionally not required: a blank port falls
+                        # back to the default (5432) in
+                        # ``PostgresEngineSpec.build_sqlalchemy_uri``.
+                        "required": ["database", "host", "username"],
                         "type": "object",
                     },
                     "preferred": True,
@@ -3500,6 +3549,11 @@ class TestDatabaseApi(SupersetTestCase):
                         "supports_oauth2": False,
                         "supports_offset": True,
                         "supports_schemas": True,
+                        "identifier_quote": {
+                            "start": '"',
+                            "end": '"',
+                            "escape_by_doubling": True,
+                        },
                     },
                     "supports_oauth2": False,
                 },
@@ -3530,6 +3584,11 @@ class TestDatabaseApi(SupersetTestCase):
                         "supports_oauth2": False,
                         "supports_offset": True,
                         "supports_schemas": True,
+                        "identifier_quote": {
+                            "start": "`",
+                            "end": "`",
+                            "escape_by_doubling": False,
+                        },
                     },
                     "supports_oauth2": False,
                 },
@@ -3590,6 +3649,11 @@ class TestDatabaseApi(SupersetTestCase):
                         "supports_oauth2": False,
                         "supports_offset": True,
                         "supports_schemas": True,
+                        "identifier_quote": {
+                            "start": '"',
+                            "end": '"',
+                            "escape_by_doubling": True,
+                        },
                     },
                     "supports_oauth2": False,
                 },
@@ -3637,6 +3701,11 @@ class TestDatabaseApi(SupersetTestCase):
                         "supports_oauth2": True,
                         "supports_offset": True,
                         "supports_schemas": True,
+                        "identifier_quote": {
+                            "start": '"',
+                            "end": '"',
+                            "escape_by_doubling": True,
+                        },
                     },
                     "supports_oauth2": True,
                 },
@@ -3697,6 +3766,11 @@ class TestDatabaseApi(SupersetTestCase):
                         "supports_oauth2": False,
                         "supports_offset": True,
                         "supports_schemas": True,
+                        "identifier_quote": {
+                            "start": "`",
+                            "end": "`",
+                            "escape_by_doubling": True,
+                        },
                     },
                     "supports_oauth2": False,
                 },
@@ -3713,6 +3787,11 @@ class TestDatabaseApi(SupersetTestCase):
                         "supports_oauth2": False,
                         "supports_offset": True,
                         "supports_schemas": True,
+                        "identifier_quote": {
+                            "start": '"',
+                            "end": '"',
+                            "escape_by_doubling": True,
+                        },
                     },
                     "supports_oauth2": False,
                 },
@@ -3749,6 +3828,11 @@ class TestDatabaseApi(SupersetTestCase):
                         "supports_oauth2": False,
                         "supports_offset": True,
                         "supports_schemas": True,
+                        "identifier_quote": {
+                            "start": "`",
+                            "end": "`",
+                            "escape_by_doubling": True,
+                        },
                     },
                     "supports_oauth2": False,
                 },
@@ -3765,6 +3849,11 @@ class TestDatabaseApi(SupersetTestCase):
                         "supports_oauth2": False,
                         "supports_offset": True,
                         "supports_schemas": True,
+                        "identifier_quote": {
+                            "start": '"',
+                            "end": '"',
+                            "escape_by_doubling": True,
+                        },
                     },
                     "supports_oauth2": False,
                 },
@@ -4563,8 +4652,9 @@ class TestDatabaseApi(SupersetTestCase):
         assert rv.status_code == 202
         response = json.loads(rv.data.decode("utf-8"))
         assert response == {"message": "Async task created to sync permissions"}
+        admin_user = security_manager.find_user(username=ADMIN_USERNAME)
         mock_task.assert_called_once_with(
-            test_database.id, ADMIN_USERNAME, test_database.database_name
+            test_database.id, admin_user.id, test_database.database_name
         )
 
         # Cleanup

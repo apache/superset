@@ -123,6 +123,7 @@ export type DashboardState = {
   isFiltersRefreshing: boolean;
   hasUnsavedChanges: boolean;
   dashboardIsSaving: boolean;
+  lastModifiedTime?: number;
   colorScheme: string;
   sliceIds: number[];
   directPathLastUpdated: number;
@@ -160,6 +161,7 @@ export type DashboardState = {
   inactiveTabs?: string[];
   datasetsStatus?: ResourceStatus;
   expandedSlices?: Record<number, boolean>;
+  expandAllSlices?: boolean;
   refreshFrequency: number;
   shouldPersistRefreshFrequency?: boolean;
   colorNamespace?: string;
@@ -169,6 +171,7 @@ export type DashboardState = {
 };
 export type DashboardInfo = {
   id: number;
+  uuid?: string;
   common: {
     conf: JsonObject;
   };
@@ -403,4 +406,5 @@ export enum MenuKeys {
   ManageEmailReports = 'manage_email_reports',
   ExportPivotXlsx = 'export_pivot_xlsx',
   EmbedCode = 'embed_code',
+  VersionHistory = 'version_history',
 }

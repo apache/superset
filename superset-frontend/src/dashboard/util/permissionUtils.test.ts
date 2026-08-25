@@ -259,6 +259,75 @@ describe('isUserEditorOrAdmin', () => {
   test('returns false when editors is omitted', () => {
     expect(isUserEditorOrAdmin(outsiderUser)).toEqual(false);
   });
+
+  test('returns true when the user is granted editorship only through extra_editors', () => {
+    expect(isUserEditorOrAdmin(editorUser, [], [10])).toEqual(true);
+  });
+
+  test('unions editors and extra_editors rather than preferring one', () => {
+    const nonMatchingSubject: Subject = { id: 999, label: 'Other', type: 1 };
+    expect(isUserEditorOrAdmin(editorUser, [nonMatchingSubject], [10])).toEqual(
+      true,
+    );
+  });
+
+  test('returns false when extra_editors names other subjects', () => {
+    expect(isUserEditorOrAdmin(editorUser, [], [999])).toEqual(false);
+  });
+});
+
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
+describe('isUserAdmin with a custom AUTH_ROLE_ADMIN', () => {
+  // The file-level `jest.mock('src/utils/getBootstrapData', ...)` above
+  // permanently stubs out getBootstrapData with fixed data, which would
+  // shadow the DOM-driven bootstrap data these tests set up. Unmock it so
+  // the re-imported permissionUtils picks up the real implementation
+  // (reading document.getElementById('app')), then restore the mock
+  // afterward so later tests in this file keep their expected stub.
+  beforeEach(() => {
+    jest.unmock('src/utils/getBootstrapData');
+  });
+
+  afterEach(() => {
+    document.body.innerHTML = '';
+    jest.resetModules();
+    jest.mock('src/utils/getBootstrapData', () => ({
+      __esModule: true,
+      default: jest.fn(() => ({
+        common: {
+          user_subjects: [10],
+        },
+      })),
+    }));
+  });
+
+  test('recognizes a user in the configured custom admin role', async () => {
+    document.body.innerHTML =
+      '<div id="app" data-bootstrap=\'{"common":{"conf":{"AUTH_ROLE_ADMIN":"SuperAdmin"}}}\'></div>';
+
+    jest.resetModules();
+    const { isUserAdmin: isUserAdminWithCustomRole } =
+      await import('./permissionUtils');
+
+    expect(
+      isUserAdminWithCustomRole({
+        username: 'super-admin',
+        permissions: {},
+        roles: { SuperAdmin: [['can_write', 'Dashboard']] },
+      }),
+    ).toEqual(true);
+  });
+
+  test('does not throw and falls back to the default role when bootstrap data has no conf', async () => {
+    document.body.innerHTML =
+      '<div id="app" data-bootstrap=\'{"common":{}}\'></div>';
+
+    jest.resetModules();
+    const { isUserAdmin: isUserAdminWithoutConf } =
+      await import('./permissionUtils');
+
+    expect(isUserAdminWithoutConf(adminUser)).toEqual(true);
+  });
 });
 
 test('userHasPermission always returns true for admin user', () => {

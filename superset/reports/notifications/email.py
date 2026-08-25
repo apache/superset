@@ -80,6 +80,11 @@ class EmailContent:
     images: Optional[dict[str, bytes]] = None
 
 
+def _get_csv_attachment_extension(content: bytes) -> str:
+    """Return ``zip`` for bundled CSV responses and ``csv`` otherwise."""
+    return "zip" if content.startswith(ZIP_LOCAL_FILE_HEADER) else "csv"
+
+
 def _get_xlsx_attachment_extension(content: bytes) -> str:
     """
     Return the attachment extension for bytes returned by the XLSX export endpoint.
@@ -143,22 +148,29 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
         return parseaddr(current_app.config["SMTP_MAIL_FROM"])[1].split("@")[1]
 
     def _error_template(self, text: str) -> str:
-        call_to_action = self._get_call_to_action()
         # The error text is derived from exception messages that can embed
         # data-controlled content (e.g. crafted table/column names in a DB
         # error). Strip all HTML before interpolating it into the email body,
         # matching the sanitization applied to the normal content path.
         # pylint: disable=no-member
         safe_text = nh3.clean(text, tags=set(), attributes={})
+        if self._content.include_cta:
+            return __(
+                """
+                <p>Your report/alert was unable to be generated because of the following error: %(text)s</p>
+                <p>Please check your dashboard/chart for errors.</p>
+                <p><b><a href="%(url)s">%(call_to_action)s</a></b></p>
+                """,  # noqa: E501
+                text=safe_text,
+                url=self._content.url,
+                call_to_action=self._get_call_to_action(),
+            )
         return __(
             """
             <p>Your report/alert was unable to be generated because of the following error: %(text)s</p>
             <p>Please check your dashboard/chart for errors.</p>
-            <p><b><a href="%(url)s">%(call_to_action)s</a></b></p>
             """,  # noqa: E501
             text=safe_text,
-            url=self._content.url,
-            call_to_action=call_to_action,
         )
 
     def _retry_error_template(self, text: str) -> str:
@@ -168,7 +180,7 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
         retries_remaining = (max_attempts or 0) - (attempt or 0)
         # pylint: disable=no-member
         safe_text = nh3.clean(text, tags=set(), attributes={})
-        call_to_action = self._get_call_to_action()
+        cta_tag = self._render_call_to_action_paragraph()
 
         return textwrap.dedent(
             f"""
@@ -194,7 +206,7 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
                 <p><b>Retry attempt:</b> {attempt} of {max_attempts}
                    &nbsp;&nbsp; <b>Retries remaining:</b> {retries_remaining}</p>
                 <p><b>Error details:</b> {safe_text}</p>
-                <p><b><a href="{self._content.url}">{call_to_action}</a></b></p>
+                {cta_tag}
               </body>
             </html>
             """
@@ -204,7 +216,7 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
         """HTML body for the final-failure email after all retries are exhausted."""
         # pylint: disable=no-member
         safe_text = nh3.clean(text, tags=set(), attributes={})
-        call_to_action = self._get_call_to_action()
+        cta_tag = self._render_call_to_action_paragraph()
         max_attempts = self._content.retry_max_attempts
 
         return textwrap.dedent(
@@ -241,7 +253,7 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
                   <li>Try generating the report manually to troubleshoot</li>
                   <li>Contact support if the issue persists</li>
                 </ul>
-                <p><b><a href="{self._content.url}">{call_to_action}</a></b></p>
+                {cta_tag}
               </body>
             </html>
             """
@@ -307,7 +319,7 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
                 """
             )
         img_tag = "".join(img_tags)
-        call_to_action = self._get_call_to_action()
+        call_to_action_tag = self._render_call_to_action_tag()
         body = textwrap.dedent(
             f"""
             <html>
@@ -328,7 +340,7 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
               <body>
                 <div>{description}</div>
                 <br>
-                <b><a href="{self._content.url}">{call_to_action}</a></b><p></p>
+                {call_to_action_tag}
                 {html_table}
                 {img_tag}
               </body>
@@ -339,7 +351,14 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
         # so at most one tabular attachment is present in the data dict.
         attachment_data: dict[str, bytes | str] | None = None
         if self._content.csv:
-            attachment_data = {__("%(name)s.csv", name=self._name): self._content.csv}
+            extension = _get_csv_attachment_extension(self._content.csv)
+            attachment_data = {
+                __(
+                    "%(name)s.%(extension)s",
+                    name=self._name,
+                    extension=extension,
+                ): self._content.csv
+            }
         elif self._content.xlsx:
             extension = _get_xlsx_attachment_extension(self._content.xlsx)
             attachment_data = {
@@ -391,6 +410,20 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
 
     def _get_call_to_action(self) -> str:
         return __(current_app.config["EMAIL_REPORTS_CTA"])
+
+    def _render_call_to_action_tag(self) -> str:
+        """Anchor markup for the call-to-action link, or "" when disabled."""
+        if not self._content.include_cta:
+            return ""
+        call_to_action = self._get_call_to_action()
+        return f'<b><a href="{self._content.url}">{call_to_action}</a></b><p></p>'
+
+    def _render_call_to_action_paragraph(self) -> str:
+        """CTA link wrapped in a paragraph, or "" when disabled."""
+        if not self._content.include_cta:
+            return ""
+        call_to_action = self._get_call_to_action()
+        return f'<p><b><a href="{self._content.url}">{call_to_action}</a></b></p>'
 
     def _get_to(self) -> str:
         return json.loads(self._recipient.recipient_config_json)["target"]

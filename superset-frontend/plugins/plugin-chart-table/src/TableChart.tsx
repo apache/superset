@@ -46,6 +46,7 @@ import {
   BinaryQueryObjectFilterClause,
   extractTextFromHTML,
   TimeGranularity,
+  forceHexAlpha,
 } from '@superset-ui/core';
 import {
   styled,
@@ -1068,10 +1069,10 @@ export default function TableChart<D extends DataRecord = DataRecord>(
           const originKey = column.key.substring(column.label.length).trim();
           if (!hasColumnColorFormatters && hasBasicColorFormatters) {
             backgroundColor =
-              basicColorFormatters[row.index][originKey]?.backgroundColor;
+              basicColorFormatters[row.index]?.[originKey]?.backgroundColor;
             arrow =
               column.label === comparisonLabels[0]
-                ? basicColorFormatters[row.index][originKey]?.mainArrow
+                ? basicColorFormatters[row.index]?.[originKey]?.mainArrow
                 : '';
           }
 
@@ -1094,7 +1095,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                 formatter.objectFormatting === ObjectFormattingEnum.CELL_BAR
               ) {
                 if (generalShowCellBars)
-                  backgroundColorCellBar = formatterResult.slice(0, -2);
+                  backgroundColorCellBar = forceHexAlpha(formatterResult);
               } else {
                 backgroundColor = formatterResult;
                 valueRangeFlag = false;
@@ -1133,11 +1134,11 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             basicColorColumnFormatters?.length > 0
           ) {
             backgroundColor =
-              basicColorColumnFormatters[row.index][column.key]
+              basicColorColumnFormatters[row.index]?.[column.key]
                 ?.backgroundColor || backgroundColor;
             arrow =
               column.label === comparisonLabels[0]
-                ? basicColorColumnFormatters[row.index][column.key]?.mainArrow
+                ? basicColorColumnFormatters[row.index]?.[column.key]?.mainArrow
                 : '';
           }
           const rowSurfaceColor =
@@ -1150,13 +1151,15 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             text-align: ${sharedStyle.textAlign};
             white-space: ${value instanceof Date ? 'nowrap' : undefined};
             position: relative;
-            font-weight: ${color
-              ? `${theme.fontWeightBold}`
-              : `${theme.fontWeightNormal}`};
+            font-weight: ${
+              color ? `${theme.fontWeightBold}` : `${theme.fontWeightNormal}`
+            };
             background: ${backgroundColor || undefined};
-            padding-left: ${column.isChildColumn
-              ? `${theme.sizeUnit * 5}px`
-              : `${theme.sizeUnit}px`};
+            padding-left: ${
+              column.isChildColumn
+                ? `${theme.sizeUnit * 5}px`
+                : `${theme.sizeUnit}px`
+            };
           `;
 
           const cellBarStyles = css`
@@ -1164,10 +1167,11 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             height: 100%;
             display: block;
             top: 0;
-            ${valueRange &&
-            typeof value === 'number' &&
-            valueRangeFlag &&
-            `
+            ${
+              valueRange &&
+              typeof value === 'number' &&
+              valueRangeFlag &&
+              `
                 width: ${`${cellWidth({
                   value: value as number,
                   valueRange,
@@ -1179,22 +1183,25 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                   alignPositiveNegative,
                 })}%`};
                 background-color: ${
-                  (backgroundColorCellBar && `${backgroundColorCellBar}99`) ||
+                  backgroundColorCellBar ||
                   cellBackground({
                     value: value as number,
                     colorPositiveNegative,
                     theme,
                   })
                 };
-              `}
+              `
+            }
           `;
 
           let arrowStyles = css`
-            color: ${basicColorFormatters &&
-            basicColorFormatters[row.index][originKey]?.arrowColor ===
-              ColorSchemeEnum.Green
-              ? theme.colorSuccess
-              : theme.colorError};
+            color: ${
+              basicColorFormatters &&
+              basicColorFormatters[row.index]?.[originKey]?.arrowColor ===
+                ColorSchemeEnum.Green
+                ? theme.colorSuccess
+                : theme.colorError
+            };
             margin-right: ${theme.sizeUnit}px;
           `;
 
@@ -1203,10 +1210,12 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             basicColorColumnFormatters?.length > 0
           ) {
             arrowStyles = css`
-              color: ${basicColorColumnFormatters[row.index][column.key]
-                ?.arrowColor === ColorSchemeEnum.Green
-                ? theme.colorSuccess
-                : theme.colorError};
+              color: ${
+                basicColorColumnFormatters[row.index]?.[column.key]
+                  ?.arrowColor === ColorSchemeEnum.Green
+                  ? theme.colorSuccess
+                  : theme.colorError
+              };
               margin-right: ${theme.sizeUnit}px;
             `;
           }

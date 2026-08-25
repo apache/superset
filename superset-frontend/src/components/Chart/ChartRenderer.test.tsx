@@ -46,6 +46,7 @@ jest.mock('@superset-ui/core', () => ({
     <div
       data-test="mock-super-chart"
       data-is-refreshing={isRefreshing ? 'true' : 'false'}
+      data-enable-no-results={props.enableNoResults ? 'true' : 'false'}
     >
       {JSON.stringify(postTransformProps(props).formData)}
     </div>
@@ -138,7 +139,6 @@ test('should not render chart context menu if the context menu is suppressed for
     new ChartMetadata({
       name: 'chart with suppressed context menu',
       thumbnail: '.png',
-      useLegacyApi: false,
       suppressContextMenu: true,
     }),
   );
@@ -146,6 +146,32 @@ test('should not render chart context menu if the context menu is suppressed for
     <ChartRenderer {...requiredProps} vizType="chart_without_context_menu" />,
   );
   expect(queryByTestId('mock-chart-context-menu')).not.toBeInTheDocument();
+});
+
+test('enables the no-results state by default for a chart without enableNoResults metadata', () => {
+  const { getByTestId } = render(<ChartRenderer {...requiredProps} />);
+  expect(getByTestId('mock-super-chart')).toHaveAttribute(
+    'data-enable-no-results',
+    'true',
+  );
+});
+
+test('honors enableNoResults: false from the chart metadata (e.g. self-fetching charts like deck.gl Multiple Layers)', () => {
+  getChartMetadataRegistry().registerValue(
+    'chart_without_no_results',
+    new ChartMetadata({
+      name: 'chart that fetches its own data',
+      thumbnail: '.png',
+      enableNoResults: false,
+    }),
+  );
+  const { getByTestId } = render(
+    <ChartRenderer {...requiredProps} vizType="chart_without_no_results" />,
+  );
+  expect(getByTestId('mock-super-chart')).toHaveAttribute(
+    'data-enable-no-results',
+    'false',
+  );
 });
 
 test('should detect changes in matrixify properties', () => {

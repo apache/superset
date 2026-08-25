@@ -22,7 +22,7 @@ jobs:
   check-python-deps:
     runs-on: ubuntu-26.04
     steps:
-      - uses: Kesin11/actions-timeline@7bf79990b7c09f5dfb570ac30b814ca597bd538e # v3.1.1
+      - uses: Kesin11/actions-timeline@57fc93f20c6da7fbc14063c6d24a2a5627c799ad # v3.2.0
         with:
           expand-composite-actions: true
 
@@ -51,7 +51,7 @@ jobs:
       - name: Login to Docker Hub
         if: steps.check.outputs.python
         continue-on-error: true
-        uses: docker/login-action@371161bbe7024a29a25c5e19bfcbc0804fe9ad2c # v4.5.2
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
         with:
           username: ${{ secrets.DOCKERHUB_USER }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}

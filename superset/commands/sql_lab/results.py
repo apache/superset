@@ -21,6 +21,7 @@ from typing import Any, cast
 
 from flask import current_app as app
 from flask_babel import gettext as __
+from jinja2.exceptions import TemplateError
 
 from superset import db, results_backend, results_backend_use_msgpack
 from superset.commands.base import BaseCommand
@@ -97,6 +98,15 @@ class SqlExecutionResultsCommand(BaseCommand):
                     level=ErrorLevel.ERROR,
                 ),
                 status=403,
+            ) from ex
+        except TemplateError as ex:
+            raise SupersetErrorException(
+                SupersetError(
+                    message=str(ex),
+                    error_type=SupersetErrorType.GENERIC_COMMAND_ERROR,
+                    level=ErrorLevel.ERROR,
+                ),
+                status=400,
             ) from ex
 
         # Now fetch results from backend (query exists, so this is a valid request)

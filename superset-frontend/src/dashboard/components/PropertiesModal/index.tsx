@@ -307,7 +307,7 @@ const PropertiesModal = ({
       slug,
       certifiedBy,
       certificationDetails,
-    } = form.getFieldsValue();
+    } = form.getFieldsValue(true);
     let currentJsonMetadata = jsonMetadata;
 
     // validate currentJsonMetadata

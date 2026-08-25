@@ -27,7 +27,6 @@ from pydantic import (
     BaseModel,
     ConfigDict,
     Field,
-    field_validator,
     model_serializer,
 )
 from sqlalchemy.orm.exc import DetachedInstanceError
@@ -37,7 +36,6 @@ from superset.mcp_service.common.pagination_schemas import (
     PaginatedListRequest,
     PaginatedResponse,
 )
-from superset.mcp_service.utils import sanitize_for_llm_context
 
 DEFAULT_ROLE_COLUMNS = ["id", "name"]
 
@@ -116,12 +114,6 @@ class RoleError(BaseModel):
     timestamp: str | datetime | None = Field(None, description="Error timestamp")
     model_config = ConfigDict(ser_json_timedelta="iso8601")
 
-    @field_validator("error")
-    @classmethod
-    def sanitize_error_for_llm_context(cls, value: str) -> str:
-        """Wrap error text before it is exposed to LLM context."""
-        return sanitize_for_llm_context(value, field_path=("error",))
-
     @classmethod
     def create(cls, error: str, error_type: str) -> "RoleError":
         """Create a standardized RoleError with timestamp."""
@@ -198,13 +190,6 @@ def serialize_role_object(
                 )
     return RoleInfo(
         id=getattr(role, "id", None),
-        name=sanitize_for_llm_context(
-            getattr(role, "name", None), field_path=("name",)
-        ),
-        permissions=[
-            sanitize_for_llm_context(p, field_path=("permissions",))
-            for p in permissions
-        ]
-        if permissions is not None
-        else None,
+        name=getattr(role, "name", None),
+        permissions=permissions,
     )

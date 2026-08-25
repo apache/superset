@@ -36,3 +36,4 @@ export { default as createSiAtMostNDigitFormatter } from './factories/createSiAt
 export { default as createSmartNumberFormatter } from './factories/createSmartNumberFormatter';
 export { default as getSmallNumberFormatter } from './getSmallNumberFormatter';
 export { default as createLengthFormatter } from './factories/createLengthFormatter';
+export { default as createThroughputFormatter } from './factories/createThroughputFormatter';

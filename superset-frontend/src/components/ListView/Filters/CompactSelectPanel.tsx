@@ -106,9 +106,9 @@ const OptionItem = styled.li<{ $active: boolean }>`
     transition: background 0.15s;
 
     &:hover {
-      background: ${$active
-        ? theme.colorPrimaryBgHover
-        : theme.colorFillTertiary};
+      background: ${
+        $active ? theme.colorPrimaryBgHover : theme.colorFillTertiary
+      };
       outline: 2px solid ${theme.colorPrimary};
       outline-offset: -2px;
     }

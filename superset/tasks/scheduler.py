@@ -39,6 +39,7 @@ from superset.daos.report import ReportScheduleDAO
 from superset.daos.tasks import TaskDAO
 from superset.extensions import celery_app
 from superset.key_value.commands.prune import KeyValuePruneCommand
+from superset.reports.models import ReportScheduleType
 from superset.stats_logger import BaseStatsLogger
 from superset.tasks.ambient_context import use_context
 from superset.tasks.constants import ABORT_STATES, TERMINAL_STATES
@@ -48,6 +49,7 @@ from superset.tasks.manager import TaskManager
 from superset.tasks.registry import TaskRegistry
 from superset.utils.core import LoggerLevel
 from superset.utils.log import get_logger_from_status
+from superset.utils.report_execution import get_report_task_timeout_options
 
 logger = logging.getLogger(__name__)
 
@@ -98,19 +100,14 @@ def scheduler(self: Task) -> None:  # pylint: disable=unused-argument
             triggered_at, active_schedule.crontab, active_schedule.timezone
         ):
             logger.info("Scheduling alert %s eta: %s", active_schedule.name, schedule)
-            async_options = {"eta": schedule}
-            if (
-                active_schedule.working_timeout is not None
-                and current_app.config["ALERT_REPORTS_WORKING_TIME_OUT_KILL"]
-            ):
-                async_options["time_limit"] = (
-                    active_schedule.working_timeout
-                    + current_app.config["ALERT_REPORTS_WORKING_TIME_OUT_LAG"]
-                )
-                async_options["soft_time_limit"] = (
-                    active_schedule.working_timeout
-                    + current_app.config["ALERT_REPORTS_WORKING_SOFT_TIME_OUT_LAG"]
-                )
+            async_options = {
+                "eta": schedule,
+                **get_report_task_timeout_options(
+                    is_report=active_schedule.type == ReportScheduleType.REPORT,
+                    working_timeout=active_schedule.working_timeout,
+                    config=current_app.config,
+                ),
+            }
             execute.apply_async((active_schedule.id,), **async_options)
 
 
@@ -150,6 +147,17 @@ def execute(
             report_schedule_id,
             scheduled_dttm,
         ).run()
+    except SoftTimeLimitExceeded:
+        stats_logger.incr("reports.execute.celery_soft_timeout")
+        logger.warning(
+            "Alert/report execution hit Celery soft timeout; execution_id=%s "
+            "report_schedule_id=%s terminal_reason=celery_soft_timeout",
+            task_id,
+            report_schedule_id,
+            exc_info=True,
+        )
+        self.update_state(state="FAILURE")
+        raise
     except ReportScheduleUnexpectedError:
         logger.exception(
             "An unexpected error occurred while executing the report: %s", task_id
@@ -303,7 +311,11 @@ def execute_task(  # noqa: C901
     # Convert string UUID to native UUID (Celery deserializes as string)
     native_uuid = UUID(task_uuid)
 
-    task = TaskDAO.find_one_or_none(uuid=native_uuid)
+    # Internal executor path: load the task Celery was dispatched to run,
+    # keyed on the UUID passed at enqueue time, not a user-requested
+    # lookup; see TaskFilter for the request-scoped vs. internal-plumbing
+    # split. The refreshes below load the same task for the same reason.
+    task = TaskDAO.find_one_or_none(uuid=native_uuid, skip_base_filter=True)
     if not task:
         logger.error("Task %s not found in metastore", task_uuid)
         return {"status": "error", "message": "Task not found"}
@@ -338,7 +350,7 @@ def execute_task(  # noqa: C901
             task_type,
             task_uuid,
         )
-        refreshed = TaskDAO.find_one_or_none(uuid=native_uuid)
+        refreshed = TaskDAO.find_one_or_none(uuid=native_uuid, skip_base_filter=True)
         return {
             "status": refreshed.status if refreshed else "unknown",
             "task_uuid": task_uuid,
@@ -481,7 +493,7 @@ def execute_task(  # noqa: C901
                 )
 
         # Refresh to get final status for return value and completion notification
-        refreshed = TaskDAO.find_one_or_none(uuid=native_uuid)
+        refreshed = TaskDAO.find_one_or_none(uuid=native_uuid, skip_base_filter=True)
         final_status = refreshed.status if refreshed else "unknown"
 
         # Publish completion notification for any waiters (e.g., sync callers)

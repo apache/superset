@@ -222,14 +222,15 @@ def test_csv_upload_schema_not_allowed():
     admin_user = security_manager.find_user(username="admin")
     upload_db_id = get_upload_db().id
     with override_user(admin_user):
-        with pytest.raises(DatabaseSchemaUploadNotAllowed):
-            UploadCommand(
-                upload_db_id,
-                CSV_UPLOAD_TABLE,
-                create_csv_file(CSV_FILE_1),
-                None,
-                CSVReader({}),
-            ).run()
+        # an unset schema resolves to the database's default ("public"),
+        # which is allow-listed, so the upload succeeds (see #36305)
+        UploadCommand(
+            upload_db_id,
+            CSV_UPLOAD_TABLE,
+            create_csv_file(CSV_FILE_1),
+            None,
+            CSVReader({}),
+        ).run()
         with pytest.raises(DatabaseSchemaUploadNotAllowed):
             UploadCommand(
                 upload_db_id,

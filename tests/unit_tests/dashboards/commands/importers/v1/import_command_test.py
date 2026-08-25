@@ -67,6 +67,13 @@ def test_dashboard_import_with_overwrite_replaces_charts(
         **copy.deepcopy(dashboards_config_1),
     }
     ImportDashboardsCommand._import(initial_configs, overwrite=True)
+    # Commit between imports, as production does: ``run()`` carries
+    # ``@transaction()``, so two imports are two transactions. Calling the
+    # private ``_import`` twice without committing puts both in one Continuum
+    # transaction, where adding and removing the same association collides on
+    # ``dashboard_slices_version``'s (dashboard_id, slice_id, transaction_id)
+    # key — an artifact of the test's shortcut, not a reachable state.
+    db.session.commit()
 
     # Verify initial state: 2 charts associated with the dashboard
     initial_chart_ids = db.session.scalars(select(dashboard_slices.c.slice_id)).all()

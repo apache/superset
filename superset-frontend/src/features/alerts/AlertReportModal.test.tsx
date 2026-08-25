@@ -88,6 +88,7 @@ const generateMockPayload = (dashboard = true) => {
     force_screenshot: true,
     grace_period: 14400,
     id: 1,
+    include_cta: true,
     last_eval_dttm: null,
     last_state: 'Not triggered',
     last_value: null,
@@ -308,6 +309,9 @@ afterEach(() => {
     'put-dashboard-payload',
     'put-report-1',
     'put-no-recipients',
+    'put-include-cta',
+    'get-report-cta-false',
+    'get-report-cta-absent',
     'tabs-99',
   ]) {
     try {
@@ -336,6 +340,7 @@ const validAlert: AlertObject = {
   dashboard_id: 0,
   chart_id: 1,
   force_screenshot: false,
+  include_cta: true,
   last_state: 'Not triggered',
   name: 'Test Alert',
   editors: [mockEditorSubject],
@@ -727,6 +732,90 @@ test('removes ignore cache checkbox when chart is selected', async () => {
       name: /ignore cache when generating report/i,
     }),
   ).not.toBeInTheDocument();
+});
+
+test('renders include link checkbox checked by default in create mode', async () => {
+  render(<AlertReportModal {...generateMockedProps(true)} />, {
+    useRedux: true,
+  });
+  userEvent.click(screen.getByTestId('contents-panel'));
+  const checkbox = await screen.findByRole('checkbox', {
+    name: /include a link back to superset/i,
+  });
+  expect(checkbox).toBeChecked();
+});
+
+test('keeps include link checkbox when chart is selected', async () => {
+  render(<AlertReportModal {...generateMockedProps(false, true, true)} />, {
+    useRedux: true,
+  });
+  userEvent.click(screen.getByTestId('contents-panel'));
+  await screen.findByText(/test dashboard/i);
+  const contentTypeSelector = screen.getByRole('combobox', {
+    name: /select content type/i,
+  });
+  await comboboxSelect(
+    contentTypeSelector,
+    'Chart',
+    () => screen.getAllByText(/select chart/i)[0],
+  );
+  expect(
+    screen.getByRole('checkbox', {
+      name: /include a link back to superset/i,
+    }),
+  ).toBeInTheDocument();
+});
+
+test('hydrates include link checkbox from a resource with include_cta false', async () => {
+  fetchMock.get(
+    'glob:*/api/v1/report/8',
+    { result: { ...generateMockPayload(true), id: 8, include_cta: false } },
+    { name: 'get-report-cta-false' },
+  );
+
+  render(
+    <AlertReportModal
+      {...generateMockedProps(false, true, true)}
+      alert={{ ...validAlert, id: 8 }}
+    />,
+    { useRedux: true },
+  );
+  userEvent.click(screen.getByTestId('contents-panel'));
+  await screen.findByText(/test dashboard/i);
+  expect(
+    screen.getByRole('checkbox', {
+      name: /include a link back to superset/i,
+    }),
+  ).not.toBeChecked();
+
+  fetchMock.removeRoute('get-report-cta-false');
+});
+
+test('treats a resource without include_cta as checked', async () => {
+  const { include_cta: _include_cta, ...payloadWithoutCta } =
+    generateMockPayload(true);
+  fetchMock.get(
+    'glob:*/api/v1/report/9',
+    { result: { ...payloadWithoutCta, id: 9 } },
+    { name: 'get-report-cta-absent' },
+  );
+
+  render(
+    <AlertReportModal
+      {...generateMockedProps(false, true, true)}
+      alert={{ ...validAlert, id: 9 }}
+    />,
+    { useRedux: true },
+  );
+  userEvent.click(screen.getByTestId('contents-panel'));
+  await screen.findByText(/test dashboard/i);
+  expect(
+    screen.getByRole('checkbox', {
+      name: /include a link back to superset/i,
+    }),
+  ).toBeChecked();
+
+  fetchMock.removeRoute('get-report-cta-absent');
 });
 
 test('open chart button opens explore with slice_id', async () => {
@@ -1548,6 +1637,58 @@ test('submit includes conditionNotNull without threshold in alert payload', asyn
   expect(body.validator_config_json).toEqual({});
 
   fetchMock.removeRoute('put-condition');
+}, 45000);
+
+test('submit includes include_cta false after unchecking the checkbox', async () => {
+  // Mock payload returns id:1, so updateResource PUTs to /api/v1/report/1
+  fetchMock.put(
+    'glob:*/api/v1/report/1',
+    { id: 1, result: {} },
+    { name: 'put-include-cta' },
+  );
+
+  render(<AlertReportModal {...generateMockedProps(false, true, false)} />, {
+    useRedux: true,
+  });
+
+  // Wait for resource to load and all validation to pass
+  await waitFor(
+    () => {
+      expect(
+        screen.queryAllByRole('img', { name: /check-circle/i }),
+      ).toHaveLength(5);
+    },
+    { timeout: 10000 },
+  );
+
+  // Open the contents panel and uncheck the include link checkbox
+  userEvent.click(screen.getByTestId('contents-panel'));
+  const checkbox = await screen.findByRole('checkbox', {
+    name: /include a link back to superset/i,
+  });
+  expect(checkbox).toBeChecked();
+  userEvent.click(checkbox);
+  await waitFor(() => {
+    expect(checkbox).not.toBeChecked();
+  });
+
+  // Wait for Save to be enabled and click
+  await waitFor(() => {
+    expect(screen.getByRole('button', { name: /save/i })).toBeEnabled();
+  });
+  userEvent.click(screen.getByRole('button', { name: /save/i }));
+
+  // Verify the PUT payload
+  await waitFor(() => {
+    const calls = fetchMock.callHistory.calls('put-include-cta');
+    expect(calls.length).toBeGreaterThan(0);
+  });
+
+  const calls = fetchMock.callHistory.calls('put-include-cta');
+  const body = JSON.parse(calls[calls.length - 1].options.body as string);
+  expect(body.include_cta).toBe(false);
+
+  fetchMock.removeRoute('put-include-cta');
 }, 45000);
 
 test('edit mode submit uses PUT and excludes read-only fields', async () => {

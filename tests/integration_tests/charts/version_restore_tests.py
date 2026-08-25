@@ -44,7 +44,7 @@ def _get_version_rows(chart: Slice) -> list[Any]:
     ver_cls = version_class(Slice)
     return (
         db.session.query(ver_cls)
-        .filter(ver_cls.id == chart.id)
+        .filter(ver_cls.id == chart.id, ver_cls.uuid == chart.uuid)
         .order_by(ver_cls.transaction_id.asc())
         .all()
     )
@@ -236,7 +236,7 @@ class TestChartRestoreApi(SupersetTestCase):
         ver_cls = version_class(Slice)
         first_tx = (
             db.session.query(ver_cls.transaction_id)
-            .filter(ver_cls.id == chart_id)
+            .filter(ver_cls.id == chart_id, ver_cls.uuid == entity_uuid)
             .order_by(ver_cls.transaction_id.asc())
             .limit(1)
             .scalar()
@@ -289,7 +289,15 @@ class TestChartRestoreApi(SupersetTestCase):
         original_name = chart.slice_name
 
         ver_cls = version_class(Slice)
-        count_before = db.session.query(ver_cls).filter(ver_cls.id == chart_id).count()
+        # Pin to (id, uuid), as the API's version lookup does. A shared test
+        # database recycles integer ids across the suite, so an id-only count
+        # picks up shadow rows belonging to hard-deleted predecessors and
+        # over-states this chart's history.
+        count_before = (
+            db.session.query(ver_cls)
+            .filter(ver_cls.id == chart_id, ver_cls.uuid == chart.uuid)
+            .count()
+        )
         expected_old = count_before - 1 if count_before > 0 else None
 
         self.login(ADMIN_USERNAME)
@@ -334,7 +342,7 @@ class TestChartRestoreApi(SupersetTestCase):
         assert entity_uuid is not None
         first_tx = (
             db.session.query(ver_cls.transaction_id)
-            .filter(ver_cls.id == chart.id)
+            .filter(ver_cls.id == chart.id, ver_cls.uuid == chart.uuid)
             .order_by(ver_cls.transaction_id.asc())
             .limit(1)
             .scalar()
@@ -394,7 +402,7 @@ class TestChartRestoreApi(SupersetTestCase):
         assert boys_uuid is not None
         boys_tx = (
             db.session.query(ver_cls.transaction_id)
-            .filter(ver_cls.id == boys.id)
+            .filter(ver_cls.id == boys.id, ver_cls.uuid == boys_uuid)
             .order_by(ver_cls.transaction_id.asc())
             .limit(1)
             .scalar()
@@ -430,7 +438,7 @@ class TestChartRestoreApi(SupersetTestCase):
         assert entity_uuid is not None
         first_tx = (
             db.session.query(ver_cls.transaction_id)
-            .filter(ver_cls.id == chart_id)
+            .filter(ver_cls.id == chart_id, ver_cls.uuid == entity_uuid)
             .order_by(ver_cls.transaction_id.asc())
             .limit(1)
             .scalar()
@@ -443,7 +451,7 @@ class TestChartRestoreApi(SupersetTestCase):
 
         latest_tx = (
             db.session.query(ver_cls.transaction_id)
-            .filter(ver_cls.id == chart_id)
+            .filter(ver_cls.id == chart_id, ver_cls.uuid == entity_uuid)
             .order_by(ver_cls.transaction_id.desc())
             .limit(1)
             .scalar()

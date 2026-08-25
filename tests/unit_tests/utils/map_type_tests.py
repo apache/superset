@@ -38,13 +38,30 @@ def test_column_with_valid_operation():
     assert (get_metric_type_from_column(column, datasource)) == "floating"
 
 
+@pytest.mark.parametrize(
+    "expression",
+    [
+        "stddev_samp(my_column)",
+        "STDDEV_SAMP (my_column)",
+        "StdDev_Samp(my_column)",
+    ],
+)
+def test_column_with_lowercase_or_whitespaced_operation(expression):
+    metric = SqlMetric(metric_name="my_column", expression=expression)
+    datasource = MagicMock(metrics=[metric])
+    column = "my_column"
+    assert (get_metric_type_from_column(column, datasource)) == "floating"
+
+
 def test_column_with_invalid_operation():
     metric = SqlMetric(metric_name="my_column", expression="INVALID(my_column)")
     datasource = MagicMock(metrics=[metric])
     column = "my_column"
-    with patch("superset.utils.core.logger.warning") as mock_warning:
+    with patch("superset.utils.core.logger.debug") as mock_debug:
         assert (get_metric_type_from_column(column, datasource)) == ""
-        mock_warning.assert_called_once()
+        mock_debug.assert_called_once_with(
+            "Unexpected metric expression type: %s", "INVALID(my_column)"
+        )
 
 
 def test_empty_datasource():

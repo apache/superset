@@ -27,6 +27,7 @@ from superset.charts.data.dashboard_filter_context import (
     apply_dashboard_filter_context,
 )
 from superset.charts.schemas import ChartDataTimingSchema
+from superset.commands.chart.data.get_data_command import ChartDataCommand
 from superset.commands.chart.exceptions import (
     ChartDataCacheLoadError,
     ChartDataQueryFailedError,
@@ -37,10 +38,16 @@ from superset.common.chart_data_timing import (
     QueryDataResult,
     QueryTiming,
 )
+from superset.common.query_context_factory import QueryContextFactory
+from superset.connectors.sqla.models import SqlaTable, TableColumn
 from superset.jinja_context import ExtraCache
+from superset.models.core import Database
 from superset.utils import json
+from superset.utils.error_sanitization import GENERIC_ERROR_MESSAGE
 
 if TYPE_CHECKING:
+    from sqlalchemy.orm import Session
+
     from superset.app import SupersetApp
 
 
@@ -329,6 +336,106 @@ def test_send_chart_response_strips_guest_query_after_timing_projection(
     assert "query" not in query
     assert "timing" in query
     assert "query" in query_payload
+
+
+def test_send_chart_response_redacts_guest_query_error(app: SupersetApp) -> None:
+    result = _json_execution_result(
+        {
+            "error": "Table mydb.myschema.mytable was not found",
+            "stacktrace": "Traceback ...",
+            "query": "SELECT 1",
+        },
+        result_type=ChartDataResultType.QUERY,
+    )
+
+    api = ChartDataRestApi()
+    with (
+        app.test_request_context("/api/v1/chart/data"),
+        patch(
+            "superset.charts.data.api.security_manager.is_guest_user",
+            return_value=True,
+        ),
+    ):
+        response = api._send_chart_response(result)
+
+    query = json.loads(response.get_data(as_text=True))["result"][0]
+    assert query["error"] == str(GENERIC_ERROR_MESSAGE)
+    assert "stacktrace" not in query
+
+
+def test_get_data_response_redacts_guest_query_failure(app: SupersetApp) -> None:
+    command = MagicMock()
+    command.execute.side_effect = ChartDataQueryFailedError(
+        "Error: Table mydb.myschema.mytable was not found"
+    )
+    api = ChartDataRestApi()
+
+    with (
+        app.test_request_context("/api/v1/chart/data"),
+        patch(
+            "superset.security.SupersetSecurityManager.is_guest_user",
+            return_value=True,
+        ),
+    ):
+        response = api._get_data_response(command)
+
+    assert response.status_code == 400
+    assert json.loads(response.get_data(as_text=True))["message"] == str(
+        GENERIC_ERROR_MESSAGE
+    )
+
+
+def test_get_data_response_redacts_a_real_engine_error_for_guests(
+    app: SupersetApp,
+    session: Session,
+) -> None:
+    """
+    Drives an actual failing query rather than a hand-written message: the
+    engine names the missing object, and that name is what must not reach an
+    embedded viewer.
+    """
+    SqlaTable.metadata.create_all(session.get_bind())  # pylint: disable=no-member
+    database = Database(database_name="db", sqlalchemy_uri="sqlite://")
+    table = SqlaTable(
+        table_name="table_that_does_not_exist",
+        database=database,
+        columns=[TableColumn(column_name="col_a", type="VARCHAR", groupby=True)],
+        metrics=[],
+    )
+    session.add(database)
+    session.add(table)
+    session.flush()
+
+    command = ChartDataCommand(
+        QueryContextFactory().create(
+            datasource={"type": "table", "id": table.id},
+            queries=[{"columns": ["col_a"], "metrics": [], "row_limit": 10}],
+            result_format=ChartDataResultFormat.JSON,
+            result_type=ChartDataResultType.FULL,
+        )
+    )
+    api = ChartDataRestApi()
+
+    with app.test_request_context("/api/v1/chart/data"):
+        authorized = api._get_data_response(command)
+    assert authorized.status_code == 400
+    assert (
+        "table_that_does_not_exist"
+        in json.loads(authorized.get_data(as_text=True))["message"]
+    )
+
+    with (
+        app.test_request_context("/api/v1/chart/data"),
+        patch(
+            "superset.security.SupersetSecurityManager.is_guest_user",
+            return_value=True,
+        ),
+    ):
+        guest = api._get_data_response(command)
+    assert guest.status_code == 400
+    assert json.loads(guest.get_data(as_text=True))["message"] == str(
+        GENERIC_ERROR_MESSAGE
+    )
 
 
 def test_send_chart_response_pairs_each_timing_with_its_query(

@@ -36,7 +36,7 @@ import traceback
 import uuid
 import warnings
 import zlib
-from collections.abc import Iterable, Iterator, Sequence
+from collections.abc import Collection, Iterable, Iterator, Sequence
 from contextlib import closing, contextmanager
 from dataclasses import dataclass
 from datetime import timedelta
@@ -61,6 +61,7 @@ from typing import (
 )
 from urllib.parse import unquote_plus, urlparse
 from zipfile import ZipFile
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import markdown as md
 import nh3
@@ -175,12 +176,23 @@ METRIC_MAP_TYPE = {
     "PERCENTILE": "floating",
     "VARIANCE": "floating",
     "STDDEV": "floating",
+    "STDDEV_SAMP": "floating",
+    "VAR_SAMP": "floating",
 }
 
 
 class AdhocMetricExpressionType(StrEnum):
     SIMPLE = "SIMPLE"
     SQL = "SQL"
+
+
+# Aggregates with no safe, universal cross-dialect spelling -- unlike
+# SUM/COUNT/AVG/MIN/MAX/COUNT_DISTINCT, whose SQL is generated the same way on
+# every engine. Support for these is opt-in per `BaseEngineSpec` (see
+# `get_extended_aggregation_func`); used to distinguish a genuinely invalid
+# aggregate name from one that is valid but unsupported on the current database,
+# for a clearer user-facing error.
+EXTENDED_METRIC_AGGREGATES = frozenset({"MEDIAN", "STDDEV_SAMP", "VAR_SAMP"})
 
 
 class SqlExpressionType(StrEnum):
@@ -208,7 +220,7 @@ class GenericDataType(IntEnum):
     STRING = 1
     TEMPORAL = 2
     BOOLEAN = 3
-    # ARRAY = 4     # Mapping all the complex data types to STRING for now
+    MULTI_VALUE = 4  # array-typed columns (e.g. ClickHouse Array, Postgres ARRAY)
     # JSON = 5      # and leaving these as a reminder.
     # MAP = 6
     # ROW = 7
@@ -298,6 +310,17 @@ class FilterOperator(StrEnum):
     IS_TRUE = "IS TRUE"
     IS_FALSE = "IS FALSE"
     TEMPORAL_RANGE = "TEMPORAL_RANGE"
+    # Element-level operators for MULTI_VALUE (array) columns
+    CONTAINS_ANY = "CONTAINS_ANY"
+    CONTAINS_ALL = "CONTAINS_ALL"
+    IS_EMPTY = "IS_EMPTY"
+    IS_NOT_EMPTY = "IS_NOT_EMPTY"
+    # Length (element-count) comparison operators for array columns
+    LENGTH_EQUALS = "LENGTH_EQUALS"
+    LENGTH_GREATER_THAN = "LENGTH_GREATER_THAN"
+    LENGTH_LESS_THAN = "LENGTH_LESS_THAN"
+    LENGTH_GREATER_THAN_OR_EQUALS = "LENGTH_GREATER_THAN_OR_EQUALS"
+    LENGTH_LESS_THAN_OR_EQUALS = "LENGTH_LESS_THAN_OR_EQUALS"
 
 
 class FilterStringOperators(StrEnum):
@@ -316,6 +339,15 @@ class FilterStringOperators(StrEnum):
     LATEST_PARTITION = ("LATEST_PARTITION",)
     IS_TRUE = ("IS_TRUE",)
     IS_FALSE = ("IS_FALSE",)
+    CONTAINS_ANY = ("CONTAINS_ANY",)
+    CONTAINS_ALL = ("CONTAINS_ALL",)
+    IS_EMPTY = ("IS_EMPTY",)
+    IS_NOT_EMPTY = ("IS_NOT_EMPTY",)
+    LENGTH_EQUALS = ("LENGTH_EQUALS",)
+    LENGTH_GREATER_THAN = ("LENGTH_GREATER_THAN",)
+    LENGTH_LESS_THAN = ("LENGTH_LESS_THAN",)
+    LENGTH_GREATER_THAN_OR_EQUALS = ("LENGTH_GREATER_THAN_OR_EQUALS",)
+    LENGTH_LESS_THAN_OR_EQUALS = ("LENGTH_LESS_THAN_OR_EQUALS",)
 
 
 class PostProcessingBoxplotWhiskerType(StrEnum):
@@ -594,9 +626,21 @@ def sanitize_svg_content(svg_content: str) -> str:
         return ""
 
     # Minimal protection: remove obvious malicious content, preserve all SVG features
+    # The closing tag pattern tolerates attributes/whitespace after "script"
+    # (e.g. "</script foo>"), which browsers still parse as a valid closer.
     content = re.sub(
-        r"<script[^>]*>.*?</script>", "", svg_content, flags=re.IGNORECASE | re.DOTALL
+        r"<script\b[^>]*>.*?</script\b[^>]*>",
+        "",
+        svg_content,
+        flags=re.IGNORECASE | re.DOTALL,
     )
+    # Second pass: an unterminated <script ...> opener has no matching
+    # closer, so browsers treat everything after it as script content
+    # through end-of-file. Drop the opener and the remainder of the
+    # content with it, rather than leaving the payload text behind.
+    content = re.sub(r"<script\b[^>]*>.*", "", content, flags=re.IGNORECASE | re.DOTALL)
+    # Drop any orphaned closing </script ...> fragment too.
+    content = re.sub(r"</script\b[^>]*>?", "", content, flags=re.IGNORECASE)
     content = re.sub(r"javascript:", "", content, flags=re.IGNORECASE)
     content = re.sub(r"data:[^;]*;[^,]*,.*javascript", "", content, flags=re.IGNORECASE)
 
@@ -702,12 +746,19 @@ def generic_find_fk_constraint_names(  # pylint: disable=invalid-name
 
 
 def generic_find_uq_constraint_name(
-    table: str, columns: set[str], insp: Inspector
+    table: str, columns: Collection[str], insp: Inspector
 ) -> str | None:
-    """Utility to find a unique constraint name in alembic migrations"""
+    """Utility to find a unique constraint name in alembic migrations.
 
+    ``columns`` is coerced to a set before comparison. Historically the
+    parameter was annotated ``set[str]`` but compared with ``==`` against a
+    set — a caller passing a list (as migration ``df3d7e2eb9a4`` did)
+    silently never matched, because ``list == set`` is always ``False``.
+    Coercing removes that foot-gun for future callers.
+    """
+    target = set(columns)
     for uq in insp.get_unique_constraints(table):
-        if columns == set(uq["column_names"]):
+        if target == set(uq["column_names"]):
             return uq["name"]
 
     return None
@@ -808,6 +859,7 @@ def pessimistic_connection_handling(some_engine: Engine) -> None:
             # the SELECT of a scalar value without a table is
             # appropriately formatted for the backend
             connection.scalar(select(1))
+            connection.rollback()  # pylint: disable=consider-using-transaction
         except exc.DBAPIError as err:
             # catch SQLAlchemy's DBAPIError, which is a wrapper
             # for the DBAPI's exception.  It includes a .connection_invalidated
@@ -820,6 +872,7 @@ def pessimistic_connection_handling(some_engine: Engine) -> None:
                 # here also causes the whole connection pool to be invalidated
                 # so that all stale connections are discarded.
                 connection.scalar(select(1))
+                connection.rollback()  # pylint: disable=consider-using-transaction
             else:
                 raise
         finally:
@@ -1790,14 +1843,17 @@ def get_metric_type_from_column(column: Any, datasource: Explorable) -> str:
     expression: str = metric.expression
 
     match = re.match(
-        r"(SUM|AVG|COUNT|COUNT_DISTINCT|MIN|MAX|FIRST|LAST)\((.*)\)", expression
+        r"(SUM|AVG|COUNT|COUNT_DISTINCT|MIN|MAX|FIRST|LAST"
+        r"|MEDIAN|STDDEV_SAMP|VAR_SAMP)\s*\((.*)\)",
+        expression,
+        re.IGNORECASE,
     )
 
     if match:
-        operation = match.group(1)
+        operation = match.group(1).upper()
         return METRIC_MAP_TYPE.get(operation, "")
 
-    logger.warning("Unexpected metric expression type: %s", expression)
+    logger.debug("Unexpected metric expression type: %s", expression)
     return ""
 
 
@@ -1958,6 +2014,7 @@ class DateColumn:
     timestamp_format: str | None = None
     offset: int | None = None
     time_shift: str | None = None
+    timezone: str | None = None  # IANA timezone name
 
     def __hash__(self) -> int:
         return hash(self.col_label)
@@ -1971,11 +2028,13 @@ class DateColumn:
         timestamp_format: str | None,
         offset: int | None,
         time_shift: str | None,
+        timezone: str | None = None,
     ) -> DateColumn:
         return cls(
             timestamp_format=timestamp_format,
             offset=offset,
             time_shift=time_shift,
+            timezone=timezone,
             col_label=DTTM_ALIAS,
         )
 
@@ -2073,8 +2132,28 @@ def normalize_dttm_col(
 
         _process_datetime_column(df, _col)
 
-        if _col.offset:
+        if _col.timezone and isinstance(_col.timezone, str):
+            try:
+                tz = ZoneInfo(_col.timezone)
+                # Data is stored in UTC, convert to the dataset's configured timezone
+                # First make the datetime UTC-aware, then convert to target timezone
+                series = df[_col.col_label]
+                if not series.empty and series.notna().any():
+                    # Convert UTC to target timezone
+                    df[_col.col_label] = (
+                        series.dt.tz_localize("UTC")
+                        .dt.tz_convert(tz)
+                        .dt.tz_localize(None)  # Remove timezone info for display
+                    )
+            except ZoneInfoNotFoundError:
+                logging.warning(
+                    "Unknown timezone '%s', falling back to offset", _col.timezone
+                )
+                if _col.offset:
+                    df[_col.col_label] += timedelta(hours=_col.offset)
+        elif _col.offset:
             df[_col.col_label] += timedelta(hours=_col.offset)
+
         if _col.time_shift is not None:
             df[_col.col_label] += parse_human_timedelta(_col.time_shift)
 

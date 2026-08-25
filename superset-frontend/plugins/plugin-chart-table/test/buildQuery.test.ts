@@ -332,6 +332,71 @@ describe('plugin-chart-table', () => {
       });
     });
 
+    describe('Totals Aggregation', () => {
+      const simpleMetric = {
+        expressionType: 'SIMPLE' as const,
+        column: { column_name: 'sales' },
+        aggregate: 'SUM' as const,
+        label: 'sum_sales',
+      };
+
+      test('defaults the totals query metric aggregate to SUM', () => {
+        const { queries } = buildQueryCached({
+          ...basicFormData,
+          query_mode: QueryMode.Aggregate,
+          metrics: [simpleMetric],
+          groupby: ['category'],
+          show_totals: true,
+        });
+
+        expect(queries).toHaveLength(2);
+        expect(queries[1].metrics).toEqual([
+          { ...simpleMetric, aggregate: 'SUM' },
+        ]);
+      });
+
+      test('overrides simple metric aggregate with totals_aggregate for the summary query only', () => {
+        const { queries } = buildQueryCached({
+          ...basicFormData,
+          query_mode: QueryMode.Aggregate,
+          metrics: [simpleMetric],
+          groupby: ['category'],
+          show_totals: true,
+          totals_aggregate: 'AVG',
+        });
+
+        expect(queries).toHaveLength(2);
+        // Main query keeps the metric's own aggregation.
+        expect(queries[0].metrics).toEqual([simpleMetric]);
+        // Summary query uses the chosen totals aggregate instead.
+        expect(queries[1].metrics).toEqual([
+          { ...simpleMetric, aggregate: 'AVG' },
+        ]);
+      });
+
+      test('leaves custom SQL and saved metrics untouched in the summary query', () => {
+        const sqlMetric = {
+          expressionType: 'SQL' as const,
+          sqlExpression: 'COUNT(DISTINCT user_id)',
+          label: 'unique_users',
+        };
+        const { queries } = buildQueryCached({
+          ...basicFormData,
+          query_mode: QueryMode.Aggregate,
+          metrics: [simpleMetric, sqlMetric, 'saved_metric'],
+          groupby: ['category'],
+          show_totals: true,
+          totals_aggregate: 'AVG',
+        });
+
+        expect(queries[1].metrics).toEqual([
+          { ...simpleMetric, aggregate: 'AVG' },
+          sqlMetric,
+          'saved_metric',
+        ]);
+      });
+    });
+
     describe('Testing for server pagination with search filter', () => {
       const baseFormDataWithServerPagination: TableChartFormData = {
         ...basicFormData,

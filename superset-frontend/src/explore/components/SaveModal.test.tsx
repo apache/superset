@@ -358,10 +358,17 @@ test('enables overwrite option for admin non-editor', () => {
   expect(getByRole('radio', { name: 'Save (Overwrite)' })).toBeEnabled();
 });
 
-test('enables overwrite option for owner when owners are objects', () => {
-  // The Slice type declares `owners` as `number[]`, but the explore
-  // bootstrap can deliver owners as `{ id: number }` objects at runtime.
-  // A chart owner must still be able to overwrite their own chart in that case.
+test('disables overwrite for an owner who is not an editor', () => {
+  // Ownership alone does not confer overwrite. UpdateChartCommand gates on
+  // raise_for_editorship, and is_editor resolves to admin or the user's
+  // subjects intersected with editors/extra_editors -- owners are not
+  // consulted -- so an owner who is not an editor is answered 403 by the API.
+  // The modal previously enabled Save (Overwrite) for them anyway and only
+  // surfaced the refusal after the request.
+  //
+  // editors is cleared explicitly: the shared fixture grants editorship to
+  // subject 1, which would satisfy the gate by a different route and leave
+  // this assertion passing whatever the owner handling did.
   const { getByRole } = setup(
     {},
     mockStore({
@@ -370,6 +377,26 @@ test('enables overwrite option for owner when owners are objects', () => {
         ...initialState.explore,
         slice: {
           ...initialState.explore.slice,
+          editors: [],
+          owners: [{ id: 1 }],
+        },
+      },
+      user: { userId: 1 },
+    }),
+  );
+  expect(getByRole('radio', { name: 'Save (Overwrite)' })).toBeDisabled();
+});
+
+test('enables overwrite for an owner who is also an editor', () => {
+  const { getByRole } = setup(
+    {},
+    mockStore({
+      ...initialState,
+      explore: {
+        ...initialState.explore,
+        slice: {
+          ...initialState.explore.slice,
+          editors: [{ id: 1 }],
           owners: [{ id: 1 }],
         },
       },

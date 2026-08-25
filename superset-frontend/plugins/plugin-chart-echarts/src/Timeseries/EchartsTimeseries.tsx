@@ -21,12 +21,17 @@ import {
   DTTM_ALIAS,
   BinaryQueryObjectFilterClause,
   AxisType,
+  type TimeGranularity,
   getTimeFormatter,
   getColumnLabel,
   getNumberFormatter,
   LegendState,
   ensureIsArray,
+  createTimeRangeFromGranularity,
 } from '@superset-ui/core';
+import { useTheme } from '@apache-superset/core/theme';
+import { GenericDataType } from '@apache-superset/core/common';
+import { logging } from '@apache-superset/core/utils';
 import type {
   ECElementEvent,
   ViewRootGroup,
@@ -35,11 +40,46 @@ import type GlobalModel from 'echarts/types/src/model/Global';
 import type ComponentModel from 'echarts/types/src/model/Component';
 import { EchartsHandler, EventHandlers } from '../types';
 import Echart from '../components/Echart';
+import {
+  rebaseSeriesData,
+  snapToNearestX,
+  SeriesDataPoint,
+} from './percentChange';
 import { OrientationType, TimeseriesChartTransformedProps } from './types';
 import { formatSeriesName } from '../utils/series';
+import { getTemporalXAxisDrillByFilter } from '../utils/xAxisDrillByFilter';
 import { ExtraControls } from '../components/ExtraControls';
 
 const TIMER_DURATION = 300;
+const getTimestampFromTimeAxisValue = (value: string | number) => {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : undefined;
+  }
+  const timestamp = Date.parse(value);
+  if (Number.isNaN(timestamp)) {
+    logging.warn('Unable to parse time axis value for cross-filtering', value);
+  }
+  return Number.isNaN(timestamp) ? undefined : timestamp;
+};
+
+// Day, month, and year ranges end at 23:59:59.999, so adding 1ms lands on a
+// whole-second next bucket boundary. The formatter intentionally emits seconds.
+const formatDateTime = (date: Date) =>
+  `${[
+    date.getUTCFullYear(),
+    String(date.getUTCMonth() + 1).padStart(2, '0'),
+    String(date.getUTCDate()).padStart(2, '0'),
+  ].join('-')}T${[
+    String(date.getUTCHours()).padStart(2, '0'),
+    String(date.getUTCMinutes()).padStart(2, '0'),
+    String(date.getUTCSeconds()).padStart(2, '0'),
+  ].join(':')}`;
+
+// Percent-change draggable baseline handle geometry, in pixels.
+const BASELINE_HANDLE_WIDTH = 8;
+const BASELINE_HANDLE_HALF_WIDTH = BASELINE_HANDLE_WIDTH / 2;
+const BASELINE_HANDLE_STRIPE_X = 3;
+const BASELINE_HANDLE_STRIPE_WIDTH = 2;
 
 export default function EchartsTimeseries({
   formData,
@@ -57,16 +97,169 @@ export default function EchartsTimeseries({
   onFocusedSeries,
   xValueFormatter,
   xAxis,
+  resolvedTimeGrain,
   refs,
   emitCrossFilters,
   coltypeMapping,
   onLegendScroll,
 }: TimeseriesChartTransformedProps) {
   const { stack } = formData;
+  const theme = useTheme();
   const echartRef = useRef<EchartsHandler | null>(null);
   // eslint-disable-next-line no-param-reassign
   refs.echartRef = echartRef;
   const clickTimer = useRef<ReturnType<typeof setTimeout>>();
+
+  // Draggable percent-change baseline: when the rebase view is active, a
+  // vertical line is drawn on the plot; dragging it re-indexes every series
+  // to the hovered point via the composable rebase, entirely client-side.
+  const rebaseEnabled = Boolean(
+    (formData as { rebasePercentChange?: boolean }).rebasePercentChange,
+  );
+  // Persists the dragged baseline across effect reruns (e.g. resizes or
+  // other option changes) so those don't silently snap it back to the
+  // first point.
+  const baselineXRef = useRef<number | string | null>(null);
+  useEffect(() => {
+    if (!rebaseEnabled) return undefined;
+    const chart = echartRef.current?.getEchartInstance?.();
+    if (!chart) return undefined;
+
+    // Read series data from the echartOptions prop (the source of truth
+    // this effect already depends on) rather than chart.getOption(), which
+    // reflects the live instance's internal state and can still be empty
+    // for a tick after mount or a warm navigation -- reading the prop
+    // removes that race entirely instead of retrying past it.
+    const { series } = echartOptions as { series?: { data?: unknown[] }[] };
+    const baseSeries = (series ?? []).map(s =>
+      Array.isArray(s.data)
+        ? (s.data.filter(Array.isArray) as SeriesDataPoint[])
+        : [],
+    );
+    // Preserve the axis' native x type: numeric for time/value axes,
+    // string for category axes (coercing categories with Number() would
+    // turn them into NaN and break snapping/positioning below).
+    const xs = Array.from(new Set(baseSeries.flat().map(([x]) => x)));
+    if (xs.length === 0) return undefined;
+    if (typeof xs[0] === 'number') {
+      (xs as number[]).sort((a, b) => a - b);
+    }
+    let baselineX =
+      baselineXRef.current !== null && xs.includes(baselineXRef.current)
+        ? baselineXRef.current
+        : xs[0];
+    baselineXRef.current = baselineX;
+    // Coalesces drag updates to at most one setOption per animation
+    // frame; rebasing every series on every raw pointer-move event
+    // can stutter on large charts.
+    let dragFrame: ReturnType<typeof requestAnimationFrame> | null = null;
+
+    const applyBaseline = (newX: number | string) => {
+      baselineX = newX;
+      baselineXRef.current = newX;
+      chart.setOption({
+        series: baseSeries.map(data => ({
+          data: rebaseSeriesData(data, newX),
+        })),
+      });
+    };
+
+    const drawHandle = () => {
+      // Cap the handle to the plot area so it doesn't run through the
+      // legend above or the axis labels below.
+      let gridRect = { top: 0, height: chart.getHeight() };
+      try {
+        const rect = (
+          chart as unknown as {
+            getModel: () => {
+              getComponent: (
+                type: string,
+                index: number,
+              ) => {
+                coordinateSystem: {
+                  getRect: () => { y: number; height: number };
+                };
+              };
+            };
+          }
+        )
+          .getModel()
+          .getComponent('grid', 0)
+          .coordinateSystem.getRect();
+        gridRect = { top: rect.y, height: rect.height };
+      } catch {
+        // fall back to the full chart height
+      }
+      let px: number;
+      try {
+        [px] = [chart.convertToPixel({ xAxisIndex: 0 }, baselineX) as number];
+      } catch {
+        return;
+      }
+      chart.setOption({
+        graphic: [
+          {
+            id: 'percent-change-baseline',
+            // only group elements support children in the graphic API
+            type: 'group',
+            x: px - BASELINE_HANDLE_HALF_WIDTH,
+            y: gridRect.top,
+            cursor: 'ew-resize',
+            draggable: true,
+            z: 100,
+            ondrag(this: { x: number; y: number }) {
+              this.y = gridRect.top;
+              const dataX = chart.convertFromPixel(
+                { xAxisIndex: 0 },
+                this.x + BASELINE_HANDLE_HALF_WIDTH,
+              ) as number | string;
+              if (dragFrame !== null) return;
+              dragFrame = requestAnimationFrame(() => {
+                dragFrame = null;
+                const snapped = snapToNearestX(xs, dataX);
+                if (snapped !== undefined && snapped !== baselineX) {
+                  applyBaseline(snapped);
+                }
+              });
+            },
+            ondragend: () => drawHandle(),
+            children: [
+              {
+                type: 'rect',
+                shape: {
+                  x: 0,
+                  y: 0,
+                  width: BASELINE_HANDLE_WIDTH,
+                  height: gridRect.height,
+                },
+                style: { fill: theme.colorFillSecondary },
+              },
+              {
+                type: 'rect',
+                shape: {
+                  x: BASELINE_HANDLE_STRIPE_X,
+                  y: 0,
+                  width: BASELINE_HANDLE_STRIPE_WIDTH,
+                  height: gridRect.height,
+                },
+                style: { fill: theme.colorTextSecondary },
+              },
+            ],
+          },
+        ],
+      });
+    };
+    drawHandle();
+
+    return () => {
+      if (dragFrame !== null) {
+        cancelAnimationFrame(dragFrame);
+      }
+      chart.setOption({
+        graphic: [{ id: 'percent-change-baseline', $action: 'remove' }],
+      });
+    };
+  }, [rebaseEnabled, echartOptions, width, height, theme]);
   const extraControlRef = useRef<HTMLDivElement>(null);
   const [extraControlHeight, setExtraControlHeight] = useState(0);
   useEffect(() => {
@@ -197,6 +390,65 @@ export default function EchartsTimeseries({
     [selectedValues, xAxis.label],
   );
 
+  const getTimeAxisCrossFilterDataMask = useCallback(
+    (clickedTimestamp: number) => {
+      const filterColumn =
+        xAxis.label === DTTM_ALIAS ? formData.granularitySqla : xAxis.label;
+      const grain = resolvedTimeGrain as TimeGranularity | undefined;
+
+      if (!filterColumn || !grain) {
+        return {
+          dataMask: {
+            extraFormData: {
+              filters: [],
+            },
+            filterState: {
+              label: undefined,
+              value: null,
+              selectedValues: null,
+            },
+          },
+          isCurrentValueSelected: false,
+        };
+      }
+
+      const [start, inclusiveEnd] = createTimeRangeFromGranularity(
+        new Date(clickedTimestamp),
+        grain,
+        false,
+      );
+      const exclusiveEnd = new Date(inclusiveEnd.getTime() + 1);
+      const timeRange = `${formatDateTime(start)} : ${formatDateTime(exclusiveEnd)}`;
+      const selected: string[] = Object.values(selectedValues);
+      const isCurrentValueSelected = selected.includes(timeRange);
+      const values = isCurrentValueSelected ? [] : [timeRange];
+
+      return {
+        dataMask: {
+          extraFormData: {
+            filters:
+              values.length === 0
+                ? []
+                : [
+                    {
+                      col: filterColumn,
+                      op: 'TEMPORAL_RANGE' as const,
+                      val: timeRange,
+                    },
+                  ],
+          },
+          filterState: {
+            label: values.length ? values : undefined,
+            value: values.length ? values : null,
+            selectedValues: values.length ? values : null,
+          },
+        },
+        isCurrentValueSelected,
+      };
+    },
+    [formData.granularitySqla, resolvedTimeGrain, selectedValues, xAxis.label],
+  );
+
   const handleChange = useCallback(
     (value: string) => {
       if (!emitCrossFilters) {
@@ -218,15 +470,26 @@ export default function EchartsTimeseries({
     [emitCrossFilters, setDataMask, getXAxisCrossFilterDataMask],
   );
 
+  const handleTimeAxisChange = useCallback(
+    (clickedTimestamp: number) => {
+      if (!emitCrossFilters) {
+        return;
+      }
+      setDataMask(getTimeAxisCrossFilterDataMask(clickedTimestamp).dataMask);
+    },
+    [emitCrossFilters, setDataMask, getTimeAxisCrossFilterDataMask],
+  );
+
   // Determine if X-axis can be used for cross-filtering (categorical axis without dimensions)
   const canCrossFilterByXAxis =
-    !hasDimensions && xAxis.type === AxisType.Category;
-  const categoryAxisValueIndex =
+    !hasDimensions &&
+    (xAxis.type === AxisType.Category || xAxis.type === AxisType.Time);
+  const xAxisValueIndex =
     formData.orientation === OrientationType.Horizontal ? 1 : 0;
-  const getCategoryAxisValue = useCallback(
+  const getXAxisValue = useCallback(
     (data: unknown, name: unknown) => {
       if (Array.isArray(data)) {
-        const categoryAxisValue = data[categoryAxisValueIndex];
+        const categoryAxisValue = data[xAxisValueIndex];
         if (
           typeof categoryAxisValue === 'string' ||
           typeof categoryAxisValue === 'number'
@@ -239,7 +502,7 @@ export default function EchartsTimeseries({
       }
       return undefined;
     },
-    [categoryAxisValueIndex],
+    [xAxisValueIndex],
   );
 
   const eventHandlers: EventHandlers = {
@@ -257,14 +520,27 @@ export default function EchartsTimeseries({
           // Cross-filter by dimension (original behavior)
           const { seriesName: name } = props;
           handleChange(name);
-        } else if (canCrossFilterByXAxis && props.componentType === 'series') {
+        } else if (
+          canCrossFilterByXAxis &&
+          xAxis.type === AxisType.Category &&
+          props.componentType === 'series'
+        ) {
           // Cross-filter by X-axis value when no dimensions (issue #25334)
-          const categoryAxisValue = getCategoryAxisValue(
-            props.data,
-            props.name,
-          );
+          const categoryAxisValue = getXAxisValue(props.data, props.name);
           if (categoryAxisValue !== undefined) {
             handleXAxisChange(categoryAxisValue);
+          }
+        } else if (
+          canCrossFilterByXAxis &&
+          xAxis.type === AxisType.Time &&
+          props.componentType === 'series'
+        ) {
+          const timeAxisValue = getXAxisValue(props.data, props.name);
+          if (timeAxisValue !== undefined) {
+            const timestamp = getTimestampFromTimeAxisValue(timeAxisValue);
+            if (timestamp !== undefined) {
+              handleTimeAxisChange(timestamp);
+            }
           }
         }
       }, TIMER_DURATION);
@@ -300,17 +576,20 @@ export default function EchartsTimeseries({
         ];
         const groupBy = ensureIsArray(formData.groupby);
         if (data && xAxis.type === AxisType.Time) {
-          drillToDetailFilters.push({
-            col:
-              // if the xAxis is '__timestamp', granularity_sqla will be the column of filter
-              xAxis.label === DTTM_ALIAS
-                ? formData.granularitySqla
-                : xAxis.label,
-            grain: formData.timeGrainSqla,
-            op: '==',
-            val: data[0],
-            formattedVal: xValueFormatter(data[0]),
-          });
+          const timeAxisValue = getXAxisValue(data, eventParams.name);
+          if (timeAxisValue !== undefined) {
+            drillToDetailFilters.push({
+              col:
+                // if the xAxis is '__timestamp', granularity_sqla will be the column of filter
+                xAxis.label === DTTM_ALIAS
+                  ? formData.granularitySqla
+                  : xAxis.label,
+              grain: resolvedTimeGrain,
+              op: '==',
+              val: timeAxisValue,
+              formattedVal: xValueFormatter(timeAxisValue),
+            });
+          }
         }
         [
           ...(xAxis.type === AxisType.Category && data ? [xAxis.label] : []),
@@ -343,26 +622,84 @@ export default function EchartsTimeseries({
           });
         });
 
+        // Filters for the clicked x-axis value, so Drill By can subset the
+        // drilled data to the clicked bar/point rather than only the series
+        const xAxisFilters: BinaryQueryObjectFilterClause[] = [];
+        const xAxisCol =
+          // if the xAxis is '__timestamp', granularity_sqla will be the column of filter
+          xAxis.label === DTTM_ALIAS ? formData.granularitySqla : xAxis.label;
+        if (data && xAxis.type === AxisType.Time && xAxisCol) {
+          // For horizontal orientation the [x, value] pair is swapped
+          const xValue = Array.isArray(data) ? data[xAxisValueIndex] : data;
+          const xAxisFilter = getTemporalXAxisDrillByFilter(
+            xAxisCol,
+            xValue,
+            formData.timeGrainSqla,
+            String(xValueFormatter(xValue as number)),
+          );
+          if (xAxisFilter) {
+            xAxisFilters.push(xAxisFilter);
+          }
+        } else if (xAxis.type === AxisType.Category && xAxisCol) {
+          const categoryAxisValue = getXAxisValue(data, eventParams.name);
+          if (categoryAxisValue !== undefined) {
+            // A category axis can still sit on a temporal column when the
+            // axis is forced categorical; filter by time bucket in that case
+            const xAxisFilter =
+              coltypeMapping?.[getColumnLabel(xAxis.label)] ===
+              GenericDataType.Temporal
+                ? getTemporalXAxisDrillByFilter(
+                    xAxisCol,
+                    categoryAxisValue,
+                    formData.timeGrainSqla,
+                    String(eventParams.name ?? categoryAxisValue),
+                  )
+                : {
+                    col: xAxisCol,
+                    op: '==' as const,
+                    val: categoryAxisValue,
+                    formattedVal: String(categoryAxisValue),
+                  };
+            if (xAxisFilter) {
+              xAxisFilters.push(xAxisFilter);
+            }
+          }
+        }
+
         // Provide cross-filter for dimensions OR categorical X-axis (issue #25334)
         let crossFilter;
         if (hasDimensions) {
           crossFilter = getCrossFilterDataMask(seriesName);
         } else if (
           canCrossFilterByXAxis &&
+          xAxis.type === AxisType.Category &&
           eventParams.componentType === 'series'
         ) {
-          const categoryAxisValue = getCategoryAxisValue(
-            data,
-            eventParams.name,
-          );
+          const categoryAxisValue = getXAxisValue(data, eventParams.name);
           if (categoryAxisValue !== undefined) {
             crossFilter = getXAxisCrossFilterDataMask(categoryAxisValue);
+          }
+        } else if (
+          canCrossFilterByXAxis &&
+          xAxis.type === AxisType.Time &&
+          eventParams.componentType === 'series'
+        ) {
+          const timeAxisValue = getXAxisValue(data, eventParams.name);
+          if (timeAxisValue !== undefined) {
+            const timestamp = getTimestampFromTimeAxisValue(timeAxisValue);
+            if (timestamp !== undefined) {
+              crossFilter = getTimeAxisCrossFilterDataMask(timestamp);
+            }
           }
         }
 
         onContextMenu(pointerEvent.clientX, pointerEvent.clientY, {
           drillToDetail: drillToDetailFilters,
-          drillBy: { filters: drillByFilters, groupbyFieldName: 'groupby' },
+          drillBy: {
+            filters: drillByFilters,
+            groupbyFieldName: 'groupby',
+            ...(xAxisFilters.length > 0 && { xAxisFilters }),
+          },
           crossFilter,
         });
       }
@@ -374,26 +711,39 @@ export default function EchartsTimeseries({
       const { value } = event;
       if (
         canCrossFilterByXAxis &&
+        event.targetType === 'axisLabel' &&
         (typeof value === 'string' || typeof value === 'number')
       ) {
-        handleXAxisChange(value);
+        if (xAxis.type === AxisType.Time) {
+          const timestamp = getTimestampFromTimeAxisValue(value);
+          if (timestamp !== undefined) {
+            handleTimeAxisChange(timestamp);
+          }
+        } else {
+          handleXAxisChange(value);
+        }
       }
     },
-    [canCrossFilterByXAxis, handleXAxisChange],
+    [
+      canCrossFilterByXAxis,
+      handleTimeAxisChange,
+      handleXAxisChange,
+      xAxis.type,
+    ],
   );
 
-  const categoryAxis =
+  const renderedXAxis =
     formData.orientation === OrientationType.Horizontal ? 'yAxis' : 'xAxis';
 
   const queryEventHandlers = useMemo(
     () => [
       {
         name: 'click',
-        query: `${categoryAxis}.category`,
+        query: renderedXAxis,
         handler: handleXAxisLabelClick,
       },
     ],
-    [categoryAxis, handleXAxisLabelClick],
+    [renderedXAxis, handleXAxisLabelClick],
   );
 
   const zrEventHandlers: EventHandlers = {

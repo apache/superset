@@ -122,6 +122,57 @@ def test_get_dataset_include_rendered_sql_passes_table_to_template_processor(
     mock_get_processor.assert_called_once_with(database=database, table=dataset)
 
 
+def test_get_dataset_include_rendered_sql_handles_undefined_error(
+    session: Session,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    Dataset API: Test that include_rendered_sql returns a typed 422 instead
+    of an unhandled 500 when the template processor raises a raw
+    ``jinja2.exceptions.UndefinedError``.
+
+    Regression test for the bug where an undefined variable accessed via
+    attribute/subscript (e.g. ``{{ foo.bar }}``) raises ``UndefinedError``
+    from ``process_template``, which is not a subclass of
+    ``TemplateSyntaxError`` and so escaped ``render_dataset_fields``'s
+    exception handling unhandled.
+    """
+    from jinja2.exceptions import UndefinedError
+
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.models.core import Database
+
+    SqlaTable.metadata.create_all(db.session.get_bind())
+
+    database = Database(
+        database_name="my_db",
+        sqlalchemy_uri="sqlite://",
+    )
+    dataset = SqlaTable(
+        table_name="test_render_sql_undefined_table",
+        schema="my_schema",
+        database=database,
+        sql="SELECT 1",
+    )
+    db.session.add(dataset)
+    db.session.flush()
+
+    mock_processor = MagicMock()
+    mock_processor.process_template.side_effect = UndefinedError("'foo' is undefined")
+
+    with patch(
+        "superset.datasets.api.get_template_processor",
+        return_value=mock_processor,
+    ):
+        response = client.get(
+            f"/api/v1/dataset/{dataset.id}?include_rendered_sql=true",
+        )
+
+    assert response.status_code == 422
+    assert "Unable to render expression from dataset" in response.json["message"]
+
+
 def test_handle_filters_args_returns_request_scoped_filters(
     session: Session,
     client: Any,

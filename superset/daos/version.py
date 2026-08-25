@@ -31,6 +31,7 @@ from __future__ import annotations
 from superset.versioning.queries import (
     current_live_transaction_id,
     current_live_version_uuid,
+    current_version_info,
     current_version_number,
     derive_version_uuid,
     derive_version_uuid as _derive_version_uuid,  # noqa: F401
@@ -62,7 +63,9 @@ class VersionDAO:
 
     # --- read side (queries.py) -------------------------------------------
     find_active_by_uuid = staticmethod(find_active_by_uuid)
+    derive_version_uuid = staticmethod(derive_version_uuid)
     current_version_number = staticmethod(current_version_number)
+    current_version_info = staticmethod(current_version_info)
     current_live_transaction_id = staticmethod(current_live_transaction_id)
     current_live_version_uuid = staticmethod(current_live_version_uuid)
     list_change_records_batch = staticmethod(list_change_records_batch)

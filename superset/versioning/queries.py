@@ -40,7 +40,10 @@ from flask_appbuilder import Model
 from sqlalchemy_continuum import version_class
 
 from superset.extensions import db
-from superset.versioning.baseline import CONTINUUM_BOOKKEEPING_COLUMNS
+from superset.versioning.baseline import (
+    CONTINUUM_BOOKKEEPING_COLUMNS,
+    OPERATION_DELETE,
+)
 from superset.versioning.db_errors import is_missing_table_error
 
 logger = logging.getLogger(__name__)
@@ -168,19 +171,41 @@ def find_active_by_uuid(model_cls: type[Model], entity_uuid: UUID) -> Any | None
     )
 
 
-def _get_version_count(model_cls: type[Model], entity_id: int) -> int:
-    """Return the number of historical version rows for *entity_id*."""
+def identity_filter(columns: Any, entity_id: int, entity_uuid: UUID) -> Any:
+    """Build an ``(id, uuid)`` predicate for ORM or Core version columns."""
+    return sa.and_(columns.id == entity_id, columns.uuid == entity_uuid)
+
+
+def current_version_info(
+    model_cls: type[Model], entity_id: int, entity_uuid: UUID
+) -> tuple[int | None, int | None]:
+    """Return the version number and live transaction from one query."""
     ver_cls = version_class(model_cls)
-    return (
-        db.session.query(sa.func.count())
-        .select_from(ver_cls)
-        .filter(ver_cls.id == entity_id)
-        .scalar()
-        or 0
+    count, transaction_id = (
+        db.session.query(
+            sa.func.count(),
+            sa.func.max(
+                sa.case(
+                    (
+                        sa.and_(
+                            ver_cls.end_transaction_id.is_(None),
+                            ver_cls.operation_type != OPERATION_DELETE,
+                        ),
+                        ver_cls.transaction_id,
+                    )
+                )
+            ),
+        )
+        .filter(identity_filter(ver_cls, entity_id, entity_uuid))
+        .one()
     )
+    version_number = count - 1 if count > 0 else None
+    return version_number, transaction_id
 
 
-def current_version_number(model_cls: type[Model], entity_id: int) -> int | None:
+def current_version_number(
+    model_cls: type[Model], entity_id: int, entity_uuid: UUID
+) -> int | None:
     """Return the 0-based ``version_number`` of the live row for *entity_id*
     — equivalent to the index of the most recent entry that
     :func:`list_versions` would return, or ``None`` when the entity has no
@@ -193,25 +218,23 @@ def current_version_number(model_cls: type[Model], entity_id: int) -> int | None
     can refer to different rows before and after a prune cycle. Use
     :func:`current_live_transaction_id` for a stable identifier.
     """
-    count = _get_version_count(model_cls, entity_id)
-    return count - 1 if count > 0 else None
+    version_number, _transaction_id = current_version_info(
+        model_cls, entity_id, entity_uuid
+    )
+    return version_number
 
 
-def current_live_transaction_id(model_cls: type[Model], entity_id: int) -> int | None:
+def current_live_transaction_id(
+    model_cls: type[Model], entity_id: int, entity_uuid: UUID
+) -> int | None:
     """Return the Continuum ``transaction_id`` of the live row for
     *entity_id* — stable across retention pruning, unlike the index
     returned by :func:`current_version_number`.
     """
-    ver_cls = version_class(model_cls)
-    row = (
-        db.session.query(ver_cls.transaction_id)
-        .filter(ver_cls.id == entity_id)
-        .filter(ver_cls.end_transaction_id.is_(None))
-        .order_by(ver_cls.transaction_id.desc())
-        .limit(1)
-        .first()
+    _version_number, transaction_id = current_version_info(
+        model_cls, entity_id, entity_uuid
     )
-    return row[0] if row else None
+    return transaction_id
 
 
 def current_live_version_uuid(
@@ -219,7 +242,7 @@ def current_live_version_uuid(
 ) -> UUID | None:
     """Return the deterministic ``version_uuid`` of the live row, or
     ``None`` when the entity has no version rows yet."""
-    tx_id = current_live_transaction_id(model_cls, entity_id)
+    tx_id = current_live_transaction_id(model_cls, entity_id, entity_uuid)
     if tx_id is None:
         return None
     return derive_version_uuid(entity_uuid, tx_id)
@@ -352,7 +375,7 @@ def list_versions(
             *_user_select_cols(user_tbl),
         )
         .select_from(_version_with_tx_user_join(ver_tbl, tx_tbl, user_tbl))
-        .where(ver_tbl.c.id == entity.id)
+        .where(identity_filter(ver_tbl.c, entity.id, entity_uuid))
         .order_by(*_baseline_first_ordering(ver_tbl))
     )
     rows = db.session.execute(stmt).mappings().all()
@@ -423,7 +446,7 @@ def resolve_version(
     ver_cls = version_class(model_cls)
     tx_ids = (
         db.session.query(ver_cls.transaction_id)
-        .filter(ver_cls.id == entity.id)
+        .filter(identity_filter(ver_cls, entity.id, entity_uuid))
         .order_by(
             (ver_cls.operation_type != 0).asc(),
             ver_cls.transaction_id.asc(),
@@ -498,7 +521,12 @@ def get_version(
             *_user_select_cols(user_tbl),
         )
         .select_from(_version_with_tx_user_join(ver_tbl, tx_tbl, user_tbl))
-        .where(ver_tbl.c.id == entity.id)
+        # Must pin identically to the count ``resolve_version_uuid`` derived
+        # ``version_num`` from: an offset counted over one row set and applied
+        # to a wider one addresses the wrong row. Pinned there but not here,
+        # a recycled id would surface a predecessor's snapshot under the
+        # successor's version uuid.
+        .where(identity_filter(ver_tbl.c, entity.id, entity_uuid))
         .order_by(*_baseline_first_ordering(ver_tbl))
         .offset(version_num)
         .limit(1)

@@ -135,7 +135,11 @@ def restore_version(
     target_version = (
         db.session.query(ver_cls)
         .filter(
+            # Pin to (id, uuid): a hard delete frees the integer id, so
+            # matching on it alone can resolve a *predecessor's* version row
+            # and restore its content over the current entity.
             ver_cls.id == entity.id,
+            ver_cls.uuid == entity.uuid,
             ver_cls.transaction_id == transaction_id,
         )
         .one_or_none()

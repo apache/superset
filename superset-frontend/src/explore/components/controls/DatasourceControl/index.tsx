@@ -85,7 +85,12 @@ interface User {
 
 interface DatasourceControlActions {
   changeDatasource: (datasource: ExtendedDatasource) => void;
-  setControlValue: (name: string, value: unknown) => void;
+  setControlValue: (
+    name: string,
+    value: unknown,
+    validationErrors?: unknown[],
+    options?: { programmatic?: boolean },
+  ) => void;
 }
 
 interface FormData {
@@ -262,7 +267,15 @@ export default function DatasourceControl({
         const temporalColumn = isDefaultTemporal
           ? defaultTemporalColumn
           : temporalColumns?.[0];
-        actions.setControlValue('granularity_sqla', temporalColumn || null);
+        actions.setControlValue(
+          'granularity_sqla',
+          temporalColumn || null,
+          undefined,
+          {
+            // Derived alongside the datasource change, not a gesture of its own.
+            programmatic: true,
+          },
+        );
       }
 
       if (onDatasourceSave) {

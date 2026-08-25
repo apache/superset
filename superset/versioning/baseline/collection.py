@@ -124,7 +124,7 @@ def version_table_for(obj: Any) -> Any:
 
 
 def shadow_row_count(session: Session, obj: Any, version_table: Any) -> int | None:
-    """Return number of shadow rows for *obj.id* in *version_table*, or
+    """Return the number of shadow rows for *obj* in *version_table*, or
     ``None`` when the version table is missing (migration not yet applied)
     or the count query raised unexpectedly.
     """
@@ -139,7 +139,10 @@ def shadow_row_count(session: Session, obj: Any, version_table: Any) -> int | No
                 .execute(
                     sa.select(sa.func.count())
                     .select_from(version_table)
-                    .where(version_table.c.id == obj.id)
+                    .where(
+                        version_table.c.id == obj.id,
+                        version_table.c.uuid == obj.uuid,
+                    )
                 )
                 .scalar()
             )

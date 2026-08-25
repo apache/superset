@@ -46,8 +46,8 @@ user_id_description = "ID of the user context for task execution"
 payload_description = "Task-specific data in JSON format"
 properties_description = (
     "Runtime state and execution config. Contains: is_abortable, progress_percent, "
-    "progress_current, progress_total, error_message, exception_type, stack_trace, "
-    "timeout"
+    "progress_current, progress_total, error_message, timeout. Also includes "
+    "exception_type and stack_trace, but only when SHOW_STACKTRACE is enabled"
 )
 duration_seconds_description = (
     "Duration in seconds - for finished tasks: execution time, "
@@ -123,14 +123,20 @@ class TaskResponseSchema(Schema):
         return obj.payload_dict  # type: ignore[attr-defined]
 
     def get_properties(self, obj: object) -> dict[str, object]:
-        """Get properties dict, filtering stack_trace if SHOW_STACKTRACE is disabled."""
+        """Get properties dict, filtering debug fields unless SHOW_STACKTRACE."""
         from flask import current_app
 
         properties = dict(obj.properties_dict)  # type: ignore[attr-defined]
 
-        # Remove stack_trace unless SHOW_STACKTRACE is enabled
-        if not current_app.config.get("SHOW_STACKTRACE", False):
+        # Remove internal debugging details unless SHOW_STACKTRACE is enabled.
+        # The full traceback and the raw exception class name disclose internal
+        # file paths, library versions, and architecture details (CWE-209), so
+        # they are gated behind the same flag that controls stack traces
+        # elsewhere in Superset. ``error_message`` is left in place as the
+        # consumer-facing failure reason.
+        if not current_app.config["SHOW_STACKTRACE"]:
             properties.pop("stack_trace", None)
+            properties.pop("exception_type", None)
 
         return properties
 

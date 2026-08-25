@@ -721,6 +721,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     validator_config_json: {},
     validator_type: '',
     force_screenshot: false,
+    include_cta: true,
     grace_period: undefined,
     retry_on_failure: false,
     retry_max_attempts: 3,
@@ -963,6 +964,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       ...currentAlert,
       type: isReport ? 'Report' : 'Alert',
       force_screenshot: shouldEnableForceScreenshot || forceScreenshot,
+      include_cta: currentAlert?.include_cta ?? true,
       validator_type: conditionNotNull ? 'not null' : 'operator',
       validator_config_json: conditionNotNull
         ? {}
@@ -2611,6 +2613,22 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                       </Checkbox>
                     </div>
                   )}
+                  <div className="inline-container">
+                    <Checkbox
+                      data-test="include-cta"
+                      checked={currentAlert?.include_cta !== false}
+                      onChange={(e: CheckboxChangeEvent) =>
+                        updateAlertState('include_cta', e.target.checked)
+                      }
+                    >
+                      {t('Include a link back to Superset')}
+                    </Checkbox>
+                    <InfoTooltip
+                      tooltip={t(
+                        'When unchecked, the "Explore in Superset" link is omitted from the delivered notifications.',
+                      )}
+                    />
+                  </div>
                 </>
               ),
             },

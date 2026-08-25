@@ -350,6 +350,51 @@ test('getLayer coerces free-form string radius values to numbers', () => {
   expect(props.pointRadiusScale).toBe(0.25);
 });
 
+// Regression for https://github.com/apache/superset/issues/34748: pins the
+// consumer/render boundary (recurseGeoJson feeding GeoJsonLayer's `data`),
+// complementing the transformProps.test.ts coverage of the query->feature step.
+test('getLayer forwards every feature from transformProps output to GeoJsonLayer', () => {
+  const multiRowPayload = {
+    data: {
+      type: 'FeatureCollection',
+      features: [
+        {
+          type: 'Feature',
+          geometry: { type: 'Point', coordinates: [2.92, 47.38] },
+          properties: {},
+        },
+        {
+          type: 'Feature',
+          geometry: { type: 'Point', coordinates: [2.93, 47.39] },
+          properties: {},
+        },
+        {
+          type: 'Feature',
+          geometry: { type: 'Point', coordinates: [2.94, 47.4] },
+          properties: {},
+        },
+      ],
+    },
+  };
+
+  const layer = getLayer({
+    ...baseLayerArgs,
+    formData: baseFormData,
+    payload: multiRowPayload,
+  });
+
+  expect(layer.props.data).toHaveLength(3);
+  expect(
+    (layer.props.data as Array<{ geometry: { coordinates: number[] } }>).map(
+      f => f.geometry.coordinates,
+    ),
+  ).toEqual([
+    [2.92, 47.38],
+    [2.93, 47.39],
+    [2.94, 47.4],
+  ]);
+});
+
 type ControlConfig = {
   default?: unknown;
   validators?: unknown[];

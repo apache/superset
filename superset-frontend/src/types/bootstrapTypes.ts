@@ -168,6 +168,7 @@ export interface CommonBootstrapData {
   language_pack: LanguagePack;
   extra_categorical_color_schemes: ColorSchemeConfig[];
   extra_sequential_color_schemes: SequentialSchemeConfig[];
+  extra_theme_tokens: string[];
   theme: BootstrapThemeDataConfig;
   menu_data: MenuData;
   d3_format: Partial<FormatLocaleDefinition>;
