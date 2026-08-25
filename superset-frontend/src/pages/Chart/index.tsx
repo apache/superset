@@ -56,6 +56,11 @@ const isValidResult = (rv: JsonObject): boolean =>
 const hasDatasetId = (rv: JsonObject): boolean =>
   isDefined(rv?.result?.dataset?.id);
 
+const EXPLORE_ROUTE_PREFIX = '/explore/';
+
+const isExploreRoute = (pathname: string): boolean =>
+  pathname.startsWith(EXPLORE_ROUTE_PREFIX);
+
 const fetchExploreData = async (
   exploreUrlParams: URLSearchParams,
   signal?: AbortSignal,
@@ -312,6 +317,8 @@ export default function ExplorePage() {
   // Other REPLACE: ignored (URL sync from updateHistory).
   // Entries holding a chart state of the loaded chart are skipped: Explore
   // pushed them itself, and ExploreViewContainer restores a popped one in place.
+  // Navigations that leave Explore must not trigger a re-fetch while the page
+  // is unmounting, as the destination's URL params are not chart params.
   useEffect(() => {
     const unlisten = history.listen((loc: Location, action: Action) => {
       const saveAction = (loc.state as Record<string, unknown>)?.saveAction as
@@ -325,6 +332,9 @@ export default function ExplorePage() {
         if (action === 'POP' && isSameChartState(chartState, restoreTarget)) {
           return;
         }
+      }
+      if (!isExploreRoute(loc.pathname)) {
+        return;
       }
       if (action === 'PUSH' || action === 'POP') {
         setIsLoaded(false);

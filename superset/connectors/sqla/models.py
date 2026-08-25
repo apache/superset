@@ -99,6 +99,7 @@ from superset.models.helpers import (
     AuditMixinNullable,
     CertificationMixin,
     ExploreMixin,
+    get_effective_hours_offset,
     ImportExportMixin,
     QueryResult,
     SoftDeleteMixin,
@@ -1247,6 +1248,8 @@ class TableColumn(AuditMixinNullable, ImportExportMixin, CertificationMixin, Mod
         time_grain: str | None,
         label: str | None = None,
         template_processor: BaseTemplateProcessor | None = None,
+        apply_dataset_offset: bool = False,
+        sql_shifted_temporal_labels: set[str] | None = None,
     ) -> TimestampExpression | Label:
         """
         Return a SQLAlchemy Core element representation of self to be used in a query.
@@ -1254,6 +1257,8 @@ class TableColumn(AuditMixinNullable, ImportExportMixin, CertificationMixin, Mod
         :param time_grain: Optional time grain, e.g. P1Y
         :param label: alias/label that column is expected to have
         :param template_processor: template processor
+        :param apply_dataset_offset: shift the selected axis before truncation
+        :param sql_shifted_temporal_labels: labels shifted before truncation
         :return: A TimeExpression object wrapped in a Label if supported by db
         """
         label = label or utils.DTTM_ALIAS
@@ -1291,6 +1296,27 @@ class TableColumn(AuditMixinNullable, ImportExportMixin, CertificationMixin, Mod
             col = literal_column(expression, type_=type_)
         else:
             col = column(self.column_name, type_=type_)
+        if (
+            apply_dataset_offset
+            and time_grain
+            and self.table
+            and self.db_engine_spec.supports_temporal_column_shift
+            and (offset_hours := self.table.offset or 0)
+            and not self.table.get_dataset_timezone()
+        ):
+            effective_offset_hours = get_effective_hours_offset(
+                self.db_engine_spec,
+                self.type,
+                offset_hours,
+                db_extra=self.db_extra,
+            )
+            if effective_offset_hours:
+                col = self.db_engine_spec.get_temporal_column_shift_expr(
+                    col,
+                    effective_offset_hours,
+                )
+            if sql_shifted_temporal_labels is not None:
+                sql_shifted_temporal_labels.add(label)
         time_expr = self.db_engine_spec.get_timestamp_expr(col, pdf, time_grain)
         return self.database.make_sqla_column_compatible(time_expr, label)
 
@@ -1898,11 +1924,6 @@ class SqlaTable(
 
         if expression_type == utils.AdhocMetricExpressionType.SIMPLE:
             aggregate: Any = metric.get("aggregate")
-            if (
-                not isinstance(aggregate, str)
-                or aggregate not in self.sqla_aggregations
-            ):
-                raise QueryObjectValidationError(_("Adhoc metric aggregate is invalid"))
             metric_column = metric.get("column") or {}
             column_name = cast(str, metric_column.get("column_name"))
             table_column: TableColumn | None = columns_by_name.get(column_name)
@@ -1912,7 +1933,27 @@ class SqlaTable(
                 )
             else:
                 sqla_column = column(column_name)
-            sqla_metric = self.sqla_aggregations[aggregate](sqla_column)
+
+            if isinstance(aggregate, str) and aggregate in self.sqla_aggregations:
+                sqla_metric = self.sqla_aggregations[aggregate](sqla_column)
+            elif isinstance(aggregate, str) and (
+                extended_func := self.db_engine_spec.get_extended_aggregation_func(
+                    aggregate
+                )
+            ):
+                sqla_metric = extended_func(sqla_column)
+            elif (
+                isinstance(aggregate, str)
+                and aggregate in utils.EXTENDED_METRIC_AGGREGATES
+            ):
+                raise QueryObjectValidationError(
+                    _(
+                        "The %(aggregate)s aggregate is not supported on this database",
+                        aggregate=aggregate,
+                    )
+                )
+            else:
+                raise QueryObjectValidationError(_("Adhoc metric aggregate is invalid"))
         elif expression_type == utils.AdhocMetricExpressionType.SQL:
             expression: str | None = metric.get("sqlExpression")
             if not isinstance(expression, str) or not expression.strip():
@@ -1960,11 +2001,26 @@ class SqlaTable(
                 )
             ) from ex
 
+    def _shift_temporal_column_if_needed(
+        self,
+        sqla_column: ColumnClause,
+        effective_offset_hours: int,
+    ) -> ColumnClause:
+        """Apply a nonzero effective dataset offset to a temporal expression."""
+        if not effective_offset_hours:
+            return sqla_column
+        return self.db_engine_spec.get_temporal_column_shift_expr(
+            sqla_column,
+            effective_offset_hours,
+        )
+
     def adhoc_column_to_sqla(  # pylint: disable=too-many-locals
         self,
         col: AdhocColumn,
         force_type_check: bool = False,
         template_processor: BaseTemplateProcessor | None = None,
+        apply_dataset_offset: bool = False,
+        sql_shifted_temporal_labels: set[str] | None = None,
     ) -> tuple[ColumnElement, utils.GenericDataType | None]:
         """
         Turn an adhoc column into a sqlalchemy column.
@@ -1974,6 +2030,8 @@ class SqlaTable(
                This is needed to validate if a filter with an adhoc column
                is applicable.
         :param template_processor: template_processor instance
+        :param apply_dataset_offset: shift the selected axis before truncation
+        :param sql_shifted_temporal_labels: labels shifted before truncation
         :returns: A tuple of (SQLAlchemy column, generic column type). The
             generic type is populated when the column type is resolved
             (either because the adhoc column matches a physical column, or
@@ -1990,6 +2048,7 @@ class SqlaTable(
         pdf = None
         is_column_reference = col.get("isColumnReference", False)
         generic_type: utils.GenericDataType | None = None
+        native_type: str | None = None
 
         metadata_lookup_key = self._render_adhoc_expression_for_metadata_lookup(
             sql_expression, template_processor
@@ -2004,6 +2063,7 @@ class SqlaTable(
             is_dttm = col_in_metadata.is_temporal
             pdf = col_in_metadata.python_date_format
             generic_type = col_in_metadata.type_generic
+            native_type = col_in_metadata.type
         else:
             # Column doesn't exist in metadata or is not a reference - treat as ad-hoc
             # expression Note: If isColumnReference=true but column not found, we still
@@ -2066,8 +2126,28 @@ class SqlaTable(
                 # stay unquoted for numeric adhoc expressions like
                 # CAST(... AS BIGINT)).
                 generic_type = col_desc[0].get("type_generic")
+                probed_type = col_desc[0].get("type")
+                native_type = str(probed_type) if probed_type is not None else None
 
         if is_dttm and has_timegrain:
+            if (
+                apply_dataset_offset
+                and self.db_engine_spec.supports_temporal_column_shift
+                and (offset_hours := self.offset or 0)
+                and not self.get_dataset_timezone()
+            ):
+                effective_offset_hours = get_effective_hours_offset(
+                    self.db_engine_spec,
+                    native_type,
+                    offset_hours,
+                    db_extra=self.db_extra,
+                )
+                sqla_column = self._shift_temporal_column_if_needed(
+                    sqla_column,
+                    effective_offset_hours,
+                )
+                if sql_shifted_temporal_labels is not None:
+                    sql_shifted_temporal_labels.add(label)
             sqla_column = self.db_engine_spec.get_timestamp_expr(
                 col=sqla_column,
                 pdf=pdf,

@@ -22,6 +22,7 @@ from unittest.mock import patch
 import pandas as pd
 import pytest
 
+from superset.charts.schemas import get_max_prophet_periods
 from superset.exceptions import InvalidPostProcessingError
 from superset.utils.core import DTTM_ALIAS
 from superset.utils.pandas_postprocessing import prophet
@@ -176,6 +177,23 @@ def test_prophet_incorrect_periods():
             df=prophet_df,
             time_grain="P1M",
             periods=-1,
+            confidence_interval=0.8,
+        )
+
+
+def test_prophet_periods_exceeding_max_raises():
+    """
+    ``periods`` comes from the unvalidated post-processing options dict; the
+    schema-declared upper bound (``MAX_PROPHET_PERIODS``, configurable, default
+    10000) is documentation-only unless enforced at the point ``periods`` is
+    consumed, since every forecast period adds a future row per series.
+    """
+    assert get_max_prophet_periods() == 10000
+    with pytest.raises(InvalidPostProcessingError, match="must not exceed"):
+        prophet(
+            df=prophet_df,
+            time_grain="P1M",
+            periods=10001,
             confidence_interval=0.8,
         )
 

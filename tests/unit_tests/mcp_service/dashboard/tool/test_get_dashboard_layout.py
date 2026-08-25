@@ -26,15 +26,11 @@ from superset.mcp_service.app import mcp
 from superset.mcp_service.dashboard.schemas import (
     _extract_layout_from_position,
 )
-from superset.mcp_service.utils.sanitization import (
-    LLM_CONTEXT_CLOSE_DELIMITER,
-    LLM_CONTEXT_OPEN_DELIMITER,
-)
 from superset.utils import json
 
 
 def _wrapped(value: str) -> str:
-    return f"{LLM_CONTEXT_OPEN_DELIMITER}\n{value}\n{LLM_CONTEXT_CLOSE_DELIMITER}"
+    return value
 
 
 def _build_dashboard_mock(

@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import gzip
+import io
 import ipaddress
 import logging
 import os
@@ -611,6 +612,29 @@ def _convert_temporal_columns(df: pd.DataFrame, dtype: dict[str, Any]) -> None:
                 df[column_name] = converted
 
 
+def _read_bounded(stream: Any, max_bytes: int) -> io.BytesIO:
+    """
+    Read ``stream`` into memory, failing once more than ``max_bytes`` bytes
+    have been produced.
+
+    Bounds both the raw download and gzip decompression amplification for
+    dataset data URIs: the ``.gz`` path had no analogue of
+    ``check_is_safe_zip`` and allowed unbounded expansion from a small
+    payload.
+    """
+    buffer = io.BytesIO()
+    while chunk := stream.read(1024 * 1024):
+        # Both http.client responses and gzip.open() yield bytes; a handful
+        # of tests substitute a text stream, so normalize either shape.
+        if isinstance(chunk, str):
+            chunk = chunk.encode("utf-8")
+        buffer.write(chunk)
+        if buffer.tell() > max_bytes:
+            raise ImportFailedError("Data URI payload exceeds the maximum allowed size")
+    buffer.seek(0)
+    return buffer
+
+
 def load_data(data_uri: str, dataset: SqlaTable, database: Database) -> None:
     """
     Load data from a data URI into a dataset.
@@ -637,9 +661,15 @@ def load_data(data_uri: str, dataset: SqlaTable, database: Database) -> None:
         handlers.extend([_PeerValidatingHTTPHandler, _PeerValidatingHTTPSHandler])
     opener = request.build_opener(*handlers)
     data = opener.open(data_uri)  # pylint: disable=consider-using-with  # noqa: S310
+    # Cap the bytes materialized from the download, before and after gzip
+    # decompression (same per-file knob as ZIP bundle uploads): a gzip
+    # stream can carry oversized headers, trailing data, or additional
+    # members that would otherwise let the raw (compressed) download exceed
+    # the limit even when the decompressed CSV stays within it.
+    max_bytes = app.config["ZIPPED_FILE_MAX_SIZE"]
     if data_uri.endswith(".gz"):
-        data = gzip.open(data)
-    df = pd.read_csv(data, encoding="utf-8")
+        data = gzip.open(_read_bounded(data, max_bytes))
+    df = pd.read_csv(_read_bounded(data, max_bytes), encoding="utf-8")
     dtype = get_dtype(df, dataset)
 
     _convert_temporal_columns(df, dtype)

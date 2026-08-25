@@ -45,6 +45,8 @@ export interface Chart {
   cache_timeout: number | null;
   thumbnail_url?: string;
   editors?: Subject[];
+  // Bare subject ids from a deployment's EXTRA_EDITORS_RESOLVER.
+  extra_editors?: number[];
   viewers?: Subject[];
   tags?: TagType[];
   last_saved_at?: string;

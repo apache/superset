@@ -123,5 +123,6 @@ export type TimeseriesChartTransformedProps =
         label: string;
         type: AxisType;
       };
+      resolvedTimeGrain?: TimeGranularity;
       onFocusedSeries: (series: string | null) => void;
     };
