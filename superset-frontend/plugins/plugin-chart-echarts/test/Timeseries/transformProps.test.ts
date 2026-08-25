@@ -4155,3 +4155,74 @@ test('tooltip keeps the metric format on a Difference time comparison', () => {
   expect(result).toContain('$ 100');
   expect(result).toContain('$ 25');
 });
+
+test('applies user-defined minimum interval to both axes', () => {
+  const queriesData: ChartDataResponseResult[] = [
+    createTestQueryData(
+      createTestData([{ 'Series A': 1 }, { 'Series A': 2 }], {
+        intervalMs: 300000000,
+      }),
+    ),
+  ];
+
+  const chartProps = createTestChartProps({
+    formData: {
+      ...baseFormDataHorizontalBar,
+      orientation: OrientationType.Vertical,
+      xAxisMinInterval: 86400000,
+      yAxisMinInterval: 1,
+    },
+    queriesData,
+  });
+
+  const { echartOptions } = transformProps(chartProps);
+  expect((echartOptions.xAxis as any).minInterval).toBe(86400000);
+  expect((echartOptions.yAxis as any).minInterval).toBe(1);
+});
+
+test('swaps the minimum interval of both axes for horizontal bar charts', () => {
+  const queriesData: ChartDataResponseResult[] = [
+    createTestQueryData(
+      createTestData([{ 'Series A': 1 }, { 'Series A': 2 }], {
+        intervalMs: 300000000,
+      }),
+    ),
+  ];
+
+  const chartProps = createTestChartProps({
+    formData: {
+      ...baseFormDataHorizontalBar,
+      xAxisMinInterval: 86400000,
+      yAxisMinInterval: 1,
+    },
+    queriesData,
+  });
+
+  const { echartOptions } = transformProps(chartProps);
+  expect((echartOptions.xAxis as any).minInterval).toBe(1);
+  expect((echartOptions.yAxis as any).minInterval).toBe(86400000);
+});
+
+test('ignores empty or invalid minimum interval values', () => {
+  const queriesData: ChartDataResponseResult[] = [
+    createTestQueryData(
+      createTestData([{ 'Series A': 1 }, { 'Series A': 2 }], {
+        intervalMs: 300000000,
+      }),
+    ),
+  ];
+
+  const chartProps = createTestChartProps({
+    formData: {
+      ...baseFormDataHorizontalBar,
+      orientation: OrientationType.Vertical,
+      xAxisMinInterval: '',
+      yAxisMinInterval: 'not a number',
+    },
+    queriesData,
+  });
+
+  const { echartOptions } = transformProps(chartProps);
+  expect((echartOptions.yAxis as any).minInterval).toBeUndefined();
+  expect((echartOptions.xAxis as any).minInterval).toBe(0);
+});
