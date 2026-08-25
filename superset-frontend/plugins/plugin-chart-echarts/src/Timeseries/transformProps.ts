@@ -145,6 +145,19 @@ const visibleSymbols = [
   'pin',
 ] as const;
 
+/**
+ * Parses a user supplied minimum axis interval into a positive number.
+ * Returns undefined when the control is empty or not a valid number, so
+ * ECharts falls back to its automatic tick calculation.
+ */
+function parseMinInterval(
+  value: number | string | null | undefined,
+): number | undefined {
+  if (value === null || value === undefined || value === '') return undefined;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
+}
+
 function getSymbolMarker(symbol: string, color: string) {
   const size = 10;
   switch (symbol) {
@@ -319,9 +332,11 @@ export default function transformProps(
     xAxisNumberFormat,
     xAxisTitle,
     xAxisTitleMargin,
+    xAxisMinInterval,
     yAxisBounds,
     yAxisFormat,
     currencyFormat,
+    yAxisMinInterval,
     yAxisTitle,
     yAxisTitleMargin,
     yAxisTitlePosition,
@@ -1243,6 +1258,9 @@ export default function transformProps(
       })()
     : xAxisFormatter;
 
+  const parsedXAxisMinInterval = parseMinInterval(xAxisMinInterval);
+  const parsedYAxisMinInterval = parseMinInterval(yAxisMinInterval);
+
   let xAxis: any = {
     type: xAxisType,
     name: xAxisTitle,
@@ -1279,11 +1297,12 @@ export default function transformProps(
     },
     minorTick: { show: minorTicks },
     minInterval:
-      xAxisType === AxisType.Time && resolvedTimeGrain && !forceMaxInterval
+      parsedXAxisMinInterval ??
+      (xAxisType === AxisType.Time && resolvedTimeGrain && !forceMaxInterval
         ? (TIMEGRAIN_TO_TIMESTAMP[
             resolvedTimeGrain as keyof typeof TIMEGRAIN_TO_TIMESTAMP
           ] ?? 0)
-        : 0,
+        : 0),
     maxInterval:
       xAxisType === AxisType.Time && resolvedTimeGrain && forceMaxInterval
         ? TIMEGRAIN_TO_TIMESTAMP[
@@ -1320,6 +1339,9 @@ export default function transformProps(
     ...(yAxisSplitNumber !== undefined && { splitNumber: yAxisSplitNumber }),
     min: yAxisMin,
     max: yAxisMax,
+    ...(parsedYAxisMinInterval !== undefined && {
+      minInterval: parsedYAxisMinInterval,
+    }),
     minorTick: { show: isSmallChart ? false : minorTicks },
     minorSplitLine: { show: isSmallChart ? false : minorSplitLine },
     splitLine: { show: !isSmallChart },

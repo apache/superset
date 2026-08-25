@@ -69,3 +69,15 @@ test('x_axis_number_format should be hidden for string columns', () => {
     false,
   );
 });
+
+test('should include the minimum interval controls for both axes', () => {
+  const xMinIntervalControl = getControl(config, 'x_axis_min_interval')!;
+  const yMinIntervalControl = getControl(config, 'y_axis_min_interval')!;
+
+  expect(xMinIntervalControl).toBeDefined();
+  expect(yMinIntervalControl).toBeDefined();
+  expect(xMinIntervalControl.config.default).toBeNull();
+  expect(yMinIntervalControl.config.default).toBeNull();
+  expect(xMinIntervalControl.config.renderTrigger).toBe(true);
+  expect(yMinIntervalControl.config.renderTrigger).toBe(true);
+});

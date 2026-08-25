@@ -44,6 +44,8 @@ import {
   xAxisBounds,
   xAxisLabelRotation,
   xAxisLabelInterval,
+  xAxisMinInterval,
+  yAxisMinInterval,
   forceMaxInterval,
 } from '../../../controls';
 
@@ -193,12 +195,14 @@ const config: ControlPanelConfig = {
         ],
         [xAxisLabelRotation],
         [xAxisLabelInterval],
+        [xAxisMinInterval],
         [forceMaxInterval],
         ...richTooltipSection,
         // eslint-disable-next-line react/jsx-key
         [<ControlSubSectionHeader>{t('Y Axis')}</ControlSubSectionHeader>],
         ['y_axis_format'],
         ['currency_format'],
+        [yAxisMinInterval],
         [
           {
             name: 'logAxis',
