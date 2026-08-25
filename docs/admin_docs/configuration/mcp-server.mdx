@@ -782,13 +782,18 @@ Enable response caching for read-heavy workloads (dashboards/datasets that don't
 ```python
 MCP_CACHE_CONFIG = {
     "enabled": True,
+    # Cache keys don't include the requesting principal and hits are served
+    # ahead of auth/RBAC, so a shared cache can return one caller's response
+    # to another. Required for caching to actually start -- only appropriate
+    # when every request is guaranteed to come from the same principal.
+    "dangerously_share_cache_across_principals": True,
     "CACHE_KEY_PREFIX": "mcp_cache_",
     "call_tool_ttl": 3600,
 }
 MCP_STORE_CONFIG = {"enabled": True, "CACHE_REDIS_URL": "redis://redis:6379/0"}
 ```
 
-Mutating tools (`generate_chart`, `update_chart`, `execute_sql`, `generate_dashboard`) are always excluded from caching regardless of this setting.
+Every tool with a side effect (create/update/delete/execute) is always excluded from caching regardless of this setting -- see the `excluded_tools` default in `superset/mcp_service/mcp_config.py` for the current list.
 
 ---
 
