@@ -1772,6 +1772,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "can_external_metadata_by_name",
         "can_read",
         "can_get_drill_info",
+        # Datasource querying is a read operation. Without this, Datasource
+        # being in GAMMA_READ_ONLY_MODEL_VIEWS makes _is_alpha_only withhold
+        # can_query from Gamma.
+        "can_query",
     }
 
     ALPHA_ONLY_PERMISSIONS = {

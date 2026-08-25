@@ -1,0 +1,312 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
+"""Unit tests for the shared name-based tabular query core."""
+
+from unittest.mock import MagicMock
+
+import pytest
+
+from superset.common.tabular_query import (
+    build_query_dict,
+    TabularQueryValidationError,
+    validate_names,
+    validate_query_names,
+)
+from superset.superset_typing import AdhocColumn, AdhocMetric
+
+
+def _column(name: str, is_dttm: bool = False) -> MagicMock:
+    column = MagicMock()
+    column.column_name = name
+    column.is_dttm = is_dttm
+    return column
+
+
+def test_build_query_dict_synthesizes_temporal_filter() -> None:
+    """A time_range becomes a TEMPORAL_RANGE clause on the resolved column."""
+    query_dict = build_query_dict(
+        time_column="ds",
+        metrics=["count"],
+        dimensions=["region"],
+        time_range="Last 30 days",
+    )
+
+    assert query_dict["granularity"] == "ds"
+    assert {
+        "col": "ds",
+        "op": "TEMPORAL_RANGE",
+        "val": "Last 30 days",
+    } in query_dict["filters"]
+
+
+def test_build_query_dict_time_range_without_column_adds_no_filter() -> None:
+    """Without a resolved temporal column there is nothing to filter on."""
+    query_dict = build_query_dict(metrics=["count"], time_range="Last 30 days")
+
+    assert query_dict["filters"] == []
+    assert "granularity" not in query_dict
+
+
+def test_build_query_dict_time_grain_emits_base_axis_column() -> None:
+    """A grain only applies via a BASE_AXIS adhoc column.
+
+    ``SqlaTable.adhoc_column_to_sqla`` gates grain handling on
+    ``columnType == "BASE_AXIS"``; ``extras.time_grain_sqla`` alone is read by
+    the semantic-layer mapper but silently ignored for datasets.
+    """
+    query_dict = build_query_dict(
+        time_column="ds", metrics=["count"], time_grain="P1D", grain_column="ds"
+    )
+
+    assert query_dict["columns"][0] == {
+        "label": "ds",
+        "sqlExpression": "ds",
+        "columnType": "BASE_AXIS",
+        "timeGrain": "P1D",
+    }
+    # Still emitted for the semantic-view path.
+    assert query_dict["extras"] == {"time_grain_sqla": "P1D"}
+
+
+def test_build_query_dict_grain_replaces_plain_dimension() -> None:
+    """Naming the temporal column as a dimension must not duplicate it."""
+    query_dict = build_query_dict(
+        metrics=["count"],
+        dimensions=["ds", "gender"],
+        time_grain="P1M",
+        grain_column="ds",
+    )
+
+    assert query_dict["columns"][0]["columnType"] == "BASE_AXIS"
+    assert query_dict["columns"][1] == "gender"
+    assert "ds" not in [c for c in query_dict["columns"] if isinstance(c, str)]
+
+
+def test_build_query_dict_grain_without_column_is_not_applied() -> None:
+    """No grain column means no BASE_AXIS column; the API rejects this case."""
+    query_dict = build_query_dict(metrics=["count"], time_grain="P1D")
+
+    assert query_dict["columns"] == []
+
+
+def test_resolve_grain_column_precedence() -> None:
+    from superset.common.tabular_query import ResolvedExplorable
+
+    resolved = ResolvedExplorable(
+        explorable=MagicMock(),
+        display_name="sales",
+        time_column="ds",
+        valid_dimensions={"ds", "created", "gender"},
+        valid_metrics={"count"},
+        dttm_columns={"ds", "created"},
+    )
+
+    # Explicit time_column wins.
+    assert resolved.resolve_grain_column("created", ["ds"]) == "created"
+    # Else a temporal dimension already requested.
+    assert resolved.resolve_grain_column(None, ["gender", "created"]) == "created"
+    # Else whatever time_range resolved to.
+    assert resolved.resolve_grain_column(None, ["gender"]) == "ds"
+
+
+def test_resolve_grain_column_returns_none_when_no_temporal() -> None:
+    from superset.common.tabular_query import ResolvedExplorable
+
+    resolved = ResolvedExplorable(
+        explorable=MagicMock(),
+        display_name="sales",
+        time_column=None,
+        valid_dimensions={"gender"},
+        valid_metrics={"count"},
+        dttm_columns=set(),
+    )
+
+    assert resolved.resolve_grain_column(None, ["gender"]) is None
+
+
+def test_build_query_dict_maps_limit_offset_to_query_object_names() -> None:
+    """The wire uses SemanticQuery's limit/offset; QueryObject wants row_*."""
+    assert build_query_dict(metrics=["count"], limit=25)["row_limit"] == 25
+    assert "row_offset" not in build_query_dict(metrics=["count"])
+    assert build_query_dict(metrics=["count"], offset=100)["row_offset"] == 100
+
+
+def test_build_query_dict_orderby_inverts_each_direction() -> None:
+    """QueryObject.orderby is (name, ascending); the wire sends descending."""
+    query_dict = build_query_dict(
+        metrics=["count"],
+        dimensions=["region"],
+        order=[("count", True), ("region", False)],
+    )
+
+    assert query_dict["orderby"] == [("count", False), ("region", True)]
+
+
+def test_build_query_dict_order_desc_follows_leading_term() -> None:
+    """order_desc drives series-limit ordering, which has no per-column form."""
+    assert (
+        build_query_dict(metrics=["count"], order=[("count", False)])["order_desc"]
+        is False
+    )
+    assert (
+        build_query_dict(metrics=["count"], order=[("count", True)])["order_desc"]
+        is True
+    )
+    assert build_query_dict(metrics=["count"])["order_desc"] is True
+
+
+def test_build_query_dict_passes_adhoc_metrics_through() -> None:
+    """Ad-hoc metric dicts survive untouched; datasets accept them."""
+    adhoc: AdhocMetric = {
+        "expressionType": "SQL",
+        "sqlExpression": "SUM(a)/SUM(b)",
+        "label": "Ratio",
+    }
+    assert build_query_dict(metrics=["count", adhoc])["metrics"] == ["count", adhoc]
+
+
+def test_validate_query_names_reports_unknown_names() -> None:
+    """Unknown names are named back to the caller, per kind."""
+    errors = validate_query_names(
+        {"revenue"},
+        {"region"},
+        metrics=["revenu"],
+        dimensions=["regionn"],
+        filters=[{"col": "bogus_col"}],
+        order_names=["bogus_order"],
+    )
+
+    joined = "; ".join(errors)
+    assert "Unknown metric: 'revenu'" in joined
+    assert "Unknown dimension: 'regionn'" in joined
+    assert "Unknown filter column: 'bogus_col'" in joined
+    assert "Unknown order_by: 'bogus_order'" in joined
+
+
+def test_validate_query_names_accepts_valid_names() -> None:
+    assert (
+        validate_query_names(
+            {"revenue"},
+            {"region"},
+            metrics=["revenue"],
+            dimensions=["region"],
+            filters=[{"col": "region"}],
+            order_names=["revenue"],
+        )
+        == []
+    )
+
+
+def test_validate_query_names_skips_adhoc_expressions() -> None:
+    """Ad-hoc metrics/columns are dicts, not names, so they bypass name checks.
+
+    Semantic views reject them downstream in the mapper, which owns that rule.
+    """
+    adhoc_metric: AdhocMetric = {"expressionType": "SQL", "sqlExpression": "SUM(a)"}
+    adhoc_column: AdhocColumn = {
+        "sqlExpression": "LOWER(region)",
+        "label": "region_lc",
+    }
+
+    assert (
+        validate_query_names(
+            set(), set(), metrics=[adhoc_metric], dimensions=[adhoc_column]
+        )
+        == []
+    )
+
+
+def test_validate_names_suggests_close_matches() -> None:
+    (error,) = validate_names(["sum__sale"], {"sum__sales"}, "metric")
+    assert "Did you mean: sum__sales?" in error
+
+
+def test_validate_names_hints_when_no_metrics_defined() -> None:
+    (error,) = validate_names(
+        ["anything"], set(), "metric", empty_hint="No metrics here."
+    )
+    assert "No metrics here." in error
+
+
+def test_validate_names_lists_valid_when_no_close_match() -> None:
+    (error,) = validate_names(["zzz"], {"revenue"}, "metric", list_valid_on_miss=True)
+    assert "Valid metrics: revenue" in error
+
+
+def test_resolve_time_column_rejects_non_temporal_column() -> None:
+    from superset.common.tabular_query import _resolve_time_column
+
+    explorable = MagicMock()
+    explorable.columns = [_column("region"), _column("ds", is_dttm=True)]
+
+    with pytest.raises(TabularQueryValidationError, match="not marked as a datetime"):
+        _resolve_time_column(explorable, "sales", "region", False)
+
+
+def test_resolve_time_column_rejects_unknown_column() -> None:
+    from superset.common.tabular_query import _resolve_time_column
+
+    explorable = MagicMock()
+    explorable.columns = [_column("ds", is_dttm=True)]
+
+    with pytest.raises(TabularQueryValidationError, match="Unknown time_column"):
+        _resolve_time_column(explorable, "sales", "nope", False)
+
+
+def test_resolve_time_column_infers_from_main_dttm_col() -> None:
+    """Datasets carry main_dttm_col; it wins over positional inference."""
+    from superset.common.tabular_query import _resolve_time_column
+
+    explorable = MagicMock()
+    explorable.columns = [_column("created", is_dttm=True), _column("ds", is_dttm=True)]
+    explorable.main_dttm_col = "ds"
+
+    assert _resolve_time_column(explorable, "sales", None, True) == "ds"
+
+
+def test_resolve_time_column_falls_back_to_first_datetime_dimension() -> None:
+    """Semantic views have no main_dttm_col, so the first dttm column is used."""
+    from superset.common.tabular_query import _resolve_time_column
+
+    explorable = MagicMock()
+    explorable.columns = [_column("region"), _column("event_time", is_dttm=True)]
+    explorable.main_dttm_col = None
+
+    assert _resolve_time_column(explorable, "view", None, True) == "event_time"
+
+
+def test_resolve_time_column_requires_one_when_time_range_given() -> None:
+    from superset.common.tabular_query import _resolve_time_column
+
+    explorable = MagicMock()
+    explorable.columns = [_column("region")]
+    explorable.main_dttm_col = None
+
+    with pytest.raises(TabularQueryValidationError, match="no temporal column"):
+        _resolve_time_column(explorable, "view", None, True)
+
+
+def test_resolve_time_column_not_inferred_without_time_range() -> None:
+    """An unfiltered query must not acquire a temporal axis it did not ask for."""
+    from superset.common.tabular_query import _resolve_time_column
+
+    explorable = MagicMock()
+    explorable.columns = [_column("ds", is_dttm=True)]
+    explorable.main_dttm_col = "ds"
+
+    assert _resolve_time_column(explorable, "sales", None, False) is None
