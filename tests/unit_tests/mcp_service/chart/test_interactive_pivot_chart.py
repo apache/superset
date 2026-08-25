@@ -30,7 +30,7 @@ from superset.mcp_service.chart.chart_utils import (
     map_config_to_form_data,
 )
 from superset.mcp_service.chart.plugins.interactive_pivot import (
-    AG_GRID_PIVOT_FEATURE_FLAG,
+    INTERACTIVE_PIVOT_FEATURE_FLAG,
     InteractivePivotChartPlugin,
     map_interactive_pivot_config,
 )
@@ -175,7 +175,7 @@ def test_oss_deployment_hides_schema_and_rejects_generation(
     assert "disabled by the operator" not in error.details
 
 
-def test_preset_feature_flag_exposes_schema_and_generation(
+def test_feature_flag_exposes_schema_and_generation(
     config: InteractivePivotChartConfig,
 ) -> None:
     with patch.object(feature_flag_manager, "is_feature_enabled", return_value=True):
@@ -195,13 +195,13 @@ def test_preset_feature_flag_exposes_schema_and_generation(
     assert error is None
 
 
-def test_plugin_checks_preset_feature_flag() -> None:
+def test_plugin_checks_feature_flag() -> None:
     plugin = InteractivePivotChartPlugin()
     with patch.object(
         feature_flag_manager, "is_feature_enabled", return_value=True
     ) as is_enabled:
         assert plugin.is_available() is True
-    is_enabled.assert_called_once_with(AG_GRID_PIVOT_FEATURE_FLAG)
+    is_enabled.assert_called_once_with(INTERACTIVE_PIVOT_FEATURE_FLAG)
 
 
 def test_update_preserves_viz_type_and_ui_grid_state(

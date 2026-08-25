@@ -289,8 +289,8 @@ def get_chart_type_schema(
 
     Valid chart_type values depend on the host deployment. Core types are xy,
     table, pie, pivot_table, mixed_timeseries, handlebars, big_number,
-    histogram, box_plot, and waterfall. Preset deployments that enable the AG
-    Grid pivot plugin also expose interactive_pivot.
+    histogram, box_plot, and waterfall. Deployments that enable an AG Grid
+    pivot extension also expose interactive_pivot.
 
     Returns the JSON Schema for the requested chart type, optionally
     with working examples.

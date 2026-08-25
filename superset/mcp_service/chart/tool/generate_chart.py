@@ -108,7 +108,7 @@ async def generate_chart(  # noqa: C901
     - chart_type='pivot_table' for pivot table visualizations.
       Required fields: rows, metrics (columns is optional, for cross-tabs)
 
-    - chart_type='interactive_pivot' for Preset's AG Grid interactive pivot.
+    - chart_type='interactive_pivot' for an extension-provided AG Grid pivot.
       Required fields: rows, metrics (columns is optional). This is distinct
       from pivot_table/pivot_table_v2 and is rejected when its host feature is
       unavailable. Call get_chart_type_schema('interactive_pivot') first.

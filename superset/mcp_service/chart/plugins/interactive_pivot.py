@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-"""Preset AG Grid interactive pivot chart plugin."""
+"""AG Grid interactive pivot chart plugin."""
 
 from __future__ import annotations
 
@@ -34,7 +34,7 @@ from superset.mcp_service.chart.schemas import ColumnRef, InteractivePivotChartC
 from superset.mcp_service.chart.validation.dataset_validator import DatasetValidator
 from superset.mcp_service.common.error_schemas import ChartGenerationError
 
-AG_GRID_PIVOT_FEATURE_FLAG = "AG_GRID_PIVOT_TABLE_ENABLED"
+INTERACTIVE_PIVOT_FEATURE_FLAG = "AG_GRID_PIVOT_TABLE_ENABLED"
 _AG_GRID_AGGREGATION = {
     "AVG": "avg",
     "MIN": "min",
@@ -55,14 +55,14 @@ def _grid_aggregation(metric: ColumnRef) -> str:
 def map_interactive_pivot_config(
     config: InteractivePivotChartConfig,
 ) -> dict[str, Any]:
-    """Map the MCP config to Preset's ``ag-grid-pivot-table`` form data."""
+    """Map the MCP config to ``ag-grid-pivot-table`` form data."""
     metrics = [create_metric_object(metric) for metric in config.metrics]
     rows = [column.name for column in config.rows]
     columns = [column.name for column in config.columns]
 
     form_data: dict[str, Any] = {
         "viz_type": "ag-grid-pivot-table",
-        # The Preset control panel stores every dimension in groupby. AG Grid's
+        # The control panel stores every dimension in groupby. AG Grid's
         # persisted state assigns each one to the Rows or Column Labels bucket.
         "groupby": [*rows, *columns],
         "metrics": metrics,
@@ -93,7 +93,7 @@ def map_interactive_pivot_config(
     }
 
     if config.time_grain:
-        # Preset's hidden temporal_columns_lookup control identifies temporal
+        # The hidden temporal_columns_lookup control identifies temporal
         # dimensions in groupby, and its buildQuery applies this grain to each
         # one. A single granularity_sqla is neither required nor sufficient for
         # a pivot that can contain multiple temporal dimensions.
@@ -114,7 +114,7 @@ def map_interactive_pivot_config(
 
 
 class InteractivePivotChartPlugin(BaseChartPlugin):
-    """Plugin for Preset's feature-gated AG Grid interactive pivot."""
+    """Plugin for a feature-gated AG Grid interactive pivot extension."""
 
     chart_type = "interactive_pivot"
     display_name = "Interactive Pivot Table"
@@ -123,8 +123,8 @@ class InteractivePivotChartPlugin(BaseChartPlugin):
     }
 
     def is_available(self) -> bool:
-        """Hide the adapter unless the host ships and enables the Preset viz."""
-        return feature_flag_manager.is_feature_enabled(AG_GRID_PIVOT_FEATURE_FLAG)
+        """Hide the adapter unless the host ships and enables the visualization."""
+        return feature_flag_manager.is_feature_enabled(INTERACTIVE_PIVOT_FEATURE_FLAG)
 
     def pre_validate(
         self,

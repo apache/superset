@@ -1095,7 +1095,7 @@ class PivotTableChartConfig(BaseChartConfig):
 
 
 class InteractivePivotChartConfig(BaseChartConfig):
-    """Config for Preset's AG Grid interactive pivot visualization.
+    """Config for an extension-provided AG Grid interactive pivot visualization.
 
     This is intentionally separate from :class:`PivotTableChartConfig`, which
     targets the OSS ``pivot_table_v2`` visualization.

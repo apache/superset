@@ -235,9 +235,7 @@ def get_chart_configs_resource() -> str:
     interactive_pivot_configs = {}
     if get_registry().get("interactive_pivot") is not None:
         interactive_pivot_configs["ag_grid_interactive_pivot"] = {
-            "description": (
-                "Preset AG Grid pivot with explicit side-panel groups and totals"
-            ),
+            "description": ("AG Grid pivot with explicit side-panel groups and totals"),
             "config": {
                 "chart_type": "interactive_pivot",
                 "rows": [{"name": "region"}, {"name": "country"}],
