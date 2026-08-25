@@ -39,20 +39,19 @@ from superset.mcp_service.dashboard.schemas import (
     GenerateDashboardRequest,
     GetDashboardInfoRequest,
     ListDashboardsRequest,
+    ManageDashboardOwnersResponse,
+    ManageDashboardRolesResponse,
     serialize_chart_summary,
     serialize_dashboard_object,
     UpdateDashboardRequest,
 )
-from superset.mcp_service.utils.sanitization import (
-    LLM_CONTEXT_CLOSE_DELIMITER,
-    LLM_CONTEXT_OPEN_DELIMITER,
-)
+from superset.mcp_service.system.schemas import SubjectInfo
 from superset.utils.json import dumps as json_dumps
 
 
 def _wrapped(value: str) -> str:
-    """Return the expected LLM-context wrapper for assertions."""
-    return f"{LLM_CONTEXT_OPEN_DELIMITER}\n{value}\n{LLM_CONTEXT_CLOSE_DELIMITER}"
+    """Return the expected clean MCP value for assertions."""
+    return value
 
 
 def _mock_dashboard(
@@ -88,6 +87,22 @@ def _mock_dashboard(
     dashboard.slices = slices or []
     dashboard.tags = tags or []
     return dashboard
+
+
+def test_manage_dashboard_owners_response_preserves_empty_label() -> None:
+    response = ManageDashboardOwnersResponse(
+        owners=[SubjectInfo(id=1, label="", type="USER")]
+    )
+
+    assert response.owners == [SubjectInfo(id=1, label="", type="USER")]
+
+
+def test_manage_dashboard_roles_response_preserves_empty_label() -> None:
+    response = ManageDashboardRolesResponse(
+        roles=[SubjectInfo(id=2, label="", type="ROLE")]
+    )
+
+    assert response.roles == [SubjectInfo(id=2, label="", type="ROLE")]
 
 
 class TestSerializeDashboardObject:
@@ -334,12 +349,12 @@ class TestSerializeDashboardObject:
 
     @patch("superset.mcp_service.dashboard.schemas.user_can_view_data_model_metadata")
     @patch("superset.mcp_service.dashboard.schemas.get_superset_base_url")
-    def test_descriptive_fields_are_sanitized(
+    def test_descriptive_fields_are_preserved(
         self,
         mock_base_url: MagicMock,
         mock_can_view_data_model_metadata: MagicMock,
     ) -> None:
-        """Dashboard serializers wrap user-controlled descriptive fields."""
+        """Dashboard serializers preserve user-controlled descriptive fields."""
         mock_can_view_data_model_metadata.return_value = True
         mock_base_url.return_value = "http://localhost:8088"
 
@@ -925,13 +940,13 @@ class TestDuplicateDashboardResponse:
         assert resp.error is None
         assert resp.warnings == []
 
-    def test_error_is_wrapped_for_llm_context(self) -> None:
-        """Error text is wrapped in LLM-context delimiters before exposure."""
+    def test_error_is_preserved(self) -> None:
+        """Error text remains exact in the result."""
         resp = DuplicateDashboardResponse(error="Dashboard 'x' not found.")
         assert resp.error == _wrapped("Dashboard 'x' not found.")
 
-    def test_none_error_is_not_wrapped(self) -> None:
-        """A null error stays null rather than being wrapped."""
+    def test_none_error_remains_none(self) -> None:
+        """A null error stays null."""
         resp = DuplicateDashboardResponse(dashboard_url="http://host/d/1/")
         assert resp.error is None
 

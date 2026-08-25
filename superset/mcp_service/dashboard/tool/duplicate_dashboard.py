@@ -32,7 +32,6 @@ from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset.extensions import event_logger
 from superset.mcp_service.dashboard.schemas import (
-    _sanitize_dashboard_info_for_llm_context,
     DashboardInfo,
     DuplicateDashboardRequest,
     DuplicateDashboardResponse,
@@ -146,7 +145,7 @@ def _serialize_new_dashboard(dashboard: Any) -> tuple[DashboardInfo, str]:
             is not None
         ],
     )
-    return _sanitize_dashboard_info_for_llm_context(info), dashboard_url
+    return (info), dashboard_url
 
 
 def _safe_rollback(context_label: str) -> None:
@@ -203,12 +202,10 @@ def _refetch_and_serialize(
         )
         _safe_rollback("dashboard re-fetch")
         dashboard_url = f"{get_superset_base_url()}/dashboard/{new_dashboard.id}/"
-        info = _sanitize_dashboard_info_for_llm_context(
-            DashboardInfo(
-                id=new_dashboard.id,
-                dashboard_title=dashboard_title,
-                url=dashboard_url,
-            )
+        info = DashboardInfo(
+            id=new_dashboard.id,
+            dashboard_title=dashboard_title,
+            url=dashboard_url,
         )
         return info, dashboard_url
 

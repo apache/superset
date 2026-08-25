@@ -27,6 +27,7 @@ from sqlalchemy.orm import Session
 from superset import db
 from superset.commands.importers.exceptions import IncorrectVersionError
 from superset.databases.ssh_tunnel.models import SSHTunnel
+from superset.databases.utils import make_url_safe
 from superset.extensions import feature_flag_manager
 from superset.models.core import Database
 from superset.models.dashboard import dashboard_slices
@@ -103,6 +104,34 @@ def validate_metadata_type(
             exceptions.append(exc)
 
 
+def database_connection_identity_unchanged(
+    stored_uri: Optional[str], incoming_uri: Optional[str]
+) -> bool:
+    """
+    Whether an incoming database config still points at the same connection
+    (driver, host, port -- everything except the credential) as the stored one.
+
+    Stored secrets may only be re-attached to an import when this holds:
+    database UUIDs are not secrets (they appear in every exported bundle and
+    in API responses), so re-attaching secrets on a UUID match alone would
+    let a hostile bundle repoint an existing connection at an
+    attacker-controlled server that then receives the victim's real
+    credentials.
+    """
+    if not stored_uri or not incoming_uri:
+        return False
+    try:
+        stored = make_url_safe(stored_uri)._replace(password=None)
+        incoming = make_url_safe(incoming_uri)._replace(password=None)
+    except Exception:  # pylint: disable=broad-except
+        # An unparseable URI cannot be compared; never attach secrets to it.
+        return False
+    # Compare the full URL minus the credential, not just host/port: query
+    # arguments become driver connect args and can themselves redirect the
+    # connection (e.g. ``?host=`` for postgres drivers).
+    return stored == incoming
+
+
 # pylint: disable=too-many-locals,too-many-arguments
 # ruff: noqa: C901
 def load_configs(
@@ -141,6 +170,21 @@ def load_configs(
             SSHTunnel.uuid, SSHTunnel.private_key_password
         ).all()
     }
+    # load connection endpoints so stored secrets are only re-attached to a
+    # config that still points at the same endpoint (see
+    # database_connection_identity_unchanged)
+    db_sqlalchemy_uris: dict[str, str] = {
+        str(uuid): sqlalchemy_uri
+        for uuid, sqlalchemy_uri in db.session.query(
+            Database.uuid, Database.sqlalchemy_uri
+        ).all()
+    }
+    db_ssh_tunnel_servers: dict[str, tuple[Any, Any]] = {
+        str(uuid): (server_address, server_port)
+        for uuid, server_address, server_port in db.session.query(
+            SSHTunnel.uuid, SSHTunnel.server_address, SSHTunnel.server_port
+        ).all()
+    }
     for file_name, content in contents.items():
         # skip directories
         if not content:
@@ -151,6 +195,38 @@ def load_configs(
         if schema:
             try:
                 config = load_yaml(file_name, content)
+                if not isinstance(config, dict):
+                    # A syntactically valid YAML document whose top-level
+                    # value is a scalar or list (not a mapping) has no
+                    # fields to validate against the schema; report it the
+                    # same way as unparseable YAML instead of letting the
+                    # ``.get()`` calls below raise an unhandled AttributeError.
+                    raise ValidationError({file_name: "Not a valid YAML file"})
+
+                # Stored secrets are only reusable when the incoming config
+                # still points at the same endpoint as the stored one; a UUID
+                # match alone must never rebind stored credentials to a new
+                # host (see database_connection_identity_unchanged).
+                db_secrets_reusable = (
+                    prefix == "databases"
+                    and database_connection_identity_unchanged(
+                        db_sqlalchemy_uris.get(str(config.get("uuid"))),
+                        config.get("sqlalchemy_uri"),
+                    )
+                )
+                incoming_tunnel = config.get("ssh_tunnel") or {}
+                stored_tunnel_server = db_ssh_tunnel_servers.get(
+                    str(config.get("uuid"))
+                )
+                tunnel_secrets_reusable = (
+                    prefix == "databases"
+                    and stored_tunnel_server is not None
+                    and (
+                        incoming_tunnel.get("server_address"),
+                        incoming_tunnel.get("server_port"),
+                    )
+                    == stored_tunnel_server
+                )
 
                 # populate passwords from the request, from YAML config,
                 # or from existing DBs
@@ -159,14 +235,15 @@ def load_configs(
                 elif prefix == "databases" and config.get("password"):
                     # password already in YAML config, keep it
                     pass
-                elif prefix == "databases" and config["uuid"] in db_passwords:
+                elif db_secrets_reusable and config["uuid"] in db_passwords:
                     config["password"] = db_passwords[config["uuid"]]
 
                 # populate ssh_tunnel_passwords from the request or from existing DBs
                 if file_name in ssh_tunnel_passwords:
                     config["ssh_tunnel"]["password"] = ssh_tunnel_passwords[file_name]
                 elif (
-                    prefix == "databases" and config["uuid"] in db_ssh_tunnel_passwords
+                    tunnel_secrets_reusable
+                    and config["uuid"] in db_ssh_tunnel_passwords
                 ):
                     config["ssh_tunnel"]["password"] = db_ssh_tunnel_passwords[
                         config["uuid"]
@@ -178,7 +255,7 @@ def load_configs(
                         file_name
                     ]
                 elif (
-                    prefix == "databases"
+                    tunnel_secrets_reusable
                     and config["uuid"] in db_ssh_tunnel_private_keys
                 ):
                     config["ssh_tunnel"]["private_key"] = db_ssh_tunnel_private_keys[
@@ -191,7 +268,7 @@ def load_configs(
                         ssh_tunnel_priv_key_passwords[file_name]
                     )
                 elif (
-                    prefix == "databases"
+                    tunnel_secrets_reusable
                     and config["uuid"] in db_ssh_tunnel_priv_key_passws
                 ):
                     config["ssh_tunnel"]["private_key_password"] = (
