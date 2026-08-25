@@ -2137,6 +2137,12 @@ describe('plugin-chart-table', () => {
         expect(getComputedStyle(arrowCell!).background).toContain(
           'rgba(0, 150, 0, 0.2)',
         );
+        // the fallback arrow itself must also keep the "increase" color --
+        // asserting only the cell background would still pass if the arrow's
+        // own color had regressed to the "decrease" color.
+        expect(arrowCell!.querySelector('span')).toHaveStyle({
+          color: supersetTheme.colorSuccess,
+        });
       });
 
       test('preserves client-side search text across temporal table rerenders', async () => {
