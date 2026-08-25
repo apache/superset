@@ -17,20 +17,20 @@
 """
 Pluggable storage backend interface for dashboard Excel export artifacts.
 
-Setting ``EXCEL_EXPORT_STORAGE["backend"]`` in ``superset_config.py`` to an
-instance of a class implementing this protocol (the same "instance in
-config" pattern as ``RESULTS_BACKEND`` or ``CUSTOM_SECURITY_MANAGER``) swaps
-out where the export task uploads the generated ``.xlsx`` and how the
-download redirect mints a fresh, time-limited URL for it. When unset,
-``superset.utils.s3`` (boto3/AWS S3) is used.
+``EXCEL_EXPORT_STORAGE["backend"]`` in ``superset_config.py`` must be set to
+an instance of a class implementing this protocol (the same "instance in
+config" pattern as ``RESULTS_BACKEND`` or ``CUSTOM_SECURITY_MANAGER``): it is
+where the export task uploads the generated ``.xlsx`` and how the download
+redirect mints a fresh, time-limited URL for it. There is no implicit
+default -- pick the backend matching the bucket's provider:
+``superset.utils.s3.S3ExportStorage`` (boto3/AWS S3) or
+``superset.utils.gcs.GCSExportStorage`` (Google Cloud Storage), or supply a
+custom implementation.
 
 This module has no dependency on any storage SDK: it is safe to import (e.g.
 from ``superset/config.py``) regardless of which storage extras, if any, are
-installed. A concrete implementation -- such as a hypothetical
-``GCSExportStorage`` for deployments where the export bucket is a native
-Google Cloud Storage bucket rather than S3 -- imports its own SDK lazily, the
-same way ``superset.utils.s3`` only imports ``boto3`` inside the functions
-that need it.
+installed. The concrete implementations import their own SDKs lazily, so a
+backend's dependency is only required once an export actually runs.
 """
 
 from __future__ import annotations

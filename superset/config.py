@@ -1536,19 +1536,18 @@ class ExcelExportStorageConfig(TypedDict, total=False):
     bucket: str
     # Key/blob prefix for export objects: {prefix}{dashboard_id}/{job_id}.xlsx
     key_prefix: str
-    # Extra kwargs passed to boto3.client("s3", ...) when using the default S3
-    # backend (i.e. "backend" below is unset) — e.g. region_name, or an
-    # endpoint_url for S3-compatible stores (MinIO/LocalStack). Credentials
-    # otherwise resolve through the standard boto3 chain. Ignored by any
-    # configured "backend", which authenticates however it authenticates.
-    client_kwargs: dict[str, Any]
-    # Optional pluggable storage backend (an instance implementing
+    # The storage backend (an instance implementing
     # superset.utils.export_storage.ExportStorage), the same pattern as
-    # RESULTS_BACKEND or CUSTOM_SECURITY_MANAGER. When unset, the built-in
-    # superset.utils.s3 (boto3/AWS S3) backend is used, configured by
-    # "client_kwargs" above. Set this to e.g. GCSExportStorage()
-    # (superset.utils.gcs) for a deployment whose "bucket" above names a
-    # native Google Cloud Storage bucket rather than an S3 one.
+    # RESULTS_BACKEND or CUSTOM_SECURITY_MANAGER. There is no implicit
+    # default; the feature is disabled (the export endpoint returns 501)
+    # until one is set explicitly, matching the bucket's provider:
+    #   from superset.utils.s3 import S3ExportStorage      # AWS S3
+    #   from superset.utils.gcs import GCSExportStorage    # Google Cloud Storage
+    #   EXCEL_EXPORT_STORAGE["backend"] = S3ExportStorage()
+    # S3ExportStorage accepts client_kwargs for boto3.client("s3", ...)
+    # overrides (region_name, or an endpoint_url for S3-compatible stores
+    # such as MinIO/LocalStack); credentials otherwise resolve through each
+    # SDK's standard chain.
     backend: ExportStorage
 
 

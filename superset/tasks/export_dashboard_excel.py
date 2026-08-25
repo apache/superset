@@ -16,7 +16,8 @@
 # under the License.
 """
 Celery task that exports every chart on a dashboard to a single multi-sheet
-``.xlsx`` file, uploads it to S3, and records a download link (see
+``.xlsx`` file, uploads it to the configured export storage (see
+``EXCEL_EXPORT_STORAGE``), and records a download link (see
 ``superset.dashboards.excel_export.download_link``) that emails to the
 requesting user when they have an address on file, and/or is resolved by
 polling ``GET .../export_xlsx/status/<job_id>/`` when they don't.
@@ -65,9 +66,10 @@ from superset.dashboards.excel_export.screenshot import render_chart_image
 from superset.exceptions import SupersetException
 from superset.extensions import celery_app
 from superset.security.guest_token import GuestToken
-from superset.utils import json, s3
+from superset.utils import json
 from superset.utils.core import override_user
 from superset.utils.excel_streaming import StreamingXlsxWriter
+from superset.utils.export_storage import ExportStorage
 
 logger = logging.getLogger(__name__)
 
@@ -450,35 +452,28 @@ def _handle_export_failure(
         logger.exception("Failed to record export failure status for %s", job_id)
 
 
-def _upload_export_file(tmp_path: str, bucket: str, key: str) -> None:
-    """Upload the generated workbook via EXCEL_EXPORT_STORAGE's "backend" if
-    configured (e.g. a GCS backend for a deployment whose bucket isn't S3),
-    else the built-in boto3/S3 helper."""
-    storage_backend = current_app.config["EXCEL_EXPORT_STORAGE"].get("backend")
-    if storage_backend is not None:
-        storage_backend.upload_file(tmp_path, bucket, key)
-    else:
-        s3.upload_file_to_s3(tmp_path, bucket, key)
+def _resolve_export_storage(
+    dashboard_id: int, job_id: str
+) -> tuple[ExportStorage, str, str]:
+    """The configured storage backend, bucket, and this export's object key.
 
-
-def _export_object_key(dashboard_id: int, job_id: str) -> tuple[str, str]:
-    """The configured bucket and this export's object key within it.
-
-    The API already rejects the request with 501 when no bucket is
-    configured, so reaching an unset bucket here normally means
+    The API already rejects the request with 501 when either the bucket or
+    the backend is unset, so reaching this unconfigured normally means
     EXCEL_EXPORT_STORAGE was cleared after the job was enqueued (or the task
     was invoked directly, bypassing the API). Fail with a clear message
-    instead of an opaque boto3/SDK validation error.
+    instead of an opaque storage-SDK error.
     """
     storage_config = current_app.config["EXCEL_EXPORT_STORAGE"]
     bucket = storage_config.get("bucket")
-    if not bucket:
+    storage_backend = storage_config.get("backend")
+    if not bucket or storage_backend is None:
         raise SupersetException(
-            "Excel export is not configured on this server "
-            "(EXCEL_EXPORT_STORAGE['bucket'] is unset)."
+            "Excel export is not configured on this server: "
+            "EXCEL_EXPORT_STORAGE needs both a 'bucket' and a 'backend' "
+            "(e.g. superset.utils.s3.S3ExportStorage())."
         )
     key_prefix = storage_config.get("key_prefix", "dashboard-exports/")
-    return bucket, f"{key_prefix}{dashboard_id}/{job_id}.xlsx"
+    return storage_backend, bucket, f"{key_prefix}{dashboard_id}/{job_id}.xlsx"
 
 
 @celery_app.task(
@@ -504,7 +499,7 @@ def export_dashboard_excel(
     :param user_id: The requesting user (the task runs with their permissions),
         or ``None`` for a guest/embedded requester
     :param active_data_mask: Live dashboard filter state keyed by native filter id
-    :param job_id: Correlation id, also the Celery task id and S3 object name
+    :param job_id: Correlation id, also the Celery task id and storage object name
     :param mode: ``"data"`` streams every chart's tabular result; ``"images"``
         embeds non-table charts as rendered images and keeps tables tabular
     :param guest_token: The guest token payload when the requester is an
@@ -547,8 +542,8 @@ def export_dashboard_excel(
                 tmp_path, dashboard, active_data_mask, job_id, mode, user
             )
 
-            bucket, key = _export_object_key(dashboard_id, job_id)
-            _upload_export_file(tmp_path, bucket, key)
+            storage_backend, bucket, key = _resolve_export_storage(dashboard_id, job_id)
+            storage_backend.upload_file(tmp_path, bucket, key)
             expires_at = datetime.now(tz=timezone.utc) + timedelta(seconds=ttl)
             # KeyValueEntry.expires_on comparisons use naive datetime.now(), so
             # the stored expiry must be naive UTC too, not tz-aware.
@@ -571,7 +566,7 @@ def export_dashboard_excel(
                         ),
                     )
                 except Exception:  # pylint: disable=broad-except
-                    # The file is already in S3; a send failure should not trigger
+                    # The file is already uploaded; a send failure should not trigger
                     # a misleading failure email.
                     logger.exception("Failed to send export success email")
     except SoftTimeLimitExceeded:
