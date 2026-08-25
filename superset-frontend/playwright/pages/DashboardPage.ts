@@ -47,6 +47,7 @@ type LayoutElementLabel =
 export class DashboardPage {
   private readonly page: Page;
   private readonly filterBar: DashboardFilterBar;
+  readonly dashboardTabs: Tabs;
 
   private static readonly SELECTORS = {
     DASHBOARD_HEADER: '[data-test="dashboard-header-container"]',
@@ -81,6 +82,13 @@ export class DashboardPage {
   constructor(page: Page) {
     this.page = page;
     this.filterBar = new DashboardFilterBar(page);
+    this.dashboardTabs = new Tabs(
+      page,
+      page
+        .locator(DashboardPage.SELECTORS.DASHBOARD_TABS)
+        .first()
+        .locator(':scope > [data-test="nav-list"]'),
+    );
   }
 
   /**
@@ -201,34 +209,6 @@ export class DashboardPage {
     return this.page.getByRole('heading', {
       name: 'Display controls',
       exact: true,
-    });
-  }
-
-  /**
-   * Locator for the individual tabs of the top-level tab bar.
-   * A dashboard can contain several nested tab bars; the top-level one is the
-   * first `dashboard-component-tabs` rendered in the DOM. The nav list is
-   * scoped to the immediate child (`:scope >`) so that tabs belonging to nested
-   * tab bars rendered inside this container's content are not counted.
-   */
-  topLevelTabs(): Locator {
-    return this.page
-      .locator(DashboardPage.SELECTORS.DASHBOARD_TABS)
-      .first()
-      .locator(
-        ':scope > [data-test="nav-list"] .ant-tabs-nav-list > .ant-tabs-tab',
-      );
-  }
-
-  /**
-   * Switch to the nth top-level tab (0-indexed) and wait for it to become active.
-   */
-  async switchToTopLevelTab(index: number): Promise<void> {
-    const tab = this.topLevelTabs().nth(index);
-    await tab.click();
-    await tab.and(this.page.locator('.ant-tabs-tab-active')).waitFor({
-      state: 'attached',
-      timeout: TIMEOUT.API_RESPONSE,
     });
   }
 

@@ -17,32 +17,9 @@
  * under the License.
  */
 
-/**
- * E2E migration of the Cypress "Dashboard tabs" suite (dashboard/tabs.test.ts).
- *
- * Only one of the three original cases is a genuine end-to-end behaviour:
- * "should update size when switch tab". A chart living in an inactive (hidden)
- * tab must re-measure and refit its container when the tab is revealed after the
- * available width has changed — a real browser layout-reflow that can only be
- * exercised against a rendered chart in a real dashboard. The other two cases
- * ("should switch tabs" asserted only the `ant-tabs-tab-active` CSS class, and
- * "should send new queries when tab becomes visible" was already skipped) are
- * DOM/state assertions with no backend invariant and belong in component/RTL
- * coverage, so they are intentionally not migrated here.
- *
- * The original relied on a seeded tabbed dashboard and expanded the native
- * filter bar to change the available width. This migration builds the dashboard
- * hermetically (two top-level tabs, a width-sensitive treemap in the first) and
- * shrinks the viewport while the treemap is hidden — the equivalent width change,
- * with no dependency on seeded data.
- *
- * CI green => the treemap reflowed to the narrower width and fit its container
- *             (no horizontal overflow) after the tab switch.
- * CI red   => the chart kept a stale size and overflowed its container, or the
- *             width never changed (the reflow was never exercised).
- */
 import { testWithAssets, expect } from '../../helpers/fixtures';
-import { apiPost, apiPut } from '../../helpers/api/requests';
+import { extractIdFromResponse } from '../../helpers/api/assertions';
+import { apiPostChart, apiPutChart } from '../../helpers/api/chart';
 import { apiPostDashboard } from '../../helpers/api/dashboard';
 import { getDatasetByName } from '../../helpers/api/dataset';
 import { TIMEOUT } from '../../utils/constants';
@@ -64,8 +41,6 @@ testWithAssets(
     const datasetId = dataset.id;
     const datasource = `${datasetId}__table`;
 
-    // Tab A holds a width-sensitive treemap (echarts sizes it to fill the
-    // container); Tab B holds a table so the second tab has real content.
     const chartSpecs = [
       {
         slug: 'treemap',
@@ -92,7 +67,7 @@ testWithAssets(
 
     const chartIds: Record<string, number> = {};
     for (const { slug, params } of chartSpecs) {
-      const resp = await apiPost(page, 'api/v1/chart/', {
+      const resp = await apiPostChart(page, {
         slice_name: `tabs_${slug}_${Date.now()}`,
         viz_type: params.viz_type,
         datasource_id: datasetId,
@@ -100,8 +75,7 @@ testWithAssets(
         params: JSON.stringify(params),
       });
       expect(resp.ok()).toBe(true);
-      const body = await resp.json();
-      const chartId: number = body.id ?? body.result?.id;
+      const chartId = await extractIdFromResponse(resp);
       testAssets.trackChart(chartId);
       chartIds[slug] = chartId;
     }
@@ -109,7 +83,6 @@ testWithAssets(
     const treemapKey = `CHART-${chartIds.treemap}`;
     const tableKey = `CHART-${chartIds.table}`;
 
-    // Top-level tabs live inside GRID_ID: ROOT -> GRID -> TABS -> TAB -> ROW -> CHART.
     const positionJson: Record<string, unknown> = {
       DASHBOARD_VERSION_KEY: 'v2',
       ROOT_ID: { type: 'ROOT', id: 'ROOT_ID', children: ['GRID_ID'] },
@@ -194,25 +167,21 @@ testWithAssets(
       position_json: JSON.stringify(positionJson),
     });
     expect(dashResp.ok()).toBe(true);
-    const dashBody = await dashResp.json();
-    const dashboardId: number = dashBody.result?.id ?? dashBody.id;
+    const dashboardId = await extractIdFromResponse(dashResp);
     testAssets.trackDashboard(dashboardId);
 
     for (const chartId of Object.values(chartIds)) {
-      await apiPut(page, `api/v1/chart/${chartId}`, {
+      await apiPutChart(page, chartId, {
         dashboards: [dashboardId],
       });
     }
 
-    // Render the treemap at the wide viewport first so its initial layout (which
-    // we measure against) is computed at the wide width.
     await page.setViewportSize(WIDE_VIEWPORT);
 
     const dashboard = new DashboardPage(page);
     await dashboard.gotoById(dashboardId);
     await dashboard.waitForLoad();
 
-    // Tab A is active on load; wait for its treemap to finish rendering.
     const treemapContainer = page
       .locator('[data-test-viz-type="treemap_v2"]')
       .locator('[data-test="chart-container"]');
@@ -222,55 +191,36 @@ testWithAssets(
     });
     await dashboard.waitForChartsToLoad();
 
-    const widthsAtWide = await treemapContainer.evaluate((el: HTMLElement) => ({
-      offsetWidth: el.offsetWidth,
-      scrollWidth: el.scrollWidth,
-    }));
+    const echartsHost = treemapContainer.locator('.echarts-host');
+    const widthAtWide = await echartsHost.evaluate(
+      (element: HTMLElement) => element.offsetWidth,
+    );
 
-    // Switch to Tab B (treemap becomes hidden), shrink the viewport so the
-    // available width changes while the treemap is not visible, then return.
-    await dashboard.switchToTopLevelTab(1);
+    await dashboard.dashboardTabs.clickTab('Tab B');
+    await expect
+      .poll(() => dashboard.dashboardTabs.getActiveTabName())
+      .toBe('Tab B');
     await page.setViewportSize(NARROW_VIEWPORT);
-    await dashboard.switchToTopLevelTab(0);
+    await dashboard.dashboardTabs.clickTab('Tab A');
+    await expect
+      .poll(() => dashboard.dashboardTabs.getActiveTabName())
+      .toBe('Tab A');
 
-    // Let the reveal settle, mirroring the original's fixed wait.
     await treemapContainer.waitFor({
       state: 'visible',
       timeout: TIMEOUT.API_RESPONSE,
     });
     await dashboard.waitForChartsToLoad();
 
-    // 1) The container itself reflowed to the narrower viewport synchronously on
-    //    reveal. Without this the fit assertion below could pass trivially (a
-    //    chart that never resized still has scrollWidth === offsetWidth), so this
-    //    guards against a false green where the reflow was never exercised.
-    const offsetWidthAtNarrow = await treemapContainer.evaluate(
-      (el: HTMLElement) => el.offsetWidth,
-    );
-    expect(
-      offsetWidthAtNarrow,
-      `treemap container should narrow after the viewport shrank ` +
-        `(wide=${widthsAtWide.offsetWidth}, narrow=${offsetWidthAtNarrow})`,
-    ).toBeLessThan(widthsAtWide.offsetWidth);
-
-    // 2) Once revealed, the treemap refits its container: its rendered content
-    //    fills exactly the available width with no horizontal overflow. The
-    //    echarts canvas re-measures a beat after the tab becomes visible, so we
-    //    poll until it fits. A genuine resize-on-reveal regression leaves the
-    //    chart permanently overflowing (scrollWidth > offsetWidth) and this poll
-    //    times out red; ordinary resize latency converges and it passes.
     await expect
       .poll(
         () =>
-          treemapContainer.evaluate(
-            (el: HTMLElement) => el.scrollWidth - el.offsetWidth,
-          ),
+          echartsHost.evaluate((element: HTMLElement) => element.offsetWidth),
         {
           timeout: TIMEOUT.API_RESPONSE,
-          message:
-            'treemap should refit its container (no horizontal overflow) after the tab switch',
+          message: 'treemap should resize after the hidden tab is revealed',
         },
       )
-      .toBe(0);
+      .toBeLessThan(widthAtWide);
   },
 );
