@@ -1050,7 +1050,7 @@ class TestResolveDatasourceName:
         assert result == "combined_dataset"
 
 
-def _run_sql_from_saved_query_context(extra_form_data):
+def _run_sql_from_saved_query_context(extra_form_data, datasource=None):
     """Call _sql_from_saved_query_context with schema.load/ChartDataCommand
     stubbed, and return the raw query_context_json dict that was handed to
     ChartDataQueryContextSchema.load."""
@@ -1063,9 +1063,13 @@ def _run_sql_from_saved_query_context(extra_form_data):
     chart.id = 10
     chart.slice_name = "Sales"
     chart.datasource_name = "sales"
+    chart.datasource_id = 7
+    chart.datasource_type = "query"
     chart.query_context = _json.dumps(
         {
-            "datasource": {"id": 1, "type": "table"},
+            "datasource": (
+                {"id": 1, "type": "table"} if datasource is None else datasource
+            ),
             "queries": [{"columns": ["country"], "metrics": ["count"], "filters": []}],
         }
     )
@@ -1149,6 +1153,16 @@ class TestSqlFromSavedQueryContextExtraFormData:
         query_context_json = _run_sql_from_saved_query_context(extra_form_data=None)
 
         assert query_context_json["queries"][0]["filters"] == []
+
+    def test_datasource_without_type_falls_back_to_the_chart(self):
+        """ChartDataDatasourceSchema only requires 'id', so a saved context
+        that omits 'type' is valid and must still render SQL."""
+        query_context_json = _run_sql_from_saved_query_context(
+            extra_form_data=None, datasource={"id": 1}
+        )
+
+        # id comes from the saved context; the missing type comes from the chart
+        assert query_context_json["_set_form_data_args"].args[1:] == (1, "query")
 
     def test_schema_validation_failure_uses_form_data_fallback(self, caplog):
         """A stale saved query context must not prevent form_data fallback."""

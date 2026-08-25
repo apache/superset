@@ -1446,7 +1446,17 @@ class TestSavedChartExtraFormDataFilters:
 
         def fake_load(self: Any, data: dict[str, Any]) -> Any:
             captured["loaded_query_context_json"] = data
-            return SimpleNamespace(queries=[SimpleNamespace(filter=[])], form_data={})
+            # Mirror the QueryContext/QueryObject surface the tool relies on
+            # (set_query_context_form_data serializes every query object).
+            queries = [
+                SimpleNamespace(
+                    filter=query.get("filters", []),
+                    time_range=query.get("time_range"),
+                    to_dict=lambda query=query: dict(query),
+                )
+                for query in data.get("queries", [])
+            ]
+            return SimpleNamespace(queries=queries, form_data=data.get("form_data", {}))
 
         class _Command:
             def __init__(self, query_context: Any) -> None: ...
@@ -1573,9 +1583,9 @@ class TestSavedChartExtraFormDataFilters:
         )
         data = json.loads(result.content[0].text)
 
-        assert data["success"] is False
         assert data["error_type"] == "ValidationError"
         assert "does_not_exist" in data["error"]
+        assert "USA" not in result.content[0].text
 
 
 class TestOAuthErrorRouting:

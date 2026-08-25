@@ -223,10 +223,14 @@ def _sql_from_saved_query_context(
             )
             return None
         query_context.result_type = ChartDataResultType.QUERY
+        # ChartDataDatasourceSchema only requires "id", so fall back to the
+        # chart's own datasource rather than raising on a context that the
+        # schema itself considers valid.
+        datasource_json = qc_json.get("datasource") or {}
         set_query_context_form_data(
             query_context,
-            qc_json["datasource"]["id"],
-            qc_json["datasource"]["type"],
+            datasource_json.get("id", chart.datasource_id),
+            datasource_json.get("type", chart.datasource_type),
         )
 
         command = ChartDataCommand(query_context)
