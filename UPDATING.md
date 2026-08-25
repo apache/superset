@@ -902,7 +902,7 @@ The migration is transactional (all-or-nothing) and idempotent — it can be saf
 
 ### Soft delete and restore for datasets
 
-**The soft-delete behavior in this section applies only when the `SOFT_DELETE` feature flag is enabled. The flag defaults to `False`** (`@lifecycle: development`), so on a default deployment `DELETE /api/v1/dataset/<id>` continues to **hard-delete permanently** — nothing is recoverable. Enable `SOFT_DELETE` to get the behavior described below.
+**The soft-delete behavior in this section applies only when the `SOFT_DELETE` feature flag is enabled. The flag defaults to `True`** (`@lifecycle: testing`), so on a default deployment `DELETE /api/v1/dataset/<id>` uses the recoverable soft-delete behavior described below. Setting `SOFT_DELETE` to `False` restores legacy permanent hard-delete behavior for subsequent deletes.
 
 **Flag-toggle caveat:** the soft-delete visibility filter is evaluated per query while the flag is on. If datasets are soft-deleted during a flag-on window and the flag is later turned **off**, those rows reappear as live datasets in all lists, lookups, and relationship loads (including charts that reference them). The `POST /<uuid>/restore` endpoint and the `dataset_deleted_state` list filter remain functional regardless of the flag, deliberately, so rows soft-deleted during a flag-on window stay discoverable and restorable after a rollback of the flag.
 
@@ -932,7 +932,7 @@ With the flag enabled: `DELETE /api/v1/dataset/<id>` no longer hard-deletes the 
 
 ### Soft delete and restore for charts
 
-**Everything in this section applies only when the `SOFT_DELETE` feature flag is enabled. The flag defaults to `False`** (`@lifecycle: development`), so on a default deployment `DELETE /api/v1/chart/<id>` continues to **hard-delete permanently** — nothing is recoverable. Enable `SOFT_DELETE` to get the behavior described below.
+**Everything in this section applies only when the `SOFT_DELETE` feature flag is enabled. The flag defaults to `True`** (`@lifecycle: testing`), so on a default deployment `DELETE /api/v1/chart/<id>` uses the recoverable soft-delete behavior described below. Setting `SOFT_DELETE` to `False` restores legacy permanent hard-delete behavior for subsequent deletes.
 
 **Flag-toggle caveat:** the soft-delete visibility filter is evaluated per query while the flag is on. If charts are soft-deleted during a flag-on window and the flag is later turned **off**, those rows reappear as live charts in all lists, lookups, and relationship loads (including dashboards that contained them). The `POST /<uuid>/restore` endpoint and the `chart_deleted_state` list filter remain functional regardless of the flag, deliberately, so rows soft-deleted during a flag-on window stay discoverable and restorable after a rollback of the flag.
 
@@ -956,7 +956,7 @@ With the flag enabled: `DELETE /api/v1/chart/<id>` no longer hard-deletes the ch
 
 ### Soft delete and restore for dashboards
 
-**Everything in this section applies only when the `SOFT_DELETE` feature flag is enabled. The flag defaults to `False`** (`@lifecycle: development`), so on a default deployment `DELETE /api/v1/dashboard/<id>` continues to **hard-delete permanently** — nothing is recoverable. Enable `SOFT_DELETE` to get the behavior described below.
+**Everything in this section applies only when the `SOFT_DELETE` feature flag is enabled. The flag defaults to `True`** (`@lifecycle: testing`), so on a default deployment `DELETE /api/v1/dashboard/<id>` uses the recoverable soft-delete behavior described below. Setting `SOFT_DELETE` to `False` restores legacy permanent hard-delete behavior for subsequent deletes.
 
 **Flag-toggle caveat:** the soft-delete visibility filter is evaluated per query while the flag is on. If dashboards are soft-deleted during a flag-on window and the flag is later turned **off**, those rows reappear as live dashboards in all lists and lookups (including slug lookups — if a soft-deleted dashboard's slug was reused while the flag was on, both rows become visible with the same slug). The `POST /<uuid>/restore` endpoint and the `dashboard_deleted_state` list filter remain functional regardless of the flag, deliberately, so rows soft-deleted during a flag-on window stay discoverable and restorable after a rollback of the flag.
 
