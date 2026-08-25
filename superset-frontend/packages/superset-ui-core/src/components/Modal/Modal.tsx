@@ -365,14 +365,17 @@ const CustomModal = ({
       modalRender={modal =>
         resizable || draggable ? (
           <Draggable
-            disabled={!draggable}
-            handle={draggable ? '.draggable-trigger' : undefined}
             bounds={bounds ?? false}
             onStart={(event, uiData) => onDragStart(event, uiData)}
+            {...draggableConfig}
+            // These two props are derived from `draggable` and must stay
+            // authoritative, so they're applied after the spread to
+            // prevent callers from overriding them via `draggableConfig`.
+            disabled={!draggable}
+            handle={draggable ? '.draggable-trigger' : undefined}
             // Pass nodeRef so react-draggable does not fall back to
             // ReactDOM.findDOMNode (deprecated in React 18+ Strict Mode).
             nodeRef={draggableRef}
-            {...draggableConfig}
           >
             {resizable ? (
               <Resizable className="resizable" {...getResizableConfig}>
