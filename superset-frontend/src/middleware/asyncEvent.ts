@@ -375,7 +375,6 @@ export const init = (appConfig?: AppConfig) => {
 
   if (!isFeatureEnabled(FeatureFlag.GlobalAsyncQueries)) return;
 
-  const generation = pollingGeneration;
   waitersByTaskId = new Map();
   cursor = null;
   pollingActive = false;
@@ -392,22 +391,9 @@ export const init = (appConfig?: AppConfig) => {
   currentPollDelayMs = pollingDelayMs;
   lastProgressAt = Date.now();
 
-  // Establish a baseline cursor before any chart query is triggered, so tasks
-  // created afterwards are all caught by the changed-since poll. The loop itself
-  // stays idle until the first waiter registers (ensurePolling), then stops again
-  // once every awaited task settles.
-  fetchStatusChanges({ task_type: CHART_QUERY_TASK_TYPE })
-    .then(({ cursor: baseline }) => {
-      // Seed the initial cursor only; never overwrite a value a waiter already
-      // rewound to its (older) pre-task cursor, or the poll could skip its tasks.
-      if (generation === pollingGeneration && cursor === null)
-        cursor = baseline;
-    })
-    .catch(err => {
-      // A missing baseline just means the first poll starts from "everything
-      // changed so far"; the >= cursor semantics still catch our tasks.
-      logging.warn('Failed to fetch async baseline cursor', err);
-    });
+  // Stay idle until a chart request returns 202. The 202 body includes a
+  // server-captured pre-task cursor, so polling does not need a startup
+  // baseline request.
 };
 
 init();
