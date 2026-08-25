@@ -20,8 +20,8 @@ deployments where the dashboard Excel export bucket is a native GCS bucket
 rather than S3.
 
 Set ``EXCEL_EXPORT_STORAGE["backend"] = GCSExportStorage()`` in
-``superset_config.py`` to use this instead of the default ``superset.utils.s3``
-(boto3/AWS) backend. Authentication uses Application Default Credentials (a
+``superset_config.py`` (vs ``superset.utils.s3.S3ExportStorage`` for an S3
+bucket). Authentication uses Application Default Credentials (a
 service account key, workload identity, etc.) via the standard
 ``google-cloud-storage`` resolution chain -- there is no separate credential
 config here.
@@ -35,7 +35,7 @@ from typing import Any
 
 def _get_client() -> Any:
     """Build a GCS client using Application Default Credentials."""
-    # Imported lazily, mirroring superset.utils.s3._get_s3_client: importing
+    # Imported lazily, mirroring superset.utils.s3.S3ExportStorage: importing
     # this module (which happens at config-load time if EXCEL_EXPORT_STORAGE
     # is set) should not require google-cloud-storage unless an export
     # actually runs.
