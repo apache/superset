@@ -111,7 +111,7 @@ def warm_and_release_connection(instance: Any, *relationships: str) -> None:
 
     db.session.expire_on_commit = False
     try:
-        db.session.commit()
+        db.session.commit()  # pylint: disable=consider-using-transaction
     finally:
         db.session.expire_on_commit = True
 

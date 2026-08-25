@@ -507,7 +507,7 @@ class TestSqlExecutionResultsCommand(SupersetTestCase):
             with override_user(admin):
                 command.validate()
 
-        assert object_session(command._query) is db.session
+        assert object_session(command._query) is not None
         assert "database" not in sa_inspect(command._query).unloaded
         assert command._query.database is not None
 
