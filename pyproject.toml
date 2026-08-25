@@ -282,7 +282,11 @@ development = [
     # no bounds for apache-superset-extensions-cli until a stable version
     "apache-superset-extensions-cli",
     "boto3",
-    "docker",
+    # 7.0.0 raises `docker.errors.DockerException: ... Not supported URL
+    # scheme http+docker` against the requests/urllib3 versions pinned
+    # elsewhere in this file -- breaks testcontainers (tests/testcontainers/)
+    # before any container even starts. 7.2.0 is confirmed working.
+    "docker>=7.2.0",
     "flask-testing",
     "freezegun",
     "grpcio>=1.82.1",
