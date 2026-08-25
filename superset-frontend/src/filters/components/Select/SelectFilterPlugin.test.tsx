@@ -877,6 +877,34 @@ describe('SelectFilterPlugin', () => {
     expect(await screen.findByTitle('brand-new')).toBeInTheDocument();
   });
 
+  test('says the list is capped when it hits the row limit', async () => {
+    // 3 rows of data against a limit of 3: the user is looking at a page, not
+    // at every value the column has.
+    getWrapper({ rowLimit: 3 });
+    userEvent.click(screen.getAllByRole('combobox')[0]);
+    expect(
+      await screen.findByText(/Only the first 3 values are listed/),
+    ).toBeInTheDocument();
+  });
+
+  test('offers the ways out that the filter actually supports', async () => {
+    getWrapper({ rowLimit: 3, creatable: true, searchAllOptions: true });
+    userEvent.click(screen.getAllByRole('combobox')[0]);
+    expect(
+      await screen.findByText(/Type to search all of them/),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/You can enter a value that is not listed/),
+    ).toBeInTheDocument();
+  });
+
+  test('says nothing when the whole column fits under the limit', async () => {
+    getWrapper();
+    userEvent.click(screen.getAllByRole('combobox')[0]);
+    expect(await screen.findByRole('combobox')).toBeInTheDocument();
+    expect(screen.queryByText(/Only the first/)).not.toBeInTheDocument();
+  });
+
   test('shows create option when searchAllOptions is true', async () => {
     // Server-side search returns a bounded page, so a value that exists in the
     // data can still be missing from the dropdown. Suppressing the create

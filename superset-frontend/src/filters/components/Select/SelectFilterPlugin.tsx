@@ -310,6 +310,25 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
       ? t('No data')
       : tn('%s option', '%s options', data.length, data.length);
 
+  // A capped list reads as the whole set, so a value sitting past the row
+  // limit looks like a value that does not exist. Each sentence is only added
+  // when it is actually true of this filter's configuration.
+  const rowLimit = Number(formData.rowLimit) || 0;
+  const helperText = useMemo(() => {
+    if (!rowLimit || data.length < rowLimit) {
+      return undefined;
+    }
+    return [
+      t('Only the first %s values are listed.', data.length),
+      searchAllOptions ? t('Type to search all of them.') : undefined,
+      creatable !== false
+        ? t('You can enter a value that is not listed.')
+        : undefined,
+    ]
+      .filter(Boolean)
+      .join(' ');
+  }, [creatable, data.length, rowLimit, searchAllOptions]);
+
   const formItemExtra = useMemo(() => {
     if (filterState.validateMessage) {
       return (
@@ -647,6 +666,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
               showSearch={showSearch}
               mode={multiSelect ? 'multiple' : 'single'}
               placeholder={placeholderText}
+              helperText={helperText}
               onClear={() => onSearch('')}
               onSearch={onSearch}
               onBlur={handleBlur}
