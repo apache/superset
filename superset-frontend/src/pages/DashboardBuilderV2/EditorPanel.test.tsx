@@ -34,12 +34,44 @@ const mount = () => {
   return onAdd;
 };
 
-test('the panel offers widgets, properties and an outline', () => {
+test('the panel offers data, building blocks, properties and an outline', () => {
   mount();
 
-  expect(screen.getByRole('tab', { name: 'Widgets' })).toBeInTheDocument();
+  expect(screen.getByRole('tab', { name: 'Data' })).toBeInTheDocument();
+  expect(
+    screen.getByRole('tab', { name: 'Building Blocks' }),
+  ).toBeInTheDocument();
   expect(screen.getByRole('tab', { name: 'Properties' })).toBeInTheDocument();
   expect(screen.getByRole('tab', { name: 'Outline' })).toBeInTheDocument();
+});
+
+test('data comes first, ahead of building blocks, properties and outline', () => {
+  mount();
+
+  const labels = screen.getAllByRole('tab').map(tab => tab.textContent);
+  expect(labels).toEqual(['Data', 'Building Blocks', 'Properties', 'Outline']);
+});
+
+test('the data tab shows the placeholder dataset browser', async () => {
+  mount();
+
+  await userEvent.click(screen.getByRole('tab', { name: 'Data' }));
+
+  expect(screen.getByTestId('data-panel')).toBeVisible();
+});
+
+test('selecting something while browsing data brings its properties forward too', () => {
+  mount();
+  const id = provider.addWidget(provider.getRoot().id, 0, {
+    type: 'markdown',
+  });
+
+  act(() => provider.setSelection(id));
+
+  // Outline is the one tab that sets its own selection and must not be
+  // ejected from; every other tab — including the new Data tab — follows a
+  // selection made elsewhere the same way Widgets already does.
+  expect(screen.getByTestId('inspector-identity')).toHaveTextContent(id);
 });
 
 test('widgets is what you start on, and it lists what is registered', () => {
@@ -226,12 +258,14 @@ test('the panel can be got out of the way, and brought back', async () => {
   // they were in it.
   await userEvent.click(screen.getByTestId('panel-collapse'));
 
-  expect(screen.queryByRole('tab', { name: 'Widgets' })).toBeNull();
+  expect(screen.queryByRole('tab', { name: 'Building Blocks' })).toBeNull();
   expect(screen.getByTestId('panel-expand')).toBeInTheDocument();
 
   await userEvent.click(screen.getByTestId('panel-expand'));
 
-  expect(screen.getByRole('tab', { name: 'Widgets' })).toBeInTheDocument();
+  expect(
+    screen.getByRole('tab', { name: 'Building Blocks' }),
+  ).toBeInTheDocument();
 });
 
 test('a closed panel keeps the width it was opened at', async () => {

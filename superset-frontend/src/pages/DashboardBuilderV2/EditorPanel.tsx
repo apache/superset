@@ -23,11 +23,12 @@ import { css, styled } from '@apache-superset/core/theme';
 import { Button, Tabs } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { provider, useDashboardRevision } from 'src/core/dashboard/store';
+import DataPanel from './DataPanel';
 import Inspector from './Inspector';
 import Outline from './Outline';
 import Palette from './Palette';
 
-type PanelTab = 'widgets' | 'properties' | 'outline';
+type PanelTab = 'data' | 'widgets' | 'properties' | 'outline';
 
 /**
  * How wide the panel opens, and how far it may be dragged.
@@ -163,7 +164,7 @@ export default function EditorPanel({
   const [shown, setShown] = useState(selection);
   if (selection !== shown) {
     setShown(selection);
-    if (selection !== undefined && tab === 'widgets') {
+    if (selection !== undefined && tab !== 'outline') {
       setTab('properties');
     }
   }
@@ -298,8 +299,13 @@ export default function EditorPanel({
         }}
         items={[
           {
+            key: 'data',
+            label: t('Data'),
+            children: <DataPanel />,
+          },
+          {
             key: 'widgets',
-            label: t('Widgets'),
+            label: t('Building Blocks'),
             children: <Palette onAdd={onAdd} />,
           },
           {
