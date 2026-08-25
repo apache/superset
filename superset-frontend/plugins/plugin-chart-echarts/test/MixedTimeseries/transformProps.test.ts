@@ -1516,13 +1516,13 @@ describe('weekly x-axis tick alignment', () => {
     expect(xAxis.axisLabel.hideOverlap).toBe(true);
   });
 
-  test('keeps label thinning on at 0° rotation, where showMaxLabel is active', () => {
-    // The default weekly config: unrotated labels put showMaxLabel in play,
-    // which must not override the pinned-tick thinning.
+  test('skips the showMaxLabel override at 0° rotation, unlike unpinned axes', () => {
+    // Pinned ticks already include the boundary buckets, and showMaxLabel
+    // can't reliably protect a label under hideOverlap anyway (#39899).
     const { xAxis } = transformProps(weeklyChartProps(MONDAYS, MONDAYS))
       .echartOptions as any;
 
-    expect(xAxis.axisLabel.showMaxLabel).toBe(true);
+    expect(xAxis.axisLabel.showMaxLabel).toBeUndefined();
     expect(xAxis.axisLabel.hideOverlap).toBe(true);
   });
 

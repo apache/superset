@@ -797,12 +797,17 @@ export default function transformProps(
         formatter: deduplicatedFormatter,
         rotate: xAxisLabelRotation,
         interval: xAxisLabelInterval,
-        ...(showMaxLabel && {
-          showMaxLabel: true,
-          alignMaxLabel: 'right',
-          showMinLabel: true,
-          alignMinLabel: 'left',
-        }),
+        // Skipped for pinned ticks: the boundary buckets are already real
+        // ticks there, and showMaxLabel only shields its immediate
+        // neighbour — hideOverlap can still drop it against a farther
+        // label on a crowded weekly axis, reopening #39899.
+        ...(showMaxLabel &&
+          !temporalTickValues && {
+            showMaxLabel: true,
+            alignMaxLabel: 'right',
+            showMinLabel: true,
+            alignMinLabel: 'left',
+          }),
         ...(temporalTickValues && { customValues: temporalTickValues }),
       },
       // Gridlines, when shown, follow axisTick.customValues too.

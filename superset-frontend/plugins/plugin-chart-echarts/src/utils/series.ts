@@ -987,6 +987,23 @@ export function getAxisType(
   return AxisType.Category;
 }
 
+// `new Date('2024-04-06')` parses as UTC, but ECharts' own date parser treats
+// zone-less strings as local time — mismatch would offset the pinned tick.
+const DATE_ONLY_RE = /^(\d{4})(?:-(\d{1,2})(?:-(\d{1,2}))?)?$/;
+
+function parseTemporalString(value: string): number {
+  const dateOnly = DATE_ONLY_RE.exec(value);
+  if (dateOnly) {
+    const [, year, month, day] = dateOnly;
+    return new Date(
+      Number(year),
+      Number(month || 1) - 1,
+      Number(day || 1),
+    ).getTime();
+  }
+  return new Date(value).getTime();
+}
+
 /**
  * Bucket timestamps a temporal axis should tick on, or undefined to let ECharts
  * choose.
@@ -1017,7 +1034,7 @@ export function getTemporalTickValues(
       value instanceof Date
         ? value.getTime()
         : typeof value === 'string'
-          ? new Date(value).getTime()
+          ? parseTemporalString(value)
           : Number(value ?? NaN);
     if (Number.isFinite(timestamp)) {
       values.add(timestamp);

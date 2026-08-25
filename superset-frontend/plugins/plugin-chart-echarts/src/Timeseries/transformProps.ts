@@ -1290,13 +1290,17 @@ export default function transformProps(
       // and last dates stay visible: hideOverlap can hide the last label,
       // and a min date that falls between "nice" ticks otherwise renders
       // no beginning label. Skipped when rotated to avoid phantom labels
-      // at the axis boundary.
-      ...(showMaxLabel && {
-        showMaxLabel: true,
-        alignMaxLabel: 'right',
-        showMinLabel: true,
-        alignMinLabel: 'left',
-      }),
+      // at the axis boundary. Also skipped for pinned ticks: the boundary
+      // buckets are already real ticks there, and showMaxLabel only shields
+      // its immediate neighbour — hideOverlap can still drop it against a
+      // farther label on a crowded weekly axis, reopening #39899.
+      ...(showMaxLabel &&
+        !temporalTickValues && {
+          showMaxLabel: true,
+          alignMaxLabel: 'right',
+          showMinLabel: true,
+          alignMinLabel: 'left',
+        }),
       ...(temporalTickValues && { customValues: temporalTickValues }),
     },
     // Gridlines, when shown, follow axisTick.customValues too.
