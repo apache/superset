@@ -69,7 +69,7 @@ def channel_id_for(user_id: int | None, guest_key: str | None) -> str | None:
     per-subscriber publish (``TaskDAO.get_subscriber_channels``) so a message
     published to a subscriber's channel lands on the socket whose cookie bound
     that same channel. ``user:<id>`` for an authenticated user; the guest's
-    token-derived key (already namespaced ``guest-…``) for an embedded guest;
+    token-derived key (already namespaced ``guest:<hmac>``) for an embedded guest;
     ``None`` when neither identifies a principal.
     """
     if user_id is not None:

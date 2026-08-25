@@ -26,10 +26,10 @@ def test_channel_id_for_maps_principal_identity() -> None:
     # A user id wins and maps to user:<id>; a guest key is returned verbatim
     # (already namespaced); neither identity → None (anonymous).
     assert channel_id_for(7, None) == "user:7"
-    assert channel_id_for(None, "guest-abc") == "guest-abc"
+    assert channel_id_for(None, "guest:abc") == "guest:abc"
     assert channel_id_for(None, None) is None
     # A user id takes precedence over any stray guest key.
-    assert channel_id_for(7, "guest-abc") == "user:7"
+    assert channel_id_for(7, "guest:abc") == "user:7"
 
 
 def test_channel_id_for_logged_in_user(app_context, mocker: MockerFixture) -> None:
@@ -51,9 +51,9 @@ def test_channel_id_for_guest(app_context, mocker: MockerFixture) -> None:
         return_value=object(),
     )
     mocker.patch.object(
-        channel, "get_current_guest_subscriber_key", return_value="guest-abc"
+        channel, "get_current_guest_subscriber_key", return_value="guest:abc"
     )
-    assert channel.get_channel_id() == "guest-abc"
+    assert channel.get_channel_id() == "guest:abc"
 
 
 def test_channel_id_none_for_anonymous(app_context, mocker: MockerFixture) -> None:
@@ -129,13 +129,13 @@ def test_realtime_principal_for_guest(app_context, mocker: MockerFixture) -> Non
         return_value=object(),
     )
     mocker.patch.object(
-        channel, "get_current_guest_subscriber_key", return_value="guest-abc"
+        channel, "get_current_guest_subscriber_key", return_value="guest:abc"
     )
 
     assert channel.get_realtime_principal() == {
-        "channel": "guest-abc",
+        "channel": "guest:abc",
         "principal_type": "guest",
-        "sub": "guest-abc",
+        "sub": "guest:abc",
     }
 
 

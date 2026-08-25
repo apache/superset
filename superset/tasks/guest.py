@@ -69,4 +69,4 @@ def get_current_guest_subscriber_key() -> str | None:
         message,
         hashlib.sha256,
     ).hexdigest()
-    return f"guest-{digest}"
+    return f"guest:{digest}"

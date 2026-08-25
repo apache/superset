@@ -370,16 +370,16 @@ def test_get_subscriber_channels(session_with_task: Session) -> None:
         user_id=None,
     )
     TaskDAO.add_subscriber(task.id, user_id=7)
-    TaskDAO.add_guest_subscriber(task.id, guest_key="guest-abc")
+    TaskDAO.add_guest_subscriber(task.id, guest_key="guest:abc")
 
     channels = TaskDAO.get_subscriber_channels(task.id)
 
     # A user subscriber → user:<id>; a guest subscriber → its token-derived key.
-    assert set(channels) == {"user:7", "guest-abc"}
+    assert set(channels) == {"user:7", "guest:abc"}
 
 
 def test_add_guest_subscriber_full_length_key(session_with_task: Session) -> None:
-    """A realistic guest key (``guest-`` + 64-char SHA256 hex = 70 chars) persists.
+    """A realistic guest key (``guest:`` + 64-char SHA256 hex = 70 chars) persists.
 
     Regression guard for the guest_key column width: the real key from
     superset.tasks.guest is 70 chars, so a String(64) column would error/truncate.
@@ -392,7 +392,7 @@ def test_add_guest_subscriber_full_length_key(session_with_task: Session) -> Non
         scope=TaskScope.SHARED,
         user_id=None,
     )
-    guest_key = "guest-" + "a" * 64  # mirrors superset.tasks.guest (70 chars)
+    guest_key = "guest:" + "a" * 64  # mirrors superset.tasks.guest (70 chars)
 
     assert TaskDAO.add_guest_subscriber(task.id, guest_key=guest_key) is True
 

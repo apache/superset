@@ -230,17 +230,17 @@ class TestTaskManagerPublishTaskStatus:
     ):
         task_uuid = uuid.uuid4()
         mock_dao.find_one_or_none.return_value = MagicMock(id=7)
-        mock_dao.get_subscriber_channels.return_value = ["user:1", "guest-abc"]
+        mock_dao.get_subscriber_channels.return_value = ["user:1", "guest:abc"]
 
         assert TaskManager.publish_task_status(task_uuid, "success") is True
 
         mock_dao.get_subscriber_channels.assert_called_once_with(7)
         # One publish per distinct subscriber channel, each on realtime:<channel>
         # carrying the task uuid + status (delivery is per-principal, so status is
-        # allowed here — unlike the public tier-1 nudge).
+        # allowed here, unlike the broadcast tier-1 nudge).
         assert mock_publish.call_count == 2
         channels = {call.args[0] for call in mock_publish.call_args_list}
-        assert channels == {"realtime:user:1", "realtime:guest-abc"}
+        assert channels == {"realtime:user:1", "realtime:guest:abc"}
         for call in mock_publish.call_args_list:
             assert json.loads(call.args[1]) == {
                 "task_id": str(task_uuid),

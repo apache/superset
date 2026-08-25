@@ -223,17 +223,17 @@ describe('server', () => {
     test('routes a per-principal message to a guest channel', () => {
       const ws = new wsMock('localhost');
       const send = vi.spyOn(ws, 'send');
-      server.trackClient('guest-abc', {
+      server.trackClient('guest:abc', {
         ws,
-        channel: 'guest-abc',
+        channel: 'guest:abc',
         pongTs: Date.now(),
       });
 
       const payload = { task_id: 'xyz', status: 'failure' };
-      server.routeRedisMessage('realtime:guest-abc', JSON.stringify(payload));
+      server.routeRedisMessage('realtime:guest:abc', JSON.stringify(payload));
 
       expect(send).toHaveBeenCalledWith(
-        JSON.stringify({ channel: 'realtime:guest-abc', payload }),
+        JSON.stringify({ channel: 'realtime:guest:abc', payload }),
       );
     });
 
@@ -248,9 +248,9 @@ describe('server', () => {
 
       const wsB = new wsMock('localhost');
       const sendB = vi.spyOn(wsB, 'send');
-      server.trackClient('guest-abc', {
+      server.trackClient('guest:abc', {
         ws: wsB,
-        channel: 'guest-abc',
+        channel: 'guest:abc',
         pongTs: Date.now(),
       });
 
@@ -454,7 +454,7 @@ describe('server', () => {
     });
 
     test('valid guest JWT binds the socket to its guest channel', async () => {
-      const guestChannelId = 'guest-abc';
+      const guestChannelId = 'guest:abc';
       const validToken = signRealtimeToken({
         channel: guestChannelId,
         sub: guestChannelId,

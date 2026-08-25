@@ -341,7 +341,7 @@ class TaskDAO(BaseDAO[Task]):
         listing.
 
         :param task_id: internal id of the task
-        :returns: distinct channel ids (``user:<id>`` / ``guest-<hmac>``); empty
+        :returns: distinct channel ids (``user:<id>`` / ``guest:<hmac>``); empty
             when the task has no resolvable subscribers
         """
         from superset.websocket.channel import channel_id_for

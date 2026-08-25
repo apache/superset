@@ -129,12 +129,12 @@ class TaskManager:
             )
             return False
 
-    # Per-principal (tier-2) realtime channels. Unlike the public tier-1
+    # Per-principal (tier-2) realtime channels. Unlike the broadcast tier-1
     # entity-change nudge above, a tier-2 message is fanned out to each of a
     # task's *subscribers'* channels and MAY carry task-specific detail
     # (``status``) because delivery is scoped to principals already entitled to
     # see the task. The channel id is the principal's own channel
-    # (``user:<id>`` / ``guest-<hmac>``, see ``superset.websocket.channel``);
+    # (``user:<id>`` / ``guest:<hmac>``, see ``superset.websocket.channel``);
     # the superset-websocket server routes a ``realtime:<channel_id>`` message
     # to the socket whose JWT cookie bound that channel. This lets the chart-data
     # client learn each status transition without re-polling the REST API on

@@ -54,7 +54,7 @@ The server tails two channel-prefix patterns and routes by name only:
    and re-fetch just the affected rows through the authorized API. Each client
    filters to the ids it renders.
 2. **Tier 2 — per-principal messages** (`realtime:<channel_id>`, where
-   `channel_id` is `user:<id>` or `guest-<hmac>`). Delivered **only** to sockets
+   `channel_id` is `user:<id>` or `guest:<hmac>`). Delivered **only** to sockets
    whose JWT bound that principal channel. Because delivery is scoped to a
    principal already entitled to see the entity, the payload may carry
    feature-specific detail (e.g. a task's `{task_id, status}`).
