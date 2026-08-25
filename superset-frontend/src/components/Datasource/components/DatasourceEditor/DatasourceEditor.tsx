@@ -30,13 +30,13 @@ import { connect, ConnectedProps } from 'react-redux';
 import type { AnyAction } from 'redux';
 import type { ThunkDispatch } from 'redux-thunk';
 import { Radio } from '@superset-ui/core/components/Radio';
+import { formatSpecifier } from 'd3-format';
 import {
   isFeatureEnabled,
   FeatureFlag,
   SupersetClient,
   getClientErrorObject,
   getExtensionsRegistry,
-  getNumberFormatter,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import { t } from '@apache-superset/core/translation';
@@ -828,21 +828,42 @@ function EditorsSelector({
 const ResultTable =
   extensionsRegistry.get('sqleditor.extension.resultTable') ?? FilterableTable;
 
-// D3's '%' type is a valid spec that multiplies by 100, so it never trips
-// the "Invalid format" fallback even when applied to a raw count. Parsing
-// via the same registry the chart uses excludes garbage like "foo%" that
-// merely ends in '%' without being a valid D3 spec.
+// D3's '%' and 'p' types both multiply by 100; parsed via d3-format's own
+// grammar so garbage like "foo%" is rejected rather than matched by suffix.
 export const isPercentD3Format = (d3format?: string): boolean => {
   const trimmed = d3format?.trim();
-  return (
-    !!trimmed && trimmed.endsWith('%') && !getNumberFormatter(trimmed).isInvalid
-  );
+  if (!trimmed) {
+    return false;
+  }
+  try {
+    const { type } = formatSpecifier(trimmed);
+    return type === '%' || type === 'p';
+  } catch {
+    return false;
+  }
 };
 
-// Anchored to the whole expression so a ratio like `COUNT(*) / COUNT(*)`
-// isn't misclassified as a raw count just because it starts with COUNT(.
-export const isCountExpression = (expression?: string): boolean =>
-  !!expression && /^count\([^()]*\)$/i.test(expression.trim());
+// Matches the outermost COUNT(...) call's parens by depth, so a ratio like
+// `COUNT(*) / COUNT(*)` isn't misclassified but a nested call like
+// `COUNT(DISTINCT COALESCE(a, b))` is still recognized.
+export const isCountExpression = (expression?: string): boolean => {
+  const trimmed = expression?.trim();
+  if (!trimmed || !/^count\(/i.test(trimmed) || !trimmed.endsWith(')')) {
+    return false;
+  }
+  let depth = 0;
+  for (let i = trimmed.indexOf('('); i < trimmed.length; i += 1) {
+    if (trimmed[i] === '(') {
+      depth += 1;
+    } else if (trimmed[i] === ')') {
+      depth -= 1;
+      if (depth === 0) {
+        return i === trimmed.length - 1;
+      }
+    }
+  }
+  return false;
+};
 
 function renderMetricFormatWarning(item: Record<string, any>): ReactNode {
   if (

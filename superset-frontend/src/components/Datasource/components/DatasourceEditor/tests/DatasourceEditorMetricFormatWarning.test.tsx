@@ -17,7 +17,8 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
-import { screen, userEvent, waitFor } from 'spec/helpers/testing-library';
+import { screen, userEvent } from 'spec/helpers/testing-library';
+import { Constants } from '@superset-ui/core/components';
 import { isCountExpression, isPercentD3Format } from '../DatasourceEditor';
 import {
   createProps,
@@ -40,19 +41,28 @@ afterEach(async () => {
 
 const WARNING_TEXT = /D3 format is a percentage/i;
 
-test('isCountExpression matches only a bare COUNT(...) call', () => {
+// Negative assertions must wait past TextControl's debounce, or they pass
+// before the value even commits.
+const waitPastDebounce = () =>
+  new Promise(resolve => {
+    setTimeout(resolve, Constants.FAST_DEBOUNCE + 50);
+  });
+
+test('isCountExpression matches a COUNT(...) call, including nested calls', () => {
   expect(isCountExpression('COUNT(*)')).toBe(true);
   expect(isCountExpression('count( * )')).toBe(true);
   expect(isCountExpression('COUNT(DISTINCT name)')).toBe(true);
+  expect(isCountExpression('COUNT(DISTINCT COALESCE(a, b))')).toBe(true);
   expect(isCountExpression('COUNT(*) / COUNT(*)')).toBe(false);
   expect(isCountExpression('COUNT(*) * 100')).toBe(false);
   expect(isCountExpression('SUM(num)')).toBe(false);
   expect(isCountExpression(undefined)).toBe(false);
 });
 
-test('isPercentD3Format accepts only a valid D3 percent spec', () => {
+test('isPercentD3Format accepts only a valid D3 percent/p spec', () => {
   expect(isPercentD3Format('.0%')).toBe(true);
   expect(isPercentD3Format(',.2%')).toBe(true);
+  expect(isPercentD3Format('.1p')).toBe(true);
   expect(isPercentD3Format('foo%')).toBe(false);
   expect(isPercentD3Format('.0%garbage%')).toBe(false);
   expect(isPercentD3Format(',.0f')).toBe(false);
@@ -88,9 +98,8 @@ test('does not warn for a non-percent format on a COUNT metric', async () => {
 
   await userEvent.type(await screen.findByPlaceholderText('%y/%m/%d'), ',.0f');
 
-  await waitFor(() =>
-    expect(screen.queryByText(WARNING_TEXT)).not.toBeInTheDocument(),
-  );
+  await waitPastDebounce();
+  expect(screen.queryByText(WARNING_TEXT)).not.toBeInTheDocument();
 });
 
 test('does not warn for a percent format on a non-COUNT metric', async () => {
@@ -105,9 +114,8 @@ test('does not warn for a percent format on a non-COUNT metric', async () => {
 
   await userEvent.type(await screen.findByPlaceholderText('%y/%m/%d'), '.0%');
 
-  await waitFor(() =>
-    expect(screen.queryByText(WARNING_TEXT)).not.toBeInTheDocument(),
-  );
+  await waitPastDebounce();
+  expect(screen.queryByText(WARNING_TEXT)).not.toBeInTheDocument();
 });
 
 test('does not warn for a ratio built from COUNT, e.g. COUNT(*) / COUNT(*)', async () => {
@@ -139,9 +147,8 @@ test('does not warn for a ratio built from COUNT, e.g. COUNT(*) / COUNT(*)', asy
 
   await userEvent.type(await screen.findByPlaceholderText('%y/%m/%d'), '.0%');
 
-  await waitFor(() =>
-    expect(screen.queryByText(WARNING_TEXT)).not.toBeInTheDocument(),
-  );
+  await waitPastDebounce();
+  expect(screen.queryByText(WARNING_TEXT)).not.toBeInTheDocument();
 });
 
 test('does not warn for a garbage format string that merely ends in %', async () => {
@@ -155,7 +162,6 @@ test('does not warn for a garbage format string that merely ends in %', async ()
 
   await userEvent.type(await screen.findByPlaceholderText('%y/%m/%d'), 'foo%');
 
-  await waitFor(() =>
-    expect(screen.queryByText(WARNING_TEXT)).not.toBeInTheDocument(),
-  );
+  await waitPastDebounce();
+  expect(screen.queryByText(WARNING_TEXT)).not.toBeInTheDocument();
 });
