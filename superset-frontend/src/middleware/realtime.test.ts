@@ -30,13 +30,17 @@ import {
 class FakeWebSocket {
   static instances: FakeWebSocket[] = [];
 
+  readyState = 0;
+
   onmessage: ((event: { data: string }) => void) | null = null;
 
   onclose: (() => void) | null = null;
 
   onerror: (() => void) | null = null;
 
-  close = jest.fn();
+  close = jest.fn(() => {
+    this.readyState = 3;
+  });
 
   constructor(public url: string) {
     FakeWebSocket.instances.push(this);
@@ -138,6 +142,14 @@ test('opens a socket when enabled and routes its messages to handlers', () => {
     channel: 'realtime:user:1',
     payload: { ok: true },
   });
+});
+
+test('keeps the active socket when reconnecting with the same config', () => {
+  connectRealtime(ENABLED);
+  connectRealtime(ENABLED);
+
+  expect(FakeWebSocket.instances).toHaveLength(1);
+  expect(FakeWebSocket.instances[0].close).not.toHaveBeenCalled();
 });
 
 test('reconnects after the socket closes', () => {

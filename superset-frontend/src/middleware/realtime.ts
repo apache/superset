@@ -53,6 +53,8 @@ type RealtimeConfig = {
 // server's own subscribe retry). The socket is best-effort, so a generous
 // delay is fine — each feature's poll/fetch covers the gap.
 const RECONNECT_DELAY_MS = 5000;
+const WS_CONNECTING = 0;
+const WS_OPEN = 1;
 
 let socket: WebSocket | undefined;
 let reconnectTimeoutId: number;
@@ -120,6 +122,9 @@ const openSocket = (thisGeneration: number): void => {
   ws.onerror = () => {};
 };
 
+const hasActiveSocket = (): boolean =>
+  socket?.readyState === WS_CONNECTING || socket?.readyState === WS_OPEN;
+
 const teardownSocket = (): void => {
   if (reconnectTimeoutId) clearTimeout(reconnectTimeoutId);
   if (socket) {
@@ -145,11 +150,23 @@ const teardownSocket = (): void => {
  */
 export const connectRealtime = (config?: RealtimeConfig): void => {
   const conf = config ?? getBootstrapData().common.conf;
+  const nextEnabled = Boolean(conf?.WEBSOCKET_ENABLE);
+  const nextUrl = conf?.WEBSOCKET_URL;
+
+  if (
+    started &&
+    enabled === nextEnabled &&
+    url === nextUrl &&
+    (!nextEnabled || hasActiveSocket())
+  ) {
+    return;
+  }
+
   teardownSocket();
   generation += 1;
   started = true;
-  enabled = Boolean(conf?.WEBSOCKET_ENABLE);
-  url = conf?.WEBSOCKET_URL;
+  enabled = nextEnabled;
+  url = nextUrl;
   openSocket(generation);
 };
 
