@@ -19,7 +19,7 @@ Minimal S3 helpers for uploading export artifacts and minting pre-signed URLs.
 
 Credentials and region come from the standard boto3 resolution chain (env vars,
 shared config, instance role). Operators can override client construction via
-the ``EXCEL_EXPORT_S3_CLIENT_KWARGS`` config (e.g. ``region_name`` or an
+``EXCEL_EXPORT_STORAGE["client_kwargs"]`` (e.g. ``region_name`` or an
 ``endpoint_url`` for S3-compatible stores such as MinIO/LocalStack).
 """
 
@@ -47,8 +47,8 @@ def _get_s3_client() -> Any:
             "Install it with `pip install apache-superset[excel-export]`."
         ) from ex
 
-    client_kwargs: dict[str, Any] = current_app.config.get(
-        "EXCEL_EXPORT_S3_CLIENT_KWARGS", {}
+    client_kwargs: dict[str, Any] = current_app.config["EXCEL_EXPORT_STORAGE"].get(
+        "client_kwargs", {}
     )
     return boto3.client("s3", **client_kwargs)
 

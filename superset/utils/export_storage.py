@@ -17,11 +17,12 @@
 """
 Pluggable storage backend interface for dashboard Excel export artifacts.
 
-Defining ``EXCEL_EXPORT_STORAGE`` in ``superset_config.py`` (an instance of a
-class implementing this protocol, the same pattern as ``RESULTS_BACKEND`` or
-``CUSTOM_SECURITY_MANAGER``) swaps out where the export task uploads the
-generated ``.xlsx`` and how the download redirect mints a fresh, time-limited
-URL for it. When unset, ``superset.utils.s3`` (boto3/AWS S3) is used.
+Setting ``EXCEL_EXPORT_STORAGE["backend"]`` in ``superset_config.py`` to an
+instance of a class implementing this protocol (the same "instance in
+config" pattern as ``RESULTS_BACKEND`` or ``CUSTOM_SECURITY_MANAGER``) swaps
+out where the export task uploads the generated ``.xlsx`` and how the
+download redirect mints a fresh, time-limited URL for it. When unset,
+``superset.utils.s3`` (boto3/AWS S3) is used.
 
 This module has no dependency on any storage SDK: it is safe to import (e.g.
 from ``superset/config.py``) regardless of which storage extras, if any, are
