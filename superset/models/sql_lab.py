@@ -552,6 +552,15 @@ class SavedQuery(
         }
 
     @property
+    def name(self) -> str:
+        """
+        Expose ``label`` as ``name`` so callers that treat a ``SavedQuery`` as
+        a generic datasource (e.g. chart create/update commands) can rely on
+        a uniform ``name`` attribute across all datasource types.
+        """
+        return self.label
+
+    @property
     def pop_tab_link(self) -> Markup:
         return Markup(
             f"""
