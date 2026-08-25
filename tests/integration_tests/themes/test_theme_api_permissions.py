@@ -23,7 +23,11 @@ from superset.models.core import Theme
 from superset.utils import json
 from tests.conftest import with_config
 from tests.integration_tests.base_tests import SupersetTestCase
-from tests.integration_tests.constants import ADMIN_USERNAME, GAMMA_USERNAME
+from tests.integration_tests.constants import (
+    ADMIN_USERNAME,
+    ALPHA_USERNAME,
+    GAMMA_USERNAME,
+)
 
 
 class TestThemeAPIPermissions(SupersetTestCase):
@@ -92,9 +96,11 @@ class TestThemeAPIPermissions(SupersetTestCase):
 
     @with_config({"ENABLE_UI_THEME_ADMINISTRATION": True})
     def test_non_admin_cannot_set_system_default(self):
-        """Test that non-admin users cannot set system themes"""
-        # Login as gamma user
-        self.login(GAMMA_USERNAME)
+        """Test that a non-admin user with theme write access (Alpha) still
+        cannot set system themes, since that is an admin-only action."""
+        # Login as alpha user, who has generic write access to themes but
+        # is not an admin
+        self.login(ALPHA_USERNAME)
 
         # Try to set theme as system default
         response = self.client.put(
@@ -105,6 +111,26 @@ class TestThemeAPIPermissions(SupersetTestCase):
         assert response.status_code == 403
         data = response.get_json()
         assert "Only administrators can set system themes" in data["message"]
+
+        # Verify theme is not system default
+        theme = db.session.query(Theme).filter_by(id=self.regular_theme.id).first()
+        assert theme.is_system_default is False
+
+    @with_config({"ENABLE_UI_THEME_ADMINISTRATION": True})
+    def test_gamma_cannot_write_themes(self):
+        """Test that gamma users, who only have read access to themes, are
+        rejected before reaching the admin-only check."""
+        # Login as gamma user
+        self.login(GAMMA_USERNAME)
+
+        # Try to set theme as system default
+        response = self.client.put(
+            f"/api/v1/theme/{self.regular_theme.id}/set_system_default"
+        )
+
+        # Should be forbidden at the permission layer, since gamma has no
+        # write access to themes at all
+        assert response.status_code == 403
 
         # Verify theme is not system default
         theme = db.session.query(Theme).filter_by(id=self.regular_theme.id).first()

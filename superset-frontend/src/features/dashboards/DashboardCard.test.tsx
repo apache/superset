@@ -17,10 +17,16 @@
  * under the License.
  */
 
-import { MemoryRouter } from 'react-router-dom';
+import { createMemoryHistory, type Update } from 'history';
+import { MemoryRouter, Router } from 'react-router-dom';
 import { isFeatureEnabled } from '@superset-ui/core';
 
-import { render, screen } from 'spec/helpers/testing-library';
+import {
+  render,
+  screen,
+  fireEvent,
+  within,
+} from 'spec/helpers/testing-library';
 import { SubjectType } from 'src/types/Subject';
 
 import DashboardCard from './DashboardCard';
@@ -63,6 +69,10 @@ afterAll(() => {
   mockedIsFeatureEnabled.mockClear();
 });
 
+afterEach(() => {
+  jest.restoreAllMocks();
+});
+
 beforeEach(() => {
   render(
     <MemoryRouter>
@@ -99,6 +109,43 @@ test('Renders the published status', () => {
 test('Renders the modified date', () => {
   const modifiedDateElement = screen.getByText('Modified 2 days ago');
   expect(modifiedDateElement).toBeInTheDocument();
+});
+
+test('clicking the thumbnail navigates to the dashboard exactly once', () => {
+  // The cover is a router link and the whole card is clickable, so a click on
+  // the cover used to be handled twice and pushed two identical entries, which
+  // left the Back button popping the duplicate rather than returning the user
+  // to the page they came from.
+  jest.spyOn(global, 'fetch').mockResolvedValue({
+    blob: () => Promise.resolve(new Blob([''], { type: 'image/png' })),
+  } as Response);
+  const history = createMemoryHistory({
+    initialEntries: ['/superset/welcome/'],
+  });
+  const { container } = render(
+    <Router history={history}>
+      <DashboardCard
+        dashboard={mockDashboard}
+        hasPerm={mockHasPerm}
+        bulkSelectEnabled={false}
+        loading={false}
+        showThumbnails
+        openDashboardEditModal={mockOpenDashboardEditModal}
+        saveFavoriteStatus={mockSaveFavoriteStatus}
+        favoriteStatus={false}
+        handleBulkDashboardExport={mockHandleBulkDashboardExport}
+        onDelete={mockOnDelete}
+      />
+    </Router>,
+  );
+  const navigations: string[] = [];
+  history.listen(({ action, location }: Update) =>
+    navigations.push(`${action} ${location.pathname}`),
+  );
+
+  fireEvent.click(within(container).getByRole('link'));
+
+  expect(navigations).toEqual(['PUSH /dashboard/1']);
 });
 
 describe('thumbnail URL construction', () => {
