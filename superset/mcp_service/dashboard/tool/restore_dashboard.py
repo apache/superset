@@ -36,10 +36,6 @@ from superset.mcp_service.dashboard.schemas import (
     RestoreDashboardRequest,
     RestoreDashboardResponse,
 )
-from superset.mcp_service.utils import (
-    escape_llm_context_delimiters,
-    sanitize_for_llm_context,
-)
 
 logger = logging.getLogger(__name__)
 
@@ -117,16 +113,63 @@ async def restore_dashboard(
             error_type="LookupFailed",
         )
     if not dashboard:
-        safe_id = escape_llm_context_delimiters(str(request.identifier)[:200])
-        msg = f"No dashboard found with identifier: {safe_id}."
+        display_id = str(request.identifier)[:200]
+        msg = f"No dashboard found with identifier: {display_id}."
         return RestoreDashboardResponse(success=False, error=msg, error_type="NotFound")
 
     dashboard_id = dashboard.id
-    # Dashboard titles are user-controlled; wrap before composing response
-    # text so a hostile title cannot inject prompt content into the output.
-    dashboard_name = sanitize_for_llm_context(
-        dashboard.dashboard_title, field_path=("dashboard_title",)
-    )
+
+    # The lookup above deliberately bypasses the RBAC base filter (see
+    # _find_dashboard_for_restore), so enforce the restore audience *before*
+    # composing any response that embeds the dashboard's title: without this
+    # gate, iterating identifiers would disclose the existence and exact title
+    # of dashboards the caller cannot see (the web API answers 404 for those).
+    from superset import security_manager
+    from superset.exceptions import SupersetSecurityException
+
+    try:
+        try:
+            security_manager.raise_for_editorship(dashboard)
+        except SupersetSecurityException:
+            from superset.daos.dashboard import DashboardDAO
+
+            # Distinguish "visible but not an editor" from "outside the
+            # caller's RBAC scope": the latter must be indistinguishable
+            # from a dashboard that does not exist.
+            visible = DashboardDAO.find_by_id_or_uuid(
+                str(request.identifier), skip_visibility_filter=True
+            )
+            if visible is None:
+                display_id = str(request.identifier)[:200]
+                return RestoreDashboardResponse(
+                    success=False,
+                    error=f"No dashboard found with identifier: {display_id}.",
+                    error_type="NotFound",
+                )
+            await ctx.warning(
+                "Permission denied restoring dashboard id=%s" % (dashboard_id,)
+            )
+            return RestoreDashboardResponse(
+                success=False,
+                permission_denied=True,
+                error=(
+                    f"You do not have permission to restore dashboard "
+                    f"id={dashboard_id}. Ask the user to restore it or grant "
+                    "access; do not retry."
+                ),
+                error_type="Forbidden",
+            )
+    except SQLAlchemyError:
+        _rollback()
+        logger.exception("Editorship check failed during restore_dashboard")
+        return RestoreDashboardResponse(
+            success=False,
+            error="Dashboard lookup failed due to a database error.",
+            error_type="LookupFailed",
+        )
+
+    # Dashboard titles are user-controlled and must remain exact in response text.
+    dashboard_name = dashboard.dashboard_title
 
     if dashboard.deleted_at is None:
         return RestoreDashboardResponse(

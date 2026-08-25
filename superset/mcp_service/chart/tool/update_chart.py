@@ -50,9 +50,7 @@ from superset.mcp_service.chart.schemas import (
     PerformanceMetadata,
     TableChartConfig,
     UpdateChartRequest,
-    wrap_sql_adhoc_metrics,
 )
-from superset.mcp_service.utils import escape_llm_context_delimiters
 from superset.mcp_service.utils.oauth2_utils import (
     build_oauth2_redirect_message,
     OAUTH2_CONFIG_ERROR_MESSAGE,
@@ -110,9 +108,8 @@ def _missing_config_or_name_error() -> GenerateChartResponse:
 def _wrapped_form_data_for_response(
     new_form_data: dict[str, Any] | None,
 ) -> dict[str, Any]:
-    """Wrap SQL-metric strings in form_data before LLM-facing return."""
+    """Return form data without changing SQL metric strings."""
     payload = dict(new_form_data) if new_form_data is not None else {}
-    wrap_sql_adhoc_metrics(payload)
     return payload
 
 
@@ -580,9 +577,9 @@ async def update_chart(  # noqa: C901
             chart = find_chart_by_identifier(request.identifier)
 
         if not chart:
-            safe_id = escape_llm_context_delimiters(str(request.identifier)[:200])
+            display_id = str(request.identifier)[:200]
             not_found_msg = (
-                f"No chart found with identifier: {safe_id}."
+                f"No chart found with identifier: {display_id}."
                 " Use list_charts to get valid chart IDs."
             )
             return GenerateChartResponse.model_validate(

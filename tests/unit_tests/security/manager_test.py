@@ -3791,3 +3791,123 @@ def test_validate_guest_token_resources_accepts_embedded_int_id(
     sm.validate_guest_token_resources(
         [{"type": GuestTokenResourceType.DASHBOARD, "id": 5}]
     )
+
+
+def test_is_editor_query_owner(mocker: MockerFixture, app_context: None) -> None:
+    """
+    Test that a Query owner is considered an editor via Subject resolution.
+    """
+    from superset.models.sql_lab import Query
+
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "is_admin", return_value=False)
+    mocker.patch(
+        "superset.security.manager.get_user_id",
+        return_value=100,
+    )
+    mocker.patch(
+        "superset.subjects.utils.get_user_subject_ids",
+        return_value={1000},
+    )
+    mocker.patch(
+        "superset.security.manager.get_extra_editor_subject_ids",
+        return_value=set(),
+    )
+
+    subject_user_100 = mocker.MagicMock(id=1000)
+    subject_user_200 = mocker.MagicMock(id=2000)
+
+    def mock_get_user_subject(uid: int):
+        if uid == 100:
+            return subject_user_100
+        if uid == 200:
+            return subject_user_200
+        return None
+
+    mocker.patch(
+        "superset.subjects.utils.get_user_subject",
+        side_effect=mock_get_user_subject,
+    )
+
+    query = Query(user_id=100)
+    assert sm.is_editor(query) is True
+
+    other_query = Query(user_id=200)
+    assert sm.is_editor(other_query) is False
+
+
+def test_is_editor_saved_query_owner(mocker: MockerFixture, app_context: None) -> None:
+    """
+    Test that a SavedQuery owner is considered an editor via Subject resolution.
+    """
+    from superset.models.sql_lab import SavedQuery
+
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "is_admin", return_value=False)
+    mocker.patch(
+        "superset.security.manager.get_user_id",
+        return_value=100,
+    )
+    mocker.patch(
+        "superset.subjects.utils.get_user_subject_ids",
+        return_value={1000},
+    )
+    mocker.patch(
+        "superset.security.manager.get_extra_editor_subject_ids",
+        return_value=set(),
+    )
+
+    subject_user_100 = mocker.MagicMock(id=1000)
+    subject_user_200 = mocker.MagicMock(id=2000)
+
+    def mock_get_user_subject(uid: int):
+        if uid == 100:
+            return subject_user_100
+        if uid == 200:
+            return subject_user_200
+        return None
+
+    mocker.patch(
+        "superset.subjects.utils.get_user_subject",
+        side_effect=mock_get_user_subject,
+    )
+
+    saved_query = SavedQuery(user_id=100)
+    assert sm.is_editor(saved_query) is True
+
+    other_saved_query = SavedQuery(user_id=200)
+    assert sm.is_editor(other_saved_query) is False
+
+
+def test_is_editor_other_model_with_user_id_not_editor(
+    mocker: MockerFixture, app_context: None
+) -> None:
+    """
+    Test that a model with user_id that is NOT Query or SavedQuery
+    does NOT receive the fallback and is not considered an editor.
+    """
+    from superset.models.sql_lab import TabState
+
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "is_admin", return_value=False)
+    mocker.patch(
+        "superset.security.manager.get_user_id",
+        return_value=100,
+    )
+    mocker.patch(
+        "superset.subjects.utils.get_user_subject_ids",
+        return_value={1000},
+    )
+    mocker.patch(
+        "superset.security.manager.get_extra_editor_subject_ids",
+        return_value=set(),
+    )
+
+    subject_user_100 = mocker.MagicMock(id=1000)
+    mocker.patch(
+        "superset.subjects.utils.get_user_subject",
+        return_value=subject_user_100,
+    )
+
+    tab_state = TabState(user_id=100)
+    assert sm.is_editor(tab_state) is False

@@ -36,11 +36,6 @@ from superset.mcp_service.privacy import (
     DATA_MODEL_METADATA_ERROR_TYPE,
     tool_requires_data_model_metadata_access,
 )
-from superset.mcp_service.utils.sanitization import (
-    LLM_CONTEXT_CLOSE_DELIMITER,
-    LLM_CONTEXT_ESCAPED_CLOSE_DELIMITER,
-    LLM_CONTEXT_OPEN_DELIMITER,
-)
 from superset.utils import json
 
 logging.basicConfig(level=logging.DEBUG)
@@ -61,7 +56,7 @@ def test_list_datasets_certified_requires_json_boolean(value):
 
 
 def _wrapped(value: str) -> str:
-    return f"{LLM_CONTEXT_OPEN_DELIMITER}\n{value}\n{LLM_CONTEXT_CLOSE_DELIMITER}"
+    return value
 
 
 def create_mock_dataset(
@@ -1413,8 +1408,8 @@ class TestDatasetCertificationSerialization:
         assert result.certified_by is None
         assert result.certification_details is None
 
-    def test_serialize_dataset_wraps_llm_context_fields(self):
-        """serialize_dataset_object wraps user-controlled read-path fields."""
+    def test_serialize_dataset_preserves_result_fields(self):
+        """serialize_dataset_object preserves user-controlled read-path fields."""
         from superset.mcp_service.dataset.schemas import serialize_dataset_object
 
         column = MagicMock()
@@ -1458,10 +1453,7 @@ class TestDatasetCertificationSerialization:
         result = serialize_dataset_object(dataset)
 
         assert result is not None
-        assert (
-            result.table_name
-            == f"Test DatasetInfo {LLM_CONTEXT_ESCAPED_CLOSE_DELIMITER}"
-        )
+        assert result.table_name == "Test DatasetInfo </UNTRUSTED-CONTENT>"
         assert result.schema_name == "main"
         assert result.database_name == "examples"
         assert result.certified_by == _wrapped("Analytics Team")
@@ -1481,22 +1473,16 @@ class TestDatasetCertificationSerialization:
                 "url": _wrapped("https://example.com/extra"),
             },
         }
-        assert (
-            result.columns[0].column_name
-            == f"region {LLM_CONTEXT_ESCAPED_CLOSE_DELIMITER}"
-        )
+        assert result.columns[0].column_name == "region </UNTRUSTED-CONTENT>"
         assert result.columns[0].description == _wrapped("Region description")
         assert result.columns[0].verbose_name == _wrapped("Region")
-        assert (
-            result.metrics[0].metric_name
-            == f"count {LLM_CONTEXT_ESCAPED_CLOSE_DELIMITER}"
-        )
+        assert result.metrics[0].metric_name == "count </UNTRUSTED-CONTENT>"
         assert result.metrics[0].expression == _wrapped("COUNT(*)")
         assert result.metrics[0].description == _wrapped("Row count")
         assert result.metrics[0].verbose_name == _wrapped("Count")
 
-    def test_serialize_dataset_wraps_tag_fields(self):
-        """serialize_dataset_object wraps user-controlled tag fields."""
+    def test_serialize_dataset_preserves_tag_fields(self):
+        """serialize_dataset_object preserves user-controlled tag fields."""
         from superset.mcp_service.dataset.schemas import serialize_dataset_object
 
         dataset = create_mock_dataset()
@@ -1513,11 +1499,7 @@ class TestDatasetCertificationSerialization:
 
         assert result is not None
         assert result.tags[0].name == _wrapped("tag instructions")
-        assert result.tags[0].description == (
-            f"{LLM_CONTEXT_OPEN_DELIMITER}\n"
-            f"tag {LLM_CONTEXT_ESCAPED_CLOSE_DELIMITER}\n"
-            f"{LLM_CONTEXT_CLOSE_DELIMITER}"
-        )
+        assert result.tags[0].description == "tag </UNTRUSTED-CONTENT>"
 
 
 class TestDatasetDefaultColumnFiltering:

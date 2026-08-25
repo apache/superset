@@ -65,10 +65,6 @@ from superset.mcp_service.system.schemas import (
     SubjectInfo,
     TagInfo,
 )
-from superset.mcp_service.utils import (
-    escape_llm_context_delimiters,
-    sanitize_for_llm_context,
-)
 from superset.mcp_service.utils.response_utils import humanize_timestamp
 from superset.mcp_service.utils.sanitization import (
     sanitize_filter_value,
@@ -218,11 +214,7 @@ class ChartInfo(BaseModel):
 
 
 class ChartError(MCPBaseError):
-    @field_validator("message")
-    @classmethod
-    def sanitize_error_for_llm_context(cls, value: str) -> str:
-        """Wrap error text before it is exposed to LLM context."""
-        return sanitize_for_llm_context(value, field_path=("error",))
+    pass
 
 
 class ChartCapabilities(BaseModel):
@@ -484,94 +476,6 @@ CHART_FORM_DATA_EXCLUDED_FIELD_NAMES = frozenset(
 )
 
 
-def wrap_sql_adhoc_metrics(form_data: Any) -> None:
-    """Wrap LLM-controlled SQL adhoc metric strings in-place.
-
-    ``metric``/``metrics`` are in ``CHART_FORM_DATA_EXCLUDED_FIELD_NAMES`` so
-    SIMPLE-metric content (bounded scalars) doesn't get wrapped. SQL adhoc
-    dicts carry up to 2000 chars of LLM-controlled SQL plus a 500-char label
-    that still need ``<UNTRUSTED-CONTENT>`` delimiters when echoed back.
-    """
-    if not isinstance(form_data, dict):
-        return
-    metrics = form_data.get("metrics")
-    if isinstance(metrics, list):
-        for index, metric in enumerate(metrics):
-            if isinstance(metric, dict) and metric.get("expressionType") == "SQL":
-                for key in ("sqlExpression", "label"):
-                    if isinstance(metric.get(key), str):
-                        metric[key] = sanitize_for_llm_context(
-                            metric[key],
-                            field_path=("form_data", "metrics", str(index), key),
-                        )
-    metric_singular = form_data.get("metric")
-    if (
-        isinstance(metric_singular, dict)
-        and metric_singular.get("expressionType") == "SQL"
-    ):
-        for key in ("sqlExpression", "label"):
-            if isinstance(metric_singular.get(key), str):
-                metric_singular[key] = sanitize_for_llm_context(
-                    metric_singular[key],
-                    field_path=("form_data", "metric", key),
-                )
-
-
-def sanitize_chart_info_for_llm_context(chart_info: ChartInfo) -> ChartInfo:  # noqa: C901
-    """Wrap chart read-path descriptive fields before LLM exposure."""
-    payload = chart_info.model_dump(mode="python")
-
-    for field_name in (
-        "slice_name",
-        "description",
-        "certified_by",
-        "certification_details",
-    ):
-        payload[field_name] = sanitize_for_llm_context(
-            payload.get(field_name),
-            field_path=(field_name,),
-        )
-
-    payload["datasource_name"] = escape_llm_context_delimiters(
-        payload.get("datasource_name")
-    )
-
-    if payload.get("filters") is not None:
-        payload["filters"] = sanitize_for_llm_context(
-            payload["filters"],
-            field_path=("filters",),
-            excluded_field_names=frozenset(),
-        )
-
-    if payload.get("form_data") is not None:
-        payload["form_data"] = sanitize_for_llm_context(
-            payload["form_data"],
-            field_path=("form_data",),
-            excluded_field_names=(
-                CHART_FORM_DATA_EXCLUDED_FIELD_NAMES
-                | frozenset({"cache_key", "database", "database_name", "schema"})
-            ),
-        )
-        wrap_sql_adhoc_metrics(payload["form_data"])
-
-    payload["tags"] = [
-        {
-            **tag,
-            "name": sanitize_for_llm_context(
-                tag.get("name"),
-                field_path=("tags", str(index), "name"),
-            ),
-            "description": sanitize_for_llm_context(
-                tag.get("description"),
-                field_path=("tags", str(index), "description"),
-            ),
-        }
-        for index, tag in enumerate(payload.get("tags", []))
-    ]
-
-    return ChartInfo.model_validate(payload)
-
-
 def serialize_chart_object(chart: ChartLike | None) -> ChartInfo | None:
     if not chart:
         return None
@@ -613,43 +517,39 @@ def serialize_chart_object(chart: ChartLike | None) -> ChartInfo | None:
                     "Failed to resolve display name for viz_type=%r: %s", _viz_type, exc
                 )
 
-    return sanitize_chart_info_for_llm_context(
-        ChartInfo(
-            id=chart_id,
-            slice_name=getattr(chart, "slice_name", None),
-            viz_type=_viz_type,
-            chart_type_display_name=_display_name,
-            datasource_name=getattr(chart, "datasource_name", None),
-            datasource_type=getattr(chart, "datasource_type", None),
-            url=chart_url,
-            description=getattr(chart, "description", None),
-            certified_by=getattr(chart, "certified_by", None),
-            certification_details=getattr(chart, "certification_details", None),
-            cache_timeout=getattr(chart, "cache_timeout", None),
-            form_data=chart_form_data,
-            filters=filters_info,
-            changed_on=getattr(chart, "changed_on", None),
-            changed_on_humanized=humanize_timestamp(getattr(chart, "changed_on", None)),
-            created_on=getattr(chart, "created_on", None),
-            created_on_humanized=humanize_timestamp(getattr(chart, "created_on", None)),
-            uuid=str(getattr(chart, "uuid", ""))
-            if getattr(chart, "uuid", None)
-            else None,
-            deleted_at=getattr(chart, "deleted_at", None),
-            tags=[
-                TagInfo.model_validate(tag, from_attributes=True)
-                for tag in getattr(chart, "tags", [])
-            ]
-            if getattr(chart, "tags", None)
-            else [],
-            editors=[
-                info
-                for editor in getattr(chart, "editors", [])
-                if (info := serialize_subject_object(editor)) is not None
-            ]
-            if getattr(chart, "editors", None)
-            else [],
-        )
+    return ChartInfo(
+        id=chart_id,
+        slice_name=getattr(chart, "slice_name", None),
+        viz_type=_viz_type,
+        chart_type_display_name=_display_name,
+        datasource_name=getattr(chart, "datasource_name", None),
+        datasource_type=getattr(chart, "datasource_type", None),
+        url=chart_url,
+        description=getattr(chart, "description", None),
+        certified_by=getattr(chart, "certified_by", None),
+        certification_details=getattr(chart, "certification_details", None),
+        cache_timeout=getattr(chart, "cache_timeout", None),
+        form_data=chart_form_data,
+        filters=filters_info,
+        changed_on=getattr(chart, "changed_on", None),
+        changed_on_humanized=humanize_timestamp(getattr(chart, "changed_on", None)),
+        created_on=getattr(chart, "created_on", None),
+        created_on_humanized=humanize_timestamp(getattr(chart, "created_on", None)),
+        uuid=str(getattr(chart, "uuid", "")) if getattr(chart, "uuid", None) else None,
+        deleted_at=getattr(chart, "deleted_at", None),
+        tags=[
+            TagInfo.model_validate(tag, from_attributes=True)
+            for tag in getattr(chart, "tags", [])
+        ]
+        if getattr(chart, "tags", None)
+        else [],
+        editors=[
+            info
+            for editor in getattr(chart, "editors", [])
+            if (info := serialize_subject_object(editor)) is not None
+        ]
+        if getattr(chart, "editors", None)
+        else [],
     )
 
 
@@ -818,10 +718,15 @@ class ColumnRef(UnknownFieldCheckMixin):
             "MIN",
             "MAX",
             "COUNT_DISTINCT",
-            "STDDEV",
-            "VAR",
+            "STDDEV_SAMP",
+            "VAR_SAMP",
             "MEDIAN",
             "PERCENTILE",
+            # Pre-SIP shorthand, accepted and normalized to the names above by
+            # `chart_utils.create_metric_object`; kept here so schema
+            # validation doesn't reject them before that normalization runs.
+            "STDDEV",
+            "VAR",
         ]
         | None
     ) = Field(None, description="SQL aggregate function")

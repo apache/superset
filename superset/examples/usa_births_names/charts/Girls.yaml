@@ -36,8 +36,8 @@ params:
   metrics:
   - sum__num
   row_limit: 50
+  series_limit_metric: sum__num
   time_range: '100 years ago : now'
-  timeseries_limit_metric: sum__num
   viz_type: table
 query_context: null
 slice_name: Girls

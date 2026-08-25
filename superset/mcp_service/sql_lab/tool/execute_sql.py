@@ -65,7 +65,12 @@ async def _validate_non_destructive_sql(
     with event_logger.log_context(action="mcp.execute_sql.ddl_check"):
         try:
             sql_to_check: str = request.sql
-            if request.template_params:
+            # Render whenever template_params is not None, mirroring the
+            # executor (SQLExecutor._render_sql_template), which also renders
+            # for an empty dict. A truthiness check would let destructive SQL
+            # that only appears after rendering slip past the guard when
+            # template_params={}.
+            if request.template_params is not None:
                 from superset.jinja_context import get_template_processor
 
                 tp = get_template_processor(database=database)

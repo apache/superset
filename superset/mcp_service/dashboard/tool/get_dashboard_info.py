@@ -45,7 +45,6 @@ from superset.mcp_service.dashboard.schemas import (
 )
 from superset.mcp_service.mcp_core import ModelGetInfoCore
 from superset.mcp_service.privacy import user_can_view_data_model_metadata
-from superset.mcp_service.utils import sanitize_for_llm_context
 
 logger = logging.getLogger(__name__)
 
@@ -78,16 +77,14 @@ def _apply_permalink_state(
     permalink_key: str,
     permalink_state: dict[str, object],
 ) -> DashboardInfo:
-    """Sanitize only the raw permalink fields added after serialization."""
-    payload = result.model_dump(mode="python")
-    payload["permalink_key"] = permalink_key
-    payload["filter_state"] = sanitize_for_llm_context(
-        permalink_state,
-        field_path=("filter_state",),
-        excluded_field_names=frozenset(),
+    """Attach permalink fields without changing their stored values."""
+    return result.model_copy(
+        update={
+            "permalink_key": permalink_key,
+            "filter_state": permalink_state,
+            "is_permalink_state": True,
+        }
     )
-    payload["is_permalink_state"] = True
-    return DashboardInfo.model_validate(payload)
 
 
 def _get_permalink_state(permalink_key: str) -> DashboardPermalinkValue | None:

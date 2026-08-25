@@ -131,6 +131,7 @@ from superset.utils.core import (
     DTTM_ALIAS,
     FilterOperator,
     GenericDataType,
+    get_base_axis_columns,
     get_base_axis_labels,
     get_column_name,
     get_column_names,
@@ -178,6 +179,21 @@ SERIES_LIMIT_SUBQ_ALIAS = "series_limit"
 # Offset join column suffix used for joining offset results
 OFFSET_JOIN_COLUMN_SUFFIX = "__offset_join_column_"
 
+
+def get_effective_hours_offset(
+    db_engine_spec: type["BaseEngineSpec"],
+    column_type: str | None,
+    offset_hours: int,
+    db_extra: dict[str, Any] | None = None,
+) -> int:
+    """Return the dataset offset representable by a temporal column's type."""
+    sqla_type = db_engine_spec.get_sqla_column_type(column_type, db_extra=db_extra)
+    if isinstance(sqla_type, sa.Date):
+        # int() deliberately truncates toward zero; // would turn -1h into -24h.
+        return int(offset_hours / 24) * 24
+    return offset_hours
+
+
 # Right suffix used for joining offset results
 R_SUFFIX = "__right_suffix"
 
@@ -208,6 +224,189 @@ def _as_wall_clock(series: pd.Series) -> pd.Series:
     if isinstance(series.dtype, pd.DatetimeTZDtype):
         return series.dt.tz_localize(None)
     return series
+
+
+class _TemporalColumnMetadata(NamedTuple):
+    """Temporal metadata resolved from a physical dataset column."""
+
+    is_temporal: bool = False
+    python_date_format: str | None = None
+
+
+def _get_temporal_physical_column_metadata(
+    datasource: Any, column_name: str | None
+) -> _TemporalColumnMetadata:
+    """Resolve temporal metadata using the physical column's precedence rules."""
+    if not column_name or not hasattr(datasource, "get_column"):
+        return _TemporalColumnMetadata()
+    column = datasource.get_column(column_name.strip())
+    if not column:
+        return _TemporalColumnMetadata()
+    if isinstance(column, dict):
+        declared_is_dttm = column.get("is_dttm")
+        is_temporal = (
+            bool(declared_is_dttm)
+            if declared_is_dttm is not None
+            else column.get("type_generic") == GenericDataType.TEMPORAL
+        )
+        python_date_format = column.get("python_date_format")
+    else:
+        is_temporal_property = getattr(column, "is_temporal", None)
+        if is_temporal_property is not None:
+            is_temporal = bool(is_temporal_property)
+        else:
+            declared_is_dttm = getattr(column, "is_dttm", None)
+            is_temporal = (
+                bool(declared_is_dttm)
+                if declared_is_dttm is not None
+                else getattr(column, "type_generic", None) == GenericDataType.TEMPORAL
+            )
+        python_date_format = getattr(column, "python_date_format", None)
+    return _TemporalColumnMetadata(
+        is_temporal=is_temporal,
+        python_date_format=(str(python_date_format) if python_date_format else None),
+    )
+
+
+def _temporal_axis_parse_error(column_name: str) -> QueryObjectValidationError:
+    """Build the user-facing error for an unparseable temporal join axis."""
+    return QueryObjectValidationError(
+        _(
+            "Unable to align time comparison because temporal axis "
+            "'%(column)s' contains values that cannot be parsed as datetimes. "
+            "Update the column's datetime format or choose a valid temporal "
+            "column.",
+            column=column_name,
+        )
+    )
+
+
+def _apply_temporal_join_format(
+    series: pd.Series,
+    column_name: str,
+    datetime_format: str | None,
+) -> pd.Series:
+    """Apply a dataset column's declared datetime format to working values."""
+    if not datetime_format:
+        return series
+    working_df = pd.DataFrame({column_name: series.copy()})
+    normalize_dttm_col(
+        working_df,
+        (
+            DateColumn(
+                col_label=column_name,
+                timestamp_format=datetime_format,
+            ),
+        ),
+    )
+    return working_df[column_name]
+
+
+def _parse_temporal_join_values(series: pd.Series, column_name: str) -> pd.Series:
+    """Parse working temporal values and wrap pandas parser-policy errors."""
+    if pd.api.types.is_datetime64_any_dtype(series):
+        return series
+    try:
+        return pd.to_datetime(series, errors="coerce", format="mixed")
+    except (TypeError, ValueError) as ex:
+        raise _temporal_axis_parse_error(column_name) from ex
+
+
+def _retry_temporal_join_values_at_wider_resolution(
+    series: pd.Series,
+    column_name: str,
+    datetime_format: str | None,
+) -> pd.Series:
+    """Retry valid values outside pandas' nanosecond datetime range."""
+    resolution = "ms" if datetime_format == "epoch_ms" else "s"
+    try:
+        if datetime_format and datetime_format not in {"epoch_s", "epoch_ms"}:
+            parsed_values = [
+                datetime.strptime(str(value), datetime_format)
+                if pd.notna(value)
+                else None
+                for value in series
+            ]
+        else:
+            parsed_values = series
+        converted = pd.Series(
+            pd.array(parsed_values, dtype=f"datetime64[{resolution}]"),
+            index=series.index,
+            name=series.name,
+        )
+    except (OverflowError, TypeError, ValueError) as ex:
+        raise _temporal_axis_parse_error(column_name) from ex
+    if (series.notna() & converted.isna()).any():
+        raise _temporal_axis_parse_error(column_name)
+    return converted
+
+
+def _coerce_temporal_join_series(
+    series: pd.Series,
+    column_name: str,
+    datetime_format: str | None = None,
+) -> pd.Series:
+    """Parse a temporal join series losslessly and normalize it to wall clocks."""
+    if series.isna().all():
+        return series
+
+    converted = _apply_temporal_join_format(series, column_name, datetime_format)
+    converted = _parse_temporal_join_values(converted, column_name)
+    if (series.notna() & converted.isna()).any():
+        converted = _retry_temporal_join_values_at_wider_resolution(
+            series, column_name, datetime_format
+        )
+
+    if isinstance(converted.dtype, pd.DatetimeTZDtype):
+        return converted.dt.tz_localize(None)
+    if pd.api.types.is_datetime64_any_dtype(converted):
+        return converted
+
+    def as_wall_clock(value: Any) -> pd.Timestamp:
+        if pd.isna(value):
+            return pd.NaT
+        timestamp = pd.Timestamp(value)
+        return timestamp.tz_localize(None) if timestamp.tzinfo else timestamp
+
+    return converted.map(as_wall_clock)
+
+
+def _has_multiple_utc_offsets(series: pd.Series) -> bool:
+    """Return whether every value is timezone-aware and offsets differ."""
+    utc_offsets: set[timedelta | None] = set()
+    for value in series.dropna():
+        try:
+            timestamp = pd.Timestamp(value)
+        except (TypeError, ValueError):
+            return False
+        if timestamp.tzinfo is None:
+            return False
+        utc_offsets.add(timestamp.utcoffset())
+    return len(utc_offsets) > 1
+
+
+def _shift_grainless_temporal_source(
+    source: pd.Series,
+    offset: str,
+    delta: DateOffset | None,
+) -> pd.Series:
+    """Shift a temporal join source after validating free-form anchors."""
+    if delta is None and not is_constant_human_timedelta(offset):
+        raise QueryObjectValidationError(
+            _("Time Grain must be specified when using Time Comparison.")
+        )
+    if source.isna().all():
+        return source.map(lambda value: pd.NaT)
+    if delta is not None:
+        return source + delta
+
+    def shift(value: pd.Timestamp) -> pd.Timestamp:
+        if pd.isna(value):
+            return value
+        truncated = value.floor("s").to_pydatetime()
+        return value + (get_past_or_future(offset, truncated) - truncated)
+
+    return source.map(shift)
 
 
 class CachedTimeOffset(TypedDict):
@@ -1359,6 +1558,7 @@ class QueryResult:  # pylint: disable=too-few-public-methods
         errors: Optional[list[dict[str, Any]]] = None,
         from_dttm: Optional[datetime] = None,
         to_dttm: Optional[datetime] = None,
+        sql_shifted_temporal_labels: set[str] | None = None,
     ) -> None:
         self.df = df
         self.query = query
@@ -1371,6 +1571,7 @@ class QueryResult:  # pylint: disable=too-few-public-methods
         self.errors = errors or []
         self.from_dttm = from_dttm
         self.to_dttm = to_dttm
+        self.sql_shifted_temporal_labels = sql_shifted_temporal_labels or set()
         self.sql_rowcount = len(self.df.index) if not self.df.empty else 0
 
 
@@ -1470,6 +1671,7 @@ class QueryStringExtended(NamedTuple):
     labels_expected: list[str]
     prequeries: list[str]
     sql: str
+    sql_shifted_temporal_labels: set[str]
 
 
 class SqlaQuery(NamedTuple):
@@ -1481,6 +1683,7 @@ class SqlaQuery(NamedTuple):
     labels_expected: list[str]
     prequeries: list[str]
     sqla_query: Select
+    sql_shifted_temporal_labels: set[str]
 
 
 class ExploreMixin:  # pylint: disable=too-many-public-methods
@@ -1835,6 +2038,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             labels_expected=sqlaq.labels_expected,
             prequeries=sqlaq.prequeries,
             sql=sql,
+            sql_shifted_temporal_labels=sqlaq.sql_shifted_temporal_labels,
         )
 
     def _normalize_prequery_result_type(
@@ -2039,6 +2243,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             query=sql,
             errors=errors,
             error_message=error_message,
+            sql_shifted_temporal_labels=query_str_ext.sql_shifted_temporal_labels,
         )
 
     def exc_query(self, qry: Any) -> QueryResult:
@@ -2108,6 +2313,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         df: pd.DataFrame,
         query_object: QueryObject,
         already_collected: set[str],
+        sql_shifted_temporal_labels: set[str] | None = None,
     ) -> list[DateColumn]:
         """``DateColumn`` entries that only need the dataset HOURS OFFSET (and any
         time shift) applied, for temporal columns the database already returns as
@@ -2127,6 +2333,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         ):
             return []
 
+        sql_shifted_temporal_labels = sql_shifted_temporal_labels or set()
         extra: list[DateColumn] = []
         for label in df.columns:
             if label in already_collected or label == DTTM_ALIAS:
@@ -2145,7 +2352,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 extra.append(
                     DateColumn(
                         timestamp_format=None,
-                        offset=self.offset,
+                        offset=(
+                            0 if label in sql_shifted_temporal_labels else self.offset
+                        ),
                         time_shift=query_object.time_shift,
                         col_label=label,
                     )
@@ -2153,15 +2362,22 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 already_collected.add(label)
         return extra
 
-    def normalize_df(self, df: pd.DataFrame, query_object: QueryObject) -> pd.DataFrame:
+    def normalize_df(
+        self,
+        df: pd.DataFrame,
+        query_object: QueryObject,
+        sql_shifted_temporal_labels: set[str] | None = None,
+    ) -> pd.DataFrame:
         """
         Normalize the dataframe by converting datetime columns and ensuring
         numerical metrics.
 
         :param df: The dataframe to normalize
         :param query_object: The query object with metadata about columns
+        :param sql_shifted_temporal_labels: labels already shifted in generated SQL
         :return: Normalized dataframe
         """
+        sql_shifted_temporal_labels = sql_shifted_temporal_labels or set()
         labels = self._collect_dttm_labels(query_object)
 
         # ``get_dataset_timezone`` lives on ``ExploreMixin``; datasource doubles
@@ -2173,7 +2389,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         dttm_cols = [
             DateColumn(
                 timestamp_format=fmt,
-                offset=self.offset,
+                offset=0 if label in sql_shifted_temporal_labels else self.offset,
                 time_shift=query_object.time_shift,
                 timezone=dataset_timezone,
                 col_label=label,
@@ -2185,7 +2401,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             dttm_cols.append(
                 DateColumn.get_legacy_time_column(
                     timestamp_format=self._python_date_format(query_object.granularity),
-                    offset=self.offset,
+                    offset=(
+                        0 if DTTM_ALIAS in sql_shifted_temporal_labels else self.offset
+                    ),
                     time_shift=query_object.time_shift,
                     timezone=dataset_timezone,
                 )
@@ -2193,7 +2411,10 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         dttm_cols.extend(
             self._offset_only_dttm_cols(
-                df, query_object, {col.col_label for col in dttm_cols}
+                df,
+                query_object,
+                {col.col_label for col in dttm_cols},
+                sql_shifted_temporal_labels,
             )
         )
 
@@ -2239,7 +2460,11 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         df = result.df
         if not df.empty:
             # Normalize datetime columns and metrics
-            df = self.normalize_df(df, query_object)
+            df = self.normalize_df(
+                df,
+                query_object,
+                result.sql_shifted_temporal_labels,
+            )
 
             # Process time offsets if requested
             if query_object.time_offsets:
@@ -2549,7 +2774,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             else:
                 # 1. normalize df, set dttm column
                 offset_metrics_df = self.normalize_df(
-                    offset_metrics_df, query_object_clone
+                    offset_metrics_df,
+                    query_object_clone,
+                    result.sql_shifted_temporal_labels,
                 )
 
                 # 2. rename extra query columns
@@ -2571,6 +2798,16 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             offset_dfs[offset] = offset_metrics_df
 
         if offset_dfs:
+            x_axis_columns = get_base_axis_columns(query_object.columns)
+            x_axis_expression = (
+                x_axis_columns[0].get("sqlExpression")
+                if x_axis_columns and isinstance(x_axis_columns[0], dict)
+                else None
+            )
+            x_axis_metadata = _get_temporal_physical_column_metadata(
+                self,
+                x_axis_expression if isinstance(x_axis_expression, str) else None,
+            )
             df = self.join_offset_dfs(
                 df,
                 offset_dfs,
@@ -2578,6 +2815,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 join_keys,
                 full_range=getattr(query_object, "time_compare_full_range", False),
                 x_axis_label=get_x_axis_label(query_object.columns),
+                x_axis_is_temporal=x_axis_metadata.is_temporal,
+                x_axis_datetime_format=x_axis_metadata.python_date_format,
             )
 
         return CachedTimeOffset(df=df, queries=queries, cache_keys=cache_keys)
@@ -2752,6 +2991,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         is_date_range_offset: bool,
         join_column_producer: Any,
         x_axis_label: str | None = None,
+        x_axis_is_temporal: bool = False,
+        x_axis_datetime_format: str | None = None,
     ) -> tuple[pd.DataFrame, list[str]]:
         """Determine appropriate join keys and modify DataFrames if needed."""
         if time_grain and not is_date_range_offset:
@@ -2781,7 +3022,13 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         else:
             return self._align_offset_without_time_grain(
-                df, offset_df, offset, join_keys, x_axis_label
+                df,
+                offset_df,
+                offset,
+                join_keys,
+                x_axis_label,
+                x_axis_is_temporal,
+                x_axis_datetime_format,
             )
 
     def _align_offset_without_time_grain(
@@ -2791,6 +3038,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         offset: str,
         join_keys: list[str],
         x_axis_label: str | None = None,
+        x_axis_is_temporal: bool = False,
+        x_axis_datetime_format: str | None = None,
     ) -> tuple[pd.DataFrame, list[str]]:
         """
         Determine join keys for a relative offset when no time grain is set.
@@ -2810,9 +3059,15 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         -- so the rows it returns carry the source wall clock, and matching on
         it is what aligns the two series. Re-localizing the result would only
         reintroduce the DST edge cases that wall-clock arithmetic sidesteps:
-        shifting onto a skipped or repeated local hour raises out of pandas.
-        Both sides are normalized identically, so the two readings of a
-        repeated hour still align with each other.
+        shifting onto a skipped or repeated local hour raises out of pandas. A
+        single reading of a repeated hour aligns by wall clock. Distinct raw
+        values that normalize to the same working key are rejected because
+        they would fan out the merge; the error identifies a daylight-saving
+        fold when their UTC offsets differ.
+
+        A string-backed x-axis is parsed only when its physical dataset column
+        declares temporal metadata. Its configured datetime format is applied
+        to working join values without changing the displayed columns.
 
         Month, quarter, and year offsets shift via ``DateOffset``, which clamps
         to a valid calendar day (e.g. Mar 29, 30, and 31 all shift back one
@@ -2830,14 +3085,46 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 for key in candidate_keys
                 if key in df.columns
                 and key in offset_df.columns
-                and pd.api.types.is_datetime64_any_dtype(df[key])
+                and (
+                    pd.api.types.is_datetime64_any_dtype(df[key])
+                    or (key == x_axis_label and x_axis_is_temporal)
+                )
             ),
             None,
         )
         if not temporal_join_key:
             return offset_df, join_keys
 
-        source = _as_wall_clock(df[temporal_join_key])
+        source_values = df[temporal_join_key]
+        offset_values = offset_df[temporal_join_key]
+        raw_offset_values = offset_values.copy()
+        remaining_keys = [key for key in join_keys if key != temporal_join_key]
+        raw_duplicate_mask = offset_df.duplicated(
+            subset=[temporal_join_key, *remaining_keys], keep=False
+        )
+        if x_axis_is_temporal and (
+            not pd.api.types.is_datetime64_any_dtype(source_values)
+            or not pd.api.types.is_datetime64_any_dtype(offset_values)
+        ):
+            if x_axis_datetime_format is None and any(
+                pd.api.types.is_numeric_dtype(values) and values.notna().any()
+                for values in (source_values, offset_values)
+            ):
+                # A numeric temporal axis without a declared format cannot be
+                # interpreted, so retain the pre-alignment raw-key join.
+                return offset_df, join_keys
+            source_values = _coerce_temporal_join_series(
+                source_values,
+                temporal_join_key,
+                x_axis_datetime_format,
+            )
+            offset_values = _coerce_temporal_join_series(
+                offset_values,
+                temporal_join_key,
+                x_axis_datetime_format,
+            )
+
+        source = _as_wall_clock(source_values)
 
         try:
             delta: DateOffset | None = DateOffset(**normalize_time_delta(offset))
@@ -2845,44 +3132,36 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             delta = None
 
         column_name = OFFSET_JOIN_COLUMN_SUFFIX + offset
-        if delta is not None:
-            # DateOffset addition is vectorized over the datetime column; NaT
-            # rows shift to NaT (they join to the offset series' NaT rows).
-            shifted = source + delta
-        else:
-            # Free-form offsets (e.g. "one year ago") don't match the
-            # normalize_time_delta grammar; shift with the same parser that
-            # shifted the offset query's time range. parsedatetime resolves
-            # second resolution only, so compute each row's delta from a
-            # truncated copy and apply it to the original value, preserving
-            # sub-second precision.
-            if not is_constant_human_timedelta(offset):
-                # Anchors such as "yesterday" resolve every source time within
-                # a day onto one timestamp rather than shifting each by a
-                # fixed amount, so they cannot align two series row by row:
-                # distinct timestamps would collapse onto a single join key.
-                # A time grain gives the join a truncated column to match on
-                # instead of a shifted one.
-                raise QueryObjectValidationError(
-                    _("Time Grain must be specified when using Time Comparison.")
-                )
-
-            def shift(value: pd.Timestamp) -> pd.Timestamp:
-                if pd.isna(value):
-                    return value
-                truncated = value.floor("s").to_pydatetime()
-                return value + (get_past_or_future(offset, truncated) - truncated)
-
-            shifted = source.map(shift)
+        shifted = _shift_grainless_temporal_source(source, offset, delta)
 
         # Join on string values so that mismatched key dtypes (e.g. an empty
         # offset series materializes its join keys as NaN floats) cannot break
         # the merge.
         df[column_name] = shifted.map(str)
-        offset_df[column_name] = _as_wall_clock(offset_df[temporal_join_key]).map(str)
+        offset_df[column_name] = _as_wall_clock(offset_values).map(str)
 
-        remaining_keys = [key for key in join_keys if key != temporal_join_key]
-        return offset_df, [column_name, *remaining_keys]
+        actual_join_keys = [column_name, *remaining_keys]
+        normalized_duplicate_mask = offset_df.duplicated(
+            subset=actual_join_keys, keep=False
+        )
+        introduced_duplicate_mask = normalized_duplicate_mask & ~raw_duplicate_mask
+        if introduced_duplicate_mask.any():
+            if _has_multiple_utc_offsets(raw_offset_values[normalized_duplicate_mask]):
+                message = _(
+                    "Unable to align time comparison because the offset series "
+                    "contains an ambiguous daylight-saving fold for the same "
+                    "dimensions and local time. Add a Time Grain or filter the "
+                    "source to one UTC offset."
+                )
+            else:
+                message = _(
+                    "Unable to align time comparison because the temporal axis "
+                    "contains distinct values that normalize to the same instant "
+                    "for the same dimensions. Standardize the source values or "
+                    "add a Time Grain."
+                )
+            raise QueryObjectValidationError(message)
+        return offset_df, actual_join_keys
 
     def _perform_join(
         self,
@@ -2928,6 +3207,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         join_keys: list[str],
         full_range: bool = False,
         x_axis_label: str | None = None,
+        x_axis_is_temporal: bool = False,
+        x_axis_datetime_format: str | None = None,
     ) -> pd.DataFrame:
         """
         Join offset DataFrames with the main DataFrame.
@@ -2942,6 +3223,10 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             the current day is still in progress) are preserved.
         :param x_axis_label: The query's temporal x-axis label, used to pick the
             temporal join key when no time grain is set.
+        :param x_axis_is_temporal: Whether physical-column metadata declares the
+            x-axis temporal.
+        :param x_axis_datetime_format: The physical x-axis column's configured
+            Python datetime format.
         """
         join_column_producer = app.config["TIME_GRAIN_JOIN_COLUMN_PRODUCERS"].get(
             time_grain
@@ -2964,6 +3249,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 is_date_range_offset,
                 join_column_producer,
                 x_axis_label,
+                x_axis_is_temporal,
+                x_axis_datetime_format,
             )
 
             # The full-range option is only meaningful for relative offsets aligned
@@ -3274,15 +3561,30 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         if expression_type == utils.AdhocMetricExpressionType.SIMPLE:
             aggregate: Any = metric.get("aggregate")
-            if (
-                not isinstance(aggregate, str)
-                or aggregate not in self.sqla_aggregations
-            ):
-                raise QueryObjectValidationError(_("Adhoc metric aggregate is invalid"))
             metric_column = metric.get("column") or {}
             column_name = cast(str, metric_column.get("column_name"))
             sqla_column = sa.column(column_name)
-            sqla_metric = self.sqla_aggregations[aggregate](sqla_column)
+
+            if isinstance(aggregate, str) and aggregate in self.sqla_aggregations:
+                sqla_metric = self.sqla_aggregations[aggregate](sqla_column)
+            elif isinstance(aggregate, str) and (
+                extended_func := self.db_engine_spec.get_extended_aggregation_func(
+                    aggregate
+                )
+            ):
+                sqla_metric = extended_func(sqla_column)
+            elif (
+                isinstance(aggregate, str)
+                and aggregate in utils.EXTENDED_METRIC_AGGREGATES
+            ):
+                raise QueryObjectValidationError(
+                    _(
+                        "The %(aggregate)s aggregate is not supported on this database",
+                        aggregate=aggregate,
+                    )
+                )
+            else:
+                raise QueryObjectValidationError(_("Adhoc metric aggregate is invalid"))
         elif expression_type == utils.AdhocMetricExpressionType.SQL:
             expression: Any = metric.get("sqlExpression")
             if not isinstance(expression, str) or not expression.strip():
@@ -3486,6 +3788,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         col: AdhocColumn,
         force_type_check: bool = False,
         template_processor: Optional[BaseTemplateProcessor] = None,
+        apply_dataset_offset: bool = False,
+        sql_shifted_temporal_labels: set[str] | None = None,
     ) -> tuple[ColumnElement, Optional[GenericDataType]]:
         raise NotImplementedError()
 
@@ -3670,6 +3974,12 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 dataset_timezone = None
 
         if not dataset_timezone and (offset_hours := getattr(self, "offset", 0) or 0):
+            offset_hours = get_effective_hours_offset(
+                self.db_engine_spec,
+                time_col.type,
+                offset_hours,
+                db_extra=self.db_extra,
+            )
             if start_dttm is not None:
                 start_dttm = start_dttm - timedelta(hours=offset_hours)
             if end_dttm is not None:
@@ -4039,6 +4349,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         template_kwargs["applied_filters"] = applied_template_filters
         template_processor = self.get_template_processor(**template_kwargs)
         prequeries: list[str] = []
+        sql_shifted_temporal_labels: set[str] = set()
         orderby = orderby or []
         need_groupby = bool(metrics is not None or groupby)
         metrics = metrics or []
@@ -4147,6 +4458,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 col, _unused = self.adhoc_column_to_sqla(
                     col=adhoc_columns_by_label[col],
                     template_processor=template_processor,
+                    apply_dataset_offset=True,
+                    sql_shifted_temporal_labels=sql_shifted_temporal_labels,
                 )
             elif col in metrics_by_name:
                 col = metrics_by_name[col].get_sqla_col(
@@ -4186,6 +4499,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                             time_grain=time_grain,
                             label=selected,
                             template_processor=template_processor,
+                            apply_dataset_offset=True,
+                            sql_shifted_temporal_labels=sql_shifted_temporal_labels,
                         )
                     # if groupby field equals a selected column
                     elif selected in columns_by_name:
@@ -4207,6 +4522,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     outer, _unused = self.adhoc_column_to_sqla(
                         col=selected,
                         template_processor=template_processor,
+                        apply_dataset_offset=True,
+                        sql_shifted_temporal_labels=sql_shifted_temporal_labels,
                     )
                 groupby_all_columns[outer.name] = outer
                 if (
@@ -4247,6 +4564,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     outer, _unused = self.adhoc_column_to_sqla(
                         col=selected,
                         template_processor=template_processor,
+                        apply_dataset_offset=True,
+                        sql_shifted_temporal_labels=sql_shifted_temporal_labels,
                     )
                     select_exprs.append(outer)
                     continue
@@ -4282,7 +4601,10 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
             if is_timeseries:
                 timestamp = dttm_col.get_timestamp_expression(
-                    time_grain=time_grain, template_processor=template_processor
+                    time_grain=time_grain,
+                    template_processor=template_processor,
+                    apply_dataset_offset=True,
+                    sql_shifted_temporal_labels=sql_shifted_temporal_labels,
                 )
                 # always put timestamp as the first column
                 select_exprs.insert(0, timestamp)
@@ -5091,4 +5413,5 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             labels_expected=labels_expected,
             sqla_query=qry,
             prequeries=prequeries,
+            sql_shifted_temporal_labels=sql_shifted_temporal_labels,
         )
