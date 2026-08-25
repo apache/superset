@@ -35,6 +35,7 @@ from superset.commands.chart.exceptions import (
     DashboardsNotFoundValidationError,
     DatasourceTypeUpdateRequiredValidationError,
 )
+from superset.commands.exceptions import DatasourceTypeInvalidError
 from superset.commands.utils import (
     compute_subjects,
     get_datasource_by_id,
@@ -49,6 +50,7 @@ from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.tags.models import ObjectType
 from superset.utils import json
+from superset.utils.core import DatasourceType
 from superset.utils.decorators import on_error, transaction
 from superset.versioning.changes.normalization import (
     register_matching_normalization_context,
@@ -223,6 +225,17 @@ class UpdateChartCommand(UpdateMixin, BaseCommand):
         # Validate/Populate datasource
         if datasource_id is not None:
             try:
+                # Slice.datasource only ever resolves the ``table``
+                # relationship (see Slice.datasource in
+                # superset/models/slice.py), so repointing a chart at any
+                # other datasource_type would "succeed" but leave the chart
+                # permanently unable to render. Reject those up front
+                # instead of failing later -- either at this lookup
+                # (SavedQuery/Query have no ``.name`` attribute, so
+                # accessing it below raises an unhandled AttributeError) or
+                # silently.
+                if datasource_type != DatasourceType.TABLE:
+                    raise DatasourceTypeInvalidError()
                 datasource = get_datasource_by_id(datasource_id, datasource_type)
                 self._properties["datasource_name"] = datasource.name
                 security_manager.raise_for_access(datasource=datasource)
