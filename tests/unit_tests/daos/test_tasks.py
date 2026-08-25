@@ -113,6 +113,33 @@ def test_find_by_task_key_active(session_with_task: Session) -> None:
     assert result.dependencies == []
 
 
+def test_find_one_or_none_refreshes_stale_task(session_with_task: Session) -> None:
+    """TaskDAO fetches refresh identity-map state after external-style updates."""
+    from superset.daos.tasks import TaskDAO
+
+    create_task(session_with_task, task_uuid=TASK_UUID, task_key="stale-task")
+
+    loaded = TaskDAO.find_one_or_none(uuid=TASK_UUID, skip_base_filter=True)
+    assert loaded is not None
+    assert loaded.status == TaskStatus.PENDING.value
+
+    TaskDAO.conditional_status_update(
+        task_uuid=TASK_UUID,
+        new_status=TaskStatus.IN_PROGRESS,
+        expected_status=TaskStatus.PENDING,
+        set_started_at=True,
+    )
+
+    # The atomic update uses synchronize_session=False, matching worker status
+    # transitions. Without force_fetch, the identity-map instance remains stale.
+    assert loaded.status == TaskStatus.PENDING.value
+
+    refreshed = TaskDAO.find_one_or_none(uuid=TASK_UUID, skip_base_filter=True)
+
+    assert refreshed is loaded
+    assert refreshed.status == TaskStatus.IN_PROGRESS.value
+
+
 def test_find_by_task_key_not_found(session_with_task: Session) -> None:
     """Test finding task by task_key returns None when not found"""
     from superset.daos.tasks import TaskDAO

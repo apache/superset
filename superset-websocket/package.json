@@ -1,7 +1,7 @@
 {
   "name": "superset-websocket",
   "version": "0.0.1",
-  "description": "Websocket sidecar application for Superset",
+  "description": "Websocket server application for Superset",
   "type": "module",
   "main": "dist/index.cjs",
   "scripts": {

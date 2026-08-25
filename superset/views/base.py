@@ -95,7 +95,7 @@ FRONTEND_CONF_KEYS = (
     "GLOBAL_ASYNC_QUERIES_POLLING_MAX_DELAY",
     "GLOBAL_ASYNC_QUERIES_POLLING_STALE_TIMEOUT",
     "GLOBAL_ASYNC_QUERIES_DEFAULT",
-    "ENABLE_WEBSOCKET",
+    "WEBSOCKET_ENABLE",
     "WEBSOCKET_URL",
     "SQL_VALIDATORS_BY_ENGINE",
     "SQLALCHEMY_DOCS_URL",
@@ -660,10 +660,10 @@ def common_bootstrap_payload() -> dict[str, Any]:
     locale_str = str(locale) if locale else None
     payload = dict(cached_common_bootstrap_data(utils.get_user_id(), locale_str))
     frontend_config = payload.get("conf")
-    if isinstance(frontend_config, dict) and frontend_config.get("ENABLE_WEBSOCKET"):
+    if isinstance(frontend_config, dict) and frontend_config.get("WEBSOCKET_ENABLE"):
         payload["conf"] = {
             **frontend_config,
-            "ENABLE_WEBSOCKET": can_access_realtime_notifications(),
+            "WEBSOCKET_ENABLE": can_access_realtime_notifications(),
         }
     # The language pack itself is NOT embedded in the payload: spa.html loads
     # it through the content-addressed /language_pack/<lang>/<version>/script.js

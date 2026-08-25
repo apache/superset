@@ -34,6 +34,7 @@ from superset.exceptions import SupersetException
 from superset.extensions import (
     security_manager,
 )
+from superset.tasks.ambient_context import get_context
 from superset.tasks.decorators import task
 from superset.utils.core import override_user
 
@@ -54,6 +55,7 @@ logger = logging.getLogger(__name__)
 # is no coordinator task). The atomic unit is a QueryObject, not chart-specific, so the
 # type is versioned to allow the serialization/execution contract to evolve.
 CHART_QUERY_TASK = "superset.query_object_v1"
+CACHE_KEY_PAYLOAD_KEY = "cache_key"
 
 
 def _resolve_user(user_id: int | None, guest_token: "GuestToken | None") -> User:
@@ -103,6 +105,21 @@ def _inject_contribution_totals(
             post_processing.setdefault("options", {})["contribution_totals"] = totals
 
 
+def _get_dependency_cache_key() -> str:
+    """
+    Return the cache key published by a prerequisite chart-data task.
+
+    A dependent task reaches this point only after the scheduler's all-success
+    dependency gate has passed, so prerequisite payloads are expected to contain
+    any output metadata their task body committed.
+    """
+    for payload in get_context().get_dependency_payloads():
+        cache_key = payload.get(CACHE_KEY_PAYLOAD_KEY)
+        if isinstance(cache_key, str):
+            return cache_key
+    raise SupersetException("Prerequisite task did not publish a cache key")
+
+
 # No timeout is set on these tasks yet: GTF enforces a timeout by aborting the
 # task, but chart-data queries have no abort handler to cancel the underlying
 # warehouse query, so a timeout would only mark the task failed while the query
@@ -112,7 +129,7 @@ def execute_chart_query(
     serialized_query: SerializedQuery,
     user_id: int | None = None,
     guest_token: "GuestToken | None" = None,
-    totals_cache_key: str | None = None,
+    requires_totals: bool = False,
 ) -> None:
     """Execute a single chart-data query and cache it under its query_cache_key.
 
@@ -127,10 +144,12 @@ def execute_chart_query(
         # request to read back (see get_cache_timeout).
         query_context.is_async_execution = True
         query_obj = query_context.queries[0]
-        if totals_cache_key:
-            _inject_contribution_totals(query_obj, totals_cache_key)
+        if requires_totals:
+            _inject_contribution_totals(query_obj, _get_dependency_cache_key())
         # Executes on cache miss and writes CacheRegion.DATA under query_cache_key.
-        query_context.get_df_payload_result(query_obj)
+        result = query_context.get_df_payload_result(query_obj)
+        if cache_key := result.payload.get(CACHE_KEY_PAYLOAD_KEY):
+            get_context().update_task(payload={CACHE_KEY_PAYLOAD_KEY: cache_key})
 
 
 def _query_task_cache_key(query_context: "QueryContext", index: int) -> str | None:
@@ -183,14 +202,18 @@ def submit_chart_data_query_tasks(
     queries = query_context.queries
     # Contribution queries normalize against a shared totals row. Identify the coupling
     # (this also clears the totals query's row_limit so its cache key matches the entry
-    # its dependents read) and compute the totals key up front.
+    # its dependents read).
     needs_totals, totals_idx = query_context.prepare_contribution_totals()
-    totals_key: str | None = None
-    if needs_totals and totals_idx is not None:
-        # Mirror the row_limit normalization into the raw serialized dict so the totals
-        # task caches under the same key its dependents (and the re-request) compute.
-        query_context.cache_values["queries"][totals_idx]["row_limit"] = None
-        totals_key = _query_task_cache_key(query_context, totals_idx)
+
+    query_cache_keys = [
+        _query_task_cache_key(query_context, index) for index in range(len(queries))
+    ]
+    serialized_queries = [
+        serialize_query(query_context, index) for index in range(len(queries))
+    ]
+
+    def _needs_prerequisite_totals(index: int) -> bool:
+        return totals_idx is not None and index != totals_idx and index in needs_totals
 
     def _task_name(index: int) -> str | None:
         """A human-friendly Task List label from the in-memory QueryContext.
@@ -215,12 +238,12 @@ def submit_chart_data_query_tasks(
         depends_on: "list[CoreTask | UUID | str] | None" = None,
     ) -> "Task":
         return execute_chart_query.schedule(
-            serialize_query(query_context, index),
+            serialized_queries[index],
             user_id,
             guest_token,
-            totals_key if index in needs_totals else None,
+            _needs_prerequisite_totals(index),
             options=TaskOptions(
-                task_key=_query_task_cache_key(query_context, index),
+                task_key=query_cache_keys[index],
                 task_name=_task_name(index),
                 depends_on=depends_on,
             ),
@@ -232,11 +255,9 @@ def submit_chart_data_query_tasks(
         tasks[totals_idx] = _schedule(totals_idx)
     for index in range(len(queries)):
         if index not in tasks:
-            depends_on: "list[CoreTask | UUID | str] | None" = (
-                [tasks[totals_idx]]
-                if index in needs_totals and totals_idx is not None
-                else None
-            )
+            depends_on: "list[CoreTask | UUID | str] | None" = None
+            if totals_idx is not None and _needs_prerequisite_totals(index):
+                depends_on = [tasks[totals_idx]]
             tasks[index] = _schedule(index, depends_on=depends_on)
 
     return {

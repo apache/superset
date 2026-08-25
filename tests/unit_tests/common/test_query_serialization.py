@@ -72,6 +72,26 @@ def test_serialized_query_is_json_safe() -> None:
     assert json.loads(json.dumps(payload)) == payload
 
 
+def test_serialize_query_does_not_preserve_defaulted_null_row_limit(
+    mocker: MockerFixture,
+) -> None:
+    ctx = mocker.MagicMock()
+    ctx.cache_values = {
+        "datasource": {"id": 1, "type": "table"},
+        "queries": [{"row_limit": None}],
+    }
+    ctx.queries = [mocker.MagicMock(row_limit=5000)]
+    ctx.form_data = None
+    ctx.result_type = ChartDataResultType.FULL
+    ctx.result_format = ChartDataResultFormat.JSON
+    ctx.force = False
+    ctx.custom_cache_timeout = None
+
+    payload = serialize_query(ctx, 0)
+
+    assert "preserve_null_row_limit" not in payload
+
+
 def test_load_serialized_query_rebuilds_via_factory(mocker: MockerFixture) -> None:
     factory_cls = mocker.patch(
         "superset.common.query_context_factory.QueryContextFactory"
@@ -93,3 +113,72 @@ def test_load_serialized_query_rebuilds_via_factory(mocker: MockerFixture) -> No
         force=True,
         custom_cache_timeout=42,
     )
+
+
+def test_contribution_totals_round_trip_preserves_cache_key(
+    mocker: MockerFixture,
+) -> None:
+    from superset.common.query_context_factory import QueryContextFactory
+
+    datasource = mocker.MagicMock()
+    datasource.uid = "table__1"
+    datasource.cache_timeout = None
+    datasource.changed_on = None
+    datasource.get_extra_cache_keys.return_value = []
+    datasource.database.extra = "{}"
+    datasource.database.impersonate_user = False
+    datasource.database.db_engine_spec.get_impersonation_key.return_value = None
+    mocker.patch(
+        "superset.common.query_context_factory.DatasourceDAO.get_datasource",
+        return_value=datasource,
+    )
+    mocker.patch(
+        "superset.common.query_context_processor.security_manager.get_rls_cache_key",
+        return_value=None,
+    )
+
+    contribution = {
+        "operation": "contribution",
+        "options": {
+            "columns": ["sum__num"],
+            "rename_columns": ["%sum__num"],
+        },
+    }
+    query_context = QueryContextFactory().create(
+        datasource={"id": 1, "type": "table"},
+        queries=[
+            {
+                "columns": ["state"],
+                "metrics": ["sum__num"],
+                "orderby": [],
+                "post_processing": [contribution],
+                "row_limit": 100,
+                "row_offset": 0,
+            },
+            {
+                "columns": [],
+                "metrics": ["sum__num"],
+                "orderby": [],
+                "post_processing": [],
+                "row_limit": 0,
+                "row_offset": 0,
+            },
+        ],
+        result_type=ChartDataResultType.FULL,
+        result_format=ChartDataResultFormat.JSON,
+    )
+    totals_idx = query_context.contribution_totals_idx
+
+    assert query_context.contribution_queries == [0]
+    assert totals_idx == 1
+    assert query_context.queries[totals_idx].row_limit is None
+    assert query_context.cache_values["queries"][totals_idx]["row_limit"] is None
+
+    totals_key = query_context.query_cache_key(query_context.queries[totals_idx])
+    serialized = serialize_query(query_context, totals_idx)
+    rebuilt = load_serialized_query(serialized)
+
+    assert serialized["preserve_null_row_limit"] is True
+    assert serialized["query"]["row_limit"] is None
+    assert rebuilt.queries[0].row_limit is None
+    assert rebuilt.query_cache_key(rebuilt.queries[0]) == totals_key

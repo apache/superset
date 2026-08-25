@@ -455,6 +455,11 @@ class QueryContextProcessor:
         if queries_needing_totals and totals_idx is not None:
             totals_query = self._query_context.queries[totals_idx]
             totals_query.row_limit = None
+            raw_queries = self._query_context.cache_values.get("queries", [])
+            if totals_idx < len(raw_queries) and isinstance(
+                raw_queries[totals_idx], dict
+            ):
+                raw_queries[totals_idx]["row_limit"] = None
 
         return queries_needing_totals, totals_idx
 

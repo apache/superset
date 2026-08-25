@@ -80,7 +80,7 @@ def test_common_bootstrap_payload_masks_websocket_without_realtime_permission(
 
     cached = {
         "conf": {
-            "ENABLE_WEBSOCKET": True,
+            "WEBSOCKET_ENABLE": True,
             "WEBSOCKET_URL": "ws://localhost:8080/",
         }
     }
@@ -98,8 +98,8 @@ def test_common_bootstrap_payload_masks_websocket_without_realtime_permission(
     ):
         result = common_bootstrap_payload()
 
-    assert result["conf"]["ENABLE_WEBSOCKET"] is False
-    assert cached["conf"]["ENABLE_WEBSOCKET"] is True
+    assert result["conf"]["WEBSOCKET_ENABLE"] is False
+    assert cached["conf"]["WEBSOCKET_ENABLE"] is True
 
 
 def test_common_bootstrap_payload_exposes_websocket_with_realtime_permission(
@@ -110,7 +110,7 @@ def test_common_bootstrap_payload_exposes_websocket_with_realtime_permission(
     with (
         patch(
             "superset.views.base.cached_common_bootstrap_data",
-            return_value={"conf": {"ENABLE_WEBSOCKET": True}},
+            return_value={"conf": {"WEBSOCKET_ENABLE": True}},
         ),
         patch(
             "superset.views.base.can_access_realtime_notifications",
@@ -121,7 +121,7 @@ def test_common_bootstrap_payload_exposes_websocket_with_realtime_permission(
     ):
         result = common_bootstrap_payload()
 
-    assert result["conf"]["ENABLE_WEBSOCKET"] is True
+    assert result["conf"]["WEBSOCKET_ENABLE"] is True
 
 
 def test_default_map_renderer_is_exposed_to_frontend_config() -> None:

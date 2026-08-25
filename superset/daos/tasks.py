@@ -54,6 +54,10 @@ class TaskDAO(BaseDAO[Task]):
     """
 
     base_filter = TaskFilter
+    # Task rows are cross-worker state. A Celery worker can hold a ``Task``
+    # instance while another worker commits a status transition for the same row,
+    # so TaskDAO entity lookups refresh identity-map instances by default.
+    force_fetch = True
 
     @classmethod
     def get_status(cls, task_uuid: UUID) -> str | None:
@@ -68,7 +72,7 @@ class TaskDAO(BaseDAO[Task]):
         :returns: Task status string, or None if task not found or not accessible
         """
         # Start with query on Task model so base filter can be applied
-        query = db.session.query(Task)
+        query = cls._query()
         query = cls._apply_base_filter(query)
         query = query.filter(Task.uuid == task_uuid)
 
@@ -173,7 +177,7 @@ class TaskDAO(BaseDAO[Task]):
         )
 
         # Simple single-column query with unique index
-        return db.session.query(Task).filter(Task.dedup_key == dedup_key).one_or_none()
+        return cls._query().filter(Task.dedup_key == dedup_key).one_or_none()
 
     @classmethod
     def create_task(
@@ -519,7 +523,7 @@ class TaskDAO(BaseDAO[Task]):
         """
         if not uuids:
             return []
-        return db.session.query(Task).filter(Task.uuid.in_(uuids)).all()
+        return cls._query().filter(Task.uuid.in_(uuids)).all()
 
     @classmethod
     def add_dependencies(cls, task_id: int, depends_on_task_ids: list[int]) -> None:
@@ -546,6 +550,36 @@ class TaskDAO(BaseDAO[Task]):
             len(depends_on_task_ids),
             task_id,
         )
+
+    @classmethod
+    def get_dependency_payloads(cls, task_uuid: UUID) -> list[dict[str, Any]]:
+        """
+        Return payload dictionaries for a task's prerequisite dependencies.
+
+        The query reads scalar payload columns through the dependency table so
+        task code observes committed prerequisite output without relying on
+        identity-map state from an earlier relationship load.
+
+        :param task_uuid: UUID of the dependent task
+        :returns: prerequisite payloads in dependency edge order
+        """
+        task_id = (
+            db.session.query(Task.id).filter(Task.uuid == task_uuid).scalar_subquery()
+        )
+        rows = (
+            db.session.query(Task.payload)
+            .join(TaskDependency, TaskDependency.depends_on_task_id == Task.id)
+            .filter(TaskDependency.task_id == task_id)
+            .order_by(TaskDependency.id.asc())
+            .all()
+        )
+        payloads: list[dict[str, Any]] = []
+        for (payload,) in rows:
+            try:
+                payloads.append(json.loads(payload or "{}"))
+            except (json.JSONDecodeError, TypeError):
+                payloads.append({})
+        return payloads
 
     @classmethod
     def set_properties_and_payload(

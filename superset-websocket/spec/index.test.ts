@@ -807,6 +807,16 @@ describe('server', () => {
       expect(wssUpgradeSpy).toHaveBeenCalled();
     });
 
+    test('valid upgrade with previous JWT secret', async () => {
+      const validToken = signRealtimeToken({}, config.previousJwtSecret);
+      const request = getRequest(validToken, 'http://localhost');
+
+      server.httpUpgrade(request, socket, Buffer.alloc(5));
+
+      expect(socketDestroySpy).not.toHaveBeenCalled();
+      expect(wssUpgradeSpy).toHaveBeenCalled();
+    });
+
     describe('origin validation', () => {
       afterEach(() => {
         server.opts.allowedOrigins = [];

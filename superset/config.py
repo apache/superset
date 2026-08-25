@@ -2973,10 +2973,12 @@ GLOBAL_ASYNC_QUERIES_DEFAULT = True
 # The JWT authenticates the socket connection and binds it to its channel; the
 # server delivers targeted task-status events only to matching principal
 # sockets. Set a strong random WEBSOCKET_JWT_SECRET (>= 32 bytes) in production.
+# The websocket server can be configured with a previous validation secret
+# during rotations; the Flask app always mints new cookies with the current key.
 # The websocket server validates the signed token at connection time and
 # terminates sockets after JWT expiry, so post-mint permission revocation is
 # bounded by this lifetime plus the server ping interval.
-ENABLE_WEBSOCKET = False
+WEBSOCKET_ENABLE = False
 WEBSOCKET_URL = "ws://127.0.0.1:8080/"
 WEBSOCKET_JWT_SECRET = CHANGE_ME_WEBSOCKET_JWT_SECRET
 WEBSOCKET_JWT_COOKIE_NAME = "superset-ws-token"  # noqa: S105

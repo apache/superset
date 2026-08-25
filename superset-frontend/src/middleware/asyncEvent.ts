@@ -57,7 +57,7 @@ type StatusChangesResponse = {
 export type AsyncJob = { task_ids: string[]; cursor?: string | null };
 
 type AppConfig = {
-  ENABLE_WEBSOCKET?: boolean;
+  WEBSOCKET_ENABLE?: boolean;
   WEBSOCKET_URL?: string;
   GLOBAL_ASYNC_QUERIES_POLLING_DELAY?: number;
   GLOBAL_ASYNC_QUERIES_POLLING_MAX_DELAY?: number;
@@ -98,13 +98,12 @@ let pollingActive = false;
 // A SHARED task can be deduplicated across concurrent chart requests, so each task
 // id maps to a *set* of waiters (never overwrite an earlier subscriber).
 // Initialized eagerly (not just in init()): the shared realtime socket connects
-// whenever ENABLE_WEBSOCKET — independent of GLOBAL_ASYNC_QUERIES — so the
+// whenever WEBSOCKET_ENABLE — independent of GLOBAL_ASYNC_QUERIES — so the
 // subscribed handler may run applyStatus even when async queries are off, and
 // must find a map rather than undefined.
 let waitersByTaskId: Map<string, Set<Waiter>> = new Map();
-// Server-issued watermark: fetched as a baseline at init (before any chart query
-// is triggered) so no task created afterwards is missed, then advanced by each
-// poll. Always the server's own clock, never the browser's.
+// Server-issued watermark: seeded from a chart request's 202 pre-task cursor
+// and advanced by each poll. Always the server's own clock, never the browser's.
 let cursor: string | null;
 // Incremented on every init() so an in-flight poll can detect it is stale and
 // stop instead of scheduling a second loop or mutating fresh state.
@@ -370,12 +369,11 @@ export const init = (appConfig?: AppConfig) => {
   // (Re)connect the shared realtime socket whenever the websocket transport is
   // enabled — independent of GLOBAL_ASYNC_QUERIES, since realtime list views
   // (tier-1 entity-change nudges) ride the same socket. Idempotent: a no-op when
-  // ENABLE_WEBSOCKET is false, and supersedes any prior socket otherwise.
+  // WEBSOCKET_ENABLE is false, and supersedes any prior socket otherwise.
   connectRealtime(config);
 
   if (!isFeatureEnabled(FeatureFlag.GlobalAsyncQueries)) return;
 
-  const generation = pollingGeneration;
   waitersByTaskId = new Map();
   cursor = null;
   pollingActive = false;
@@ -392,22 +390,9 @@ export const init = (appConfig?: AppConfig) => {
   currentPollDelayMs = pollingDelayMs;
   lastProgressAt = Date.now();
 
-  // Establish a baseline cursor before any chart query is triggered, so tasks
-  // created afterwards are all caught by the changed-since poll. The loop itself
-  // stays idle until the first waiter registers (ensurePolling), then stops again
-  // once every awaited task settles.
-  fetchStatusChanges({ task_type: CHART_QUERY_TASK_TYPE })
-    .then(({ cursor: baseline }) => {
-      // Seed the initial cursor only; never overwrite a value a waiter already
-      // rewound to its (older) pre-task cursor, or the poll could skip its tasks.
-      if (generation === pollingGeneration && cursor === null)
-        cursor = baseline;
-    })
-    .catch(err => {
-      // A missing baseline just means the first poll starts from "everything
-      // changed so far"; the >= cursor semantics still catch our tasks.
-      logging.warn('Failed to fetch async baseline cursor', err);
-    });
+  // Stay idle until a chart request returns 202. The 202 body includes a
+  // server-captured pre-task cursor, so polling does not need a startup
+  // baseline request.
 };
 
 init();

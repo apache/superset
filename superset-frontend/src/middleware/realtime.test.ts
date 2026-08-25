@@ -30,13 +30,17 @@ import {
 class FakeWebSocket {
   static instances: FakeWebSocket[] = [];
 
+  readyState = 0;
+
   onmessage: ((event: { data: string }) => void) | null = null;
 
   onclose: (() => void) | null = null;
 
   onerror: (() => void) | null = null;
 
-  close = jest.fn();
+  close = jest.fn(() => {
+    this.readyState = 3;
+  });
 
   constructor(public url: string) {
     FakeWebSocket.instances.push(this);
@@ -56,7 +60,7 @@ afterEach(() => {
 });
 
 const ENABLED = {
-  ENABLE_WEBSOCKET: true,
+  WEBSOCKET_ENABLE: true,
   WEBSOCKET_URL: 'ws://localhost:8080/',
 };
 
@@ -117,7 +121,7 @@ test('a throwing handler does not break other handlers', () => {
 });
 
 test('does not open a socket when disabled', () => {
-  connectRealtime({ ENABLE_WEBSOCKET: false, WEBSOCKET_URL: 'ws://x/' });
+  connectRealtime({ WEBSOCKET_ENABLE: false, WEBSOCKET_URL: 'ws://x/' });
   expect(FakeWebSocket.instances).toHaveLength(0);
 });
 
@@ -138,6 +142,14 @@ test('opens a socket when enabled and routes its messages to handlers', () => {
     channel: 'realtime:user:1',
     payload: { ok: true },
   });
+});
+
+test('keeps the active socket when reconnecting with the same config', () => {
+  connectRealtime(ENABLED);
+  connectRealtime(ENABLED);
+
+  expect(FakeWebSocket.instances).toHaveLength(1);
+  expect(FakeWebSocket.instances[0].close).not.toHaveBeenCalled();
 });
 
 test('reconnects after the socket closes', () => {

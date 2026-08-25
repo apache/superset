@@ -29,9 +29,9 @@ events out to JWT-bound socket routing keys.
 - Node.js 12+ (not tested with older versions)
 - Redis 5+
 
-To use realtime push, enable it in the Superset backend (`ENABLE_WEBSOCKET`,
+To use realtime push, enable it in the Superset backend (`WEBSOCKET_ENABLE`,
 `WEBSOCKET_URL`, `WEBSOCKET_JWT_SECRET`; see below) and run this server on the
-same host.
+same browser-visible host.
 
 ## Architecture
 
@@ -68,8 +68,10 @@ messages use the derived browser channel (`realtime:user:42` or
 When a user's browser connects, it does so over HTTP, including the JWT
 authentication cookie set by the Flask app (`WEBSOCKET_JWT_COOKIE_NAME`, default
 `superset-ws-token`). _Because authentication is cookie-based, the WebSocket
-server must run on the same host as the web application._ The server verifies
-the JWT with the shared secret (`jwtSecret` / `WEBSOCKET_JWT_SECRET`).
+server must be served from the same browser-visible host as the web
+application._ In Kubernetes this is expected to run cleanly as a separate
+Deployment/Service behind an ingress that supports WebSocket upgrades. The
+server verifies the JWT with the shared secret (`jwtSecret` / `JWT_SECRET`).
 Superset mints the token only after the request principal has `can_read` on the
 `Realtime` resource. The token carries `aud`, `iss`, `sub`, `principal_type`,
 `channel`, and `exp`; the server rejects tokens whose channel does not match the
@@ -82,6 +84,23 @@ browser tabs); all matching messages are sent to all of them. Because permission
 is checked when Superset mints the JWT and when the websocket server accepts the
 upgrade, revocation after minting is bounded by the token lifetime; the Superset
 default is 15 minutes.
+
+During websocket JWT secret rotation, the websocket service can accept both the
+current key (`jwtSecret` / `JWT_SECRET`) and one previous verify-only key
+(`previousJwtSecret` / `PREVIOUS_JWT_SECRET`). The Flask app does not need the
+previous key: it keeps minting new cookies with `WEBSOCKET_JWT_SECRET`, and any
+cookie signed by the old key is replaced on the next HTTP response. Keep the
+previous key configured on the websocket service until old cookies and open
+sockets have aged out, then remove it.
+
+The service is stateless apart from process-local live socket handles. Each
+replica subscribes to the same Redis Pub/Sub channels, receives the same lossy
+events, and forwards only to matching sockets connected to that replica. Sticky
+sessions are not required; reconnecting to another replica reuses the JWT cookie
+and binds the socket to the same principal channel. Short websocket JWT
+lifetimes keep connection lifetime bounded for pod recycling; if a pod is
+terminated before expiry, connected browsers reconnect and polling reconciles
+missed events.
 
 ### Connection Management
 
@@ -132,14 +151,14 @@ the JWT cookie uses `SameSite=None`.
 Enable realtime push in the Superset Flask app (in `superset_config.py`):
 
 ```python
-ENABLE_WEBSOCKET = True
+WEBSOCKET_ENABLE = True
 WEBSOCKET_URL = "ws://<host>:<port>/"
 WEBSOCKET_JWT_SECRET = "<a strong random secret, >= 32 bytes>"
 ```
 
 The built-in `Gamma` role receives `can_read` on `Realtime`; grant that
 permission to any additional roles that should receive websocket notifications.
-Without that permission, Superset masks `ENABLE_WEBSOCKET` to `False` for the
+Without that permission, Superset masks `WEBSOCKET_ENABLE` to `False` for the
 request and does not mint the websocket JWT cookie.
 
 Note that the WebSocket server must be run on the same hostname (different port)
@@ -149,13 +168,14 @@ Note also that `localhost` and `127.0.0.1` are not considered the same host. For
 example, if you're pointing your browser to `localhost:<port>` for Superset,
 then the WebSocket url will need to be configured as `localhost:<port>`.
 
-The following values must match between the Flask app config and this server's
-`config.json` (or its environment-variable overrides):
+The following auth values must be coordinated between the Flask app config and
+this server's `config.json` (or its environment-variable overrides):
 
-| Flask app config              | WebSocket server config       |
-| ----------------------------- | ----------------------------- |
-| `WEBSOCKET_JWT_SECRET`        | `jwtSecret` / `JWT_SECRET`    |
-| `WEBSOCKET_JWT_COOKIE_NAME`   | `jwtCookieName` / `JWT_COOKIE_NAME` |
+| Purpose                     | Flask app config            | WebSocket server config                     |
+| --------------------------- | --------------------------- | ------------------------------------------- |
+| Current signing/verify key  | `WEBSOCKET_JWT_SECRET`      | `jwtSecret` / `JWT_SECRET`                  |
+| Previous verify-only key    | not needed                  | `previousJwtSecret` / `PREVIOUS_JWT_SECRET` |
+| Cookie name                 | `WEBSOCKET_JWT_COOKIE_NAME` | `jwtCookieName` / `JWT_COOKIE_NAME`         |
 
 The Redis connection (`redis` / `REDIS_*`) must point at the same Redis instance
 Superset publishes to (`DISTRIBUTED_COORDINATION_CONFIG`). The Pub/Sub channel
@@ -200,14 +220,17 @@ an alternate entrypoint, so no separate image is required:
 ```bash
 docker run --rm -p 8080:8080 \
   -e JWT_SECRET="<same value as the app's WEBSOCKET_JWT_SECRET, >= 32 bytes>" \
+  -e PREVIOUS_JWT_SECRET="<old websocket JWT secret during rotation, optional>" \
   -e REDIS_HOST=<redis-host> \
   apache/superset:<tag> /app/docker/entrypoints/run-websocket.sh
 ```
 
 Configure it with the same environment variables as the standalone server (see
 `src/config.ts`); `JWT_SECRET` / `JWT_COOKIE_NAME` must match the Flask app's
-`WEBSOCKET_JWT_SECRET` / `WEBSOCKET_JWT_COOKIE_NAME`, and the Redis connection
-must point at the same instance as `DISTRIBUTED_COORDINATION_CONFIG`.
+`WEBSOCKET_JWT_SECRET` / `WEBSOCKET_JWT_COOKIE_NAME`,
+`PREVIOUS_JWT_SECRET` can hold the prior websocket JWT secret during rotation,
+and the Redis connection must point at the same instance as
+`DISTRIBUTED_COORDINATION_CONFIG`.
 
 With `docker compose`, start it via the opt-in `websocket` profile:
 

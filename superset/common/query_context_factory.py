@@ -56,6 +56,7 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
         result_format: ChartDataResultFormat | None = None,
         force: bool = False,
         custom_cache_timeout: int | None = None,
+        preserve_null_row_limit: bool = False,
     ) -> QueryContext:
         datasource_model_instance = None
         if datasource:
@@ -88,6 +89,7 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
                         "BaseDatasource", datasource_model_instance
                     ),
                     server_pagination=server_pagination,
+                    preserve_null_row_limit=preserve_null_row_limit,
                     **query_obj,
                 ),
             )

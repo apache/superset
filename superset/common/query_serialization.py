@@ -39,7 +39,7 @@ no custom encoder.
 
 from __future__ import annotations
 
-from typing import Any, TYPE_CHECKING, TypedDict
+from typing import Any, NotRequired, TYPE_CHECKING, TypedDict
 
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.utils.core import DatasourceDict
@@ -58,6 +58,19 @@ class SerializedQuery(TypedDict):
     result_format: str
     force: bool
     custom_cache_timeout: int | None
+    preserve_null_row_limit: NotRequired[bool]
+
+
+def _preserve_null_row_limit(
+    query_context: "QueryContext",
+    query_index: int,
+) -> bool:
+    raw_query = query_context.cache_values["queries"][query_index]
+    return (
+        "row_limit" in raw_query
+        and raw_query["row_limit"] is None
+        and query_context.queries[query_index].row_limit is None
+    )
 
 
 def serialize_query(query_context: "QueryContext", query_index: int) -> SerializedQuery:
@@ -73,7 +86,7 @@ def serialize_query(query_context: "QueryContext", query_index: int) -> Serializ
     :returns: a JSON-safe :class:`SerializedQuery`
     """
     cache_values = query_context.cache_values
-    return SerializedQuery(
+    payload = SerializedQuery(
         datasource=cache_values["datasource"],
         query=cache_values["queries"][query_index],
         form_data=query_context.form_data,
@@ -82,6 +95,9 @@ def serialize_query(query_context: "QueryContext", query_index: int) -> Serializ
         force=query_context.force,
         custom_cache_timeout=query_context.custom_cache_timeout,
     )
+    if _preserve_null_row_limit(query_context, query_index):
+        payload["preserve_null_row_limit"] = True
+    return payload
 
 
 def load_serialized_query(payload: SerializedQuery) -> "QueryContext":
@@ -97,12 +113,27 @@ def load_serialized_query(payload: SerializedQuery) -> "QueryContext":
     """
     from superset.common.query_context_factory import QueryContextFactory
 
-    return QueryContextFactory().create(
+    factory = QueryContextFactory()
+    result_type = ChartDataResultType(payload["result_type"])
+    result_format = ChartDataResultFormat(payload["result_format"])
+    if payload.get("preserve_null_row_limit"):
+        return factory.create(
+            datasource=payload["datasource"],
+            queries=[payload["query"]],
+            form_data=payload["form_data"],
+            result_type=result_type,
+            result_format=result_format,
+            force=payload["force"],
+            custom_cache_timeout=payload["custom_cache_timeout"],
+            preserve_null_row_limit=True,
+        )
+
+    return factory.create(
         datasource=payload["datasource"],
         queries=[payload["query"]],
         form_data=payload["form_data"],
-        result_type=ChartDataResultType(payload["result_type"]),
-        result_format=ChartDataResultFormat(payload["result_format"]),
+        result_type=result_type,
+        result_format=result_format,
         force=payload["force"],
         custom_cache_timeout=payload["custom_cache_timeout"],
     )

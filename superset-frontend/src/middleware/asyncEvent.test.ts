@@ -33,14 +33,14 @@ const CANCEL_ENDPOINT = 'glob:*/api/v1/task/*/cancel';
 const config = { GLOBAL_ASYNC_QUERIES_POLLING_DELAY: 20 };
 
 // Queue of status_changes responses the polling loop drains in order. The first
-// is the baseline (empty), then each poll consumes the next.
+// is an empty no-progress poll, then each poll consumes the next.
 let statusResponses: { statuses: Record<string, unknown>; cursor: string }[];
 
 const queueStatuses = (
   ...batches: Record<string, { status: string }>[]
 ): void => {
   statusResponses = [
-    { statuses: {}, cursor: '2020-01-01T00:00:00' }, // baseline
+    { statuses: {}, cursor: '2020-01-01T00:00:00' },
     ...batches.map((statuses, i) => ({
       statuses,
       cursor: `2020-01-01T00:00:0${i + 1}`,
@@ -79,6 +79,13 @@ test('re-issues the request once every query task succeeds', async () => {
 
   expect(refetch).toHaveBeenCalledTimes(1);
   expect(result).toEqual([{ rows: 1 }]);
+});
+
+test('does not poll status changes until a chart is awaiting async data', () => {
+  queueStatuses();
+  asyncEvent.init(config);
+
+  expect(fetchMock.callHistory.calls(STATUS_CHANGES_ENDPOINT)).toHaveLength(0);
 });
 
 test('waits for every task before re-issuing', async () => {
@@ -160,8 +167,7 @@ test('settles every request awaiting a deduplicated shared task', async () => {
 
 test('polls from the pre-task cursor returned in the 202', async () => {
   // The 202 carries a cursor captured before the tasks existed; the poll must
-  // use it (rewinding past the newer init baseline) so an early terminal can't
-  // be skipped.
+  // use it so an early terminal status can't be skipped.
   queueStatuses({ 'task-1': { status: 'success' } });
   asyncEvent.init(config);
 
@@ -221,7 +227,7 @@ test('restarts polling for a new job after going idle', async () => {
 });
 
 test('gives up (rejects) after the stale timeout with no progress', async () => {
-  queueStatuses(); // only the baseline — the awaited task never changes
+  queueStatuses(); // no terminal status for the awaited task
   asyncEvent.init({
     ...config,
     GLOBAL_ASYNC_QUERIES_POLLING_STALE_TIMEOUT: 40, // ms
@@ -241,8 +247,8 @@ describe('realtime WebSocket acceleration', () => {
   });
 
   test('a tier-2 message settles a waiting chart without a poll', async () => {
-    // No status batches queued (only the baseline), so completion can ONLY come
-    // from the socket message — proving the WS path settles on its own.
+    // No terminal status batches are queued, so completion can ONLY come from
+    // the socket message — proving the WS path settles on its own.
     queueStatuses();
     asyncEvent.init(config);
 
@@ -301,7 +307,7 @@ describe('realtime WebSocket acceleration', () => {
   });
 
   test('a tier-2 message is a no-op when async queries are disabled', () => {
-    // The shared socket connects whenever ENABLE_WEBSOCKET, independent of the
+    // The shared socket connects whenever WEBSOCKET_ENABLE, independent of the
     // GLOBAL_ASYNC_QUERIES flag, so a realtime message can arrive with no active
     // async flow — it must not throw (waiter registry stays an empty map).
     mockedIsFeatureEnabled.mockReturnValue(false);
