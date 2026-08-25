@@ -1093,10 +1093,8 @@ test('can remove a value that was saved earlier', async () => {
     />,
   );
 
-  // The saved value is surfaced as a selected option even though the loaded
-  // page is empty; clicking it toggles it back off.
-  userEvent.click(screen.getByRole('combobox', { name: 'Comparator option' }));
-  userEvent.click(await screen.findByTitle('Michael'));
+  // Remove it the way a user does: the tag's own close control.
+  userEvent.click(await screen.findByLabelText('close'));
 
   await waitFor(() => expect(onChange).toHaveBeenCalled());
   const [filter] = onChange.mock.calls.at(-1);

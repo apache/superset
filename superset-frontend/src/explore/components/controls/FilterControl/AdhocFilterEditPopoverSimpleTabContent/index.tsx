@@ -21,6 +21,7 @@ import {
   ChangeEvent,
   useCallback,
   useEffect,
+  useMemo,
   useState,
   useRef,
 } from 'react';
@@ -77,6 +78,30 @@ const SelectWithLabel = styled(AsyncSelect)<{ labelText: string }>`
     width: max-content;
   }
 `;
+
+// The server answers with one bounded page, not an offset window: paging would
+// need a stable ORDER BY, and ordering a high-cardinality column is the full
+// scan this search exists to avoid. A page size no response can reach keeps
+// AsyncSelect from asking for a second page.
+const COMPARATOR_PAGE_SIZE = 1_000_000;
+
+const toLabeledValue = (value: unknown): LabeledValue => ({
+  value: value as LabeledValue['value'],
+  label: optionLabel(value as null | number | boolean | string),
+});
+
+// The reverse of toLabeledValue: what AsyncSelect emits is labelled, and the
+// comparator has to be the raw value or the engine cannot render it as a
+// literal.
+const unwrapComparator = (value: unknown): unknown => {
+  if (Array.isArray(value)) {
+    return value.map(unwrapComparator);
+  }
+  if (value !== null && typeof value === 'object' && 'value' in value) {
+    return (value as LabeledValue).value;
+  }
+  return value;
+};
 
 export interface SimpleExpressionType {
   expressionType: keyof typeof ExpressionTypes;
@@ -468,37 +493,33 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
   // too. Handed a bare value it still renders, but `handleOnDeselect` then
   // compares `element.value` against entries that have no `.value`, matches
   // nothing, and the tag cannot be removed.
-  const toLabeledValue = (value: unknown): LabeledValue => ({
-    value: value as LabeledValue['value'],
-    label: optionLabel(value as null | number | boolean | string),
-  });
+  //
+  // Memoised because AsyncSelect resets its internal selection whenever the
+  // identity of `value` changes. A fresh array every render would wipe out
+  // each pick as soon as it was made.
+  const comparatorSelectValue = useMemo(
+    () =>
+      Array.isArray(comparator)
+        ? comparator.map(toLabeledValue)
+        : isDefined(comparator) && comparator !== ''
+          ? toLabeledValue(comparator)
+          : undefined,
+    [comparator],
+  );
 
-  const comparatorSelectValue = Array.isArray(comparator)
-    ? comparator.map(toLabeledValue)
-    : isDefined(comparator) && comparator !== ''
-      ? toLabeledValue(comparator)
-      : undefined;
-
-  // The reverse: what comes back out is labelled, and the comparator has to be
-  // the raw value or the engine cannot render it as a literal.
-  const unwrapComparator = (value: unknown): unknown => {
-    if (Array.isArray(value)) {
-      return value.map(unwrapComparator);
-    }
-    if (value !== null && typeof value === 'object' && 'value' in value) {
-      return (value as LabeledValue).value;
-    }
-    return value;
-  };
-
-  const handleComparatorChange = (value: unknown) => {
-    onComparatorChange(unwrapComparator(value) as string);
-  };
+  const handleComparatorChange = useCallback(
+    (value: unknown) => {
+      onComparatorChange(unwrapComparator(value) as string);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [props.adhocFilter, props.onChange],
+  );
 
   const comparatorSelectProps = {
     allowClear: true,
     allowNewOptions: true,
     ariaLabel: t('Comparator option'),
+    pageSize: COMPARATOR_PAGE_SIZE,
     // A capped list reads as the whole set unless it says otherwise, so an
     // absent value looks like a value that does not exist. Only shown when the
     // list is actually cut short.
@@ -547,16 +568,16 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
     props.adhocFilter.operatorId === Operators.ContainsAny ||
     props.adhocFilter.operatorId === Operators.ContainsAll;
 
+  // AsyncSelect throws away every loaded option when the identity of its
+  // `options` callback changes, so this depends on plain values rather than on
+  // `props.datasource`, whose identity the parent does not guarantee.
+  const datasourceType = props.datasource?.type;
+  const datasourceId = props.datasource?.id;
+
   const loadComparatorOptions = useCallback(
     async (search: string): Promise<SelectOptionsTypePage> => {
-      const { datasource } = props;
-      const col = props.adhocFilter.subject;
-      if (
-        !col ||
-        typeof col !== 'string' ||
-        !datasource?.filter_select ||
-        props.adhocFilter.clause === Clauses.Having
-      ) {
+      const col = subjectString;
+      if (!col || !canSuggestComparatorValues) {
         return { data: [], totalCount: 0 };
       }
 
@@ -572,7 +593,7 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
       try {
         const { json } = await SupersetClient.get({
           endpoint:
-            `/api/v1/datasource/${datasource.type}/${datasource.id}` +
+            `/api/v1/datasource/${datasourceType}/${datasourceId}` +
             `/column/${encodeURIComponent(col)}/values/${query ? `?${query}` : ''}`,
         });
         const data = json.result.map((suggestion: unknown) => {
@@ -597,28 +618,32 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
         setLoadedOptionCount(data.length);
         setOptionsTruncated(isDefined(json.limit) && data.length >= json.limit);
 
-        // The server returns a single bounded page rather than an offset
-        // window: paging would need a stable ORDER BY, and ordering a
-        // high-cardinality column is exactly the full scan this search is
-        // meant to avoid. Reporting the page size as the total stops
-        // AsyncSelect from asking for a second page that cannot be answered
-        // consistently.
-        return { data, totalCount: data.length };
+        // The count has to exceed what was returned. AsyncSelect treats
+        // `loaded >= totalCount` as "that is every value", sets allValuesLoaded
+        // and from then on serves searches by filtering the loaded page
+        // client-side -- which is the behaviour this whole change exists to
+        // replace. Pagination is held off by COMPARATOR_PAGE_SIZE instead.
+        return { data, totalCount: data.length + 1 };
       } catch {
         setLoadedOptionCount(0);
         setOptionsTruncated(false);
         return { data: [], totalCount: 0 };
       }
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [props.datasource, props.adhocFilter.subject, arrayElements],
+    [
+      subjectString,
+      canSuggestComparatorValues,
+      datasourceType,
+      datasourceId,
+      arrayElements,
+    ],
   );
 
   // Options are cached per search term inside AsyncSelect; a different column
   // or a switch to element-level suggestions invalidates all of them.
   useEffect(() => {
     comparatorSelectRef.current?.clearCache();
-  }, [props.adhocFilter.subject, arrayElements]);
+  }, [subjectString, arrayElements]);
 
   useEffect(() => {
     if (isFeatureEnabled(FeatureFlag.EnableAdvancedDataTypes)) {
