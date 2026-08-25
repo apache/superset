@@ -376,26 +376,34 @@ def test_convert_query_object_filter_in(mock_datasource: MagicMock) -> None:
     }
 
 
-def test_convert_query_object_filter_ilike_rejected(
+def test_convert_query_object_filter_ilike(
     mock_datasource: MagicMock,
 ) -> None:
     """
-    Case-insensitive operators are rejected explicitly rather than silently
-    collapsed into LIKE — that collapse would let the backend's collation
-    decide case sensitivity, silently diverging from the filter the dashboard
-    author selected.
+    Case-insensitive operators map through to the provider, which resolves
+    them per its own collation rules. Providers unable to express ILIKE should
+    advertise that through a SemanticViewFeature rather than having the mapper
+    reject the operator for every provider.
     """
     all_dimensions = {
         dim.name: dim for dim in mock_datasource.implementation.dimensions
     }
-    for op in (FilterOperator.ILIKE.value, FilterOperator.NOT_ILIKE.value):
+    for op, expected in (
+        (FilterOperator.ILIKE.value, Operator.ILIKE),
+        (FilterOperator.NOT_ILIKE.value, Operator.NOT_ILIKE),
+    ):
         filter_: ValidatedQueryObjectFilterClause = {
             "op": op,
             "col": "category",
             "val": "%book%",
         }
-        with pytest.raises(ValueError, match="case-insensitive"):
-            _convert_query_object_filter(filter_, all_dimensions)
+        result = _convert_query_object_filter(filter_, all_dimensions)
+        assert result is not None
+        assert len(result) == 1
+        converted = next(iter(result))
+        assert converted.operator == expected
+        assert converted.column == all_dimensions["category"]
+        assert converted.value == "%book%"
 
 
 def test_convert_query_object_filter_is_null(mock_datasource: MagicMock) -> None:
