@@ -464,9 +464,23 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
     (operatorId && MULTI_OPERATORS.has(operatorId as Operators)) ||
     canSuggestComparatorValues;
 
-  // AsyncSelect is labelInValue, so it emits {label, value} rather than the
-  // raw value a plain Select would. Storing the object as the comparator puts
-  // it straight into the query, where the engine cannot render it as a literal.
+  // AsyncSelect is labelInValue, so the value it is given has to be labelled
+  // too. Handed a bare value it still renders, but `handleOnDeselect` then
+  // compares `element.value` against entries that have no `.value`, matches
+  // nothing, and the tag cannot be removed.
+  const toLabeledValue = (value: unknown): LabeledValue => ({
+    value: value as LabeledValue['value'],
+    label: optionLabel(value as null | number | boolean | string),
+  });
+
+  const comparatorSelectValue = Array.isArray(comparator)
+    ? comparator.map(toLabeledValue)
+    : isDefined(comparator) && comparator !== ''
+      ? toLabeledValue(comparator)
+      : undefined;
+
+  // The reverse: what comes back out is labelled, and the comparator has to be
+  // the raw value or the engine cannot render it as a literal.
   const unwrapComparator = (value: unknown): unknown => {
     if (Array.isArray(value)) {
       return value.map(unwrapComparator);
@@ -499,7 +513,7 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
       operatorId && MULTI_OPERATORS.has(operatorId as Operators)
         ? ('multiple' as const)
         : ('single' as const),
-    value: comparator as SelectValue,
+    value: comparatorSelectValue as SelectValue,
     onChange: handleComparatorChange,
     notFoundContent: t('Type a value here'),
     placeholder: createSuggestionsPlaceholder(),

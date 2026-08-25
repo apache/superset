@@ -1062,6 +1062,47 @@ test('stores the picked value, not the option object', async () => {
   expect(filter.comparator).toEqual(['Michael']);
 });
 
+test('can remove a value that was saved earlier', async () => {
+  // Reopening the popover restores the comparator from the saved filter, and
+  // the value is not in the freshly loaded page. Removing it has to still work.
+  columnValues = { result: [], limit: 10000 };
+  const onChange = jest.fn();
+  const validHandler = jest.fn();
+  jest.spyOn(redux, 'useSelector').mockReturnValue({});
+  render(
+    <AdhocFilterEditPopoverSimpleTabContent
+      {...({
+        adhocFilter: new AdhocFilter({
+          expressionType: ExpressionTypes.Simple,
+          subject: 'value',
+          operatorId: Operators.In,
+          operator: OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.In].operation,
+          comparator: ['Michael'],
+          clause: Clauses.Where,
+        }),
+        onChange,
+        options,
+        datasource: {
+          ...TestDataset,
+          columns: [{ column_name: 'value', type: 'VARCHAR', id: 3 }],
+          filter_select: true,
+        },
+        partitionColumn: 'test',
+        validHandler,
+      } as unknown as Props)}
+    />,
+  );
+
+  // The saved value is surfaced as a selected option even though the loaded
+  // page is empty; clicking it toggles it back off.
+  userEvent.click(screen.getByRole('combobox', { name: 'Comparator option' }));
+  userEvent.click(await screen.findByTitle('Michael'));
+
+  await waitFor(() => expect(onChange).toHaveBeenCalled());
+  const [filter] = onChange.mock.calls.at(-1);
+  expect(filter.comparator).toEqual([]);
+});
+
 test('says the list is partial when the server capped it', async () => {
   setupWithFilterValues(['alpha', 'beta'], 2);
   await openComparator();
