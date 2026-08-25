@@ -25,18 +25,22 @@ from pytest_mock import MockerFixture
 from superset.common.query_serialization import SerializedQuery
 
 
-def _fake_query_context(num_queries: int, contribution_idx: int | None = None):
+def _fake_query_context(
+    num_queries: int,
+    contribution_idx: int | None = None,
+    totals_idx: int | None = 0,
+):
     """Build a MagicMock QueryContext with ``num_queries`` queries.
 
     When ``contribution_idx`` is set, ``prepare_contribution_totals`` reports that
-    query as contribution-coupled with query 0 as the totals query.
+    query as using contribution post-processing, optionally coupled to ``totals_idx``.
     """
     ctx = mock.MagicMock()
     ctx.queries = [mock.MagicMock(name=f"q{i}") for i in range(num_queries)]
     ctx.cache_values = {"queries": [{"i": i} for i in range(num_queries)]}
     ctx.query_cache_key.side_effect = lambda q: f"key-{ctx.queries.index(q)}"
     if contribution_idx is not None:
-        ctx.prepare_contribution_totals.return_value = ([contribution_idx], 0)
+        ctx.prepare_contribution_totals.return_value = ([contribution_idx], totals_idx)
     else:
         ctx.prepare_contribution_totals.return_value = ([], None)
     return ctx
@@ -116,6 +120,21 @@ def test_contribution_query_depends_on_totals(mocker: MockerFixture) -> None:
     dep_call = next(c for c in scheduled if c["args"][0] == {"query": 1})
     assert dep_call["kwargs"]["options"].depends_on == [totals_call["task"]]
     assert dep_call["args"][3] is True  # requires_totals
+
+
+def test_contribution_query_without_totals_runs_locally(
+    mocker: MockerFixture,
+) -> None:
+    from superset.tasks.async_queries import submit_chart_data_query_tasks
+
+    scheduled = _patch_schedule(mocker)
+    ctx = _fake_query_context(1, contribution_idx=0, totals_idx=None)
+
+    submit_chart_data_query_tasks(ctx, user_id=7)
+
+    assert len(scheduled) == 1
+    assert scheduled[0]["kwargs"]["options"].depends_on is None
+    assert scheduled[0]["args"][3] is False  # requires_totals
 
 
 def test_execute_chart_query_publishes_cache_key_payload(

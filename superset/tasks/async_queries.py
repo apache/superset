@@ -212,6 +212,9 @@ def submit_chart_data_query_tasks(
         serialize_query(query_context, index) for index in range(len(queries))
     ]
 
+    def _needs_prerequisite_totals(index: int) -> bool:
+        return totals_idx is not None and index != totals_idx and index in needs_totals
+
     def _task_name(index: int) -> str | None:
         """A human-friendly Task List label from the in-memory QueryContext.
 
@@ -238,7 +241,7 @@ def submit_chart_data_query_tasks(
             serialized_queries[index],
             user_id,
             guest_token,
-            index in needs_totals,
+            _needs_prerequisite_totals(index),
             options=TaskOptions(
                 task_key=query_cache_keys[index],
                 task_name=_task_name(index),
@@ -252,11 +255,9 @@ def submit_chart_data_query_tasks(
         tasks[totals_idx] = _schedule(totals_idx)
     for index in range(len(queries)):
         if index not in tasks:
-            depends_on: "list[CoreTask | UUID | str] | None" = (
-                [tasks[totals_idx]]
-                if index in needs_totals and totals_idx is not None
-                else None
-            )
+            depends_on: "list[CoreTask | UUID | str] | None" = None
+            if totals_idx is not None and _needs_prerequisite_totals(index):
+                depends_on = [tasks[totals_idx]]
             tasks[index] = _schedule(index, depends_on=depends_on)
 
     return {
