@@ -142,7 +142,13 @@ bigquery = [
     "google-cloud-bigquery>=3.42.3",
 ]
 clickhouse = ["clickhouse-connect>=1.7.2, <2.0"]
-cockroachdb = ["cockroachdb>=0.3.5, <0.4"]
+# The `cockroachdb` PyPI package (last released 2021) is abandoned and its
+# SQLAlchemy dialect cannot even import under SQLAlchemy 2.0 (it references
+# sqlalchemy.dialects.postgresql.psycopg2.PGCompiler_psycopg2, removed in
+# 2.0). sqlalchemy-cockroachdb is the actively maintained replacement,
+# already linked from CockroachDbEngineSpec.metadata's docs_url, and
+# registers the same `cockroachdb` SQLAlchemy dialect entry point.
+cockroachdb = ["sqlalchemy-cockroachdb>=2.0.0, <3"]
 crate = ["sqlalchemy-cratedb>=0.43.1, <1"]
 # sqlalchemy-d1's only release (0.1.0, Nov 2025) pins sqlalchemy<2,>=1.4,
 # explicitly excluding SQLAlchemy 2.0. See superset/db_engine_specs/d1.py's

@@ -44,7 +44,7 @@ class CockroachDbEngineSpec(PostgresEngineSpec):
             DatabaseCategory.TRADITIONAL_RDBMS,
             DatabaseCategory.OPEN_SOURCE,
         ],
-        "pypi_packages": ["cockroachdb"],
+        "pypi_packages": ["sqlalchemy-cockroachdb"],
         "connection_string": "cockroachdb://root@{hostname}:{port}/{database}?sslmode=disable",
         "default_port": 26257,
         "docs_url": "https://github.com/cockroachdb/sqlalchemy-cockroachdb",

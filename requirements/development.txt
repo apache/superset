@@ -962,9 +962,12 @@ sqlalchemy==2.0.52
     #   marshmallow-sqlalchemy
     #   shillelagh
     #   sqlalchemy-bigquery
+    #   sqlalchemy-cockroachdb
     #   sqlalchemy-continuum
     #   sqlalchemy-utils
 sqlalchemy-bigquery==1.17.2
+    # via apache-superset
+sqlalchemy-cockroachdb==2.0.4
     # via apache-superset
 sqlalchemy-continuum==1.7.0
     # via
