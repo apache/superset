@@ -26,7 +26,9 @@ from unittest import mock
 
 import pytest
 from celery.exceptions import SoftTimeLimitExceeded
+from flask import current_app
 
+from superset.exceptions import SupersetException
 from superset.security.guest_token import GuestToken
 from superset.utils import json
 
@@ -75,6 +77,16 @@ def _media(path: str) -> list[str]:
 def mocks() -> Iterator[dict[str, Any]]:
     """Patch every external dependency of the task; keep the real xlsx writer."""
     with ExitStack() as stack:
+        # A bucket must be configured for the task to reach the (mocked)
+        # upload at all; production only ever calls the task once the API's
+        # own "is this configured" 501 check has passed, so this simulates
+        # that already-passed state rather than a value tests care about.
+        stack.enter_context(
+            mock.patch.dict(
+                current_app.config,
+                {"EXCEL_EXPORT_STORAGE": {"bucket": "test-bucket"}},
+            )
+        )
         # Use explicit MagicMock instances: patch() auto-creates async-flavored
         # mocks for these targets (their real objects expose async members), which
         # would make calls like security_manager.get_user_by_id() return coroutines.
@@ -179,15 +191,16 @@ def test_happy_path_uploads_and_emails(mocks: dict[str, Any]) -> None:
 def test_upload_uses_configured_storage_backend(mocks: dict[str, Any]) -> None:
     # EXCEL_EXPORT_STORAGE (e.g. GCSExportStorage()) takes over the upload
     # entirely; the default boto3/S3 helper must not also run.
-    from flask import current_app
-
     mocks["get_charts_in_layout_order"].return_value = [_chart(10, "Good")]
     mocks["ChartDataCommand"].return_value.run.return_value = {
         "queries": [{"colnames": ["a"], "data": [{"a": 1}]}]
     }
     mock_storage = mock.MagicMock()
     original_storage_config = current_app.config["EXCEL_EXPORT_STORAGE"]
-    current_app.config["EXCEL_EXPORT_STORAGE"] = {"backend": mock_storage}
+    current_app.config["EXCEL_EXPORT_STORAGE"] = {
+        "bucket": "test-bucket",
+        "backend": mock_storage,
+    }
     try:
         _run()
     finally:
@@ -195,6 +208,28 @@ def test_upload_uses_configured_storage_backend(mocks: dict[str, Any]) -> None:
 
     mock_storage.upload_file.assert_called_once()
     mocks["s3"].upload_file_to_s3.assert_not_called()
+
+
+def test_fails_clearly_when_bucket_unset(mocks: dict[str, Any]) -> None:
+    # The API already rejects export_xlsx with 501 before enqueueing when
+    # EXCEL_EXPORT_STORAGE["bucket"] is unset, so this path is normally
+    # unreachable -- but if the config is cleared after enqueue (or the task
+    # is invoked directly), it must fail with a clear message rather than an
+    # opaque boto3/SDK validation error for a None bucket.
+    mocks["get_charts_in_layout_order"].return_value = [_chart(10, "Good")]
+    mocks["ChartDataCommand"].return_value.run.return_value = {
+        "queries": [{"colnames": ["a"], "data": [{"a": 1}]}]
+    }
+    original_storage_config = current_app.config["EXCEL_EXPORT_STORAGE"]
+    current_app.config["EXCEL_EXPORT_STORAGE"] = {}
+    try:
+        with pytest.raises(SupersetException, match="not configured"):
+            _run()
+    finally:
+        current_app.config["EXCEL_EXPORT_STORAGE"] = original_storage_config
+
+    mocks["s3"].upload_file_to_s3.assert_not_called()
+    mocks["email"].build_failure_email.assert_called_once()
 
 
 def test_chart_without_query_context_is_skipped(mocks: dict[str, Any]) -> None:

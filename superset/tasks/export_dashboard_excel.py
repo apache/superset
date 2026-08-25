@@ -62,6 +62,7 @@ from superset.dashboards.excel_export.download_link import (
 )
 from superset.dashboards.excel_export.layout import get_charts_in_layout_order
 from superset.dashboards.excel_export.screenshot import render_chart_image
+from superset.exceptions import SupersetException
 from superset.extensions import celery_app
 from superset.security.guest_token import GuestToken
 from superset.utils import json, s3
@@ -460,6 +461,26 @@ def _upload_export_file(tmp_path: str, bucket: str, key: str) -> None:
         s3.upload_file_to_s3(tmp_path, bucket, key)
 
 
+def _export_object_key(dashboard_id: int, job_id: str) -> tuple[str, str]:
+    """The configured bucket and this export's object key within it.
+
+    The API already rejects the request with 501 when no bucket is
+    configured, so reaching an unset bucket here normally means
+    EXCEL_EXPORT_STORAGE was cleared after the job was enqueued (or the task
+    was invoked directly, bypassing the API). Fail with a clear message
+    instead of an opaque boto3/SDK validation error.
+    """
+    storage_config = current_app.config["EXCEL_EXPORT_STORAGE"]
+    bucket = storage_config.get("bucket")
+    if not bucket:
+        raise SupersetException(
+            "Excel export is not configured on this server "
+            "(EXCEL_EXPORT_STORAGE['bucket'] is unset)."
+        )
+    key_prefix = storage_config.get("key_prefix", "dashboard-exports/")
+    return bucket, f"{key_prefix}{dashboard_id}/{job_id}.xlsx"
+
+
 @celery_app.task(
     name="export_dashboard_excel",
     bind=True,
@@ -526,11 +547,7 @@ def export_dashboard_excel(
                 tmp_path, dashboard, active_data_mask, job_id, mode, user
             )
 
-            storage_config = current_app.config["EXCEL_EXPORT_STORAGE"]
-            bucket = storage_config.get("bucket")
-            key_prefix = storage_config.get("key_prefix", "dashboard-exports/")
-            key = f"{key_prefix}{dashboard_id}/{job_id}.xlsx"
-
+            bucket, key = _export_object_key(dashboard_id, job_id)
             _upload_export_file(tmp_path, bucket, key)
             expires_at = datetime.now(tz=timezone.utc) + timedelta(seconds=ttl)
             # KeyValueEntry.expires_on comparisons use naive datetime.now(), so
