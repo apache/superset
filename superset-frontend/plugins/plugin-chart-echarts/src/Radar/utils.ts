@@ -16,7 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { t } from '@apache-superset/core/translation';
 import { NumberFormatter } from '@superset-ui/core';
+import { sanitizeHtml } from '../utils/series';
 
 /*
  function for finding the max metric values among all series data for Radar Chart
@@ -44,7 +46,7 @@ export const findGlobalMax = (
 interface TooltipParams {
   color: string;
   name?: string;
-  value: number[];
+  value: (number | null)[];
 }
 
 interface TooltipMetricValue {
@@ -55,14 +57,14 @@ interface TooltipMetricValue {
 export const renderNormalizedTooltip = (
   params: TooltipParams,
   metrics: string[],
-  getDenormalizedValue: (seriesName: string, value: string) => number,
+  getDenormalizedValue: (seriesName: string, value: string) => number | null,
   metricsWithCustomBounds: Set<string>,
   formatter?: NumberFormatter,
 ): string => {
   const { color, name = '', value: values } = params;
   const seriesName = name || 'series0';
 
-  const colorDot = `<span style="display:inline-block;margin-right:5px;border-radius:50%;width:5px;height:5px;background-color:${color}"></span>`;
+  const colorDot = `<span style="display:inline-block;margin-right:5px;border-radius:50%;width:5px;height:5px;background-color:${sanitizeHtml(color)}"></span>`;
 
   // Get metric values with denormalization if needed
   const metricValues: TooltipMetricValue[] = metrics.map((metric, index) => {
@@ -73,23 +75,37 @@ export const renderNormalizedTooltip = (
 
     return {
       metric,
-      value: formatter ? formatter(originalValue) : originalValue,
+      // A missing metric stays null; show it plainly rather than running it
+      // through the formatter, which would render a misleading "NaN".
+      value:
+        originalValue == null
+          ? t('N/A')
+          : formatter
+            ? formatter(originalValue)
+            : originalValue,
     };
   });
 
+  // Tooltip is rendered via innerHTML (ECharts default renderMode
+  // 'html'), so seriesName/metric/value/color are HTML-escaped, matching
+  // the treatment every other echarts tooltip path applies.
   const tooltipRows = metricValues
     .map(
       ({ metric, value }) => `
         <div style="display:flex;">
-          <div>${colorDot}${metric}:</div>
-          <div style="font-weight:bold;margin-left:auto;">${value}</div>
+          <div>${colorDot}${sanitizeHtml(metric)}:</div>
+          <div style="font-weight:bold;margin-left:auto;">${sanitizeHtml(
+            String(value),
+          )}</div>
         </div>
       `,
     )
     .join('');
 
   return `
-    <div style="font-weight:bold;margin-bottom:5px;">${seriesName}</div>
+    <div style="font-weight:bold;margin-bottom:5px;">${sanitizeHtml(
+      seriesName,
+    )}</div>
     ${tooltipRows}
   `;
 };

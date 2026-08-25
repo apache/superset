@@ -25,9 +25,14 @@ from typing import Any, TYPE_CHECKING
 from flask_babel import gettext as __
 from sqlalchemy import types
 from sqlalchemy.engine.reflection import Inspector
+from sqlalchemy.sql.elements import ColumnClause
 
 from superset.constants import TimeGrain
-from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
+from superset.db_engine_specs.base import (
+    BaseEngineSpec,
+    DatabaseCategory,
+    TimestampExpression,
+)
 from superset.errors import SupersetErrorType
 
 if TYPE_CHECKING:
@@ -43,6 +48,7 @@ class SqliteEngineSpec(BaseEngineSpec):
 
     disable_ssh_tunneling = True
     supports_multivalues_insert = True
+    supports_temporal_column_shift = True
 
     metadata = {
         "description": "SQLite is a self-contained, serverless SQL database engine.",
@@ -125,6 +131,34 @@ class SqliteEngineSpec(BaseEngineSpec):
     @classmethod
     def epoch_to_dttm(cls) -> str:
         return "datetime({col}, 'unixepoch')"
+
+    @classmethod
+    def year_to_dttm(cls) -> str:
+        # SQLite's date functions parse a 'YYYY-01-01' string just fine, but won't
+        # accept a bare integer/real year (it's read as a Julian day number instead).
+        # The CASE guard is needed because printf() treats a NULL argument as 0,
+        # which would otherwise turn a missing year into '0000-01-01' rather than
+        # propagating the NULL. The outer datetime() call ensures a full datetime
+        # value comes back even when this expression isn't wrapped by a time-grain
+        # function (e.g. no time grain is applied).
+        return (
+            "datetime(CASE WHEN {col} IS NULL THEN NULL "
+            "ELSE printf('%04d-01-01', CAST({col} AS INTEGER)) END)"
+        )
+
+    @classmethod
+    def get_temporal_column_shift_expr(
+        cls,
+        col: ColumnClause,
+        offset_hours: int,
+    ) -> TimestampExpression:
+        """Shift a temporal expression with SQLite's datetime modifier syntax."""
+        modifier = f"{offset_hours:+d} hours"
+        return TimestampExpression(
+            f"DATETIME({{col}}, '{modifier}')",
+            col,
+            type_=col.type,
+        )
 
     @classmethod
     def convert_dttm(

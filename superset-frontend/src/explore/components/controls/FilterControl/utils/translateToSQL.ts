@@ -44,6 +44,17 @@ export const OPERATORS_TO_SQL = {
   'IS NULL': 'IS NULL',
   'IS TRUE': 'IS TRUE',
   'IS FALSE': 'IS FALSE',
+  // Element-level array operators (shown as filter labels; not executable SQL —
+  // the Custom SQL tab is hidden for these).
+  CONTAINS_ANY: 'CONTAINS ANY',
+  CONTAINS_ALL: 'CONTAINS ALL',
+  IS_EMPTY: 'IS EMPTY',
+  IS_NOT_EMPTY: 'IS NOT EMPTY',
+  LENGTH_EQUALS: 'LENGTH =',
+  LENGTH_GREATER_THAN: 'LENGTH >',
+  LENGTH_LESS_THAN: 'LENGTH <',
+  LENGTH_GREATER_THAN_OR_EQUALS: 'LENGTH >=',
+  LENGTH_LESS_THAN_OR_EQUALS: 'LENGTH <=',
   'LATEST PARTITION': ({
     datasource,
   }: {
@@ -52,9 +63,35 @@ export const OPERATORS_TO_SQL = {
     `= '{{ presto.latest_partition('${datasource.schema}.${datasource.datasource_name}') }}'`,
 };
 
+export interface VerboseColumn {
+  column_name?: string;
+  verbose_name?: string | null;
+}
+
+// Resolves the display label for a filter's subject: the verbose_name of the
+// matching column when one is supplied, falling back to the technical
+// subject used for SQL generation.
+const getDisplaySubject = (
+  subject: string | { column_name?: string } | null | undefined,
+  columns?: VerboseColumn[],
+) => {
+  if (!columns) {
+    return subject ?? undefined;
+  }
+  const columnName =
+    typeof subject === 'object' ? subject?.column_name : subject;
+  const verboseName = columns.find(
+    column => column.column_name === columnName,
+  )?.verbose_name;
+  return verboseName || (subject ?? undefined);
+};
+
 export const translateToSql = (
   adhocFilter: AdhocFilter,
-  { useSimple }: { useSimple: boolean } = { useSimple: false },
+  {
+    useSimple,
+    columns,
+  }: { useSimple?: boolean; columns?: VerboseColumn[] } = {},
 ) => {
   if (isSimpleAdhocFilter(adhocFilter) || useSimple) {
     const { subject, operator } = adhocFilter as SimpleAdhocFilter;
@@ -70,7 +107,11 @@ export const translateToSql = (
           OPERATORS_TO_SQL[operator](adhocFilter)
         : // @ts-expect-error TODO: fix missing operator type `NOT LIKE` and `TEMPORAL RANGE`.
           OPERATORS_TO_SQL[operator];
-    return getSimpleSQLExpression(subject, op, comparator);
+    return getSimpleSQLExpression(
+      getDisplaySubject(subject, columns),
+      op,
+      comparator,
+    );
   }
   if (isFreeFormAdhocFilter(adhocFilter)) {
     return adhocFilter.sqlExpression;

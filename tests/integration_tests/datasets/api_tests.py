@@ -41,7 +41,7 @@ from superset.models.slice import Slice
 from superset.subjects.models import Subject
 from superset.subjects.types import SubjectType
 from superset.utils import json
-from superset.utils.core import backend, get_example_default_schema
+from superset.utils.core import backend, get_example_default_schema, shortid
 from superset.utils.database import get_example_database, get_main_database
 from superset.utils.dict_import_export import export_to_dict
 from tests.integration_tests.base_tests import (
@@ -121,8 +121,10 @@ class TestDatasetApi(SupersetTestCase):
             extra=extra,
         )
         if columns:
+            db.session.add_all(columns)
             table.columns = columns
         if metrics:
+            db.session.add_all(metrics)
             table.metrics = metrics
         db.session.add(table)
         db.session.commit()
@@ -320,12 +322,51 @@ class TestDatasetApi(SupersetTestCase):
             "extra",
             "id",
             "kind",
+            "rls_filters",
             "schema",
             "sql",
             "table_name",
             "uuid",
         ]
         assert sorted(response["result"][0]) == expected_columns
+
+    def test_get_dataset_list_with_jwt_auth(self):
+        """
+        Dataset API: Test get dataset list with JWT authentication
+        """
+        database = self.insert_database(f"jwt_dataset_db_{shortid()}")
+        dataset = self.insert_dataset(
+            f"jwt_dataset_{shortid()}",
+            [self.get_user("admin").id],
+            database,
+            fetch_metadata=False,
+        )
+        headers = self.get_bearer_auth_header()
+
+        try:
+            client = self.create_app().test_client()
+            arguments = {"filters": [{"col": "id", "opr": "eq", "value": dataset.id}]}
+            uri = f"api/v1/dataset/?q={rison.dumps(arguments)}"
+            rv = client.get(uri, headers=headers)
+            assert rv.status_code == 200
+            response = json.loads(rv.data.decode("utf-8"))
+            assert response["count"] == 1
+            assert response["result"][0]["id"] == dataset.id
+        finally:
+            db.session.delete(dataset)
+            db.session.delete(database)
+            db.session.commit()
+
+    def test_get_dataset_list_with_invalid_jwt_auth(self):
+        """
+        Dataset API: Test get dataset list with invalid JWT authentication
+        """
+        client = self.create_app().test_client()
+        rv = client.get(
+            "api/v1/dataset/",
+            headers={"Authorization": "Bearer not-a-token"},
+        )
+        assert rv.status_code == 422
 
     def test_get_dataset_list_gamma(self):
         """
@@ -544,6 +585,7 @@ class TestDatasetApi(SupersetTestCase):
                     "rendered_expression": "4 * 1.4",
                 },
             ],
+            "rls_filters": [],
         }
 
         self.items_to_delete = [dataset]
@@ -2634,6 +2676,14 @@ class TestDatasetApi(SupersetTestCase):
         self.items_to_delete = [dataset, database]
 
     def test_import_dataset_v0_export(self):
+        """
+        Dataset API: legacy v0-format exports are rejected by the HTTP
+        import endpoint. The v0 command is not registered in the import
+        dispatcher (see superset/commands/dataset/importers/dispatcher.py)
+        because it overrides datasets matched by (table_name, schema,
+        database) with no per-object ownership check. Legacy v0 exports are
+        still importable via the `legacy_import_datasources` CLI command.
+        """
         num_datasets = db.session.query(SqlaTable).count()
 
         self.login(ADMIN_USERNAME)
@@ -2650,14 +2700,25 @@ class TestDatasetApi(SupersetTestCase):
         rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
         response = json.loads(rv.data.decode("utf-8"))
 
-        assert rv.status_code == 200
-        assert response == {"message": "OK"}
-        assert db.session.query(SqlaTable).count() == num_datasets + 1
-
-        dataset = (
-            db.session.query(SqlaTable).filter_by(table_name="birth_names_2").one()
-        )
-        self.items_to_delete = [dataset]
+        assert rv.status_code == 422
+        assert response == {
+            "errors": [
+                {
+                    "message": "Could not find a valid command to import file",
+                    "error_type": "GENERIC_COMMAND_ERROR",
+                    "level": "warning",
+                    "extra": {
+                        "issue_codes": [
+                            {
+                                "code": 1010,
+                                "message": "Issue 1010 - Superset encountered an error while running a command.",  # noqa: E501
+                            }
+                        ]
+                    },
+                }
+            ]
+        }
+        assert db.session.query(SqlaTable).count() == num_datasets
 
     @patch("superset.commands.database.importers.v1.utils.add_permissions")
     def test_import_dataset_overwrite(self, mock_add_permissions):
@@ -3357,6 +3418,73 @@ class TestDatasetApi(SupersetTestCase):
             {"column_name": "category", "verbose_name": "Category Column"},
             {"column_name": "region", "verbose_name": None},
         ]
+
+        self.items_to_delete = [dataset]
+
+    def test_get_drill_info_does_not_expose_user_emails(self):
+        """
+        Dataset API: drill_info must not leak creator/modifier email addresses.
+
+        The nested user schema exposes first/last name only; email is PII and
+        is not part of the endpoint's select_columns contract.
+        """
+        self.login(ADMIN_USERNAME)
+        dataset = self.insert_dataset(
+            table_name="test_drill_dataset_no_email",
+            editor_user_ids=[],
+            columns=[
+                TableColumn(
+                    column_name="category",
+                    type="VARCHAR(255)",
+                    groupby=True,
+                ),
+            ],
+            fetch_metadata=False,
+        )
+
+        uri = f"api/v1/dataset/{dataset.id}/drill_info/"
+        rv = self.get_assert_metric(uri, "get_drill_info")
+        assert rv.status_code == 200
+
+        result = json.loads(rv.data.decode("utf-8"))["result"]
+        for user_field in ("created_by", "changed_by"):
+            assert "email" not in (result.get(user_field) or {})
+
+        self.items_to_delete = [dataset]
+
+    def test_get_drill_info_does_not_expose_editor_emails(self):
+        """
+        Dataset API: drill_info must not leak an editor's email address
+        through the ``editors`` list.
+
+        User-subject synchronization stores a user's email in the Subject's
+        ``secondary_label`` field, and ``editors`` nests Subjects directly,
+        so email must be excluded the same way it is for created_by/changed_by.
+        """
+        self.login(ADMIN_USERNAME)
+        gamma_user = self.get_user(GAMMA_USERNAME)
+        dataset = self.insert_dataset(
+            table_name="test_drill_dataset_no_editor_email",
+            editor_user_ids=[gamma_user.id],
+            columns=[
+                TableColumn(
+                    column_name="category",
+                    type="VARCHAR(255)",
+                    groupby=True,
+                ),
+            ],
+            fetch_metadata=False,
+        )
+
+        uri = f"api/v1/dataset/{dataset.id}/drill_info/"
+        rv = self.get_assert_metric(uri, "get_drill_info")
+        assert rv.status_code == 200
+
+        result = json.loads(rv.data.decode("utf-8"))["result"]
+        editors = result.get("editors") or []
+        assert len(editors) == 1
+        assert "secondary_label" not in editors[0]
+        assert gamma_user.email not in json.dumps(editors)
 
         self.items_to_delete = [dataset]
 

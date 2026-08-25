@@ -36,7 +36,6 @@ import {
   SupersetClient,
   getClientErrorObject,
   getExtensionsRegistry,
-  handleKeyboardActivation,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import { t } from '@apache-superset/core/translation';
@@ -195,6 +194,54 @@ interface DatasourceObject {
   spatials?: SpatialConfig[];
   all_cols?: string[];
   folders?: DatasourceFolder[];
+}
+
+/**
+ * Lift the certification and warning fields a metric keeps inside its `extra`
+ * JSON blob onto the metric itself, which is the shape the editor's fields bind
+ * to.
+ *
+ * Two entry points feed the editor two different metric shapes: the dataset
+ * list hands over the API payload, where `extra` is still a JSON string, while
+ * Explore hands over its bootstrap payload, where `SqlMetric.data` has already
+ * flattened `extra` into `warning_markdown` and dropped the raw string. The
+ * parsed blob is therefore only authoritative when `extra` is actually present;
+ * otherwise the already-flattened value stands, instead of being reset to an
+ * empty field.
+ *
+ * A malformed `extra` string is treated the same as an absent one (falls
+ * through to the already-flattened value) rather than throwing, mirroring
+ * the backend's own tolerance for bad `extra` JSON in
+ * `CertificationMixin.get_extra_dict()`.
+ */
+export function hydrateMetricExtra(metric: Metric): Metric {
+  const {
+    certified_by: certifiedByMetric,
+    certification_details: certificationDetails,
+  } = metric;
+  let parsedExtra;
+  if (metric.extra) {
+    try {
+      parsedExtra = JSON.parse(metric.extra) || {};
+    } catch {
+      parsedExtra = undefined;
+    }
+  }
+  const {
+    certification: {
+      details = undefined,
+      certified_by: certifiedBy = undefined,
+    } = {},
+  } = parsedExtra || {};
+  const warningMarkdown = parsedExtra
+    ? parsedExtra.warning_markdown
+    : metric.warning_markdown;
+  return {
+    ...metric,
+    certification_details: certificationDetails || details,
+    warning_markdown: warningMarkdown || '',
+    certified_by: certifiedBy || certifiedByMetric,
+  };
 }
 
 interface DatasourceEditorOwnProps {
@@ -853,25 +900,7 @@ function DatasourceEditor({
   const [datasource, setDatasource] = useState<DatasourceObject>(() => ({
     ...propsDatasource,
     editors: normalizeSubjectsToPickerValues(propsDatasource.editors || []),
-    metrics: propsDatasource.metrics?.map(metric => {
-      const {
-        certified_by: certifiedByMetric,
-        certification_details: certificationDetails,
-      } = metric;
-      const {
-        certification: {
-          details = undefined,
-          certified_by: certifiedBy = undefined,
-        } = {},
-        warning_markdown: warningMarkdown,
-      } = JSON.parse(metric.extra || '{}') || {};
-      return {
-        ...metric,
-        certification_details: certificationDetails || details,
-        warning_markdown: warningMarkdown || '',
-        certified_by: certifiedBy || certifiedByMetric,
-      };
-    }),
+    metrics: propsDatasource.metrics?.map(hydrateMetricExtra),
   }));
 
   const [errors, setErrors] = useState<string[]>([]);
@@ -1628,9 +1657,7 @@ function DatasourceEditor({
               {t(
                 'Default URL to redirect to when accessing from the dataset list page. Accepts relative URLs such as',
               )}{' '}
-              <Typography.Text code>
-                /superset/dashboard/{'{id}'}/
-              </Typography.Text>
+              <Typography.Text code>/dashboard/{'{id}'}/</Typography.Text>
             </>
           }
           control={<TextControl controlId="default_endpoint" />}
@@ -1754,14 +1781,17 @@ function DatasourceEditor({
     () => (
       <div>
         <EditLockContainer>
-          <span
+          <button
+            type="button"
             css={themeParam => css`
+              appearance: none;
+              border: none;
+              background: none;
+              padding: 0;
+              font: inherit;
               color: ${themeParam.colorTextTertiary};
             `}
-            role="button"
-            tabIndex={0}
             onClick={onChangeEditMode}
-            onKeyDown={handleKeyboardActivation(onChangeEditMode)}
           >
             {isEditMode ? (
               <Icons.UnlockOutlined
@@ -1778,7 +1808,7 @@ function DatasourceEditor({
                 })}
               />
             )}
-          </span>
+          </button>
           {!isEditMode && <div>{t('Click the lock to make changes.')}</div>}
           {isEditMode && (
             <div>{t('Click the lock to prevent further changes.')}</div>
@@ -1993,7 +2023,6 @@ function DatasourceEditor({
                           col => col.column_name,
                         )}
                         height={300}
-                        allowHTML
                       />
                     </>
                   )}

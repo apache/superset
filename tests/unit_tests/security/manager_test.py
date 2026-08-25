@@ -18,11 +18,14 @@
 # pylint: disable=invalid-name, unused-argument, redefined-outer-name
 
 import json  # noqa: TID251
+import logging
 from types import SimpleNamespace
 from typing import Any, Optional
 from unittest.mock import MagicMock
 
 import pytest
+from flask import current_app
+from flask_appbuilder.const import AUTH_DB, AUTH_REMOTE_USER
 from flask_appbuilder.security.sqla.models import Role, User
 from pytest_mock import MockerFixture
 
@@ -48,6 +51,88 @@ def test_security_manager(app_context: None) -> None:
     """
     sm = SupersetSecurityManager(appbuilder)
     assert sm
+
+
+def _register_views_with_mock_appbuilder(
+    mocker: MockerFixture, auth_type: int
+) -> MagicMock:
+    """
+    Build a SupersetSecurityManager bound to a fresh mock appbuilder and call
+    register_views() on it, with FlaskAppBuilder's own register_views (the
+    super() call, which does its own large auth_type dispatch and permission
+    registration) stubbed out so the test stays scoped to just the override.
+    Returns the mock appbuilder so the caller can inspect what got registered.
+    """
+    from flask import current_app
+
+    # patch.dict restores the previous config values on teardown, so these
+    # overrides don't leak into other tests sharing the module-scoped app.
+    mocker.patch.dict(
+        current_app.config,
+        {
+            "AUTH_TYPE": auth_type,
+            "AUTH_USER_REGISTRATION": False,
+            "AUTH_RATE_LIMITED": False,
+        },
+    )
+
+    mock_appbuilder = mocker.MagicMock()
+    mock_appbuilder.baseviews = []
+    mock_appbuilder.menu.get_list.return_value = []
+
+    sm = SupersetSecurityManager.__new__(SupersetSecurityManager)
+    sm.appbuilder = mock_appbuilder
+    sm.register_superset_auth_view = True
+    sm.register_superset_registeruser_view = False
+    sm.userstatschartview = None
+
+    mocker.patch(
+        "flask_appbuilder.security.sqla.manager.SecurityManager.register_views",
+        autospec=True,
+    )
+
+    sm.register_views()
+    return mock_appbuilder
+
+
+def test_register_views_does_not_shadow_auth_remote_user(
+    app_context: None, mocker: MockerFixture
+) -> None:
+    """
+    AUTH_REMOTE_USER must not register SupersetAuthView at "/login/".
+
+    AuthRemoteUserView performs a silent, header-driven login with no
+    interactive UI. SupersetAuthView (the SPA login shell) previously
+    registered at the same route unconditionally and always won the routing
+    dispatch, so the remote-user header was never even checked -- reported in
+    apache/superset#36117 as a regression from the frontend login migration
+    (#31590). See also the related opt-out added in #39098.
+    """
+    from superset.views.auth import SupersetAuthView
+
+    mock_appbuilder = _register_views_with_mock_appbuilder(mocker, AUTH_REMOTE_USER)
+
+    registered = [
+        call.args[0] for call in mock_appbuilder.add_view_no_menu.call_args_list
+    ]
+    assert SupersetAuthView not in registered
+
+
+def test_register_views_still_registers_superset_auth_view_for_db_auth(
+    app_context: None, mocker: MockerFixture
+) -> None:
+    """
+    Control case: AUTH_DB (the common, interactive case) is unaffected --
+    SupersetAuthView still registers at "/login/" as before.
+    """
+    from superset.views.auth import SupersetAuthView
+
+    mock_appbuilder = _register_views_with_mock_appbuilder(mocker, AUTH_DB)
+
+    registered = [
+        call.args[0] for call in mock_appbuilder.add_view_no_menu.call_args_list
+    ]
+    assert SupersetAuthView in registered
 
 
 @pytest.fixture
@@ -137,6 +222,69 @@ def test_raise_for_access_guest_user_ok_subset(
     }
     query_context.queries = [QueryObject(metrics=stored_metrics)]  # type: ignore
     sm.raise_for_access(query_context=query_context)
+
+
+def test_raise_for_access_guest_user_deck_multi_child_requires_child_datasource(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    The deck.gl multi-layer child leg must bind the requested datasource to
+    the child chart: a valid parent/child pair does not authorize querying
+    an arbitrary dataset.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "is_guest_user", return_value=True)
+    mocker.patch.object(sm, "can_access", return_value=False)
+    mocker.patch.object(sm, "can_access_schema", return_value=False)
+    mocker.patch.object(sm, "is_editor", return_value=False)
+    mocker.patch.object(sm, "can_access_dashboard", return_value=True)
+    mocker.patch.object(sm, "get_current_guest_user_if_guest", return_value=None)
+    mocker.patch(
+        "superset.is_feature_enabled",
+        side_effect=lambda feature: feature == "EMBEDDED_SUPERSET",
+    )
+    mocker.patch(
+        "superset.security.manager.query_context_modified",
+        return_value=False,
+    )
+
+    child_datasource = mocker.MagicMock()
+    other_datasource = mocker.MagicMock()
+
+    parent_slc = mocker.MagicMock()
+    parent_slc.params = json.dumps({"viz_type": "deck_multi", "deck_slices": [42]})
+    child_slc = mocker.MagicMock()
+    child_slc.datasource = child_datasource
+
+    dashboard = mocker.MagicMock()
+    dashboard.slices = [parent_slc]
+
+    query_mock = mocker.patch.object(sm.session, "query")
+    query_mock.return_value.filter.return_value.one_or_none.side_effect = [
+        dashboard,
+        parent_slc,
+        child_slc,
+        dashboard,
+        parent_slc,
+        child_slc,
+    ]
+
+    query_context = mocker.MagicMock()
+    query_context.form_data = {
+        "dashboardId": 10,
+        "slice_id": 42,
+        "parent_slice_id": 41,
+    }
+
+    # Requesting the child's own datasource is allowed.
+    query_context.datasource = child_datasource
+    sm.raise_for_access(query_context=query_context)
+
+    # The same chart context with any other datasource is rejected.
+    query_context.datasource = other_datasource
+    with pytest.raises(SupersetSecurityException):
+        sm.raise_for_access(query_context=query_context)
 
 
 def test_raise_for_access_guest_user_tampered_id(
@@ -348,6 +496,572 @@ def test_raise_for_access_guest_user_tampered_queries_columns(
         sm.raise_for_access(query_context=query_context)
 
 
+def _base_axis_physical_column(name: str, time_grain: str = "P1D") -> dict[str, Any]:
+    """
+    The synthesized x-axis column ``normalizeTimeColumn`` emits for a *physical*
+    x-axis (see superset-ui-core ``normalizeTimeColumn.ts``): a pure column
+    reference wrapped with the BASE_AXIS markers and the chart's time grain.
+    """
+    return {
+        "timeGrain": time_grain,
+        "columnType": "BASE_AXIS",
+        "sqlExpression": name,
+        "label": name,
+        "expressionType": "SQL",
+        "isColumnReference": True,
+    }
+
+
+def _guest_query(columns: list[Any], metrics: list[AdhocMetric]) -> QueryObject:
+    """A QueryObject carrying the given columns/metrics, as a guest request would."""
+    return QueryObject(columns=columns, metrics=metrics)  # type: ignore[arg-type]
+
+
+def test_raise_for_access_guest_user_ok_base_axis_physical_x_axis(
+    mocker: MockerFixture,
+    app_context: None,
+    stored_metrics: list[AdhocMetric],
+) -> None:
+    """
+    A guest may load a chart whose saved ``query_context`` is NULL and whose
+    x-axis is a physical column. ``normalizeTimeColumn`` sends the x-axis as a
+    synthesized ``BASE_AXIS`` column that never appears verbatim in the stored
+    ``params`` (the x-axis lives under its own ``x_axis`` control), so before the
+    carve-out this legitimate load was rejected with a 403.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "is_guest_user", return_value=True)
+    mocker.patch.object(sm, "can_access", return_value=True)
+
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "x_axis": "order_date",
+        "metrics": stored_metrics,
+        "columns": [],
+    }
+    query_context.form_data = {
+        "slice_id": 42,
+        "x_axis": "order_date",
+        "metrics": stored_metrics,
+        "columns": [],
+    }
+    query_context.queries = [
+        _guest_query([_base_axis_physical_column("order_date")], stored_metrics)
+    ]
+    sm.raise_for_access(query_context=query_context)
+
+
+def test_raise_for_access_guest_user_ok_base_axis_adhoc_x_axis(
+    mocker: MockerFixture,
+    app_context: None,
+    stored_metrics: list[AdhocMetric],
+) -> None:
+    """
+    Same as above for an *adhoc* x-axis: ``normalizeTimeColumn`` copies the saved
+    adhoc column and adds the BASE_AXIS markers, so the request carries the saved
+    x-axis plus synthesized decorations and must not read as tampering.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "is_guest_user", return_value=True)
+    mocker.patch.object(sm, "can_access", return_value=True)
+
+    adhoc_x_axis: dict[str, Any] = {
+        "label": "order month",
+        "sqlExpression": "DATE_TRUNC('month', order_date)",
+        "expressionType": "SQL",
+    }
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "x_axis": adhoc_x_axis,
+        "metrics": stored_metrics,
+        "columns": [],
+    }
+    query_context.form_data = {
+        "slice_id": 42,
+        "x_axis": adhoc_x_axis,
+        "metrics": stored_metrics,
+        "columns": [],
+    }
+    synthesized = {"timeGrain": "P1M", "columnType": "BASE_AXIS", **adhoc_x_axis}
+    query_context.queries = [_guest_query([synthesized], stored_metrics)]
+    sm.raise_for_access(query_context=query_context)
+
+
+def test_raise_for_access_guest_user_base_axis_forged_column_reference(
+    mocker: MockerFixture,
+    app_context: None,
+    stored_metrics: list[AdhocMetric],
+) -> None:
+    """
+    The BASE_AXIS carve-out must not become a smuggling channel: a column tagged
+    ``BASE_AXIS`` that references a column the chart never exposed is still
+    rejected. Here the forged reference points at ``secret_col`` while the stored
+    x-axis is ``order_date``.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "is_guest_user", return_value=True)
+    mocker.patch.object(sm, "can_access", return_value=True)
+
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "x_axis": "order_date",
+        "metrics": stored_metrics,
+        "columns": [],
+    }
+    query_context.form_data = {
+        "slice_id": 42,
+        "x_axis": "order_date",
+        "metrics": stored_metrics,
+        "columns": [],
+    }
+    query_context.queries = [
+        _guest_query([_base_axis_physical_column("secret_col")], stored_metrics)
+    ]
+    with pytest.raises(SupersetSecurityException):
+        sm.raise_for_access(query_context=query_context)
+
+
+def test_raise_for_access_guest_user_base_axis_forged_adhoc_expression(
+    mocker: MockerFixture,
+    app_context: None,
+    stored_metrics: list[AdhocMetric],
+) -> None:
+    """
+    A BASE_AXIS-tagged adhoc column whose SQL body differs from the saved x-axis
+    is rejected: tagging free-form SQL as BASE_AXIS must not authorize it.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "is_guest_user", return_value=True)
+    mocker.patch.object(sm, "can_access", return_value=True)
+
+    adhoc_x_axis: dict[str, Any] = {
+        "label": "order month",
+        "sqlExpression": "DATE_TRUNC('month', order_date)",
+        "expressionType": "SQL",
+    }
+    forged = {
+        "timeGrain": "P1M",
+        "columnType": "BASE_AXIS",
+        "label": "order month",
+        "sqlExpression": "list_secret()",
+        "expressionType": "SQL",
+    }
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "x_axis": adhoc_x_axis,
+        "metrics": stored_metrics,
+        "columns": [],
+    }
+    query_context.form_data = {
+        "slice_id": 42,
+        "x_axis": adhoc_x_axis,
+        "metrics": stored_metrics,
+        "columns": [],
+    }
+    query_context.queries = [_guest_query([forged], stored_metrics)]
+    with pytest.raises(SupersetSecurityException):
+        sm.raise_for_access(query_context=query_context)
+
+
+def test_raise_for_access_guest_user_ok_base_axis_stale_query_context(
+    mocker: MockerFixture,
+    app_context: None,
+    stored_metrics: list[AdhocMetric],
+) -> None:
+    """
+    A chart with a *stale* (non-NULL) saved ``query_context`` from an older
+    frontend that predates the BASE_AXIS column still loads: the x-axis carve-out
+    is sourced from ``params`` rather than the stored ``query_context``, so a
+    stored context that lacks the synthesized column does not reject the guest.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "is_guest_user", return_value=True)
+    mocker.patch.object(sm, "can_access", return_value=True)
+
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = json.dumps(
+        {"queries": [{"columns": [], "metrics": stored_metrics}]}
+    )
+    query_context.slice_.params_dict = {
+        "x_axis": "order_date",
+        "metrics": stored_metrics,
+        "columns": [],
+    }
+    query_context.form_data = {
+        "slice_id": 42,
+        "x_axis": "order_date",
+        "metrics": stored_metrics,
+        "columns": [],
+    }
+    query_context.queries = [
+        _guest_query([_base_axis_physical_column("order_date")], stored_metrics)
+    ]
+    sm.raise_for_access(query_context=query_context)
+
+
+def test_raise_for_access_guest_user_ok_base_axis_orderby(
+    mocker: MockerFixture,
+    app_context: None,
+    stored_metrics: list[AdhocMetric],
+) -> None:
+    """
+    A guest may sort an embedded chart by its own temporal x-axis, which the
+    frontend sends as the synthesized BASE_AXIS column in the order-by term.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "is_guest_user", return_value=True)
+    mocker.patch.object(sm, "can_access", return_value=True)
+
+    base_axis = _base_axis_physical_column("order_date")
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "x_axis": "order_date",
+        "metrics": stored_metrics,
+        "columns": [],
+    }
+    query_context.form_data = {
+        "slice_id": 42,
+        "x_axis": "order_date",
+        "metrics": stored_metrics,
+        "columns": [],
+        "orderby": [[base_axis, True]],
+    }
+    query_context.queries = [_guest_query([base_axis], stored_metrics)]
+    sm.raise_for_access(query_context=query_context)
+
+
+def test_raise_for_access_guest_user_base_axis_orderby_forged(
+    mocker: MockerFixture,
+    app_context: None,
+    stored_metrics: list[AdhocMetric],
+) -> None:
+    """
+    The order-by carve-out is bounded: sorting by a BASE_AXIS-tagged column that
+    references a column the chart never exposed is still rejected.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "is_guest_user", return_value=True)
+    mocker.patch.object(sm, "can_access", return_value=True)
+
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "x_axis": "order_date",
+        "metrics": stored_metrics,
+        "columns": [],
+    }
+    query_context.form_data = {
+        "slice_id": 42,
+        "x_axis": "order_date",
+        "metrics": stored_metrics,
+        "columns": [],
+        "orderby": [[_base_axis_physical_column("secret_col"), True]],
+    }
+    query_context.queries = [
+        _guest_query([_base_axis_physical_column("order_date")], stored_metrics)
+    ]
+    with pytest.raises(SupersetSecurityException):
+        sm.raise_for_access(query_context=query_context)
+
+
+def test_raise_for_access_guest_user_ok_base_axis_multiple_queries(
+    mocker: MockerFixture,
+    app_context: None,
+    stored_metrics: list[AdhocMetric],
+) -> None:
+    """
+    The carve-out applies across every query in the request: a chart that issues
+    more than one query (each carrying the synthesized BASE_AXIS x-axis) loads.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "is_guest_user", return_value=True)
+    mocker.patch.object(sm, "can_access", return_value=True)
+
+    base_axis = _base_axis_physical_column("order_date")
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "x_axis": "order_date",
+        "metrics": stored_metrics,
+        "columns": [],
+    }
+    query_context.form_data = {
+        "slice_id": 42,
+        "x_axis": "order_date",
+        "metrics": stored_metrics,
+        "columns": [],
+    }
+    query_context.queries = [
+        _guest_query([base_axis], stored_metrics),
+        _guest_query([base_axis], stored_metrics),
+    ]
+    sm.raise_for_access(query_context=query_context)
+
+
+def test_raise_for_access_guest_user_ok_x_axis_reused_in_columns(
+    mocker: MockerFixture,
+    app_context: None,
+    stored_metrics: list[AdhocMetric],
+) -> None:
+    """
+    The stored x-axis is an allowed column even when requested verbatim (not
+    BASE_AXIS-wrapped): the x-axis dimension is not listed under ``columns`` in
+    ``params`` but is a legitimate selectable dimension.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "is_guest_user", return_value=True)
+    mocker.patch.object(sm, "can_access", return_value=True)
+
+    adhoc_x_axis: dict[str, Any] = {
+        "label": "order month",
+        "sqlExpression": "DATE_TRUNC('month', order_date)",
+        "expressionType": "SQL",
+    }
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "x_axis": adhoc_x_axis,
+        "metrics": stored_metrics,
+        "columns": [],
+    }
+    query_context.form_data = {
+        "slice_id": 42,
+        "x_axis": adhoc_x_axis,
+        "metrics": stored_metrics,
+        "columns": [adhoc_x_axis],
+    }
+    query_context.queries = [_guest_query([adhoc_x_axis], stored_metrics)]
+    sm.raise_for_access(query_context=query_context)
+
+
+def test_raise_for_access_guest_user_base_axis_non_string_sql_rejected(
+    mocker: MockerFixture,
+    app_context: None,
+    stored_metrics: list[AdhocMetric],
+) -> None:
+    """
+    A BASE_AXIS column with a non-string ``sqlExpression`` does not take the
+    physical-reference shortcut; it falls back to the dict comparison, matches no
+    stored value, and is rejected without raising an unexpected error.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "is_guest_user", return_value=True)
+    mocker.patch.object(sm, "can_access", return_value=True)
+
+    forged = {
+        "columnType": "BASE_AXIS",
+        "isColumnReference": True,
+        "sqlExpression": ["order_date"],
+        "label": "order_date",
+    }
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "x_axis": "order_date",
+        "metrics": stored_metrics,
+        "columns": [],
+    }
+    query_context.form_data = {
+        "slice_id": 42,
+        "x_axis": "order_date",
+        "metrics": stored_metrics,
+        "columns": [],
+    }
+    query_context.queries = [_guest_query([forged], stored_metrics)]
+    with pytest.raises(SupersetSecurityException):
+        sm.raise_for_access(query_context=query_context)
+
+
+def test_raise_for_access_guest_user_logs_rejection_reason(
+    mocker: MockerFixture,
+    app_context: None,
+    caplog: pytest.LogCaptureFixture,
+    stored_metrics: list[AdhocMetric],
+) -> None:
+    """
+    A rejected guest payload is logged server-side with which comparator objected
+    and whether the stored query_context was present, and without any payload
+    values (so column names / SQL are not leaked into logs).
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "is_guest_user", return_value=True)
+    mocker.patch.object(sm, "can_access", return_value=True)
+
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {"columns": [], "metrics": stored_metrics}
+    query_context.form_data = {
+        "slice_id": 42,
+        "columns": [
+            {
+                "label": "secret",
+                "sqlExpression": "secret_col",
+                "expressionType": "SQL",
+            }
+        ],
+        "metrics": stored_metrics,
+    }
+    query_context.queries = [_guest_query([], stored_metrics)]
+
+    with caplog.at_level(logging.WARNING, logger="superset.security.manager"):
+        with pytest.raises(SupersetSecurityException):
+            sm.raise_for_access(query_context=query_context)
+
+    assert "columns/metrics/group-by" in caplog.text
+    assert "stored query_context missing" in caplog.text
+    # The rejected column name / SQL must not be logged.
+    assert "secret_col" not in caplog.text
+
+
+def test_raise_for_access_guest_user_ok_base_axis_in_form_data(
+    mocker: MockerFixture,
+    app_context: None,
+    stored_metrics: list[AdhocMetric],
+) -> None:
+    """
+    The carve-out applies to the ``form_data`` comparison too, not only the
+    per-query one: a BASE_AXIS x-axis carried in ``form_data["columns"]`` is
+    recognized as the stored x-axis.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "is_guest_user", return_value=True)
+    mocker.patch.object(sm, "can_access", return_value=True)
+
+    base_axis = _base_axis_physical_column("order_date")
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "x_axis": "order_date",
+        "metrics": stored_metrics,
+        "columns": [],
+    }
+    query_context.form_data = {
+        "slice_id": 42,
+        "x_axis": "order_date",
+        "metrics": stored_metrics,
+        "columns": [base_axis],
+    }
+    query_context.queries = [_guest_query([base_axis], stored_metrics)]
+    sm.raise_for_access(query_context=query_context)
+
+
+def test_raise_for_access_guest_user_ok_base_axis_groupby(
+    mocker: MockerFixture,
+    app_context: None,
+    stored_metrics: list[AdhocMetric],
+) -> None:
+    """
+    The x-axis carve-out also applies to the ``groupby`` key, not only
+    ``columns``.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "is_guest_user", return_value=True)
+    mocker.patch.object(sm, "can_access", return_value=True)
+
+    base_axis = _base_axis_physical_column("order_date")
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "x_axis": "order_date",
+        "metrics": stored_metrics,
+        "groupby": [],
+    }
+    query_context.form_data = {
+        "slice_id": 42,
+        "x_axis": "order_date",
+        "metrics": stored_metrics,
+        "groupby": [base_axis],
+    }
+    query_context.queries = [_guest_query([], stored_metrics)]
+    sm.raise_for_access(query_context=query_context)
+
+
+def test_raise_for_access_guest_user_ok_bare_string_x_axis_in_columns(
+    mocker: MockerFixture,
+    app_context: None,
+    stored_metrics: list[AdhocMetric],
+) -> None:
+    """
+    A physical (bare-string) x-axis requested verbatim as a column is allowed by
+    the x_axis carve-out, without any BASE_AXIS wrapping.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "is_guest_user", return_value=True)
+    mocker.patch.object(sm, "can_access", return_value=True)
+
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "x_axis": "order_date",
+        "metrics": stored_metrics,
+        "columns": [],
+    }
+    query_context.form_data = {
+        "slice_id": 42,
+        "x_axis": "order_date",
+        "metrics": stored_metrics,
+        "columns": ["order_date"],
+    }
+    query_context.queries = [_guest_query(["order_date"], stored_metrics)]
+    sm.raise_for_access(query_context=query_context)
+
+
+def test_raise_for_access_guest_user_base_axis_in_metrics_rejected(
+    mocker: MockerFixture,
+    app_context: None,
+    stored_metrics: list[AdhocMetric],
+) -> None:
+    """
+    The carve-out is column-only: a metric tagged BASE_AXIS is not collapsed, so
+    it must exact-match a stored metric and an unrelated one is still rejected.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "is_guest_user", return_value=True)
+    mocker.patch.object(sm, "can_access", return_value=True)
+
+    forged_metric = {
+        "columnType": "BASE_AXIS",
+        "isColumnReference": True,
+        "sqlExpression": "SUM(revenue)",
+        "label": "SUM(revenue)",
+        "expressionType": "SQL",
+    }
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "x_axis": "order_date",
+        "metrics": stored_metrics,
+        "columns": [],
+    }
+    query_context.form_data = {
+        "slice_id": 42,
+        "metrics": [forged_metric],
+    }
+    query_context.queries = [_guest_query([], stored_metrics)]
+    with pytest.raises(SupersetSecurityException):
+        sm.raise_for_access(query_context=query_context)
+
+
 def test_raise_for_access_query_default_schema(
     mocker: MockerFixture,
     app_context: None,
@@ -386,7 +1100,6 @@ def test_raise_for_access_query_default_schema(
             query=query,
             query_context=None,
             table=None,
-            viz=None,
         )
         is None
     )
@@ -401,7 +1114,6 @@ def test_raise_for_access_query_default_schema(
             query=query,
             query_context=None,
             table=None,
-            viz=None,
         )
     assert (
         str(excinfo.value)
@@ -440,7 +1152,6 @@ def test_raise_for_access_jinja_sql(mocker: MockerFixture, app_context: None) ->
             query=query,
             query_context=None,
             table=None,
-            viz=None,
         )
 
     get_table_access_error_object.assert_called_with({Table("ab_user", "public", None)})
@@ -669,6 +1380,99 @@ def test_query_context_modified_tampered(
     assert query_context_modified(query_context)
 
 
+def test_query_context_modified_singular_metric_param(
+    mocker: MockerFixture,
+) -> None:
+    """
+    A chart storing its metric under the singular ``metric`` params key (big
+    number, world map, ...) generates a payload with a plural ``metrics`` list;
+    replaying the chart's own metric is not tampering.
+    """
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "metric": "sum__SP_POP_TOTL",
+        "groupby": [],
+    }
+
+    query_context.form_data = {
+        "slice_id": 42,
+        "metric": "sum__SP_POP_TOTL",
+    }
+    query_context.queries = [QueryObject(metrics=["sum__SP_POP_TOTL"])]
+    assert not query_context_modified(query_context)
+
+
+def test_query_context_modified_control_specific_column_params(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Charts store their queried columns under control-specific params keys
+    (``entity``/``series`` for bubble, ``groupby`` for most, the temporal
+    column under ``granularity_sqla``); the generated payload carries them in
+    ``columns``, which must not read as tampering.
+    """
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "entity": "country_name",
+        "series": "region",
+        "granularity_sqla": "year",
+        "x": "sum__SP_RUR_TOTL_ZS",
+        "y": "sum__SP_DYN_LE00_IN",
+        "size": "sum__SP_POP_TOTL",
+    }
+
+    query_context.form_data = {"slice_id": 42}
+    query_context.queries = [
+        QueryObject(
+            columns=["country_name", "region", "year"],
+            metrics=[
+                "sum__SP_RUR_TOTL_ZS",
+                "sum__SP_DYN_LE00_IN",
+                "sum__SP_POP_TOTL",
+            ],
+        )
+    ]
+    assert not query_context_modified(query_context)
+
+
+def test_query_context_modified_novel_values_still_tampered(
+    mocker: MockerFixture,
+) -> None:
+    """
+    The control-specific params equivalence only authorizes exact stored
+    values: a metric or column the chart does not reference anywhere is still
+    rejected, as is an adhoc expression label-spoofing a stored column.
+    """
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "metric": "sum__SP_POP_TOTL",
+        "entity": "country_code",
+        "granularity_sqla": "year",
+    }
+    query_context.form_data = {"slice_id": 42}
+
+    query_context.queries = [QueryObject(metrics=["sum__SH_DYN_AIDS"])]
+    assert query_context_modified(query_context)
+
+    query_context.queries = [QueryObject(columns=["some_other_column"])]
+    assert query_context_modified(query_context)
+
+    query_context.queries = [
+        QueryObject(
+            columns=[
+                {"label": "country_code", "sqlExpression": "(select 1)"},
+            ],
+        )
+    ]
+    assert query_context_modified(query_context)
+
+
 def _native_filter_ctx(
     mocker: MockerFixture,
     queries: list[Any],
@@ -798,6 +1602,32 @@ def test_query_context_modified_native_filter_arbitrary_saved_metric_blocked(
     """A saved metric other than the filter's configured sort metric is modified."""
     query = SimpleNamespace(columns=["region"], metrics=["salary_total"], groupby=[])
     qc = _native_filter_ctx(mocker, [query], control_values={"sortMetric": "total"})
+    assert query_context_modified(qc)
+
+
+def test_query_context_modified_native_filter_series_limit_terms_blocked(
+    mocker: MockerFixture,
+) -> None:
+    """A series-limit metric or series column beyond the target is modified."""
+    query = SimpleNamespace(
+        columns=["region"],
+        metrics=[],
+        groupby=[],
+        series_columns=["region"],
+        series_limit=5,
+        series_limit_metric={
+            "expressionType": "SIMPLE",
+            "column": {"column_name": "salary"},
+            "aggregate": "MAX",
+        },
+    )
+    qc = _native_filter_ctx(mocker, [query])
+    assert query_context_modified(qc)
+
+    query = SimpleNamespace(
+        columns=["region"], metrics=[], groupby=[], series_columns=["ssn"]
+    )
+    qc = _native_filter_ctx(mocker, [query])
     assert query_context_modified(qc)
 
 
@@ -2626,6 +3456,32 @@ def test_user_view_menu_names_for_guest_user_no_roles(
     mock_get_user_id.assert_not_called()
 
 
+def test_request_loader_rejects_invalid_guest_token_before_bearer(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    Invalid guest tokens must not fall through to Bearer JWT auth.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    header_name = current_app.config["GUEST_TOKEN_HEADER_NAME"]
+    request = SimpleNamespace(
+        headers={header_name: "invalid-guest-token", "Authorization": "Bearer valid"},
+        form={},
+    )
+
+    mocker.patch(
+        "superset.extensions.feature_flag_manager.is_feature_enabled",
+        return_value=True,
+    )
+    mocker.patch.object(sm, "get_guest_user_from_request", return_value=None)
+    verify_jwt = mocker.patch("superset.security.manager.verify_jwt_in_request")
+
+    assert sm.request_loader(request) is None
+
+    verify_jwt.assert_not_called()
+
+
 def test_reset_password_self_service_clears_flag(
     mocker: MockerFixture,
     app_context: None,
@@ -2935,3 +3791,123 @@ def test_validate_guest_token_resources_accepts_embedded_int_id(
     sm.validate_guest_token_resources(
         [{"type": GuestTokenResourceType.DASHBOARD, "id": 5}]
     )
+
+
+def test_is_editor_query_owner(mocker: MockerFixture, app_context: None) -> None:
+    """
+    Test that a Query owner is considered an editor via Subject resolution.
+    """
+    from superset.models.sql_lab import Query
+
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "is_admin", return_value=False)
+    mocker.patch(
+        "superset.security.manager.get_user_id",
+        return_value=100,
+    )
+    mocker.patch(
+        "superset.subjects.utils.get_user_subject_ids",
+        return_value={1000},
+    )
+    mocker.patch(
+        "superset.security.manager.get_extra_editor_subject_ids",
+        return_value=set(),
+    )
+
+    subject_user_100 = mocker.MagicMock(id=1000)
+    subject_user_200 = mocker.MagicMock(id=2000)
+
+    def mock_get_user_subject(uid: int):
+        if uid == 100:
+            return subject_user_100
+        if uid == 200:
+            return subject_user_200
+        return None
+
+    mocker.patch(
+        "superset.subjects.utils.get_user_subject",
+        side_effect=mock_get_user_subject,
+    )
+
+    query = Query(user_id=100)
+    assert sm.is_editor(query) is True
+
+    other_query = Query(user_id=200)
+    assert sm.is_editor(other_query) is False
+
+
+def test_is_editor_saved_query_owner(mocker: MockerFixture, app_context: None) -> None:
+    """
+    Test that a SavedQuery owner is considered an editor via Subject resolution.
+    """
+    from superset.models.sql_lab import SavedQuery
+
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "is_admin", return_value=False)
+    mocker.patch(
+        "superset.security.manager.get_user_id",
+        return_value=100,
+    )
+    mocker.patch(
+        "superset.subjects.utils.get_user_subject_ids",
+        return_value={1000},
+    )
+    mocker.patch(
+        "superset.security.manager.get_extra_editor_subject_ids",
+        return_value=set(),
+    )
+
+    subject_user_100 = mocker.MagicMock(id=1000)
+    subject_user_200 = mocker.MagicMock(id=2000)
+
+    def mock_get_user_subject(uid: int):
+        if uid == 100:
+            return subject_user_100
+        if uid == 200:
+            return subject_user_200
+        return None
+
+    mocker.patch(
+        "superset.subjects.utils.get_user_subject",
+        side_effect=mock_get_user_subject,
+    )
+
+    saved_query = SavedQuery(user_id=100)
+    assert sm.is_editor(saved_query) is True
+
+    other_saved_query = SavedQuery(user_id=200)
+    assert sm.is_editor(other_saved_query) is False
+
+
+def test_is_editor_other_model_with_user_id_not_editor(
+    mocker: MockerFixture, app_context: None
+) -> None:
+    """
+    Test that a model with user_id that is NOT Query or SavedQuery
+    does NOT receive the fallback and is not considered an editor.
+    """
+    from superset.models.sql_lab import TabState
+
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "is_admin", return_value=False)
+    mocker.patch(
+        "superset.security.manager.get_user_id",
+        return_value=100,
+    )
+    mocker.patch(
+        "superset.subjects.utils.get_user_subject_ids",
+        return_value={1000},
+    )
+    mocker.patch(
+        "superset.security.manager.get_extra_editor_subject_ids",
+        return_value=set(),
+    )
+
+    subject_user_100 = mocker.MagicMock(id=1000)
+    mocker.patch(
+        "superset.subjects.utils.get_user_subject",
+        return_value=subject_user_100,
+    )
+
+    tab_state = TabState(user_id=100)
+    assert sm.is_editor(tab_state) is False

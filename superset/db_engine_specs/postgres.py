@@ -23,19 +23,28 @@ from datetime import datetime
 from re import Pattern
 from typing import Any, Callable, Optional, TYPE_CHECKING
 
+import sqlalchemy as sa
 from flask_babel import gettext as __
+from marshmallow import fields, pre_load
+from marshmallow.validate import Range
 from sqlalchemy import text, types
 from sqlalchemy.dialects.postgresql import DOUBLE_PRECISION, ENUM, INTERVAL, JSON
 from sqlalchemy.dialects.postgresql.base import PGInspector
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
+from sqlalchemy.sql.elements import ColumnElement
+from sqlalchemy.sql.expression import ColumnClause
 from sqlalchemy.types import Date, DateTime, String
 
 from superset.constants import TimeGrain
 from superset.db_engine_specs.base import (
+    AURORA_DATA_API_KNOWN_INCOMPATIBILITIES,
     BaseEngineSpec,
     BasicParametersMixin,
+    BasicParametersSchema,
+    BasicParametersType,
     DatabaseCategory,
+    TimestampExpression,
 )
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetException, SupersetSecurityException
@@ -189,6 +198,25 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
         TimeGrain.YEAR: "DATE_TRUNC('year', {col})",
     }
 
+    # Verified against a live postgres:16 instance, including under GROUPING
+    # SETS (the pivot table's non-additive-total rollup pattern): the grand
+    # total correctly reflects every row, not an aggregate-of-aggregates.
+    # STDDEV_SAMP/VAR_SAMP (not MEDIAN -- see its override) are inherited by
+    # Redshift (a Postgres fork); its SQL function reference documents the
+    # same support, but that has not been separately verified against a live
+    # Redshift instance.
+    # Also inherited by TimescaleDB (a Postgres extension, not a forked query
+    # engine -- it runs unmodified Postgres aggregate execution) and by
+    # Aurora PostgreSQL / its Data API variant (AWS's wire- and
+    # SQL-compatible managed Postgres). Engines that share the SQL dialect
+    # but run a materially different query engine (CockroachDB, Greenplum,
+    # SAP HANA) reset this to `{}` instead -- see those engine specs.
+    _extended_aggregations: dict[str, Callable[[ColumnElement], ColumnElement]] = {
+        "MEDIAN": lambda col: sa.func.percentile_cont(0.5).within_group(col),
+        "STDDEV_SAMP": sa.func.stddev_samp,
+        "VAR_SAMP": sa.func.var_samp,
+    }
+
     custom_errors: dict[Pattern[str], tuple[str, SupersetErrorType, dict[str, Any]]] = {
         CONNECTION_INVALID_USERNAME_REGEX: (
             __('The username "%(username)s" does not exist.'),
@@ -257,6 +285,31 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
         return "(timestamp 'epoch' + {col} * interval '1 second')"
 
     @classmethod
+    def get_timestamp_expr(
+        cls,
+        col: ColumnClause,
+        pdf: str | None,
+        time_grain: str | None,
+    ) -> TimestampExpression:
+        """
+        Construct a timestamp expression while preserving pure ``DATE`` semantics.
+
+        Applying ``DATE_TRUNC`` to a ``DATE`` column implicitly casts the value to
+        ``TIMESTAMP``, which can trigger unwanted timezone conversion on the client
+        and shift the displayed date by a day. To avoid this, the truncated value is
+        cast back to ``DATE`` when the source column is a pure ``DATE`` type.
+
+        See https://github.com/apache/superset/issues/42254.
+        """
+        expr = super().get_timestamp_expr(col, pdf, time_grain)
+        col_type = getattr(col, "type", None)
+        # ``DateTime``/``TIMESTAMP`` are distinct SQLAlchemy types (not subclasses
+        # of ``Date``), so this only matches pure ``DATE`` columns.
+        if time_grain and isinstance(col_type, Date):
+            return TimestampExpression(f"CAST({expr.name} AS DATE)", col, type_=Date())
+        return expr
+
+    @classmethod
     def convert_dttm(
         cls, target_type: str, dttm: datetime, db_extra: dict[str, Any] | None = None
     ) -> str | None:
@@ -270,6 +323,34 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
         return None
 
 
+class PostgresParametersSchema(BasicParametersSchema):
+    """
+    Same as ``BasicParametersSchema``, except ``port`` is optional: a blank
+    port falls back to Postgres's own default (5432) in
+    ``PostgresEngineSpec.build_sqlalchemy_uri``.
+    """
+
+    port = fields.Integer(
+        required=False,
+        allow_none=True,
+        metadata={"description": __("Database port")},
+        validate=Range(min=0, max=2**16, max_inclusive=False),
+    )
+
+    @pre_load
+    def blank_port_to_none(self, data: Any, **kwargs: Any) -> Any:
+        """
+        A cleared number input in the Connect Database form submits ``""``
+        for ``port`` (HTML input values are always strings) rather than
+        omitting the key or sending ``null``. Normalize it to ``None`` so it
+        deserializes cleanly instead of failing with "Not a valid integer.",
+        and is treated as blank -- same as an omitted port -- downstream.
+        """
+        if isinstance(data, dict) and data.get("port") == "":
+            data = {**data, "port": None}
+        return data
+
+
 class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
     engine = "postgresql"
     engine_name = "PostgreSQL"
@@ -278,8 +359,15 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
     supports_dynamic_schema = True
     supports_catalog = True
     supports_dynamic_catalog = True
+    supports_grouping_sets = True
+    supports_temporal_column_shift = True
 
     default_driver = "psycopg2"
+    parameters_schema = PostgresParametersSchema()
+    # ``port`` is intentionally not required: a blank port falls back to
+    # Postgres's own default (``metadata["default_port"]``) in
+    # ``BasicParametersMixin.build_sqlalchemy_uri`` (overridden below).
+    required_parameters = {"host", "username", "database"}
     sqlalchemy_uri_placeholder = (
         "postgresql://user:password@host:port/dbname[?key=value&key=value...]"
     )
@@ -517,6 +605,7 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
                     DatabaseCategory.CLOUD_AWS,
                     DatabaseCategory.HOSTED_OPEN_SOURCE,
                 ],
+                "known_incompatibilities": AURORA_DATA_API_KNOWN_INCOMPATIBILITIES,
             },
         ],
     }
@@ -611,12 +700,11 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
         """
         Return the default schema for a given query.
 
-        This method simply uses the parent method after checking that there are no
-        malicious path setting in the query.
+        This method simply uses the parent method after checking that the query
+        cannot rebind the schema used to resolve unqualified table names.
         """
         script = process_jinja_sql(query.sql, database, template_params).script
-        settings = script.get_settings()
-        if "search_path" in settings:
+        if script.changes_default_schema():
             raise SupersetSecurityException(
                 SupersetError(
                     error_type=SupersetErrorType.QUERY_SECURITY_ACCESS_ERROR,
@@ -644,6 +732,34 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
             uri = uri.set(database=catalog)
 
         return uri, connect_args
+
+    @classmethod
+    def build_sqlalchemy_uri(
+        cls,
+        parameters: BasicParametersType,
+        encrypted_extra: dict[str, str] | None = None,
+    ) -> str:
+        """
+        Default a missing/blank port to Postgres's own default (5432) so the
+        dynamic form can connect without requiring the port to be filled in.
+
+        Only an absent key, ``None``, or ``""`` (what a cleared number input
+        submits, since this may be called directly with raw, non-schema-
+        loaded parameters -- see ``ValidateDatabaseParametersCommand``) are
+        treated as blank; an explicitly supplied port -- including ``0`` --
+        is preserved as-is rather than overwritten by a truthiness check.
+        """
+        port = parameters.get("port")
+        resolved_port: int = (
+            cls.metadata["default_port"] if port is None or port == "" else port
+        )
+        parameters_with_default_port: BasicParametersType = {
+            **parameters,
+            "port": resolved_port,
+        }
+        return super().build_sqlalchemy_uri(
+            parameters_with_default_port, encrypted_extra
+        )
 
     @staticmethod
     def mutate_db_for_connection_test(database: Database) -> None:
@@ -791,6 +907,32 @@ SELECT datname FROM pg_database
 WHERE datistemplate = false;
                     """)
                 )
+            }
+
+    @classmethod
+    def get_schema_names(cls, inspector: Inspector) -> set[str]:
+        """
+        Return all schema names, excluding the ``pg_``-prefixed Postgres
+        system schemas (e.g. ``pg_catalog``, ``pg_toast``).
+
+        SQLAlchemy's Postgres dialect filters out system schemas with the
+        query ``nspname NOT LIKE 'pg_%'``. Since ``_`` is a single-character
+        wildcard in SQL ``LIKE`` patterns, this unintentionally excludes any
+        user-defined schema that merely starts with ``pg`` followed by any
+        other character (e.g. ``pgsql``, ``pgstats``), not only the
+        ``pg_``-prefixed system schemas. Matching on the literal ``pg_``
+        prefix instead keeps those user-defined schemas.
+
+        TODO: drop this override once sqlalchemy/sqlalchemy#13471 is merged
+        and released, and SQLAlchemy is bumped past that version.
+        """
+        with inspector.engine.connect() as conn:
+            return {
+                name
+                for (name,) in conn.execute(
+                    text("SELECT nspname FROM pg_namespace ORDER BY nspname")
+                )
+                if not name.startswith("pg_")
             }
 
     @classmethod

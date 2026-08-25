@@ -64,6 +64,21 @@ def test_asset_path_is_intercepted() -> None:
     assert "Cookie" not in vary
 
 
+def test_nested_asset_path_is_intercepted() -> None:
+    headers: ResponseHeaders = call_middleware(
+        "/api/v1/extensions/acme/my-ext/workers/nested/chunk.wasm",
+        [("Vary", "Accept-Encoding, Cookie")],
+    )
+    vary: str = dict(headers).get("Vary", "")
+    assert "Cookie" not in vary
+
+
+def test_get_endpoint_with_trailing_slash_is_not_intercepted() -> None:
+    upstream: ResponseHeaders = [("Vary", "Accept-Encoding, Cookie")]
+    headers = call_middleware("/api/v1/extensions/acme/my-ext/", upstream)
+    assert headers == upstream
+
+
 def test_list_endpoint_is_not_intercepted() -> None:
     upstream = [("Vary", "Accept-Encoding, Cookie")]
     headers = call_middleware("/api/v1/extensions/", upstream)
@@ -86,6 +101,17 @@ def test_unrelated_path_is_not_intercepted() -> None:
     upstream = [("Vary", "Accept-Encoding, Cookie")]
     headers = call_middleware("/api/v1/dashboard/", upstream)
     assert headers == upstream
+
+
+def test_storage_endpoints_are_not_intercepted() -> None:
+    """Per-user storage responses must keep Vary: Cookie for shared caches."""
+    upstream = [("Vary", "Accept-Encoding, Cookie")]
+    for path in (
+        "/api/v1/extensions/acme/my-ext/storage/ephemeral/some-key",
+        "/api/v1/extensions/acme/my-ext/storage/persistent/some-key",
+    ):
+        headers = call_middleware(path, upstream)
+        assert headers == upstream
 
 
 # --- Vary stripping logic ---

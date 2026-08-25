@@ -17,7 +17,7 @@
  * under the License.
  */
 import thunk from 'redux-thunk';
-import configureStore from 'redux-mock-store';
+import configureStore, { MockStoreEnhanced } from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
 import {
   render,
@@ -29,6 +29,7 @@ import { MemoryRouter, useLocation } from 'react-router-dom';
 import { QueryParamProvider } from 'use-query-params';
 import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
 import * as getBootstrapData from 'src/utils/getBootstrapData';
+import { ADD_TOAST } from 'src/components/MessageToasts/actions';
 import SavedQueryList from '.';
 
 // Renders the current router pathname+search so tests can assert navigation.
@@ -92,8 +93,15 @@ fetchMock.post(permalinkEndpoint, {
 
 fetchMock.delete(queryEndpoint, {}, { name: queryEndpoint });
 
-const renderList = (props = {}, storeOverrides = {}) =>
-  render(
+const renderList = (props = {}, storeOverrides = {}) => {
+  const store = configureStore([thunk])({
+    user: {
+      ...mockUser,
+      roles: { Admin: [['can_write', 'SavedQuery']] },
+    },
+    ...storeOverrides,
+  });
+  const utils = render(
     <MemoryRouter>
       <QueryParamProvider adapter={ReactRouter5Adapter}>
         <SavedQueryList user={mockUser} {...props} />
@@ -102,15 +110,19 @@ const renderList = (props = {}, storeOverrides = {}) =>
     </MemoryRouter>,
     {
       useRedux: true,
-      store: configureStore([thunk])({
-        user: {
-          ...mockUser,
-          roles: { Admin: [['can_write', 'SavedQuery']] },
-        },
-        ...storeOverrides,
-      }),
+      store,
     },
   );
+  return { ...utils, store };
+};
+
+// Finds any dispatched toast action whose text matches, regardless of
+// toast type -- the regression this guards against could resurface the
+// copy confirmation as any toast variant, not just a success toast.
+const findToastAction = (store: MockStoreEnhanced<unknown>, text: string) =>
+  store
+    .getActions()
+    .find(action => action.type === ADD_TOAST && action.payload?.text === text);
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('SavedQueryList', () => {
@@ -285,6 +297,115 @@ describe('SavedQueryList', () => {
       });
     } finally {
       applicationRootSpy.mockRestore();
+    }
+  });
+
+  test('opens a saved query in SQL Lab without copying a link', async () => {
+    // A prior test in this suite permanently swaps this route to read-only
+    // permissions, which would hide the edit action this test depends on.
+    fetchMock.removeRoute(queriesInfoEndpoint);
+    fetchMock.get(
+      queriesInfoEndpoint,
+      { permissions: ['can_write', 'can_read', 'can_export'] },
+      { name: queriesInfoEndpoint },
+    );
+
+    const clipboardCallback = jest.fn();
+    const originalClipboard = { ...global.navigator.clipboard };
+    // @ts-expect-error -- overriding a read-only browser API for the test
+    global.navigator.clipboard = {
+      write: clipboardCallback,
+      writeText: clipboardCallback,
+    };
+
+    try {
+      const { store } = renderList();
+      await screen.findByTestId('saved_query-list-view');
+
+      const editButtons = await screen.findAllByTestId('edit-action');
+      fireEvent.click(editButtons[0]);
+
+      await waitFor(() => {
+        const location = screen.getByTestId('location-display').textContent;
+        expect(location).toMatch(/^\/sqllab\?savedQueryId=\d+$/);
+      });
+
+      expect(clipboardCallback).not.toHaveBeenCalled();
+      expect(findToastAction(store, 'Link Copied!')).toBeUndefined();
+    } finally {
+      // @ts-expect-error -- restoring the read-only browser API after the test
+      global.navigator.clipboard = originalClipboard;
+    }
+  });
+
+  test('opens a saved query from the preview modal without copying a link', async () => {
+    const savedQueryDetailEndpoint = /\/api\/v1\/saved_query\/\d+$/;
+    fetchMock.get(
+      savedQueryDetailEndpoint,
+      { result: mockQueries[0] },
+      { name: 'saved-query-detail' },
+    );
+
+    const clipboardCallback = jest.fn();
+    const originalClipboard = { ...global.navigator.clipboard };
+    // @ts-expect-error -- overriding a read-only browser API for the test
+    global.navigator.clipboard = {
+      write: clipboardCallback,
+      writeText: clipboardCallback,
+    };
+
+    try {
+      const { store } = renderList();
+      await screen.findByTestId('saved_query-list-view');
+
+      const previewButtons = await screen.findAllByTestId('preview-action');
+      fireEvent.click(previewButtons[0]);
+
+      const openInSqlLabButton = await screen.findByTestId('open-in-sql-lab');
+      fireEvent.click(openInSqlLabButton);
+
+      await waitFor(() => {
+        const location = screen.getByTestId('location-display').textContent;
+        expect(location).toMatch(/^\/sqllab\?savedQueryId=\d+$/);
+      });
+
+      expect(clipboardCallback).not.toHaveBeenCalled();
+      expect(findToastAction(store, 'Link Copied!')).toBeUndefined();
+    } finally {
+      // @ts-expect-error -- restoring the read-only browser API after the test
+      global.navigator.clipboard = originalClipboard;
+      fetchMock.removeRoute('saved-query-detail');
+    }
+  });
+
+  test('copies a permalink to the clipboard when using the copy action', async () => {
+    const clipboardCallback = jest.fn();
+    const originalClipboard = { ...global.navigator.clipboard };
+    // @ts-expect-error -- overriding a read-only browser API for the test
+    global.navigator.clipboard = {
+      write: clipboardCallback,
+      writeText: clipboardCallback,
+    };
+
+    try {
+      const { store } = renderList();
+      await screen.findByTestId('saved_query-list-view');
+
+      const copyButtons = await screen.findAllByTestId('copy-action');
+      fireEvent.click(copyButtons[0]);
+
+      await waitFor(() => {
+        expect(clipboardCallback).toHaveBeenCalledWith(
+          'http://localhost/permalink',
+        );
+      });
+
+      await waitFor(() => {
+        expect(findToastAction(store, 'Link Copied!')).toBeDefined();
+      });
+    } finally {
+      // @ts-expect-error -- restoring the read-only browser API after the test
+      global.navigator.clipboard = originalClipboard;
     }
   });
 });

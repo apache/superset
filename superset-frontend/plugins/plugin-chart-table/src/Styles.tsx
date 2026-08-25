@@ -163,8 +163,11 @@ export default styled.div`
       margin: 0 ${theme.marginXXS}px;
     }
 
-    .dt-pagination .pagination > li > a,
+    .dt-pagination .pagination > li > button,
     .dt-pagination .pagination > li > span {
+      appearance: none;
+      border: 1px solid transparent;
+      font: inherit;
       background-color: ${theme.colorBgBase};
       color: ${theme.colorText};
       border-color: ${theme.colorBorderSecondary};
@@ -172,10 +175,10 @@ export default styled.div`
       border-radius: ${theme.borderRadius}px;
     }
 
-    .dt-pagination .pagination > li.active > a,
+    .dt-pagination .pagination > li.active > button,
     .dt-pagination .pagination > li.active > span,
-    .dt-pagination .pagination > li.active > a:focus,
-    .dt-pagination .pagination > li.active > a:hover,
+    .dt-pagination .pagination > li.active > button:focus,
+    .dt-pagination .pagination > li.active > button:hover,
     .dt-pagination .pagination > li.active > span:focus,
     .dt-pagination .pagination > li.active > span:hover {
       background-color: ${theme.colorPrimary};

@@ -21,18 +21,16 @@ import { useDispatch, useSelector } from 'react-redux';
 import Split from 'react-split';
 import { t } from '@apache-superset/core/translation';
 import {
-  DatasourceType,
   ensureIsArray,
   isFeatureEnabled,
   FeatureFlag,
-  getChartMetadataRegistry,
   SupersetClient,
   QueryFormData,
   JsonObject,
   getExtensionsRegistry,
-  handleKeyboardActivation,
 } from '@superset-ui/core';
-import { Alert } from '@apache-superset/core/components';
+import { URL_PARAMS } from 'src/constants';
+import { getUrlParam } from 'src/utils/urlUtils';
 import { css, styled, useTheme } from '@apache-superset/core/theme';
 import ChartContainer from 'src/components/Chart/ChartContainer';
 import { updateExploreChartState } from 'src/explore/actions/exploreActions';
@@ -45,8 +43,6 @@ import {
   setItem,
   LocalStorageKeys,
 } from 'src/utils/localStorageHelpers';
-import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
-import { getDatasourceAsSaveableDataset } from 'src/utils/datasourceUtils';
 import { buildV1ChartDataPayload } from 'src/explore/exploreUtils';
 import { getChartRequiredFieldsMissingMessage } from 'src/utils/getChartRequiredFieldsMissingMessage';
 import type { ChartState, Datasource } from 'src/explore/types';
@@ -57,6 +53,7 @@ import { DataTablesPane } from '../DataTablesPane';
 import { ChartPills } from '../ChartPills';
 import { ExploreAlert } from '../ExploreAlert';
 import useResizeDetectorByObserver from './useResizeDetectorByObserver';
+import StandaloneDownloadControl from './StandaloneDownloadControl';
 
 const extensionsRegistry = getExtensionsRegistry();
 const DefaultHeader: React.FC<{ children?: React.ReactNode }> = ({
@@ -178,6 +175,7 @@ const ExploreChartPanel = ({
 }: ExploreChartPanelProps) => {
   const theme = useTheme();
   const dispatch = useDispatch();
+  const showDownload = getUrlParam(URL_PARAMS.showDownload);
   const gutterMargin = theme.sizeUnit * GUTTER_SIZE_FACTOR;
   const gutterHeight = theme.sizeUnit * GUTTER_SIZE_FACTOR;
 
@@ -224,17 +222,10 @@ const ExploreChartPanel = ({
       : getItem(LocalStorageKeys.IsDatapanelOpen, false),
   );
 
-  const [showDatasetModal, setShowDatasetModal] = useState(false);
-
-  const metaDataRegistry = getChartMetadataRegistry();
-  const { useLegacyApi } = metaDataRegistry.get(vizType) ?? {};
-  const vizTypeNeedsDataset =
-    useLegacyApi && datasource.type !== DatasourceType.Table;
   // added boolean column to below show boolean so that the errors aren't overlapping
   const showAlertBanner =
     !chartAlert &&
     chartIsStale &&
-    !vizTypeNeedsDataset &&
     chart.chartStatus !== 'failed' &&
     ensureIsArray(chart.queriesResponse).length > 0;
 
@@ -381,34 +372,6 @@ const ExploreChartPanel = ({
           padding-top: ${theme.sizeUnit * 2}px;
         `}
       >
-        {vizTypeNeedsDataset && (
-          <Alert
-            message={t('Chart type requires a dataset')}
-            type="error"
-            css={theme => css`
-              margin: 0 0 ${theme.sizeUnit * 4}px 0;
-            `}
-            description={
-              <>
-                {t(
-                  'This chart type is not supported when using an unsaved query as a chart source. ',
-                )}
-                <span
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => setShowDatasetModal(true)}
-                  onKeyDown={handleKeyboardActivation(() =>
-                    setShowDatasetModal(true),
-                  )}
-                  css={{ textDecoration: 'underline' }}
-                >
-                  {t('Create a dataset')}
-                </span>
-                {t(' to visualize your data.')}
-              </>
-            }
-          />
-        )}
         {showAlertBanner && (
           <ExploreAlert
             title={
@@ -424,14 +387,21 @@ const ExploreChartPanel = ({
                   {t(
                     'You updated the values in the control panel, but the chart was not updated automatically. Run the query by clicking on the "Update chart" button or',
                   )}{' '}
-                  <span
-                    role="button"
-                    tabIndex={0}
+                  <button
+                    type="button"
                     onClick={onQuery}
-                    onKeyDown={handleKeyboardActivation(() => onQuery?.())}
+                    css={css`
+                      appearance: none;
+                      border: none;
+                      background: none;
+                      padding: 0;
+                      font: inherit;
+                      color: inherit;
+                      cursor: pointer;
+                    `}
                   >
                     {t('click here')}
-                  </span>
+                  </button>
                   .
                 </span>
               )
@@ -541,7 +511,23 @@ const ExploreChartPanel = ({
       document.body.className += ` ${standaloneClass}`;
     }
     return (
-      <div id="app" data-test="standalone-app">
+      <div
+        id="app"
+        data-test="standalone-app"
+        css={css`
+          position: relative;
+          height: 100%;
+        `}
+      >
+        {showDownload && canDownload && (
+          <StandaloneDownloadControl
+            latestQueryFormData={chart.latestQueryFormData}
+            canDownload={canDownload}
+            slice={slice}
+            ownState={mergedOwnState}
+          />
+        )}
+
         {standaloneChartBody}
       </div>
     );
@@ -572,17 +558,6 @@ const ExploreChartPanel = ({
           queriesResponse={chart.queriesResponse}
         />
       </Split>
-      {showDatasetModal && (
-        <SaveDatasetModal
-          visible={showDatasetModal}
-          onHide={() => setShowDatasetModal(false)}
-          buttonTextOnSave={t('Save')}
-          buttonTextOnOverwrite={t('Overwrite')}
-          datasource={getDatasourceAsSaveableDataset(datasource)}
-          openWindow={false}
-          formData={formData}
-        />
-      )}
     </Styles>
   );
 };

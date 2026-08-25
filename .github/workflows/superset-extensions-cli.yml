@@ -11,6 +11,7 @@ on:
 permissions:
   contents: read
   pull-requests: read
+  actions: read
 
 # cancel previous workflow jobs for PRs
 concurrency:
@@ -19,7 +20,7 @@ concurrency:
 
 jobs:
   test-superset-extensions-cli-package:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 30
     strategy:
       matrix:
@@ -31,7 +32,7 @@ jobs:
         working-directory: superset-extensions-cli
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
           submodules: recursive
@@ -69,3 +70,12 @@ jobs:
         with:
           name: superset-extensions-cli-coverage-html
           path: htmlcov/
+
+  actions-timeline:
+    needs: test-superset-extensions-cli-package
+    if: always()
+    runs-on: ubuntu-26.04
+    steps:
+      - uses: Kesin11/actions-timeline@57fc93f20c6da7fbc14063c6d24a2a5627c799ad # v3.2.0
+        with:
+          expand-composite-actions: true

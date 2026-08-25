@@ -32,7 +32,7 @@ concurrency:
 
 jobs:
   config:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-slim
     outputs:
       has-secrets: ${{ steps.check.outputs.has-secrets }}
     steps:
@@ -50,7 +50,7 @@ jobs:
     needs: config
     if: needs.config.outputs.has-secrets
     name: docker-release
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     permissions:
       contents: write
     strategy:
@@ -60,7 +60,7 @@ jobs:
       fail-fast: false
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
           fetch-depth: 0
@@ -120,13 +120,13 @@ jobs:
   update-prs-with-release-info:
     needs: config
     if: needs.config.outputs.has-secrets
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     permissions:
       contents: read
       pull-requests: write
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
           fetch-depth: 0

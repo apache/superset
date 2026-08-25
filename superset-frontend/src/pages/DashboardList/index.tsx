@@ -21,9 +21,8 @@ import {
   isFeatureEnabled,
   FeatureFlag,
   SupersetClient,
-  handleKeyboardActivation,
 } from '@superset-ui/core';
-import { styled } from '@apache-superset/core/theme';
+import { styled, css, useTheme } from '@apache-superset/core/theme';
 import { useSelector } from 'react-redux';
 import { useState, useMemo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
@@ -39,7 +38,10 @@ import Subject from 'src/types/Subject';
 import { SUBJECT_OPTION_FILTER_PROPS } from 'src/features/subjects/SubjectSelectLabel';
 import { SubjectPile } from 'src/features/subjects/SubjectPile';
 import { useListViewResource, useFavoriteStatus } from 'src/views/CRUD/hooks';
+import { useIsMobile } from 'src/hooks/useIsMobile';
 import {
+  ActionButton,
+  Button,
   CertifiedBadge,
   ConfirmStatusChange,
   DeleteModal,
@@ -61,6 +63,10 @@ import {
   type ListViewFilters,
 } from 'src/components';
 import handleResourceExport from 'src/utils/export';
+import {
+  archiveConfirmDescription,
+  deleteActionLabel,
+} from 'src/utils/softDeleteCopy';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import { dangerouslyGetItemDoNotUse } from 'src/utils/localStorageHelpers';
 import withToasts from 'src/components/MessageToasts/withToasts';
@@ -81,7 +87,6 @@ import { findPermission } from 'src/utils/findPermission';
 import { navigateTo } from 'src/utils/navigationUtils';
 import { WIDER_DROPDOWN_WIDTH } from 'src/components/ListView/utils';
 import { isUserEditorOrAdmin } from 'src/dashboard/util/permissionUtils';
-import IconButton from 'src/dashboard/components/IconButton';
 import type { CellProps } from 'react-table';
 
 const PAGE_SIZE = 25;
@@ -117,6 +122,8 @@ export interface Dashboard {
   description?: string;
   thumbnail_url?: string | null;
   editors?: Subject[];
+  // Bare subject ids from a deployment's EXTRA_EDITORS_RESOLVER.
+  extra_editors?: number[];
   viewers?: Subject[];
   tags: TagType[];
   created_by: object;
@@ -174,6 +181,9 @@ const DASHBOARD_COLUMNS_TO_FETCH = [
 
 function DashboardList(props: DashboardListProps) {
   const { addDangerToast, addSuccessToast, user } = props;
+  const isMobile = useIsMobile();
+  const theme = useTheme();
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const { roles } = useSelector<any, UserWithPermissionsAndRoles>(
     state => state.user,
   );
@@ -251,6 +261,9 @@ function DashboardList(props: DashboardListProps) {
   const canCreate = hasPerm('can_write');
   const canEdit = hasPerm('can_write');
   const canDelete = hasPerm('can_write');
+  // When soft-delete is on, deleting archives the dashboard (recoverable), so
+  // the confirmation drops the type-DELETE friction and explains the archive.
+  const softDelete = isFeatureEnabled(FeatureFlag.SoftDelete);
   const canExport = hasPerm('can_export');
 
   const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
@@ -337,11 +350,23 @@ function DashboardList(props: DashboardListProps) {
     }).then(
       ({ json = {} }) => {
         refreshData();
-        addSuccessToast(json.message);
+        addSuccessToast(
+          softDelete
+            ? t('Archived %s item(s)', dashboardsToDelete.length)
+            : json.message,
+        );
       },
       createErrorHandler(errMsg =>
         addDangerToast(
-          t('There was an issue deleting the selected dashboards: ', errMsg),
+          softDelete
+            ? t(
+                'There was an issue archiving the selected dashboards: %s',
+                errMsg,
+              )
+            : t(
+                'There was an issue deleting the selected dashboards: %s',
+                errMsg,
+              ),
         ),
       ),
     );
@@ -482,7 +507,11 @@ function DashboardList(props: DashboardListProps) {
       },
       {
         Cell: ({ row: { original } }: CellProps<Dashboard>) => {
-          const allowEdit = isUserEditorOrAdmin(user, original.editors);
+          const allowEdit = isUserEditorOrAdmin(
+            user,
+            original.editors,
+            original.extra_editors,
+          );
           const handleDelete = () =>
             handleDashboardDelete(
               original,
@@ -496,9 +525,9 @@ function DashboardList(props: DashboardListProps) {
           return (
             <Actions className="actions">
               {canEdit && (
-                <Tooltip
-                  id="edit-action-tooltip"
-                  title={
+                <ActionButton
+                  label={t('Edit')}
+                  tooltip={
                     allowEdit
                       ? t('Edit')
                       : t(
@@ -506,68 +535,67 @@ function DashboardList(props: DashboardListProps) {
                         )
                   }
                   placement="bottom"
-                >
-                  <IconButton
-                    data-test="dashboard-row-edit"
-                    disabled={!allowEdit}
-                    onClick={handleEdit}
-                    onKeyDown={handleKeyboardActivation(handleEdit)}
-                    icon={
-                      <Icons.EditOutlined data-test="edit-alt" iconSize="l" />
-                    }
-                  />
-                </Tooltip>
+                  icon={
+                    <Icons.EditOutlined data-test="edit-alt" iconSize="l" />
+                  }
+                  dataTest="dashboard-row-edit"
+                  disabled={!allowEdit}
+                  onClick={handleEdit}
+                />
               )}
               {canExport && (
-                <Tooltip
-                  id="export-action-tooltip"
-                  title={t('Export')}
+                <ActionButton
+                  label={t('Export')}
+                  tooltip={t('Export')}
                   placement="bottom"
-                >
-                  <IconButton
-                    data-test="dashboard-row-export"
-                    onClick={handleExport}
-                    onKeyDown={handleKeyboardActivation(handleExport)}
-                    icon={<Icons.UploadOutlined iconSize="l" />}
-                  />
-                </Tooltip>
+                  icon={<Icons.UploadOutlined iconSize="l" />}
+                  dataTest="dashboard-row-export"
+                  onClick={handleExport}
+                />
               )}
               {canDelete && (
                 <ConfirmStatusChange
-                  title={t('Please confirm')}
+                  recoverable={softDelete}
+                  title={
+                    softDelete
+                      ? t('Archive %(name)s?', {
+                          name: original.dashboard_title,
+                        })
+                      : t('Please confirm')
+                  }
                   description={
-                    <>
-                      {t('Are you sure you want to delete')}{' '}
-                      <b>{original.dashboard_title}</b>?
-                    </>
+                    softDelete ? (
+                      archiveConfirmDescription(t('dashboard'))
+                    ) : (
+                      <>
+                        {t('Are you sure you want to delete')}{' '}
+                        <b>{original.dashboard_title}</b>?
+                      </>
+                    )
                   }
                   onConfirm={handleDelete}
                 >
                   {confirmDelete => (
-                    <Tooltip
-                      id="delete-action-tooltip"
-                      title={
+                    <ActionButton
+                      label={deleteActionLabel()}
+                      tooltip={
                         allowEdit
-                          ? t('Delete')
+                          ? deleteActionLabel()
                           : t(
                               'You must be a dashboard editor in order to delete. Please reach out to a dashboard editor to request modifications or edit access.',
                             )
                       }
                       placement="bottom"
-                    >
-                      <IconButton
-                        data-test="dashboard-row-delete"
-                        disabled={!allowEdit}
-                        onClick={confirmDelete}
-                        onKeyDown={handleKeyboardActivation(confirmDelete)}
-                        icon={
-                          <Icons.DeleteOutlined
-                            iconSize="l"
-                            data-test="dashboard-list-trash-icon"
-                          />
-                        }
-                      />
-                    </Tooltip>
+                      icon={
+                        <Icons.DeleteOutlined
+                          iconSize="l"
+                          data-test="dashboard-list-trash-icon"
+                        />
+                      }
+                      dataTest="dashboard-row-delete"
+                      disabled={!allowEdit}
+                      onClick={confirmDelete}
+                    />
                   )}
                 </ConfirmStatusChange>
               )}
@@ -833,12 +861,35 @@ function DashboardList(props: DashboardListProps) {
   }
   return (
     <>
-      <SubMenu name={t('Dashboards')} buttons={subMenuButtons} />
+      <SubMenu
+        name={t('Dashboards')}
+        buttons={subMenuButtons}
+        leftIcon={
+          isMobile ? (
+            <Button
+              buttonStyle="link"
+              onClick={() => setMobileFiltersOpen(true)}
+              aria-label={t('Search')}
+              css={css`
+                padding: 0;
+                margin-right: ${theme.sizeUnit * 2}px;
+              `}
+            >
+              <Icons.SearchOutlined iconSize="l" />
+            </Button>
+          ) : undefined
+        }
+      />
       <ConfirmStatusChange
-        title={t('Please confirm')}
-        description={t(
-          'Are you sure you want to delete the selected dashboards?',
-        )}
+        recoverable={softDelete}
+        title={
+          softDelete ? t('Archive selected dashboards?') : t('Please confirm')
+        }
+        description={
+          softDelete
+            ? archiveConfirmDescription(t('dashboards'), true)
+            : t('Are you sure you want to delete the selected dashboards?')
+        }
         onConfirm={handleBulkDashboardDelete}
       >
         {confirmDelete => {
@@ -847,7 +898,7 @@ function DashboardList(props: DashboardListProps) {
           if (canDelete) {
             bulkActions.push({
               key: 'delete',
-              name: t('Delete'),
+              name: deleteActionLabel(),
               type: 'danger',
               onSelect: confirmDelete,
             });
@@ -922,8 +973,14 @@ function DashboardList(props: DashboardListProps) {
                     ? 'card'
                     : 'table'
                 }
+                forceViewMode={isMobile ? 'card' : undefined}
                 enableBulkTag={enableBulkTag}
                 bulkTagResourceName="dashboard"
+                mobileFiltersOpen={mobileFiltersOpen}
+                setMobileFiltersOpen={
+                  isMobile ? setMobileFiltersOpen : undefined
+                }
+                mobileFiltersDrawerTitle={t('Search Dashboards')}
               />
             </>
           );

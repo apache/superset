@@ -17,8 +17,10 @@
 
 """Tests for MCP server EventStore creation."""
 
-from collections.abc import Awaitable, Callable
-from typing import cast
+import contextlib
+import os
+from collections.abc import Awaitable, Callable, Iterator
+from typing import Any, cast
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -151,6 +153,24 @@ def test_suppress_third_party_warnings():
     ]
     assert len(google_filters) >= 1, "Expected google FutureWarning filter"
 
+    # Verify pkg_resources UserWarning filter is installed, scoped to
+    # sqlalchemy_redshift (sqlalchemy-redshift triggers this via a late
+    # import on Redshift-backed connections; see
+    # superset/db_engine_specs/redshift.py for the full rationale). Scoping
+    # by category+module keeps this from also swallowing the same
+    # deprecation message from unrelated dependencies.
+    pkg_resources_filters = [
+        f
+        for f in warnings.filters
+        if f[0] == "ignore"
+        and f[2] is UserWarning
+        and isinstance(f[1], re.Pattern)
+        and f[1].pattern == r"pkg_resources is deprecated as an API"
+        and isinstance(f[3], re.Pattern)
+        and f[3].pattern == r"sqlalchemy_redshift(?:\..*)?"
+    ]
+    assert len(pkg_resources_filters) >= 1, "Expected pkg_resources warning filter"
+
 
 def test_create_event_store_returns_none_when_redis_store_fails():
     """EventStore returns None when Redis store creation fails."""
@@ -271,6 +291,69 @@ def test_create_auth_provider_propagates_auth_config_error() -> None:
             _create_auth_provider(flask_app)
 
 
+def test_create_auth_provider_fails_closed_when_custom_factory_raises() -> None:
+    """A failing MCP_AUTH_FACTORY must abort startup, not fall through to no auth.
+
+    A custom factory is operator configuration evaluated at startup, so it can
+    fail for mundane reasons (a missing environment variable, a dependency
+    moving a symbol, a verifier's signature changing). Swallowing that leaves
+    auth_provider as None and the service comes up unauthenticated. The
+    original exception must not appear in the raised message — it may contain
+    secrets — but its type name should, to point at the failure.
+    """
+    from superset.mcp_service.mcp_config import MCPAuthConfigError
+    from superset.mcp_service.server import _create_auth_provider
+
+    flask_app = MagicMock()
+    flask_app.config.get.side_effect = lambda key, default=None: {
+        "MCP_AUTH_FACTORY": MagicMock(
+            side_effect=KeyError("secret-bearing-env-var-value")
+        ),
+    }.get(key, default)
+
+    with pytest.raises(MCPAuthConfigError) as excinfo:
+        _create_auth_provider(flask_app)
+
+    assert "KeyError" in str(excinfo.value)
+    assert "secret-bearing-env-var-value" not in str(excinfo.value)
+    assert excinfo.value.__cause__ is None
+    assert excinfo.value.__suppress_context__
+
+
+def test_create_auth_provider_passes_through_custom_factory_config_error() -> None:
+    """A custom factory raising MCPAuthConfigError keeps its own message.
+
+    That message is operator-facing config guidance and carries no secret
+    material by contract, so it must propagate unwrapped rather than being
+    replaced by the generic type-name-only message.
+    """
+    from superset.mcp_service.mcp_config import MCPAuthConfigError
+    from superset.mcp_service.server import _create_auth_provider
+
+    flask_app = MagicMock()
+    flask_app.config.get.side_effect = lambda key, default=None: {
+        "MCP_AUTH_FACTORY": MagicMock(
+            side_effect=MCPAuthConfigError("MY_AUDIENCE_SETTING must be set")
+        ),
+    }.get(key, default)
+
+    with pytest.raises(MCPAuthConfigError, match="MY_AUDIENCE_SETTING must be set"):
+        _create_auth_provider(flask_app)
+
+
+def test_create_auth_provider_uses_custom_factory_result() -> None:
+    """The happy path is unchanged: the factory's provider is returned."""
+    from superset.mcp_service.server import _create_auth_provider
+
+    auth_provider = MagicMock()
+    flask_app = MagicMock()
+    flask_app.config.get.side_effect = lambda key, default=None: {
+        "MCP_AUTH_FACTORY": MagicMock(return_value=auth_provider),
+    }.get(key, default)
+
+    assert _create_auth_provider(flask_app) is auth_provider
+
+
 def test_create_auth_provider_fails_closed_on_insecure_guest_secret() -> None:
     """Guest-only deployment with an insecure GUEST_TOKEN_JWT_SECRET must abort.
 
@@ -298,3 +381,139 @@ def test_create_auth_provider_fails_closed_on_insecure_guest_secret() -> None:
     ):
         with pytest.raises(MCPAuthConfigError):
             _create_auth_provider(flask_app)
+
+
+def test_create_auth_provider_fails_closed_on_default_factory_error() -> None:
+    """A generic error while building the enabled auth provider must abort.
+
+    Verifier-construction failures (bad key material, config typos) used to be
+    swallowed, silently starting an unauthenticated server.
+    """
+    from superset.mcp_service.mcp_config import MCPAuthConfigError
+    from superset.mcp_service.server import _create_auth_provider
+
+    flask_app = MagicMock()
+    flask_app.config.get.side_effect = lambda key, default=None: {
+        "MCP_AUTH_FACTORY": None,
+        "MCP_AUTH_ENABLED": True,
+        "MCP_API_KEY_ENABLED": False,
+        "FAB_API_KEY_ENABLED": False,
+    }.get(key, default)
+
+    with patch(
+        "superset.mcp_service.mcp_config.create_default_mcp_auth_factory",
+        side_effect=ValueError("bad PEM"),
+    ):
+        with pytest.raises(MCPAuthConfigError):
+            _create_auth_provider(flask_app)
+
+
+def test_create_auth_provider_fails_closed_on_custom_factory_error() -> None:
+    """MCP_AUTH_FACTORY raising (or yielding None) must abort startup."""
+    from superset.mcp_service.mcp_config import MCPAuthConfigError
+    from superset.mcp_service.server import _create_auth_provider
+
+    def broken_factory(app: Any) -> Any:
+        raise ValueError("bad key material")
+
+    flask_app = MagicMock()
+    flask_app.config.get.side_effect = lambda key, default=None: {
+        "MCP_AUTH_FACTORY": broken_factory,
+    }.get(key, default)
+
+    with pytest.raises(MCPAuthConfigError):
+        _create_auth_provider(flask_app)
+
+    flask_app.config.get.side_effect = lambda key, default=None: {
+        "MCP_AUTH_FACTORY": lambda app: None,
+    }.get(key, default)
+
+    with pytest.raises(MCPAuthConfigError):
+        _create_auth_provider(flask_app)
+
+
+@contextlib.contextmanager
+def _run_server_dependencies(
+    flask_config: dict[str, Any],
+) -> Iterator[MagicMock]:
+    """Patch every ``run_server()`` collaborator except stateless_http resolution.
+
+    Returns the ``mcp_instance`` mock so callers can assert on the kwargs its
+    ``run()`` was called with -- everything else (auth, middleware, event
+    store, health endpoint) is stubbed out since this is only exercising the
+    ``flask_app.config.get("MCP_STATELESS_HTTP", ...)`` wiring, not those
+    other startup steps.
+    """
+    from superset.mcp_service import server
+
+    flask_app = MagicMock()
+    flask_app.config = flask_config
+    mcp_instance = MagicMock()
+
+    with (
+        patch.object(server, "configure_logging"),
+        patch.object(server, "_suppress_third_party_warnings"),
+        patch(
+            "superset.mcp_service.flask_singleton.get_flask_app",
+            return_value=flask_app,
+        ),
+        patch.object(server, "_create_auth_provider", return_value=None),
+        patch.object(server, "build_middleware_list", return_value=[]),
+        patch.object(
+            server, "create_response_size_guard_middleware", return_value=None
+        ),
+        patch(
+            "superset.mcp_service.caching.create_response_caching_middleware",
+            return_value=None,
+        ),
+        patch.object(server, "init_fastmcp_server", return_value=mcp_instance),
+        patch.object(server, "_register_health_endpoint"),
+        patch.object(server, "create_event_store", return_value=None),
+        patch.object(server, "_build_starlette_middleware", return_value=[]),
+    ):
+        yield mcp_instance
+
+
+def test_run_server_defaults_stateless_http_to_true_when_unset() -> None:
+    """run_server() must fall back to MCP_STATELESS_HTTP's True default when the
+    operator's Flask config has no override.
+
+    This pins the production wiring added to fix mid-workflow disconnects: if
+    the ``flask_app.config.get("MCP_STATELESS_HTTP", MCP_STATELESS_HTTP)`` call
+    in ``run_server()`` were reverted to a hardcoded ``True``, or the default
+    were flipped, this test would still pass -- so it's the ``is True`` on the
+    *resolved* value, not just the module constant, that catches a broken
+    resolution.
+    """
+    from superset.mcp_service.server import run_server
+
+    port = 59901
+    os.environ.pop(f"FASTMCP_RUNNING_{port}", None)
+    try:
+        with _run_server_dependencies(flask_config={}) as mcp_instance:
+            run_server(host="127.0.0.1", port=port)
+
+        mcp_instance.run.assert_called_once()
+        assert mcp_instance.run.call_args.kwargs["stateless_http"] is True
+    finally:
+        os.environ.pop(f"FASTMCP_RUNNING_{port}", None)
+
+
+def test_run_server_respects_mcp_stateless_http_false_override() -> None:
+    """An operator's MCP_STATELESS_HTTP=False (the value deployments actually run,
+    per the docstring in mcp_config.py) must reach ``mcp_instance.run()`` rather
+    than the module's True default."""
+    from superset.mcp_service.server import run_server
+
+    port = 59902
+    os.environ.pop(f"FASTMCP_RUNNING_{port}", None)
+    try:
+        with _run_server_dependencies(
+            flask_config={"MCP_STATELESS_HTTP": False}
+        ) as mcp_instance:
+            run_server(host="127.0.0.1", port=port)
+
+        mcp_instance.run.assert_called_once()
+        assert mcp_instance.run.call_args.kwargs["stateless_http"] is False
+    finally:
+        os.environ.pop(f"FASTMCP_RUNNING_{port}", None)
