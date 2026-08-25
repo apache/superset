@@ -39,11 +39,17 @@ from superset.db_engine_specs.trino import TrinoEngineSpec
 from superset.sql.parse import Table
 from superset.utils.core import GenericDataType
 
-pytest.importorskip("testcontainers.community.trino")
+pytestmark = pytest.mark.testcontainers
+
+from ._driver import require_driver  # noqa: E402
+
+require_driver("testcontainers.community.trino")
 
 from testcontainers.community.trino import TrinoContainer  # noqa: E402
 
-from ._pagination import assert_paginated_query_returns_correct_rows_in_order
+from ._pagination import (  # noqa: E402
+    assert_paginated_query_returns_correct_rows_in_order,
+)
 
 
 @pytest.fixture(scope="module")

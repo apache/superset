@@ -39,11 +39,17 @@ from sqlalchemy.engine import Engine
 from superset.db_engine_specs.mssql import MssqlEngineSpec
 from superset.sql.parse import Table
 
-pytest.importorskip("testcontainers.community.mssql")
+pytestmark = pytest.mark.testcontainers
+
+from ._driver import require_driver  # noqa: E402
+
+require_driver("testcontainers.community.mssql")
 
 from testcontainers.community.mssql import SqlServerContainer  # noqa: E402
 
-from ._pagination import assert_paginated_query_returns_correct_rows_in_order
+from ._pagination import (  # noqa: E402
+    assert_paginated_query_returns_correct_rows_in_order,
+)
 
 
 @pytest.fixture(scope="module")

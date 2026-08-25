@@ -37,7 +37,11 @@ from sqlalchemy.engine import Engine
 from superset.db_engine_specs.elasticsearch import ElasticSearchEngineSpec
 from superset.sql.parse import Table
 
-pytest.importorskip("testcontainers.community.elasticsearch")
+pytestmark = pytest.mark.testcontainers
+
+from ._driver import require_driver  # noqa: E402
+
+require_driver("testcontainers.community.elasticsearch")
 
 from testcontainers.community.elasticsearch import ElasticSearchContainer  # noqa: E402
 

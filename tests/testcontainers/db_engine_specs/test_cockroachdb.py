@@ -37,12 +37,19 @@ from sqlalchemy.engine import Engine
 
 from superset.db_engine_specs.cockroachdb import CockroachDbEngineSpec
 from superset.sql.parse import Table
+from superset.utils.core import GenericDataType
 
-pytest.importorskip("testcontainers.community.cockroachdb")
+pytestmark = pytest.mark.testcontainers
+
+from ._driver import require_driver  # noqa: E402
+
+require_driver("testcontainers.community.cockroachdb")
 
 from testcontainers.community.cockroachdb import CockroachDBContainer  # noqa: E402
 
-from ._pagination import assert_paginated_query_returns_correct_rows_in_order
+from ._pagination import (  # noqa: E402
+    assert_paginated_query_returns_correct_rows_in_order,
+)
 
 
 @pytest.fixture(scope="module")
@@ -87,3 +94,5 @@ def test_get_columns_maps_native_types(engine: Engine) -> None:
     for col in by_name.values():
         spec = CockroachDbEngineSpec.get_column_spec(str(col["type"]))
         assert spec is not None
+        assert spec.generic_type == GenericDataType.NUMERIC
+        assert isinstance(spec.sqla_type, Integer)
