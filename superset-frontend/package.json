@@ -163,7 +163,7 @@
     "classnames": "^2.2.5",
     "content-disposition": "^2.0.1",
     "d3-scale": "^4.0.2",
-    "dayjs": "^1.11.22",
+    "dayjs": "^1.11.23",
     "dom-to-image-more": "^3.10.2",
     "dom-to-pdf": "^0.3.2",
     "echarts": "^6.1.0",
