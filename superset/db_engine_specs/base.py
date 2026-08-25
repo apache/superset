@@ -539,6 +539,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # the ``array_*`` capability methods below must be implemented. Defaults to
     # False so engines that have not opted in keep treating arrays as strings.
     supports_multivalue_columns = False
+    supports_temporal_column_shift: bool = False
     allows_joins = True
     allows_subqueries = True
     allows_alias_in_select = True
@@ -1243,6 +1244,19 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return TimestampExpression(time_expr, col, type_=col.type)
 
     @classmethod
+    def get_temporal_column_shift_expr(
+        cls,
+        col: ColumnClause,
+        offset_hours: int,
+    ) -> TimestampExpression:
+        """Shift a temporal SQL expression by a bounded number of hours."""
+        return TimestampExpression(
+            f"{{col}} + INTERVAL '{offset_hours}' HOUR",
+            col,
+            type_=col.type,
+        )
+
+    @classmethod
     def _apply_year_to_dttm(cls, time_expr: str) -> str:
         """
         Substitute `{col}` in ``time_expr`` with the ``year_to_dttm`` expression.
@@ -1378,12 +1392,12 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
                 return cursor.fetchmany(limit)
             data = cursor.fetchall()
             description = cursor.description or []
-            # Create a mapping between column name and a mutator function to normalize
-            # values with. The first two items in the description row are
-            # the column name and type.
+            # Create a mapping between column index and a mutator function to normalize
+            # values with. The first two items in the description row are the column
+            # name and type.
             column_mutators = {
-                row[0]: func
-                for row in description
+                index: func
+                for index, row in enumerate(description)
                 if (
                     func := cls.column_type_mutators.get(
                         type(cls.get_sqla_column_type(cls.get_datatype(row[1])))
@@ -1391,11 +1405,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
                 )
             }
             if column_mutators:
-                indexes = {row[0]: idx for idx, row in enumerate(description)}
+                if not isinstance(data, list):
+                    data = list(data)
                 for row_idx, row in enumerate(data):
                     new_row = list(row)
-                    for col, func in column_mutators.items():
-                        col_idx = indexes[col]
+                    for col_idx, func in column_mutators.items():
                         new_row[col_idx] = func(row[col_idx])
                     data[row_idx] = tuple(new_row)
 
@@ -3037,6 +3051,11 @@ class BasicParametersMixin:
     # for Databend this would be `{"sslmode": "disable"}`, eg.
     encryption_disable_parameters: dict[str, str] = {}
 
+    # parameters that `validate_parameters` treats as mandatory; subclasses
+    # override this to relax a parameter (e.g. `port`) without duplicating
+    # the rest of `validate_parameters`
+    required_parameters: set[str] = {"host", "port", "username", "database"}
+
     @classmethod
     def build_sqlalchemy_uri(  # pylint: disable=unused-argument
         cls,
@@ -3108,7 +3127,7 @@ class BasicParametersMixin:
         """
         errors: list[SupersetError] = []
 
-        required = {"host", "port", "username", "database"}
+        required = cls.required_parameters
         parameters = properties.get("parameters", {})
         present = {key for key in parameters if parameters.get(key, ())}
 
@@ -3137,7 +3156,7 @@ class BasicParametersMixin:
             return errors
 
         port = parameters.get("port", None)
-        if not port:
+        if port is None or port == "":
             return errors
         try:
             port = int(port)

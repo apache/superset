@@ -25,6 +25,8 @@ from typing import Any, Callable, Optional, TYPE_CHECKING
 
 import sqlalchemy as sa
 from flask_babel import gettext as __
+from marshmallow import fields, pre_load
+from marshmallow.validate import Range
 from sqlalchemy import text, types
 from sqlalchemy.dialects.postgresql import DOUBLE_PRECISION, ENUM, INTERVAL, JSON
 from sqlalchemy.dialects.postgresql.base import PGInspector
@@ -39,6 +41,8 @@ from superset.db_engine_specs.base import (
     AURORA_DATA_API_KNOWN_INCOMPATIBILITIES,
     BaseEngineSpec,
     BasicParametersMixin,
+    BasicParametersSchema,
+    BasicParametersType,
     DatabaseCategory,
     TimestampExpression,
 )
@@ -319,6 +323,34 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
         return None
 
 
+class PostgresParametersSchema(BasicParametersSchema):
+    """
+    Same as ``BasicParametersSchema``, except ``port`` is optional: a blank
+    port falls back to Postgres's own default (5432) in
+    ``PostgresEngineSpec.build_sqlalchemy_uri``.
+    """
+
+    port = fields.Integer(
+        required=False,
+        allow_none=True,
+        metadata={"description": __("Database port")},
+        validate=Range(min=0, max=2**16, max_inclusive=False),
+    )
+
+    @pre_load
+    def blank_port_to_none(self, data: Any, **kwargs: Any) -> Any:
+        """
+        A cleared number input in the Connect Database form submits ``""``
+        for ``port`` (HTML input values are always strings) rather than
+        omitting the key or sending ``null``. Normalize it to ``None`` so it
+        deserializes cleanly instead of failing with "Not a valid integer.",
+        and is treated as blank -- same as an omitted port -- downstream.
+        """
+        if isinstance(data, dict) and data.get("port") == "":
+            data = {**data, "port": None}
+        return data
+
+
 class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
     engine = "postgresql"
     engine_name = "PostgreSQL"
@@ -328,8 +360,14 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
     supports_catalog = True
     supports_dynamic_catalog = True
     supports_grouping_sets = True
+    supports_temporal_column_shift = True
 
     default_driver = "psycopg2"
+    parameters_schema = PostgresParametersSchema()
+    # ``port`` is intentionally not required: a blank port falls back to
+    # Postgres's own default (``metadata["default_port"]``) in
+    # ``BasicParametersMixin.build_sqlalchemy_uri`` (overridden below).
+    required_parameters = {"host", "username", "database"}
     sqlalchemy_uri_placeholder = (
         "postgresql://user:password@host:port/dbname[?key=value&key=value...]"
     )
@@ -694,6 +732,34 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
             uri = uri.set(database=catalog)
 
         return uri, connect_args
+
+    @classmethod
+    def build_sqlalchemy_uri(
+        cls,
+        parameters: BasicParametersType,
+        encrypted_extra: dict[str, str] | None = None,
+    ) -> str:
+        """
+        Default a missing/blank port to Postgres's own default (5432) so the
+        dynamic form can connect without requiring the port to be filled in.
+
+        Only an absent key, ``None``, or ``""`` (what a cleared number input
+        submits, since this may be called directly with raw, non-schema-
+        loaded parameters -- see ``ValidateDatabaseParametersCommand``) are
+        treated as blank; an explicitly supplied port -- including ``0`` --
+        is preserved as-is rather than overwritten by a truthiness check.
+        """
+        port = parameters.get("port")
+        resolved_port: int = (
+            cls.metadata["default_port"] if port is None or port == "" else port
+        )
+        parameters_with_default_port: BasicParametersType = {
+            **parameters,
+            "port": resolved_port,
+        }
+        return super().build_sqlalchemy_uri(
+            parameters_with_default_port, encrypted_extra
+        )
 
     @staticmethod
     def mutate_db_for_connection_test(database: Database) -> None:
