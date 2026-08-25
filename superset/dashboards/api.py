@@ -1944,9 +1944,9 @@ class DashboardRestApi(
         if resolved is None:
             return self.response(410, message="This download link has expired.")
         bucket, key = resolved
-        backend = current_app.config["EXCEL_EXPORT_STORAGE"].get("backend")
-        if backend is not None:
-            download_url = backend.generate_download_url(
+        storage_backend = current_app.config["EXCEL_EXPORT_STORAGE"].get("backend")
+        if storage_backend is not None:
+            download_url = storage_backend.generate_download_url(
                 bucket, key, PRESIGNED_URL_TTL_SECONDS
             )
         else:
