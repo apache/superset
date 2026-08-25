@@ -413,6 +413,12 @@ class ChartDataRestApi(ChartRestApi):
             # for async queries with jinja context
             set_form_data(cached_data)
             query_context = self._create_query_context_from_form(cached_data)
+            # Mark as a cache replay so _sql_filters_modified skips the
+            # SQL-extras check.  The original request already passed the
+            # full security check, cache keys are opaque SHA-256 hashes
+            # (unguessable), and force_cached only serves pre-computed
+            # data — no new SQL is executed.
+            query_context._from_cache_replay = True
             command = ChartDataCommand(query_context)
             command.validate()
         except ChartDataCacheLoadError:

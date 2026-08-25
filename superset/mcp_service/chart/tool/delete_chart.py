@@ -38,10 +38,6 @@ from superset.mcp_service.chart.schemas import (
     DeleteChartRequest,
     DeleteChartResponse,
 )
-from superset.mcp_service.utils import (
-    escape_llm_context_delimiters,
-    sanitize_for_llm_context,
-)
 
 logger = logging.getLogger(__name__)
 
@@ -110,16 +106,16 @@ async def delete_chart(
             error_type="LookupFailed",
         )
     if not chart:
-        safe_id = escape_llm_context_delimiters(str(request.identifier)[:200])
+        display_id = str(request.identifier)[:200]
         msg = (
-            f"No chart found with identifier: {safe_id}. "
+            f"No chart found with identifier: {display_id}. "
             "Use list_charts to get valid chart IDs."
         )
         return DeleteChartResponse(success=False, error=msg, error_type="NotFound")
 
     chart_id = chart.id
-    # Chart names are user-controlled; wrap before composing response text.
-    chart_name = sanitize_for_llm_context(chart.slice_name, field_path=("slice_name",))
+    # Chart names are user-controlled and must remain exact in response text.
+    chart_name = chart.slice_name
 
     # The try/except sits inside log_context so failed attempts (forbidden,
     # reports-exist, db errors) are recorded in the audit log too — the

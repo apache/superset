@@ -69,7 +69,10 @@ function isDividerType(
 function isFormInput(
   formInputs: ChartCustomizationFormOrSaved,
 ): formInputs is ChartCustomizationsFormItem {
-  return 'dataset' in formInputs && typeof formInputs.dataset === 'object';
+  // Mirrors `filterTransformer`: a saved customization always carries a
+  // serialized `targets` array, and dataset-less types (e.g. the deck.gl layer
+  // visibility customization) have no `dataset` to discriminate on.
+  return !('targets' in formInputs);
 }
 
 function transformCustomizationDivider(

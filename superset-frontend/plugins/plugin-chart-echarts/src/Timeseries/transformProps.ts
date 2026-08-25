@@ -30,6 +30,7 @@ import {
   DTTM_ALIAS,
   ensureIsArray,
   tooltipHtml,
+  truncateLabel,
   getCustomFormatter,
   getMetricLabel,
   getNumberFormatter,
@@ -94,6 +95,7 @@ import {
   getAnnotationData,
 } from '../utils/annotation';
 import {
+  collapseForecastKeys,
   extractForecastSeriesContext,
   extractForecastSeriesContexts,
   extractForecastValuesFromTooltipParams,
@@ -303,6 +305,7 @@ export default function transformProps(
     tooltipSortByMetric,
     showTooltipTotal,
     showTooltipPercentage,
+    tooltipTruncation,
     truncateXAxis,
     truncateYAxis,
     xAxis: xAxisOrig,
@@ -1245,7 +1248,7 @@ export default function transformProps(
     name: xAxisTitle,
     nameGap: convertInteger(xAxisTitleMargin),
     nameLocation: 'middle',
-    ...(xAxisType === AxisType.Category &&
+    ...((xAxisType === AxisType.Category || xAxisType === AxisType.Time) &&
       groupBy.length === 0 && {
         triggerEvent: true,
       }),
@@ -1253,10 +1256,12 @@ export default function transformProps(
       // When rotation is applied on time axes, hideOverlap can
       // aggressively hide the last label. Rotated labels already
       // have less overlap, so disabling hideOverlap is safe.
-      // At 0° rotation, keep hideOverlap to prevent long labels
-      // from overlapping each other, with showMaxLabel to ensure
-      // the last data point label stays visible (#37181).
-      hideOverlap: !(xAxisType === AxisType.Time && xAxisLabelRotation !== 0),
+      // At 0° rotation, also disable hideOverlap when showMaxLabel
+      // is active so the forced boundary label is never suppressed
+      // by ECharts' overlap detection (#39899).
+      hideOverlap: showMaxLabel
+        ? false
+        : !(xAxisType === AxisType.Time && xAxisLabelRotation !== 0),
       formatter: deduplicatedFormatter,
       rotate: xAxisLabelRotation,
       interval: xAxisLabelInterval,
@@ -1390,11 +1395,13 @@ export default function transformProps(
         const forecastValue: CallbackDataParams[] = richTooltip
           ? params
           : [params];
-        const sortedKeys = extractTooltipKeys(
-          forecastValue,
-          yIndex,
-          richTooltip,
-          tooltipSortByMetric,
+        const sortedKeys = collapseForecastKeys(
+          extractTooltipKeys(
+            forecastValue,
+            yIndex,
+            richTooltip,
+            tooltipSortByMetric,
+          ),
         );
         const filteredForecastValue = forecastValue.filter(
           (item: CallbackDataParams) =>
@@ -1449,6 +1456,7 @@ export default function transformProps(
               seriesName: key,
               formatter,
               marker,
+              truncation: tooltipTruncation,
             });
 
             const annotationRow = annotationLayers.some(
@@ -1482,7 +1490,12 @@ export default function transformProps(
           }
           rows.push(totalRow);
         }
-        return tooltipHtml(rows, tooltipFormatter(xValue), focusedRow);
+        return tooltipHtml(
+          rows,
+          truncateLabel(tooltipFormatter(xValue), tooltipTruncation),
+          focusedRow,
+          tooltipTruncation,
+        );
       },
     },
     legend: {
@@ -1587,6 +1600,7 @@ export default function transformProps(
       label: xAxisLabel,
       type: xAxisType,
     },
+    resolvedTimeGrain,
     refs,
     coltypeMapping: dataTypes,
     onLegendScroll,

@@ -40,6 +40,7 @@ import {
   TimeseriesChartDataResponseResult,
   TimeseriesDataRecord,
   tooltipHtml,
+  truncateLabel,
   ValueFormatter,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
@@ -79,6 +80,7 @@ import {
   getAnnotationData,
 } from '../utils/annotation';
 import {
+  collapseForecastKeys,
   extractForecastSeriesContext,
   extractForecastValuesFromTooltipParams,
   formatForecastTooltipSeries,
@@ -207,6 +209,7 @@ export default function transformProps(
     zoomable,
     richTooltip,
     tooltipSortByMetric,
+    tooltipTruncation,
     xAxisBounds,
     xAxisLabelRotation,
     xAxisLabelInterval,
@@ -767,7 +770,9 @@ export default function transformProps(
       nameGap: xAxisTitleMarginPx,
       nameLocation: 'middle',
       axisLabel: {
-        hideOverlap: !(xAxisType === AxisType.Time && xAxisLabelRotation !== 0),
+        hideOverlap: showMaxLabel
+          ? false
+          : !(xAxisType === AxisType.Time && xAxisLabelRotation !== 0),
         formatter: deduplicatedFormatter,
         rotate: xAxisLabelRotation,
         interval: xAxisLabelInterval,
@@ -859,12 +864,14 @@ export default function transformProps(
           : params.value[0];
         const forecastValue: any[] = richTooltip ? params : [params];
 
-        const sortedKeys = extractTooltipKeys(
-          forecastValue,
-          // horizontal mode is not supported in mixed series chart
-          1,
-          richTooltip,
-          tooltipSortByMetric,
+        const sortedKeys = collapseForecastKeys(
+          extractTooltipKeys(
+            forecastValue,
+            // horizontal mode is not supported in mixed series chart
+            1,
+            richTooltip,
+            tooltipSortByMetric,
+          ),
         );
 
         const rows: string[][] = [];
@@ -907,13 +914,19 @@ export default function transformProps(
               formatter: primarySeries.has(key)
                 ? tooltipFormatter
                 : tooltipFormatterSecondary,
+              truncation: tooltipTruncation,
             });
             rows.push(row);
             if (key === focusedSeries) {
               focusedRow = rows.length - 1;
             }
           });
-        return tooltipHtml(rows, tooltipFormatter(xValue), focusedRow);
+        return tooltipHtml(
+          rows,
+          truncateLabel(tooltipFormatter(xValue), tooltipTruncation),
+          focusedRow,
+          tooltipTruncation,
+        );
       },
     },
     legend: {
