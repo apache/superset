@@ -164,8 +164,6 @@ click-repl==0.3.0
     #   celery
 cmdstanpy==1.1.0
     # via prophet
-cockroachdb==0.3.5
-    # via apache-superset
 colorama==0.4.6
     # via
     #   -c requirements/base-constraint.txt
