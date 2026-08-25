@@ -3,9 +3,7 @@ codecov:
         after_n_builds: 4
 ignore:
   - "superset/migrations/versions/*.py"
-  - "superset-frontend/packages/superset-ui-demo/**/*"
   - "**/*.stories.tsx"
-  - "**/*.stories.jsx"
 coverage:
   status:
     project:
