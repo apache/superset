@@ -383,6 +383,55 @@ def test_create_auth_provider_fails_closed_on_insecure_guest_secret() -> None:
             _create_auth_provider(flask_app)
 
 
+def test_create_auth_provider_fails_closed_on_default_factory_error() -> None:
+    """A generic error while building the enabled auth provider must abort.
+
+    Verifier-construction failures (bad key material, config typos) used to be
+    swallowed, silently starting an unauthenticated server.
+    """
+    from superset.mcp_service.mcp_config import MCPAuthConfigError
+    from superset.mcp_service.server import _create_auth_provider
+
+    flask_app = MagicMock()
+    flask_app.config.get.side_effect = lambda key, default=None: {
+        "MCP_AUTH_FACTORY": None,
+        "MCP_AUTH_ENABLED": True,
+        "MCP_API_KEY_ENABLED": False,
+        "FAB_API_KEY_ENABLED": False,
+    }.get(key, default)
+
+    with patch(
+        "superset.mcp_service.mcp_config.create_default_mcp_auth_factory",
+        side_effect=ValueError("bad PEM"),
+    ):
+        with pytest.raises(MCPAuthConfigError):
+            _create_auth_provider(flask_app)
+
+
+def test_create_auth_provider_fails_closed_on_custom_factory_error() -> None:
+    """MCP_AUTH_FACTORY raising (or yielding None) must abort startup."""
+    from superset.mcp_service.mcp_config import MCPAuthConfigError
+    from superset.mcp_service.server import _create_auth_provider
+
+    def broken_factory(app: Any) -> Any:
+        raise ValueError("bad key material")
+
+    flask_app = MagicMock()
+    flask_app.config.get.side_effect = lambda key, default=None: {
+        "MCP_AUTH_FACTORY": broken_factory,
+    }.get(key, default)
+
+    with pytest.raises(MCPAuthConfigError):
+        _create_auth_provider(flask_app)
+
+    flask_app.config.get.side_effect = lambda key, default=None: {
+        "MCP_AUTH_FACTORY": lambda app: None,
+    }.get(key, default)
+
+    with pytest.raises(MCPAuthConfigError):
+        _create_auth_provider(flask_app)
+
+
 @contextlib.contextmanager
 def _run_server_dependencies(
     flask_config: dict[str, Any],
