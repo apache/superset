@@ -378,6 +378,9 @@ WTF_CSRF_ENABLED = True
 # Add endpoints that need to be exempt from CSRF protection
 WTF_CSRF_EXEMPT_LIST = [
     "superset.charts.data.api.data",
+    # Headless query endpoint for token-authenticated API clients, exempted for
+    # the same reason as the chart data endpoint above.
+    "superset.datasource.api.query",
     "superset.dashboards.api.cache_dashboard_screenshot",
     "superset.views.core.log",
     "superset.views.datasource.views.samples",
