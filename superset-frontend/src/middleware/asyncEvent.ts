@@ -56,7 +56,13 @@ type StatusChangesResponse = {
 // polling from it can never skip a task's terminal transition.
 export type AsyncJob = { task_ids: string[]; cursor?: string | null };
 
-type AppConfig = Record<string, any>;
+type AppConfig = {
+  ENABLE_WEBSOCKET?: boolean;
+  WEBSOCKET_URL?: string;
+  GLOBAL_ASYNC_QUERIES_POLLING_DELAY?: number;
+  GLOBAL_ASYNC_QUERIES_POLLING_MAX_DELAY?: number;
+  GLOBAL_ASYNC_QUERIES_POLLING_STALE_TIMEOUT?: number;
+};
 
 type Waiter = {
   taskIds: string[];
@@ -92,7 +98,7 @@ let pollingActive = false;
 // A SHARED task can be deduplicated across concurrent chart requests, so each task
 // id maps to a *set* of waiters (never overwrite an earlier subscriber).
 // Initialized eagerly (not just in init()): the shared realtime socket connects
-// whenever WEBSOCKET_ENABLED — independent of GLOBAL_ASYNC_QUERIES — so the
+// whenever ENABLE_WEBSOCKET — independent of GLOBAL_ASYNC_QUERIES — so the
 // subscribed handler may run applyStatus even when async queries are off, and
 // must find a map rather than undefined.
 let waitersByTaskId: Map<string, Set<Waiter>> = new Map();
@@ -261,14 +267,17 @@ const ensurePolling = () => {
  * ``{task_id, status}``; because delivery is scoped to this principal's own
  * JWT-bound channel, the status is authoritative enough to settle the waiter
  * immediately (the ensuing ``refetch`` reads the authorized per-query cache
- * anyway). Any other channel (e.g. the public ``entity-changes:*`` list-view
+ * anyway). Any other channel (e.g. the ``entity-changes:*`` list-view
  * nudges) is ignored here — chart-data only cares about its own tasks.
  */
 export const handleRealtimeMessage = (message: RealtimeMessage) => {
   const { channel, payload } = message;
   if (!channel.startsWith(REALTIME_CHANNEL_PREFIX)) return;
-  const taskId = payload?.task_id;
-  const status = payload?.status;
+  if (!payload || typeof payload !== 'object') return;
+  const { task_id: taskId, status } = payload as {
+    task_id?: unknown;
+    status?: unknown;
+  };
   if (typeof taskId === 'string' && typeof status === 'string') {
     applyStatus(taskId, status);
   }
@@ -360,7 +369,7 @@ export const init = (appConfig?: AppConfig) => {
   // (Re)connect the shared realtime socket whenever the websocket transport is
   // enabled — independent of GLOBAL_ASYNC_QUERIES, since realtime list views
   // (tier-1 entity-change nudges) ride the same socket. Idempotent: a no-op when
-  // WEBSOCKET_ENABLED is false, and supersedes any prior socket otherwise.
+  // ENABLE_WEBSOCKET is false, and supersedes any prior socket otherwise.
   connectRealtime(config);
 
   if (!isFeatureEnabled(FeatureFlag.GlobalAsyncQueries)) return;

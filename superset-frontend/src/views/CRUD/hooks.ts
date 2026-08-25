@@ -309,7 +309,9 @@ export function useListViewResource<D extends object = any>(
 
     const unsubscribe = subscribeRealtime((message: RealtimeMessage) => {
       if (message.channel !== channel) return;
-      const id = message.payload?.id;
+      const { payload } = message;
+      if (!payload || typeof payload !== 'object') return;
+      const { id } = payload as { id?: unknown };
       if (id == null) return;
       const idStr = String(id);
       if (!isDisplayed(idStr)) return;

@@ -30,7 +30,7 @@ as thumbnails, reports, or exports) can push over it without a server change.
 - Node.js 12+ (not tested with older versions)
 - Redis 5+
 
-To use realtime push, enable it in the Superset backend (`WEBSOCKET_ENABLED`,
+To use realtime push, enable it in the Superset backend (`ENABLE_WEBSOCKET`,
 `WEBSOCKET_URL`, `WEBSOCKET_JWT_SECRET`; see below) and run this server on the
 same host.
 
@@ -127,14 +127,15 @@ the JWT cookie uses `SameSite=None`.
 Enable realtime push in the Superset Flask app (in `superset_config.py`):
 
 ```python
-WEBSOCKET_ENABLED = True
+ENABLE_WEBSOCKET = True
 WEBSOCKET_URL = "ws://<host>:<port>/"
 WEBSOCKET_JWT_SECRET = "<a strong random secret, >= 32 bytes>"
 ```
 
-Grant `can_read` on `Realtime` to roles that should receive websocket
-notifications. Without that permission, Superset masks `WEBSOCKET_ENABLED` to
-`False` for the request and does not mint the websocket JWT cookie.
+The built-in `Gamma` role receives `can_read` on `Realtime`; grant that
+permission to any additional roles that should receive websocket notifications.
+Without that permission, Superset masks `ENABLE_WEBSOCKET` to `False` for the
+request and does not mint the websocket JWT cookie.
 
 Note that the WebSocket server must be run on the same hostname (different port)
 for the JWT cookie to be shared between the Flask app and the WebSocket server.

@@ -147,7 +147,7 @@ def _make_ws_app():
 
     app = Flask(__name__)
     app.config.update(
-        WEBSOCKET_ENABLED=True,
+        ENABLE_WEBSOCKET=True,
         WEBSOCKET_JWT_SECRET="x" * 40,
         WEBSOCKET_JWT_COOKIE_NAME="superset-ws-token",
         WEBSOCKET_JWT_COOKIE_SECURE=False,

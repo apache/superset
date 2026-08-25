@@ -23,7 +23,7 @@
  * Owns the single browser socket and fans every message out to registered
  * handlers, so multiple features share one connection: async chart-data
  * completion (per-principal `realtime:*` messages, see `asyncEvent.ts`) and
- * realtime list views (public `entity-changes:*` nudges, see
+ * realtime list views (authenticated `entity-changes:*` nudges, see
  * `useListViewResource`). The server forwards a generic `{channel, payload}`
  * envelope and this client is deliberately payload-agnostic — each handler
  * routes on `channel` and interprets `payload` for its own feature.
@@ -39,14 +39,13 @@ import getBootstrapData from 'src/utils/getBootstrapData';
 /** The generic envelope the server forwards to the browser. */
 export interface RealtimeMessage {
   channel: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  payload: any;
+  payload: unknown;
 }
 
 type RealtimeHandler = (message: RealtimeMessage) => void;
 
 type RealtimeConfig = {
-  WEBSOCKET_ENABLED?: boolean;
+  ENABLE_WEBSOCKET?: boolean;
   WEBSOCKET_URL?: string;
 };
 
@@ -73,9 +72,14 @@ const handlers = new Set<RealtimeHandler>();
 export const dispatchRealtimeMessage = (rawData: string): void => {
   let message: RealtimeMessage;
   try {
-    const parsed = JSON.parse(rawData) ?? {};
-    if (typeof parsed.channel !== 'string') return;
-    message = { channel: parsed.channel, payload: parsed.payload };
+    const parsed: unknown = JSON.parse(rawData) ?? {};
+    if (!parsed || typeof parsed !== 'object') return;
+    const { channel, payload } = parsed as {
+      channel?: unknown;
+      payload?: unknown;
+    };
+    if (typeof channel !== 'string') return;
+    message = { channel, payload };
   } catch (err) {
     logging.warn('Failed to parse realtime message', err);
     return;
@@ -136,7 +140,7 @@ const teardownSocket = (): void => {
 /**
  * (Re)configure and (re)connect the shared socket. Idempotent and safe to call
  * repeatedly (e.g. from app bootstrap): it supersedes any prior socket. Reads
- * `WEBSOCKET_ENABLED` / `WEBSOCKET_URL` from bootstrap config when none is
+ * `ENABLE_WEBSOCKET` / `WEBSOCKET_URL` from bootstrap config when none is
  * passed. A no-op (and tears down any existing socket) when disabled.
  */
 export const connectRealtime = (config?: RealtimeConfig): void => {
@@ -144,7 +148,7 @@ export const connectRealtime = (config?: RealtimeConfig): void => {
   teardownSocket();
   generation += 1;
   started = true;
-  enabled = Boolean(conf?.WEBSOCKET_ENABLED);
+  enabled = Boolean(conf?.ENABLE_WEBSOCKET);
   url = conf?.WEBSOCKET_URL;
   openSocket(generation);
 };

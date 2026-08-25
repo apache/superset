@@ -1137,13 +1137,13 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
     def check_websocket_secret(self) -> None:
         """Refuse to start with a default/weak websocket JWT secret when enabled."""
-        if not self.config.get("WEBSOCKET_ENABLED"):
+        if not self.config.get("ENABLE_WEBSOCKET"):
             return
         secret = self.config.get("WEBSOCKET_JWT_SECRET") or ""
         if secret != CHANGE_ME_WEBSOCKET_JWT_SECRET and len(secret) >= 32:
             return
         self._log_config_warning(
-            "WEBSOCKET_ENABLED is on but WEBSOCKET_JWT_SECRET is the default "
+            "ENABLE_WEBSOCKET is on but WEBSOCKET_JWT_SECRET is the default "
             "placeholder or shorter than 32 bytes.\n"
             "The default is publicly known; a weak secret lets an attacker forge "
             "channel tokens and subscribe to another user's private channel.\n"
@@ -1153,7 +1153,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         if self.superset_app.debug or self.superset_app.config["TESTING"] or is_test():
             return
         logger.error(
-            "Refusing to start: insecure WEBSOCKET_JWT_SECRET with WEBSOCKET_ENABLED"
+            "Refusing to start: insecure WEBSOCKET_JWT_SECRET with ENABLE_WEBSOCKET"
         )
         sys.exit(1)
 
@@ -1631,7 +1631,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
     def configure_websocket(self) -> None:
         """Mint the websocket channel-token cookie when the transport is enabled."""
-        if self.config.get("WEBSOCKET_ENABLED"):
+        if self.config.get("ENABLE_WEBSOCKET"):
             from superset.websocket.channel import register_ws_channel_cookie
 
             register_ws_channel_cookie(self.superset_app)

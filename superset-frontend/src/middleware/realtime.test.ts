@@ -56,7 +56,7 @@ afterEach(() => {
 });
 
 const ENABLED = {
-  WEBSOCKET_ENABLED: true,
+  ENABLE_WEBSOCKET: true,
   WEBSOCKET_URL: 'ws://localhost:8080/',
 };
 
@@ -117,7 +117,7 @@ test('a throwing handler does not break other handlers', () => {
 });
 
 test('does not open a socket when disabled', () => {
-  connectRealtime({ WEBSOCKET_ENABLED: false, WEBSOCKET_URL: 'ws://x/' });
+  connectRealtime({ ENABLE_WEBSOCKET: false, WEBSOCKET_URL: 'ws://x/' });
   expect(FakeWebSocket.instances).toHaveLength(0);
 });
 
