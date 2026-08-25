@@ -293,36 +293,29 @@ EXPAND_TABLE_CONTAINERS_JS = """
         + ' [data-test-viz-type="table"],'
         + ' [data-test-viz-type="TableChartTransformed"]';
 
-    // Helper: release all inline height/overflow constraints on one element.
+    // Fully unconstrain an element: clear inline height/overflow, set min-height:0.
+    // Setting height:'auto' + min-height:'0' on a flex child is not enough to make
+    // it grow past an explicit height in the Chromium PDF layout engine.  The safe
+    // approach is to also force display:'block' on flex containers in the chain so
+    // their children are in normal block flow (which DOES grow with content).
     function releaseEl(el) {
         if (!el || !el.style) return;
-        if (el.style.height && el.style.height !== 'auto') {
-            el.style.height = 'auto';
-            el.style.maxHeight = 'none';
-        }
-        const ov = el.style.overflow;
-        if (ov === 'hidden' || ov === 'auto' || ov === 'scroll') {
-            el.style.overflow = 'visible';
-        }
-        const ovY = el.style.overflowY;
-        if (ovY === 'hidden' || ovY === 'auto' || ovY === 'scroll') {
-            el.style.overflowY = 'visible';
-        }
-        const ovX = el.style.overflowX;
-        if (ovX === 'hidden' || ovX === 'auto' || ovX === 'scroll') {
-            el.style.overflowX = 'visible';
-        }
+        el.style.height = 'auto';
+        el.style.maxHeight = 'none';
+        el.style.minHeight = '0';
+        el.style.overflow = 'visible';
+        el.style.overflowY = 'visible';
+        el.style.overflowX = 'visible';
     }
 
     const roots = document.querySelectorAll(sel);
     for (const root of roots) {
-        // 1. Expand the inner scroll containers (inline-height + overflow divs)
+        // 1. Expand every height/overflow-constrained div inside the table viz.
+        //    The Superset table plugin wraps its rows in a div with inline
+        //    style="height:Xpx; overflow:auto" — release those unconditionally.
         for (const el of root.querySelectorAll('div[style]')) {
             const s = el.style;
-            const hasHeight = s.height && s.height !== '' && s.height !== 'auto';
-            const hasOverflow = (s.overflow === 'auto' || s.overflow === 'scroll' ||
-                                 s.overflowY === 'auto' || s.overflowY === 'scroll');
-            if (hasHeight && (hasOverflow || el.scrollHeight > el.clientHeight + 10)) {
+            if (s.height && s.height !== '' && s.height !== 'auto') {
                 s.height = 'auto';
                 s.maxHeight = 'none';
                 s.overflow = 'visible';
@@ -331,46 +324,78 @@ EXPAND_TABLE_CONTAINERS_JS = """
             }
         }
 
-        // 2. Walk up to .grid-content/.dashboard-grid and release any inline
-        //    height/overflow on every ancestor so the flex layout chain
-        //    (resizable-container → chart-holder → dragdroppable-column →
-        //     grid-row → with-popover-menu → dragdroppable-row)
-        //    allocates auto height instead of the authored pixel height.
+        // 2. Walk the ancestor chain up to .grid-content, unconditionally
+        //    release every element, and switch flex containers to block layout.
         //
-        //    Critical: also release height on SIBLING .dragdroppable-column
-        //    elements in the same .grid-row. In print mode the grid-row
-        //    is flex-direction:column, so each column is a block-flow item.
-        //    A sibling column with an inline height (set by re-resizable)
-        //    allocates only that authored height to itself — the row ends
-        //    after the tallest authored-height item, and the expanded table
-        //    content overflows and overlaps subsequent dashboard rows.
-        //    Releasing the sibling heights lets every column grow to fit its
-        //    content and the row expands to contain all of them.
+        //    Why block? In a flex container the children's heights ARE constrained
+        //    by the flex algorithm even after clearing inline style.height — the
+        //    flex engine re-computes from the stretch alignment default.  Converting
+        //    to display:block makes every child a normal block box whose height is
+        //    determined purely by its content, which is what we need for tables that
+        //    have more rows than the authored grid height.
+        //
+        //    The conversion is limited to flex ancestors that are INSIDE the table's
+        //    own column — we track .grid-row and .dragdroppable-row for step 3.
         let gridRow = null;
+        let dragRow = null;
         let el = root.parentElement;
         while (el) {
             if (el.classList.contains('dashboard-grid') ||
                 el.classList.contains('grid-content')) {
                 break;
             }
-            // Remember the .grid-row so we can fix sibling columns after
             if (el.classList.contains('grid-row')) {
                 gridRow = el;
             }
+            if (el.classList.contains('dragdroppable-row')) {
+                dragRow = el;
+            }
             releaseEl(el);
+            // Switch any flex container to block so children are in normal flow.
+            const disp = getComputedStyle(el).display;
+            if (disp === 'flex' || disp === 'inline-flex') {
+                el.style.display = 'block';
+            }
             el = el.parentElement;
         }
 
-        // 3. Release height on sibling columns in the same .grid-row so they
-        //    don't cap the row height and cause table overflow to interleave
-        //    with subsequent dashboard rows in the PDF.
+        // 3. Release ALL sibling .dragdroppable-column elements in the same
+        //    .grid-row, including their .resizable-container children.
+        //    When the .grid-row is converted to block in step 2 above, each
+        //    column is a block-level box whose height grows with its content.
+        //    Any remaining inline height on a sibling column or its
+        //    resizable-container would still clip the column — clear them.
         if (gridRow) {
             for (const col of gridRow.querySelectorAll(
                     ':scope > .dragdroppable-column')) {
                 releaseEl(col);
-                // Also release the resizable-container inside each sibling
                 const rc = col.querySelector(':scope > .resizable-container');
-                if (rc) releaseEl(rc);
+                if (rc) {
+                    releaseEl(rc);
+                    // Also release every div[style] inside sibling rc so that
+                    // chart containers don't overflow their own column either.
+                    for (const inner of rc.querySelectorAll('div[style]')) {
+                        const s = inner.style;
+                        if (s.height && s.height !== '' && s.height !== 'auto') {
+                            if (s.overflow === 'hidden' || s.overflow === 'auto' ||
+                                s.overflow === 'scroll') {
+                                s.overflow = 'visible';
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // 4. Also release the .dragdroppable-row wrapper and switch it to block.
+        //    re-resizable sets an inline style.height on this element; without
+        //    clearing it the row clips at the authored height and the next row
+        //    starts at the wrong position.
+        if (dragRow) {
+            releaseEl(dragRow);
+            const disp = getComputedStyle(dragRow).display;
+            if (disp === 'flex' || disp === 'inline-flex') {
+                dragRow.style.display = 'block';
             }
         }
     }
