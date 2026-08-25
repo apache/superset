@@ -148,10 +148,9 @@ clickhouse = ["clickhouse-connect>=1.7.2, <2.0"]
 # 2.0). sqlalchemy-cockroachdb is the actively maintained replacement,
 # already linked from CockroachDbEngineSpec.metadata's docs_url, and
 # registers the same `cockroachdb` SQLAlchemy dialect entry point.
-# sqlalchemy-cockroachdb depends only on SQLAlchemy itself, not on a DBAPI
-# driver, so psycopg2-binary is pinned alongside it (matching the `postgres`
-# extra) to keep this extra self-contained -- CockroachDB speaks the
-# PostgreSQL wire protocol, so psycopg2 is what actually opens connections.
+# sqlalchemy-cockroachdb itself declares no DBAPI dependency (its own docs
+# require picking one), so pull in the same psycopg2-binary pin as the
+# `postgres` extra -- CockroachDB speaks the Postgres wire protocol.
 cockroachdb = ["sqlalchemy-cockroachdb>=2.0.0, <3", "psycopg2-binary==2.9.12"]
 crate = ["sqlalchemy-cratedb>=0.43.1, <1"]
 # sqlalchemy-d1's only release (0.1.0, Nov 2025) pins sqlalchemy<2,>=1.4,
