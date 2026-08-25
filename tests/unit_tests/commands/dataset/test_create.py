@@ -24,6 +24,7 @@ from superset.commands.dataset.create import CreateDatasetCommand
 from superset.commands.dataset.exceptions import DatasetInvalidError
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
+    OAuth2RedirectError,
     SupersetGenericDBErrorException,
     SupersetParseError,
 )
@@ -315,6 +316,35 @@ def test_create_dataset_metadata_fetch_error_physical_table(
     validation_errors = exc_info.value._exceptions
     assert validation_errors[0].field_name == "table"
     assert "could not connect to server" in str(validation_errors[0].messages[0])
+
+
+def test_create_dataset_oauth2_redirect_propagates_unchanged(
+    mocker: MockerFixture,
+) -> None:
+    """OAuth2 redirects must not be flattened into a DatasetInvalidError."""
+    mocker.patch.object(CreateDatasetCommand, "validate")
+    dataset = Mock()
+    oauth2_error = OAuth2RedirectError(
+        url="https://example.org/oauth2/authorize",
+        tab_id="tab-123",
+        redirect_uri="https://superset.example.org/oauth2/redirect",
+    )
+    dataset.fetch_metadata.side_effect = oauth2_error
+    mocker.patch(
+        "superset.commands.dataset.create.DatasetDAO.create",
+        return_value=dataset,
+    )
+
+    command = CreateDatasetCommand(
+        {"database": 1, "table_name": "good_dataset", "sql": "SELECT 1 AS a"}
+    )
+
+    with pytest.raises(OAuth2RedirectError) as exc_info:
+        command.run()
+
+    assert exc_info.value is oauth2_error
+    assert exc_info.value.error.extra["url"] == "https://example.org/oauth2/authorize"
+    assert exc_info.value.error.extra["tab_id"] == "tab-123"
 
 
 def test_create_dataset_run_succeeds_when_metadata_fetch_works(

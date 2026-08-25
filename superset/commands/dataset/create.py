@@ -34,6 +34,7 @@ from superset.commands.dataset.exceptions import (
 from superset.commands.utils import populate_subjects
 from superset.daos.dataset import DatasetDAO
 from superset.exceptions import (
+    OAuth2RedirectError,
     SupersetException,
     SupersetParseError,
     SupersetSecurityException,
@@ -56,6 +57,9 @@ class CreateDatasetCommand(CreateMixin, BaseCommand):
         dataset = DatasetDAO.create(attributes=self._properties)
         try:
             dataset.fetch_metadata()
+        except OAuth2RedirectError:
+            # Must reach the caller unchanged to start the OAuth2 dance.
+            raise
         except SupersetException as ex:
             # Not a SQLAlchemyError, so ``on_error`` re-raises it untouched and
             # it escapes to FAB's ``@safe`` as an opaque 500 "Fatal error".
