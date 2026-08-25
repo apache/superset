@@ -46,6 +46,7 @@ from superset.commands.deletion_retention.purge_cascade import (
     entity_uuid,
     suppress_purge_association_versions,
 )
+from superset.commands.deletion_retention.purge_policy import BlockerReason
 from superset.commands.deletion_retention.window import resolve_retention_window
 from superset.extensions import celery_app, feature_flag_manager, stats_logger_manager
 from superset.models.helpers import (
@@ -206,19 +207,10 @@ def _purge_model(
     return purged, would, failures, blocked
 
 
-def _finalize_blocked(record_id: UUID | None, result: CascadeResult) -> None:
+def _finalize_blocked(record_id: UUID | None, blocker: BlockerReason) -> None:
     """Finalize a blocked retention outcome and count suppression metrics."""
-    if result.blocker is None:
-        # Fail open: never let a reason-threading gap block the purge audit.
-        # The row is finalized blocked with a NULL reason, and the
-        # suppression path both refuses to suppress on it and logs the
-        # detail -- counted rather than logged again here, so one gap
-        # produces one alertable signal instead of two log lines.
-        stats_logger_manager.instance.incr(
-            f"{_METRIC_PREFIX}.blocked_audit_missing_reason"
-        )
     disposition: audit.RetentionBlockedDisposition = audit.finalize_retention_blocked(
-        record_id, result.blocker.code if result.blocker else None
+        record_id, blocker.code
     )
     if disposition == "suppressed":
         stats_logger_manager.instance.incr(f"{_METRIC_PREFIX}.blocked_audit_suppressed")
@@ -302,8 +294,8 @@ def _purge_one(
             affected_referrers=result.dangling_chart_uuids,
             removed_dashboard_slices=result.removed_dashboard_slices,
         )
-    elif result.blocked_reason is not None:
-        _finalize_blocked(record_id, result)
+    elif result.blocker is not None:
+        _finalize_blocked(record_id, result.blocker)
     else:
         audit.fail(record_id)
     return result
