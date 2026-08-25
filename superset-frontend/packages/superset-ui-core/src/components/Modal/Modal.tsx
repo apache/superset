@@ -269,7 +269,6 @@ const CustomModal = ({
   );
   const draggableRef = useRef<HTMLDivElement>(null);
   const [bounds, setBounds] = useState<DraggableBounds>({});
-  const [dragDisabled, setDragDisabled] = useState<boolean>(true);
   const theme = useTheme();
 
   const handleOnHide = () => {
@@ -339,19 +338,7 @@ const CustomModal = ({
   }, [hideFooter, resizableConfig]);
 
   const ModalTitle = () =>
-    draggable ? (
-      <div
-        className="draggable-trigger"
-        onMouseOver={() => dragDisabled && setDragDisabled(false)}
-        onMouseOut={() => !dragDisabled && setDragDisabled(true)}
-        onFocus={() => dragDisabled && setDragDisabled(false)}
-        onBlur={() => !dragDisabled && setDragDisabled(true)}
-      >
-        {title}
-      </div>
-    ) : (
-      <>{title}</>
-    );
+    draggable ? <div className="draggable-trigger">{title}</div> : <>{title}</>;
 
   return (
     <StyledModal
@@ -378,7 +365,8 @@ const CustomModal = ({
       modalRender={modal =>
         resizable || draggable ? (
           <Draggable
-            disabled={!draggable || dragDisabled}
+            disabled={!draggable}
+            handle={draggable ? '.draggable-trigger' : undefined}
             bounds={bounds ?? false}
             onStart={(event, uiData) => onDragStart(event, uiData)}
             // Pass nodeRef so react-draggable does not fall back to
