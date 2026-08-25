@@ -476,6 +476,7 @@ def _create_preview_url(
         title="Update chart",
         readOnlyHint=False,
         destructiveHint=True,
+        openWorldHint=False,
     ),
 )
 async def update_chart(  # noqa: C901

@@ -157,6 +157,7 @@ def _preserve_previous_adhoc_filters(
         title="Update chart preview",
         readOnlyHint=False,
         destructiveHint=False,
+        openWorldHint=False,
     ),
 )
 def update_chart_preview(  # noqa: C901

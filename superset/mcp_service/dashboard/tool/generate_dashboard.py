@@ -191,6 +191,7 @@ def _generate_title_from_charts(chart_objects: List[Any]) -> str:
         title="Create dashboard",
         readOnlyHint=False,
         destructiveHint=False,
+        openWorldHint=False,
     ),
 )
 def generate_dashboard(  # noqa: C901

@@ -69,6 +69,7 @@ def _routes_to_soft_delete() -> bool:
         title="Delete chart",
         readOnlyHint=False,
         destructiveHint=True,
+        openWorldHint=False,
     ),
 )
 async def delete_chart(

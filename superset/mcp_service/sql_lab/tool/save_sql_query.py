@@ -48,6 +48,7 @@ logger = logging.getLogger(__name__)
         title="Save SQL query",
         readOnlyHint=False,
         destructiveHint=False,
+        openWorldHint=False,
     ),
 )
 async def save_sql_query(

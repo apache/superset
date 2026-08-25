@@ -76,6 +76,7 @@ def _rollback() -> None:
         title="Restore chart",
         readOnlyHint=False,
         destructiveHint=False,
+        openWorldHint=False,
     ),
 )
 async def restore_chart(

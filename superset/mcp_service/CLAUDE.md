@@ -119,6 +119,7 @@ from superset.extensions import event_logger
         title="My new tool",
         readOnlyHint=True,
         destructiveHint=False,
+        openWorldHint=False,
     ),
 )
 async def my_new_tool(request: MyRequest, ctx: Context) -> MyResponse:
@@ -139,6 +140,7 @@ async def my_new_tool(request: MyRequest, ctx: Context) -> MyResponse:
         title="Create something",
         readOnlyHint=False,
         destructiveHint=False,
+        openWorldHint=False,
     ),
 )
 async def create_something(request: CreateRequest, ctx: Context) -> CreateResponse:
@@ -212,6 +214,7 @@ annotations=ToolAnnotations(
     title="Human-readable title",
     readOnlyHint=True,   # Whether tool only reads data
     destructiveHint=False, # Whether tool has destructive side effects
+    openWorldHint=False, # Whether tool interacts with external entities
 )
 ```
 
@@ -572,7 +575,7 @@ async def test_my_tool_success(mcp_server):
 
 ### 4. Missing ToolAnnotations
 **Problem**: Tool lacks MCP directory compliance metadata.
-**Solution**: Always include `annotations=ToolAnnotations(title=..., readOnlyHint=..., destructiveHint=...)`.
+**Solution**: Always include `annotations=ToolAnnotations(title=..., readOnlyHint=..., destructiveHint=..., openWorldHint=...)`.
 
 ### 5. Using `Optional` Instead of Union Syntax
 **Problem**: Old-style `Optional[T]` is not Python 3.10+ style.

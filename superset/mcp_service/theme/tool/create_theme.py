@@ -47,6 +47,7 @@ logger = logging.getLogger(__name__)
         title="Create theme",
         readOnlyHint=False,
         destructiveHint=False,
+        openWorldHint=False,
     ),
 )
 async def create_theme(

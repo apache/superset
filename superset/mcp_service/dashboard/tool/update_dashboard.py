@@ -282,6 +282,7 @@ def _validate_update_request(
         title="Update dashboard layout/theme/CSS/metadata",
         readOnlyHint=False,
         destructiveHint=True,
+        openWorldHint=False,
     ),
 )
 async def update_dashboard(

@@ -109,6 +109,7 @@ def _get_permalink_state(permalink_key: str) -> DashboardPermalinkValue | None:
         title="Get dashboard info",
         readOnlyHint=True,
         destructiveHint=False,
+        openWorldHint=False,
     ),
 )
 async def get_dashboard_info(

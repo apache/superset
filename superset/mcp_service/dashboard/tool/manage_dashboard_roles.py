@@ -160,6 +160,7 @@ def _resolve_role_subjects(
         title="Manage dashboard access roles",
         readOnlyHint=False,
         destructiveHint=True,
+        openWorldHint=False,
     ),
 )
 def manage_dashboard_roles(

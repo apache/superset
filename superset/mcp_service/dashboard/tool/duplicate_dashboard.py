@@ -276,6 +276,7 @@ async def _resolve_source(
         title="Duplicate dashboard",
         readOnlyHint=False,
         destructiveHint=False,
+        openWorldHint=False,
     ),
 )
 async def duplicate_dashboard(

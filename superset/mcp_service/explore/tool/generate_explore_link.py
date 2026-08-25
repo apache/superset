@@ -58,6 +58,7 @@ logger = logging.getLogger(__name__)
         title="Generate explore link",
         readOnlyHint=False,
         destructiveHint=False,
+        openWorldHint=False,
     ),
 )
 async def generate_explore_link(

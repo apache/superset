@@ -57,6 +57,31 @@ def test_mcp_app_imports_successfully():
     assert "list_charts" in tool_names
 
 
+def test_all_registered_tools_have_complete_annotations():
+    """Every advertised tool declares all MCP safety annotations."""
+    required_fields = (
+        "title",
+        "readOnlyHint",
+        "destructiveHint",
+        "openWorldHint",
+    )
+    missing_by_tool = {}
+
+    for registered_tool in _run(mcp.list_tools()):
+        annotations = registered_tool.annotations
+        missing = [
+            field
+            for field in required_fields
+            if annotations is None or getattr(annotations, field, None) is None
+        ]
+        if missing:
+            missing_by_tool[registered_tool.name] = missing
+
+    assert not missing_by_tool, (
+        f"Registered MCP tools have incomplete annotations: {missing_by_tool}"
+    )
+
+
 def test_mcp_prompts_registered():
     """Test that MCP prompts are registered."""
     prompts = _run(mcp.list_prompts())
