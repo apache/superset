@@ -75,10 +75,13 @@ Enabling the realtime WebSocket transport (optional; accelerates completion, the
 `status_changes` interval poll remains the correctness backstop):
 
 ```python
-WEBSOCKET_ENABLED = True
+ENABLE_WEBSOCKET = True
 WEBSOCKET_URL = "ws://<same-host>:8080/"
 WEBSOCKET_JWT_SECRET = "<output of: openssl rand -base64 42>"
 ```
+
+The built-in Gamma role receives `can_read Realtime`; grant that permission to
+custom roles that should receive websocket notifications.
 
 Run the `superset-websocket` Node server on the **same host** (so its JWT
 channel cookie is shared) and point its `redis` config at the same instance as

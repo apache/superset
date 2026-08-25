@@ -140,7 +140,7 @@ services:
   # Realtime WebSocket transport, launched from the official image via its
   # alternate entrypoint (no separate image needed). Opt-in — start it with
   # `docker compose --profile websocket up`. To actually use it, the Superset
-  # app must also set WEBSOCKET_ENABLED=true, WEBSOCKET_URL, and a matching
+  # app must also set ENABLE_WEBSOCKET=true, WEBSOCKET_URL, and a matching
   # WEBSOCKET_JWT_SECRET (== the JWT_SECRET below) in docker/.env-local.
   superset-websocket:
     build:

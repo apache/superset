@@ -163,8 +163,11 @@ def submit_chart_data_query_tasks(
     → error). GTF owns completion emission (per-task, via the coordination service), so
     the websocket transport subscribes to GTF, not to any GAQ-specific stream.
 
-    Returns the HTTP 202 body ``{"task_ids": [...]}`` — the query tasks' UUIDs, in
-    query order, for the client to poll and cancel via the GTF task API.
+    Returns the HTTP 202 body ``{"task_ids": [...], "cursor": "..."}`` — the query
+    tasks' UUIDs, in query order, plus the server-issued polling cursor. The client
+    uses those values to poll through the GTF task API. Client aborts may unsubscribe
+    from shared work or abort pending work; engine-level query cancellation is outside
+    this chart async path.
     """
     guest_user = security_manager.get_current_guest_user_if_guest()
     guest_token = guest_user.guest_token if guest_user else None

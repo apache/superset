@@ -14,6 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from types import SimpleNamespace
+
 import jwt
 from pytest_mock import MockerFixture
 
@@ -24,10 +26,10 @@ def test_channel_id_for_maps_principal_identity() -> None:
     # A user id wins and maps to user:<id>; a guest key is returned verbatim
     # (already namespaced); neither identity → None (anonymous).
     assert channel_id_for(7, None) == "user:7"
-    assert channel_id_for(None, "guest-abc") == "guest-abc"
+    assert channel_id_for(None, "guest:abc") == "guest:abc"
     assert channel_id_for(None, None) is None
     # A user id takes precedence over any stray guest key.
-    assert channel_id_for(7, "guest-abc") == "user:7"
+    assert channel_id_for(7, "guest:abc") == "user:7"
 
 
 def test_channel_id_for_logged_in_user(app_context, mocker: MockerFixture) -> None:
@@ -49,9 +51,9 @@ def test_channel_id_for_guest(app_context, mocker: MockerFixture) -> None:
         return_value=object(),
     )
     mocker.patch.object(
-        channel, "get_current_guest_subscriber_key", return_value="guest-abc"
+        channel, "get_current_guest_subscriber_key", return_value="guest:abc"
     )
-    assert channel.get_channel_id() == "guest-abc"
+    assert channel.get_channel_id() == "guest:abc"
 
 
 def test_channel_id_none_for_anonymous(app_context, mocker: MockerFixture) -> None:
@@ -68,13 +70,72 @@ def test_mint_channel_token_encodes_channel(app_context) -> None:
     from flask import current_app
 
     from superset.websocket import channel
+    from superset.websocket.permissions import (
+        REALTIME_NOTIFICATION_JWT_AUDIENCE,
+        REALTIME_NOTIFICATION_JWT_ISSUER,
+    )
 
-    token = channel.mint_channel_token("user:5")
+    token = channel.mint_channel_token(
+        {
+            "channel": "user:5",
+            "principal_type": "user",
+            "sub": "5",
+            "username": "alice",
+        }
+    )
     decoded = jwt.decode(
-        token, current_app.config["WEBSOCKET_JWT_SECRET"], algorithms=["HS256"]
+        token,
+        current_app.config["WEBSOCKET_JWT_SECRET"],
+        algorithms=["HS256"],
+        audience=REALTIME_NOTIFICATION_JWT_AUDIENCE,
+        issuer=REALTIME_NOTIFICATION_JWT_ISSUER,
     )
     assert decoded["channel"] == "user:5"
+    assert decoded["principal_type"] == "user"
+    assert decoded["sub"] == "5"
+    assert decoded["username"] == "alice"
+    assert "permissions" not in decoded
     assert "exp" in decoded
+
+
+def test_realtime_principal_for_logged_in_user(
+    app_context, mocker: MockerFixture
+) -> None:
+    from flask import g
+
+    from superset.websocket import channel
+
+    g.user = SimpleNamespace(username="alice")
+    mocker.patch.object(
+        channel.security_manager, "get_current_guest_user_if_guest", return_value=None
+    )
+    mocker.patch.object(channel, "get_user_id", return_value=7)
+
+    assert channel.get_realtime_principal() == {
+        "channel": "user:7",
+        "principal_type": "user",
+        "sub": "7",
+        "username": "alice",
+    }
+
+
+def test_realtime_principal_for_guest(app_context, mocker: MockerFixture) -> None:
+    from superset.websocket import channel
+
+    mocker.patch.object(
+        channel.security_manager,
+        "get_current_guest_user_if_guest",
+        return_value=object(),
+    )
+    mocker.patch.object(
+        channel, "get_current_guest_subscriber_key", return_value="guest:abc"
+    )
+
+    assert channel.get_realtime_principal() == {
+        "channel": "guest:abc",
+        "principal_type": "guest",
+        "sub": "guest:abc",
+    }
 
 
 def _make_ws_app():
@@ -85,7 +146,7 @@ def _make_ws_app():
 
     app = Flask(__name__)
     app.config.update(
-        WEBSOCKET_ENABLED=True,
+        ENABLE_WEBSOCKET=True,
         WEBSOCKET_JWT_SECRET="x" * 40,
         WEBSOCKET_JWT_COOKIE_NAME="superset-ws-token",
         WEBSOCKET_JWT_COOKIE_SECURE=False,
@@ -110,6 +171,7 @@ def test_cookie_reminted_when_principal_changes(mocker) -> None:
     from superset.websocket import channel
 
     client = _make_ws_app().test_client()
+    mocker.patch.object(channel, "can_access_realtime_notifications", return_value=True)
     mocker.patch.object(
         channel.security_manager, "get_current_guest_user_if_guest", return_value=None
     )
@@ -126,6 +188,7 @@ def test_cookie_cleared_for_anonymous(mocker) -> None:
     from superset.websocket import channel
 
     client = _make_ws_app().test_client()
+    mocker.patch.object(channel, "can_access_realtime_notifications", return_value=True)
     mocker.patch.object(
         channel.security_manager, "get_current_guest_user_if_guest", return_value=None
     )
@@ -139,3 +202,40 @@ def test_cookie_cleared_for_anonymous(mocker) -> None:
         if "superset-ws-token" in c and ("Expires" in c or "Max-Age=0" in c)
     ]
     assert cleared, "stale cookie must be cleared when there is no principal"
+
+
+def test_cookie_not_minted_without_realtime_permission(mocker) -> None:
+    from superset.websocket import channel
+
+    client = _make_ws_app().test_client()
+    mocker.patch.object(
+        channel, "can_access_realtime_notifications", return_value=False
+    )
+    mocker.patch.object(
+        channel.security_manager, "get_current_guest_user_if_guest", return_value=None
+    )
+    mocker.patch.object(channel, "get_user_id", return_value=1)
+
+    assert not _ws_set_cookies(client.get("/_ws_probe"))
+
+
+def test_cookie_cleared_when_realtime_permission_removed(mocker) -> None:
+    from superset.websocket import channel
+
+    client = _make_ws_app().test_client()
+    mocker.patch.object(
+        channel, "can_access_realtime_notifications", return_value=False
+    )
+    mocker.patch.object(
+        channel.security_manager, "get_current_guest_user_if_guest", return_value=None
+    )
+    mocker.patch.object(channel, "get_user_id", return_value=1)
+
+    client.set_cookie("superset-ws-token", "stale")
+    resp = client.get("/_ws_probe")
+    cleared = [
+        c
+        for c in resp.headers.getlist("Set-Cookie")
+        if "superset-ws-token" in c and ("Expires" in c or "Max-Age=0" in c)
+    ]
+    assert cleared, "stale cookie must be cleared without realtime permission"

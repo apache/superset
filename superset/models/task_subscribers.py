@@ -63,7 +63,7 @@ class TaskSubscriber(CoreTaskSubscriber, AuditMixinNullable, Model):
     user_id = Column(
         Integer, ForeignKey("ab_user.id", ondelete="CASCADE"), nullable=True
     )
-    # A guest key is ``guest-`` + a 64-char SHA256 hex digest (70 chars); the
+    # A guest key is ``guest:`` + a 64-char SHA256 hex digest (70 chars); the
     # column is sized with headroom (see superset.tasks.guest).
     guest_key = Column(String(128), nullable=True, index=True)
     subscribed_at = Column(DateTime, nullable=False, default=datetime.now(timezone.utc))

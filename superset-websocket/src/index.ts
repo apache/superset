@@ -21,7 +21,10 @@ import * as net from 'net';
 import { inspect } from 'util';
 import { WebSocket, WebSocketServer } from 'ws';
 import { randomUUID } from 'crypto';
-import jwt, { Algorithm } from 'jsonwebtoken';
+import jwt, {
+  type Algorithm,
+  type JwtPayload as JsonWebTokenPayload,
+} from 'jsonwebtoken';
 import { parseCookie } from 'cookie';
 import { Redis, RedisOptions } from 'ioredis';
 import StatsD from 'hot-shots';
@@ -30,33 +33,55 @@ import { createLogger } from './logger.js';
 import { buildConfig, RedisConfig } from './config.js';
 import { checkServerIdentity, PeerCertificate } from 'tls';
 
-interface JwtPayload {
-  [key: string]: string;
+const REALTIME_JWT_AUDIENCE = 'superset-websocket';
+const REALTIME_JWT_ISSUER = 'superset';
+const PRINCIPAL_TYPES = ['user', 'guest'] as const;
+type PrincipalType = (typeof PRINCIPAL_TYPES)[number];
+
+interface RealtimeJwtPayload extends JsonWebTokenPayload {
+  principal_type?: unknown;
+  username?: unknown;
 }
 
 /**
- * The generic, feature-agnostic message the server forwards to browsers. The
- * server does not understand any feature's payload — it only routes by Redis
- * `channel` name — so `payload` is passed through verbatim. A browser client
- * routes on `channel`:
- *   - `entity-changes:<type>` — a lossy, public "an entity of this type
- *     changed" nudge, broadcast to every connected socket; `payload` carries
- *     opaque ids only (`{entity_type, id}`).
- *   - `<realtimeChannelPrefix><principalChannel>` — a per-principal message
- *     (e.g. a task's status), delivered only to sockets whose JWT bound that
- *     principal channel; `payload` is feature-defined (e.g. `{task_id, status}`).
- * Any future feature (thumbnails, reports, exports, …) reuses this envelope
- * without a server change: its specifics live entirely in `payload`.
+ * The generic message the server forwards to browsers. Every connected socket
+ * has a valid realtime JWT; a browser client routes on `channel`:
+ *   - `entity-changes:<type>` - a lossy "an entity of this type changed"
+ *     nudge, broadcast to every authenticated socket; `payload` carries opaque
+ *     ids only (`{entity_type, id}`).
+ *   - `realtime:<principalChannel>` - a targeted task/status browser message,
+ *     delivered only to sockets whose JWT proves that principal identity and
+ *     binds it to that channel; `payload` is feature-defined (e.g.
+ *     `{task_id, status}`).
  */
 export interface OutboundMessage {
   channel: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  payload: any;
+  payload: unknown;
+}
+
+interface TaskStatusSubscriber {
+  principal_type: PrincipalType;
+  sub: string;
+}
+
+interface TaskStatusRedisPayload {
+  task_id: string;
+  status: string;
+  subscribers: TaskStatusSubscriber[];
+}
+
+export interface SocketIdentity {
+  channel: string;
+  principalType: PrincipalType;
+  subject: string;
+  username?: string;
+  tokenExpiresAtMs: number;
 }
 
 export interface SocketInstance {
   ws: WebSocket;
   channel: string;
+  identity?: SocketIdentity;
   pongTs: number;
 }
 
@@ -146,20 +171,20 @@ const SOCKET_ACTIVE_STATES: number[] = [WebSocket.OPEN, WebSocket.CONNECTING];
 
 // The Pub/Sub channel prefixes the server tails. These are a wire-protocol
 // contract with the Superset producer (superset/tasks/manager.py:
-// ENTITY_CHANGES_CHANNEL_PREFIX / REALTIME_CHANNEL_PREFIX), NOT a deployment
-// knob — an independent override on this side with no matching producer config
+// ENTITY_CHANGES_CHANNEL_PREFIX / TASK_STATUS_CHANNEL), NOT a deployment
+// knob - an independent override on this side with no matching producer config
 // would silently subscribe to channels nothing publishes to, so they are fixed
 // constants that must stay in lockstep with the producer.
 //
-// Tier-1 entity-change nudges are public and broadcast to every socket; tier-2
-// per-principal channels are routed to the matching principal only (see
-// routeRedisMessage). Both are lossy (Pub/Sub is fire-and-forget); the browser's
-// interval poll is the correctness backstop, so no stream replay / reconnection
-// catch-up is needed.
+// Tier-1 entity-change nudges are broadcast to every authenticated socket;
+// tier-2 task-status messages carry subscriber principals and are fanned out by
+// this server to matching sockets only (see routeRedisMessage). Both are lossy
+// (Pub/Sub is fire-and-forget); the browser's interval poll is the correctness
+// backstop, so no stream replay / reconnection catch-up is needed.
 const ENTITY_CHANGES_CHANNEL_PREFIX = 'entity-changes:';
-const PER_PRINCIPAL_CHANNEL_PREFIX = 'realtime:';
+const TASK_STATUS_CHANNEL = 'task-status';
+const REALTIME_BROWSER_CHANNEL_PREFIX = 'realtime:';
 const ENTITY_CHANGES_PATTERN = `${ENTITY_CHANGES_CHANNEL_PREFIX}*`;
-const PER_PRINCIPAL_PATTERN = `${PER_PRINCIPAL_CHANNEL_PREFIX}*`;
 
 // Backoff before retrying an initial Pub/Sub subscription that failed (e.g.
 // Redis unreachable at startup); see subscribeToChannels.
@@ -304,9 +329,10 @@ export const sendToChannel = (
 
 /**
  * Sends a message to every connected socket, regardless of channel. Used for
- * the public, lossy tier-1 entity-change nudges (`entity-changes:*`), which
- * carry only opaque ids — each client filters to the ids it renders. Reuses
- * `sendToChannel` per channel so backpressure and cleanup apply uniformly.
+ * the lossy tier-1 entity-change nudges (`entity-changes:*`), which carry only
+ * opaque ids and are broadcast to authenticated sockets - each client filters
+ * to the ids it renders. Reuses `sendToChannel` per channel so backpressure and
+ * cleanup apply uniformly.
  */
 export const broadcastToAll = (message: OutboundMessage): void => {
   for (const channel in channels) {
@@ -314,14 +340,88 @@ export const broadcastToAll = (message: OutboundMessage): void => {
   }
 };
 
+function isTaskStatusSubscriber(
+  subscriber: unknown,
+): subscriber is TaskStatusSubscriber {
+  if (!subscriber || typeof subscriber !== 'object') {
+    return false;
+  }
+  const candidate = subscriber as {
+    principal_type?: unknown;
+    sub?: unknown;
+  };
+  return (
+    PRINCIPAL_TYPES.includes(candidate.principal_type as PrincipalType) &&
+    typeof candidate.sub === 'string' &&
+    candidate.sub.length > 0
+  );
+}
+
+function isTaskStatusRedisPayload(
+  payload: unknown,
+): payload is TaskStatusRedisPayload {
+  if (!payload || typeof payload !== 'object') {
+    return false;
+  }
+  const candidate = payload as {
+    task_id?: unknown;
+    status?: unknown;
+    subscribers?: unknown;
+  };
+  return (
+    typeof candidate.task_id === 'string' &&
+    typeof candidate.status === 'string' &&
+    Array.isArray(candidate.subscribers) &&
+    candidate.subscribers.every(isTaskStatusSubscriber)
+  );
+}
+
+function channelForSubscriber(subscriber: TaskStatusSubscriber): string | null {
+  if (subscriber.principal_type === 'user') {
+    return `user:${subscriber.sub}`;
+  }
+  if (subscriber.sub.startsWith('guest:')) {
+    return subscriber.sub;
+  }
+  return null;
+}
+
+/**
+ * Fan out one task-status Redis message to every subscriber principal in the
+ * payload. `subscribers` is a server-side routing field produced by Superset
+ * from task subscribers; it is intentionally stripped from the browser payload.
+ */
+export const sendTaskStatusToSubscribers = (payload: unknown): void => {
+  if (!isTaskStatusRedisPayload(payload)) {
+    logger.error(`Invalid task status message on ${TASK_STATUS_CHANNEL}`);
+    return;
+  }
+
+  const outboundPayload = {
+    task_id: payload.task_id,
+    status: payload.status,
+  };
+  const sent = new Set<string>();
+  payload.subscribers.forEach(subscriber => {
+    const channel = channelForSubscriber(subscriber);
+    if (channel === null) return;
+    if (sent.has(channel)) return;
+    sent.add(channel);
+    sendToChannel(channel, {
+      channel: `${REALTIME_BROWSER_CHANNEL_PREFIX}${channel}`,
+      payload: outboundPayload,
+    });
+  });
+};
+
 /**
  * Routes a raw Redis Pub/Sub message to the appropriate sockets.
  *
- * Per-principal messages (`realtime:<principalChannel>`, e.g.
- * `realtime:user:5`) are delivered only to sockets whose JWT bound that
- * principal channel. Entity-change messages (`entity-changes:<type>`) are
- * broadcast to all sockets. The full Redis channel name is forwarded to the
- * browser in the envelope so the client can route by it too.
+ * Task-status messages (`task-status`) include subscriber principals and are
+ * fanned out to sockets whose JWT bound a matching routing key. Entity-change
+ * messages (`entity-changes:<type>`) are broadcast to all sockets. Entity-change
+ * messages forward the Redis channel name; task-status messages forward
+ * `realtime:<routingKey>` and strip server-side routing fields.
  */
 export const routeRedisMessage = (
   channel: string,
@@ -334,12 +434,10 @@ export const routeRedisMessage = (
     logger.error(`Failed to parse message on channel ${channel}: ${err}`);
     return;
   }
-  const message: OutboundMessage = { channel, payload };
-
-  if (channel.startsWith(PER_PRINCIPAL_CHANNEL_PREFIX)) {
-    const principalChannel = channel.slice(PER_PRINCIPAL_CHANNEL_PREFIX.length);
-    sendToChannel(principalChannel, message);
+  if (channel === TASK_STATUS_CHANNEL) {
+    sendTaskStatusToSubscribers(payload);
   } else if (channel.startsWith(ENTITY_CHANGES_CHANNEL_PREFIX)) {
+    const message: OutboundMessage = { channel, payload };
     broadcastToAll(message);
   } else {
     logger.debug(`Ignoring message on unrecognized channel ${channel}`);
@@ -347,14 +445,14 @@ export const routeRedisMessage = (
 };
 
 /**
- * Subscribes the Redis connection to the tier-1 (broadcast) and tier-2
- * (per-principal) channel patterns and routes each received message.
+ * Subscribes the Redis connection to tier-1 entity-change nudges and tier-2
+ * task-status fanout messages.
  *
  * Failure is observable and self-healing rather than silent: if the initial
  * ``psubscribe`` rejects (e.g. Redis unreachable at startup) it is logged and
  * retried, so the transport can't end up running with no subscription. ioredis
  * additionally re-establishes these subscriptions automatically across
- * reconnects once they exist. Delivery is best-effort regardless — the browser's
+ * reconnects once they exist. Delivery is best-effort regardless - the browser's
  * interval poll is the correctness backstop.
  */
 let pmessageBound = false;
@@ -374,10 +472,10 @@ export const subscribeToChannels = async (): Promise<void> => {
   try {
     await redisSubscriber.psubscribe(
       ENTITY_CHANGES_PATTERN,
-      PER_PRINCIPAL_PATTERN,
+      TASK_STATUS_CHANNEL,
     );
     logger.info(
-      `Subscribed to Redis channels: ${ENTITY_CHANGES_PATTERN}, ${PER_PRINCIPAL_PATTERN}`,
+      `Subscribed to Redis channels: ${ENTITY_CHANGES_PATTERN}, ${TASK_STATUS_CHANNEL}`,
     );
   } catch (err) {
     logger.error(
@@ -389,31 +487,64 @@ export const subscribeToChannels = async (): Promise<void> => {
 };
 
 /**
- * Verify and parse a JWT cookie from an HTTP request.
- * Returns the channelId from the JWT payload found in the cookie
- * configured via 'jwtCookieName' in the config.
+ * Verify and parse a realtime JWT cookie from an HTTP request.
  */
-const readChannelId = (request: http.IncomingMessage): string => {
+const readSocketIdentity = (request: http.IncomingMessage): SocketIdentity => {
   const cookies = parseCookie(request.headers.cookie || '');
   const token = cookies[opts.jwtCookieName];
 
   if (!token) throw new Error('JWT not present');
   const jwtPayload = jwt.verify(token, opts.jwtSecret, {
     algorithms: opts.jwtAlgorithms as Algorithm[],
+    audience: REALTIME_JWT_AUDIENCE,
     complete: false,
-  }) as JwtPayload;
+    issuer: REALTIME_JWT_ISSUER,
+  }) as RealtimeJwtPayload;
   const channelId = jwtPayload[opts.jwtChannelIdKey];
+  const subject = jwtPayload.sub;
+  const principalType = jwtPayload.principal_type;
+  const expiresAtSeconds = jwtPayload.exp;
 
-  if (!channelId) throw new Error('Channel ID not present in JWT');
+  if (typeof channelId !== 'string' || channelId.length === 0) {
+    throw new Error('Channel ID not present in JWT');
+  }
+  if (typeof subject !== 'string' || subject.length === 0) {
+    throw new Error('Subject not present in JWT');
+  }
+  if (!PRINCIPAL_TYPES.includes(principalType as PrincipalType)) {
+    throw new Error('Principal type not present in JWT');
+  }
+  const validatedPrincipalType = principalType as PrincipalType;
+  if (validatedPrincipalType === 'user' && channelId !== `user:${subject}`) {
+    throw new Error('Channel does not match JWT subject');
+  }
+  if (validatedPrincipalType === 'guest' && channelId !== subject) {
+    throw new Error('Channel does not match JWT subject');
+  }
+  if (typeof expiresAtSeconds !== 'number') {
+    throw new Error('Expiration not present in JWT');
+  }
+  const tokenExpiresAtMs = expiresAtSeconds * 1000;
+  if (!Number.isFinite(tokenExpiresAtMs)) {
+    throw new Error('Invalid JWT expiration');
+  }
 
-  return channelId;
+  return {
+    channel: channelId,
+    principalType: validatedPrincipalType,
+    subject,
+    username:
+      typeof jwtPayload.username === 'string' ? jwtPayload.username : undefined,
+    tokenExpiresAtMs,
+  };
 };
 
 /**
  * WebSocket `connection` event handler, called via wss
  */
 export const wsConnection = (ws: WebSocket, request: http.IncomingMessage) => {
-  const channel: string = readChannelId(request);
+  const identity = readSocketIdentity(request);
+  const { channel } = identity;
 
   // Refuse the connection if a configured connection limit has been reached,
   // before tracking it against the internal registries.
@@ -425,7 +556,12 @@ export const wsConnection = (ws: WebSocket, request: http.IncomingMessage) => {
     return;
   }
 
-  const socketInstance: SocketInstance = { ws, channel, pongTs: Date.now() };
+  const socketInstance: SocketInstance = {
+    ws,
+    channel,
+    identity,
+    pongTs: Date.now(),
+  };
 
   // add this ws instance to the internal registry
   const socketId = trackClient(channel, socketInstance);
@@ -519,7 +655,7 @@ export const httpUpgrade = (
   }
 
   try {
-    readChannelId(request);
+    readSocketIdentity(request);
   } catch (err) {
     // Token invalid/absent: do not establish a WebSocket connection. Record a
     // structured warning (with the request's remote address) so rejected
@@ -556,10 +692,21 @@ export const checkSockets = () => {
   logger.debug(`socket count: ${Object.keys(sockets).length}`);
   for (const socketId in sockets) {
     const socketInstance = sockets[socketId];
-    const timeout = Date.now() - socketInstance.pongTs;
+    const now = Date.now();
+    const timeout = now - socketInstance.pongTs;
     let isActive = true;
 
-    if (timeout >= opts.socketResponseTimeoutMs) {
+    if (
+      socketInstance.identity &&
+      now >= socketInstance.identity.tokenExpiresAtMs
+    ) {
+      logger.debug(
+        `terminating socket with expired token: ${socketId}, channel: ${socketInstance.channel}`,
+      );
+      statsd.increment('ws_token_expired_disconnect');
+      socketInstance.ws.terminate();
+      isActive = false;
+    } else if (timeout >= opts.socketResponseTimeoutMs) {
       logger.debug(
         `terminating unresponsive socket: ${socketId}, channel: ${socketInstance.channel}`,
       );

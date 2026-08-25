@@ -25,7 +25,18 @@ router.get('/', function (req, res) {
   let numTokens = req.query.sockets ? Number(req.query.sockets) : 100;
   let tokens = [];
   for (let i = 0; i < numTokens; i++) {
-    const token = jwt.sign({ channel: String(i) }, config.jwtSecret);
+    const subject = String(i);
+    const token = jwt.sign(
+      {
+        aud: 'superset-websocket',
+        channel: `user:${subject}`,
+        exp: Math.floor(Date.now() / 1000) + 3600,
+        iss: 'superset',
+        principal_type: 'user',
+        sub: subject,
+      },
+      config.jwtSecret,
+    );
     tokens.push(token);
   }
 

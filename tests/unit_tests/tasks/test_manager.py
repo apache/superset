@@ -159,7 +159,7 @@ class TestTaskManagerPublish:
 
 
 class TestTaskManagerEntityChange:
-    """publish_entity_change emits one opaque, public nudge to the per-type channel."""
+    """publish_entity_change emits one opaque nudge to the per-type channel."""
 
     def setup_method(self):
         _reset_prefixes()
@@ -184,7 +184,7 @@ class TestTaskManagerEntityChange:
         assert TaskManager.publish_entity_change(uuid.uuid4()) is True
 
         # One publish to the task type's channel, carrying ONLY opaque ids (the
-        # integer primary key) — no status or payload (the contract is general
+        # integer primary key) - no status or payload (the contract is general
         # across all entity types).
         mock_publish.assert_called_once()
         channel, message = mock_publish.call_args.args[:2]
@@ -206,7 +206,7 @@ class TestTaskManagerEntityChange:
 
 
 class TestTaskManagerPublishTaskStatus:
-    """publish_task_status fans a task's status out to subscriber channels (tier-2)."""
+    """publish_task_status emits one fanout message carrying subscribers."""
 
     def setup_method(self):
         _reset_prefixes()
@@ -225,34 +225,37 @@ class TestTaskManagerPublishTaskStatus:
     @patch(DAO)
     @patch(PUBLISH)
     @patch(IS_DEFINED, return_value=True)
-    def test_publishes_status_to_each_subscriber_channel(
+    def test_publishes_one_status_message_with_subscribers(
         self, mock_defined, mock_publish, mock_dao
     ):
         task_uuid = uuid.uuid4()
         mock_dao.find_one_or_none.return_value = MagicMock(id=7)
-        mock_dao.get_subscriber_channels.return_value = ["user:1", "guest-abc"]
+        mock_dao.get_subscriber_principals.return_value = [
+            {"principal_type": "user", "sub": "1"},
+            {"principal_type": "guest", "sub": "guest:abc"},
+        ]
 
         assert TaskManager.publish_task_status(task_uuid, "success") is True
 
-        mock_dao.get_subscriber_channels.assert_called_once_with(7)
-        # One publish per distinct subscriber channel, each on realtime:<channel>
-        # carrying the task uuid + status (delivery is per-principal, so status is
-        # allowed here — unlike the public tier-1 nudge).
-        assert mock_publish.call_count == 2
-        channels = {call.args[0] for call in mock_publish.call_args_list}
-        assert channels == {"realtime:user:1", "realtime:guest-abc"}
-        for call in mock_publish.call_args_list:
-            assert json.loads(call.args[1]) == {
-                "task_id": str(task_uuid),
-                "status": "success",
-            }
+        mock_dao.get_subscriber_principals.assert_called_once_with(7)
+        mock_publish.assert_called_once()
+        channel, message = mock_publish.call_args.args[:2]
+        assert channel == "task-status"
+        assert json.loads(message) == {
+            "task_id": str(task_uuid),
+            "status": "success",
+            "subscribers": [
+                {"principal_type": "user", "sub": "1"},
+                {"principal_type": "guest", "sub": "guest:abc"},
+            ],
+        }
 
     @patch(DAO)
     @patch(PUBLISH)
     @patch(IS_DEFINED, return_value=True)
     def test_no_subscribers_is_noop(self, mock_defined, mock_publish, mock_dao):
         mock_dao.find_one_or_none.return_value = MagicMock(id=7)
-        mock_dao.get_subscriber_channels.return_value = []
+        mock_dao.get_subscriber_principals.return_value = []
 
         assert TaskManager.publish_task_status(uuid.uuid4(), "success") is False
         mock_publish.assert_not_called()
@@ -271,7 +274,9 @@ class TestTaskManagerPublishTaskStatus:
     @patch(IS_DEFINED, return_value=True)
     def test_redis_error_is_swallowed(self, mock_defined, mock_publish, mock_dao):
         mock_dao.find_one_or_none.return_value = MagicMock(id=7)
-        mock_dao.get_subscriber_channels.return_value = ["user:1"]
+        mock_dao.get_subscriber_principals.return_value = [
+            {"principal_type": "user", "sub": "1"}
+        ]
 
         assert TaskManager.publish_task_status(uuid.uuid4(), "success") is False
 

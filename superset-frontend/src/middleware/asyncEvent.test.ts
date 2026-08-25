@@ -301,7 +301,7 @@ describe('realtime WebSocket acceleration', () => {
   });
 
   test('a tier-2 message is a no-op when async queries are disabled', () => {
-    // The shared socket connects whenever WEBSOCKET_ENABLED, independent of the
+    // The shared socket connects whenever ENABLE_WEBSOCKET, independent of the
     // GLOBAL_ASYNC_QUERIES flag, so a realtime message can arrive with no active
     // async flow — it must not throw (waiter registry stays an empty map).
     mockedIsFeatureEnabled.mockReturnValue(false);

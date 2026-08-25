@@ -77,28 +77,27 @@ class TaskManager:
 
         cls._initialized = True
 
-    # Lossy pub/sub channels carrying opaque, PUBLIC entity-change nudges, one
+    # Lossy pub/sub channels carrying opaque entity-change nudges, one
     # channel per entity type (``entity-changes:task``, later ``:dashboard``,
     # ``:chart``, ``:dataset`` etc.) so consumers subscribe only to the types they
     # care about. The contract is general across all entity types: a nudge carries
-    # ONLY ``{entity_type, id}`` (the integer primary key) — no status or payload
+    # ONLY ``{entity_type, id}`` (the integer primary key) - no status or payload
     # (status is task-specific and would not generalize). It's published once to
-    # the type's channel (not fanned out per subscriber). Id existence is
-    # intentionally public; anything sensitive (including a task's status/result)
-    # is delivered on the per-principal channel or fetched through the authorized
-    # REST API (``TaskFilter``/RLS), so this channel never carries authz-sensitive
-    # data.
+    # the type's channel (not fanned out per subscriber). Anything sensitive
+    # (including a task's status/result) is delivered through targeted websocket
+    # fanout or fetched through the authorized REST API (``TaskFilter``/RLS), so
+    # this channel never carries authz-sensitive data.
     ENTITY_CHANGES_CHANNEL_PREFIX = "entity-changes:"
 
     @classmethod
     def publish_entity_change(cls, task_uuid: UUID) -> bool:
-        """Publish a lossy, opaque, public "entity changed" nudge for realtime UIs.
+        """Publish a lossy, opaque "entity changed" nudge for realtime UIs.
 
         Best-effort pub/sub (may be dropped) carrying only ``{entity_type, id}``
         (the integer primary key, which a realtime list view matches and refetches
-        by) — no status or payload — published once to the per-type channel
+        by) - no status or payload - published once to the per-type channel
         (``entity-changes:task``). A browser transport (superset-websocket) forwards
-        it to subscribed clients, which then re-fetch the actual (authz-scoped)
+        it to authenticated sockets, which then re-fetch the actual (authz-scoped)
         state through the authorized REST API. No-op when no coordination backend
         is configured or the task no longer exists.
 
@@ -122,37 +121,31 @@ class TaskManager:
             return True
         except Exception as ex:  # noqa: BLE001 pylint: disable=broad-except
             # Strictly best-effort: a Redis or serialization hiccup here must never
-            # disrupt completion signalling — the client's interval poll is the
+            # disrupt completion signalling - the client's interval poll is the
             # backstop.
             logger.warning(
                 "Failed to publish entity change for task %s: %s", task_uuid, ex
             )
             return False
 
-    # Per-principal (tier-2) realtime channels. Unlike the public tier-1
-    # entity-change nudge above, a tier-2 message is fanned out to each of a
-    # task's *subscribers'* channels and MAY carry task-specific detail
-    # (``status``) because delivery is scoped to principals already entitled to
-    # see the task. The channel id is the principal's own channel
-    # (``user:<id>`` / ``guest-<hmac>``, see ``superset.websocket.channel``);
-    # the superset-websocket server routes a ``realtime:<channel_id>`` message
-    # to the socket whose JWT cookie bound that channel. This lets the chart-data
-    # client learn each status transition without re-polling the REST API on
-    # every intermediate change.
-    REALTIME_CHANNEL_PREFIX = "realtime:"
+    # Lossy Pub/Sub channel for task status fanout. Superset publishes one
+    # message per status transition with the already-authorized subscriber
+    # principals. The websocket server does the local fanout and strips
+    # ``subscribers`` before forwarding the task status to browsers.
+    TASK_STATUS_CHANNEL = "task-status"
 
     @classmethod
     def publish_task_status(cls, task_uuid: UUID, status: str) -> bool:
-        """Publish a task's ``status`` to each subscriber's per-principal channel.
+        """Publish one task ``status`` message for websocket fanout.
 
-        Best-effort tier-2 delivery: for every distinct subscriber channel of the
-        task (see ``TaskDAO.get_subscriber_channels``), publish
-        ``{task_id, status}`` to ``realtime:<channel_id>``. The superset-websocket
-        server forwards it to sockets whose JWT cookie bound that channel, so the
-        submitter (and any SHARED-dedup joiners) sees the transition immediately.
-        No-op when no coordination backend is configured or the task has no
-        resolvable subscribers; callers must never let a failure here disrupt
-        completion signalling (the interval poll is the backstop).
+        Best-effort tier-2 delivery: publish ``{task_id, status, subscribers}``
+        once to ``task-status``. The superset-websocket server maps those
+        principal identities to its own socket routing keys, so the submitter
+        and any SHARED-dedup joiners see the transition immediately without the
+        Flask app publishing once per subscriber. No-op when no coordination
+        backend is configured or the task has no resolvable subscribers; callers
+        must never let a failure here disrupt completion signalling (the
+        interval poll is the backstop).
 
         :param task_uuid: public UUID of the task (also carried in the payload)
         :param status: the task's current status
@@ -168,14 +161,17 @@ class TaskManager:
             task = TaskDAO.find_one_or_none(uuid=task_uuid, skip_base_filter=True)
             if task is None:
                 return False
-            channels = TaskDAO.get_subscriber_channels(task.id)
-            if not channels:
+            subscribers = TaskDAO.get_subscriber_principals(task.id)
+            if not subscribers:
                 return False
-            message = json.dumps({"task_id": str(task_uuid), "status": status})
-            for channel in channels:
-                CoordinationService.publish(
-                    f"{cls.REALTIME_CHANNEL_PREFIX}{channel}", message
-                )
+            message = json.dumps(
+                {
+                    "task_id": str(task_uuid),
+                    "status": status,
+                    "subscribers": subscribers,
+                }
+            )
+            CoordinationService.publish(cls.TASK_STATUS_CHANNEL, message)
             return True
         except Exception as ex:  # noqa: BLE001 pylint: disable=broad-except
             # Strictly best-effort (mirrors publish_entity_change): a Redis or
@@ -260,9 +256,9 @@ class TaskManager:
             logger.debug("Signalled completion on %s (status=%s)", channel, status)
             # The tier-1 entity-change nudge for the terminal transition is emitted
             # by InternalStatusTransitionCommand (post-commit), so it is not
-            # repeated here. Push the terminal status to each subscriber's
-            # per-principal channel (tier-2) so a chart-data client learns
-            # completion detail over the socket instead of re-polling the REST API.
+            # repeated here. Push one targeted fanout message (tier-2) so each
+            # subscribed chart-data client can learn completion detail over the
+            # socket instead of re-polling the REST API.
             cls.publish_task_status(task_uuid, status)
             return True
         except redis.RedisError as ex:

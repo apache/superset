@@ -2962,23 +2962,28 @@ GLOBAL_ASYNC_QUERIES_DEFAULT = True
 # Realtime websocket transport (the `superset-websocket` server) config.
 # When enabled, GTF task changes are pushed to the browser so charts and list
 # views update without waiting for the interval poll (which stays as the
-# fallback). Requires the superset-websocket server and a Redis coordination
-# backend (DISTRIBUTED_COORDINATION_CONFIG). Two channel tiers:
-#   - a public per-entity-type pub/sub (e.g. entity-changes:task) for lossy
-#     list-view activity (opaque id + status), and
-#   - a per-principal channel (user:<id> / guest:<hmac>) for the dashboard
-#     chart-data path, authenticated by the JWT cookie below.
+# fallback). Requires the superset-websocket server, a Redis coordination
+# backend (DISTRIBUTED_COORDINATION_CONFIG), and `can_read` on `Realtime`.
+# Two channel tiers:
+#   - an authenticated broadcast per-entity-type pub/sub
+#     (e.g. entity-changes:task) for lossy list-view activity (opaque entity
+#     ids only), and
+#   - targeted task-status pub/sub messages for the dashboard chart-data path,
+#     fanned out by the websocket server to JWT-bound principal sockets.
 # The JWT authenticates the socket connection and binds it to its channel; the
-# server delivers a per-principal channel's events only to that principal's
+# server delivers targeted task-status events only to matching principal
 # sockets. Set a strong random WEBSOCKET_JWT_SECRET (>= 32 bytes) in production.
-WEBSOCKET_ENABLED = False
+# The websocket server validates the signed token at connection time and
+# terminates sockets after JWT expiry, so post-mint permission revocation is
+# bounded by this lifetime plus the server ping interval.
+ENABLE_WEBSOCKET = False
 WEBSOCKET_URL = "ws://127.0.0.1:8080/"
 WEBSOCKET_JWT_SECRET = CHANGE_ME_WEBSOCKET_JWT_SECRET
 WEBSOCKET_JWT_COOKIE_NAME = "superset-ws-token"  # noqa: S105
 WEBSOCKET_JWT_COOKIE_SECURE = False
 WEBSOCKET_JWT_COOKIE_SAMESITE: None | (Literal["None", "Lax", "Strict"]) = None
 WEBSOCKET_JWT_COOKIE_DOMAIN = None
-WEBSOCKET_JWT_EXPIRATION_SECONDS = int(timedelta(hours=1).total_seconds())
+WEBSOCKET_JWT_EXPIRATION_SECONDS = int(timedelta(minutes=15).total_seconds())
 
 # Embedded config options
 GUEST_ROLE_NAME = "Public"
