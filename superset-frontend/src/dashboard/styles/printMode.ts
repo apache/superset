@@ -379,6 +379,27 @@ body.print-mode {
     max-height: none !important;
     overflow: visible !important;
   }
+  /*
+   * Release ALL .dragdroppable-column children of a table-containing .grid-row,
+   * not just the column that holds the table. In print mode the grid-row is
+   * flex-direction:column, so every column is a block-flow item. Sibling
+   * columns with inline style.height (set by re-resizable) cause the row to
+   * allocate only the authored pixel height, making the expanded table overflow
+   * and interleave with subsequent dashboard rows. Releasing all columns lets
+   * each grow to fit its content and the row expands to contain them all.
+   */
+  .grid-row:has(.superset-chart-table) > .dragdroppable-column,
+  .grid-row:has([data-test-viz-type="table"]) > .dragdroppable-column {
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+  .grid-row:has(.superset-chart-table) > .dragdroppable-column > .resizable-container,
+  .grid-row:has([data-test-viz-type="table"]) > .dragdroppable-column > .resizable-container {
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
   /* Release .with-popover-menu which sits between .grid-row and
      .dragdroppable-row — also has an authored height in some themes */
   .with-popover-menu:has(.superset-chart-table),

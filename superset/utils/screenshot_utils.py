@@ -292,6 +292,28 @@ EXPAND_TABLE_CONTAINERS_JS = """
     const sel = '.superset-chart-table,'
         + ' [data-test-viz-type="table"],'
         + ' [data-test-viz-type="TableChartTransformed"]';
+
+    // Helper: release all inline height/overflow constraints on one element.
+    function releaseEl(el) {
+        if (!el || !el.style) return;
+        if (el.style.height && el.style.height !== 'auto') {
+            el.style.height = 'auto';
+            el.style.maxHeight = 'none';
+        }
+        const ov = el.style.overflow;
+        if (ov === 'hidden' || ov === 'auto' || ov === 'scroll') {
+            el.style.overflow = 'visible';
+        }
+        const ovY = el.style.overflowY;
+        if (ovY === 'hidden' || ovY === 'auto' || ovY === 'scroll') {
+            el.style.overflowY = 'visible';
+        }
+        const ovX = el.style.overflowX;
+        if (ovX === 'hidden' || ovX === 'auto' || ovX === 'scroll') {
+            el.style.overflowX = 'visible';
+        }
+    }
+
     const roots = document.querySelectorAll(sel);
     for (const root of roots) {
         // 1. Expand the inner scroll containers (inline-height + overflow divs)
@@ -314,37 +336,42 @@ EXPAND_TABLE_CONTAINERS_JS = """
         //    (resizable-container → chart-holder → dragdroppable-column →
         //     grid-row → with-popover-menu → dragdroppable-row)
         //    allocates auto height instead of the authored pixel height.
-        //    Every level must be cleared: re-resizable writes inline style.height
-        //    on both .resizable-container AND .dragdroppable-row. If the outer
-        //    wrapper keeps its authored px height the expanded table overflows
-        //    and physically overlaps the next dashboard row in the PDF.
+        //
+        //    Critical: also release height on SIBLING .dragdroppable-column
+        //    elements in the same .grid-row. In print mode the grid-row
+        //    is flex-direction:column, so each column is a block-flow item.
+        //    A sibling column with an inline height (set by re-resizable)
+        //    allocates only that authored height to itself — the row ends
+        //    after the tallest authored-height item, and the expanded table
+        //    content overflows and overlaps subsequent dashboard rows.
+        //    Releasing the sibling heights lets every column grow to fit its
+        //    content and the row expands to contain all of them.
+        let gridRow = null;
         let el = root.parentElement;
         while (el) {
             if (el.classList.contains('dashboard-grid') ||
                 el.classList.contains('grid-content')) {
                 break;
             }
-            if (el.style) {
-                if (el.style.height && el.style.height !== 'auto') {
-                    el.style.height = 'auto';
-                    el.style.maxHeight = 'none';
-                }
-                // Release all overflow constraints — hidden, auto, and scroll
-                // can all clip the expanded table at different ancestor levels.
-                const ov = el.style.overflow;
-                if (ov === 'hidden' || ov === 'auto' || ov === 'scroll') {
-                    el.style.overflow = 'visible';
-                }
-                const ovY = el.style.overflowY;
-                if (ovY === 'hidden' || ovY === 'auto' || ovY === 'scroll') {
-                    el.style.overflowY = 'visible';
-                }
-                const ovX = el.style.overflowX;
-                if (ovX === 'hidden' || ovX === 'auto' || ovX === 'scroll') {
-                    el.style.overflowX = 'visible';
-                }
+            // Remember the .grid-row so we can fix sibling columns after
+            if (el.classList.contains('grid-row')) {
+                gridRow = el;
             }
+            releaseEl(el);
             el = el.parentElement;
+        }
+
+        // 3. Release height on sibling columns in the same .grid-row so they
+        //    don't cap the row height and cause table overflow to interleave
+        //    with subsequent dashboard rows in the PDF.
+        if (gridRow) {
+            for (const col of gridRow.querySelectorAll(
+                    ':scope > .dragdroppable-column')) {
+                releaseEl(col);
+                // Also release the resizable-container inside each sibling
+                const rc = col.querySelector(':scope > .resizable-container');
+                if (rc) releaseEl(rc);
+            }
         }
     }
     return count;
