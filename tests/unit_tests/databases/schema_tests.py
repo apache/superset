@@ -557,6 +557,44 @@ def test_extra_validator_accepts_catalog_cache_timeout() -> None:
     assert extra["metadata_cache_timeout"]["catalog_cache_timeout"] == 600
 
 
+def test_extra_validator_interpolates_invalid_metadata_params_key() -> None:
+    """
+    The message names the offending key. It is built with a lazy translated
+    string, so a malformed placeholder would only fail once the message is
+    rendered; asserting on the rendered text pins the interpolation.
+    """
+    from superset.databases.schemas import DatabasePostSchema
+
+    schema = DatabasePostSchema()
+    payload = {
+        "database_name": "test_db",
+        "extra": json.dumps({"metadata_params": {"not_a_metadata_arg": 1}}),
+    }
+    with pytest.raises(ValidationError) as exc_info:
+        schema.load(payload)
+    message = str(exc_info.value)
+    assert "not_a_metadata_arg" in message
+    assert "%(" not in message
+
+
+def test_extra_validator_interpolates_json_decode_error() -> None:
+    """
+    As above, for the message raised when ``extra`` is not decodable JSON.
+    """
+    from superset.databases.schemas import DatabasePostSchema
+
+    schema = DatabasePostSchema()
+    payload = {"database_name": "test_db", "extra": "{not json"}
+    with pytest.raises(ValidationError) as exc_info:
+        schema.load(payload)
+    message = str(exc_info.value)
+    # Assert on the interpolated value rather than the surrounding wording. The
+    # value comes from json.JSONDecodeError, which is not translated, so this
+    # stays valid under any locale.
+    assert "line 1 column" in message
+    assert "%(" not in message
+
+
 def test_cache_timeout_rejects_values_below_minus_one() -> None:
     """
     Test that cache_timeout rejects values less than -1.

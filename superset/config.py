@@ -708,7 +708,7 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # the move-back lever; removed (along with its two gate points —
     # BaseDAO.delete routing and the do_orm_execute visibility listener) once
     # post-flip confidence is established.
-    # @lifecycle: development
+    # @lifecycle: testing
     "SOFT_DELETE": True,
     # Enable semantic layers and show semantic views alongside datasets
     # @lifecycle: development
@@ -742,9 +742,9 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     "TAGGING_SYSTEM": False,
     # Enables the version history panel on Explore and Dashboard pages.
     # History only accrues while ``ENABLE_VERSIONING_CAPTURE`` is also on;
-    # with capture off the panel renders but stays empty, so the two ship
-    # with matching defaults and should be changed together.
-    # @lifecycle: development
+    # with capture off the panel renders empty or stale history, so the two
+    # ship with matching defaults and should be changed together.
+    # @lifecycle: testing
     "VERSION_HISTORY": True,
     # =================================================================
     # IN TESTING
@@ -1694,17 +1694,9 @@ DATETIME_FORMAT_DETECTION_SAMPLE_SIZE = 1000
 # The limit for the Superset Meta DB when the feature flag ENABLE_SUPERSET_META_DB is on
 SUPERSET_META_DB_LIMIT: int | None = 1000
 
-# Master switch for entity-version-history capture. Capture is enabled by
-# default, so saves write shadow rows and a ``version_transaction`` /
-# ``version_changes`` record. Set this to a falsy value in
-# ``superset_config.py`` (or via the environment variable of the same name) to
-# disable the before-flush listeners while keeping the /versions/ endpoints
-# available read-only.
-# Capture ships on. It is an operational escape hatch — set the environment
-# variable to a falsy value when a versioning-induced regression needs a
-# 30-second recovery instead of revert-and-redeploy — not a feature flag,
-# and it remains permanently as the kill-switch rather than being removed
-# with the rollout toggles.
+# Master switch for entity-version-history capture. A falsy value disables
+# version writes while keeping existing history available read-only through the
+# ``/versions/`` endpoints; Restore is unavailable while capture is disabled.
 ENABLE_VERSIONING_CAPTURE: bool = utils.parse_boolean_string(
     os.environ.get("ENABLE_VERSIONING_CAPTURE", "true")
 )
