@@ -24,6 +24,21 @@ assists people when migrating to a new version.
 
 ## Next
 
+### Archived dataset purge requires impact confirmation
+
+`GET /api/v1/dataset/<uuid>/purge-impact` returns the charts and distinct
+dashboards affected by permanently deleting an archived dataset, together with
+an opaque `impact_token`. The dataset purge endpoint now requires that token in
+the JSON body as `confirmed_impact_token`. API clients that call
+`POST /api/v1/dataset/<uuid>/purge` must fetch and display the impact first;
+requests with a missing or malformed token are rejected with 400.
+
+The server rechecks the dependency identities immediately before mutation. If
+they changed, purge performs no deletion and returns 409 with a refreshed impact
+payload. Clients must display the new impact and obtain renewed confirmation
+before retrying. Preview or recheck failures fail closed rather than treating
+unknown impact as zero. Chart and dashboard purge endpoints are unchanged.
+
 - `SAMPLES_ROW_LIMIT` is now the default for `/datasource/samples` requests without a valid explicit `per_page`, rather than a hard per-request ceiling; explicit limits are honored up to the existing global row-limit ceiling, matching `/chart/data` SAMPLES requests.
 - The `cockroachdb` extra (`pip install apache-superset[cockroachdb]`) now installs `sqlalchemy-cockroachdb` instead of the abandoned `cockroachdb` package, whose SQLAlchemy dialect could not be imported under SQLAlchemy 2.0. Existing environments with the old package installed should `pip uninstall cockroachdb && pip install sqlalchemy-cockroachdb` (or simply reinstall the extra) to restore CockroachDB connectivity.
 
