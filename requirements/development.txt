@@ -117,8 +117,10 @@ celery==5.6.3
 certifi==2026.5.20
     # via
     #   -c requirements/base-constraint.txt
+    #   elasticsearch
     #   httpcore
     #   httpx
+    #   opensearch-py
     #   requests
 cffi==2.0.0
     # via
@@ -190,6 +192,7 @@ cryptography==50.0.0
     #   authlib
     #   google-auth
     #   joserfc
+    #   oracledb
     #   paramiko
     #   pyjwt
     #   pyopenssl
@@ -234,6 +237,10 @@ duckdb==1.5.5
     #   duckdb-engine
 duckdb-engine==0.17.0
     # via apache-superset
+elasticsearch==7.17.13
+    # via elasticsearch-dbapi
+elasticsearch-dbapi==0.2.13
+    # via apache-superset
 email-validator==2.2.0
     # via
     #   -c requirements/base-constraint.txt
@@ -243,6 +250,8 @@ et-xmlfile==2.0.0
     # via
     #   -c requirements/base-constraint.txt
     #   openpyxl
+events==0.5
+    # via opensearch-py
 exceptiongroup==1.3.0
     # via fastmcp-slim
 fastmcp==3.4.7
@@ -429,6 +438,10 @@ humanize==4.12.3
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
+ibm-db==3.3.0
+    # via ibm-db-sa
+ibm-db-sa==0.4.4
+    # via apache-superset
 identify==2.5.36
     # via pre-commit
 idna==3.15
@@ -614,8 +627,14 @@ openpyxl==3.1.5
     # via
     #   -c requirements/base-constraint.txt
     #   pandas
+opensearch-py==2.8.0
+    # via elasticsearch-dbapi
 opentelemetry-api==1.39.1
     # via fastmcp-slim
+oracledb==4.0.2
+    # via
+    #   apache-superset
+    #   testcontainers
 ordered-set==4.1.0
     # via
     #   -c requirements/base-constraint.txt
@@ -632,6 +651,7 @@ packaging==25.0
     #   db-dtypes
     #   deprecation
     #   duckdb-engine
+    #   elasticsearch-dbapi
     #   fastmcp-slim
     #   google-cloud-bigquery
     #   kombu
@@ -785,6 +805,10 @@ pyjwt==2.13.0
     #   mcp
 pylint==3.3.7
     # via apache-superset
+pymssql==2.3.13
+    # via
+    #   apache-superset
+    #   testcontainers
 pynacl==1.6.2
     # via
     #   -c requirements/base-constraint.txt
@@ -834,6 +858,7 @@ python-dateutil==2.9.0.post0
     #   google-cloud-bigquery
     #   holidays
     #   matplotlib
+    #   opensearch-py
     #   pandas
     #   pyhive
     #   shillelagh
@@ -888,6 +913,7 @@ requests==2.33.0
     #   google-api-core
     #   google-cloud-bigquery
     #   jsonschema-path
+    #   opensearch-py
     #   pydruid
     #   pyhive
     #   requests-cache
@@ -967,8 +993,10 @@ sqlalchemy==2.0.52
     #   apache-superset
     #   apache-superset-core
     #   duckdb-engine
+    #   elasticsearch-dbapi
     #   flask-appbuilder
     #   flask-sqlalchemy
+    #   ibm-db-sa
     #   marshmallow-sqlalchemy
     #   shillelagh
     #   sqlalchemy-bigquery
@@ -976,6 +1004,7 @@ sqlalchemy==2.0.52
     #   sqlalchemy-continuum
     #   sqlalchemy-cratedb
     #   sqlalchemy-utils
+    #   testcontainers
 sqlalchemy-bigquery==1.17.2
     # via apache-superset
 sqlalchemy-cockroachdb==2.0.4
@@ -1049,6 +1078,7 @@ typing-extensions==4.16.0
     #   limits
     #   mcp
     #   opentelemetry-api
+    #   oracledb
     #   py-key-value-aio
     #   pydantic
     #   pydantic-core
@@ -1087,6 +1117,8 @@ urllib3==2.7.0
     #   botocore
     #   crate
     #   docker
+    #   elasticsearch
+    #   opensearch-py
     #   requests
     #   requests-cache
     #   testcontainers
