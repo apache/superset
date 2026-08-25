@@ -17,7 +17,11 @@
 import pytest
 from pytest_mock import MockerFixture
 
-from superset.commands.chart.exceptions import ChartForbiddenError, ChartInvalidError
+from superset.commands.chart.exceptions import (
+    ChartForbiddenError,
+    ChartInvalidError,
+    DatasourceTypeUpdateRequiredValidationError,
+)
 from superset.commands.chart.update import UpdateChartCommand
 from superset.commands.exceptions import DatasourceTypeInvalidError
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -271,6 +275,39 @@ def test_update_chart_rejects_repointing_to_non_table_datasource(
         ).validate()
 
     assert any(
+        isinstance(ex, DatasourceTypeInvalidError) for ex in exc_info.value._exceptions
+    )
+    get_datasource_by_id.assert_not_called()
+
+
+def test_update_chart_missing_datasource_type_keeps_required_error(
+    mocker: MockerFixture,
+) -> None:
+    """When datasource_id is given without datasource_type, the response
+    must keep reporting DatasourceTypeUpdateRequiredValidationError
+    ("Datasource type is required") rather than having it overwritten by
+    DatasourceTypeInvalidError ("Datasource type is invalid") -- both
+    exceptions key their message under ``datasource_type``, and
+    normalized_messages() only keeps the last one written for a given key."""
+    find_by_id = mocker.patch("superset.commands.chart.update.ChartDAO.find_by_id")
+    find_by_id.return_value = mocker.MagicMock(id=1, tags=[], dashboards=[])
+    mocker.patch("superset.commands.chart.update.security_manager.raise_for_editorship")
+    mocker.patch(
+        "superset.commands.chart.update.compute_subjects",
+        side_effect=lambda model, properties, exceptions: None,
+    )
+    get_datasource_by_id = mocker.patch(
+        "superset.commands.chart.update.get_datasource_by_id"
+    )
+
+    with pytest.raises(ChartInvalidError) as exc_info:
+        UpdateChartCommand(1, {"datasource_id": 11}).validate()
+
+    assert any(
+        isinstance(ex, DatasourceTypeUpdateRequiredValidationError)
+        for ex in exc_info.value._exceptions
+    )
+    assert not any(
         isinstance(ex, DatasourceTypeInvalidError) for ex in exc_info.value._exceptions
     )
     get_datasource_by_id.assert_not_called()

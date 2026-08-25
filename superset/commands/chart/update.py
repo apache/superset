@@ -223,7 +223,10 @@ class UpdateChartCommand(UpdateMixin, BaseCommand):
             exceptions.append(ex)
 
         # Validate/Populate datasource
-        if datasource_id is not None:
+        # An empty datasource_type was already flagged above via
+        # DatasourceTypeUpdateRequiredValidationError; skip this block so
+        # we don't clobber that message with DatasourceTypeInvalidError.
+        if datasource_id is not None and datasource_type:
             try:
                 # Slice.datasource only ever resolves the ``table``
                 # relationship (see Slice.datasource in
