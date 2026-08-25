@@ -18,7 +18,6 @@ import logging
 
 from flask import Response
 from flask_appbuilder.api import expose, protect, safe
-from flask_appbuilder.security.decorators import has_access_api
 
 from superset.commands.dashboard.filter_state.create import CreateFilterStateCommand
 from superset.commands.dashboard.filter_state.delete import DeleteFilterStateCommand
@@ -49,7 +48,6 @@ class DashboardFilterStateRestApi(TemporaryCacheRestApi):
         return DeleteFilterStateCommand
 
     @api
-    @has_access_api
     @expose("/<int:pk>/filter_state", methods=("POST",))
     @protect()
     @safe
@@ -174,7 +172,6 @@ class DashboardFilterStateRestApi(TemporaryCacheRestApi):
         return super().post(pk)
 
     @api
-    @has_access_api
     @expose("/<int:pk>/filter_state/<string:key>", methods=("PUT",))
     @protect()
     @safe
