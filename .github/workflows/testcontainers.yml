@@ -1,0 +1,91 @@
+# db_engine_specs tests against real databases (testcontainers)
+name: Testcontainers
+
+# Spins up real Docker containers (see tests/testcontainers/ for the current
+# dialect list) via testcontainers-python, which catches real dialect/driver
+# regressions -- the kind mocked db_engine_specs unit tests structurally
+# cannot, e.g. apache/superset#42899 (Trino emitting OFFSET before LIMIT).
+# Runs on a nightly cron (catches drift from a driver's own releases, not
+# just from Superset's changes) and on pull_request, scoped via `paths` to
+# only PRs that actually touch this test suite or the workflow itself, so
+# unrelated PRs across the repo are never affected.
+permissions:
+  contents: read
+
+on:
+  schedule:
+    - cron: "0 5 * * *"
+  workflow_dispatch: {}
+  pull_request:
+    paths:
+      - ".github/workflows/testcontainers.yml"
+      - "tests/testcontainers/**"
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
+
+jobs:
+  testcontainers:
+    runs-on: ubuntu-26.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # One job per dialect rather than one job for the whole suite: a
+          # single slow container would otherwise inflate the wall-clock
+          # time for every dialect, not just its own. Running in parallel
+          # means the suite's total time is bounded by the slowest dialect,
+          # not the sum of all of them. Db2's first-boot init is documented
+          # upstream as notably slow (a real instance bring-up, not just a
+          # process start) and untested locally here (no arm64 image), so
+          # it gets a wider timeout margin than the rest until real CI data
+          # says otherwise.
+          - dialect: cockroachdb
+            timeout: 10
+          - dialect: crate
+            timeout: 10
+          - dialect: trino
+            timeout: 10
+          - dialect: mssql
+            timeout: 10
+          - dialect: elasticsearch
+            timeout: 10
+          - dialect: oracle
+            timeout: 15
+          - dialect: db2
+            timeout: 25
+    timeout-minutes: ${{ matrix.timeout }}
+    env:
+      PYTHONPATH: ${{ github.workspace }}
+      SUPERSET_TESTENV: true
+      SUPERSET_SECRET_KEY: not-a-secret
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Setup Python
+        uses: ./.github/actions/setup-backend/
+        with:
+          python-version: current
+      - name: Run testcontainers db_engine_specs tests (${{ matrix.dialect }})
+        run: |
+          pytest --durations-min=2 -v ./tests/testcontainers/db_engine_specs/test_${{ matrix.dialect }}.py \
+            --junit-xml=test-results/junit-testcontainers-${{ matrix.dialect }}.xml
+      - name: Upload JUnit test results
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: junit-results-testcontainers-${{ matrix.dialect }}
+          path: test-results/
+          retention-days: 7
+
+  actions-timeline:
+    needs: [testcontainers]
+    if: always()
+    runs-on: ubuntu-26.04
+    permissions:
+      actions: read
+    steps:
+      - uses: Kesin11/actions-timeline@57fc93f20c6da7fbc14063c6d24a2a5627c799ad # v3.2.0
