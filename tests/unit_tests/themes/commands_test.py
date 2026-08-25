@@ -129,10 +129,11 @@ class TestUpdateThemeCommand:
         with pytest.raises(SystemThemeInUseError):
             command.validate()
 
+    @patch("superset.commands.theme.update.compute_subjects")
     @patch("superset.commands.theme.update.security_manager")
     @patch("superset.commands.theme.update.ThemeDAO")
     def test_validate_system_default_theme_allows_admin(
-        self, mock_theme_dao, mock_security_manager
+        self, mock_theme_dao, mock_security_manager, mock_compute_subjects
     ):
         """Admins can still update the active system-default/dark theme slot."""
         mock_theme = Mock(spec=Theme)
