@@ -1,11 +1,25 @@
 #!/usr/bin/env bash
 # test_pdf_font_sizes.sh
 #
-# Generates PDFs from four dashboards:
-#   - dashboard 10 (Large Table PDF Test)  — 5 variants (small/medium/large/2col/custom)
-#   - dashboard 2  (World Bank's Data)     — 2 variants (small/2col)
-#   - dashboard 6  (Sales Dashboard)       — 2 variants (small/2col)
-#   - dashboard 8  (Misc Charts)           — 2 variants (small/2col)
+# Generates PDFs from five dashboards, covering all SIP-212 edge cases:
+#
+#   - dashboard 10 (Large Table PDF Test)  — 5 variants: small/medium/large/2col/custom
+#       EC3 : table with page_length=0 ("All" — 1000 rows, no pagination)
+#       EC9 : table with 8 columns (width constraint cleared)
+#
+#   - dashboard 2  (World Bank's Data)     — 2 variants: small/2col
+#       EC5 : sticky-header table (scroll container cleared by JS)
+#       layout with table in same row as canvas charts (sibling height released)
+#
+#   - dashboard 5  (Video Game Sales)      — 1 variant: small
+#       EC1 : "Games" table has page_length=15 (client-side pagination)
+#             SHOW_ALL_TABLE_ROWS_JS must expand it to show all rows
+#
+#   - dashboard 6  (Sales Dashboard)       — 2 variants: small/2col
+#       EC6 : multi-tab dashboard (two tabs merged via pypdf)
+#
+#   - dashboard 8  (Misc Charts)           — 2 variants: small/2col
+#       EC7 : mixed chart types including empty/error states
 #
 # Copies everything to ~/Desktop and opens it for visual inspection.
 #
@@ -131,7 +145,16 @@ with flask_app.app_context():
     gen_pdf("dash2_2col",  u2, d2.digest, print_layout="2col",
             tab_ids=t2 or None)
 
-    # ── Dashboard 6: Sales Dashboard ─────────────────────────────────────────
+    # ── Dashboard 5: Video Game Sales — EC1 (client-side pagination) ─────────
+    # The "Games" table has page_length=15 (client-side pagination).
+    # SHOW_ALL_TABLE_ROWS_JS must fire onChange(0) to expand it to all rows.
+    # Verify: the PDF should show ALL video game rows, not just the first 15.
+    d5 = db.session.query(Dashboard).filter_by(id=5).one()
+    u5 = get_url(d5)
+    t5 = get_tab_ids(d5)
+    gen_pdf("dash5_paginated", u5, d5.digest, tab_ids=t5 or None)
+
+    # ── Dashboard 6: Sales Dashboard — EC6 (multi-tab) ───────────────────────
     d6 = db.session.query(Dashboard).filter_by(id=6).one()
     u6 = get_url(d6)
     t6 = get_tab_ids(d6)
@@ -139,7 +162,7 @@ with flask_app.app_context():
     gen_pdf("dash6_2col",  u6, d6.digest, print_layout="2col",
             tab_ids=t6 or None)
 
-    # ── Dashboard 8: Misc Charts ─────────────────────────────────────────────
+    # ── Dashboard 8: Misc Charts — EC7 (mixed chart types) ───────────────────
     d8 = db.session.query(Dashboard).filter_by(id=8).one()
     u8 = get_url(d8)
     t8 = get_tab_ids(d8)
@@ -147,7 +170,7 @@ with flask_app.app_context():
     gen_pdf("dash8_2col",  u8, d8.digest, print_layout="2col",
             tab_ids=t8 or None)
 
-print("All 11 PDFs generated.", flush=True)
+print("All 12 PDFs generated.", flush=True)
 PYEOF
 
 # ── copy script into container and run it ────────────────────────────────────
@@ -169,6 +192,7 @@ echo ">>> Copying PDFs to $DESKTOP ..."
 PDFS=(
   dash10_small dash10_medium dash10_large dash10_2col dash10_custom
   dash2_small dash2_2col
+  dash5_paginated
   dash6_small dash6_2col
   dash8_small dash8_2col
 )
@@ -185,23 +209,32 @@ for NAME in "${PDFS[@]}"; do
 done
 
 echo ""
-echo "Done. 11 PDFs open on your Desktop:"
+echo "Done. 12 PDFs open on your Desktop:"
 echo ""
 echo "  Dashboard 10 — Large Table PDF Test"
-echo "    test_pdf_dash10_small.pdf    — single-column, no font overrides"
-echo "    test_pdf_dash10_medium.pdf   — single-column, medium font"
-echo "    test_pdf_dash10_large.pdf    — single-column, large font"
-echo "    test_pdf_dash10_2col.pdf     — 2-column adaptive layout"
+echo "    test_pdf_dash10_small.pdf    — EC3: 1000-row table, page_length=0 (all rows)"
+echo "    test_pdf_dash10_medium.pdf   — medium font tier"
+echo "    test_pdf_dash10_large.pdf    — large font tier"
+echo "    test_pdf_dash10_2col.pdf     — EC9: wide table + 2-column adaptive layout"
 echo "    test_pdf_dash10_custom.pdf   — custom ACME Corp header/footer"
 echo ""
 echo "  Dashboard 2 — World Bank's Data"
-echo "    test_pdf_dash2_small.pdf     — single-column"
+echo "    test_pdf_dash2_small.pdf     — EC5: sticky-header table + sibling canvas charts"
 echo "    test_pdf_dash2_2col.pdf      — 2-column adaptive layout"
 echo ""
+echo "  Dashboard 5 — Video Game Sales"
+echo "    test_pdf_dash5_paginated.pdf — EC1: Games table page_length=15 → all rows shown"
+echo ""
 echo "  Dashboard 6 — Sales Dashboard"
-echo "    test_pdf_dash6_small.pdf     — single-column"
-echo "    test_pdf_dash6_2col.pdf      — 2-column adaptive layout"
+echo "    test_pdf_dash6_small.pdf     — EC6: multi-tab PDF merge (2 tabs)"
+echo "    test_pdf_dash6_2col.pdf      — EC6 + 2-column adaptive layout"
 echo ""
 echo "  Dashboard 8 — Misc Charts"
-echo "    test_pdf_dash8_small.pdf     — single-column"
-echo "    test_pdf_dash8_2col.pdf      — 2-column adaptive layout"
+echo "    test_pdf_dash8_small.pdf     — EC7: mixed chart types"
+echo "    test_pdf_dash8_2col.pdf      — EC7 + 2-column adaptive layout"
+echo ""
+echo "  What to verify:"
+echo "    dash5_paginated : Games table shows ALL rows (not just 15)"
+echo "    dash10_*        : 1000-row table fully visible, no overflow"
+echo "    dash2_*         : % Rural map visible, table rows not interleaved"
+echo "    dash6_small/2col: Both sales tabs present in merged PDF"
