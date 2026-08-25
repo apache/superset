@@ -363,6 +363,15 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
         assert rv.status_code == 400
 
+    def test_with_reversed_time_range__400(self):
+        # A reversed custom date range (since > until) makes get_since_until
+        # raise a ValueError; the API must convert it to a 400, not a 500.
+        self.query_context_payload["queries"][0]["time_range"] = (
+            "2024-01-01T00:00:00 : 2020-01-01T00:00:00"
+        )
+        rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
+        assert rv.status_code == 400
+
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_with_invalid_payload__400(self):
         invalid_query_context = {"form_data": "NOT VALID JSON"}

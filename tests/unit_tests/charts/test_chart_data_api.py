@@ -858,3 +858,23 @@ def test_send_chart_response_does_not_double_extension_for_csv_filename() -> Non
     content_disposition = response.headers["Content-Disposition"]
     assert "my_export.csv.csv" not in content_disposition
     assert "my_export.csv" in content_disposition
+
+
+def test_create_query_context_from_form_converts_value_error_to_400() -> None:
+    """
+    A ValueError raised while loading the query context (e.g. a reversed date
+    range where since > until) is re-raised as a marshmallow ValidationError so
+    the API returns a 400 instead of an unhandled 500.
+    """
+    from marshmallow import ValidationError
+
+    api = ChartDataRestApi()
+    message = "From date cannot be larger than to date"
+    with patch(
+        "superset.charts.data.api.ChartDataQueryContextSchema.load",
+        side_effect=ValueError(message),
+    ):
+        with pytest.raises(ValidationError) as excinfo:
+            api._create_query_context_from_form({})
+
+    assert message in str(excinfo.value)
