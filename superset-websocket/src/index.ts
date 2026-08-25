@@ -33,7 +33,6 @@ import { createLogger } from './logger.js';
 import { buildConfig, RedisConfig } from './config.js';
 import { checkServerIdentity, PeerCertificate } from 'tls';
 
-const REALTIME_NOTIFICATION_CLAIM = 'can_read:Realtime';
 const REALTIME_JWT_AUDIENCE = 'superset-websocket';
 const REALTIME_JWT_ISSUER = 'superset';
 const PRINCIPAL_TYPES = ['user', 'guest'] as const;
@@ -41,7 +40,6 @@ type PrincipalType = (typeof PRINCIPAL_TYPES)[number];
 
 interface RealtimeJwtPayload extends JsonWebTokenPayload {
   principal_type?: unknown;
-  permissions?: unknown;
   username?: unknown;
 }
 
@@ -505,7 +503,6 @@ const readSocketIdentity = (request: http.IncomingMessage): SocketIdentity => {
   const channelId = jwtPayload[opts.jwtChannelIdKey];
   const subject = jwtPayload.sub;
   const principalType = jwtPayload.principal_type;
-  const permissions = jwtPayload.permissions;
   const expiresAtSeconds = jwtPayload.exp;
 
   if (typeof channelId !== 'string' || channelId.length === 0) {
@@ -518,12 +515,6 @@ const readSocketIdentity = (request: http.IncomingMessage): SocketIdentity => {
     throw new Error('Principal type not present in JWT');
   }
   const validatedPrincipalType = principalType as PrincipalType;
-  if (
-    !Array.isArray(permissions) ||
-    !permissions.includes(REALTIME_NOTIFICATION_CLAIM)
-  ) {
-    throw new Error('Realtime permission not present in JWT');
-  }
   if (validatedPrincipalType === 'user' && channelId !== `user:${subject}`) {
     throw new Error('Channel does not match JWT subject');
   }

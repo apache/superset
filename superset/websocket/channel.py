@@ -44,7 +44,6 @@ from superset.tasks.guest import get_current_guest_subscriber_key
 from superset.utils.core import get_user_id
 from superset.websocket.permissions import (
     can_access_realtime_notifications,
-    REALTIME_NOTIFICATION_CLAIM,
     REALTIME_NOTIFICATION_JWT_AUDIENCE,
     REALTIME_NOTIFICATION_JWT_ISSUER,
 )
@@ -124,8 +123,8 @@ def mint_channel_token(principal: RealtimePrincipal) -> str:
     """Sign a JWT binding a websocket connection to ``principal``.
 
     The ``superset-websocket`` server verifies this with the same secret, checks
-    the principal and permission claims, then uses ``channel`` as the routing key
-    for targeted fanout.
+    the identity claims, then uses ``channel`` as the routing key for targeted
+    fanout.
     """
     from flask import current_app
 
@@ -136,7 +135,6 @@ def mint_channel_token(principal: RealtimePrincipal) -> str:
         "aud": REALTIME_NOTIFICATION_JWT_AUDIENCE,
         "iat": now,
         "iss": REALTIME_NOTIFICATION_JWT_ISSUER,
-        "permissions": [REALTIME_NOTIFICATION_CLAIM],
         "exp": now + timedelta(seconds=expiration),
     }
     return jwt.encode(
@@ -148,17 +146,12 @@ def _valid_payload_channel(payload: dict[str, object]) -> str | None:
     channel = payload.get("channel")
     subject = payload.get("sub")
     principal_type = payload.get("principal_type")
-    permissions = payload.get("permissions")
 
     if not isinstance(channel, str) or not channel:
         return None
     if not isinstance(subject, str) or not subject:
         return None
     if principal_type not in ("user", "guest"):
-        return None
-    if not isinstance(permissions, list) or REALTIME_NOTIFICATION_CLAIM not in {
-        permission for permission in permissions if isinstance(permission, str)
-    }:
         return None
 
     if principal_type == "user" and channel != f"user:{subject}":

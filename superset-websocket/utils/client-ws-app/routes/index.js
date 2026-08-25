@@ -32,7 +32,6 @@ router.get('/', function (req, res) {
         channel: `user:${subject}`,
         exp: Math.floor(Date.now() / 1000) + 3600,
         iss: 'superset',
-        permissions: ['can_read:Realtime'],
         principal_type: 'user',
         sub: subject,
       },

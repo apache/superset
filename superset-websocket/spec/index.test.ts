@@ -54,7 +54,6 @@ const realtimeClaims = (overrides: Record<string, unknown> = {}) => ({
   channel: channelId,
   sub: '5',
   principal_type: 'user',
-  permissions: ['can_read:Realtime'],
   aud: 'superset-websocket',
   iss: 'superset',
   exp: Math.floor(Date.now() / 1000) + 3600,
@@ -530,13 +529,13 @@ describe('server', () => {
       });
     });
 
-    test('JWT without realtime permission is rejected', async () => {
-      const token = signRealtimeToken({ permissions: [] });
+    test('valid JWT does not need a permission claim', async () => {
+      const token = signRealtimeToken();
       const request = getRequest(token, 'http://localhost');
 
-      expect(() => {
-        server.wsConnection(ws, request);
-      }).toThrow();
+      server.wsConnection(ws, request);
+
+      expect(server.channels[channelId].sockets).toHaveLength(1);
     });
 
     test('JWT with mismatched channel and subject is rejected', async () => {

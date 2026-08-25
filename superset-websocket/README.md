@@ -72,8 +72,10 @@ server must run on the same host as the web application._ The server verifies
 the JWT with the shared secret (`jwtSecret` / `WEBSOCKET_JWT_SECRET`).
 Superset mints the token only after the request principal has `can_read` on the
 `Realtime` resource. The token carries `aud`, `iss`, `sub`, `principal_type`,
-`permissions`, `channel`, and `exp`; the server rejects tokens whose realtime
-permission is missing or whose channel does not match the principal identity.
+`channel`, and `exp`; the server rejects tokens whose channel does not match the
+principal identity. The permission itself is not serialized into the token: a
+valid token signed with the websocket secret is the proof that Superset already
+authorized the transport.
 The socket is then bound to the `channel` claim, which is how task-status fanout
 selects recipient sockets. A principal may have multiple sockets (e.g. several
 browser tabs); all matching messages are sent to all of them. Because permission

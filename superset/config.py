@@ -2973,7 +2973,7 @@ GLOBAL_ASYNC_QUERIES_DEFAULT = True
 # The JWT authenticates the socket connection and binds it to its channel; the
 # server delivers targeted task-status events only to matching principal
 # sockets. Set a strong random WEBSOCKET_JWT_SECRET (>= 32 bytes) in production.
-# The websocket server validates permission claims at connection time and
+# The websocket server validates the signed token at connection time and
 # terminates sockets after JWT expiry, so post-mint permission revocation is
 # bounded by this lifetime plus the server ping interval.
 ENABLE_WEBSOCKET = False

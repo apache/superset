@@ -71,7 +71,6 @@ def test_mint_channel_token_encodes_channel(app_context) -> None:
 
     from superset.websocket import channel
     from superset.websocket.permissions import (
-        REALTIME_NOTIFICATION_CLAIM,
         REALTIME_NOTIFICATION_JWT_AUDIENCE,
         REALTIME_NOTIFICATION_JWT_ISSUER,
     )
@@ -95,7 +94,7 @@ def test_mint_channel_token_encodes_channel(app_context) -> None:
     assert decoded["principal_type"] == "user"
     assert decoded["sub"] == "5"
     assert decoded["username"] == "alice"
-    assert decoded["permissions"] == [REALTIME_NOTIFICATION_CLAIM]
+    assert "permissions" not in decoded
     assert "exp" in decoded
 
 
