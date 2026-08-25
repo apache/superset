@@ -27,7 +27,6 @@ from superset.commands.theme.exceptions import (
     SystemThemeProtectedError,
     ThemeForbiddenError,
     ThemeInvalidError,
-    ThemeUpdateFailedError,
     ThemeNotFoundError,
 )
 from superset.commands.utils import compute_subjects

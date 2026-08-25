@@ -33,6 +33,7 @@ from superset.commands.theme.exceptions import (
     SystemThemeInUseError,
     SystemThemeProtectedError,
     ThemeDeleteFailedError,
+    ThemeInvalidError,
     ThemeNotFoundError,
 )
 from superset.commands.theme.export import ExportThemesCommand
