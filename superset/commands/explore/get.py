@@ -84,8 +84,10 @@ class GetExploreCommand(BaseCommand, ABC):
             except TemporaryCacheAccessDeniedError:
                 # The cached form data references a datasource the user cannot
                 # access.  Fall through so the datasource-based access check
-                # (raise_for_access) runs and returns a proper error.
-                pass
+                # (raise_for_access) runs and returns a proper error — but
+                # only when we have enough context to resolve the datasource.
+                if not (self._datasource_id or self._slice_id):
+                    raise
 
         message = None
 

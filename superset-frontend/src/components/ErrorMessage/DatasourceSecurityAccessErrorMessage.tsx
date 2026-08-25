@@ -27,8 +27,6 @@ import { ErrorAlert } from './ErrorAlert';
 interface DatasourceSecurityAccessExtra {
   owners?: string[];
   link?: string;
-  datasource?: number | string;
-  datasource_name?: string;
   is_access_denial?: boolean;
   tables?: string[];
   issue_codes?: {
@@ -56,10 +54,7 @@ export function DatasourceSecurityAccessErrorMessage({
   // (e.g. virtual-dataset SQL validation: "Only SELECT statements are
   // allowed"). Those errors carry no access payload — render them plainly
   // rather than misleading the user with request-access guidance.
-  const isAccessDenial =
-    !!extra?.datasource_name ||
-    !!extra?.tables?.length ||
-    !!extra?.is_access_denial;
+  const isAccessDenial = !!extra?.tables?.length || !!extra?.is_access_denial;
   if (!isAccessDenial) {
     return (
       <ErrorAlert
@@ -73,19 +68,7 @@ export function DatasourceSecurityAccessErrorMessage({
   }
 
   let explanation: string;
-  if (extra?.datasource_name) {
-    explanation = isVisualization
-      ? t(
-          'This chart uses the "%s" dataset, which you do not have ' +
-            'permission to view.',
-          extra.datasource_name,
-        )
-      : t(
-          'This query uses the "%s" dataset, which you do not have ' +
-            'permission to view.',
-          extra.datasource_name,
-        );
-  } else if (extra?.tables?.length) {
+  if (extra?.tables?.length) {
     explanation = isVisualization
       ? t(
           'You do not have access to the data behind this chart ' +
