@@ -25,6 +25,10 @@ import {
 } from '@superset-ui/core';
 import { supersetTheme as theme } from '@apache-superset/core/theme';
 import { GenericDataType } from '@apache-superset/core/common';
+import { LineChart } from 'echarts/charts';
+import { GridComponent, LegendComponent } from 'echarts/components';
+import { init, use } from 'echarts/core';
+import { SVGRenderer } from 'echarts/renderers';
 import {
   calculateLowerLogTick,
   dedupSeries,
@@ -119,6 +123,8 @@ const {
     };
   };
 } = require('../../src/utils/legendLayout');
+
+use([SVGRenderer, LineChart, GridComponent, LegendComponent]);
 
 const expectedThemeProps = {
   selector: ['all', 'inverse'],
@@ -1267,9 +1273,134 @@ test('getLegendLayoutResult reserves every row when full-margin layout is reques
   });
 
   expect(layout.effectiveType).toBe(LegendType.Plain);
-  // The estimator packs the items into ten rows and the selectors into an
-  // eleventh: 20px base padding + 10 additional 24px rows.
-  expect(layout.effectiveMargin).toBe(260);
+  // The estimator packs the items into ten rows: 20px base padding plus nine
+  // additional 24px rows. ECharts lays selectors beside the content group.
+  expect(layout.effectiveMargin).toBe(236);
+});
+
+test('getLegendLayoutResult tracks ECharts rows when one dense Plain legend item exceeds the row width', () => {
+  const chartWidth = 300;
+  const platforms = ['PS2', 'PS3', 'PSP', 'PSV', 'Wii', 'X360', 'DS', 'PC'];
+  const publishers = [
+    'Nintendo',
+    'Electronic Arts',
+    'Activision',
+    'Ubisoft',
+    'THQ',
+    'Sega',
+    'Atari',
+    'Capcom',
+    'Konami Digital Entertainment',
+    'Namco Bandai Games',
+    'Sony Computer Entertainment',
+    'Sony Computer Entertainment America',
+    'Warner Bros. Interactive Entertainment',
+    'Disney Interactive Studios',
+    'Take-Two Interactive',
+    'Square Enix',
+    'Bethesda Softworks',
+    'Midway Games',
+    'Tecmo Koei',
+    'BushiRoad',
+  ];
+  const legendItems = platforms.flatMap(platform =>
+    publishers.map(publisher => `${platform}, ${publisher}`),
+  );
+  const canvasContext = {
+    font: '',
+    measureText(text: string) {
+      return {
+        width: Array.from(text).reduce((width, character) => {
+          if (/[A-Z0-9]/.test(character)) {
+            return width + 7;
+          }
+          return width + (/[a-z]/.test(character) ? 5.5 : 3);
+        }, 0),
+      };
+    },
+  };
+  const getContext = jest
+    .spyOn(HTMLCanvasElement.prototype, 'getContext')
+    .mockReturnValue(canvasContext as unknown as CanvasRenderingContext2D);
+  const chart = init(null, null, {
+    height: 4000,
+    renderer: 'svg',
+    ssr: true,
+    width: chartWidth,
+  });
+
+  let renderedRows: number;
+  try {
+    chart.setOption({
+      animation: false,
+      legend: {
+        data: legendItems,
+        left: 20,
+        orient: 'horizontal',
+        right: 0,
+        selector: ['all', 'inverse'],
+        top: 0,
+        type: LegendType.Plain,
+      },
+      series: legendItems.map((name, index) => ({
+        data: [
+          [0, index],
+          [1, index + 1],
+        ],
+        name,
+        showSymbol: false,
+        type: 'line',
+      })),
+      xAxis: { type: 'time' },
+      yAxis: { type: 'value' },
+    });
+    type DisplayElement = {
+      style?: { text?: string };
+      transform?: number[] | null;
+      type?: string;
+    };
+    const displayList = chart
+      .getZr()
+      .storage.getDisplayList(true) as unknown as DisplayElement[];
+    renderedRows = new Set(
+      displayList
+        .filter(
+          element =>
+            element.type === 'tspan' &&
+            typeof element.style?.text === 'string' &&
+            legendItems.includes(element.style.text),
+        )
+        .map(element => element.transform?.[5]),
+    ).size;
+  } finally {
+    chart.dispose();
+  }
+  let layout: ReturnType<typeof getLegendLayoutResult>;
+  try {
+    layout = getLegendLayoutResult({
+      availableWidth: chartWidth - 20,
+      chartHeight: 600,
+      chartWidth,
+      legendItems,
+      legendMargin: null,
+      orientation: LegendOrientation.Top,
+      reserveFullHorizontalPlainLegendMargin: true,
+      show: true,
+      theme,
+      type: LegendType.Plain,
+    });
+  } finally {
+    getContext.mockRestore();
+  }
+
+  const estimatedRows =
+    (Number(layout.effectiveMargin) -
+      defaultLegendPadding[LegendOrientation.Top]) /
+      24 +
+    1;
+  expect(renderedRows).toBe(117);
+  expect(estimatedRows).toBeGreaterThanOrEqual(renderedRows);
+  expect(estimatedRows - renderedRows).toBeLessThanOrEqual(1);
 });
 
 test('getLegendLayoutResult reserves the full required margin for opted-in overflowing horizontal legends', () => {

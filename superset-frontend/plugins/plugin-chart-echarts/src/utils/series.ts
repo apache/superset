@@ -144,6 +144,7 @@ function estimateHorizontalLegendRows(
   labels: string[],
   chartWidth: number,
   showSelectors: boolean,
+  matchEchartsLayout: boolean,
   theme: SupersetTheme,
 ): number {
   const availableWidth = Math.max(
@@ -157,7 +158,11 @@ function estimateHorizontalLegendRows(
   const legendItemWidths = getLegendItemWidths(labels, theme);
 
   if (legendItemWidths.length === 0) {
-    if (showSelectors && ESTIMATED_LEGEND_SELECTOR_WIDTH > availableWidth) {
+    if (
+      !matchEchartsLayout &&
+      showSelectors &&
+      ESTIMATED_LEGEND_SELECTOR_WIDTH > availableWidth
+    ) {
       return Infinity;
     }
     return 1;
@@ -167,7 +172,7 @@ function estimateHorizontalLegendRows(
   let rowWidth = 0;
 
   for (const itemWidth of legendItemWidths) {
-    if (itemWidth > availableWidth) {
+    if (!matchEchartsLayout && itemWidth > availableWidth) {
       return Infinity;
     }
 
@@ -175,6 +180,8 @@ function estimateHorizontalLegendRows(
       rowWidth === 0
         ? itemWidth
         : rowWidth + DEFAULT_LEGEND_ITEM_GAP + itemWidth;
+    // ECharts lets an oversized item occupy its own overflowing row, then
+    // continues packing later items instead of treating every item as a row.
     if (rowWidth > 0 && nextWidth > availableWidth) {
       rows += 1;
       rowWidth = itemWidth;
@@ -183,7 +190,9 @@ function estimateHorizontalLegendRows(
     }
   }
 
-  if (showSelectors) {
+  // Timeseries matches ECharts, which positions selectors beside the completed
+  // content group. Preserve the legacy estimate for sibling chart callers.
+  if (!matchEchartsLayout && showSelectors) {
     if (ESTIMATED_LEGEND_SELECTOR_WIDTH > availableWidth) {
       return Infinity;
     }
@@ -262,6 +271,7 @@ function getHorizontalPlainLegendLayout({
     legendLabels,
     availableWidth,
     showSelectors,
+    Boolean(reserveFullHorizontalPlainLegendMargin),
     theme,
   );
   const rowsForMargin = Number.isFinite(rowCount)
