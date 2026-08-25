@@ -41,11 +41,17 @@ from sqlalchemy.engine import Engine
 from superset.db_engine_specs.db2 import Db2EngineSpec
 from superset.sql.parse import Table
 
-pytest.importorskip("testcontainers.community.db2")
+pytestmark = pytest.mark.testcontainers
+
+from ._driver import require_driver  # noqa: E402
+
+require_driver("testcontainers.community.db2")
 
 from testcontainers.community.db2 import Db2Container  # noqa: E402
 
-from ._pagination import assert_paginated_query_returns_correct_rows_in_order
+from ._pagination import (  # noqa: E402
+    assert_paginated_query_returns_correct_rows_in_order,
+)
 
 
 @pytest.fixture(scope="module")

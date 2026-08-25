@@ -22,7 +22,10 @@ on:
       - "tests/testcontainers/**"
 
 concurrency:
-  group: ${{ github.workflow }}
+  # Scoped by ref, not just workflow name -- otherwise every PR run and the
+  # nightly cron share one group, and starting the workflow on another PR
+  # (or the nightly firing mid-PR-run) cancels an unrelated in-progress run.
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -60,6 +63,11 @@ jobs:
       PYTHONPATH: ${{ github.workspace }}
       SUPERSET_TESTENV: true
       SUPERSET_SECRET_KEY: not-a-secret
+      # This job's matrix installs exactly one dialect's testcontainers
+      # driver for exactly this job, so treat that driver as required: a
+      # broken/missing import should fail the job, not silently skip to a
+      # misleadingly green, zero-tests-run result. See _driver.py.
+      SUPERSET_TESTCONTAINERS_STRICT: true
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -71,7 +79,8 @@ jobs:
           python-version: current
       - name: Run testcontainers db_engine_specs tests (${{ matrix.dialect }})
         run: |
-          pytest --durations-min=2 -v ./tests/testcontainers/db_engine_specs/test_${{ matrix.dialect }}.py \
+          pytest --durations-min=2 -v -m testcontainers \
+            ./tests/testcontainers/db_engine_specs/test_${{ matrix.dialect }}.py \
             --junit-xml=test-results/junit-testcontainers-${{ matrix.dialect }}.xml
       - name: Upload JUnit test results
         if: always()

@@ -42,11 +42,17 @@ from sqlalchemy.engine import Connection, Engine
 from superset.db_engine_specs.crate import CrateEngineSpec
 from superset.sql.parse import Table
 
-pytest.importorskip("testcontainers.community.cratedb")
+pytestmark = pytest.mark.testcontainers
+
+from ._driver import require_driver  # noqa: E402
+
+require_driver("testcontainers.community.cratedb")
 
 from testcontainers.community.cratedb import CrateDBContainer  # noqa: E402
 
-from ._pagination import assert_paginated_query_returns_correct_rows_in_order
+from ._pagination import (  # noqa: E402
+    assert_paginated_query_returns_correct_rows_in_order,
+)
 
 
 @pytest.fixture(scope="module")
