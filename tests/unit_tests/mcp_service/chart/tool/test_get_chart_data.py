@@ -41,8 +41,49 @@ from superset.mcp_service.chart.tool.get_chart_data import (
     _MAX_RECOMMENDATIONS,
     _query_from_form_data,
     _recommend_visualizations,
+    _rejected_requested_filter_columns,
+    _requested_filter_columns,
 )
 from superset.utils.core import GenericDataType
+
+
+def test_requested_filter_columns_supports_both_payload_shapes() -> None:
+    assert _requested_filter_columns(
+        {
+            "filters": [{"col": "country", "op": "==", "val": "USA"}],
+            "adhoc_filters": [
+                {
+                    "expressionType": "SIMPLE",
+                    "subject": "city",
+                    "operator": "==",
+                    "comparator": "New York",
+                },
+                {"expressionType": "SQL", "sqlExpression": "revenue > 0"},
+            ],
+        }
+    ) == {"country", "city"}
+
+
+def test_rejected_requested_filter_columns_ignores_saved_chart_filters() -> None:
+    result = {
+        "queries": [
+            {"rejected_filter_columns": ["missing_request", "stale_saved_filter"]}
+        ]
+    }
+
+    assert _rejected_requested_filter_columns(
+        result,
+        {
+            "adhoc_filters": [
+                {
+                    "expressionType": "SIMPLE",
+                    "subject": "missing_request",
+                    "operator": "==",
+                    "comparator": "value",
+                }
+            ]
+        },
+    ) == ["missing_request"]
 
 
 def _collect_groupby_extras(
