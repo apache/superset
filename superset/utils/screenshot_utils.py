@@ -359,31 +359,34 @@ EXPAND_TABLE_CONTAINERS_JS = """
             el = el.parentElement;
         }
 
-        // 3. Release ALL sibling .dragdroppable-column elements in the same
-        //    .grid-row, including their .resizable-container children.
-        //    When the .grid-row is converted to block in step 2 above, each
-        //    column is a block-level box whose height grows with its content.
-        //    Any remaining inline height on a sibling column or its
-        //    resizable-container would still clip the column — clear them.
+        // 3. Release height on ALL sibling .dragdroppable-column wrappers in
+        //    the same .grid-row (now a block container).  Each column is a
+        //    block-level box; any inline height left on the column div itself
+        //    would clip it.
+        //
+        //    IMPORTANT: do NOT release the .resizable-container height inside
+        //    non-table columns.  Canvas/SVG charts (maps, ECharts) measure their
+        //    container height at render time; setting height:auto collapses the
+        //    container to 0px and the chart renders blank.  Only the column
+        //    wrapper needs height:auto — the resizable-container inside each
+        //    non-table column keeps its authored pixel height so charts draw at
+        //    full resolution.  The table column's resizable-container is already
+        //    handled by the ancestor walk-up in step 2.
         if (gridRow) {
             for (const col of gridRow.querySelectorAll(
                     ':scope > .dragdroppable-column')) {
+                const colHasTable = !!col.querySelector(
+                    '.superset-chart-table, [data-test-viz-type="table"]');
+                // Always release the column wrapper itself.
                 releaseEl(col);
-                const rc = col.querySelector(':scope > .resizable-container');
-                if (rc) {
-                    releaseEl(rc);
-                    // Also release every div[style] inside sibling rc so that
-                    // chart containers don't overflow their own column either.
-                    for (const inner of rc.querySelectorAll('div[style]')) {
-                        const s = inner.style;
-                        if (s.height && s.height !== '' && s.height !== 'auto') {
-                            if (s.overflow === 'hidden' || s.overflow === 'auto' ||
-                                s.overflow === 'scroll') {
-                                s.overflow = 'visible';
-                            }
-                        }
-                    }
+                if (colHasTable) {
+                    // Table column: also release the resizable-container and
+                    // every inner scroll div so all rows are visible.
+                    const rc = col.querySelector(':scope > .resizable-container');
+                    if (rc) releaseEl(rc);
                 }
+                // Non-table columns: leave .resizable-container height intact
+                // so canvas/SVG charts render at their authored size.
             }
         }
 
