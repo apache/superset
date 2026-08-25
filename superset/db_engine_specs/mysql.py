@@ -267,6 +267,43 @@ class MySQLEngineSpec(BasicParametersMixin, BaseEngineSpec):
             types.VARCHAR(),
             GenericDataType.STRING,
         ),
+        # wire-protocol FIELD_TYPE names emitted by `get_datatype`, seen on
+        # SQL Lab and virtual dataset columns instead of DDL type names
+        (
+            re.compile(r"^newdecimal", re.IGNORECASE),
+            DECIMAL(),
+            GenericDataType.NUMERIC,
+        ),
+        (
+            re.compile(r"^tiny$", re.IGNORECASE),
+            TINYINT(),
+            GenericDataType.NUMERIC,
+        ),
+        (
+            re.compile(r"^short$", re.IGNORECASE),
+            types.SmallInteger(),
+            GenericDataType.NUMERIC,
+        ),
+        (
+            re.compile(r"^(blob|text)$", re.IGNORECASE),
+            types.String(),
+            GenericDataType.STRING,
+        ),
+        (
+            re.compile(r"^year$", re.IGNORECASE),
+            types.Integer(),
+            GenericDataType.NUMERIC,
+        ),
+        (
+            re.compile(r"^enum\b", re.IGNORECASE),
+            types.String(),
+            GenericDataType.STRING,
+        ),
+        (
+            re.compile(r"^set\b", re.IGNORECASE),
+            types.String(),
+            GenericDataType.STRING,
+        ),
     )
     column_type_mutators: dict[types.TypeEngine, Callable[[Any], Any]] = {
         DECIMAL: lambda val: Decimal(val) if isinstance(val, str) else val
@@ -425,22 +462,27 @@ class MySQLEngineSpec(BasicParametersMixin, BaseEngineSpec):
 
     @classmethod
     def get_datatype(cls, type_code: Any) -> Optional[str]:
-        if not cls.type_code_map:
-            # only import and store if needed at least once
-            # pylint: disable=import-outside-toplevel
-            try:
-                import MySQLdb
-
-                mysql_module = MySQLdb
-            except ImportError:
-                mysql_module = __import__("pymysql")
-
-            ft = mysql_module.constants.FIELD_TYPE
-            cls.type_code_map = {
-                getattr(ft, k): k for k in dir(ft) if not k.startswith("_")
-            }
         datatype = type_code
         if isinstance(type_code, int):
+            if not cls.type_code_map:
+                # only import and store if needed at least once
+                # pylint: disable=import-outside-toplevel
+                try:
+                    import MySQLdb
+
+                    ft = MySQLdb.constants.FIELD_TYPE
+                except ImportError:
+                    try:
+                        import pymysql  # type: ignore[import-untyped]
+
+                        ft = pymysql.constants.FIELD_TYPE
+                    except ImportError:
+                        from mysql.connector.constants import FieldType
+
+                        ft = FieldType
+                cls.type_code_map = {
+                    getattr(ft, k): k for k in dir(ft) if not k.startswith("_")
+                }
             datatype = cls.type_code_map.get(type_code)
         if datatype and isinstance(datatype, str) and datatype:
             return datatype

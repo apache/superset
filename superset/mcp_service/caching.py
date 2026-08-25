@@ -123,6 +123,27 @@ def create_response_caching_middleware() -> Any | None:
             logger.debug("MCP response caching disabled")
             return None
 
+        # ResponseCachingMiddleware keys cache entries on the method/tool
+        # name + arguments only and runs ahead of the per-request auth/RBAC
+        # checks, so a cache hit returns a response computed for a different
+        # caller. Only appropriate when every request is guaranteed to come
+        # from the same principal.
+        # that sends byte-identical arguments within the TTL, skipping every
+        # authorization check. Fail closed unless the operator explicitly
+        # accepts a cache shared across principals -- only safe when every
+        # request is guaranteed to come from the same principal (e.g. a
+        # single-user development deployment).
+        if not cache_config.get("dangerously_share_cache_across_principals", False):
+            logger.warning(
+                "MCP_CACHE_CONFIG['enabled'] is set, but response caching "
+                "stays disabled: cache keys do not include the requesting "
+                "principal, so cached responses would be served across users "
+                "without any authorization checks. Set "
+                "'dangerously_share_cache_across_principals': True only when "
+                "all requests share a single principal."
+            )
+            return None
+
         try:
             from fastmcp.server.middleware.caching import ResponseCachingMiddleware
         except ImportError:
