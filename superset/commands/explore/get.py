@@ -30,6 +30,7 @@ from superset.commands.explore.form_data.parameters import (
 )
 from superset.commands.explore.parameters import CommandParameters
 from superset.commands.explore.permalink.get import GetExplorePermalinkCommand
+from superset.commands.temporary_cache.exceptions import TemporaryCacheAccessDeniedError
 from superset.connectors.sqla.models import BaseDatasource, SqlaTable
 from superset.daos.dataset import DatasetDAO
 from superset.daos.datasource import DatasourceDAO
@@ -76,9 +77,15 @@ class GetExploreCommand(BaseCommand, ABC):
                 initial_form_data["url_params"] = dict(url_params)
             permalink_chart_state = state.get("chartState")
         elif self._form_data_key:
-            parameters = FormDataCommandParameters(key=self._form_data_key)
-            value = GetFormDataCommand(parameters).run()
-            initial_form_data = json.loads(value) if value else {}
+            try:
+                parameters = FormDataCommandParameters(key=self._form_data_key)
+                value = GetFormDataCommand(parameters).run()
+                initial_form_data = json.loads(value) if value else {}
+            except TemporaryCacheAccessDeniedError:
+                # The cached form data references a datasource the user cannot
+                # access.  Fall through so the datasource-based access check
+                # (raise_for_access) runs and returns a proper error.
+                pass
 
         message = None
 

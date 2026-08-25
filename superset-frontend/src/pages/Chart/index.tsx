@@ -228,13 +228,11 @@ export default function ExplorePage() {
             t('Failed to load chart data.');
           dispatch(addDangerToast(errorMesage));
 
-          if (err.extra?.datasource) {
+          if (err.extra?.is_access_denial) {
             const exploreData = {
               ...fallbackExploreInitialData,
               dataset: {
                 ...fallbackExploreInitialData.dataset,
-                id: err.extra?.datasource,
-                name: err.extra?.datasource_name,
                 extra: {
                   error: err,
                 },
@@ -258,7 +256,6 @@ export default function ExplorePage() {
                   }
                   const slice = {
                     ...data,
-                    datasource: err.extra?.datasource_name,
                     slice_id: id,
                     slice_url: url,
                     editors: mapSubjectValuesToIds(editors),
