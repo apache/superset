@@ -23,6 +23,7 @@ import pytest
 from superset.commands.chart.exceptions import ChartForbiddenError
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
+from superset.models.sql_lab import SavedQuery
 
 
 def _security_exception() -> SupersetSecurityException:
@@ -98,6 +99,42 @@ def test_create_chart_command_allowed_when_access_passes() -> None:
                         }
                     )
                     command.validate()  # should not raise
+
+
+def test_create_chart_command_supports_saved_query_datasource() -> None:
+    """CreateChartCommand.validate() must populate ``datasource_name`` for a
+    ``saved_query`` datasource, which exposes ``label`` rather than ``name``.
+
+    Regression test for https://github.com/apache/superset/issues/29697.
+    """
+    from superset.commands.chart.create import CreateChartCommand
+
+    saved_query = SavedQuery(label="My saved query")
+
+    with patch(
+        "superset.commands.chart.create.get_datasource_by_id",
+        return_value=saved_query,
+    ):
+        with patch("superset.commands.chart.create.security_manager.raise_for_access"):
+            with patch(
+                "superset.commands.chart.create.populate_subjects",
+                return_value=[],
+            ):
+                with patch(
+                    "superset.commands.chart.create.DashboardDAO.find_by_ids",
+                    return_value=[],
+                ):
+                    command = CreateChartCommand(
+                        {
+                            "slice_name": "test",
+                            "viz_type": "bar",
+                            "datasource_id": 1,
+                            "datasource_type": "saved_query",
+                        }
+                    )
+                    command.validate()  # should not raise AttributeError
+
+    assert command._properties["datasource_name"] == "My saved query"
 
 
 def test_create_chart_command_delegates_editors_to_subjects() -> None:
