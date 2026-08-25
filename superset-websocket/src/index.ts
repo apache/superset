@@ -110,17 +110,27 @@ export const statsd = new StatsD({
   },
 });
 
-// enforce JWT secret length
-if (startServer && opts.jwtSecret.length < 32) {
-  logger.error('Please provide a JWT secret at least 32 bytes long');
-  process.exit(1);
-}
+const validateConfiguredJwtSecret = (
+  secret: string,
+  name: string,
+  required = false,
+) => {
+  if (!secret && !required) return;
+  if (secret.length < 32) {
+    logger.error(`Please provide a ${name} at least 32 bytes long`);
+    process.exit(1);
+  }
+  if (secret.startsWith('CHANGE-ME')) {
+    logger.warn(
+      `It appears your ${name} in your config.json is insecure. ` +
+        'DO NOT USE IN PRODUCTION',
+    );
+  }
+};
 
-if (startServer && opts.jwtSecret.startsWith('CHANGE-ME')) {
-  logger.warn(
-    'It appears your secret in your config.json is insecure. ' +
-      'DO NOT USE IN PRODUCTION',
-  );
+if (startServer) {
+  validateConfiguredJwtSecret(opts.jwtSecret, 'JWT secret', true);
+  validateConfiguredJwtSecret(opts.previousJwtSecret, 'previous JWT secret');
 }
 
 export const buildRedisOpts = (baseConfig: RedisConfig) => {
@@ -489,17 +499,35 @@ export const subscribeToChannels = async (): Promise<void> => {
 /**
  * Verify and parse a realtime JWT cookie from an HTTP request.
  */
+const verifyRealtimeJwt = (token: string): RealtimeJwtPayload => {
+  let lastError: unknown;
+  const acceptedSecrets = [opts.jwtSecret, opts.previousJwtSecret].filter(
+    secret => secret.length > 0,
+  );
+
+  for (const secret of acceptedSecrets) {
+    try {
+      return jwt.verify(token, secret, {
+        algorithms: opts.jwtAlgorithms as Algorithm[],
+        audience: REALTIME_JWT_AUDIENCE,
+        complete: false,
+        issuer: REALTIME_JWT_ISSUER,
+      }) as RealtimeJwtPayload;
+    } catch (err) {
+      lastError = err;
+    }
+  }
+
+  if (lastError instanceof Error) throw lastError;
+  throw new Error('JWT verification failed');
+};
+
 const readSocketIdentity = (request: http.IncomingMessage): SocketIdentity => {
   const cookies = parseCookie(request.headers.cookie || '');
   const token = cookies[opts.jwtCookieName];
 
   if (!token) throw new Error('JWT not present');
-  const jwtPayload = jwt.verify(token, opts.jwtSecret, {
-    algorithms: opts.jwtAlgorithms as Algorithm[],
-    audience: REALTIME_JWT_AUDIENCE,
-    complete: false,
-    issuer: REALTIME_JWT_ISSUER,
-  }) as RealtimeJwtPayload;
+  const jwtPayload = verifyRealtimeJwt(token);
   const channelId = jwtPayload[opts.jwtChannelIdKey];
   const subject = jwtPayload.sub;
   const principalType = jwtPayload.principal_type;

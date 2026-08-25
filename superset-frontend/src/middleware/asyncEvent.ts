@@ -57,7 +57,7 @@ type StatusChangesResponse = {
 export type AsyncJob = { task_ids: string[]; cursor?: string | null };
 
 type AppConfig = {
-  ENABLE_WEBSOCKET?: boolean;
+  WEBSOCKET_ENABLE?: boolean;
   WEBSOCKET_URL?: string;
   GLOBAL_ASYNC_QUERIES_POLLING_DELAY?: number;
   GLOBAL_ASYNC_QUERIES_POLLING_MAX_DELAY?: number;
@@ -98,7 +98,7 @@ let pollingActive = false;
 // A SHARED task can be deduplicated across concurrent chart requests, so each task
 // id maps to a *set* of waiters (never overwrite an earlier subscriber).
 // Initialized eagerly (not just in init()): the shared realtime socket connects
-// whenever ENABLE_WEBSOCKET — independent of GLOBAL_ASYNC_QUERIES — so the
+// whenever WEBSOCKET_ENABLE — independent of GLOBAL_ASYNC_QUERIES — so the
 // subscribed handler may run applyStatus even when async queries are off, and
 // must find a map rather than undefined.
 let waitersByTaskId: Map<string, Set<Waiter>> = new Map();
@@ -370,7 +370,7 @@ export const init = (appConfig?: AppConfig) => {
   // (Re)connect the shared realtime socket whenever the websocket transport is
   // enabled — independent of GLOBAL_ASYNC_QUERIES, since realtime list views
   // (tier-1 entity-change nudges) ride the same socket. Idempotent: a no-op when
-  // ENABLE_WEBSOCKET is false, and supersedes any prior socket otherwise.
+  // WEBSOCKET_ENABLE is false, and supersedes any prior socket otherwise.
   connectRealtime(config);
 
   if (!isFeatureEnabled(FeatureFlag.GlobalAsyncQueries)) return;

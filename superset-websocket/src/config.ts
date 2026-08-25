@@ -44,6 +44,7 @@ type ConfigType = {
   redis: RedisConfig;
   jwtAlgorithms: string[];
   jwtSecret: string;
+  previousJwtSecret: string;
   jwtCookieName: string;
   jwtChannelIdKey: string;
   allowedOrigins: string[];
@@ -64,6 +65,7 @@ function defaultConfig(): ConfigType {
     logFilename: 'app.log',
     jwtAlgorithms: ['HS256'],
     jwtSecret: '',
+    previousJwtSecret: '',
     jwtCookieName: 'superset-ws-token',
     jwtChannelIdKey: 'channel',
     allowedOrigins: [],
@@ -139,6 +141,7 @@ function applyEnvOverrides(config: ConfigType): ConfigType {
     LOG_TO_FILE: val => (config.logToFile = toBoolean(val)),
     LOG_FILENAME: val => (config.logFilename = val),
     JWT_SECRET: val => (config.jwtSecret = val),
+    PREVIOUS_JWT_SECRET: val => (config.previousJwtSecret = val),
     JWT_COOKIE_NAME: val => (config.jwtCookieName = val),
     ALLOWED_ORIGINS: val => (config.allowedOrigins = toStringArray(val)),
     SOCKET_RESPONSE_TIMEOUT_MS: val =>

@@ -30,7 +30,7 @@ def _make_initializer(
     *, enabled: bool, secret: str | None, debug: bool = False, testing: bool = False
 ) -> SupersetAppInitializer:
     init = object.__new__(SupersetAppInitializer)
-    init.config = {"ENABLE_WEBSOCKET": enabled, "WEBSOCKET_JWT_SECRET": secret}
+    init.config = {"WEBSOCKET_ENABLE": enabled, "WEBSOCKET_JWT_SECRET": secret}
     app = MagicMock()
     app.debug = debug
     app.config = {"TESTING": testing}

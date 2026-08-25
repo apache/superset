@@ -45,7 +45,7 @@ export interface RealtimeMessage {
 type RealtimeHandler = (message: RealtimeMessage) => void;
 
 type RealtimeConfig = {
-  ENABLE_WEBSOCKET?: boolean;
+  WEBSOCKET_ENABLE?: boolean;
   WEBSOCKET_URL?: string;
 };
 
@@ -140,7 +140,7 @@ const teardownSocket = (): void => {
 /**
  * (Re)configure and (re)connect the shared socket. Idempotent and safe to call
  * repeatedly (e.g. from app bootstrap): it supersedes any prior socket. Reads
- * `ENABLE_WEBSOCKET` / `WEBSOCKET_URL` from bootstrap config when none is
+ * `WEBSOCKET_ENABLE` / `WEBSOCKET_URL` from bootstrap config when none is
  * passed. A no-op (and tears down any existing socket) when disabled.
  */
 export const connectRealtime = (config?: RealtimeConfig): void => {
@@ -148,7 +148,7 @@ export const connectRealtime = (config?: RealtimeConfig): void => {
   teardownSocket();
   generation += 1;
   started = true;
-  enabled = Boolean(conf?.ENABLE_WEBSOCKET);
+  enabled = Boolean(conf?.WEBSOCKET_ENABLE);
   url = conf?.WEBSOCKET_URL;
   openSocket(generation);
 };

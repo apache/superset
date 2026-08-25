@@ -25,6 +25,9 @@ test('buildConfig() builds configuration and applies env var overrides', () => {
   expect(config.jwtSecret).toEqual(
     'test123-test123-test123-test123-test123-test123-test123',
   );
+  expect(config.previousJwtSecret).toEqual(
+    'old123-old123-old123-old123-old123-old123-old123',
+  );
   expect(config.redis.host).toEqual('127.0.0.1');
   expect(config.redis.port).toEqual(6379);
   expect(config.redis.password).toEqual('some pwd');
@@ -35,6 +38,7 @@ test('buildConfig() builds configuration and applies env var overrides', () => {
   expect(config.statsd.globalTags).toEqual([]);
 
   process.env.JWT_SECRET = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
+  process.env.PREVIOUS_JWT_SECRET = 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb';
   process.env.REDIS_HOST = '10.10.10.10';
   process.env.REDIS_PORT = '6380';
   process.env.REDIS_PASSWORD = 'admin';
@@ -47,6 +51,7 @@ test('buildConfig() builds configuration and applies env var overrides', () => {
   config = buildConfig();
 
   expect(config.jwtSecret).toEqual('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa');
+  expect(config.previousJwtSecret).toEqual('bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb');
   expect(config.redis.host).toEqual('10.10.10.10');
   expect(config.redis.port).toEqual(6380);
   expect(config.redis.password).toEqual('admin');
@@ -57,6 +62,7 @@ test('buildConfig() builds configuration and applies env var overrides', () => {
   expect(config.statsd.globalTags).toEqual(['tag-1', 'tag-2']);
 
   delete process.env.JWT_SECRET;
+  delete process.env.PREVIOUS_JWT_SECRET;
   delete process.env.REDIS_HOST;
   delete process.env.REDIS_PORT;
   delete process.env.REDIS_PASSWORD;

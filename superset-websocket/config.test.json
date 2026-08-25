@@ -9,5 +9,6 @@
     "globalTags": []
   },
   "jwtSecret": "test123-test123-test123-test123-test123-test123-test123",
+  "previousJwtSecret": "old123-old123-old123-old123-old123-old123-old123",
   "jwtCookieName": "test-ws-token"
 }

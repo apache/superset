@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 
 import jwt
@@ -146,7 +147,7 @@ def _make_ws_app():
 
     app = Flask(__name__)
     app.config.update(
-        ENABLE_WEBSOCKET=True,
+        WEBSOCKET_ENABLE=True,
         WEBSOCKET_JWT_SECRET="x" * 40,
         WEBSOCKET_JWT_COOKIE_NAME="superset-ws-token",
         WEBSOCKET_JWT_COOKIE_SECURE=False,
@@ -181,6 +182,37 @@ def test_cookie_reminted_when_principal_changes(mocker) -> None:
 
     # A different principal on the same client must re-mint (not keep user:1).
     mocker.patch.object(channel, "get_user_id", return_value=2)
+    assert _ws_set_cookies(client.get("/_ws_probe"))
+
+
+def test_cookie_signed_with_old_secret_is_reminted_with_current_secret(mocker) -> None:
+    from superset.websocket import channel
+    from superset.websocket.permissions import (
+        REALTIME_NOTIFICATION_JWT_AUDIENCE,
+        REALTIME_NOTIFICATION_JWT_ISSUER,
+    )
+
+    client = _make_ws_app().test_client()
+    mocker.patch.object(channel, "can_access_realtime_notifications", return_value=True)
+    mocker.patch.object(
+        channel.security_manager, "get_current_guest_user_if_guest", return_value=None
+    )
+    mocker.patch.object(channel, "get_user_id", return_value=1)
+
+    old_key_token = jwt.encode(
+        {
+            "channel": "user:1",
+            "principal_type": "user",
+            "sub": "1",
+            "aud": REALTIME_NOTIFICATION_JWT_AUDIENCE,
+            "iss": REALTIME_NOTIFICATION_JWT_ISSUER,
+            "exp": datetime.now(tz=timezone.utc) + timedelta(hours=1),
+        },
+        "y" * 40,
+        algorithm="HS256",
+    )
+    client.set_cookie("superset-ws-token", old_key_token)
+
     assert _ws_set_cookies(client.get("/_ws_probe"))
 
 

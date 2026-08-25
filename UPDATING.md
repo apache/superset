@@ -75,7 +75,7 @@ Enabling the realtime WebSocket transport (optional; accelerates completion, the
 `status_changes` interval poll remains the correctness backstop):
 
 ```python
-ENABLE_WEBSOCKET = True
+WEBSOCKET_ENABLE = True
 WEBSOCKET_URL = "ws://<same-host>:8080/"
 WEBSOCKET_JWT_SECRET = "<output of: openssl rand -base64 42>"
 ```
@@ -83,12 +83,15 @@ WEBSOCKET_JWT_SECRET = "<output of: openssl rand -base64 42>"
 The built-in Gamma role receives `can_read Realtime`; grant that permission to
 custom roles that should receive websocket notifications.
 
-Run the `superset-websocket` Node server on the **same host** (so its JWT
-channel cookie is shared) and point its `redis` config at the same instance as
-`DISTRIBUTED_COORDINATION_CONFIG`, plus `jwtSecret` / `jwtCookieName` matching
-the Flask config (`WEBSOCKET_JWT_SECRET` / `WEBSOCKET_JWT_COOKIE_NAME`, default
-`superset-ws-token`). The server is bundled in the official Superset image and
-launched via an alternate entrypoint — no separate image is required:
+Run the `superset-websocket` Node server on the **same browser-visible host**
+(so its JWT channel cookie is shared) and point its `redis` config at the same
+instance as `DISTRIBUTED_COORDINATION_CONFIG`, plus `jwtSecret` /
+`jwtCookieName` matching the Flask config (`WEBSOCKET_JWT_SECRET` /
+`WEBSOCKET_JWT_COOKIE_NAME`, default `superset-ws-token`). During websocket JWT
+secret rotation, set the websocket server's `previousJwtSecret` /
+`PREVIOUS_JWT_SECRET` to the old key while Flask continues minting cookies with
+`WEBSOCKET_JWT_SECRET`. The server is bundled in the official Superset image
+and launched via an alternate entrypoint — no separate image is required:
 `docker run <superset-image> /app/docker/entrypoints/run-websocket.sh` (or the
 opt-in `websocket` profile in `docker compose`). It now consumes Redis Pub/Sub
 channels (`entity-changes:*` broadcast nudges, `realtime:<channel_id>`
