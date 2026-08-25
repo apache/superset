@@ -17,7 +17,7 @@
 """add theme_editors table
 
 Revision ID: f7e8d9c0b1a2
-Revises: 1072de5ed955
+Revises: 39097d124752
 Create Date: 2026-07-24 00:00:00.000000
 
 """
@@ -41,7 +41,7 @@ from superset.migrations.shared.utils import (
 
 # revision identifiers, used by Alembic.
 revision = "f7e8d9c0b1a2"
-down_revision = "1072de5ed955"
+down_revision = "39097d124752"
 
 SUBJECTS_TABLE = "subjects"
 THEME_EDITORS = "theme_editors"
