@@ -109,11 +109,18 @@ def warm_and_release_connection(instance: Any, *relationships: str) -> None:
     for relationship in relationships:
         getattr(instance, relationship)
 
-    db.session.expire_on_commit = False
+    # ``db.session`` is a ``scoped_session`` proxy: it only forwards a fixed
+    # allowlist of attributes to the real ``Session`` (bind, dirty, deleted,
+    # new, identity_map, is_active, autoflush, no_autoflush, info).
+    # ``expire_on_commit`` isn't on that list, so setting it on ``db.session``
+    # directly would silently no-op -- it has to be set on the real Session
+    # returned by calling the proxy.
+    session = db.session()
+    session.expire_on_commit = False
     try:
-        db.session.commit()  # pylint: disable=consider-using-transaction
+        session.commit()  # pylint: disable=consider-using-transaction
     finally:
-        db.session.expire_on_commit = True
+        session.expire_on_commit = True
 
 
 def apply_mariadb_ddl_fix() -> None:
