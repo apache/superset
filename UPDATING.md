@@ -184,10 +184,12 @@ misrepresents the entity as unchanged.
 - **Storage growth.** Capture writes shadow rows per save, so the metadata
   database grows with edit volume. The `version_history.prune_old_versions`
   beat task removes rows whose transaction is older than
-  `SUPERSET_VERSION_HISTORY_RETENTION_DAYS` (default 30). A deployment that
-  replaces `CELERY_CONFIG` rather than inheriting it must carry both the
-  `superset.tasks.version_history_retention` import and the beat entry; a
-  startup warning names whichever is absent.
+  `SUPERSET_VERSION_HISTORY_RETENTION_DAYS` (default 30).
+- **Check a replaced `CELERY_CONFIG`.** Carry both the
+  `superset.tasks.version_history_retention` import and the
+  `version_history.prune_old_versions` beat entry; see
+  [Version-history retention (pruning)](#version-history-retention-pruning) for
+  the startup-warning behavior.
 - **`PUT` responses change shape.** Entity updates now return populated
   `old_version_uuid` / `new_version_uuid` fields and an `ETag` header, which
   were null or absent while capture was off.
@@ -196,7 +198,10 @@ misrepresents the entity as unchanged.
 kill-switch — not removed with the rollout toggles. Setting it to a falsy value
 stops capture within a restart, without a revert-and-redeploy. Unlike the
 soft-delete toggle, turning it off is a clean stop: existing version rows remain
-readable and no entity state is altered.
+readable and no entity state is altered. Restore is unavailable (404) while
+capture is off. A full rollback also sets
+`FEATURE_FLAGS = {"VERSION_HISTORY": False}` to hide the panel — capture off
+with the panel left on shows an empty or stale history.
 
 ### Scheduled report execution now enforces one application deadline
 
@@ -658,9 +663,9 @@ ALTER TABLE tagged_object DROP CONSTRAINT <constraint_name>;
 ALTER TABLE tagged_object DROP FOREIGN KEY <constraint_name>;
 ```
 
-### Entity version-history infrastructure (gated off by default)
+### Entity version-history infrastructure
 
-Introduces the schema and SQLAlchemy-Continuum wiring that captures version history for charts, dashboards, and datasets, plus read-only `GET /api/v1/{chart,dashboard,dataset}/<uuid>/versions/` endpoints. This ships **inert**: a new config flag `ENABLE_VERSIONING_CAPTURE` defaults to `False`, so no save writes any version rows and the endpoints return empty. It is an operational kill-switch (a release toggle that becomes a permanent ops switch), not a feature flag — set it to `True` to enable capture once validated. The migration is additive; existing entity `PUT` responses gain `old_version_uuid` / `new_version_uuid` body fields and an `ETag` header (both null/absent when capture is off).
+Introduces the schema and SQLAlchemy-Continuum wiring that captures version history for charts, dashboards, and datasets, plus read-only `GET /api/v1/{chart,dashboard,dataset}/<uuid>/versions/` endpoints. Capture is governed by the `ENABLE_VERSIONING_CAPTURE` config value — an operational kill-switch (a release toggle that became a permanent ops switch), not a feature flag; see "Version history is on by default" above for the shipped default. With capture off, no save writes version rows; the endpoints continue to serve already-captured rows read-only. The migration is additive; existing entity `PUT` responses gain `old_version_uuid` / `new_version_uuid` body fields and an `ETag` header (both null/absent when capture is off).
 
 A few save- and import-path internals change **unconditionally** (independent of the flag), because the versioned mappers must behave correctly whether or not capture is enabled:
 
@@ -681,7 +686,7 @@ A read-only companion to the version-history endpoints: each entity type gains a
 | `q`                  | string                       | —          | Case-insensitive search over the full history, applied before pagination (so `count` reflects matches) |
 | `page` / `page_size` | integer                      | `0` / `25` | Pagination (`page_size` clamped to 200)                                                                |
 
-Authorization reuses the resource's `can_read` permission and per-object `raise_for_access`; related-entity rows are visibility-filtered to what the caller may see. The stream is empty unless version capture is on (`ENABLE_VERSIONING_CAPTURE`).
+Authorization reuses the resource's `can_read` permission and per-object `raise_for_access`; related-entity rows are visibility-filtered to what the caller may see. The stream reflects captured history; with capture off it remains readable but stops accruing new entries.
 
 ### Version-history retention (pruning)
 
@@ -701,7 +706,7 @@ Purging is **live by default** (`SOFT_DELETE_PURGE_DRY_RUN=False`), so the reten
 
 Deployments that replace the default `CELERY_CONFIG` must ensure workers register `superset.tasks.deletion_retention` and schedule the `deletion_retention.purge_soft_deleted` task themselves. The shipped Docker development config uses `imports` and includes both entries. While `SOFT_DELETE` is statically enabled, a missing beat entry logs a startup warning; when the override explicitly defines `imports`, a missing purge module is also reported.
 
-Operators can immediately erase a specific entity for compliance (GDPR) via `superset deletion-retention force-purge --uuid <uuid>`; this applies legacy hard-delete semantics — a live chart referencing a force-purged dataset is left without a datasource until re-pointed (the chart is not modified), and it purges the named entity even when it was never soft-deleted. Every scheduled evaluation writes a provisional, content-free record to the new `purge_audit_log` table before the cascade starts. Meaningful retained outcomes survive the entity they name. Consecutive scheduled evaluations with the same blocked outcome suppress only the redundant current provisional record; completed outcomes, outcome transitions, and every force-purge attempt remain independent and immutable. The **scheduled** purge fails closed when its provisional record cannot be written, while **force-purge** proceeds even if the audit write fails — the operator is present and deletion outranks audit for a compliance erasure. Operators can monitor `deletion_retention.blocked_audit_suppressed` and `deletion_retention.blocked_audit_dedupe_fallback` to verify suppression and fail-safe fallback behavior without changing the existing blocked-workload gauge.
+Operators can immediately erase a specific entity for compliance (GDPR) via `superset deletion-retention force-purge --uuid <uuid>`; this applies legacy hard-delete semantics — a live chart referencing a force-purged dataset is left without a datasource until re-pointed (the chart is not modified), and it purges the named entity even when it was never soft-deleted. Every scheduled evaluation writes a provisional, content-free record to the new `purge_audit_log` table before the cascade starts. Meaningful retained outcomes survive the entity they name. Blocked audit records carry a stable machine-readable `reason` code (`report_schedule`, `user_attribute`, or `cascade_integrity_failure` for an unexpected cascade failure caused by a database integrity constraint) so the audit table alone answers why an entity was not purged; records finalized before the column existed keep a NULL reason. Apply the migration before rolling out the new code: the audit model declares the column, so a worker on the new code with an un-migrated table fails its write-ahead write and the scheduled purge fails closed until the migration lands. During a rolling deploy, workers still on the old code write reason-less blocked rows and suppress on status alone; both effects are self-healing, since a NULL-reason record never matches a reason code and the next all-new-code run re-anchors the entity. Consecutive scheduled evaluations blocked with the same status **and reason** suppress only the redundant current provisional record — a reason change writes one new blocked record carrying the new code; completed outcomes, outcome transitions, and every force-purge attempt remain independent and immutable. Retained transition records are not automatically expired, so entities whose block reason changes repeatedly can accumulate multiple audit rows. The **scheduled** purge fails closed when its provisional record cannot be written, while **force-purge** proceeds even if the audit write fails — the operator is present and deletion outranks audit for a compliance erasure. Operators can monitor `deletion_retention.blocked_audit_suppressed` and `deletion_retention.blocked_audit_dedupe_fallback` to verify suppression and fail-safe fallback behavior without changing the existing blocked-workload gauge.
 
 ### Recently Archived view and permanent delete (purge) endpoints
 
@@ -897,7 +902,7 @@ The migration is transactional (all-or-nothing) and idempotent — it can be saf
 
 ### Soft delete and restore for datasets
 
-**The soft-delete behavior in this section applies only when the `SOFT_DELETE` feature flag is enabled. The flag defaults to `False`** (`@lifecycle: development`), so on a default deployment `DELETE /api/v1/dataset/<id>` continues to **hard-delete permanently** — nothing is recoverable. Enable `SOFT_DELETE` to get the behavior described below.
+**The soft-delete behavior in this section applies only when the `SOFT_DELETE` feature flag is enabled. The flag defaults to `True`** (`@lifecycle: testing`), so on a default deployment `DELETE /api/v1/dataset/<id>` uses the recoverable soft-delete behavior described below. Setting `SOFT_DELETE` to `False` restores legacy permanent hard-delete behavior for subsequent deletes.
 
 **Flag-toggle caveat:** the soft-delete visibility filter is evaluated per query while the flag is on. If datasets are soft-deleted during a flag-on window and the flag is later turned **off**, those rows reappear as live datasets in all lists, lookups, and relationship loads (including charts that reference them). The `POST /<uuid>/restore` endpoint and the `dataset_deleted_state` list filter remain functional regardless of the flag, deliberately, so rows soft-deleted during a flag-on window stay discoverable and restorable after a rollback of the flag.
 
@@ -927,7 +932,7 @@ With the flag enabled: `DELETE /api/v1/dataset/<id>` no longer hard-deletes the 
 
 ### Soft delete and restore for charts
 
-**Everything in this section applies only when the `SOFT_DELETE` feature flag is enabled. The flag defaults to `False`** (`@lifecycle: development`), so on a default deployment `DELETE /api/v1/chart/<id>` continues to **hard-delete permanently** — nothing is recoverable. Enable `SOFT_DELETE` to get the behavior described below.
+**Everything in this section applies only when the `SOFT_DELETE` feature flag is enabled. The flag defaults to `True`** (`@lifecycle: testing`), so on a default deployment `DELETE /api/v1/chart/<id>` uses the recoverable soft-delete behavior described below. Setting `SOFT_DELETE` to `False` restores legacy permanent hard-delete behavior for subsequent deletes.
 
 **Flag-toggle caveat:** the soft-delete visibility filter is evaluated per query while the flag is on. If charts are soft-deleted during a flag-on window and the flag is later turned **off**, those rows reappear as live charts in all lists, lookups, and relationship loads (including dashboards that contained them). The `POST /<uuid>/restore` endpoint and the `chart_deleted_state` list filter remain functional regardless of the flag, deliberately, so rows soft-deleted during a flag-on window stay discoverable and restorable after a rollback of the flag.
 
@@ -951,7 +956,7 @@ With the flag enabled: `DELETE /api/v1/chart/<id>` no longer hard-deletes the ch
 
 ### Soft delete and restore for dashboards
 
-**Everything in this section applies only when the `SOFT_DELETE` feature flag is enabled. The flag defaults to `False`** (`@lifecycle: development`), so on a default deployment `DELETE /api/v1/dashboard/<id>` continues to **hard-delete permanently** — nothing is recoverable. Enable `SOFT_DELETE` to get the behavior described below.
+**Everything in this section applies only when the `SOFT_DELETE` feature flag is enabled. The flag defaults to `True`** (`@lifecycle: testing`), so on a default deployment `DELETE /api/v1/dashboard/<id>` uses the recoverable soft-delete behavior described below. Setting `SOFT_DELETE` to `False` restores legacy permanent hard-delete behavior for subsequent deletes.
 
 **Flag-toggle caveat:** the soft-delete visibility filter is evaluated per query while the flag is on. If dashboards are soft-deleted during a flag-on window and the flag is later turned **off**, those rows reappear as live dashboards in all lists and lookups (including slug lookups — if a soft-deleted dashboard's slug was reused while the flag was on, both rows become visible with the same slug). The `POST /<uuid>/restore` endpoint and the `dashboard_deleted_state` list filter remain functional regardless of the flag, deliberately, so rows soft-deleted during a flag-on window stay discoverable and restorable after a rollback of the flag.
 
