@@ -47,7 +47,7 @@ type LayoutElementLabel =
 export class DashboardPage {
   private readonly page: Page;
   private readonly filterBar: DashboardFilterBar;
-  readonly dashboardTabs: Tabs;
+  private readonly dashboardTabs: Tabs;
 
   private static readonly SELECTORS = {
     DASHBOARD_HEADER: '[data-test="dashboard-header-container"]',
@@ -226,6 +226,16 @@ export class DashboardPage {
   async waitForFilterBar(): Promise<DashboardFilterBar> {
     await this.filterBar.waitForReady();
     return this.filterBar;
+  }
+
+  /**
+   * Switches to a top-level dashboard tab and waits for it to become active.
+   */
+  async switchDashboardTab(tabName: string): Promise<void> {
+    await this.dashboardTabs.clickTab(tabName);
+    await expect
+      .poll(() => this.dashboardTabs.getActiveTabName())
+      .toBe(tabName);
   }
 
   /**

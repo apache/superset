@@ -17,163 +17,138 @@
  * under the License.
  */
 
+import getEmptyLayout from '../../../src/dashboard/util/getEmptyLayout';
+import {
+  BACKGROUND_TRANSPARENT,
+  DASHBOARD_GRID_ID,
+  DASHBOARD_ROOT_ID,
+} from '../../../src/dashboard/util/constants';
+import {
+  CHART_TYPE,
+  ROW_TYPE,
+  TABS_TYPE,
+  TAB_TYPE,
+} from '../../../src/dashboard/util/componentTypes';
 import { testWithAssets, expect } from '../../helpers/fixtures';
-import { extractIdFromResponse } from '../../helpers/api/assertions';
-import { apiPostChart, apiPutChart } from '../../helpers/api/chart';
-import { apiPostDashboard } from '../../helpers/api/dashboard';
-import { getDatasetByName } from '../../helpers/api/dataset';
+import type {
+  DashboardLayoutChart,
+  DashboardPositionJson,
+} from '../../helpers/api/dashboard';
 import { TIMEOUT } from '../../utils/constants';
 import { DashboardPage } from '../../pages/DashboardPage';
+import { createDashboardWithCharts } from './dashboard-test-helpers';
 
 const DATASET_NAME = 'birth_names';
 const WIDE_VIEWPORT = { width: 1400, height: 900 };
 const NARROW_VIEWPORT = { width: 700, height: 900 };
+const TABS_ID = 'TABS-TOP';
+const FIRST_TAB_ID = 'TAB-A';
+const SECOND_TAB_ID = 'TAB-B';
+const ROW_ID = 'ROW-A';
+
+function buildTabbedDashboardLayout(
+  charts: readonly DashboardLayoutChart[],
+): DashboardPositionJson {
+  const [treemap] = charts;
+  if (!treemap) {
+    throw new Error('Tabbed dashboard layout requires a chart');
+  }
+
+  const emptyLayout = getEmptyLayout();
+  const chartKey = `CHART-${treemap.id}`;
+
+  return {
+    ...emptyLayout,
+    [DASHBOARD_GRID_ID]: {
+      ...emptyLayout[DASHBOARD_GRID_ID],
+      children: [TABS_ID],
+    },
+    [TABS_ID]: {
+      type: TABS_TYPE,
+      id: TABS_ID,
+      children: [FIRST_TAB_ID, SECOND_TAB_ID],
+      parents: [DASHBOARD_ROOT_ID, DASHBOARD_GRID_ID],
+      meta: {},
+    },
+    [FIRST_TAB_ID]: {
+      type: TAB_TYPE,
+      id: FIRST_TAB_ID,
+      children: [ROW_ID],
+      parents: [DASHBOARD_ROOT_ID, DASHBOARD_GRID_ID, TABS_ID],
+      meta: {
+        text: 'Tab A',
+        defaultText: 'Tab title',
+        placeholder: 'Tab title',
+      },
+    },
+    [SECOND_TAB_ID]: {
+      type: TAB_TYPE,
+      id: SECOND_TAB_ID,
+      children: [],
+      parents: [DASHBOARD_ROOT_ID, DASHBOARD_GRID_ID, TABS_ID],
+      meta: {
+        text: 'Tab B',
+        defaultText: 'Tab title',
+        placeholder: 'Tab title',
+      },
+    },
+    [ROW_ID]: {
+      type: ROW_TYPE,
+      id: ROW_ID,
+      children: [chartKey],
+      parents: [DASHBOARD_ROOT_ID, DASHBOARD_GRID_ID, TABS_ID, FIRST_TAB_ID],
+      meta: { background: BACKGROUND_TRANSPARENT },
+    },
+    [chartKey]: {
+      type: CHART_TYPE,
+      id: chartKey,
+      children: [],
+      parents: [
+        DASHBOARD_ROOT_ID,
+        DASHBOARD_GRID_ID,
+        TABS_ID,
+        FIRST_TAB_ID,
+        ROW_ID,
+      ],
+      meta: {
+        chartId: treemap.id,
+        width: 12,
+        height: 50,
+        sliceName: treemap.sliceName,
+      },
+    },
+  };
+}
 
 testWithAssets(
   'chart in a hidden tab refits its container after the tab is revealed at a new width',
-  async ({ page, testAssets }) => {
+  async ({ page, testAssets }, testInfo) => {
     testWithAssets.setTimeout(TIMEOUT.SLOW_TEST);
 
-    const dataset = await getDatasetByName(page, DATASET_NAME);
-    if (!dataset) {
-      throw new Error(`Dataset ${DATASET_NAME} not found`);
-    }
-    const datasetId = dataset.id;
-    const datasource = `${datasetId}__table`;
-
-    const chartSpecs = [
+    const { dashboardId, charts } = await createDashboardWithCharts(
+      page,
+      testAssets,
+      testInfo,
       {
-        slug: 'treemap',
-        params: {
-          datasource,
-          viz_type: 'treemap_v2',
-          metric: 'count',
-          groupby: ['gender'],
-          row_limit: 100,
-        },
+        datasetName: DATASET_NAME,
+        chartNamePrefix: 'tabs',
+        dashboardTitlePrefix: 'tabs_resize',
+        chartSpecs: [
+          {
+            viz_type: 'treemap_v2',
+            params: {
+              metric: 'count',
+              groupby: ['gender'],
+              row_limit: 100,
+            },
+          },
+        ],
+        buildLayout: buildTabbedDashboardLayout,
       },
-      {
-        slug: 'table',
-        params: {
-          datasource,
-          viz_type: 'table',
-          query_mode: 'aggregate',
-          groupby: ['name'],
-          metrics: ['count'],
-          row_limit: 100,
-        },
-      },
-    ];
-
-    const chartIds: Record<string, number> = {};
-    for (const { slug, params } of chartSpecs) {
-      const resp = await apiPostChart(page, {
-        slice_name: `tabs_${slug}_${Date.now()}`,
-        viz_type: params.viz_type,
-        datasource_id: datasetId,
-        datasource_type: 'table',
-        params: JSON.stringify(params),
-      });
-      expect(resp.ok()).toBe(true);
-      const chartId = await extractIdFromResponse(resp);
-      testAssets.trackChart(chartId);
-      chartIds[slug] = chartId;
-    }
-
-    const treemapKey = `CHART-${chartIds.treemap}`;
-    const tableKey = `CHART-${chartIds.table}`;
-
-    const positionJson: Record<string, unknown> = {
-      DASHBOARD_VERSION_KEY: 'v2',
-      ROOT_ID: { type: 'ROOT', id: 'ROOT_ID', children: ['GRID_ID'] },
-      GRID_ID: {
-        type: 'GRID',
-        id: 'GRID_ID',
-        children: ['TABS-TOP'],
-        parents: ['ROOT_ID'],
-      },
-      'TABS-TOP': {
-        type: 'TABS',
-        id: 'TABS-TOP',
-        children: ['TAB-A', 'TAB-B'],
-        parents: ['ROOT_ID', 'GRID_ID'],
-        meta: {},
-      },
-      'TAB-A': {
-        type: 'TAB',
-        id: 'TAB-A',
-        children: ['ROW-A'],
-        parents: ['ROOT_ID', 'GRID_ID', 'TABS-TOP'],
-        meta: {
-          text: 'Tab A',
-          defaultText: 'Tab title',
-          placeholder: 'Tab title',
-        },
-      },
-      'TAB-B': {
-        type: 'TAB',
-        id: 'TAB-B',
-        children: ['ROW-B'],
-        parents: ['ROOT_ID', 'GRID_ID', 'TABS-TOP'],
-        meta: {
-          text: 'Tab B',
-          defaultText: 'Tab title',
-          placeholder: 'Tab title',
-        },
-      },
-      'ROW-A': {
-        type: 'ROW',
-        id: 'ROW-A',
-        children: [treemapKey],
-        parents: ['ROOT_ID', 'GRID_ID', 'TABS-TOP', 'TAB-A'],
-        meta: { background: 'BACKGROUND_TRANSPARENT' },
-      },
-      'ROW-B': {
-        type: 'ROW',
-        id: 'ROW-B',
-        children: [tableKey],
-        parents: ['ROOT_ID', 'GRID_ID', 'TABS-TOP', 'TAB-B'],
-        meta: { background: 'BACKGROUND_TRANSPARENT' },
-      },
-      [treemapKey]: {
-        type: 'CHART',
-        id: treemapKey,
-        children: [],
-        parents: ['ROOT_ID', 'GRID_ID', 'TABS-TOP', 'TAB-A', 'ROW-A'],
-        meta: {
-          chartId: chartIds.treemap,
-          width: 12,
-          height: 50,
-          sliceName: 'treemap',
-        },
-      },
-      [tableKey]: {
-        type: 'CHART',
-        id: tableKey,
-        children: [],
-        parents: ['ROOT_ID', 'GRID_ID', 'TABS-TOP', 'TAB-B', 'ROW-B'],
-        meta: {
-          chartId: chartIds.table,
-          width: 12,
-          height: 50,
-          sliceName: 'table',
-        },
-      },
-    };
-
-    const dashResp = await apiPostDashboard(page, {
-      dashboard_title: `tabs_resize_${Date.now()}`,
-      published: true,
-      position_json: JSON.stringify(positionJson),
-    });
-    expect(dashResp.ok()).toBe(true);
-    const dashboardId = await extractIdFromResponse(dashResp);
-    testAssets.trackDashboard(dashboardId);
-
-    for (const chartId of Object.values(chartIds)) {
-      await apiPutChart(page, chartId, {
-        dashboards: [dashboardId],
-      });
+    );
+    const [treemap] = charts;
+    if (!treemap) {
+      throw new Error('Dashboard setup did not create the treemap');
     }
 
     await page.setViewportSize(WIDE_VIEWPORT);
@@ -182,8 +157,8 @@ testWithAssets(
     await dashboard.gotoById(dashboardId);
     await dashboard.waitForLoad();
 
-    const treemapContainer = page
-      .locator('[data-test-viz-type="treemap_v2"]')
+    const treemapContainer = dashboard
+      .getChart(treemap.id)
       .locator('[data-test="chart-container"]');
     await treemapContainer.waitFor({
       state: 'visible',
@@ -196,15 +171,9 @@ testWithAssets(
       (element: HTMLElement) => element.offsetWidth,
     );
 
-    await dashboard.dashboardTabs.clickTab('Tab B');
-    await expect
-      .poll(() => dashboard.dashboardTabs.getActiveTabName())
-      .toBe('Tab B');
+    await dashboard.switchDashboardTab('Tab B');
     await page.setViewportSize(NARROW_VIEWPORT);
-    await dashboard.dashboardTabs.clickTab('Tab A');
-    await expect
-      .poll(() => dashboard.dashboardTabs.getActiveTabName())
-      .toBe('Tab A');
+    await dashboard.switchDashboardTab('Tab A');
 
     await treemapContainer.waitFor({
       state: 'visible',
