@@ -1523,29 +1523,45 @@ CSV_STREAMING_ROW_THRESHOLD = 100000
 # note: index option should not be overridden
 EXCEL_EXPORT: dict[str, Any] = {}
 
+
 # ---------------------------------------------------
-# Dashboard "Export Data to Excel" (async, S3-backed)
+# Dashboard "Export Data to Excel" (async, object-storage-backed)
 # ---------------------------------------------------
-# Destination S3 bucket for generated dashboard .xlsx exports. The feature is
-# disabled until this is set: the export endpoint returns 501 when it is None.
-EXCEL_EXPORT_S3_BUCKET: str | None = None
-# Key prefix for export objects: {prefix}{dashboard_id}/{job_id}.xlsx
-EXCEL_EXPORT_S3_KEY_PREFIX = "dashboard-exports/"
-# Lifetime (seconds) of the pre-signed download URL emailed to the user (24h).
-# Note: AWS S3 caps pre-signed URL lifetime at 7 days (604800 seconds); larger
-# values are rejected by S3, so keep this at or below that when using AWS.
+class ExcelExportStorageConfig(TypedDict, total=False):
+    """Where dashboard Excel exports are uploaded, and how the download
+    redirect resolves them back to a fresh URL. See EXCEL_EXPORT_STORAGE."""
+
+    # Destination bucket for generated dashboard .xlsx exports. The feature is
+    # disabled until this is set: the export endpoint returns 501 while absent.
+    bucket: str
+    # Key/blob prefix for export objects: {prefix}{dashboard_id}/{job_id}.xlsx
+    key_prefix: str
+    # Extra kwargs passed to boto3.client("s3", ...) when using the default S3
+    # backend (i.e. "backend" below is unset) — e.g. region_name, or an
+    # endpoint_url for S3-compatible stores (MinIO/LocalStack). Credentials
+    # otherwise resolve through the standard boto3 chain. Ignored by any
+    # configured "backend", which authenticates however it authenticates.
+    client_kwargs: dict[str, Any]
+    # Optional pluggable storage backend (an instance implementing
+    # superset.utils.export_storage.ExportStorage), the same pattern as
+    # RESULTS_BACKEND or CUSTOM_SECURITY_MANAGER. When unset, the built-in
+    # superset.utils.s3 (boto3/AWS S3) backend is used, configured by
+    # "client_kwargs" above. Set this to e.g. GCSExportStorage()
+    # (superset.utils.gcs) for a deployment whose "bucket" above names a
+    # native Google Cloud Storage bucket rather than an S3 one.
+    backend: ExportStorage
+
+
+EXCEL_EXPORT_STORAGE: ExcelExportStorageConfig = {
+    "key_prefix": "dashboard-exports/",
+}
+# Lifetime (seconds) of the download link emailed to the user (24h). Not part
+# of ExcelExportStorageConfig: it bounds the Superset-issued redirect link
+# itself (see superset.dashboards.excel_export.download_link), independent of
+# how long the underlying storage backend's own credentials or URLs last.
+# Note: AWS S3 caps pre-signed URL lifetime at 7 days (604800 seconds), so
+# keep this at or below that when using the default S3 backend.
 EXCEL_EXPORT_LINK_TTL_SECONDS = 86400
-# Extra kwargs passed to boto3.client("s3", ...) — e.g. region_name, or an
-# endpoint_url for S3-compatible stores (MinIO/LocalStack). Credentials
-# otherwise resolve through the standard boto3 chain.
-EXCEL_EXPORT_S3_CLIENT_KWARGS: dict[str, Any] = {}
-# Optional pluggable storage backend (an instance implementing
-# superset.utils.export_storage.ExportStorage), the same pattern as
-# RESULTS_BACKEND or CUSTOM_SECURITY_MANAGER. When unset, the built-in
-# superset.utils.s3 (boto3/AWS S3) backend is used. Set this to e.g.
-# GCSExportStorage() (superset.utils.gcs) for a deployment whose
-# EXCEL_EXPORT_S3_BUCKET names a native Google Cloud Storage bucket.
-EXCEL_EXPORT_STORAGE: ExportStorage | None = None
 # Viz types treated as tables in the "Export Images to Excel" mode: these charts
 # stay tabular (one worksheet of data) while every other viz type is embedded as
 # a rendered image. Set to None to fall back to the built-in default.

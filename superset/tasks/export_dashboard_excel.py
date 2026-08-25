@@ -450,12 +450,12 @@ def _handle_export_failure(
 
 
 def _upload_export_file(tmp_path: str, bucket: str, key: str) -> None:
-    """Upload the generated workbook via EXCEL_EXPORT_STORAGE if configured
-    (e.g. a GCS backend for a deployment whose bucket isn't S3), else the
-    built-in boto3/S3 helper."""
-    storage = current_app.config.get("EXCEL_EXPORT_STORAGE")
-    if storage is not None:
-        storage.upload_file(tmp_path, bucket, key)
+    """Upload the generated workbook via EXCEL_EXPORT_STORAGE's "backend" if
+    configured (e.g. a GCS backend for a deployment whose bucket isn't S3),
+    else the built-in boto3/S3 helper."""
+    backend = current_app.config["EXCEL_EXPORT_STORAGE"].get("backend")
+    if backend is not None:
+        backend.upload_file(tmp_path, bucket, key)
     else:
         s3.upload_file_to_s3(tmp_path, bucket, key)
 
@@ -526,11 +526,10 @@ def export_dashboard_excel(
                 tmp_path, dashboard, active_data_mask, job_id, mode, user
             )
 
-            bucket = current_app.config["EXCEL_EXPORT_S3_BUCKET"]
-            key = (
-                f"{current_app.config['EXCEL_EXPORT_S3_KEY_PREFIX']}"
-                f"{dashboard_id}/{job_id}.xlsx"
-            )
+            storage_config = current_app.config["EXCEL_EXPORT_STORAGE"]
+            bucket = storage_config.get("bucket")
+            key_prefix = storage_config.get("key_prefix", "dashboard-exports/")
+            key = f"{key_prefix}{dashboard_id}/{job_id}.xlsx"
 
             _upload_export_file(tmp_path, bucket, key)
             expires_at = datetime.now(tz=timezone.utc) + timedelta(seconds=ttl)

@@ -186,11 +186,12 @@ def test_upload_uses_configured_storage_backend(mocks: dict[str, Any]) -> None:
         "queries": [{"colnames": ["a"], "data": [{"a": 1}]}]
     }
     mock_storage = mock.MagicMock()
-    current_app.config["EXCEL_EXPORT_STORAGE"] = mock_storage
+    original_storage_config = current_app.config["EXCEL_EXPORT_STORAGE"]
+    current_app.config["EXCEL_EXPORT_STORAGE"] = {"backend": mock_storage}
     try:
         _run()
     finally:
-        current_app.config["EXCEL_EXPORT_STORAGE"] = None
+        current_app.config["EXCEL_EXPORT_STORAGE"] = original_storage_config
 
     mock_storage.upload_file.assert_called_once()
     mocks["s3"].upload_file_to_s3.assert_not_called()
@@ -327,8 +328,10 @@ def _builder_hook(builder: Any) -> Iterator[None]:
     # Real values for the keys the task subscripts directly, so a full export can
     # run under the hook (a MagicMock ttl would blow up building the link expiry).
     fake_app.config.__getitem__.side_effect = {
-        "EXCEL_EXPORT_S3_BUCKET": "bucket",
-        "EXCEL_EXPORT_S3_KEY_PREFIX": "dashboard-exports/",
+        "EXCEL_EXPORT_STORAGE": {
+            "bucket": "bucket",
+            "key_prefix": "dashboard-exports/",
+        },
         "EXCEL_EXPORT_LINK_TTL_SECONDS": 3600,
     }.__getitem__
     with mock.patch.object(module, "current_app", fake_app):

@@ -27,7 +27,7 @@ from superset.utils import s3
 @patch("boto3.client")
 @patch("superset.utils.s3.current_app")
 def test_upload_file_to_s3(mock_app: MagicMock, mock_client_fn: MagicMock) -> None:
-    mock_app.config = {"EXCEL_EXPORT_S3_CLIENT_KWARGS": {}}
+    mock_app.config = {"EXCEL_EXPORT_STORAGE": {}}
     client = mock_client_fn.return_value
 
     s3.upload_file_to_s3("exports/out.xlsx", "my-bucket", "exports/1/abc.xlsx")
@@ -44,9 +44,11 @@ def test_client_kwargs_passthrough(
     mock_app: MagicMock, mock_client_fn: MagicMock
 ) -> None:
     mock_app.config = {
-        "EXCEL_EXPORT_S3_CLIENT_KWARGS": {
-            "endpoint_url": "http://minio:9000",
-            "region_name": "us-east-1",
+        "EXCEL_EXPORT_STORAGE": {
+            "client_kwargs": {
+                "endpoint_url": "http://minio:9000",
+                "region_name": "us-east-1",
+            }
         }
     }
 
@@ -81,7 +83,7 @@ def test_get_s3_client_missing_boto3_raises_actionable_error() -> None:
 @patch("boto3.client")
 @patch("superset.utils.s3.current_app")
 def test_generate_presigned_url(mock_app: MagicMock, mock_client_fn: MagicMock) -> None:
-    mock_app.config = {"EXCEL_EXPORT_S3_CLIENT_KWARGS": {}}
+    mock_app.config = {"EXCEL_EXPORT_STORAGE": {}}
     client = mock_client_fn.return_value
     client.generate_presigned_url.return_value = "https://signed.example/abc"
 

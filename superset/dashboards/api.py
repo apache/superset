@@ -1776,7 +1776,7 @@ class DashboardRestApi(
             501:
               description: Excel export is not configured on this server
         """
-        if not current_app.config["EXCEL_EXPORT_S3_BUCKET"]:
+        if not current_app.config["EXCEL_EXPORT_STORAGE"].get("bucket"):
             return self.response(
                 501, message="Excel export is not configured on this server."
             )
@@ -1944,9 +1944,9 @@ class DashboardRestApi(
         if resolved is None:
             return self.response(410, message="This download link has expired.")
         bucket, key = resolved
-        storage = current_app.config.get("EXCEL_EXPORT_STORAGE")
-        if storage is not None:
-            download_url = storage.generate_download_url(
+        backend = current_app.config["EXCEL_EXPORT_STORAGE"].get("backend")
+        if backend is not None:
+            download_url = backend.generate_download_url(
                 bucket, key, PRESIGNED_URL_TTL_SECONDS
             )
         else:
