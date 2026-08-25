@@ -32,6 +32,20 @@ from superset.utils import json
 logger = logging.getLogger(__name__)
 
 
+def _set_importer_as_theme_editor(theme: "Theme", user: Any | None) -> None:
+    """Assign a newly imported theme to its importing user."""
+    if not user:
+        return
+
+    from superset.subjects.utils import get_user_subject
+
+    theme.changed_by = user
+    theme.created_by = user
+    subject = get_user_subject(user.id)
+    if subject and subject not in theme.editors:
+        theme.editors.append(subject)
+
+
 def import_theme(config: dict[str, Any], overwrite: bool = False) -> "Theme | None":
     """Import a single theme from config dictionary"""
     from superset import db, security_manager
@@ -85,14 +99,8 @@ def import_theme(config: dict[str, Any], overwrite: bool = False) -> "Theme | No
     # Add current user as owner + editor when creating a new theme, mirroring
     # CreateThemeCommand and the dashboard/chart/dataset importers, so the
     # importer can maintain (edit/delete) the theme they just created.
-    if not existing and user:
-        from superset.subjects.utils import get_user_subject
-
-        theme.changed_by = user
-        theme.created_by = user
-        subj = get_user_subject(user.id)
-        if subj and subj not in theme.editors:
-            theme.editors.append(subj)
+    if not existing:
+        _set_importer_as_theme_editor(theme, user)
 
     return theme
 
