@@ -2829,6 +2829,15 @@ class GetChartSqlRequest(BaseModel):
             "Can be used alone (without identifier) for unsaved charts."
         ),
     )
+    extra_form_data: dict[str, Any] | None = Field(
+        default=None,
+        description=(
+            "Extra form data to merge into the chart query before rendering SQL, "
+            "typically from dashboard native filters. Same format accepted by "
+            "get_chart_data. Format: "
+            '{"filters": [{"col": "country", "op": "IN", "val": ["US"]}]}'
+        ),
+    )
 
     @model_validator(mode="after")
     def validate_identifier_or_form_data_key(self) -> "GetChartSqlRequest":
