@@ -21,21 +21,33 @@ import pandas as pd
 
 from superset.utils.core import GenericDataType
 
+# Leading characters that turn a cell into a formula in spreadsheet apps.
+FORMULA_PREFIXES = {"=", "+", "-", "@"}
+
+
+def _quote_formula(value: Any) -> Any:
+    """Prefix a string with a quote when it would parse as a formula."""
+    return (
+        f"'{value}"
+        if isinstance(value, str) and len(value) and value[0] in FORMULA_PREFIXES
+        else value
+    )
+
 
 def quote_formulas(df: pd.DataFrame) -> pd.DataFrame:
     """
     Make sure to quote any formulas for security reasons.
     """
-    formula_prefixes = {"=", "+", "-", "@"}
-
-    for col in df.select_dtypes(include="object").columns:
-        df[col] = df[col].apply(
-            lambda x: (
-                f"'{x}"
-                if isinstance(x, str) and len(x) and x[0] in formula_prefixes
-                else x
-            )
-        )
+    # Columns are addressed by position rather than by label: a dataframe can
+    # carry duplicate column labels (the verbose_map rename in
+    # QueryContextProcessor.get_data can collapse two columns onto the same
+    # name), and ``df[label]`` then yields a DataFrame instead of a Series.
+    # ``DataFrame.apply`` would hand whole columns to the mapper rather than
+    # individual cells, silently leaving formulas unquoted.
+    for idx in range(len(df.columns)):
+        series = df.iloc[:, idx]
+        if series.dtype == object:
+            df.isetitem(idx, series.map(_quote_formula))
 
     return df
 
@@ -63,20 +75,31 @@ def apply_column_types(
     :param column_types: The types of the columns
     :return: The dataframe with the column types applied
     """
-    for column, column_type in zip(df.columns, column_types, strict=False):
+    # Columns are addressed by position for the same reason as in
+    # ``quote_formulas``: duplicate column labels make ``df[label]`` return a
+    # DataFrame, and ``DataFrame`` has no ``dtype``. Slicing column_types keeps
+    # the lenient pairing the previous ``zip(..., strict=False)`` provided.
+    for idx, column_type in enumerate(column_types[: len(df.columns)]):
+        series = df.iloc[:, idx]
         if column_type == GenericDataType.NUMERIC:
             try:
-                df[column] = pd.to_numeric(df[column])
+                series = pd.to_numeric(series)
                 # if the number is too large, convert it to a string
                 # Excel does not support numbers larger than 10^15
-                df[column] = df[column].apply(
+                series = series.apply(
                     lambda x: str(x)
                     if isinstance(x, (int, float)) and abs(x) > 10**15
                     else x
                 )
             except ValueError:
-                df[column] = df[column].astype(str)
-        elif isinstance(df[column].dtype, pd.DatetimeTZDtype):
+                series = series.astype(str)
+        elif isinstance(series.dtype, pd.DatetimeTZDtype):
             # timezones are not supported
-            df[column] = df[column].astype(str)
+            series = series.astype(str)
+        else:
+            continue
+        # ``isetitem`` replaces the column at that position, which is both
+        # unambiguous under duplicate labels and free of the in-place dtype
+        # casting that ``iloc`` assignment attempts.
+        df.isetitem(idx, series)
     return df

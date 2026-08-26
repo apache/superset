@@ -21,7 +21,7 @@ import pandas as pd
 from pandas.api.types import is_numeric_dtype
 
 from superset.utils.core import GenericDataType
-from superset.utils.excel import apply_column_types, df_to_excel
+from superset.utils.excel import apply_column_types, df_to_excel, quote_formulas
 
 
 def test_timezone_conversion() -> None:
@@ -105,6 +105,55 @@ def test_column_data_types_with_failing_conversion():
     assert not is_numeric_dtype(df["col1"])
     assert not is_numeric_dtype(df["col2"])
     assert not is_numeric_dtype(df["col3"])
+
+
+def test_apply_column_types_with_duplicate_column_labels() -> None:
+    """
+    Test that duplicate column labels do not break the export.
+
+    The verbose_map rename in QueryContextProcessor.get_data can collapse two
+    columns onto the same label, which used to raise
+    "'DataFrame' object has no attribute 'dtype'".
+    """
+    df = pd.DataFrame(
+        [
+            ["1", datetime(2023, 1, 1, 0, 0, tzinfo=timezone.utc), "2"],
+            ["3", datetime(2023, 1, 2, 0, 0, tzinfo=timezone.utc), "4"],
+        ],
+        columns=["dupe", "dupe", "other"],
+    )
+    coltypes: list[GenericDataType] = [
+        GenericDataType.STRING,
+        GenericDataType.TEMPORAL,
+        GenericDataType.NUMERIC,
+    ]
+
+    apply_column_types(df, coltypes)
+
+    # each position is typed independently, despite sharing a label
+    assert not is_numeric_dtype(df.iloc[:, 0])
+    assert df.iloc[:, 1].tolist() == [
+        "2023-01-01 00:00:00+00:00",
+        "2023-01-02 00:00:00+00:00",
+    ]
+    assert is_numeric_dtype(df.iloc[:, 2])
+
+    contents = df_to_excel(df, index=False)
+    assert pd.read_excel(contents).shape == (2, 3)
+
+
+def test_quote_formulas_with_duplicate_column_labels() -> None:
+    """
+    Test that formulas are quoted even when column labels are duplicated.
+    """
+    df = pd.DataFrame(
+        [["=SUM(A1:A2)", "@SUM(A1:A2)", "normal"]],
+        columns=["dupe", "dupe", "other"],
+    )
+
+    quote_formulas(df)
+
+    assert df.iloc[0].tolist() == ["'=SUM(A1:A2)", "'@SUM(A1:A2)", "normal"]
 
 
 def test_column_data_types_with_large_numeric_values():
