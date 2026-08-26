@@ -22,4 +22,9 @@ intentional re-exports (this codebase does not use ``__all__``).
 """
 
 from superset_core.widgets.base import Widget as Widget
+from superset_core.widgets.composites import (
+    composite_control as composite_control,
+    list_composite_controls as list_composite_controls,
+    MetricControl as MetricControl,
+)
 from superset_core.widgets.decorators import widget as widget
