@@ -23,7 +23,7 @@ from flask_babel import gettext as _
 from marshmallow import (
     EXCLUDE,
     fields,
-    post_load,
+    pre_load,
     Schema,
     validate,
     validates,
@@ -199,9 +199,12 @@ _RETRY_FIELD_KEYS = (
 
 
 class RetryFieldStripMixin:
-    """Strip retry fields from the deserialized payload when the feature is off."""
+    """Strip retry fields from the raw payload before validation when the
+    feature is off.  Using ``@pre_load`` ensures that field-level validators
+    (e.g. ``Range`` on ``retry_max_attempts``) are never reached for values
+    that will be discarded anyway."""
 
-    @post_load
+    @pre_load
     def strip_retry_fields_if_disabled(
         self,
         data: dict[str, Any],
