@@ -18,7 +18,7 @@
  */
 import thunk from 'redux-thunk';
 import { Provider } from 'react-redux';
-import configureStore from 'redux-mock-store';
+import configureMockStore from 'redux-mock-store';
 
 import {
   render,
@@ -46,7 +46,7 @@ const FIELD_TOOLTIP = '2024-01-01 ≤ col < 2024-01-08';
 const DESCRIPTION_TOOLTIP =
   'This control filters the whole chart based on the selected time range.';
 
-const mockStore = configureStore([thunk]);
+const mockStore = configureMockStore([thunk]);
 
 const defaultProps = {
   onChange: jest.fn(),
@@ -181,14 +181,28 @@ test('hovering the description icon does not show the date range tooltip', async
   await userEvent.hover(screen.getByText('Last week'));
   expect(await screen.findByRole('tooltip')).toHaveTextContent(FIELD_TOOLTIP);
 
+  const descriptionIcon = screen.getByRole('button', {
+    name: 'Show info tooltip',
+  });
+  fireEvent.focus(descriptionIcon);
+
+  await waitFor(() => {
+    expect(screen.getByRole('tooltip')).toHaveTextContent(DESCRIPTION_TOOLTIP);
+    expect(screen.getByRole('tooltip')).not.toHaveTextContent(FIELD_TOOLTIP);
+    expect(screen.getAllByRole('tooltip')).toHaveLength(1);
+  });
+
+  fireEvent.blur(descriptionIcon);
+  await waitFor(() => {
+    expect(screen.getByRole('tooltip')).toHaveTextContent(FIELD_TOOLTIP);
+    expect(screen.getAllByRole('tooltip')).toHaveLength(1);
+  });
+
   await userEvent.unhover(screen.getByText('Last week'));
   await waitFor(() => {
     expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
   });
 
-  const descriptionIcon = screen.getByRole('button', {
-    name: 'Show info tooltip',
-  });
   await userEvent.hover(descriptionIcon);
 
   const tooltip = await screen.findByRole('tooltip');

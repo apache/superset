@@ -73,6 +73,26 @@ test('notifies onDescriptionHoverChange when the info icon is hovered', async ()
   expect(onDescriptionHoverChange).toHaveBeenCalledWith(false);
 });
 
+test('notifies onDescriptionHoverChange when the info icon is focused', () => {
+  const onDescriptionHoverChange = jest.fn();
+  render(
+    <ControlHeader
+      name="time_range"
+      label="Date Range"
+      description={description}
+      hovered
+      onDescriptionHoverChange={onDescriptionHoverChange}
+    />,
+  );
+
+  const infoIcon = screen.getByRole('button', { name: 'Show info tooltip' });
+  fireEvent.focus(infoIcon);
+  expect(onDescriptionHoverChange).toHaveBeenCalledWith(true);
+
+  fireEvent.blur(infoIcon);
+  expect(onDescriptionHoverChange).toHaveBeenCalledWith(false);
+});
+
 test('activates tooltipOnClick from the keyboard', () => {
   const tooltipOnClick = jest.fn();
   render(

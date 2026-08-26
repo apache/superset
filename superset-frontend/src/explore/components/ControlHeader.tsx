@@ -117,6 +117,8 @@ const ControlHeader: FC<ControlHeaderProps> = ({
                 aria-label={t('Show info tooltip')}
                 onMouseEnter={() => onDescriptionHoverChange?.(true)}
                 onMouseLeave={() => onDescriptionHoverChange?.(false)}
+                onFocus={() => onDescriptionHoverChange?.(true)}
+                onBlur={() => onDescriptionHoverChange?.(false)}
                 onClick={tooltipOnClick}
                 onKeyDown={handleKeyboardActivation(tooltipOnClick)}
                 css={css`
