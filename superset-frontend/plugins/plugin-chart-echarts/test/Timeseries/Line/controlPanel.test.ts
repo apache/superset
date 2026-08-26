@@ -81,3 +81,33 @@ test('should include the minimum interval controls for both axes', () => {
   expect(xMinIntervalControl.config.renderTrigger).toBe(true);
   expect(yMinIntervalControl.config.renderTrigger).toBe(true);
 });
+
+test('x_axis_min_interval should be visible for temporal columns', () => {
+  const visibilityFn = getControl(config, 'x_axis_min_interval')!.config
+    .visibility;
+  expect(visibilityFn(mockControls('date', GenericDataType.Temporal))).toBe(
+    true,
+  );
+});
+
+test('x_axis_min_interval should be visible for numeric columns', () => {
+  const visibilityFn = getControl(config, 'x_axis_min_interval')!.config
+    .visibility;
+  expect(visibilityFn(mockControls('year', GenericDataType.Numeric))).toBe(
+    true,
+  );
+});
+
+test('x_axis_min_interval should be hidden for string columns', () => {
+  const visibilityFn = getControl(config, 'x_axis_min_interval')!.config
+    .visibility;
+  expect(visibilityFn(mockControls('name', GenericDataType.String))).toBe(
+    false,
+  );
+});
+
+test('x_axis_min_interval should be hidden without an x-axis column', () => {
+  const visibilityFn = getControl(config, 'x_axis_min_interval')!.config
+    .visibility;
+  expect(visibilityFn(mockControls(null, null))).toBe(false);
+});
