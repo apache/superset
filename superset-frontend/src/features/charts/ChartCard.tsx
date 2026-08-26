@@ -38,6 +38,10 @@ import {
   isNavigationHandledByLink,
 } from 'src/views/CRUD/utils';
 import { assetUrl } from 'src/utils/assetUrl';
+import {
+  archiveConfirmDescription,
+  deleteActionLabel,
+} from 'src/utils/softDeleteCopy';
 import type { ListViewFetchDataConfig as FetchDataConfig } from 'src/components';
 import { TableTab } from 'src/views/CRUD/types';
 import { isUserEditorOrAdmin } from 'src/dashboard/util/permissionUtils';
@@ -159,15 +163,29 @@ export default function ChartCard({
   }
 
   if (canDelete) {
+    // With soft delete on, deleting archives the chart (recoverable), so the
+    // confirmation drops the type-DELETE friction and uses the shared archive
+    // copy -- matching the list view's dialog for the same action.
+    const softDelete = isFeatureEnabled(FeatureFlag.SoftDelete);
     menuItems.push({
       key: 'delete',
       label: (
         <ConfirmStatusChange
-          title={t('Please confirm')}
+          recoverable={softDelete}
+          title={
+            softDelete
+              ? t('Archive %(name)s?', { name: chart.slice_name })
+              : t('Please confirm')
+          }
           description={
-            <>
-              {t('Are you sure you want to delete')} <b>{chart.slice_name}</b>?
-            </>
+            softDelete ? (
+              <p>{archiveConfirmDescription(t('chart'))}</p>
+            ) : (
+              <>
+                {t('Are you sure you want to delete')} <b>{chart.slice_name}</b>
+                ?
+              </>
+            )
           }
           onConfirm={() =>
             handleChartDelete(
@@ -204,7 +222,7 @@ export default function ChartCard({
                     vertical-align: text-top;
                   `}
                 />{' '}
-                {t('Delete')}
+                {deleteActionLabel()}
               </button>
             </Tooltip>
           )}
