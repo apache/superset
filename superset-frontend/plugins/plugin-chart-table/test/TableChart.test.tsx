@@ -2111,7 +2111,14 @@ describe('plugin-chart-table', () => {
 
         expect(() =>
           render(
-            <TableChart {...propsWithMissingFormatterEntry} sticky={false} />,
+            ProviderWrapper({
+              children: (
+                <TableChart
+                  {...propsWithMissingFormatterEntry}
+                  sticky={false}
+                />
+              ),
+            }),
           ),
         ).not.toThrow();
 
