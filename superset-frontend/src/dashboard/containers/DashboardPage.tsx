@@ -277,7 +277,24 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
           typeof savedFilters === 'object' &&
           !Array.isArray(savedFilters)
         ) {
-          dataMask = savedFilters;
+          // Only restore entries whose filter ID still exists in the current
+          // native filter configuration. This prevents stale extraFormData from
+          // a reconfigured filter (e.g. retargeted to a different column or
+          // dataset) from being hydrated and silently applying the old selection.
+          const knownFilterIds = new Set(
+            (
+              (dashboard?.metadata?.native_filter_configuration ??
+                []) as NativeFilterConfigEntry[]
+            ).map((f: NativeFilterConfigEntry) => f.id),
+          );
+          const validatedFilters = Object.fromEntries(
+            Object.entries(savedFilters).filter(([filterId]) =>
+              knownFilterIds.has(filterId),
+            ),
+          );
+          if (Object.keys(validatedFilters).length > 0) {
+            dataMask = validatedFilters;
+          }
         }
       }
       if (isOldRison) {
@@ -387,7 +404,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
     }
     if (id) getDataMaskApplied();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [readyToRender]);
+  }, [readyToRender, id]);
 
   // Capture original title before any effects run
   const originalTitle = useMemo(() => document.title, []);
@@ -444,6 +461,12 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
     // This avoids saving chart customization or other transient dataMask
     // entries that are not part of the user's filter selections.
     const nativeFilterIds = Object.keys(nativeFilters);
+    // Do not overwrite a previously saved state with an empty mask.
+    // When the store clears dataMask on unmount (SPA navigation away), the
+    // hydratedDashboardId guard may still pass briefly before the next
+    // dashboard's hydration fires; skipping empty writes prevents that race
+    // from wiping the user's last valid selection.
+    if (nativeFilterIds.length === 0) return;
     const nativeFilterMask = Object.fromEntries(
       nativeFilterIds
         .filter(filterId => filterId in fullDataMask)
