@@ -14,6 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from superset.db_engine_specs.base import DatabaseCategory
+
 from .db2 import Db2EngineSpec
 
 
@@ -27,6 +29,29 @@ class IBMiEngineSpec(Db2EngineSpec):
     engine = "ibmi"
     engine_name = "IBM Db2 for i"
     max_column_name_length = 128
+
+    metadata = {
+        "description": (
+            "IBM Db2 for i is an integrated relational database management "
+            "system optimized for IBM i."
+        ),
+        "logo": "ibm-db2.svg",
+        "homepage_url": "https://www.ibm.com/products/db2",
+        "categories": [
+            DatabaseCategory.TRADITIONAL_RDBMS,
+            DatabaseCategory.PROPRIETARY,
+        ],
+        "pypi_packages": ["sqlalchemy-ibmi"],
+        "connection_string": "ibmi://{username}:{password}@{host}:{port}/{database}",
+        "default_port": 50000,
+        "parameters": {
+            "username": "IBM i user profile",
+            "password": "User password",
+            "host": "Hostname or IP address",
+            "port": "Port (default 50000)",
+            "database": "Database name",
+        },
+    }
 
     @classmethod
     def epoch_to_dttm(cls) -> str:
