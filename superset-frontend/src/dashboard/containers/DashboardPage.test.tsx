@@ -639,7 +639,9 @@ test('restores native filter state from localStorage when no URL key is present'
   const savedMask = {
     'NATIVE_FILTER-abc123': {
       filterState: { value: ['California'] },
-      extraFormData: { filters: [{ col: 'state', op: 'IN', val: ['California'] }] },
+      extraFormData: {
+        filters: [{ col: 'state', op: 'IN', val: ['California'] }],
+      },
     },
   };
   localStorage.setItem(
@@ -784,7 +786,10 @@ test('does not restore localStorage filters when a nativeFiltersKey is in the UR
 
 test('ignores corrupted localStorage data (array) and uses empty dataMask', async () => {
   // An array is not a valid dataMask shape and must be rejected
-  localStorage.setItem('dashboard__native_filters__1', JSON.stringify([1, 2, 3]));
+  localStorage.setItem(
+    'dashboard__native_filters__1',
+    JSON.stringify([1, 2, 3]),
+  );
 
   render(
     <Suspense fallback="loading">
