@@ -46,7 +46,13 @@ def quote_formulas(df: pd.DataFrame) -> pd.DataFrame:
     # individual cells, silently leaving formulas unquoted.
     for idx in range(len(df.columns)):
         series = df.iloc[:, idx]
-        if series.dtype == object:
+        # ``is_string_dtype`` rather than an ``object`` comparison: pandas 3
+        # gives string columns a dedicated ``str`` dtype, which an object-only
+        # check (as the ``select_dtypes(include="object")`` this replaced) would
+        # skip, silently leaving formulas unquoted.
+        if pd.api.types.is_object_dtype(series.dtype) or pd.api.types.is_string_dtype(
+            series.dtype
+        ):
             df.isetitem(idx, series.map(_quote_formula))
 
     return df
