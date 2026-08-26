@@ -64,9 +64,15 @@ type LayoutProps = dashboardApi.LayoutProps;
  * that never consults `cancel` at all) working. A different value here
  * (any other container actually nested inside the widget being dragged)
  * still matches and still cancels, exactly as intended.
+ *
+ * `[data-widget-menu]` is the widget header's overflow menu (see
+ * `WidgetView`) — opening it must not also drag the card it sits on. The
+ * header's drag-handle icon is deliberately absent from this list: it is a
+ * visual cue, not an exclusion, and a press starting on it should drag the
+ * card exactly as a press anywhere else on it would.
  */
 function cancelSelectorFor(nodeId: string): string {
-  return `[data-container-id]:not([data-container-id="${CSS.escape(nodeId)}"]),[data-widget-remove],[data-widget-resize],[data-widget-header-control]`;
+  return `[data-container-id]:not([data-container-id="${CSS.escape(nodeId)}"]),[data-widget-remove],[data-widget-resize],[data-widget-header-control],[data-widget-menu]`;
 }
 
 /**

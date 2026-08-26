@@ -121,7 +121,7 @@ test('a widget resizes from all four corners', () => {
   expect(grid?.options.resizable).toEqual({ handles: 'se, sw, nw, ne' });
 });
 
-test('the grid is told not to start a drag from the remove control, a nested container, a flow resize grip, or a header control', () => {
+test('the grid is told not to start a drag from the remove control, the overflow menu, a nested container, a flow resize grip, or a header control', () => {
   mount();
 
   // GridStack's own draggable engine matches this selector up the ancestors
@@ -131,6 +131,7 @@ test('the grid is told not to start a drag from the remove control, a nested con
   const grid = __getLastGridStackInstance()!;
   const { cancel } = grid.options.draggable as { cancel: string };
   expect(cancel).toContain('[data-widget-remove]');
+  expect(cancel).toContain('[data-widget-menu]');
   expect(cancel).toContain('[data-container-id]');
   expect(cancel).toContain('[data-widget-resize]');
   expect(cancel).toContain('[data-widget-header-control]');

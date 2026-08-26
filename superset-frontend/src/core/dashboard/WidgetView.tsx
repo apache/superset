@@ -21,7 +21,7 @@ import { t } from '@apache-superset/core/translation';
 import { css, styled, useTheme } from '@apache-superset/core/theme';
 import { ActionButton, Flex, Typography } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
-import { ErrorBoundary } from 'src/components';
+import { ErrorBoundary, KebabMenuButton } from 'src/components';
 import { provider, useDashboardRevision } from './store';
 import { resolveWidgetView } from './resolveWidgetView';
 import { widgetLabel } from './widgetLabel';
@@ -129,6 +129,42 @@ const HeaderControlSlot = styled.span`
  * ancestors, so carrying it here covers the button inside.
  */
 const RemoveSlot = styled.span`
+  display: flex;
+  flex: 0 0 auto;
+`;
+
+/**
+ * A visual grab cue for the drag GridStack already lets an author start
+ * anywhere on the card — no wrapper here stops the two gestures the other
+ * trailing controls stop, since starting a drag from it is the point.
+ *
+ * The same glyph and size `Palette`'s own tile grip uses, quiet at rest and
+ * strengthening under the pointer the same way, so a card on the canvas and
+ * a tile in the panel say "drag me" with one icon rather than two.
+ */
+const DragHandleSlot = styled.span`
+  ${({ theme }) => css`
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    color: ${theme.colorTextQuaternary};
+    cursor: grab;
+    transition: color ${theme.motionDurationMid};
+
+    &:hover {
+      color: ${theme.colorTextTertiary};
+    }
+  `}
+`;
+
+/**
+ * What the overflow menu is wrapped in, and why — the same reasoning
+ * `RemoveSlot` is wrapped for: a click opening the menu must not also select
+ * the widget it sits on, and a pointer down on it must not start a grid
+ * drag. `data-widget-menu` is the other half of that second one — see
+ * `RootGrid`'s own drag-cancel selector.
+ */
+const MenuSlot = styled.span`
   display: flex;
   flex: 0 0 auto;
 `;
@@ -368,6 +404,38 @@ const WidgetView = forwardRef<HTMLDivElement, WidgetViewProps>(
                   {widgetHeaderControl(node.type, nodeId)}
                 </HeaderControlSlot>
               )}
+              {/* The reorder cue, on the same line as the bin rather than
+                  floating over the card, so the trailing group reads as one
+                  set of things an author does to this widget. */}
+              <DragHandleSlot data-test={`widget-drag-${nodeId}`} aria-hidden>
+                <Icons.HolderOutlined iconSize="s" />
+              </DragHandleSlot>
+              {/* Room for more-than-one action without crowding the header
+                  with an icon per action; today it offers the same Remove
+                  the bin does. */}
+              <MenuSlot
+                data-widget-menu
+                onMouseDown={event => event.stopPropagation()}
+                onPointerDown={event => event.stopPropagation()}
+                onClick={event => event.stopPropagation()}
+              >
+                <KebabMenuButton
+                  ariaLabel={t('More actions')}
+                  dataTest={`widget-menu-${nodeId}`}
+                  buttonSize="xsmall"
+                  buttonStyle="link"
+                  iconOrientation="vertical"
+                  menuItems={[
+                    {
+                      key: 'remove',
+                      danger: true,
+                      icon: <Icons.DeleteOutlined iconSize="s" />,
+                      label: t('Remove widget'),
+                      onClick: () => provider.removeWidget(nodeId),
+                    },
+                  ]}
+                />
+              </MenuSlot>
               <RemoveSlot
                 data-widget-remove
                 onMouseDown={event => event.stopPropagation()}

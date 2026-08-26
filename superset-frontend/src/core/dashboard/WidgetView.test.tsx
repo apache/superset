@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen } from 'spec/helpers/testing-library';
+import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import DashboardProvider from './DashboardProvider';
 import { registerBuiltInWidgets } from './registerBuiltInWidgets';
 import WidgetView from './WidgetView';
@@ -82,6 +82,25 @@ test('the root carries no header of its own', () => {
   expect(
     screen.queryByTestId(`widget-remove-${rootId}`),
   ).not.toBeInTheDocument();
+});
+
+test('a reorder cue sits beside the bin, not floating over the card', () => {
+  const { id } = withBlock();
+
+  const handle = screen.getByTestId(`widget-drag-${id}`);
+  const bin = screen.getByTestId(`widget-remove-${id}`);
+  expect(
+    handle.compareDocumentPosition(bin) & Node.DOCUMENT_POSITION_FOLLOWING,
+  ).toBeTruthy();
+});
+
+test('the overflow menu offers the same Remove the bin does', async () => {
+  const { id } = withBlock();
+
+  await userEvent.click(screen.getByTestId(`widget-menu-${id}`));
+  await userEvent.click(await screen.findByText('Remove widget'));
+
+  expect(provider.getNode(id)).toBeUndefined();
 });
 
 test("a widget's name reads as its title, not as a caption on it", () => {
