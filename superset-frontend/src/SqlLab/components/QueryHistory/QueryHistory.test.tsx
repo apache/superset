@@ -293,13 +293,145 @@ test('renders the live Redux state instead of a stale backend snapshot for the s
     },
   };
 
-  render(setup(), { useRedux: true, initialState: stateWithLiveQuery });
+  const { container } = render(setup(), {
+    useRedux: true,
+    initialState: stateWithLiveQuery,
+  });
 
   await waitFor(() =>
     expect(fetchMock.callHistory.calls(editorQueryApiRoute).length).toBe(1),
   );
 
   expect(screen.getByText('443')).toBeInTheDocument();
+  expect(container.querySelector('.anticon-check')).toBeInTheDocument();
+  expect(container.querySelector('.anticon-loading')).not.toBeInTheDocument();
+  expect(screen.queryByText('0%')).not.toBeInTheDocument();
+
+  isFeatureEnabledMock.mockClear();
+});
+
+test('lets a concluded backend snapshot win over a stale non-concluded Redux state', async () => {
+  const isFeatureEnabledMock = mockedIsFeatureEnabled.mockImplementation(
+    featureFlag => featureFlag === FeatureFlag.SqllabBackendPersistence,
+  );
+
+  const concludedApiResult = {
+    count: 1,
+    ids: [692],
+    result: [
+      {
+        ...fakeApiResult.result[0],
+        client_id: 'unpolledClientId',
+        status: QueryState.Success,
+        progress: 100,
+        rows: 443,
+        sql_editor_id: defaultQueryEditor.id,
+      },
+    ],
+  };
+
+  const editorQueryApiRoute = `glob:*/api/v1/query/?q=*`;
+  fetchMock.get(editorQueryApiRoute, concludedApiResult);
+
+  // Redux never observed the query leave Running, e.g. because
+  // QueryAutoRefresh stopped polling it (MAX_QUERY_AGE_TO_POLL elapsed).
+  const stateWithStaleRunningQuery = {
+    ...initialState,
+    sqlLab: {
+      ...initialState.sqlLab,
+      queries: {
+        unpolledClientId: {
+          id: 'unpolledClientId',
+          sqlEditorId: defaultQueryEditor.id,
+          sql: 'SELECT 1',
+          state: QueryState.Running,
+          startDttm: 1710273662445,
+          progress: 0,
+          rows: 0,
+        },
+      },
+    },
+  };
+
+  const { container } = render(setup(), {
+    useRedux: true,
+    initialState: stateWithStaleRunningQuery,
+  });
+
+  await waitFor(() =>
+    expect(fetchMock.callHistory.calls(editorQueryApiRoute).length).toBe(1),
+  );
+
+  expect(screen.getByText('443')).toBeInTheDocument();
+  expect(container.querySelector('.anticon-check')).toBeInTheDocument();
+  expect(container.querySelector('.anticon-loading')).not.toBeInTheDocument();
+  expect(screen.queryByText('0%')).not.toBeInTheDocument();
+
+  isFeatureEnabledMock.mockClear();
+});
+
+test('renders a backend-only historical query the client never ran, alongside a live one', async () => {
+  const isFeatureEnabledMock = mockedIsFeatureEnabled.mockImplementation(
+    featureFlag => featureFlag === FeatureFlag.SqllabBackendPersistence,
+  );
+
+  const twoRowApiResult = {
+    count: 2,
+    ids: [692, 700],
+    result: [
+      {
+        ...fakeApiResult.result[0],
+        client_id: 'liveClientId',
+        status: QueryState.Running,
+        progress: 0,
+        rows: 0,
+        sql_editor_id: defaultQueryEditor.id,
+      },
+      {
+        ...fakeApiResult.result[0],
+        id: 700,
+        client_id: 'historicalOnlyClientId',
+        status: QueryState.Success,
+        progress: 100,
+        rows: 12,
+        sql_editor_id: defaultQueryEditor.id,
+        start_time: '1710273660000.000000',
+      },
+    ],
+  };
+
+  const editorQueryApiRoute = `glob:*/api/v1/query/?q=*`;
+  fetchMock.get(editorQueryApiRoute, twoRowApiResult);
+
+  const stateWithOnlyOneLiveQuery = {
+    ...initialState,
+    sqlLab: {
+      ...initialState.sqlLab,
+      queries: {
+        liveClientId: {
+          id: 'liveClientId',
+          sqlEditorId: defaultQueryEditor.id,
+          sql: 'SELECT 1',
+          state: QueryState.Success,
+          startDttm: 1710273662445,
+          progress: 100,
+          rows: 443,
+        },
+      },
+    },
+  };
+
+  render(setup(), {
+    useRedux: true,
+    initialState: stateWithOnlyOneLiveQuery,
+  });
+
+  await waitFor(() =>
+    expect(fetchMock.callHistory.calls(editorQueryApiRoute).length).toBe(1),
+  );
+
+  expect(screen.getByText('443')).toBeInTheDocument();
+  expect(screen.getByText('12')).toBeInTheDocument();
 
   isFeatureEnabledMock.mockClear();
 });
