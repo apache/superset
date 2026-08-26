@@ -60,12 +60,17 @@ const getErrorMessage = ({ error, message }: ClientErrorObject) => {
  * Builds a unique select-option value for the combined datasource endpoint.
  * Datasets and semantic views have independent integer ID sequences, so we
  * prefix with a type tag to avoid collisions in AsyncSelect's dedup logic.
+ *
+ * Exported for other consumers of `loadDatasetOptions` that build their own
+ * `AsyncSelect` rather than going through the `DatasetSelect` component below
+ * (e.g. Dashboard V2's `DatasetControl`), and so need to encode/decode this
+ * same composite format themselves.
  */
-const toCompositeValue = (id: number, kind?: string): string =>
+export const toCompositeValue = (id: number, kind?: string): string =>
   kind === 'semantic_view' ? `sv:${id}` : `ds:${id}`;
 
 /** Extracts the numeric ID from a composite "sv:123" / "ds:456" string. */
-const fromCompositeValue = (compositeValue: string | number): number => {
+export const fromCompositeValue = (compositeValue: string | number): number => {
   if (typeof compositeValue !== 'string') return compositeValue;
   const parts = compositeValue.split(':');
   return parts.length === 2
@@ -74,7 +79,9 @@ const fromCompositeValue = (compositeValue: string | number): number => {
 };
 
 /** Derives the `kind` value from a composite string prefix. */
-const kindFromComposite = (compositeValue: string): string | undefined =>
+export const kindFromComposite = (
+  compositeValue: string,
+): string | undefined =>
   compositeValue.startsWith('sv:') ? 'semantic_view' : undefined;
 
 const isExcludedDatasource = (

@@ -18,10 +18,12 @@
  */
 
 /**
- * Column/metric metadata for the dataset a widget is bound to, used by the
- * column/metric-reference controls in `schemaControlRenderers.tsx`. Fetched
- * from the same `/api/v1/dataset/<id>` endpoint V1 Explore already uses —
- * no backend work needed for this.
+ * Column/metric metadata — and the dataset's own name — for the dataset a
+ * widget is bound to, used by the reference controls in
+ * `schemaControlRenderers.tsx`: `ColumnControl`/`MetricMultiControl` read the
+ * columns and metrics, `DatasetControl` reads `tableName` for its picker's
+ * label. Fetched from the same `/api/v1/dataset/<id>` endpoint V1 Explore
+ * already uses — no backend work needed for this.
  */
 import { useEffect, useState } from 'react';
 import { SupersetClient } from '@superset-ui/core';
@@ -40,6 +42,7 @@ export interface DatasetMetricMeta {
 export interface DatasetMetadata {
   columns: DatasetColumnMeta[];
   metrics: DatasetMetricMeta[];
+  tableName?: string;
 }
 
 interface RawDatasetColumn {
@@ -55,6 +58,7 @@ interface RawDatasetMetric {
 interface RawDatasetResult {
   columns?: RawDatasetColumn[];
   metrics?: RawDatasetMetric[];
+  table_name?: string;
 }
 
 const cache = new Map<number, Promise<DatasetMetadata>>();
@@ -84,6 +88,7 @@ export function fetchDatasetMetadata(
           name: metric.metric_name,
           verboseName: metric.verbose_name || metric.metric_name,
         })),
+        tableName: result.table_name,
       };
     })
     .catch(error => {

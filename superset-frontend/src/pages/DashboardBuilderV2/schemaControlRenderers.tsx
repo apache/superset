@@ -25,17 +25,29 @@
  *   - `x-control: column`      → a single column-reference picker.
  *   - `x-control: column-multi` → an ordered, reorderable list of column references.
  *   - `x-control: metric-multi` → an ordered, reorderable list of metric references.
+ *   - `datasetId` (any field of that name) → a searchable dataset picker.
+ *     Matched by property name rather than an `x-control` hint — the
+ *     backend's `DataBinding` schema is unchanged, so this is the one
+ *     control here selected structurally instead of by a declared extra.
  *
  * `code` and `color` fall back to the field's schema `default`, since
  * JsonForms does not write defaults into the data until a field is touched.
  */
-import { useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import type { ChangeEvent, ReactElement, ReactNode } from 'react';
 import { withJsonFormsControlProps } from '@jsonforms/react';
 import type { ControlProps, JsonSchema } from '@jsonforms/core';
-import { rankWith, schemaMatches } from '@jsonforms/core';
-import { t } from '@apache-superset/core/translation';
 import {
+  and,
+  rankWith,
+  schemaMatches,
+  schemaTypeIs,
+  scopeEndIs,
+} from '@jsonforms/core';
+import { t } from '@apache-superset/core/translation';
+import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
+import {
+  AsyncSelect,
   Button,
   Flex,
   Form,
@@ -46,6 +58,12 @@ import { Icons } from '@superset-ui/core/components/Icons';
 import { ColumnTypeLabel } from '@superset-ui/chart-controls';
 import { useTheme } from '@apache-superset/core/theme';
 import { renderers as baseRenderers } from 'src/features/semanticLayers/jsonFormsHelpers';
+import {
+  fromCompositeValue,
+  kindFromComposite,
+  loadDatasetOptions,
+  toCompositeValue,
+} from 'src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/DatasetSelect';
 import {
   useDatasetMetadata,
   type DatasetMetadata,
@@ -213,6 +231,7 @@ function ReferenceSelect({
   return (
     <Form.Item label={label}>
       <Select
+        ariaLabel={label}
         value={value}
         onChange={next => onChange((next as string | undefined) ?? undefined)}
         options={options}
@@ -442,6 +461,156 @@ function MetricMultiControl(props: ControlProps): ReactElement {
   );
 }
 
+/**
+ * The value the dataset picker needs for an already-bound dataset. Bare —
+ * just the id (composite-encoded per below) — while the name is still
+ * resolving: `AsyncSelect` prefers a *labeled* value's own label over a
+ * matching loaded option's, so handing it a stale `String(datasetId)` label
+ * here would overwrite the real name the moment the matching option
+ * arrives, replaying the exact stuck-on-the-numeric-id symptom this control
+ * exists to avoid — instead, letting `AsyncSelect` fall back to the id on
+ * its own leaves it free to prefer a loaded option's label the instant one
+ * matches. Once `tableName` resolves, the explicit label takes over.
+ *
+ * `value` carries the composite `"ds:<id>"` encoding when the Semantic
+ * Layers flag is on, matching what `loadDatasetOptions` encodes its own
+ * options as in that mode (see `resolveDatasetPick` below) — an option and
+ * a bound value in two different encodings never match, which is what
+ * leaves a genuinely-selected dataset showing as unselected.
+ */
+export function toDatasetSelectValue(
+  datasetId: number | undefined,
+  tableName: string | undefined,
+  useSemanticLayers: boolean,
+): { label: string; value: number | string } | number | string | undefined {
+  if (datasetId === undefined) {
+    return undefined;
+  }
+  const value = useSemanticLayers ? toCompositeValue(datasetId) : datasetId;
+  return tableName ? { label: tableName, value } : value;
+}
+
+/**
+ * The numeric dataset id a picked option resolves to, or `undefined` when
+ * the pick should be rejected outright: a semantic view, which
+ * `DataBinding.datasetId` has no way to represent (SIP-182's `kind` is a
+ * connection-level concept, not a per-field one on this schema). Handles
+ * both encodings `loadDatasetOptions` can produce — a plain number when the
+ * Semantic Layers flag is off, or, flag on, a composite `"ds:<id>"` /
+ * `"sv:<id>"` string for every option (not only semantic views: with the
+ * flag on, ordinary datasets are composite-encoded too).
+ */
+export function resolveDatasetPick(
+  value: number | string | undefined,
+): number | undefined {
+  if (value === undefined || typeof value === 'number') {
+    return value;
+  }
+  return kindFromComposite(value) === 'semantic_view'
+    ? undefined
+    : fromCompositeValue(value);
+}
+
+/**
+ * `loadDatasetOptions` filtered down to plain datasets. `DataBinding` has no
+ * way to represent a semantic view (SIP-182's `kind` is a connection-level
+ * concept, not a per-field one on this schema), so rather than let one be
+ * picked and then reject it after the fact — leaving the closed select
+ * showing a value the widget never actually bound — it is never offered.
+ *
+ * Module-level, not a closure defined inside `DatasetControl`: `AsyncSelect`
+ * treats a change in its `options` function's identity as a reason to wipe
+ * its own fetched-options cache, and a fresh arrow function on every render
+ * would do exactly that.
+ *
+ * `totalCount` is passed through unfiltered — it counts datasets and
+ * semantic views together, same as the page `data` was drawn from before
+ * this function's own filter ran. With the Semantic Layers flag on and
+ * enough semantic views sorted ahead of the wanted datasets on the current
+ * search, a page that filters down to nothing still reports more rows
+ * exist, but `AsyncSelect` only requests the next page on scroll — and a
+ * dropdown with nothing to scroll never gets the chance. Narrow (flag off,
+ * the filter is a no-op and this never applies) and not addressed here;
+ * paging forward internally past an empty filtered page, or asking the
+ * backend to exclude semantic views from the query in the first place,
+ * would close it.
+ */
+async function loadDatasetOnlyOptions(
+  search: string,
+  page: number,
+  pageSize: number,
+) {
+  const { data, totalCount } = await loadDatasetOptions(search, page, pageSize);
+  return {
+    data: data.filter(option => option.kind !== 'semantic_view'),
+    totalCount,
+  };
+}
+
+/**
+ * A `datasetId` field — a searchable picker over every dataset the author
+ * can see. Calls `AsyncSelect`/`loadDatasetOnlyOptions` directly rather than
+ * through the native filters config modal's `DatasetSelect` wrapper: that
+ * wrapper memoizes its rendered element with an empty dependency array
+ * (`FiltersConfigForm/DatasetSelect.tsx`'s `MemoizedSelect`), which freezes
+ * every prop — including `value` — at first render. Fine for that modal's
+ * own call site, where the value is known synchronously; fatal here, where
+ * the resolved label from `useDatasetMetadata` never arrives until after a
+ * fetch, so the picker would show the raw numeric id forever.
+ *
+ * Fetches the bound dataset's own metadata purely to read its name for the
+ * label; `ColumnControl`/`MetricMultiControl` on the same widget make the
+ * identical call, so this rides their cache rather than adding a second
+ * fetch. The hook runs unconditionally, before the fail-open branch below —
+ * a hook called only on some renders (here, only when `props.data` is
+ * already a number) is exactly what React's "Rendered fewer hooks than
+ * expected" crash guards against, the same reason every sibling control in
+ * this file keeps its hooks ahead of its own fail-open check.
+ */
+function DatasetControl(props: ControlProps): ReactElement {
+  const datasetId = typeof props.data === 'number' ? props.data : undefined;
+  const { metadata } = useDatasetMetadata(datasetId);
+  const useSemanticLayers = isFeatureEnabled(FeatureFlag.SemanticLayers);
+  const value = useMemo(
+    () =>
+      toDatasetSelectValue(datasetId, metadata?.tableName, useSemanticLayers),
+    [datasetId, metadata?.tableName, useSemanticLayers],
+  );
+
+  if (props.data !== undefined && typeof props.data !== 'number') {
+    return <CodeControl {...props} />;
+  }
+
+  return (
+    <Form.Item label={props.label}>
+      <AsyncSelect
+        ariaLabel={props.label}
+        value={value}
+        options={loadDatasetOnlyOptions}
+        optionFilterProps={['table_name']}
+        disabled={!props.enabled}
+        placeholder={t('Search datasets…')}
+        notFoundContent={t('No matching datasets')}
+        onChange={next => {
+          // `AsyncSelect` always runs in `labelInValue` mode internally
+          // (`AsyncSelect.tsx`'s own `<Select labelInValue />`), so a single
+          // pick here is always a `{value, label}` object at runtime — the
+          // wider type on `onChange` covers modes (multi-select, raw value)
+          // this call site never uses. `resolveDatasetPick`'s semantic-view
+          // rejection is a second line of defence past the options filter
+          // above, not the primary one — belt and suspenders, not the belt.
+          if (next && typeof next === 'object' && !Array.isArray(next)) {
+            const datasetPick = resolveDatasetPick(next.value);
+            if (datasetPick !== undefined) {
+              props.handleChange(props.path, datasetPick);
+            }
+          }
+        }}
+      />
+    </Form.Item>
+  );
+}
+
 /** Base Semantic-Layer renderers plus the widget-control ones above. */
 export const schemaControlRenderers = [
   ...baseRenderers,
@@ -464,5 +633,20 @@ export const schemaControlRenderers = [
   {
     tester: rankWith(1000, xControlIs('metric-multi')),
     renderer: withJsonFormsControlProps(MetricMultiControl),
+  },
+  {
+    // `scopeEndIs` matches the scope's exact final path segment (unlike
+    // `scopeEndsWith`, a raw string suffix check that would also match a
+    // future `sourceDatasetId` or similar). `schemaTypeIs('integer')` is a
+    // second guard against an unrelated field ever sharing the name — but
+    // it would silently stop matching, with no error, if `dataset_id` ever
+    // became `Optional[int]`: Pydantic then emits `anyOf`, which jsonforms'
+    // schema-type derivation does not flatten. It is a required field
+    // (`superset/widgets/controls.py`), so this is latent, not live.
+    tester: rankWith(
+      1000,
+      and(scopeEndIs('datasetId'), schemaTypeIs('integer')),
+    ),
+    renderer: withJsonFormsControlProps(DatasetControl),
   },
 ];

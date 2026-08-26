@@ -20,6 +20,8 @@ import {
   columnOptions,
   hasAdvancedMetric,
   metricOptions,
+  resolveDatasetPick,
+  toDatasetSelectValue,
 } from './schemaControlRenderers';
 
 test('columnOptions filters by x-column-types when given', () => {
@@ -88,4 +90,46 @@ test('hasAdvancedMetric is true for a metric name the dataset does not have', ()
     metrics: [{ name: 'count', verboseName: 'Count' }],
   };
   expect(hasAdvancedMetric(['unknown_metric'], metadata)).toBe(true);
+});
+
+test('toDatasetSelectValue is undefined when no dataset is bound', () => {
+  expect(toDatasetSelectValue(undefined, undefined, false)).toBeUndefined();
+});
+
+test('toDatasetSelectValue uses the resolved table name as the label', () => {
+  expect(toDatasetSelectValue(3, 'sales', false)).toEqual({
+    label: 'sales',
+    value: 3,
+  });
+});
+
+test('toDatasetSelectValue returns the bare id while the name is not yet resolved, not a stale labeled value', () => {
+  expect(toDatasetSelectValue(3, undefined, false)).toBe(3);
+});
+
+test('toDatasetSelectValue composite-encodes the value when Semantic Layers is on, matching how loadDatasetOptions encodes its own options', () => {
+  expect(toDatasetSelectValue(3, 'sales', true)).toEqual({
+    label: 'sales',
+    value: 'ds:3',
+  });
+});
+
+test('toDatasetSelectValue composite-encodes the bare id too, independent of whether the label has resolved', () => {
+  expect(toDatasetSelectValue(3, undefined, true)).toBe('ds:3');
+});
+
+test('resolveDatasetPick passes a plain numeric value through unchanged', () => {
+  expect(resolveDatasetPick(3)).toBe(3);
+});
+
+test('resolveDatasetPick decodes a composite dataset id', () => {
+  expect(resolveDatasetPick('ds:3')).toBe(3);
+});
+
+test('resolveDatasetPick rejects a semantic view — datasetId has no way to represent one', () => {
+  expect(resolveDatasetPick('sv:3')).toBeUndefined();
+});
+
+test('resolveDatasetPick passes undefined through (nothing picked)', () => {
+  expect(resolveDatasetPick(undefined)).toBeUndefined();
 });

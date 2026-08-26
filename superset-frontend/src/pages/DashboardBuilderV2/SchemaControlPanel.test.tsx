@@ -22,12 +22,14 @@ import {
   render,
   screen,
   selectOption,
+  userEvent,
   waitFor,
 } from 'spec/helpers/testing-library';
 import DashboardProvider from 'src/core/dashboard/DashboardProvider';
 import 'src/core/dashboard';
 import { fetchQueryData } from 'src/core/dashboard/chartData';
 import { resetDatasetMetadataCacheForTests } from 'src/core/dashboard/datasetMetadata';
+import { loadDatasetOptions } from 'src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/DatasetSelect';
 import SchemaControlPanel from './SchemaControlPanel';
 
 type DataBindingSpec = dashboardApi.DataBindingSpec;
@@ -36,8 +38,29 @@ jest.mock('src/core/dashboard/chartData', () => ({
   fetchQueryData: jest.fn().mockResolvedValue({ columns: [], rows: [] }),
 }));
 
+// `loadDatasetOptions` reaches `SupersetClient.get` through `cachedSupersetGet`,
+// which binds the client's `get` method once at module load — before this
+// file's own `jest.spyOn(SupersetClient, 'get')` below ever runs — so `getSpy`
+// can never observe or mock this particular call path. Mocking the exported
+// function directly is the same approach this file already takes for
+// `fetchQueryData` just above, though that one is mocked to keep `postSpy`
+// free for the control-schema endpoint and to vary rows per test, not
+// because of this same binding gap.
+jest.mock(
+  'src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/DatasetSelect',
+  () => ({
+    ...jest.requireActual(
+      'src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/DatasetSelect',
+    ),
+    loadDatasetOptions: jest.fn(),
+  }),
+);
+
 const fetchQueryDataMock = fetchQueryData as jest.MockedFunction<
   typeof fetchQueryData
+>;
+const loadDatasetOptionsMock = loadDatasetOptions as jest.MockedFunction<
+  typeof loadDatasetOptions
 >;
 
 const provider = DashboardProvider.getInstance();
@@ -64,6 +87,7 @@ beforeEach(() => {
   // which would otherwise leak one test's mocked columns/metrics into the
   // next test that binds the same `datasetId`.
   resetDatasetMetadataCacheForTests();
+  loadDatasetOptionsMock.mockReset();
 });
 
 const mount = (type: string, props?: Record<string, unknown>) => {
@@ -267,6 +291,145 @@ test('renders a metric picker for an x-control: "metric-multi" field and writes 
   await waitFor(() =>
     expect(provider.getNode(id)?.props?.metrics).toEqual(['count']),
   );
+});
+
+test('renders a combobox — not a bare number input — for a datasetId field, matched by name rather than an x-control hint', async () => {
+  postSpy.mockResolvedValue({
+    json: {
+      result: {
+        type: 'object',
+        properties: { dataBinding: { $ref: '#/$defs/DataBinding' } },
+        $defs: {
+          DataBinding: {
+            type: 'object',
+            properties: {
+              datasetId: { type: 'integer', title: 'Dataset ID' },
+            },
+          },
+        },
+      },
+    },
+  } as never);
+  getSpy.mockResolvedValue({ json: { result: {} } } as never);
+
+  mount('balloons', { dataBinding: { datasetId: 1 } });
+
+  expect(await screen.findByRole('combobox')).toBeInTheDocument();
+  expect(screen.queryByRole('spinbutton')).not.toBeInTheDocument();
+});
+
+test("resolves the bound dataset's own name for the picker label, not just its numeric id", async () => {
+  // Regression test: `DatasetControl` must call `AsyncSelect` directly.
+  // Wrapping the native filters config modal's `DatasetSelect` component
+  // instead — which memoizes its rendered element with an empty dependency
+  // array — freezes `value` at whatever it was on first render, so the
+  // label would be stuck on the raw numeric id forever once the real name
+  // arrives from `useDatasetMetadata`.
+  postSpy.mockResolvedValue({
+    json: {
+      result: {
+        type: 'object',
+        properties: { dataBinding: { $ref: '#/$defs/DataBinding' } },
+        $defs: {
+          DataBinding: {
+            type: 'object',
+            properties: {
+              datasetId: { type: 'integer', title: 'Dataset ID' },
+            },
+          },
+        },
+      },
+    },
+  } as never);
+  getSpy.mockResolvedValue({
+    json: { result: { table_name: 'sales' } },
+  } as never);
+
+  mount('balloons', { dataBinding: { datasetId: 3 } });
+
+  expect(
+    await screen.findByRole('combobox', { name: 'Dataset ID: sales' }),
+  ).toBeInTheDocument();
+});
+
+test('picking a dataset writes its id back into dataBinding.datasetId', async () => {
+  postSpy.mockResolvedValue({
+    json: {
+      result: {
+        type: 'object',
+        properties: { dataBinding: { $ref: '#/$defs/DataBinding' } },
+        $defs: {
+          DataBinding: {
+            type: 'object',
+            properties: {
+              datasetId: { type: 'integer', title: 'Dataset ID' },
+            },
+          },
+        },
+      },
+    },
+  } as never);
+  // Nothing bound yet, so the aria-label stays the plain "Dataset ID" until
+  // the pick below — which is what makes it safe to target by that fixed
+  // name — but a successful pick immediately binds `datasetId: 9`, and
+  // `useDatasetMetadata` fires its own fetch for *that* dataset's name the
+  // moment it does.
+  loadDatasetOptionsMock.mockResolvedValue({
+    data: [{ label: 'orders', value: 9, table_name: 'orders' }],
+    totalCount: 1,
+  });
+  getSpy.mockResolvedValue({
+    json: { result: { table_name: 'orders' } },
+  } as never);
+
+  const id = mount('balloons', { dataBinding: {} });
+
+  await selectOption('orders', 'Dataset ID');
+
+  await waitFor(() =>
+    expect(
+      (provider.getNode(id)?.props?.dataBinding as DataBindingSpec)?.datasetId,
+    ).toBe(9),
+  );
+});
+
+test('never offers a semantic view as a dataset pick — datasetId has no way to represent one', async () => {
+  postSpy.mockResolvedValue({
+    json: {
+      result: {
+        type: 'object',
+        properties: { dataBinding: { $ref: '#/$defs/DataBinding' } },
+        $defs: {
+          DataBinding: {
+            type: 'object',
+            properties: {
+              datasetId: { type: 'integer', title: 'Dataset ID' },
+            },
+          },
+        },
+      },
+    },
+  } as never);
+  loadDatasetOptionsMock.mockResolvedValue({
+    data: [
+      {
+        label: 'a semantic view',
+        value: 'sv:5',
+        table_name: 'a semantic view',
+        kind: 'semantic_view',
+      },
+      { label: 'orders', value: 9, table_name: 'orders' },
+    ],
+    totalCount: 2,
+  });
+
+  mount('balloons', { dataBinding: {} });
+  await userEvent.click(
+    await screen.findByRole('combobox', { name: 'Dataset ID' }),
+  );
+
+  expect(await screen.findByText('orders')).toBeInTheDocument();
+  expect(screen.queryByText('a semantic view')).not.toBeInTheDocument();
 });
 
 test('falls back to the raw JSON editor when an existing metric entry is an ad-hoc aggregate', async () => {
@@ -496,9 +659,10 @@ test('the real balloons schema shape (dataBinding nested under $defs) renders pi
 
   // The dataset mock has exactly one column and one metric, so both
   // multi-lists' "add" selects are now gone (nothing left to add) — leaving
-  // `colorDimension`'s plain Select as the only combobox on screen, so the
-  // unnamed pick below still resolves to a single element.
-  await selectOption('gender');
+  // `colorDimension`'s Select as the only *other* combobox besides the
+  // `datasetId` field's own picker, which is named by its label like every
+  // other reference control here.
+  await selectOption('gender', 'Color dimension');
   await waitFor(() =>
     expect(provider.getNode(id)?.props?.colorDimension).toBe('gender'),
   );

@@ -66,6 +66,16 @@ test('falls back to metric_name when verbose_name is blank', async () => {
   expect(metadata.metrics).toEqual([{ name: 'count', verboseName: 'count' }]);
 });
 
+test("parses the dataset's own name from the GET response", async () => {
+  getSpy.mockResolvedValue({
+    json: { result: { table_name: 'sales' } },
+  } as never);
+
+  const metadata = await fetchDatasetMetadata(6);
+
+  expect(metadata.tableName).toBe('sales');
+});
+
 test('fetches only once per dataset id and caches the result', async () => {
   getSpy.mockResolvedValue({ json: { result: {} } } as never);
 
