@@ -19,8 +19,11 @@ from __future__ import annotations
 from typing import ClassVar
 
 import pytest
-from pydantic import BaseModel
-from superset_core.semantic_layers.config import build_configuration_schema
+from pydantic import BaseModel, ConfigDict, Field
+from superset_core.semantic_layers.config import (
+    build_configuration_schema,
+    check_dependencies,
+)
 
 
 class _NoOverride(BaseModel):
@@ -97,3 +100,29 @@ def test_field_order_on_nested_model_with_inherited_field() -> None:
     schema = build_configuration_schema(_OuterComposed)
     assert list(schema["$defs"]["_NestedComposed"]["properties"]) == ["y", "x"]
     assert schema["$defs"]["_NestedComposed"]["required"] == ["y", "x"]
+
+
+class _Aliased(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    data_binding: int = Field(alias="dataBinding")
+
+
+def test_check_dependencies_resolves_alias() -> None:
+    # x-dependsOn is written using the schema-facing alias ("dataBinding"),
+    # but Pydantic attribute access always uses the Python field name
+    # ("data_binding") -- confirmed directly that getattr(parsed, "dataBinding")
+    # misses even under populate_by_name=True.
+    configuration = _Aliased(dataBinding=1)
+    assert getattr(configuration, "dataBinding", "MISSING") == "MISSING"
+    assert check_dependencies({"x-dependsOn": ["dataBinding"]}, configuration)
+
+
+def test_check_dependencies_false_when_dependency_falsy() -> None:
+    configuration = _Aliased(dataBinding=0)
+    assert not check_dependencies({"x-dependsOn": ["dataBinding"]}, configuration)
+
+
+def test_check_dependencies_true_when_no_dependencies_declared() -> None:
+    configuration = _Aliased(dataBinding=0)
+    assert check_dependencies({}, configuration)

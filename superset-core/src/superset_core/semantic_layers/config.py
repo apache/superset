@@ -129,7 +129,18 @@ def check_dependencies(
     Check whether a dynamic property's dependencies are satisfied.
 
     Reads the ``x-dependsOn`` list from the property schema and returns ``True``
-    when every referenced attribute on ``configuration`` is truthy.
+    when every referenced attribute on ``configuration`` is truthy. Entries are
+    written using the schema-facing alias (e.g. ``"dataBinding"``), so each is
+    resolved to its Pydantic field name before ``getattr`` -- Pydantic attribute
+    access always uses the field name, never the alias, even under
+    ``populate_by_name=True``.
     """
     dependencies = prop_schema.get("x-dependsOn", [])
-    return all(getattr(configuration, dep, None) for dep in dependencies)
+    alias_to_name = {
+        (field.alias or name): name
+        for name, field in type(configuration).model_fields.items()
+    }
+    return all(
+        getattr(configuration, alias_to_name.get(dep, dep), None)
+        for dep in dependencies
+    )
