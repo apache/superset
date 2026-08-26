@@ -163,7 +163,7 @@ from superset.tasks.thumbnails import (
     cache_dashboard_thumbnail,
 )
 from superset.tasks.utils import get_current_user
-from superset.utils import json, s3
+from superset.utils import json
 from superset.utils.core import (
     get_user_id,
     parse_boolean_string,
@@ -1776,7 +1776,8 @@ class DashboardRestApi(
             501:
               description: Excel export is not configured on this server
         """
-        if not current_app.config["EXCEL_EXPORT_S3_BUCKET"]:
+        storage_config = current_app.config["EXPORT_STORAGE"]
+        if not storage_config.get("bucket") or storage_config.get("backend") is None:
             return self.response(
                 501, message="Excel export is not configured on this server."
             )
@@ -1912,18 +1913,18 @@ class DashboardRestApi(
     @safe
     @statsd_metrics
     def download_xlsx(self, job_id: uuid.UUID) -> WerkzeugResponse:
-        """Redirect to a freshly pre-signed S3 URL for a completed Excel export.
+        """Redirect to a freshly signed storage URL for a completed Excel export.
         ---
         get:
           summary: Download a completed dashboard Excel export
           description: >-
-            Intentionally requires no login, matching a raw pre-signed S3
-            URL's own access model: the unguessable job_id, emailed only to
-            the original requester (or handed to their own session via
-            export_xlsx_status), is the credential. The dashboard access
+            Intentionally requires no login, matching a raw pre-signed
+            storage URL's own access model: the unguessable job_id, emailed
+            only to the original requester (or handed to their own session
+            via export_xlsx_status), is the credential. The dashboard access
             check already ran once, when the export was requested -- see
             security_manager.raise_for_access in export_xlsx. A fresh
-            pre-signed URL is generated at click time (instead of the one
+            signed URL is generated at click time (instead of the one
             baked into the export at completion time) so the link's promised
             lifetime is independent of how long the signing credentials
             themselves remain valid.
@@ -1936,17 +1937,27 @@ class DashboardRestApi(
             description: The job_id from the export_xlsx response
           responses:
             302:
-              description: Redirect to a pre-signed S3 download URL
+              description: Redirect to a signed storage download URL
             410:
               description: The link is unknown, expired, or the export failed
+            501:
+              description: Excel export is not configured on this server
         """
         resolved = resolve_download_link(job_id)
         if resolved is None:
             return self.response(410, message="This download link has expired.")
         bucket, key = resolved
-        return redirect(
-            s3.generate_presigned_url(bucket, key, PRESIGNED_URL_TTL_SECONDS)
+        storage_backend = current_app.config["EXPORT_STORAGE"].get("backend")
+        if storage_backend is None:
+            # A link can only exist if a backend was configured when the export
+            # ran, so reaching this means the config was cleared since then.
+            return self.response(
+                501, message="Excel export is not configured on this server."
+            )
+        download_url = storage_backend.generate_download_url(
+            bucket, key, PRESIGNED_URL_TTL_SECONDS
         )
+        return redirect(download_url)
 
     @expose("/<pk>/cache_dashboard_screenshot/", methods=("POST",))
     @validate_feature_flags(["THUMBNAILS", "ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS"])

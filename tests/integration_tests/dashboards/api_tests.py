@@ -21,8 +21,10 @@ import uuid
 from datetime import datetime, timedelta
 from io import BytesIO
 from time import sleep
-from unittest.mock import ANY, patch
+from unittest.mock import ANY, MagicMock, patch
 from zipfile import is_zipfile, ZipFile
+
+from flask import current_app
 
 from tests.integration_tests.insert_chart_mixin import InsertChartMixin
 
@@ -3399,7 +3401,8 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         assert response["count"] > 0
 
     def test_export_xlsx_501_when_bucket_unset(self):
-        """Dashboard API: export_xlsx returns 501 when the S3 bucket is unset."""
+        """Dashboard API: export_xlsx returns 501 when no bucket is configured
+        (the default EXPORT_STORAGE has neither bucket nor backend)."""
         admin = self.get_user("admin")
         dashboard = self.insert_dashboard("xlsx-501", None, [admin.id])
         self.login(ADMIN_USERNAME)
@@ -3410,7 +3413,22 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
             db.session.delete(dashboard)
             db.session.commit()
 
-    @with_config({"EXCEL_EXPORT_S3_BUCKET": "exports"})
+    @with_config({"EXPORT_STORAGE": {"bucket": "exports"}})
+    def test_export_xlsx_501_when_backend_unset(self):
+        """Dashboard API: export_xlsx returns 501 when a bucket is configured
+        but no storage backend is -- there is no implicit S3 default, so a
+        bucket alone is not enough to run exports."""
+        admin = self.get_user("admin")
+        dashboard = self.insert_dashboard("xlsx-501-backend", None, [admin.id])
+        self.login(ADMIN_USERNAME)
+        try:
+            rv = self.client.post(f"api/v1/dashboard/{dashboard.id}/export_xlsx/")
+            assert rv.status_code == 501
+        finally:
+            db.session.delete(dashboard)
+            db.session.commit()
+
+    @with_config({"EXPORT_STORAGE": {"bucket": "exports", "backend": MagicMock()}})
     @patch("superset.dashboards.api.export_dashboard_excel")
     def test_export_xlsx_404_for_missing_dashboard(self, mock_task):
         """Dashboard API: export_xlsx returns 404 for an unknown dashboard."""
@@ -3419,7 +3437,7 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         assert rv.status_code == 404
         mock_task.apply_async.assert_not_called()
 
-    @with_config({"EXCEL_EXPORT_S3_BUCKET": "exports"})
+    @with_config({"EXPORT_STORAGE": {"bucket": "exports", "backend": MagicMock()}})
     @patch("superset.dashboards.api.export_dashboard_excel")
     def test_export_xlsx_400_for_empty_dashboard(self, mock_task):
         """Dashboard API: export_xlsx returns 400 for a dashboard with no charts."""
@@ -3435,7 +3453,7 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
             db.session.commit()
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
-    @with_config({"EXCEL_EXPORT_S3_BUCKET": "exports"})
+    @with_config({"EXPORT_STORAGE": {"bucket": "exports", "backend": MagicMock()}})
     @patch("superset.dashboards.api.AcquireDistributedLock")
     @patch("superset.dashboards.api.export_dashboard_excel")
     def test_export_xlsx_202_enqueues_task(self, mock_task, mock_acquire):
@@ -3458,7 +3476,7 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         assert kwargs["kwargs"]["dashboard_id"] == dashboard.id
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
-    @with_config({"EXCEL_EXPORT_S3_BUCKET": "exports"})
+    @with_config({"EXPORT_STORAGE": {"bucket": "exports", "backend": MagicMock()}})
     @patch("superset.dashboards.api.AcquireDistributedLock")
     @patch("superset.dashboards.api.export_dashboard_excel")
     def test_export_xlsx_202_when_export_already_in_progress(
@@ -3477,7 +3495,7 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         assert "already in progress" in rv.data.decode("utf-8")
         mock_task.apply_async.assert_not_called()
 
-    @with_config({"EXCEL_EXPORT_S3_BUCKET": "exports"})
+    @with_config({"EXPORT_STORAGE": {"bucket": "exports", "backend": MagicMock()}})
     @patch("superset.dashboards.api.export_dashboard_excel")
     def test_export_xlsx_404_for_inaccessible_dashboard(self, mock_task):
         """Dashboard API: export_xlsx returns 404 for a dashboard the user can't see."""
@@ -3495,7 +3513,7 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
             db.session.commit()
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
-    @with_config({"EXCEL_EXPORT_S3_BUCKET": "exports"})
+    @with_config({"EXPORT_STORAGE": {"bucket": "exports", "backend": MagicMock()}})
     @patch("superset.dashboards.api.AcquireDistributedLock")
     @patch("superset.dashboards.api.export_dashboard_excel")
     @patch("superset.dashboards.api.security_manager.raise_for_access")
@@ -3526,7 +3544,7 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
                 db.session.commit()
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
-    @with_config({"EXCEL_EXPORT_S3_BUCKET": "exports"})
+    @with_config({"EXPORT_STORAGE": {"bucket": "exports", "backend": MagicMock()}})
     @patch("superset.dashboards.api.AcquireDistributedLock")
     @patch("superset.dashboards.api.export_dashboard_excel")
     def test_export_xlsx_admitted_without_email(self, mock_task, mock_acquire):
@@ -3559,8 +3577,9 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
 
     def test_download_xlsx_redirects_without_login(self):
         """Dashboard API: download_xlsx requires no login, matching a raw
-        pre-signed S3 URL's own access model -- the dashboard access check
-        already ran once, when the export was requested."""
+        pre-signed storage URL's own access model -- the dashboard access
+        check already ran once, when the export was requested. The URL is
+        minted by the configured storage backend at click time."""
         from superset.dashboards.excel_export.download_link import (
             create_download_link,
         )
@@ -3573,14 +3592,40 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
             datetime.now() + timedelta(hours=1),
         )
         db.session.commit()
-        with patch("superset.dashboards.api.s3.generate_presigned_url") as mock_sign:
-            mock_sign.return_value = "https://bucket.s3.amazonaws.com/signed"
+        mock_storage = MagicMock()
+        mock_storage.generate_download_url.return_value = (
+            "https://bucket.s3.amazonaws.com/signed"
+        )
+        original_storage_config = current_app.config["EXPORT_STORAGE"]
+        current_app.config["EXPORT_STORAGE"] = {"backend": mock_storage}
+        try:
             rv = self.client.get(f"/api/v1/dashboard/export_xlsx/download/{job_id}/")
+        finally:
+            current_app.config["EXPORT_STORAGE"] = original_storage_config
         assert rv.status_code == 302
         assert rv.headers["Location"] == "https://bucket.s3.amazonaws.com/signed"
-        mock_sign.assert_called_once_with(
+        mock_storage.generate_download_url.assert_called_once_with(
             "exports", "dashboard-exports/1/job.xlsx", ANY
         )
+
+    def test_download_xlsx_501_when_backend_unset(self):
+        """Dashboard API: a valid download link cannot be resolved without a
+        configured storage backend (there is no implicit S3 default), so the
+        route reports 501 rather than crashing."""
+        from superset.dashboards.excel_export.download_link import (
+            create_download_link,
+        )
+
+        job_id = uuid.uuid4()
+        create_download_link(
+            job_id,
+            "exports",
+            "dashboard-exports/1/job.xlsx",
+            datetime.now() + timedelta(hours=1),
+        )
+        db.session.commit()
+        rv = self.client.get(f"/api/v1/dashboard/export_xlsx/download/{job_id}/")
+        assert rv.status_code == 501
 
     def test_download_xlsx_410_for_unknown_key(self):
         rv = self.client.get(f"/api/v1/dashboard/export_xlsx/download/{uuid.uuid4()}/")
@@ -3622,15 +3667,13 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         assert rv.status_code == 200
         assert rv.json == {"status": "pending"}
 
-    @patch("superset.dashboards.api.s3.generate_presigned_url")
-    def test_export_xlsx_status_ready_includes_download_url(self, mock_presign):
+    def test_export_xlsx_status_ready_includes_download_url(self):
         """Dashboard API: once ready, status includes a download_url built
         from the same job_id, not a separately-tracked identifier."""
         from superset.dashboards.excel_export.download_link import (
             create_download_link,
         )
 
-        mock_presign.return_value = "https://bucket.s3.amazonaws.com/signed"
         job_id = uuid.uuid4()
         create_download_link(
             job_id,
@@ -3665,7 +3708,7 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         assert rv.json == {"status": "error", "message": "boom"}
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
-    @with_config({"EXCEL_EXPORT_S3_BUCKET": "exports"})
+    @with_config({"EXPORT_STORAGE": {"bucket": "exports", "backend": MagicMock()}})
     @patch("superset.dashboards.api.export_dashboard_excel")
     def test_export_xlsx_images_404_when_screenshot_flags_off(self, mock_task):
         """Dashboard API: ``mode=images`` is rejected with 404 when the webdriver
@@ -3681,7 +3724,7 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         mock_task.apply_async.assert_not_called()
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
-    @with_config({"EXCEL_EXPORT_S3_BUCKET": "exports"})
+    @with_config({"EXPORT_STORAGE": {"bucket": "exports", "backend": MagicMock()}})
     @with_feature_flags(
         ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True,
         ENABLE_DASHBOARD_DOWNLOAD_WEBDRIVER_SCREENSHOT=True,
