@@ -34,8 +34,8 @@ type PanelTab = 'data' | 'widgets' | 'properties' | 'outline';
  * How wide the panel opens, and how far it may be dragged.
  *
  * The default is set by the Properties tab, which holds a widget's whole set
- * of fields and is the widest thing here; the palette and the outline are
- * narrow whatever they are given. The ceiling leaves a usable canvas on a
+ * of fields and is the widest thing here; Data, the palette, and the outline
+ * are narrow whatever they are given. The ceiling leaves a usable canvas on a
  * small screen.
  */
 const DEFAULT_WIDTH = 350;
@@ -126,12 +126,17 @@ const Grip = styled.div<{ $active: boolean }>`
 `;
 
 /**
- * The authoring panel: one rail, three ways of working on a dashboard.
+ * The authoring panel: one rail, four ways of working on a dashboard.
  *
  * Placing a widget, editing one and finding one are the same activity at
- * different moments, and an author is only ever doing one of them. Giving
- * each its own permanent rail would spend the canvas on a choice made moment
- * to moment, so they share a rail and the canvas keeps the room.
+ * different moments, and an author is only ever doing one of them —
+ * Building Blocks, Properties and Outline are that activity's three faces.
+ * Browsing data is a different activity: checking what a dataset holds is
+ * not a moment of placing, editing or finding a widget, which is why it gets
+ * a tab of its own rather than folding into one of the other three. Giving
+ * every tab its own permanent rail would still spend the canvas on a choice
+ * made moment to moment, so all four share one rail and the canvas keeps
+ * the room.
  */
 export default function EditorPanel({
   onAdd,

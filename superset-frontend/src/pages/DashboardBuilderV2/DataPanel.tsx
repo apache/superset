@@ -189,7 +189,7 @@ export default function DataPanel(): ReactElement {
             size="small"
             image="filter-results.svg"
             title={t('No matching datasets')}
-            description={t('Nothing here is called "%s".', query)}
+            description={t('Nothing here is called “%s”.', query)}
           />
         </div>
       ) : (

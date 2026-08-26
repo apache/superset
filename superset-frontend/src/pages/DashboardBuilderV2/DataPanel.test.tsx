@@ -43,6 +43,9 @@ test('expanding a dataset shows its columns', async () => {
   expect(columns).toHaveTextContent('order_date');
   expect(columns).toHaveTextContent('sales_amount');
   expect(columns).toHaveTextContent('region');
+  expect(
+    within(columns).getByLabelText('temporal type icon'),
+  ).toBeInTheDocument();
 });
 
 test('a second click collapses it again', async () => {
