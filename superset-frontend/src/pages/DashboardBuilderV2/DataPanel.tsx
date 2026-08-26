@@ -102,7 +102,9 @@ const DatasetButton = styled.button`
     width: 100%;
     padding: ${theme.sizeUnit * 2}px;
     border: 1px solid ${theme.colorBorder};
-    border-radius: ${theme.borderRadiusSM}px;
+    /* The same radius every other tile in this rail, and the canvas itself,
+       draws its own card at — one rounding language, not one per panel. */
+    border-radius: ${theme.borderRadiusLG}px;
     background-color: ${theme.colorFillQuaternary};
     color: ${theme.colorText};
     font-size: ${theme.fontSizeSM}px;

@@ -283,6 +283,20 @@ const WidgetView = forwardRef<HTMLDivElement, WidgetViewProps>(
             provider.setSelection(nodeId);
           }
         }}
+        // A card that lifts slightly on hover, the way the app already
+        // marks a surface as interactive elsewhere (a popover, a toast) —
+        // `css`, not `style`, because a hover state has no inline form.
+        // Never on the root: it is the canvas, not a card resting on it.
+        css={
+          !isRoot &&
+          css`
+            transition: box-shadow ${theme.motionDurationMid};
+
+            &:hover {
+              box-shadow: ${theme.boxShadowSecondary};
+            }
+          `
+        }
         style={{
           ...rest.style,
           // A widget's contents are positioned against this element.
