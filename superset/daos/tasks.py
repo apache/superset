@@ -687,11 +687,15 @@ class TaskDAO(BaseDAO[Task]):
         if properties is not None:
             update_values["properties"] = json.dumps(properties)
 
+        # Store as naive UTC (see Task.set_status): avoids DB drivers converting
+        # an aware value to the session-local tz on write to a naive column.
         if set_started_at:
-            update_values["started_at"] = datetime.now(timezone.utc)
+            update_values["started_at"] = datetime.now(timezone.utc).replace(
+                tzinfo=None
+            )
 
         if set_ended_at:
-            update_values["ended_at"] = datetime.now(timezone.utc)
+            update_values["ended_at"] = datetime.now(timezone.utc).replace(tzinfo=None)
 
         # Update dedup_key if transitioning to terminal state
         if new_status_val in TERMINAL_STATES:

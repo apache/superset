@@ -169,6 +169,8 @@ class TestTaskSetStatus:
 
         assert task.properties_dict.get("is_abortable") is False
         assert task.started_at is not None
+        # Stored as naive UTC (no tzinfo) so DB drivers can't tz-convert it.
+        assert task.started_at.tzinfo is None
 
     def test_set_status_in_progress_preserves_existing_is_abortable(self):
         """Test that re-setting IN_PROGRESS doesn't override is_abortable."""
@@ -236,6 +238,22 @@ class TestTaskDuration:
         task.ended_at = None
 
         # 30 seconds since start
+        assert task.duration_seconds == 30.0
+
+    @freeze_time("2024-01-01 10:00:30")
+    def test_duration_seconds_running_task_naive_started_at(self):
+        """Running duration is correct when started_at is stored naive UTC.
+
+        Regression: an aware started_at converted to session-local time on write
+        would inflate the running duration by the local UTC offset. A naive-UTC
+        started_at must yield the true elapsed against a naive-UTC now.
+        """
+        from superset.models.tasks import Task
+
+        task = Task()
+        task.started_at = datetime(2024, 1, 1, 10, 0, 0)  # naive UTC
+        task.ended_at = None
+
         assert task.duration_seconds == 30.0
 
     @freeze_time("2024-01-01 10:00:15")

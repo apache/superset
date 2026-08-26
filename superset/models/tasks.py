@@ -230,9 +230,12 @@ class Task(CoreTask, AuditMixinNullable, Model):
         self.status = status
 
         # Update timestamps and is_abortable based on status. started_at/ended_at
-        # are stored in UTC (created_on/changed_on from FAB remain naive local, but
-        # nothing computes a delta across the two conventions).
-        now = datetime.now(timezone.utc)
+        # are stored as naive UTC (created_on/changed_on from FAB remain naive
+        # local, but nothing computes a delta across the two conventions). Naive
+        # UTC — rather than aware UTC — avoids DB drivers that convert an aware
+        # value to the session-local tz when writing to a naive column, which
+        # would otherwise skew the running-duration by the local UTC offset.
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
         if status == TaskStatus.IN_PROGRESS.value and not self.started_at:
             self.started_at = now
             # Set is_abortable to False when task starts executing
@@ -278,8 +281,9 @@ class Task(CoreTask, AuditMixinNullable, Model):
         - Pending tasks: None — a task that hasn't started has no duration to show
           (queue time is not execution time)
 
-        started_at/ended_at are stored in UTC; a naive value read back from the DB
-        is treated as UTC for the "still running" delta.
+        started_at/ended_at are stored as naive UTC; a value read back from the
+        DB is treated as naive UTC (any tzinfo is stripped defensively) for the
+        "still running" delta.
         """
         if self.is_finished:
             # Task has completed - use fixed timestamps, never increment
@@ -288,11 +292,11 @@ class Task(CoreTask, AuditMixinNullable, Model):
             # Never started (e.g., aborted while pending) - no duration
             return None
         if self.started_at:
-            # Running or aborting - elapsed since it started (both in UTC)
-            now = datetime.now(timezone.utc)
+            # Running or aborting - elapsed since it started (both naive UTC)
+            now = datetime.now(timezone.utc).replace(tzinfo=None)
             started = (
-                self.started_at.replace(tzinfo=timezone.utc)
-                if self.started_at.tzinfo is None
+                self.started_at.replace(tzinfo=None)
+                if self.started_at.tzinfo is not None
                 else self.started_at
             )
             return (now - started).total_seconds()

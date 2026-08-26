@@ -49,7 +49,7 @@ import TaskStatusIcon from 'src/features/tasks/TaskStatusIcon';
 import TaskPayloadPopover from 'src/features/tasks/TaskPayloadPopover';
 import TaskStackTracePopover from 'src/features/tasks/TaskStackTracePopover';
 import TaskDependenciesPopover from 'src/features/tasks/TaskDependenciesPopover';
-import { formatDuration } from 'src/features/tasks/timeUtils';
+import LiveDuration from 'src/features/tasks/LiveDuration';
 import {
   Task,
   TaskStatus,
@@ -134,6 +134,12 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
   const bootstrapData = getBootstrapData();
   const fullUser = bootstrapData?.user;
   const isAdmin = useMemo(() => isUserAdmin(fullUser), [fullUser]);
+  // Realtime push is active only when the websocket transport is enabled (this
+  // flag is already permission-masked server-side). Used to tick a running
+  // task's duration live; otherwise the duration refreshes on each poll.
+  const realtimeEnabled = Boolean(
+    bootstrapData?.common?.conf?.WEBSOCKET_ENABLE,
+  );
 
   // State for cancel confirmation modal
   const [cancelModalTask, setCancelModalTask] = useState<Task | null>(null);
@@ -411,9 +417,15 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
       {
         Cell: ({
           row: {
-            original: { duration_seconds },
+            original: { duration_seconds, status },
           },
-        }: TaskCellProps) => formatDuration(duration_seconds, locale) ?? '-',
+        }: TaskCellProps) => (
+          <LiveDuration
+            durationSeconds={duration_seconds}
+            locale={locale}
+            live={realtimeEnabled && status === TaskStatus.InProgress}
+          />
+        ),
         accessor: 'duration_seconds',
         Header: t('Duration'),
         size: 'sm',
@@ -601,7 +613,7 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
         disableSortBy: true,
       },
     ],
-    [user.userId, theme, locale, openCancelModal],
+    [user.userId, theme, locale, openCancelModal, realtimeEnabled],
   );
 
   const filters: ListViewFilters = useMemo(
