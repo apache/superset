@@ -1276,6 +1276,53 @@ test('does not reserve dense Plain legend space when compact charts hide the leg
   expect(transformed.contentHeight).toBe(chartHeight);
 });
 
+test('does not change dense Line legend geometry for a hidden annotation', () => {
+  const denseLegendValues = Object.fromEntries(
+    Array.from({ length: 40 }, (_, index) => [
+      `Country ${index + 1}, Product Line`,
+      index + 1,
+    ]),
+  );
+  const hiddenFormula: FormulaAnnotationLayer = {
+    annotationType: AnnotationType.Formula,
+    name: 'Hidden formula',
+    show: false,
+    showLabel: false,
+    style: AnnotationStyle.Solid,
+    value: 'x+1',
+  };
+  const buildChart = (annotationLayers: FormulaAnnotationLayer[]) =>
+    transformProps(
+      createTestChartProps({
+        height: 300,
+        width: 600,
+        formData: {
+          ...formData,
+          annotationLayers,
+          legendOrientation: LegendOrientation.Top,
+          legendType: LegendType.Plain,
+          showLegend: true,
+        },
+        queriesData: [
+          createTestQueryData(
+            createTestData([denseLegendValues], { intervalMs: 300000000 }),
+          ),
+        ],
+      }),
+    );
+
+  const baseline = buildChart([]);
+  const withHiddenAnnotation = buildChart([hiddenFormula]);
+
+  expect(withHiddenAnnotation.echartOptions.legend).toEqual(
+    baseline.echartOptions.legend,
+  );
+  expect(withHiddenAnnotation.echartOptions.grid).toEqual(
+    baseline.echartOptions.grid,
+  );
+  expect(withHiddenAnnotation.contentHeight).toBe(baseline.contentHeight);
+});
+
 test('honors user-selected plain legend type for top orientation when space allows (#39540)', () => {
   // Regression test for issue #39540: switching the legend type control from
   // scroll to plain must reach the rendered ECharts config. Horizontal legends

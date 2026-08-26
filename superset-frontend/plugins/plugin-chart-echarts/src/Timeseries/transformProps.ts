@@ -47,6 +47,7 @@ import {
   NumberFormats,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
+import type { SupersetTheme } from '@apache-superset/core/theme';
 import {
   extractExtraMetrics,
   getOriginalSeries,
@@ -88,6 +89,8 @@ import {
   getHorizontalLegendAvailableWidth,
   getLegendProps,
   getMinAndMaxFromBounds,
+  type HorizontalLegendItemLayout,
+  type HorizontalLegendItemLayouts,
 } from '../utils/series';
 import { resolveLegendLayout } from '../utils/legendLayout';
 import {
@@ -132,16 +135,121 @@ import { mergeCustomEChartOptions } from '../utils/mergeCustomEChartOptions';
 
 // Smallest height that still leaves the plot structure usable below the legend.
 const MIN_TIMESERIES_PLOT_HEIGHT = 80;
-const ECHARTS_LEGEND_ITEM_GAP = 8;
+const ECHARTS_LEGEND_ITEM_WIDTH = 25;
 const ECHARTS_LEGEND_ITEM_HEIGHT = 14;
-// ECharts line legend symbols use 80% of itemHeight plus a 2px stroke.
-const ECHARTS_LINE_LEGEND_ITEM_HEIGHT = ECHARTS_LEGEND_ITEM_HEIGHT * 0.8 + 2;
-// The line icon stroke extends 1px beyond the nominal item width.
-const ECHARTS_LINE_LEGEND_ITEM_WIDTH_ADJUSTMENT = 1;
-const ECHARTS_LINE_LEGEND_ROW_HEIGHT =
-  ECHARTS_LINE_LEGEND_ITEM_HEIGHT + ECHARTS_LEGEND_ITEM_GAP;
-const ECHARTS_FULL_HEIGHT_LEGEND_ROW_HEIGHT =
-  ECHARTS_LEGEND_ITEM_HEIGHT + ECHARTS_LEGEND_ITEM_GAP;
+const ECHARTS_LEGEND_ICON_LABEL_GAP = 5;
+const ECHARTS_LEGEND_NORMALIZED_BORDER_WIDTH = 2;
+const ECHARTS_LEGEND_LINE_SYMBOL_RATIO = 0.8;
+
+type LegendSeriesGeometry = {
+  itemStyle?: { borderWidth?: number | string };
+  name?: string | number;
+  symbol?: unknown;
+  type?: string;
+};
+
+function getHorizontalLegendItemLayout(
+  series: SeriesOption | undefined,
+  theme: SupersetTheme,
+  iconOverride?: 'roundRect',
+): HorizontalLegendItemLayout {
+  // transformSeries has already resolved theme-dependent symbols, so this
+  // geometry follows the exact series/icon option that ECharts will render.
+  const geometry = series as LegendSeriesGeometry | undefined;
+  const textHeight = theme.fontSizeSM;
+  const hasBorder =
+    typeof geometry?.itemStyle?.borderWidth === 'number' &&
+    geometry.itemStyle.borderWidth > 0;
+  const borderWidth = hasBorder ? ECHARTS_LEGEND_NORMALIZED_BORDER_WIDTH : 0;
+
+  if (iconOverride) {
+    return {
+      itemHeight: Math.max(
+        textHeight,
+        ECHARTS_LEGEND_ITEM_HEIGHT + borderWidth,
+      ),
+      itemWidthOffset:
+        ECHARTS_LEGEND_ITEM_WIDTH +
+        ECHARTS_LEGEND_ICON_LABEL_GAP +
+        borderWidth / 2,
+      itemXOffset: -borderWidth / 2,
+    };
+  }
+
+  if (geometry?.type === 'line') {
+    const symbol =
+      typeof geometry.symbol === 'string' ? geometry.symbol : 'emptyCircle';
+    const symbolBorderWidth = symbol.startsWith('empty')
+      ? ECHARTS_LEGEND_NORMALIZED_BORDER_WIDTH
+      : 0;
+    return {
+      itemHeight: Math.max(
+        textHeight,
+        ECHARTS_LEGEND_ITEM_HEIGHT * ECHARTS_LEGEND_LINE_SYMBOL_RATIO +
+          symbolBorderWidth,
+      ),
+      // ECharts normalizes the line stroke to 2px in a legend icon, so the
+      // bounding box begins 1px before the nominal 25px icon slot.
+      itemWidthOffset:
+        ECHARTS_LEGEND_ITEM_WIDTH + ECHARTS_LEGEND_ICON_LABEL_GAP + 1,
+      itemXOffset: -1,
+    };
+  }
+
+  if (geometry?.type === 'scatter') {
+    const itemXOffset =
+      (ECHARTS_LEGEND_ITEM_WIDTH - ECHARTS_LEGEND_ITEM_HEIGHT) / 2;
+    return {
+      itemHeight: Math.max(textHeight, ECHARTS_LEGEND_ITEM_HEIGHT),
+      itemWidthOffset:
+        ECHARTS_LEGEND_ITEM_WIDTH + ECHARTS_LEGEND_ICON_LABEL_GAP - itemXOffset,
+      itemXOffset,
+    };
+  }
+
+  return {
+    itemHeight: Math.max(textHeight, ECHARTS_LEGEND_ITEM_HEIGHT + borderWidth),
+    itemWidthOffset:
+      ECHARTS_LEGEND_ITEM_WIDTH +
+      ECHARTS_LEGEND_ICON_LABEL_GAP +
+      borderWidth / 2,
+    itemXOffset: -borderWidth / 2,
+  };
+}
+
+export function getHorizontalLegendItemLayouts(
+  legendNames: (string | number)[],
+  series: SeriesOption[],
+  theme: SupersetTheme,
+  iconOverride?: 'roundRect',
+): HorizontalLegendItemLayouts {
+  const seriesByName = new Map<string, SeriesOption>();
+  series.forEach(seriesOption => {
+    const { name } = seriesOption as LegendSeriesGeometry;
+    if (name !== undefined && !seriesByName.has(String(name))) {
+      seriesByName.set(String(name), seriesOption);
+    }
+  });
+
+  return Object.fromEntries(
+    legendNames.flatMap(name => {
+      const legendName = String(name);
+      const matchingSeries = seriesByName.get(legendName);
+      return matchingSeries
+        ? [
+            [
+              legendName,
+              getHorizontalLegendItemLayout(
+                matchingSeries,
+                theme,
+                iconOverride,
+              ),
+            ],
+          ]
+        : [];
+    }),
+  );
+}
 
 const visibleDashPatterns: ([number, number] | 'dashed' | 'dotted')[] = [
   'dashed',
@@ -1138,17 +1246,19 @@ export default function transformProps(
   }));
   const isSmallChart = height < TIMESERIES_CONSTANTS.compactChartHeight;
   const isLegendVisible = showLegend && !isSmallChart;
-  const hasFullHeightLegendItems =
-    seriesType === EchartsTimeseriesSeriesType.Bar ||
-    seriesType === EchartsTimeseriesSeriesType.Scatter ||
-    forecastEnabled ||
-    annotationLayers.length > 0;
-  const horizontalPlainLegendItemWidthAdjustment = hasFullHeightLegendItems
-    ? 0
-    : ECHARTS_LINE_LEGEND_ITEM_WIDTH_ADJUSTMENT;
-  const horizontalPlainLegendRowHeight = hasFullHeightLegendItems
-    ? ECHARTS_FULL_HEIGHT_LEGEND_ROW_HEIGHT
-    : ECHARTS_LINE_LEGEND_ROW_HEIGHT;
+  const usesPrimaryAxisLegend = colorByPrimaryAxis && groupBy.length === 0;
+  const resolvedLegendData = usesPrimaryAxisLegend
+    ? colorByPrimaryAxisLegendData
+    : sortedLegendData;
+  const resolvedLegendNames = usesPrimaryAxisLegend
+    ? legendData
+    : sortedLegendData;
+  const horizontalPlainLegendItemLayouts = getHorizontalLegendItemLayouts(
+    resolvedLegendNames,
+    series,
+    theme,
+    usesPrimaryAxisLegend ? 'roundRect' : undefined,
+  );
   const getLegendLayout = (candidateLegendMargin?: string | number | null) => {
     const padding = getPadding(
       isLegendVisible,
@@ -1176,17 +1286,13 @@ export default function transformProps(
           : undefined,
       chartHeight: height,
       chartWidth: width,
-      horizontalPlainLegendItemWidthAdjustment,
-      horizontalPlainLegendRowHeight,
-      legendItems:
-        colorByPrimaryAxis && groupBy.length === 0
-          ? colorByPrimaryAxisLegendData
-          : sortedLegendData,
+      horizontalPlainLegendItemLayouts,
+      legendItems: resolvedLegendData,
       legendMargin: candidateLegendMargin,
       orientation: legendOrientation,
       reserveFullHorizontalPlainLegendMargin: true,
       show: isLegendVisible,
-      showSelectors: !(colorByPrimaryAxis && groupBy.length === 0),
+      showSelectors: !usesPrimaryAxisLegend,
       theme,
       type: legendType,
     });

@@ -844,7 +844,16 @@ describe('Bar Chart X-axis Time Formatting', () => {
         }),
         chartHeight: baseChartPropsConfig.height,
         chartWidth,
-        horizontalPlainLegendRowHeight: 22,
+        horizontalPlainLegendItemLayouts: Object.fromEntries(
+          legendItems.map(name => [
+            name,
+            {
+              itemHeight: 14,
+              itemWidthOffset: 30,
+              itemXOffset: 0,
+            },
+          ]),
+        ),
         legendItems,
         legendMargin,
         orientation: LegendOrientation.Bottom,

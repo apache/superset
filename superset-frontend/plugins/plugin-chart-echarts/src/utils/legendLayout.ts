@@ -18,7 +18,11 @@
  */
 import type { SupersetTheme } from '@apache-superset/core/theme';
 import { LegendOrientation, LegendType } from '../types';
-import { getLegendLayoutResult, LegendLayoutResult } from './series';
+import {
+  getLegendLayoutResult,
+  HorizontalLegendItemLayouts,
+  LegendLayoutResult,
+} from './series';
 
 type LegendDataItem =
   | string
@@ -78,8 +82,7 @@ export function resolveLegendLayout(args: {
   availableWidth?: number;
   chartHeight: number;
   chartWidth: number;
-  horizontalPlainLegendItemWidthAdjustment?: number;
-  horizontalPlainLegendRowHeight?: number;
+  horizontalPlainLegendItemLayouts?: HorizontalLegendItemLayouts;
   legendItems?: LegendDataItem[];
   legendMargin?: string | number | null;
   orientation: LegendOrientation;
