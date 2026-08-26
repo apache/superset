@@ -751,7 +751,7 @@ def _find_last_token_node(node: exp.Expression) -> exp.Expression:
             "cluster",
             "distribute",
             "order",
-            "window",
+            "windows",
             "qualify",
             "having",
             "group",
