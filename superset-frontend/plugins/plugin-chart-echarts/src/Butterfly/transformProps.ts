@@ -156,11 +156,13 @@ export default function transformProps(
       : OpacityEnum.NonTransparent;
 
   const leftData = data.map((row, i) => ({
+    name: categories[i],
     value: -Math.abs(Number(row[leftMetricLabel] ?? 0)),
     label: LABEL_LEFT,
     itemStyle: { opacity: getOpacity(categories[i]) },
   }));
   const rightData = data.map((row, i) => ({
+    name: categories[i],
     value: Math.abs(Number(row[rightMetricLabel] ?? 0)),
     label: LABEL_RIGHT,
     itemStyle: { opacity: getOpacity(categories[i]) },

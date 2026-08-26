@@ -33,7 +33,10 @@ export default class EchartsButterflyChartPlugin extends ChartPlugin<
       controlPanel,
       loadChart: () => import('./Butterfly'),
       metadata: new ChartMetadata({
-        behaviors: [Behavior.InteractiveChart],
+        behaviors: [
+          Behavior.InteractiveChart,
+          Behavior.DrillToDetail,
+        ],
         credits: ['https://echarts.apache.org'],
         category: t('Comparison'),
         description: t(

@@ -200,3 +200,15 @@ test('hides tooltip while the context menu is open', () => {
   expect(getEchartOptions(transformedProps).tooltip?.show).toBe(true);
   expect(getEchartOptions(withContextMenu).tooltip?.show).toBe(false);
 });
+
+test('builds labelMap and groupby for drill and cross-filter handlers', () => {
+  const transformedProps = transformProps(
+    createChartProps() as unknown as EchartsButterflyChartProps,
+  );
+
+  expect(transformedProps.groupby).toEqual(['category']);
+  expect(transformedProps.labelMap).toEqual({
+    A: ['A'],
+    B: ['B'],
+  });
+});
