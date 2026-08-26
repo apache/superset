@@ -397,6 +397,94 @@ test('should map conditional formatting rules to metricColorFormatters with corr
   ).toEqual('#5ac189FF');
 });
 
+/**
+ * Color scales must be built from the values the pivot renders (leaf cells and
+ * subtotal cells alike), not from the raw response rows. See issue #43084:
+ * with the reference distribution taken from the leaf rows only, a subtotal
+ * cell -- the largest value in its column -- fell outside the scale's
+ * [min, max] and got no color at all, while smaller leaf cells were colored.
+ */
+const colorScaleChartProps = (conditionalFormatting: unknown[]) =>
+  new ChartProps<QueryFormData>({
+    formData: {
+      ...formData,
+      combineMetric: false,
+      transposePivot: false,
+      metricsLayout: MetricsLayoutEnum.ROWS,
+      groupbyRows: ['region', 'city'],
+      groupbyColumns: [],
+      rowSubTotals: true,
+      colTotals: true,
+      rowTotals: false,
+      conditionalFormatting,
+      metrics: [
+        {
+          expressionType: 'SIMPLE',
+          aggregate: 'SUM',
+          column: { column_name: 'v' },
+          label: 'v',
+        },
+      ],
+    } as unknown as QueryFormData,
+    width: 800,
+    height: 600,
+    queriesData: [
+      {
+        data: [
+          { region: 'A', city: 'A1', v: 10 },
+          { region: 'A', city: 'A2', v: 5 },
+          { region: 'B', city: 'B1', v: 3 },
+        ],
+        colnames: ['region', 'city', 'v'],
+        coltypes: [1, 1, 0],
+      },
+    ],
+    hooks: { setDataMask },
+    filterState: { selectedFilters: {} },
+    datasource: { verboseMap: {}, columnFormats: {} },
+    theme: supersetTheme,
+  });
+
+const alphaOf = (color: string | undefined) => {
+  expect(typeof color).toBe('string');
+  return parseInt((color as string).slice(-2), 16);
+};
+
+test('color scale covers subtotal cell values, not just leaf rows (#43084)', () => {
+  const result = transformProps(
+    colorScaleChartProps([
+      { colorScheme: '#FF0000', column: 'v', operator: 'None' },
+    ]),
+  );
+  const { getColorFromValue } = result.metricColorFormatters[0];
+  // Rendered cells: leaves 3/5/10, region subtotal A = 15, grand total 18.
+  const alphas = [3, 5, 10, 15, 18].map(value =>
+    alphaOf(getColorFromValue(value)),
+  );
+  expect(alphas).toEqual([...alphas].sort((a, b) => a - b));
+  // The subtotal is the darkest cell in the column, not an uncolored one.
+  expect(alphas[3]).toBeGreaterThan(alphas[2]);
+});
+
+test('bounded color scale gradient spans the rendered cell values (#43084)', () => {
+  const result = transformProps(
+    colorScaleChartProps([
+      { colorScheme: '#FF0000', column: 'v', operator: '>', targetValue: 0 },
+    ]),
+  );
+  const { getColorFromValue } = result.metricColorFormatters[0];
+  const alphas = [3, 5, 10, 15, 18].map(value =>
+    alphaOf(getColorFromValue(value)),
+  );
+  // Strictly increasing: no cell saturates early because the gradient's
+  // extreme is the largest rendered value rather than the largest leaf row.
+  alphas.forEach((alpha, i) => {
+    if (i > 0) {
+      expect(alpha).toBeGreaterThan(alphas[i - 1]);
+    }
+  });
+});
+
 test('additive metrics: synthesizes rollup levels from a single leaf query', () => {
   const additiveFormData = {
     ...formData,

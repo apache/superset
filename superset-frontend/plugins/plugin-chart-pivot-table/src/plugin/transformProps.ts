@@ -35,7 +35,12 @@ import {
   ConditionalFormattingConfig,
   getColorFormatters,
 } from '@superset-ui/chart-controls';
-import { DateFormatter, PivotTableQueryFormData, QueryData } from '../types';
+import {
+  DateFormatter,
+  MetricsLayoutEnum,
+  PivotTableQueryFormData,
+  QueryData,
+} from '../types';
 import buildGroupbyCombinations, {
   additiveReducerFor,
   allMetricsAdditive,
@@ -219,9 +224,39 @@ export default function transformProps(chartProps: ChartProps<QueryFormData>) {
       config.colorScheme !== ColorSchemeEnum.Green &&
       config.colorScheme !== ColorSchemeEnum.Red,
   );
+  // Conditional formatting colors the values the pivot renders -- the leaf
+  // cells *and* every subtotal cell -- so the reference distribution a color
+  // scale is built from has to be that same set of values, not the raw rows of
+  // the response. Feeding it raw rows makes the scale disagree with the cells:
+  // the additive path returns leaf rows only, so subtotal cells fall outside
+  // the scale's [min, max] and end up with no color at all even though they
+  // are the largest values in their column, while the GROUPING SETS path
+  // returns every rollup level, so the grand total inflates the domain and
+  // squashes the leaf cells. Either way colors stop tracking value order
+  // within a column. `data` already holds one frame per rollup level, so use
+  // those frames -- minus the levels that only feed the "Total" row/column,
+  // which TableRenderers never color formats.
+  //
+  // The metric pseudo-dimension always occupies one axis, so it is the *other*
+  // axis that decides: a level whose prefix there is fully collapsed lands in
+  // the uncolored total row/column. A dimension list that is empty to begin
+  // with is itself the leaf level, so it still renders as value cells.
+  const displayRows = ensureIsArray(
+    transposePivot ? groupbyColumns : groupbyRows,
+  );
+  const displayColumns = ensureIsArray(
+    transposePivot ? groupbyRows : groupbyColumns,
+  );
+  const isColorFormattedLevel = ({ groupby }: QueryData) =>
+    metricsLayout === MetricsLayoutEnum.ROWS
+      ? groupby.columns.length > 0 || displayColumns.length === 0
+      : groupby.rows.length > 0 || displayRows.length === 0;
+  const colorFormattedValues = data
+    .filter(isColorFormattedLevel)
+    .flatMap(({ data: levelData }) => levelData);
   const metricColorFormatters = getColorFormatters(
     pivotConditionalFormatting,
-    mainQuery.data,
+    colorFormattedValues,
     theme,
   );
 
