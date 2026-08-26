@@ -53,10 +53,6 @@ from superset.mcp_service.chart.schemas import (
     GetChartDataRequest,
     PerformanceMetadata,
 )
-from superset.mcp_service.utils import (
-    escape_llm_context_delimiters,
-    sanitize_for_llm_context,
-)
 from superset.mcp_service.utils.cache_utils import get_cache_status_from_result
 from superset.mcp_service.utils.oauth2_utils import (
     build_oauth2_redirect_message,
@@ -65,6 +61,42 @@ from superset.mcp_service.utils.oauth2_utils import (
 from superset.utils.core import GenericDataType
 
 logger = logging.getLogger(__name__)
+
+
+def _requested_filter_columns(extra_form_data: dict[str, Any] | None) -> set[str]:
+    """Return simple column names explicitly requested through extra form data."""
+    if not extra_form_data:
+        return set()
+
+    columns: set[str] = set()
+    for filter_ in extra_form_data.get("filters", []):
+        if isinstance(filter_, dict) and isinstance(column := filter_.get("col"), str):
+            columns.add(column)
+    for filter_ in extra_form_data.get("adhoc_filters", []):
+        if (
+            isinstance(filter_, dict)
+            and filter_.get("expressionType") == "SIMPLE"
+            and isinstance(column := filter_.get("subject"), str)
+        ):
+            columns.add(column)
+    return columns
+
+
+def _rejected_requested_filter_columns(
+    result: Any, extra_form_data: dict[str, Any] | None
+) -> list[str]:
+    """Find request filters rejected by datasource query construction."""
+    if not isinstance(result, dict):
+        return []
+    requested = _requested_filter_columns(extra_form_data)
+    rejected = {
+        column
+        for query in result.get("queries", [])
+        for column in query.get("rejected_filter_columns", [])
+        if isinstance(column, str)
+    }
+    return sorted(requested & rejected)
+
 
 _GENERIC_TYPE_MAP: dict[int, str] = {
     GenericDataType.NUMERIC: "numeric",
@@ -254,46 +286,6 @@ def _filter_candidates(
     return result
 
 
-def _sanitize_chart_data_for_llm_context(chart_data: ChartData) -> ChartData:
-    """Wrap chart data read-path descriptive fields before LLM exposure."""
-    payload = chart_data.model_dump(mode="python")
-
-    for field_name in ("chart_name", "summary", "csv_data"):
-        payload[field_name] = sanitize_for_llm_context(
-            payload.get(field_name),
-            field_path=(field_name,),
-        )
-
-    payload["insights"] = sanitize_for_llm_context(
-        payload.get("insights", []),
-        field_path=("insights",),
-    )
-    payload["data"] = sanitize_for_llm_context(
-        payload.get("data", []),
-        field_path=("data",),
-        excluded_field_names=frozenset(),
-    )
-    for query_index, query_result in enumerate(payload.get("query_results") or []):
-        query_result["data"] = sanitize_for_llm_context(
-            query_result.get("data", []),
-            field_path=("query_results", str(query_index), "data"),
-            excluded_field_names=frozenset(),
-        )
-    payload["columns"] = [
-        {
-            **column,
-            "sample_values": sanitize_for_llm_context(
-                column.get("sample_values", []),
-                field_path=("columns", str(index), "sample_values"),
-                excluded_field_names=frozenset(),
-            ),
-        }
-        for index, column in enumerate(payload.get("columns", []))
-    ]
-
-    return ChartData.model_validate(payload)
-
-
 def _build_query_results(
     query_results: list[dict[str, Any]], limit: int | None
 ) -> list[ChartQueryResult] | None:
@@ -460,10 +452,10 @@ async def get_chart_data(  # noqa: C901
             logger.warning(
                 "get_chart_data: chart not found: identifier=%s", request.identifier
             )
-            safe_id = escape_llm_context_delimiters(str(request.identifier)[:200])
+            display_id = str(request.identifier)[:200]
             return ChartError(
                 error=(
-                    f"No chart found with identifier: {safe_id}."
+                    f"No chart found with identifier: {display_id}."
                     " Use list_charts to get valid chart IDs."
                 ),
                 error_type="NotFound",
@@ -729,6 +721,19 @@ async def get_chart_data(  # noqa: C901
                 command.validate()
                 result = command.run()
 
+            if rejected := _rejected_requested_filter_columns(
+                result, request.extra_form_data
+            ):
+                rejected_columns = ", ".join(rejected)
+                await ctx.warning(
+                    "Requested filters reference unknown dataset columns: %s"
+                    % rejected_columns
+                )
+                return ChartError(
+                    error=f"Unknown dataset column(s) in filters: {rejected_columns}",
+                    error_type="ValidationError",
+                )
+
             # Handle empty query results for certain chart types
             if not result or ("queries" not in result) or len(result["queries"]) == 0:
                 await ctx.warning(
@@ -936,26 +941,22 @@ async def get_chart_data(  # noqa: C901
             )
 
             # Default JSON format
-            return _sanitize_chart_data_for_llm_context(
-                ChartData(
-                    chart_id=chart.id,
-                    chart_name=chart.slice_name or f"Chart {chart.id}",
-                    chart_type=chart.viz_type or "unknown",
-                    columns=columns,
-                    data=data[: request.limit] if request.limit else data,
-                    query_results=_build_query_results(
-                        result["queries"], request.limit
-                    ),
-                    row_count=len(data),
-                    total_rows=query_result.get("rowcount"),
-                    summary=summary,
-                    insights=insights,
-                    data_quality={"completeness": data_completeness},
-                    recommended_visualizations=recommended_visualizations,
-                    data_freshness=None,  # Add missing field
-                    performance=performance,
-                    cache_status=cache_status,
-                )
+            return ChartData(
+                chart_id=chart.id,
+                chart_name=chart.slice_name or f"Chart {chart.id}",
+                chart_type=chart.viz_type or "unknown",
+                columns=columns,
+                data=data[: request.limit] if request.limit else data,
+                query_results=_build_query_results(result["queries"], request.limit),
+                row_count=len(data),
+                total_rows=query_result.get("rowcount"),
+                summary=summary,
+                insights=insights,
+                data_quality={"completeness": data_completeness},
+                recommended_visualizations=recommended_visualizations,
+                data_freshness=None,  # Add missing field
+                performance=performance,
+                cache_status=cache_status,
             )
 
         except (OAuth2RedirectError, OAuth2Error):
@@ -1027,7 +1028,7 @@ async def get_chart_data(  # noqa: C901
         )
 
 
-async def _query_from_form_data(
+async def _query_from_form_data(  # noqa: C901
     form_data: Dict[str, Any],
     request: GetChartDataRequest,
     ctx: Context,
@@ -1081,6 +1082,19 @@ async def _query_from_form_data(
             command = ChartDataCommand(query_context)
             command.validate()
             result = command.run()
+
+        if rejected := _rejected_requested_filter_columns(
+            result, request.extra_form_data
+        ):
+            rejected_columns = ", ".join(rejected)
+            await ctx.warning(
+                "Requested filters reference unknown dataset columns: %s"
+                % rejected_columns
+            )
+            return ChartError(
+                error=f"Unknown dataset column(s) in filters: {rejected_columns}",
+                error_type="ValidationError",
+            )
 
         if not result or "queries" not in result or len(result["queries"]) == 0:
             logger.warning(
@@ -1139,33 +1153,31 @@ async def _query_from_form_data(
         )
 
         await ctx.report_progress(4, 4, "Building response")
-        return _sanitize_chart_data_for_llm_context(
-            ChartData(
-                chart_id=0,
-                chart_name=chart_name,
-                chart_type=viz_type,
-                columns=columns,
-                data=data[: request.limit] if request.limit else data,
-                query_results=_build_query_results(result["queries"], request.limit),
-                row_count=len(data),
-                total_rows=query_result.get("rowcount"),
-                summary=summary,
-                insights=["This is an unsaved chart queried from cached form_data."],
-                data_quality={
-                    "completeness": 1.0
-                    - (
-                        sum(col.null_count for col in columns)
-                        / max(len(data) * len(columns), 1)
-                    )
-                },
-                recommended_visualizations=[],
-                data_freshness=None,
-                performance=PerformanceMetadata(
-                    query_duration_ms=0,
-                    cache_status="fresh_query",
-                ),
-                cache_status=cache_status,
-            )
+        return ChartData(
+            chart_id=0,
+            chart_name=chart_name,
+            chart_type=viz_type,
+            columns=columns,
+            data=data[: request.limit] if request.limit else data,
+            query_results=_build_query_results(result["queries"], request.limit),
+            row_count=len(data),
+            total_rows=query_result.get("rowcount"),
+            summary=summary,
+            insights=["This is an unsaved chart queried from cached form_data."],
+            data_quality={
+                "completeness": 1.0
+                - (
+                    sum(col.null_count for col in columns)
+                    / max(len(data) * len(columns), 1)
+                )
+            },
+            recommended_visualizations=[],
+            data_freshness=None,
+            performance=PerformanceMetadata(
+                query_duration_ms=0,
+                cache_status="fresh_query",
+            ),
+            cache_status=cache_status,
         )
 
     except (OAuth2RedirectError, OAuth2Error):
@@ -1219,26 +1231,24 @@ def _export_data_as_csv(
     # Return as ChartData with CSV content in a special field
     from superset.mcp_service.chart.schemas import ChartData
 
-    return _sanitize_chart_data_for_llm_context(
-        ChartData(
-            chart_id=chart.id,
-            chart_name=chart.slice_name or f"Chart {chart.id}",
-            chart_type=chart.viz_type or "unknown",
-            columns=[],  # Column names are embedded in CSV content
-            data=[],  # CSV content is in csv_data field
-            row_count=len(data),
-            total_rows=len(data),
-            summary=f"CSV export of chart '{chart.slice_name}' with {len(data)} rows",
-            insights=[f"Data exported as CSV format ({len(csv_content)} characters)"],
-            data_quality={},
-            recommended_visualizations=[],
-            data_freshness=None,
-            performance=performance,
-            cache_status=cache_status,
-            # Store CSV content in data field as string for the response
-            csv_data=csv_content,
-            format="csv",
-        )
+    return ChartData(
+        chart_id=chart.id,
+        chart_name=chart.slice_name or f"Chart {chart.id}",
+        chart_type=chart.viz_type or "unknown",
+        columns=[],  # Column names are embedded in CSV content
+        data=[],  # CSV content is in csv_data field
+        row_count=len(data),
+        total_rows=len(data),
+        summary=f"CSV export of chart '{chart.slice_name}' with {len(data)} rows",
+        insights=[f"Data exported as CSV format ({len(csv_content)} characters)"],
+        data_quality={},
+        recommended_visualizations=[],
+        data_freshness=None,
+        performance=performance,
+        cache_status=cache_status,
+        # Store CSV content in data field as string for the response
+        csv_data=csv_content,
+        format="csv",
     )
 
 
@@ -1381,25 +1391,23 @@ def _create_excel_chart_data(
     chart_name = chart.slice_name or f"Chart {chart.id}"
     summary = f"Excel export of chart '{chart.slice_name}' with {len(data)} rows"
 
-    return _sanitize_chart_data_for_llm_context(
-        ChartData(
-            chart_id=chart.id,
-            chart_name=chart_name,
-            chart_type=chart.viz_type or "unknown",
-            columns=[],  # Column names are embedded in the Excel file
-            data=[],
-            row_count=len(data),
-            total_rows=len(data),
-            summary=summary,
-            insights=["Data exported as Excel format (base64 encoded)"],
-            data_quality={},
-            recommended_visualizations=[],
-            data_freshness=None,
-            performance=performance,
-            cache_status=cache_status,
-            excel_data=excel_b64,
-            format="excel",
-        )
+    return ChartData(
+        chart_id=chart.id,
+        chart_name=chart_name,
+        chart_type=chart.viz_type or "unknown",
+        columns=[],  # Column names are embedded in the Excel file
+        data=[],
+        row_count=len(data),
+        total_rows=len(data),
+        summary=summary,
+        insights=["Data exported as Excel format (base64 encoded)"],
+        data_quality={},
+        recommended_visualizations=[],
+        data_freshness=None,
+        performance=performance,
+        cache_status=cache_status,
+        excel_data=excel_b64,
+        format="excel",
     )
 
 
@@ -1416,23 +1424,21 @@ def _create_excel_chart_data_xlsxwriter(
     chart_name = chart.slice_name or f"Chart {chart.id}"
     summary = f"Excel export of chart '{chart.slice_name}' with {len(data)} rows"
 
-    return _sanitize_chart_data_for_llm_context(
-        ChartData(
-            chart_id=chart.id,
-            chart_name=chart_name,
-            chart_type=chart.viz_type or "unknown",
-            columns=[],  # Column names are embedded in the Excel file
-            data=[],
-            row_count=len(data),
-            total_rows=len(data),
-            summary=summary,
-            insights=["Data exported as Excel format (base64 encoded, xlsxwriter)"],
-            data_quality={},
-            recommended_visualizations=[],
-            data_freshness=None,
-            performance=performance,
-            cache_status=cache_status,
-            excel_data=excel_b64,
-            format="excel",
-        )
+    return ChartData(
+        chart_id=chart.id,
+        chart_name=chart_name,
+        chart_type=chart.viz_type or "unknown",
+        columns=[],  # Column names are embedded in the Excel file
+        data=[],
+        row_count=len(data),
+        total_rows=len(data),
+        summary=summary,
+        insights=["Data exported as Excel format (base64 encoded, xlsxwriter)"],
+        data_quality={},
+        recommended_visualizations=[],
+        data_freshness=None,
+        performance=performance,
+        cache_status=cache_status,
+        excel_data=excel_b64,
+        format="excel",
     )

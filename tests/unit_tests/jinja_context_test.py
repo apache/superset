@@ -474,6 +474,90 @@ def test_get_filters_no_escaped_val_without_dialect() -> None:
         assert "escaped_val" not in result[0]
 
 
+def test_escape_value_nested_list_is_escaped() -> None:
+    """
+    Regression: string leaves nested more than one level deep used to pass
+    through ``_escape_value`` untouched, and Jinja's whole-container
+    rendering of the nested list re-emitted the single quote raw --
+    terminating the surrounding SQL string literal.
+    """
+    cache = ExtraCache(
+        dialect=dialect(),
+        query_context_filters=[
+            {
+                "col": "name",
+                "op": "LIKE",
+                "val": [["x' UNION SELECT username FROM users --"]],
+            },
+        ],
+    )
+    [entry] = cache.get_filters("name")
+    rendered = str(entry["escaped_val"])
+    # every single quote in the rendered output must be escaped (doubled)
+    assert "'" not in rendered.replace("''", "")
+    assert "x'' UNION SELECT username FROM users --" in rendered
+
+
+def test_escape_value_flat_list_renders_without_raw_quotes() -> None:
+    """
+    Regression: rendering a whole escaped list used to go through Python's
+    default ``str()``/``repr()``, which wraps elements in fresh quote
+    delimiters -- letting even a payload containing no single quotes break
+    out of the template's own quotes. The escaped list must render as
+    escaped elements only, with no delimiters added.
+    """
+    cache = ExtraCache(
+        dialect=dialect(),
+        query_context_filters=[
+            {"col": "name", "op": "LIKE", "val": ['x") OR 1=1 --', "O'Brien"]},
+        ],
+    )
+    [entry] = cache.get_filters("name")
+    # element-wise access still compares equal to the plain escaped values
+    assert entry["escaped_val"] == ['x") OR 1=1 --', "O''Brien"]
+    # whole-list rendering must not add quote delimiters around elements
+    rendered = str(entry["escaped_val"])
+    assert rendered == "x\") OR 1=1 --, O''Brien"
+    assert "'" not in rendered.replace("''", "")
+
+
+def test_escape_value_dict_renders_without_raw_quotes() -> None:
+    """
+    Regression: a dict value returned by ``get_guest_user_attribute`` is
+    recursively escaped at the leaf level, but rendering the whole dict in
+    a template used to go through Python's default ``repr()``, which
+    re-wraps string values in fresh quote delimiters -- reopening the
+    same whole-container escape hatch as for lists.
+    """
+    cache = ExtraCache(dialect=dialect())
+    escaped = cache._escape_value(  # pylint: disable=protected-access
+        {"id": "foo' OR 1=1 --", "names": ["O'Brien", 42]}
+    )
+    # equality and member access behave exactly like a plain dict
+    assert escaped == {"id": "foo'' OR 1=1 --", "names": ["O''Brien", 42]}
+    assert isinstance(escaped, dict)
+    # whole-container rendering must not add quote delimiters
+    rendered = str(escaped)
+    assert "'" not in rendered.replace("''", "")
+
+
+def test_escape_value_dict_escapes_keys_too() -> None:
+    """
+    Regression: a dict key, like a value, can originate from data the
+    caller does not fully control (for example a guest-token attribute
+    key). Rendering the whole dict must not let a quote in a key
+    re-introduce an unescaped delimiter.
+    """
+    cache = ExtraCache(dialect=dialect())
+    escaped = cache._escape_value(  # pylint: disable=protected-access
+        {"O'Brien' OR 1=1 --": "value"}
+    )
+    [key] = escaped.keys()
+    assert key == "O''Brien'' OR 1=1 --"
+    rendered = str(escaped)
+    assert "'" not in rendered.replace("''", "")
+
+
 def test_url_param_query() -> None:
     """
     Test the ``url_param`` macro.
