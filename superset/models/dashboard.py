@@ -19,7 +19,7 @@ from __future__ import annotations
 import logging
 import uuid
 from collections import defaultdict, deque
-from typing import Any, Callable
+from typing import Any, Callable, Optional
 
 import sqlalchemy as sqla
 from flask import current_app as app, has_request_context, url_for
@@ -378,15 +378,42 @@ class Dashboard(CoreDashboard, SoftDeleteMixin, AuditMixinNullable, ImportExport
         return {}
 
     @property
-    def tabs(self) -> dict[str, Any]:
+    def tabs(self) -> dict[str, Any]:  # noqa: C901
+        if not isinstance(self.position, dict):
+            logger.warning("Dashboard %s: layout is not a mapping", self.id)
+            return {}
         if self.position == {}:
             return {}
 
-        def get_node(node_id: str) -> dict[str, Any]:
+        def get_node(node_id: str) -> Optional[dict[str, Any]]:
             """
             Helper function for getting a node from the position_data
             """
-            return self.position[node_id]
+            return self.position.get(node_id)
+
+        def register_tab(node: dict[str, Any]) -> None:
+            """
+            Helper function for titling a TAB node and adding it to all_tabs
+            """
+            meta = node.get("meta")
+            if not isinstance(meta, dict):
+                meta = {}
+            if "text" not in meta:
+                logger.warning(
+                    "Dashboard %s: tab node %s has no title in the layout",
+                    self.id,
+                    node.get("id"),
+                )
+            node["title"] = meta.get("text", "")
+            node_id = node.get("id")
+            if node_id is None:
+                logger.warning(
+                    "Dashboard %s: skipping tab node with no id in the layout",
+                    self.id,
+                )
+                return
+            node["value"] = node_id
+            all_tabs[node_id] = node["title"]
 
         def build_tab_tree(
             node: dict[str, Any], children: list[dict[str, Any]]
@@ -394,27 +421,47 @@ class Dashboard(CoreDashboard, SoftDeleteMixin, AuditMixinNullable, ImportExport
             """
             Function for building the tab tree structure and list of all tabs
             """
+            if "type" not in node:
+                logger.warning(
+                    "Dashboard %s: skipping untyped layout node %s",
+                    self.id,
+                    node.get("id"),
+                )
+                return
 
+            # A node whose type is not one of the four below is walked through
+            # without contributing to the tree, exactly as an untabbed layout
+            # element always has been.
+            node_type = node["type"]
             new_children: list[dict[str, Any]] = []
             # new children to overwrite parent's children
             for child_id in node.get("children", []):
                 child = get_node(child_id)
-                if node["type"] == "TABS":
+                if not isinstance(child, dict):
+                    logger.warning(
+                        "Dashboard %s: skipping layout node %s, missing or malformed",
+                        self.id,
+                        child_id,
+                    )
+                    continue
+                if node_type == "TABS":
                     # if TABS add create a new list and append children to it
                     # new_children.append(child)
                     children.append(child)
                     queue.append((child, new_children))
-                elif node["type"] in ["GRID", "ROOT"]:
+                elif node_type in ["GRID", "ROOT"]:
                     queue.append((child, children))
-                elif node["type"] == "TAB":
+                elif node_type == "TAB":
                     queue.append((child, new_children))
-            if node["type"] == "TAB":
+            if node_type == "TAB":
                 node["children"] = new_children
-                node["title"] = node["meta"]["text"]
-                node["value"] = node["id"]
-                all_tabs[node["id"]] = node["title"]
+                register_tab(node)
 
         root = get_node("ROOT_ID")
+        if not isinstance(root, dict):
+            logger.warning("Dashboard %s: layout has no usable ROOT_ID node", self.id)
+            return {}
+
         tab_tree: list[dict[str, Any]] = []
         all_tabs: dict[str, str] = {}
         queue: deque[tuple[dict[str, Any], list[dict[str, Any]]]] = deque()
