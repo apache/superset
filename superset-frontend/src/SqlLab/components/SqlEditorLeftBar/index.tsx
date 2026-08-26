@@ -16,220 +16,97 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useCallback, useState } from 'react';
-import { useAppDispatch } from 'src/SqlLab/hooks/useAppDispatch';
-
-import { resetState } from 'src/SqlLab/actions/sqlLab';
-import {
-  Button,
-  EmptyState,
-  Flex,
-  Icons,
-  Popover,
-  Typography,
-} from '@superset-ui/core/components';
-import { t } from '@apache-superset/core/translation';
-import { styled, css } from '@apache-superset/core/theme';
-import type { SchemaOption, CatalogOption } from 'src/hooks/apiResources';
-import { DatabaseSelector, type DatabaseObject } from 'src/components';
+import { useState } from 'react';
+import { css, styled } from '@apache-superset/core/theme';
+import { LeftBarViewPanelHost } from 'src/core';
 import { EMPTY_STATE_QE_ID } from 'src/SqlLab/hooks/useQueryEditor';
-
-import useDatabaseSelector from '../SqlEditorTopBar/useDatabaseSelector';
-import TableExploreTree from '../TableExploreTree';
+import { useLeftBarLayout } from 'src/SqlLab/hooks/useLeftBarLayout';
+import {
+  TAB_EXPLORER_ID,
+  TAB_SETTINGS_ID,
+} from 'src/SqlLab/hooks/useLeftBarTabs';
+import DatabaseSelectorPopover from '../DatabaseSelectorPopover';
+import TabExplorer from '../TabExplorer';
+import LeftBarViewSettingsPanel from './LeftBarViewSettingsPanel';
 
 export interface SqlEditorLeftBarProps {
   queryEditorId: string;
+  /**
+   * Compact mode for SqlEditorTopBar's `extra` slot while the sidebar is
+   * hidden. Renders only the database selector.
+   */
   collapsed?: boolean;
 }
 
-const LeftBarStyles = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: ${({ theme }) => theme.sizeUnit * 2}px;
-
+const LeftBarContent = styled.div`
   ${({ theme }) => css`
-    height: 100%;
     display: flex;
     flex-direction: column;
-
-    .divider {
-      border-bottom: 1px solid ${theme.colorSplit};
-      margin: ${theme.sizeUnit * 1}px 0;
-    }
+    height: 100%;
+    min-height: 0;
+    padding-inline-start: ${theme.sizeUnit * 2}px;
   `}
 `;
 
-const StyledDivider = styled.div`
-  border-bottom: 1px solid ${({ theme }) => theme.colorSplit};
-  margin: 0 -${({ theme }) => theme.sizeUnit * 2.5}px 0;
+const PanelSlot = styled.div<{ active: boolean }>`
+  display: ${({ active }) => (active ? 'flex' : 'none')};
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
 `;
 
+const renderPanel = (viewId: string, activeQEId: string) => {
+  if (viewId === TAB_EXPLORER_ID) {
+    // Keyed by the query editor tab (not the rail view) — Explorer shows a
+    // given tab's own database/catalog/schema selection, so it resets when
+    // *that* changes, independently of the rail-view persistence below.
+    return <TabExplorer key={activeQEId} queryEditorId={activeQEId} />;
+  }
+  if (viewId === TAB_SETTINGS_ID) {
+    return <LeftBarViewSettingsPanel />;
+  }
+  return <LeftBarViewPanelHost viewId={viewId} />;
+};
+
+/**
+ * Renders whichever panel is currently active in the left sidebar — the
+ * built-in Explorer, an extension's panel, or the built-in Settings panel.
+ * The icon rail itself lives outside the Splitter (see AppLayout) so it
+ * stays visible regardless of this panel's collapsed/hidden state; this
+ * component only ever renders content.
+ */
 const SqlEditorLeftBar = ({
   queryEditorId,
   collapsed = false,
 }: SqlEditorLeftBarProps) => {
   const activeQEId = queryEditorId || EMPTY_STATE_QE_ID;
-  const dbSelectorProps = useDatabaseSelector(activeQEId);
-  const { db, catalog, schema, onDbChange, onCatalogChange, onSchemaChange } =
-    dbSelectorProps;
-
-  const dispatch = useAppDispatch();
-  const shouldShowReset = window.location.search === '?reset=1';
-
-  // Modal state for Database/Catalog/Schema selector
-  const [selectorModalOpen, setSelectorModalOpen] = useState(false);
-  const [modalDb, setModalDb] = useState<DatabaseObject | undefined>(undefined);
-  const [modalCatalog, setModalCatalog] = useState<
-    CatalogOption | null | undefined
-  >(undefined);
-  const [modalSchema, setModalSchema] = useState<SchemaOption | undefined>(
-    undefined,
-  );
-
-  const openSelectorModal = useCallback(() => {
-    setModalDb(db ?? undefined);
-    setModalCatalog(
-      catalog ? { label: catalog, value: catalog, title: catalog } : undefined,
-    );
-    setModalSchema(
-      schema ? { label: schema, value: schema, title: schema } : undefined,
-    );
-    setSelectorModalOpen(true);
-  }, [db, catalog, schema]);
-
-  const closeSelectorModal = useCallback(() => {
-    setSelectorModalOpen(false);
-  }, []);
-
-  const handleModalOk = useCallback(() => {
-    if (modalDb && modalDb.id !== db?.id) {
-      onDbChange?.(modalDb);
-    }
-    if (modalCatalog?.value !== catalog) {
-      onCatalogChange?.(modalCatalog?.value);
-    }
-    if (modalSchema?.value !== schema) {
-      onSchemaChange?.(modalSchema?.value ?? '');
-    }
-    setSelectorModalOpen(false);
-  }, [
-    modalDb,
-    modalCatalog,
-    modalSchema,
-    db,
-    catalog,
-    schema,
-    onDbChange,
-    onCatalogChange,
-    onSchemaChange,
-  ]);
-
-  const handleResetState = useCallback(() => {
-    dispatch(resetState());
-  }, [dispatch]);
-
-  const popoverContent = (
-    <Flex
-      vertical
-      gap="middle"
-      data-test="DatabaseSelector"
-      css={css`
-        min-width: 500px;
-        max-width: 500px;
-      `}
-    >
-      <Typography.Title level={5} style={{ margin: 0 }}>
-        {t('Select Database and Schema')}
-      </Typography.Title>
-      <DatabaseSelector
-        key={modalDb ? modalDb.id : 'no-db'}
-        db={modalDb}
-        emptyState={<EmptyState />}
-        getDbList={dbSelectorProps.getDbList}
-        handleError={dbSelectorProps.handleError}
-        onDbChange={setModalDb}
-        onCatalogChange={cat =>
-          setModalCatalog(
-            cat ? { label: cat, value: cat, title: cat } : undefined,
-          )
-        }
-        catalog={modalCatalog?.value}
-        onSchemaChange={sch =>
-          setModalSchema(
-            sch ? { label: sch, value: sch, title: sch } : undefined,
-          )
-        }
-        schema={modalSchema?.value}
-        sqlLabMode={false}
-        filterBySqlLab
-      />
-      <Flex justify="flex-end" gap="small">
-        <Button
-          buttonStyle="tertiary"
-          onClick={e => {
-            e?.stopPropagation();
-            closeSelectorModal();
-          }}
-        >
-          {t('Cancel')}
-        </Button>
-        <Button
-          type="primary"
-          onClick={e => {
-            e?.stopPropagation();
-            handleModalOk();
-          }}
-        >
-          {t('Select')}
-        </Button>
-      </Flex>
-    </Flex>
-  );
-
-  const dbSelectorTrigger = (
-    <Popover
-      content={popoverContent}
-      open={selectorModalOpen}
-      onOpenChange={open => !open && closeSelectorModal()}
-      placement="bottomLeft"
-      trigger="click"
-    >
-      {/* Wrap in a span so the Popover can attach a ref without relying
-            on findDOMNode (deprecated in React 18+). */}
-      <span>
-        <DatabaseSelector
-          key={`db-selector-${db ? db.id : 'no-db'}:${catalog ?? 'no-catalog'}:${
-            schema ?? 'no-schema'
-          }`}
-          {...dbSelectorProps}
-          emptyState={<EmptyState />}
-          sqlLabMode
-          compactMode={collapsed}
-          onOpenModal={openSelectorModal}
-        />
-      </span>
-    </Popover>
-  );
+  const { activeViewId } = useLeftBarLayout();
+  // Every rail view the user has switched to stays mounted (hidden via CSS
+  // rather than unmounted) from then on, so flipping between rail icons
+  // doesn't reset a panel's own state — adjusted during the render phase
+  // itself, so the newly active view is already in this list by the time
+  // it renders below, not a render later via an effect.
+  const [visitedIds, setVisitedIds] = useState<string[]>([activeViewId]);
+  if (!visitedIds.includes(activeViewId)) {
+    setVisitedIds(prev => [...prev, activeViewId]);
+  }
 
   if (collapsed) {
-    return dbSelectorTrigger;
+    return <DatabaseSelectorPopover queryEditorId={activeQEId} compact />;
   }
 
   return (
-    <LeftBarStyles data-test="sql-editor-left-bar">
-      {dbSelectorTrigger}
-      <StyledDivider />
-      <TableExploreTree queryEditorId={activeQEId} />
-      {shouldShowReset && (
-        <Button
-          buttonSize="small"
-          buttonStyle="danger"
-          onClick={handleResetState}
+    <LeftBarContent data-test="left-bar-content">
+      {visitedIds.map(viewId => (
+        <PanelSlot
+          key={viewId}
+          active={viewId === activeViewId}
+          data-test={`left-bar-panel-slot-${viewId}`}
         >
-          <Icons.ClearOutlined /> {t('Reset state')}
-        </Button>
-      )}
-    </LeftBarStyles>
+          {renderPanel(viewId, activeQEId)}
+        </PanelSlot>
+      ))}
+    </LeftBarContent>
   );
 };
 

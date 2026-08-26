@@ -29,7 +29,8 @@
  * - Global APIs: Functions and events available across the entire SQL Lab interface
  */
 
-import { Event, Database, SupersetError, Column } from '../common';
+import { ComponentType } from 'react';
+import { Event, Database, SupersetError, Column, Disposable } from '../common';
 import { EditorHandle } from '../editors';
 
 /**
@@ -716,3 +717,82 @@ export declare function setCatalog(catalog: string | null): Promise<void>;
  * ```
  */
 export declare function setSchema(schema: string | null): Promise<void>;
+
+/**
+ * Left Sidebar APIs
+ *
+ * These APIs let extensions contribute a view to SQL Lab's left sidebar.
+ * Any number of views may be registered; each one adds an icon to the
+ * sidebar's icon strip, alongside the built-in table explorer.
+ */
+
+/**
+ * Represents a view contributed to SQL Lab's left sidebar.
+ */
+export interface LeftBarView {
+  /**
+   * The unique identifier for the view. Namespace it with your extension
+   * name (e.g. `acme.lineage`) — registration is rejected if the id is
+   * already taken.
+   */
+  id: string;
+  /**
+   * The display name of the view. Shown as the icon's tooltip and as the
+   * panel's accessible name, so keep it short.
+   */
+  name: string;
+  /** Optional description of the view, for display in contribution manifests. */
+  description?: string;
+  /**
+   * Optional sort weight, ascending — lower values appear higher in the icon
+   * strip. Views without an explicit order sort as 100; ties are broken by
+   * `id`, so the strip order is identical on every page load regardless of
+   * the order in which extensions finish loading.
+   */
+  order?: number;
+}
+
+/**
+ * Registers a view in SQL Lab's left sidebar. Any number of views may be
+ * registered; each one adds an icon to the sidebar's icon strip.
+ *
+ * Registration is rejected — with a console warning and an inert Disposable —
+ * if a view with the same `id` is already registered. The first registration
+ * wins, so an already-mounted view is never replaced mid-session.
+ *
+ * @param view The view descriptor (id, name, optional order).
+ * @param trigger The trigger component, rendered inside the icon strip. It
+ *   receives no props and should render an icon-sized, presentational
+ *   element. The host owns click handling and selection — do not attach your
+ *   own.
+ * @param panel The panel component, rendered in the sidebar content area
+ *   while this view is selected. It fills the available height.
+ * @returns A Disposable that unregisters the view when disposed. Disposing a
+ *   rejected registration does nothing.
+ *
+ * @example
+ * ```typescript
+ * const registration = sqlLab.registerLeftBarView(
+ *   { id: 'acme.lineage', name: 'Lineage', order: 50 },
+ *   AcmeLineageIcon,
+ *   AcmeLineagePanel,
+ * );
+ * ```
+ */
+export declare function registerLeftBarView(
+  view: LeftBarView,
+  trigger: ComponentType,
+  panel: ComponentType,
+): Disposable;
+
+/**
+ * Returns every registered left sidebar view, in the order the host renders
+ * them (by `order`, then by `id`). Returns a copy — mutating it has no effect
+ * on the registry.
+ *
+ * @example
+ * ```typescript
+ * const ids = sqlLab.getLeftBarViews().map(v => v.id);
+ * ```
+ */
+export declare function getLeftBarViews(): LeftBarView[];

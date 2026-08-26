@@ -63,11 +63,28 @@ const notifyUnregister = (event: ViewUnregisteredEvent) => {
   unregisterEmitter.fire(event);
 };
 
+/**
+ * The left sidebar location has its own registration function
+ * (`sqlLab.registerLeftBarView`) because it needs a trigger component for
+ * the sidebar's icon strip in addition to the panel — a shape `registerView`
+ * does not support.
+ */
+const LEFT_SIDEBAR_LOCATION = 'sqllab.leftSidebar';
+
 const registerView: typeof viewsApi.registerView = (
   view: View,
   location: string,
   component: ComponentType,
 ): Disposable => {
+  if (location === LEFT_SIDEBAR_LOCATION) {
+    throw new Error(
+      `[Superset] Views cannot be registered at "${LEFT_SIDEBAR_LOCATION}". ` +
+        `Use sqlLab.registerLeftBarView(view, trigger, panel) instead, ` +
+        `which supplies both the sidebar's icon strip trigger and the ` +
+        `sidebar panel.`,
+    );
+  }
+
   const { id } = view;
 
   viewRegistry.set(id, { view, location, component });

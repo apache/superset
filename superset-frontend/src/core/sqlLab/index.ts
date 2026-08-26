@@ -56,6 +56,7 @@ import {
   QueryResultContext,
   QueryErrorResultContext,
 } from './models';
+import { registerLeftBarView, getLeftBarViews } from './leftBarViews';
 
 const { CTASMethod } = sqlLabApi;
 
@@ -726,7 +727,21 @@ export const sqlLab: typeof sqlLabApi = {
   setCatalog,
   setSchema,
   setActivePanel,
+  registerLeftBarView,
+  getLeftBarViews,
 };
 
 // Export all models
 export * from './models';
+
+// Host-internal registry hooks (not part of the public sqlLab API object).
+export {
+  useLeftBarViews,
+  useLeftBarView,
+  resetLeftBarViews,
+  type LeftBarViewRegistration,
+} from './leftBarViews';
+export {
+  LeftBarViewTriggerHost,
+  LeftBarViewPanelHost,
+} from './LeftBarViewHost';

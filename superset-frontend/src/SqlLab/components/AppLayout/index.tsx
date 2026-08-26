@@ -33,8 +33,13 @@ import {
 import { ViewLocations } from 'src/SqlLab/contributions';
 import ViewListExtension from 'src/components/ViewListExtension';
 import { toggleLeftBar } from 'src/SqlLab/actions/sqlLab';
+import {
+  getLeftPanelLayout,
+  useLeftBarLayout,
+} from 'src/SqlLab/hooks/useLeftBarLayout';
 
 import SqlEditorLeftBar from '../SqlEditorLeftBar';
+import LeftBarRail from '../SqlEditorLeftBar/LeftBarRail';
 import StatusBar from '../StatusBar';
 
 const StyledContainer = styled.div`
@@ -52,13 +57,27 @@ const StyledContainer = styled.div`
   }
 `;
 
-const StyledSidebar = styled.div`
-  position: relative;
-  padding: ${({ theme }) => theme.sizeUnit * 2.5}px 0;
-  margin: 0 ${({ theme }) => theme.sizeUnit * 2.5}px;
+// The rail is a sibling of the Splitter, not a child inside it, so it stays
+// mounted and visible regardless of the Splitter panel's own collapsed/
+// hidden state or which view is active.
+const StyledMainRow = styled.div`
+  display: flex;
   flex: 1;
-  height: 100%;
-  background-color: ${({ theme }) => theme.colorBgBase};
+  min-height: 0;
+`;
+
+const StyledSidebar = styled.div<{ hasRail: boolean }>`
+  ${({ theme, hasRail }) => css`
+    position: relative;
+    padding: ${theme.sizeUnit * 2.5}px 0;
+    margin: 0 ${theme.sizeUnit * 2.5}px;
+    /* The rail already sits flush against this edge, so its own gutter
+       would just double up as a gap between the rail and the sidebar. */
+    margin-inline-start: ${hasRail ? 0 : `${theme.sizeUnit * 2.5}px`};
+    flex: 1;
+    height: 100%;
+    background-color: ${theme.colorBgBase};
+  `}
 `;
 
 const ContentWrapper = styled.div`
@@ -80,20 +99,64 @@ const AppLayout: React.FC<{ children?: React.ReactNode }> = ({ children }) => {
     'sqllab:rightbar',
     SQL_EDITOR_RIGHTBAR_WIDTH,
   );
-  const autoHide = useEffectEvent(() => {
+  const {
+    tabs,
+    hasRail,
+    activeViewId,
+    contentCollapsed,
+    selectView,
+    toggleContent,
+    expandContent,
+  } = useLeftBarLayout();
+  const leftPanel = getLeftPanelLayout({
+    leftWidth,
+    contentCollapsed,
+    hasRail,
+  });
+
+  const hideSidebar = useEffectEvent(() => {
     if (leftWidth > 0) {
       setLeftWidth(0);
     }
+    // A hidden content panel has nothing to show, so a stale inner collapse
+    // would otherwise resurface as a 400 -> 0 snap the next time it's shown.
+    expandContent();
   });
+  // Undoes hideSidebar's leftWidth: 0 — needed because the Splitter's own
+  // drag/collapsible-icon can hide the panel independently of the rail, and
+  // from that state contentCollapsed is already false, so toggleContent()
+  // alone is a no-op (size stays 0 regardless).
+  const openSidebar = () => {
+    setLeftWidth(SQL_EDITOR_LEFTBAR_WIDTH);
+    dispatch(toggleLeftBar(false));
+  };
   useComponentDidUpdate(() => {
     if (!md) {
-      autoHide();
+      hideSidebar();
     }
   }, [md]);
   const onSidebarChange = (sizes: number[]) => {
     const [updatedWidth, _, possibleRightWidth] = sizes;
-    setLeftWidth(updatedWidth);
-    dispatch(toggleLeftBar(updatedWidth === 0));
+    if (contentCollapsed) {
+      // While rail-collapsed, this panel's rendered size is pinned to 0
+      // regardless of the stored leftWidth, so an unrelated resize-end
+      // (e.g. dragging the *right* sidebar) still reports 0 here too —
+      // persisting that would clobber the stored expanded width. A nonzero
+      // report can only mean the Splitter's own collapsible icon just
+      // restored it, which we honor, clearing the rail's collapse flag too
+      // so collapsedByRail doesn't immediately re-collapse it next render.
+      if (updatedWidth > 0) {
+        setLeftWidth(updatedWidth);
+        dispatch(toggleLeftBar(false));
+        expandContent();
+      }
+    } else {
+      setLeftWidth(updatedWidth);
+      dispatch(toggleLeftBar(updatedWidth === 0));
+      if (updatedWidth === 0) {
+        expandContent();
+      }
+    }
 
     if (typeof possibleRightWidth === 'number') {
       setRightWidth(possibleRightWidth);
@@ -103,47 +166,61 @@ const AppLayout: React.FC<{ children?: React.ReactNode }> = ({ children }) => {
 
   return (
     <StyledContainer>
-      <Splitter
-        css={css`
-          flex: 1;
-        `}
-        lazy
-        onResizeEnd={onSidebarChange}
-        onResize={noop}
-      >
-        <Splitter.Panel
-          collapsible={{
-            start: true,
-            end: true,
-            showCollapsibleIcon: true,
-          }}
-          size={leftWidth}
-          min={SQL_EDITOR_LEFTBAR_WIDTH}
-        >
-          <StyledSidebar>
-            <SqlEditorLeftBar
-              key={queryEditorId}
-              queryEditorId={queryEditorId}
-            />
-          </StyledSidebar>
-        </Splitter.Panel>
-        <Splitter.Panel className="sqllab-body">{children}</Splitter.Panel>
-        {viewItems.length > 0 && (
-          <Splitter.Panel
-            collapsible={{
-              start: true,
-              end: true,
-              showCollapsibleIcon: true,
+      <StyledMainRow>
+        {hasRail && (
+          <LeftBarRail
+            tabs={tabs}
+            activeViewId={activeViewId}
+            onSelect={id => {
+              if (leftWidth === 0) {
+                openSidebar();
+                selectView(id);
+                return;
+              }
+              if (id === activeViewId) {
+                toggleContent();
+              } else {
+                selectView(id);
+              }
             }}
-            size={rightWidth}
-            min={SQL_EDITOR_RIGHTBAR_WIDTH}
-          >
-            <ContentWrapper>
-              <ViewListExtension viewId={ViewLocations.sqllab.rightSidebar} />
-            </ContentWrapper>
-          </Splitter.Panel>
+          />
         )}
-      </Splitter>
+        <Splitter
+          css={css`
+            flex: 1;
+          `}
+          lazy
+          onResizeEnd={onSidebarChange}
+          onResize={noop}
+        >
+          <Splitter.Panel
+            collapsible={{ start: true, end: true, showCollapsibleIcon: true }}
+            size={leftPanel.size}
+            min={leftPanel.min}
+            resizable={leftPanel.resizable}
+          >
+            <StyledSidebar hasRail={hasRail}>
+              <SqlEditorLeftBar queryEditorId={queryEditorId} />
+            </StyledSidebar>
+          </Splitter.Panel>
+          <Splitter.Panel className="sqllab-body">{children}</Splitter.Panel>
+          {viewItems.length > 0 && (
+            <Splitter.Panel
+              collapsible={{
+                start: true,
+                end: true,
+                showCollapsibleIcon: true,
+              }}
+              size={rightWidth}
+              min={SQL_EDITOR_RIGHTBAR_WIDTH}
+            >
+              <ContentWrapper>
+                <ViewListExtension viewId={ViewLocations.sqllab.rightSidebar} />
+              </ContentWrapper>
+            </Splitter.Panel>
+          )}
+        </Splitter>
+      </StyledMainRow>
       <StatusBar />
     </StyledContainer>
   );

@@ -31,6 +31,7 @@ import { Command } from '../commands';
 import { View } from '../views';
 import { Menu } from '../menus';
 import { Editor } from '../editors';
+import { LeftBarView } from '../sqlLab';
 
 /**
  * Valid locations within SQL Lab.
@@ -90,4 +91,9 @@ export interface Contributions {
    * chat at a time.
    */
   chat?: Chat;
+  /**
+   * Views contributed to SQL Lab's left sidebar. Each entry becomes an icon
+   * in the sidebar's icon strip; there is no per-extension limit.
+   */
+  leftBarViews?: LeftBarView[];
 }

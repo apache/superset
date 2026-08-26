@@ -96,6 +96,18 @@ test('views at different locations are independent', () => {
   expect(views.getViews('sqllab.statusBar')).toHaveLength(1);
 });
 
+test('registering a view at sqllab.leftSidebar throws, directing authors to sqlLab.registerLeftBarView', () => {
+  const provider = () => React.createElement('div', null, 'Test');
+
+  expect(() =>
+    views.registerView(
+      { id: 'test.view', name: 'Test View' },
+      'sqllab.leftSidebar',
+      provider,
+    ),
+  ).toThrow(/sqlLab\.registerLeftBarView/);
+});
+
 test('dispose removes the view registration', () => {
   const provider = () => React.createElement('div', null, 'Test');
   const disposable = views.registerView(
