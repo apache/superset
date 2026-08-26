@@ -195,7 +195,7 @@ const widthOf = () =>
 test('the panel opens wide enough to edit a widget in', () => {
   mount();
 
-  expect(widthOf()).toBe(350);
+  expect(widthOf()).toBe(400);
 });
 
 test('the handle resizes from the keyboard, so a drag is not the only way', () => {
@@ -204,13 +204,24 @@ test('the handle resizes from the keyboard, so a drag is not the only way', () =
   handle.focus();
 
   fireEvent.keyDown(handle, { key: 'ArrowRight' });
-  expect(widthOf()).toBe(366);
+  expect(widthOf()).toBe(416);
 
   fireEvent.keyDown(handle, { key: 'End' });
   expect(widthOf()).toBe(800);
 
   fireEvent.keyDown(handle, { key: 'Home' });
-  expect(widthOf()).toBe(280);
+  expect(widthOf()).toBe(320);
+});
+
+test('a wide control in a tab scrolls the page, not the rail sideways', () => {
+  mount();
+
+  // `allowOverflow={false}` asks the tab body to scroll vertically; left at
+  // Tabs's own default it scrolls both axes, and a control sized for the
+  // wider modal it was written for (see DashboardProperties) would then hand
+  // the whole rail a sideways scrollbar too.
+  const body = document.querySelector('.ant-tabs-body-holder') as HTMLElement;
+  expect(body).toHaveStyle({ overflowX: 'hidden' });
 });
 
 test('the handle reports the width it actually has', () => {
@@ -220,7 +231,7 @@ test('the handle reports the width it actually has', () => {
   // control is lying about the only thing it does.
   expect(screen.getByTestId('panel-resize')).toHaveAttribute(
     'aria-valuenow',
-    '350',
+    '400',
   );
 });
 

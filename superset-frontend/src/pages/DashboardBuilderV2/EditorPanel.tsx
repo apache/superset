@@ -35,11 +35,13 @@ type PanelTab = 'data' | 'widgets' | 'properties' | 'outline';
  *
  * The default is set by the Properties tab, which holds a widget's whole set
  * of fields and is the widest thing here; Data, the palette, and the outline
- * are narrow whatever they are given. The ceiling leaves a usable canvas on a
- * small screen.
+ * are narrow whatever they are given. The floor is set by the Outline instead:
+ * a nested row loses width to every ancestor's own indent, and below this a
+ * name a few levels deep has nothing left to ellipsize into. The ceiling
+ * leaves a usable canvas on a small screen.
  */
-const DEFAULT_WIDTH = 350;
-const MIN_WIDTH = 280;
+const DEFAULT_WIDTH = 400;
+const MIN_WIDTH = 320;
 const MAX_WIDTH = 800;
 /** How far one arrow press moves the edge. */
 const KEYBOARD_STEP = 16;
@@ -123,6 +125,22 @@ const Grip = styled.div<{ $active: boolean }>`
       outline: none;
     }
   `}
+`;
+
+/**
+ * `allowOverflow={false}` asks `Tabs` for a scrolling body — needed so a tall
+ * form doesn't bleed past the rail — but its own rule scrolls both axes at
+ * once. Properties reuses sections built for a modal (see
+ * `DashboardProperties`), where a control can be a little wider than it needs
+ * to be with room to spare; in this rail that width is what was tipping the
+ * body over into a sideways scrollbar the panel never needed. `&&` doubles
+ * the selector so this wins over `Tabs`'s own rule regardless of which one
+ * the stylesheet happens to insert second.
+ */
+const PanelTabs = styled(Tabs)`
+  && .ant-tabs-body-holder {
+    overflow-x: hidden;
+  }
 `;
 
 /**
@@ -273,7 +291,7 @@ export default function EditorPanel({
       // dragging, and a class per pixel is a stylesheet per drag.
       style={{ width }}
     >
-      <Tabs
+      <PanelTabs
         activeKey={tab}
         onChange={key => setTab(key as PanelTab)}
         size="small"
