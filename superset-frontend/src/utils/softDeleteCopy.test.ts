@@ -96,19 +96,29 @@ test('a malformed window does not leak into the copy', () => {
 test('the confirm copy quotes the window when there is one', () => {
   withConf({ SOFT_DELETE_RETENTION_DAYS: 30 });
   expect(archiveConfirmDescription('chart')).toBe(
-    'This chart will be moved to Recently Archived. You can recover it there within 30 days.',
+    'This chart will be moved to Recently Archived in the Settings menu. You can recover it there within 30 days.',
   );
   expect(archiveConfirmDescription('charts', true)).toBe(
-    'These charts will be moved to Recently Archived. You can recover them there within 30 days.',
+    'These charts will be moved to Recently Archived in the Settings menu. You can recover them there within 30 days.',
+  );
+});
+
+test('a one-day window is quoted in the singular', () => {
+  withConf({ SOFT_DELETE_RETENTION_DAYS: 1 });
+  expect(archiveConfirmDescription('chart')).toBe(
+    'This chart will be moved to Recently Archived in the Settings menu. You can recover it there within 1 day.',
+  );
+  expect(archiveConfirmDescription('charts', true)).toBe(
+    'These charts will be moved to Recently Archived in the Settings menu. You can recover them there within 1 day.',
   );
 });
 
 test('the confirm copy omits the clause when there is no window', () => {
   withConf({});
   expect(archiveConfirmDescription('dashboard')).toBe(
-    'This dashboard will be moved to Recently Archived. You can recover it there.',
+    'This dashboard will be moved to Recently Archived in the Settings menu. You can recover it there.',
   );
   expect(archiveConfirmDescription('dashboards', true)).toBe(
-    'These dashboards will be moved to Recently Archived. You can recover them there.',
+    'These dashboards will be moved to Recently Archived in the Settings menu. You can recover them there.',
   );
 });
