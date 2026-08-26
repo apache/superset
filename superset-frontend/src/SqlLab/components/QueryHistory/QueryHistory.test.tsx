@@ -252,6 +252,58 @@ test('displays multiple queries with newest query first', async () => {
   isFeatureEnabledMock.mockClear();
 });
 
+test('renders the live Redux state instead of a stale backend snapshot for the same query', async () => {
+  const isFeatureEnabledMock = mockedIsFeatureEnabled.mockImplementation(
+    featureFlag => featureFlag === FeatureFlag.SqllabBackendPersistence,
+  );
+
+  const staleApiResult = {
+    count: 1,
+    ids: [692],
+    result: [
+      {
+        ...fakeApiResult.result[0],
+        client_id: 'stuckClientId',
+        status: QueryState.Running,
+        progress: 0,
+        rows: 0,
+        sql_editor_id: defaultQueryEditor.id,
+      },
+    ],
+  };
+
+  const editorQueryApiRoute = `glob:*/api/v1/query/?q=*`;
+  fetchMock.get(editorQueryApiRoute, staleApiResult);
+
+  const stateWithLiveQuery = {
+    ...initialState,
+    sqlLab: {
+      ...initialState.sqlLab,
+      queries: {
+        stuckClientId: {
+          id: 'stuckClientId',
+          sqlEditorId: defaultQueryEditor.id,
+          sql: 'SELECT 1',
+          state: QueryState.Success,
+          startDttm: 1710273662445,
+          progress: 100,
+          rows: 443,
+        },
+      },
+    },
+  };
+
+  render(setup(), { useRedux: true, initialState: stateWithLiveQuery });
+
+  await waitFor(() =>
+    expect(fetchMock.callHistory.calls(editorQueryApiRoute).length).toBe(1),
+  );
+
+  expect(screen.getByText('443')).toBeInTheDocument();
+
+  isFeatureEnabledMock.mockClear();
+});
+
 test('renders contributed toolbar action in queryHistory slot', () => {
   registerToolbarAction(
     ViewLocations.sqllab.queryHistory,
