@@ -98,6 +98,7 @@ from superset.dashboards.excel_export.download_link import (
     resolve_download_link,
     STATUS_ERROR,
     STATUS_READY,
+    STATUS_RUNNING,
 )
 from superset.dashboards.filters import (
     DashboardAccessFilter,
@@ -1800,6 +1801,14 @@ class DashboardRestApi(
         ):
             return self.response_404()
 
+        # The webdriver cannot render under a guest identity: the export would
+        # hold the shared guest lock for its whole budget and produce nothing.
+        # The UI hides the option for guests, but hiding is not enforcement.
+        if payload.get("mode") == "images" and security_manager.is_guest_user():
+            return self.response(
+                403, message="Image export is not available for guest sessions."
+            )
+
         dashboard = cast(Dashboard, self.datamodel.get(pk, self._base_filters))
         if not dashboard:
             return self.response_404()
@@ -1889,7 +1898,8 @@ class DashboardRestApi(
           responses:
             200:
               description: >-
-                Job status: {"status": "pending"} while still running,
+                Job status: {"status": "pending"} while queued,
+                {"status": "running"} once a worker has started executing,
                 {"status": "ready", "download_url": "..."} once the file is
                 available, or {"status": "error", "message": "..."} if the
                 export failed.
@@ -1907,6 +1917,8 @@ class DashboardRestApi(
             return self.response(
                 200, status=STATUS_ERROR, message=payload.get("message")
             )
+        if payload.get("status") == STATUS_RUNNING:
+            return self.response(200, status=STATUS_RUNNING)
         return self.response(200, status="pending")
 
     @expose("/export_xlsx/download/<uuid:job_id>/", methods=("GET",))
@@ -1946,7 +1958,7 @@ class DashboardRestApi(
         resolved = resolve_download_link(job_id)
         if resolved is None:
             return self.response(410, message="This download link has expired.")
-        bucket, key = resolved
+        bucket, key, uploaded_backend = resolved
         storage_backend = current_app.config["EXPORT_STORAGE"].get("backend")
         if storage_backend is None:
             # A link can only exist if a backend was configured when the export
@@ -1954,6 +1966,11 @@ class DashboardRestApi(
             return self.response(
                 501, message="Excel export is not configured on this server."
             )
+        backend_cls = type(storage_backend)
+        configured_backend = f"{backend_cls.__module__}.{backend_cls.__qualname__}"
+        if uploaded_backend is not None and uploaded_backend != configured_backend:
+            # Don't sign another backend's upload; expire the link instead.
+            return self.response(410, message="This download link has expired.")
         download_url = storage_backend.generate_download_url(
             bucket, key, PRESIGNED_URL_TTL_SECONDS
         )

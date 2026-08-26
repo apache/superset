@@ -29,7 +29,6 @@ import {
 import { MenuItem } from '@superset-ui/core/components/Menu';
 import { parse as parseContentDisposition } from 'content-disposition';
 import { useDownloadScreenshot } from 'src/dashboard/hooks/useDownloadScreenshot';
-import { isEmbedded as isEmbeddedDashboard } from 'src/dashboard/util/isEmbedded';
 import { NATIVE_FILTER_PREFIX } from 'src/dashboard/components/nativeFilters/FiltersConfigModal/utils';
 import { MenuKeys, RootState } from 'src/dashboard/types';
 import downloadAsPdf from 'src/utils/downloadAsPdf';
@@ -45,21 +44,25 @@ import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { MenuItemTooltip } from 'src/components/Chart/DisabledMenuItemTooltip';
 import { DownloadScreenshotFormat } from './types';
 
-// A guest/embedded session has no email address to be notified at, so rather
-// than wait on that notification the frontend polls for completion instead;
-// the same polling also drives the auto-download for a regular session,
-// which arrives before its export email in practice.
+// A session with no email on file discovers completion by polling; the same
+// polling also drives the auto-download for a regular session, which arrives
+// before its export email in practice.
 const EXPORT_STATUS_POLL_INTERVAL_MS = 3000;
 const EXPORT_STATUS_POLL_TIMEOUT_MS = 5 * 60 * 1000;
-// An embedded guest has no email fallback: if the client stops polling, a
-// slow-but-successful export is orphaned with no way to retrieve it. Outlive
-// the server's hard task budget (11 minutes) instead of racing it.
-const EMBEDDED_EXPORT_STATUS_POLL_TIMEOUT_MS = 12 * 60 * 1000;
+// Without an email fallback a slow-but-successful export is orphaned if the
+// client stops polling, so outlive the server's hard task budget (11 minutes)
+// instead of racing it.
+const NO_EMAIL_EXPORT_STATUS_POLL_TIMEOUT_MS = 12 * 60 * 1000;
 
 interface ExportStatusResponse {
-  status?: 'pending' | 'ready' | 'error';
+  status?: 'pending' | 'running' | 'ready' | 'error';
   download_url?: string;
   message?: string;
+}
+
+interface ExportPollState {
+  deadline: number;
+  sawRunning: boolean;
 }
 
 export interface UseDownloadMenuItemsProps {
@@ -91,23 +94,22 @@ export const useDownloadMenuItems = (
 
   const { addDangerToast, addSuccessToast, addInfoToast } = useToasts();
   const dataMask = useSelector((state: RootState) => state.dataMask);
-  // Embedded (iframe) sessions may have no email address, so they get
-  // delivery-neutral copy and a poll window that outlives the task budget.
-  const isEmbedded = isEmbeddedDashboard();
-  const pollTimeoutMs = isEmbedded
-    ? EMBEDDED_EXPORT_STATUS_POLL_TIMEOUT_MS
-    : EXPORT_STATUS_POLL_TIMEOUT_MS;
+  const user = useSelector((state: RootState) => state.user);
+  // Guests and anonymous sessions have no userId; sessions the backend
+  // cannot email get neutral copy and a poll window outliving the task budget.
+  const isGuestSession = !user?.userId;
+  const canReceiveEmail = Boolean(user?.userId && user?.email);
+  const pollTimeoutMs = canReceiveEmail
+    ? EXPORT_STATUS_POLL_TIMEOUT_MS
+    : NO_EMAIL_EXPORT_STATUS_POLL_TIMEOUT_MS;
 
-  // Mirror the screenshot download's repeating info toast: re-shown on every
-  // pending poll with noDuplicate, so the reminder persists for the export's
-  // whole lifetime without stacking.
   const addExportPendingToast = () =>
     addInfoToast(
-      isEmbedded
-        ? t('Your export is being generated. Please, do not leave the page.')
-        : t(
+      canReceiveEmail
+        ? t(
             "Your export is being generated and will download automatically when ready. We'll also email you a download link.",
-          ),
+          )
+        : t('Your export is being generated. Please, do not leave the page.'),
       { noDuplicate: true },
     );
   const SCREENSHOT_NODE_SELECTOR = '.dashboard';
@@ -205,7 +207,7 @@ export const useDownloadMenuItems = (
     }
   };
 
-  const pollExportStatus = (jobId: string, startedAt: number) => {
+  const pollExportStatus = (jobId: string, pollState: ExportPollState) => {
     SupersetClient.get({
       endpoint: `/api/v1/dashboard/export_xlsx/status/${jobId}/`,
     })
@@ -228,7 +230,13 @@ export const useDownloadMenuItems = (
           );
           return;
         }
-        if (Date.now() - startedAt > pollTimeoutMs) {
+        if (status === 'running' && !pollState.sawRunning) {
+          // The task's execution budget only starts when a worker picks it
+          // up; restart the wait window then, so queue delay doesn't eat it.
+          pollState.sawRunning = true;
+          pollState.deadline = Date.now() + pollTimeoutMs;
+        }
+        if (Date.now() > pollState.deadline) {
           addDangerToast(
             t('Your export is taking longer than expected. Try again later.'),
           );
@@ -236,7 +244,7 @@ export const useDownloadMenuItems = (
         }
         addExportPendingToast();
         setTimeout(
-          () => pollExportStatus(jobId, startedAt),
+          () => pollExportStatus(jobId, pollState),
           EXPORT_STATUS_POLL_INTERVAL_MS,
         );
       })
@@ -244,12 +252,12 @@ export const useDownloadMenuItems = (
         // A transient polling failure shouldn't give up the wait -- the export
         // itself may still succeed -- so keep polling until the timeout.
         logging.error(error);
-        if (Date.now() - startedAt > pollTimeoutMs) {
+        if (Date.now() > pollState.deadline) {
           addDangerToast(t('Sorry, something went wrong. Try again later.'));
           return;
         }
         setTimeout(
-          () => pollExportStatus(jobId, startedAt),
+          () => pollExportStatus(jobId, pollState),
           EXPORT_STATUS_POLL_INTERVAL_MS,
         );
       });
@@ -267,7 +275,11 @@ export const useDownloadMenuItems = (
       if (jobId) {
         addExportPendingToast();
         setTimeout(
-          () => pollExportStatus(jobId, Date.now()),
+          () =>
+            pollExportStatus(jobId, {
+              deadline: Date.now() + pollTimeoutMs,
+              sawRunning: false,
+            }),
           EXPORT_STATUS_POLL_INTERVAL_MS,
         );
       } else {
@@ -341,13 +353,10 @@ export const useDownloadMenuItems = (
             label: t('Export Data to Excel'),
             onClick: () => onExportXlsx('data'),
           },
-          // Image export renders charts through the headless webdriver, so only
-          // offer it where that infrastructure is available (same signal as the
-          // PDF/PNG image downloads above); otherwise non-table charts would
-          // silently come back empty. Embedded sessions are excluded too: the
-          // webdriver cannot render Explore under a guest identity, so the
-          // export would burn its whole task budget and produce nothing.
-          ...(isWebDriverScreenshotEnabled && !isEmbedded
+          // Needs the webdriver infrastructure and a real session: the
+          // webdriver cannot render under a guest identity (the API rejects
+          // guest image exports too).
+          ...(isWebDriverScreenshotEnabled && !isGuestSession
             ? [
                 {
                   key: 'export-xlsx-images',
