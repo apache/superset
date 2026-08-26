@@ -1753,3 +1753,85 @@ def test_unmask_encrypted_extra() -> None:
             "auth_params": {"username": "alice", "password": "old-password"},
         }
     )
+
+
+def test_impersonate_user_non_trino_backend() -> None:
+    """
+    Test impersonate_user for non-Trino backends.
+    """
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    url = make_url("presto://user@host:443/catalog/schema")
+    engine_kwargs: dict[str, Any] = {"connect_args": {}}
+
+    _, new_kwargs = TrinoEngineSpec.impersonate_user(
+        database=MagicMock(),
+        username="alice",
+        user_token=None,
+        url=url,
+        engine_kwargs=engine_kwargs,
+    )
+
+    assert new_kwargs["connect_args"] == {}
+
+
+def test_impersonate_user_without_token() -> None:
+    """
+    Test impersonate_user when there isn't a `user_token`.
+
+    Without a user token only the `user` connect arg is set; no HTTP session is
+    built, so the driver keeps handling `verify` itself.
+    """
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    url = make_url("trino://host:443/catalog/schema")
+    engine_kwargs: dict[str, Any] = {"connect_args": {"verify": False}}
+
+    _, new_kwargs = TrinoEngineSpec.impersonate_user(
+        database=MagicMock(),
+        username="alice",
+        user_token=None,
+        url=url,
+        engine_kwargs=engine_kwargs,
+    )
+
+    assert new_kwargs["connect_args"] == {"user": "alice", "verify": False}
+
+
+@pytest.mark.parametrize(
+    "verify",
+    [None, False, True, "/path/to/ca-bundle.pem"],
+)
+def test_impersonate_user_with_token(verify: Any) -> None:
+    """
+    Test impersonate_user with a `user_token`.
+
+    With a user token an HTTP session carrying the bearer token is injected.
+    """
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    url = make_url("trino://host:443/catalog/schema")
+    connect_args: dict[str, Any] = {}
+    if verify is not None:
+        connect_args["verify"] = verify
+    engine_kwargs: dict[str, Any] = {"connect_args": connect_args}
+
+    _, new_kwargs = TrinoEngineSpec.impersonate_user(
+        database=MagicMock(),
+        username="alice",
+        user_token="user-token",  # noqa: S106
+        url=url,
+        engine_kwargs=engine_kwargs,
+    )
+
+    connect_args = new_kwargs["connect_args"]
+    assert connect_args["user"] == "alice"
+    http_session = connect_args["http_session"]
+    assert http_session.headers["Authorization"] == "Bearer user-token"
+    if verify is not None:
+        assert connect_args["http_session"].verify == verify
+        # The original connect arg is left in place for the driver.
+        assert connect_args["verify"] == verify
+    # No `verify` was configured, so the session keeps the `requests` default.
+    else:
+        assert http_session.verify is True
