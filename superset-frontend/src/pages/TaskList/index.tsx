@@ -423,7 +423,11 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
           <LiveDuration
             durationSeconds={duration_seconds}
             locale={locale}
-            live={realtimeEnabled && status === TaskStatus.InProgress}
+            live={
+              realtimeEnabled &&
+              (status === TaskStatus.InProgress ||
+                status === TaskStatus.Aborting)
+            }
           />
         ),
         accessor: 'duration_seconds',
