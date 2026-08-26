@@ -3663,6 +3663,10 @@ def test_not_triggered_error_state_success_clears_retry_state(
     mocker: MockerFixture,
 ) -> None:
     """A successful retry clears its persisted retry-window state."""
+    mocker.patch(
+        "superset.commands.report.execute.feature_flag_manager.is_feature_enabled",
+        return_value=True,
+    )
     state = _make_state_instance(
         mocker,
         ReportNotTriggeredErrorState,
@@ -4160,6 +4164,10 @@ def test_success_state_report_sends_and_logs_success(
     mocker: MockerFixture,
 ) -> None:
     """REPORT type success path: send() + update state to SUCCESS."""
+    mocker.patch(
+        "superset.commands.report.execute.feature_flag_manager.is_feature_enabled",
+        return_value=True,
+    )
     state = _make_state_instance(
         mocker,
         ReportSuccessState,

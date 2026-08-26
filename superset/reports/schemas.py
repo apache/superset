@@ -20,10 +20,19 @@ from typing import Any, Optional, Union
 from croniter import croniter
 from flask import current_app
 from flask_babel import gettext as _
-from marshmallow import EXCLUDE, fields, Schema, validate, validates, validates_schema
+from marshmallow import (
+    EXCLUDE,
+    fields,
+    post_load,
+    Schema,
+    validate,
+    validates,
+    validates_schema,
+)
 from marshmallow.validate import Length, Range, ValidationError
 from pytz import all_timezones
 
+from superset import is_feature_enabled
 from superset.reports.models import (
     ReportCreationMethod,
     ReportDataFormat,
@@ -355,6 +364,8 @@ class ReportSchedulePostSchema(Schema):
         data: dict[str, Any],
         **kwargs: Any,
     ) -> None:
+        if not is_feature_enabled("ALERT_REPORTS_RETRY"):
+            return
         if data.get("send_failed_reports") and not data.get("retry_on_failure"):
             raise ValidationError(
                 {
@@ -370,6 +381,23 @@ class ReportSchedulePostSchema(Schema):
             raise ValidationError(
                 {"retry_on_failure": [_("Retries are not supported for alerts")]}
             )
+
+    @post_load
+    def strip_retry_fields_if_disabled(  # pylint: disable=unused-argument
+        self,
+        data: dict[str, Any],
+        **kwargs: Any,
+    ) -> dict[str, Any]:
+        if not is_feature_enabled("ALERT_REPORTS_RETRY"):
+            for key in (
+                "retry_on_failure",
+                "retry_max_attempts",
+                "send_failed_reports",
+                "retry_notify_owners",
+                "retry_notify_recipients",
+            ):
+                data.pop(key, None)
+        return data
 
 
 class ReportScheduleSubscribeSchema(ReportSchedulePostSchema):
@@ -554,6 +582,23 @@ class ReportSchedulePutSchema(Schema):
                     max=max_width,
                 )
             )
+
+    @post_load
+    def strip_retry_fields_if_disabled(  # pylint: disable=unused-argument
+        self,
+        data: dict[str, Any],
+        **kwargs: Any,
+    ) -> dict[str, Any]:
+        if not is_feature_enabled("ALERT_REPORTS_RETRY"):
+            for key in (
+                "retry_on_failure",
+                "retry_max_attempts",
+                "send_failed_reports",
+                "retry_notify_owners",
+                "retry_notify_recipients",
+            ):
+                data.pop(key, None)
+        return data
 
 
 class SlackChannelSchema(Schema):
