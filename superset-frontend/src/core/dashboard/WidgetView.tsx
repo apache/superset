@@ -21,12 +21,43 @@ import { t } from '@apache-superset/core/translation';
 import { css, styled, useTheme } from '@apache-superset/core/theme';
 import { ActionButton, Flex, Typography } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
+import type { MenuItem } from '@superset-ui/core/components/Menu';
 import { ErrorBoundary, KebabMenuButton } from 'src/components';
 import { provider, useDashboardRevision } from './store';
 import { resolveWidgetView } from './resolveWidgetView';
 import { widgetLabel } from './widgetLabel';
 import { widgetHeaderControl } from './widgetHeaderControl';
 import RootGrid from './RootGrid';
+
+/**
+ * The overflow menu's contents — the same items, order and grouping as the
+ * real per-chart menu (`SliceHeaderControls`), disabled because none of them
+ * has anything to act on yet: this widget renders straight to ECharts with
+ * no query context, no Redux chart state, and none of the drill/cross-filter/
+ * export plumbing the real ones read from. Placeholders rather than omitted
+ * entirely, so the menu reads as what's coming next rather than as empty.
+ *
+ * Not Remove — the bin beside this menu already offers that, and disabling
+ * every entry here to make room for the one live action would bury it.
+ */
+const PLACEHOLDER_MENU_ITEMS: MenuItem[] = [
+  { key: 'force-refresh', label: t('Force refresh'), disabled: true },
+  { key: 'fullscreen', label: t('Enter fullscreen'), disabled: true },
+  { type: 'divider' },
+  { key: 'edit-chart', label: t('Edit chart'), disabled: true },
+  {
+    key: 'cross-filter-scoping',
+    label: t('Cross-filtering scoping'),
+    disabled: true,
+  },
+  { type: 'divider' },
+  { key: 'view-query', label: t('View query'), disabled: true },
+  { key: 'view-as-table', label: t('View as table'), disabled: true },
+  { key: 'drill-to-detail', label: t('Drill to detail'), disabled: true },
+  { type: 'divider' },
+  { key: 'share', label: t('Share'), disabled: true },
+  { key: 'download', label: t('Download'), disabled: true },
+];
 
 function UnsupportedBlockPlaceholder({ nodeId }: { nodeId: string }) {
   const theme = useTheme();
@@ -406,10 +437,8 @@ const WidgetView = forwardRef<HTMLDivElement, WidgetViewProps>(
                   icon={<Icons.DeleteOutlined iconSize="s" />}
                 />
               </RemoveSlot>
-              {/* Room for more-than-one action without crowding the header
-                  with an icon per action; today it offers the same Remove
-                  the bin does. To the bin's right, since the bin is the more
-                  common action of the two. */}
+              {/* To the bin's right, since the bin is the more common action
+                  of the two. See `PLACEHOLDER_MENU_ITEMS`. */}
               <MenuSlot
                 data-widget-menu
                 onMouseDown={event => event.stopPropagation()}
@@ -422,15 +451,7 @@ const WidgetView = forwardRef<HTMLDivElement, WidgetViewProps>(
                   buttonSize="xsmall"
                   buttonStyle="link"
                   iconOrientation="vertical"
-                  menuItems={[
-                    {
-                      key: 'remove',
-                      danger: true,
-                      icon: <Icons.DeleteOutlined iconSize="s" />,
-                      label: t('Remove widget'),
-                      onClick: () => provider.removeWidget(nodeId),
-                    },
-                  ]}
+                  menuItems={PLACEHOLDER_MENU_ITEMS}
                 />
               </MenuSlot>
             </HeaderTrailingControls>

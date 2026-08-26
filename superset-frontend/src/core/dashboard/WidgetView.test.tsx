@@ -94,13 +94,15 @@ test('the overflow menu sits to the right of the bin', () => {
   ).toBeTruthy();
 });
 
-test('the overflow menu offers the same Remove the bin does', async () => {
+test('the overflow menu does not duplicate the bin', async () => {
   const { id } = withBlock();
 
+  // Disabling every placeholder to make room for a working Remove would
+  // bury the one real action here — the bin already offers it.
   await userEvent.click(screen.getByTestId(`widget-menu-${id}`));
-  await userEvent.click(await screen.findByText('Remove widget'));
 
-  expect(provider.getNode(id)).toBeUndefined();
+  expect(await screen.findByText('Force refresh')).toBeInTheDocument();
+  expect(screen.queryByText('Remove widget')).not.toBeInTheDocument();
 });
 
 test("a widget's name reads as its title, not as a caption on it", () => {
