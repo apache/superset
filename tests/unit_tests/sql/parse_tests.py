@@ -1329,20 +1329,12 @@ LIMIT 100
     assert "increase timeout for large scans" in formatted[hint_end:]
 
 
-@pytest.mark.xfail(
-    reason=(
-        "#38189 is not fully fixed: a `;`-terminated statement still hits "
-        "the comment-relocation branch and corrupts the hint block. Only "
-        "the no-semicolon form from the original repro was fixed."
-    ),
-    strict=True,
-)
 def test_sqlscript_format_preserves_optimizer_hint_block_with_semicolon() -> None:
     """
     Same as `test_sqlscript_format_preserves_optimizer_hint_block`, but with
-    a terminating `;` on the statement -- this still reproduces #38189: the
-    trailing `--` comment gets injected inside the `/*+ SET_VAR(...) */`
-    hint block, corrupting it for StarRocks/MySQL-style engines.
+    a terminating `;` on the statement -- verifies #38189 fix so that trailing
+    `--` comments land after the statement rather than injected into the `/*+ SET_VAR(...) */`
+    hint block for StarRocks/MySQL-style engines.
     """
     sql = """SELECT /*+ SET_VAR(query_timeout = 3000) */ col1, col2
 FROM my_table
@@ -1357,6 +1349,26 @@ LIMIT 100;
     assert "SET_VAR(query_timeout /*" not in formatted
     hint_end = formatted.index(hint) + len(hint)
     assert "increase timeout for large scans" in formatted[hint_end:]
+
+
+def test_sqlscript_format_preserves_optimizer_hint_with_cte_and_semicolon() -> None:
+    """
+    Ensure optimizer hints with CTEs and trailing comments survive formatting intact.
+    """
+    sql = """WITH cte AS (SELECT 1 AS id)
+SELECT /*+ SET_VAR(query_timeout = 3000) */ id
+FROM cte
+WHERE id = 1;
+
+-- trailing explanation comment"""
+    statement = SQLScript(sql, "mysql").statements[0]
+    formatted = statement.format()
+
+    hint = "/*+ SET_VAR(query_timeout = 3000) */"
+    assert hint in formatted
+    assert "SET_VAR(query_timeout /*" not in formatted
+    hint_end = formatted.index(hint) + len(hint)
+    assert "trailing explanation comment" in formatted[hint_end:]
 
 
 @pytest.mark.parametrize(
