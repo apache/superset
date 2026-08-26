@@ -33,6 +33,9 @@
  *     collapsed by default, showing only the entries actually customized,
  *     plus a picker to add one more — rather than the upstream JsonForms
  *     renderer's one always-expanded group per possible entry.
+ *   - `colorDimension` (matched by name, like `datasetId`) → a column
+ *     picker constrained to the sibling `dataBinding.dimensions`, since the
+ *     backend only accepts a colorDimension that's already grouped.
  *
  * `code` and `color` fall back to the field's schema `default`, since
  * JsonForms does not write defaults into the data until a field is touched.
@@ -371,6 +374,16 @@ function useBoundDatasetId(props: ControlProps): number | undefined {
   return dataBinding?.datasetId;
 }
 
+/** The sibling `dataBinding.dimensions` list, read the same way. */
+function useBoundDimensions(props: ControlProps): string[] {
+  const formData = (
+    props.config as { formData?: Record<string, unknown> } | undefined
+  )?.formData;
+  const dataBinding = formData?.dataBinding as
+    { dimensions?: string[] } | undefined;
+  return dataBinding?.dimensions ?? [];
+}
+
 /**
  * True when a column/metric-reference control should fail open to the raw
  * JSON editor (`CodeControl`) rather than render its picker: no dataset is
@@ -431,6 +444,7 @@ function ReferenceSelect({
   options,
   loading,
   disabled,
+  placeholder,
   onChange,
 }: {
   label: string;
@@ -439,6 +453,7 @@ function ReferenceSelect({
   options: ReferenceOption[];
   loading: boolean;
   disabled: boolean;
+  placeholder?: string;
   onChange: (next: string | undefined) => void;
 }): ReactElement {
   return (
@@ -450,6 +465,7 @@ function ReferenceSelect({
         options={options}
         loading={loading}
         disabled={disabled}
+        placeholder={placeholder}
         allowClear
         css={{ width: '100%' }}
       />
@@ -572,6 +588,48 @@ function ColumnControl(props: ControlProps): ReactElement {
       options={columnOptions(metadata, allowedTypes)}
       loading={loading}
       disabled={!props.enabled}
+      onChange={value => props.handleChange(props.path, value)}
+    />
+  );
+}
+
+/**
+ * The `colorDimension` field specifically: a column reference, but not to
+ * any column — the widget only colors by a dimension it already groups by
+ * (Balloons' `_color_dimension_must_be_grouped` validator rejects anything
+ * else). Offering all of a dataset's columns, most of which the backend
+ * will reject, taught nothing about which one was actually valid; this
+ * intersects the picker's options with the sibling `dataBinding.dimensions`
+ * instead, and disables it with an explanatory placeholder when there's
+ * nothing grouped yet to color by.
+ */
+function ColorDimensionControl(props: ControlProps): ReactElement {
+  const datasetId = useBoundDatasetId(props);
+  const dimensions = useBoundDimensions(props);
+  const { metadata, loading, error } = useDatasetMetadata(datasetId);
+
+  if (
+    shouldFallBackToCode(datasetId, error) ||
+    (props.data !== undefined && typeof props.data !== 'string')
+  ) {
+    return <CodeControl {...props} />;
+  }
+
+  const options = columnOptions(metadata, undefined).filter(option =>
+    dimensions.includes(option.value),
+  );
+
+  return (
+    <ReferenceSelect
+      label={props.label}
+      description={props.description}
+      value={props.data as string | undefined}
+      options={options}
+      loading={loading}
+      disabled={!props.enabled || dimensions.length === 0}
+      placeholder={
+        dimensions.length === 0 ? t('Group a dimension first') : undefined
+      }
       onChange={value => props.handleChange(props.path, value)}
     />
   );
@@ -844,6 +902,15 @@ export const schemaControlRenderers = [
   {
     tester: rankWith(1000, isDynamicSeries),
     renderer: withJsonFormsControlProps(SeriesOverridesControl),
+  },
+  {
+    // Ranked above the generic `column` tester below so this field's own,
+    // narrower control wins the match — both would otherwise tie at 1000.
+    tester: rankWith(
+      1001,
+      and(scopeEndIs('colorDimension'), schemaTypeIs('string')),
+    ),
+    renderer: withJsonFormsControlProps(ColorDimensionControl),
   },
   {
     tester: rankWith(1000, xControlIs('column')),

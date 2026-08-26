@@ -185,14 +185,17 @@ test('discovers series from an explicit colorDimension when set', async () => {
 });
 
 test('renders a column picker for an x-control: "column" field and writes the pick back into props', async () => {
+  // Named anything but `colorDimension`, which has its own, more specific
+  // control (`ColorDimensionControl`) — this test is about the generic
+  // `x-control: "column"` mechanism any other field can use.
   postSpy.mockResolvedValue({
     json: {
       result: {
         type: 'object',
         properties: {
-          colorDimension: {
+          favoriteColumn: {
             type: 'string',
-            title: 'Color dimension',
+            title: 'Favorite column',
             'x-control': 'column',
           },
         },
@@ -212,9 +215,90 @@ test('renders a column picker for an x-control: "column" field and writes the pi
     dataBinding: { datasetId: 1, metrics: ['count'] },
   });
 
-  await screen.findByText('Color dimension');
+  await screen.findByText('Favorite column');
   await selectOption('gender');
 
+  await waitFor(() =>
+    expect(provider.getNode(id)?.props?.favoriteColumn).toBe('gender'),
+  );
+});
+
+// `colorDimension` can only ever be a dimension the widget already groups
+// by (the backend's `_color_dimension_must_be_grouped` validator rejects
+// anything else), so its picker intersects with the sibling
+// `dataBinding.dimensions` rather than offering every column.
+const COLOR_DIMENSION_SCHEMA = {
+  type: 'object',
+  properties: {
+    colorDimension: {
+      type: 'string',
+      title: 'Color dimension',
+      'x-control': 'column',
+    },
+  },
+};
+
+test('colorDimension is disabled with an explanatory placeholder when nothing is grouped yet', async () => {
+  postSpy.mockResolvedValue({
+    json: { result: COLOR_DIMENSION_SCHEMA },
+  } as never);
+  getSpy.mockResolvedValue({
+    json: {
+      result: {
+        columns: [{ column_name: 'gender', type_generic: 1 }],
+        metrics: [],
+      },
+    },
+  } as never);
+
+  mount('balloons', {
+    dataBinding: { datasetId: 1, metrics: ['count'], dimensions: [] },
+  });
+
+  const picker = await screen.findByRole('combobox', {
+    name: 'Color dimension',
+  });
+  expect(picker).toBeDisabled();
+  expect(screen.getByText('Group a dimension first')).toBeInTheDocument();
+});
+
+test('colorDimension excludes dataset columns that are not grouped, and offers the ones that are', async () => {
+  postSpy.mockResolvedValue({
+    json: { result: COLOR_DIMENSION_SCHEMA },
+  } as never);
+  getSpy.mockResolvedValue({
+    json: {
+      result: {
+        // Three columns on the dataset; only `gender` is actually grouped.
+        columns: [
+          { column_name: 'name', type_generic: 1 },
+          { column_name: 'gender', type_generic: 1 },
+          { column_name: 'country', type_generic: 1 },
+        ],
+        metrics: [],
+      },
+    },
+  } as never);
+
+  const id = mount('balloons', {
+    dataBinding: {
+      datasetId: 1,
+      metrics: ['count'],
+      dimensions: ['gender'],
+    },
+  });
+
+  const picker = await screen.findByRole('combobox', {
+    name: 'Color dimension',
+  });
+  expect(picker).toBeEnabled();
+
+  await userEvent.click(picker);
+  expect(screen.getByText('gender')).toBeInTheDocument();
+  expect(screen.queryByText('name')).not.toBeInTheDocument();
+  expect(screen.queryByText('country')).not.toBeInTheDocument();
+
+  await userEvent.click(screen.getByText('gender'));
   await waitFor(() =>
     expect(provider.getNode(id)?.props?.colorDimension).toBe('gender'),
   );
