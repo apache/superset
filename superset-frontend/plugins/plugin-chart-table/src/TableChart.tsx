@@ -1195,16 +1195,20 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             }
           `;
 
-          let arrowStyles = css`
-            color: ${
+          // Plain inline style (rather than the `css` prop) so the arrow's
+          // color is guaranteed to apply regardless of whether the consuming
+          // app's build wires up the emotion JSX pragma for the `css` prop --
+          // notably, this codebase's own Jest/Babel config does not, which
+          // silently no-ops any `css` prop on a plain DOM element.
+          let arrowStyles: CSSProperties = {
+            color:
               basicColorFormatters &&
               basicColorFormatters[row.index]?.[originKey]?.arrowColor ===
                 ColorSchemeEnum.Green
                 ? theme.colorSuccess
-                : theme.colorError
-            };
-            margin-right: ${theme.sizeUnit}px;
-          `;
+                : theme.colorError,
+            marginRight: theme.sizeUnit,
+          };
 
           if (
             basicColorColumnFormatters &&
@@ -1213,14 +1217,13 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             const columnArrowColor =
               basicColorColumnFormatters[row.index]?.[column.key]?.arrowColor;
             if (columnArrowColor) {
-              arrowStyles = css`
-                color: ${
+              arrowStyles = {
+                color:
                   columnArrowColor === ColorSchemeEnum.Green
                     ? theme.colorSuccess
-                    : theme.colorError
-                };
-                margin-right: ${theme.sizeUnit}px;
-              `;
+                    : theme.colorError,
+                marginRight: theme.sizeUnit,
+              };
             }
           }
 
@@ -1306,12 +1309,12 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                   className="dt-truncate-cell"
                   style={columnWidth ? { width: columnWidth } : undefined}
                 >
-                  {arrow && <span css={arrowStyles}>{arrow}</span>}
+                  {arrow && <span style={arrowStyles}>{arrow}</span>}
                   {text}
                 </div>
               ) : (
                 <>
-                  {arrow && <span css={arrowStyles}>{arrow}</span>}
+                  {arrow && <span style={arrowStyles}>{arrow}</span>}
                   {text}
                 </>
               )}
