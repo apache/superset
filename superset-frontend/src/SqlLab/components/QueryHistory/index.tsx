@@ -21,12 +21,7 @@ import { shallowEqual, useSelector } from 'react-redux';
 import { useInView } from 'react-intersection-observer';
 import { EmptyState, Skeleton } from '@superset-ui/core/components';
 import { t } from '@apache-superset/core/translation';
-import {
-  FeatureFlag,
-  isFeatureEnabled,
-  concludedQueryStateList,
-  QueryResponse,
-} from '@superset-ui/core';
+import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import { styled, css } from '@apache-superset/core/theme';
 import QueryTable from 'src/SqlLab/components/QueryTable';
 import { SqlLabRootState } from 'src/SqlLab/types';
@@ -35,6 +30,7 @@ import useEffectEvent from 'src/hooks/useEffectEvent';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 import PanelToolbar from 'src/components/PanelToolbar';
 import { ViewLocations } from 'src/SqlLab/contributions';
+import { mergeQueryStatus } from './mergeQueryStatus';
 
 interface QueryHistoryProps {
   queryEditorId: string | number;
@@ -60,56 +56,6 @@ const getEditorQueries = (
   Object.values(queries).filter(
     ({ sqlEditorId }) => String(sqlEditorId) === String(queryEditorId),
   );
-
-const isConcludedState = (state: QueryResponse['state']) =>
-  concludedQueryStateList.includes(state);
-
-// Merges a backend history row with the matching live Redux query.
-// Backend-only metadata (queryId, user, db, startDttm, ...) is always kept
-// from the snapshot. The status fields below move together as a query
-// progresses, so whichever side reports the more advanced (concluded)
-// state supplies all of them together, rather than e.g. pairing a
-// concluded state from one side with a stale progress/rows from the
-// other. When neither side has concluded (or both have), the live Redux
-// copy wins field-by-field, skipping any field it hasn't populated yet
-// (e.g. a query that was just started client-side and hasn't been
-// polled).
-const mergeQueryStatus = (
-  remoteQuery: QueryResponse,
-  localQuery: QueryResponse,
-): QueryResponse => {
-  const statusSource =
-    isConcludedState(remoteQuery.state) && !isConcludedState(localQuery.state)
-      ? remoteQuery
-      : localQuery;
-  return {
-    ...remoteQuery,
-    state:
-      statusSource.state !== undefined ? statusSource.state : remoteQuery.state,
-    progress:
-      statusSource.progress !== undefined
-        ? statusSource.progress
-        : remoteQuery.progress,
-    rows:
-      statusSource.rows !== undefined ? statusSource.rows : remoteQuery.rows,
-    endDttm:
-      statusSource.endDttm !== undefined
-        ? statusSource.endDttm
-        : remoteQuery.endDttm,
-    resultsKey:
-      statusSource.resultsKey !== undefined
-        ? statusSource.resultsKey
-        : remoteQuery.resultsKey,
-    errorMessage:
-      statusSource.errorMessage !== undefined
-        ? statusSource.errorMessage
-        : remoteQuery.errorMessage,
-    executedSql:
-      statusSource.executedSql !== undefined
-        ? statusSource.executedSql
-        : remoteQuery.executedSql,
-  };
-};
 
 const QueryHistory = ({
   queryEditorId,

@@ -18,7 +18,7 @@
  */
 import fetchMock from 'fetch-mock';
 import { FeatureFlag, isFeatureEnabled, QueryState } from '@superset-ui/core';
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
+import { render, screen, waitFor, within } from 'spec/helpers/testing-library';
 import QueryHistory from 'src/SqlLab/components/QueryHistory';
 import {
   initialState,
@@ -252,7 +252,17 @@ test('displays multiple queries with newest query first', async () => {
   isFeatureEnabledMock.mockClear();
 });
 
-test('renders the live Redux state instead of a stale backend snapshot for the same query', async () => {
+// The `QueryTable` Duration cell only renders when `q.endDttm` is set, and
+// the live-only Redux fixtures below deliberately omit `endDttm` (a
+// client-started query never has one until the backend supplies it). So
+// `findByText(/^00:00:00\./)` can only resolve once the backend snapshot
+// has actually loaded *and* been folded into the rendered row - unlike
+// `waitFor(() => calls.length === 1)`, which resolves as soon as the
+// request is issued, while `data` is still `undefined` and the component
+// is still rendering the pre-merge, Redux-only fallback.
+const findDurationCell = () => screen.findByText(/^00:00:00\./);
+
+test('overrides a stale non-concluded backend snapshot with a concluded live Redux state', async () => {
   const isFeatureEnabledMock = mockedIsFeatureEnabled.mockImplementation(
     featureFlag => featureFlag === FeatureFlag.SqllabBackendPersistence,
   );
@@ -293,24 +303,21 @@ test('renders the live Redux state instead of a stale backend snapshot for the s
     },
   };
 
-  const { container } = render(setup(), {
-    useRedux: true,
-    initialState: stateWithLiveQuery,
-  });
+  render(setup(), { useRedux: true, initialState: stateWithLiveQuery });
 
   await waitFor(() =>
     expect(fetchMock.callHistory.calls(editorQueryApiRoute).length).toBe(1),
   );
+  await findDurationCell();
 
-  expect(screen.getByText('443')).toBeInTheDocument();
-  expect(container.querySelector('.anticon-check')).toBeInTheDocument();
-  expect(container.querySelector('.anticon-loading')).not.toBeInTheDocument();
-  expect(screen.queryByText('0%')).not.toBeInTheDocument();
+  const row = screen.getByText('443').closest('tr') as HTMLElement;
+  expect(within(row).getByLabelText('check')).toBeInTheDocument();
+  expect(within(row).queryByLabelText('loading')).not.toBeInTheDocument();
 
   isFeatureEnabledMock.mockClear();
 });
 
-test('lets a concluded backend snapshot win over a stale non-concluded Redux state', async () => {
+test('does not override an already-concluded backend snapshot with a non-concluded Redux state', async () => {
   const isFeatureEnabledMock = mockedIsFeatureEnabled.mockImplementation(
     featureFlag => featureFlag === FeatureFlag.SqllabBackendPersistence,
   );
@@ -321,7 +328,7 @@ test('lets a concluded backend snapshot win over a stale non-concluded Redux sta
     result: [
       {
         ...fakeApiResult.result[0],
-        client_id: 'unpolledClientId',
+        client_id: 'scheduledClientId',
         status: QueryState.Success,
         progress: 100,
         rows: 443,
@@ -333,18 +340,20 @@ test('lets a concluded backend snapshot win over a stale non-concluded Redux sta
   const editorQueryApiRoute = `glob:*/api/v1/query/?q=*`;
   fetchMock.get(editorQueryApiRoute, concludedApiResult);
 
-  // Redux never observed the query leave Running, e.g. because
-  // QueryAutoRefresh stopped polling it (MAX_QUERY_AGE_TO_POLL elapsed).
-  const stateWithStaleRunningQuery = {
+  // Redux hasn't observed this query conclude yet: it's still Scheduled.
+  // Deliberately not Running/Pending with progress 0, which is the tuple
+  // CLEAR_INACTIVE_QUERIES evicts once stale - that combination can't
+  // actually reach this merge in production.
+  const stateWithScheduledQuery = {
     ...initialState,
     sqlLab: {
       ...initialState.sqlLab,
       queries: {
-        unpolledClientId: {
-          id: 'unpolledClientId',
+        scheduledClientId: {
+          id: 'scheduledClientId',
           sqlEditorId: defaultQueryEditor.id,
           sql: 'SELECT 1',
-          state: QueryState.Running,
+          state: QueryState.Scheduled,
           startDttm: 1710273662445,
           progress: 0,
           rows: 0,
@@ -353,19 +362,16 @@ test('lets a concluded backend snapshot win over a stale non-concluded Redux sta
     },
   };
 
-  const { container } = render(setup(), {
-    useRedux: true,
-    initialState: stateWithStaleRunningQuery,
-  });
+  render(setup(), { useRedux: true, initialState: stateWithScheduledQuery });
 
   await waitFor(() =>
     expect(fetchMock.callHistory.calls(editorQueryApiRoute).length).toBe(1),
   );
+  await findDurationCell();
 
-  expect(screen.getByText('443')).toBeInTheDocument();
-  expect(container.querySelector('.anticon-check')).toBeInTheDocument();
-  expect(container.querySelector('.anticon-loading')).not.toBeInTheDocument();
-  expect(screen.queryByText('0%')).not.toBeInTheDocument();
+  const row = screen.getByText('443').closest('tr') as HTMLElement;
+  expect(within(row).getByLabelText('check')).toBeInTheDocument();
+  expect(within(row).queryByLabelText('loading')).not.toBeInTheDocument();
 
   isFeatureEnabledMock.mockClear();
 });
@@ -421,7 +427,7 @@ test('renders a backend-only historical query the client never ran, alongside a 
     },
   };
 
-  render(setup(), {
+  const { container } = render(setup(), {
     useRedux: true,
     initialState: stateWithOnlyOneLiveQuery,
   });
@@ -429,9 +435,22 @@ test('renders a backend-only historical query the client never ran, alongside a 
   await waitFor(() =>
     expect(fetchMock.callHistory.calls(editorQueryApiRoute).length).toBe(1),
   );
+  await findDurationCell();
 
-  expect(screen.getByText('443')).toBeInTheDocument();
-  expect(screen.getByText('12')).toBeInTheDocument();
+  const tableRows = container.querySelectorAll(
+    'table > tbody > tr:not(.ant-table-measure-row)',
+  );
+  expect(tableRows).toHaveLength(2);
+
+  const liveRow = screen.getByText('443').closest('tr') as HTMLElement;
+  expect(within(liveRow).getByLabelText('check')).toBeInTheDocument();
+  expect(within(liveRow).queryByLabelText('loading')).not.toBeInTheDocument();
+
+  const historicalRow = screen.getByText('12').closest('tr') as HTMLElement;
+  expect(within(historicalRow).getByLabelText('check')).toBeInTheDocument();
+  expect(
+    within(historicalRow).queryByLabelText('loading'),
+  ).not.toBeInTheDocument();
 
   isFeatureEnabledMock.mockClear();
 });
