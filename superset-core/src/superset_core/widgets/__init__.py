@@ -28,3 +28,4 @@ from superset_core.widgets.composites import (
     MetricControl as MetricControl,
 )
 from superset_core.widgets.decorators import widget as widget
+from superset_core.widgets.enrichment import EnricherFn as EnricherFn
