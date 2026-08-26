@@ -72,6 +72,7 @@ DOWNLOAD_PATH = "/api/v1/dashboard/export_xlsx/download/{job_id}/"
 
 STATUS_READY = "ready"
 STATUS_ERROR = "error"
+STATUS_RUNNING = "running"
 
 
 def _sweep_and_upsert(
@@ -98,21 +99,36 @@ def build_download_url(job_id: UUID) -> str:
 
 
 def create_download_link(
-    job_id: UUID, bucket: str, key: str, expires_at: datetime
+    job_id: UUID, bucket: str, key: str, expires_at: datetime, backend: str
 ) -> str:
     """Record that ``job_id``'s export succeeded and is downloadable from
     ``key`` in ``bucket`` until ``expires_at``, and return the download URL
     (used in the success email).
+
+    ``backend`` is the dotted path of the ``ExportStorage`` class that
+    uploaded the file; the download redirect refuses to sign with a different
+    backend (see ``download_xlsx``), failing clearly after a storage migration
+    instead of minting a URL for the wrong provider.
 
     ``expires_at`` should be a naive datetime in the same timezone convention
     ``KeyValueEntry.is_expired()`` compares against (naive ``datetime.now()``).
     """
     _sweep_and_upsert(
         job_id,
-        {"status": STATUS_READY, "bucket": bucket, "key": key},
+        {"status": STATUS_READY, "bucket": bucket, "key": key, "backend": backend},
         expires_at,
     )
     return build_download_url(job_id)
+
+
+def mark_export_running(job_id: UUID, expires_at: datetime) -> None:
+    """Record that a worker has started executing ``job_id`` (as opposed to
+    still sitting in the queue), so a polling client can wait out broker
+    backlog without racing the task's execution budget, which only starts
+    here. Overwritten by the terminal record; ``expires_at`` is the backstop
+    if the worker dies first.
+    """
+    _sweep_and_upsert(job_id, {"status": STATUS_RUNNING}, expires_at)
 
 
 def mark_export_failed(job_id: UUID, message: str, expires_at: datetime) -> None:
@@ -130,10 +146,11 @@ def get_export_status(job_id: UUID) -> dict[str, Any] | None:
     return KeyValueDAO.get_value(RESOURCE, job_id, CODEC)
 
 
-def resolve_download_link(job_id: UUID) -> tuple[str, str] | None:
-    """The ``(bucket, object_key)`` for a *ready* download, or ``None`` if it
-    is missing, expired, still running, or errored."""
+def resolve_download_link(job_id: UUID) -> tuple[str, str, str | None] | None:
+    """The ``(bucket, object_key, backend_path)`` for a *ready* download, or
+    ``None`` if it is missing, expired, still running, or errored.
+    ``backend_path`` is ``None`` for records written before it was tracked."""
     payload = get_export_status(job_id)
     if payload is None or payload.get("status") != STATUS_READY:
         return None
-    return payload["bucket"], payload["key"]
+    return payload["bucket"], payload["key"], payload.get("backend")

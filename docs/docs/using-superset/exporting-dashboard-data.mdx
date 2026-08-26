@@ -9,16 +9,18 @@ version: 1
 
 Superset can export every chart on a dashboard to a single Excel workbook, with
 each chart's underlying data rendered as its own worksheet. The export reflects
-the dashboard's currently applied filters and runs asynchronously: when it
-finishes, the requesting user receives an email with a time-limited download
-link.
+the dashboard's currently applied filters and runs asynchronously: the page
+polls for completion and downloads the workbook automatically, and a logged-in
+user with an email address also receives a time-limited download link by email.
+Sessions with no email on file — embedded guest-token sessions and anonymous
+(Public-role) users — rely on the polling download alone.
 
 ## Using the export
 
 From a dashboard, open the **... (actions) → Download** submenu and choose
 **Export Data to Excel**. The action appears for users who have the dashboard
 `can_export` permission. You'll see a confirmation that the export is being
-prepared; the workbook arrives by email when it's ready.
+prepared; the workbook downloads automatically when ready.
 
 A second option, **Export Images to Excel**, embeds each non-table chart as a
 rendered image (tables stay tabular) instead of exporting raw data. Because it
@@ -66,17 +68,18 @@ This feature is **disabled by default**. It requires:
 2. **The backend's SDK dependency.** Not installed by default; install
    `pip install apache-superset[excel-export]` (boto3) for `S3ExportStorage`,
    or `pip install apache-superset[excel-export-gcs]` (google-cloud-storage)
-   for `GCSExportStorage`. Without it, exports fail and the user receives a
-   failure email. For `GCSExportStorage` with token-only Application Default
-   Credentials (GKE workload identity, GCE metadata, Cloud Run), signed
-   download URLs are minted through the IAM signBlob API, which requires the
-   service account to hold `roles/iam.serviceAccountTokenCreator` on itself;
-   key-file credentials sign locally and need no extra role.
+   for `GCSExportStorage`. Without it, exports fail. For `GCSExportStorage`
+   with token-only Application Default Credentials (GKE workload identity,
+   GCE metadata, Cloud Run), signed download URLs are minted through the IAM
+   signBlob API, which requires the service account to hold
+   `roles/iam.serviceAccountTokenCreator` on itself; key-file credentials
+   sign locally and need no extra role.
 3. **A running Celery worker.** The export runs as a Celery task. If no worker
    is running, the request is accepted but nothing is produced.
-4. **A configured SMTP transport.** The download link is delivered by email
-   using the same settings as alerts & reports (`SMTP_*`,
-   `EMAIL_REPORTS_SUBJECT_PREFIX`).
+4. **A configured SMTP transport, for email delivery only.** When set (same
+   settings as alerts & reports: `SMTP_*`, `EMAIL_REPORTS_SUBJECT_PREFIX`),
+   logged-in users with an email address also receive the download link by
+   email. The polling auto-download works without it.
 
 **Export Images to Excel** additionally requires a working headless webdriver —
 the same infrastructure scheduled reports and thumbnails use (`WEBDRIVER_*`,
@@ -96,15 +99,19 @@ will not register.
 | `EXPORT_STORAGE["bucket"]`             | unset                  | Destination bucket. Required; `501` if unset.                                                                                                                                     |
 | `EXPORT_STORAGE["backend"]`            | unset                  | Storage backend instance: `S3ExportStorage()` (`superset.utils.s3`), `GCSExportStorage()` (`superset.utils.gcs`), or a custom `superset.utils.export_storage.ExportStorage` implementation. Required; `501` if unset. |
 | `EXPORT_STORAGE["key_prefix"]`         | `"dashboard-exports/"` | Object key/blob prefix: `{prefix}{dashboard_id}/{job_id}.xlsx`. A callable (`() -> str`) is invoked per export, for prefixes only known in request/task context (e.g. per-tenant scoping of a shared bucket). |
-| `EXCEL_EXPORT_LINK_TTL_SECONDS`        | `86400`                | Lifetime of the pre-signed download URL (24h).                                                                                                                                    |
+| `EXCEL_EXPORT_LINK_TTL_SECONDS`        | `86400`                | Lifetime of the Superset download *link* (24h) — the redirect URL shared in the email and polling response. Each click on it mints a fresh short-lived storage URL (5 minutes, enough to complete one download); this setting does not govern that storage URL's lifetime. |
 | `EXCEL_EXPORT_TABLE_VIZ_TYPES`         | `None`                 | Viz types kept tabular in **Export Images to Excel** mode; every other type is embedded as an image. `None` uses the built-in default (`table`, `pivot_table`, `pivot_table_v2`). |
 | `EXCEL_EXPORT_QUERY_CONTEXT_BUILDER`   | `None`                 | Optional `Callable[[form_data_dict], dict \| None]` to build a query context for a chart missing a saved one, tried before the built-in form-data rebuild. Point it at a service that runs the chart's real frontend `buildQuery` to faithfully export viz types the built-in rebuild can't handle. Must return `None` when it can't build faithfully, so the export falls back. |
 
 Credentials resolve through each SDK's standard chain — for S3, environment
 variables, shared config, or an instance role, with overrides available via
 `S3ExportStorage(client_kwargs={...})` (e.g. `region_name`, or `endpoint_url`
-for MinIO/LocalStack); for GCS, Application Default Credentials. The worker
-needs write access to the bucket (e.g. `s3:PutObject`).
+for MinIO/LocalStack); for GCS, Application Default Credentials. Two tiers
+need bucket access, which matters when they run under separate identities:
+the **Celery worker** uploads the file (e.g. `s3:PutObject`), while the **web
+server** signs the download URL at click time (for S3, credentials authorized
+for `s3:GetObject`; for GCS, read access plus the signBlob role described in
+the prerequisites when its credentials are token-only).
 
 ## Security considerations
 
@@ -117,9 +124,12 @@ needs write access to the bucket (e.g. `s3:PutObject`).
 
 ## Limitations
 
-- **Embedded dashboards / guest tokens are not supported** in this version,
-  because guest users have no email address to deliver the link to. Logged-in
-  users viewing an embedded dashboard can still use the export.
+- **Embedded guest-token sessions get the polling download only.** The export
+  runs under the guest token's RLS rules and resource claims, and the page
+  polls for completion and downloads automatically — but there is no email
+  fallback, so the browser tab must stay open until the export finishes.
+  **Export Images to Excel** is not available to guests (the webdriver cannot
+  render under a guest identity; the API rejects it).
 - The default **Export Data to Excel** mode exports data only (no visual
   styling). Use **Export Images to Excel** to embed rendered chart images, which
   requires the webdriver infrastructure described in the prerequisites.

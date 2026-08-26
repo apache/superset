@@ -43,11 +43,6 @@ const mockAddSuccessToast = jest.fn();
 const mockAddDangerToast = jest.fn();
 const mockAddInfoToast = jest.fn();
 
-let mockIsEmbedded = false;
-jest.mock('src/dashboard/util/isEmbedded', () => ({
-  isEmbedded: () => mockIsEmbedded,
-}));
-
 jest.mock('src/components/MessageToasts/withToasts', () => ({
   __esModule: true,
   default: (Component: React.ComponentType) => Component,
@@ -82,6 +77,10 @@ const createProps = () => ({
   userCanExport: true,
 });
 
+// The default test store has an empty user; most tests exercise a logged-in
+// session with an email on file.
+const loggedInState = { user: { userId: 1, email: 'admin@example.com' } };
+
 const MenuWrapper = () => {
   const downloadMenuItem = useDownloadMenuItems(createProps());
   const menuItems: MenuItem[] = [downloadMenuItem];
@@ -107,7 +106,6 @@ const originalLocation = window.location;
 
 beforeEach(() => {
   jest.clearAllMocks();
-  mockIsEmbedded = false;
   // Reset the implementation each test: clearAllMocks resets call history but
   // not mockReturnValue, so an override in one test would otherwise leak.
   (isFeatureEnabled as jest.Mock).mockReturnValue(false);
@@ -131,6 +129,7 @@ test('Should render all menu items', () => {
   enableWebDriverScreenshot();
   render(<MenuWrapper />, {
     useRedux: true,
+    initialState: loggedInState,
   });
 
   // Screenshot options
@@ -147,7 +146,7 @@ test('Should render all menu items', () => {
 test('Export Images to Excel is hidden when the webdriver is not enabled', () => {
   // Default: webdriver screenshot flags off. Image export needs the webdriver,
   // so only the data export is offered.
-  render(<MenuWrapper />, { useRedux: true });
+  render(<MenuWrapper />, { useRedux: true, initialState: loggedInState });
 
   expect(screen.getByText('Export Data to Excel')).toBeInTheDocument();
   expect(screen.queryByText('Export Images to Excel')).not.toBeInTheDocument();
@@ -167,7 +166,7 @@ test('Export Data to Excel posts mode "data" and shows a pending toast', async (
     json: { job_id: 'abc' },
   } as never);
 
-  render(<MenuWrapper />, { useRedux: true });
+  render(<MenuWrapper />, { useRedux: true, initialState: loggedInState });
 
   await userEvent.click(screen.getByText('Export Data to Excel'));
 
@@ -189,7 +188,7 @@ test('Export Images to Excel posts mode "images" and shows a pending toast', asy
     json: { job_id: 'abc' },
   } as never);
 
-  render(<MenuWrapper />, { useRedux: true });
+  render(<MenuWrapper />, { useRedux: true, initialState: loggedInState });
 
   await userEvent.click(screen.getByText('Export Images to Excel'));
 
@@ -221,7 +220,7 @@ test('Export Data to Excel polls status and auto-downloads once ready', async ()
     },
   } as never);
 
-  render(<MenuWrapper />, { useRedux: true });
+  render(<MenuWrapper />, { useRedux: true, initialState: loggedInState });
 
   await userEvent.click(screen.getByText('Export Data to Excel'));
   await waitFor(() =>
@@ -257,7 +256,7 @@ test('Export Data to Excel keeps polling while status is pending', async () => {
     json: { status: 'pending' },
   } as never);
 
-  render(<MenuWrapper />, { useRedux: true });
+  render(<MenuWrapper />, { useRedux: true, initialState: loggedInState });
 
   await userEvent.click(screen.getByText('Export Data to Excel'));
   await waitFor(() =>
@@ -291,7 +290,7 @@ test('Export Data to Excel shows an error toast when the export job fails', asyn
     json: { status: 'error', message: 'The export could not be built.' },
   } as never);
 
-  render(<MenuWrapper />, { useRedux: true });
+  render(<MenuWrapper />, { useRedux: true, initialState: loggedInState });
 
   await userEvent.click(screen.getByText('Export Data to Excel'));
   await waitFor(() =>
@@ -321,7 +320,7 @@ test('Export Data to Excel shows an "already in progress" toast when throttled',
     },
   } as never);
 
-  render(<MenuWrapper />, { useRedux: true });
+  render(<MenuWrapper />, { useRedux: true, initialState: loggedInState });
 
   await userEvent.click(screen.getByText('Export Data to Excel'));
 
@@ -336,7 +335,7 @@ test('Export Data to Excel shows a config error toast on 501', async () => {
   mockSupersetClient.post.mockRejectedValue(new Error('not configured'));
   mockGetClientErrorObject.mockResolvedValue({ status: 501 });
 
-  render(<MenuWrapper />, { useRedux: true });
+  render(<MenuWrapper />, { useRedux: true, initialState: loggedInState });
 
   await userEvent.click(screen.getByText('Export Data to Excel'));
 
@@ -351,7 +350,7 @@ test('Export Data to Excel shows a generic error toast on other failures', async
   mockSupersetClient.post.mockRejectedValue(new Error('boom'));
   mockGetClientErrorObject.mockResolvedValue({ status: 500 });
 
-  render(<MenuWrapper />, { useRedux: true });
+  render(<MenuWrapper />, { useRedux: true, initialState: loggedInState });
 
   await userEvent.click(screen.getByText('Export Data to Excel'));
 
@@ -378,7 +377,7 @@ test('Export as Example calls SupersetClient.get with correct endpoint', async (
   window.URL.createObjectURL = createObjectURL;
   window.URL.revokeObjectURL = revokeObjectURL;
 
-  render(<MenuWrapper />, { useRedux: true });
+  render(<MenuWrapper />, { useRedux: true, initialState: loggedInState });
 
   await userEvent.click(screen.getByText('Export as Example'));
 
@@ -397,7 +396,7 @@ test('Export as Example calls SupersetClient.get with correct endpoint', async (
 test('Export as Example shows error toast on failure', async () => {
   mockSupersetClient.get.mockRejectedValue(new Error('Network error'));
 
-  render(<MenuWrapper />, { useRedux: true });
+  render(<MenuWrapper />, { useRedux: true, initialState: loggedInState });
 
   await userEvent.click(screen.getByText('Export as Example'));
 
@@ -501,18 +500,20 @@ test('Enabled screenshot items should not show tooltip icon', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Embedded (guest) behavior: no email channel exists, so the toast must not
-// promise one, and the image export (webdriver-rendered, guest cannot open
+// Delivery follows the requester identity, not iframe presence: a guest or
+// anonymous session (no userId) has no email channel, so the toast must not
+// promise one, and the image export (webdriver-rendered, guests cannot open
 // Explore) is hidden.
 // ---------------------------------------------------------------------------
 
-test('embedded: export toast promises auto-download, not an email', async () => {
-  mockIsEmbedded = true;
+const guestState = { user: {} };
+
+test('guest session: export toast promises auto-download, not an email', async () => {
   mockSupersetClient.post.mockResolvedValue({
     json: { job_id: 'abc' },
   } as never);
 
-  render(<MenuWrapper />, { useRedux: true });
+  render(<MenuWrapper />, { useRedux: true, initialState: guestState });
 
   await userEvent.click(screen.getByText('Export Data to Excel'));
 
@@ -524,12 +525,71 @@ test('embedded: export toast promises auto-download, not an email', async () => 
   );
 });
 
-test('embedded: Export Images to Excel is hidden even with the webdriver enabled', () => {
-  mockIsEmbedded = true;
+test('guest session: Export Images to Excel is hidden even with the webdriver enabled', () => {
   enableWebDriverScreenshot();
 
-  render(<MenuWrapper />, { useRedux: true });
+  render(<MenuWrapper />, { useRedux: true, initialState: guestState });
 
   expect(screen.getByText('Export Data to Excel')).toBeInTheDocument();
   expect(screen.queryByText('Export Images to Excel')).not.toBeInTheDocument();
+});
+
+test('logged-in user without an email gets the delivery-neutral toast', async () => {
+  mockSupersetClient.post.mockResolvedValue({
+    json: { job_id: 'abc' },
+  } as never);
+
+  render(<MenuWrapper />, {
+    useRedux: true,
+    initialState: { user: { userId: 1 } },
+  });
+
+  await userEvent.click(screen.getByText('Export Data to Excel'));
+
+  await waitFor(() =>
+    expect(mockAddInfoToast).toHaveBeenCalledWith(
+      'Your export is being generated. Please, do not leave the page.',
+      { noDuplicate: true },
+    ),
+  );
+});
+
+test('a "running" status restarts the wait window, so queue delay is not counted', async () => {
+  jest.useFakeTimers();
+  mockSupersetClient.post.mockResolvedValue({
+    json: { job_id: 'abc' },
+  } as never);
+  // First poll: a worker has picked the job up. Second poll: done.
+  mockSupersetClient.get
+    .mockResolvedValueOnce({ json: { status: 'running' } } as never)
+    .mockResolvedValueOnce({
+      json: {
+        status: 'ready',
+        download_url: '/api/v1/dashboard/export_xlsx/download/abc/',
+      },
+    } as never);
+
+  render(<MenuWrapper />, { useRedux: true, initialState: loggedInState });
+
+  await userEvent.click(screen.getByText('Export Data to Excel'));
+  await waitFor(() => expect(mockSupersetClient.post).toHaveBeenCalled());
+
+  await act(async () => {
+    jest.advanceTimersByTime(3000);
+  });
+  await waitFor(() => expect(mockSupersetClient.get).toHaveBeenCalledTimes(1));
+
+  // Jump past the original 5-minute deadline; the window restarted when
+  // "running" was observed, so polling must continue and find "ready".
+  await act(async () => {
+    jest.advanceTimersByTime(6 * 60 * 1000);
+  });
+
+  await waitFor(() => {
+    expect(mockSupersetClient.get).toHaveBeenCalledTimes(2);
+    expect(mockRedirect).toHaveBeenCalledWith(
+      '/api/v1/dashboard/export_xlsx/download/abc/',
+    );
+  });
+  expect(mockAddDangerToast).not.toHaveBeenCalled();
 });

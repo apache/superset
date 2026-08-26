@@ -19,6 +19,7 @@ from __future__ import annotations
 import glob
 import os
 import tempfile
+import uuid
 from collections.abc import Iterator
 from contextlib import contextmanager, ExitStack
 from typing import Any
@@ -112,6 +113,7 @@ def mocks() -> Iterator[dict[str, Any]]:
                 "ReleaseDistributedLock",
                 "create_download_link",
                 "mark_export_failed",
+                "mark_export_running",
             )
         }
         user = mock.MagicMock()
@@ -968,6 +970,79 @@ def test_guest_export_reconstructs_guest_user_and_shares_lock_slot_zero(
     mocks["ReleaseDistributedLock"].assert_called_once_with(
         "excel_export", {"user_id": 0, "dashboard_id": 1}
     )
+
+
+def test_anonymous_export_runs_under_the_anonymous_principal(
+    mocks: dict[str, Any],
+) -> None:
+    """No user id and no guest token means a Public/anonymous requester; the
+    task loads the anonymous user so the Public role applies to each chart's
+    access check instead of running with no principal at all."""
+    from superset.tasks.export_dashboard_excel import export_dashboard_excel
+
+    anonymous = mock.MagicMock(spec=["username"])
+    mocks["security_manager"].get_anonymous_user.return_value = anonymous
+    mocks["get_charts_in_layout_order"].return_value = [_chart(10, "Good")]
+    mocks["ChartDataCommand"].return_value.run.return_value = {
+        "queries": [{"colnames": ["a"], "data": [{"a": 1}]}]
+    }
+
+    export_dashboard_excel(
+        dashboard_id=1,
+        user_id=None,
+        active_data_mask={},
+        job_id=JOB_ID,
+    )
+
+    mocks["security_manager"].get_anonymous_user.assert_called_once_with()
+    mocks["security_manager"].get_user_by_id.assert_not_called()
+    mocks["security_manager"].get_guest_user_from_token.assert_not_called()
+    mocks["email"].send_export_email.assert_not_called()
+    mocks["storage_backend"].upload_file.assert_called_once()
+
+
+def test_running_status_recorded_when_execution_starts(
+    mocks: dict[str, Any],
+) -> None:
+    mocks["get_charts_in_layout_order"].return_value = [_chart(10, "Good")]
+    mocks["ChartDataCommand"].return_value.run.return_value = {
+        "queries": [{"colnames": ["a"], "data": [{"a": 1}]}]
+    }
+
+    _run()
+
+    (job_id_arg, _), _ = mocks["mark_export_running"].call_args
+    assert job_id_arg == uuid.UUID(JOB_ID)
+
+
+def test_running_status_write_failure_does_not_fail_the_export(
+    mocks: dict[str, Any],
+) -> None:
+    mocks["mark_export_running"].side_effect = RuntimeError("kv down")
+    mocks["get_charts_in_layout_order"].return_value = [_chart(10, "Good")]
+    mocks["ChartDataCommand"].return_value.run.return_value = {
+        "queries": [{"colnames": ["a"], "data": [{"a": 1}]}]
+    }
+
+    _run()
+
+    mocks["storage_backend"].upload_file.assert_called_once()
+    mocks["create_download_link"].assert_called_once()
+
+
+def test_download_link_records_the_upload_backend(mocks: dict[str, Any]) -> None:
+    """The link stores which backend uploaded the file, so the download
+    redirect never signs with a different backend after a storage migration."""
+    mocks["get_charts_in_layout_order"].return_value = [_chart(10, "Good")]
+    mocks["ChartDataCommand"].return_value.run.return_value = {
+        "queries": [{"colnames": ["a"], "data": [{"a": 1}]}]
+    }
+
+    _run()
+
+    _, kwargs = mocks["create_download_link"].call_args
+    backend_cls = type(mocks["storage_backend"])
+    assert kwargs["backend"] == (f"{backend_cls.__module__}.{backend_cls.__qualname__}")
 
 
 def test_lock_released_and_failure_recorded_when_user_resolution_fails(

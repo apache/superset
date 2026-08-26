@@ -60,6 +60,7 @@ from superset.dashboards.excel_export import email
 from superset.dashboards.excel_export.download_link import (
     create_download_link,
     mark_export_failed,
+    mark_export_running,
 )
 from superset.dashboards.excel_export.layout import get_charts_in_layout_order
 from superset.dashboards.excel_export.screenshot import render_chart_image
@@ -481,6 +482,30 @@ def _resolve_export_storage(
     return storage_backend, bucket, f"{key_prefix}{dashboard_id}/{job_id}.xlsx"
 
 
+def _mark_running(job_id: str) -> None:
+    """Tell pollers execution has begun (vs. queued); best-effort, the export
+    must not fail over a status write."""
+    try:
+        expires_at = datetime.now(tz=timezone.utc) + timedelta(
+            seconds=EXPORT_HARD_TIME_LIMIT + 300
+        )
+        mark_export_running(uuid.UUID(job_id), expires_at.replace(tzinfo=None))
+    except Exception:  # pylint: disable=broad-except
+        logger.exception("Failed to record running status for %s", job_id)
+
+
+def _resolve_requesting_user(
+    user_id: int | None, guest_token: GuestToken | None
+) -> Any:
+    if user_id is not None:
+        return security_manager.get_user_by_id(user_id)
+    if guest_token:
+        return security_manager.get_guest_user_from_token(guest_token)
+    # Anonymous requester: run under the anonymous principal so the Public
+    # role applies, mirroring superset.tasks.async_queries.
+    return security_manager.get_anonymous_user()
+
+
 @celery_app.task(
     name="export_dashboard_excel",
     bind=True,
@@ -522,14 +547,12 @@ def export_dashboard_excel(
     ttl = current_app.config["EXCEL_EXPORT_LINK_TTL_SECONDS"]
 
     try:
+        _mark_running(job_id)
         # Resolve the user inside the protected block: if this raises (e.g. the
         # guest role lookup fails), the ``finally`` below must still release the
         # lock the API acquired, and the failure status must still be recorded
         # for pollers.
-        if user_id is not None:
-            user = security_manager.get_user_by_id(user_id)
-        elif guest_token:
-            user = security_manager.get_guest_user_from_token(guest_token)
+        user = _resolve_requesting_user(user_id, guest_token)
         with override_user(user, force=False):
             dashboard = (
                 db.session.query(Dashboard).filter_by(id=dashboard_id).one_or_none()
@@ -552,8 +575,13 @@ def export_dashboard_excel(
             expires_at = datetime.now(tz=timezone.utc) + timedelta(seconds=ttl)
             # KeyValueEntry.expires_on comparisons use naive datetime.now(), so
             # the stored expiry must be naive UTC too, not tz-aware.
+            backend_cls = type(storage_backend)
             download_url = create_download_link(
-                uuid.UUID(job_id), bucket, key, expires_at.replace(tzinfo=None)
+                uuid.UUID(job_id),
+                bucket,
+                key,
+                expires_at.replace(tzinfo=None),
+                backend=f"{backend_cls.__module__}.{backend_cls.__qualname__}",
             )
 
             if user and getattr(user, "email", None):
