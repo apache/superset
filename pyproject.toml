@@ -80,7 +80,7 @@ dependencies = [
     # marshmallow 4 compatibility: see superset/marshmallow_compatibility.py for a
     # Flask-AppBuilder workaround. Tracking issue:
     # https://github.com/apache/superset/issues/33162
-    "marshmallow>=4.3.1, <5",
+    "marshmallow>=3.0, <5",
     "marshmallow-union>=0.1.15.post1",
     "msgpack>=1.2.0, <1.3",
     "nh3>=0.3.5, <0.4",
@@ -218,8 +218,12 @@ motherduck = ["apache-superset[duckdb]"]
 mysql = ["mysqlclient>=2.2.8, <3"]
 ocient = [
     # Closed-source vendor package with no public changelog; permissive
-    # unpinned sqlalchemy>=1.4 declared, but SQLAlchemy 2.0 support is
-    # unverified. Lower confidence than the other bumps in this PR.
+    # unpinned sqlalchemy>=1.4 declared. Verified compatible with SQLAlchemy
+    # 2.0 against pyocient>=3.9.0 (discussion #40273): dialect construction,
+    # error extraction, and GIS-type sanitization all pass under 2.0.52. Note
+    # pyocient 3.9.0 relocated its geo-type classes from private top-level
+    # names (pyocient._STPoint) to public ones under pyocient.api
+    # (pyocient.api.STPoint), which is unrelated to the SQLAlchemy bump.
     "sqlalchemy-ocient>=3.0.0, <4",
     "pyocient>=3.9.0, <4",
     "shapely",
