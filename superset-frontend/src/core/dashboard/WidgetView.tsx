@@ -161,7 +161,17 @@ const HeaderControlSlot = styled.span`
  */
 const RemoveSlot = styled.span`
   display: flex;
+  align-items: center;
   flex: 0 0 auto;
+
+  /* \`ActionButton\` bakes in its own trailing margin for the common case of
+     sitting alone at the end of a row (the dashboard list's own Delete
+     carries the same margin for that reason). Here it sits mid-row against
+     \`HeaderTrailingControls\`'s own \`gap\`, and the two together doubled the
+     space before the menu that follows it. */
+  && .action-button {
+    margin-right: 0;
+  }
 `;
 
 /**
@@ -173,6 +183,7 @@ const RemoveSlot = styled.span`
  */
 const MenuSlot = styled.span`
   display: flex;
+  align-items: center;
   flex: 0 0 auto;
 `;
 
