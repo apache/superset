@@ -266,6 +266,12 @@ test('displays multiple queries with newest query first', async () => {
 // go vacuous the moment a fixture became realistic about timestamps.
 const findRemoteSqlCell = () => screen.findByText(/FCC 2018 Survey/);
 
+// The barrier above holds only while the live fixture's sql differs from the
+// snapshot's. If they ever match, findRemoteSqlCell() resolves pre-merge and
+// every assertion after it goes vacuous. Fail loudly rather than silently.
+const assertLiveSqlDiffersFromSnapshot = (q: { sql: string }) =>
+  expect(q.sql).not.toMatch(/FCC 2018 Survey/);
+
 test('overrides a stale non-concluded backend snapshot with a concluded live Redux state', async () => {
   const isFeatureEnabledMock = mockedIsFeatureEnabled.mockImplementation(
     featureFlag => featureFlag === FeatureFlag.SqllabBackendPersistence,
@@ -273,7 +279,9 @@ test('overrides a stale non-concluded backend snapshot with a concluded live Red
 
   // A non-concluded row's `end_time` is never set by the backend (every
   // write of `end_time` is paired with a concluded status - see
-  // `superset/sql_lab.py` and `superset/daos/query.py`).
+  // `superset/sql_lab.py` and `superset/daos/query.py`). Note this maps to
+  // `endDttm: 0`, not `undefined` - `mapQueryResponse` does
+  // `Number(query.end_time)` and `Number(null) === 0`.
   const staleApiResult = {
     count: 1,
     ids: [692],
@@ -314,6 +322,9 @@ test('overrides a stale non-concluded backend snapshot with a concluded live Red
     },
   };
 
+  assertLiveSqlDiffersFromSnapshot(
+    stateWithLiveQuery.sqlLab.queries.stuckClientId,
+  );
   render(setup(), { useRedux: true, initialState: stateWithLiveQuery });
 
   await waitFor(() =>
@@ -373,6 +384,9 @@ test('does not override an already-concluded backend snapshot with a non-conclud
     },
   };
 
+  assertLiveSqlDiffersFromSnapshot(
+    stateWithScheduledQuery.sqlLab.queries.scheduledClientId,
+  );
   render(setup(), { useRedux: true, initialState: stateWithScheduledQuery });
 
   await waitFor(() =>
@@ -402,7 +416,8 @@ test('renders a backend-only historical query the client never ran, alongside a 
         status: QueryState.Running,
         progress: 0,
         rows: 0,
-        // Non-concluded: the backend never sets end_time for this status.
+        // Non-concluded: the backend never sets end_time for this status
+        // (maps to endDttm: 0, not undefined - see the comment above).
         end_time: null,
         sql_editor_id: defaultQueryEditor.id,
       },
@@ -447,6 +462,9 @@ test('renders a backend-only historical query the client never ran, alongside a 
     },
   };
 
+  assertLiveSqlDiffersFromSnapshot(
+    stateWithOnlyOneLiveQuery.sqlLab.queries.liveClientId,
+  );
   const { container } = render(setup(), {
     useRedux: true,
     initialState: stateWithOnlyOneLiveQuery,

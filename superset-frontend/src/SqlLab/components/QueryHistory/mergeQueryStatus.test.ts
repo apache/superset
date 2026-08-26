@@ -95,18 +95,24 @@ test('local concluded, remote not: undefined local fields fall back to the remot
   const remote = {
     ...remoteBase,
     state: QueryState.Running,
+    startDttm: 1000,
+    endDttm: 1500,
     resultsKey: 'remote-results-key',
     errorMessage: 'remote error',
   };
   const local = {
     ...localBase,
     state: QueryState.Success,
+    startDttm: undefined as unknown as number,
+    endDttm: undefined as unknown as number,
     resultsKey: undefined as unknown as string,
     errorMessage: undefined as unknown as string,
   };
 
   const merged = mergeQueryStatus(remote, local);
 
+  expect(merged.startDttm).toBe(1000);
+  expect(merged.endDttm).toBe(1500);
   expect(merged.resultsKey).toBe('remote-results-key');
   expect(merged.errorMessage).toBe('remote error');
 });
