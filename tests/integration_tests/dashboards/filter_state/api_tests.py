@@ -255,9 +255,7 @@ def test_put_access_denied(test_client, login_as, dashboard_id: int):
     assert resp.status_code == 404
 
 
-def test_post_authenticated_user_with_access(
-    test_client, login_as, dashboard_id: int
-):
+def test_post_authenticated_user_with_access(test_client, login_as, dashboard_id: int):
     login_as("alpha")
     payload = {
         "value": INITIAL_VALUE,
@@ -268,9 +266,7 @@ def test_post_authenticated_user_with_access(
     assert resp.status_code == 201
 
 
-def test_put_authenticated_user_with_access(
-    test_client, login_as, dashboard_id: int
-):
+def test_put_authenticated_user_with_access(test_client, login_as, dashboard_id: int):
     login_as("alpha")
     payload = {
         "value": UPDATED_VALUE,

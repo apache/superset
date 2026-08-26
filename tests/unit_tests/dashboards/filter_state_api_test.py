@@ -29,7 +29,10 @@ from superset.temporary_cache.api import TemporaryCacheRestApi
 def test_dashboard_filter_state_rest_api_inheritance():
     """Ensure DashboardFilterStateRestApi correctly subclasses TemporaryCacheRestApi."""
     assert issubclass(DashboardFilterStateRestApi, TemporaryCacheRestApi)
-    assert DashboardFilterStateRestApi.class_permission_name == "DashboardFilterStateRestApi"
+    assert (
+        DashboardFilterStateRestApi.class_permission_name
+        == "DashboardFilterStateRestApi"
+    )
     assert DashboardFilterStateRestApi.resource_name == "dashboard"
     assert DashboardFilterStateRestApi.openapi_spec_tag == "Dashboard Filter State"
 
@@ -48,8 +51,9 @@ def test_post_put_methods_have_no_has_access_api_decorator():
     Ensure post and put methods are not decorated with @has_access_api.
 
     Because DashboardFilterStateRestApi is a temporary cache API, permission
-    verification is handled dynamically at the command level via CheckAccessDataCommand.
-    @has_access_api causes 401 Unauthorized for regular users due to missing FAB permissions.
+    verification is handled dynamically at the command level via
+    CheckAccessDataCommand. @has_access_api causes 401 Unauthorized for regular
+    users due to missing FAB permissions.
     """
     source_post = inspect.getsource(DashboardFilterStateRestApi.post)
     source_put = inspect.getsource(DashboardFilterStateRestApi.put)
