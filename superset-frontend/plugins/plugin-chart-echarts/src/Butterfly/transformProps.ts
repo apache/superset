@@ -34,8 +34,13 @@ import { DEFAULT_FORM_DATA } from './constants';
 import { defaultGrid } from '../defaults';
 import { getDefaultTooltip } from '../utils/tooltip';
 import { Refs } from '../types';
-import { NULL_STRING } from '../constants';
-import { getChartPadding, getLegendProps } from '../utils/series';
+import { OpacityEnum } from '../constants';
+import {
+  getChartPadding,
+  getLegendProps,
+  getColtypesMapping,
+  extractGroupbyLabel,
+} from '../utils/series';
 import { resolveLegendLayout } from '../utils/legendLayout';
 import { convertInteger } from '../utils/convertInteger';
 
@@ -43,16 +48,6 @@ type EChartsOption = ComposeOption<BarSeriesOption>;
 
 const LABEL_LEFT = { position: 'left' as const };
 const LABEL_RIGHT = { position: 'right' as const };
-
-function formatCategory(value: unknown): string {
-  if (value == null) {
-    return NULL_STRING;
-  }
-  if (typeof value === 'string' || typeof value === 'number') {
-    return String(value);
-  }
-  return String(value);
-}
 
 function formatTooltip(
   params: CallbackDataParams[],
@@ -86,6 +81,8 @@ export default function transformProps(
     hooks,
     theme,
     inContextMenu,
+    filterState,
+    emitCrossFilters,
   } = chartProps;
   const refs: Refs = {};
   const { data = [] } = queriesData[0];
@@ -117,32 +114,57 @@ export default function transformProps(
     ...formData,
   };
 
-  const groupbyColumn = ensureIsArray(groupby)[0];
-  const categoryLabel = getColumnLabel(groupbyColumn);
   const leftMetricLabel = leftMetric ? getMetricLabel(leftMetric) : '';
   const rightMetricLabel = rightMetric ? getMetricLabel(rightMetric) : '';
   const leftSeriesName = leftLabel || leftMetricLabel;
   const rightSeriesName = rightLabel || rightMetricLabel;
 
+  const coltypeMapping = getColtypesMapping(queriesData[0]);
+  const groupbyColumns = ensureIsArray(groupby);
+  const groupbyLabels = groupbyColumns.map(getColumnLabel);
+
   const defaultFormatter = currencyFormat?.symbol
     ? new CurrencyFormatter({ d3Format: xAxisFormat, currency: currencyFormat })
     : getNumberFormatter(xAxisFormat);
 
-  const categories = data.map(row => formatCategory(row[categoryLabel]));
-  const leftData = data.map(row => {
-    const value = Number(row[leftMetricLabel] ?? 0);
+  const categories = data.map(datum =>
+    extractGroupbyLabel({ datum, groupby: groupbyLabels, coltypeMapping }),
+  );
+
+  const labelMap = data.reduce<Record<string, string[]>>((acc, datum) => {
+    const label = extractGroupbyLabel({
+      datum,
+      groupby: groupbyLabels,
+      coltypeMapping,
+    });
     return {
-      value: -Math.abs(value),
-      label: LABEL_LEFT,
+      ...acc,
+      [label]: groupbyLabels.map(col => datum[col] as string),
     };
-  });
-  const rightData = data.map(row => {
-    const value = Number(row[rightMetricLabel] ?? 0);
-    return {
-      value: Math.abs(value),
-      label: LABEL_RIGHT,
-    };
-  });
+  }, {});
+  const selectedValues = (filterState.selectedValues || []).reduce(
+    (acc: Record<number, string>, value: string) => {
+      const index = categories.indexOf(value);
+      return index >= 0 ? { ...acc, [index]: value } : acc;
+    },
+    {},
+  );
+  const getOpacity = (categoryLabel: string) =>
+    filterState.selectedValues?.length &&
+    !filterState.selectedValues.includes(categoryLabel)
+      ? OpacityEnum.SemiTransparent
+      : OpacityEnum.NonTransparent;
+
+  const leftData = data.map((row, i) => ({
+    value: -Math.abs(Number(row[leftMetricLabel] ?? 0)),
+    label: LABEL_LEFT,
+    itemStyle: { opacity: getOpacity(categories[i]) },
+  }));
+  const rightData = data.map((row, i) => ({
+    value: Math.abs(Number(row[rightMetricLabel] ?? 0)),
+    label: LABEL_RIGHT,
+    itemStyle: { opacity: getOpacity(categories[i]) },
+  }));
 
   const labelFormatter = (params: CallbackDataParams) => {
     const value = Math.abs(params.value as number);
@@ -294,5 +316,10 @@ export default function transformProps(
     setDataMask,
     onContextMenu,
     onLegendStateChanged,
+    groupby: groupbyColumns,
+    labelMap,
+    selectedValues,
+    emitCrossFilters,
+    coltypeMapping,
   };
 }

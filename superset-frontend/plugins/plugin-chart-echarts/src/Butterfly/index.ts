@@ -17,7 +17,7 @@
  * under the License.
  */
 import { t } from '@apache-superset/core/translation';
-import { ChartMetadata, ChartPlugin } from '@superset-ui/core';
+import { Behavior, ChartMetadata, ChartPlugin } from '@superset-ui/core';
 import buildQuery from './buildQuery';
 import controlPanel from './controlPanel';
 import transformProps from './transformProps';
@@ -33,6 +33,7 @@ export default class EchartsButterflyChartPlugin extends ChartPlugin<
       controlPanel,
       loadChart: () => import('./Butterfly'),
       metadata: new ChartMetadata({
+        behaviors: [Behavior.InteractiveChart],
         credits: ['https://echarts.apache.org'],
         category: t('Comparison'),
         description: t(

@@ -16,15 +16,24 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { allEventHandlers } from '../utils/eventHandlers';
 import Echart from '../components/Echart';
-import { ButterflyTransformedProps } from './types';
 import { EventHandlers } from '../types';
+import { ButterflyTransformedProps } from './types';
 
 export default function Butterfly(props: ButterflyTransformedProps) {
-  const { height, width, echartOptions, refs, onLegendStateChanged, formData } =
-    props;
+  const {
+    height,
+    width,
+    echartOptions,
+    selectedValues,
+    refs,
+    onLegendStateChanged,
+    formData,
+  } = props;
 
   const eventHandlers: EventHandlers = {
+    ...allEventHandlers(props),
     legendselectchanged: payload => {
       onLegendStateChanged?.(payload.selected);
     },
@@ -43,6 +52,7 @@ export default function Butterfly(props: ButterflyTransformedProps) {
       width={width}
       echartOptions={echartOptions}
       eventHandlers={eventHandlers}
+      selectedValues={selectedValues}
       vizType={formData.vizType}
     />
   );
