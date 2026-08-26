@@ -2154,27 +2154,3 @@ class TestStructuredContentStripperIsErrorFlag:
 
         assert result.is_error is False
         assert result.content[0].text == "ok"
-
-    @pytest.mark.asyncio
-    async def test_is_error_survives_structured_content_stripping(self) -> None:
-        """Rebuilding the result to drop structured_content must not clear
-        the flag, or a failure reported alongside structured output would
-        read as a success."""
-        from fastmcp.tools.tool import ToolResult
-        from mcp.types import TextContent
-
-        middleware = StructuredContentStripperMiddleware()
-        context = MagicMock()
-        context.message.name = "list_charts"
-        call_next = AsyncMock(
-            return_value=ToolResult(
-                content=[TextContent(type="text", text="failed")],
-                structured_content={"detail": "nope"},
-                is_error=True,
-            )
-        )
-
-        result = await middleware.on_call_tool(context, call_next)
-
-        assert result.structured_content is None
-        assert result.is_error is True

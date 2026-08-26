@@ -816,26 +816,19 @@ class StructuredContentStripperMiddleware(Middleware):
                     },
                 )
             # Flag the failure so clients can distinguish it from a
-            # successful call. Returning a ToolResult here (rather than
-            # letting the exception reach the SDK) is what avoids the
-            # bridge encoding failure described above; is_error rides
-            # along in the serialized result as a plain boolean, so the
-            # protocol stays conformant without reintroducing the
-            # unencodable error response.
+            # successful call. This still serializes to
+            # CallToolResult(isError=True) (see ToolResult.to_mcp_result);
+            # what keeps it encodable is that structured_content stays None
+            # and only the boolean flips false->true, not the structured
+            # payload implicated in the bridge failure above. That leg is
+            # unverified against the live Claude.ai bridge.
             return ToolResult(
                 content=[mt.TextContent(type="text", text=error_text)],
                 meta={"mcp_call_id": mcp_call_id} if mcp_call_id else None,
                 is_error=True,
             )
         if isinstance(result, ToolResult) and result.structured_content is not None:
-            # Rebuilding to drop structured_content must preserve is_error,
-            # or a tool that reported failure alongside structured output
-            # would come back looking successful.
-            result = ToolResult(
-                content=result.content,
-                meta=result.meta,
-                is_error=result.is_error,
-            )
+            result = ToolResult(content=result.content, meta=result.meta)
         return result
 
 
