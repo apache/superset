@@ -72,23 +72,28 @@ export const FormShell = styled.div`
       color: ${theme.colorText};
     }
 
-    /* One column, one width.
+    /* One column, one width — but only for an array entry's own fields.
 
-       An array's entries are handed to a grid meant for a page — two to a
-       line, so a dimension came out half the width of the field above it. In a
-       rail there is no second column to put anything in, so the grid is turned
-       down its own axis and every cell given the width. The form item's own
-       label/control row is left alone: it is already a column in this layout,
-       and it is not a grid of entries. */
-    .ant-form-item-control-input-content .ant-row:not(.ant-form-item-row) {
+       An array entry's fields are handed to a grid meant for a page — two to
+       a line, so a dimension came out half the width of the field above it.
+       In a rail there is no second column to put anything in, so the grid is
+       turned down its own axis and every cell given the width.
+
+       Scoped to \`.ant-list-item\` (an entry) rather than to every Form.Item's
+       control, because a scalar field can carry the identical Row/Col pair
+       for a reason that has nothing to do with a page-width grid — a bounded
+       number renders as a slider beside the figure it reads, and forcing
+       that onto two full-width lines was this rule catching a control it was
+       never aimed at. The form item's own label/control row is left alone
+       either way: it is already a column in this layout, not a grid of
+       entries. */
+    .ant-list-item .ant-row:not(.ant-form-item-row) {
       flex-direction: column;
       align-items: stretch;
     }
 
     .ant-form-item-control-input-content > .ant-col,
-    .ant-form-item-control-input-content
-      .ant-row:not(.ant-form-item-row)
-      > .ant-col {
+    .ant-list-item .ant-row:not(.ant-form-item-row) > .ant-col {
       flex: 1 1 auto;
       min-width: 0;
       width: 100%;
