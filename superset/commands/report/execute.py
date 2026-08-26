@@ -1771,8 +1771,9 @@ class ReportNotTriggeredErrorState(BaseReportState):
                     return
             self.send()
             # Clear any retry state from previous failed attempts in this window.
-            if feature_flag_manager.is_feature_enabled("ALERT_REPORTS_RETRY"):
-                self._reset_retry_counter()
+            # Always reset on success regardless of feature flag — prevents
+            # stale counters from being reused if the flag is later re-enabled.
+            self._reset_retry_counter()
             warning_message = (
                 ";".join(self._execution_warnings) if self._execution_warnings else None
             )
@@ -2061,9 +2062,9 @@ class ReportSuccessState(BaseReportState):
             raise
 
         # send() succeeded — clear retry state and log success. Any execution
-        # warnings are incorporated by create_log().
-        if feature_flag_manager.is_feature_enabled("ALERT_REPORTS_RETRY"):
-            self._reset_retry_counter()
+        # warnings are incorporated by create_log(). Always reset regardless
+        # of feature flag to prevent stale counters.
+        self._reset_retry_counter()
         self.update_report_schedule_and_log(ReportState.SUCCESS, error_message=None)
 
 
