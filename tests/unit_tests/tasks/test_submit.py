@@ -19,6 +19,8 @@
 from contextlib import contextmanager
 from unittest import mock
 
+import pytest
+from flask import g
 from pytest_mock import MockerFixture
 
 from superset.commands.tasks.submit import SubmitTaskCommand
@@ -61,3 +63,27 @@ def test_lock_encloses_create_or_join(mocker: MockerFixture) -> None:
 
     assert is_new is True
     assert order == ["lock-enter", "create-or-join", "lock-exit"]
+
+
+def test_refuses_to_run_inside_an_outer_transaction(mocker: MockerFixture) -> None:
+    """Submitting inside an outer @transaction must fail loudly.
+
+    The lock-across-commit guarantee requires SubmitTaskCommand to own its
+    transaction; an outer @transaction (signalled by ``g.in_transaction``) would
+    make the inner commit reentrant and defer it past the lock release, silently
+    reopening the dedup race. Guard against that.
+    """
+    entered = mocker.patch(
+        "superset.commands.tasks.submit.task_lock",
+    )
+    g.in_transaction = True
+    try:
+        with pytest.raises(RuntimeError, match="must own its transaction"):
+            SubmitTaskCommand(
+                {"task_type": "superset.query_object_v1", "scope": "shared"}
+            ).run_with_info()
+    finally:
+        g.in_transaction = False
+
+    # We must bail before taking the lock.
+    entered.assert_not_called()

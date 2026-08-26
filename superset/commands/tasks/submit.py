@@ -22,7 +22,7 @@ from functools import partial
 from typing import Any, TYPE_CHECKING
 from uuid import UUID
 
-from flask import current_app
+from flask import current_app, g
 from marshmallow import ValidationError
 from superset_core.tasks.types import TaskScope
 
@@ -94,6 +94,21 @@ class SubmitTaskCommand(BaseCommand):
 
         :returns: Tuple of (Task, is_new) where is_new is True if task was created
         """
+        # Enforce the "must own its transaction" contract (see docstring). If a
+        # caller has already opened a transaction, ``_create_or_join``'s
+        # ``@transaction`` would be reentrant and defer its commit past the lock
+        # release (``transaction`` keys reentrancy off ``g.in_transaction``),
+        # silently reopening the dedup race. Fail loudly so the caller is forced
+        # to submit outside its transaction rather than reintroduce the bug.
+        if getattr(g, "in_transaction", False):
+            raise RuntimeError(
+                "SubmitTaskCommand must own its transaction: the task lock is "
+                "held across commit to serialize concurrent dedup submits, which "
+                "requires the commit to happen before the lock is released. It "
+                "cannot run inside an outer @transaction. Submit outside the "
+                "surrounding transaction instead."
+            )
+
         self.validate()
 
         # Extract and normalize parameters (no DB access — validate() has run and
