@@ -328,6 +328,17 @@ def inject_widget_implementations() -> None:
             cls.name = name
             cls.description = description or ""
             registry[key] = cls
+            try:
+                # Eagerly build the base (control_values=None) schema once, so
+                # a cyclic x-dependsOn graph among this widget's dynamic
+                # fields fails at import time -- get_control_schema's
+                # toposort_or_raise call is what actually detects the cycle;
+                # this just forces that check to run now instead of on the
+                # widget's first real request.
+                cls.get_control_schema(None, None)
+            except Exception:
+                registry.pop(key, None)
+                raise
             return cls
 
         return decorator

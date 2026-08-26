@@ -16,7 +16,10 @@
 # under the License.
 from __future__ import annotations
 
+from typing import Any
+
 import pytest
+from pydantic import BaseModel, Field
 from superset_core.widgets import Widget, widget
 
 from superset.widgets.controls import BalloonsControls
@@ -212,3 +215,24 @@ def test_data_binding_schema_unchanged_via_mcp_boundary() -> None:
         "dimensions",
         "rowLimit",
     ]
+
+
+def test_widget_registration_raises_on_cyclic_dependency() -> None:
+    class _CyclicControls(BaseModel):
+        a: dict[str, Any] = Field(
+            default_factory=dict,
+            json_schema_extra={"x-dynamic": True, "x-dependsOn": ["b"]},
+        )
+        b: dict[str, Any] = Field(
+            default_factory=dict,
+            json_schema_extra={"x-dynamic": True, "x-dependsOn": ["a"]},
+        )
+
+    with pytest.raises(ValueError, match="Cyclic control dependency"):
+
+        @widget(widget_type="cyclic-test-widget", name="Cyclic")
+        class _Cyclic(Widget):
+            controls_class = _CyclicControls
+
+    # The widget must not remain half-registered after the failure.
+    assert registry.get("cyclic-test-widget") is None
