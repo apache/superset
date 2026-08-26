@@ -255,6 +255,32 @@ def test_put_access_denied(test_client, login_as, dashboard_id: int):
     assert resp.status_code == 404
 
 
+def test_post_authenticated_user_with_access(
+    test_client, login_as, dashboard_id: int
+):
+    login_as("alpha")
+    payload = {
+        "value": INITIAL_VALUE,
+    }
+    resp = test_client.post(
+        f"api/v1/dashboard/{dashboard_id}/filter_state", json=payload
+    )
+    assert resp.status_code == 201
+
+
+def test_put_authenticated_user_with_access(
+    test_client, login_as, dashboard_id: int
+):
+    login_as("alpha")
+    payload = {
+        "value": UPDATED_VALUE,
+    }
+    resp = test_client.put(
+        f"api/v1/dashboard/{dashboard_id}/filter_state/{KEY}", json=payload
+    )
+    assert resp.status_code == 200
+
+
 def test_get_key_not_found(test_client, login_as_admin, dashboard_id: int):
     resp = test_client.get(f"api/v1/dashboard/{dashboard_id}/filter_state/unknown-key/")
     assert resp.status_code == 404
