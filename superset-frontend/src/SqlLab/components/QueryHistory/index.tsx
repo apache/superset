@@ -19,7 +19,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { shallowEqual, useSelector } from 'react-redux';
 import { useInView } from 'react-intersection-observer';
-import { omit } from 'lodash-es';
 import { EmptyState, Skeleton } from '@superset-ui/core/components';
 import { t } from '@apache-superset/core/translation';
 import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
@@ -82,25 +81,29 @@ const QueryHistory = ({
       skip: !isFeatureEnabled(FeatureFlag.SqllabBackendPersistence),
     },
   );
-  const editorQueries = useMemo(
-    () =>
-      data
-        ? getEditorQueries(
-            omit(
-              queries,
-              data.result.map(({ id }) => id),
-            ),
-            editorId,
-          )
-            .concat(data.result)
-            .sort((a, b) => {
-              const aTime = a.startDttm || 0;
-              const bTime = b.startDttm || 0;
-              return aTime - bTime;
-            })
-        : getEditorQueries(queries, editorId),
-    [queries, data, editorId],
-  );
+  const editorQueries = useMemo(() => {
+    if (!data) {
+      return getEditorQueries(queries, editorId);
+    }
+    // Overlay live Redux state onto the backend snapshot per query id, so a
+    // terminal status reached after the snapshot was fetched isn't masked by
+    // the stale value, while backend-only metadata (e.g. queryId, user) is
+    // preserved for queries this client never ran.
+    const remoteIds = new Set(data.result.map(({ id }) => id));
+    const mergedRemoteQueries = data.result.map(remoteQuery =>
+      queries[remoteQuery.id]
+        ? { ...remoteQuery, ...queries[remoteQuery.id] }
+        : remoteQuery,
+    );
+    return getEditorQueries(queries, editorId)
+      .filter(({ id }) => !remoteIds.has(id))
+      .concat(mergedRemoteQueries)
+      .sort((a, b) => {
+        const aTime = a.startDttm || 0;
+        const bTime = b.startDttm || 0;
+        return aTime - bTime;
+      });
+  }, [queries, data, editorId]);
 
   const loadNext = useEffectEvent(() => {
     setPageIndex(pageIndex + 1);
