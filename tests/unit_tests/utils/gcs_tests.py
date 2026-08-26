@@ -52,7 +52,10 @@ def _google_auth_modules(credentials: Any) -> Iterator[None]:
     """Inject fake google.auth modules so the lazy imports in
     generate_download_url resolve without google-cloud-storage installed."""
     auth = ModuleType("google.auth")
-    auth.default = lambda: (credentials, "example-project")  # type: ignore[attr-defined]
+    auth.default = lambda scopes=None: (  # type: ignore[attr-defined]
+        credentials,
+        "example-project",
+    )
     creds_mod = ModuleType("google.auth.credentials")
     creds_mod.Signing = _Signing  # type: ignore[attr-defined]
     transport = ModuleType("google.auth.transport")

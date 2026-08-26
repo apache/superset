@@ -3757,13 +3757,13 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True,
         ENABLE_DASHBOARD_DOWNLOAD_WEBDRIVER_SCREENSHOT=True,
     )
-    @patch("superset.dashboards.api.security_manager.is_guest_user")
+    @patch("superset.dashboards.api.get_user_id")
     @patch("superset.dashboards.api.export_dashboard_excel")
-    def test_export_xlsx_images_403_for_guest(self, mock_task, mock_is_guest):
-        """Dashboard API: ``mode=images`` is rejected for guest sessions (the
-        webdriver cannot render under a guest identity), even though the UI
-        already hides the option."""
-        mock_is_guest.return_value = True
+    def test_export_xlsx_images_403_without_user_id(self, mock_task, mock_user_id):
+        """Dashboard API: ``mode=images`` is rejected for guest and anonymous
+        sessions (no user id, same predicate the UI hides the option on); the
+        webdriver cannot render without a real user identity."""
+        mock_user_id.return_value = None
         self.login(ADMIN_USERNAME)
         dashboard = db.session.query(Dashboard).filter_by(slug="world_health").first()
         rv = self.client.post(
@@ -3773,6 +3773,34 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         assert rv.status_code == 403
         mock_task.apply_async.assert_not_called()
 
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @with_config({"EXPORT_STORAGE": {"bucket": "exports", "backend": MagicMock()}})
+    @patch("superset.dashboards.api.AcquireDistributedLock")
+    @patch("superset.dashboards.api.export_dashboard_excel")
+    @patch("superset.dashboards.api.g")
+    @patch("superset.dashboards.api.get_user_id")
+    def test_export_xlsx_guest_enqueues_with_token_and_no_user_id(
+        self, mock_user_id, mock_g, mock_task, mock_acquire
+    ):
+        """Dashboard API: a guest-token request enqueues the task with
+        ``user_id=None`` plus the token payload, and shares lock slot 0 --
+        the API-to-worker handoff the guest fix depends on."""
+        token = {"user": {}, "resources": [], "rls_rules": []}
+        mock_user_id.return_value = None
+        mock_g.user.guest_token = token
+        self.login(ADMIN_USERNAME)
+        dashboard = db.session.query(Dashboard).filter_by(slug="world_health").first()
+        rv = self.client.post(
+            f"api/v1/dashboard/{dashboard.id}/export_xlsx/",
+            json={"active_data_mask": {}},
+        )
+        assert rv.status_code == 202
+        _, kwargs = mock_task.apply_async.call_args
+        assert kwargs["kwargs"]["user_id"] is None
+        assert kwargs["kwargs"]["guest_token"] == token
+        (_, lock_params), _ = mock_acquire.call_args
+        assert lock_params == {"user_id": 0, "dashboard_id": dashboard.id}
+
     def test_export_xlsx_status_running(self):
         """Dashboard API: a job a worker has started reports ``running``,
         distinguishable from a queued job's ``pending``."""
@@ -3781,8 +3809,10 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         )
 
         job_id = uuid.uuid4()
+        # No explicit commit: the status write must commit itself, or polling
+        # web pods never see what the worker wrote mid-task.
         mark_export_running(job_id, datetime.now() + timedelta(hours=1))
-        db.session.commit()
+        db.session.remove()
         self.login(ADMIN_USERNAME)
 
         rv = self.client.get(f"/api/v1/dashboard/export_xlsx/status/{job_id}/")

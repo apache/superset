@@ -92,7 +92,11 @@ class GCSExportStorage:
 
         blob = _get_client().bucket(bucket).blob(key)
         signing_kwargs: dict[str, Any] = {}
-        credentials, _ = google.auth.default()
+        # External-account/workload-identity credentials cannot refresh
+        # without an explicit scope.
+        credentials, _ = google.auth.default(
+            scopes=["https://www.googleapis.com/auth/cloud-platform"]
+        )
         if not isinstance(credentials, auth_credentials.Signing):
             credentials.refresh(auth_requests.Request())
             signing_kwargs = {

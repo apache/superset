@@ -58,6 +58,7 @@ from uuid import UUID
 
 from superset.daos.key_value import KeyValueDAO
 from superset.key_value.types import JsonKeyValueCodec, KeyValueResource
+from superset.utils.decorators import transaction
 from superset.utils.urls import headless_url
 
 RESOURCE = KeyValueResource.EXCEL_EXPORT_DOWNLOAD
@@ -75,6 +76,7 @@ STATUS_ERROR = "error"
 STATUS_RUNNING = "running"
 
 
+@transaction()
 def _sweep_and_upsert(
     job_id: UUID, value: dict[str, Any], expires_at: datetime
 ) -> None:
@@ -82,6 +84,8 @@ def _sweep_and_upsert(
     # dedicated cleanup job, so this resource keeps itself tidy on write.
     # upsert (not create) so a retried/duplicate write for the same job_id
     # overwrites cleanly instead of colliding on the primary key.
+    # @transaction commits now; the worker session otherwise only commits when
+    # the task settles, leaving statuses invisible to polling web pods.
     KeyValueDAO.delete_expired_entries(RESOURCE)
     KeyValueDAO.upsert_entry(
         resource=RESOURCE,

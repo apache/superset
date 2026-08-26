@@ -559,8 +559,10 @@ test('a "running" status restarts the wait window, so queue delay is not counted
   mockSupersetClient.post.mockResolvedValue({
     json: { job_id: 'abc' },
   } as never);
-  // First poll: a worker has picked the job up. Second poll: done.
+  // Worker picks the job up on the first poll; still running just past the
+  // original 12 minute deadline; done on the poll after that.
   mockSupersetClient.get
+    .mockResolvedValueOnce({ json: { status: 'running' } } as never)
     .mockResolvedValueOnce({ json: { status: 'running' } } as never)
     .mockResolvedValueOnce({
       json: {
@@ -579,17 +581,22 @@ test('a "running" status restarts the wait window, so queue delay is not counted
   });
   await waitFor(() => expect(mockSupersetClient.get).toHaveBeenCalledTimes(1));
 
-  // Jump past the original 5-minute deadline; the window restarted when
-  // "running" was observed, so polling must continue and find "ready".
+  // t ~= 12m01s: past the enqueue-based deadline, within the restarted one
+  // (running was observed at t=3s). Without the restart this poll would give
+  // up with a danger toast instead of continuing.
   await act(async () => {
-    jest.advanceTimersByTime(6 * 60 * 1000);
+    jest.advanceTimersByTime(12 * 60 * 1000 - 2000);
   });
+  await waitFor(() => expect(mockSupersetClient.get).toHaveBeenCalledTimes(2));
+  expect(mockAddDangerToast).not.toHaveBeenCalled();
 
+  await act(async () => {
+    jest.advanceTimersByTime(3000);
+  });
   await waitFor(() => {
-    expect(mockSupersetClient.get).toHaveBeenCalledTimes(2);
+    expect(mockSupersetClient.get).toHaveBeenCalledTimes(3);
     expect(mockRedirect).toHaveBeenCalledWith(
       '/api/v1/dashboard/export_xlsx/download/abc/',
     );
   });
-  expect(mockAddDangerToast).not.toHaveBeenCalled();
 });

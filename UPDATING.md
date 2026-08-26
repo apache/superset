@@ -290,8 +290,10 @@ EXPORT_STORAGE = {
 }
 ```
 
-It also requires a running Celery worker and a configured SMTP transport, since
-the task emails the requesting user a pre-signed download link. New config keys:
+It also requires a running Celery worker. SMTP is optional and only used to
+additionally email logged-in users a download link; every session (including
+guest/Public ones, which have no email) gets the export through status polling
+and automatic download. New config keys:
 `EXPORT_STORAGE`, `EXCEL_EXPORT_LINK_TTL_SECONDS`,
 `EXCEL_EXPORT_TABLE_VIZ_TYPES`, and `EXCEL_EXPORT_QUERY_CONTEXT_BUILDER`.
 
