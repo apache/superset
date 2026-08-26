@@ -168,7 +168,7 @@ def test_execute_chart_query_publishes_cache_key_payload(
 
     query_context.get_df_payload_result.assert_called_once_with(query_obj)
     task_context.update_task.assert_called_once_with(
-        payload={"cache_key": "chart-cache-key"}
+        payload={"cache_key": "chart-cache-key"}, immediate=True
     )
 
 
@@ -207,7 +207,7 @@ def test_execute_chart_query_reads_totals_key_from_dependency_payload(
 
     inject.assert_called_once_with(query_obj, "totals-cache-key")
     task_context.update_task.assert_called_once_with(
-        payload={"cache_key": "main-cache-key"}
+        payload={"cache_key": "main-cache-key"}, immediate=True
     )
 
 

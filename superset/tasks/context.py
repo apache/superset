@@ -150,6 +150,8 @@ class TaskContext(CoreTaskContext):
         self,
         progress: float | int | tuple[int, int] | None = None,
         payload: dict[str, object] | None = None,
+        *,
+        immediate: bool = False,
     ) -> None:
         """
         Update task progress and/or payload atomically.
@@ -167,6 +169,9 @@ class TaskContext(CoreTaskContext):
 
         :param progress: Progress value, or None to leave unchanged
         :param payload: Payload data to merge (dict), or None to leave unchanged
+        :param immediate: When True, write synchronously and bypass throttling so
+            a dependent consumer can observe this update as soon as the task
+            finishes (e.g. a downstream task reading a published cache key)
         """
         has_updates = False
 
@@ -193,6 +198,17 @@ class TaskContext(CoreTaskContext):
             has_updates = True
 
         if not has_updates:
+            return
+
+        # Forced synchronous write: bypass throttling entirely. Used when a
+        # dependent consumer must observe this update immediately (e.g. a
+        # downstream task reading a published cache key after this task ends).
+        if immediate:
+            with self._throttle_lock:
+                self._cancel_deferred_flush_timer()
+                self._write_to_db()
+                self._last_db_write_time = time.time()
+                self._has_pending_updates = False
             return
 
         # Get throttle interval from config

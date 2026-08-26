@@ -164,12 +164,19 @@ class TaskContext(ABC):
         self,
         progress: float | int | tuple[int, int] | None = None,
         payload: dict[str, Any] | None = None,
+        *,
+        immediate: bool = False,
     ) -> None:
         """
         Update task progress and/or payload atomically.
 
         All parameters are optional. Payload is merged with existing data,
         not replaced. All updates occur in a single database transaction.
+
+        Writes are throttled by default to protect the database from eager
+        tasks. Pass ``immediate=True`` to force a synchronous write, bypassing
+        throttling, when a downstream consumer must observe this update as soon
+        as the task completes (e.g. a dependent task reading a published value).
 
         Progress can be specified in three ways:
         - float (0.0-1.0): Percentage only, e.g., 0.5 means 50%
@@ -179,6 +186,7 @@ class TaskContext(ABC):
 
         :param progress: Progress value, or None to leave unchanged
         :param payload: Payload data to merge (dict), or None to leave unchanged
+        :param immediate: When True, write synchronously and bypass throttling
 
         Examples:
             # Percentage only - displays as "In progress: 50 %"
