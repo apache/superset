@@ -245,9 +245,14 @@ function estimateEchartsHorizontalLegendAdditionalMargin(
     itemXOffset: 0,
   };
   const itemRects = labels.map(label => {
+    // Plain legends use these exact values as zero-sized row-break groups.
+    if (label === '' || label === '\n') {
+      return { height: 0, newline: true, width: 0, x: 0 };
+    }
     const layout = itemLayouts[label] ?? fallbackLayout;
     return {
       height: layout.itemHeight,
+      newline: false,
       width: measureLegendTextWidth(label, theme) + layout.itemWidthOffset,
       x: layout.itemXOffset,
     };
@@ -264,13 +269,16 @@ function estimateEchartsHorizontalLegendAdditionalMargin(
 
     // Match zrender's horizontal box layout, including its handling of an
     // oversized item and of differing icon bounding-box origins.
-    if (nextX > availableWidth) {
+    if (nextX > availableWidth || rect.newline) {
       currentX = 0;
       nextX = moveX;
       currentY += currentLineMaxHeight + ECHARTS_LEGEND_ITEM_GAP;
       currentLineMaxHeight = rect.height;
     } else {
       currentLineMaxHeight = Math.max(currentLineMaxHeight, rect.height);
+    }
+    if (rect.newline) {
+      return;
     }
     rowOffsets.push(currentY);
     currentX = nextX + ECHARTS_LEGEND_ITEM_GAP;

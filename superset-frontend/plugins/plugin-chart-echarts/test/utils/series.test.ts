@@ -1755,6 +1755,26 @@ test('getLegendLayoutResult matches multiline legend label height', () => {
   });
 });
 
+test.each(['', '\n'])(
+  'getLegendLayoutResult matches the ECharts row break for %p',
+  rowBreak => {
+    const legendItems = ['A', rowBreak, 'B'];
+    expectTimeseriesLegendLayoutMatchesEcharts({
+      chartWidth: 600,
+      expectedContentHeight: 34.8,
+      expectedMargin: 41.2,
+      expectedRows: 2,
+      legendItems,
+      series: ['A', 'B'].map((name, index) => ({
+        data: [index, index + 1],
+        name,
+        symbol: 'emptyCircle',
+        type: 'line',
+      })),
+    });
+  },
+);
+
 test('getLegendLayoutResult uses Line geometry for shown annotation layers', () => {
   const observationNames = Array.from(
     { length: 38 },
