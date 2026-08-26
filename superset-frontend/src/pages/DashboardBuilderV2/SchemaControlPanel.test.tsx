@@ -667,3 +667,182 @@ test('the real balloons schema shape (dataBinding nested under $defs) renders pi
     expect(provider.getNode(id)?.props?.colorDimension).toBe('gender'),
   );
 });
+
+// `Customization.series`, shaped the way the backend's `enrich_schema` leaves
+// it once a grouping dimension has real, discovered values: a fixed set of
+// per-value sub-schemas (a title and a palette-defaulted `color`), each with
+// `x-dynamic` living on the parent `series` field rather than on any one
+// entry.
+const seriesSchema = (properties: Record<string, unknown>) => ({
+  type: 'object',
+  properties: {
+    customize: { $ref: '#/$defs/Customization' },
+  },
+  $defs: {
+    Customization: {
+      type: 'object',
+      properties: {
+        series: {
+          type: 'object',
+          title: 'Per-series styling',
+          'x-dynamic': true,
+          properties,
+        },
+      },
+    },
+  },
+});
+
+const BOY_GIRL_PROPERTIES = {
+  boy: {
+    type: 'object',
+    title: 'boy',
+    properties: {
+      color: {
+        type: 'string',
+        title: 'Color',
+        default: '#e74c3c',
+        'x-control': 'color',
+      },
+      sizeScale: {
+        type: 'number',
+        title: 'Size scale (×)',
+        default: 1,
+        minimum: 0.25,
+        maximum: 4,
+      },
+    },
+  },
+  girl: {
+    type: 'object',
+    title: 'girl',
+    properties: {
+      color: {
+        type: 'string',
+        title: 'Color',
+        default: '#3498db',
+        'x-control': 'color',
+      },
+      sizeScale: {
+        type: 'number',
+        title: 'Size scale (×)',
+        default: 1,
+        minimum: 0.25,
+        maximum: 4,
+      },
+    },
+  },
+};
+
+test('an x-dynamic series field with no discovered series yet explains why, instead of an empty group', async () => {
+  postSpy.mockResolvedValue({
+    json: { result: seriesSchema({}) },
+  } as never);
+
+  mount('balloons', {});
+
+  expect(
+    await screen.findByText(
+      'Group by a dimension to enable per-series styling.',
+    ),
+  ).toBeInTheDocument();
+});
+
+test('a populated x-dynamic series field renders collapsed with a customized count, not one group per entry', async () => {
+  postSpy.mockResolvedValue({
+    json: { result: seriesSchema(BOY_GIRL_PROPERTIES) },
+  } as never);
+
+  mount('balloons', {});
+
+  expect(
+    await screen.findByText('2 series · 0 customized'),
+  ).toBeInTheDocument();
+  // Collapsed: neither series' own controls are in the document yet.
+  expect(screen.queryByLabelText('boy size scale')).not.toBeInTheDocument();
+  expect(screen.queryByLabelText('girl size scale')).not.toBeInTheDocument();
+});
+
+test('picking a series from the overrides picker writes its palette-defaulted style back', async () => {
+  postSpy.mockResolvedValue({
+    json: { result: seriesSchema(BOY_GIRL_PROPERTIES) },
+  } as never);
+
+  const id = mount('balloons', {});
+
+  await userEvent.click(await screen.findByText('2 series · 0 customized'));
+  await selectOption('girl', 'Add Per-series styling override');
+
+  await waitFor(() =>
+    expect(
+      (provider.getNode(id)?.props?.customize as Record<string, unknown>)
+        ?.series,
+    ).toEqual({ girl: { color: '#3498db', sizeScale: 1 } }),
+  );
+  expect(
+    await screen.findByText('2 series · 1 customized'),
+  ).toBeInTheDocument();
+  // Picked once, it's no longer offered a second time.
+  expect(
+    screen.queryByRole('option', { name: 'girl' }),
+  ).not.toBeInTheDocument();
+});
+
+test('resetting a customized series removes it from customize.series entirely', async () => {
+  postSpy.mockResolvedValue({
+    json: { result: seriesSchema(BOY_GIRL_PROPERTIES) },
+  } as never);
+
+  const id = mount('balloons', {
+    customize: { series: { boy: { color: '#123456', sizeScale: 2 } } },
+  });
+
+  await userEvent.click(await screen.findByText('2 series · 1 customized'));
+  await userEvent.click(await screen.findByLabelText('Reset boy to default'));
+
+  await waitFor(() =>
+    expect(
+      (provider.getNode(id)?.props?.customize as Record<string, unknown>)
+        ?.series,
+    ).toEqual({}),
+  );
+  expect(
+    await screen.findByText('2 series · 0 customized'),
+  ).toBeInTheDocument();
+});
+
+test('editing a customized series size scale writes the new value back', async () => {
+  postSpy.mockResolvedValue({
+    json: { result: seriesSchema(BOY_GIRL_PROPERTIES) },
+  } as never);
+
+  const id = mount('balloons', {
+    customize: { series: { boy: { color: '#e74c3c', sizeScale: 1 } } },
+  });
+
+  await userEvent.click(await screen.findByText('2 series · 1 customized'));
+  const sizeInput = await screen.findByLabelText('boy size scale');
+  await userEvent.clear(sizeInput);
+  await userEvent.type(sizeInput, '2.5');
+  await userEvent.tab();
+
+  await waitFor(() =>
+    expect(
+      (provider.getNode(id)?.props?.customize as Record<string, unknown>)
+        ?.series,
+    ).toEqual({ boy: { color: '#e74c3c', sizeScale: 2.5 } }),
+  );
+});
+
+test('a customized series exposes an accessibly-labeled color trigger', async () => {
+  postSpy.mockResolvedValue({
+    json: { result: seriesSchema(BOY_GIRL_PROPERTIES) },
+  } as never);
+
+  mount('balloons', {
+    customize: { series: { boy: { color: '#e74c3c', sizeScale: 1 } } },
+  });
+
+  await userEvent.click(await screen.findByText('2 series · 1 customized'));
+  expect(await screen.findByLabelText('boy color')).toBeInTheDocument();
+});

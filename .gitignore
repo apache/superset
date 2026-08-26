@@ -144,3 +144,4 @@ oxc-custom-build/
 *.duckdb
 .superpowers/
 .playwright-mcp/
+.impeccable/

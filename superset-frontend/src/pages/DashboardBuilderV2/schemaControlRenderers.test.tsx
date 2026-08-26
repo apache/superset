@@ -21,6 +21,7 @@ import {
   hasAdvancedMetric,
   metricOptions,
   resolveDatasetPick,
+  seriesDefaults,
   toDatasetSelectValue,
 } from './schemaControlRenderers';
 
@@ -132,4 +133,25 @@ test('resolveDatasetPick rejects a semantic view — datasetId has no way to rep
 
 test('resolveDatasetPick passes undefined through (nothing picked)', () => {
   expect(resolveDatasetPick(undefined)).toBeUndefined();
+});
+
+test("seriesDefaults reads a not-yet-customized entry's own palette-defaulted color and size", () => {
+  expect(
+    seriesDefaults(
+      {
+        properties: {
+          color: { default: '#3498db' },
+          sizeScale: { default: 1 },
+        },
+      },
+      '#000000',
+    ),
+  ).toEqual({ color: '#3498db', sizeScale: 1 });
+});
+
+test('seriesDefaults falls back to the given color when an entry schema is missing its own defaults', () => {
+  expect(seriesDefaults(undefined, '#123456')).toEqual({
+    color: '#123456',
+    sizeScale: 1,
+  });
 });

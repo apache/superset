@@ -29,6 +29,10 @@
  *     Matched by property name rather than an `x-control` hint — the
  *     backend's `DataBinding` schema is unchanged, so this is the one
  *     control here selected structurally instead of by a declared extra.
+ *   - `x-dynamic: true` (any object field so declared) → an "overrides" list:
+ *     collapsed by default, showing only the entries actually customized,
+ *     plus a picker to add one more — rather than the upstream JsonForms
+ *     renderer's one always-expanded group per possible entry.
  *
  * `code` and `color` fall back to the field's schema `default`, since
  * JsonForms does not write defaults into the data until a field is touched.
@@ -49,9 +53,12 @@ import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import {
   AsyncSelect,
   Button,
+  ColorPicker,
+  Collapse,
   Flex,
   Form,
   Input,
+  InputNumber,
   Select,
   Typography,
 } from '@superset-ui/core/components';
@@ -75,6 +82,11 @@ const xControlIs = (value: string) =>
     (schema: JsonSchema) =>
       (schema as Record<string, unknown>)['x-control'] === value,
   );
+
+const isDynamicSeries = schemaMatches(
+  (schema: JsonSchema) =>
+    (schema as Record<string, unknown>)['x-dynamic'] === true,
+);
 
 /** Raw JSON editor for an `x-control: code` field. */
 function CodeControl({
@@ -138,6 +150,199 @@ function ColorControl({
         type="color"
         value={value}
         onChange={event => handleChange(path, event.target.value)}
+      />
+    </Form.Item>
+  );
+}
+
+interface SeriesEntrySchema {
+  properties?: {
+    color?: { default?: string };
+    sizeScale?: { default?: number; minimum?: number; maximum?: number };
+  };
+}
+
+interface SeriesMapSchema {
+  properties?: Record<string, SeriesEntrySchema>;
+}
+
+interface SeriesStyleValue {
+  color: string;
+  sizeScale: number;
+}
+
+/** The value a not-yet-customized series entry starts from, read off its
+ * own enriched sub-schema (the backend pre-colors each entry from a
+ * palette) rather than one fixed default shared by every series. Falls
+ * back to `fallbackColor` only for an entry the backend never colored —
+ * not expected to happen, but a theme token beats a literal black. */
+export function seriesDefaults(
+  entrySchema: SeriesEntrySchema | undefined,
+  fallbackColor: string,
+): SeriesStyleValue {
+  return {
+    color: entrySchema?.properties?.color?.default ?? fallbackColor,
+    sizeScale: entrySchema?.properties?.sizeScale?.default ?? 1,
+  };
+}
+
+/**
+ * `x-dynamic: true` on a dict-of-objects field (e.g. Balloons'
+ * `customize.series`, one entry per distinct color-dimension value): an
+ * overrides list, collapsed by default, rather than the upstream renderer's
+ * one always-expanded group per possible entry — which turns a real
+ * grouping column into thousands of pixels of identical, unstyled controls.
+ *
+ * The backend enriches this field's schema with one inlined per-value
+ * sub-schema (a title and a palette-defaulted `color`), but leaves the
+ * *data* untouched until an author actually edits a value — so "has an
+ * entry in `data`" already means "has been customized", with no comparison
+ * against the schema's own defaults needed.
+ */
+function SeriesOverridesControl(props: ControlProps): ReactElement {
+  const { data, handleChange, path, schema, label } = props;
+  const theme = useTheme();
+  const seriesSchema = schema as SeriesMapSchema;
+  const keys = useMemo(
+    () => Object.keys(seriesSchema.properties ?? {}),
+    [seriesSchema],
+  );
+  const values = (data ?? {}) as Record<string, SeriesStyleValue>;
+  const customizedKeys = keys.filter(key => values[key] !== undefined);
+  const availableKeys = keys.filter(key => values[key] === undefined);
+
+  if (keys.length === 0) {
+    return (
+      <Form.Item label={label}>
+        <Typography.Text type="secondary">
+          {t('Group by a dimension to enable per-series styling.')}
+        </Typography.Text>
+      </Form.Item>
+    );
+  }
+
+  const write = (next: Record<string, SeriesStyleValue>) =>
+    handleChange(path, next);
+
+  const removeOverride = (key: string) => {
+    const next = { ...values };
+    delete next[key];
+    write(next);
+  };
+
+  const addOverride = (key: string) => {
+    write({
+      ...values,
+      [key]: seriesDefaults(seriesSchema.properties?.[key], theme.colorText),
+    });
+  };
+
+  return (
+    <Form.Item label={label}>
+      <Collapse
+        ghost
+        size="small"
+        items={[
+          {
+            key: 'series-overrides',
+            label: t(
+              '%s series · %s customized',
+              keys.length,
+              customizedKeys.length,
+            ),
+            children: (
+              <Flex vertical gap="small">
+                {customizedKeys.map(key => {
+                  const value = values[key];
+                  const bounds =
+                    seriesSchema.properties?.[key]?.properties?.sizeScale;
+                  return (
+                    <Flex key={key} align="center" gap="small">
+                      <ColorPicker
+                        value={value.color}
+                        onChange={next =>
+                          write({
+                            ...values,
+                            [key]: { ...value, color: next.toHexString() },
+                          })
+                        }
+                      >
+                        <button
+                          type="button"
+                          aria-label={t('%s color', key)}
+                          style={{
+                            width: 20,
+                            height: 20,
+                            borderRadius: 4,
+                            border: '1px solid rgba(0, 0, 0, 0.15)',
+                            background: value.color,
+                            cursor: 'pointer',
+                            padding: 0,
+                          }}
+                        />
+                      </ColorPicker>
+                      <div
+                        style={{
+                          flex: 1,
+                          minWidth: 0,
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                        }}
+                      >
+                        {key}
+                      </div>
+                      <InputNumber
+                        size="small"
+                        aria-label={t('%s size scale', key)}
+                        value={value.sizeScale}
+                        min={bounds?.minimum ?? 0.25}
+                        max={bounds?.maximum ?? 4}
+                        step={0.25}
+                        style={{ width: 64 }}
+                        onChange={next =>
+                          write({
+                            ...values,
+                            [key]: {
+                              ...value,
+                              sizeScale: typeof next === 'number' ? next : 1,
+                            },
+                          })
+                        }
+                      />
+                      <Button
+                        buttonSize="xsmall"
+                        buttonStyle="link"
+                        aria-label={t('Reset %s to default', key)}
+                        icon={<Icons.CloseOutlined iconSize="s" />}
+                        onClick={() => removeOverride(key)}
+                      />
+                    </Flex>
+                  );
+                })}
+                {availableKeys.length > 0 && (
+                  // Remounted on every pick: rc-select otherwise keeps
+                  // showing the just-picked option's label internally even
+                  // once it's gone from `options` (a controlled `value` of
+                  // `null`/`undefined` doesn't clear that cache on its own —
+                  // see `ReferenceMultiList`'s identical, pre-existing gap).
+                  <Select
+                    key={availableKeys.length}
+                    value={null}
+                    placeholder={t('Add a series override…')}
+                    ariaLabel={t('Add %s override', label)}
+                    options={availableKeys.map(key => ({
+                      value: key,
+                      label: key,
+                    }))}
+                    onChange={next => addOverride(next as string)}
+                    css={{ width: '100%' }}
+                  />
+                )}
+              </Flex>
+            ),
+          },
+        ]}
       />
     </Form.Item>
   );
@@ -621,6 +826,10 @@ export const schemaControlRenderers = [
   {
     tester: rankWith(1000, xControlIs('color')),
     renderer: withJsonFormsControlProps(ColorControl),
+  },
+  {
+    tester: rankWith(1000, isDynamicSeries),
+    renderer: withJsonFormsControlProps(SeriesOverridesControl),
   },
   {
     tester: rankWith(1000, xControlIs('column')),
