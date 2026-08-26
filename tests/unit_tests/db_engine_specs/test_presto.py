@@ -1404,6 +1404,27 @@ def test_query_cost_formatter_omits_missing_estimate_keys() -> None:
     ]
 
 
+def test_query_cost_formatter_raises_on_null_estimate_value() -> None:
+    """Story 105821 — CHARACTERIZATION test, not an endorsement of this behaviour.
+
+    ``humanize`` guards ``int(value)`` with ``except ValueError`` only, but a JSON
+    ``null`` in the estimate reaches it as ``None`` and ``int(None)`` raises
+    **``TypeError``**, which is not caught. So a Presto estimate carrying a null
+    field breaks the cost panel outright instead of rendering the fields that did
+    arrive.
+
+    Contrast ``test_query_cost_formatter_omits_missing_estimate_keys``: an *absent*
+    key is handled cleanly, a *null* value is not. Pinned so a future widening of
+    that ``except`` is deliberate.
+    """
+    from superset.db_engine_specs.presto import PrestoEngineSpec
+
+    with pytest.raises(TypeError):
+        PrestoEngineSpec.query_cost_formatter(
+            [{"estimate": {"outputRowCount": None, "outputSizeInBytes": 1.0}}]
+        )
+
+
 def test_estimate_query_cost_raises_when_version_too_old(
     mocker: MockerFixture,
 ) -> None:
