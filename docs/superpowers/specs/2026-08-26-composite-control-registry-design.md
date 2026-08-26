@@ -28,10 +28,14 @@ under `data_binding` in `MetricTileControls`, `AgGridTableControls`,
   Superset ship" short of reading `controls.py` source.
 
 The immediate driver is `DataBinding.metrics` — a `list[Any]` field tagged
-`x-control: "metric-multi"` — which is functionally complete (saved-metric
-names, ad-hoc SIMPLE aggregates, JSON fallback for anything richer) but is
-locked inside `DataBinding` with no way to reuse just the metric-picking piece
-in a widget that doesn't want the rest of `DataBinding`'s shape.
+`x-control: "metric-multi"` — which preserves today's existing behavior
+(saved-metric names, ad-hoc SIMPLE aggregates, JSON fallback for anything
+richer) but is locked inside `DataBinding` with no way to reuse just the
+metric-picking piece in a widget that doesn't want the rest of `DataBinding`'s
+shape. It does not give a headless consumer a structured description of what
+a valid ad-hoc metric object looks like (that's still `Any` under the hood);
+typed ad-hoc metric schemas are a possible future improvement, not part of
+this extraction.
 
 ## Scope
 
@@ -55,6 +59,20 @@ Explicitly out of scope, deferred to follow-up specs:
   [schemaControlRenderers.tsx](../../../superset-frontend/src/pages/DashboardBuilderV2/schemaControlRenderers.tsx))
   keys off the `x-control` value and field name, both unchanged by this
   refactor.
+- Composing *multiple* composite controls into one model (multiple
+  inheritance across two or more registered mixins). This slice only
+  exercises one composite (`MetricControl`) composed into one widget model
+  (`DataBinding`) via single inheritance. Field-name collision detection,
+  `model_config` merge rules, and validator-ordering across composites are
+  real open questions once a second composite exists to motivate them —
+  solving them speculatively now, with only one composite in existence,
+  would be guessing at a contract with no real case to validate it against.
+  Composing two registered composites together is unsupported until a
+  follow-up spec defines that contract.
+
+This slice establishes reusable schema composition and discovery. It does
+not, on its own, solve dynamic headless control behavior (dependent-control
+propagation, cycle detection) — that remains fully deferred, below.
 
 ## Approach
 
@@ -64,13 +82,19 @@ read as a *flat* field in several places — `SchemaControlPanel.tsx:122`
 `DataBindingSpec` TypeScript type — so wrapping `metrics` in a new nested
 object (e.g. `dataBinding.metricControl.metrics`) would be a breaking
 schema-shape change requiring frontend updates. Pydantic supports composing a
-model from multiple `BaseModel` base classes and flattens their fields into
-one schema with no nesting, which avoids this entirely: `DataBinding` becomes
+model by inheriting from a `BaseModel` subclass and flattens the parent's
+fields into the subclass's schema with no nesting, which avoids this
+entirely: `DataBinding` becomes
 ```python
-class DataBinding(BaseModel, MetricControl):
+class DataBinding(MetricControl):
     ...  # dataset_id, dimensions, row_limit — metrics no longer declared here
 ```
-and `model_json_schema()`'s output for `DataBinding` is unchanged — same
+(single inheritance from `MetricControl`, which itself already subclasses
+`BaseModel` — inheriting from both `BaseModel` and `MetricControl` at once
+raises `TypeError: Cannot create a consistent method resolution order`,
+confirmed against pydantic directly; `MetricControl` alone is both necessary
+and sufficient as the base) and `model_json_schema()`'s output for
+`DataBinding` is unchanged — same
 property set, same order (once reordered by
 `build_configuration_schema`), same `x-control` extras.
 
@@ -78,11 +102,21 @@ property set, same order (once reordered by
 control into a widget is plain Python inheritance/import — no runtime lookup
 is involved. A `@composite_control(name, title, description)` decorator
 (mirroring the existing `@widget` → `superset/widgets/registry.py` pattern)
-registers each composite class into a module-level dict purely so tooling
-(docs generation, an MCP "list composite controls" tool, future
-extension-author documentation) can enumerate what's available without
-grepping source. This mirrors how `@widget` registration and widget discovery
-already work in this codebase, so it's a familiar idiom rather than a new one.
+registers each composite class, *with* its `name`/`title`/`description`, into
+a module-level store purely so tooling (docs generation, an MCP "list
+composite controls" tool, future extension-author documentation) can
+enumerate what's available without grepping source — discovery needs the
+metadata, not just the class object. This mirrors how `@widget` registration
+and widget discovery already work in this codebase, so it's a familiar idiom
+rather than a new one.
+
+Registration is a decorator side effect, exactly like `@widget`: a composite
+control is only in the registry once its defining module has been imported
+(see `superset/widgets/builtin.py`'s "Importing this registers them"). This
+applies equally to extension-defined composites — an extension's composite
+won't appear in MCP/docs discovery until something imports that extension's
+module, the same constraint `inject_widget_implementations` already handles
+for widgets.
 
 Two alternatives were considered and rejected:
 - **Reusable `Annotated` field type** (e.g. `MetricList = Annotated[list[Any],
@@ -100,7 +134,16 @@ Two alternatives were considered and rejected:
 ### `superset_core/widgets/composites.py` (new)
 
 ```python
-registry: dict[str, type[BaseModel]] = {}
+@dataclass(frozen=True)
+class CompositeControlInfo:
+    name: str
+    title: str
+    description: str
+    model: type[BaseModel]
+
+
+_registry: dict[str, CompositeControlInfo] = {}
+
 
 def composite_control(
     name: str, title: str, description: str
@@ -108,13 +151,22 @@ def composite_control(
     """Register a reusable Pydantic mixin as a discoverable composite control.
 
     Composing one into a widget's controls_class is plain inheritance —
-    this decorator only makes the class discoverable via `registry`."""
+    this decorator only makes the class discoverable via
+    `list_composite_controls()`."""
     def decorator(cls: type[BaseModel]) -> type[BaseModel]:
-        if name in registry:
+        if name in _registry:
             raise ValueError(f"composite control {name!r} already registered")
-        registry[name] = cls
+        _registry[name] = CompositeControlInfo(name, title, description, cls)
         return cls
     return decorator
+
+
+def list_composite_controls() -> Mapping[str, CompositeControlInfo]:
+    """Read-only view of registered composite controls, for docs/MCP
+    discovery. Extension-defined composites appear only once their
+    defining module has been imported (decorator side effect, same as
+    `@widget`)."""
+    return MappingProxyType(_registry)
 
 
 @composite_control(
@@ -136,16 +188,24 @@ class MetricControl(BaseModel):
 This lives in `superset_core` (not `superset/widgets/`) because it's meant for
 extension authors composing their own widget control models, the same
 audience `superset_core.widgets.Widget`/`@widget` already serve — not just
-Superset's own built-ins.
+Superset's own built-ins. `superset_core/widgets/__init__.py` re-exports
+`MetricControl`, `composite_control`, and `list_composite_controls` using the
+codebase's existing redundant-alias re-export idiom (`X as X`, e.g.
+`from superset_core.widgets.composites import MetricControl as MetricControl`),
+matching how `Widget`/`@widget` are already exposed, so consumers write
+`from superset_core.widgets import MetricControl` rather than reaching into
+the `composites` submodule directly. The underlying `_registry` dict is not
+exported; `list_composite_controls()` is the public discovery surface, so
+extension authors can't accidentally mutate the shared store.
 
 ### `superset/widgets/controls.py` (changed)
 
 `DataBinding` drops its inline `metrics: list[Any] = Field(...)` declaration
 and instead:
 ```python
-from superset_core.widgets.composites import MetricControl
+from superset_core.widgets import MetricControl
 
-class DataBinding(BaseModel, MetricControl):
+class DataBinding(MetricControl):
     model_config = ConfigDict(populate_by_name=True)
 
     dataset_id: int = Field(alias="datasetId", ...)
@@ -157,13 +217,23 @@ No other file in `superset/widgets/` or `superset-frontend/` changes.
 
 ## Testing
 
-- **Schema-identity test**: assert `DataBinding.model_json_schema()` (post
-  `build_configuration_schema` reordering) is unchanged before/after —
-  same properties, same order, same `required`, same `x-control` extras on
-  `metrics`. This is the load-bearing test: it's what proves the refactor is
-  non-breaking rather than merely "looks equivalent."
+- **Schema-identity test**: a golden fixture — the literal JSON Schema dict
+  for `DataBinding`, captured from `main` before this refactor lands — checked
+  into the test file and asserted equal (properties, order, `required`,
+  defaults, aliases, and `x-control`/`x-language` extras on `metrics`)
+  against the post-refactor output. "Before vs. after in the same PR" isn't
+  enough on its own since both sides would be written by the same change;
+  the frozen fixture is what makes the comparison meaningful. Assert this at
+  the actual API/MCP boundary — the served
+  `/api/v1/widgets/type/metric-tile/control-schema` response and
+  `get_widget_control_schema`'s output — not just the raw
+  `model_json_schema()` call, so a regression introduced by
+  `schema_tools.py`'s progressive-disclosure layer would also be caught, not
+  just one in the raw Pydantic schema.
 - **Registry unit tests**: registering a composite control, duplicate-name
-  registration raises, `MetricControl` is present in `registry["metric"]`.
+  registration raises, `MetricControl` is present in
+  `list_composite_controls()["metric"]` with the expected `title`/
+  `description`, and the returned mapping is not mutable by callers.
 - **Existing widget tests** (`MetricTile`, `AgGridTable`, `Balloons`,
   `Echarts`, and their control-schema API/MCP tests) run unchanged — no
   fixture or assertion should need updating, since the served schema doesn't
