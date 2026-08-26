@@ -279,6 +279,7 @@ def _find_and_authorize_dashboard(
         title="Remove chart from dashboard",
         readOnlyHint=False,
         destructiveHint=True,
+        idempotentHint=False,
         openWorldHint=False,
     ),
 )

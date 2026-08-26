@@ -67,6 +67,7 @@ def test_all_registered_tools_have_complete_annotations():
     )
     missing_by_tool = {}
     open_world_tools = []
+    idempotent_mutating_tools = []
 
     for registered_tool in _run(mcp.list_tools()):
         annotations = registered_tool.annotations
@@ -75,6 +76,11 @@ def test_all_registered_tools_have_complete_annotations():
             for field in required_fields
             if annotations is None or getattr(annotations, field, None) is None
         ]
+        if annotations is not None and annotations.readOnlyHint is False:
+            if annotations.idempotentHint is None:
+                missing.append("idempotentHint")
+            elif annotations.idempotentHint is not False:
+                idempotent_mutating_tools.append(registered_tool.name)
         if missing:
             missing_by_tool[registered_tool.name] = missing
         elif annotations.openWorldHint is not False:
@@ -86,6 +92,10 @@ def test_all_registered_tools_have_complete_annotations():
     assert not open_world_tools, (
         "Tools must be explicitly closed-world (openWorldHint=False): "
         f"{open_world_tools}"
+    )
+    assert not idempotent_mutating_tools, (
+        "Mutating tools must not claim idempotency (idempotentHint=False): "
+        f"{idempotent_mutating_tools}"
     )
 
 

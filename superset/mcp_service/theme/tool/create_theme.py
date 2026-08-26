@@ -47,6 +47,7 @@ logger = logging.getLogger(__name__)
         title="Create theme",
         readOnlyHint=False,
         destructiveHint=False,
+        idempotentHint=False,
         openWorldHint=False,
     ),
 )

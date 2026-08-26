@@ -140,6 +140,7 @@ async def my_new_tool(request: MyRequest, ctx: Context) -> MyResponse:
         title="Create something",
         readOnlyHint=False,
         destructiveHint=False,
+        idempotentHint=False,
         openWorldHint=False,
     ),
 )
@@ -212,9 +213,10 @@ The `@tool` decorator from `superset_core.mcp.decorators` accepts:
 ```python
 annotations=ToolAnnotations(
     title="Human-readable title",
-    readOnlyHint=True,   # Whether tool only reads data
-    destructiveHint=False, # Whether tool has destructive side effects
-    openWorldHint=False, # Whether tool interacts with external entities
+    readOnlyHint=False,  # Whether tool only reads data
+    destructiveHint=False,  # Whether tool has destructive side effects
+    idempotentHint=False,  # Whether repeated mutating calls have additional effects
+    openWorldHint=False,  # Whether tool interacts with external entities
 )
 ```
 
@@ -575,7 +577,9 @@ async def test_my_tool_success(mcp_server):
 
 ### 4. Missing ToolAnnotations
 **Problem**: Tool lacks MCP directory compliance metadata.
-**Solution**: Always include `annotations=ToolAnnotations(title=..., readOnlyHint=..., destructiveHint=..., openWorldHint=...)`.
+**Solution**: Always include `title`, `readOnlyHint`, `destructiveHint`, and
+`openWorldHint`. Mutating tools (`readOnlyHint=False`) must also include
+`idempotentHint`.
 
 ### 5. Using `Optional` Instead of Union Syntax
 **Problem**: Old-style `Optional[T]` is not Python 3.10+ style.

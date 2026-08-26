@@ -78,6 +78,7 @@ def _rollback() -> None:
         title="Restore dashboard",
         readOnlyHint=False,
         destructiveHint=False,
+        idempotentHint=False,
         openWorldHint=False,
     ),
 )

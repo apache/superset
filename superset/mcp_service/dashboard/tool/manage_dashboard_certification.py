@@ -51,6 +51,7 @@ logger: logging.Logger = logging.getLogger(__name__)
         title="Manage dashboard certification",
         readOnlyHint=False,
         destructiveHint=False,
+        idempotentHint=False,
         openWorldHint=False,
     ),
 )

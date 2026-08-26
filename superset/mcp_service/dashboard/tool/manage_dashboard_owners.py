@@ -248,6 +248,7 @@ def _build_owner_warnings(
         title="Manage dashboard owners",
         readOnlyHint=False,
         destructiveHint=True,
+        idempotentHint=False,
         openWorldHint=False,
     ),
 )

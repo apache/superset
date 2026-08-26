@@ -91,6 +91,7 @@ def _update_virtual_dataset(dataset_id: int, update_props: dict[str, Any]) -> An
         title="Create virtual dataset from SQL",
         readOnlyHint=False,
         destructiveHint=False,
+        idempotentHint=False,
         openWorldHint=False,
     ),
 )

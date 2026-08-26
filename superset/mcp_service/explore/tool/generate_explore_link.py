@@ -58,6 +58,7 @@ logger = logging.getLogger(__name__)
         title="Generate explore link",
         readOnlyHint=False,
         destructiveHint=False,
+        idempotentHint=False,
         openWorldHint=False,
     ),
 )

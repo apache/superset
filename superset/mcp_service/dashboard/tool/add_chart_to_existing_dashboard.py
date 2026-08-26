@@ -427,6 +427,7 @@ def _find_and_authorize_dashboard(
         title="Add chart to dashboard",
         readOnlyHint=False,
         destructiveHint=False,
+        idempotentHint=False,
         openWorldHint=False,
     ),
 )
