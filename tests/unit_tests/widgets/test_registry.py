@@ -138,3 +138,77 @@ def test_data_binding_declares_column_and_metric_controls() -> None:
 def test_color_dimension_declares_column_control() -> None:
     schema = _block("balloons").get_control_schema(None, None)
     assert schema["properties"]["colorDimension"]["x-control"] == "column"
+
+
+def test_data_binding_schema_is_unchanged_after_metric_control_extraction() -> None:
+    # Golden fixture captured before DataBinding composed MetricControl, via
+    # registry.get("metric-tile").get_control_schema(None, None). Guards
+    # against both the MetricControl extraction and the field_order fix
+    # regressing the served schema — checked at the same boundary the
+    # Inspector consumes, not just raw model_json_schema().
+    schema = _block("metric-tile").get_control_schema(None, None)
+    data_binding = schema["$defs"]["DataBinding"]
+
+    assert list(data_binding["properties"]) == [
+        "datasetId",
+        "metrics",
+        "dimensions",
+        "rowLimit",
+    ]
+    assert data_binding["required"] == ["datasetId", "metrics"]
+    assert data_binding["properties"]["metrics"] == {
+        "description": (
+            "Metrics to fetch. Each entry is EITHER a string naming a saved "
+            'metric on the dataset (e.g. "count"), OR an ad-hoc aggregate '
+            "object of the shape "
+            '{"expressionType": "SIMPLE", "column": {"column_name": "<col>"}, '
+            '"aggregate": "SUM"|"AVG"|"COUNT"|"COUNT_DISTINCT"|"MIN"|"MAX", '
+            '"label": "<optional display label>"}. Do not pass a raw SQL string '
+            'like "SUM(sales)" — a plain string is looked up as a saved-metric '
+            "name, not evaluated as an expression."
+        ),
+        "items": {},
+        "title": "Metrics",
+        "type": "array",
+        "x-control": "metric-multi",
+        "x-language": "json",
+    }
+    assert data_binding["properties"]["datasetId"] == {
+        "description": "Numeric id of the dataset to query.",
+        "title": "Dataset ID",
+        "type": "integer",
+    }
+    assert data_binding["properties"]["dimensions"] == {
+        "description": "Columns to group by (the categories / series).",
+        "items": {"type": "string"},
+        "title": "Dimensions",
+        "type": "array",
+        "x-control": "column-multi",
+    }
+    assert data_binding["properties"]["rowLimit"] == {
+        "default": 1000,
+        "description": "Maximum number of rows to fetch.",
+        "minimum": 1,
+        "title": "Row limit",
+        "type": "integer",
+    }
+
+
+def test_data_binding_schema_unchanged_via_mcp_boundary() -> None:
+    from superset.mcp_service.widgets.tool.get_widget_control_schema import (
+        _get_widget_control_schema_impl,
+    )
+
+    # dataBinding is mandatory, so the minimal-viable pruning inlines it
+    # (recursing into its own mandatory leaves) rather than leaving a $ref
+    # into $defs -- a different code path through schema_tools.py than the
+    # REST/get_control_schema boundary above, so this exercises the field
+    # order fix against progressive disclosure too.
+    result = _get_widget_control_schema_impl("metric-tile")
+    data_binding = result["properties"]["dataBinding"]
+    assert list(data_binding["properties"]) == [
+        "datasetId",
+        "metrics",
+        "dimensions",
+        "rowLimit",
+    ]

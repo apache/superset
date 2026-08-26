@@ -29,39 +29,34 @@ mandatory leaves, leaving optional/styling fields behind a drill-in.
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, ClassVar
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
+from superset_core.widgets import MetricControl
 
 
-class DataBinding(BaseModel):
+class DataBinding(MetricControl):
     """Query binding for a data-backed widget (mirrors the frontend
     ``DataBindingSpec``). ``datasetId`` and ``metrics`` are mandatory; the rest
     are optional."""
 
     model_config = ConfigDict(populate_by_name=True)
 
+    # Pydantic places an inherited field (``metrics``, from ``MetricControl``)
+    # ahead of this class's own fields in ``model_fields`` regardless of
+    # declaration order, so the rendered field order needs to be pinned
+    # explicitly to match what this class served before composing MetricControl.
+    field_order: ClassVar[list[str]] = [
+        "datasetId",
+        "metrics",
+        "dimensions",
+        "rowLimit",
+    ]
+
     dataset_id: int = Field(
         alias="datasetId",
         title="Dataset ID",
         description="Numeric id of the dataset to query.",
-    )
-    metrics: list[Any] = Field(
-        title="Metrics",
-        description=(
-            "Metrics to fetch. Each entry is EITHER a string naming a saved "
-            'metric on the dataset (e.g. "count"), OR an ad-hoc aggregate '
-            "object of the shape "
-            '{"expressionType": "SIMPLE", "column": {"column_name": "<col>"}, '
-            '"aggregate": "SUM"|"AVG"|"COUNT"|"COUNT_DISTINCT"|"MIN"|"MAX", '
-            '"label": "<optional display label>"}. Do not pass a raw SQL string '
-            'like "SUM(sales)" — a plain string is looked up as a saved-metric '
-            "name, not evaluated as an expression."
-        ),
-        # A saved-metric name renders as a picker over the dataset's metrics;
-        # an ad-hoc object falls back to the raw JSON editor (see
-        # `MetricMultiControl` on the frontend).
-        json_schema_extra={"x-control": "metric-multi", "x-language": "json"},
     )
     dimensions: list[str] = Field(
         default_factory=list,
