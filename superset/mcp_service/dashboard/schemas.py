@@ -299,7 +299,13 @@ class GetDashboardInfoRequest(MetadataCacheControl):
 
     @model_validator(mode="after")
     def _require_identifier_or_permalink(self) -> "GetDashboardInfoRequest":
-        if self.identifier is None and self.permalink_key is None:
+        identifier_is_blank = self.identifier is None or (
+            isinstance(self.identifier, str) and not self.identifier.strip()
+        )
+        permalink_is_blank = (
+            self.permalink_key is None or not self.permalink_key.strip()
+        )
+        if identifier_is_blank and permalink_is_blank:
             raise ValueError("Provide identifier or permalink_key")
         return self
 
@@ -333,7 +339,13 @@ class GetDashboardLayoutRequest(BaseModel):
 
     @model_validator(mode="after")
     def _require_identifier_or_permalink(self) -> "GetDashboardLayoutRequest":
-        if self.identifier is None and self.permalink_key is None:
+        identifier_is_blank = self.identifier is None or (
+            isinstance(self.identifier, str) and not self.identifier.strip()
+        )
+        permalink_is_blank = (
+            self.permalink_key is None or not self.permalink_key.strip()
+        )
+        if identifier_is_blank and permalink_is_blank:
             raise ValueError("Provide identifier or permalink_key")
         return self
 

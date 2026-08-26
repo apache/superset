@@ -976,9 +976,22 @@ class TestRequestSchemaAliasChoices:
         )
         assert req.select_columns == ["id", "dashboard_title"]
 
-    def test_get_dashboard_info_requires_reference(self) -> None:
+    @pytest.mark.parametrize(
+        "payload",
+        [
+            {},
+            {"identifier": ""},
+            {"identifier": "   "},
+            {"permalink_key": ""},
+            {"permalink_key": "   "},
+            {"identifier": " ", "permalink_key": " "},
+        ],
+    )
+    def test_get_dashboard_info_requires_reference(
+        self, payload: dict[str, Any]
+    ) -> None:
         with pytest.raises(ValidationError, match="identifier or permalink_key"):
-            GetDashboardInfoRequest.model_validate({})
+            GetDashboardInfoRequest.model_validate(payload)
 
     @pytest.mark.parametrize(
         "payload",
@@ -995,9 +1008,22 @@ class TestRequestSchemaAliasChoices:
         assert request.identifier == payload.get("identifier")
         assert request.permalink_key == payload.get("permalink_key")
 
-    def test_get_dashboard_layout_requires_reference(self) -> None:
+    @pytest.mark.parametrize(
+        "payload",
+        [
+            {},
+            {"identifier": ""},
+            {"identifier": "   "},
+            {"permalink_key": ""},
+            {"permalink_key": "   "},
+            {"identifier": " ", "permalink_key": " "},
+        ],
+    )
+    def test_get_dashboard_layout_requires_reference(
+        self, payload: dict[str, Any]
+    ) -> None:
         with pytest.raises(ValidationError, match="identifier or permalink_key"):
-            GetDashboardLayoutRequest.model_validate({})
+            GetDashboardLayoutRequest.model_validate(payload)
 
     def test_list_dashboards_select_columns_columns_alias(self) -> None:
         req = ListDashboardsRequest.model_validate(
