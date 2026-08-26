@@ -195,7 +195,22 @@ const config: ControlPanelConfig = {
         ],
         [xAxisLabelRotation],
         [xAxisLabelInterval],
-        [xAxisMinInterval],
+        [
+          {
+            name: xAxisMinInterval.name,
+            config: {
+              ...xAxisMinInterval.config,
+              visibility: ({ controls }: ControlPanelsContainerProps) =>
+                checkColumnType(
+                  getColumnLabel(controls?.x_axis?.value as QueryFormColumn),
+                  controls?.datasource?.datasource,
+                  [GenericDataType.Temporal, GenericDataType.Numeric],
+                ),
+              disableStash: true,
+              resetOnHide: false,
+            },
+          },
+        ],
         [forceMaxInterval],
         ...richTooltipSection,
         // eslint-disable-next-line react/jsx-key
