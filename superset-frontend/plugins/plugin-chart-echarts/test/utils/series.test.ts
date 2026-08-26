@@ -1775,6 +1775,34 @@ test.each(['', '\n'])(
   },
 );
 
+test.each([
+  { expectedContentHeight: 21.6, expectedMargin: 28, legendItems: ['', 'B'] },
+  {
+    expectedContentHeight: 29.6,
+    expectedMargin: 36,
+    legendItems: ['', '\n', 'B'],
+  },
+])(
+  'getLegendLayoutResult preserves leading row-break space for $legendItems',
+  ({ expectedContentHeight, expectedMargin, legendItems }) => {
+    expectTimeseriesLegendLayoutMatchesEcharts({
+      chartWidth: 600,
+      expectedContentHeight,
+      expectedMargin,
+      expectedRows: 2,
+      legendItems,
+      series: [
+        {
+          data: [0, 1],
+          name: 'B',
+          symbol: 'emptyCircle',
+          type: 'line',
+        },
+      ],
+    });
+  },
+);
+
 test('getLegendLayoutResult uses Line geometry for shown annotation layers', () => {
   const observationNames = Array.from(
     { length: 38 },

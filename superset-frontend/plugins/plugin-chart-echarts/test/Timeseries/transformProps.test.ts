@@ -36,7 +36,7 @@ import {
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import { supersetTheme } from '@apache-superset/core/theme';
-import type { SeriesOption } from 'echarts';
+import { init, type SeriesOption } from 'echarts';
 import type { GridComponentOption } from 'echarts/components';
 import transformProps from '../../src/Timeseries/transformProps';
 import {
@@ -1251,6 +1251,94 @@ test('reserves Forecast legend rows using the final rendered series order', () =
   expect(transformed.height).toBe(chartHeight);
   expect(transformed.contentHeight).toBeCloseTo(966.8);
 });
+
+test.each([3, 4, 6])(
+  'keeps a rendered %i-line final legend row above the plot',
+  lineCount => {
+    const multilineLegendName = Array.from(
+      { length: lineCount },
+      (_, index) => `Dimension ${index + 1}`,
+    ).join('\n');
+    const chartProps = createTestChartProps({
+      width: 800,
+      height: 400,
+      formData: {
+        ...formData,
+        legendType: LegendType.Plain,
+        legendOrientation: LegendOrientation.Top,
+        showLegend: true,
+        yAxisTitleMargin: 0,
+        yAxisTitlePosition: 'Left',
+      },
+      queriesData: [
+        createTestQueryData(
+          createTestData([{ [multilineLegendName]: 1 }], {
+            intervalMs: 300000000,
+          }),
+        ),
+      ],
+    });
+    const getContext = jest
+      .spyOn(HTMLCanvasElement.prototype, 'getContext')
+      .mockReturnValue({
+        font: '',
+        measureText: (text: string) => ({
+          width: text === '国' ? 12 : text.length * 7,
+        }),
+      } as unknown as CanvasRenderingContext2D);
+    const transformed = transformProps(chartProps);
+    const chart = init(null, null, {
+      height: transformed.contentHeight,
+      renderer: 'svg',
+      ssr: true,
+      width: transformed.width,
+    });
+
+    try {
+      chart.setOption(transformed.echartOptions);
+      type BoundingRect = {
+        applyTransform: (transform?: number[]) => void;
+        clone: () => BoundingRect;
+        height: number;
+        y: number;
+      };
+      type LegendView = {
+        __model?: { mainType?: string };
+        getContentGroup: () => {
+          getBoundingRect: () => BoundingRect;
+          getComputedTransform: () => number[] | undefined;
+        };
+      };
+      const legendView = (
+        chart as unknown as { _componentsViews: LegendView[] }
+      )._componentsViews.find(view => view.__model?.mainType === 'legend');
+      const contentGroup = legendView?.getContentGroup();
+      if (!contentGroup) {
+        throw new Error('Expected ECharts to render a legend content group');
+      }
+      const legendRect = contentGroup.getBoundingRect().clone();
+      legendRect.applyTransform(contentGroup.getComputedTransform());
+      const legendBottom = legendRect.y + legendRect.height;
+      const gridModel = (
+        chart as unknown as {
+          getModel: () => {
+            getComponent: (mainType: string) => {
+              coordinateSystem: { getRect: () => { y: number } };
+            };
+          };
+        }
+      )
+        .getModel()
+        .getComponent('grid');
+      const plotTop = gridModel.coordinateSystem.getRect().y;
+
+      expect(legendBottom - plotTop).toBeCloseTo(0);
+    } finally {
+      chart.dispose();
+      getContext.mockRestore();
+    }
+  },
+);
 
 test('grows the content instead of using a negative offset for a pathological Plain legend', () => {
   const chartHeight = 200;

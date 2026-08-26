@@ -61,6 +61,7 @@ const DEFAULT_LEGEND_ICON_WIDTH = 25;
 const LEGEND_ICON_LABEL_GAP = 5;
 const LEGACY_LEGEND_HORIZONTAL_SIDE_GUTTER = 16;
 const ECHARTS_LEGEND_HORIZONTAL_PADDING = 10;
+const ECHARTS_LEGEND_PADDING = 5;
 const LEGACY_LEGEND_HORIZONTAL_ROW_HEIGHT = 24;
 const MAX_LEGEND_MARGIN_RATIO = 0.4;
 const LEGEND_VERTICAL_SIDE_GUTTER = 16;
@@ -70,6 +71,12 @@ const LEGEND_MARGIN_GUTTER = 45;
 // values intentionally overestimate selector space to avoid clipping.
 const ESTIMATED_LEGEND_SELECTOR_WIDTH = 112;
 const LEGEND_TEXT_WIDTH_CACHE = new Map<string, number>();
+// The two 20px Timeseries offsets, less ECharts' 5px inset, accommodate a
+// final legend row up to this height without additional margin.
+const TIMESERIES_HORIZONTAL_LEGEND_ROW_CLEARANCE =
+  defaultLegendPadding[LegendOrientation.Top] +
+  TIMESERIES_CONSTANTS.gridOffsetTop -
+  ECHARTS_LEGEND_PADDING;
 
 type LegendDataItem =
   | string
@@ -260,7 +267,8 @@ function estimateEchartsHorizontalLegendAdditionalMargin(
   let currentLineMaxHeight = 0;
   let currentX = 0;
   let currentY = 0;
-  const rowOffsets: number[] = [];
+  let hasLeadingRowBreak = false;
+  const positionedItems: { height: number; y: number }[] = [];
 
   itemRects.forEach((rect, index) => {
     const nextRect = itemRects[index + 1];
@@ -278,13 +286,30 @@ function estimateEchartsHorizontalLegendAdditionalMargin(
       currentLineMaxHeight = Math.max(currentLineMaxHeight, rect.height);
     }
     if (rect.newline) {
+      if (positionedItems.length === 0) {
+        hasLeadingRowBreak = true;
+      }
       return;
     }
-    rowOffsets.push(currentY);
+    positionedItems.push({ height: rect.height, y: currentY });
     currentX = nextX + ECHARTS_LEGEND_ITEM_GAP;
   });
 
-  return Math.max(0, (rowOffsets.at(-1) ?? 0) - (rowOffsets[0] ?? 0));
+  const lastRowOffset = positionedItems.at(-1)?.y;
+  if (lastRowOffset === undefined) {
+    return 0;
+  }
+  const firstRowOffset = hasLeadingRowBreak ? 0 : (positionedItems[0]?.y ?? 0);
+  const lastRowHeight = Math.max(
+    ...positionedItems
+      .filter(item => item.y === lastRowOffset)
+      .map(item => item.height),
+  );
+
+  return (
+    Math.max(0, lastRowOffset - firstRowOffset) +
+    Math.max(0, lastRowHeight - TIMESERIES_HORIZONTAL_LEGEND_ROW_CLEARANCE)
+  );
 }
 
 export function getHorizontalLegendAvailableWidth({
