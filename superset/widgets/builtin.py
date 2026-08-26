@@ -25,10 +25,10 @@ path. This module is imported (for its decorator side-effects) by
 from __future__ import annotations
 
 from copy import deepcopy
-from typing import Any
+from typing import Any, ClassVar
 
 from pydantic import BaseModel
-from superset_core.widgets import Widget, widget
+from superset_core.widgets import EnricherFn, Widget, widget
 
 from superset.widgets.controls import (
     AgGridTableControls,
@@ -103,21 +103,24 @@ class Balloons(Widget):
     # (or duplicate-heavy) series list.
     MAX_SERIES = 100
 
-    @classmethod
-    def enrich_schema(
-        cls,
+    @staticmethod
+    def _populate_series(
         schema: dict[str, Any],
+        node: dict[str, Any],
         parsed: BaseModel | None,
         series: list[str],
+        upstream: dict[str, Any],
     ) -> None:
-        # Nested models land in $defs; the x-dynamic field is Customization.series.
-        defs = schema.get("$defs", {})
-        series_prop = defs.get("Customization", {}).get("properties", {}).get("series")
-        style_def = defs.get("SeriesStyle")
-        if series_prop is None or style_def is None:
+        # `node` is Customization.series's own fragment; `SeriesStyle` is a
+        # sibling $defs entry, only reachable via the full `schema`.
+        style_def = schema.get("$defs", {}).get("SeriesStyle")
+        if style_def is None:
             return
-        # Only populate once a grouping dimension is set and the frontend has
-        # reported the distinct series values from the query results.
+        # The x-dependsOn: ["dataBinding"] gate (run by run_enrichers before
+        # this is ever called) only confirms a dataBinding was parsed at all
+        # -- it can't express "dimensions is non-empty" (a nested attribute)
+        # or "series is non-empty" (a runtime parameter, not a field on
+        # parsed), so both stay checked here.
         dimensions = None
         if parsed is not None:
             data_binding = getattr(parsed, "data_binding", None)
@@ -126,17 +129,19 @@ class Balloons(Widget):
             return
         # Dedupe (preserving order) and cap before doing per-series work, so an
         # oversized/duplicate list can't blow up CPU, memory, or response size.
-        unique_series = list(dict.fromkeys(series))[: cls.MAX_SERIES]
+        unique_series = list(dict.fromkeys(series))[: Balloons.MAX_SERIES]
         # Replace the open-ended map with one inlined, pre-colored style per series.
-        series_prop.pop("additionalProperties", None)
+        node.pop("additionalProperties", None)
         properties: dict[str, Any] = {}
         for index, value in enumerate(unique_series):
             style = deepcopy(style_def)
-            style["properties"]["color"]["default"] = cls.PALETTE[
-                index % len(cls.PALETTE)
+            style["properties"]["color"]["default"] = Balloons.PALETTE[
+                index % len(Balloons.PALETTE)
             ]
             # Title each group with the series value so the control panel labels
             # it by series rather than by the shared model name ("SeriesStyle").
             style["title"] = value
             properties[value] = style
-        series_prop["properties"] = properties
+        node["properties"] = properties
+
+    enrichers: ClassVar[dict[str, EnricherFn]] = {"customize/series": _populate_series}
