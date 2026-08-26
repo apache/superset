@@ -156,6 +156,16 @@ The `payload` parameter stores custom metadata that can help users understand wh
 
 In the Task List UI, when a payload is defined, an info icon appears in the **Details** column. Users can hover over it to see the JSON content.
 
+#### Forcing an Immediate Write
+
+By default `update_task()` throttles database writes (batching frequent updates to limit metastore load). Pass `immediate=True` to bypass throttling and write synchronously:
+
+```python
+ctx.update_task(payload={"result_cache_key": key}, immediate=True)
+```
+
+Use this only when another consumer must observe the update as soon as the task finishes — for example, a dependent task that reads a prerequisite's payload the moment the dependency gate releases. For ordinary progress reporting, prefer the default throttled behavior.
+
 ### Handlers
 
 Register handlers to run cleanup logic or respond to abort requests:
@@ -426,7 +436,7 @@ By default, abort detection and sync join-and-wait poll the task row in the meta
 
 | Method                           | Description                                   |
 | -------------------------------- | --------------------------------------------- |
-| `update_task(progress, payload)` | Update progress and/or custom payload         |
+| `update_task(progress, payload, immediate=False)` | Update progress and/or custom payload (`immediate=True` bypasses write throttling) |
 | `on_cleanup(handler)`            | Register cleanup handler                      |
 | `on_abort(handler)`              | Register abort handler (makes task abortable) |
 

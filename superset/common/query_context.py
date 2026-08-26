@@ -26,7 +26,10 @@ from superset.common.chart_data_timing import (
     QueryAcquisitionResult,
     QueryContextExecutionResult,
 )
-from superset.common.query_context_processor import QueryContextProcessor
+from superset.common.query_context_processor import (
+    normalize_contribution_totals,
+    QueryContextProcessor,
+)
 from superset.common.query_object import QueryObject
 from superset.explorables.base import Explorable
 from superset.models.slice import Slice
@@ -56,8 +59,6 @@ class QueryContext:
     result_format: ChartDataResultFormat
     force: bool
     custom_cache_timeout: int | None
-    contribution_queries: list[int]
-    contribution_totals_idx: int | None
 
     # Set by the async chart-data execution path (see
     # superset.tasks.async_queries.execute_chart_query). The async flow caches a
@@ -94,41 +95,15 @@ class QueryContext:
         self.force = force
         self.custom_cache_timeout = custom_cache_timeout
         self.cache_values = cache_values
-        (
-            self.contribution_queries,
-            self.contribution_totals_idx,
-        ) = self._normalize_contribution_totals()
+        # Normalize the contribution totals query before any cache key is
+        # computed. The return value is unused here; we only need the side
+        # effect on the totals query's row_limit.
+        self._normalize_contribution_totals()
         self._processor = QueryContextProcessor(self)
 
     def _normalize_contribution_totals(self) -> tuple[list[int], int | None]:
         """Normalize contribution totals before any cache key is computed."""
-        queries_needing_totals: list[int] = []
-        totals_idx: int | None = None
-
-        for index, query in enumerate(self.queries):
-            if any(
-                post_processing.get("operation") == "contribution"
-                for post_processing in query.post_processing or []
-            ):
-                queries_needing_totals.append(index)
-
-            if (
-                totals_idx is None
-                and not query.columns
-                and query.metrics
-                and not query.post_processing
-            ):
-                totals_idx = index
-
-        if queries_needing_totals and totals_idx is not None:
-            self.queries[totals_idx].row_limit = None
-            raw_queries = self.cache_values.get("queries", [])
-            if totals_idx < len(raw_queries) and isinstance(
-                raw_queries[totals_idx], dict
-            ):
-                raw_queries[totals_idx]["row_limit"] = None
-
-        return queries_needing_totals, totals_idx
+        return normalize_contribution_totals(self.queries, self.cache_values)
 
     def get_data(
         self,
@@ -183,11 +158,7 @@ class QueryContext:
         shared totals row, and the index of the totals query itself (or ``None``).
         The normalization is idempotent and runs at construction time as well.
         """
-        (
-            self.contribution_queries,
-            self.contribution_totals_idx,
-        ) = self._normalize_contribution_totals()
-        return self.contribution_queries, self.contribution_totals_idx
+        return self._normalize_contribution_totals()
 
     def get_df_payload(
         self,

@@ -149,7 +149,12 @@ def execute_chart_query(
         # Executes on cache miss and writes CacheRegion.DATA under query_cache_key.
         result = query_context.get_df_payload_result(query_obj)
         if cache_key := result.payload.get(CACHE_KEY_PAYLOAD_KEY):
-            get_context().update_task(payload={CACHE_KEY_PAYLOAD_KEY: cache_key})
+            # Write synchronously: a dependent contribution query reads this
+            # cache key via get_dependency_payloads once the DAG gate releases,
+            # so it must not sit in the throttle buffer.
+            get_context().update_task(
+                payload={CACHE_KEY_PAYLOAD_KEY: cache_key}, immediate=True
+            )
 
 
 def _query_task_cache_key(query_context: "QueryContext", index: int) -> str | None:

@@ -167,9 +167,9 @@ def test_contribution_totals_round_trip_preserves_cache_key(
         result_type=ChartDataResultType.FULL,
         result_format=ChartDataResultFormat.JSON,
     )
-    totals_idx = query_context.contribution_totals_idx
+    contribution_queries, totals_idx = query_context.prepare_contribution_totals()
 
-    assert query_context.contribution_queries == [0]
+    assert contribution_queries == [0]
     assert totals_idx == 1
     assert query_context.queries[totals_idx].row_limit is None
     assert query_context.cache_values["queries"][totals_idx]["row_limit"] is None

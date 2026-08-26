@@ -72,6 +72,46 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+def normalize_contribution_totals(
+    queries: list[QueryObject],
+    cache_values: dict[str, Any],
+) -> tuple[list[int], int | None]:
+    """Identify contribution queries and normalize the totals query in place.
+
+    Returns the indices of queries whose contribution post-processing needs a
+    shared totals row, and the index of the totals query itself (or ``None``).
+    The totals query's ``row_limit`` is cleared on both the ``QueryObject`` and
+    the matching ``cache_values`` entry so cache keys align with cached results.
+    Shared by ``QueryContext`` and ``QueryContextProcessor`` so the two stay in
+    lockstep.
+    """
+    queries_needing_totals: list[int] = []
+    totals_idx: int | None = None
+
+    for index, query in enumerate(queries):
+        if any(
+            pp.get("operation") == "contribution"
+            for pp in getattr(query, "post_processing", None) or []
+        ):
+            queries_needing_totals.append(index)
+
+        if (
+            totals_idx is None
+            and not query.columns
+            and query.metrics
+            and not query.post_processing
+        ):
+            totals_idx = index
+
+    if queries_needing_totals and totals_idx is not None:
+        queries[totals_idx].row_limit = None
+        raw_queries = cache_values.get("queries", [])
+        if totals_idx < len(raw_queries) and isinstance(raw_queries[totals_idx], dict):
+            raw_queries[totals_idx]["row_limit"] = None
+
+    return queries_needing_totals, totals_idx
+
+
 class QueryContextProcessor:
     """
     The query context contains the query object and additional fields necessary
@@ -432,36 +472,11 @@ class QueryContextProcessor:
     def _prepare_contribution_totals(self) -> tuple[list[int], int | None]:
         """
         Identify contribution queries and normalize the totals query so cache keys
-        align with cached results.
+        align with cached results (see ``normalize_contribution_totals``).
         """
-        queries_needing_totals: list[int] = []
-        totals_idx: int | None = None
-
-        for i, query in enumerate(self._query_context.queries):
-            needs_totals = any(
-                pp.get("operation") == "contribution"
-                for pp in getattr(query, "post_processing", []) or []
-            )
-
-            if needs_totals:
-                queries_needing_totals.append(i)
-
-            is_totals_query = (
-                not query.columns and query.metrics and not query.post_processing
-            )
-            if is_totals_query and totals_idx is None:
-                totals_idx = i
-
-        if queries_needing_totals and totals_idx is not None:
-            totals_query = self._query_context.queries[totals_idx]
-            totals_query.row_limit = None
-            raw_queries = self._query_context.cache_values.get("queries", [])
-            if totals_idx < len(raw_queries) and isinstance(
-                raw_queries[totals_idx], dict
-            ):
-                raw_queries[totals_idx]["row_limit"] = None
-
-        return queries_needing_totals, totals_idx
+        return normalize_contribution_totals(
+            self._query_context.queries, self._query_context.cache_values
+        )
 
     def ensure_totals_available(
         self,

@@ -43,7 +43,11 @@ Breaking removals (no deprecation window):
   built-in frontend already does).
 - The following config keys are removed: `GLOBAL_ASYNC_QUERIES_CACHE_BACKEND`,
   `GLOBAL_ASYNC_QUERIES_TRANSPORT`, `GLOBAL_ASYNC_QUERIES_WEBSOCKET_URL`,
-  `GLOBAL_ASYNC_QUERIES_REDIS_STREAM_PREFIX`, `GLOBAL_ASYNC_QUERIES_JWT_*`, and
+  `GLOBAL_ASYNC_QUERIES_REDIS_STREAM_PREFIX`,
+  `GLOBAL_ASYNC_QUERIES_REDIS_STREAM_LIMIT`,
+  `GLOBAL_ASYNC_QUERIES_REDIS_STREAM_LIMIT_FIREHOSE`,
+  `GLOBAL_ASYNC_QUERIES_REGISTER_REQUEST_HANDLERS`,
+  `GLOBAL_ASYNC_QUERIES_JWT_*`, and
   `GLOBAL_ASYNC_QUERY_MANAGER_CLASS`. The coordinator (locks, GTF, and now GAQ)
   uses `DISTRIBUTED_COORDINATION_CONFIG` exclusively.
 
@@ -73,6 +77,12 @@ flag — so the UI keeps its existing async behavior by default.
 
 Enabling the realtime WebSocket transport (optional; accelerates completion, the
 `status_changes` interval poll remains the correctness backstop):
+
+> **Note:** the realtime WebSocket transport is opt-in (`WEBSOCKET_ENABLE`
+> defaults to `False`) and should be treated as experimental. Chart-data
+> completion correctness does not depend on it — the `status_changes` interval
+> poll is the source of truth — so it can be enabled or left off without
+> affecting async chart results.
 
 ```python
 WEBSOCKET_ENABLE = True
