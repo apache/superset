@@ -649,6 +649,18 @@ test('restores native filter state from localStorage when no URL key is present'
     JSON.stringify(savedMask),
   );
 
+  // Include the filter ID in native_filter_configuration so the validation
+  // added to prevent stale-config restores accepts the stored entry.
+  mockUseDashboard.mockReturnValue({
+    result: {
+      ...mockDashboard,
+      metadata: {
+        native_filter_configuration: [{ id: 'NATIVE_FILTER-abc123' }],
+      },
+    },
+    error: null,
+  });
+
   render(
     <Suspense fallback="loading">
       <DashboardPage idOrSlug="1" />
@@ -695,6 +707,18 @@ test('scopes localStorage key to userId when user is authenticated', async () =>
     'dashboard__native_filters__7__1',
     JSON.stringify(savedMask),
   );
+
+  // Include the filter ID in native_filter_configuration so the validation
+  // added to prevent stale-config restores accepts the stored entry.
+  mockUseDashboard.mockReturnValue({
+    result: {
+      ...mockDashboard,
+      metadata: {
+        native_filter_configuration: [{ id: 'NATIVE_FILTER-xyz' }],
+      },
+    },
+    error: null,
+  });
 
   render(
     <Suspense fallback="loading">
