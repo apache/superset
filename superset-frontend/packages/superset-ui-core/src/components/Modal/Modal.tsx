@@ -368,10 +368,12 @@ const CustomModal = ({
             bounds={bounds ?? false}
             onStart={(event, uiData) => onDragStart(event, uiData)}
             {...draggableConfig}
-            // These two props are derived from `draggable` and must stay
-            // authoritative, so they're applied after the spread to
-            // prevent callers from overriding them via `draggableConfig`.
-            disabled={!draggable}
+            // `disabled` and `handle` are applied after the spread so callers
+            // can't use `draggableConfig` to re-enable dragging on a
+            // non-draggable modal or move the drag handle off the title bar.
+            // A caller opting a draggable modal out via
+            // `draggableConfig.disabled` is still honored.
+            disabled={!draggable || !!draggableConfig?.disabled}
             handle={draggable ? '.draggable-trigger' : undefined}
             // Pass nodeRef so react-draggable does not fall back to
             // ReactDOM.findDOMNode (deprecated in React 18+ Strict Mode).

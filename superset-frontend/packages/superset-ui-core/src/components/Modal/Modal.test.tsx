@@ -114,4 +114,40 @@ describe('Modal draggable', () => {
 
     expect(document.querySelector('.draggable-trigger')).toBeNull();
   });
+
+  test('draggableConfig cannot re-enable dragging on a non-draggable modal', () => {
+    render(
+      <Modal
+        show
+        onHide={() => {}}
+        title="Edit Dataset"
+        name="test"
+        draggableConfig={{ disabled: false }}
+      >
+        <Input data-test="field" defaultValue="value" />
+      </Modal>,
+    );
+
+    expect(document.querySelector('.draggable-trigger')).toBeNull();
+  });
+
+  test('draggableConfig can still opt a draggable modal out of dragging', () => {
+    render(
+      <Modal
+        show
+        onHide={() => {}}
+        title="Edit Dataset"
+        draggable
+        name="test"
+        draggableConfig={{ disabled: true }}
+      >
+        <Input data-test="field" defaultValue="value" />
+      </Modal>,
+    );
+
+    const trigger = document.querySelector('.draggable-trigger') as HTMLElement;
+    drag(trigger, [100, 50], [150, 90]);
+
+    expect(isDragged()).toBe(false);
+  });
 });
