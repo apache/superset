@@ -4024,3 +4024,30 @@ def test_get_filters_from_query_object_preserves_open_ended_temporal_range(
             value=datetime(2020, 1, 1),
         ),
     }
+
+
+def test_mapper_accepts_grain_column_built_by_tabular_query(
+    mock_datasource: MagicMock,
+) -> None:
+    """The BASE_AXIS column that ``build_query_dict`` emits for ``time_grain``
+    must survive ``_normalize_column``.
+
+    That helper rejects any adhoc dimension lacking ``isColumnReference``, so
+    without the flag every semantic-view query carrying a time grain raised
+    "Adhoc dimensions are not supported in Semantic Views."
+    """
+    from superset.common.tabular_query import build_query_dict
+
+    query_dict = build_query_dict(
+        metrics=["total_sales"],
+        dimensions=["order_date"],
+        time_grain="P1D",
+        grain_column="order_date",
+    )
+    base_axis = query_dict["columns"][0]
+    assert base_axis["columnType"] == "BASE_AXIS"
+
+    all_dimensions = {
+        dim.name: dim for dim in mock_datasource.implementation.dimensions
+    }
+    assert _normalize_column(base_axis, set(all_dimensions)) == "order_date"

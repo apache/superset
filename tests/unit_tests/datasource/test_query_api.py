@@ -196,3 +196,18 @@ def test_datasource_schema_still_accepts_arrow(schema) -> None:
         schema.load({"metrics": ["count"], "result_format": "arrow"})["result_format"]
         == ChartDataResultFormat.ARROW
     )
+
+
+def test_rejects_cache_timeout_below_disabled_sentinel(schema) -> None:
+    """-1 is CACHE_DISABLED_TIMEOUT; below that is meaningless and would reach
+    the cache backend as an arbitrary negative timeout."""
+    assert (
+        schema.load({"metrics": ["count"], "cache_timeout": -1})["cache_timeout"] == -1
+    )
+    assert (
+        schema.load({"metrics": ["count"], "cache_timeout": 300})["cache_timeout"]
+        == 300
+    )
+
+    with pytest.raises(ValidationError):
+        schema.load({"metrics": ["count"], "cache_timeout": -2})

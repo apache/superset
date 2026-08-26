@@ -317,6 +317,11 @@ def build_query_dict(
             {
                 "label": grain_column,
                 "sqlExpression": grain_column,
+                # Required by the semantic-layer mapper: `_normalize_column`
+                # rejects any adhoc column without it, so a semantic view would
+                # raise on every time_grain query. Datasets resolve the
+                # expression against column metadata either way.
+                "isColumnReference": True,
                 "columnType": "BASE_AXIS",
                 "timeGrain": time_grain,
             },

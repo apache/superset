@@ -76,6 +76,7 @@ def test_build_query_dict_time_grain_emits_base_axis_column() -> None:
     assert query_dict["columns"][0] == {
         "label": "ds",
         "sqlExpression": "ds",
+        "isColumnReference": True,
         "columnType": "BASE_AXIS",
         "timeGrain": "P1D",
     }
@@ -337,3 +338,13 @@ def test_order_desc_is_independent_of_order() -> None:
             )["order_desc"]
             is order_desc
         )
+
+
+def test_grain_column_is_marked_as_a_column_reference() -> None:
+    """Semantic views reject adhoc dimensions without this flag, so omitting it
+    made every semantic-view time_grain query raise."""
+    query_dict = build_query_dict(
+        metrics=["count"], time_grain="P1D", grain_column="ds"
+    )
+
+    assert query_dict["columns"][0]["isColumnReference"] is True

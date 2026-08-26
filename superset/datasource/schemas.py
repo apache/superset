@@ -241,7 +241,14 @@ class DatasourceQuerySchema(Schema):
     )
     use_cache = fields.Boolean(load_default=True)
     force = fields.Boolean(load_default=False)
-    cache_timeout = fields.Integer(allow_none=True, load_default=None)
+    cache_timeout = fields.Integer(
+        allow_none=True,
+        load_default=None,
+        # -1 is CACHE_DISABLED_TIMEOUT; anything below it is meaningless and
+        # would reach the cache backend as an arbitrary negative timeout.
+        validate=[Range(min=-1)],
+        metadata={"description": "Seconds to cache for; -1 disables caching."},
+    )
 
     @validates_schema
     def validate_not_empty(self, data: dict[str, object], **_kwargs: object) -> None:
