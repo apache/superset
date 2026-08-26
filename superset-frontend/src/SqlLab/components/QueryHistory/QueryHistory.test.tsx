@@ -252,21 +252,28 @@ test('displays multiple queries with newest query first', async () => {
   isFeatureEnabledMock.mockClear();
 });
 
-// The `QueryTable` Duration cell only renders when `q.endDttm` is set, and
-// the live-only Redux fixtures below deliberately omit `endDttm` (a
-// client-started query never has one until the backend supplies it). So
-// `findByText(/^00:00:00\./)` can only resolve once the backend snapshot
-// has actually loaded *and* been folded into the rendered row - unlike
-// `waitFor(() => calls.length === 1)`, which resolves as soon as the
-// request is issued, while `data` is still `undefined` and the component
-// is still rendering the pre-merge, Redux-only fallback.
-const findDurationCell = () => screen.findByText(/^00:00:00\./);
+// `sql` is never part of the merge's overlay bundle, so a merged row's `sql`
+// always comes from the `{...remoteQuery}` base, whether or not an override
+// happened. Every live-only Redux fixture below uses `sql: 'SELECT 1'`,
+// while the backend snapshot uses this distinctive query text - so this can
+// only resolve once the backend response has actually loaded *and* been
+// folded into the rendered row, unlike `waitFor(() => calls.length === 1)`,
+// which resolves as soon as the request is issued, while `data` is still
+// `undefined` and the component is still rendering the pre-merge,
+// Redux-only fallback. Deliberately not a Duration-cell/`endDttm` barrier:
+// a real Redux row that has concluded always has an `endDttm` (see
+// `QUERY_SUCCESS` in `reducers/sqlLab.ts`), so that barrier would silently
+// go vacuous the moment a fixture became realistic about timestamps.
+const findRemoteSqlCell = () => screen.findByText(/FCC 2018 Survey/);
 
 test('overrides a stale non-concluded backend snapshot with a concluded live Redux state', async () => {
   const isFeatureEnabledMock = mockedIsFeatureEnabled.mockImplementation(
     featureFlag => featureFlag === FeatureFlag.SqllabBackendPersistence,
   );
 
+  // A non-concluded row's `end_time` is never set by the backend (every
+  // write of `end_time` is paired with a concluded status - see
+  // `superset/sql_lab.py` and `superset/daos/query.py`).
   const staleApiResult = {
     count: 1,
     ids: [692],
@@ -277,6 +284,7 @@ test('overrides a stale non-concluded backend snapshot with a concluded live Red
         status: QueryState.Running,
         progress: 0,
         rows: 0,
+        end_time: null,
         sql_editor_id: defaultQueryEditor.id,
       },
     ],
@@ -296,6 +304,9 @@ test('overrides a stale non-concluded backend snapshot with a concluded live Red
           sql: 'SELECT 1',
           state: QueryState.Success,
           startDttm: 1710273662445,
+          // A real Redux row at Success always has an endDttm too -
+          // QUERY_SUCCESS sets both together.
+          endDttm: 1710273662500,
           progress: 100,
           rows: 443,
         },
@@ -308,7 +319,7 @@ test('overrides a stale non-concluded backend snapshot with a concluded live Red
   await waitFor(() =>
     expect(fetchMock.callHistory.calls(editorQueryApiRoute).length).toBe(1),
   );
-  await findDurationCell();
+  await findRemoteSqlCell();
 
   const row = screen.getByText('443').closest('tr') as HTMLElement;
   expect(within(row).getByLabelText('check')).toBeInTheDocument();
@@ -367,7 +378,7 @@ test('does not override an already-concluded backend snapshot with a non-conclud
   await waitFor(() =>
     expect(fetchMock.callHistory.calls(editorQueryApiRoute).length).toBe(1),
   );
-  await findDurationCell();
+  await findRemoteSqlCell();
 
   const row = screen.getByText('443').closest('tr') as HTMLElement;
   expect(within(row).getByLabelText('check')).toBeInTheDocument();
@@ -391,6 +402,8 @@ test('renders a backend-only historical query the client never ran, alongside a 
         status: QueryState.Running,
         progress: 0,
         rows: 0,
+        // Non-concluded: the backend never sets end_time for this status.
+        end_time: null,
         sql_editor_id: defaultQueryEditor.id,
       },
       {
@@ -402,6 +415,10 @@ test('renders a backend-only historical query the client never ran, alongside a 
         rows: 12,
         sql_editor_id: defaultQueryEditor.id,
         start_time: '1710273660000.000000',
+        // A different table than the live row's, so findRemoteSqlCell's
+        // target text is unique to that row, not duplicated on this one.
+        sql: 'SELECT * from "Population"',
+        executed_sql: 'SELECT * from "Population"\nLIMIT 1001',
       },
     ],
   };
@@ -420,6 +437,9 @@ test('renders a backend-only historical query the client never ran, alongside a 
           sql: 'SELECT 1',
           state: QueryState.Success,
           startDttm: 1710273662445,
+          // A real Redux row at Success always has an endDttm too -
+          // QUERY_SUCCESS sets both together.
+          endDttm: 1710273662500,
           progress: 100,
           rows: 443,
         },
@@ -435,7 +455,7 @@ test('renders a backend-only historical query the client never ran, alongside a 
   await waitFor(() =>
     expect(fetchMock.callHistory.calls(editorQueryApiRoute).length).toBe(1),
   );
-  await findDurationCell();
+  await findRemoteSqlCell();
 
   const tableRows = container.querySelectorAll(
     'table > tbody > tr:not(.ant-table-measure-row)',
