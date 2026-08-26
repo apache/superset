@@ -13,6 +13,7 @@ import d3tip from 'd3-tip';
 import { t } from '@apache-superset/core/translation';
 import { getContrastingColor } from '@superset-ui/core';
 import { CALENDAR_TOOLTIP_CLASS } from '../tooltip';
+import { escapeHtml } from '../utils';
 
 var d3 = typeof require === 'function' ? require('d3') : window.d3;
 
@@ -22,14 +23,16 @@ var CalHeatMap = function () {
   'use strict';
 
   var self = this;
+  // d3-tip assigns the .html() return value to the tip node via
+  // innerHTML, so formatter output is HTML-escaped first.
   self.tip = d3tip()
     .attr('class', `d3-tip ${CALENDAR_TOOLTIP_CLASS}`)
     .direction('n')
     .offset([-5, 0])
     .html(
       d => `
-      ${self.options.timeFormatter(d.t)}: <strong>${self.options.valueFormatter(
-        d.v,
+      ${escapeHtml(self.options.timeFormatter(d.t))}: <strong>${escapeHtml(
+        self.options.valueFormatter(d.v),
       )}</strong>
     `,
     );
@@ -37,7 +40,7 @@ var CalHeatMap = function () {
     .attr('class', `d3-tip ${CALENDAR_TOOLTIP_CLASS}`)
     .direction('n')
     .offset([-5, 0])
-    .html(d => self.options.valueFormatter(d));
+    .html(d => escapeHtml(self.options.valueFormatter(d)));
 
   this.allowedDataType = ['json', 'csv', 'tsv', 'txt'];
 

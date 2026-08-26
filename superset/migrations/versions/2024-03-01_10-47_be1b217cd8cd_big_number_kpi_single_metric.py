@@ -48,7 +48,7 @@ class Slice(Base):
 
 def upgrade():
     bind = op.get_bind()
-    session = db.Session(bind=bind, future=True)
+    session = db.Session(bind=bind)
 
     for slc in paginated_update(
         session.query(Slice).filter(Slice.viz_type == "pop_kpi")
@@ -71,7 +71,7 @@ def upgrade():
 
 def downgrade():
     bind = op.get_bind()
-    session = db.Session(bind=bind, future=True)
+    session = db.Session(bind=bind)
 
     for slc in paginated_update(
         session.query(Slice).filter(Slice.viz_type == "pop_kpi")

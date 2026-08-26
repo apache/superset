@@ -20,7 +20,6 @@ MCP tool: generate_chart (simplified schema)
 
 import logging
 import time
-from typing import Any
 
 from fastmcp import Context
 from sqlalchemy.exc import SQLAlchemyError
@@ -47,14 +46,11 @@ from superset.mcp_service.chart.compile import (
 from superset.mcp_service.chart.preview_utils import SUPPORTED_FORM_DATA_PREVIEW_FORMATS
 from superset.mcp_service.chart.schemas import (
     AccessibilityMetadata,
-    CHART_FORM_DATA_EXCLUDED_FIELD_NAMES,
     ChartError,
     GenerateChartRequest,
     GenerateChartResponse,
     PerformanceMetadata,
-    wrap_sql_adhoc_metrics,
 )
-from superset.mcp_service.utils import sanitize_for_llm_context
 from superset.mcp_service.utils.oauth2_utils import (
     build_oauth2_redirect_message,
     OAUTH2_CONFIG_ERROR_MESSAGE,
@@ -63,24 +59,6 @@ from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.utils import json
 
 logger = logging.getLogger(__name__)
-
-GENERATE_CHART_FORM_DATA_EXCLUDED_FIELD_NAMES = (
-    CHART_FORM_DATA_EXCLUDED_FIELD_NAMES
-    | frozenset({"cache_key", "database", "database_name", "schema"})
-)
-
-
-def _sanitize_generate_chart_form_data_for_llm_context(
-    form_data: dict[str, Any],
-) -> dict[str, Any]:
-    """Wrap generated-chart form_data before returning it to LLM clients."""
-    wrapped = sanitize_for_llm_context(
-        form_data,
-        field_path=("form_data",),
-        excluded_field_names=GENERATE_CHART_FORM_DATA_EXCLUDED_FIELD_NAMES,
-    )
-    wrap_sql_adhoc_metrics(wrapped)
-    return wrapped
 
 
 __all__ = ["CompileResult", "_compile_chart", "validate_and_compile", "generate_chart"]
@@ -447,11 +425,7 @@ async def generate_chart(  # noqa: C901
                     {
                         "chart": None,
                         "error": error.model_dump(),
-                        "form_data": (
-                            _sanitize_generate_chart_form_data_for_llm_context(
-                                form_data
-                            )
-                        ),
+                        "form_data": (form_data),
                         "performance": {
                             "query_duration_ms": execution_time,
                             "cache_status": "error",
@@ -663,11 +637,7 @@ async def generate_chart(  # noqa: C901
                         {
                             "chart": None,
                             "error": error.model_dump(),
-                            "form_data": (
-                                _sanitize_generate_chart_form_data_for_llm_context(
-                                    form_data
-                                )
-                            ),
+                            "form_data": (form_data),
                             "performance": {
                                 "query_duration_ms": execution_time,
                                 "cache_status": "error",
@@ -857,7 +827,7 @@ async def generate_chart(  # noqa: C901
             "explore_url": explore_url,
             "chart_type_label": get_table_chart_type_label(form_data.get("viz_type")),
             # Form data fields - REQUIRED for chatbot/external client rendering
-            "form_data": _sanitize_generate_chart_form_data_for_llm_context(form_data),
+            "form_data": (form_data),
             "form_data_key": form_data_key,
             "api_endpoints": {
                 "data": f"{get_superset_base_url()}/api/v1/chart/{chart_id}/data/",

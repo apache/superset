@@ -277,7 +277,7 @@ def test_query_datasources_by_permissions(mocker: MockerFixture) -> None:
     """
     db = mocker.patch("superset.connectors.sqla.models.db")
 
-    engine = create_engine("sqlite://", future=True)
+    engine = create_engine("sqlite://")
     database = Database(database_name="my_db", id=1)
     sqla_table = SqlaTable(
         table_name="my_sqla_table",
@@ -300,7 +300,7 @@ def test_query_datasources_by_permissions_with_catalog_schema(
     """
     db = mocker.patch("superset.connectors.sqla.models.db")
 
-    engine = create_engine("sqlite://", future=True)
+    engine = create_engine("sqlite://")
     database = Database(database_name="my_db", id=1)
     sqla_table = SqlaTable(
         table_name="my_sqla_table",
@@ -954,7 +954,7 @@ def test_get_sqla_table_quoting_for_cross_catalog(
     from sqlalchemy import create_engine, select
 
     # Create a Postgres-like engine to test proper quoting
-    engine = create_engine("postgresql://user:pass@host/db", future=True)
+    engine = create_engine("postgresql://user:pass@host/db")
 
     # Mock database with cross-catalog support and proper quote_identifier
     database = mocker.MagicMock()
@@ -991,7 +991,7 @@ def test_get_sqla_table_without_cross_catalog_ignores_catalog(
     from sqlalchemy import create_engine, select
 
     # Create a PostgreSQL engine (doesn't support cross-catalog queries)
-    engine = create_engine("postgresql://user:pass@localhost/db", future=True)
+    engine = create_engine("postgresql://user:pass@localhost/db")
 
     # Mock database without cross-catalog support
     database = mocker.MagicMock()
@@ -1025,7 +1025,7 @@ def test_quoted_name_prevents_double_quoting(mocker: MockerFixture) -> None:
     """
     from sqlalchemy import create_engine, select
 
-    engine = create_engine("postgresql://user:pass@host/db", future=True)
+    engine = create_engine("postgresql://user:pass@host/db")
 
     # Mock database
     database = mocker.MagicMock()
