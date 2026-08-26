@@ -44,15 +44,10 @@ import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { MenuItemTooltip } from 'src/components/Chart/DisabledMenuItemTooltip';
 import { DownloadScreenshotFormat } from './types';
 
-// A session with no email on file discovers completion by polling; the same
-// polling also drives the auto-download for a regular session, which arrives
-// before its export email in practice.
+// Polling always outlives the server's hard task budget (11 minutes): the
+// export email is best-effort, so the client cannot rely on it as a fallback.
 const EXPORT_STATUS_POLL_INTERVAL_MS = 3000;
-const EXPORT_STATUS_POLL_TIMEOUT_MS = 5 * 60 * 1000;
-// Without an email fallback a slow-but-successful export is orphaned if the
-// client stops polling, so outlive the server's hard task budget (11 minutes)
-// instead of racing it.
-const NO_EMAIL_EXPORT_STATUS_POLL_TIMEOUT_MS = 12 * 60 * 1000;
+const EXPORT_STATUS_POLL_TIMEOUT_MS = 12 * 60 * 1000;
 
 interface ExportStatusResponse {
   status?: 'pending' | 'running' | 'ready' | 'error';
@@ -95,13 +90,9 @@ export const useDownloadMenuItems = (
   const { addDangerToast, addSuccessToast, addInfoToast } = useToasts();
   const dataMask = useSelector((state: RootState) => state.dataMask);
   const user = useSelector((state: RootState) => state.user);
-  // Guests and anonymous sessions have no userId; sessions the backend
-  // cannot email get neutral copy and a poll window outliving the task budget.
+  // Guests and anonymous sessions have no userId and cannot be emailed.
   const isGuestSession = !user?.userId;
   const canReceiveEmail = Boolean(user?.userId && user?.email);
-  const pollTimeoutMs = canReceiveEmail
-    ? EXPORT_STATUS_POLL_TIMEOUT_MS
-    : NO_EMAIL_EXPORT_STATUS_POLL_TIMEOUT_MS;
 
   const addExportPendingToast = () =>
     addInfoToast(
@@ -234,7 +225,7 @@ export const useDownloadMenuItems = (
           // The task's execution budget only starts when a worker picks it
           // up; restart the wait window then, so queue delay doesn't eat it.
           pollState.sawRunning = true;
-          pollState.deadline = Date.now() + pollTimeoutMs;
+          pollState.deadline = Date.now() + EXPORT_STATUS_POLL_TIMEOUT_MS;
         }
         if (Date.now() > pollState.deadline) {
           addDangerToast(
@@ -277,7 +268,7 @@ export const useDownloadMenuItems = (
         setTimeout(
           () =>
             pollExportStatus(jobId, {
-              deadline: Date.now() + pollTimeoutMs,
+              deadline: Date.now() + EXPORT_STATUS_POLL_TIMEOUT_MS,
               sawRunning: false,
             }),
           EXPORT_STATUS_POLL_INTERVAL_MS,

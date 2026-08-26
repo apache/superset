@@ -1801,13 +1801,10 @@ class DashboardRestApi(
         ):
             return self.response_404()
 
-        # The webdriver cannot render under a guest identity: the export would
-        # hold the shared guest lock for its whole budget and produce nothing.
-        # The UI hides the option for guests, but hiding is not enforcement.
-        if payload.get("mode") == "images" and security_manager.is_guest_user():
-            return self.response(
-                403, message="Image export is not available for guest sessions."
-            )
+        # The webdriver cannot render without a real user identity (guest or
+        # anonymous); same predicate the UI hides the option on.
+        if payload.get("mode") == "images" and get_user_id() is None:
+            return self.response(403, message="Image export requires a signed-in user.")
 
         dashboard = cast(Dashboard, self.datamodel.get(pk, self._base_filters))
         if not dashboard:
