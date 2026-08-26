@@ -36,6 +36,11 @@
  *
  * `code` and `color` fall back to the field's schema `default`, since
  * JsonForms does not write defaults into the data until a field is touched.
+ *
+ * Every control here surfaces the field's backend-authored `description` as
+ * its `Form.Item`'s tooltip, the same way `label` already flows through —
+ * JsonForms resolves both from the schema, so no control needs to read
+ * `schema.description` itself.
  */
 import { useMemo, useRef, useState } from 'react';
 import type { ChangeEvent, ReactElement, ReactNode } from 'react';
@@ -95,6 +100,7 @@ function CodeControl({
   path,
   schema,
   label,
+  description,
 }: ControlProps) {
   const schemaRecord = schema as Record<string, unknown>;
   // Fall back to the schema default, or an empty container of the right kind
@@ -119,7 +125,7 @@ function CodeControl({
   };
 
   return (
-    <Form.Item label={label}>
+    <Form.Item label={label} tooltip={description}>
       <Input.TextArea
         value={text}
         onChange={onChange}
@@ -139,13 +145,14 @@ function ColorControl({
   path,
   schema,
   label,
+  description,
 }: ControlProps) {
   const theme = useTheme();
   const value = (data ??
     (schema as Record<string, unknown>).default ??
     theme.colorText) as string;
   return (
-    <Form.Item label={label}>
+    <Form.Item label={label} tooltip={description}>
       <input
         type="color"
         value={value}
@@ -200,7 +207,7 @@ export function seriesDefaults(
  * against the schema's own defaults needed.
  */
 function SeriesOverridesControl(props: ControlProps): ReactElement {
-  const { data, handleChange, path, schema, label } = props;
+  const { data, handleChange, path, schema, label, description } = props;
   const theme = useTheme();
   const seriesSchema = schema as SeriesMapSchema;
   const keys = useMemo(
@@ -213,7 +220,7 @@ function SeriesOverridesControl(props: ControlProps): ReactElement {
 
   if (keys.length === 0) {
     return (
-      <Form.Item label={label}>
+      <Form.Item label={label} tooltip={description}>
         <Typography.Text type="secondary">
           {t('Group by a dimension to enable per-series styling.')}
         </Typography.Text>
@@ -238,7 +245,7 @@ function SeriesOverridesControl(props: ControlProps): ReactElement {
   };
 
   return (
-    <Form.Item label={label}>
+    <Form.Item label={label} tooltip={description}>
       <Collapse
         ghost
         size="small"
@@ -419,6 +426,7 @@ export function columnOptions(
 /** A single reference value (column or metric), rendered as a Select. */
 function ReferenceSelect({
   label,
+  description,
   value,
   options,
   loading,
@@ -426,6 +434,7 @@ function ReferenceSelect({
   onChange,
 }: {
   label: string;
+  description: string | undefined;
   value: string | undefined;
   options: ReferenceOption[];
   loading: boolean;
@@ -433,7 +442,7 @@ function ReferenceSelect({
   onChange: (next: string | undefined) => void;
 }): ReactElement {
   return (
-    <Form.Item label={label}>
+    <Form.Item label={label} tooltip={description}>
       <Select
         ariaLabel={label}
         value={value}
@@ -455,6 +464,7 @@ function ReferenceSelect({
  */
 function ReferenceMultiList({
   label,
+  description,
   values,
   options,
   loading,
@@ -462,6 +472,7 @@ function ReferenceMultiList({
   onChange,
 }: {
   label: string;
+  description: string | undefined;
   values: string[];
   options: ReferenceOption[];
   loading: boolean;
@@ -479,7 +490,7 @@ function ReferenceMultiList({
   };
 
   return (
-    <Form.Item label={label}>
+    <Form.Item label={label} tooltip={description}>
       <Flex vertical gap="small">
         {values.map((value, index) => {
           const option = options.find(candidate => candidate.value === value);
@@ -556,6 +567,7 @@ function ColumnControl(props: ControlProps): ReactElement {
   return (
     <ReferenceSelect
       label={props.label}
+      description={props.description}
       value={props.data as string | undefined}
       options={columnOptions(metadata, allowedTypes)}
       loading={loading}
@@ -588,6 +600,7 @@ function ColumnMultiControl(props: ControlProps): ReactElement {
   return (
     <ReferenceMultiList
       label={props.label}
+      description={props.description}
       values={values as string[]}
       options={columnOptions(metadata, allowedTypes)}
       loading={loading}
@@ -657,6 +670,7 @@ function MetricMultiControl(props: ControlProps): ReactElement {
   return (
     <ReferenceMultiList
       label={props.label}
+      description={props.description}
       values={values as string[]}
       options={metricOptions(metadata)}
       loading={loading}
@@ -787,7 +801,7 @@ function DatasetControl(props: ControlProps): ReactElement {
   }
 
   return (
-    <Form.Item label={props.label}>
+    <Form.Item label={props.label} tooltip={props.description}>
       <AsyncSelect
         ariaLabel={props.label}
         value={value}

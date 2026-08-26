@@ -846,3 +846,101 @@ test('a customized series exposes an accessibly-labeled color trigger', async ()
   await userEvent.click(await screen.findByText('2 series · 1 customized'));
   expect(await screen.findByLabelText('boy color')).toBeInTheDocument();
 });
+
+// The backend authors a `description` on every field in `controls.py`; the
+// custom renderers thread it into each field's `Form.Item` `tooltip` (an
+// info icon, `.ant-form-item-tooltip`) rather than rendering nothing. Antd's
+// own Tooltip only mounts its text into the document on hover — these
+// assert the icon is offered at all, which is what each renderer actually
+// controls; antd's hover behavior is that library's own concern, not this
+// file's.
+test('a field with a backend-authored description offers a tooltip on its picker', async () => {
+  postSpy.mockResolvedValue({
+    json: {
+      result: {
+        type: 'object',
+        properties: {
+          datasetId: {
+            type: 'integer',
+            title: 'Dataset ID',
+            description: 'Numeric id of the dataset to query.',
+          },
+        },
+      },
+    },
+  } as never);
+
+  mount('balloons', {});
+
+  await screen.findByText('Dataset ID');
+  expect(document.querySelector('.ant-form-item-tooltip')).toBeInTheDocument();
+});
+
+test('a field with a backend-authored description offers a tooltip even while it is falling back to the raw JSON editor', async () => {
+  postSpy.mockResolvedValue({
+    json: {
+      result: {
+        type: 'object',
+        properties: {
+          dimensions: {
+            type: 'array',
+            title: 'Dimensions',
+            'x-control': 'column-multi',
+            description: 'Columns to group by (the categories / series).',
+          },
+        },
+      },
+    },
+  } as never);
+
+  // No dataset bound, so this falls back to `CodeControl` — the description
+  // must still carry through that fallback path, not only the picker.
+  mount('balloons', { dataBinding: {} });
+
+  await screen.findByText('Dimensions');
+  expect(document.querySelector('.ant-form-item-tooltip')).toBeInTheDocument();
+});
+
+const seriesSchemaWithDescription = (properties: Record<string, unknown>) => ({
+  type: 'object',
+  properties: {
+    customize: { $ref: '#/$defs/Customization' },
+  },
+  $defs: {
+    Customization: {
+      type: 'object',
+      properties: {
+        series: {
+          type: 'object',
+          title: 'Per-series styling',
+          description:
+            "Per-series balloon styling, populated dynamically once the grouping dimension's distinct values are known.",
+          'x-dynamic': true,
+          properties,
+        },
+      },
+    },
+  },
+});
+
+test("an x-dynamic series field's own description reaches its tooltip in the empty state", async () => {
+  postSpy.mockResolvedValue({
+    json: { result: seriesSchemaWithDescription({}) },
+  } as never);
+
+  mount('balloons', {});
+
+  await screen.findByText('Per-series styling');
+  expect(document.querySelector('.ant-form-item-tooltip')).toBeInTheDocument();
+});
+
+test("an x-dynamic series field's own description reaches its tooltip in the populated state", async () => {
+  postSpy.mockResolvedValue({
+    json: { result: seriesSchemaWithDescription(BOY_GIRL_PROPERTIES) },
+  } as never);
+
+  mount('balloons', {});
+
+  await screen.findByText('2 series · 0 customized');
+  expect(document.querySelector('.ant-form-item-tooltip')).toBeInTheDocument();
+});
