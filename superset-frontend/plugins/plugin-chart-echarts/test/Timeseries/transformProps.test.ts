@@ -46,6 +46,7 @@ import {
 } from '../../src/Timeseries/types';
 import { StackControlsValue, TIMESERIES_CONSTANTS } from '../../src/constants';
 import {
+  ForecastSeriesEnum,
   LegendOrientation,
   LegendType,
   EchartsTimeseriesChartProps,
@@ -1196,6 +1197,59 @@ test('reserves the complete dense Plain legend at a realistic Explore chart size
   expect(
     transformed.contentHeight - (Number(grid.top) + Number(grid.bottom)),
   ).toBeCloseTo(94.8);
+});
+
+test('reserves Forecast legend rows using the final rendered series order', () => {
+  const chartHeight = 600;
+  const legendNames = Array.from(
+    { length: 40 },
+    (_, index) => `F${String(index).padStart(2, '0')}`,
+  );
+  const forecastValues = Object.fromEntries(
+    legendNames.flatMap((name, index) => [
+      [name, index + 1],
+      [`${name}${ForecastSeriesEnum.ForecastLower}`, index],
+      [`${name}${ForecastSeriesEnum.ForecastUpper}`, index + 2],
+      [`${name}${ForecastSeriesEnum.ForecastTrend}`, index + 1.5],
+    ]),
+  );
+  const chartProps = createTestChartProps({
+    width: 140,
+    height: chartHeight,
+    formData: {
+      ...formData,
+      forecastEnabled: true,
+      sortSeriesAscending: true,
+      legendType: LegendType.Plain,
+      legendOrientation: LegendOrientation.Top,
+      showLegend: true,
+      yAxisTitleMargin: 0,
+      yAxisTitlePosition: 'Left',
+    },
+    queriesData: [
+      createTestQueryData(
+        createTestData([forecastValues], { intervalMs: 300000000 }),
+      ),
+    ],
+  });
+
+  const transformed = transformProps(chartProps);
+  const renderedSeries = transformed.echartOptions.series as SeriesOption[];
+  const grid = transformed.echartOptions.grid as GridComponentOption;
+  const firstRenderedForLegend = renderedSeries.find(
+    seriesOption => seriesOption.name === legendNames[0],
+  );
+
+  expect(firstRenderedForLegend?.id).toBe(
+    `${legendNames[0]}${ForecastSeriesEnum.ForecastLower}`,
+  );
+  expect(firstRenderedForLegend?.type).toBe('line');
+  // All 40 line icons render on separate rows: the 846.8px legend margin is
+  // followed by the fixed 20px top grid offset.
+  expect(grid.top).toBeCloseTo(866.8);
+  expect(grid.bottom).toBe(20);
+  expect(transformed.height).toBe(chartHeight);
+  expect(transformed.contentHeight).toBeCloseTo(966.8);
 });
 
 test('grows the content instead of using a negative offset for a pathological Plain legend', () => {

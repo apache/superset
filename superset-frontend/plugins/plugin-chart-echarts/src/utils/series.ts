@@ -113,14 +113,17 @@ function measureLegendTextWidth(text: string, theme: SupersetTheme): number {
     return cachedWidth;
   }
 
-  let width = text.length * theme.fontSizeSM * 0.62;
+  const lines = text.split('\n');
+  let width = Math.max(
+    ...lines.map(line => line.length * theme.fontSizeSM * 0.62),
+  );
 
   if (typeof document !== 'undefined') {
     const canvas = document.createElement('canvas');
     const context = canvas.getContext('2d');
     if (context) {
       context.font = `${theme.fontSizeSM}px ${theme.fontFamily}`;
-      ({ width } = context.measureText(text));
+      width = Math.max(...lines.map(line => context.measureText(line).width));
     }
   }
 

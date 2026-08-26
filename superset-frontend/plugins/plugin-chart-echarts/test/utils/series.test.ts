@@ -56,12 +56,14 @@ import type {
 } from '../../src/utils/series';
 import {
   EchartsTimeseriesSeriesType,
+  ForecastSeriesEnum,
   LegendOrientation,
   LegendType,
 } from '../../src/types';
 import { defaultLegendPadding } from '../../src/defaults';
 import { NULL_STRING, StackControlsValue } from '../../src/constants';
 import { getHorizontalLegendItemLayouts as getTimeseriesHorizontalLegendItemLayouts } from '../../src/Timeseries/transformProps';
+import { reorderForecastSeries } from '../../src/utils/forecast';
 
 const {
   getHorizontalLegendAvailableWidth,
@@ -1682,30 +1684,74 @@ test('getLegendLayoutResult matches Scatter legend item width', () => {
   });
 });
 
-test('getLegendLayoutResult matches Forecast observation legend item width', () => {
+test('getLegendLayoutResult matches the post-reorder Forecast legend series', () => {
   const legendItems = Array.from(
     { length: 40 },
     (_, index) => `F${String(index).padStart(2, '0')}`,
   );
+  const forecastSeries: SeriesOption[] = legendItems.flatMap((name, index) => [
+    {
+      data: [[index, index + 1]],
+      id: name,
+      name,
+      type: 'scatter' as const,
+    },
+    ...[
+      ForecastSeriesEnum.ForecastLower,
+      ForecastSeriesEnum.ForecastUpper,
+      ForecastSeriesEnum.ForecastTrend,
+    ].map(forecastType => ({
+      data: [[index, index + 2]],
+      id: `${name}${forecastType}`,
+      name,
+      symbol: 'emptyCircle' as const,
+      type: 'line' as const,
+    })),
+  ]);
+  expect(forecastSeries[0]?.type).toBe('scatter');
   expectTimeseriesLegendLayoutMatchesEcharts({
     chartWidth: 109,
     expectedContentHeight: 432,
     expectedMargin: 438,
     expectedRows: 20,
     legendItems,
-    series: legendItems.flatMap((name, index) => [
-      {
-        data: [[index, index + 1]],
-        name,
-        type: 'scatter' as const,
-      },
-      {
-        data: [[index, index + 2]],
-        name,
-        symbol: 'emptyCircle',
-        type: 'line' as const,
-      },
-    ]),
+    series: forecastSeries,
+  });
+
+  const renderedSeries = reorderForecastSeries(
+    forecastSeries,
+  ) as unknown as SeriesOption[];
+
+  expect(renderedSeries[0]?.id).toBe(
+    `${legendItems[0]}${ForecastSeriesEnum.ForecastLower}`,
+  );
+  expectTimeseriesLegendLayoutMatchesEcharts({
+    chartWidth: 109,
+    expectedContentHeight: 840,
+    expectedMargin: 846.8,
+    expectedRows: 40,
+    legendItems,
+    series: renderedSeries,
+  });
+});
+
+test('getLegendLayoutResult matches multiline legend label height', () => {
+  const legendItems = Array.from(
+    { length: 40 },
+    (_, index) => `P${index}\nLong Publisher ${index}`,
+  );
+  expectTimeseriesLegendLayoutMatchesEcharts({
+    chartWidth: 220,
+    expectedContentHeight: 1272,
+    expectedMargin: 1268,
+    expectedRows: 40,
+    legendItems,
+    series: legendItems.map((name, index) => ({
+      data: [index, index + 1],
+      name,
+      symbol: 'emptyCircle',
+      type: 'line',
+    })),
   });
 });
 

@@ -235,18 +235,26 @@ export function getHorizontalLegendItemLayouts(
     legendNames.flatMap(name => {
       const legendName = String(name);
       const matchingSeries = seriesByName.get(legendName);
-      return matchingSeries
-        ? [
-            [
-              legendName,
-              getHorizontalLegendItemLayout(
-                matchingSeries,
-                theme,
-                iconOverride,
-              ),
-            ],
-          ]
-        : [];
+      if (!matchingSeries) {
+        return [];
+      }
+      const layout = getHorizontalLegendItemLayout(
+        matchingSeries,
+        theme,
+        iconOverride,
+      );
+      return [
+        [
+          legendName,
+          {
+            ...layout,
+            itemHeight: Math.max(
+              layout.itemHeight,
+              legendName.split('\n').length * theme.fontSizeSM,
+            ),
+          },
+        ],
+      ];
     }),
   );
 }
@@ -1253,9 +1261,14 @@ export default function transformProps(
   const resolvedLegendNames = usesPrimaryAxisLegend
     ? legendData
     : sortedLegendData;
+  // Match the exact series ordering ECharts receives. Forecast components
+  // share a legend name, and ECharts derives its icon from the first match.
+  const renderedSeries = dedupSeries(
+    reorderForecastSeries([...series]) as SeriesOption[],
+  );
   const horizontalPlainLegendItemLayouts = getHorizontalLegendItemLayouts(
     resolvedLegendNames,
-    series,
+    renderedSeries,
     theme,
     usesPrimaryAxisLegend ? 'roundRect' : undefined,
   );
@@ -1678,7 +1691,7 @@ export default function transformProps(
           }
         : {}),
     },
-    series: dedupSeries(reorderForecastSeries(series) as SeriesOption[]),
+    series: renderedSeries,
     toolbox: {
       show: zoomable,
       top: TIMESERIES_CONSTANTS.toolboxTop,
