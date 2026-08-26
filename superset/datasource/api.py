@@ -654,14 +654,13 @@ class DatasourceRestApi(BaseSupersetApi):
             404:
               $ref: '#/components/responses/404'
         """
+        # No ValueError guard here: marshmallow raises ValidationError (not a
+        # ValueError subclass), and datasource_type comes from the path, not the
+        # body. DatasourceType() is converted in _resolve_for_query below.
         try:
             payload = DatasourceQuerySchema().load(request.json or {})
         except ValidationError as ex:
             return self.response_400(message=ex.messages)
-        except ValueError:
-            return self.response(
-                400, message=f"Invalid datasource type: {datasource_type}"
-            )
 
         try:
             resolved = self._resolve_for_query(datasource_type, datasource_id, payload)
@@ -712,6 +711,10 @@ class DatasourceRestApi(BaseSupersetApi):
             limit=payload["limit"],
             offset=payload["offset"],
             order=[(term["column"], term["descending"]) for term in payload["order"]],
+            # No wire field for this; follow the leading term's direction.
+            order_desc=(
+                payload["order"][0]["descending"] if payload["order"] else True
+            ),
         )
         result_format = payload["result_format"]
 

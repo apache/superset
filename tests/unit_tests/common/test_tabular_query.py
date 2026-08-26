@@ -157,19 +157,6 @@ def test_build_query_dict_orderby_inverts_each_direction() -> None:
     assert query_dict["orderby"] == [("count", False), ("region", True)]
 
 
-def test_build_query_dict_order_desc_follows_leading_term() -> None:
-    """order_desc drives series-limit ordering, which has no per-column form."""
-    assert (
-        build_query_dict(metrics=["count"], order=[("count", False)])["order_desc"]
-        is False
-    )
-    assert (
-        build_query_dict(metrics=["count"], order=[("count", True)])["order_desc"]
-        is True
-    )
-    assert build_query_dict(metrics=["count"])["order_desc"] is True
-
-
 def test_build_query_dict_passes_adhoc_metrics_through() -> None:
     """Ad-hoc metric dicts survive untouched; datasets accept them."""
     adhoc: AdhocMetric = {
@@ -310,3 +297,43 @@ def test_resolve_time_column_not_inferred_without_time_range() -> None:
     explorable.main_dttm_col = "ds"
 
     assert _resolve_time_column(explorable, "sales", None, False) is None
+
+
+def test_metrics_hint_names_the_callers_own_discovery_tool() -> None:
+    """The default hint points at get_dataset_info, which cannot resolve a
+    semantic view; get_table must be able to name list_metrics instead.
+
+    The hint only appears once the valid list is truncated, i.e. above ten
+    metrics — which is why a single-metric fixture never exercised it.
+    """
+    many = {f"metric_{i:02d}" for i in range(15)}
+
+    (default,) = validate_query_names(many, set(), metrics=["zzz"])
+    assert "call get_dataset_info for the full list" in default
+
+    (overridden,) = validate_query_names(
+        many,
+        set(),
+        metrics=["zzz"],
+        metrics_full_list_hint="call list_metrics for the full list",
+    )
+    assert "call list_metrics for the full list" in overridden
+    assert "get_dataset_info" not in overridden
+
+
+def test_order_desc_is_independent_of_order() -> None:
+    """order_desc drives series-limit ordering and must not be inferred from
+    ``order``; deriving it flipped the value when ``order`` was empty."""
+    for order_desc in (True, False):
+        assert (
+            build_query_dict(metrics=["count"], order=[], order_desc=order_desc)[
+                "order_desc"
+            ]
+            is order_desc
+        )
+        assert (
+            build_query_dict(
+                metrics=["count"], order=[("count", True)], order_desc=order_desc
+            )["order_desc"]
+            is order_desc
+        )

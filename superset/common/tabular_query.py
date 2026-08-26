@@ -214,6 +214,7 @@ def validate_query_names(
     filters: Sequence[dict[str, Any]] | None = None,
     order_names: Sequence[str] | None = None,
     metrics_empty_hint: str | None = None,
+    metrics_full_list_hint: str | None = None,
 ) -> list[str]:
     """Validate every name in a request against the datasource's definitions.
 
@@ -239,6 +240,13 @@ def validate_query_names(
             "metric",
             empty_hint=metrics_empty_hint or NO_METRICS_HINT,
             list_valid_on_miss=True,
+            # The default names get_dataset_info, which cannot resolve a
+            # semantic view; callers serving views must name their own tool.
+            **(
+                {"full_list_hint": metrics_full_list_hint}
+                if metrics_full_list_hint
+                else {}
+            ),
         )
     )
     errors.extend(
@@ -275,6 +283,7 @@ def build_query_dict(
     limit: int | None = None,
     offset: int = 0,
     order: Sequence[OrderSpec] | None = None,
+    order_desc: bool = True,
 ) -> dict[str, Any]:
     """Assemble a QueryObject-shaped dict from a name-based request.
 
@@ -318,9 +327,10 @@ def build_query_dict(
         "columns": query_columns,
         "metrics": list(metrics or []),
         "row_limit": limit,
-        # QueryObject.order_desc drives series-limit ordering, which has no
-        # per-column form; take the leading direction as its intent.
-        "order_desc": order[0][1] if order else True,
+        # Drives series-limit ordering, which has no per-column form. Taken as
+        # a parameter rather than derived from ``order``, so an empty ``order``
+        # does not silently flip it.
+        "order_desc": order_desc,
     }
     if offset:
         query_dict["row_offset"] = offset

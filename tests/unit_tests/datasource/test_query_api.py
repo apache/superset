@@ -169,3 +169,30 @@ def test_arrow_serializer_round_trips() -> None:
     assert isinstance(payload, bytes)
     restored = pa.ipc.open_stream(payload).read_all().to_pandas()
     pd.testing.assert_frame_equal(restored, df)
+
+
+def test_chart_data_schema_rejects_arrow() -> None:
+    """`ARROW` lives on the shared enum so `get_data` can serialize it, but
+    `_send_chart_response` has no Arrow branch — accepting it on chart/data
+    would execute the query and only then fail with "Unsupported result_format".
+    """
+    from superset.charts.schemas import ChartDataQueryContextSchema
+
+    field = ChartDataQueryContextSchema().fields["result_format"]
+
+    with pytest.raises(ValidationError) as excinfo:
+        field.deserialize("arrow")
+    assert "arrow" in str(excinfo.value)
+    assert "/api/v1/datasource/" in str(excinfo.value)
+
+    # Its own formats are unaffected.
+    for fmt in ("json", "csv", "xlsx"):
+        assert field.deserialize(fmt) == ChartDataResultFormat(fmt)
+
+
+def test_datasource_schema_still_accepts_arrow(schema) -> None:
+    """The exclusion is scoped to chart/data, not to the shared enum."""
+    assert (
+        schema.load({"metrics": ["count"], "result_format": "arrow"})["result_format"]
+        == ChartDataResultFormat.ARROW
+    )

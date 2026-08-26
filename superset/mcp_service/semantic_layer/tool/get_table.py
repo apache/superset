@@ -203,6 +203,9 @@ def _validate_request_names(
         filters=[{"col": f.col} for f in request.filters],
         order_names=request.order_by,
         metrics_empty_hint=_NO_METRICS_HINT,
+        # get_table also serves semantic views, which get_dataset_info
+        # cannot resolve.
+        metrics_full_list_hint="call list_metrics for the full list",
     )
 
 
@@ -219,6 +222,7 @@ def _build_query_dict(
         time_range=request.time_range,
         limit=request.row_limit,
         order=[(name, request.order_desc) for name in request.order_by],
+        order_desc=request.order_desc,
     )
 
 

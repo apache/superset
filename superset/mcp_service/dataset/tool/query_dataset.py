@@ -270,6 +270,7 @@ async def query_dataset(  # noqa: C901
             filters=query_filters,
             limit=request.row_limit,
             order=[(name, request.order_desc) for name in (request.order_by or [])],
+            order_desc=request.order_desc,
         )
 
         await ctx.debug("Query dict keys: %s" % (sorted(query_dict.keys()),))
