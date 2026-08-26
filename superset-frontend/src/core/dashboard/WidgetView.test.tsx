@@ -84,13 +84,13 @@ test('the root carries no header of its own', () => {
   ).not.toBeInTheDocument();
 });
 
-test('a reorder cue sits beside the bin, not floating over the card', () => {
+test('the overflow menu sits to the right of the bin', () => {
   const { id } = withBlock();
 
-  const handle = screen.getByTestId(`widget-drag-${id}`);
   const bin = screen.getByTestId(`widget-remove-${id}`);
+  const menu = screen.getByTestId(`widget-menu-${id}`);
   expect(
-    handle.compareDocumentPosition(bin) & Node.DOCUMENT_POSITION_FOLLOWING,
+    bin.compareDocumentPosition(menu) & Node.DOCUMENT_POSITION_FOLLOWING,
   ).toBeTruthy();
 });
 

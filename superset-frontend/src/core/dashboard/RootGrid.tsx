@@ -66,10 +66,7 @@ type LayoutProps = dashboardApi.LayoutProps;
  * still matches and still cancels, exactly as intended.
  *
  * `[data-widget-menu]` is the widget header's overflow menu (see
- * `WidgetView`) — opening it must not also drag the card it sits on. The
- * header's drag-handle icon is deliberately absent from this list: it is a
- * visual cue, not an exclusion, and a press starting on it should drag the
- * card exactly as a press anywhere else on it would.
+ * `WidgetView`) — opening it must not also drag the card it sits on.
  */
 function cancelSelectorFor(nodeId: string): string {
   return `[data-container-id]:not([data-container-id="${CSS.escape(nodeId)}"]),[data-widget-remove],[data-widget-resize],[data-widget-header-control],[data-widget-menu]`;
