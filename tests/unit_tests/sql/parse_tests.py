@@ -1333,8 +1333,8 @@ def test_sqlscript_format_preserves_optimizer_hint_block_with_semicolon() -> Non
     """
     Same as `test_sqlscript_format_preserves_optimizer_hint_block`, but with
     a terminating `;` on the statement -- verifies #38189 fix so that trailing
-    `--` comments land after the statement rather than injected into the `/*+ SET_VAR(...) */`
-    hint block for StarRocks/MySQL-style engines.
+    `--` comments land after the statement rather than injected into the
+    `/*+ SET_VAR(...) */` hint block for StarRocks/MySQL-style engines.
     """
     sql = """SELECT /*+ SET_VAR(query_timeout = 3000) */ col1, col2
 FROM my_table

@@ -732,6 +732,40 @@ class BaseSQLStatement(Generic[InternalRepresentation]):
         return self.format()
 
 
+_SELECT_TRAILING_CLAUSES: tuple[str, ...] = (
+    "options",
+    "settings",
+    "format",
+    "locks",
+    "offset",
+    "limit",
+    "sort",
+    "cluster",
+    "distribute",
+    "order",
+    "windows",
+    "qualify",
+    "having",
+    "group",
+    "where",
+    "joins",
+    "laterals",
+    "from",
+    "into",
+    "expressions",
+)
+
+
+def _get_select_trailing_child(node: exp.Select) -> exp.Expression | None:
+    for clause_name in _SELECT_TRAILING_CLAUSES:
+        val = node.args.get(clause_name)
+        if isinstance(val, list) and val:
+            return _find_last_token_node(val[-1])
+        if isinstance(val, exp.Expression):
+            return _find_last_token_node(val)
+    return None
+
+
 def _find_last_token_node(node: exp.Expression) -> exp.Expression:
     """
     Find the last token/leaf node in SQL generation order to attach trailing comments.
@@ -740,34 +774,8 @@ def _find_last_token_node(node: exp.Expression) -> exp.Expression:
     trailing comments inside optimizer hint blocks (e.g. /*+ SET_VAR(...) */).
     """
     if isinstance(node, exp.Select):
-        for clause_name in (
-            "options",
-            "settings",
-            "format",
-            "locks",
-            "offset",
-            "limit",
-            "sort",
-            "cluster",
-            "distribute",
-            "order",
-            "windows",
-            "qualify",
-            "having",
-            "group",
-            "where",
-            "joins",
-            "laterals",
-            "from",
-            "into",
-            "expressions",
-        ):
-            val = node.args.get(clause_name)
-            if val is not None:
-                if isinstance(val, list) and val:
-                    return _find_last_token_node(val[-1])
-                if isinstance(val, exp.Expression):
-                    return _find_last_token_node(val)
+        if trailing := _get_select_trailing_child(node):
+            return trailing
 
     children: list[exp.Expression] = []
     for k, v in node.args.items():
@@ -776,9 +784,7 @@ def _find_last_token_node(node: exp.Expression) -> exp.Expression:
         if isinstance(v, exp.Expression):
             children.append(v)
         elif isinstance(v, list):
-            for item in v:
-                if isinstance(item, exp.Expression):
-                    children.append(item)
+            children.extend(item for item in v if isinstance(item, exp.Expression))
 
     if children:
         return _find_last_token_node(children[-1])
