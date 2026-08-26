@@ -60,7 +60,6 @@ class SubmitTaskCommand(BaseCommand):
     def __init__(self, data: dict[str, Any]):
         self._properties = data.copy()
 
-    @transaction(on_error=partial(on_error, reraise=TaskCreateFailedError))
     def run(self) -> "Task":
         """
         Execute the command with distributed locking.
@@ -73,7 +72,6 @@ class SubmitTaskCommand(BaseCommand):
         task, _ = self.run_with_info()
         return task
 
-    @transaction(on_error=partial(on_error, reraise=TaskCreateFailedError))
     def run_with_info(self) -> tuple["Task", bool]:
         """
         Execute the command and return (task, is_new) tuple.
@@ -82,16 +80,29 @@ class SubmitTaskCommand(BaseCommand):
         and joining an existing one. Useful for sync execution where the caller
         needs to wait for an existing task to complete rather than executing again.
 
+        The task lock is held across the **entire** create-or-join transaction —
+        including the commit performed by ``_create_or_join``'s ``@transaction`` —
+        so a concurrent submitter for the same ``dedup_key`` always observes the
+        winner's committed row and joins it. Releasing the lock before the commit
+        would let a waiter read-before-commit and insert a duplicate ``dedup_key``,
+        surfacing as a unique-constraint 500 instead of a clean join.
+
+        NOTE: ``SubmitTaskCommand`` must own its transaction for this guarantee to
+        hold. It must not be called within an outer ``@transaction`` — the
+        reentrancy guard would defer the real commit until after the lock is
+        released (see ``superset.utils.decorators.transaction``).
+
         :returns: Tuple of (Task, is_new) where is_new is True if task was created
         """
-        from superset.daos.tasks import TaskDAO
-
         self.validate()
 
-        # Extract and normalize parameters
+        # Extract and normalize parameters (no DB access — validate() has run and
+        # normalized ``scope``). Done before acquiring the lock so invalid input
+        # fails fast without taking a lock.
         task_type = self._properties["task_type"]
         task_key = self._properties.get("task_key") or str(uuid.uuid4())
-        scope = self._properties.get("scope", TaskScope.PRIVATE.value)
+        self._properties["task_key"] = task_key  # reuse the generated key downstream
+        scope = self._properties["scope"]
         user_id = get_user_id()
         # Embedded guests have no ab_user id; they subscribe by a token-derived
         # key so TaskFilter can grant them visibility of their own tasks.
@@ -105,67 +116,81 @@ class SubmitTaskCommand(BaseCommand):
             user_id=user_id,
         )
 
-        # Acquire lock to prevent race conditions during create/join
+        # Acquire the lock around the whole transaction (see docstring): it is
+        # released only after _create_or_join commits.
         with task_lock(dedup_key):
-            # Check for existing task (safe under lock)
-            existing = TaskDAO.find_by_task_key(task_type, task_key, scope, user_id)
+            return self._create_or_join(task_type, task_key, scope, user_id, guest_key)
 
-            # Get stats logger
-            stats_logger: BaseStatsLogger = current_app.config["STATS_LOGGER"]
+    @transaction(on_error=partial(on_error, reraise=TaskCreateFailedError))
+    def _create_or_join(
+        self,
+        task_type: str,
+        task_key: str,
+        scope: str,
+        user_id: int | None,
+        guest_key: str | None,
+    ) -> tuple["Task", bool]:
+        """Find an existing task for ``dedup_key`` and join it, or create a new one.
 
-            if existing:
-                # Finding an existing task is itself a dedupe (work reused, not
-                # re-created), whether the caller becomes a new subscriber or
-                # resubmits as an existing one. Count it on the task's properties.
-                existing.update_properties(
-                    {
-                        "dedupe_count": existing.properties_dict.get("dedupe_count", 0)
-                        + 1
-                    }
+        Runs as a single transaction (committed by ``@transaction`` on return)
+        while the caller holds the task lock, so the create-vs-join decision and
+        its commit are atomic with respect to other submitters.
+        """
+        from superset.daos.tasks import TaskDAO
+
+        stats_logger: BaseStatsLogger = current_app.config["STATS_LOGGER"]
+
+        # Check for an existing task under the lock; join it if present.
+        if existing := TaskDAO.find_by_task_key(task_type, task_key, scope, user_id):
+            # Finding an existing task is itself a dedupe (work reused, not
+            # re-created), whether the caller becomes a new subscriber or
+            # resubmits as an existing one. Count it on the task's properties.
+            existing.update_properties(
+                {"dedupe_count": existing.properties_dict.get("dedupe_count", 0) + 1}
+            )
+            # Join existing task - add subscriber if not already subscribed
+            if user_id and not existing.has_subscriber(user_id):
+                TaskDAO.add_subscriber(existing.id, user_id)
+                stats_logger.incr("gtf.task.subscribe")
+                logger.info(
+                    "User %s joined existing task: %s",
+                    user_id,
+                    task_key,
                 )
-                # Join existing task - add subscriber if not already subscribed
-                if user_id and not existing.has_subscriber(user_id):
-                    TaskDAO.add_subscriber(existing.id, user_id)
-                    stats_logger.incr("gtf.task.subscribe")
-                    logger.info(
-                        "User %s joined existing task: %s",
-                        user_id,
-                        task_key,
-                    )
-                elif guest_key and not existing.has_guest_subscriber(guest_key):
-                    # Embedded guest joining a SHARED task an equivalent guest
-                    # created; subscribe so this guest can also poll it.
-                    TaskDAO.add_guest_subscriber(existing.id, guest_key)
-                    stats_logger.incr("gtf.task.subscribe")
-                else:
-                    # Same subscriber resubmitted the same task - deduplication hit
-                    stats_logger.incr("gtf.task.dedupe")
-                    logger.debug(
-                        "Deduplication hit for task: %s (user_id=%s)",
-                        task_key,
-                        user_id,
-                    )
-                return existing, False  # is_new=False: joined existing task
-
-            # Create new task (DAO is now a pure data operation)
-            try:
-                task = TaskDAO.create_task(
-                    task_type=task_type,
-                    task_key=task_key,
-                    scope=scope,
-                    task_name=self._properties.get("task_name"),
-                    user_id=user_id,
-                    guest_key=guest_key,
-                    payload=self._properties.get("payload", {}),
-                    properties=self._properties.get("properties", {}),
+            elif guest_key and not existing.has_guest_subscriber(guest_key):
+                # Embedded guest joining a SHARED task an equivalent guest
+                # created; subscribe so this guest can also poll it.
+                TaskDAO.add_guest_subscriber(existing.id, guest_key)
+                stats_logger.incr("gtf.task.subscribe")
+            else:
+                # Same subscriber resubmitted the same task - deduplication hit
+                stats_logger.incr("gtf.task.dedupe")
+                logger.debug(
+                    "Deduplication hit for task: %s (user_id=%s)",
+                    task_key,
+                    user_id,
                 )
-                # Persist dependency edges (with cycle guard) for the new task.
-                # Joined/deduplicated tasks keep their original dependencies.
-                self._persist_dependencies(task, TaskDAO)
-                stats_logger.incr("gtf.task.create")
-                return task, True  # is_new=True: created new task
-            except DAOCreateFailedError as ex:
-                raise TaskCreateFailedError() from ex
+            return existing, False  # is_new=False: joined existing task
+
+        # Create new task (DAO is now a pure data operation)
+        try:
+            task = TaskDAO.create_task(
+                task_type=task_type,
+                task_key=task_key,
+                scope=scope,
+                task_name=self._properties.get("task_name"),
+                user_id=user_id,
+                guest_key=guest_key,
+                payload=self._properties.get("payload", {}),
+                properties=self._properties.get("properties", {}),
+            )
+            # Persist dependency edges (with cycle guard) for the new task.
+            # Joined/deduplicated tasks keep their original dependencies.
+            self._persist_dependencies(task, TaskDAO)
+            stats_logger.incr("gtf.task.create")
+            return task, True  # is_new=True: created new task
+        except DAOCreateFailedError as ex:
+            raise TaskCreateFailedError() from ex
 
     def _persist_dependencies(self, task: "Task", dao: type["TaskDAO"]) -> None:
         """
