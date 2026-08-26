@@ -66,6 +66,7 @@ def test_all_registered_tools_have_complete_annotations():
         "openWorldHint",
     )
     missing_by_tool = {}
+    open_world_tools = []
 
     for registered_tool in _run(mcp.list_tools()):
         annotations = registered_tool.annotations
@@ -76,9 +77,15 @@ def test_all_registered_tools_have_complete_annotations():
         ]
         if missing:
             missing_by_tool[registered_tool.name] = missing
+        elif annotations.openWorldHint is not False:
+            open_world_tools.append(registered_tool.name)
 
     assert not missing_by_tool, (
         f"Registered MCP tools have incomplete annotations: {missing_by_tool}"
+    )
+    assert not open_world_tools, (
+        "Tools must be explicitly closed-world (openWorldHint=False): "
+        f"{open_world_tools}"
     )
 
 
