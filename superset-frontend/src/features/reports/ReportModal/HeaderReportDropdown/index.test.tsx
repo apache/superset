@@ -161,6 +161,7 @@ describe('Header Report Dropdown', () => {
           chart_id: null,
           id: 5,
           name: 'Weekly Report',
+          report_format: 'PNG',
           type: 'Report',
         },
       ],

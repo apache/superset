@@ -352,6 +352,67 @@ test('edit mode dispatches editReport via PUT on save', async () => {
   fetchMock.removeRoute('put-report-42');
 });
 
+test('edit mode preserves the fetched report_format on save', async () => {
+  // XLSX is never the visualization default, so this fails if the stored
+  // format is dropped and the save falls back to defaultNotificationFormat.
+  const fetchedReport = {
+    active: true,
+    chart_id: 96,
+    creation_method: 'charts',
+    crontab: '0 12 * * 1',
+    dashboard_id: null,
+    description: '',
+    id: 44,
+    name: 'Existing XLSX Report',
+    report_format: 'XLSX',
+    timezone: 'America/New_York',
+    type: 'Report',
+  };
+  const store = createStore(
+    {
+      reports: {
+        charts: { 96: fetchedReport },
+      },
+    },
+    reducerIndex,
+  );
+
+  fetchMock.put(
+    'glob:*/api/v1/report/44',
+    { id: 44, result: {} },
+    {
+      name: 'put-report-44',
+    },
+  );
+
+  const chartProps = {
+    ...defaultProps,
+    dashboardId: undefined,
+    chart: { id: 96, sliceFormData: { viz_type: VizType.Line } },
+    creationMethod: 'charts' as const,
+  };
+  render(<ReportModal {...chartProps} />, { useRedux: true, store });
+
+  expect(screen.getByText('Edit email report')).toBeInTheDocument();
+  expect(
+    screen.getByRole('radio', { name: 'Formatted Excel attached in email' }),
+  ).toBeChecked();
+
+  const saveButton = screen.getByRole('button', { name: /save/i });
+  await waitFor(() => userEvent.click(saveButton));
+
+  await waitFor(() => {
+    const calls = fetchMock.callHistory.calls('put-report-44');
+    expect(calls.length).toBeGreaterThan(0);
+  });
+
+  const calls = fetchMock.callHistory.calls('put-report-44');
+  const body = JSON.parse(calls[calls.length - 1].options.body as string);
+  expect(body.report_format).toBe('XLSX');
+
+  fetchMock.removeRoute('put-report-44');
+});
+
 test('edit mode does not fall back to user id when subject id is unavailable', async () => {
   mockedGetBootstrapData.mockReturnValue(
     bootstrapData({
