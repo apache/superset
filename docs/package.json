@@ -94,7 +94,7 @@
     "eslint": "^9.39.2",
     "eslint-plugin-react": "^7.37.5",
     "globals": "^17.11.0",
-    "oxfmt": "^0.63.0",
+    "oxfmt": "^0.64.0",
     "typescript": "~6.0.3",
     "typescript-eslint": "^8.67.0",
     "webpack": "^5.109.2"
