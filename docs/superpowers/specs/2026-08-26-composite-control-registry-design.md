@@ -93,10 +93,38 @@ class DataBinding(MetricControl):
 `BaseModel` — inheriting from both `BaseModel` and `MetricControl` at once
 raises `TypeError: Cannot create a consistent method resolution order`,
 confirmed against pydantic directly; `MetricControl` alone is both necessary
-and sufficient as the base) and `model_json_schema()`'s output for
-`DataBinding` is unchanged — same
-property set, same order (once reordered by
-`build_configuration_schema`), same `x-control` extras.
+and sufficient as the base) and `model_json_schema()`'s property *set* and
+`x-control` extras for `DataBinding` are unchanged.
+
+**Field order needs an explicit override — inheritance order is not enough.**
+Pydantic always collects a base class's fields into `model_fields` ahead of
+the subclass's own fields, regardless of where the subclass redeclares them —
+confirmed directly: a subclass inheriting `metrics` from `MetricControl` gets
+field order `metrics, dataset_id, dimensions, row_limit`, not today's
+`dataset_id, metrics, dimensions, row_limit`, even when `metrics` is
+redeclared at its original position in the subclass body. This isn't
+cosmetic: `build_configuration_schema` restores model-field order specifically
+so JsonForms renders fields in the author's intended order, so an
+uncorrected reorder would visibly move the Metrics control ahead of the
+Dataset picker in the Inspector form.
+
+So `build_configuration_schema` gains an explicit, opt-in override: a model
+may declare `field_order: ClassVar[list[str]]` naming its properties (by
+alias) in the order they should render; when present,
+`build_configuration_schema` uses that list instead of deriving order from
+`model_fields`, and raises `ValueError` if it isn't an exact permutation of
+the schema's property names (a declared order that's missing or misnames a
+property is a bug worth failing loudly on, not silently dropping fields from
+the rendered form). When absent, behavior is unchanged from today
+(derive order from `model_fields`) — every other consumer of
+`build_configuration_schema` (there are none today outside
+`Widget.get_control_schema`, confirmed by repo-wide search, so this is
+low-risk) keeps working exactly as before. `DataBinding` declares
+```python
+field_order: ClassVar[list[str]] = ["datasetId", "metrics", "dimensions", "rowLimit"]
+```
+— deliberately preserving today's exact order, so this remains a
+strictly non-breaking refactor and not an incidental UX change.
 
 **Registry for discovery, not for composition.** Composing a composite
 control into a widget is plain Python inheritance/import — no runtime lookup
@@ -130,6 +158,53 @@ Two alternatives were considered and rejected:
   served by importing a class and inheriting from it directly.
 
 ## Design
+
+### `superset_core/semantic_layers/config.py` (changed)
+
+`build_configuration_schema` gains an explicit field-order override:
+
+```python
+def build_configuration_schema(
+    config_class: type[BaseModel],
+    configuration: BaseModel | None = None,
+) -> dict[str, Any]:
+    schema = config_class.model_json_schema()
+
+    declared_order = getattr(config_class, "field_order", None)
+    if declared_order is not None:
+        declared = set(declared_order)
+        actual = set(schema["properties"])
+        if declared != actual:
+            raise ValueError(
+                f"{config_class.__name__}.field_order must be a permutation "
+                f"of its schema properties; declared={sorted(declared)} "
+                f"actual={sorted(actual)}"
+            )
+        field_order = declared_order
+    else:
+        # Unchanged from today: Pydantic sorts properties alphabetically,
+        # so restore model field declaration order absent an override.
+        field_order = [
+            field.alias or name for name, field in config_class.model_fields.items()
+        ]
+
+    schema["properties"] = {
+        key: schema["properties"][key]
+        for key in field_order
+        if key in schema["properties"]
+    }
+
+    if configuration is None:
+        for prop_schema in schema["properties"].values():
+            if prop_schema.get("x-dynamic"):
+                prop_schema["enum"] = []
+
+    return schema
+```
+
+`field_order` is looked up with `getattr`, not a required base-class field, so
+every existing model without it is unaffected — this is additive, not a
+signature change.
 
 ### `superset_core/widgets/composites.py` (new)
 
@@ -203,10 +278,14 @@ extension authors can't accidentally mutate the shared store.
 `DataBinding` drops its inline `metrics: list[Any] = Field(...)` declaration
 and instead:
 ```python
+from typing import ClassVar
+
 from superset_core.widgets import MetricControl
 
 class DataBinding(MetricControl):
     model_config = ConfigDict(populate_by_name=True)
+
+    field_order: ClassVar[list[str]] = ["datasetId", "metrics", "dimensions", "rowLimit"]
 
     dataset_id: int = Field(alias="datasetId", ...)
     dimensions: list[str] = Field(default_factory=list, ...)
@@ -234,6 +313,13 @@ No other file in `superset/widgets/` or `superset-frontend/` changes.
   registration raises, `MetricControl` is present in
   `list_composite_controls()["metric"]` with the expected `title`/
   `description`, and the returned mapping is not mutable by callers.
+- **`build_configuration_schema` field-order tests**: a model with no
+  `field_order` behaves exactly as today (regression coverage for the
+  existing behavior this change extends); a model with `field_order` set
+  gets properties in exactly that order; a model with `field_order` missing
+  or misnaming a property raises `ValueError` naming the mismatch. Directly
+  exercises the mechanism that makes the `DataBinding` order fix correct,
+  independent of `DataBinding` itself.
 - **Existing widget tests** (`MetricTile`, `AgGridTable`, `Balloons`,
   `Echarts`, and their control-schema API/MCP tests) run unchanged — no
   fixture or assertion should need updating, since the served schema doesn't
