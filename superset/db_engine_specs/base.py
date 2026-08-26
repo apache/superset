@@ -553,6 +553,16 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # pagination via another mechanism (e.g. Elasticsearch's cursor API).
     supports_offset = True
 
+    # Whether the engine's SQL grammar requires OFFSET to appear *before* LIMIT
+    # (Presto and Trino), unlike the ANSI ``LIMIT ... OFFSET`` ordering. Most
+    # SQLAlchemy dialects for these engines emit the clauses in the correct
+    # order, but some drivers (notably PyHive's Presto/Trino dialects) inherit
+    # the ANSI ordering, which Presto and Trino reject with a syntax error
+    # (``mismatched input 'OFFSET'``). When True, Superset normalizes compiled
+    # SQL so OFFSET precedes LIMIT, making paginated queries (e.g. Drill to
+    # Detail page 2+) valid regardless of the installed driver.
+    offset_before_limit = False
+
     # Whether ORDER BY clause can use aliases created in SELECT
     # that are the same as a source column
     allows_alias_to_source_column = True
@@ -1614,6 +1624,48 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             # SQL with a malformed LIMIT clause (e.g. LIMIT without a value) is
             # not parseable in sqlglot 30+, which now requires an expression arg.
             return None
+
+    @classmethod
+    def apply_offset_before_limit(cls, sql: str) -> str:
+        """
+        Reorder a trailing ``LIMIT ... OFFSET ...`` into ``OFFSET ... LIMIT ...``
+        for engines whose grammar requires OFFSET to precede LIMIT.
+
+        This is a no-op unless ``offset_before_limit`` is set (Presto/Trino) and
+        the compiled SQL is actually in the invalid ANSI order. Some drivers
+        (e.g. PyHive's Presto/Trino dialects) emit ``LIMIT ... OFFSET ...``,
+        which Presto and Trino reject with ``mismatched input 'OFFSET'``.
+        Re-rendering through sqlglot's dialect-aware generator puts the clauses
+        in the order the engine expects, so paginated queries stay valid no
+        matter which SQLAlchemy driver is installed.
+
+        :param sql: A single compiled SQL statement
+        :return: The statement with OFFSET before LIMIT when required
+        """
+        if not cls.offset_before_limit:
+            return sql
+
+        # Cheap textual gate: only re-render when both keywords are present and
+        # the last LIMIT precedes the last OFFSET (the invalid ordering).
+        # Drivers that already emit OFFSET first (e.g. the official ``trino``
+        # package) are left untouched, avoiding a needless reparse/reformat. A
+        # false positive here only triggers a harmless order-preserving
+        # reparse, never wrong SQL.
+        limit_matches = list(re.finditer(r"\bLIMIT\b", sql, re.IGNORECASE))
+        offset_matches = list(re.finditer(r"\bOFFSET\b", sql, re.IGNORECASE))
+        if (
+            not limit_matches
+            or not offset_matches
+            or limit_matches[-1].start() > offset_matches[-1].start()
+        ):
+            return sql
+
+        try:
+            return SQLScript(sql, engine=cls.engine).format()
+        except SupersetParseError:
+            # If the statement can't be reparsed, leave it as-is rather than
+            # risk mangling it; the original error surfaces at execution time.
+            return sql
 
     @classmethod
     def get_cte_query(cls, sql: str) -> str | None:

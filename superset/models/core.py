@@ -1044,6 +1044,12 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
             script = SQLScript(sql, self.db_engine_spec.engine).optimize()
             sql = script.format()
 
+        # Presto/Trino require OFFSET before LIMIT; normalize the compiled SQL
+        # so pagination stays valid regardless of the installed driver's dialect
+        # (e.g. PyHive emits the ANSI ``LIMIT ... OFFSET`` order these engines
+        # reject). No-op for engines that don't need it.
+        sql = self.db_engine_spec.apply_offset_before_limit(sql)
+
         return sql
 
     def select_star(  # pylint: disable=too-many-arguments
