@@ -185,7 +185,8 @@ excel = ["xlrd>=2.0.2, <2.1"]
 # installing this extra is only required to actually run exports.
 excel-export = ["boto3"]
 fastmcp = [
-    "fastmcp>=3.4.6,<4.0",
+    "fastmcp>=3.4.7,<4.0",
+    "mcp>=1.29.1,<2.0",
     # tiktoken backs the response-size-guard token estimator. Without
     # it, the middleware falls back to a coarser character-based
     # heuristic that under-counts JSON-heavy MCP responses.
