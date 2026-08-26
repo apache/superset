@@ -87,7 +87,6 @@ import withToasts from 'src/components/MessageToasts/withToasts';
 import { Icons } from '@superset-ui/core/components/Icons';
 import WarningIconWithTooltip from '@superset-ui/core/components/WarningIconWithTooltip';
 import { isUserEditorOrAdmin } from 'src/dashboard/util/permissionUtils';
-
 import {
   PAGE_SIZE,
   SORT_BY,
@@ -113,6 +112,10 @@ import type {
   UserWithPermissionsAndRoles,
 } from 'src/types/bootstrapTypes';
 import type User from 'src/types/User';
+
+// Keep saved Default URLs compatible with the prefix-free SPA route.
+const normalizeLegacyDashboardUrl = (url: string) =>
+  url.replace(/^\/superset(?=\/dashboard(?:\/|$))/, '');
 
 const SEMANTIC_LAYERS_FLAG = 'SEMANTIC_LAYERS' as FeatureFlag;
 type DatasetExtra = {
@@ -722,7 +725,9 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           // Router basename, which re-prefixes the root — so strip it here to
           // avoid a doubled `/superset/superset/...`. External
           // `default_endpoint` URLs pass through unchanged.
-          const exploreTo = stripAppRoot(exploreURL);
+          const exploreTo = normalizeLegacyDashboardUrl(
+            stripAppRoot(exploreURL),
+          );
           let titleLink: JSX.Element;
           if (PREVENT_UNSAFE_DEFAULT_URLS_ON_DATASET) {
             titleLink = (

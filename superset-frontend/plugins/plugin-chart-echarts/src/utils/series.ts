@@ -413,7 +413,14 @@ export function extractDataTotalValues(
           return prev;
         }
         const value = datum[curr] || 0;
-        return prev + (value as number);
+        // Query results with integers beyond Number.MAX_SAFE_INTEGER are
+        // parsed as native BigInt (see
+        // packages/superset-ui-core/src/connection/callApi/parseResponse.ts).
+        // Normalize to Number before summing so BigInt and Number values
+        // can be combined without throwing (see #36401).
+        const numericValue =
+          typeof value === 'bigint' ? Number(value) : (value as number);
+        return prev + numericValue;
       }, 0);
       totalStackedValues.push(values);
       thresholdValues.push(((percentageThreshold || 0) / 100) * values);
@@ -623,13 +630,25 @@ export function extractSeries(
     xAxisType,
   } = opts;
   if (data.length === 0) return [[], [], undefined];
-  const rows: DataRecord[] = data.map(datum => ({
-    ...datum,
-    [xAxis]:
+  const rows: DataRecord[] = data.map(datum => {
+    // Query results with integers beyond Number.MAX_SAFE_INTEGER are
+    // parsed as native BigInt (see
+    // packages/superset-ui-core/src/connection/callApi/parseResponse.ts).
+    // Normalize every metric value to Number here, before sorting/
+    // aggregation (sortAndFilterSeries, sortRows) and stream-mode baseline
+    // calculations (getBaselineSeriesForStream) run, so BigInt and Number
+    // values can be combined without throwing (see #36401).
+    const normalized: DataRecord = {};
+    Object.keys(datum).forEach(key => {
+      const value = datum[key];
+      normalized[key] = typeof value === 'bigint' ? Number(value) : value;
+    });
+    normalized[xAxis] =
       datum[xAxis] === null && xAxisType === AxisType.Category
         ? NULL_STRING
-        : datum[xAxis],
-  }));
+        : normalized[xAxis];
+    return normalized;
+  });
   const sortedSeries = sortAndFilterSeries(
     rows,
     xAxis,
@@ -678,7 +697,17 @@ export function extractSeries(
           stack === StackControlsValue.Expand &&
           totalStackedValue !== undefined
         ) {
-          value = ((value || 0) as number) / totalStackedValue;
+          // Query results with integers beyond Number.MAX_SAFE_INTEGER are
+          // parsed as native BigInt (see
+          // packages/superset-ui-core/src/connection/callApi/parseResponse.ts).
+          // totalStackedValue is always a Number (extractDataTotalValues
+          // normalizes it), so dividing a raw BigInt datum value by it
+          // throws; normalize to Number first (see #36401).
+          const numericValue =
+            typeof value === 'bigint'
+              ? Number(value)
+              : ((value || 0) as number);
+          value = numericValue / totalStackedValue;
         }
         return [row[xAxis], value];
       })

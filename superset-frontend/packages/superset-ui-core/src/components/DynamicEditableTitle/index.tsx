@@ -49,6 +49,7 @@ const titleStyles = (theme: SupersetTheme) => css`
     text-overflow: ellipsis;
     white-space: nowrap;
     padding: 0;
+    font-weight: inherit;
     color: ${theme.colorText};
     background-color: ${theme.colorBgContainer};
 
@@ -126,6 +127,21 @@ export const DynamicEditableTitle = memo(
         setInputWidth(sizerRef.current.offsetWidth);
       }
     }, [currentTitle, placeholder]);
+
+    // Webfont metrics differ from the fallback font's, so a measurement
+    // taken before fonts finish loading under- or over-sizes the input.
+    // Re-measure once all fonts are ready.
+    useEffect(() => {
+      let cancelled = false;
+      document.fonts?.ready?.then(() => {
+        if (!cancelled && sizerRef.current) {
+          setInputWidth(sizerRef.current.offsetWidth);
+        }
+      });
+      return () => {
+        cancelled = true;
+      };
+    }, []);
 
     useEffect(() => {
       const inputElement = inputRef.current?.input;

@@ -18,16 +18,6 @@ on:
 
   workflow_dispatch: {}
 
-# Serialize deploys: the action pushes to apache/superset-site without
-# rebasing, so concurrent runs race on the final push and the loser fails
-# with `! [rejected] asf-site -> asf-site (fetch first)`. Cancel any
-# in-progress run as soon as a newer one starts — the destination repo
-# isn't touched until the final push step, so canceling mid-build is safe,
-# and the freshest content always wins.
-concurrency:
-  group: docs-deploy-asf-site
-  cancel-in-progress: true
-
 permissions:
   contents: read
   actions: read
@@ -48,17 +38,69 @@ jobs:
 
         env:
           SUPERSET_SITE_BUILD: ${{ (secrets.SUPERSET_SITE_BUILD != '' && secrets.SUPERSET_SITE_BUILD != '') || '' }}
+
+  # Master gets frequent, sometimes bursty pushes, and each one can trigger a
+  # deploy attempt. Rather than let every superseded attempt get force-killed
+  # by the build-deploy concurrency group below (which shows up as a
+  # `cancelled` — i.e. red/failing-looking — check on that commit), have each
+  # run check up front whether it's still building master's current tip and,
+  # if not, skip cleanly. Deliberately outside the docs-deploy-asf-site
+  # concurrency group so it runs immediately for every trigger without
+  # blocking or being blocked by anything.
+  check-freshness:
+    runs-on: ubuntu-26.04
+    outputs:
+      is-current: ${{ steps.check.outputs.is-current }}
+    steps:
+      # Sparse checkout: this job's only job is to be fast, so it fetches
+      # nothing but the freshness-check script itself.
+      - name: Checkout freshness-check script
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            .github/workflows/scripts
+          sparse-checkout-cone-mode: false
+      - name: "Check whether this is still master's current commit"
+        id: check
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BUILD_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+          EVENT_NAME: ${{ github.event_name }}
+          REPO: ${{ github.repository }}
+          OUTPUT_NAME: is-current
+        run: .github/workflows/scripts/check-docs-deploy-freshness.sh
+
   build-deploy:
-    needs: config
+    needs: [config, check-freshness]
+    # Only the run for master's current tip proceeds; anything superseded
+    # already skipped at check-freshness above instead of landing here.
     # For workflow_run triggers, only deploy when the triggering run originated
     # from this repository (not a fork), ensuring the checked-out code and any
     # local actions executed with deploy credentials are trusted.
     if: >-
       needs.config.outputs.has-secrets &&
+      needs.check-freshness.outputs.is-current == 'true' &&
       (github.event_name != 'workflow_run' ||
        github.event.workflow_run.head_repository.full_name == github.repository)
     name: Build & Deploy
     runs-on: ubuntu-26.04
+    # Serialize deploys: the action pushes to apache/superset-site without
+    # rebasing, so concurrent runs race on the final push and the loser fails
+    # with `! [rejected] asf-site -> asf-site (fetch first)`. Queue instead of
+    # canceling: a run that already passed check-freshness can still be
+    # sitting in the queue for a runner when a newer run starts and finishes
+    # first. cancel-in-progress would let that stale, queued run kill the
+    # newer run's in-progress deploy the moment it's finally scheduled, and
+    # then skip itself at the re-check below — losing the deploy entirely.
+    # Queuing means the stale run just waits its turn and then no-ops at the
+    # re-check, so the fresher content that already deployed is never
+    # clobbered or lost. The check-freshness gate above means it should be
+    # rare for more than one run to reach this point, so the queue stays
+    # short in practice.
+    concurrency:
+      group: docs-deploy-asf-site
+      cancel-in-progress: false
     steps:
       - uses: Kesin11/actions-timeline@57fc93f20c6da7fbc14063c6d24a2a5627c799ad # v3.2.0
         with:
@@ -81,7 +123,11 @@ jobs:
           distribution: "zulu"
           java-version: "21"
       - name: Install Graphviz
-        run: sudo apt-get install -y graphviz
+        uses: awalsh128/cache-apt-pkgs-action@553a35bb8ebd9fcabcb1c9451aa4c98e1b4ca8a9 # v1.6.3
+        with:
+          packages: graphviz
+          version: 1.0
+          execute_install_scripts: true
       - name: Compute Entity Relationship diagram (ERD)
         env:
           SUPERSET_SECRET_KEY: not-a-secret
@@ -126,7 +172,24 @@ jobs:
         working-directory: docs
         run: |
           yarn build
+      # The check-freshness job above narrows the window but doesn't close it: an
+      # older run can observe is-current=true, then sit through this build while a
+      # newer run's own freshness check also passes and it deploys and finishes
+      # first. If this (stale) run then wins entry into the concurrency group, it
+      # would overwrite the newer content that already deployed. Re-check right
+      # before the one step that actually mutates superset-site, so a stale run
+      # skips deploying instead of clobbering a fresher one that already ran.
+      - name: "Re-check freshness immediately before deploying"
+        id: recheck-freshness
+        if: github.event_name != 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BUILD_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+          REPO: ${{ github.repository }}
+          OUTPUT_NAME: still-current
+        run: .github/workflows/scripts/check-docs-deploy-freshness.sh
       - name: deploy docs
+        if: github.event_name == 'workflow_dispatch' || steps.recheck-freshness.outputs.still-current == 'true'
         uses: ./.github/actions/github-action-push-to-another-repository
         env:
           API_TOKEN_GITHUB: ${{ secrets.SUPERSET_SITE_BUILD }}

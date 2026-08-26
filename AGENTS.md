@@ -167,7 +167,7 @@ The Developer Portal auto-generates MDX documentation from Storybook stories. **
 ### Generator Location
 - Script: `docs/scripts/generate-superset-components.mjs`
 - Wrapper: `docs/src/components/StorybookWrapper.jsx`
-- Output: `docs/developer_portal/components/`
+- Output: `docs/developer_docs/components/`
 
 ## Architecture Patterns
 

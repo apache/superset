@@ -971,4 +971,94 @@ describe('Bar Chart X-axis Time Formatting', () => {
       );
     });
   });
+
+  describe('Regression test for Issue #42560', () => {
+    const numericXAxisData = [
+      {
+        data: [
+          { x_value: 1000, metric: 10 },
+          { x_value: 2000, metric: 20 },
+          { x_value: 3000, metric: 30 },
+        ],
+        colnames: ['x_value', 'metric'],
+        coltypes: [GenericDataType.Numeric, GenericDataType.Numeric],
+      },
+    ];
+
+    const categoricalXAxisData = [
+      {
+        data: [
+          { category: 'A', metric: 10 },
+          { category: 'B', metric: 20 },
+          { category: 'C', metric: 30 },
+        ],
+        colnames: ['category', 'metric'],
+        coltypes: [GenericDataType.String, GenericDataType.Numeric],
+      },
+    ];
+
+    test('custom X Axis Title is preserved verbatim, not overwritten by the axis number/currency format ("unit")', () => {
+      // Uses a numeric (non-temporal) x-axis column so `xAxisNumberFormat`
+      // actually drives `getNumberFormatter` in the axis-label formatter
+      // path, rather than being ignored in favor of the temporal formatter.
+      const formData = {
+        ...baseFormData,
+        orientation: 'vertical',
+        groupby: [],
+        x_axis: 'x_value',
+        metric: 'metric',
+        xAxisTitle: 'My X Axis',
+        xAxisNumberFormat: 'SMART_NUMBER',
+        yAxisFormat: '$,.2f',
+      };
+
+      const chartProps = new ChartProps({
+        ...baseChartPropsConfig,
+        queriesData: numericXAxisData,
+        formData,
+      });
+
+      const transformedProps = transformProps(
+        chartProps as unknown as EchartsTimeseriesChartProps,
+      );
+      const xAxis = transformedProps.echartOptions.xAxis as any;
+
+      expect(xAxis.name).toBe('My X Axis');
+    });
+
+    test('X Axis Title control maps onto the rendered category (left) axis in horizontal orientation, not the bottom axis', () => {
+      // Documents the axis swap for horizontal bar charts: `xAxisTitle` ends
+      // up on `echartOptions.yAxis.name` (the vertical category axis) and
+      // `yAxisTitle` ends up on `echartOptions.xAxis.name` (the horizontal
+      // value axis). This is existing, intentional swap behavior, not the
+      // "unit" overwrite described in the issue. Uses categorical x-axis
+      // data so the rendered left axis is actually type `category`, matching
+      // what the test name claims.
+      const formData = {
+        ...baseFormData,
+        orientation: 'horizontal',
+        groupby: [],
+        x_axis: 'category',
+        metric: 'metric',
+        xAxisTitle: 'My X Axis',
+        yAxisTitle: 'My Y Axis',
+      };
+
+      const chartProps = new ChartProps({
+        ...baseChartPropsConfig,
+        queriesData: categoricalXAxisData,
+        formData,
+      });
+
+      const transformedProps = transformProps(
+        chartProps as unknown as EchartsTimeseriesChartProps,
+      );
+      const renderedXAxis = transformedProps.echartOptions.xAxis as any;
+      const renderedYAxis = transformedProps.echartOptions.yAxis as any;
+
+      expect(renderedYAxis.type).toBe('category');
+      expect(renderedYAxis.name).toBe('My X Axis');
+      expect(renderedXAxis.name).toBe('My Y Axis');
+    });
+  });
 });

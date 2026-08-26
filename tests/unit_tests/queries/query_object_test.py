@@ -14,15 +14,36 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from contextlib import contextmanager
 from unittest.mock import call, patch
 
+import pandas as pd
+import pytest
 from flask_appbuilder.security.sqla.models import User
 
 from superset.common.query_object import QueryObject
 from superset.connectors.sqla.models import SqlaTable
 from superset.models.core import Database
 from superset.superset_typing import Metric
+from superset.utils import pandas_postprocessing
 from superset.utils.core import override_user
+
+
+@contextmanager
+def _as_builtin_op(name, func):
+    """Register ``func`` as a built-in post-processing operation named ``name``.
+
+    ``pandas_postprocessing.__all__`` is the authoritative list of built-in
+    operations -- both dispatch and option-dropping key off it -- so a synthetic
+    operation has to be listed there as well as set on the module.
+    """
+    with (
+        patch.object(pandas_postprocessing, name, func, create=True),
+        patch.object(
+            pandas_postprocessing, "__all__", [*pandas_postprocessing.__all__, name]
+        ),
+    ):
+        yield
 
 
 def cache_impersonation_flag_side_effect(feature=None):
@@ -438,3 +459,248 @@ def test_cache_key_cache_impersonation_on_with_different_user_and_db_impersonati
         ],
         any_order=True,
     )
+
+
+def _double_value(df: pd.DataFrame, column: str) -> pd.DataFrame:
+    """Custom op that doubles a numeric column — used in tests only."""
+    df = df.copy()
+    df[column] = df[column] * 2
+    return df
+
+
+def test_exec_post_processing_extra_ops(app_context: None) -> None:
+    """EXTRA_PANDAS_POSTPROCESSING_OPS are applied and mutate the dataframe."""
+    df = pd.DataFrame({"value": [1, 2, 3]})
+    query_object = QueryObject(
+        row_limit=10,
+        post_processing=[
+            {"operation": "_double_value", "options": {"column": "value"}}
+        ],
+    )
+
+    with patch.dict(
+        "superset.common.query_object.current_app.config",
+        {"EXTRA_PANDAS_POSTPROCESSING_OPS": [_double_value]},
+    ):
+        result = query_object.exec_post_processing(df)
+
+    assert list(result["value"]) == [2, 4, 6]
+
+
+def test_exec_post_processing_unknown_op_raises(app_context: None) -> None:
+    """An operation not in builtins or EXTRA_PANDAS_POSTPROCESSING_OPS raises."""
+    from superset.exceptions import InvalidPostProcessingError
+
+    df = pd.DataFrame({"value": [1, 2, 3]})
+    query_object = QueryObject(
+        row_limit=10,
+        post_processing=[{"operation": "nonexistent_op"}],
+    )
+
+    with patch.dict(
+        "superset.common.query_object.current_app.config",
+        {"EXTRA_PANDAS_POSTPROCESSING_OPS": []},
+    ):
+        with pytest.raises(InvalidPostProcessingError):
+            query_object.exec_post_processing(df)
+
+
+@pytest.mark.parametrize(
+    "shadow_name",
+    ["build_extra_ops_map", "utils", "geography", "Any", "Callable", "annotations"],
+)
+def test_exec_post_processing_extra_op_not_shadowed_by_module_internal(
+    app_context: None, shadow_name: str
+) -> None:
+    """A custom op named after a module internal still dispatches to the custom op.
+
+    Only the names in ``pandas_postprocessing.__all__`` are built-in operations.
+    The module additionally exposes helpers, imported submodules and typing
+    aliases, none of which are callable as post-processing operations, so
+    dispatch must not treat them as built-ins.
+    """
+
+    def custom_op(df: pd.DataFrame, column: str) -> pd.DataFrame:
+        df = df.copy()
+        df[column] = df[column] * 2
+        return df
+
+    custom_op.__name__ = shadow_name
+
+    # Pin the premise: reachable on the module, but not a real operation.
+    assert hasattr(pandas_postprocessing, shadow_name)
+    assert shadow_name not in pandas_postprocessing.__all__
+
+    df = pd.DataFrame({"value": [1, 2, 3]})
+    query_object = QueryObject(
+        row_limit=10,
+        post_processing=[{"operation": shadow_name, "options": {"column": "value"}}],
+    )
+
+    with patch.dict(
+        "superset.common.query_object.current_app.config",
+        {"EXTRA_PANDAS_POSTPROCESSING_OPS": [custom_op]},
+    ):
+        result = query_object.exec_post_processing(df)
+
+    assert list(result["value"]) == [2, 4, 6]
+
+
+def test_exec_post_processing_builtin_wins_over_extra_op(app_context: None) -> None:
+    """A custom op sharing a built-in name never fires; the built-in is used."""
+
+    def sort(df: pd.DataFrame, **options: object) -> pd.DataFrame:
+        raise AssertionError("custom op must not shadow a built-in operation")
+
+    df = pd.DataFrame({"value": [3, 1, 2]})
+    query_object = QueryObject(
+        row_limit=10,
+        post_processing=[{"operation": "sort", "options": {"by": ["value"]}}],
+    )
+
+    with patch.dict(
+        "superset.common.query_object.current_app.config",
+        {"EXTRA_PANDAS_POSTPROCESSING_OPS": [sort]},
+    ):
+        result = query_object.exec_post_processing(df)
+
+    # The built-in sort ran, not the raising custom op.
+    assert list(result["value"]) == [1, 2, 3]
+
+
+def test_post_processing_drops_unsupported_options():
+    """
+    An option that the operation no longer accepts is dropped, not passed on.
+
+    A chart saved by an older version of Superset stores `flatten_columns` in
+    the options of its `pivot` operation. `pivot` lost that parameter when
+    flattening became its own operation, so replaying the stored query_context
+    raised `TypeError: pivot() got an unexpected keyword argument
+    'flatten_columns'`.
+    """
+    query_object = QueryObject(
+        row_limit=1,
+        post_processing=[
+            {
+                "operation": "pivot",
+                "options": {
+                    "index": ["__timestamp"],
+                    "columns": ["genre"],
+                    "aggregates": {"count": {"operator": "mean"}},
+                    "drop_missing_columns": False,
+                    "flatten_columns": True,
+                    "reset_index": True,
+                },
+            }
+        ],
+    )
+
+    options = query_object.post_processing[0]["options"]
+    assert "flatten_columns" not in options
+    assert "reset_index" not in options
+    assert options["drop_missing_columns"] is False
+    assert options["index"] == ["__timestamp"]
+
+
+def test_post_processing_keeps_supported_options():
+    """Options the operation accepts are left alone."""
+    post_processing = [
+        {
+            "operation": "pivot",
+            "options": {"index": ["__timestamp"], "aggregates": {}},
+        }
+    ]
+    query_object = QueryObject(row_limit=1, post_processing=post_processing)
+
+    assert query_object.post_processing == post_processing
+
+
+def test_post_processing_keeps_unknown_operation():
+    """
+    An unknown operation is kept, so that `exec_post_processing` can report it
+    as an `InvalidPostProcessingError` rather than being silently dropped here.
+    """
+    query_object = QueryObject(
+        row_limit=1,
+        post_processing=[{"operation": "does_not_exist", "options": {"a": 1}}, None],
+    )
+
+    assert query_object.post_processing == [
+        {"operation": "does_not_exist", "options": {"a": 1}}
+    ]
+
+
+def test_post_processing_drops_the_dataframe_parameter():
+    """
+    The DataFrame parameter is not an option.
+
+    `exec_post_processing` calls `operation(df, **options)`, so an option named
+    after the first parameter would raise `TypeError: pivot() got multiple
+    values for argument 'df'`.
+    """
+    query_object = QueryObject(
+        row_limit=1,
+        post_processing=[
+            {
+                "operation": "pivot",
+                "options": {"df": "malformed", "index": ["a"], "aggregates": {}},
+            }
+        ],
+    )
+
+    options = query_object.post_processing[0]["options"]
+    assert "df" not in options
+    assert options["index"] == ["a"]
+
+
+def test_post_processing_keeps_options_of_a_variadic_operation():
+    """An operation that accepts `**kwargs` accepts every option."""
+
+    def variadic(df, **kwargs):
+        return df
+
+    post_processing = [{"operation": "variadic", "options": {"anything": 1}}]
+    with _as_builtin_op("variadic", variadic):
+        query_object = QueryObject(row_limit=1, post_processing=post_processing)
+
+    assert query_object.post_processing == post_processing
+
+
+def test_post_processing_drops_a_variadic_positional_option():
+    """
+    A `*args` parameter cannot be filled by a keyword argument.
+
+    `exec_post_processing` calls the operation as `operation(df, **options)`,
+    so an option named after a `*args` parameter would raise `TypeError:
+    variadic_positional() got an unexpected keyword argument 'args'` even
+    though the name appears in the signature.
+    """
+
+    def variadic_positional(df, *args, index=None):  # pylint: disable=unused-argument
+        return df
+
+    with _as_builtin_op("variadic_positional", variadic_positional):
+        query_object = QueryObject(
+            row_limit=1,
+            post_processing=[
+                {
+                    "operation": "variadic_positional",
+                    "options": {"args": [1], "index": ["a"]},
+                }
+            ],
+        )
+
+    options = query_object.post_processing[0]["options"]
+    assert "args" not in options
+    assert options["index"] == ["a"]
+
+
+def test_post_processing_keeps_an_entry_without_an_operation():
+    """
+    An entry that names no operation is kept, so that `exec_post_processing`
+    reports it as an `InvalidPostProcessingError`.
+    """
+    post_processing = [{"options": {"a": 1}}]
+    query_object = QueryObject(row_limit=1, post_processing=post_processing)
+
+    assert query_object.post_processing == post_processing

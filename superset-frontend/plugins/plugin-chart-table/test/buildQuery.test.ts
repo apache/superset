@@ -332,6 +332,90 @@ describe('plugin-chart-table', () => {
       });
     });
 
+    describe('Totals Aggregation', () => {
+      const simpleMetric = {
+        expressionType: 'SIMPLE' as const,
+        column: { column_name: 'sales' },
+        aggregate: 'SUM' as const,
+        label: 'sum_sales',
+      };
+
+      test("defaults to each metric's own aggregate", () => {
+        const { queries } = buildQueryCached({
+          ...basicFormData,
+          query_mode: QueryMode.Aggregate,
+          metrics: [simpleMetric],
+          groupby: ['category'],
+          show_totals: true,
+        });
+
+        expect(queries).toHaveLength(2);
+        expect(queries[1].metrics).toEqual([simpleMetric]);
+      });
+
+      test('keeps COUNT_DISTINCT in the summary row by default', () => {
+        // Overriding this to SUM sums the counted column instead of counting
+        // it, which is meaningless on a numeric id and is rejected outright by
+        // the database on a non-numeric one (e.g. a uuid).
+        const countDistinctMetric = {
+          expressionType: 'SIMPLE' as const,
+          column: { column_name: 'contract_id' },
+          aggregate: 'COUNT_DISTINCT' as const,
+          label: 'contracts',
+        };
+        const { queries } = buildQueryCached({
+          ...basicFormData,
+          query_mode: QueryMode.Aggregate,
+          metrics: [countDistinctMetric],
+          groupby: ['category'],
+          show_totals: true,
+        });
+
+        expect(queries[1].metrics).toEqual([countDistinctMetric]);
+      });
+
+      test('overrides simple metric aggregate with totals_aggregate for the summary query only', () => {
+        const { queries } = buildQueryCached({
+          ...basicFormData,
+          query_mode: QueryMode.Aggregate,
+          metrics: [simpleMetric],
+          groupby: ['category'],
+          show_totals: true,
+          totals_aggregate: 'AVG',
+        });
+
+        expect(queries).toHaveLength(2);
+        // Main query keeps the metric's own aggregation.
+        expect(queries[0].metrics).toEqual([simpleMetric]);
+        // Summary query uses the chosen totals aggregate instead.
+        expect(queries[1].metrics).toEqual([
+          { ...simpleMetric, aggregate: 'AVG' },
+        ]);
+      });
+
+      test('leaves custom SQL and saved metrics untouched in the summary query', () => {
+        const sqlMetric = {
+          expressionType: 'SQL' as const,
+          sqlExpression: 'COUNT(DISTINCT user_id)',
+          label: 'unique_users',
+        };
+        const { queries } = buildQueryCached({
+          ...basicFormData,
+          query_mode: QueryMode.Aggregate,
+          metrics: [simpleMetric, sqlMetric, 'saved_metric'],
+          groupby: ['category'],
+          show_totals: true,
+          totals_aggregate: 'AVG',
+        });
+
+        expect(queries[1].metrics).toEqual([
+          { ...simpleMetric, aggregate: 'AVG' },
+          sqlMetric,
+          'saved_metric',
+        ]);
+      });
+    });
+
     describe('Testing for server pagination with search filter', () => {
       const baseFormDataWithServerPagination: TableChartFormData = {
         ...basicFormData,

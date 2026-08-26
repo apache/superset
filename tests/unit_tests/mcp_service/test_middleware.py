@@ -39,12 +39,15 @@ from superset.mcp_service.constants import DEFAULT_MAX_LIST_ITEMS
 from superset.mcp_service.mcp_config import MCP_RESPONSE_SIZE_CONFIG
 from superset.mcp_service.middleware import (
     _is_user_error,
+    _sanitize_params,
     create_response_size_guard_middleware,
     GlobalErrorHandlerMiddleware,
     RBACToolVisibilityMiddleware,
     ResponseSizeGuardMiddleware,
     StructuredContentStripperMiddleware,
 )
+from superset.mcp_service.utils.token_utils import estimate_token_count
+from superset.utils import json as utils_json
 from superset.utils.log import DBEventLogger
 
 
@@ -470,6 +473,71 @@ class TestResponseSizeGuardMiddleware:
         assert isinstance(result, dict)
         assert result["_response_truncated"] is True
         assert len(result["data"]) < 200
+
+    @pytest.mark.asyncio
+    async def test_truncates_multi_query_chart_rows_across_whole_response(self) -> None:
+        """All query results share the response's token budget."""
+        middleware = ResponseSizeGuardMiddleware(token_limit=500)
+        context = MagicMock()
+        context.message.name = "get_chart_data"
+        context.message.arguments = {}
+        row = {f"col_{i}": f"value_{i}" for i in range(10)}
+        large_response = {
+            "chart_id": 1,
+            "data": [row] * 200,
+            "row_count": 200,
+            "query_results": [
+                {"query_index": 0, "data": [row] * 200, "row_count": 200},
+                {"query_index": 1, "data": [row] * 200, "row_count": 200},
+            ],
+        }
+        call_next = AsyncMock(return_value=large_response)
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger"),
+        ):
+            result = await middleware.on_call_tool(context, call_next)
+
+        assert isinstance(result, dict)
+        assert result["_response_truncated"] is True
+        assert all(query["data"] for query in result["query_results"])
+        returned_counts = [len(query["data"]) for query in result["query_results"]]
+        assert len(set(returned_counts)) == 1
+        assert returned_counts[0] < 200
+        assert [
+            query["row_count"] for query in result["query_results"]
+        ] == returned_counts
+
+    @pytest.mark.asyncio
+    async def test_multi_query_truncation_result_fits_budget(self) -> None:
+        """The final multi-query truncation note stays within the token budget."""
+        middleware = ResponseSizeGuardMiddleware(token_limit=700)
+        context = MagicMock()
+        context.message.name = "get_chart_data"
+        context.message.arguments = {}
+        row = {f"col_{i}": f"value_{i}" for i in range(10)}
+        response = {
+            "chart_id": 1,
+            "data": [row] * 200,
+            "row_count": 200,
+            "query_results": [
+                {"query_index": 0, "data": [row] * 200, "row_count": 200},
+                {"query_index": 1, "data": [row] * 200, "row_count": 200},
+            ],
+        }
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger"),
+        ):
+            result = await middleware.on_call_tool(
+                context, AsyncMock(return_value=response)
+            )
+
+        assert isinstance(result, dict)
+        assert estimate_token_count(utils_json.dumps(result)) <= 700
+        assert " of 400 rows returned" in result["_truncation_notes"][0]
 
     @pytest.mark.asyncio
     async def test_data_query_truncation_updates_row_count(self) -> None:
@@ -1313,6 +1381,106 @@ class TestGlobalErrorHandlerLogLevels:
 
         # Should log at ERROR (both the classification log and the error_id log)
         assert mock_logger.error.call_count >= 1
+
+    @pytest.mark.asyncio
+    async def test_value_error_message_is_sanitized(self) -> None:
+        """A ValueError's text reaches the client through _sanitize_error_for_logging.
+
+        ValueError is deliberately not in that sanitizer's generic-message
+        list (so LLM callers still get parameter feedback), but a connection
+        string embedded in the message must still be redacted, not returned
+        verbatim.
+        """
+        middleware = GlobalErrorHandlerMiddleware()
+
+        context = MagicMock()
+        context.message.name = "execute_sql"
+        context.method = "tools/call"
+
+        call_next = AsyncMock(
+            side_effect=ValueError(
+                "Invalid config: postgresql://admin:hunter2@db.internal/prod"
+            )
+        )
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger"),
+            patch("superset.mcp_service.middleware.logger"),
+        ):
+            with pytest.raises(ToolError) as exc_info:
+                await middleware.on_message(context, call_next)
+
+        message = str(exc_info.value)
+        assert "hunter2" not in message
+        assert "db.internal" not in message
+        assert "Invalid config" in message
+
+    @pytest.mark.asyncio
+    async def test_http_exception_detail_is_sanitized(self) -> None:
+        """HTTPException.detail reaches the client through
+        _sanitize_error_for_logging instead of being interpolated raw."""
+        from starlette.exceptions import HTTPException
+
+        middleware = GlobalErrorHandlerMiddleware()
+
+        context = MagicMock()
+        context.message.name = "get_chart_preview"
+        context.method = "tools/call"
+
+        call_next = AsyncMock(
+            side_effect=HTTPException(
+                status_code=502,
+                detail="Upstream failed: postgresql://admin:hunter2@db.internal/prod",
+            )
+        )
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger"),
+            patch("superset.mcp_service.middleware.logger"),
+        ):
+            with pytest.raises(ToolError) as exc_info:
+                await middleware.on_message(context, call_next)
+
+        message = str(exc_info.value)
+        assert "hunter2" not in message
+        assert "db.internal" not in message
+        assert "Upstream failed" in message
+
+
+class TestSanitizeParams:
+    """Tests for _sanitize_params's recursion into nested containers."""
+
+    def test_redacts_top_level_sensitive_key(self) -> None:
+        result = _sanitize_params({"password": "hunter2", "name": "alice"})
+        assert result["password"] == "[REDACTED]"  # noqa: S105
+        assert result["name"] == "alice"
+
+    def test_redacts_sensitive_key_nested_under_arguments(self) -> None:
+        result = _sanitize_params({"arguments": {"password": "hunter2"}})
+        assert result["arguments"]["password"] == "[REDACTED]"  # noqa: S105
+
+    def test_redacts_sensitive_key_nested_under_request(self) -> None:
+        """Any nested dict wrapper is redacted, not just the literal
+        'arguments' key -- Pydantic-request tools wrap params under 'request'."""
+        result = _sanitize_params({"request": {"password": "hunter2"}})
+        assert result["request"]["password"] == "[REDACTED]"  # noqa: S105
+
+    def test_redacts_sensitive_key_inside_list_of_dicts(self) -> None:
+        result = _sanitize_params({"items": [{"token": "abc123"}, {"name": "x"}]})
+        assert result["items"][0]["token"] == "[REDACTED]"  # noqa: S105
+        assert result["items"][1]["name"] == "x"
+
+    def test_redacts_sensitive_key_inside_nested_list_of_lists(self) -> None:
+        """A list nested inside another list must still be recursed into,
+        not copied unchanged -- otherwise a sensitive key inside it would
+        reach the audit log unredacted."""
+        result = _sanitize_params({"items": [[{"password": "hunter2"}]]})
+        assert result["items"][0][0]["password"] == "[REDACTED]"  # noqa: S105
+
+    def test_non_dict_passthrough(self) -> None:
+        assert _sanitize_params("not-a-dict") == "not-a-dict"  # type: ignore[arg-type]
 
     @pytest.mark.asyncio
     async def test_event_logger_includes_severity(self) -> None:

@@ -43,6 +43,7 @@ import { isEmbedded } from 'src/dashboard/util/isEmbedded';
 import { Tooltip, EditableTitle, Icons } from '@superset-ui/core/components';
 import { useSelector } from 'react-redux';
 import SliceHeaderControls from 'src/dashboard/components/SliceHeaderControls';
+import { useIsMobile } from 'src/hooks/useIsMobile';
 import { SliceHeaderControlsProps } from 'src/dashboard/components/SliceHeaderControls/types';
 import MemoizedFiltersBadge from 'src/dashboard/components/FiltersBadge';
 import MemoizedCustomizationsBadge from 'src/dashboard/components/CustomizationsBadge';
@@ -229,7 +230,9 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
               0,
           );
 
-    const canExplore = !editMode && supersetCanExplore;
+    // Consumption-only mobile mode: no explore link, no chart controls
+    const isMobile = useIsMobile();
+    const canExplore = !editMode && supersetCanExplore && !isMobile;
     const showRowLimitWarning =
       shouldShowRowLimitWarning && sqlRowCount >= rowLimit && rowLimit > 0;
 
@@ -355,7 +358,7 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
                   }
                 />
               )}
-              {!uiConfig.hideChartControls && (
+              {!uiConfig.hideChartControls && !isMobile && (
                 <SliceHeaderControls
                   slice={slice}
                   isCached={isCached}

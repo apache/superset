@@ -31,6 +31,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import joinedload, subqueryload
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
+from superset.charts.data.form_data import set_query_context_form_data
 from superset.commands.exceptions import CommandException
 from superset.exceptions import OAuth2Error, OAuth2RedirectError, SupersetException
 from superset.extensions import event_logger
@@ -309,6 +310,8 @@ async def query_dataset(  # noqa: C901
                 force=not request.use_cache or request.force_refresh,
                 custom_cache_timeout=request.cache_timeout,
             )
+
+            set_query_context_form_data(query_context, dataset.id, "table")
 
             command = ChartDataCommand(query_context)
             command.validate()

@@ -47,12 +47,42 @@ import FAQSchema from '@site/src/components/FAQSchema';
         'You need to register a free account at Mapbox.com, obtain an API key, and add it to your .env file at the key MAPBOX_API_KEY.',
     },
     {
+      question: 'How to limit the timed refresh on a dashboard?',
+      answer:
+        'To exclude specific slices from the timed refresh process, add the timed_refresh_immune_slices key to the dashboard JSON Metadata field with the slice IDs to exclude.',
+    },
+    {
+      question: "Why does 'flask fab' or Superset freeze, hang, or not respond when started (my home directory is NFS mounted)?",
+      answer:
+        'By default, Superset creates and uses an SQLite database at ~/.superset/superset.db. SQLite is known to not work well if used on NFS due to broken file locking. Override the path with the SUPERSET_HOME environment variable or change SQLALCHEMY_DATABASE_URI in superset_config.py.',
+    },
+    {
+      question: 'What if the table schema changed?',
+      answer:
+        'Go to Data -> Datasets, click the edit icon next to the dataset whose schema has changed, and hit Sync columns from source from the Columns tab. The new columns will get merged.',
+    },
+    {
       question: 'What database engine can I use as a backend for Superset?',
       answer:
         'Superset is tested using MySQL, PostgreSQL, and SQLite backends for storing its internal metadata. While Superset supports many databases as data sources, only these are recommended for the metadata store in production.',
     },
     {
-      question: 'Does Superset work with my database?',
+      question: 'How can I configure OAuth authentication and authorization?',
+      answer:
+        'Take a look at the Flask-AppBuilder OAuth configuration example, which shows how to configure OAuth authentication and authorization in Superset.',
+    },
+    {
+      question: 'Is there a way to force the dashboard to use specific colors?',
+      answer:
+        'It is possible on a per-dashboard basis by providing a mapping of labels to colors in the JSON Metadata attribute using the label_colors key. You can use a full hex color, a named color, or the index in the current color palette.',
+    },
+    {
+      question: 'How do I expand all chart descriptions on a dashboard by default?',
+      answer:
+        'Add the expand_all_slices key to the dashboard JSON Metadata field with a value of true. Charts that have already been manually expanded or collapsed keep that per-chart override regardless of the setting.',
+    },
+    {
+      question: 'Does Superset work with [insert database engine here]?',
       answer:
         'Superset supports any database with a Python SQLAlchemy dialect and DBAPI driver. Check the Connecting to Databases documentation for the full list of supported databases.',
     },
@@ -62,14 +92,29 @@ import FAQSchema from '@site/src/components/FAQSchema';
         'Yes, Superset has a public REST API documented using Swagger. Enable FAB_API_SWAGGER_UI in superset_config.py to access interactive API documentation at /swagger/v1.',
     },
     {
+      question: 'How can I see usage statistics (e.g., monthly active users)?',
+      answer:
+        'This functionality is not included with Superset, but you can extract and analyze the logs table in Superset\u2019s metadata database to see what actions have occurred.',
+    },
+    {
+      question: 'What does Hours Offset in the Edit Dataset view do?',
+      answer:
+        'In the Edit Dataset view, the hours offset lets you configure the number of hours to be added or subtracted from the time column. This can be used, for example, to convert UTC time to local time.',
+    },
+    {
       question: 'Does Superset collect any telemetry data?',
       answer:
         'Superset uses Scarf by default to collect basic telemetry data to help maintainers understand version usage. Users can opt out by setting the SCARF_ANALYTICS environment variable to false.',
     },
     {
-      question: 'Does Superset have a trash bin to recover deleted assets?',
+      question: 'Does Superset have an archive panel or trash bin from which a user can recover deleted assets?',
       answer:
-        'No, there is no built-in way to recover deleted dashboards, charts, or datasets. It is recommended to take periodic backups of the metadata database and use export functionality for recovery.',
+        'No. Currently, there is no way to recover a deleted Superset dashboard, chart, dataset, or database from the UI. It is recommended to take periodic backups of the metadata database and use export functionality for recovery.',
+    },
+    {
+      question: 'I ran a security scan of the Superset container image and it showed dozens of "high" and "critical" vulnerabilities! Can you release a version of Superset without these?',
+      answer:
+        'These are dependency CVEs in software that Superset uses, mostly in the Linux kernel or Python. Superset addresses them by regularly updating dependencies and welcomes pull requests that fix dependency CVEs. The Superset security team focuses primarily on vulnerabilities in Superset itself.',
     },
   ]}
 />
@@ -214,8 +259,7 @@ frontend falls back to a built-in default of `5000` milliseconds.
 SUPERSET_DASHBOARD_MANUAL_REFRESH_STAGGER_MS = 0
 ```
 
-**Why does ‘flask fab’ or superset freeze/hang/not responding when started (my home directory is
-NFS mounted)?**
+## Why does `flask fab` or Superset freeze, hang, or not respond when started (my home directory is NFS mounted)?
 
 By default, Superset creates and uses an SQLite database at `~/.superset/superset.db`. SQLite is
 known to [not work well if used on NFS](https://www.sqlite.org/lockingv3.html) due to broken file

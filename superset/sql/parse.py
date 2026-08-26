@@ -1407,16 +1407,27 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         """
         Modify the `LIMIT` or `TOP` value of the SQL statement inplace.
         """
+        # Only query expressions -- `SELECT`, `UNION`, subqueries -- can carry a
+        # limit. Everything else (`SHOW`, `DESCRIBE`, `SET`, `USE`, `GRANT`, and
+        # anything sqlglot falls back to parsing as an opaque `Command`) has no
+        # `LIMIT` slot, so it is left untouched.
+        #
+        # `apply_limit()` only skips *mutating* statements, so read-only metadata
+        # statements do reach this method. Forcing a limit into one rewrites it
+        # into something the engine never asked for: on MySQL/StarRocks a `SHOW`
+        # renders with two `LIMIT` keywords and is rejected outright ("Getting
+        # syntax error ... Unexpected input 'LIMIT'"), and `WRAP_SQL` buries it
+        # in `SELECT * FROM (SHOW DATABASES)`. Dialects that would render a
+        # valid `SHOW ... LIMIT` are skipped too: `SHOW` returns bounded
+        # metadata, so there is nothing to truncate.
+        #
+        # The guard is on the node category rather than an `exp.Show`
+        # special-case so it holds for every non-query statement, including ones
+        # whose generators may learn to render a `limit` arg in a later sqlglot.
+        if not isinstance(self._parsed, exp.Query):
+            return
+
         if method == LimitMethod.FORCE_LIMIT:
-            # `SHOW` statements (`SHOW TABLES`, `SHOW DATABASES`, `SHOW CREATE
-            # TABLE`, etc.) have no meaningful `LIMIT` slot to force. On
-            # MySQL/StarRocks, writing one renders a malformed statement with
-            # two `LIMIT` keywords that the engine rejects outright; on dialects
-            # like Snowflake it would render a valid `SHOW ... LIMIT`, but SHOW
-            # returns bounded metadata, so we skip it uniformly rather than
-            # special-case per dialect. Leave them untouched.
-            if isinstance(self._parsed, exp.Show):
-                return
             self._parsed.args["limit"] = exp.Limit(
                 expression=exp.Literal(this=str(limit), is_string=False)
             )
@@ -1438,6 +1449,18 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         :return: True if the statement has a CTE at the top level.
         """
         return bool(self._parsed.args.get("with_"))
+
+    def remove_unbounded_top_level_order_by(self) -> bool:
+        """Drop ordering that becomes invalid when this query is embedded."""
+        if (
+            self._parsed.args.get("order")
+            and not self._parsed.args.get("limit")
+            and not self._parsed.args.get("offset")
+            and not self._parsed.args.get("for_")
+        ):
+            self._parsed.set("order", None)
+            return True
+        return False
 
     def as_cte(self, alias: str = "__cte") -> SQLStatement:
         """
