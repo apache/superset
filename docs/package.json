@@ -60,7 +60,7 @@
     "@saucelabs/theme-github-codeblock": "^0.3.0",
     "@storybook/addon-docs": "^10.5.9",
     "@superset-ui/core": "^0.20.4",
-    "@swc/core": "^1.16.0",
+    "@swc/core": "^1.16.1",
     "antd": "^6.6.1",
     "baseline-browser-mapping": "^2.11.15",
     "caniuse-lite": "^1.0.30001809",
@@ -78,7 +78,7 @@
     "remark-import-partial": "^0.0.2",
     "reselect": "^5.2.0",
     "storybook": "^10.5.9",
-    "swagger-ui-react": "^5.32.13",
+    "swagger-ui-react": "^5.32.14",
     "swc-loader": "^0.2.7",
     "tinycolor2": "^1.4.2",
     "unist-util-visit": "^5.1.0"
@@ -94,7 +94,7 @@
     "eslint": "^9.39.2",
     "eslint-plugin-react": "^7.37.5",
     "globals": "^17.11.0",
-    "oxfmt": "^0.63.0",
+    "oxfmt": "^0.64.0",
     "typescript": "~6.0.3",
     "typescript-eslint": "^8.67.0",
     "webpack": "^5.109.2"
