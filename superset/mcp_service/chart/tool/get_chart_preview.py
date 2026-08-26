@@ -51,10 +51,6 @@ from superset.mcp_service.chart.schemas import (
     URLPreview,
     VegaLitePreview,
 )
-from superset.mcp_service.utils import (
-    escape_llm_context_delimiters,
-    sanitize_for_llm_context,
-)
 from superset.mcp_service.utils.oauth2_utils import (
     build_oauth2_redirect_message,
     OAUTH2_CONFIG_ERROR_MESSAGE,
@@ -63,78 +59,6 @@ from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.superset_typing import Column, Metric
 
 logger = logging.getLogger(__name__)
-
-
-def _sanitize_preview_content_for_llm_context(content: dict[str, Any]) -> None:
-    """Wrap string-bearing preview content while preserving routing fields."""
-    content_type = content.get("type")
-
-    if content_type == "ascii":
-        content["ascii_content"] = sanitize_for_llm_context(
-            content.get("ascii_content"),
-            field_path=("content", "ascii_content"),
-        )
-        return
-
-    if content_type == "table":
-        content["table_data"] = sanitize_for_llm_context(
-            content.get("table_data"),
-            field_path=("content", "table_data"),
-        )
-        return
-
-    if content_type == "interactive":
-        content["html_content"] = sanitize_for_llm_context(
-            content.get("html_content"),
-            field_path=("content", "html_content"),
-        )
-        return
-
-    if content_type != "vega_lite":
-        return
-
-    specification = content.get("specification")
-    if not isinstance(specification, dict):
-        return
-
-    if "description" in specification:
-        specification["description"] = sanitize_for_llm_context(
-            specification.get("description"),
-            field_path=("content", "specification", "description"),
-        )
-
-    data = specification.get("data")
-    if isinstance(data, dict) and (values := data.get("values")) is not None:
-        data["values"] = sanitize_for_llm_context(
-            values,
-            field_path=("content", "specification", "data", "values"),
-            excluded_field_names=frozenset(),
-        )
-
-
-def _sanitize_chart_preview_for_llm_context(
-    chart_preview: ChartPreview,
-) -> ChartPreview:
-    """Wrap chart preview read-path descriptive fields before LLM exposure."""
-    payload = chart_preview.model_dump(mode="python")
-
-    for field_name in ("chart_name", "chart_description"):
-        payload[field_name] = sanitize_for_llm_context(
-            payload.get(field_name),
-            field_path=(field_name,),
-        )
-
-    if accessibility := payload.get("accessibility"):
-        accessibility["alt_text"] = sanitize_for_llm_context(
-            accessibility.get("alt_text"),
-            field_path=("accessibility", "alt_text"),
-        )
-
-    content = payload.get("content")
-    if isinstance(content, dict):
-        _sanitize_preview_content_for_llm_context(content)
-
-    return ChartPreview.model_validate(payload)
 
 
 class ChartLike(Protocol):
@@ -1267,9 +1191,9 @@ async def _get_chart_preview_internal(  # noqa: C901
                 )
             else:
                 recovery = "Use list_charts to get valid chart IDs."
-            safe_id = escape_llm_context_delimiters(str(request.identifier)[:200])
+            display_id = str(request.identifier)[:200]
             return ChartError(
-                error=f"No chart found with identifier: {safe_id}. {recovery}",
+                error=f"No chart found with identifier: {display_id}. {recovery}",
                 error_type="NotFound",
             )
 
@@ -1428,7 +1352,7 @@ async def _get_chart_preview_internal(  # noqa: C901
             performance=performance,
         )
 
-        return _sanitize_chart_preview_for_llm_context(result)
+        return result
 
     except SQLAlchemyError as e:
         # Catch DetachedInstanceError and other SQLAlchemy errors that can

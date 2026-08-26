@@ -15,12 +15,16 @@
 # specific language governing permissions and limitations
 # under the License.
 
+import pandas as pd
 import pytest
 from flask import current_app
 from marshmallow import ValidationError
+from pytest_mock import MockerFixture
 
 from superset.charts.schemas import (
+    ChartDataAdhocMetricSchema,
     ChartDataExtrasSchema,
+    ChartDataPostProcessingOperationSchema,
     ChartDataProphetOptionsSchema,
     ChartDataQueryObjectSchema,
     ChartDataResponseResult,
@@ -480,18 +484,95 @@ def test_chart_data_extras_rejects_system_sampling(app_context: None) -> None:
     assert "system_sampling" in exc_info.value.messages
 
 
+def _no_config_app(mocker: MockerFixture) -> None:
+    """Make ``current_app.config`` raise as it does outside an app context."""
+    app = mocker.MagicMock()
+    type(app).config = mocker.PropertyMock(
+        side_effect=RuntimeError("Working outside of application context.")
+    )
+    mocker.patch("superset.charts.schemas.current_app", app)
+
+
+def test_post_processing_builtin_op_does_not_read_config(
+    mocker: MockerFixture,
+) -> None:
+    """A built-in operation validates without dereferencing ``current_app``.
+
+    Chart query schemas are loaded in places that have no app context (for
+    example OpenAPI spec generation), so validating a built-in must not depend
+    on one.
+    """
+    _no_config_app(mocker)
+    schema = ChartDataPostProcessingOperationSchema()
+
+    assert schema.load({"operation": "aggregate"})["operation"] == "aggregate"
+
+
+def test_post_processing_unknown_op_outside_app_context(
+    mocker: MockerFixture,
+) -> None:
+    """Outside an app context an unknown operation is a ValidationError.
+
+    The missing config is treated as "no extra ops registered" rather than
+    surfacing a RuntimeError to the caller.
+    """
+    _no_config_app(mocker)
+    schema = ChartDataPostProcessingOperationSchema()
+
+    with pytest.raises(ValidationError) as exc_info:
+        schema.load({"operation": "not_a_real_op"})
+    assert "operation" in exc_info.value.messages
+
+
+def _custom_op(df: pd.DataFrame, **options: object) -> pd.DataFrame:
+    """Named callable registered as an extra op — used in tests only."""
+    return df
+
+
+@pytest.mark.parametrize(
+    "app",
+    [{"EXTRA_PANDAS_POSTPROCESSING_OPS": [_custom_op]}],
+    indirect=True,
+)
+def test_post_processing_extra_op_is_accepted(app_context: None) -> None:
+    """An op registered via EXTRA_PANDAS_POSTPROCESSING_OPS validates by name."""
+    schema = ChartDataPostProcessingOperationSchema()
+
+    assert schema.load({"operation": "_custom_op"})["operation"] == "_custom_op"
+
+
+@pytest.mark.parametrize("aggregate", ["MEDIAN", "STDDEV_SAMP", "VAR_SAMP"])
+def test_chart_data_adhoc_metric_schema_accepts_extended_aggregates(
+    app_context: None, aggregate: str
+) -> None:
+    """
+    The chart-data REST schema's ``aggregate`` enum must stay in sync with
+    ``EXTENDED_METRIC_AGGREGATES``, otherwise Swagger/generated clients
+    reject requests using these compiler-supported aggregates.
+    """
+    schema = ChartDataAdhocMetricSchema()
+    result = schema.load(
+        {
+            "expressionType": "SIMPLE",
+            "aggregate": aggregate,
+            "column": {"column_name": "value"},
+        }
+    )
+    assert result["aggregate"] == aggregate
+
+
 def test_post_processing_option_schemas_match_their_functions(
     app_context: None,
 ) -> None:
     """Every documented post-processing option must be a real parameter.
 
-    `QueryObject.exec_post_processing` dispatches with
-    `getattr(pandas_postprocessing, operation)(df, **options)`, and the
-    per-operation `options` dict is passed through unvalidated. So a field
-    that appears in one of these schemas but not in the corresponding
-    function signature is published in the OpenAPI spec as a valid option
-    while raising `TypeError: <op>() got an unexpected keyword argument` --
-    an HTTP 500 -- for any client that sends it.
+    `QueryObject.exec_post_processing` resolves the operation and calls it as
+    `func(df, **options)`, and the per-operation `options` dict is passed
+    through unvalidated. So a field that appears in one of these schemas but
+    not in the corresponding function signature is published in the OpenAPI
+    spec as a valid option while raising
+    `TypeError: <op>() got an unexpected keyword argument` -- an HTTP 500 --
+    for any client that sends it.
 
     `ChartDataSortOptionsSchema` documented a required `columns` dict and an
     `aggregates` field, neither of which `sort()` accepts, and

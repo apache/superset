@@ -272,6 +272,7 @@ def mock_dimensions() -> list[Dimension]:
             definition="orders.order_date",
             description="Date of the order",
             grain=Grains.DAY,
+            verbose_name="Order date",
         ),
         Dimension(
             id="products.category",
@@ -280,6 +281,7 @@ def mock_dimensions() -> list[Dimension]:
             definition="products.category",
             description="Product category",
             grain=None,
+            verbose_name="Category",
         ),
     ]
 
@@ -294,6 +296,8 @@ def mock_metrics() -> list[Metric]:
             type=pa.float64(),
             definition="SUM(orders.amount)",
             description="Total revenue",
+            verbose_name="Total revenue",
+            d3format="$,.2f",
         ),
         Metric(
             id="orders.count",
@@ -301,6 +305,8 @@ def mock_metrics() -> list[Metric]:
             type=pa.int64(),
             definition="COUNT(*)",
             description="Number of orders",
+            verbose_name="Order count",
+            d3format=",.0f",
         ),
     ]
 
@@ -481,7 +487,9 @@ def test_semantic_view_metrics(
         assert len(metrics) == 2
         assert metrics[0].metric_name == "revenue"
         assert metrics[0].expression == "SUM(orders.amount)"
+        assert metrics[0].verbose_name == "Total revenue"
         assert metrics[0].description == "Total revenue"
+        assert metrics[0].d3format == "$,.2f"
         assert metrics[1].metric_name == "order_count"
 
 
@@ -502,10 +510,12 @@ def test_semantic_view_columns(
         assert columns[0].column_name == "order_date"
         assert columns[0].type == "date32[day]"
         assert columns[0].is_dttm is True
+        assert columns[0].verbose_name == "Order date"
         assert columns[0].description == "Date of the order"
         assert columns[1].column_name == "category"
         assert columns[1].type == "string"
         assert columns[1].is_dttm is False
+        assert columns[1].verbose_name == "Category"
 
 
 def test_semantic_view_column_names(
@@ -632,15 +642,32 @@ def test_semantic_view_data(
         assert data["columns"][0]["type"] == "date32[day]"
         assert data["columns"][0]["is_dttm"] is True
         assert data["columns"][0]["type_generic"] == GenericDataType.TEMPORAL
+        assert data["columns"][0]["verbose_name"] == "Order date"
         assert data["columns"][1]["column_name"] == "category"
         assert data["columns"][1]["type"] == "string"
         assert data["columns"][1]["type_generic"] == GenericDataType.STRING
+        assert data["columns"][1]["verbose_name"] == "Category"
 
         # Check metrics
         assert len(data["metrics"]) == 2
         assert data["metrics"][0]["metric_name"] == "revenue"
         assert data["metrics"][0]["expression"] == "SUM(orders.amount)"
+        assert data["metrics"][0]["verbose_name"] == "Total revenue"
+        assert data["metrics"][0]["d3format"] == "$,.2f"
         assert data["metrics"][1]["metric_name"] == "order_count"
+        assert data["metrics"][1]["verbose_name"] == "Order count"
+        assert data["metrics"][1]["d3format"] == ",.0f"
+
+        assert data["verbose_map"] == {
+            "revenue": "Total revenue",
+            "order_count": "Order count",
+            "order_date": "Order date",
+            "category": "Category",
+        }
+        assert data["column_formats"] == {
+            "revenue": "$,.2f",
+            "order_count": ",.0f",
+        }
 
         # Check column_types and column_names
         assert data["column_types"] == [
@@ -1071,6 +1098,90 @@ def test_semantic_layer_get_perm_special_characters() -> None:
         layer.get_perm()
         == "[Layer [with] (parens)](id:11111111111111111111111111111111)"
     )
+
+
+# =============================================================================
+# SemanticLayer.raise_for_access tests
+# =============================================================================
+
+
+def test_semantic_layer_raise_for_access_all_datasources(app: Any) -> None:
+    """Test raise_for_access passes when user has all_datasource_access."""
+    from superset import security_manager
+
+    layer = SemanticLayer()
+    layer.name = "Layer"
+    layer.uuid = uuid.UUID("abcdef12-3456-7890-abcd-ef1234567890")
+    layer.perm = layer.get_perm()
+
+    with patch.object(
+        security_manager, "can_access_all_datasources", return_value=True
+    ):
+        layer.raise_for_access()
+
+
+def test_semantic_layer_raise_for_access_perm(app: Any) -> None:
+    """Test raise_for_access passes when user has datasource_access to the
+    layer's perm."""
+    from superset import security_manager
+
+    layer = SemanticLayer()
+    layer.name = "Layer"
+    layer.uuid = uuid.UUID("abcdef12-3456-7890-abcd-ef1234567890")
+    layer.perm = layer.get_perm()
+
+    with (
+        patch.object(
+            security_manager, "can_access_all_datasources", return_value=False
+        ),
+        patch.object(
+            security_manager, "can_access", return_value=True
+        ) as mock_can_access,
+    ):
+        layer.raise_for_access()
+        mock_can_access.assert_called_once_with("datasource_access", layer.perm)
+
+
+def test_semantic_layer_raise_for_access_denied(app: Any) -> None:
+    """Test raise_for_access raises SupersetSecurityException when denied."""
+    from superset import security_manager
+    from superset.exceptions import SupersetSecurityException
+
+    layer = SemanticLayer()
+    layer.name = "Layer"
+    layer.uuid = uuid.UUID("abcdef12-3456-7890-abcd-ef1234567890")
+    layer.perm = layer.get_perm()
+
+    with (
+        patch.object(
+            security_manager, "can_access_all_datasources", return_value=False
+        ),
+        patch.object(security_manager, "can_access", return_value=False),
+    ):
+        with pytest.raises(SupersetSecurityException):
+            layer.raise_for_access()
+
+
+def test_semantic_layer_raise_for_access_no_perm_denied(app: Any) -> None:
+    """Test raise_for_access raises SupersetSecurityException when the layer
+    has no perm set, without even attempting a datasource_access check."""
+    from superset import security_manager
+    from superset.exceptions import SupersetSecurityException
+
+    layer = SemanticLayer()
+    layer.name = "Layer"
+    layer.uuid = uuid.UUID("abcdef12-3456-7890-abcd-ef1234567890")
+    layer.perm = None
+
+    with (
+        patch.object(
+            security_manager, "can_access_all_datasources", return_value=False
+        ),
+        patch.object(security_manager, "can_access") as mock_can_access,
+    ):
+        with pytest.raises(SupersetSecurityException):
+            layer.raise_for_access()
+        mock_can_access.assert_not_called()
 
 
 # =============================================================================

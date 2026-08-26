@@ -379,9 +379,9 @@ export function handleChartDelete(
       else refreshData();
       addSuccessToast(deletedToast(sliceName));
     },
-    () => {
-      addDangerToast(deleteFailedToast(sliceName));
-    },
+    createErrorHandler(errMsg =>
+      addDangerToast(deleteFailedToast(sliceName, errMsg)),
+    ),
   );
 }
 
@@ -482,6 +482,18 @@ export const CardStyles = styled.div`
     height: 168px;
   }
 `;
+
+/**
+ * Cards make their whole surface clickable, but `ListViewCard` also renders its
+ * cover as a router `<Link>`. A click on the cover is therefore handled twice —
+ * once by the link and once by the card wrapper — pushing two identical history
+ * entries for a single click, so the Back button only pops the duplicate and
+ * leaves the user on the page they tried to leave. Let the link win in that case.
+ */
+export const isNavigationHandledByLink = (event: {
+  target: EventTarget | null;
+}): boolean =>
+  Boolean((event.target as HTMLElement | null)?.closest?.('a[href]'));
 
 export /* eslint-disable no-underscore-dangle */
 const isNeedsPassword = (payload: any) =>
