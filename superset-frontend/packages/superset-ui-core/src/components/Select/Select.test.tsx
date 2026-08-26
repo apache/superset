@@ -1425,6 +1425,48 @@ test('stableSelectAll "Clear" count matches the action for a selected <NULL> val
   }
 });
 
+test('stableSelectAll does not read a normal selection as the "Select all" sentinel while searching', async () => {
+  jest.useFakeTimers({ advanceTimers: true });
+  try {
+    // Pre-select four values, then search so exactly three eligible options are
+    // visible: selectValue.length (4) === selectAllEligible.length (3) + 1 — the
+    // coincidence that used to flip selectAllMode true. stableSelectAll adds real
+    // values with no phantom "Select all" slot, so the collapsed-tag count must
+    // not subtract one for a sentinel that does not exist.
+    render(
+      <Select
+        {...defaultProps}
+        options={STABLE_OPTIONS}
+        mode="multiple"
+        stableSelectAll
+        maxTagCount={2}
+        value={[
+          { label: 'Apple', value: 1 },
+          { label: 'Apricot', value: 2 },
+          { label: 'Banana', value: 3 },
+          { label: 'Blueberry', value: 4 },
+        ]}
+      />,
+    );
+    const select = getSelect();
+    userEvent.click(select);
+
+    await userEvent.type(select, 'erry');
+    act(() => {
+      jest.advanceTimersByTime(Constants.FAST_DEBOUNCE + 50);
+    });
+    // Blueberry, Cherry, Cranberry match "erry".
+    await waitFor(() => expect(getAllSelectOptions().length).toBe(3));
+
+    // Four selected, two shown → two hidden. The overflow badge must report
+    // "+ 2 ...", not the sentinel-undercounted "+ 1 ...".
+    expect(screen.getByText('+ 2 ...')).toBeInTheDocument();
+    expect(screen.queryByText('+ 1 ...')).not.toBeInTheDocument();
+  } finally {
+    jest.useRealTimers();
+  }
+});
+
 test('dropdown takes full width of the select input for multi select', async () => {
   render(
     <div style={{ width: '400px' }}>

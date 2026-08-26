@@ -345,8 +345,15 @@ const Select = forwardRef(
     );
 
     const selectAllMode = useMemo(
-      () => ensureIsArray(selectValue).length === selectAllEligible.length + 1,
-      [selectValue, selectAllEligible],
+      () =>
+        // stableSelectAll adds real values across the full column with no legacy
+        // "Select all" sentinel occupying a slot in selectValue, so the
+        // eligible+1 phantom detection does not apply. Force it off so a search
+        // that narrows selectAllEligible cannot make a normal selection read as
+        // the sentinel (which drives the collapsed-tag off-by-one).
+        !stableSelectAll &&
+        ensureIsArray(selectValue).length === selectAllEligible.length + 1,
+      [selectValue, selectAllEligible, stableSelectAll],
     );
 
     const bulkSelectCounts = useMemo(() => {
