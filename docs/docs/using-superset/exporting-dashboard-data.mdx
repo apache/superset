@@ -67,7 +67,11 @@ This feature is **disabled by default**. It requires:
    `pip install apache-superset[excel-export]` (boto3) for `S3ExportStorage`,
    or `pip install apache-superset[excel-export-gcs]` (google-cloud-storage)
    for `GCSExportStorage`. Without it, exports fail and the user receives a
-   failure email.
+   failure email. For `GCSExportStorage` with token-only Application Default
+   Credentials (GKE workload identity, GCE metadata, Cloud Run), signed
+   download URLs are minted through the IAM signBlob API, which requires the
+   service account to hold `roles/iam.serviceAccountTokenCreator` on itself;
+   key-file credentials sign locally and need no extra role.
 3. **A running Celery worker.** The export runs as a Celery task. If no worker
    is running, the request is accepted but nothing is produced.
 4. **A configured SMTP transport.** The download link is delivered by email

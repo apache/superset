@@ -1561,9 +1561,8 @@ EXPORT_STORAGE: ExportStorageConfig = {
 # Lifetime (seconds) of the download link emailed to the user (24h). Not part
 # of ExportStorageConfig: it bounds the Superset-issued redirect link
 # itself (see superset.dashboards.excel_export.download_link), independent of
-# how long the underlying storage backend's own credentials or URLs last.
-# Note: AWS S3 caps pre-signed URL lifetime at 7 days (604800 seconds), so
-# keep this at or below that when using the default S3 backend.
+# how long the underlying storage backend's own credentials or URLs last --
+# the storage URL is minted fresh at click time with its own short lifetime.
 EXCEL_EXPORT_LINK_TTL_SECONDS = 86400
 # Viz types treated as tables in the "Export Images to Excel" mode: these charts
 # stay tabular (one worksheet of data) while every other viz type is embedded as

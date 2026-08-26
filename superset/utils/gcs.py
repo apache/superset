@@ -23,7 +23,10 @@ Set ``EXPORT_STORAGE["backend"] = GCSExportStorage()`` in
 bucket). Authentication uses Application Default Credentials (a
 service account key, workload identity, etc.) via the standard
 ``google-cloud-storage`` resolution chain -- there is no separate credential
-config here.
+config here. Signed download URLs from token-only credentials (workload
+identity, GCE metadata, Cloud Run) are routed through the IAM signBlob API,
+which requires ``roles/iam.serviceAccountTokenCreator`` on the service
+account itself.
 """
 
 from __future__ import annotations
@@ -71,14 +74,34 @@ class GCSExportStorage:
         """
         Generate a time-limited signed URL for downloading a GCS object.
 
+        Token-only Application Default Credentials (GKE workload identity, GCE
+        metadata, Cloud Run) carry no private key, so local V4 signing raises.
+        For those, route the signature through the IAM signBlob API by passing
+        ``service_account_email`` and ``access_token``; the service account
+        needs ``roles/iam.serviceAccountTokenCreator`` on itself.
+
         :param bucket: The GCS bucket
         :param key: The GCS blob name
         :param expires_in: URL lifetime in seconds
         :returns: A v4 signed URL
         """
+        # pylint: disable=import-outside-toplevel
+        import google.auth
+        from google.auth import credentials as auth_credentials
+        from google.auth.transport import requests as auth_requests
+
         blob = _get_client().bucket(bucket).blob(key)
+        signing_kwargs: dict[str, Any] = {}
+        credentials, _ = google.auth.default()
+        if not isinstance(credentials, auth_credentials.Signing):
+            credentials.refresh(auth_requests.Request())
+            signing_kwargs = {
+                "service_account_email": credentials.service_account_email,
+                "access_token": credentials.token,
+            }
         return blob.generate_signed_url(
             version="v4",
             expiration=timedelta(seconds=expires_in),
             method="GET",
+            **signing_kwargs,
         )
