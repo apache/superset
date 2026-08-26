@@ -1316,6 +1316,10 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         try:
             TestConnectionDatabaseCommand(item).run()
             return self.response(200, message="OK")
+        except OAuth2RedirectError:
+            # OAuth2 connections pass, so they can be saved. A user later
+            # can then store an OAuth2 token.
+            return self.response(200, message="OK")
         except (
             SSHTunnelingNotEnabledError,
             SSHTunnelDatabasePortError,

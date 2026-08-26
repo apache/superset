@@ -39,10 +39,6 @@ from superset.mcp_service.dashboard.schemas import (
     DeleteDashboardRequest,
     DeleteDashboardResponse,
 )
-from superset.mcp_service.utils import (
-    escape_llm_context_delimiters,
-    sanitize_for_llm_context,
-)
 
 if TYPE_CHECKING:
     from superset.models.dashboard import Dashboard
@@ -149,18 +145,16 @@ async def delete_dashboard(
             error_type="LookupFailed",
         )
     if not dashboard:
-        safe_id = escape_llm_context_delimiters(str(request.identifier)[:200])
+        display_id = str(request.identifier)[:200]
         msg = (
-            f"No dashboard found with identifier: {safe_id}. "
+            f"No dashboard found with identifier: {display_id}. "
             "Use list_dashboards to get valid dashboard IDs."
         )
         return DeleteDashboardResponse(success=False, error=msg, error_type="NotFound")
 
     dashboard_id = dashboard.id
-    # Dashboard titles are user-controlled; wrap before composing responses.
-    dashboard_name = sanitize_for_llm_context(
-        dashboard.dashboard_title, field_path=("dashboard_title",)
-    )
+    # Dashboard titles are user-controlled and must remain exact in responses.
+    dashboard_name = dashboard.dashboard_title
 
     # The try/except sits inside log_context so failed attempts (forbidden,
     # reports-exist, db errors) are recorded in the audit log too — the

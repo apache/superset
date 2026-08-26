@@ -23,11 +23,13 @@ import logging
 from typing import Any, TYPE_CHECKING
 
 from fastmcp import Context
+from marshmallow import ValidationError as MarshmallowValidationError
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
 if TYPE_CHECKING:
     from superset.models.slice import Slice
 
+from superset.charts.data.form_data import set_query_context_form_data
 from superset.commands.exceptions import CommandException
 from superset.commands.explore.form_data.parameters import CommandParameters
 from superset.exceptions import SupersetException, SupersetSecurityException
@@ -35,6 +37,8 @@ from superset.extensions import event_logger
 from superset.mcp_service.chart.chart_helpers import (
     build_query_context_from_form_data,
     extract_x_axis_col,
+    merge_extra_form_data_filters_into_query,
+    resolve_form_data_datasource,
     resolve_groupby,
     resolve_metrics,
     resolve_metrics_and_groupby,
@@ -45,22 +49,8 @@ from superset.mcp_service.chart.schemas import (
     ChartSql,
     GetChartSqlRequest,
 )
-from superset.mcp_service.utils import sanitize_for_llm_context
 
 logger = logging.getLogger(__name__)
-
-
-def _sanitize_chart_sql_for_llm_context(chart_sql: ChartSql) -> ChartSql:
-    """Wrap chart SQL read-path descriptive fields before LLM exposure."""
-    payload = chart_sql.model_dump(mode="python")
-
-    for field_name in ("chart_name", "datasource_name", "sql", "error"):
-        payload[field_name] = sanitize_for_llm_context(
-            payload.get(field_name),
-            field_path=(field_name,),
-        )
-
-    return ChartSql.model_validate(payload)
 
 
 def _get_cached_form_data(form_data_key: str) -> str | None:
@@ -104,6 +94,7 @@ def _extract_x_axis_col(form_data: dict[str, Any]) -> str | None:
 def _build_query_context_from_form_data(
     form_data: dict[str, Any],
     chart: "Slice | None" = None,
+    extra_form_data: dict[str, Any] | None = None,
 ) -> Any:
     """Build a QueryContext from form_data with result_type=QUERY.
 
@@ -115,6 +106,7 @@ def _build_query_context_from_form_data(
     return build_query_context_from_form_data(
         form_data,
         chart=chart,
+        extra_form_data=extra_form_data,
         result_type=ChartDataResultType.QUERY,
         force=False,
     )
@@ -164,6 +156,7 @@ def _resolve_effective_form_data(
 
 def _sql_from_saved_query_context(
     chart: "Slice",
+    extra_form_data: dict[str, Any] | None = None,
 ) -> ChartSql | ChartError | None:
     """Try to extract SQL from a chart's saved query_context.
 
@@ -182,8 +175,63 @@ def _sql_from_saved_query_context(
         qc_json["result_type"] = ChartDataResultType.QUERY
         qc_json["force"] = False
 
-        query_context = ChartDataQueryContextSchema().load(qc_json)
+        if extra_form_data:
+            # Resolve the pieces of the saved context the merge depends on first.
+            # Failures here mean the context itself is stale, not that the
+            # request's filters are bad, so the caller should rebuild it from
+            # form_data rather than surfacing a validation error.
+            try:
+                datasource_id = qc_json["datasource"]["id"]
+                datasource_type = qc_json["datasource"]["type"]
+                queries = qc_json.get("queries", [])
+                if not isinstance(queries, list):
+                    raise TypeError("queries must be a list")
+            except (AttributeError, KeyError, TypeError) as ex:
+                logger.warning(
+                    "Saved query context is unusable for chart %s; "
+                    "falling back to form_data: %s",
+                    chart.id,
+                    ex,
+                )
+                return None
+
+            try:
+                for query in queries:
+                    merge_extra_form_data_filters_into_query(
+                        query,
+                        extra_form_data,
+                        datasource_id,
+                        datasource_type,
+                    )
+            except (AttributeError, KeyError, TypeError) as ex:
+                return ChartError(
+                    error=f"Invalid extra_form_data filter: {ex}",
+                    error_type="ValidationError",
+                )
+
+        try:
+            query_context = ChartDataQueryContextSchema().load(qc_json)
+        except MarshmallowValidationError as ex:
+            # A saved query context can become stale as schemas evolve. Let the
+            # caller rebuild it from form_data; malformed request filters will
+            # still produce a ValidationError from that fallback path.
+            logger.warning(
+                "Saved query context validation failed for chart %s; "
+                "falling back to form_data: %s",
+                chart.id,
+                ex,
+            )
+            return None
         query_context.result_type = ChartDataResultType.QUERY
+        # ChartDataDatasourceSchema only requires "id", so fall back to the
+        # chart's own datasource rather than raising on a context that the
+        # schema itself considers valid.
+        datasource_json = qc_json.get("datasource") or {}
+        set_query_context_form_data(
+            query_context,
+            datasource_json.get("id", chart.datasource_id),
+            datasource_json.get("type", chart.datasource_type),
+        )
 
         command = ChartDataCommand(query_context)
         command.validate()
@@ -249,11 +297,26 @@ def _resolve_datasource_name(
 def _sql_from_form_data(
     form_data: dict[str, Any],
     chart: "Slice | None",
+    extra_form_data: dict[str, Any] | None = None,
 ) -> ChartSql | ChartError:
     """Build SQL from form_data (fallback path)."""
     from superset.commands.chart.data.get_data_command import ChartDataCommand
 
-    query_context = _build_query_context_from_form_data(form_data, chart)
+    try:
+        _, datasource_type = resolve_form_data_datasource(form_data, chart)
+        query_context = _build_query_context_from_form_data(
+            form_data, chart, extra_form_data=extra_form_data
+        )
+    except (AttributeError, KeyError, TypeError, MarshmallowValidationError) as ex:
+        return ChartError(
+            error=f"Invalid chart query data: {ex}",
+            error_type="ValidationError",
+        )
+    set_query_context_form_data(
+        query_context,
+        query_context.datasource.id,
+        datasource_type,
+    )
     command = ChartDataCommand(query_context)
     command.validate()
     result = command.run()
@@ -312,15 +375,13 @@ def _extract_sql_from_result(
             error_type="QueryGenerationFailed",
         )
 
-    return _sanitize_chart_sql_for_llm_context(
-        ChartSql(
-            chart_id=chart_id,
-            chart_name=chart_name,
-            sql="\n\n".join(sql_parts),
-            language=language,
-            datasource_name=datasource_name,
-            error="; ".join(errors) if errors else None,
-        )
+    return ChartSql(
+        chart_id=chart_id,
+        chart_name=chart_name,
+        sql="\n\n".join(sql_parts),
+        language=language,
+        datasource_name=datasource_name,
+        error="; ".join(errors) if errors else None,
     )
 
 
@@ -351,6 +412,8 @@ async def get_chart_sql(
     Supports:
     - Numeric ID or UUID lookup
     - form_data_key: get SQL for unsaved chart state from Explore view
+    - extra_form_data: preview SQL with dashboard-filter-style predicates merged
+      in, same format accepted by get_chart_data
 
     Example usage:
     ```json
@@ -398,7 +461,9 @@ async def _handle_chart_sql_request(
 
     # Handle unsaved chart (form_data_key only, no identifier)
     if not request.identifier and request.form_data_key:
-        return await _handle_unsaved_chart_sql(request.form_data_key, ctx)
+        return await _handle_unsaved_chart_sql(
+            request.form_data_key, ctx, request.extra_form_data
+        )
 
     # Find the chart by identifier
     if request.identifier is None:
@@ -441,7 +506,7 @@ async def _handle_chart_sql_request(
     # Try saved query_context first (faster, more accurate)
     with event_logger.log_context(action="mcp.get_chart_sql.build_query"):
         if not using_unsaved_state:
-            saved_result = _sql_from_saved_query_context(chart)
+            saved_result = _sql_from_saved_query_context(chart, request.extra_form_data)
             if saved_result is not None:
                 return saved_result
             await ctx.warning(
@@ -451,7 +516,9 @@ async def _handle_chart_sql_request(
 
         # Fallback: build query context from form_data
         try:
-            return _sql_from_form_data(effective_form_data, chart)
+            return _sql_from_form_data(
+                effective_form_data, chart, request.extra_form_data
+            )
         except (SupersetException, CommandException, ValueError) as e:
             await ctx.warning("Failed to build SQL from form_data: %s" % str(e))
             return ChartError(
@@ -461,7 +528,9 @@ async def _handle_chart_sql_request(
 
 
 async def _handle_unsaved_chart_sql(
-    form_data_key: str, ctx: Context
+    form_data_key: str,
+    ctx: Context,
+    extra_form_data: dict[str, Any] | None = None,
 ) -> ChartSql | ChartError:
     """Handle SQL retrieval for unsaved charts (form_data_key only)."""
     from superset.utils import json as utils_json
@@ -492,7 +561,9 @@ async def _handle_unsaved_chart_sql(
             )
 
         try:
-            return _sql_from_form_data(form_data, chart=None)
+            return _sql_from_form_data(
+                form_data, chart=None, extra_form_data=extra_form_data
+            )
         except (SupersetException, CommandException, ValueError) as e:
             await ctx.warning("Failed to generate SQL from form_data: %s" % str(e))
             return ChartError(
