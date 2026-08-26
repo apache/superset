@@ -691,16 +691,17 @@ class TestChartApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCase):
             "datasource_type": "saved_query",
             "viz_type": "table",
         }
-        rv = self.post_assert_metric("/api/v1/chart/", chart_data, "post")
+        try:
+            rv = self.post_assert_metric("/api/v1/chart/", chart_data, "post")
 
-        db.session.delete(db.session.query(SavedQuery).get(saved_query_id))
-        db.session.commit()
-
-        assert rv.status_code == 422
-        response = json.loads(rv.data.decode("utf-8"))
-        assert response == {
-            "message": {"datasource_type": ["Datasource type is invalid"]}
-        }
+            assert rv.status_code == 422
+            response = json.loads(rv.data.decode("utf-8"))
+            assert response == {
+                "message": {"datasource_type": ["Datasource type is invalid"]}
+            }
+        finally:
+            db.session.delete(db.session.query(SavedQuery).get(saved_query_id))
+            db.session.commit()
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     def test_create_chart_validate_user_is_dashboard_editor(self):
