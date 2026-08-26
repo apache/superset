@@ -343,6 +343,58 @@ test('renders an ordered column-multi list for an x-control: "column-multi" fiel
   );
 });
 
+// The list's order is not cosmetic — it decides which dimension colors the
+// balloons by default (`BalloonsWidget`'s own fallback) — so reordering
+// needs a keyboard path, not only the drag handle.
+test('a column-multi entry can be moved up or down, with the boundary buttons disabled at the ends', async () => {
+  postSpy.mockResolvedValue({
+    json: {
+      result: {
+        type: 'object',
+        properties: {
+          dimensions: {
+            type: 'array',
+            title: 'Dimensions',
+            'x-control': 'column-multi',
+          },
+        },
+      },
+    },
+  } as never);
+  getSpy.mockResolvedValue({
+    json: {
+      result: {
+        columns: [
+          { column_name: 'name', type_generic: 1 },
+          { column_name: 'gender', type_generic: 1 },
+        ],
+        metrics: [],
+      },
+    },
+  } as never);
+
+  const id = mount('balloons', {
+    dataBinding: { datasetId: 1, metrics: ['count'] },
+    dimensions: ['name', 'gender'],
+  });
+
+  await screen.findByText('Dimensions');
+  expect(await screen.findByLabelText('Move name up')).toBeDisabled();
+  expect(await screen.findByLabelText('Move gender down')).toBeDisabled();
+
+  await userEvent.click(await screen.findByLabelText('Move gender up'));
+  await waitFor(() =>
+    expect(provider.getNode(id)?.props?.dimensions).toEqual(['gender', 'name']),
+  );
+  // Having moved to the top, its own "up" button is now the disabled one.
+  expect(await screen.findByLabelText('Move gender up')).toBeDisabled();
+
+  await userEvent.click(await screen.findByLabelText('Move gender down'));
+  await waitFor(() =>
+    expect(provider.getNode(id)?.props?.dimensions).toEqual(['name', 'gender']),
+  );
+});
+
 test('renders a metric picker for an x-control: "metric-multi" field and writes the pick back', async () => {
   postSpy.mockResolvedValue({
     json: {

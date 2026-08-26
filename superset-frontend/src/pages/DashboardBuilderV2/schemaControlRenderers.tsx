@@ -532,10 +532,30 @@ function ReferenceMultiList({
             >
               <Icons.HolderOutlined iconSize="s" />
               <div style={{ flex: 1 }}>{option?.label ?? value}</div>
+              {/* Keyboard-operable equivalent of the drag handle above: that
+                  handle isn't itself focusable, so reordering — which
+                  decides e.g. the default color dimension — had no
+                  non-mouse path at all. */}
               <Button
                 buttonSize="xsmall"
                 buttonStyle="link"
-                aria-label={t('Remove')}
+                aria-label={t('Move %s up', value)}
+                disabled={index === 0}
+                icon={<Icons.UpOutlined iconSize="s" />}
+                onClick={() => move(index, index - 1)}
+              />
+              <Button
+                buttonSize="xsmall"
+                buttonStyle="link"
+                aria-label={t('Move %s down', value)}
+                disabled={index === values.length - 1}
+                icon={<Icons.DownOutlined iconSize="s" />}
+                onClick={() => move(index, index + 1)}
+              />
+              <Button
+                buttonSize="xsmall"
+                buttonStyle="link"
+                aria-label={t('Remove %s', value)}
                 icon={<Icons.CloseOutlined iconSize="s" />}
                 onClick={() => onChange(values.filter((_, i) => i !== index))}
               />
