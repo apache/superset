@@ -151,6 +151,7 @@ def _make_params(
     )
 
 
+@patch(f"{CMD}.request")
 @patch(f"{CMD}.get_form_data", return_value=({}, None))
 @patch(f"{CMD}.get_datasource_info", return_value=(4, "table"))
 @patch(f"{CMD}.GetFormDataCommand")
@@ -162,6 +163,7 @@ def test_cache_denied_falls_through_to_raise_for_access(
     form_cmd_cls: MagicMock,
     get_ds_info: MagicMock,
     get_form: MagicMock,
+    mock_request: MagicMock,
 ) -> None:
     """With datasource_id present, the cache error is swallowed and
     raise_for_access fires a proper SupersetSecurityException."""
