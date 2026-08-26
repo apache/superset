@@ -235,6 +235,20 @@ def test_quote_formulas_with_duplicate_column_labels() -> None:
     assert result.iloc[0].tolist() == ["'=SUM(A1:A2)", "'@SUM(A1:A2)", "normal"]
 
 
+def test_quote_formulas_with_dedicated_string_dtype() -> None:
+    """
+    Test that formulas are quoted in columns using the dedicated string dtype.
+
+    pandas 3 gives string columns a ``str`` dtype rather than ``object``, so an
+    object-only dtype check would skip them and leave formulas unquoted.
+    """
+    df = pd.DataFrame({"formula": pd.array(["=SUM(A1:A2)", "normal"], dtype="string")})
+
+    result = quote_formulas(df)
+
+    assert result["formula"].tolist() == ["'=SUM(A1:A2)", "normal"]
+
+
 def test_column_data_types_with_large_numeric_values():
     df = pd.DataFrame(
         {
