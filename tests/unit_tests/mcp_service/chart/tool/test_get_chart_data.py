@@ -20,7 +20,7 @@ Tests for the get_chart_data request schema and chart type fallback handling.
 """
 
 import importlib
-from contextlib import nullcontext
+from contextlib import contextmanager, nullcontext
 from types import SimpleNamespace
 from typing import Any
 from unittest.mock import MagicMock
@@ -2532,3 +2532,183 @@ async def test_query_from_form_data_refreshed_reflects_force_refresh_only(
     assert isinstance(result, ChartData)
     assert result.cache_status is not None
     assert result.cache_status.refreshed is expected_refreshed
+
+
+class _CommittingEventLogger:
+    """Stand-in for the default ``DBEventLogger`` plus MCP session teardown.
+
+    Two real behaviors are reproduced, in the order production hits them:
+
+    1. ``DBEventLogger.log()`` ends every ``event_logger.log_context`` block
+       with ``db.session.commit()`` (``superset/utils/log.py``), and SQLAlchemy
+       expires every loaded attribute of the fetched ``Slice`` on commit.
+    2. ``superset/mcp_service/session_scope.py`` documents that the request
+       session can be removed while a tool call is still in flight, which
+       detaches that ``Slice``. ``Session.close()`` reproduces exactly that:
+       it expunges every instance and drops the transaction.
+
+    Once both have happened, the next attribute read on the chart raises
+    ``DetachedInstanceError``.
+    """
+
+    def __init__(self, session: Any) -> None:
+        self._session = session
+        self.blocks = 0
+
+    @contextmanager
+    def log_context(self, *_args: Any, **_kwargs: Any) -> Any:
+        yield lambda **_kw: None
+        self._session.commit()
+        self._session.close()
+        self.blocks += 1
+
+
+def _make_persisted_chart(**overrides: Any) -> Any:
+    """Create a real ``Slice`` row in a throwaway in-memory session."""
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import sessionmaker
+
+    from superset.models.slice import Slice
+
+    engine = create_engine("sqlite://")
+    # Slice is versioned by sqlalchemy-continuum, whose before_flush hook
+    # writes to version_transaction, so the whole metadata has to exist.
+    Slice.metadata.create_all(engine)
+    session = sessionmaker(bind=engine)()
+
+    attrs: dict[str, Any] = {
+        "id": 42,
+        "slice_name": "Sales by region",
+        "viz_type": "table",
+        "datasource_id": 1,
+        "datasource_type": "table",
+        "params": json.dumps({"viz_type": "table"}),
+        "query_context": None,
+    }
+    attrs.update(overrides)
+    session.add(Slice(**attrs))
+    session.commit()
+    session.close()
+
+    return session.get(Slice, attrs["id"]), session
+
+
+@contextmanager
+def _detaching_get_chart_data(session: Any, validation: Any, chart: Any) -> Any:
+    """Patch get_chart_data so its session commits and is removed mid-call."""
+    from unittest.mock import Mock, patch
+
+    module = importlib.import_module("superset.mcp_service.chart.tool.get_chart_data")
+
+    user = Mock()
+    user.id = 1
+    user.username = "admin"
+
+    with (
+        patch("superset.mcp_service.auth.get_user_from_request", return_value=user),
+        patch.object(module, "event_logger", _CommittingEventLogger(session)),
+        patch.object(module, "find_chart_by_identifier", return_value=chart),
+        patch.object(module, "validate_chart_dataset", return_value=validation),
+        # ``db`` is only imported by the fixed module; ``raising=False``
+        # semantics keep this patch usable against the unfixed one too.
+        patch.object(module, "db", SimpleNamespace(session=session), create=True),
+    ):
+        yield module
+
+
+class TestDetachedInstanceError:
+    """``get_chart_data`` must survive its session committing then being removed.
+
+    The tool fetches a ``Slice`` once and then reads columns off it for the
+    rest of a long ``async`` call. Every ``event_logger.log_context`` exit
+    commits the request session, which expires those columns; if the per-call
+    session is then removed while the call is still running, the next read
+    raises ``DetachedInstanceError``. That is caught by the tool's broad
+    ``except (..., SQLAlchemyError, ...)`` handler, so the caller gets
+    "Failed to get chart data: Instance <Slice ...> is not bound to a Session"
+    instead of the chart's data.
+    """
+
+    @staticmethod
+    async def _call(identifier: Any = 42) -> dict[str, Any]:
+        from fastmcp import Client
+
+        from superset.mcp_service.app import mcp
+
+        async with Client(mcp) as client:
+            result = await client.call_tool(
+                "get_chart_data", {"request": {"identifier": identifier}}
+            )
+        return json.loads(result.content[0].text)
+
+    @pytest.mark.asyncio
+    async def test_first_chart_reads_survive_commit_and_removal(self) -> None:
+        """The reads immediately after the lookup must not hit a dead session."""
+        chart, session = _make_persisted_chart()
+        validation = SimpleNamespace(
+            is_valid=False, error="Dataset is gone", warnings=[]
+        )
+
+        with _detaching_get_chart_data(session, validation, chart):
+            data = await self._call()
+
+        assert "not bound to a Session" not in str(data), (
+            f"get_chart_data leaked a SQLAlchemy session error to the caller: {data}"
+        )
+        assert data["error_type"] == "DatasetNotAccessible"
+
+    @pytest.mark.asyncio
+    async def test_later_chart_reads_survive_commit_and_removal(self) -> None:
+        """Reads further down the tool (params, query_context, viz_type) too."""
+        chart, session = _make_persisted_chart(params=json.dumps({}))
+        validation = SimpleNamespace(is_valid=True, error=None, warnings=[])
+
+        with _detaching_get_chart_data(session, validation, chart):
+            data = await self._call()
+
+        assert "not bound to a Session" not in str(data), (
+            f"get_chart_data leaked a SQLAlchemy session error to the caller: {data}"
+        )
+        # Reaching this branch means chart.query_context, chart.params,
+        # chart.viz_type, chart.datasource_id/type and chart.id were all read
+        # successfully after the session had committed and been removed.
+        assert data["error_type"] == "MissingQueryContext"
+
+    @pytest.mark.asyncio
+    async def test_scoped_session_proxy_is_unwrapped(self) -> None:
+        """The guard must reach the real Session, not a scoped_session proxy.
+
+        ``db.session`` is a ``scoped_session``, which does not forward
+        ``expire_on_commit`` assignment to the Session it wraps -- setting the
+        flag on the proxy is a silent no-op. Guarding the proxy instead of the
+        underlying Session would leave the bug fully intact in production.
+        """
+        from sqlalchemy.orm import scoped_session
+
+        chart, session = _make_persisted_chart()
+        proxy = scoped_session(lambda: session)
+        validation = SimpleNamespace(
+            is_valid=False, error="Dataset is gone", warnings=[]
+        )
+
+        with _detaching_get_chart_data(proxy, validation, chart):
+            data = await self._call()
+
+        assert "not bound to a Session" not in str(data), (
+            f"Chart columns expired through the scoped_session proxy: {data}"
+        )
+        assert data["error_type"] == "DatasetNotAccessible"
+
+    @pytest.mark.asyncio
+    async def test_expire_on_commit_is_restored(self) -> None:
+        """The guard must not leak its relaxed setting past the tool call."""
+        chart, session = _make_persisted_chart()
+        validation = SimpleNamespace(
+            is_valid=False, error="Dataset is gone", warnings=[]
+        )
+        assert session.expire_on_commit is True
+
+        with _detaching_get_chart_data(session, validation, chart):
+            await self._call()
+
+        assert session.expire_on_commit is True

@@ -26,16 +26,18 @@ from typing import Any, Dict, List, TYPE_CHECKING
 from fastmcp import Context
 from flask import current_app
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.orm import subqueryload
+from sqlalchemy.orm import scoped_session, subqueryload
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
 if TYPE_CHECKING:
+    from sqlalchemy.orm import Session
+
     from superset.models.slice import Slice
 
 from superset.charts.data.form_data import set_query_context_form_data
 from superset.commands.exceptions import CommandException
 from superset.exceptions import OAuth2Error, OAuth2RedirectError, SupersetException
-from superset.extensions import event_logger
+from superset.extensions import db, event_logger
 from superset.mcp_service import guest_scope
 from superset.mcp_service.chart.chart_helpers import (
     build_query_context_from_form_data,
@@ -61,6 +63,19 @@ from superset.mcp_service.utils.oauth2_utils import (
 from superset.utils.core import GenericDataType
 
 logger = logging.getLogger(__name__)
+
+
+def _request_session() -> "Session":
+    """Return the ``Session`` backing ``db.session``.
+
+    ``db.session`` is a ``scoped_session`` proxy, and assigning a session
+    option such as ``expire_on_commit`` on the proxy does not reach the
+    ``Session`` it wraps -- the assignment lands on the proxy object and is
+    silently ignored. Callers that need to change session behavior therefore
+    have to resolve the underlying ``Session`` first.
+    """
+    session = db.session
+    return session() if isinstance(session, scoped_session) else session
 
 
 def _requested_filter_columns(extra_form_data: dict[str, Any] | None) -> set[str]:
@@ -357,6 +372,19 @@ async def get_chart_data(  # noqa: C901
         )
     )
     effective_force = _compute_effective_force(request)
+
+    # The chart is fetched once below and then read from for the rest of this
+    # call. Every event_logger.log_context block here commits the request
+    # session on exit (DBEventLogger.log), and SQLAlchemy expires an
+    # instance's loaded columns on commit. The per-call session can also be
+    # removed while the call is still in flight (see
+    # superset/mcp_service/session_scope.py), which detaches that Slice --
+    # and reading an expired column off a detached instance raises
+    # DetachedInstanceError. Keeping the columns loaded across those commits
+    # means the already-fetched chart stays readable either way.
+    session = _request_session()
+    expire_on_commit = session.expire_on_commit
+    session.expire_on_commit = False
 
     try:
         await ctx.report_progress(1, 4, "Looking up chart")
@@ -1026,6 +1054,8 @@ async def get_chart_data(  # noqa: C901
         return ChartError(
             error=f"Failed to get chart data: {str(e)}", error_type="InternalError"
         )
+    finally:
+        session.expire_on_commit = expire_on_commit
 
 
 async def _query_from_form_data(  # noqa: C901
