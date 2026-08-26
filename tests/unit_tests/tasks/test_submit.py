@@ -22,6 +22,7 @@ from unittest import mock
 import pytest
 from flask import g
 from pytest_mock import MockerFixture
+from sqlalchemy.exc import IntegrityError
 
 from superset.commands.tasks.submit import SubmitTaskCommand
 
@@ -87,3 +88,39 @@ def test_refuses_to_run_inside_an_outer_transaction(mocker: MockerFixture) -> No
 
     # We must bail before taking the lock.
     entered.assert_not_called()
+
+
+def test_create_race_joins_winner_on_unique_violation(
+    mocker: MockerFixture,
+) -> None:
+    """A dedup_key unique violation during create must join the winner, not 500.
+
+    Backstop for the lock expiring mid-transaction (fixed TTL) or otherwise
+    failing to serialize: the SAVEPOINT rolls back and the command re-reads and
+    joins the concurrently-created task instead of surfacing the IntegrityError.
+    """
+    winner = mock.MagicMock()
+    winner.properties_dict = {}
+    winner.has_subscriber.return_value = False
+
+    dao = mocker.patch("superset.daos.tasks.TaskDAO")
+    # No task on the first look (before create), the winner on the post-rollback
+    # re-read.
+    dao.find_by_task_key.side_effect = [None, winner]
+    dao.create_task.side_effect = IntegrityError("dup", None, Exception())
+    # begin_nested() is only a no-op savepoint here; let the IntegrityError from
+    # create_task propagate out to the except clause.
+    mocker.patch("superset.db.session.begin_nested", return_value=_null_cm())
+
+    task, is_new = SubmitTaskCommand({})._create_or_join(
+        "superset.query_object_v1", "k", "shared", 1, None
+    )
+
+    assert is_new is False
+    assert task is winner
+    dao.add_subscriber.assert_called_once_with(winner.id, 1)
+
+
+@contextmanager
+def _null_cm():
+    yield

@@ -24,8 +24,10 @@ from uuid import UUID
 
 from flask import current_app, g
 from marshmallow import ValidationError
+from sqlalchemy.exc import IntegrityError
 from superset_core.tasks.types import TaskScope
 
+from superset import db
 from superset.commands.base import BaseCommand
 from superset.commands.tasks.exceptions import (
     TaskCreateFailedError,
@@ -149,63 +151,93 @@ class SubmitTaskCommand(BaseCommand):
 
         Runs as a single transaction (committed by ``@transaction`` on return)
         while the caller holds the task lock, so the create-vs-join decision and
-        its commit are atomic with respect to other submitters.
+        its commit are atomic with respect to other submitters. The create is
+        additionally guarded by a SAVEPOINT that joins the winner on a dedup_key
+        unique violation, so correctness holds even if the lock expires or fails
+        to serialize (see the create block below).
+        """
+        from superset.daos.tasks import TaskDAO
+
+        # Check for an existing task under the lock; join it if present.
+        if existing := TaskDAO.find_by_task_key(task_type, task_key, scope, user_id):
+            return self._join_existing(existing, user_id, guest_key, task_key), False
+
+        # Create the new task. The task lock serializes concurrent submits for
+        # this dedup_key, but as a backstop — the lock has a fixed TTL and could
+        # expire mid-transaction, and a misconfigured backend could fail to
+        # serialize at all — the create runs inside a SAVEPOINT. On the dedup_key
+        # unique violation (a concurrent submitter won the create), roll the
+        # SAVEPOINT back and join the winner instead of surfacing a 500. The DB
+        # unique constraint, not the lock, is the ultimate arbiter.
+        try:
+            with db.session.begin_nested():
+                task = TaskDAO.create_task(
+                    task_type=task_type,
+                    task_key=task_key,
+                    scope=scope,
+                    task_name=self._properties.get("task_name"),
+                    user_id=user_id,
+                    guest_key=guest_key,
+                    payload=self._properties.get("payload", {}),
+                    properties=self._properties.get("properties", {}),
+                )
+                # Persist dependency edges (with cycle guard) for the new task.
+                # Joined/deduplicated tasks keep their original dependencies.
+                self._persist_dependencies(task, TaskDAO)
+        except IntegrityError:
+            # SAVEPOINT rolled back (session still usable). Re-read: the winner's
+            # row is committed by now, so join it. If nothing is found the
+            # violation was not the expected dedup race — re-raise.
+            existing = TaskDAO.find_by_task_key(task_type, task_key, scope, user_id)
+            if existing is None:
+                raise
+            current_app.config["STATS_LOGGER"].incr("gtf.task.create_race_joined")
+            return self._join_existing(existing, user_id, guest_key, task_key), False
+        except DAOCreateFailedError as ex:
+            raise TaskCreateFailedError() from ex
+
+        current_app.config["STATS_LOGGER"].incr("gtf.task.create")
+        return task, True  # is_new=True: created new task
+
+    def _join_existing(
+        self,
+        existing: "Task",
+        user_id: int | None,
+        guest_key: str | None,
+        task_key: str,
+    ) -> "Task":
+        """Join an existing task: bump its dedupe count and subscribe the caller.
+
+        Shared by the fast path (found before creating) and the create-race
+        backstop (found after a unique-constraint rollback).
         """
         from superset.daos.tasks import TaskDAO
 
         stats_logger: BaseStatsLogger = current_app.config["STATS_LOGGER"]
 
-        # Check for an existing task under the lock; join it if present.
-        if existing := TaskDAO.find_by_task_key(task_type, task_key, scope, user_id):
-            # Finding an existing task is itself a dedupe (work reused, not
-            # re-created), whether the caller becomes a new subscriber or
-            # resubmits as an existing one. Count it on the task's properties.
-            existing.update_properties(
-                {"dedupe_count": existing.properties_dict.get("dedupe_count", 0) + 1}
+        # Finding an existing task is itself a dedupe (work reused, not
+        # re-created), whether the caller becomes a new subscriber or resubmits
+        # as an existing one. Count it on the task's properties.
+        existing.update_properties(
+            {"dedupe_count": existing.properties_dict.get("dedupe_count", 0) + 1}
+        )
+        # Add subscriber if not already subscribed
+        if user_id and not existing.has_subscriber(user_id):
+            TaskDAO.add_subscriber(existing.id, user_id)
+            stats_logger.incr("gtf.task.subscribe")
+            logger.info("User %s joined existing task: %s", user_id, task_key)
+        elif guest_key and not existing.has_guest_subscriber(guest_key):
+            # Embedded guest joining a SHARED task an equivalent guest created;
+            # subscribe so this guest can also poll it.
+            TaskDAO.add_guest_subscriber(existing.id, guest_key)
+            stats_logger.incr("gtf.task.subscribe")
+        else:
+            # Same subscriber resubmitted the same task - deduplication hit
+            stats_logger.incr("gtf.task.dedupe")
+            logger.debug(
+                "Deduplication hit for task: %s (user_id=%s)", task_key, user_id
             )
-            # Join existing task - add subscriber if not already subscribed
-            if user_id and not existing.has_subscriber(user_id):
-                TaskDAO.add_subscriber(existing.id, user_id)
-                stats_logger.incr("gtf.task.subscribe")
-                logger.info(
-                    "User %s joined existing task: %s",
-                    user_id,
-                    task_key,
-                )
-            elif guest_key and not existing.has_guest_subscriber(guest_key):
-                # Embedded guest joining a SHARED task an equivalent guest
-                # created; subscribe so this guest can also poll it.
-                TaskDAO.add_guest_subscriber(existing.id, guest_key)
-                stats_logger.incr("gtf.task.subscribe")
-            else:
-                # Same subscriber resubmitted the same task - deduplication hit
-                stats_logger.incr("gtf.task.dedupe")
-                logger.debug(
-                    "Deduplication hit for task: %s (user_id=%s)",
-                    task_key,
-                    user_id,
-                )
-            return existing, False  # is_new=False: joined existing task
-
-        # Create new task (DAO is now a pure data operation)
-        try:
-            task = TaskDAO.create_task(
-                task_type=task_type,
-                task_key=task_key,
-                scope=scope,
-                task_name=self._properties.get("task_name"),
-                user_id=user_id,
-                guest_key=guest_key,
-                payload=self._properties.get("payload", {}),
-                properties=self._properties.get("properties", {}),
-            )
-            # Persist dependency edges (with cycle guard) for the new task.
-            # Joined/deduplicated tasks keep their original dependencies.
-            self._persist_dependencies(task, TaskDAO)
-            stats_logger.incr("gtf.task.create")
-            return task, True  # is_new=True: created new task
-        except DAOCreateFailedError as ex:
-            raise TaskCreateFailedError() from ex
+        return existing
 
     def _persist_dependencies(self, task: "Task", dao: type["TaskDAO"]) -> None:
         """
