@@ -343,6 +343,52 @@ test('renders an ordered column-multi list for an x-control: "column-multi" fiel
   );
 });
 
+test('the column-multi add-picker resets to its placeholder after a pick, rather than echoing the just-added entry', async () => {
+  postSpy.mockResolvedValue({
+    json: {
+      result: {
+        type: 'object',
+        properties: {
+          dimensions: {
+            type: 'array',
+            title: 'Dimensions',
+            'x-control': 'column-multi',
+          },
+        },
+      },
+    },
+  } as never);
+  getSpy.mockResolvedValue({
+    json: {
+      result: {
+        columns: [
+          { column_name: 'name', type_generic: 1 },
+          { column_name: 'gender', type_generic: 1 },
+        ],
+        metrics: [],
+      },
+    },
+  } as never);
+
+  const id = mount('balloons', {
+    dataBinding: { datasetId: 1, metrics: ['count'] },
+  });
+
+  await screen.findByText('Dimensions');
+  await selectOption('name');
+
+  // Settle JsonForms' debounced onChange before asserting the DOM, and
+  // before the test ends — otherwise it can fire mid-teardown against a
+  // node the next test's `provider.reset()` has already discarded.
+  await waitFor(() =>
+    expect(provider.getNode(id)?.props?.dimensions).toEqual(['name']),
+  );
+  expect(screen.getByText('Add field')).toBeInTheDocument();
+  // `name` now appears exactly once, as the picked row — not a second time
+  // echoed inside the add-picker that's supposed to have reset.
+  expect(screen.getAllByText('name')).toHaveLength(1);
+});
+
 // The list's order is not cosmetic — it decides which dimension colors the
 // balloons by default (`BalloonsWidget`'s own fallback) — so reordering
 // needs a keyboard path, not only the drag handle.

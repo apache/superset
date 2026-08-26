@@ -563,8 +563,12 @@ function ReferenceMultiList({
           );
         })}
         {available.length > 0 && (
+          // Remounted on every pick — see `SeriesOverridesControl`'s
+          // identical picker for why a controlled `value` of `undefined`
+          // alone doesn't stop rc-select echoing the just-picked label.
           <Select
-            value={undefined}
+            key={available.length}
+            value={null}
             placeholder={t('Add field')}
             ariaLabel={t('Add %s', label)}
             options={available}
