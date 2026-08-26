@@ -27,7 +27,7 @@ import { provider } from 'src/core/dashboard/store';
 import inferPropsSchema, { untypedKeys } from './inferPropsSchema';
 
 /**
- * What the generated form is made to agree with.
+ * What a generated form is made to agree with.
  *
  * The controls come from a third-party renderer set, and it lays a form out
  * for a page of its own rather than for a rail beside a canvas. Four things
@@ -54,8 +54,13 @@ import inferPropsSchema, { untypedKeys } from './inferPropsSchema';
  * Scoped to this element rather than fixed in the renderers, which the
  * semantic-layer modal also draws from and which are not this change's to move
  * — the same reason `DashboardProperties` scopes its own input fix.
+ *
+ * Exported because `SchemaControlPanel` renders the same third-party renderer
+ * set for schema-driven widgets and hits the identical four problems — the
+ * Properties tab has two forms sharing one rail, and they read as one rhythm
+ * only if they share this wrapper too.
  */
-const FormShell = styled.div`
+export const FormShell = styled.div`
   ${({ theme }) => css`
     /* A group's name, at the weight Section titles a group with. */
     > form > b,

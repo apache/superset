@@ -51,6 +51,7 @@ import {
   Button,
   Flex,
   Form,
+  Input,
   Select,
   Typography,
 } from '@superset-ui/core/components';
@@ -106,17 +107,16 @@ function CodeControl({
   };
 
   return (
-    <Flex vertical gap="small">
-      <Typography.Text strong>{label}</Typography.Text>
-      <textarea
+    <Form.Item label={label}>
+      <Input.TextArea
         value={text}
         onChange={onChange}
         rows={12}
         spellCheck={false}
-        style={{ fontFamily: 'monospace', fontSize: 12, width: '100%' }}
+        style={{ fontFamily: 'monospace', fontSize: 12 }}
       />
       {error && <Typography.Text type="danger">{error}</Typography.Text>}
-    </Flex>
+    </Form.Item>
   );
 }
 
@@ -133,14 +133,13 @@ function ColorControl({
     (schema as Record<string, unknown>).default ??
     theme.colorText) as string;
   return (
-    <Flex align="center" gap="small">
+    <Form.Item label={label}>
       <input
         type="color"
         value={value}
         onChange={event => handleChange(path, event.target.value)}
       />
-      <Typography.Text>{label}</Typography.Text>
-    </Flex>
+    </Form.Item>
   );
 }
 
@@ -275,55 +274,56 @@ function ReferenceMultiList({
   };
 
   return (
-    <Flex vertical gap="small">
-      <Typography.Text strong>{label}</Typography.Text>
-      {values.map((value, index) => {
-        const option = options.find(candidate => candidate.value === value);
-        return (
-          <Flex
-            key={value}
-            align="center"
-            gap="small"
-            draggable
-            onDragStart={() => {
-              dragIndexRef.current = index;
-            }}
-            onDragOver={event => event.preventDefault()}
-            onDrop={() => {
-              if (
-                dragIndexRef.current !== null &&
-                dragIndexRef.current !== index
-              ) {
-                move(dragIndexRef.current, index);
-              }
-              dragIndexRef.current = null;
-            }}
-          >
-            <Icons.HolderOutlined iconSize="s" />
-            <div style={{ flex: 1 }}>{option?.label ?? value}</div>
-            <Button
-              buttonSize="xsmall"
-              buttonStyle="link"
-              aria-label={t('Remove')}
-              icon={<Icons.CloseOutlined iconSize="s" />}
-              onClick={() => onChange(values.filter((_, i) => i !== index))}
-            />
-          </Flex>
-        );
-      })}
-      {available.length > 0 && (
-        <Select
-          value={undefined}
-          placeholder={t('Add field')}
-          ariaLabel={t('Add %s', label)}
-          options={available}
-          loading={loading}
-          disabled={disabled}
-          onChange={next => onChange([...values, next as string])}
-          css={{ width: '100%' }}
-        />
-      )}
-    </Flex>
+    <Form.Item label={label}>
+      <Flex vertical gap="small">
+        {values.map((value, index) => {
+          const option = options.find(candidate => candidate.value === value);
+          return (
+            <Flex
+              key={value}
+              align="center"
+              gap="small"
+              draggable
+              onDragStart={() => {
+                dragIndexRef.current = index;
+              }}
+              onDragOver={event => event.preventDefault()}
+              onDrop={() => {
+                if (
+                  dragIndexRef.current !== null &&
+                  dragIndexRef.current !== index
+                ) {
+                  move(dragIndexRef.current, index);
+                }
+                dragIndexRef.current = null;
+              }}
+            >
+              <Icons.HolderOutlined iconSize="s" />
+              <div style={{ flex: 1 }}>{option?.label ?? value}</div>
+              <Button
+                buttonSize="xsmall"
+                buttonStyle="link"
+                aria-label={t('Remove')}
+                icon={<Icons.CloseOutlined iconSize="s" />}
+                onClick={() => onChange(values.filter((_, i) => i !== index))}
+              />
+            </Flex>
+          );
+        })}
+        {available.length > 0 && (
+          <Select
+            value={undefined}
+            placeholder={t('Add field')}
+            ariaLabel={t('Add %s', label)}
+            options={available}
+            loading={loading}
+            disabled={disabled}
+            onChange={next => onChange([...values, next as string])}
+            css={{ width: '100%' }}
+          />
+        )}
+      </Flex>
+    </Form.Item>
   );
 }
 

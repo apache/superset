@@ -49,6 +49,7 @@ import {
 } from 'src/features/semanticLayers/jsonFormsHelpers';
 import { provider, useDashboardRevision } from 'src/core/dashboard/store';
 import { fetchQueryData } from 'src/core/dashboard/chartData';
+import { FormShell } from './PropsForm';
 import { schemaControlRenderers } from './schemaControlRenderers';
 
 type DataBindingSpec = dashboardApi.DataBindingSpec;
@@ -227,8 +228,10 @@ export default function SchemaControlPanel({ nodeId }: { nodeId: string }) {
       {schema && (
         // Vertical layout via class, not an antd `Form` wrapper: the renderers
         // read the layout off the nearest `.ant-form` ancestor class, so a real
-        // `Form` here would take the edits with it (see `PropsForm`).
-        <div
+        // `Form` here would take the edits with it (see `PropsForm`). Wrapped in
+        // the same `FormShell` as `PropsForm`'s generic form, so both halves of
+        // the Properties tab share one spacing rhythm.
+        <FormShell
           className="ant-form ant-form-vertical"
           data-test="schema-control-panel"
         >
@@ -254,7 +257,7 @@ export default function SchemaControlPanel({ nodeId }: { nodeId: string }) {
               }
             }}
           />
-        </div>
+        </FormShell>
       )}
     </>
   );
