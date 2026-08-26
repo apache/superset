@@ -219,9 +219,19 @@ export default function transformProps(chartProps: ChartProps<QueryFormData>) {
       config.colorScheme !== ColorSchemeEnum.Green &&
       config.colorScheme !== ColorSchemeEnum.Red,
   );
+  // Conditional-formatting extremes (min/max) must be computed from every
+  // rollup level that actually gets rendered -- leaf rows, subtotals, and
+  // the grand total -- not just the leaf-level `mainQuery.data`. Subtotal
+  // and grand-total values are synthesized client-side into `data` above
+  // and never appear in `mainQuery.data`, so a color scale built only from
+  // `mainQuery.data` can be miscalibrated: a large grand-total value can
+  // fall outside the scale's range and silently fail to receive a color,
+  // while smaller leaf-level values within range render as expected.
+  // See #43084.
+  const allLevelRecords = data.flatMap(level => level.data);
   const metricColorFormatters = getColorFormatters(
     pivotConditionalFormatting,
-    mainQuery.data,
+    allLevelRecords,
     theme,
   );
 

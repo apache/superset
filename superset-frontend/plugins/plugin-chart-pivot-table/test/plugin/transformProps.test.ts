@@ -18,6 +18,7 @@
  */
 
 import { ChartProps, QueryFormData } from '@superset-ui/core';
+import { Comparator } from '@superset-ui/chart-controls';
 import { supersetTheme } from '@apache-superset/core/theme';
 import transformProps from '../../src/plugin/transformProps';
 import { MetricsLayoutEnum, QueryData } from '../../src/types';
@@ -451,4 +452,74 @@ test('additive metrics: synthesizes rollup levels from a single leaf query', () 
     { region: 'US', v: 10 },
     { region: 'EU', v: 5 },
   ]);
+});
+
+test('conditional formatting extremes include synthesized subtotal/grand-total values (#43084)', () => {
+  // Regression test: the color scale's min/max must be calibrated against
+  // every rendered rollup level (leaf + grand total here), not just the
+  // raw leaf-level query result. Before the fix, `metricColorFormatters`
+  // was built from `mainQuery.data` alone (leaf rows only: v = 10, 5), so
+  // the grand-total value (v = 15) fell outside the scale's calibrated
+  // range and silently received no color -- exactly the anomaly reported
+  // in #43084.
+  const additiveFormattingFormData = {
+    ...formData,
+    combineMetric: false,
+    transposePivot: false,
+    metricsLayout: MetricsLayoutEnum.ROWS,
+    groupbyRows: ['region'],
+    groupbyColumns: [],
+    colTotals: true,
+    rowTotals: true,
+    metrics: [
+      {
+        expressionType: 'SIMPLE',
+        aggregate: 'SUM',
+        column: { column_name: 'v' },
+        label: 'v',
+      },
+    ],
+    conditionalFormatting: [
+      {
+        colorScheme: '#ACE1C4',
+        column: 'v',
+        operator: Comparator.None,
+      },
+    ],
+  };
+  const additiveFormattingChartProps = new ChartProps<QueryFormData>({
+    formData: additiveFormattingFormData as unknown as QueryFormData,
+    width: 800,
+    height: 600,
+    queriesData: [
+      {
+        data: [
+          { region: 'US', v: 10 },
+          { region: 'EU', v: 5 },
+        ],
+        colnames: ['region', 'v'],
+        coltypes: [1, 0],
+      },
+    ],
+    hooks: { setDataMask },
+    filterState: { selectedFilters: {} },
+    datasource: { verboseMap: {}, columnFormats: {} },
+    theme: supersetTheme,
+  });
+
+  const result = transformProps(additiveFormattingChartProps);
+  const grand = result.data.find(
+    (d: QueryData) =>
+      d.groupby.rows.length === 0 && d.groupby.columns.length === 0,
+  )!;
+  expect(grand.data[0].v).toBe(15);
+
+  const vFormatter = result.metricColorFormatters.find(
+    (f: { column: string }) => f.column === 'v',
+  )!;
+  // The grand-total value (15) must be recognized as within the scale's
+  // range and receive a color -- it must NOT be undefined.
+  expect(vFormatter.getColorFromValue(15)).toBeDefined();
+  // A leaf value should still get a color too.
+  expect(vFormatter.getColorFromValue(10)).toBeDefined();
 });
