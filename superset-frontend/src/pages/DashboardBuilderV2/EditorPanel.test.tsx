@@ -60,11 +60,12 @@ test('the data tab shows the placeholder dataset browser', async () => {
   expect(screen.getByTestId('data-panel')).toBeVisible();
 });
 
-test('selecting something while browsing data brings its properties forward too', () => {
+test('selecting something while browsing data brings its properties forward too', async () => {
   mount();
   const id = provider.addWidget(provider.getRoot().id, 0, {
     type: 'markdown',
   });
+  await userEvent.click(screen.getByRole('tab', { name: 'Data' }));
 
   act(() => provider.setSelection(id));
 
