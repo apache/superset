@@ -244,6 +244,7 @@ export default function ExplorePage() {
                 ? makeApi<void, { result: Chart }>({
                     method: 'GET',
                     endpoint: `api/v1/chart/${chartId}`,
+                    signal: controller.signal,
                   })()
                 : Promise.reject()
             )

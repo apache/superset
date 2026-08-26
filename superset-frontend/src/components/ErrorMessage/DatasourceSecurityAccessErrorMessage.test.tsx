@@ -45,7 +45,7 @@ const baseProps = {
   subtitle: '',
 };
 
-test('shows a friendly title without revealing the dataset name', () => {
+test('shows a friendly title and generic access-denied message', () => {
   render(<DatasourceSecurityAccessErrorMessage {...baseProps} />);
   expect(
     screen.getByText("You don't have access to this chart's data"),
