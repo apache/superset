@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -20,6 +19,7 @@
 import { useMemo, useState, useEffect, useRef } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
+import stringify from 'json-stringify-pretty-compact';
 import ColorPickerControl from 'src/explore/components/controls/ColorPickerControl';
 
 // Strict typing to satisfy the tsc compiler without enforcing it as a required component prop
@@ -118,8 +118,11 @@ const ActionButton = styled.button`
   `}
 `;
 
-const AddMoreLink = styled.div`
+const AddMoreLink = styled.button`
   ${({ theme }: { theme?: CustomTheme }) => `
+    background: transparent;
+    border: none;
+    padding: 0;
     color: ${theme?.colors?.primary?.dark1};
     font-size: 14px;
     font-weight: bold;
@@ -153,17 +156,18 @@ const LabelColorMapping = ({
   jsonMetadata,
   onJsonMetadataChange,
 }: LabelColorMappingProps) => {
-  const metadataObj = useMemo<Record<string, unknown>>(() => {
+  const { metadataObj, isValidJson } = useMemo(() => {
     try {
       const parsed = jsonMetadata ? JSON.parse(jsonMetadata) : {};
-      return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
-        ? (parsed as Record<string, unknown>)
-        : {};
+      return {
+        metadataObj:
+          parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+            ? (parsed as Record<string, unknown>)
+            : {},
+        isValidJson: true,
+      };
     } catch (error: unknown) {
-      if (error instanceof SyntaxError) {
-        return {};
-      }
-      throw error;
+      return { metadataObj: {}, isValidJson: false };
     }
   }, [jsonMetadata]);
 
@@ -201,9 +205,13 @@ const LabelColorMapping = ({
 
   const syncToJson = (currentRows: ColorMapping[]) => {
     const newLabelColors: Record<string, string> = {};
+    const seenLabels = new Set<string>();
+
     currentRows.forEach(row => {
-      if (row.label.trim() !== '') {
-        newLabelColors[row.label.trim()] = row.color;
+      const trimmedLabel = row.label.trim();
+      if (trimmedLabel !== '' && !seenLabels.has(trimmedLabel)) {
+        newLabelColors[trimmedLabel] = row.color;
+        seenLabels.add(trimmedLabel);
       }
     });
 
@@ -212,7 +220,7 @@ const LabelColorMapping = ({
       label_colors: newLabelColors,
     };
 
-    const newMetadataString = JSON.stringify(updatedMetadata, null, 2);
+    const newMetadataString = stringify(updatedMetadata);
     lastSyncMetadata.current = newMetadataString;
     onJsonMetadataChange(newMetadataString);
   };
@@ -242,6 +250,36 @@ const LabelColorMapping = ({
   const allKnownLabels = Array.from(
     new Set(rows.map(r => r.label).filter(Boolean)),
   );
+
+  if (!isValidJson) {
+    return (
+      <Container>
+        <HeaderRow>
+          <div>
+            <h4
+              css={(theme: CustomTheme) => ({
+                marginBottom: theme?.gridUnit || 4,
+                marginTop: 0,
+              })}
+            >
+              {t('Label Colors')}
+            </h4>
+            <p
+              css={(theme: CustomTheme) => ({
+                margin: 0,
+                fontSize: 12,
+                color: theme?.colors?.error?.base,
+              })}
+            >
+              {t(
+                'Invalid JSON metadata. Please resolve syntax errors in the Advanced tab to use the GUI.',
+              )}
+            </p>
+          </div>
+        </HeaderRow>
+      </Container>
+    );
+  }
 
   return (
     <Container>
@@ -312,12 +350,12 @@ const LabelColorMapping = ({
               <ColorPickerWrapper>
                 <ColorPickerControl
                   value={row.color}
-                  onChange={(color: any) =>
+                  outputFormat="hex"
+                  onChange={color =>
                     handleUpdateRow(
                       row.id,
                       row.label,
-                      color?.hex ||
-                        (typeof color === 'string' ? color : row.color),
+                      typeof color === 'string' ? color : row.color,
                     )
                   }
                 />
@@ -327,6 +365,7 @@ const LabelColorMapping = ({
             <ActionButton
               onClick={() => handleDeleteRow(row.id)}
               type="button"
+              aria-label={t('Remove color mapping')}
               title={t('Remove color mapping')}
             >
               <svg
@@ -347,7 +386,9 @@ const LabelColorMapping = ({
         );
       })}
 
-      <AddMoreLink onClick={handleAddRow}>+ {t('Add more')}</AddMoreLink>
+      <AddMoreLink onClick={handleAddRow} type="button">
+        + {t('Add more')}
+      </AddMoreLink>
     </Container>
   );
 };
