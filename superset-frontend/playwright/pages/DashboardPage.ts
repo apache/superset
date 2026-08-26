@@ -73,9 +73,6 @@ export class DashboardPage {
     ACE_CONTENT: '.ace_content',
     ACE_TEXT_INPUT: '.ace_text-input',
     RESIZE_HANDLE_BOTTOM: '.resizable-container-handle--bottom',
-    FILTER_BAR_SETTINGS: '[data-test="filterbar-orientation-icon"]',
-    APPLY_FILTERS_BUTTON:
-      '[data-test="filter-bar__apply-button"], [data-test="filterbar-action-buttons"] button[type="submit"]',
     DASHBOARD_TABS: '[data-test="dashboard-component-tabs"]',
   } as const;
 
