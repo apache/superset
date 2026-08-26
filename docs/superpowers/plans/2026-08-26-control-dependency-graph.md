@@ -47,7 +47,7 @@
 - Consumes: nothing new.
 - Produces: `EnricherFn = Callable[[dict[str, Any], dict[str, Any], BaseModel | None, list[str], dict[str, Any]], Any]` — `(schema, node, parsed, series, upstream_results) -> Any`; `dynamic_field_paths(schema) -> dict[str, dict[str, Any]]`; `build_dependency_graph(fields: dict[str, dict[str, Any]]) -> dict[str, list[str]]`; `toposort_or_raise(graph: dict[str, list[str]], widget_type: str) -> list[str]`; `run_enrichers(schema, fields, order, enrichers, parsed, series) -> None`. Task 2 wires these into `Widget.get_control_schema`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Create `tests/unit_tests/widgets/test_enrichment.py`:
 
@@ -165,12 +165,12 @@ def test_run_enrichers_skips_ungated_field_without_error() -> None:
     run_enrichers(schema, fields, order, {}, None, [])  # must not raise
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `venv/bin/python3 -m pytest tests/unit_tests/widgets/test_enrichment.py -v`
 Expected: all FAIL with `ModuleNotFoundError` (`superset_core.widgets.enrichment` doesn't exist yet).
 
-- [ ] **Step 3: Implement `superset-core/src/superset_core/widgets/enrichment.py`**
+- [x] **Step 3: Implement `superset-core/src/superset_core/widgets/enrichment.py`**
 
 ```python
 # Licensed to the Apache Software Foundation (ASF) under one
@@ -325,12 +325,12 @@ def run_enrichers(
         upstream_results[path] = result
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `venv/bin/python3 -m pytest tests/unit_tests/widgets/test_enrichment.py -v`
 Expected: all 7 PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add superset-core/src/superset_core/widgets/enrichment.py tests/unit_tests/widgets/test_enrichment.py
@@ -349,7 +349,7 @@ git commit -m "feat(dashboard-v2): add dependency graph + enricher runner for dy
 - Consumes: nothing new.
 - Produces: `check_dependencies` now resolves an `x-dependsOn` entry against the parsed model's *alias* (matching what's actually written in the schema) before falling back to the raw name, instead of only ever trying the raw name directly.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Append to `tests/unit_tests/semantic_layers/config_test.py`:
 
@@ -385,12 +385,12 @@ def test_check_dependencies_true_when_no_dependencies_declared() -> None:
     assert check_dependencies({}, configuration)
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `venv/bin/python3 -m pytest tests/unit_tests/semantic_layers/config_test.py -v -k check_dependencies`
 Expected: `test_check_dependencies_resolves_alias` FAILS (`check_dependencies` returns falsy — `getattr(configuration, "dataBinding", None)` is `None`); the other two already pass (they don't exercise the alias bug).
 
-- [ ] **Step 3: Fix `check_dependencies`**
+- [x] **Step 3: Fix `check_dependencies`**
 
 In `superset-core/src/superset_core/semantic_layers/config.py`, replace:
 
@@ -437,12 +437,12 @@ def check_dependencies(
     )
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `venv/bin/python3 -m pytest tests/unit_tests/semantic_layers/config_test.py -v`
 Expected: all PASS (8 total: the 5 from the field-order slice plus these 3).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add superset-core/src/superset_core/semantic_layers/config.py tests/unit_tests/semantic_layers/config_test.py
@@ -461,7 +461,7 @@ git commit -m "fix(dashboard-v2): resolve x-dependsOn aliases in check_dependenc
 - Consumes: `enrichment.py`'s four functions (Task 1).
 - Produces: `Widget.enrichers: ClassVar[dict[str, EnricherFn]] = {}`; `get_control_schema` runs the full pipeline. `enrich_schema` no longer exists on `Widget`. Task 5 (Balloons retrofit) depends on this.
 
-- [ ] **Step 1: Modify `superset-core/src/superset_core/widgets/base.py`**
+- [x] **Step 1: Modify `superset-core/src/superset_core/widgets/base.py`**
 
 Replace the imports and the `get_control_schema`/`enrich_schema` methods:
 
@@ -572,7 +572,7 @@ class Widget:
 (Keep the module and class docstrings as they are today — only the imports
 and the two methods change.)
 
-- [ ] **Step 2: Re-export `EnricherFn` from `superset-core/src/superset_core/widgets/__init__.py`**
+- [x] **Step 2: Re-export `EnricherFn` from `superset-core/src/superset_core/widgets/__init__.py`**
 
 ```python
 from superset_core.widgets.base import Widget as Widget
@@ -585,7 +585,7 @@ from superset_core.widgets.decorators import widget as widget
 from superset_core.widgets.enrichment import EnricherFn as EnricherFn
 ```
 
-- [ ] **Step 3: Run the existing widgets suite — expect Balloons failures**
+- [x] **Step 3: Run the existing widgets suite — expect Balloons failures**
 
 Run: `venv/bin/python3 -m pytest tests/unit_tests/widgets/ tests/unit_tests/mcp_service/widgets/ -v`
 Expected: `test_builtin.py`'s Balloons tests now FAIL, because `Balloons` still
@@ -594,7 +594,7 @@ and has no `enrichers` registered, so `series` stays open-ended in every
 case. Every non-Balloons test should still PASS. This is expected — Task 5
 fixes it; do not treat this as a regression to chase down within this task.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add superset-core/src/superset_core/widgets/base.py superset-core/src/superset_core/widgets/__init__.py
@@ -613,7 +613,7 @@ git commit -m "feat(dashboard-v2): drive get_control_schema through the enricher
 - Consumes: Task 3's `get_control_schema` (which now raises `ValueError` internally on a cyclic graph, via `toposort_or_raise`).
 - Produces: nothing new — this task only changes *when* that `ValueError` can surface (at `@widget` application, not first request).
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Append to `tests/unit_tests/widgets/test_registry.py`:
 
@@ -648,14 +648,14 @@ def test_widget_registration_raises_on_cyclic_dependency() -> None:
 first, since `test_registry.py` may already import it via other tests in
 this suite.)
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `venv/bin/python3 -m pytest tests/unit_tests/widgets/test_registry.py -v -k cyclic`
 Expected: FAIL — the widget currently registers successfully (no eager
 schema build happens at registration), so no `ValueError` is raised, and the
 final `assert registry.get(...) is None` also fails since it *did* register.
 
-- [ ] **Step 3: Make registration eager, and roll back on failure**
+- [x] **Step 3: Make registration eager, and roll back on failure**
 
 In `superset/core/api/core_api_injection.py`, inside `inject_widget_implementations`'s
 `widget_impl`'s `decorator`, after `registry[key] = cls` and before `return cls`:
@@ -679,18 +679,18 @@ In `superset/core/api/core_api_injection.py`, inside `inject_widget_implementati
             return cls
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `venv/bin/python3 -m pytest tests/unit_tests/widgets/test_registry.py -v -k cyclic`
 Expected: PASS.
 
-- [ ] **Step 5: Run the full widgets + MCP suite**
+- [x] **Step 5: Run the full widgets + MCP suite**
 
 Run: `venv/bin/python3 -m pytest tests/unit_tests/widgets/ tests/unit_tests/mcp_service/widgets/ -v`
 Expected: same state as Task 3 Step 3 — Balloons tests still failing (Task 5
 fixes them), everything else passing, plus the new cyclic test passing.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add superset/core/api/core_api_injection.py tests/unit_tests/widgets/test_registry.py
@@ -708,7 +708,7 @@ git commit -m "feat(dashboard-v2): detect cyclic control dependencies at widget 
 - Consumes: `Widget.enrichers` (Task 3).
 - Produces: nothing new — `Balloons`'s served schema must be byte-identical to before this whole plan started (golden-fixture proof, `test_builtin.py`/`test_registry.py` already assert this exactly).
 
-- [ ] **Step 1: Replace `Balloons.enrich_schema` with a registered enricher**
+- [x] **Step 1: Replace `Balloons.enrich_schema` with a registered enricher**
 
 In `superset/widgets/builtin.py`, replace the `enrich_schema` classmethod with:
 
@@ -764,19 +764,19 @@ from superset_core.widgets import EnricherFn, Widget, widget
 ```
 (replacing the existing `from typing import Any` and `from superset_core.widgets import Widget, widget` lines).
 
-- [ ] **Step 2: Run the Balloons tests to verify they pass again**
+- [x] **Step 2: Run the Balloons tests to verify they pass again**
 
 Run: `venv/bin/python3 -m pytest tests/unit_tests/widgets/test_builtin.py -v`
 Expected: all PASS, unchanged assertions — proves the retrofit reproduces
 `enrich_schema`'s exact prior behavior.
 
-- [ ] **Step 3: Run the full widgets + MCP + semantic_layers suite**
+- [x] **Step 3: Run the full widgets + MCP + semantic_layers suite**
 
 Run: `venv/bin/python3 -m pytest tests/unit_tests/widgets/ tests/unit_tests/mcp_service/widgets/ tests/unit_tests/semantic_layers/ -v`
 Expected: all PASS, including the composite-control-registry slice's golden-fixture
 tests for `metric-tile`/`balloons` (this plan must not regress those either).
 
-- [ ] **Step 4: mypy**
+- [x] **Step 4: mypy**
 
 Run: `pre-commit run mypy --files superset-core/src/superset_core/widgets/enrichment.py superset-core/src/superset_core/widgets/base.py superset-core/src/superset_core/widgets/__init__.py superset-core/src/superset_core/semantic_layers/config.py superset/core/api/core_api_injection.py superset/widgets/builtin.py`
 Expected: no errors. Fix inline if any surface (the composite-control-registry
@@ -784,7 +784,7 @@ slice hit one narrowing issue mypy flagged that `isinstance`+`issubclass` alone
 didn't resolve — bind to an explicitly-annotated local if something similar
 comes up here).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add superset/widgets/builtin.py
@@ -795,7 +795,7 @@ git commit -m "refactor(dashboard-v2): retrofit Balloons onto the enricher regis
 
 ## Final Verification
 
-- [ ] Run `pre-commit run --files <every file touched across all 5 tasks>` and fix anything it flags; re-run the affected tests after any auto-fix.
-- [ ] Run the full backend unit suite once more: `venv/bin/python3 -m pytest tests/unit_tests/widgets/ tests/unit_tests/mcp_service/widgets/ tests/unit_tests/semantic_layers/ -v`
-- [ ] Confirm no frontend files were touched: `git status --porcelain -- superset-frontend/` should be empty.
-- [ ] Reconcile the spec (`docs/superpowers/specs/2026-08-26-control-dependency-graph-design.md`) with anything discovered during implementation that diverged from the plan (`EnricherFn`'s signature, `check_dependencies`'s alias fix, the gate-vs-fine-grained-guard nuance) — same discipline as the composite-control-registry slice's post-implementation doc reconciliation.
+- [x] Run `pre-commit run --files <every file touched across all 5 tasks>` and fix anything it flags; re-run the affected tests after any auto-fix. Confirmed clean per-task (no auto-fixes needed on any of the 5 commits' files).
+- [x] Run the full backend unit suite once more: `venv/bin/python3 -m pytest tests/unit_tests/widgets/ tests/unit_tests/mcp_service/widgets/ tests/unit_tests/semantic_layers/ -v` — 442 passed.
+- [x] Confirm no frontend files were touched: `git status --porcelain -- superset-frontend/` should be empty. Confirmed empty.
+- [x] Reconcile the spec (`docs/superpowers/specs/2026-08-26-control-dependency-graph-design.md`) with anything discovered during implementation that diverged from the plan (`EnricherFn`'s signature, `check_dependencies`'s alias fix, the gate-vs-fine-grained-guard nuance) — same discipline as the composite-control-registry slice's post-implementation doc reconciliation. Done: this plan's design matched what shipped exactly (all three corrections were caught while writing the plan, before implementation, rather than during it), so the spec only needed its Design section rewritten to match, not a behavior change.

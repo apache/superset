@@ -106,6 +106,33 @@ broken here.)
 
 ## Design
 
+Three corrections surfaced during implementation, verified directly rather
+than assumed — the code below reflects what was actually built and shipped,
+not the original draft:
+
+1. **`EnricherFn` needs the whole schema, not just its own field's fragment.**
+   Balloons' real enricher reads `schema["$defs"]["SeriesStyle"]`, a *sibling*
+   `$defs` entry — unreachable from `Customization.series`'s own node alone.
+   The signature is `(schema, node, parsed, series, upstream_results) -> Any`,
+   not `(node, parsed, series, upstream_results) -> Any`.
+2. **`check_dependencies` never actually worked.** It resolved an
+   `x-dependsOn` entry (e.g. `"dataBinding"`, the schema-facing alias)
+   directly as a `getattr` name against the parsed model — but Pydantic
+   attribute access always uses the Python field name (`data_binding`), never
+   the alias, even under `populate_by_name=True`. Confirmed directly:
+   `getattr(parsed, "dataBinding", "MISSING")` returns `"MISSING"` on a real
+   parsed instance. It had zero callers before this slice, so this was never
+   exercised. Fixed to resolve alias → field name via `model_fields` first.
+3. **The `x-dependsOn` gate is coarser than Balloons' actual guard, and stays
+   that way.** `dataBinding` is a required field, so it's truthy whenever
+   `parsed` exists at all — the gate can't express "`dimensions` is
+   non-empty" (a nested attribute) or "`series` is non-empty" (a runtime
+   parameter, not a field on `parsed`, so no `x-dependsOn` entry could ever
+   name it). Balloons' enricher keeps its original fine-grained
+   `if not dimensions or not series: return` guard unchanged; the schema-level
+   gate is an additional coarse pre-filter that matters for the *new*
+   multi-hop-ordering feature, not a replacement for a field's own logic.
+
 ### `superset_core/widgets/enrichment.py` (new)
 
 ```python
@@ -115,30 +142,32 @@ from typing import Any, Callable
 
 from pydantic import BaseModel
 
-# (schema_node_to_mutate, parsed, series, upstream_results) -> None.
-# Mutates schema_node (the dynamic field's own schema fragment) in place.
-# upstream_results holds whatever each already-run upstream enricher chose to
-# record, keyed by its own field path — how a downstream enricher reads an
-# upstream one's *computed* output rather than re-deriving it from parsed.
+from superset_core.semantic_layers.config import check_dependencies
+
+# (schema, node, parsed, series, upstream_results) -> Any.
+# `schema` is the full document (for cross-$defs lookups, e.g. a sibling
+# style definition); `node` is this field's own schema fragment, mutated in
+# place. The return value is threaded to enrichers ordered after this one, as
+# `upstream_results[path]`.
 EnricherFn = Callable[
-    [dict[str, Any], "BaseModel | None", list[str], dict[str, Any]], Any
+    [dict[str, Any], dict[str, Any], "BaseModel | None", list[str], dict[str, Any]],
+    Any,
 ]
 
 
 def dynamic_field_paths(schema: dict[str, Any]) -> dict[str, dict[str, Any]]:
     """Walk a built (pre-enrichment) control schema and return
     ``{path: schema_node}`` for every field carrying ``x-dynamic: true``,
-    using ``schema_tools.py``'s ``a/b`` path convention. Resolves ``$ref``
-    along the way so each returned node is the field's own fragment."""
+    using ``a/b`` dot-path notation (``schema_tools.py``'s drill-in
+    convention). Descends into ``properties`` and resolves ``$ref`` against
+    ``$defs`` along the way."""
 
 
-def build_dependency_graph(
-    schema: dict[str, Any], fields: dict[str, dict[str, Any]]
-) -> dict[str, list[str]]:
+def build_dependency_graph(fields: dict[str, dict[str, Any]]) -> dict[str, list[str]]:
     """``{path: [ordering-edge paths]}`` for every dynamic field in
     ``fields`` — only ``x-dependsOn`` entries that name another key of
-    ``fields`` become edges; every other entry is a gate, not an edge, and is
-    left for ``check_dependencies`` to evaluate at run time."""
+    ``fields`` become edges; every other entry is left as a gate for
+    ``check_dependencies`` to evaluate at run time, not an edge here."""
 
 
 def toposort_or_raise(graph: dict[str, list[str]], widget_type: str) -> list[str]:
@@ -155,10 +184,17 @@ def run_enrichers(
     series: list[str],
 ) -> None:
     """Run each path's registered enricher (if any) in ``order``, skipping
-    one whose gate(s) aren't satisfied (``check_dependencies``), and
-    threading each enricher's return value forward as
-    ``upstream_results[path]`` for anything ordered after it."""
+    one whose non-edge ``x-dependsOn`` gate(s) aren't satisfied
+    (``check_dependencies``), and threading each enricher's return value
+    forward as ``upstream_results[path]`` for anything ordered after it."""
 ```
+
+### `superset_core/semantic_layers/config.py` (changed)
+
+`check_dependencies` resolves each `x-dependsOn` entry to its Pydantic field
+name (via `model_fields`'s alias mapping) before `getattr`, instead of trying
+the raw alias string directly — see correction 2 above. This is the first
+real caller `check_dependencies` has ever had.
 
 ### `superset_core/widgets/base.py` (changed)
 
@@ -174,15 +210,15 @@ retired, per the Approach section).
 
 ### `superset/core/api/core_api_injection.py` (changed)
 
-`inject_widget_implementations`'s `widget_impl` (the concrete `@widget`
-decorator body), after registering a widget class into the host registry,
-additionally calls `get_control_schema(None, None)` on it and runs
-`dynamic_field_paths` → `build_dependency_graph` → `toposort_or_raise`
-against the result, letting `ValueError` propagate — a cyclic widget fails
-import exactly like a duplicate `widget_type` does today. The static
-(`control_values=None`) schema is sufficient: `x-dynamic`/`x-dependsOn` are
-schema-level declarations, not value-dependent, so the graph is identical
-regardless of what control values a real request would carry.
+`inject_widget_implementations`'s `widget_impl` decorator, right after
+`registry[key] = cls`, eagerly calls `cls.get_control_schema(None, None)` —
+that call's own internal `toposort_or_raise` is what detects a cycle, so no
+separate graph-building code is needed here; a `ValueError` propagates and
+the widget is popped back out of the registry rather than left
+half-registered. The static (`control_values=None`) schema is sufficient:
+`x-dynamic`/`x-dependsOn` are schema-level declarations, not value-dependent,
+so the graph is identical regardless of what control values a real request
+would carry.
 
 ### `superset/widgets/builtin.py` (changed)
 
@@ -194,21 +230,27 @@ class Balloons(Widget):
     MAX_SERIES = 100  # unchanged
 
     @staticmethod
-    def _populate_series(node, parsed, series, upstream):
-        # identical body to today's enrich_schema, minus the
-        # `if not dimensions or not series: return` guard — that
-        # precondition is now expressed by Customization.series's existing
-        # x-dependsOn: ["dataBinding"] gate, enforced by run_enrichers
-        # before this is ever called.
-        ...
+    def _populate_series(schema, node, parsed, series, upstream):
+        style_def = schema.get("$defs", {}).get("SeriesStyle")
+        if style_def is None:
+            return
+        # Gate (x-dependsOn: ["dataBinding"]) only confirms dataBinding was
+        # parsed at all -- dimensions/series non-emptiness stay checked here,
+        # unchanged from the original enrich_schema body (see correction 3).
+        dimensions = None
+        if parsed is not None:
+            data_binding = getattr(parsed, "data_binding", None)
+            dimensions = getattr(data_binding, "dimensions", None)
+        if not dimensions or not series:
+            return
+        ...  # dedupe/cap/palette body, otherwise identical to before
 
     enrichers: ClassVar[dict[str, EnricherFn]] = {"customize/series": _populate_series}
 ```
 `Customization.series`'s existing `x-dependsOn: ["dataBinding"]`
 (`superset/widgets/controls.py`) is unchanged — `dataBinding` doesn't name
-another dynamic-field path, so it resolves to a gate exactly as it does
-conceptually today, just now actually enforced by `check_dependencies`
-instead of hand-rolled in `enrich_schema`.
+another dynamic-field path, so it resolves to a gate, now actually enforced
+by the fixed `check_dependencies` rather than being dead code.
 
 ## Testing
 
