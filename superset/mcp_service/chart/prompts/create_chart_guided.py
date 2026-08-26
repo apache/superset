@@ -137,7 +137,9 @@ Example table config:
 - If the chart type doesn't suit the data, try a different kind
 
 ## Available Aggregations
-SUM, COUNT, AVG, MIN, MAX, COUNT_DISTINCT, STDDEV, VAR, MEDIAN
+SUM, COUNT, AVG, MIN, MAX, COUNT_DISTINCT, STDDEV_SAMP, VAR_SAMP, MEDIAN
+(support for STDDEV_SAMP/VAR_SAMP/MEDIAN depends on the connected database;
+an unsupported choice returns a clear error naming the unsupported aggregate)
 
 ## Custom SQL Metrics
 For ratio metrics, weighted averages, and conditional aggregates,

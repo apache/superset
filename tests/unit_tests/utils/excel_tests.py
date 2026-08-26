@@ -27,6 +27,7 @@ from superset.utils.excel import (
     apply_column_types,
     df_to_excel,
     NEUTRAL_TIMESTAMP,
+    quote_formulas,
 )
 
 
@@ -51,6 +52,49 @@ def test_quote_formulas() -> None:
         "normal",
         "'@SUM(A1:A2)",
     ]
+
+
+def test_quote_formulas_in_headers_and_index() -> None:
+    """
+    Test that formulas in column headers and index labels are quoted too.
+
+    Pivot exports promote data values into the column MultiIndex and row
+    index, so hostile warehouse strings can end up there.
+    """
+    df = pd.DataFrame(
+        {"=SUM(A1:A2)": ["normal"]},
+        index=pd.Index(['=cmd|" /C calc"!A0'], name="label"),
+    )
+    contents = df_to_excel(df)
+    result = pd.read_excel(contents, index_col=0)
+    assert result.columns.tolist() == ["'=SUM(A1:A2)"]
+    assert result.index.tolist() == ['\'=cmd|" /C calc"!A0']
+
+
+def test_quote_formulas_in_axis_names() -> None:
+    """
+    Test that formula-triggering axis *names* are quoted too, not just axis
+    labels/values. Pivot exports can promote a warehouse-controlled column
+    name to ``df.index.name`` (or a MultiIndex level name), and pandas
+    writes those names into the sheet as header cells. ``rename`` alone
+    leaves these untouched since they are a separate attribute from the
+    axis labels/values, so this is asserted directly against the
+    ``quote_formulas`` output rather than round-tripped through
+    ``read_excel``, whose header parsing doesn't reliably preserve the
+    columns-axis name.
+    """
+    df = pd.DataFrame(
+        {"value": ["normal"]},
+        index=pd.Index(["row"], name="=SUM(A1:A2)"),
+    )
+    df.columns.name = "+cmd"
+    result = quote_formulas(df)
+    assert result.index.name == "'=SUM(A1:A2)"
+    assert result.columns.name == "'+cmd"
+
+    # exercised end-to-end to confirm it doesn't error when the axis names
+    # are written out as sheet header cells
+    df_to_excel(df)
 
 
 def test_document_properties_are_neutral() -> None:

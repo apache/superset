@@ -34,11 +34,11 @@ down_revision = "4ea966691069"
 
 def upgrade():
     bind = op.get_bind()
-    session = db.Session(bind=bind, future=True)
+    session = db.Session(bind=bind)
     MigratePivotTable.upgrade(session)
 
 
 def downgrade():
     bind = op.get_bind()
-    session = db.Session(bind=bind, future=True)
+    session = db.Session(bind=bind)
     MigratePivotTable.downgrade(session)
