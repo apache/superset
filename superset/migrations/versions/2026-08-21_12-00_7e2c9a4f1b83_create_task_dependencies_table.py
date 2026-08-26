@@ -44,7 +44,7 @@ from superset.migrations.shared.utils import (
 
 # revision identifiers, used by Alembic.
 revision = "7e2c9a4f1b83"
-down_revision = "1072de5ed955"
+down_revision = "39097d124752"
 
 TASKS_TABLE = "tasks"
 TASK_DEPENDENCIES_TABLE = "task_dependencies"
