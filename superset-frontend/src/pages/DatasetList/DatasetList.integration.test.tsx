@@ -260,6 +260,139 @@ test('bulk action orchestration: selection → action → cleanup cycle works co
   // selection state → action handler → list refresh → state cleanup
 }, 45000);
 
+test('bulk delete confirm names the charts and dashboards that will break', async () => {
+  // Regression for sc-116465: bulk delete used a static "Type DELETE to
+  // confirm" dialog that named no dependents, while single-row delete named
+  // affected charts and counted dashboards. Selecting datasets in bulk must
+  // surface the same blast-radius warning, aggregated across the selection.
+  const withDependents = mockDatasets[0]; // id 1 -- has a chart on a dashboard
+  const noDependents = mockDatasets[1]; // id 2 -- clean
+
+  mockDatasetListEndpoints({
+    result: [withDependents, noDependents],
+    count: 2,
+  });
+
+  // The bulk confirm fans out related_objects per selected dataset. id 1 has a
+  // dependent chart + dashboard; id 2 has none. The union is what the modal
+  // must show.
+  fetchMock.get(`glob:*/api/v1/dataset/${withDependents.id}/related_objects*`, {
+    charts: {
+      count: 1,
+      result: [{ id: 101, slice_name: 'QA Delete Target Chart' }],
+    },
+    dashboards: {
+      count: 1,
+      result: [{ id: 201, title: 'Executive Dashboard' }],
+    },
+  });
+  fetchMock.get(`glob:*/api/v1/dataset/${noDependents.id}/related_objects*`, {
+    charts: { count: 0, result: [] },
+    dashboards: { count: 0, result: [] },
+  });
+  fetchMock.delete(API_ENDPOINTS.DATASET_BULK_DELETE, {
+    message: '2 datasets deleted successfully',
+  });
+
+  renderDatasetList(mockAdminUser);
+  await waitFor(() => {
+    expect(screen.getByTestId('listview-table')).toBeInTheDocument();
+  });
+
+  await userEvent.click(screen.getByRole('button', { name: /bulk select/i }));
+  const bulkSelectControls = await screen.findByTestId('bulk-select-controls');
+  const table = screen.getByTestId('listview-table');
+  await within(table).findAllByRole('checkbox');
+
+  for (const name of [withDependents.table_name, noDependents.table_name]) {
+    // eslint-disable-next-line no-await-in-loop
+    const cell = await within(table).findByText(name);
+    // eslint-disable-next-line no-await-in-loop
+    await userEvent.click(within(cell.closest('tr')!).getByRole('checkbox'));
+  }
+  await waitFor(() => {
+    expect(screen.getByTestId('bulk-select-copy')).toHaveTextContent(
+      /2 Selected/i,
+    );
+  });
+
+  await userEvent.click(
+    await within(bulkSelectControls).findByRole('button', { name: 'Delete' }),
+  );
+
+  const modal = await screen.findByRole('dialog');
+
+  // The dependents are named and counted, matching the single-row delete modal.
+  // findByText waits out the async related_objects fan-out.
+  expect(await within(modal).findByText('Affected Charts')).toBeInTheDocument();
+  expect(within(modal).getByText('Affected Dashboards')).toBeInTheDocument();
+  expect(within(modal).getByText('QA Delete Target Chart')).toBeInTheDocument();
+  expect(within(modal).getByText('Executive Dashboard')).toBeInTheDocument();
+  expect(modal).toHaveTextContent(
+    /linked to 1 charts that appear on 1 dashboards/i,
+  );
+}, 45000);
+
+test('bulk delete confirm de-duplicates a dashboard shared by two datasets', async () => {
+  // The blast-radius count is a union, not a sum: two selected datasets that
+  // both feed the same dashboard must count that dashboard once, or the warning
+  // over-states the damage and erodes trust in the number.
+  const first = mockDatasets[0]; // id 1
+  const second = mockDatasets[1]; // id 2
+
+  mockDatasetListEndpoints({ result: [first, second], count: 2 });
+
+  // Both datasets list the SAME dashboard (id 201) but distinct charts.
+  const sharedDashboard = { id: 201, title: 'Executive Dashboard' };
+  fetchMock.get(`glob:*/api/v1/dataset/${first.id}/related_objects*`, {
+    charts: { count: 1, result: [{ id: 101, slice_name: 'Chart A' }] },
+    dashboards: { count: 1, result: [sharedDashboard] },
+  });
+  fetchMock.get(`glob:*/api/v1/dataset/${second.id}/related_objects*`, {
+    charts: { count: 1, result: [{ id: 102, slice_name: 'Chart B' }] },
+    dashboards: { count: 1, result: [sharedDashboard] },
+  });
+  fetchMock.delete(API_ENDPOINTS.DATASET_BULK_DELETE, {
+    message: '2 datasets deleted successfully',
+  });
+
+  renderDatasetList(mockAdminUser);
+  await waitFor(() => {
+    expect(screen.getByTestId('listview-table')).toBeInTheDocument();
+  });
+
+  await userEvent.click(screen.getByRole('button', { name: /bulk select/i }));
+  const bulkSelectControls = await screen.findByTestId('bulk-select-controls');
+  const table = screen.getByTestId('listview-table');
+  await within(table).findAllByRole('checkbox');
+
+  for (const name of [first.table_name, second.table_name]) {
+    // eslint-disable-next-line no-await-in-loop
+    const cell = await within(table).findByText(name);
+    // eslint-disable-next-line no-await-in-loop
+    await userEvent.click(within(cell.closest('tr')!).getByRole('checkbox'));
+  }
+  await waitFor(() => {
+    expect(screen.getByTestId('bulk-select-copy')).toHaveTextContent(
+      /2 Selected/i,
+    );
+  });
+
+  await userEvent.click(
+    await within(bulkSelectControls).findByRole('button', { name: 'Delete' }),
+  );
+
+  const modal = await screen.findByRole('dialog');
+
+  // 2 distinct charts, 1 distinct dashboard (deduped) -- not 2 dashboards.
+  await within(modal).findByText('Affected Charts');
+  expect(modal).toHaveTextContent(
+    /linked to 2 charts that appear on 1 dashboards/i,
+  );
+  // The shared dashboard is listed a single time.
+  expect(within(modal).getAllByText('Executive Dashboard')).toHaveLength(1);
+}, 45000);
+
 /**
  * Renders the list with one regular dataset plus the given semantic-view row,
  * bulk-selects both, opens the bulk Archive confirm, and asserts the modal

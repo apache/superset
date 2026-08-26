@@ -479,10 +479,24 @@ export const setupDuplicateMocks = () => {
 };
 
 export const setupBulkDeleteMocks = () => {
-  fetchMock.removeRoutes({ names: [API_ENDPOINTS.DATASET_BULK_DELETE] });
+  fetchMock.removeRoutes({
+    names: [
+      API_ENDPOINTS.DATASET_BULK_DELETE,
+      API_ENDPOINTS.DATASET_RELATED_OBJECTS,
+    ],
+  });
   fetchMock.delete(API_ENDPOINTS.DATASET_BULK_DELETE, {
     message: '3 datasets deleted successfully',
   });
+  // Bulk delete now fans out related_objects per selected dataset to warn about
+  // dependent charts/dashboards (sc-116465). Default to no dependents; a test
+  // that asserts the warning sets up its own per-id routes instead of this
+  // helper (fetch-mock matches the first-registered route for an id).
+  fetchMock.get(
+    API_ENDPOINTS.DATASET_RELATED_OBJECTS,
+    { charts: { count: 0, result: [] }, dashboards: { count: 0, result: [] } },
+    { name: API_ENDPOINTS.DATASET_RELATED_OBJECTS },
+  );
 };
 
 // Setup error mocks for negative flow testing

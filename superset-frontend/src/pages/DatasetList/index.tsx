@@ -199,6 +199,92 @@ type RelatedObjects = {
   result: Array<Record<string, unknown>>;
 };
 
+type DatasetRelatedObjects = {
+  charts: RelatedObjects;
+  dashboards: RelatedObjects;
+};
+
+/**
+ * The "Affected Dashboards" / "Affected Charts" lists rendered inside a dataset
+ * delete confirmation, capped at 10 each with an overflow footer. Shared by the
+ * single-row delete modal and the bulk-delete confirm so both name and count
+ * the at-risk objects identically -- previously only the single-row path
+ * surfaced them, leaving bulk delete with no blast-radius warning (sc-116465).
+ */
+const AffectedObjectsList: FunctionComponent<DatasetRelatedObjects> = ({
+  charts,
+  dashboards,
+}) => (
+  <>
+    {dashboards.count >= 1 && (
+      <>
+        <h4>{t('Affected Dashboards')}</h4>
+        <List
+          split={false}
+          size="small"
+          dataSource={dashboards.result.slice(0, 10)}
+          renderItem={(result: {
+            id: Key | null | undefined;
+            title: string;
+          }) => (
+            <List.Item key={result.id} compact>
+              <List.Item.Meta
+                avatar={<span>•</span>}
+                title={
+                  <Typography.Link
+                    href={ensureAppRoot(`/dashboard/${result.id}`)}
+                    target="_atRiskItem"
+                  >
+                    {result.title}
+                  </Typography.Link>
+                }
+              />
+            </List.Item>
+          )}
+          footer={
+            dashboards.result.length > 10 && (
+              <div>{t('... and %s others', dashboards.result.length - 10)}</div>
+            )
+          }
+        />
+      </>
+    )}
+    {charts.count >= 1 && (
+      <>
+        <h4>{t('Affected Charts')}</h4>
+        <List
+          split={false}
+          size="small"
+          dataSource={charts.result.slice(0, 10)}
+          renderItem={(result: {
+            id: Key | null | undefined;
+            slice_name: string;
+          }) => (
+            <List.Item key={result.id} compact>
+              <List.Item.Meta
+                avatar={<span>•</span>}
+                title={
+                  <Typography.Link
+                    href={ensureAppRoot(`/explore/?slice_id=${result.id}`)}
+                    target="_atRiskItem"
+                  >
+                    {result.slice_name}
+                  </Typography.Link>
+                }
+              />
+            </List.Item>
+          )}
+          footer={
+            charts.result.length > 10 && (
+              <div>{t('... and %s others', charts.result.length - 10)}</div>
+            )
+          }
+        />
+      </>
+    )}
+  </>
+);
+
 const DatasetList: FunctionComponent<DatasetListProps> = ({
   addDangerToast,
   addSuccessToast,
@@ -222,6 +308,14 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
   // change with the selection. Captured when the bulk action fires, before
   // the modal opens.
   const [pendingBulkSemanticCount, setPendingBulkSemanticCount] = useState(0);
+  // Charts/dashboards that depend on the current bulk selection, aggregated
+  // across every selected dataset so the bulk confirm can warn about the blast
+  // radius the same way the single-row delete modal does (sc-116465). Fetched
+  // when the bulk action fires; `null` until the lookup resolves.
+  const [pendingBulkRelated, setPendingBulkRelated] =
+    useState<DatasetRelatedObjects | null>(null);
+  const [pendingBulkRelatedLoading, setPendingBulkRelatedLoading] =
+    useState(false);
   const [datasets, setDatasets] = useState<Dataset[]>([]);
   const [datasetCount, setDatasetCount] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -622,6 +716,57 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
 
   const openDatasetDuplicateModal = useCallback((dataset: VirtualDataset) => {
     setDatasetCurrentlyDuplicating(dataset);
+  }, []);
+
+  /**
+   * Fan out `related_objects` for every regular dataset in a bulk selection and
+   * aggregate the dependent charts/dashboards, de-duplicating by id so an object
+   * shared by two selected datasets is counted once. Semantic-view rows are
+   * skipped: they delete through a different endpoint and have no
+   * `related_objects` lookup. A per-request failure is swallowed so a single
+   * unreachable lookup never blocks the confirmation -- the warning is a
+   * best-effort safety net, not a gate.
+   */
+  const fetchBulkRelatedObjects = useCallback((selected: Dataset[]) => {
+    const datasetRows = selected.filter(d => !isSemanticView(d));
+    if (datasetRows.length === 0) {
+      setPendingBulkRelated(null);
+      setPendingBulkRelatedLoading(false);
+      return;
+    }
+    setPendingBulkRelated(null);
+    setPendingBulkRelatedLoading(true);
+    Promise.all(
+      datasetRows.map(({ id }) =>
+        SupersetClient.get({
+          endpoint: `/api/v1/dataset/${id}/related_objects`,
+        })
+          .then(({ json = {} }) => json as Partial<DatasetRelatedObjects>)
+          .catch(() => null),
+      ),
+    ).then(results => {
+      const chartsById = new Map<unknown, Record<string, unknown>>();
+      const dashboardsById = new Map<unknown, Record<string, unknown>>();
+      results.forEach(result => {
+        result?.charts?.result?.forEach(chart => {
+          chartsById.set(chart.id, chart);
+        });
+        result?.dashboards?.result?.forEach(dashboard => {
+          dashboardsById.set(dashboard.id, dashboard);
+        });
+      });
+      setPendingBulkRelated({
+        charts: {
+          count: chartsById.size,
+          result: Array.from(chartsById.values()),
+        },
+        dashboards: {
+          count: dashboardsById.size,
+          result: Array.from(dashboardsById.values()),
+        },
+      });
+      setPendingBulkRelatedLoading(false);
+    });
   }, []);
 
   const handleBulkDatasetExport = useCallback(
@@ -1284,6 +1429,10 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
   };
 
   const handleBulkDatasetDelete = (datasetsToDelete: Dataset[]) => {
+    // Drop the resolved dependents so a later selection never briefly shows the
+    // previous selection's affected charts/dashboards before its own fetch lands.
+    setPendingBulkRelated(null);
+    setPendingBulkRelatedLoading(false);
     // Misrouting here sends a semantic-view id to the dataset delete
     // endpoint, which looks rows up by bare numeric id against `tables`
     // only (see the export handler's comment) — hence the shared predicate.
@@ -1400,92 +1549,10 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                   datasetCurrentlyDeleting.dashboards.count,
                 )}
               </p>
-              {datasetCurrentlyDeleting.dashboards.count >= 1 && (
-                <>
-                  <h4>{t('Affected Dashboards')}</h4>
-                  <List
-                    split={false}
-                    size="small"
-                    dataSource={datasetCurrentlyDeleting.dashboards.result.slice(
-                      0,
-                      10,
-                    )}
-                    renderItem={(result: {
-                      id: Key | null | undefined;
-                      title: string;
-                    }) => (
-                      <List.Item key={result.id} compact>
-                        <List.Item.Meta
-                          avatar={<span>•</span>}
-                          title={
-                            <Typography.Link
-                              href={ensureAppRoot(`/dashboard/${result.id}`)}
-                              target="_atRiskItem"
-                            >
-                              {result.title}
-                            </Typography.Link>
-                          }
-                        />
-                      </List.Item>
-                    )}
-                    footer={
-                      datasetCurrentlyDeleting.dashboards.result.length >
-                        10 && (
-                        <div>
-                          {t(
-                            '... and %s others',
-                            datasetCurrentlyDeleting.dashboards.result.length -
-                              10,
-                          )}
-                        </div>
-                      )
-                    }
-                  />
-                </>
-              )}
-              {datasetCurrentlyDeleting.charts.count >= 1 && (
-                <>
-                  <h4>{t('Affected Charts')}</h4>
-                  <List
-                    split={false}
-                    size="small"
-                    dataSource={datasetCurrentlyDeleting.charts.result.slice(
-                      0,
-                      10,
-                    )}
-                    renderItem={(result: {
-                      id: Key | null | undefined;
-                      slice_name: string;
-                    }) => (
-                      <List.Item key={result.id} compact>
-                        <List.Item.Meta
-                          avatar={<span>•</span>}
-                          title={
-                            <Typography.Link
-                              href={ensureAppRoot(
-                                `/explore/?slice_id=${result.id}`,
-                              )}
-                              target="_atRiskItem"
-                            >
-                              {result.slice_name}
-                            </Typography.Link>
-                          }
-                        />
-                      </List.Item>
-                    )}
-                    footer={
-                      datasetCurrentlyDeleting.charts.result.length > 10 && (
-                        <div>
-                          {t(
-                            '... and %s others',
-                            datasetCurrentlyDeleting.charts.result.length - 10,
-                          )}
-                        </div>
-                      )
-                    }
-                  />
-                </>
-              )}
+              <AffectedObjectsList
+                charts={datasetCurrentlyDeleting.charts}
+                dashboards={datasetCurrentlyDeleting.dashboards}
+              />
               {DatasetDeleteRelatedExtension && (
                 <DatasetDeleteRelatedExtension
                   dataset={datasetCurrentlyDeleting}
@@ -1562,29 +1629,52 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
             : t('Please confirm')
         }
         description={
-          softDelete ? (
-            bulkIsRecoverable ? (
-              archiveConfirmDescription(datasetsLabelLower(), true)
+          <>
+            {softDelete ? (
+              bulkIsRecoverable ? (
+                archiveConfirmDescription(datasetsLabelLower(), true)
+              ) : (
+                <>
+                  {tn(
+                    '%s of the selected items is a semantic view, which cannot be archived: it will be deleted permanently and cannot be recovered.',
+                    '%s of the selected items are semantic views, which cannot be archived: they will be deleted permanently and cannot be recovered.',
+                    pendingBulkSemanticCount,
+                    pendingBulkSemanticCount,
+                  )}{' '}
+                  {t(
+                    'The remaining %s will be moved to Recently Archived.',
+                    datasetsLabelLower(),
+                  )}
+                </>
+              )
             ) : (
-              <>
-                {tn(
-                  '%s of the selected items is a semantic view, which cannot be archived: it will be deleted permanently and cannot be recovered.',
-                  '%s of the selected items are semantic views, which cannot be archived: they will be deleted permanently and cannot be recovered.',
-                  pendingBulkSemanticCount,
-                  pendingBulkSemanticCount,
-                )}{' '}
-                {t(
-                  'The remaining %s will be moved to Recently Archived.',
-                  datasetsLabelLower(),
-                )}
-              </>
-            )
-          ) : (
-            t(
-              'Are you sure you want to delete the selected %s?',
-              datasetsLabelLower(),
-            )
-          )
+              t(
+                'Are you sure you want to delete the selected %s?',
+                datasetsLabelLower(),
+              )
+            )}
+            {pendingBulkRelatedLoading && (
+              <p>{t('Checking for affected charts and dashboards…')}</p>
+            )}
+            {pendingBulkRelated &&
+              (pendingBulkRelated.charts.count > 0 ||
+                pendingBulkRelated.dashboards.count > 0) && (
+                <>
+                  <p>
+                    {t(
+                      'The selected %s are linked to %s charts that appear on %s dashboards. Deleting them will break those objects.',
+                      datasetsLabelLower(),
+                      pendingBulkRelated.charts.count,
+                      pendingBulkRelated.dashboards.count,
+                    )}
+                  </p>
+                  <AffectedObjectsList
+                    charts={pendingBulkRelated.charts}
+                    dashboards={pendingBulkRelated.dashboards}
+                  />
+                </>
+              )}
+          </>
         }
         onConfirm={handleBulkDatasetDelete}
       >
@@ -1598,6 +1688,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                 setPendingBulkSemanticCount(
                   selected.filter(isSemanticView).length,
                 );
+                fetchBulkRelatedObjects(selected);
                 confirmDelete(selected);
               },
               type: 'danger',
