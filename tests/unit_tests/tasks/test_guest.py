@@ -92,6 +92,9 @@ def test_scope_affecting_claims_change_the_key(mocker: MockerFixture) -> None:
         ("datasets", [3]),
         ("rev", 2),
         ("exp", 3000),
+        ("iat", 1500),
+        ("aud", "other-audience"),
+        ("user", {"username": "other"}),
     ):
         _patch_guest(mocker, _guest_token(**{claim: value}))
         assert get_current_guest_subscriber_key() != baseline, (
