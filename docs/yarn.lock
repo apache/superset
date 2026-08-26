@@ -11849,10 +11849,10 @@ neotraverse@0.6.15:
   resolved "https://registry.yarnpkg.com/neotraverse/-/neotraverse-0.6.15.tgz#dc4abb64700c52440f13bc53635b559862420360"
   integrity sha512-HZpdkco+JeXq0G+WWpMJ4NsX3pqb5O7eR9uGz3FfoFt+LYzU8iRWp49nJtud6hsDoywM8tIrDo3gjgmOqJA8LA==
 
-neotraverse@=0.6.18:
-  version "0.6.18"
-  resolved "https://registry.yarnpkg.com/neotraverse/-/neotraverse-0.6.18.tgz#abcb33dda2e8e713cf6321b29405e822230cdb30"
-  integrity sha512-Z4SmBUweYa09+o6pG+eASabEpP6QkQ70yHj351pQoEXIs8uHbaU2DWVmzBANKgflPa47A50PtB2+NgRpQvr7vA==
+neotraverse@=1.0.1:
+  version "1.0.1"
+  resolved "https://registry.yarnpkg.com/neotraverse/-/neotraverse-1.0.1.tgz#7c89b43f6504ef85928c718f578c68621576d194"
+  integrity sha512-WmmLty1YWwJl9yZi77v2dVIV6X2kuYV8YYBI/G3LWGKdGHmHUvL1z7FW0iDvEvGAwNEoc5x1tOOOyDnf5jJw/w==
 
 no-case@^3.0.4:
   version "3.0.4"
@@ -13583,7 +13583,7 @@ react-modal@^3.16.3:
     react-lifecycles-compat "^3.0.0"
     warning "^4.0.3"
 
-react-redux@^9.2.0:
+react-redux@^9.2.0, react-redux@^9.3.0:
   version "9.3.0"
   resolved "https://registry.yarnpkg.com/react-redux/-/react-redux-9.3.0.tgz#a30113bb6d95c0a715d54dda4308d450fca6ce09"
   integrity sha512-KQopgqFo/p/fgmAs5qz6p5RWaNAzq40WAu7fJIXnQpYxFPbJYtsJPWvGeF2rOBaY/kEuV77AVsX8TsQzKm+A/g==
@@ -15057,10 +15057,10 @@ svgo@^3.0.2, svgo@^3.2.0:
     picocolors "^1.0.0"
     sax "^1.5.0"
 
-swagger-client@^3.37.8:
-  version "3.37.8"
-  resolved "https://registry.yarnpkg.com/swagger-client/-/swagger-client-3.37.8.tgz#26c24c89cbfda7459f6afb53bdfcb6d8dbe9ac82"
-  integrity sha512-uoKwfq+8DvWVDhoALDrEtex9f26Yi2VkvEFjsrMHd8Gl+TcApJkVXtNiE35p5JQjMsvwkvr1eLVlOFNF4GL1bQ==
+swagger-client@^3.38.0:
+  version "3.38.0"
+  resolved "https://registry.yarnpkg.com/swagger-client/-/swagger-client-3.38.0.tgz#542431f02d809b49115272ff8b9e48d545b9f53c"
+  integrity sha512-n7aykm1BEdQ3fKePJJx63UGjYe8/5fuxFMi3qZP4OJGZvzljKvmhxNwIF/MB71sF/lop9NeWZReKvPib9CY+2g==
   dependencies:
     "@babel/runtime-corejs3" "^7.22.15"
     "@scarf/scarf" "=1.4.0"
@@ -15074,7 +15074,7 @@ swagger-client@^3.37.8:
     deepmerge "~4.3.0"
     fast-json-patch "^3.0.0-1"
     js-yaml "^4.2.0"
-    neotraverse "=0.6.18"
+    neotraverse "=1.0.1"
     node-abort-controller "^3.1.1"
     openapi-path-templating "^2.2.1"
     openapi-server-url-templating "^1.3.0"
@@ -15103,10 +15103,10 @@ swagger-client@^3.37.8:
     "@swagger-api/apidom-parser-adapter-openapi-yaml-3-2" "^1.12.0"
     "@swagger-api/apidom-parser-adapter-yaml-1-2" "^1.12.0"
 
-swagger-ui-react@^5.32.13:
-  version "5.32.13"
-  resolved "https://registry.yarnpkg.com/swagger-ui-react/-/swagger-ui-react-5.32.13.tgz#04c96140b0a2d4ea01ebec4d4cfc655d5ed9a500"
-  integrity sha512-XIDl+Ny6kE1N8wpSPiOFrjPfAevs4GR4XmV6BT6NLMikkMFIbIVocWbA8pnKYyYXQe8Rccfli5o2zDfySw0FnQ==
+swagger-ui-react@^5.32.14:
+  version "5.32.14"
+  resolved "https://registry.yarnpkg.com/swagger-ui-react/-/swagger-ui-react-5.32.14.tgz#31b69b0f6910e87dbcc81886208061ca1f72e034"
+  integrity sha512-6LAVBeC78DplbJ7kutm/YeBYo22nPzGOca4bIZAvQG4w2eSetnYDdazaUfY0qzQUlg/H90HnYZX3rg67EmENOw==
   dependencies:
     "@babel/runtime-corejs3" "^7.27.1"
     "@scarf/scarf" "=1.4.0"
@@ -15129,7 +15129,7 @@ swagger-ui-react@^5.32.13:
     react-immutable-proptypes "2.2.0"
     react-immutable-pure-component "^2.2.0"
     react-inspector "^6.0.1"
-    react-redux "^9.2.0"
+    react-redux "^9.3.0"
     react-syntax-highlighter "^16.0.0"
     redux "^5.0.1"
     redux-immutable "^4.0.0"
@@ -15137,7 +15137,7 @@ swagger-ui-react@^5.32.13:
     reselect "^5.1.1"
     serialize-error "^8.1.0"
     sha.js "^2.4.12"
-    swagger-client "^3.37.8"
+    swagger-client "^3.38.0"
     url-parse "^1.5.10"
     xml "=1.0.1"
     xml-but-prettier "^1.0.1"
