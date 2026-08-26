@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from typing import Any
 from unittest import mock
 from unittest.mock import Mock, patch
 
@@ -438,18 +439,26 @@ class TestSqlExecutionResultsCommand(SupersetTestCase):
     def test_validation_releases_db_connection_before_fetching_from_results_backend(
         self,
     ) -> None:
-        # The DB connection must be released back to the pool (via a commit,
-        # not a full session close -- see
+        # The DB connection must be released back to the pool (via
+        # warm_and_release_connection(), not a full session close -- see
         # ``test_validation_warms_database_relationship_before_releasing_connection``
         # for why) before the (potentially slow) results-backend fetch, so a
         # large download doesn't hold a connection out of the pool for its
         # duration.
+        #
+        # This spies on ``warm_and_release_connection`` itself rather than on
+        # ``db.session.commit`` -- the latter is a ``scoped_session`` proxy
+        # method, and patching it wouldn't be observed by the real
+        # ``Session`` object that ``warm_and_release_connection`` commits
+        # (see the fix for the analogous ``expire_on_commit`` proxy pitfall).
         call_order: list[str] = []
-        original_commit = db.session.commit
+        original_warm_and_release_connection = results.warm_and_release_connection
 
-        def tracked_commit() -> None:
+        def tracked_warm_and_release_connection(
+            instance: Any, *relationships: str
+        ) -> None:
             call_order.append("connection_released")
-            original_commit()
+            original_warm_and_release_connection(instance, *relationships)
 
         def tracked_get(key: str) -> None:
             call_order.append("results_backend_get")
@@ -463,8 +472,9 @@ class TestSqlExecutionResultsCommand(SupersetTestCase):
         admin = self.get_user("admin")
         with current_app.test_request_context():
             with override_user(admin):
-                with mock.patch.object(
-                    db.session, "commit", side_effect=tracked_commit
+                with mock.patch(
+                    "superset.commands.sql_lab.results.warm_and_release_connection",
+                    side_effect=tracked_warm_and_release_connection,
                 ):
                     with pytest.raises(SupersetErrorException):
                         # ``get`` returns ``None`` above, so validation goes
