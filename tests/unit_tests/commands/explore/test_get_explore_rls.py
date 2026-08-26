@@ -170,6 +170,7 @@ def test_cache_denied_falls_through_to_raise_for_access(
     ds = MagicMock()
     ds.name = "secret"
     ds.data = {"id": 4, "name": "secret"}
+    ds.default_endpoint = None
     dao.get_datasource.return_value = ds
 
     sm.raise_for_access.side_effect = SupersetSecurityException(
