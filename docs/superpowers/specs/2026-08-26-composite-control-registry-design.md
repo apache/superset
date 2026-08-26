@@ -161,38 +161,92 @@ Two alternatives were considered and rejected:
 
 ### `superset_core/semantic_layers/config.py` (changed)
 
-`build_configuration_schema` gains an explicit field-order override:
+`build_configuration_schema` gains an explicit field-order override —
+**applied recursively to every nested model that lands in `$defs`, not just
+`config_class` itself.** This turned out to be required, not optional:
+`DataBinding` is never the top-level `config_class` passed to
+`build_configuration_schema` — it only ever appears nested (e.g.
+`MetricTileControls.data_binding: DataBinding`) — and Pydantic generates each
+nested model's own `$defs` entry using that model's own `model_fields` order,
+independent of anything done to the outer schema. A version of this override
+that only reordered the top-level `schema["properties"]` was verified (by
+actually running it against `metric-tile`'s served schema) to leave
+`$defs.DataBinding` unreordered — `metrics` still rendered ahead of
+`datasetId`. The fix walks every `BaseModel` reachable from `config_class`
+(through its fields, including through generics like `list[...]`) and applies
+the same declared-or-derived field-order logic to each one that has a
+corresponding `$defs` entry:
 
 ```python
+def _iter_nested_models(
+    annotation: Any, seen: set[type[BaseModel]]
+) -> Iterator[type[BaseModel]]:
+    """Yield every ``BaseModel`` subclass reachable from ``annotation``
+    (through generics like ``list[...]``/``... | None``, and recursively
+    through each found model's own fields), each at most once."""
+    origin = get_origin(annotation)
+    if origin is not None:
+        for arg in get_args(annotation):
+            yield from _iter_nested_models(arg, seen)
+        return
+    if isinstance(annotation, type) and issubclass(annotation, BaseModel):
+        model_cls: type[BaseModel] = annotation
+        if model_cls not in seen:
+            seen.add(model_cls)
+            yield model_cls
+            for field in model_cls.model_fields.values():
+                yield from _iter_nested_models(field.annotation, seen)
+
+
+def _resolve_field_order(
+    model_cls: type[BaseModel], schema_node: dict[str, Any]
+) -> list[str]:
+    """The order ``schema_node["properties"]`` should render in: an explicit
+    ``field_order: ClassVar[list[str]]`` on ``model_cls`` when declared
+    (validated as an exact permutation of its own properties), else the
+    model's field declaration order (by alias)."""
+    declared_order = getattr(model_cls, "field_order", None)
+    if declared_order is None:
+        return [field.alias or name for name, field in model_cls.model_fields.items()]
+    declared = set(declared_order)
+    if declared != (actual := set(schema_node.get("properties", {}))):
+        raise ValueError(
+            f"{model_cls.__name__}.field_order must be a permutation of its "
+            f"schema properties; declared={sorted(declared)} actual={sorted(actual)}"
+        )
+    return declared_order
+
+
+def _reorder(schema_node: dict[str, Any], field_order: list[str]) -> None:
+    """Reorder ``schema_node``'s ``properties`` (and, for determinism,
+    ``required``) to match ``field_order``. Mutates in place."""
+    if (properties := schema_node.get("properties")) is not None:
+        schema_node["properties"] = {
+            key: properties[key] for key in field_order if key in properties
+        }
+    if (required := schema_node.get("required")) is not None:
+        index = {key: position for position, key in enumerate(field_order)}
+        schema_node["required"] = sorted(
+            required, key=lambda key: index.get(key, len(field_order))
+        )
+
+
 def build_configuration_schema(
     config_class: type[BaseModel],
     configuration: BaseModel | None = None,
 ) -> dict[str, Any]:
     schema = config_class.model_json_schema()
 
-    declared_order = getattr(config_class, "field_order", None)
-    if declared_order is not None:
-        declared = set(declared_order)
-        actual = set(schema["properties"])
-        if declared != actual:
-            raise ValueError(
-                f"{config_class.__name__}.field_order must be a permutation "
-                f"of its schema properties; declared={sorted(declared)} "
-                f"actual={sorted(actual)}"
-            )
-        field_order = declared_order
-    else:
-        # Unchanged from today: Pydantic sorts properties alphabetically,
-        # so restore model field declaration order absent an override.
-        field_order = [
-            field.alias or name for name, field in config_class.model_fields.items()
-        ]
+    _reorder(schema, _resolve_field_order(config_class, schema))
 
-    schema["properties"] = {
-        key: schema["properties"][key]
-        for key in field_order
-        if key in schema["properties"]
-    }
+    defs = schema.get("$defs", {})
+    for nested_cls in _iter_nested_models(config_class, seen=set()):
+        if nested_cls is config_class:
+            continue
+        def_entry = defs.get(nested_cls.__name__)
+        if def_entry is None:
+            continue
+        _reorder(def_entry, _resolve_field_order(nested_cls, def_entry))
 
     if configuration is None:
         for prop_schema in schema["properties"].values():
@@ -201,6 +255,19 @@ def build_configuration_schema(
 
     return schema
 ```
+
+Reordering `required` alongside `properties` is not strictly necessary for
+JsonForms rendering (`required`'s array order carries no rendering meaning),
+but it's included for determinism and so the golden-fixture test can assert
+an exact, stable value rather than a set comparison.
+
+Verified end to end against the real widget registry (not just the isolated
+helper): `registry.get("metric-tile").get_control_schema(None, None)` and the
+MCP `get_widget_control_schema` path (which prunes mandatory nested objects
+inline rather than leaving a `$ref`, a different code path through
+`schema_tools.py`) both now serve `$defs.DataBinding`/the inlined
+`dataBinding` in exactly `datasetId, metrics, dimensions, rowLimit` — byte-
+identical to the pre-refactor capture.
 
 `field_order` is looked up with `getattr`, not a required base-class field, so
 every existing model without it is unaffected — this is additive, not a
@@ -317,9 +384,13 @@ No other file in `superset/widgets/` or `superset-frontend/` changes.
   `field_order` behaves exactly as today (regression coverage for the
   existing behavior this change extends); a model with `field_order` set
   gets properties in exactly that order; a model with `field_order` missing
-  or misnaming a property raises `ValueError` naming the mismatch. Directly
-  exercises the mechanism that makes the `DataBinding` order fix correct,
-  independent of `DataBinding` itself.
+  or misnaming a property raises `ValueError` naming the mismatch; a model
+  with `field_order` that only ever appears nested inside another model (not
+  as the top-level `config_class`) still gets reordered in `$defs` — this
+  last case is what actually exercises the recursive walk, and is the case
+  that would have caught the original top-level-only version as wrong.
+  Directly exercises the mechanism that makes the `DataBinding` order fix
+  correct, independent of `DataBinding` itself.
 - **Existing widget tests** (`MetricTile`, `AgGridTable`, `Balloons`,
   `Echarts`, and their control-schema API/MCP tests) run unchanged — no
   fixture or assertion should need updating, since the served schema doesn't
