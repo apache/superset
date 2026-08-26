@@ -189,7 +189,31 @@ class ReportRecipientSchema(Schema):
         validate_addresses("bccTarget", config.get("bccTarget"), required=False)
 
 
-class ReportSchedulePostSchema(Schema):
+_RETRY_FIELD_KEYS = (
+    "retry_on_failure",
+    "retry_max_attempts",
+    "send_failed_reports",
+    "retry_notify_owners",
+    "retry_notify_recipients",
+)
+
+
+class RetryFieldStripMixin:
+    """Strip retry fields from the deserialized payload when the feature is off."""
+
+    @post_load
+    def strip_retry_fields_if_disabled(
+        self,
+        data: dict[str, Any],
+        **kwargs: Any,
+    ) -> dict[str, Any]:
+        if not is_feature_enabled("ALERT_REPORTS_RETRY"):
+            for key in _RETRY_FIELD_KEYS:
+                data.pop(key, None)
+        return data
+
+
+class ReportSchedulePostSchema(RetryFieldStripMixin, Schema):
     type = fields.String(
         metadata={"description": type_description},
         allow_none=False,
@@ -382,23 +406,6 @@ class ReportSchedulePostSchema(Schema):
                 {"retry_on_failure": [_("Retries are not supported for alerts")]}
             )
 
-    @post_load
-    def strip_retry_fields_if_disabled(  # pylint: disable=unused-argument
-        self,
-        data: dict[str, Any],
-        **kwargs: Any,
-    ) -> dict[str, Any]:
-        if not is_feature_enabled("ALERT_REPORTS_RETRY"):
-            for key in (
-                "retry_on_failure",
-                "retry_max_attempts",
-                "send_failed_reports",
-                "retry_notify_owners",
-                "retry_notify_recipients",
-            ):
-                data.pop(key, None)
-        return data
-
 
 class ReportScheduleSubscribeSchema(ReportSchedulePostSchema):
     """Schema for creating a chart/dashboard subscription.
@@ -424,7 +431,7 @@ class ReportScheduleSubscribeSchema(ReportSchedulePostSchema):
         unknown = EXCLUDE
 
 
-class ReportSchedulePutSchema(Schema):
+class ReportSchedulePutSchema(RetryFieldStripMixin, Schema):
     type = fields.String(
         metadata={"description": type_description},
         required=False,
@@ -582,23 +589,6 @@ class ReportSchedulePutSchema(Schema):
                     max=max_width,
                 )
             )
-
-    @post_load
-    def strip_retry_fields_if_disabled(  # pylint: disable=unused-argument
-        self,
-        data: dict[str, Any],
-        **kwargs: Any,
-    ) -> dict[str, Any]:
-        if not is_feature_enabled("ALERT_REPORTS_RETRY"):
-            for key in (
-                "retry_on_failure",
-                "retry_max_attempts",
-                "send_failed_reports",
-                "retry_notify_owners",
-                "retry_notify_recipients",
-            ):
-                data.pop(key, None)
-        return data
 
 
 class SlackChannelSchema(Schema):
