@@ -25,6 +25,7 @@ from superset import security_manager
 from superset.commands.base import BaseCommand
 from superset.commands.exceptions import TagNotFoundValidationError
 from superset.commands.tag.exceptions import (
+    TagAccessValidationError,
     TagDeleteFailedError,
     TagDeleteForbiddenValidationError,
     TaggedObjectDeleteFailedError,
@@ -33,7 +34,7 @@ from superset.commands.tag.exceptions import (
 )
 from superset.commands.tag.utils import to_object_model, to_object_type
 from superset.daos.tag import TagDAO
-from superset.exceptions import SupersetSecurityException
+from superset.exceptions import SupersetParseError, SupersetSecurityException
 from superset.tags.models import ObjectType, TagType
 from superset.utils.decorators import on_error, transaction
 from superset.views.base import DeleteMixin
@@ -111,13 +112,16 @@ class DeleteTaggedObjectCommand(DeleteMixin, BaseCommand):
             elif object_type == ObjectType.chart:
                 security_manager.raise_for_access(chart=target_object)
             elif object_type == ObjectType.query:
-                # Authorizing a query without blanket database access parses its
-                # Jinja-templated SQL, which can raise ``TemplateError`` for
-                # malformed templates. Convert that into a validation error
-                # rather than letting it surface as an opaque 500.
+                # Authorizing a query without blanket database access parses
+                # its Jinja-templated SQL. Malformed Jinja (``TemplateError``)
+                # or a partition macro that references a table which cannot be
+                # resolved statically (``SupersetParseError``) is a validation
+                # failure, not an opaque 500. Append a ``ValidationError`` so it
+                # composites cleanly into ``TagInvalidError`` (the delete route
+                # calls ``normalized_messages()`` on it).
                 try:
                     security_manager.raise_for_access(query=target_object)
-                except TemplateError as ex:
+                except (TemplateError, SupersetParseError) as ex:
                     logger.warning(
                         "Failed to render Jinja SQL while validating access "
                         "for %s %s: %s",
@@ -126,7 +130,7 @@ class DeleteTaggedObjectCommand(DeleteMixin, BaseCommand):
                         ex,
                     )
                     exceptions.append(
-                        TaggedObjectDeleteFailedError(
+                        TagAccessValidationError(
                             f"Access validation failed for {object_type} "
                             f"{object_id}: {ex}"
                         )
