@@ -24,7 +24,7 @@ from typing import Any, Callable, cast
 from zipfile import is_zipfile, ZipFile
 
 import rison
-from flask import current_app, g, redirect, request, Response, send_file, url_for
+from flask import current_app, g, redirect, request, Response, url_for
 from flask_appbuilder import permission_name
 from flask_appbuilder.api import (
     expose,
@@ -162,7 +162,7 @@ from superset.tasks.thumbnails import (
 )
 from superset.tasks.utils import get_current_user
 from superset.utils import json
-from superset.utils.core import parse_boolean_string, sanitize_cookie_token
+from superset.utils.core import parse_boolean_string, send_export_zip
 from superset.utils.file import get_filename
 from superset.utils.pdf import build_pdf_from_screenshots
 from superset.utils.screenshots import (
@@ -1629,15 +1629,7 @@ class DashboardRestApi(
                 return self.response_404()
         buf.seek(0)
 
-        response = send_file(
-            buf,
-            mimetype="application/zip",
-            as_attachment=True,
-            download_name=filename,
-        )
-        if token := sanitize_cookie_token(request.args.get("token")):
-            response.set_cookie(token, "done", max_age=600)
-        return response
+        return send_export_zip(buf, filename)
 
     @expose("/<pk>/export_as_example/", methods=("GET",))
     @protect()
@@ -1720,15 +1712,7 @@ class DashboardRestApi(
 
         filename = f"{safe_name}_example.zip"
 
-        response = send_file(
-            buf,
-            mimetype="application/zip",
-            as_attachment=True,
-            download_name=filename,
-        )
-        if token := sanitize_cookie_token(request.args.get("token")):
-            response.set_cookie(token, "done", max_age=600)
-        return response
+        return send_export_zip(buf, filename)
 
     @expose("/<pk>/export_xlsx/", methods=("POST",))
     @protect()

@@ -212,6 +212,18 @@ async def test_tools_list_over_real_asgi_transport() -> None:
     assert len(tools) > 0
     tool_names = {tool.name for tool in tools}
     assert "health_check" in tool_names
+    assert not {
+        tool.name
+        for tool in tools
+        if tool.annotations is None or tool.annotations.openWorldHint is not False
+    }
+    assert not {
+        tool.name
+        for tool in tools
+        if tool.annotations is not None
+        and tool.annotations.readOnlyHint is False
+        and tool.annotations.idempotentHint is not False
+    }
 
 
 @pytest.mark.asyncio

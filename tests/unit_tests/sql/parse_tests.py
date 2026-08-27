@@ -28,7 +28,9 @@ from superset.exceptions import QueryClauseValidationException, SupersetParseErr
 from superset.jinja_context import JinjaTemplateProcessor
 from superset.sql.parse import (
     _check_script_length,
+    _count_weighted_table_references,
     BaseSQLStatement,
+    count_referenced_tables,
     CTASMethod,
     extract_tables_from_statement,
     has_aggregate,
@@ -232,6 +234,170 @@ def test_extract_tables_from_sql() -> None:
     assert extract_tables_from_sql(
         "select * from (select * from forbidden_table) forbidden_table"
     ) == {Table("forbidden_table")}
+
+
+def test_count_referenced_tables() -> None:
+    """
+    Test that ``count_referenced_tables`` counts table reference occurrences
+    (not distinct tables), ignoring dotted quoted aliases, and falls back to
+    1 for unparseable SQL.
+    """
+    assert count_referenced_tables('SELECT * FROM "db.table1"', Dialects.SQLITE) == 1
+    assert (
+        count_referenced_tables(
+            'SELECT COUNT(id) AS "metric.value" FROM "db.table1"', Dialects.SQLITE
+        )
+        == 1
+    )
+    assert (
+        count_referenced_tables(
+            'SELECT t1.b, t2.b FROM "db.table1" AS t1 '
+            'JOIN "db.table2" AS t2 ON t1.a = t2.a',
+            Dialects.SQLITE,
+        )
+        == 2
+    )
+    assert count_referenced_tables("this is not valid sql (((", Dialects.SQLITE) == 1
+    assert count_referenced_tables("SHOW CREATE TABLE s1.t1", "mysql") == 1
+
+
+def test_count_referenced_tables_self_join() -> None:
+    """
+    A self-join references the same physical table twice via two aliases;
+    it must still count as 2 (a join), not 1 (deduplicated to a single
+    table), or the caller's multi-table detection would incorrectly treat
+    it as single-table.
+    """
+    assert (
+        count_referenced_tables(
+            'SELECT l.a, r.a FROM "db.table1" AS l JOIN "db.table1" AS r ON l.a = r.a',
+            Dialects.SQLITE,
+        )
+        == 2
+    )
+
+
+def test_count_referenced_tables_cte_self_join() -> None:
+    """
+    A CTE that reads a single virtual table and is then self-joined must
+    count as 2, matching the direct self-join case, since the CTE is
+    inlined at each of its two consumption sites and triggers a read of
+    that table for both sides of the join.
+    """
+    assert (
+        count_referenced_tables(
+            'WITH cte AS (SELECT a FROM "db.table1") '
+            "SELECT l.a, r.a FROM cte AS l JOIN cte AS r ON l.a = r.a",
+            Dialects.SQLITE,
+        )
+        == 2
+    )
+    # A CTE used exactly once, with no join, still counts as a single table.
+    assert (
+        count_referenced_tables(
+            'WITH cte AS (SELECT a FROM "db.table1") SELECT a FROM cte',
+            Dialects.SQLITE,
+        )
+        == 1
+    )
+    # A CTE joined against a distinct real table also counts as 2.
+    assert (
+        count_referenced_tables(
+            'WITH cte AS (SELECT a FROM "db.table1") '
+            'SELECT l.a, r.a FROM cte AS l JOIN "db.table2" AS r ON l.a = r.a',
+            Dialects.SQLITE,
+        )
+        == 2
+    )
+    # Nested CTEs: a CTE built on top of another CTE, then self-joined,
+    # still weights the base CTE's own table by the self-join count.
+    assert (
+        count_referenced_tables(
+            'WITH base AS (SELECT a FROM "db.table1"), derived AS (SELECT a FROM base) '
+            "SELECT l.a, r.a FROM derived AS l JOIN derived AS r ON l.a = r.a",
+            Dialects.SQLITE,
+        )
+        == 2
+    )
+
+
+def test_count_referenced_tables_describe() -> None:
+    """
+    ``DESCRIBE`` (and other ``exp.Describe``/``exp.Command`` statements) has
+    no join semantics for a per-table row cap to interact with, so it takes
+    the plain unweighted table-extraction path rather than
+    ``_count_weighted_table_references``.
+    """
+    assert count_referenced_tables("DESCRIBE table1", Dialects.SQLITE) == 1
+
+
+def test_count_referenced_tables_derived_subqueries() -> None:
+    """
+    Two distinct derived (non-CTE) subqueries joined together must each
+    resolve their own tables directly, without recursing as if they were
+    CTE sources -- covering the branch in ``_count_weighted_table_references``
+    where a selected source is a ``Scope`` but not a CTE.
+    """
+    assert (
+        count_referenced_tables(
+            'SELECT l.a, r.a FROM (SELECT a FROM "db.table1") AS l '
+            'JOIN (SELECT a FROM "db.table1") AS r ON l.a = r.a',
+            Dialects.SQLITE,
+        )
+        == 2
+    )
+
+
+def test_count_weighted_table_references_self_referential_scope_guard(
+    mocker: MockerFixture,
+) -> None:
+    """
+    ``_count_weighted_table_references`` must not recurse forever on a
+    self-referential ``Scope`` graph, the shape a ``WITH RECURSIVE`` CTE
+    could in principle produce if sqlglot ever resolved its own
+    self-reference to the same ``Scope`` object instead of a bare
+    ``exp.Table``. The ``seen`` guard must catch the repeat visit and treat
+    it as contributing no further table reads.
+    """
+    from sqlglot.optimizer.scope import Scope, ScopeType  # noqa: PLC0415
+
+    cte_scope = Scope.__new__(Scope)
+    cte_scope.scope_type = ScopeType.CTE
+    # The CTE's own body references itself.
+    cte_scope._selected_sources = {"t": (None, cte_scope)}  # noqa: SLF001
+
+    root_scope = Scope.__new__(Scope)
+    root_scope.scope_type = ScopeType.ROOT
+    root_scope._selected_sources = {"t": (None, cte_scope)}  # noqa: SLF001
+
+    mocker.patch(
+        "superset.sql.parse.traverse_scope",
+        return_value=[cte_scope, root_scope],
+    )
+
+    assert _count_weighted_table_references(mocker.MagicMock()) == 0
+
+
+def test_count_referenced_tables_respects_parse_length_cap(
+    mocker: MockerFixture,
+) -> None:
+    """
+    ``count_referenced_tables`` must not bypass ``SQL_MAX_PARSE_LENGTH``: an
+    oversized statement should fail the length check before reaching
+    sqlglot, and fall back to the conservative single-table count. The
+    statement references two tables so that bypassing the guard (and
+    reaching sqlglot) would produce a different, detectable result.
+    """
+    mocker.patch("superset.config.SQL_MAX_PARSE_LENGTH", 100)
+    mocker.patch("superset.sql.parse.has_app_context", return_value=False)
+    padding = "1, " * 50
+    statement = (
+        'SELECT * FROM "db.table1" AS t1 '  # noqa: S608
+        'JOIN "db.table2" AS t2 ON t1.a = t2.a '
+        f"WHERE t1.a IN ({padding}1)"
+    )
+    assert len(statement.encode("utf-8")) > 100
+    assert count_referenced_tables(statement, Dialects.SQLITE) == 1
 
 
 def test_extract_tables_subselect() -> None:
