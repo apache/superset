@@ -75,6 +75,87 @@ class TestDashboardRestoreApi(SupersetTestCase):
             f"/api/v1/dashboard/{dashboard_uuid}/versions/{version_uuid}/restore"
         )
 
+    def test_restore_refuses_externally_managed_dashboard_without_writing(self) -> None:
+        """Parity with the chart suite (FR-005): an editor's direct restore of
+        an externally managed dashboard is refused with the *same* 403 body,
+        the dashboard and its history are untouched, and read paths stay open.
+        """
+        _persist_fixture_state()
+        dashboard: Dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "USA Births Names")
+            .first()
+        )
+        assert dashboard is not None
+        dashboard_uuid = str(dashboard.uuid)
+        original_name = dashboard.dashboard_title
+
+        # One extra save so there is an earlier version to target.
+        dashboard.dashboard_title = "USA Births Names managed v1"
+        db.session.commit()
+        # ``is_managed_externally`` is itself a versioned column; sample state
+        # and history only after this write is committed.
+        dashboard.is_managed_externally = True
+        db.session.commit()
+
+        try:
+            self.login(ADMIN_USERNAME)
+            base_url = f"/api/v1/dashboard/{dashboard_uuid}"
+            rv_list = self.client.get(f"{base_url}/versions/")
+            assert rv_list.status_code == 200, rv_list.data
+            listing = _json.loads(rv_list.data.decode("utf-8"))
+            target_uuid = listing["result"][0]["version_uuid"]
+
+            db.session.expire_all()
+            dashboard = (
+                db.session.query(Dashboard)
+                .filter(Dashboard.uuid == dashboard.uuid)
+                .one()
+            )
+            name_before = dashboard.dashboard_title
+            rows_before = len(_get_version_rows(dashboard))
+            count_before = listing["count"]
+
+            rv = self._restore(dashboard_uuid, target_uuid)
+            assert rv.status_code == 403, rv.data
+            resp = _json.loads(rv.data.decode("utf-8"))
+            assert (
+                resp["message"]
+                == "Version restore is unavailable for externally managed entities."
+            )
+            assert resp["message"] != "Forbidden"
+
+            db.session.expire_all()
+            dashboard = (
+                db.session.query(Dashboard)
+                .filter(Dashboard.uuid == dashboard.uuid)
+                .one()
+            )
+            assert dashboard.dashboard_title == name_before
+            assert dashboard.is_managed_externally is True
+            assert len(_get_version_rows(dashboard)) == rows_before
+            rv_list2 = self.client.get(f"{base_url}/versions/")
+            assert _json.loads(rv_list2.data.decode("utf-8"))["count"] == count_before
+
+            rv_get = self.client.get(
+                f"/api/v1/dashboard/{dashboard_uuid}/versions/{target_uuid}/"
+            )
+            assert rv_get.status_code == 200, rv_get.data
+            rv_activity = self.client.get(
+                f"/api/v1/dashboard/{dashboard_uuid}/activity/"
+            )
+            assert rv_activity.status_code == 200, rv_activity.data
+        finally:
+            db.session.expire_all()
+            dashboard = (
+                db.session.query(Dashboard)
+                .filter(Dashboard.uuid == dashboard.uuid)
+                .one()
+            )
+            dashboard.is_managed_externally = False
+            dashboard.dashboard_title = original_name
+            db.session.commit()
+
     def test_restore_applies_scalar_field(self) -> None:
         """Restore a dashboard title edit."""
         from superset.daos.version import derive_version_uuid

@@ -24,12 +24,12 @@ The three concrete commands (:mod:`superset.commands.chart.restore_version`,
 * the per-entity ``NotFoundError`` / ``ForbiddenError`` / ``UpdateFailedError``
   triplet they raise
 
-Everything else — capture gate, lookup, editorship check, version-uuid
-resolution, action-kind stamping, restore dispatch, transactional
-boundary — lives here. Subclasses are pure declarations: the base builds
-the ``@transaction`` wrapper at call time from the ``failed_exc``
-ClassVar (mirroring ``BaseRestoreCommand``), so a new entity rollout
-cannot forget the decorator.
+Everything else — capture gate, lookup, editorship check,
+external-management gate, version-uuid resolution, action-kind stamping,
+restore dispatch, transactional boundary — lives here. Subclasses are
+pure declarations: the base builds the ``@transaction`` wrapper at call
+time from the ``failed_exc`` ClassVar (mirroring ``BaseRestoreCommand``),
+so a new entity rollout cannot forget the decorator.
 """
 
 from __future__ import annotations
@@ -40,6 +40,7 @@ from uuid import UUID
 
 from superset import security_manager
 from superset.commands.base import BaseCommand
+from superset.commands.exceptions import ExternallyManagedRestoreError
 from superset.exceptions import SupersetSecurityException
 from superset.extensions import db
 from superset.utils.decorators import on_error, transaction
@@ -66,7 +67,9 @@ class BaseRestoreVersionCommand(BaseCommand):
     #: route is inert under the kill-switch); the API handler maps each
     #: to HTTP 404. ``forbidden_exc`` covers the row-level editorship
     #: denial (HTTP 403). ``failed_exc`` wraps unexpected failures inside
-    #: the transaction (HTTP 422).
+    #: the transaction (HTTP 422). The external-management refusal is the
+    #: shared :class:`ExternallyManagedRestoreError`, not a per-entity
+    #: ClassVar: the condition and its message do not vary by entity.
     not_found_exc: ClassVar[type[Exception]]
     forbidden_exc: ClassVar[type[Exception]]
     failed_exc: ClassVar[type[Exception]]
@@ -149,4 +152,13 @@ class BaseRestoreVersionCommand(BaseCommand):
             security_manager.raise_for_editorship(entity)
         except SupersetSecurityException as ex:
             raise self.forbidden_exc() from ex
+        # Policy gate, deliberately after the permission gate: a caller with
+        # no rights to the entity is never told it is externally managed.
+        # A restore would rewrite content the external owner controls — the
+        # next sync overwrites it or resurrects what the owner removed.
+        # Soft-delete *recovery* is not gated (it changes visibility, not
+        # content); that asymmetry is a recorded decision, see the
+        # per-entity integration suites.
+        if entity.is_managed_externally:
+            raise ExternallyManagedRestoreError()
         return entity

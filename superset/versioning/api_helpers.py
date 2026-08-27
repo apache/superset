@@ -42,6 +42,7 @@ import sqlalchemy as sa
 from flask import Response
 from flask_appbuilder import Model
 
+from superset.commands.exceptions import ExternallyManagedRestoreError
 from superset.daos.version import VersionDAO
 from superset.exceptions import SupersetSecurityException
 from superset.extensions import db, security_manager
@@ -293,7 +294,10 @@ def restore_version_endpoint(
 
     *command_cls* is the entity's ``BaseRestoreVersionCommand`` subclass;
     its ``not_found_exc`` / ``forbidden_exc`` / ``failed_exc`` ClassVars
-    drive the exception→HTTP mapping, so this body stays generic.
+    drive the exception→HTTP mapping, so this body stays generic. The one
+    shared exception, ``ExternallyManagedRestoreError``, maps to a 403
+    whose body names the reason — FAB's ``response_403()`` carries a fixed
+    ``"Forbidden"`` body, so it goes through ``response()`` instead.
     Authorization and the ``ENABLE_VERSIONING_CAPTURE`` kill-switch gate
     live in the command's ``validate()`` — with capture off the route is
     inert (404) because a revert without Continuum's write listeners
@@ -312,6 +316,8 @@ def restore_version_endpoint(
         result = command_cls(entity_uuid, version_uuid).run()
     except command_cls.not_found_exc:
         return api.response_404()
+    except ExternallyManagedRestoreError as ex:
+        return api.response(403, message=ex.message)
     except command_cls.forbidden_exc:
         return api.response_403()
     except command_cls.failed_exc as ex:
