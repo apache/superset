@@ -19,6 +19,8 @@
 # This script is a cross-platform Python equivalent of po2json.sh.
 # It generates .json files from .po translation files used by the frontend.
 
+from __future__ import annotations
+
 import glob
 import os
 import shutil
@@ -41,8 +43,7 @@ def run_command(command: list[str], cwd: str | None = None, timeout: int = 120) 
 
 def find_command(names: list[str]) -> str | None:
     for name in names:
-        path = shutil.which(name)
-        if path:
+        if path := shutil.which(name):
             return path
     return None
 
@@ -76,8 +77,7 @@ def convert_po_file(
         po_file,
         json_dest,
     ]
-    rc = run_command(cmd, timeout=60)
-    if rc != 0:
+    if (rc := run_command(cmd, timeout=60)) != 0:
         return False, po_file, f"po2json failed (rc={rc})"
     return True, po_file, ""
 
@@ -137,10 +137,10 @@ def compile_translations() -> int:
     if not os.path.isfile(prettier_bin):
         packages_needed.append("prettier")
 
-    if packages_needed:
-        ok = install_npm_packages(npm_cmd, root_dir, packages_needed)
-        if not ok:
-            print("WARNING: npm install failed, falling back to npx.", file=sys.stderr)
+    if packages_needed and not install_npm_packages(
+        npm_cmd, root_dir, packages_needed
+    ):
+        print("WARNING: npm install failed, falling back to npx.", file=sys.stderr)
 
     if os.path.isfile(po2json_bin):
         po2json_cmd: list[str] = [po2json_bin]
@@ -167,7 +167,7 @@ def compile_translations() -> int:
         for future in as_completed(futures):
             ok, po_path, err = future.result()
             if not ok:
-                print(f"  FAILED: {po_path} — {err}", file=sys.stderr)
+                print(f"  FAILED: {po_path} - {err}", file=sys.stderr)
                 failures.append(po_path)
             else:
                 print(f"  OK: {po_path}")
@@ -185,10 +185,14 @@ def compile_translations() -> int:
     )
     if json_files and prettier_cmd:
         print(f"Step 4: Running prettier on {len(json_files)} JSON files...")
-        rc = run_command(
-            [*prettier_cmd, "--write", *json_files], cwd=root_dir, timeout=300
-        )
-        if rc != 0:
+        if (
+            run_command(
+                [*prettier_cmd, "--write", *json_files],
+                cwd=root_dir,
+                timeout=300,
+            )
+            != 0
+        ):
             print("WARNING: prettier step failed.", file=sys.stderr)
 
     print("\nPipeline completed successfully!")
