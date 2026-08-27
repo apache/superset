@@ -67,7 +67,8 @@ export type PropertiesModalProps = {
   renderExtraFields?: (context: {
     assetId: number;
     assetType: 'chart';
-  }) => ReactNode;
+    accessorCount: number;
+  }) => { content: ReactNode; saveDisabled?: boolean; saveTooltip?: string };
 };
 
 function PropertiesModal({
@@ -99,6 +100,24 @@ function PropertiesModal({
     SubjectPickerValue[] | null
   >(null);
   const [tags, setTags] = useState<TagType[]>([]);
+
+  const extraFields = useMemo(
+    () =>
+      slice.id
+        ? renderExtraFields?.({
+            assetId: slice.id,
+            assetType: 'chart',
+            accessorCount:
+              (selectedEditors?.length ?? 0) + (selectedViewers?.length ?? 0),
+          })
+        : undefined,
+    [
+      slice.id,
+      renderExtraFields,
+      selectedEditors?.length,
+      selectedViewers?.length,
+    ],
+  );
 
   // Validation setup
   const modalSections = useMemo(
@@ -294,7 +313,11 @@ function PropertiesModal({
       title={t('Chart properties')}
       isEditMode
       saveDisabled={
-        submitting || !name || slice.is_managed_externally || hasErrors
+        submitting ||
+        !name ||
+        slice.is_managed_externally ||
+        hasErrors ||
+        extraFields?.saveDisabled
       }
       errorTooltip={
         slice.is_managed_externally
@@ -408,7 +431,7 @@ function PropertiesModal({
                     />
                   </ModalFormField>
                 )}
-                {renderExtraFields?.({ assetId: slice.id, assetType: 'chart' })}
+                {extraFields?.content}
               </>
             ),
           },

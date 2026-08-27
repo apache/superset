@@ -38,7 +38,11 @@ interface AccessSectionProps {
   onChangeViewers: (viewers: SubjectPickerValue[]) => void;
   onChangeTags: (tags: { label: string; value: number }[]) => void;
   onClearTags: () => void;
-  renderExtraFields?: React.ReactNode;
+  renderExtraFields?: {
+    content: React.ReactNode;
+    saveDisabled?: boolean;
+    saveTooltip?: string;
+  };
 }
 
 const AccessSection = ({
@@ -136,7 +140,7 @@ const AccessSection = ({
           />
         </ModalFormField>
       )}
-      {renderExtraFields}
+      {renderExtraFields?.content}
     </>
   );
 };

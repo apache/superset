@@ -82,7 +82,12 @@ type PropertiesModalProps = {
   renderExtraFields?: (context: {
     assetId: number;
     assetType: 'dashboard';
-  }) => React.ReactNode;
+    accessorCount: number;
+  }) => {
+    content: React.ReactNode;
+    saveDisabled?: boolean;
+    saveTooltip?: string;
+  };
 };
 
 type DashboardInfo = {
@@ -128,6 +133,17 @@ const PropertiesModal = ({
   });
   const [editors, setEditors] = useState<Subject[]>([]);
   const [viewers, setViewers] = useState<Subject[]>([]);
+
+  const extraFields = useMemo(
+    () =>
+      renderExtraFields?.({
+        assetId: dashboardId,
+        assetType: 'dashboard',
+        accessorCount: editors.length + viewers.length,
+      }),
+    [renderExtraFields, dashboardId, editors.length, viewers.length],
+  );
+
   const saveLabel = onlyApply ? t('Apply') : t('Save');
   const [tags, setTags] = useState<TagType[]>([]);
   const [customCss, setCustomCss] = useState('');
@@ -703,7 +719,11 @@ const PropertiesModal = ({
       }}
       title={t('Dashboard properties')}
       isEditMode
-      saveDisabled={dashboardInfo?.isManagedExternally || hasErrors}
+      saveDisabled={
+        dashboardInfo?.isManagedExternally ||
+        hasErrors ||
+        extraFields?.saveDisabled
+      }
       saveLoading={isApplying}
       contentLoading={isLoading}
       errorTooltip={
@@ -774,10 +794,7 @@ const PropertiesModal = ({
                   onChangeViewers={handleOnChangeViewers}
                   onChangeTags={handleChangeTags}
                   onClearTags={handleClearTags}
-                  renderExtraFields={renderExtraFields?.({
-                    assetId: dashboardId,
-                    assetType: 'dashboard',
-                  })}
+                  renderExtraFields={extraFields}
                 />
               ),
             },
