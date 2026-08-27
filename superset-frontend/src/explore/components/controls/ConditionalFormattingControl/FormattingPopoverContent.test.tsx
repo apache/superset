@@ -21,6 +21,7 @@ import {
   screen,
   fireEvent,
   waitFor,
+  userEvent,
 } from 'spec/helpers/testing-library';
 import { Comparator, ColorSchemeEnum } from '@superset-ui/chart-controls';
 import { GenericDataType } from '@apache-superset/core/common';
@@ -51,12 +52,8 @@ const mixColumns = [
 
 const extraColorChoices = [
   {
-    value: ColorSchemeEnum.Green,
-    label: 'Green for increase, red for decrease',
-  },
-  {
-    value: ColorSchemeEnum.Red,
-    label: 'Red for increase, green for decrease',
+    label: 'Colors',
+    colors: [ColorSchemeEnum.Green, ColorSchemeEnum.Red],
   },
 ];
 
@@ -117,7 +114,7 @@ test('renders the correct input fields based on the selected operator', async ()
 });
 
 test('renders None for operator when Green for increase is selected', async () => {
-  render(
+  const { container } = render(
     <FormattingPopoverContent
       onChange={mockOnChange}
       columns={columns}
@@ -125,15 +122,44 @@ test('renders None for operator when Green for increase is selected', async () =
     />,
   );
 
-  // Select the 'Green for increase' color scheme
-  fireEvent.change(screen.getAllByLabelText(/color scheme/i)[0], {
-    target: { value: ColorSchemeEnum.Green },
+  const colorPickerTrigger = container.querySelector(
+    '.ant-color-picker-trigger',
+  );
+  expect(colorPickerTrigger).toBeInTheDocument();
+  await userEvent.click(colorPickerTrigger!);
+
+  await waitFor(() => {
+    expect(
+      document.querySelector('.ant-color-picker-presets-items'),
+    ).toBeInTheDocument();
   });
 
-  fireEvent.click(await screen.findByTitle(/green for increase/i));
+  const presets = document.querySelectorAll('.ant-color-picker-presets-color');
+  const greenPreset = Array.from(presets).find(preset => {
+    const inner = preset.querySelector('.ant-color-picker-color-block-inner');
+    return (
+      inner && inner.getAttribute('style')?.includes('rgba(0, 150, 0, 0.2)')
+    );
+  });
 
-  // Assert that the operator is set to 'None'
-  expect(screen.getByText(/none/i)).toBeInTheDocument();
+  expect(greenPreset).toBeDefined();
+  expect(greenPreset).toBeInTheDocument();
+  const safeGreenPreset = greenPreset as HTMLElement;
+
+  const innerColorBlock = safeGreenPreset.querySelector(
+    '.ant-color-picker-color-block-inner',
+  );
+  expect(innerColorBlock).toHaveStyle({ background: 'rgba(0, 150, 0, 0.2)' });
+
+  expect(safeGreenPreset).toBeInTheDocument();
+  await userEvent.click(safeGreenPreset);
+
+  const operatorInput = screen.getByLabelText('Operator');
+  expect(operatorInput).toBeInTheDocument();
+
+  const operatorSelect = operatorInput.closest('.ant-select-content');
+  expect(operatorSelect).toBeInTheDocument();
+  expect(operatorSelect).toHaveTextContent(/none/i);
 });
 
 test('displays the correct input fields based on the selected string type operator', async () => {
@@ -295,7 +321,7 @@ test('should hide formatting fields when allColumns is empty', async () => {
 test('should hide formatting fields when color scheme is Green', async () => {
   render(
     <FormattingPopoverContent
-      config={{ colorScheme: extraColorChoices[0].value }}
+      config={{ colorScheme: extraColorChoices[0].colors[0] }}
       columns={mixColumns}
       allColumns={mixColumns}
       onChange={mockOnChange}
@@ -306,4 +332,44 @@ test('should hide formatting fields when color scheme is Green', async () => {
     expect(screen.queryByText('Formatting column')).not.toBeInTheDocument();
     expect(screen.queryByText('Formatting object')).not.toBeInTheDocument();
   });
+});
+
+test('should not display tooltip when extraColorChoices is not provided', async () => {
+  const { container } = render(
+    <FormattingPopoverContent onChange={mockOnChange} columns={columns} />,
+  );
+
+  const tooltipIcon = container.querySelector('.ant-form-item-tooltip');
+  expect(tooltipIcon).not.toBeInTheDocument();
+});
+
+test('should display tooltip icon when extraColorChoices is provided', () => {
+  const { container } = render(
+    <FormattingPopoverContent
+      onChange={mockOnChange}
+      columns={columns}
+      extraColorChoices={extraColorChoices}
+    />,
+  );
+
+  const tooltipIcon = container.querySelector('.ant-form-item-tooltip');
+  expect(tooltipIcon).toBeInTheDocument();
+
+  const questionIcon = tooltipIcon?.querySelector(
+    '[aria-label="question-circle"]',
+  );
+  expect(questionIcon).toBeInTheDocument();
+});
+
+test('should not display tooltip icon when extraColorChoices is empty', () => {
+  const { container } = render(
+    <FormattingPopoverContent
+      onChange={mockOnChange}
+      columns={columns}
+      extraColorChoices={[]}
+    />,
+  );
+
+  const tooltipIcon = container.querySelector('.ant-form-item-tooltip');
+  expect(tooltipIcon).not.toBeInTheDocument();
 });

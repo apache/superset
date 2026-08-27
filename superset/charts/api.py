@@ -35,6 +35,7 @@ from superset.charts.filters import (
     ChartAllTextFilter,
     ChartCertifiedFilter,
     ChartCreatedByMeFilter,
+    ChartDeletedRecencyFilter,
     ChartDeletedStateFilter,
     ChartEditableFilter,
     ChartFavoriteFilter,
@@ -83,6 +84,7 @@ from superset.commands.importers.exceptions import (
     NoValidFilesFoundError,
 )
 from superset.commands.importers.v1.utils import get_contents_from_bundle
+from superset.commands.purge import PurgeArchivedCommand, SoftDeleteBinding
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.daos.chart import ChartDAO
 from superset.exceptions import (
@@ -90,7 +92,10 @@ from superset.exceptions import (
 )
 from superset.extensions import event_logger, security_manager
 from superset.models.slice import Slice
-from superset.security.manager import get_extra_editor_subject_ids
+from superset.security.manager import (
+    get_extra_editor_subject_ids,
+    get_extra_editors_by_pk,
+)
 from superset.subjects.filters import (
     FilterRelatedSubjects,
     subject_type_filter,
@@ -111,6 +116,7 @@ from superset.versioning.api_helpers import (
     current_entity_version_info,
     get_version_endpoint,
     list_versions_endpoint,
+    restore_version_endpoint,
 )
 from superset.versioning.etag import set_version_etag
 from superset.versioning.schemas import VersionListItemSchema
@@ -128,6 +134,13 @@ from superset.views.filters import (
 )
 
 logger = logging.getLogger(__name__)
+
+_CHART_PURGE_BINDING = SoftDeleteBinding(
+    dao=ChartDAO,
+    not_found=ChartNotFoundError,
+    forbidden=ChartForbiddenError,
+    delete_failed=ChartDeleteFailedError,
+)
 
 
 class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
@@ -148,7 +161,9 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         RouteMethod.RELATED,
         "bulk_delete",  # not using RouteMethod since locally defined
         "restore",
+        "purge",
         "viz_types",
+        "deck_layers",
         "favorite_status",
         "add_favorite",
         "remove_favorite",
@@ -159,6 +174,7 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         "list_versions",
         "get_version",
         "activity",
+        "restore_version",
     }
     class_permission_name = "Chart"
     # Custom methods (``restore``) need an explicit entry; FAB's @protect()
@@ -171,6 +187,13 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
     method_permission_name = {
         **MODEL_API_RW_METHOD_PERMISSION_MAP,
         "restore": "write",
+        "restore_version": "write",
+        "purge": "write",
+        # Reuses the same "can_read on Chart" permission as ``get``, so any
+        # principal (including an embedded guest) who can already fetch a
+        # single chart's metadata can resolve a Multiple Layers container's
+        # declared layers too.
+        "deck_layers": "read",
     }
 
     list_columns = [
@@ -230,6 +253,9 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         "changed_on_delta_humanized",
         "datasource_id",
         "datasource_name",
+        # Exposed so the Recently-Deleted view can sort archived charts by
+        # deletion time (sc-111760).
+        "deleted_at",
         "last_saved_at",
         "last_saved_by.id",
         "last_saved_by.first_name",
@@ -245,6 +271,9 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         "datasource_id",
         "datasource_name",
         "datasource_type",
+        # Exposed so the Recently-Deleted view can filter archived charts by a
+        # deletion-time cutoff (e.g. ``deleted_at`` ``gt`` cutoff) — sc-111760.
+        "deleted_at",
         "description",
         "id",
         "uuid",
@@ -258,6 +287,7 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
     base_order = ("changed_on", "desc")
     base_filters = [["id", ChartFilter, lambda: []]]
     search_filters = {
+        "deleted_at": [ChartDeletedRecencyFilter],
         "id": [
             ChartFavoriteFilter,
             ChartCertifiedFilter,
@@ -382,6 +412,120 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             )
         except ChartNotFoundError:
             return self.response_404()
+
+    def pre_get_list(self, data: dict[str, Any]) -> None:
+        """Attach ``extra_editors`` to each row, matching the single-object GET."""
+        super().pre_get_list(data)
+        ids = data.get("ids", [])
+        extra_editors_by_id = get_extra_editors_by_pk(Slice, ids)
+        for row, row_id in zip(data.get("result", []), ids, strict=False):
+            if row_id in extra_editors_by_id:
+                row["extra_editors"] = extra_editors_by_id[row_id]
+
+    @expose("/<pk>/deck_layers/", methods=("GET",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.deck_layers",
+        log_to_statsd=False,
+    )
+    def deck_layers(self, pk: int) -> Response:
+        """Gets the sub-layer charts declared by a deck.gl Multiple Layers chart
+        ---
+        get:
+          summary: >-
+            Get the sub-layer charts declared by a deck.gl Multiple Layers chart
+          description: >-
+            Multiple Layers charts (viz_type "deck_multi") reference other
+            saved charts as layers via their `deck_slices` config, but those
+            layer charts typically sit on no dashboard of their own, so a
+            per-layer `GET /api/v1/chart/<id>` can 404 for a principal
+            (e.g. an embedded guest) who is only entitled to the container.
+            This endpoint gates on the container chart and resolves the
+            layers it declares, mirroring the access the legacy explore_json
+            pipeline granted server-side.
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+            description: The id of the Multiple Layers container chart
+          responses:
+            200:
+              description: The container's declared layer charts
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            slice_id:
+                              type: integer
+                            viz_type:
+                              type: string
+                            params:
+                              type: string
+                            datasource_id:
+                              type: integer
+                            datasource_type:
+                              type: string
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        try:
+            container = ChartDAO.get_by_id_or_uuid(str(pk))
+        except ChartNotFoundError:
+            return self.response_404()
+
+        try:
+            container_params = json.loads(container.params or "{}")
+        except (TypeError, ValueError):
+            container_params = {}
+
+        deck_slice_ids = [
+            slice_id
+            for slice_id in container_params.get("deck_slices", [])
+            if isinstance(slice_id, int)
+        ]
+        if not deck_slice_ids:
+            return self.response(200, result=[])
+
+        # The container's own access has already been checked above. Layer
+        # charts sit on no dashboard of their own, so for an embedded guest
+        # (the intended use case, mirroring what the legacy explore_json
+        # pipeline granted server-side) they are resolved without the base
+        # filter. An ordinary logged-in principal is not entitled to read an
+        # arbitrary chart's params/datasource just by naming it in a
+        # container they can edit, so the base filter still applies to them:
+        # a referenced layer they can't otherwise read is silently omitted
+        # below rather than leaked.
+        layers = ChartDAO.find_by_ids(
+            deck_slice_ids, skip_base_filter=security_manager.is_guest_user()
+        )
+        layers_by_id = {layer.id: layer for layer in layers}
+        result = [
+            {
+                "slice_id": slice_id,
+                "viz_type": layers_by_id[slice_id].viz_type,
+                "params": layers_by_id[slice_id].params,
+                "datasource_id": layers_by_id[slice_id].datasource_id,
+                "datasource_type": layers_by_id[slice_id].datasource_type,
+            }
+            for slice_id in deck_slice_ids
+            if slice_id in layers_by_id
+        ]
+        return self.response(200, result=result)
 
     @expose("/", methods=("POST",))
     @protect()
@@ -547,13 +691,17 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         except ValidationError as error:
             return self.response_400(message=error.messages)
 
+        normalization_changes: object = item.pop("normalization_changes", None)
+
         # Live version identifiers before the update (empty + query-free when
         # ``ENABLE_VERSIONING_CAPTURE`` is off, so this stays inert under the
         # kill-switch).
         old_info = current_entity_version_info(Slice, pk)
 
         try:
-            changed_model = UpdateChartCommand(pk, item).run()
+            changed_model = UpdateChartCommand(
+                pk, item, normalization_changes=normalization_changes
+            ).run()
             new_info = current_entity_version_info(
                 Slice, changed_model.id, changed_model.uuid
             )
@@ -775,6 +923,65 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             )
             return self.response_422(message=str(ex))
 
+    @expose("/<uuid>/purge", methods=("POST",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.purge",
+        log_to_statsd=False,
+    )
+    def purge(self, uuid: str) -> Response:
+        """Permanently delete a soft-deleted (archived) chart.
+        ---
+        post:
+          summary: Permanently delete a soft-deleted chart
+          description: >-
+            Irreversibly remove an archived chart and its dependents. Limited to
+            owners and admins (same audience as restore).
+          parameters:
+          - in: path
+            schema:
+              type: string
+              format: uuid
+            name: uuid
+          responses:
+            200:
+              description: Chart permanently deleted
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        try:
+            PurgeArchivedCommand(uuid, _CHART_PURGE_BINDING).run()
+            return self.response(200, message="OK")
+        except ChartNotFoundError:
+            return self.response_404()
+        except ChartForbiddenError:
+            return self.response_403()
+        except ChartDeleteFailedError as ex:
+            logger.error(
+                "Error purging model %s: %s",
+                self.__class__.__name__,
+                str(ex),
+                exc_info=True,
+            )
+            return self.response_422(message=str(ex))
+
     @expose("/<pk>/cache_screenshot/", methods=("GET",))
     @protect()
     @parse_rison(screenshot_query_schema)
@@ -859,7 +1066,7 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
                 task_status=cache_payload.get_status(),
             )
 
-        if cache_payload.should_trigger_task(force):
+        if cache_payload.should_trigger_task(force, expected_scope=f"chart:{chart.id}"):
             logger.info("Triggering screenshot ASYNC")
             screenshot_obj.cache.set(cache_key, ScreenshotCachePayload().to_dict())
             cache_chart_thumbnail.delay(
@@ -921,6 +1128,12 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             return self.response_404()
 
         if cache_payload := ChartScreenshot.get_from_cache_key(digest):
+            # The digest is caller-supplied and cache entries are shared
+            # across every chart (and, via the same backend, dashboards) --
+            # without this check any cache_key learned for one chart would
+            # serve its image under a different, merely-accessible `pk`.
+            if cache_payload.get_scope() != f"chart:{chart.id}":
+                return self.response_404()
             if cache_payload.status == StatusValues.UPDATED:
                 try:
                     image = cache_payload.get_image()
@@ -1256,7 +1469,7 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             Warms up the cache for the chart.
             Note for slices a force refresh occurs.
             In terms of the `extra_filters` these can be obtained from records in the JSON
-            encoded `logs.json` column associated with the `explore_json` action.
+            encoded `logs.json` column associated with the `explore` action.
           requestBody:
             description: >-
               Identifies the chart to warm up cache for, and any additional dashboard or
@@ -1604,3 +1817,68 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         from superset.versioning.activity import activity_endpoint
 
         return activity_endpoint(self, Slice, uuid_str, request.args)
+
+    @expose(
+        "/<uuid_str>/versions/<version_uuid_str>/restore",
+        methods=("POST",),
+    )
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.restore_version"
+        ),
+        log_to_statsd=False,
+    )
+    def restore_version(self, uuid_str: str, version_uuid_str: str) -> Response:
+        """Restore a chart to a previous version.
+        ---
+        post:
+          summary: Revert a chart to an earlier version (non-destructive)
+          parameters:
+          - in: path
+            schema:
+              type: string
+              format: uuid
+            name: uuid_str
+            description: Chart UUID
+          - in: path
+            schema:
+              type: string
+              format: uuid
+            name: version_uuid_str
+            description: >-
+              Version UUID as returned by the list-versions endpoint.
+              Stable across retention pruning.
+          responses:
+            200:
+              description: Chart was restored
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+        """
+        # pylint: disable=import-outside-toplevel
+        # Local import: the command module transitively imports the
+        # versioning bootstrap graph; see changes/listener.py.
+        from superset.commands.chart.restore_version import (
+            RestoreChartVersionCommand,
+        )
+
+        return restore_version_endpoint(
+            self, Slice, RestoreChartVersionCommand, uuid_str, version_uuid_str
+        )

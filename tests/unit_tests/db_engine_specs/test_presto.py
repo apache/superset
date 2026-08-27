@@ -476,3 +476,68 @@ def test_partition_query_escapes_single_quote_in_filter_value(
     # by injected SQL) must NOT appear anywhere in the output — that would
     # mean the payload broke out of the literal.
     assert "'2024-01-01' UNION SELECT" not in sql
+
+
+def test_mask_encrypted_extra() -> None:
+    """
+    The sensitive `auth_params` values are masked, while `auth_method` and
+    non-sensitive fields such as `username` stay visible.
+    """
+    from superset.db_engine_specs.presto import PrestoEngineSpec
+    from superset.utils import json
+
+    config = json.dumps(
+        {
+            "auth_method": "basic",
+            "auth_params": {"username": "alice", "password": "my-password"},
+        }
+    )
+
+    assert PrestoEngineSpec.mask_encrypted_extra(config) == json.dumps(
+        {
+            "auth_method": "basic",
+            "auth_params": {"username": "alice", "password": "XXXXXXXXXX"},
+        }
+    )
+
+
+def test_mask_encrypted_extra_jwt_in_connect_args() -> None:
+    """
+    A JWT passed via `connect_args.requests_kwargs` is masked without touching
+    the surrounding connection settings.
+    """
+    from superset.db_engine_specs.presto import PrestoEngineSpec
+    from superset.utils import json
+
+    config = json.dumps(
+        {
+            "connect_args": {
+                "protocol": "https",
+                "requests_kwargs": {"jwt": "my-secret-token"},
+            },
+        }
+    )
+
+    assert PrestoEngineSpec.mask_encrypted_extra(config) == json.dumps(
+        {
+            "connect_args": {
+                "protocol": "https",
+                "requests_kwargs": {"jwt": "XXXXXXXXXX"},
+            },
+        }
+    )
+
+
+def test_unmask_encrypted_extra() -> None:
+    """
+    Masked credentials are reused from the previous value; edited ones are kept.
+    """
+    from superset.db_engine_specs.presto import PrestoEngineSpec
+    from superset.utils import json
+
+    old = json.dumps({"auth_method": "jwt", "auth_params": {"token": "old-token"}})
+    new = json.dumps({"auth_method": "jwt", "auth_params": {"token": "XXXXXXXXXX"}})
+
+    assert PrestoEngineSpec.unmask_encrypted_extra(old, new) == json.dumps(
+        {"auth_method": "jwt", "auth_params": {"token": "old-token"}}
+    )

@@ -14,6 +14,9 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   changes:
     runs-on: ubuntu-26.04
@@ -49,7 +52,7 @@ jobs:
       SUPERSET__SQLALCHEMY_EXAMPLES_URI: presto://localhost:15433/memory/default
     services:
       postgres:
-        image: postgres:17-alpine
+        image: ghcr.io/apache/superset/ci/postgres:17-alpine
         env:
           POSTGRES_USER: superset
           POSTGRES_PASSWORD: superset
@@ -58,7 +61,7 @@ jobs:
           # GitHub action runner's default installations
           - 15432:5432
       presto:
-        image: starburstdata/presto:350-e.6
+        image: ghcr.io/apache/superset/ci/presto:350-e.6
         env:
           POSTGRES_USER: superset
           POSTGRES_PASSWORD: superset
@@ -67,7 +70,7 @@ jobs:
           # GitHub action runner's default installations
           - 15433:8080
       redis:
-        image: redis:7-alpine
+        image: ghcr.io/apache/superset/ci/redis:7-alpine
         ports:
           - 16379:6379
     steps:
@@ -113,7 +116,7 @@ jobs:
       UPLOAD_FOLDER: /tmp/.superset/uploads/
     services:
       postgres:
-        image: postgres:17-alpine
+        image: ghcr.io/apache/superset/ci/postgres:17-alpine
         env:
           POSTGRES_USER: superset
           POSTGRES_PASSWORD: superset
@@ -122,7 +125,7 @@ jobs:
           # GitHub action runner's default installations
           - 15432:5432
       redis:
-        image: redis:7-alpine
+        image: ghcr.io/apache/superset/ci/redis:7-alpine
         ports:
           - 16379:6379
     steps:
@@ -158,3 +161,14 @@ jobs:
           verbose: true
           use_oidc: true
           slug: apache/superset
+
+  actions-timeline:
+    needs: [test-postgres-presto, test-postgres-hive]
+    if: always()
+    runs-on: ubuntu-26.04
+    permissions:
+      actions: read
+    steps:
+      - uses: Kesin11/actions-timeline@57fc93f20c6da7fbc14063c6d24a2a5627c799ad # v3.2.0
+        with:
+          expand-composite-actions: true

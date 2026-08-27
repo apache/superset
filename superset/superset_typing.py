@@ -346,6 +346,11 @@ class ExplorableData(TypedDict, total=False):
     always_filter_main_dttm: bool
     normalize_columns: bool
     rls_filters: list[dict[str, Any]]
+    # Set by datasources that cannot return raw row samples (e.g. semantic
+    # views, which only expose pre-defined metrics and dimensions).
+    supports_samples: bool
+    # Set by datasources that cannot answer drill-to-detail requests.
+    supports_drill_to_detail: bool
 
 
 VizData: TypeAlias = list[Any] | dict[Any, Any] | None

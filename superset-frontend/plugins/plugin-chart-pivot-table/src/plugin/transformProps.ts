@@ -30,7 +30,11 @@ import {
   TimeFormats,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
-import { getColorFormatters } from '@superset-ui/chart-controls';
+import {
+  ColorSchemeEnum,
+  ConditionalFormattingConfig,
+  getColorFormatters,
+} from '@superset-ui/chart-controls';
 import { DateFormatter, PivotTableQueryFormData, QueryData } from '../types';
 import buildGroupbyCombinations, {
   additiveReducerFor,
@@ -103,6 +107,11 @@ export default function transformProps(chartProps: ChartProps<QueryFormData>) {
   );
   const metricsArr = ensureIsArray(formData.metrics);
   let data: QueryData[];
+  // The rows that conditional formatting derives its color scale from. Only the
+  // leaf (detail) cells belong in that domain: the totals are aggregates of the
+  // very cells being shaded, so letting them in makes the grand total the max
+  // and leaves every detail cell nearly unshaded.
+  let colorScaleRows: DataRecord[];
   if (allMetricsAdditive(metricsArr)) {
     // Additive fast-path: a single full-detail query was issued; synthesize
     // each rollup level by reducing the leaf rows on the client (see SIP.md).
@@ -124,6 +133,11 @@ export default function transformProps(chartProps: ChartProps<QueryFormData>) {
       data: synthesized[i] as DataRecord[],
       groupby: combination,
     }));
+    // The query returned the leaf rows and nothing else, so no totals can leak
+    // into the domain. Use those raw rows rather than the synthesized leaf
+    // level, whose reduction coerces values through `Number` and drops
+    // non-numeric ones -- that would shift the domain for additive metrics.
+    colorScaleRows = leafRows;
   } else {
     // Non-additive: a single GROUPING SETS query returned all rollup levels
     // tagged with GROUPING() markers; split the combined result back into one
@@ -141,6 +155,13 @@ export default function transformProps(chartProps: ChartProps<QueryFormData>) {
       data: splitRows[i] as DataRecord[],
       groupby: combination,
     }));
+    // This result *does* carry the rollup levels, so pick out the leaf level --
+    // the one grouping every dimension, same definition the splitter uses.
+    const leafIndex = levelLabels.findIndex(labels => {
+      const grouped = new Set(labels);
+      return allGroupbyLabels.every(label => grouped.has(label));
+    });
+    colorScaleRows = (splitRows[leafIndex] as DataRecord[]) ?? [];
   }
   // The full-granularity query has the most colnames -- use it for column/type
   // metadata and formatters.
@@ -166,6 +187,7 @@ export default function transformProps(chartProps: ChartProps<QueryFormData>) {
     valueFormat,
     dateFormat,
     metricsLayout,
+    showValuesAs,
     conditionalFormatting,
     timeGrainSqla,
     currencyFormat,
@@ -205,9 +227,18 @@ export default function transformProps(chartProps: ChartProps<QueryFormData>) {
       },
       {},
     );
+  // The "Green"/"Red" trend-color tokens are resolved by the Table chart's
+  // own comparison-aware formatter, which this renderer does not implement.
+  // Filter them out so a stale config (e.g. carried over from switching viz
+  // types) doesn't leak the raw token name through as a literal CSS color.
+  const pivotConditionalFormatting = conditionalFormatting?.filter(
+    (config: ConditionalFormattingConfig) =>
+      config.colorScheme !== ColorSchemeEnum.Green &&
+      config.colorScheme !== ColorSchemeEnum.Red,
+  );
   const metricColorFormatters = getColorFormatters(
-    conditionalFormatting,
-    mainQuery.data,
+    pivotConditionalFormatting,
+    colorScaleRows,
     theme,
   );
 
@@ -242,6 +273,7 @@ export default function transformProps(chartProps: ChartProps<QueryFormData>) {
     columnFormats,
     currencyFormats,
     metricsLayout,
+    showValuesAs,
     metricColorFormatters,
     dateFormatters,
     onContextMenu,

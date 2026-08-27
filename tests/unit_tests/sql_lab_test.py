@@ -17,13 +17,16 @@
 # pylint: disable=import-outside-toplevel, invalid-name, unused-argument, too-many-locals
 
 import json  # noqa: TID251
-from unittest.mock import MagicMock
+from typing import Any
+from unittest.mock import MagicMock, patch
 from urllib.parse import parse_qs, urlparse
 from uuid import UUID
 
 import pytest
 from freezegun import freeze_time
 from pytest_mock import MockerFixture
+from sqlalchemy import text
+from sqlalchemy.orm import Session
 
 from superset.app import SupersetApp
 from superset.common.db_query_status import QueryStatus
@@ -35,7 +38,9 @@ from superset.sql.parse import SQLStatement, Table
 from superset.sql_lab import (
     execute_query,
     execute_sql_statements,
+    get_query,
     get_sql_results,
+    SqlLabException,
 )
 from superset.utils.rls import apply_rls, get_predicates_for_table
 from tests.conftest import with_config
@@ -69,6 +74,58 @@ def test_execute_query(mocker: MockerFixture, app: None) -> None:
         query,
     )
     SupersetResultSet.assert_called_with([(42,)], cursor.description, db_engine_spec)
+
+
+def test_get_query_rolls_back_session_before_retrying(
+    mocker: MockerFixture, app: SupersetApp
+) -> None:
+    """
+    A broken transaction (e.g. `PendingRollbackError` following a failed flush)
+    leaves the session unusable until `session.rollback()` is called, so without
+    it every `backoff` retry would reuse the same poisoned session and fail
+    identically. `get_query` must roll back on failure so each retry gets a
+    clean session and has a real chance to succeed.
+    """
+    # avoid actually sleeping through the `backoff` decorator's retry interval
+    mocker.patch("backoff._sync.time.sleep")
+
+    expected_query = mocker.MagicMock()
+    mock_one = mocker.patch("superset.sql_lab.db.session.query")
+    mock_one.return_value.filter_by.return_value.one.side_effect = [
+        Exception("session is broken"),
+        expected_query,
+    ]
+    mock_rollback = mocker.patch("superset.sql_lab.db.session.rollback")
+
+    result = get_query(query_id=1)
+
+    assert result is expected_query
+    assert mock_one.return_value.filter_by.return_value.one.call_count == 2
+    mock_rollback.assert_called_once()
+
+
+def test_get_query_swallows_rollback_failure(
+    mocker: MockerFixture, app: SupersetApp
+) -> None:
+    """
+    If the session/connection is too broken for `rollback()` itself to succeed,
+    that failure must not replace the original lookup error: `get_query` still
+    needs to raise `SqlLabException` so the `backoff` decorator's retry contract
+    (which only matches on `SqlLabException`) isn't bypassed.
+    """
+    mocker.patch("backoff._sync.time.sleep")
+
+    mock_one = mocker.patch("superset.sql_lab.db.session.query")
+    mock_one.return_value.filter_by.return_value.one.side_effect = Exception(
+        "session is broken"
+    )
+    mocker.patch(
+        "superset.sql_lab.db.session.rollback",
+        side_effect=Exception("connection already closed"),
+    )
+
+    with pytest.raises(SqlLabException):
+        get_query(query_id=1)
 
 
 @with_config(
@@ -408,74 +465,93 @@ def test_get_sql_results_oauth2(mocker: MockerFixture, app) -> None:
     """
     Test that `get_sql_results` works with OAuth2.
     """
+    # Pushed/popped manually (rather than via a ``with`` block) so the
+    # ``finally`` below still pops it if an assertion fails, preventing the
+    # request context from leaking into later tests in the same session.
     app_context = app.test_request_context()
     app_context.push()
 
-    mocker.patch(
-        "superset.db_engine_specs.base.uuid4",
-        return_value=UUID("fb11f528-6eba-4a8a-837e-6b0d39ee9187"),
-    )
-    mocker.patch(
-        "superset.db_engine_specs.base.generate_code_verifier",
-        return_value="xkBPVZoFChVcy3VZ2l5u7d0FZPTU-olO7HtsAOok2IUGigyoZ62tG_oldy2xg9_HdqPKrWUmKZLmU-CUqz_SQ",
-    )
-    mocker.patch("superset.daos.key_value.KeyValueDAO.delete_expired_entries")
-    mocker.patch("superset.daos.key_value.KeyValueDAO.create_entry")
-    mocker.patch("superset.db_engine_specs.base.db.session.commit")
+    try:
+        mocker.patch(
+            "superset.db_engine_specs.base.uuid4",
+            return_value=UUID("fb11f528-6eba-4a8a-837e-6b0d39ee9187"),
+        )
+        mocker.patch(
+            "superset.db_engine_specs.base.generate_code_verifier",
+            return_value="xkBPVZoFChVcy3VZ2l5u7d0FZPTU-olO7HtsAOok2IUGigyoZ62tG_oldy2xg9_HdqPKrWUmKZLmU-CUqz_SQ",
+        )
+        mocker.patch("superset.daos.key_value.KeyValueDAO.delete_expired_entries")
+        mocker.patch("superset.daos.key_value.KeyValueDAO.create_entry")
+        mocker.patch("superset.db_engine_specs.base.db.session.commit")
 
-    g = mocker.patch("superset.db_engine_specs.base.g")
-    g.user = mocker.MagicMock()
-    g.user.id = 42
+        g = mocker.patch("superset.db_engine_specs.base.g")
+        g.user = mocker.MagicMock()
+        g.user.id = 42
 
-    database = Database(
-        id=1,
-        database_name="my_db",
-        sqlalchemy_uri="sqlite://",
-        encrypted_extra=json.dumps(oauth2_client_info),
-    )
-    database.db_engine_spec.oauth2_exception = OAuth2Error
-    get_sqla_engine = mocker.patch.object(database, "get_sqla_engine")
-    get_sqla_engine().__enter__().raw_connection.side_effect = OAuth2Error(
-        "OAuth2 required"
-    )
+        database = Database(
+            id=1,
+            database_name="my_db",
+            sqlalchemy_uri="sqlite://",
+            encrypted_extra=json.dumps(oauth2_client_info),
+        )
+        database.db_engine_spec.oauth2_exception = OAuth2Error
+        get_sqla_engine = mocker.patch.object(database, "get_sqla_engine")
+        get_sqla_engine().__enter__().raw_connection.side_effect = OAuth2Error(
+            "OAuth2 required"
+        )
 
-    query = mocker.MagicMock(select_as_cta=False, database=database)
-    mocker.patch("superset.sql_lab.get_query", return_value=query)
+        # `limit` and `select_as_cta_used` must match the real `Query` model's
+        # defaults (nullable Integer -> None, Boolean default=False) so that
+        # `apply_limit` -- called unconditionally before the mocked OAuth2 error
+        # is ever reached -- doesn't try to compare an unconfigured MagicMock
+        # against an int.
+        query = mocker.MagicMock(
+            select_as_cta=False,
+            select_as_cta_used=False,
+            limit=None,
+            database=database,
+        )
+        mocker.patch("superset.sql_lab.get_query", return_value=query)
 
-    payload = get_sql_results(query_id=1, rendered_query="SELECT 1")
-    assert payload["status"] == QueryStatus.FAILED
-    assert payload["error"] == "You don't have permission to access the data."
-    assert len(payload["errors"]) == 1
+        payload = get_sql_results(query_id=1, rendered_query="SELECT 1")
+        assert payload["status"] == QueryStatus.FAILED
+        assert payload["error"] == "You don't have permission to access the data."
+        assert len(payload["errors"]) == 1
 
-    error = payload["errors"][0]
-    assert error["message"] == "You don't have permission to access the data."
-    assert error["error_type"] == SupersetErrorType.OAUTH2_REDIRECT
-    assert error["level"] == ErrorLevel.WARNING
-    assert error["extra"]["tab_id"] == "fb11f528-6eba-4a8a-837e-6b0d39ee9187"
-    assert error["extra"]["redirect_uri"] == "http://localhost/api/v1/database/oauth2/"
+        error = payload["errors"][0]
+        assert error["message"] == "You don't have permission to access the data."
+        assert error["error_type"] == SupersetErrorType.OAUTH2_REDIRECT
+        assert error["level"] == ErrorLevel.WARNING
+        assert error["extra"]["tab_id"] == "fb11f528-6eba-4a8a-837e-6b0d39ee9187"
+        assert (
+            error["extra"]["redirect_uri"]
+            == "http://example.com/api/v1/database/oauth2/"
+        )
 
-    # Parse the OAuth2 authorization URL and verify components individually,
-    # since the JWT state and PKCE code_challenge are computed deterministically
-    # from mocked inputs but their exact encoding depends on library internals.
-    url = urlparse(error["extra"]["url"])
-    assert url.scheme == "https"
-    assert url.netloc == "abcd1234.snowflakecomputing.com"
-    assert url.path == "/oauth/authorize"
+        # Parse the OAuth2 authorization URL and verify components individually,
+        # since the JWT state and PKCE code_challenge are computed deterministically
+        # from mocked inputs but their exact encoding depends on library internals.
+        url = urlparse(error["extra"]["url"])
+        assert url.scheme == "https"
+        assert url.netloc == "abcd1234.snowflakecomputing.com"
+        assert url.path == "/oauth/authorize"
 
-    params = parse_qs(url.query)
-    assert params["scope"] == ["refresh_token session:role:USERADMIN"]
-    assert params["response_type"] == ["code"]
-    assert params["redirect_uri"] == ["http://localhost/api/v1/database/oauth2/"]
-    assert params["client_id"] == ["my_client_id"]
-    assert params["code_challenge_method"] == ["S256"]
+        params = parse_qs(url.query)
+        assert params["scope"] == ["refresh_token session:role:USERADMIN"]
+        assert params["response_type"] == ["code"]
+        assert params["redirect_uri"] == ["http://example.com/api/v1/database/oauth2/"]
+        assert params["client_id"] == ["my_client_id"]
+        assert params["code_challenge_method"] == ["S256"]
 
-    # Verify PKCE code_challenge matches the mocked code_verifier
-    from superset.utils.oauth2 import generate_code_challenge
+        # Verify PKCE code_challenge matches the mocked code_verifier
+        from superset.utils.oauth2 import generate_code_challenge
 
-    expected_code_challenge = generate_code_challenge(
-        "xkBPVZoFChVcy3VZ2l5u7d0FZPTU-olO7HtsAOok2IUGigyoZ62tG_oldy2xg9_HdqPKrWUmKZLmU-CUqz_SQ"
-    )
-    assert params["code_challenge"] == [expected_code_challenge]
+        expected_code_challenge = generate_code_challenge(
+            "xkBPVZoFChVcy3VZ2l5u7d0FZPTU-olO7HtsAOok2IUGigyoZ62tG_oldy2xg9_HdqPKrWUmKZLmU-CUqz_SQ"
+        )
+        assert params["code_challenge"] == [expected_code_challenge]
+    finally:
+        app_context.pop()
 
 
 def test_apply_rls(mocker: MockerFixture) -> None:
@@ -552,6 +628,81 @@ def test_get_predicates_for_table(mocker: MockerFixture) -> None:
     dataset.get_sqla_row_level_filters.assert_called_once_with(
         include_global_guest_rls=False
     )
+
+
+def test_get_predicates_for_table_null_schema_dataset(session: Session) -> None:
+    """
+    A dataset stored with a NULL schema is scoped to the database's default
+    schema, mirroring the existing null-catalog fallback.
+
+    A query resolving to that default schema must find the dataset, so its RLS
+    predicates are applied instead of being silently dropped. A query against a
+    different schema must not, since the null-schema dataset doesn't describe it.
+    """
+    from superset.connectors.sqla.models import SqlaTable
+
+    SqlaTable.metadata.create_all(session.get_bind())
+
+    database = Database(database_name="rls_db", sqlalchemy_uri="sqlite://")
+    # registered without an explicit schema, e.g. via the dataset API
+    dataset = SqlaTable(table_name="t1", schema=None, catalog=None, database=database)
+    session.add_all([database, dataset])
+    session.flush()
+
+    with (
+        patch.object(
+            SqlaTable, "get_sqla_row_level_filters", return_value=[text("c1 = 1")]
+        ),
+        patch.object(Database, "get_default_schema", return_value="public"),
+    ):
+        assert get_predicates_for_table(
+            Table("t1", "public", None), database, None
+        ) == ["c1 = 1"]
+
+        assert (
+            get_predicates_for_table(Table("t1", "sales", None), database, None) == []
+        )
+
+
+def test_get_predicates_for_table_prefers_exact_schema_match(session: Session) -> None:
+    """
+    A dataset stored without a schema and one stored with the default schema can
+    coexist for the same table. The exact match must win, and the lookup must stay
+    unambiguous rather than treating both rows as candidates for a single dataset.
+    """
+    from superset.connectors.sqla.models import SqlaTable
+
+    SqlaTable.metadata.create_all(session.get_bind())
+
+    database = Database(database_name="rls_db_exact", sqlalchemy_uri="sqlite://")
+    session.add_all(
+        [
+            database,
+            SqlaTable(table_name="t1", schema=None, catalog=None, database=database),
+            SqlaTable(
+                table_name="t1", schema="public", catalog=None, database=database
+            ),
+        ]
+    )
+    session.flush()
+
+    def row_level_filters(
+        self: Any, include_global_guest_rls: bool = True
+    ) -> list[Any]:
+        return [text(f"c1 = '{self.schema}'")]
+
+    with (
+        patch.object(
+            SqlaTable,
+            "get_sqla_row_level_filters",
+            autospec=True,
+            side_effect=row_level_filters,
+        ),
+        patch.object(Database, "get_default_schema", return_value="public"),
+    ):
+        assert get_predicates_for_table(
+            Table("t1", "public", None), database, None
+        ) == ["c1 = 'public'"]
 
 
 def test_get_predicates_for_table_excludes_self(mocker: MockerFixture) -> None:

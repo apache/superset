@@ -61,6 +61,7 @@ if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlaTable
     from superset.models.core import Database
     from superset.models.sql_lab import Query
+    from superset.security.guest_token import GuestToken
 
 logger = logging.getLogger(__name__)
 
@@ -88,6 +89,11 @@ ALLOWED_TYPES = (
 )
 COLLECTION_TYPES = ("list", "dict", "tuple", "set")
 
+# Type alias for JSON-native types
+JsonValue = Union[
+    str, int, float, bool, list["JsonValue"], dict[str, "JsonValue"], None
+]
+
 
 @lru_cache(maxsize=LRU_CACHE_MAX_SIZE)
 def context_addons() -> dict[str, Any]:
@@ -112,6 +118,70 @@ class TimeFilter:
     time_range: str | None
 
 
+class SQLSafeList(list[Any]):  # noqa: FURB189
+    """
+    A list of dialect-escaped values whose *whole-container* string
+    rendering cannot re-introduce raw quote characters.
+
+    Rendering a plain Python list in a Jinja template goes through
+    ``str()``/``repr()``, which wraps every string element in fresh quote
+    delimiters (and switches to double-quote delimiters when the element
+    contains a single quote, emitting that single quote raw). Either way
+    the rendered text can contain quote characters that were never
+    escaped for SQL, so a template interpolating the list inside its own
+    quotes -- e.g. ``LIKE '{{ filter.get('escaped_val') }}'`` -- could be
+    broken out of even though every string leaf was individually escaped.
+    This subclass renders as its (already-escaped) elements joined with
+    ``", "``, with no additional delimiters, so every quote in the output
+    is one the dialect's literal processor already escaped.
+    """
+
+    def __str__(self) -> str:
+        return ", ".join(str(element) for element in self)
+
+    __repr__ = __str__
+
+
+class SQLSafeDict(dict[Any, Any]):  # noqa: FURB189
+    """
+    A dict of dialect-escaped keys and values whose *whole-container*
+    string rendering cannot re-introduce raw quote characters. Mirrors
+    :class:`SQLSafeList` for the mapping case.
+
+    Keys are typically used for member lookups (for example
+    ``{{ get_guest_user_attribute('tenant').id }}``) rather than
+    interpolated into SQL directly, but a template can still render the
+    whole dict -- and a key, like a value, may originate from data the
+    caller does not fully control. Keys are therefore escaped the same
+    way values are, through ``ExtraCache._escape_value``, so whole-dict
+    rendering carries the same guarantee as whole-list rendering.
+    """
+
+    def __str__(self) -> str:
+        return ", ".join(f"{key}: {value}" for key, value in self.items())
+
+    __repr__ = __str__
+
+
+def _normalize_postgresql_backslash_escapes(dialect: Dialect) -> None:
+    """Correct a PostgreSQL dialect instance's ``_backslash_escapes`` default
+    in place so backslashes round-trip unchanged when the dialect is used to
+    render literals without a live connection.
+
+    A dialect built without a live connection (as ``Database.get_dialect()``
+    does) defaults ``_backslash_escapes`` to ``True``, which would double
+    every backslash even though every supported PostgreSQL version treats
+    the backslash as a plain character by default
+    (``standard_conforming_strings`` has been on since PostgreSQL 9.1). Left
+    uncorrected, a value like ``C:\\Users`` would be rewritten to
+    ``C:\\\\Users`` and silently fail to match the original value. Other
+    dialects (for example MySQL/MariaDB, which do treat the backslash as an
+    escape character) are left untouched.
+    """
+    if dialect.name == "postgresql":
+        dialect._backslash_escapes = False
+
+
 class ExtraCache:
     """
     Dummy class that exposes a method used to store additional values used in
@@ -128,7 +198,8 @@ class ExtraCache:
         r"current_user_rls_rules\([^)]*\)|"
         r"current_user_roles\([^)]*\)|"
         r"cache_key_wrapper\([^)]*\)|"
-        r"url_param\([^)]*\)"
+        r"url_param\([^)]*\)|"
+        r"get_guest_user_attribute\([^)]*\)"
         r")"
         r"[^{}]*?(\}\}|\%\})"
     )
@@ -295,13 +366,86 @@ class ExtraCache:
             result = url_params.get(param, default)
         # Escape the value regardless of its source (request args or form
         # data); both are interpolated into the rendered SQL.
-        if result and escape_result and self.dialect:
-            # use the dialect specific quoting logic to escape string
-            result = String().literal_processor(dialect=self.dialect)(value=result)[
-                1:-1
-            ]
+        if result and escape_result:
+            # use the dialect-specific literal rendering to escape the string
+            result = self._escape_value(result)
         if add_to_cache_keys:
             self.cache_key_wrapper(result)
+        return result
+
+    def get_guest_user_attribute(
+        self,
+        attribute_name: str,
+        default: JsonValue = None,
+        add_to_cache_keys: bool = True,
+        escape_result: bool = True,
+    ) -> JsonValue:
+        """
+        Get a specific user attribute from guest user.
+
+        This function retrieves attributes from the guest user token and supports
+        all JSON-native types (string, number, boolean, array, object, null).
+
+        Args:
+            attribute_name: Name of the attribute to retrieve
+            default: Default value if attribute not found (can be any JSON-native type)
+            add_to_cache_keys: Whether the resolved value should be included in the
+                cache key. The resolved value is keyed on every branch (including
+                the default and null) so two principals whose tokens render
+                different SQL never share a cache entry. Opting out is only safe
+                when the value cannot affect the query results.
+            escape_result: Escape string values (including strings nested inside
+                lists and object values) through the database dialect's literal
+                rendering so they are safe to interpolate into SQL, mirroring
+                ``url_param``. Enabled by default; non-string JSON types are
+                returned unchanged. Set to False for the raw value, in which case
+                the template author is responsible for validating the value. Pass
+                ``escape_result=False`` when piping a list-valued attribute
+                through the ``where_in`` filter: ``where_in`` applies its own
+                dialect-safe quoting, so leaving the default escaping on would
+                escape each value twice.
+
+        Returns:
+            The attribute value from the guest user token, or the default value.
+            Can be any JSON-native type: string, number, boolean, array, object, or
+            null.
+
+        Examples:
+            {{ get_guest_user_attribute('department') }}  # Returns: "Engineering"
+            {{ get_guest_user_attribute('is_admin') }}    # Returns: True
+            {{ get_guest_user_attribute('permissions') }} # Returns: ["read", "write"]
+            {{ get_guest_user_attribute('config') }}      # Returns: {"theme": "dark"}
+            {{ get_guest_user_attribute('missing', 'default') }} # Returns: "default"
+            full_name IN {{ get_guest_user_attribute('names', escape_result=False)
+                |where_in }}
+        """
+
+        result: JsonValue = default
+        # The macro only applies to guest users (embedded). is_guest_user()
+        # handles the feature-flag and request-context checks internally.
+        if security_manager.is_guest_user():
+            token: GuestToken = g.user.guest_token
+            user_attributes: dict[str, JsonValue] = (
+                token.get("user", {}).get("attributes") or {}
+            )
+            result = user_attributes.get(attribute_name, default)
+
+        if add_to_cache_keys:
+            # Key the resolved value on every branch (attribute, default, or
+            # null); a guest whose attribute is absent renders different SQL
+            # than one whose attribute is set, so both must contribute to the
+            # cache key. json.dumps gives a stable serialization for all
+            # JSON-native types.
+            cache_value = json.dumps(result, sort_keys=True)
+            self.cache_key_wrapper(
+                f"guest_user_attribute:{attribute_name}:{cache_value}"
+            )
+        # Guest attributes (and caller-supplied defaults) are interpolated into
+        # the rendered SQL, so escape strings with the dialect's literal
+        # rendering by default, mirroring url_param. Non-string JSON types pass
+        # through.
+        if escape_result:
+            result = self._escape_value(result)
         return result
 
     def filter_values(
@@ -348,22 +492,48 @@ class ExtraCache:
     def _escape_value(self, val: Any) -> Any:
         """Return a dialect-quoted form of ``val`` suitable for direct SQL
         interpolation. When no dialect is configured the value is returned
-        unchanged so callers see the raw value as before. Strings are
-        passed through SQLAlchemy's ``String`` literal processor (with the
-        surrounding quotes stripped, mirroring ``url_param``). Lists are
-        processed element-wise; non-string members are left as-is.
+        unchanged so callers see the raw value as before.
+
+        Strings are rendered through the dialect compiler's
+        ``render_literal_value`` (with the surrounding quotes stripped),
+        which applies dialect-specific escaping beyond quote doubling; in
+        particular, MySQL/MariaDB treat the backslash as an escape
+        character, so backslashes are doubled there to prevent a trailing
+        ``\\'`` from re-opening the string literal. Dialects whose escaping
+        mode cannot be introspected without a live connection err on the
+        side of over-escaping, which can distort a backslash-containing
+        value but can never widen the query.
+
+        PostgreSQL is special-cased via ``_normalize_postgresql_backslash_escapes``
+        to restore parity with PostgreSQL's default configuration, while
+        MySQL/MariaDB keep the stricter, backslash-doubling behavior above.
+
+        Lists are processed element-wise and dict keys/values recursively,
+        so strings nested inside JSON structures are also escaped. Non-string
+        leaf values are left as-is.
+
+        Lists and dicts are returned as :class:`SQLSafeList` /
+        :class:`SQLSafeDict` rather than plain ``list``/``dict``: Jinja
+        renders a whole container through ``str()``/``repr()``, which
+        wraps string elements in fresh quote delimiters that were never
+        escaped, so even a fully-escaped container could re-introduce raw
+        quotes when interpolated as a whole. The safe subclasses render
+        without adding such delimiters, while still comparing equal to
+        (and behaving like) their plain built-in counterparts everywhere
+        else.
         """
         if not self.dialect:
             return val
         if isinstance(val, str):
-            return String().literal_processor(dialect=self.dialect)(value=val)[1:-1]
+            compiler = self.dialect.statement_compiler(self.dialect, None)
+            _normalize_postgresql_backslash_escapes(compiler.dialect)
+            return compiler.render_literal_value(val, String())[1:-1]
         if isinstance(val, list):
-            return [
-                String().literal_processor(dialect=self.dialect)(value=v)[1:-1]
-                if isinstance(v, str)
-                else v
-                for v in val
-            ]
+            return SQLSafeList(self._escape_value(v) for v in val)
+        if isinstance(val, dict):
+            return SQLSafeDict(
+                (self._escape_value(k), self._escape_value(v)) for k, v in val.items()
+            )
         return val
 
     def get_filters(self, column: str, remove_filter: bool = False) -> list[Filter]:
@@ -672,6 +842,10 @@ def validate_template_context(
 
 class WhereInMacro:  # pylint: disable=too-few-public-methods
     def __init__(self, dialect: Dialect):
+        # Without this, a PostgreSQL value like ``C:\Users`` would render as
+        # ``C:\\Users`` and silently fail to match the original value; see
+        # ``_normalize_postgresql_backslash_escapes`` for the full rationale.
+        _normalize_postgresql_backslash_escapes(dialect)
         self.dialect = dialect
 
     def __call__(
@@ -797,6 +971,18 @@ class BaseTemplateProcessor:
         """
         return self._context.copy()
 
+    def get_template_context(self, **kwargs: Any) -> dict[str, Any]:
+        """
+        Build the validated context used to render a template.
+
+        Split out from ``process_template`` so that validation paths which
+        render a pre-parsed template (``superset.sql.parse.process_jinja_sql``)
+        use exactly the same context as execution, keeping the validated SQL
+        identical to the executed SQL.
+        """
+        kwargs.update(self._context)
+        return validate_template_context(self.engine, kwargs)
+
     def process_template(self, sql: str, **kwargs: Any) -> str:
         """Processes a sql template
 
@@ -866,8 +1052,7 @@ class BaseTemplateProcessor:
 
             raise SupersetTemplateException(message) from ex
 
-        kwargs.update(self._context)
-        context = validate_template_context(self.engine, kwargs)
+        context = self.get_template_context(**kwargs)
 
         try:
             return template.render(context)
@@ -917,6 +1102,9 @@ class JinjaTemplateProcessor(BaseTemplateProcessor):
                 "get_filters": partial(safe_proxy, extra_cache.get_filters),
                 "dataset": partial(safe_proxy, dataset_macro),
                 "get_time_filter": partial(safe_proxy, extra_cache.get_time_filter),
+                "get_guest_user_attribute": partial(
+                    safe_proxy, extra_cache.get_guest_user_attribute
+                ),
             }
         )
 
@@ -1012,27 +1200,21 @@ class HiveTemplateProcessor(PrestoTemplateProcessor):
 class SparkTemplateProcessor(HiveTemplateProcessor):
     engine = "spark"
 
-    def process_template(self, sql: str, **kwargs: Any) -> str:
-        template = self.env.from_string(sql)
-        kwargs.update(self._context)
-
+    def get_template_context(self, **kwargs: Any) -> dict[str, Any]:
+        context = super().get_template_context(**kwargs)
         # Backwards compatibility if migrating from Hive.
-        context = validate_template_context(self.engine, kwargs)
         context["hive"] = context["spark"]
-        return template.render(context)
+        return context
 
 
 class TrinoTemplateProcessor(PrestoTemplateProcessor):
     engine = "trino"
 
-    def process_template(self, sql: str, **kwargs: Any) -> str:
-        template = self.env.from_string(sql)
-        kwargs.update(self._context)
-
+    def get_template_context(self, **kwargs: Any) -> dict[str, Any]:
+        context = super().get_template_context(**kwargs)
         # Backwards compatibility if migrating from Presto.
-        context = validate_template_context(self.engine, kwargs)
         context["presto"] = context["trino"]
-        return template.render(context)
+        return context
 
 
 DEFAULT_PROCESSORS = {
@@ -1146,6 +1328,34 @@ def get_dataset_id_from_context(metric_key: str) -> int:
     raise SupersetTemplateException(exc_message)
 
 
+def guest_user_can_access_dataset(dataset: SqlaTable) -> bool:
+    """
+    Whether the current guest (embedded) user may read the given dataset.
+
+    Guest access is granted per dashboard, so the dataset must back at least
+    one chart on a dashboard the guest token covers; a ``datasets`` allowlist
+    on the token further restricts the reachable IDs.
+
+    :param dataset: a dataset resolved without the DAO base filter.
+    :returns: whether the guest user may read the dataset.
+    """
+    guest_user = security_manager.get_current_guest_user_if_guest()
+    if not guest_user:
+        return False
+
+    allowed_datasets: list[int] | None = guest_user.guest_token.get("datasets")
+    if allowed_datasets is not None and (
+        not isinstance(allowed_datasets, list) or dataset.id not in allowed_datasets
+    ):
+        return False
+
+    return any(
+        security_manager.has_guest_access(dashboard)
+        for slc in dataset.slices
+        for dashboard in slc.dashboards
+    )
+
+
 def metric_macro(
     env: Environment,
     context: dict[str, Any],
@@ -1168,13 +1378,19 @@ def metric_macro(
     if not dataset_id:
         dataset_id = get_dataset_id_from_context(metric_key)
 
-    # Embedded user access is validated at the dashboard level, so we bypass
-    # the regular DAO filter for them
+    # Embedded (guest) user access is validated at the dashboard level, so the
+    # regular DAO filter is bypassed for them and dashboard-level scope is
+    # enforced explicitly below.
     dataset = DatasetDAO.find_by_id(
         dataset_id,
         skip_base_filter=security_manager.is_guest_user(),
     )
     if not dataset:
+        raise DatasetNotFoundError(f"Dataset ID {dataset_id} not found.")
+
+    # With the base filter skipped, scope a guest to datasets reachable through
+    # a dashboard their token grants; reuse the not-found error for consistency.
+    if security_manager.is_guest_user() and not guest_user_can_access_dataset(dataset):
         raise DatasetNotFoundError(f"Dataset ID {dataset_id} not found.")
 
     metrics: dict[str, str] = {

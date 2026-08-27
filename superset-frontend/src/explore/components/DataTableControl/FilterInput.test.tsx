@@ -19,10 +19,19 @@
 import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import { FilterInput } from '.';
 
-jest.mock('lodash', () => ({
-  ...jest.requireActual('lodash'),
-  debounce: (fuc: Function) => fuc,
-}));
+jest.mock('lodash', () => {
+  const debounce = <T extends (...args: never[]) => unknown>(func: T) => {
+    const debounced = (...args: Parameters<T>) => func(...args);
+    debounced.flush = jest.fn();
+    return debounced;
+  };
+
+  return {
+    __esModule: true,
+    ...jest.requireActual('lodash'),
+    debounce,
+  };
+});
 
 test('Render a FilterInput', async () => {
   const onChangeHandler = jest.fn();
@@ -51,6 +60,19 @@ test('FilterInput auto-focuses when a non-editable element (e.g. a tab) has focu
   } finally {
     document.body.removeChild(button);
   }
+});
+
+test('FilterInput preserves value after unmount and remount', () => {
+  const onChangeHandler = jest.fn();
+  const { unmount } = render(
+    <FilterInput onChangeHandler={onChangeHandler} value="abc" />,
+  );
+  expect((screen.getByRole('textbox') as HTMLInputElement).value).toBe('abc');
+
+  unmount();
+
+  render(<FilterInput onChangeHandler={onChangeHandler} value="abc" />);
+  expect((screen.getByRole('textbox') as HTMLInputElement).value).toBe('abc');
 });
 
 test('FilterInput does not steal focus when another input already has focus', () => {

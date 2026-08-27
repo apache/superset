@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { AppSection } from '@superset-ui/core';
+import { AppSection, type ChartProps } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import userEvent from '@testing-library/user-event';
 import { render, screen } from 'spec/helpers/testing-library';
@@ -441,6 +441,35 @@ describe('RangeFilterPlugin', () => {
           }),
         }),
       );
+    });
+  });
+
+  test('clears a filter still sitting at its default value', () => {
+    const renderWith = (value: [number | null, number | null]) => (
+      <RangeFilterPlugin
+        {...(transformProps({
+          ...rangeProps,
+          filterState: { value },
+        } as unknown as ChartProps) as PluginFilterRangeProps)}
+        setDataMask={setDataMask}
+      />
+    );
+
+    // The filter loads at its default and the user never touches it.
+    const { rerender } = render(renderWith([10, 70]));
+    setDataMask.mockClear();
+
+    // Clear All stages [null, null] for range filters.
+    rerender(renderWith([null, null]));
+
+    expect(setDataMask).toHaveBeenCalledWith({
+      extraFormData: {},
+      filterState: {
+        value: [null, null],
+        label: '',
+        validateStatus: undefined,
+        validateMessage: '',
+      },
     });
   });
 });

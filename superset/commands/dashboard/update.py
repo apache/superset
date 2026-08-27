@@ -83,11 +83,23 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
                     json.loads(position_json)
                 )
 
-            dashboard = DashboardDAO.update(self._model, self._properties)
-            if self._properties.get("json_metadata"):
+            # ``set_dash_metadata`` merges the incoming metadata against
+            # ``dashboard.params_dict`` (the *stored* ``json_metadata``) to
+            # preserve fields the caller omitted. Routing ``json_metadata``
+            # through the generic attribute update below would overwrite
+            # that stored value before the merge ever sees it, silently
+            # collapsing the merge into a no-op and resetting any omitted
+            # field to its default -- so it is excluded here and applied
+            # exclusively via ``set_dash_metadata``.
+            json_metadata = self._properties.get("json_metadata")
+            dashboard = DashboardDAO.update(
+                self._model,
+                {k: v for k, v in self._properties.items() if k != "json_metadata"},
+            )
+            if json_metadata:
                 DashboardDAO.set_dash_metadata(
                     dashboard,
-                    data=json.loads(self._properties.get("json_metadata", "{}")),
+                    data=json.loads(json_metadata),
                 )
         return dashboard
 

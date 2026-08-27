@@ -65,7 +65,9 @@ const FilterControl = ({
     isFilterInScope(filter) &&
     checkIsMissingRequiredValue(filter, filter.dataMask?.filterState);
   const validateStatus = isMissingRequiredValue ? 'error' : undefined;
-  const isRequired = !!filter.controlValues?.enableEmptyFilter;
+  const isRequired =
+    !!filter.controlValues?.enableEmptyFilter ||
+    !!filter.controlValues?.defaultToFirstItem;
   const inverseSelection = !!filter.controlValues?.inverseSelection;
 
   const {

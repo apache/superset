@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import inspect
 import logging
+import pickle
 from datetime import datetime, timedelta, timezone
 from functools import wraps
 from typing import Any, Callable
@@ -77,6 +78,26 @@ def set_and_log_cache(
             datetime.now(timezone.utc).replace(tzinfo=None).isoformat().split(".")[0]
         )
         value = {**cache_value, "dttm": dttm}
+
+        # Skip caching results that are too large to protect the cache backend
+        # (e.g. Redis/Memcached) from being flooded by huge result sets. The chart
+        # still renders; the value is simply not cached, causing a re-query on the
+        # next load instead of a cache hit. Disabled when DATA_CACHE_MAX_VALUE_SIZE
+        # is None (the default), in which case no serialization overhead is incurred.
+        max_value_size = app.config.get("DATA_CACHE_MAX_VALUE_SIZE")
+        if max_value_size is not None:
+            value_size = len(pickle.dumps(value, protocol=pickle.HIGHEST_PROTOCOL))
+            if value_size > max_value_size:
+                logger.warning(
+                    "Skipping cache set for key %s: serialized value size %d bytes "
+                    "exceeds DATA_CACHE_MAX_VALUE_SIZE (%d bytes)",
+                    cache_key,
+                    value_size,
+                    max_value_size,
+                )
+                app.config["STATS_LOGGER"].incr("skip_cache_value_too_large")
+                return
+
         cache_instance.set(cache_key, value, timeout=timeout)
         stats_logger = app.config["STATS_LOGGER"]
         stats_logger.incr("set_cache_key")

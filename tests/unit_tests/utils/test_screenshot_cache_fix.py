@@ -37,6 +37,10 @@ from superset.utils.screenshots import (
 BASE_SCREENSHOT_PATH = "superset.utils.screenshots.BaseScreenshot"
 DISTRIBUTED_LOCK_PATH = "superset.utils.screenshots.DistributedLock"
 
+# A minimal valid PNG header, used wherever a test needs bytes that pass
+# ScreenshotCachePayload's image validation.
+FAKE_PNG_BYTES = b"\x89PNG\r\n\x1a\n" + b"fake-png-body"
+
 
 class MockCache:
     """A class to manage screenshot cache for testing."""
@@ -83,11 +87,11 @@ class TestCacheOnlyOnSuccess:
         mocker.patch(DISTRIBUTED_LOCK_PATH)
         mocker.patch(BASE_SCREENSHOT_PATH + ".get_from_cache_key", return_value=None)
         get_screenshot = mocker.patch(
-            BASE_SCREENSHOT_PATH + ".get_screenshot", return_value=b"image_data"
+            BASE_SCREENSHOT_PATH + ".get_screenshot", return_value=FAKE_PNG_BYTES
         )
         # Mock resize_image to avoid PIL errors with fake image data
         mocker.patch(
-            BASE_SCREENSHOT_PATH + ".resize_image", return_value=b"resized_image_data"
+            BASE_SCREENSHOT_PATH + ".resize_image", return_value=FAKE_PNG_BYTES
         )
         BaseScreenshot.cache = MockCache()
         return get_screenshot
@@ -161,13 +165,15 @@ class TestCacheOnlyOnSuccess:
         screenshot_obj: BaseScreenshot,
         mock_user: MagicMock,
     ) -> None:
-        """Empty bytes from get_screenshot must set ERROR, not leave COMPUTING."""
+        """Empty bytes from get_screenshot must set ERROR, not leave COMPUTING,
+        and must log a WARNING that includes the cache key."""
         mocker.patch(DISTRIBUTED_LOCK_PATH)
         mocker.patch(BASE_SCREENSHOT_PATH + ".get_from_cache_key", return_value=None)
         mocker.patch(
             BASE_SCREENSHOT_PATH + ".get_screenshot",
             return_value=b"",
         )
+        mock_logger = mocker.patch("superset.utils.screenshots.logger")
         BaseScreenshot.cache = MockCache()
 
         screenshot_obj.compute_and_cache(user=mock_user, force=True)
@@ -177,6 +183,43 @@ class TestCacheOnlyOnSuccess:
         assert cached_value is not None
         assert cached_value["status"] == "Error"
         assert cached_value.get("image") is None
+        assert any(
+            cache_key in call.args and "empty" in call.args
+            for call in mock_logger.warning.call_args_list
+        )
+
+    def test_cache_error_status_when_screenshot_returns_garbage_bytes(
+        self,
+        mocker: MockerFixture,
+        screenshot_obj: BaseScreenshot,
+        mock_user: MagicMock,
+    ) -> None:
+        """Non-empty bytes without a valid image header must set ERROR, not be
+        cached as a success, and must log a WARNING that includes the cache key."""
+        mocker.patch(DISTRIBUTED_LOCK_PATH)
+        mocker.patch(BASE_SCREENSHOT_PATH + ".get_from_cache_key", return_value=None)
+        mocker.patch(
+            BASE_SCREENSHOT_PATH + ".get_screenshot",
+            return_value=b"this-is-not-a-real-image",
+        )
+        mocker.patch(
+            BASE_SCREENSHOT_PATH + ".resize_image",
+            return_value=b"this-is-not-a-real-image",
+        )
+        mock_logger = mocker.patch("superset.utils.screenshots.logger")
+        BaseScreenshot.cache = MockCache()
+
+        screenshot_obj.compute_and_cache(user=mock_user, force=True)
+
+        cache_key = screenshot_obj.get_cache_key()
+        cached_value = BaseScreenshot.cache.get(cache_key)
+        assert cached_value is not None
+        assert cached_value["status"] == "Error"
+        assert cached_value.get("image") is None
+        assert any(
+            cache_key in call.args and "undecodable" in call.args
+            for call in mock_logger.warning.call_args_list
+        )
 
     def test_computing_status_written_to_cache_early(
         self,
@@ -197,14 +240,14 @@ class TestCacheOnlyOnSuccess:
                 "Cache should be set to COMPUTING before screenshot starts"
             )
             assert cached_value["status"] == "Computing"
-            return b"image_data"
+            return FAKE_PNG_BYTES
 
         mocker.patch(
             BASE_SCREENSHOT_PATH + ".get_screenshot",
             side_effect=check_cache_during_screenshot,
         )
         mocker.patch(
-            BASE_SCREENSHOT_PATH + ".resize_image", return_value=b"resized_image_data"
+            BASE_SCREENSHOT_PATH + ".resize_image", return_value=FAKE_PNG_BYTES
         )
 
         screenshot_obj.compute_and_cache(user=mock_user, force=True)
@@ -429,11 +472,11 @@ class TestIntegrationCacheBugFix:
         BaseScreenshot.cache.set(cache_key, stale_payload.to_dict())
 
         mocker.patch(
-            BASE_SCREENSHOT_PATH + ".get_screenshot", return_value=b"recovered_image"
+            BASE_SCREENSHOT_PATH + ".get_screenshot", return_value=FAKE_PNG_BYTES
         )
         # Mock resize to avoid PIL errors
         mocker.patch(
-            BASE_SCREENSHOT_PATH + ".resize_image", return_value=b"resized_image"
+            BASE_SCREENSHOT_PATH + ".resize_image", return_value=FAKE_PNG_BYTES
         )
 
         # Should trigger task because COMPUTING is stale
@@ -482,3 +525,72 @@ class TestIntegrationCacheBugFix:
 
         assert payload._image == old_image
         assert payload.status == StatusValues.COMPUTING
+
+
+class TestReadSideImageValidation:
+    """A cached payload that claims a successful screenshot (status UPDATED)
+    but carries invalid image bytes must be served as a cache miss, not
+    returned to the caller — this is what the dashboard/chart screenshot
+    endpoints call to fetch bytes to serve."""
+
+    def test_zero_byte_image_is_treated_as_cache_miss(
+        self, mocker: MockerFixture, screenshot_obj: BaseScreenshot
+    ) -> None:
+        mock_logger = mocker.patch("superset.utils.screenshots.logger")
+        BaseScreenshot.cache = MockCache()
+        cache_key = screenshot_obj.get_cache_key()
+        stale_payload = ScreenshotCachePayload(image=b"", status=StatusValues.UPDATED)
+        BaseScreenshot.cache.set(cache_key, stale_payload.to_dict())
+
+        result = screenshot_obj.get_from_cache_key(cache_key)
+
+        assert result is None
+        assert any(
+            cache_key in call.args and "empty" in call.args
+            for call in mock_logger.warning.call_args_list
+        )
+
+    def test_garbage_bytes_image_is_treated_as_cache_miss(
+        self, mocker: MockerFixture, screenshot_obj: BaseScreenshot
+    ) -> None:
+        mock_logger = mocker.patch("superset.utils.screenshots.logger")
+        BaseScreenshot.cache = MockCache()
+        cache_key = screenshot_obj.get_cache_key()
+        garbage_payload = ScreenshotCachePayload(image=b"not-an-image-at-all")
+        BaseScreenshot.cache.set(cache_key, garbage_payload.to_dict())
+
+        result = screenshot_obj.get_from_cache_key(cache_key)
+
+        assert result is None
+        assert any(
+            cache_key in call.args and "undecodable" in call.args
+            for call in mock_logger.warning.call_args_list
+        )
+
+    def test_valid_image_is_served_normally(
+        self, screenshot_obj: BaseScreenshot
+    ) -> None:
+        BaseScreenshot.cache = MockCache()
+        cache_key = screenshot_obj.get_cache_key()
+        valid_payload = ScreenshotCachePayload(image=FAKE_PNG_BYTES)
+        BaseScreenshot.cache.set(cache_key, valid_payload.to_dict())
+
+        result = screenshot_obj.get_from_cache_key(cache_key)
+
+        assert result is not None
+        assert result.get_image().read() == FAKE_PNG_BYTES
+
+    def test_pending_status_with_no_image_is_not_rejected(
+        self, screenshot_obj: BaseScreenshot
+    ) -> None:
+        """Non-UPDATED statuses (e.g. PENDING/COMPUTING) aren't claiming a
+        successful screenshot, so they should be returned as-is."""
+        BaseScreenshot.cache = MockCache()
+        cache_key = screenshot_obj.get_cache_key()
+        pending_payload = ScreenshotCachePayload(status=StatusValues.PENDING)
+        BaseScreenshot.cache.set(cache_key, pending_payload.to_dict())
+
+        result = screenshot_obj.get_from_cache_key(cache_key)
+
+        assert result is not None
+        assert result.status == StatusValues.PENDING

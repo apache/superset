@@ -66,4 +66,9 @@ export interface ReportObject {
   editors?: number[];
   custom_width?: number | null;
   error?: string;
+  retry_on_failure?: boolean;
+  retry_max_attempts?: number;
+  send_failed_reports?: boolean;
+  retry_notify_owners?: boolean;
+  retry_notify_recipients?: boolean;
 }

@@ -26,9 +26,10 @@ import {
 
 import { TooltipPlacement } from '@superset-ui/core/components/Tooltip/types';
 
-const sectionContainerId = 'controlSections';
+import { CONTROL_SECTIONS_ID } from 'src/explore/constants';
+
 export const getSectionContainerElement = () =>
-  document.getElementById(sectionContainerId)?.lastElementChild as HTMLElement;
+  document.getElementById(CONTROL_SECTIONS_ID)?.lastElementChild as HTMLElement;
 
 const getElementVisibilityRatio = (node?: HTMLElement) => {
   const containerHeight = window?.innerHeight;
@@ -48,12 +49,44 @@ export type PopoverProps = BasePopoverProps & {
   getVisibilityRatio?: typeof getElementVisibilityRatio;
 };
 
+/** Placements antd already shifts, capped so the arrow keeps touching its trigger. */
+const SHIFTING_PLACEMENTS = new Set(['top', 'bottom', 'left', 'right']);
+
+/**
+ * antd forwards `autoAdjustOverflow` to rc-trigger, which also reads `shiftX` and
+ * `shiftY` from it, but leaves those two out of the type it accepts. Declaring
+ * them keeps `adjustX`/`adjustY` checked against antd's own definition.
+ * @see https://github.com/react-component/trigger/blob/master/src/hooks/useAlign.ts
+ */
+type ShiftableOverflow = Exclude<
+  BasePopoverProps['autoAdjustOverflow'],
+  boolean | undefined
+> & {
+  shiftX?: boolean | number;
+  shiftY?: boolean | number;
+};
+
+export const SHIFT_INTO_VIEWPORT: ShiftableOverflow = {
+  adjustX: 1,
+  adjustY: 1,
+  shiftX: true,
+  shiftY: true,
+};
+
+// The other placements can flip a popup across its trigger but never nudge it back
+// into the viewport, leaving an oversized one stranded off screen. Only they opt in:
+// lifting the cap above would let those popups slide off a trigger scrolled out of
+// view, taking the arrow away from what it points at.
+export const getAutoAdjustOverflow = (placement: TooltipPlacement) =>
+  SHIFTING_PLACEMENTS.has(placement) ? true : SHIFT_INTO_VIEWPORT;
+
 const ControlPopover: FC<PopoverProps> = ({
   getPopupContainer,
   getVisibilityRatio = getElementVisibilityRatio,
   open: visibleProp,
   destroyOnHidden = false,
   placement: initialPlacement = 'right',
+  autoAdjustOverflow,
   ...props
 }) => {
   const triggerElementRef = useRef<HTMLElement>();
@@ -197,6 +230,9 @@ const ControlPopover: FC<PopoverProps> = ({
       {...props}
       open={visible}
       arrow={{ pointAtCenter: true }}
+      autoAdjustOverflow={
+        autoAdjustOverflow ?? getAutoAdjustOverflow(placement)
+      }
       placement={placement}
       onOpenChange={handleOnVisibleChange}
       getPopupContainer={handleGetPopupContainer}

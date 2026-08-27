@@ -420,7 +420,11 @@ const getLineColumnFilters = ({
     const col = formData.cross_filter_column;
     const obj = data.object ?? {};
     const dimensionVal = obj[col] as
-      string | number | boolean | null | undefined;
+      | string
+      | number
+      | boolean
+      | null
+      | undefined;
 
     if (dimensionVal == null) {
       throw new Error(
@@ -478,7 +482,11 @@ const getGeojsonFilters = ({
       unknown
     >;
     const dimensionVal = properties[col] as
-      string | number | boolean | null | undefined;
+      | string
+      | number
+      | boolean
+      | null
+      | undefined;
 
     if (dimensionVal == null) {
       throw new Error(

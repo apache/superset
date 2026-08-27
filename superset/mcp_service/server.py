@@ -36,6 +36,7 @@ from superset.mcp_service.app import create_mcp_app, init_fastmcp_server
 from superset.mcp_service.jwt_verifier import BrowserHelloMiddleware
 from superset.mcp_service.mcp_config import (
     get_mcp_factory_config,
+    MCP_STATELESS_HTTP,
     MCP_STORE_CONFIG,
     MCP_TOOL_SEARCH_CONFIG,
 )
@@ -63,6 +64,8 @@ def _suppress_third_party_warnings() -> None:
     - marshmallow ``RemovedInMarshmallow4Warning`` (triggered during
       database engine schema instantiation)
     - google.api_core ``FutureWarning`` (Python version support notices)
+    - sqlalchemy-redshift ``pkg_resources`` UserWarning (see
+      superset/db_engine_specs/redshift.py for details)
     """
     import warnings
 
@@ -82,6 +85,19 @@ def _suppress_third_party_warnings() -> None:
     warnings.filterwarnings(
         "ignore",
         message=r"authlib\.jose module is deprecated",
+    )
+    # Same treatment for the pkg_resources warning suppressed at package
+    # init time. Confirmed non-redundant: warnings.filters can be reset
+    # between the package import and this call (e.g. pytest's warnings
+    # plugin resets it around every test -- test_suppress_third_party_warnings
+    # below fails without this line, proving the reset scenario is real,
+    # not hypothetical), so re-registering here is load-bearing, not
+    # belt-and-suspenders.
+    warnings.filterwarnings(
+        "ignore",
+        message=r"pkg_resources is deprecated as an API",
+        category=UserWarning,
+        module=r"sqlalchemy_redshift(?:\..*)?",
     )
 
 
@@ -792,7 +808,17 @@ def _create_auth_provider(flask_app: Any) -> Any | None:
     when either ``MCP_AUTH_ENABLED`` (JWT auth), ``MCP_API_KEY_ENABLED``, or
     ``FAB_API_KEY_ENABLED`` (API key auth) is True. The default factory builds a
     ``CompositeTokenVerifier`` that handles either or both auth modes.
+
+    Fail-closed: when auth has been explicitly configured, any error while
+    building the provider (or a configured factory yielding no provider)
+    raises ``MCPAuthConfigError`` so the service refuses to start rather
+    than coming up as an unauthenticated server.
     """
+    from superset.mcp_service.mcp_config import (
+        create_default_mcp_auth_factory,
+        MCPAuthConfigError,
+    )
+
     auth_provider = None
     if auth_factory := flask_app.config.get("MCP_AUTH_FACTORY"):
         try:
@@ -801,20 +827,37 @@ def _create_auth_provider(flask_app: Any) -> Any | None:
                 "Auth provider created from MCP_AUTH_FACTORY: %s",
                 type(auth_provider).__name__ if auth_provider else "None",
             )
-        except Exception:
-            # Do not log the exception — it may contain secrets
-            logger.error("Failed to create auth provider from MCP_AUTH_FACTORY")
+        except MCPAuthConfigError:
+            # Operator-facing config guidance raised by the factory itself;
+            # carries no secret material. Propagate as-is.
+            raise
+        except Exception as ex:
+            # A configured MCP_AUTH_FACTORY that cannot build its provider is a
+            # misconfiguration that must fail closed: falling through would
+            # start the service unauthenticated. Unlike the default factory
+            # below, an operator-supplied factory gives no basis to classify
+            # any of its failures as benign build errors. The original
+            # exception is suppressed (from None) rather than chained because
+            # its message may contain secrets; the type name is enough to
+            # locate the failure.
+            raise MCPAuthConfigError(
+                "MCP_AUTH_FACTORY is configured but raised "
+                f"{type(ex).__name__} while building the auth provider; "
+                "refusing to start the MCP service without authentication. "
+                "Fix the factory or unset MCP_AUTH_FACTORY."
+            ) from None
+        if auth_provider is None:
+            raise MCPAuthConfigError(
+                "MCP_AUTH_FACTORY returned no auth provider; refusing to "
+                "start an unauthenticated MCP server. Return a token "
+                "verifier or unset MCP_AUTH_FACTORY."
+            )
     elif (
         flask_app.config.get("MCP_AUTH_ENABLED", False)
         or flask_app.config.get("MCP_API_KEY_ENABLED", False)
         or flask_app.config.get("FAB_API_KEY_ENABLED", False)
         or flask_app.config.get("MCP_EMBEDDED_GUEST_AUTH_ENABLED", False)
     ):
-        from superset.mcp_service.mcp_config import (
-            create_default_mcp_auth_factory,
-            MCPAuthConfigError,
-        )
-
         try:
             auth_provider = create_default_mcp_auth_factory(flask_app)
             logger.info(
@@ -828,8 +871,19 @@ def _create_auth_provider(flask_app: Any) -> Any | None:
             # no secret material.
             raise
         except Exception:
-            # Do not log the exception — it may contain secrets
+            # Do not log or chain the exception — it may contain secrets.
+            # Auth was explicitly enabled, so a provider that cannot be built
+            # must also fail closed instead of starting unauthenticated.
             logger.error("Failed to create auth provider from default factory")
+            raise MCPAuthConfigError(
+                "Failed to build the MCP auth provider from the configured "
+                "auth settings; refusing to start an unauthenticated MCP "
+                "server. Check the MCP auth configuration."
+            ) from None
+        # ``None`` here is deliberate only when the factory itself resolved
+        # every auth mode to disabled (e.g. MCP_API_KEY_ENABLED=False
+        # explicitly overriding FAB_API_KEY_ENABLED); misconfigurations of an
+        # enabled mode raise MCPAuthConfigError inside the factory instead.
     return auth_provider
 
 
@@ -929,7 +983,11 @@ def run_server(
     Uses streamable-http transport for HTTP server mode.
 
     For multi-pod deployments, configure MCP_EVENT_STORE_CONFIG with Redis URL
-    to share session state across pods.
+    to share session state across pods. If MCP_STATELESS_HTTP is also set to
+    False (see its docstring in mcp_config.py), sessions are stateful and
+    multi-pod additionally requires session-affinity routing on
+    Mcp-Session-Id at the mesh/ingress layer -- otherwise a session's
+    follow-up requests can land on a pod that never created it.
 
     Args:
         host: Host to bind to
@@ -950,6 +1008,16 @@ def run_server(
         logging.info("Creating MCP app from factory configuration...")
         factory_config = get_mcp_factory_config()
         mcp_instance = create_mcp_app(**factory_config)
+        # The factory path bypasses init_fastmcp_server(), so install the
+        # per-tool-call session scoping here as well; without it concurrent
+        # tool calls share the greenlet-scoped db.session.
+        # Lazy import mirrors init_fastmcp_server() to avoid the circular
+        # import through superset.extensions during startup.
+        from superset.mcp_service.session_scope import (  # noqa: PLC0415
+            install_mcp_session_scoping,
+        )
+
+        install_mcp_session_scoping()
         # Capture the actual auth object so the hello page reflects real auth state
         auth_provider = factory_config.get("auth")
         flask_app = None
@@ -1010,13 +1078,23 @@ def run_server(
         try:
             logging.info("Starting FastMCP on %s:%s", host, port)
 
+            # See MCP_STATELESS_HTTP's docstring in mcp_config.py: stateless
+            # mode races a tool's progress notifications against the
+            # transport teardown that follows its HTTP request, crashing the
+            # session if a client disconnects mid-call.
+            stateless_http = (
+                flask_app.config.get("MCP_STATELESS_HTTP", MCP_STATELESS_HTTP)
+                if flask_app is not None
+                else MCP_STATELESS_HTTP
+            )
+
             if event_store is not None:
                 # Multi-pod: Use http_app with Redis EventStore, run with uvicorn
                 logging.info("Running in multi-pod mode with Redis EventStore")
                 app = mcp_instance.http_app(
                     transport="streamable-http",
                     event_store=event_store,
-                    stateless_http=True,
+                    stateless_http=stateless_http,
                     middleware=starlette_middleware,
                 )
                 uvicorn.run(app, host=host, port=port)
@@ -1027,7 +1105,7 @@ def run_server(
                     transport="streamable-http",
                     host=host,
                     port=port,
-                    stateless_http=True,
+                    stateless_http=stateless_http,
                     middleware=starlette_middleware,
                 )
         except Exception as e:

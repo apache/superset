@@ -1,16 +1,17 @@
 ---
-title:  Kubernetes
+title: Kubernetes
 hide_title: true
 sidebar_position: 3
 version: 1
 ---
 
-import useBaseUrl from "@docusaurus/useBaseUrl";
+import useBaseUrl from '@docusaurus/useBaseUrl';
 
 # Installing on Kubernetes
 
-<img src={useBaseUrl("/img/k8s.png" )} width="150" />
-<br /><br />
+<img src={useBaseUrl('/img/k8s.png')} width="150" />
+<br />
+<br />
 
 Running Superset on Kubernetes is supported with the provided [Helm](https://helm.sh/) chart
 found in the official [Superset helm repository](https://apache.github.io/superset/index.yaml).
@@ -134,7 +135,7 @@ init:
 ```
 
 :::note
-Superset uses [Scarf Gateway](https://about.scarf.sh/scarf-gateway) to collect telemetry data.  Knowing the installation counts for different Superset versions informs the  project's decisions about patching and long-term support. Scarf purges personally identifiable information (PII) and provides only aggregated statistics.
+Superset uses [Scarf Gateway](https://about.scarf.sh/scarf-gateway) to collect telemetry data. Knowing the installation counts for different Superset versions informs the project's decisions about patching and long-term support. Scarf purges personally identifiable information (PII) and provides only aggregated statistics.
 
 There are two independent telemetry channels:
 
@@ -143,11 +144,11 @@ There are two independent telemetry channels:
 
   ```yaml
   extraEnv:
-    SCARF_ANALYTICS: "false"
+    SCARF_ANALYTICS: 'false'
   ```
 
   This is read at runtime, so it takes effect on the pre-built images without rebuilding the frontend.
-:::
+  :::
 
 ### Dependencies
 
@@ -205,7 +206,7 @@ Those can be passed as key/values either with `extraEnv` or `extraSecretEnv` if 
 extraEnv:
   SMTP_HOST: smtp.gmail.com
   SMTP_USER: user@gmail.com
-  SMTP_PORT: "587"
+  SMTP_PORT: '587'
   SMTP_MAIL_FROM: user@gmail.com
 
 extraSecretEnv:
@@ -366,7 +367,7 @@ supersetCeleryBeat:
 extraEnv:
   SMTP_HOST: smtp.gmail.com
   SMTP_USER: user@gmail.com
-  SMTP_PORT: "587"
+  SMTP_PORT: '587'
   SMTP_MAIL_FROM: user@gmail.com
 
 extraSecretEnv:
@@ -456,6 +457,7 @@ init:
 ```
 
 :::resources
+
 - [Tutorial: Mastering Data Visualization — Installing Superset on Kubernetes with Helm Chart](https://mahira-technology.medium.com/mastering-data-visualization-installing-superset-on-kubernetes-cluster-using-helm-chart-e4ec99199e1e)
 - [Tutorial: Installing Apache Superset in Kubernetes](https://aws.plainenglish.io/installing-apache-superset-in-kubernetes-1aec192ac495)
-:::
+  :::

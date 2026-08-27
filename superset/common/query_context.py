@@ -22,6 +22,10 @@ from typing import Any, ClassVar, TYPE_CHECKING
 import pandas as pd
 
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
+from superset.common.chart_data_timing import (
+    QueryAcquisitionResult,
+    QueryContextExecutionResult,
+)
 from superset.common.query_context_processor import QueryContextProcessor
 from superset.common.query_object import QueryObject
 from superset.explorables.base import Explorable
@@ -98,6 +102,14 @@ class QueryContext:
         """Returns the query results with both metadata and data"""
         return self._processor.get_payload(cache_query_context, force_cached)
 
+    def get_payload_result(
+        self,
+        cache_query_context: bool | None = False,
+        force_cached: bool = False,
+    ) -> QueryContextExecutionResult:
+        """Return query results with timing kept outside query payloads."""
+        return self._processor.get_payload_result(cache_query_context, force_cached)
+
     def get_cache_timeout(self) -> int | None:
         """
         Get the cache timeout for this query context.
@@ -127,6 +139,17 @@ class QueryContext:
         force_cached: bool | None = False,
     ) -> dict[str, Any]:
         return self._processor.get_df_payload(
+            query_obj=query_obj,
+            force_cached=force_cached,
+        )
+
+    def get_df_payload_result(
+        self,
+        query_obj: QueryObject,
+        force_cached: bool | None = False,
+    ) -> QueryAcquisitionResult:
+        """Return dataframe payload with timing kept outside the payload."""
+        return self._processor.get_df_payload_result(
             query_obj=query_obj,
             force_cached=force_cached,
         )

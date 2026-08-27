@@ -53,7 +53,9 @@ export type SetAdhocFilter = BaseSimpleAdhocFilter & {
 };
 
 export type SimpleAdhocFilter =
-  UnaryAdhocFilter | BinaryAdhocFilter | SetAdhocFilter;
+  | UnaryAdhocFilter
+  | BinaryAdhocFilter
+  | SetAdhocFilter;
 
 export interface FreeFormAdhocFilter extends BaseAdhocFilter {
   expressionType: 'SQL';

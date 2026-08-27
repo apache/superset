@@ -25,13 +25,14 @@ import { useSelector } from 'react-redux';
 import { useDragDropManager } from 'react-dnd';
 import classNames from 'classnames';
 import { debounce } from 'lodash-es';
+import { isMobileConsumptionEnabled } from 'src/hooks/useIsMobile';
 
 const StyledDiv = styled.div`
   ${({ theme }) => css`
     background-color: ${theme.colorBgLayout};
     position: relative;
     display: grid;
-    grid-template-columns: auto 1fr;
+    grid-template-columns: auto 1fr auto;
     grid-template-rows: auto 1fr;
     flex: 1;
     /* Special cases */
@@ -109,6 +110,22 @@ const StyledDiv = styled.div`
 
     i.warning {
       color: ${theme.colorWarning};
+    }
+
+    /* Mobile consumption mode: show the full chart title without
+       truncation (controls and links are render-gated in SliceHeader) */
+    ${
+      isMobileConsumptionEnabled()
+        ? `@media (max-width: ${theme.screenSMMax}px) {
+      [data-test='slice-header'] .header-title {
+        -webkit-line-clamp: unset;
+        display: block;
+        white-space: normal;
+        overflow: visible;
+        text-overflow: unset;
+      }
+    }`
+        : ''
     }
   `}
 `;

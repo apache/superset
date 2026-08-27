@@ -36,6 +36,7 @@ from pydantic import (
     field_validator,
     model_serializer,
     model_validator,
+    StrictBool,
     ValidationError,
 )
 from typing_extensions import Self
@@ -63,10 +64,6 @@ from superset.mcp_service.system.schemas import (
     serialize_subject_object,
     SubjectInfo,
     TagInfo,
-)
-from superset.mcp_service.utils import (
-    escape_llm_context_delimiters,
-    sanitize_for_llm_context,
 )
 from superset.mcp_service.utils.response_utils import humanize_timestamp
 from superset.mcp_service.utils.sanitization import (
@@ -217,11 +214,7 @@ class ChartInfo(BaseModel):
 
 
 class ChartError(MCPBaseError):
-    @field_validator("message")
-    @classmethod
-    def sanitize_error_for_llm_context(cls, value: str) -> str:
-        """Wrap error text before it is exposed to LLM context."""
-        return sanitize_for_llm_context(value, field_path=("error",))
+    pass
 
 
 class ChartCapabilities(BaseModel):
@@ -483,94 +476,6 @@ CHART_FORM_DATA_EXCLUDED_FIELD_NAMES = frozenset(
 )
 
 
-def wrap_sql_adhoc_metrics(form_data: Any) -> None:
-    """Wrap LLM-controlled SQL adhoc metric strings in-place.
-
-    ``metric``/``metrics`` are in ``CHART_FORM_DATA_EXCLUDED_FIELD_NAMES`` so
-    SIMPLE-metric content (bounded scalars) doesn't get wrapped. SQL adhoc
-    dicts carry up to 2000 chars of LLM-controlled SQL plus a 500-char label
-    that still need ``<UNTRUSTED-CONTENT>`` delimiters when echoed back.
-    """
-    if not isinstance(form_data, dict):
-        return
-    metrics = form_data.get("metrics")
-    if isinstance(metrics, list):
-        for index, metric in enumerate(metrics):
-            if isinstance(metric, dict) and metric.get("expressionType") == "SQL":
-                for key in ("sqlExpression", "label"):
-                    if isinstance(metric.get(key), str):
-                        metric[key] = sanitize_for_llm_context(
-                            metric[key],
-                            field_path=("form_data", "metrics", str(index), key),
-                        )
-    metric_singular = form_data.get("metric")
-    if (
-        isinstance(metric_singular, dict)
-        and metric_singular.get("expressionType") == "SQL"
-    ):
-        for key in ("sqlExpression", "label"):
-            if isinstance(metric_singular.get(key), str):
-                metric_singular[key] = sanitize_for_llm_context(
-                    metric_singular[key],
-                    field_path=("form_data", "metric", key),
-                )
-
-
-def sanitize_chart_info_for_llm_context(chart_info: ChartInfo) -> ChartInfo:  # noqa: C901
-    """Wrap chart read-path descriptive fields before LLM exposure."""
-    payload = chart_info.model_dump(mode="python")
-
-    for field_name in (
-        "slice_name",
-        "description",
-        "certified_by",
-        "certification_details",
-    ):
-        payload[field_name] = sanitize_for_llm_context(
-            payload.get(field_name),
-            field_path=(field_name,),
-        )
-
-    payload["datasource_name"] = escape_llm_context_delimiters(
-        payload.get("datasource_name")
-    )
-
-    if payload.get("filters") is not None:
-        payload["filters"] = sanitize_for_llm_context(
-            payload["filters"],
-            field_path=("filters",),
-            excluded_field_names=frozenset(),
-        )
-
-    if payload.get("form_data") is not None:
-        payload["form_data"] = sanitize_for_llm_context(
-            payload["form_data"],
-            field_path=("form_data",),
-            excluded_field_names=(
-                CHART_FORM_DATA_EXCLUDED_FIELD_NAMES
-                | frozenset({"cache_key", "database", "database_name", "schema"})
-            ),
-        )
-        wrap_sql_adhoc_metrics(payload["form_data"])
-
-    payload["tags"] = [
-        {
-            **tag,
-            "name": sanitize_for_llm_context(
-                tag.get("name"),
-                field_path=("tags", str(index), "name"),
-            ),
-            "description": sanitize_for_llm_context(
-                tag.get("description"),
-                field_path=("tags", str(index), "description"),
-            ),
-        }
-        for index, tag in enumerate(payload.get("tags", []))
-    ]
-
-    return ChartInfo.model_validate(payload)
-
-
 def serialize_chart_object(chart: ChartLike | None) -> ChartInfo | None:
     if not chart:
         return None
@@ -612,43 +517,39 @@ def serialize_chart_object(chart: ChartLike | None) -> ChartInfo | None:
                     "Failed to resolve display name for viz_type=%r: %s", _viz_type, exc
                 )
 
-    return sanitize_chart_info_for_llm_context(
-        ChartInfo(
-            id=chart_id,
-            slice_name=getattr(chart, "slice_name", None),
-            viz_type=_viz_type,
-            chart_type_display_name=_display_name,
-            datasource_name=getattr(chart, "datasource_name", None),
-            datasource_type=getattr(chart, "datasource_type", None),
-            url=chart_url,
-            description=getattr(chart, "description", None),
-            certified_by=getattr(chart, "certified_by", None),
-            certification_details=getattr(chart, "certification_details", None),
-            cache_timeout=getattr(chart, "cache_timeout", None),
-            form_data=chart_form_data,
-            filters=filters_info,
-            changed_on=getattr(chart, "changed_on", None),
-            changed_on_humanized=humanize_timestamp(getattr(chart, "changed_on", None)),
-            created_on=getattr(chart, "created_on", None),
-            created_on_humanized=humanize_timestamp(getattr(chart, "created_on", None)),
-            uuid=str(getattr(chart, "uuid", ""))
-            if getattr(chart, "uuid", None)
-            else None,
-            deleted_at=getattr(chart, "deleted_at", None),
-            tags=[
-                TagInfo.model_validate(tag, from_attributes=True)
-                for tag in getattr(chart, "tags", [])
-            ]
-            if getattr(chart, "tags", None)
-            else [],
-            editors=[
-                info
-                for editor in getattr(chart, "editors", [])
-                if (info := serialize_subject_object(editor)) is not None
-            ]
-            if getattr(chart, "editors", None)
-            else [],
-        )
+    return ChartInfo(
+        id=chart_id,
+        slice_name=getattr(chart, "slice_name", None),
+        viz_type=_viz_type,
+        chart_type_display_name=_display_name,
+        datasource_name=getattr(chart, "datasource_name", None),
+        datasource_type=getattr(chart, "datasource_type", None),
+        url=chart_url,
+        description=getattr(chart, "description", None),
+        certified_by=getattr(chart, "certified_by", None),
+        certification_details=getattr(chart, "certification_details", None),
+        cache_timeout=getattr(chart, "cache_timeout", None),
+        form_data=chart_form_data,
+        filters=filters_info,
+        changed_on=getattr(chart, "changed_on", None),
+        changed_on_humanized=humanize_timestamp(getattr(chart, "changed_on", None)),
+        created_on=getattr(chart, "created_on", None),
+        created_on_humanized=humanize_timestamp(getattr(chart, "created_on", None)),
+        uuid=str(getattr(chart, "uuid", "")) if getattr(chart, "uuid", None) else None,
+        deleted_at=getattr(chart, "deleted_at", None),
+        tags=[
+            TagInfo.model_validate(tag, from_attributes=True)
+            for tag in getattr(chart, "tags", [])
+        ]
+        if getattr(chart, "tags", None)
+        else [],
+        editors=[
+            info
+            for editor in getattr(chart, "editors", [])
+            if (info := serialize_subject_object(editor)) is not None
+        ]
+        if getattr(chart, "editors", None)
+        else [],
     )
 
 
@@ -771,14 +672,41 @@ class UnknownFieldCheckMixin(BaseModel):
         return _check_unknown_fields(data, cls)
 
 
-class ColumnRef(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
+class BaseChartConfig(UnknownFieldCheckMixin):
+    """Fields shared by every MCP chart configuration."""
+
+    temporal_column: str | None = Field(
+        None,
+        description=(
+            "Temporal column used to bind dashboard time-range filters. "
+            "When omitted, charts without a temporal axis use the dataset's "
+            "main temporal column."
+        ),
+        min_length=1,
+        max_length=255,
+    )
+
+    @field_validator("temporal_column")
+    @classmethod
+    def sanitize_temporal_column(cls, v: str | None) -> str | None:
+        """Sanitize temporal column names to prevent SQL injection."""
+        return sanitize_user_input(
+            v,
+            "Temporal column",
+            max_length=255,
+            check_sql_keywords=True,
+            allow_empty=True,
+        )
+
+
+class ColumnRef(UnknownFieldCheckMixin):
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     name: str | None = Field(
         None,
         min_length=1,
         max_length=255,
-        validation_alias=AliasChoices("name", "column_name"),
+        validation_alias=AliasChoices("name", "column_name", "column"),
     )
     label: str | None = Field(None, max_length=500)
     dtype: str | None = None
@@ -790,10 +718,15 @@ class ColumnRef(BaseModel):
             "MIN",
             "MAX",
             "COUNT_DISTINCT",
-            "STDDEV",
-            "VAR",
+            "STDDEV_SAMP",
+            "VAR_SAMP",
             "MEDIAN",
             "PERCENTILE",
+            # Pre-SIP shorthand, accepted and normalized to the names above by
+            # `chart_utils.create_metric_object`; kept here so schema
+            # validation doesn't reject them before that normalization runs.
+            "STDDEV",
+            "VAR",
         ]
         | None
     ) = Field(None, description="SQL aggregate function")
@@ -892,21 +825,25 @@ class ColumnRef(BaseModel):
         )
 
 
-class AxisConfig(BaseModel):
+class AxisConfig(UnknownFieldCheckMixin):
+    model_config = ConfigDict(extra="ignore")
+
     title: str | None = Field(None, max_length=200)
     scale: Literal["linear", "log"] | None = "linear"
     format: str | None = Field(None, description="e.g. '$,.2f'", max_length=50)
 
 
-class LegendConfig(BaseModel):
+class LegendConfig(UnknownFieldCheckMixin):
+    model_config = ConfigDict(extra="ignore")
+
     show: bool = True
     position: Literal["top", "bottom", "left", "right"] | None = "right"
 
 
-class CurrencyFormat(BaseModel):
+class CurrencyFormat(UnknownFieldCheckMixin):
     """Currency symbol and placement applied to numeric values."""
 
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     symbol: str = Field(
         ...,
@@ -926,8 +863,8 @@ class CurrencyFormat(BaseModel):
 LEGEND_POSITION_LITERAL = Literal["top", "bottom", "left", "right"]
 
 
-class FilterConfig(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
+class FilterConfig(UnknownFieldCheckMixin):
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     column: str = Field(
         ...,
@@ -947,16 +884,31 @@ class FilterConfig(BaseModel):
         "NOT LIKE",
         "IN",
         "NOT IN",
+        "IS NULL",
+        "IS NOT NULL",
     ] = Field(
         ...,
-        description="LIKE/ILIKE use % wildcards. IN/NOT IN take a list.",
+        description=(
+            "LIKE/ILIKE use % wildcards. IN/NOT IN take a list. "
+            "IS NULL/IS NOT NULL omit value."
+        ),
         validation_alias=AliasChoices("op", "operator", "opr"),
     )
-    value: str | int | float | bool | list[str | int | float | bool] = Field(
-        ...,
-        description="For IN/NOT IN, provide a list.",
+    value: str | int | float | bool | list[str | int | float | bool] | None = Field(
+        None,
+        description="For IN/NOT IN, provide a list. Omit for null operators.",
         validation_alias=AliasChoices("value", "val"),
     )
+
+    @model_validator(mode="after")
+    def validate_value(self) -> "FilterConfig":
+        """Null checks have no comparator; every other operator requires one."""
+        if self.op in {"IS NULL", "IS NOT NULL"}:
+            if self.value is not None:
+                raise ValueError(f"Filter operator {self.op!r} must not have 'value'.")
+        elif self.value is None:
+            raise ValueError(f"Filter operator {self.op!r} requires 'value'.")
+        return self
 
     @field_validator("column")
     @classmethod
@@ -994,7 +946,7 @@ class FilterConfig(BaseModel):
         return self
 
 
-class SortByConfig(BaseModel):
+class SortByConfig(UnknownFieldCheckMixin):
     """Sort specification with explicit direction.
 
     Accepts either this object or a bare column-name string in `sort_by`
@@ -1002,7 +954,7 @@ class SortByConfig(BaseModel):
     sort-by-metric "top N" pattern most commonly used for tables.
     """
 
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     column: str = Field(
         ...,
@@ -1019,7 +971,7 @@ class SortByConfig(BaseModel):
 
 
 # Actual chart types
-class PieChartConfig(UnknownFieldCheckMixin):
+class PieChartConfig(BaseChartConfig):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     chart_type: Literal["pie"] = "pie"
@@ -1093,7 +1045,7 @@ class PieChartConfig(UnknownFieldCheckMixin):
         return self
 
 
-class PivotTableChartConfig(UnknownFieldCheckMixin):
+class PivotTableChartConfig(BaseChartConfig):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     chart_type: Literal["pivot_table"] = "pivot_table"
@@ -1157,7 +1109,7 @@ class PivotTableChartConfig(UnknownFieldCheckMixin):
         return self
 
 
-class MixedTimeseriesChartConfig(UnknownFieldCheckMixin):
+class MixedTimeseriesChartConfig(BaseChartConfig):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     chart_type: Literal["mixed_timeseries"] = "mixed_timeseries"
@@ -1250,7 +1202,7 @@ class MixedTimeseriesChartConfig(UnknownFieldCheckMixin):
         return self
 
 
-class HandlebarsChartConfig(UnknownFieldCheckMixin):
+class HandlebarsChartConfig(BaseChartConfig):
     model_config = ConfigDict(extra="ignore")
 
     chart_type: Literal["handlebars"] = Field(
@@ -1366,7 +1318,7 @@ class HandlebarsChartConfig(UnknownFieldCheckMixin):
         return self
 
 
-class BigNumberChartConfig(UnknownFieldCheckMixin):
+class BigNumberChartConfig(BaseChartConfig):
     model_config = ConfigDict(extra="ignore")
 
     chart_type: Literal["big_number"] = Field(
@@ -1385,17 +1337,6 @@ class BigNumberChartConfig(UnknownFieldCheckMixin):
             "The metric to display as a big number. "
             "Must include an aggregate function (e.g., SUM, COUNT)."
         ),
-    )
-    temporal_column: str | None = Field(
-        None,
-        description=(
-            "Temporal column for the trendline x-axis. Required when "
-            "show_trendline is True. Also used (whether or not a trendline is "
-            "shown) to bind the chart's dashboard time-range filter; when "
-            "omitted, the dataset's main temporal column is used instead."
-        ),
-        min_length=1,
-        max_length=255,
     )
     time_grain: TimeGrain | None = Field(
         None,
@@ -1490,18 +1431,6 @@ class BigNumberChartConfig(UnknownFieldCheckMixin):
         description="Filters to apply",
     )
 
-    @field_validator("temporal_column")
-    @classmethod
-    def sanitize_temporal_column(cls, v: str | None) -> str | None:
-        """Sanitize temporal column name to prevent SQL injection."""
-        return sanitize_user_input(
-            v,
-            "Temporal column",
-            max_length=255,
-            check_sql_keywords=True,
-            allow_empty=True,
-        )
-
     @model_validator(mode="after")
     def validate_trendline_fields(self) -> Self:
         """Validate trendline requires temporal column."""
@@ -1540,7 +1469,38 @@ class BigNumberChartConfig(UnknownFieldCheckMixin):
         return self
 
 
-class TableChartConfig(UnknownFieldCheckMixin):
+class TableColumnConfig(UnknownFieldCheckMixin):
+    """Display formatting supported by the MCP table-chart schema."""
+
+    model_config = ConfigDict(
+        extra="ignore",
+        populate_by_name=True,
+        json_schema_extra={"additionalProperties": False},
+    )
+
+    column_width: int | None = Field(
+        None,
+        alias="columnWidth",
+        description="Minimum column width in pixels.",
+        ge=0,
+    )
+    d3_number_format: str | None = Field(
+        None,
+        alias="d3NumberFormat",
+        description="D3 number format, for example ',.2f', '$,.2f', or '.1%'.",
+        min_length=1,
+        max_length=100,
+    )
+    d3_time_format: str | None = Field(
+        None,
+        alias="d3TimeFormat",
+        description="D3 time format, for example '%Y-%m-%d' or '%b %d, %Y'.",
+        min_length=1,
+        max_length=100,
+    )
+
+
+class TableChartConfig(BaseChartConfig):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     chart_type: Literal["table"] = "table"
@@ -1585,6 +1545,18 @@ class TableChartConfig(UnknownFieldCheckMixin):
             "(e.g. 'supersetColors')."
         ),
         max_length=100,
+    )
+    column_config: dict[str, "TableColumnConfig"] | None = Field(
+        None,
+        description=(
+            "Per-column display settings, keyed by the result column label "
+            "(for a raw column this is usually its column name; for a metric, use "
+            "its label). Use columnWidth for minimum width in pixels, "
+            "d3NumberFormat for D3 number formats such as ',.2f' or '.1%', and "
+            "d3TimeFormat for D3 time formats such as '%Y-%m-%d'. Example: "
+            "{'Total Sales': {'columnWidth': 120, 'd3NumberFormat': '$,.2f'}, "
+            "'Order Date': {'d3TimeFormat': '%Y-%m-%d'}}."
+        ),
     )
 
     @model_validator(mode="after")
@@ -1659,7 +1631,7 @@ def _metric_display_label(col: ColumnRef) -> str:
     return col.label or col.name or ""
 
 
-class XYChartConfig(UnknownFieldCheckMixin):
+class XYChartConfig(BaseChartConfig):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     chart_type: Literal["xy"] = "xy"
@@ -1704,6 +1676,10 @@ class XYChartConfig(UnknownFieldCheckMixin):
     legend: LegendConfig | None = Field(
         None,
         validation_alias=AliasChoices("legend", "show_legend"),
+    )
+    legend_orientation: LEGEND_POSITION_LITERAL | None = Field(
+        None,
+        description="Legend placement around the chart",
     )
     x_axis_time_format: str | None = Field(
         None,
@@ -1830,7 +1806,7 @@ class XYChartConfig(UnknownFieldCheckMixin):
         return self
 
 
-class HistogramChartConfig(UnknownFieldCheckMixin):
+class HistogramChartConfig(BaseChartConfig):
     """Config for histogram charts (viz_type ``histogram_v2``)."""
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
@@ -1873,7 +1849,7 @@ class HistogramChartConfig(UnknownFieldCheckMixin):
         return self
 
 
-class BoxPlotChartConfig(UnknownFieldCheckMixin):
+class BoxPlotChartConfig(BaseChartConfig):
     """Config for box plot charts (viz_type ``box_plot``)."""
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
@@ -1988,7 +1964,7 @@ class BoxPlotChartConfig(UnknownFieldCheckMixin):
         return self
 
 
-class WaterfallChartConfig(UnknownFieldCheckMixin):
+class WaterfallChartConfig(BaseChartConfig):
     """Config for waterfall charts (viz_type ``waterfall``)."""
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
@@ -2198,6 +2174,19 @@ class ListChartsRequest(
 ):
     """Request schema for list_charts with clear, unambiguous types."""
 
+    certified: Annotated[
+        StrictBool | None,
+        Field(
+            default=None,
+            description=(
+                "Filter by governance certification status. Use true to return "
+                "only certified charts (preferred when selecting governed "
+                "assets), false to return only uncertified charts, or omit to "
+                "return both (default)."
+            ),
+        ),
+    ]
+
     deleted_state: Annotated[
         Literal["include", "only"] | None,
         Field(
@@ -2347,6 +2336,14 @@ class UpdateChartRequest(ChartRequestNormalizerMixin, QueryCacheControl):
         None,
         description="Chart configuration. Optional; omit to only update chart_name.",
     )
+    add_columns: List[ColumnRef] | None = Field(
+        None,
+        description=(
+            "Table columns or metrics to append while preserving every existing "
+            "column and metric. Use this instead of config.columns when adding "
+            "columns to an existing table chart."
+        ),
+    )
     chart_name: str | None = Field(
         None,
         description="Auto-generates if omitted",
@@ -2378,6 +2375,19 @@ class UpdateChartRequest(ChartRequestNormalizerMixin, QueryCacheControl):
             "is always an explore URL."
         ),
     )
+
+    @model_validator(mode="after")
+    def validate_column_patch(self) -> "UpdateChartRequest":
+        """Keep full-config replacement and additive table updates unambiguous."""
+        if self.config is not None and self.add_columns is not None:
+            raise ValueError(
+                "Use either 'config' for a full visualization replacement or "
+                "'add_columns' to append table columns while preserving the existing "
+                "configuration, not both."
+            )
+        if self.add_columns == []:
+            raise ValueError("'add_columns' must contain at least one column")
+        return self
 
     @field_validator("chart_name")
     @classmethod
@@ -2492,6 +2502,16 @@ class DataColumn(BaseModel):
     )
 
 
+class ChartQueryResult(BaseModel):
+    """Data returned by one query in a chart's query context."""
+
+    query_index: int = Field(description="Zero-based query position")
+    columns: list[str] = Field(description="Column names returned by the query")
+    data: list[dict[str, Any]] = Field(description="Actual data rows")
+    row_count: int = Field(description="Rows returned")
+    total_rows: int | None = Field(None, description="Total available rows")
+
+
 class ChartData(BaseModel):
     """Rich chart data response with statistical insights."""
 
@@ -2503,6 +2523,13 @@ class ChartData(BaseModel):
     # Enhanced data description
     columns: List[DataColumn] = Field(description="Rich column metadata")
     data: List[Dict[str, Any]] = Field(description="Actual data rows")
+    query_results: list[ChartQueryResult] | None = Field(
+        None,
+        description=(
+            "All query results for multi-query charts. The top-level columns and data "
+            "fields remain aliases for the first query for backward compatibility."
+        ),
+    )
 
     # Data insights
     row_count: int = Field(description="Rows returned")
@@ -2800,6 +2827,15 @@ class GetChartSqlRequest(BaseModel):
             "with this key. If provided, the tool returns the SQL for the unsaved "
             "configuration instead of the saved version. "
             "Can be used alone (without identifier) for unsaved charts."
+        ),
+    )
+    extra_form_data: dict[str, Any] | None = Field(
+        default=None,
+        description=(
+            "Extra form data to merge into the chart query before rendering SQL, "
+            "typically from dashboard native filters. Same format accepted by "
+            "get_chart_data. Format: "
+            '{"filters": [{"col": "country", "op": "IN", "val": ["US"]}]}'
         ),
     )
 

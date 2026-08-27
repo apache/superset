@@ -25,18 +25,21 @@ lets each per-resource method collapse to a single delegation call, while
 the OpenAPI docstring + FAB decorators stay at the method site where they
 belong.
 
-(The restore endpoint ships in a later PR; only the read + activity
-endpoints are wired here.)
+The write side follows the same pattern: ``restore_version_endpoint``
+holds the shared body of the three ``POST .../versions/<uuid>/restore``
+routes; authorization and the capture kill-switch gate live in the
+restore command's ``validate()``, not here.
 """
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from typing import Any
 from uuid import UUID
 
 import sqlalchemy as sa
-from flask import current_app, Response
+from flask import Response
 from flask_appbuilder import Model
 
 from superset.daos.version import VersionDAO
@@ -52,6 +55,8 @@ from superset.versioning.schemas import VersionListItemSchema
 #: http-dates) and ``version_uuid`` consistently a string (the list rows
 #: carry UUID instances, the snapshot block pre-stringifies).
 _version_item_schema = VersionListItemSchema()
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -70,7 +75,13 @@ class EntityVersionInfo:
 
 
 def _capture_enabled() -> bool:
-    return bool(current_app.config.get("ENABLE_VERSIONING_CAPTURE", False))
+    # Delegates to the shared gate so the read helpers and the restore
+    # command can't disagree about what "capture is on" means.
+    from superset.versioning.utils import (  # pylint: disable=import-outside-toplevel
+        capture_enabled,
+    )
+
+    return capture_enabled()
 
 
 def current_entity_version_info(
@@ -98,14 +109,19 @@ def current_entity_version_info(
         entity_uuid = db.session.scalar(
             sa.select(model_cls.uuid).where(model_cls.id == entity_id)
         )
+    if entity_uuid is None:
+        return EntityVersionInfo()
+    version, transaction_id = VersionDAO.current_version_info(
+        model_cls, entity_id, entity_uuid
+    )
     version_uuid = (
-        VersionDAO.current_live_version_uuid(model_cls, entity_id, entity_uuid)
-        if entity_uuid is not None
+        VersionDAO.derive_version_uuid(entity_uuid, transaction_id)
+        if transaction_id is not None
         else None
     )
     return EntityVersionInfo(
-        version=VersionDAO.current_version_number(model_cls, entity_id),
-        transaction_id=VersionDAO.current_live_transaction_id(model_cls, entity_id),
+        version=version,
+        transaction_id=transaction_id,
         version_uuid=str(version_uuid) if version_uuid else None,
     )
 
@@ -263,4 +279,57 @@ def get_version_endpoint(
         model_cls,
         entity_uuid,
         entity_id=entity.id,
+    )
+
+
+def restore_version_endpoint(
+    api: Any,
+    model_cls: type[Model],
+    command_cls: type[Any],
+    uuid_str: str,
+    version_uuid_str: str,
+) -> Response:
+    """Body of ``POST /api/v1/{resource}/<uuid>/versions/<version_uuid>/restore``.
+
+    *command_cls* is the entity's ``BaseRestoreVersionCommand`` subclass;
+    its ``not_found_exc`` / ``forbidden_exc`` / ``failed_exc`` ClassVars
+    drive the exception→HTTP mapping, so this body stays generic.
+    Authorization and the ``ENABLE_VERSIONING_CAPTURE`` kill-switch gate
+    live in the command's ``validate()`` — with capture off the route is
+    inert (404) because a revert without Continuum's write listeners
+    would be a destructive, untracked write.
+    """
+    try:
+        entity_uuid = UUID(uuid_str)
+    except ValueError:
+        return api.response_400(message="Invalid UUID")
+    try:
+        version_uuid = UUID(version_uuid_str)
+    except ValueError:
+        return api.response_400(message="Invalid version UUID")
+
+    try:
+        result = command_cls(entity_uuid, version_uuid).run()
+    except command_cls.not_found_exc:
+        return api.response_404()
+    except command_cls.forbidden_exc:
+        return api.response_403()
+    except command_cls.failed_exc as ex:
+        logger.exception("Error restoring %s version", model_cls.__name__)
+        return api.response_422(message=str(ex))
+
+    message = "OK"
+    if result.skipped_slice_ids:
+        message = (
+            f"OK; {len(result.skipped_slice_ids)} chart(s) referenced by "
+            "the snapshot no longer exist and were not reattached"
+        )
+    return set_version_etag_by_uuid(
+        api.response(200, message=message),
+        model_cls,
+        entity_uuid,
+        # The command already loaded the entity; passing its id skips the
+        # extra id-by-uuid SELECT (same optimization as the sibling
+        # list/get endpoints).
+        entity_id=result.entity.id,
     )

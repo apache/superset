@@ -2,29 +2,38 @@
   "name": "@superset-ui/plugin-chart-pivot-table",
   "version": "0.20.3",
   "description": "Superset Chart - Pivot Table",
-  "sideEffects": false,
-  "main": "lib/index.js",
-  "module": "esm/index.js",
-  "files": [
-    "esm",
-    "lib"
+  "keywords": [
+    "superset"
   ],
+  "homepage": "https://github.com/apache/superset/tree/master/superset-frontend/plugins/plugin-chart-pivot-table#readme",
+  "bugs": {
+    "url": "https://github.com/apache/superset/issues"
+  },
+  "license": "Apache-2.0",
+  "author": "Superset",
   "repository": {
     "type": "git",
     "url": "https://github.com/apache/superset.git",
     "directory": "superset-frontend/plugins/plugin-chart-pivot-table"
   },
-  "keywords": [
-    "superset"
+  "files": [
+    "esm",
+    "lib"
   ],
-  "author": "Superset",
-  "license": "Apache-2.0",
-  "bugs": {
-    "url": "https://github.com/apache/superset/issues"
-  },
-  "homepage": "https://github.com/apache/superset/tree/master/superset-frontend/plugins/plugin-chart-pivot-table#readme",
+  "sideEffects": false,
+  "main": "lib/index.js",
+  "module": "esm/index.js",
   "publishConfig": {
     "access": "public"
+  },
+  "devDependencies": {
+    "@babel/types": "^7.29.8",
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/jest-dom": "*",
+    "@testing-library/react": "^15.0.0",
+    "@testing-library/user-event": "*",
+    "@types/jest": "^30.0.0",
+    "jest": "^30.4.2"
   },
   "peerDependencies": {
     "@ant-design/icons": "^5.6.1",
@@ -35,14 +44,5 @@
     "prop-types": "*",
     "react": "^18.3.0",
     "react-dom": "^18.3.0"
-  },
-  "devDependencies": {
-    "@babel/types": "^7.29.7",
-    "@testing-library/dom": "^9.3.4",
-    "@testing-library/jest-dom": "*",
-    "@testing-library/react": "^14.0.0",
-    "@testing-library/user-event": "*",
-    "@types/jest": "^30.0.0",
-    "jest": "^30.4.2"
   }
 }

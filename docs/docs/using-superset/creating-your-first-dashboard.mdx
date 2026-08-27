@@ -5,13 +5,13 @@ sidebar_position: 1
 version: 1
 ---
 
-import useBaseUrl from "@docusaurus/useBaseUrl";
+import useBaseUrl from '@docusaurus/useBaseUrl';
 
 ## Creating Your First Dashboard
 
 This section is focused on documentation for end-users who will be using Superset
 for the data analysis and exploration workflow
- (data analysts, business analysts, data
+(data analysts, business analysts, data
 scientists, etc).
 
 :::tip
@@ -37,22 +37,44 @@ pre-configured in Superset for you.
 
 Under the **+** menu in the top right, select Data, and then the _Connect Database_ option:
 
-<img src={useBaseUrl("/img/tutorial/tutorial_01_add_database_connection.png")} width="600" />{" "} <br/><br/>
+<img
+  src={useBaseUrl('/img/tutorial/tutorial_01_add_database_connection.png')}
+  width="600"
+/>
+<br />
+<br />
 
 Then select your database type in the resulting modal:
 
-<img src={useBaseUrl("/img/tutorial/tutorial_02_select_database.png" )} width="600" />{" "} <br/><br/>
+<img
+  src={useBaseUrl('/img/tutorial/tutorial_02_select_database.png')}
+  width="600"
+/>
+<br />
+<br />
 
 Once you've selected a database, you can configure a number of advanced options in this window,
 or for the purposes of this walkthrough, you can click the link below all these fields:
 
-<img src={useBaseUrl("/img/tutorial/tutorial_03a_database_connection_string_link.png" )} width="600" />{" "} <br/><br/>
+<img
+  src={useBaseUrl(
+    '/img/tutorial/tutorial_03a_database_connection_string_link.png',
+  )}
+  width="600"
+/>
+<br />
+<br />
 
 Please note, if you are trying to connect to another locally running database (whether on host or another container), and you get the message `The port is closed.`, then you need to adjust the HOST to `host.docker.internal`
 
 Once you've clicked that link you only need to specify two things (the database name and SQLAlchemy URI):
 
-<img src={useBaseUrl("/img/tutorial/tutorial_03b_connection_string_details.png" )} width="600" />{" "} <br/><br/>
+<img
+  src={useBaseUrl('/img/tutorial/tutorial_03b_connection_string_details.png')}
+  width="600"
+/>
+<br />
+<br />
 
 As noted in the text below the form, you should refer to the SQLAlchemy documentation on
 [creating new connection URIs](https://docs.sqlalchemy.org/en/12/core/engines.html#database-urls)
@@ -76,13 +98,13 @@ that you want exposed in Superset for querying.
 
 Navigate to **Data ‣ Datasets** and select the **+ Dataset** button in the top right corner.
 
-<img src={useBaseUrl("/img/tutorial/tutorial_08_sources_tables.png" )} />
+<img src={useBaseUrl('/img/tutorial/tutorial_08_sources_tables.png')} />
 
 A modal window should pop up in front of you. Select your **Database**,
 **Schema**, and **Table** using the drop downs that appear. In the following example,
 we register the **cleaned_sales_data** table from the **examples** database.
 
-<img src={useBaseUrl("/img/tutorial/tutorial_09_add_new_table.png" )} />
+<img src={useBaseUrl('/img/tutorial/tutorial_09_add_new_table.png')} />
 
 To finish, click the **Add** button in the bottom right corner. You should now see your dataset in the list of datasets.
 
@@ -105,15 +127,15 @@ To install Superset as a PWA, look for the install icon in your browser's addres
 ### Customizing column properties
 
 Now that you've registered your dataset, you can configure column properties
- for how the column should be treated in the Explore workflow:
+for how the column should be treated in the Explore workflow:
 
 - Is the column temporal? (should it be used for slicing & dicing in time series charts?)
 - Should the column be filterable?
 - Is the column dimensional?
 - If it's a datetime column, how should Superset parse
-the datetime format? (using the [ISO-8601 string pattern](https://en.wikipedia.org/wiki/ISO_8601))
+  the datetime format? (using the [ISO-8601 string pattern](https://en.wikipedia.org/wiki/ISO_8601))
 
-<img src={useBaseUrl("/img/tutorial/tutorial_column_properties.png" )} />
+<img src={useBaseUrl('/img/tutorial/tutorial_column_properties.png')} />
 
 ### Superset semantic layer
 
@@ -121,25 +143,51 @@ Superset has a thin semantic layer that adds many quality of life improvements f
 The Superset semantic layer can store 2 types of computed data:
 
 1. Virtual metrics: you can write SQL queries that aggregate values
-from multiple column (e.g. `SUM(recovered) / SUM(confirmed)`) and make them
-available as columns for (e.g. `recovery_rate`) visualization in Explore.
-Aggregate functions are allowed and encouraged for metrics.
+   from multiple column (e.g. `SUM(recovered) / SUM(confirmed)`) and make them
+   available as columns for (e.g. `recovery_rate`) visualization in Explore.
+   Aggregate functions are allowed and encouraged for metrics.
 
-<img src={useBaseUrl("/img/tutorial/tutorial_sql_metric.png" )} />
+<img src={useBaseUrl('/img/tutorial/tutorial_sql_metric.png')} />
 
 You can also certify metrics if you'd like for your team in this view.
 
 1. Virtual calculated columns: you can write SQL queries that
-customize the appearance and behavior
-of a specific column (e.g. `CAST(recovery_rate as float)`).
-Aggregate functions aren't allowed in calculated columns.
+   customize the appearance and behavior
+   of a specific column (e.g. `CAST(recovery_rate as float)`).
+   Aggregate functions aren't allowed in calculated columns.
 
-<img src={useBaseUrl("/img/tutorial/tutorial_calculated_column.png" )} />
+<img src={useBaseUrl('/img/tutorial/tutorial_calculated_column.png')} />
 
 :::resources
+
 - [Using Metrics and Calculated Columns](https://docs.preset.io/docs/using-metrics-and-calculated-columns) - In-depth guide to the semantic layer
 - [Blog: Understanding the Superset Semantic Layer](https://preset.io/blog/understanding-superset-semantic-layer/)
 - [Blog: Unlocking the Power of Virtual Datasets](https://preset.io/blog/unlocking-the-power-of-virtual-datasets-in-apache-superset/)
+  :::
+
+### Native filters on semantic views
+
+When the `SEMANTIC_LAYERS` feature flag is enabled, Superset can connect to external semantic layers
+(such as dbt Semantic Layer or Cube) and expose their semantic views as data sources alongside your
+regular Datasets. Semantic views can be used as filter targets when adding a native (dashboard) filter,
+the same way a Dataset can.
+
+To add a filter on a semantic view:
+
+1. Open the dashboard, click the **⋮** (more options) menu, and select **Edit dashboard**.
+2. Open the Filter Bar and click **+ Add/Edit Filters**.
+3. Add a new filter and, in the datasource dropdown, select a semantic view. Semantic views are listed
+   alongside datasets and can be identified by their type.
+4. Select one of the semantic view's dimensions in the **Column** field, the same way you'd select a
+   column on a dataset.
+5. Configure the remaining filter options (filter type, default value, scope, etc.) and click **Save**.
+
+Any chart on the dashboard that's powered by the same semantic view is filtered by the selected
+dimension when the filter is applied.
+
+:::note
+Semantic views and native filter support for them are part of the experimental Semantic Layers
+feature and require the `SEMANTIC_LAYERS` feature flag to be enabled.
 :::
 
 ### Creating charts in Explore view
@@ -147,33 +195,35 @@ Aggregate functions aren't allowed in calculated columns.
 Superset has 2 main interfaces for exploring data:
 
 - **Explore**: no-code viz builder. Select your dataset, select the chart,
-customize the appearance, and publish.
+  customize the appearance, and publish.
 - **SQL Lab**: SQL IDE for cleaning, joining, and preparing data for Explore workflow
 
 We'll focus on the Explore view for creating charts right now.
 To start the Explore workflow from the **Datasets** tab, start by clicking the name
 of the dataset that will be powering your chart.
 
-<img src={useBaseUrl("/img/tutorial/tutorial_launch_explore.png" )} /><br/><br/>
+<img src={useBaseUrl('/img/tutorial/tutorial_launch_explore.png')} />
+<br />
+<br />
 
 You're now presented with a powerful workflow for exploring data and iterating on charts.
 
 - The **Dataset** view on the left-hand side has a list of columns and metrics,
-scoped to the current dataset you selected.
+  scoped to the current dataset you selected.
 - The **Data** preview below the chart area also gives you helpful data context.
 - Using the **Data** tab and **Customize** tabs, you can change the visualization type,
-select the temporal column, select the metric to group by, and customize
-the aesthetics of the chart.
+  select the temporal column, select the metric to group by, and customize
+  the aesthetics of the chart.
 
 As you customize your chart using drop-down menus, make sure to click the **Run** button
 to get visual feedback.
 
-<img src={useBaseUrl("/img/tutorial/tutorial_explore_run.jpg" )} />
+<img src={useBaseUrl('/img/tutorial/tutorial_explore_run.jpg')} />
 
 In the following screenshot, we craft a grouped Time-series Bar Chart to visualize
 our quarterly sales data by product line just by clicking options in drop-down menus.
 
-<img src={useBaseUrl("/img/tutorial/tutorial_explore_settings.jpg" )} />
+<img src={useBaseUrl('/img/tutorial/tutorial_explore_settings.jpg')} />
 
 ### Creating a slice and dashboard
 
@@ -184,26 +234,32 @@ To save your chart, first click the **Save** button. You can either:
 
 In the following screenshot, we save the chart to a new "Superset Duper Sales Dashboard":
 
-<img src={useBaseUrl("/img/tutorial/tutorial_save_slice.png" )} />
+<img src={useBaseUrl('/img/tutorial/tutorial_save_slice.png')} />
 
 To publish, click **Save and goto Dashboard**.
 
 Behind the scenes, Superset will create a slice and store all the information needed
 to create your chart in its thin data layer
- (the query, chart type, options selected, name, etc).
+(the query, chart type, options selected, name, etc).
 
- <img src={useBaseUrl("/img/tutorial/tutorial_first_dashboard.png" )} style={{width: "100%", maxWidth: "500px"}} />
+<img
+  src={useBaseUrl('/img/tutorial/tutorial_first_dashboard.png')}
+  style={{ width: '100%', maxWidth: '500px' }}
+/>
 
- To resize the chart, start by clicking the Edit Dashboard button in the top right corner.
+To resize the chart, start by clicking the Edit Dashboard button in the top right corner.
 
- <img src={useBaseUrl("/img/tutorial/tutorial_edit_button.png" )} width="300" />
+<img src={useBaseUrl('/img/tutorial/tutorial_edit_button.png')} width="300" />
 
 Then, click and drag the bottom right corner of the chart until the chart layout snaps
 into a position you like onto the underlying grid.
 
- <img src={useBaseUrl("/img/tutorial/tutorial_chart_resize.png" )} style={{width: "100%", maxWidth: "500px"}} />
+<img
+  src={useBaseUrl('/img/tutorial/tutorial_chart_resize.png')}
+  style={{ width: '100%', maxWidth: '500px' }}
+/>
 
- Click **Save** to persist the changes.
+Click **Save** to persist the changes.
 
 Congrats! You’ve successfully linked, analyzed, and visualized data in Superset. There are a wealth
 of other table configuration and visualization options, so please start exploring and creating
@@ -218,14 +274,14 @@ For detailed information on configuring dashboard access, see the
 [Dashboard Access Control](/admin-docs/security/#dashboard-access-control) section in the
 Security documentation.
 
-<img src={useBaseUrl("/img/tutorial/tutorial_dashboard_access.png" )} />
+<img src={useBaseUrl('/img/tutorial/tutorial_dashboard_access.png')} />
 
 ### Publishing a Dashboard
 
 If you would like to make your dashboard available to other users, click on the `Draft` button next to the
 title of your dashboard.
 
-<img src={useBaseUrl("/img/tutorial/publish_button_dashboard.png" )} />
+<img src={useBaseUrl('/img/tutorial/publish_button_dashboard.png')} />
 
 :::warning
 Draft dashboards are only visible to dashboard editors and admins. Published dashboards are visible
@@ -265,11 +321,16 @@ The **Table** chart type has several advanced capabilities worth knowing:
 #### Conditional Formatting
 
 Conditional formatting rules highlight cells based on their values. Rules can be applied to:
+
 - **Numeric columns** — color cells above/below a threshold, or use a gradient across a range
 - **String columns** — highlight cells matching specific text values or patterns
 - **Boolean columns** — color cells that are `true` or `false`, or `null`/`not null`
 
 Each rule has a **"Use gradient"** toggle: enabled applies a varying opacity (lighter = further from threshold), disabled applies a solid fill at full opacity regardless of value.
+
+Each rule's color is set with a full color picker rather than a fixed dropdown of presets. Pick any custom color, or use the **Colors** preset swatches, which reference theme tokens (success, warning, error, and their background variants) so a rule's color updates automatically if the active theme changes, including switching between light and dark mode.
+
+When a rule targets a column with an active time comparison, a **Trend colors** preset also appears, letting you color cells green for an increase and red for a decrease (or the reverse).
 
 #### HTML Rendering in Table Cells
 
@@ -286,6 +347,7 @@ Column headers display a tooltip with the column's **Description** from the data
 #### Display Controls
 
 In dashboard view mode (without entering Edit mode), charts with configurable display options expose a **Display Controls** panel accessible from the chart's context menu. This surfaces controls such as Time Grain, Time Column, and layer visibility for applicable chart types — making it easy to adjust a chart's view without going to Explore.
+
 ### AG Grid Interactive Table
 
 The **AG Grid Interactive Table** chart type is Superset's fully-featured data grid, suitable for large paginated datasets where the standard Table chart is not enough.
@@ -296,12 +358,12 @@ AG Grid supports server-side column filters that query the full dataset — not 
 
 **Available filter types:**
 
-| Column type | Filter options |
-|---|---|
-| Text | Contains, equals, starts with, ends with |
-| Number | Equals, not equal, less than, greater than, between |
-| Date | Before, after, between, blank |
-| Set | Select from a list of distinct values |
+| Column type | Filter options                                      |
+| ----------- | --------------------------------------------------- |
+| Text        | Contains, equals, starts with, ends with            |
+| Number      | Equals, not equal, less than, greater than, between |
+| Date        | Before, after, between, blank                       |
+| Set         | Select from a list of distinct values               |
 
 **AND / OR logic:** Each column supports combining multiple conditions with AND or OR. Filters from different columns are always combined with AND.
 
@@ -365,6 +427,7 @@ Charts can display a "Last queried at" timestamp showing when the chart data was
 When saving or adding a chart to a dashboard from Explore, you can select which tab it should land on using the tab tree-select dropdown in the "Add to dashboard" modal.
 
 :::resources
+
 - [Dashboard Customization](https://docs.preset.io/docs/dashboard-customization) - Advanced dashboard styling and layout options
 - [Blog: BI Dashboard Best Practices](https://preset.io/blog/bi-dashboard-best-practices/)
-:::
+  :::

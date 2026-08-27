@@ -23,7 +23,7 @@ import json  # noqa: TID251
 import re
 from datetime import timedelta
 from textwrap import dedent
-from typing import Any
+from typing import Any, cast
 from urllib.parse import parse_qs, urlparse
 
 import pytest
@@ -33,7 +33,11 @@ from sqlalchemy.dialects import sqlite
 from sqlalchemy.engine.url import make_url, URL
 from sqlalchemy.sql import sqltypes
 
-from superset.db_engine_specs.base import BaseEngineSpec, convert_inspector_columns
+from superset.db_engine_specs.base import (
+    BaseEngineSpec,
+    BasicParametersType,
+    convert_inspector_columns,
+)
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import OAuth2RedirectError
 from superset.sql.parse import Table
@@ -1158,7 +1162,7 @@ def test_get_oauth2_fresh_token_raises_on_auth_error(
 
     mock_post = mocker.patch("superset.db_engine_specs.base.requests.post")
     mock_post.return_value.status_code = status_code
-    mock_post.return_value.text = '{"error": "invalid_grant"}'
+    mock_post.return_value.text = '{"error": "provider-payload-sentinel"}'
 
     config: OAuth2ClientConfig = {
         "id": "client-id",
@@ -1173,7 +1177,7 @@ def test_get_oauth2_fresh_token_raises_on_auth_error(
     with pytest.raises(OAuth2TokenRefreshError) as exc_info:
         BaseEngineSpec.get_oauth2_fresh_token(config, "refresh-token")
 
-    assert exc_info.value.error.extra["error"] == '{"error": "invalid_grant"}'
+    assert "provider-payload-sentinel" not in str(exc_info.value.to_dict())
 
 
 @with_config({"DATABASE_OAUTH2_TIMEOUT": timedelta(seconds=30)})
@@ -1383,3 +1387,143 @@ def test_base_spec_public_information_includes_supports_offset() -> None:
 
     assert "supports_offset" in info
     assert info["supports_offset"] is True
+
+
+def _parameters(encryption: bool) -> BasicParametersType:
+    parameters: dict[str, Any] = {
+        "username": "user",
+        "password": "pwd",
+        "host": "localhost",
+        "port": 5432,
+        "database": "db",
+        "query": {},
+        "encryption": encryption,
+    }
+    return cast(BasicParametersType, parameters)
+
+
+def test_build_sqlalchemy_uri_omits_disable_parameters_by_default() -> None:
+    """
+    Specs that do not define ``encryption_disable_parameters`` must keep
+    emitting nothing at all when encryption is off.
+    """
+    from superset.db_engine_specs.base import BasicParametersMixin
+
+    class TestEngineSpec(BasicParametersMixin):
+        engine = "testdb"
+        encryption_parameters = {"sslmode": "require"}
+
+    uri = TestEngineSpec.build_sqlalchemy_uri(_parameters(encryption=False))
+
+    assert make_url(uri).query == {}
+
+
+@pytest.mark.parametrize(
+    "encryption,expected_query",
+    [
+        (True, {"sslmode": "require"}),
+        (False, {"sslmode": "disable"}),
+    ],
+)
+def test_build_sqlalchemy_uri_applies_disable_parameters(
+    encryption: bool, expected_query: dict[str, str]
+) -> None:
+    from superset.db_engine_specs.base import BasicParametersMixin
+
+    class TestEngineSpec(BasicParametersMixin):
+        engine = "testdb"
+        encryption_parameters = {"sslmode": "require"}
+        encryption_disable_parameters = {"sslmode": "disable"}
+
+    uri = TestEngineSpec.build_sqlalchemy_uri(_parameters(encryption=encryption))
+
+    assert dict(make_url(uri).query) == expected_query
+
+
+@pytest.mark.parametrize(
+    "uri,expected_encryption",
+    [
+        ("testdb://user:pwd@localhost:5432/db?sslmode=require", True),
+        ("testdb://user:pwd@localhost:5432/db?sslmode=disable", False),
+    ],
+)
+def test_get_parameters_from_uri_strips_both_parameter_sets(
+    uri: str, expected_encryption: bool
+) -> None:
+    """
+    Both sets share a key with differing values, so neither may leak into
+    ``query`` and reappear as a user-supplied extra parameter.
+    """
+    from superset.db_engine_specs.base import BasicParametersMixin
+
+    class TestEngineSpec(BasicParametersMixin):
+        engine = "testdb"
+        encryption_parameters = {"sslmode": "require"}
+        encryption_disable_parameters = {"sslmode": "disable"}
+
+    parameters = TestEngineSpec.get_parameters_from_uri(uri)
+
+    assert parameters["encryption"] is expected_encryption
+    assert parameters["query"] == {}
+
+
+def test_get_parameters_from_uri_keeps_unrelated_query_parameters() -> None:
+    from superset.db_engine_specs.base import BasicParametersMixin
+
+    class TestEngineSpec(BasicParametersMixin):
+        engine = "testdb"
+        encryption_parameters = {"sslmode": "require"}
+        encryption_disable_parameters = {"sslmode": "disable"}
+
+    parameters = TestEngineSpec.get_parameters_from_uri(
+        "testdb://user:pwd@localhost:5432/db?sslmode=disable&application_name=superset"
+    )
+
+    assert parameters["query"] == {"application_name": "superset"}
+
+
+def test_get_public_information_exposes_ansi_identifier_quote() -> None:
+    """The base spec advertises ANSI double quotes for identifier quoting,
+    escaped by doubling the closing character."""
+    assert BaseEngineSpec.get_public_information()["identifier_quote"] == {
+        "start": '"',
+        "end": '"',
+        "escape_by_doubling": True,
+    }
+
+
+def test_multivalue_columns_disabled_by_default() -> None:
+    """Engines must opt in to multi-value support; base defaults to off."""
+    assert BaseEngineSpec.supports_multivalue_columns is False
+
+
+@pytest.mark.parametrize(
+    "method", ["array_contains_any", "array_contains_all", "array_length"]
+)
+def test_array_capabilities_raise_when_unsupported(method: str) -> None:
+    """Array capability methods raise NotImplementedError unless overridden."""
+    from sqlalchemy import column
+
+    fn = getattr(BaseEngineSpec, method)
+    args = (column("c"), ["v"]) if "contains" in method else (column("c"),)
+    with pytest.raises(NotImplementedError):
+        fn(*args)
+
+
+@pytest.mark.parametrize("aggregate", ["MEDIAN", "STDDEV_SAMP", "VAR_SAMP"])
+def test_base_spec_extended_aggregation_func_defaults_to_unsupported(
+    aggregate: str,
+) -> None:
+    """
+    By default, an engine spec has no verified expression for the "extended"
+    aggregates (MEDIAN/STDDEV_SAMP/VAR_SAMP) -- they must be explicitly opted
+    into per engine spec, the same way `supports_grouping_sets` and
+    `_time_grain_expressions` work. Silence here means "unsupported", not
+    "untested" -- callers must not fall back to guessing SQL.
+    """
+    assert BaseEngineSpec.get_extended_aggregation_func(aggregate) is None
+
+
+def test_base_spec_extended_aggregation_func_unknown_name_is_unsupported() -> None:
+    """An aggregate name outside the known extended set is also just None."""
+    assert BaseEngineSpec.get_extended_aggregation_func("NOT_A_REAL_AGGREGATE") is None

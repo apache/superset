@@ -844,21 +844,30 @@ def test_adjust_engine_params_fully_qualified() -> None:
     url = make_url("trino://user:pass@localhost:8080/system/default")
 
     uri = TrinoEngineSpec.adjust_engine_params(url, {})[0]
-    assert str(uri) == "trino://user:pass@localhost:8080/system/default"
+    assert (
+        uri.render_as_string(hide_password=False)
+        == "trino://user:pass@localhost:8080/system/default"
+    )
 
     uri = TrinoEngineSpec.adjust_engine_params(
         url,
         {},
         schema="new_schema",
     )[0]
-    assert str(uri) == "trino://user:pass@localhost:8080/system/new_schema"
+    assert (
+        uri.render_as_string(hide_password=False)
+        == "trino://user:pass@localhost:8080/system/new_schema"
+    )
 
     uri = TrinoEngineSpec.adjust_engine_params(
         url,
         {},
         catalog="new_catalog",
     )[0]
-    assert str(uri) == "trino://user:pass@localhost:8080/new_catalog/default"
+    assert (
+        uri.render_as_string(hide_password=False)
+        == "trino://user:pass@localhost:8080/new_catalog/default"
+    )
 
     uri = TrinoEngineSpec.adjust_engine_params(
         url,
@@ -866,7 +875,10 @@ def test_adjust_engine_params_fully_qualified() -> None:
         catalog="new_catalog",
         schema="new_schema",
     )[0]
-    assert str(uri) == "trino://user:pass@localhost:8080/new_catalog/new_schema"
+    assert (
+        uri.render_as_string(hide_password=False)
+        == "trino://user:pass@localhost:8080/new_catalog/new_schema"
+    )
 
 
 def test_adjust_engine_params_catalog_only() -> None:
@@ -878,21 +890,30 @@ def test_adjust_engine_params_catalog_only() -> None:
     url = make_url("trino://user:pass@localhost:8080/system")
 
     uri = TrinoEngineSpec.adjust_engine_params(url, {})[0]
-    assert str(uri) == "trino://user:pass@localhost:8080/system"
+    assert (
+        uri.render_as_string(hide_password=False)
+        == "trino://user:pass@localhost:8080/system"
+    )
 
     uri = TrinoEngineSpec.adjust_engine_params(
         url,
         {},
         schema="new_schema",
     )[0]
-    assert str(uri) == "trino://user:pass@localhost:8080/system/new_schema"
+    assert (
+        uri.render_as_string(hide_password=False)
+        == "trino://user:pass@localhost:8080/system/new_schema"
+    )
 
     uri = TrinoEngineSpec.adjust_engine_params(
         url,
         {},
         catalog="new_catalog",
     )[0]
-    assert str(uri) == "trino://user:pass@localhost:8080/new_catalog"
+    assert (
+        uri.render_as_string(hide_password=False)
+        == "trino://user:pass@localhost:8080/new_catalog"
+    )
 
     uri = TrinoEngineSpec.adjust_engine_params(
         url,
@@ -900,7 +921,10 @@ def test_adjust_engine_params_catalog_only() -> None:
         catalog="new_catalog",
         schema="new_schema",
     )[0]
-    assert str(uri) == "trino://user:pass@localhost:8080/new_catalog/new_schema"
+    assert (
+        uri.render_as_string(hide_password=False)
+        == "trino://user:pass@localhost:8080/new_catalog/new_schema"
+    )
 
 
 @pytest.mark.parametrize(
@@ -1650,3 +1674,183 @@ def test_handle_boolean_filter() -> None:
         str(result_computed.compile(compile_kwargs={"literal_binds": True}))
         == "(expiration = 1) = true"
     )
+
+
+def test_mask_encrypted_extra() -> None:
+    """
+    All `auth_params` values and the OAuth2 client secret are masked, while
+    `auth_method` and other non-sensitive fields stay visible.
+    """
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    config = json.dumps(
+        {
+            "auth_method": "jwt",
+            "auth_params": {"token": "my-secret-token"},
+            "oauth2_client_info": {"id": "client-id", "secret": "my-secret"},
+        }
+    )
+
+    assert TrinoEngineSpec.mask_encrypted_extra(config) == json.dumps(
+        {
+            "auth_method": "jwt",
+            "auth_params": {"token": "XXXXXXXXXX"},
+            "oauth2_client_info": {"id": "client-id", "secret": "XXXXXXXXXX"},
+        }
+    )
+
+
+def test_mask_encrypted_extra_jwt_in_connect_args() -> None:
+    """
+    A JWT passed via `connect_args.requests_kwargs` is masked without touching
+    the surrounding connection settings.
+    """
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    config = json.dumps(
+        {
+            "connect_args": {
+                "protocol": "https",
+                "requests_kwargs": {"jwt": "my-secret-token"},
+            },
+        }
+    )
+
+    assert TrinoEngineSpec.mask_encrypted_extra(config) == json.dumps(
+        {
+            "connect_args": {
+                "protocol": "https",
+                "requests_kwargs": {"jwt": "XXXXXXXXXX"},
+            },
+        }
+    )
+
+
+def test_unmask_encrypted_extra() -> None:
+    """
+    Masked credentials are reused from the previous value; edited ones are kept.
+    """
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    old = json.dumps(
+        {
+            "auth_method": "basic",
+            "auth_params": {"username": "alice", "password": "old-password"},
+        }
+    )
+    # `username` is not masked on read, so it comes back in cleartext; only the
+    # masked `password` is revealed from the previous value.
+    new = json.dumps(
+        {
+            "auth_method": "basic",
+            "auth_params": {"username": "alice", "password": "XXXXXXXXXX"},
+        }
+    )
+
+    assert TrinoEngineSpec.unmask_encrypted_extra(old, new) == json.dumps(
+        {
+            "auth_method": "basic",
+            "auth_params": {"username": "alice", "password": "old-password"},
+        }
+    )
+
+
+def test_impersonate_user_non_trino_backend() -> None:
+    """
+    Test impersonate_user for non-Trino backends.
+    """
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    url = make_url("presto://user@host:443/catalog/schema")
+    engine_kwargs: dict[str, Any] = {"connect_args": {}}
+
+    _, new_kwargs = TrinoEngineSpec.impersonate_user(
+        database=MagicMock(),
+        username="alice",
+        user_token=None,
+        url=url,
+        engine_kwargs=engine_kwargs,
+    )
+
+    assert new_kwargs["connect_args"] == {}
+
+
+def test_impersonate_user_without_token() -> None:
+    """
+    Test impersonate_user when there isn't a `user_token`.
+
+    Without a user token only the `user` connect arg is set; no HTTP session is
+    built, so the driver keeps handling `verify` itself.
+    """
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    url = make_url("trino://host:443/catalog/schema")
+    engine_kwargs: dict[str, Any] = {"connect_args": {"verify": False}}
+
+    _, new_kwargs = TrinoEngineSpec.impersonate_user(
+        database=MagicMock(),
+        username="alice",
+        user_token=None,
+        url=url,
+        engine_kwargs=engine_kwargs,
+    )
+
+    assert new_kwargs["connect_args"] == {"user": "alice", "verify": False}
+
+
+@pytest.mark.parametrize(
+    "verify",
+    [None, False, True, "/path/to/ca-bundle.pem"],
+)
+def test_impersonate_user_with_token(verify: Any) -> None:
+    """
+    Test impersonate_user with a `user_token`.
+
+    With a user token an HTTP session carrying the bearer token is injected. Trino only
+    applies `verify` to a session it builds itself, so the setting has to be copied to
+    ours.
+    """
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    url = make_url("trino://host:443/catalog/schema")
+    engine_kwargs: dict[str, Any] = {"connect_args": {"verify": verify}}
+
+    _, new_kwargs = TrinoEngineSpec.impersonate_user(
+        database=MagicMock(),
+        username="alice",
+        user_token="user-token",  # noqa: S106
+        url=url,
+        engine_kwargs=engine_kwargs,
+    )
+
+    connect_args = new_kwargs["connect_args"]
+    assert connect_args["user"] == "alice"
+    http_session = connect_args["http_session"]
+    assert http_session.headers["Authorization"] == "Bearer user-token"
+    assert http_session.verify == verify
+    # The original connect arg is left in place for the driver.
+    assert connect_args["verify"] == verify
+
+
+def test_impersonate_user_with_token_no_verify_configured() -> None:
+    """
+    Test impersonate_user with a `user_token` and no `verify` connect arg.
+
+    Without the key the session keeps the `requests` default, which verifies certs.
+    """
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    url = make_url("trino://host:443/catalog/schema")
+    engine_kwargs: dict[str, Any] = {"connect_args": {}}
+
+    _, new_kwargs = TrinoEngineSpec.impersonate_user(
+        database=MagicMock(),
+        username="alice",
+        user_token="user-token",  # noqa: S106
+        url=url,
+        engine_kwargs=engine_kwargs,
+    )
+
+    connect_args = new_kwargs["connect_args"]
+    assert "verify" not in connect_args
+    assert connect_args["http_session"].verify is True

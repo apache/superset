@@ -17,6 +17,7 @@
  * under the License.
  */
 import { useState } from 'react';
+import fetchMock from 'fetch-mock';
 import {
   cleanup,
   render,
@@ -34,6 +35,10 @@ import DrillDetailModal from '../DrillDetail/DrillDetailModal';
 import { useDrillDetailMenuItems, DrillDetailMenuItemsProps } from './index';
 
 /* eslint jest/expect-expect: ["warn", { "assertFunctionNames": ["expect*"] }] */
+
+// Opening the context menu logs an event, and an unmatched request makes
+// fetch-mock throw inside the component.
+fetchMock.post('glob:*/log/?*', {});
 
 jest.mock(
   '../DrillDetail/DrillDetailPane',
@@ -443,4 +448,46 @@ test('context menu renders <NULL> for null dimension values', async () => {
 
   await expectDrillToDetailByEnabled();
   await expectDrillToDetailByDimension(filterNull);
+});
+
+const buildStateWithUnsupportedDatasource = () => {
+  const baseState = getMockStoreWithNativeFilters().getState();
+  const datasourceKey = defaultFormData.datasource as string;
+  return {
+    ...baseState,
+    datasources: {
+      ...baseState.datasources,
+      [datasourceKey]: {
+        ...baseState.datasources[datasourceKey],
+        supports_drill_to_detail: false,
+      },
+    },
+  };
+};
+
+test('dropdown menu when datasource opts out via supports_drill_to_detail=false', async () => {
+  cleanup();
+  render(<MockRenderChart formData={defaultFormData} />, {
+    useRouter: true,
+    useRedux: true,
+    initialState: buildStateWithUnsupportedDatasource(),
+  });
+
+  await expectDrillToDetailDisabled(
+    'Drill to detail is not available for this datasource type.',
+  );
+  await expectNoDrillToDetailBy();
+});
+
+test('context menu when datasource opts out via supports_drill_to_detail=false', async () => {
+  cleanup();
+  render(<MockRenderChart formData={defaultFormData} isContextMenu />, {
+    useRouter: true,
+    useRedux: true,
+    initialState: buildStateWithUnsupportedDatasource(),
+  });
+
+  const message = 'Drill to detail is not available for this datasource type.';
+  await expectDrillToDetailDisabled(message);
+  await expectDrillToDetailByDisabled(message);
 });

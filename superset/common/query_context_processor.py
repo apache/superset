@@ -19,6 +19,7 @@ from __future__ import annotations
 import copy
 import logging
 import re
+import time
 from typing import Any, cast, ClassVar, Sequence, TYPE_CHECKING
 
 import pandas as pd
@@ -26,9 +27,14 @@ from flask import current_app
 from flask_babel import gettext as _
 
 from superset.common.chart_data import ChartDataResultFormat
+from superset.common.chart_data_timing import (
+    QueryAcquisitionResult,
+    QueryAcquisitionTiming,
+    QueryContextExecutionResult,
+)
 from superset.common.db_query_status import QueryStatus
 from superset.common.grouping_sets import grouping_marker_label
-from superset.common.query_actions import get_query_results
+from superset.common.query_actions import get_query_results_with_timing
 from superset.common.utils.query_cache_manager import QueryCacheManager
 from superset.common.utils.time_range_utils import get_since_until_from_time_range
 from superset.constants import CACHE_DISABLED_TIMEOUT, CacheRegion
@@ -52,12 +58,11 @@ from superset.utils.core import (
     get_column_name,
     get_column_names_from_columns,
     get_column_names_from_metrics,
+    get_user_id,
     is_adhoc_column,
     is_adhoc_metric,
 )
 from superset.utils.pandas_postprocessing.utils import unescape_separator
-from superset.views.utils import get_viz
-from superset.viz import viz_types
 
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
@@ -86,7 +91,14 @@ class QueryContextProcessor:
     def get_df_payload(
         self, query_obj: QueryObject, force_cached: bool | None = False
     ) -> dict[str, Any]:
-        """Handles caching around the df payload retrieval"""
+        """Return the historical dataframe payload without timing metadata."""
+        return self.get_df_payload_result(query_obj, force_cached).payload
+
+    def get_df_payload_result(
+        self, query_obj: QueryObject, force_cached: bool | None = False
+    ) -> QueryAcquisitionResult:
+        """Acquire a dataframe and return timing as a typed sidecar."""
+        query_planning_start_ns = time.perf_counter_ns()
         if query_obj:
             # Always validate the query object before generating cache key
             # This ensures sanitize_clause() is called and extras are normalized
@@ -95,6 +107,9 @@ class QueryContextProcessor:
         cache_key = self.query_cache_key(query_obj)
         timeout = self.get_cache_timeout()
         force_query = self._query_context.force or timeout == CACHE_DISABLED_TIMEOUT
+        query_planning_ns = max(0, time.perf_counter_ns() - query_planning_start_ns)
+
+        cache_resolution_start_ns = time.perf_counter_ns()
         cache = QueryCacheManager.get(
             key=cache_key,
             region=CacheRegion.DATA,
@@ -114,7 +129,11 @@ class QueryContextProcessor:
         ):
             cache.is_loaded = False
 
+        cache_resolution_ns = max(0, time.perf_counter_ns() - cache_resolution_start_ns)
+
+        data_acquisition_ns: int | None = None
         if query_obj and cache_key and not cache.is_loaded:
+            data_acquisition_start_ns = time.perf_counter_ns()
             try:
                 if invalid_columns := [
                     col
@@ -134,6 +153,15 @@ class QueryContextProcessor:
 
                 query_result = self.get_query_result(query_obj)
                 annotation_data = self.get_annotation_data(query_obj)
+            except QueryObjectValidationError as ex:
+                cache.error_message = str(ex)
+                cache.status = QueryStatus.FAILED
+            finally:
+                data_acquisition_ns = max(
+                    0, time.perf_counter_ns() - data_acquisition_start_ns
+                )
+
+            if cache.status != QueryStatus.FAILED:
                 cache.set_query_result(
                     key=cache_key,
                     query_result=query_result,
@@ -143,10 +171,8 @@ class QueryContextProcessor:
                     datasource_uid=self._qc_datasource.uid,
                     region=CacheRegion.DATA,
                 )
-            except QueryObjectValidationError as ex:
-                cache.error_message = str(ex)
-                cache.status = QueryStatus.FAILED
 
+        payload_assembly_start_ns = time.perf_counter_ns()
         # the N-dimensional DataFrame has converted into flat DataFrame
         # by `flatten operator`, "comma" in the column is escaped by `escape_separator`
         # the result DataFrame columns should be unescaped
@@ -206,7 +232,7 @@ class QueryContextProcessor:
                 row_count=f"{row_count:,}",
             )
 
-        return {
+        payload = {
             "cache_key": cache_key,
             "cached_dttm": cache.cache_dttm,
             "queried_dttm": cache.queried_dttm,
@@ -228,6 +254,15 @@ class QueryContextProcessor:
             "label_map": label_map,
             "warning": warning,
         }
+        timing = QueryAcquisitionTiming(
+            query_planning_ns=query_planning_ns,
+            cache_resolution_ns=cache_resolution_ns,
+            data_acquisition_ns=data_acquisition_ns,
+            payload_assembly_ns=max(
+                0, time.perf_counter_ns() - payload_assembly_start_ns
+            ),
+        )
+        return QueryAcquisitionResult(payload=payload, timing=timing)
 
     def query_cache_key(self, query_obj: QueryObject, **kwargs: Any) -> str | None:
         """
@@ -235,6 +270,11 @@ class QueryContextProcessor:
         """
         datasource = self._qc_datasource
         extra_cache_keys = datasource.get_extra_cache_keys(query_obj.to_dict())
+
+        # Annotation data is cached on the same entry as the dataframe, so the
+        # key must also bind the annotation sources' security context.
+        if query_obj and query_obj.annotation_layers:
+            kwargs["annotation_context"] = self._annotation_cache_context(query_obj)
 
         cache_key = (
             query_obj.cache_key(
@@ -248,6 +288,32 @@ class QueryContextProcessor:
             else None
         )
         return cache_key
+
+    def _annotation_cache_context(self, query_obj: QueryObject) -> dict[str, Any]:
+        """
+        Cache-key material binding cached annotation data to its security
+        context.
+
+        Annotation payloads are fetched per requesting user and stored on the
+        same cache entry as the dataframe, so the key also binds the requesting
+        user and, for chart-backed layers, the RLS clauses of the referenced
+        chart's datasource.
+        """
+        source_rls: dict[str, list[str] | None] = {}
+        for layer in query_obj.annotation_layers:
+            if layer.get("sourceType") not in ("line", "table"):
+                continue
+            layer_value = layer.get("value")
+            chart = (
+                ChartDAO.find_by_id(layer_value) if layer_value is not None else None
+            )
+            annotation_datasource = chart.datasource if chart else None
+            source_rls[str(layer.get("value"))] = (
+                security_manager.get_rls_cache_key(annotation_datasource)
+                if annotation_datasource
+                else None
+            )
+        return {"user_id": get_user_id(), "source_rls": source_rls}
 
     def get_query_result(self, query_object: QueryObject) -> QueryResult:
         """
@@ -425,6 +491,20 @@ class QueryContextProcessor:
         force_cached: bool = False,
     ) -> dict[str, Any]:
         """Returns the query results with both metadata and data"""
+        result = self.get_payload_result(cache_query_context, force_cached)
+        return_value: dict[str, Any] = {
+            "queries": [query.payload for query in result.queries],
+        }
+        if result.cache_key is not None:
+            return_value["cache_key"] = result.cache_key
+        return return_value
+
+    def get_payload_result(
+        self,
+        cache_query_context: bool | None = False,
+        force_cached: bool = False,
+    ) -> QueryContextExecutionResult:
+        """Return query results with timing kept outside query payloads."""
 
         queries_needing_totals, totals_idx = self._prepare_contribution_totals()
 
@@ -447,18 +527,17 @@ class QueryContextProcessor:
                 )
             ]
 
-        query_results = [
-            get_query_results(
+        query_results = tuple(
+            get_query_results_with_timing(
                 query_obj.result_type or self._query_context.result_type,
                 self._query_context,
                 query_obj,
                 force_cached,
             )
             for query_obj in self._query_context.queries
-        ]
+        )
 
-        return_value = {"queries": query_results}
-
+        cache_key = None
         if cache_query_context:
             cache_key = self.cache_key()
             set_and_log_cache(
@@ -475,9 +554,8 @@ class QueryContextProcessor:
                 },
                 self.get_cache_timeout(),
             )
-            return_value["cache_key"] = cache_key  # type: ignore
 
-        return return_value
+        return QueryContextExecutionResult(queries=query_results, cache_key=cache_key)
 
     def get_cache_timeout(self) -> int:
         """
@@ -590,6 +668,11 @@ class QueryContextProcessor:
             if layer["sourceType"] == "NATIVE"
         ]
         layer_ids = [layer["value"] for layer in annotation_layers]
+        # Enforce the annotation read permission before returning layer records.
+        if layer_ids and not security_manager.can_access("can_read", "Annotation"):
+            raise QueryObjectValidationError(
+                _("You don't have access to annotation layers")
+            )
         layer_objects = {
             layer_object.id: layer_object
             for layer_object in AnnotationLayerDAO.find_by_ids(layer_ids)
@@ -599,6 +682,15 @@ class QueryContextProcessor:
         for layer in annotation_layers:
             layer_id = layer["value"]
             layer_name = layer["name"]
+            # A request may reference a layer id that does not exist; treat it
+            # as a validation error rather than failing on the missing key.
+            if (layer_object := layer_objects.get(layer_id)) is None:
+                raise QueryObjectValidationError(
+                    _(
+                        "Annotation layer with ID %(layer_id)s was not found",
+                        layer_id=layer_id,
+                    )
+                )
             columns = [
                 "start_dttm",
                 "end_dttm",
@@ -606,7 +698,6 @@ class QueryContextProcessor:
                 "long_descr",
                 "json_metadata",
             ]
-            layer_object = layer_objects[layer_id]
             records = [
                 {column: getattr(annotation, column) for column in columns}
                 for annotation in layer_object.annotation
@@ -632,29 +723,6 @@ class QueryContextProcessor:
             )
 
         try:
-            if chart.viz_type in viz_types:
-                if not chart.datasource:
-                    raise QueryObjectValidationError(
-                        _(
-                            f"""The dataset for chart ID {chart.id} (referenced by
-                            annotation layer '{annotation_layer["name"]}') was
-                            not found. Please check that the dataset exists and
-                            is accessible."""
-                        )
-                    )
-
-                form_data = chart.form_data.copy()
-                form_data.update(annotation_layer.get("overrides", {}))
-
-                payload = get_viz(
-                    datasource_type=chart.datasource.type,
-                    datasource_id=chart.datasource.id,
-                    form_data=form_data,
-                    force=force,
-                ).get_payload()
-
-                return payload["data"]
-
             if not (query_context := chart.get_query_context()):
                 raise QueryObjectValidationError(
                     _(

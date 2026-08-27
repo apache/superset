@@ -457,6 +457,44 @@ export function openInNewTab(path: string): void {
 }
 
 /**
+ * Opens an empty tab immediately, for callers that only know the destination
+ * after an await.
+ *
+ * Browsers grant `window.open` only inside the task servicing a user gesture:
+ * Safari refuses any call outside it, and Chrome/Firefox refuse once transient
+ * activation lapses, which a couple of sequential requests will exceed. The
+ * refusal is silent -- `window.open` just returns null -- so a caller that
+ * awaits first appears to do nothing at all. Call this synchronously in the
+ * handler and hand the result to `navigateOpenedTab` when the URL is known.
+ */
+export function openBlankTab(): Window | null {
+  return window.open('', '_blank', NEW_TAB_FEATURES);
+}
+
+/**
+ * Points a tab from `openBlankTab` at *path*, falling back to a fresh
+ * `openInNewTab` if the tab was blocked or has since been closed.
+ *
+ * The URL is validated before either branch, so an unsafe path cannot reach
+ * a pre-opened tab any more than it could reach `openInNewTab`.
+ */
+export function navigateOpenedTab(tab: Window | null, path: string): void {
+  const url = assertSafeNavigationUrl(ensureAppRoot(path));
+  if (tab && !tab.closed) {
+    tab.location.replace(url);
+    return;
+  }
+  window.open(url, '_blank', NEW_TAB_FEATURES);
+}
+
+/** Closes a tab opened by `openBlankTab` when the work behind it failed. */
+export function closeOpenedTab(tab: Window | null): void {
+  if (tab && !tab.closed) {
+    tab.close();
+  }
+}
+
+/**
  * Full-page redirect to a router-relative path. Use only when the destination
  * is outside the React Router tree or a hard reload is required.
  *

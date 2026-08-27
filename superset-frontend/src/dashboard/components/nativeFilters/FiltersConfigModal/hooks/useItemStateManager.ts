@@ -44,7 +44,8 @@ export interface ItemStateManager {
   renderedIds: string[];
   setChanges: (
     changes:
-      FilterChangesType | ((prev: FilterChangesType) => FilterChangesType),
+      | FilterChangesType
+      | ((prev: FilterChangesType) => FilterChangesType),
   ) => void;
   setNewIds: (ids: string[]) => void;
   setRemovedItems: (

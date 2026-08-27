@@ -29,10 +29,15 @@ from superset.versioning.changes import ACTION_KINDS
 
 
 class VersionChangedBySchema(Schema):
-    """Subset of the User model included in each version history entry."""
+    """Subset of the User model included in each version history entry.
+
+    Display fields only (``id`` + given/family name) — ``username`` is a
+    login identifier, not display data, and its sibling
+    :class:`ActivityChangedBySchema` already omits it by design. Keeping
+    the two attribution shapes identical also lets clients share one type.
+    """
 
     id = fields.Integer()
-    username = fields.String()
     first_name = fields.String()
     last_name = fields.String()
 

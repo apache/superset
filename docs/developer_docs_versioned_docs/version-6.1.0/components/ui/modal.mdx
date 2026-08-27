@@ -33,72 +33,67 @@ Modal dialog component for displaying content that requires user attention or in
 <StoryWithControls
   component="Modal"
   props={{
-  disablePrimaryButton: false,
-  primaryButtonName: "Submit",
-  primaryButtonStyle: "primary",
-  show: false,
-  title: "I'm a modal!",
-  resizable: false,
-  draggable: false,
-  width: 500
-}}
+    disablePrimaryButton: false,
+    primaryButtonName: 'Submit',
+    primaryButtonStyle: 'primary',
+    show: false,
+    title: "I'm a modal!",
+    resizable: false,
+    draggable: false,
+    width: 500,
+  }}
   controls={[
-  {
-    name: "disablePrimaryButton",
-    label: "Disable Primary Button",
-    type: "boolean",
-    description: "Whether the primary button is disabled."
-  },
-  {
-    name: "primaryButtonName",
-    label: "Primary Button Name",
-    type: "text",
-    description: "Text for the primary action button."
-  },
-  {
-    name: "primaryButtonStyle",
-    label: "Primary Button Style",
-    type: "select",
-    options: [
-      "primary",
-      "secondary",
-      "dashed",
-      "danger",
-      "link"
-    ],
-    description: "The style of the primary action button."
-  },
-  {
-    name: "show",
-    label: "Show",
-    type: "boolean",
-    description: "Whether the modal is visible. Use the \"Try It\" example below for a working demo."
-  },
-  {
-    name: "title",
-    label: "Title",
-    type: "text",
-    description: "Title displayed in the modal header."
-  },
-  {
-    name: "resizable",
-    label: "Resizable",
-    type: "boolean",
-    description: "Whether the modal can be resized by dragging corners."
-  },
-  {
-    name: "draggable",
-    label: "Draggable",
-    type: "boolean",
-    description: "Whether the modal can be dragged by its header."
-  },
-  {
-    name: "width",
-    label: "Width",
-    type: "number",
-    description: "Width of the modal in pixels."
-  }
-]}
+    {
+      name: 'disablePrimaryButton',
+      label: 'Disable Primary Button',
+      type: 'boolean',
+      description: 'Whether the primary button is disabled.',
+    },
+    {
+      name: 'primaryButtonName',
+      label: 'Primary Button Name',
+      type: 'text',
+      description: 'Text for the primary action button.',
+    },
+    {
+      name: 'primaryButtonStyle',
+      label: 'Primary Button Style',
+      type: 'select',
+      options: ['primary', 'secondary', 'dashed', 'danger', 'link'],
+      description: 'The style of the primary action button.',
+    },
+    {
+      name: 'show',
+      label: 'Show',
+      type: 'boolean',
+      description:
+        'Whether the modal is visible. Use the "Try It" example below for a working demo.',
+    },
+    {
+      name: 'title',
+      label: 'Title',
+      type: 'text',
+      description: 'Title displayed in the modal header.',
+    },
+    {
+      name: 'resizable',
+      label: 'Resizable',
+      type: 'boolean',
+      description: 'Whether the modal can be resized by dragging corners.',
+    },
+    {
+      name: 'draggable',
+      label: 'Draggable',
+      type: 'boolean',
+      description: 'Whether the modal can be dragged by its header.',
+    },
+    {
+      name: 'width',
+      label: 'Width',
+      type: 'number',
+      description: 'Width of the modal in pixels.',
+    },
+  ]}
   triggerProp="show"
   onHideProp="onHide"
 />
@@ -137,7 +132,9 @@ function DangerModal() {
   const [isOpen, setIsOpen] = React.useState(false);
   return (
     <>
-      <Button buttonStyle="danger" onClick={() => setIsOpen(true)}>Delete Item</Button>
+      <Button buttonStyle="danger" onClick={() => setIsOpen(true)}>
+        Delete Item
+      </Button>
       <Modal
         show={isOpen}
         onHide={() => setIsOpen(false)}
@@ -149,7 +146,10 @@ function DangerModal() {
           setIsOpen(false);
         }}
       >
-        <p>Are you sure you want to delete this item? This action cannot be undone.</p>
+        <p>
+          Are you sure you want to delete this item? This action cannot be
+          undone.
+        </p>
       </Modal>
     </>
   );
@@ -162,19 +162,37 @@ function DangerModal() {
 function ConfirmationDialogs() {
   return (
     <div style={{ display: 'flex', gap: 8 }}>
-      <Button onClick={() => Modal.confirm({
-        title: 'Confirm Action',
-        content: 'Are you sure you want to proceed?',
-        okText: 'Yes',
-      })}>Confirm</Button>
-      <Button onClick={() => Modal.warning({
-        title: 'Warning',
-        content: 'This action may have consequences.',
-      })}>Warning</Button>
-      <Button onClick={() => Modal.error({
-        title: 'Error',
-        content: 'Something went wrong.',
-      })}>Error</Button>
+      <Button
+        onClick={() =>
+          Modal.confirm({
+            title: 'Confirm Action',
+            content: 'Are you sure you want to proceed?',
+            okText: 'Yes',
+          })
+        }
+      >
+        Confirm
+      </Button>
+      <Button
+        onClick={() =>
+          Modal.warning({
+            title: 'Warning',
+            content: 'This action may have consequences.',
+          })
+        }
+      >
+        Warning
+      </Button>
+      <Button
+        onClick={() =>
+          Modal.error({
+            title: 'Error',
+            content: 'Something went wrong.',
+          })
+        }
+      >
+        Error
+      </Button>
     </div>
   );
 }
@@ -182,16 +200,16 @@ function ConfirmationDialogs() {
 
 ## Props
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `disablePrimaryButton` | `boolean` | `false` | Whether the primary button is disabled. |
-| `primaryButtonName` | `string` | `"Submit"` | Text for the primary action button. |
-| `primaryButtonStyle` | `string` | `"primary"` | The style of the primary action button. |
-| `show` | `boolean` | `false` | Whether the modal is visible. Use the "Try It" example below for a working demo. |
-| `title` | `string` | `"I'm a modal!"` | Title displayed in the modal header. |
-| `resizable` | `boolean` | `false` | Whether the modal can be resized by dragging corners. |
-| `draggable` | `boolean` | `false` | Whether the modal can be dragged by its header. |
-| `width` | `number` | `500` | Width of the modal in pixels. |
+| Prop                   | Type      | Default          | Description                                                                      |
+| ---------------------- | --------- | ---------------- | -------------------------------------------------------------------------------- |
+| `disablePrimaryButton` | `boolean` | `false`          | Whether the primary button is disabled.                                          |
+| `primaryButtonName`    | `string`  | `"Submit"`       | Text for the primary action button.                                              |
+| `primaryButtonStyle`   | `string`  | `"primary"`      | The style of the primary action button.                                          |
+| `show`                 | `boolean` | `false`          | Whether the modal is visible. Use the "Try It" example below for a working demo. |
+| `title`                | `string`  | `"I'm a modal!"` | Title displayed in the modal header.                                             |
+| `resizable`            | `boolean` | `false`          | Whether the modal can be resized by dragging corners.                            |
+| `draggable`            | `boolean` | `false`          | Whether the modal can be dragged by its header.                                  |
+| `width`                | `number`  | `500`            | Width of the modal in pixels.                                                    |
 
 ## Import
 

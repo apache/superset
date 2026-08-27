@@ -36,6 +36,7 @@ import type {
   QueryResponse,
   TimeFormatter,
 } from '@superset-ui/core';
+import { type RGBColor } from '@superset-ui/core/components';
 import { GenericDataType } from '@apache-superset/core/common';
 import { sharedControls, sharedControlComponents } from './shared-controls';
 
@@ -330,7 +331,8 @@ export interface SelectControlConfig<
   optionRenderer?: (option: O) => ReactNode;
   valueRenderer?: (option: O) => ReactNode;
   filterOption?:
-    ((option: FilterOption<O>, rawInput: string) => boolean) | null;
+    | ((option: FilterOption<O>, rawInput: string) => boolean)
+    | null;
 }
 
 export type SharedControlConfig<
@@ -395,7 +397,9 @@ export const isCustomControlItem = (obj: unknown): obj is CustomControlItem =>
 export type ExpandedControlItem = CustomControlItem | ReactElement | null;
 
 export type ControlSetItem =
-  SharedControlAlias | OverrideSharedControlItem | ExpandedControlItem;
+  | SharedControlAlias
+  | OverrideSharedControlItem
+  | ExpandedControlItem;
 
 export type ControlSetRow = ControlSetItem[];
 
@@ -491,7 +495,7 @@ export type ConditionalFormattingConfig = {
   targetValueLeft?: number;
   targetValueRight?: number;
   column?: string;
-  colorScheme?: string;
+  colorScheme?: RGBColor | string;
   toAllRow?: boolean;
   toTextColor?: boolean;
   useGradient?: boolean;
@@ -699,7 +703,10 @@ export interface DataColumnMeta {
   originalLabel?: string;
   dataType: GenericDataType;
   formatter?:
-    TimeFormatter | NumberFormatter | CustomFormatter | CurrencyFormatter;
+    | TimeFormatter
+    | NumberFormatter
+    | CustomFormatter
+    | CurrencyFormatter;
   isMetric?: boolean;
   isPercentMetric?: boolean;
   isNumeric?: boolean;

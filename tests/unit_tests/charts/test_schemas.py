@@ -15,14 +15,21 @@
 # specific language governing permissions and limitations
 # under the License.
 
+import pandas as pd
 import pytest
 from flask import current_app
 from marshmallow import ValidationError
+from pytest_mock import MockerFixture
 
 from superset.charts.schemas import (
+    ChartDataAdhocMetricSchema,
+    ChartDataExtrasSchema,
+    ChartDataPostProcessingOperationSchema,
     ChartDataProphetOptionsSchema,
     ChartDataQueryObjectSchema,
+    ChartDataResponseResult,
     ChartDataRollingOptionsSchema,
+    ChartDataTimingSchema,
     ChartPostSchema,
     ChartPutSchema,
     DEFAULT_MAX_PROPHET_PERIODS,
@@ -58,6 +65,47 @@ def test_get_time_grain_choices(app_context: None) -> None:
     finally:
         # Restore original config
         current_app.config["TIME_GRAIN_ADDONS"] = original_addons
+
+
+def test_chart_data_timing_schema_validates_version(app_context: None) -> None:
+    schema = ChartDataTimingSchema()
+    payload = {
+        "version": 1,
+        "query": {
+            "query_planning_ms": 1.0,
+            "cache_resolution_ms": 2.0,
+            "data_acquisition_ms": None,
+            "payload_assembly_ms": 4.0,
+            "total_ms": 10.0,
+        },
+    }
+
+    assert schema.load(payload)["version"] == 1
+
+    with pytest.raises(ValidationError) as exc_info:
+        schema.load({**payload, "version": 2})
+    assert "version" in exc_info.value.messages
+
+
+def test_chart_data_response_timing_is_optional_but_never_null(
+    app_context: None,
+) -> None:
+    timing_field = ChartDataResponseResult().fields["timing"]
+    timing_payload = {
+        "version": 1,
+        "query": {
+            "query_planning_ms": 1.0,
+            "cache_resolution_ms": 2.0,
+            "data_acquisition_ms": None,
+            "payload_assembly_ms": 4.0,
+            "total_ms": 10.0,
+        },
+    }
+
+    assert timing_field.required is False
+    assert timing_field.deserialize(timing_payload) == timing_payload
+    with pytest.raises(ValidationError):
+        timing_field.deserialize(None)
 
 
 def test_chart_data_prophet_options_schema_time_grain_validation(
@@ -420,3 +468,94 @@ def test_chart_external_url_rejects_non_absolute(app_context: None, url: str) ->
             }
         )
     assert "external_url" in exc_info.value.messages
+
+
+def test_chart_data_extras_rejects_system_sampling(app_context: None) -> None:
+    """
+    ``extras["system_sampling"]`` is a server-side marker (set by the samples
+    query action) that routes physical-dataset sampling queries through the
+    engine's bounded-read retry. It must never be settable through the
+    chart-data API: this pins the schema's unknown-field rejection so a future
+    ``unknown = INCLUDE`` (or an explicit field) cannot silently make an
+    operator-limit-affecting flag client-controllable.
+    """
+    with pytest.raises(ValidationError) as exc_info:
+        ChartDataExtrasSchema().load({"system_sampling": True})
+    assert "system_sampling" in exc_info.value.messages
+
+
+def _no_config_app(mocker: MockerFixture) -> None:
+    """Make ``current_app.config`` raise as it does outside an app context."""
+    app = mocker.MagicMock()
+    type(app).config = mocker.PropertyMock(
+        side_effect=RuntimeError("Working outside of application context.")
+    )
+    mocker.patch("superset.charts.schemas.current_app", app)
+
+
+def test_post_processing_builtin_op_does_not_read_config(
+    mocker: MockerFixture,
+) -> None:
+    """A built-in operation validates without dereferencing ``current_app``.
+
+    Chart query schemas are loaded in places that have no app context (for
+    example OpenAPI spec generation), so validating a built-in must not depend
+    on one.
+    """
+    _no_config_app(mocker)
+    schema = ChartDataPostProcessingOperationSchema()
+
+    assert schema.load({"operation": "aggregate"})["operation"] == "aggregate"
+
+
+def test_post_processing_unknown_op_outside_app_context(
+    mocker: MockerFixture,
+) -> None:
+    """Outside an app context an unknown operation is a ValidationError.
+
+    The missing config is treated as "no extra ops registered" rather than
+    surfacing a RuntimeError to the caller.
+    """
+    _no_config_app(mocker)
+    schema = ChartDataPostProcessingOperationSchema()
+
+    with pytest.raises(ValidationError) as exc_info:
+        schema.load({"operation": "not_a_real_op"})
+    assert "operation" in exc_info.value.messages
+
+
+def _custom_op(df: pd.DataFrame, **options: object) -> pd.DataFrame:
+    """Named callable registered as an extra op — used in tests only."""
+    return df
+
+
+@pytest.mark.parametrize(
+    "app",
+    [{"EXTRA_PANDAS_POSTPROCESSING_OPS": [_custom_op]}],
+    indirect=True,
+)
+def test_post_processing_extra_op_is_accepted(app_context: None) -> None:
+    """An op registered via EXTRA_PANDAS_POSTPROCESSING_OPS validates by name."""
+    schema = ChartDataPostProcessingOperationSchema()
+
+    assert schema.load({"operation": "_custom_op"})["operation"] == "_custom_op"
+
+
+@pytest.mark.parametrize("aggregate", ["MEDIAN", "STDDEV_SAMP", "VAR_SAMP"])
+def test_chart_data_adhoc_metric_schema_accepts_extended_aggregates(
+    app_context: None, aggregate: str
+) -> None:
+    """
+    The chart-data REST schema's ``aggregate`` enum must stay in sync with
+    ``EXTENDED_METRIC_AGGREGATES``, otherwise Swagger/generated clients
+    reject requests using these compiler-supported aggregates.
+    """
+    schema = ChartDataAdhocMetricSchema()
+    result = schema.load(
+        {
+            "expressionType": "SIMPLE",
+            "aggregate": aggregate,
+            "column": {"column_name": "value"},
+        }
+    )
+    assert result["aggregate"] == aggregate

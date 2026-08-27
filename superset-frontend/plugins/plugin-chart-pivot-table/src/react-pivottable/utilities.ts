@@ -748,20 +748,91 @@ const baseAggregatorTemplates = {
             type
           ],
           inner: wrapped(...Array.from(x || []))(data, rowKey, colKey),
+          // The metric this cell belongs to, and which axis carries it (see the
+          // "Metric" pseudo-dimension in PivotTableChart). With multiple
+          // metrics, the axis holding the metric is never actually empty, so
+          // collapsing it to `[]` (as the `selector` above does) would route
+          // every metric's lookup to the same shared total slot -- see
+          // `processRecord`'s "Metric-collapse totals". Keeping the metric's
+          // own key segment instead routes the lookup to the per-metric total
+          // that's already correctly split out. Updated on every push (not
+          // just the first) to stay in sync with `inner`, which likewise
+          // reflects the last-pushed record for a shared Total/corner slot --
+          // otherwise the numerator (last metric) and the denominator lookup
+          // (first metric's axis) could point at two different metrics.
+          metricAxis: undefined as
+            | { axis: 'row' | 'col'; value: string }
+            | null
+            | undefined,
           push(record: PivotRecord) {
+            const metricDim = record.__metricKey as unknown as
+              | string
+              | undefined;
+            const cols = data.props.cols as string[] | undefined;
+            const rows = data.props.rows as string[] | undefined;
+            if (metricDim && cols?.includes(metricDim)) {
+              this.metricAxis = {
+                axis: 'col',
+                value: String(record[metricDim]),
+              };
+            } else if (metricDim && rows?.includes(metricDim)) {
+              this.metricAxis = {
+                axis: 'row',
+                value: String(record[metricDim]),
+              };
+            } else {
+              this.metricAxis = null;
+            }
             this.inner.push(record);
           },
           format: fmtNonString(formatter),
           value() {
-            const acc = data
-              .getAggregator(...Array.from(this.selector || []))
-              .inner.value();
+            // `buildGroupbyCombinations` requests the denominator's rollup
+            // level whenever a percent `showValuesAs` is selected, but fall
+            // back to `null` (rendered blank) instead of throwing if it is
+            // ever missing -- e.g. a denominator aggregator with no matching
+            // rows in the response.
+            let [selRow, selCol] = (this.selector || [[], []]) as [
+              string[],
+              string[],
+            ];
+            if (this.metricAxis) {
+              if (this.metricAxis.axis === 'col' && selCol.length === 0) {
+                selCol = [this.metricAxis.value];
+              } else if (
+                this.metricAxis.axis === 'row' &&
+                selRow.length === 0
+              ) {
+                selRow = [this.metricAxis.value];
+              }
+            }
+            const denominatorAggregator = data.getAggregator(selRow, selCol);
+            if (!denominatorAggregator.inner) {
+              return null;
+            }
+            const acc = denominatorAggregator.inner.value();
 
             if (typeof acc === 'string') {
               return acc;
             }
+            // A `null` denominator (e.g. a DB-computed total that is itself
+            // null) coerces to `0` under `/`, producing `Infinity`/`NaN`
+            // instead of the blank the null/missing-denominator contract
+            // above already establishes.
+            if (acc === null) {
+              return null;
+            }
 
-            return this.inner.value() / acc;
+            // A DB-computed rollup value can legitimately be a real SQL NULL
+            // (e.g. AVG over an empty group). `null / acc` coerces to `0` in
+            // JS, which would render a measured "0.0%" for a value that
+            // should stay blank, same as it does in "Actual values" mode.
+            const numerator = this.inner.value();
+            if (numerator === null) {
+              return null;
+            }
+
+            return numerator / acc;
           },
           getCurrencies() {
             return this.inner.getCurrencies ? this.inner.getCurrencies() : [];
@@ -813,6 +884,16 @@ const aggregatorTemplates = {
   ...baseAggregatorTemplates,
   ...extendedAggregatorTemplates,
 };
+
+// Maps the pivot's "Show values as" control (see ../types.ts's
+// ShowValuesAsEnum) to fractionOf's `type` parameter. `undefined`/'actual'
+// means "no wrapping" and isn't listed here.
+const FRACTION_TYPE_BY_SHOW_VALUES_AS: Record<string, 'total' | 'row' | 'col'> =
+  {
+    percent_total: 'total',
+    percent_row: 'row',
+    percent_col: 'col',
+  };
 
 // default aggregators & renderers use US naming and number formatting
 const aggregators = (tpl => ({
@@ -938,7 +1019,8 @@ class PivotData {
   props: Record<string, unknown>;
   aggregator: (...args: unknown[]) => Aggregator;
   formattedAggregators:
-    Record<string, Record<string, (...args: unknown[]) => Aggregator>> | false;
+    | Record<string, Record<string, (...args: unknown[]) => Aggregator>>
+    | false;
   tree: Record<string, Record<string, Aggregator>>;
   rowKeys: string[][];
   colKeys: string[][];
@@ -969,32 +1051,53 @@ class PivotData {
     );
 
     const vals = this.props.vals as string[];
+    const fractionType =
+      FRACTION_TYPE_BY_SHOW_VALUES_AS[this.props.showValuesAs as string];
     // Values come pre-aggregated from the database (one query per rollup level),
     // so the pivot stores them verbatim via `cellValue` instead of aggregating.
-    this.aggregator = cellValue(this.props.defaultFormatter as Formatter)(vals);
-    this.formattedAggregators = this.props.customFormatters
-      ? Object.entries(
-          this.props.customFormatters as Record<
-            string,
-            Record<string, unknown>
-          >,
-        ).reduce(
-          (
-            acc: Record<
+    // When "Show values as" a fraction is active, wrap that passthrough with
+    // the same fractionOf template the pre-SIP-216 "Sum as Fraction of ..."
+    // aggregators used: it divides a cell's own value by the value at the
+    // requested scope (row/column/grand total), each of which is itself one
+    // of these uniformly-wrapped aggregators, so `fractionOf`'s cross-lookup
+    // (`data.getAggregator(...).inner.value()`) resolves correctly no matter
+    // which scope it's called for -- including the totals dividing by
+    // themselves to read 100%. This needs no new query and no per-metric
+    // aggregator-override control (that control is gone, see SIP.md); it's a
+    // pure display transform over values that are already DB-correct.
+    this.aggregator = fractionType
+      ? aggregatorTemplates.fractionOf(
+          cellValue(),
+          fractionType,
+          usFmtPct,
+        )(vals)
+      : cellValue(this.props.defaultFormatter as Formatter)(vals);
+    // Percentage display always uses a fixed percent format -- a per-metric
+    // custom formatter (currency, decimals, etc.) doesn't apply to a ratio.
+    this.formattedAggregators =
+      !fractionType && this.props.customFormatters
+        ? Object.entries(
+            this.props.customFormatters as Record<
               string,
-              Record<string, (...args: unknown[]) => Aggregator>
+              Record<string, unknown>
             >,
-            [key, columnFormatter],
-          ) => {
-            acc[key] = {};
-            Object.entries(columnFormatter).forEach(([column, formatter]) => {
-              acc[key][column] = cellValue(formatter as Formatter)(vals);
-            });
-            return acc;
-          },
-          {},
-        )
-      : false;
+          ).reduce(
+            (
+              acc: Record<
+                string,
+                Record<string, (...args: unknown[]) => Aggregator>
+              >,
+              [key, columnFormatter],
+            ) => {
+              acc[key] = {};
+              Object.entries(columnFormatter).forEach(([column, formatter]) => {
+                acc[key][column] = cellValue(formatter as Formatter)(vals);
+              });
+              return acc;
+            },
+            {},
+          )
+        : false;
     this.tree = {};
     this.rowKeys = [];
     this.colKeys = [];

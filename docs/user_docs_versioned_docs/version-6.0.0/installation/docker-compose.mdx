@@ -5,12 +5,13 @@ sidebar_position: 5
 version: 1
 ---
 
-import useBaseUrl from "@docusaurus/useBaseUrl";
+import useBaseUrl from '@docusaurus/useBaseUrl';
 
 # Using Docker Compose
 
-<img src={useBaseUrl("/img/docker-compose.webp" )} width="150" />
-<br /><br />
+<img src={useBaseUrl('/img/docker-compose.webp')} width="150" />
+<br />
+<br />
 
 :::caution
 Since `docker compose` is primarily designed to run a set of containers on **a single host**
@@ -29,23 +30,23 @@ way to launch a fully functioning **development environment** quickly.
 Note that there are 4 major ways we support to run `docker compose`:
 
 1. **docker-compose.yml:** for interactive development, where we mount your local folder with the
-  frontend/backend files that you can edit and experience the changes you
-  make in the app in real time
+   frontend/backend files that you can edit and experience the changes you
+   make in the app in real time
 1. **docker-compose-light.yml:** a lightweight configuration with minimal services (database,
-  Superset app, and frontend dev server) for development. Uses in-memory caching instead of Redis
-  and is designed for running multiple instances simultaneously
+   Superset app, and frontend dev server) for development. Uses in-memory caching instead of Redis
+   and is designed for running multiple instances simultaneously
 1. **docker-compose-non-dev.yml** where we just build a more immutable image based on the
-  local branch and get all the required images running. Changes in the local branch
-  at the time you fire this up will be reflected, but changes to the code
-  while `up` won't be reflected in the app
+   local branch and get all the required images running. Changes in the local branch
+   at the time you fire this up will be reflected, but changes to the code
+   while `up` won't be reflected in the app
 1. **docker-compose-image-tag.yml** where we fetch an image from docker-hub say for the
-  `5.0.0` release for instance, and fire it up so you can try it. Here what's in
-  the local branch has no effects on what's running, we just fetch and run
-  pre-built images from docker-hub. For `docker compose` to work along with the
-  Postgres image it boots up, you'll want to point to a `-dev`-suffixed TAG, as in
-  `export TAG=5.0.0-dev` or `export TAG=4.1.2-dev`, with `latest-dev` being the default.
-  The `dev` builds include the `psycopg2-binary` required to connect
-  to the Postgres database launched as part of the `docker compose` builds.
+   `5.0.0` release for instance, and fire it up so you can try it. Here what's in
+   the local branch has no effects on what's running, we just fetch and run
+   pre-built images from docker-hub. For `docker compose` to work along with the
+   Postgres image it boots up, you'll want to point to a `-dev`-suffixed TAG, as in
+   `export TAG=5.0.0-dev` or `export TAG=4.1.2-dev`, with `latest-dev` being the default.
+   The `dev` builds include the `psycopg2-binary` required to connect
+   to the Postgres database launched as part of the `docker compose` builds.
 
 More on these approaches after setting up the requirements for either.
 
@@ -92,7 +93,7 @@ like to try out Superset without making any code changes follow the steps docume
 :::tip
 By default, we mount the local superset-frontend folder here and run `npm install` as well
 as `npm run dev` which triggers webpack to compile/bundle the frontend code. Depending
-on your local setup, especially if you have less than 16GB of memory,  it may be very slow to
+on your local setup, especially if you have less than 16GB of memory, it may be very slow to
 perform those operations. In this case, we recommend you set the env var
 `BUILD_SUPERSET_FRONTEND_IN_DOCKER` to `false`, and to run this locally instead in a terminal.
 Simply trigger `npm i && npm run dev`, this should be MUCH faster.
@@ -121,6 +122,7 @@ NODE_PORT=9003 docker compose -p superset-3 -f docker-compose-light.yml up
 ```
 
 This configuration includes:
+
 - PostgreSQL database (internal network only)
 - Superset application server
 - Frontend development server with webpack hot reloading
@@ -165,7 +167,7 @@ looking to fire up.
 
 :::caution
 All of the content belonging to a Superset instance - charts, dashboards, users, etc. - is stored in
-its metadata database. In production, this database should be backed up.  The default installation
+its metadata database. In production, this database should be backed up. The default installation
 with docker compose will store that data in a PostgreSQL database contained in a Docker
 [volume](https://docs.docker.com/storage/volumes/), which is not backed up.
 
@@ -174,7 +176,7 @@ Again, **THE DOCKER-COMPOSE INSTALLATION IS NOT PRODUCTION-READY OUT OF THE BOX.
 :::
 
 You should see a stream of logging output from the containers being launched on your machine. Once
-this output slows, you should have a running instance of Superset on your local machine!  To avoid
+this output slows, you should have a running instance of Superset on your local machine! To avoid
 the wall of text on future runs, add the `-d` option to the end of the `docker compose up` command.
 
 ### Configuring Further
@@ -258,24 +260,24 @@ Superset (which is running in its docker container). Other databases may have sl
 configurations but gist would be same and boils down to 2 steps -
 
 1. **(Mac users may skip this step)** Configuring the local postgresql/database instance to accept
-public incoming connections. By default, postgresql only allows incoming connections from
-`localhost` and under Docker, unless you use `--network=host`, `localhost` will refer to different
-endpoints on the host machine and in a docker container respectively. Allowing postgresql to accept
-connections from the Docker involves making one-line changes to the files `postgresql.conf` and
-`pg_hba.conf`; you can find helpful links tailored to your OS / PG version on the web easily for
-this task. For Docker it suffices to only whitelist IPs `172.0.0.0/8` instead of `*`, but in any
-case you are _warned_ that doing this in a production database _may_ have disastrous consequences as
-you are opening your database to the public internet.
+   public incoming connections. By default, postgresql only allows incoming connections from
+   `localhost` and under Docker, unless you use `--network=host`, `localhost` will refer to different
+   endpoints on the host machine and in a docker container respectively. Allowing postgresql to accept
+   connections from the Docker involves making one-line changes to the files `postgresql.conf` and
+   `pg_hba.conf`; you can find helpful links tailored to your OS / PG version on the web easily for
+   this task. For Docker it suffices to only whitelist IPs `172.0.0.0/8` instead of `*`, but in any
+   case you are _warned_ that doing this in a production database _may_ have disastrous consequences as
+   you are opening your database to the public internet.
 1. Instead of `localhost`, try using `host.docker.internal` (Mac users, Ubuntu) or `172.18.0.1`
-(Linux users) as the hostname when attempting to connect to the database. This is a Docker internal
-detail -- what is happening is that, in Mac systems, Docker Desktop creates a dns entry for the
-hostname `host.docker.internal` which resolves to the correct address for the host machine, whereas
-in Linux this is not the case (at least by default). If neither of these 2 hostnames work then you
-may want to find the exact hostname you want to use, for that you can do `ifconfig` or
-`ip addr show` and look at the IP address of `docker0` interface that must have been created by
-Docker for you. Alternately if you don't even see the `docker0` interface try (if needed with sudo)
-`docker network inspect bridge` and see if there is an entry for `"Gateway"` and note the IP
-address.
+   (Linux users) as the hostname when attempting to connect to the database. This is a Docker internal
+   detail -- what is happening is that, in Mac systems, Docker Desktop creates a dns entry for the
+   hostname `host.docker.internal` which resolves to the correct address for the host machine, whereas
+   in Linux this is not the case (at least by default). If neither of these 2 hostnames work then you
+   may want to find the exact hostname you want to use, for that you can do `ifconfig` or
+   `ip addr show` and look at the IP address of `docker0` interface that must have been created by
+   Docker for you. Alternately if you don't even see the `docker0` interface try (if needed with sudo)
+   `docker network inspect bridge` and see if there is an entry for `"Gateway"` and note the IP
+   address.
 
 ## 4. To build or not to build
 

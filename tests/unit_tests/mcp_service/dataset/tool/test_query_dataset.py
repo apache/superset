@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import importlib
 from collections.abc import Generator
+from types import SimpleNamespace
 from typing import Any
 from unittest.mock import MagicMock, Mock, patch
 
@@ -179,6 +180,73 @@ async def test_query_dataset_success(mcp_server: FastMCP) -> None:
     assert data["row_count"] == 2
     assert len(data["data"]) == 2
     assert data["data"][0]["category"] == "Electronics"
+
+
+@pytest.mark.asyncio
+async def test_query_dataset_exposes_filters_to_jinja_macros(
+    mcp_server: FastMCP,
+) -> None:
+    """The MCP query path populates the form data read by dataset Jinja macros."""
+    from superset.common.query_object import QueryObject
+
+    dataset = _make_dataset()
+    query = QueryObject(
+        filters=[{"col": "category", "op": "IN", "val": ["Electronics"]}],
+        columns=["category"],
+        metrics=["count"],
+    )
+    query_context = SimpleNamespace(queries=[query], form_data={})
+    observed: dict[str, Any] = {}
+
+    def run_query() -> dict[str, Any]:
+        from superset.jinja_context import ExtraCache, get_dataset_id_from_context
+
+        extra_cache = ExtraCache()
+        observed["filter_values"] = extra_cache.filter_values("category")
+        observed["get_filters"] = extra_cache.get_filters("category")
+        # metric() without an explicit dataset ID uses this same context lookup.
+        observed["metric_dataset_id"] = get_dataset_id_from_context("count")
+        return _mock_command_result()
+
+    with (
+        patch.object(query_dataset_module, "resolve_dataset", return_value=dataset),
+        patch(
+            "superset.common.query_context_factory.QueryContextFactory.create",
+            return_value=query_context,
+        ),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand.validate",
+        ),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand.run",
+            side_effect=run_query,
+        ),
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "query_dataset",
+                {
+                    "request": {
+                        "dataset_id": 1,
+                        "metrics": ["count"],
+                        "columns": ["category"],
+                        "filters": [
+                            {
+                                "col": "category",
+                                "op": "IN",
+                                "val": ["Electronics"],
+                            }
+                        ],
+                    }
+                },
+            )
+
+    assert not result.is_error
+    assert observed["filter_values"] == ["Electronics"]
+    assert observed["get_filters"] == [
+        {"col": "category", "op": "IN", "val": ["Electronics"]}
+    ]
+    assert observed["metric_dataset_id"] == 1
 
 
 @pytest.mark.asyncio
@@ -950,10 +1018,12 @@ class TestQueryDatasetBracketShorthandNormalization:
     def test_hour_bracket_normalized(self) -> None:
         """'[hour]' maps to an explicit DATEADD/DATETIME expression.
 
-        'Last hour' is deliberately not used: get_since_until() resolves its
-        since-expression against 'now' but its default until-expression
+        A bare 'Last hour' can't be used as-is: get_since_until() resolves
+        its since-expression against 'now' but its default until-expression
         against 'today' (midnight), so since ends up after until and raises
-        a "From date cannot be larger than to date" error.
+        a "From date cannot be larger than to date" error. The validator
+        applies the same rewrite to both spellings -- see
+        test_bare_sub_day_last_normalized below.
         """
         from superset.mcp_service.dataset.schemas import QueryDatasetRequest
 
@@ -981,6 +1051,34 @@ class TestQueryDatasetBracketShorthandNormalization:
         assert (
             req.time_range == "DATEADD(DATETIME('now'), -1, SECOND) : DATETIME('now')"
         )
+
+    @pytest.mark.parametrize(
+        "value,expected",
+        [
+            ("Last hour", "DATEADD(DATETIME('now'), -1, HOUR) : DATETIME('now')"),
+            (
+                "Last 15 minutes",
+                "DATEADD(DATETIME('now'), -15, MINUTE) : DATETIME('now')",
+            ),
+            (
+                "Last 30 seconds",
+                "DATEADD(DATETIME('now'), -30, SECOND) : DATETIME('now')",
+            ),
+        ],
+    )
+    def test_bare_sub_day_last_normalized(self, value: str, expected: str) -> None:
+        """Sub-day 'Last ...' gets the same rewrite as its bracket form.
+
+        Without it these reach get_since_until() as-is and raise "From date
+        cannot be larger than to date" from deep in the query path, rather
+        than being resolved to the range the caller asked for.
+        """
+        from superset.mcp_service.dataset.schemas import QueryDatasetRequest
+
+        req = QueryDatasetRequest.model_validate(
+            {"dataset_id": 1, "metrics": ["count"], "time_range": value}
+        )
+        assert req.time_range == expected
 
     def test_bracket_uppercase_normalized(self) -> None:
         from superset.mcp_service.dataset.schemas import QueryDatasetRequest
@@ -1068,6 +1166,104 @@ class TestQueryDatasetBracketShorthandNormalization:
             {"dataset_id": 1, "metrics": ["count"], "time_range": None}
         )
         assert req.time_range is None
+
+
+class TestQueryDatasetTimeRangeValidation:
+    """QueryDatasetRequest.time_range rejects values get_since_until()
+    would otherwise silently resolve to an unbounded, full-table range.
+
+    See SC-114824: shared validator in
+    superset.mcp_service.common.time_range_validation. Complements
+    TestQueryDatasetBracketShorthandNormalization above, which only
+    covers the eight recognized bracket tokens -- this class covers the
+    open class of previously-silent, non-bracket values the shared
+    validator now rejects.
+    """
+
+    @pytest.mark.parametrize(
+        "bad_value",
+        ["banana", "this week", "this month", "last week", "yesterday", "[decade]"],
+    )
+    def test_previously_silent_values_now_raise(self, bad_value: str) -> None:
+        """These values used to silently return an unfiltered, full-table
+        result (empty warnings, success: true). They must now raise a
+        ValidationError instead."""
+        from pydantic import ValidationError
+
+        from superset.mcp_service.dataset.schemas import QueryDatasetRequest
+
+        with pytest.raises(ValidationError, match="Unrecognized time_range"):
+            QueryDatasetRequest.model_validate(
+                {"dataset_id": 1, "metrics": ["count"], "time_range": bad_value}
+            )
+
+
+class TestQueryDatasetTemporalRangeFilterValidation:
+    """A TEMPORAL_RANGE spelled out longhand in `filters` gets the same
+    validation as the dedicated `time_range` field.
+
+    query_dataset forwards request.filters into the query verbatim, and
+    TEMPORAL_RANGE values resolve through get_since_until() just like
+    time_range does -- so validating only time_range would leave the
+    identical silent full-table match reachable through this field.
+    """
+
+    @staticmethod
+    def _request(val: Any) -> dict[str, Any]:
+        return {
+            "dataset_id": 1,
+            "metrics": ["count"],
+            "filters": [{"col": "ts", "op": "TEMPORAL_RANGE", "val": val}],
+        }
+
+    @pytest.mark.parametrize(
+        "bad_value",
+        ["banana", "this month", "last week", "[decade]", "Last nonsense"],
+    )
+    def test_malformed_temporal_range_filter_rejected(self, bad_value: str) -> None:
+        from pydantic import ValidationError
+
+        from superset.mcp_service.dataset.schemas import QueryDatasetRequest
+
+        with pytest.raises(ValidationError, match="Unrecognized time_range"):
+            QueryDatasetRequest.model_validate(self._request(bad_value))
+
+    def test_temporal_range_filter_normalizes_like_time_range(self) -> None:
+        from superset.mcp_service.dataset.schemas import QueryDatasetRequest
+
+        req = QueryDatasetRequest.model_validate(self._request("Last hour"))
+        assert req.filters[0].val == (
+            "DATEADD(DATETIME('now'), -1, HOUR) : DATETIME('now')"
+        )
+
+    @pytest.mark.parametrize("good_value", ["Last 7 days", "2024-01-01 : 2024-12-31"])
+    def test_valid_temporal_range_filter_unchanged(self, good_value: str) -> None:
+        from superset.mcp_service.dataset.schemas import QueryDatasetRequest
+
+        req = QueryDatasetRequest.model_validate(self._request(good_value))
+        assert req.filters[0].val == good_value
+
+    def test_non_temporal_operator_value_untouched(self) -> None:
+        """Only TEMPORAL_RANGE goes through the time grammar -- 'banana' is
+        a perfectly good value to compare a text column against."""
+        from superset.mcp_service.dataset.schemas import QueryDatasetRequest
+
+        req = QueryDatasetRequest.model_validate(
+            {
+                "dataset_id": 1,
+                "metrics": ["count"],
+                "filters": [{"col": "fruit", "op": "==", "val": "banana"}],
+            }
+        )
+        assert req.filters[0].val == "banana"
+
+    def test_non_string_temporal_value_left_to_downstream(self) -> None:
+        """A non-string val isn't a time_range expression at all; the time
+        grammar has nothing to say about it."""
+        from superset.mcp_service.dataset.schemas import QueryDatasetRequest
+
+        req = QueryDatasetRequest.model_validate(self._request(None))
+        assert req.filters[0].val is None
 
 
 @pytest.mark.asyncio

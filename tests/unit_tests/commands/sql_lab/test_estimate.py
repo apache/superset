@@ -57,13 +57,13 @@ def _security_exception() -> SupersetSecurityException:
 
 
 @patch("superset.commands.sql_lab.estimate.security_manager", new_callable=MagicMock)
-@patch("superset.commands.sql_lab.estimate.db")
+@patch("superset.commands.sql_lab.estimate.DatabaseDAO")
 def test_validate_raises_when_database_not_found(
-    mock_db: MagicMock,
+    mock_dao: MagicMock,
     mock_security_manager: MagicMock,
 ) -> None:
     """404 is raised before the access check when the database does not exist."""
-    mock_db.session.query.return_value.get.return_value = None
+    mock_dao.find_by_id.return_value = None
 
     command = QueryEstimationCommand(_make_params())
     with pytest.raises(SupersetErrorException) as exc_info:
@@ -79,23 +79,21 @@ def test_validate_raises_when_database_not_found(
 
 
 @patch("superset.commands.sql_lab.estimate.security_manager", new_callable=MagicMock)
-@patch("superset.commands.sql_lab.estimate.db")
+@patch("superset.commands.sql_lab.estimate.DatabaseDAO")
 def test_validate_raises_when_database_access_denied(
-    mock_db: MagicMock,
+    mock_dao: MagicMock,
     mock_security_manager: MagicMock,
 ) -> None:
     """SupersetSecurityException propagates when raise_for_access denies access."""
     mock_database = MagicMock()
-    mock_db.session.query.return_value.get.return_value = mock_database
+    mock_dao.find_by_id.return_value = mock_database
     mock_security_manager.raise_for_access.side_effect = _security_exception()
 
     command = QueryEstimationCommand(_make_params())
     with pytest.raises(SupersetSecurityException):
         command.validate()
 
-    mock_security_manager.raise_for_access.assert_called_once_with(
-        database=mock_database
-    )
+    mock_security_manager.raise_for_access.assert_called_once()
 
 
 # ---------------------------------------------------------------------------
@@ -104,22 +102,21 @@ def test_validate_raises_when_database_access_denied(
 
 
 @patch("superset.commands.sql_lab.estimate.security_manager", new_callable=MagicMock)
-@patch("superset.commands.sql_lab.estimate.db")
+@patch("superset.commands.sql_lab.estimate.DatabaseDAO")
 def test_validate_succeeds_for_authorised_user(
-    mock_db: MagicMock,
+    mock_dao: MagicMock,
     mock_security_manager: MagicMock,
 ) -> None:
     """validate() completes without error when access is granted."""
     mock_database = MagicMock()
-    mock_db.session.query.return_value.get.return_value = mock_database
+    mock_dao.find_by_id.return_value = mock_database
     mock_security_manager.raise_for_access.return_value = None
 
     command = QueryEstimationCommand(_make_params())
     command.validate()  # must not raise
 
-    mock_security_manager.raise_for_access.assert_called_once_with(
-        database=mock_database
-    )
+    call_kwargs = mock_security_manager.raise_for_access.call_args.kwargs
+    assert call_kwargs["database"] is mock_database
 
 
 # ---------------------------------------------------------------------------
@@ -128,15 +125,15 @@ def test_validate_succeeds_for_authorised_user(
 
 
 @patch("superset.commands.sql_lab.estimate.security_manager", new_callable=MagicMock)
-@patch("superset.commands.sql_lab.estimate.db")
+@patch("superset.commands.sql_lab.estimate.DatabaseDAO")
 def test_raise_for_access_called_with_correct_database(
-    mock_db: MagicMock,
+    mock_dao: MagicMock,
     mock_security_manager: MagicMock,
 ) -> None:
     """The database object fetched from the session is passed to raise_for_access."""
     mock_database = MagicMock()
     mock_database.id = 42
-    mock_db.session.query.return_value.get.return_value = mock_database
+    mock_dao.find_by_id.return_value = mock_database
     mock_security_manager.raise_for_access.return_value = None
 
     command = QueryEstimationCommand(_make_params(database_id=42))
@@ -144,6 +141,39 @@ def test_raise_for_access_called_with_correct_database(
 
     call_kwargs = mock_security_manager.raise_for_access.call_args.kwargs
     assert call_kwargs["database"] is mock_database
+
+
+# ---------------------------------------------------------------------------
+# Regression: the SQL to be estimated must be authorized, not just the handle
+# ---------------------------------------------------------------------------
+
+
+@patch("superset.commands.sql_lab.estimate.security_manager", new_callable=MagicMock)
+@patch("superset.commands.sql_lab.estimate.DatabaseDAO")
+def test_validate_authorizes_the_sql_to_be_estimated(
+    mock_dao: MagicMock,
+    mock_security_manager: MagicMock,
+) -> None:
+    """
+    ``raise_for_access`` must receive the SQL so table-level authorization
+    runs; a bare ``database=`` argument matches no branch and checks nothing.
+    """
+    mock_database = MagicMock()
+    mock_dao.find_by_id.return_value = mock_database
+
+    command = QueryEstimationCommand(
+        _make_params(sql="SELECT * FROM secret_table", schema="main")
+    )
+    command.validate()
+
+    mock_security_manager.raise_for_access.assert_called_once_with(
+        database=mock_database,
+        sql="SELECT * FROM secret_table",
+        catalog=None,
+        schema="main",
+        template_params={},
+        force_dataset_match=True,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -377,3 +407,41 @@ def test_apply_sql_security_propagates_engine_schema_gate(
 
     # RLS injection must not happen once the schema gate has rejected the query.
     mock_apply_rls.assert_not_called()
+
+
+# ---------------------------------------------------------------------------
+# process_template() error handling: raw jinja2 errors must not leak from run()
+# ---------------------------------------------------------------------------
+
+
+@patch("superset.commands.sql_lab.estimate.get_template_processor")
+@patch("superset.commands.sql_lab.estimate.security_manager", new_callable=MagicMock)
+@patch("superset.commands.sql_lab.estimate.DatabaseDAO")
+def test_run_wraps_raw_jinja_undefined_error(
+    mock_dao: MagicMock,
+    mock_security_manager: MagicMock,
+    mock_get_template_processor: MagicMock,
+) -> None:
+    """A raw jinja2 ``UndefinedError`` from ``process_template()`` (the
+    bare-raise fallback in ``BaseTemplateProcessor.process_template`` for
+    undefined attribute/subscript access, e.g. ``{{ foo.bar }}``) must not
+    leak past ``run()`` -- it should surface as a typed
+    ``SupersetErrorException``, matching the ``ExecuteSqlCommand`` sibling's
+    broad-catch pattern in ``commands/sql_lab/execute.py``."""
+    from jinja2.exceptions import UndefinedError
+
+    mock_database = MagicMock()
+    mock_dao.find_by_id.return_value = mock_database
+    mock_security_manager.raise_for_access.return_value = None
+    mock_get_template_processor.return_value.process_template.side_effect = (
+        UndefinedError("'foo' is undefined")
+    )
+
+    command = QueryEstimationCommand(
+        _make_params(sql="SELECT {{ foo.bar }}", template_params={"x": 1})
+    )
+    with pytest.raises(SupersetErrorException) as exc_info:
+        command.run()
+
+    assert exc_info.value.status == 400
+    assert exc_info.value.error.error_type == SupersetErrorType.GENERIC_COMMAND_ERROR

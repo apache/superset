@@ -261,7 +261,7 @@ class ValidationPipeline:
 
             # Create a new request with the normalized config
             request_dict = request.model_dump()
-            request_dict["config"] = normalized_config.model_dump()
+            request_dict["config"] = normalized_config.model_dump(exclude_unset=True)
 
             return GenerateChartRequest.model_validate(request_dict)
 

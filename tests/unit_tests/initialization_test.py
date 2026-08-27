@@ -25,6 +25,7 @@ from werkzeug.wrappers import Response
 
 from superset.app import AppRootMiddleware, create_app, SupersetApp
 from superset.commands.database.exceptions import DatabaseInvalidError
+from superset.config import CeleryConfig
 from superset.initialization import SupersetAppInitializer
 from superset.middleware.legacy_prefix_redirect import LegacyPrefixRedirectMiddleware
 
@@ -120,6 +121,25 @@ class TestSupersetApp:
 
 
 class TestSupersetAppInitializer:
+    @patch("superset.initialization.os.makedirs")
+    @patch("superset.initialization.wtforms_json.init")
+    @patch("superset.initialization.validate_report_execution_config")
+    def test_pre_init_validates_report_budget_at_boot(
+        self,
+        validate_report_config,
+        wtforms_init,
+        makedirs,
+    ) -> None:
+        mock_app = MagicMock()
+        mock_app.config = {"DATA_DIR": "/var/lib/superset"}
+        app_initializer = SupersetAppInitializer(mock_app)
+
+        app_initializer.pre_init()
+
+        validate_report_config.assert_called_once_with(mock_app.config)
+        wtforms_init.assert_called_once_with()
+        makedirs.assert_called_once_with("/var/lib/superset", exist_ok=True)
+
     @patch("superset.initialization.logger")
     def test_init_app_in_ctx_calls_sync_config_to_db(self, mock_logger):
         """Test that initialization calls app.sync_config_to_db()."""
@@ -225,6 +245,51 @@ class TestSupersetAppInitializer:
                 output = mock_print.call_args[0][0]
                 assert "secretpass" not in output
                 assert "postgresql://user:***@localhost:5432/db" in output
+
+    @patch("superset.initialization.logger")
+    def test_configure_logging_installs_pkg_resources_filter_before_configurator(
+        self, mock_logger
+    ) -> None:
+        """The pkg_resources warning filter must be installed before
+        LOGGING_CONFIGURATOR.configure_logging() dispatches, so a deployment's
+        custom configurator (which may skip DefaultLoggingConfigurator's own
+        filter) still benefits from it."""
+        import re
+        import warnings
+
+        def has_pkg_resources_filter() -> bool:
+            return any(
+                f[0] == "ignore"
+                and isinstance(f[1], re.Pattern)
+                and f[1].pattern == r"pkg_resources is deprecated as an API"
+                and f[2] is UserWarning
+                and isinstance(f[3], re.Pattern)
+                and f[3].pattern == r"sqlalchemy_redshift(?:\..*)?"
+                for f in warnings.filters
+            )
+
+        seen_during_dispatch = []
+
+        class RecordingConfigurator:
+            def configure_logging(self, app_config, debug_mode):
+                seen_during_dispatch.append(has_pkg_resources_filter())
+
+        mock_app = MagicMock()
+        mock_app.config = {"LOGGING_CONFIGURATOR": RecordingConfigurator()}
+        mock_app.debug = False
+        app_initializer = SupersetAppInitializer(mock_app)
+
+        with warnings.catch_warnings():
+            # Isolate from filters registered by other tests/import side effects.
+            warnings.resetwarnings()
+            assert not has_pkg_resources_filter()
+
+            app_initializer.configure_logging()
+
+            assert seen_during_dispatch == [True], (
+                "pkg_resources filter must already be installed by the time "
+                "LOGGING_CONFIGURATOR.configure_logging() runs"
+            )
 
     def test_check_and_warn_database_connection_invalid_uri(self) -> None:
         """Test that invalid URIs are handled safely without crashing."""
@@ -534,8 +599,11 @@ class TestRetentionBeatWarning:
 
     def _initializer(self, config: dict[str, Any]) -> SupersetAppInitializer:
         """Build a ``SupersetAppInitializer`` against a minimal mock app
-        whose only meaningful attribute is the config dict;
-        ``_warn_if_retention_beat_missing`` only reads from ``self.config``."""
+        whose only meaningful attribute is the config dict.
+        ``_warn_if_retention_beat_missing`` reads ``CELERY_CONFIG`` and the
+        static feature-flag dictionaries from this config."""
+        config.setdefault("DEFAULT_FEATURE_FLAGS", {"SOFT_DELETE": False})
+        config.setdefault("FEATURE_FLAGS", {})
         app = MagicMock()
         app.config = config
         return SupersetAppInitializer(app)
@@ -550,6 +618,10 @@ class TestRetentionBeatWarning:
         rows but the prune never fires."""
 
         class _PartialCeleryConfig:
+            imports: tuple[str, ...] = (
+                "superset.tasks.version_history_retention",
+                "superset.tasks.deletion_retention",
+            )
             beat_schedule: dict[str, dict[str, str]] = {
                 "reports.scheduler": {"task": "reports.scheduler"}
             }
@@ -573,6 +645,10 @@ class TestRetentionBeatWarning:
         entry) is in play, no warning fires. The happy path."""
 
         class _CompleteCeleryConfig:
+            imports: tuple[str, ...] = (
+                "superset.tasks.version_history_retention",
+                "superset.tasks.deletion_retention",
+            )
             beat_schedule: dict[str, dict[str, str]] = {
                 "version_history.prune_old_versions": {
                     "task": "version_history.prune_old_versions",
@@ -593,6 +669,10 @@ class TestRetentionBeatWarning:
         entry's ``task``, not the schedule key."""
 
         class _RenamedKeyCeleryConfig:
+            imports: tuple[str, ...] = (
+                "superset.tasks.version_history_retention",
+                "superset.tasks.deletion_retention",
+            )
             beat_schedule: dict[str, dict[str, str]] = {
                 "prune_versions": {
                     "task": "version_history.prune_old_versions",
@@ -627,6 +707,10 @@ class TestRetentionBeatWarning:
             {
                 "CELERY_CONFIG": {
                     "broker_url": "redis://localhost",
+                    "imports": (
+                        "superset.tasks.version_history_retention",
+                        "superset.tasks.deletion_retention",
+                    ),
                     "beat_schedule": {
                         "version_history.prune_old_versions": {
                             "task": "version_history.prune_old_versions",
@@ -648,6 +732,10 @@ class TestRetentionBeatWarning:
             {
                 "CELERY_CONFIG": {
                     "broker_url": "redis://localhost",
+                    "imports": (
+                        "superset.tasks.version_history_retention",
+                        "superset.tasks.deletion_retention",
+                    ),
                     "beat_schedule": {
                         "reports.scheduler": {"task": "reports.scheduler"},
                     },
@@ -675,6 +763,258 @@ class TestRetentionBeatWarning:
         """
         initializer = self._initializer(
             {"CELERY_CONFIG": "custom_celery_config:CeleryConfig"}
+        )
+        initializer._warn_if_retention_beat_missing()
+
+        mock_logger.warning.assert_not_called()
+
+    @patch("superset.initialization.logger")
+    def test_warn_when_soft_delete_on_and_purge_entry_missing(
+        self, mock_logger: MagicMock
+    ) -> None:
+        """With ``SOFT_DELETE`` on and the beat schedule carrying the
+        version-history entry but not the purge entry, a WARNING naming
+        ``deletion_retention.purge_soft_deleted`` fires — otherwise a
+        hand-rolled ``CeleryConfig`` silently accumulates archived
+        objects forever."""
+
+        class _NoPurgeCeleryConfig:
+            imports: tuple[str, ...] = (
+                "superset.tasks.version_history_retention",
+                "superset.tasks.deletion_retention",
+            )
+            beat_schedule: dict[str, dict[str, str]] = {
+                "version_history.prune_old_versions": {
+                    "task": "version_history.prune_old_versions",
+                },
+            }
+
+        initializer = self._initializer(
+            {
+                "CELERY_CONFIG": _NoPurgeCeleryConfig,
+                "FEATURE_FLAGS": {"SOFT_DELETE": True},
+            }
+        )
+        initializer._warn_if_retention_beat_missing()
+
+        assert any(
+            "deletion_retention.purge_soft_deleted" in str(call)
+            for call in mock_logger.warning.call_args_list
+        ), (
+            "Expected a WARNING naming the missing purge entry; "
+            f"got {mock_logger.warning.call_args_list}"
+        )
+
+    @patch("superset.initialization.logger")
+    def test_no_purge_warn_when_soft_delete_off(self, mock_logger: MagicMock) -> None:
+        """With ``SOFT_DELETE`` off, a missing purge entry MUST NOT warn:
+        the purge task itself no-ops while the flag is off, so the
+        warning would be noise the operator cannot act on."""
+
+        class _NoPurgeCeleryConfig:
+            imports: tuple[str, ...] = (
+                "superset.tasks.version_history_retention",
+                "superset.tasks.deletion_retention",
+            )
+            beat_schedule: dict[str, dict[str, str]] = {
+                "version_history.prune_old_versions": {
+                    "task": "version_history.prune_old_versions",
+                },
+            }
+
+        initializer = self._initializer(
+            {
+                "CELERY_CONFIG": _NoPurgeCeleryConfig,
+            }
+        )
+        initializer._warn_if_retention_beat_missing()
+
+        mock_logger.warning.assert_not_called()
+
+    @patch("superset.initialization.logger")
+    def test_purge_gate_ignores_dynamic_feature_flag_resolvers(
+        self, mock_logger: MagicMock
+    ) -> None:
+        """Dynamic feature resolvers do not affect startup diagnostics."""
+
+        class _NoPurgeCeleryConfig:
+            imports: tuple[str, ...] = (
+                "superset.tasks.version_history_retention",
+                "superset.tasks.deletion_retention",
+            )
+            beat_schedule: dict[str, dict[str, str]] = {
+                "version_history.prune_old_versions": {
+                    "task": "version_history.prune_old_versions",
+                },
+            }
+
+        # Static config says off while the dynamic hook says on. Startup
+        # diagnostics intentionally use only the static deployment config.
+        config: dict[str, Any] = {
+            "CELERY_CONFIG": _NoPurgeCeleryConfig,
+            "DEFAULT_FEATURE_FLAGS": {"SOFT_DELETE": False},
+            "FEATURE_FLAGS": {"SOFT_DELETE": False},
+            "IS_FEATURE_ENABLED_FUNC": lambda feature, default: True,
+            "GET_FEATURE_FLAGS_FUNC": None,
+        }
+        initializer = self._initializer(config)
+        initializer._warn_if_retention_beat_missing()
+
+        mock_logger.warning.assert_not_called()
+
+    @patch("superset.initialization.logger")
+    def test_no_warn_when_soft_delete_on_and_both_entries_present(
+        self, mock_logger: MagicMock
+    ) -> None:
+        """The **shipped** ``CeleryConfig`` with soft delete enabled must
+        be silent. Asserting against the real class — rather than a
+        hand-built stand-in repeating the same literals — is what pins
+        ``_RETENTION_TASK_NAME`` and ``_PURGE_TASK_NAME`` to the entries
+        that actually ship. Rename the shipped entry in ``superset.config``
+        without updating the constants and this test goes red, instead of
+        every default deployment warning at boot with no test failing.
+        (The check matches a schedule key *or* an entry's ``task``, so a
+        rename of only one of the two is tolerated by design and stays
+        green — it is the genuine rename, where both move, that fires.)"""
+        initializer = self._initializer(
+            {
+                "CELERY_CONFIG": CeleryConfig,
+                "FEATURE_FLAGS": {"SOFT_DELETE": True},
+            }
+        )
+        initializer._warn_if_retention_beat_missing()
+
+        mock_logger.warning.assert_not_called()
+
+    @patch("superset.initialization.logger")
+    def test_warn_when_retention_module_missing_from_imports(
+        self, mock_logger: MagicMock
+    ) -> None:
+        """A scheduled task whose module is absent from ``imports`` fails
+        with Celery ``NotRegistered`` when it fires — the same silent
+        non-execution the beat check guards, one layer down. UPDATING.md
+        asks operators for both; the check must too."""
+
+        class _NoImportCeleryConfig:
+            imports: tuple[str, ...] = ("superset.tasks.deletion_retention",)
+            beat_schedule: dict[str, dict[str, str]] = {
+                "version_history.prune_old_versions": {
+                    "task": "version_history.prune_old_versions",
+                },
+            }
+
+        initializer = self._initializer({"CELERY_CONFIG": _NoImportCeleryConfig})
+        initializer._warn_if_retention_beat_missing()
+
+        assert any(
+            "superset.tasks.version_history_retention" in str(call)
+            for call in mock_logger.warning.call_args_list
+        ), (
+            "Expected a WARNING naming the missing retention module; "
+            f"got {mock_logger.warning.call_args_list}"
+        )
+
+    @patch("superset.initialization.logger")
+    def test_no_import_warning_when_imports_is_not_configured(
+        self, mock_logger: MagicMock
+    ) -> None:
+        """Do not assume how a worker registers tasks when imports is absent."""
+
+        class _AutodiscoveredCeleryConfig:
+            beat_schedule: dict[str, dict[str, str]] = {
+                "version_history.prune_old_versions": {
+                    "task": "version_history.prune_old_versions",
+                },
+            }
+
+        initializer = self._initializer({"CELERY_CONFIG": _AutodiscoveredCeleryConfig})
+        initializer._warn_if_retention_beat_missing()
+
+        mock_logger.warning.assert_not_called()
+
+    @patch("superset.initialization.logger")
+    def test_warn_when_purge_module_missing_from_imports(
+        self, mock_logger: MagicMock
+    ) -> None:
+        """Same for the purge task, and gated on ``SOFT_DELETE`` like its
+        beat counterpart: the schedule can name the task while the worker
+        never imported it."""
+
+        class _NoPurgeImportCeleryConfig:
+            imports: tuple[str, ...] = ("superset.tasks.version_history_retention",)
+            beat_schedule: dict[str, dict[str, str]] = {
+                "version_history.prune_old_versions": {
+                    "task": "version_history.prune_old_versions",
+                },
+                "deletion_retention.purge_soft_deleted": {
+                    "task": "deletion_retention.purge_soft_deleted",
+                },
+            }
+
+        initializer = self._initializer(
+            {
+                "CELERY_CONFIG": _NoPurgeImportCeleryConfig,
+                "FEATURE_FLAGS": {"SOFT_DELETE": True},
+            }
+        )
+        initializer._warn_if_retention_beat_missing()
+
+        assert any(
+            "superset.tasks.deletion_retention" in str(call)
+            for call in mock_logger.warning.call_args_list
+        ), (
+            "Expected a WARNING naming the missing purge module; "
+            f"got {mock_logger.warning.call_args_list}"
+        )
+
+    @patch("superset.initialization.logger")
+    def test_no_purge_import_warn_when_soft_delete_off(
+        self, mock_logger: MagicMock
+    ) -> None:
+        """The purge import check is gated like the purge beat check: with
+        the flag off the task no-ops, so a missing module is not yet
+        actionable and must not warn."""
+
+        class _NoPurgeImportCeleryConfig:
+            imports: tuple[str, ...] = ("superset.tasks.version_history_retention",)
+            beat_schedule: dict[str, dict[str, str]] = {
+                "version_history.prune_old_versions": {
+                    "task": "version_history.prune_old_versions",
+                },
+            }
+
+        initializer = self._initializer({"CELERY_CONFIG": _NoPurgeImportCeleryConfig})
+        initializer._warn_if_retention_beat_missing()
+
+        mock_logger.warning.assert_not_called()
+
+    @patch("superset.initialization.logger")
+    def test_no_purge_warn_when_task_registered_under_other_key(
+        self, mock_logger: MagicMock
+    ) -> None:
+        """Parity with the version-history check: the purge task
+        registered under a non-matching schedule key is still correctly
+        scheduled and MUST NOT warn."""
+
+        class _RenamedKeysCeleryConfig:
+            imports: tuple[str, ...] = (
+                "superset.tasks.version_history_retention",
+                "superset.tasks.deletion_retention",
+            )
+            beat_schedule: dict[str, dict[str, str]] = {
+                "prune_versions": {
+                    "task": "version_history.prune_old_versions",
+                },
+                "purge_archived": {
+                    "task": "deletion_retention.purge_soft_deleted",
+                },
+            }
+
+        initializer = self._initializer(
+            {
+                "CELERY_CONFIG": _RenamedKeysCeleryConfig,
+                "FEATURE_FLAGS": {"SOFT_DELETE": True},
+            }
         )
         initializer._warn_if_retention_beat_missing()
 

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen, within } from '@superset-ui/core/spec';
+import { act, fireEvent, render, screen, within } from '@superset-ui/core/spec';
 import TimeTable from './TimeTable';
 
 const mockData = {
@@ -183,6 +183,55 @@ test('should handle column type sparkline correctly', () => {
   visibleTimeSeriesColumns.forEach(el => {
     expect(el).toBeInTheDocument();
   });
+});
+
+test('should hide the table while the window is resizing and reveal it again after the debounce delay', () => {
+  jest.useFakeTimers();
+
+  const { container } = render(<TimeTable {...defaultProps} />);
+  const timeTable = container.querySelector('[data-test="time-table"]');
+
+  expect(timeTable).not.toHaveStyle('display: none');
+
+  act(() => {
+    fireEvent(window, new Event('resize'));
+  });
+  expect(timeTable).toHaveStyle('display: none');
+
+  act(() => {
+    jest.advanceTimersByTime(499);
+  });
+  expect(timeTable).toHaveStyle('display: none');
+
+  act(() => {
+    jest.advanceTimersByTime(1);
+  });
+  expect(timeTable).not.toHaveStyle('display: none');
+
+  jest.clearAllTimers();
+  jest.useRealTimers();
+});
+
+test('should clear the resize listener and pending timer on unmount', () => {
+  jest.useFakeTimers();
+  const removeEventListenerSpy = jest.spyOn(window, 'removeEventListener');
+
+  const { unmount } = render(<TimeTable {...defaultProps} />);
+
+  act(() => {
+    fireEvent(window, new Event('resize'));
+  });
+
+  unmount();
+
+  expect(removeEventListenerSpy).toHaveBeenCalledWith(
+    'resize',
+    expect.any(Function),
+  );
+
+  removeEventListenerSpy.mockRestore();
+  jest.clearAllTimers();
+  jest.useRealTimers();
 });
 
 test('should not render empty table due to missing column id property', () => {

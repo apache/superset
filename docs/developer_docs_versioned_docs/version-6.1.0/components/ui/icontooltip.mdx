@@ -33,37 +33,39 @@ The IconTooltip component from Superset's UI library.
 <StoryWithControls
   component="IconTooltip"
   props={{
-  tooltip: "Tooltip"
-}}
+    tooltip: 'Tooltip',
+  }}
   controls={[
-  {
-    name: "tooltip",
-    label: "Tooltip",
-    type: "text",
-    description: "Text content to display in the tooltip."
-  },
-  {
-    name: "placement",
-    label: "Placement",
-    type: "select",
-    options: [
-      "bottom",
-      "bottomLeft",
-      "bottomRight",
-      "left",
-      "leftBottom",
-      "leftTop",
-      "right",
-      "rightBottom",
-      "rightTop",
-      "top",
-      "topLeft",
-      "topRight"
-    ],
-    description: "Position of the tooltip relative to the icon."
-  }
-]}
-  sampleChildren={[{"component":"Icons.InfoCircleOutlined","props":{"iconSize":"l"}}]}
+    {
+      name: 'tooltip',
+      label: 'Tooltip',
+      type: 'text',
+      description: 'Text content to display in the tooltip.',
+    },
+    {
+      name: 'placement',
+      label: 'Placement',
+      type: 'select',
+      options: [
+        'bottom',
+        'bottomLeft',
+        'bottomRight',
+        'left',
+        'leftBottom',
+        'leftTop',
+        'right',
+        'rightBottom',
+        'rightTop',
+        'top',
+        'topLeft',
+        'topRight',
+      ],
+      description: 'Position of the tooltip relative to the icon.',
+    },
+  ]}
+  sampleChildren={[
+    { component: 'Icons.InfoCircleOutlined', props: { iconSize: 'l' } },
+  ]}
 />
 
 ## Try It
@@ -82,8 +84,8 @@ function Demo() {
 
 ## Props
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
+| Prop      | Type     | Default     | Description                             |
+| --------- | -------- | ----------- | --------------------------------------- |
 | `tooltip` | `string` | `"Tooltip"` | Text content to display in the tooltip. |
 
 ## Import
