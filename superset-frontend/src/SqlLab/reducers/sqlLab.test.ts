@@ -62,6 +62,9 @@ describe('sqlLabReducer', () => {
   });
 
   test('should default extra_json to an empty object when extra is unset', () => {
+    // `extra` is nullable in the metadata database, and JSON.parse(extra || '')
+    // is guaranteed to throw because '' is never valid JSON, so one such row
+    // took down the whole reducer.
     const incomingDb = {
       ...databases.result[0],
       extra: null,
@@ -73,23 +76,6 @@ describe('sqlLabReducer', () => {
     const newState = sqlLabReducer(initialState, action);
 
     expect(newState.databases[incomingDbId]).toEqual({
-      ...incomingDb,
-      extra_json: {},
-    });
-  });
-
-  test('defaults extra_json when a database has no extra (#43216)', () => {
-    // `extra` is nullable in the metadata database, and JSON.parse(extra || '')
-    // is guaranteed to throw because '' is never valid JSON, so one such row
-    // took down the whole reducer.
-    const incomingDb = { ...databases.result[0], extra: null };
-
-    const newState = sqlLabReducer(
-      initialState,
-      actions.setDatabases([incomingDb] as any),
-    );
-
-    expect(newState.databases[Number(incomingDb.id)]).toEqual({
       ...incomingDb,
       extra_json: {},
     });
