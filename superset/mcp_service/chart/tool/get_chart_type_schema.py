@@ -31,6 +31,7 @@ from superset.extensions import event_logger
 from superset.mcp_service.chart.schemas import (
     BigNumberChartConfig,
     BoxPlotChartConfig,
+    BubbleChartConfig,
     HandlebarsChartConfig,
     HistogramChartConfig,
     InteractivePivotChartConfig,
@@ -49,6 +50,7 @@ _CHART_TYPE_ADAPTERS: Dict[str, TypeAdapter[Any]] = {
     "xy": TypeAdapter(XYChartConfig),
     "table": TypeAdapter(TableChartConfig),
     "pie": TypeAdapter(PieChartConfig),
+    "bubble_v2": TypeAdapter(BubbleChartConfig),
     "pivot_table": TypeAdapter(PivotTableChartConfig),
     "interactive_pivot": TypeAdapter(InteractivePivotChartConfig),
     "mixed_timeseries": TypeAdapter(MixedTimeseriesChartConfig),
@@ -202,6 +204,15 @@ _CHART_EXAMPLES: Dict[str, list[Dict[str, Any]]] = {
             "metric": {"name": "profit", "aggregate": "SUM"},
             "breakdown": {"name": "region"},
             "show_total": True,
+        },
+    ],
+    "bubble_v2": [
+        {
+            "chart_type": "bubble_v2",
+            "entity": {"name": "country"},
+            "x": {"name": "gdp", "aggregate": "AVG"},
+            "y": {"name": "life_expectancy", "aggregate": "AVG"},
+            "size": {"name": "population", "aggregate": "SUM"},
         },
     ],
 }

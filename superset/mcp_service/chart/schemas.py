@@ -1045,6 +1045,70 @@ class PieChartConfig(BaseChartConfig):
         return self
 
 
+class BubbleChartConfig(BaseChartConfig):
+    """Config for bubble charts (viz_type ``bubble_v2``).
+
+    Matches the frontend Bubble buildQuery contract: an ``entity`` dimension
+    identifies each bubble, three separate metrics position and size it
+    (``x``, ``y``, ``size``), and an optional ``series`` dimension colours the
+    bubbles by group.
+    """
+
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    chart_type: Literal["bubble_v2"] = "bubble_v2"
+    entity: ColumnRef = Field(
+        ...,
+        description="Category column identifying each bubble (e.g. country)",
+    )
+    x: ColumnRef = Field(
+        ...,
+        description="Metric for the bubble's horizontal position (use "
+        "aggregate e.g. AVG, or saved_metric=True for a saved metric)",
+    )
+    y: ColumnRef = Field(
+        ...,
+        description="Metric for the bubble's vertical position",
+    )
+    size: ColumnRef = Field(
+        ...,
+        description="Metric for the bubble's area",
+    )
+    series: ColumnRef | None = Field(
+        None,
+        description="Optional category column colouring the bubbles by group",
+    )
+    row_limit: int = Field(10000, description="Max bubbles queried", ge=1, le=100000)
+    filters: List[FilterConfig] | None = Field(
+        None,
+        description="Structured filters (column/op/value). "
+        "Do NOT use adhoc_filters or raw SQL expressions.",
+    )
+    color_scheme: str | None = Field(
+        None,
+        description=(
+            "Superset color scheme ID (e.g. 'supersetColors', 'lyftColors', "
+            "'googleCategory10c', 'd3Category10'). Defaults to 'supersetColors'."
+        ),
+        max_length=100,
+    )
+
+    @model_validator(mode="after")
+    def reject_metric_style_dimensions(self) -> "BubbleChartConfig":
+        """entity and series are dimensions, not metrics."""
+        dims = [(self.entity, "entity")]
+        if self.series is not None:
+            dims.append((self.series, "series"))
+        for col, name in dims:
+            _reject_sql_expression_on_dimension(col, name)
+            if col.saved_metric:
+                raise ValueError(
+                    f"{name} cannot use saved_metric=True; "
+                    "saved metrics belong in the 'x', 'y', or 'size' fields"
+                )
+        return self
+
+
 class PivotTableChartConfig(BaseChartConfig):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
@@ -2287,6 +2351,7 @@ ChartConfig = Annotated[
     XYChartConfig
     | TableChartConfig
     | PieChartConfig
+    | BubbleChartConfig
     | PivotTableChartConfig
     | InteractivePivotChartConfig
     | MixedTimeseriesChartConfig
@@ -2299,7 +2364,8 @@ ChartConfig = Annotated[
         discriminator="chart_type",
         description=(
             "Chart configuration - specify chart_type as 'xy', 'table', "
-            "'pie', 'pivot_table', 'interactive_pivot', 'mixed_timeseries', "
+            "'pie', 'bubble_v2', 'pivot_table', 'interactive_pivot', "
+            "'mixed_timeseries', "
             "'handlebars', "
             "'big_number', 'histogram', 'box_plot', or 'waterfall'"
         ),

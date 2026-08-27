@@ -37,6 +37,7 @@ from superset.constants import NO_TIME_RANGE
 from superset.mcp_service.chart.schemas import (
     BigNumberChartConfig,
     BoxPlotChartConfig,
+    BubbleChartConfig,
     ChartCapabilities,
     ChartConfig,
     ChartSemantics,
@@ -1044,6 +1045,29 @@ def map_pie_config(config: PieChartConfig) -> Dict[str, Any]:
     return form_data
 
 
+def map_bubble_config(config: BubbleChartConfig) -> Dict[str, Any]:
+    """Map bubble config to Superset form_data (viz_type ``bubble_v2``).
+
+    Matches the frontend Bubble buildQuery contract: an ``entity`` dimension
+    plus three separate metric keys — ``x``, ``y``, ``size`` — that the query
+    layer aliases into ``metrics``; an optional ``series`` dimension colours
+    the bubbles by group.
+    """
+    form_data: Dict[str, Any] = {
+        "viz_type": "bubble_v2",
+        "entity": config.entity.name,
+        "x": create_metric_object(config.x),
+        "y": create_metric_object(config.y),
+        "size": create_metric_object(config.size),
+        "row_limit": config.row_limit,
+        "color_scheme": config.color_scheme or "supersetColors",
+    }
+    if config.series:
+        form_data["series"] = config.series.name
+    _add_adhoc_filters(form_data, config.filters)
+    return form_data
+
+
 def map_histogram_config(config: "HistogramChartConfig") -> Dict[str, Any]:
     """Map histogram config to Superset form_data (viz_type histogram_v2).
 
@@ -1552,6 +1576,13 @@ def _pie_chart_what(config: PieChartConfig) -> str:
         config.metric.label or config.metric.name or config.metric.sql_expression
     )
     return f"{dim} by {metric_label}"
+
+
+def _bubble_chart_what(config: BubbleChartConfig) -> str:
+    """Build the 'what' portion for a bubble chart name."""
+    x_label = config.x.label or config.x.name or config.x.sql_expression
+    y_label = config.y.label or config.y.name or config.y.sql_expression
+    return f"{config.entity.name}: {x_label} vs {y_label}"
 
 
 def _pivot_table_what(config: PivotTableChartConfig) -> str:
