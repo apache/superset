@@ -109,6 +109,9 @@ def map_interactive_pivot_config(
         form_data["date_format"] = config.date_format
     if config.column_sort:
         form_data["colOrder"] = config.column_sort
+    if config.comparison_period and config.comparison_type:
+        form_data["time_compare"] = [config.comparison_period]
+        form_data["comparison_type"] = config.comparison_type
     add_currency_format(form_data, config.currency_format)
     _add_adhoc_filters(form_data, config.filters)
     return form_data
@@ -226,6 +229,7 @@ class InteractivePivotChartPlugin(BaseChartPlugin):
             suggestions=[
                 "Provide non-empty 'rows' and 'metrics' arrays",
                 "Put AG Grid column labels in the optional 'columns' array",
+                "Pair comparison_period with comparison_type",
             ],
             error_code="INTERACTIVE_PIVOT_VALIDATION_ERROR",
         )

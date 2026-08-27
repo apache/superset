@@ -1204,10 +1204,54 @@ class InteractivePivotChartConfig(BaseChartConfig):
         False,
         description="Expand generated pivot column groups initially",
     )
+    comparison_period: str | None = Field(
+        None,
+        min_length=1,
+        max_length=100,
+        description=(
+            "Relative time shift such as '1 year ago'. Must be paired with "
+            "comparison_type."
+        ),
+        validation_alias=AliasChoices("comparison_period", "time_compare"),
+    )
+    comparison_type: Literal["values", "difference", "percentage", "ratio"] | None = (
+        Field(
+            None,
+            description=(
+                "How to present the comparison period: raw values, difference, "
+                "percentage change, or ratio"
+            ),
+        )
+    )
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_comparison_period(cls, data: Any) -> Any:
+        """Accept native single-item ``time_compare`` arrays on round trips."""
+        if isinstance(data, dict) and isinstance(data.get("time_compare"), list):
+            periods = data["time_compare"]
+            if len(periods) > 1:
+                raise ValueError(
+                    "interactive_pivot supports one comparison period; pass a "
+                    "single value"
+                )
+            data["time_compare"] = periods[0] if periods else None
+        return data
+
+    @field_validator("comparison_period")
+    @classmethod
+    def sanitize_comparison_period(cls, value: str | None) -> str | None:
+        """Sanitize the relative time-shift label."""
+        return sanitize_user_input(
+            value,
+            "Comparison period",
+            max_length=100,
+            allow_empty=True,
+        )
 
     @model_validator(mode="after")
     def validate_interactive_pivot(self) -> "InteractivePivotChartConfig":
-        """Validate dimension roles."""
+        """Validate dimension roles and paired comparison controls."""
         for field_name, refs in (("rows", self.rows), ("columns", self.columns)):
             for index, ref in enumerate(refs):
                 _reject_sql_expression_on_dimension(ref, f"{field_name}[{index}]")
@@ -1242,6 +1286,11 @@ class InteractivePivotChartConfig(BaseChartConfig):
             raise ValueError(
                 "series_limit_metric must define an aggregate, saved_metric=True, "
                 "or sql_expression"
+            )
+
+        if bool(self.comparison_period) != bool(self.comparison_type):
+            raise ValueError(
+                "comparison_period and comparison_type must be provided together"
             )
 
         return self

@@ -122,6 +122,8 @@ _CHART_EXAMPLES: Dict[str, list[Dict[str, Any]]] = {
             ],
             "temporal_column": "order_date",
             "time_grain": "P1M",
+            "comparison_period": "1 year ago",
+            "comparison_type": "percentage",
             "show_row_totals": True,
             "show_column_totals": True,
             "show_column_subtotals": True,

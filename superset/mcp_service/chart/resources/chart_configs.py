@@ -235,7 +235,10 @@ def get_chart_configs_resource() -> str:
     interactive_pivot_configs = {}
     if get_registry().get("interactive_pivot") is not None:
         interactive_pivot_configs["ag_grid_interactive_pivot"] = {
-            "description": ("AG Grid pivot with explicit side-panel groups and totals"),
+            "description": (
+                "AG Grid pivot with explicit side-panel groups and a "
+                "year-over-year comparison"
+            ),
             "config": {
                 "chart_type": "interactive_pivot",
                 "rows": [{"name": "region"}, {"name": "country"}],
@@ -246,6 +249,8 @@ def get_chart_configs_resource() -> str:
                 ],
                 "temporal_column": "order_date",
                 "time_grain": "P1M",
+                "comparison_period": "1 year ago",
+                "comparison_type": "percentage",
                 "show_row_totals": True,
                 "show_column_totals": True,
                 "show_column_subtotals": True,
@@ -253,6 +258,7 @@ def get_chart_configs_resource() -> str:
             "use_cases": [
                 "Spreadsheet-style multidimensional analysis",
                 "Interactive regrouping and pivoting",
+                "Period-over-period comparison",
             ],
         }
 
@@ -275,6 +281,7 @@ def get_chart_configs_resource() -> str:
         "interactive_pivots": [
             "Use rows for AG Grid row groups and columns for pivot labels",
             "Metric aggregates also seed AG Grid's group aggregation model",
+            "Pair comparison_period with comparison_type for time comparison",
             "This type appears only when the host enables its visualization plugin",
         ],
         "general": [

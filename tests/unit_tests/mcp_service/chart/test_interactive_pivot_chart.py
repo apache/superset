@@ -85,6 +85,8 @@ def config() -> InteractivePivotChartConfig:
             "column_sort": "key_a_to_z",
             "allow_render_html": False,
             "expand_pivot_groups": True,
+            "comparison_period": "1 year ago",
+            "comparison_type": "percentage",
         }
     )
 
@@ -114,8 +116,8 @@ def test_maps_true_ag_grid_pivot_form_data(
     assert form_data["rowTotals"] is True
     assert form_data["colTotals"] is True
     assert form_data["colSubTotals"] is True
-    assert "time_compare" not in form_data
-    assert "comparison_type" not in form_data
+    assert form_data["time_compare"] == ["1 year ago"]
+    assert form_data["comparison_type"] == "percentage"
     assert form_data["granularity_sqla"] == "order_date"
     assert form_data["temporal_columns_lookup"] == {"order_date": True}
     assert form_data["time_grain_sqla"] == "P1M"
@@ -146,6 +148,67 @@ def test_series_limit_metric_requires_metric_shape() -> None:
                 "rows": [{"name": "region"}],
                 "metrics": [{"name": "revenue", "aggregate": "SUM"}],
                 "series_limit_metric": {"name": "region"},
+            }
+        )
+
+
+def test_comparison_controls_are_paired() -> None:
+    with pytest.raises(ValidationError, match="must be provided together"):
+        InteractivePivotChartConfig.model_validate(
+            {
+                "chart_type": "interactive_pivot",
+                "rows": [{"name": "region"}],
+                "metrics": [{"name": "revenue", "aggregate": "SUM"}],
+                "comparison_period": "1 year ago",
+            }
+        )
+
+
+def test_native_comparison_array_round_trips() -> None:
+    config = InteractivePivotChartConfig.model_validate(
+        {
+            "chart_type": "interactive_pivot",
+            "rows": [{"name": "region"}],
+            "metrics": [{"name": "revenue", "aggregate": "SUM"}],
+            "time_compare": ["4 weeks ago"],
+            "comparison_type": "difference",
+        }
+    )
+
+    assert config.comparison_period == "4 weeks ago"
+    assert config.comparison_type == "difference"
+    assert map_interactive_pivot_config(config)["time_compare"] == ["4 weeks ago"]
+
+
+@pytest.mark.parametrize(
+    "comparison_type", ["values", "difference", "percentage", "ratio"]
+)
+def test_maps_supported_comparison_types(comparison_type: str) -> None:
+    config = InteractivePivotChartConfig.model_validate(
+        {
+            "chart_type": "interactive_pivot",
+            "rows": [{"name": "region"}],
+            "metrics": [{"name": "revenue", "aggregate": "SUM"}],
+            "comparison_period": "1 year ago",
+            "comparison_type": comparison_type,
+        }
+    )
+
+    form_data = map_interactive_pivot_config(config)
+
+    assert form_data["time_compare"] == ["1 year ago"]
+    assert form_data["comparison_type"] == comparison_type
+
+
+def test_multiple_native_comparison_periods_are_rejected() -> None:
+    with pytest.raises(ValidationError, match="supports one comparison period"):
+        InteractivePivotChartConfig.model_validate(
+            {
+                "chart_type": "interactive_pivot",
+                "rows": [{"name": "region"}],
+                "metrics": [{"name": "revenue", "aggregate": "SUM"}],
+                "time_compare": ["1 year ago", "2 years ago"],
+                "comparison_type": "values",
             }
         )
 
@@ -252,8 +315,8 @@ def test_feature_flag_exposes_schema_and_generation(
 
     assert result["chart_type"] == "interactive_pivot"
     assert result["examples"]
-    assert "comparison_period" not in result["schema"]["properties"]
-    assert "comparison_type" not in result["schema"]["properties"]
+    assert "comparison_period" in result["schema"]["properties"]
+    assert "comparison_type" in result["schema"]["properties"]
     assert is_valid is True
     assert parsed is not None
     assert isinstance(parsed.config, InteractivePivotChartConfig)
@@ -300,6 +363,8 @@ def test_update_preserves_viz_type_and_ui_grid_state(
     assert isinstance(payload, dict)
     assert payload["viz_type"] == "ag-grid-pivot-table"
     params = json.loads(payload["params"])
+    assert params["time_compare"] == ["1 year ago"]
+    assert params["comparison_type"] == "percentage"
     assert params["column_config"] == {"Revenue": {"d3NumberFormat": "$,.2f"}}
     assert params["conditional_formatting"] == [
         {"column": "Revenue", "operator": ">", "targetValue": 1000}
@@ -333,6 +398,8 @@ def test_preview_update_preserves_viz_type_and_ui_grid_state(
 
     assert isinstance(form_data, dict)
     assert form_data["viz_type"] == "ag-grid-pivot-table"
+    assert form_data["time_compare"] == ["1 year ago"]
+    assert form_data["comparison_type"] == "percentage"
     assert form_data["column_config"] == {"Revenue": {"columnWidth": 160}}
     assert form_data["pivot_table_state"]["sort"] == {"sortModel": []}
 
