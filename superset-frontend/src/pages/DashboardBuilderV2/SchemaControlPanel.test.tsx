@@ -1426,3 +1426,41 @@ test('a non-Balloons series entry shape (color + boolean + string) renders each 
     ).toBe('Total'),
   );
 });
+
+// `x-hidden-in-form` — echarts' `echartsOptions` (already fully editable via
+// the Inspector's JSON tab) must not also render its own raw-JSON box in the
+// Form tab, but the field must stay fully intact in the committed data.
+const HIDDEN_FIELD_SCHEMA = {
+  type: 'object',
+  properties: {
+    chartType: { type: ['string', 'null'], title: 'Chart type' },
+    echartsOptions: {
+      type: 'object',
+      title: 'ECharts option',
+      'x-control': 'code',
+      'x-hidden-in-form': true,
+    },
+  },
+};
+
+test('a field flagged x-hidden-in-form renders no control in the Form tab', async () => {
+  mockPost(HIDDEN_FIELD_SCHEMA);
+
+  mount('echarts', { echartsOptions: { series: [{ type: 'bar' }] } });
+
+  await screen.findByText('Chart type');
+  expect(screen.queryByText('ECharts option')).not.toBeInTheDocument();
+});
+
+test('a field hidden from the Form tab keeps its stored value untouched', async () => {
+  mockPost(HIDDEN_FIELD_SCHEMA);
+
+  const id = mount('echarts', {
+    echartsOptions: { series: [{ type: 'bar' }] },
+  });
+  await screen.findByText('Chart type');
+
+  expect(provider.getNode(id)?.props?.echartsOptions).toEqual({
+    series: [{ type: 'bar' }],
+  });
+});

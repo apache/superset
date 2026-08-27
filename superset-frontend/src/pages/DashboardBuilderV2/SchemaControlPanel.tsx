@@ -101,6 +101,30 @@ function canQuery(
   );
 }
 
+/**
+ * Drops any top-level property tagged `x-hidden-in-form` (e.g. echarts'
+ * `echartsOptions` — already fully editable via the Inspector's JSON tab, so
+ * a second raw-JSON box here would just duplicate it) before the schema
+ * reaches JsonForms, so no control is generated for it. The property stays
+ * in `data`/`node.props` untouched — this only changes what's rendered, not
+ * what's stored, so the JSON tab (which reads the whole record) still shows
+ * and edits it.
+ */
+function hideFlaggedFields(schema: JsonSchema): JsonSchema {
+  const { properties } = schema as { properties?: Record<string, unknown> };
+  if (!properties) return schema;
+  const visible = Object.fromEntries(
+    Object.entries(properties).filter(
+      ([, propSchema]) =>
+        !(propSchema as Record<string, unknown>)['x-hidden-in-form'],
+    ),
+  );
+  if (Object.keys(visible).length === Object.keys(properties).length) {
+    return schema;
+  }
+  return { ...schema, properties: visible } as JsonSchema;
+}
+
 export default function SchemaControlPanel({ nodeId }: { nodeId: string }) {
   useDashboardRevision();
   const node = provider.getNode(nodeId);
@@ -202,9 +226,13 @@ export default function SchemaControlPanel({ nodeId }: { nodeId: string }) {
     setFormKey(key => key + 1);
   }, [propsKey]);
 
-  const uiSchema = useMemo(
-    () => (schema ? buildUiSchema(schema) : undefined),
+  const formSchema = useMemo(
+    () => (schema ? hideFlaggedFields(schema) : undefined),
     [schema],
+  );
+  const uiSchema = useMemo(
+    () => (formSchema ? buildUiSchema(formSchema) : undefined),
+    [formSchema],
   );
 
   if (!node) return null;
@@ -225,7 +253,7 @@ export default function SchemaControlPanel({ nodeId }: { nodeId: string }) {
         >
           <JsonForms
             key={formKey}
-            schema={schema}
+            schema={formSchema}
             uischema={uiSchema}
             data={props}
             renderers={schemaControlRenderers}

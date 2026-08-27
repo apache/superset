@@ -181,6 +181,10 @@ def test_control_schema_rest_endpoint_exposes_chart_type_and_customize(
         "scatter",
     ]
     assert "customize" in schema["properties"]
+    # Redundant with the Inspector's JSON tab (which edits the whole props
+    # record as text) — flagged so the Form tab doesn't also render its own
+    # raw-JSON box for it.
+    assert schema["properties"]["echartsOptions"]["x-hidden-in-form"] is True
 
 
 def test_validate_rest_endpoint_accepts_structured_fields(

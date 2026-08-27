@@ -343,6 +343,12 @@ class EchartsControls(BaseModel):
             "x-control": "code",
             "x-language": "json",
             "x-spec-dialect": "echarts",
+            # The Inspector's JSON tab already edits the whole `node.props`
+            # record as text — including this field — so a second, redundant
+            # raw-JSON box in the Form tab just duplicates it. Hidden there;
+            # still fully editable via the JSON tab (or `chartType`/
+            # `customize` for what those manage).
+            "x-hidden-in-form": True,
         },
     )
     chart_type: Literal["bar", "line", "scatter"] | None = Field(
