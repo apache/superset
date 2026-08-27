@@ -1943,7 +1943,12 @@ class SqlaTable(
                     template_processor=template_processor
                 )
             else:
-                sqla_column = column(column_name)
+                sqla_column = column(
+                    self.db_engine_spec.prepare_identifier(
+                        column_name,
+                        normalize_columns=bool(self.normalize_columns),
+                    )
+                )
 
             if isinstance(aggregate, str) and aggregate in self.sqla_aggregations:
                 sqla_metric = self.sqla_aggregations[aggregate](sqla_column)

@@ -3563,7 +3563,12 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             aggregate: Any = metric.get("aggregate")
             metric_column = metric.get("column") or {}
             column_name = cast(str, metric_column.get("column_name"))
-            sqla_column = sa.column(column_name)
+            sqla_column = sa.column(
+                self.db_engine_spec.prepare_identifier(
+                    column_name,
+                    normalize_columns=bool(self.normalize_columns),
+                )
+            )
 
             if isinstance(aggregate, str) and aggregate in self.sqla_aggregations:
                 sqla_metric = self.sqla_aggregations[aggregate](sqla_column)
