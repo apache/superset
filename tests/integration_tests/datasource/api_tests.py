@@ -154,7 +154,21 @@ class TestDatasourceApi(SupersetTestCase):
             column_name="col2",
             limit=10000,
             denormalize_column=False,
+            array_elements=False,
         )
+
+    @pytest.mark.usefixtures("app_context", "virtual_dataset")
+    @patch("superset.models.helpers.ExploreMixin.values_for_column")
+    def test_get_column_values_array_elements_param(self, values_for_column_mock):
+        # The ?array_elements=true param (Contains any/all) is threaded through
+        # so array columns can suggest individual elements.
+        self.login(ADMIN_USERNAME)
+        table = self.get_virtual_dataset()
+        self.client.get(
+            f"api/v1/datasource/table/{table.id}/column/col2/values/"
+            "?array_elements=true"
+        )
+        assert values_for_column_mock.call_args.kwargs["array_elements"] is True
 
     @pytest.mark.usefixtures("app_context", "virtual_dataset")
     @patch("superset.db_engine_specs.base.BaseEngineSpec.denormalize_name")
@@ -176,6 +190,7 @@ class TestDatasourceApi(SupersetTestCase):
             column_name="col2",
             limit=10000,
             denormalize_column=True,
+            array_elements=False,
         )
 
     @pytest.mark.usefixtures("app_context", "virtual_dataset")

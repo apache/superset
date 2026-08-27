@@ -51,6 +51,7 @@ import { extractForecastSeriesContext } from '../utils/forecast';
 import {
   EchartsTimeseriesSeriesType,
   ForecastSeriesEnum,
+  LabelPositionEnum,
   LegendOrientation,
   OrientationType,
   StackType,
@@ -170,6 +171,7 @@ export const getBaselineSeriesForStream = (
 export function transformNegativeLabelsPosition(
   series: SeriesOption,
   isHorizontal: boolean,
+  labelPosition?: string,
 ): TimeseriesDataRecord[] {
   /*
    * Adjusts label position for negative values in bar series
@@ -185,7 +187,10 @@ export function transformNegativeLabelsPosition(
       ? {
           value,
           label: {
-            position: 'outside',
+            position:
+              labelPosition && labelPosition !== 'auto'
+                ? labelPosition
+                : 'outside',
           },
         }
       : value;
@@ -255,6 +260,7 @@ export function transformSeries(
     theme?: SupersetTheme;
     hasDimensions?: boolean;
     colorByPrimaryAxis?: boolean;
+    labelPosition?: string;
   },
 ): SeriesOption | undefined {
   const { name, data } = series;
@@ -287,6 +293,7 @@ export function transformSeries(
     timeShiftColor,
     theme,
     colorByPrimaryAxis = false,
+    labelPosition,
   } = opts;
   const contexts = seriesContexts[name || ''] || [];
   const hasForecast =
@@ -406,7 +413,13 @@ export function transformSeries(
             ),
           }
         : seriesType === 'bar' && !stack
-          ? { data: transformNegativeLabelsPosition(series, isHorizontal) }
+          ? {
+              data: transformNegativeLabelsPosition(
+                series,
+                isHorizontal,
+                labelPosition,
+              ),
+            }
           : null
       : null),
     connectNulls,
@@ -443,7 +456,12 @@ export function transformSeries(
     symbolSize: symbolSizeFn ?? markerSize,
     label: {
       show: !!showValue,
-      position: isHorizontal ? 'right' : 'top',
+      position: (labelPosition === 'auto' || !labelPosition
+        ? isHorizontal
+          ? LabelPositionEnum.Right
+          : LabelPositionEnum.Top
+        : labelPosition) as LabelPositionEnum,
+      ...(plotType === 'bar' ? { overflow: 'truncate' } : {}),
       color: theme?.colorText,
       textBorderWidth: 0,
       formatter: (params: any) => {
@@ -467,6 +485,14 @@ export function transformSeries(
           return formatter(numericValue);
         }
         if (!onlyTotal) {
+          // A stacked segment with no height begins and ends at the same
+          // coordinate as the top of the segment beneath it, so its label is
+          // drawn over that segment's label. Zero and null have no height, so
+          // they carry no label. The rich tooltip omits zero observations from
+          // a stacked series for the same reason.
+          if (stack && !numericValue) {
+            return '';
+          }
           if (
             numericValue >=
             (thresholdValues[dataIndex] || Number.MIN_SAFE_INTEGER)

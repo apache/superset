@@ -17,6 +17,9 @@
 
 # pylint: disable=import-outside-toplevel, invalid-name, line-too-long
 
+from __future__ import annotations
+
+from datetime import datetime
 from typing import Any, TYPE_CHECKING
 from urllib.parse import parse_qs, urlparse
 
@@ -33,6 +36,8 @@ from superset.sql.parse import Table
 from superset.superset_typing import OAuth2ClientConfig
 from superset.utils import json
 from superset.utils.oauth2 import decode_oauth2_state
+from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
+from tests.unit_tests.fixtures.common import dttm  # noqa: F401
 
 if TYPE_CHECKING:
     from superset.db_engine_specs.base import OAuth2State
@@ -225,7 +230,6 @@ def test_validate_parameters_catalog(
                 }
             }
         },
-        future=True,
     )
 
 
@@ -299,7 +303,6 @@ def test_validate_parameters_catalog_and_credentials(
                 }
             }
         },
-        future=True,
     )
 
 
@@ -1070,3 +1073,33 @@ def test_validate_parameters_skips_oauth2_connections_with_masked_encrypted_extr
 
     assert errors == []
     conn.execute.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "target_type,expected_result",
+    [
+        ("Date", "'2019-01-02'"),
+        ("DateTime", "'2019-01-02 03:04:05'"),
+        ("UnknownType", None),
+    ],
+)
+def test_convert_dttm(
+    target_type: str,
+    expected_result: str | None,
+    dttm: datetime,  # noqa: F811
+) -> None:
+    """
+    A Date-typed column must produce a plain ISO date literal ('YYYY-MM-DD').
+
+    Without this, ``SqliteEngineSpec.convert_dttm`` (inherited via
+    ``ShillelaghEngineSpec``) returns ``None`` for ``types.Date``, and Superset falls
+    back to a full ``'YYYY-MM-DD HH:MM:SS.ffffff'`` literal. shillelagh's virtual
+    table layer parses that bound value with ``datetime.date.fromisoformat``, which
+    rejects the trailing time-of-day and silently coerces the constraint to ``None``,
+    which the GSheets adapter renders as the SQL literal ``null`` -- an unquoted
+    bareword that Google's Chart API parses as a missing column reference, raising
+    "Invalid query: NO_COLUMN: null".
+    """
+    from superset.db_engine_specs.gsheets import GSheetsEngineSpec
+
+    assert_convert_dttm(GSheetsEngineSpec, target_type, expected_result, dttm)

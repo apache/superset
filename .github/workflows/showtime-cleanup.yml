@@ -17,6 +17,9 @@ env:
   GITHUB_ORG: ${{ github.repository_owner }}
   GITHUB_REPO: ${{ github.event.repository.name }}
 
+permissions:
+  contents: read
+
 jobs:
   cleanup-expired:
     name: Clean up expired showtime environments

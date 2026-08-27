@@ -165,12 +165,31 @@ def get_available_engine_specs() -> dict[type[BaseEngineSpec], set[str]]:  # noq
         except Exception as ex:  # pylint: disable=broad-except
             logger.debug("Unable to load SQLAlchemy dialect %s: %s", ep.name, ex)
         else:
-            backend = dialect.name
+            # A third-party entry point can load successfully yet not resolve to
+            # a usable dialect. Validate the same dialect contract as the native
+            # loop so malformed connectors are neither advertised nor allowed to
+            # abort the whole enumeration.
+            backend = getattr(dialect, "name", None)
+            if (
+                not isinstance(dialect, type)
+                or not issubclass(dialect, DefaultDialect)
+                or not isinstance(backend, (str, bytes))
+                or not hasattr(dialect, "driver")
+                or dialect.driver == "adodbapi"
+            ):
+                logger.warning(
+                    "Skipping SQLAlchemy dialect entry point %r: %r did not "
+                    "resolve to a usable dialect (%r)",
+                    ep.name,
+                    ep.value,
+                    dialect,
+                )
+                continue
             if isinstance(backend, bytes):
                 backend = backend.decode()
             backend = backend_replacements.get(backend, backend)
 
-            driver = getattr(dialect, "driver", dialect.name)
+            driver = dialect.driver
             if isinstance(driver, bytes):
                 driver = driver.decode()
             drivers[backend].add(driver)
