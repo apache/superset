@@ -547,8 +547,10 @@ matplotlib==3.9.0
     # via prophet
 mccabe==0.7.0
     # via pylint
-mcp==1.24.0
-    # via fastmcp-slim
+mcp==1.29.1
+    # via
+    #   apache-superset
+    #   fastmcp-slim
 mdurl==0.1.2
     # via
     #   -c requirements/base-constraint.txt

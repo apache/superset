@@ -50,6 +50,7 @@ import {
   LegendOrientation,
   LegendType,
   EchartsTimeseriesChartProps,
+  LabelPositionEnum,
 } from '../../src/types';
 import { DEFAULT_FORM_DATA } from '../../src/Timeseries/constants';
 import { createEchartsTimeseriesTestChartProps } from '../helpers';
@@ -746,6 +747,146 @@ describe('Does transformProps transform series correctly', () => {
 
     transformedSeries.forEach(series => {
       expect(series.label.show).toBe(false);
+    });
+  });
+
+  test('should respect labelPosition configuration', () => {
+    const chartProps = createTestChartProps({
+      formData: {
+        ...formData,
+        labelPosition: LabelPositionEnum.InsideBottom,
+      },
+      queriesData,
+    });
+
+    const transformedSeries = transformProps(chartProps).echartOptions
+      .series as any[];
+
+    transformedSeries.forEach(series => {
+      expect(series.label.position).toBe('insideBottom');
+      expect(series.label.overflow).toBeUndefined();
+    });
+  });
+
+  test('should default to top when labelPosition is auto and orientation is vertical', () => {
+    const chartProps = createTestChartProps({
+      formData: {
+        ...formData,
+        labelPosition: 'auto',
+        orientation: OrientationType.Vertical,
+      },
+      queriesData,
+    });
+
+    const transformedSeries = transformProps(chartProps).echartOptions
+      .series as any[];
+
+    transformedSeries.forEach(series => {
+      expect(series.label.position).toBe('top');
+      expect(series.label.overflow).toBeUndefined();
+    });
+  });
+
+  test('should default to right when labelPosition is auto and orientation is horizontal', () => {
+    const chartProps = createTestChartProps({
+      formData: {
+        ...formData,
+        labelPosition: 'auto',
+        orientation: OrientationType.Horizontal,
+      },
+      queriesData,
+    });
+
+    const transformedSeries = transformProps(chartProps).echartOptions
+      .series as any[];
+
+    transformedSeries.forEach(series => {
+      expect(series.label.position).toBe('right');
+      expect(series.label.overflow).toBeUndefined();
+    });
+  });
+
+  test('should default to right when labelPosition is unset and orientation is horizontal', () => {
+    const chartProps = createTestChartProps({
+      formData: {
+        ...formData,
+        labelPosition: undefined,
+        orientation: OrientationType.Horizontal,
+      },
+      queriesData,
+    });
+
+    const transformedSeries = transformProps(chartProps).echartOptions
+      .series as any[];
+
+    transformedSeries.forEach(series => {
+      expect(series.label.position).toBe('right');
+      expect(series.label.overflow).toBeUndefined();
+    });
+  });
+
+  test('should set overflow: truncate only for bar series', () => {
+    const barChartProps = createTestChartProps({
+      formData: {
+        ...formData,
+        seriesType: EchartsTimeseriesSeriesType.Bar,
+      },
+      queriesData,
+    });
+    const lineChartProps = createTestChartProps({
+      formData: {
+        ...formData,
+        seriesType: EchartsTimeseriesSeriesType.Line,
+      },
+      queriesData,
+    });
+
+    const barSeries = transformProps(barChartProps).echartOptions
+      .series as any[];
+    const lineSeries = transformProps(lineChartProps).echartOptions
+      .series as any[];
+
+    barSeries.forEach(series => {
+      expect(series.label.overflow).toBe('truncate');
+    });
+    lineSeries.forEach(series => {
+      expect(series.label.overflow).toBeUndefined();
+    });
+  });
+
+  test('should respect labelPosition for negative values in unstacked bar charts', () => {
+    const negativeQueriesData = [
+      createTestQueryData(
+        createTestData(
+          [
+            {
+              'San Francisco': -1,
+              'New York': 2,
+            },
+          ],
+          { intervalMs: 300000000 },
+        ),
+      ),
+    ];
+
+    const chartProps = createTestChartProps({
+      formData: {
+        ...formData,
+        seriesType: EchartsTimeseriesSeriesType.Bar,
+        stack: false,
+        labelPosition: LabelPositionEnum.Inside,
+      },
+      queriesData: negativeQueriesData,
+    });
+
+    const transformedSeries = transformProps(chartProps).echartOptions
+      .series as any[];
+
+    expect(transformedSeries[0].data[0]).toEqual({
+      value: [expect.any(Number), -1],
+      label: {
+        position: 'inside',
+      },
     });
   });
 
