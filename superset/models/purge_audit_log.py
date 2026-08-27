@@ -72,6 +72,12 @@ class PurgeAuditLog(Model):
     # Comma-joined UUIDs of charts left dangling / dashboards that lost a join
     # row (force-purge visibility). Free text, content-free.
     affected_referrers = Column(Text, nullable=True)
+    # Stable machine code identifying which rule blocked the purge (or the
+    # cascade-integrity failure class). Written at finalization for
+    # blocked outcomes only; NULL for confirmed, failed, non-blocked, and
+    # pre-feature rows. Vocabulary: REASON_* constants in
+    # superset.commands.deletion_retention.purge_policy.
+    reason: Column[str] = Column(String(64), nullable=True)
     removed_dashboard_slices = Column(Integer, nullable=False, default=0)
     created_on = Column(
         DateTime()
