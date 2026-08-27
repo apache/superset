@@ -68,9 +68,7 @@ def install_npm_packages(npm_cmd: str, root_dir: str, packages: list[str]) -> bo
     return rc == 0
 
 
-def convert_po_file(
-    po_file: str, po2json_cmd: list[str]
-) -> tuple[bool, str, str]:
+def convert_po_file(po_file: str, po2json_cmd: list[str]) -> tuple[bool, str, str]:
     json_dest = f"{os.path.splitext(po_file)[0]}.json"
     os.makedirs(os.path.dirname(json_dest), exist_ok=True)
 
@@ -158,17 +156,14 @@ def compile_translations() -> int:  # noqa: C901
     else:
         prettier_cmd = [npx_cmd, "-y", "prettier"] if npx_cmd else None
 
-    po_files = glob.glob(
-        os.path.join(translations_dir, "**", "*.po"), recursive=True
-    )
+    po_files = glob.glob(os.path.join(translations_dir, "**", "*.po"), recursive=True)
     print(f"Step 3: Converting {len(po_files)} .po files to JSON...")
 
     failures: list[str] = []
     max_workers = min(8, (os.cpu_count() or 1) * 2)
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = {
-            executor.submit(convert_po_file, f, po2json_cmd): f
-            for f in po_files
+            executor.submit(convert_po_file, f, po2json_cmd): f for f in po_files
         }
         for future in as_completed(futures):
             ok, po_path, err = future.result()
@@ -179,9 +174,7 @@ def compile_translations() -> int:  # noqa: C901
                 print(f"  OK: {po_path}")
 
     if failures:
-        print(
-            f"\nERROR: {len(failures)} file(s) failed conversion:", file=sys.stderr
-        )
+        print(f"\nERROR: {len(failures)} file(s) failed conversion:", file=sys.stderr)
         for f in failures:
             print(f"  - {f}", file=sys.stderr)
         return 1
