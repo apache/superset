@@ -21,10 +21,6 @@ import { t } from '@apache-superset/core/translation';
 import {
   filterNulls,
   autozoom,
-  jsColumns,
-  jsDataMutator,
-  jsTooltip,
-  jsOnclickHref,
   viewport,
   lineType,
   reverseLongLat,
@@ -151,15 +147,6 @@ const config: ControlPanelConfig = {
         ...generateDeckGLColorSchemeControls({
           defaultSchemeType: COLOR_SCHEME_TYPES.fixed_color,
         }),
-      ],
-    },
-    {
-      label: t('Advanced'),
-      controlSetRows: [
-        [jsColumns],
-        [jsDataMutator],
-        [jsTooltip],
-        [jsOnclickHref],
       ],
     },
   ],

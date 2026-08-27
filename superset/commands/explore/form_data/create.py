@@ -16,7 +16,7 @@
 # under the License.
 import logging
 
-from flask import session
+from flask import current_app as app, session
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset.commands.base import BaseCommand
@@ -64,8 +64,13 @@ class CreateFormDataCommand(BaseCommand):
                     "chart_id": chart_id,
                     "form_data": form_data,
                 }
-                cache_manager.explore_form_data_cache.set(key, state)
-                cache_manager.explore_form_data_cache.set(contextual_key, key)
+                timeout = app.config["EXPLORE_FORM_DATA_CACHE_CONFIG"].get(
+                    "CACHE_DEFAULT_TIMEOUT"
+                )
+                cache_manager.explore_form_data_cache.set(key, state, timeout=timeout)
+                cache_manager.explore_form_data_cache.set(
+                    contextual_key, key, timeout=timeout
+                )
             return key
         except SQLAlchemyError as ex:
             logger.exception("Error running create command")

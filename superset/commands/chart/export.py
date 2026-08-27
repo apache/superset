@@ -78,7 +78,7 @@ class ExportChartsCommand(ExportModelsCommand):
         if feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
             tags = getattr(model, "tags", [])
             payload["tags"] = [tag.name for tag in tags if tag.type == TagType.custom]
-        file_content = yaml.safe_dump(payload, sort_keys=False)
+        file_content = yaml.safe_dump(payload, sort_keys=False, allow_unicode=True)
         return file_content
 
     _include_tags: bool = True  # Default to True
@@ -91,6 +91,21 @@ class ExportChartsCommand(ExportModelsCommand):
     def enable_tag_export(cls) -> None:
         cls._include_tags = True
 
+    def run(self) -> Iterator[tuple[str, Callable[[], str]]]:
+        yield from super().run()
+
+        # Tags are exported once for all requested charts (rather than per
+        # chart in `_export`) so a multi-chart export doesn't lose tags to
+        # the parent's per-file-name de-duplication of `tags.yaml`.
+        if (
+            self.export_related
+            and ExportChartsCommand._include_tags
+            and feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM")
+        ):
+            yield from ExportTagsCommand(
+                chart_ids=[model.id for model in self._models]
+            ).run()
+
     @staticmethod
     def _export(
         model: Slice, export_related: bool = True
@@ -102,12 +117,3 @@ class ExportChartsCommand(ExportModelsCommand):
 
         if model.table and export_related:
             yield from ExportDatasetsCommand([model.table.id]).run()
-
-        # Check if the calling class is ExportDashboardCommands
-        if (
-            export_related
-            and ExportChartsCommand._include_tags
-            and feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM")
-        ):
-            chart_id = model.id
-            yield from ExportTagsCommand().export(chart_ids=[chart_id])

@@ -42,7 +42,7 @@ import AnnotationLayerModal from 'src/features/annotationLayers/AnnotationLayerM
 import { AnnotationLayerObject } from 'src/features/annotationLayers/types';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
 import { Icons } from '@superset-ui/core/components/Icons';
-import { navigateTo } from 'src/utils/navigationUtils';
+import { ensureAppRoot, navigateTo } from 'src/utils/navigationUtils';
 import { WIDER_DROPDOWN_WIDTH } from 'src/components/ListView/utils';
 
 const PAGE_SIZE = 25;
@@ -154,7 +154,9 @@ function AnnotationLayersList({
           }
 
           return (
-            <Typography.Link href={`/annotationlayer/${id}/annotation`}>
+            <Typography.Link
+              href={ensureAppRoot(`/annotationlayer/${id}/annotation`)}
+            >
               {name}
             </Typography.Link>
           );

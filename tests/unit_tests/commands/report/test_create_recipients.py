@@ -17,6 +17,8 @@
 
 from unittest.mock import MagicMock, patch
 
+from marshmallow import ValidationError
+
 from superset.commands.report.create import CreateReportScheduleCommand
 from superset.commands.report.exceptions import ReportScheduleUserEmailNotFoundError
 from superset.reports.models import (
@@ -45,7 +47,7 @@ def test_populate_recipients_chart_creation_with_user_email() -> None:
             ],
         }
 
-        exceptions: list[Exception] = []
+        exceptions: list[ValidationError] = []
         command._populate_recipients(exceptions)
 
         # Check that recipients were overridden
@@ -73,7 +75,7 @@ def test_populate_recipients_dashboard_creation_with_user_email() -> None:
             # No recipients provided initially
         }
 
-        exceptions: list[Exception] = []
+        exceptions: list[ValidationError] = []
         command._populate_recipients(exceptions)
 
         # Check that recipients were set
@@ -104,7 +106,7 @@ def test_populate_recipients_alerts_reports_keeps_original() -> None:
         "recipients": original_recipients,
     }
 
-    exceptions: list[Exception] = []
+    exceptions: list[ValidationError] = []
     command._populate_recipients(exceptions)
 
     # Check that recipients were NOT changed
@@ -125,7 +127,7 @@ def test_populate_recipients_chart_creation_no_user_email() -> None:
             "creation_method": ReportCreationMethod.CHARTS,
         }
 
-        exceptions: list[Exception] = []
+        exceptions: list[ValidationError] = []
         command._populate_recipients(exceptions)
 
         # Check that validation error was added
@@ -149,7 +151,7 @@ def test_populate_recipients_dashboard_creation_no_user() -> None:
             "creation_method": ReportCreationMethod.DASHBOARDS,
         }
 
-        exceptions: list[Exception] = []
+        exceptions: list[ValidationError] = []
         command._populate_recipients(exceptions)
 
         # Check that validation error was added
@@ -171,7 +173,7 @@ def test_populate_recipients_no_creation_method() -> None:
         "recipients": original_recipients,
     }
 
-    exceptions: list[Exception] = []
+    exceptions: list[ValidationError] = []
     command._populate_recipients(exceptions)
 
     # Check that recipients were NOT changed

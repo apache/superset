@@ -20,10 +20,6 @@ set -e
 GITHUB_WORKSPACE=${GITHUB_WORKSPACE:-.}
 ASSETS_MANIFEST="$GITHUB_WORKSPACE/superset/static/assets/manifest.json"
 
-# Rounded job start time, used to create a unique Cypress build id for
-# parallelization so we can manually rerun a job after 20 minutes
-NONCE=$(echo "$(date "+%Y%m%d%H%M") - ($(date +%M)%20)" | bc)
-
 # Echo only when not in parallel mode
 say() {
   if [[ $(echo "$INPUT_PARALLEL" | tr '[:lower:]' '[:upper:]') != 'TRUE' ]]; then
@@ -55,6 +51,15 @@ build-assets() {
   cd "$GITHUB_WORKSPACE/superset-frontend"
 
   say "::group::Build static assets"
+  npm run build
+  say "::endgroup::"
+}
+
+build-embedded-sdk() {
+  cd "$GITHUB_WORKSPACE/superset-embedded-sdk"
+
+  say "::group::Build embedded SDK bundle for E2E tests"
+  npm ci
   npm run build
   say "::endgroup::"
 }
@@ -109,7 +114,7 @@ testdata() {
   say "::group::Load test data"
   # must specify PYTHONPATH to make `tests.superset_test_config` importable
   export PYTHONPATH="$GITHUB_WORKSPACE"
-  pip install -e .
+  uv pip install --system -e .
   superset db upgrade
   superset load_test_users
   superset load_examples --load-test-data
@@ -122,7 +127,7 @@ playwright_testdata() {
   say "::group::Load all examples for Playwright tests"
   # must specify PYTHONPATH to make `tests.superset_test_config` importable
   export PYTHONPATH="$GITHUB_WORKSPACE"
-  pip install -e .
+  uv pip install --system -e .
   superset db upgrade
   superset load_test_users
   superset load_examples
@@ -196,18 +201,23 @@ cypress-run-all() {
   # navigation flow under E2E. We diverge from the entrypoint on:
   #   --timeout 120: heavy dashboard import/export specs exceed the 60s
   #     default
-  #   --max-requests / --max-requests-jitter: recycle the worker under
-  #     test load to avoid leaks accumulating across the run
   #   superset.app:create_app(): explicit factory so we don't depend on
   #     FLASK_APP being exported
+  #
+  # No --max-requests, matching the entrypoint's default of 0 (recycling
+  # off). With a single worker a recycle takes the whole backend offline for
+  # the graceful-timeout drain — browser keep-alive connections hold it open
+  # for the full 30s — plus ~5s of app boot. A run issues ~3800 requests in
+  # ~8 minutes, so recycling every 500 produced seven ~35s outages per run
+  # and flaked whichever specs happened to navigate into one. Lowering
+  # --graceful-timeout is not enough: a dashboard load plus chart render
+  # needs 6-10s, which still lands inside the window.
   nohup gunicorn \
     --bind "127.0.0.1:$port" \
     --workers 1 \
     --worker-class gthread \
     --threads 20 \
     --timeout 120 \
-    --max-requests 500 \
-    --max-requests-jitter 50 \
     --access-logfile - \
     --error-logfile - \
     "superset.app:create_app()" \
@@ -251,7 +261,7 @@ cypress-run-all() {
   # UNCOMMENT the next few commands to monitor memory usage
   # monitor_memory &  # Start memory monitoring in the background
   # memoryMonitorPid=$!
-  python ../../scripts/cypress_run.py --parallelism $PARALLELISM --parallelism-id $PARALLEL_ID --group $PARALLEL_ID --retries 5 $USE_DASHBOARD_FLAG
+  python ../../scripts/cypress_run.py --retries 5 $USE_DASHBOARD_FLAG
   # kill $memoryMonitorPid
 }
 
@@ -276,7 +286,12 @@ playwright-run() {
   cd "$GITHUB_WORKSPACE"
   local serverlog="${HOME}/superset-playwright.log"
   local port=8081
-  PLAYWRIGHT_BASE_URL="http://localhost:${port}"
+  # Use 127.0.0.1 explicitly: `flask run` binds IPv4 only, and Node's DNS
+  # resolution for `localhost` can return `::1` first (IPv6), which then
+  # refuses against the IPv4 listener and surfaces as
+  # `connect ECONNREFUSED ::1:<port>` in API helpers driven from Node
+  # (e.g., the embedded test app's exposed token fetcher).
+  PLAYWRIGHT_BASE_URL="http://127.0.0.1:${port}"
   if [ -n "$APP_ROOT" ]; then
     export SUPERSET_APP_ROOT=$APP_ROOT
     PLAYWRIGHT_BASE_URL=${PLAYWRIGHT_BASE_URL}${APP_ROOT}/
@@ -284,16 +299,14 @@ playwright-run() {
   export PLAYWRIGHT_BASE_URL
 
   # See cypress-run-all() above for the args rationale (1 worker × 20
-  # gthread threads matching docker/entrypoints/run-server.sh, plus a
-  # 120s timeout and request-recycling for heavy E2E load).
+  # gthread threads matching docker/entrypoints/run-server.sh, a 120s
+  # timeout for heavy E2E load, and why worker recycling is off).
   nohup gunicorn \
     --bind "127.0.0.1:$port" \
     --workers 1 \
     --worker-class gthread \
     --threads 20 \
     --timeout 120 \
-    --max-requests 500 \
-    --max-requests-jitter 50 \
     --access-logfile - \
     --error-logfile - \
     "superset.app:create_app()" \

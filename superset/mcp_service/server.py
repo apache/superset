@@ -30,10 +30,13 @@ from typing import Annotated, Any, Callable
 import uvicorn
 from fastmcp.exceptions import ToolError
 from fastmcp.server.middleware import Middleware
+from starlette.requests import ClientDisconnect
 
 from superset.mcp_service.app import create_mcp_app, init_fastmcp_server
+from superset.mcp_service.jwt_verifier import BrowserHelloMiddleware
 from superset.mcp_service.mcp_config import (
     get_mcp_factory_config,
+    MCP_STATELESS_HTTP,
     MCP_STORE_CONFIG,
     MCP_TOOL_SEARCH_CONFIG,
 )
@@ -61,6 +64,8 @@ def _suppress_third_party_warnings() -> None:
     - marshmallow ``RemovedInMarshmallow4Warning`` (triggered during
       database engine schema instantiation)
     - google.api_core ``FutureWarning`` (Python version support notices)
+    - sqlalchemy-redshift ``pkg_resources`` UserWarning (see
+      superset/db_engine_specs/redshift.py for details)
     """
     import warnings
 
@@ -74,6 +79,32 @@ def _suppress_third_party_warnings() -> None:
         category=FutureWarning,
         module=r"google\..*",
     )
+    # authlib.jose deprecation warning is suppressed at package init time
+    # (superset/mcp_service/__init__.py), but add it here too for any late
+    # imports that may occur after tool execution begins.
+    warnings.filterwarnings(
+        "ignore",
+        message=r"authlib\.jose module is deprecated",
+    )
+    # Same treatment for the pkg_resources warning suppressed at package
+    # init time. Confirmed non-redundant: warnings.filters can be reset
+    # between the package import and this call (e.g. pytest's warnings
+    # plugin resets it around every test -- test_suppress_third_party_warnings
+    # below fails without this line, proving the reset scenario is real,
+    # not hypothetical), so re-registering here is load-bearing, not
+    # belt-and-suspenders.
+    warnings.filterwarnings(
+        "ignore",
+        message=r"pkg_resources is deprecated as an API",
+        category=UserWarning,
+        module=r"sqlalchemy_redshift(?:\..*)?",
+    )
+
+
+def _downgrade_to_warning(record: logging.LogRecord) -> None:
+    """Mutate *record* in place to WARNING level."""
+    record.levelno = logging.WARNING
+    record.levelname = "WARNING"
 
 
 class FastMCPValidationFilter(logging.Filter):
@@ -99,8 +130,51 @@ class FastMCPValidationFilter(logging.Filter):
         if record.levelno != logging.ERROR:
             return True
         if "Error validating tool" in record.getMessage():
-            record.levelno = logging.WARNING
-            record.levelname = "WARNING"
+            _downgrade_to_warning(record)
+        return True
+
+
+class MCPTransportDisconnectFilter(logging.Filter):
+    """Downgrade MCP SDK client-disconnect transport logs from ERROR to WARNING.
+
+    When an MCP client disconnects mid-request (a cancelled or timed-out tool
+    call — normal client behavior, not a Superset bug), the ``mcp`` SDK's own
+    transport code logs it at ERROR with a full traceback, and separately
+    re-raises it into the session's message loop, which logs a second ERROR.
+    Both are expected under normal client behavior and should not page or
+    open incidents; downgrading to WARNING keeps them visible in log
+    aggregation without polluting ERROR-level alerting.
+
+    Two different loggers require two different matching strategies:
+
+    - ``mcp.server.streamable_http`` (``_handle_post_request``) catches the
+      disconnect via a broad ``except Exception`` and logs it with
+      ``logger.exception(...)``, so ``record.exc_info`` carries the actual
+      exception object — we can check its type directly.
+    - ``mcp.server.lowlevel.server`` (``_handle_message``) receives the same
+      exception secondhand, already wrapped as a bare
+      ``Exception(ClientDisconnect())`` pushed onto the read stream. The
+      original type is lost by the time it's logged, so exception-type
+      checks are impossible here. ``ClientDisconnect`` is always raised with
+      zero args, so ``str(ClientDisconnect())`` is always ``""`` — making the
+      rendered message a fixed, matchable string instead.
+    """
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        if record.levelno != logging.ERROR:
+            return True
+        if record.name == "mcp.server.streamable_http":
+            if record.exc_info and isinstance(record.exc_info[1], ClientDisconnect):
+                _downgrade_to_warning(record)
+        elif record.name == "mcp.server.lowlevel.server":
+            # NOTE: This matches the literal log message from the mcp SDK's
+            # lowlevel/server.py (``_handle_message``, line ~689 in the
+            # ``mcp==1.24.0`` pinned in requirements/development.txt):
+            # ``logger.error(f"Received exception from stream: {message}")``.
+            # If the SDK changes this f-string's wording, this filter will
+            # stop working silently.
+            if record.getMessage() == "Received exception from stream: ":
+                _downgrade_to_warning(record)
         return True
 
 
@@ -138,6 +212,17 @@ def configure_logging(debug: bool = False) -> None:
     # Downgrade these specific messages from ERROR to WARNING.
     fastmcp_server_logger = logging.getLogger("fastmcp.server.server")
     fastmcp_server_logger.addFilter(FastMCPValidationFilter())
+
+    # MCP client disconnects (cancelled/timed-out tool calls) are logged at
+    # ERROR by the mcp SDK's transport and lowlevel server loggers. These are
+    # expected client behavior, not Superset bugs — downgrade to WARNING.
+    transport_disconnect_filter = MCPTransportDisconnectFilter()
+    logging.getLogger("mcp.server.streamable_http").addFilter(
+        transport_disconnect_filter
+    )
+    logging.getLogger("mcp.server.lowlevel.server").addFilter(
+        transport_disconnect_filter
+    )
 
 
 def create_event_store(config: dict[str, Any] | None = None) -> Any | None:
@@ -508,6 +593,27 @@ def _fix_call_tool_arguments(tool: Any) -> Any:
     return tool
 
 
+def _fix_search_tool_query(tool: Any) -> Any:
+    """Fix anyOf schema in search_tools ``query`` for MCP bridge compatibility.
+
+    The optional ``query: str | None`` parameter emits an ``anyOf`` JSON
+    Schema with no top-level ``type``. Some MCP bridges (mcp-remote,
+    Claude Desktop) don't handle ``anyOf`` and strip it, leaving the field
+    typeless — the same failure mode ``_fix_call_tool_arguments`` guards
+    against. Replaces the ``anyOf`` with a flat ``type: string``.
+
+    Only the advertised schema changes; FastMCP validates calls against
+    the function signature, so omitting ``query`` remains valid.
+    """
+    if "query" in (props := (tool.parameters or {}).get("properties", {})):
+        props["query"] = {
+            "default": None,
+            "description": "Natural language query. Omit to list all available tools.",
+            "type": "string",
+        }
+    return tool
+
+
 def _normalize_call_tool_arguments(
     arguments: dict[str, Any] | None,
     tool_schema: dict[str, Any] | None,
@@ -618,7 +724,7 @@ def _apply_tool_search_transform(mcp_instance: Any, config: dict[str, Any]) -> N
     )
 
 
-def _create_search_transform(
+def _create_search_transform(  # noqa: C901
     *,
     strategy: str,
     kwargs: dict[str, Any],
@@ -626,6 +732,32 @@ def _create_search_transform(
 ) -> Any:
     """Create the configured search transform with tool-permission filtering."""
     from fastmcp.server.context import Context
+    from fastmcp.tools.tool import Tool
+
+    def _make_optional_query_search_tool(transform: Any) -> Any:
+        """Create search tool with optional query — returns all tools when omitted."""
+
+        async def search_tools(
+            query: Annotated[
+                str | None,
+                "Natural language query. Omit to list all available tools.",
+            ] = None,
+            ctx: Context = None,
+        ) -> str | list[dict[str, Any]]:
+            """Search for tools using natural language.
+
+            Returns matching tool definitions ranked by relevance.
+            If no query is provided, returns all available tools.
+            """
+            hidden = await transform._get_visible_tools(ctx)
+            if not query:
+                results = hidden
+            else:
+                results = await transform._search(hidden, query)
+            return await transform._render_results(results)
+
+        tool = Tool.from_function(fn=search_tools, name=transform._search_tool_name)
+        return _fix_search_tool_query(tool)
 
     if strategy == "regex":
         from fastmcp.server.transforms.search import RegexSearchTransform
@@ -641,6 +773,10 @@ def _create_search_transform(
             def _make_call_tool(self) -> Any:
                 """Build the normalized ``call_tool`` proxy for regex search."""
                 return make_normalizing_call_tool(self)
+
+            def _make_search_tool(self) -> Any:
+                """Build the optional-query ``search_tools`` for regex search."""
+                return _make_optional_query_search_tool(self)
 
         return _FixedRegexSearchTransform(**kwargs)
 
@@ -658,6 +794,10 @@ def _create_search_transform(
             """Build the normalized ``call_tool`` proxy for BM25 search."""
             return make_normalizing_call_tool(self)
 
+        def _make_search_tool(self) -> Any:
+            """Build the optional-query ``search_tools`` for BM25 search."""
+            return _make_optional_query_search_tool(self)
+
     return _FixedBM25SearchTransform(**kwargs)
 
 
@@ -665,8 +805,20 @@ def _create_auth_provider(flask_app: Any) -> Any | None:
     """Create an auth provider from Flask app config.
 
     Tries MCP_AUTH_FACTORY first, then falls back to the default factory
-    when MCP_AUTH_ENABLED is True.
+    when either ``MCP_AUTH_ENABLED`` (JWT auth), ``MCP_API_KEY_ENABLED``, or
+    ``FAB_API_KEY_ENABLED`` (API key auth) is True. The default factory builds a
+    ``CompositeTokenVerifier`` that handles either or both auth modes.
+
+    Fail-closed: when auth has been explicitly configured, any error while
+    building the provider (or a configured factory yielding no provider)
+    raises ``MCPAuthConfigError`` so the service refuses to start rather
+    than coming up as an unauthenticated server.
     """
+    from superset.mcp_service.mcp_config import (
+        create_default_mcp_auth_factory,
+        MCPAuthConfigError,
+    )
+
     auth_provider = None
     if auth_factory := flask_app.config.get("MCP_AUTH_FACTORY"):
         try:
@@ -675,23 +827,63 @@ def _create_auth_provider(flask_app: Any) -> Any | None:
                 "Auth provider created from MCP_AUTH_FACTORY: %s",
                 type(auth_provider).__name__ if auth_provider else "None",
             )
-        except Exception:
-            # Do not log the exception — it may contain secrets
-            logger.error("Failed to create auth provider from MCP_AUTH_FACTORY")
-    elif flask_app.config.get("MCP_AUTH_ENABLED", False):
-        from superset.mcp_service.mcp_config import (
-            create_default_mcp_auth_factory,
-        )
-
+        except MCPAuthConfigError:
+            # Operator-facing config guidance raised by the factory itself;
+            # carries no secret material. Propagate as-is.
+            raise
+        except Exception as ex:
+            # A configured MCP_AUTH_FACTORY that cannot build its provider is a
+            # misconfiguration that must fail closed: falling through would
+            # start the service unauthenticated. Unlike the default factory
+            # below, an operator-supplied factory gives no basis to classify
+            # any of its failures as benign build errors. The original
+            # exception is suppressed (from None) rather than chained because
+            # its message may contain secrets; the type name is enough to
+            # locate the failure.
+            raise MCPAuthConfigError(
+                "MCP_AUTH_FACTORY is configured but raised "
+                f"{type(ex).__name__} while building the auth provider; "
+                "refusing to start the MCP service without authentication. "
+                "Fix the factory or unset MCP_AUTH_FACTORY."
+            ) from None
+        if auth_provider is None:
+            raise MCPAuthConfigError(
+                "MCP_AUTH_FACTORY returned no auth provider; refusing to "
+                "start an unauthenticated MCP server. Return a token "
+                "verifier or unset MCP_AUTH_FACTORY."
+            )
+    elif (
+        flask_app.config.get("MCP_AUTH_ENABLED", False)
+        or flask_app.config.get("MCP_API_KEY_ENABLED", False)
+        or flask_app.config.get("FAB_API_KEY_ENABLED", False)
+        or flask_app.config.get("MCP_EMBEDDED_GUEST_AUTH_ENABLED", False)
+    ):
         try:
             auth_provider = create_default_mcp_auth_factory(flask_app)
             logger.info(
                 "Auth provider created from default factory: %s",
                 type(auth_provider).__name__ if auth_provider else "None",
             )
+        except MCPAuthConfigError:
+            # A misconfiguration that must fail closed: re-raise so the service
+            # refuses to start rather than falling through to an unauthenticated
+            # server. The message is operator-facing config guidance and carries
+            # no secret material.
+            raise
         except Exception:
-            # Do not log the exception — it may contain secrets
+            # Do not log or chain the exception — it may contain secrets.
+            # Auth was explicitly enabled, so a provider that cannot be built
+            # must also fail closed instead of starting unauthenticated.
             logger.error("Failed to create auth provider from default factory")
+            raise MCPAuthConfigError(
+                "Failed to build the MCP auth provider from the configured "
+                "auth settings; refusing to start an unauthenticated MCP "
+                "server. Check the MCP auth configuration."
+            ) from None
+        # ``None`` here is deliberate only when the factory itself resolved
+        # every auth mode to disabled (e.g. MCP_API_KEY_ENABLED=False
+        # explicitly overriding FAB_API_KEY_ENABLED); misconfigurations of an
+        # enabled mode raise MCPAuthConfigError inside the factory instead.
     return auth_provider
 
 
@@ -717,6 +909,68 @@ def build_middleware_list() -> list[Middleware]:
     ]
 
 
+def _build_starlette_middleware(
+    flask_app: Any | None = None, auth_provider: Any | None = None
+) -> list[Any]:
+    from starlette.middleware import Middleware as StarletteMiddleware
+
+    if flask_app is None:
+        from superset.mcp_service.flask_singleton import get_flask_app
+
+        flask_app = get_flask_app()
+    # Auth is active only when an instantiated provider was passed in.
+    # Config-flag presence is not sufficient — MCP_AUTH_FACTORY may return
+    # None, and use_factory_config auth lives outside Flask config entirely.
+    auth_enabled = auth_provider is not None
+    app_name: str = flask_app.config.get("APP_NAME", "Superset")
+    app_icon: str = flask_app.config.get("APP_ICON", "")
+    base_page_config: dict[str, Any] = {
+        "title": f"{app_name} MCP Server",
+        "server_key": app_name.lower().replace(" ", "-"),
+        "app_name": app_name,
+    }
+    if app_icon:
+        if app_icon.startswith(("http://", "https://")):
+            base_page_config["logo_url"] = app_icon
+        elif app_icon.startswith("/"):
+            # Relative path — combine with Superset webserver address if configured
+            superset_addr = flask_app.config.get(
+                "SUPERSET_WEBSERVER_ADDRESS", ""
+            ).rstrip("/")
+            if superset_addr:
+                base_page_config["logo_url"] = f"{superset_addr}{app_icon}"
+    mcp_hello_page = flask_app.config.get("MCP_HELLO_PAGE")
+    if mcp_hello_page is not None and not isinstance(mcp_hello_page, dict):
+        logger.warning(
+            "MCP_HELLO_PAGE must be a dict, ignoring value of type %s",
+            type(mcp_hello_page).__name__,
+        )
+        mcp_hello_page = None
+    page_config: dict[str, Any] = {**base_page_config, **(mcp_hello_page or {})}
+    return [
+        StarletteMiddleware(
+            BrowserHelloMiddleware,
+            auth_enabled=auth_enabled,
+            page_config=page_config,
+        )
+    ]
+
+
+def _register_health_endpoint(mcp_instance: Any) -> None:
+    """
+    Register /health for load balancers and K8s probes.
+
+    The health_check MCP tool exists but is only reachable via the MCP
+    protocol, not httpGet probes.
+    """
+    from starlette.requests import Request
+    from starlette.responses import JSONResponse
+
+    @mcp_instance.custom_route("/health", methods=["GET"])
+    async def _health(_: Request) -> JSONResponse:
+        return JSONResponse({"status": "ok"})
+
+
 def run_server(
     host: str = "127.0.0.1",
     port: int = 5008,
@@ -729,7 +983,11 @@ def run_server(
     Uses streamable-http transport for HTTP server mode.
 
     For multi-pod deployments, configure MCP_EVENT_STORE_CONFIG with Redis URL
-    to share session state across pods.
+    to share session state across pods. If MCP_STATELESS_HTTP is also set to
+    False (see its docstring in mcp_config.py), sessions are stateful and
+    multi-pod additionally requires session-affinity routing on
+    Mcp-Session-Id at the mesh/ingress layer -- otherwise a session's
+    follow-up requests can land on a pod that never created it.
 
     Args:
         host: Host to bind to
@@ -750,6 +1008,19 @@ def run_server(
         logging.info("Creating MCP app from factory configuration...")
         factory_config = get_mcp_factory_config()
         mcp_instance = create_mcp_app(**factory_config)
+        # The factory path bypasses init_fastmcp_server(), so install the
+        # per-tool-call session scoping here as well; without it concurrent
+        # tool calls share the greenlet-scoped db.session.
+        # Lazy import mirrors init_fastmcp_server() to avoid the circular
+        # import through superset.extensions during startup.
+        from superset.mcp_service.session_scope import (  # noqa: PLC0415
+            install_mcp_session_scoping,
+        )
+
+        install_mcp_session_scoping()
+        # Capture the actual auth object so the hello page reflects real auth state
+        auth_provider = factory_config.get("auth")
+        flask_app = None
 
         # Apply tool search transform if configured
         tool_search_config = MCP_TOOL_SEARCH_CONFIG
@@ -791,8 +1062,15 @@ def run_server(
                 search_name = tool_search_config.get("search_tool_name", "search_tools")
                 size_guard_middleware.excluded_tools.add(search_name)
 
+    _register_health_endpoint(mcp_instance)
+
     # Create EventStore for session management (Redis for multi-pod, None for in-memory)
     event_store = create_event_store(event_store_config)
+
+    starlette_middleware = _build_starlette_middleware(
+        flask_app=flask_app,
+        auth_provider=auth_provider,
+    )
 
     env_key = f"FASTMCP_RUNNING_{port}"
     if not os.environ.get(env_key):
@@ -800,13 +1078,24 @@ def run_server(
         try:
             logging.info("Starting FastMCP on %s:%s", host, port)
 
+            # See MCP_STATELESS_HTTP's docstring in mcp_config.py: stateless
+            # mode races a tool's progress notifications against the
+            # transport teardown that follows its HTTP request, crashing the
+            # session if a client disconnects mid-call.
+            stateless_http = (
+                flask_app.config.get("MCP_STATELESS_HTTP", MCP_STATELESS_HTTP)
+                if flask_app is not None
+                else MCP_STATELESS_HTTP
+            )
+
             if event_store is not None:
                 # Multi-pod: Use http_app with Redis EventStore, run with uvicorn
                 logging.info("Running in multi-pod mode with Redis EventStore")
                 app = mcp_instance.http_app(
                     transport="streamable-http",
                     event_store=event_store,
-                    stateless_http=True,
+                    stateless_http=stateless_http,
+                    middleware=starlette_middleware,
                 )
                 uvicorn.run(app, host=host, port=port)
             else:
@@ -816,7 +1105,8 @@ def run_server(
                     transport="streamable-http",
                     host=host,
                     port=port,
-                    stateless_http=True,
+                    stateless_http=stateless_http,
+                    middleware=starlette_middleware,
                 )
         except Exception as e:
             logging.error("FastMCP failed: %s", e)

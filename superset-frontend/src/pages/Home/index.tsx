@@ -27,8 +27,9 @@ import {
 import { styled } from '@apache-superset/core/theme';
 import rison from 'rison';
 import { Collapse, ListViewCard } from '@superset-ui/core/components';
-import { User } from 'src/types/bootstrapTypes';
-import { reject } from 'lodash';
+import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+import { useIsMobile } from 'src/hooks/useIsMobile';
+import { reject } from 'lodash-es';
 import {
   dangerouslyGetItemDoNotUse,
   dangerouslySetItemDoNotUse,
@@ -41,7 +42,7 @@ import {
   CardContainer,
   createErrorHandler,
   getRecentActivityObjs,
-  getUserOwnedObjects,
+  getUserEditableObjects,
   loadingCardCount,
   mq,
 } from 'src/views/CRUD/utils';
@@ -53,13 +54,13 @@ import { userHasPermission } from 'src/dashboard/util/permissionUtils';
 import { WelcomePageLastTab } from 'src/features/home/types';
 import ActivityTable from 'src/features/home/ActivityTable';
 import ChartTable from 'src/features/home/ChartTable';
-import SavedQueries from 'src/features/home/SavedQueries';
+import ToastedSavedQueries from 'src/features/home/SavedQueries';
 import DashboardTable from 'src/features/home/DashboardTable';
 
 const extensionsRegistry = getExtensionsRegistry();
 
 interface WelcomeProps {
-  user: User;
+  user: UserWithPermissionsAndRoles;
   addDangerToast: (arg0: string) => void;
 }
 
@@ -147,6 +148,7 @@ export const LoadingCards = ({ cover }: LoadingProps) => (
 );
 
 function Welcome({ user, addDangerToast }: WelcomeProps) {
+  const isNotMobile = !useIsMobile();
   const canReadSavedQueries = userHasPermission(user, 'SavedQuery', 'can_read');
   const userid = user.userId;
   const id = userid!.toString(); // confident that user is not a guest user
@@ -251,7 +253,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
       },
     ];
     Promise.all([
-      getUserOwnedObjects(id, 'dashboard')
+      getUserEditableObjects(id, 'dashboard')
         .then(r => {
           setDashboardData(r);
           return Promise.resolve();
@@ -263,7 +265,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
           );
           return Promise.resolve();
         }),
-      getUserOwnedObjects(id, 'chart')
+      getUserEditableObjects(id, 'chart')
         .then(r => {
           setChartData(r);
           return Promise.resolve();
@@ -274,7 +276,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
           return Promise.resolve();
         }),
       canReadSavedQueries
-        ? getUserOwnedObjects(id, 'saved_query', ownSavedQueryFilters)
+        ? getUserEditableObjects(id, 'saved_query', ownSavedQueryFilters)
             .then(r => {
               setQueryData(r);
               return Promise.resolve();
@@ -397,24 +399,29 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
                       />
                     ),
                 },
-                {
-                  key: 'charts',
-                  label: t('Charts'),
-                  children:
-                    !chartData || isRecentActivityLoading ? (
-                      <LoadingCards cover={checked} />
-                    ) : (
-                      <ChartTable
-                        showThumbnails={checked}
-                        user={user}
-                        mine={chartData}
-                        otherTabData={activityData?.[TableTab.Other]}
-                        otherTabFilters={otherTabFilters}
-                        otherTabTitle={otherTabTitle}
-                      />
-                    ),
-                },
-                ...(canReadSavedQueries
+                // Hide Charts and Saved queries on mobile - consumption-only mode
+                ...(isNotMobile
+                  ? [
+                      {
+                        key: 'charts',
+                        label: t('Charts'),
+                        children:
+                          !chartData || isRecentActivityLoading ? (
+                            <LoadingCards cover={checked} />
+                          ) : (
+                            <ChartTable
+                              showThumbnails={checked}
+                              user={user}
+                              mine={chartData}
+                              otherTabData={activityData?.[TableTab.Other]}
+                              otherTabFilters={otherTabFilters}
+                              otherTabTitle={otherTabTitle}
+                            />
+                          ),
+                      },
+                    ]
+                  : []),
+                ...(isNotMobile && canReadSavedQueries
                   ? [
                       {
                         key: 'saved-queries',
@@ -422,7 +429,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
                         children: !queryData ? (
                           <LoadingCards cover={checked} />
                         ) : (
-                          <SavedQueries
+                          <ToastedSavedQueries
                             showThumbnails={checked}
                             user={user}
                             mine={queryData}

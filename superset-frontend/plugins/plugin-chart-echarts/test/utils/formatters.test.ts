@@ -17,6 +17,9 @@
  * under the License.
  */
 import {
+  createSmartDateFormatter,
+  createSmartDateVerboseFormatter,
+  getTimeFormatterRegistry,
   NumberFormats,
   SMART_DATE_ID,
   SMART_DATE_VERBOSE_ID,
@@ -28,6 +31,16 @@ import {
   getTooltipTimeFormatter,
   getXAxisFormatter,
 } from '../../src/utils/formatters';
+
+// The app normally registers these via setupFormatters() at bootstrap.
+// Register them here so tests that check actual formatted output (not just
+// formatter identity) exercise the real smart-date formatting logic instead
+// of falling back to treating "smart_date" as a literal d3 format string.
+beforeAll(() => {
+  getTimeFormatterRegistry()
+    .registerValue(SMART_DATE_ID, createSmartDateFormatter())
+    .registerValue(SMART_DATE_VERBOSE_ID, createSmartDateVerboseFormatter());
+});
 
 test('getPercentFormatter should format as percent if no format is specified', () => {
   const value = 0.6;
@@ -206,6 +219,71 @@ test('getTooltipTimeFormatter falls back to the String constructor when no forma
   expect(getTooltipTimeFormatter(undefined)).toBe(String);
 });
 
+test('getTooltipTimeFormatter respects the time grain for the SMART_DATE path', () => {
+  // With a time grain active and no explicit format, the tooltip should read
+  // grain-appropriate labels rather than a raw timestamp. UTC-based dates keep
+  // the assertions deterministic across CI/developer timezones.
+  const date = new Date(Date.UTC(2021, 0, 7));
+
+  const dayFormatter = getTooltipTimeFormatter(
+    SMART_DATE_ID,
+    TimeGranularity.DAY,
+  ) as TimeFormatter;
+  expect(dayFormatter.format(date)).toEqual('2021-01-07');
+
+  const weekFormatter = getTooltipTimeFormatter(
+    SMART_DATE_ID,
+    TimeGranularity.WEEK,
+  ) as TimeFormatter;
+  expect(weekFormatter.format(date)).toEqual('2021-01-07 — 2021-01-13');
+
+  const monthFormatter = getTooltipTimeFormatter(
+    SMART_DATE_ID,
+    TimeGranularity.MONTH,
+  ) as TimeFormatter;
+  expect(monthFormatter.format(date)).toEqual(expect.stringContaining('Jan'));
+  expect(monthFormatter.format(date)).toEqual(expect.stringContaining('2021'));
+
+  const quarterFormatter = getTooltipTimeFormatter(
+    SMART_DATE_ID,
+    TimeGranularity.QUARTER,
+  ) as TimeFormatter;
+  expect(quarterFormatter.format(date)).toEqual(expect.stringContaining('Q1'));
+  expect(quarterFormatter.format(date)).toEqual(
+    expect.stringContaining('2021'),
+  );
+
+  const yearFormatter = getTooltipTimeFormatter(
+    SMART_DATE_ID,
+    TimeGranularity.YEAR,
+  ) as TimeFormatter;
+  expect(yearFormatter.format(date)).toEqual('2021');
+});
+
+test('getTooltipTimeFormatter applies the time grain even without an explicit format', () => {
+  const date = new Date(Date.UTC(2021, 0, 7));
+  const monthFormatter = getTooltipTimeFormatter(
+    undefined,
+    TimeGranularity.MONTH,
+  ) as TimeFormatter;
+  expect(monthFormatter).toBeInstanceOf(TimeFormatter);
+  expect(monthFormatter.format(date)).toEqual(expect.stringContaining('2021'));
+});
+
+test('getTooltipTimeFormatter honors an explicit custom format over the time grain', () => {
+  // A user-pinned format must win, so the grain does not turn a single date
+  // into a range or otherwise override the requested format.
+  const formatter = getTooltipTimeFormatter(
+    '%Y-%m-%d',
+    TimeGranularity.YEAR,
+  ) as TimeFormatter;
+  expect(formatter).toBeInstanceOf(TimeFormatter);
+  expect(formatter.id).toBe('%Y-%m-%d');
+  expect(formatter.format(new Date(Date.UTC(2021, 0, 7)))).toEqual(
+    '2021-01-07',
+  );
+});
+
 test('getXAxisFormatter produces stable SMART_DATE output for a valid Date', () => {
   // Documents the current happy-path output format so unexpected changes are
   // caught during review.
@@ -230,4 +308,44 @@ test('getXAxisFormatter returns a string for an Invalid Date without throwing', 
   const customFormatter = getXAxisFormatter('%Y-%m-%d') as TimeFormatter;
   expect(() => customFormatter.format(invalid)).not.toThrow();
   expect(typeof customFormatter.format(invalid)).toBe('string');
+});
+
+test('getSmartDateFormatter MINUTE grain distinguishes different minutes', () => {
+  const formatter = getXAxisFormatter(
+    SMART_DATE_ID,
+    TimeGranularity.MINUTE,
+  ) as TimeFormatter;
+  const date1 = new Date('2024-01-15T10:15:00Z');
+  const date2 = new Date('2024-01-15T10:30:00Z');
+  expect(formatter.format(date1)).not.toBe(formatter.format(date2));
+});
+
+test('getSmartDateFormatter FIFTEEN_MINUTES grain distinguishes different minutes', () => {
+  const formatter = getXAxisFormatter(
+    SMART_DATE_ID,
+    TimeGranularity.FIFTEEN_MINUTES,
+  ) as TimeFormatter;
+  const date1 = new Date('2024-01-15T10:15:00Z');
+  const date2 = new Date('2024-01-15T10:30:00Z');
+  expect(formatter.format(date1)).not.toBe(formatter.format(date2));
+});
+
+test('getSmartDateFormatter HOUR grain collapses minutes to same label', () => {
+  const formatter = getXAxisFormatter(
+    SMART_DATE_ID,
+    TimeGranularity.HOUR,
+  ) as TimeFormatter;
+  const date1 = new Date('2024-01-15T10:00:00Z');
+  const date2 = new Date('2024-01-15T10:35:00Z');
+  expect(formatter.format(date1)).toBe(formatter.format(date2));
+});
+
+test('getSmartDateFormatter SECOND grain distinguishes different seconds', () => {
+  const formatter = getXAxisFormatter(
+    SMART_DATE_ID,
+    TimeGranularity.SECOND,
+  ) as TimeFormatter;
+  const date1 = new Date('2024-01-15T10:35:00Z');
+  const date2 = new Date('2024-01-15T10:35:45Z');
+  expect(formatter.format(date1)).not.toBe(formatter.format(date2));
 });

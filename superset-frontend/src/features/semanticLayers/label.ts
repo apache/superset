@@ -63,3 +63,15 @@ export const databasesLabel = () => sl(t('Databases'), t('Data connections'));
 /** Lower-case plural: "databases" / "data connections" */
 export const databasesLabelLower = () =>
   sl(t('databases'), t('data connections'));
+
+// ---------------------------------------------------------------------------
+// Per-datasource parent label
+// ---------------------------------------------------------------------------
+
+/**
+ * Returns the label for the parent of a datasource: "database" for datasets,
+ * "semantic layer" for semantic views. Pass the `kind` field from the
+ * combined datasource list response.
+ */
+export const parentLabelLower = (kind?: string) =>
+  kind === 'semantic_view' ? t('semantic layer') : t('database');

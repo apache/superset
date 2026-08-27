@@ -40,6 +40,17 @@ export type ButtonStyle =
 
 export type ButtonSize = 'default' | 'small' | 'xsmall';
 
+export type ButtonStyleConfig = {
+  controlHeight?: number;
+  paddingInline?: number;
+  fontSize?: number;
+  fontWeight?: number;
+  ctaMinWidth?: number;
+  ctaMinHeight?: number;
+  iconGap?: number;
+  borderRadius?: number;
+};
+
 export type ButtonProps = Omit<AntdButtonProps, 'css'> & {
   placement?: TooltipPlacement;
   tooltip?: ReactNode;
@@ -49,4 +60,5 @@ export type ButtonProps = Omit<AntdButtonProps, 'css'> & {
   cta?: boolean;
   showMarginRight?: boolean;
   icon?: ReactNode;
+  styleConfig?: ButtonStyleConfig;
 };

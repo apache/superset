@@ -159,7 +159,7 @@ def test_pivot_eliminate_cartesian_product_columns():
             "dttm": to_datetime(["2019-01-01", "2019-01-01"]),
             "a": [0, 1],
             "b": [0, 1],
-            "metric": [9, np.NAN],
+            "metric": [9, np.nan],
         }
     )
 
@@ -180,7 +180,7 @@ def test_pivot_eliminate_cartesian_product_columns():
             "dttm": to_datetime(["2019-01-01", "2019-01-01"]),
             "a": [0, 1],
             "b": [0, 1],
-            "metric": [9, np.NAN],
+            "metric": [9, np.nan],
             "metric2": [10, 11],
         }
     )

@@ -47,7 +47,7 @@ export interface ModalProps {
   resizable?: boolean;
   resizableConfig?: ResizableProps;
   draggable?: boolean;
-  draggableConfig?: DraggableProps;
+  draggableConfig?: Partial<DraggableProps>;
   destroyOnHidden?: boolean;
   maskClosable?: boolean;
   zIndex?: number;

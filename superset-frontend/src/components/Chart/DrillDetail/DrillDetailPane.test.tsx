@@ -66,12 +66,7 @@ const MOCKED_DATASET = {
     first_name: 'John',
     last_name: 'Doe',
   },
-  owners: [
-    {
-      first_name: 'John',
-      last_name: 'Doe',
-    },
-  ],
+  editors: [{ id: 1, label: 'John Doe', type: 1 }],
 };
 
 const setupDatasetEndpoint = () => {
@@ -221,6 +216,12 @@ test('should render the error', async () => {
     .spyOn(SupersetClient, 'post')
     .mockRejectedValue(new Error('Something went wrong'));
   await waitForRender();
+  // The error is wrapped in an Alert component with a stable headline and the
+  // raw error text in the description — no more bare ``<pre>`` elements.
+  expect(await screen.findByRole('alert')).toBeVisible();
+  expect(
+    await screen.findByText('Failed to load drill-to-detail rows'),
+  ).toBeVisible();
   expect(screen.getByText('Error: Something went wrong')).toBeInTheDocument();
 });
 
@@ -304,11 +305,11 @@ test('should offer the full set of page-size options', async () => {
   await waitForRender();
 
   // The page-size changer renders as an antd Select. In jsdom, antd opens
-  // its overlay on mouseDown of the .ant-select-selector element rather
+  // its overlay on mouseDown of the .ant-select-content element rather
   // than via a click on the inner combobox input.
   const selector = await waitFor(() => {
     const el = document.querySelector(
-      '.ant-pagination-options-size-changer .ant-select-selector',
+      '.ant-pagination-options-size-changer .ant-select-content',
     ) as HTMLElement | null;
     expect(el).toBeTruthy();
     return el!;

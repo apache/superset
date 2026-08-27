@@ -46,7 +46,7 @@ describe('TextArea', () => {
   });
 
   test('renders a AceEditor when language is specified', async () => {
-    const props = { ...defaultProps, language: 'markdown' };
+    const props = { ...defaultProps, language: 'markdown' as const };
     const { container } = render(<TextAreaControl {...props} />);
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
     await waitFor(() => {
@@ -55,7 +55,7 @@ describe('TextArea', () => {
   });
 
   test('calls onAreaEditorChange when entering in the AceEditor', () => {
-    const props = { ...defaultProps, language: 'markdown' };
+    const props = { ...defaultProps, language: 'markdown' as const };
     render(<TextAreaControl {...props} />);
     const textArea = screen.getByRole('textbox');
     fireEvent.change(textArea, { target: { value: 'x' } });

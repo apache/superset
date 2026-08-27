@@ -35,3 +35,8 @@ test('should use defaults from Select token separators', () => {
     ),
   ).toBe(false);
 });
+
+test('d3NumberFormat and d3TimeFormat should allow free-text entry', () => {
+  expect(SHARED_COLUMN_CONFIG_PROPS.d3NumberFormat.allowNewOptions).toBe(true);
+  expect(SHARED_COLUMN_CONFIG_PROPS.d3TimeFormat.allowNewOptions).toBe(true);
+});

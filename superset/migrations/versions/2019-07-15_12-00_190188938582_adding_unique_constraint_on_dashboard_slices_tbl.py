@@ -26,7 +26,7 @@ import logging
 
 from alembic import op
 from sqlalchemy import and_, Column, ForeignKey, Integer
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import declarative_base
 
 from superset import db
 

@@ -18,8 +18,8 @@
  */
 import { useRef } from 'react';
 import { useSelector } from 'react-redux';
-import { useAppDispatch } from 'src/views/store';
-import { isObject } from 'lodash';
+import { useAppDispatch } from 'src/SqlLab/hooks/useAppDispatch';
+import { isObject } from 'lodash-es';
 import rison from 'rison';
 import {
   SupersetClient,

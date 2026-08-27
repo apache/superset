@@ -24,6 +24,7 @@ about a specific dashboard.
 
 import logging
 from datetime import datetime, timezone
+from typing import Any
 
 from fastmcp import Context
 from flask import g, has_request_context
@@ -38,12 +39,12 @@ from superset.mcp_service.dashboard.schemas import (
     dashboard_serializer,
     DashboardError,
     DashboardInfo,
+    DEFAULT_GET_DASHBOARD_INFO_COLUMNS,
     GetDashboardInfoRequest,
     redact_filter_state_data_model_metadata,
 )
 from superset.mcp_service.mcp_core import ModelGetInfoCore
 from superset.mcp_service.privacy import user_can_view_data_model_metadata
-from superset.mcp_service.utils import sanitize_for_llm_context
 
 logger = logging.getLogger(__name__)
 
@@ -76,16 +77,14 @@ def _apply_permalink_state(
     permalink_key: str,
     permalink_state: dict[str, object],
 ) -> DashboardInfo:
-    """Sanitize only the raw permalink fields added after serialization."""
-    payload = result.model_dump(mode="python")
-    payload["permalink_key"] = permalink_key
-    payload["filter_state"] = sanitize_for_llm_context(
-        permalink_state,
-        field_path=("filter_state",),
-        excluded_field_names=frozenset(),
+    """Attach permalink fields without changing their stored values."""
+    return result.model_copy(
+        update={
+            "permalink_key": permalink_key,
+            "filter_state": permalink_state,
+            "is_permalink_state": True,
+        }
     )
-    payload["is_permalink_state"] = True
-    return DashboardInfo.model_validate(payload)
 
 
 def _get_permalink_state(permalink_key: str) -> DashboardPermalinkValue | None:
@@ -114,11 +113,19 @@ def _get_permalink_state(permalink_key: str) -> DashboardPermalinkValue | None:
 )
 async def get_dashboard_info(
     request: GetDashboardInfoRequest, ctx: Context
-) -> DashboardInfo | DashboardError:
+) -> dict[str, Any] | DashboardError:
     """
     Get dashboard metadata by ID, UUID, or slug.
 
     Returns title, charts, and layout details.
+
+    For dashboards with many charts or native filters, the ``charts`` and
+    ``native_filters`` lists may be capped below their true size (see
+    ``chart_count`` for the real total, and ``_truncation_notes`` in the
+    response when truncation occurred). To retrieve the complete list of
+    charts on a large dashboard regardless of size, call ``list_charts``
+    with ``filters=[{"col": "dashboards", "opr": "eq", "value": <dashboard
+    id>}]`` and page through the results using ``page``/``page_size``.
 
     When permalink_key is provided, also returns the filter state from that
     permalink, allowing you to see what filters the user has applied to the
@@ -153,10 +160,15 @@ async def get_dashboard_info(
         from superset.models.dashboard import Dashboard
         from superset.models.slice import Slice
 
-        # Eager load slices and tags to avoid N+1 queries during serialization.
+        # Eager load slices (charts), editors, tags, and embedded rows to avoid
+        # N+1 queries. Also eager load editors/tags on each slice since the
+        # dashboard serializer calls serialize_chart_object for every chart.
         eager_options = [
+            subqueryload(Dashboard.slices).subqueryload(Slice.editors),
             subqueryload(Dashboard.slices).subqueryload(Slice.tags),
+            subqueryload(Dashboard.editors),
             subqueryload(Dashboard.tags),
+            subqueryload(Dashboard.embedded),
         ]
 
         with event_logger.log_context(action="mcp.get_dashboard_info.lookup"):
@@ -246,6 +258,19 @@ async def get_dashboard_info(
                     result.published,
                     result.is_permalink_state,
                 )
+            )
+            # When permalink_key is supplied and the caller did not explicitly
+            # override select_columns, ensure filter_state is present so the
+            # caller gets the data they came for.
+            effective_select_columns = list(request.select_columns)
+            if request.permalink_key and effective_select_columns == list(
+                DEFAULT_GET_DASHBOARD_INFO_COLUMNS
+            ):
+                effective_select_columns.append("filter_state")
+
+            return result.model_dump(
+                mode="json",
+                context={"select_columns": effective_select_columns},
             )
         else:
             await ctx.warning(

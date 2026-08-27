@@ -19,7 +19,7 @@ from __future__ import annotations
 from typing import Any, cast, TYPE_CHECKING
 
 from superset.common.chart_data import ChartDataResultType
-from superset.common.query_object import QueryObject
+from superset.common.query_object import DEPRECATED_FIELDS, QueryObject
 from superset.common.utils.time_range_utils import get_since_until_from_time_range
 from superset.constants import NO_TIME_RANGE
 from superset.superset_typing import Column
@@ -58,13 +58,19 @@ class QueryObjectFactory:  # pylint: disable=too-few-public-methods
         time_range: str | None = None,
         time_shift: str | None = None,
         server_pagination: bool | None = None,
+        datasource_model_instance: BaseDatasource | None = None,
         **kwargs: Any,
     ) -> QueryObject:
-        datasource_model_instance = None
-        if datasource:
+        if datasource_model_instance is None and datasource:
             datasource_model_instance = self._convert_to_model(datasource)
         processed_extras = self._process_extras(extras)
         result_type = kwargs.setdefault("result_type", parent_result_type)
+
+        # Rename deprecated kwargs before any processing so that downstream code
+        # (time-range resolution, QueryObject) only ever sees the canonical names.
+        for field in DEPRECATED_FIELDS:
+            if old_val := kwargs.pop(field.old_name, None):
+                kwargs.setdefault(field.new_name, old_val)
 
         # Process row limit taking server pagination into account
         row_limit = self._process_row_limit(

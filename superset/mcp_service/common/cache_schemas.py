@@ -114,36 +114,36 @@ class CreatedByMeMixin(BaseModel):
         return self
 
 
-class OwnedByMeMixin(BaseModel):
-    """Mixin that adds an owned_by_me filter flag to list request schemas.
+class EditedByMeMixin(BaseModel):
+    """Mixin that adds an edited_by_me filter flag to list request schemas.
 
-    Provides a clean caller-facing alternative to exposing M2M owner IDs.
-    The server translates the flag into the appropriate owner filter and injects
+    Provides a clean caller-facing alternative to exposing M2M editor IDs.
+    The server translates the flag into the appropriate editor filter and injects
     the current user's ID automatically.
 
     When combined with created_by_me, returns items where the current user is
-    either the creator OR an owner (union, not intersection).
+    either the creator OR an editor (union, not intersection).
     """
 
-    owned_by_me: Annotated[
+    edited_by_me: Annotated[
         bool,
         Field(
             default=False,
             description=(
                 "When true, return only items where the current user is listed as "
-                "an owner. Can be combined with 'filters' but not with 'search'. "
+                "an editor. Can be combined with 'filters' but not with 'search'. "
                 "Can be combined with 'created_by_me' to return items where the "
-                "current user is either the creator or an owner."
+                "current user is either the creator or an editor."
             ),
         ),
     ]
 
     @model_validator(mode="after")
-    def _validate_owned_by_me(self) -> Any:
-        if getattr(self, "search", None) and self.owned_by_me:
+    def _validate_edited_by_me(self) -> Any:
+        if getattr(self, "search", None) and self.edited_by_me:
             raise ValueError(
-                "'owned_by_me' cannot be combined with 'search'. "
-                "Use 'owned_by_me' alone or with 'filters'."
+                "'edited_by_me' cannot be combined with 'search'. "
+                "Use 'edited_by_me' alone or with 'filters'."
             )
         return self
 

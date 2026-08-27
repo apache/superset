@@ -204,7 +204,7 @@ class Explorable(Protocol):
         object describing what data to fetch (columns, metrics, filters, time range,
         etc.) and returns a QueryResult containing a pandas DataFrame with the results.
 
-        :param query_obj: QueryObject describing the query
+        :param query_object: QueryObject describing the query
 
         :return: QueryResult containing:
             - df: pandas DataFrame with query results
@@ -333,7 +333,7 @@ class Explorable(Protocol):
         - catalog: catalog name (if applicable)
         - cache_timeout: default cache timeout
         - offset: timezone offset
-        - owners: list of owner IDs
+        - editors: list of editor IDs
         - verbose_map: dict mapping column/metric names to display names
 
         :return: Dictionary with complete explorable metadata

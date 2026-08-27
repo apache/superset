@@ -36,7 +36,7 @@ import traceback
 import uuid
 import warnings
 import zlib
-from collections.abc import Iterable, Iterator, Sequence
+from collections.abc import Collection, Iterable, Iterator, Sequence
 from contextlib import closing, contextmanager
 from dataclasses import dataclass
 from datetime import timedelta
@@ -59,8 +59,9 @@ from typing import (
     TypedDict,
     TypeVar,
 )
-from urllib.parse import unquote_plus
+from urllib.parse import unquote_plus, urlparse
 from zipfile import ZipFile
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import markdown as md
 import nh3
@@ -96,7 +97,6 @@ from superset.exceptions import (
     SupersetException,
     SupersetTimeoutException,
 )
-from superset.sql.parse import sanitize_clause
 from superset.superset_typing import (
     AdhocColumn,
     AdhocMetric,
@@ -119,6 +119,28 @@ if TYPE_CHECKING:
 
 logging.getLogger("MARKDOWN").setLevel(logging.INFO)
 logger = logging.getLogger(__name__)
+
+EMAIL_ATTACHMENT_SUBTYPES: dict[str, str] = {
+    ".pdf": "pdf",
+    ".zip": "zip",
+    ".xlsx": "vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+}
+
+
+def build_email_attachment(name: str, body: bytes | str) -> MIMEApplication:
+    """
+    Create an email attachment part with stable filename metadata.
+    """
+    subtype = EMAIL_ATTACHMENT_SUBTYPES.get(os.path.splitext(name)[1].lower())
+    payload = body.encode("utf-8") if isinstance(body, str) else body
+    attachment = MIMEApplication(
+        payload,
+        _subtype=subtype or "octet-stream",
+        Name=name,
+    )
+    attachment.add_header("Content-Disposition", "attachment", filename=name)
+    return attachment
+
 
 DTTM_ALIAS = "__timestamp"
 
@@ -154,12 +176,23 @@ METRIC_MAP_TYPE = {
     "PERCENTILE": "floating",
     "VARIANCE": "floating",
     "STDDEV": "floating",
+    "STDDEV_SAMP": "floating",
+    "VAR_SAMP": "floating",
 }
 
 
 class AdhocMetricExpressionType(StrEnum):
     SIMPLE = "SIMPLE"
     SQL = "SQL"
+
+
+# Aggregates with no safe, universal cross-dialect spelling -- unlike
+# SUM/COUNT/AVG/MIN/MAX/COUNT_DISTINCT, whose SQL is generated the same way on
+# every engine. Support for these is opt-in per `BaseEngineSpec` (see
+# `get_extended_aggregation_func`); used to distinguish a genuinely invalid
+# aggregate name from one that is valid but unsupported on the current database,
+# for a clearer user-facing error.
+EXTENDED_METRIC_AGGREGATES = frozenset({"MEDIAN", "STDDEV_SAMP", "VAR_SAMP"})
 
 
 class SqlExpressionType(StrEnum):
@@ -187,7 +220,7 @@ class GenericDataType(IntEnum):
     STRING = 1
     TEMPORAL = 2
     BOOLEAN = 3
-    # ARRAY = 4     # Mapping all the complex data types to STRING for now
+    MULTI_VALUE = 4  # array-typed columns (e.g. ClickHouse Array, Postgres ARRAY)
     # JSON = 5      # and leaving these as a reminder.
     # MAP = 6
     # ROW = 7
@@ -210,7 +243,7 @@ class LoggerLevel(StrEnum):
 
 class HeaderDataType(TypedDict):
     notification_format: str
-    owners: list[int]
+    editors: list[int]
     notification_type: str
     notification_source: str | None
     chart_id: int | None
@@ -277,6 +310,17 @@ class FilterOperator(StrEnum):
     IS_TRUE = "IS TRUE"
     IS_FALSE = "IS FALSE"
     TEMPORAL_RANGE = "TEMPORAL_RANGE"
+    # Element-level operators for MULTI_VALUE (array) columns
+    CONTAINS_ANY = "CONTAINS_ANY"
+    CONTAINS_ALL = "CONTAINS_ALL"
+    IS_EMPTY = "IS_EMPTY"
+    IS_NOT_EMPTY = "IS_NOT_EMPTY"
+    # Length (element-count) comparison operators for array columns
+    LENGTH_EQUALS = "LENGTH_EQUALS"
+    LENGTH_GREATER_THAN = "LENGTH_GREATER_THAN"
+    LENGTH_LESS_THAN = "LENGTH_LESS_THAN"
+    LENGTH_GREATER_THAN_OR_EQUALS = "LENGTH_GREATER_THAN_OR_EQUALS"
+    LENGTH_LESS_THAN_OR_EQUALS = "LENGTH_LESS_THAN_OR_EQUALS"
 
 
 class FilterStringOperators(StrEnum):
@@ -295,6 +339,15 @@ class FilterStringOperators(StrEnum):
     LATEST_PARTITION = ("LATEST_PARTITION",)
     IS_TRUE = ("IS_TRUE",)
     IS_FALSE = ("IS_FALSE",)
+    CONTAINS_ANY = ("CONTAINS_ANY",)
+    CONTAINS_ALL = ("CONTAINS_ALL",)
+    IS_EMPTY = ("IS_EMPTY",)
+    IS_NOT_EMPTY = ("IS_NOT_EMPTY",)
+    LENGTH_EQUALS = ("LENGTH_EQUALS",)
+    LENGTH_GREATER_THAN = ("LENGTH_GREATER_THAN",)
+    LENGTH_LESS_THAN = ("LENGTH_LESS_THAN",)
+    LENGTH_GREATER_THAN_OR_EQUALS = ("LENGTH_GREATER_THAN_OR_EQUALS",)
+    LENGTH_LESS_THAN_OR_EQUALS = ("LENGTH_LESS_THAN_OR_EQUALS",)
 
 
 class PostProcessingBoxplotWhiskerType(StrEnum):
@@ -394,6 +447,27 @@ def parse_js_uri_path_item(
     """
     item = None if eval_undefined and item in ("null", "undefined") else item
     return unquote_plus(item) if unquote and item else item
+
+
+# Matches a safe, opaque token suitable for use as a cookie name. Restricting the
+# allowed characters prevents client-controlled input from injecting unexpected
+# cookie attributes or control characters.
+COOKIE_TOKEN_RE = re.compile(r"^[A-Za-z0-9_-]{1,128}$")
+
+
+def sanitize_cookie_token(token: str | None) -> str | None:
+    """Return the token if it is a valid cookie name, otherwise None.
+
+    The export endpoints echo a client-provided ``token`` query parameter back as
+    a cookie name to signal download completion. Validate it against a strict
+    allow-list before trusting it.
+
+    :param token: the client-provided token value
+    :return: the token if valid, else None
+    """
+    if token and COOKIE_TOKEN_RE.match(token):
+        return token
+    return None
 
 
 def cast_to_num(value: float | int | str | None) -> float | int | None:
@@ -552,9 +626,21 @@ def sanitize_svg_content(svg_content: str) -> str:
         return ""
 
     # Minimal protection: remove obvious malicious content, preserve all SVG features
+    # The closing tag pattern tolerates attributes/whitespace after "script"
+    # (e.g. "</script foo>"), which browsers still parse as a valid closer.
     content = re.sub(
-        r"<script[^>]*>.*?</script>", "", svg_content, flags=re.IGNORECASE | re.DOTALL
+        r"<script\b[^>]*>.*?</script\b[^>]*>",
+        "",
+        svg_content,
+        flags=re.IGNORECASE | re.DOTALL,
     )
+    # Second pass: an unterminated <script ...> opener has no matching
+    # closer, so browsers treat everything after it as script content
+    # through end-of-file. Drop the opener and the remainder of the
+    # content with it, rather than leaving the payload text behind.
+    content = re.sub(r"<script\b[^>]*>.*", "", content, flags=re.IGNORECASE | re.DOTALL)
+    # Drop any orphaned closing </script ...> fragment too.
+    content = re.sub(r"</script\b[^>]*>?", "", content, flags=re.IGNORECASE)
     content = re.sub(r"javascript:", "", content, flags=re.IGNORECASE)
     content = re.sub(r"data:[^;]*;[^,]*,.*javascript", "", content, flags=re.IGNORECASE)
 
@@ -620,9 +706,7 @@ def generic_find_constraint_name(
     table: str, columns: set[str], referenced: str, database: SQLAlchemy
 ) -> str | None:
     """Utility to find a constraint name in alembic migrations"""
-    tbl = sa.Table(
-        table, database.metadata, autoload=True, autoload_with=database.engine
-    )
+    tbl = sa.Table(table, database.metadata, autoload_with=database.engine)
 
     for fk in tbl.foreign_key_constraints:
         if fk.referred_table.name == referenced and set(fk.column_keys) == columns:
@@ -662,12 +746,19 @@ def generic_find_fk_constraint_names(  # pylint: disable=invalid-name
 
 
 def generic_find_uq_constraint_name(
-    table: str, columns: set[str], insp: Inspector
+    table: str, columns: Collection[str], insp: Inspector
 ) -> str | None:
-    """Utility to find a unique constraint name in alembic migrations"""
+    """Utility to find a unique constraint name in alembic migrations.
 
+    ``columns`` is coerced to a set before comparison. Historically the
+    parameter was annotated ``set[str]`` but compared with ``==`` against a
+    set — a caller passing a list (as migration ``df3d7e2eb9a4`` did)
+    silently never matched, because ``list == set`` is always ``False``.
+    Coercing removes that foot-gun for future callers.
+    """
+    target = set(columns)
     for uq in insp.get_unique_constraints(table):
-        if columns == set(uq["column_names"]):
+        if target == set(uq["column_names"]):
             return uq["name"]
 
     return None
@@ -767,7 +858,8 @@ def pessimistic_connection_handling(some_engine: Engine) -> None:
             # run a SELECT 1.   use a core select() so that
             # the SELECT of a scalar value without a table is
             # appropriately formatted for the backend
-            connection.scalar(select([1]))
+            connection.scalar(select(1))
+            connection.rollback()  # pylint: disable=consider-using-transaction
         except exc.DBAPIError as err:
             # catch SQLAlchemy's DBAPIError, which is a wrapper
             # for the DBAPI's exception.  It includes a .connection_invalidated
@@ -779,7 +871,8 @@ def pessimistic_connection_handling(some_engine: Engine) -> None:
                 # itself and establish a new connection.  The disconnect detection
                 # here also causes the whole connection pool to be invalidated
                 # so that all stale connections are discarded.
-                connection.scalar(select([1]))
+                connection.scalar(select(1))
+                connection.rollback()  # pylint: disable=consider-using-transaction
             else:
                 raise
         finally:
@@ -811,7 +904,7 @@ def send_email_smtp(  # pylint: disable=invalid-name,too-many-arguments,too-many
     html_content: str,
     config: dict[str, Any],
     files: list[str] | None = None,
-    data: dict[str, str] | None = None,
+    data: dict[str, bytes | str] | None = None,
     pdf: dict[str, bytes] | None = None,
     images: dict[str, bytes] | None = None,
     dryrun: bool = False,
@@ -829,6 +922,9 @@ def send_email_smtp(  # pylint: disable=invalid-name,too-many-arguments,too-many
     smtp_mail_to = recipients_string_to_list(to)
 
     msg = MIMEMultipart(mime_subtype)
+    # Strip CR/LF from the subject so the value cannot inject additional
+    # email headers via header folding/splitting.
+    subject = subject.replace("\r", "").replace("\n", " ").strip()
     msg["Subject"] = subject
     msg["From"] = smtp_mail_from
     msg["To"] = ", ".join(smtp_mail_to)
@@ -855,30 +951,14 @@ def send_email_smtp(  # pylint: disable=invalid-name,too-many-arguments,too-many
     for fname in files or []:
         basename = os.path.basename(fname)
         with open(fname, "rb") as f:
-            msg.attach(
-                MIMEApplication(
-                    f.read(),
-                    Content_Disposition=f"attachment; filename='{basename}'",
-                    Name=basename,
-                )
-            )
+            msg.attach(build_email_attachment(basename, f.read()))
 
     # Attach any files passed directly
     for name, body in (data or {}).items():
-        msg.attach(
-            MIMEApplication(
-                body, Content_Disposition=f"attachment; filename='{name}'", Name=name
-            )
-        )
+        msg.attach(build_email_attachment(name, body))
 
     for name, body_pdf in (pdf or {}).items():
-        msg.attach(
-            MIMEApplication(
-                body_pdf,
-                Content_Disposition=f"attachment; filename='{name}'",
-                Name=name,
-            )
-        )
+        msg.attach(build_email_attachment(name, body_pdf))
 
     # Attach any inline images, which may be required for display in
     # HTML content (inline)
@@ -914,6 +994,11 @@ def send_mime_email(
     smtp_starttls = config["SMTP_STARTTLS"]
     smtp_ssl = config["SMTP_SSL"]
     smtp_ssl_server_auth = config["SMTP_SSL_SERVER_AUTH"]
+    # A missing timeout means the socket blocks forever when the SMTP server is
+    # unreachable, wedging the report schedule in the WORKING state. Fall back to
+    # the key being absent for backwards compatibility with custom configs.
+    # Keep this fallback in sync with the SMTP_TIMEOUT default in config.py.
+    smtp_timeout = config.get("SMTP_TIMEOUT", 30)
 
     if dryrun:
         logger.info("Dryrun enabled, email notification content is below:")
@@ -924,17 +1009,27 @@ def send_mime_email(
     # root CA certificates
     ssl_context = ssl.create_default_context() if smtp_ssl_server_auth else None
     smtp = (
-        smtplib.SMTP_SSL(smtp_host, smtp_port, context=ssl_context)
+        smtplib.SMTP_SSL(
+            smtp_host, smtp_port, context=ssl_context, timeout=smtp_timeout
+        )
         if smtp_ssl
-        else smtplib.SMTP(smtp_host, smtp_port)
+        else smtplib.SMTP(smtp_host, smtp_port, timeout=smtp_timeout)
     )
-    if smtp_starttls:
-        smtp.starttls(context=ssl_context)
-    if smtp_user and smtp_password:
-        smtp.login(smtp_user, smtp_password)
-    logger.debug("Sent an email to %s", str(e_to))
-    smtp.sendmail(e_from, e_to, mime_msg.as_string())
-    smtp.quit()
+    try:
+        if smtp_starttls:
+            smtp.starttls(context=ssl_context)
+        if smtp_user and smtp_password:
+            smtp.login(smtp_user, smtp_password)
+        logger.debug("Sent an email to %s", str(e_to))
+        smtp.sendmail(e_from, e_to, mime_msg.as_string())
+    finally:
+        # Always release the socket; the new timeout means starttls/login/
+        # sendmail can raise, and a skipped quit() would leak connections in
+        # the long-lived worker process.
+        try:
+            smtp.quit()
+        except smtplib.SMTPException:
+            pass
 
 
 def recipients_string_to_list(address_string: str | None) -> list[str]:
@@ -1391,12 +1486,15 @@ def convert_legacy_filters_into_adhoc(  # pylint: disable=invalid-name
 
 def split_adhoc_filters_into_base_filters(  # pylint: disable=invalid-name
     form_data: FormData,
-    engine: str,
+    engine: str | None = None,  # pylint: disable=unused-argument
 ) -> None:
     """
     Mutates form data to restructure the adhoc filters in the form of the three base
     filters, `where`, `having`, and `filters` which represent free form where sql,
     free form having sql, and structured where clauses.
+
+    ``engine`` is retained for backwards compatibility and is unused: clauses are
+    validated downstream, after Jinja templates are rendered.
     """
     adhoc_filters = form_data.get("adhoc_filters")
     if isinstance(adhoc_filters, list):
@@ -1417,7 +1515,9 @@ def split_adhoc_filters_into_base_filters(  # pylint: disable=invalid-name
                     )
             elif expression_type == "SQL":
                 sql_expression = adhoc_filter.get("sqlExpression")
-                sql_expression = sanitize_clause(sql_expression, engine)
+                # keep a trailing line comment from swallowing the " AND " join
+                if sql_expression and "--" in sql_expression:
+                    sql_expression = f"{sql_expression}\n"
                 if clause == "WHERE":
                     sql_where_filters.append(sql_expression)
                 elif clause == "HAVING":
@@ -1743,14 +1843,17 @@ def get_metric_type_from_column(column: Any, datasource: Explorable) -> str:
     expression: str = metric.expression
 
     match = re.match(
-        r"(SUM|AVG|COUNT|COUNT_DISTINCT|MIN|MAX|FIRST|LAST)\((.*)\)", expression
+        r"(SUM|AVG|COUNT|COUNT_DISTINCT|MIN|MAX|FIRST|LAST"
+        r"|MEDIAN|STDDEV_SAMP|VAR_SAMP)\s*\((.*)\)",
+        expression,
+        re.IGNORECASE,
     )
 
     if match:
-        operation = match.group(1)
+        operation = match.group(1).upper()
         return METRIC_MAP_TYPE.get(operation, "")
 
-    logger.warning("Unexpected metric expression type: %s", expression)
+    logger.debug("Unexpected metric expression type: %s", expression)
     return ""
 
 
@@ -1782,9 +1885,9 @@ def extract_dataframe_dtypes(
                 columns_by_name[column.column_name] = column
 
     generic_types: list[GenericDataType] = []
-    for column in df.columns:
+    for i, column in enumerate(df.columns):
         column_object = columns_by_name.get(str(column))
-        series = df[column]
+        series = df.iloc[:, i]
         inferred_type: str = ""
         if series.isna().all():
             sql_type: Optional[str] = ""
@@ -1911,6 +2014,7 @@ class DateColumn:
     timestamp_format: str | None = None
     offset: int | None = None
     time_shift: str | None = None
+    timezone: str | None = None  # IANA timezone name
 
     def __hash__(self) -> int:
         return hash(self.col_label)
@@ -1924,11 +2028,13 @@ class DateColumn:
         timestamp_format: str | None,
         offset: int | None,
         time_shift: str | None,
+        timezone: str | None = None,
     ) -> DateColumn:
         return cls(
             timestamp_format=timestamp_format,
             offset=offset,
             time_shift=time_shift,
+            timezone=timezone,
             col_label=DTTM_ALIAS,
         )
 
@@ -1970,13 +2076,26 @@ def _process_datetime_column(
 
         # Parse with or without format (suppress warning if no format)
         if format_to_use:
-            df[col.col_label] = pd.to_datetime(
+            converted = pd.to_datetime(
                 df[col.col_label],
                 utc=False,
                 format=format_to_use,
                 errors="coerce",
                 exact=False,
             )
+            # A format that coerces every non-null value to NaT is a mismatch
+            # (e.g. an epoch-millis column that inherited a '%Y' string format
+            # when used as a chart's granularity). Assigning it would silently
+            # blank the whole column, so keep the original values instead.
+            if df[col.col_label].notna().any() and not converted.notna().any():
+                logger.warning(
+                    "Datetime format %s coerced every value of column %s to NaT; "
+                    "keeping the original values",
+                    format_to_use,
+                    col.col_label,
+                )
+            else:
+                df[col.col_label] = converted
         else:
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore", message=".*Could not infer format.*")
@@ -2013,8 +2132,28 @@ def normalize_dttm_col(
 
         _process_datetime_column(df, _col)
 
-        if _col.offset:
+        if _col.timezone and isinstance(_col.timezone, str):
+            try:
+                tz = ZoneInfo(_col.timezone)
+                # Data is stored in UTC, convert to the dataset's configured timezone
+                # First make the datetime UTC-aware, then convert to target timezone
+                series = df[_col.col_label]
+                if not series.empty and series.notna().any():
+                    # Convert UTC to target timezone
+                    df[_col.col_label] = (
+                        series.dt.tz_localize("UTC")
+                        .dt.tz_convert(tz)
+                        .dt.tz_localize(None)  # Remove timezone info for display
+                    )
+            except ZoneInfoNotFoundError:
+                logging.warning(
+                    "Unknown timezone '%s', falling back to offset", _col.timezone
+                )
+                if _col.offset:
+                    df[_col.col_label] += timedelta(hours=_col.offset)
+        elif _col.offset:
             df[_col.col_label] += timedelta(hours=_col.offset)
+
         if _col.time_shift is not None:
             df[_col.col_label] += parse_human_timedelta(_col.time_shift)
 
@@ -2107,8 +2246,21 @@ def check_is_safe_zip(zip_file: ZipFile) -> None:
             raise SupersetException("Found file with size above allowed threshold")
         uncompress_size += zip_file_element.file_size
         compress_size += zip_file_element.compress_size
-    compress_ratio = uncompress_size / compress_size
-    if compress_ratio > app.config["ZIP_FILE_MAX_COMPRESS_RATIO"]:
+        # Bound the total decompressed size, not just the per-file size, so an
+        # archive of many individually-allowed entries cannot exhaust memory.
+        # Checked inside the loop to fail fast once the running total exceeds
+        # the cap rather than after summing every entry.
+        if uncompress_size > app.config["ZIP_FILE_MAX_TOTAL_SIZE"]:
+            raise SupersetException(
+                "Found total uncompressed size above allowed threshold"
+            )
+    # Guard the division: a zero compressed size would otherwise raise
+    # ZeroDivisionError instead of a clean error. The total-size cap above
+    # still bounds memory when compress_size is reported as zero.
+    if (
+        compress_size
+        and uncompress_size / compress_size > app.config["ZIP_FILE_MAX_COMPRESS_RATIO"]
+    ):
         raise SupersetException("Zip compress ratio above allowed threshold")
 
 
@@ -2135,11 +2287,21 @@ def to_int(v: Any, value_if_invalid: int = 0) -> int:
 def get_query_source_from_request() -> QuerySource | None:
     if not request or not request.referrer:
         return None
-    if "/superset/dashboard/" in request.referrer:
+    # Match on the referrer's path only, so query-string payloads (e.g.
+    # /explore/?next=/dashboard/1/) cannot misattribute the source. The bare
+    # segment covers legacy /superset/dashboard/ referrers and any
+    # application-root prefix (e.g. /myapp/dashboard/1/).
+    try:
+        referrer_path = urlparse(request.referrer).path
+    except ValueError:
+        # Client-controlled header; e.g. "http://[" raises on the IPv6
+        # bracket check and must not 500 the query path.
+        return None
+    if "/dashboard/" in referrer_path:
         return QuerySource.DASHBOARD
-    if "/explore/" in request.referrer:
+    if "/explore/" in referrer_path:
         return QuerySource.CHART
-    if "/sqllab/" in request.referrer:
+    if "/sqllab/" in referrer_path:
         return QuerySource.SQL_LAB
     return None
 

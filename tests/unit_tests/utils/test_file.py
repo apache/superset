@@ -16,7 +16,7 @@
 # under the License.
 import pytest
 
-from superset.utils.file import get_filename
+from superset.utils.file import get_filename, sanitize_title
 
 
 @pytest.mark.parametrize(
@@ -34,6 +34,9 @@ from superset.utils.file import get_filename
         ("你好", 475, True, "475"),
         ("Energy Sankey 你好", 475, False, "Energy_Sankey_475"),
         ("Energy Sankey 你好", 475, True, "Energy_Sankey"),
+        ("Energy\x08Sankey", 132, False, "EnergySankey_132"),
+        ("Energy\x08Sankey", 132, True, "EnergySankey"),
+        ("Sales\x7fReport", 1, False, "SalesReport_1"),
     ],
 )
 def test_get_filename(
@@ -41,3 +44,20 @@ def test_get_filename(
 ) -> None:
     original_filename = get_filename(model_name, model_id, skip_id)
     assert expected_filename == original_filename
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        ("normal", "normal"),
+        ("a\x08b", "ab"),
+        ("x\x09y", "xy"),
+        ("x\ny", "xy"),
+        ("x\ry", "xy"),
+        ("\x00\x01\x02", ""),
+        ("a\x7fb", "ab"),
+        ("a\x9fb", "ab"),
+    ],
+)
+def test_sanitize_title(raw: str, expected: str) -> None:
+    assert sanitize_title(raw) == expected

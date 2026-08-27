@@ -19,8 +19,7 @@
 
 import { render } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { ThemeProvider } from '@apache-superset/core/theme';
-import { supersetTheme } from '@apache-superset/core/theme';
+import { ThemeProvider, supersetTheme } from '@apache-superset/core/theme';
 import MatrixifyGridRenderer from './MatrixifyGridRenderer';
 import type { MatrixifyMode } from '../../types/matrixify';
 import { generateMatrixifyGrid } from './MatrixifyGridGenerator';

@@ -39,7 +39,11 @@ export function DeleteModal({
   open,
   title,
   name,
+  recoverable = false,
 }: DeleteModalProps) {
+  // Recoverable (archive) deletes drop the "type DELETE to confirm" step;
+  // a permanent delete keeps it.
+  const showConfirmationInput = !recoverable;
   const [disableChange, setDisableChange] = useState(true);
   const [confirmation, setConfirmation] = useState<string>('');
   const inputRef = useRef<InputRef>(null);
@@ -50,13 +54,18 @@ export function DeleteModal({
     }
   }, [open]);
 
+  // Re-arm the gate alongside clearing the text: resetting only the string
+  // leaves disableChange=false behind, so a user who typed DELETE, cancelled,
+  // and reopened would face an enabled Delete button over an empty input.
   const hide = () => {
     setConfirmation('');
+    setDisableChange(true);
     onHide();
   };
 
   const confirm = () => {
     setConfirmation('');
+    setDisableChange(true);
     onConfirm();
   };
 
@@ -74,32 +83,34 @@ export function DeleteModal({
 
   return (
     <Modal
-      disablePrimaryButton={disableChange}
+      disablePrimaryButton={showConfirmationInput ? disableChange : false}
       onHide={hide}
       onHandledPrimaryAction={confirm}
-      primaryButtonName={t('Delete')}
-      primaryButtonStyle="danger"
+      primaryButtonName={recoverable ? t('Archive') : t('Delete')}
+      primaryButtonStyle={recoverable ? 'primary' : 'danger'}
       show={open}
       name={name}
       title={title}
       centered
     >
       {description}
-      <StyledDiv>
-        <FormLabel htmlFor="delete">
-          {t('Type "%s" to confirm', t('DELETE'))}
-        </FormLabel>
-        <Input
-          data-test="delete-modal-input"
-          type="text"
-          id="delete"
-          autoComplete="off"
-          value={confirmation}
-          onChange={onChange}
-          onPressEnter={onPressEnter}
-          ref={inputRef}
-        />
-      </StyledDiv>
+      {showConfirmationInput && (
+        <StyledDiv>
+          <FormLabel htmlFor="delete">
+            {t('Type "%s" to confirm', t('DELETE'))}
+          </FormLabel>
+          <Input
+            data-test="delete-modal-input"
+            type="text"
+            id="delete"
+            autoComplete="off"
+            value={confirmation}
+            onChange={onChange}
+            onPressEnter={onPressEnter}
+            ref={inputRef}
+          />
+        </StyledDiv>
+      )}
     </Modal>
   );
 }

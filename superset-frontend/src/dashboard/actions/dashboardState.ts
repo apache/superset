@@ -58,7 +58,7 @@ import { getActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
 import { safeStringify } from 'src/utils/safeStringify';
 import { logEvent } from 'src/logger/actions';
 import { LOG_ACTIONS_CONFIRM_OVERWRITE_DASHBOARD_METADATA } from 'src/logger/LogUtils';
-import { isEqual } from 'lodash';
+import { isEqual } from 'lodash-es';
 import { navigateWithState, navigateTo } from 'src/utils/navigationUtils';
 import type { AnyAction } from 'redux';
 import type { ThunkDispatch } from 'redux-thunk';
@@ -160,27 +160,48 @@ export function toggleFaveStar(isStarred: boolean): ToggleFaveStarAction {
 }
 
 export function fetchFaveStar(id: number) {
-  return function fetchFaveStarThunk(dispatch: AppDispatch) {
+  return function fetchFaveStarThunk(
+    dispatch: AppDispatch,
+    getState: GetState,
+  ) {
     return SupersetClient.get({
       endpoint: `/api/v1/dashboard/favorite_status/?q=${rison.encode([id])}`,
     })
       .then(({ json }: { json: JsonObject }) => {
-        dispatch(toggleFaveStar(!!(json?.result as JsonObject[])?.[0]?.value));
+        // Only update state if this is still the current dashboard
+        // This prevents stale responses from affecting the UI after navigation
+        const currentId = getState().dashboardInfo?.id;
+        if (currentId === id) {
+          dispatch(
+            toggleFaveStar(!!(json?.result as JsonObject[])?.[0]?.value),
+          );
+        }
       })
-      .catch(() =>
-        dispatch(
-          addDangerToast(
-            t(
-              'There was an issue fetching the favorite status of this dashboard.',
+      .catch(error => {
+        // A 404 means the favorite status isn't available to this user (a
+        // non-editor viewing a draft dashboard, or a dashboard deleted after
+        // navigation); swallow it silently instead of alarming them.
+        if (error instanceof Response && error.status === 404) {
+          return;
+        }
+        // Only show the error if this is still the current dashboard (prevents
+        // toasts for dashboards the user already navigated away from).
+        const currentId = getState().dashboardInfo?.id;
+        if (currentId === id) {
+          dispatch(
+            addDangerToast(
+              t(
+                'There was an issue fetching the favorite status of this dashboard.',
+              ),
             ),
-          ),
-        ),
-      );
+          );
+        }
+      });
   };
 }
 
 export function saveFaveStar(id: number, isStarred: boolean) {
-  return function saveFaveStarThunk(dispatch: AppDispatch) {
+  return function saveFaveStarThunk(dispatch: AppDispatch, getState: GetState) {
     const endpoint = `/api/v1/dashboard/${id}/favorites/`;
     const apiCall = isStarred
       ? SupersetClient.delete({
@@ -190,13 +211,21 @@ export function saveFaveStar(id: number, isStarred: boolean) {
 
     return apiCall
       .then(() => {
-        dispatch(toggleFaveStar(!isStarred));
+        // Only update state if this is still the current dashboard
+        const currentId = getState().dashboardInfo?.id;
+        if (currentId === id) {
+          dispatch(toggleFaveStar(!isStarred));
+        }
       })
-      .catch(() =>
-        dispatch(
-          addDangerToast(t('There was an issue favoriting this dashboard.')),
-        ),
-      );
+      .catch(() => {
+        // Only show error if this is still the current dashboard
+        const currentId = getState().dashboardInfo?.id;
+        if (currentId === id) {
+          dispatch(
+            addDangerToast(t('There was an issue favoriting this dashboard.')),
+          );
+        }
+      });
   };
 }
 
@@ -214,8 +243,11 @@ export function togglePublished(isPublished: boolean): TogglePublishedAction {
 export function savePublished(
   id: number,
   isPublished: boolean,
-): (dispatch: AppDispatch) => Promise<void> {
-  return function savePublishedThunk(dispatch: AppDispatch): Promise<void> {
+): (dispatch: AppDispatch, getState: GetState) => Promise<void> {
+  return function savePublishedThunk(
+    dispatch: AppDispatch,
+    getState: GetState,
+  ): Promise<void> {
     return SupersetClient.put({
       endpoint: `/api/v1/dashboard/${id}`,
       headers: { 'Content-Type': 'application/json' },
@@ -224,21 +256,30 @@ export function savePublished(
       }),
     })
       .then(() => {
-        dispatch(
-          addSuccessToast(
-            isPublished
-              ? t('This dashboard is now published')
-              : t('This dashboard is now hidden'),
-          ),
-        );
-        dispatch(togglePublished(isPublished));
+        // Only update state if this is still the current dashboard
+        // This prevents stale responses from affecting the UI after navigation
+        const currentId = getState().dashboardInfo?.id;
+        if (currentId === id) {
+          dispatch(
+            addSuccessToast(
+              isPublished
+                ? t('This dashboard is now published')
+                : t('This dashboard is now hidden'),
+            ),
+          );
+          dispatch(togglePublished(isPublished));
+        }
       })
       .catch(() => {
-        dispatch(
-          addDangerToast(
-            t('You do not have permissions to edit this dashboard.'),
-          ),
-        );
+        // Only show error if this is still the current dashboard
+        const currentId = getState().dashboardInfo?.id;
+        if (currentId === id) {
+          dispatch(
+            addDangerToast(
+              t('You do not have permissions to edit this dashboard.'),
+            ),
+          );
+        }
       });
   };
 }
@@ -411,8 +452,7 @@ interface DashboardSaveData extends JsonObject {
   certification_details?: string;
   css?: string;
   dashboard_title?: string;
-  owners?: { id: number }[] | number[];
-  roles?: JsonObject[];
+  editors?: { id: number }[] | number[];
   slug?: string | null;
   tags?: JsonObject[];
   metadata?: JsonObject;
@@ -450,9 +490,9 @@ export function saveDashboardRequest(
       certification_details,
       css,
       dashboard_title,
-      owners,
-      roles,
+      editors,
       slug,
+      description,
       tags,
     } = data;
 
@@ -476,15 +516,11 @@ export function saveDashboardRequest(
       }),
       css: css || '',
       dashboard_title: dashboard_title || t('[ untitled dashboard ]'),
-      owners: ensureIsArray(owners as JsonObject[]).map((o: JsonObject) =>
+      editors: ensureIsArray(editors as JsonObject[]).map((o: JsonObject) =>
         hasId(o) ? o.id : o,
       ),
-      roles: !isFeatureEnabled(FeatureFlag.DashboardRbac)
-        ? undefined
-        : ensureIsArray(roles as JsonObject[]).map((r: JsonObject) =>
-            hasId(r) ? r.id : r,
-          ),
       slug: slug || null,
+      description: description || null,
       tags: !isFeatureEnabled(FeatureFlag.TaggingSystem)
         ? undefined
         : ensureIsArray((tags || []) as JsonObject[]).map((r: JsonObject) =>
@@ -500,6 +536,7 @@ export function saveDashboardRequest(
           ? getColorSchemeDomain(colorScheme)
           : [],
         expanded_slices: data.metadata?.expanded_slices || {},
+        expand_all_slices: data.metadata?.expand_all_slices || false,
         label_colors: customLabelsColor,
         shared_label_colors: getFreshSharedLabels(sharedLabelsColor),
         map_label_colors: getFreshLabelsColorMapEntries(customLabelsColor),
@@ -541,9 +578,7 @@ export function saveDashboardRequest(
         }),
       );
       dispatch(saveDashboardFinished());
-      navigateTo(
-        `/superset/dashboard/${(response.json as JsonObject).result?.id}/`,
-      );
+      navigateTo(`/dashboard/${(response.json as JsonObject).result?.id}/`);
       dispatch(addSuccessToast(t('This dashboard was saved successfully.')));
       return response;
     };
@@ -595,8 +630,13 @@ export function saveDashboardRequest(
         dispatch(saveDashboardRequestSuccess(lastModifiedTime));
       }
       dispatch(saveDashboardFinished());
-      // redirect to the new slug or id
-      navigateWithState(`/superset/dashboard/${slug || id}/`, {
+      // Redirect using the slug from the update response, not the raw
+      // submitted slug. The backend sanitizes reserved URL characters out of
+      // the slug (BaseDashboardSchema.post_load strips `[^\w\-]`), so the raw
+      // slug can differ from what was persisted and would build a malformed
+      // URL on first render. Fall back to the id when the response has no slug.
+      const updatedSlug = updatedDashboard.slug as string | null | undefined;
+      navigateWithState(`/dashboard/${updatedSlug || id}/`, {
         event: 'dashboard_properties_changed',
       });
 
@@ -606,6 +646,7 @@ export function saveDashboardRequest(
     };
 
     const onError = async (response: Response): Promise<void> => {
+      logging.error(response);
       const { error, message } = await getClientErrorObject(response);
       let errorText = t('Sorry, an unknown error occurred');
 
@@ -636,8 +677,8 @@ export function saveDashboardRequest(
               css: cleanedData.css,
               dashboard_title: cleanedData.dashboard_title,
               slug: cleanedData.slug,
-              owners: cleanedData.owners,
-              roles: cleanedData.roles,
+              description: cleanedData.description,
+              editors: cleanedData.editors,
               tags: cleanedData.tags || [],
               theme_id: cleanedData.theme_id,
               json_metadata: safeStringify({
@@ -649,64 +690,64 @@ export function saveDashboardRequest(
               }),
             };
 
-      const updateDashboard = (): Promise<JsonObject | void> =>
-        SupersetClient.put({
-          endpoint: `/api/v1/dashboard/${id}`,
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(updatedDashboard),
-        })
-          .then(response => onUpdateSuccess(response))
-          .catch(response => onError(response));
-      return new Promise<void>((resolve, reject) => {
-        if (
-          !isFeatureEnabled(FeatureFlag.ConfirmDashboardDiff) ||
-          saveType === SAVE_TYPE_OVERWRITE_CONFIRMED
-        ) {
-          // skip overwrite precheck
-          resolve();
-          return;
+      const updateDashboard = async (): Promise<JsonObject | void> => {
+        try {
+          const response = await SupersetClient.put({
+            endpoint: `/api/v1/dashboard/${id}`,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(updatedDashboard),
+          });
+          return await onUpdateSuccess(response);
+        } catch (error) {
+          return onError(error as Response);
         }
+      };
 
-        // precheck for overwrite items
-        SupersetClient.get({
-          endpoint: `/api/v1/dashboard/${id}`,
-        }).then((response: JsonObject) => {
+      if (
+        !isFeatureEnabled(FeatureFlag.ConfirmDashboardDiff) ||
+        saveType === SAVE_TYPE_OVERWRITE_CONFIRMED
+      ) {
+        // skip overwrite precheck
+        return updateDashboard();
+      }
+
+      // precheck for overwrite items
+      return SupersetClient.get({
+        endpoint: `/api/v1/dashboard/${id}`,
+      })
+        .then((response: JsonObject) => {
           const dashboard = (response.json as JsonObject).result as JsonObject;
           const overwriteConfirmItems = getOverwriteItems(
             dashboard,
             updatedDashboard,
           );
-          if (overwriteConfirmItems.length > 0) {
-            dispatch(
-              setOverrideConfirm({
-                updatedAt: dashboard.changed_on as string,
-                updatedBy: dashboard.changed_by_name as string,
-                overwriteConfirmItems:
-                  overwriteConfirmItems as DashboardState['overwriteConfirmMetadata'] extends
-                    | { overwriteConfirmItems: infer I }
-                    | undefined
-                    ? I
-                    : never,
-                dashboardId: id,
-                data: updatedDashboard,
-              }),
-            );
-            return reject(overwriteConfirmItems);
+          if (overwriteConfirmItems.length === 0) {
+            return updateDashboard();
           }
-          return resolve();
-        });
-      })
-        .then(updateDashboard)
-        .catch((overwriteConfirmItems: JsonObject[]) => {
-          const errorText = t('Please confirm the overwrite values.');
+          dispatch(
+            setOverrideConfirm({
+              updatedAt: dashboard.changed_on as string,
+              updatedBy: dashboard.changed_by_name as string,
+              overwriteConfirmItems:
+                overwriteConfirmItems as DashboardState['overwriteConfirmMetadata'] extends
+                  | { overwriteConfirmItems: infer I }
+                  | undefined
+                  ? I
+                  : never,
+              dashboardId: id,
+              data: updatedDashboard,
+            }),
+          );
           dispatch(
             logEvent(LOG_ACTIONS_CONFIRM_OVERWRITE_DASHBOARD_METADATA, {
               dashboard_id: id,
               items: overwriteConfirmItems,
             }),
           );
-          dispatch(addDangerToast(errorText));
-        });
+          dispatch(addDangerToast(t('Please confirm the overwrite values.')));
+          return undefined;
+        })
+        .catch(onError);
     }
     // changing the data as the endpoint requires
     if (

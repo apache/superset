@@ -49,6 +49,7 @@ const titleStyles = (theme: SupersetTheme) => css`
     text-overflow: ellipsis;
     white-space: nowrap;
     padding: 0;
+    font-weight: inherit;
     color: ${theme.colorText};
     background-color: ${theme.colorBgContainer};
 
@@ -81,12 +82,25 @@ export const DynamicEditableTitle = memo(
 
     const sizerRef = useRef<HTMLSpanElement>(null);
     const inputRef = useRef<InputRef>(null);
+    // Tracks whether the user has actually typed since entering edit mode.
+    // Gates onSave so that passive focus (click without typing) followed by a
+    // parent-driven title change and blur does not silently revert the
+    // parent's update with our stale currentTitle.
+    const dirtyRef = useRef(false);
     const { width: containerWidth, ref: containerRef } = useResizeDetector({
       refreshMode: 'debounce',
     });
 
     useEffect(() => {
-      setCurrentTitle(title);
+      // Don't overwrite in-flight user input when the parent re-renders with a
+      // new title prop mid-edit. handleBlur already syncs currentTitle on commit;
+      // re-running this effect when isEditing flips would resync to a stale
+      // title prop, so isEditing is intentionally read via closure rather than
+      // listed as a dep.
+      if (!isEditing) {
+        setCurrentTitle(title);
+      }
+      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [title]);
     useEffect(() => {
       if (isEditing) {
@@ -114,6 +128,21 @@ export const DynamicEditableTitle = memo(
       }
     }, [currentTitle, placeholder]);
 
+    // Webfont metrics differ from the fallback font's, so a measurement
+    // taken before fonts finish loading under- or over-sizes the input.
+    // Re-measure once all fonts are ready.
+    useEffect(() => {
+      let cancelled = false;
+      document.fonts?.ready?.then(() => {
+        if (!cancelled && sizerRef.current) {
+          setInputWidth(sizerRef.current.offsetWidth);
+        }
+      });
+      return () => {
+        cancelled = true;
+      };
+    }, []);
+
     useEffect(() => {
       const inputElement = inputRef.current?.input;
 
@@ -138,10 +167,19 @@ export const DynamicEditableTitle = memo(
         return;
       }
       const formattedTitle = currentTitle.trim();
-      setCurrentTitle(formattedTitle);
-      if (title !== formattedTitle) {
+      // Only commit when the user actually typed. Passive focus must not
+      // overwrite a parent-driven title change that landed mid-edit.
+      if (dirtyRef.current && title !== formattedTitle) {
+        setCurrentTitle(formattedTitle);
         onSave(formattedTitle);
+      } else if (!dirtyRef.current) {
+        // Drop any stale local state and resync to the latest title prop so a
+        // subsequent edit starts from the current parent value.
+        setCurrentTitle(title);
+      } else {
+        setCurrentTitle(formattedTitle);
       }
+      dirtyRef.current = false;
       setIsEditing(false);
     }, [canEdit, currentTitle, onSave, title]);
 
@@ -158,6 +196,7 @@ export const DynamicEditableTitle = memo(
         if (!isEditing) {
           setIsEditing(true);
         }
+        dirtyRef.current = true;
         setCurrentTitle(ev.target.value);
       },
       [canEdit, isEditing],
@@ -198,18 +237,22 @@ export const DynamicEditableTitle = memo(
             onPressEnter={handleKeyPress}
             placeholder={placeholder}
             css={css`
-              ${!canEdit &&
-              `&[disabled] {
+              ${
+                !canEdit &&
+                `&[disabled] {
                   cursor: default;
                 }
-              `}
+              `
+              }
               font-size: ${theme.fontSizeXL}px;
               transition: auto;
-              ${inputWidth &&
-              inputWidth > 0 &&
-              css`
-                width: ${inputWidth}px;
-              `}
+              ${
+                inputWidth &&
+                inputWidth > 0 &&
+                css`
+                  width: ${inputWidth}px;
+                `
+              }
             `}
             disabled={!canEdit}
           />

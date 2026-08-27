@@ -33,38 +33,31 @@ The Label component from Superset's UI library.
 <StoryWithControls
   component="Label"
   props={{
-  type: "default",
-  children: "Label text",
-  monospace: false
-}}
+    type: 'default',
+    children: 'Label text',
+    monospace: false,
+  }}
   controls={[
-  {
-    name: "type",
-    label: "Type",
-    type: "select",
-    options: [
-      "default",
-      "info",
-      "success",
-      "warning",
-      "error",
-      "primary"
-    ],
-    description: "The visual style of the label."
-  },
-  {
-    name: "children",
-    label: "Children",
-    type: "text",
-    description: "The label text content."
-  },
-  {
-    name: "monospace",
-    label: "Monospace",
-    type: "boolean",
-    description: "Use monospace font."
-  }
-]}
+    {
+      name: 'type',
+      label: 'Type',
+      type: 'select',
+      options: ['default', 'info', 'success', 'warning', 'error', 'primary'],
+      description: 'The visual style of the label.',
+    },
+    {
+      name: 'children',
+      label: 'Children',
+      type: 'text',
+      description: 'The label text content.',
+    },
+    {
+      name: 'monospace',
+      label: 'Monospace',
+      type: 'boolean',
+      description: 'Use monospace font.',
+    },
+  ]}
 />
 
 ## Try It
@@ -73,23 +66,17 @@ Edit the code below to experiment with the component:
 
 ```tsx live
 function Demo() {
-  return (
-    <Label
-      type="default"
-    >
-      Label text
-    </Label>
-  );
+  return <Label type="default">Label text</Label>;
 }
 ```
 
 ## Props
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `type` | `string` | `"default"` | The visual style of the label. |
-| `children` | `string` | `"Label text"` | The label text content. |
-| `monospace` | `boolean` | `false` | Use monospace font. |
+| Prop        | Type      | Default        | Description                    |
+| ----------- | --------- | -------------- | ------------------------------ |
+| `type`      | `string`  | `"default"`    | The visual style of the label. |
+| `children`  | `string`  | `"Label text"` | The label text content.        |
+| `monospace` | `boolean` | `false`        | Use monospace font.            |
 
 ## Import
 

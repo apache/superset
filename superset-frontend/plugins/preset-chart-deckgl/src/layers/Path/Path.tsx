@@ -20,7 +20,6 @@
 import { PathLayer } from '@deck.gl/layers';
 import { JsonObject, QueryFormData } from '@superset-ui/core';
 import { commonLayerProps } from '../common';
-import sandboxedEval from '../../utils/sandbox';
 import { GetLayerType, createCategoricalDeckGLComponent } from '../../factory';
 import { Point } from '../../types';
 import {
@@ -115,11 +114,6 @@ export const getLayer: GetLayerType<PathLayer> = function ({
     });
   }
 
-  if (fd.js_data_mutator) {
-    const jsFnMutator = sandboxedEval(fd.js_data_mutator);
-    data = jsFnMutator(data);
-  }
-
   return new PathLayer({
     id: `path-layer-${fd.slice_id}` as const,
     getColor: (d: any) => d.color || [0, 0, 0, 255],
@@ -163,7 +157,7 @@ export const getHighlightLayer: GetLayerType<PathLayer> = function ({
   const maxWidth = Number(fd.max_width) || 20;
   const multiplier = Number(fd.line_width_multiplier) || 1;
   const fixedColor = HIGHLIGHT_COLOR_ARRAY;
-  let data = payload.data.features.map((feature: JsonObject) => {
+  const data = payload.data.features.map((feature: JsonObject) => {
     const baseWidth = Number.isFinite(feature.width) ? feature.width : 1;
     let width = baseWidth * multiplier;
 
@@ -176,11 +170,6 @@ export const getHighlightLayer: GetLayerType<PathLayer> = function ({
       color: fixedColor,
     };
   });
-
-  if (fd.js_data_mutator) {
-    const jsFnMutator = sandboxedEval(fd.js_data_mutator);
-    data = jsFnMutator(data);
-  }
 
   const filteredData = data.filter(
     (d: JsonObject) =>

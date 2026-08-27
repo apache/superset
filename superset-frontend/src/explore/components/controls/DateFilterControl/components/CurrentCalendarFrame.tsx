@@ -49,6 +49,7 @@ export function CurrentCalendarFrame({ onChange, value }: FrameComponentProps) {
           wrap: true,
         }}
         size="large"
+        value={value}
         onChange={(e: any) => {
           let newValue = e.target.value;
           newValue = newValue.trim();

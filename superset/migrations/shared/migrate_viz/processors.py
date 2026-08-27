@@ -388,6 +388,18 @@ class MigrateLineChart(TimeseriesChart):
         return super()._build_query()
 
 
+class MigrateCompareChart(TimeseriesChart):
+    source_viz_type = "compare"
+    target_viz_type = "echarts_timeseries_line"
+
+    def _pre_action(self) -> None:
+        super()._pre_action()
+        # Restore the percent-change view the nvd3 renderer computed
+        # client-side; the ECharts line chart rebases series when this
+        # flag is set and offers a draggable baseline to re-index.
+        self.data["rebase_percent_change"] = True
+
+
 class MigrateAreaChart(TimeseriesChart):
     source_viz_type = "area"
     target_viz_type = "echarts_area"

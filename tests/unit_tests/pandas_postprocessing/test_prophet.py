@@ -15,15 +15,20 @@
 # specific language governing permissions and limitations
 # under the License.
 from datetime import datetime
+from importlib import import_module
 from importlib.util import find_spec
+from unittest.mock import patch
 
 import pandas as pd
 import pytest
 
+from superset.charts.schemas import get_max_prophet_periods
 from superset.exceptions import InvalidPostProcessingError
 from superset.utils.core import DTTM_ALIAS
 from superset.utils.pandas_postprocessing import prophet
 from tests.unit_tests.fixtures.dataframes import prophet_df
+
+prophet_module = import_module("superset.utils.pandas_postprocessing.prophet")
 
 
 def test_prophet_valid():
@@ -176,6 +181,23 @@ def test_prophet_incorrect_periods():
         )
 
 
+def test_prophet_periods_exceeding_max_raises():
+    """
+    ``periods`` comes from the unvalidated post-processing options dict; the
+    schema-declared upper bound (``MAX_PROPHET_PERIODS``, configurable, default
+    10000) is documentation-only unless enforced at the point ``periods`` is
+    consumed, since every forecast period adds a future row per series.
+    """
+    assert get_max_prophet_periods() == 10000
+    with pytest.raises(InvalidPostProcessingError, match="must not exceed"):
+        prophet(
+            df=prophet_df,
+            time_grain="P1M",
+            periods=10001,
+            confidence_interval=0.8,
+        )
+
+
 def test_prophet_incorrect_time_grain():
     with pytest.raises(InvalidPostProcessingError):
         prophet(
@@ -184,6 +206,75 @@ def test_prophet_incorrect_time_grain():
             periods=10,
             confidence_interval=0.8,
         )
+
+
+def test_prophet_missing_time_grain_raises_readable_error():
+    """
+    Regression for SC-113749: when the ``prophet`` post-processing operation is
+    dispatched with an options dict that lacks ``time_grain`` (e.g. a saved or
+    dashboard chart whose Time Grain was cleared, so the frontend drops the
+    ``undefined`` key during ``JSON.stringify``), the call must raise a readable
+    ``InvalidPostProcessingError`` rather than a raw ``TypeError`` about a
+    missing positional argument. This mirrors the real dispatch in
+    ``QueryObject.exec_post_processing`` which invokes the operation with
+    ``**options`` and no ``time_grain`` key.
+    """
+    options = {
+        "periods": 3,
+        "confidence_interval": 0.9,
+        "index": DTTM_ALIAS,
+    }
+    with pytest.raises(InvalidPostProcessingError, match="Time grain missing"):
+        prophet(prophet_df, **options)
+
+
+def test_prophet_explicit_none_time_grain_raises_readable_error():
+    """
+    Passing ``time_grain=None`` explicitly (the resolved value when no grain is
+    determinable) must also surface the graceful "Time grain missing" error.
+    """
+    with pytest.raises(InvalidPostProcessingError, match="Time grain missing"):
+        prophet(
+            df=prophet_df,
+            time_grain=None,
+            periods=3,
+            confidence_interval=0.9,
+        )
+
+
+def test_prophet_insufficient_data():
+    single_row_df = pd.DataFrame(
+        {
+            DTTM_ALIAS: [datetime(2022, 1, 1)],
+            "sales": [100.0],
+        }
+    )
+    with pytest.raises(InvalidPostProcessingError, match="at least 2 data points"):
+        prophet(
+            df=single_row_df,
+            time_grain="P1D",
+            periods=3,
+            confidence_interval=0.9,
+        )
+
+
+def test_prophet_fit_error():
+    if find_spec("prophet") is None:
+        pytest.skip("prophet not installed")
+
+    with patch.object(prophet_module, "_prophet_fit_and_predict") as mock_fit:
+        mock_fit.side_effect = InvalidPostProcessingError(
+            "Unable to generate forecast: Dataframe has fewer than 2 non-NaN rows."
+        )
+        with pytest.raises(
+            InvalidPostProcessingError, match="Unable to generate forecast"
+        ):
+            prophet(
+                df=prophet_df,
+                time_grain="P1D",
+                periods=3,
+                confidence_interval=0.9,
+            )
 
 
 def test_prophet_uncertainty_lower_bound_can_be_negative_for_negative_series():

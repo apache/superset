@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Children, ReactElement, Fragment } from 'react';
+import { Children, ReactElement, Fragment, forwardRef, Ref } from 'react';
 import cx from 'classnames';
 import { Button as AntdButton } from 'antd';
 import { useTheme } from '@apache-superset/core/theme';
@@ -25,6 +25,7 @@ import type { SupersetTheme } from '@apache-superset/core/theme';
 import type {
   ButtonColorType,
   ButtonProps,
+  ButtonStyleConfig,
   ButtonStyle,
   ButtonType,
   ButtonVariantType,
@@ -84,14 +85,13 @@ export const getSecondaryButtonHoverStyles = (theme: SupersetTheme) => ({
   },
 });
 
-const BUTTON_STYLE_MAP: Record<
-  ButtonStyle,
-  {
-    type?: ButtonType;
-    variant?: ButtonVariantType;
-    color?: ButtonColorType;
-  }
-> = {
+type ButtonStyleMapping = {
+  type?: ButtonType;
+  variant?: ButtonVariantType;
+  color?: ButtonColorType;
+};
+
+const BUTTON_STYLE_MAP: Record<ButtonStyle, ButtonStyleMapping> = {
   primary: { type: 'primary', variant: 'solid', color: 'primary' },
   secondary: { variant: 'filled', color: 'primary' },
   tertiary: { variant: 'outlined', color: 'default' },
@@ -100,7 +100,7 @@ const BUTTON_STYLE_MAP: Record<
   link: { type: 'link' },
 };
 
-export function Button(props: ButtonProps) {
+function ButtonInner(props: ButtonProps, ref: Ref<HTMLElement>) {
   const {
     tooltip,
     placement,
@@ -113,30 +113,56 @@ export function Button(props: ButtonProps) {
     href,
     showMarginRight = true,
     icon,
+    styleConfig,
     ...restProps
   } = props;
 
   const theme = useTheme();
-  const { fontSizeSM, fontWeightStrong } = theme;
+  const { fontWeightStrong } = theme;
+  const btnFontSize = theme.buttonFontSize ?? theme.fontSizeSM;
 
-  let height = 32;
-  let padding = 18;
+  const resolvedStyleMap: Record<ButtonStyle, ButtonStyleMapping> =
+    theme.buttonStyleMap
+      ? (Object.fromEntries(
+          Object.entries(BUTTON_STYLE_MAP).map(([key, value]) => [
+            key,
+            { ...value, ...theme.buttonStyleMap?.[key as ButtonStyle] },
+          ]),
+        ) as Record<ButtonStyle, ButtonStyleMapping>)
+      : BUTTON_STYLE_MAP;
+
+  let defaultHeight = theme.buttonControlHeight ?? 32;
+  let defaultPaddingInline = theme.buttonPaddingInline ?? 18;
+  let defaultBorderRadius = theme.buttonBorderRadius ?? theme.borderRadius;
   if (buttonSize === 'xsmall') {
-    height = 22;
-    padding = 5;
+    defaultHeight = theme.buttonControlHeightXS ?? 22;
+    defaultPaddingInline = 5;
+    defaultBorderRadius = theme.buttonBorderRadius ?? theme.borderRadiusSM;
   } else if (buttonSize === 'small') {
-    height = 30;
-    padding = 10;
+    defaultHeight = theme.buttonControlHeightSM ?? 30;
+    defaultPaddingInline = theme.buttonPaddingInlineSM ?? 10;
+    defaultBorderRadius = theme.buttonBorderRadius ?? theme.borderRadiusSM;
   }
   if (buttonStyle === 'link') {
-    padding = 4;
+    defaultPaddingInline = 4;
   }
+
+  const resolvedStyleConfig: Required<ButtonStyleConfig> = {
+    controlHeight: styleConfig?.controlHeight ?? defaultHeight,
+    paddingInline: styleConfig?.paddingInline ?? defaultPaddingInline,
+    fontSize: styleConfig?.fontSize ?? btnFontSize,
+    fontWeight: styleConfig?.fontWeight ?? fontWeightStrong,
+    ctaMinWidth: styleConfig?.ctaMinWidth ?? theme.sizeUnit * 36,
+    ctaMinHeight: styleConfig?.ctaMinHeight ?? theme.sizeUnit * 8,
+    iconGap: styleConfig?.iconGap ?? theme.sizeUnit * 2,
+    borderRadius: styleConfig?.borderRadius ?? defaultBorderRadius,
+  };
 
   const {
     type: antdType = 'default',
     variant,
     color,
-  } = BUTTON_STYLE_MAP[buttonStyle ?? 'primary'];
+  } = resolvedStyleMap[buttonStyle ?? 'primary'] ?? BUTTON_STYLE_MAP.primary;
 
   const element = children as ReactElement;
 
@@ -148,7 +174,9 @@ export function Button(props: ButtonProps) {
     renderedChildren = Children.toArray(children);
   }
   const firstChildMargin =
-    showMarginRight && renderedChildren.length > 1 ? theme.sizeUnit * 2 : 0;
+    showMarginRight && renderedChildren.length > 1
+      ? resolvedStyleConfig.iconGap
+      : 0;
 
   const effectiveButtonStyle: ButtonStyle = buttonStyle ?? 'primary';
 
@@ -160,17 +188,17 @@ export function Button(props: ButtonProps) {
 
   const button = (
     <AntdButton
+      ref={ref as Ref<HTMLButtonElement & HTMLAnchorElement>}
       href={disabled ? undefined : href}
       disabled={disabled}
       type={antdType}
       variant={variant}
       danger={effectiveButtonStyle === 'danger'}
       color={color}
+      // Static class names for embedded-dashboard CSS targeting
       className={cx(
         className,
         'superset-button',
-        // A static class name containing the button style is available to
-        // support customizing button styles in embedded dashboards.
         `superset-button-${buttonStyle}`,
         { cta: !!cta },
       )}
@@ -179,12 +207,13 @@ export function Button(props: ButtonProps) {
         alignItems: 'center',
         justifyContent: 'center',
         lineHeight: 1,
-        fontSize: fontSizeSM,
-        fontWeight: fontWeightStrong,
-        height,
-        padding: `0px ${padding}px`,
-        minWidth: cta ? theme.sizeUnit * 36 : undefined,
-        minHeight: cta ? theme.sizeUnit * 8 : undefined,
+        fontSize: resolvedStyleConfig.fontSize,
+        fontWeight: resolvedStyleConfig.fontWeight,
+        height: resolvedStyleConfig.controlHeight,
+        padding: `0px ${resolvedStyleConfig.paddingInline}px`,
+        borderRadius: resolvedStyleConfig.borderRadius,
+        minWidth: cta ? resolvedStyleConfig.ctaMinWidth : undefined,
+        minHeight: cta ? resolvedStyleConfig.ctaMinHeight : undefined,
         marginLeft: 0,
         '& + .superset-button:not(.ant-btn-compact-item)': {
           marginLeft: theme.sizeUnit * 2,
@@ -234,5 +263,7 @@ export function Button(props: ButtonProps) {
 
   return button;
 }
+
+export const Button = forwardRef<HTMLElement, ButtonProps>(ButtonInner);
 
 export type { ButtonProps, OnClickHandler };

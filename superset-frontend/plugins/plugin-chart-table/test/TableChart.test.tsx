@@ -20,6 +20,7 @@ import '@testing-library/jest-dom';
 import {
   getTextColorForBackground,
   ObjectFormattingEnum,
+  ColorSchemeEnum,
 } from '@superset-ui/chart-controls';
 import { supersetTheme } from '@apache-superset/core/theme';
 import {
@@ -29,8 +30,9 @@ import {
   waitFor,
   within,
 } from '@superset-ui/core/spec';
-import { cloneDeep } from 'lodash';
+import { cloneDeep } from 'lodash-es';
 import {
+  type DataMask,
   QueryMode,
   TimeGranularity,
   SMART_DATE_ID,
@@ -1843,6 +1845,54 @@ describe('plugin-chart-table', () => {
         expect(secondCallArg.extraFormData.filters).toEqual([]);
       });
 
+      test('clicking a temporal numeric-string cell emits numeric cross-filter values', () => {
+        const setDataMask = jest.fn<void, [DataMask]>();
+        const timestamp = 1777248000000;
+        const props = transformProps({
+          ...testData.basic,
+          hooks: { setDataMask },
+          emitCrossFilters: true,
+        });
+
+        render(
+          <ProviderWrapper>
+            <TableChart
+              {...props}
+              data={[{ install_date: String(timestamp) }]}
+              columns={[
+                {
+                  key: 'install_date',
+                  label: 'install_date',
+                  dataType: GenericDataType.Temporal,
+                  isNumeric: false,
+                  isMetric: false,
+                  isPercentMetric: false,
+                  formatter: String,
+                  config: {},
+                },
+              ]}
+              emitCrossFilters
+              setDataMask={setDataMask}
+              sticky={false}
+            />
+          </ProviderWrapper>,
+        );
+
+        fireEvent.click(screen.getByText(String(timestamp)));
+
+        const crossFilterCall = setDataMask.mock.calls.find(
+          call => call[0].filterState?.filters,
+        );
+        expect(crossFilterCall).toBeDefined();
+        expect(crossFilterCall?.[0].extraFormData?.filters).toEqual([
+          {
+            col: 'install_date',
+            op: 'IN',
+            val: [timestamp],
+          },
+        ]);
+      });
+
       test('cross-filter toggle works with DateWithFormatter values', () => {
         const setDataMask = jest.fn();
         const props = transformProps({
@@ -1974,7 +2024,7 @@ describe('plugin-chart-table', () => {
         );
 
         const arrow = container.querySelector(
-          '.dt-select-page-size .ant-select .ant-select-arrow',
+          '.dt-select-page-size .ant-select .ant-select-suffix',
         );
         expect(arrow).not.toBeNull();
         expect(getComputedStyle(arrow as HTMLElement).zIndex).toBe('11');
@@ -2024,6 +2074,59 @@ describe('plugin-chart-table', () => {
           );
           expect(totalCellAfter).toBeInTheDocument();
         });
+      });
+
+      test('does not crash when a comparison-color-formatter array has no entry for a rendered row', () => {
+        // Regression test: the per-cell comparison-color lookups in the Cell
+        // renderer (`basicColorFormatters`/`basicColorColumnFormatters`,
+        // indexed by `row.index`) must stay safe even if those arrays ever
+        // end up with fewer entries than the number of rendered rows -- e.g.
+        // when "Show summary" is combined with time comparison and a
+        // comparison-based conditional color scheme ("Green for increase,
+        // red for decrease") applied to a Time Comparison column. Without
+        // the `?.` guard on the array-index lookup, this throws
+        // `TypeError: Cannot read properties of undefined (reading 'Main
+        // metric_1')`.
+        const propsInput = {
+          ...testData.comparison,
+          rawFormData: {
+            ...testData.comparison.rawFormData,
+            conditional_formatting: [
+              { column: 'Main metric_1', colorScheme: ColorSchemeEnum.Green },
+            ],
+          },
+        };
+        const transformedProps = transformProps(propsInput);
+        expect(transformedProps.data).toHaveLength(2);
+        expect(transformedProps.basicColorColumnFormatters).toHaveLength(2);
+
+        // Simulate the row-count mismatch: the formatter array has an entry
+        // for only the first row, matching the shape of the bug (an entry
+        // missing for one of the rendered rows).
+        const propsWithMissingFormatterEntry = {
+          ...transformedProps,
+          basicColorColumnFormatters:
+            transformedProps.basicColorColumnFormatters!.slice(0, 1),
+        };
+
+        expect(() =>
+          render(
+            <TableChart {...propsWithMissingFormatterEntry} sticky={false} />,
+          ),
+        ).not.toThrow();
+
+        // the row that still has a formatter entry keeps its comparison
+        // background color and arrow: the "Main metric_1" cell for the
+        // first row (value 100) renders before the derived "△ metric_1"
+        // cell that happens to share the same value and aria label.
+        const [styledCell] = screen.getAllByTitle('100');
+        expect(styledCell).toHaveTextContent('↑100');
+        expect(getComputedStyle(styledCell).background).toContain(
+          'rgba(0, 150, 0, 0.2)',
+        );
+
+        // the row missing a formatter entry still renders its raw value
+        expect(screen.getAllByTitle('110').length).toBeGreaterThan(0);
       });
 
       test('preserves client-side search text across temporal table rerenders', async () => {
@@ -2106,7 +2209,7 @@ describe('plugin-chart-table', () => {
 
         await waitFor(() => {
           expect(screen.getByRole('textbox')).toHaveValue('Michael');
-          expect(screen.getByLabelText('Search 0 records')).toHaveValue(
+          expect(screen.getByLabelText('Search records')).toHaveValue(
             'Michael',
           );
         });
@@ -2241,6 +2344,104 @@ describe('plugin-chart-table', () => {
           expect(screen.getByText('Michael')).toBeInTheDocument();
         });
       });
+    });
+
+    test('should not reset pagination when a cell is clicked and data re-renders (#42010)', async () => {
+      const setDataMask = jest.fn();
+      const data30 = Array.from({ length: 30 }, (_, i) => ({
+        name: `User ${i + 1}`,
+        sum__num: (i + 1) * 100,
+      }));
+      const filteredData = data30.slice(0, 15);
+
+      const props = transformProps({
+        ...testData.basic,
+        rawFormData: {
+          ...testData.basic.rawFormData,
+          page_length: 10,
+          metrics: ['sum__num'],
+          groupby: ['name'],
+        },
+        queriesData: [
+          {
+            ...testData.basic.queriesData[0],
+            colnames: ['name', 'sum__num'],
+            coltypes: [GenericDataType.String, GenericDataType.Numeric],
+            data: data30,
+          },
+        ],
+        hooks: { setDataMask },
+        emitCrossFilters: true,
+      });
+
+      const { container, rerender } = render(
+        <ProviderWrapper>
+          <TableChart
+            {...props}
+            emitCrossFilters
+            setDataMask={setDataMask}
+            sticky={false}
+          />
+        </ProviderWrapper>,
+      );
+
+      expect(screen.getByText('User 1')).toBeInTheDocument();
+      expect(screen.queryByText('User 11')).not.toBeInTheDocument();
+
+      // The pagination bar is styled `visibility: hidden` until sticky
+      // height is measured, which jsdom never reports. Accessible-name
+      // computation treats CSS-hidden elements as nameless regardless of
+      // the `hidden: true` query option, so query the button directly by
+      // its `aria-label` instead of through the accessibility tree.
+      const page2Link = container.querySelector('button[aria-label="2"]')!;
+      expect(page2Link).toBeTruthy();
+      fireEvent.click(page2Link);
+
+      await waitFor(() => {
+        expect(screen.getByText('User 11')).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByText('User 11'));
+      expect(setDataMask).toHaveBeenCalled();
+
+      const filteredProps = transformProps({
+        ...testData.basic,
+        rawFormData: {
+          ...testData.basic.rawFormData,
+          page_length: 10,
+          metrics: ['sum__num'],
+          groupby: ['name'],
+        },
+        queriesData: [
+          {
+            ...testData.basic.queriesData[0],
+            colnames: ['name', 'sum__num'],
+            coltypes: [GenericDataType.String, GenericDataType.Numeric],
+            data: filteredData,
+          },
+        ],
+        hooks: { setDataMask },
+        emitCrossFilters: true,
+      });
+
+      rerender(
+        <ProviderWrapper>
+          <TableChart
+            {...filteredProps}
+            emitCrossFilters
+            setDataMask={setDataMask}
+            sticky={false}
+          />
+        </ProviderWrapper>,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('User 11')).toBeInTheDocument();
+        expect(screen.queryByText('User 1')).not.toBeInTheDocument();
+      });
+
+      const activePage = container.querySelector('li.active button')!;
+      expect(activePage).toHaveTextContent('2');
     });
 
     test('should build columnLabelToNameMap for adhoc columns with custom labels', () => {
@@ -2383,6 +2584,111 @@ describe('plugin-chart-table', () => {
       expect(filters[0].val).toEqual(['Michael']);
     });
   });
+
+  test('does not render "Search by" if there are no search options (server pagination enabled)', () => {
+    const props = transformProps({
+      ...testData.raw,
+      rawFormData: {
+        ...testData.raw.rawFormData,
+        server_pagination: true,
+        include_search: true,
+      },
+      queriesData: [
+        {
+          ...testData.raw.queriesData[0],
+          colnames: ['num'],
+          coltypes: [GenericDataType.Numeric],
+          data: [{ num: 1 }, { num: 2 }],
+        },
+      ],
+    });
+    render(
+      ProviderWrapper({
+        children: <TableChart {...props} sticky={false} />,
+      }),
+    );
+    expect(screen.queryByText('Search by')).not.toBeInTheDocument();
+  });
+
+  test('renders "Search by" if include_search is true and there are search options (server pagination enabled)', () => {
+    const props = transformProps({
+      ...testData.raw,
+      rawFormData: {
+        ...testData.raw.rawFormData,
+        server_pagination: true,
+        include_search: true,
+      },
+      queriesData: [
+        {
+          ...testData.raw.queriesData[0],
+          colnames: ['name'],
+          coltypes: [GenericDataType.String],
+          data: [{ name: 'Michael' }, { name: 'John' }],
+        },
+      ],
+    });
+    render(
+      ProviderWrapper({
+        children: <TableChart {...props} sticky={false} />,
+      }),
+    );
+    expect(screen.queryByText('Search by')).toBeInTheDocument();
+  });
+
+  test(
+    'should read the totals row from the correct query when percent metrics ' +
+      'use the "all records" calculation mode',
+    () => {
+      // When `percent_metric_calculation` is `all_records`, buildQuery adds an
+      // extra query (used to compute percentages against the entire result set)
+      // *before* the totals query in `queriesData`. Verify totals are still
+      // sourced from the actual totals query and not this preceding query.
+      const props = {
+        ...testData.basic,
+        rawFormData: {
+          ...testData.basic.rawFormData,
+          query_mode: QueryMode.Aggregate,
+          metrics: ['sum__num'],
+          percent_metrics: ['count'],
+          percent_metric_calculation: 'all_records',
+          show_totals: true,
+          column_config: {
+            sum__num: { d3NumberFormat: '.0%' },
+          },
+        },
+        queriesData: [
+          {
+            ...testData.basic.queriesData[0],
+            colnames: ['name', 'sum__num', '%count'],
+            coltypes: [
+              GenericDataType.String,
+              GenericDataType.Numeric,
+              GenericDataType.Numeric,
+            ],
+            data: [{ name: 'Michael', sum__num: 0.1, '%count': 0.05 }],
+          },
+          // extra "all records" query used only to compute percent metrics
+          {
+            ...testData.basic.queriesData[0],
+            colnames: ['count'],
+            coltypes: [GenericDataType.Numeric],
+            data: [{ count: 999 }],
+          },
+          // actual totals query
+          {
+            ...testData.basic.queriesData[0],
+            colnames: ['sum__num'],
+            coltypes: [GenericDataType.Numeric],
+            data: [{ sum__num: 0.27 }],
+          },
+        ],
+      };
+
+      const transformedProps = transformProps(props);
+
+      expect(transformedProps.totals).toEqual({ sum__num: 0.27 });
+    },
+  );
 });
 
 /**
@@ -2456,4 +2762,111 @@ describe('Drill-to-Detail Temporal Range Logic', () => {
     expect(filter.op).toBe('IS NULL');
     expect(filter.val).toBeNull();
   });
+});
+
+// Numeric values with String dataType (e.g. backend mis-reports type for computed columns)
+// get 'alphanumeric' sort, which treats raw numbers as non-strings and produces unstable order.
+// They should sort numerically regardless of display format.
+test('sorts numeric-backed percentage column numerically when dataType is String', async () => {
+  const props = transformProps({
+    ...testData.raw,
+    rawFormData: {
+      ...testData.raw.rawFormData,
+      order_desc: false,
+      metrics: ['pct'],
+      column_config: {
+        pct: { d3NumberFormat: '.1%' },
+      },
+    },
+    queriesData: [
+      {
+        ...testData.raw.queriesData[0],
+        colnames: ['pct'],
+        coltypes: [GenericDataType.String],
+        data: [
+          { pct: 0.4 },
+          { pct: 0.056 },
+          { pct: 0.506 },
+          { pct: 0.066 },
+          { pct: 0.41 },
+        ],
+      },
+    ],
+  });
+
+  render(
+    ProviderWrapper({
+      children: <TableChart {...props} sticky={false} />,
+    }),
+  );
+
+  const header = screen.getByText('pct');
+  fireEvent.click(header);
+
+  const cells = document.querySelectorAll('tbody td');
+  const values = Array.from(cells).map(td => td.textContent);
+  expect(values).toEqual(['5.6%', '6.6%', '40.0%', '41.0%', '50.6%']);
+});
+
+test('sorts genuinely string columns alphanumerically', () => {
+  const props = transformProps({
+    ...testData.raw,
+    rawFormData: {
+      ...testData.raw.rawFormData,
+      order_desc: false,
+      metrics: [],
+      columns: ['label'],
+    },
+    queriesData: [
+      {
+        ...testData.raw.queriesData[0],
+        colnames: ['label'],
+        coltypes: [GenericDataType.String],
+        data: [{ label: 'banana' }, { label: 'apple' }, { label: 'cherry' }],
+      },
+    ],
+  });
+
+  render(
+    ProviderWrapper({
+      children: <TableChart {...props} sticky={false} />,
+    }),
+  );
+
+  const header = screen.getByText('label');
+  fireEvent.click(header);
+
+  const cells = document.querySelectorAll('tbody td');
+  const values = Array.from(cells).map(td => td.textContent);
+  expect(values).toEqual(['apple', 'banana', 'cherry']);
+});
+
+test('TableChart should NOT emit cross-filter when clicking a cell in a not-filterable column', () => {
+  const setDataMask = jest.fn();
+  const props = transformProps({
+    ...testData.basic,
+    datasource: {
+      ...testData.basic.datasource,
+      columns: [{ column_name: 'name', filterable: false } as any],
+    },
+    hooks: { setDataMask },
+    emitCrossFilters: true,
+  });
+  render(
+    <ProviderWrapper>
+      <TableChart
+        {...props}
+        emitCrossFilters
+        setDataMask={setDataMask}
+        sticky={false}
+      />
+    </ProviderWrapper>,
+  );
+
+  fireEvent.click(screen.getByText('Michael'));
+
+  const crossFilterCall = setDataMask.mock.calls.find(
+    (call: any[]) => call[0]?.filterState?.filters,
+  );
+  expect(crossFilterCall).toBeUndefined();
 });

@@ -25,7 +25,7 @@ Create Date: 2016-09-07 23:50:59.366779
 import sqlalchemy as sa
 from alembic import op
 from sqlalchemy import Column, Integer, String
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import declarative_base
 
 from superset import db
 

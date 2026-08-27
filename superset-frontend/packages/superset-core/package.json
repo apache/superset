@@ -2,6 +2,11 @@
   "name": "@apache-superset/core",
   "version": "0.1.0",
   "description": "This package contains UI elements, APIs, and utility functions used by Superset.",
+  "license": "Apache-2.0",
+  "author": "Apache Software Foundation",
+  "files": [
+    "lib"
+  ],
   "sideEffects": false,
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
@@ -17,6 +22,14 @@
     "./authentication": {
       "types": "./lib/authentication/index.d.ts",
       "default": "./lib/authentication/index.js"
+    },
+    "./chat": {
+      "types": "./lib/chat/index.d.ts",
+      "default": "./lib/chat/index.js"
+    },
+    "./navigation": {
+      "types": "./lib/navigation/index.d.ts",
+      "default": "./lib/navigation/index.js"
     },
     "./commands": {
       "types": "./lib/commands/index.d.ts",
@@ -65,30 +78,39 @@
     "./testing": {
       "types": "./lib/testing.d.ts",
       "default": "./lib/testing.js"
+    },
+    "./storage": {
+      "types": "./lib/storage/index.d.ts",
+      "default": "./lib/storage/index.js"
     }
   },
-  "files": [
-    "lib"
-  ],
-  "author": "Apache Software Foundation",
-  "license": "Apache-2.0",
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "clean": "rm -rf lib tsconfig.tsbuildinfo",
+    "build": "npm run clean && npx tsc --build",
+    "type": "npx tsc --noEmit"
+  },
+  "dependencies": {
+    "lodash-es": "^4.18.1"
+  },
   "devDependencies": {
-    "@babel/cli": "^7.28.6",
-    "@babel/core": "^7.29.0",
-    "@babel/preset-env": "^7.29.5",
-    "@babel/preset-react": "^7.28.5",
-    "@babel/preset-typescript": "^7.28.5",
-    "typescript": "^5.0.0",
+    "@babel/cli": "^7.29.7",
+    "@babel/core": "^7.29.7",
+    "@babel/preset-env": "^7.29.7",
+    "@babel/preset-react": "^7.29.7",
+    "@babel/preset-typescript": "^7.29.7",
     "@emotion/styled": "^11.14.1",
-    "@types/lodash": "^4.17.24",
-    "@testing-library/dom": "^9.3.4",
+    "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "*",
-    "@testing-library/react": "^14.0.0",
+    "@testing-library/react": "^15.0.0",
     "@testing-library/user-event": "*",
+    "@types/lodash": "^4.17.25",
     "@types/react": "*",
     "@types/react-loadable": "*",
-    "@types/react-window": "^1.8.8",
-    "@types/tinycolor2": "*"
+    "@types/tinycolor2": "*",
+    "typescript": "^5.0.0"
   },
   "peerDependencies": {
     "@emotion/cache": "^11.4.0",
@@ -96,21 +118,13 @@
     "@emotion/styled": "^11.14.1",
     "@fontsource/ibm-plex-mono": "^5.2.7",
     "@fontsource/inter": "^5.2.6",
-    "nanoid": "^5.0.9",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "react-loadable": "^5.5.0",
-    "tinycolor2": "*",
+    "antd": "^6.0.0",
+    "jed": "^1.1.1",
     "lodash": "^4.18.1",
-    "antd": "^5.26.0",
-    "jed": "^1.1.1"
-  },
-  "scripts": {
-    "clean": "rm -rf lib tsconfig.tsbuildinfo",
-    "build": "npm run clean && npx tsc --build",
-    "type": "npx tsc --noEmit"
-  },
-  "publishConfig": {
-    "access": "public"
+    "nanoid": "*",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0",
+    "react-loadable": "^5.5.0",
+    "tinycolor2": "*"
   }
 }

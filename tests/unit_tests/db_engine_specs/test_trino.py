@@ -53,6 +53,7 @@ from superset.superset_typing import (
 )
 from superset.utils import json
 from superset.utils.core import GenericDataType
+from tests.common.assert_utils import assert_called_with_text
 from tests.unit_tests.db_engine_specs.utils import (
     assert_column_spec,
     assert_convert_dttm,
@@ -343,6 +344,156 @@ def test_get_extra_table_metadata(mocker: MockerFixture) -> None:
     assert result["partitions"]["latest"] == {"ds": "01-01-19", "hour": 1}
 
 
+def test_get_extra_table_metadata_iceberg_unpartitioned(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Iceberg ``$partitions`` metadata fields must not be treated as partition
+    columns, so an unpartitioned Iceberg table yields no partition metadata and
+    no latest-partition query.
+    """
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    db_mock = mocker.MagicMock()
+    db_mock.get_indexes = Mock(
+        return_value=[
+            {
+                "name": "partition",
+                "column_names": ["data", "file_count", "record_count", "total_size"],
+            }
+        ]
+    )
+    db_mock.get_extra = Mock(return_value={})
+    db_mock.has_view = Mock(return_value=None)
+    db_mock.get_df = Mock()
+    result = TrinoEngineSpec.get_extra_table_metadata(
+        db_mock,
+        Table("test_table", "test_schema"),
+    )
+    assert "partitions" not in result
+    db_mock.get_df.assert_not_called()
+
+
+def test_get_extra_table_metadata_iceberg_partitioned(
+    mocker: MockerFixture,
+) -> None:
+    """
+    A genuinely partitioned Iceberg table exposes a ``partition`` ROW column
+    alongside the metadata fields. Since the real partition columns are nested
+    in the ROW and not directly queryable here, the partition block is skipped
+    rather than generating an invalid latest-partition query.
+    """
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    db_mock = mocker.MagicMock()
+    db_mock.get_indexes = Mock(
+        return_value=[
+            {
+                "name": "partition",
+                "column_names": [
+                    "partition",
+                    "record_count",
+                    "file_count",
+                    "total_size",
+                    "data",
+                ],
+            }
+        ]
+    )
+    db_mock.get_extra = Mock(return_value={})
+    db_mock.has_view = Mock(return_value=None)
+    db_mock.get_df = Mock()
+    result = TrinoEngineSpec.get_extra_table_metadata(
+        db_mock,
+        Table("test_table", "test_schema"),
+    )
+    assert "partitions" not in result
+    db_mock.get_df.assert_not_called()
+
+
+def test_latest_sub_partition_iceberg(mocker: MockerFixture) -> None:
+    """
+    The ``latest_sub_partition`` macro must not query Iceberg ``$partitions``
+    metadata fields: with no real partition keys it raises instead of building
+    SQL.
+    """
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+    from superset.exceptions import SupersetTemplateException
+
+    db_mock = mocker.MagicMock()
+    db_mock.get_indexes = Mock(
+        return_value=[
+            {
+                "name": "partition",
+                "column_names": ["data", "file_count", "record_count", "total_size"],
+            }
+        ]
+    )
+    db_mock.get_df = Mock()
+    with pytest.raises(SupersetTemplateException):
+        TrinoEngineSpec.latest_sub_partition(
+            db_mock,
+            Table("test_table", "test_schema"),
+            record_count="1",
+        )
+    db_mock.get_df.assert_not_called()
+
+
+def test_filter_iceberg_partition_indexes() -> None:
+    """
+    Iceberg ``$partitions`` metadata indexes are dropped while real partition
+    indexes (and any index sharing only some metadata names) pass through.
+    """
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    # Iceberg metadata-only partition index is dropped entirely.
+    assert (
+        TrinoEngineSpec._filter_iceberg_partition_indexes(
+            [
+                {
+                    "name": "partition",
+                    "column_names": [
+                        "data",
+                        "file_count",
+                        "record_count",
+                        "total_size",
+                    ],
+                }
+            ]
+        )
+        == []
+    )
+
+    # Hive partition index (no Iceberg signature) is returned unchanged.
+    hive_indexes = [{"name": "partition", "column_names": ["ds", "hour"]}]
+    assert (
+        TrinoEngineSpec._filter_iceberg_partition_indexes(hive_indexes) == hive_indexes
+    )
+
+    # A Hive partition column that happens to be named ``data`` is preserved
+    # because the Iceberg signature columns are absent.
+    data_indexes = [{"name": "partition", "column_names": ["data"]}]
+    assert (
+        TrinoEngineSpec._filter_iceberg_partition_indexes(data_indexes) == data_indexes
+    )
+
+    # A real partition key alongside coincidental signature-named columns is
+    # preserved untouched: not every column is an Iceberg metadata field.
+    mixed_indexes = [
+        {
+            "name": "partition",
+            "column_names": ["ds", "record_count", "file_count", "total_size"],
+        }
+    ]
+    assert (
+        TrinoEngineSpec._filter_iceberg_partition_indexes(mixed_indexes)
+        == mixed_indexes
+    )
+
+    # Empty / falsy input yields an empty list.
+    assert TrinoEngineSpec._filter_iceberg_partition_indexes(None) == []
+
+
 @patch("sqlalchemy.engine.Engine.connect")
 def test_cancel_query_success(engine_mock: Mock) -> None:
     from superset.db_engine_specs.trino import TrinoEngineSpec
@@ -532,11 +683,14 @@ def test_get_columns_error(mocker: MockerFixture):
         "The specified table does not exist."
     )
     Row = namedtuple("Row", ["Column", "Type"])
-    mock_inspector.bind.execute().fetchall.return_value = [
+
+    mock_connection = mocker.MagicMock()
+    mock_connection.execute().fetchall.return_value = [
         Row("field1", "row(a varchar, b date)"),
         Row("field2", "row(r1 row(a varchar, b varchar))"),
         Row("field3", "int"),
     ]
+    mock_inspector.engine.connect().__enter__.return_value = mock_connection
 
     actual = TrinoEngineSpec.get_columns(mock_inspector, Table("table", "schema"))
     expected = [
@@ -571,7 +725,11 @@ def test_get_columns_error(mocker: MockerFixture):
 
     _assert_columns_equal(actual, expected)
 
-    mock_inspector.bind.execute.assert_called_with('SHOW COLUMNS FROM schema."table"')
+    with mock_inspector.engine.connect() as conn:
+        assert_called_with_text(
+            conn.execute,
+            'SHOW COLUMNS FROM schema."table"',
+        )
 
 
 def test_get_columns_expand_rows(mocker: MockerFixture):
@@ -604,6 +762,7 @@ def test_get_columns_expand_rows(mocker: MockerFixture):
             column_name="field1.a",
             type=types.VARCHAR(),
             is_dttm=False,
+            expression='"field1"."a"',
             query_as='"field1"."a" AS "field1.a"',
         ),
         ResultSetColumnType(
@@ -611,6 +770,7 @@ def test_get_columns_expand_rows(mocker: MockerFixture):
             column_name="field1.b",
             type=types.DATE(),
             is_dttm=True,
+            expression='"field1"."b"',
             query_as='"field1"."b" AS "field1.b"',
         ),
         ResultSetColumnType(
@@ -621,6 +781,7 @@ def test_get_columns_expand_rows(mocker: MockerFixture):
             column_name="field2.r1",
             type=datatype.parse_sqltype("row(a varchar, b varchar)"),
             is_dttm=False,
+            expression='"field2"."r1"',
             query_as='"field2"."r1" AS "field2.r1"',
         ),
         ResultSetColumnType(
@@ -628,6 +789,7 @@ def test_get_columns_expand_rows(mocker: MockerFixture):
             column_name="field2.r1.a",
             type=types.VARCHAR(),
             is_dttm=False,
+            expression='"field2"."r1"."a"',
             query_as='"field2"."r1"."a" AS "field2.r1.a"',
         ),
         ResultSetColumnType(
@@ -635,6 +797,7 @@ def test_get_columns_expand_rows(mocker: MockerFixture):
             column_name="field2.r1.b",
             type=types.VARCHAR(),
             is_dttm=False,
+            expression='"field2"."r1"."b"',
             query_as='"field2"."r1"."b" AS "field2.r1.b"',
         ),
         ResultSetColumnType(
@@ -681,21 +844,30 @@ def test_adjust_engine_params_fully_qualified() -> None:
     url = make_url("trino://user:pass@localhost:8080/system/default")
 
     uri = TrinoEngineSpec.adjust_engine_params(url, {})[0]
-    assert str(uri) == "trino://user:pass@localhost:8080/system/default"
+    assert (
+        uri.render_as_string(hide_password=False)
+        == "trino://user:pass@localhost:8080/system/default"
+    )
 
     uri = TrinoEngineSpec.adjust_engine_params(
         url,
         {},
         schema="new_schema",
     )[0]
-    assert str(uri) == "trino://user:pass@localhost:8080/system/new_schema"
+    assert (
+        uri.render_as_string(hide_password=False)
+        == "trino://user:pass@localhost:8080/system/new_schema"
+    )
 
     uri = TrinoEngineSpec.adjust_engine_params(
         url,
         {},
         catalog="new_catalog",
     )[0]
-    assert str(uri) == "trino://user:pass@localhost:8080/new_catalog/default"
+    assert (
+        uri.render_as_string(hide_password=False)
+        == "trino://user:pass@localhost:8080/new_catalog/default"
+    )
 
     uri = TrinoEngineSpec.adjust_engine_params(
         url,
@@ -703,7 +875,10 @@ def test_adjust_engine_params_fully_qualified() -> None:
         catalog="new_catalog",
         schema="new_schema",
     )[0]
-    assert str(uri) == "trino://user:pass@localhost:8080/new_catalog/new_schema"
+    assert (
+        uri.render_as_string(hide_password=False)
+        == "trino://user:pass@localhost:8080/new_catalog/new_schema"
+    )
 
 
 def test_adjust_engine_params_catalog_only() -> None:
@@ -715,21 +890,30 @@ def test_adjust_engine_params_catalog_only() -> None:
     url = make_url("trino://user:pass@localhost:8080/system")
 
     uri = TrinoEngineSpec.adjust_engine_params(url, {})[0]
-    assert str(uri) == "trino://user:pass@localhost:8080/system"
+    assert (
+        uri.render_as_string(hide_password=False)
+        == "trino://user:pass@localhost:8080/system"
+    )
 
     uri = TrinoEngineSpec.adjust_engine_params(
         url,
         {},
         schema="new_schema",
     )[0]
-    assert str(uri) == "trino://user:pass@localhost:8080/system/new_schema"
+    assert (
+        uri.render_as_string(hide_password=False)
+        == "trino://user:pass@localhost:8080/system/new_schema"
+    )
 
     uri = TrinoEngineSpec.adjust_engine_params(
         url,
         {},
         catalog="new_catalog",
     )[0]
-    assert str(uri) == "trino://user:pass@localhost:8080/new_catalog"
+    assert (
+        uri.render_as_string(hide_password=False)
+        == "trino://user:pass@localhost:8080/new_catalog"
+    )
 
     uri = TrinoEngineSpec.adjust_engine_params(
         url,
@@ -737,7 +921,10 @@ def test_adjust_engine_params_catalog_only() -> None:
         catalog="new_catalog",
         schema="new_schema",
     )[0]
-    assert str(uri) == "trino://user:pass@localhost:8080/new_catalog/new_schema"
+    assert (
+        uri.render_as_string(hide_password=False)
+        == "trino://user:pass@localhost:8080/new_catalog/new_schema"
+    )
 
 
 @pytest.mark.parametrize(
@@ -1487,3 +1674,183 @@ def test_handle_boolean_filter() -> None:
         str(result_computed.compile(compile_kwargs={"literal_binds": True}))
         == "(expiration = 1) = true"
     )
+
+
+def test_mask_encrypted_extra() -> None:
+    """
+    All `auth_params` values and the OAuth2 client secret are masked, while
+    `auth_method` and other non-sensitive fields stay visible.
+    """
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    config = json.dumps(
+        {
+            "auth_method": "jwt",
+            "auth_params": {"token": "my-secret-token"},
+            "oauth2_client_info": {"id": "client-id", "secret": "my-secret"},
+        }
+    )
+
+    assert TrinoEngineSpec.mask_encrypted_extra(config) == json.dumps(
+        {
+            "auth_method": "jwt",
+            "auth_params": {"token": "XXXXXXXXXX"},
+            "oauth2_client_info": {"id": "client-id", "secret": "XXXXXXXXXX"},
+        }
+    )
+
+
+def test_mask_encrypted_extra_jwt_in_connect_args() -> None:
+    """
+    A JWT passed via `connect_args.requests_kwargs` is masked without touching
+    the surrounding connection settings.
+    """
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    config = json.dumps(
+        {
+            "connect_args": {
+                "protocol": "https",
+                "requests_kwargs": {"jwt": "my-secret-token"},
+            },
+        }
+    )
+
+    assert TrinoEngineSpec.mask_encrypted_extra(config) == json.dumps(
+        {
+            "connect_args": {
+                "protocol": "https",
+                "requests_kwargs": {"jwt": "XXXXXXXXXX"},
+            },
+        }
+    )
+
+
+def test_unmask_encrypted_extra() -> None:
+    """
+    Masked credentials are reused from the previous value; edited ones are kept.
+    """
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    old = json.dumps(
+        {
+            "auth_method": "basic",
+            "auth_params": {"username": "alice", "password": "old-password"},
+        }
+    )
+    # `username` is not masked on read, so it comes back in cleartext; only the
+    # masked `password` is revealed from the previous value.
+    new = json.dumps(
+        {
+            "auth_method": "basic",
+            "auth_params": {"username": "alice", "password": "XXXXXXXXXX"},
+        }
+    )
+
+    assert TrinoEngineSpec.unmask_encrypted_extra(old, new) == json.dumps(
+        {
+            "auth_method": "basic",
+            "auth_params": {"username": "alice", "password": "old-password"},
+        }
+    )
+
+
+def test_impersonate_user_non_trino_backend() -> None:
+    """
+    Test impersonate_user for non-Trino backends.
+    """
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    url = make_url("presto://user@host:443/catalog/schema")
+    engine_kwargs: dict[str, Any] = {"connect_args": {}}
+
+    _, new_kwargs = TrinoEngineSpec.impersonate_user(
+        database=MagicMock(),
+        username="alice",
+        user_token=None,
+        url=url,
+        engine_kwargs=engine_kwargs,
+    )
+
+    assert new_kwargs["connect_args"] == {}
+
+
+def test_impersonate_user_without_token() -> None:
+    """
+    Test impersonate_user when there isn't a `user_token`.
+
+    Without a user token only the `user` connect arg is set; no HTTP session is
+    built, so the driver keeps handling `verify` itself.
+    """
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    url = make_url("trino://host:443/catalog/schema")
+    engine_kwargs: dict[str, Any] = {"connect_args": {"verify": False}}
+
+    _, new_kwargs = TrinoEngineSpec.impersonate_user(
+        database=MagicMock(),
+        username="alice",
+        user_token=None,
+        url=url,
+        engine_kwargs=engine_kwargs,
+    )
+
+    assert new_kwargs["connect_args"] == {"user": "alice", "verify": False}
+
+
+@pytest.mark.parametrize(
+    "verify",
+    [None, False, True, "/path/to/ca-bundle.pem"],
+)
+def test_impersonate_user_with_token(verify: Any) -> None:
+    """
+    Test impersonate_user with a `user_token`.
+
+    With a user token an HTTP session carrying the bearer token is injected. Trino only
+    applies `verify` to a session it builds itself, so the setting has to be copied to
+    ours.
+    """
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    url = make_url("trino://host:443/catalog/schema")
+    engine_kwargs: dict[str, Any] = {"connect_args": {"verify": verify}}
+
+    _, new_kwargs = TrinoEngineSpec.impersonate_user(
+        database=MagicMock(),
+        username="alice",
+        user_token="user-token",  # noqa: S106
+        url=url,
+        engine_kwargs=engine_kwargs,
+    )
+
+    connect_args = new_kwargs["connect_args"]
+    assert connect_args["user"] == "alice"
+    http_session = connect_args["http_session"]
+    assert http_session.headers["Authorization"] == "Bearer user-token"
+    assert http_session.verify == verify
+    # The original connect arg is left in place for the driver.
+    assert connect_args["verify"] == verify
+
+
+def test_impersonate_user_with_token_no_verify_configured() -> None:
+    """
+    Test impersonate_user with a `user_token` and no `verify` connect arg.
+
+    Without the key the session keeps the `requests` default, which verifies certs.
+    """
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    url = make_url("trino://host:443/catalog/schema")
+    engine_kwargs: dict[str, Any] = {"connect_args": {}}
+
+    _, new_kwargs = TrinoEngineSpec.impersonate_user(
+        database=MagicMock(),
+        username="alice",
+        user_token="user-token",  # noqa: S106
+        url=url,
+        engine_kwargs=engine_kwargs,
+    )
+
+    connect_args = new_kwargs["connect_args"]
+    assert "verify" not in connect_args
+    assert connect_args["http_session"].verify is True

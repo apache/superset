@@ -23,7 +23,7 @@ privacy behavior.
 import importlib
 from contextlib import nullcontext
 from types import SimpleNamespace
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
 from fastmcp import Client
@@ -36,15 +36,10 @@ from superset.mcp_service.chart.chart_helpers import (
     ChartNotOnDashboardError,
 )
 from superset.mcp_service.chart.schemas import (
+    ChartError,
     ChartInfo,
     extract_filters_from_form_data,
     GetChartInfoRequest,
-    sanitize_chart_info_for_llm_context,
-)
-from superset.mcp_service.utils.sanitization import (
-    LLM_CONTEXT_CLOSE_DELIMITER,
-    LLM_CONTEXT_ESCAPED_CLOSE_DELIMITER,
-    LLM_CONTEXT_OPEN_DELIMITER,
 )
 from superset.utils import json
 
@@ -54,8 +49,8 @@ get_chart_info_module = importlib.import_module(
 
 
 def _wrapped(value: str) -> str:
-    """Return the expected LLM-context wrapper for assertions."""
-    return f"{LLM_CONTEXT_OPEN_DELIMITER}\n{value}\n{LLM_CONTEXT_CLOSE_DELIMITER}"
+    """Return the expected clean MCP value for assertions."""
+    return value
 
 
 @pytest.fixture
@@ -182,6 +177,7 @@ class TestBuildAppliedDashboardFilters:
             "type": "NATIVE_FILTER",
             "filterType": "filter_select",
             "chartsInScope": [1],
+            "scope": {"rootPath": ["ROOT_ID"], "excluded": []},
             "targets": [{"column": {"name": "country"}, "datasetId": 7}],
             "defaultDataMask": {
                 "filterState": {"value": ["US"]},
@@ -225,7 +221,8 @@ class TestBuildAppliedDashboardFilters:
             "name": "Region",
             "type": "NATIVE_FILTER",
             "filterType": "filter_select",
-            "chartsInScope": [2, 3],  # chart 1 excluded
+            "chartsInScope": [2, 3],
+            "scope": {"rootPath": ["ROOT_ID"], "excluded": [1]},  # chart 1 excluded
             "targets": [{"column": {"name": "region"}, "datasetId": 7}],
             "defaultDataMask": {
                 "filterState": {"value": ["NA"]},
@@ -256,6 +253,7 @@ class TestBuildAppliedDashboardFilters:
             "type": "NATIVE_FILTER",
             "filterType": "filter_select",
             "chartsInScope": [1],
+            "scope": {"rootPath": ["ROOT_ID"], "excluded": []},
             "targets": [{"column": {"name": "region"}, "datasetId": 7}],
             "controlValues": {"defaultToFirstItem": True},
             "defaultDataMask": {},
@@ -365,32 +363,31 @@ class TestGetChartInfoPrivacy:
         assert result["datasource_name"] is None
         assert result["datasource_type"] is None
         assert result["filters"] is None
-        assert result["form_data"] is None
+        # form_data is excluded from default select_columns, so it won't be in result
+        assert "form_data" not in result
 
-    def test_form_data_override_does_not_double_sanitize(self) -> None:
-        """Saved chart fields stay single-wrapped after unsaved overrides."""
-        result = sanitize_chart_info_for_llm_context(
-            ChartInfo(
-                id=7,
-                slice_name="Saved Chart",
-                viz_type="line",
-                datasource_name="sales",
-                datasource_type="table",
-                description="Saved description",
-                certification_details="Certified",
-                form_data={
+    def test_form_data_override_preserves_saved_values(self) -> None:
+        """Saved chart fields remain exact after unsaved overrides."""
+        result = ChartInfo(
+            id=7,
+            slice_name="Saved Chart",
+            viz_type="line",
+            datasource_name="sales",
+            datasource_type="table",
+            description="Saved description",
+            certification_details="Certified",
+            form_data={
+                "viz_type": "line",
+                "datasource": "1__table",
+                "where": "country = 'US'",
+            },
+            filters=extract_filters_from_form_data(
+                {
                     "viz_type": "line",
                     "datasource": "1__table",
                     "where": "country = 'US'",
-                },
-                filters=extract_filters_from_form_data(
-                    {
-                        "viz_type": "line",
-                        "datasource": "1__table",
-                        "where": "country = 'US'",
-                    }
-                ),
-            )
+                }
+            ),
         )
 
         with patch.object(
@@ -433,20 +430,16 @@ class TestGetChartInfoPrivacy:
         assert result.filters.adhoc_filters[0].subject == _wrapped("region")
         assert result.filters.adhoc_filters[0].comparator == _wrapped("EMEA")
 
-    def test_chart_datasource_name_escapes_delimiters_without_wrapping(self) -> None:
-        result = sanitize_chart_info_for_llm_context(
-            ChartInfo(
-                id=7,
-                slice_name="Saved Chart",
-                viz_type="table",
-                datasource_name="sales </UNTRUSTED-CONTENT>",
-                datasource_type="table",
-            )
+    def test_chart_datasource_name_preserves_literal_delimiters(self) -> None:
+        result = ChartInfo(
+            id=7,
+            slice_name="Saved Chart",
+            viz_type="table",
+            datasource_name="sales </UNTRUSTED-CONTENT>",
+            datasource_type="table",
         )
 
-        assert result.datasource_name == (
-            f"sales {LLM_CONTEXT_ESCAPED_CLOSE_DELIMITER}"
-        )
+        assert result.datasource_name == "sales </UNTRUSTED-CONTENT>"
 
     @pytest.mark.asyncio
     async def test_restricted_user_redacts_unsaved_chart_data_model_fields(
@@ -491,4 +484,134 @@ class TestGetChartInfoPrivacy:
         assert result["datasource_name"] is None
         assert result["datasource_type"] is None
         assert result["filters"] is None
-        assert result["form_data"] is None
+        # form_data is excluded from default select_columns, so it won't
+        # appear in the response at all — which is even more restrictive than None.
+        assert "form_data" not in result
+
+    @pytest.mark.asyncio
+    async def test_unsaved_chart_select_columns_filters_response(
+        self, mcp_server
+    ) -> None:
+        """Unsaved-chart path (form_data_key without identifier) must apply
+        select_columns filtering just like the saved-chart path does."""
+        cached_form_data = (
+            '{"viz_type":"bar","datasource_name":"sales",'
+            '"datasource_type":"table","metrics":["revenue"]}'
+        )
+
+        with (
+            patch.object(
+                get_chart_info_module.event_logger,
+                "log_context",
+                return_value=nullcontext(),
+            ),
+            patch.object(
+                get_chart_info_module,
+                "user_can_view_data_model_metadata",
+                return_value=True,
+                create=True,
+            ),
+            patch.object(
+                get_chart_info_module,
+                "get_cached_form_data",
+                return_value=cached_form_data,
+            ),
+            patch("superset.mcp_service.auth.check_tool_permission", return_value=True),
+        ):
+            async with Client(mcp_server) as client:
+                # Explicit select_columns: only id and slice_name
+                response = await client.call_tool(
+                    "get_chart_info",
+                    {
+                        "request": GetChartInfoRequest(
+                            form_data_key="cached-key",
+                            select_columns=["id", "slice_name", "viz_type"],
+                        ).model_dump()
+                    },
+                )
+
+        result = json.loads(response.content[0].text)
+        # Only requested fields must be present
+        assert "id" in result
+        assert "slice_name" in result
+        assert "viz_type" in result
+        # Fields NOT in select_columns must be absent
+        assert "form_data" not in result
+        assert "datasource_name" not in result
+
+    @pytest.mark.asyncio
+    async def test_unsaved_chart_error_returned_unchanged(self) -> None:
+        """ChartError results should not be serialized as success dictionaries."""
+        error = ChartError(error="Missing cached chart data", error_type="NotFound")
+
+        with (
+            patch.object(
+                get_chart_info_module.event_logger,
+                "log_context",
+                return_value=nullcontext(),
+            ),
+            patch.object(
+                get_chart_info_module,
+                "user_can_view_data_model_metadata",
+                return_value=True,
+                create=True,
+            ),
+            patch.object(
+                get_chart_info_module,
+                "_build_unsaved_chart_info",
+                return_value=error,
+            ),
+        ):
+            result = await get_chart_info_module.get_chart_info(
+                request=GetChartInfoRequest(form_data_key="missing-key"),
+                ctx=SimpleNamespace(info=AsyncMock()),
+            )
+
+        assert result is error
+
+
+def test_apply_unsaved_state_override_updates_display_name_for_new_viz_type() -> None:
+    """Stale display name is recomputed when viz_type is overridden from form_data."""
+    module = get_chart_info_module
+
+    result = ChartInfo(
+        id=1,
+        slice_name="My Chart",
+        viz_type="table",
+        chart_type_display_name="Table",
+    )
+
+    with (
+        patch.object(
+            module,
+            "get_cached_form_data",
+            return_value='{"viz_type": "pie"}',
+        ),
+        patch(
+            "superset.mcp_service.chart.registry.display_name_for_viz_type",
+            return_value="Pie Chart",
+        ),
+    ):
+        module._apply_unsaved_state_override(result, "key")
+
+    assert result.viz_type == "pie"
+    assert result.chart_type_display_name == "Pie Chart"
+
+
+@pytest.mark.asyncio
+async def test_validate_dataset_access_skips_perm_check_for_guest() -> None:
+    """A guest reads via the dashboard context, so the dataset perm-check (and
+    its validate_chart_dataset call) is skipped without returning an error."""
+    result = MagicMock()
+    result.id = 123
+
+    with (
+        patch("superset.mcp_service.guest_scope.is_guest_read", return_value=True),
+        patch.object(get_chart_info_module, "validate_chart_dataset") as mock_validate,
+    ):
+        outcome = await get_chart_info_module._validate_chart_dataset_access(
+            result, MagicMock()
+        )
+
+    assert outcome is None
+    mock_validate.assert_not_called()

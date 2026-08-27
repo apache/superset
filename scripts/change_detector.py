@@ -20,19 +20,38 @@ import json
 import os
 import re
 import subprocess
+import time
 from typing import List, Optional
+from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
+
+# The change detector gates the entire CI matrix, so a single transient GitHub
+# API hiccup should not fail the build. Retry server errors and network blips
+# with exponential backoff before giving up.
+MAX_RETRIES: int = 4
+RETRY_BACKOFF_SECONDS: int = 2
+REQUEST_TIMEOUT_SECONDS: int = 30
+# GitHub returns 429 when throttling, which is transient and worth retrying
+# alongside 5xx server errors. It also returns 403 for two very different
+# reasons — a secondary rate limit, and a token missing the required scope —
+# so 403 is only retried when the response headers show throttling. Retrying a
+# scope failure just delays the error and buries its cause.
+RETRYABLE_STATUS_CODES: frozenset[int] = frozenset({429})
 
 # Define patterns for each group of files you're interested in
 PATTERNS = {
     "python": [
         r"^\.github/workflows/.*python",
+        r"^\.github/workflows/frontend-bundle-size-nightly\.yml$",
+        r"^\.github/workflows/scheduled-docker-image-refresh\.yml$",
+        r"^docker-compose-image-tag\.yml$",
         r"^tests/",
         r"^superset/",
         r"^scripts/",
         r"^setup\.py",
         r"^pyproject\.toml$",
         r"^requirements/.+\.txt",
+        r"^pyproject\.toml",
         r"^.pylintrc",
     ],
     "frontend": [
@@ -55,16 +74,71 @@ PATTERNS = {
 GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
 
 
+def _is_rate_limited(err: HTTPError) -> bool:
+    """Whether a 403 is GitHub throttling rather than a missing token scope."""
+    headers = getattr(err, "headers", None)
+    if headers is None:
+        return False
+    try:
+        return (
+            headers.get("x-ratelimit-remaining") == "0"
+            or headers.get("retry-after") is not None
+        )
+    except AttributeError:
+        return False
+
+
+def _api_error_detail(err: object) -> str:
+    """The API's own explanation, e.g. ``Resource not accessible by integration``.
+
+    Without this a 403 is indistinguishable from a rate limit in the CI log.
+    """
+    try:
+        body = err.read().decode("utf-8", "replace")  # type: ignore[attr-defined]
+    except Exception:  # noqa: BLE001  # pylint: disable=broad-except
+        return ""
+    try:
+        detail = json.loads(body).get("message") or body
+    except (ValueError, AttributeError):
+        detail = body
+    # Bound the output so a large/HTML error page can't flood the CI log.
+    return detail[:500]
+
+
 def fetch_files_github_api(url: str):  # type: ignore
-    """Fetches data using GitHub API."""
+    """Fetches data using GitHub API, retrying on transient failures."""
     req = Request(url)  # noqa: S310
     req.add_header("Authorization", f"Bearer {GITHUB_TOKEN}")
     req.add_header("Accept", "application/vnd.github.v3+json")
 
     print(f"Fetching from {url}")
-    with urlopen(req) as response:  # noqa: S310
-        body = response.read()
-        return json.loads(body)
+    for attempt in range(1, MAX_RETRIES + 1):
+        try:
+            with urlopen(req, timeout=REQUEST_TIMEOUT_SECONDS) as response:  # noqa: S310
+                body = response.read()
+                return json.loads(body)
+        except (HTTPError, URLError) as err:
+            # Retry transient failures: network errors (URLError has no status
+            # code), 5xx server errors, and GitHub rate-limit responses. Other
+            # 4xx client errors are deterministic, so re-raise immediately. Also
+            # re-raise once the retry budget is exhausted.
+            status = getattr(err, "code", None)
+            is_transient = (
+                status is None
+                or status >= 500
+                or status in RETRYABLE_STATUS_CODES
+                or (status == 403 and _is_rate_limited(err))  # type: ignore[arg-type]
+            )
+            if not is_transient or attempt == MAX_RETRIES:
+                if detail := _api_error_detail(err):
+                    print(f"GitHub API error {status}: {detail}")
+                raise
+            wait = RETRY_BACKOFF_SECONDS * 2 ** (attempt - 1)
+            print(
+                f"Attempt {attempt}/{MAX_RETRIES} failed ({err}); "
+                f"retrying in {wait}s..."
+            )
+            time.sleep(wait)
 
 
 def fetch_changed_files_pr(repo: str, pr_number: str) -> List[str]:
@@ -156,7 +230,7 @@ def main(event_type: str, sha: str, repo: str) -> None:
 
 def get_git_sha() -> str:
     return os.getenv("GITHUB_SHA") or subprocess.check_output(  # noqa: S603
-        ["git", "rev-parse", "HEAD"]  # noqa: S607
+        ["git", "rev-parse", "HEAD"]  # noqa: S603, S607
     ).strip().decode("utf-8")
 
 

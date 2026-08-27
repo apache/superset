@@ -149,8 +149,10 @@ class ValidationPipeline:
                 ChartErrorBuilder,
             )
 
-            # SECURITY FIX: Sanitize validation error to prevent information disclosure
-            sanitized_reason = _sanitize_validation_error(e)
+            # SECURITY FIX: Sanitize validation error to prevent information disclosure.
+            # logger.exception above already logged the original error; pass
+            # log_original=False so the sanitizer does not log it a second time at INFO.
+            sanitized_reason = _sanitize_validation_error(e, log_original=False)
             error = ChartErrorBuilder.build_error(
                 error_type="validation_system_error",
                 template_key="validation_error",
@@ -259,7 +261,7 @@ class ValidationPipeline:
 
             # Create a new request with the normalized config
             request_dict = request.model_dump()
-            request_dict["config"] = normalized_config.model_dump()
+            request_dict["config"] = normalized_config.model_dump(exclude_unset=True)
 
             return GenerateChartRequest.model_validate(request_dict)
 

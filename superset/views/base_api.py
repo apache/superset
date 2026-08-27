@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import functools
 import logging
-from typing import Any, Callable, cast
+from typing import Any, Callable, cast, Optional, overload
 
 from flask import request, Response
 from flask_appbuilder import Model, ModelRestApi
@@ -116,26 +116,67 @@ def requires_form_data(f: Callable[..., Any]) -> Callable[..., Any]:
     return functools.update_wrapper(wraps, f)
 
 
-def statsd_metrics(f: Callable[..., Any]) -> Callable[..., Any]:
+@overload
+def statsd_metrics(
+    f: Callable[..., Any],
+    *,
+    best_effort: bool = False,
+) -> Callable[..., Any]: ...
+
+
+@overload
+def statsd_metrics(
+    f: None = None,
+    *,
+    best_effort: bool = False,
+) -> Callable[[Callable[..., Any]], Callable[..., Any]]: ...
+
+
+def statsd_metrics(
+    f: Callable[..., Any] | None = None,
+    *,
+    best_effort: bool = False,
+) -> Callable[..., Any]:
     """
-    Handle sending all statsd metrics from the REST API
+    Handle sending all StatsD metrics from the REST API.
+
+    When ``best_effort`` is true, a metrics backend failure is logged and ignored so
+    it cannot replace the endpoint response or exception.
     """
 
-    def wraps(self: BaseSupersetApiMixin, *args: Any, **kwargs: Any) -> Response:
-        func_name = f.__name__
-        try:
-            duration, response = time_function(f, self, *args, **kwargs)
-        except Exception as ex:
-            if hasattr(ex, "status") and ex.status < 500:  # pylint: disable=no-member
-                self.incr_stats("warning", func_name)
-            else:
-                self.incr_stats("error", func_name)
-            raise
+    def decorate(func: Callable[..., Any]) -> Callable[..., Any]:
+        def wraps(self: BaseSupersetApiMixin, *args: Any, **kwargs: Any) -> Response:
+            func_name = func.__name__
 
-        self.send_stats_metrics(response, func_name, duration)
-        return response
+            def emit_metrics(callback: Callable[[], None]) -> None:
+                try:
+                    callback()
+                except Exception as ex:  # pylint: disable=broad-except
+                    if not best_effort:
+                        raise
+                    logger.warning(
+                        "REST API metrics emission failed: endpoint=%s error_type=%s",
+                        func.__qualname__,
+                        type(ex).__name__,
+                    )
 
-    return functools.update_wrapper(wraps, f)
+            try:
+                duration, response = time_function(func, self, *args, **kwargs)
+            except Exception as ex:
+                action = (
+                    "warning"
+                    if hasattr(ex, "status") and ex.status < 500  # pylint: disable=no-member
+                    else "error"
+                )
+                emit_metrics(lambda: self.incr_stats(action, func_name))
+                raise
+
+            emit_metrics(lambda: self.send_stats_metrics(response, func_name, duration))
+            return response
+
+        return functools.update_wrapper(wraps, func)
+
+    return decorate(f) if f is not None else decorate
 
 
 def validate_feature_flags(
@@ -221,6 +262,29 @@ class BaseSupersetApiMixin:
         """
         stats_logger_manager.instance.incr(
             f"{self.__class__.__name__}.{func_name}.{action}"
+        )
+
+    def log_rejected_field_access(self, func_name: str, column_name: str) -> None:
+        """Emit a security log event when a related/distinct field is rejected.
+
+        The allowlist check itself blocks the request; this records the attempt
+        in the structured log (alongside the existing statsd counter) so that
+        rejected field access is visible to security monitoring and forensics,
+        with the caller's identity, the endpoint, and the attempted value.
+        """
+        # Sanitize the user-supplied column name to a single, bounded token so
+        # it cannot inject newlines or forge extra key=value tokens in the log
+        # line. Restrict to a safe character set (column names are alphanumeric
+        # plus ``_-.``) and replace anything else with ``?``.
+        sanitized_column = "".join(
+            ch if (ch.isalnum() or ch in "_-.") else "?" for ch in str(column_name)
+        )[:200]
+        logger.warning(
+            "Rejected disallowed field access: user_id=%s endpoint=%s.%s column=%s",
+            get_user_id(),
+            self.__class__.__name__,
+            func_name,
+            sanitized_column,
         )
 
     def timing_stats(self, action: str, func_name: str, value: float) -> None:
@@ -331,7 +395,7 @@ class BaseSupersetModelRestApi(BaseSupersetApiMixin, ModelRestApi):
         }
     """
 
-    extra_fields_rel_fields: dict[str, list[str]] = {"owners": ["email", "active"]}
+    extra_fields_rel_fields: dict[str, list[str]] = {}
     """
     Declare extra fields for the representation of the Model object::
 
@@ -478,8 +542,15 @@ class BaseSupersetModelRestApi(BaseSupersetApiMixin, ModelRestApi):
             values = [row["value"] for row in result]
             ids = [id_ for id_ in ids if id_ not in values]
             pk_col = datamodel.get_pk()
-            # Fetch requested values from ids
-            extra_rows = db.session.query(datamodel.obj).filter(pk_col.in_(ids)).all()
+            # Fetch requested values from ids, applying the same scoping as the
+            # unforced query so ``include_ids`` cannot resolve rows the
+            # related-field filters deliberately hide.
+            query = db.session.query(datamodel.obj).filter(pk_col.in_(ids))
+            if base_filters := self.base_related_field_filters.get(column_name):
+                query = datamodel.apply_filters(
+                    query, datamodel.get_filters().add_filter_list(base_filters)
+                )
+            extra_rows = query.all()
             result += self._get_result_from_rows(datamodel, extra_rows, column_name)
 
     @event_logger.log_this_with_context(
@@ -566,6 +637,14 @@ class BaseSupersetModelRestApi(BaseSupersetApiMixin, ModelRestApi):
         self.send_stats_metrics(response, self.delete.__name__, duration)
         return response
 
+    def ensure_access_list_write_access(self, column_name: str) -> Optional[Response]:
+        """Restrict access-list related fields to users with write access."""
+        if column_name in {"editors", "viewers"} and not security_manager.can_access(
+            "can_write", self.class_permission_name
+        ):
+            return self.response_403()
+        return None
+
     @expose("/related/<column_name>", methods=("GET",))
     @protect()
     @safe
@@ -600,13 +679,18 @@ class BaseSupersetModelRestApi(BaseSupersetApiMixin, ModelRestApi):
               $ref: '#/components/responses/400'
             401:
               $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
             404:
               $ref: '#/components/responses/404'
             500:
               $ref: '#/components/responses/500'
         """
+        if response := self.ensure_access_list_write_access(column_name):
+            return response
         if column_name not in self.allowed_rel_fields:
             self.incr_stats("error", self.related.__name__)
+            self.log_rejected_field_access(self.related.__name__, column_name)
             return self.response_404()
         args = kwargs.get("rison", {})
 
@@ -685,7 +769,8 @@ class BaseSupersetModelRestApi(BaseSupersetApiMixin, ModelRestApi):
               $ref: '#/components/responses/500'
         """
         if column_name not in self.allowed_distinct_fields:
-            self.incr_stats("error", self.related.__name__)
+            self.incr_stats("error", self.distinct.__name__)
+            self.log_rejected_field_access(self.distinct.__name__, column_name)
             return self.response_404()
         args = kwargs.get("rison", {})
         # handle pagination

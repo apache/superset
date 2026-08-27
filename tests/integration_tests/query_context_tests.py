@@ -124,6 +124,10 @@ def test_time_offset_comparison_queries_use_chart_row_limit(
     def cache_timeout_fn() -> int:
         return query_context._processor.get_cache_timeout()
 
+    # A non-zero dataset Hour Offset shifts temporal filter bounds (#104810) and
+    # other tests can leave one set on the shared birth_names table; pin it to 0
+    # so the comparison-window literals below stay deterministic.
+    query_context.datasource.offset = 0
     time_offsets_obj = query_context.datasource.processing_time_offsets(
         df, query_object, cache_key_fn, cache_timeout_fn, query_context.force
     )
@@ -1310,6 +1314,58 @@ def test_time_grain_and_time_offset_with_base_axis(app_context, physical_dataset
 
 
 @only_sqlite
+@pytest.mark.parametrize("sql_expression", ["col6", " col6 "])
+def test_time_offset_without_grain_aligns_direct_custom_sql_temporal_axis(
+    app_context, physical_dataset, sql_expression
+):
+    """A direct Custom SQL reference uses its physical column's temporal type."""
+    column_on_axis: AdhocColumn = {
+        "label": "custom_col6",
+        "sqlExpression": sql_expression,
+        "columnType": "BASE_AXIS",
+        "isColumnReference": True,
+    }
+    qc = QueryContextFactory().create(
+        datasource={
+            "type": physical_dataset.type,
+            "id": physical_dataset.id,
+        },
+        queries=[
+            {
+                "columns": [column_on_axis],
+                "metrics": [
+                    {
+                        "label": "SUM(col1)",
+                        "expressionType": "SQL",
+                        "sqlExpression": "SUM(col1)",
+                    }
+                ],
+                "time_offsets": ["32 days ago"],
+                "filters": [
+                    {
+                        "col": "col6",
+                        "op": "TEMPORAL_RANGE",
+                        "val": "2002-02-04 : 2002-04-13",
+                    }
+                ],
+            }
+        ],
+        result_type=ChartDataResultType.FULL,
+        force=True,
+    )
+
+    df = qc.get_df_payload(qc.queries[0])["df"]
+
+    assert df["custom_col6"].tolist() == [
+        "2002-02-04 00:00:00",
+        "2002-03-07 00:00:00",
+        "2002-04-12 00:00:00",
+    ]
+    assert df["SUM(col1)"].tolist() == [1, 2, 3]
+    assert df["SUM(col1)__32 days ago"].tolist()[0] == 0
+
+
+@only_sqlite
 def test_time_grain_and_time_offset_on_legacy_query(app_context, physical_dataset):
     qc = QueryContextFactory().create(
         datasource={
@@ -1624,7 +1680,7 @@ def test_date_range_timeshift_multiple_periods(app_context, physical_dataset):
 
 @with_feature_flags(DATE_RANGE_TIMESHIFTS_ENABLED=True)
 def test_date_range_timeshift_invalid_format(app_context, physical_dataset):
-    """Test that invalid date range format raises appropriate error."""
+    """Test that an uninterpretable offset fails with a validation error."""
     qc = QueryContextFactory().create(
         datasource={
             "type": physical_dataset.type,
@@ -1661,11 +1717,12 @@ def test_date_range_timeshift_invalid_format(app_context, physical_dataset):
         force=True,
     )
 
-    # Should raise an error for invalid date range format
-    from superset.commands.chart.exceptions import TimeDeltaAmbiguousError
+    # An uninterpretable offset fails the query cleanly instead of leaking
+    # an unhandled TimeDeltaAmbiguousError out of get_df_payload
+    query_payload = qc.get_df_payload(qc.queries[0])
 
-    with pytest.raises(TimeDeltaAmbiguousError):
-        qc.get_df_payload(qc.queries[0])
+    assert query_payload["status"] == QueryStatus.FAILED
+    assert "Unable to interpret the time offset" in query_payload["error"]
 
 
 @with_feature_flags(DATE_RANGE_TIMESHIFTS_ENABLED=True)

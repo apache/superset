@@ -25,6 +25,7 @@ import {
   QueryFormMetric,
   TimeFormatter,
   TimeGranularity,
+  TooltipTruncationMode,
 } from '@superset-ui/core';
 import {
   BaseChartProps,
@@ -66,6 +67,8 @@ export type EchartsTimeseriesFormData = QueryFormData & {
   logAxis: boolean;
   markerEnabled: boolean;
   markerSize: number;
+  maxMarkerSize?: number;
+  minMarkerSize?: number;
   metrics: QueryFormMetric[];
   minorSplitLine: boolean;
   minorTicks: boolean;
@@ -73,12 +76,14 @@ export type EchartsTimeseriesFormData = QueryFormData & {
   orderDesc: boolean;
   rowLimit: number;
   seriesType: EchartsTimeseriesSeriesType;
+  size?: QueryFormMetric;
   stack: StackType;
   stackDimension: string;
   timeCompare?: string[];
   tooltipTimeFormat?: string;
   showTooltipTotal?: boolean;
   showTooltipPercentage?: boolean;
+  tooltipTruncation?: TooltipTruncationMode;
   truncateXAxis: boolean;
   truncateYAxis: boolean;
   yAxisFormat?: string;
@@ -117,5 +122,6 @@ export type TimeseriesChartTransformedProps =
         label: string;
         type: AxisType;
       };
+      resolvedTimeGrain?: TimeGranularity;
       onFocusedSeries: (series: string | null) => void;
     };

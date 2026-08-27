@@ -296,7 +296,6 @@ test('write user sees edit, delete, and export actions', async () => {
 
   const dataset = {
     ...mockDatasets[0],
-    owners: [{ id: mockWriteUser.userId, username: 'writeuser' }],
   };
 
   mockDatasetListEndpoints({ result: [dataset], count: 1 });
@@ -318,7 +317,7 @@ test('write user sees edit, delete, and export actions', async () => {
   const exportButton = within(row!).getByTestId('upload');
   expect(exportButton).toBeInTheDocument();
 
-  // Should have edit button (user is owner)
+  // Should have edit button (user is editor)
   const editButton = within(row!).getByTestId('edit');
   expect(editButton).toBeInTheDocument();
 

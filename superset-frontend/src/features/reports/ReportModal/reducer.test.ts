@@ -33,7 +33,6 @@ const makeReport = (overrides: Partial<ReportObject> = {}): ReportObject => ({
   active: true,
   crontab: '0 12 * * 1',
   name: 'Test Report',
-  owners: [1],
   recipients: [
     {
       recipient_config_json: { target: 'a@b.com', ccTarget: '', bccTarget: '' },
@@ -49,6 +48,7 @@ const makeReport = (overrides: Partial<ReportObject> = {}): ReportObject => ({
   log_retention: 90,
   creation_method: 'dashboards',
   force_screenshot: false,
+  editors: [1],
   ...overrides,
 });
 

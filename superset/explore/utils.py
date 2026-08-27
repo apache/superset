@@ -86,7 +86,7 @@ def check_access(
     # Access checks below, no need to validate them twice as they can be expensive.
     chart = ChartDAO.find_by_id(chart_id, skip_base_filter=True)
     if chart:
-        can_access_chart = security_manager.is_owner(
+        can_access_chart = security_manager.is_editor(
             chart
         ) or security_manager.can_access("can_read", "Chart")
         if can_access_chart:

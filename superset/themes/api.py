@@ -55,13 +55,14 @@ from superset.themes.schemas import (
     ThemePostSchema,
     ThemePutSchema,
 )
+from superset.utils.core import sanitize_cookie_token
 from superset.utils.decorators import transaction
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
     RelatedFieldFilter,
     statsd_metrics,
 )
-from superset.views.filters import BaseFilterRelatedUsers, FilterRelatedOwners
+from superset.views.filters import BaseFilterRelatedUsers, FilterRelatedUsers
 
 logger = logging.getLogger(__name__)
 
@@ -145,7 +146,7 @@ class ThemeRestApi(BaseSupersetModelRestApi):
     openapi_spec_methods = openapi_spec_methods_override
 
     related_field_filters = {
-        "changed_by": RelatedFieldFilter("first_name", FilterRelatedOwners),
+        "changed_by": RelatedFieldFilter("first_name", FilterRelatedUsers),
     }
     base_related_field_filters = {
         "changed_by": [["id", BaseFilterRelatedUsers, lambda: []]],
@@ -349,6 +350,8 @@ class ThemeRestApi(BaseSupersetModelRestApi):
             return self.response_404()
         except SystemThemeProtectedError:
             return self.response_403()
+        except SystemThemeInUseError:
+            return self.response_403()
         except Exception as ex:
             logger.exception("Unexpected error in PUT /theme/%s", pk)
             return self.response_422(message=str(ex))
@@ -489,7 +492,7 @@ class ThemeRestApi(BaseSupersetModelRestApi):
             as_attachment=True,
             download_name=filename,
         )
-        if token := request.args.get("token"):
+        if token := sanitize_cookie_token(request.args.get("token")):
             response.set_cookie(token, "done", max_age=600)
         return response
 
@@ -559,9 +562,9 @@ class ThemeRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self,
-        *args,
-        **kwargs: f"{self.__class__.__name__}.set_system_default",
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.set_system_default"
+        ),
         log_to_statsd=False,
     )
     def set_system_default(self, pk: int) -> Response:
@@ -626,9 +629,9 @@ class ThemeRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self,
-        *args,
-        **kwargs: f"{self.__class__.__name__}.set_system_dark",
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.set_system_dark"
+        ),
         log_to_statsd=False,
     )
     def set_system_dark(self, pk: int) -> Response:
@@ -693,9 +696,9 @@ class ThemeRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self,
-        *args,
-        **kwargs: f"{self.__class__.__name__}.unset_system_default",
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.unset_system_default"
+        ),
         log_to_statsd=False,
     )
     def unset_system_default(self) -> Response:
@@ -743,9 +746,9 @@ class ThemeRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self,
-        *args,
-        **kwargs: f"{self.__class__.__name__}.unset_system_dark",
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.unset_system_dark"
+        ),
         log_to_statsd=False,
     )
     def unset_system_dark(self) -> Response:

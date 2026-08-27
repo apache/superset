@@ -66,14 +66,6 @@ DEFAULT_DATASET_COLUMNS = [
     "changed_on_humanized",
 ]
 
-SORTABLE_DATASET_COLUMNS = [
-    "id",
-    "table_name",
-    "schema",
-    "changed_on",
-    "created_on",
-]
-
 _DEFAULT_LIST_DATASETS_REQUEST = ListDatasetsRequest()
 
 
@@ -94,7 +86,9 @@ async def list_datasets(
     """List datasets with filtering and search.
 
     Returns dataset metadata including table name, schema, and last modified
-    time.
+    time. Set ``request.certified`` to true to return only governed,
+    semantic-layer datasets; false returns only uncertified datasets, while
+    omitting it preserves the unfiltered behavior.
 
     **IMPORTANT**: All parameters must be wrapped in a ``request`` object.
     Do NOT pass ``search``, ``page``, ``page_size``, etc. as top-level
@@ -113,7 +107,8 @@ async def list_datasets(
         ``created_by_fk``, ``changed_by_fk``
 
     Sortable columns for ``order_column``:
-        ``id``, ``table_name``, ``schema``, ``changed_on``, ``created_on``
+        ``id``, ``table_name``, ``schema``, ``changed_on``,
+        ``changed_on_delta_humanized`` (alias for ``changed_on``), ``created_on``
 
     To filter by a person, call find_users to resolve the name to a user ID,
     then pass it as a filter: filters=[{"col": "created_by_fk", "opr": "eq",
@@ -160,6 +155,7 @@ async def list_datasets(
 
     try:
         from superset.daos.dataset import DatasetDAO
+        from superset.datasets.filters import DatasetCertifiedFilter
         from superset.mcp_service.common.schema_discovery import (
             DATASET_SORTABLE_COLUMNS,
             get_all_column_names,
@@ -191,6 +187,13 @@ async def list_datasets(
         )
 
         with event_logger.log_context(action="mcp.list_datasets.query"):
+            custom_filters = None
+            if request.certified is not None:
+                custom_filters = {
+                    "certified": tool.build_bound_filter(
+                        DatasetCertifiedFilter, request.certified
+                    )
+                }
             result = tool.run_tool(
                 filters=request.filters,
                 search=request.search,
@@ -200,7 +203,8 @@ async def list_datasets(
                 page=max(request.page - 1, 0),
                 page_size=request.page_size,
                 created_by_me=request.created_by_me,
-                owned_by_me=request.owned_by_me,
+                edited_by_me=request.edited_by_me,
+                custom_filters=custom_filters,
             )
 
         await ctx.info(

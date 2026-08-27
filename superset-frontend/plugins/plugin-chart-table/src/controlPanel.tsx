@@ -57,7 +57,7 @@ import {
   withLabel,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
-import { isEmpty, last } from 'lodash';
+import { isEmpty, last } from 'lodash-es';
 import { PAGE_SIZE_OPTIONS, SERVER_PAGE_SIZE_OPTIONS } from './consts';
 
 function getQueryMode(controls: ControlStateMapping): QueryMode {
@@ -304,11 +304,7 @@ const config: ControlPanelConfig = {
                 { controls, datasource, form_data }: ControlPanelState,
                 controlState: ControlState,
               ) => ({
-                columns: datasource?.columns[0]?.hasOwnProperty('filterable')
-                  ? (datasource as Dataset)?.columns?.filter(
-                      (c: ColumnMeta) => c.filterable,
-                    )
-                  : datasource?.columns,
+                columns: datasource?.columns || [],
                 savedMetrics: defineSavedMetrics(datasource),
                 // current active adhoc metrics
                 selectedMetrics:
@@ -468,6 +464,35 @@ const config: ControlPanelConfig = {
                 'Show total aggregations of selected metrics. Note that row limit does not apply to the result.',
               ),
               visibility: isAggMode,
+              resetOnHide: false,
+            },
+          },
+        ],
+        [
+          {
+            name: 'totals_aggregate',
+            config: {
+              type: 'SelectControl',
+              label: t('Summary aggregation'),
+              description: t(
+                'Aggregation used for the summary row. By default each metric ' +
+                  'keeps its own aggregation; Sum and Average override it for ' +
+                  'the summary row only. The override applies to simple ' +
+                  'metrics (a metric built from custom SQL always keeps its ' +
+                  'own aggregation). Overriding a count or a distinct count ' +
+                  'sums the counted column instead, which fails outright on a ' +
+                  'non-numeric column.',
+              ),
+              default: 'ORIGINAL',
+              clearable: false,
+              choices: [
+                ['ORIGINAL', t("Each metric's own")],
+                ['SUM', t('Sum')],
+                ['AVG', t('Average')],
+              ],
+              visibility: ({ controls }) =>
+                isAggMode({ controls }) &&
+                Boolean(controls?.show_totals?.value),
               resetOnHide: false,
             },
           },
@@ -761,12 +786,8 @@ const config: ControlPanelConfig = {
                 const extraColorChoices = hasTimeComparison
                   ? [
                       {
-                        value: ColorSchemeEnum.Green,
-                        label: t('Green for increase, red for decrease'),
-                      },
-                      {
-                        value: ColorSchemeEnum.Red,
-                        label: t('Red for increase, green for decrease'),
+                        label: t('Trend colors'),
+                        colors: [ColorSchemeEnum.Green, ColorSchemeEnum.Red],
                       },
                     ]
                   : [];
@@ -778,6 +799,7 @@ const config: ControlPanelConfig = {
                     (item: ConditionalFormattingConfig, index, array) => {
                       if (
                         item.colorScheme &&
+                        typeof item.colorScheme === 'string' &&
                         !['Green', 'Red'].includes(item.colorScheme)
                       ) {
                         if (item.columnFormatting === undefined) {

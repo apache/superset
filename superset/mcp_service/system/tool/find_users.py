@@ -29,6 +29,7 @@ from superset.mcp_service.system.schemas import (
     FindUsersResponse,
     UserMatch,
 )
+from superset.mcp_service.utils.sanitization import escape_like
 
 logger = logging.getLogger(__name__)
 
@@ -49,9 +50,14 @@ async def find_users(request: FindUsersRequest, ctx: Context) -> FindUsersRespon
     the value for a created_by_fk or changed_by_fk filter on list_dashboards,
     list_charts, or list_datasets.
 
-    Matches case-insensitively against username, first_name, last_name, and
-    email. The query is required and non-empty; this tool does not enumerate
-    the full user directory.
+    Matches case-insensitively against username, first_name, and last_name.
+    Email is deliberately not matched, and an email-shaped query is rejected
+    outright rather than falling through to the username column: since
+    usernames are frequently email addresses under OAuth provisioning, a
+    plain column exclusion would still let an email lookup confirm whether
+    an address has an account (and resolve it to a person), a directory
+    capability the web API reserves for admins. The query is required and
+    non-empty; this tool does not enumerate the full user directory.
 
     Privacy: returning a user's identity here is sanctioned only for resolving
     filter values. Do not use the response to answer "who owns X", "who can
@@ -64,17 +70,16 @@ async def find_users(request: FindUsersRequest, ctx: Context) -> FindUsersRespon
     )
 
     user_model = security_manager.user_model
-    needle = f"%{request.query.strip()}%"
+    needle: str = f"%{escape_like(request.query.strip())}%"
 
     with event_logger.log_context(action="mcp.find_users.query"):
         query = (
             db.session.query(user_model)
             .filter(
                 or_(
-                    user_model.username.ilike(needle),
-                    user_model.first_name.ilike(needle),
-                    user_model.last_name.ilike(needle),
-                    user_model.email.ilike(needle),
+                    user_model.username.ilike(needle, escape="\\"),
+                    user_model.first_name.ilike(needle, escape="\\"),
+                    user_model.last_name.ilike(needle, escape="\\"),
                 )
             )
             .order_by(user_model.username.asc())

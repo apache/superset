@@ -20,6 +20,10 @@ import { Router } from 'react-router-dom';
 import { createMemoryHistory } from 'history';
 import { getExtensionsRegistry, VizType } from '@superset-ui/core';
 import { render, screen, userEvent } from 'spec/helpers/testing-library';
+import {
+  enableMobileConsumptionFlag,
+  mockMobileMatchMedia,
+} from 'spec/helpers/mobileTestUtils';
 import { isEmbedded } from 'src/dashboard/util/isEmbedded';
 import { useUiConfig } from 'src/components/UiConfigContext';
 import SliceHeader from '.';
@@ -35,7 +39,7 @@ jest.mock('src/dashboard/components/SliceHeaderControls', () => ({
       data-cached-dttm={props.cachedDttm}
       data-updated-dttm={props.updatedDttm}
       data-superset-can-explore={props.supersetCanExplore}
-      data-superset-can-csv={props.supersetCanCSV}
+      data-superset-can-download={props.supersetCanDownload}
       data-component-id={props.componentId}
       data-dashboard-id={props.dashboardId}
       data-is-full-size={props.isFullSize}
@@ -144,7 +148,7 @@ const createProps = (overrides: any = {}) => ({
   isExpanded: false,
   sliceName: 'Vaccine Candidates per Phase',
   supersetCanExplore: true,
-  supersetCanCSV: true,
+  supersetCanDownload: true,
   slice: {
     slice_id: MOCKED_CHART_ID,
     slice_url: `/explore/?form_data=%7B%22slice_id%22%3A%20${MOCKED_CHART_ID}%7D`,
@@ -170,9 +174,9 @@ const createProps = (overrides: any = {}) => ({
     datasource: '58__table',
     description: '',
     description_markeddown: '',
-    owners: [],
     modified: '<span class="no-wrap">20 hours ago</span>',
     changed_on: 1617143411366,
+    editors: [],
     slice_description: '',
   },
   componentId: 'CHART-aGfmWtliqA',
@@ -222,7 +226,7 @@ test('Should render - default props', () => {
   delete props.isExpanded;
   delete props.sliceName;
   delete props.supersetCanExplore;
-  delete props.supersetCanCSV;
+  delete props.supersetCanDownload;
 
   render(<SliceHeader {...props} />, {
     useRedux: true,
@@ -250,7 +254,7 @@ test('Should render default props and "call" actions', () => {
   delete props.isExpanded;
   delete props.sliceName;
   delete props.supersetCanExplore;
-  delete props.supersetCanCSV;
+  delete props.supersetCanDownload;
 
   render(<SliceHeader {...props} />, {
     useRedux: true,
@@ -361,6 +365,44 @@ test('Should not render click to edit prompt and run onExploreChart on click if 
   expect(history.location.pathname).toMatch('/superset/dashboard');
 });
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
+describe('mobile consumption mode', () => {
+  let restoreMatchMedia: () => void;
+  let restoreFlag: () => void;
+
+  beforeEach(() => {
+    restoreMatchMedia = mockMobileMatchMedia();
+    restoreFlag = enableMobileConsumptionFlag();
+  });
+
+  afterEach(() => {
+    restoreMatchMedia();
+    restoreFlag();
+  });
+
+  test('Should not render click to edit prompt or SliceHeaderControls on mobile', () => {
+    const props = createProps();
+    const history = createMemoryHistory({
+      initialEntries: ['/superset/dashboard/1/'],
+    });
+    render(
+      <Router history={history}>
+        <SliceHeader {...props} />
+      </Router>,
+      { useRedux: true, initialState },
+    );
+    userEvent.hover(screen.getByText('Vaccine Candidates per Phase'));
+    expect(
+      screen.queryByText('Click to edit Vaccine Candidates per Phase.'),
+    ).not.toBeInTheDocument();
+
+    userEvent.click(screen.getByText('Vaccine Candidates per Phase'));
+    expect(history.location.pathname).toMatch('/superset/dashboard');
+
+    expect(screen.queryByTestId('SliceHeaderControls')).not.toBeInTheDocument();
+  });
+});
+
 test('Should render "annotationsLoading"', () => {
   const props = createProps();
   render(<SliceHeader {...props} />, {
@@ -459,7 +501,7 @@ test('Correct props to "SliceHeaderControls"', () => {
     'false',
   );
   expect(screen.getByTestId('SliceHeaderControls')).toHaveAttribute(
-    'data-superset-can-csv',
+    'data-superset-can-download',
     'true',
   );
   expect(screen.getByTestId('SliceHeaderControls')).toHaveAttribute(

@@ -108,6 +108,7 @@ export const AlertReportCronScheduler: FC<AlertReportCronSchedulerProps> = ({
           <Input
             type="text"
             name="crontab"
+            aria-label={t('Schedule')}
             style={error ? { borderColor: theme.colorError } : {}}
             placeholder={t('CRON expression')}
             value={value}

@@ -31,9 +31,10 @@ repos:
             types-simplejson,
             types-python-dateutil,
             types-requests,
-            # types-redis 4.6.0.5 is failing mypy
-            # because of https://github.com/python/typeshed/pull/10531
-            types-redis==4.6.0.4,
+            # types-redis is intentionally absent: redis-py ships its own
+            # bundled types (py.typed, since 4.6+/5.x), while the stub
+            # package is unmaintained (frozen at the 4.6.0.x API surface).
+            # Installing the stub would shadow the accurate inline types.
             types-pytz,
             types-croniter,
             types-PyYAML,
@@ -61,9 +62,9 @@ repos:
         args: ["--markdown-linebreak-ext=md"]
   - repo: local
     hooks:
-      - id: prettier-frontend
-        name: prettier (frontend)
-        entry: bash -c 'cd superset-frontend && for file in "$@"; do npx prettier --write "${file#superset-frontend/}"; done'
+      - id: oxfmt-frontend
+        name: oxfmt (frontend)
+        entry: bash -c 'cd superset-frontend && files=(); for f in "$@"; do files+=("${f#superset-frontend/}"); done; npx oxfmt --write --no-error-on-unmatched-pattern -- "${files[@]}"' --
         language: system
         pass_filenames: true
         files: ^superset-frontend/.*\.(js|jsx|ts|tsx|css|scss|sass|json)$
@@ -78,6 +79,12 @@ repos:
       - id: custom-rules-frontend
         name: custom rules (frontend)
         entry: ./scripts/check-custom-rules.sh
+        language: system
+        pass_filenames: true
+        files: ^superset-frontend/.*\.(js|jsx|ts|tsx)$
+      - id: stylelint-frontend
+        name: stylelint (frontend css-in-js)
+        entry: ./scripts/stylelint.sh
         language: system
         pass_filenames: true
         files: ^superset-frontend/.*\.(js|jsx|ts|tsx)$
@@ -137,7 +144,7 @@ repos:
               git fetch --no-recurse-submodules origin "$TARGET_BRANCH" 2>/dev/null || true
             fi
             BASE=$(git merge-base origin/"$TARGET_BRANCH" HEAD 2>/dev/null) || BASE="HEAD"
-            files=$(git diff --name-only --diff-filter=ACM "$BASE"..HEAD 2>/dev/null | grep '^superset/.*\.py$' || true)
+            files=$(git diff --name-only --diff-filter=ACM "$BASE"..HEAD 2>/dev/null | grep '^superset/.*\.py$' | grep -v '^superset/migrations/' || true)
             if [ -n "$files" ]; then
               pylint --rcfile=.pylintrc --load-plugins=superset.extensions.pylint --reports=no $files
             else
@@ -158,3 +165,14 @@ repos:
         language: system
         files: ^superset/config\.py$
         pass_filenames: false
+      - id: zizmor
+        name: zizmor (GHA security audit)
+        entry: zizmor
+        language: python
+        additional_dependencies: [zizmor==1.25.2]
+        files: ^\.github/
+        types: [yaml]
+        pass_filenames: false
+        # Advisory until pre-existing findings are resolved; remove
+        # --no-exit-codes to make this hook blocking.
+        args: [--no-exit-codes, .github/]

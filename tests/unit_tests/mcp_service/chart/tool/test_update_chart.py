@@ -20,10 +20,12 @@ Unit tests for update_chart MCP tool
 """
 
 import importlib
+from typing import Any
 from unittest.mock import Mock, patch
 
 import pytest
 from fastmcp import Client
+from pydantic import ValidationError
 
 from superset.mcp_service.app import mcp
 from superset.mcp_service.chart.chart_helpers import find_chart_by_identifier
@@ -42,6 +44,7 @@ from superset.mcp_service.chart.tool.update_chart import (
     _build_preview_form_data,
     _build_update_payload,
 )
+from superset.utils import json
 
 # The __init__.py re-exports the update_chart *function*, so a plain
 # `from ... import update_chart` gives the function, not the module.
@@ -74,6 +77,10 @@ class TestUpdateChart:
         assert len(table_request.config.columns) == 2
         assert table_request.config.columns[0].name == "region"
         assert table_request.config.columns[1].aggregate == "SUM"
+
+        # Dataset column names may contain punctuation supported by Superset.
+        parenthesized = ColumnRef(name="New Draft Apps (This Week)")
+        assert parenthesized.name == "New Draft Apps (This Week)"
 
         # XY chart update with UUID
         xy_config = XYChartConfig(
@@ -112,6 +119,100 @@ class TestUpdateChart:
             identifier=123, config=config, chart_name="Updated Sales Report"
         )
         assert request2.chart_name == "Updated Sales Report"
+
+    def test_unrelated_config_update_preserves_existing_column_config(self) -> None:
+        chart = Mock(
+            datasource_id=7,
+            params='{"viz_type":"table","column_config":{"Revenue":{"columnWidth":160}}}',
+            slice_name="Revenue table",
+        )
+        request = UpdateChartRequest(
+            identifier=123,
+            config=TableChartConfig(
+                chart_type="table",
+                columns=[ColumnRef(name="revenue", aggregate="SUM")],
+                row_limit=500,
+            ),
+        )
+
+        payload = _build_update_payload(request, chart, request.config)
+
+        assert isinstance(payload, dict)
+        assert '"column_config": {"Revenue": {"columnWidth": 160}}' in payload["params"]
+
+    @pytest.mark.parametrize("params", ["null", "[]", '"text"', "1", "true"])
+    def test_config_update_treats_non_object_params_as_empty(self, params: str) -> None:
+        chart = Mock(datasource_id=7, params=params, slice_name="Revenue table", id=123)
+        request = UpdateChartRequest(
+            identifier=123,
+            config=TableChartConfig(
+                chart_type="table", columns=[ColumnRef(name="revenue")]
+            ),
+        )
+
+        payload = _build_update_payload(request, chart, request.config)
+
+        assert isinstance(payload, dict)
+        assert "column_config" not in json.loads(payload["params"])
+
+    def test_explicit_column_update_merges_saved_ui_settings(self) -> None:
+        chart = Mock(
+            datasource_id=7,
+            params=json.dumps(
+                {
+                    "viz_type": "table",
+                    "column_config": {
+                        "Revenue": {"columnWidth": 80, "visible": False},
+                        "Region": {"customColumnName": "Sales region"},
+                    },
+                }
+            ),
+            slice_name="Revenue table",
+        )
+        config = TableChartConfig.model_validate(
+            {
+                "chart_type": "table",
+                "columns": [{"name": "revenue", "aggregate": "SUM"}],
+                "column_config": {"Revenue": {"columnWidth": 120}},
+            }
+        )
+        request = UpdateChartRequest(identifier=123, config=config)
+
+        payload = _build_update_payload(request, chart, config)
+
+        assert isinstance(payload, dict)
+        assert json.loads(payload["params"])["column_config"] == {
+            "Revenue": {"columnWidth": 120, "visible": False},
+            "Region": {"customColumnName": "Sales region"},
+        }
+
+    def test_explicit_null_clears_saved_column_setting(self) -> None:
+        chart = Mock(
+            datasource_id=7,
+            params=json.dumps(
+                {
+                    "viz_type": "table",
+                    "column_config": {"Revenue": {"columnWidth": 80, "visible": False}},
+                }
+            ),
+            slice_name="Revenue table",
+        )
+        config = TableChartConfig.model_validate(
+            {
+                "chart_type": "table",
+                "columns": [{"name": "revenue", "aggregate": "SUM"}],
+                "column_config": {"Revenue": {"columnWidth": None}},
+            }
+        )
+        request = UpdateChartRequest(identifier=123, config=config)
+
+        payload = _build_update_payload(request, chart, config)
+
+        assert isinstance(payload, dict)
+        assert json.loads(payload["params"])["column_config"]["Revenue"] == {
+            "columnWidth": None,
+            "visible": False,
+        }
 
     @pytest.mark.asyncio
     async def test_update_chart_preview_formats(self):
@@ -582,7 +683,7 @@ class TestBuildUpdatePayload:
         assert result == {"slice_name": "New Name"}
 
     def test_error_when_no_config_and_no_name(self):
-        """Returns GenerateChartResponse error when neither config nor chart_name."""
+        """Returns error when neither config, chart_name, nor dataset_id is provided."""
         request = UpdateChartRequest(identifier=1)
         chart = Mock()
 
@@ -594,6 +695,7 @@ class TestBuildUpdatePayload:
         assert result.error.error_type == "ValidationError"
         assert "config" in result.error.message.lower()
         assert "chart_name" in result.error.message.lower()
+        assert "dataset_id" in result.error.message.lower()
 
     def test_config_update_uses_request_chart_name(self):
         """When config and chart_name are both provided, uses chart_name."""
@@ -635,6 +737,286 @@ class TestBuildUpdatePayload:
         assert result["slice_name"] == "Existing Name"
         # query_context must be cleared so get_chart_data uses updated params
         assert result["query_context"] is None
+
+    def test_add_columns_preserves_existing_columns_and_metrics(self):
+        """An additive update does not require reconstructing the table."""
+        request = UpdateChartRequest(
+            identifier=1,
+            add_columns=[
+                ColumnRef(
+                    name="go_live_date", aggregate="MIN", label="Earliest Go Live Date"
+                )
+            ],
+        )
+        chart = Mock()
+        chart.slice_name = "Existing"
+        chart.params = json.dumps(
+            {
+                "viz_type": "ag-grid-table",
+                "query_mode": "aggregate",
+                "groupby": ["employer"],
+                "metrics": ["count"],
+            }
+        )
+
+        result = _build_update_payload(request, chart)
+
+        assert isinstance(result, dict)
+        params = json.loads(result["params"])
+        assert params["groupby"] == ["employer"]
+        assert params["metrics"][0] == "count"
+        assert params["metrics"][1]["label"] == "Earliest Go Live Date"
+        assert params["metrics"][1]["aggregate"] == "MIN"
+
+    def test_add_columns_rebinds_requested_dataset(self):
+        """Additive saves validate and persist against the same dataset."""
+        request = UpdateChartRequest(
+            identifier=1,
+            dataset_id=22,
+            add_columns=[ColumnRef(name="region")],
+        )
+        chart = Mock(
+            slice_name="Existing",
+            params=json.dumps(
+                {
+                    "viz_type": "table",
+                    "query_mode": "aggregate",
+                    "groupby": ["employer"],
+                    "metrics": [],
+                }
+            ),
+        )
+
+        result = _build_update_payload(request, chart)
+
+        assert isinstance(result, dict)
+        assert result["datasource_id"] == 22
+        assert result["datasource_type"] == "table"
+        assert result["slice_name"] == "Existing"
+        params = json.loads(result["params"])
+        assert params["groupby"] == ["employer", "region"]
+
+    def test_add_columns_recognizes_implicit_raw_query_mode(self) -> None:
+        """A table with all_columns and no query_mode still has raw semantics."""
+        request = UpdateChartRequest(
+            identifier=1,
+            add_columns=[ColumnRef(name="amount", aggregate="SUM")],
+        )
+        chart = Mock(
+            slice_name="Raw table",
+            params=json.dumps(
+                {
+                    "viz_type": "table",
+                    "all_columns": ["employer", "state"],
+                }
+            ),
+        )
+
+        result = _build_update_payload(request, chart)
+
+        assert isinstance(result, GenerateChartResponse)
+        assert result.success is False
+        assert result.error is not None
+        assert (
+            result.error.message == "Cannot add metrics to a table in raw query mode."
+        )
+
+    @pytest.mark.parametrize(
+        "metric",
+        [
+            ColumnRef(name="go_live_date", aggregate="MIN"),
+            ColumnRef(name="saved_count", saved_metric=True),
+            ColumnRef(sql_expression="COUNT(*)", label="Count"),
+        ],
+    )
+    def test_add_metric_to_raw_table_returns_actionable_error(
+        self, metric: ColumnRef
+    ) -> None:
+        """Raw tables must not silently discard aggregate semantics."""
+        request = UpdateChartRequest(identifier=1, add_columns=[metric])
+        chart = Mock(
+            slice_name="Raw table",
+            params=json.dumps(
+                {
+                    "viz_type": "table",
+                    "query_mode": "raw",
+                    "all_columns": ["employer"],
+                }
+            ),
+        )
+
+        result = _build_update_payload(request, chart)
+
+        assert isinstance(result, GenerateChartResponse)
+        assert result.success is False
+        assert result.error is not None
+        assert (
+            result.error.message == "Cannot add metrics to a table in raw query mode."
+        )
+        assert "query_mode='aggregate'" in result.error.details
+
+    def test_add_dimension_only_column_to_aggregate_table(self):
+        """A dimension-only append compiles to a raw patch on its own, so it
+        must be routed by is_metric rather than the patch's inferred mode."""
+        request = UpdateChartRequest(
+            identifier=1, add_columns=[ColumnRef(name="region")]
+        )
+        chart = Mock(
+            slice_name="Existing",
+            params=json.dumps(
+                {
+                    "viz_type": "table",
+                    "query_mode": "aggregate",
+                    "groupby": ["employer"],
+                    "metrics": ["count"],
+                }
+            ),
+        )
+
+        result = _build_update_payload(request, chart)
+
+        assert isinstance(result, dict)
+        params = json.loads(result["params"])
+        assert params["groupby"] == ["employer", "region"]
+        assert params["metrics"] == ["count"]
+        # The chart must not be flipped to raw by the append.
+        assert params["query_mode"] == "aggregate"
+
+    def test_add_mixed_dimension_and_metric_to_aggregate_table(self):
+        """Dimensions land in groupby and metrics in metrics, in one call."""
+        request = UpdateChartRequest(
+            identifier=1,
+            add_columns=[
+                ColumnRef(name="region"),
+                ColumnRef(name="go_live_date", aggregate="MIN", label="Earliest"),
+            ],
+        )
+        chart = Mock(
+            slice_name="Existing",
+            params=json.dumps(
+                {
+                    "viz_type": "table",
+                    "query_mode": "aggregate",
+                    "groupby": ["employer"],
+                    "metrics": ["count"],
+                }
+            ),
+        )
+
+        result = _build_update_payload(request, chart)
+
+        assert isinstance(result, dict)
+        params = json.loads(result["params"])
+        assert params["groupby"] == ["employer", "region"]
+        assert params["metrics"][0] == "count"
+        assert params["metrics"][1]["label"] == "Earliest"
+
+    def test_add_columns_skips_entries_already_on_the_chart(self):
+        """Re-adding a saved column must not duplicate it in the table."""
+        request = UpdateChartRequest(
+            identifier=1,
+            add_columns=[ColumnRef(name="employer"), ColumnRef(name="region")],
+        )
+        chart = Mock(
+            slice_name="Existing",
+            params=json.dumps(
+                {
+                    "viz_type": "table",
+                    "query_mode": "aggregate",
+                    "groupby": ["employer"],
+                    "metrics": ["count"],
+                }
+            ),
+        )
+
+        result = _build_update_payload(request, chart)
+
+        assert isinstance(result, dict)
+        params = json.loads(result["params"])
+        # "employer" is already present, so only "region" is appended.
+        assert params["groupby"] == ["employer", "region"]
+        assert params["metrics"] == ["count"]
+
+    def test_add_columns_dedupes_adhoc_metric_dicts(self):
+        """Adhoc metrics are dicts -- unhashable, so identity is structural."""
+        request = UpdateChartRequest(
+            identifier=1,
+            add_columns=[
+                ColumnRef(
+                    name="go_live_date", aggregate="MIN", label="Earliest Go Live Date"
+                )
+            ],
+        )
+        chart = Mock(slice_name="Existing")
+        chart.params = json.dumps(
+            {
+                "viz_type": "table",
+                "query_mode": "aggregate",
+                "groupby": [],
+                "metrics": [],
+            }
+        )
+
+        first = _build_update_payload(request, chart)
+        assert isinstance(first, dict)
+        # Feed the result back in to emulate the same additive call twice.
+        chart.params = first["params"]
+        second = _build_update_payload(request, chart)
+
+        assert isinstance(second, dict)
+        metrics = json.loads(second["params"])["metrics"]
+        assert len(metrics) == 1
+        assert metrics[0]["label"] == "Earliest Go Live Date"
+
+    def test_add_columns_dedupes_raw_mode_all_columns(self):
+        """Raw tables append into all_columns and must not duplicate either."""
+        request = UpdateChartRequest(
+            identifier=1,
+            add_columns=[ColumnRef(name="employer"), ColumnRef(name="region")],
+        )
+        chart = Mock(
+            slice_name="Raw table",
+            params=json.dumps(
+                {
+                    "viz_type": "table",
+                    "query_mode": "raw",
+                    "all_columns": ["employer"],
+                }
+            ),
+        )
+
+        result = _build_update_payload(request, chart)
+
+        assert isinstance(result, dict)
+        assert json.loads(result["params"])["all_columns"] == ["employer", "region"]
+
+
+class TestUpdateChartRequestColumnPatchValidation:
+    """The config/add_columns validator on UpdateChartRequest."""
+
+    def test_config_and_add_columns_together_rejected(self):
+        """Full replacement and additive append are mutually exclusive."""
+        with pytest.raises(ValidationError, match="not both"):
+            UpdateChartRequest(
+                identifier=1,
+                config=TableChartConfig(columns=[ColumnRef(name="region")]),
+                add_columns=[ColumnRef(name="employer")],
+            )
+
+    def test_empty_add_columns_rejected(self):
+        """An empty append is a no-op the caller almost certainly didn't mean."""
+        with pytest.raises(ValidationError, match="at least one column"):
+            UpdateChartRequest(identifier=1, add_columns=[])
+
+    def test_add_columns_alone_accepted(self):
+        """The valid additive shape still passes validation."""
+        request = UpdateChartRequest(
+            identifier=1, add_columns=[ColumnRef(name="region")]
+        )
+
+        assert request.config is None
+        assert request.add_columns is not None
+        assert request.add_columns[0].name == "region"
 
 
 class TestUpdateChartNameOnly:
@@ -883,6 +1265,69 @@ class TestBuildPreviewFormData:
         assert result["datasource"] == "7__table"
         assert result["slice_name"] == "Existing"
 
+    def test_partial_column_config_merges_saved_ui_settings(self) -> None:
+        config = TableChartConfig.model_validate(
+            {
+                "chart_type": "table",
+                "columns": [{"name": "revenue", "aggregate": "SUM"}],
+                "column_config": {
+                    "Revenue": {"columnWidth": 120, "d3NumberFormat": "$,.2f"}
+                },
+            }
+        )
+        request = UpdateChartRequest(identifier=1, config=config)
+        chart = Mock(
+            id=42,
+            datasource_id=7,
+            slice_name="Existing",
+            params=json.dumps(
+                {
+                    "viz_type": "table",
+                    "column_config": {
+                        "Revenue": {"columnWidth": 80, "visible": False},
+                        "Region": {"customColumnName": "Sales region"},
+                    },
+                }
+            ),
+        )
+
+        result = _build_preview_form_data(request, chart, parsed_config=config)
+
+        assert isinstance(result, dict)
+        assert result["column_config"] == {
+            "Revenue": {
+                "columnWidth": 120,
+                "d3NumberFormat": "$,.2f",
+                "visible": False,
+            },
+            "Region": {"customColumnName": "Sales region"},
+        }
+
+    def test_switching_from_table_removes_column_config(self) -> None:
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="region"),
+            y=[ColumnRef(name="revenue", aggregate="SUM")],
+            kind="bar",
+        )
+        request = UpdateChartRequest(identifier=1, config=config)
+        chart = Mock(
+            id=42,
+            datasource_id=7,
+            slice_name="Existing",
+            params=json.dumps(
+                {
+                    "viz_type": "table",
+                    "column_config": {"Revenue": {"columnWidth": 80}},
+                }
+            ),
+        )
+
+        result = _build_preview_form_data(request, chart, parsed_config=config)
+
+        assert isinstance(result, dict)
+        assert "column_config" not in result
+
     def test_name_only_preview_keeps_existing_form_data(self):
         """Name-only preview preserves existing form_data and renames."""
         request = UpdateChartRequest(identifier=1, chart_name="Brand New Name")
@@ -933,6 +1378,37 @@ class TestBuildPreviewFormData:
         assert isinstance(result, dict)
         assert result["slice_id"] == 9
         assert result["slice_name"] == "Broken"
+
+    def test_explicit_empty_filters_clear_saved_filters(self):
+        """filters=[] must honor the remedy advertised by validation errors."""
+        config = TableChartConfig(
+            columns=[ColumnRef(name="region")],
+            filters=[],
+        )
+        request = UpdateChartRequest(identifier=1, config=config)
+        chart = Mock(
+            id=9,
+            datasource_id=4,
+            slice_name="Filtered",
+            params=json.dumps(
+                {
+                    "viz_type": "table",
+                    "adhoc_filters": [
+                        {
+                            "expressionType": "SIMPLE",
+                            "subject": "dropped_column",
+                            "operator": "TEMPORAL_RANGE",
+                            "comparator": "No filter",
+                        }
+                    ],
+                }
+            ),
+        )
+
+        result = _build_preview_form_data(request, chart, parsed_config=config)
+
+        assert isinstance(result, dict)
+        assert "adhoc_filters" not in result
 
 
 class TestUpdateChartSaveWithConfig:
@@ -1175,6 +1651,11 @@ class TestUpdateChartValidationGate:
     )
     @patch("superset.daos.chart.ChartDAO.find_by_id", new_callable=Mock)
     @patch("superset.db.session")
+    @patch(
+        "superset.mcp_service.chart.validation.dataset_validator"
+        ".DatasetValidator.validate_against_dataset",
+        new=Mock(return_value=(True, None)),
+    )
     @pytest.mark.asyncio
     async def test_preview_path_validation_failure_skips_cache(
         self,
@@ -1238,6 +1719,11 @@ class TestUpdateChartValidationGate:
     )
     @patch("superset.daos.chart.ChartDAO.find_by_id", new_callable=Mock)
     @patch("superset.db.session")
+    @patch(
+        "superset.mcp_service.chart.validation.dataset_validator"
+        ".DatasetValidator.validate_against_dataset",
+        new=Mock(return_value=(True, None)),
+    )
     @pytest.mark.asyncio
     async def test_persist_path_validation_failure_skips_db_write(
         self,
@@ -1286,3 +1772,580 @@ class TestUpdateChartValidationGate:
             error = result.structured_content["error"]
             assert error["error_code"] == "CHART_VALIDATION_FAILED"
             mock_update_cmd_cls.assert_not_called()
+
+
+# ---------------------------------------------------------------------------
+# Column normalization in update_chart
+# ---------------------------------------------------------------------------
+
+
+class TestUpdateChartColumnNormalization:
+    """Column names are normalized to dataset canonical case before validation."""
+
+    @staticmethod
+    def _mock_chart(datasource_id: int | None = 10) -> Mock:
+        chart = Mock()
+        chart.id = 1
+        chart.datasource_id = datasource_id
+        chart.slice_name = "Existing"
+        chart.viz_type = "table"
+        chart.uuid = "abc-123"
+        chart.params = '{"viz_type": "table", "datasource": "10__table"}'
+        chart.datasource = Mock()
+        return chart
+
+    @patch.object(update_chart_module, "validate_and_compile")
+    @patch.object(update_chart_module, "_create_preview_url", new_callable=Mock)
+    @patch("superset.mcp_service.auth.check_chart_data_access", new_callable=Mock)
+    @patch("superset.daos.chart.ChartDAO.find_by_id", new_callable=Mock)
+    @patch("superset.db.session")
+    @patch(
+        "superset.mcp_service.chart.validation.dataset_validator"
+        ".DatasetValidator.validate_against_dataset",
+        new=Mock(return_value=(True, None)),
+    )
+    @patch(
+        "superset.mcp_service.chart.validation.dataset_validator"
+        ".DatasetValidator.normalize_column_names",
+    )
+    @pytest.mark.asyncio
+    async def test_normalization_called_with_guarded_datasource_id(
+        self,
+        mock_normalize,
+        mock_db_session,
+        mock_find_by_id,
+        mock_check_access,
+        mock_create_preview,
+        mock_validate,
+        mcp_server,
+    ):
+        """normalize_column_names receives the locally-guarded datasource_id, not
+        chart.datasource_id re-accessed from the ORM object (which could raise on
+        mock/partial objects)."""
+        from superset.mcp_service.chart.compile import CompileResult
+
+        chart = self._mock_chart(datasource_id=10)
+        mock_find_by_id.return_value = chart
+        mock_check_access.return_value = DatasetValidationResult(
+            is_valid=True, dataset_id=10, dataset_name="ds", warnings=[]
+        )
+        mock_validate.return_value = CompileResult(
+            success=True, error=None, error_code=None, tier="validation", error_obj=None
+        )
+        mock_create_preview.return_value = ("http://example.com/explore", None, [])
+
+        # normalize_column_names returns the config unchanged
+        def _passthrough(config, dataset_id):
+            return config
+
+        mock_normalize.side_effect = _passthrough
+
+        request = {
+            "identifier": 1,
+            "config": {
+                "chart_type": "xy",
+                "x": {"name": "ds"},
+                "y": [{"name": "num_boys", "aggregate": "SUM"}],
+                "kind": "line",
+            },
+        }
+
+        async with Client(mcp) as client:
+            await client.call_tool("update_chart", {"request": request})
+
+        mock_normalize.assert_called_once()
+        _, call_dataset_id = mock_normalize.call_args.args
+        assert call_dataset_id == 10  # guarded local var, not re-read from ORM
+
+    @patch.object(update_chart_module, "validate_and_compile")
+    @patch.object(update_chart_module, "_create_preview_url", new_callable=Mock)
+    @patch("superset.mcp_service.auth.check_chart_data_access", new_callable=Mock)
+    @patch("superset.daos.chart.ChartDAO.find_by_id", new_callable=Mock)
+    @patch("superset.db.session")
+    @patch(
+        "superset.mcp_service.chart.validation.dataset_validator"
+        ".DatasetValidator.validate_against_dataset",
+        new=Mock(return_value=(True, None)),
+    )
+    @patch(
+        "superset.mcp_service.chart.validation.dataset_validator"
+        ".DatasetValidator.normalize_column_names",
+    )
+    @pytest.mark.asyncio
+    async def test_normalization_exception_is_caught_gracefully(
+        self,
+        mock_normalize,
+        mock_db_session,
+        mock_find_by_id,
+        mock_check_access,
+        mock_create_preview,
+        mock_validate,
+        mcp_server,
+    ):
+        """A normalization failure must not propagate — chart update continues."""
+        from superset.mcp_service.chart.compile import CompileResult
+
+        chart = self._mock_chart(datasource_id=10)
+        mock_find_by_id.return_value = chart
+        mock_check_access.return_value = DatasetValidationResult(
+            is_valid=True, dataset_id=10, dataset_name="ds", warnings=[]
+        )
+        mock_validate.return_value = CompileResult(
+            success=True, error=None, error_code=None, tier="validation", error_obj=None
+        )
+        mock_create_preview.return_value = ("http://example.com/explore", None, [])
+        mock_normalize.side_effect = ValueError("DB connection failed")
+
+        request = {
+            "identifier": 1,
+            "config": {
+                "chart_type": "xy",
+                "x": {"name": "ds"},
+                "y": [{"name": "num_boys", "aggregate": "SUM"}],
+                "kind": "line",
+            },
+        }
+
+        async with Client(mcp) as client:
+            # Should not raise; normalization failure is a warning only
+            await client.call_tool("update_chart", {"request": request})
+
+        # Normalization failed but tool still attempted the update path
+        mock_normalize.assert_called_once()
+
+    @patch(
+        "superset.mcp_service.chart.validation.dataset_validator"
+        ".DatasetValidator.normalize_column_names",
+    )
+    def test_normalization_skipped_when_no_datasource_id(self, mock_normalize):
+        """normalize_column_names is never called when chart has no datasource_id."""
+        from superset.mcp_service.chart.schemas import XYChartConfig
+
+        chart = self._mock_chart(datasource_id=None)
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="ds"),
+            y=[ColumnRef(name="num_boys", aggregate="SUM")],
+            kind="line",
+        )
+
+        # Simulate the guard from update_chart
+        chart_datasource_id = getattr(chart, "datasource_id", None)
+        if config is not None and chart_datasource_id is not None:
+            from superset.mcp_service.chart.validation.dataset_validator import (
+                DatasetValidator,
+            )
+
+            DatasetValidator.normalize_column_names(config, chart_datasource_id)
+
+        mock_normalize.assert_not_called()
+
+    @patch.object(update_chart_module, "validate_and_compile")
+    @patch.object(update_chart_module, "_create_preview_url", new_callable=Mock)
+    @patch("superset.mcp_service.auth.check_chart_data_access", new_callable=Mock)
+    @patch("superset.daos.chart.ChartDAO.find_by_id", new_callable=Mock)
+    @patch("superset.db.session")
+    @patch(
+        "superset.mcp_service.chart.validation.dataset_validator"
+        ".DatasetValidator.validate_against_dataset",
+        new=Mock(return_value=(True, None)),
+    )
+    @patch(
+        "superset.mcp_service.chart.validation.dataset_validator"
+        ".DatasetValidator.normalize_column_names",
+    )
+    @pytest.mark.asyncio
+    async def test_normalization_uses_request_dataset_id_when_rebinding(
+        self,
+        mock_normalize,
+        mock_db_session,
+        mock_find_by_id,
+        mock_check_access,
+        mock_create_preview,
+        mock_validate,
+        mcp_server,
+    ):
+        """When dataset_id is in the request, normalization must use it — not the
+        chart's current datasource — so column names are resolved against the
+        target schema after rebind."""
+        from superset.mcp_service.chart.compile import CompileResult
+
+        chart = self._mock_chart(datasource_id=10)
+        mock_find_by_id.return_value = chart
+        mock_check_access.return_value = DatasetValidationResult(
+            is_valid=True, dataset_id=99, dataset_name="new_ds", warnings=[]
+        )
+        mock_validate.return_value = CompileResult(
+            success=True, error=None, error_code=None, tier="validation", error_obj=None
+        )
+        mock_create_preview.return_value = ("http://example.com/explore", None, [])
+
+        def _passthrough(config, dataset_id):
+            return config
+
+        mock_normalize.side_effect = _passthrough
+
+        request = {
+            "identifier": 1,
+            "dataset_id": 99,
+            "config": {
+                "chart_type": "xy",
+                "x": {"name": "ds"},
+                "y": [{"name": "num_boys", "aggregate": "SUM"}],
+                "kind": "line",
+            },
+        }
+
+        async with Client(mcp) as client:
+            await client.call_tool("update_chart", {"request": request})
+
+        mock_normalize.assert_called_once()
+        _, call_dataset_id = mock_normalize.call_args.args
+        # Must use the request's dataset_id (99), not the chart's current one (10)
+        assert call_dataset_id == 99
+
+
+# ---------------------------------------------------------------------------
+# Custom SQL metrics (sql_expression) — Ticket #3, update_chart side.
+# ---------------------------------------------------------------------------
+
+
+class TestUpdateChartSqlMetric:
+    """update_chart accepts a sql_expression on y[*] metrics."""
+
+    def test_update_chart_request_via_dict_accepts_sql_metric(self) -> None:
+        sql_expr = (
+            "COUNT(CASE WHEN closed_won THEN 1 END)::numeric / NULLIF(COUNT(*),0)"
+        )
+        request = UpdateChartRequest.model_validate(
+            {
+                "identifier": 42,
+                "generate_preview": False,
+                "config": {
+                    "chart_type": "xy",
+                    "x": {"name": "ds"},
+                    "y": [{"sql_expression": sql_expr, "label": "Win Rate"}],
+                    "kind": "line",
+                },
+            }
+        )
+        assert request.config.y[0].sql_expression == sql_expr
+        assert request.config.y[0].label == "Win Rate"
+        assert request.config.y[0].name is None
+
+    def test_response_form_data_preserves_sql_metric_strings(self) -> None:
+        from superset.mcp_service.chart.tool.update_chart import (
+            _wrapped_form_data_for_response,
+        )
+
+        result = _wrapped_form_data_for_response(
+            {
+                "viz_type": "echarts_timeseries_line",
+                "metrics": [
+                    {
+                        "expressionType": "SQL",
+                        "sqlExpression": "COUNT(*)",
+                        "label": "Win Rate",
+                        "aggregate": None,
+                        "column": None,
+                        "optionName": "metric_sql_abcd1234",
+                        "hasCustomLabel": True,
+                        "datasourceWarning": False,
+                    }
+                ],
+            }
+        )
+        m = result["metrics"][0]
+        assert m["sqlExpression"] == "COUNT(*)"
+        assert m["label"] == "Win Rate"
+        assert m["optionName"] == "metric_sql_abcd1234"
+
+
+class TestBuildUpdatePayloadDatasetId:
+    """Tests for dataset_id support in _build_update_payload."""
+
+    def test_dataset_only_update_returns_datasource_fields(self) -> None:
+        """dataset_id alone produces a payload with datasource_id + datasource_type."""
+        request = UpdateChartRequest(identifier=1, dataset_id=42)
+        chart = Mock()
+        chart.datasource_id = 10
+
+        result = _build_update_payload(request, chart)
+
+        assert isinstance(result, dict)
+        assert result == {"datasource_id": 42, "datasource_type": "table"}
+
+    def test_dataset_and_name_update(self) -> None:
+        """dataset_id + chart_name: payload includes datasource fields
+        and slice_name."""
+        request = UpdateChartRequest(identifier=1, dataset_id=42, chart_name="Renamed")
+        chart = Mock()
+        chart.datasource_id = 10
+
+        result = _build_update_payload(request, chart)
+
+        assert isinstance(result, dict)
+        assert result == {
+            "datasource_id": 42,
+            "datasource_type": "table",
+            "slice_name": "Renamed",
+        }
+
+    def test_dataset_and_config_update_includes_datasource(self):
+        """dataset_id + config: payload includes datasource_id and datasource_type."""
+        config = TableChartConfig(
+            chart_type="table",
+            columns=[ColumnRef(name="col1")],
+        )
+        request = UpdateChartRequest(identifier=1, config=config, dataset_id=99)
+        chart = Mock()
+        chart.datasource_id = 10
+        chart.slice_name = "Old Name"
+
+        result = _build_update_payload(request, chart, parsed_config=config)
+
+        assert isinstance(result, dict)
+        assert result["datasource_id"] == 99
+        assert result["datasource_type"] == "table"
+        assert "params" in result
+        assert "viz_type" in result
+
+    def test_config_without_dataset_does_not_include_datasource(self):
+        """When dataset_id is None, payload must NOT include datasource_id."""
+        config = TableChartConfig(
+            chart_type="table",
+            columns=[ColumnRef(name="col1")],
+        )
+        request = UpdateChartRequest(identifier=1, config=config)
+        chart = Mock()
+        chart.datasource_id = 10
+        chart.slice_name = "Old Name"
+
+        result = _build_update_payload(request, chart, parsed_config=config)
+
+        assert isinstance(result, dict)
+        assert "datasource_id" not in result
+        assert "datasource_type" not in result
+
+
+class TestBuildPreviewFormDataDatasetId:
+    """Tests for dataset_id support in _build_preview_form_data."""
+
+    def test_dataset_only_update_sets_datasource_field(self):
+        """dataset_id alone updates the datasource field in merged form_data."""
+        request = UpdateChartRequest(identifier=1, dataset_id=55)
+        chart = Mock()
+        chart.datasource_id = 10
+        chart.slice_name = "Chart"
+        chart.id = 1
+        chart.params = None
+
+        result = _build_preview_form_data(request, chart)
+
+        assert isinstance(result, dict)
+        assert result["datasource"] == "55__table"
+
+    def test_config_and_dataset_uses_new_dataset(self):
+        """config + dataset_id: datasource field reflects the new dataset."""
+        config = TableChartConfig(
+            chart_type="table",
+            columns=[ColumnRef(name="col1")],
+        )
+        request = UpdateChartRequest(identifier=1, config=config, dataset_id=77)
+        chart = Mock()
+        chart.datasource_id = 10
+        chart.slice_name = "Chart"
+        chart.id = 1
+        chart.params = None
+
+        result = _build_preview_form_data(request, chart, parsed_config=config)
+
+        assert isinstance(result, dict)
+        assert result["datasource"] == "77__table"
+
+    def test_no_dataset_keeps_existing_datasource(self):
+        """When dataset_id is None, datasource reflects the existing chart dataset."""
+        config = TableChartConfig(
+            chart_type="table",
+            columns=[ColumnRef(name="col1")],
+        )
+        request = UpdateChartRequest(identifier=1, config=config)
+        chart = Mock()
+        chart.datasource_id = 10
+        chart.slice_name = "Chart"
+        chart.id = 1
+        chart.params = None
+
+        result = _build_preview_form_data(request, chart, parsed_config=config)
+
+        assert isinstance(result, dict)
+        assert result["datasource"] == "10__table"
+
+
+class TestUpdateChartDatasetIdIntegration:
+    """Integration test verifying dataset_id is plumbed into UpdateChartCommand."""
+
+    @patch(
+        "superset.mcp_service.auth.check_chart_data_access",
+        new_callable=Mock,
+    )
+    @patch(
+        "superset.commands.chart.update.UpdateChartCommand",
+        new_callable=Mock,
+    )
+    @patch.object(
+        update_chart_module,
+        "_validate_update_against_dataset",
+        return_value=None,
+    )
+    @patch("superset.daos.chart.ChartDAO.find_by_id", new_callable=Mock)
+    @patch("superset.db.session")
+    @pytest.mark.asyncio
+    async def test_dataset_id_passed_to_update_command(
+        self,
+        mock_db_session: Any,
+        mock_find_by_id: Mock,
+        mock_validate: Mock,
+        mock_update_cmd_cls: Mock,
+        mock_check_access: Mock,
+        mcp_server: Any,
+    ) -> None:
+        """dataset_id in request is forwarded to UpdateChartCommand payload."""
+        mock_chart = Mock()
+        mock_chart.id = 55
+        mock_chart.datasource_id = 10
+        mock_chart.slice_name = "Old Chart"
+        mock_chart.viz_type = "table"
+        mock_chart.uuid = "uuid-55"
+        mock_find_by_id.return_value = mock_chart
+
+        mock_check_access.return_value = DatasetValidationResult(
+            is_valid=True,
+            dataset_id=10,
+            dataset_name="old_dataset",
+            warnings=[],
+        )
+
+        updated_chart = Mock()
+        updated_chart.id = 55
+        updated_chart.slice_name = "Old Chart"
+        updated_chart.viz_type = "table"
+        updated_chart.uuid = "uuid-55"
+        mock_update_cmd_cls.return_value.run.return_value = updated_chart
+
+        request = {
+            "identifier": 55,
+            "dataset_id": 1041,
+            "generate_preview": False,
+        }
+
+        async with Client(mcp) as client:
+            result = await client.call_tool("update_chart", {"request": request})
+
+            assert result.structured_content["success"] is True
+
+            call_args = mock_update_cmd_cls.call_args
+            payload = call_args[0][1]
+            assert payload.get("datasource_id") == 1041
+            assert payload.get("datasource_type") == "table"
+
+    @patch(
+        "superset.mcp_service.auth.check_chart_data_access",
+        new_callable=Mock,
+    )
+    @patch("superset.daos.dataset.DatasetDAO.find_by_id", new_callable=Mock)
+    @patch("superset.daos.chart.ChartDAO.find_by_id", new_callable=Mock)
+    @patch("superset.db.session")
+    @pytest.mark.asyncio
+    async def test_dataset_only_rebind_invalid_dataset_returns_error(
+        self,
+        mock_db_session: Any,
+        mock_chart_find: Mock,
+        mock_dataset_find: Mock,
+        mock_check_access: Mock,
+        mcp_server: Any,
+    ) -> None:
+        """dataset_id pointing to a non-existent dataset returns
+        DatasetNotAccessible."""
+        mock_chart = Mock()
+        mock_chart.id = 55
+        mock_chart.datasource_id = 10
+        mock_chart.slice_name = "Old Chart"
+        mock_chart.viz_type = "table"
+        mock_chart.uuid = "uuid-55"
+        mock_chart_find.return_value = mock_chart
+
+        mock_check_access.return_value = DatasetValidationResult(
+            is_valid=True,
+            dataset_id=10,
+            dataset_name="old_dataset",
+            warnings=[],
+        )
+
+        # Target dataset does not exist
+        mock_dataset_find.return_value = None
+
+        request = {
+            "identifier": 55,
+            "dataset_id": 9999,
+            "generate_preview": False,
+        }
+
+        async with Client(mcp) as client:
+            result = await client.call_tool("update_chart", {"request": request})
+
+            assert result.structured_content["success"] is False
+            error_type = result.structured_content["error"]["error_type"]
+            assert error_type == "DatasetNotAccessible"
+            assert "9999" in result.structured_content["error"]["details"]
+
+    @patch(
+        "superset.mcp_service.auth.check_chart_data_access",
+        new_callable=Mock,
+    )
+    @patch("superset.daos.dataset.DatasetDAO.find_by_id", new_callable=Mock)
+    @patch("superset.daos.chart.ChartDAO.find_by_id", new_callable=Mock)
+    @patch("superset.db.session")
+    @pytest.mark.asyncio
+    async def test_dataset_only_rebind_invalid_dataset_preview_returns_error(
+        self,
+        mock_db_session: Any,
+        mock_chart_find: Mock,
+        mock_dataset_find: Mock,
+        mock_check_access: Mock,
+        mcp_server: Any,
+    ) -> None:
+        """dataset_id pointing to a non-existent dataset returns error in
+        preview path."""
+        mock_chart = Mock()
+        mock_chart.id = 55
+        mock_chart.datasource_id = 10
+        mock_chart.slice_name = "Old Chart"
+        mock_chart.viz_type = "table"
+        mock_chart.uuid = "uuid-55"
+        mock_chart.params = None
+        mock_chart_find.return_value = mock_chart
+
+        mock_check_access.return_value = DatasetValidationResult(
+            is_valid=True,
+            dataset_id=10,
+            dataset_name="old_dataset",
+            warnings=[],
+        )
+
+        # Target dataset does not exist
+        mock_dataset_find.return_value = None
+
+        request = {
+            "identifier": 55,
+            "dataset_id": 9999,
+            "generate_preview": True,
+        }
+
+        async with Client(mcp) as client:
+            result = await client.call_tool("update_chart", {"request": request})
+
+            assert result.structured_content["success"] is False
+            error_type = result.structured_content["error"]["error_type"]
+            assert error_type == "DatasetNotAccessible"
+            assert "9999" in result.structured_content["error"]["details"]

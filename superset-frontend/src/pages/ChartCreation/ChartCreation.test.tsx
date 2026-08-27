@@ -24,10 +24,8 @@ import {
   waitFor,
 } from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
-import { createMemoryHistory } from 'history';
 import { ChartCreation } from 'src/pages/ChartCreation';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
-import { supersetTheme } from '@apache-superset/core/theme';
 
 jest.mock('src/components/DynamicPlugins', () => ({
   usePluginContext: () => ({
@@ -80,24 +78,20 @@ const mockUserWithDatasetWrite: UserWithPermissionsAndRoles = {
   isAnonymous: false,
   groups: [],
 };
-const history = createMemoryHistory();
 
-history.push = jest.fn();
+const mockHistoryPush = jest.fn();
 
-const routeProps = {
-  history,
-  location: {} as any,
-  match: {} as any,
-};
+jest.mock('react-router-dom', () => ({
+  ...jest.requireActual('react-router-dom'),
+  useHistory: () => ({
+    push: mockHistoryPush,
+  }),
+}));
 
 async function renderComponent(user = mockUser) {
+  mockHistoryPush.mockClear();
   const rendered = render(
-    <ChartCreation
-      user={user}
-      addSuccessToast={() => null}
-      theme={supersetTheme}
-      {...routeProps}
-    />,
+    <ChartCreation user={user} addSuccessToast={() => null} />,
     {
       useRedux: true,
       useRouter: true,
@@ -171,7 +165,7 @@ test('double-click viz type does nothing if no datasource is selected', async ()
   expect(
     screen.getByRole('button', { name: 'Create new chart' }),
   ).toBeDisabled();
-  expect(history.push).not.toHaveBeenCalled();
+  expect(mockHistoryPush).not.toHaveBeenCalled();
 });
 
 test('double-click viz type submits with formatted URL if datasource is selected', async () => {
@@ -193,7 +187,7 @@ test('double-click viz type submits with formatted URL if datasource is selected
     screen.getByRole('button', { name: 'Create new chart' }),
   ).toBeEnabled();
   const formattedUrl = '/explore/?viz_type=table&datasource=table_1__table';
-  expect(history.push).toHaveBeenCalledWith(formattedUrl);
+  expect(mockHistoryPush).toHaveBeenCalledWith(formattedUrl);
 });
 
 test('dropdown displays matching datasets when user types a search term', async () => {
@@ -323,18 +317,10 @@ test('shows loading spinner when dataset parameter is present in URL', async () 
     search: '?dataset=flights',
   } as Location);
 
-  render(
-    <ChartCreation
-      user={mockUser}
-      addSuccessToast={() => null}
-      theme={supersetTheme}
-      {...routeProps}
-    />,
-    {
-      useRedux: true,
-      useRouter: true,
-    },
-  );
+  render(<ChartCreation user={mockUser} addSuccessToast={() => null} />, {
+    useRedux: true,
+    useRouter: true,
+  });
 
   expect(screen.getByRole('status')).toBeInTheDocument();
 
@@ -345,6 +331,65 @@ test('shows loading spinner when dataset parameter is present in URL', async () 
   });
 
   locationSpy.mockRestore();
+});
+
+test('dataset dropdown sorts options alphabetically by table name regardless of id order', async () => {
+  fetchMock.clearHistory().removeRoutes();
+  // Mixed-case names are required: code-point comparison would place every
+  // uppercase name before every lowercase one (Mango, Zebra, apple), while
+  // localeCompare produces the correct case-insensitive order (apple, Mango, Zebra).
+  // IDs are also out of alphabetical order to rule out ID-based sorting.
+  fetchMock.get(/\/api\/v1\/dataset\/\?q=.*/, {
+    body: {
+      result: [
+        {
+          id: 2,
+          table_name: 'Zebra_table',
+          datasource_type: 'table',
+          database: { database_name: 'test_db' },
+          schema: 'public',
+        },
+        {
+          id: 3,
+          table_name: 'apple_table',
+          datasource_type: 'table',
+          database: { database_name: 'test_db' },
+          schema: 'public',
+        },
+        {
+          id: 1,
+          table_name: 'Mango_table',
+          datasource_type: 'table',
+          database: { database_name: 'test_db' },
+          schema: 'public',
+        },
+      ],
+      count: 3,
+    },
+    status: 200,
+  });
+
+  await renderComponent();
+
+  const datasourceSelect = screen.getByRole('combobox', { name: 'Dataset' });
+  userEvent.click(datasourceSelect);
+
+  // Wait for all three to appear
+  await screen.findByText('apple_table');
+  expect(screen.getByText('Mango_table')).toBeInTheDocument();
+  expect(screen.getByText('Zebra_table')).toBeInTheDocument();
+
+  const apple = screen.getByText('apple_table');
+  const mango = screen.getByText('Mango_table');
+  const zebra = screen.getByText('Zebra_table');
+
+  // Verify case-insensitive order: apple < Mango < Zebra
+  expect(
+    apple.compareDocumentPosition(mango) & Node.DOCUMENT_POSITION_FOLLOWING,
+  ).toBeTruthy();
+  expect(
+    mango.compareDocumentPosition(zebra) & Node.DOCUMENT_POSITION_FOLLOWING,
+  ).toBeTruthy();
 });
 
 test('shows only exact match when loading dataset from URL, not partial matches', async () => {

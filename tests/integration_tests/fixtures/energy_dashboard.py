@@ -18,7 +18,7 @@ import random
 
 import pandas as pd
 import pytest
-from sqlalchemy import column, Float, String
+from sqlalchemy import column, Float, String, text
 
 from superset import db
 from superset.connectors.sqla.models import SqlaTable, SqlMetric
@@ -53,7 +53,8 @@ def load_energy_table_data():
     yield
     with app.app_context():
         with get_example_database().get_sqla_engine() as engine:
-            engine.execute("DROP TABLE IF EXISTS energy_usage")
+            with engine.begin() as conn:
+                conn.execute(text("DROP TABLE IF EXISTS energy_usage"))
 
 
 @pytest.fixture
@@ -79,9 +80,9 @@ def _create_energy_table() -> list[Slice]:
 
     if not any(col.metric_name == "sum__value" for col in table.metrics):
         col = str(column("value").compile(db.engine))
-        table.metrics.append(
-            SqlMetric(metric_name="sum__value", expression=f"SUM({col})")
-        )
+        metric = SqlMetric(metric_name="sum__value", expression=f"SUM({col})")
+        db.session.add(metric)
+        table.metrics.append(metric)
     table.fetch_metadata()
 
     slices = []

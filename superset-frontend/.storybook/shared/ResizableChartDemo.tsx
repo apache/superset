@@ -19,7 +19,7 @@
 
 import { useState, ReactNode, SyntheticEvent } from 'react';
 import { styled } from '@apache-superset/core/theme';
-import type { Decorator } from '@storybook/react';
+import type { Decorator } from '@storybook/react-webpack5';
 import { ResizeCallbackData } from 'react-resizable';
 import ResizablePanel, { Size } from './ResizablePanel';
 

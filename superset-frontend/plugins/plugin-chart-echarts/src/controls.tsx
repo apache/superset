@@ -258,7 +258,6 @@ export const tooltipTimeFormatControl: ControlSetItem = {
   config: {
     ...sharedControls.x_axis_time_format,
     label: t('Tooltip time format'),
-    default: 'smart_date',
     clearable: false,
   },
 };
@@ -280,7 +279,7 @@ const tooltipSortByMetricControl: ControlSetItem = {
     renderTrigger: true,
     default: false,
     description: t(
-      'Whether to sort tooltip by the selected metric in descending order.',
+      'Whether to sort tooltip by the selected metric in descending order. On stacked charts, values are shown in ascending order.',
     ),
     visibility: ({ controls }: ControlPanelsContainerProps) =>
       Boolean(controls?.rich_tooltip?.value),
@@ -316,6 +315,27 @@ const tooltipPercentageControl: ControlSetItem = {
   },
 };
 
+const tooltipTruncationControl: ControlSetItem = {
+  name: 'tooltipTruncation',
+  config: {
+    type: 'SelectControl',
+    freeForm: false,
+    label: t('Truncate labels'),
+    renderTrigger: true,
+    default: 'end',
+    clearable: false,
+    choices: [
+      ['off', t('Off')],
+      ['end', t('End')],
+      ['start', t('Start')],
+      ['middle', t('Middle')],
+    ],
+    description: t(
+      'Where to place the ellipsis when a tooltip label is too long. Choose Off to always show the full label, or Start when labels share a common prefix.',
+    ),
+  },
+};
+
 export const richTooltipSection: ControlSetRow[] = [
   [<ControlSubSectionHeader>{t('Tooltip')}</ControlSubSectionHeader>],
   [richTooltipControl],
@@ -323,6 +343,7 @@ export const richTooltipSection: ControlSetRow[] = [
   [tooltipPercentageControl],
   [tooltipSortByMetricControl],
   [tooltipTimeFormatControl],
+  [tooltipTruncationControl],
 ];
 
 const sortSeriesType: ControlSetItem = {

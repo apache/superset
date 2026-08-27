@@ -17,19 +17,28 @@
 # pylint: disable=invalid-name, redefined-outer-name, too-many-lines
 
 
+import logging
+
 import pytest
+import sqlglot
 from pytest_mock import MockerFixture
 from sqlglot import Dialects, exp, parse_one
 
 from superset.exceptions import QueryClauseValidationException, SupersetParseError
 from superset.jinja_context import JinjaTemplateProcessor
 from superset.sql.parse import (
+    _check_script_length,
+    _count_weighted_table_references,
+    BaseSQLStatement,
+    count_referenced_tables,
     CTASMethod,
     extract_tables_from_statement,
+    has_aggregate,
     JinjaSQLResult,
     KQLTokenType,
     KustoKQLStatement,
     LimitMethod,
+    Partition,
     process_jinja_sql,
     remove_quotes,
     RLSMethod,
@@ -40,6 +49,7 @@ from superset.sql.parse import (
     SQLStatement,
     Table,
     tokenize_kql,
+    transpile_to_dialect,
 )
 from tests.integration_tests.conftest import with_feature_flags
 
@@ -137,6 +147,41 @@ def test_table_qualify() -> None:
     assert qualified.catalog == table.catalog
 
 
+def test_partition() -> None:
+    """
+    Test the `Partition` class and its string conversion.
+    """
+    # Test partitioned table with partition columns
+    partition = Partition(is_partitioned_table=True, partition_column=("col1", "col2"))
+    assert partition.is_partitioned_table is True
+    assert partition.partition_column == ("col1", "col2")
+    assert (
+        str(partition)
+        == "Partition(is_partitioned_table=True, partition_column=[col1, col2])"
+    )
+
+    # Test non-partitioned table
+    partition_none = Partition(is_partitioned_table=False, partition_column=None)
+    assert partition_none.is_partitioned_table is False
+    assert partition_none.partition_column is None
+    assert (
+        str(partition_none)
+        == "Partition(is_partitioned_table=False, partition_column=[None])"
+    )
+
+    # Test equality
+    partition1 = Partition(is_partitioned_table=True, partition_column=("col1",))
+    partition2 = Partition(is_partitioned_table=True, partition_column=("col1",))
+    partition3 = Partition(is_partitioned_table=True, partition_column=("col2",))
+    assert partition1 == partition2
+    assert partition1 != partition3
+
+    # A frozen dataclass with a tuple field must be hashable (a list field would
+    # raise TypeError: unhashable type at hash time).
+    assert hash(partition1) == hash(partition2)
+    assert len({partition1, partition2, partition3}) == 2
+
+
 def extract_tables_from_sql(sql: str, engine: str = "postgresql") -> set[Table]:
     """
     Helper function to extract tables from SQL.
@@ -189,6 +234,170 @@ def test_extract_tables_from_sql() -> None:
     assert extract_tables_from_sql(
         "select * from (select * from forbidden_table) forbidden_table"
     ) == {Table("forbidden_table")}
+
+
+def test_count_referenced_tables() -> None:
+    """
+    Test that ``count_referenced_tables`` counts table reference occurrences
+    (not distinct tables), ignoring dotted quoted aliases, and falls back to
+    1 for unparseable SQL.
+    """
+    assert count_referenced_tables('SELECT * FROM "db.table1"', Dialects.SQLITE) == 1
+    assert (
+        count_referenced_tables(
+            'SELECT COUNT(id) AS "metric.value" FROM "db.table1"', Dialects.SQLITE
+        )
+        == 1
+    )
+    assert (
+        count_referenced_tables(
+            'SELECT t1.b, t2.b FROM "db.table1" AS t1 '
+            'JOIN "db.table2" AS t2 ON t1.a = t2.a',
+            Dialects.SQLITE,
+        )
+        == 2
+    )
+    assert count_referenced_tables("this is not valid sql (((", Dialects.SQLITE) == 1
+    assert count_referenced_tables("SHOW CREATE TABLE s1.t1", "mysql") == 1
+
+
+def test_count_referenced_tables_self_join() -> None:
+    """
+    A self-join references the same physical table twice via two aliases;
+    it must still count as 2 (a join), not 1 (deduplicated to a single
+    table), or the caller's multi-table detection would incorrectly treat
+    it as single-table.
+    """
+    assert (
+        count_referenced_tables(
+            'SELECT l.a, r.a FROM "db.table1" AS l JOIN "db.table1" AS r ON l.a = r.a',
+            Dialects.SQLITE,
+        )
+        == 2
+    )
+
+
+def test_count_referenced_tables_cte_self_join() -> None:
+    """
+    A CTE that reads a single virtual table and is then self-joined must
+    count as 2, matching the direct self-join case, since the CTE is
+    inlined at each of its two consumption sites and triggers a read of
+    that table for both sides of the join.
+    """
+    assert (
+        count_referenced_tables(
+            'WITH cte AS (SELECT a FROM "db.table1") '
+            "SELECT l.a, r.a FROM cte AS l JOIN cte AS r ON l.a = r.a",
+            Dialects.SQLITE,
+        )
+        == 2
+    )
+    # A CTE used exactly once, with no join, still counts as a single table.
+    assert (
+        count_referenced_tables(
+            'WITH cte AS (SELECT a FROM "db.table1") SELECT a FROM cte',
+            Dialects.SQLITE,
+        )
+        == 1
+    )
+    # A CTE joined against a distinct real table also counts as 2.
+    assert (
+        count_referenced_tables(
+            'WITH cte AS (SELECT a FROM "db.table1") '
+            'SELECT l.a, r.a FROM cte AS l JOIN "db.table2" AS r ON l.a = r.a',
+            Dialects.SQLITE,
+        )
+        == 2
+    )
+    # Nested CTEs: a CTE built on top of another CTE, then self-joined,
+    # still weights the base CTE's own table by the self-join count.
+    assert (
+        count_referenced_tables(
+            'WITH base AS (SELECT a FROM "db.table1"), derived AS (SELECT a FROM base) '
+            "SELECT l.a, r.a FROM derived AS l JOIN derived AS r ON l.a = r.a",
+            Dialects.SQLITE,
+        )
+        == 2
+    )
+
+
+def test_count_referenced_tables_describe() -> None:
+    """
+    ``DESCRIBE`` (and other ``exp.Describe``/``exp.Command`` statements) has
+    no join semantics for a per-table row cap to interact with, so it takes
+    the plain unweighted table-extraction path rather than
+    ``_count_weighted_table_references``.
+    """
+    assert count_referenced_tables("DESCRIBE table1", Dialects.SQLITE) == 1
+
+
+def test_count_referenced_tables_derived_subqueries() -> None:
+    """
+    Two distinct derived (non-CTE) subqueries joined together must each
+    resolve their own tables directly, without recursing as if they were
+    CTE sources -- covering the branch in ``_count_weighted_table_references``
+    where a selected source is a ``Scope`` but not a CTE.
+    """
+    assert (
+        count_referenced_tables(
+            'SELECT l.a, r.a FROM (SELECT a FROM "db.table1") AS l '
+            'JOIN (SELECT a FROM "db.table1") AS r ON l.a = r.a',
+            Dialects.SQLITE,
+        )
+        == 2
+    )
+
+
+def test_count_weighted_table_references_self_referential_scope_guard(
+    mocker: MockerFixture,
+) -> None:
+    """
+    ``_count_weighted_table_references`` must not recurse forever on a
+    self-referential ``Scope`` graph, the shape a ``WITH RECURSIVE`` CTE
+    could in principle produce if sqlglot ever resolved its own
+    self-reference to the same ``Scope`` object instead of a bare
+    ``exp.Table``. The ``seen`` guard must catch the repeat visit and treat
+    it as contributing no further table reads.
+    """
+    from sqlglot.optimizer.scope import Scope, ScopeType  # noqa: PLC0415
+
+    cte_scope = Scope.__new__(Scope)
+    cte_scope.scope_type = ScopeType.CTE
+    # The CTE's own body references itself.
+    cte_scope._selected_sources = {"t": (None, cte_scope)}  # noqa: SLF001
+
+    root_scope = Scope.__new__(Scope)
+    root_scope.scope_type = ScopeType.ROOT
+    root_scope._selected_sources = {"t": (None, cte_scope)}  # noqa: SLF001
+
+    mocker.patch(
+        "superset.sql.parse.traverse_scope",
+        return_value=[cte_scope, root_scope],
+    )
+
+    assert _count_weighted_table_references(mocker.MagicMock()) == 0
+
+
+def test_count_referenced_tables_respects_parse_length_cap(
+    mocker: MockerFixture,
+) -> None:
+    """
+    ``count_referenced_tables`` must not bypass ``SQL_MAX_PARSE_LENGTH``: an
+    oversized statement should fail the length check before reaching
+    sqlglot, and fall back to the conservative single-table count. The
+    statement references two tables so that bypassing the guard (and
+    reaching sqlglot) would produce a different, detectable result.
+    """
+    mocker.patch("superset.config.SQL_MAX_PARSE_LENGTH", 100)
+    mocker.patch("superset.sql.parse.has_app_context", return_value=False)
+    padding = "1, " * 50
+    statement = (
+        'SELECT * FROM "db.table1" AS t1 '  # noqa: S608
+        'JOIN "db.table2" AS t2 ON t1.a = t2.a '
+        f"WHERE t1.a IN ({padding}1)"
+    )
+    assert len(statement.encode("utf-8")) > 100
+    assert count_referenced_tables(statement, Dialects.SQLITE) == 1
 
 
 def test_extract_tables_subselect() -> None:
@@ -365,10 +574,29 @@ def test_extract_tables_illdefined() -> None:
 def test_extract_tables_show_tables_from() -> None:
     """
     Test `SHOW TABLES FROM`.
+
+    No individual table target is extractable, so the statement must be
+    flagged as unparseable for authorization purposes instead of passing
+    strict scoping with an empty table set.
     """
     assert (
         extract_tables_from_sql("SHOW TABLES FROM s1 like '%order%'", "mysql") == set()
     )
+    assert SQLScript(
+        "SHOW TABLES FROM s1 like '%order%'", "mysql"
+    ).has_unparseable_statement
+
+
+def test_extract_tables_show_create_table() -> None:
+    """
+    Test `SHOW CREATE TABLE`.
+
+    The target table must enter table-level authorization.
+    """
+    assert extract_tables_from_sql("SHOW CREATE TABLE s1.t1", "mysql") == {
+        Table("t1", "s1")
+    }
+    assert not SQLScript("SHOW CREATE TABLE s1.t1", "mysql").has_unparseable_statement
 
 
 def test_format_show_tables() -> None:
@@ -395,6 +623,113 @@ WHERE
   NOT col IN (1, 2)
         """.strip()
     )
+
+
+def test_format_oracle_group_by_keeps_explicit_expressions() -> None:
+    """
+    Test that formatting Oracle SQL doesn't rewrite ``GROUP BY`` to ordinals.
+
+    Oracle doesn't support positional grouping (``GROUP BY 1, 2``) and fails
+    with ``ORA-00979: not a GROUP BY expression``. sqlglot < 27.21.0 rewrote
+    ``GROUP BY`` expressions that matched aliased projections into ordinals
+    when generating Oracle SQL, breaking chart queries.
+
+    Regression test for https://github.com/apache/superset/issues/35414,
+    fixed by upgrading sqlglot.
+    """
+    sql = (
+        "SELECT TRUNC(CAST(order_date AS DATE), 'MONTH') AS __timestamp, "
+        'region AS region, SUM(sales) AS "SUM(sales)" '
+        "FROM orders "
+        "GROUP BY TRUNC(CAST(order_date AS DATE), 'MONTH'), region "
+        'ORDER BY "SUM(sales)" DESC'
+    )
+    formatted = SQLStatement(sql, engine="oracle").format()
+
+    # pretty-formatting puts each `GROUP BY` item on its own line
+    group_by_clause = formatted.split("GROUP BY")[1].split("ORDER BY")[0]
+    group_by_items = [
+        line.strip().rstrip(",") for line in group_by_clause.strip().splitlines()
+    ]
+    assert group_by_items == [
+        "TRUNC(CAST(order_date AS DATE), 'MONTH')",
+        "region",
+    ]
+    # no item should have been replaced by a positional reference
+    assert not any(item.isdigit() for item in group_by_items)
+
+
+def test_format_oracle_group_by_keeps_explicit_expressions_subquery() -> None:
+    """
+    Test that formatting an Oracle chart query doesn't rewrite ``GROUP BY``
+    to ordinals when the aggregated column comes from a virtual dataset
+    subquery.
+
+    This mirrors the query shape SQLAlchemy generates for a bar chart with a
+    dimension and a ``COUNT(*)`` metric on a virtual dataset, which is the
+    reproduction reported in
+    https://github.com/apache/superset/issues/28327 (``ORA-00979: not a
+    GROUP BY expression``). Fixed by the same sqlglot upgrade that resolved
+    https://github.com/apache/superset/issues/35414.
+    """
+    sql = (
+        "SELECT bar AS bar, COUNT(*) AS count "
+        "FROM (SELECT 'foo' AS bar FROM dual) AS virtual_table "
+        "GROUP BY bar"
+    )
+    formatted = SQLStatement(sql, engine="oracle").format()
+
+    group_by_clause = formatted.split("GROUP BY")[1]
+    group_by_items = [
+        line.strip().rstrip(",") for line in group_by_clause.strip().splitlines()
+    ]
+    assert group_by_items == ["bar"]
+    # no item should have been replaced by a positional reference
+    assert not any(item.isdigit() for item in group_by_items)
+
+
+def test_format_hana_preserves_quoted_identifier_casing() -> None:
+    """
+    Regression test for https://github.com/apache/superset/issues/39328.
+
+    HANA is mapped to the Postgres sqlglot dialect (there's no dedicated HANA
+    dialect upstream). HANA calculation-view invocations address the view as
+    a quoted, case-sensitive identifier followed by a PLACEHOLDER parameter
+    list, e.g. ``"zbw.10_001/INVENTORY"('PLACEHOLDER' = (...))`` -- sqlglot's
+    parser treats that shape as a function call, so Postgres's inherited
+    function-name normalization (``NORMALIZE_FUNCTIONS = "upper"``) re-cased
+    the quoted identifier to ``"ZBW.10_001/INVENTORY"``. HANA resolves
+    calculation-view names case-sensitively, so the re-cased identifier no
+    longer exists and SQL Lab fails with ``invalid table name`` even though
+    the user's original query was valid.
+    """
+    sql = (
+        'SELECT * FROM _sys_bic."zbw.10_001/INVENTORY"\n'
+        "(\n"
+        "  'PLACEHOLDER' = ('$$IP_DATE_TO$$', ''),\n"
+        "  'PLACEHOLDER' = ('$$IP_DATE_FROM$$', '')\n"
+        ")"
+    )
+    formatted = SQLStatement(sql, engine="hana").format()
+
+    assert '"zbw.10_001/INVENTORY"' in formatted
+    assert "$$IP_DATE_TO$$" in formatted
+    assert "$$IP_DATE_FROM$$" in formatted
+
+
+def test_format_hana_custom_function_call_untouched() -> None:
+    """
+    The HANA dialect disables function-name normalization entirely (see
+    ``test_format_hana_preserves_quoted_identifier_casing``), which only
+    affects functions sqlglot doesn't recognize (parsed as
+    ``exp.Anonymous`` -- built-ins like ``COUNT`` have their own dedicated
+    AST node and always generate with a fixed canonical casing regardless).
+    An unrecognized, mixed-case function call must round-trip with its
+    original casing intact rather than being forced to uppercase.
+    """
+    formatted = SQLStatement("SELECT MyCustomFunc(col) FROM t", engine="hana").format()
+
+    assert "MyCustomFunc(col)" in formatted
 
 
 def test_split_no_dialect() -> None:
@@ -611,28 +946,121 @@ SELECT c FROM z
 
 
 def test_extract_tables_reusing_aliases() -> None:
+    """Test that the parser follows aliases.
+
+    A non-recursive ``WITH`` item sees only items declared before it, so a forward
+    reference resolves to the table of that name -- a real read that must be extracted.
     """
-    Test that the parser follows aliases.
-    """
+    # `q1` first: the `q2` in its body, and `q2`'s `src`, are both tables.
     assert extract_tables_from_sql(
         """
 with q1 as ( select key from q2 where key = '5'),
 q2 as ( select key from src where key = '5')
 select * from (select key from q1) a
 """
-    ) == {Table("src")}
+    ) == {Table("q2"), Table("src")}
 
-    # weird query with circular dependency
-    assert (
-        extract_tables_from_sql(
-            """
+    # `src` first: its `q2` is a table; `q2`'s `src` and the outer `src` are the CTE.
+    assert extract_tables_from_sql(
+        """
 with src as ( select key from q2 where key = '5'),
 q2 as ( select key from src where key = '5')
 select * from (select key from src) a
 """
+    ) == {Table("q2")}
+
+
+def test_extract_tables_cte_name_shared_with_table() -> None:
+    """Test that a CTE's name does not hide reads of the table it is named after.
+
+    Only a reference resolving to the CTE may be excluded; dropping any other costs it
+    both its row filter and its access check.
+    """
+    # A qualified reference -- in the CTE body or elsewhere -- is the table.
+    assert extract_tables_from_sql(
+        "WITH orders AS (SELECT * FROM public.orders) SELECT * FROM orders"
+    ) == {Table("orders", "public")}
+    assert extract_tables_from_sql(
+        "WITH orders AS (SELECT 1 AS d) "
+        "SELECT * FROM (SELECT * FROM public.orders) AS z"
+    ) == {Table("orders", "public")}
+
+    # A non-recursive CTE cannot see itself, so its own name in its body is the table.
+    assert extract_tables_from_sql(
+        "WITH orders AS (SELECT * FROM orders) SELECT * FROM orders"
+    ) == {Table("orders")}
+
+    # A catalog disqualifies like a schema; `cat..orders` is checked only when pivoted.
+    assert extract_tables_from_sql(
+        "WITH orders AS (SELECT 1 AS amt, 'a' AS mth) "
+        "SELECT * FROM cat..orders PIVOT(SUM(amt) FOR mth IN ('a'))",
+        engine="snowflake",
+    ) == {Table("orders", None, "cat")}
+
+
+def test_extract_tables_cte_reference_not_table() -> None:
+    """Test the counterpart: a reference that resolves to a CTE is not a table.
+
+    A recursive item's reference to itself is the shape a bare-name compare gets wrong.
+    """
+    assert (
+        extract_tables_from_sql(
+            "WITH RECURSIVE t AS ("
+            "SELECT 1 AS n UNION ALL SELECT n + 1 FROM t WHERE n < 5"
+            ") SELECT * FROM t"
         )
         == set()
     )
+
+
+def test_extract_tables_pivoted_cte_reference_is_not_a_table() -> None:
+    """Test that pivoting a CTE reference does not make it a table read.
+
+    Pivoting yields a new relation, so sqlglot keeps the reference as an ``exp.Table``
+    -- the one shape where a CTE reference reaches ``is_cte()`` unqualified.
+    """
+    assert extract_tables_from_sql(
+        "WITH c AS (SELECT a, b FROM other_table) "
+        "SELECT * FROM c PIVOT(SUM(b) FOR a IN ('p'))",
+        engine="snowflake",
+    ) == {Table("other_table")}
+    # Also when the pivot sits inside a derived table.
+    assert extract_tables_from_sql(
+        "WITH c AS (SELECT a, b FROM other_table) "
+        "SELECT * FROM (SELECT * FROM c PIVOT(SUM(b) FOR a IN ('p'))) AS z",
+        engine="snowflake",
+    ) == {Table("other_table")}
+
+
+def test_extract_tables_aliased_cte_does_not_hide_table() -> None:
+    """Test that aliasing a CTE reference does not erase a table of the same name.
+
+    ``Scope.sources`` is keyed by ``alias_or_name`` and would file the table under the
+    CTE's alias; ``cte_sources`` is keyed by CTE name only.
+    """
+    assert extract_tables_from_sql(
+        "WITH c AS (SELECT 1 AS n) SELECT s2.* FROM c AS other_table, other_table AS s2"
+    ) == {Table("other_table")}
+    assert extract_tables_from_sql(
+        "WITH c AS (SELECT 1 AS n) "
+        "SELECT s2.* FROM c AS other_table LEFT JOIN other_table AS s2 ON TRUE"
+    ) == {Table("other_table")}
+
+
+def test_extract_tables_cte_reference_over_reported() -> None:
+    """Test the two shapes that over-report a CTE reference as a table.
+
+    A spurious access check, not a missing one. Pinned so a change either way is meant.
+    """
+    # PostgreSQL resolves `foo` to the CTE; this reports the table.
+    assert extract_tables_from_sql("WITH Foo AS (SELECT 1 AS d) SELECT * FROM foo") == {
+        Table("foo")
+    }
+    # Legal under RECURSIVE: `q2` is the CTE declared below, not a table.
+    assert extract_tables_from_sql(
+        "WITH RECURSIVE q1 AS (SELECT key FROM q2), q2 AS (SELECT 1 AS key) "
+        "SELECT * FROM q1"
+    ) == {Table("q2")}
 
 
 def test_extract_tables_multistatement() -> None:
@@ -797,6 +1225,49 @@ ORDER BY SalesPersonID, SalesYear;
     ) == {Table("SalesOrderHeader")}
 
 
+def test_extract_tables_qualified_reference_matching_cte_name() -> None:
+    """
+    Test that a schema/catalog-qualified reference is resolved as a physical
+    table even when its final name component matches a CTE defined in scope.
+
+    A CTE name is always a bare identifier, so ``public.orders`` cannot be the
+    CTE ``orders`` and must be reported as the physical table it names.
+    """
+    # schema-qualified reference shadowed by a same-named bare CTE
+    assert extract_tables_from_sql(
+        "WITH orders AS (SELECT 1) SELECT * FROM public.orders"
+    ) == {Table("orders", "public")}
+
+    # the CTE itself still references its own physical source
+    assert extract_tables_from_sql(
+        "WITH orders AS (SELECT * FROM staging.orders) SELECT * FROM public.orders"
+    ) == {Table("orders", "staging"), Table("orders", "public")}
+
+    # catalog-qualified reference shadowed by a same-named bare CTE
+    assert extract_tables_from_sql(
+        "WITH orders AS (SELECT 1) SELECT * FROM cat.public.orders"
+    ) == {Table("orders", "public", "cat")}
+
+
+def test_extract_tables_bare_cte_still_excluded() -> None:
+    """
+    Test that a genuine bare CTE reference is still not reported as a table.
+    """
+    assert extract_tables_from_sql(
+        "WITH foo AS (SELECT * FROM target_table) SELECT * FROM foo"
+    ) == {Table("target_table")}
+
+
+def test_extract_tables_unreferenced_cte_does_not_shadow_table() -> None:
+    """
+    Test that a CTE that is defined but not used by the outer query does not
+    change extraction of a physical table sharing its name.
+    """
+    assert extract_tables_from_sql(
+        "WITH orders AS (SELECT 1) SELECT * FROM orders_summary"
+    ) == {Table("orders_summary")}
+
+
 def test_extract_tables_identifier_list_with_keyword_as_alias() -> None:
     """
     Test that aliases that are keywords are parsed correctly.
@@ -830,6 +1301,62 @@ Events | take 100""",
         "kustokql",
     )
     assert query.get_settings() == {"querytrace": True}
+
+
+def test_sqlscript_format_preserves_optimizer_hint_block() -> None:
+    """
+    Regression for #38189: an inline `--` comment trailing a query with a
+    `/*+ SET_VAR(...) */` optimizer hint must not get repositioned inside
+    the hint block during `format()` -- that would corrupt the hint syntax
+    (StarRocks and other engines using the `/*+ ... */` convention reject
+    a nested `/* */` inside it). `format()` is what Superset's execution
+    path actually sends to the engine (see `executor.py`/`celery_task.py`).
+    """
+    sql = """SELECT /*+ SET_VAR(query_timeout = 3000) */ col1, col2
+FROM my_table
+LIMIT 100
+
+-- increase timeout for large scans"""
+    statement = SQLScript(sql, "starrocks").statements[0]
+    formatted = statement.format()
+
+    hint = "/*+ SET_VAR(query_timeout = 3000) */"
+    assert hint in formatted
+    assert "SET_VAR(query_timeout /*" not in formatted
+    # the trailing comment must survive, and land outside (after) the hint
+    # block rather than being dropped or relocated into it
+    hint_end = formatted.index(hint) + len(hint)
+    assert "increase timeout for large scans" in formatted[hint_end:]
+
+
+@pytest.mark.xfail(
+    reason=(
+        "#38189 is not fully fixed: a `;`-terminated statement still hits "
+        "the comment-relocation branch and corrupts the hint block. Only "
+        "the no-semicolon form from the original repro was fixed."
+    ),
+    strict=True,
+)
+def test_sqlscript_format_preserves_optimizer_hint_block_with_semicolon() -> None:
+    """
+    Same as `test_sqlscript_format_preserves_optimizer_hint_block`, but with
+    a terminating `;` on the statement -- this still reproduces #38189: the
+    trailing `--` comment gets injected inside the `/*+ SET_VAR(...) */`
+    hint block, corrupting it for StarRocks/MySQL-style engines.
+    """
+    sql = """SELECT /*+ SET_VAR(query_timeout = 3000) */ col1, col2
+FROM my_table
+LIMIT 100;
+
+-- increase timeout for large scans"""
+    statement = SQLScript(sql, "starrocks").statements[0]
+    formatted = statement.format()
+
+    hint = "/*+ SET_VAR(query_timeout = 3000) */"
+    assert hint in formatted
+    assert "SET_VAR(query_timeout /*" not in formatted
+    hint_end = formatted.index(hint) + len(hint)
+    assert "increase timeout for large scans" in formatted[hint_end:]
 
 
 @pytest.mark.parametrize(
@@ -1105,7 +1632,14 @@ def test_split_kql(kql: str, expected: list[str]) -> None:
         ("postgresql", "DROP TABLE foo", True),
         ("postgresql", "EXPLAIN ANALYZE SELECT * FROM foo", False),
         ("postgresql", "EXPLAIN ANALYZE DELETE FROM foo", True),
+        # SHOW reads server configuration; it mutates nothing, so it is NOT
+        # classified as mutating (that would be wrong for the commit/limit/
+        # "only SELECT" consumers of has_mutation()). Gating disclosure reads
+        # belongs in DISALLOWED_SQL_FUNCTIONS, not the mutation check.
         ("postgresql", "SHOW search_path", False),
+        # SET search_path parses as exp.Set (a structured node), not
+        # exp.Command, so the SET-in-mutating-commands rule does NOT
+        # catch it. Pure GUC reads/writes stay non-mutating.
         ("postgresql", "SET search_path TO public", False),
         (
             "postgres",
@@ -1162,6 +1696,30 @@ def test_has_mutation(engine: str, sql: str, expected: bool) -> None:
     Test the `has_mutation` method.
     """
     assert SQLScript(sql, engine).has_mutation() == expected
+
+
+@pytest.mark.parametrize(
+    "engine, sql, expected",
+    [
+        # Plain SELECT parses to a proper AST node.
+        ("postgresql", "SELECT * FROM foo", False),
+        # CALL parses to ``exp.Command`` on Postgres.
+        ("postgresql", "CALL my_proc(1);", True),
+        # A script that mixes a parseable statement with an unparseable one
+        # is still flagged so strict scoping can refuse the whole script.
+        ("postgresql", "SELECT 1; CALL my_proc();", True),
+        # Non-sqlglot engines (e.g. Kusto KQL) do not produce a parseable
+        # AST and cannot have their tables enumerated, so they must be
+        # flagged as unparseable to fail closed under strict scoping.
+        ("kustokql", "print 1", True),
+    ],
+)
+def test_has_unparseable_statement(engine: str, sql: str, expected: bool) -> None:
+    """
+    Test the `has_unparseable_statement` property used by strict scoping to
+    refuse statements that sqlglot couldn't fully model.
+    """
+    assert SQLScript(sql, engine).has_unparseable_statement is expected
 
 
 @pytest.mark.parametrize(
@@ -1233,6 +1791,33 @@ def test_with_clause_containing_union_all_is_not_mutating_oracle() -> None:
     SELECT * FROM SET2
     """
     assert not SQLScript(sql, "oracle").has_mutation()
+
+
+@pytest.mark.parametrize("engine", ["clickhouse", "clickhousedb"])
+def test_clickhouse_parametric_aggregate_parses_and_is_read_only(engine: str) -> None:
+    """
+    Regression for #37285: ClickHouse parametric aggregate functions use a
+    double pair of parentheses — ``groupConcat(', ')(part_name)`` — where the
+    first list holds the aggregate's parameters and the second its arguments.
+
+    Older sqlglot versions choked on the second parenthesized list, so SQL
+    Lab either mangled the query sent to the database or, with DDL/DML
+    disallowed, refused to run it because it "could not be parsed to confirm
+    it is a read-only query". The sqlglot bump to >=30 fixed the parsing;
+    pinning the reporter's verbatim query guards against a future
+    dialect-specific regression. Both ClickHouse engine specs are exercised
+    since each resolves the sqlglot dialect independently.
+    """
+    sql = """
+    select
+      groupConcat(', ')(part_name) as concatenated
+    from system.parts
+    """
+    script = SQLScript(sql, engine)  # Must not raise.
+    assert not script.has_mutation(), (
+        f"Parametric aggregate misclassified as mutating on {engine!r}; "
+        "this would block the query on connections without DDL/DML allowed."
+    )
 
 
 def test_get_settings() -> None:
@@ -1326,6 +1911,9 @@ def test_custom_dialect(app: None) -> None:
         ("SELECT 1", False),
         ("with source as ( select 1 as one ) select * from source", False),
         ("ALTER TABLE foo ADD COLUMN bar INT", True),
+        # COMMENT ON parses as a typed exp.Comment node across dialects; it
+        # writes to the catalog (pg_description on Postgres) so it is gated.
+        ("COMMENT ON TABLE t IS 'note'", True),
     ],
 )
 def test_is_mutating(sql: str, engine: str, expected: bool) -> None:
@@ -1333,6 +1921,44 @@ def test_is_mutating(sql: str, engine: str, expected: bool) -> None:
     Global tests for `is_mutating`, covering all supported engines.
     """
     assert SQLStatement(sql, engine).is_mutating() == expected
+
+
+@pytest.mark.parametrize(
+    "sql, engine",
+    [
+        # Opaque `exp.Command` fallbacks must fail closed on every dialect,
+        # not only PostgreSQL.
+        ("CALL evil_proc()", "mysql"),
+        ("LOAD '/tmp/x.so'", "postgres"),
+        ("EXEC dbo.evil_proc", "mssql"),
+        # The EXPLAIN ANALYZE unwrap must handle the parenthesized
+        # option-list, whitespace, alternate-spelling, and leading-comment
+        # forms: PostgreSQL executes the inner DML for all of them.
+        ("EXPLAIN (ANALYZE) UPDATE t SET x = 1", "postgresql"),
+        ("EXPLAIN (ANALYZE, BUFFERS) DELETE FROM t", "postgresql"),
+        ("EXPLAIN ANALYZE\nUPDATE t SET x = 1", "postgresql"),
+        ("EXPLAIN ANALYSE UPDATE t SET x = 1", "postgresql"),
+        ("EXPLAIN /* c */ (ANALYZE) UPDATE t SET x = 1", "postgresql"),
+        # A bare COMMIT persists every prior write on the connection even
+        # when the execution layer skips its own commit call.
+        ("COMMIT", "postgresql"),
+        ("COMMIT", "mysql"),
+        # Further EXPLAIN ANALYZE edge forms: a leading line comment before
+        # the option, a VERBOSE qualifier, an empty option list, and an
+        # inner statement that cannot be parsed all fail closed as mutating.
+        ("EXPLAIN --c\nANALYZE UPDATE t SET x = 1", "postgresql"),
+        ("EXPLAIN ANALYZE VERBOSE UPDATE t SET x = 1", "postgresql"),
+        ("EXPLAIN (ANALYZE)", "postgresql"),
+        ("EXPLAIN ANALYZE )))", "postgresql"),
+    ],
+)
+def test_is_mutating_fails_closed_on_gate_blind_spots(sql: str, engine: str) -> None:
+    """
+    `is_mutating` must fail closed on statements that slip past node-type
+    matching: non-PostgreSQL command fallbacks, normalized `EXPLAIN ANALYZE`
+    variants, and structured `COMMIT`.
+    """
+    assert SQLStatement(sql, engine).is_mutating()
 
 
 @pytest.mark.parametrize(
@@ -1375,6 +2001,227 @@ def test_is_mutating_anonymous_block(sql: str, expected: bool) -> None:
 @pytest.mark.parametrize(
     "sql, expected",
     [
+        # PostgreSQL large-object writers: each mutates server state. The bare
+        # SELECT wrapper is irrelevant because the function call itself is the
+        # side effect.
+        ("SELECT lo_from_bytea(0, decode('deadbeef', 'hex'))", True),
+        ("SELECT lo_export(12345, '/tmp/payload.bin')", True),
+        ("SELECT lo_import('/etc/passwd')", True),
+        ("SELECT lo_put(12345, 0, decode('00', 'hex'))", True),
+        ("SELECT lo_create(0)", True),
+        # lo_creat is the legacy large-object creator (distinct from lo_create).
+        ("SELECT lo_creat(-1)", True),
+        ("SELECT lowrite(12345, decode('00', 'hex'))", True),
+        # lo_truncate/lo_truncate64 shrink an existing large object: a write.
+        ("SELECT lo_truncate(12345, 0)", True),
+        ("SELECT lo_truncate64(12345, 0)", True),
+        # lo_unlink deletes a large object outright.
+        ("SELECT lo_unlink(12345)", True),
+        # PostgreSQL sequence mutators. setval()/nextval() look like reads but
+        # advance sequence state for every subsequent caller.
+        ("SELECT setval('public.my_seq', 1000)", True),
+        ("SELECT SETVAL('public.my_seq', 1)", True),
+        ("SELECT nextval('public.my_seq')", True),
+        # currval() only reads the session's last value, so it is not mutating.
+        ("SELECT currval('public.my_seq')", False),
+        # Read-side large-object functions are intentionally NOT classified
+        # as mutating here. They are still blocked via the function denylist
+        # (see DISALLOWED_SQL_FUNCTIONS) but they do not write state.
+        ("SELECT lo_get(12345)", False),
+        ("SELECT loread(12345, 1024)", False),
+        # Case-insensitive matching: the AST stores the raw casing for
+        # anonymous functions, the check uppercases both sides.
+        ("SELECT LO_EXPORT(12345, '/tmp/x')", True),
+        # `SELECT INTO new_table FROM existing` creates a new relation; treat
+        # as mutating even though sqlglot parses it as exp.Select.
+        ("SELECT * INTO new_table FROM existing_table", True),
+        ("SELECT col INTO TEMP new_table FROM existing_table", True),
+        # A built-in function whose first string argument happens to match a
+        # mutating name must NOT be flagged. sqlglot parses these into dedicated
+        # nodes (e.g. exp.Upper) whose `.name` is the argument text, not the
+        # function name, so the walk is restricted to exp.Anonymous to avoid a
+        # false positive on this read-only query.
+        ("SELECT upper('lo_export')", False),
+        ("SELECT length('setval')", False),
+        # Plain SELECT must remain non-mutating.
+        ("SELECT 1", False),
+        ("SELECT * FROM users WHERE id = 1", False),
+    ],
+)
+def test_is_mutating_postgres_function_and_select_into(
+    sql: str, expected: bool
+) -> None:
+    """
+    `is_mutating` must catch mutating function calls (PostgreSQL large-object
+    writers) and `SELECT ... INTO new_table` even though the wrapping AST
+    node is a plain `exp.Select`.
+    """
+    assert SQLStatement(sql, "postgresql").is_mutating() == expected
+
+
+@pytest.mark.parametrize(
+    "engine, sql",
+    [
+        # `SELECT ... INTO new_table` is CTAS only in Postgres/Redshift/T-SQL.
+        # In Oracle PL/SQL and MySQL the same syntax assigns into a variable
+        # and is a read, so it must NOT be classified as mutating.
+        ("oracle", "SELECT col INTO v FROM existing_table"),
+        ("mysql", "SELECT col INTO @v FROM existing_table"),
+    ],
+)
+def test_is_mutating_select_into_variable_is_read(engine: str, sql: str) -> None:
+    """
+    `SELECT ... INTO target` is only CTAS (mutating) for dialects where the
+    syntax creates a table. On Oracle/MySQL it assigns into a variable and is
+    a read, so `is_mutating` must return False there.
+    """
+    assert SQLStatement(sql, engine).is_mutating() is False
+
+
+@pytest.mark.parametrize(
+    "engine, sql",
+    [
+        # `SELECT ... INTO new_table` is CTAS on Redshift and T-SQL just as it
+        # is on Postgres, so each dialect in _SELECT_INTO_CTAS_DIALECTS must
+        # classify the statement as mutating.
+        ("redshift", "SELECT * INTO new_table FROM existing_table"),
+        ("redshift", "SELECT col INTO new_table FROM existing_table"),
+        ("mssql", "SELECT * INTO new_table FROM existing_table"),
+        ("mssql", "SELECT col INTO new_table FROM existing_table"),
+    ],
+)
+def test_is_mutating_select_into_ctas_dialects(engine: str, sql: str) -> None:
+    """
+    `SELECT ... INTO new_table` creates a table on the CTAS dialects beyond
+    Postgres (Redshift, T-SQL), so `is_mutating` must return True there.
+    """
+    assert SQLStatement(sql, engine).is_mutating() is True
+
+
+@pytest.mark.parametrize(
+    "engine, sql",
+    [
+        # The mutating-function names are PostgreSQL built-ins. On other engines
+        # a same-named read-only function or UDF must NOT be flagged as
+        # mutating, otherwise read-only queries get wrongly blocked.
+        ("mysql", "SELECT setval(my_col)"),
+        ("mysql", "SELECT lo_export(id, path) FROM t"),
+        ("base", "SELECT setval(my_col)"),
+        ("trino", "SELECT lowrite(x)"),
+    ],
+)
+def test_is_mutating_function_names_scoped_to_postgres(engine: str, sql: str) -> None:
+    """
+    `_MUTATING_FUNCTION_NAMES` is PostgreSQL-specific, so the function-name walk
+    only runs for the Postgres dialect; same-named functions on other engines
+    must stay non-mutating.
+    """
+    assert SQLStatement(sql, engine).is_mutating() is False
+
+
+@pytest.mark.parametrize(
+    "sql, expected",
+    [
+        # PostgreSQL constructs that sqlglot parses as opaque exp.Command.
+        # Each can wrap a DML body or change effective server state.
+        ("PREPARE u AS UPDATE t SET x = 1", True),
+        ("PREPARE i AS INSERT INTO t VALUES (1)", True),
+        ("EXECUTE my_plan", True),
+        ("CALL my_writing_procedure()", True),
+        ("COPY t FROM '/tmp/data.csv'", True),
+        ("GRANT SELECT ON t TO public", True),
+        ("REVOKE SELECT ON t FROM public", True),
+        ("SET ROLE other_role", True),
+        ("REFRESH MATERIALIZED VIEW mv", True),
+        ("REINDEX TABLE t", True),
+        ("VACUUM t", True),
+        # SHOW commands are reads (they mutate nothing), so they are NOT
+        # classified as mutating. Gating information-disclosure reads such as
+        # SHOW server_version belongs in DISALLOWED_SQL_FUNCTIONS (which already
+        # blocks pg_read_file, version(), etc.), not in the mutation check.
+        ("SHOW search_path", False),
+        ("SHOW all", False),
+        ("SHOW server_version", False),
+        # RESET reverts a prior SET (e.g. RESET ROLE backs out SET ROLE).
+        ("RESET ROLE", True),
+        # DDL head-tokens that sqlglot falls back to exp.Command for when the
+        # body uses syntax it does not model. One representative per
+        # head-token branch (CREATE/ALTER/DROP); they all hit the same
+        # set-lookup so additional CREATE PUBLICATION/SUBSCRIPTION/etc.
+        # cases would not add coverage.
+        (
+            "CREATE FUNCTION x() RETURNS int AS '/tmp/x.so', 'i' LANGUAGE C",
+            True,
+        ),
+        ("CREATE EXTENSION pg_trgm", True),  # non-FUNCTION DDL via Command
+        ("ALTER SYSTEM SET wal_level = 'logical'", True),
+        ("DROP EXTENSION pg_trgm", True),
+        # LOAD dlopens a shared library on the PG host. Same RCE primitive
+        # as `CREATE FUNCTION ... LANGUAGE C` if the library path is
+        # attacker-controlled (e.g. via a prior COPY-to-program foothold).
+        ("LOAD '/tmp/x.so'", True),
+        # Case-insensitive: sqlglot preserves source case on Command.name,
+        # so the set lookup must normalise. Regression for the original
+        # bug where a lowercase head-token bypassed the gate.
+        ("create extension pg_trgm", True),
+        ("load '/tmp/x.so'", True),
+        # Pre-existing positive controls
+        ("DO $$ BEGIN UPDATE t SET x = 1; END $$", True),
+        ("EXPLAIN ANALYZE UPDATE t SET x = 1", True),
+    ],
+)
+def test_is_mutating_postgres_command_constructs(sql: str, expected: bool) -> None:
+    """
+    Several PostgreSQL constructs are represented by sqlglot as opaque
+    `exp.Command` nodes (no structured AST). `is_mutating` recognises them
+    by command name so they cannot slip past the read-only gate.
+    """
+    assert SQLStatement(sql, "postgresql").is_mutating() == expected
+
+
+@pytest.mark.parametrize(
+    "sql, engine, functions, expected",
+    [
+        # MySQL `@@<name>` syntax parses as exp.SessionParameter, which is
+        # not a subclass of exp.Func. The walker must include it so the
+        # denylist entry for `version` still catches `SELECT @@version`.
+        ("SELECT @@version", "mysql", {"version"}, True),
+        ("SELECT @@global.version", "mysql", {"version"}, True),
+        ("SELECT @@hostname", "mysql", {"hostname"}, True),
+        ("SELECT @@datadir", "mysql", {"datadir"}, True),
+        # Negative control: a session parameter not in the denylist must
+        # not match.
+        ("SELECT @@autocommit", "mysql", {"version", "hostname"}, False),
+        # A plain SELECT does not introduce session-parameter names.
+        ("SELECT 1", "mysql", {"version"}, False),
+        # The pre-existing exp.Func walk still works for normal calls.
+        ("SELECT version()", "mysql", {"version"}, True),
+        # PostgreSQL large-object functions are exp.Anonymous calls. The
+        # walk includes them; the denylist entry catches them.
+        ("SELECT lo_export(12345, '/tmp/x')", "postgresql", {"lo_export"}, True),
+        (
+            "SELECT lo_from_bytea(0, decode('00','hex'))",
+            "postgresql",
+            {"lo_from_bytea"},
+            True,
+        ),
+        ("SELECT loread(12345, 1024)", "postgresql", {"loread"}, True),
+    ],
+)
+def test_check_functions_present_session_parameter(
+    sql: str, engine: str, functions: set[str], expected: bool
+) -> None:
+    """
+    `check_functions_present` must visit `exp.SessionParameter` so that
+    denylist entries for names like `version` or `hostname` also match
+    `SELECT @@version` / `SELECT @@hostname` in MySQL.
+    """
+    assert SQLScript(sql, engine).check_functions_present(functions) == expected
+
+
+@pytest.mark.parametrize(
+    "sql, expected",
+    [
         ("SELECT 1", False),
         ("INSERT INTO t VALUES (1)", False),
         ("UPDATE t SET x = 1", False),
@@ -1412,6 +2259,26 @@ def test_has_destructive(sql: str, expected: bool) -> None:
     across multiple statements.
     """
     assert SQLScript(sql, "postgresql").has_destructive() == expected
+
+
+@pytest.mark.parametrize(
+    "sql, expected",
+    [
+        ("SELECT 1 UNION SELECT 2", True),
+        ("SELECT 1 UNION ALL SELECT 2", True),
+        ("SELECT 1 INTERSECT SELECT 2", True),
+        ("SELECT 1 EXCEPT SELECT 2", True),
+        ("SELECT 1", False),
+        ("WITH cte AS (SELECT 1) SELECT * FROM cte", False),
+        ("SELECT * FROM (SELECT 1 UNION SELECT 2) AS sub", False),
+    ],
+)
+def test_is_set_operation(sql: str, expected: bool) -> None:
+    """
+    Test that ``is_set_operation`` detects top-level UNION/INTERSECT/EXCEPT
+    but not nested set operations inside a sub-query.
+    """
+    assert SQLStatement(sql, "postgresql").is_set_operation() == expected
 
 
 @pytest.mark.parametrize(
@@ -1836,6 +2703,114 @@ def test_set_limit_value(
 
 
 @pytest.mark.parametrize(
+    "method",
+    [LimitMethod.FORCE_LIMIT, LimitMethod.WRAP_SQL],
+)
+@pytest.mark.parametrize(
+    "engine",
+    [
+        # Engines whose sqlglot dialect parses `SHOW` into a real `exp.Show`
+        # node (as opposed to falling back to an opaque `exp.Command`, which
+        # doesn't expose a `limit` arg and so was never affected by this bug).
+        "starrocks",
+        "mysql",
+        "snowflake",
+    ],
+)
+@pytest.mark.parametrize(
+    "sql",
+    [
+        "SHOW TABLES",
+        "SHOW DATABASES",
+        "SHOW CREATE TABLE test.will_test1",
+    ],
+)
+def test_set_limit_value_leaves_show_statements_unchanged(
+    sql: str, engine: str, method: LimitMethod
+) -> None:
+    """
+    Regression for #36939: no limit method may touch ``SHOW`` statements.
+
+    ``SHOW`` statements have no `LIMIT` clause in sqlglot's expression tree,
+    so forcing one via ``args["limit"]`` doesn't reject cleanly, it produces
+    a malformed statement with two ``LIMIT`` keywords (one from a stray
+    rendering of the bare ``Limit`` expression, one from the forced value).
+    StarRocks (and presumably other engines) reject that outright: "Getting
+    syntax error ... Unexpected input 'LIMIT'". The statement should be
+    left untouched instead, matching how ``SELECT`` statements without a
+    scannable row source aren't force-limited either.
+
+    ``WRAP_SQL`` is wrong on a ``SHOW`` for the same reason but fails more
+    quietly, rewriting it as ``SELECT * FROM (SHOW DATABASES)``, so both
+    methods are covered here.
+
+    Covers multiple engines, not just StarRocks: the fix guards on the AST
+    node category (``exp.Query``), not the dialect, so any engine whose
+    sqlglot dialect parses ``SHOW`` into a real ``Show`` node (e.g. MySQL,
+    Snowflake) is equally exposed and must be equally protected.
+    """
+    statement = SQLStatement(sql, engine)
+    original = statement.format()
+    statement.set_limit_value(1000, method)
+    assert statement.format() == original
+    assert "LIMIT" not in statement.format()
+
+
+@pytest.mark.parametrize(
+    "method",
+    [LimitMethod.FORCE_LIMIT, LimitMethod.WRAP_SQL],
+)
+@pytest.mark.parametrize(
+    "sql",
+    [
+        "DESCRIBE test.will_test1",
+        "USE test",
+        "SET time_zone = 'UTC'",
+        "GRANT SELECT ON t1 TO u1",
+    ],
+)
+def test_set_limit_value_leaves_non_query_statements_unchanged(
+    sql: str, method: LimitMethod
+) -> None:
+    """
+    ``SHOW`` is not the only statement with nowhere to put a `LIMIT`.
+
+    `apply_limit()` only skips *mutating* statements, so every read-only
+    non-query statement reaches ``set_limit_value``. These happen to survive
+    a forced limit today only because their sqlglot generators ignore an
+    unexpected ``limit`` arg -- a silent dependency on generator internals.
+    Guarding on ``exp.Query`` makes leaving them alone explicit, so a future
+    sqlglot that starts rendering `limit` for one of these node types can't
+    reintroduce the ``SHOW`` bug under a different keyword.
+    """
+    statement = SQLStatement(sql, "starrocks")
+    original = statement.format()
+    statement.set_limit_value(1000, method)
+    assert statement.format() == original
+    assert "LIMIT" not in statement.format()
+
+
+@pytest.mark.parametrize(
+    "sql",
+    [
+        # `UNION` parses as `exp.Union` and a parenthesized query as
+        # `exp.Subquery` -- neither is an `exp.Select`, so narrowing the guard
+        # to `is_select()` would silently stop limiting them.
+        "SELECT 1 UNION SELECT 2",
+        "(SELECT 1)",
+        "WITH t AS (SELECT 1) SELECT * FROM t",
+    ],
+)
+def test_set_limit_value_limits_non_select_query_expressions(sql: str) -> None:
+    """
+    Query expressions that aren't `SELECT` must still be limited.
+    """
+    statement = SQLStatement(sql, "starrocks")
+    statement.set_limit_value(1000, LimitMethod.FORCE_LIMIT)
+    assert "LIMIT 1000" in statement.format()
+
+
+@pytest.mark.parametrize(
     "kql, limit, expected",
     [
         ("StormEvents | take 10", 100, "StormEvents | take 100"),
@@ -2013,6 +2988,22 @@ def test_as_cte_called_twice() -> None:
     stmt.as_cte()
     assert stmt.has_cte() is False
     stmt.as_cte()
+
+
+@pytest.mark.parametrize(
+    ("sql", "removed"),
+    [
+        ("SELECT value FROM source ORDER BY value", True),
+        ("SELECT TOP 1 value FROM source ORDER BY value", False),
+        ("SELECT value FROM source ORDER BY value OFFSET 0 ROWS", False),
+        ("SELECT value FROM source ORDER BY value FOR JSON AUTO", False),
+    ],
+)
+def test_remove_unbounded_top_level_order_by(sql: str, removed: bool) -> None:
+    statement = SQLStatement(sql, "mssql")
+
+    assert statement.remove_unbounded_top_level_order_by() is removed
+    assert ("ORDER BY" not in statement.format()) is removed
 
 
 @pytest.mark.parametrize(
@@ -2315,6 +3306,112 @@ FROM (
 LIMIT 100
         """.strip(),
         ),
+        (
+            'SELECT * FROM tbl_a AS "x AND 1 = 0 OR 1 = 1"',
+            {Table("tbl_a", "schema1", "catalog1"): "id = 42"},
+            """
+SELECT
+  *
+FROM (
+  SELECT
+    *
+  FROM tbl_a
+  WHERE
+    id = 42
+) AS "x AND 1 = 0 OR 1 = 1"
+            """.strip(),
+        ),
+        (
+            "SELECT c1 FROM tbl_a AS x (c1, c2)",
+            {Table("tbl_a", "schema1", "catalog1"): "id = 42"},
+            """
+SELECT
+  c1
+FROM (
+  SELECT
+    *
+  FROM tbl_a
+  WHERE
+    id = 42
+) AS x(c1, c2)
+            """.strip(),
+        ),
+        # A CTE sharing the rule's table name is not a read of it: only the real read
+        # inside the CTE body is wrapped; the CTE reference keeps its own projection.
+        (
+            "WITH some_table AS (SELECT id FROM some_table) SELECT * FROM some_table",
+            {Table("some_table", "schema1", "catalog1"): "id = 42"},
+            """
+WITH some_table AS (
+  SELECT
+    id
+  FROM (
+    SELECT
+      *
+    FROM some_table
+    WHERE
+      id = 42
+  ) AS "some_table"
+)
+SELECT
+  *
+FROM some_table
+            """.strip(),
+        ),
+        # A correlated ``LATERAL`` reaches the outer read through two scopes: wrapped
+        # once, not twice. The lateral's own read is a distinct node, wrapped in place.
+        (
+            "SELECT * FROM some_table, LATERAL ("
+            "SELECT * FROM other_table WHERE other_table.x = some_table.x) t",
+            {
+                Table("some_table", "schema1", "catalog1"): "id = 42",
+                Table("other_table", "schema1", "catalog1"): "id = 7",
+            },
+            """
+SELECT
+  *
+FROM (
+  SELECT
+    *
+  FROM some_table
+  WHERE
+    id = 42
+) AS "some_table", LATERAL (
+  SELECT
+    *
+  FROM (
+    SELECT
+      *
+    FROM other_table
+    WHERE
+      id = 7
+  ) AS "other_table"
+  WHERE
+    other_table.x = some_table.x
+) AS t
+            """.strip(),
+        ),
+        # A read in a DML statement's subquery is filtered in place, not refused: the
+        # ``UPDATE`` target is not a source, so only the ``SELECT`` read of ``t`` wraps.
+        (
+            "UPDATE dst SET x = 1 WHERE id IN (SELECT id FROM t)",
+            {Table("t", "schema1", "catalog1"): "id = 42"},
+            """
+UPDATE dst SET x = 1
+WHERE
+  id IN (
+    SELECT
+      id
+    FROM (
+      SELECT
+        *
+      FROM t
+      WHERE
+        id = 42
+    ) AS "t"
+  )
+            """.strip(),
+        ),
     ],
 )
 def test_rls_subquery_transformer(
@@ -2333,6 +3430,63 @@ def test_rls_subquery_transformer(
         RLSMethod.AS_SUBQUERY,
     )
     assert statement.format() == expected
+
+
+@pytest.mark.parametrize(
+    "sql, read_counts",
+    [
+        ("SELECT * FROM t", {"t": 1}),
+        ("SELECT * FROM t JOIN u ON t.id = u.id", {"t": 1, "u": 1}),
+        ("SELECT * FROM t, u", {"t": 1, "u": 1}),
+        ("SELECT * FROM t WHERE id IN (SELECT id FROM u)", {"t": 1, "u": 1}),
+        # A self-join reads the table through two distinct nodes; both are wrapped.
+        ("SELECT * FROM t AS a JOIN t AS b ON a.id = b.id", {"t": 2}),
+        # The CTE body's read of ``t`` and the outer read of ``t`` are both wrapped;
+        # the CTE reference ``c`` is not a read and carries no rule.
+        (
+            "WITH c AS (SELECT id FROM t) SELECT * FROM c JOIN t AS t2 ON c.id = t2.id",
+            {"t": 2},
+        ),
+        ("SELECT * FROM (SELECT * FROM t) AS x", {"t": 1}),
+        # Pins the deepest-first ordering. The parenthesised join head ``t`` carries the
+        # join to ``u`` in its own args, so ``u`` must be wrapped before ``t``; wrapping
+        # ``t`` first would copy ``u`` into ``t``'s subquery and drop ``u``'s filter.
+        # Flipping the sort to ``reverse=False`` makes this case fail.
+        ("SELECT * FROM (t JOIN u ON t.id = u.id)", {"t": 1, "u": 1}),
+        # A correlated ``LATERAL`` reaches the outer read through two scopes; it is
+        # wrapped once, and the lateral's own read is wrapped once.
+        (
+            "SELECT * FROM some_table, LATERAL ("
+            "SELECT * FROM other_table WHERE other_table.x = some_table.x) t",
+            {"some_table": 1, "other_table": 1},
+        ),
+    ],
+)
+def test_rls_subquery_filters_every_authorized_read(
+    sql: str,
+    read_counts: dict[str, int],
+) -> None:
+    """The set the rewrite filters equals the set authorization enforces.
+
+    Each read gets a table-specific sentinel predicate; its count in the output must
+    equal that table's real-read node count, catching a dropped read or a double-wrap.
+    """
+    authorized = {t.table for t in extract_tables_from_statement(parse_one(sql), None)}
+    assert authorized == set(read_counts)
+
+    statement = SQLStatement(sql)
+    statement.apply_rls(
+        "catalog1",
+        "schema1",
+        {
+            Table(table, "schema1", "catalog1"): [parse_one(f"rls_{table} = 1")]
+            for table in read_counts
+        },
+        RLSMethod.AS_SUBQUERY,
+    )
+    output = statement.format()
+    for table, count in read_counts.items():
+        assert output.count(f"rls_{table} = 1") == count
 
 
 def test_rls_invalid_method(mocker: MockerFixture) -> None:
@@ -2659,6 +3813,58 @@ VALUES
   (1, 2)
             """.strip(),
         ),
+        (
+            'SELECT * FROM tbl_a AS "x AND 1 = 0 OR 1 = 1"',
+            {Table("tbl_a", "schema1", "catalog1"): "id = 42"},
+            """
+SELECT
+  *
+FROM tbl_a AS "x AND 1 = 0 OR 1 = 1"
+WHERE
+  "x AND 1 = 0 OR 1 = 1".id = 42
+            """.strip(),
+        ),
+        (
+            'SELECT * FROM tbl_a AS "a.b"',
+            {Table("tbl_a", "schema1", "catalog1"): "id = 42"},
+            """
+SELECT
+  *
+FROM tbl_a AS "a.b"
+WHERE
+  "a.b".id = 42
+            """.strip(),
+        ),
+        # A column-list alias has no name (``this`` is ``None``); qualify with the table
+        # so the predicate does not resolve outward into an enclosing scope.
+        (
+            "SELECT * FROM tbl_a AS (c1, c2)",
+            {Table("tbl_a", "schema1", "catalog1"): "id = 42"},
+            """
+SELECT
+  *
+FROM tbl_a AS _t0(c1, c2)
+WHERE
+  tbl_a.id = 42
+            """.strip(),
+        ),
+        # A table heading a parenthesised join is a read, but its parent is the wrapping
+        # ``Subquery``, not a ``From``/``Join``, so the predicate method leaves it --
+        # fail-closed (the subquery method filters it). Pinned to catch a shape change.
+        (
+            "SELECT * FROM (some_table JOIN other_table "
+            "ON some_table.id = other_table.id)",
+            {Table("some_table", "schema1", "catalog1"): "id = 42"},
+            """
+SELECT
+  *
+FROM (
+  some_table
+    JOIN other_table
+      ON some_table.id = other_table.id
+)
+            """.strip(),
+        ),
     ],
 )
 def test_rls_predicate_transformer(
@@ -2686,7 +3892,7 @@ def test_rls_predicate_transformer(
             "SELECT * FROM some_table",
             Table("some_table"),
             """
-CREATE TABLE some_table AS
+CREATE TABLE "some_table" AS
 SELECT
   *
 FROM some_table
@@ -2696,7 +3902,7 @@ FROM some_table
             "SELECT * FROM some_table",
             Table("some_table", "schema1", "catalog1"),
             """
-CREATE TABLE catalog1.schema1.some_table AS
+CREATE TABLE "catalog1"."schema1"."some_table" AS
 SELECT
   *
 FROM some_table
@@ -2815,7 +4021,8 @@ def test_is_valid_cvas(sql: str, engine: str, expected: bool) -> None:
     "sql, expected, engine",
     [
         ("col = 1", "col = 1", "base"),
-        ("1=\t\n1", "1 = 1", "base"),
+        # Comment-free clauses are returned verbatim (no semantic round-trip).
+        ("1=\t\n1", "1=\t\n1", "base"),
         ("(col = 1)", "(col = 1)", "base"),  # Compact format without newlines
         (
             "(col1 = 1) AND (col2 = 2)",
@@ -2839,12 +4046,58 @@ def test_is_valid_cvas(sql: str, engine: str, expected: bool) -> None:
         ),  # Block comments preserved
         ("col = 'col1 = 1) AND (col2 = 2'", "col = 'col1 = 1) AND (col2 = 2'", "base"),
         ("col = 'select 1; select 2'", "col = 'select 1; select 2'", "base"),
+        # Trailing statement terminators are stripped so the clause stays valid
+        # once embedded inside a larger fragment (e.g. ``WHERE (...)``).
+        ("col = 1;", "col = 1", "base"),
+        ("col = 1 ; ", "col = 1", "base"),
         ("col = 'abc -- comment'", "col = 'abc -- comment'", "base"),
         ("col1 = 1) AND (col2 = 2)", QueryClauseValidationException, "base"),
         ("(col1 = 1) AND (col2 = 2", QueryClauseValidationException, "base"),
         ("col1 = 1) AND (col2 = 2", QueryClauseValidationException, "base"),
         ("(col1 = 1)) AND ((col2 = 2)", QueryClauseValidationException, "base"),
         ("TRUE; SELECT 1", QueryClauseValidationException, "base"),
+        # Regression test for https://github.com/apache/superset/issues/39223:
+        # dialects with `MULTI_ARG_DISTINCT=False` (Postgres, Presto, Trino,
+        # DuckDB) must not rewrite user-defined multi-argument DISTINCT
+        # aggregates into row-expression null guards. Dremio is included
+        # below as a defensive regression guard even though its generator
+        # does not currently set `MULTI_ARG_DISTINCT=False`.
+        (
+            "DISTINCT_AVG(DISTINCT report_id, time_to_accept / 86400)",
+            "DISTINCT_AVG(DISTINCT report_id, time_to_accept / 86400)",
+            "postgresql",
+        ),
+        (
+            "DISTINCT_SUM(DISTINCT report_id, total_bounty_reward_amount)",
+            "DISTINCT_SUM(DISTINCT report_id, total_bounty_reward_amount)",
+            "postgresql",
+        ),
+        (
+            "DISTINCT_AVG(DISTINCT k, v)",
+            "DISTINCT_AVG(DISTINCT k, v)",
+            "presto",
+        ),
+        (
+            "DISTINCT_AVG(DISTINCT k, v)",
+            "DISTINCT_AVG(DISTINCT k, v)",
+            "trino",
+        ),
+        (
+            "DISTINCT_AVG(DISTINCT k, v)",
+            "DISTINCT_AVG(DISTINCT k, v)",
+            "duckdb",
+        ),
+        (
+            "DISTINCT_AVG(DISTINCT k, v)",
+            "DISTINCT_AVG(DISTINCT k, v)",
+            "dremio",
+        ),
+        # Single-argument DISTINCT must still round-trip cleanly.
+        (
+            "COUNT(DISTINCT x)",
+            "COUNT(DISTINCT x)",
+            "postgresql",
+        ),
     ],
 )
 def test_sanitize_clause(sql: str, expected: str | Exception, engine: str) -> None:
@@ -2858,6 +4111,88 @@ def test_sanitize_clause(sql: str, expected: str | Exception, engine: str) -> No
             sanitize_clause(sql, engine)
 
 
+@pytest.mark.parametrize(
+    "engine",
+    ["postgresql", "redshift", "cockroachdb", "netezza", "hana", "base", "mysql"],
+)
+def test_sanitize_clause_preserves_aggregation_semantics(engine: str) -> None:
+    """
+    Regression test for https://github.com/apache/superset/issues/36113.
+
+    `sanitize_clause` must not silently rewrite a user-authored expression. The
+    Postgres SQLGlot dialect (which several engines borrow) rewrites
+    ``ROUND(AVG(x), n)`` to ``ROUND(CAST(AVG(x) AS DECIMAL), n)`` at generation
+    time. On engines whose unqualified ``DECIMAL`` defaults to scale 0 (e.g.
+    Redshift, Netezza) the injected cast rounds the aggregate to an integer
+    *before* the explicit ``ROUND``, producing wrong results.
+
+    The clause must be returned unchanged regardless of the engine dialect.
+    """
+    clause = "ROUND(AVG(col), 4)"
+    sanitized = sanitize_clause(clause, engine)
+    assert "CAST" not in sanitized.upper(), (
+        f"sanitize_clause injected a cast for engine {engine!r}: {sanitized!r}"
+    )
+    assert sanitized == clause
+
+
+@pytest.mark.parametrize(
+    "engine",
+    ["postgresql", "redshift", "cockroachdb", "netezza", "hana", "base", "mysql"],
+)
+def test_sanitize_clause_preserves_aggregation_semantics_with_comment(
+    engine: str,
+) -> None:
+    """
+    Regression test for https://github.com/apache/superset/issues/36113.
+
+    A clause that contains a comment takes the re-rendering branch of
+    ``sanitize_clause``. That branch must normalize comments using the *base*
+    dialect rather than the engine dialect, so it must not re-apply the Postgres
+    ``ROUND(AVG(x), n)`` -> ``ROUND(CAST(AVG(x) AS DECIMAL), n)`` rewrite that
+    truncates results on engines where ``DECIMAL`` defaults to scale 0.
+    """
+    clause = "ROUND(AVG(col), 4) /* precise_count_distinct=true */"
+    sanitized = sanitize_clause(clause, engine)
+    assert "CAST" not in sanitized.upper(), (
+        f"sanitize_clause injected a cast for engine {engine!r}: {sanitized!r}"
+    )
+    # The comment-handling branch must preserve the user-authored expression and
+    # comment payload, not just avoid the cast (otherwise dropping the comment or
+    # rewriting the clause entirely would still pass the assertion above).
+    assert "ROUND(AVG(col), 4)" in sanitized, (
+        f"sanitize_clause rewrote the clause for engine {engine!r}: {sanitized!r}"
+    )
+    assert "precise_count_distinct=true" in sanitized, (
+        f"sanitize_clause dropped the comment for engine {engine!r}: {sanitized!r}"
+    )
+
+
+@pytest.mark.parametrize(
+    "engine",
+    [
+        "postgresql",
+        "presto",
+        "trino",
+        "duckdb",
+        "dremio",
+    ],
+)
+def test_sqlstatement_format_preserves_multi_arg_distinct(engine: str) -> None:
+    """
+    Regression guard for https://github.com/apache/superset/issues/39223:
+    ``SQLStatement.format()`` must not rewrite user-defined multi-argument
+    DISTINCT aggregates into row-expression null guards. This is the SQL Lab /
+    executor path; the metric-expression path is covered by
+    ``test_sanitize_clause``.
+    """
+    sql = "SELECT DISTINCT_AVG(DISTINCT a, b) FROM t"
+    formatted = SQLScript(sql, engine).format()
+    assert "DISTINCT_AVG(DISTINCT a, b)" in formatted
+    assert "CASE WHEN" not in formatted
+
+
+@with_feature_flags(ENABLE_TEMPLATE_PROCESSING=True)
 @pytest.mark.parametrize(
     "engine",
     [
@@ -2886,12 +4221,12 @@ def test_sanitize_clause(sql: str, expected: str | Exception, engine: str) -> No
             {Table(table="bar", schema="foo")},
         ),
         (
-            "latest_partition('foo.%s'|format(str('bar')))",
-            set(),
+            "latest_partitions('foo.bar')",
+            {Table(table="bar", schema="foo")},
         ),
         (
-            "latest_partition('foo.{}'.format('bar'))",
-            set(),
+            "first_latest_partition('foo.bar')",
+            {Table(table="bar", schema="foo")},
         ),
     ],
 )
@@ -2908,6 +4243,42 @@ def test_extract_tables_from_jinja_sql(
         ).tables
         == expected
     )
+
+
+@pytest.mark.parametrize(
+    "engine",
+    [
+        "hive",
+        "presto",
+        "trino",
+    ],
+)
+@pytest.mark.parametrize(
+    "macro",
+    [
+        "latest_partition('foo.%s'|format(str('bar')))",
+        "latest_partition('foo.{}'.format('bar'))",
+        "latest_partitions('foo.{}'.format('bar'))",
+        # A partition macro with the wrong number of arguments cannot be
+        # resolved to a single table, so it must also fail closed.
+        "latest_partition('foo.bar', 'extra')",
+    ],
+)
+def test_extract_tables_from_jinja_sql_fails_closed(
+    mocker: MockerFixture,
+    engine: str,
+    macro: str,
+) -> None:
+    """
+    A partition macro whose table reference cannot be evaluated statically
+    must fail closed, as the macro would otherwise execute against a table
+    that never entered the authorization check.
+    """
+    with pytest.raises(SupersetParseError):
+        process_jinja_sql(
+            sql=f"'{{{{ {engine}.{macro} }}}}'",
+            database=mocker.MagicMock(backend=engine),
+        )
 
 
 @with_feature_flags(ENABLE_TEMPLATE_PROCESSING=False)
@@ -2997,6 +4368,31 @@ def test_process_jinja_sql_template_params_parameter(mocker: MockerFixture) -> N
     # Verify the function accepts the parameter without error
     assert isinstance(result, JinjaSQLResult)
     assert result.tables == {Table("table_name")}
+
+
+@with_feature_flags(ENABLE_TEMPLATE_PROCESSING=True)
+def test_process_jinja_sql_renders_exactly_once(mocker: MockerFixture) -> None:
+    """
+    The authorization path must validate exactly the SQL that executes.
+
+    A template whose first render emits Jinja comment markers inside SQL
+    comments used to be rendered a second time, which stripped the markers
+    and everything between them from the validated SQL while the executed
+    SQL (rendered once) kept the extra statement text.
+    """
+    database = mocker.MagicMock(backend="postgresql")
+    database.db_engine_spec.engine = "postgresql"
+
+    result = process_jinja_sql(
+        sql=(
+            'SELECT * FROM granted /*{{ "{#" }}*/ '
+            'UNION SELECT * FROM restricted /*{{ "#}" }}*/'
+        ),
+        database=database,
+    )
+
+    assert Table("restricted") in result.tables
+    assert Table("granted") in result.tables
 
 
 @pytest.mark.parametrize(
@@ -3134,6 +4530,495 @@ def test_check_tables_present(sql: str, engine: str, expected: bool) -> None:
 
 
 @pytest.mark.parametrize(
+    "engine, sql, denylist, expected",
+    [
+        # Postgres: schema-qualified denylist entry matches schema-qualified
+        # reference.
+        (
+            "postgresql",
+            "SELECT * FROM information_schema.tables",
+            {"information_schema.tables"},
+            True,
+        ),
+        # ... and is case-insensitive.
+        (
+            "postgresql",
+            "SELECT * FROM INFORMATION_SCHEMA.TABLES",
+            {"information_schema.tables"},
+            True,
+        ),
+        # Schema-qualified denylist entry does NOT match a bare-name table
+        # of the same name in another schema. A user table named `tables`
+        # remains queryable.
+        (
+            "postgresql",
+            "SELECT * FROM public.tables",
+            {"information_schema.tables"},
+            False,
+        ),
+        (
+            "postgresql",
+            "SELECT * FROM tables",
+            {"information_schema.tables"},
+            False,
+        ),
+        # Bare-name denylist entry still matches by table name only
+        # (existing behavior, schema-agnostic).
+        (
+            "postgresql",
+            "SELECT * FROM pg_stat_activity",
+            {"pg_stat_activity"},
+            True,
+        ),
+        (
+            "postgresql",
+            "SELECT * FROM pg_catalog.pg_stat_activity",
+            {"pg_stat_activity"},
+            True,
+        ),
+        # Mixed entries: one schema-qualified, one bare. Match either.
+        (
+            "postgresql",
+            "SELECT * FROM information_schema.columns",
+            {"information_schema.tables", "information_schema.columns"},
+            True,
+        ),
+        (
+            "postgresql",
+            "SELECT * FROM pg_roles",
+            {"information_schema.tables", "pg_roles"},
+            True,
+        ),
+        # Negative control.
+        (
+            "postgresql",
+            "SELECT * FROM my_table",
+            {"information_schema.tables", "pg_roles"},
+            False,
+        ),
+        # MySQL: the shipped DISALLOWED_SQL_TABLES['mysql'] entries are all
+        # schema-qualified (`mysql.user`, `performance_schema.threads`,
+        # `performance_schema.processlist`). Without schema-aware matching
+        # the entries are dead config. These cases pin the fix.
+        (
+            "mysql",
+            "SELECT user, host, authentication_string FROM mysql.user",
+            {"mysql.user"},
+            True,
+        ),
+        (
+            "mysql",
+            "SELECT * FROM performance_schema.threads",
+            {"performance_schema.threads"},
+            True,
+        ),
+        (
+            "mysql",
+            "SELECT * FROM performance_schema.processlist",
+            {"performance_schema.processlist"},
+            True,
+        ),
+        # MySQL must NOT block a user-authored table that shares the leaf
+        # name with the system view.
+        (
+            "mysql",
+            "SELECT * FROM mydb.user",
+            {"mysql.user"},
+            False,
+        ),
+        # MSSQL: same shape, `sys.*` entries are schema-qualified.
+        (
+            "mssql",
+            "SELECT name, password_hash FROM sys.sql_logins",
+            {"sys.sql_logins"},
+            True,
+        ),
+        (
+            "mssql",
+            "SELECT name, sid FROM sys.server_principals",
+            {"sys.server_principals"},
+            True,
+        ),
+        (
+            "mssql",
+            "SELECT * FROM sys.configurations",
+            {"sys.configurations"},
+            True,
+        ),
+        # MSSQL must NOT block a user-authored table sharing the leaf name.
+        (
+            "mssql",
+            "SELECT * FROM mydb.sql_logins",
+            {"sys.sql_logins"},
+            False,
+        ),
+        # Three-part (catalog.schema.table) denylist entries match the
+        # fully-qualified reference, the multi-dot form is indexed rather than
+        # silently dead.
+        (
+            "trino",
+            "SELECT * FROM cat.sys.sql_logins",
+            {"cat.sys.sql_logins"},
+            True,
+        ),
+        # ... and a different catalog must NOT match.
+        (
+            "trino",
+            "SELECT * FROM other.sys.sql_logins",
+            {"cat.sys.sql_logins"},
+            False,
+        ),
+    ],
+)
+def test_check_tables_present_schema_qualified(
+    engine: str, sql: str, denylist: set[str], expected: bool
+) -> None:
+    """
+    `check_tables_present` must distinguish schema-qualified denylist
+    entries (e.g. `information_schema.tables`, `mysql.user`,
+    `sys.sql_logins`) from bare-name entries (e.g. `pg_stat_activity`).
+    Schema-qualified entries only match schema-qualified references in
+    the SQL; bare entries match the table name regardless of schema.
+
+    Covers Postgres, MySQL, and MSSQL dialects so the shipped
+    DISALLOWED_SQL_TABLES entries for each remain effective.
+    """
+    assert SQLScript(sql, engine).check_tables_present(denylist) == expected
+
+
+@pytest.mark.parametrize(
+    "engine, sql, denylist, expected",
+    [
+        # A schema-qualified match is reported in its original denylist form,
+        # not collapsed to the bare leaf name and not the whole denylist.
+        (
+            "postgresql",
+            "SELECT * FROM information_schema.tables",
+            {"information_schema.tables", "information_schema.columns", "pg_roles"},
+            {"information_schema.tables"},
+        ),
+        # Bare-name match is reported as-is.
+        (
+            "postgresql",
+            "SELECT * FROM pg_catalog.pg_stat_activity",
+            {"pg_stat_activity", "pg_roles"},
+            {"pg_stat_activity"},
+        ),
+        # Multiple references across statements union their matches.
+        (
+            "postgresql",
+            "SELECT * FROM information_schema.tables; SELECT * FROM pg_roles",
+            {"information_schema.tables", "pg_roles", "pg_settings"},
+            {"information_schema.tables", "pg_roles"},
+        ),
+        # No match returns an empty set.
+        (
+            "postgresql",
+            "SELECT * FROM my_table",
+            {"information_schema.tables", "pg_roles"},
+            set(),
+        ),
+        # A three-part (catalog.schema.table) denylist entry matches a
+        # fully-qualified reference, reported in its original form.
+        (
+            "trino",
+            "SELECT * FROM cat.sys.sql_logins",
+            {"cat.sys.sql_logins"},
+            {"cat.sys.sql_logins"},
+        ),
+        # ... but only when the catalog lines up: a different catalog does not
+        # match the three-part entry.
+        (
+            "trino",
+            "SELECT * FROM other.sys.sql_logins",
+            {"cat.sys.sql_logins"},
+            set(),
+        ),
+    ],
+)
+def test_get_disallowed_tables(
+    engine: str, sql: str, denylist: set[str], expected: set[str]
+) -> None:
+    """
+    `get_disallowed_tables` returns exactly the denylist entries referenced,
+    in their original (possibly schema-qualified) form, so callers can report
+    precisely which tables were hit instead of echoing the whole denylist.
+    """
+    assert SQLScript(sql, engine).get_disallowed_tables(denylist) == expected
+
+
+@pytest.mark.parametrize(
+    "sql, default_schema, denylist, expected",
+    [
+        # Unqualified reference resolves to the default schema, so it matches
+        # a schema-qualified denylist entry when the schemas line up (e.g. a
+        # connection whose search_path is `information_schema`).
+        (
+            "SELECT * FROM tables",
+            "information_schema",
+            {"information_schema.tables"},
+            {"information_schema.tables"},
+        ),
+        # ... case-insensitively.
+        (
+            "SELECT * FROM tables",
+            "INFORMATION_SCHEMA",
+            {"information_schema.tables"},
+            {"information_schema.tables"},
+        ),
+        # The same unqualified name under a user schema must NOT match: a user
+        # table named `tables` stays queryable.
+        (
+            "SELECT * FROM tables",
+            "public",
+            {"information_schema.tables"},
+            set(),
+        ),
+        # An explicit schema on the reference wins over the default schema.
+        (
+            "SELECT * FROM public.tables",
+            "information_schema",
+            {"information_schema.tables"},
+            set(),
+        ),
+        # Without a default schema, behavior is unchanged: unqualified
+        # references never match schema-qualified entries.
+        (
+            "SELECT * FROM tables",
+            None,
+            {"information_schema.tables"},
+            set(),
+        ),
+        # Bare-name denylist entries are schema-agnostic and unaffected by the
+        # default schema.
+        (
+            "SELECT * FROM pg_stat_activity",
+            "information_schema",
+            {"pg_stat_activity"},
+            {"pg_stat_activity"},
+        ),
+        # The default schema is forwarded to every statement in a script, so an
+        # unqualified reference in a later statement is resolved too.
+        (
+            "SELECT * FROM my_table; SELECT * FROM tables",
+            "information_schema",
+            {"information_schema.tables"},
+            {"information_schema.tables"},
+        ),
+    ],
+)
+def test_get_disallowed_tables_default_schema(
+    sql: str,
+    default_schema: str | None,
+    denylist: set[str],
+    expected: set[str],
+) -> None:
+    """
+    `get_disallowed_tables` resolves an unqualified reference against the
+    supplied default schema, so a denylisted system view (e.g.
+    `information_schema.tables`) is still caught when reached without an
+    explicit schema under that search_path, without blocking a same-named
+    user table under a different schema.
+    """
+    assert (
+        SQLScript(sql, "postgresql").get_disallowed_tables(denylist, default_schema)
+        == expected
+    )
+
+
+@pytest.mark.parametrize(
+    "sql, default_schema, denylist, expected",
+    [
+        # `SET search_path` rebinds where an unqualified reference resolves, so
+        # the static default schema can no longer be trusted. A qualified
+        # denylist entry must still match the later unqualified reference,
+        # otherwise the block is trivially bypassable.
+        (
+            "SET search_path = information_schema; SELECT * FROM tables",
+            "public",
+            {"information_schema.tables"},
+            {"information_schema.tables"},
+        ),
+        # `SET search_path TO "$user", ...` falls back to an exp.Command (it is
+        # not a structured exp.Set), exercising the same conservative matching
+        # via the command-name detection branch.
+        (
+            'SET search_path TO "$user", information_schema; SELECT * FROM tables',
+            "public",
+            {"information_schema.tables"},
+            {"information_schema.tables"},
+        ),
+        # `set_config('search_path', ...)` rebinds the search path through a
+        # function call and must trigger the same conservative matching.
+        (
+            "SELECT set_config('search_path', 'information_schema', true);"
+            " SELECT * FROM tables",
+            "public",
+            {"information_schema.tables"},
+            {"information_schema.tables"},
+        ),
+        # The search-path change only affects later statements: a statement that
+        # runs before it keeps resolving against the original default schema, so
+        # its unqualified reference must NOT be widened.
+        (
+            "SELECT * FROM tables; SET search_path = information_schema",
+            "public",
+            {"information_schema.tables"},
+            set(),
+        ),
+        # An explicitly qualified reference is unambiguous and must NOT be
+        # widened to match a different schema's denylist entry.
+        (
+            "SET search_path = information_schema; SELECT * FROM public.tables",
+            "public",
+            {"information_schema.tables"},
+            set(),
+        ),
+        # Without a search_path change, matching is unchanged: an unqualified
+        # reference under a user schema does not match the qualified entry.
+        (
+            "SELECT * FROM tables",
+            "public",
+            {"information_schema.tables"},
+            set(),
+        ),
+    ],
+)
+def test_get_disallowed_tables_search_path_change(
+    sql: str,
+    default_schema: str | None,
+    denylist: set[str],
+    expected: set[str],
+) -> None:
+    """
+    A `SET search_path` in the script makes unqualified references resolve to a
+    schema other than the caller's default, so `get_disallowed_tables` matches
+    them against schema-qualified entries too, closing a denylist bypass.
+    """
+    assert (
+        SQLScript(sql, "postgresql").get_disallowed_tables(denylist, default_schema)
+        == expected
+    )
+
+
+@pytest.mark.parametrize(
+    "sql, expected",
+    [
+        # Structured `SET search_path` (exp.Set), surfaced via get_settings().
+        ("SET search_path = information_schema", True),
+        # Exotic form that falls back to exp.Command; the leading setting name
+        # is `search_path`.
+        ('SET search_path TO "$user", public', True),
+        # `SET SESSION ...` can also fall back to exp.Command; the optional
+        # SESSION/LOCAL qualifier is skipped before matching the setting name.
+        ("SET SESSION search_path FROM CURRENT", True),
+        # A quoted identifier is equivalent to the unquoted form in Postgres,
+        # so it must be recognized too (both the exp.Set and exp.Command forms).
+        ('SET "search_path" = information_schema', True),
+        ('SET "search_path" TO "$user", public', True),
+        # A `SET` whose value merely contains the substring `search_path` must
+        # not be misclassified (the setting being changed is `ROLE`).
+        ("SET ROLE app_search_path_user", False),
+        # `set_config('search_path', ...)` rebinds the path via a function call.
+        ("SELECT set_config('search_path', 'information_schema', true)", True),
+        # A different setting changed through `set_config` is not a search-path
+        # change.
+        ("SELECT set_config('statement_timeout', '0', true)", False),
+        # An unrelated (non-`set_config`) function call is not a change either.
+        ("SELECT my_custom_func(1)", False),
+        ("SELECT 1", False),
+    ],
+)
+def test_changes_search_path(sql: str, expected: bool) -> None:
+    """
+    `changes_search_path` detects search-path rebinds (via `SET` or
+    `set_config`) without misclassifying unrelated `SET` statements.
+    """
+    assert SQLStatement(sql, "postgresql").changes_search_path() == expected
+
+
+@pytest.mark.parametrize(
+    "sql, engine, expected",
+    [
+        # `USE` rebinds the schema for every later statement on the cursor.
+        ("USE tenant_b; SELECT * FROM orders", "mysql", True),
+        ("use `tenant_b`", "mysql", True),
+        ("USE SCHEMA tenant_b", "snowflake", True),
+        # Warehouse selection changes compute, not name resolution.
+        ("USE WAREHOUSE compute_wh", "snowflake", False),
+        # Search-path changes are schema rebinds too.
+        ("SET search_path = tenant_b", "postgresql", True),
+        (
+            "SELECT set_config('search_path', 'tenant_b', false)",
+            "postgresql",
+            True,
+        ),
+        # A `set_config()` with a computed setting name fails closed.
+        (
+            "SELECT set_config('search' || '_path', 'tenant_b', false)",
+            "postgresql",
+            True,
+        ),
+        # `SET SCHEMA` is an alias for a search-path rebind on Postgres and
+        # a schema rebind on DB2-family engines.
+        ("SET SCHEMA 'tenant_b'", "postgresql", True),
+        ("SELECT * FROM orders", "mysql", False),
+        ("SET statement_timeout = 10", "postgresql", False),
+        # A structured `SET current_schema = ...` rebinds resolution through
+        # a setting rather than a search path.
+        ("SET current_schema = foo", "postgresql", True),
+        # `SET CATALOG`/`SET SCHEMA` that fall back to an opaque command are
+        # schema rebinds, including the `CURRENT` spelling; an unrelated `SET`
+        # command (e.g. `SET ROLE`) is not.
+        ("SET CATALOG tenant_b", "postgresql", True),
+        ("SET CURRENT SCHEMA foo", "postgresql", True),
+        ("SET ROLE admin", "postgresql", False),
+        # A `set_config()` whose setting name is a column reference rather than
+        # a literal is treated conservatively as a schema change.
+        ("SELECT set_config(schema_col, 'tenant_b', false)", "postgresql", True),
+        # Engines without a sqlglot AST (e.g. Kusto KQL) do not rebind schema
+        # resolution through these forms.
+        ("print x = 1", "kustokql", False),
+    ],
+)
+def test_changes_default_schema(sql: str, engine: str, expected: bool) -> None:
+    """
+    `changes_default_schema` detects statements that rebind unqualified-name
+    resolution (`USE`, `SET SCHEMA`, search-path changes) so the SQL Lab
+    authorization path can reject the script before qualifying tables with
+    the schema the user selected.
+    """
+    assert SQLScript(sql, engine).changes_default_schema() == expected
+
+
+@pytest.mark.parametrize(
+    "sql, denylist, expected",
+    [
+        ("SELECT * FROM pg_stat_activity", {"pg_stat_activity"}, True),
+        ("SELECT * FROM my_table", {"pg_stat_activity"}, False),
+    ],
+)
+def test_statement_check_tables_present(
+    sql: str, denylist: set[str], expected: bool
+) -> None:
+    """
+    `SQLStatement.check_tables_present` is the per-statement entry point that
+    `SQLScript` no longer routes through (it calls `get_disallowed_tables`
+    directly), so exercise it on its own to keep the override covered.
+    """
+    assert SQLStatement(sql, "postgresql").check_tables_present(denylist) == expected
+
+
+def test_kustokql_statement_check_tables_present() -> None:
+    """
+    `KustoKQLStatement.check_tables_present` is unsupported and always reports
+    False; exercise it directly so the override stays covered.
+    """
+    statement = KustoKQLStatement("foo | take 100", "kustokql")
+    assert statement.check_tables_present({"foo"}) is False
+
+
+@pytest.mark.parametrize(
     "kql, expected",
     [
         (
@@ -3150,6 +5035,274 @@ def test_check_tables_present(sql: str, engine: str, expected: bool) -> None:
         ),
         ("'test'", [(KQLTokenType.STRING, "'test'")]),
         ("```test```", [(KQLTokenType.STRING, "```test```")]),
+        # Double-quoted strings
+        ('"hello"', [(KQLTokenType.STRING, '"hello"')]),
+        # Single-quoted string with escaped quote
+        (
+            "'it\\'s a test'",
+            [(KQLTokenType.STRING, "'it\\'s a test'")],
+        ),
+        # Double-quoted string with escaped quote
+        (
+            '"say \\"hi\\""',
+            [(KQLTokenType.STRING, '"say \\"hi\\""')],
+        ),
+        # Semicolon token
+        (
+            "a; b",
+            [
+                (KQLTokenType.WORD, "a"),
+                (KQLTokenType.SEMICOLON, ";"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.WORD, "b"),
+            ],
+        ),
+        # Semicolon inside string is not a SEMICOLON token
+        (
+            "'a;b'",
+            [(KQLTokenType.STRING, "'a;b'")],
+        ),
+        # Numbers
+        (
+            "42",
+            [(KQLTokenType.NUMBER, "42")],
+        ),
+        # Other/punctuation tokens
+        (
+            "()",
+            [
+                (KQLTokenType.OTHER, "("),
+                (KQLTokenType.OTHER, ")"),
+            ],
+        ),
+        # Empty input
+        ("", []),
+        # ARRAY bracket pattern used in Kusto engine spec
+        (
+            'ARRAY(["age"])',
+            [
+                (KQLTokenType.WORD, "ARRAY"),
+                (KQLTokenType.OTHER, "("),
+                (KQLTokenType.OTHER, "["),
+                (KQLTokenType.STRING, '"age"'),
+                (KQLTokenType.OTHER, "]"),
+                (KQLTokenType.OTHER, ")"),
+            ],
+        ),
+        # Mixed identifiers, operators, and strings
+        (
+            "tbl | where name == 'Alice' | take 5",
+            [
+                (KQLTokenType.WORD, "tbl"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.OTHER, "|"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.WORD, "where"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.WORD, "name"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.OTHER, "="),
+                (KQLTokenType.OTHER, "="),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.STRING, "'Alice'"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.OTHER, "|"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.WORD, "take"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.NUMBER, "5"),
+            ],
+        ),
+        # Underscore in identifiers
+        (
+            "my_table",
+            [(KQLTokenType.WORD, "my_table")],
+        ),
+        # Identifiers starting with underscore
+        (
+            "_col1",
+            [(KQLTokenType.WORD, "_col1")],
+        ),
+        # Multiline string with semicolons and quotes
+        (
+            "```select 'x'; drop```",
+            [(KQLTokenType.STRING, "```select 'x'; drop```")],
+        ),
+        # Adjacent strings without whitespace
+        (
+            "'a''b'",
+            [
+                (KQLTokenType.STRING, "'a'"),
+                (KQLTokenType.STRING, "'b'"),
+            ],
+        ),
+        # Dot operator
+        (
+            "db.table",
+            [
+                (KQLTokenType.WORD, "db"),
+                (KQLTokenType.OTHER, "."),
+                (KQLTokenType.WORD, "table"),
+            ],
+        ),
+        # Bracket-quoted identifier (KQL style)
+        (
+            '["column name"]',
+            [
+                (KQLTokenType.OTHER, "["),
+                (KQLTokenType.STRING, '"column name"'),
+                (KQLTokenType.OTHER, "]"),
+            ],
+        ),
+        # Whitespace variants (tab, newline)
+        (
+            "a\t\nb",
+            [
+                (KQLTokenType.WORD, "a"),
+                (KQLTokenType.WHITESPACE, "\t\n"),
+                (KQLTokenType.WORD, "b"),
+            ],
+        ),
+        # Summarize with count aggregation
+        (
+            "T | summarize count() by State",
+            [
+                (KQLTokenType.WORD, "T"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.OTHER, "|"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.WORD, "summarize"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.WORD, "count"),
+                (KQLTokenType.OTHER, "("),
+                (KQLTokenType.OTHER, ")"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.WORD, "by"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.WORD, "State"),
+            ],
+        ),
+        # Aliased aggregation with avg
+        (
+            "T | summarize avg_val = avg(price) by category",
+            [
+                (KQLTokenType.WORD, "T"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.OTHER, "|"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.WORD, "summarize"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.WORD, "avg_val"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.OTHER, "="),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.WORD, "avg"),
+                (KQLTokenType.OTHER, "("),
+                (KQLTokenType.WORD, "price"),
+                (KQLTokenType.OTHER, ")"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.WORD, "by"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.WORD, "category"),
+            ],
+        ),
+        # Multiple aggregations with dcount
+        (
+            "T | summarize cnt = count(), uniq = dcount(user_id)",
+            [
+                (KQLTokenType.WORD, "T"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.OTHER, "|"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.WORD, "summarize"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.WORD, "cnt"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.OTHER, "="),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.WORD, "count"),
+                (KQLTokenType.OTHER, "("),
+                (KQLTokenType.OTHER, ")"),
+                (KQLTokenType.OTHER, ","),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.WORD, "uniq"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.OTHER, "="),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.WORD, "dcount"),
+                (KQLTokenType.OTHER, "("),
+                (KQLTokenType.WORD, "user_id"),
+                (KQLTokenType.OTHER, ")"),
+            ],
+        ),
+        # Summarize with bin time bucketing
+        (
+            "T | summarize count() by bin(ts, 1h)",
+            [
+                (KQLTokenType.WORD, "T"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.OTHER, "|"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.WORD, "summarize"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.WORD, "count"),
+                (KQLTokenType.OTHER, "("),
+                (KQLTokenType.OTHER, ")"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.WORD, "by"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.WORD, "bin"),
+                (KQLTokenType.OTHER, "("),
+                (KQLTokenType.WORD, "ts"),
+                (KQLTokenType.OTHER, ","),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.NUMBER, "1"),
+                (KQLTokenType.WORD, "h"),
+                (KQLTokenType.OTHER, ")"),
+            ],
+        ),
+        (
+            "T | summarize dcountif(user_id, status == 'active') by region",
+            [
+                (KQLTokenType.WORD, "T"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.OTHER, "|"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.WORD, "summarize"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.WORD, "dcountif"),
+                (KQLTokenType.OTHER, "("),
+                (KQLTokenType.WORD, "user_id"),
+                (KQLTokenType.OTHER, ","),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.WORD, "status"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.OTHER, "="),
+                (KQLTokenType.OTHER, "="),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.STRING, "'active'"),
+                (KQLTokenType.OTHER, ")"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.WORD, "by"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.WORD, "region"),
+            ],
+        ),
+        (
+            "T | project tostring(value)",
+            [
+                (KQLTokenType.WORD, "T"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.OTHER, "|"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.WORD, "project"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.WORD, "tostring"),
+                (KQLTokenType.OTHER, "("),
+                (KQLTokenType.WORD, "value"),
+                (KQLTokenType.OTHER, ")"),
+            ],
+        ),
     ],
 )
 def test_tokenize_kql(kql: str, expected: list[tuple[KQLTokenType, str]]) -> None:
@@ -3175,6 +5328,17 @@ def test_tokenize_kql(kql: str, expected: list[tuple[KQLTokenType, str]]) -> Non
             "postgresql",
             True,
         ),
+        # Set operations: a top-level UNION/INTERSECT/EXCEPT is not an
+        # exp.Subquery, so it must be detected explicitly. A predicate fragment
+        # that introduces one (e.g. supplied through a chart filter) must be
+        # flagged.
+        ("true UNION SELECT name FROM other_table", "postgresql", True),
+        ("1 = 1 UNION ALL SELECT password FROM users", "postgresql", True),
+        ("SELECT 1 INTERSECT SELECT 2", "postgresql", True),
+        ("SELECT 1 EXCEPT SELECT 2", "postgresql", True),
+        # Nested SELECT under non-Select top-level nodes (e.g. extra
+        # parentheses) must still be detected.
+        ("name IN (((SELECT secret FROM s)))", "postgresql", True),
     ],
 )
 def test_has_subquery(sql: str, engine: str, expected: bool) -> None:
@@ -3311,3 +5475,165 @@ def test_backtick_invalid_sql_still_fails() -> None:
     sql = "SELECT * FROM `table` WHERE"
     with pytest.raises(SupersetParseError):
         SQLScript(sql, "base")
+
+
+def test_base_sql_statement_is_destructive_raises_not_implemented() -> None:
+    """
+    BaseSQLStatement.is_destructive is abstract; both concrete subclasses
+    (SQLStatement and KustoKQLStatement) override it, so calling the base
+    implementation directly must raise. This exercises the abstract stub
+    so it stays exercised under coverage.
+    """
+    with pytest.raises(NotImplementedError):
+        BaseSQLStatement.is_destructive(object())  # type: ignore[arg-type]
+
+
+# ---------------------------------------------------------------------------
+# SQL_MAX_PARSE_LENGTH gate
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def _small_parse_cap(mocker: MockerFixture) -> None:
+    """
+    Pin the parse-length cap to 100 bytes and force the no-app-context
+    fallback path so tests are decoupled from the suite's Flask config.
+    """
+    mocker.patch("superset.config.SQL_MAX_PARSE_LENGTH", 100)
+    mocker.patch("superset.sql.parse.has_app_context", return_value=False)
+
+
+@pytest.mark.usefixtures("_small_parse_cap")
+def test_check_script_length_accepts_at_boundary() -> None:
+    """A script exactly at the configured cap is accepted."""
+    _check_script_length("a" * 100, "postgresql")
+
+
+@pytest.mark.usefixtures("_small_parse_cap")
+def test_check_script_length_rejects_one_over() -> None:
+    """One byte above the cap is rejected before sqlglot runs."""
+    with pytest.raises(SupersetParseError) as excinfo:
+        _check_script_length("a" * 101, "postgresql")
+    assert "exceeds the configured maximum" in str(excinfo.value)
+
+
+def test_check_script_length_counts_utf8_bytes(mocker: MockerFixture) -> None:
+    """
+    The cap is in UTF-8 bytes, not code points. A multi-byte char string
+    whose char-count is under the cap but byte-count is over must reject.
+    """
+    mocker.patch("superset.config.SQL_MAX_PARSE_LENGTH", 30)
+    mocker.patch("superset.sql.parse.has_app_context", return_value=False)
+    # 20 emoji = 20 code points (under the 30-byte cap) but 80 UTF-8 bytes (over)
+    payload = "\U0001f600" * 20
+    with pytest.raises(SupersetParseError):
+        _check_script_length(payload, "postgresql")
+
+
+def test_check_script_length_disabled_when_config_none(
+    mocker: MockerFixture,
+) -> None:
+    """Setting SQL_MAX_PARSE_LENGTH=None disables the check entirely."""
+    fake_app = mocker.MagicMock()
+    fake_app.config = {"SQL_MAX_PARSE_LENGTH": None}
+    mocker.patch("superset.sql.parse.has_app_context", return_value=True)
+    mocker.patch("superset.sql.parse.current_app", fake_app)
+    _check_script_length("a" * 10_000_000, "postgresql")
+
+
+def test_check_script_length_uses_app_config_when_present(
+    mocker: MockerFixture,
+) -> None:
+    """When an app context is active, the runtime config value wins."""
+    fake_app = mocker.MagicMock()
+    fake_app.config = {"SQL_MAX_PARSE_LENGTH": 50}
+    mocker.patch("superset.sql.parse.has_app_context", return_value=True)
+    mocker.patch("superset.sql.parse.current_app", fake_app)
+    with pytest.raises(SupersetParseError):
+        _check_script_length("a" * 51, "postgresql")
+
+
+@pytest.mark.usefixtures("_small_parse_cap")
+def test_sqlscript_gate_short_circuits_before_sqlglot(
+    mocker: MockerFixture,
+) -> None:
+    """
+    SQLScript construction must reject an over-cap script before any call
+    to sqlglot.parse, including the MySQL-backtick fallback path. Captures
+    the original behaviour the PR is closing: the previous code parsed
+    twice on backtick failures, so the cap MUST short-circuit both.
+    """
+    spy = mocker.spy(sqlglot, "parse")
+    over_cap_with_backtick = "SELECT * FROM `t` -- " + "x" * 200
+    with pytest.raises(SupersetParseError):
+        SQLScript(over_cap_with_backtick, "base")
+    assert spy.call_count == 0, "length gate failed to short-circuit sqlglot.parse"
+
+
+@pytest.mark.usefixtures("_small_parse_cap")
+def test_parse_predicate_length_check() -> None:
+    """SQLStatement.parse_predicate also goes through the length gate."""
+    stmt = SQLStatement("SELECT 1", "postgresql")
+    with pytest.raises(SupersetParseError):
+        stmt.parse_predicate("x" * 101)
+
+
+@pytest.mark.usefixtures("_small_parse_cap")
+def test_transpile_to_dialect_length_check() -> None:
+    """
+    The standalone ``transpile_to_dialect`` entry point also gates input.
+
+    The cap-exceeded error surfaces as ``QueryClauseValidationException`` to
+    preserve the function's existing error contract (callers such as
+    ``transpile_virtual_dataset_sql`` only catch that type and fall back to
+    the original SQL). The underlying ``SupersetParseError`` is attached as
+    ``__cause__`` so over-cap input is still distinguishable from a generic
+    parse failure.
+    """
+    with pytest.raises(QueryClauseValidationException) as excinfo:
+        transpile_to_dialect("x" * 101, target_engine="mysql")
+    assert isinstance(excinfo.value.__cause__, SupersetParseError)
+
+
+def test_backtick_fallback_logs_warning(caplog: pytest.LogCaptureFixture) -> None:
+    """
+    Test that the MySQL dialect fallback emits a warning log.
+
+    When the base dialect fails to parse SQL containing backticks and the
+    parser falls back to the MySQL dialect, the fallback should be observable
+    via a warning log.
+    """
+    sql = "SELECT * FROM `my_table`"
+    with caplog.at_level(logging.WARNING, logger="superset.sql.parse"):
+        SQLScript(sql, "base")
+
+    assert any(
+        record.levelname == "WARNING" and "MySQL dialect" in record.getMessage()
+        for record in caplog.records
+    )
+
+
+@pytest.mark.parametrize(
+    "expression,expected",
+    [
+        ("GREATEST(confirmed, predicted)", False),
+        ("MAX(GREATEST(a, b))", True),
+        ("SUM(x)", True),
+        ("COUNT(*)", True),
+        ("SUM(x) OVER (PARTITION BY y)", False),
+        ("ROW_NUMBER() OVER ()", False),
+        ("SUM(SUM(x)) OVER ()", True),
+        ("a + b", False),
+        (")(", True),
+        ("MY_CUSTOM_AGG(x)", True),
+        ("a - (SELECT AVG(b) FROM t)", True),
+    ],
+)
+def test_has_aggregate(expression: str, expected: bool) -> None:
+    """
+    ``has_aggregate`` detects any aggregate that is not itself directly windowed
+    -- one nested inside a windowed aggregate or a subquery still counts -- and
+    fails open (returns True) when the expression can't be parsed or uses a
+    function sqlglot can't model.
+    """
+    assert has_aggregate(expression) is expected

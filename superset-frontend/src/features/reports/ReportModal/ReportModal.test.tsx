@@ -26,7 +26,35 @@ import {
 } from 'spec/helpers/testing-library';
 import reducerIndex from 'spec/helpers/reducerIndex';
 import { FeatureFlag, VizType, isFeatureEnabled } from '@superset-ui/core';
+import getBootstrapData from 'src/utils/getBootstrapData';
+import { DEFAULT_COMMON_BOOTSTRAP_DATA } from 'src/constants';
+import type { BootstrapData } from 'src/types/bootstrapTypes';
 import ReportModal from '.';
+
+const bootstrapData = (
+  common: Partial<BootstrapData['common']> = {},
+): BootstrapData => ({
+  common: {
+    ...DEFAULT_COMMON_BOOTSTRAP_DATA,
+    ...common,
+  },
+});
+
+jest.mock('src/utils/getBootstrapData', () => ({
+  __esModule: true,
+  default: jest.fn(() => ({
+    common: {
+      conf: {},
+      feature_flags: {},
+      user_subject_id: 99,
+      user_subjects: [99],
+    },
+  })),
+}));
+
+const mockedGetBootstrapData = getBootstrapData as jest.MockedFunction<
+  typeof getBootstrapData
+>;
 
 const REPORT_ENDPOINT = 'glob:*/api/v1/report*';
 fetchMock.get(REPORT_ENDPOINT, {});
@@ -40,7 +68,6 @@ const defaultProps = {
   onHide: NOOP,
   onReportAdd: NOOP,
   show: true,
-  userId: 1,
   userEmail: 'test@test.com',
   dashboardId: 1,
   creationMethod: 'dashboards',
@@ -59,6 +86,12 @@ jest.mock('@superset-ui/core', () => ({
 const mockedIsFeatureEnabled = isFeatureEnabled as jest.Mock;
 
 beforeEach(() => {
+  mockedGetBootstrapData.mockReturnValue(
+    bootstrapData({
+      user_subject_id: 99,
+      user_subjects: [99],
+    }),
+  );
   mockedIsFeatureEnabled.mockImplementation(
     featureFlag => featureFlag === FeatureFlag.AlertReports,
   );
@@ -102,8 +135,15 @@ test('does not allow user to create a report without a name', () => {
   expect(addButton).toBeDisabled();
 });
 
+test('shows xlsx notification format option', () => {
+  render(<ReportModal {...defaultProps} />, { useRedux: true });
+  expect(
+    screen.getByText('Formatted Excel attached in email'),
+  ).toBeInTheDocument();
+});
+
 test('creates a new email report via modal Add button', async () => {
-  // The modal now calls POST /api/v1/report/subscribe; creation_method, owners, and
+  // The modal calls POST /api/v1/report/subscribe; creation_method, editors, and
   // recipients are derived server-side — the client payload intentionally omits them.
   fetchMock.post(
     'glob:*/api/v1/report/subscribe',
@@ -127,7 +167,7 @@ test('creates a new email report via modal Add button', async () => {
   expect(body.name).toBe('Weekly Report');
   expect(body.type).toBe('Report');
   expect(body.crontab).toBeDefined();
-  // creation_method, owners, and recipients are set server-side; not in the client payload
+  // creation_method, editors, and recipients are set server-side; not in the client payload
   expect(body.creation_method).toBeUndefined();
   expect(body.recipients).toBeUndefined();
 
@@ -168,6 +208,31 @@ test('non-text chart shows screenshot width and message content', () => {
   expect(screen.getByText('Screenshot width')).toBeInTheDocument();
 });
 
+test('screenshot width input preserves a typed zero instead of dropping it', () => {
+  const lineChartProps = {
+    ...defaultProps,
+    dashboardId: undefined,
+    chart: { id: 1, sliceFormData: { viz_type: VizType.Line } },
+    chartName: 'My Line Chart',
+    creationMethod: 'charts' as const,
+  };
+  render(<ReportModal {...lineChartProps} />, { useRedux: true });
+
+  const widthInput = screen.getByPlaceholderText(
+    'Input custom width in pixels',
+  );
+
+  // The old `|| null` / `|| ''` logic silently coerced a typed 0 to null, so the
+  // invalid width was swallowed instead of being submitted and surfaced by the
+  // server's min-width validation. The field must preserve the literal value.
+  userEvent.type(widthInput, '0');
+  expect(widthInput).toHaveDisplayValue('0');
+
+  // Clearing the field still yields an empty value (parsed NaN → null).
+  userEvent.clear(widthInput);
+  expect(widthInput).toHaveDisplayValue('');
+});
+
 test('dashboard report hides message content section', () => {
   const dashboardProps = {
     ...defaultProps,
@@ -194,7 +259,7 @@ test('renders edit mode when report exists in store', () => {
     active: true,
     type: 'Report',
     dashboard: 1,
-    owners: [1],
+    editors: [1],
     recipients: [
       {
         recipient_config_json: { target: 'test@test.com' },
@@ -235,7 +300,7 @@ test('edit mode dispatches editReport via PUT on save', async () => {
     active: true,
     type: 'Report',
     dashboard: 1,
-    owners: [1],
+    editors: [1],
     recipients: [
       {
         recipient_config_json: { target: 'test@test.com' },
@@ -280,10 +345,76 @@ test('edit mode dispatches editReport via PUT on save', async () => {
   expect(body.crontab).toBe('0 12 * * 1');
   expect(body.report_format).toBe('PNG');
   expect(body.dashboard).toBe(1);
+  expect(body.editors).toEqual([99]);
   expect(body.recipients).toBeDefined();
   expect(body.recipients[0].type).toBe('Email');
 
   fetchMock.removeRoute('put-report-42');
+});
+
+test('edit mode does not fall back to user id when subject id is unavailable', async () => {
+  mockedGetBootstrapData.mockReturnValue(
+    bootstrapData({
+      user_subject_id: undefined,
+      user_subjects: [],
+    }),
+  );
+
+  const existingReport = {
+    id: 43,
+    name: 'Existing Report',
+    description: '',
+    crontab: '0 12 * * 1',
+    creation_method: 'dashboards',
+    report_format: 'PNG',
+    timezone: 'America/New_York',
+    active: true,
+    type: 'Report',
+    dashboard: 1,
+    editors: [99],
+    recipients: [
+      {
+        recipient_config_json: { target: 'test@test.com' },
+        type: 'Email',
+      },
+    ],
+  };
+  const store = createStore(
+    {
+      reports: {
+        dashboards: { 1: existingReport },
+      },
+    },
+    reducerIndex,
+  );
+
+  fetchMock.put(
+    'glob:*/api/v1/report/43',
+    { id: 43, result: {} },
+    {
+      name: 'put-report-43',
+    },
+  );
+
+  render(<ReportModal {...defaultProps} />, {
+    useRedux: true,
+    store,
+  });
+
+  const saveButton = screen.getByRole('button', { name: /save/i });
+  await waitFor(() => userEvent.click(saveButton));
+
+  await waitFor(() => {
+    const calls = fetchMock.callHistory.calls('put-report-43');
+    expect(calls.length).toBeGreaterThan(0);
+  });
+
+  const calls = fetchMock.callHistory.calls('put-report-43');
+  const body = JSON.parse(calls[calls.length - 1].options.body as string);
+
+  expect(body.editors).toBeUndefined();
+
+  fetchMock.removeRoute('put-report-43');
 });
 
 test('submit failure dispatches danger toast and keeps modal open', async () => {
@@ -310,9 +441,105 @@ test('submit failure dispatches danger toast and keeps modal open', async () => 
     ).toBe(true);
   });
 
-  // Modal stays open — onHide should NOT have been called
+  // Modal stays open; onHide should NOT have been called.
   expect(onHide).not.toHaveBeenCalled();
   expect(screen.getByText('Schedule a new email report')).toBeInTheDocument();
 
   fetchMock.removeRoute('post-fail');
+});
+
+// ---------------------------------------------------------------------------
+// Error Handling section tests
+// ---------------------------------------------------------------------------
+
+const enableRetryFlag = () => {
+  mockedIsFeatureEnabled.mockImplementation(
+    (featureFlag: string) =>
+      featureFlag === FeatureFlag.AlertReports ||
+      featureFlag === FeatureFlag.AlertReportsRetry,
+  );
+};
+
+test('Error Handling section is hidden when ALERT_REPORTS_RETRY flag is off', () => {
+  const store = createStore({}, reducerIndex);
+  render(<ReportModal {...defaultProps} />, { useRedux: true, store });
+
+  expect(screen.queryByText('Error Handling')).not.toBeInTheDocument();
+});
+
+test('Error Handling section is visible when ALERT_REPORTS_RETRY flag is on', () => {
+  enableRetryFlag();
+  const store = createStore({}, reducerIndex);
+  render(<ReportModal {...defaultProps} />, { useRedux: true, store });
+
+  expect(screen.getByText('Error Handling')).toBeInTheDocument();
+  const enableRetriesCheckbox = screen.getByRole('checkbox', {
+    name: /enable retries/i,
+  });
+  expect(enableRetriesCheckbox).not.toBeChecked();
+});
+
+test('conditional retry fields are hidden when Enable Retries is unchecked', () => {
+  enableRetryFlag();
+  const store = createStore({}, reducerIndex);
+  render(<ReportModal {...defaultProps} />, { useRedux: true, store });
+
+  expect(screen.queryByText('Maximum Retry Attempts')).not.toBeInTheDocument();
+  expect(screen.queryByText('Send Failed Reports')).not.toBeInTheDocument();
+  expect(screen.queryByText('Failure Notifications')).not.toBeInTheDocument();
+});
+
+test('conditional retry fields appear when Enable Retries is checked', async () => {
+  enableRetryFlag();
+  const store = createStore({}, reducerIndex);
+  render(<ReportModal {...defaultProps} />, { useRedux: true, store });
+
+  const enableRetriesCheckbox = screen.getByRole('checkbox', {
+    name: /enable retries/i,
+  });
+  await userEvent.click(enableRetriesCheckbox);
+
+  await waitFor(() => {
+    expect(screen.getByText('Maximum Retry Attempts')).toBeInTheDocument();
+    expect(screen.getByText('Send Failed Reports')).toBeInTheDocument();
+    expect(screen.getByText('Failure Notifications')).toBeInTheDocument();
+  });
+});
+
+test('retry fields are included in the POST body when Enable Retries is enabled', async () => {
+  enableRetryFlag();
+  fetchMock.post(REPORT_ENDPOINT, { result: {} }, { name: 'post-retry' });
+  const store = createStore({}, reducerIndex);
+  render(
+    <ReportModal
+      {...defaultProps}
+      dashboardId={undefined}
+      chart={{ sliceFormData: { viz_type: 'bar' } } as any}
+      creationMethod="charts"
+    />,
+    { useRedux: true, store },
+  );
+
+  // Enable retries
+  const enableRetriesCheckbox = screen.getByRole('checkbox', {
+    name: /enable retries/i,
+  });
+  await userEvent.click(enableRetriesCheckbox);
+
+  // Submit
+  const addButton = screen.getByRole('button', { name: /add/i });
+  await userEvent.click(addButton);
+
+  await waitFor(() => {
+    const calls = fetchMock.callHistory.calls('post-retry');
+    const lastCall = calls[calls.length - 1];
+    const body = JSON.parse(lastCall.options.body as string);
+    expect(body.retry_on_failure).toBe(true);
+    expect(typeof body.retry_max_attempts).toBe('number');
+    expect(typeof body.send_failed_reports).toBe('boolean');
+    expect(typeof body.retry_notify_owners).toBe('boolean');
+    expect(typeof body.retry_notify_recipients).toBe('boolean');
+  });
+
+  fetchMock.removeRoute('post-retry');
 });

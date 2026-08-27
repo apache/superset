@@ -38,6 +38,9 @@ from superset.mcp_service.chart.chart_utils import (
     generate_chart_name,
     generate_explore_link,
     map_config_to_form_data,
+    MCP_DASHBOARD_TIME_FILTER_SUBJECT,
+    merge_table_column_config,
+    NO_TIME_RANGE,
 )
 from superset.mcp_service.chart.compile import validate_and_compile
 from superset.mcp_service.chart.preview_utils import (
@@ -102,6 +105,50 @@ def _get_previous_form_data(form_data_key: str) -> dict[str, Any] | None:
     return None
 
 
+def _preserve_previous_adhoc_filters(
+    new_form_data: dict[str, Any], previous_form_data: dict[str, Any]
+) -> None:
+    """Preserve cached filters without dropping mapper-generated bindings."""
+    previous_filters = previous_form_data.get("adhoc_filters")
+    if not isinstance(previous_filters, list) or not previous_filters:
+        return
+
+    generated_filters = new_form_data.get("adhoc_filters", [])
+    previous_binding = previous_form_data.get(MCP_DASHBOARD_TIME_FILTER_SUBJECT)
+    new_binding = new_form_data.get(MCP_DASHBOARD_TIME_FILTER_SUBJECT)
+    merged_filters = [
+        filter_
+        for filter_ in previous_filters
+        if not (
+            previous_binding
+            and previous_binding != new_binding
+            and isinstance(filter_, dict)
+            and filter_.get("operator") == "TEMPORAL_RANGE"
+            and filter_.get("subject") == previous_binding
+            and filter_.get("comparator") == NO_TIME_RANGE
+        )
+    ]
+    for generated_filter in generated_filters:
+        if not isinstance(generated_filter, dict):
+            if generated_filter not in merged_filters:
+                merged_filters.append(generated_filter)
+            continue
+
+        is_same_filter = any(
+            isinstance(previous_filter, dict)
+            and previous_filter.get("clause") == generated_filter.get("clause")
+            and previous_filter.get("expressionType")
+            == generated_filter.get("expressionType")
+            and previous_filter.get("subject") == generated_filter.get("subject")
+            and previous_filter.get("operator") == generated_filter.get("operator")
+            for previous_filter in merged_filters
+        )
+        if not is_same_filter:
+            merged_filters.append(generated_filter)
+
+    new_form_data["adhoc_filters"] = merged_filters
+
+
 @tool(
     tags=["mutate"],
     class_permission_name="Chart",
@@ -109,7 +156,7 @@ def _get_previous_form_data(form_data_key: str) -> dict[str, Any] | None:
     annotations=ToolAnnotations(
         title="Update chart preview",
         readOnlyHint=False,
-        destructiveHint=True,
+        destructiveHint=False,
     ),
 )
 def update_chart_preview(  # noqa: C901
@@ -128,7 +175,9 @@ def update_chart_preview(  # noqa: C901
     - Iterating on chart design without creating permanent charts
     - Testing different configurations
 
-    Returns new form_data_key, preview images, and explore URL.
+    Returns new form_data_key, preview images, and explore URL. The explore_url
+    scheme matches the configured instance URL (HTTPS in production/staging,
+    HTTP in local development).
     """
     start_time = time.time()
 
@@ -181,9 +230,12 @@ def update_chart_preview(  # noqa: C901
             # Preserve adhoc filters from the previous cached form_data
             # when the new config doesn't explicitly specify filters
             if getattr(config, "filters", None) is None and previous_form_data:
-                old_adhoc_filters = previous_form_data.get("adhoc_filters")
-                if old_adhoc_filters:
-                    new_form_data["adhoc_filters"] = old_adhoc_filters
+                _preserve_previous_adhoc_filters(
+                    new_form_data,
+                    previous_form_data,
+                )
+            if previous_form_data:
+                merge_table_column_config(previous_form_data, new_form_data)
 
             # Tier-1 schema validation against the dataset (no DB roundtrip).
             # Runs AFTER the filter merge so filter columns are also validated.
@@ -240,8 +292,11 @@ def update_chart_preview(  # noqa: C901
                     "api_version": "v1",
                 }
 
-            # Generate new explore link with updated form_data
-            explore_url = generate_explore_link(request.dataset_id, new_form_data)
+            # Generate new explore link with updated form_data. This preview flow
+            # extracts and re-caches the form_data_key, so force that URL shape.
+            explore_url = generate_explore_link(
+                request.dataset_id, new_form_data, prefer_permalink=False
+            )
 
         # Extract new form_data_key from the explore URL
         new_form_data_key = extract_form_data_key_from_url(explore_url)

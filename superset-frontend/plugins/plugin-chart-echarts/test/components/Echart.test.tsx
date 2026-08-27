@@ -190,3 +190,20 @@ test('does not restore when the new option reshapes dataZoom', async () => {
   );
   expect(dataZoomCalls).toHaveLength(0);
 });
+
+test('registers a locale object complete enough to format time axis labels', async () => {
+  // echarts ships two UMD builds per locale: langXX.js self-registers and
+  // exports nothing, langXX-obj.js exports the locale object. Importing the
+  // former yields {}, and registering that shadows the built-in locale, so
+  // formatTime blows up on every time-axis label -- it eagerly evaluates
+  // month[u - 1] for any template, even '{yyyy}'. Pin the working shape.
+  const { registerLocale } = jest.requireMock('echarts/core');
+  registerLocale.mockClear();
+
+  renderEchart({ xAxis: {}, series: [] });
+
+  await waitFor(() => expect(registerLocale).toHaveBeenCalled());
+  const [localeKey, localeObj] = registerLocale.mock.calls.at(-1);
+  expect(localeKey).toBe('EN');
+  expect(localeObj?.time?.month).toHaveLength(12);
+});

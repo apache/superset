@@ -26,9 +26,17 @@ import {
 import { FeatureFlag, VizType } from '@superset-ui/core';
 import mockState from 'spec/fixtures/mockState';
 import { cachedSupersetGet } from 'src/utils/cachedSupersetGet';
+import downloadAsImage from 'src/utils/downloadAsImage';
+import downloadAsPdf from 'src/utils/downloadAsPdf';
 import SliceHeaderControls, { SliceHeaderControlsProps } from '.';
 
 jest.mock('src/utils/cachedSupersetGet');
+jest.mock('src/utils/downloadAsImage', () =>
+  jest.fn(() => jest.fn().mockResolvedValue(undefined)),
+);
+jest.mock('src/utils/downloadAsPdf', () =>
+  jest.fn(() => jest.fn().mockResolvedValue(undefined)),
+);
 
 const mockCachedSupersetGet = cachedSupersetGet as jest.MockedFunction<
   typeof cachedSupersetGet
@@ -78,16 +86,16 @@ const createProps = (viz_type = VizType.Sunburst) =>
       datasource: '58__table',
       description: 'test-description',
       description_markeddown: '',
-      owners: [],
       modified: '<span class="no-wrap">22 hours ago</span>',
       changed_on: 1617143411523,
+      editors: [],
     },
     isCached: [false],
     isExpanded: false,
     cachedDttm: [''],
     updatedDttm: 1617213803803,
     supersetCanExplore: true,
-    supersetCanCSV: true,
+    supersetCanDownload: true,
     componentId: 'CHART-fYo7IyvKZQ',
     dashboardId: 26,
     isFullSize: false,
@@ -127,6 +135,12 @@ const openMenu = () => {
   userEvent.click(screen.getByRole('button', { name: 'More Options' }));
 };
 
+const mockDownloadAsImage = downloadAsImage as jest.MockedFunction<
+  typeof downloadAsImage
+>;
+const mockDownloadAsPdf = downloadAsPdf as jest.MockedFunction<
+  typeof downloadAsPdf
+>;
 const mockFullscreenElement = (getElement: () => Element | null) => {
   Object.defineProperty(document, 'fullscreenElement', {
     configurable: true,
@@ -136,6 +150,8 @@ const mockFullscreenElement = (getElement: () => Element | null) => {
 
 beforeEach(() => {
   mockCachedSupersetGet.mockClear();
+  mockDownloadAsImage.mockClear();
+  mockDownloadAsPdf.mockClear();
   mockCachedSupersetGet.mockResolvedValue({
     response: {} as Response,
     json: {
@@ -673,4 +689,219 @@ test('Should pass formData to Share menu for embed code feature', () => {
   expect(container).toBeInTheDocument();
   openMenu();
   expect(screen.getByText('Share')).toBeInTheDocument();
+});
+
+test('Download submenu shows standardized export screenshot and PDF labels', async () => {
+  const props = createProps();
+  renderWrapper(props);
+  openMenu();
+  userEvent.hover(screen.getByText('Download'));
+  expect(
+    await screen.findByText('Export screenshot (jpeg)'),
+  ).toBeInTheDocument();
+  expect(screen.getByText('Export screenshot (png)')).toBeInTheDocument();
+  expect(screen.getByText('Export as PDF')).toBeInTheDocument();
+});
+
+test('Clicking "Export screenshot (jpeg)" calls downloadAsImage and logEvent', async () => {
+  const props = createProps();
+  renderWrapper(props);
+  openMenu();
+  userEvent.hover(screen.getByText('Download'));
+  userEvent.click(await screen.findByText('Export screenshot (jpeg)'));
+  expect(downloadAsImage).toHaveBeenCalledWith(
+    `.dashboard-chart-id-${SLICE_ID}`,
+    props.slice.slice_name,
+    true,
+    expect.anything(),
+  );
+  expect(props.logEvent).toHaveBeenCalledWith(
+    expect.anything(),
+    expect.objectContaining({ chartId: SLICE_ID }),
+  );
+});
+
+test('Export screenshot (png) submenu shows Transparent and Solid options', async () => {
+  const props = createProps();
+  renderWrapper(props);
+  openMenu();
+  userEvent.hover(screen.getByText('Download'));
+  userEvent.hover(await screen.findByText('Export screenshot (png)'));
+  expect(await screen.findByText('Transparent background')).toBeInTheDocument();
+  expect(screen.getByText('Solid background')).toBeInTheDocument();
+});
+
+test('Clicking "Transparent background" calls downloadAsImage with transparent option and logEvent', async () => {
+  const props = createProps();
+  renderWrapper(props);
+  openMenu();
+  userEvent.hover(screen.getByText('Download'));
+  userEvent.hover(await screen.findByText('Export screenshot (png)'));
+  userEvent.click(await screen.findByText('Transparent background'));
+  expect(downloadAsImage).toHaveBeenCalledWith(
+    `.dashboard-chart-id-${SLICE_ID}`,
+    props.slice.slice_name,
+    true,
+    expect.anything(),
+    { format: 'png', backgroundType: 'transparent' },
+  );
+  expect(props.logEvent).toHaveBeenCalledWith(
+    expect.anything(),
+    expect.objectContaining({
+      chartId: SLICE_ID,
+      backgroundType: 'transparent',
+    }),
+  );
+});
+
+test('Clicking "Solid background" calls downloadAsImage with solid option and logEvent', async () => {
+  const props = createProps();
+  renderWrapper(props);
+  openMenu();
+  userEvent.hover(screen.getByText('Download'));
+  userEvent.hover(await screen.findByText('Export screenshot (png)'));
+  userEvent.click(await screen.findByText('Solid background'));
+  expect(downloadAsImage).toHaveBeenCalledWith(
+    `.dashboard-chart-id-${SLICE_ID}`,
+    props.slice.slice_name,
+    true,
+    expect.anything(),
+    { format: 'png', backgroundType: 'solid' },
+  );
+  expect(props.logEvent).toHaveBeenCalledWith(
+    expect.anything(),
+    expect.objectContaining({
+      chartId: SLICE_ID,
+      backgroundType: 'solid',
+    }),
+  );
+});
+
+test('Clicking "Export as PDF" calls downloadAsPdf and logEvent', async () => {
+  const props = createProps();
+  renderWrapper(props);
+  openMenu();
+  userEvent.hover(screen.getByText('Download'));
+  userEvent.click(await screen.findByText('Export as PDF'));
+  expect(downloadAsPdf).toHaveBeenCalledWith(
+    `.dashboard-chart-id-${SLICE_ID}`,
+    props.slice.slice_name,
+    true,
+  );
+  expect(props.logEvent).toHaveBeenCalledWith(
+    expect.anything(),
+    expect.objectContaining({ chartId: SLICE_ID }),
+  );
+});
+
+test('Should show single fetched query tooltip with timestamp', async () => {
+  const updatedDttm = Date.parse('2024-01-28T10:00:00.000Z');
+  const props = createProps();
+  props.isCached = [false];
+  props.cachedDttm = [''];
+  props.updatedDttm = updatedDttm;
+
+  renderWrapper(props);
+  openMenu();
+
+  const refreshButton = screen.getByText('Force refresh');
+  expect(refreshButton).toBeInTheDocument();
+
+  userEvent.hover(refreshButton);
+  expect(await screen.findByText(/Fetched/)).toBeInTheDocument();
+});
+
+test('Should show single cached query tooltip with timestamp', async () => {
+  const cachedDttm = '2024-01-28T10:00:00.000Z';
+  const props = createProps();
+  props.isCached = [true];
+  props.cachedDttm = [cachedDttm];
+  props.updatedDttm = null;
+
+  renderWrapper(props);
+  openMenu();
+
+  const refreshButton = screen.getByText('Force refresh');
+  expect(refreshButton).toBeInTheDocument();
+
+  userEvent.hover(refreshButton);
+  expect(await screen.findByText(/Cached/)).toBeInTheDocument();
+});
+
+test('Should show multiple per-query tooltips when all queries are fetched', async () => {
+  const cachedDttm1 = '';
+  const cachedDttm2 = '';
+  const updatedDttm = Date.parse('2024-01-28T10:10:00.000Z');
+  const props = createProps(VizType.Table);
+  props.isCached = [false, false];
+  props.cachedDttm = [cachedDttm1, cachedDttm2];
+  props.updatedDttm = updatedDttm;
+
+  renderWrapper(props);
+  openMenu();
+
+  const refreshButton = screen.getByText('Force refresh');
+  expect(refreshButton).toBeInTheDocument();
+
+  userEvent.hover(refreshButton);
+  expect(await screen.findByText(/Fetched/)).toBeInTheDocument();
+});
+
+test('Should show multiple per-query tooltips when all queries are cached', async () => {
+  const cachedDttm1 = '2025-01-28T10:00:00.000Z';
+  const cachedDttm2 = '2024-01-28T10:05:00.000Z';
+  const props = createProps(VizType.Table);
+  props.isCached = [true, true];
+  props.cachedDttm = [cachedDttm1, cachedDttm2];
+  props.updatedDttm = null;
+
+  renderWrapper(props);
+  openMenu();
+
+  const refreshButton = screen.getByText('Force refresh');
+  expect(refreshButton).toBeInTheDocument();
+
+  userEvent.hover(refreshButton);
+  expect(await screen.findByText(/Query 1: Cached/)).toBeInTheDocument();
+  expect(await screen.findByText(/Query 2: Cached/)).toBeInTheDocument();
+});
+
+test('Should deduplicate identical cache times in tooltip', async () => {
+  const sameCachedDttm = '2024-01-28T10:00:00.000Z';
+  const props = createProps(VizType.Table);
+  props.isCached = [true, true];
+  props.cachedDttm = [sameCachedDttm, sameCachedDttm];
+  props.updatedDttm = null;
+
+  renderWrapper(props);
+  openMenu();
+
+  const refreshButton = screen.getByText('Force refresh');
+  expect(refreshButton).toBeInTheDocument();
+
+  userEvent.hover(refreshButton);
+  expect(await screen.findByText(/Cached/)).toBeInTheDocument();
+});
+
+test('Should handle three or more queries with different cache states', async () => {
+  const cachedDttm1 = '2024-01-28T10:00:00.000Z';
+  const cachedDttm2 = '2024-01-28T10:05:00.000Z';
+  const cachedDttm3 = '';
+  const updatedDttm = Date.parse('2024-01-28T10:15:00.000Z');
+  const props = createProps(VizType.Table);
+  props.isCached = [true, false, true];
+  props.cachedDttm = [cachedDttm1, cachedDttm2, cachedDttm3];
+  props.updatedDttm = updatedDttm;
+
+  renderWrapper(props);
+  openMenu();
+
+  const refreshButton = screen.getByText('Force refresh');
+  expect(refreshButton).toBeInTheDocument();
+
+  userEvent.hover(refreshButton);
+
+  expect(await screen.findByText(/Query 1:/)).toBeInTheDocument();
+  expect(await screen.findByText(/Query 2:/)).toBeInTheDocument();
+  expect(await screen.findByText(/Query 3:/)).toBeInTheDocument();
 });

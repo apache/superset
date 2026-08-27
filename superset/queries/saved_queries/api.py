@@ -52,15 +52,17 @@ from superset.queries.saved_queries.schemas import (
     get_delete_ids_schema,
     get_export_ids_schema,
     openapi_spec_methods_override,
+    validate_label,
 )
 from superset.utils import json
+from superset.utils.core import sanitize_cookie_token
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
     RelatedFieldFilter,
     requires_form_data,
     statsd_metrics,
 )
-from superset.views.filters import BaseFilterRelatedUsers, FilterRelatedOwners
+from superset.views.filters import BaseFilterRelatedUsers, FilterRelatedUsers
 
 logger = logging.getLogger(__name__)
 
@@ -181,17 +183,23 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
 
     related_field_filters = {
         "database": "database_name",
-        "changed_by": RelatedFieldFilter("first_name", FilterRelatedOwners),
+        "changed_by": RelatedFieldFilter("first_name", FilterRelatedUsers),
+        "created_by": RelatedFieldFilter("first_name", FilterRelatedUsers),
     }
     base_related_field_filters = {
         "database": [["id", DatabaseFilter, lambda: []]],
         "changed_by": [["id", BaseFilterRelatedUsers, lambda: []]],
+        "created_by": [["id", BaseFilterRelatedUsers, lambda: []]],
     }
     allowed_rel_fields = {"database", "changed_by", "created_by"}
     allowed_distinct_fields = {"catalog", "schema"}
 
+    validators_columns = {"label": validate_label}
+
     def pre_add(self, item: SavedQuery) -> None:
         item.user = g.user
+        if item.label:
+            item.label = item.label.strip()
 
     def pre_update(self, item: SavedQuery) -> None:
         self.pre_add(item)
@@ -305,7 +313,7 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
             as_attachment=True,
             download_name=filename,
         )
-        if token := request.args.get("token"):
+        if token := sanitize_cookie_token(request.args.get("token")):
             response.set_cookie(token, "done", max_age=600)
         return response
 

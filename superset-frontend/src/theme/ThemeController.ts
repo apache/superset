@@ -27,7 +27,7 @@ import {
   themeObject as supersetThemeObject,
   normalizeThemeConfig,
 } from '@apache-superset/core/theme';
-import { makeApi } from '@superset-ui/core';
+import { makeApi, SupersetClient } from '@superset-ui/core';
 import type {
   BootstrapThemeData,
   BootstrapThemeDataConfig,
@@ -94,10 +94,17 @@ export class ThemeController {
 
   private devThemeOverride: AnyThemeConfig | null = null;
 
+  private bootstrapDefaultMode: ThemeMode = ThemeMode.DEFAULT;
+
   // Dashboard themes managed by controller
   private dashboardThemes: Map<string, Theme> = new Map();
 
   private dashboardCrudTheme: AnyThemeConfig | null = null;
+
+  // Tracks whether an explicit theme config override has been applied via
+  // setThemeConfig (e.g. from the Embedded SDK). When set, it must take
+  // precedence over a dashboard-level theme.
+  private themeConfigOverride = false;
 
   // Track loaded font URLs to avoid duplicate injections
   private loadedFontUrls: Set<string> = new Set();
@@ -120,13 +127,17 @@ export class ThemeController {
     this.globalTheme = themeObject;
 
     // Initialize bootstrap data and themes
-    const { bootstrapDefaultTheme, bootstrapDarkTheme }: BootstrapThemeData =
-      this.loadBootstrapData();
+    const {
+      bootstrapDefaultTheme,
+      bootstrapDarkTheme,
+      bootstrapDefaultMode,
+    }: BootstrapThemeData = this.loadBootstrapData();
 
     // Set themes from bootstrap data
     // These will be the THEME_DEFAULT and THEME_DARK from config
     this.defaultTheme = bootstrapDefaultTheme || defaultTheme || null;
     this.darkTheme = bootstrapDarkTheme;
+    this.bootstrapDefaultMode = bootstrapDefaultMode;
 
     // Initialize system theme detection
     this.systemMode = ThemeController.getSystemPreferredMode();
@@ -183,6 +194,12 @@ export class ThemeController {
       );
 
     this.onChangeCallbacks.clear();
+
+    // Clean up injected font styles
+    document
+      .querySelectorAll('style[data-superset-fonts]')
+      .forEach(el => el.remove());
+    this.loadedFontUrls.clear();
   }
 
   /**
@@ -341,7 +358,7 @@ export class ThemeController {
    * @throws {Error} If the user does not have permission to update the theme mode
    */
   public setThemeMode(mode: ThemeMode): void {
-    this.validateModeUpdatePermission(mode);
+    this.validateModeUpdatePermission();
 
     if (
       this.currentMode === mode &&
@@ -442,6 +459,7 @@ export class ThemeController {
     this.devThemeOverride = null;
     this.crudThemeId = null;
     this.dashboardCrudTheme = null;
+    this.themeConfigOverride = false;
 
     this.storage.removeItem(STORAGE_KEYS.DEV_THEME_OVERRIDE);
     this.storage.removeItem(STORAGE_KEYS.CRUD_THEME_ID);
@@ -465,6 +483,15 @@ export class ThemeController {
    */
   public hasDevOverride(): boolean {
     return this.devThemeOverride !== null;
+  }
+
+  /**
+   * Checks if an explicit theme config override has been applied via
+   * setThemeConfig (e.g. from the Embedded SDK). When true, this override
+   * takes precedence over any dashboard-level theme.
+   */
+  public hasThemeConfigOverride(): boolean {
+    return this.themeConfigOverride;
   }
 
   /**
@@ -512,10 +539,11 @@ export class ThemeController {
   public setThemeConfig(config: SupersetThemeConfig): void {
     this.defaultTheme = config.theme_default;
     this.darkTheme = config.theme_dark || null;
+    this.themeConfigOverride = true;
 
     let newMode: ThemeMode;
     try {
-      this.validateModeUpdatePermission(this.currentMode);
+      this.validateModeUpdatePermission();
       const hasRequiredTheme = this.isValidThemeMode(this.currentMode);
       newMode = hasRequiredTheme
         ? this.currentMode
@@ -664,7 +692,7 @@ export class ThemeController {
       common: { theme = {} as BootstrapThemeDataConfig },
     } = getBootstrapData();
 
-    const { default: defaultTheme, dark: darkTheme } = theme;
+    const { default: defaultTheme, dark: darkTheme, defaultMode } = theme;
 
     const hasValidDefault: boolean = this.isNonEmptyObject(defaultTheme);
     const hasValidDark: boolean = this.isNonEmptyObject(darkTheme);
@@ -674,9 +702,21 @@ export class ThemeController {
       hasValidDefault && !this.isEmptyTheme(defaultTheme);
     const hasCustomDark = hasValidDark && !this.isEmptyTheme(darkTheme);
 
+    const modeMap: Record<string, ThemeMode> = {
+      default: ThemeMode.DEFAULT,
+      dark: ThemeMode.DARK,
+      system: ThemeMode.SYSTEM,
+    };
+    const bootstrapDefaultMode: ThemeMode =
+      (defaultMode &&
+        Object.hasOwn(modeMap, defaultMode) &&
+        modeMap[defaultMode]) ||
+      ThemeMode.SYSTEM;
+
     return {
       bootstrapDefaultTheme: hasCustomDefault ? defaultTheme : null,
       bootstrapDarkTheme: hasCustomDark ? darkTheme : null,
+      bootstrapDefaultMode,
       hasCustomThemes: hasCustomDefault || hasCustomDark,
     };
   }
@@ -768,8 +808,8 @@ export class ThemeController {
     )
       return this.initialMode;
 
-    // Default to system preference when both themes are available
-    return ThemeMode.SYSTEM;
+    // Fall back to the deployment-configured default mode
+    return this.bootstrapDefaultMode;
   }
 
   /**
@@ -823,10 +863,9 @@ export class ThemeController {
 
   /**
    * Validates permission to update mode.
-   * @param newMode - The new mode to validate
    * @throws {Error} If the user does not have permission to update the theme mode
    */
-  private validateModeUpdatePermission(newMode: ThemeMode): void {
+  private validateModeUpdatePermission(): void {
     // Check if user can set a new theme mode (dark theme must exist)
     if (!this.canSetMode())
       throw new Error(
@@ -1004,41 +1043,102 @@ export class ThemeController {
   }
 
   /**
+   * Constructs the guest token authorization header using the configured
+   * header name from SupersetClient or bootstrap config, falling back to 'X-GuestToken'.
+   */
+  private getGuestTokenHeader(): Record<string, string> {
+    const headers: Record<string, string> = {};
+    try {
+      const guestToken = SupersetClient.getGuestToken();
+      if (guestToken) {
+        let headerName = 'X-GuestToken';
+        try {
+          if (SupersetClient.guestTokenHeaderName) {
+            headerName = SupersetClient.guestTokenHeaderName;
+          }
+        } catch {
+          const bootstrapData = getBootstrapData();
+          headerName =
+            bootstrapData.config?.GUEST_TOKEN_HEADER_NAME || 'X-GuestToken';
+        }
+        headers[headerName] = guestToken;
+      }
+    } catch (tokenError) {
+      // Ignore token retrieval error
+    }
+    return headers;
+  }
+
+  /**
    * Fetches a fresh system default theme from the API for runtime recovery.
    * Tries multiple fallback strategies to find a valid theme.
    *
-   * Note: Uses raw fetch() instead of SupersetClient because ThemeController
-   * initializes early in the app lifecycle, before SupersetClient is fully
-   * configured. This avoids boot-time circular dependencies.
+   * Note: First tries to use SupersetClient. If SupersetClient is not yet
+   * fully configured/initialized or if the request fails (e.g. in embedded
+   * guest-token environments where SupersetClient bootstrap is still in progress),
+   * it falls back to using raw fetch() with custom guest token headers.
    *
    * @returns The system default theme configuration or null if not found
    */
   private async fetchSystemDefaultTheme(): Promise<AnyThemeConfig | null> {
     try {
-      // Try to fetch theme marked as system default (is_system_default=true)
-      const defaultResponse = await fetch(
-        '/api/v1/theme/?q=(filters:!((col:is_system_default,opr:eq,value:!t)))',
-      );
-      if (defaultResponse.ok) {
-        const data = await defaultResponse.json();
-        if (data.result?.length > 0) {
-          const themeConfig = JSON.parse(data.result[0].json_data);
+      // Try to use SupersetClient first if it has been configured
+      try {
+        const response = await SupersetClient.get({
+          endpoint:
+            '/api/v1/theme/?q=(filters:!((col:is_system_default,opr:eq,value:!t)))',
+        });
+        if (response.json?.result?.length > 0) {
+          const themeConfig = JSON.parse(response.json.result[0].json_data);
           if (themeConfig && typeof themeConfig === 'object') {
             return themeConfig;
+          }
+        }
+      } catch (clientError) {
+        // If SupersetClient is not configured yet or request fails, fall back to native fetch
+        const headers = this.getGuestTokenHeader();
+
+        const defaultResponse = await fetch(
+          '/api/v1/theme/?q=(filters:!((col:is_system_default,opr:eq,value:!t)))',
+          { headers },
+        );
+        if (defaultResponse.ok) {
+          const data = await defaultResponse.json();
+          if (data.result?.length > 0) {
+            const themeConfig = JSON.parse(data.result[0].json_data);
+            if (themeConfig && typeof themeConfig === 'object') {
+              return themeConfig;
+            }
           }
         }
       }
 
       // Fallback: Try to fetch system theme named 'THEME_DEFAULT'
-      const fallbackResponse = await fetch(
-        '/api/v1/theme/?q=(filters:!((col:theme_name,opr:eq,value:THEME_DEFAULT),(col:is_system,opr:eq,value:!t)))',
-      );
-      if (fallbackResponse.ok) {
-        const fallbackData = await fallbackResponse.json();
-        if (fallbackData.result?.length > 0) {
-          const themeConfig = JSON.parse(fallbackData.result[0].json_data);
+      try {
+        const response = await SupersetClient.get({
+          endpoint:
+            '/api/v1/theme/?q=(filters:!((col:theme_name,opr:eq,value:THEME_DEFAULT),(col:is_system,opr:eq,value:!t)))',
+        });
+        if (response.json?.result?.length > 0) {
+          const themeConfig = JSON.parse(response.json.result[0].json_data);
           if (themeConfig && typeof themeConfig === 'object') {
             return themeConfig;
+          }
+        }
+      } catch (clientError) {
+        const headers = this.getGuestTokenHeader();
+
+        const fallbackResponse = await fetch(
+          '/api/v1/theme/?q=(filters:!((col:theme_name,opr:eq,value:THEME_DEFAULT),(col:is_system,opr:eq,value:!t)))',
+          { headers },
+        );
+        if (fallbackResponse.ok) {
+          const fallbackData = await fallbackResponse.json();
+          if (fallbackData.result?.length > 0) {
+            const themeConfig = JSON.parse(fallbackData.result[0].json_data);
+            if (themeConfig && typeof themeConfig === 'object') {
+              return themeConfig;
+            }
           }
         }
       }

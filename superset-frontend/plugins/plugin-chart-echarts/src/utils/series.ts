@@ -37,7 +37,7 @@ import { SortSeriesType, LegendPaddingType } from '@superset-ui/chart-controls';
 import { format } from 'echarts/core';
 import type { LegendComponentOption } from 'echarts/components';
 import type { SeriesOption } from 'echarts';
-import { isEmpty, maxBy, meanBy, minBy, orderBy, sumBy } from 'lodash';
+import { isEmpty, maxBy, meanBy, minBy, orderBy, sumBy } from 'lodash-es';
 import {
   NULL_STRING,
   StackControlsValue,
@@ -60,11 +60,9 @@ const DEFAULT_LEGEND_ICON_WIDTH = 25;
 const LEGEND_ICON_LABEL_GAP = 5;
 const LEGEND_HORIZONTAL_SIDE_GUTTER = 16;
 const LEGEND_HORIZONTAL_ROW_HEIGHT = 24;
-const LEGEND_HORIZONTAL_MAX_ROWS = 2;
-const LEGEND_HORIZONTAL_MAX_HEIGHT_RATIO = 0.25;
+// Cap the reserved horizontal legend margin so an overflowing legend can't eat the plot.
+const MAX_LEGEND_MARGIN_RATIO = 0.4;
 const LEGEND_VERTICAL_SIDE_GUTTER = 16;
-const LEGEND_VERTICAL_ROW_HEIGHT = 24;
-const LEGEND_VERTICAL_MAX_WIDTH_RATIO = 0.4;
 const LEGEND_SELECTOR_GAP = 10;
 const LEGEND_MARGIN_GUTTER = 45;
 // ECharts does not expose pre-render measurements for plain legends, so these
@@ -82,10 +80,6 @@ type LegendDataItem =
 export type LegendLayoutResult = {
   effectiveMargin?: number;
   effectiveType: LegendType;
-};
-
-const SCROLL_LEGEND_LAYOUT: LegendLayoutResult = {
-  effectiveType: LegendType.Scroll,
 };
 
 function getLegendLabel(item: LegendDataItem): string {
@@ -269,37 +263,30 @@ function getHorizontalPlainLegendLayout({
     showSelectors,
     theme,
   );
+  const rowsForMargin = Number.isFinite(rowCount)
+    ? rowCount
+    : legendLabels.length;
   const requiredMargin =
     defaultLegendPadding[orientation] +
-    Math.max(0, rowCount - 1) * LEGEND_HORIZONTAL_ROW_HEIGHT;
-  const maxLegendHeight =
+    Math.max(0, rowsForMargin - 1) * LEGEND_HORIZONTAL_ROW_HEIGHT;
+  const boundedMargin =
     availableHeight > 0
-      ? availableHeight * LEGEND_HORIZONTAL_MAX_HEIGHT_RATIO
-      : Infinity;
-
-  if (
-    !Number.isFinite(rowCount) ||
-    rowCount > LEGEND_HORIZONTAL_MAX_ROWS ||
-    requiredMargin > maxLegendHeight
-  ) {
-    return SCROLL_LEGEND_LAYOUT;
-  }
+      ? Math.min(requiredMargin, availableHeight * MAX_LEGEND_MARGIN_RATIO)
+      : requiredMargin;
 
   return {
-    effectiveMargin: Math.max(currentMargin, requiredMargin),
+    effectiveMargin: Math.max(currentMargin, boundedMargin),
     effectiveType: LegendType.Plain,
   };
 }
 
 function getVerticalPlainLegendLayout({
-  availableHeight,
   availableWidth,
   currentMargin,
   legendLabels,
   showSelectors,
   theme,
 }: {
-  availableHeight: number;
   availableWidth: number;
   currentMargin: number;
   legendLabels: string[];
@@ -313,17 +300,6 @@ function getVerticalPlainLegendLayout({
     };
   }
 
-  const selectorHeight = showSelectors
-    ? LEGEND_VERTICAL_ROW_HEIGHT + LEGEND_SELECTOR_GAP
-    : 0;
-  const effectiveAvailableHeight = Math.max(
-    availableHeight - LEGEND_VERTICAL_SIDE_GUTTER - selectorHeight,
-    0,
-  );
-  const rowsPerColumn = Math.floor(
-    (effectiveAvailableHeight + DEFAULT_LEGEND_ITEM_GAP) /
-      (LEGEND_VERTICAL_ROW_HEIGHT + DEFAULT_LEGEND_ITEM_GAP),
-  );
   const requiredSelectorMargin = showSelectors
     ? ESTIMATED_LEGEND_SELECTOR_WIDTH + LEGEND_VERTICAL_SIDE_GUTTER
     : 0;
@@ -333,21 +309,13 @@ function getVerticalPlainLegendLayout({
       requiredSelectorMargin,
     ),
   );
-  const maxLegendWidth =
+  const boundedMargin =
     availableWidth > 0
-      ? availableWidth * LEGEND_VERTICAL_MAX_WIDTH_RATIO
-      : Infinity;
-
-  if (
-    rowsPerColumn <= 0 ||
-    legendLabels.length > rowsPerColumn ||
-    requiredMargin > maxLegendWidth
-  ) {
-    return SCROLL_LEGEND_LAYOUT;
-  }
+      ? Math.min(requiredMargin, availableWidth * MAX_LEGEND_MARGIN_RATIO)
+      : requiredMargin;
 
   return {
-    effectiveMargin: Math.max(currentMargin, requiredMargin),
+    effectiveMargin: Math.max(currentMargin, boundedMargin),
     effectiveType: LegendType.Plain,
   };
 }
@@ -404,7 +372,6 @@ export function getLegendLayoutResult({
   }
 
   return getVerticalPlainLegendLayout({
-    availableHeight: resolvedAvailableHeight,
     availableWidth: resolvedAvailableWidth,
     currentMargin: resolvedLegendMargin,
     legendLabels,
@@ -420,6 +387,7 @@ export function extractDataTotalValues(
     percentageThreshold: number;
     xAxisCol: string;
     legendState?: LegendState;
+    extraMetricLabels?: string[];
   },
 ): {
   totalStackedValues: number[];
@@ -427,18 +395,32 @@ export function extractDataTotalValues(
 } {
   const totalStackedValues: number[] = [];
   const thresholdValues: number[] = [];
-  const { stack, percentageThreshold, xAxisCol, legendState } = opts;
+  const {
+    stack,
+    percentageThreshold,
+    xAxisCol,
+    legendState,
+    extraMetricLabels,
+  } = opts;
+  const excludedKeys = new Set([xAxisCol, ...(extraMetricLabels ?? [])]);
   if (stack) {
     data.forEach(datum => {
       const values = Object.keys(datum).reduce((prev, curr) => {
-        if (curr === xAxisCol) {
+        if (excludedKeys.has(curr)) {
           return prev;
         }
         if (legendState && !legendState[curr]) {
           return prev;
         }
         const value = datum[curr] || 0;
-        return prev + (value as number);
+        // Query results with integers beyond Number.MAX_SAFE_INTEGER are
+        // parsed as native BigInt (see
+        // packages/superset-ui-core/src/connection/callApi/parseResponse.ts).
+        // Normalize to Number before summing so BigInt and Number values
+        // can be combined without throwing (see #36401).
+        const numericValue =
+          typeof value === 'bigint' ? Number(value) : (value as number);
+        return prev + numericValue;
       }, 0);
       totalStackedValues.push(values);
       thresholdValues.push(((percentageThreshold || 0) / 100) * values);
@@ -648,13 +630,25 @@ export function extractSeries(
     xAxisType,
   } = opts;
   if (data.length === 0) return [[], [], undefined];
-  const rows: DataRecord[] = data.map(datum => ({
-    ...datum,
-    [xAxis]:
+  const rows: DataRecord[] = data.map(datum => {
+    // Query results with integers beyond Number.MAX_SAFE_INTEGER are
+    // parsed as native BigInt (see
+    // packages/superset-ui-core/src/connection/callApi/parseResponse.ts).
+    // Normalize every metric value to Number here, before sorting/
+    // aggregation (sortAndFilterSeries, sortRows) and stream-mode baseline
+    // calculations (getBaselineSeriesForStream) run, so BigInt and Number
+    // values can be combined without throwing (see #36401).
+    const normalized: DataRecord = {};
+    Object.keys(datum).forEach(key => {
+      const value = datum[key];
+      normalized[key] = typeof value === 'bigint' ? Number(value) : value;
+    });
+    normalized[xAxis] =
       datum[xAxis] === null && xAxisType === AxisType.Category
         ? NULL_STRING
-        : datum[xAxis],
-  }));
+        : normalized[xAxis];
+    return normalized;
+  });
   const sortedSeries = sortAndFilterSeries(
     rows,
     xAxis,
@@ -703,7 +697,17 @@ export function extractSeries(
           stack === StackControlsValue.Expand &&
           totalStackedValue !== undefined
         ) {
-          value = ((value || 0) as number) / totalStackedValue;
+          // Query results with integers beyond Number.MAX_SAFE_INTEGER are
+          // parsed as native BigInt (see
+          // packages/superset-ui-core/src/connection/callApi/parseResponse.ts).
+          // totalStackedValue is always a Number (extractDataTotalValues
+          // normalizes it), so dividing a raw BigInt datum value by it
+          // throws; normalize to Number first (see #36401).
+          const numericValue =
+            typeof value === 'bigint'
+              ? Number(value)
+              : ((value || 0) as number);
+          value = numericValue / totalStackedValue;
         }
         return [row[xAxis], value];
       })
@@ -928,6 +932,36 @@ export function dedupSeries(series: SeriesOption[]): SeriesOption[] {
 
 export function sanitizeHtml(text: string): string {
   return format.encodeHTML(text);
+}
+
+/**
+ * Map a metric value to a marker diameter such that the marker's *area*
+ * (not its diameter) scales linearly with the value between the smallest
+ * and largest observed values. Area-based scaling avoids the perceptual
+ * exaggeration that diameter-linear scaling causes, where a 2x value
+ * renders as a 4x area.
+ *
+ * @param value - the metric value for this data point
+ * @param valueExtent - [min, max] of the metric across all data points
+ * @param sizeRange - [min, max] marker diameter in pixels
+ */
+export function getAreaScaledSymbolSize(
+  value: number,
+  valueExtent: [number, number],
+  sizeRange: [number, number],
+): number {
+  const [minValue, maxValue] = valueExtent;
+  const [minSize, maxSize] = sizeRange;
+  if (!Number.isFinite(value) || maxValue === minValue) {
+    // single-valued or invalid data: use the diameter whose area is the
+    // midpoint of the configured area range
+    return Math.sqrt((minSize ** 2 + maxSize ** 2) / 2);
+  }
+  const ratio = Math.min(
+    Math.max((value - minValue) / (maxValue - minValue), 0),
+    1,
+  );
+  return Math.sqrt(minSize ** 2 + ratio * (maxSize ** 2 - minSize ** 2));
 }
 
 export function getAxisType(

@@ -120,11 +120,19 @@ describe('DatasourceModal', () => {
     });
     const saveButton = screen.getByTestId('datasource-modal-save');
     fireEvent.click(saveButton);
-    const okButton = await screen.findByRole('button', { name: 'OK' });
+    const okButton = await screen.findByRole('button', { name: 'Confirm' });
     fireEvent.click(okButton);
     await waitFor(() => {
       expect(onDatasourceSave).toHaveBeenCalled();
     });
+    const putCall = fetchMock.callHistory
+      .calls()
+      .find(
+        call =>
+          call.url.includes('/api/v1/dataset/7') &&
+          call.options?.method === 'put',
+      );
+    expect(JSON.parse(putCall?.options?.body as string).editors).toEqual([1]);
   });
 
   test('should render error dialog', async () => {
@@ -134,7 +142,7 @@ describe('DatasourceModal', () => {
 
     const saveButton = screen.getByTestId('datasource-modal-save');
     fireEvent.click(saveButton);
-    const okButton = await screen.findByRole('button', { name: 'OK' });
+    const okButton = await screen.findByRole('button', { name: 'Confirm' });
     fireEvent.click(okButton);
 
     const errorElements = await screen.findAllByText('Error saving dataset');
@@ -222,7 +230,7 @@ describe('DatasourceModal', () => {
     expect(checkbox).toBeChecked();
 
     // Click OK to submit
-    const okButton = screen.getByRole('button', { name: 'OK' });
+    const okButton = screen.getByRole('button', { name: 'Confirm' });
     fireEvent.click(okButton);
 
     // Verify the PUT request was made with override_columns=true
@@ -289,7 +297,7 @@ describe('DatasourceModal', () => {
     expect(checkbox).not.toBeChecked();
 
     // Click OK to submit
-    const okButton = screen.getByRole('button', { name: 'OK' });
+    const okButton = screen.getByRole('button', { name: 'Confirm' });
     fireEvent.click(okButton);
 
     // Verify the PUT request was made with override_columns=false
