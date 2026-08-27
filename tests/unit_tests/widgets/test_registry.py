@@ -236,3 +236,38 @@ def test_widget_registration_raises_on_cyclic_dependency() -> None:
 
     # The widget must not remain half-registered after the failure.
     assert registry.get("cyclic-test-widget") is None
+
+
+def test_widget_registration_does_not_run_enrichers() -> None:
+    class _RuntimeControls(BaseModel):
+        options: list[str] = Field(
+            default_factory=list,
+            json_schema_extra={"x-dynamic": True},
+        )
+
+    calls: list[bool] = []
+
+    def _populate_options(
+        _schema: dict[str, Any],
+        node: dict[str, Any],
+        _parsed: BaseModel | None,
+        _series: list[str],
+        _upstream: dict[str, Any],
+    ) -> None:
+        calls.append(True)
+        node["enum"] = ["one"]
+
+    @widget(widget_type="runtime-enricher-test-widget", name="Runtime enricher")
+    class _RuntimeEnricher(Widget):
+        controls_class = _RuntimeControls
+        enrichers = {"options": _populate_options}
+
+    try:
+        assert calls == []
+
+        schema = _RuntimeEnricher.get_control_schema(None, None)
+
+        assert calls == [True]
+        assert schema["properties"]["options"]["enum"] == ["one"]
+    finally:
+        registry.pop("runtime-enricher-test-widget", None)

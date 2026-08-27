@@ -329,13 +329,10 @@ def inject_widget_implementations() -> None:
             cls.description = description or ""
             registry[key] = cls
             try:
-                # Eagerly build the base (control_values=None) schema once, so
-                # a cyclic x-dependsOn graph among this widget's dynamic
-                # fields fails at import time -- get_control_schema's
-                # toposort_or_raise call is what actually detects the cycle;
-                # this just forces that check to run now instead of on the
-                # widget's first real request.
-                cls.get_control_schema(None, None)
+                # Validate the static schema and dependency graph at import
+                # time. Runtime enrichers may perform permission-scoped data
+                # lookups, so they must wait until a request user exists.
+                cls.validate_control_schema()
             except Exception:
                 registry.pop(key, None)
                 raise

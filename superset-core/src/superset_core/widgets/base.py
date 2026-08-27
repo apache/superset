@@ -76,6 +76,19 @@ class Widget:
     enrichers: ClassVar[dict[str, EnricherFn]] = {}
 
     @classmethod
+    def validate_control_schema(cls) -> None:
+        """Validate the static control schema without running enrichers.
+
+        Widget registration happens during application initialization, before
+        there is a request user. Enrichers may perform permission-scoped data
+        lookups, so registration must only verify that the schema can be built
+        and that its dynamic-field dependency graph is acyclic.
+        """
+        schema = build_configuration_schema(cls.controls_class)
+        fields = dynamic_field_paths(schema)
+        toposort_or_raise(build_dependency_graph(fields), cls.widget_type)
+
+    @classmethod
     def get_control_schema(
         cls,
         control_values: dict[str, Any] | None = None,
