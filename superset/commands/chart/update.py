@@ -185,11 +185,9 @@ class UpdateChartCommand(UpdateMixin, BaseCommand):
 
         # Validate if datasource_id is provided datasource_type is required
         datasource_id = self._properties.get("datasource_id")
-        datasource_type = ""
-        if datasource_id is not None:
-            datasource_type = self._properties.get("datasource_type", "")
-            if not datasource_type:
-                exceptions.append(DatasourceTypeUpdateRequiredValidationError())
+        datasource_type = self._properties.get("datasource_type", "")
+        if datasource_id is not None and not datasource_type:
+            exceptions.append(DatasourceTypeUpdateRequiredValidationError())
 
         # Validate/populate model exists
         self._model = ChartDAO.find_by_id(self._model_id)
@@ -226,22 +224,24 @@ class UpdateChartCommand(UpdateMixin, BaseCommand):
         # An empty datasource_type was already flagged above via
         # DatasourceTypeUpdateRequiredValidationError; skip this block so
         # we don't clobber that message with DatasourceTypeInvalidError.
-        if datasource_id is not None and datasource_type:
+        if datasource_type:
             try:
                 # Slice.datasource only ever resolves the ``table``
                 # relationship (see Slice.datasource in
-                # superset/models/slice.py), so repointing a chart at any
-                # other datasource_type would "succeed" but leave the chart
-                # permanently unable to render. Reject those up front
-                # instead of failing later -- either at this lookup
-                # (SavedQuery/Query have no ``.name`` attribute, so
-                # accessing it below raises an unhandled AttributeError) or
+                # superset/models/slice.py), so setting datasource_type to
+                # anything else would "succeed" but leave the chart
+                # permanently unable to render -- even for a type-only
+                # update that leaves datasource_id untouched. Reject those
+                # up front instead of failing later -- either at the lookup
+                # below (SavedQuery/Query have no ``.name`` attribute, so
+                # accessing it raises an unhandled AttributeError) or
                 # silently.
                 if datasource_type != DatasourceType.TABLE:
                     raise DatasourceTypeInvalidError()
-                datasource = get_datasource_by_id(datasource_id, datasource_type)
-                self._properties["datasource_name"] = datasource.name
-                security_manager.raise_for_access(datasource=datasource)
+                if datasource_id is not None:
+                    datasource = get_datasource_by_id(datasource_id, datasource_type)
+                    self._properties["datasource_name"] = datasource.name
+                    security_manager.raise_for_access(datasource=datasource)
             except SupersetSecurityException as ex:
                 raise ChartForbiddenError() from ex
             except ValidationError as ex:
