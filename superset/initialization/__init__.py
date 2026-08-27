@@ -1426,6 +1426,9 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             wait_seconds=self.config["SEMANTIC_CACHE_COORDINATION_WAIT_SECONDS"],
             lease_seconds=self.config["SEMANTIC_CACHE_COORDINATION_LEASE_SECONDS"],
             metrics=cast(SemanticCacheMetrics, stats_logger_manager.instance),
+            # The same cap the ordinary result cache applies to a single value;
+            # containment values share that backend.
+            max_value_bytes=self.config.get("DATA_CACHE_MAX_VALUE_SIZE"),
         )
         try:
             stats_logger_manager.instance.gauge(

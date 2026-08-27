@@ -21,6 +21,7 @@ import logging
 import math
 from collections.abc import Callable
 from dataclasses import dataclass
+from random import random
 from threading import Event, Thread
 from time import monotonic, sleep
 from typing import Protocol, runtime_checkable
@@ -98,6 +99,7 @@ class SemanticCacheCoordinator:
         sleeper: Callable[[float], None] = sleep,
         token_factory: Callable[[], str] = lambda: uuid4().hex,
         failure_metric: Callable[[str], None] | None = None,
+        jitter: Callable[[], float] = random,
     ) -> None:
         self._backend: OwnerTokenCoordinationBackend = backend
         self._settings: SemanticCacheCoordinationSettings = settings
@@ -105,6 +107,7 @@ class SemanticCacheCoordinator:
         self._sleeper: Callable[[float], None] = sleeper
         self._token_factory: Callable[[], str] = token_factory
         self._failure_metric: Callable[[str], None] = failure_metric or (lambda _: None)
+        self._jitter: Callable[[], float] = jitter
 
     def _failure(self, message: str, cause: RedisError | None = None) -> None:
         self._record_failure()
@@ -178,7 +181,9 @@ class SemanticCacheCoordinator:
             if remaining <= 0:
                 self._record_failure()
                 return False
-            self._sleeper(min(0.05, remaining))
+            # Jitter the spin so a herd of waiters released by one lease
+            # expiry does not retry in lockstep; the wait stays within 50 ms.
+            self._sleeper(min(0.025 + 0.025 * self._jitter(), remaining))
 
         renewal_failed: bool
         try:

@@ -20,7 +20,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
 from math import ceil
 from time import time
 from typing import cast, Protocol
@@ -82,6 +82,8 @@ class SemanticCacheBackend(Protocol):
 
     def get(self, key: str) -> object | None: ...  # pragma: no cover
 
+    def has(self, key: str) -> bool: ...  # pragma: no cover
+
     def set(
         self, key: str, value: object, timeout: int | None = None
     ) -> bool: ...  # pragma: no cover
@@ -120,6 +122,16 @@ class SemanticCacheRepository:
             return self._backend.get(key)
         except SemanticCacheBackendError as ex:
             raise error_type("Semantic cache backend get failed") from ex
+
+    def _has(
+        self,
+        key: str,
+        error_type: type[SemanticCacheRepositoryError],
+    ) -> bool:
+        try:
+            return self._backend.has(key)
+        except SemanticCacheBackendError as ex:
+            raise error_type("Semantic cache backend has failed") from ex
 
     def _set(
         self,
@@ -167,8 +179,19 @@ class SemanticCacheRepository:
 
     @staticmethod
     def _entries(value: object | None) -> list[CachedEntry]:
+        # A pickled dataclass restores only the attributes it was written
+        # with, so an entry from an older shape can pass ``isinstance`` and
+        # still lack a field (a class-level default masks that from
+        # ``hasattr``, hence the instance-dict check). Key rotation
+        # (``IDENTITY_FORMAT_VERSION``) is the primary defence; treating such
+        # a bucket as empty is the backstop, so it costs one miss and a
+        # re-store rather than a lookup failure on every request until the
+        # bucket expires.
+        expected: tuple[str, ...] = tuple(field.name for field in fields(CachedEntry))
         if not isinstance(value, list) or not all(
-            isinstance(entry, CachedEntry) for entry in value
+            isinstance(entry, CachedEntry)
+            and all(name in vars(entry) for name in expected)
+            for entry in value
         ):
             return []
         return cast(list[CachedEntry], value)
@@ -178,10 +201,21 @@ class SemanticCacheRepository:
         meta: ViewMeta,
         query: SemanticQuery,
         result: SemanticResult,
+        *,
+        replace: bool = True,
     ) -> bool:
-        """Store a TTL-bounded value and register its bounded descriptor."""
+        """Store a TTL-bounded value and register its bounded descriptor.
+
+        With ``replace`` false, a value that another request already stored
+        and registered under the same identity is left alone: the identical
+        provider result is already discoverable, and skipping saves this
+        request the lease wait and the payload write. A herd of identical
+        misses then contends for the lease once, not once per request.
+        """
         bucket_key: str = self._bucket_key(meta)
         value_key: str = SemanticCacheIdentityFactory.value(bucket_key, query)
+        if not replace and self._is_registered(bucket_key, value_key):
+            return True
         now: float = self._clock()
         descriptor: CachedEntry = CachedEntry(
             filters=frozenset(query.filters or set()),
@@ -226,6 +260,14 @@ class SemanticCacheRepository:
                 self._delete(evicted_value_key, SemanticCacheStoreError)
 
         return self._mutate(bucket_key, register, SemanticCacheStoreError)
+
+    def _is_registered(self, bucket_key: str, value_key: str) -> bool:
+        entries: list[CachedEntry] = self._entries(
+            self._get(bucket_key, SemanticCacheStoreError)
+        )
+        return any(entry.value_key == value_key for entry in entries) and self._has(
+            value_key, SemanticCacheStoreError
+        )
 
     def lookup(
         self,
