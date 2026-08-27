@@ -910,7 +910,7 @@ Set `MCP_DISABLED_CHART_PLUGINS` in your `superset_config.py` to a set of chart 
 MCP_DISABLED_CHART_PLUGINS = {"handlebars"}
 ```
 
-Disabled chart types are removed from the registry at startup and are never listed in `generate_chart`'s supported chart types. `get_chart_type_schema` consults its own static schema/example map rather than the registry filter, so a disabled chart type's schema remains queryable through that tool even though `generate_chart` will reject it.
+Disabled chart types stay registered but are filtered out at lookup time: they're never listed in `generate_chart`'s supported chart types, and `generate_chart` calls for them are rejected. `get_chart_type_schema` consults its own static schema/example map rather than the registry filter, so a disabled chart type's schema remains queryable through that tool even though `generate_chart` will reject it.
 
 ### Dynamic predicate
 
