@@ -43,6 +43,19 @@ def test_star_if_match_passes(app: Flask) -> None:
         raise_for_stale_write(LIVE)
 
 
+def test_compressed_if_match_passes(app: Flask) -> None:
+    """Flask-Compress rewrites the ETag of a compressed response to
+    ``"<uuid>:<algorithm>"``; a client replaying that must still match."""
+    with _put(app, f'"{LIVE}:zstd"'):
+        raise_for_stale_write(LIVE)
+
+
+def test_compressed_stale_if_match_still_raises(app: Flask) -> None:
+    with _put(app, '"9f1f4c1e-0000-4000-8000-000000000002:gzip"'):
+        with pytest.raises(StaleEntityError):
+            raise_for_stale_write(LIVE)
+
+
 def test_stale_if_match_raises(app: Flask) -> None:
     with _put(app, '"9f1f4c1e-0000-4000-8000-000000000002"'):
         with pytest.raises(StaleEntityError):

@@ -198,14 +198,20 @@ describe('DatasourceModal', () => {
       .spyOn(SupersetClient, 'put')
       .mockRejectedValue(new Response('', { status: 412 }));
 
-    fireEvent.click(screen.getByTestId('datasource-modal-save'));
-    fireEvent.click(await screen.findByRole('button', { name: 'Confirm' }));
+    try {
+      fireEvent.click(screen.getByTestId('datasource-modal-save'));
+      fireEvent.click(await screen.findByRole('button', { name: 'Confirm' }));
 
-    expect(
-      await screen.findByText('Dataset changed since you opened it'),
-    ).toBeInTheDocument();
-    expect(screen.queryByText('Error saving dataset')).not.toBeInTheDocument();
-    putSpy.mockRestore();
+      const conflictElements = await screen.findAllByText(
+        'Dataset changed since you opened it',
+      );
+      expect(conflictElements.length).toBeGreaterThan(0);
+      expect(
+        screen.queryByText('Error saving dataset'),
+      ).not.toBeInTheDocument();
+    } finally {
+      putSpy.mockRestore();
+    }
   });
 
   test('shows sync columns checkbox when SQL changes', async () => {

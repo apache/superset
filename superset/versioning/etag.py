@@ -83,6 +83,18 @@ class StaleEntityError(Exception):
     """The request's ``If-Match`` doesn't match the entity's live version."""
 
 
+def _entity_tag(tag: str) -> str:
+    """Strip the content-coding suffix ``Flask-Compress`` appends to ETags.
+
+    A compressed response legitimately carries a different validator than the
+    identity one — Flask-Compress rewrites ``"<uuid>"`` to ``"<uuid>:zstd"``
+    (see ``flask_compress``) — so a client replaying the ETag it read never
+    matches the raw version uuid. Version uuids contain no ``:``, so cutting
+    at the first one recovers the entity identity from either form.
+    """
+    return tag.split(":", 1)[0]
+
+
 def raise_for_stale_write(current_version_uuid: str | None) -> None:
     """Enforce ``If-Match`` on a write request, if the client sent one.
 
@@ -100,5 +112,6 @@ def raise_for_stale_write(current_version_uuid: str | None) -> None:
     if_match = request.if_match
     if not if_match or if_match.star_tag or current_version_uuid is None:
         return
-    if not if_match.contains(str(current_version_uuid)):
+    live = _entity_tag(str(current_version_uuid))
+    if not any(_entity_tag(tag) == live for tag in if_match.as_set(True)):
         raise StaleEntityError()
