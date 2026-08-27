@@ -57,7 +57,7 @@ def test_identity_is_stable_across_mapping_order() -> None:
     ).digest
 
     assert first == second
-    assert first.startswith("v2:")
+    assert first.startswith("v3:")
 
 
 def test_identity_changes_with_result_affecting_material() -> None:
@@ -271,10 +271,10 @@ def test_bucket_identity_includes_all_host_boundaries() -> None:
 
 
 def test_value_identity_combines_bucket_and_query() -> None:
-    bucket: str = "semantic-cache:bucket:v2:fixture"
+    bucket: str = "semantic-cache:bucket:v3:fixture"
 
     first: str = SemanticCacheIdentityFactory.value(bucket, _query())
     second: str = SemanticCacheIdentityFactory.value(bucket, _query())
 
     assert first == second
-    assert first.startswith("semantic-cache:value:v2:")
+    assert first.startswith("semantic-cache:value:v3:")

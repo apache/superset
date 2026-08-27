@@ -37,7 +37,9 @@ from superset_core.semantic_layers.types import (
 
 from superset.utils import json
 
-IDENTITY_FORMAT_VERSION: str = "v2"
+# Prefixes every bucket and value key. Bump it whenever the pickled shape of
+# ``cache_types.CachedEntry`` or the canonical query material changes.
+IDENTITY_FORMAT_VERSION: str = "v3"
 _SENSITIVE_KEY_PARTS: tuple[str, ...] = (
     "credential",
     "password",
