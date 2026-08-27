@@ -81,7 +81,7 @@ import type { ContentItem } from './types';
 interface Crumb {
   uuid: string | null;
   name: string;
-  user_permission?: 'editor' | 'viewer' | null;
+  user_permission?: 'editor' | 'viewer' | 'implicit' | null;
 }
 
 interface SortColumn {
@@ -391,8 +391,16 @@ function AnalyticsList({
             break;
           case 'changed_on':
             if (operator === 'between' && Array.isArray(scalar)) {
-              filterExps.push({ col: 'changed_on', opr: 'gt', value: scalar[0] });
-              filterExps.push({ col: 'changed_on', opr: 'lt', value: scalar[1] });
+              filterExps.push({
+                col: 'changed_on',
+                opr: 'gt',
+                value: scalar[0],
+              });
+              filterExps.push({
+                col: 'changed_on',
+                opr: 'lt',
+                value: scalar[1],
+              });
             } else if (operator === 'gt') {
               filterExps.push({ col: 'changed_on', opr: 'gt', value: scalar });
             } else if (operator === 'lt') {
@@ -463,7 +471,7 @@ function AnalyticsList({
             uuid: string;
             name: string;
             parent_uuid: string | null;
-            user_permission?: 'editor' | 'viewer' | null;
+            user_permission?: 'editor' | 'viewer' | 'implicit' | null;
           };
           crumbs.unshift({
             uuid: folder.uuid,
@@ -738,7 +746,7 @@ function AnalyticsList({
               });
             }
           }
-          if (canEditCurrentFolder) {
+          if (canEditCurrentFolder && original.user_permission !== 'implicit') {
             contextMenuItems.push({
               key: 'move',
               label: t('Move to…'),
@@ -749,23 +757,31 @@ function AnalyticsList({
           const nameContent = (() => {
             if (original.type === 'folder') {
               return (
-                <NameLink
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => drillInto(original)}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter') drillInto(original);
-                  }}
+                <Tooltip
+                  title={
+                    original.user_permission === 'implicit'
+                      ? t('You have limited access to this folder')
+                      : undefined
+                  }
                 >
-                  <Icons.FolderOutlined
-                    iconSize="m"
-                    css={{
-                      color: theme.colorSuccess,
+                  <NameLink
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => drillInto(original)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') drillInto(original);
                     }}
-                  />
-                  {highlightName(original.name)}
-                  {pinIcon}
-                </NameLink>
+                  >
+                    <Icons.FolderOutlined
+                      iconSize="m"
+                      css={{
+                        color: theme.colorSuccess,
+                      }}
+                    />
+                    {highlightName(original.name)}
+                    {pinIcon}
+                  </NameLink>
+                </Tooltip>
               );
             }
             if (original.type === 'dashboard') {
@@ -1024,9 +1040,13 @@ function AnalyticsList({
             );
           }
           // chart / dashboard rows: mirror the CRUD lists' row actions.
+          const isAssetOwner = original.owners?.some(
+            o => o.id === currentUserId,
+          );
+          const canEditAsset = canEditCurrentFolder || isAssetOwner;
           return (
             <Actions className="actions">
-              {canEditCurrentFolder && (
+              {canEditAsset && (
                 <Tooltip title={t('Edit')} placement="bottom">
                   <span
                     role="button"
@@ -1055,7 +1075,7 @@ function AnalyticsList({
                   <Icons.UploadOutlined iconSize="l" />
                 </span>
               </Tooltip>
-              {canEditCurrentFolder && (
+              {canEditAsset && (
                 <ConfirmStatusChange
                   title={t('Please confirm')}
                   description={t(
@@ -1274,12 +1294,16 @@ function AnalyticsList({
                   label: t('Dashboard'),
                   onClick: () => window.location.assign('/dashboard/new'),
                 },
-                {
-                  key: 'folder',
-                  icon: <Icons.FolderOutlined />,
-                  label: t('Folder'),
-                  onClick: () => setShowCreateFolder(true),
-                },
+                ...(canEditCurrentFolder
+                  ? [
+                      {
+                        key: 'folder',
+                        icon: <Icons.FolderOutlined />,
+                        label: t('Folder'),
+                        onClick: () => setShowCreateFolder(true),
+                      },
+                    ]
+                  : []),
               ],
             }}
           >

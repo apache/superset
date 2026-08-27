@@ -43,47 +43,76 @@ def folder_access_dashboards(user_id: int) -> Any:
     )
 
 
-def folder_raise_for_access_bypass(**kwargs: Any) -> bool:
-    """Bypass raise_for_access if user has folder access to the asset."""
-    from flask import current_app
+def _safe_int(value: Any) -> int | None:
+    """Cast to int, returning None on failure."""
+    try:
+        return int(value) if value else None
+    except (TypeError, ValueError):
+        return None
 
+
+def folder_raise_for_access_bypass(**kwargs: Any) -> bool:
+    """Bypass raise_for_access if user has folder access to the asset.
+
+    Collects chart and dashboard IDs from all available sources (kwargs,
+    query_context form_data, request URL) and checks whether any of them
+    are in a folder the user has access to.
+
+    Global datasource bypass is intentionally NOT granted — folder
+    membership should not leak into dataset-level access.
+    """
     from superset.daos.folder_permissions import FolderPermissionDAO
 
     user_id = get_user_id()
     if not user_id:
         return False
 
+    # Collect IDs from all sources
     dashboard = kwargs.get("dashboard")
     chart = kwargs.get("chart")
     query_context = kwargs.get("query_context")
-    viz = kwargs.get("viz")
-    datasource = kwargs.get("datasource")
+    form_data = (
+        query_context.form_data
+        if query_context
+        and hasattr(query_context, "form_data")
+        and query_context.form_data
+        else {}
+    )
 
-    if not datasource and query_context:
-        datasource = query_context.datasource
-    if not datasource and viz:
-        datasource = viz.datasource
+    from flask import request as flask_request
 
-    if FolderPermissionDAO.user_has_folder_access_for_asset(
-        user_id=user_id,
-        dashboard_id=dashboard.id if dashboard else None,
-        chart_id=chart.id if chart else None,
-        datasource_id=datasource.id if datasource else None,
-    ):
-        return True
+    chart_ids = {
+        _safe_int(v)
+        for v in [
+            chart.id if chart else None,
+            form_data.get("slice_id"),
+            flask_request.args.get("slice_id"),
+        ]
+    } - {None}
 
-    # Transitive access: datasource → chart → dashboard → folder.
-    # Grants access to datasources used by charts on dashboards in the
-    # user's folders, even if the chart is not directly in any folder.
-    if (
-        datasource
-        and current_app.config.get("FOLDER_DASHBOARD_TRANSITIVE_ACCESS")
-        and FolderPermissionDAO.user_has_transitive_dashboard_access(
+    dashboard_ids = {
+        _safe_int(v)
+        for v in [
+            dashboard.id if dashboard else None,
+            form_data.get("dashboardId"),
+            flask_request.args.get("dashboard_id"),
+        ]
+    } - {None}
+
+    # Check folder access for any collected ID
+    for chart_id in chart_ids:
+        if FolderPermissionDAO.user_has_folder_access_for_asset(
             user_id=user_id,
-            datasource_id=datasource.id,
-        )
-    ):
-        return True
+            chart_id=chart_id,
+        ):
+            return True
+
+    for dashboard_id in dashboard_ids:
+        if FolderPermissionDAO.user_has_folder_access_for_asset(
+            user_id=user_id,
+            dashboard_id=dashboard_id,
+        ):
+            return True
 
     return False
 

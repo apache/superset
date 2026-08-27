@@ -44,7 +44,7 @@ export interface ContentItem {
   tags?: TagType[];
   asset_count?: number;
   children_count?: number;
-  user_permission?: 'editor' | 'viewer' | null;
+  user_permission?: 'editor' | 'viewer' | 'implicit' | null;
   parent_uuid?: string | null;
   inherits_permissions?: boolean;
   folder_path?: Array<{ uuid: string; name: string }>;

@@ -30,7 +30,7 @@ from flask_appbuilder.api import (
     rison as parse_rison,
     safe,
 )
-from flask_appbuilder.security.sqla.models import Role, User
+from flask_appbuilder.security.sqla.models import User
 from marshmallow import ValidationError
 
 from superset import security_manager
@@ -53,7 +53,7 @@ from superset.daos.folder import FolderDAO, ResolvedAsset
 from superset.daos.folder_permissions import FolderPermissionDAO
 from superset.extensions import db, event_logger
 from superset.folders.constants import ASSET_TYPE_CONFIGS, DEFAULT_FOLDER_TYPE
-from superset.folders.models import Folder
+from superset.folders.models import Folder, folder_editors, folder_viewers
 from superset.folders.schemas import (
     FolderAssetSchema,
     FolderAssetsPutSchema,
@@ -70,8 +70,8 @@ from superset.folders.schemas import (
     FolderSubjectPutSchema,
 )
 from superset.folders.utils import can_manage_folders
-from superset.utils.core import get_user_id
 from superset.utils import json as json_utils
+from superset.utils.core import get_user_id
 from superset.utils.decorators import transaction
 from superset.views.base_api import BaseSupersetApi, requires_json, statsd_metrics
 
@@ -88,7 +88,9 @@ def _serialize_user(user: Any) -> dict[str, Any] | None:
     }
 
 
-def _get_user_permission(folder: Folder) -> str | None:
+def _get_user_permission(
+    folder: Folder, implicit_folder_ids: set[int] | None = None
+) -> str | None:
     """Return the current user's permission level for this folder."""
     if security_manager.is_admin():
         return "editor"
@@ -99,6 +101,8 @@ def _get_user_permission(folder: Folder) -> str | None:
         return "editor"
     if FolderPermissionDAO.user_has_folder_access(user_id, folder.id):
         return "viewer"
+    if implicit_folder_ids and folder.id in implicit_folder_ids:
+        return "implicit"
     return None
 
 
@@ -114,6 +118,7 @@ def serialize_folder(
     folder: Folder,
     children_count: int | None = None,
     asset_count: int | None = None,
+    implicit_folder_ids: set[int] | None = None,
 ) -> dict[str, Any]:
     """Serialize a folder's metadata for API responses.
 
@@ -141,11 +146,9 @@ def serialize_folder(
         "changed_on_humanized": folder.changed_on_humanized,
         "created_by": _serialize_user(folder.created_by),
         "changed_by": _serialize_user(folder.changed_by),
-        "user_permission": _get_user_permission(folder),
+        "user_permission": _get_user_permission(folder, implicit_folder_ids),
         "inherits_permissions": _get_inherits_permissions(folder),
-        "owners": [
-            _serialize_user(u) for u in (folder.editors or [])
-        ],
+        "owners": [_serialize_user(u) for u in (folder.editors or [])],
     }
 
 
@@ -153,9 +156,14 @@ def serialize_row(
     kind: str,
     obj: Any,
     folder_path: list[dict[str, str]] | None = None,
+    implicit_folder_ids: set[int] | None = None,
 ) -> dict[str, Any]:
     """Serialize a contents row (folder or asset) into a uniform-ish item."""
-    data = serialize_folder(obj) if kind == "folder" else serialize_asset(kind, obj)
+    data = (
+        serialize_folder(obj, implicit_folder_ids=implicit_folder_ids)
+        if kind == "folder"
+        else serialize_asset(kind, obj)
+    )
     if folder_path is not None:
         data["folder_path"] = folder_path
     return data
@@ -198,10 +206,7 @@ def serialize_rows_with_paths(
 def serialize_asset(asset_type: str, asset: Any) -> dict[str, Any]:
     """Serialize a single asset (dashboard/chart/dataset) with column data."""
     config = ASSET_TYPE_CONFIGS[asset_type]
-    owners = [
-        _serialize_user(o)
-        for o in (getattr(asset, "owners", None) or [])
-    ]
+    owners = [_serialize_user(o) for o in (getattr(asset, "owners", None) or [])]
     return {
         "type": asset_type,
         "id": asset.id,
@@ -216,18 +221,22 @@ def serialize_asset(asset_type: str, asset: Any) -> dict[str, Any]:
         "viz_type": getattr(asset, "viz_type", None),
         "datasource_name": (
             asset.datasource_name_text()
-            if asset_type == "chart" and callable(
-                getattr(asset, "datasource_name_text", None)
-            )
+            if asset_type == "chart"
+            and callable(getattr(asset, "datasource_name_text", None))
             else None
         ),
         "datasource_url": (
             asset.datasource_url()
-            if asset_type == "chart" and callable(getattr(asset, "datasource_url", None))
+            if asset_type == "chart"
+            and callable(getattr(asset, "datasource_url", None))
             else None
         ),
         "tags": [
-            {"id": t.id, "name": t.name, "type": t.type.value if hasattr(t.type, "value") else t.type}
+            {
+                "id": t.id,
+                "name": t.name,
+                "type": t.type.value if hasattr(t.type, "value") else t.type,
+            }
             for t in getattr(asset, "tags", []) or []
         ],
     }
@@ -323,9 +332,7 @@ def _parse_rison_args(rison_args: dict[str, Any]) -> dict[str, Any]:
                 int(v) for v in (val if isinstance(val, list) else [val])
             ]
         elif col == "tags" and opr == "rel_m_m":
-            result["tags"] = [
-                int(v) for v in (val if isinstance(val, list) else [val])
-            ]
+            result["tags"] = [int(v) for v in (val if isinstance(val, list) else [val])]
     return result
 
 
@@ -355,14 +362,22 @@ class FolderRestApi(BaseSupersetApi):
 
     @staticmethod
     def _raise_for_folder_access(folder: Folder) -> None:
-        """Raise FolderForbiddenError if user cannot view the folder."""
+        """Raise FolderForbiddenError if user cannot view the folder.
 
+        Allows explicit members (editors/viewers) and implicit access
+        (users who own at least one asset inside the folder).
+        """
         if security_manager.is_admin():
             return
         user_id = get_user_id()
-        if not user_id or not FolderPermissionDAO.user_has_folder_access(
-            user_id, folder.id
-        ):
+        if not user_id:
+            raise FolderForbiddenError()
+        if FolderPermissionDAO.user_has_folder_access(user_id, folder.id):
+            return
+        implicit_ids = FolderDAO.folders_with_accessible_assets(
+            user_id, folder.folder_type
+        )
+        if folder.id not in implicit_ids:
             raise FolderForbiddenError()
 
     @staticmethod
@@ -412,15 +427,48 @@ class FolderRestApi(BaseSupersetApi):
         folder_type = request.args.get("folder_type")
         folders = FolderDAO.get_folders(folder_type=folder_type)
 
-        # Non-admins only see folders they have access to
+        # Non-admins see explicit member folders + implicit access folders
+        implicit_folder_ids: set[int] = set()
         if not security_manager.is_admin():
             user_id = get_user_id()
             if user_id:
-                folders = [
-                    f
-                    for f in folders
-                    if FolderPermissionDAO.user_has_folder_access(user_id, f.id)
-                ]
+                # Batch query instead of N+1 per-folder checks
+                all_folder_ids = [f.id for f in folders]
+                editor_ids = (
+                    {
+                        r[0]
+                        for r in db.session.query(folder_editors.c.folder_id)
+                        .filter(
+                            folder_editors.c.user_id == user_id,
+                            folder_editors.c.folder_id.in_(all_folder_ids),
+                        )
+                        .all()
+                    }
+                    if all_folder_ids
+                    else set()
+                )
+                viewer_ids = (
+                    {
+                        r[0]
+                        for r in db.session.query(folder_viewers.c.folder_id)
+                        .filter(
+                            folder_viewers.c.user_id == user_id,
+                            folder_viewers.c.folder_id.in_(all_folder_ids),
+                        )
+                        .all()
+                    }
+                    if all_folder_ids
+                    else set()
+                )
+                member_ids = editor_ids | viewer_ids
+                implicit_folder_ids = (
+                    FolderDAO.folders_with_accessible_assets(
+                        user_id, folder_type or "analytics"
+                    )
+                    - member_ids
+                )
+                visible_ids = member_ids | implicit_folder_ids
+                folders = [f for f in folders if f.id in visible_ids]
             else:
                 folders = []
 
@@ -453,6 +501,7 @@ class FolderRestApi(BaseSupersetApi):
                 folder,
                 children_count=children_counts.get(folder.id, 0),
                 asset_count=asset_counts.get(folder.id, 0),
+                implicit_folder_ids=implicit_folder_ids,
             )
             for folder in folders
         ]
@@ -502,10 +551,21 @@ class FolderRestApi(BaseSupersetApi):
         folder_type = request.args.get("folder_type", DEFAULT_FOLDER_TYPE)
         parsed = _parse_rison_args(kwargs.get("rison", {}))
         rows, count = FolderDAO.get_contents(None, folder_type, **parsed)
+        # Compute implicit folder IDs for user_permission serialization
+        implicit_ids: set[int] = set()
+        if not security_manager.is_admin():
+            user_id = get_user_id()
+            if user_id:
+                implicit_ids = FolderDAO.folders_with_accessible_assets(
+                    user_id, folder_type
+                )
         result = (
             serialize_rows_with_paths(rows, None)
             if parsed.get("search")
-            else [serialize_row(kind, obj) for kind, obj in rows]
+            else [
+                serialize_row(kind, obj, implicit_folder_ids=implicit_ids)
+                for kind, obj in rows
+            ]
         )
         return self.response(
             200,
@@ -607,16 +667,32 @@ class FolderRestApi(BaseSupersetApi):
             self._raise_for_folder_access(folder)
         except FolderForbiddenError:
             return self.response_403()
+        implicit_ids: set[int] = set()
+        user_id = get_user_id()
+        if user_id and not security_manager.is_admin():
+            implicit_ids = FolderDAO.folders_with_accessible_assets(
+                user_id, folder.folder_type
+            )
         parsed = _parse_rison_args(kwargs.get("rison", {}))
         rows, count = FolderDAO.get_contents(folder, folder.folder_type, **parsed)
         result = (
             serialize_rows_with_paths(rows, folder.id)
             if parsed.get("search")
-            else [serialize_row(kind, obj) for kind, obj in rows]
+            else [
+                serialize_row(kind, obj, implicit_folder_ids=implicit_ids)
+                for kind, obj in rows
+            ]
         )
+        folder_implicit = set()
+        if (
+            user_id
+            and not security_manager.is_admin()
+            and not FolderPermissionDAO.user_has_folder_access(user_id, folder.id)
+        ):
+            folder_implicit = {folder.id}
         return self.response(
             200,
-            folder=serialize_folder(folder),
+            folder=serialize_folder(folder, implicit_folder_ids=folder_implicit),
             result=result,
             count=count,
             page=parsed["page"],
@@ -1205,7 +1281,9 @@ class FolderRestApi(BaseSupersetApi):
         except ValidationError as ex:
             return self.response(400, message=ex.messages)
         try:
-            permission = "editor" if data["permission"] == "admin" else data["permission"]
+            permission = (
+                "editor" if data["permission"] == "admin" else data["permission"]
+            )
             FolderDAO.add_subject(folder.id, data["user_id"], permission)
         except ValueError as ex:
             return self.response(422, message=str(ex))

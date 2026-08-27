@@ -60,6 +60,7 @@ interface FolderOption {
   uuid: string;
   name: string;
   parent_uuid: string | null;
+  user_permission?: 'editor' | 'viewer' | 'implicit' | null;
 }
 
 interface TransferModalProps {
@@ -217,13 +218,15 @@ async function fetchPage(
   const response = await SupersetClient.get({
     endpoint: `${base}?${folderParam}q=${q}`,
   });
-  const results =
+  const results = (
     (response.json.result as {
       type: string;
       id: number;
       uuid?: string | null;
       name: string;
-    }[]) || [];
+      user_permission?: string | null;
+    }[]) || []
+  ).filter(r => r.user_permission !== 'implicit');
   return {
     items: results.map(toTransferItem),
     total: (response.json.count as number) || 0,
@@ -290,7 +293,9 @@ export default function TransferModal({
         setLeftPage(0);
         const folders = (
           (foldersRes.json.result as FolderOption[]) || []
-        ).filter(f => f.uuid !== currentFolderUuid);
+        ).filter(
+          f => f.uuid !== currentFolderUuid && f.user_permission !== 'implicit',
+        );
         setAllFolders(folders);
         if (preSelectedKeys?.length) {
           setLeftSelected(new Set(preSelectedKeys));

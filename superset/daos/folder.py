@@ -200,11 +200,21 @@ class FolderDAO(BaseDAO[Folder]):
                 fq = fq.where(Folder.changed_on >= modified_start)
             if modified_end:
                 fq = fq.where(Folder.changed_on <= modified_end)
-            # Access filter: non-admins only see folders they are a member of
+            # Access filter: non-admins see member folders + implicit folders
             if not is_admin and user_id:
                 from superset.folders.utils import user_accessible_folder_ids
 
-                fq = fq.where(Folder.id.in_(user_accessible_folder_ids(user_id)))
+                member_folder_ids = user_accessible_folder_ids(user_id)
+                implicit_ids = cls.folders_with_accessible_assets(user_id, folder_type)
+                if implicit_ids:
+                    fq = fq.where(
+                        or_(
+                            Folder.id.in_(member_folder_ids),
+                            Folder.id.in_(list(implicit_ids)),
+                        )
+                    )
+                else:
+                    fq = fq.where(Folder.id.in_(member_folder_ids))
             if editors:
                 editor_folder_ids = select(folder_editors.c.folder_id).where(
                     folder_editors.c.user_id.in_(editors)
@@ -231,27 +241,24 @@ class FolderDAO(BaseDAO[Folder]):
             model = ASSET_TYPE_CONFIGS[name].model
             fk_col = getattr(FolderObject, ASSET_TYPE_CONFIGS[name].fk_column)
             if name == "chart":
-                aq = (
-                    select(
-                        literal(1).label("kind_order"),
-                        literal(name).label("item_type"),
-                        model.id.label("item_id"),
-                        model.changed_on.label("changed_on"),
-                        title_attrs[name].label("sort_name"),
-                        func.coalesce(
-                            func.concat(
-                                func.coalesce(SqlaTable.schema, ""),
-                                case(
-                                    (SqlaTable.schema.isnot(None), "."),
-                                    else_="",
-                                ),
-                                func.coalesce(SqlaTable.table_name, ""),
+                aq = select(
+                    literal(1).label("kind_order"),
+                    literal(name).label("item_type"),
+                    model.id.label("item_id"),
+                    model.changed_on.label("changed_on"),
+                    title_attrs[name].label("sort_name"),
+                    func.coalesce(
+                        func.concat(
+                            func.coalesce(SqlaTable.schema, ""),
+                            case(
+                                (SqlaTable.schema.isnot(None), "."),
+                                else_="",
                             ),
-                            "",
-                        ).label("sort_datasource"),
-                    )
-                    .outerjoin(SqlaTable, Slice.datasource_id == SqlaTable.id)
-                )
+                            func.coalesce(SqlaTable.table_name, ""),
+                        ),
+                        "",
+                    ).label("sort_datasource"),
+                ).outerjoin(SqlaTable, Slice.datasource_id == SqlaTable.id)
             else:
                 aq = select(
                     literal(1).label("kind_order"),
@@ -311,31 +318,29 @@ class FolderDAO(BaseDAO[Folder]):
                 )
                 aq = aq.where(model.id.in_(tagged))
             if editors:
-                fk_col_filter = getattr(FolderObject, ASSET_TYPE_CONFIGS[name].fk_column)
-                editor_asset_ids = (
-                    select(fk_col_filter)
-                    .where(
-                        FolderObject.folder_id.in_(
-                            select(folder_editors.c.folder_id).where(
-                                folder_editors.c.user_id.in_(editors)
-                            )
-                        ),
-                        fk_col_filter.isnot(None),
-                    )
+                fk_col_filter = getattr(
+                    FolderObject, ASSET_TYPE_CONFIGS[name].fk_column
+                )
+                editor_asset_ids = select(fk_col_filter).where(
+                    FolderObject.folder_id.in_(
+                        select(folder_editors.c.folder_id).where(
+                            folder_editors.c.user_id.in_(editors)
+                        )
+                    ),
+                    fk_col_filter.isnot(None),
                 )
                 aq = aq.where(model.id.in_(editor_asset_ids))
             if viewers:
-                fk_col_filter = getattr(FolderObject, ASSET_TYPE_CONFIGS[name].fk_column)
-                viewer_asset_ids = (
-                    select(fk_col_filter)
-                    .where(
-                        FolderObject.folder_id.in_(
-                            select(folder_viewers.c.folder_id).where(
-                                folder_viewers.c.user_id.in_(viewers)
-                            )
-                        ),
-                        fk_col_filter.isnot(None),
-                    )
+                fk_col_filter = getattr(
+                    FolderObject, ASSET_TYPE_CONFIGS[name].fk_column
+                )
+                viewer_asset_ids = select(fk_col_filter).where(
+                    FolderObject.folder_id.in_(
+                        select(folder_viewers.c.folder_id).where(
+                            folder_viewers.c.user_id.in_(viewers)
+                        )
+                    ),
+                    fk_col_filter.isnot(None),
                 )
                 aq = aq.where(model.id.in_(viewer_asset_ids))
 
@@ -448,7 +453,9 @@ class FolderDAO(BaseDAO[Folder]):
                 .correlate(unioned)
                 .scalar_subquery()
             )
-            pin_order = func.coalesce(pin_position, literal(4) + literal(0)).label("pin_order")
+            pin_order = func.coalesce(pin_position, literal(4) + literal(0)).label(
+                "pin_order"
+            )
 
         page_rows = db.session.execute(
             select(unioned.c.item_type, unioned.c.item_id)
@@ -877,6 +884,59 @@ class FolderDAO(BaseDAO[Folder]):
             )
         )
         cls.add_subject(folder_id, user_id, permission)
+
+    @classmethod
+    def folders_with_accessible_assets(cls, user_id: int, folder_type: str) -> set[int]:
+        """Return folder IDs containing at least one asset the user owns.
+
+        Only checks ownership — not datasource access. This is intentional:
+        the folder gate in raise_for_access blocks non-members from accessing
+        foldered assets even if they have datasource access. So implicit
+        folder visibility should only show folders with assets the user owns,
+        since those are the only assets the gate allows through.
+        """
+        folder_ids: set[int] = set()
+
+        for name in asset_types_for_folder_type(folder_type):
+            config = ASSET_TYPE_CONFIGS[name]
+            model = config.model
+            fk_col = getattr(FolderObject, config.fk_column)
+
+            owned_assets = (
+                select(model.id)
+                .where(model.owners.any(cls._user_model().id == user_id))
+                .subquery()
+            )
+            rows = (
+                db.session.query(FolderObject.folder_id)
+                .join(Folder, Folder.id == FolderObject.folder_id)
+                .filter(
+                    fk_col.isnot(None),
+                    fk_col.in_(select(owned_assets.c.id)),
+                    Folder.folder_type == folder_type,
+                )
+                .distinct()
+                .all()
+            )
+            folder_ids.update(r[0] for r in rows)
+
+        # Include ancestor folders so the tree stays navigable.
+        if folder_ids:
+            parent_map = {
+                f.id: f.parent_id
+                for f in db.session.query(Folder.id, Folder.parent_id)
+                .filter(Folder.folder_type == folder_type)
+                .all()
+            }
+            ancestors: set[int] = set()
+            for fid in folder_ids:
+                parent_id = parent_map.get(fid)
+                while parent_id is not None and parent_id not in ancestors:
+                    ancestors.add(parent_id)
+                    parent_id = parent_map.get(parent_id)
+            folder_ids |= ancestors
+
+        return folder_ids
 
     @classmethod
     def remove_subject(cls, folder_id: int, user_id: int) -> None:
