@@ -885,15 +885,17 @@ def _native_filter_request_modified(query_context: "QueryContext") -> bool:
     A native filter may only read the column(s) it targets on the dashboard it
     belongs to. The request is treated as modified (and therefore rejected for
     guest users) when it cannot be tied to a native filter on the requesting
-    dashboard, or when any value-returning term (column, group-by, series
-    column, metric, series-limit metric, or order-by) references something
-    other than a target column, a simple
-    aggregate over a target column, or the filter's configured sort metric.
-    Free-form SQL terms and saved metrics other than the configured sort metric
-    are rejected. Row-restricting clauses (``filter``/``extras``) are not
-    constrained here: cross-filters legitimately reference other columns and
-    they do not return column values; that blind-inference surface is a separate
-    concern shared with the chart path.
+    dashboard, when it asks for a result type that expands the query to raw
+    datasource rows (see ``_ROW_EXPANDING_RESULT_TYPES``), or when any
+    value-returning term (column, group-by, series column, metric,
+    series-limit metric, or order-by) references something other than a
+    target column, a simple aggregate over a target column, or the filter's
+    configured sort metric. Free-form SQL terms and saved metrics other than
+    the configured sort metric are rejected. Row-restricting clauses
+    (``filter``/``extras``) are not constrained here: cross-filters
+    legitimately reference other columns and they do not return column
+    values; that blind-inference surface is a separate concern shared with
+    the chart path.
     """
     form_data = query_context.form_data or {}
     if not (
@@ -907,6 +909,19 @@ def _native_filter_request_modified(query_context: "QueryContext") -> bool:
     # Empty allowed sets (filter resolved but no matching column/metric target)
     # intentionally deny every value-returning term below.
     allowed_columns, allowed_metrics = targets
+
+    # The samples/drill_detail preparers replace a query's columns with every
+    # column on the datasource - bypassing the target-column allowlist below
+    # entirely - so reject those result types outright; a native filter never
+    # legitimately needs them.
+    if any(
+        _effective_result_type(
+            getattr(query, "result_type", None), query_context.result_type
+        )
+        in _ROW_EXPANDING_RESULT_TYPES
+        for query in query_context.queries
+    ):
+        return True
 
     return any(
         _native_filter_query_modified(query, allowed_columns, allowed_metrics)

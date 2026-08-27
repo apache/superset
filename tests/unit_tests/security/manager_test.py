@@ -1920,6 +1920,28 @@ def test_query_context_modified_chartless_non_native_filter_allowed(
     assert not query_context_modified(qc)
 
 
+def test_query_context_modified_native_filter_row_expanding_result_type_blocked(
+    mocker: MockerFixture,
+) -> None:
+    """
+    A native-filter request limited to its target column is still rejected
+    when it asks for a row-expanding result type (``samples``/``drill_detail``):
+    those preparers replace the column list with every datasource column,
+    which would bypass the target-column allowlist entirely.
+    """
+    query = SimpleNamespace(
+        columns=["region"], metrics=[], groupby=[], result_type="samples"
+    )
+    qc = _native_filter_ctx(mocker, [query])
+    assert query_context_modified(qc)
+
+    query = SimpleNamespace(
+        columns=["region"], metrics=[], groupby=[], result_type="drill_detail"
+    )
+    qc = _native_filter_ctx(mocker, [query])
+    assert query_context_modified(qc)
+
+
 def test_query_context_modified_native_filter_without_type_marker_blocked(
     mocker: MockerFixture,
 ) -> None:
