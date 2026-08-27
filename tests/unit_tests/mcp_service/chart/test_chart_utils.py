@@ -235,15 +235,24 @@ class TestMergeTableColumnConfig:
 
 
 class TestMergeInteractivePivotUiConfig:
-    def test_does_not_cross_visualization_types(self) -> None:
+    @pytest.mark.parametrize(
+        "existing_viz_type,updated_viz_type",
+        [
+            ("ag-grid-pivot-table", "pivot_table_v2"),
+            ("pivot_table_v2", "ag-grid-pivot-table"),
+        ],
+    )
+    def test_does_not_cross_visualization_types(
+        self, existing_viz_type: str, updated_viz_type: str
+    ) -> None:
         updated = {
-            "viz_type": "pivot_table_v2",
+            "viz_type": updated_viz_type,
             "pivot_table_state": {"rowGroup": {"groupColIds": ["new"]}},
         }
 
         merge_interactive_pivot_ui_config(
             {
-                "viz_type": "ag-grid-pivot-table",
+                "viz_type": existing_viz_type,
                 "pivot_table_state": {"filter": {"filterModel": {}}},
             },
             updated,

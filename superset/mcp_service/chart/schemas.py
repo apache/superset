@@ -1128,7 +1128,10 @@ class InteractivePivotChartConfig(BaseChartConfig):
     )
     time_grain: TimeGrain | None = Field(
         None,
-        description="PT1H, P1D, P1W, P1M, P3M, or P1Y for temporal dimensions",
+        description=(
+            "PT1H, P1D, P1W, P1M, P3M, or P1Y for the grouped dimension named "
+            "by temporal_column"
+        ),
         validation_alias=AliasChoices("time_grain", "time_grain_sqla"),
     )
     filters: List[FilterConfig] | None = Field(
@@ -1219,6 +1222,26 @@ class InteractivePivotChartConfig(BaseChartConfig):
             raise ValueError(
                 "A dimension cannot appear in both rows and columns or more than "
                 "once in either bucket"
+            )
+
+        if self.time_grain:
+            if not self.temporal_column:
+                raise ValueError(
+                    "time_grain requires temporal_column to identify the grouped "
+                    "temporal dimension"
+                )
+            if self.temporal_column.lower() not in {
+                name.lower() for name in dimension_names if name
+            }:
+                raise ValueError(
+                    "temporal_column must appear in rows or columns when time_grain "
+                    "is set"
+                )
+
+        if self.series_limit_metric and not self.series_limit_metric.is_metric:
+            raise ValueError(
+                "series_limit_metric must define an aggregate, saved_metric=True, "
+                "or sql_expression"
             )
 
         return self

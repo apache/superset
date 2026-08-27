@@ -115,7 +115,7 @@ _CHART_EXAMPLES: Dict[str, list[Dict[str, Any]]] = {
         {
             "chart_type": "interactive_pivot",
             "rows": [{"name": "region"}, {"name": "country"}],
-            "columns": [{"name": "product_category"}],
+            "columns": [{"name": "order_date"}],
             "metrics": [
                 {"name": "revenue", "aggregate": "SUM"},
                 {"name": "margin", "aggregate": "AVG"},

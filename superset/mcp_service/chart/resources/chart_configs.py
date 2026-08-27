@@ -239,7 +239,7 @@ def get_chart_configs_resource() -> str:
             "config": {
                 "chart_type": "interactive_pivot",
                 "rows": [{"name": "region"}, {"name": "country"}],
-                "columns": [{"name": "quarter"}],
+                "columns": [{"name": "order_date"}],
                 "metrics": [
                     {"name": "revenue", "aggregate": "SUM", "label": "Revenue"},
                     {"name": "margin", "aggregate": "AVG", "label": "Margin"},

@@ -58,11 +58,12 @@ def config() -> InteractivePivotChartConfig:
         {
             "chart_type": "interactive_pivot",
             "rows": [{"name": "region"}, {"name": "country"}],
-            "columns": [{"name": "quarter"}],
+            "columns": [{"name": "order_date"}],
             "metrics": [
                 {"name": "revenue", "aggregate": "SUM", "label": "Revenue"},
                 {"name": "margin", "aggregate": "AVG", "label": "Avg Margin"},
             ],
+            "temporal_column": "order_date",
             "time_grain": "P1M",
             "filters": [{"column": "status", "op": "=", "value": "active"}],
             "series_limit": 25,
@@ -93,14 +94,14 @@ def test_maps_true_ag_grid_pivot_form_data(
     form_data = map_interactive_pivot_config(config)
 
     assert form_data["viz_type"] == "ag-grid-pivot-table"
-    assert form_data["groupby"] == ["region", "country", "quarter"]
+    assert form_data["groupby"] == ["region", "country", "order_date"]
     assert [metric["label"] for metric in form_data["metrics"]] == [
         "Revenue",
         "Avg Margin",
     ]
     assert form_data["pivot_table_state"] == {
         "rowGroup": {"groupColIds": ["region", "country"]},
-        "pivot": {"pivotMode": True, "pivotColIds": ["quarter"]},
+        "pivot": {"pivotMode": True, "pivotColIds": ["order_date"]},
         "aggregation": {
             "aggregationModel": [
                 {"colId": "Revenue", "aggFunc": "sum"},
@@ -114,7 +115,38 @@ def test_maps_true_ag_grid_pivot_form_data(
     assert form_data["colSubTotals"] is True
     assert "time_compare" not in form_data
     assert "comparison_type" not in form_data
+    assert form_data["granularity_sqla"] == "order_date"
+    assert form_data["temporal_columns_lookup"] == {"order_date": True}
     assert form_data["time_grain_sqla"] == "P1M"
+
+
+def test_time_grain_requires_grouped_temporal_column() -> None:
+    base_config = {
+        "chart_type": "interactive_pivot",
+        "rows": [{"name": "region"}],
+        "metrics": [{"name": "revenue", "aggregate": "SUM"}],
+        "time_grain": "P1M",
+    }
+
+    with pytest.raises(ValidationError, match="time_grain requires temporal_column"):
+        InteractivePivotChartConfig.model_validate(base_config)
+
+    with pytest.raises(ValidationError, match="must appear in rows or columns"):
+        InteractivePivotChartConfig.model_validate(
+            {**base_config, "temporal_column": "order_date"}
+        )
+
+
+def test_series_limit_metric_requires_metric_shape() -> None:
+    with pytest.raises(ValidationError, match="series_limit_metric must define"):
+        InteractivePivotChartConfig.model_validate(
+            {
+                "chart_type": "interactive_pivot",
+                "rows": [{"name": "region"}],
+                "metrics": [{"name": "revenue", "aggregate": "SUM"}],
+                "series_limit_metric": {"name": "region"},
+            }
+        )
 
 
 def test_registry_mapping_keeps_interactive_pivot_distinct(
@@ -243,7 +275,7 @@ def test_update_preserves_viz_type_and_ui_grid_state(
     assert state["columnSizing"]["columnSizingModel"][0]["width"] == 180
     assert state["filter"]["filterModel"]["region"]["values"] == ["EMEA"]
     assert state["rowGroup"]["groupColIds"] == ["region", "country"]
-    assert state["pivot"]["pivotColIds"] == ["quarter"]
+    assert state["pivot"]["pivotColIds"] == ["order_date"]
 
 
 def test_preview_update_preserves_viz_type_and_ui_grid_state(
