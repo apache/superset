@@ -26,7 +26,7 @@ import os
 import shutil
 import subprocess
 import sys
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import as_completed, ThreadPoolExecutor
 
 _SHELL = os.name == "nt"
 
@@ -82,7 +82,7 @@ def convert_po_file(
     return True, po_file, ""
 
 
-def compile_translations() -> int:
+def compile_translations() -> int:  # noqa: C901
     root_dir = os.path.abspath(
         os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
     )
