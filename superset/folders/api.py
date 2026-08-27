@@ -1080,8 +1080,13 @@ class FolderRestApi(BaseSupersetApi):
             assets = prison.loads(raw_q)
         except Exception:
             return self.response(400, message="Invalid q parameter")
+        valid_types = set(ASSET_TYPE_CONFIGS.keys())
         if not isinstance(assets, list) or not all(
-            isinstance(a, dict) and "type" in a and "id" in a for a in assets
+            isinstance(a, dict)
+            and "type" in a
+            and "id" in a
+            and a["type"] in valid_types
+            for a in assets
         ):
             return self.response(400, message="Invalid assets format")
         FolderDAO.remove_assets(folder, assets)
@@ -1258,10 +1263,13 @@ class FolderRestApi(BaseSupersetApi):
         folder = FolderDAO.get_by_uuid(folder_uuid)
         if not folder:
             return self.response_404()
-        try:
-            self._raise_for_folder_access(folder)
-        except FolderForbiddenError:
-            return self.response_403()
+        # Explicit members only — implicit access users cannot see permissions
+        if not security_manager.is_admin():
+            user_id = get_user_id()
+            if not user_id or not FolderPermissionDAO.user_has_folder_access(
+                user_id, folder.id
+            ):
+                return self.response_403()
         subjects = FolderDAO.get_subjects(folder.id)
         return self.response(200, result=subjects)
 
@@ -1367,6 +1375,9 @@ class FolderRestApi(BaseSupersetApi):
             self._raise_for_folder_edit(folder)
         except FolderForbiddenError:
             return self.response_403()
+        current_user_id = get_user_id()
+        if user_id == current_user_id:
+            return self.response(422, message="You cannot change your own permission")
         try:
             data = FolderSubjectPutSchema().load(request.json)
         except ValidationError as ex:
@@ -1414,6 +1425,11 @@ class FolderRestApi(BaseSupersetApi):
             self._raise_for_folder_edit(folder)
         except FolderForbiddenError:
             return self.response_403()
+        current_user_id = get_user_id()
+        if user_id == current_user_id:
+            return self.response(422, message="You cannot remove your own access")
+        if not FolderPermissionDAO.user_has_folder_access(user_id, folder.id):
+            return self.response_404()
         FolderDAO.remove_subject(folder.id, user_id)
         FolderPermissionDAO.mark_permissions_explicit(folder.id)
         FolderPermissionDAO.push_down_permissions(folder.id)
@@ -1503,4 +1519,38 @@ class FolderRestApi(BaseSupersetApi):
                 for u in users
             ],
             count=total,
+        )
+
+    # ------------------------------------------------------------------ #
+    # Asset location
+    # ------------------------------------------------------------------ #
+    @expose("/asset-location", methods=("GET",))
+    @protect()
+    @safe
+    @permission_name("read")
+    @statsd_metrics
+    def asset_location(self) -> Response:
+        """Return the folder that contains a given asset."""
+        asset_type = request.args.get("type")
+        asset_id = request.args.get("id", type=int)
+        if not asset_type or not asset_id or asset_type not in ASSET_TYPE_CONFIGS:
+            return self.response(400, message="type and id are required")
+
+        fk_col = getattr(FolderObject, ASSET_TYPE_CONFIGS[asset_type].fk_column)
+        fo = db.session.query(FolderObject).filter(fk_col == asset_id).first()
+        if not fo:
+            return self.response(200, result=None)
+
+        folder = db.session.get(Folder, fo.folder_id)
+        if not folder:
+            return self.response(200, result=None)
+
+        return self.response(
+            200,
+            result={
+                "folder_uuid": str(folder.uuid),
+                "folder_name": folder.name,
+                "is_only_me": folder.is_only_me,
+                "is_private": folder.is_private,
+            },
         )

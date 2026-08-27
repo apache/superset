@@ -586,6 +586,9 @@ class FolderDAO(BaseDAO[Folder]):
             child.name = cls.resolve_name_conflict(
                 child.name, folder.parent_id, folder.folder_type, exclude_id=child.id
             )
+        # Clear the in-memory collection so db.session.delete(folder) below
+        # doesn't re-null the children's parent_id.
+        folder.children.clear()
         db.session.flush()
 
         if archive_items:
