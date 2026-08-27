@@ -57,7 +57,10 @@ const config: ControlPanelConfig = {
                 'Column or metric used to order the X-axis categories. ' +
                   'Pick a dedicated sort column to control the category ' +
                   'order — for example, to drive a waterfall movement ' +
-                  'narrative. Leave empty to sort by the X-axis value.',
+                  'narrative. A column that is not the X-axis or the ' +
+                  'breakdown is ordered by its lowest value within each ' +
+                  'category, so the sort never changes what the bars ' +
+                  'aggregate. Leave empty to sort by the X-axis value.',
               ),
               // Re-run on every state change so the choices (and the reset
               // check below) stay in sync when the metric changes.

@@ -17,11 +17,14 @@
  * under the License.
  */
 import {
+  AdhocMetricSimple,
   buildQueryContext,
   ensureIsArray,
+  getColumnLabel,
   getMetricLabel,
   QueryFormColumn,
   QueryFormData,
+  QueryFormMetric,
   QueryFormOrderBy,
 } from '@superset-ui/core';
 
@@ -38,31 +41,45 @@ export default function buildQuery(formData: QueryFormData) {
     ...ensureIsArray(groupby),
   ];
   return buildQueryContext(formData, baseQueryObject => {
-    const isMetricSort =
-      !!x_axis_sort &&
-      ensureIsArray(baseQueryObject.metrics).some(
-        metric => getMetricLabel(metric) === x_axis_sort,
-      );
-    // A sort column that isn't already selected (and isn't a metric) must be
-    // added to the query so that ORDER BY can reference it.
-    const extraSortColumns =
-      x_axis_sort && !isMetricSort && !columns.includes(x_axis_sort)
-        ? [x_axis_sort]
-        : [];
-    // Lead with the chosen sort key, then keep each category's rows contiguous
-    // by falling back to the x-axis (and breakdown) columns. When no custom
-    // sort is set, preserve the historical "order by x-axis ascending".
+    // Keep the category's rows contiguous by falling back to the x-axis (and
+    // breakdown) columns. This is also the ordering when no custom sort is set.
     const baseOrderby: QueryFormOrderBy[] = columns.map(
       (column: QueryFormColumn) => [column, true],
     );
-    const orderby: QueryFormOrderBy[] = x_axis_sort
-      ? [[x_axis_sort, !!x_axis_sort_asc], ...baseOrderby]
-      : baseOrderby;
+    if (!x_axis_sort) {
+      return [{ ...baseQueryObject, columns, orderby: baseOrderby }];
+    }
+
+    const ascending = !!x_axis_sort_asc;
+    const isGroupedColumn = columns.some(
+      (column: QueryFormColumn) => getColumnLabel(column) === x_axis_sort,
+    );
+    const isMetric = ensureIsArray(baseQueryObject.metrics).some(
+      metric => getMetricLabel(metric) === x_axis_sort,
+    );
+    // A sort key that is already a grouping column or a selected metric can be
+    // referenced by label. Anything else is a bare dataset column, which an
+    // aggregated query cannot ORDER BY unless it is itself aggregated: adding
+    // it to `columns` instead would put it in the GROUP BY and change the grain
+    // of the query, inflating the row count until `row_limit` truncates it and
+    // the bars silently under-report (#42372). Wrapping it in MIN() orders the
+    // categories by that column without touching the grain.
+    const sortBy: QueryFormMetric =
+      isGroupedColumn || isMetric
+        ? x_axis_sort
+        : ({
+            expressionType: 'SIMPLE',
+            column: { column_name: x_axis_sort },
+            aggregate: 'MIN',
+            label: x_axis_sort,
+            hasCustomLabel: true,
+          } as AdhocMetricSimple);
+
     return [
       {
         ...baseQueryObject,
-        columns: [...columns, ...extraSortColumns],
-        orderby,
+        columns,
+        orderby: [[sortBy, ascending], ...baseOrderby],
       },
     ];
   });

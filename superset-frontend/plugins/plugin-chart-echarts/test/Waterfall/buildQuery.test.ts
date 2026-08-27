@@ -50,17 +50,36 @@ describe('Waterfall buildQuery', () => {
     expect(query.columns).toHaveLength(2);
   });
 
-  test('sorts by a custom column and selects it so ORDER BY can reference it', () => {
+  test('sorts by an ungrouped column as an aggregate, leaving the grain alone', () => {
     const queryContext = buildQuery({
       ...formData,
       x_axis_sort: 'sort_order',
       x_axis_sort_asc: true,
     } as unknown as SqlaFormData);
     const [query] = queryContext.queries;
-    // custom sort leads, category grouping columns follow
-    expect(query.orderby?.[0]).toEqual(['sort_order', true]);
-    // the sort column is added to the selected columns
-    expect(query.columns).toContain('sort_order');
+    // The sort key is wrapped in an aggregate so ORDER BY is legal without
+    // widening the GROUP BY.
+    expect(query.orderby?.[0]).toEqual([
+      {
+        expressionType: 'SIMPLE',
+        column: { column_name: 'sort_order' },
+        aggregate: 'MIN',
+        label: 'sort_order',
+        hasCustomLabel: true,
+      },
+      true,
+    ]);
+    // custom sort leads, category grouping columns follow as tiebreakers
+    expect(query.orderby?.slice(1)).toEqual([
+      ['bar', true],
+      ['baz', true],
+    ]);
+    // Regression (#42372): the sort column must NOT join the GROUP BY, or the
+    // query grain changes and row_limit silently truncates the aggregates.
+    expect(query.columns).toHaveLength(2);
+    expect(query.columns).not.toContain('sort_order');
+    // and it must not sneak in as a chart metric either
+    expect(query.metrics).toEqual(['foo']);
   });
 
   test('respects descending order', () => {
@@ -70,10 +89,18 @@ describe('Waterfall buildQuery', () => {
       x_axis_sort_asc: false,
     } as unknown as SqlaFormData);
     const [query] = queryContext.queries;
-    expect(query.orderby?.[0]).toEqual(['sort_order', false]);
+    expect(query.orderby?.[0]).toEqual([
+      expect.objectContaining({
+        expressionType: 'SIMPLE',
+        column: { column_name: 'sort_order' },
+        aggregate: 'MIN',
+      }),
+      false,
+    ]);
+    expect(query.columns).toHaveLength(2);
   });
 
-  test('does not re-add a metric sort key to the selected columns', () => {
+  test('sorts by a metric by label, without aggregating it again', () => {
     const queryContext = buildQuery({
       ...formData,
       x_axis_sort: 'foo',
@@ -82,6 +109,46 @@ describe('Waterfall buildQuery', () => {
     const [query] = queryContext.queries;
     expect(query.orderby?.[0]).toEqual(['foo', false]);
     // 'foo' is a metric, not a column — columns stay at x_axis + breakdown
+    expect(query.columns).toHaveLength(2);
+  });
+
+  test('sorts by the x-axis directly when it is the chosen key', () => {
+    const queryContext = buildQuery({
+      ...formData,
+      x_axis_sort: 'bar',
+      x_axis_sort_asc: false,
+    } as unknown as SqlaFormData);
+    const [query] = queryContext.queries;
+    // already in the GROUP BY, so order by the column itself
+    expect(query.orderby?.[0]).toEqual(['bar', false]);
+    expect(query.columns).toHaveLength(2);
+  });
+
+  test('sorts by the breakdown directly when it is the chosen key', () => {
+    const queryContext = buildQuery({
+      ...formData,
+      x_axis_sort: 'baz',
+      x_axis_sort_asc: true,
+    } as unknown as SqlaFormData);
+    const [query] = queryContext.queries;
+    expect(query.orderby?.[0]).toEqual(['baz', true]);
+    expect(query.columns).toHaveLength(2);
+  });
+
+  test('treats an adhoc x-axis as already grouped', () => {
+    const queryContext = buildQuery({
+      ...formData,
+      x_axis: {
+        label: 'derived',
+        sqlExpression: 'UPPER(bar)',
+        expressionType: 'SQL',
+      },
+      x_axis_sort: 'derived',
+      x_axis_sort_asc: true,
+    } as unknown as SqlaFormData);
+    const [query] = queryContext.queries;
+    // matched by label, so it must not be aggregate-wrapped
+    expect(query.orderby?.[0]).toEqual(['derived', true]);
     expect(query.columns).toHaveLength(2);
   });
 });
