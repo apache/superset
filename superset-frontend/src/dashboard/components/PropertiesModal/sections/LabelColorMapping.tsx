@@ -16,58 +16,38 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useMemo, useState, useEffect, useRef } from 'react';
+
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
+import type { SupersetTheme } from '@apache-superset/core/theme';
 import stringify from 'json-stringify-pretty-compact';
 import ColorPickerControl from 'src/explore/components/controls/ColorPickerControl';
 
-// Strict typing to satisfy the tsc compiler without enforcing it as a required component prop
-interface CustomTheme {
-  gridUnit?: number;
-  borderRadius?: number;
-  colors?: {
-    grayscale?: {
-      light4?: string;
-      light2?: string;
-      light1?: string;
-      dark1?: string;
-      base?: string;
-    };
-    primary?: {
-      base?: string;
-      dark1?: string;
-    };
-    error?: {
-      base?: string;
-    };
-  };
-}
-
 const Container = styled.div`
-  ${({ theme }: { theme?: CustomTheme }) => `
-    margin-bottom: ${(theme?.gridUnit || 4) * 4}px;
-    padding: ${(theme?.gridUnit || 4) * 4}px;
-    background-color: ${theme?.colors?.grayscale?.light4};
-    border-radius: ${theme?.borderRadius || 4}px;
+  ${({ theme }: { theme: SupersetTheme }) => `
+    margin-bottom: ${(theme.gridUnit || 4) * 4}px;
+    padding: ${(theme.gridUnit || 4) * 4}px;
+    background-color: ${theme.colors?.grayscale?.light4 || '#f6f6f6'};
+    border-radius: ${theme.borderRadius || 4}px;
   `}
 `;
 
 const HeaderRow = styled.div`
-  ${({ theme }: { theme?: CustomTheme }) => `
+  ${({ theme }: { theme: SupersetTheme }) => `
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: ${(theme?.gridUnit || 4) * 4}px;
+    margin-bottom: ${(theme.gridUnit || 4) * 4}px;
   `}
 `;
 
 const Row = styled.div`
-  ${({ theme }: { theme?: CustomTheme }) => `
+  ${({ theme }: { theme: SupersetTheme }) => `
     display: flex;
     align-items: center;
-    margin-bottom: ${(theme?.gridUnit || 4) * 2}px;
-    gap: ${(theme?.gridUnit || 4) * 4}px;
+    margin-bottom: ${(theme.gridUnit || 4) * 2}px;
+    gap: ${(theme.gridUnit || 4) * 4}px;
   `}
 `;
 
@@ -75,63 +55,85 @@ const InputGroup = styled.div`
   display: flex;
   align-items: center;
   flex: 1;
+  min-width: 0;
 `;
 
 const StyledInput = styled.input`
-  ${({ theme }: { theme?: CustomTheme }) => `
+  ${({ theme }: { theme: SupersetTheme }) => `
     flex: 1;
     width: 100%;
+    min-width: 0;
     height: 32px;
     padding: 4px 11px;
-    border: 1px solid ${theme?.colors?.grayscale?.light2};
+    border: 1px solid ${theme.colors?.grayscale?.light2 || '#e0e0e0'};
     border-right: none;
-    border-radius: ${theme?.borderRadius || 4}px 0 0 ${theme?.borderRadius || 4}px;
-    color: ${theme?.colors?.grayscale?.dark1};
+    border-radius: ${theme.borderRadius || 4}px 0 0 ${theme.borderRadius || 4}px;
+    color: ${theme.colors?.grayscale?.dark1 || '#333333'};
+    background-color: ${theme.colors?.grayscale?.light5 || '#ffffff'};
     outline: none;
+
     &:focus {
-      border-color: ${theme?.colors?.primary?.base};
+      border-color: ${theme.colors?.primary?.base || '#20a7c9'};
     }
   `}
 `;
 
 const ColorPickerWrapper = styled.div`
-  ${({ theme }: { theme?: CustomTheme }) => `
+  ${({ theme }: { theme: SupersetTheme }) => `
     display: flex;
     align-items: center;
-    padding-left: ${(theme?.gridUnit || 4) * 2}px;
+    padding-left: ${(theme.gridUnit || 4) * 2}px;
   `}
 `;
 
 const ActionButton = styled.button`
-  ${({ theme }: { theme?: CustomTheme }) => `
+  ${({ theme }: { theme: SupersetTheme }) => `
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
     background: transparent;
     border: none;
-    color: ${theme?.colors?.grayscale?.base};
+    color: ${theme.colors?.grayscale?.base || '#666666'};
     cursor: pointer;
     padding: 0;
-    font-size: 16px;
-    transition: color 0.2s;
+    border-radius: ${theme.borderRadius || 4}px;
+    transition:
+      color 0.2s,
+      background-color 0.2s;
 
     &:hover {
-      color: ${theme?.colors?.error?.base};
+      color: ${theme.colors?.error?.base || '#e04355'};
+      background-color: ${theme.colors?.grayscale?.light4 || '#f6f6f6'};
+    }
+
+    &:focus-visible {
+      outline: 2px solid ${theme.colors?.primary?.base || '#20a7c9'};
+      outline-offset: 2px;
     }
   `}
 `;
 
 const AddMoreLink = styled.button`
-  ${({ theme }: { theme?: CustomTheme }) => `
+  ${({ theme }: { theme: SupersetTheme }) => `
     background: transparent;
     border: none;
     padding: 0;
-    color: ${theme?.colors?.primary?.dark1};
+    color: ${theme.colors?.primary?.dark1 || '#1a85a0'};
     font-size: 14px;
     font-weight: bold;
     cursor: pointer;
-    margin-top: ${(theme?.gridUnit || 4) * 2}px;
+    margin-top: ${(theme.gridUnit || 4) * 2}px;
     display: inline-block;
 
     &:hover {
       text-decoration: underline;
+    }
+
+    &:focus-visible {
+      outline: 2px solid ${theme.colors?.primary?.base || '#20a7c9'};
+      outline-offset: 2px;
     }
   `}
 `;
@@ -147,60 +149,91 @@ interface ColorMapping {
   color: string;
 }
 
-const DEFAULT_NEW_COLOR = ['#0', '00000'].join('');
+type MetadataObject = Record<string, unknown>;
 
-const generateId = () => Math.random().toString(36).substring(2, 9);
-const isValidHex = (color: string) => /^#[0-9A-Fa-f]{6}$/i.test(color);
+const DEFAULT_NEW_COLOR = '#000000';
+
+const generateId = (): string => {
+  if (
+    typeof crypto !== 'undefined' &&
+    typeof crypto.randomUUID === 'function'
+  ) {
+    return crypto.randomUUID();
+  }
+  return Math.random().toString(36).substring(2, 11);
+};
+
+const isValidHex = (color: unknown): color is string =>
+  typeof color === 'string' && /^#[0-9A-Fa-f]{6}$/i.test(color);
+
+const parseMetadata = (
+  jsonMetadata: string,
+): {
+  metadataObj: MetadataObject;
+  isValidJson: boolean;
+} => {
+  if (!jsonMetadata.trim()) {
+    return { metadataObj: {}, isValidJson: true };
+  }
+  try {
+    const parsed: unknown = JSON.parse(jsonMetadata);
+    if (
+      parsed !== null &&
+      typeof parsed === 'object' &&
+      !Array.isArray(parsed)
+    ) {
+      return { metadataObj: parsed as MetadataObject, isValidJson: true };
+    }
+    return { metadataObj: {}, isValidJson: false };
+  } catch {
+    return { metadataObj: {}, isValidJson: false };
+  }
+};
+
+const getLabelColors = (
+  metadataObj: MetadataObject,
+): Record<string, string> => {
+  const value = metadataObj.label_colors;
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+    return {};
+  }
+  return Object.fromEntries(
+    Object.entries(value).filter(([, color]) => typeof color === 'string'),
+  );
+};
+
+const rowsFromLabelColors = (
+  labelColors: Record<string, string>,
+): ColorMapping[] =>
+  Object.entries(labelColors).map(([label, color]) => ({
+    id: generateId(),
+    label,
+    color: isValidHex(color) ? color : DEFAULT_NEW_COLOR,
+  }));
 
 const LabelColorMapping = ({
   jsonMetadata,
   onJsonMetadataChange,
 }: LabelColorMappingProps) => {
-  const { metadataObj, isValidJson } = useMemo(() => {
-    try {
-      const parsed = jsonMetadata ? JSON.parse(jsonMetadata) : {};
-      return {
-        metadataObj:
-          parsed && typeof parsed === 'object' && !Array.isArray(parsed)
-            ? (parsed as Record<string, unknown>)
-            : {},
-        isValidJson: true,
-      };
-    } catch (error: unknown) {
-      return { metadataObj: {}, isValidJson: false };
-    }
-  }, [jsonMetadata]);
-
-  const labelColors = useMemo(
-    () =>
-      metadataObj.label_colors &&
-      typeof metadataObj.label_colors === 'object' &&
-      !Array.isArray(metadataObj.label_colors)
-        ? (metadataObj.label_colors as Record<string, string>)
-        : {},
-    [metadataObj],
+  const { metadataObj, isValidJson } = useMemo(
+    () => parseMetadata(jsonMetadata),
+    [jsonMetadata],
   );
+
+  const labelColors = useMemo(() => getLabelColors(metadataObj), [metadataObj]);
 
   const [rows, setRows] = useState<ColorMapping[]>(() =>
-    Object.entries(labelColors).map(([label, color]) => ({
-      id: generateId(),
-      label,
-      color: isValidHex(color) ? color : DEFAULT_NEW_COLOR,
-    })),
+    rowsFromLabelColors(labelColors),
   );
 
-  const lastSyncMetadata = useRef<string>(jsonMetadata);
+  const lastSyncedMetadata = useRef(jsonMetadata);
 
   useEffect(() => {
-    if (lastSyncMetadata.current !== jsonMetadata) {
-      const initialRows = Object.entries(labelColors).map(([label, color]) => ({
-        id: generateId(),
-        label,
-        color: isValidHex(color) ? color : DEFAULT_NEW_COLOR,
-      }));
-      setRows(initialRows);
-      lastSyncMetadata.current = jsonMetadata;
+    if (lastSyncedMetadata.current === jsonMetadata) {
+      return;
     }
+    setRows(rowsFromLabelColors(labelColors));
+    lastSyncedMetadata.current = jsonMetadata;
   }, [jsonMetadata, labelColors]);
 
   const syncToJson = (currentRows: ColorMapping[]) => {
@@ -209,46 +242,55 @@ const LabelColorMapping = ({
 
     currentRows.forEach(row => {
       const trimmedLabel = row.label.trim();
-      if (trimmedLabel !== '' && !seenLabels.has(trimmedLabel)) {
+      if (
+        trimmedLabel !== '' &&
+        !seenLabels.has(trimmedLabel) &&
+        isValidHex(row.color)
+      ) {
         newLabelColors[trimmedLabel] = row.color;
         seenLabels.add(trimmedLabel);
       }
     });
 
-    const updatedMetadata = {
+    const updatedMetadata: MetadataObject = {
       ...metadataObj,
       label_colors: newLabelColors,
     };
 
     const newMetadataString = stringify(updatedMetadata);
-    lastSyncMetadata.current = newMetadataString;
+    lastSyncedMetadata.current = newMetadataString;
     onJsonMetadataChange(newMetadataString);
   };
 
   const handleAddRow = () => {
-    const newRows = [
-      ...rows,
-      { id: generateId(), label: '', color: DEFAULT_NEW_COLOR },
-    ];
-    setRows(newRows);
+    setRows(currentRows => [
+      ...currentRows,
+      {
+        id: generateId(),
+        label: '',
+        color: DEFAULT_NEW_COLOR,
+      },
+    ]);
   };
 
   const handleUpdateRow = (id: string, newLabel: string, newColor: string) => {
-    const newRows = rows.map(r =>
-      r.id === id ? { ...r, label: newLabel, color: newColor } : r,
+    const newRows = rows.map(row =>
+      row.id === id ? { ...row, label: newLabel, color: newColor } : row,
     );
     setRows(newRows);
     syncToJson(newRows);
   };
 
   const handleDeleteRow = (id: string) => {
-    const newRows = rows.filter(r => r.id !== id);
+    const newRows = rows.filter(row => row.id !== id);
     setRows(newRows);
     syncToJson(newRows);
   };
 
-  const allKnownLabels = Array.from(
-    new Set(rows.map(r => r.label).filter(Boolean)),
+  const allKnownLabels = useMemo(
+    () =>
+      Array.from(new Set(rows.map(row => row.label.trim()).filter(Boolean))),
+    [rows],
   );
 
   if (!isValidJson) {
@@ -257,18 +299,18 @@ const LabelColorMapping = ({
         <HeaderRow>
           <div>
             <h4
-              css={(theme: CustomTheme) => ({
-                marginBottom: theme?.gridUnit || 4,
+              css={(theme: SupersetTheme) => ({
+                marginBottom: theme.gridUnit || 4,
                 marginTop: 0,
               })}
             >
               {t('Label Colors')}
             </h4>
             <p
-              css={(theme: CustomTheme) => ({
+              css={(theme: SupersetTheme) => ({
                 margin: 0,
                 fontSize: 12,
-                color: theme?.colors?.error?.base,
+                color: theme.colors?.error?.base || '#e04355',
               })}
             >
               {t(
@@ -286,18 +328,18 @@ const LabelColorMapping = ({
       <HeaderRow>
         <div>
           <h4
-            css={(theme: CustomTheme) => ({
-              marginBottom: theme?.gridUnit || 4,
+            css={(theme: SupersetTheme) => ({
+              marginBottom: theme.gridUnit || 4,
               marginTop: 0,
             })}
           >
             {t('Label Colors')}
           </h4>
           <p
-            css={(theme: CustomTheme) => ({
+            css={(theme: SupersetTheme) => ({
               margin: 0,
               fontSize: 12,
-              color: theme?.colors?.grayscale?.base,
+              color: theme.colors?.grayscale?.base || '#666666',
             })}
           >
             {t(
@@ -309,9 +351,9 @@ const LabelColorMapping = ({
 
       {rows.length === 0 && (
         <p
-          css={(theme: CustomTheme) => ({
+          css={(theme: SupersetTheme) => ({
             fontStyle: 'italic',
-            color: theme?.colors?.grayscale?.light1,
+            color: theme.colors?.grayscale?.light1 || '#b2b2b2',
           })}
         >
           {t('No color mappings defined. Click "+ Add more" to get started.')}
@@ -319,13 +361,20 @@ const LabelColorMapping = ({
       )}
 
       {rows.map(row => {
+        const currentLabel = row.label.trim();
         const availableOptions = allKnownLabels
           .filter(
             label =>
-              label === row.label ||
-              !rows.some(r => r.label === label && r.id !== row.id),
+              label === currentLabel ||
+              !rows.some(
+                otherRow =>
+                  otherRow.id !== row.id && otherRow.label.trim() === label,
+              ),
           )
-          .map(label => ({ label, value: label }));
+          .map(label => ({
+            label,
+            value: label,
+          }));
 
         return (
           <Row key={row.id}>
@@ -333,31 +382,32 @@ const LabelColorMapping = ({
               <StyledInput
                 list={`label-options-${row.id}`}
                 value={row.label}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                  handleUpdateRow(row.id, e.target.value, row.color)
+                onChange={event =>
+                  handleUpdateRow(row.id, event.target.value, row.color)
                 }
                 placeholder={t('Select or type a label')}
+                aria-label={t('Label')}
               />
+
               <datalist id={`label-options-${row.id}`}>
-                {availableOptions.map(opt => (
+                {availableOptions.map(option => (
                   <option
-                    key={opt.value}
-                    value={opt.value}
-                    aria-label={opt.value}
+                    key={option.value}
+                    value={option.value}
+                    aria-label={option.value}
                   />
                 ))}
               </datalist>
+
               <ColorPickerWrapper>
                 <ColorPickerControl
                   value={row.color}
                   outputFormat="hex"
-                  onChange={color =>
-                    handleUpdateRow(
-                      row.id,
-                      row.label,
-                      typeof color === 'string' ? color : row.color,
-                    )
-                  }
+                  onChange={color => {
+                    if (typeof color === 'string' && isValidHex(color)) {
+                      handleUpdateRow(row.id, row.label, color);
+                    }
+                  }}
                 />
               </ColorPickerWrapper>
             </InputGroup>
@@ -377,6 +427,7 @@ const LabelColorMapping = ({
                 strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
+                aria-hidden="true"
               >
                 <polyline points="3 6 5 6 21 6" />
                 <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
