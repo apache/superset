@@ -388,6 +388,70 @@ def test_force_bypasses_lookup_and_stores_provider_result() -> None:
     assert outcome.cache_hit is False
     repository.lookup.assert_not_called()
     repository.store.assert_called_once()
+    assert repository.store.call_args.kwargs["replace"] is True
+
+
+def test_ordinary_miss_does_not_replace_an_identical_concurrent_store() -> None:
+    repository: MagicMock = MagicMock(spec=SemanticCacheRepository)
+    repository.lookup.return_value = SemanticCacheLookupResult(
+        candidates=(), missing_value_keys=frozenset()
+    )
+    service: SemanticCacheService = SemanticCacheService(
+        SemanticCacheState.enabled(),
+        repository,
+    )
+
+    service.execute(
+        build_view_meta(),
+        build_semantic_query(),
+        MagicMock(return_value=build_semantic_result()),
+        capabilities=ContainmentCapabilities(),
+    )
+
+    assert repository.store.call_args.kwargs["replace"] is False
+
+
+def test_oversized_result_is_served_but_never_stored() -> None:
+    """Values are pickled inside the lease and share the data cache; a result
+    above the operator's cap is returned to the user and skipped."""
+    repository: MagicMock = MagicMock(spec=SemanticCacheRepository)
+    repository.lookup.return_value = SemanticCacheLookupResult(
+        candidates=(), missing_value_keys=frozenset()
+    )
+    metrics: MagicMock = MagicMock()
+    result: SemanticResult = build_semantic_result()
+    service: SemanticCacheService = SemanticCacheService(
+        SemanticCacheState.enabled(),
+        repository,
+        metrics,
+        max_value_bytes=result.results.nbytes - 1,
+    )
+
+    outcome: SemanticCacheOutcome = service.execute(
+        build_view_meta(),
+        build_semantic_query(),
+        MagicMock(return_value=result),
+        capabilities=ContainmentCapabilities(),
+    )
+
+    assert outcome.result is result
+    assert outcome.cache_hit is False
+    repository.store.assert_not_called()
+    metrics.incr.assert_any_call("semantic_cache.containment.store_skipped")
+
+    within_cap: SemanticCacheService = SemanticCacheService(
+        SemanticCacheState.enabled(),
+        repository,
+        metrics,
+        max_value_bytes=result.results.nbytes,
+    )
+    within_cap.execute(
+        build_view_meta(),
+        build_semantic_query(),
+        MagicMock(return_value=result),
+        capabilities=ContainmentCapabilities(),
+    )
+    repository.store.assert_called_once()
 
 
 def test_lookup_backend_failure_executes_provider() -> None:

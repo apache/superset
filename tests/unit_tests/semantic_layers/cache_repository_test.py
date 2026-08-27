@@ -16,7 +16,8 @@
 # under the License.
 
 from collections.abc import Callable, Iterator
-from dataclasses import replace
+from dataclasses import fields, replace
+from typing import cast
 from unittest.mock import MagicMock
 
 import pytest
@@ -26,6 +27,7 @@ from superset_core.semantic_layers.types import (
     SemanticResult,
 )
 
+from superset.semantic_layers.cache_identity import IDENTITY_FORMAT_VERSION
 from superset.semantic_layers.cache_policy import ContainmentCapabilities, ReuseMode
 from superset.semantic_layers.cache_repository import (
     CachedEntry,
@@ -61,6 +63,9 @@ class _Backend:
 
     def get(self, key: str) -> object | None:
         return self.values.get(key)
+
+    def has(self, key: str) -> bool:
+        return key in self.values
 
     def set(self, key: str, value: object, timeout: int | None = None) -> bool:
         if not self.set_succeeds:
@@ -475,3 +480,100 @@ def test_prune_keeps_bucket_alive_for_surviving_values() -> None:
     )
 
     assert _bucket_timeout(backend) == 3510
+
+
+def test_store_skips_identical_value_another_request_already_registered() -> None:
+    """A herd of identical misses should contend for the lease once: once the
+    value is registered, later non-forced stores are redundant."""
+    backend: _Backend = _Backend()
+    coordinator: _Coordinator = _Coordinator()
+    repository: SemanticCacheRepository = SemanticCacheRepository(
+        backend,
+        coordinator,
+        clock=lambda: 10.0,
+    )
+    query: SemanticQuery = build_semantic_query()
+    first: SemanticResult = build_semantic_result()
+
+    assert repository.store(build_view_meta(), query, first) is True
+    assert repository.store(build_view_meta(), query, first, replace=False) is True
+    assert len(coordinator.keys) == 1
+
+    # A forced refresh must still replace the value.
+    assert repository.store(build_view_meta(), query, first, replace=True) is True
+    assert len(coordinator.keys) == 2
+
+
+def test_store_does_not_skip_when_descriptor_was_evicted() -> None:
+    """A surviving value whose descriptor is gone is undiscoverable, so the
+    store must register it again rather than trust the value's presence."""
+    backend: _Backend = _Backend()
+    coordinator: _Coordinator = _Coordinator()
+    repository: SemanticCacheRepository = SemanticCacheRepository(
+        backend,
+        coordinator,
+        clock=lambda: 10.0,
+    )
+    query: SemanticQuery = build_semantic_query()
+    repository.store(build_view_meta(), query, build_semantic_result())
+    bucket_key: str = next(
+        key for key, value in backend.values.items() if isinstance(value, list)
+    )
+    backend.values[bucket_key] = []
+
+    assert (
+        repository.store(
+            build_view_meta(), query, build_semantic_result(), replace=False
+        )
+        is True
+    )
+    assert len(coordinator.keys) == 2
+    assert len(cast(list[CachedEntry], backend.values[bucket_key])) == 1
+
+
+def test_entries_from_an_older_pickled_shape_are_treated_as_empty() -> None:
+    """A pickled dataclass restores only the attributes it was written with.
+    Key rotation keeps such buckets out of reach; if one is reached anyway
+    it must cost a miss, not a lookup failure until it expires."""
+    backend: _Backend = _Backend()
+    repository: SemanticCacheRepository = SemanticCacheRepository(
+        backend,
+        _Coordinator(),
+        clock=lambda: 10.0,
+    )
+    query: SemanticQuery = build_semantic_query()
+    repository.store(build_view_meta(), query, build_semantic_result())
+    bucket_key: str = next(
+        key for key, value in backend.values.items() if isinstance(value, list)
+    )
+    stale: CachedEntry = cast(list[CachedEntry], backend.values[bucket_key])[0]
+    del stale.__dict__["timeout"]
+
+    lookup_result: SemanticCacheLookupResult = repository.lookup(
+        build_view_meta(),
+        query,
+        ContainmentCapabilities(),
+    )
+
+    assert lookup_result.candidates == ()
+    assert lookup_result.missing_value_keys == frozenset()
+
+
+def test_cached_entry_shape_is_pinned_to_the_identity_version() -> None:
+    """``CachedEntry`` is pickled into the shared data cache and outlives the
+    code that wrote it. Changing its fields without rotating every key would
+    hand the new code buckets it cannot read. If this test fails because the
+    shape changed, bump ``IDENTITY_FORMAT_VERSION`` and update both values."""
+    assert tuple(field.name for field in fields(CachedEntry)) == (
+        "filters",
+        "dimensions",
+        "metrics",
+        "limit",
+        "offset",
+        "order_key",
+        "group_limit_key",
+        "value_key",
+        "timestamp",
+        "timeout",
+    )
+    assert IDENTITY_FORMAT_VERSION == "v3"

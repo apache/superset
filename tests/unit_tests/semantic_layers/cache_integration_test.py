@@ -71,6 +71,9 @@ class _InMemoryCache:
     def get(self, key: str) -> object | None:
         return self.store.get(key)
 
+    def has(self, key: str) -> bool:
+        return key in self.store
+
     def set(self, key: str, value: object, timeout: int | None = None) -> bool:
         self.store[key] = value
         return True

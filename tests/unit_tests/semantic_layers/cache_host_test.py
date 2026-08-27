@@ -108,6 +108,14 @@ def test_execution_context_requires_request_and_principal() -> None:
         assert _execution_context(datasource) is None
 
 
+@pytest.fixture(autouse=True)
+def _no_rls(mocker: MockerFixture) -> None:
+    mocker.patch(
+        "superset.semantic_layers.cache_host.security_manager.get_rls_cache_key",
+        return_value=[],
+    )
+
+
 def _datasource() -> MagicMock:
     layer: MagicMock = MagicMock()
     layer.semantic_cache_responsibility = SemanticCacheResponsibility.SUPERSET
@@ -205,3 +213,17 @@ def test_cache_configuration_prefers_resolved_timeout() -> None:
     fallback = build_cache_configuration(datasource)
     assert fallback is not None
     assert fallback[0].timeout == 3600
+
+
+def test_global_scope_yields_to_row_level_security(mocker: MockerFixture) -> None:
+    """Global reuse rests on the provider's guarantee that results do not vary
+    by principal; Superset RLS is a variation the provider cannot see."""
+    datasource: MagicMock = _datasource()
+    assert build_cache_configuration(datasource) is not None
+
+    mocker.patch(
+        "superset.semantic_layers.cache_host.security_manager.get_rls_cache_key",
+        return_value=["region = 'GB'-group"],
+    )
+
+    assert build_cache_configuration(datasource) is None

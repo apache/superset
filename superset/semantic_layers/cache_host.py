@@ -135,6 +135,11 @@ def build_cache_configuration(
     scope: object = getattr(layer, "semantic_cache_scope", None)
     scope_material: Mapping[str, object]
     if scope is SemanticCacheScope.GLOBAL:
+        if security_manager.get_rls_cache_key(datasource):
+            # Global reuse rests on the provider's guarantee that results do
+            # not vary by principal; Superset-side row-level security is a
+            # per-principal variation the provider cannot see, so it wins.
+            return None
         scope_material = {"scope": "global"}
     elif scope is SemanticCacheScope.EXECUTION_CONTEXT:
         context: SemanticCacheExecutionContext | None = _execution_context(datasource)

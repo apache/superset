@@ -333,7 +333,9 @@ Identity material must be secret-free and include every provider setting that ca
 change results. For execution-context scope, Superset also hashes the principal,
 roles, guest-token claims, and row-level-security cache key. Returning `None` from
 either identity method bypasses containment. Use `GLOBAL` only when results are
-provably identical across principals and tenants. Declare only filter capabilities
+provably identical across principals and tenants; containment is bypassed for a
+`GLOBAL` view whenever Superset row-level security applies to the request, since
+that variation is invisible to the provider. Declare only filter capabilities
 whose provider semantics exactly match Superset's post-processing semantics.
 
 Operators enable both `SEMANTIC_LAYERS` and the development feature flag
@@ -363,7 +365,8 @@ DISTRIBUTED_COORDINATION_CONFIG = {
 
 Containment follows the same cache timeout the ordinary result cache resolves for
 a request (custom, then chart, then dataset), so a chart-level timeout of `-1`
-bypasses containment entirely. The bounded defaults are
+bypasses containment entirely, and honors `DATA_CACHE_MAX_VALUE_SIZE`: a result
+larger than that many bytes is served but not stored. The bounded defaults are
 `SEMANTIC_CACHE_COORDINATION_WAIT_SECONDS = 1.0` and
 `SEMANTIC_CACHE_COORDINATION_LEASE_SECONDS = 30`. A missing or unsuitable backend
 and missing or invalid coordination each disable only containment, log a fixed
@@ -374,8 +377,8 @@ Roll out to a canary worker cohort after recording provider latency, error rate,
 and cache-backend health for a comparable baseline. Observe at least one normal
 traffic cycle. Alert ownership should sit with the semantic-platform operator.
 Track `semantic_cache.containment.enabled` and the fixed-name `hit`, `miss`,
-`bypass`, `lookup_failure`, `store_failure`, `coordination_failure`, and
-`unsupported` counters. Define deployment-specific rollback thresholds before the
+`bypass`, `lookup_failure`, `store_failure`, `store_skipped`,
+`coordination_failure`, and `unsupported` counters. Define deployment-specific rollback thresholds before the
 canary; recommended triggers are any provider-result mismatch, sustained provider
 error regression, coordination failures above 1% of cache mutations, or lookup and
 store failures above 5% of semantic requests.

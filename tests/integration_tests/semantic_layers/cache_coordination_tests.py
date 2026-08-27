@@ -105,6 +105,9 @@ class _PickleCache:
         value: bytes | None = self._backend.get(key)
         return pickle.loads(value) if value is not None else None  # noqa: S301
 
+    def has(self, key: str) -> bool:
+        return bool(self._backend.exists(key))
+
     def set(self, key: str, value: object, timeout: int | None = None) -> bool:
         return bool(self._backend.set(key, pickle.dumps(value), ex=timeout))
 
