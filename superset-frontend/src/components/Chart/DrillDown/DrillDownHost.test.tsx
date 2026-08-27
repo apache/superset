@@ -285,3 +285,37 @@ test('drilling emits a cross-filter for the full accumulated path', () => {
     }),
   );
 });
+
+test('drilling on a null value emits IS NULL, not IN [null]', () => {
+  const updateDataMask = jest.fn();
+  const formDataWithHierarchy: QueryFormData = {
+    ...baseFormData,
+    drilldown_hierarchy: ['country', 'region', 'city'],
+  };
+
+  render(
+    <DrillDownHost
+      ChartRendererComponent={CaptureRenderer as any}
+      {...baseRendererProps}
+      formData={formDataWithHierarchy}
+      emitCrossFilters
+      actions={{ updateDataMask } as any}
+    />,
+  );
+
+  act(() => {
+    capturedOnDrillDown?.([{ col: 'country', op: '==', val: null }], '(null)');
+  });
+
+  // A null drill value must scope linked charts to SQL NULL rows (IS NULL),
+  // mirroring the native ECharts cross-filter path, not IN [null] which
+  // matches nothing.
+  expect(updateDataMask).toHaveBeenLastCalledWith(
+    1,
+    expect.objectContaining({
+      extraFormData: {
+        filters: [{ col: 'country', op: 'IS NULL' }],
+      },
+    }),
+  );
+});

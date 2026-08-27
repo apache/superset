@@ -193,13 +193,22 @@ export function useDrillDownState({
     [chartKey],
   );
 
-  // Reset only when the chart is actually reconfigured (chart id or viz type
-  // changes) — e.g. the dashboard owner edited the chart and saved. A ref
-  // guard ensures the initial mount (which restores persisted state) does not
-  // wipe it, and that incidental re-renders from filter changes don't either.
+  // Reset when the drill configuration changes, not just chart id or viz type.
+  // The drill stack is anchored to the primary dimension (x_axis or groupby)
+  // and the hierarchy list, so editing either — even without a viz-type change
+  // — must clear stale state whose next dimension no longer exists. A ref guard
+  // ensures the initial mount (which restores persisted state) does not wipe
+  // it, and that incidental re-renders from filter changes don't either.
   // useLayoutEffect runs synchronously before paint so the stale drill state
   // is cleared without a visible flash when the chart is reconfigured.
-  const configKey = `${chartId}__${formData.viz_type}`;
+  const configFd = formData as Record<string, unknown>;
+  const configKey = JSON.stringify([
+    chartId,
+    formData.viz_type,
+    configFd.x_axis ?? configFd.xAxis,
+    configFd[HIERARCHY_FIELD] ?? configFd[HIERARCHY_FIELD_CAMEL],
+    configFd[DEFAULT_GROUPBY_FIELD],
+  ]);
   const prevConfigKeyRef = useRef(configKey);
   useLayoutEffect(() => {
     if (prevConfigKeyRef.current === configKey) {
@@ -228,17 +237,21 @@ export function useDrillDownState({
       fd[HIERARCHY_FIELD] ?? fd[HIERARCHY_FIELD_CAMEL],
     ) as string[];
     if (drillLevels.length > 0) {
+      // The primary dimension is always the initial (index 0) level, even if
+      // the author listed it later in the control; normalize it to the front
+      // (deduped) so the first drill advances off the primary dimension.
       const xAxisStr = typeof xAxis === 'string' ? xAxis : undefined;
       if (xAxisStr) {
-        return drillLevels.includes(xAxisStr)
-          ? drillLevels
-          : [xAxisStr, ...drillLevels];
+        return [xAxisStr, ...drillLevels.filter(col => col !== xAxisStr)];
       }
       const firstGroupby = ensureIsArray(fd[DEFAULT_GROUPBY_FIELD]).find(
         col => typeof col === 'string',
       ) as string | undefined;
-      if (firstGroupby && !drillLevels.includes(firstGroupby)) {
-        return [firstGroupby, ...drillLevels];
+      if (firstGroupby) {
+        return [
+          firstGroupby,
+          ...drillLevels.filter(col => col !== firstGroupby),
+        ];
       }
       return drillLevels;
     }
@@ -296,8 +309,10 @@ export function useDrillDownState({
     // leaf (matching the breadcrumb selection), rather than showing the full
     // leaf distribution. Only apply the leaf filters while a leaf is actually
     // selected so that navigating back (resetTo) or drilling deeper never
-    // leaves stale leaf filters in effectiveFormData.
-    const leafFilters = selectedLeaf ? (selectedLeafFilters ?? []) : [];
+    // leaves stale leaf filters in effectiveFormData. Test presence, not
+    // truthiness, so an empty-string category still counts as a selection.
+    const leafFilters =
+      selectedLeaf != null ? (selectedLeafFilters ?? []) : [];
 
     updated[DEFAULT_ADHOC_FILTERS_FIELD] = [
       ...baseAdhoc,

@@ -94,6 +94,26 @@ test('hierarchy is built from drilldown_hierarchy field', () => {
   expect(result.current.hasHierarchy).toBe(true);
 });
 
+test('primary dimension is normalized to the first level even if listed later', () => {
+  const formData = {
+    ...baseFormData,
+    x_axis: 'country',
+    drilldown_hierarchy: ['region', 'country', 'city'],
+  };
+
+  const { result } = renderHook(() =>
+    useDrillDownState({
+      chartId: 42,
+      formData,
+      baseQueriesResponse: [{ data: [] }],
+    }),
+  );
+
+  // 'country' (the x_axis) is the initial level: it must be moved to index 0
+  // and not duplicated, so the first drill advances to 'region'.
+  expect(result.current.hierarchy).toEqual(['country', 'region', 'city']);
+});
+
 test('drillDown() pushes a level onto the stack', async () => {
   const formData = {
     ...baseFormData,
@@ -382,6 +402,110 @@ test('reconfiguring the chart (viz type change) clears persisted drill state', a
 
   expect(result.current.drillStack).toHaveLength(0);
   expect(result.current.isDrilling).toBe(false);
+});
+
+test('shortening the hierarchy (same viz type) clears persisted drill state', async () => {
+  const formData = {
+    ...baseFormData,
+    drilldown_hierarchy: ['country', 'region', 'city'],
+  };
+
+  const { result, rerender } = renderHook(
+    ({ fd }) =>
+      useDrillDownState({
+        chartId: 42,
+        formData: fd,
+        baseQueriesResponse: [{ data: [] }],
+      }),
+    { initialProps: { fd: formData } },
+  );
+
+  act(() => {
+    result.current.drillDown([{ col: 'country', op: '==', val: 'USA' }], 'USA');
+  });
+  await waitFor(() => {
+    expect(result.current.isLoading).toBe(false);
+  });
+  expect(result.current.drillStack).toHaveLength(1);
+
+  // Shortening the hierarchy (without changing viz type) must clear the stale
+  // stack, whose next dimension ('city') no longer exists.
+  rerender({ fd: { ...formData, drilldown_hierarchy: ['country', 'region'] } });
+
+  expect(result.current.drillStack).toHaveLength(0);
+  expect(result.current.isDrilling).toBe(false);
+});
+
+test('changing the x-axis (same viz type) clears persisted drill state', async () => {
+  const formData = {
+    ...baseFormData,
+    x_axis: 'country',
+    drilldown_hierarchy: ['country', 'region', 'city'],
+  };
+
+  const { result, rerender } = renderHook(
+    ({ fd }) =>
+      useDrillDownState({
+        chartId: 42,
+        formData: fd,
+        baseQueriesResponse: [{ data: [] }],
+      }),
+    { initialProps: { fd: formData } },
+  );
+
+  act(() => {
+    result.current.drillDown([{ col: 'country', op: '==', val: 'USA' }], 'USA');
+  });
+  await waitFor(() => {
+    expect(result.current.isLoading).toBe(false);
+  });
+  expect(result.current.drillStack).toHaveLength(1);
+
+  // Editing the primary dimension changes the drill anchor, so the stale stack
+  // must be cleared even though the viz type is unchanged.
+  rerender({
+    fd: {
+      ...formData,
+      x_axis: 'continent',
+      drilldown_hierarchy: ['continent', 'country', 'region'],
+    },
+  });
+
+  expect(result.current.drillStack).toHaveLength(0);
+  expect(result.current.isDrilling).toBe(false);
+});
+
+test('an empty-string leaf still applies its filter to effectiveFormData', () => {
+  const formData = {
+    ...baseFormData,
+    x_axis: 'country',
+    drilldown_hierarchy: ['country', 'region'],
+  };
+
+  const { result } = renderHook(() =>
+    useDrillDownState({
+      chartId: 42,
+      formData,
+      baseQueriesResponse: [{ data: [] }],
+    }),
+  );
+
+  act(() => {
+    result.current.drillDown([{ col: 'country', op: '==', val: 'USA' }], 'USA');
+  });
+  // Selecting an empty-string category at the deepest level is a valid leaf.
+  act(() => {
+    result.current.drillDown([{ col: 'region', op: '==', val: '' }], '');
+  });
+
+  expect(result.current.selectedLeaf).toBe('');
+  // The empty-string leaf filter must reach adhoc_filters; a truthiness check
+  // would have dropped it, diverging from the emitted cross-filter.
+  const adhoc = (result.current.effectiveFormData as Record<string, unknown>)
+    .adhoc_filters as { subject: unknown; comparator: unknown }[];
+  expect(
+    adhoc.some(f => f.subject === 'region' && f.comparator === ''),
+  ).toBe(true);
 });
 
 test('effectiveFormData narrows to the selected leaf at the deepest level', () => {
