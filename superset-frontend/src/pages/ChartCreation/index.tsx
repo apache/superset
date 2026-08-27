@@ -19,7 +19,13 @@
 import { ReactNode, useState, useEffect, useCallback, useMemo } from 'react';
 import rison from 'rison';
 import { t } from '@apache-superset/core/translation';
-import { isDefined, JsonResponse, SupersetClient } from '@superset-ui/core';
+import {
+  FeatureFlag,
+  isDefined,
+  isFeatureEnabled,
+  JsonResponse,
+  SupersetClient,
+} from '@superset-ui/core';
 import { styled, useTheme } from '@apache-superset/core/theme';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { FilterPlugins, URL_PARAMS } from 'src/constants';
@@ -29,6 +35,7 @@ import {
   Button,
   Loading,
   Steps,
+  Tag,
 } from '@superset-ui/core/components';
 import { propertyComparator } from '@superset-ui/core/components/Select/utils';
 import withToasts from 'src/components/MessageToasts/withToasts';
@@ -53,6 +60,29 @@ export interface ChartCreationProps {
   user: UserWithPermissionsAndRoles;
   addSuccessToast: (arg: string) => void;
 }
+
+type ExploreDatasourceType = 'table' | 'semantic_view';
+
+type ParentDisplay = {
+  database_name: string;
+};
+
+type DatasourceListItem = {
+  id: number | string;
+  table_name: string;
+  datasource_type?: string;
+  kind?: string;
+  source_type?: string;
+  database?: ParentDisplay | null;
+  schema?: string | null;
+};
+
+type DatasourceOption = {
+  id: number | string;
+  label: ReactNode;
+  value: string;
+  table_name: string;
+};
 
 const ESTIMATED_NAV_HEIGHT = 56;
 const ELEMENTS_EXCEPT_VIZ_GALLERY = ESTIMATED_NAV_HEIGHT + 250;
@@ -167,12 +197,75 @@ const StyledStepDescription = styled.div`
   `}
 `;
 
+const StyledDatasourceOption = styled.div`
+  ${({ theme }) => `
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: ${theme.sizeUnit * 2}px;
+    align-items: center;
+    width: 100%;
+  `}
+`;
+
+const getExploreDatasourceType = (
+  item: DatasourceListItem,
+): ExploreDatasourceType | null => {
+  if (item.kind === 'semantic_view') {
+    return 'semantic_view';
+  }
+  if (
+    item.kind === 'physical' ||
+    item.kind === 'virtual' ||
+    item.datasource_type === 'table'
+  ) {
+    return 'table';
+  }
+  return null;
+};
+
+const createDatasourceOption = (
+  item: DatasourceListItem,
+  showType: boolean,
+): DatasourceOption | null => {
+  const datasourceType = getExploreDatasourceType(item);
+  if (!datasourceType) {
+    return null;
+  }
+  const labelItem: Dataset = {
+    id: Number(item.id),
+    table_name: item.table_name,
+    datasource_type: datasourceType,
+    kind: item.kind,
+    schema: item.schema ?? '',
+    database: item.database ?? undefined,
+  };
+  const datasourceLabel = DatasetSelectLabel(labelItem);
+  const label = showType ? (
+    <StyledDatasourceOption>
+      {datasourceLabel}
+      <Tag>
+        {datasourceType === 'semantic_view' ? t('Semantic View') : t('Dataset')}
+      </Tag>
+    </StyledDatasourceOption>
+  ) : (
+    datasourceLabel
+  );
+
+  return {
+    id: item.id,
+    value: `${item.id}__${datasourceType}`,
+    label,
+    table_name: item.table_name,
+  };
+};
+
 export const ChartCreation = ({
   user,
   addSuccessToast,
 }: ChartCreationProps) => {
   const theme = useTheme();
   const history = useHistory();
+  const semanticLayersEnabled = isFeatureEnabled(FeatureFlag.SemanticLayers);
 
   const canCreateDataset = useMemo(
     () => findPermission('can_write', 'Dataset', user.roles),
@@ -184,9 +277,7 @@ export const ChartCreation = ({
     [],
   );
 
-  const [datasource, setDatasource] = useState<
-    { label: string | ReactNode; value: string } | undefined
-  >(undefined);
+  const [datasource, setDatasource] = useState<DatasourceOption | undefined>();
   const [vizType, setVizType] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(hasDatasetParam);
 
@@ -203,12 +294,9 @@ export const ChartCreation = ({
     history.push(exploreUrl());
   }, [history, exploreUrl]);
 
-  const changeDatasource = useCallback(
-    (newDatasource: { label: string | ReactNode; value: string }) => {
-      setDatasource(newDatasource);
-    },
-    [],
-  );
+  const changeDatasource = useCallback((newDatasource: DatasourceOption) => {
+    setDatasource(newDatasource);
+  }, []);
 
   const changeVizType = useCallback((newVizType: string | null) => {
     setVizType(newVizType);
@@ -225,7 +313,7 @@ export const ChartCreation = ({
     }
   }, [isBtnDisabled, gotoSlice]);
 
-  const loadDatasources = useCallback(
+  const loadDatasetOptions = useCallback(
     (search: string, page: number, pageSize: number, exactMatch = false) => {
       const query = rison.encode({
         columns: [
@@ -246,17 +334,9 @@ export const ChartCreation = ({
       return SupersetClient.get({
         endpoint: `/api/v1/dataset/?q=${query}`,
       }).then((response: JsonResponse) => {
-        const list: {
-          id: number;
-          label: string | ReactNode;
-          value: string;
-          table_name: string;
-        }[] = response.json.result.map((item: Dataset) => ({
-          id: item.id,
-          value: `${item.id}__${item.datasource_type}`,
-          label: DatasetSelectLabel(item),
-          table_name: item.table_name,
-        }));
+        const list = (response.json.result as DatasourceListItem[])
+          .map(item => createDatasourceOption(item, false))
+          .filter((item): item is DatasourceOption => item !== null);
         return {
           data: list,
           totalCount: response.json.count,
@@ -266,10 +346,37 @@ export const ChartCreation = ({
     [],
   );
 
+  const loadDatasources = useCallback(
+    (search: string, page: number, pageSize: number) => {
+      if (!semanticLayersEnabled) {
+        return loadDatasetOptions(search, page, pageSize);
+      }
+      const query = rison.encode({
+        filters: [{ col: 'table_name', opr: 'ct', value: search }],
+        page,
+        page_size: pageSize,
+        order_column: 'table_name',
+        order_direction: 'asc',
+      });
+      return SupersetClient.get({
+        endpoint: `/api/v1/datasource/?q=${query}`,
+      }).then((response: JsonResponse) => {
+        const list = (response.json.result as DatasourceListItem[])
+          .map(item => createDatasourceOption(item, true))
+          .filter((item): item is DatasourceOption => item !== null);
+        return {
+          data: list,
+          totalCount: response.json.count,
+        };
+      });
+    },
+    [loadDatasetOptions, semanticLayersEnabled],
+  );
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search).get('dataset');
     if (params) {
-      loadDatasources(params, 0, 1, true)
+      loadDatasetOptions(params, 0, 1, true)
         .then(r => {
           const newDatasource = r.data[0];
           setDatasource(newDatasource);
@@ -280,7 +387,7 @@ export const ChartCreation = ({
         });
       addSuccessToast(t('The dataset has been saved'));
     }
-  }, [loadDatasources, addSuccessToast]);
+  }, [loadDatasetOptions, addSuccessToast]);
 
   const isButtonDisabled = isBtnDisabled();
   const VIEW_INSTRUCTIONS_TEXT = t('view instructions');

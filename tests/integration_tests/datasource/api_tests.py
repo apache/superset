@@ -15,18 +15,24 @@
 # specific language governing permissions and limitations
 # under the License.
 
+import uuid
 from datetime import datetime
+from typing import cast
 from unittest.mock import ANY, patch
 
 import pytest
+from flask.wrappers import Response
+from flask_appbuilder.security.sqla.models import PermissionView, Role
 from sqlalchemy.sql.elements import TextClause
 
 from superset import db, security_manager
 from superset.connectors.sqla.models import SqlaTable
 from superset.daos.exceptions import DatasourceTypeNotSupportedError
 from superset.extensions import cache_manager
+from superset.semantic_layers.models import SemanticLayer, SemanticView
 from superset.utils import json
 from tests.integration_tests.base_tests import SupersetTestCase
+from tests.integration_tests.conftest import with_feature_flags
 from tests.integration_tests.constants import ADMIN_USERNAME, GAMMA_USERNAME
 
 
@@ -477,3 +483,99 @@ class TestDatasourceApi(SupersetTestCase):
         response = json.loads(rv.data.decode("utf-8"))
         assert response == {"count": 0, "result": []}
         run_mock.assert_called_once()
+
+
+class TestCombinedDatasourceApi(SupersetTestCase):
+    @with_feature_flags(SEMANTIC_LAYERS=True)
+    def test_combined_list_filters_semantic_views_for_gamma(self) -> None:
+        """Gamma receives granted semantic views without learning denied ones."""
+        suffix: str = uuid.uuid4().hex
+        permitted_layer: SemanticLayer = SemanticLayer(
+            uuid=uuid.uuid4(),
+            name=f"permitted_layer_{suffix}",
+            type="test",
+            configuration="{}",
+        )
+        denied_layer: SemanticLayer = SemanticLayer(
+            uuid=uuid.uuid4(),
+            name=f"denied_layer_{suffix}",
+            type="test",
+            configuration="{}",
+        )
+        permitted_view: SemanticView = SemanticView(
+            uuid=uuid.uuid4(),
+            name=f"permitted_view_{suffix}",
+            semantic_layer_uuid=permitted_layer.uuid,
+            configuration="{}",
+        )
+        denied_view: SemanticView = SemanticView(
+            uuid=uuid.uuid4(),
+            name=f"denied_view_{suffix}",
+            semantic_layer_uuid=denied_layer.uuid,
+            configuration="{}",
+        )
+        gamma_role: Role = security_manager.find_role("Gamma")
+        access_pvm: PermissionView | None = None
+        semantic_view_read_pvm: PermissionView | None = None
+        added_semantic_view_read: bool = False
+
+        try:
+            db.session.add_all(
+                [permitted_layer, denied_layer, permitted_view, denied_view]
+            )
+            db.session.commit()
+            db.session.refresh(permitted_layer)
+            db.session.refresh(denied_layer)
+            db.session.refresh(permitted_view)
+            db.session.refresh(denied_view)
+
+            assert permitted_layer.perm is not None
+            assert denied_layer.perm is not None
+            assert permitted_view.perm is not None
+            assert denied_view.perm is not None
+
+            access_pvm = security_manager.add_permission_view_menu(
+                "datasource_access", permitted_layer.perm
+            )
+            security_manager.add_permission_role(gamma_role, access_pvm)
+            semantic_view_read_pvm = security_manager.add_permission_view_menu(
+                "can_read", "SemanticView"
+            )
+            if semantic_view_read_pvm not in gamma_role.permissions:
+                security_manager.add_permission_role(gamma_role, semantic_view_read_pvm)
+                added_semantic_view_read = True
+            db.session.commit()
+
+            self.login(GAMMA_USERNAME)
+            assert security_manager.can_access("can_read", "SemanticView")
+            assert permitted_layer.perm in security_manager.user_view_menu_names(
+                "datasource_access"
+            )
+            assert denied_layer.perm not in security_manager.user_view_menu_names(
+                "datasource_access"
+            )
+            response: Response = self.client.get(
+                "api/v1/datasource/?q="
+                "(filters:!((col:source_type,opr:eq,value:semantic_layer)),"
+                "order_column:table_name,order_direction:asc,page:0,page_size:25)"
+            )
+            payload: dict[str, object] = json.loads(response.data.decode("utf-8"))
+            result: list[dict[str, object]] = cast(
+                list[dict[str, object]], payload["result"]
+            )
+            returned_names: set[str] = {str(item["table_name"]) for item in result}
+
+            assert response.status_code == 200
+            assert permitted_view.name in returned_names
+            assert denied_view.name not in returned_names
+        finally:
+            db.session.rollback()
+            if access_pvm is not None:
+                security_manager.del_permission_role(gamma_role, access_pvm)
+            if added_semantic_view_read and semantic_view_read_pvm is not None:
+                security_manager.del_permission_role(gamma_role, semantic_view_read_pvm)
+            db.session.delete(permitted_view)
+            db.session.delete(denied_view)
+            db.session.delete(permitted_layer)
+            db.session.delete(denied_layer)
+            db.session.commit()
