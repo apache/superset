@@ -46,7 +46,12 @@
  * `schema.description` itself.
  */
 import { useMemo, useRef, useState } from 'react';
-import type { ChangeEvent, ReactElement, ReactNode } from 'react';
+import type {
+  ChangeEvent,
+  KeyboardEvent,
+  ReactElement,
+  ReactNode,
+} from 'react';
 import { withJsonFormsControlProps } from '@jsonforms/react';
 import type { ControlProps, JsonSchema } from '@jsonforms/core';
 import {
@@ -57,6 +62,7 @@ import {
   scopeEndIs,
 } from '@jsonforms/core';
 import { t } from '@apache-superset/core/translation';
+import type { AdhocMetric as CoreAdhocMetric } from '@superset-ui/core';
 import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import {
   AsyncSelect,
@@ -82,8 +88,14 @@ import {
 } from 'src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/DatasetSelect';
 import {
   useDatasetMetadata,
+  type DatasetColumnMeta,
   type DatasetMetadata,
 } from 'src/core/dashboard/datasetMetadata';
+import {
+  fromCoreAdhocMetric,
+  isDictionaryForAdhocMetric,
+} from 'src/explore/components/controls/MetricControl/AdhocMetric';
+import AdhocMetricEditor from './AdhocMetricEditor';
 
 const xControlIs = (value: string) =>
   schemaMatches(
@@ -711,52 +723,271 @@ export function metricOptions(
 }
 
 /**
- * True when any of `values` isn't a plain saved-metric name known to
- * `metadata` — i.e. at least one entry is an ad-hoc aggregate object. When
- * true, `MetricMultiControl` drops to the raw JSON editor for the whole
- * field rather than a picker that can't represent every entry.
+ * True for a metric entry this control has no row to draw at all: neither a
+ * plain saved-metric-name string nor a structurally valid ad-hoc metric
+ * object — e.g. malformed data hand-authored through the JSON tab. Only
+ * this case still drops the *whole* field to the raw JSON editor; a
+ * well-formed mix of saved and ad-hoc entries renders as a mixed list
+ * instead (see `MetricEntryList`).
  */
-export function hasAdvancedMetric(
-  values: unknown[],
-  metadata: DatasetMetadata,
+export function isUnrepresentableMetric(value: unknown): boolean {
+  return typeof value !== 'string' && !isDictionaryForAdhocMetric(value);
+}
+
+/** Whether the bound dataset's own settings forbid ad-hoc metrics entirely
+ * (a dataset-level admin setting, not a per-field one) — read the same raw
+ * `extra` JSON the legacy metric editor reads it from. */
+export function disallowsAdhocMetrics(
+  metadata: DatasetMetadata | null,
 ): boolean {
-  const known = new Set(metadata.metrics.map(metric => metric.name));
-  return values.some(value => typeof value !== 'string' || !known.has(value));
+  if (!metadata?.extra) return false;
+  try {
+    return Boolean(
+      (JSON.parse(metadata.extra) as { disallow_adhoc_metrics?: boolean })
+        .disallow_adhoc_metrics,
+    );
+  } catch {
+    return false;
+  }
+}
+
+type MetricEntry = string | CoreAdhocMetric;
+
+/** A metric entry's own display label: a saved metric's verbose name (or
+ * its raw name if the dataset's metric list hasn't loaded/matched yet), or
+ * an ad-hoc metric's own label — computed the same way the legacy editor
+ * derives one (`(AVG)(price)`, etc.) when the author hasn't set a custom one. */
+function metricEntryLabel(
+  entry: MetricEntry,
+  metadata: DatasetMetadata | null,
+): ReactNode {
+  if (typeof entry === 'string') {
+    const known = metadata?.metrics.find(metric => metric.name === entry);
+    return known?.verboseName ?? entry;
+  }
+  return fromCoreAdhocMetric(entry).label;
+}
+
+/** Sentinel option value picked from the "Add field" select to start a new
+ * ad-hoc metric, distinct from any real saved-metric name. */
+const ADD_CUSTOM_METRIC = '__custom_metric__';
+
+/**
+ * An ordered list of metric references, each entry rendered by its own
+ * kind: a saved metric as a plain row (unchanged from `ReferenceMultiList`),
+ * an ad-hoc metric (SIMPLE or SQL) as a row whose label opens
+ * `AdhocMetricEditor` for just that entry. "Add field" offers both a saved
+ * metric to pick and, unless the dataset disallows it, a blank ad-hoc draft.
+ */
+function MetricEntryList({
+  label,
+  description,
+  values,
+  metadata,
+  columns,
+  datasourceId,
+  datasourceType,
+  disallowAdhoc,
+  disabled,
+  onChange,
+}: {
+  label: string;
+  description: string | undefined;
+  values: MetricEntry[];
+  metadata: DatasetMetadata | null;
+  columns: DatasetColumnMeta[];
+  datasourceId: number | undefined;
+  datasourceType: string | undefined;
+  disallowAdhoc: boolean;
+  disabled: boolean;
+  onChange: (next: MetricEntry[]) => void;
+}): ReactElement {
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [addingNew, setAddingNew] = useState(false);
+
+  const pickedSavedNames = values.filter(
+    (value): value is string => typeof value === 'string',
+  );
+  const availableSaved = metricOptions(metadata).filter(
+    option => !pickedSavedNames.includes(option.value),
+  );
+  const addOptions = [
+    ...availableSaved,
+    ...(disallowAdhoc
+      ? []
+      : [{ value: ADD_CUSTOM_METRIC, label: t('Custom metric…') }]),
+  ];
+
+  const move = (from: number, to: number) => {
+    const next = [...values];
+    const [moved] = next.splice(from, 1);
+    next.splice(to, 0, moved);
+    onChange(next);
+  };
+
+  return (
+    <Form.Item label={label} tooltip={description}>
+      <Flex vertical gap="small">
+        {values.map((value, index) => {
+          const isAdhoc = typeof value !== 'string';
+          const canEdit = isAdhoc && !disallowAdhoc;
+          const key =
+            typeof value === 'string'
+              ? value
+              : (value.optionName ?? `adhoc-${index}`);
+          // Event handlers only attached at all when `canEdit` — a static
+          // div with an onClick/onKeyDown regardless of role is what the
+          // a11y linter (rightly) objects to, not just a style choice.
+          const interactiveProps = canEdit
+            ? {
+                role: 'button' as const,
+                tabIndex: 0,
+                onClick: () => setEditingIndex(index),
+                onKeyDown: (event: KeyboardEvent<HTMLDivElement>) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    setEditingIndex(index);
+                  }
+                },
+              }
+            : {};
+          const rowLabel = (
+            <div
+              style={{
+                flex: 1,
+                minWidth: 0,
+                cursor: canEdit ? 'pointer' : 'default',
+              }}
+              {...interactiveProps}
+            >
+              <Flex align="center" gap="small">
+                <ColumnTypeLabel type="metric" />
+                {metricEntryLabel(value, metadata)}
+              </Flex>
+            </div>
+          );
+          return (
+            <Flex key={key} align="center" gap="small">
+              <Icons.HolderOutlined iconSize="s" />
+              {isAdhoc ? (
+                <AdhocMetricEditor
+                  value={value}
+                  columns={columns}
+                  datasourceId={datasourceId}
+                  datasourceType={datasourceType}
+                  open={editingIndex === index}
+                  onOpenChange={open => {
+                    // `Popover`'s own `trigger="click"` opens on any click to
+                    // its children regardless of what the row's own onClick
+                    // does — `canEdit` has to gate here too, or a disallowed
+                    // dataset's rows would still open on click.
+                    if (canEdit) setEditingIndex(open ? index : null);
+                  }}
+                  onSave={next => {
+                    const updated = [...values];
+                    updated[index] = next;
+                    onChange(updated);
+                  }}
+                >
+                  {rowLabel}
+                </AdhocMetricEditor>
+              ) : (
+                rowLabel
+              )}
+              <Button
+                buttonSize="xsmall"
+                buttonStyle="link"
+                aria-label={t('Move metric %s up', index + 1)}
+                disabled={index === 0}
+                icon={<Icons.UpOutlined iconSize="s" />}
+                onClick={() => move(index, index - 1)}
+              />
+              <Button
+                buttonSize="xsmall"
+                buttonStyle="link"
+                aria-label={t('Move metric %s down', index + 1)}
+                disabled={index === values.length - 1}
+                icon={<Icons.DownOutlined iconSize="s" />}
+                onClick={() => move(index, index + 1)}
+              />
+              <Button
+                buttonSize="xsmall"
+                buttonStyle="link"
+                aria-label={t('Remove metric %s', index + 1)}
+                icon={<Icons.CloseOutlined iconSize="s" />}
+                onClick={() => onChange(values.filter((_, i) => i !== index))}
+              />
+            </Flex>
+          );
+        })}
+        {addOptions.length > 0 && (
+          <Select
+            key={`${availableSaved.length}-${values.length}`}
+            value={null}
+            placeholder={t('Add field')}
+            ariaLabel={t('Add %s', label)}
+            options={addOptions}
+            disabled={disabled}
+            onChange={next => {
+              if (next === ADD_CUSTOM_METRIC) {
+                setAddingNew(true);
+              } else {
+                onChange([...values, next as string]);
+              }
+            }}
+          />
+        )}
+        {addingNew && (
+          <AdhocMetricEditor
+            value={undefined}
+            columns={columns}
+            datasourceId={datasourceId}
+            datasourceType={datasourceType}
+            open={addingNew}
+            onOpenChange={setAddingNew}
+            onSave={next => {
+              onChange([...values, next]);
+              setAddingNew(false);
+            }}
+          >
+            {/* Zero-size trigger: opening this popover is driven entirely
+                by picking "Custom metric…" above, not by a click here. */}
+            <span />
+          </AdhocMetricEditor>
+        )}
+      </Flex>
+    </Form.Item>
+  );
 }
 
 /**
  * `x-control: "metric-multi"` — an ordered list of metric references. Falls
  * back to the raw JSON editor (`CodeControl`) whenever no dataset is bound
- * (or its fetch failed), or an existing entry isn't expressible as a
- * saved-metric pick, e.g. an ad-hoc aggregate object authored through the
- * JSON tab.
+ * (or its fetch failed), or an entry is genuinely unrepresentable (see
+ * `isUnrepresentableMetric`); a well-formed mix of saved and ad-hoc metrics
+ * renders as `MetricEntryList`, not raw JSON.
  */
 function MetricMultiControl(props: ControlProps): ReactElement {
   const datasetId = useBoundDatasetId(props);
   const { metadata, loading, error } = useDatasetMetadata(datasetId);
   const values = Array.isArray(props.data) ? (props.data as unknown[]) : [];
+  const hasUnrepresentable = values.some(isUnrepresentableMetric);
 
-  // Before `metadata` loads, `hasAdvancedMetric` can't be run (it needs the
-  // dataset's saved-metric names), but a non-string entry (an ad-hoc
-  // aggregate object) still can't be handed to `ReferenceMultiList` — it
-  // isn't a string, so it can't be rendered as one. Fall back on the
-  // type check alone until metadata is available, then use the full check.
-  const isAdvanced = metadata
-    ? hasAdvancedMetric(values, metadata)
-    : values.some(value => typeof value !== 'string');
-
-  if (shouldFallBackToCode(datasetId, error) || isAdvanced) {
+  if (shouldFallBackToCode(datasetId, error) || hasUnrepresentable) {
     return <CodeControl {...props} />;
   }
 
   return (
-    <ReferenceMultiList
+    <MetricEntryList
       label={props.label}
       description={props.description}
-      values={values as string[]}
-      options={metricOptions(metadata)}
-      loading={loading}
-      disabled={!props.enabled}
+      values={values as MetricEntry[]}
+      metadata={metadata}
+      columns={metadata?.columns ?? []}
+      datasourceId={datasetId}
+      datasourceType={metadata?.datasourceType}
+      disallowAdhoc={disallowsAdhocMetrics(metadata)}
+      disabled={!props.enabled || loading}
       onChange={next => props.handleChange(props.path, next)}
     />
   );

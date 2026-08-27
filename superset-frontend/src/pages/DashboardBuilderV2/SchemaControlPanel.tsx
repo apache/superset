@@ -51,6 +51,11 @@ import { provider, useDashboardRevision } from 'src/core/dashboard/store';
 import { fetchQueryData } from 'src/core/dashboard/chartData';
 import { FormShell } from './PropsForm';
 import { schemaControlRenderers } from './schemaControlRenderers';
+import {
+  commitWidgetProps,
+  describeError,
+  type ControlValidationError,
+} from './controlValueValidation';
 
 type DataBindingSpec = dashboardApi.DataBindingSpec;
 type WidgetProps = Record<string, unknown>;
@@ -87,33 +92,6 @@ async function fetchControlSchema(
   return (json as { result: JsonSchema }).result;
 }
 
-/**
- * SupersetClient rejects a non-2xx response with the raw, unparsed `Response`
- * object rather than an `Error`, so a plain `String(e)` yields the useless
- * "[object Response]". Pull the actual `{message}`/`{errors:[...]}` body Superset
- * sends back (same shape `chartData.ts` handles).
- */
-async function describeError(e: unknown): Promise<string> {
-  if (typeof Response !== 'undefined' && e instanceof Response) {
-    try {
-      const body = await e.clone().json();
-      const detail =
-        body?.message ??
-        (Array.isArray(body?.errors)
-          ? body.errors
-              .map((err: { message?: string }) => err.message)
-              .join('; ')
-          : undefined);
-      return detail
-        ? `${e.status} ${e.statusText}: ${detail}`
-        : `${e.status} ${e.statusText}`;
-    } catch {
-      return `${e.status} ${e.statusText}`;
-    }
-  }
-  return e instanceof Error ? e.message : String(e);
-}
-
 /** True once a binding has enough to run a grouped query. */
 function canQuery(
   binding: DataBindingSpec | undefined,
@@ -146,6 +124,16 @@ export default function SchemaControlPanel({ nodeId }: { nodeId: string }) {
   const [series, setSeries] = useState<string[]>([]);
   const [schema, setSchema] = useState<JsonSchema | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [validationErrors, setValidationErrors] = useState<
+    ControlValidationError[]
+  >([]);
+  // Guards against an earlier, slower validation round-trip landing after a
+  // later one — e.g. two edits typed close together — and overwriting the
+  // more recent result with a stale one.
+  const validateSeqRef = useRef(0);
+  // A validation error belongs to the widget it was raised for; selecting a
+  // different one shouldn't leave a stale message on screen.
+  useEffect(() => setValidationErrors([]), [nodeId]);
 
   // Discover series once the binding has a grouping dimension; empty otherwise.
   // Only relevant to schemas that declare an x-dynamic field, but harmless for
@@ -250,14 +238,43 @@ export default function SchemaControlPanel({ nodeId }: { nodeId: string }) {
             config={{ formData: props }}
             onChange={({ data }) => {
               if (JSON.stringify(data) !== propsKey) {
-                // Our own edit — don't let the resync effect remount the form
-                // for it (that would drop input focus mid-typing).
-                selfEditRef.current = true;
-                provider.updateProps(nodeId, data as WidgetProps);
+                validateSeqRef.current += 1;
+                const seq = validateSeqRef.current;
+                commitWidgetProps(nodeId, widgetType, data as WidgetProps, {
+                  // Only fires once validation has already accepted the
+                  // candidate, immediately before the commit that changes
+                  // `propsKey` — so the resync effect never remounts the
+                  // form (and drops input focus) for an edit it made itself.
+                  onBeforeCommit: () => {
+                    selfEditRef.current = true;
+                  },
+                })
+                  .then(result => {
+                    if (validateSeqRef.current !== seq) return;
+                    setValidationErrors(result.ok ? [] : result.errors);
+                  })
+                  .catch(async e => {
+                    if (validateSeqRef.current !== seq) return;
+                    const message = await describeError(e);
+                    setValidationErrors([{ loc: [], message }]);
+                  });
               }
             }}
           />
         </FormShell>
+      )}
+      {validationErrors.length > 0 && (
+        <div data-test="schema-control-panel-validation-errors">
+          {validationErrors.map(err => (
+            <Typography.Text
+              key={`${err.loc.join('.')}:${err.message}`}
+              type="danger"
+            >
+              {err.loc.length > 0 ? `${err.loc.join('.')}: ` : ''}
+              {err.message}
+            </Typography.Text>
+          ))}
+        </div>
       )}
     </>
   );

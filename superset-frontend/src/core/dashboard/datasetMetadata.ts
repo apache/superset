@@ -32,6 +32,9 @@ import { GenericDataType } from '@apache-superset/core/common';
 export interface DatasetColumnMeta {
   name: string;
   type: GenericDataType | null;
+  /** A column's display name — falls back to `name` (its `column_name`)
+   * wherever unset, the same rule the backend's own `verbose_map` follows. */
+  verboseName: string;
 }
 
 export interface DatasetMetricMeta {
@@ -43,11 +46,19 @@ export interface DatasetMetadata {
   columns: DatasetColumnMeta[];
   metrics: DatasetMetricMeta[];
   tableName?: string;
+  /** e.g. `'table'` vs `'query'` — what an ad-hoc SQL metric's validation
+   * request needs alongside the dataset id to hit the right endpoint. */
+  datasourceType?: string;
+  /** Raw, unparsed dataset `extra` JSON (e.g. `disallow_adhoc_metrics`).
+   * Left as the raw string rather than parsed here since not every
+   * consumer needs it, matching how the legacy metric editor reads it. */
+  extra?: string | null;
 }
 
 interface RawDatasetColumn {
   column_name: string;
   type_generic?: GenericDataType | null;
+  verbose_name?: string | null;
 }
 
 interface RawDatasetMetric {
@@ -59,6 +70,8 @@ interface RawDatasetResult {
   columns?: RawDatasetColumn[];
   metrics?: RawDatasetMetric[];
   table_name?: string;
+  datasource_type?: string;
+  extra?: string | null;
 }
 
 const cache = new Map<number, Promise<DatasetMetadata>>();
@@ -83,12 +96,15 @@ export function fetchDatasetMetadata(
         columns: (result.columns ?? []).map(column => ({
           name: column.column_name,
           type: column.type_generic ?? null,
+          verboseName: column.verbose_name || column.column_name,
         })),
         metrics: (result.metrics ?? []).map(metric => ({
           name: metric.metric_name,
           verboseName: metric.verbose_name || metric.metric_name,
         })),
         tableName: result.table_name,
+        datasourceType: result.datasource_type,
+        extra: result.extra,
       };
     })
     .catch(error => {

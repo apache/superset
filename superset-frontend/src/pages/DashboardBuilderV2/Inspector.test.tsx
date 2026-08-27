@@ -22,6 +22,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from 'spec/helpers/testing-library';
 import { SupersetClient } from '@superset-ui/core';
 import DashboardProvider from 'src/core/dashboard/DashboardProvider';
@@ -45,9 +46,40 @@ jest.spyOn(SupersetClient, 'get').mockResolvedValue({
   },
 } as never);
 
+// A minimal backend schema for `metric-tile` (schema-controlled), so tests
+// below can exercise the validated form/JSON commit path without pulling in
+// the full real control model. `mockPost` routes `/control-schema` and
+// `/validate` calls separately, the same split `SchemaControlPanel.test.tsx`
+// uses, since both now round-trip through this panel on an edit.
+const METRIC_TILE_SCHEMA = {
+  type: 'object',
+  properties: {
+    prefix: { type: 'string', title: 'Prefix' },
+  },
+};
+
+const postSpy = jest.spyOn(SupersetClient, 'post');
+const mockPost = (
+  controlSchemaResult: unknown = METRIC_TILE_SCHEMA,
+  validateErrors: unknown[] = [],
+) => {
+  postSpy.mockImplementation(({ endpoint }: { endpoint: string }) => {
+    if (endpoint.endsWith('/validate')) {
+      return Promise.resolve({
+        json: { result: { errors: validateErrors } },
+      } as never);
+    }
+    return Promise.resolve({
+      json: { result: controlSchemaResult },
+    } as never);
+  });
+};
+
 beforeEach(() => {
   provider.reset();
   resetSchemaControlledWidgetTypesForTests();
+  postSpy.mockReset();
+  mockPost();
 });
 
 /**
@@ -58,6 +90,19 @@ beforeEach(() => {
 const openJson = async () => {
   await userEvent.click(screen.getByRole('tab', { name: 'JSON' }));
   return screen.findByTestId('inspector-props');
+};
+
+/**
+ * Placement is collapsed by default (see `Inspector.tsx`), and antd's
+ * `Collapse` doesn't mount an inactive panel's content — so every test that
+ * reads a placement field has to open it first, same as `openJson`/`openForm`
+ * for the Properties tabs.
+ */
+const expandPlacement = async () => {
+  await userEvent.click(screen.getByText('Placement'));
+  // antd's Collapse mounts a panel's content after its own open animation,
+  // not synchronously on click.
+  await screen.findByTestId('inspector-col');
 };
 
 const select = (type: string, props?: Record<string, unknown>) => {
@@ -377,16 +422,74 @@ test('the panel counts what is on the dashboard', () => {
   );
 });
 
-test('a child is asked where it starts', () => {
+test('a child is asked where it starts', async () => {
   const rootId = provider.getRoot().id;
   const childId = provider.addWidget(rootId, 0, { type: 'markdown' });
   provider.setSelection(childId);
   render(<Inspector />);
+  await expandPlacement();
 
   expect(screen.getByTestId('inspector-col')).toBeInTheDocument();
   expect(screen.getByTestId('inspector-row')).toBeInTheDocument();
   expect(screen.getByTestId('inspector-colSpan')).toBeInTheDocument();
   expect(screen.getByTestId('inspector-rowSpan')).toBeInTheDocument();
+});
+
+test('placement starts collapsed', () => {
+  const rootId = provider.getRoot().id;
+  const childId = provider.addWidget(rootId, 0, { type: 'markdown' });
+  provider.setSelection(childId);
+  render(<Inspector />);
+
+  expect(screen.getByText('Placement')).toBeInTheDocument();
+  expect(screen.queryByTestId('inspector-col')).not.toBeInTheDocument();
+});
+
+test('a placement slider without an explicit value sits where auto-placement would', async () => {
+  const rootId = provider.getRoot().id;
+  const childId = provider.addWidget(rootId, 0, { type: 'markdown' });
+  provider.setSelection(childId);
+  render(<Inspector />);
+  await expandPlacement();
+
+  // colSpan has no explicit value yet, so its handle shows the full-width
+  // position (the parent canvas's own default of 24 columns) rather than 1.
+  expect(
+    within(screen.getByTestId('inspector-colSpan')).getByRole('slider'),
+  ).toHaveAttribute('aria-valuenow', '24');
+  // col/row/rowSpan default to the first track instead.
+  expect(
+    within(screen.getByTestId('inspector-col')).getByRole('slider'),
+  ).toHaveAttribute('aria-valuenow', '1');
+});
+
+test('moving a placement slider writes the value to the layout', async () => {
+  const rootId = provider.getRoot().id;
+  const childId = provider.addWidget(rootId, 0, { type: 'markdown' });
+  provider.setSelection(childId);
+  render(<Inspector />);
+  await expandPlacement();
+
+  const handle = within(screen.getByTestId('inspector-rowSpan')).getByRole(
+    'slider',
+  );
+  // `fireEvent.focus` (not the raw DOM `.focus()`) so the resulting state
+  // update is wrapped in `act`, same as every other interaction here.
+  fireEvent.focus(handle);
+  // rc-slider's keyboard handling reads `which`/`keyCode` directly, which
+  // jsdom doesn't derive from `key` the way a real browser does.
+  const arrowRight = {
+    key: 'ArrowRight',
+    code: 'ArrowRight',
+    keyCode: 39,
+    which: 39,
+  };
+  fireEvent.keyDown(handle, arrowRight);
+  fireEvent.keyUp(handle, arrowRight);
+
+  await waitFor(() =>
+    expect(provider.getNode(childId)?.layout?.rowSpan).toBe(2),
+  );
 });
 
 test('a container is not offered any arrangement fields from the panel', () => {
@@ -402,5 +505,123 @@ test('a container is not offered any arrangement fields from the panel', () => {
     'rowUnit',
   ].forEach(key =>
     expect(screen.queryByTestId(`inspector-${key}`)).not.toBeInTheDocument(),
+  );
+});
+
+// A schema-controlled widget type (`metric-tile`) round-trips every edit —
+// form or JSON — through the backend `/validate` endpoint before committing
+// (see `controlValueValidation.ts`). These tests exercise that path
+// end-to-end through the Inspector, the way `SchemaControlPanel.test.tsx`
+// exercises the Form tab alone.
+test('a form edit updates both node.props and the JSON representation', async () => {
+  const id = select('metric-tile', {
+    dataBinding: { datasetId: 1, metrics: ['count'] },
+    prefix: '',
+  });
+
+  await userEvent.type(await screen.findByRole('textbox'), '$');
+  await waitFor(() => expect(provider.getNode(id)?.props?.prefix).toBe('$'));
+
+  const jsonTextarea = (await openJson()) as HTMLTextAreaElement;
+  expect(JSON.parse(jsonTextarea.value)).toEqual({
+    dataBinding: { datasetId: 1, metrics: ['count'] },
+    prefix: '$',
+  });
+});
+
+test('a valid JSON edit updates node.props and the form controls', async () => {
+  const id = select('metric-tile', {
+    dataBinding: { datasetId: 1, metrics: ['count'] },
+    prefix: '',
+  });
+  await openJson();
+
+  fireEvent.change(screen.getByTestId('inspector-props'), {
+    target: {
+      value: JSON.stringify({
+        dataBinding: { datasetId: 1, metrics: ['count'] },
+        prefix: '€',
+      }),
+    },
+  });
+  await userEvent.click(screen.getByTestId('inspector-props-apply'));
+  await waitFor(() => expect(provider.getNode(id)?.props?.prefix).toBe('€'));
+
+  await userEvent.click(screen.getByRole('tab', { name: 'Form' }));
+  expect(await screen.findByRole('textbox')).toHaveValue('€');
+});
+
+test('malformed JSON on a schema-controlled widget cannot be applied and leaves node.props untouched', async () => {
+  const id = select('metric-tile', {
+    dataBinding: { datasetId: 1, metrics: ['count'] },
+    prefix: 'kept',
+  });
+  await openJson();
+
+  fireEvent.change(screen.getByTestId('inspector-props'), {
+    target: { value: '{ "broken": ' },
+  });
+
+  expect(screen.getByTestId('inspector-props-apply')).toBeDisabled();
+  expect(provider.getNode(id)?.props?.prefix).toBe('kept');
+});
+
+test('a JSON edit rejected by backend validation leaves node.props unchanged and surfaces the error', async () => {
+  const id = select('metric-tile', {
+    dataBinding: { datasetId: 1, metrics: ['count'] },
+    prefix: 'kept',
+  });
+  await openJson();
+  mockPost(METRIC_TILE_SCHEMA, [{ loc: ['prefix'], message: 'Too long' }]);
+
+  fireEvent.change(screen.getByTestId('inspector-props'), {
+    target: {
+      value: JSON.stringify({
+        dataBinding: { datasetId: 1, metrics: ['count'] },
+        prefix: 'way too long',
+      }),
+    },
+  });
+  await userEvent.click(screen.getByTestId('inspector-props-apply'));
+
+  expect(
+    await screen.findByTestId('inspector-props-validation-error'),
+  ).toHaveTextContent('Too long');
+  // Rejected atomically: the stored node — and the draft, which was never
+  // reverted — are exactly what they were before Apply.
+  expect(provider.getNode(id)?.props?.prefix).toBe('kept');
+});
+
+test('switching between Form and JSON tabs does not reset already-accepted values', async () => {
+  const id = select('metric-tile', {
+    dataBinding: { datasetId: 1, metrics: ['count'] },
+    prefix: 'kept',
+  });
+
+  await openJson();
+  await userEvent.click(screen.getByRole('tab', { name: 'Form' }));
+
+  expect(await screen.findByRole('textbox')).toHaveValue('kept');
+  expect(provider.getNode(id)?.props?.prefix).toBe('kept');
+});
+
+test('a non-schema-controlled widget keeps committing JSON edits without a backend round-trip', async () => {
+  // `echarts` has no backend control schema, so there is no
+  // `Widget.validate_control_values` gate to reach — the JSON editor keeps
+  // its original, unvalidated commit behavior rather than silently skipping
+  // a validation it cannot actually perform.
+  const id = select('echarts', { title: 'Revenue' });
+  await openJson();
+
+  fireEvent.change(screen.getByTestId('inspector-props'), {
+    target: { value: '{"title":"Quarterly"}' },
+  });
+  await userEvent.click(screen.getByTestId('inspector-props-apply'));
+
+  expect(provider.getNode(id)?.props?.title).toBe('Quarterly');
+  expect(postSpy).not.toHaveBeenCalledWith(
+    expect.objectContaining({
+      endpoint: expect.stringContaining('/validate'),
+    }),
   );
 });

@@ -18,7 +18,8 @@
  */
 import {
   columnOptions,
-  hasAdvancedMetric,
+  disallowsAdhocMetrics,
+  isUnrepresentableMetric,
   metricOptions,
   resolveDatasetPick,
   seriesDefaults,
@@ -28,8 +29,8 @@ import {
 test('columnOptions filters by x-column-types when given', () => {
   const metadata = {
     columns: [
-      { name: 'region', type: 1 },
-      { name: 'sales', type: 0 },
+      { name: 'region', type: 1, verboseName: 'Region' },
+      { name: 'sales', type: 0, verboseName: 'Sales' },
     ],
     metrics: [],
   };
@@ -41,8 +42,8 @@ test('columnOptions filters by x-column-types when given', () => {
 test('columnOptions returns every column when no x-column-types hint is given', () => {
   const metadata = {
     columns: [
-      { name: 'region', type: 1 },
-      { name: 'sales', type: 0 },
+      { name: 'region', type: 1, verboseName: 'Region' },
+      { name: 'sales', type: 0, verboseName: 'Sales' },
     ],
     metrics: [],
   };
@@ -64,33 +65,54 @@ test("metricOptions lists the dataset's saved metrics by verbose name", () => {
   expect(metricOptions(metadata).map(o => o.value)).toEqual(['count']);
 });
 
-test('hasAdvancedMetric is false when every value is a known saved metric', () => {
-  const metadata = {
-    columns: [],
-    metrics: [{ name: 'count', verboseName: 'Count' }],
-  };
-  expect(hasAdvancedMetric(['count'], metadata)).toBe(false);
+test('isUnrepresentableMetric is false for a saved-metric-name string', () => {
+  expect(isUnrepresentableMetric('count')).toBe(false);
 });
 
-test('hasAdvancedMetric is true for an ad-hoc aggregate object', () => {
-  const metadata = {
-    columns: [],
-    metrics: [{ name: 'count', verboseName: 'Count' }],
-  };
+test('isUnrepresentableMetric is false for a structurally valid ad-hoc metric object', () => {
   expect(
-    hasAdvancedMetric(
-      [{ expressionType: 'SIMPLE', aggregate: 'SUM' }],
-      metadata,
-    ),
-  ).toBe(true);
+    isUnrepresentableMetric({ expressionType: 'SIMPLE', aggregate: 'SUM' }),
+  ).toBe(false);
+  expect(
+    isUnrepresentableMetric({
+      expressionType: 'SQL',
+      sqlExpression: 'COUNT(*)',
+    }),
+  ).toBe(false);
 });
 
-test('hasAdvancedMetric is true for a metric name the dataset does not have', () => {
-  const metadata = {
-    columns: [],
-    metrics: [{ name: 'count', verboseName: 'Count' }],
-  };
-  expect(hasAdvancedMetric(['unknown_metric'], metadata)).toBe(true);
+test('isUnrepresentableMetric is true for a value that is neither a string nor metric-shaped', () => {
+  expect(isUnrepresentableMetric(42)).toBe(true);
+  expect(isUnrepresentableMetric(null)).toBe(true);
+  expect(isUnrepresentableMetric(['not', 'a', 'metric'])).toBe(true);
+  expect(isUnrepresentableMetric({ unrelated: 'shape' })).toBe(true);
+});
+
+test('disallowsAdhocMetrics is false when metadata has no extra JSON', () => {
+  expect(disallowsAdhocMetrics({ columns: [], metrics: [] })).toBe(false);
+});
+
+test('disallowsAdhocMetrics reads the dataset extra JSON flag', () => {
+  expect(
+    disallowsAdhocMetrics({
+      columns: [],
+      metrics: [],
+      extra: '{"disallow_adhoc_metrics": true}',
+    }),
+  ).toBe(true);
+  expect(
+    disallowsAdhocMetrics({
+      columns: [],
+      metrics: [],
+      extra: '{"disallow_adhoc_metrics": false}',
+    }),
+  ).toBe(false);
+});
+
+test('disallowsAdhocMetrics fails open (false) on malformed extra JSON', () => {
+  expect(
+    disallowsAdhocMetrics({ columns: [], metrics: [], extra: 'not json' }),
+  ).toBe(false);
 });
 
 test('toDatasetSelectValue is undefined when no dataset is bound', () => {

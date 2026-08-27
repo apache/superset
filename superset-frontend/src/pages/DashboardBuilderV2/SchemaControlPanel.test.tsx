@@ -24,6 +24,7 @@ import {
   selectOption,
   userEvent,
   waitFor,
+  within,
 } from 'spec/helpers/testing-library';
 import DashboardProvider from 'src/core/dashboard/DashboardProvider';
 import 'src/core/dashboard';
@@ -76,10 +77,31 @@ const SCHEMA = {
 const postSpy = jest.spyOn(SupersetClient, 'post');
 const getSpy = jest.spyOn(SupersetClient, 'get');
 
+// A form/JSON edit now round-trips through the backend `/validate` endpoint
+// before it's committed (see `controlValueValidation.ts`), so every test
+// below that writes back through the form needs that call to resolve too —
+// not just the `/control-schema` fetch `postSpy` already stood in for.
+// Defaulting it to "valid" here keeps every pre-existing write-back
+// assertion working unchanged; tests that care about a rejection override
+// this per-endpoint behavior themselves.
+const mockPost = (
+  controlSchemaResult: unknown = SCHEMA,
+  validateErrors: unknown[] = [],
+) => {
+  postSpy.mockImplementation(({ endpoint }: { endpoint: string }) => {
+    if (endpoint.endsWith('/validate')) {
+      return Promise.resolve({
+        json: { result: { errors: validateErrors } },
+      } as never);
+    }
+    return Promise.resolve({ json: { result: controlSchemaResult } } as never);
+  });
+};
+
 beforeEach(() => {
   provider.reset();
   postSpy.mockReset();
-  postSpy.mockResolvedValue({ json: { result: SCHEMA } } as never);
+  mockPost();
   getSpy.mockReset();
   fetchQueryDataMock.mockReset();
   fetchQueryDataMock.mockResolvedValue({ columns: [], rows: [] });
@@ -126,6 +148,42 @@ test('posts the current props as control_values so dynamic fields can enrich', a
       }),
     }),
   );
+});
+
+test('a field edit round-trips through the backend /validate endpoint before it commits', async () => {
+  const id = mount('metric-tile', {
+    dataBinding: { datasetId: 1, metrics: ['count'] },
+    prefix: '',
+  });
+
+  await userEvent.type(await screen.findByRole('textbox'), '$');
+
+  await waitFor(() =>
+    expect(postSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        endpoint: '/api/v1/widgets/type/metric-tile/validate',
+        jsonPayload: {
+          control_values: expect.objectContaining({ prefix: '$' }),
+        },
+      }),
+    ),
+  );
+  await waitFor(() => expect(provider.getNode(id)?.props?.prefix).toBe('$'));
+});
+
+test('a field edit rejected by backend validation is not committed, and its error is shown', async () => {
+  const id = mount('metric-tile', {
+    dataBinding: { datasetId: 1, metrics: ['count'] },
+    prefix: 'kept',
+  });
+  await screen.findByRole('textbox');
+  mockPost(SCHEMA, [{ loc: ['prefix'], message: 'Too long' }]);
+
+  await userEvent.type(screen.getByRole('textbox'), 'x');
+
+  expect(await screen.findByText(/prefix: Too long/)).toBeInTheDocument();
+  // Rejected atomically: the node this panel reads from was never written to.
+  expect(provider.getNode(id)?.props?.prefix).toBe('kept');
 });
 
 test('discovers series from the color dimension (the last dimension by default), not the first', async () => {
@@ -188,20 +246,16 @@ test('renders a column picker for an x-control: "column" field and writes the pi
   // Named anything but `colorDimension`, which has its own, more specific
   // control (`ColorDimensionControl`) — this test is about the generic
   // `x-control: "column"` mechanism any other field can use.
-  postSpy.mockResolvedValue({
-    json: {
-      result: {
-        type: 'object',
-        properties: {
-          favoriteColumn: {
-            type: 'string',
-            title: 'Favorite column',
-            'x-control': 'column',
-          },
-        },
+  mockPost({
+    type: 'object',
+    properties: {
+      favoriteColumn: {
+        type: 'string',
+        title: 'Favorite column',
+        'x-control': 'column',
       },
     },
-  } as never);
+  });
   getSpy.mockResolvedValue({
     json: {
       result: {
@@ -239,9 +293,7 @@ const COLOR_DIMENSION_SCHEMA = {
 };
 
 test('colorDimension is disabled with an explanatory placeholder when nothing is grouped yet', async () => {
-  postSpy.mockResolvedValue({
-    json: { result: COLOR_DIMENSION_SCHEMA },
-  } as never);
+  mockPost(COLOR_DIMENSION_SCHEMA);
   getSpy.mockResolvedValue({
     json: {
       result: {
@@ -263,9 +315,7 @@ test('colorDimension is disabled with an explanatory placeholder when nothing is
 });
 
 test('colorDimension excludes dataset columns that are not grouped, and offers the ones that are', async () => {
-  postSpy.mockResolvedValue({
-    json: { result: COLOR_DIMENSION_SCHEMA },
-  } as never);
+  mockPost(COLOR_DIMENSION_SCHEMA);
   getSpy.mockResolvedValue({
     json: {
       result: {
@@ -305,20 +355,16 @@ test('colorDimension excludes dataset columns that are not grouped, and offers t
 });
 
 test('renders an ordered column-multi list for an x-control: "column-multi" field, and picking one writes the array back', async () => {
-  postSpy.mockResolvedValue({
-    json: {
-      result: {
-        type: 'object',
-        properties: {
-          dimensions: {
-            type: 'array',
-            title: 'Dimensions',
-            'x-control': 'column-multi',
-          },
-        },
+  mockPost({
+    type: 'object',
+    properties: {
+      dimensions: {
+        type: 'array',
+        title: 'Dimensions',
+        'x-control': 'column-multi',
       },
     },
-  } as never);
+  });
   getSpy.mockResolvedValue({
     json: {
       result: {
@@ -344,20 +390,16 @@ test('renders an ordered column-multi list for an x-control: "column-multi" fiel
 });
 
 test('the column-multi add-picker resets to its placeholder after a pick, rather than echoing the just-added entry', async () => {
-  postSpy.mockResolvedValue({
-    json: {
-      result: {
-        type: 'object',
-        properties: {
-          dimensions: {
-            type: 'array',
-            title: 'Dimensions',
-            'x-control': 'column-multi',
-          },
-        },
+  mockPost({
+    type: 'object',
+    properties: {
+      dimensions: {
+        type: 'array',
+        title: 'Dimensions',
+        'x-control': 'column-multi',
       },
     },
-  } as never);
+  });
   getSpy.mockResolvedValue({
     json: {
       result: {
@@ -393,20 +435,16 @@ test('the column-multi add-picker resets to its placeholder after a pick, rather
 // balloons by default (`BalloonsWidget`'s own fallback) — so reordering
 // needs a keyboard path, not only the drag handle.
 test('a column-multi entry can be moved up or down, with the boundary buttons disabled at the ends', async () => {
-  postSpy.mockResolvedValue({
-    json: {
-      result: {
-        type: 'object',
-        properties: {
-          dimensions: {
-            type: 'array',
-            title: 'Dimensions',
-            'x-control': 'column-multi',
-          },
-        },
+  mockPost({
+    type: 'object',
+    properties: {
+      dimensions: {
+        type: 'array',
+        title: 'Dimensions',
+        'x-control': 'column-multi',
       },
     },
-  } as never);
+  });
   getSpy.mockResolvedValue({
     json: {
       result: {
@@ -442,20 +480,16 @@ test('a column-multi entry can be moved up or down, with the boundary buttons di
 });
 
 test('renders a metric picker for an x-control: "metric-multi" field and writes the pick back', async () => {
-  postSpy.mockResolvedValue({
-    json: {
-      result: {
-        type: 'object',
-        properties: {
-          metrics: {
-            type: 'array',
-            title: 'Metrics',
-            'x-control': 'metric-multi',
-          },
-        },
+  mockPost({
+    type: 'object',
+    properties: {
+      metrics: {
+        type: 'array',
+        title: 'Metrics',
+        'x-control': 'metric-multi',
       },
     },
-  } as never);
+  });
   getSpy.mockResolvedValue({
     json: {
       result: {
@@ -476,22 +510,18 @@ test('renders a metric picker for an x-control: "metric-multi" field and writes 
 });
 
 test('renders a combobox — not a bare number input — for a datasetId field, matched by name rather than an x-control hint', async () => {
-  postSpy.mockResolvedValue({
-    json: {
-      result: {
+  mockPost({
+    type: 'object',
+    properties: { dataBinding: { $ref: '#/$defs/DataBinding' } },
+    $defs: {
+      DataBinding: {
         type: 'object',
-        properties: { dataBinding: { $ref: '#/$defs/DataBinding' } },
-        $defs: {
-          DataBinding: {
-            type: 'object',
-            properties: {
-              datasetId: { type: 'integer', title: 'Dataset ID' },
-            },
-          },
+        properties: {
+          datasetId: { type: 'integer', title: 'Dataset ID' },
         },
       },
     },
-  } as never);
+  });
   getSpy.mockResolvedValue({ json: { result: {} } } as never);
 
   mount('balloons', { dataBinding: { datasetId: 1 } });
@@ -507,22 +537,18 @@ test("resolves the bound dataset's own name for the picker label, not just its n
   // array — freezes `value` at whatever it was on first render, so the
   // label would be stuck on the raw numeric id forever once the real name
   // arrives from `useDatasetMetadata`.
-  postSpy.mockResolvedValue({
-    json: {
-      result: {
+  mockPost({
+    type: 'object',
+    properties: { dataBinding: { $ref: '#/$defs/DataBinding' } },
+    $defs: {
+      DataBinding: {
         type: 'object',
-        properties: { dataBinding: { $ref: '#/$defs/DataBinding' } },
-        $defs: {
-          DataBinding: {
-            type: 'object',
-            properties: {
-              datasetId: { type: 'integer', title: 'Dataset ID' },
-            },
-          },
+        properties: {
+          datasetId: { type: 'integer', title: 'Dataset ID' },
         },
       },
     },
-  } as never);
+  });
   getSpy.mockResolvedValue({
     json: { result: { table_name: 'sales' } },
   } as never);
@@ -535,22 +561,18 @@ test("resolves the bound dataset's own name for the picker label, not just its n
 });
 
 test('picking a dataset writes its id back into dataBinding.datasetId', async () => {
-  postSpy.mockResolvedValue({
-    json: {
-      result: {
+  mockPost({
+    type: 'object',
+    properties: { dataBinding: { $ref: '#/$defs/DataBinding' } },
+    $defs: {
+      DataBinding: {
         type: 'object',
-        properties: { dataBinding: { $ref: '#/$defs/DataBinding' } },
-        $defs: {
-          DataBinding: {
-            type: 'object',
-            properties: {
-              datasetId: { type: 'integer', title: 'Dataset ID' },
-            },
-          },
+        properties: {
+          datasetId: { type: 'integer', title: 'Dataset ID' },
         },
       },
     },
-  } as never);
+  });
   // Nothing bound yet, so the aria-label stays the plain "Dataset ID" until
   // the pick below — which is what makes it safe to target by that fixed
   // name — but a successful pick immediately binds `datasetId: 9`, and
@@ -576,22 +598,18 @@ test('picking a dataset writes its id back into dataBinding.datasetId', async ()
 });
 
 test('never offers a semantic view as a dataset pick — datasetId has no way to represent one', async () => {
-  postSpy.mockResolvedValue({
-    json: {
-      result: {
+  mockPost({
+    type: 'object',
+    properties: { dataBinding: { $ref: '#/$defs/DataBinding' } },
+    $defs: {
+      DataBinding: {
         type: 'object',
-        properties: { dataBinding: { $ref: '#/$defs/DataBinding' } },
-        $defs: {
-          DataBinding: {
-            type: 'object',
-            properties: {
-              datasetId: { type: 'integer', title: 'Dataset ID' },
-            },
-          },
+        properties: {
+          datasetId: { type: 'integer', title: 'Dataset ID' },
         },
       },
     },
-  } as never);
+  });
   loadDatasetOptionsMock.mockResolvedValue({
     data: [
       {
@@ -614,21 +632,17 @@ test('never offers a semantic view as a dataset pick — datasetId has no way to
   expect(screen.queryByText('a semantic view')).not.toBeInTheDocument();
 });
 
-test('falls back to the raw JSON editor when an existing metric entry is an ad-hoc aggregate', async () => {
-  postSpy.mockResolvedValue({
-    json: {
-      result: {
-        type: 'object',
-        properties: {
-          metrics: {
-            type: 'array',
-            title: 'Metrics',
-            'x-control': 'metric-multi',
-          },
-        },
+test('an existing ad-hoc aggregate metric renders as its own editable row, not a whole-field JSON fallback', async () => {
+  mockPost({
+    type: 'object',
+    properties: {
+      metrics: {
+        type: 'array',
+        title: 'Metrics',
+        'x-control': 'metric-multi',
       },
     },
-  } as never);
+  });
   getSpy.mockResolvedValue({
     json: {
       result: {
@@ -650,26 +664,258 @@ test('falls back to the raw JSON editor when an existing metric entry is an ad-h
   });
 
   expect(await screen.findByText('Metrics')).toBeInTheDocument();
-  // The raw JSON editor renders a textarea, not a Select — its absence
-  // confirms the fallback fired instead of the picker.
-  expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
+  // The ad-hoc entry's own computed label, not a raw JSON textarea — proof
+  // the mixed list rendered instead of the whole-field CodeControl fallback.
+  const row = await screen.findByText('SUM(sales)');
+  // Never opened yet — antd's Popover doesn't mount `content` before its
+  // first open (only stays mounted-but-hidden after that).
+  expect(screen.queryByTestId('adhoc-metric-editor')).not.toBeInTheDocument();
+
+  await userEvent.click(row);
+
+  expect(await screen.findByTestId('adhoc-metric-editor')).toBeInTheDocument();
 });
 
-test('falls back to the raw JSON editor when a column value is not a string', async () => {
-  postSpy.mockResolvedValue({
+test('editing an ad-hoc metric through the popover updates the stored value and closes it', async () => {
+  mockPost({
+    type: 'object',
+    properties: {
+      metrics: {
+        type: 'array',
+        title: 'Metrics',
+        'x-control': 'metric-multi',
+      },
+    },
+  });
+  getSpy.mockResolvedValue({
     json: {
       result: {
-        type: 'object',
-        properties: {
-          colorDimension: {
-            type: 'string',
-            title: 'Color dimension',
-            'x-control': 'column',
-          },
-        },
+        columns: [{ column_name: 'sales', verbose_name: 'Sales' }],
+        metrics: [{ metric_name: 'count', verbose_name: 'Count' }],
       },
     },
   } as never);
+
+  const id = mount('balloons', {
+    dataBinding: { datasetId: 1 },
+    metrics: [
+      {
+        expressionType: 'SIMPLE',
+        column: { column_name: 'sales' },
+        aggregate: 'SUM',
+      },
+    ],
+  });
+
+  await userEvent.click(await screen.findByText('SUM(sales)'));
+  await screen.findByTestId('adhoc-metric-editor');
+
+  await selectOption('AVG', 'Aggregate');
+  await userEvent.click(screen.getByTestId('adhoc-metric-editor-save'));
+
+  await waitFor(() => {
+    const metrics = provider.getNode(id)?.props?.metrics as Record<
+      string,
+      unknown
+    >[];
+    expect(metrics[0]).toMatchObject({
+      expressionType: 'SIMPLE',
+      aggregate: 'AVG',
+    });
+  });
+  // A successful save changes `node.props`, which remounts the whole
+  // JsonForms tree (SchemaControlPanel's external-edit resync effect) — the
+  // popover isn't just closed, its mount is gone entirely.
+  expect(screen.queryByTestId('adhoc-metric-editor')).not.toBeInTheDocument();
+});
+
+test('adding a custom metric opens a blank editor and appends the saved value', async () => {
+  mockPost({
+    type: 'object',
+    properties: {
+      metrics: {
+        type: 'array',
+        title: 'Metrics',
+        'x-control': 'metric-multi',
+      },
+    },
+  });
+  getSpy.mockResolvedValue({
+    json: {
+      result: {
+        columns: [{ column_name: 'sales', verbose_name: 'Sales' }],
+        metrics: [{ metric_name: 'count', verbose_name: 'Count' }],
+      },
+    },
+  } as never);
+
+  const id = mount('balloons', { dataBinding: { datasetId: 1 }, metrics: [] });
+
+  await screen.findByText('Metrics');
+  await selectOption('Custom metric…', 'Add Metrics');
+  const editor = await screen.findByTestId('adhoc-metric-editor');
+
+  // Not `selectOption` here: its `.rc-virtual-list` lookup grabs whichever
+  // dropdown is first in the DOM, and the "Add Metrics" select above stays
+  // mounted (hidden) after its own dropdown has already been opened once —
+  // querying by the picked option's own (page-unique) text sidesteps that.
+  await userEvent.click(
+    within(editor).getByRole('combobox', { name: 'Column' }),
+  );
+  await userEvent.click(await screen.findByText('Sales'));
+  await userEvent.click(
+    within(editor).getByRole('combobox', { name: 'Aggregate' }),
+  );
+  await userEvent.click(await screen.findByText('SUM'));
+  await userEvent.click(screen.getByTestId('adhoc-metric-editor-save'));
+
+  await waitFor(() => {
+    const metrics = provider.getNode(id)?.props?.metrics as Record<
+      string,
+      unknown
+    >[];
+    expect(metrics).toHaveLength(1);
+    expect(metrics[0]).toMatchObject({
+      expressionType: 'SIMPLE',
+      aggregate: 'SUM',
+      column: { column_name: 'sales' },
+    });
+  });
+});
+
+test('cancelling an ad-hoc metric edit leaves the stored value unchanged', async () => {
+  mockPost({
+    type: 'object',
+    properties: {
+      metrics: {
+        type: 'array',
+        title: 'Metrics',
+        'x-control': 'metric-multi',
+      },
+    },
+  });
+  getSpy.mockResolvedValue({
+    json: {
+      result: {
+        columns: [{ column_name: 'sales', verbose_name: 'Sales' }],
+        metrics: [],
+      },
+    },
+  } as never);
+
+  const id = mount('balloons', {
+    dataBinding: { datasetId: 1 },
+    metrics: [
+      {
+        expressionType: 'SIMPLE',
+        column: { column_name: 'sales' },
+        aggregate: 'SUM',
+      },
+    ],
+  });
+
+  await userEvent.click(await screen.findByText('SUM(sales)'));
+  await selectOption('AVG', 'Aggregate');
+  await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+
+  // antd's Popover keeps `content` mounted (hidden via CSS) rather than
+  // unmounting it when closed, so "closed" is a visibility check, not
+  // presence.
+  expect(screen.getByTestId('adhoc-metric-editor')).not.toBeVisible();
+  const metrics = provider.getNode(id)?.props?.metrics as Record<
+    string,
+    unknown
+  >[];
+  expect(metrics[0]).toMatchObject({ aggregate: 'SUM' });
+});
+
+test('a dataset that disallows ad-hoc metrics disables editing an existing ad-hoc entry', async () => {
+  mockPost({
+    type: 'object',
+    properties: {
+      metrics: {
+        type: 'array',
+        title: 'Metrics',
+        'x-control': 'metric-multi',
+      },
+    },
+  });
+  getSpy.mockResolvedValue({
+    json: {
+      result: {
+        columns: [],
+        metrics: [{ metric_name: 'count', verbose_name: 'Count' }],
+        extra: '{"disallow_adhoc_metrics": true}',
+      },
+    },
+  } as never);
+
+  mount('balloons', {
+    dataBinding: { datasetId: 1 },
+    metrics: [
+      {
+        expressionType: 'SIMPLE',
+        column: { column_name: 'sales' },
+        aggregate: 'SUM',
+      },
+    ],
+  });
+
+  const row = await screen.findByText('SUM(sales)');
+  await userEvent.click(row);
+
+  // The click never opened it — the popover is never even mounted, not
+  // merely hidden — since `canEdit` is false for a disallowed dataset.
+  expect(screen.queryByTestId('adhoc-metric-editor')).not.toBeInTheDocument();
+});
+
+test('a mixed list of a saved metric and an ad-hoc metric renders both as separate rows', async () => {
+  mockPost({
+    type: 'object',
+    properties: {
+      metrics: {
+        type: 'array',
+        title: 'Metrics',
+        'x-control': 'metric-multi',
+      },
+    },
+  });
+  getSpy.mockResolvedValue({
+    json: {
+      result: {
+        columns: [],
+        metrics: [{ metric_name: 'count', verbose_name: 'Count' }],
+      },
+    },
+  } as never);
+
+  mount('balloons', {
+    dataBinding: { datasetId: 1 },
+    metrics: [
+      'count',
+      {
+        expressionType: 'SIMPLE',
+        column: { column_name: 'sales' },
+        aggregate: 'SUM',
+      },
+    ],
+  });
+
+  expect(await screen.findByText('Count')).toBeInTheDocument();
+  expect(await screen.findByText('SUM(sales)')).toBeInTheDocument();
+});
+
+test('falls back to the raw JSON editor when a column value is not a string', async () => {
+  mockPost({
+    type: 'object',
+    properties: {
+      colorDimension: {
+        type: 'string',
+        title: 'Color dimension',
+        'x-control': 'column',
+      },
+    },
+  });
   getSpy.mockResolvedValue({
     json: {
       result: {
@@ -692,20 +938,16 @@ test('falls back to the raw JSON editor when a column value is not a string', as
 });
 
 test('falls back to the raw JSON editor when a column-multi entry is not a string', async () => {
-  postSpy.mockResolvedValue({
-    json: {
-      result: {
-        type: 'object',
-        properties: {
-          dimensions: {
-            type: 'array',
-            title: 'Dimensions',
-            'x-control': 'column-multi',
-          },
-        },
+  mockPost({
+    type: 'object',
+    properties: {
+      dimensions: {
+        type: 'array',
+        title: 'Dimensions',
+        'x-control': 'column-multi',
       },
     },
-  } as never);
+  });
   getSpy.mockResolvedValue({
     json: {
       result: {
@@ -725,20 +967,16 @@ test('falls back to the raw JSON editor when a column-multi entry is not a strin
 });
 
 test('falls back to the raw JSON editor when no dataset is bound yet', async () => {
-  postSpy.mockResolvedValue({
-    json: {
-      result: {
-        type: 'object',
-        properties: {
-          dimensions: {
-            type: 'array',
-            title: 'Dimensions',
-            'x-control': 'column-multi',
-          },
-        },
+  mockPost({
+    type: 'object',
+    properties: {
+      dimensions: {
+        type: 'array',
+        title: 'Dimensions',
+        'x-control': 'column-multi',
       },
     },
-  } as never);
+  });
 
   mount('balloons', { dataBinding: {} });
 
@@ -750,20 +988,16 @@ test('falls back to the raw JSON editor when no dataset is bound yet', async () 
 });
 
 test('falls back to the raw JSON editor when the dataset metadata fetch fails', async () => {
-  postSpy.mockResolvedValue({
-    json: {
-      result: {
-        type: 'object',
-        properties: {
-          colorDimension: {
-            type: 'string',
-            title: 'Color dimension',
-            'x-control': 'column',
-          },
-        },
+  mockPost({
+    type: 'object',
+    properties: {
+      colorDimension: {
+        type: 'string',
+        title: 'Color dimension',
+        'x-control': 'column',
       },
     },
-  } as never);
+  });
   getSpy.mockRejectedValue(new Error('network error'));
 
   mount('balloons', { dataBinding: { datasetId: 1, metrics: ['count'] } });
@@ -780,39 +1014,35 @@ test('falls back to the raw JSON editor when the dataset metadata fetch fails', 
 });
 
 test('the real balloons schema shape (dataBinding nested under $defs) renders pickers for dimensions, metrics, and colorDimension', async () => {
-  postSpy.mockResolvedValue({
-    json: {
-      result: {
+  mockPost({
+    type: 'object',
+    properties: {
+      dataBinding: { $ref: '#/$defs/DataBinding' },
+      colorDimension: {
+        type: 'string',
+        title: 'Color dimension',
+        'x-control': 'column',
+      },
+    },
+    $defs: {
+      DataBinding: {
         type: 'object',
         properties: {
-          dataBinding: { $ref: '#/$defs/DataBinding' },
-          colorDimension: {
-            type: 'string',
-            title: 'Color dimension',
-            'x-control': 'column',
+          datasetId: { type: 'integer', title: 'Dataset ID' },
+          metrics: {
+            type: 'array',
+            title: 'Metrics',
+            'x-control': 'metric-multi',
           },
-        },
-        $defs: {
-          DataBinding: {
-            type: 'object',
-            properties: {
-              datasetId: { type: 'integer', title: 'Dataset ID' },
-              metrics: {
-                type: 'array',
-                title: 'Metrics',
-                'x-control': 'metric-multi',
-              },
-              dimensions: {
-                type: 'array',
-                title: 'Dimensions',
-                'x-control': 'column-multi',
-              },
-            },
+          dimensions: {
+            type: 'array',
+            title: 'Dimensions',
+            'x-control': 'column-multi',
           },
         },
       },
     },
-  } as never);
+  });
   getSpy.mockResolvedValue({
     json: {
       result: {
@@ -917,9 +1147,7 @@ const BOY_GIRL_PROPERTIES = {
 };
 
 test('an x-dynamic series field with no discovered series yet explains why, instead of an empty group', async () => {
-  postSpy.mockResolvedValue({
-    json: { result: seriesSchema({}) },
-  } as never);
+  mockPost(seriesSchema({}));
 
   mount('balloons', {});
 
@@ -931,9 +1159,7 @@ test('an x-dynamic series field with no discovered series yet explains why, inst
 });
 
 test('a populated x-dynamic series field renders collapsed with a customized count, not one group per entry', async () => {
-  postSpy.mockResolvedValue({
-    json: { result: seriesSchema(BOY_GIRL_PROPERTIES) },
-  } as never);
+  mockPost(seriesSchema(BOY_GIRL_PROPERTIES));
 
   mount('balloons', {});
 
@@ -946,9 +1172,7 @@ test('a populated x-dynamic series field renders collapsed with a customized cou
 });
 
 test('picking a series from the overrides picker writes its palette-defaulted style back', async () => {
-  postSpy.mockResolvedValue({
-    json: { result: seriesSchema(BOY_GIRL_PROPERTIES) },
-  } as never);
+  mockPost(seriesSchema(BOY_GIRL_PROPERTIES));
 
   const id = mount('balloons', {});
 
@@ -971,9 +1195,7 @@ test('picking a series from the overrides picker writes its palette-defaulted st
 });
 
 test('resetting a customized series removes it from customize.series entirely', async () => {
-  postSpy.mockResolvedValue({
-    json: { result: seriesSchema(BOY_GIRL_PROPERTIES) },
-  } as never);
+  mockPost(seriesSchema(BOY_GIRL_PROPERTIES));
 
   const id = mount('balloons', {
     customize: { series: { boy: { color: '#123456', sizeScale: 2 } } },
@@ -994,9 +1216,7 @@ test('resetting a customized series removes it from customize.series entirely', 
 });
 
 test('editing a customized series size scale writes the new value back', async () => {
-  postSpy.mockResolvedValue({
-    json: { result: seriesSchema(BOY_GIRL_PROPERTIES) },
-  } as never);
+  mockPost(seriesSchema(BOY_GIRL_PROPERTIES));
 
   const id = mount('balloons', {
     customize: { series: { boy: { color: '#e74c3c', sizeScale: 1 } } },
@@ -1017,9 +1237,7 @@ test('editing a customized series size scale writes the new value back', async (
 });
 
 test('a customized series exposes an accessibly-labeled color trigger', async () => {
-  postSpy.mockResolvedValue({
-    json: { result: seriesSchema(BOY_GIRL_PROPERTIES) },
-  } as never);
+  mockPost(seriesSchema(BOY_GIRL_PROPERTIES));
 
   mount('balloons', {
     customize: { series: { boy: { color: '#e74c3c', sizeScale: 1 } } },
@@ -1037,20 +1255,16 @@ test('a customized series exposes an accessibly-labeled color trigger', async ()
 // controls; antd's hover behavior is that library's own concern, not this
 // file's.
 test('a field with a backend-authored description offers a tooltip on its picker', async () => {
-  postSpy.mockResolvedValue({
-    json: {
-      result: {
-        type: 'object',
-        properties: {
-          datasetId: {
-            type: 'integer',
-            title: 'Dataset ID',
-            description: 'Numeric id of the dataset to query.',
-          },
-        },
+  mockPost({
+    type: 'object',
+    properties: {
+      datasetId: {
+        type: 'integer',
+        title: 'Dataset ID',
+        description: 'Numeric id of the dataset to query.',
       },
     },
-  } as never);
+  });
 
   mount('balloons', {});
 
@@ -1059,21 +1273,17 @@ test('a field with a backend-authored description offers a tooltip on its picker
 });
 
 test('a field with a backend-authored description offers a tooltip even while it is falling back to the raw JSON editor', async () => {
-  postSpy.mockResolvedValue({
-    json: {
-      result: {
-        type: 'object',
-        properties: {
-          dimensions: {
-            type: 'array',
-            title: 'Dimensions',
-            'x-control': 'column-multi',
-            description: 'Columns to group by (the categories / series).',
-          },
-        },
+  mockPost({
+    type: 'object',
+    properties: {
+      dimensions: {
+        type: 'array',
+        title: 'Dimensions',
+        'x-control': 'column-multi',
+        description: 'Columns to group by (the categories / series).',
       },
     },
-  } as never);
+  });
 
   // No dataset bound, so this falls back to `CodeControl` — the description
   // must still carry through that fallback path, not only the picker.
@@ -1106,9 +1316,7 @@ const seriesSchemaWithDescription = (properties: Record<string, unknown>) => ({
 });
 
 test("an x-dynamic series field's own description reaches its tooltip in the empty state", async () => {
-  postSpy.mockResolvedValue({
-    json: { result: seriesSchemaWithDescription({}) },
-  } as never);
+  mockPost(seriesSchemaWithDescription({}));
 
   mount('balloons', {});
 
@@ -1117,9 +1325,7 @@ test("an x-dynamic series field's own description reaches its tooltip in the emp
 });
 
 test("an x-dynamic series field's own description reaches its tooltip in the populated state", async () => {
-  postSpy.mockResolvedValue({
-    json: { result: seriesSchemaWithDescription(BOY_GIRL_PROPERTIES) },
-  } as never);
+  mockPost(seriesSchemaWithDescription(BOY_GIRL_PROPERTIES));
 
   mount('balloons', {});
 

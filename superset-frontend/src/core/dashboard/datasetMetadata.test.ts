@@ -36,10 +36,12 @@ test('parses columns and metrics from the dataset GET response', async () => {
     json: {
       result: {
         columns: [
-          { column_name: 'region', type_generic: 1 },
+          { column_name: 'region', type_generic: 1, verbose_name: 'Region' },
           { column_name: 'sales_amount', type_generic: 0 },
         ],
         metrics: [{ metric_name: 'count', verbose_name: 'Count' }],
+        datasource_type: 'table',
+        extra: '{"disallow_adhoc_metrics": true}',
       },
     },
   } as never);
@@ -47,10 +49,12 @@ test('parses columns and metrics from the dataset GET response', async () => {
   const metadata = await fetchDatasetMetadata(1);
 
   expect(metadata.columns).toEqual([
-    { name: 'region', type: 1 },
-    { name: 'sales_amount', type: 0 },
+    { name: 'region', type: 1, verboseName: 'Region' },
+    { name: 'sales_amount', type: 0, verboseName: 'sales_amount' },
   ]);
   expect(metadata.metrics).toEqual([{ name: 'count', verboseName: 'Count' }]);
+  expect(metadata.datasourceType).toBe('table');
+  expect(metadata.extra).toBe('{"disallow_adhoc_metrics": true}');
   expect(getSpy).toHaveBeenCalledWith(
     expect.objectContaining({ endpoint: '/api/v1/dataset/1' }),
   );
@@ -64,6 +68,20 @@ test('falls back to metric_name when verbose_name is blank', async () => {
   const metadata = await fetchDatasetMetadata(2);
 
   expect(metadata.metrics).toEqual([{ name: 'count', verboseName: 'count' }]);
+});
+
+test('falls back to column_name when a column verbose_name is blank', async () => {
+  getSpy.mockResolvedValue({
+    json: {
+      result: { columns: [{ column_name: 'region', verbose_name: '' }] },
+    },
+  } as never);
+
+  const metadata = await fetchDatasetMetadata(7);
+
+  expect(metadata.columns).toEqual([
+    { name: 'region', type: null, verboseName: 'region' },
+  ]);
 });
 
 test("parses the dataset's own name from the GET response", async () => {

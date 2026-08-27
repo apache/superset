@@ -152,9 +152,25 @@ export const FormShell = styled.div`
       text-align: left;
     }
 
-    .ant-flex-justify-center,
+    .ant-flex-justify-center {
+      justify-content: flex-start;
+    }
+
+    /* A bounded number's own slider-plus-figure pair (NumericSliderControl)
+       lays its two halves in an antd Row with no gutter and neither column
+       padded: nothing between them, so the slider's track ran flush against
+       the box reading it (closed by the Row's own \`gap\`), and nothing
+       before the slider's own handle either, which at its lowest value sat
+       flush against the row's left edge — the field's own start, not a gap
+       between siblings, so it's closed on the slider's column specifically
+       rather than by widening the Row's padding generally. */
     .ant-form-item-control-input-content > .ant-row {
       justify-content: flex-start;
+      gap: ${theme.sizeUnit * 2}px;
+
+      > .ant-col:first-child {
+        padding-left: ${theme.sizeUnit}px;
+      }
     }
 
     /* At the rail's own control height, like every button beside it. */
