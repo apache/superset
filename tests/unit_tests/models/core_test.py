@@ -2299,12 +2299,6 @@ def test_prequery_listener_mutation_race_deterministic(
 
 
 def test_function_names_returns_engine_spec_functions(mocker: MockerFixture) -> None:
-    """Story 105824: ``Database.function_names`` delegates to the engine spec.
-
-    The list feeds SQL Lab autocomplete. The spec receives the database itself, so
-    engines that need a connection to answer (Presto runs ``SHOW FUNCTIONS``) can
-    open one.
-    """
     database = Database(database_name="db", sqlalchemy_uri="sqlite://")
     spec = mocker.MagicMock()
     spec.get_function_names.return_value = ["abs", "avg", "cardinality"]
@@ -2317,18 +2311,6 @@ def test_function_names_returns_engine_spec_functions(mocker: MockerFixture) -> 
 def test_function_names_returns_empty_list_when_engine_spec_raises(
     mocker: MockerFixture,
 ) -> None:
-    """Story 105824: this property is where "handles connection errors gracefully"
-    actually lives — one layer above the engine specs.
-
-    Engine specs are free to propagate: Presto's ``get_function_names`` is a single
-    line with no error handling. The broad ``except`` here is deliberate, and the
-    code comment cites issue #9678 — the property is used in bulk APIs and must not
-    hard crash. A database that is down or unreachable must cost the user
-    autocomplete, not the whole API response.
-
-    The failure is logged rather than swallowed silently, so an operator can still
-    see why autocomplete is empty.
-    """
     database = Database(database_name="db", sqlalchemy_uri="sqlite://")
     spec = mocker.MagicMock()
     spec.get_function_names.side_effect = Exception("Connection refused")

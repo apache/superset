@@ -48,10 +48,6 @@ from tests.unit_tests.db_engine_specs.utils import (
     "target_type,dttm,expected_result",
     [
         ("VARCHAR", datetime(2022, 1, 1), None),
-        # Reachable for real: ``jinja_context.py`` calls this with
-        # ``target_type or ""`` when no column type is known. Both unmapped and
-        # empty types must return ``None`` — every caller branches on that
-        # (``if sql:``) rather than on an exception.
         ("", datetime(2022, 1, 1), None),
         ("DATE", datetime(2022, 1, 1), "DATE '2022-01-01'"),
         (
@@ -82,18 +78,6 @@ def test_convert_dttm(
 
 
 def test_convert_dttm_presto_spec_truncates_to_milliseconds() -> None:
-    """Story 105826: ``PrestoEngineSpec.convert_dttm`` renders TIMESTAMP literals
-    with **millisecond** precision, discarding anything finer.
-
-    ``PrestoEngineSpec.convert_dttm`` deliberately overrides
-    ``PrestoBaseEngineSpec.convert_dttm``, which uses microseconds. Nothing pinned
-    that distinction before, and it is the only silent-failure mode in this file: a
-    malformed or wrong-precision literal produces a *valid* query returning the
-    wrong rows, with no error. A refactor collapsing the two methods would shift
-    every Presto timestamp filter's precision without breaking a single test.
-
-    The 123 trailing microseconds below are dropped, not rounded.
-    """
     from superset.db_engine_specs.presto import PrestoEngineSpec
 
     assert PrestoEngineSpec.convert_dttm(
@@ -102,13 +86,6 @@ def test_convert_dttm_presto_spec_truncates_to_milliseconds() -> None:
 
 
 def test_convert_dttm_base_spec_keeps_microseconds() -> None:
-    """Story 105826: ``PrestoBaseEngineSpec.convert_dttm`` — shared with Trino and
-    the Hive family — keeps **microsecond** precision.
-
-    The other half of the override documented in
-    ``test_convert_dttm_presto_spec_truncates_to_milliseconds``. Same input, same
-    target type, six fractional digits instead of three.
-    """
     from superset.db_engine_specs.presto import PrestoBaseEngineSpec
 
     assert PrestoBaseEngineSpec.convert_dttm(
@@ -126,21 +103,12 @@ def test_convert_dttm_base_spec_keeps_microseconds() -> None:
         ("integer", types.Integer, None, GenericDataType.NUMERIC, False),
         ("time", types.Time, None, GenericDataType.TEMPORAL, True),
         ("timestamp", types.TIMESTAMP, None, GenericDataType.TEMPORAL, True),
-        # Story 105826 — the rest of ``column_type_mappings``. A column mapped to
-        # the wrong generic type is not aggregatable, gets the wrong filter widget
-        # and the wrong chart axis, so every row in the mapping needs an assertion.
         ("boolean", types.BOOLEAN, None, GenericDataType.BOOLEAN, False),
-        # ``TinyInteger`` is the only genuinely custom numeric type here; it
-        # subclasses ``Integer``, so this asserts the specific class, not the base.
         ("tinyint", TinyInteger, None, GenericDataType.NUMERIC, False),
         ("smallint", types.SmallInteger, None, GenericDataType.NUMERIC, False),
         ("bigint", types.BigInteger, None, GenericDataType.NUMERIC, False),
-        # ``^real.*`` and ``^double.*`` both map to a bare ``FLOAT()``.
         ("real", types.FLOAT, None, GenericDataType.NUMERIC, False),
         ("double", types.FLOAT, None, GenericDataType.NUMERIC, False),
-        # Precision and scale are DISCARDED: the mapping returns a bare
-        # ``DECIMAL()`` regardless of what the native type declared. Pinned
-        # deliberately — contrast ``varchar(255)`` above, where length survives.
         (
             "decimal(10,2)",
             types.DECIMAL,
@@ -152,8 +120,6 @@ def test_convert_dttm_base_spec_keeps_microseconds() -> None:
         ("json", types.JSON, None, GenericDataType.STRING, False),
         ("date", types.Date, None, GenericDataType.TEMPORAL, True),
         ("interval year to month", Interval, None, GenericDataType.TEMPORAL, True),
-        # Nested types keep their custom classes but are treated as STRING, which
-        # is what lets the results grid render them at all.
         ("array(varchar)", Array, None, GenericDataType.STRING, False),
         ("map(varchar, integer)", Map, None, GenericDataType.STRING, False),
         ("row(a varchar, b integer)", Row, None, GenericDataType.STRING, False),
@@ -205,18 +171,6 @@ def test_get_schema_from_engine_params() -> None:
     ],
 )
 def test_schema_survives_engine_params_round_trip(schema: str) -> None:
-    """Story 105827: a schema name survives being written into the SQLAlchemy URI
-    and read back out.
-
-    Presto encodes the schema into the URI path as ``catalog/schema``, so
-    ``adjust_engine_params`` percent-quotes it with ``safe=""`` and
-    ``get_schema_from_engine_params`` unquotes it. Any asymmetry between those two
-    silently points SQL Lab at the wrong schema — and a schema containing ``/``
-    would otherwise split the path and be read back as a different name entirely.
-
-    Round-tripping is the assertion that matters here; testing either half alone
-    would not catch a mismatched pair.
-    """
     from superset.db_engine_specs.presto import PrestoEngineSpec
 
     uri, _connect_args = PrestoEngineSpec.adjust_engine_params(
@@ -229,14 +183,6 @@ def test_schema_survives_engine_params_round_trip(schema: str) -> None:
 
 
 def test_get_catalog_names_lists_catalogs() -> None:
-    """Story 105827: the catalog dropdown.
-
-    Presto is multi-catalog, unlike most engines, so this override exists at all.
-    The integration suite has a ``test_get_catalog_names`` but it returns early
-    unless the example database is Presto — and it asserts against a *list* while
-    the method returns a *set*, so it would fail if it ever actually ran. This is
-    the first real coverage of the method.
-    """
     from superset.db_engine_specs.presto import PrestoEngineSpec
 
     inspector = mock.MagicMock()
@@ -250,16 +196,6 @@ def test_get_catalog_names_lists_catalogs() -> None:
 
 
 def test_get_view_names_queries_information_schema_with_schema() -> None:
-    """Unit-suite mirror of presto_tests.py::test_get_view_names_with_schema (L41).
-
-    pyhive's Presto dialect does not implement ``get_view_names`` at all, so
-    Superset hand-rolls this ``information_schema`` query. If it breaks, views
-    vanish from the dataset picker.
-
-    Asserts the SQL body *and* the params: only the schema branch parameterises.
-    The integration original is intentionally retained: it proves the same
-    expectations against a live app and metadata database, which this test does not.
-    """
     from superset.db_engine_specs.presto import PrestoEngineSpec
 
     database = mock.MagicMock()
@@ -282,12 +218,6 @@ def test_get_view_names_queries_information_schema_with_schema() -> None:
 
 
 def test_get_view_names_queries_information_schema_without_schema() -> None:
-    """Unit-suite mirror of
-    presto_tests.py::test_get_view_names_without_schema (L63).
-
-    No schema means no ``table_schema`` predicate and empty params — a different
-    SQL body, not the same query with a null parameter.
-    """
     from superset.db_engine_specs.presto import PrestoEngineSpec
 
     database = mock.MagicMock()
@@ -309,7 +239,6 @@ def test_get_view_names_queries_information_schema_without_schema() -> None:
 
 
 def test_get_view_names_returns_empty_set_when_no_views() -> None:
-    """Story 105827: a schema with no views yields an empty set, not ``None``."""
     from superset.db_engine_specs.presto import PrestoEngineSpec
 
     database = mock.MagicMock()
@@ -319,17 +248,6 @@ def test_get_view_names_returns_empty_set_when_no_views() -> None:
 
 
 def test_get_view_names_propagates_driver_error() -> None:
-    """Story 105827: ``get_view_names`` does not swallow driver errors.
-
-    Whatever the reason the query fails — the schema was dropped, or the user lacks
-    permission on ``information_schema`` — the exception surfaces. Nothing in the
-    engine spec converts it, and for Presto the caller's
-    ``get_dbapi_mapped_exception`` is a pass-through, since Presto overrides
-    neither ``get_dbapi_exception_mapping`` nor ``parse_error_exception``.
-
-    This replaces the ticket's "permission denied is handled gracefully"
-    criterion, which describes handling that does not exist anywhere in this path.
-    """
     from pyhive.exc import DatabaseError
 
     from superset.db_engine_specs.presto import PrestoEngineSpec
@@ -344,13 +262,6 @@ def test_get_view_names_propagates_driver_error() -> None:
 
 
 def test_get_table_names_subtracts_views() -> None:
-    """Story 105822: the whole reason this override exists.
-
-    pyhive's dialect wrongly reports views as tables, so Presto's
-    ``get_table_names`` subtracts the view names from what the inspector returned.
-    If either side of that subtraction breaks, users report duplicated entries or
-    missing tables.
-    """
     from superset.db_engine_specs.presto import PrestoEngineSpec
 
     inspector = mock.MagicMock()
@@ -367,9 +278,6 @@ def test_get_table_names_subtracts_views() -> None:
 
 
 def test_get_table_names_returns_empty_set_for_empty_schema() -> None:
-    """Story 105827: an empty schema yields an empty set from both sides of the
-    subtraction.
-    """
     from superset.db_engine_specs.presto import PrestoEngineSpec
 
     inspector = mock.MagicMock()
@@ -381,12 +289,6 @@ def test_get_table_names_returns_empty_set_for_empty_schema() -> None:
 
 
 def test_get_create_view_returns_view_definition() -> None:
-    """Unit-suite mirror of presto_tests.py::test_get_create_view (L963).
-
-    Despite the name it does not *generate* DDL — it runs ``SHOW CREATE VIEW`` and
-    returns row 0, column 0, which is what the UI shows in the view-definition
-    panel.
-    """
     from superset.db_engine_specs.presto import PrestoEngineSpec
 
     database = mock.MagicMock()
@@ -408,10 +310,6 @@ def test_get_create_view_returns_view_definition() -> None:
             "SHOW CREATE VIEW analytics.daily_users",
             id="schema_qualified",
         ),
-        # Schema and table are interpolated into the SQL string, not passed as
-        # bound parameters. Pinned so the interpolation is visible: these values
-        # reach this method from the metadata database, not from user input, but
-        # any change to that assumption changes the risk.
         pytest.param(
             "s",
             'v" OR 1=1',
@@ -425,7 +323,6 @@ def test_get_create_view_interpolates_schema_qualified_name(
     table: str,
     expected_sql: str,
 ) -> None:
-    """Story 105822: the statement is built from a schema-qualified name."""
     from superset.db_engine_specs.presto import PrestoEngineSpec
 
     database = mock.MagicMock()
@@ -438,12 +335,6 @@ def test_get_create_view_interpolates_schema_qualified_name(
 
 
 def test_get_create_view_returns_none_for_non_view() -> None:
-    """Unit-suite mirror of
-    presto_tests.py::test_get_create_view_database_error (L985).
-
-    ``SHOW CREATE VIEW`` on a real table raises ``DatabaseError``, which is caught
-    and reported as "not a view" rather than surfacing as an error.
-    """
     from pyhive.exc import DatabaseError
 
     from superset.db_engine_specs.presto import PrestoEngineSpec
@@ -456,12 +347,6 @@ def test_get_create_view_returns_none_for_non_view() -> None:
 
 
 def test_get_create_view_propagates_other_errors() -> None:
-    """Unit-suite mirror of presto_tests.py::test_get_create_view_exception (L976).
-
-    Only ``DatabaseError`` means "not a view". Anything else — a dropped
-    connection, an auth failure — propagates rather than being misreported as a
-    missing view definition.
-    """
     from superset.db_engine_specs.presto import PrestoEngineSpec
 
     database = mock.MagicMock()
@@ -785,9 +670,6 @@ def test_extract_errors_maps_401_to_access_denied() -> None:
             "Table 'default.foo' does not exist",
             {},
             "TABLE_DOES_NOT_EXIST_ERROR",
-            # The regex captures the surrounding single quotes, so the rendered
-            # message doubles up the quoting. Pinned as-is: this is what a user
-            # sees today, and changing it is a product decision, not a test fix.
             "The table \"'default.foo'\" does not exist. "
             "A valid table must be used to run this query.",
             id="table_does_not_exist",
@@ -851,24 +733,6 @@ def test_extract_errors_matches_all_custom_error_patterns(
     expected_error_type: str,
     expected_message: str,
 ) -> None:
-    """Story 105825: every pattern in ``PrestoEngineSpec.custom_errors`` maps a raw
-    driver message to a typed, user-readable error.
-
-    These nine regexes are the difference between an actionable message and a raw
-    pyhive string in a red toast. Before this test only the HTTP 401 pattern was
-    covered, so a typo in any of the other eight shipped silently — invisible until
-    a user hit that exact error.
-
-    ``context`` is not optional for the four patterns whose message templates
-    reference placeholders their regex never captures; see
-    ``test_extract_errors_raises_key_error_without_context``.
-
-    Asserts ``error_type`` and the rendered message only — never whole-``extra``
-    equality, because ``extract_errors`` mutates the class-level ``custom_errors``
-    dicts in place (``base.py`` writes ``extra["engine_name"]``, and
-    ``SupersetError.__post_init__`` adds ``issue_codes``), which makes any
-    whole-dict assertion order-dependent.
-    """
     from superset.db_engine_specs.presto import PrestoEngineSpec
     from superset.errors import ErrorLevel, SupersetErrorType
 
@@ -910,19 +774,6 @@ def test_extract_errors_raises_key_error_without_context(
     raw_message: str,
     missing_placeholder: str,
 ) -> None:
-    """Story 105825 — CHARACTERIZATION test, not an endorsement of this behaviour.
-
-    Four of the nine patterns declare message placeholders their own regex never
-    captures, so ``base.extract_errors`` builds ``params`` without them and the
-    eager-``gettext`` ``str % dict`` raises ``KeyError``. Callers that omit
-    ``context`` therefore get a ``KeyError`` instead of a typed Superset error.
-
-    This is pinned as current behaviour so a future fix is a deliberate, visible
-    change rather than an accident. If these connection errors should degrade
-    gracefully instead — returning a typed error rather than raising — then
-    this test inverts and the four patterns move into the matrix above with an
-    empty context.
-    """
     from superset.db_engine_specs.presto import PrestoEngineSpec
 
     with pytest.raises(KeyError, match=missing_placeholder):
@@ -930,15 +781,6 @@ def test_extract_errors_raises_key_error_without_context(
 
 
 def test_extract_errors_returns_first_matching_pattern() -> None:
-    """Story 105825: ``extract_errors`` returns on the first matching regex.
-
-    ``custom_errors`` is iterated in insertion order, after any
-    ``CUSTOM_DATABASE_ERRORS`` config entries, and the loop returns as soon as one
-    regex matches. A message satisfying two patterns therefore resolves to
-    whichever is declared first — ``COLUMN_DOES_NOT_EXIST_REGEX`` here, not
-    ``TABLE_DOES_NOT_EXIST_REGEX``. Pinning this makes reordering the dict a
-    visible behaviour change rather than a silent one.
-    """
     from superset.db_engine_specs.presto import PrestoEngineSpec
     from superset.errors import SupersetErrorType
 
@@ -950,12 +792,6 @@ def test_extract_errors_returns_first_matching_pattern() -> None:
 
 
 def test_extract_errors_falls_back_to_generic_error() -> None:
-    """Unit-suite mirror of presto_tests.py::test_extract_errors (L1020).
-
-    A message matching none of the nine patterns falls through to
-    ``GENERIC_DB_ENGINE_ERROR`` carrying the raw text. The integration original is
-    intentionally retained; this mirror only removes the app/DB fixture requirement.
-    """
     from superset.db_engine_specs.presto import PrestoEngineSpec
     from superset.errors import ErrorLevel, SupersetErrorType
 
@@ -976,12 +812,6 @@ def test_extract_errors_falls_back_to_generic_error() -> None:
 
 
 def test_extract_error_message_from_orig_database_error() -> None:
-    """Unit-suite mirror of presto_tests.py::test_extract_error_message_orig (L998).
-
-    Branch 1 of three: a SQLAlchemy wrapper exposing the driver error via ``.orig``,
-    whose first element is Presto's error dict. Without this the user would see
-    ``<object at 0x...>`` instead of the server's own diagnosis.
-    """
     from collections import namedtuple
 
     from superset.db_engine_specs.presto import PrestoEngineSpec
@@ -997,12 +827,6 @@ def test_extract_error_message_from_orig_database_error() -> None:
 
 
 def test_extract_error_message_from_database_error_args() -> None:
-    """Unit-suite mirror of
-    presto_tests.py::test_extract_error_message_db_error (L1008).
-
-    Branch 2 of three: pyhive raises ``DatabaseError`` with the error dict as its
-    first arg.
-    """
     from pyhive.exc import DatabaseError
 
     from superset.db_engine_specs.presto import PrestoEngineSpec
@@ -1013,14 +837,6 @@ def test_extract_error_message_from_database_error_args() -> None:
 
 
 def test_extract_error_message_from_database_error_without_message() -> None:
-    """Story 105825: a ``DatabaseError`` whose dict carries no ``message`` key
-    degrades to a fixed string rather than raising.
-
-    This is the "malformed error responses are handled gracefully" criterion — the
-    one branch of ``_extract_error_message`` with no coverage in either suite.
-    ``_`` is ``lazy_gettext``, so the return value is a ``LazyString`` and must be
-    coerced before comparison.
-    """
     from pyhive.exc import DatabaseError
 
     from superset.db_engine_specs.presto import PrestoEngineSpec
@@ -1033,12 +849,6 @@ def test_extract_error_message_from_database_error_without_message() -> None:
 
 
 def test_extract_error_message_from_general_exception() -> None:
-    """Unit-suite mirror of
-    presto_tests.py::test_extract_error_message_general_exception (L1015).
-
-    Branch 3 of three: anything else falls back to
-    ``utils.error_msg_from_exception``.
-    """
     from superset.db_engine_specs.presto import PrestoEngineSpec
 
     assert (
@@ -1048,15 +858,6 @@ def test_extract_error_message_from_general_exception() -> None:
 
 
 def test_expand_data_returns_input_untouched_when_flag_disabled() -> None:
-    """Story 105870: with ``PRESTO_EXPAND_DATA`` off, the inputs come back as they
-    went in and nothing is expanded.
-
-    This is the path almost every deployment takes: the flag defaults to ``False``
-    and is documented in ``config.py`` as "Experimental, doesn't work with all
-    nested types", lifecycle ``development``. It was also completely untested,
-    which is worth fixing first — a regression here would switch nested-column
-    expansion on for everyone.
-    """
     from superset.db_engine_specs.presto import PrestoEngineSpec
 
     columns: list[ResultSetColumnType] = [
@@ -1082,17 +883,6 @@ def test_expand_data_returns_input_untouched_when_flag_disabled() -> None:
     clear=True,
 )
 def test_expand_data_flattens_deeply_nested_row_columns() -> None:
-    """Story 105870: five levels of nested ``ROW`` terminate and flatten correctly.
-
-    The ticket asks for this to "complete without recursion errors", but
-    ``expand_data`` is **iterative** — a ``deque`` with a ``while`` loop — so
-    ``RecursionError`` cannot occur and that assertion would pass vacuously. What
-    is worth asserting is termination plus correctness, which is what this does.
-
-    The exact column list is asserted rather than just its length, so a future
-    change in breadth — the real risk here, along with the O(n^2) de-duplication
-    check on each iteration — trips this test instead of passing silently.
-    """
     from superset.db_engine_specs.presto import PrestoEngineSpec
 
     columns: list[ResultSetColumnType] = [
@@ -1129,21 +919,6 @@ def test_expand_data_flattens_deeply_nested_row_columns() -> None:
     clear=True,
 )
 def test_expand_data_raises_on_malformed_json_in_array_column() -> None:
-    """Story 105870 — CHARACTERIZATION test. This asserts a bug, deliberately.
-
-    ``destringify`` is ``json.loads`` with no ``try/except`` (``result_set.py``),
-    so a nested column whose value is not valid JSON raises out of ``expand_data``
-    rather than passing through. Via simplejson the exception is a
-    ``JSONDecodeError``, which subclasses ``ValueError``.
-
-    The ticket asks for "graceful pass-through rather than uncaught exception" —
-    that describes a fix which has not been written. Rather than blocking the
-    story, current behaviour is pinned here and in the ROW-branch test below. When
-    the companion fix ticket lands, both invert; that inversion should be an
-    acceptance criterion on the fix, not tribal knowledge.
-
-    No ``xfail`` — that would silently mask the gap.
-    """
     from superset.db_engine_specs.presto import PrestoEngineSpec
 
     columns: list[ResultSetColumnType] = [
@@ -1165,11 +940,6 @@ def test_expand_data_raises_on_malformed_json_in_array_column() -> None:
     clear=True,
 )
 def test_expand_data_raises_on_malformed_json_in_row_column() -> None:
-    """Story 105870 — CHARACTERIZATION test, the second unguarded ``destringify``.
-
-    There are two call sites, not one: the ARRAY branch and the ROW branch. A fix
-    that guards only the first would leave this path crashing, so both are pinned.
-    """
     from superset.db_engine_specs.presto import PrestoEngineSpec
 
     columns: list[ResultSetColumnType] = [
@@ -1186,13 +956,6 @@ def test_expand_data_raises_on_malformed_json_in_row_column() -> None:
 
 
 def test_get_function_names_lists_presto_functions() -> None:
-    """Story 105824: SQL Lab autocomplete.
-
-    The implementation is a single line — ``SHOW FUNCTIONS`` into a DataFrame,
-    ``["Function"].tolist()`` out — with no error handling and no de-duplication.
-    Worth stating plainly: if this returns nothing, users type function names by
-    hand and nothing else breaks. It is the lowest-impact method in the file.
-    """
     from superset.db_engine_specs.presto import PrestoEngineSpec
 
     database = mock.MagicMock()
@@ -1209,12 +972,6 @@ def test_get_function_names_lists_presto_functions() -> None:
 
 
 def test_get_function_names_returns_empty_list_for_no_functions() -> None:
-    """Story 105824: a well-formed but empty result yields an empty list.
-
-    "Handles an empty function list" is ambiguous in the ticket, and the two
-    readings behave differently. This is the benign one: the ``Function`` column
-    exists but has no rows.
-    """
     from superset.db_engine_specs.presto import PrestoEngineSpec
 
     database = mock.MagicMock()
@@ -1224,15 +981,6 @@ def test_get_function_names_returns_empty_list_for_no_functions() -> None:
 
 
 def test_get_function_names_raises_on_dataframe_without_function_column() -> None:
-    """Story 105824 — CHARACTERIZATION test, and the other reading of "empty".
-
-    A DataFrame with no ``Function`` column at all — an entirely empty result, or a
-    Presto version that labels the column differently — raises ``KeyError`` rather
-    than degrading to an empty list.
-
-    Pinned to resolve the ticket's ambiguity by asserting both readings explicitly
-    rather than picking one silently.
-    """
     from superset.db_engine_specs.presto import PrestoEngineSpec
 
     database = mock.MagicMock()
@@ -1243,17 +991,6 @@ def test_get_function_names_raises_on_dataframe_without_function_column() -> Non
 
 
 def test_get_function_names_propagates_connection_error() -> None:
-    """Story 105824: the engine spec propagates; it does not degrade gracefully.
-
-    The ticket asks for graceful handling of connection errors, but that already
-    exists one layer up: ``Database.function_names`` wraps this call in a broad
-    ``try/except`` returning ``[]``, with a comment citing issue #9678 — "used in
-    bulk APIs and should not hard crash".
-
-    So the spec-layer contract is propagation, which is what is asserted here. The
-    graceful-``[]`` behaviour belongs to a ``Database.function_names`` test, in a
-    different module.
-    """
     from superset.db_engine_specs.presto import PrestoEngineSpec
 
     database = mock.MagicMock()
@@ -1277,32 +1014,12 @@ def test_get_allow_cost_estimate_version_gate(
     extra: dict[str, Any],
     expected: bool,
 ) -> None:
-    """Story 105821: cost estimation requires Presto >= 0.319.
-
-    Showing the "Estimate cost" button on a version that cannot support it produces
-    a confusing failure at click time instead of a hidden button, so the boundary
-    is worth pinning exactly — including the off-by-one at 0.318/0.319 and the
-    ``{"version": None}`` case, which is a different code path from a missing key.
-
-    Reach is low either way: ``Database.allows_cost_estimate`` additionally
-    requires an admin to have set ``cost_estimate_enabled`` in the database's Extra
-    JSON, so this gate is only half of a double opt-in.
-    """
     from superset.db_engine_specs.presto import PrestoEngineSpec
 
     assert PrestoEngineSpec.get_allow_cost_estimate(extra) is expected
 
 
 def test_get_allow_cost_estimate_rejects_unparseable_version() -> None:
-    """Story 105821 — CHARACTERIZATION test, not an endorsement of this behaviour.
-
-    A non-empty but unparseable version string reaches ``packaging.Version`` and
-    raises ``InvalidVersion``, so a malformed ``version`` in a database's Extra
-    JSON surfaces as an exception rather than simply disabling the feature.
-
-    Pinned so a future guard is deliberate. Whether an admin typo should disable
-    cost estimation or raise is a product decision, not a test fix.
-    """
     from packaging.version import InvalidVersion
 
     from superset.db_engine_specs.presto import PrestoEngineSpec
@@ -1312,12 +1029,6 @@ def test_get_allow_cost_estimate_rejects_unparseable_version() -> None:
 
 
 def test_estimate_statement_cost() -> None:
-    """Unit-suite mirror of presto_tests.py::test_estimate_statement_cost (L940).
-
-    ``EXPLAIN (TYPE IO, FORMAT JSON)`` returns a single row, single column of JSON,
-    which is parsed and handed back untouched. The integration original is
-    intentionally retained; this mirror only removes the app/DB fixture requirement.
-    """
     from superset.db_engine_specs.presto import PrestoEngineSpec
 
     cursor = mock.MagicMock()
@@ -1334,12 +1045,6 @@ def test_estimate_statement_cost() -> None:
 
 
 def test_estimate_statement_cost_propagates_execute_failure() -> None:
-    """Unit-suite mirror of
-    presto_tests.py::test_estimate_statement_cost_invalid_syntax (L954).
-
-    A statement Presto refuses to explain — invalid syntax, or a DDL statement it
-    will not plan — raises from ``cursor.execute`` and is not swallowed here.
-    """
     from superset.db_engine_specs.presto import PrestoEngineSpec
 
     cursor = mock.MagicMock()
@@ -1352,16 +1057,6 @@ def test_estimate_statement_cost_propagates_execute_failure() -> None:
 
 
 def test_query_cost_formatter() -> None:
-    """Unit-suite mirror of presto_tests.py::test_query_cost_formatter (L617).
-
-    Turns raw float estimates into the strings shown in the cost panel. Same
-    expectations as the integration original, with that test's large
-    ``inputTableColumnInfos`` block dropped — the formatter only reads
-    ``row["estimate"]``.
-
-    Note ``humanize`` floor-divides by 1000 repeatedly, so these are deliberately
-    coarse: 904,969,899 rows renders as "904 M rows", not "905 M rows".
-    """
     from superset.db_engine_specs.presto import PrestoEngineSpec
 
     raw_cost = [
@@ -1388,12 +1083,6 @@ def test_query_cost_formatter() -> None:
 
 
 def test_query_cost_formatter_omits_missing_estimate_keys() -> None:
-    """Story 105821: only the keys Presto actually returned are formatted.
-
-    A partial estimate must not surface as zeros or placeholder rows in the cost
-    panel, and a row with no ``estimate`` at all yields an empty dict rather than
-    raising.
-    """
     from superset.db_engine_specs.presto import PrestoEngineSpec
 
     raw_cost = [{"estimate": {"outputRowCount": 1234.0}}, {}]
@@ -1405,18 +1094,6 @@ def test_query_cost_formatter_omits_missing_estimate_keys() -> None:
 
 
 def test_query_cost_formatter_raises_on_null_estimate_value() -> None:
-    """Story 105821 — CHARACTERIZATION test, not an endorsement of this behaviour.
-
-    ``humanize`` guards ``int(value)`` with ``except ValueError`` only, but a JSON
-    ``null`` in the estimate reaches it as ``None`` and ``int(None)`` raises
-    **``TypeError``**, which is not caught. So a Presto estimate carrying a null
-    field breaks the cost panel outright instead of rendering the fields that did
-    arrive.
-
-    Contrast ``test_query_cost_formatter_omits_missing_estimate_keys``: an *absent*
-    key is handled cleanly, a *null* value is not. Pinned so a future widening of
-    that ``except`` is deliberate.
-    """
     from superset.db_engine_specs.presto import PrestoEngineSpec
 
     with pytest.raises(TypeError):
@@ -1428,13 +1105,6 @@ def test_query_cost_formatter_raises_on_null_estimate_value() -> None:
 def test_estimate_query_cost_raises_when_version_too_old(
     mocker: MockerFixture,
 ) -> None:
-    """Story 105821: the disabled path.
-
-    This criterion is base-class code (``BaseEngineSpec.estimate_query_cost``)
-    reached *through* the Presto spec: the version gate is consulted before any
-    connection is opened, and failing it raises rather than returning an empty
-    estimate.
-    """
     from superset.db_engine_specs.presto import PrestoEngineSpec
 
     database = mocker.MagicMock()
@@ -1451,17 +1121,6 @@ def test_estimate_query_cost_raises_when_version_too_old(
 def test_estimate_query_cost_estimates_each_statement(
     mocker: MockerFixture,
 ) -> None:
-    """Story 105821: multi-statement handling, also base-class code.
-
-    The SQL is parsed by a real ``SQLScript``, so each statement gets its own
-    ``EXPLAIN`` on the same cursor and the results come back in order. One cost
-    entry per statement — not one per query.
-
-    Note the statements are *re-rendered* by the parser before being explained,
-    not passed through verbatim: ``SELECT 1`` reaches the cursor pretty-printed as
-    ``SELECT\n  1``. Asserted as-is, because what actually gets sent to Presto is
-    the point of the test.
-    """
     from superset.db_engine_specs.presto import PrestoEngineSpec
 
     database = mocker.MagicMock()
@@ -1496,12 +1155,6 @@ TRACKING_URL = (
 
 
 def _presto_cursor() -> mock.MagicMock:
-    """A pyhive-shaped cursor whose tracking-URL attributes are real values.
-
-    A bare ``MagicMock`` auto-creates every attribute, so ``get_tracking_url``
-    would happily interpolate ``<MagicMock ...>`` reprs into the URL and the test
-    would assert nothing useful.
-    """
     cursor = mock.MagicMock()
     cursor._protocol = "https"
     cursor._host = "presto.example.com"
@@ -1513,19 +1166,6 @@ def _presto_cursor() -> mock.MagicMock:
 def _handle_cursor_query(
     mocker: MockerFixture,
 ) -> tuple[mock.MagicMock, mock.MagicMock]:
-    """Wire up the ``(mock_db, query)`` pair ``handle_cursor`` needs.
-
-    Three things bite here and all three are load-bearing:
-
-    - ``handle_cursor`` re-reads the query from the session on every iteration, so
-      the object the assertions inspect is the session's return value, not the one
-      passed in — it has to be wired back.
-    - ``poll_interval`` comes from ``query.database.connect_args.get(...)``, which
-      on a ``MagicMock`` returns a ``MagicMock`` that later explodes inside
-      ``time.sleep``. It must be a real dict, and a real zero.
-    - ``query.progress`` feeds ``max(query.progress, progress)``, so it must be a
-      real number.
-    """
     from superset.common.db_query_status import QueryStatus
 
     mock_db = mocker.patch("superset.db_engine_specs.presto.db")
@@ -1539,22 +1179,12 @@ def _handle_cursor_query(
 
 
 def test_get_tracking_url_builds_presto_ui_link() -> None:
-    """Story 105823: the "View in Presto" deep link is assembled from the cursor's
-    protocol, host, port and query id.
-
-    The ticket describes this as reading ``info_uri``; the implementation uses
-    ``last_query_id``, ``_protocol``, ``_host`` and ``_port`` instead, and there is
-    no ``info_uri`` anywhere in the file.
-    """
     from superset.db_engine_specs.presto import PrestoEngineSpec
 
     assert PrestoEngineSpec.get_tracking_url(_presto_cursor()) == TRACKING_URL
 
 
 def test_get_tracking_url_returns_none_for_falsy_query_id() -> None:
-    """Story 105823: no query id yet — the cursor exists but has not been assigned
-    a Presto query — yields no link rather than a malformed one.
-    """
     from superset.db_engine_specs.presto import PrestoEngineSpec
 
     cursor = _presto_cursor()
@@ -1564,13 +1194,6 @@ def test_get_tracking_url_returns_none_for_falsy_query_id() -> None:
 
 
 def test_get_tracking_url_returns_none_when_attribute_absent() -> None:
-    """Story 105823: the second, distinct ``None`` path — the attribute is missing
-    entirely, so ``contextlib.suppress(AttributeError)`` swallows the lookup.
-
-    ``spec=[]`` is required to reach it: a plain ``MagicMock`` auto-creates
-    ``last_query_id``, so the ``AttributeError`` never fires and this branch would
-    silently go untested.
-    """
     from superset.db_engine_specs.presto import PrestoEngineSpec
 
     assert PrestoEngineSpec.get_tracking_url(mock.Mock(spec=[])) is None
@@ -1579,12 +1202,6 @@ def test_get_tracking_url_returns_none_when_attribute_absent() -> None:
 def test_handle_cursor_records_tracking_url_and_progress(
     mocker: MockerFixture,
 ) -> None:
-    """Story 105823: the SQL Lab progress bar.
-
-    One poll reporting 5 of 10 splits complete, then ``None`` to end the query.
-    The tracking URL is written once up front, and progress is recorded as a
-    percentage.
-    """
     from superset.db_engine_specs.presto import PrestoEngineSpec
 
     mock_db, query = _handle_cursor_query(mocker)
@@ -1606,13 +1223,6 @@ def test_handle_cursor_records_tracking_url_and_progress(
 def test_handle_cursor_stops_polling_when_query_finished(
     mocker: MockerFixture,
 ) -> None:
-    """Story 105823: a ``FINISHED`` state breaks out of the loop *before* the
-    progress arithmetic runs.
-
-    That ordering matters: the final poll of a finished query carries no split
-    counts, so reaching the progress update would raise (see
-    ``test_handle_cursor_raises_type_error_on_missing_split_counts``).
-    """
     from superset.db_engine_specs.presto import PrestoEngineSpec
 
     _mock_db, query = _handle_cursor_query(mocker)
@@ -1631,19 +1241,6 @@ def test_handle_cursor_cancels_when_user_stops_query(
     mocker: MockerFixture,
     status: str,
 ) -> None:
-    """Story 105823: **the Stop button.**
-
-    While a query runs, the user clicking Stop only sets the query's status in the
-    metadata database — nothing signals the worker directly. This loop is what
-    notices, and the ``cursor.cancel()`` it issues is what actually releases the
-    Presto cluster resources.
-
-    If this branch regressed, Stop would appear to work in the UI while the query
-    kept running on the cluster, and nothing would fail loudly. The re-read of the
-    query from the session on every iteration is precisely how the click crosses
-    process boundaries, which is why the mock wires the session's return value
-    back to the same object.
-    """
     from superset.common.db_query_status import QueryStatus
     from superset.db_engine_specs.presto import PrestoEngineSpec
 
@@ -1662,13 +1259,6 @@ def test_handle_cursor_cancels_when_user_stops_query(
 
 
 def test_handle_cursor_ignores_empty_stats(mocker: MockerFixture) -> None:
-    """Story 105823: a poll carrying an empty ``stats`` block leaves progress
-    untouched and keeps polling, rather than resetting the bar to zero.
-
-    Note the payload is ``{"stats": {}}`` and not ``{}``: the loop condition tests
-    the poll result itself, so any falsy payload ends polling immediately. Only a
-    truthy payload with empty stats reaches the branch under test.
-    """
     from superset.db_engine_specs.presto import PrestoEngineSpec
 
     _mock_db, query = _handle_cursor_query(mocker)
@@ -1685,17 +1275,6 @@ def test_handle_cursor_ignores_empty_stats(mocker: MockerFixture) -> None:
 def test_handle_cursor_raises_type_error_on_missing_split_counts(
     mocker: MockerFixture,
 ) -> None:
-    """Story 105823 — CHARACTERIZATION test, not an endorsement of this behaviour.
-
-    ``completedSplits``/``totalSplits`` are read with ``stats.get(...)`` and passed
-    straight to ``float()``, so a poll that reports a state but omits the split
-    counts raises ``TypeError`` inside the worker rather than degrading to "no
-    progress information".
-
-    Pinned so a future guard is a deliberate change. Fixing it is out of scope for
-    a test-only change and deserves its own issue: the fix has to decide whether a
-    stats block without split counts means "no progress yet" or is a driver bug.
-    """
     from superset.db_engine_specs.presto import PrestoEngineSpec
 
     _mock_db, query = _handle_cursor_query(mocker)
