@@ -89,6 +89,24 @@ class TestCreateMetricObject:
         assert result["optionName"] == "metric_revenue"
         assert result["expressionType"] == "SIMPLE"
 
+    def test_create_metric_object_normalizes_stddev_var_shorthand(self) -> None:
+        """
+        Pre-SIP "STDDEV"/"VAR" shorthand is normalized to the real,
+        unambiguous aggregate names ("STDDEV_SAMP"/"VAR_SAMP") this chart
+        can actually query -- see docs/sip/median-stddev-variance-aggregates.md.
+        Before this, a chart built with "STDDEV"/"VAR" always errored at
+        query time, since that name was never a real Superset aggregate.
+        """
+        stddev_col = ColumnRef(name="price", aggregate="STDDEV", label="Std Dev")
+        result = create_metric_object(stddev_col)
+        assert isinstance(result, dict)
+        assert result["aggregate"] == "STDDEV_SAMP"
+
+        var_col = ColumnRef(name="price", aggregate="VAR", label="Variance")
+        result = create_metric_object(var_col)
+        assert isinstance(result, dict)
+        assert result["aggregate"] == "VAR_SAMP"
+
     def test_create_metric_object_default_aggregate(self) -> None:
         """Test creating metric object with default aggregate"""
         col = ColumnRef(name="orders")
@@ -461,6 +479,25 @@ class TestMapTableConfig:
 
         assert result["row_limit"] == 500
 
+    def test_map_table_config_supports_null_filter(self) -> None:
+        config = TableChartConfig(
+            chart_type="table",
+            columns=[ColumnRef(name="optional_value")],
+            filters=[FilterConfig(column="optional_value", op="IS NOT NULL")],
+        )
+
+        result = map_table_config(config)
+
+        assert result["adhoc_filters"] == [
+            {
+                "clause": "WHERE",
+                "expressionType": "SIMPLE",
+                "subject": "optional_value",
+                "operator": "IS NOT NULL",
+                "comparator": None,
+            }
+        ]
+
     def test_map_table_config_default_row_limit(self) -> None:
         """Test that default row_limit is mapped to form_data."""
         config = TableChartConfig(
@@ -667,6 +704,23 @@ class TestMapXYConfig:
         assert result["viz_type"] == "echarts_timeseries_scatter"
         assert result["show_legend"] is False
         assert result["legendOrientation"] == "top"
+
+    def test_map_xy_config_with_legend_orientation(self) -> None:
+        config = XYChartConfig.model_validate(
+            {
+                "chart_type": "xy",
+                "x": {"name": "date"},
+                "y": [{"name": "revenue", "aggregate": "SUM"}],
+                "show_legend": True,
+                "legend_orientation": "bottom",
+            }
+        )
+
+        result = map_xy_config(config)
+
+        assert config.legend is not None
+        assert config.legend.show is True
+        assert result["legendOrientation"] == "bottom"
 
     def test_map_xy_config_with_color_scheme(self) -> None:
         """color_scheme propagates to form_data when set."""
@@ -2049,6 +2103,25 @@ class TestValidateChartDataset:
         assert result.dataset_id == 7
         assert result.dataset_name == "my_table"
         assert result.warnings == []
+        # check_access=True keeps the DatasourceFilter base filter and the RBAC check.
+        mock_find.assert_called_once_with(7, skip_base_filter=False)
+        mock_access.assert_called_once_with(dataset)
+
+    @patch("superset.mcp_service.auth.has_dataset_access")
+    @patch("superset.daos.dataset.DatasetDAO.find_by_id")
+    def test_validate_chart_dataset_no_access_check_is_existence_only(
+        self, mock_find: MagicMock, mock_access: MagicMock
+    ) -> None:
+        """check_access=False (embedded guests) resolves the dataset with the base
+        filter skipped and never runs the RBAC check. DatasetDAO's DatasourceFilter
+        returns nothing for a principal without datasource grants, so leaving it on
+        would turn the existence check into an access check and deny every guest."""
+        dataset = MagicMock(table_name="orders", sql=None)
+        mock_find.return_value = dataset
+        result = validate_chart_dataset(7, check_access=False)
+        assert result.is_valid
+        mock_find.assert_called_once_with(7, skip_base_filter=True)
+        mock_access.assert_not_called()
 
     @patch("superset.mcp_service.auth.has_dataset_access", return_value=True)
     @patch("superset.daos.dataset.DatasetDAO.find_by_id")

@@ -70,7 +70,7 @@ def query_with_session() -> MagicMock:
     """A MagicMock that quacks like a SQLAlchemy Query with a real
     Session whose ``info`` dict the filter can mutate."""
     q = MagicMock()
-    real_session = Session(future=True)
+    real_session = Session()
     q.session = real_session
     return q
 

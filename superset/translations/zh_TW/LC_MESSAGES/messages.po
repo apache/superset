@@ -386,7 +386,7 @@ msgstr[0] "%s 個欄位"
 
 #, python-format
 msgid "%s column(s)"
-msgstr "%s 列"
+msgstr "%s 個欄位"
 
 #, python-format
 msgid "%s day ago"

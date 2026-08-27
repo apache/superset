@@ -164,6 +164,64 @@ class TestVirtualDatasetNoRLS:
         inner_sql = _get_subquery_sql(virtual_datasource)
         assert "::varchar(256)" in inner_sql
 
+    @patch("superset.models.helpers.apply_rls", return_value=False)
+    def test_mssql_unbounded_order_by_removed_when_embedded(
+        self,
+        mock_apply_rls: MagicMock,
+        virtual_datasource: MagicMock,
+        app: Flask,
+    ) -> None:
+        """MSSQL derived tables omit an unbounded top-level ordering."""
+        virtual_datasource.db_engine_spec.engine = "mssql"
+        _set_virtual_sql(
+            virtual_datasource,
+            "SELECT category, amount FROM sample_events ORDER BY category, amount",
+        )
+
+        assert "ORDER BY" not in _get_subquery_sql(virtual_datasource)
+
+    @patch("superset.models.helpers.apply_rls", return_value=False)
+    def test_mssql_hint_survives_order_by_rewrite(
+        self,
+        mock_apply_rls: MagicMock,
+        virtual_datasource: MagicMock,
+        app: Flask,
+    ) -> None:
+        """Required T-SQL syntax survives the unavoidable AST round trip."""
+        virtual_datasource.db_engine_spec.engine = "mssql"
+        _set_virtual_sql(
+            virtual_datasource,
+            "SELECT [category] FROM [dbo].[sample_events] WITH (NOLOCK) "
+            "ORDER BY [category]",
+        )
+
+        inner_sql = _get_subquery_sql(virtual_datasource)
+        assert "ORDER BY" not in inner_sql
+        assert "WITH (NOLOCK)" in inner_sql
+        assert "[category]" in inner_sql
+
+    @pytest.mark.parametrize(
+        "sql",
+        [
+            "SELECT TOP 10 PERCENT category FROM sample_events ORDER BY category",
+            "SELECT TOP 1 WITH TIES category FROM sample_events ORDER BY category",
+            "SELECT category FROM sample_events ORDER BY category FOR XML PATH('')",
+        ],
+    )
+    @patch("superset.models.helpers.apply_rls", return_value=False)
+    def test_mssql_required_order_by_preserved_when_embedded(
+        self,
+        mock_apply_rls: MagicMock,
+        virtual_datasource: MagicMock,
+        app: Flask,
+        sql: str,
+    ) -> None:
+        """TOP and serialization clauses retain their semantic ordering."""
+        virtual_datasource.db_engine_spec.engine = "mssql"
+        _set_virtual_sql(virtual_datasource, sql)
+
+        assert "ORDER BY" in _get_subquery_sql(virtual_datasource)
+
 
 class TestVirtualDatasetWithRLS:
     """

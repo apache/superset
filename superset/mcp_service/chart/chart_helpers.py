@@ -199,6 +199,8 @@ def apply_form_data_filters_to_query(
         query["where"] = where
     if having := form_data.get("having"):
         query["having"] = having
+    if extras := form_data.get("extras"):
+        query["extras"] = {**(query.get("extras") or {}), **extras}
 
 
 def _join_sql_clause(existing_clause: str, additional_clause: str) -> str:
@@ -255,6 +257,9 @@ def merge_form_data_filters_into_query(
                 query[clause] = _join_sql_clause(existing_clause, additional_clause)
             else:
                 query[clause] = additional_clause
+
+    if extras := form_data.get("extras"):
+        query["extras"] = {**(query.get("extras") or {}), **extras}
 
 
 def merge_extra_form_data_filters_into_query(
@@ -655,6 +660,7 @@ def build_query_context_from_form_data(
     order_desc: bool | None = None,
     result_type: Any = None,
     force: bool = False,
+    custom_cache_timeout: int | None = None,
 ) -> Any:
     """Build a QueryContext from chart-type-aware Explore form_data."""
     # avoid circular import
@@ -683,6 +689,7 @@ def build_query_context_from_form_data(
         form_data=form_data,
         result_type=result_type,
         force=force,
+        custom_cache_timeout=custom_cache_timeout,
     )
 
 

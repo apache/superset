@@ -1971,7 +1971,8 @@ msgid "An error occurred while fetching the semantic layer"
 msgstr "Se ha producido un error al recuperar la capa semántica"
 
 msgid "An error occurred while fetching the semantic view structure"
-msgstr "Se ha producido un error al recuperar la estructura de la vista semántica"
+msgstr ""
+"Se ha producido un error al recuperar la estructura de la vista semántica"
 
 #, fuzzy, python-format
 msgid "An error occurred while fetching theme datasource values: %s"
@@ -2443,8 +2444,7 @@ msgid ""
 "Are you sure you want to revoke this API key? This action cannot be "
 "undone."
 msgstr ""
-"¿Seguro que quieres revocar esta clave API? Esta acción no se puede "
-"deshacer."
+"¿Seguro que quieres revocar esta clave API? Esta acción no se puede deshacer."
 
 msgid "Are you sure you want to save and apply changes?"
 msgstr "¿Seguro que quieres guardar y aplicar los cambios?"

@@ -19,7 +19,7 @@
 
 # Notify PMC members of changes to extension-related files
 
-/docs/developer_portal/extensions/ @michael-s-molina @villebro @rusackas
+/docs/developer_docs/extensions/ @michael-s-molina @villebro @rusackas
 /superset-extensions-cli/ @michael-s-molina @villebro @rusackas @sadpandajoe
 /superset/extensions/ @michael-s-molina @villebro @rusackas @sadpandajoe
 /superset-frontend/src/extensions/ @michael-s-molina @villebro @rusackas @sadpandajoe

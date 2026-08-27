@@ -20,10 +20,19 @@ from typing import Any, Optional, Union
 from croniter import croniter
 from flask import current_app
 from flask_babel import gettext as _
-from marshmallow import EXCLUDE, fields, Schema, validate, validates, validates_schema
+from marshmallow import (
+    EXCLUDE,
+    fields,
+    pre_load,
+    Schema,
+    validate,
+    validates,
+    validates_schema,
+)
 from marshmallow.validate import Length, Range, ValidationError
 from pytz import all_timezones
 
+from superset import is_feature_enabled
 from superset.reports.models import (
     ReportCreationMethod,
     ReportDataFormat,
@@ -180,7 +189,34 @@ class ReportRecipientSchema(Schema):
         validate_addresses("bccTarget", config.get("bccTarget"), required=False)
 
 
-class ReportSchedulePostSchema(Schema):
+_RETRY_FIELD_KEYS = (
+    "retry_on_failure",
+    "retry_max_attempts",
+    "send_failed_reports",
+    "retry_notify_owners",
+    "retry_notify_recipients",
+)
+
+
+class RetryFieldStripMixin:
+    """Strip retry fields from the raw payload before validation when the
+    feature is off.  Using ``@pre_load`` ensures that field-level validators
+    (e.g. ``Range`` on ``retry_max_attempts``) are never reached for values
+    that will be discarded anyway."""
+
+    @pre_load
+    def strip_retry_fields_if_disabled(
+        self,
+        data: dict[str, Any],
+        **kwargs: Any,
+    ) -> dict[str, Any]:
+        if not is_feature_enabled("ALERT_REPORTS_RETRY"):
+            for key in _RETRY_FIELD_KEYS:
+                data.pop(key, None)
+        return data
+
+
+class ReportSchedulePostSchema(RetryFieldStripMixin, Schema):
     type = fields.String(
         metadata={"description": type_description},
         allow_none=False,
@@ -355,6 +391,8 @@ class ReportSchedulePostSchema(Schema):
         data: dict[str, Any],
         **kwargs: Any,
     ) -> None:
+        if not is_feature_enabled("ALERT_REPORTS_RETRY"):
+            return
         if data.get("send_failed_reports") and not data.get("retry_on_failure"):
             raise ValidationError(
                 {
@@ -396,7 +434,7 @@ class ReportScheduleSubscribeSchema(ReportSchedulePostSchema):
         unknown = EXCLUDE
 
 
-class ReportSchedulePutSchema(Schema):
+class ReportSchedulePutSchema(RetryFieldStripMixin, Schema):
     type = fields.String(
         metadata={"description": type_description},
         required=False,

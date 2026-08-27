@@ -128,6 +128,8 @@ export interface Dashboard {
   description?: string;
   thumbnail_url?: string | null;
   editors?: Subject[];
+  // Bare subject ids from a deployment's EXTRA_EDITORS_RESOLVER.
+  extra_editors?: number[];
   viewers?: Subject[];
   tags: TagType[];
   created_by: object;
@@ -607,7 +609,11 @@ function DashboardList(props: DashboardListProps) {
       },
       {
         Cell: ({ row: { original } }: CellProps<Dashboard>) => {
-          const allowEdit = isUserEditorOrAdmin(user, original.editors);
+          const allowEdit = isUserEditorOrAdmin(
+            user,
+            original.editors,
+            original.extra_editors,
+          );
           const handleDelete = () =>
             handleDashboardDelete(
               original,

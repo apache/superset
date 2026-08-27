@@ -738,4 +738,14 @@ const smp = new SpeedMeasurePlugin({
   disable: !measure,
 });
 
+// Emits per-asset/entrypoint sizes via `--json` (the default `stats: 'minimal'`
+// above omits both). Not `normal`/`detailed` stats: those also serialize the
+// full ~15k-module dependency graph, which is hundreds of MB for this app --
+// large enough to exceed Node's max string length when read back with
+// `fs.readFileSync`. Used by scripts/bundle-size-summary.js in CI.
+// e.g. BUNDLE_SIZE_STATS=true npm run build -- --json=stats.json
+if (process.env.BUNDLE_SIZE_STATS) {
+  config.stats = { all: false, assets: true, entrypoints: true };
+}
+
 module.exports = smp.wrap(config);

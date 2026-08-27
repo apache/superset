@@ -3147,6 +3147,7 @@ def test__send_with_server_errors(notification_mock, logger_mock):
 
 
 @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+@with_feature_flags(ALERT_REPORTS_RETRY=True)
 @patch("superset.commands.report.execute.ReportNotTriggeredErrorState._schedule_retry")
 @patch("superset.reports.notifications.email.send_email_smtp")
 @patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
@@ -3191,6 +3192,7 @@ def test_retry_on_failure_schedules_retry(
 
 
 @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+@with_feature_flags(ALERT_REPORTS_RETRY=True)
 @patch("superset.commands.report.execute.ReportNotTriggeredErrorState._schedule_retry")
 @patch("superset.commands.report.execute.BaseReportState.send_retry_notification")
 @patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
@@ -3247,6 +3249,7 @@ def test_retry_exhausted_transitions_to_error(
 
 
 @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+@with_feature_flags(ALERT_REPORTS_RETRY=True)
 @patch("superset.commands.report.execute.ReportNotTriggeredErrorState._schedule_retry")
 @patch("superset.commands.report.execute.BaseReportState.send_final_failure_report")
 @patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
@@ -3291,6 +3294,7 @@ def test_send_failed_reports_sends_to_recipients(
 
 
 @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+@with_feature_flags(ALERT_REPORTS_RETRY=True)
 @patch("superset.commands.report.execute.ReportNotTriggeredErrorState._schedule_retry")
 @patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
 def test_retrying_state_schedules_another_retry(
@@ -3336,6 +3340,7 @@ def test_retrying_state_schedules_another_retry(
 
 
 @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+@with_feature_flags(ALERT_REPORTS_RETRY=True)
 @patch("superset.commands.report.execute.ReportNotTriggeredErrorState._schedule_retry")
 @patch("superset.reports.notifications.email.send_email_smtp")
 @patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
@@ -3372,6 +3377,7 @@ def test_retry_disabled_preserves_default_error_path(
 
 
 @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+@with_feature_flags(ALERT_REPORTS_RETRY=True)
 @patch("superset.commands.report.execute.ReportNotTriggeredErrorState._schedule_retry")
 @patch("superset.commands.report.execute.BaseReportState.send_retry_notification")
 @patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
@@ -3414,6 +3420,7 @@ def test_retry_notify_owners_sends_notification(
 
 
 @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+@with_feature_flags(ALERT_REPORTS_RETRY=True)
 @patch("superset.commands.report.execute.ReportNotTriggeredErrorState._schedule_retry")
 @patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
 def test_new_crontab_window_skipped_while_retrying(
@@ -3462,6 +3469,7 @@ def test_new_crontab_window_skipped_while_retrying(
 
 
 @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+@with_feature_flags(ALERT_REPORTS_RETRY=True)
 @patch("superset.commands.report.execute.ReportNotTriggeredErrorState._schedule_retry")
 @patch("superset.reports.notifications.email.send_email_smtp")
 @patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
