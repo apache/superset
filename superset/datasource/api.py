@@ -730,7 +730,7 @@ class DatasourceRestApi(BaseSupersetApi):
             )
         except SupersetSecurityException as ex:
             return self.response(403, message=ex.message)
-        except (TabularQueryValidationError, QueryObjectValidationError) as ex:
+        except (ValueError, QueryObjectValidationError) as ex:
             return self.response_400(message=str(ex))
         except CommandException as ex:
             return self.response_400(message=ex.message or str(ex))

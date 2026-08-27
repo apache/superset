@@ -348,3 +348,10 @@ def test_grain_column_is_marked_as_a_column_reference() -> None:
     )
 
     assert query_dict["columns"][0]["isColumnReference"] is True
+
+
+def test_validation_error_is_a_value_error() -> None:
+    """The endpoint maps ValueError to 400 so the semantic-layer mapper's bare
+    ValueError validation failures do not escape as 500s; this subclassing is
+    what keeps TabularQueryValidationError covered by that handler."""
+    assert issubclass(TabularQueryValidationError, ValueError)
