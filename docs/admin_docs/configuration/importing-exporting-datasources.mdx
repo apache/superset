@@ -86,7 +86,8 @@ superset import_datasources -p <path / filename> -u 'admin'
 ## Importing a Directory of Assets
 
 The `import_directory` command imports a directory of exported assets (databases, datasets,
-dashboards, charts, etc.) in the same layout produced by the ZIP-based export:
+dashboards, charts) in the same layout produced by the ZIP-based export. Saved queries and tags
+included in a full export are not imported by this command:
 
 ```bash
 superset import_directory <path / directory>
