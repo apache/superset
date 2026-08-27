@@ -16,7 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChangeEvent, useMemo, useState, useCallback, useEffect } from 'react';
+import {
+  type ReactNode,
+  ChangeEvent,
+  useMemo,
+  useState,
+  useCallback,
+  useEffect,
+} from 'react';
 
 import {
   Input,
@@ -56,6 +63,11 @@ export type PropertiesModalProps = {
   permissionsError?: string;
   addSuccessToast: (msg: string) => void;
   addDangerToast: (msg: string) => void;
+  /** Optional render prop for injecting extra fields (e.g. folder selector). */
+  renderExtraFields?: (context: {
+    assetId: number;
+    assetType: 'chart';
+  }) => ReactNode;
 };
 
 function PropertiesModal({
@@ -65,6 +77,7 @@ function PropertiesModal({
   show,
   addSuccessToast,
   addDangerToast,
+  renderExtraFields,
 }: PropertiesModalProps) {
   const [submitting, setSubmitting] = useState(false);
   // values of form inputs
@@ -395,6 +408,7 @@ function PropertiesModal({
                     />
                   </ModalFormField>
                 )}
+                {renderExtraFields?.({ assetId: slice.id, assetType: 'chart' })}
               </>
             ),
           },

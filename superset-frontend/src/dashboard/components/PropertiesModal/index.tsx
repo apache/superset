@@ -79,6 +79,10 @@ type PropertiesModalProps = {
   addSuccessToast: (message: string) => void;
   addDangerToast: (message: string) => void;
   onlyApply?: boolean;
+  renderExtraFields?: (context: {
+    assetId: number;
+    assetType: 'dashboard';
+  }) => React.ReactNode;
 };
 
 type DashboardInfo = {
@@ -107,6 +111,7 @@ const PropertiesModal = ({
   onlyApply = false,
   onSubmit = () => {},
   show = false,
+  renderExtraFields,
 }: PropertiesModalProps) => {
   const dispatch = useDispatch();
   const [form] = Form.useForm();
@@ -769,6 +774,10 @@ const PropertiesModal = ({
                   onChangeViewers={handleOnChangeViewers}
                   onChangeTags={handleChangeTags}
                   onClearTags={handleClearTags}
+                  renderExtraFields={renderExtraFields?.({
+                    assetId: dashboardId,
+                    assetType: 'dashboard',
+                  })}
                 />
               ),
             },
