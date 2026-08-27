@@ -171,9 +171,26 @@ test("seriesDefaults reads a not-yet-customized entry's own palette-defaulted co
   ).toEqual({ color: '#3498db', sizeScale: 1 });
 });
 
-test('seriesDefaults falls back to the given color when an entry schema is missing its own defaults', () => {
-  expect(seriesDefaults(undefined, '#123456')).toEqual({
+test('seriesDefaults reads whatever fields the entry schema declares, nothing hard-coded', () => {
+  expect(
+    seriesDefaults(
+      {
+        properties: {
+          visible: { default: true },
+          displayName: { default: '' },
+        },
+      },
+      '#000000',
+    ),
+  ).toEqual({ visible: true, displayName: '' });
+});
+
+test('seriesDefaults falls back to the given color only when the entry schema declares a color field', () => {
+  expect(seriesDefaults({ properties: { color: {} } }, '#123456')).toEqual({
     color: '#123456',
-    sizeScale: 1,
   });
+});
+
+test('seriesDefaults returns an empty object when there is no entry schema at all', () => {
+  expect(seriesDefaults(undefined, '#123456')).toEqual({});
 });

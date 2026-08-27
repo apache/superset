@@ -74,6 +74,7 @@ import {
   Input,
   InputNumber,
   Select,
+  Switch,
   Typography,
 } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
@@ -177,49 +178,153 @@ function ColorControl({
   );
 }
 
+interface SeriesEntryPropertySchema {
+  type?: string;
+  title?: string;
+  default?: unknown;
+  minimum?: number;
+  maximum?: number;
+  'x-control'?: string;
+  'x-step'?: number;
+}
+
 interface SeriesEntrySchema {
-  properties?: {
-    color?: { default?: string };
-    sizeScale?: { default?: number; minimum?: number; maximum?: number };
-  };
+  properties?: Record<string, SeriesEntryPropertySchema>;
 }
 
 interface SeriesMapSchema {
   properties?: Record<string, SeriesEntrySchema>;
 }
 
-interface SeriesStyleValue {
-  color: string;
-  sizeScale: number;
+type SeriesOverrideValue = Record<string, unknown>;
+
+/** Turns a camelCase field key into the lowercase, space-separated phrase
+ * an aria-label reads naturally with (`sizeScale` → `size scale`). */
+function humanizeFieldKey(key: string): string {
+  return key
+    .replace(/([A-Z])/g, ' $1')
+    .toLowerCase()
+    .trim();
 }
 
-/** The value a not-yet-customized series entry starts from, read off its
- * own enriched sub-schema (the backend pre-colors each entry from a
- * palette) rather than one fixed default shared by every series. Falls
- * back to `fallbackColor` only for an entry the backend never colored —
- * not expected to happen, but a theme token beats a literal black. */
+/** The value a not-yet-customized series entry starts from, read purely off
+ * its own enriched sub-schema — every widget's per-series entry shape
+ * (Balloons' `{color, sizeScale}`, echarts' `{color, visible, displayName}`,
+ * or any future one) declares its own field defaults; this has no
+ * hard-coded opinion of what those fields are. `fallbackColor` only backs a
+ * `color` field the backend never defaulted — not expected to happen, but a
+ * theme token beats a literal black. */
 export function seriesDefaults(
   entrySchema: SeriesEntrySchema | undefined,
   fallbackColor: string,
-): SeriesStyleValue {
-  return {
-    color: entrySchema?.properties?.color?.default ?? fallbackColor,
-    sizeScale: entrySchema?.properties?.sizeScale?.default ?? 1,
-  };
+): SeriesOverrideValue {
+  const properties = entrySchema?.properties ?? {};
+  const value: SeriesOverrideValue = Object.fromEntries(
+    Object.entries(properties).map(([key, prop]) => [key, prop.default]),
+  );
+  if (value.color === undefined && 'color' in properties) {
+    value.color = fallbackColor;
+  }
+  return value;
+}
+
+/** One property of a customized series entry, rendered by its schema shape
+ * — not by a hard-coded field name — so a new per-series entry model (e.g.
+ * echarts' `{color, visible, displayName}`) needs no renderer of its own:
+ *   - `x-control: "color"` (or the property key `color`) → a color swatch.
+ *   - `type: "boolean"` → a toggle.
+ *   - `type: "number"` / `"integer"` → a bounded numeric input.
+ *   - anything else → a text input.
+ */
+function SeriesEntryPropertyControl({
+  seriesKey,
+  propKey,
+  propSchema,
+  value,
+  onChange,
+}: {
+  seriesKey: string;
+  propKey: string;
+  propSchema: SeriesEntryPropertySchema | undefined;
+  value: unknown;
+  onChange: (next: unknown) => void;
+}): ReactElement {
+  const theme = useTheme();
+  const fieldLabel = `${seriesKey} ${humanizeFieldKey(propKey)}`;
+
+  if (propSchema?.['x-control'] === 'color' || propKey === 'color') {
+    const color = (value as string) || theme.colorText;
+    return (
+      <ColorPicker
+        value={color}
+        onChange={next => onChange(next.toHexString())}
+      >
+        <button
+          type="button"
+          aria-label={t('%s color', seriesKey)}
+          style={{
+            width: 20,
+            height: 20,
+            borderRadius: 4,
+            border: '1px solid rgba(0, 0, 0, 0.15)',
+            background: color,
+            cursor: 'pointer',
+            padding: 0,
+          }}
+        />
+      </ColorPicker>
+    );
+  }
+  if (propSchema?.type === 'boolean') {
+    return (
+      <Switch
+        aria-label={fieldLabel}
+        checked={value !== false}
+        onChange={onChange}
+      />
+    );
+  }
+  if (propSchema?.type === 'number' || propSchema?.type === 'integer') {
+    return (
+      <InputNumber
+        size="small"
+        aria-label={fieldLabel}
+        value={value as number}
+        min={propSchema?.minimum}
+        max={propSchema?.maximum}
+        step={propSchema?.['x-step'] ?? 1}
+        style={{ width: 64 }}
+        onChange={next => onChange(typeof next === 'number' ? next : value)}
+      />
+    );
+  }
+  return (
+    <Input
+      size="small"
+      aria-label={fieldLabel}
+      value={(value as string) ?? ''}
+      onChange={event => onChange(event.target.value)}
+      style={{ width: 140 }}
+    />
+  );
 }
 
 /**
  * `x-dynamic: true` on a dict-of-objects field (e.g. Balloons'
- * `customize.series`, one entry per distinct color-dimension value): an
+ * `customize.series`, one entry per distinct color-dimension value, or
+ * echarts' `customize.series`, one entry per `dataBinding` metric): an
  * overrides list, collapsed by default, rather than the upstream renderer's
  * one always-expanded group per possible entry — which turns a real
  * grouping column into thousands of pixels of identical, unstyled controls.
  *
- * The backend enriches this field's schema with one inlined per-value
- * sub-schema (a title and a palette-defaulted `color`), but leaves the
- * *data* untouched until an author actually edits a value — so "has an
- * entry in `data`" already means "has been customized", with no comparison
- * against the schema's own defaults needed.
+ * The backend enriches this field's schema with one inlined per-key
+ * sub-schema (a title and, where the entry shape has one, a palette-defaulted
+ * `color`), but leaves the *data* untouched until an author actually edits a
+ * value — so "has an entry in `data`" already means "has been customized",
+ * with no comparison against the schema's own defaults needed. Which fields
+ * an entry has, and how each renders, comes entirely from that per-key
+ * sub-schema (see `SeriesEntryPropertyControl`) — this component has no
+ * opinion of its own on the entry shape.
  */
 function SeriesOverridesControl(props: ControlProps): ReactElement {
   const { data, handleChange, path, schema, label, description } = props;
@@ -229,7 +334,7 @@ function SeriesOverridesControl(props: ControlProps): ReactElement {
     () => Object.keys(seriesSchema.properties ?? {}),
     [seriesSchema],
   );
-  const values = (data ?? {}) as Record<string, SeriesStyleValue>;
+  const values = (data ?? {}) as Record<string, SeriesOverrideValue>;
   const customizedKeys = keys.filter(key => values[key] !== undefined);
   const availableKeys = keys.filter(key => values[key] === undefined);
 
@@ -237,13 +342,13 @@ function SeriesOverridesControl(props: ControlProps): ReactElement {
     return (
       <Form.Item label={label} tooltip={description}>
         <Typography.Text type="secondary">
-          {t('Group by a dimension to enable per-series styling.')}
+          {t('No series available to customize yet.')}
         </Typography.Text>
       </Form.Item>
     );
   }
 
-  const write = (next: Record<string, SeriesStyleValue>) =>
+  const write = (next: Record<string, SeriesOverrideValue>) =>
     handleChange(path, next);
 
   const removeOverride = (key: string) => {
@@ -276,33 +381,27 @@ function SeriesOverridesControl(props: ControlProps): ReactElement {
               <Flex vertical gap="small">
                 {customizedKeys.map(key => {
                   const value = values[key];
-                  const bounds =
-                    seriesSchema.properties?.[key]?.properties?.sizeScale;
+                  const entryProperties =
+                    seriesSchema.properties?.[key]?.properties ?? {};
+                  const otherPropKeys = Object.keys(entryProperties).filter(
+                    propKey => propKey !== 'color',
+                  );
                   return (
                     <Flex key={key} align="center" gap="small">
-                      <ColorPicker
-                        value={value.color}
-                        onChange={next =>
-                          write({
-                            ...values,
-                            [key]: { ...value, color: next.toHexString() },
-                          })
-                        }
-                      >
-                        <button
-                          type="button"
-                          aria-label={t('%s color', key)}
-                          style={{
-                            width: 20,
-                            height: 20,
-                            borderRadius: 4,
-                            border: '1px solid rgba(0, 0, 0, 0.15)',
-                            background: value.color,
-                            cursor: 'pointer',
-                            padding: 0,
-                          }}
+                      {'color' in entryProperties && (
+                        <SeriesEntryPropertyControl
+                          seriesKey={key}
+                          propKey="color"
+                          propSchema={entryProperties.color}
+                          value={value.color}
+                          onChange={next =>
+                            write({
+                              ...values,
+                              [key]: { ...value, color: next },
+                            })
+                          }
                         />
-                      </ColorPicker>
+                      )}
                       <div
                         style={{
                           flex: 1,
@@ -314,24 +413,21 @@ function SeriesOverridesControl(props: ControlProps): ReactElement {
                       >
                         {key}
                       </div>
-                      <InputNumber
-                        size="small"
-                        aria-label={t('%s size scale', key)}
-                        value={value.sizeScale}
-                        min={bounds?.minimum ?? 0.25}
-                        max={bounds?.maximum ?? 4}
-                        step={0.25}
-                        style={{ width: 64 }}
-                        onChange={next =>
-                          write({
-                            ...values,
-                            [key]: {
-                              ...value,
-                              sizeScale: typeof next === 'number' ? next : 1,
-                            },
-                          })
-                        }
-                      />
+                      {otherPropKeys.map(propKey => (
+                        <SeriesEntryPropertyControl
+                          key={propKey}
+                          seriesKey={key}
+                          propKey={propKey}
+                          propSchema={entryProperties[propKey]}
+                          value={value[propKey]}
+                          onChange={next =>
+                            write({
+                              ...values,
+                              [key]: { ...value, [propKey]: next },
+                            })
+                          }
+                        />
+                      ))}
                       <Button
                         buttonSize="xsmall"
                         buttonStyle="link"
@@ -1143,6 +1239,35 @@ function DatasetControl(props: ControlProps): ReactElement {
   );
 }
 
+interface SelectOptionsSchema {
+  'x-options'?: string[];
+  enum?: string[];
+}
+
+/**
+ * `x-control: "select"` — a plain, nullable single-select. Reads its options
+ * from `x-options` rather than relying on JsonForms' own enum introspection:
+ * an optional field (e.g. echarts' `chartType`, `Literal[...] | None`) emits
+ * `anyOf`, which JsonForms' schema-type derivation doesn't flatten (see the
+ * `datasetId` tester's comment below) — `x-options` sidesteps that entirely.
+ * `allowClear` maps the cleared state to `null` (Custom/unset), not `""`.
+ */
+function SelectControl(props: ControlProps): ReactElement {
+  const { data, handleChange, path, schema, label, description } = props;
+  const options = (schema as SelectOptionsSchema)['x-options'] ?? [];
+  return (
+    <Form.Item label={label} tooltip={description}>
+      <Select
+        allowClear
+        ariaLabel={label}
+        value={(data as string | undefined) ?? undefined}
+        options={options.map(option => ({ value: option, label: option }))}
+        onChange={next => handleChange(path, next ?? null)}
+      />
+    </Form.Item>
+  );
+}
+
 /** Base Semantic-Layer renderers plus the widget-control ones above. */
 export const schemaControlRenderers = [
   ...baseRenderers,
@@ -1153,6 +1278,10 @@ export const schemaControlRenderers = [
   {
     tester: rankWith(1000, xControlIs('color')),
     renderer: withJsonFormsControlProps(ColorControl),
+  },
+  {
+    tester: rankWith(1000, xControlIs('select')),
+    renderer: withJsonFormsControlProps(SelectControl),
   },
   {
     tester: rankWith(1000, isDynamicSeries),

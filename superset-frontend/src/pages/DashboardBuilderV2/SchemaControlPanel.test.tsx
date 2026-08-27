@@ -1152,9 +1152,7 @@ test('an x-dynamic series field with no discovered series yet explains why, inst
   mount('balloons', {});
 
   expect(
-    await screen.findByText(
-      'Group by a dimension to enable per-series styling.',
-    ),
+    await screen.findByText('No series available to customize yet.'),
   ).toBeInTheDocument();
 });
 
@@ -1331,4 +1329,100 @@ test("an x-dynamic series field's own description reaches its tooltip in the pop
 
   await screen.findByText('2 series · 0 customized');
   expect(document.querySelector('.ant-form-item-tooltip')).toBeInTheDocument();
+});
+
+// `x-control: "select"` — the echarts `chartType` picker. A plain
+// nullable enum, tested independent of the echarts widget itself since
+// `mockPost` stands in for whatever schema is served.
+const SELECT_SCHEMA = {
+  type: 'object',
+  properties: {
+    chartType: {
+      type: ['string', 'null'],
+      title: 'Chart type',
+      'x-control': 'select',
+      'x-options': ['bar', 'line', 'scatter'],
+    },
+  },
+};
+
+test('an x-control: select field renders its x-options and commits a pick', async () => {
+  mockPost(SELECT_SCHEMA);
+  const id = mount('echarts', { chartType: null });
+
+  const select = await screen.findByRole('combobox', { name: 'Chart type' });
+  await userEvent.click(select);
+  await userEvent.click(await screen.findByText('bar'));
+
+  await waitFor(() =>
+    expect(provider.getNode(id)?.props?.chartType).toBe('bar'),
+  );
+});
+
+test('clearing an x-control: select field writes null (Custom/unset), not an empty string', async () => {
+  mockPost(SELECT_SCHEMA);
+  const id = mount('echarts', { chartType: 'bar' });
+  await screen.findByRole('combobox', { name: 'Chart type' });
+
+  await userEvent.click(document.querySelector('.ant-select-clear')!);
+
+  await waitFor(() =>
+    expect(provider.getNode(id)?.props?.chartType).toBeNull(),
+  );
+});
+
+// A per-series entry shape that isn't Balloons' {color, sizeScale} — proves
+// SeriesOverridesControl renders by schema shape, not a hard-coded field
+// list: a boolean (`visible`, a toggle) and a plain string (`displayName`,
+// a text input) alongside the color swatch every entry shares.
+const ECHARTS_SERIES_PROPERTIES = {
+  count: {
+    type: 'object',
+    title: 'count',
+    properties: {
+      color: {
+        type: 'string',
+        title: 'Color',
+        default: '#e74c3c',
+        'x-control': 'color',
+      },
+      visible: { type: 'boolean', title: 'Visible', default: true },
+      displayName: { type: 'string', title: 'Display name', default: '' },
+    },
+  },
+};
+
+test('a non-Balloons series entry shape (color + boolean + string) renders each field by its own schema type', async () => {
+  mockPost(seriesSchema(ECHARTS_SERIES_PROPERTIES));
+
+  const id = mount('echarts', {
+    customize: {
+      series: { count: { color: '#e74c3c', visible: true, displayName: '' } },
+    },
+  });
+
+  await userEvent.click(await screen.findByText('1 series · 1 customized'));
+
+  expect(await screen.findByLabelText('count color')).toBeInTheDocument();
+  const visibleToggle = await screen.findByLabelText('count visible');
+  const nameInput = await screen.findByLabelText('count display name');
+
+  await userEvent.click(visibleToggle);
+  await waitFor(() =>
+    expect(
+      (provider.getNode(id)?.props?.customize as Record<string, unknown>)
+        ?.series,
+    ).toEqual({ count: { color: '#e74c3c', visible: false, displayName: '' } }),
+  );
+
+  await userEvent.clear(nameInput);
+  await userEvent.type(nameInput, 'Total');
+  await waitFor(() =>
+    expect(
+      (
+        (provider.getNode(id)?.props?.customize as Record<string, unknown>)
+          ?.series as Record<string, Record<string, unknown>>
+      )?.count?.displayName,
+    ).toBe('Total'),
+  );
 });

@@ -29,7 +29,7 @@ mandatory leaves, leaving optional/styling fields behind a drill-in.
 
 from __future__ import annotations
 
-from typing import Any, ClassVar
+from typing import Any, ClassVar, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from superset_core.widgets import MetricControl
@@ -151,6 +151,7 @@ class SeriesStyle(BaseModel):
             "Multiplier on the metric-derived balloon size for this series "
             "(1 = as-is, 2 = twice as big)."
         ),
+        json_schema_extra={"x-step": 0.25},
     )
 
 
@@ -249,12 +250,69 @@ class MarkdownControls(BaseModel):
     )
 
 
+class SeriesOverride(BaseModel):
+    """One structured chart series' visual override, matched to a
+    ``dataBinding`` metric by its stable label (the same label ECharts'
+    `getMetricLabel`-equivalent computes and the query result column is
+    named after), not by array position."""
+
+    color: str = Field(
+        default="",
+        title="Color",
+        description="Empty keeps the palette-assigned default.",
+        json_schema_extra={"x-control": "color"},
+    )
+    visible: bool = Field(
+        default=True,
+        title="Visible",
+        description="Unchecking omits this series from the rendered chart.",
+    )
+    display_name: str = Field(
+        default="",
+        alias="displayName",
+        title="Display name",
+        description=(
+            "Overrides the series' legend/tooltip label. Empty keeps the "
+            "metric's own label."
+        ),
+    )
+
+
+class EchartsCustomization(BaseModel):
+    """Per-series overrides for a structured (``chartType`` set) echarts
+    chart.
+
+    ``series`` is ``x-dynamic``: inlined with one entry per ``dataBinding``
+    metric once ``chartType`` is set, plus any already-stored override whose
+    metric was since removed from ``dataBinding.metrics`` — so switching
+    metrics around doesn't silently discard configuration (see
+    ``Echarts._populate_chart_series``).
+    """
+
+    series: dict[str, SeriesOverride] = Field(
+        default_factory=dict,
+        title="Per-series overrides",
+        json_schema_extra={
+            "x-dynamic": True,
+            "x-dependsOn": ["dataBinding", "chartType"],
+        },
+    )
+
+
 class EchartsControls(BaseModel):
     """Controls for the ``echarts`` widget (a chart from a raw ECharts option).
 
     Not modeled field-by-field: ``echartsOptions`` is a near-raw ECharts
     ``option`` edited as JSON, with ``$bind`` markers splicing in the queried
     data. The query itself is the standard ``dataBinding``.
+
+    ``chartType``/``customize`` are an optional structured layer on top:
+    when ``chartType`` is set, the frontend replaces `option.series` with one
+    generated series per ``dataBinding`` metric (styled per ``customize``);
+    every other part of ``echartsOptions`` (axes, legend, tooltip, title) is
+    still used exactly as authored. Leaving ``chartType`` unset ("Custom")
+    keeps ``echartsOptions`` fully authoritative, including mixed-series or
+    non-Cartesian (e.g. pie) shapes the structured layer doesn't cover.
     """
 
     model_config = ConfigDict(populate_by_name=True)
@@ -286,4 +344,26 @@ class EchartsControls(BaseModel):
             "x-language": "json",
             "x-spec-dialect": "echarts",
         },
+    )
+    chart_type: Literal["bar", "line", "scatter"] | None = Field(
+        default=None,
+        alias="chartType",
+        title="Chart type",
+        description=(
+            "Renders a structured chart — one series per dataBinding metric — "
+            "layered on top of echartsOptions. Leave unset ('Custom') to use "
+            "echartsOptions exactly as authored, including mixed-series or "
+            "non-Cartesian (e.g. pie) configurations. Pie isn't offered here: "
+            "its data shape (one series, categories as data points) doesn't "
+            "match the one-series-per-metric model this picker drives."
+        ),
+        json_schema_extra={
+            "x-control": "select",
+            "x-options": ["bar", "line", "scatter"],
+        },
+    )
+    customize: EchartsCustomization = Field(
+        default_factory=EchartsCustomization,
+        title="Customize",
+        description="Per-series color, visibility, and display-name overrides.",
     )

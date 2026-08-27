@@ -32,9 +32,13 @@ jest.mock('echarts/core', () => ({
   })),
 }));
 
+const mockFetchQueryData = jest.fn(async () => ({
+  rows: [{ x: 'a', y: 1 }] as Record<string, unknown>[],
+}));
+
 jest.mock('../chartData', () => ({
   __esModule: true,
-  fetchQueryData: jest.fn(async () => ({ rows: [{ x: 'a', y: 1 }] })),
+  fetchQueryData: () => mockFetchQueryData(),
 }));
 
 /**
@@ -64,6 +68,8 @@ const provider = DashboardProvider.getInstance();
 beforeEach(() => {
   provider.reset();
   mockSetOption.mockClear();
+  mockFetchQueryData.mockClear();
+  mockFetchQueryData.mockResolvedValue({ rows: [{ x: 'a', y: 1 }] });
 });
 
 test('a chart does not draw the name its header already carries', async () => {
@@ -87,4 +93,74 @@ test('a chart does not draw the name its header already carries', async () => {
   const [option] = mockSetOption.mock.calls[0];
   expect(option).not.toHaveProperty('title');
   expect(option).toHaveProperty('series');
+});
+
+test('an existing raw-only echarts widget (no chartType) renders exactly as before', async () => {
+  const rawSeries = [{ type: 'pie', data: [{ name: 'a', value: 1 }] }];
+  const id = provider.addWidget(provider.getRoot().id, 0, {
+    type: 'echarts',
+    props: {
+      dataBinding: { datasetId: 1, metrics: [] },
+      echartsOptions: { legend: { show: true }, series: rawSeries },
+    },
+  });
+  render(<ChartWidget nodeId={id} />);
+
+  await waitFor(() => expect(mockSetOption).toHaveBeenCalled());
+
+  const [option] = mockSetOption.mock.calls[0];
+  expect(option.series).toEqual(rawSeries);
+  expect(option.legend).toEqual({ show: true });
+});
+
+test('selecting a structured chart type replaces series with one generated per metric', async () => {
+  mockFetchQueryData.mockResolvedValue({ rows: [{ count: 3 }, { count: 5 }] });
+  const id = provider.addWidget(provider.getRoot().id, 0, {
+    type: 'echarts',
+    props: {
+      dataBinding: { datasetId: 1, metrics: ['count'] },
+      echartsOptions: {
+        legend: { show: true },
+        series: [{ type: 'pie', data: [] }],
+      },
+      chartType: 'bar',
+    },
+  });
+  render(<ChartWidget nodeId={id} />);
+
+  await waitFor(() => expect(mockSetOption).toHaveBeenCalled());
+
+  const [option] = mockSetOption.mock.calls[0];
+  // The structured layer only manages `series` — everything else the raw
+  // option authored survives unmanaged.
+  expect(option.legend).toEqual({ show: true });
+  expect(option.series).toEqual([{ name: 'count', type: 'bar', data: [3, 5] }]);
+});
+
+test('a series override is applied by stable metric key when chartType is set', async () => {
+  mockFetchQueryData.mockResolvedValue({ rows: [{ count: 3 }] });
+  const id = provider.addWidget(provider.getRoot().id, 0, {
+    type: 'echarts',
+    props: {
+      dataBinding: { datasetId: 1, metrics: ['count'] },
+      echartsOptions: {},
+      chartType: 'line',
+      customize: {
+        series: { count: { color: '#3498db', displayName: 'Total' } },
+      },
+    },
+  });
+  render(<ChartWidget nodeId={id} />);
+
+  await waitFor(() => expect(mockSetOption).toHaveBeenCalled());
+
+  const [option] = mockSetOption.mock.calls[0];
+  expect(option.series).toEqual([
+    {
+      name: 'Total',
+      type: 'line',
+      data: [3],
+      itemStyle: { color: '#3498db' },
+    },
+  ]);
 });

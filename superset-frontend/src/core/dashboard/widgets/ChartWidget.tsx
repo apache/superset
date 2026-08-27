@@ -53,10 +53,16 @@ import { LabelLayout } from 'echarts/features';
 import { CanvasRenderer } from 'echarts/renderers';
 import type { dashboard as dashboardApi } from '@apache-superset/core';
 import { useTheme } from '@apache-superset/core/theme';
+import type { QueryFormMetric } from '@superset-ui/core';
 import { Flex, Loading, Typography } from '@superset-ui/core/components';
 import { provider, useDashboardRevision } from '../store';
 import { fetchQueryData } from '../chartData';
 import { resolveBindings } from '../resolveBindings';
+import {
+  applyStructuredEchartsSeries,
+  type EchartsChartType,
+  type SeriesOverrideValue,
+} from './echartsStructuredSeries';
 
 type DataBindingSpec = dashboardApi.DataBindingSpec;
 type DataRow = dashboardApi.DataRow;
@@ -223,20 +229,41 @@ export default function ChartWidget({ nodeId }: { nodeId: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bindingKey]);
 
+  const chartType = node?.props?.chartType as
+    EchartsChartType | null | undefined;
+  const customizeSeries = (
+    node?.props?.customize as
+      { series?: Record<string, SeriesOverrideValue> } | undefined
+  )?.series;
+
   const option = useMemo(() => {
     if (!rows) return undefined;
     const resolved = resolveBindings(
       (node?.props?.echartsOptions as Record<string, unknown>) ?? {},
       { rows, theme },
     );
+    const withStructuredSeries = applyStructuredEchartsSeries(
+      resolved,
+      chartType,
+      (dataBinding?.metrics ?? []) as QueryFormMetric[],
+      rows,
+      customizeSeries,
+    );
     // The chart's name is drawn by the widget's header, which reads it from
     // this same option (see `widgetLabel`). Leaving it here too would print it
     // twice, at two sizes, in two places — and the header's copy is the one
     // that sits where every other widget's name sits.
-    const withoutTitle = { ...resolved };
+    const withoutTitle = { ...withStructuredSeries };
     delete withoutTitle.title;
     return withoutTitle;
-  }, [node?.props?.echartsOptions, rows, theme]);
+  }, [
+    node?.props?.echartsOptions,
+    chartType,
+    customizeSeries,
+    dataBinding,
+    rows,
+    theme,
+  ]);
 
   if (!node) return null;
 

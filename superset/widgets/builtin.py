@@ -39,6 +39,26 @@ from superset.widgets.controls import (
 )
 
 
+def _metric_key(metric: Any) -> str:
+    """The stable label a `dataBinding` metric renders/queries under —
+    mirrors the frontend's `getMetricLabel` (`@superset-ui/core`) exactly,
+    since the two must agree: this is also the query result column name a
+    structured series reads its data from."""
+    if isinstance(metric, str):
+        return metric
+    if isinstance(metric, dict):
+        label = metric.get("label")
+        if label:
+            return str(label)
+        if metric.get("expressionType") != "SQL":
+            column = metric.get("column") or {}
+            column_name = column.get("columnName") or column.get("column_name") or ""
+            aggregate = metric.get("aggregate") or ""
+            return f"{aggregate}({column_name})"
+        return str(metric.get("sqlExpression", ""))
+    return str(metric)
+
+
 @widget(
     widget_type="markdown",
     name="Markdown",
@@ -54,7 +74,70 @@ class Markdown(Widget):
     description="A chart from a raw ECharts option with $bind data markers.",
 )
 class Echarts(Widget):
+    """
+    A raw-ECharts-option chart, plus an optional structured layer: when
+    ``chartType`` is set, ``customize.series`` offers one entry per
+    ``dataBinding`` metric (the SIP's ``x-dynamic`` pattern, as ``Balloons``
+    uses for its per-series styling) so a series can be colored, hidden, or
+    relabeled without hand-editing ``echartsOptions``.
+    """
+
     controls_class = EchartsControls
+
+    # Default color per series index, matching the frontend's structured
+    # series builder so a series' color is stable before the author touches
+    # customize (same convention as Balloons.PALETTE).
+    PALETTE = ["#e74c3c", "#3498db", "#2ecc71", "#f1c40f", "#9b59b6", "#1abc9c"]
+
+    # Upper bound on distinct series inlined into the schema (see Balloons.MAX_SERIES).
+    MAX_SERIES = 100
+
+    @staticmethod
+    def _populate_chart_series(
+        schema: dict[str, Any],
+        node: dict[str, Any],
+        parsed: BaseModel | None,
+        series: list[str],
+        upstream: dict[str, Any],
+    ) -> None:
+        # Unlike Balloons (where dimension *values* are only known once the
+        # frontend reports them, so an extra runtime guard is needed beyond
+        # the x-dependsOn gate), a structured series' identity comes entirely
+        # from `dataBinding.metrics` — a field already on `parsed` once the
+        # `dataBinding`/`chartType` gate above has passed.
+        style_def = schema.get("$defs", {}).get("SeriesOverride")
+        if style_def is None:
+            return
+        data_binding = getattr(parsed, "data_binding", None) if parsed else None
+        metrics = getattr(data_binding, "metrics", None) or []
+        discovered_keys = [_metric_key(metric) for metric in metrics]
+        customize = getattr(parsed, "customize", None) if parsed else None
+        stored = getattr(customize, "series", None) or {}
+        # Union with already-stored override keys, so an override for a
+        # metric temporarily removed from dataBinding.metrics stays visible
+        # (and thus editable/removable) instead of silently disappearing.
+        combined_keys = list(dict.fromkeys([*discovered_keys, *stored.keys()]))
+        if not combined_keys:
+            # Also sidesteps a forward reference to `Echarts.MAX_SERIES`
+            # below: this enricher runs once during the class's own
+            # `@widget` registration check (control_values=None), before the
+            # `Echarts` name is bound in this module.
+            return
+        all_keys = combined_keys[: Echarts.MAX_SERIES]
+        node.pop("additionalProperties", None)
+        properties: dict[str, Any] = {}
+        for index, key in enumerate(all_keys):
+            style = deepcopy(style_def)
+            style["properties"]["color"]["default"] = Echarts.PALETTE[
+                index % len(Echarts.PALETTE)
+            ]
+            style["title"] = key
+            properties[key] = style
+        node["properties"] = properties
+
+    enrichers: ClassVar[dict[str, EnricherFn]] = {
+        "customize/series": _populate_chart_series
+    }
 
 
 @widget(
