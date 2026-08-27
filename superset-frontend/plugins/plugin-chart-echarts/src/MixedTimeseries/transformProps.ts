@@ -80,6 +80,7 @@ import {
   getAnnotationData,
 } from '../utils/annotation';
 import {
+  collapseForecastKeys,
   extractForecastSeriesContext,
   extractForecastValuesFromTooltipParams,
   formatForecastTooltipSeries,
@@ -188,6 +189,8 @@ export default function transformProps(
     showLegend,
     showValue,
     showValueB,
+    labelPosition,
+    labelPositionB,
     onlyTotal,
     onlyTotalB,
     stack,
@@ -532,6 +535,7 @@ export default function transformProps(
         thresholdValues,
         timeShiftColor,
         theme,
+        labelPosition,
       },
     );
 
@@ -620,6 +624,7 @@ export default function transformProps(
         thresholdValues: thresholdValuesB,
         timeShiftColor,
         theme,
+        labelPosition: labelPositionB,
       },
     );
 
@@ -769,7 +774,9 @@ export default function transformProps(
       nameGap: xAxisTitleMarginPx,
       nameLocation: 'middle',
       axisLabel: {
-        hideOverlap: !(xAxisType === AxisType.Time && xAxisLabelRotation !== 0),
+        hideOverlap: showMaxLabel
+          ? false
+          : !(xAxisType === AxisType.Time && xAxisLabelRotation !== 0),
         formatter: deduplicatedFormatter,
         rotate: xAxisLabelRotation,
         interval: xAxisLabelInterval,
@@ -861,12 +868,14 @@ export default function transformProps(
           : params.value[0];
         const forecastValue: any[] = richTooltip ? params : [params];
 
-        const sortedKeys = extractTooltipKeys(
-          forecastValue,
-          // horizontal mode is not supported in mixed series chart
-          1,
-          richTooltip,
-          tooltipSortByMetric,
+        const sortedKeys = collapseForecastKeys(
+          extractTooltipKeys(
+            forecastValue,
+            // horizontal mode is not supported in mixed series chart
+            1,
+            richTooltip,
+            tooltipSortByMetric,
+          ),
         );
 
         const rows: string[][] = [];

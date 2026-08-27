@@ -54,7 +54,6 @@ def database(mocker: MockerFixture, session: Session) -> Database:
         "sqlite://",
         connect_args={"check_same_thread": False},
         poolclass=StaticPool,
-        future=True,
     )
     database = Database(database_name="db", sqlalchemy_uri="sqlite://")
 
@@ -126,7 +125,6 @@ def test_values_for_column_passes_catalog_and_schema(
         "sqlite://",
         connect_args={"check_same_thread": False},
         poolclass=StaticPool,
-        future=True,
     )
     database = Database(database_name="db", sqlalchemy_uri="sqlite://")
 
@@ -187,7 +185,6 @@ def test_values_for_column_passes_none_catalog_and_schema(
         "sqlite://",
         connect_args={"check_same_thread": False},
         poolclass=StaticPool,
-        future=True,
     )
     database = Database(database_name="db", sqlalchemy_uri="sqlite://")
 
@@ -2130,6 +2127,76 @@ def test_adhoc_metric_to_sqla_invalid_simple_aggregate_raises_validation_error(
         metric["aggregate"] = aggregate
 
     with pytest.raises(QueryObjectValidationError):
+        table.adhoc_metric_to_sqla(metric, {})
+
+
+@pytest.mark.parametrize(
+    "aggregate,expected_substring",
+    [
+        ("MEDIAN", "percentile_cont"),
+        ("STDDEV_SAMP", "stddev_samp"),
+        ("VAR_SAMP", "var_samp"),
+    ],
+)
+def test_adhoc_metric_to_sqla_extended_aggregate_on_supported_engine(
+    aggregate: str,
+    expected_substring: str,
+) -> None:
+    """
+    MEDIAN/STDDEV_SAMP/VAR_SAMP compile correctly end-to-end on an engine that
+    supports them (Postgres), via the same `adhoc_metric_to_sqla` path every
+    other aggregate uses -- no pivot-table-specific code involved.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.models.core import Database
+
+    pg_database = Database(database_name="pg", sqlalchemy_uri="postgresql://u:p@h/d")
+    table = SqlaTable(
+        database=pg_database,
+        schema=None,
+        table_name="t",
+        columns=[TableColumn(column_name="sales")],
+    )
+    metric: AdhocMetric = {
+        "expressionType": "SIMPLE",
+        "column": {"column_name": "sales"},
+        "aggregate": aggregate,
+        "label": f"{aggregate} sales",
+    }
+
+    sqla_metric = table.adhoc_metric_to_sqla(metric, {})
+
+    assert expected_substring in str(sqla_metric).lower()
+
+
+def test_adhoc_metric_to_sqla_extended_aggregate_on_unsupported_engine_raises_specific_error(  # noqa: E501
+    database: Database,
+) -> None:
+    """
+    A recognized extended aggregate (MEDIAN) that this engine (SQLite, via the
+    `database` fixture) has no verified expression for raises a specific
+    "not supported on this database" error, distinct from the generic
+    "invalid aggregate" error a bogus aggregate name gets -- callers should be
+    able to tell "this isn't a real thing" from "this engine can't do it"
+    without emitting unverified SQL either way.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.exceptions import QueryObjectValidationError
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[TableColumn(column_name="a")],
+    )
+    metric: AdhocMetric = {
+        "expressionType": "SIMPLE",
+        "column": {"column_name": "a"},
+        "aggregate": "MEDIAN",
+        "label": "Median a",
+    }
+
+    with pytest.raises(QueryObjectValidationError, match="not supported"):
         table.adhoc_metric_to_sqla(metric, {})
 
 

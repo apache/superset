@@ -36,6 +36,7 @@ import {
 import sqlKeywords from 'src/SqlLab/utils/sqlKeywords';
 import { noOp } from 'src/utils/common';
 import {
+  AGGREGATES_LABELS,
   AGGREGATES_OPTIONS,
   POPOVER_INITIAL_HEIGHT,
   POPOVER_INITIAL_WIDTH,
@@ -548,7 +549,7 @@ function AdhocMetricEditPopover({
                   <Select
                     options={AGGREGATES_OPTIONS.map(option => ({
                       value: option,
-                      label: option,
+                      label: AGGREGATES_LABELS[option] ?? option,
                       key: option,
                     }))}
                     {...aggregateSelectProps}
