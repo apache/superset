@@ -104,9 +104,12 @@ const xControlIs = (value: string) =>
       (schema as Record<string, unknown>)['x-control'] === value,
   );
 
-const isDynamicSeries = schemaMatches(
-  (schema: JsonSchema) =>
-    (schema as Record<string, unknown>)['x-dynamic'] === true,
+const isDynamicSeries = and(
+  schemaMatches(
+    (schema: JsonSchema) =>
+      (schema as Record<string, unknown>)['x-dynamic'] === true,
+  ),
+  schemaTypeIs('object'),
 );
 
 /** Raw JSON editor for an `x-control: code` field. */

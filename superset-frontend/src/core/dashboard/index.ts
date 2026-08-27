@@ -30,7 +30,11 @@
  * `getRoot`/`getNode` accessors extensions use.
  */
 
-import type { dashboard as dashboardApi } from '@apache-superset/core';
+// Not `import type`: `dashboardApi.VALUE_CHANGED_EVENT` below needs the real
+// runtime value the `@apache-superset/core` package compiles for that one
+// `const` export (unlike the ambient `declare function`s alongside it, which
+// this object exists to implement and have no JS output of their own).
+import { dashboard as dashboardApi } from '@apache-superset/core';
 import { provider, useDashboardRevision } from './store';
 import { fetchQueryData } from './chartData';
 import { registerBuiltInWidgets } from './registerBuiltInWidgets';
@@ -52,5 +56,9 @@ export const dashboard: typeof dashboardApi = {
   updateLayout: provider.updateLayout.bind(provider),
   updateProps: provider.updateProps.bind(provider),
   onDidLayoutChange: provider.onDidLayoutChange,
+  VALUE_CHANGED_EVENT: dashboardApi.VALUE_CHANGED_EVENT,
+  emit: provider.emit,
+  getValue: provider.getValue,
+  on: provider.on,
   fetchQueryData,
 };

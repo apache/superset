@@ -146,6 +146,35 @@ const HeaderControlSlot = styled.span`
 `;
 
 /**
+ * Where the remove control (and a type's own header control) land for a
+ * widget `widgetLabel` leaves unnamed (markdown, carousel) — floated over
+ * the widget's own content instead of sharing a row with a title that
+ * isn't there. Reserving `BlockHeader`'s own height for a row with
+ * nothing on the left is what left these widgets with a band of blank
+ * space above their actual content; a widget with no name to show has
+ * nothing that needs that row, so the content takes the height back and
+ * this floats on top of it instead.
+ *
+ * A small chip rather than a bare icon on the widget's own background: the
+ * content underneath is arbitrary (a chart, a markdown body, a table) and
+ * can be dark, busy, or the same color the icon would be, so it needs a
+ * surface of its own to stay legible regardless of what's beneath it.
+ */
+const OverlayControls = styled.div`
+  ${({ theme }) => css`
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: ${theme.sizeUnit}px;
+    background-color: ${theme.colorBgContainer};
+    border-radius: ${theme.borderRadius}px;
+  `}
+`;
+
+/**
  * What the remove control is wrapped in, and why it is wrapped at all.
  *
  * The control itself is `ActionButton` — the shared component for an icon
@@ -250,6 +279,10 @@ const WidgetView = forwardRef<HTMLDivElement, WidgetViewProps>(
     // The same token `BlockHeader` is drawn at: the content box below is this
     // element's height minus the band, so the two have to be one number.
     const headerHeight = theme.controlHeightSM;
+    // A type `widgetLabel` leaves unnamed (markdown, carousel) has nothing
+    // to put in a header row, so it doesn't get one — see `OverlayControls`.
+    const label = chrome ? widgetLabel(node.type, node.props) : '';
+    const hasTitle = Boolean(label);
 
     return (
       <div
@@ -394,105 +427,119 @@ const WidgetView = forwardRef<HTMLDivElement, WidgetViewProps>(
             was a widget you can delete only from the panel. The keyboard path
             is not this button: the Outline selects any widget with proper tree
             semantics and Properties carries the same Delete. */}
-        {chrome && (
-          <BlockHeader data-test={`widget-header-${nodeId}`}>
-            {/* Skipped entirely for a type `widgetLabel` leaves unnamed
-                (markdown, whose rendered body is right below this and needs
-                no caption repeating it) — an empty `Typography.Text` would
-                still be a blank strip claiming the header's whole left
-                side, not nothing. */}
-            {widgetLabel(node.type, node.props) && (
-              <Typography.Text
-                ellipsis
-                data-test={`widget-title-${nodeId}`}
-                style={{
-                  flex: '1 1 auto',
-                  // The name of the thing below it, not a note about it. At the
-                  // small size in the secondary colour it read as a caption
-                  // hanging over the widget — and this is the first thing anyone
-                  // scanning a canvas uses to tell one widget from the next, so
-                  // it is drawn at the weight that job deserves.
-                  fontSize: theme.fontSize,
-                  fontWeight: theme.fontWeightStrong,
-                  color: theme.colorText,
-                }}
-              >
-                {widgetLabel(node.type, node.props)}
-              </Typography.Text>
-            )}
-            <HeaderTrailingControls>
-              {/* A type's own extra header control — e.g. `collapsible`'s
-                  expand/collapse toggle — sits beside Remove rather than
-                  below the header, so a widget with one of these is still
-                  just a title and its content, not a title, a second bar,
-                  and its content. See `widgetHeaderControl`. */}
-              {widgetHeaderControl(node.type, nodeId) && (
-                <HeaderControlSlot
-                  data-widget-header-control
+        {chrome &&
+          (() => {
+            // Built once and placed one of two ways below — in-flow beside
+            // a title, or floated over the content when there isn't one
+            // (see `OverlayControls`) — rather than duplicated per branch.
+            const trailingControls = (
+              <>
+                {/* A type's own extra header control — e.g. `collapsible`'s
+                    expand/collapse toggle — sits beside Remove rather than
+                    below the header, so a widget with one of these is still
+                    just a title and its content, not a title, a second bar,
+                    and its content. See `widgetHeaderControl`. */}
+                {widgetHeaderControl(node.type, nodeId) && (
+                  <HeaderControlSlot
+                    data-widget-header-control
+                    onMouseDown={event => event.stopPropagation()}
+                    onPointerDown={event => event.stopPropagation()}
+                    onClick={event => event.stopPropagation()}
+                  >
+                    {widgetHeaderControl(node.type, nodeId)}
+                  </HeaderControlSlot>
+                )}
+                <RemoveSlot
+                  data-widget-remove
                   onMouseDown={event => event.stopPropagation()}
                   onPointerDown={event => event.stopPropagation()}
                   onClick={event => event.stopPropagation()}
                 >
-                  {widgetHeaderControl(node.type, nodeId)}
-                </HeaderControlSlot>
-              )}
-              <RemoveSlot
-                data-widget-remove
-                onMouseDown={event => event.stopPropagation()}
-                onPointerDown={event => event.stopPropagation()}
-                onClick={event => event.stopPropagation()}
-              >
-                <ActionButton
-                  label={t('Remove widget')}
-                  tooltip={t('Remove widget')}
-                  placement="bottom"
-                  dataTest={`widget-remove-${nodeId}`}
-                  onClick={() => provider.removeWidget(nodeId)}
-                  // A bin rather than a cross. A cross on a card is the gesture
-                  // for dismissing the card — closing it, putting it away — and
-                  // this does not put the widget away, it takes it off the
-                  // dashboard. The bin is what the rest of the app uses to say
-                  // so, and it is the same act the panel offers as Delete.
-                  //
-                  // Quiet at rest and primary under the pointer, which is
-                  // `ActionButton`'s own behaviour and the same answer the
-                  // dashboard list gives for its Delete: a bin on every widget,
-                  // all of them lit red, would make a canvas read as a row of
-                  // things about to be deleted.
-                  icon={<Icons.DeleteOutlined iconSize="s" />}
-                />
-              </RemoveSlot>
-              {/* To the bin's right, since the bin is the more common action
-                  of the two. See `PLACEHOLDER_MENU_ITEMS`. */}
-              <MenuSlot
-                data-widget-menu
-                onMouseDown={event => event.stopPropagation()}
-                onPointerDown={event => event.stopPropagation()}
-                onClick={event => event.stopPropagation()}
-              >
-                <KebabMenuButton
-                  ariaLabel={t('More actions')}
-                  dataTest={`widget-menu-${nodeId}`}
-                  buttonSize="xsmall"
-                  buttonStyle="link"
-                  iconOrientation="vertical"
-                  menuItems={PLACEHOLDER_MENU_ITEMS}
-                />
-              </MenuSlot>
-            </HeaderTrailingControls>
-          </BlockHeader>
-        )}
-        {/* The widget's own box, which is the whole of this element's minus
-            the band above it. Subtracted in pixels off a percentage rather
-            than left to a flex column, because what a leaf widget does with
-            the box is resolve `height: 100%` against it — a chart measures
-            the result to size its canvas — and that wants a height there is
-            no question about. */}
+                  <ActionButton
+                    label={t('Remove widget')}
+                    tooltip={t('Remove widget')}
+                    placement="bottom"
+                    dataTest={`widget-remove-${nodeId}`}
+                    onClick={() => provider.removeWidget(nodeId)}
+                    // A bin rather than a cross. A cross on a card is the gesture
+                    // for dismissing the card — closing it, putting it away — and
+                    // this does not put the widget away, it takes it off the
+                    // dashboard. The bin is what the rest of the app uses to say
+                    // so, and it is the same act the panel offers as Delete.
+                    //
+                    // Quiet at rest and primary under the pointer, which is
+                    // `ActionButton`'s own behaviour and the same answer the
+                    // dashboard list gives for its Delete: a bin on every widget,
+                    // all of them lit red, would make a canvas read as a row of
+                    // things about to be deleted.
+                    icon={<Icons.DeleteOutlined iconSize="s" />}
+                  />
+                </RemoveSlot>
+                {/* To the bin's right, since the bin is the more common action
+                    of the two. See `PLACEHOLDER_MENU_ITEMS`. */}
+                <MenuSlot
+                  data-widget-menu
+                  onMouseDown={event => event.stopPropagation()}
+                  onPointerDown={event => event.stopPropagation()}
+                  onClick={event => event.stopPropagation()}
+                >
+                  <KebabMenuButton
+                    ariaLabel={t('More actions')}
+                    dataTest={`widget-menu-${nodeId}`}
+                    buttonSize="xsmall"
+                    buttonStyle="link"
+                    iconOrientation="vertical"
+                    menuItems={PLACEHOLDER_MENU_ITEMS}
+                  />
+                </MenuSlot>
+              </>
+            );
+
+            return hasTitle ? (
+              <BlockHeader data-test={`widget-header-${nodeId}`}>
+                <Typography.Text
+                  ellipsis
+                  data-test={`widget-title-${nodeId}`}
+                  style={{
+                    flex: '1 1 auto',
+                    // The name of the thing below it, not a note about it. At the
+                    // small size in the secondary colour it read as a caption
+                    // hanging over the widget — and this is the first thing anyone
+                    // scanning a canvas uses to tell one widget from the next, so
+                    // it is drawn at the weight that job deserves.
+                    fontSize: theme.fontSize,
+                    fontWeight: theme.fontWeightStrong,
+                    color: theme.colorText,
+                  }}
+                >
+                  {label}
+                </Typography.Text>
+                <HeaderTrailingControls>
+                  {trailingControls}
+                </HeaderTrailingControls>
+              </BlockHeader>
+            ) : (
+              // No title to share a row with (markdown, carousel — see
+              // `widgetLabel`'s UNNAMED set) — floated over the content
+              // instead of reserving a row that would otherwise be nothing
+              // but blank space above it.
+              <OverlayControls data-test={`widget-header-${nodeId}`}>
+                {trailingControls}
+              </OverlayControls>
+            );
+          })()}
+        {/* The widget's own box — the whole of this element when there's no
+            title reserving a row above it (see `hasTitle`), or this
+            element's height minus that row otherwise. Subtracted in pixels
+            off a percentage rather than left to a flex column, because what
+            a leaf widget does with the box is resolve `height: 100%` against
+            it — a chart measures the result to size its canvas — and that
+            wants a height there is no question about. */}
         <div
           data-test={`widget-content-${nodeId}`}
           style={{
             width: '100%',
-            height: chrome ? `calc(100% - ${headerHeight}px)` : '100%',
+            height: hasTitle ? `calc(100% - ${headerHeight}px)` : '100%',
           }}
         >
           <ErrorBoundary>

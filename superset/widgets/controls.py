@@ -486,3 +486,115 @@ class EchartsControls(BaseModel):
         title="Chrome",
         description="Structured title, legend, tooltip, and axis label overrides.",
     )
+    cross_filter: bool = Field(
+        default=False,
+        alias="crossFilter",
+        title="Cross-filter on click",
+        description=(
+            "Emit a cross-filter from the first grouping dimension when a "
+            "point is clicked (requires dataBinding.dimensions to have at "
+            "least one entry). Clicking the same point again clears it."
+        ),
+    )
+
+
+class FilterScope(BaseModel):
+    """Which widgets a filter's selection reaches.
+
+    Empty ``targets`` (the default) means every query-bound widget reading
+    the same ``datasetId`` as the filter. A non-empty ``targets`` REPLACES
+    that dataset-match default rather than adding to it.
+    """
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    targets: list[str] = Field(
+        default_factory=list,
+        title="Targets",
+        description=(
+            "Node ids this filter applies to. Leave empty to apply to every "
+            "widget reading the same dataset instead."
+        ),
+    )
+
+
+class FilterSelectControls(BaseModel):
+    """Controls for the ``filter.select`` widget (a value/multi-select
+    dashboard filter).
+
+    Deliberately not a ``dataBinding`` — a filter has no metrics, just a
+    target column. ``datasetId``'s enum (every dataset the caller can view)
+    and ``column``'s enum (that dataset's own columns, populated once
+    ``datasetId`` is set) are both populated dynamically — see
+    ``FilterSelect.enrichers``.
+    """
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    dataset_id: int = Field(
+        alias="datasetId",
+        title="Dataset ID",
+        description="Numeric id of the dataset this filter targets.",
+        json_schema_extra={"x-dynamic": True},
+    )
+    # Defaulted (unlike `dataset_id`) even though a real filter needs one:
+    # the control panel posts control_values as the author fills fields in,
+    # and until a dataset is chosen there's no `column` value to send at
+    # all. Without a default, validating that partial payload would raise
+    # on the *missing* field, `Widget.get_control_schema` would swallow that
+    # and fall back to `parsed=None`, and the column enricher would never
+    # see the `dataset_id` it needs to populate this very field's `enum` —
+    # i.e. picking a dataset would never turn `column` into a working
+    # dropdown. `min_length=1` keeps an explicit empty value invalid at
+    # commit time (`validate_control_values`), since Pydantic only checks
+    # defaults against a field's validators when asked to, not on every
+    # validate() (see `validate_default` if that ever needs to change).
+    column: str = Field(
+        default="",
+        min_length=1,
+        title="Column",
+        description="The column this filter constrains.",
+        json_schema_extra={"x-dynamic": True, "x-dependsOn": ["datasetId"]},
+    )
+    # Both hidden from the generated Form (see `x-hidden` in `buildUiSchema`):
+    # a raw string-list "Add one at a time" control is more clutter than help
+    # for what's meant to be an edge case, not the primary way to configure a
+    # filter. Still real fields — present in the schema/JSON tab and fully
+    # functional — just not offered as a first-class Form control.
+    options: list[str] = Field(
+        default_factory=list,
+        title="Options",
+        description=(
+            "Optional static list of selectable values. Leave empty to query "
+            "the target column's own distinct values at render time instead."
+        ),
+        json_schema_extra={"x-hidden": True},
+    )
+    default_selection: list[str] = Field(
+        default_factory=list,
+        alias="defaultSelection",
+        title="Default selection",
+        description=(
+            "Starting selection, applied once the first time this filter "
+            "renders with no live viewer selection yet."
+        ),
+        json_schema_extra={"x-hidden": True},
+    )
+    scope: FilterScope = Field(
+        default_factory=FilterScope,
+        title="Scope",
+        description="Which widgets this filter's selection reaches.",
+    )
+
+
+class FilterBarControls(BaseModel):
+    """Controls for the ``filter.bar`` widget — a plain arranging container
+    for ``filter.*`` children; it holds no data of its own."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    orientation: Literal["horizontal", "vertical"] = Field(
+        default="horizontal",
+        title="Orientation",
+        description="Whether filters lay out side by side or stacked.",
+    )

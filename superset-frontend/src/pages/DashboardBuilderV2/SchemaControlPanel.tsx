@@ -32,11 +32,17 @@
  * query results and posts them back, so the backend can enrich the schema (the
  * SIP's x-dynamic pattern; ignored by schemas that don't declare it).
  *
+ * A dynamic field can also depend on a plain sibling control value instead of
+ * `series` (e.g. `filter.select`'s `column` enum depends on `datasetId`) — an
+ * edit to that value debounces a schema re-fetch carrying the new value along
+ * (`maybeRefreshSchema`), the same dependency-driven refresh
+ * `SemanticLayerModal` runs for the Semantic Layer's own dynamic fields.
+ *
  * NOTE: must be rendered bare — NOT inside an antd `Form`, which would bind the
  * generated `Form.Item`s to its own store and swallow the edits. The Inspector
  * renders it bare for exactly this reason (see `PropsEditor`).
  */
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { SupersetClient } from '@superset-ui/core';
 import { Loading, Typography } from '@superset-ui/core/components';
 import { JsonForms } from '@jsonforms/react';
@@ -44,8 +50,12 @@ import type { JsonSchema } from '@jsonforms/core';
 import { cellRegistryEntries } from '@great-expectations/jsonforms-antd-renderers';
 import type { dashboard as dashboardApi } from '@apache-superset/core';
 import {
+  areDependenciesSatisfied,
   buildUiSchema,
+  getDynamicDependencies,
   sanitizeSchema,
+  serializeDependencyValues,
+  SCHEMA_REFRESH_DEBOUNCE_MS,
 } from 'src/features/semanticLayers/jsonFormsHelpers';
 import { provider, useDashboardRevision } from 'src/core/dashboard/store';
 import { fetchQueryData } from 'src/core/dashboard/chartData';
@@ -147,6 +157,7 @@ export default function SchemaControlPanel({ nodeId }: { nodeId: string }) {
 
   const [series, setSeries] = useState<string[]>([]);
   const [schema, setSchema] = useState<JsonSchema | null>(null);
+  const [formKey, setFormKey] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [validationErrors, setValidationErrors] = useState<
     ControlValidationError[]
@@ -158,6 +169,12 @@ export default function SchemaControlPanel({ nodeId }: { nodeId: string }) {
   // A validation error belongs to the widget it was raised for; selecting a
   // different one shouldn't leave a stale message on screen.
   useEffect(() => setValidationErrors([]), [nodeId]);
+  // Whether a debounced re-fetch triggered by a dynamic field's own
+  // dependency (see `maybeRefreshSchema` below) is in flight — surfaced to
+  // the renderers via `config` so a dependent field (e.g. `column`) can show
+  // a loading state instead of briefly offering its previous, now-stale
+  // options.
+  const [refreshingSchema, setRefreshingSchema] = useState(false);
 
   // Discover series once the binding has a grouping dimension; empty otherwise.
   // Only relevant to schemas that declare an x-dynamic field, but harmless for
@@ -177,6 +194,14 @@ export default function SchemaControlPanel({ nodeId }: { nodeId: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bindingKey, colorDimension]);
 
+  // Field name -> the other fields it depends on (e.g. `column` depends on
+  // `datasetId`), read off whatever schema is currently applied. Recomputed
+  // each time a schema arrives — including from the debounced refresh below
+  // — since enrichment can change which fields are dynamic.
+  const dynamicDepsRef = useRef<Record<string, string[]>>({});
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastDepSnapshotRef = useRef<string>('');
+
   // (Re)fetch the schema when the widget type or discovered series change. The
   // series change is what carries an x-dynamic dependency (e.g. a new grouping
   // dimension) through to a re-enriched schema.
@@ -191,6 +216,7 @@ export default function SchemaControlPanel({ nodeId }: { nodeId: string }) {
       .then(result => {
         if (!cancelled) {
           setSchema(sanitizeSchema(result));
+          dynamicDepsRef.current = getDynamicDependencies(result);
           setError(null);
         }
       })
@@ -204,6 +230,64 @@ export default function SchemaControlPanel({ nodeId }: { nodeId: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [widgetType, seriesKey]);
 
+  // The effect above only reacts to `widgetType`/`series` — an edit to a
+  // plain control value (e.g. picking `datasetId`) needs its own trigger so
+  // a field that depends on it (`column`'s enum) gets re-enriched. Debounced,
+  // and skipped whenever the dependency values haven't actually changed,
+  // mirroring `SemanticLayerModal`'s identical rule for the Semantic Layer's
+  // own dynamic fields.
+  const maybeRefreshSchema = useCallback(
+    (data: WidgetProps) => {
+      const dynamicDeps = dynamicDepsRef.current;
+      if (Object.keys(dynamicDeps).length === 0) return;
+
+      const hasSatisfiedDeps = Object.values(dynamicDeps).some(deps =>
+        areDependenciesSatisfied(deps, data, schema ?? undefined),
+      );
+      if (!hasSatisfiedDeps) {
+        if (debounceTimerRef.current) {
+          clearTimeout(debounceTimerRef.current);
+          debounceTimerRef.current = null;
+        }
+        setRefreshingSchema(false);
+        lastDepSnapshotRef.current = '';
+        return;
+      }
+
+      const snapshot = serializeDependencyValues(dynamicDeps, data);
+      if (snapshot === lastDepSnapshotRef.current) return;
+      lastDepSnapshotRef.current = snapshot;
+
+      // Flip the loading state immediately so the dependent field shows it
+      // through the debounce window, rather than keeping its stale options
+      // on screen for the debounce's duration before the request even fires.
+      setRefreshingSchema(true);
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+      debounceTimerRef.current = setTimeout(() => {
+        fetchControlSchema(widgetType, data, series)
+          .then(result => {
+            setSchema(sanitizeSchema(result));
+            dynamicDepsRef.current = getDynamicDependencies(result);
+            // JsonForms keeps its own schema/data state after mount. A
+            // dependency refresh can add or replace controls, so remount it
+            // with the accepted node props and the newly enriched schema.
+            setFormKey(key => key + 1);
+            setError(null);
+          })
+          .catch(async e => setError(await describeError(e)))
+          .finally(() => setRefreshingSchema(false));
+      }, SCHEMA_REFRESH_DEBOUNCE_MS);
+    },
+    [widgetType, series, schema],
+  );
+
+  useEffect(
+    () => () => {
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    },
+    [],
+  );
+
   // JsonForms seeds its internal state from `data` at mount and does NOT
   // re-apply later `data` prop changes — so an external edit (e.g. the
   // assistant updating props) updates the schema-driven bits but not the field
@@ -213,7 +297,6 @@ export default function SchemaControlPanel({ nodeId }: { nodeId: string }) {
   const propsKey = JSON.stringify(props);
   const mountedRef = useRef(false);
   const selfEditRef = useRef(false);
-  const [formKey, setFormKey] = useState(0);
   useEffect(() => {
     if (!mountedRef.current) {
       mountedRef.current = true;
@@ -258,35 +341,67 @@ export default function SchemaControlPanel({ nodeId }: { nodeId: string }) {
             data={props}
             renderers={schemaControlRenderers}
             cells={cellRegistryEntries}
+            config={{ refreshingSchema, formData: props }}
             validationMode="ValidateAndHide"
             // Column/metric-reference controls need the widget's
             // `dataBinding.datasetId`, which lives outside their own field —
             // `config.formData` is how a JsonForms control reaches sibling
             // data (mirrors `SemanticLayerModal`'s `config={{ formData }}`).
-            config={{ formData: props }}
             onChange={({ data }) => {
-              if (JSON.stringify(data) !== propsKey) {
-                validateSeqRef.current += 1;
-                const seq = validateSeqRef.current;
-                commitWidgetProps(nodeId, widgetType, data as WidgetProps, {
-                  // Only fires once validation has already accepted the
-                  // candidate, immediately before the commit that changes
-                  // `propsKey` — so the resync effect never remounts the
-                  // form (and drops input focus) for an edit it made itself.
-                  onBeforeCommit: () => {
-                    selfEditRef.current = true;
-                  },
-                })
-                  .then(result => {
-                    if (validateSeqRef.current !== seq) return;
-                    setValidationErrors(result.ok ? [] : result.errors);
-                  })
-                  .catch(async e => {
-                    if (validateSeqRef.current !== seq) return;
-                    const message = await describeError(e);
-                    setValidationErrors([{ loc: [], message }]);
-                  });
+              const nextRaw = data as WidgetProps;
+              if (JSON.stringify(nextRaw) === propsKey) return;
+
+              // A field that depends on another (e.g. `column` on
+              // `datasetId`) shouldn't keep a value the new dependency no
+              // longer supports — clear it rather than carry a stale
+              // selection across the switch. Mirrors `SemanticLayerModal`'s
+              // identical rule.
+              const dynamicDeps = dynamicDepsRef.current;
+              let next = nextRaw;
+              if (Object.keys(dynamicDeps).length > 0) {
+                const cleared: WidgetProps = {};
+                Object.entries(dynamicDeps).forEach(([field, deps]) => {
+                  const externalDeps = deps.filter(dep => dep !== field);
+                  if (externalDeps.length === 0) return;
+                  const depsChanged = externalDeps.some(
+                    dep =>
+                      JSON.stringify(props[dep]) !==
+                      JSON.stringify(nextRaw[dep]),
+                  );
+                  if (
+                    depsChanged &&
+                    nextRaw[field] !== undefined &&
+                    nextRaw[field] !== ''
+                  ) {
+                    cleared[field] = undefined;
+                  }
+                });
+                if (Object.keys(cleared).length > 0) {
+                  next = { ...nextRaw, ...cleared };
+                }
               }
+
+              validateSeqRef.current += 1;
+              const seq = validateSeqRef.current;
+              commitWidgetProps(nodeId, widgetType, next, {
+                // Only fires once validation has already accepted the
+                // candidate, immediately before the commit that changes
+                // `propsKey` — so the resync effect never remounts the form
+                // and drops input focus for an edit it made itself.
+                onBeforeCommit: () => {
+                  selfEditRef.current = true;
+                },
+              })
+                .then(result => {
+                  if (validateSeqRef.current !== seq) return;
+                  setValidationErrors(result.ok ? [] : result.errors);
+                  if (result.ok) maybeRefreshSchema(next);
+                })
+                .catch(async e => {
+                  if (validateSeqRef.current !== seq) return;
+                  const message = await describeError(e);
+                  setValidationErrors([{ loc: [], message }]);
+                });
             }}
           />
         </FormShell>

@@ -16,15 +16,59 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen, userEvent } from 'spec/helpers/testing-library';
+import { dashboard as dashboardApi } from '@apache-superset/core';
+import {
+  fireEvent,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import DashboardProvider from './DashboardProvider';
 import { registerBuiltInWidgets } from './registerBuiltInWidgets';
 import WidgetView from './WidgetView';
+
+const mockSetOption = jest.fn();
+
+jest.mock('echarts/core', () => ({
+  __esModule: true,
+  use: jest.fn(),
+  init: jest.fn(() => ({
+    setOption: mockSetOption,
+    resize: jest.fn(),
+    dispose: jest.fn(),
+    on: jest.fn(),
+  })),
+}));
+
+jest.mock('./chartData', () => ({
+  __esModule: true,
+  fetchQueryData: jest.fn(async () => ({
+    rows: [{ region: 'west' }],
+    columns: ['region'],
+  })),
+}));
 
 const provider = DashboardProvider.getInstance();
 
 beforeAll(() => {
   registerBuiltInWidgets();
+  // ChartWidget's own `useElementSize` needs this to ever measure a
+  // non-zero size — without it, the chart never renders past "loading".
+  window.ResizeObserver = class {
+    constructor(private callback: ResizeObserverCallback) {}
+
+    observe() {
+      this.callback(
+        [{ contentRect: { width: 400, height: 300 } } as ResizeObserverEntry],
+        this as unknown as ResizeObserver,
+      );
+    }
+
+    unobserve() {}
+
+    disconnect() {}
+  };
 });
 
 beforeEach(() => {
@@ -193,5 +237,169 @@ test('the header takes its height out of the widget, not out of the canvas', () 
   render(<WidgetView nodeId={rootId} />);
   expect(screen.getByTestId(`widget-content-${rootId}`)).toHaveStyle({
     height: '100%',
+  });
+});
+
+/** A widget type `widgetLabel` leaves unnamed — see its own UNNAMED set. */
+const withUnnamedWidget = () => {
+  const rootId = provider.getRoot().id;
+  const id = provider.addWidget(rootId, 0, {
+    type: 'markdown',
+    props: { content: 'Hello' },
+  });
+  render(<WidgetView nodeId={id} />);
+  return { rootId, id };
+};
+
+test('a widget with no title gives its content the whole box, not a row minus a header', () => {
+  const { id } = withUnnamedWidget();
+
+  // Markdown has nothing to put in a header row (its own rendered body
+  // sits right below it) — reserving one anyway was a band of blank space
+  // above the actual content, with nothing on either side of it.
+  expect(screen.getByTestId(`widget-content-${id}`)).toHaveStyle({
+    height: '100%',
+  });
+});
+
+test('a widget with no title still offers its remove control, floated over its content', () => {
+  const { id } = withUnnamedWidget();
+
+  // Dropping the header row must not also drop the only way to delete the
+  // widget from the canvas itself.
+  expect(screen.getByTestId(`widget-remove-${id}`)).toBeVisible();
+  expect(screen.queryByTestId(`widget-title-${id}`)).not.toBeInTheDocument();
+});
+
+const CHART_DATASET_ID = 7;
+
+const withChart = () => {
+  const rootId = provider.getRoot().id;
+  const id = provider.addWidget(rootId, 0, {
+    type: 'echarts',
+    props: {
+      dataBinding: {
+        datasetId: CHART_DATASET_ID,
+        dimensions: ['region'],
+        metrics: [],
+      },
+      echartsOptions: { series: [{ type: 'bar' }] },
+    },
+  });
+  render(<WidgetView nodeId={id} />);
+  return { rootId, id };
+};
+
+/** Every query-bound type merges collectActiveFilters.ts's scan the same way — ag-grid-table and metric-tile get the same indicator as echarts. */
+const withNonChartQueryBoundWidget = (
+  type: 'ag-grid-table' | 'metric-tile',
+) => {
+  const rootId = provider.getRoot().id;
+  const id = provider.addWidget(rootId, 0, {
+    type,
+    props: {
+      dataBinding: {
+        datasetId: CHART_DATASET_ID,
+        dimensions: ['region'],
+        metrics: [],
+      },
+    },
+  });
+  render(<WidgetView nodeId={id} />);
+  return { rootId, id };
+};
+
+const emitIncomingFilter = (sourceId: string) =>
+  provider.emit(sourceId, dashboardApi.VALUE_CHANGED_EVENT, {
+    selection: 'west',
+    resolved: {
+      column: 'region',
+      operator: 'EQUALS',
+      value: 'west',
+      datasource: CHART_DATASET_ID,
+    },
+  });
+
+test('a chart with nothing filtering it, and nothing of its own active, shows no indicator', async () => {
+  const { id } = withChart();
+  await waitFor(() => expect(mockSetOption).toHaveBeenCalled());
+
+  expect(
+    screen.queryByTestId(`filter-activity-indicator-${id}`),
+  ).not.toBeInTheDocument();
+});
+
+test('a chart filtered by another widget shows an indicator naming the actual filter, with nothing to click', async () => {
+  const { rootId, id } = withChart();
+  await waitFor(() => expect(mockSetOption).toHaveBeenCalled());
+
+  // Any node with a resolved value targeting the same dataset is a filter
+  // source (see collectActiveFilters.ts) — it doesn't need to be a
+  // filter.select, or even be rendered, to count.
+  const sourceId = provider.addWidget(rootId, 1, { type: 'echarts' });
+  emitIncomingFilter(sourceId);
+
+  const indicator = await screen.findByTestId(
+    `filter-activity-indicator-${id}`,
+  );
+  expect(indicator).toBeVisible();
+  // Informational only — clicking it must not do anything, since clearing
+  // another widget's own filter isn't this control's to reach into.
+  expect(indicator.tagName).toBe('SPAN');
+});
+
+test('an ag-grid-table filtered by another widget shows the same indicator', async () => {
+  const { rootId, id } = withNonChartQueryBoundWidget('ag-grid-table');
+
+  const sourceId = provider.addWidget(rootId, 1, { type: 'echarts' });
+  emitIncomingFilter(sourceId);
+
+  expect(
+    await screen.findByTestId(`filter-activity-indicator-${id}`),
+  ).toBeVisible();
+});
+
+test('a metric-tile filtered by another widget shows the same indicator', async () => {
+  const { rootId, id } = withNonChartQueryBoundWidget('metric-tile');
+
+  const sourceId = provider.addWidget(rootId, 1, { type: 'echarts' });
+  emitIncomingFilter(sourceId);
+
+  expect(
+    await screen.findByTestId(`filter-activity-indicator-${id}`),
+  ).toBeVisible();
+});
+
+test("a chart's own active cross-filter shows a control naming it, that clears it on click", async () => {
+  const { id } = withChart();
+  await waitFor(() => expect(mockSetOption).toHaveBeenCalled());
+
+  provider.emit(id, dashboardApi.VALUE_CHANGED_EVENT, {
+    selection: 'west',
+    resolved: {
+      column: 'region',
+      operator: 'EQUALS',
+      value: 'west',
+      datasource: CHART_DATASET_ID,
+    },
+  });
+
+  const indicator = await screen.findByTestId(
+    `filter-activity-indicator-${id}`,
+  );
+  // ActionButton sets aria-label from its own string `tooltip` prop — the
+  // most reliable way to check the actual composed text without fighting
+  // antd Tooltip's hover-triggered popup in jsdom. Reads the resolved
+  // value back, not a generic message — the whole point of describing
+  // filters in the tooltip rather than just a badge.
+  expect(indicator).toHaveAttribute(
+    'aria-label',
+    expect.stringContaining('region = west'),
+  );
+  fireEvent.click(indicator);
+
+  expect(provider.getValue(id, dashboardApi.VALUE_CHANGED_EVENT)).toEqual({
+    selection: null,
+    resolved: null,
   });
 });

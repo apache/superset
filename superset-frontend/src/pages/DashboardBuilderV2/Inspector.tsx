@@ -558,7 +558,10 @@ export default function Inspector(): ReactElement {
         // name.
         <div data-test="inspector-identity">
           <IdentityName>{widgetLabel(node.type, node.props)}</IdentityName>
-          <IdentityMeta>
+          <IdentityMeta
+            data-test="inspector-identity-meta"
+            data-node-id={node.id}
+          >
             {node.type} · {node.id}
           </IdentityMeta>
         </div>

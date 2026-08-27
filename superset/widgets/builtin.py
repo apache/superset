@@ -24,19 +24,26 @@ path. This module is imported (for its decorator side-effects) by
 
 from __future__ import annotations
 
+import logging
 from copy import deepcopy
 from typing import Any, ClassVar
 
 from pydantic import BaseModel
 from superset_core.widgets import EnricherFn, Widget, widget
 
+from superset.daos.dataset import DatasetDAO
+from superset.exceptions import SupersetSecurityException
 from superset.widgets.controls import (
     AgGridTableControls,
     BalloonsControls,
     EchartsControls,
+    FilterBarControls,
+    FilterSelectControls,
     MarkdownControls,
     MetricTileControls,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def _metric_key(metric: Any) -> str:
@@ -228,3 +235,81 @@ class Balloons(Widget):
         node["properties"] = properties
 
     enrichers: ClassVar[dict[str, EnricherFn]] = {"customize/series": _populate_series}
+
+
+@widget(
+    widget_type="filter.select",
+    name="Filter",
+    description="A value/multi-select dashboard filter.",
+)
+class FilterSelect(Widget):
+    """
+    A leaf ``filter.*`` widget: reads ``datasetId``/``column`` and, at
+    render time, either the author's static ``options`` or the column's own
+    distinct values. Its live selection travels over the widget event bus
+    (``dashboard.emit``/``getValue``), not ``props`` — see the frontend
+    ``FilterSelectWidget`` and ``collectActiveFilters`` — so nothing about
+    that selection lives in this schema.
+    """
+
+    controls_class = FilterSelectControls
+
+    @staticmethod
+    def _populate_datasets(
+        _schema: dict[str, Any],
+        node: dict[str, Any],
+        _parsed: BaseModel | None,
+        _series: list[str],
+        _upstream: dict[str, Any],
+    ) -> None:
+        """Populate the dataset picker with datasets the caller can view."""
+        datasets = DatasetDAO.find_all()
+        node["enum"] = [dataset.id for dataset in datasets]
+        node["x-enumNames"] = [dataset.name for dataset in datasets]
+
+    @staticmethod
+    def _populate_columns(
+        _schema: dict[str, Any],
+        node: dict[str, Any],
+        parsed: BaseModel | None,
+        _series: list[str],
+        _upstream: dict[str, Any],
+    ) -> None:
+        # Every early-return below leaves `enum` explicitly blank (rather than
+        # merely absent) so the field degrades to a plain text input instead
+        # of an enum-typed control with no choices. `build_configuration_schema`
+        # already does this when `parsed` is None; these branches cover the
+        # cases it doesn't (a dataset that's unset, missing, or inaccessible).
+        node["enum"] = []
+        dataset_id = getattr(parsed, "dataset_id", None) if parsed else None
+        if not dataset_id:
+            return
+        dataset = DatasetDAO.find_by_id(dataset_id)
+        if dataset is None:
+            return
+        try:
+            dataset.raise_for_access()
+        except SupersetSecurityException:
+            # Same fail-open as an unset dataset: the field just falls back to
+            # a plain text input rather than a 500 or a schema that leaks
+            # column names for a dataset this caller cannot read.
+            logger.info(
+                "Access denied enriching filter.select column enum for dataset %s",
+                dataset_id,
+            )
+            return
+        node["enum"] = dataset.filterable_column_names
+
+    enrichers: ClassVar[dict[str, EnricherFn]] = {
+        "datasetId": _populate_datasets,
+        "column": _populate_columns,
+    }
+
+
+@widget(
+    widget_type="filter.bar",
+    name="Filter Bar",
+    description="A plain arranging container for filter.* children.",
+)
+class FilterBar(Widget):
+    controls_class = FilterBarControls

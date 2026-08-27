@@ -117,6 +117,24 @@ Once an experimental test has proven stable (consistent CI passes over time):
     since jsdom has no layout engine and never runs GridStack's own DOM/CSS
     logic at all
   - Supporting infrastructure: `pages/DashboardV2Page.ts`
+- **`dashboard-v2/filters.spec.ts`** - E2E coverage for a `filter.select`
+  building block affecting a chart block's outgoing query, and the scope
+  rule that decides which charts
+  - Status: Infrastructure complete, validating stability
+  - Covers: `dashboard.emit`/`getValue` (see `DashboardProvider`) driving
+    `getActiveFiltersForDataset`'s merge into a chart block's `dataBinding`,
+    verified against the real `POST /api/v1/chart/data` payload — not
+    reachable from the jsdom-based unit suite, which can observe the event
+    bus firing but not a real network request answered by a live dataset.
+    Three cases: a same-dataset chart is affected; a chart on a *different*
+    dataset is excluded by the default dataset-match scope even with no
+    explicit `scope.targets`; an explicit `scope.targets` list narrows to
+    one chart and excludes another same-dataset chart not named in it
+  - Requires a real backend with `superset load_examples` run (uses the
+    `birth_names` and `video_game_sales` datasets, the former also used by
+    `mixed-chart-dashboard-filters.spec.ts`)
+  - Supporting infrastructure: `pages/DashboardV2Page.ts` (`applyPropsJson`,
+    `getSelectedNodeId`), `helpers/api/dataset.ts` (`getDatasetByName`)
 
 ## Infrastructure Location
 

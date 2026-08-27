@@ -23,6 +23,7 @@ import { Flex, Loading, Typography } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { provider, useDashboardRevision } from '../store';
 import { fetchQueryData } from '../chartData';
+import { getActiveFiltersForDataset } from '../collectActiveFilters';
 
 type DataBindingSpec = dashboardApi.DataBindingSpec;
 type Theme = ReturnType<typeof useTheme>;
@@ -97,6 +98,8 @@ function DeltaIndicator({ delta, theme }: { delta: DeltaSpec; theme: Theme }) {
  * the way it is for a chart or table.
  */
 export default function MetricTileWidget({ nodeId }: { nodeId: string }) {
+  // Covers both structural/layout changes and any filter's emitted value —
+  // `dashboard.emit` ticks the same revision (see `DashboardProvider`).
   useDashboardRevision();
   const theme = useTheme();
   const [value, setValue] = useState<unknown>(undefined);
@@ -106,10 +109,20 @@ export default function MetricTileWidget({ nodeId }: { nodeId: string }) {
 
   const node = provider.getNode(nodeId);
   const dataBinding = node?.props?.dataBinding as DataBindingSpec | undefined;
-  const bindingKey = JSON.stringify(dataBinding);
+  // See `ChartWidget` — same dataset-scoped filter merge, same reason.
+  const effectiveBinding = dataBinding
+    ? {
+        ...dataBinding,
+        filters: [
+          ...(dataBinding.filters ?? []),
+          ...getActiveFiltersForDataset(dataBinding.datasetId, nodeId),
+        ],
+      }
+    : undefined;
+  const bindingKey = JSON.stringify(effectiveBinding);
 
   useEffect(() => {
-    if (!dataBinding) {
+    if (!effectiveBinding) {
       setError('This metric tile has no dataBinding.');
       setLoaded(false);
       return undefined;
@@ -117,7 +130,7 @@ export default function MetricTileWidget({ nodeId }: { nodeId: string }) {
     let cancelled = false;
     setError(null);
     setLoaded(false);
-    fetchQueryData(dataBinding)
+    fetchQueryData(effectiveBinding)
       .then(result => {
         if (cancelled) return;
         const [column] = result.columns;
@@ -131,8 +144,8 @@ export default function MetricTileWidget({ nodeId }: { nodeId: string }) {
     return () => {
       cancelled = true;
     };
-    // dataBinding is a fresh object every render — bindingKey is its stable,
-    // value-equality-comparable proxy.
+    // effectiveBinding is a fresh object every render — bindingKey is its
+    // stable, value-equality-comparable proxy.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bindingKey]);
 

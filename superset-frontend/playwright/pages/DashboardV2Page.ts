@@ -178,4 +178,38 @@ export class DashboardV2Page {
   async release(): Promise<void> {
     await this.page.mouse.up();
   }
+
+  /**
+   * The id of whichever block is currently selected — read from the
+   * Inspector's own identity line, not guessed from `placeBlock`'s
+   * sequential `node_N` numbering, so a test stays correct even if that
+   * numbering ever changes. Needed to build a `scope.targets` list that
+   * references a specific block by id (see `applyPropsJson`).
+   */
+  async getSelectedNodeId(): Promise<string> {
+    const id = await this.page
+      .locator('[data-test="inspector-identity-meta"]')
+      .getAttribute('data-node-id');
+    if (!id) throw new Error('No block is currently selected');
+    return id;
+  }
+
+  /**
+   * Applies `props` to whichever block is currently selected, via the
+   * Inspector's JSON tab — placing a block (`placeBlockByClick`) already
+   * selects it, so this is the way to give a freshly placed block (which
+   * starts with no `props` at all) its content without a dedicated form
+   * field for every possible key. Only the JSON tab can add a key that
+   * doesn't exist yet; see `PropsJsonEditor`.
+   */
+  async applyPropsJson(props: Record<string, unknown>): Promise<void> {
+    await this.page
+      .locator('[data-test="inspector-props-tabs"]')
+      .getByRole('tab', { name: 'JSON' })
+      .click();
+    await this.page
+      .locator('[data-test="inspector-props"]')
+      .fill(JSON.stringify(props));
+    await this.page.locator('[data-test="inspector-props-apply"]').click();
+  }
 }

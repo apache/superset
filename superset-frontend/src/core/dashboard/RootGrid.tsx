@@ -49,7 +49,15 @@ type LayoutProps = dashboardApi.LayoutProps;
  * out of a `tabs` widget must not drag the whole `tabs` widget); `[data-widget-
  * remove]` is a widget's own remove control; `[data-widget-resize]` is a flowed
  * widget's own resize grip (`flowContent.tsx`); `[data-widget-header-control]`
- * is a type's own extra header control (e.g. `collapsible`'s toggle).
+ * is a type's own extra header control (e.g. `collapsible`'s toggle);
+ * `[data-widget-interactive]` is a widget's own content when it wants raw
+ * clicks of its own — `ChartWidget`'s cross-filter click being the one
+ * built-in use (see its own comment): GridStack has no built-in exemption
+ * for an arbitrary `<canvas>` the way it (like most such libraries) does
+ * for a plain `input`/`select`/`button`/`a`, so a data point's own click
+ * never reaches ECharts' internal click detection at all without this —
+ * the drag gesture claims the press before the browser ever gets to decide
+ * whether it was a click.
  *
  * `nodeId` is threaded through and excluded from the `data-container-id`
  * clause via `:not(...)` — GridStack matches this with a plain, unbounded
@@ -69,7 +77,7 @@ type LayoutProps = dashboardApi.LayoutProps;
  * `WidgetView`) — opening it must not also drag the card it sits on.
  */
 function cancelSelectorFor(nodeId: string): string {
-  return `[data-container-id]:not([data-container-id="${CSS.escape(nodeId)}"]),[data-widget-remove],[data-widget-resize],[data-widget-header-control],[data-widget-menu]`;
+  return `[data-container-id]:not([data-container-id="${CSS.escape(nodeId)}"]),[data-widget-remove],[data-widget-resize],[data-widget-header-control],[data-widget-menu],[data-widget-interactive]`;
 }
 
 /**

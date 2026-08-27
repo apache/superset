@@ -121,13 +121,17 @@ test('a widget resizes from all four corners', () => {
   expect(grid?.options.resizable).toEqual({ handles: 'se, sw, nw, ne' });
 });
 
-test('the grid is told not to start a drag from the remove control, the overflow menu, a nested container, a flow resize grip, or a header control', () => {
+test('the grid excludes widget controls, nested containers, resize grips, and interactive content from drag starts', () => {
   mount();
 
   // GridStack's own draggable engine matches this selector up the ancestors
   // of whatever was pressed — aiming at the bin would otherwise drag the
-  // widget it is attached to, and dragging a chart out of a `tabs` widget
-  // would instead drag the whole `tabs` widget on the root grid.
+  // widget it is attached to, dragging a chart out of a `tabs` widget would
+  // instead drag the whole `tabs` widget on the root grid, and a data-point
+  // click on a cross-filter-enabled chart (see `ChartWidget`) would never
+  // reach ECharts' own click detection at all — GridStack has no built-in
+  // exemption for an arbitrary `<canvas>` the way it does for a plain form
+  // control.
   const grid = __getLastGridStackInstance()!;
   const { cancel } = grid.options.draggable as { cancel: string };
   expect(cancel).toContain('[data-widget-remove]');
@@ -135,6 +139,7 @@ test('the grid is told not to start a drag from the remove control, the overflow
   expect(cancel).toContain('[data-container-id]');
   expect(cancel).toContain('[data-widget-resize]');
   expect(cancel).toContain('[data-widget-header-control]');
+  expect(cancel).toContain('[data-widget-interactive]');
 });
 
 test('every child is registered with GridStack at its packed position', () => {
