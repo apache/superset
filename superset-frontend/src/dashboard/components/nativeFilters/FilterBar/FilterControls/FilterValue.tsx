@@ -32,8 +32,6 @@ import {
   Behavior,
   DataMask,
   DatasourceType,
-  isFeatureEnabled,
-  FeatureFlag,
   getChartMetadataRegistry,
   JsonObject,
   QueryFormData,
@@ -46,11 +44,10 @@ import { styled, SupersetTheme } from '@apache-superset/core/theme';
 import { useTheme } from '@emotion/react';
 import { useDispatch, useSelector, shallowEqual } from 'react-redux';
 import { isEqual, isEqualWith } from 'lodash-es';
-import { getChartDataRequest } from 'src/components/Chart/chartAction';
+import { requestChartDataResolved } from 'src/components/Chart/chartAction';
 import { ErrorAlert, ErrorMessageWithStackTrace } from 'src/components';
 import { Loading, Constants, Flex } from '@superset-ui/core/components';
-import { waitForAsyncData, AsyncJob } from 'src/middleware/asyncEvent';
-import { AsyncModeOverride } from 'src/utils/asyncMode';
+import { useAsyncModeOverride } from 'src/utils/asyncMode';
 import { FilterBarOrientation, RootState } from 'src/dashboard/types';
 import {
   onFiltersRefreshSuccess,
@@ -153,10 +150,7 @@ const FilterValue: FC<FilterValueProps> = ({
   );
   // Per-dashboard async override so filter requests honor the same policy
   // (force on/off) as the dashboard's charts.
-  const asyncModeOverride = useSelector<
-    RootState,
-    AsyncModeOverride | undefined
-  >(state => state.dashboardInfo?.metadata?.async_mode);
+  const asyncModeOverride = useAsyncModeOverride();
 
   const [error, setError] = useState<ClientErrorObject>();
   const [formData, setFormData] = useState<Partial<QueryFormData>>({
@@ -285,54 +279,16 @@ const FilterValue: FC<FilterValueProps> = ({
         return;
       }
       setIsRefreshing(true);
-      const requestFilterData = (fromCache = false) =>
-        getChartDataRequest({
-          formData: newFormData,
-          force: fromCache ? false : shouldRefresh,
-          ownState: filterOwnState,
-          // 202 is handled below via waitForAsyncData.
-          enableAsyncMode: true,
-          requestParams: { async_mode_override: asyncModeOverride },
-        });
-      requestFilterData()
-        .then(({ response, json }) => {
-          if (isFeatureEnabled(FeatureFlag.GlobalAsyncQueries)) {
-            // deal with getChartDataRequest transforming the response data
-            const result = 'result' in json ? json.result[0] : json;
-            if (response.status === 200) {
-              setState([result as ChartDataResponseResult]);
-              setError(undefined);
-              handleFilterLoadFinish();
-            } else if (response.status === 202) {
-              // Await the query tasks, then re-issue the request to read the
-              // now-cached results.
-              waitForAsyncData(json as unknown as AsyncJob, () =>
-                requestFilterData(true).then(
-                  ({ json: cachedJson }) =>
-                    cachedJson.result as ChartDataResponseResult[],
-                ),
-              )
-                .then((asyncResult: ChartDataResponseResult[]) => {
-                  setState(asyncResult);
-                  setError(undefined);
-                  handleFilterLoadFinish();
-                })
-                .catch((error: Response) => {
-                  getClientErrorObject(error).then(clientErrorObject => {
-                    setError(clientErrorObject);
-                    handleFilterLoadFinish();
-                  });
-                });
-            } else {
-              throw new Error(
-                `Received unexpected response status (${response.status}) while fetching chart data`,
-              );
-            }
-          } else {
-            setState(json.result as ChartDataResponseResult[]);
-            setError(undefined);
-            handleFilterLoadFinish();
-          }
+      requestChartDataResolved({
+        formData: newFormData,
+        force: shouldRefresh,
+        ownState: filterOwnState,
+        requestParams: { async_mode_override: asyncModeOverride },
+      })
+        .then(queriesResponse => {
+          setState(queriesResponse as ChartDataResponseResult[]);
+          setError(undefined);
+          handleFilterLoadFinish();
         })
         .catch((error: Response) => {
           getClientErrorObject(error).then(clientErrorObject => {

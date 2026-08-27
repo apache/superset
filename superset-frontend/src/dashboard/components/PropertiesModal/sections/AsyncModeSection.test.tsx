@@ -17,52 +17,27 @@
  * under the License.
  */
 import { render, screen, selectOption } from 'spec/helpers/testing-library';
-import { isFeatureEnabled } from '@superset-ui/core';
 import AsyncModeSection from './AsyncModeSection';
-
-// Mock feature flags
-jest.mock('@superset-ui/core', () => ({
-  ...jest.requireActual('@superset-ui/core'),
-  isFeatureEnabled: jest.fn(),
-}));
-
-const mockedIsFeatureEnabled = isFeatureEnabled as jest.Mock;
 
 const defaultProps = {
   value: 'default' as const,
   onChange: jest.fn(),
 };
 
-beforeEach(() => {
-  jest.clearAllMocks();
-});
-
-test('renders nothing when GLOBAL_ASYNC_QUERIES is disabled', () => {
-  mockedIsFeatureEnabled.mockReturnValue(false);
-
-  const { container } = render(<AsyncModeSection {...defaultProps} />);
-
-  expect(container).toBeEmptyDOMElement();
-});
-
-test('renders the async execution field when the feature is enabled', () => {
-  mockedIsFeatureEnabled.mockReturnValue(true);
-
+test('renders the async execution field', () => {
   render(<AsyncModeSection {...defaultProps} />);
 
   expect(screen.getByText('Asynchronous query execution')).toBeInTheDocument();
+  expect(screen.getByText('Deployment default')).toBeInTheDocument();
 });
 
 test('reflects the current override value', () => {
-  mockedIsFeatureEnabled.mockReturnValue(true);
-
   render(<AsyncModeSection {...defaultProps} value="force_on" />);
 
   expect(screen.getByText('Force enabled')).toBeInTheDocument();
 });
 
 test('calls onChange with the selected override', async () => {
-  mockedIsFeatureEnabled.mockReturnValue(true);
   const onChange = jest.fn();
 
   render(<AsyncModeSection {...defaultProps} onChange={onChange} />);

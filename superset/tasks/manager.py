@@ -19,7 +19,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Callable, TYPE_CHECKING
+from typing import Any, Callable, TYPE_CHECKING, TypeVar
 from uuid import UUID
 
 import redis
@@ -36,6 +36,25 @@ if TYPE_CHECKING:
     from superset.models.tasks import Task
 
 logger = logging.getLogger(__name__)
+
+T = TypeVar("T")
+
+
+def _in_app_context(app: "Flask | None", fn: Callable[[], T]) -> Callable[[], T]:
+    """Wrap ``fn`` so it runs inside ``app``'s context when none is active.
+
+    Completion waits and abort listeners run from background threads and Celery
+    workers, where the metastore reads they perform need an explicit app context.
+    When a context is already pushed (or no app was supplied) ``fn`` runs as-is.
+    """
+
+    def wrapped() -> T:
+        if app and not has_app_context():
+            with app.app_context():
+                return fn()
+        return fn()
+
+    return wrapped
 
 
 class TaskManager:
@@ -273,7 +292,7 @@ class TaskManager:
         task_uuid: UUID,
         timeout: float | None = None,
         poll_interval: float = 1.0,
-        app: Any = None,
+        app: "Flask | None" = None,
     ) -> "Task":
         """
         Block until task reaches terminal state.
@@ -294,16 +313,13 @@ class TaskManager:
         from superset.coordination.base import CoordinationService
         from superset.daos.tasks import TaskDAO
 
-        def get_task() -> "Task | None":
-            # Reads back the task named by the caller's own task_uuid, not
-            # a user-requested lookup; see TaskFilter for the
-            # request-scoped vs. internal-plumbing split.
-            if app and not has_app_context():
-                with app.app_context():
-                    return TaskDAO.find_one_or_none(
-                        uuid=task_uuid, skip_base_filter=True
-                    )
-            return TaskDAO.find_one_or_none(uuid=task_uuid, skip_base_filter=True)
+        # Reads back the task named by the caller's own task_uuid, not a
+        # user-requested lookup; see TaskFilter for the request-scoped vs.
+        # internal-plumbing split.
+        get_task = _in_app_context(
+            app,
+            lambda: TaskDAO.find_one_or_none(uuid=task_uuid, skip_base_filter=True),
+        )
 
         # Fail fast if the task doesn't exist at all.
         if get_task() is None:
@@ -326,7 +342,7 @@ class TaskManager:
         task_uuid: UUID,
         callback: Callable[[], None],
         poll_interval: float,
-        app: Any = None,
+        app: "Flask | None" = None,
     ) -> "SignalListener":
         """
         Start listening for abort notifications for a task.
@@ -343,20 +359,10 @@ class TaskManager:
         """
         from superset.coordination.base import CoordinationService
 
-        def in_context(fn: Callable[[], Any]) -> Callable[[], Any]:
-            # The listener runs in a background thread; DB access needs app context.
-            def wrapped() -> Any:
-                if app and not has_app_context():
-                    with app.app_context():
-                        return fn()
-                return fn()
-
-            return wrapped
-
         return CoordinationService.listen_for_signal(
             cls.get_abort_channel(task_uuid),
-            check=in_context(lambda: cls._check_abort_status(task_uuid)),
-            on_signal=in_context(callback),
+            check=_in_app_context(app, lambda: cls._check_abort_status(task_uuid)),
+            on_signal=_in_app_context(app, callback),
             poll_interval=poll_interval,
             name=str(task_uuid),
         )
@@ -417,17 +423,12 @@ class TaskManager:
         if task_key is None:
             task_key = generate_random_task_key()
 
-        # Build properties with execution_mode and timeout
         properties: TaskProperties = {"execution_mode": "async"}
         if timeout:
             properties["timeout"] = timeout
 
-        # Create or join task entry in metastore
-        # SubmitTaskCommand handles locking and create-vs-join logic:
-        # - Acquires distributed lock on dedup_key
-        # - If active task exists: adds subscriber and returns existing task
-        #   (is_new=False)
-        # - If no active task: creates new task (is_new=True)
+        # SubmitTaskCommand holds the dedup lock and decides create-vs-join, so
+        # is_new tells us whether execution still has to be enqueued below.
         task, is_new = SubmitTaskCommand(
             {
                 "task_key": task_key,
@@ -439,13 +440,12 @@ class TaskManager:
             }
         ).run_with_info()
 
-        # Only schedule Celery task for NEW tasks, not deduplicated ones
-        # Deduplicated tasks are already pending or running
+        # A joined task is already pending or running, so it must not be enqueued
+        # a second time.
         if is_new:
             # Import here to avoid circular dependency
             from superset.tasks.scheduler import execute_task
 
-            # Schedule Celery task for async execution
             execute_task.delay(
                 task_uuid=str(task.uuid),
                 task_type=task_type,

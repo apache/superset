@@ -103,6 +103,8 @@ def test_load_serialized_query_rebuilds_via_factory(mocker: MockerFixture) -> No
 
     # Reconstruction goes through the same factory path that produced the
     # original context, with result_type/result_format back as enum members.
+    # ``preserve_null_row_limit`` is always passed, defaulting to False for a
+    # payload that did not record it.
     assert result is factory.create.return_value
     factory.create.assert_called_once_with(
         datasource={"id": 1, "type": "table"},
@@ -112,6 +114,7 @@ def test_load_serialized_query_rebuilds_via_factory(mocker: MockerFixture) -> No
         result_format=ChartDataResultFormat.JSON,
         force=True,
         custom_cache_timeout=42,
+        preserve_null_row_limit=False,
     )
 
 

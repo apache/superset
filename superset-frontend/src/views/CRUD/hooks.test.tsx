@@ -25,6 +25,7 @@ import {
   useSingleViewResource,
   useFavoriteStatus,
   useChartEditModal,
+  REALTIME_REFETCH_DEBOUNCE_MS,
 } from './hooks';
 import type Chart from 'src/types/Chart';
 import {
@@ -659,8 +660,11 @@ test('useListViewResource: realtime ignores nudges for rows not on screen', asyn
     );
   });
 
-  // No id=999 row is displayed, so no batched refetch is scheduled.
-  await new Promise(resolve => setTimeout(resolve, 600));
+  // No id=999 row is displayed, so no batched refetch is scheduled: wait past
+  // the debounce window, by which point one would have fired.
+  await new Promise(resolve =>
+    setTimeout(resolve, REALTIME_REFETCH_DEBOUNCE_MS + 100),
+  );
   expect(getSpy.mock.calls.length).toBe(callsBefore);
 });
 

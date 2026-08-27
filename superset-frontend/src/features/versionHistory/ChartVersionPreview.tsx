@@ -30,10 +30,7 @@ import { t } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
 import { Alert } from '@apache-superset/core/components';
 import { Loading } from '@superset-ui/core/components';
-import {
-  getChartDataRequest,
-  handleChartDataResponse,
-} from 'src/components/Chart/chartAction';
+import { requestChartDataResolved } from 'src/components/Chart/chartAction';
 import type { Dataset } from 'src/components/Chart/types';
 import type { ExplorePageState } from 'src/explore/types';
 import { selectVersionPreview, versionPreviewApplied } from './reducer';
@@ -178,20 +175,8 @@ export default function ChartVersionPreview() {
         datasourceId,
         datasourceType,
       );
-      const requestPreviewData = () =>
-        getChartDataRequest({
-          formData: previewFormData,
-          // 202 is handled below via handleChartDataResponse.
-          enableAsyncMode: true,
-        });
-      const { response, json } = await requestPreviewData();
-      const result = await handleChartDataResponse(
-        response,
-        json,
-        () =>
-          requestPreviewData().then(({ response: r, json: j }) =>
-            handleChartDataResponse(r, j),
-          ),
+      const result = await requestChartDataResolved(
+        { formData: previewFormData },
         controller.signal,
       );
       if (fetchId !== fetchIdRef.current) {

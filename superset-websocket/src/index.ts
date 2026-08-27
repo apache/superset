@@ -38,9 +38,19 @@ const REALTIME_JWT_ISSUER = 'superset';
 const PRINCIPAL_TYPES = ['user', 'guest'] as const;
 type PrincipalType = (typeof PRINCIPAL_TYPES)[number];
 
+const isPrincipalType = (value: unknown): value is PrincipalType =>
+  typeof value === 'string' && PRINCIPAL_TYPES.some(type => type === value);
+
+/**
+ * The claims this server reads out of a realtime JWT, beyond the registered ones
+ * (`sub`, `exp`, `aud`, `iss`) that `jsonwebtoken` already types. The claim names
+ * are fixed rather than configurable: the Flask app mints them unconditionally
+ * (superset/websocket/channel.py) with no counterpart setting to rename them, so
+ * an override on this side could only ever break the pairing.
+ */
 interface RealtimeJwtPayload extends JsonWebTokenPayload {
+  channel?: unknown;
   principal_type?: unknown;
-  username?: unknown;
 }
 
 /**
@@ -74,14 +84,13 @@ export interface SocketIdentity {
   channel: string;
   principalType: PrincipalType;
   subject: string;
-  username?: string;
   tokenExpiresAtMs: number;
 }
 
 export interface SocketInstance {
   ws: WebSocket;
   channel: string;
-  identity?: SocketIdentity;
+  identity: SocketIdentity;
   pongTs: number;
 }
 
@@ -95,7 +104,6 @@ const startServer = process.argv[2] === 'start';
 
 export const opts = buildConfig();
 
-// init logger
 const logger = createLogger({
   silent: environment === 'test',
   logLevel: opts.logLevel,
@@ -165,8 +173,8 @@ export const buildRedisOpts = (baseConfig: RedisConfig) => {
 };
 
 // A Redis connection dedicated to Pub/Sub: once a connection enters subscriber
-// mode it can no longer issue ordinary commands, so this is kept separate from
-// any future command connection.
+// mode it can no longer issue ordinary commands, so subscriptions need a
+// connection of their own.
 const redisSubscriber = new Redis(buildRedisOpts(opts.redis));
 redisSubscriber.on('error', (err: Error) => {
   logger.error(`Redis connection error: ${err.message}`);
@@ -185,12 +193,6 @@ const SOCKET_ACTIVE_STATES: number[] = [WebSocket.OPEN, WebSocket.CONNECTING];
 // knob - an independent override on this side with no matching producer config
 // would silently subscribe to channels nothing publishes to, so they are fixed
 // constants that must stay in lockstep with the producer.
-//
-// Tier-1 entity-change nudges are broadcast to every authenticated socket;
-// tier-2 task-status messages carry subscriber principals and are fanned out by
-// this server to matching sockets only (see routeRedisMessage). Both are lossy
-// (Pub/Sub is fire-and-forget); the browser's interval poll is the correctness
-// backstop, so no stream replay / reconnection catch-up is needed.
 const ENTITY_CHANGES_CHANNEL_PREFIX = 'entity-changes:';
 const TASK_STATUS_CHANNEL = 'task-status';
 const REALTIME_BROWSER_CHANNEL_PREFIX = 'realtime:';
@@ -200,7 +202,6 @@ const ENTITY_CHANGES_PATTERN = `${ENTITY_CHANGES_CHANNEL_PREFIX}*`;
 // Redis unreachable at startup); see subscribeToChannels.
 const SUBSCRIBE_RETRY_MS = 5000;
 
-// initialize internal registries
 export let channels: Record<string, ChannelValue> = {};
 export let sockets: Record<string, SocketInstance> = {};
 
@@ -333,7 +334,6 @@ export const sendToChannel = (
     } catch (err) {
       statsd.increment('ws_client_send_error');
       logger.debug(`Error sending to socket: ${err}`);
-      // check that the connection is still active
       cleanChannel(channel);
     }
   });
@@ -366,7 +366,7 @@ function isTaskStatusSubscriber(
     sub?: unknown;
   };
   return (
-    PRINCIPAL_TYPES.includes(candidate.principal_type as PrincipalType) &&
+    isPrincipalType(candidate.principal_type) &&
     typeof candidate.sub === 'string' &&
     candidate.sub.length > 0
   );
@@ -391,15 +391,25 @@ function isTaskStatusRedisPayload(
   );
 }
 
-function channelForSubscriber(subscriber: TaskStatusSubscriber): string | null {
-  if (subscriber.principal_type === 'user') {
-    return `user:${subscriber.sub}`;
-  }
-  if (subscriber.sub.startsWith('guest:')) {
-    return subscriber.sub;
-  }
-  return null;
-}
+/**
+ * Derive a principal's socket routing key, or `null` when the identity does not
+ * name one. Mirrors the backend's single source of truth (`channel_id_for` in
+ * superset/websocket/channel.py): `user:<id>` for an authenticated user, and the
+ * guest's already-namespaced `guest:<hmac>` key for an embedded guest.
+ *
+ * Both directions go through this one function so an accepted socket and an
+ * outbound fanout can never disagree on the key: it derives the channel a
+ * connecting socket's JWT must claim, and the channel a task-status subscriber
+ * is routed to.
+ */
+export const principalChannel = (
+  principalType: PrincipalType,
+  subject: string,
+): string | null => {
+  if (subject.length === 0) return null;
+  if (principalType === 'user') return `user:${subject}`;
+  return subject.startsWith('guest:') ? subject : null;
+};
 
 /**
  * Fan out one task-status Redis message to every subscriber principal in the
@@ -418,7 +428,7 @@ export const sendTaskStatusToSubscribers = (payload: unknown): void => {
   };
   const sent = new Set<string>();
   payload.subscribers.forEach(subscriber => {
-    const channel = channelForSubscriber(subscriber);
+    const channel = principalChannel(subscriber.principal_type, subscriber.sub);
     if (channel === null) return;
     if (sent.has(channel)) return;
     sent.add(channel);
@@ -463,12 +473,15 @@ export const routeRedisMessage = (
  * Subscribes the Redis connection to tier-1 entity-change nudges and tier-2
  * task-status fanout messages.
  *
- * Failure is observable and self-healing rather than silent: if the initial
- * ``psubscribe`` rejects (e.g. Redis unreachable at startup) it is logged and
- * retried, so the transport can't end up running with no subscription. ioredis
- * additionally re-establishes these subscriptions automatically across
- * reconnects once they exist. Delivery is best-effort regardless - the browser's
- * interval poll is the correctness backstop.
+ * Pub/Sub is lossy and not replayable, so neither tier offers server-side
+ * catch-up: a message published while a socket was away is simply gone, and the
+ * browser's interval poll is the correctness backstop.
+ *
+ * Failure to subscribe at all is observable and self-healing rather than silent:
+ * if the initial ``psubscribe`` rejects (e.g. Redis unreachable at startup) it is
+ * logged and retried, so the transport can't end up running with no
+ * subscription. ioredis additionally re-establishes these subscriptions
+ * automatically across reconnects once they exist.
  */
 let pmessageBound = false;
 
@@ -527,13 +540,20 @@ const verifyRealtimeJwt = (token: string): RealtimeJwtPayload => {
   throw new Error('JWT verification failed');
 };
 
-const readSocketIdentity = (request: http.IncomingMessage): SocketIdentity => {
+/**
+ * Verify a realtime JWT cookie on an HTTP request and extract the socket
+ * identity it proves. Throws when the token is absent, unverifiable, or its
+ * claims do not describe a routable principal.
+ */
+export const readSocketIdentity = (
+  request: http.IncomingMessage,
+): SocketIdentity => {
   const cookies = parseCookie(request.headers.cookie || '');
   const token = cookies[opts.jwtCookieName];
 
   if (!token) throw new Error('JWT not present');
   const jwtPayload = verifyRealtimeJwt(token);
-  const channelId = jwtPayload[opts.jwtChannelIdKey];
+  const channelId = jwtPayload.channel;
   const subject = jwtPayload.sub;
   const principalType = jwtPayload.principal_type;
   const expiresAtSeconds = jwtPayload.exp;
@@ -544,14 +564,10 @@ const readSocketIdentity = (request: http.IncomingMessage): SocketIdentity => {
   if (typeof subject !== 'string' || subject.length === 0) {
     throw new Error('Subject not present in JWT');
   }
-  if (!PRINCIPAL_TYPES.includes(principalType as PrincipalType)) {
+  if (!isPrincipalType(principalType)) {
     throw new Error('Principal type not present in JWT');
   }
-  const validatedPrincipalType = principalType as PrincipalType;
-  if (validatedPrincipalType === 'user' && channelId !== `user:${subject}`) {
-    throw new Error('Channel does not match JWT subject');
-  }
-  if (validatedPrincipalType === 'guest' && channelId !== subject) {
+  if (channelId !== principalChannel(principalType, subject)) {
     throw new Error('Channel does not match JWT subject');
   }
   if (typeof expiresAtSeconds !== 'number') {
@@ -564,19 +580,18 @@ const readSocketIdentity = (request: http.IncomingMessage): SocketIdentity => {
 
   return {
     channel: channelId,
-    principalType: validatedPrincipalType,
+    principalType,
     subject,
-    username:
-      typeof jwtPayload.username === 'string' ? jwtPayload.username : undefined,
     tokenExpiresAtMs,
   };
 };
 
 /**
- * WebSocket `connection` event handler, called via wss
+ * WebSocket `connection` event handler. `identity` is the one already verified
+ * during the HTTP upgrade (see `httpUpgrade`), so each connection's JWT is
+ * verified exactly once.
  */
-export const wsConnection = (ws: WebSocket, request: http.IncomingMessage) => {
-  const identity = readSocketIdentity(request);
+export const wsConnection = (ws: WebSocket, identity: SocketIdentity) => {
   const { channel } = identity;
 
   // Refuse the connection if a configured connection limit has been reached,
@@ -596,14 +611,9 @@ export const wsConnection = (ws: WebSocket, request: http.IncomingMessage) => {
     pongTs: Date.now(),
   };
 
-  // add this ws instance to the internal registry
   const socketId = trackClient(channel, socketInstance);
   logger.debug(`socket ${socketId} connected on channel ${channel}`);
 
-  // Pub/Sub is lossy and not replayable, so there is no server-side catch-up on
-  // reconnect: the browser's interval poll reconciles any missed nudges.
-
-  // init event handler for `pong` events (connection management)
   ws.on('pong', function pong(data: Buffer) {
     const socketId = data.toString();
     // `sockets` is a plain object, so an unsolicited pong carrying an
@@ -687,8 +697,9 @@ export const httpUpgrade = (
     return;
   }
 
+  let identity: SocketIdentity;
   try {
-    readSocketIdentity(request);
+    identity = readSocketIdentity(request);
   } catch (err) {
     // Token invalid/absent: do not establish a WebSocket connection. Record a
     // structured warning (with the request's remote address) so rejected
@@ -702,15 +713,10 @@ export const httpUpgrade = (
     return;
   }
 
-  // upgrade the HTTP request into a WebSocket connection
-  wss.handleUpgrade(
-    request,
-    socket,
-    head,
-    function cb(ws: WebSocket, request: http.IncomingMessage) {
-      wss.emit('connection', ws, request);
-    },
-  );
+  wss.handleUpgrade(request, socket, head, function cb(ws: WebSocket) {
+    wss.emit('connection', ws, request);
+    wsConnection(ws, identity);
+  });
 };
 
 // Connection cleanup and garbage collection
@@ -729,10 +735,7 @@ export const checkSockets = () => {
     const timeout = now - socketInstance.pongTs;
     let isActive = true;
 
-    if (
-      socketInstance.identity &&
-      now >= socketInstance.identity.tokenExpiresAtMs
-    ) {
+    if (now >= socketInstance.identity.tokenExpiresAtMs) {
       logger.debug(
         `terminating socket with expired token: ${socketId}, channel: ${socketInstance.channel}`,
       );
@@ -745,7 +748,7 @@ export const checkSockets = () => {
       );
       socketInstance.ws.terminate();
       isActive = false;
-    } else if (!SOCKET_ACTIVE_STATES.includes(socketInstance.ws.readyState)) {
+    } else if (!isSocketActive(socketId)) {
       isActive = false;
     }
 
@@ -765,13 +768,8 @@ export const checkSockets = () => {
  */
 export const cleanChannel = (channel: string) => {
   const activeSockets: string[] =
-    channels[channel]?.sockets.filter(socketId => {
-      const socketInstance = sockets[socketId];
-      if (!socketInstance) return false;
-      if (SOCKET_ACTIVE_STATES.includes(socketInstance.ws.readyState))
-        return true;
-      return false;
-    }) || [];
+    channels[channel]?.sockets.filter(socketId => isSocketActive(socketId)) ||
+    [];
 
   if (activeSockets.length === 0) {
     delete channels[channel];
@@ -800,25 +798,20 @@ if (startServer) {
     logger.error(`Uncaught exception: ${detail}`);
   });
 
-  // init server event listeners
   wss.on('connection', function (ws: WebSocket) {
     ws.on('error', (err: Error) =>
       logger.error(`socket error: ${err.message}`),
     );
   });
-  wss.on('connection', wsConnection);
   httpServer.on('request', httpRequest);
   httpServer.on('upgrade', httpUpgrade);
   httpServer.listen(opts.port);
   logger.info(`Server started on port ${opts.port}`);
 
-  // start receiving realtime messages from Redis Pub/Sub
   subscribeToChannels();
 
-  // init garbage collection routines
   setInterval(checkSockets, opts.pingSocketsIntervalMs);
   setInterval(function gc() {
-    // clean all channels
     for (const channel in channels) {
       cleanChannel(channel);
     }

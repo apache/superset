@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
 import { Select } from '@superset-ui/core/components';
 import { ModalFormField } from 'src/components/Modal';
@@ -27,34 +26,31 @@ interface AsyncModeSectionProps {
   onChange: (value: AsyncModeOverride) => void;
 }
 
-const OPTIONS: { value: AsyncModeOverride; label: string }[] = [
-  { value: 'default', label: t('Deployment default') },
-  { value: 'force_on', label: t('Force enabled') },
-  { value: 'force_off', label: t('Force disabled') },
-];
-
 /**
- * Per-dashboard override for asynchronous chart-data loading. Only shown when the
- * GLOBAL_ASYNC_QUERIES feature is enabled; persisted to json_metadata.async_mode.
+ * Per-dashboard override for asynchronous chart-data loading, persisted to
+ * json_metadata.async_mode. Rendered by the properties modal only while the
+ * GLOBAL_ASYNC_QUERIES feature is enabled.
  */
 const AsyncModeSection = ({ value, onChange }: AsyncModeSectionProps) => {
-  if (!isFeatureEnabled(FeatureFlag.GlobalAsyncQueries)) {
-    return null;
-  }
+  const label = t('Asynchronous query execution');
+  const options: { value: AsyncModeOverride; label: string }[] = [
+    { value: 'default', label: t('Deployment default') },
+    { value: 'force_on', label: t('Force enabled') },
+    { value: 'force_off', label: t('Force disabled') },
+  ];
   return (
     <ModalFormField
-      label={t('Asynchronous query execution')}
+      label={label}
       helperText={t(
-        "Whether this dashboard's charts load their data asynchronously. " +
-          'Leave on the deployment default unless you need to force it on or off ' +
-          'for this dashboard.',
+        'Leave on the deployment default unless you need to force ' +
+          'asynchronous loading on or off for this dashboard.',
       )}
       bottomSpacing={false}
     >
       <Select
-        ariaLabel={t('Asynchronous query execution')}
+        ariaLabel={label}
         value={value}
-        options={OPTIONS}
+        options={options}
         onChange={val => onChange(val as AsyncModeOverride)}
       />
     </ModalFormField>

@@ -84,6 +84,9 @@ def task_lock(dedup_key: str) -> Iterator[None]:
             # Create, subscribe, or cancel task here
             ...
     """
+    # Deferred imports: the lock commands pull in the key-value metastore layer,
+    # whose encrypted-column setup requires an initialized app at import time, so
+    # importing them at module scope would tie this module's import to app startup.
     # pylint: disable=import-outside-toplevel
     from superset.commands.distributed_lock.acquire import AcquireDistributedLock
     from superset.commands.distributed_lock.release import ReleaseDistributedLock
@@ -93,12 +96,13 @@ def task_lock(dedup_key: str) -> Iterator[None]:
     release_channel = f"gtf:task:lock-released:{dedup_key}"
     acquire = AcquireDistributedLock("gtf:task", params, TASK_LOCK_TTL_SECONDS)
 
-    def _try_acquire() -> AcquireDistributedLock | None:
+    def _try_acquire() -> bool | None:
         # SET NX: acquire the lock, or None while another submit still holds it.
         # (Re-runs reuse this acquisition's token, so release stays ownership-safe.)
+        # wait_for_signal treats any non-None result as "satisfied".
         try:
             acquire.run()
-            return acquire
+            return True
         except LockAlreadyHeldException:
             return None
 

@@ -60,6 +60,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  jest.useRealTimers();
   fetchMock.clearHistory().removeRoutes();
   mockedIsFeatureEnabled.mockRestore();
 });
@@ -240,81 +241,134 @@ test('gives up (rejects) after the stale timeout with no progress', async () => 
   expect(refetch).not.toHaveBeenCalled();
 });
 
-describe('realtime WebSocket acceleration', () => {
-  const realtime = (taskId: string, status: string) => ({
-    channel: `realtime:user:1`,
-    payload: { task_id: taskId, status },
+test('backs off while awaited tasks stay quiet, then polls eagerly again on progress', async () => {
+  jest.useFakeTimers();
+  queueStatuses(); // every poll comes back empty: no progress
+  asyncEvent.init({
+    ...config, // 20ms eager interval
+    GLOBAL_ASYNC_QUERIES_POLLING_MAX_DELAY: 80,
+    GLOBAL_ASYNC_QUERIES_POLLING_STALE_TIMEOUT: 60_000,
   });
 
-  test('a tier-2 message settles a waiting chart without a poll', async () => {
-    // No terminal status batches are queued, so completion can ONLY come from
-    // the socket message — proving the WS path settles on its own.
-    queueStatuses();
-    asyncEvent.init(config);
+  const polls = () =>
+    fetchMock.callHistory.calls(STATUS_CHANGES_ENDPOINT).length;
+  const promise = asyncEvent.waitForAsyncData(
+    { task_ids: ['task-1', 'task-2'] },
+    jest.fn().mockResolvedValue([]),
+  );
 
-    const refetch = jest.fn().mockResolvedValue([{ rows: 1 }]);
-    const promise = asyncEvent.waitForAsyncData(
-      { task_ids: ['task-1'] },
-      refetch,
-    );
+  // Registering a waiter polls immediately; that first poll is quiet, so the
+  // next one is scheduled at twice the eager interval (40ms, not 20ms).
+  await jest.advanceTimersByTimeAsync(0);
+  expect(polls()).toBe(1);
+  await jest.advanceTimersByTimeAsync(20);
+  expect(polls()).toBe(1);
+  await jest.advanceTimersByTimeAsync(20);
+  expect(polls()).toBe(2);
 
-    // Deliver the completion in the SAME tick, with no wait: waitForAsyncData
-    // registers its waiter synchronously (before any await), so a fast task
-    // whose event arrives immediately after the 202 is never missed. (Regression
-    // guard: registration must not sit behind an awaited baseline fetch.)
-    asyncEvent.handleRealtimeMessage(realtime('task-1', 'success'));
+  // Still quiet: the delay doubles again to 80ms.
+  await jest.advanceTimersByTimeAsync(40);
+  expect(polls()).toBe(2);
+  await jest.advanceTimersByTimeAsync(40);
+  expect(polls()).toBe(3);
 
-    expect(await promise).toEqual([{ rows: 1 }]);
-    expect(refetch).toHaveBeenCalledTimes(1);
+  // Capped at GLOBAL_ASYNC_QUERIES_POLLING_MAX_DELAY: 80ms, never 160ms.
+  await jest.advanceTimersByTimeAsync(80);
+  expect(polls()).toBe(4);
+
+  // A change for an awaited task snaps the delay back to the eager interval
+  // (the other task is still pending, so the loop keeps running).
+  statusResponses.push({
+    statuses: { 'task-1': { status: 'success' } },
+    cursor: '2020-01-01T00:01:00',
   });
+  await jest.advanceTimersByTimeAsync(80);
+  expect(polls()).toBe(5);
+  await jest.advanceTimersByTimeAsync(20);
+  expect(polls()).toBe(6);
 
-  test('a tier-2 failure message rejects the waiting chart', async () => {
-    queueStatuses();
-    asyncEvent.init(config);
-
-    const refetch = jest.fn();
-    const promise = asyncEvent.waitForAsyncData(
-      { task_ids: ['task-1'] },
-      refetch,
-    );
-
-    asyncEvent.handleRealtimeMessage(realtime('task-1', 'failure'));
-
-    await expect(promise).rejects.toThrow();
-    expect(refetch).not.toHaveBeenCalled();
+  // Complete the second task so the waiter settles and the loop goes idle.
+  statusResponses.push({
+    statuses: { 'task-2': { status: 'success' } },
+    cursor: '2020-01-01T00:01:01',
   });
+  await jest.advanceTimersByTimeAsync(80);
+  await expect(promise).resolves.toEqual([]);
+});
 
-  test('ignores non-realtime channels', async () => {
-    queueStatuses();
-    asyncEvent.init(config);
+const realtime = (taskId: string, status: string) => ({
+  channel: `realtime:user:1`,
+  payload: { task_id: taskId, status },
+});
 
-    const refetch = jest.fn().mockResolvedValue([{ rows: 1 }]);
-    const promise = asyncEvent.waitForAsyncData(
-      { task_ids: ['task-1'] },
-      refetch,
-    );
+test('a realtime message settles a waiting chart without a poll', async () => {
+  // No terminal status batches are queued, so completion can ONLY come from
+  // the socket message — proving the WS path settles on its own.
+  queueStatuses();
+  asyncEvent.init(config);
 
-    // A public entity-change nudge carries no status and must not settle a chart.
-    asyncEvent.handleRealtimeMessage({
-      channel: 'entity-changes:task',
-      payload: { entity_type: 'task', id: 'task-1' },
-    });
-    expect(refetch).not.toHaveBeenCalled();
+  const refetch = jest.fn().mockResolvedValue([{ rows: 1 }]);
+  const promise = asyncEvent.waitForAsyncData(
+    { task_ids: ['task-1'] },
+    refetch,
+  );
 
-    // The task is still pending; complete it so the test doesn't leak a waiter.
-    asyncEvent.handleRealtimeMessage(realtime('task-1', 'success'));
-    await promise;
+  // Deliver the completion in the SAME tick, with no wait: waitForAsyncData
+  // registers its waiter synchronously (before any await), so a fast task
+  // whose event arrives immediately after the 202 is never missed. (Regression
+  // guard: registration must not sit behind an awaited baseline fetch.)
+  asyncEvent.handleRealtimeMessage(realtime('task-1', 'success'));
+
+  expect(await promise).toEqual([{ rows: 1 }]);
+  expect(refetch).toHaveBeenCalledTimes(1);
+});
+
+test('a realtime failure message rejects the waiting chart', async () => {
+  queueStatuses();
+  asyncEvent.init(config);
+
+  const refetch = jest.fn();
+  const promise = asyncEvent.waitForAsyncData(
+    { task_ids: ['task-1'] },
+    refetch,
+  );
+
+  asyncEvent.handleRealtimeMessage(realtime('task-1', 'failure'));
+
+  await expect(promise).rejects.toThrow();
+  expect(refetch).not.toHaveBeenCalled();
+});
+
+test('ignores non-realtime channels', async () => {
+  queueStatuses();
+  asyncEvent.init(config);
+
+  const refetch = jest.fn().mockResolvedValue([{ rows: 1 }]);
+  const promise = asyncEvent.waitForAsyncData(
+    { task_ids: ['task-1'] },
+    refetch,
+  );
+
+  // A public entity-change nudge carries no status and must not settle a chart.
+  asyncEvent.handleRealtimeMessage({
+    channel: 'entity-changes:task',
+    payload: { entity_type: 'task', id: 'task-1' },
   });
+  expect(refetch).not.toHaveBeenCalled();
 
-  test('a tier-2 message is a no-op when async queries are disabled', () => {
-    // The shared socket connects whenever WEBSOCKET_ENABLE, independent of the
-    // GLOBAL_ASYNC_QUERIES flag, so a realtime message can arrive with no active
-    // async flow — it must not throw (waiter registry stays an empty map).
-    mockedIsFeatureEnabled.mockReturnValue(false);
-    asyncEvent.init(config);
+  // The task is still pending; complete it so the test doesn't leak a waiter.
+  asyncEvent.handleRealtimeMessage(realtime('task-1', 'success'));
+  await promise;
+});
 
-    expect(() =>
-      asyncEvent.handleRealtimeMessage(realtime('task-1', 'success')),
-    ).not.toThrow();
-  });
+test('a realtime message is a no-op when async queries are disabled', () => {
+  // The shared socket connects whenever WEBSOCKET_ENABLE, independent of the
+  // GLOBAL_ASYNC_QUERIES flag, so a realtime message can arrive with no active
+  // async flow — it must not throw (waiter registry stays an empty map).
+  mockedIsFeatureEnabled.mockReturnValue(false);
+  asyncEvent.init(config);
+
+  expect(() =>
+    asyncEvent.handleRealtimeMessage(realtime('task-1', 'success')),
+  ).not.toThrow();
 });

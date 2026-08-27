@@ -356,10 +356,8 @@ DISTRIBUTED_COORDINATION_CONFIG = {
 }
 ```
 
-By default, connections opened for `DISTRIBUTED_COORDINATION_CONFIG` (as well as the
-deprecated `GLOBAL_ASYNC_QUERIES_CACHE_BACKEND`, which uses the same
-`RedisCache`/`RedisSentinelCache` backend) have no socket timeout. This can be
-overridden with `CACHE_REDIS_SOCKET_TIMEOUT` and
+By default, connections opened for `DISTRIBUTED_COORDINATION_CONFIG` have no socket
+timeout. This can be overridden with `CACHE_REDIS_SOCKET_TIMEOUT` and
 `CACHE_REDIS_SOCKET_CONNECT_TIMEOUT`, both in seconds:
 
 ```python

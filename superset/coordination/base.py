@@ -72,8 +72,8 @@ class CoordinationService:
       backend-only and have no fallback: they raise
       :class:`CoordinationBackendUnavailableError` when no backend is available,
       rather than silently doing nothing. Each accepts an optional ``backend`` so a
-      caller with its own connection (Global Async Queries, during the deprecation
-      window) can run against it instead of the shared coordinator.
+      caller holding its own Valkey/Redis connection can drive the primitive against
+      that connection instead of the shared coordinator.
     - **Await / notify** — ``notify`` (signal) plus ``wait_for_signal``
       (blocking) and ``listen_for_signal`` (background), combining a channel with a
       caller-supplied predicate. Signals ride Redis Streams; because stream entries
@@ -85,8 +85,13 @@ class CoordinationService:
 
     All methods are class-level: the service is app-global. Calls resolve the shared
     coordination backend from ``DISTRIBUTED_COORDINATION_CONFIG`` on each call, except
-    the raw primitives, which accept an optional ``backend`` so a caller with its own
-    connection (Global Async Queries, during the deprecation window) can run against it.
+    the raw primitives, which take the optional ``backend`` override described above.
+
+    ``stream_add`` / ``stream_range`` and the ``backend`` override are part of the
+    published surface even where the Superset codebase itself only uses the
+    higher-level await/notify layer: they are the extension point for components that
+    need raw stream access (e.g. the extensions framework) without opening a second
+    Valkey/Redis connection of their own.
 
     Distributed locking is *not* exposed here: it has its own user-facing interface
     (:class:`~superset.distributed_lock.DistributedLock`) that uses this service's
@@ -126,9 +131,8 @@ class CoordinationService:
         """Return a usable backend or raise if none is available.
 
         Used by the backend-only primitives (pub/sub publish, key/value, streams)
-        so a missing backend fails loudly instead of silently no-op'ing. When
-        ``backend`` is supplied (e.g. Global Async Queries passing its own separate
-        backend) it is used directly; otherwise the shared coordinator backend is
+        so a missing backend fails loudly instead of silently no-op'ing. An explicit
+        ``backend`` is used as given; otherwise the shared coordinator backend is
         resolved via :meth:`get_backend`.
         """
         backend = backend or cls.get_backend()

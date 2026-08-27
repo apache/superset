@@ -17,17 +17,16 @@
  * under the License.
  */
 
-import { useState } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
 import { Popover } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import TaskStatusIcon from './TaskStatusIcon';
-import { TaskDependency, TaskStatus } from './types';
+import { TaskDependency } from './types';
 
 const DependenciesContainer = styled.div`
-  max-width: 400px;
-  max-height: 300px;
+  max-width: ${({ theme }) => theme.sizeUnit * 100}px;
+  max-height: ${({ theme }) => theme.sizeUnit * 75}px;
   overflow: auto;
   padding: ${({ theme }) => theme.sizeUnit}px 0;
 `;
@@ -67,13 +66,11 @@ export default function TaskDependenciesPopover({
   dependencies,
   waitingOn = 0,
 }: TaskDependenciesPopoverProps) {
-  const [visible, setVisible] = useState(false);
-
   const content = (
     <DependenciesContainer>
       {dependencies.map(dependency => (
         <DependencyRow key={dependency.uuid}>
-          <TaskStatusIcon status={dependency.status as TaskStatus} />
+          <TaskStatusIcon status={dependency.status} />
           <DependencyName>
             {dependency.task_name || dependency.uuid}
           </DependencyName>
@@ -92,8 +89,6 @@ export default function TaskDependenciesPopover({
       content={content}
       trigger="hover"
       placement="leftTop"
-      open={visible}
-      onOpenChange={setVisible}
     >
       <LinkIconWrapper $waiting={waitingOn > 0}>
         <Icons.LinkOutlined iconSize="l" />

@@ -24,8 +24,6 @@ import {
   ChartDataResponseResult,
   Column,
   DatasourceType,
-  isFeatureEnabled,
-  FeatureFlag,
   Filter,
   ChartCustomization,
   ChartCustomizationType,
@@ -57,7 +55,7 @@ import {
   SelectFilterOperatorType,
 } from 'src/filters/components/Select/types';
 import { useSelector } from 'react-redux';
-import { getChartDataRequest } from 'src/components/Chart/chartAction';
+import { requestChartDataResolved } from 'src/components/Chart/chartAction';
 import {
   Constants,
   FormItem,
@@ -85,8 +83,7 @@ import {
 import DateFilterControl from 'src/explore/components/controls/DateFilterControl';
 import AdhocFilterControl from 'src/explore/components/controls/FilterControl/AdhocFilterControl';
 import type AdhocFilterClass from 'src/explore/components/controls/FilterControl/AdhocFilter';
-import { waitForAsyncData, AsyncJob } from 'src/middleware/asyncEvent';
-import { AsyncModeOverride } from 'src/utils/asyncMode';
+import { useAsyncModeOverride } from 'src/utils/asyncMode';
 import { SingleValueType } from 'src/filters/components/Range/SingleValueType';
 import { RangeDisplayMode } from 'src/filters/components/Range/types';
 import {
@@ -320,10 +317,7 @@ const FiltersConfigForm = (
   const dashboardId = useSelector<RootState, number>(
     state => state.dashboardInfo.id,
   );
-  const asyncModeOverride = useSelector<
-    RootState,
-    AsyncModeOverride | undefined
-  >(state => state.dashboardInfo?.metadata?.async_mode);
+  const asyncModeOverride = useAsyncModeOverride();
   const [undoFormValues, setUndoFormValues] = useState<Record<
     string,
     any
@@ -531,57 +525,20 @@ const FiltersConfigForm = (
         defaultValueQueriesData: null,
         isDataDirty: false,
       });
-      const requestDefaultValues = (fromCache = false) =>
-        getChartDataRequest({
-          formData,
-          force: fromCache ? false : force,
-          // 202 is handled below via waitForAsyncData.
-          enableAsyncMode: true,
-          requestParams: { async_mode_override: asyncModeOverride },
-        });
-      requestDefaultValues()
-        .then(({ response, json }) => {
-          if (isFeatureEnabled(FeatureFlag.GlobalAsyncQueries)) {
-            // deal with getChartDataRequest transforming the response data
-            const result = 'result' in json ? json.result[0] : json;
-
-            if (response.status === 200) {
-              setNativeFilterFieldValuesWrapper({
-                defaultValueQueriesData: [result as ChartDataResponseResult],
-              });
-            } else if (response.status === 202) {
-              // Await the query tasks, then re-issue the request to read the
-              // now-cached results.
-              waitForAsyncData(json as unknown as AsyncJob, () =>
-                requestDefaultValues(true).then(
-                  ({ json: cachedJson }) =>
-                    cachedJson.result as ChartDataResponseResult[],
-                ),
-              )
-                .then((asyncResult: ChartDataResponseResult[]) => {
-                  setNativeFilterFieldValuesWrapper({
-                    defaultValueQueriesData: asyncResult,
-                  });
-                })
-                .catch((error: Response) => {
-                  getClientErrorObject(error).then(clientErrorObject => {
-                    setErrorWrapper(clientErrorObject);
-                  });
-                });
-            } else {
-              throw new Error(
-                `Received unexpected response status (${response.status}) while fetching chart data`,
-              );
-            }
-          } else {
-            setNativeFilterFieldValuesWrapper({
-              defaultValueQueriesData: json.result,
-            });
-          }
+      requestChartDataResolved({
+        formData,
+        force,
+        requestParams: { async_mode_override: asyncModeOverride },
+      })
+        .then(queriesResponse => {
+          setNativeFilterFieldValuesWrapper({
+            defaultValueQueriesData:
+              queriesResponse as ChartDataResponseResult[],
+          });
         })
         .catch((error: Response) => {
           getClientErrorObject(error).then(clientErrorObject => {
-            setError(clientErrorObject);
+            setErrorWrapper(clientErrorObject);
           });
         });
     },

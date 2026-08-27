@@ -23,14 +23,12 @@ and event **streams**, plus a higher-level **await/notify** layer (``wait_for_si
 :class:`~superset.distributed_lock.DistributedLock`, which draws on this service's
 backend when one is configured and falls back to a database-backed lock otherwise.
 
-Historically these were wired up independently: the Global Task Framework used
-``DISTRIBUTED_COORDINATION_CONFIG`` (pub/sub and locking) while Global Async Queries
-used a separate cache backend for their event streams, and each caller hand-rolled
-its own pub/sub-vs-poll wait loops. Consolidating them here keeps the architecture
-modular, gives other components (e.g. the extensions framework) a single reusable
-coordination surface, and reduces the number of moving parts. All coordination —
-including async chart-data queries, which now run on the Global Task Framework —
-uses ``DISTRIBUTED_COORDINATION_CONFIG`` exclusively.
+Every consumer — distributed locking, the Global Task Framework, and the async
+chart-data queries that run on it — resolves its connection from
+``DISTRIBUTED_COORDINATION_CONFIG`` alone, and shares the await/notify loops here
+rather than hand-rolling its own pub/sub-vs-poll waiting. One place for both keeps the
+architecture modular, gives other components (e.g. the extensions framework) a single
+reusable coordination surface, and keeps the number of moving parts down.
 
 Import concrete classes directly from their modules:
 :class:`~superset.coordination.base.CoordinationService`,

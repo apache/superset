@@ -22,7 +22,7 @@ import {
   isFeatureEnabled,
   SupersetClient,
 } from '@superset-ui/core';
-import { useTheme } from '@apache-superset/core/theme';
+import { useTheme, css } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
 import { useMemo, useCallback, useState } from 'react';
 import { useSelector } from 'react-redux';
@@ -32,6 +32,7 @@ import {
   Label,
   Modal,
   Checkbox,
+  Flex,
 } from '@superset-ui/core/components';
 import {
   CreatedInfo,
@@ -93,15 +94,14 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
     return (
       <>
         <SubMenu name={t('Tasks')} />
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            height: '50vh',
-            color: theme.colorTextSecondary,
-          }}
+        <Flex
+          vertical
+          align="center"
+          justify="center"
+          css={css`
+            height: 50vh;
+            color: ${theme.colorTextSecondary};
+          `}
         >
           <h3>{t('Feature Not Enabled')}</h3>
           <p>
@@ -109,7 +109,7 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
               'The Global Task Framework is not enabled. Please contact your administrator to enable the GLOBAL_TASK_FRAMEWORK feature flag.',
             )}
           </p>
-        </div>
+        </Flex>
       </>
     );
   }
@@ -475,7 +475,7 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
             status === TaskStatus.Pending && unmet > 0 ? unmet : 0;
 
           return (
-            <div style={{ display: 'flex', gap: theme.sizeUnit * 2 }}>
+            <Flex gap={theme.sizeUnit * 2}>
               {hasTimeoutWithoutHandler && (
                 <Tooltip
                   title={t(
@@ -512,19 +512,13 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
                   )}
                   placement="top"
                 >
-                  <span
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: theme.sizeUnit,
-                    }}
-                  >
+                  <Flex component="span" align="center" gap={theme.sizeUnit}>
                     <Icons.PlusOutlined iconSize="l" />
                     {dedupeCount}
-                  </span>
+                  </Flex>
                 </Tooltip>
               )}
-            </div>
+            </Flex>
           );
         },
         accessor: 'payload',
@@ -579,7 +573,7 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
           }
 
           return (
-            <div style={{ display: 'flex', gap: theme.sizeUnit * 2 }}>
+            <Flex gap={theme.sizeUnit * 2}>
               {showDisabledCancel && (
                 <Tooltip
                   id="cancel-disabled-tooltip"
@@ -608,7 +602,7 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
                   onClick={() => openCancelModal(original)}
                 />
               )}
-            </div>
+            </Flex>
           );
         },
         Header: t('Actions'),

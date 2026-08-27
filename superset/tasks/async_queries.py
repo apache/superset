@@ -62,7 +62,7 @@ def _resolve_user(user_id: int | None, guest_token: "GuestToken | None") -> User
     """Resolve the acting user for an async chart-data task.
 
     The GTF executor does not impersonate on its own, so each task establishes the
-    request user itself (for RLS/impersonation), mirroring the legacy Celery path.
+    request user itself, which is what RLS and database impersonation key off.
     """
     if user_id:
         return security_manager.get_user_by_id(user_id)
@@ -184,8 +184,8 @@ def submit_chart_data_query_tasks(
     There is no coordinator task: the client polls ``/api/v1/task/status_changes`` and
     aggregates the query tasks' own honest statuses itself (all ``SUCCESS`` → re-issue
     the request, now served entirely from the per-query cache; any terminal non-success
-    → error). GTF owns completion emission (per-task, via the coordination service), so
-    the websocket transport subscribes to GTF, not to any GAQ-specific stream.
+    → error). Completion is emitted per task by GTF (via the coordination service), so
+    that is also what the websocket transport subscribes to.
 
     Returns the HTTP 202 body ``{"task_ids": [...], "cursor": "..."}`` — the query
     tasks' UUIDs, in query order, plus the server-issued polling cursor. The client
@@ -229,11 +229,13 @@ def submit_chart_data_query_tasks(
         ``(1)``/``(2)`` suffix. Returns ``None`` when neither is available,
         leaving the task_key hash.
         """
-        slice_ = getattr(query_context, "slice_", None)
-        name = getattr(slice_, "slice_name", None) if slice_ else None
+        name: str | None = (
+            query_context.slice_.slice_name if query_context.slice_ else None
+        )
         if not name:
-            datasource = getattr(query_context, "datasource", None)
-            name = getattr(datasource, "name", None) if datasource else None
+            # ``Explorable`` does not declare a display name; the implementations
+            # that have one (SQL datasets, semantic views) expose it as ``name``.
+            name = getattr(query_context.datasource, "name", None)
         if not name:
             return None
         return f"{name} ({index + 1})" if len(queries) > 1 else name

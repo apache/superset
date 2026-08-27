@@ -46,7 +46,7 @@ type RawFormData = CamelCaseFormData | SnakeCaseFormData;
 type ChartPropsSelector = (c: ChartPropsConfig) => ChartProps;
 
 /** Optional field for event handlers, renderers */
-type Hooks = {
+export type Hooks = {
   /**
    * sync active filters between chart and dashboard, "add" actually
    * also handles "change" and "remove".
@@ -70,14 +70,20 @@ type Hooks = {
    * Resolve an async chart-data response (HTTP 202 from GLOBAL_ASYNC_QUERIES).
    * Injected by the app so components in this package (e.g. Matrixify's
    * StatefulChart) can await async results without importing app-level
-   * async-event middleware. Returns the resolved query results.
+   * async-event middleware. `refetch` re-issues the request synchronously once
+   * the query tasks have succeeded. Returns the resolved query results.
    */
   handleAsyncChartData?: (
     response: Response,
     json: JsonObject,
-    refetch?: () => Promise<QueryData[]>,
+    refetch: () => Promise<QueryData[]>,
     signal?: AbortSignal,
   ) => Promise<QueryData[]> | QueryData[];
+  /**
+   * Whether those self-contained components should request asynchronous
+   * execution, per the app's resolved async policy.
+   */
+  resolveAsyncMode?: () => boolean;
 } & PlainObject;
 
 /**

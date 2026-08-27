@@ -26,7 +26,10 @@ import pytest
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.common.chart_data_timing import QueryDataResult, QueryTiming
 from superset.common.db_query_status import QueryStatus
-from superset.common.query_context_processor import QueryContextProcessor
+from superset.common.query_context_processor import (
+    normalize_contribution_totals,
+    QueryContextProcessor,
+)
 from superset.exceptions import QueryObjectValidationError
 from superset.utils.core import GenericDataType
 from superset.utils.date_parser import get_past_or_future
@@ -38,6 +41,19 @@ def mock_query_context():
         "superset.common.query_context_processor.QueryContextProcessor"
     ) as mock_query_context_processor:
         yield mock_query_context_processor
+
+
+def _wire_contribution_totals(mock_query_context: MagicMock) -> None:
+    """Give a mock query context the real ``prepare_contribution_totals`` behavior.
+
+    ``QueryContext`` owns the normalization and the processor delegates to it, so a
+    bare MagicMock would return a value the processor cannot unpack.
+    """
+    mock_query_context.prepare_contribution_totals.side_effect = (
+        lambda: normalize_contribution_totals(
+            mock_query_context.queries, mock_query_context.cache_values
+        )
+    )
 
 
 def _query_timing() -> QueryTiming:
@@ -1434,6 +1450,10 @@ def test_ensure_totals_available_updates_cache_values():
         "result_format": "json",
     }
 
+    # Synchronous request: the async result-cache TTL floor does not apply.
+    mock_query_context.is_async_execution = False
+    _wire_contribution_totals(mock_query_context)
+
     # Create processor
     processor = QueryContextProcessor(mock_query_context)
     processor._qc_datasource = mock_datasource
@@ -1525,6 +1545,8 @@ def test_get_df_payload_validates_before_cache_key_generation():
     mock_query_context = MagicMock()
     mock_query_context.force = False
     mock_query_context.result_type = "full"
+    # Synchronous request: the async result-cache TTL floor does not apply.
+    mock_query_context.is_async_execution = False
 
     # Create a mock datasource
     mock_datasource = MagicMock()
@@ -1656,6 +1678,9 @@ def test_cache_values_sync_after_ensure_totals_available():
         "result_type": "full",
         "result_format": "json",
     }
+    # Synchronous request: the async result-cache TTL floor does not apply.
+    mock_query_context.is_async_execution = False
+    _wire_contribution_totals(mock_query_context)
 
     # Create processor
     processor = QueryContextProcessor(mock_query_context)
@@ -1929,6 +1954,9 @@ def test_force_cached_normalizes_totals_query_row_limit():
         "queries": [main_query.to_dict(), totals_query.to_dict()]
     }
     mock_query_context.get_query_result = MagicMock()
+    # Synchronous request: the async result-cache TTL floor does not apply.
+    mock_query_context.is_async_execution = False
+    _wire_contribution_totals(mock_query_context)
 
     processor = QueryContextProcessor(mock_query_context)
     processor._qc_datasource = mock_datasource

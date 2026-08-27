@@ -282,10 +282,12 @@ def prune_key_value(
 
 def _resolve_failed_prerequisite(task: "TaskModel") -> "TaskModel | None":
     """
-    Block until every direct prerequisite of ``task`` reaches a terminal state.
+    Return the first direct prerequisite of ``task`` that did not end in ``SUCCESS``,
+    blocking until every prerequisite has reached a terminal state.
 
     Implements the ``all_success`` trigger rule for the task DAG: the task may
-    run only if *all* of its direct prerequisites ended in ``SUCCESS``.
+    run only if *all* of its direct prerequisites ended in ``SUCCESS``, so a
+    non-``None`` return means the dependent must fail.
 
     ``task.dependencies`` is already ``selectin``-loaded (in one query) with the
     task, so a prerequisite that is *already* terminal in that snapshot is

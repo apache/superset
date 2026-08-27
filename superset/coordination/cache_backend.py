@@ -36,59 +36,24 @@ end
 """
 
 
-class RedisCacheBackend(RedisCache):
+class RedisCommandsMixin:
+    """Coordination commands issued against the backend's ``redis.Redis`` client.
+
+    Both cache backends here wrap a plain ``redis.Redis`` handle in ``self._cache``
+    (a direct connection, or a Sentinel-resolved master), so every coordination
+    primitive is identical between them and lives here once. Each concrete backend
+    contributes only its connection setup (``__init__`` / ``from_config``).
+
+    Mixed in *before* the flask-caching base class so these implementations take
+    precedence over the cache-oriented ``get``/``set``/``delete`` it defines: the
+    coordination service needs the raw Redis semantics (``nx``/``xx``, byte values),
+    not flask-caching's serializing variants.
+    """
+
+    # Cap on entries returned by :meth:`xrange` when the caller gives no count.
     MAX_EVENT_COUNT = 100
 
-    def __init__(  # pylint: disable=too-many-arguments
-        self,
-        host: str,
-        port: int,
-        password: str | None = None,
-        db: int = 0,
-        default_timeout: int = 300,
-        key_prefix: str | None = None,
-        ssl: bool = False,
-        ssl_certfile: str | None = None,
-        ssl_keyfile: str | None = None,
-        ssl_cert_reqs: str = "required",
-        ssl_ca_certs: str | None = None,
-        socket_timeout: float | None = None,
-        socket_connect_timeout: float | None = None,
-        **kwargs: Any,
-    ) -> None:
-        super().__init__(
-            host=host,
-            port=port,
-            password=password,
-            db=db,
-            default_timeout=default_timeout,
-            key_prefix=key_prefix,
-            **kwargs,
-        )
-        # redis-py 8 defaults to a 5s socket timeout and RESP3 on the wire
-        # (previously: no timeout, RESP2). Pin the pre-upgrade behavior
-        # explicitly so bumping the library doesn't silently introduce new
-        # timeouts or require RESP3 server support; socket_timeout/
-        # connect_timeout stay operator-configurable. Built as a single
-        # dict (rather than mixed explicit kwargs + **kwargs) because
-        # combining both against redis.Redis's many @overloads defeats
-        # mypy's overload resolution.
-        connection_kwargs: dict[str, Any] = {
-            "host": host,
-            "port": port,
-            "password": password,
-            "db": db,
-            "ssl": ssl,
-            "ssl_certfile": ssl_certfile,
-            "ssl_keyfile": ssl_keyfile,
-            "ssl_cert_reqs": ssl_cert_reqs,
-            "ssl_ca_certs": ssl_ca_certs,
-            "socket_timeout": socket_timeout,
-            "socket_connect_timeout": socket_connect_timeout,
-            "protocol": 2,
-            **kwargs,
-        }
-        self._cache = redis.Redis(**connection_kwargs)
+    _cache: redis.Redis
 
     def set(
         self,
@@ -218,6 +183,59 @@ class RedisCacheBackend(RedisCache):
         """Set a TTL (seconds) on a key; used to bound signal-stream growth."""
         return bool(self._cache.expire(name, seconds))
 
+
+class RedisCacheBackend(RedisCommandsMixin, RedisCache):
+    def __init__(  # pylint: disable=too-many-arguments
+        self,
+        host: str,
+        port: int,
+        password: str | None = None,
+        db: int = 0,
+        default_timeout: int = 300,
+        key_prefix: str | None = None,
+        ssl: bool = False,
+        ssl_certfile: str | None = None,
+        ssl_keyfile: str | None = None,
+        ssl_cert_reqs: str = "required",
+        ssl_ca_certs: str | None = None,
+        socket_timeout: float | None = None,
+        socket_connect_timeout: float | None = None,
+        **kwargs: Any,
+    ) -> None:
+        super().__init__(
+            host=host,
+            port=port,
+            password=password,
+            db=db,
+            default_timeout=default_timeout,
+            key_prefix=key_prefix,
+            **kwargs,
+        )
+        # redis-py 8 defaults to a 5s socket timeout and RESP3 on the wire
+        # (previously: no timeout, RESP2). Pin the pre-upgrade behavior
+        # explicitly so bumping the library doesn't silently introduce new
+        # timeouts or require RESP3 server support; socket_timeout/
+        # connect_timeout stay operator-configurable. Built as a single
+        # dict (rather than mixed explicit kwargs + **kwargs) because
+        # combining both against redis.Redis's many @overloads defeats
+        # mypy's overload resolution.
+        connection_kwargs: dict[str, Any] = {
+            "host": host,
+            "port": port,
+            "password": password,
+            "db": db,
+            "ssl": ssl,
+            "ssl_certfile": ssl_certfile,
+            "ssl_keyfile": ssl_keyfile,
+            "ssl_cert_reqs": ssl_cert_reqs,
+            "ssl_ca_certs": ssl_ca_certs,
+            "socket_timeout": socket_timeout,
+            "socket_connect_timeout": socket_connect_timeout,
+            "protocol": 2,
+            **kwargs,
+        }
+        self._cache = redis.Redis(**connection_kwargs)
+
     @classmethod
     def from_config(cls, config: dict[str, Any]) -> RedisCacheBackend:
         kwargs = {
@@ -245,9 +263,7 @@ class RedisCacheBackend(RedisCache):
         return cls(**kwargs)
 
 
-class RedisSentinelCacheBackend(RedisSentinelCache):
-    MAX_EVENT_COUNT = 100
-
+class RedisSentinelCacheBackend(RedisCommandsMixin, RedisSentinelCache):
     def __init__(  # pylint: disable=too-many-arguments
         self,
         sentinels: list[tuple[str, int]],
@@ -333,116 +349,6 @@ class RedisSentinelCacheBackend(RedisSentinelCache):
             key_prefix=key_prefix,
             **kwargs,
         )
-
-    def set(
-        self,
-        name: str,
-        value: Any,
-        ex: int | None = None,
-        px: int | None = None,
-        nx: bool = False,
-        xx: bool = False,
-    ) -> bool | None:
-        """
-        Set the value at key ``name``.
-
-        :param name: Key name
-        :param value: Value to set
-        :param ex: Expire time in seconds
-        :param px: Expire time in milliseconds
-        :param nx: If True, set only if key does not exist
-        :param xx: If True, set only if key already exists
-        :returns: True if set successfully, None if nx/xx condition not met
-        """
-        return self._cache.set(name, value, ex=ex, px=px, nx=nx, xx=xx)
-
-    def get(self, name: str) -> Any:
-        """
-        Get the raw value at key ``name``.
-
-        :param name: Key name
-        :returns: The stored value (bytes), or None if the key is absent
-        """
-        return self._cache.get(name)
-
-    def delete(self, *names: str) -> int:
-        """
-        Delete one or more keys.
-
-        :param names: Key names to delete
-        :returns: Number of keys deleted
-        """
-        return self._cache.delete(*names)
-
-    def compare_and_delete(self, name: str, expected: str) -> int:
-        """
-        Atomically delete ``name`` only if its value still equals ``expected``.
-
-        :param name: Key name
-        :param expected: The value the key must currently hold to be deleted
-        :returns: 1 if the key was deleted, 0 otherwise
-        """
-        return int(self._cache.eval(_COMPARE_AND_DELETE_LUA, 1, name, expected))
-
-    def publish(self, channel: str, message: str) -> int:
-        """
-        Publish a message to a Redis pub/sub channel.
-
-        :param channel: The channel name to publish to
-        :param message: The message to publish
-        :returns: Number of subscribers that received the message
-        """
-        return self._cache.publish(channel, message)
-
-    def pubsub(self) -> redis.client.PubSub:
-        """
-        Create a pub/sub subscription object.
-
-        :returns: PubSub object for subscribing to channels
-        """
-        return self._cache.pubsub()
-
-    def xadd(
-        self,
-        stream_name: str,
-        event_data: dict[str, Any],
-        event_id: str = "*",
-        maxlen: int | None = None,
-    ) -> str:
-        return self._cache.xadd(stream_name, event_data, event_id, maxlen)
-
-    def xrange(
-        self,
-        stream_name: str,
-        start: str = "-",
-        end: str = "+",
-        count: int | None = None,
-    ) -> list[Any]:
-        count = count or self.MAX_EVENT_COUNT
-        return self._cache.xrange(stream_name, start, end, count)
-
-    def xread(
-        self,
-        streams: dict[str, str],
-        count: int | None = None,
-        block_ms: int | None = None,
-    ) -> list[Any]:
-        """Reliable, optionally-blocking stream read (see
-        :meth:`RedisCacheBackend.xread`)."""
-        return self._cache.xread(streams, count=count, block=block_ms) or []
-
-    def stream_last_id(self, stream_name: str) -> str:
-        """Return the last entry id, or ``"0-0"`` if empty (see
-        :meth:`RedisCacheBackend.stream_last_id`)."""
-        entries = self._cache.xrevrange(stream_name, count=1)
-        if not entries:
-            return "0-0"
-        last_id = entries[0][0]
-        return last_id.decode() if isinstance(last_id, bytes) else last_id
-
-    def expire(self, name: str, seconds: int) -> bool:
-        """Set a TTL (seconds) on a key; used to bound signal-stream growth."""
-        return bool(self._cache.expire(name, seconds))
 
     @classmethod
     def from_config(cls, config: dict[str, Any]) -> RedisSentinelCacheBackend:

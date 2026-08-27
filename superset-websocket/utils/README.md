@@ -27,7 +27,8 @@ The Express web application in `client-ws-app` is provided for testing the WebSo
 
 ## Load testing script
 
-The `loadtest.js` script is provided to populate the Redis streams with event data.
+The `loadtest.js` script is provided to publish realtime event data to the
+server's Redis Pub/Sub channels.
 
 ### Running
 

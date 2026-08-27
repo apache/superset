@@ -17,7 +17,6 @@
 """Submit task command for GTF."""
 
 import logging
-import uuid
 from functools import partial
 from typing import Any, TYPE_CHECKING
 from uuid import UUID
@@ -36,9 +35,9 @@ from superset.commands.tasks.exceptions import (
 )
 from superset.daos.exceptions import DAOCreateFailedError
 from superset.stats_logger import BaseStatsLogger
-from superset.tasks.guest import get_current_guest_subscriber_key
+from superset.tasks.guest import get_guest_subscriber_key_for
 from superset.tasks.locks import task_lock
-from superset.tasks.utils import get_active_dedup_key
+from superset.tasks.utils import generate_random_task_key, get_active_dedup_key
 from superset.utils.core import get_user_id
 from superset.utils.decorators import on_error, transaction
 
@@ -102,7 +101,7 @@ class SubmitTaskCommand(BaseCommand):
         # release (``transaction`` keys reentrancy off ``g.in_transaction``),
         # silently reopening the dedup race. Fail loudly so the caller is forced
         # to submit outside its transaction rather than reintroduce the bug.
-        if getattr(g, "in_transaction", False):
+        if g.get("in_transaction", False):
             raise RuntimeError(
                 "SubmitTaskCommand must own its transaction: the task lock is "
                 "held across commit to serialize concurrent dedup submits, which "
@@ -117,13 +116,13 @@ class SubmitTaskCommand(BaseCommand):
         # normalized ``scope``). Done before acquiring the lock so invalid input
         # fails fast without taking a lock.
         task_type = self._properties["task_type"]
-        task_key = self._properties.get("task_key") or str(uuid.uuid4())
+        task_key = self._properties.get("task_key") or generate_random_task_key()
         self._properties["task_key"] = task_key  # reuse the generated key downstream
         scope = self._properties["scope"]
         user_id = get_user_id()
         # Embedded guests have no ab_user id; they subscribe by a token-derived
         # key so TaskFilter can grant them visibility of their own tasks.
-        guest_key = None if user_id else get_current_guest_subscriber_key()
+        guest_key = get_guest_subscriber_key_for(user_id)
 
         # Build dedup_key for lock
         dedup_key = get_active_dedup_key(
@@ -221,7 +220,6 @@ class SubmitTaskCommand(BaseCommand):
         existing.update_properties(
             {"dedupe_count": existing.properties_dict.get("dedupe_count", 0) + 1}
         )
-        # Add subscriber if not already subscribed
         if user_id and not existing.has_subscriber(user_id):
             TaskDAO.add_subscriber(existing.id, user_id)
             stats_logger.incr("gtf.task.subscribe")
@@ -308,7 +306,6 @@ class SubmitTaskCommand(BaseCommand):
         """Validate command parameters."""
         exceptions: list[ValidationError] = []
 
-        # Require task_type
         if not self._properties.get("task_type"):
             exceptions.append(
                 ValidationError("task_type is required", field_name="task_type")

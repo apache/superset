@@ -16,6 +16,7 @@
 # under the License.
 
 from collections.abc import Iterator
+from datetime import datetime
 from uuid import UUID
 
 import pytest
@@ -443,6 +444,26 @@ def test_get_subscriber_principals_empty(session_with_task: Session) -> None:
     assert TaskDAO.get_subscriber_principals(task.id) == []
 
 
+def test_subscribed_at_defaults_per_insert(session_with_task: Session) -> None:
+    """``subscribed_at`` is evaluated at insert time, not at class definition."""
+    from superset.models.task_subscribers import TaskSubscriber
+    from superset.tasks.utils import naive_utcnow
+
+    task = create_task(
+        session_with_task,
+        task_key="default-subscribed-at",
+        scope=TaskScope.SHARED,
+        user_id=None,
+    )
+
+    before = naive_utcnow()
+    subscription = TaskSubscriber(task_id=task.id, user_id=TEST_USER_ID)
+    session_with_task.add(subscription)
+    session_with_task.flush()
+
+    assert subscription.subscribed_at >= before
+
+
 def test_remove_subscriber(session_with_task: Session) -> None:
     """Test removing a subscriber from a task"""
     from superset.daos.tasks import TaskDAO
@@ -623,3 +644,132 @@ def test_add_dependencies_empty_is_noop(session_with_task: Session) -> None:
     TaskDAO.add_dependencies(task.id, [])
     session_with_task.refresh(task)
     assert task.dependencies == []
+
+
+def test_get_statuses_changed_since_baseline_returns_no_statuses(
+    session_with_task: Session, mocker: MockerFixture
+) -> None:
+    """Without a cursor the call establishes a baseline: no statuses, fresh cursor."""
+    from superset.daos.tasks import TaskDAO
+
+    mocker.patch("superset.security_manager.is_admin", return_value=True)
+    mocker.patch("superset.tasks.filters.get_user_id", return_value=TEST_USER_ID)
+
+    create_task(session_with_task, task_key="baseline-task")
+    before = datetime.now()
+
+    statuses, cursor = TaskDAO.get_statuses_changed_since(None)
+
+    assert statuses == {}
+    assert cursor >= before
+
+
+def test_get_statuses_changed_since_redelivers_task_on_the_cursor_boundary(
+    session_with_task: Session, mocker: MockerFixture
+) -> None:
+    """The ``>=`` bound re-delivers a task whose changed_on equals the cursor.
+
+    Re-delivery is idempotent for the client, whereas a strict ``>`` would drop a
+    transition landing exactly on the boundary and hang the poller.
+    """
+    from superset.daos.tasks import TaskDAO
+
+    mocker.patch("superset.security_manager.is_admin", return_value=True)
+    mocker.patch("superset.tasks.filters.get_user_id", return_value=TEST_USER_ID)
+
+    boundary = datetime(2026, 8, 26, 12, 0, 0)
+    task = create_task(
+        session_with_task,
+        task_uuid=TASK_UUID,
+        task_key="boundary-task",
+        status=TaskStatus.IN_PROGRESS,
+        properties={"progress_percent": 0.25},
+    )
+    task.changed_on = boundary
+    session_with_task.flush()
+
+    statuses, _ = TaskDAO.get_statuses_changed_since(boundary)
+
+    assert statuses == {
+        str(TASK_UUID): {"status": TaskStatus.IN_PROGRESS.value, "progress": 0.25}
+    }
+
+
+def test_get_statuses_changed_since_tolerates_non_dict_properties(
+    session_with_task: Session, mocker: MockerFixture
+) -> None:
+    """A properties column holding a JSON scalar yields ``progress: None``, not an
+    exception — one malformed row must not fail the polling endpoint."""
+    from superset.daos.tasks import TaskDAO
+
+    mocker.patch("superset.security_manager.is_admin", return_value=True)
+    mocker.patch("superset.tasks.filters.get_user_id", return_value=TEST_USER_ID)
+
+    boundary = datetime(2026, 8, 26, 12, 0, 0)
+    task = create_task(
+        session_with_task,
+        task_uuid=TASK_UUID,
+        task_key="scalar-properties-task",
+        status=TaskStatus.IN_PROGRESS,
+    )
+    task.properties = "42"
+    task.changed_on = boundary
+    session_with_task.flush()
+
+    statuses, _ = TaskDAO.get_statuses_changed_since(boundary)
+
+    assert statuses[str(TASK_UUID)] == {
+        "status": TaskStatus.IN_PROGRESS.value,
+        "progress": None,
+    }
+
+
+def test_get_statuses_changed_since_cursor_advances_when_nothing_changed(
+    session_with_task: Session, mocker: MockerFixture
+) -> None:
+    """The next cursor is the server clock, so it advances even on an empty batch.
+
+    Deriving it from ``max(changed_on)`` would freeze the watermark on an idle
+    in-progress task, re-fetching that row on every poll forever.
+    """
+    from superset.daos.tasks import TaskDAO
+
+    mocker.patch("superset.security_manager.is_admin", return_value=True)
+    mocker.patch("superset.tasks.filters.get_user_id", return_value=TEST_USER_ID)
+
+    stale = datetime(2020, 1, 1, 0, 0, 0)
+    task = create_task(session_with_task, task_key="idle-task")
+    task.changed_on = stale
+    session_with_task.flush()
+
+    _, first_cursor = TaskDAO.get_statuses_changed_since(stale)
+    statuses, second_cursor = TaskDAO.get_statuses_changed_since(first_cursor)
+
+    assert statuses == {}
+    assert second_cursor >= first_cursor > stale
+
+
+def test_get_statuses_changed_since_narrows_by_task_type(
+    session_with_task: Session, mocker: MockerFixture
+) -> None:
+    """``task_type`` restricts the result to a single kind of task."""
+    from superset.daos.tasks import TaskDAO
+
+    mocker.patch("superset.security_manager.is_admin", return_value=True)
+    mocker.patch("superset.tasks.filters.get_user_id", return_value=TEST_USER_ID)
+
+    boundary = datetime(2026, 8, 26, 12, 0, 0)
+    tracked = create_task(
+        session_with_task,
+        task_uuid=TASK_UUID,
+        task_key="tracked",
+        task_type="tracked_type",
+    )
+    other = create_task(session_with_task, task_key="other", task_type="other_type")
+    tracked.changed_on = boundary
+    other.changed_on = boundary
+    session_with_task.flush()
+
+    statuses, _ = TaskDAO.get_statuses_changed_since(boundary, task_type="tracked_type")
+
+    assert list(statuses) == [str(TASK_UUID)]

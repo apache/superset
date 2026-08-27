@@ -19,8 +19,9 @@ from __future__ import annotations
 
 import logging
 import traceback
+from datetime import datetime, timezone
 from http.client import HTTPResponse
-from typing import cast, TYPE_CHECKING
+from typing import Any, cast, TYPE_CHECKING
 from urllib import request
 from uuid import UUID, uuid4
 
@@ -181,6 +182,20 @@ def fetch_csrf_token(
     return {}
 
 
+def naive_utcnow() -> datetime:
+    """Return the current UTC time with the tzinfo stripped.
+
+    Task timestamp columns (``started_at``, ``ended_at``, ``subscribed_at``) are
+    naive ``DateTime`` columns holding UTC. Writing a tz-aware value to a naive
+    column lets some DB drivers convert it to the session-local timezone, which
+    would skew every duration computed from those columns by the local UTC
+    offset — so the offset is dropped here, once, before the value reaches the DB.
+
+    :returns: Current UTC time as a naive ``datetime``
+    """
+    return datetime.now(timezone.utc).replace(tzinfo=None)
+
+
 def generate_random_task_key() -> str:
     """
     Generate a random task key.
@@ -320,16 +335,37 @@ def parse_properties(json_str: str | None) -> TaskProperties:
     :param json_str: JSON string or None
     :returns: TaskProperties dict (sparse - only contains keys that were set)
     """
+    return cast(TaskProperties, _parse_json_dict(json_str))
+
+
+def parse_payload(json_str: str | None) -> dict[str, Any]:
+    """
+    Parse a task's ``payload`` column into a dict.
+
+    The payload counterpart of :func:`parse_properties`; task code owns the
+    payload's shape, so it stays an untyped mapping.
+
+    :param json_str: JSON string or None
+    :returns: Payload dict, empty when absent or unparseable
+    """
+    return _parse_json_dict(json_str)
+
+
+def _parse_json_dict(json_str: str | None) -> dict[str, Any]:
+    """Decode a JSON object column, tolerating absent or malformed values.
+
+    ``properties`` and ``payload`` are free-form JSON text columns, so a
+    non-object value has to degrade to an empty dict rather than raise: these
+    are read on polling paths where one bad row must not fail the response.
+    """
     if not json_str:
         return {}
 
     try:
         raw = json.loads(json_str)
-        if isinstance(raw, dict):
-            return cast(TaskProperties, raw)
-        return {}
     except (json.JSONDecodeError, TypeError):
         return {}
+    return raw if isinstance(raw, dict) else {}
 
 
 def serialize_properties(props: TaskProperties) -> str:

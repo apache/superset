@@ -34,10 +34,10 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timedelta, timezone
-from typing import Literal, NotRequired, TypedDict
+from typing import Literal, TypedDict
 
 import jwt
-from flask import Flask, g, request, Response
+from flask import Flask, request, Response
 
 from superset import security_manager
 from superset.tasks.guest import get_current_guest_subscriber_key
@@ -58,7 +58,6 @@ class RealtimePrincipal(TypedDict):
     channel: str
     principal_type: PrincipalType
     sub: str
-    username: NotRequired[str]
 
 
 def channel_id_for(user_id: int | None, guest_key: str | None) -> str | None:
@@ -77,46 +76,32 @@ def channel_id_for(user_id: int | None, guest_key: str | None) -> str | None:
     return None
 
 
-def get_channel_id() -> str | None:
-    """Return the realtime channel for the current request principal, or ``None``.
+def get_realtime_principal() -> RealtimePrincipal | None:
+    """Return JWT principal claims for the current websocket-eligible principal.
 
-    ``user:<id>`` for a logged-in user, ``guest:<hmac>`` for an embedded guest
-    (reusing the guest identity from ``superset.tasks.guest`` for consistency),
-    and ``None`` for an anonymous request (no channel, no cookie).
+    ``None`` for a request with no realtime identity (anonymous, or a guest whose
+    token yields no subscriber key), in which case no cookie is minted.
     """
     if security_manager.get_current_guest_user_if_guest():
-        return channel_id_for(None, get_current_guest_subscriber_key())
-    return channel_id_for(get_user_id(), None)
-
-
-def get_realtime_principal() -> RealtimePrincipal | None:
-    """Return JWT principal claims for the current websocket-eligible principal."""
-    if security_manager.get_current_guest_user_if_guest():
-        guest_key = get_current_guest_subscriber_key()
-        if not guest_key:
+        guest_channel = channel_id_for(None, get_current_guest_subscriber_key())
+        if guest_channel is None:
             return None
         return {
-            "channel": guest_key,
+            "channel": guest_channel,
             "principal_type": "guest",
-            "sub": guest_key,
+            "sub": guest_channel,
         }
 
     user_id = get_user_id()
-    if user_id is None:
-        return None
     channel = channel_id_for(user_id, None)
     if channel is None:
         return None
 
-    claims: RealtimePrincipal = {
+    return {
         "channel": channel,
         "principal_type": "user",
         "sub": str(user_id),
     }
-    username = getattr(getattr(g, "user", None), "username", None)
-    if username:
-        claims["username"] = str(username)
-    return claims
 
 
 def mint_channel_token(principal: RealtimePrincipal) -> str:

@@ -43,6 +43,10 @@ import configureMockStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 import { initialState } from 'src/SqlLab/fixtures';
 
+/** A 200 response never re-issues, so the refetch must not be called. */
+const neverRefetch = () =>
+  Promise.reject(new Error('refetch should not be called'));
+
 interface MockState {
   charts: {
     [key: string]: {
@@ -379,6 +383,7 @@ describe('chart actions', () => {
             1, 2, 3,
           ] as unknown as actions.ChartDataRequestResponse['json']['result'],
         },
+        neverRefetch,
       );
       expect(result).toEqual([1, 2, 3]);
     });
@@ -396,6 +401,7 @@ describe('chart actions', () => {
             1, 2, 3,
           ] as unknown as actions.ChartDataRequestResponse['json']['result'],
         },
+        neverRefetch,
       );
       expect(result).toEqual([1, 2, 3]);
     });
@@ -489,7 +495,7 @@ describe('chart actions', () => {
         fetchMock.removeRoute(MOCK_URL);
         fetchMock.post(
           `glob:*${MOCK_URL}*`,
-          { status: 202, body: { result: [{ job_id: 'job-1' }] } },
+          { status: 202, body: { task_ids: ['task-1'] } },
           { name: MOCK_URL },
         );
       });
@@ -579,6 +585,22 @@ describe('chart actions', () => {
         );
       });
 
+      test('rejects rather than treating a repeat 202 body as chart data', async () => {
+        // Regression: the post-completion re-issue is always synchronous, so a
+        // 202 body ({task_ids}) can never reach a consumer as if it were rows.
+        // The route mocked above answers 202 for every POST.
+        await expect(
+          actions.requestChartDataResolved({
+            formData: { viz_type: 'my_viz' } as QueryFormData,
+          }),
+        ).rejects.toThrow('unexpected response status (202)');
+
+        // The initial async submit plus exactly one synchronous re-issue.
+        const history = fetchMock.callHistory.calls(`glob:*${MOCK_URL}*`);
+        expect(history).toHaveLength(2);
+        expect(String(history[1].options.body)).not.toContain('async_mode');
+      });
+
       test('re-issues synchronously after async completion, preserving force', async () => {
         // 1: initial async request → 202; 2: the post-completion re-issue is
         // synchronous and returns the payload inline (200). No third call and no
@@ -590,7 +612,7 @@ describe('chart actions', () => {
           () => {
             calls += 1;
             return calls === 1
-              ? { status: 202, body: { result: [{ job_id: 'job-1' }] } }
+              ? { status: 202, body: { task_ids: ['task-1'] } }
               : { status: 200, body: { result: [{ data: [1, 2, 3] }] } };
           },
           { name: MOCK_URL },
