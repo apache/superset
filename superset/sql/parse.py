@@ -1461,13 +1461,29 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
                 expression=exp.Literal(this=str(limit), is_string=False)
             )
         elif method in {LimitMethod.FORCE_LIMIT, LimitMethod.WRAP_SQL}:
-            self._parsed = exp.Select(
+            inner = self._parsed.copy()
+            wrapper = exp.Select(
                 expressions=[exp.Star()],
                 limit=exp.Limit(
                     expression=exp.Literal(this=str(limit), is_string=False)
                 ),
-                from_=exp.From(this=exp.Subquery(this=self._parsed.copy())),
+                from_=exp.From(this=exp.Subquery(this=inner)),
             )
+
+            # `FORMAT` and `SETTINGS` configure the query rather than produce
+            # rows, and only mean what they say at the top level: ClickHouse
+            # rejects `FORMAT` inside a subquery outright, and a nested
+            # `SETTINGS` binds to that subquery alone, so top-level-only settings
+            # such as `extremes` would quietly stop applying. Moving them onto
+            # the wrapper keeps their original whole-query scope. Row-producing
+            # modifiers stay in the subquery, where ClickHouse keeps honoring
+            # them: a wrapped `WITH TOTALS` query still emits its totals block,
+            # and `WITH ROLLUP`/`WITH CUBE` still emit their extra rows.
+            for modifier in ("format", "settings"):
+                if value := inner.args.pop(modifier, None):
+                    wrapper.set(modifier, value)
+
+            self._parsed = wrapper
         else:  # method == LimitMethod.FETCH_MANY
             pass
 

@@ -2789,6 +2789,57 @@ FROM (
 LIMIT 1001
             """.strip(),
         ),
+        # `WITH TOTALS` rides into the subquery untouched: ClickHouse keeps
+        # emitting the totals block for a wrapped query, so the cap really is
+        # the only thing the rewrite adds.
+        (
+            "SELECT id, count() AS c FROM limit_by "
+            "GROUP BY id WITH TOTALS ORDER BY id LIMIT 2 BY id",
+            "clickhouse",
+            1001,
+            LimitMethod.FORCE_LIMIT,
+            """
+SELECT
+  *
+FROM (
+  SELECT
+    id,
+    count() AS c
+  FROM limit_by
+  GROUP BY
+    id
+  WITH TOTALS
+  ORDER BY
+    id
+  LIMIT 2 BY id
+)
+LIMIT 1001
+            """.strip(),
+        ),
+        # `SETTINGS` and `FORMAT` do not survive a demotion into the subquery,
+        # so they move up onto the wrapper instead.
+        (
+            "SELECT * FROM limit_by ORDER BY id LIMIT 2 BY id "
+            "SETTINGS extremes = 1 FORMAT JSONCompact",
+            "clickhouse",
+            1001,
+            LimitMethod.FORCE_LIMIT,
+            """
+SELECT
+  *
+FROM (
+  SELECT
+    *
+  FROM limit_by
+  ORDER BY
+    id
+  LIMIT 2 BY id
+)
+LIMIT 1001
+SETTINGS extremes = 1
+FORMAT JSONCompact
+            """.strip(),
+        ),
         # A ClickHouse limit without a `BY` still takes the in-place path.
         (
             "SELECT * FROM t ORDER BY c LIMIT 555",
@@ -2853,6 +2904,35 @@ def test_set_limit_value_preserves_clickhouse_limit_by(sql: str, engine: str) ->
     assert limited.endswith("LIMIT 1001")
     # The rewrite has to be valid ClickHouse, not just valid-looking.
     assert SQLStatement(limited, engine).format() == limited
+
+
+def test_set_limit_value_keeps_clickhouse_top_level_modifiers() -> None:
+    """
+    The wrap must not demote clauses that only work at the top level.
+
+    ClickHouse rejects `FORMAT` inside a subquery outright, and a `SETTINGS`
+    attached to a subquery binds to that subquery alone -- top-level-only
+    settings such as ``extremes`` would silently stop applying. Both therefore
+    move onto the wrapper, which is where the original query had them.
+
+    The row-producing modifiers are left alone, because ClickHouse honors them
+    inside a `FROM` subquery: a wrapped `WITH TOTALS` query still emits its
+    totals block, and `WITH ROLLUP`/`WITH CUBE` still emit their extra rows.
+    Hoisting those would change the result rather than preserve it.
+    """
+    statement = SQLStatement(
+        "SELECT id, count() AS c FROM limit_by "
+        "GROUP BY id WITH TOTALS ORDER BY id LIMIT 2 BY id "
+        "SETTINGS extremes = 1 FORMAT JSONCompact",
+        "clickhouse",
+    )
+    statement.set_limit_value(1001, LimitMethod.FORCE_LIMIT)
+    limited = statement.format()
+
+    assert limited.endswith("LIMIT 1001\nSETTINGS extremes = 1\nFORMAT JSONCompact")
+    # `WITH TOTALS` stays with the aggregation it belongs to.
+    assert "WITH TOTALS\n" in limited.split("LIMIT 2 BY id")[0]
+    assert SQLStatement(limited, "clickhouse").format() == limited
 
 
 @pytest.mark.parametrize(
