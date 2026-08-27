@@ -62,6 +62,42 @@ from superset.utils.core import GenericDataType
 
 logger = logging.getLogger(__name__)
 
+
+def _requested_filter_columns(extra_form_data: dict[str, Any] | None) -> set[str]:
+    """Return simple column names explicitly requested through extra form data."""
+    if not extra_form_data:
+        return set()
+
+    columns: set[str] = set()
+    for filter_ in extra_form_data.get("filters", []):
+        if isinstance(filter_, dict) and isinstance(column := filter_.get("col"), str):
+            columns.add(column)
+    for filter_ in extra_form_data.get("adhoc_filters", []):
+        if (
+            isinstance(filter_, dict)
+            and filter_.get("expressionType") == "SIMPLE"
+            and isinstance(column := filter_.get("subject"), str)
+        ):
+            columns.add(column)
+    return columns
+
+
+def _rejected_requested_filter_columns(
+    result: Any, extra_form_data: dict[str, Any] | None
+) -> list[str]:
+    """Find request filters rejected by datasource query construction."""
+    if not isinstance(result, dict):
+        return []
+    requested = _requested_filter_columns(extra_form_data)
+    rejected = {
+        column
+        for query in result.get("queries", [])
+        for column in query.get("rejected_filter_columns", [])
+        if isinstance(column, str)
+    }
+    return sorted(requested & rejected)
+
+
 _GENERIC_TYPE_MAP: dict[int, str] = {
     GenericDataType.NUMERIC: "numeric",
     GenericDataType.STRING: "string",
@@ -685,6 +721,19 @@ async def get_chart_data(  # noqa: C901
                 command.validate()
                 result = command.run()
 
+            if rejected := _rejected_requested_filter_columns(
+                result, request.extra_form_data
+            ):
+                rejected_columns = ", ".join(rejected)
+                await ctx.warning(
+                    "Requested filters reference unknown dataset columns: %s"
+                    % rejected_columns
+                )
+                return ChartError(
+                    error=f"Unknown dataset column(s) in filters: {rejected_columns}",
+                    error_type="ValidationError",
+                )
+
             # Handle empty query results for certain chart types
             if not result or ("queries" not in result) or len(result["queries"]) == 0:
                 await ctx.warning(
@@ -979,7 +1028,7 @@ async def get_chart_data(  # noqa: C901
         )
 
 
-async def _query_from_form_data(
+async def _query_from_form_data(  # noqa: C901
     form_data: Dict[str, Any],
     request: GetChartDataRequest,
     ctx: Context,
@@ -1033,6 +1082,19 @@ async def _query_from_form_data(
             command = ChartDataCommand(query_context)
             command.validate()
             result = command.run()
+
+        if rejected := _rejected_requested_filter_columns(
+            result, request.extra_form_data
+        ):
+            rejected_columns = ", ".join(rejected)
+            await ctx.warning(
+                "Requested filters reference unknown dataset columns: %s"
+                % rejected_columns
+            )
+            return ChartError(
+                error=f"Unknown dataset column(s) in filters: {rejected_columns}",
+                error_type="ValidationError",
+            )
 
         if not result or "queries" not in result or len(result["queries"]) == 0:
             logger.warning(
