@@ -170,6 +170,36 @@ def get_extra_editor_subject_ids(resource: Model) -> list[int]:
     return subject_ids
 
 
+def get_extra_editors_by_pk(
+    model_cls: type[Model], primary_keys: list[Any]
+) -> dict[Any, list[int]]:
+    """
+    Resolve extra editor subject IDs for a batch of resources, keyed by
+    primary key. List responses only have serialized rows, not model
+    instances, so this re-queries the page's rows in one batched query.
+    """
+    if not primary_keys or not (
+        has_app_context() and current_app.config.get("EXTRA_EDITORS_RESOLVER")
+    ):
+        return {}
+
+    # pylint: disable=import-outside-toplevel
+    from superset import db
+    from superset.models.helpers import SKIP_VISIBILITY_FILTER_CLASSES
+
+    pk_col = inspect(model_cls).primary_key[0]
+    resources = (
+        db.session.query(model_cls)
+        .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {model_cls}})
+        .filter(pk_col.in_(primary_keys))
+        .all()
+    )
+    return {
+        getattr(resource, pk_col.name): get_extra_editor_subject_ids(resource)
+        for resource in resources
+    }
+
+
 def _render_permission_instructions_link(
     *,
     datasource_id: str = "",
@@ -1177,6 +1207,276 @@ def _orderby_modified(
     return False
 
 
+# The frontend emits ``{expressionType: "SQL", sqlExpression: "1 = 0"}`` when
+# a native Select filter has "Filter value is required" enabled and no value
+# has been selected yet (superset-frontend/src/filters/utils.ts).  After
+# ``_sanitize_clause`` wraps it in parentheses the resulting ``extras.where``
+# clause is ``(1 = 0)``.  This is safe — it returns zero rows — and must be
+# allowed so that embedded charts are not rejected before the user picks a
+# filter value.
+_EMPTY_FILTER_SENTINEL = "1 = 0"
+
+
+def _split_extras_clauses(composed: str) -> list[str]:
+    """
+    Extract raw SQL expressions from a composed ``extras.where`` /
+    ``extras.having`` string.
+
+    ``_sanitize_clause`` (``form_data_query_context.py:92``) /
+    ``processFilters.ts`` (``superset-ui-core/src/query/processFilters.ts``)
+    wraps each expression in one layer of parentheses and joins them with
+    ``' AND '``, producing strings like ``(expr1) AND (expr2)``.  This
+    reverses that: split on the ``)\\s+AND\\s+(`` boundary (case-insensitive,
+    tolerating whitespace variations), strip the outer parens, and return the
+    raw expressions.
+    """
+    if not composed:
+        return []
+    # Unbalanced parens can't be a valid composed clause — fail closed so
+    # the malformed string lands in the allowed-set check as-is (→ 403)
+    # instead of splitting into fragments that might individually pass.
+    if composed.count("(") != composed.count(")"):
+        return [composed]
+    raw = re.split(r"\)\s+AND\s+\(", composed, flags=re.IGNORECASE)
+    # Strip exactly one outer paren added by _sanitize_clause.
+    if raw[0].startswith("("):
+        raw[0] = raw[0][1:]
+    if raw[-1].endswith(")"):
+        raw[-1] = raw[-1][:-1]
+    # _sanitize_clause appends ``\n`` inside the parens when the expression
+    # contains ``--`` (to terminate a trailing line comment).  Strip it so
+    # the result matches the stored raw expression.
+    return [expr.rstrip("\n") for expr in raw]
+
+
+def _add_allowed_sql_from_query_context(
+    extras_allowed: set[str],
+    col_allowed: set[str],
+    stored_query_context: dict[str, Any],
+) -> None:
+    """Add allowed SQL expressions from a stored query context."""
+    for query in stored_query_context.get("queries") or []:
+        for param in ("where", "having"):
+            composed = (query.get("extras") or {}).get(param, "")
+            for expr in _split_extras_clauses(composed):
+                extras_allowed.add(expr)
+            # Keep the full composed value as a fallback in case a stored
+            # expression contains a literal ") AND (" that the split would
+            # incorrectly break apart.
+            if composed:
+                extras_allowed.add(composed)
+        for key in ("columns", "groupby"):
+            for col in query.get(key) or []:
+                if isinstance(col, dict) and col.get("sqlExpression"):
+                    col_allowed.add(col["sqlExpression"])
+
+
+def _collect_allowed_sql(
+    stored_chart: "Slice",
+    stored_query_context: Optional[dict[str, Any]],
+) -> tuple[set[str], set[str]]:
+    """
+    Collect the SQL expressions a guest user is allowed to send.
+
+    Returns ``(extras_allowed, col_allowed)``:
+
+    * ``extras_allowed`` — for validating ``extras.where``/``extras.having``:
+      adhoc-filter SQL, legacy ``where`` param, stored query-context extras,
+      and the ``1 = 0`` empty-filter sentinel.
+    * ``col_allowed`` — for validating structured-filter ``col.sqlExpression``:
+      everything in ``extras_allowed`` plus column SQL expressions from the
+      chart's dimensions (which cross-filters legitimately reference).
+    """
+    extras_allowed: set[str] = {_EMPTY_FILTER_SENTINEL}
+    params = stored_chart.params_dict
+
+    for flt in params.get("adhoc_filters") or []:
+        if (
+            isinstance(flt, dict)
+            and flt.get("expressionType") == "SQL"
+            and flt.get("sqlExpression")
+        ):
+            extras_allowed.add(flt["sqlExpression"])
+
+    if params.get("where"):
+        extras_allowed.add(params["where"])
+
+    # Column expressions go only into col_allowed — they must not be
+    # injectable as WHERE/HAVING predicates.
+    col_allowed: set[str] = set(extras_allowed)
+    _add_column_sql_expressions(col_allowed, params)
+
+    if stored_query_context:
+        _add_allowed_sql_from_query_context(
+            extras_allowed, col_allowed, stored_query_context
+        )
+
+    return extras_allowed, col_allowed
+
+
+def _add_column_sql_expressions(target: set[str], params: dict[str, Any]) -> None:
+    """Add ``sqlExpression`` values from column params to *target*.
+
+    Handles both list-valued controls (``columns``, ``groupby``) and
+    scalar-valued ones (``x_axis``, ``entity``, etc.).
+    """
+    for key in _STORED_COLUMN_PARAMS:
+        value = params.get(key)
+        if value is None:
+            continue
+        items = value if isinstance(value, (list, tuple)) else [value]
+        for col in items:
+            if isinstance(col, dict) and col.get("sqlExpression"):
+                target.add(col["sqlExpression"])
+
+
+def _query_has_novel_extras(query: Any, allowed: set[str]) -> bool:
+    """Whether a query has novel ``extras.where``/``extras.having`` SQL.
+
+    The full composed value is checked first; if it is in ``allowed`` (which
+    includes full composed values from the stored query context as a fallback)
+    the split is skipped.  If a stored expression contains a literal
+    ``) AND (`` the split may break it into fragments that fail individually —
+    a false positive (403) rather than a bypass, and an acceptable trade-off.
+    """
+    extras = getattr(query, "extras", None) or {}
+    for param in ("where", "having"):
+        composed = extras.get(param, "")
+        if composed and composed not in allowed:
+            for expr in _split_extras_clauses(composed):
+                if expr not in allowed:
+                    return True
+    return False
+
+
+def _query_has_novel_filter_col(query: Any, allowed: set[str]) -> bool:
+    """Whether a query has a structured filter ``col`` not in the allowed set.
+
+    Unlike ``_query_has_novel_extras`` this only checks the ``filter[].col``
+    vector — the cross-filter path — and intentionally ignores
+    ``extras.where``/``extras.having``.  Used for the scoped re-check after
+    expanding ``allowed`` with sibling dashboard chart expressions: those
+    borrowed expressions must only legitimize filter columns, not become
+    injectable as arbitrary WHERE/HAVING predicates.
+    """
+    for flt in getattr(query, "filter", None) or []:
+        if isinstance(flt, dict):
+            col = flt.get("col")
+            if isinstance(col, dict) and col.get("sqlExpression"):
+                if col["sqlExpression"] not in allowed:
+                    return True
+    return False
+
+
+def _add_dashboard_column_expressions(
+    allowed: set[str], dashboard_id: Any, target_chart_id: int
+) -> None:
+    """
+    Add ``sqlExpression`` values from adhoc columns on every chart of the
+    given dashboard (except the target chart, which is already covered).
+
+    This allows cross-filter structured filters whose ``col`` carries the
+    source chart's custom SQL dimension to pass validation.  Called lazily
+    (only when an unrecognized adhoc SQL col is found) to avoid a DB query
+    on the common path.
+
+    The dashboard is authorized via ``has_guest_access`` and the target chart
+    must belong to the dashboard; otherwise no expressions are added.
+    """
+    # pylint: disable=import-outside-toplevel
+    from superset import db, security_manager
+    from superset.models.dashboard import Dashboard
+
+    try:
+        dashboard_id = int(dashboard_id)
+    except (TypeError, ValueError):
+        return
+    dashboard = (
+        db.session.query(Dashboard).filter(Dashboard.id == dashboard_id).one_or_none()
+    )
+    if dashboard is None:
+        return
+
+    if not security_manager.has_guest_access(dashboard):
+        return
+
+    slice_ids = {s.id for s in dashboard.slices}
+    if target_chart_id not in slice_ids:
+        return
+
+    for slc in dashboard.slices:
+        if slc.id == target_chart_id:
+            continue
+        _add_column_sql_expressions(allowed, slc.params_dict)
+
+
+def _sql_filters_modified(
+    query_context: "QueryContext",
+    form_data: dict[str, Any],
+    stored_chart: "Slice",
+    stored_query_context: Optional[dict[str, Any]],
+) -> bool:
+    """
+    Whether the request injects custom SQL not present on the stored chart.
+
+    Covers three vectors:
+
+    1. ``extras.where`` / ``extras.having`` — raw SQL strings.
+    2. Adhoc filters with ``expressionType == "SQL"`` in ``form_data``.
+    3. Structured ``{col, op, val}`` filters whose ``col`` carries a
+       ``sqlExpression`` (reaches ``adhoc_column_to_sqla``).
+
+    The ``(1 = 0)`` empty-filter sentinel injected by required-but-empty
+    native Select filters is always allowed.  For vector 3, SQL expressions
+    from all charts on the requesting dashboard are allowed so that
+    cross-filters referencing a sibling chart's custom SQL dimension pass.
+
+    Cache-replay requests (``/data/<cache_key>``) are skipped: the original
+    request already passed the full check, and ``_sanitize_filters`` may have
+    rewritten ``extras`` in place before caching (comment normalization,
+    Jinja rendering), making byte-equality comparison unreliable.
+    """
+    if getattr(query_context, "_from_cache_replay", False) is True:
+        return False
+
+    extras_allowed, col_allowed = _collect_allowed_sql(
+        stored_chart, stored_query_context
+    )
+
+    # Vector 1: extras.where / extras.having
+    if any(_query_has_novel_extras(q, extras_allowed) for q in query_context.queries):
+        return True
+
+    # Vector 3: structured filter col with adhoc SQL.
+    # Sibling chart column expressions (cross-filter) are allowed; the
+    # dashboard lookup is deferred so the common case pays no DB cost.
+    if any(_query_has_novel_filter_col(q, col_allowed) for q in query_context.queries):
+        if dashboard_id := (form_data or {}).get("dashboardId"):
+            _add_dashboard_column_expressions(
+                col_allowed, dashboard_id, stored_chart.id
+            )
+        if any(
+            _query_has_novel_filter_col(q, col_allowed) for q in query_context.queries
+        ):
+            return True
+
+    # Vector 2: SQL adhoc filters in form_data
+    stored_sql_filters: set[str] = {
+        freeze_value(flt)
+        for flt in stored_chart.params_dict.get("adhoc_filters") or []
+        if isinstance(flt, dict) and flt.get("expressionType") == "SQL"
+    }
+
+    for flt in form_data.get("adhoc_filters") or []:
+        if not isinstance(flt, dict):
+            continue
+        if flt.get("expressionType") == "SQL":
+            if freeze_value(flt) not in stored_sql_filters:
+                return True
+
+    return False
+
+
 #: Chart params keys that hold the metrics a chart renders. Different chart
 #: types store their metrics under control-specific keys (``metric`` for
 #: big number, ``x``/``y``/``size`` for bubble, and so on); a guest requesting
@@ -1306,6 +1606,13 @@ def query_context_modified(query_context: "QueryContext") -> bool:
     # than accepting any payload, constrain them to the column(s) the dashboard's
     # native filter is allowed to target; other chartless paths keep prior
     # behavior (see _native_filter_request_modified).
+    #
+    # SQL extras (extras.where/having) are NOT validated on chartless paths:
+    # without a stored chart there is nothing to validate against, and
+    # tightening this would break legitimate chartless flows (native-filter
+    # pre-filtering, drill-to-detail) that carry SQL extras.  These paths
+    # are still protected by datasource-access checks in raise_for_access.
+    # The _sql_filters_modified check below covers chart payloads only.
     if stored_chart is None:
         return _native_filter_request_modified(query_context)
 
@@ -1375,6 +1682,19 @@ def query_context_modified(query_context: "QueryContext") -> bool:
         )
         return True
 
+    # SQL predicates (extras.where/having, SQL adhoc filters) must match
+    # what was saved on the chart; injected custom SQL is rejected.
+    if _sql_filters_modified(
+        query_context, form_data, stored_chart, stored_query_context
+    ):
+        logger.warning(
+            "Guest chart payload rejected for slice %s: SQL filter/extras "
+            "not on the stored chart (stored query_context %s)",
+            stored_chart.id,
+            stored_context_state,
+        )
+        return True
+
     return False
 
 
@@ -1408,6 +1728,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "CssTemplate",
         "Dataset",
         "Datasource",
+        "Theme",
     } | READ_ONLY_MODEL_VIEWS
 
     GAMMA_EXCLUDED_PVMS = {
@@ -1432,6 +1753,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "Security",
         "SQL Lab",
         "User Registrations",
+        # REST counterpart of the FAB "User Registrations" views. FAB derives
+        # the view-menu name from the class name; without this entry
+        # _is_gamma_pvm grants its permissions to stock Gamma and Alpha.
+        "UserRegistrationsRestAPI",
         "User's Statistics",
         # Guarding all AB_ADD_SECURITY_API = True REST APIs
         "RoleRestAPI",
@@ -5293,6 +5618,18 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         editor_subject_ids = set(get_extra_editor_subject_ids(resource))
         if hasattr(resource, "editors"):
             editor_subject_ids.update(s.id for s in resource.editors)
+
+        # Fallback ONLY for Query and SavedQuery models that use 'user_id'
+        from superset.models.sql_lab import Query, SavedQuery
+        from superset.subjects.utils import get_user_subject
+
+        if (
+            isinstance(resource, (Query, SavedQuery))
+            and getattr(resource, "user_id", None) is not None
+        ):
+            if subject := get_user_subject(resource.user_id):
+                editor_subject_ids.add(subject.id)
+
         return bool(subject_ids & editor_subject_ids)
 
     def is_viewer(self, resource: Model) -> bool:

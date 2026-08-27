@@ -379,9 +379,9 @@ export function handleChartDelete(
       else refreshData();
       addSuccessToast(deletedToast(sliceName));
     },
-    () => {
-      addDangerToast(deleteFailedToast(sliceName));
-    },
+    createErrorHandler(errMsg =>
+      addDangerToast(deleteFailedToast(sliceName, errMsg)),
+    ),
   );
 }
 

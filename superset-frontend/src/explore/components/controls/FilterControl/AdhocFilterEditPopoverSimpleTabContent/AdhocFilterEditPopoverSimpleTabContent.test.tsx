@@ -23,6 +23,7 @@ import {
   screen,
   userEvent,
   waitFor,
+  within,
 } from 'spec/helpers/testing-library';
 import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
@@ -913,4 +914,40 @@ test('dropdown should remain open when clicked after filter is configured', asyn
   });
 
   expect(operatorDropdown).toHaveAttribute('aria-expanded', 'true');
+});
+
+test('filters the subject select by column verbose_name as well as column_name', async () => {
+  setup({
+    options: [
+      {
+        type: 'BIGINT',
+        column_name: 'num',
+        verbose_name: 'total_count',
+        id: 1,
+      },
+      {
+        type: 'VARCHAR(255)',
+        column_name: 'name',
+        verbose_name: 'Full Name',
+        id: 2,
+      },
+    ],
+  });
+
+  const combobox = screen.getByRole('combobox', { name: 'Select subject' });
+  userEvent.click(combobox);
+
+  await userEvent.type(combobox, 'total');
+
+  const dropdown = document.querySelector(
+    '.ant-select-dropdown-list',
+  ) as HTMLElement;
+  expect(within(dropdown).getByText('total_count')).toBeInTheDocument();
+  expect(within(dropdown).queryByText('Full Name')).not.toBeInTheDocument();
+
+  await userEvent.clear(combobox);
+  await userEvent.type(combobox, 'num');
+
+  expect(within(dropdown).getByText('total_count')).toBeInTheDocument();
+  expect(within(dropdown).queryByText('Full Name')).not.toBeInTheDocument();
 });
