@@ -82,7 +82,14 @@ class ReuseDecision:
 
 @dataclass(frozen=True)
 class CachedEntry:
-    """Bounded descriptor pointing to an expiring semantic result."""
+    """Bounded descriptor pointing to an expiring semantic result.
+
+    Instances are pickled into the data cache and outlive the code that wrote
+    them. A pickled dataclass restores its stored attributes without applying
+    defaults for fields added later, so any change to this shape must bump
+    ``cache_identity.IDENTITY_FORMAT_VERSION`` so that no bucket written by the
+    previous shape is ever unpickled by the new one.
+    """
 
     filters: frozenset[Filter]
     dimensions: frozenset[Dimension]
@@ -93,6 +100,9 @@ class CachedEntry:
     group_limit_key: str
     value_key: str
     timestamp: float = field(default_factory=time)
+    # TTL the value was stored with, so the bucket that indexes it can be kept
+    # alive at least as long; None means the backend default.
+    timeout: int | None = None
 
 
 @dataclass(frozen=True)

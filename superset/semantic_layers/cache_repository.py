@@ -21,6 +21,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
+from math import ceil
 from time import time
 from typing import cast, Protocol
 
@@ -181,6 +182,7 @@ class SemanticCacheRepository:
         """Store a TTL-bounded value and register its bounded descriptor."""
         bucket_key: str = self._bucket_key(meta)
         value_key: str = SemanticCacheIdentityFactory.value(bucket_key, query)
+        now: float = self._clock()
         descriptor: CachedEntry = CachedEntry(
             filters=frozenset(query.filters or set()),
             dimensions=frozenset(query.dimensions),
@@ -190,7 +192,8 @@ class SemanticCacheRepository:
             order_key=SemanticCacheIdentityFactory.order(query.order),
             group_limit_key=SemanticCacheIdentityFactory.group_limit(query.group_limit),
             value_key=value_key,
-            timestamp=self._clock(),
+            timestamp=now,
+            timeout=meta.timeout,
         )
 
         def register() -> None:
@@ -215,7 +218,7 @@ class SemanticCacheRepository:
             self._set(
                 bucket_key,
                 bounded,
-                meta.timeout,
+                self._bucket_timeout(bounded, meta.timeout, now),
                 SemanticCacheStoreError,
             )
             self._set(value_key, result, meta.timeout, SemanticCacheStoreError)
@@ -261,6 +264,7 @@ class SemanticCacheRepository:
         if not missing_value_keys:
             return
         bucket_key: str = self._bucket_key(meta)
+        now: float = self._clock()
 
         def prune() -> None:
             entries: list[CachedEntry] = self._entries(
@@ -275,8 +279,39 @@ class SemanticCacheRepository:
             self._set(
                 bucket_key,
                 retained,
-                meta.timeout,
+                self._bucket_timeout(retained, meta.timeout, now),
                 SemanticCacheLookupError,
             )
 
         self._mutate(bucket_key, prune, SemanticCacheLookupError)
+
+    @staticmethod
+    def _bucket_timeout(
+        entries: list[CachedEntry],
+        fallback: int | None,
+        now: float,
+    ) -> int | None:
+        """Expire a bucket no sooner than the longest-lived value it indexes.
+
+        Requests resolve their own cache timeout (custom, chart, then dataset),
+        so one view's bucket indexes values stored with different TTLs. Writing
+        the bucket with the latest request's timeout would let a short-lived
+        store expire the index out from under longer-lived values, orphaning
+        them until their own TTL. ``0`` follows the backend's never-expire
+        convention and wins outright; ``None`` (backend default) is used only
+        when no entry carries an explicit TTL, because its length is unknown
+        here.
+        """
+        timeouts: list[int | None] = [entry.timeout for entry in entries]
+        if not timeouts:
+            return fallback
+        if any(timeout == 0 for timeout in timeouts):
+            return 0
+        remaining: list[float] = [
+            entry.timestamp + entry.timeout - now
+            for entry in entries
+            if entry.timeout is not None and entry.timeout > 0
+        ]
+        if not remaining:
+            return None
+        return max(1, ceil(max(remaining)))
