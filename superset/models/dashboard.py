@@ -396,24 +396,24 @@ class Dashboard(CoreDashboard, SoftDeleteMixin, AuditMixinNullable, ImportExport
             Helper function for titling a TAB node and adding it to all_tabs
             """
             meta = node.get("meta")
-            if not isinstance(meta, dict):
-                meta = {}
-            if "text" not in meta:
+            title = meta.get("text") if isinstance(meta, dict) else None
+            if not isinstance(title, str):
                 logger.warning(
                     "Dashboard %s: tab node %s has no title in the layout",
                     self.id,
                     node.get("id"),
                 )
-            node["title"] = meta.get("text", "")
+                title = ""
+            node["title"] = title
             node_id = node.get("id")
-            if node_id is None:
+            if not isinstance(node_id, str):
                 logger.warning(
-                    "Dashboard %s: skipping tab node with no id in the layout",
+                    "Dashboard %s: skipping tab node with no usable id in the layout",
                     self.id,
                 )
                 return
             node["value"] = node_id
-            all_tabs[node_id] = node["title"]
+            all_tabs[node_id] = title
 
         def build_tab_tree(
             node: dict[str, Any], children: list[dict[str, Any]]
@@ -433,10 +433,18 @@ class Dashboard(CoreDashboard, SoftDeleteMixin, AuditMixinNullable, ImportExport
             # without contributing to the tree, exactly as an untabbed layout
             # element always has been.
             node_type = node["type"]
+            child_ids = node.get("children", [])
+            if not isinstance(child_ids, list):
+                logger.warning(
+                    "Dashboard %s: layout node %s has malformed children",
+                    self.id,
+                    node.get("id"),
+                )
+                child_ids = []
             new_children: list[dict[str, Any]] = []
             # new children to overwrite parent's children
-            for child_id in node.get("children", []):
-                child = get_node(child_id)
+            for child_id in child_ids:
+                child = get_node(child_id) if isinstance(child_id, str) else None
                 if not isinstance(child, dict):
                     logger.warning(
                         "Dashboard %s: skipping layout node %s, missing or malformed",

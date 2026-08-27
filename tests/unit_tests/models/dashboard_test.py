@@ -334,7 +334,7 @@ def test_tabs_handles_tab_nodes_without_a_title(
             "TABS-1": {
                 "id": "TABS-1",
                 "type": "TABS",
-                "children": ["TAB-1", "TAB-2", "TAB-3"],
+                "children": ["TAB-1", "TAB-2", "TAB-3", "TAB-4"],
             },
             # No `meta` key at all.
             "TAB-1": {"id": "TAB-1", "type": "TAB", "children": []},
@@ -352,16 +352,22 @@ def test_tabs_handles_tab_nodes_without_a_title(
                 "meta": "First",
                 "children": [],
             },
+            # `text` present but not a string.
+            "TAB-4": {
+                "id": "TAB-4",
+                "type": "TAB",
+                "meta": {"text": None},
+                "children": [],
+            },
         }
     )
 
     caplog.set_level(logging.WARNING, logger=LOGGER)
     tabs = dash.tabs
 
-    assert tabs["all_tabs"] == {"TAB-1": "", "TAB-2": "", "TAB-3": ""}
-    assert [node["id"] for node in tabs["tab_tree"]] == ["TAB-1", "TAB-2", "TAB-3"]
-    assert [node["title"] for node in tabs["tab_tree"]] == ["", "", ""]
-    for tab_id in ("TAB-1", "TAB-2", "TAB-3"):
+    assert tabs["all_tabs"] == {"TAB-1": "", "TAB-2": "", "TAB-3": "", "TAB-4": ""}
+    assert [node["title"] for node in tabs["tab_tree"]] == ["", "", "", ""]
+    for tab_id in ("TAB-1", "TAB-2", "TAB-3", "TAB-4"):
         assert f"tab node {tab_id} has no title in the layout" in caplog.text
 
 
@@ -379,7 +385,7 @@ def test_tabs_skips_tab_nodes_without_an_id(
             "TABS-1": {
                 "id": "TABS-1",
                 "type": "TABS",
-                "children": ["TAB-1", "TAB-2"],
+                "children": ["TAB-1", "TAB-2", "TAB-3"],
             },
             # No `id` key.
             "TAB-1": {"type": "TAB", "meta": {"text": "First"}, "children": []},
@@ -389,6 +395,13 @@ def test_tabs_skips_tab_nodes_without_an_id(
                 "meta": {"text": "Second"},
                 "children": [],
             },
+            # `id` present but not a string, so it cannot key `all_tabs`.
+            "TAB-3": {
+                "id": ["TAB-3"],
+                "type": "TAB",
+                "meta": {"text": "Third"},
+                "children": [],
+            },
         }
     )
 
@@ -396,7 +409,7 @@ def test_tabs_skips_tab_nodes_without_an_id(
     tabs = dash.tabs
 
     assert tabs["all_tabs"] == {"TAB-2": "Second"}
-    assert "skipping tab node with no id in the layout" in caplog.text
+    assert caplog.text.count("skipping tab node with no usable id in the layout") == 2
 
 
 def test_tabs_returns_empty_dict_when_layout_has_no_root(
@@ -455,3 +468,44 @@ def test_tabs_returns_empty_dict_when_layout_is_not_a_mapping(
     assert dash.tabs == {}
 
     assert caplog.text.count("layout is not a mapping") == 2
+
+
+def test_tabs_handles_malformed_children(
+    app_context: None, caplog: pytest.LogCaptureFixture
+) -> None:
+    """A `children` value that cannot be walked is treated as empty.
+
+    `children` is only meaningful as a list of node ids. A layout may store
+    `null`, a scalar, or a list holding something that is not an id, none of
+    which can be dereferenced.
+    """
+    dash = Dashboard()
+    dash.id = 1
+    dash.position_json = json.dumps(
+        {
+            "ROOT_ID": {"id": "ROOT_ID", "type": "ROOT", "children": ["GRID_ID"]},
+            "GRID_ID": {"id": "GRID_ID", "type": "GRID", "children": ["TABS-1"]},
+            "TABS-1": {
+                "id": "TABS-1",
+                "type": "TABS",
+                # TAB-2 is named by an entry that is not an id.
+                "children": ["TAB-1", ["TAB-2"]],
+            },
+            # `children` is not a list at all.
+            "TAB-1": {
+                "id": "TAB-1",
+                "type": "TAB",
+                "meta": {"text": "First"},
+                "children": None,
+            },
+        }
+    )
+
+    caplog.set_level(logging.WARNING, logger=LOGGER)
+    tabs = dash.tabs
+
+    assert tabs["all_tabs"] == {"TAB-1": "First"}
+    assert [node["id"] for node in tabs["tab_tree"]] == ["TAB-1"]
+    assert tabs["tab_tree"][0]["children"] == []
+    assert "layout node TAB-1 has malformed children" in caplog.text
+    assert "missing or malformed" in caplog.text
