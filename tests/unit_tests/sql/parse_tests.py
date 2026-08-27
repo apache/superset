@@ -1377,7 +1377,8 @@ def test_find_last_token_node_branches() -> None:
     """
     Directly test all branches of _find_last_token_node and _get_select_trailing_child.
     """
-    # 1. Empty select returns None from _get_select_trailing_child and falls back to node
+    # 1. Empty select returns None from _get_select_trailing_child
+    # and falls back to node
     empty_select = exp.Select()
     assert _get_select_trailing_child(empty_select) is None
     assert _find_last_token_node(empty_select) is empty_select
