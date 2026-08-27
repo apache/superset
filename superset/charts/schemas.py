@@ -47,6 +47,7 @@ from superset.utils.core import (
     PostProcessingBoxplotWhiskerType,
     PostProcessingContributionOrientation,
 )
+from superset.utils.pandas_postprocessing.utils import PROPHET_TIME_GRAIN_MAP
 
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
@@ -70,6 +71,15 @@ def get_time_grain_choices() -> Any:
         }.keys()
         if i
     ]
+
+
+def validate_time_grain_sqla(value: Any) -> None:
+    """Ensure the time grain is supported by the configured engine specs."""
+    choices = get_time_grain_choices()
+    validate.OneOf(
+        choices=choices,
+        error=_("Must be one of: {choices}."),
+    )(value)
 
 
 # Fallback upper bound for the number of Prophet forecast periods when the
@@ -757,7 +767,7 @@ class ChartDataProphetOptionsSchema(ChartDataPostProcessingOperationOptionsSchem
             "[ISO 8601](https://en.wikipedia.org/wiki/ISO_8601#Durations) durations.",
             "example": "P1D",
         },
-        validate=validate.OneOf(choices=get_time_grain_choices()),
+        validate=validate.OneOf(choices=tuple(PROPHET_TIME_GRAIN_MAP.keys())),
         required=True,
     )
     periods = fields.Integer(
@@ -1138,7 +1148,7 @@ class ChartDataExtrasSchema(Schema):
             "[ISO 8601](https://en.wikipedia.org/wiki/ISO_8601#Durations) durations.",
             "example": "P1D",
         },
-        validate=validate.OneOf(choices=get_time_grain_choices()),
+        validate=validate_time_grain_sqla,
         allow_none=True,
     )
     instant_time_comparison_range = fields.String(
