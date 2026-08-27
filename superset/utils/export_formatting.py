@@ -26,28 +26,23 @@ import pandas as pd
 from superset.utils.core import GenericDataType
 from superset.utils.number_format_locale import (
     format_number_for_locale,
-    NUMBER_FORMAT_LOCALES,
+    get_csv_separator,
+    normalize_number_format_locale,
     resolve_number_format_locale,
 )
 
 
-def _normalize_export_locale(locale: object) -> str | None:
-    if isinstance(locale, str) and locale in NUMBER_FORMAT_LOCALES:
-        return locale
-    return None
-
-
 def get_export_locale_from_form_data(form_data: dict[str, Any] | None) -> str | None:
     """
-    Resolve export locale for CSV/XLSX downloads.
+    Resolve export locale for CSV downloads (XLSX keeps native numbers).
 
     Checks, in order:
     1. ``locale`` on chart ``form_data`` (set by the export request payload)
-    2. ``locale`` query param on the export HTTP request
-    3. ``locale`` query param on the Referer URL (dashboard/explore page)
+    2. ``locale`` or ``lang`` query param on the export HTTP request
+    3. ``locale`` or ``lang`` query param on the Referer URL
     """
     if isinstance(form_data, dict):
-        if locale := _normalize_export_locale(form_data.get("locale")):
+        if locale := normalize_number_format_locale(form_data.get("locale")):
             return locale
 
     try:
@@ -56,18 +51,34 @@ def get_export_locale_from_form_data(form_data: dict[str, Any] | None) -> str | 
         if not has_request_context():
             return None
 
-        if locale := _normalize_export_locale(request.args.get("locale")):
+        if locale := normalize_number_format_locale(request.args.get("locale")):
+            return locale
+        if locale := normalize_number_format_locale(request.args.get("lang")):
             return locale
 
         referer = request.headers.get("Referer")
         if referer:
-            referer_locale = parse_qs(urlparse(referer).query).get("locale", [None])[0]
-            if locale := _normalize_export_locale(referer_locale):
+            query = parse_qs(urlparse(referer).query)
+            referer_locale = query.get("locale", [None])[0]
+            if locale := normalize_number_format_locale(referer_locale):
+                return locale
+            referer_lang = query.get("lang", [None])[0]
+            if locale := normalize_number_format_locale(referer_lang):
                 return locale
     except RuntimeError:
         return None
 
     return None
+
+
+def csv_export_kwargs(locale_code: str | None) -> dict[str, Any]:
+    """CSV_EXPORT config plus the locale-specific column delimiter."""
+    from flask import current_app
+
+    return {
+        **current_app.config["CSV_EXPORT"],
+        "sep": get_csv_separator(locale_code),
+    }
 
 
 def _to_export_float(value: object) -> float:

@@ -18,12 +18,15 @@
  */
 import { URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
+import { resolveNumberFormatLocaleCode } from './resolveNumberFormatLocale';
 
 /**
  * Read the number-format locale from the page URL for chart exports.
- * Supported values: en_US, en_GB, de_DE, es_ES, fr_FR, it_IT, nl_NL, pl_PL.
- * Returns undefined when absent.
+ * Prefers ``locale``, then embed ``lang`` (en_GB, fr_FR, …).
  */
 export function getExportLocale(): string | undefined {
-  return getUrlParam(URL_PARAMS.locale) || undefined;
+  return resolveNumberFormatLocaleCode(
+    getUrlParam(URL_PARAMS.locale),
+    getUrlParam(URL_PARAMS.language),
+  );
 }

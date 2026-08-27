@@ -32,6 +32,7 @@ from sqlalchemy import text
 from superset import db
 from superset.commands.base import BaseCommand
 from superset.utils.export_formatting import format_export_cell_value
+from superset.utils.number_format_locale import get_csv_separator
 
 logger = logging.getLogger(__name__)
 
@@ -194,7 +195,11 @@ class BaseStreamingCSVExportCommand(BaseCommand):
 
                     # Use StringIO with csv.writer for proper escaping
                     buffer = io.StringIO()
-                    csv_writer = csv.writer(buffer, quoting=csv.QUOTE_MINIMAL)
+                    csv_writer = csv.writer(
+                        buffer,
+                        quoting=csv.QUOTE_MINIMAL,
+                        delimiter=get_csv_separator(self._export_locale),
+                    )
 
                     # Write CSV header
                     header_data, header_bytes = self._write_csv_header(

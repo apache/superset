@@ -43,6 +43,7 @@ from superset.utils.core import (
 )
 from superset.utils.export_formatting import (
     apply_locale_number_formatting,
+    csv_export_kwargs,
     get_export_locale_from_form_data,
 )
 
@@ -404,7 +405,7 @@ def apply_client_processing(  # noqa: C901
             query["data"] = csv.df_to_escaped_csv(
                 export_df,
                 index=show_default_index,
-                **current_app.config["CSV_EXPORT"],
+                **csv_export_kwargs(locale_code),
             )
         elif query["result_format"] == ChartDataResultFormat.XLSX:
             query["data"] = excel.df_to_excel(

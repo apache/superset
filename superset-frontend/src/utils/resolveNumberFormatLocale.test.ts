@@ -19,6 +19,7 @@
 import { DEFAULT_D3_FORMAT } from '@superset-ui/core';
 import {
   resolveNumberFormatLocale,
+  resolveNumberFormatLocaleCode,
   NUMBER_FORMAT_LOCALES,
   NumberFormatLocaleCode,
 } from './resolveNumberFormatLocale';
@@ -58,4 +59,15 @@ test.each<[NumberFormatLocaleCode, string, string]>([
   });
   expect(resolveNumberFormatLocale(locale).decimal).toBe(decimal);
   expect(resolveNumberFormatLocale(locale).thousands).toBe(thousands);
+});
+
+test('ignores short lang codes', () => {
+  expect(resolveNumberFormatLocaleCode(null, 'de')).toBeUndefined();
+  expect(resolveNumberFormatLocaleCode(null, 'zh')).toBeUndefined();
+});
+
+test('accepts full locale codes on lang', () => {
+  expect(resolveNumberFormatLocaleCode(null, 'en_GB')).toBe('en_GB');
+  expect(resolveNumberFormatLocaleCode(null, 'fr_FR')).toBe('fr_FR');
+  expect(resolveNumberFormatLocaleCode(null, 'fr-fr')).toBe('fr_FR');
 });

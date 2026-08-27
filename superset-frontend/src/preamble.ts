@@ -29,7 +29,10 @@ import { User } from './types/bootstrapTypes';
 import getBootstrapData, { applicationRoot } from './utils/getBootstrapData';
 import { makeUrl } from './utils/pathUtils';
 import { resolveAppLocale } from './utils/resolveAppLocale';
-import { resolveNumberFormatLocale } from './utils/resolveNumberFormatLocale';
+import {
+  resolveNumberFormatLocale,
+  resolveNumberFormatLocaleCode,
+} from './utils/resolveNumberFormatLocale';
 import { getUrlParam } from './utils/urlUtils';
 import './hooks/useLocale';
 
@@ -59,7 +62,10 @@ export default function initPreamble(): Promise<void> {
     const bootstrapData = getBootstrapData();
 
     const numberFormatLocale = resolveNumberFormatLocale(
-      getUrlParam(URL_PARAMS.locale),
+      resolveNumberFormatLocaleCode(
+        getUrlParam(URL_PARAMS.locale),
+        getUrlParam(URL_PARAMS.language),
+      ),
       bootstrapData.common.d3_format,
     );
 

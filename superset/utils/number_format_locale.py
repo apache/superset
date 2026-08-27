@@ -34,38 +34,64 @@ class NumberFormatLocale(TypedDict):
     code: NumberFormatLocaleCode
     decimal: str
     thousands: str
-    csv_sep: str | None
+    csv_sep: str
 
 
 def _locale(
-    code: NumberFormatLocaleCode, decimal: str, thousands: str
+    code: NumberFormatLocaleCode,
+    decimal: str,
+    thousands: str,
+    csv_sep: str,
 ) -> NumberFormatLocale:
     return {
         "code": code,
         "decimal": decimal,
         "thousands": thousands,
-        "csv_sep": None,
+        "csv_sep": csv_sep,
     }
 
 
-# en_GB shares US separators; DE/ES/IT/NL/FR/PL share continental separators.
+# US/GB use comma CSV columns; continental locales use semicolon so Excel
+# can parse decimal commas as numbers without a Convert dialog.
 NUMBER_FORMAT_LOCALES: dict[str, NumberFormatLocale] = {
-    "en_US": _locale("en_US", ".", ","),
-    "en_GB": _locale("en_GB", ".", ","),
-    "de_DE": _locale("de_DE", ",", "."),
-    "es_ES": _locale("es_ES", ",", "."),
-    "it_IT": _locale("it_IT", ",", "."),
-    "nl_NL": _locale("nl_NL", ",", "."),
-    "fr_FR": _locale("fr_FR", ",", "."),
-    "pl_PL": _locale("pl_PL", ",", "."),
+    "en_US": _locale("en_US", ".", ",", ","),
+    "en_GB": _locale("en_GB", ".", ",", ","),
+    "de_DE": _locale("de_DE", ",", ".", ";"),
+    "es_ES": _locale("es_ES", ",", ".", ";"),
+    "it_IT": _locale("it_IT", ",", ".", ";"),
+    "nl_NL": _locale("nl_NL", ",", ".", ";"),
+    "fr_FR": _locale("fr_FR", ",", ".", ";"),
+    "pl_PL": _locale("pl_PL", ",", ".", ";"),
 }
+
+
+def normalize_number_format_locale(value: object) -> str | None:
+    """Accept product locale codes such as ``en_GB`` and ``fr_FR``."""
+    if not isinstance(value, str) or not value:
+        return None
+    raw = value.strip().replace("-", "_")
+    if raw in NUMBER_FORMAT_LOCALES:
+        return raw
+    parts = raw.split("_")
+    if len(parts) >= 2 and len(parts[1]) == 2:
+        canonical = f"{parts[0].lower()}_{parts[1].upper()}"
+        if canonical in NUMBER_FORMAT_LOCALES:
+            return canonical
+    return None
 
 
 def resolve_number_format_locale(locale: str | None) -> NumberFormatLocale:
     """Map a URL/form_data locale code to export formatting rules."""
-    if locale in NUMBER_FORMAT_LOCALES:
-        return NUMBER_FORMAT_LOCALES[locale]
+    if normalized := normalize_number_format_locale(locale):
+        return NUMBER_FORMAT_LOCALES[normalized]
     return NUMBER_FORMAT_LOCALES["en_US"]
+
+
+def get_csv_separator(locale_code: str | None) -> str:
+    """Return the CSV column delimiter for a locale (``,`` or ``;``)."""
+    if normalized := normalize_number_format_locale(locale_code):
+        return NUMBER_FORMAT_LOCALES[normalized]["csv_sep"]
+    return ","
 
 
 def format_number_for_locale(value: float | int, locale: NumberFormatLocale) -> str:

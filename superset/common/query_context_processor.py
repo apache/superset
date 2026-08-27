@@ -54,6 +54,7 @@ from superset.utils.core import (
 )
 from superset.utils.export_formatting import (
     apply_locale_number_formatting,
+    csv_export_kwargs,
     get_export_locale_from_form_data,
 )
 from superset.utils.pandas_postprocessing.utils import unescape_separator
@@ -266,7 +267,7 @@ class QueryContextProcessor:
                 result = csv.df_to_escaped_csv(
                     export_df,
                     index=include_index,
-                    **current_app.config["CSV_EXPORT"],
+                    **csv_export_kwargs(locale_code),
                 )
             elif self._query_context.result_format == ChartDataResultFormat.XLSX:
                 excel_df = df.copy()

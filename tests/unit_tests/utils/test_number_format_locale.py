@@ -18,6 +18,8 @@ import pytest
 
 from superset.utils.number_format_locale import (
     format_number_for_locale,
+    get_csv_separator,
+    normalize_number_format_locale,
     NUMBER_FORMAT_LOCALES,
     resolve_number_format_locale,
 )
@@ -96,3 +98,29 @@ def test_number_format_locales_cover_product_codes() -> None:
         "nl_NL",
         "pl_PL",
     }
+
+
+@pytest.mark.parametrize(
+    ("locale_code", "csv_sep"),
+    [
+        (None, ","),
+        ("en_US", ","),
+        ("en_GB", ","),
+        ("de_DE", ";"),
+        ("es_ES", ";"),
+        ("fr_FR", ";"),
+        ("it_IT", ";"),
+        ("nl_NL", ";"),
+        ("pl_PL", ";"),
+    ],
+)
+def test_get_csv_separator(locale_code: str | None, csv_sep: str) -> None:
+    assert get_csv_separator(locale_code) == csv_sep
+
+
+def test_normalize_number_format_locale() -> None:
+    assert normalize_number_format_locale("zh") is None
+    assert normalize_number_format_locale("de") is None
+    assert normalize_number_format_locale("en_GB") == "en_GB"
+    assert normalize_number_format_locale("fr_FR") == "fr_FR"
+    assert normalize_number_format_locale("fr-fr") == "fr_FR"
