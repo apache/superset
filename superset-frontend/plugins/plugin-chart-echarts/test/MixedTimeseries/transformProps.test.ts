@@ -44,7 +44,6 @@ import {
 } from '../../src/MixedTimeseries/types';
 import { createEchartsTimeseriesTestChartProps } from '../helpers';
 import type { BarSeriesOption, LineSeriesOption, SeriesOption } from 'echarts';
-import type { GridComponentOption } from 'echarts/components';
 
 type LabelFormatterParams = {
   value: [number, number];
@@ -563,53 +562,6 @@ test('legend margin: top orientation sets grid.top correctly', () => {
   const transformed = transformProps(chartProps);
 
   expect((transformed.echartOptions.grid as any).top).toEqual(270);
-});
-
-test('dense Plain legends retain the legacy margin cap for Mixed Timeseries', () => {
-  const seriesNames = Array.from(
-    { length: 40 },
-    (_, index) => `Country ${index + 1}, Product`,
-  );
-  const row = {
-    ds: 599616000000,
-    ...Object.fromEntries(
-      seriesNames.map((seriesName, index) => [seriesName, index + 1]),
-    ),
-  };
-  const labelMap = {
-    ds: ['ds'],
-    ...Object.fromEntries(
-      seriesNames.map(seriesName => [seriesName, [seriesName]]),
-    ),
-  };
-  const denseQueriesData = [
-    createTestQueryData([row], { label_map: labelMap }),
-    createTestQueryData([row], { label_map: labelMap }),
-  ];
-  const chartProps = createEchartsTimeseriesTestChartProps<
-    EchartsMixedTimeseriesFormData,
-    EchartsMixedTimeseriesProps
-  >({
-    ...MIXED_TIMESERIES_CHART_PROPS_DEFAULTS,
-    defaultQueriesData: denseQueriesData,
-    height: 200,
-    formData: {
-      ...formData,
-      legendType: LegendType.Plain,
-      showLegend: true,
-      zoomable: true,
-    },
-    queriesData: denseQueriesData,
-  });
-
-  const transformed = transformProps(chartProps);
-  const grid = transformed.echartOptions.grid as GridComponentOption;
-
-  expect((transformed.echartOptions.legend as { type?: LegendType }).type).toBe(
-    LegendType.Plain,
-  );
-  // Legacy behavior reserves 40% of 200px plus the fixed 20px top offset.
-  expect(grid.top).toBe(100);
 });
 
 test('legend margin: bottom orientation sets grid.bottom correctly', () => {

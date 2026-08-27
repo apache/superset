@@ -16,18 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { AxisType, DTTM_ALIAS, TimeGranularity } from '@superset-ui/core';
 import { supersetTheme, ThemeProvider } from '@apache-superset/core/theme';
 import { logging } from '@apache-superset/core/utils';
 import type { ECElementEvent } from 'echarts/types/src/util/types';
+import type { ReactNode } from 'react';
 import EchartsTimeseries from '../../src/Timeseries/EchartsTimeseries';
 import {
   OrientationType,
   TimeseriesChartTransformedProps,
 } from '../../src/Timeseries/types';
 import type { EchartsProps } from '../../src/types';
+import { LegendOrientation } from '../../src/types';
+
+jest.mock('@visx/responsive', () => ({
+  ParentSize: ({ children }: { children: (size: object) => ReactNode }) =>
+    children({ height: 280, width: 800 }),
+}));
 
 // Percent-change draggable baseline: this is the one piece of the ECharts
 // rebuilds with zero prior test coverage despite six separate production
@@ -41,6 +48,7 @@ import type { EchartsProps } from '../../src/types';
 // mockImplementation afterward) because forwardRef() returns a React
 // element descriptor, not a plain function a jest mock can invoke.
 let mockChart: {
+  dispatchAction: jest.Mock;
   setOption: jest.Mock;
   getHeight: jest.Mock;
   convertToPixel: jest.Mock;
@@ -68,6 +76,7 @@ const PX_PER_UNIT = 100;
 
 function setupChartMock() {
   mockChart = {
+    dispatchAction: jest.fn(),
     setOption: jest.fn(),
     getHeight: jest.fn(() => 400),
     // A trivial, invertible mapping so drag pixel deltas translate to
@@ -81,6 +90,23 @@ function setupChartMock() {
     getModel: jest.fn(() => {
       throw new Error('no grid component in this test double');
     }),
+  };
+}
+
+function getCustomLegend(
+  itemCount: number,
+  overrides: Record<string, unknown> = {},
+) {
+  return {
+    items: Array.from({ length: itemCount }, (_, index) => ({
+      color: `rgb(${index % 255}, 0, 0)`,
+      interactive: true,
+      name: `Series ${index + 1}`,
+      selected: true,
+    })),
+    orientation: LegendOrientation.Top,
+    showSelectors: true,
+    ...overrides,
   };
 }
 
@@ -99,7 +125,6 @@ function renderTimeseries(
       vizType: 'echarts_timeseries_line',
     } as any,
     height: 400,
-    contentHeight: 400,
     width: 800,
     echartOptions: { series: [{ data: BASE_SERIES_DATA }] } as any,
     groupby: [],
@@ -171,17 +196,97 @@ test('renders fitting content at the allocated height without a scroll viewport'
   expect(container.querySelector('[style*="overflow-y"]')).toBeNull();
 });
 
-test('renders natural-height content inside the allocated scroll viewport', () => {
-  renderTimeseries({ height: 400, contentHeight: 600 });
+test('caps a dense custom Plain legend while keeping scrolling inside the legend region', () => {
+  renderTimeseries({
+    ...({ customLegend: getCustomLegend(200) } as any),
+    formData: { rebasePercentChange: false } as any,
+  });
 
-  const echart = screen.getByTestId('mock-echart');
-  expect(echart).toHaveAttribute('data-height', '600');
-  expect(echart.parentElement).toHaveStyle({
-    height: '400px',
-    overflowX: 'hidden',
+  const legend = screen.getByTestId('timeseries-custom-legend');
+  expect(legend).toHaveStyle({
+    maxHeight: '120px',
     overflowY: 'auto',
+  });
+  expect(legend.style.height).toBe('');
+  expect(screen.getAllByRole('button')).toHaveLength(202);
+  expect(screen.getByTestId('mock-echart')).toHaveAttribute(
+    'data-height',
+    '280',
+  );
+  expect(legend.closest('.with-legend')).toHaveStyle({
+    height: '400px',
     width: '800px',
   });
+});
+
+test('lets a short custom Plain legend use its natural height', () => {
+  renderTimeseries({
+    ...({ customLegend: getCustomLegend(2) } as any),
+    formData: { rebasePercentChange: false } as any,
+  });
+
+  const legend = screen.getByTestId('timeseries-custom-legend');
+  expect(legend).toHaveStyle({ maxHeight: '120px' });
+  expect(legend.style.height).toBe('');
+  expect(screen.getAllByRole('button')).toHaveLength(4);
+});
+
+test.each([
+  [LegendOrientation.Top, 'column'],
+  [LegendOrientation.Bottom, 'column-reverse'],
+])('places a custom Plain legend at %s', (orientation, flexDirection) => {
+  renderTimeseries({
+    ...({
+      customLegend: getCustomLegend(2, { orientation }),
+    } as any),
+    formData: { rebasePercentChange: false } as any,
+  });
+
+  expect(
+    screen.getByTestId('timeseries-custom-legend').closest('.with-legend'),
+  ).toHaveStyle({ flexDirection });
+});
+
+test('dispatches the native ECharts toggle, All, and Inverse legend actions', () => {
+  renderTimeseries({
+    ...({ customLegend: getCustomLegend(2) } as any),
+    formData: { rebasePercentChange: false } as any,
+  });
+
+  fireEvent.click(screen.getByRole('button', { name: 'Series 1' }));
+  fireEvent.click(screen.getByRole('button', { name: 'All' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Inverse' }));
+
+  expect(mockChart.dispatchAction.mock.calls).toEqual([
+    [{ name: 'Series 1', type: 'legendToggleSelect' }],
+    [{ type: 'legendAllSelect' }],
+    [{ type: 'legendInverseSelect' }],
+  ]);
+});
+
+test('does not dispatch legend actions for non-interactive color-by-primary-axis items', () => {
+  renderTimeseries({
+    ...({
+      customLegend: getCustomLegend(2, {
+        items: getCustomLegend(2).items.map(item => ({
+          ...item,
+          interactive: false,
+        })),
+        showSelectors: false,
+      }),
+    } as any),
+    formData: { rebasePercentChange: false } as any,
+  });
+
+  const item = screen.getByRole('button', { name: 'Series 1' });
+  expect(item).toBeDisabled();
+  fireEvent.click(item);
+
+  expect(screen.queryByRole('button', { name: 'All' })).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole('button', { name: 'Inverse' }),
+  ).not.toBeInTheDocument();
+  expect(mockChart.dispatchAction).not.toHaveBeenCalled();
 });
 
 test('draws the baseline handle at the first x value on mount', () => {

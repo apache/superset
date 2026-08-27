@@ -18,11 +18,7 @@
  */
 import type { SupersetTheme } from '@apache-superset/core/theme';
 import { LegendOrientation, LegendType } from '../types';
-import {
-  getLegendLayoutResult,
-  HorizontalLegendItemLayouts,
-  LegendLayoutResult,
-} from './series';
+import { getLegendLayoutResult, LegendLayoutResult } from './series';
 
 type LegendDataItem =
   | string
@@ -82,13 +78,9 @@ export function resolveLegendLayout(args: {
   availableWidth?: number;
   chartHeight: number;
   chartWidth: number;
-  horizontalPlainLegendItemLayouts?: HorizontalLegendItemLayouts;
   legendItems?: LegendDataItem[];
   legendMargin?: string | number | null;
   orientation: LegendOrientation;
-  // Only Timeseries opts into full required-margin layout until sibling callers
-  // explicitly adopt the same behavior.
-  reserveFullHorizontalPlainLegendMargin?: boolean;
   show: boolean;
   showSelectors?: boolean;
   theme: SupersetTheme;

@@ -34,6 +34,7 @@ import {
   CrossFilterTransformedProps,
   LabelPositionEnum,
   LegendFormData,
+  LegendOrientation,
   StackType,
   TitleFormData,
 } from '../types';
@@ -122,11 +123,24 @@ export interface EchartsTimeseriesChartProps extends BaseChartProps<EchartsTimes
   formData: EchartsTimeseriesFormData;
 }
 
+export type TimeseriesLegendItem = {
+  color: string;
+  interactive: boolean;
+  name: string;
+  selected: boolean;
+};
+
+export type TimeseriesCustomLegend = {
+  items: TimeseriesLegendItem[];
+  orientation: LegendOrientation.Top | LegendOrientation.Bottom;
+  showSelectors: boolean;
+};
+
 export type TimeseriesChartTransformedProps =
   BaseTransformedProps<EchartsTimeseriesFormData> &
     ContextMenuTransformedProps &
     CrossFilterTransformedProps & {
-      contentHeight: number;
+      customLegend?: TimeseriesCustomLegend;
       legendData?: OptionName[];
       isRefreshing?: boolean;
       xValueFormatter: TimeFormatter | StringConstructor;

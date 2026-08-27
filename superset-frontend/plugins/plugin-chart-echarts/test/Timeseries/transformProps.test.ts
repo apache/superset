@@ -161,6 +161,23 @@ const formData: SqlaFormData = {
   viz_type: 'my_viz',
 };
 
+type CustomLegendResult = {
+  customLegend?: {
+    items: {
+      color: string;
+      interactive: boolean;
+      name: string;
+      selected: boolean;
+    }[];
+    orientation: LegendOrientation.Top | LegendOrientation.Bottom;
+    showSelectors: boolean;
+  };
+};
+
+function getCustomLegend(transformed: ReturnType<typeof transformProps>) {
+  return (transformed as unknown as CustomLegendResult).customLegend;
+}
+
 describe('EchartsTimeseries transformProps', () => {
   test('should transform chart props for viz', () => {
     const chartProps = createTestChartProps({});
@@ -1178,15 +1195,14 @@ test('honors an explicit List selection for zoomable top legends even when toolb
   expect((transformed.echartOptions.legend as any).type).toBe(LegendType.Plain);
 });
 
-test('keeps the allocated content height when a Plain legend leaves usable plot space', () => {
-  const chartHeight = 400;
+test('moves a visible horizontal Plain legend into a custom HTML legend and restores normal plot padding', () => {
   const chartProps = createTestChartProps({
-    width: 1200,
-    height: chartHeight,
+    width: 800,
+    height: 400,
     formData: {
       ...formData,
-      legendType: LegendType.Plain,
       legendOrientation: LegendOrientation.Top,
+      legendType: LegendType.Plain,
       showLegend: true,
       yAxisTitleMargin: 0,
       yAxisTitlePosition: 'Left',
@@ -1194,158 +1210,166 @@ test('keeps the allocated content height when a Plain legend leaves usable plot 
   });
 
   const transformed = transformProps(chartProps);
+  const legend = transformed.echartOptions.legend as {
+    show?: boolean;
+    type?: LegendType;
+  };
   const grid = transformed.echartOptions.grid as GridComponentOption;
+  const customLegend = getCustomLegend(transformed);
 
-  expect(Number(grid.top) + Number(grid.bottom)).toBeLessThan(chartHeight - 80);
-  expect(transformed.height).toBe(chartHeight);
-  expect(transformed.contentHeight).toBe(chartHeight);
+  expect(legend).toMatchObject({ show: false, type: LegendType.Plain });
+  expect(grid).toMatchObject({ top: 20, bottom: 20 });
+  expect(customLegend).toMatchObject({
+    orientation: LegendOrientation.Top,
+    showSelectors: true,
+  });
+  expect(customLegend?.items.map(item => item.name)).toEqual([
+    'San Francisco',
+    'New York',
+  ]);
+  expect(customLegend?.items.every(item => item.interactive)).toBe(true);
+  expect(customLegend?.items.every(item => item.selected)).toBe(true);
+  expect(customLegend?.items.every(item => Boolean(item.color))).toBe(true);
+  expect('contentHeight' in transformed).toBe(false);
 });
 
-test('reserves every Plain legend row before applying zoomable chart padding', () => {
-  const chartHeight = 300;
-  const manyLegendValues = Object.fromEntries(
-    Array.from({ length: 40 }, (_, index) => [
-      `Country ${index + 1}, Product`,
-      index + 1,
-    ]),
+test.each([LegendOrientation.Top, LegendOrientation.Bottom])(
+  'uses the custom HTML legend for a %s-oriented Plain legend',
+  legendOrientation => {
+    const transformed = transformProps(
+      createTestChartProps({
+        formData: {
+          ...formData,
+          legendOrientation,
+          legendType: LegendType.Plain,
+          showLegend: true,
+        },
+      }),
+    );
+
+    expect(getCustomLegend(transformed)?.orientation).toBe(legendOrientation);
+    expect((transformed.echartOptions.legend as { show?: boolean }).show).toBe(
+      false,
+    );
+  },
+);
+
+test.each([
+  [LegendType.Scroll, LegendOrientation.Top],
+  [LegendType.Plain, LegendOrientation.Left],
+  [LegendType.Plain, LegendOrientation.Right],
+] as const)(
+  'keeps %s/%s legends on the native ECharts path',
+  (legendType, legendOrientation) => {
+    const transformed = transformProps(
+      createTestChartProps({
+        formData: {
+          ...formData,
+          legendOrientation,
+          legendType,
+          showLegend: true,
+        },
+      }),
+    );
+
+    expect(getCustomLegend(transformed)).toBeUndefined();
+    expect((transformed.echartOptions.legend as { show?: boolean }).show).toBe(
+      true,
+    );
+  },
+);
+
+test('keeps the custom legend absent when a compact chart hides the Plain legend', () => {
+  const transformed = transformProps(
+    createTestChartProps({
+      height: 80,
+      formData: {
+        ...formData,
+        legendOrientation: LegendOrientation.Top,
+        legendType: LegendType.Plain,
+        showLegend: true,
+      },
+    }),
   );
-  const chartProps = createTestChartProps({
-    width: 1200,
-    height: chartHeight,
-    formData: {
-      ...formData,
-      legendType: LegendType.Plain,
-      legendOrientation: LegendOrientation.Top,
-      showLegend: true,
-      zoomable: true,
-      yAxisTitleMargin: 0,
-      yAxisTitlePosition: 'Left',
-    },
-    queriesData: [
-      createTestQueryData(
-        createTestData([manyLegendValues], { intervalMs: 300000000 }),
-      ),
-    ],
+  const grid = transformed.echartOptions.grid as GridComponentOption;
+
+  expect(getCustomLegend(transformed)).toBeUndefined();
+  expect((transformed.echartOptions.legend as { show?: boolean }).show).toBe(
+    false,
+  );
+  expect(grid).toMatchObject({ top: 12, bottom: 5 });
+  expect(80 - Number(grid.top) - Number(grid.bottom)).toBeGreaterThan(0);
+});
+
+test('keeps a hidden native legend model active for custom legend dispatch actions', () => {
+  const transformed = transformProps(
+    createTestChartProps({
+      formData: {
+        ...formData,
+        legendOrientation: LegendOrientation.Top,
+        legendType: LegendType.Plain,
+        showLegend: true,
+      },
+    }),
+  );
+  const chart = init(null, null, {
+    height: transformed.height,
+    renderer: 'svg',
+    ssr: true,
+    width: transformed.width,
   });
 
-  const transformed = transformProps(chartProps);
-  const grid = transformed.echartOptions.grid as GridComponentOption;
+  try {
+    chart.setOption(transformed.echartOptions);
+    const toggled = jest.fn();
+    const inverted = jest.fn();
+    const selectedAll = jest.fn();
+    chart.on('legendselectchanged', toggled);
+    chart.on('legendinverseselect', inverted);
+    chart.on('legendselectall', selectedAll);
+    chart.dispatchAction({
+      name: 'San Francisco',
+      type: 'legendToggleSelect',
+    });
 
-  expect((transformed.echartOptions.legend as { type?: LegendType }).type).toBe(
-    LegendType.Plain,
-  );
-  expect(typeof grid.top).toBe('number');
-  expect(typeof grid.bottom).toBe('number');
-  // Six items fit per row, producing seven rows: 20px base legend margin plus
-  // six 21.2px line-legend rows, followed by the fixed 20px top grid offset.
-  expect(grid.top).toBeCloseTo(167.2);
-  expect(grid.bottom).toBe(80);
-  expect(transformed.height).toBe(chartHeight);
-  expect(transformed.contentHeight).toBeCloseTo(327.2);
-  expect(
-    transformed.contentHeight - (Number(grid.top) + Number(grid.bottom)),
-  ).toBeCloseTo(80);
+    expect((transformed.echartOptions.legend as { show?: boolean }).show).toBe(
+      false,
+    );
+    expect(toggled).toHaveBeenCalledWith(
+      expect.objectContaining({
+        selected: expect.objectContaining({
+          'New York': true,
+          'San Francisco': false,
+        }),
+      }),
+    );
+
+    chart.dispatchAction({ type: 'legendInverseSelect' });
+    expect(inverted).toHaveBeenCalledWith(
+      expect.objectContaining({
+        selected: expect.objectContaining({
+          'New York': false,
+          'San Francisco': true,
+        }),
+      }),
+    );
+
+    chart.dispatchAction({ type: 'legendAllSelect' });
+    expect(selectedAll).toHaveBeenCalledWith(
+      expect.objectContaining({
+        selected: expect.objectContaining({
+          'New York': true,
+          'San Francisco': true,
+        }),
+      }),
+    );
+  } finally {
+    chart.dispose();
+  }
 });
 
-test('uses post-swap padding while reserving every horizontal Plain legend row', () => {
-  const chartHeight = 300;
-  const manyLegendValues = Object.fromEntries(
-    Array.from({ length: 40 }, (_, index) => [
-      `Country ${index + 1}, Product`,
-      index + 1,
-    ]),
-  );
-  const chartProps = createTestChartProps({
-    width: 1200,
-    height: chartHeight,
-    formData: {
-      ...formData,
-      legendType: LegendType.Plain,
-      legendOrientation: LegendOrientation.Top,
-      orientation: OrientationType.Horizontal,
-      showLegend: true,
-      zoomable: true,
-      yAxisTitle: 'Revenue',
-      yAxisTitleMargin: 50,
-      yAxisTitlePosition: 'Left',
-    },
-    queriesData: [
-      createTestQueryData(
-        createTestData([manyLegendValues], { intervalMs: 300000000 }),
-      ),
-    ],
-  });
-
-  const transformed = transformProps(chartProps);
-  const grid = transformed.echartOptions.grid as GridComponentOption;
-
-  expect((transformed.echartOptions.legend as { type?: LegendType }).type).toBe(
-    LegendType.Plain,
-  );
-  expect(typeof grid.top).toBe('number');
-  expect(typeof grid.bottom).toBe('number');
-  // The axis-title padding reduces the legend's usable width, so five items
-  // fit per row and eight rows reserve a 168.4px legend margin.
-  expect(grid.top).toBeCloseTo(188.4);
-  // The final bottom is the pre-swap left padding, including the axis title.
-  expect(grid.bottom).toBe(70);
-  expect(transformed.height).toBe(chartHeight);
-  expect(transformed.contentHeight).toBeCloseTo(338.4);
-  expect(
-    transformed.contentHeight - (Number(grid.top) + Number(grid.bottom)),
-  ).toBe(80);
-});
-
-test('reserves the complete dense Plain legend at a realistic Explore chart size', () => {
-  const chartHeight = 600;
-  const denseLegendValues = Object.fromEntries(
-    Array.from({ length: 65 }, (_, index) => [
-      `Country Region ${index + 1}, Product Line ${(index % 7) + 1}`,
-      index + 1,
-    ]),
-  );
-  const chartProps = createTestChartProps({
-    // Approximate the chart panel inside a default 1280x720 Explore viewport.
-    width: 1000,
-    height: chartHeight,
-    formData: {
-      ...formData,
-      legendType: LegendType.Plain,
-      legendOrientation: LegendOrientation.Top,
-      showLegend: true,
-      yAxisTitleMargin: 0,
-      yAxisTitlePosition: 'Left',
-    },
-    queriesData: [
-      createTestQueryData(
-        createTestData([denseLegendValues], { intervalMs: 300000000 }),
-      ),
-    ],
-  });
-
-  const transformed = transformProps(chartProps);
-  const grid = transformed.echartOptions.grid as GridComponentOption;
-
-  expect((transformed.echartOptions.legend as { type?: LegendType }).type).toBe(
-    LegendType.Plain,
-  );
-  // Three labels fit per row, producing 22 rows: 20px base legend margin plus
-  // twenty-one 21.2px rows, followed by the fixed 20px top grid offset.
-  expect(grid.top).toBeCloseTo(485.2);
-  expect(grid.bottom).toBe(20);
-  expect(transformed.height).toBe(chartHeight);
-  expect(transformed.contentHeight).toBe(chartHeight);
-  expect(
-    transformed.contentHeight - (Number(grid.top) + Number(grid.bottom)),
-  ).toBeCloseTo(94.8);
-});
-
-test('reserves Forecast legend rows using the final rendered series order', () => {
-  const chartHeight = 600;
-  const legendNames = Array.from(
-    { length: 40 },
-    (_, index) => `F${String(index).padStart(2, '0')}`,
-  );
+test('derives custom legend visuals from the final reordered Forecast series', () => {
+  const legendNames = ['Forecast Alpha', 'Forecast Beta'];
   const forecastValues = Object.fromEntries(
     legendNames.flatMap((name, index) => [
       [name, index + 1],
@@ -1354,256 +1378,37 @@ test('reserves Forecast legend rows using the final rendered series order', () =
       [`${name}${ForecastSeriesEnum.ForecastTrend}`, index + 1.5],
     ]),
   );
-  const chartProps = createTestChartProps({
-    width: 140,
-    height: chartHeight,
-    formData: {
-      ...formData,
-      forecastEnabled: true,
-      sortSeriesAscending: true,
-      legendType: LegendType.Plain,
-      legendOrientation: LegendOrientation.Top,
-      showLegend: true,
-      yAxisTitleMargin: 0,
-      yAxisTitlePosition: 'Left',
-    },
-    queriesData: [
-      createTestQueryData(
-        createTestData([forecastValues], { intervalMs: 300000000 }),
-      ),
-    ],
-  });
-
-  const transformed = transformProps(chartProps);
-  const renderedSeries = transformed.echartOptions.series as SeriesOption[];
-  const grid = transformed.echartOptions.grid as GridComponentOption;
-  const firstRenderedForLegend = renderedSeries.find(
-    seriesOption => seriesOption.name === legendNames[0],
-  );
-
-  expect(firstRenderedForLegend?.id).toBe(
-    `${legendNames[0]}${ForecastSeriesEnum.ForecastLower}`,
-  );
-  expect(firstRenderedForLegend?.type).toBe('line');
-  // All 40 line icons render on separate rows: the 846.8px legend margin is
-  // followed by the fixed 20px top grid offset.
-  expect(grid.top).toBeCloseTo(866.8);
-  expect(grid.bottom).toBe(20);
-  expect(transformed.height).toBe(chartHeight);
-  expect(transformed.contentHeight).toBeCloseTo(966.8);
-});
-
-test.each([3, 4, 6])(
-  'keeps a rendered %i-line final legend row above the plot',
-  lineCount => {
-    const multilineLegendName = Array.from(
-      { length: lineCount },
-      (_, index) => `Dimension ${index + 1}`,
-    ).join('\n');
-    const chartProps = createTestChartProps({
-      width: 800,
-      height: 400,
+  const transformed = transformProps(
+    createTestChartProps({
       formData: {
         ...formData,
-        legendType: LegendType.Plain,
+        forecastEnabled: true,
         legendOrientation: LegendOrientation.Top,
+        legendType: LegendType.Plain,
         showLegend: true,
-        yAxisTitleMargin: 0,
-        yAxisTitlePosition: 'Left',
       },
       queriesData: [
         createTestQueryData(
-          createTestData([{ [multilineLegendName]: 1 }], {
-            intervalMs: 300000000,
-          }),
+          createTestData([forecastValues], { intervalMs: 300000000 }),
         ),
       ],
-    });
-    const getContext = jest
-      .spyOn(HTMLCanvasElement.prototype, 'getContext')
-      .mockReturnValue({
-        font: '',
-        measureText: (text: string) => ({
-          width: text === '国' ? 12 : text.length * 7,
-        }),
-      } as unknown as CanvasRenderingContext2D);
-    const transformed = transformProps(chartProps);
-    const chart = init(null, null, {
-      height: transformed.contentHeight,
-      renderer: 'svg',
-      ssr: true,
-      width: transformed.width,
-    });
-
-    try {
-      chart.setOption(transformed.echartOptions);
-      type BoundingRect = {
-        applyTransform: (transform?: number[]) => void;
-        clone: () => BoundingRect;
-        height: number;
-        y: number;
-      };
-      type LegendView = {
-        __model?: { mainType?: string };
-        getContentGroup: () => {
-          getBoundingRect: () => BoundingRect;
-          getComputedTransform: () => number[] | undefined;
-        };
-      };
-      const legendView = (
-        chart as unknown as { _componentsViews: LegendView[] }
-      )._componentsViews.find(view => view.__model?.mainType === 'legend');
-      const contentGroup = legendView?.getContentGroup();
-      if (!contentGroup) {
-        throw new Error('Expected ECharts to render a legend content group');
-      }
-      const legendRect = contentGroup.getBoundingRect().clone();
-      legendRect.applyTransform(contentGroup.getComputedTransform());
-      const legendBottom = legendRect.y + legendRect.height;
-      const gridModel = (
-        chart as unknown as {
-          getModel: () => {
-            getComponent: (mainType: string) => {
-              coordinateSystem: { getRect: () => { y: number } };
-            };
-          };
-        }
-      )
-        .getModel()
-        .getComponent('grid');
-      const plotTop = gridModel.coordinateSystem.getRect().y;
-
-      expect(legendBottom - plotTop).toBeCloseTo(0);
-    } finally {
-      chart.dispose();
-      getContext.mockRestore();
-    }
-  },
-);
-
-test('grows the content instead of using a negative offset for a pathological Plain legend', () => {
-  const chartHeight = 200;
-  const pathologicalLegendValues = Object.fromEntries(
-    Array.from({ length: 100 }, (_, index) => [
-      `Country ${index + 1}, Product Line`,
-      index + 1,
-    ]),
+    }),
   );
-  const chartProps = createTestChartProps({
-    height: chartHeight,
-    formData: {
-      ...formData,
-      legendType: LegendType.Plain,
-      legendOrientation: LegendOrientation.Top,
-      showLegend: true,
-      zoomable: true,
-      yAxisTitleMargin: 0,
-      yAxisTitlePosition: 'Left',
-    },
-    queriesData: [
-      createTestQueryData(
-        createTestData([pathologicalLegendValues], { intervalMs: 300000000 }),
-      ),
-    ],
-  });
+  const renderedSeries = transformed.echartOptions.series as SeriesOption[];
+  const customLegend = getCustomLegend(transformed);
 
-  const transformed = transformProps(chartProps);
-  const grid = transformed.echartOptions.grid as GridComponentOption;
+  legendNames.forEach(name => {
+    const representative = renderedSeries.find(series => series.name === name);
+    const item = customLegend?.items.find(candidate => candidate.name === name);
 
-  // Keep the complete legend reservation and grow the canvas enough for a
-  // usable plot instead of moving the opposite grid edge above the canvas.
-  expect(Number(grid.top)).toBeGreaterThan(chartHeight);
-  expect(grid.bottom).toBe(80);
-  expect(transformed.height).toBe(chartHeight);
-  expect(transformed.contentHeight).toBe(
-    Number(grid.top) + Number(grid.bottom) + 80,
-  );
-  expect(
-    transformed.contentHeight - (Number(grid.top) + Number(grid.bottom)),
-  ).toBe(80);
-});
-
-test('does not reserve dense Plain legend space when compact charts hide the legend', () => {
-  const chartHeight = 80;
-  const denseLegendValues = Object.fromEntries(
-    Array.from({ length: 40 }, (_, index) => [
-      `Country ${index + 1}, Product Line`,
-      index + 1,
-    ]),
-  );
-  const chartProps = createTestChartProps({
-    height: chartHeight,
-    formData: {
-      ...formData,
-      legendType: LegendType.Plain,
-      legendOrientation: LegendOrientation.Top,
-      showLegend: true,
-    },
-    queriesData: [
-      createTestQueryData(
-        createTestData([denseLegendValues], { intervalMs: 300000000 }),
-      ),
-    ],
-  });
-
-  const transformed = transformProps(chartProps);
-  const grid = transformed.echartOptions.grid as GridComponentOption;
-
-  expect((transformed.echartOptions.legend as { show?: boolean }).show).toBe(
-    false,
-  );
-  expect(grid.top).toBe(12);
-  expect(grid.bottom).toBe(5);
-  expect(chartHeight - (Number(grid.top) + Number(grid.bottom))).toBe(63);
-  expect(transformed.height).toBe(chartHeight);
-  expect(transformed.contentHeight).toBe(chartHeight);
-});
-
-test('does not change dense Line legend geometry for a hidden annotation', () => {
-  const denseLegendValues = Object.fromEntries(
-    Array.from({ length: 40 }, (_, index) => [
-      `Country ${index + 1}, Product Line`,
-      index + 1,
-    ]),
-  );
-  const hiddenFormula: FormulaAnnotationLayer = {
-    annotationType: AnnotationType.Formula,
-    name: 'Hidden formula',
-    show: false,
-    showLabel: false,
-    style: AnnotationStyle.Solid,
-    value: 'x+1',
-  };
-  const buildChart = (annotationLayers: FormulaAnnotationLayer[]) =>
-    transformProps(
-      createTestChartProps({
-        height: 300,
-        width: 600,
-        formData: {
-          ...formData,
-          annotationLayers,
-          legendOrientation: LegendOrientation.Top,
-          legendType: LegendType.Plain,
-          showLegend: true,
-        },
-        queriesData: [
-          createTestQueryData(
-            createTestData([denseLegendValues], { intervalMs: 300000000 }),
-          ),
-        ],
-      }),
+    expect(representative?.id).toBe(
+      `${name}${ForecastSeriesEnum.ForecastLower}`,
     );
-
-  const baseline = buildChart([]);
-  const withHiddenAnnotation = buildChart([hiddenFormula]);
-
-  expect(withHiddenAnnotation.echartOptions.legend).toEqual(
-    baseline.echartOptions.legend,
-  );
-  expect(withHiddenAnnotation.echartOptions.grid).toEqual(
-    baseline.echartOptions.grid,
-  );
-  expect(withHiddenAnnotation.contentHeight).toBe(baseline.contentHeight);
+    expect(item?.color).toBe(
+      (representative as { itemStyle?: { color?: string } } | undefined)
+        ?.itemStyle?.color,
+    );
+  });
 });
 
 test('honors user-selected plain legend type for top orientation when space allows (#39540)', () => {
@@ -1624,8 +1429,9 @@ test('honors user-selected plain legend type for top orientation when space allo
     legend: { show?: boolean; type?: LegendType };
   };
 
-  expect(legend.show).toBe(true);
+  expect(legend.show).toBe(false);
   expect(legend.type).toBe(LegendType.Plain);
+  expect(getCustomLegend(transformProps(chartProps))).toBeDefined();
 });
 
 test('honors user-selected plain legend type for bottom orientation when space allows (#39540)', () => {
@@ -1642,8 +1448,9 @@ test('honors user-selected plain legend type for bottom orientation when space a
     legend: { show?: boolean; type?: LegendType };
   };
 
-  expect(legend.show).toBe(true);
+  expect(legend.show).toBe(false);
   expect(legend.type).toBe(LegendType.Plain);
+  expect(getCustomLegend(transformProps(chartProps))).toBeDefined();
 });
 
 const timeCompareFormData: SqlaFormData = {

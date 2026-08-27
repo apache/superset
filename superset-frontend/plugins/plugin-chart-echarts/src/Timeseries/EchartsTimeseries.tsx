@@ -26,8 +26,8 @@ import {
   getColumnLabel,
   getNumberFormatter,
   LegendState,
+  WithLegend,
   ensureIsArray,
-  ChartFrame,
   createTimeRangeFromGranularity,
 } from '@superset-ui/core';
 import { useTheme } from '@apache-superset/core/theme';
@@ -50,8 +50,19 @@ import { OrientationType, TimeseriesChartTransformedProps } from './types';
 import { formatSeriesName } from '../utils/series';
 import { getTemporalXAxisDrillByFilter } from '../utils/xAxisDrillByFilter';
 import { ExtraControls } from '../components/ExtraControls';
+import TimeseriesLegend from './TimeseriesLegend';
 
 const TIMER_DURATION = 300;
+const MAX_CUSTOM_LEGEND_HEIGHT = 160;
+const MAX_CUSTOM_LEGEND_HEIGHT_RATIO = 0.3;
+
+// Bound the legend to a minority of the allocated chart body so the plot stays
+// visible while the legend's own viewport scrolls independently.
+export const getTimeseriesLegendMaxHeight = (chartBodyHeight: number) =>
+  Math.min(
+    MAX_CUSTOM_LEGEND_HEIGHT,
+    Math.floor(Math.max(chartBodyHeight, 0) * MAX_CUSTOM_LEGEND_HEIGHT_RATIO),
+  );
 const getTimestampFromTimeAxisValue = (value: string | number) => {
   if (typeof value === 'number') {
     return Number.isFinite(value) ? value : undefined;
@@ -85,7 +96,7 @@ const BASELINE_HANDLE_STRIPE_WIDTH = 2;
 export default function EchartsTimeseries({
   formData,
   height,
-  contentHeight,
+  customLegend,
   width,
   echartOptions,
   groupby,
@@ -777,36 +788,65 @@ export default function EchartsTimeseries({
     },
   };
 
-  const frameContentHeight =
-    contentHeight > height ? contentHeight + extraControlHeight : contentHeight;
+  const dispatchLegendAction = useCallback(
+    (action: { name?: string; type: string }) => {
+      echartRef.current?.getEchartInstance()?.dispatchAction(action);
+    },
+    [],
+  );
+
+  const chartBodyHeight = Math.max(height - extraControlHeight, 0);
+  const renderEchart = ({
+    chartHeight,
+    chartWidth,
+  }: {
+    chartHeight: number;
+    chartWidth: number;
+  }) => (
+    <Echart
+      ref={echartRef}
+      refs={refs}
+      height={chartHeight}
+      width={chartWidth}
+      echartOptions={echartOptions}
+      eventHandlers={eventHandlers}
+      queryEventHandlers={queryEventHandlers}
+      zrEventHandlers={zrEventHandlers}
+      selectedValues={selectedValues}
+      vizType={formData.vizType}
+    />
+  );
 
   return (
-    <ChartFrame
-      contentHeight={frameContentHeight}
-      height={height}
-      width={width}
-      renderContent={({ height: frameHeight, width: frameWidth }) => (
-        <>
-          <div ref={extraControlRef}>
-            <ExtraControls
-              formData={formData}
-              setControlValue={setControlValue}
+    <>
+      <div ref={extraControlRef}>
+        <ExtraControls formData={formData} setControlValue={setControlValue} />
+      </div>
+      {customLegend ? (
+        <WithLegend
+          height={chartBodyHeight}
+          position={customLegend.orientation}
+          width={width}
+          renderLegend={() => (
+            <TimeseriesLegend
+              {...customLegend}
+              maxHeight={getTimeseriesLegendMaxHeight(chartBodyHeight)}
+              onAll={() => dispatchLegendAction({ type: 'legendAllSelect' })}
+              onInverse={() =>
+                dispatchLegendAction({ type: 'legendInverseSelect' })
+              }
+              onToggle={name =>
+                dispatchLegendAction({ name, type: 'legendToggleSelect' })
+              }
             />
-          </div>
-          <Echart
-            ref={echartRef}
-            refs={refs}
-            height={Math.max(frameHeight - extraControlHeight, 0)}
-            width={frameWidth}
-            echartOptions={echartOptions}
-            eventHandlers={eventHandlers}
-            queryEventHandlers={queryEventHandlers}
-            zrEventHandlers={zrEventHandlers}
-            selectedValues={selectedValues}
-            vizType={formData.vizType}
-          />
-        </>
+          )}
+          renderChart={({ height: chartHeight, width: chartWidth }) =>
+            renderEchart({ chartHeight, chartWidth })
+          }
+        />
+      ) : (
+        renderEchart({ chartHeight: chartBodyHeight, chartWidth: width })
       )}
-    />
+    </>
   );
 }

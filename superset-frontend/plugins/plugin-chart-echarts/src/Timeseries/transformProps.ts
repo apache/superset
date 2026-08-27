@@ -41,13 +41,13 @@ import {
   isIntervalAnnotationLayer,
   isPhysicalColumn,
   isTimeseriesAnnotationLayer,
+  LegendState,
   resolveAutoCurrency,
   TimeseriesChartDataResponseResult,
   TimeseriesDataRecord,
   NumberFormats,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
-import type { SupersetTheme } from '@apache-superset/core/theme';
 import {
   extractExtraMetrics,
   getOriginalSeries,
@@ -65,7 +65,9 @@ import {
   EchartsTimeseriesFormData,
   EchartsTimeseriesSeriesType,
   OrientationType,
+  TimeseriesCustomLegend,
   TimeseriesChartTransformedProps,
+  TimeseriesLegendItem,
 } from './types';
 import { DEFAULT_FORM_DATA } from './constants';
 import {
@@ -89,8 +91,6 @@ import {
   getHorizontalLegendAvailableWidth,
   getLegendProps,
   getMinAndMaxFromBounds,
-  type HorizontalLegendItemLayout,
-  type HorizontalLegendItemLayouts,
 } from '../utils/series';
 import { resolveLegendLayout } from '../utils/legendLayout';
 import {
@@ -133,130 +133,72 @@ import {
 import { safeParseEChartOptions } from '../utils/safeEChartOptionsParser';
 import { mergeCustomEChartOptions } from '../utils/mergeCustomEChartOptions';
 
-// Smallest height that still leaves the plot structure usable below the legend.
-const MIN_TIMESERIES_PLOT_HEIGHT = 80;
-const ECHARTS_LEGEND_ITEM_WIDTH = 25;
-const ECHARTS_LEGEND_ITEM_HEIGHT = 14;
-const ECHARTS_LEGEND_ICON_LABEL_GAP = 5;
-const ECHARTS_LEGEND_NORMALIZED_BORDER_WIDTH = 2;
-const ECHARTS_LEGEND_LINE_SYMBOL_RATIO = 0.8;
-
-type LegendSeriesGeometry = {
-  itemStyle?: { borderWidth?: number | string };
+type LegendSeriesVisual = {
+  itemStyle?: { color?: unknown };
+  lineStyle?: { color?: unknown };
   name?: string | number;
-  symbol?: unknown;
-  type?: string;
 };
 
-function getHorizontalLegendItemLayout(
+function getLegendSeriesColor(
   series: SeriesOption | undefined,
-  theme: SupersetTheme,
-  iconOverride?: 'roundRect',
-): HorizontalLegendItemLayout {
-  // transformSeries has already resolved theme-dependent symbols, so this
-  // geometry follows the exact series/icon option that ECharts will render.
-  const geometry = series as LegendSeriesGeometry | undefined;
-  const textHeight = theme.fontSizeSM;
-  const hasBorder =
-    typeof geometry?.itemStyle?.borderWidth === 'number' &&
-    geometry.itemStyle.borderWidth > 0;
-  const borderWidth = hasBorder ? ECHARTS_LEGEND_NORMALIZED_BORDER_WIDTH : 0;
-
-  if (iconOverride) {
-    return {
-      itemHeight: Math.max(
-        textHeight,
-        ECHARTS_LEGEND_ITEM_HEIGHT + borderWidth,
-      ),
-      itemWidthOffset:
-        ECHARTS_LEGEND_ITEM_WIDTH +
-        ECHARTS_LEGEND_ICON_LABEL_GAP +
-        borderWidth / 2,
-      itemXOffset: -borderWidth / 2,
-    };
-  }
-
-  if (geometry?.type === 'line') {
-    const symbol =
-      typeof geometry.symbol === 'string' ? geometry.symbol : 'emptyCircle';
-    const symbolBorderWidth = symbol.startsWith('empty')
-      ? ECHARTS_LEGEND_NORMALIZED_BORDER_WIDTH
-      : 0;
-    return {
-      itemHeight: Math.max(
-        textHeight,
-        ECHARTS_LEGEND_ITEM_HEIGHT * ECHARTS_LEGEND_LINE_SYMBOL_RATIO +
-          symbolBorderWidth,
-      ),
-      // ECharts normalizes the line stroke to 2px in a legend icon, so the
-      // bounding box begins 1px before the nominal 25px icon slot.
-      itemWidthOffset:
-        ECHARTS_LEGEND_ITEM_WIDTH + ECHARTS_LEGEND_ICON_LABEL_GAP + 1,
-      itemXOffset: -1,
-    };
-  }
-
-  if (geometry?.type === 'scatter') {
-    const itemXOffset =
-      (ECHARTS_LEGEND_ITEM_WIDTH - ECHARTS_LEGEND_ITEM_HEIGHT) / 2;
-    return {
-      itemHeight: Math.max(textHeight, ECHARTS_LEGEND_ITEM_HEIGHT),
-      itemWidthOffset:
-        ECHARTS_LEGEND_ITEM_WIDTH + ECHARTS_LEGEND_ICON_LABEL_GAP - itemXOffset,
-      itemXOffset,
-    };
-  }
-
-  return {
-    itemHeight: Math.max(textHeight, ECHARTS_LEGEND_ITEM_HEIGHT + borderWidth),
-    itemWidthOffset:
-      ECHARTS_LEGEND_ITEM_WIDTH +
-      ECHARTS_LEGEND_ICON_LABEL_GAP +
-      borderWidth / 2,
-    itemXOffset: -borderWidth / 2,
-  };
+  fallbackColor: string,
+): string {
+  const visual = series as LegendSeriesVisual | undefined;
+  const color = visual?.itemStyle?.color ?? visual?.lineStyle?.color;
+  return typeof color === 'string' ? color : fallbackColor;
 }
 
-export function getHorizontalLegendItemLayouts(
-  legendNames: (string | number)[],
-  series: SeriesOption[],
-  theme: SupersetTheme,
-  iconOverride?: 'roundRect',
-): HorizontalLegendItemLayouts {
-  const seriesByName = new Map<string, SeriesOption>();
+function buildTimeseriesCustomLegend({
+  fallbackColor,
+  interactive,
+  legendNames,
+  legendState,
+  orientation,
+  series,
+}: {
+  fallbackColor: string;
+  interactive: boolean;
+  legendNames: string[];
+  legendState?: LegendState;
+  orientation: LegendOrientation.Top | LegendOrientation.Bottom;
+  series: SeriesOption[];
+}): TimeseriesCustomLegend {
+  const firstSeriesByName = new Map<string, SeriesOption>();
   series.forEach(seriesOption => {
-    const { name } = seriesOption as LegendSeriesGeometry;
-    if (name !== undefined && !seriesByName.has(String(name))) {
-      seriesByName.set(String(name), seriesOption);
+    const { name } = seriesOption as LegendSeriesVisual;
+    if (name !== undefined && !firstSeriesByName.has(String(name))) {
+      firstSeriesByName.set(String(name), seriesOption);
     }
   });
 
-  return Object.fromEntries(
-    legendNames.flatMap(name => {
-      const legendName = String(name);
-      const matchingSeries = seriesByName.get(legendName);
-      if (!matchingSeries) {
-        return [];
-      }
-      const layout = getHorizontalLegendItemLayout(
-        matchingSeries,
-        theme,
-        iconOverride,
-      );
-      return [
-        [
-          legendName,
-          {
-            ...layout,
-            itemHeight: Math.max(
-              layout.itemHeight,
-              legendName.split('\n').length * theme.fontSizeSM,
-            ),
-          },
-        ],
-      ];
-    }),
-  );
+  const seen = new Set<string>();
+  const items = legendNames.flatMap<TimeseriesLegendItem>(name => {
+    if (seen.has(name)) {
+      return [];
+    }
+    seen.add(name);
+
+    const rowBreak = name === '' || name === '\n';
+    const matchingSeries = firstSeriesByName.get(name);
+    if (!rowBreak && !matchingSeries) {
+      return [];
+    }
+
+    return [
+      {
+        color: getLegendSeriesColor(matchingSeries, fallbackColor),
+        interactive: interactive && !rowBreak,
+        name,
+        selected: legendState?.[name] !== false,
+      },
+    ];
+  });
+
+  return {
+    items,
+    orientation,
+    showSelectors: interactive,
+  };
 }
 
 const visibleDashPatterns: ([number, number] | 'dashed' | 'dotted')[] = [
@@ -1260,23 +1202,23 @@ export default function transformProps(
   const resolvedLegendData = usesPrimaryAxisLegend
     ? colorByPrimaryAxisLegendData
     : sortedLegendData;
-  const resolvedLegendNames = usesPrimaryAxisLegend
-    ? legendData
-    : sortedLegendData;
-  // Match the exact series ordering ECharts receives. Forecast components
-  // share a legend name, and ECharts derives its icon from the first match.
+  const resolvedLegendNames = (
+    usesPrimaryAxisLegend ? legendData : sortedLegendData
+  ).map(String);
+  const usesCustomLegend =
+    isLegendVisible &&
+    legendType === LegendType.Plain &&
+    (legendOrientation === LegendOrientation.Top ||
+      legendOrientation === LegendOrientation.Bottom);
+  const nativeLegendVisible = isLegendVisible && !usesCustomLegend;
+  // Use the exact final ordering ECharts receives. Forecast components share
+  // a legend name, and ECharts takes the first matching series as its visual.
   const renderedSeries = dedupSeries(
     reorderForecastSeries([...series]) as SeriesOption[],
   );
-  const horizontalPlainLegendItemLayouts = getHorizontalLegendItemLayouts(
-    resolvedLegendNames,
-    renderedSeries,
-    theme,
-    usesPrimaryAxisLegend ? 'roundRect' : undefined,
-  );
   const getLegendLayout = (candidateLegendMargin?: string | number | null) => {
     const padding = getPadding(
-      isLegendVisible,
+      nativeLegendVisible,
       legendOrientation,
       addYAxisLabelOffset,
       zoomable,
@@ -1301,12 +1243,10 @@ export default function transformProps(
           : undefined,
       chartHeight: height,
       chartWidth: width,
-      horizontalPlainLegendItemLayouts,
       legendItems: resolvedLegendData,
       legendMargin: candidateLegendMargin,
       orientation: legendOrientation,
-      reserveFullHorizontalPlainLegendMargin: true,
-      show: isLegendVisible,
+      show: nativeLegendVisible,
       showSelectors: !usesPrimaryAxisLegend,
       theme,
       type: legendType,
@@ -1314,17 +1254,13 @@ export default function transformProps(
   };
   const initialLegendLayout = getLegendLayout(legendMargin);
   const legendLayout =
+    nativeLegendVisible &&
     isHorizontal &&
     legendOrientation === LegendOrientation.Bottom &&
     initialLegendLayout.effectiveLegendType === LegendType.Plain
       ? getLegendLayout(initialLegendLayout.effectiveLegendMargin)
       : initialLegendLayout;
   const { effectiveLegendType } = legendLayout;
-  const hasHorizontalPlainLegend =
-    isLegendVisible &&
-    effectiveLegendType === LegendType.Plain &&
-    (legendOrientation === LegendOrientation.Top ||
-      legendOrientation === LegendOrientation.Bottom);
   const effectiveLegendMargin =
     isHorizontal &&
     legendOrientation === LegendOrientation.Bottom &&
@@ -1332,7 +1268,7 @@ export default function transformProps(
       ? legendMargin
       : legendLayout.effectiveLegendMargin;
   const padding = getPadding(
-    isLegendVisible,
+    nativeLegendVisible,
     legendOrientation,
     addYAxisLabelOffset,
     zoomable,
@@ -1348,18 +1284,8 @@ export default function transformProps(
   // Keep enough top padding so the max label doesn't clip against the cell border.
   // Preserve bottom padding when zoomable, since getPadding() reserves space for the dataZoom slider.
   if (height < TIMESERIES_CONSTANTS.compactChartHeight) {
-    if (
-      !hasHorizontalPlainLegend ||
-      legendOrientation !== LegendOrientation.Top
-    ) {
-      padding.top = Math.min(padding.top, 12);
-    }
-    if (
-      !zoomable &&
-      (!hasHorizontalPlainLegend ||
-        legendOrientation !== LegendOrientation.Bottom ||
-        isHorizontal)
-    ) {
+    padding.top = Math.min(padding.top, 12);
+    if (!zoomable) {
       padding.bottom = Math.min(padding.bottom, 5);
     }
   }
@@ -1535,13 +1461,6 @@ export default function transformProps(
     }
   }
 
-  const contentHeight = hasHorizontalPlainLegend
-    ? Math.max(
-        height,
-        padding.top + padding.bottom + MIN_TIMESERIES_PLOT_HEIGHT,
-      )
-    : height;
-
   const echartOptions: EChartsCoreOption = {
     useUTC: true,
     grid: {
@@ -1673,20 +1592,16 @@ export default function transformProps(
       ...getLegendProps(
         effectiveLegendType,
         legendOrientation,
-        // Hide legend on compact charts — not enough vertical space
-        isLegendVisible,
+        nativeLegendVisible,
         theme,
         zoomable,
         legendState,
         padding,
       ),
       scrollDataIndex: legendIndex || 0,
-      data:
-        colorByPrimaryAxis && groupBy.length === 0
-          ? colorByPrimaryAxisLegendData
-          : sortedLegendData,
+      data: resolvedLegendData,
       // Disable legend selection and buttons when colorByPrimaryAxis is enabled
-      ...(colorByPrimaryAxis && groupBy.length === 0
+      ...(usesPrimaryAxisLegend
         ? {
             selectedMode: false, // Disable clicking legend items
             selector: false, // Hide All/Invert buttons
@@ -1750,14 +1665,36 @@ export default function transformProps(
   const mergedEchartOptions = customEchartOptions
     ? mergeCustomEChartOptions(echartOptions, customEchartOptions)
     : echartOptions;
+  const finalSeries = Array.isArray(mergedEchartOptions.series)
+    ? (mergedEchartOptions.series as SeriesOption[])
+    : renderedSeries;
+  const customLegend = usesCustomLegend
+    ? buildTimeseriesCustomLegend({
+        fallbackColor: theme.colorTextSecondary,
+        interactive: !usesPrimaryAxisLegend,
+        legendNames: resolvedLegendNames,
+        legendState,
+        orientation: legendOrientation,
+        series: finalSeries,
+      })
+    : undefined;
+  const finalEchartOptions = usesCustomLegend
+    ? {
+        ...mergedEchartOptions,
+        legend: {
+          ...(mergedEchartOptions.legend as Record<string, unknown>),
+          show: false,
+        },
+      }
+    : mergedEchartOptions;
 
   return {
-    echartOptions: mergedEchartOptions,
+    customLegend,
+    echartOptions: finalEchartOptions,
     emitCrossFilters,
     formData,
     groupby: groupBy,
     height,
-    contentHeight,
     labelMap,
     selectedValues,
     setDataMask,

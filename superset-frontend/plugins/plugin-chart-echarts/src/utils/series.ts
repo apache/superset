@@ -55,14 +55,12 @@ function isDefined<T>(value: T | undefined | null): boolean {
   return value !== undefined && value !== null;
 }
 
-const LEGACY_LEGEND_ITEM_GAP = 10;
-const ECHARTS_LEGEND_ITEM_GAP = 8;
+const DEFAULT_LEGEND_ITEM_GAP = 10;
 const DEFAULT_LEGEND_ICON_WIDTH = 25;
 const LEGEND_ICON_LABEL_GAP = 5;
-const LEGACY_LEGEND_HORIZONTAL_SIDE_GUTTER = 16;
-const ECHARTS_LEGEND_HORIZONTAL_PADDING = 10;
-const ECHARTS_LEGEND_PADDING = 5;
-const LEGACY_LEGEND_HORIZONTAL_ROW_HEIGHT = 24;
+const LEGEND_HORIZONTAL_SIDE_GUTTER = 16;
+const LEGEND_HORIZONTAL_ROW_HEIGHT = 24;
+// Cap the reserved horizontal legend margin so an overflowing legend can't eat the plot.
 const MAX_LEGEND_MARGIN_RATIO = 0.4;
 const LEGEND_VERTICAL_SIDE_GUTTER = 16;
 const LEGEND_SELECTOR_GAP = 10;
@@ -71,12 +69,6 @@ const LEGEND_MARGIN_GUTTER = 45;
 // values intentionally overestimate selector space to avoid clipping.
 const ESTIMATED_LEGEND_SELECTOR_WIDTH = 112;
 const LEGEND_TEXT_WIDTH_CACHE = new Map<string, number>();
-// The two 20px Timeseries offsets, less ECharts' 5px inset, accommodate a
-// final legend row up to this height without additional margin.
-const TIMESERIES_HORIZONTAL_LEGEND_ROW_CLEARANCE =
-  defaultLegendPadding[LegendOrientation.Top] +
-  TIMESERIES_CONSTANTS.gridOffsetTop -
-  ECHARTS_LEGEND_PADDING;
 
 type LegendDataItem =
   | string
@@ -89,17 +81,6 @@ export type LegendLayoutResult = {
   effectiveMargin?: number;
   effectiveType: LegendType;
 };
-
-export type HorizontalLegendItemLayout = {
-  itemHeight: number;
-  itemWidthOffset: number;
-  itemXOffset: number;
-};
-
-export type HorizontalLegendItemLayouts = Record<
-  string,
-  HorizontalLegendItemLayout
->;
 
 function getLegendLabel(item: LegendDataItem): string {
   if (typeof item === 'string' || typeof item === 'number') {
@@ -120,17 +101,14 @@ function measureLegendTextWidth(text: string, theme: SupersetTheme): number {
     return cachedWidth;
   }
 
-  const lines = text.split('\n');
-  let width = Math.max(
-    ...lines.map(line => line.length * theme.fontSizeSM * 0.62),
-  );
+  let width = text.length * theme.fontSizeSM * 0.62;
 
   if (typeof document !== 'undefined') {
     const canvas = document.createElement('canvas');
     const context = canvas.getContext('2d');
     if (context) {
       context.font = `${theme.fontSizeSM}px ${theme.fontFamily}`;
-      width = Math.max(...lines.map(line => context.measureText(line).width));
+      ({ width } = context.measureText(text));
     }
   }
 
@@ -167,16 +145,12 @@ function estimateHorizontalLegendRows(
   labels: string[],
   chartWidth: number,
   showSelectors: boolean,
-  matchEchartsLayout: boolean,
   theme: SupersetTheme,
 ): number {
-  const sideGutter = matchEchartsLayout
-    ? ECHARTS_LEGEND_HORIZONTAL_PADDING
-    : LEGACY_LEGEND_HORIZONTAL_SIDE_GUTTER;
-  const itemGap = matchEchartsLayout
-    ? ECHARTS_LEGEND_ITEM_GAP
-    : LEGACY_LEGEND_ITEM_GAP;
-  const availableWidth = Math.max(chartWidth - sideGutter, 0);
+  const availableWidth = Math.max(
+    chartWidth - LEGEND_HORIZONTAL_SIDE_GUTTER,
+    0,
+  );
   if (availableWidth === 0) {
     return Infinity;
   }
@@ -184,11 +158,7 @@ function estimateHorizontalLegendRows(
   const legendItemWidths = getLegendItemWidths(labels, theme);
 
   if (legendItemWidths.length === 0) {
-    if (
-      !matchEchartsLayout &&
-      showSelectors &&
-      ESTIMATED_LEGEND_SELECTOR_WIDTH > availableWidth
-    ) {
+    if (showSelectors && ESTIMATED_LEGEND_SELECTOR_WIDTH > availableWidth) {
       return Infinity;
     }
     return 1;
@@ -198,14 +168,14 @@ function estimateHorizontalLegendRows(
   let rowWidth = 0;
 
   for (const itemWidth of legendItemWidths) {
-    if (!matchEchartsLayout && itemWidth > availableWidth) {
+    if (itemWidth > availableWidth) {
       return Infinity;
     }
 
     const nextWidth =
-      rowWidth === 0 ? itemWidth : rowWidth + itemGap + itemWidth;
-    // ECharts lets an oversized item occupy its own overflowing row, then
-    // continues packing later items instead of treating every item as a row.
+      rowWidth === 0
+        ? itemWidth
+        : rowWidth + DEFAULT_LEGEND_ITEM_GAP + itemWidth;
     if (rowWidth > 0 && nextWidth > availableWidth) {
       rows += 1;
       rowWidth = itemWidth;
@@ -214,9 +184,7 @@ function estimateHorizontalLegendRows(
     }
   }
 
-  // Timeseries matches ECharts, which positions selectors beside the completed
-  // content group. Preserve the legacy estimate for sibling chart callers.
-  if (!matchEchartsLayout && showSelectors) {
+  if (showSelectors) {
     if (ESTIMATED_LEGEND_SELECTOR_WIDTH > availableWidth) {
       return Infinity;
     }
@@ -230,86 +198,6 @@ function estimateHorizontalLegendRows(
   }
 
   return rows;
-}
-
-function estimateEchartsHorizontalLegendAdditionalMargin(
-  labels: string[],
-  chartWidth: number,
-  itemLayouts: HorizontalLegendItemLayouts,
-  theme: SupersetTheme,
-): number {
-  const availableWidth = Math.max(
-    chartWidth - ECHARTS_LEGEND_HORIZONTAL_PADDING,
-    0,
-  );
-  if (labels.length === 0) {
-    return 0;
-  }
-
-  const fallbackLayout: HorizontalLegendItemLayout = {
-    itemHeight: LEGACY_LEGEND_HORIZONTAL_ROW_HEIGHT - ECHARTS_LEGEND_ITEM_GAP,
-    itemWidthOffset: DEFAULT_LEGEND_ICON_WIDTH + LEGEND_ICON_LABEL_GAP,
-    itemXOffset: 0,
-  };
-  const itemRects = labels.map(label => {
-    // Plain legends use these exact values as zero-sized row-break groups.
-    if (label === '' || label === '\n') {
-      return { height: 0, newline: true, width: 0, x: 0 };
-    }
-    const layout = itemLayouts[label] ?? fallbackLayout;
-    return {
-      height: layout.itemHeight,
-      newline: false,
-      width: measureLegendTextWidth(label, theme) + layout.itemWidthOffset,
-      x: layout.itemXOffset,
-    };
-  });
-  let currentLineMaxHeight = 0;
-  let currentX = 0;
-  let currentY = 0;
-  let hasLeadingRowBreak = false;
-  const positionedItems: { height: number; y: number }[] = [];
-
-  itemRects.forEach((rect, index) => {
-    const nextRect = itemRects[index + 1];
-    const moveX = rect.width + (nextRect ? -nextRect.x + rect.x : 0);
-    let nextX = currentX + moveX;
-
-    // Match zrender's horizontal box layout, including its handling of an
-    // oversized item and of differing icon bounding-box origins.
-    if (nextX > availableWidth || rect.newline) {
-      currentX = 0;
-      nextX = moveX;
-      currentY += currentLineMaxHeight + ECHARTS_LEGEND_ITEM_GAP;
-      currentLineMaxHeight = rect.height;
-    } else {
-      currentLineMaxHeight = Math.max(currentLineMaxHeight, rect.height);
-    }
-    if (rect.newline) {
-      if (positionedItems.length === 0) {
-        hasLeadingRowBreak = true;
-      }
-      return;
-    }
-    positionedItems.push({ height: rect.height, y: currentY });
-    currentX = nextX + ECHARTS_LEGEND_ITEM_GAP;
-  });
-
-  const lastRowOffset = positionedItems.at(-1)?.y;
-  if (lastRowOffset === undefined) {
-    return 0;
-  }
-  const firstRowOffset = hasLeadingRowBreak ? 0 : (positionedItems[0]?.y ?? 0);
-  const lastRowHeight = Math.max(
-    ...positionedItems
-      .filter(item => item.y === lastRowOffset)
-      .map(item => item.height),
-  );
-
-  return (
-    Math.max(0, lastRowOffset - firstRowOffset) +
-    Math.max(0, lastRowHeight - TIMESERIES_HORIZONTAL_LEGEND_ROW_CLEARANCE)
-  );
 }
 
 export function getHorizontalLegendAvailableWidth({
@@ -356,50 +244,33 @@ function getHorizontalPlainLegendLayout({
   availableHeight,
   availableWidth,
   currentMargin,
-  horizontalPlainLegendItemLayouts,
   legendLabels,
   orientation,
-  reserveFullHorizontalPlainLegendMargin,
   showSelectors,
   theme,
 }: {
   availableHeight: number;
   availableWidth: number;
   currentMargin: number;
-  horizontalPlainLegendItemLayouts?: HorizontalLegendItemLayouts;
   legendLabels: string[];
   orientation: LegendOrientation.Top | LegendOrientation.Bottom;
-  reserveFullHorizontalPlainLegendMargin?: boolean;
   showSelectors: boolean;
   theme: SupersetTheme;
 }): LegendLayoutResult {
+  const rowCount = estimateHorizontalLegendRows(
+    legendLabels,
+    availableWidth,
+    showSelectors,
+    theme,
+  );
+  const rowsForMargin = Number.isFinite(rowCount)
+    ? rowCount
+    : legendLabels.length;
   const requiredMargin =
-    reserveFullHorizontalPlainLegendMargin && horizontalPlainLegendItemLayouts
-      ? defaultLegendPadding[orientation] +
-        estimateEchartsHorizontalLegendAdditionalMargin(
-          legendLabels,
-          availableWidth,
-          horizontalPlainLegendItemLayouts,
-          theme,
-        )
-      : (() => {
-          const rowCount = estimateHorizontalLegendRows(
-            legendLabels,
-            availableWidth,
-            showSelectors,
-            Boolean(reserveFullHorizontalPlainLegendMargin),
-            theme,
-          );
-          const rowsForMargin = Number.isFinite(rowCount)
-            ? rowCount
-            : legendLabels.length;
-          return (
-            defaultLegendPadding[orientation] +
-            Math.max(0, rowsForMargin - 1) * LEGACY_LEGEND_HORIZONTAL_ROW_HEIGHT
-          );
-        })();
+    defaultLegendPadding[orientation] +
+    Math.max(0, rowsForMargin - 1) * LEGEND_HORIZONTAL_ROW_HEIGHT;
   const boundedMargin =
-    !reserveFullHorizontalPlainLegendMargin && availableHeight > 0
+    availableHeight > 0
       ? Math.min(requiredMargin, availableHeight * MAX_LEGEND_MARGIN_RATIO)
       : requiredMargin;
 
@@ -454,11 +325,9 @@ export function getLegendLayoutResult({
   availableWidth,
   chartHeight,
   chartWidth,
-  horizontalPlainLegendItemLayouts,
   legendItems = [],
   legendMargin,
   orientation,
-  reserveFullHorizontalPlainLegendMargin,
   show,
   showSelectors = true,
   theme,
@@ -470,15 +339,9 @@ export function getLegendLayoutResult({
   availableWidth?: number;
   chartHeight: number;
   chartWidth: number;
-  // Timeseries supplies ECharts' rendered per-item geometry;
-  // sibling callers omit these values to retain their legacy layout.
-  horizontalPlainLegendItemLayouts?: HorizontalLegendItemLayouts;
   legendItems?: LegendDataItem[];
   legendMargin?: string | number | null;
   orientation: LegendOrientation;
-  // Full required-margin layout is opt-in for Timeseries; sibling callers that
-  // leave it false retain the legacy ratio cap.
-  reserveFullHorizontalPlainLegendMargin?: boolean;
   show: boolean;
   showSelectors?: boolean;
   theme: SupersetTheme;
@@ -501,10 +364,8 @@ export function getLegendLayoutResult({
       availableHeight: resolvedAvailableHeight,
       availableWidth: resolvedAvailableWidth,
       currentMargin: resolvedLegendMargin,
-      horizontalPlainLegendItemLayouts,
       legendLabels,
       orientation,
-      reserveFullHorizontalPlainLegendMargin,
       showSelectors,
       theme,
     });

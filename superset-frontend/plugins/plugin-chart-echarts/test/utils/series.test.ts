@@ -25,11 +25,6 @@ import {
 } from '@superset-ui/core';
 import { supersetTheme as theme } from '@apache-superset/core/theme';
 import { GenericDataType } from '@apache-superset/core/common';
-import type { SeriesOption } from 'echarts';
-import { BarChart, LineChart, ScatterChart } from 'echarts/charts';
-import { GridComponent, LegendComponent } from 'echarts/components';
-import { init, use } from 'echarts/core';
-import { SVGRenderer } from 'echarts/renderers';
 import {
   calculateLowerLogTick,
   dedupSeries,
@@ -50,20 +45,13 @@ import {
   sortRows,
   getTimeCompareStackId,
 } from '../../src/utils/series';
-import type {
-  HorizontalLegendItemLayout,
-  HorizontalLegendItemLayouts,
-} from '../../src/utils/series';
 import {
   EchartsTimeseriesSeriesType,
-  ForecastSeriesEnum,
   LegendOrientation,
   LegendType,
 } from '../../src/types';
 import { defaultLegendPadding } from '../../src/defaults';
 import { NULL_STRING, StackControlsValue } from '../../src/constants';
-import { getHorizontalLegendItemLayouts as getTimeseriesHorizontalLegendItemLayouts } from '../../src/Timeseries/transformProps';
-import { reorderForecastSeries } from '../../src/utils/forecast';
 
 const {
   getHorizontalLegendAvailableWidth,
@@ -80,7 +68,6 @@ const {
     availableWidth?: number;
     chartHeight: number;
     chartWidth: number;
-    horizontalPlainLegendItemLayouts?: HorizontalLegendItemLayouts;
     legendItems?: (
       | string
       | number
@@ -90,7 +77,6 @@ const {
     )[];
     legendMargin?: string | number | null;
     orientation: LegendOrientation;
-    reserveFullHorizontalPlainLegendMargin?: boolean;
     show: boolean;
     showSelectors?: boolean;
     theme: typeof theme;
@@ -109,7 +95,6 @@ const {
     availableWidth?: number;
     chartHeight: number;
     chartWidth: number;
-    horizontalPlainLegendItemLayouts?: HorizontalLegendItemLayouts;
     legendItems?: (
       | string
       | number
@@ -119,7 +104,6 @@ const {
     )[];
     legendMargin?: string | number | null;
     orientation: LegendOrientation;
-    reserveFullHorizontalPlainLegendMargin?: boolean;
     show: boolean;
     showSelectors?: boolean;
     theme: typeof theme;
@@ -133,123 +117,6 @@ const {
     };
   };
 } = require('../../src/utils/legendLayout');
-
-use([
-  SVGRenderer,
-  BarChart,
-  LineChart,
-  ScatterChart,
-  GridComponent,
-  LegendComponent,
-]);
-
-type RenderedHorizontalLegendLayout = {
-  contentHeight: number;
-  expectedMargin: number;
-  rowCount: number;
-};
-
-function renderHorizontalPlainLegend({
-  chartWidth,
-  legendData,
-  series,
-}: {
-  chartWidth: number;
-  legendData: (string | { icon: string; name: string })[];
-  series: SeriesOption[];
-}): RenderedHorizontalLegendLayout {
-  const chart = init(null, null, {
-    height: 4000,
-    renderer: 'svg',
-    ssr: true,
-    width: chartWidth,
-  });
-
-  try {
-    chart.setOption({
-      animation: false,
-      legend: {
-        data: legendData,
-        left: 0,
-        orient: 'horizontal',
-        right: 0,
-        textStyle: {
-          fontFamily: 'LegendGeometryTest',
-          fontSize: 12,
-        },
-        top: 0,
-        type: LegendType.Plain,
-      },
-      series,
-      xAxis: { type: 'value' },
-      yAxis: { type: 'value' },
-    });
-
-    type LegendItemGroup = {
-      y: number;
-    };
-    type LegendContentGroup = {
-      childAt: (index: number) => LegendItemGroup;
-      childCount: () => number;
-      getBoundingRect: () => { height: number };
-    };
-    type LegendView = {
-      __model?: { mainType?: string };
-      getContentGroup: () => LegendContentGroup;
-    };
-    const legendView = (
-      chart as unknown as { _componentsViews: LegendView[] }
-    )._componentsViews.find(view => view.__model?.mainType === 'legend');
-    const contentGroup = legendView?.getContentGroup();
-    if (!contentGroup) {
-      throw new Error('Expected ECharts to render a legend content group');
-    }
-    const rowOffsets = Array.from(
-      { length: contentGroup.childCount() },
-      (_, index) => contentGroup.childAt(index).y,
-    );
-    const uniqueRowOffsets = [...new Set(rowOffsets)].sort(
-      (first, second) => first - second,
-    );
-
-    return {
-      contentHeight: contentGroup.getBoundingRect().height,
-      expectedMargin:
-        defaultLegendPadding[LegendOrientation.Top] +
-        (uniqueRowOffsets.at(-1) ?? 0) -
-        (uniqueRowOffsets[0] ?? 0),
-      rowCount: uniqueRowOffsets.length,
-    };
-  } finally {
-    chart.dispose();
-  }
-}
-
-function withDeterministicLegendText<T>(callback: () => T): T {
-  const canvasContext = {
-    font: '',
-    measureText(text: string) {
-      // zrender uses this glyph's width as the font line height.
-      return { width: text === '国' ? 12 : text.length * 7 };
-    },
-  };
-  const getContext = jest
-    .spyOn(HTMLCanvasElement.prototype, 'getContext')
-    .mockReturnValue(canvasContext as unknown as CanvasRenderingContext2D);
-
-  try {
-    return callback();
-  } finally {
-    getContext.mockRestore();
-  }
-}
-
-function getUniformLegendItemLayouts(
-  names: string[],
-  layout: HorizontalLegendItemLayout,
-): HorizontalLegendItemLayouts {
-  return Object.fromEntries(names.map(name => [name, layout]));
-}
 
 const expectedThemeProps = {
   selector: ['all', 'inverse'],
@@ -1381,489 +1248,14 @@ test('getLegendLayoutResult keeps plain when horizontal plain legends exceed two
   expect(layout.effectiveMargin).toBe(68);
 });
 
-test('getLegendLayoutResult reserves every row when full-margin layout is requested', () => {
+test('getLegendLayoutResult bounds reserved margin for overflowing horizontal legends so the plot is not collapsed', () => {
+  const chartHeight = 200;
   const layout = getLegendLayoutResult({
-    chartHeight: 400,
-    chartWidth: 800,
-    legendItems: Array.from(
-      { length: 40 },
-      (_, index) => `Country ${index + 1}, Product`,
-    ),
-    legendMargin: null,
-    orientation: LegendOrientation.Top,
-    reserveFullHorizontalPlainLegendMargin: true,
-    show: true,
-    theme,
-    type: LegendType.Plain,
-  });
-
-  expect(layout.effectiveType).toBe(LegendType.Plain);
-  // The estimator packs the items into ten rows: 20px base padding plus nine
-  // additional 24px rows. ECharts lays selectors beside the content group.
-  expect(layout.effectiveMargin).toBe(236);
-});
-
-test('getLegendLayoutResult tracks ECharts height for a dense Plain legend', () => {
-  const chartWidth = 300;
-  const platforms = ['PS2', 'PS3', 'PSP', 'PSV', 'Wii', 'X360', 'DS', 'PC'];
-  const publishers = [
-    'Nintendo',
-    'Electronic Arts',
-    'Activision',
-    'Ubisoft',
-    'THQ',
-    'Sega',
-    'Atari',
-    'Capcom',
-    'Konami Digital Entertainment',
-    'Namco Bandai Games',
-    'Sony Computer Entertainment',
-    'Sony Computer Entertainment America',
-    'Warner Bros. Interactive Entertainment',
-    'Disney Interactive Studios',
-    'Take-Two Interactive',
-    'Square Enix',
-    'Bethesda Softworks',
-    'Midway Games',
-    'Tecmo Koei',
-    'BushiRoad',
-  ];
-  const legendItems = platforms.flatMap(platform =>
-    publishers.map(publisher => `${platform}, ${publisher}`),
-  );
-  const canvasContext = {
-    font: '',
-    measureText(text: string) {
-      return {
-        width: Array.from(text).reduce((width, character) => {
-          if (character === '国') {
-            return width + 12;
-          }
-          if (/[A-Z0-9]/.test(character)) {
-            return width + 7;
-          }
-          return width + (/[a-z]/.test(character) ? 5.5 : 3);
-        }, 0),
-      };
-    },
-  };
-  const getContext = jest
-    .spyOn(HTMLCanvasElement.prototype, 'getContext')
-    .mockReturnValue(canvasContext as unknown as CanvasRenderingContext2D);
-  const chart = init(null, null, {
-    height: 4000,
-    renderer: 'svg',
-    ssr: true,
-    width: chartWidth,
-  });
-
-  let renderedLegendHeight: number;
-  let renderedRows: number;
-  try {
-    chart.setOption({
-      animation: false,
-      legend: {
-        data: legendItems,
-        left: 20,
-        orient: 'horizontal',
-        right: 0,
-        selector: ['all', 'inverse'],
-        top: 0,
-        type: LegendType.Plain,
-      },
-      series: legendItems.map((name, index) => ({
-        data: [
-          [0, index],
-          [1, index + 1],
-        ],
-        name,
-        showSymbol: false,
-        type: 'line',
-      })),
-      xAxis: { type: 'time' },
-      yAxis: { type: 'value' },
-    });
-    type DisplayElement = {
-      style?: { text?: string };
-      transform?: number[] | null;
-      type?: string;
-    };
-    const displayList = chart
-      .getZr()
-      .storage.getDisplayList(true) as unknown as DisplayElement[];
-    renderedRows = new Set(
-      displayList
-        .filter(
-          element =>
-            element.type === 'tspan' &&
-            typeof element.style?.text === 'string' &&
-            legendItems.includes(element.style.text),
-        )
-        .map(element => element.transform?.[5]),
-    ).size;
-    type LegendView = {
-      __model?: { mainType?: string };
-      getContentGroup: () => {
-        getBoundingRect: () => { height: number };
-      };
-    };
-    const legendView = (
-      chart as unknown as { _componentsViews: LegendView[] }
-    )._componentsViews.find(view => view.__model?.mainType === 'legend');
-    renderedLegendHeight =
-      legendView?.getContentGroup().getBoundingRect().height ?? 0;
-  } finally {
-    chart.dispose();
-  }
-  let layout: ReturnType<typeof getLegendLayoutResult>;
-  try {
-    layout = getLegendLayoutResult({
-      availableWidth: chartWidth - 20,
-      chartHeight: 600,
-      chartWidth,
-      horizontalPlainLegendItemLayouts: getUniformLegendItemLayouts(
-        legendItems,
-        {
-          itemHeight: 13.2,
-          itemWidthOffset: 31,
-          itemXOffset: -1,
-        },
-      ),
-      legendItems,
-      legendMargin: null,
-      orientation: LegendOrientation.Top,
-      reserveFullHorizontalPlainLegendMargin: true,
-      show: true,
-      theme,
-      type: LegendType.Plain,
-    });
-  } finally {
-    getContext.mockRestore();
-  }
-
-  expect(renderedRows).toBe(117);
-  expect(layout.effectiveMargin).toBeCloseTo(2479.2, 5);
-  const proportionalHeightExcess =
-    (Number(layout.effectiveMargin) - renderedLegendHeight) /
-    renderedLegendHeight;
-  expect(proportionalHeightExcess).toBeGreaterThanOrEqual(0);
-  expect(proportionalHeightExcess).toBeLessThanOrEqual(0.01);
-});
-
-function expectTimeseriesLegendLayoutMatchesEcharts({
-  chartWidth,
-  expectedContentHeight,
-  expectedMargin,
-  expectedRows,
-  iconOverride,
-  legendData,
-  legendItems,
-  series,
-}: {
-  chartWidth: number;
-  expectedContentHeight: number;
-  expectedMargin: number;
-  expectedRows: number;
-  iconOverride?: 'roundRect';
-  legendData?: { icon: string; name: string }[];
-  legendItems: string[];
-  series: SeriesOption[];
-}) {
-  withDeterministicLegendText(() => {
-    const rendered = renderHorizontalPlainLegend({
-      chartWidth,
-      legendData: legendData ?? legendItems,
-      series,
-    });
-    const layout = getLegendLayoutResult({
-      availableWidth: chartWidth,
-      chartHeight: 600,
-      chartWidth,
-      horizontalPlainLegendItemLayouts:
-        getTimeseriesHorizontalLegendItemLayouts(
-          legendItems,
-          series,
-          theme,
-          iconOverride,
-        ),
-      legendItems: legendData ?? legendItems,
-      legendMargin: null,
-      orientation: LegendOrientation.Top,
-      reserveFullHorizontalPlainLegendMargin: true,
-      show: true,
-      showSelectors: false,
-      theme,
-      type: LegendType.Plain,
-    });
-
-    expect(rendered.rowCount).toBe(expectedRows);
-    expect(rendered.contentHeight).toBeCloseTo(expectedContentHeight, 5);
-    expect(rendered.expectedMargin).toBeCloseTo(expectedMargin, 5);
-    expect(layout.effectiveMargin).toBeCloseTo(rendered.expectedMargin, 5);
-  });
-}
-
-test('getLegendLayoutResult matches bordered Bar legend row geometry', () => {
-  const legendItems = Array.from(
-    { length: 40 },
-    (_, index) => `P${index}, Long Publisher ${index}`,
-  );
-  expectTimeseriesLegendLayoutMatchesEcharts({
-    chartWidth: 220,
-    expectedContentHeight: 952,
-    expectedMargin: 956,
-    expectedRows: 40,
-    legendItems,
-    series: legendItems.map((name, index) => ({
-      data: [index, index + 1],
-      itemStyle: { borderColor: '#000', borderWidth: 1.5 },
-      name,
-      type: 'bar',
-    })),
-  });
-});
-
-test('getLegendLayoutResult matches dark Line legend row geometry', () => {
-  const legendItems = Array.from(
-    { length: 40 },
-    (_, index) => `P${index}, Long Publisher ${index}`,
-  );
-  expectTimeseriesLegendLayoutMatchesEcharts({
-    chartWidth: 220,
-    expectedContentHeight: 792,
-    expectedMargin: 800,
-    expectedRows: 40,
-    legendItems,
-    series: legendItems.map((name, index) => ({
-      data: [index, index + 1],
-      name,
-      symbol: 'circle',
-      type: 'line',
-    })),
-  });
-});
-
-test('getLegendLayoutResult matches a roundRect legend icon override', () => {
-  const legendItems = Array.from(
-    { length: 40 },
-    (_, index) => `P${index}, Long Publisher ${index}`,
-  );
-  expectTimeseriesLegendLayoutMatchesEcharts({
-    chartWidth: 220,
-    expectedContentHeight: 872,
-    expectedMargin: 878,
-    expectedRows: 40,
-    iconOverride: 'roundRect',
-    legendData: legendItems.map(name => ({ icon: 'roundRect', name })),
-    legendItems,
-    series: legendItems.map((name, index) => ({
-      data: [index, index + 1],
-      name,
-      symbol: 'emptyCircle',
-      type: 'line',
-    })),
-  });
-});
-
-test('getLegendLayoutResult matches Scatter legend item width', () => {
-  const legendItems = Array.from(
-    { length: 40 },
-    (_, index) => `S${String(index).padStart(2, '0')}`,
-  );
-  expectTimeseriesLegendLayoutMatchesEcharts({
-    chartWidth: 109,
-    expectedContentHeight: 432,
-    expectedMargin: 438,
-    expectedRows: 20,
-    legendItems,
-    series: legendItems.map((name, index) => ({
-      data: [[index, index + 1]],
-      name,
-      type: 'scatter',
-    })),
-  });
-});
-
-test('getLegendLayoutResult matches the post-reorder Forecast legend series', () => {
-  const legendItems = Array.from(
-    { length: 40 },
-    (_, index) => `F${String(index).padStart(2, '0')}`,
-  );
-  const forecastSeries: SeriesOption[] = legendItems.flatMap((name, index) => [
-    {
-      data: [[index, index + 1]],
-      id: name,
-      name,
-      type: 'scatter' as const,
-    },
-    ...[
-      ForecastSeriesEnum.ForecastLower,
-      ForecastSeriesEnum.ForecastUpper,
-      ForecastSeriesEnum.ForecastTrend,
-    ].map(forecastType => ({
-      data: [[index, index + 2]],
-      id: `${name}${forecastType}`,
-      name,
-      symbol: 'emptyCircle' as const,
-      type: 'line' as const,
-    })),
-  ]);
-  expect(forecastSeries[0]?.type).toBe('scatter');
-  expectTimeseriesLegendLayoutMatchesEcharts({
-    chartWidth: 109,
-    expectedContentHeight: 432,
-    expectedMargin: 438,
-    expectedRows: 20,
-    legendItems,
-    series: forecastSeries,
-  });
-
-  const renderedSeries = reorderForecastSeries(
-    forecastSeries,
-  ) as unknown as SeriesOption[];
-
-  expect(renderedSeries[0]?.id).toBe(
-    `${legendItems[0]}${ForecastSeriesEnum.ForecastLower}`,
-  );
-  expectTimeseriesLegendLayoutMatchesEcharts({
-    chartWidth: 109,
-    expectedContentHeight: 840,
-    expectedMargin: 846.8,
-    expectedRows: 40,
-    legendItems,
-    series: renderedSeries,
-  });
-});
-
-test('getLegendLayoutResult matches multiline legend label height', () => {
-  const legendItems = Array.from(
-    { length: 40 },
-    (_, index) => `P${index}\nLong Publisher ${index}`,
-  );
-  expectTimeseriesLegendLayoutMatchesEcharts({
-    chartWidth: 220,
-    expectedContentHeight: 1272,
-    expectedMargin: 1268,
-    expectedRows: 40,
-    legendItems,
-    series: legendItems.map((name, index) => ({
-      data: [index, index + 1],
-      name,
-      symbol: 'emptyCircle',
-      type: 'line',
-    })),
-  });
-});
-
-test.each(['', '\n'])(
-  'getLegendLayoutResult matches the ECharts row break for %p',
-  rowBreak => {
-    const legendItems = ['A', rowBreak, 'B'];
-    expectTimeseriesLegendLayoutMatchesEcharts({
-      chartWidth: 600,
-      expectedContentHeight: 34.8,
-      expectedMargin: 41.2,
-      expectedRows: 2,
-      legendItems,
-      series: ['A', 'B'].map((name, index) => ({
-        data: [index, index + 1],
-        name,
-        symbol: 'emptyCircle',
-        type: 'line',
-      })),
-    });
-  },
-);
-
-test.each([
-  { expectedContentHeight: 21.6, expectedMargin: 28, legendItems: ['', 'B'] },
-  {
-    expectedContentHeight: 29.6,
-    expectedMargin: 36,
-    legendItems: ['', '\n', 'B'],
-  },
-])(
-  'getLegendLayoutResult preserves leading row-break space for $legendItems',
-  ({ expectedContentHeight, expectedMargin, legendItems }) => {
-    expectTimeseriesLegendLayoutMatchesEcharts({
-      chartWidth: 600,
-      expectedContentHeight,
-      expectedMargin,
-      expectedRows: 2,
-      legendItems,
-      series: [
-        {
-          data: [0, 1],
-          name: 'B',
-          symbol: 'emptyCircle',
-          type: 'line',
-        },
-      ],
-    });
-  },
-);
-
-test('getLegendLayoutResult uses Line geometry for shown annotation layers', () => {
-  const observationNames = Array.from(
-    { length: 38 },
-    (_, index) => `P${index}, Long Publisher ${index}`,
-  );
-  const annotationNames = [
-    'Projected release formula',
-    'Projected release timeseries',
-  ];
-  const legendItems = [...observationNames, ...annotationNames];
-  expectTimeseriesLegendLayoutMatchesEcharts({
-    chartWidth: 220,
-    expectedContentHeight: 840,
-    expectedMargin: 846.8,
-    expectedRows: 40,
-    legendItems,
-    series: [
-      ...observationNames.map((name, index) => ({
-        data: [index, index + 1],
-        name,
-        symbol: 'emptyCircle' as const,
-        type: 'line' as const,
-      })),
-      ...annotationNames.map(name => ({
-        data: [0, 1],
-        name,
-        symbolSize: 0,
-        type: 'line' as const,
-      })),
-    ],
-  });
-});
-
-test('getLegendLayoutResult ignores hidden annotations when choosing item geometry', () => {
-  const legendItems = Array.from(
-    { length: 40 },
-    (_, index) => `P${index}, Long Publisher ${index}`,
-  );
-  expectTimeseriesLegendLayoutMatchesEcharts({
-    chartWidth: 220,
-    expectedContentHeight: 840,
-    expectedMargin: 846.8,
-    expectedRows: 40,
-    legendItems,
-    series: legendItems.map((name, index) => ({
-      data: [index, index + 1],
-      name,
-      symbol: 'emptyCircle',
-      type: 'line',
-    })),
-  });
-});
-
-test('getLegendLayoutResult reserves the full required margin for opted-in overflowing horizontal legends', () => {
-  const layout = getLegendLayoutResult({
-    chartHeight: 200,
+    chartHeight,
     chartWidth: 100,
     legendItems: Array.from({ length: 100 }, (_, index) => `Series ${index}`),
     legendMargin: null,
     orientation: LegendOrientation.Top,
-    reserveFullHorizontalPlainLegendMargin: true,
     show: true,
     theme,
     type: LegendType.Plain,
@@ -1871,9 +1263,8 @@ test('getLegendLayoutResult reserves the full required margin for opted-in overf
 
   expect(layout.effectiveType).toBe(LegendType.Plain);
   expect(Number.isFinite(layout.effectiveMargin)).toBe(true);
-  // Every item is wider than the available row, so the estimator falls back
-  // to 100 rows: 20px base padding + 99 additional 24px rows.
-  expect(layout.effectiveMargin).toBe(2396);
+  // 40% of the 200px chart height.
+  expect(layout.effectiveMargin).toBe(80);
 });
 
 test('getLegendLayoutResult bounds reserved margin for long vertical legend labels so the plot is not collapsed', () => {
