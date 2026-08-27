@@ -299,28 +299,40 @@ class EchartsCustomization(BaseModel):
     )
 
 
-class TitleControls(BaseModel):
-    """Structured chart title, layered on top of `echartsOptions.title`."""
+class EchartsChrome(BaseModel):
+    """Structured chart chrome — title, legend, tooltip, axis labels — each
+    field independently optional and layered on top of the matching
+    `echartsOptions` section. A field left at its default doesn't touch
+    `echartsOptions` at all; only the specific key(s) a set field manages are
+    merged onto that section, so an unmanaged sibling property there (e.g. a
+    hand-authored `legend.orient`) survives.
 
-    text: str = Field(
+    Deliberately flat (not grouped into `title`/`legend`/`tooltip`/`xAxis`/
+    `yAxis` sub-objects — the natural modeling) rather than nested two levels
+    under `chrome`: JsonForms' generated control panel only renders one level
+    of nested-object properties (the same depth `DataBinding`/`Customization`
+    already rely on), so a `chrome.title.text`-style double nesting would
+    render an empty group with no fields inside it.
+    """
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    title_text: str = Field(
         default="",
-        title="Text",
+        alias="titleText",
+        title="Title",
         description="Empty leaves echartsOptions.title exactly as authored.",
     )
-
-
-class LegendControls(BaseModel):
-    """Structured legend visibility/position, layered on top of
-    `echartsOptions.legend`."""
-
-    show: bool = Field(
+    legend_show: bool = Field(
         default=True,
-        title="Show",
+        alias="legendShow",
+        title="Show legend",
         description="Unchecking hides the legend, regardless of echartsOptions.",
     )
-    position: Literal["top", "bottom", "left", "right"] | None = Field(
+    legend_position: Literal["top", "bottom", "left", "right"] | None = Field(
         default=None,
-        title="Position",
+        alias="legendPosition",
+        title="Legend position",
         description=(
             "Unset leaves echartsOptions.legend's own position (or "
             "ECharts' default) untouched."
@@ -330,15 +342,10 @@ class LegendControls(BaseModel):
             "x-options": ["top", "bottom", "left", "right"],
         },
     )
-
-
-class TooltipControls(BaseModel):
-    """Structured tooltip trigger, layered on top of
-    `echartsOptions.tooltip`."""
-
-    trigger: Literal["item", "axis"] | None = Field(
+    tooltip_trigger: Literal["item", "axis"] | None = Field(
         default=None,
-        title="Trigger",
+        alias="tooltipTrigger",
+        title="Tooltip trigger",
         description=(
             "Unset leaves echartsOptions.tooltip's own trigger (or "
             "ECharts' default) untouched."
@@ -348,48 +355,52 @@ class TooltipControls(BaseModel):
             "x-options": ["item", "axis"],
         },
     )
-
-
-class AxisControls(BaseModel):
-    """Structured axis name/label formatting, layered on top of the
-    corresponding `echartsOptions.xAxis`/`yAxis`. Applies whenever
-    `echartsOptions` has that axis, structured `chartType` or not."""
-
-    name: str = Field(
+    x_axis_name: str = Field(
         default="",
-        title="Name",
+        alias="xAxisName",
+        title="X axis name",
         description="Empty leaves the axis's own `name` (or none) untouched.",
     )
-    rotate: int = Field(
+    x_axis_rotate: int = Field(
         default=0,
         ge=-90,
         le=90,
-        title="Label rotation (°)",
+        alias="xAxisRotate",
+        title="X axis label rotation (°)",
         description="0 leaves the axis's own `axisLabel.rotate` (or none) untouched.",
     )
-    format: str = Field(
+    x_axis_format: str = Field(
         default="",
-        title="Label format",
+        alias="xAxisFormat",
+        title="X axis label format",
         description=(
             'An ECharts axisLabel formatter template, e.g. "{value} kg". Empty '
             "leaves the axis's own `axisLabel.formatter` (or none) untouched."
         ),
     )
-
-
-class EchartsChrome(BaseModel):
-    """Structured chart chrome — title, legend, tooltip, axis labels — each
-    independently optional and layered on top of the matching
-    `echartsOptions` section. A leaf left at its default doesn't touch
-    `echartsOptions` at all; only the specific keys a leaf does set are
-    merged onto that section, so an unmanaged sibling property there (e.g. a
-    hand-authored `legend.orient`) survives."""
-
-    title: TitleControls = Field(default_factory=TitleControls)
-    legend: LegendControls = Field(default_factory=LegendControls)
-    tooltip: TooltipControls = Field(default_factory=TooltipControls)
-    x_axis: AxisControls = Field(alias="xAxis", default_factory=AxisControls)
-    y_axis: AxisControls = Field(alias="yAxis", default_factory=AxisControls)
+    y_axis_name: str = Field(
+        default="",
+        alias="yAxisName",
+        title="Y axis name",
+        description="Empty leaves the axis's own `name` (or none) untouched.",
+    )
+    y_axis_rotate: int = Field(
+        default=0,
+        ge=-90,
+        le=90,
+        alias="yAxisRotate",
+        title="Y axis label rotation (°)",
+        description="0 leaves the axis's own `axisLabel.rotate` (or none) untouched.",
+    )
+    y_axis_format: str = Field(
+        default="",
+        alias="yAxisFormat",
+        title="Y axis label format",
+        description=(
+            'An ECharts axisLabel formatter template, e.g. "{value} kg". Empty '
+            "leaves the axis's own `axisLabel.formatter` (or none) untouched."
+        ),
+    )
 
 
 class EchartsControls(BaseModel):

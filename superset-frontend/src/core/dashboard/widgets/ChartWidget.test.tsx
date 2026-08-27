@@ -174,9 +174,10 @@ test('structured chrome (legend/tooltip/axis) applies alongside raw echartsOptio
         xAxis: { type: 'category', axisLabel: { color: 'red' } },
       },
       chrome: {
-        legend: { show: false },
-        tooltip: { trigger: 'axis' },
-        xAxis: { name: 'Product', rotate: 45 },
+        legendShow: false,
+        tooltipTrigger: 'axis',
+        xAxisName: 'Product',
+        xAxisRotate: 45,
       },
     },
   });

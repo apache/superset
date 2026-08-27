@@ -34,10 +34,9 @@ const mount = () => {
   return onAdd;
 };
 
-test('the panel offers data, building blocks, properties and an outline', () => {
+test('the panel offers building blocks, properties and an outline', () => {
   mount();
 
-  expect(screen.getByRole('tab', { name: 'Data' })).toBeInTheDocument();
   expect(
     screen.getByRole('tab', { name: 'Building Blocks' }),
   ).toBeInTheDocument();
@@ -45,34 +44,11 @@ test('the panel offers data, building blocks, properties and an outline', () => 
   expect(screen.getByRole('tab', { name: 'Outline' })).toBeInTheDocument();
 });
 
-test('data comes first, ahead of building blocks, properties and outline', () => {
+test('building blocks comes first, ahead of properties and outline', () => {
   mount();
 
   const labels = screen.getAllByRole('tab').map(tab => tab.textContent);
-  expect(labels).toEqual(['Data', 'Building Blocks', 'Properties', 'Outline']);
-});
-
-test('the data tab shows the placeholder dataset browser', async () => {
-  mount();
-
-  await userEvent.click(screen.getByRole('tab', { name: 'Data' }));
-
-  expect(screen.getByTestId('data-panel')).toBeVisible();
-});
-
-test('selecting something while browsing data brings its properties forward too', async () => {
-  mount();
-  const id = provider.addWidget(provider.getRoot().id, 0, {
-    type: 'markdown',
-  });
-  await userEvent.click(screen.getByRole('tab', { name: 'Data' }));
-
-  act(() => provider.setSelection(id));
-
-  // Outline is the one tab that sets its own selection and must not be
-  // ejected from; every other tab — including the new Data tab — follows a
-  // selection made elsewhere the same way Widgets already does.
-  expect(screen.getByTestId('inspector-identity')).toHaveTextContent(id);
+  expect(labels).toEqual(['Building Blocks', 'Properties', 'Outline']);
 });
 
 test('widgets is what you start on, and it lists what is registered', () => {

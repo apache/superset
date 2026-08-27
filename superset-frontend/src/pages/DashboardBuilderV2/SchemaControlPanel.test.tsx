@@ -1464,3 +1464,66 @@ test('a field hidden from the Form tab keeps its stored value untouched', async 
     series: [{ type: 'bar' }],
   });
 });
+
+// Guards the exact bug caught during implementation: a nested-object field
+// two levels deep (chrome.title.text) rendered as an empty group with no
+// fields inside, since JsonForms only renders one level of nested-object
+// properties. `EchartsChrome` is deliberately flat (`chrome.titleText`,
+// `chrome.legendShow`, ...) to avoid it — this proves the flat shape
+// actually renders its fields, not just that the schema declares them.
+const CHROME_SCHEMA = {
+  type: 'object',
+  properties: {
+    chrome: { $ref: '#/$defs/EchartsChrome' },
+  },
+  $defs: {
+    EchartsChrome: {
+      type: 'object',
+      title: 'Chrome',
+      properties: {
+        titleText: { type: 'string', title: 'Title' },
+        legendShow: { type: 'boolean', title: 'Show legend', default: true },
+        legendPosition: {
+          type: ['string', 'null'],
+          title: 'Legend position',
+          'x-control': 'select',
+          'x-options': ['top', 'bottom', 'left', 'right'],
+        },
+      },
+    },
+  },
+};
+
+test('a flat (one-level) nested chrome object renders its own fields, not an empty group', async () => {
+  mockPost(CHROME_SCHEMA);
+
+  const id = mount('echarts', {});
+
+  await screen.findByText('Chrome');
+  // Presence of all three fields — including the boolean one — proves the
+  // group actually expanded, not just that a "Chrome" header exists.
+  expect(screen.getByText('Title')).toBeInTheDocument();
+  expect(screen.getByText('Show legend')).toBeInTheDocument();
+  expect(screen.getByText('Legend position')).toBeInTheDocument();
+
+  const titleInput = await screen.findByRole('textbox', { name: 'Title' });
+  await userEvent.type(titleInput, 'Sales');
+  await waitFor(() =>
+    expect(
+      (provider.getNode(id)?.props?.chrome as Record<string, unknown>)
+        ?.titleText,
+    ).toBe('Sales'),
+  );
+
+  const positionSelect = await screen.findByRole('combobox', {
+    name: 'Legend position',
+  });
+  await userEvent.click(positionSelect);
+  await userEvent.click(await screen.findByText('right'));
+  await waitFor(() =>
+    expect(
+      (provider.getNode(id)?.props?.chrome as Record<string, unknown>)
+        ?.legendPosition,
+    ).toBe('right'),
+  );
+});

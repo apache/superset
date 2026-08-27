@@ -23,45 +23,52 @@ test('an unset chrome (no chartChrome at all) leaves the raw option untouched', 
   expect(applyStructuredChrome(raw, undefined)).toBe(raw);
 });
 
-test('every leaf at its default leaves the raw option untouched, same reference', () => {
+test('every field at its default leaves the raw option untouched, same reference', () => {
   const raw = { title: { text: 'Raw title' } };
   const chrome = {
-    title: { text: '' },
-    legend: { show: true, position: null },
-    tooltip: { trigger: null },
-    xAxis: { name: '', rotate: 0, format: '' },
-    yAxis: { name: '', rotate: 0, format: '' },
+    titleText: '',
+    legendShow: true,
+    legendPosition: null,
+    tooltipTrigger: null,
+    xAxisName: '',
+    xAxisRotate: 0,
+    xAxisFormat: '',
+    yAxisName: '',
+    yAxisRotate: 0,
+    yAxisFormat: '',
   };
   expect(applyStructuredChrome(raw, chrome)).toBe(raw);
 });
 
-test('a structured title.text wins over the raw title, merged onto its own object', () => {
+test('a structured titleText wins over the raw title, merged onto its own object', () => {
   const raw = { title: { textStyle: { fontSize: 20 } } };
-  const merged = applyStructuredChrome(raw, { title: { text: 'Sales' } });
+  const merged = applyStructuredChrome(raw, { titleText: 'Sales' });
   expect(merged.title).toEqual({ textStyle: { fontSize: 20 }, text: 'Sales' });
 });
 
-test('legend.show: false hides the legend regardless of the raw config', () => {
+test('legendShow: false hides the legend regardless of the raw config', () => {
   const raw = { legend: { orient: 'vertical' } };
-  const merged = applyStructuredChrome(raw, { legend: { show: false } });
+  const merged = applyStructuredChrome(raw, { legendShow: false });
   expect(merged.legend).toEqual({ orient: 'vertical', show: false });
 });
 
-test('legend.position maps to the top/left pair ECharts actually reads', () => {
-  const merged = applyStructuredChrome({}, { legend: { position: 'right' } });
+test('legendPosition maps to the top/left pair ECharts actually reads', () => {
+  const merged = applyStructuredChrome({}, { legendPosition: 'right' });
   expect(merged.legend).toEqual({ top: 'middle', left: 'right' });
 });
 
-test('tooltip.trigger applies onto the raw tooltip config, unmanaged keys survive', () => {
+test('tooltipTrigger applies onto the raw tooltip config, unmanaged keys survive', () => {
   const raw = { tooltip: { formatter: '{b}: {c}' } };
-  const merged = applyStructuredChrome(raw, { tooltip: { trigger: 'axis' } });
+  const merged = applyStructuredChrome(raw, { tooltipTrigger: 'axis' });
   expect(merged.tooltip).toEqual({ formatter: '{b}: {c}', trigger: 'axis' });
 });
 
 test('axis name/rotate/format merge into name + axisLabel, raw axisLabel keys survive', () => {
   const raw = { xAxis: { type: 'category', axisLabel: { color: 'red' } } };
   const merged = applyStructuredChrome(raw, {
-    xAxis: { name: 'Product', rotate: 45, format: '{value} kg' },
+    xAxisName: 'Product',
+    xAxisRotate: 45,
+    xAxisFormat: '{value} kg',
   });
   expect(merged.xAxis).toEqual({
     type: 'category',
@@ -73,7 +80,7 @@ test('axis name/rotate/format merge into name + axisLabel, raw axisLabel keys su
 test('xAxis and yAxis are managed independently', () => {
   const merged = applyStructuredChrome(
     { xAxis: {}, yAxis: {} },
-    { xAxis: { name: 'X' }, yAxis: { name: 'Y' } },
+    { xAxisName: 'X', yAxisName: 'Y' },
   );
   expect(merged.xAxis).toEqual({ name: 'X' });
   expect(merged.yAxis).toEqual({ name: 'Y' });
@@ -85,7 +92,7 @@ test('unmanaged raw properties outside title/legend/tooltip/xAxis/yAxis survive 
     grid: { left: 10 },
     title: { text: 'raw' },
   };
-  const merged = applyStructuredChrome(raw, { legend: { show: false } });
+  const merged = applyStructuredChrome(raw, { legendShow: false });
   expect(merged.series).toBe(raw.series);
   expect(merged.grid).toBe(raw.grid);
   expect(merged.title).toBe(raw.title);

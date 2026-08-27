@@ -20,29 +20,31 @@
 /**
  * The `echarts` widget's second, independent structured layer — chart
  * chrome (title/legend/tooltip/axis labels) — matching `EchartsChrome`'s
- * docstring in `superset/widgets/controls.py`: every leaf is optional and
- * applies (or not) on its own, regardless of `chartType`/`customize`. A leaf
- * left at its default never touches `echartsOptions`; when it does apply, it
- * merges onto — rather than replaces — the matching section, so an
- * unmanaged sibling property there (e.g. a hand-authored `legend.orient`)
+ * docstring in `superset/widgets/controls.py`: every field is optional and
+ * applies (or not) on its own, regardless of `chartType`/`customize`. A
+ * field left at its default never touches `echartsOptions`; when it does
+ * apply, it merges onto — rather than replaces — the matching section, so
+ * an unmanaged sibling property there (e.g. a hand-authored `legend.orient`)
  * survives.
+ *
+ * `EchartsChromeValue` is deliberately flat, not grouped into
+ * `title`/`legend`/`tooltip`/`xAxis`/`yAxis` sub-objects — see
+ * `EchartsChrome`'s own docstring: JsonForms' generated control panel only
+ * renders one level of nested-object properties, so a two-level-deep
+ * `chrome.title.text` would render as an empty group with no fields inside.
  */
 
 export interface EchartsChromeValue {
-  title?: { text?: string };
-  legend?: {
-    show?: boolean;
-    position?: 'top' | 'bottom' | 'left' | 'right' | null;
-  };
-  tooltip?: { trigger?: 'item' | 'axis' | null };
-  xAxis?: EchartsAxisChromeValue;
-  yAxis?: EchartsAxisChromeValue;
-}
-
-export interface EchartsAxisChromeValue {
-  name?: string;
-  rotate?: number;
-  format?: string;
+  titleText?: string;
+  legendShow?: boolean;
+  legendPosition?: 'top' | 'bottom' | 'left' | 'right' | null;
+  tooltipTrigger?: 'item' | 'axis' | null;
+  xAxisName?: string;
+  xAxisRotate?: number;
+  xAxisFormat?: string;
+  yAxisName?: string;
+  yAxisRotate?: number;
+  yAxisFormat?: string;
 }
 
 // ECharts has no single "position" property on `legend` — placement comes
@@ -61,45 +63,38 @@ function asRecord(value: unknown): Record<string, unknown> {
     : {};
 }
 
-function applyTitle(
-  existing: unknown,
-  title: EchartsChromeValue['title'],
-): unknown {
-  if (!title?.text) return existing;
-  return { ...asRecord(existing), text: title.text };
+function applyTitle(existing: unknown, chrome: EchartsChromeValue): unknown {
+  if (!chrome.titleText) return existing;
+  return { ...asRecord(existing), text: chrome.titleText };
 }
 
-function applyLegend(
-  existing: unknown,
-  legend: EchartsChromeValue['legend'],
-): unknown {
+function applyLegend(existing: unknown, chrome: EchartsChromeValue): unknown {
   const override: Record<string, unknown> = {};
-  if (legend?.show === false) override.show = false;
-  if (legend?.position)
-    Object.assign(override, LEGEND_POSITION[legend.position]);
+  if (chrome.legendShow === false) override.show = false;
+  if (chrome.legendPosition) {
+    Object.assign(override, LEGEND_POSITION[chrome.legendPosition]);
+  }
   if (Object.keys(override).length === 0) return existing;
   return { ...asRecord(existing), ...override };
 }
 
-function applyTooltip(
-  existing: unknown,
-  tooltip: EchartsChromeValue['tooltip'],
-): unknown {
-  if (!tooltip?.trigger) return existing;
-  return { ...asRecord(existing), trigger: tooltip.trigger };
+function applyTooltip(existing: unknown, chrome: EchartsChromeValue): unknown {
+  if (!chrome.tooltipTrigger) return existing;
+  return { ...asRecord(existing), trigger: chrome.tooltipTrigger };
 }
 
 function applyAxis(
   existing: unknown,
-  axis: EchartsAxisChromeValue | undefined,
+  name: string | undefined,
+  rotate: number | undefined,
+  format: string | undefined,
 ): unknown {
-  if (!axis) return existing;
   const existingRecord = asRecord(existing);
   const override: Record<string, unknown> = {};
-  if (axis.name) override.name = axis.name;
+  if (name) override.name = name;
   const axisLabelOverride: Record<string, unknown> = {};
-  if (axis.rotate) axisLabelOverride.rotate = axis.rotate;
-  if (axis.format) axisLabelOverride.formatter = axis.format;
+  if (rotate) axisLabelOverride.rotate = rotate;
+  if (format) axisLabelOverride.formatter = format;
   if (Object.keys(axisLabelOverride).length > 0) {
     override.axisLabel = {
       ...asRecord(existingRecord.axisLabel),
@@ -111,21 +106,31 @@ function applyAxis(
 }
 
 /**
- * Layers `chrome`'s leaves onto an already `$bind`-resolved raw option, one
+ * Layers `chrome`'s fields onto an already `$bind`-resolved raw option, one
  * independent merge per section (`title`/`legend`/`tooltip`/`xAxis`/
- * `yAxis`). Returns `resolved` unchanged (same reference) when every leaf is
- * at its default.
+ * `yAxis`). Returns `resolved` unchanged (same reference) when every field
+ * is at its default.
  */
 export function applyStructuredChrome(
   resolved: Record<string, unknown>,
   chrome: EchartsChromeValue | undefined,
 ): Record<string, unknown> {
   if (!chrome) return resolved;
-  const title = applyTitle(resolved.title, chrome.title);
-  const legend = applyLegend(resolved.legend, chrome.legend);
-  const tooltip = applyTooltip(resolved.tooltip, chrome.tooltip);
-  const xAxis = applyAxis(resolved.xAxis, chrome.xAxis);
-  const yAxis = applyAxis(resolved.yAxis, chrome.yAxis);
+  const title = applyTitle(resolved.title, chrome);
+  const legend = applyLegend(resolved.legend, chrome);
+  const tooltip = applyTooltip(resolved.tooltip, chrome);
+  const xAxis = applyAxis(
+    resolved.xAxis,
+    chrome.xAxisName,
+    chrome.xAxisRotate,
+    chrome.xAxisFormat,
+  );
+  const yAxis = applyAxis(
+    resolved.yAxis,
+    chrome.yAxisName,
+    chrome.yAxisRotate,
+    chrome.yAxisFormat,
+  );
   if (
     title === resolved.title &&
     legend === resolved.legend &&

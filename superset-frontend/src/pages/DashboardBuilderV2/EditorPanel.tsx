@@ -23,12 +23,11 @@ import { css, styled } from '@apache-superset/core/theme';
 import { Button, Tabs } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { provider, useDashboardRevision } from 'src/core/dashboard/store';
-import DataPanel from './DataPanel';
 import Inspector from './Inspector';
 import Outline from './Outline';
 import Palette from './Palette';
 
-type PanelTab = 'data' | 'widgets' | 'properties' | 'outline';
+type PanelTab = 'widgets' | 'properties' | 'outline';
 
 /**
  * How wide the panel opens, and how far it may be dragged.
@@ -144,17 +143,14 @@ const PanelTabs = styled(Tabs)`
 `;
 
 /**
- * The authoring panel: one rail, four ways of working on a dashboard.
+ * The authoring panel: one rail, three ways of working on a dashboard.
  *
  * Placing a widget, editing one and finding one are the same activity at
  * different moments, and an author is only ever doing one of them —
  * Building Blocks, Properties and Outline are that activity's three faces.
- * Browsing data is a different activity: checking what a dataset holds is
- * not a moment of placing, editing or finding a widget, which is why it gets
- * a tab of its own rather than folding into one of the other three. Giving
- * every tab its own permanent rail would still spend the canvas on a choice
- * made moment to moment, so all four share one rail and the canvas keeps
- * the room.
+ * Giving every tab its own permanent rail would still spend the canvas on a
+ * choice made moment to moment, so all three share one rail and the canvas
+ * keeps the room.
  */
 export default function EditorPanel({
   onAdd,
@@ -321,11 +317,6 @@ export default function EditorPanel({
           ),
         }}
         items={[
-          {
-            key: 'data',
-            label: t('Data'),
-            children: <DataPanel />,
-          },
           {
             key: 'widgets',
             label: t('Building Blocks'),
