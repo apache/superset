@@ -252,9 +252,11 @@ def test_merge_form_data_filters_into_query_applies_regular_overrides():
     ]
     assert query["time_range"] == "No filter"
     assert query["granularity"] == "updated_at"
-    assert query["time_grain"] == "P1D"
     # time_grain_sqla is an extras field on the query object, not a top-level one.
     assert query["extras"]["time_grain_sqla"] == "P1D"
+    # time_grain is not a query object field, so the merge leaves whatever the
+    # saved query context already had rather than writing a key the schema drops.
+    assert query["time_grain"] == "P1Y"
     assert query["where"] == "(region = 'NA') AND (name IS NOT NULL)"
     assert query["having"] == "(SUM(num) > 10) AND (COUNT(*) > 1)"
 

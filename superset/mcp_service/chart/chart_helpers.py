@@ -37,9 +37,13 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+# extra_form_data override targets that the query object actually reads. Note
+# that ``time_grain`` is deliberately absent: the query object has no such field
+# and nothing downstream consumes it, matching the REST path, where
+# form_data_query_context reads only ``time_grain_sqla``. Listing it here would
+# write a key that ChartDataQueryObjectSchema (``unknown = EXCLUDE``) discards.
 QUERY_CONTEXT_EXTRA_FORM_DATA_OVERRIDE_KEYS = {
     "granularity",
-    "time_grain",
     "time_grain_sqla",
     "time_range",
 }
