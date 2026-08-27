@@ -62,9 +62,5 @@ def test_post_put_methods_have_no_has_access_api_or_api_decorator():
     assert "has_access_api" not in source_post
     assert "has_access_api" not in source_put
 
-    assert not any(
-        line.strip().startswith("@api") for line in source_post.splitlines()
-    )
-    assert not any(
-        line.strip().startswith("@api") for line in source_put.splitlines()
-    )
+    assert not any(line.strip().startswith("@api") for line in source_post.splitlines())
+    assert not any(line.strip().startswith("@api") for line in source_put.splitlines())
