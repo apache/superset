@@ -191,5 +191,13 @@ testWithAssets(
         },
       )
       .toBeLessThan(widthAtWide);
+
+    const { offsetWidth, scrollWidth } = await echartsHost.evaluate(
+      (element: HTMLElement) => ({
+        offsetWidth: element.offsetWidth,
+        scrollWidth: element.scrollWidth,
+      }),
+    );
+    expect(scrollWidth).toBeLessThanOrEqual(offsetWidth);
   },
 );
