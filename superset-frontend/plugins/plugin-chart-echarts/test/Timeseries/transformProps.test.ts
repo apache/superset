@@ -3066,3 +3066,63 @@ test('tooltip does not apply a metric currency format to a Percentage time compa
   expect(result).toContain('25.00%');
   expect(result).not.toContain('$ 0.25');
 });
+
+test('tooltip does not apply a metric currency format to a grouped Percentage time comparison', () => {
+  // A groupby appends the dimension values to the derived series name
+  // ("1 week ago, East"), so matching the dimensionless names alone left the
+  // grouped rows resolving back to the source metric's CurrencyFormatter.
+  const chartProps = createTestChartProps({
+    formData: {
+      metric: 'sum__num',
+      metrics: ['sum__num'],
+      groupby: ['region'],
+      richTooltip: true,
+      time_compare: ['1 week ago'],
+      comparison_type: ComparisonType.Percentage,
+    },
+    queriesData: [
+      createTestQueryData(
+        [
+          {
+            'sum__num, East': 100,
+            '1 week ago, East': 0.25,
+            __timestamp: BASE_TIMESTAMP,
+          },
+        ],
+        {
+          label_map: {
+            'sum__num, East': ['sum__num', 'East'],
+            '1 week ago, East': ['1 week ago', 'East'],
+          },
+        },
+      ),
+    ],
+    datasource: {
+      verboseMap: {},
+      columnFormats: {},
+      currencyFormats: {
+        sum__num: { symbol: 'USD', symbolPosition: 'prefix' },
+      },
+    },
+  });
+
+  const { echartOptions } = transformProps(chartProps);
+  const { tooltip } = echartOptions as unknown as TooltipFormatterOptions;
+
+  const result = tooltip.formatter([
+    {
+      seriesId: 'sum__num, East',
+      seriesName: 'sum__num, East',
+      value: [BASE_TIMESTAMP, 100],
+    },
+    {
+      seriesId: '1 week ago, East',
+      seriesName: '1 week ago, East',
+      value: [BASE_TIMESTAMP, 0.25],
+    },
+  ]);
+
+  expect(result).toContain('$ 100');
+  expect(result).toContain('25.00%');
+  expect(result).not.toContain('$ 0.25');
+});

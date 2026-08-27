@@ -599,17 +599,16 @@ export default function transformProps(
 
   // A Percentage time comparison replaces the derived series' values with a
   // ratio, so that row is no longer in the source metric's units and must not
-  // inherit its currency/D3 format. `renameOperator` labels those series with
-  // the offset alone, or `<metric>, <offset>` when several metrics are plotted.
-  const percentageComparisonSeries = new Set<string>(
-    chartProps.rawFormData?.comparison_type === ComparisonType.Percentage
-      ? array.flatMap(offset =>
-          rawValueMetricLabels.length > 1
-            ? rawValueMetricLabels.map(label => `${label}, ${offset}`)
-            : [String(offset)],
-        )
-      : [],
-  );
+  // inherit its currency/D3 format. `renameOperator` names those series with the
+  // offset alone or `<metric>, <offset>`, and a grouped chart appends its
+  // dimension values on top ("1 week ago, East"). Recognise them with the same
+  // helper the derived-series styling uses rather than matching exact names:
+  // `getTimeOffset` covers every form except the bare offset of an ungrouped
+  // single-metric chart, which the offsets themselves match.
+  const isPercentageComparisonSeries = (seriesKey: string) =>
+    chartProps.rawFormData?.comparison_type === ComparisonType.Percentage &&
+    (array.includes(seriesKey) ||
+      getTimeOffset({ name: seriesKey }, array) !== undefined);
 
   // With the "full range" time-shift option, offset series are outer-joined onto
   // the main series, which inserts null rows into the main series wherever the
@@ -1463,7 +1462,7 @@ export default function transformProps(
         // comparison row is a ratio rather than a value in the metric's units,
         // so it takes the percent formatter instead of the metric's own format.
         const getSeriesFormatter = (seriesKey: string) =>
-          forcePercentFormatter || percentageComparisonSeries.has(seriesKey)
+          forcePercentFormatter || isPercentageComparisonSeries(seriesKey)
             ? percentFormatter
             : (getCustomFormatter(
                 customFormatters,
