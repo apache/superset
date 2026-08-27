@@ -98,6 +98,3 @@ def api(
         "API decorator not initialized. "
         "This decorator should be replaced during Superset startup."
     )
-
-
-__all__ = ["api"]
