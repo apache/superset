@@ -46,17 +46,25 @@ def test_dashboard_filter_state_command_factories():
     assert api.get_delete_command() is DeleteFilterStateCommand
 
 
-def test_post_put_methods_have_no_has_access_api_decorator():
+def test_post_put_methods_have_no_has_access_api_or_api_decorator():
     """
-    Ensure post and put methods are not decorated with @has_access_api.
+    Ensure post and put methods are not decorated with @has_access_api or @api.
 
     Because DashboardFilterStateRestApi is a temporary cache API, permission
     verification is handled dynamically at the command level via
     CheckAccessDataCommand. @has_access_api causes 401 Unauthorized for regular
-    users due to missing FAB permissions.
+    users due to missing FAB permissions. The @api wrapper would catch and convert
+    uncaught auth errors into 500s.
     """
     source_post = inspect.getsource(DashboardFilterStateRestApi.post)
     source_put = inspect.getsource(DashboardFilterStateRestApi.put)
 
     assert "has_access_api" not in source_post
     assert "has_access_api" not in source_put
+
+    assert not any(
+        line.strip().startswith("@api") for line in source_post.splitlines()
+    )
+    assert not any(
+        line.strip().startswith("@api") for line in source_put.splitlines()
+    )

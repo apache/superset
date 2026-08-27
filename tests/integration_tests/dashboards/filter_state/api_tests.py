@@ -296,6 +296,7 @@ def test_put_authenticated_user_with_access(
         f"api/v1/dashboard/{dashboard_id}/filter_state/{key}", json=put_payload
     )
     assert resp.status_code == 200
+    mock_create_check_access.assert_called_once_with(dashboard_id)
     mock_update_check_access.assert_called_once_with(dashboard_id)
 
 
