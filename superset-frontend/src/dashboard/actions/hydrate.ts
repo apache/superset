@@ -408,6 +408,9 @@ export const hydrateDashboard =
           // Display-only localized title; the canonical title lives in the
           // header layout meta (meta.text) and is what edits/saves operate on.
           localizedTitle: dashboard.localized_title,
+          // The canonical title this translation was resolved for, so a rename
+          // can invalidate it rather than displaying the old title's translation.
+          localizedTitleFor: dashboard.dashboard_title,
           colorNamespace: metadata?.color_namespace || null,
           colorScheme: metadata?.color_scheme || null,
           editMode: editModeOverride ?? (canEdit && editMode),

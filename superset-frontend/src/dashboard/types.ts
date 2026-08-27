@@ -168,6 +168,9 @@ export type DashboardState = {
   // the header layout meta). Present only when asset-metadata translation is
   // enabled.
   localizedTitle?: string;
+  // The canonical title `localizedTitle` was resolved for; the translation is
+  // only displayed while the live title still matches it.
+  localizedTitleFor?: string;
   colorNamespace?: string;
   isStarred?: boolean;
   lastRefreshTime?: number;

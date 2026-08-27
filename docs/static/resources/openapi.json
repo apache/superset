@@ -1733,6 +1733,10 @@
           "last_saved_by": {
             "$ref": "#/components/schemas/ChartDataRestApi.get_list.User2"
           },
+          "localized_name": {
+            "readOnly": true,
+            "type": "string"
+          },
           "owners": {
             "$ref": "#/components/schemas/ChartDataRestApi.get_list.User3"
           },
@@ -2492,6 +2496,10 @@
           },
           "last_saved_by": {
             "$ref": "#/components/schemas/ChartRestApi.get_list.User2"
+          },
+          "localized_name": {
+            "readOnly": true,
+            "type": "string"
           },
           "owners": {
             "$ref": "#/components/schemas/ChartRestApi.get_list.User3"
@@ -3436,6 +3444,10 @@
           },
           "is_managed_externally": {
             "type": "boolean"
+          },
+          "localized_title": {
+            "readOnly": true,
+            "type": "string"
           },
           "published": {
             "nullable": true,
