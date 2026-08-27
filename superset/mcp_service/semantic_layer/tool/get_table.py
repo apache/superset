@@ -416,6 +416,7 @@ def _validate_datasource_selection(
         title="Get table",
         readOnlyHint=True,
         destructiveHint=False,
+        openWorldHint=False,
     ),
 )
 @requires_data_model_metadata_access

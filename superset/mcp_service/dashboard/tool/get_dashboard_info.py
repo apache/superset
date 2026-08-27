@@ -96,6 +96,7 @@ def _lookup_dashboard(
         title="Get dashboard info",
         readOnlyHint=True,
         destructiveHint=False,
+        openWorldHint=False,
     ),
 )
 async def get_dashboard_info(
