@@ -20,7 +20,8 @@ from functools import partial
 from typing import Any
 from uuid import UUID
 
-from superset import security_manager
+from marshmallow import ValidationError
+
 from superset.commands.base import BaseCommand
 from superset.commands.dashboard_folder.exceptions import (
     DashboardFolderForbiddenError,
@@ -29,13 +30,14 @@ from superset.commands.dashboard_folder.exceptions import (
     DashboardFolderNotFoundError,
     DashboardFolderOperationFailedError,
 )
+from superset.commands.utils import compute_subjects
 from superset.daos.dashboard_folder import DashboardFolderDAO
 from superset.models.dashboard_folder import DashboardFolder
 from superset.utils.decorators import on_error, transaction
 
 
 class UpdateDashboardFolderCommand(BaseCommand):
-    """Update a folder after validating ownership and hierarchy."""
+    """Update a folder after validating editorship and hierarchy."""
 
     def __init__(self, folder_id: UUID, data: dict[str, Any]) -> None:
         self._folder_id = folder_id
@@ -51,19 +53,22 @@ class UpdateDashboardFolderCommand(BaseCommand):
         return DashboardFolderDAO.update(self._folder, self._properties)
 
     def validate(self) -> None:
-        """Validate ownership, owner changes, and target ancestry."""
+        """Validate editorship, Subject changes, and target ancestry."""
         self._folder = DashboardFolderDAO.get_by_id(self._folder_id)
         if self._folder is None:
             raise DashboardFolderNotFoundError()
         if not DashboardFolderDAO.can_write(self._folder):
             raise DashboardFolderForbiddenError()
 
-        if "owners" in self._properties:
-            if not security_manager.is_admin():
-                raise DashboardFolderForbiddenError()
-            self._properties["owners"] = DashboardFolderDAO.get_users(
-                self._properties["owners"]
-            )
+        if (
+            "editors" in self._properties
+            or "viewers" in self._properties
+            or hasattr(self._folder, "editors")
+        ):
+            exceptions: list[ValidationError] = []
+            compute_subjects(self._folder, self._properties, exceptions)
+            if exceptions:
+                raise DashboardFolderInvalidError(exceptions=exceptions)
 
         if "parent_id" in self._properties:
             self._validate_parent(self._properties["parent_id"])

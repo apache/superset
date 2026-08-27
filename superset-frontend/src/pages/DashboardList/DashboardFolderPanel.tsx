@@ -385,8 +385,7 @@ export function DashboardFolderPanel({
               </FolderTitle>
             ),
             children: childNodes.length ? childNodes : undefined,
-            // Top-level folders can contain children, so keep their expand control visible.
-            isLeaf: parentId === null ? false : childNodes.length === 0,
+            isLeaf: childNodes.length === 0,
           };
         });
 
@@ -451,15 +450,7 @@ export function DashboardFolderPanel({
       <FolderTree
         blockNode
         expandedKeys={expandedFolderIds}
-        onExpand={(keys, info) => {
-          const folderId = String(info.node.key);
-          setExpandedFolderIds(keys.map(String));
-          if (info.expanded) {
-            onSelect(folderId);
-          } else if (selectedFolderId === folderId) {
-            onSelect(null);
-          }
-        }}
+        onExpand={keys => setExpandedFolderIds(keys.map(String))}
         selectedKeys={
           selectedFolderId && selectedFolderId !== 'uncategorized'
             ? [selectedFolderId]

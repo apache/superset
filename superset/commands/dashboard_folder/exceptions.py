@@ -18,7 +18,7 @@
 
 from flask_babel import lazy_gettext as _
 
-from superset.commands.exceptions import CommandException
+from superset.commands.exceptions import CommandException, CommandInvalidError
 
 
 class DashboardFolderNotFoundError(CommandException):
@@ -29,7 +29,7 @@ class DashboardFolderForbiddenError(CommandException):
     message = _("You do not have permission to modify this dashboard folder.")
 
 
-class DashboardFolderInvalidError(CommandException):
+class DashboardFolderInvalidError(CommandInvalidError):
     message = _("Dashboard folder is invalid.")
 
 

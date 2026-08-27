@@ -47,7 +47,8 @@ def test_folder_post_schema_accepts_valid_hierarchy() -> None:
     assert result == {
         "name": "Finance",
         "parent_id": parent_id,
-        "owners": [],
+        "editors": [],
+        "viewers": [],
     }
 
 

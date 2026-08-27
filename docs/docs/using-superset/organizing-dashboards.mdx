@@ -32,7 +32,7 @@ Folder names:
 - cannot match the direct parent folder name.
 
 Available actions appear when you hover over a folder. Depending on your folder
-ownership and role permissions, you can rename or delete it. Deleting a folder
+editorship and role permissions, you can rename or delete it. Deleting a folder
 also deletes its child folders, but it does not delete dashboards. Dashboards
 from the deleted folder tree become uncategorized.
 
@@ -53,9 +53,11 @@ as move destinations.
 Folder visibility never grants access to a dashboard. The dashboard list still
 uses Superset's standard dashboard access rules.
 
-Administrators can see all folders. Other users see folders they own and folders
-that contain dashboards they can access. Ancestor folders may also appear so
-that visible descendants remain navigable. Creating, renaming, deleting, and
-moving dashboards are separate permissions and are also restricted by folder
-ownership. A non-administrator cannot delete a folder tree that contains a
-descendant owned by another user.
+Administrators can see all folders. Other users see folders where one of their
+user, role, or group Subjects is an editor or viewer, along with folders that
+contain dashboards they can access. Ancestor folders may also appear so that
+visible descendants remain navigable. Editors may modify a folder only when
+they also have the corresponding DashboardFolder action permission. Viewers can
+use a folder for navigation but cannot modify it or select it as a dashboard
+move destination. A non-administrator cannot delete a folder tree that contains
+a descendant they cannot edit.

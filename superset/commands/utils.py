@@ -78,7 +78,7 @@ def populate_subject_list(
             return [user_subject] if user_subject else []
         return []
 
-    if ensure_no_lockout and not security_manager.is_admin() and user_id:
+    if ensure_no_lockout and user_id and not security_manager.is_admin():
         user_subject = get_user_subject(user_id)
         if (
             user_subject

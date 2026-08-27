@@ -25,7 +25,8 @@ class DashboardFolderPostSchema(Schema):
     name = fields.String(required=True, validate=validate.Length(min=1, max=100))
     description = fields.String(allow_none=True, validate=validate.Length(max=500))
     parent_id = fields.UUID(allow_none=True, load_default=None)
-    owners = fields.List(fields.Integer(), load_default=list)
+    editors = fields.List(fields.Integer(), load_default=list)
+    viewers = fields.List(fields.Integer(), load_default=list)
 
 
 class DashboardFolderPutSchema(Schema):
@@ -34,7 +35,8 @@ class DashboardFolderPutSchema(Schema):
     name = fields.String(validate=validate.Length(min=1, max=100))
     description = fields.String(allow_none=True, validate=validate.Length(max=500))
     parent_id = fields.UUID(allow_none=True)
-    owners = fields.List(fields.Integer())
+    editors = fields.List(fields.Integer())
+    viewers = fields.List(fields.Integer())
 
 
 class DashboardFolderMoveDashboardSchema(Schema):

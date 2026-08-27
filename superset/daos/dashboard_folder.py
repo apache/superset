@@ -22,7 +22,6 @@ from collections import defaultdict
 from typing import Any
 from uuid import UUID
 
-from flask import g
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from sqlalchemy import func
 from sqlalchemy.orm import Query
@@ -32,6 +31,9 @@ from superset.daos.base import BaseDAO
 from superset.dashboards.filters import DashboardAccessFilter
 from superset.models.dashboard import Dashboard
 from superset.models.dashboard_folder import DashboardFolder
+from superset.subjects.models import dashboard_folder_editors, dashboard_folder_viewers
+from superset.subjects.utils import get_user_subject_ids_subquery
+from superset.utils.core import get_user_id
 
 
 class DashboardFolderDAO(BaseDAO[DashboardFolder]):
@@ -39,15 +41,12 @@ class DashboardFolderDAO(BaseDAO[DashboardFolder]):
 
     @classmethod
     def can_write(cls, folder: DashboardFolder) -> bool:
-        """Return whether the current user may mutate a folder."""
-        user_id = getattr(g.user, "id", None)
-        return security_manager.is_admin() or any(
-            owner.id == user_id for owner in folder.owners
-        )
+        """Return whether the current user is an editor of the folder."""
+        return security_manager.is_editor(folder)
 
     @classmethod
     def can_perform(cls, folder: DashboardFolder, action: str) -> bool:
-        """Return whether the user owns a folder and has the action permission."""
+        """Return whether the user can edit a folder and perform an action."""
         return cls.can_write(folder) and (
             security_manager.is_admin()
             or security_manager.can_access(f"can_{action}", "DashboardFolder")
@@ -78,22 +77,29 @@ class DashboardFolderDAO(BaseDAO[DashboardFolder]):
         return query.first()
 
     @classmethod
-    def get_users(cls, user_ids: list[int]) -> list[Any]:
-        """Resolve owner IDs to users."""
-        if not user_ids:
-            return []
-        return (
-            db.session.query(security_manager.user_model)
-            .filter(security_manager.user_model.id.in_(user_ids))
-            .all()
-        )
-
-    @classmethod
     def accessible_dashboard_query(cls) -> Query:
         """Build a dashboard query using Superset's canonical access filter."""
         query = db.session.query(Dashboard)
         return DashboardAccessFilter("id", SQLAInterface(Dashboard, db.session)).apply(
             query, None
+        )
+
+    @classmethod
+    def uncategorize_dashboards(cls, folder: DashboardFolder) -> None:
+        """Move dashboards in a folder subtree to the uncategorized root."""
+        folder_ids: list[UUID] = []
+        pending = [folder]
+        visited: set[UUID] = set()
+        while pending:
+            current = pending.pop()
+            if current.id in visited:
+                continue
+            visited.add(current.id)
+            folder_ids.append(current.id)
+            pending.extend(current.children)
+
+        db.session.query(Dashboard).filter(Dashboard.folder_id.in_(folder_ids)).update(
+            {Dashboard.folder_id: None}, synchronize_session=False
         )
 
     @classmethod
@@ -116,12 +122,18 @@ class DashboardFolderDAO(BaseDAO[DashboardFolder]):
             visible_ids = {
                 folder_id for folder_id in direct_counts if folder_id is not None
             }
-            user_id = getattr(g.user, "id", None)
-            visible_ids.update(
-                folder.id
-                for folder in all_folders
-                if any(owner.id == user_id for owner in folder.owners)
-            )
+            if user_id := get_user_id():
+                subject_ids = get_user_subject_ids_subquery(user_id)
+                for relation_table in (
+                    dashboard_folder_editors,
+                    dashboard_folder_viewers,
+                ):
+                    visible_ids.update(
+                        folder_id
+                        for (folder_id,) in db.session.query(relation_table.c.folder_id)
+                        .filter(relation_table.c.subject_id.in_(subject_ids))
+                        .all()
+                    )
             parent_by_id = {folder.id: folder.parent_id for folder in all_folders}
             for folder_id in tuple(visible_ids):
                 visited: set[UUID] = set()
@@ -150,13 +162,13 @@ class DashboardFolderDAO(BaseDAO[DashboardFolder]):
                 "name": folder.name,
                 "description": folder.description,
                 "parent_id": str(folder.parent_id) if folder.parent_id else None,
-                "owners": [
-                    {
-                        "id": owner.id,
-                        "first_name": owner.first_name,
-                        "last_name": owner.last_name,
-                    }
-                    for owner in folder.owners
+                "editors": [
+                    cls._subject_payload(subject)
+                    for subject in getattr(folder, "editors", [])
+                ],
+                "viewers": [
+                    cls._subject_payload(subject)
+                    for subject in getattr(folder, "viewers", [])
                 ],
                 "dashboard_count": total_count(folder.id, set()),
                 "can_create": cls.can_perform(folder, "create"),
@@ -172,4 +184,15 @@ class DashboardFolderDAO(BaseDAO[DashboardFolder]):
             "count": len(folders),
             "total_dashboards": total_dashboards,
             "uncategorized_dashboards": uncategorized_dashboards,
+        }
+
+    @staticmethod
+    def _subject_payload(subject: Any) -> dict[str, Any]:
+        """Serialize a Subject using the compact public response shape."""
+        return {
+            "id": subject.id,
+            "label": subject.label,
+            "secondary_label": subject.secondary_label,
+            "img": subject.img,
+            "type": subject.type,
         }

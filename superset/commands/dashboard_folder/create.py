@@ -19,9 +19,8 @@
 from functools import partial
 from typing import Any
 
-from flask import g
+from marshmallow import ValidationError
 
-from superset import security_manager
 from superset.commands.base import BaseCommand
 from superset.commands.dashboard_folder.exceptions import (
     DashboardFolderForbiddenError,
@@ -29,13 +28,14 @@ from superset.commands.dashboard_folder.exceptions import (
     DashboardFolderNameConflictError,
     DashboardFolderOperationFailedError,
 )
+from superset.commands.utils import populate_subjects
 from superset.daos.dashboard_folder import DashboardFolderDAO
 from superset.models.dashboard_folder import DashboardFolder
 from superset.utils.decorators import on_error, transaction
 
 
 class CreateDashboardFolderCommand(BaseCommand):
-    """Create a folder owned by the current user by default."""
+    """Create a folder with Subject-based editor and viewer access."""
 
     def __init__(self, data: dict[str, Any]) -> None:
         self._properties = data.copy()
@@ -45,14 +45,10 @@ class CreateDashboardFolderCommand(BaseCommand):
     )
     def run(self) -> DashboardFolder:
         self.validate()
-        owner_ids = self._properties.pop("owners", [])
-        owners = DashboardFolderDAO.get_users(owner_ids) if owner_ids else [g.user]
-        return DashboardFolderDAO.create(
-            attributes={**self._properties, "owners": owners}
-        )
+        return DashboardFolderDAO.create(attributes=self._properties)
 
     def validate(self) -> None:
-        """Validate parent ownership and explicit owner assignment."""
+        """Validate parent access, names, and Subject relationships."""
         name = self._properties["name"].strip()
         if not name:
             raise DashboardFolderInvalidError()
@@ -67,11 +63,10 @@ class CreateDashboardFolderCommand(BaseCommand):
             if parent.name.strip().lower() == name.lower():
                 raise DashboardFolderNameConflictError()
 
-        owner_ids = self._properties.pop("owners", [])
-        if owner_ids and not security_manager.is_admin():
-            raise DashboardFolderForbiddenError()
-
         if DashboardFolderDAO.find_name_conflict(name, parent_id):
             raise DashboardFolderNameConflictError()
 
-        self._properties["owners"] = owner_ids
+        exceptions: list[ValidationError] = []
+        populate_subjects(self._properties, exceptions)
+        if exceptions:
+            raise DashboardFolderInvalidError(exceptions=exceptions)

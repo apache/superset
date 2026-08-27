@@ -59,24 +59,27 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("id"),
     )
     create_index("dashboard_folders", "ix_dashboard_folders_parent_id", ["parent_id"])
-    create_table(
-        "dashboard_folder_user",
-        sa.Column("folder_id", UUIDType(binary=True), nullable=False),
-        sa.Column("user_id", sa.Integer(), nullable=False),
-        sa.ForeignKeyConstraint(
-            ["folder_id"],
-            ["dashboard_folders.id"],
-            name="fk_dashboard_folder_user_folder_id",
-            ondelete="CASCADE",
-        ),
-        sa.ForeignKeyConstraint(
-            ["user_id"],
-            ["ab_user.id"],
-            name="fk_dashboard_folder_user_user_id",
-            ondelete="CASCADE",
-        ),
-        sa.PrimaryKeyConstraint("folder_id", "user_id"),
-    )
+    for table_name in ("dashboard_folder_editors", "dashboard_folder_viewers"):
+        create_table(
+            table_name,
+            sa.Column("id", sa.Integer(), nullable=False),
+            sa.Column("subject_id", sa.Integer(), nullable=False),
+            sa.Column("folder_id", UUIDType(binary=True), nullable=False),
+            sa.ForeignKeyConstraint(
+                ["subject_id"],
+                ["subjects.id"],
+                name=f"fk_{table_name}_subject_id",
+                ondelete="CASCADE",
+            ),
+            sa.ForeignKeyConstraint(
+                ["folder_id"],
+                ["dashboard_folders.id"],
+                name=f"fk_{table_name}_folder_id",
+                ondelete="CASCADE",
+            ),
+            sa.PrimaryKeyConstraint("id"),
+            sa.UniqueConstraint("subject_id", "folder_id"),
+        )
     with op.batch_alter_table("dashboards") as batch_op:
         batch_op.add_column(
             sa.Column("folder_id", UUIDType(binary=True), nullable=True)
@@ -102,6 +105,7 @@ def downgrade() -> None:
         batch_op.drop_index("ix_dashboards_folder_id")
         batch_op.drop_constraint("fk_dashboards_folder_id", type_="foreignkey")
         batch_op.drop_column("folder_id")
-    drop_table("dashboard_folder_user")
+    drop_table("dashboard_folder_viewers")
+    drop_table("dashboard_folder_editors")
     drop_index("dashboard_folders", "ix_dashboard_folders_parent_id")
     drop_table("dashboard_folders")

@@ -102,7 +102,11 @@ class DashboardFolderRestApi(BaseSupersetModelRestApi):
                               type: string
                               format: uuid
                               nullable: true
-                            owners:
+                            editors:
+                              type: array
+                              items:
+                                type: object
+                            viewers:
                               type: array
                               items:
                                 type: object
@@ -159,7 +163,11 @@ class DashboardFolderRestApi(BaseSupersetModelRestApi):
                       type: string
                       format: uuid
                       nullable: true
-                    owners:
+                    editors:
+                      type: array
+                      items:
+                        type: integer
+                    viewers:
                       type: array
                       items:
                         type: integer
@@ -192,7 +200,7 @@ class DashboardFolderRestApi(BaseSupersetModelRestApi):
         except DashboardFolderForbiddenError:
             return self.response_403()
         except DashboardFolderInvalidError as ex:
-            return self.response_422(message=str(ex))
+            return self.response_422(message=ex.normalized_messages() or str(ex))
         except DashboardFolderOperationFailedError as ex:
             logger.exception("Dashboard folder creation failed")
             return self.response_422(message=str(ex))
@@ -232,7 +240,11 @@ class DashboardFolderRestApi(BaseSupersetModelRestApi):
                       type: string
                       format: uuid
                       nullable: true
-                    owners:
+                    editors:
+                      type: array
+                      items:
+                        type: integer
+                    viewers:
                       type: array
                       items:
                         type: integer
@@ -269,7 +281,7 @@ class DashboardFolderRestApi(BaseSupersetModelRestApi):
         except DashboardFolderForbiddenError:
             return self.response_403()
         except DashboardFolderInvalidError as ex:
-            return self.response_422(message=str(ex))
+            return self.response_422(message=ex.normalized_messages() or str(ex))
         except DashboardFolderOperationFailedError as ex:
             logger.exception("Dashboard folder update failed for %s", folder_id)
             return self.response_422(message=str(ex))

@@ -22,12 +22,17 @@ from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
 from superset.daos.dashboard_folder import DashboardFolderDAO
+from superset.models.dashboard import Dashboard
 from superset.models.dashboard_folder import DashboardFolder
 
 
 def test_visible_tree_uses_access_scoped_dashboard_counts() -> None:
-    current_user = SimpleNamespace(id=7, first_name="Current", last_name="Owner")
-    other_user = SimpleNamespace(id=8, first_name="Other", last_name="Owner")
+    current_subject = SimpleNamespace(
+        id=17, label="Current", secondary_label=None, img=None, type=1
+    )
+    other_subject = SimpleNamespace(
+        id=18, label="Other", secondary_label=None, img=None, type=1
+    )
     root_id = uuid4()
     child_id = uuid4()
     hidden_id = uuid4()
@@ -36,21 +41,21 @@ def test_visible_tree_uses_access_scoped_dashboard_counts() -> None:
         name="Root",
         description=None,
         parent_id=None,
-        owners=[other_user],
+        editors=[other_subject],
     )
     child = SimpleNamespace(
         id=child_id,
         name="Visible child",
         description=None,
         parent_id=root_id,
-        owners=[current_user],
+        editors=[current_subject],
     )
     hidden = SimpleNamespace(
         id=hidden_id,
         name="Hidden",
         description=None,
         parent_id=None,
-        owners=[other_user],
+        editors=[other_subject],
     )
     folder_query = MagicMock()
     folder_query.all.return_value = [root, child, hidden]
@@ -76,12 +81,13 @@ def test_visible_tree_uses_access_scoped_dashboard_counts() -> None:
             return_value=False,
         ),
         patch(
+            "superset.daos.dashboard_folder.security_manager.is_editor",
+            side_effect=lambda folder: folder is child,
+        ),
+        patch("superset.daos.dashboard_folder.get_user_id", return_value=None),
+        patch(
             "superset.daos.dashboard_folder.security_manager.can_access",
             return_value=True,
-        ),
-        patch(
-            "superset.daos.dashboard_folder.g",
-            SimpleNamespace(user=current_user),
         ),
     ):
         result = DashboardFolderDAO.get_visible_tree()
@@ -104,8 +110,7 @@ def test_visible_tree_uses_access_scoped_dashboard_counts() -> None:
 
 def test_folder_actions_follow_granular_permissions() -> None:
     """Verify that folder owner action permissions remain independent."""
-    current_user = SimpleNamespace(id=7)
-    folder = cast(DashboardFolder, SimpleNamespace(owners=[current_user]))
+    folder = cast(DashboardFolder, SimpleNamespace(editors=[]))
 
     def can_access(permission: str, resource: str) -> bool:
         return permission in {"can_create", "can_move_dashboard"} and (
@@ -118,12 +123,12 @@ def test_folder_actions_follow_granular_permissions() -> None:
             return_value=False,
         ),
         patch(
-            "superset.daos.dashboard_folder.security_manager.can_access",
-            side_effect=can_access,
+            "superset.daos.dashboard_folder.security_manager.is_editor",
+            return_value=True,
         ),
         patch(
-            "superset.daos.dashboard_folder.g",
-            SimpleNamespace(user=current_user),
+            "superset.daos.dashboard_folder.security_manager.can_access",
+            side_effect=can_access,
         ),
     ):
         assert DashboardFolderDAO.can_perform(folder, "create") is True
@@ -134,10 +139,9 @@ def test_folder_actions_follow_granular_permissions() -> None:
 
 def test_read_only_folder_has_no_mutation_actions() -> None:
     """Verify that folders remain read-only for non-owners."""
-    current_user = SimpleNamespace(id=7)
     folder = cast(
         DashboardFolder,
-        SimpleNamespace(owners=[SimpleNamespace(id=8)]),
+        SimpleNamespace(editors=[]),
     )
 
     with (
@@ -150,8 +154,8 @@ def test_read_only_folder_has_no_mutation_actions() -> None:
             return_value=True,
         ),
         patch(
-            "superset.daos.dashboard_folder.g",
-            SimpleNamespace(user=current_user),
+            "superset.daos.dashboard_folder.security_manager.is_editor",
+            return_value=False,
         ),
     ):
         assert DashboardFolderDAO.can_perform(folder, "create") is False
@@ -212,20 +216,18 @@ def test_find_name_conflict_scopes_child_to_parent() -> None:
     assert query.filter.call_count == 2
 
 
-def test_get_users_handles_empty_and_populated_owner_lists() -> None:
-    """Verify empty owner lists skip queries and non-empty lists resolve users."""
-    users = [SimpleNamespace(id=7), SimpleNamespace(id=8)]
-    query = MagicMock()
-    query.filter.return_value.all.return_value = users
+def test_subject_payload_uses_compact_response_fields() -> None:
+    subject = SimpleNamespace(
+        id=7, label="Analyst", secondary_label="Role", img=None, type=2
+    )
 
-    with patch(
-        "superset.daos.dashboard_folder.db.session.query",
-        return_value=query,
-    ) as session_query:
-        assert DashboardFolderDAO.get_users([]) == []
-        assert DashboardFolderDAO.get_users([7, 8]) == users
-
-    session_query.assert_called_once()
+    assert DashboardFolderDAO._subject_payload(subject) == {
+        "id": 7,
+        "label": "Analyst",
+        "secondary_label": "Role",
+        "img": None,
+        "type": 2,
+    }
 
 
 def test_accessible_dashboard_query_uses_the_canonical_filter() -> None:
@@ -258,24 +260,44 @@ def test_accessible_dashboard_query_uses_the_canonical_filter() -> None:
     access_filter.apply.assert_called_once_with(query, None)
 
 
+def test_uncategorize_dashboards_covers_the_entire_folder_subtree() -> None:
+    """Verify deleting a folder cannot leave dashboards linked to removed IDs."""
+    root_id = uuid4()
+    child_id = uuid4()
+    child = cast(DashboardFolder, SimpleNamespace(id=child_id, children=[]))
+    root = cast(DashboardFolder, SimpleNamespace(id=root_id, children=[child]))
+    query = MagicMock()
+    query.filter.return_value = query
+
+    with patch("superset.daos.dashboard_folder.db.session.query", return_value=query):
+        DashboardFolderDAO.uncategorize_dashboards(root)
+
+    query.filter.assert_called_once()
+    query.update.assert_called_once_with(
+        {Dashboard.folder_id: None}, synchronize_session=False
+    )
+
+
 def test_admin_tree_includes_all_folders_and_stops_recursive_cycles() -> None:
     """Verify admins see all folders and cyclic hierarchies terminate."""
     first_id = uuid4()
     second_id = uuid4()
-    owner = SimpleNamespace(id=7, first_name="Admin", last_name="User")
+    editor = SimpleNamespace(
+        id=7, label="Admin", secondary_label=None, img=None, type=1
+    )
     first = SimpleNamespace(
         id=first_id,
         name="First",
         description=None,
         parent_id=second_id,
-        owners=[owner],
+        editors=[editor],
     )
     second = SimpleNamespace(
         id=second_id,
         name="Second",
         description=None,
         parent_id=first_id,
-        owners=[owner],
+        editors=[editor],
     )
     folder_query = MagicMock()
     folder_query.all.return_value = [first, second]

@@ -44,6 +44,7 @@ class DeleteDashboardFolderCommand(BaseCommand):
     def run(self) -> None:
         self.validate()
         assert self._folder is not None
+        DashboardFolderDAO.uncategorize_dashboards(self._folder)
         DashboardFolderDAO.delete([self._folder])
 
     def validate(self) -> None:

@@ -21,31 +21,18 @@ from __future__ import annotations
 from uuid import uuid4
 
 from flask_appbuilder import Model
-from sqlalchemy import Column, ForeignKey, Integer, String, Table, Text
+from sqlalchemy import Column, ForeignKey, String, Text
 from sqlalchemy.orm import relationship
 from sqlalchemy_utils import UUIDType
 
-from superset import security_manager
 from superset.models.helpers import AuditMixinNullable
+from superset.subjects.models import (
+    dashboard_folder_editors,
+    dashboard_folder_viewers,
+    Subject,
+)
 
 metadata = Model.metadata  # pylint: disable=no-member
-
-dashboard_folder_user = Table(
-    "dashboard_folder_user",
-    metadata,
-    Column(
-        "folder_id",
-        UUIDType(binary=True),
-        ForeignKey("dashboard_folders.id", ondelete="CASCADE"),
-        primary_key=True,
-    ),
-    Column(
-        "user_id",
-        Integer,
-        ForeignKey("ab_user.id", ondelete="CASCADE"),
-        primary_key=True,
-    ),
-)
 
 
 class DashboardFolder(AuditMixinNullable, Model):
@@ -62,9 +49,14 @@ class DashboardFolder(AuditMixinNullable, Model):
         nullable=True,
         index=True,
     )
-    owners = relationship(
-        security_manager.user_model,
-        secondary=dashboard_folder_user,
+    editors = relationship(
+        Subject,
+        secondary=dashboard_folder_editors,
+        passive_deletes=True,
+    )
+    viewers = relationship(
+        Subject,
+        secondary=dashboard_folder_viewers,
         passive_deletes=True,
     )
     dashboards = relationship(

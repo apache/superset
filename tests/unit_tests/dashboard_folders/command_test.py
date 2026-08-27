@@ -42,30 +42,29 @@ from superset.exceptions import SupersetSecurityException
 from superset.models.dashboard_folder import DashboardFolder
 
 
-def test_non_admin_cannot_assign_folder_owners() -> None:
-    command = CreateDashboardFolderCommand({"name": "Finance", "owners": [7]})
+def test_create_accepts_subject_editors_for_non_admin() -> None:
+    subject = SimpleNamespace(id=7)
+    command = CreateDashboardFolderCommand({"name": "Finance", "editors": [7]})
 
     with (
+        patch.object(DashboardFolderDAO, "find_name_conflict", return_value=None),
         patch(
-            "superset.commands.dashboard_folder.create.security_manager.is_admin",
-            return_value=False,
+            "superset.commands.utils.get_subject",
+            return_value=subject,
         ),
-        pytest.raises(DashboardFolderForbiddenError),
+        patch("superset.commands.utils.get_user_id", return_value=None),
     ):
         command.validate()
 
+    assert command._properties["editors"] == [subject]
 
-def test_create_uses_current_user_as_default_owner() -> None:
-    current_user = SimpleNamespace(id=7)
+
+def test_create_uses_current_user_as_default_editor() -> None:
     created_folder = SimpleNamespace(id=uuid4())
     command = CreateDashboardFolderCommand({"name": "Finance"})
 
     with (
         patch.object(command, "validate"),
-        patch(
-            "superset.commands.dashboard_folder.create.g",
-            SimpleNamespace(user=current_user),
-        ),
         patch.object(
             DashboardFolderDAO,
             "create",
@@ -75,9 +74,7 @@ def test_create_uses_current_user_as_default_owner() -> None:
         result = command.run()
 
     assert result is created_folder
-    create.assert_called_once_with(
-        attributes={"name": "Finance", "owners": [current_user]}
-    )
+    create.assert_called_once_with(attributes={"name": "Finance"})
 
 
 def test_create_rejects_missing_parent() -> None:
@@ -204,24 +201,31 @@ def test_update_rejects_folder_without_write_access() -> None:
         command.validate()
 
 
-def test_update_resolves_owners_for_admin() -> None:
-    folder = SimpleNamespace(id=uuid4(), name="Finance", parent_id=None)
-    owners = [SimpleNamespace(id=7)]
-    command = UpdateDashboardFolderCommand(folder.id, {"owners": [7]})
+def test_update_resolves_subject_editors_and_viewers() -> None:
+    folder = SimpleNamespace(
+        id=uuid4(), name="Finance", parent_id=None, editors=[], viewers=[]
+    )
+    editors = [SimpleNamespace(id=7)]
+    viewers = [SimpleNamespace(id=8)]
+    command = UpdateDashboardFolderCommand(folder.id, {"editors": [7], "viewers": [8]})
 
     with (
         patch.object(DashboardFolderDAO, "get_by_id", return_value=folder),
         patch.object(DashboardFolderDAO, "can_write", return_value=True),
-        patch.object(DashboardFolderDAO, "get_users", return_value=owners),
         patch.object(DashboardFolderDAO, "find_name_conflict", return_value=None),
         patch(
-            "superset.commands.dashboard_folder.update.security_manager.is_admin",
-            return_value=True,
+            "superset.commands.utils.get_subject",
+            side_effect=[editors[0], viewers[0]],
         ),
+        patch("superset.commands.utils.get_user_id", return_value=None),
     ):
         command.validate()
 
-    assert command._properties == {"name": "Finance", "owners": owners}
+    assert command._properties == {
+        "name": "Finance",
+        "editors": editors,
+        "viewers": viewers,
+    }
 
 
 def test_delete_rejects_subtree_owned_by_another_user() -> None:
@@ -257,6 +261,7 @@ def test_delete_runs_for_owned_folder_tree() -> None:
     with (
         patch.object(DashboardFolderDAO, "get_by_id", return_value=folder),
         patch.object(DashboardFolderDAO, "can_write", return_value=True),
+        patch.object(DashboardFolderDAO, "uncategorize_dashboards") as uncategorize,
         patch.object(DashboardFolderDAO, "delete") as delete,
         patch(
             "superset.commands.dashboard_folder.delete.security_manager.is_admin",
@@ -266,6 +271,7 @@ def test_delete_runs_for_owned_folder_tree() -> None:
         command.run()
 
     delete.assert_called_once_with([folder])
+    uncategorize.assert_called_once_with(folder)
 
 
 def test_delete_rejects_missing_folder() -> None:
@@ -280,7 +286,9 @@ def test_delete_rejects_missing_folder() -> None:
 
 def test_move_rejects_folder_without_write_access() -> None:
     dashboard = SimpleNamespace(id=42)
-    folder = SimpleNamespace(id=uuid4())
+    folder = SimpleNamespace(
+        id=uuid4(), name="Finance", parent_id=None, editors=[], viewers=[]
+    )
     command = MoveDashboardToFolderCommand(dashboard.id, folder.id)
 
     with (
@@ -373,13 +381,13 @@ def test_create_rejects_blank_name() -> None:
 
 
 def test_create_normalizes_valid_properties() -> None:
-    """Verify create validation normalizes the name and keeps empty owners."""
+    """Verify create validation normalizes the name and keeps Subject fields."""
     command = CreateDashboardFolderCommand({"name": " Finance "})
 
     with patch.object(DashboardFolderDAO, "find_name_conflict", return_value=None):
         command.validate()
 
-    assert command._properties == {"name": "Finance", "owners": []}
+    assert command._properties == {"name": "Finance", "editors": []}
 
 
 def test_update_runs_with_validated_folder() -> None:
@@ -397,19 +405,21 @@ def test_update_runs_with_validated_folder() -> None:
     update.assert_called_once_with(folder, {"name": "Finance"})
 
 
-def test_update_rejects_owner_changes_from_non_admin() -> None:
-    """Verify that non-admin users cannot change folder owners."""
-    folder = SimpleNamespace(id=uuid4())
-    command = UpdateDashboardFolderCommand(folder.id, {"owners": [7]})
+def test_update_accepts_editor_changes_from_an_editor() -> None:
+    """Verify that an editor can update the folder Subject relationships."""
+    folder = SimpleNamespace(
+        id=uuid4(), name="Finance", parent_id=None, editors=[], viewers=[]
+    )
+    command = UpdateDashboardFolderCommand(folder.id, {"editors": [7]})
 
     with (
         patch.object(DashboardFolderDAO, "get_by_id", return_value=folder),
         patch.object(DashboardFolderDAO, "can_write", return_value=True),
+        patch.object(DashboardFolderDAO, "find_name_conflict", return_value=None),
         patch(
-            "superset.commands.dashboard_folder.update.security_manager.is_admin",
-            return_value=False,
+            "superset.commands.utils.get_subject", return_value=SimpleNamespace(id=7)
         ),
-        pytest.raises(DashboardFolderForbiddenError),
+        patch("superset.commands.utils.get_user_id", return_value=None),
     ):
         command.validate()
 

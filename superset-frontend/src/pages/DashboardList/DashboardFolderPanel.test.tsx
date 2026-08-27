@@ -204,32 +204,23 @@ test('keeps the delete modal mounted until deletion finishes', async () => {
   );
 });
 
-test('selects an empty top-level folder when its expand arrow is clicked', async () => {
-  const onSelect = jest.fn();
+test('does not render an expand arrow for an empty folder', () => {
   const { container } = render(
     <DashboardFolderPanel
       folders={[folders[0]]}
       selectedFolderId={null}
       canCreate
-      onSelect={onSelect}
+      onSelect={jest.fn()}
       onCreate={jest.fn()}
       onRename={jest.fn()}
       onDelete={jest.fn()}
     />,
   );
 
-  expect(
-    container.querySelector('.ant-tree-switcher:not(.ant-tree-switcher-noop)'),
-  ).not.toBeNull();
-  await userEvent.click(
-    container.querySelector(
-      '.ant-tree-switcher:not(.ant-tree-switcher-noop)',
-    ) as Element,
-  );
-  expect(onSelect).toHaveBeenCalledWith('parent');
+  expect(container.querySelector('.ant-tree-switcher-noop')).not.toBeNull();
 });
 
-test('clears the selected folder when its expand arrow is collapsed', async () => {
+test('expanding a folder does not change the selected filter', async () => {
   const onSelect = jest.fn();
   const { container } = render(
     <DashboardFolderPanel
@@ -249,7 +240,7 @@ test('clears the selected folder when its expand arrow is collapsed', async () =
     ) as Element,
   );
 
-  expect(onSelect).toHaveBeenCalledWith(null);
+  expect(onSelect).not.toHaveBeenCalled();
 });
 
 test('clears the folder filter when selecting the active folder again', async () => {
