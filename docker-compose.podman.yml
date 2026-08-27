@@ -71,7 +71,7 @@ services:
       - /bin/bash
       - -c
       - |
-        url="http://host.docker.internal:9000/static/assets/manifest.json"
+        url="http://superset-node:9000/static/assets/manifest.json"
         max_attempts=300  # ~10 minutes at 2s intervals; first build can be slow
         echo "Waiting for webpack dev server at $$url..."
         attempt=0
@@ -199,8 +199,8 @@ services:
     environment:
       # set this to false if you have perf issues running the npm i; npm run dev in-docker
       # if you do so, you have to run this manually on the host, which should perform better!
-      BUILD_SUPERSET_FRONTEND_IN_DOCKER: true
-      NPM_RUN_PRUNE: false
+      BUILD_SUPERSET_FRONTEND_IN_DOCKER: "true"
+      NPM_RUN_PRUNE: "false"
       SCARF_ANALYTICS: "${SCARF_ANALYTICS:-}"
       # configuring the dev-server to use the host.docker.internal to connect to the backend
       superset: "http://superset:8088"

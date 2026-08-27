@@ -149,6 +149,15 @@ if missing:
 path.write_text("".join(out), encoding="utf-8")
 PY
 
+# Podman-specific runtime compatibility:
+# - Pass shell boolean values as explicit lowercase strings.
+# - Let Nginx reach webpack directly through Compose service DNS.
+sed -i \
+  -e 's/^\([[:space:]]*BUILD_SUPERSET_FRONTEND_IN_DOCKER:\)[[:space:]]*true[[:space:]]*$/\1 "true"/' \
+  -e 's/^\([[:space:]]*NPM_RUN_PRUNE:\)[[:space:]]*false[[:space:]]*$/\1 "false"/' \
+  -e 's|http://host\.docker\.internal:9000/static/assets/manifest\.json|http://superset-node:9000/static/assets/manifest.json|g' \
+  "$PODMAN_COMPOSE"
+
 # Static validation.
 if grep -nE 'ARG BUILDPLATFORM|--platform=.*BUILDPLATFORM|service-worker\.j\[s\]' "$PODMAN_CONTAINERFILE"; then
   echo "ERROR: incompatible Containerfile instruction remains" >&2
