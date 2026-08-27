@@ -82,6 +82,31 @@ def _requested_filter_columns(extra_form_data: dict[str, Any] | None) -> set[str
     return columns
 
 
+def _rejected_columns_in_query(query: Any) -> set[str]:
+    """Return the rejected filter column names reported by one query payload.
+
+    ``_materialize_full_payload`` converts the datasource's raw
+    ``rejected_filter_columns`` list into the ``rejected_filters`` entries
+    (``{"reason": ..., "column": ...}``) that every consumer of a chart-data
+    payload sees, so that is the primary shape to read. The raw key is still
+    accepted for payloads captured before that conversion.
+    """
+    if not isinstance(query, dict):
+        return set()
+
+    columns = {
+        column
+        for entry in query.get("rejected_filters", [])
+        if isinstance(entry, dict) and isinstance(column := entry.get("column"), str)
+    }
+    columns.update(
+        column
+        for column in query.get("rejected_filter_columns", [])
+        if isinstance(column, str)
+    )
+    return columns
+
+
 def _rejected_requested_filter_columns(
     result: Any, extra_form_data: dict[str, Any] | None
 ) -> list[str]:
@@ -92,8 +117,7 @@ def _rejected_requested_filter_columns(
     rejected = {
         column
         for query in result.get("queries", [])
-        for column in query.get("rejected_filter_columns", [])
-        if isinstance(column, str)
+        for column in _rejected_columns_in_query(query)
     }
     return sorted(requested & rejected)
 
