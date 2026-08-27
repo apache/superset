@@ -17,8 +17,10 @@
 
 from .get_widget_control_schema import get_widget_control_schema
 from .list_widget_types import list_widget_types
+from .set_widget_control_values import set_widget_control_values
 
 __all__ = [
     "list_widget_types",
     "get_widget_control_schema",
+    "set_widget_control_values",
 ]
