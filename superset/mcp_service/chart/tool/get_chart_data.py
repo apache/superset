@@ -316,6 +316,7 @@ def _build_query_results(
         title="Get chart data",
         readOnlyHint=True,
         destructiveHint=False,
+        openWorldHint=False,
     ),
 )
 async def get_chart_data(  # noqa: C901
