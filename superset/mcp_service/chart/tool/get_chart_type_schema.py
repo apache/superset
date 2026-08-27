@@ -38,6 +38,7 @@ from superset.mcp_service.chart.schemas import (
     PieChartConfig,
     PivotTableChartConfig,
     TableChartConfig,
+    TreemapChartConfig,
     WaterfallChartConfig,
     XYChartConfig,
 )
@@ -49,6 +50,7 @@ _CHART_TYPE_ADAPTERS: Dict[str, TypeAdapter[Any]] = {
     "xy": TypeAdapter(XYChartConfig),
     "table": TypeAdapter(TableChartConfig),
     "pie": TypeAdapter(PieChartConfig),
+    "treemap_v2": TypeAdapter(TreemapChartConfig),
     "pivot_table": TypeAdapter(PivotTableChartConfig),
     "interactive_pivot": TypeAdapter(InteractivePivotChartConfig),
     "mixed_timeseries": TypeAdapter(MixedTimeseriesChartConfig),
@@ -202,6 +204,13 @@ _CHART_EXAMPLES: Dict[str, list[Dict[str, Any]]] = {
             "metric": {"name": "profit", "aggregate": "SUM"},
             "breakdown": {"name": "region"},
             "show_total": True,
+        },
+    ],
+    "treemap_v2": [
+        {
+            "chart_type": "treemap_v2",
+            "groupby": [{"name": "region"}, {"name": "product"}],
+            "metric": {"name": "revenue", "aggregate": "SUM"},
         },
     ],
 }
