@@ -2111,7 +2111,14 @@ describe('plugin-chart-table', () => {
 
         expect(() =>
           render(
-            <TableChart {...propsWithMissingFormatterEntry} sticky={false} />,
+            ProviderWrapper({
+              children: (
+                <TableChart
+                  {...propsWithMissingFormatterEntry}
+                  sticky={false}
+                />
+              ),
+            }),
           ),
         ).not.toThrow();
 
@@ -2125,8 +2132,24 @@ describe('plugin-chart-table', () => {
           'rgba(0, 150, 0, 0.2)',
         );
 
-        // the row missing a formatter entry still renders its raw value
-        expect(screen.getAllByTitle('110').length).toBeGreaterThan(0);
+        // the row missing a formatter entry falls back to the row-level
+        // comparison arrow instead of losing it: before the fix, this row's
+        // arrow was silently cleared (and its color, computed the same way,
+        // would have flipped to the "decrease" color) whenever the
+        // column-specific lookup for this row was undefined.
+        const arrowCell = screen
+          .getAllByTitle('110')
+          .find(cell => cell.querySelector('span'));
+        expect(arrowCell).toHaveTextContent('↑110');
+        expect(getComputedStyle(arrowCell!).background).toContain(
+          'rgba(0, 150, 0, 0.2)',
+        );
+        // the fallback arrow itself must also keep the "increase" color --
+        // asserting only the cell background would still pass if the arrow's
+        // own color had regressed to the "decrease" color.
+        expect(arrowCell!.querySelector('span')).toHaveStyle({
+          color: supersetTheme.colorSuccess,
+        });
       });
 
       test('preserves client-side search text across temporal table rerenders', async () => {
