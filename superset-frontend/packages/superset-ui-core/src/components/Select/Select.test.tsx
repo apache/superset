@@ -83,6 +83,26 @@ const STABLE_OPTIONS = [
   { label: 'Cranberry', value: 6 },
 ];
 
+// A grouped option list for the stableSelectAll tests: bulk "Select all" must
+// target the five leaf options, not the two value-less group headers.
+const GROUPED_STABLE_OPTIONS = [
+  {
+    label: 'Citrus',
+    options: [
+      { label: 'Orange', value: 1 },
+      { label: 'Lemon', value: 2 },
+    ],
+  },
+  {
+    label: 'Berries',
+    options: [
+      { label: 'Strawberry', value: 3 },
+      { label: 'Blueberry', value: 4 },
+      { label: 'Raspberry', value: 5 },
+    ],
+  },
+];
+
 const defaultProps = {
   allowClear: true,
   ariaLabel: ARIA_LABEL,
@@ -1465,6 +1485,31 @@ test('stableSelectAll does not read a normal selection as the "Select all" senti
   } finally {
     jest.useRealTimers();
   }
+});
+
+test('stableSelectAll counts and selects grouped options by their leaf values', async () => {
+  const onChange = jest.fn();
+  render(
+    <Select
+      {...defaultProps}
+      options={GROUPED_STABLE_OPTIONS}
+      mode="multiple"
+      stableSelectAll
+      onChange={onChange}
+    />,
+  );
+  const select = getSelect();
+  userEvent.click(select);
+
+  // Five leaf options across two groups. The group headers carry no value, so
+  // without flattening the full set the count collapses to zero and the bulk
+  // actions disappear entirely.
+  const selectAll = await screen.findByText(selectAllButtonText(5));
+  expect(selectAll).toBeInTheDocument();
+
+  await userEvent.click(selectAll);
+  await waitFor(() => expect(onChange).toHaveBeenCalled());
+  expect(onChange.mock.calls.at(-1)?.[0]).toHaveLength(5);
 });
 
 test('dropdown takes full width of the select input for multi select', async () => {
