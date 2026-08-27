@@ -16,7 +16,7 @@
 # under the License.
 """Realtime websocket transport: channel identity + connection tokens.
 
-A general (feature-agnostic) replacement for the Global Async Queries channel/
-JWT handshake removed in the GAQ→GTF migration. Charts, list views, and future
-consumers share one push transport (the ``superset-websocket`` server).
+One general, feature-agnostic push transport: charts, list views, and future
+consumers all share the same channel/JWT handshake against the
+``superset-websocket`` server rather than each defining its own.
 """

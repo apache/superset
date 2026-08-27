@@ -245,6 +245,19 @@ RUN rm superset/translations/*/*/*.po
 COPY --from=superset-node /app/superset/translations superset/translations
 COPY --from=python-translation-compiler /app/translations_mo superset/translations
 
+# --- Realtime WebSocket server (part of the official image) ---------------
+# The realtime transport (superset-websocket) is a Node service, bundled by
+# esbuild into a single self-contained file. Copy the Node runtime plus that
+# bundle so every image built from this stage can launch it via an alternate
+# entrypoint (docker/entrypoints/run-websocket.sh) rather than needing a separate
+# image. This lives here rather than in a single downstream stage so the lean and
+# dev images both ship it — docker-compose-non-dev.yml runs the websocket service
+# from the dev target.
+RUN /app/docker/apt-install.sh libstdc++6
+COPY --from=superset-websocket /usr/local/bin/node /usr/local/bin/node
+COPY --from=superset-websocket --chown=superset:superset \
+    /app/superset-websocket/dist /app/superset-websocket/dist
+
 HEALTHCHECK CMD /app/docker/docker-healthcheck.sh
 CMD ["/app/docker/entrypoints/run-server.sh"]
 EXPOSE ${SUPERSET_PORT}
@@ -266,16 +279,6 @@ RUN --mount=type=cache,target=${SUPERSET_HOME}/.cache/uv \
 RUN --mount=type=cache,target=${SUPERSET_HOME}/.cache/uv \
     uv pip install -e .
 RUN python -m compileall /app/superset
-
-# --- Realtime WebSocket server (part of the official image) ---------------
-# The realtime transport (superset-websocket) is a Node service, bundled by
-# esbuild into a single self-contained file. Copy the Node runtime plus that
-# bundle so the official image can launch it via an alternate entrypoint
-# (docker/entrypoints/run-websocket.sh) rather than needing a separate image.
-RUN /app/docker/apt-install.sh libstdc++6
-COPY --from=superset-websocket /usr/local/bin/node /usr/local/bin/node
-COPY --from=superset-websocket --chown=superset:superset \
-    /app/superset-websocket/dist /app/superset-websocket/dist
 
 USER superset
 

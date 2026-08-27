@@ -33,6 +33,7 @@ import {
 } from '../..';
 import { Loading } from '../../components/Loading';
 import ChartClient from '../clients/ChartClient';
+import type { Hooks } from '../models/ChartProps';
 import getChartBuildQueryRegistry from '../registries/ChartBuildQueryRegistrySingleton';
 import getChartControlPanelRegistry from '../registries/ChartControlPanelRegistrySingleton';
 import SuperChart from './SuperChart';
@@ -178,7 +179,16 @@ export interface StatefulChartProps {
   className?: string;
 
   // Hooks for chart interactions (drill, cross-filter, etc.)
-  hooks?: any;
+  hooks?: Hooks;
+}
+
+/**
+ * Unwrap a chart-data body into result rows: the API nests them under `result`,
+ * but a caller may hand back the rows themselves.
+ */
+function extractRows(json: JsonObject | JsonObject[]): QueryData[] {
+  const rows = ensureIsArray(json) as JsonObject[];
+  return (rows[0]?.result ? rows[0].result : rows) as QueryData[];
 }
 
 export default function StatefulChart(props: StatefulChartProps) {
@@ -344,12 +354,7 @@ export default function StatefulChart(props: StatefulChartProps) {
             ...requestConfig,
             jsonPayload: queryContext,
           });
-          const cachedRows = (
-            Array.isArray(cached.json) ? cached.json : [cached.json]
-          ) as JsonObject[];
-          return (
-            cachedRows[0]?.result ? cachedRows[0].result : cachedRows
-          ) as QueryData[];
+          return extractRows(cached.json);
         };
         responseData = ensureIsArray(
           await hooks.handleAsyncChartData(
@@ -365,14 +370,7 @@ export default function StatefulChart(props: StatefulChartProps) {
           return;
         }
       } else {
-        const rows = (
-          Array.isArray(clientResponse.json)
-            ? clientResponse.json
-            : [clientResponse.json]
-        ) as JsonObject[];
-
-        // Handle the nested result structure from the API
-        responseData = (rows[0]?.result ? rows[0].result : rows) as QueryData[];
+        responseData = extractRows(clientResponse.json);
       }
 
       // Don't pair this request's data with newer props or fire a stale onLoad

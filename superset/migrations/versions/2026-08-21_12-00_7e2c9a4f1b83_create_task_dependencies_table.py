@@ -17,7 +17,7 @@
 """Create task_dependencies table and add task_subscribers.guest_key (GTF)
 
 Revision ID: 7e2c9a4f1b83
-Revises: 1072de5ed955
+Revises: 39097d124752
 Create Date: 2026-08-21 12:00:00.000000
 
 """

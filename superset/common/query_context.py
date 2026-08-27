@@ -98,12 +98,8 @@ class QueryContext:
         # Normalize the contribution totals query before any cache key is
         # computed. The return value is unused here; we only need the side
         # effect on the totals query's row_limit.
-        self._normalize_contribution_totals()
+        self.prepare_contribution_totals()
         self._processor = QueryContextProcessor(self)
-
-    def _normalize_contribution_totals(self) -> tuple[list[int], int | None]:
-        """Normalize contribution totals before any cache key is computed."""
-        return normalize_contribution_totals(self.queries, self.cache_values)
 
     def get_data(
         self,
@@ -158,7 +154,7 @@ class QueryContext:
         shared totals row, and the index of the totals query itself (or ``None``).
         The normalization is idempotent and runs at construction time as well.
         """
-        return self._normalize_contribution_totals()
+        return normalize_contribution_totals(self.queries, self.cache_values)
 
     def get_df_payload(
         self,

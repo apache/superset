@@ -38,22 +38,10 @@ from superset_core.tasks.types import TaskProperties, TaskStatus
 from superset.commands.base import BaseCommand
 from superset.commands.tasks.exceptions import TaskUpdateFailedError
 from superset.daos.tasks import TaskDAO
+from superset.tasks.manager import TaskManager
 from superset.utils.decorators import on_error, transaction
 
 logger = logging.getLogger(__name__)
-
-
-def _publish_entity_change(task_uuid: UUID) -> None:
-    """Best-effort realtime nudge for a committed task change.
-
-    Emitted after the transaction commits (so a client that re-fetches sees the
-    new state), on every status transition and throttled progress/payload write
-    — not just terminal completion — so realtime list views reflect intermediate
-    states (e.g. IN_PROGRESS, progress) live.
-    """
-    from superset.tasks.manager import TaskManager
-
-    TaskManager.publish_entity_change(task_uuid)
 
 
 class InternalUpdateTaskCommand(BaseCommand):
@@ -96,10 +84,16 @@ class InternalUpdateTaskCommand(BaseCommand):
         pass
 
     def run(self) -> bool:
-        """Write, then nudge realtime consumers of the change (post-commit)."""
+        """Write, then nudge realtime consumers of the change (post-commit).
+
+        The nudge is emitted after the transaction commits (so a client that
+        re-fetches sees the new state) on every throttled progress/payload write,
+        not just terminal completion, so realtime list views reflect intermediate
+        state live.
+        """
         updated = self._run_in_transaction()
         if updated:
-            _publish_entity_change(self._task_uuid)
+            TaskManager.publish_entity_change(self._task_uuid)
         return updated
 
     @transaction(on_error=partial(on_error, reraise=TaskUpdateFailedError))
@@ -188,10 +182,14 @@ class InternalStatusTransitionCommand(BaseCommand):
         pass
 
     def run(self) -> bool:
-        """Transition, then nudge realtime consumers of the change (post-commit)."""
+        """Transition, then nudge realtime consumers of the change (post-commit).
+
+        Emitted on every status transition, not just terminal ones (see
+        :meth:`InternalUpdateTaskCommand.run`).
+        """
         updated = self._run_in_transaction()
         if updated:
-            _publish_entity_change(self._task_uuid)
+            TaskManager.publish_entity_change(self._task_uuid)
         return updated
 
     @transaction(on_error=partial(on_error, reraise=TaskUpdateFailedError))

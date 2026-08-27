@@ -45,6 +45,7 @@ import {
   ContextMenuFilters,
   DataRecordFilters,
 } from '@superset-ui/core';
+import type { Hooks } from '@superset-ui/core';
 import { logging } from '@apache-superset/core/utils';
 import { t } from '@apache-superset/core/translation';
 import { useTheme } from '@apache-superset/core/theme';
@@ -143,8 +144,13 @@ export interface ChartRendererProps {
   suppressLoadingSpinner?: boolean;
 }
 
+// Async resolution is injected for self-contained chart components in
+// superset-ui-core (e.g. StatefulChart), which read these off `Hooks` and cannot
+// import app-level async-event middleware themselves.
+type AsyncChartHooks = Pick<Hooks, 'handleAsyncChartData' | 'resolveAsyncMode'>;
+
 // Hooks interface
-interface ChartHooks {
+interface ChartHooks extends AsyncChartHooks {
   onAddFilter: (
     col: string,
     vals: FilterValue[],
@@ -164,18 +170,6 @@ interface ChartHooks {
   setDataMask: (dataMask: DataMask) => void;
   onLegendScroll: (legendIndex: number) => void;
   onChartStateChange?: (chartState: AgGridChartState) => void;
-  // Resolve async (HTTP 202 / GLOBAL_ASYNC_QUERIES) chart-data responses for
-  // self-contained chart components in superset-ui-core (e.g. StatefulChart),
-  // which cannot import app-level async-event middleware.
-  handleAsyncChartData?: (
-    response: Response,
-    json: JsonObject,
-    refetch?: () => Promise<QueryData[]>,
-    signal?: AbortSignal,
-  ) => Promise<QueryData[]> | QueryData[];
-  // Whether self-contained charts (e.g. StatefulChart) should request async
-  // chart-data execution, per the resolved policy.
-  resolveAsyncMode?: () => boolean;
 }
 
 const BLANK = {};

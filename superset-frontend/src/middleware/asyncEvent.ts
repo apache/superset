@@ -16,6 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+/**
+ * Await completion of asynchronous chart-data queries (GLOBAL_ASYNC_QUERIES).
+ *
+ * A 202 from POST /chart/data carries the GTF tasks the query runs as. Their
+ * completion is learned two ways: the shared realtime socket
+ * (src/middleware/realtime.ts) delivers per-principal status events, and a
+ * single shared poll of /task/status_changes runs while anything is awaited. The
+ * socket is best-effort and only accelerates things; the poll is the correctness
+ * backstop.
+ */
 import {
   isFeatureEnabled,
   FeatureFlag,
@@ -109,13 +119,18 @@ let cursor: string | null;
 // stop instead of scheduling a second loop or mutating fresh state.
 let pollingGeneration = 0;
 
+// A poll from a superseded init() must abandon its tick: stop the loop and leave
+// the fresh generation's state alone. Returns whether the tick was abandoned.
+const stopIfStale = (generation: number): boolean => {
+  if (generation === pollingGeneration) return false;
+  pollingActive = false;
+  return true;
+};
+
 // Browser channel prefix for per-principal messages emitted by
 // superset-websocket after it fans out backend task-status events. The browser
 // socket is JWT-bound to its own principal routing key, so it only ever receives
 // its own realtime messages.
-// The shared realtime client (src/middleware/realtime.ts) owns the socket; here
-// we only consume the tier-2 messages relevant to chart-data completion. The
-// socket is best-effort — the interval poll below is the correctness backstop.
 const REALTIME_CHANNEL_PREFIX = 'realtime:';
 
 const fetchStatusChanges = makeApi<
@@ -189,20 +204,14 @@ const applyStatus = (taskId: string, status: string) => {
 };
 
 const loadStatusChanges = async (generation: number) => {
-  if (generation !== pollingGeneration) {
-    pollingActive = false;
-    return;
-  }
+  if (stopIfStale(generation)) return;
   if (waitersByTaskId.size) {
     try {
       const { statuses, cursor: next } = await fetchStatusChanges({
         cursor,
         task_type: CHART_QUERY_TASK_TYPE,
       });
-      if (generation !== pollingGeneration) {
-        pollingActive = false;
-        return;
-      }
+      if (stopIfStale(generation)) return;
       cursor = next;
       // "Progress" = the batch carried a change for a task we're awaiting; check
       // membership before applyStatus, which deletes a settled task's waiters.
@@ -226,10 +235,7 @@ const loadStatusChanges = async (generation: number) => {
         currentPollDelayMs = Math.min(currentPollDelayMs * 2, pollBackoffMaxMs);
       }
     } catch (err) {
-      if (generation !== pollingGeneration) {
-        pollingActive = false;
-        return;
-      }
+      if (stopIfStale(generation)) return;
       logging.warn(err);
     }
   }
@@ -261,14 +267,13 @@ const ensurePolling = () => {
 };
 
 /**
- * Handle a realtime message from the shared client (src/middleware/realtime.ts).
+ * Handle a realtime message from the shared client.
  *
- * For a per-principal (tier-2) chart-data message the payload is
- * ``{task_id, status}``; because delivery is scoped to this principal's own
- * JWT-bound channel, the status is authoritative enough to settle the waiter
- * immediately (the ensuing ``refetch`` reads the authorized per-query cache
- * anyway). Any other channel (e.g. the ``entity-changes:*`` list-view
- * nudges) is ignored here — chart-data only cares about its own tasks.
+ * A per-principal chart-data payload is ``{task_id, status}``; because delivery
+ * is scoped to this principal's own JWT-bound channel the status is
+ * authoritative enough to settle the waiter immediately (the ensuing ``refetch``
+ * reads the authorized per-query cache anyway). Other channels (e.g. the
+ * ``entity-changes:*`` list-view nudges) are not chart-data's concern.
  */
 export const handleRealtimeMessage = (message: RealtimeMessage) => {
   const { channel, payload } = message;
@@ -283,8 +288,8 @@ export const handleRealtimeMessage = (message: RealtimeMessage) => {
   }
 };
 
-// Consume the shared realtime socket once at module load. The handler reads the
-// live waiter registry, so it stays correct across init() generations.
+// The handler reads the live waiter registry, so it stays correct across init()
+// generations.
 subscribeRealtime(handleRealtimeMessage);
 
 /**
@@ -335,10 +340,8 @@ export const waitForAsyncData = async <T = unknown[]>(
     // Rewind the shared poll cursor to this request's server-captured cursor
     // (from the 202), taken *before* its tasks existed. This guarantees the poll
     // starts no later than the tasks' creation, so their terminal transitions
-    // can't be skipped — regardless of the async init baseline's timestamp or a
-    // concurrent chart having advanced the cursor. ISO-8601 strings compare
-    // chronologically. The poll is the correctness backstop; the socket only
-    // accelerates it.
+    // can't be skipped — regardless of a concurrent chart having advanced the
+    // cursor. ISO-8601 strings compare chronologically.
     if (
       typeof asyncJob.cursor === 'string' &&
       (cursor === null || asyncJob.cursor < cursor)

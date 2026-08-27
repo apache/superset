@@ -114,26 +114,13 @@ def load_serialized_query(payload: SerializedQuery) -> "QueryContext":
     from superset.common.query_context_factory import QueryContextFactory
 
     factory = QueryContextFactory()
-    result_type = ChartDataResultType(payload["result_type"])
-    result_format = ChartDataResultFormat(payload["result_format"])
-    if payload.get("preserve_null_row_limit"):
-        return factory.create(
-            datasource=payload["datasource"],
-            queries=[payload["query"]],
-            form_data=payload["form_data"],
-            result_type=result_type,
-            result_format=result_format,
-            force=payload["force"],
-            custom_cache_timeout=payload["custom_cache_timeout"],
-            preserve_null_row_limit=True,
-        )
-
     return factory.create(
         datasource=payload["datasource"],
         queries=[payload["query"]],
         form_data=payload["form_data"],
-        result_type=result_type,
-        result_format=result_format,
+        result_type=ChartDataResultType(payload["result_type"]),
+        result_format=ChartDataResultFormat(payload["result_format"]),
         force=payload["force"],
         custom_cache_timeout=payload["custom_cache_timeout"],
+        preserve_null_row_limit=bool(payload.get("preserve_null_row_limit")),
     )

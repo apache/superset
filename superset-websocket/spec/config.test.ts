@@ -80,3 +80,23 @@ test('buildConfig() performs deep merge between configs', () => {
   // We overrode the pwd
   expect(config.redis.password).toEqual('some pwd');
 });
+
+test('buildConfig() falls back to the default for a malformed numeric override', () => {
+  const { maxTotalConnections, socketResponseTimeoutMs } = buildConfig();
+
+  process.env.MAX_TOTAL_CONNECTIONS = 'many';
+  process.env.SOCKET_RESPONSE_TIMEOUT_MS = '-1';
+  process.env.MAX_CONNECTIONS_PER_CHANNEL = '25';
+
+  const config = buildConfig();
+
+  // A typo'd limit must not become NaN, which compares falsy against every
+  // threshold and would silently disable the limit it was meant to set.
+  expect(config.maxTotalConnections).toEqual(maxTotalConnections);
+  expect(config.socketResponseTimeoutMs).toEqual(socketResponseTimeoutMs);
+  expect(config.maxConnectionsPerChannel).toEqual(25);
+
+  delete process.env.MAX_TOTAL_CONNECTIONS;
+  delete process.env.SOCKET_RESPONSE_TIMEOUT_MS;
+  delete process.env.MAX_CONNECTIONS_PER_CHANNEL;
+});

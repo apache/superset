@@ -214,13 +214,15 @@ jobs:
           docker history $IMAGE_TAG
 
       - name: WebSocket server smoke test
-        if: matrix.build_preset == 'lean'
+        if: contains(fromJson('["lean", "dev"]'), matrix.build_preset)
         shell: bash
         run: |
           # The realtime WebSocket server is bundled in the official image and
           # launched via an alternate entrypoint; verify the bundled Node runtime
           # starts it and it serves /health. (A JWT secret >= 32 bytes is required
           # or the server refuses to start; no Redis is needed for /health.)
+          # Both presets are checked because docker-compose-non-dev.yml runs the
+          # websocket service from the dev target.
           docker run -d --name superset-ws \
             -e JWT_SECRET="ci-smoke-test-secret-ci-smoke-test-secret" \
             -e PORT=8080 -p 8080:8080 \

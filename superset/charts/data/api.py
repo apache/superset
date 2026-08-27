@@ -232,11 +232,7 @@ class ChartDataRestApi(ChartRestApi):
             )
 
         # TODO: support CSV, SQL query and other non-JSON types
-        # Don't use async queries when cache is disabled (cache_timeout=-1)
-        # as async queries depend on caching to retrieve results
-        cache_timeout = query_context.get_cache_timeout()
-        use_async = self._should_run_async(json_body, query_context, cache_timeout)
-        if use_async:
+        if self._should_run_async(json_body, query_context):
             return self._run_async(json_body, command, add_extra_log_payload)
 
         try:
@@ -331,11 +327,7 @@ class ChartDataRestApi(ChartRestApi):
             )
 
         # TODO: support CSV, SQL query and other non-JSON types
-        # Don't use async queries when cache is disabled (cache_timeout=-1)
-        # as async queries depend on caching to retrieve results
-        cache_timeout = query_context.get_cache_timeout()
-        use_async = self._should_run_async(json_body, query_context, cache_timeout)
-        if use_async:
+        if self._should_run_async(json_body, query_context):
             return self._run_async(json_body, command, add_extra_log_payload)
 
         form_data = json_body.get("form_data")
@@ -350,11 +342,10 @@ class ChartDataRestApi(ChartRestApi):
             expected_rows=expected_rows,
         )
 
+    @staticmethod
     def _should_run_async(
-        self,
         json_body: dict[str, Any],
         query_context: QueryContext,
-        cache_timeout: int,
     ) -> bool:
         """Whether this chart-data request should run asynchronously.
 
@@ -367,13 +358,20 @@ class ChartDataRestApi(ChartRestApi):
         A ``NullCache`` DATA backend can never satisfy the read-back, so async is
         refused for it and the request runs synchronously — otherwise every chart
         would schedule tasks, succeed, and then loop on an uncacheable re-request.
+
+        The eligibility check reads :meth:`QueryContext.get_cache_timeout`, which
+        only resolves the explicitly configured chart/dataset/database TTL. That is
+        deliberately the un-floored value: only an explicit
+        ``CACHE_DISABLED_TIMEOUT`` should refuse async, whereas the floored
+        :meth:`QueryContextProcessor.get_cache_timeout` also folds in config
+        fallbacks and the async minimum TTL that the scheduled task later applies.
         """
         return (
             bool(json_body.get("async_mode"))
             and is_feature_enabled("GLOBAL_ASYNC_QUERIES")
             and query_context.result_format == ChartDataResultFormat.JSON
             and query_context.result_type == ChartDataResultType.FULL
-            and cache_timeout != CACHE_DISABLED_TIMEOUT
+            and query_context.get_cache_timeout() != CACHE_DISABLED_TIMEOUT
             and not isinstance(cache_manager.data_cache.cache, NullCache)
         )
 

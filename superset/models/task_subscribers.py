@@ -16,8 +16,6 @@
 # under the License.
 """TaskSubscriber model for tracking multi-user task subscriptions"""
 
-from datetime import datetime, timezone
-
 from flask_appbuilder import Model
 from sqlalchemy import (
     Column,
@@ -31,6 +29,7 @@ from sqlalchemy.orm import relationship
 from superset_core.tasks.models import TaskSubscriber as CoreTaskSubscriber
 
 from superset.models.helpers import AuditMixinNullable
+from superset.tasks.utils import naive_utcnow
 
 
 class TaskSubscriber(CoreTaskSubscriber, AuditMixinNullable, Model):
@@ -66,7 +65,8 @@ class TaskSubscriber(CoreTaskSubscriber, AuditMixinNullable, Model):
     # A guest key is ``guest:`` + a 64-char SHA256 hex digest (70 chars); the
     # column is sized with headroom (see superset.tasks.guest).
     guest_key = Column(String(128), nullable=True, index=True)
-    subscribed_at = Column(DateTime, nullable=False, default=datetime.now(timezone.utc))
+    # Callable default: evaluated per insert, not once at class definition.
+    subscribed_at = Column(DateTime, nullable=False, default=naive_utcnow)
 
     # Relationships
     task = relationship("Task", back_populates="subscribers")

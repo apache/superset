@@ -33,6 +33,7 @@ from superset.commands.tasks.exceptions import (
 )
 from superset.extensions import security_manager
 from superset.stats_logger import BaseStatsLogger
+from superset.tasks.guest import get_guest_subscriber_key_for
 from superset.tasks.locks import task_lock
 from superset.tasks.utils import get_active_dedup_key
 from superset.utils.core import get_user_id
@@ -196,9 +197,7 @@ class CancelTaskCommand(BaseCommand):
             # Shared tasks: must be a subscriber. Embedded guests have no user_id
             # and subscribe by a token-derived guest_key instead (see
             # superset.tasks.guest), so honor either identity.
-            from superset.tasks.guest import get_current_guest_subscriber_key
-
-            guest_key = None if user_id else get_current_guest_subscriber_key()
+            guest_key = get_guest_subscriber_key_for(user_id)
             subscribed = (user_id and task.has_subscriber(user_id)) or (
                 guest_key and task.has_guest_subscriber(guest_key)
             )
@@ -287,12 +286,11 @@ class CancelTaskCommand(BaseCommand):
         :returns: The updated task model
         """
         from superset.daos.tasks import TaskDAO
-        from superset.tasks.guest import get_current_guest_subscriber_key
 
         self._action_taken = "unsubscribed"
 
         # Embedded guests subscribe by a token-derived key, not a user_id.
-        guest_key = None if user_id else get_current_guest_subscriber_key()
+        guest_key = get_guest_subscriber_key_for(user_id)
 
         if user_id and task.has_subscriber(user_id):
             result = TaskDAO.remove_subscriber(task.id, user_id)

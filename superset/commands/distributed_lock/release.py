@@ -100,7 +100,12 @@ class ReleaseDistributedLock(BaseDistributedLockCommand):
         ),
     )
     def _release_kv(self) -> None:
-        """Release the KV lock only if we still own it (ownership-checked)."""
+        """Release the KV lock only if we still own it (ownership-checked).
+
+        The read and the delete are separate statements, so this is not atomic the
+        way the Redis path's compare-and-delete is; the enclosing transaction plus
+        the lock's TTL keep the residual window harmless.
+        """
         if self.token is not None:
             stored = KeyValueDAO.get_value(self.resource, self.key, self.codec)
             if not isinstance(stored, dict) or stored.get("token") != self.token:

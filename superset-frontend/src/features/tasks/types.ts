@@ -17,6 +17,16 @@
  * under the License.
  */
 
+export enum TaskStatus {
+  Pending = 'pending',
+  InProgress = 'in_progress',
+  Success = 'success',
+  Failure = 'failure',
+  Aborting = 'aborting',
+  Aborted = 'aborted',
+  TimedOut = 'timed_out',
+}
+
 export interface TaskSubscriber {
   // Authenticated subscribers carry a user_id + profile; embedded guests have
   // no ab_user, so they arrive as is_guest with an anonymized label (G1/G2/…).
@@ -74,14 +84,7 @@ export interface Task {
   task_key: string;
   task_type: string;
   task_name: string | null;
-  status:
-    | 'pending'
-    | 'in_progress'
-    | 'success'
-    | 'failure'
-    | 'aborting'
-    | 'aborted'
-    | 'timed_out';
+  status: TaskStatus;
   scope: TaskScope;
   created_on: string;
   created_on_delta_humanized?: string;
@@ -109,27 +112,25 @@ export interface Task {
 
 // Derived status helpers (frontend computes these from status and properties)
 export function isTaskFinished(task: Task): boolean {
-  return ['success', 'failure', 'aborted', 'timed_out'].includes(task.status);
+  return [
+    TaskStatus.Success,
+    TaskStatus.Failure,
+    TaskStatus.Aborted,
+    TaskStatus.TimedOut,
+  ].includes(task.status);
 }
 
 export function isTaskAborting(task: Task): boolean {
-  return task.status === 'aborting';
+  return task.status === TaskStatus.Aborting;
 }
 
 export function canAbortTask(task: Task): boolean {
-  if (task.status === 'pending') return true;
-  if (task.status === 'in_progress' && task.properties.is_abortable === true)
+  if (task.status === TaskStatus.Pending) return true;
+  if (
+    task.status === TaskStatus.InProgress &&
+    task.properties.is_abortable === true
+  )
     return true;
-  if (task.status === 'aborting') return true; // Idempotent
+  if (task.status === TaskStatus.Aborting) return true; // Idempotent
   return false;
-}
-
-export enum TaskStatus {
-  Pending = 'pending',
-  InProgress = 'in_progress',
-  Success = 'success',
-  Failure = 'failure',
-  Aborting = 'aborting',
-  Aborted = 'aborted',
-  TimedOut = 'timed_out',
 }

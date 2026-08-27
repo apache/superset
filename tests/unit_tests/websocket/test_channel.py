@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 from datetime import datetime, timedelta, timezone
-from types import SimpleNamespace
 
 import jwt
 from pytest_mock import MockerFixture
@@ -33,40 +32,6 @@ def test_channel_id_for_maps_principal_identity() -> None:
     assert channel_id_for(7, "guest:abc") == "user:7"
 
 
-def test_channel_id_for_logged_in_user(app_context, mocker: MockerFixture) -> None:
-    from superset.websocket import channel
-
-    mocker.patch.object(
-        channel.security_manager, "get_current_guest_user_if_guest", return_value=None
-    )
-    mocker.patch.object(channel, "get_user_id", return_value=7)
-    assert channel.get_channel_id() == "user:7"
-
-
-def test_channel_id_for_guest(app_context, mocker: MockerFixture) -> None:
-    from superset.websocket import channel
-
-    mocker.patch.object(
-        channel.security_manager,
-        "get_current_guest_user_if_guest",
-        return_value=object(),
-    )
-    mocker.patch.object(
-        channel, "get_current_guest_subscriber_key", return_value="guest:abc"
-    )
-    assert channel.get_channel_id() == "guest:abc"
-
-
-def test_channel_id_none_for_anonymous(app_context, mocker: MockerFixture) -> None:
-    from superset.websocket import channel
-
-    mocker.patch.object(
-        channel.security_manager, "get_current_guest_user_if_guest", return_value=None
-    )
-    mocker.patch.object(channel, "get_user_id", return_value=None)
-    assert channel.get_channel_id() is None
-
-
 def test_mint_channel_token_encodes_channel(app_context) -> None:
     from flask import current_app
 
@@ -81,7 +46,6 @@ def test_mint_channel_token_encodes_channel(app_context) -> None:
             "channel": "user:5",
             "principal_type": "user",
             "sub": "5",
-            "username": "alice",
         }
     )
     decoded = jwt.decode(
@@ -94,7 +58,9 @@ def test_mint_channel_token_encodes_channel(app_context) -> None:
     assert decoded["channel"] == "user:5"
     assert decoded["principal_type"] == "user"
     assert decoded["sub"] == "5"
-    assert decoded["username"] == "alice"
+    # The token carries only what the websocket server routes on; no profile
+    # attributes and no permission list.
+    assert "username" not in decoded
     assert "permissions" not in decoded
     assert "exp" in decoded
 
@@ -102,11 +68,8 @@ def test_mint_channel_token_encodes_channel(app_context) -> None:
 def test_realtime_principal_for_logged_in_user(
     app_context, mocker: MockerFixture
 ) -> None:
-    from flask import g
-
     from superset.websocket import channel
 
-    g.user = SimpleNamespace(username="alice")
     mocker.patch.object(
         channel.security_manager, "get_current_guest_user_if_guest", return_value=None
     )
@@ -116,7 +79,6 @@ def test_realtime_principal_for_logged_in_user(
         "channel": "user:7",
         "principal_type": "user",
         "sub": "7",
-        "username": "alice",
     }
 
 
@@ -137,6 +99,34 @@ def test_realtime_principal_for_guest(app_context, mocker: MockerFixture) -> Non
         "principal_type": "guest",
         "sub": "guest:abc",
     }
+
+
+def test_realtime_principal_none_for_anonymous(
+    app_context, mocker: MockerFixture
+) -> None:
+    from superset.websocket import channel
+
+    mocker.patch.object(
+        channel.security_manager, "get_current_guest_user_if_guest", return_value=None
+    )
+    mocker.patch.object(channel, "get_user_id", return_value=None)
+
+    assert channel.get_realtime_principal() is None
+
+
+def test_realtime_principal_none_for_guest_without_key(
+    app_context, mocker: MockerFixture
+) -> None:
+    from superset.websocket import channel
+
+    mocker.patch.object(
+        channel.security_manager,
+        "get_current_guest_user_if_guest",
+        return_value=object(),
+    )
+    mocker.patch.object(channel, "get_current_guest_subscriber_key", return_value=None)
+
+    assert channel.get_realtime_principal() is None
 
 
 def _make_ws_app():

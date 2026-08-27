@@ -420,15 +420,15 @@ class TestTaskWrapperCall:
 
     @patch("superset.commands.tasks.update.UpdateTaskCommand.run")
     @patch("superset.daos.tasks.TaskDAO.find_one_or_none")
-    @patch("superset.commands.tasks.submit.SubmitTaskCommand.run_with_info")
+    @patch("superset.commands.tasks.submit.SubmitTaskCommand")
     def test_call_with_custom_options(
-        self, mock_submit_run_with_info, mock_find, mock_update_run
+        self, mock_submit_command, mock_find, mock_update_run
     ):
-        """Test direct call with custom task options"""
+        """Test direct call forwards custom task options to SubmitTaskCommand"""
         mock_task = MagicMock()
         mock_task.uuid = TEST_UUID
         mock_task.status = "in_progress"
-        mock_submit_run_with_info.return_value = (mock_task, True)  # (task, is_new)
+        mock_submit_command.return_value.run_with_info.return_value = (mock_task, True)
         mock_update_run.return_value = mock_task
         mock_find.return_value = mock_task  # Mock the subsequent find call
 
@@ -436,14 +436,29 @@ class TestTaskWrapperCall:
         def call_task_3(arg1: int) -> None:
             pass
 
-        # Use custom task key and name
+        # Use custom task key and name, plus a prerequisite dependency
         call_task_3(
             123,
-            options=TaskOptions(task_key="custom_key", task_name="Custom Task Name"),
+            options=TaskOptions(
+                task_key="custom_key",
+                task_name="Custom Task Name",
+                depends_on=[TEST_UUID],
+            ),
         )
 
-        # Verify SubmitTaskCommand.run_with_info was called
-        mock_submit_run_with_info.assert_called_once()
+        # The synchronous path must submit the same options the async path does,
+        # including depends_on (silently dropping it would run the task before its
+        # prerequisites).
+        mock_submit_command.assert_called_once_with(
+            {
+                "task_type": "test_call_custom_unique",
+                "task_key": "custom_key",
+                "task_name": "Custom Task Name",
+                "scope": TaskScope.SYSTEM.value,
+                "properties": {"execution_mode": "sync"},
+                "depends_on": [TEST_UUID],
+            }
+        )
 
     def test_call_shared_task_requires_task_key(self):
         """Test shared task direct call requires explicit task_key"""

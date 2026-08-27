@@ -19,6 +19,7 @@
 
 import { render, waitFor, configure, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
+import type { QueryData } from '../..';
 import StatefulChart from './StatefulChart';
 import getChartControlPanelRegistry from '../registries/ChartControlPanelRegistrySingleton';
 import getChartBuildQueryRegistry from '../registries/ChartBuildQueryRegistrySingleton';
@@ -817,7 +818,7 @@ test('omits async_mode when no async handler is wired even if resolveAsyncMode o
 test('errors on async (202) response when no async handler is provided', async () => {
   mockChartClient.client.post.mockResolvedValue({
     response: { status: 202 } as Response,
-    json: { job_id: 'j1', channel_id: 'c1', status: 'running' },
+    json: { task_ids: ['task-1'] },
   });
   const onError = jest.fn();
 
@@ -856,7 +857,7 @@ test('renders synchronous (200) responses that include a response object', async
 test('does not apply a superseded async response over a newer one', async () => {
   mockChartClient.client.post.mockResolvedValue({
     response: { status: 202 } as Response,
-    json: { job_id: 'j', channel_id: 'c' },
+    json: { task_ids: ['task-1'] },
   });
   let resolveFirst: (data: unknown) => void = () => {};
   let resolveSecond: (data: unknown) => void = () => {};
@@ -923,7 +924,7 @@ test('does not apply a superseded async response over a newer one', async () => 
 test('preserves the detailed message from an async (array) rejection', async () => {
   mockChartClient.client.post.mockResolvedValue({
     response: { status: 202 } as Response,
-    json: { job_id: 'j', channel_id: 'c' },
+    json: { task_ids: ['task-1'] },
   });
   const handleAsyncChartData = jest
     .fn()
@@ -983,7 +984,7 @@ test('refetches with the latest formData rather than the initial props', async (
 test('does not revert a render-only change when a slow async request resolves', async () => {
   mockChartClient.client.post.mockResolvedValue({
     response: { status: 202 } as Response,
-    json: { job_id: 'j', channel_id: 'c' },
+    json: { task_ids: ['task-1'] },
   });
   // color_scheme is a renderTrigger control -> its change does not refetch
   jest.mocked(getChartControlPanelRegistry).mockReturnValue({
@@ -997,10 +998,10 @@ test('does not revert a render-only change when a slow async request resolves', 
       ],
     }),
   } as unknown as ReturnType<typeof getChartControlPanelRegistry>);
-  let resolveAsync: (data: unknown) => void = () => {};
+  let resolveAsync: (data: QueryData[]) => void = () => {};
   const handleAsyncChartData = jest.fn(
     () =>
-      new Promise(resolve => {
+      new Promise<QueryData[]>(resolve => {
         resolveAsync = resolve;
       }),
   );
@@ -1040,7 +1041,7 @@ test('does not revert a render-only change when a slow async request resolves', 
 test('passes an abort signal to the async handler and aborts it on unmount', async () => {
   mockChartClient.client.post.mockResolvedValue({
     response: { status: 202 } as Response,
-    json: { job_id: 'j', channel_id: 'c' },
+    json: { task_ids: ['task-1'] },
   });
   // Typed with a rest param so mock.calls is indexable (the 4th arg is the signal)
   const handleAsyncChartData = jest.fn(
@@ -1070,7 +1071,7 @@ test('passes an abort signal to the async handler and aborts it on unmount', asy
 test('suppresses stale error state from a superseded request', async () => {
   mockChartClient.client.post.mockResolvedValue({
     response: { status: 202 } as Response,
-    json: { job_id: 'j', channel_id: 'c' },
+    json: { task_ids: ['task-1'] },
   });
   let rejectFirst: (err: unknown) => void = () => {};
   const handleAsyncChartData = jest
@@ -1120,7 +1121,7 @@ test('does not publish stale data when switching from chartId to formData mode',
   mockChartClient.loadFormData.mockResolvedValue({ ...mockFormData });
   mockChartClient.client.post.mockResolvedValue({
     response: { status: 202 } as Response,
-    json: { job_id: 'j', channel_id: 'c' },
+    json: { task_ids: ['task-1'] },
   });
   let resolveFirst: (data: unknown) => void = () => {};
   const handleAsyncChartData = jest

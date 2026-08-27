@@ -469,22 +469,15 @@ class QueryContextProcessor:
 
         return df.to_dict(orient="records")
 
-    def _prepare_contribution_totals(self) -> tuple[list[int], int | None]:
-        """
-        Identify contribution queries and normalize the totals query so cache keys
-        align with cached results (see ``normalize_contribution_totals``).
-        """
-        return normalize_contribution_totals(
-            self._query_context.queries, self._query_context.cache_values
-        )
-
     def ensure_totals_available(
         self,
         queries_needing_totals: Sequence[int] | None = None,
         totals_idx: int | None = None,
     ) -> None:
         if queries_needing_totals is None or totals_idx is None:
-            queries_needing_totals, totals_idx = self._prepare_contribution_totals()
+            queries_needing_totals, totals_idx = (
+                self._query_context.prepare_contribution_totals()
+            )
 
         if not queries_needing_totals or totals_idx is None:
             return
@@ -526,7 +519,9 @@ class QueryContextProcessor:
     ) -> QueryContextExecutionResult:
         """Return query results with timing kept outside query payloads."""
 
-        queries_needing_totals, totals_idx = self._prepare_contribution_totals()
+        queries_needing_totals, totals_idx = (
+            self._query_context.prepare_contribution_totals()
+        )
 
         # Skip ensure_totals_available when force_cached=True
         # This prevents recalculating contribution_totals from cached results
@@ -635,7 +630,7 @@ class QueryContextProcessor:
         above any floor so it is left untouched. Synchronous requests are never
         floored, even when GLOBAL_ASYNC_QUERIES is enabled.
         """
-        if self._query_context.is_async_execution is not True:
+        if not self._query_context.is_async_execution:
             return timeout
         min_ttl: int = current_app.config.get("GLOBAL_ASYNC_QUERIES_MIN_CACHE_TTL", 0)
         if 0 < timeout < min_ttl:

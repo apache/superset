@@ -51,12 +51,12 @@ const originalWebSocket = global.WebSocket;
 
 beforeEach(() => {
   FakeWebSocket.instances = [];
-  (global as any).WebSocket = FakeWebSocket;
+  global.WebSocket = FakeWebSocket as unknown as typeof WebSocket;
 });
 
 afterEach(() => {
   resetRealtimeForTests();
-  (global as any).WebSocket = originalWebSocket;
+  global.WebSocket = originalWebSocket;
 });
 
 const ENABLED = {

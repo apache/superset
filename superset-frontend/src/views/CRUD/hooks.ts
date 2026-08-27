@@ -57,7 +57,7 @@ import {
 
 // Realtime list views coalesce a burst of entity-change nudges into at most one
 // batched row fetch per this window, bounding backend load under heavy churn.
-const REALTIME_REFETCH_DEBOUNCE_MS = 1000;
+export const REALTIME_REFETCH_DEBOUNCE_MS = 1000;
 
 interface ListViewResourceState<D extends object = any> {
   loading: boolean;
@@ -96,11 +96,8 @@ export function useListViewResource<D extends object = any>(
   selectColumns?: string[],
   // Realtime: when enabled, the list subscribes to the entity-change nudge
   // channel and live-patches only its currently-displayed rows (see the
-  // realtime effect below). `realtimeIdField` is the row identity used both to
-  // match nudges against the collection and to filter the batched refetch
-  // (default the integer `id`; UUID-facing resources like tasks pass `uuid`).
+  // realtime effect below).
   enableRealtime = false,
-  realtimeIdField = 'id',
 ) {
   const [state, setState] = useState<ListViewResourceState<D>>({
     count: 0,
@@ -280,8 +277,10 @@ export function useListViewResource<D extends object = any>(
     const pendingIds = new Set<string>();
     let debounceId: ReturnType<typeof setTimeout> | undefined;
 
+    // Nudges carry the row's integer primary key (see superset/tasks/manager.py),
+    // which is also what the list endpoint filters on.
     const rowId = (row: D): string =>
-      String((row as Record<string, unknown>)[realtimeIdField]);
+      String((row as Record<string, unknown>).id);
     const isDisplayed = (id: string): boolean =>
       collectionRef.current.some(row => rowId(row) === id);
 
@@ -294,7 +293,7 @@ export function useListViewResource<D extends object = any>(
       if (!ids.length) return;
 
       const query = rison.encode_uri({
-        filters: [{ col: realtimeIdField, opr: 'in', value: ids }],
+        filters: [{ col: 'id', opr: 'in', value: ids }],
         page: 0,
         page_size: ids.length,
       });
@@ -336,7 +335,7 @@ export function useListViewResource<D extends object = any>(
       unsubscribe();
       if (debounceId !== undefined) clearTimeout(debounceId);
     };
-  }, [enableRealtime, resource, realtimeIdField]);
+  }, [enableRealtime, resource]);
 
   return {
     state: {

@@ -221,6 +221,32 @@ class TaskStatusResponseSchema(Schema):
     status = fields.String(metadata={"description": status_description})
 
 
+class TaskStatusChangeSchema(Schema):
+    """Schema for a single task's entry in a status-changes poll."""
+
+    status = fields.String(metadata={"description": status_description})
+    progress = fields.Float(
+        allow_none=True,
+        metadata={
+            "description": "Progress as a 0.0-1.0 fraction, or null when unknown"
+        },
+    )
+
+
+class TaskStatusChangesResponseSchema(Schema):
+    """Schema for the ``/status_changes`` polling response."""
+
+    statuses = fields.Dict(
+        keys=fields.String(),
+        values=fields.Nested(TaskStatusChangeSchema),
+        metadata={"description": "Map of task UUID to its status and progress"},
+    )
+    cursor = fields.String(
+        allow_none=True,
+        metadata={"description": "Watermark to pass as ``cursor`` on the next poll"},
+    )
+
+
 class TaskCancelRequestSchema(Schema):
     """Schema for task cancellation request"""
 

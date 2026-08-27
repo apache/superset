@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useMemo } from 'react';
+import { useEffect, useState } from 'react';
 import { useCurrentTime } from 'src/dashboard/hooks/useCurrentTime';
 import { formatDuration } from 'src/features/tasks/timeUtils';
 
@@ -40,25 +40,17 @@ export interface LiveDurationProps {
  * re-bases whenever `durationSeconds` changes (e.g. a realtime nudge patches
  * the row), so ticking resumes from the fresh server value.
  */
-export const LiveDuration = ({
-  durationSeconds,
-  live,
-  locale,
-}: LiveDurationProps) => {
-  const now = useCurrentTime(live);
-  const anchor = useMemo(
-    () =>
-      durationSeconds == null
-        ? null
-        : { base: durationSeconds, at: Date.now() },
-    [durationSeconds],
-  );
+const LiveDuration = ({ durationSeconds, live, locale }: LiveDurationProps) => {
+  // A fresh server value also restarts the tick in phase with it.
+  const now = useCurrentTime(live, durationSeconds);
+  const [anchoredAt, setAnchoredAt] = useState(now);
+  useEffect(() => setAnchoredAt(Date.now()), [durationSeconds]);
 
-  if (!live || anchor == null) {
+  if (!live || durationSeconds == null) {
     return <>{formatDuration(durationSeconds, locale) ?? '-'}</>;
   }
 
-  const elapsed = anchor.base + Math.max(0, now - anchor.at) / 1000;
+  const elapsed = durationSeconds + Math.max(0, now - anchoredAt) / 1000;
   return <>{formatDuration(elapsed, locale) ?? '-'}</>;
 };
 

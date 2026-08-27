@@ -17,10 +17,11 @@
 """Task DAO for Global Task Framework (GTF)"""
 
 import logging
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Any, Literal, TypedDict
 from uuid import UUID
 
+from sqlalchemy.sql.elements import ColumnElement
 from superset_core.tasks.types import TaskProperties, TaskScope, TaskStatus
 
 from superset.daos.base import BaseDAO
@@ -31,7 +32,14 @@ from superset.models.task_subscribers import TaskSubscriber
 from superset.models.tasks import Task
 from superset.tasks.constants import ABORTABLE_STATES, TERMINAL_STATES
 from superset.tasks.filters import TaskFilter
-from superset.tasks.utils import get_active_dedup_key, get_finished_dedup_key, json
+from superset.tasks.utils import (
+    get_active_dedup_key,
+    get_finished_dedup_key,
+    json,
+    naive_utcnow,
+    parse_payload,
+    parse_properties,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -141,7 +149,7 @@ class TaskDAO(BaseDAO[Task]):
 
         statuses: dict[str, dict[str, Any]] = {}
         for uuid, status, _changed_on, properties in rows:
-            progress = json.loads(properties or "{}").get("progress_percent")
+            progress = parse_properties(properties).get("progress_percent")
             statuses[str(uuid)] = {"status": status, "progress": progress}
         return statuses, next_cursor
 
@@ -361,12 +369,14 @@ class TaskDAO(BaseDAO[Task]):
         principals: list[TaskSubscriberPrincipal] = []
         seen: set[tuple[SubscriberPrincipalType, str]] = set()
         for user_id, guest_key in rows:
-            principal: TaskSubscriberPrincipal | None = None
             if user_id is not None:
-                principal = {"principal_type": "user", "sub": str(user_id)}
+                principal: TaskSubscriberPrincipal = {
+                    "principal_type": "user",
+                    "sub": str(user_id),
+                }
             elif guest_key:
                 principal = {"principal_type": "guest", "sub": guest_key}
-            if principal is None:
+            else:
                 continue
             key = (principal["principal_type"], principal["sub"])
             if key not in seen:
@@ -383,28 +393,14 @@ class TaskDAO(BaseDAO[Task]):
         :param user_id: ID of the user to subscribe
         :returns: True if subscriber was added, False if already exists
         """
-        # Check first to avoid IntegrityError which invalidates the session
-        # in nested transaction contexts (IntegrityError can't be recovered from)
-        existing = (
-            db.session.query(TaskSubscriber)
-            .filter_by(task_id=task_id, user_id=user_id)
-            .first()
-        )
-        if existing:
+        added = cls._add_subscription(task_id, user_id=user_id)
+        if added:
+            logger.info("Added subscriber %s to task %s", user_id, task_id)
+        else:
             logger.debug(
                 "Subscriber %s already subscribed to task %s", user_id, task_id
             )
-            return False
-
-        subscription = TaskSubscriber(
-            task_id=task_id,
-            user_id=user_id,
-            subscribed_at=datetime.now(timezone.utc),
-        )
-        db.session.add(subscription)
-        db.session.flush()
-        logger.info("Added subscriber %s to task %s", user_id, task_id)
-        return True
+        return added
 
     @classmethod
     def add_guest_subscriber(cls, task_id: int, guest_key: str) -> bool:
@@ -419,10 +415,26 @@ class TaskDAO(BaseDAO[Task]):
         :param guest_key: Stable guest identity to subscribe
         :returns: True if subscriber was added, False if already exists
         """
-        # Check first to avoid IntegrityError (unrecoverable in nested txns).
+        added = cls._add_subscription(task_id, guest_key=guest_key)
+        if added:
+            logger.info("Added guest subscriber to task %s", task_id)
+        return added
+
+    @classmethod
+    def _add_subscription(
+        cls,
+        task_id: int,
+        user_id: int | None = None,
+        guest_key: str | None = None,
+    ) -> bool:
+        # Check first to avoid IntegrityError which invalidates the session
+        # in nested transaction contexts (IntegrityError can't be recovered from)
+        criteria: dict[str, int | str | None] = (
+            {"user_id": user_id} if user_id is not None else {"guest_key": guest_key}
+        )
         existing = (
             db.session.query(TaskSubscriber)
-            .filter_by(task_id=task_id, guest_key=guest_key)
+            .filter_by(task_id=task_id, **criteria)
             .first()
         )
         if existing:
@@ -431,12 +443,12 @@ class TaskDAO(BaseDAO[Task]):
         db.session.add(
             TaskSubscriber(
                 task_id=task_id,
+                user_id=user_id,
                 guest_key=guest_key,
-                subscribed_at=datetime.now(timezone.utc),
+                subscribed_at=naive_utcnow(),
             )
         )
         db.session.flush()
-        logger.info("Added guest subscriber to task %s", task_id)
         return True
 
     @classmethod
@@ -475,7 +487,7 @@ class TaskDAO(BaseDAO[Task]):
 
     @classmethod
     def _remove_subscription(
-        cls, task_id: int, subscriber_clause: Any, label: str
+        cls, task_id: int, subscriber_clause: ColumnElement[bool], label: str
     ) -> Task | None:
         subscription = (
             db.session.query(TaskSubscriber)
@@ -573,13 +585,7 @@ class TaskDAO(BaseDAO[Task]):
             .order_by(TaskDependency.id.asc())
             .all()
         )
-        payloads: list[dict[str, Any]] = []
-        for (payload,) in rows:
-            try:
-                payloads.append(json.loads(payload or "{}"))
-            except (json.JSONDecodeError, TypeError):
-                payloads.append({})
-        return payloads
+        return [parse_payload(payload) for (payload,) in rows]
 
     @classmethod
     def set_properties_and_payload(
@@ -687,15 +693,12 @@ class TaskDAO(BaseDAO[Task]):
         if properties is not None:
             update_values["properties"] = json.dumps(properties)
 
-        # Store as naive UTC (see Task.set_status): avoids DB drivers converting
-        # an aware value to the session-local tz on write to a naive column.
+        # Store as naive UTC (see ``naive_utcnow``), matching Task.set_status.
         if set_started_at:
-            update_values["started_at"] = datetime.now(timezone.utc).replace(
-                tzinfo=None
-            )
+            update_values["started_at"] = naive_utcnow()
 
         if set_ended_at:
-            update_values["ended_at"] = datetime.now(timezone.utc).replace(tzinfo=None)
+            update_values["ended_at"] = naive_utcnow()
 
         # Update dedup_key if transitioning to terminal state
         if new_status_val in TERMINAL_STATES:

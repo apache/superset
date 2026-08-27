@@ -19,7 +19,6 @@
 from __future__ import annotations
 
 import uuid as uuid_module
-from datetime import datetime, timezone
 from typing import Any, cast
 
 from flask_appbuilder import Model
@@ -42,6 +41,8 @@ from superset.tasks.constants import TERMINAL_STATES
 from superset.tasks.utils import (
     error_update,
     get_finished_dedup_key,
+    naive_utcnow,
+    parse_payload,
     parse_properties,
     serialize_properties,
 )
@@ -179,10 +180,7 @@ class Task(CoreTask, AuditMixinNullable, Model):
 
         :returns: Dictionary containing payload data
         """
-        try:
-            return json.loads(self.payload or "{}")
-        except (json.JSONDecodeError, TypeError):
-            return {}
+        return parse_payload(self.payload)
 
     def set_payload(self, data: dict[str, Any]) -> None:
         """
@@ -231,11 +229,9 @@ class Task(CoreTask, AuditMixinNullable, Model):
 
         # Update timestamps and is_abortable based on status. started_at/ended_at
         # are stored as naive UTC (created_on/changed_on from FAB remain naive
-        # local, but nothing computes a delta across the two conventions). Naive
-        # UTC — rather than aware UTC — avoids DB drivers that convert an aware
-        # value to the session-local tz when writing to a naive column, which
-        # would otherwise skew the running-duration by the local UTC offset.
-        now = datetime.now(timezone.utc).replace(tzinfo=None)
+        # local, but nothing computes a delta across the two conventions); see
+        # ``naive_utcnow``.
+        now = naive_utcnow()
         if status == TaskStatus.IN_PROGRESS.value and not self.started_at:
             self.started_at = now
             # Set is_abortable to False when task starts executing
@@ -293,7 +289,7 @@ class Task(CoreTask, AuditMixinNullable, Model):
             return None
         if self.started_at:
             # Running or aborting - elapsed since it started (both naive UTC)
-            now = datetime.now(timezone.utc).replace(tzinfo=None)
+            now = naive_utcnow()
             started = (
                 self.started_at.replace(tzinfo=None)
                 if self.started_at.tzinfo is not None

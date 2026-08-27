@@ -26,8 +26,10 @@ events out to JWT-bound socket routing keys.
 
 ## Requirements
 
-- Node.js 12+ (not tested with older versions)
-- Redis 5+
+- Node.js 20.11+ to run the built bundle (the build targets `node20`, and
+  `import.meta.dirname` requires 20.11). Building and developing this package
+  follow the stricter `engines` range in `package.json`.
+- Redis or Valkey, reachable for Pub/Sub
 
 To use realtime push, enable it in the Superset backend (`WEBSOCKET_ENABLE`,
 `WEBSOCKET_URL`, `WEBSOCKET_JWT_SECRET`; see below) and run this server on the

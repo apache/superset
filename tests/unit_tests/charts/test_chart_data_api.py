@@ -83,6 +83,7 @@ def test_should_run_async_requires_async_mode_flag() -> None:
     qc = MagicMock()
     qc.result_format = ChartDataResultFormat.JSON
     qc.result_type = ChartDataResultType.FULL
+    qc.get_cache_timeout.return_value = 300
 
     with (
         patch("superset.charts.data.api.is_feature_enabled", return_value=True),
@@ -92,23 +93,29 @@ def test_should_run_async_requires_async_mode_flag() -> None:
         cache_manager.data_cache.cache = MagicMock()
 
         # Opted in → async.
-        assert api._should_run_async({"async_mode": True}, qc, 300) is True
+        assert api._should_run_async({"async_mode": True}, qc) is True
         # Absent or false → synchronous (programmatic clients keep the 200 flow).
-        assert api._should_run_async({}, qc, 300) is False
-        assert api._should_run_async({"async_mode": False}, qc, 300) is False
-        # Caching disabled → sync even when opted in (async reads from the cache).
-        cache_disabled = api._should_run_async(
-            {"async_mode": True}, qc, CACHE_DISABLED_TIMEOUT
-        )
-        assert cache_disabled is False
+        assert api._should_run_async({}, qc) is False
+        assert api._should_run_async({"async_mode": False}, qc) is False
+
+        # No configured chart/dataset/database TTL is not "cache disabled": the
+        # processor resolves a fallback, so async stays available.
+        qc.get_cache_timeout.return_value = None
+        assert api._should_run_async({"async_mode": True}, qc) is True
+
+        # Caching explicitly disabled → sync even when opted in (async reads from
+        # the cache).
+        qc.get_cache_timeout.return_value = CACHE_DISABLED_TIMEOUT
+        assert api._should_run_async({"async_mode": True}, qc) is False
 
         # NullCache DATA backend → sync: async could never read the result back.
+        qc.get_cache_timeout.return_value = 300
         cache_manager.data_cache.cache = NullCache()
-        assert api._should_run_async({"async_mode": True}, qc, 300) is False
+        assert api._should_run_async({"async_mode": True}, qc) is False
 
     # Feature flag off → always sync.
     with patch("superset.charts.data.api.is_feature_enabled", return_value=False):
-        assert api._should_run_async({"async_mode": True}, qc, 300) is False
+        assert api._should_run_async({"async_mode": True}, qc) is False
 
 
 def test_get_data_sets_g_form_data_without_dashboard_filter() -> None:

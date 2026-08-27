@@ -312,8 +312,9 @@ class TaskWrapper(Generic[P]):
             raise GlobalTaskFrameworkDisabledError()
 
         # Extract and merge options (decorator defaults + call-time overrides)
-        override_options = cast(TaskOptions | None, kwargs.pop("options", None))
-        options = self._merge_options(override_options)
+        options = self._merge_options(
+            cast(TaskOptions | None, kwargs.pop("options", None))
+        )
 
         # Validate task configuration
         self._validate_task(options)
@@ -338,6 +339,7 @@ class TaskWrapper(Generic[P]):
                 "task_name": task_name,
                 "scope": scope.value,
                 "properties": properties,
+                "depends_on": options.depends_on,
             }
         ).run_with_info()
 
@@ -639,15 +641,14 @@ class TaskWrapper(Generic[P]):
             raise GlobalTaskFrameworkDisabledError()
 
         # Extract and merge options (decorator defaults + call-time overrides)
-        override_options = options
-        options = self._merge_options(override_options)
+        merged_options = self._merge_options(options)
 
         # Validate task configuration
-        self._validate_task(options)
+        self._validate_task(merged_options)
 
         # Extract task_name and task_key from merged options, scope from decorator
-        task_name = options.task_name
-        task_key = options.task_key
+        task_name = merged_options.task_name
+        task_key = merged_options.task_key
         scope = self.scope  # Use scope from decorator
 
         # Create task entry in metastore and schedule execution
@@ -656,8 +657,8 @@ class TaskWrapper(Generic[P]):
             task_name=task_name,
             task_key=task_key,
             scope=scope,
-            timeout=options.timeout,
+            timeout=merged_options.timeout,
             args=args,
             kwargs=kwargs,
-            depends_on=options.depends_on,
+            depends_on=merged_options.depends_on,
         )

@@ -22,38 +22,32 @@ const { randomUUID } = require('crypto');
 const redis = new Redis(config.redis);
 
 const numClients = 256;
-const globalEventStreamName = `${config.redisStreamPrefix}full`;
+
+// The Pub/Sub channels the server tails; a fixed wire-protocol contract with the
+// Superset producer, mirrored from superset-websocket/src/index.ts.
+const entityChangesChannel = 'entity-changes:task';
+const taskStatusChannel = 'task-status';
 
 function pushData() {
+  const taskId = randomUUID();
+
+  // Tier 1: one broadcast entity-change nudge, carrying only opaque ids.
+  redis.publish(
+    entityChangesChannel,
+    JSON.stringify({ entity_type: 'task', id: taskId }),
+  );
+
+  // Tier 2: one targeted task-status message per simulated client, each fanned
+  // out by the server to that principal's sockets only.
   for (let i = 0; i < numClients; i++) {
-    const channelId = String(i);
-    const streamId = `${config.redisStreamPrefix}${channelId}`;
-    const data = {
-      channel_id: channelId,
-      job_id: randomUUID(),
-      status: 'pending',
-    };
-
-    // push to channel stream
-    redis
-      .xadd(streamId, 'MAXLEN', 1000, '*', 'data', JSON.stringify(data))
-      .then(resp => {
-        console.log('stream response', resp);
-      });
-
-    // push to firehose (all events) stream
-    redis
-      .xadd(
-        globalEventStreamName,
-        'MAXLEN',
-        100000,
-        '*',
-        'data',
-        JSON.stringify(data),
-      )
-      .then(resp => {
-        console.log('stream response', resp);
-      });
+    redis.publish(
+      taskStatusChannel,
+      JSON.stringify({
+        task_id: taskId,
+        status: 'running',
+        subscribers: [{ principal_type: 'user', sub: String(i) }],
+      }),
+    );
   }
 }
 

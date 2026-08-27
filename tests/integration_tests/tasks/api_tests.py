@@ -393,6 +393,119 @@ class TestTaskApi(SupersetTestCase):
             data = json.loads(rv.data.decode("utf-8"))
             assert data["status"] == task.status
 
+    def test_status_changes_baseline_then_change_round_trip(self):
+        """
+        Task API: Test /status_changes baseline → change → cursor round trip
+        """
+        with self._create_tasks():
+            self.login(ADMIN_USERNAME)
+            admin = self.get_user("admin")
+
+            # No cursor: establishes a baseline (no statuses, fresh watermark) so a
+            # client never has to pull every task in the metastore.
+            rv = self.client.get(f"{self.TASK_API_BASE}/status_changes")
+            assert rv.status_code == 200
+            baseline = json.loads(rv.data.decode("utf-8"))
+            assert baseline["statuses"] == {}
+            assert baseline["cursor"] is not None
+
+            # A transition after the baseline is surfaced on the next poll.
+            task = db.session.query(Task).filter_by(created_by_fk=admin.id).first()
+            assert task is not None
+            task.set_status(TaskStatus.IN_PROGRESS)
+            task.update_properties({"progress_percent": 0.5})
+            db.session.commit()
+
+            uri = f"{self.TASK_API_BASE}/status_changes?cursor={baseline['cursor']}"
+            rv = self.client.get(uri)
+            assert rv.status_code == 200
+            changed = json.loads(rv.data.decode("utf-8"))
+            assert changed["statuses"][str(task.uuid)] == {
+                "status": TaskStatus.IN_PROGRESS.value,
+                "progress": 0.5,
+            }
+            # The returned cursor advances, so an idle task is not re-delivered
+            # forever.
+            assert changed["cursor"] >= baseline["cursor"]
+
+    def test_status_changes_rejects_invalid_cursor(self):
+        """
+        Task API: Test /status_changes rejects an unparseable cursor
+        """
+        self.login(ADMIN_USERNAME)
+        uri = f"{self.TASK_API_BASE}/status_changes?cursor=not-a-timestamp"
+        rv = self.client.get(uri)
+        assert rv.status_code == 400
+
+    def test_status_changes_narrows_by_task_type(self):
+        """
+        Task API: Test /status_changes only returns the requested task_type
+        """
+        from superset_core.tasks.types import TaskScope
+
+        from superset.daos.tasks import TaskDAO
+
+        with self._create_tasks():
+            self.login(ADMIN_USERNAME)
+            admin = self.get_user("admin")
+
+            rv = self.client.get(f"{self.TASK_API_BASE}/status_changes")
+            baseline_cursor = json.loads(rv.data.decode("utf-8"))["cursor"]
+
+            other = TaskDAO.create_task(
+                task_type="other_type",
+                task_key="other_type_task",
+                task_name="Other Type Task",
+                scope=TaskScope.PRIVATE,
+                user_id=admin.id,
+            )
+            db.session.commit()
+            try:
+                task = db.session.query(Task).filter_by(created_by_fk=admin.id).first()
+                assert task is not None
+                task.set_status(TaskStatus.IN_PROGRESS)
+                db.session.commit()
+
+                uri = (
+                    f"{self.TASK_API_BASE}/status_changes"
+                    f"?cursor={baseline_cursor}&task_type=other_type"
+                )
+                rv = self.client.get(uri)
+                assert rv.status_code == 200
+                statuses = json.loads(rv.data.decode("utf-8"))["statuses"]
+
+                assert str(other.uuid) in statuses
+                assert str(task.uuid) not in statuses
+            finally:
+                db.session.delete(other)
+                db.session.commit()
+
+    def test_status_changes_scoped_to_the_polling_principal(self):
+        """
+        Task API: Test /status_changes only returns tasks the caller can see
+        """
+        with self._create_tasks():
+            self.login(GAMMA_USERNAME)
+            admin = self.get_user("admin")
+
+            rv = self.client.get(f"{self.TASK_API_BASE}/status_changes")
+            baseline_cursor = json.loads(rv.data.decode("utf-8"))["cursor"]
+
+            admin_task = (
+                db.session.query(Task).filter_by(created_by_fk=admin.id).first()
+            )
+            assert admin_task is not None
+            admin_task.set_status(TaskStatus.IN_PROGRESS)
+            db.session.commit()
+
+            uri = f"{self.TASK_API_BASE}/status_changes?cursor={baseline_cursor}"
+            rv = self.client.get(uri)
+            assert rv.status_code == 200
+            statuses = json.loads(rv.data.decode("utf-8"))["statuses"]
+
+            # Gamma is not subscribed to admin's task, so the transition is hidden.
+            assert str(admin_task.uuid) not in statuses
+
     def test_get_task_list_user_sees_own_tasks(self):
         """
         Task API: Test non-admin user only sees their own tasks

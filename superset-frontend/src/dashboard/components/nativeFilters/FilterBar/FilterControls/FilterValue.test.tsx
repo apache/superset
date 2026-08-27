@@ -24,13 +24,10 @@ import { NativeFilterType } from '@superset-ui/core';
 import type { Filter } from '@superset-ui/core';
 import FilterValue from './FilterValue';
 
-const mockGetChartDataRequest = jest.fn();
+const mockRequestChartData = jest.fn();
 jest.mock('src/components/Chart/chartAction', () => ({
-  getChartDataRequest: (...args: unknown[]) => mockGetChartDataRequest(...args),
-}));
-
-jest.mock('src/middleware/asyncEvent', () => ({
-  waitForAsyncData: jest.fn(),
+  requestChartDataResolved: (...args: unknown[]) =>
+    mockRequestChartData(...args),
 }));
 
 jest.mock('@superset-ui/core', () => {
@@ -133,7 +130,7 @@ beforeEach(() => {
 });
 
 test('renders loading spinner when filter has a data source', () => {
-  mockGetChartDataRequest.mockReturnValue(new Promise(() => {}));
+  mockRequestChartData.mockReturnValue(new Promise(() => {}));
 
   renderFilterValue();
 
@@ -142,10 +139,7 @@ test('renders loading spinner when filter has a data source', () => {
 });
 
 test('renders SuperChart after data loads successfully', async () => {
-  mockGetChartDataRequest.mockResolvedValue({
-    response: { status: 200 },
-    json: { result: [{ data: [{ country: 'US' }] }] },
-  });
+  mockRequestChartData.mockResolvedValue([{ data: [{ country: 'US' }] }]);
 
   renderFilterValue();
 
@@ -156,11 +150,8 @@ test('renders SuperChart after data loads successfully', async () => {
   expect(screen.queryByRole('status')).not.toBeInTheDocument();
 });
 
-test('forwards the dashboard async override + enableAsyncMode to the request', async () => {
-  mockGetChartDataRequest.mockResolvedValue({
-    response: { status: 200 },
-    json: { result: [{ data: [{ country: 'US' }] }] },
-  });
+test('forwards the dashboard async override to the request', async () => {
+  mockRequestChartData.mockResolvedValue([{ data: [{ country: 'US' }] }]);
 
   renderFilterValue(
     {},
@@ -168,20 +159,19 @@ test('forwards the dashboard async override + enableAsyncMode to the request', a
   );
 
   await waitFor(() => {
-    expect(mockGetChartDataRequest).toHaveBeenCalled();
+    expect(mockRequestChartData).toHaveBeenCalled();
   });
-  // Filter requests opt into async handling and carry the dashboard's override so
-  // they follow the same async policy as the dashboard's charts.
-  expect(mockGetChartDataRequest).toHaveBeenLastCalledWith(
+  // Filter requests carry the dashboard's override so they follow the same async
+  // policy as the dashboard's charts.
+  expect(mockRequestChartData).toHaveBeenLastCalledWith(
     expect.objectContaining({
-      enableAsyncMode: true,
       requestParams: { async_mode_override: 'force_off' },
     }),
   );
 });
 
 test('renders error state when API call fails', async () => {
-  mockGetChartDataRequest.mockRejectedValue(
+  mockRequestChartData.mockRejectedValue(
     new Response(JSON.stringify({ message: 'Server Error' }), { status: 500 }),
   );
 
@@ -199,14 +189,14 @@ test('renders error state when API call fails', async () => {
 test('does not fetch data when filter has not been in view', () => {
   renderFilterValue({ inView: false });
 
-  expect(mockGetChartDataRequest).not.toHaveBeenCalled();
+  expect(mockRequestChartData).not.toHaveBeenCalled();
 });
 
 test('does not render loading spinner when filter has no data source', () => {
   const filterWithoutDataSource = createMockFilter({
     targets: [{ column: { name: 'country' } }],
   });
-  mockGetChartDataRequest.mockReturnValue(new Promise(() => {}));
+  mockRequestChartData.mockReturnValue(new Promise(() => {}));
 
   renderFilterValue({ filter: filterWithoutDataSource });
 
@@ -248,14 +238,11 @@ test('guard: does not fetch while a defaultToFirstItem parent has not yet auto-s
     stateWithDefaultFirstItemParent,
   );
 
-  expect(mockGetChartDataRequest).not.toHaveBeenCalled();
+  expect(mockRequestChartData).not.toHaveBeenCalled();
 });
 
 test('guard: fetches once a defaultToFirstItem parent has set its first value', async () => {
-  mockGetChartDataRequest.mockResolvedValue({
-    response: { status: 200 },
-    json: { result: [{ data: [{ model: 'Corolla' }] }] },
-  });
+  mockRequestChartData.mockResolvedValue([{ data: [{ model: 'Corolla' }] }]);
   mockUseTransitiveParentIds.mockReturnValue(['NATIVE_FILTER-PARENT']);
   mockUseFilterDependencies.mockReturnValue({
     filters: [{ col: 'make', op: 'IN', val: ['Toyota'] }],
@@ -278,16 +265,13 @@ test('guard: fetches once a defaultToFirstItem parent has set its first value', 
   );
 
   await waitFor(() => {
-    expect(mockGetChartDataRequest).toHaveBeenCalled();
+    expect(mockRequestChartData).toHaveBeenCalled();
   });
 });
 
 test('guard: does not block fetch for a parent without defaultToFirstItem', async () => {
   // Non-defaultToFirstItem parents with values should pass the guard as before.
-  mockGetChartDataRequest.mockResolvedValue({
-    response: { status: 200 },
-    json: { result: [{ data: [] }] },
-  });
+  mockRequestChartData.mockResolvedValue([{ data: [] }]);
   mockUseTransitiveParentIds.mockReturnValue(['NATIVE_FILTER-PARENT']);
   mockUseFilterDependencies.mockReturnValue({
     filters: [{ col: 'make', op: 'IN', val: ['Toyota'] }],
@@ -319,7 +303,7 @@ test('guard: does not block fetch for a parent without defaultToFirstItem', asyn
   );
 
   await waitFor(() => {
-    expect(mockGetChartDataRequest).toHaveBeenCalled();
+    expect(mockRequestChartData).toHaveBeenCalled();
   });
 });
 
@@ -357,5 +341,5 @@ test('skips data fetch when cascade parent filters have no values selected', () 
     stateWithParent,
   );
 
-  expect(mockGetChartDataRequest).not.toHaveBeenCalled();
+  expect(mockRequestChartData).not.toHaveBeenCalled();
 });

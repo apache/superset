@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { useSelector } from 'react-redux';
 import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import getBootstrapData from 'src/utils/getBootstrapData';
 
@@ -25,6 +26,23 @@ import getBootstrapData from 'src/utils/getBootstrapData';
  * default; the others force async on/off for that dashboard's charts.
  */
 export type AsyncModeOverride = 'default' | 'force_on' | 'force_off';
+
+/** State shape the override is read from; matches any store holding dashboard info. */
+type StateWithAsyncModeOverride = {
+  dashboardInfo?: { metadata?: { async_mode?: AsyncModeOverride } };
+};
+
+/**
+ * Read the per-dashboard override from Redux. Undefined outside a dashboard (or
+ * when the dashboard sets no override), which `resolveAsyncMode` treats as
+ * `default`.
+ */
+export const selectAsyncModeOverride = (
+  state: StateWithAsyncModeOverride,
+): AsyncModeOverride | undefined => state.dashboardInfo?.metadata?.async_mode;
+
+export const useAsyncModeOverride = (): AsyncModeOverride | undefined =>
+  useSelector(selectAsyncModeOverride);
 
 /**
  * Resolve whether the UI should request asynchronous chart-data execution.

@@ -70,3 +70,13 @@ def get_current_guest_subscriber_key() -> str | None:
         hashlib.sha256,
     ).hexdigest()
     return f"guest:{digest}"
+
+
+def get_guest_subscriber_key_for(user_id: int | None) -> str | None:
+    """Return the guest subscriber key to use alongside ``user_id``.
+
+    Authenticated callers subscribe by ``user_id``, so they get ``None``; only a
+    request with no ``ab_user`` id falls back to the guest key. Keeps the
+    "user_id XOR guest_key" rule that ``TaskSubscriber`` enforces in one place.
+    """
+    return None if user_id else get_current_guest_subscriber_key()

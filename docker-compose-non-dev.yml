@@ -148,6 +148,9 @@ services:
     container_name: superset_websocket
     profiles:
       - websocket
+    # Neither a volume mount nor the root user is needed: the entrypoint and the
+    # Node bundle it runs are both baked into the image, and the server is
+    # configured entirely through the environment below.
     command: ["/app/docker/entrypoints/run-websocket.sh"]
     environment:
       REDIS_HOST: redis
@@ -158,15 +161,16 @@ services:
       # replaced with a strong secret (>= 32 bytes) outside local development.
       JWT_SECRET: ${WEBSOCKET_JWT_SECRET:-dev-only-websocket-secret-change-me!}
       # Optional verify-only old key for websocket JWT secret rotation.
-      PREVIOUS_JWT_SECRET: ${PREVIOUS_JWT_SECRET:-}
+      PREVIOUS_JWT_SECRET: ${WEBSOCKET_PREVIOUS_JWT_SECRET:-}
     restart: unless-stopped
     ports:
       - 8080:8080
     depends_on:
       redis:
         condition: service_started
-    user: "root"
-    volumes: *superset-volumes
+    # Overrides the image-level HEALTHCHECK, which probes the Superset app.
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health"]
 
 volumes:
   superset_home:

@@ -74,3 +74,27 @@ test('ticks the duration upward once per second when live', () => {
   // Base (60s) + locally-measured elapsed (3s), no timestamp parsing involved.
   expect(container).toHaveTextContent(formatDuration(63, 'en') as string);
 });
+
+test('re-anchors on a fresh server duration instead of compounding drift', () => {
+  jest.useFakeTimers();
+  jest.setSystemTime(0);
+
+  const { container, rerender } = render(
+    <LiveDuration durationSeconds={60} live locale="en" />,
+  );
+
+  act(() => {
+    jest.advanceTimersByTime(3000);
+  });
+  expect(container).toHaveTextContent(formatDuration(63, 'en') as string);
+
+  // A realtime nudge patches the row with a fresh server value: ticking resumes
+  // from it, not from the previous anchor plus all elapsed time.
+  rerender(<LiveDuration durationSeconds={100} live locale="en" />);
+  expect(container).toHaveTextContent(formatDuration(100, 'en') as string);
+
+  act(() => {
+    jest.advanceTimersByTime(1000);
+  });
+  expect(container).toHaveTextContent(formatDuration(101, 'en') as string);
+});

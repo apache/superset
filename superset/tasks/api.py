@@ -41,6 +41,7 @@ from superset.tasks.schemas import (
     TaskCancelRequestSchema,
     TaskCancelResponseSchema,
     TaskResponseSchema,
+    TaskStatusChangesResponseSchema,
     TaskStatusResponseSchema,
 )
 from superset.views.base_api import (
@@ -155,6 +156,7 @@ class TaskRestApi(BaseSupersetModelRestApi):
         TaskResponseSchema,
         TaskCancelRequestSchema,
         TaskCancelResponseSchema,
+        TaskStatusChangesResponseSchema,
         TaskStatusResponseSchema,
     )
     openapi_spec_methods = openapi_spec_methods_override
@@ -306,23 +308,7 @@ class TaskRestApi(BaseSupersetModelRestApi):
               content:
                 application/json:
                   schema:
-                    type: object
-                    properties:
-                      statuses:
-                        type: object
-                        additionalProperties:
-                          type: object
-                          properties:
-                            status:
-                              type: string
-                            progress:
-                              type: number
-                              nullable: true
-                        description: Map of task UUID to status and progress
-                      cursor:
-                        type: string
-                        nullable: true
-                        description: Cursor to pass to the next poll
+                    $ref: '#/components/schemas/TaskStatusChangesResponseSchema'
             400:
               $ref: '#/components/responses/400'
             401:
