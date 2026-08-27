@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { AxisType } from '@superset-ui/core';
+import { AxisType, TimeGranularity } from '@superset-ui/core';
 import {
   buildTimeseriesDrillFilters,
   getCategoryAxisValue,
@@ -68,17 +68,44 @@ test('horizontal orientation reads the category value from the second tuple inde
   expect(filters[0]).toMatchObject({ col: 'region', val: 'Texas' });
 });
 
-test('a non-category (time) x-axis drills on the event name', () => {
+test('a time x-axis without a grain drills on the exact naive-datetime value', () => {
   const filters = buildTimeseriesDrillFilters({
     componentType: 'series',
-    data: undefined,
+    data: [1609459200000, 42],
     name: 1609459200000,
     xAxisType: AxisType.Time,
-    xAxisLabel: '__timestamp',
+    xAxisLabel: 'order_date',
   });
 
   expect(filters).toHaveLength(1);
-  expect(filters[0]).toMatchObject({ col: '__timestamp', val: 1609459200000 });
+  // No grain => exact match on the naive UTC datetime the backend expects.
+  expect(filters[0]).toMatchObject({
+    col: 'order_date',
+    op: '==',
+    val: '2021-01-01T00:00:00',
+  });
+});
+
+test('a time x-axis with a grain drills on the bucketed TEMPORAL_RANGE and maps __timestamp', () => {
+  const filters = buildTimeseriesDrillFilters({
+    componentType: 'series',
+    data: [1609459200000, 42],
+    name: 1609459200000,
+    xAxisType: AxisType.Time,
+    xAxisLabel: '__timestamp',
+    granularitySqla: 'order_date',
+    timeGrain: TimeGranularity.MONTH,
+  });
+
+  expect(filters).toHaveLength(1);
+  // The clicked Jan-2021 monthly bucket must scope to the whole month, and
+  // __timestamp is mapped to the real granularity column so strict engines
+  // (e.g. Trino) match rows in the bucket instead of an exact timestamp.
+  expect(filters[0]).toMatchObject({
+    col: 'order_date',
+    op: 'TEMPORAL_RANGE',
+    val: '2021-01-01T00:00:00 : 2021-02-01T00:00:00',
+  });
 });
 
 test('a series click with no resolvable value yields no filter', () => {

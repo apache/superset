@@ -19,12 +19,15 @@
 import {
   AxisType,
   BinaryQueryObjectFilterClause,
+  DTTM_ALIAS,
   getNumberFormatter,
   getTimeFormatter,
+  TimeGranularity,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import { OrientationType } from './types';
 import { formatSeriesName } from '../utils/series';
+import { getTemporalXAxisDrillByFilter } from '../utils/xAxisDrillByFilter';
 
 /**
  * Resolve the category (x-axis) value from an ECharts click event. Horizontal
@@ -68,6 +71,10 @@ export interface TimeseriesDrillFilterParams {
   numberFormat?: string;
   /** Column type of the x-axis, used to format the breadcrumb label. */
   coltype?: GenericDataType;
+  /** For a temporal x-axis: the real granularity column (maps __timestamp). */
+  granularitySqla?: string;
+  /** For a temporal x-axis: the active grain, for a bucket-range filter. */
+  timeGrain?: TimeGranularity;
 }
 
 /**
@@ -92,6 +99,8 @@ export function buildTimeseriesDrillFilters({
   dateFormat,
   numberFormat,
   coltype,
+  granularitySqla,
+  timeGrain,
 }: TimeseriesDrillFilterParams): BinaryQueryObjectFilterClause[] {
   if (componentType !== 'series') {
     return [];
@@ -104,33 +113,34 @@ export function buildTimeseriesDrillFilters({
       coltype,
     });
 
-  if (xAxisType === AxisType.Category) {
-    const categoryAxisValue = getCategoryAxisValue(data, name, orientation);
-    if (categoryAxisValue == null) {
-      return [];
-    }
-    return [
-      {
-        col: xAxisLabel,
-        op: '==',
-        val: categoryAxisValue,
-        formattedVal: format(categoryAxisValue),
-      },
-    ];
+  // Orientation-aware x-axis value from the clicked series; falls back to the
+  // event name. Null check so zero-like labels (e.g. 0) still drill.
+  const axisValue = getCategoryAxisValue(data, name, orientation);
+  if (axisValue == null) {
+    return [];
   }
 
-  // Non-category (e.g. time) x-axis: use the event name. Null check so
-  // zero-like labels (e.g. 0) still drill.
-  if (name != null) {
-    return [
-      {
-        col: xAxisLabel,
-        op: '==',
-        val: name as string | number,
-        formattedVal: format(name as string | number),
-      },
-    ];
+  if (xAxisType === AxisType.Time) {
+    // Mirror drill-to-detail: map __timestamp to the real granularity column
+    // and build a grain-aware TEMPORAL_RANGE so a bucketed click scopes to the
+    // whole bucket, not an exact-timestamp equality that matches no rows.
+    const col =
+      xAxisLabel === DTTM_ALIAS ? (granularitySqla ?? xAxisLabel) : xAxisLabel;
+    const filter = getTemporalXAxisDrillByFilter(
+      col,
+      axisValue,
+      timeGrain,
+      format(axisValue),
+    );
+    return filter ? [filter] : [];
   }
 
-  return [];
+  return [
+    {
+      col: xAxisLabel,
+      op: '==',
+      val: axisValue,
+      formattedVal: format(axisValue),
+    },
+  ];
 }

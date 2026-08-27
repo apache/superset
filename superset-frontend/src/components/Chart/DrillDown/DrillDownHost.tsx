@@ -51,20 +51,24 @@ export type OnDrillDownHook = (
  * Build the cross-filter clauses the dashboard data-mask expects from a set of
  * drill-down filter clauses. Shared by the drill (onDrillDown) and the
  * breadcrumb navigation (handleResetTo) paths so their cross-filter shape can
- * never diverge. A null drill value becomes `IS NULL` (matching the native
- * ECharts cross-filter path) so linked charts scope to null rows rather than
- * an `IN [null]` that selects nothing.
+ * never diverge. Special cases mirror the native ECharts cross-filter path: a
+ * temporal bucket click is passed through as a `TEMPORAL_RANGE`, and a null
+ * value becomes `IS NULL` (rather than `IN [null]`, which selects nothing).
  */
 const toCrossFilterClauses = (filters: BinaryQueryObjectFilterClause[]) =>
-  filters.map(f =>
-    f.val == null
-      ? { col: f.col, op: 'IS NULL' as const }
-      : {
-          col: f.col,
-          op: 'IN' as const,
-          val: [f.val] as (string | number | boolean)[],
-        },
-  );
+  filters.map(f => {
+    if (f.op === 'TEMPORAL_RANGE') {
+      return { col: f.col, op: 'TEMPORAL_RANGE' as const, val: f.val };
+    }
+    if (f.val == null) {
+      return { col: f.col, op: 'IS NULL' as const };
+    }
+    return {
+      col: f.col,
+      op: 'IN' as const,
+      val: [f.val] as (string | number | boolean)[],
+    };
+  });
 
 interface DrillDownHostProps extends ChartRendererProps {
   /** The wrapped renderer component */
