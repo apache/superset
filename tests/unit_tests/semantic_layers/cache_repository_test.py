@@ -363,3 +363,115 @@ def test_prune_rechecks_same_key_value_registered_after_lookup() -> None:
     )
 
     assert repeated.candidates
+
+
+def _bucket_timeout(backend: _Backend) -> int | None:
+    bucket_key: str = next(
+        key for key, value in backend.values.items() if isinstance(value, list)
+    )
+    return backend.timeouts[bucket_key]
+
+
+def test_bucket_outlives_longest_lived_value_across_request_timeouts() -> None:
+    """Charts on one view resolve different timeouts; a short-lived store must
+    not expire the bucket while a longer-lived value it indexes is still
+    valid, or that value is orphaned until its own TTL."""
+    backend: _Backend = _Backend()
+    clock: list[float] = [10.0]
+    repository: SemanticCacheRepository = SemanticCacheRepository(
+        backend,
+        _Coordinator(),
+        clock=lambda: clock[0],
+    )
+    query: SemanticQuery = build_semantic_query()
+
+    repository.store(
+        replace(build_view_meta(), timeout=3600),
+        replace(query, limit=1),
+        build_semantic_result(),
+    )
+    clock[0] = 20.0
+    repository.store(
+        replace(build_view_meta(), timeout=60),
+        replace(query, limit=2),
+        build_semantic_result(),
+    )
+    # 3590 s left on the first value, so the bucket keeps it discoverable.
+    assert _bucket_timeout(backend) == 3590
+
+    clock[0] = 4000.0
+    repository.store(
+        replace(build_view_meta(), timeout=60),
+        replace(query, limit=3),
+        build_semantic_result(),
+    )
+    # The first value has expired: only live values bound the bucket.
+    assert _bucket_timeout(backend) == 60
+
+
+@pytest.mark.parametrize(
+    ("timeouts", "expected"),
+    [
+        ((None, None), None),
+        ((None, 300), 300),
+        ((300, 0), 0),
+    ],
+)
+def test_bucket_timeout_follows_backend_conventions(
+    timeouts: tuple[int | None, ...],
+    expected: int | None,
+) -> None:
+    """``0`` is never-expire and wins; ``None`` is the backend default and
+    yields only to an explicit TTL."""
+    backend: _Backend = _Backend()
+    repository: SemanticCacheRepository = SemanticCacheRepository(
+        backend,
+        _Coordinator(),
+        clock=lambda: 10.0,
+    )
+    query: SemanticQuery = build_semantic_query()
+
+    for limit, timeout in enumerate(timeouts):
+        repository.store(
+            replace(build_view_meta(), timeout=timeout),
+            replace(query, limit=limit),
+            build_semantic_result(),
+        )
+
+    assert _bucket_timeout(backend) == expected
+
+
+def test_prune_keeps_bucket_alive_for_surviving_values() -> None:
+    backend: _Backend = _Backend()
+    clock: list[float] = [10.0]
+    repository: SemanticCacheRepository = SemanticCacheRepository(
+        backend,
+        _Coordinator(),
+        clock=lambda: clock[0],
+    )
+    query: SemanticQuery = build_semantic_query()
+    repository.store(
+        replace(build_view_meta(), timeout=3600),
+        replace(query, limit=1),
+        build_semantic_result(),
+    )
+    repository.store(
+        replace(build_view_meta(), timeout=60),
+        replace(query, limit=2),
+        build_semantic_result(),
+    )
+    descriptors: list[CachedEntry] = next(
+        value for value in backend.values.values() if isinstance(value, list)
+    )
+    short_lived: CachedEntry = next(
+        entry for entry in descriptors if entry.timeout == 60
+    )
+    backend.values.pop(short_lived.value_key)
+
+    clock[0] = 100.0
+    repository.prune_missing(
+        replace(build_view_meta(), timeout=60),
+        frozenset({short_lived.value_key}),
+    )
+
+    assert _bucket_timeout(backend) == 3510
