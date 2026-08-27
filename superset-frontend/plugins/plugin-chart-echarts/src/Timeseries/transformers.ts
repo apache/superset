@@ -467,6 +467,14 @@ export function transformSeries(
           return formatter(numericValue);
         }
         if (!onlyTotal) {
+          // A stacked segment with no height begins and ends at the same
+          // coordinate as the top of the segment beneath it, so its label is
+          // drawn over that segment's label. Zero and null have no height, so
+          // they carry no label. The rich tooltip omits zero observations from
+          // a stacked series for the same reason.
+          if (stack && !numericValue) {
+            return '';
+          }
           if (
             numericValue >=
             (thresholdValues[dataIndex] || Number.MIN_SAFE_INTEGER)

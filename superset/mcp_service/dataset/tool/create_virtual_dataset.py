@@ -21,6 +21,7 @@ from typing import Any
 from fastmcp import Context
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
+from superset.exceptions import SupersetGenericDBErrorException
 from superset.extensions import event_logger
 from superset.mcp_service.dataset.schemas import (
     CreateVirtualDatasetRequest,
@@ -67,14 +68,17 @@ def _cleanup_failed_dataset(dataset_id: int) -> None:
 
 
 def _update_virtual_dataset(dataset_id: int, update_props: dict[str, Any]) -> Any:
-    from superset.commands.dataset.exceptions import DatasetUpdateFailedError
+    from superset.commands.dataset.exceptions import (
+        DatasetInvalidError,
+        DatasetUpdateFailedError,
+    )
     from superset.commands.dataset.update import UpdateDatasetCommand
 
     try:
         return UpdateDatasetCommand(dataset_id, update_props).run()
     except Exception as exc:
         _cleanup_failed_dataset(dataset_id)
-        if not isinstance(exc, DatasetUpdateFailedError):
+        if not isinstance(exc, (DatasetInvalidError, DatasetUpdateFailedError)):
             raise DatasetUpdateFailedError() from exc
         raise
 
@@ -89,7 +93,7 @@ def _update_virtual_dataset(dataset_id: int, update_props: dict[str, Any]) -> An
         destructiveHint=False,
     ),
 )
-async def create_virtual_dataset(
+async def create_virtual_dataset(  # noqa: C901
     request: CreateVirtualDatasetRequest, ctx: Context
 ) -> CreateVirtualDatasetResponse:
     """Save a SQL query as a virtual dataset so it can be charted.
@@ -212,6 +216,18 @@ async def create_virtual_dataset(
             columns=[],
             url=None,
             error=f"Failed to update dataset metadata (creation rolled back): {exc}",
+        )
+    except SupersetGenericDBErrorException as exc:
+        logger.warning("Virtual dataset SQL validation failed", exc_info=True)
+        await ctx.warning(f"Virtual dataset SQL failed validation: {exc}")
+        return CreateVirtualDatasetResponse(
+            id=None,
+            dataset_name=request.dataset_name,
+            sql=request.sql,
+            database_id=request.database_id,
+            columns=[],
+            url=None,
+            error=f"Dataset SQL could not be executed: {exc}",
         )
     except Exception as exc:
         await ctx.error(

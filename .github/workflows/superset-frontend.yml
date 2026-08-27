@@ -212,3 +212,100 @@ jobs:
       - uses: Kesin11/actions-timeline@57fc93f20c6da7fbc14063c6d24a2a5627c799ad # v3.2.0
         with:
           expand-composite-actions: true
+
+  # Compares a PR's own bundle size against the last nightly-recorded
+  # baseline (see frontend-bundle-size-nightly.yml, which owns actually
+  # persisting new baselines). PR-only: a push to master doesn't need this
+  # check re-run against itself, and re-persisting the baseline on every
+  # push to master -- which happens many times a day -- would burn a full
+  # production build for no benefit nightly refresh doesn't already cover.
+  bundle-size:
+    needs: frontend-build
+    if: needs.frontend-build.outputs.should-run == 'true' && github.event_name == 'pull_request'
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+
+      - name: Download Docker Image Artifact
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: docker-image
+
+      - name: Load Docker Image
+        run: |
+          zstd -d < docker-image.tar.zst | docker load
+
+      # webpack's persistent filesystem cache (superset-frontend/webpack.config.js)
+      # turns a warm production build into ~20s instead of several minutes,
+      # but GH-hosted runners are fresh VMs with nothing carried over between
+      # jobs -- without restoring it explicitly, every single PR would pay
+      # the full cold-build cost. Keyed on the same files webpack's own
+      # `buildDependencies` invalidates on, so a stale cache is never used.
+      - name: Restore webpack build cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: superset-frontend/.temp_cache
+          key: >-
+            webpack-prod-cache-${{ hashFiles('superset-frontend/package-lock.json',
+            'superset-frontend/babel.config.js', 'superset-frontend/tsconfig.json',
+            'superset-frontend/webpack.config.js') }}
+
+      # Only ever pull the last recorded data point off the cache, keyed by
+      # run ID -- `restore-keys` prefix-matches the most recently created
+      # entry, which is always the latest nightly run. Absent before the
+      # first nightly run ever happens; benchmark-action starts a fresh
+      # history in that case.
+      - name: Restore bundle size history
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: bundle-size-history.json
+          key: bundle-size-history-${{ github.run_id }}
+          restore-keys: |
+            bundle-size-history-
+
+      - name: Build production bundle with stats
+        run: |
+          mkdir -p ${{ github.workspace }}/superset-frontend/bundle-stats
+          mkdir -p ${{ github.workspace }}/superset-frontend/.temp_cache
+          docker run \
+          -v ${{ github.workspace }}/superset-frontend/bundle-stats:/app/superset-frontend/bundle-stats \
+          -v ${{ github.workspace }}/superset-frontend/.temp_cache:/app/superset-frontend/.temp_cache \
+          --rm $TAG \
+          bash -c \
+          "npm i && BUNDLE_SIZE_STATS=true npm run build -- --json=bundle-stats/stats.json"
+
+      - name: Summarize bundle size
+        run: |
+          node superset-frontend/scripts/bundle-size-summary.js \
+            superset-frontend/bundle-stats/stats.json > bundle-size-summary.json
+          rm -rf superset-frontend/bundle-stats
+
+      # Comparison + alert only -- this job never persists. See
+      # frontend-bundle-size-nightly.yml for why.
+      #
+      # comment-on-alert is gated to same-repo PRs: on a fork PR,
+      # GITHUB_TOKEN is forced read-only regardless of the `permissions`
+      # block above, so once the alert threshold is crossed the action's
+      # `pulls.createReview` call 403s. That error isn't gated by
+      # fail-on-alert (which only governs the deliberate alert-threshold
+      # failure) -- it propagates and fails the job outright. Fork PRs
+      # still get the comparison via the job summary (summary-always).
+      - name: Compare bundle size against nightly baseline
+        uses: benchmark-action/github-action-benchmark@52576c92bccf6ac60c8223ec7eb2565637cae9ba # v1.22.1
+        with:
+          tool: customSmallerIsBetter
+          output-file-path: bundle-size-summary.json
+          external-data-json-path: bundle-size-history.json
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          comment-on-alert: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
+          alert-threshold: "110%"
+          fail-on-alert: false
+          summary-always: true

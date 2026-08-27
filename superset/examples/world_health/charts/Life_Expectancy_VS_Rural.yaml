@@ -59,7 +59,7 @@ params:
     expressionType: SIMPLE
     label: SUM(SP_POP_TOTL)
     optionName: metric_size_life_expectancy_vs_rural
-  time_range: '2014-01-01 : 2014-01-02'
+  time_range: '2011-01-01 : 2011-01-02'
   tooltipSizeFormat: SMART_NUMBER
   truncateXAxis: true
   viz_type: bubble_v2

@@ -73,6 +73,7 @@ export const DEFAULT_FORM_DATA: EchartsTimeseriesFormData = {
   seriesType: EchartsTimeseriesSeriesType.Line,
   stack: false,
   tooltipTimeFormat: 'smart_date',
+  tooltipTruncation: 'end',
   xAxisTimeFormat: 'smart_date',
   xAxisNumberFormat: 'SMART_NUMBER',
   truncateXAxis: true,

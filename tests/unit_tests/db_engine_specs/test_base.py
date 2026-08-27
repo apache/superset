@@ -1490,3 +1490,40 @@ def test_get_public_information_exposes_ansi_identifier_quote() -> None:
         "end": '"',
         "escape_by_doubling": True,
     }
+
+
+def test_multivalue_columns_disabled_by_default() -> None:
+    """Engines must opt in to multi-value support; base defaults to off."""
+    assert BaseEngineSpec.supports_multivalue_columns is False
+
+
+@pytest.mark.parametrize(
+    "method", ["array_contains_any", "array_contains_all", "array_length"]
+)
+def test_array_capabilities_raise_when_unsupported(method: str) -> None:
+    """Array capability methods raise NotImplementedError unless overridden."""
+    from sqlalchemy import column
+
+    fn = getattr(BaseEngineSpec, method)
+    args = (column("c"), ["v"]) if "contains" in method else (column("c"),)
+    with pytest.raises(NotImplementedError):
+        fn(*args)
+
+
+@pytest.mark.parametrize("aggregate", ["MEDIAN", "STDDEV_SAMP", "VAR_SAMP"])
+def test_base_spec_extended_aggregation_func_defaults_to_unsupported(
+    aggregate: str,
+) -> None:
+    """
+    By default, an engine spec has no verified expression for the "extended"
+    aggregates (MEDIAN/STDDEV_SAMP/VAR_SAMP) -- they must be explicitly opted
+    into per engine spec, the same way `supports_grouping_sets` and
+    `_time_grain_expressions` work. Silence here means "unsupported", not
+    "untested" -- callers must not fall back to guessing SQL.
+    """
+    assert BaseEngineSpec.get_extended_aggregation_func(aggregate) is None
+
+
+def test_base_spec_extended_aggregation_func_unknown_name_is_unsupported() -> None:
+    """An aggregate name outside the known extended set is also just None."""
+    assert BaseEngineSpec.get_extended_aggregation_func("NOT_A_REAL_AGGREGATE") is None
