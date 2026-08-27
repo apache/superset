@@ -16,11 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useCallback, useState } from 'react';
-import { SupersetClient } from '@superset-ui/core';
+import { useCallback, useEffect, useState } from 'react';
+import { SupersetClient, getClientErrorObject } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
 import { Checkbox, Input } from '@superset-ui/core/components';
 import { StandardModal } from 'src/components/Modal';
+import { ModalFormField } from 'src/components/Modal/ModalFormField';
+
+import { ModalContent } from './styles';
 
 interface CreateFolderModalProps {
   show: boolean;
@@ -32,8 +35,6 @@ interface CreateFolderModalProps {
   addSuccessToast: (msg: string) => void;
 }
 
-import { ModalContent, FormGroup } from './styles';
-
 export default function CreateFolderModal({
   show,
   parentFolderUuid,
@@ -43,36 +44,50 @@ export default function CreateFolderModal({
   addSuccessToast,
 }: CreateFolderModalProps) {
   const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  const [nameError, setNameError] = useState('');
   const [isPrivate, setIsPrivate] = useState(false);
   const [saving, setSaving] = useState(false);
 
+  useEffect(() => {
+    if (show) {
+      setName('');
+      setDescription('');
+      setNameError('');
+    }
+  }, [show]);
+
   const handleSave = useCallback(async () => {
     if (!name.trim()) {
-      addDangerToast(t('Folder name is required'));
+      setNameError(t('Folder name is required'));
       return;
     }
+    setNameError('');
     setSaving(true);
     try {
       await SupersetClient.post({
         endpoint: '/api/v1/folders/',
         jsonPayload: {
           name: name.trim(),
+          description: description.trim() || null,
           folder_type: 'analytics',
           ...(parentFolderUuid ? { parent_uuid: parentFolderUuid } : {}),
           ...(isPrivate ? { is_private: true } : {}),
         },
       });
       addSuccessToast(t('Folder "%s" created', name.trim()));
-      setName('');
       onSuccess();
       onHide();
-    } catch {
-      addDangerToast(t('Error creating folder'));
+    } catch (err: any) {
+      const { error } = await getClientErrorObject(err);
+      const isDuplicate = error?.toLowerCase().includes('already exists');
+      addDangerToast(isDuplicate ? error : t('Error creating folder'));
     } finally {
       setSaving(false);
     }
   }, [
     name,
+    description,
     parentFolderUuid,
     addSuccessToast,
     addDangerToast,
@@ -91,26 +106,34 @@ export default function CreateFolderModal({
       saveLoading={saving}
     >
       <ModalContent>
-        <FormGroup>
-          <label htmlFor="create-folder-name">{t('Name')}</label>
+        <ModalFormField label={t('Name')} required error={nameError}>
           <Input
-            id="create-folder-name"
             placeholder={t('Folder name')}
             value={name}
-            onChange={e => setName(e.target.value)}
+            onChange={e => {
+              setName(e.target.value);
+              if (nameError) setNameError('');
+            }}
             onPressEnter={handleSave}
+            status={nameError ? 'error' : undefined}
             autoFocus
           />
-        </FormGroup>
+        </ModalFormField>
+        <ModalFormField label={t('Description')}>
+          <Input.TextArea
+            placeholder={t('Optional description')}
+            value={description}
+            onChange={e => setDescription(e.target.value)}
+            rows={3}
+          />
+        </ModalFormField>
         {!parentFolderUuid && (
-          <FormGroup>
-            <Checkbox
-              checked={isPrivate}
-              onChange={e => setIsPrivate(e.target.checked)}
-            >
-              {t('Private folder')}
-            </Checkbox>
-          </FormGroup>
+          <Checkbox
+            checked={isPrivate}
+            onChange={e => setIsPrivate(e.target.checked)}
+          >
+            {t('Private folder')}
+          </Checkbox>
         )}
       </ModalContent>
     </StandardModal>

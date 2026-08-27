@@ -21,10 +21,14 @@ import { SupersetClient } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
 import { Input } from '@superset-ui/core/components';
 import { StandardModal } from 'src/components/Modal';
+import { ModalFormField } from 'src/components/Modal/ModalFormField';
+
+import { ModalContent } from './styles';
 
 interface RenameFolderModalProps {
   folderUuid: string;
   currentName: string;
+  currentDescription?: string | null;
   show: boolean;
   onHide: () => void;
   onSuccess: () => void;
@@ -32,11 +36,10 @@ interface RenameFolderModalProps {
   addSuccessToast: (msg: string) => void;
 }
 
-import { ModalContent } from './styles';
-
 export default function RenameFolderModal({
   folderUuid,
   currentName,
+  currentDescription = '',
   show,
   onHide,
   onSuccess,
@@ -44,39 +47,67 @@ export default function RenameFolderModal({
   addSuccessToast,
 }: RenameFolderModalProps) {
   const [name, setName] = useState(currentName);
+  const [description, setDescription] = useState(currentDescription || '');
+  const [nameError, setNameError] = useState('');
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (show) setName(currentName);
-  }, [show, currentName]);
+    if (show) {
+      setName(currentName);
+      setDescription(currentDescription || '');
+      setNameError('');
+    }
+  }, [show, currentName, currentDescription]);
+
+  const hasChanges =
+    name.trim() !== currentName ||
+    (description.trim() || null) !== (currentDescription || null);
 
   const handleSave = useCallback(async () => {
     const trimmed = name.trim();
     if (!trimmed) {
-      addDangerToast(t('Folder name is required'));
+      setNameError(t('Folder name is required'));
       return;
     }
-    if (trimmed === currentName) {
+    if (!hasChanges) {
       onHide();
       return;
     }
+    setNameError('');
     setSaving(true);
     try {
       await SupersetClient.put({
         endpoint: `/api/v1/folders/${folderUuid}`,
-        jsonPayload: { name: trimmed },
+        jsonPayload: {
+          name: trimmed,
+          description: description.trim() || null,
+        },
       });
-      addSuccessToast(t('Folder renamed to "%s"', trimmed));
+      addSuccessToast(t('Folder updated'));
       onSuccess();
       onHide();
-    } catch {
-      addDangerToast(t('Error renaming folder'));
+    } catch (err: any) {
+      const message =
+        err?.json?.message?.name?.[0] ||
+        err?.json?.message ||
+        t('Error updating folder');
+      if (
+        typeof message === 'string' &&
+        message.toLowerCase().includes('already exists')
+      ) {
+        setNameError(message);
+      } else {
+        addDangerToast(
+          typeof message === 'string' ? message : t('Error updating folder'),
+        );
+      }
     } finally {
       setSaving(false);
     }
   }, [
     name,
-    currentName,
+    description,
+    hasChanges,
     folderUuid,
     addSuccessToast,
     addDangerToast,
@@ -86,24 +117,36 @@ export default function RenameFolderModal({
 
   return (
     <StandardModal
-      title={t('Rename folder')}
+      title={t('Edit folder')}
       show={show}
       onHide={onHide}
       onSave={handleSave}
       saveText={t('Save')}
-      saveDisabled={!name.trim() || name.trim() === currentName}
+      saveDisabled={!name.trim() || !hasChanges}
       saveLoading={saving}
     >
       <ModalContent>
-        <label htmlFor="rename-folder-name">{t('Name')}</label>
-        <Input
-          id="rename-folder-name"
-          placeholder={t('Folder name')}
-          value={name}
-          onChange={e => setName(e.target.value)}
-          onPressEnter={handleSave}
-          autoFocus
-        />
+        <ModalFormField label={t('Name')} required error={nameError}>
+          <Input
+            placeholder={t('Folder name')}
+            value={name}
+            onChange={e => {
+              setName(e.target.value);
+              if (nameError) setNameError('');
+            }}
+            onPressEnter={handleSave}
+            status={nameError ? 'error' : undefined}
+            autoFocus
+          />
+        </ModalFormField>
+        <ModalFormField label={t('Description')}>
+          <Input.TextArea
+            placeholder={t('Optional description')}
+            value={description}
+            onChange={e => setDescription(e.target.value)}
+            rows={3}
+          />
+        </ModalFormField>
       </ModalContent>
     </StandardModal>
   );

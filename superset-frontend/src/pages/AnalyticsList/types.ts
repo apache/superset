@@ -32,6 +32,7 @@ export interface ContentItem {
   id: number;
   uuid: string | null;
   name: string;
+  description?: string | null;
   url?: string | null;
   viz_type?: string | null;
   datasource_name?: string | null;
@@ -43,7 +44,7 @@ export interface ContentItem {
   tags?: TagType[];
   asset_count?: number;
   children_count?: number;
-  user_permission?: 'editor' | 'viewer' | null;
+  user_permission?: 'editor' | 'viewer' | 'implicit' | null;
   parent_uuid?: string | null;
   inherits_permissions?: boolean;
   is_private?: boolean;

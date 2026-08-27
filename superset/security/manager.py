@@ -3874,6 +3874,35 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
             raise SupersetSecurityException(self.get_chart_access_error_object(chart))
 
+        # Folder gate: if an asset is in a folder, non-members are blocked
+        # even if Superset's standard checks granted access above.
+        if is_feature_enabled("FOLDERS") and (dashboard or chart):
+            if not self.is_admin():
+                user_id = get_user_id()
+                asset = dashboard or chart
+                if user_id and not self.is_owner(asset):
+                    from superset.folders.models import FolderObject
+
+                    fo_filter = (
+                        FolderObject.dashboard_id == dashboard.id
+                        if dashboard
+                        else FolderObject.chart_id == chart.id
+                    )
+                    fo = self.session.query(FolderObject).filter(fo_filter).first()
+                    if fo:
+                        from superset.daos.folder_permissions import FolderPermissionDAO
+
+                        if not FolderPermissionDAO.user_has_folder_access(
+                            user_id, fo.folder_id
+                        ):
+                            raise SupersetSecurityException(
+                                SupersetError(
+                                    error_type=SupersetErrorType.DASHBOARD_SECURITY_ACCESS_ERROR,
+                                    message="Access denied — this asset is in a folder you don't have access to.",
+                                    level=ErrorLevel.WARNING,
+                                )
+                            )
+
     def get_user_by_username(self, username: str) -> Optional[User]:
         """
         Retrieves a user by it's username case sensitive. Optional session parameter

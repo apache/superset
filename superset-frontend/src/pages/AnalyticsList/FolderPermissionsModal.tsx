@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { SupersetClient } from '@superset-ui/core';
 import { styled, css, useTheme } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
@@ -107,7 +107,7 @@ export default function FolderPermissionsModal({
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [memberSearch, setMemberSearch] = useState('');
-  const [adminIds, setAdminIds] = useState<Set<number>>(new Set());
+  const adminIdsRef = useRef<Set<number>>(new Set());
 
   const fetchSubjects = useCallback(async () => {
     setLoading(true);
@@ -146,7 +146,7 @@ export default function FolderPermissionsModal({
       const item = selected as { value: number; label: string };
       const userId = Number(item.value);
       if (!userId || Number.isNaN(userId)) return;
-      const isAdmin = adminIds.has(userId);
+      const isAdmin = adminIdsRef.current.has(userId);
       setLocalSubjects(prev => {
         if (prev.some(s => s.user_id === userId)) return prev;
         return [
@@ -164,7 +164,7 @@ export default function FolderPermissionsModal({
         ];
       });
     },
-    [currentUserId, adminIds],
+    [currentUserId],
   );
 
   const handleChangePermission = useCallback(
@@ -275,11 +275,9 @@ export default function FolderPermissionsModal({
         endpoint: `/api/v1/folders/${folderUuid}/available-users?${params}`,
       });
       const results = json?.result || [];
-      const newAdminIds = new Set(adminIds);
       results.forEach((u: { id: number; is_admin?: boolean }) => {
-        if (u.is_admin) newAdminIds.add(u.id);
+        if (u.is_admin) adminIdsRef.current.add(u.id);
       });
-      setAdminIds(newAdminIds);
       return {
         data: results.map(
           (u: { id: number; email: string; is_admin?: boolean }) => ({
@@ -290,7 +288,7 @@ export default function FolderPermissionsModal({
         totalCount: json?.count ?? 0,
       };
     },
-    [folderUuid, adminIds],
+    [folderUuid],
   );
 
   const filtered = useMemo(() => {
