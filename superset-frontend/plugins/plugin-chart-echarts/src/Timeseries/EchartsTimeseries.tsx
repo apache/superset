@@ -48,6 +48,7 @@ import {
 import { OrientationType, TimeseriesChartTransformedProps } from './types';
 import { formatSeriesName } from '../utils/series';
 import { getTemporalXAxisDrillByFilter } from '../utils/xAxisDrillByFilter';
+import { getCategoryAxisValue } from './drillFilters';
 import { ExtraControls } from '../components/ExtraControls';
 
 const TIMER_DURATION = 300;
@@ -538,6 +539,7 @@ export default function EchartsTimeseries({
             const categoryAxisValue = getCategoryAxisValue(
               props.data,
               props.name,
+              formData.orientation,
             );
             if (categoryAxisValue != null) {
               drillFilters.push({
