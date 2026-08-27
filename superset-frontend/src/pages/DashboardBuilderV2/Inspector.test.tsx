@@ -22,7 +22,6 @@ import {
   render,
   screen,
   waitFor,
-  within,
 } from 'spec/helpers/testing-library';
 import { SupersetClient } from '@superset-ui/core';
 import DashboardProvider from 'src/core/dashboard/DashboardProvider';
@@ -90,19 +89,6 @@ beforeEach(() => {
 const openJson = async () => {
   await userEvent.click(screen.getByRole('tab', { name: 'JSON' }));
   return screen.findByTestId('inspector-props');
-};
-
-/**
- * Placement is collapsed by default (see `Inspector.tsx`), and antd's
- * `Collapse` doesn't mount an inactive panel's content — so every test that
- * reads a placement field has to open it first, same as `openJson`/`openForm`
- * for the Properties tabs.
- */
-const expandPlacement = async () => {
-  await userEvent.click(screen.getByText('Placement'));
-  // antd's Collapse mounts a panel's content after its own open animation,
-  // not synchronously on click.
-  await screen.findByTestId('inspector-col');
 };
 
 const select = (type: string, props?: Record<string, unknown>) => {
@@ -395,16 +381,9 @@ test('selecting the dashboard offers the properties the dashboard has', () => {
   ].forEach(section => expect(screen.getByText(section)).toBeInTheDocument());
 });
 
-test('the dashboard is not a widget, so it is not placed and cannot be deleted', () => {
+test('the dashboard is not a widget, so it has no identity of its own', () => {
   selectRoot();
 
-  // `removeWidget` refuses the root outright, so a Delete there is a
-  // control that only ever raises; and the root is placed by nothing, so it
-  // has no column or row of its own to start at.
-  expect(screen.queryByTestId('inspector-delete')).not.toBeInTheDocument();
-  expect(
-    screen.queryByTestId('inspector-section-placement'),
-  ).not.toBeInTheDocument();
   expect(screen.queryByTestId('inspector-identity')).not.toBeInTheDocument();
 });
 
@@ -419,76 +398,6 @@ test('the panel counts what is on the dashboard', () => {
   // things on the dashboard.
   expect(screen.getByTestId('dashboard-properties-counts')).toHaveTextContent(
     '3 widgets, 0 filters',
-  );
-});
-
-test('a child is asked where it starts', async () => {
-  const rootId = provider.getRoot().id;
-  const childId = provider.addWidget(rootId, 0, { type: 'markdown' });
-  provider.setSelection(childId);
-  render(<Inspector />);
-  await expandPlacement();
-
-  expect(screen.getByTestId('inspector-col')).toBeInTheDocument();
-  expect(screen.getByTestId('inspector-row')).toBeInTheDocument();
-  expect(screen.getByTestId('inspector-colSpan')).toBeInTheDocument();
-  expect(screen.getByTestId('inspector-rowSpan')).toBeInTheDocument();
-});
-
-test('placement starts collapsed', () => {
-  const rootId = provider.getRoot().id;
-  const childId = provider.addWidget(rootId, 0, { type: 'markdown' });
-  provider.setSelection(childId);
-  render(<Inspector />);
-
-  expect(screen.getByText('Placement')).toBeInTheDocument();
-  expect(screen.queryByTestId('inspector-col')).not.toBeInTheDocument();
-});
-
-test('a placement slider without an explicit value sits where auto-placement would', async () => {
-  const rootId = provider.getRoot().id;
-  const childId = provider.addWidget(rootId, 0, { type: 'markdown' });
-  provider.setSelection(childId);
-  render(<Inspector />);
-  await expandPlacement();
-
-  // colSpan has no explicit value yet, so its handle shows the full-width
-  // position (the parent canvas's own default of 24 columns) rather than 1.
-  expect(
-    within(screen.getByTestId('inspector-colSpan')).getByRole('slider'),
-  ).toHaveAttribute('aria-valuenow', '24');
-  // col/row/rowSpan default to the first track instead.
-  expect(
-    within(screen.getByTestId('inspector-col')).getByRole('slider'),
-  ).toHaveAttribute('aria-valuenow', '1');
-});
-
-test('moving a placement slider writes the value to the layout', async () => {
-  const rootId = provider.getRoot().id;
-  const childId = provider.addWidget(rootId, 0, { type: 'markdown' });
-  provider.setSelection(childId);
-  render(<Inspector />);
-  await expandPlacement();
-
-  const handle = within(screen.getByTestId('inspector-rowSpan')).getByRole(
-    'slider',
-  );
-  // `fireEvent.focus` (not the raw DOM `.focus()`) so the resulting state
-  // update is wrapped in `act`, same as every other interaction here.
-  fireEvent.focus(handle);
-  // rc-slider's keyboard handling reads `which`/`keyCode` directly, which
-  // jsdom doesn't derive from `key` the way a real browser does.
-  const arrowRight = {
-    key: 'ArrowRight',
-    code: 'ArrowRight',
-    keyCode: 39,
-    which: 39,
-  };
-  fireEvent.keyDown(handle, arrowRight);
-  fireEvent.keyUp(handle, arrowRight);
-
-  await waitFor(() =>
-    expect(provider.getNode(childId)?.layout?.rowSpan).toBe(2),
   );
 });
 

@@ -18,17 +18,14 @@
  */
 import { lazy, Suspense, useEffect, useState } from 'react';
 import type { ReactElement, ReactNode } from 'react';
-import type { dashboard as dashboardApi } from '@apache-superset/core';
 import { t } from '@apache-superset/core/translation';
 import { css, styled, useTheme } from '@apache-superset/core/theme';
 import {
   Button,
-  Collapse,
   EmptyState,
   Form,
   Input,
   Loading,
-  Slider,
   Tabs,
 } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
@@ -50,51 +47,6 @@ import {
 // function`). Loaded only when a schema-controlled widget is selected; the
 // dependency-free `schemaControlledWidgets` decides membership.
 const SchemaControlPanel = lazy(() => import('./SchemaControlPanel'));
-
-type LayoutProps = dashboardApi.LayoutProps;
-
-/** Row placement has no grid-driven bound the way a column does — generous
- * enough for a single widget's height/position without being unbounded. */
-const MAX_ROW_TRACKS = 12;
-
-/**
- * A child field's slider range and where it displays when the layout has no
- * explicit value for it yet — full width for `colSpan` (auto's own meaning),
- * the first track for everything else (auto-placement's usual result).
- * `parentColumns` is `undefined` until the parent's own layout is read, and
- * width-driven bounds fall back to 24 (the grid's own default) until then.
- */
-const CHILD_FIELDS: readonly {
-  readonly key: keyof LayoutProps;
-  readonly label: string;
-  readonly max: (parentColumns: number) => number;
-  readonly fallback: (parentColumns: number) => number;
-}[] = [
-  {
-    key: 'colSpan',
-    label: t('Width (columns)'),
-    max: parentColumns => parentColumns,
-    fallback: parentColumns => parentColumns,
-  },
-  {
-    key: 'rowSpan',
-    label: t('Height (rows)'),
-    max: () => MAX_ROW_TRACKS,
-    fallback: () => 1,
-  },
-  {
-    key: 'col',
-    label: t('Start column'),
-    max: parentColumns => parentColumns,
-    fallback: () => 1,
-  },
-  {
-    key: 'row',
-    label: t('Start row'),
-    max: () => MAX_ROW_TRACKS,
-    fallback: () => 1,
-  },
-];
 
 /**
  * A group of fields, and where one stops.
@@ -128,15 +80,6 @@ const GroupTitle = styled.h4`
     font-size: ${theme.fontSize}px;
     font-weight: ${theme.fontWeightStrong};
     color: ${theme.colorText};
-  `}
-`;
-
-/** Where the panel ends, and the one control that ends the widget with it. */
-const Footer = styled.div`
-  ${({ theme }) => css`
-    margin-top: ${theme.sizeUnit * 4}px;
-    padding-top: ${theme.sizeUnit * 4}px;
-    border-top: 1px solid ${theme.colorSplit};
   `}
 `;
 
@@ -174,61 +117,6 @@ const Section = ({
     {children}
   </Group>
 );
-
-/**
- * A placement value, dragged rather than typed.
- *
- * A slider has no "unset" position to hold, so touching one always commits
- * an explicit value from then on — `value` is the layout's real number once
- * there is one, or the auto-equivalent position (see `CHILD_FIELDS`) before
- * that, so the handle starts where auto-placement would have put the widget
- * rather than at an arbitrary minimum.
- *
- * Dragging is local until released: `onChange` (fires continuously) only
- * updates this field's own draft position, and `onChangeComplete` (fires
- * once, on release) is what actually writes to the layout — committing on
- * every intermediate position would tick the store, and everything that
- * re-renders from it, once per pixel of drag.
- */
-const SliderField = ({
-  label,
-  value,
-  min,
-  max,
-  test,
-  onChangeComplete,
-}: {
-  label: string;
-  value: number;
-  min: number;
-  max: number;
-  test: string;
-  onChangeComplete: (next: number) => void;
-}): ReactElement => {
-  const theme = useTheme();
-  const [draft, setDraft] = useState<number | undefined>(undefined);
-  useEffect(() => setDraft(undefined), [value]);
-
-  return (
-    <Form.Item label={label} style={{ marginBottom: theme.sizeUnit * 2 }}>
-      {/* The shared `Slider` wrapper doesn't forward unrecognized props (like
-          `data-test`) to its root element, so the test hook goes on a
-          wrapping div instead. */}
-      <div data-test={test}>
-        <Slider
-          min={min}
-          max={max}
-          value={draft ?? value}
-          onChange={setDraft}
-          onChangeComplete={next => {
-            setDraft(undefined);
-            onChangeComplete(next);
-          }}
-        />
-      </div>
-    </Form.Item>
-  );
-};
 
 /**
  * Widget types whose renderer reads a plain-text `content` prop.
@@ -657,13 +545,6 @@ export default function Inspector(): ReactElement {
   const takesText =
     typeof content === 'string' || PLAIN_TEXT_CONTENT.has(node.type);
 
-  // A child's width/start-column sliders are bounded by its own parent's
-  // grid, not some fixed number — falls back to the grid's own default (24)
-  // until the parent's `columns` is read.
-  const parentId = provider.getParentId(node.id);
-  const parentColumns =
-    (parentId ? provider.getNode(parentId)?.layout?.columns : undefined) ?? 24;
-
   return (
     <div data-test="inspector" style={{ ...inset, fontSize: theme.fontSizeSM }}>
       {isRoot ? (
@@ -706,79 +587,6 @@ export default function Inspector(): ReactElement {
             formOmitKeys={takesText ? ['content'] : undefined}
           />
         </Section>
-      )}
-
-      {/* The root is placed by nothing — it is what everything else is
-          placed in — so it has no column, row or span of its own to set.
-          Collapsed by default: placement is read far less often than it's
-          left alone, and the panel's most common state is a widget whose
-          position nobody is about to touch. */}
-      {!isRoot && (
-        <Group>
-          <Collapse
-            ghost
-            size="small"
-            expandIconPosition="start"
-            data-test="inspector-section-placement"
-            items={[
-              {
-                key: 'placement',
-                label: (
-                  <GroupTitle style={{ margin: 0 }}>
-                    {t('Placement')}
-                  </GroupTitle>
-                ),
-                children: (
-                  <Form layout="vertical" component="div">
-                    {CHILD_FIELDS.map(field => (
-                      <SliderField
-                        key={field.key}
-                        label={field.label}
-                        test={`inspector-${field.key}`}
-                        min={1}
-                        max={field.max(parentColumns)}
-                        value={
-                          (node.layout?.[field.key] as number | undefined) ??
-                          field.fallback(parentColumns)
-                        }
-                        onChangeComplete={next =>
-                          provider.updateLayout(node.id, { [field.key]: next })
-                        }
-                      />
-                    ))}
-                  </Form>
-                ),
-              },
-            ]}
-          />
-        </Group>
-      )}
-
-      {/* `removeWidget` refuses the root, so offering it here would be
-          a button that only ever raises.
-
-          Ruled off from the fields above it rather than following them at a
-          gap: everything else in this column changes the widget, and this is
-          the one control that ends it. The rule is the same one that divides
-          the sections, so the panel reads as ending here rather than as
-          having one more field. */}
-      {!isRoot && (
-        <Footer>
-          <Button
-            buttonSize="xsmall"
-            // `buttonStyle`, not antd's own `danger`: the shared Button reads
-            // the former and derives the latter from it, so a bare `danger`
-            // is dropped and the control falls back to `primary` — which drew
-            // the one destructive thing in this panel as its filled headline
-            // action.
-            buttonStyle="danger"
-            icon={<Icons.DeleteOutlined iconSize="s" />}
-            data-test="inspector-delete"
-            onClick={() => provider.removeWidget(node.id)}
-          >
-            {t('Delete widget')}
-          </Button>
-        </Footer>
       )}
     </div>
   );
