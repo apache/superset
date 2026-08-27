@@ -190,7 +190,7 @@ fastmcp = [
     # tiktoken backs the response-size-guard token estimator. Without
     # it, the middleware falls back to a coarser character-based
     # heuristic that under-counts JSON-heavy MCP responses.
-    "tiktoken>=0.13.0,<1.0",
+    "tiktoken>=0.14.0,<1.0",
 ]
 # sqlalchemy-firebird >=2.0.0 unconditionally requires SQLAlchemy 2.0 on
 # Python >=3.8 (which covers Superset's >=3.11 floor), with no dual-compat
