@@ -1734,8 +1734,7 @@
             "$ref": "#/components/schemas/ChartDataRestApi.get_list.User2"
           },
           "localized_name": {
-            "readOnly": true,
-            "type": "string"
+            "readOnly": true
           },
           "owners": {
             "$ref": "#/components/schemas/ChartDataRestApi.get_list.User3"
@@ -2498,8 +2497,7 @@
             "$ref": "#/components/schemas/ChartRestApi.get_list.User2"
           },
           "localized_name": {
-            "readOnly": true,
-            "type": "string"
+            "readOnly": true
           },
           "owners": {
             "$ref": "#/components/schemas/ChartRestApi.get_list.User3"
@@ -3446,8 +3444,7 @@
             "type": "boolean"
           },
           "localized_title": {
-            "readOnly": true,
-            "type": "string"
+            "readOnly": true
           },
           "published": {
             "nullable": true,
