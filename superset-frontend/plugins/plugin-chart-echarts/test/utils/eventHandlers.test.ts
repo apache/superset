@@ -38,7 +38,7 @@ function buildProps(
     setDataMask: jest.fn(),
     emitCrossFilters: true,
     groupby: [],
-    labelMap: {},
+    labelMap: {} as Record<string, string[] | string[][]>,
     selectedValues: {},
     coltypeMapping: {},
     ...overrides,
@@ -177,6 +177,151 @@ test('cross-filter does nothing when emitCrossFilters is false', () => {
 
   const handlers = allEventHandlers(props);
   handlers.click({ name: 'cancellations' });
+
+  expect(setDataMask).not.toHaveBeenCalled();
+});
+
+test('cross-filter does not emit when pie Total pseudo-element is clicked (name not in labelMap)', () => {
+  const setDataMask = jest.fn();
+  const props = buildProps({
+    groupby: ['category'],
+    labelMap: {
+      Electronics: ['Electronics'],
+      Clothing: ['Clothing'],
+    },
+    selectedValues: {},
+    setDataMask,
+  });
+
+  const handlers = allEventHandlers(props);
+  // "Total" is a graphic text element rendered by showTotal; it is never a
+  // labelMap key, so clicking it must not emit any cross-filter.
+  handlers.click({ name: 'Total' });
+
+  expect(setDataMask).not.toHaveBeenCalled();
+});
+
+test('cross-filter does not emit when pie Other slice is clicked (name not in labelMap)', () => {
+  const setDataMask = jest.fn();
+  const props = buildProps({
+    groupby: ['category'],
+    labelMap: {
+      Electronics: ['Electronics'],
+      Clothing: ['Clothing'],
+    },
+    selectedValues: {},
+    setDataMask,
+  });
+
+  const handlers = allEventHandlers(props);
+  // "Other" is the aggregated slice rendered by thresholdForOther; it is never
+  // a labelMap key, so clicking it must not emit any cross-filter.
+  handlers.click({ name: 'Other' });
+
+  expect(setDataMask).not.toHaveBeenCalled();
+});
+
+test('cross-filter does not emit when click event name is empty string', () => {
+  const setDataMask = jest.fn();
+  const props = buildProps({
+    groupby: ['category'],
+    labelMap: { Electronics: ['Electronics'] },
+    selectedValues: {},
+    setDataMask,
+  });
+
+  const handlers = allEventHandlers(props);
+  // Some ECharts click events on non-data elements (e.g. legend, axis) arrive
+  // with an empty name string.
+  handlers.click({ name: '' });
+
+  expect(setDataMask).not.toHaveBeenCalled();
+});
+
+test('cross-filter emits aggregated rows when pie Other slice is clicked with isOther flag', () => {
+  const setDataMask = jest.fn();
+  const props = buildProps({
+    groupby: ['category'],
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    labelMap: {
+      Electronics: ['Electronics'],
+      Clothing: ['Clothing'],
+      // The aggregated "Other" slice is stored under the __other__ prefix
+      // to avoid colliding with any real data row named "Other".
+      '__other__Other': [['SmallA'], ['SmallB']],
+    } as any,
+    selectedValues: {},
+    setDataMask,
+  });
+
+  const handlers = allEventHandlers(props);
+  // Simulate ECharts click event on the aggregated Other slice.
+  // The pie chart sets data.isOther = true for this slice.
+  handlers.click({ name: 'Other', data: { isOther: true } });
+
+  expect(setDataMask).toHaveBeenCalledWith(
+    expect.objectContaining({
+      extraFormData: {
+        filters: [
+          {
+            col: 'category',
+            op: 'IN',
+            val: ['SmallA', 'SmallB'],
+          },
+        ],
+      },
+    }),
+  );
+});
+
+test('cross-filter emits correct filter for real data row named "Other" (no isOther flag)', () => {
+  const setDataMask = jest.fn();
+  const props = buildProps({
+    groupby: ['category'],
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    labelMap: {
+      // A real data row whose category value is literally "Other"
+      Other: ['Other'],
+      // The aggregated slice is stored separately under the __other__ prefix
+      '__other__Other': [['SmallA'], ['SmallB']],
+    } as any,
+    selectedValues: {},
+    setDataMask,
+  });
+
+  const handlers = allEventHandlers(props);
+  // Clicking a real "Other" row — no isOther flag, so it uses the plain key.
+  handlers.click({ name: 'Other' });
+
+  expect(setDataMask).toHaveBeenCalledWith(
+    expect.objectContaining({
+      extraFormData: {
+        filters: [
+          {
+            col: 'category',
+            op: 'IN',
+            val: ['Other'],
+          },
+        ],
+      },
+    }),
+  );
+});
+
+test('cross-filter does not emit when isOther slice has no labelMap entry', () => {
+  const setDataMask = jest.fn();
+  const props = buildProps({
+    groupby: ['category'],
+    labelMap: {
+      Electronics: ['Electronics'],
+      // __other__Other is NOT in labelMap — no rows were aggregated
+    },
+    selectedValues: {},
+    setDataMask,
+  });
+
+  const handlers = allEventHandlers(props);
+  handlers.click({ name: 'Other', data: { isOther: true } });
 
   expect(setDataMask).not.toHaveBeenCalled();
 });
