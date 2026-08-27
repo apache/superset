@@ -26,12 +26,15 @@ from superset.utils.hashing import hash_from_dict
 from superset.utils.screenshots import (
     BaseScreenshot,
     ChartScreenshot,
-    DashboardScreenshot,
     ScreenshotCachePayload,
     ScreenshotCachePayloadType,
 )
 
 BASE_SCREENSHOT_PATH = "superset.utils.screenshots.BaseScreenshot"
+
+# A minimal valid PNG header, used wherever a test needs bytes that pass
+# ScreenshotCachePayload's image validation.
+FAKE_PNG_BYTES = b"\x89PNG\r\n\x1a\n" + b"fake-png-body"
 
 
 class MockCache:
@@ -92,7 +95,7 @@ def test_get_cache_key(app_context, screenshot_obj):
 def test_get_from_cache_key(mocker: MockerFixture, screenshot_obj):
     """get_from_cache_key should always return a ScreenshotCachePayload Object"""
     # backwards compatibility test for retrieving plain bytes
-    fake_bytes = b"fake_screenshot_data"
+    fake_bytes = FAKE_PNG_BYTES
     BaseScreenshot.cache = MockCache()
     BaseScreenshot.cache.set("key", fake_bytes)
     cache_payload = screenshot_obj.get_from_cache_key("key")
@@ -108,10 +111,10 @@ class TestComputeAndCache:
             BASE_SCREENSHOT_PATH + ".get_from_cache_key", return_value=None
         )
         get_screenshot = mocker.patch(
-            BASE_SCREENSHOT_PATH + ".get_screenshot", return_value=b"new_image_data"
+            BASE_SCREENSHOT_PATH + ".get_screenshot", return_value=FAKE_PNG_BYTES
         )
         resize_image = mocker.patch(
-            BASE_SCREENSHOT_PATH + ".resize_image", return_value=b"resized_image_data"
+            BASE_SCREENSHOT_PATH + ".resize_image", return_value=FAKE_PNG_BYTES
         )
         BaseScreenshot.cache = MockCache()
         return {
@@ -125,6 +128,45 @@ class TestComputeAndCache:
         screenshot_obj.compute_and_cache(force=False)
         cache_payload: ScreenshotCachePayloadType = screenshot_obj.cache.get("key")
         assert cache_payload["status"] == "Updated"
+
+    def test_stamps_cache_scope_when_set(self, mocker: MockerFixture, screenshot_obj):
+        """A caller (the thumbnail Celery tasks) sets `cache_scope` before
+        calling compute_and_cache so the persisted entry can later be checked
+        against the object a caller-supplied digest is being used to access."""
+        self._setup_compute_and_cache(mocker, screenshot_obj)
+        screenshot_obj.cache_scope = "dashboard:5"
+        screenshot_obj.compute_and_cache(force=False)
+        cache_payload: ScreenshotCachePayloadType = screenshot_obj.cache.get("key")
+        assert cache_payload["scope"] == "dashboard:5"
+
+    def test_scope_unset_when_caller_never_sets_it(
+        self, mocker: MockerFixture, screenshot_obj
+    ):
+        self._setup_compute_and_cache(mocker, screenshot_obj)
+        screenshot_obj.compute_and_cache(force=False)
+        cache_payload: ScreenshotCachePayloadType = screenshot_obj.cache.get("key")
+        assert cache_payload["scope"] is None
+
+    def test_passes_cache_key_log_context_to_capture(
+        self, mocker: MockerFixture, screenshot_obj
+    ):
+        """compute_and_cache must thread its cache_key into the capture layer
+        as log_context, so every webdriver/screenshot log line produced by a
+        thumbnail or direct-download run can be traced back to the exact
+        cached entry it was computing (reports already do this with their
+        execution_id)."""
+        mocks = self._setup_compute_and_cache(mocker, screenshot_obj)
+        cache_key = screenshot_obj.get_cache_key()
+        screenshot_obj.compute_and_cache(force=False)
+
+        get_screenshot: MagicMock = mocks.get("get_screenshot")
+        get_screenshot.assert_called_once()
+        assert (
+            get_screenshot.call_args.kwargs["log_context"] == f"cache_key={cache_key}"
+        )
+        resize_image: MagicMock = mocks.get("resize_image")
+        resize_image.assert_called_once()
+        assert resize_image.call_args.kwargs["log_context"] == f"cache_key={cache_key}"
 
     def test_screenshot_error(self, mocker: MockerFixture, screenshot_obj):
         mocks = self._setup_compute_and_cache(mocker, screenshot_obj)
@@ -181,6 +223,29 @@ class TestComputeAndCache:
         get_screenshot.assert_called_once()
         cache_payload: ScreenshotCachePayloadType = screenshot_obj.cache.get("key")
         assert cache_payload["image"] != b"initial_value"
+
+    def test_recomputes_updated_entry_with_mismatched_scope(
+        self, mocker: MockerFixture, screenshot_obj
+    ):
+        """A cache entry that already has a valid image but a scope that
+        doesn't match this screenshot object's `cache_scope` (e.g. an entry
+        written before scope tracking existed, or written for a different
+        object) must be treated as a cache miss and recomputed -- otherwise
+        it can never be re-stamped with the right scope and stays
+        unservable forever."""
+        mocks = self._setup_compute_and_cache(mocker, screenshot_obj)
+        cached_value = ScreenshotCachePayload(image=b"initial_value")
+        get_from_cache_key = mocks.get("get_from_cache_key")
+        get_from_cache_key.return_value = cached_value
+
+        screenshot_obj.cache_scope = "dashboard:5"
+        screenshot_obj.compute_and_cache(force=False)
+
+        get_screenshot = mocks.get("get_screenshot")
+        get_screenshot.assert_called_once()
+        cache_payload: ScreenshotCachePayloadType = screenshot_obj.cache.get("key")
+        assert cache_payload["image"] != b"initial_value"
+        assert cache_payload["scope"] == "dashboard:5"
 
     def test_resize(self, mocker: MockerFixture, screenshot_obj):
         mocks = self._setup_compute_and_cache(mocker, screenshot_obj)
@@ -243,10 +308,76 @@ class TestScreenshotCachePayloadGetImage:
         assert result1 is not result2
 
 
+class TestScreenshotCachePayloadScope:
+    """
+    Cache entries are shared across every dashboard and chart in the same
+    cache backend. `scope` records which object (e.g. "dashboard:5") an
+    entry was actually rendered for, so a caller-supplied digest/cache_key
+    can be checked against the object it's being used to authorize before
+    serving the image.
+    """
+
+    def test_scope_defaults_to_none(self):
+        payload = ScreenshotCachePayload(image=b"data")
+        assert payload.get_scope() is None
+
+    def test_set_scope(self):
+        payload = ScreenshotCachePayload(image=b"data")
+        payload.set_scope("dashboard:5")
+        assert payload.get_scope() == "dashboard:5"
+
+    def test_scope_round_trips_through_to_dict_from_dict(self):
+        payload = ScreenshotCachePayload(image=b"data", scope="dashboard:5")
+        restored = ScreenshotCachePayload.from_dict(payload.to_dict())
+        assert restored.get_scope() == "dashboard:5"
+
+    def test_legacy_dict_without_scope_key_tolerated(self):
+        """A cache entry written before `scope` existed has no "scope" key at
+        all -- from_dict must not raise and must report no scope rather than
+        matching any caller-supplied scope."""
+        legacy_dict: ScreenshotCachePayloadType = {
+            "image": None,
+            "timestamp": "2024-01-01T00:00:00",
+            "status": "Updated",
+        }  # type: ignore[typeddict-item]
+        restored = ScreenshotCachePayload.from_dict(legacy_dict)
+        assert restored.get_scope() is None
+
+    def test_should_trigger_task_ignores_scope_by_default(self):
+        """Without an `expected_scope`, an updated entry with a real image is
+        never re-triggered -- existing (scope-agnostic) callers keep their
+        current behavior."""
+        payload = ScreenshotCachePayload(image=b"data", scope="dashboard:5")
+        assert payload.should_trigger_task(force=False) is False
+
+    def test_should_trigger_task_true_on_scope_mismatch(self):
+        """An updated entry whose scope doesn't match what the caller expects
+        (including a legacy entry with no scope at all) must be treated as a
+        cache miss so it gets recomputed and re-scoped."""
+        payload = ScreenshotCachePayload(image=b"data", scope=None)
+        assert (
+            payload.should_trigger_task(force=False, expected_scope="dashboard:5")
+            is True
+        )
+
+        mismatched = ScreenshotCachePayload(image=b"data", scope="dashboard:6")
+        assert (
+            mismatched.should_trigger_task(force=False, expected_scope="dashboard:5")
+            is True
+        )
+
+    def test_should_trigger_task_false_on_scope_match(self):
+        payload = ScreenshotCachePayload(image=b"data", scope="dashboard:5")
+        assert (
+            payload.should_trigger_task(force=False, expected_scope="dashboard:5")
+            is False
+        )
+
+
 class TestBaseScreenshotDriverFallback:
     """Test BaseScreenshot.driver() fallback logic for Playwright migration."""
 
-    @patch("superset.utils.screenshots.PLAYWRIGHT_AVAILABLE", True)
+    @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
     @patch("superset.extensions.feature_flag_manager.is_feature_enabled")
     def test_driver_returns_playwright_when_feature_enabled_and_available(
         self, mock_feature_flag, screenshot_obj
@@ -257,43 +388,8 @@ class TestBaseScreenshotDriverFallback:
         driver = screenshot_obj.driver()
 
         assert driver.__class__.__name__ == "WebDriverPlaywright"
-        mock_feature_flag.assert_called_once_with("PLAYWRIGHT_REPORTS_AND_THUMBNAILS")
 
-    @patch("superset.utils.screenshots.logger")
-    @patch("superset.utils.screenshots.PLAYWRIGHT_AVAILABLE", False)
-    @patch("superset.extensions.feature_flag_manager.is_feature_enabled")
-    def test_driver_falls_back_to_selenium_when_playwright_unavailable(
-        self, mock_feature_flag, mock_logger, screenshot_obj
-    ):
-        """Test driver() falls back to Selenium when Playwright unavailable."""
-        mock_feature_flag.return_value = True
-
-        driver = screenshot_obj.driver()
-
-        assert driver.__class__.__name__ == "WebDriverSelenium"
-        # Should log the fallback message
-        mock_logger.info.assert_called_once()
-        log_call = mock_logger.info.call_args[0][0]
-        assert (
-            "PLAYWRIGHT_REPORTS_AND_THUMBNAILS enabled but Playwright not installed"
-            in log_call
-        )
-        assert "Falling back to Selenium" in log_call
-        assert "WebGL/Canvas charts may not render correctly" in log_call
-
-    @patch("superset.extensions.feature_flag_manager.is_feature_enabled")
-    def test_driver_uses_selenium_when_feature_flag_disabled(
-        self, mock_feature_flag, screenshot_obj
-    ):
-        """Test driver() uses Selenium when feature flag disabled."""
-        mock_feature_flag.return_value = False
-
-        driver = screenshot_obj.driver()
-
-        assert driver.__class__.__name__ == "WebDriverSelenium"
-        mock_feature_flag.assert_called_once_with("PLAYWRIGHT_REPORTS_AND_THUMBNAILS")
-
-    @patch("superset.utils.screenshots.PLAYWRIGHT_AVAILABLE", True)
+    @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
     @patch("superset.extensions.feature_flag_manager.is_feature_enabled")
     def test_driver_passes_window_size_to_playwright(
         self, mock_feature_flag, screenshot_obj
@@ -307,20 +403,7 @@ class TestBaseScreenshotDriverFallback:
         assert driver._window == custom_window_size
         assert driver.__class__.__name__ == "WebDriverPlaywright"
 
-    @patch("superset.extensions.feature_flag_manager.is_feature_enabled")
-    def test_driver_passes_window_size_to_selenium(
-        self, mock_feature_flag, screenshot_obj
-    ):
-        """Test driver() passes window_size parameter to WebDriverSelenium."""
-        mock_feature_flag.return_value = False
-        custom_window_size = (1200, 800)
-
-        driver = screenshot_obj.driver(window_size=custom_window_size)
-
-        assert driver._window == custom_window_size
-        assert driver.__class__.__name__ == "WebDriverSelenium"
-
-    @patch("superset.utils.screenshots.PLAYWRIGHT_AVAILABLE", True)
+    @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
     @patch("superset.extensions.feature_flag_manager.is_feature_enabled")
     def test_driver_uses_default_window_size_when_none_provided(
         self, mock_feature_flag, screenshot_obj
@@ -335,9 +418,9 @@ class TestBaseScreenshotDriverFallback:
 
 
 class TestScreenshotSubclassesDriverBehavior:
-    """Test ChartScreenshot and DashboardScreenshot inherit driver behavior."""
+    """Test ChartScreenshot inherits driver behavior."""
 
-    @patch("superset.utils.screenshots.PLAYWRIGHT_AVAILABLE", True)
+    @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
     @patch("superset.extensions.feature_flag_manager.is_feature_enabled")
     def test_chart_screenshot_uses_playwright_when_enabled(self, mock_feature_flag):
         """Test ChartScreenshot uses Playwright when feature enabled."""
@@ -349,27 +432,7 @@ class TestScreenshotSubclassesDriverBehavior:
         assert driver.__class__.__name__ == "WebDriverPlaywright"
         assert driver._window == chart_screenshot.window_size
 
-    @patch("superset.utils.screenshots.logger")
-    @patch("superset.utils.screenshots.PLAYWRIGHT_AVAILABLE", False)
-    @patch("superset.extensions.feature_flag_manager.is_feature_enabled")
-    def test_dashboard_screenshot_falls_back_to_selenium(
-        self, mock_feature_flag, mock_logger
-    ):
-        """Test DashboardScreenshot falls back to Selenium if no Playwright."""
-        mock_feature_flag.return_value = True
-
-        dashboard_screenshot = DashboardScreenshot(
-            "http://example.com/dashboard", "digest"
-        )
-        driver = dashboard_screenshot.driver()
-
-        assert driver.__class__.__name__ == "WebDriverSelenium"
-        assert driver._window == dashboard_screenshot.window_size
-
-        # Should log the fallback message
-        mock_logger.info.assert_called_once()
-
-    @patch("superset.utils.screenshots.PLAYWRIGHT_AVAILABLE", True)
+    @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
     @patch("superset.extensions.feature_flag_manager.is_feature_enabled")
     def test_custom_window_size_passed_to_driver(self, mock_feature_flag):
         """Test custom window size is passed correctly to driver."""

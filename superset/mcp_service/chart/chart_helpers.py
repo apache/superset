@@ -199,6 +199,8 @@ def apply_form_data_filters_to_query(
         query["where"] = where
     if having := form_data.get("having"):
         query["having"] = having
+    if extras := form_data.get("extras"):
+        query["extras"] = {**(query.get("extras") or {}), **extras}
 
 
 def _join_sql_clause(existing_clause: str, additional_clause: str) -> str:
@@ -255,6 +257,9 @@ def merge_form_data_filters_into_query(
                 query[clause] = _join_sql_clause(existing_clause, additional_clause)
             else:
                 query[clause] = additional_clause
+
+    if extras := form_data.get("extras"):
+        query["extras"] = {**(query.get("extras") or {}), **extras}
 
 
 def merge_extra_form_data_filters_into_query(
@@ -386,10 +391,6 @@ def resolve_deck_gl_columns(form_data: dict[str, Any]) -> list[str]:
     for field in ("line_column", "geojson", "dimension"):
         _add(form_data.get(field))
 
-    for col in form_data.get("js_columns") or []:
-        if isinstance(col, str):
-            _add(col)
-
     return columns
 
 
@@ -398,7 +399,7 @@ def resolve_metrics(form_data: dict[str, Any], viz_type: str) -> list[Any]:
     if viz_type == "bubble":
         return [m for field in ("x", "y", "size") if (m := form_data.get(field))]
 
-    metrics = form_data.get("metrics", [])
+    metrics = form_data.get("metrics") or []
     if not metrics and (metric := form_data.get("metric")):
         metrics = [metric]
     return metrics
@@ -441,8 +442,8 @@ def resolve_metrics_and_groupby(
     chart: Any | None = None,
 ) -> tuple[list[Any], list[Any]]:
     """Resolve metrics and groupby columns from form_data."""
-    viz_type = form_data.get(
-        "viz_type", getattr(chart, "viz_type", "") if chart else ""
+    viz_type = (
+        form_data.get("viz_type", getattr(chart, "viz_type", "") if chart else "") or ""
     )
     singular_metric_no_groupby = (
         "big_number",
@@ -450,8 +451,13 @@ def resolve_metrics_and_groupby(
         "pop_kpi",
     )
     if viz_type in singular_metric_no_groupby:
-        metrics: list[Any] = [metric] if (metric := form_data.get("metric")) else []
-        return metrics, []
+        metric = form_data.get("metric")
+        if not metric:
+            # Some saved/migrated form_data stores the metric under the
+            # plural "metrics" key even for single-metric chart types.
+            plural_metrics = form_data.get("metrics") or []
+            metric = plural_metrics[0] if plural_metrics else None
+        return ([metric] if metric else []), []
 
     return resolve_metrics(form_data, viz_type), resolve_groupby(form_data)
 
@@ -654,6 +660,7 @@ def build_query_context_from_form_data(
     order_desc: bool | None = None,
     result_type: Any = None,
     force: bool = False,
+    custom_cache_timeout: int | None = None,
 ) -> Any:
     """Build a QueryContext from chart-type-aware Explore form_data."""
     # avoid circular import
@@ -682,6 +689,7 @@ def build_query_context_from_form_data(
         form_data=form_data,
         result_type=result_type,
         force=force,
+        custom_cache_timeout=custom_cache_timeout,
     )
 
 

@@ -17,16 +17,24 @@
 # pylint: disable=too-many-lines
 from __future__ import annotations
 
-import inspect
 from typing import Any, TYPE_CHECKING
 
 from flask import current_app
 from flask_babel import gettext as _
-from marshmallow import EXCLUDE, fields, post_load, Schema, validate
+from marshmallow import (
+    EXCLUDE,
+    fields,
+    post_load,
+    Schema,
+    validate,
+    validates,
+    ValidationError,
+)
 from marshmallow.validate import Length, Range
 from marshmallow_union import Union
 
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
+from superset.common.chart_data_timing import CHART_DATA_TIMING_VERSION
 from superset.db_engine_specs.base import builtin_time_grains
 from superset.subjects.schemas import SubjectResponseSchema
 from superset.tags.models import TagType
@@ -34,6 +42,7 @@ from superset.utils import pandas_postprocessing, schema as utils
 from superset.utils.core import (
     AnnotationType,
     DatasourceType,
+    EXTENDED_METRIC_AGGREGATES,
     FilterOperator,
     PostProcessingBoxplotWhiskerType,
     PostProcessingContributionOrientation,
@@ -104,7 +113,11 @@ def validate_prophet_periods(value: int) -> None:
 #
 # RISON/JSON schemas for query parameters
 #
-get_delete_ids_schema = {"type": "array", "items": {"type": "integer"}}
+get_delete_ids_schema = {
+    "type": "array",
+    "items": {"type": "integer"},
+    "example": [1, 2, 3],
+}
 
 width_height_schema = {
     "type": "array",
@@ -122,9 +135,17 @@ screenshot_query_schema = {
         "thumb_size": width_height_schema,
     },
 }
-get_export_ids_schema = {"type": "array", "items": {"type": "integer"}}
+get_export_ids_schema = {
+    "type": "array",
+    "items": {"type": "integer"},
+    "example": [1, 2, 3],
+}
 
-get_fav_star_ids_schema = {"type": "array", "items": {"type": "integer"}}
+get_fav_star_ids_schema = {
+    "type": "array",
+    "items": {"type": "integer"},
+    "example": [1, 2, 3],
+}
 
 #
 # Column schema descriptions
@@ -347,6 +368,30 @@ class ChartPutSchema(Schema):
     external_url = fields.String(allow_none=True, validate=utils.validate_external_url)
     tags = fields.List(fields.Integer(metadata={"description": tags_description}))
     uuid = fields.UUID(allow_none=True)
+    normalization_changes: fields.Raw = fields.Raw(
+        load_only=True,
+        allow_none=True,
+        metadata={
+            "description": (
+                "Optional advisory Explore hydration transitions used only to "
+                "remove exact automatic normalization changes from human-readable "
+                "version history. Invalid metadata is ignored."
+            ),
+            "type": "array",
+            "maxItems": 256,
+            "items": {
+                "type": "object",
+                "required": ["control", "from_present", "to_present"],
+                "properties": {
+                    "control": {"type": "string", "maxLength": 256},
+                    "from_present": {"type": "boolean"},
+                    "from_value": {},
+                    "to_present": {"type": "boolean"},
+                    "to_value": {},
+                },
+            },
+        },
+    )
 
 
 class ChartGetDatasourceObjectDataResponseSchema(Schema):
@@ -414,7 +459,15 @@ class ChartDataAdhocMetricSchema(Schema):
             "Only required for simple expression types."
         },
         validate=validate.OneOf(
-            choices=("AVG", "COUNT", "COUNT_DISTINCT", "MAX", "MIN", "SUM")
+            choices=(
+                "AVG",
+                "COUNT",
+                "COUNT_DISTINCT",
+                "MAX",
+                "MIN",
+                "SUM",
+                *sorted(EXTENDED_METRIC_AGGREGATES),
+            )
         ),
     )
     column = fields.Nested(ChartDataColumnSchema)
@@ -959,21 +1012,37 @@ class ChartDataGeodeticParseOptionsSchema(
 
 
 class ChartDataPostProcessingOperationSchema(Schema):
+    _builtin_ops = pandas_postprocessing.__all__
+
     operation = fields.String(
         metadata={
             "description": "Post processing operation type",
             "example": "aggregate",
         },
         required=True,
-        validate=validate.OneOf(
-            choices=[
-                name
-                for name, value in inspect.getmembers(
-                    pandas_postprocessing, inspect.isfunction
-                )
-            ]
-        ),
     )
+
+    @validates("operation")
+    def validate_operation(self, value: str, **kwargs: object) -> None:
+        # Built-in operations validate without reading the config, so schemas can
+        # still be loaded outside of an app context.
+        if value in self._builtin_ops:
+            return
+
+        try:
+            extra = current_app.config.get("EXTRA_PANDAS_POSTPROCESSING_OPS", [])
+        except RuntimeError:
+            # Outside app context, only built-in operations are known
+            extra = []
+
+        allowed = set(self._builtin_ops) | set(
+            pandas_postprocessing.build_extra_ops_map(extra)
+        )
+        if value not in allowed:
+            raise ValidationError(
+                f"Must be one of: {sorted(allowed)!r}.",
+            )
+
     options = fields.Dict(
         metadata={
             "description": "Options specifying how to perform the operation. Please "
@@ -1358,6 +1427,17 @@ class ChartDataQueryObjectSchema(Schema):
         load_default=False,
         allow_none=True,
     )
+    grouping_sets = fields.List(
+        fields.List(fields.String()),
+        metadata={
+            "description": "Rollup levels for non-additive totals: each entry is "
+            "the list of groupby columns to group at that level (e.g. the empty "
+            "list is the grand total). When set and the engine supports it, the "
+            "levels are computed in a single GROUPING SETS query.",
+        },
+        load_default=None,
+        allow_none=True,
+    )
     timeseries_limit = fields.Integer(
         metadata={
             "description": "Maximum row count for timeseries queries. "
@@ -1542,6 +1622,26 @@ class AnnotationDataSchema(Schema):
     )
 
 
+class ChartDataQueryTimingSchema(Schema):
+    """Schema for the versioned per-query timing phases."""
+
+    query_planning_ms = fields.Float(required=True, allow_none=True)
+    cache_resolution_ms = fields.Float(required=True, allow_none=True)
+    data_acquisition_ms = fields.Float(required=True, allow_none=True)
+    payload_assembly_ms = fields.Float(required=True, allow_none=True)
+    total_ms = fields.Float(required=True)
+
+
+class ChartDataTimingSchema(Schema):
+    """Schema for the versioned query lifecycle timing breakdown."""
+
+    version = fields.Integer(
+        required=True,
+        validate=validate.Equal(CHART_DATA_TIMING_VERSION),
+    )
+    query = fields.Nested(ChartDataQueryTimingSchema, required=True)
+
+
 class ChartDataResponseResult(Schema):
     annotation_data = fields.List(
         fields.Dict(
@@ -1652,6 +1752,17 @@ class ChartDataResponseResult(Schema):
     warning = fields.String(
         metadata={"description": "Warning message when results were truncated"},
         allow_none=True,
+    )
+    timing = fields.Nested(
+        ChartDataTimingSchema,
+        metadata={
+            "description": (
+                "Optional versioned query lifecycle timing breakdown in milliseconds. "
+                "Present only when CHART_DATA_INCLUDE_TIMING is enabled; disabled by "
+                "default."
+            )
+        },
+        required=False,
     )
 
 

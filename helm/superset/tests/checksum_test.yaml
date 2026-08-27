@@ -21,6 +21,7 @@ templates:
   - deployment-beat.yaml
   - deployment-flower.yaml
   - deployment-ws.yaml
+  - deployment-mcp.yaml
 tests:
   - it: main deployment has new config checksums, not the old connections checksum
     template: deployment.yaml
@@ -123,6 +124,27 @@ tests:
     template: deployment-ws.yaml
     set:
       supersetWebsockets:
+        enabled: true
+      globalPodAnnotations:
+        team: data
+    asserts:
+      - equal:
+          path: 'spec.template.metadata.annotations.team'
+          value: data
+  - it: mcp deployment has config and database checksums
+    template: deployment-mcp.yaml
+    set:
+      supersetMcp:
+        enabled: true
+    asserts:
+      - exists:
+          path: 'spec.template.metadata.annotations["checksum/database"]'
+      - exists:
+          path: 'spec.template.metadata.annotations["checksum/config"]'
+  - it: mcp deployment applies globalPodAnnotations
+    template: deployment-mcp.yaml
+    set:
+      supersetMcp:
         enabled: true
       globalPodAnnotations:
         team: data

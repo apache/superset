@@ -21,7 +21,15 @@ import { Currency, Maybe, QueryFormMetric } from '../../types';
 import { Column } from './Column';
 
 export type Aggregate =
-  'AVG' | 'COUNT' | 'COUNT_DISTINCT' | 'MAX' | 'MIN' | 'SUM';
+  | 'AVG'
+  | 'COUNT'
+  | 'COUNT_DISTINCT'
+  | 'MAX'
+  | 'MEDIAN'
+  | 'MIN'
+  | 'STDDEV_SAMP'
+  | 'SUM'
+  | 'VAR_SAMP';
 
 export interface AdhocMetricBase {
   hasCustomLabel?: boolean;

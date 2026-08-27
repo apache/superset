@@ -14,28 +14,32 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""Shared handlers for the ``/versions/`` REST endpoints.
+"""Shared handlers for the ``/versions/`` and ``/activity/`` REST endpoints.
 
 Each ``ChartRestApi`` / ``DashboardRestApi`` / ``DatasetRestApi`` carries
 the same read endpoint methods — ``list_versions`` and ``get_version`` —
-whose bodies are byte-for-byte identical apart from the model class and
-the ``security_manager.raise_for_access`` kwarg. Extracting the bodies
-here lets each per-resource method collapse to a single delegation call,
-while the OpenAPI docstring + FAB decorators stay at the method site
-where they belong.
+plus the ``activity`` endpoint on each resource. The bodies are
+byte-for-byte identical apart from the model class and the
+``security_manager.raise_for_access`` kwarg. Extracting the bodies here
+lets each per-resource method collapse to a single delegation call, while
+the OpenAPI docstring + FAB decorators stay at the method site where they
+belong.
 
-(The restore endpoint ships in a later PR; only the read endpoints are
-wired here.)
+The write side follows the same pattern: ``restore_version_endpoint``
+holds the shared body of the three ``POST .../versions/<uuid>/restore``
+routes; authorization and the capture kill-switch gate live in the
+restore command's ``validate()``, not here.
 """
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from typing import Any
 from uuid import UUID
 
 import sqlalchemy as sa
-from flask import current_app, Response
+from flask import Response
 from flask_appbuilder import Model
 
 from superset.daos.version import VersionDAO
@@ -51,6 +55,8 @@ from superset.versioning.schemas import VersionListItemSchema
 #: http-dates) and ``version_uuid`` consistently a string (the list rows
 #: carry UUID instances, the snapshot block pre-stringifies).
 _version_item_schema = VersionListItemSchema()
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -69,7 +75,13 @@ class EntityVersionInfo:
 
 
 def _capture_enabled() -> bool:
-    return bool(current_app.config.get("ENABLE_VERSIONING_CAPTURE", False))
+    # Delegates to the shared gate so the read helpers and the restore
+    # command can't disagree about what "capture is on" means.
+    from superset.versioning.utils import (  # pylint: disable=import-outside-toplevel
+        capture_enabled,
+    )
+
+    return capture_enabled()
 
 
 def current_entity_version_info(
@@ -97,14 +109,19 @@ def current_entity_version_info(
         entity_uuid = db.session.scalar(
             sa.select(model_cls.uuid).where(model_cls.id == entity_id)
         )
+    if entity_uuid is None:
+        return EntityVersionInfo()
+    version, transaction_id = VersionDAO.current_version_info(
+        model_cls, entity_id, entity_uuid
+    )
     version_uuid = (
-        VersionDAO.current_live_version_uuid(model_cls, entity_id, entity_uuid)
-        if entity_uuid is not None
+        VersionDAO.derive_version_uuid(entity_uuid, transaction_id)
+        if transaction_id is not None
         else None
     )
     return EntityVersionInfo(
-        version=VersionDAO.current_version_number(model_cls, entity_id),
-        transaction_id=VersionDAO.current_live_transaction_id(model_cls, entity_id),
+        version=version,
+        transaction_id=transaction_id,
         version_uuid=str(version_uuid) if version_uuid else None,
     )
 
@@ -127,34 +144,82 @@ def current_entity_etag_uuid(
     return str(version_uuid) if version_uuid else None
 
 
-def _resolve_entity(
-    api: Any,
-    model_cls: type[Model],
-    uuid_str: str,
-    access_kwarg: str,
-) -> tuple[Any, UUID] | Response:
-    """Parse the path UUID, look up the live entity, run the read-access
-    gate.
+# Maps the versioned model class name to the keyword argument
+# ``security_manager.raise_for_access`` expects for the per-resource
+# gate. Slice → ``chart=``, Dashboard → ``dashboard=``, SqlaTable →
+# ``datasource=``. Centralised here so /versions/ and /activity/
+# endpoints share one source of truth for the dispatch.
+_RAISE_FOR_ACCESS_KWARG: dict[str, str] = {
+    "Slice": "chart",
+    "Dashboard": "dashboard",
+    "SqlaTable": "datasource",
+}
 
-    Returns ``(entity, entity_uuid)`` on success or a pre-built
-    ``Response`` (400 / 403 / 404) that the caller should return
-    directly. The split shape keeps the call site terse and lets the
-    three handler functions share the preflight without each repeating
-    the try / except dance.
+
+class PathEntityResponseError(Exception):
+    """Carry a pre-built error response from endpoint path resolution.
+
+    Endpoints catch it and return
+    the carried response directly. The shape exists so the
+    UUID-parse + find-by-uuid + read-access check can live in one
+    place across the ``/versions/`` and ``/activity/`` endpoint
+    families."""
+
+    def __init__(self, response: Any) -> None:
+        super().__init__("PathEntityResponseError")
+        self.response = response
+
+
+def resolve_endpoint_path_entity(
+    api: Any, model_cls: type[Model], uuid_str: str
+) -> tuple[Any, UUID]:
+    """Run path-entity preflight for a versions or activity endpoint.
+
+    1. Parse *uuid_str* into a UUID (or raise → 400).
+    2. Look up the live entity via ``VersionDAO.find_active_by_uuid``
+       (or raise → 404).
+    3. Run ``security_manager.raise_for_access`` with the resource-typed
+       kwarg (or raise → 403).
+
+    Returns ``(entity, entity_uuid)`` on success — the parsed UUID is
+    threaded out so callers don't re-parse the path-string. Raises
+    :class:`PathEntityResponseError` carrying the appropriate error
+    Response on any failure; the endpoint method should::
+
+        try:
+            entity, entity_uuid = resolve_endpoint_path_entity(
+                self, Dashboard, uuid_str
+            )
+        except PathEntityResponseError as exc:
+            return exc.response
+
+    *api* is the FAB ``ModelRestApi`` instance — we call
+    ``api.response_400`` / ``api.response_403`` / ``api.response_404``
+    on it. Pass ``self`` from the endpoint method.
     """
     try:
         entity_uuid = UUID(uuid_str)
-    except ValueError:
-        return api.response_400(message="Invalid UUID")
+    except ValueError as exc:
+        raise PathEntityResponseError(api.response_400(message="Invalid UUID")) from exc
 
     entity = VersionDAO.find_active_by_uuid(model_cls, entity_uuid)
     if entity is None:
-        return api.response_404()
+        raise PathEntityResponseError(api.response_404())
 
+    # Direct ``[…]`` would leak the unknown model name into a generic 500
+    # via the unhandled ``KeyError`` exception text. The three resource
+    # families wired today cover every key; a future entity added to the
+    # versioning surface without updating this dispatch table should fail
+    # closed (the test suite picks it up) rather than silently disclose.
+    kwarg = _RAISE_FOR_ACCESS_KWARG.get(model_cls.__name__)
+    if kwarg is None:
+        raise LookupError(
+            f"No raise_for_access kwarg registered for {model_cls.__name__!r}"
+        )
     try:
-        security_manager.raise_for_access(**{access_kwarg: entity})
-    except SupersetSecurityException:
-        return api.response_403()
+        security_manager.raise_for_access(**{kwarg: entity})
+    except SupersetSecurityException as exc:
+        raise PathEntityResponseError(api.response_403()) from exc
 
     return entity, entity_uuid
 
@@ -163,13 +228,12 @@ def list_versions_endpoint(
     api: Any,
     model_cls: type[Model],
     uuid_str: str,
-    access_kwarg: str,
 ) -> Response:
     """Body of ``GET /api/v1/{resource}/<uuid>/versions/``."""
-    resolved = _resolve_entity(api, model_cls, uuid_str, access_kwarg)
-    if isinstance(resolved, Response):
-        return resolved
-    entity, entity_uuid = resolved
+    try:
+        entity, entity_uuid = resolve_endpoint_path_entity(api, model_cls, uuid_str)
+    except PathEntityResponseError as exc:
+        return exc.response
 
     versions = VersionDAO.list_versions(model_cls, entity_uuid, entity=entity)
     if versions is None:
@@ -188,13 +252,12 @@ def get_version_endpoint(
     model_cls: type[Model],
     uuid_str: str,
     version_uuid_str: str,
-    access_kwarg: str,
 ) -> Response:
     """Body of ``GET /api/v1/{resource}/<uuid>/versions/<version_uuid>/``."""
-    resolved = _resolve_entity(api, model_cls, uuid_str, access_kwarg)
-    if isinstance(resolved, Response):
-        return resolved
-    entity, entity_uuid = resolved
+    try:
+        entity, entity_uuid = resolve_endpoint_path_entity(api, model_cls, uuid_str)
+    except PathEntityResponseError as exc:
+        return exc.response
 
     try:
         version_uuid = UUID(version_uuid_str)
@@ -216,4 +279,57 @@ def get_version_endpoint(
         model_cls,
         entity_uuid,
         entity_id=entity.id,
+    )
+
+
+def restore_version_endpoint(
+    api: Any,
+    model_cls: type[Model],
+    command_cls: type[Any],
+    uuid_str: str,
+    version_uuid_str: str,
+) -> Response:
+    """Body of ``POST /api/v1/{resource}/<uuid>/versions/<version_uuid>/restore``.
+
+    *command_cls* is the entity's ``BaseRestoreVersionCommand`` subclass;
+    its ``not_found_exc`` / ``forbidden_exc`` / ``failed_exc`` ClassVars
+    drive the exception→HTTP mapping, so this body stays generic.
+    Authorization and the ``ENABLE_VERSIONING_CAPTURE`` kill-switch gate
+    live in the command's ``validate()`` — with capture off the route is
+    inert (404) because a revert without Continuum's write listeners
+    would be a destructive, untracked write.
+    """
+    try:
+        entity_uuid = UUID(uuid_str)
+    except ValueError:
+        return api.response_400(message="Invalid UUID")
+    try:
+        version_uuid = UUID(version_uuid_str)
+    except ValueError:
+        return api.response_400(message="Invalid version UUID")
+
+    try:
+        result = command_cls(entity_uuid, version_uuid).run()
+    except command_cls.not_found_exc:
+        return api.response_404()
+    except command_cls.forbidden_exc:
+        return api.response_403()
+    except command_cls.failed_exc as ex:
+        logger.exception("Error restoring %s version", model_cls.__name__)
+        return api.response_422(message=str(ex))
+
+    message = "OK"
+    if result.skipped_slice_ids:
+        message = (
+            f"OK; {len(result.skipped_slice_ids)} chart(s) referenced by "
+            "the snapshot no longer exist and were not reattached"
+        )
+    return set_version_etag_by_uuid(
+        api.response(200, message=message),
+        model_cls,
+        entity_uuid,
+        # The command already loaded the entity; passing its id skips the
+        # extra id-by-uuid SELECT (same optimization as the sibling
+        # list/get endpoints).
+        entity_id=result.entity.id,
     )

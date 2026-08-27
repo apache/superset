@@ -54,11 +54,10 @@ export default function Option({
     <OptionControlContainer data-test="option-label" withCaret={withCaret}>
       {canDelete && (
         <CloseContainer
+          type="button"
           css={css`
             text-align: center;
           `}
-          role="button"
-          tabIndex={0}
           data-test="remove-control-button"
           onClick={onClickClose}
         >

@@ -50,6 +50,7 @@ from sqlalchemy import event
 from sqlalchemy.exc import OperationalError, ProgrammingError
 from sqlalchemy.orm import Session, SessionTransaction
 
+from superset.versioning.changes.normalization import NORMALIZATION_CONTEXT_KEY
 from superset.versioning.changes.shadow_queries import (
     _dashboard_child_records_for_tx_from_shadows,
     _dataset_child_records_for_tx_from_shadows,
@@ -60,10 +61,12 @@ from superset.versioning.changes.state import (
     compute_records_from_state,
 )
 from superset.versioning.changes.table import ENTITY_KIND_BY_CLASS_NAME
+from superset.versioning.db_errors import is_missing_table_error
 from superset.versioning.diff import (
     ChangeRecord,
     fold_dashboard_layout_with_chart_changes,
 )
+from superset.versioning.metrics import incr_capture_error
 
 logger = logging.getLogger(__name__)
 
@@ -215,6 +218,7 @@ def _reset_transaction_state(session: Session) -> None:
     session.info.pop(ACTION_META_KEY, None)
     session.info.pop(_INITIAL_STATES_KEY, None)
     session.info.pop(_FINALIZING_KEY, None)
+    session.info.pop(NORMALIZATION_CONTEXT_KEY, None)
 
 
 def _reset_after_outer_transaction(
@@ -258,6 +262,7 @@ def _append_child_records_to_buffer(
                     del buffer[key]
     except Exception:  # pylint: disable=broad-except
         logger.exception("version_changes: child-diff failed for tx %s", tx_id)
+        incr_capture_error("child_diff")
 
 
 def _current_transaction_id(session: Session) -> int | None:
@@ -345,6 +350,7 @@ def _stamp_action_kind_on_transaction(session: Session, tx_id: int) -> None:
             action_kind,
             tx_id,
         )
+        incr_capture_error("action_kind_stamp")
 
 
 def _persist_buffered_records(
@@ -354,11 +360,12 @@ def _persist_buffered_records(
 ) -> None:
     """Bulk-insert *buffer*'s records under *tx_id* and reset the buffer.
 
-    Catches ``OperationalError`` / ``ProgrammingError`` to handle the
-    pre-migration startup race (version_changes table missing — the
-    former on SQLite/MySQL, the latter on PostgreSQL), and ``Exception``
-    as the listener-boundary safety net so a malformed record can't
-    crash the user's save.
+    Swallows the pre-migration startup race silently (version_changes
+    table missing — verified via :func:`is_missing_table_error`, not
+    inferred from the exception class, because ``OperationalError`` also
+    covers deadlocks and dropped connections that must be logged and
+    counted). ``Exception`` is the listener-boundary safety net so a
+    malformed record can't crash the user's save.
 
     The insert runs under a SAVEPOINT (``begin_nested`` on the
     connection): on PostgreSQL a failed statement aborts the enclosing
@@ -370,15 +377,22 @@ def _persist_buffered_records(
     try:
         with session.connection().begin_nested():
             bulk_insert_records(session, tx_id, buffer)
-    except (OperationalError, ProgrammingError):
-        # version_changes table missing (migration not yet applied).
-        pass
-    except Exception:  # pylint: disable=broad-except
+    except Exception as ex:  # pylint: disable=broad-except
+        if isinstance(
+            ex, (OperationalError, ProgrammingError)
+        ) and is_missing_table_error(ex):
+            # version_changes table missing (migration not yet applied) —
+            # the one genuinely benign case; stay quiet.
+            return
+        # Everything else — a deadlock or dropped connection as much as a
+        # malformed record — is a real capture loss. Swallowing it silently
+        # made "the save succeeded but its history doesn't exist" invisible.
         logger.exception(
             "version_changes: bulk insert failed for tx %s (%d entities)",
             tx_id,
             len(buffer),
         )
+        incr_capture_error("bulk_insert")
 
 
 def register_change_record_listener() -> None:  # noqa: C901

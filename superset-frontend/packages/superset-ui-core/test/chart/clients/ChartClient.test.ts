@@ -122,7 +122,7 @@ describe('ChartClient', () => {
   });
 
   describe('.loadQueryData(formData, options)', () => {
-    test('returns a promise of query data for known chart type', () => {
+    test('returns a promise of query data for known chart type', async () => {
       getChartMetadataRegistry().registerValue(
         VizType.WordCloud,
         new ChartMetadata({ name: 'Word Cloud', thumbnail: '' }),
@@ -132,14 +132,18 @@ describe('ChartClient', () => {
         VizType.WordCloud,
         (formData: QueryFormData) => buildQueryContext(formData),
       );
-      fetchMock.post('glob:*/api/v1/chart/data', [
-        {
-          field1: 'abc',
-          field2: 'def',
-        },
-      ]);
+      // The real /api/v1/chart/data endpoint wraps its results in
+      // `{ result: [...] }`, not a bare array.
+      fetchMock.post('glob:*/api/v1/chart/data', {
+        result: [
+          {
+            field1: 'abc',
+            field2: 'def',
+          },
+        ],
+      });
 
-      return expect(
+      await expect(
         chartClient.loadQueryData({
           granularity: 'minute',
           viz_type: VizType.WordCloud,
@@ -151,6 +155,16 @@ describe('ChartClient', () => {
           field2: 'def',
         },
       ]);
+
+      // The query context fields must be posted at the top level of the
+      // request body -- the endpoint's schema does not expect them nested
+      // under a `query_context` key.
+      const calls = fetchMock.callHistory.calls('glob:*/api/v1/chart/data');
+      const requestBody = JSON.parse(
+        (calls[0].options as RequestInit).body as string,
+      );
+      expect(requestBody.query_context).toBeUndefined();
+      expect(requestBody.datasource).toEqual({ id: 1, type: 'table' });
     });
     test('returns a promise that rejects for unknown chart type', () =>
       expect(
@@ -160,42 +174,6 @@ describe('ChartClient', () => {
           datasource: '1__table',
         }),
       ).rejects.toEqual(new Error('Unknown chart type: rainbow_3d_pie')));
-
-    test('fetches data from the legacy API if ChartMetadata has useLegacyApi=true,', () => {
-      // note legacy charts do not register a buildQuery function in the registry
-      getChartMetadataRegistry().registerValue(
-        'word_cloud_legacy',
-        new ChartMetadata({
-          name: 'Legacy Word Cloud',
-          thumbnail: '.png',
-          useLegacyApi: true,
-        }),
-      );
-
-      fetchMock.post('glob:*/api/v1/chart/data', () =>
-        Promise.reject(new Error('Unexpected all to v1 API')),
-      );
-
-      // post `Superset.route_base = ""`, the legacy endpoint
-      // collapsed from `/superset/explore_json/` to `/explore_json/`.
-      fetchMock.post('glob:*/explore_json/', {
-        field1: 'abc',
-        field2: 'def',
-      });
-
-      return expect(
-        chartClient.loadQueryData({
-          granularity: 'minute',
-          viz_type: 'word_cloud_legacy',
-          datasource: '1__table',
-        }),
-      ).resolves.toEqual([
-        {
-          field1: 'abc',
-          field2: 'def',
-        },
-      ]);
-    });
   });
 
   describe('.loadDatasource(datasourceKey, options)', () => {

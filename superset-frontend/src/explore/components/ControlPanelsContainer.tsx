@@ -79,7 +79,7 @@ import ControlRow from './ControlRow';
 import Control from './Control';
 import { ExploreAlert } from './ExploreAlert';
 import { RunQueryButton } from './RunQueryButton';
-import { Operators } from '../constants';
+import { CONTROL_SECTIONS_ID, Operators } from '../constants';
 import { Clauses } from './controls/FilterControl/types';
 import StashFormDataContainer from './StashFormDataContainer';
 
@@ -403,7 +403,14 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
               props.controls[controlName].value,
             );
         if (shouldUpdateControls) {
-          props.actions.setControlValue(controlName, alteredControls);
+          props.actions.setControlValue(
+            controlName,
+            alteredControls,
+            undefined,
+            {
+              programmatic: true,
+            },
+          );
         }
       });
     }
@@ -941,7 +948,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
     <>
       <Styles ref={containerRef}>
         <Tabs
-          id="controlSections"
+          id={CONTROL_SECTIONS_ID}
           data-test="control-tabs"
           allowOverflow={false}
           activeKey={activeTabKey}

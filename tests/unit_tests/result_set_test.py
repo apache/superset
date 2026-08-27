@@ -571,3 +571,53 @@ def test_stringify_values_non_serializable_dict_falls_back_to_str() -> None:
     # Must not raise — falls back to str()
     result = stringify_values(data)
     assert result[0] == str({"key": _Unserializable()})
+
+
+def test_empty_result_set_preserves_column_metadata() -> None:
+    """
+    Test that column metadata is preserved when query returns zero rows.
+
+    When a query returns no data but has a valid cursor description, the
+    column names and types from cursor_description should be preserved
+    in the result set. This allows downstream consumers (like the UI)
+    to display column headers even for empty result sets.
+    """
+    data: DbapiResult = []
+    description = [
+        ("id", "int", None, None, None, None, True),
+        ("name", "varchar", None, None, None, None, True),
+        ("created_at", "timestamp", None, None, None, None, True),
+    ]
+
+    result_set = SupersetResultSet(
+        data,
+        description,  # type: ignore
+        BaseEngineSpec,
+    )
+
+    # Verify column count
+    assert len(result_set.columns) == 3
+
+    # Verify column names are preserved
+    column_names = [col["column_name"] for col in result_set.columns]
+    assert column_names == ["id", "name", "created_at"]
+
+    assert result_set.columns[0]["type"] == BaseEngineSpec.get_datatype(
+        description[0][1]
+    )
+    assert result_set.columns[1]["type"] == BaseEngineSpec.get_datatype(
+        description[1][1]
+    )
+    assert result_set.columns[2]["type"] == BaseEngineSpec.get_datatype(
+        description[2][1]
+    )
+
+    # Verify the PyArrow table has the correct schema
+    assert result_set.table.num_rows == 0
+    assert len(result_set.table.column_names) == 3
+    assert list(result_set.table.column_names) == ["id", "name", "created_at"]
+
+    # Verify DataFrame conversion works
+    df = result_set.to_pandas_df()
+    assert len(df) == 0
+    assert list(map(str, df.columns)) == ["id", "name", "created_at"]

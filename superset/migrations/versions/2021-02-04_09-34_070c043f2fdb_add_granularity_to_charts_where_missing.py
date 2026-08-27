@@ -92,7 +92,7 @@ def upgrade():
             if "granularity" in params or "granularity_sqla" in params:
                 continue
 
-            table = session.query(SqlaTable).get(slc.datasource_id)
+            table = session.get(SqlaTable, slc.datasource_id)
             if not table:
                 continue
 

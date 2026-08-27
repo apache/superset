@@ -673,6 +673,9 @@ class TestSqlLab(SupersetTestCase):
             mock_cursor
         )
         mock_query.database.db_engine_spec.run_multiple_statements_as_one = False
+        mock_query.database.mutate_sql_based_on_config.side_effect = (
+            lambda sql_, **kwargs: sql_
+        )
         mock_get_query.return_value = mock_query
 
         execute_sql_statements(
@@ -773,6 +776,9 @@ class TestSqlLab(SupersetTestCase):
             mock_cursor
         )
         mock_query.database.db_engine_spec.run_multiple_statements_as_one = False
+        mock_query.database.mutate_sql_based_on_config.side_effect = (
+            lambda sql_, **kwargs: sql_
+        )
         mock_get_query.return_value = mock_query
 
         # set the query to CTAS

@@ -148,6 +148,7 @@ export function useListViewResource<D extends object = any>(
   );
 
   const lastFetchDataConfigRef = useRef<FetchDataConfig | null>(null);
+  const latestRequestIdRef = useRef(0);
 
   const fetchData = useCallback(
     ({
@@ -156,6 +157,9 @@ export function useListViewResource<D extends object = any>(
       sortBy,
       filters: filterValues,
     }: FetchDataConfig) => {
+      const requestId = latestRequestIdRef.current + 1;
+      latestRequestIdRef.current = requestId;
+      const isLatest = () => latestRequestIdRef.current === requestId;
       const config: FetchDataConfig = {
         filters: filterValues,
         pageIndex,
@@ -196,24 +200,31 @@ export function useListViewResource<D extends object = any>(
       })
         .then(
           ({ json = {} }) => {
+            if (!isLatest()) {
+              return;
+            }
             updateState({
               collection: json.result,
               count: json.count,
               lastFetched: new Date().toISOString(),
             });
           },
-          createErrorHandler(errMsg =>
-            handleErrorMsg(
-              t(
-                'An error occurred while fetching %ss: %s',
-                resourceLabel,
-                errMsg,
-              ),
-            ),
-          ),
+          createErrorHandler(errMsg => {
+            if (isLatest()) {
+              handleErrorMsg(
+                t(
+                  'An error occurred while fetching %ss: %s',
+                  resourceLabel,
+                  errMsg,
+                ),
+              );
+            }
+          }),
         )
         .finally(() => {
-          updateState({ loading: false });
+          if (isLatest()) {
+            updateState({ loading: false });
+          }
         });
     },
     [
@@ -480,6 +491,7 @@ export function useImportResource(
       sshTunnelPrivateKeyPasswords: Record<string, string> = {},
       encryptedExtraSecrets: Record<string, Record<string, string>> = {},
       overwrite = false,
+      overwriteAll = false,
     ) => {
       // Set loading state
       updateState({
@@ -505,6 +517,9 @@ export function useImportResource(
        */
       if (overwrite) {
         formData.append('overwrite', 'true');
+        // this will be rechecked in the backend
+        // but no harm to only send it if overwrite is true
+        formData.append('overwrite_all', overwriteAll ? 'true' : 'false');
       }
       /* The import bundle may contain ssh tunnel passwords; if required
        * they should be provided by the user during import.

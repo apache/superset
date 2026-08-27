@@ -30,19 +30,19 @@ Extensions can add a chat interface to Superset by registering a trigger and a p
 
 A chat registration consists of two React components:
 
-| Component | Role |
-|-----------|------|
+| Component   | Role                                                                                                                                             |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
 | **Trigger** | Always-visible entry point (e.g., a floating button). Rendered in the bottom-right corner in floating mode, or as a fixed overlay in panel mode. |
-| **Panel** | The chat UI itself (message list, input, etc.). Mounted by the host in the active display mode. |
+| **Panel**   | The chat UI itself (message list, input, etc.). Mounted by the host in the active display mode.                                                  |
 
 ## Display Modes
 
 The host supports two display modes, switchable by the user or the extension at runtime:
 
-| Mode | Behavior |
-|------|----------|
-| `floating` | Panel floats above page content, anchored to the bottom-right corner. |
-| `panel` | Panel is docked to the right side of the application as a resizable sidebar, sitting beside the page content. |
+| Mode       | Behavior                                                                                                      |
+| ---------- | ------------------------------------------------------------------------------------------------------------- |
+| `floating` | Panel floats above page content, anchored to the bottom-right corner.                                         |
+| `panel`    | Panel is docked to the right side of the application as a resizable sidebar, sitting beside the page content. |
 
 The user's last selected mode and open/closed state are persisted across page reloads.
 
@@ -107,7 +107,11 @@ export default function ChatPanel() {
 
   return (
     <div style={{ height: mode === 'panel' ? '100%' : '80vh' }}>
-      <button onClick={() => chat.setDisplayMode(mode === 'panel' ? 'floating' : 'panel')}>
+      <button
+        onClick={() =>
+          chat.setDisplayMode(mode === 'panel' ? 'floating' : 'panel')
+        }
+      >
         {mode === 'panel' ? 'Float' : 'Dock'}
       </button>
       {/* message list and input */}
@@ -120,20 +124,20 @@ export default function ChatPanel() {
 
 All methods are available on the `chat` namespace from `@apache-superset/core`:
 
-| Method / Event | Description |
-|----------------|-------------|
-| `registerChat(descriptor, trigger, panel)` | Register a chat extension. Returns a `Disposable` to unregister. |
-| `open()` | Open the chat panel. No-op if already open or no registration. |
-| `close()` | Close the chat panel. |
-| `isOpen()` | Returns `true` if the panel is currently open. |
-| `getDisplayMode()` | Returns the current display mode (`'floating'` or `'panel'`). |
-| `setDisplayMode(mode)` | Switch between `'floating'` and `'panel'` mode. |
-| `onDidOpen(listener)` | Subscribe to panel open events. Returns a `Disposable`. |
-| `onDidClose(listener)` | Subscribe to panel close events. Returns a `Disposable`. |
-| `onDidChangeDisplayMode(listener)` | Subscribe to display mode changes. Returns a `Disposable`. |
-| `onDidRegisterChat(listener)` | Subscribe to registration events. |
-| `onDidUnregisterChat(listener)` | Subscribe to unregistration events. |
-| `onDidResizePanel(listener)` | Subscribe to panel resize events (panel mode only). Not all hosts provide a resizer — do not rely on this firing. Returns a `Disposable`. |
+| Method / Event                             | Description                                                                                                                               |
+| ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `registerChat(descriptor, trigger, panel)` | Register a chat extension. Returns a `Disposable` to unregister.                                                                          |
+| `open()`                                   | Open the chat panel. No-op if already open or no registration.                                                                            |
+| `close()`                                  | Close the chat panel.                                                                                                                     |
+| `isOpen()`                                 | Returns `true` if the panel is currently open.                                                                                            |
+| `getDisplayMode()`                         | Returns the current display mode (`'floating'` or `'panel'`).                                                                             |
+| `setDisplayMode(mode)`                     | Switch between `'floating'` and `'panel'` mode.                                                                                           |
+| `onDidOpen(listener)`                      | Subscribe to panel open events. Returns a `Disposable`.                                                                                   |
+| `onDidClose(listener)`                     | Subscribe to panel close events. Returns a `Disposable`.                                                                                  |
+| `onDidChangeDisplayMode(listener)`         | Subscribe to display mode changes. Returns a `Disposable`.                                                                                |
+| `onDidRegisterChat(listener)`              | Subscribe to registration events.                                                                                                         |
+| `onDidUnregisterChat(listener)`            | Subscribe to unregistration events.                                                                                                       |
+| `onDidResizePanel(listener)`               | Subscribe to panel resize events (panel mode only). Not all hosts provide a resizer — do not rely on this firing. Returns a `Disposable`. |
 
 ## Next Steps
 

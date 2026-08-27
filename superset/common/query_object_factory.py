@@ -58,10 +58,10 @@ class QueryObjectFactory:  # pylint: disable=too-few-public-methods
         time_range: str | None = None,
         time_shift: str | None = None,
         server_pagination: bool | None = None,
+        datasource_model_instance: BaseDatasource | None = None,
         **kwargs: Any,
     ) -> QueryObject:
-        datasource_model_instance = None
-        if datasource:
+        if datasource_model_instance is None and datasource:
             datasource_model_instance = self._convert_to_model(datasource)
         processed_extras = self._process_extras(extras)
         result_type = kwargs.setdefault("result_type", parent_result_type)

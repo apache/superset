@@ -257,6 +257,7 @@ CHART_SORTABLE_COLUMNS = [
     "viz_type",
     "description",
     "changed_on",
+    "changed_on_delta_humanized",
     "created_on",
 ]
 CHART_SEARCH_COLUMNS = ["slice_name", "description"]
@@ -354,6 +355,7 @@ DATASET_SORTABLE_COLUMNS = [
     "table_name",
     "schema",
     "changed_on",
+    "changed_on_delta_humanized",
     "created_on",
 ]
 DATASET_SEARCH_COLUMNS = ["table_name", "description"]
@@ -450,6 +452,7 @@ DASHBOARD_SORTABLE_COLUMNS = [
     "slug",
     "published",
     "changed_on",
+    "changed_on_delta_humanized",
     "created_on",
 ]
 DASHBOARD_SEARCH_COLUMNS = ["dashboard_title", "slug"]

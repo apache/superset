@@ -339,7 +339,6 @@ test('Path buildQuery should handle line_width and breakpoint_metrics together t
       value: 'SUM(distance)',
     },
     breakpoint_metric: 'AVG(speed)',
-    js_columns: ['color'],
     tooltip_contents: ['name'],
     row_limit: 500,
   };
@@ -349,7 +348,6 @@ test('Path buildQuery should handle line_width and breakpoint_metrics together t
 
   expect(query.metrics).toContain('SUM(distance)');
   expect(query.metrics).toContain('AVG(speed)');
-  expect(query.columns).toContain('color');
   expect(query.columns).toContain('name');
   expect(query.row_limit).toBe(500);
 });

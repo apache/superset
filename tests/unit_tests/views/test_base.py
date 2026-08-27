@@ -296,3 +296,22 @@ def test_deprecated_logs_warning_exactly_once() -> None:
     # separate positional arg rather than being interpolated into the
     # message template string itself.
     assert "5.0.0" in mock_logger.warning.call_args[0]
+
+
+def test_deprecated_new_target_message_has_no_stray_space() -> None:
+    from superset.views.base import BaseSupersetView, deprecated
+
+    @deprecated(eol_version="5.0.0", new_target="/api/v1/chart/data")
+    def endpoint(self: BaseSupersetView) -> None:
+        return None
+
+    view = MagicMock(spec=BaseSupersetView)
+    view.__class__.__name__ = "Superset"
+
+    with patch("superset.views.base.logger") as mock_logger:
+        endpoint(view)
+
+    template, *args = mock_logger.warning.call_args[0]
+    formatted = template % tuple(args)
+    assert "5.0.0. Use the following API endpoint instead" in formatted
+    assert "5.0.0 . Use" not in formatted

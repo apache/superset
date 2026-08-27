@@ -139,8 +139,18 @@ export function sleep(time: number) {
   });
 }
 
-// eslint-disable-next-line no-restricted-imports
-export * from '@testing-library/react';
+export {
+  act,
+  cleanup,
+  createEvent,
+  waitFor,
+  fireEvent,
+  getByText,
+  screen,
+  waitForElementToBeRemoved,
+  within,
+  type RenderResult,
+} from '@testing-library/react';
 export { customRender as render };
 export { default as userEvent } from '@testing-library/user-event';
 
@@ -154,7 +164,7 @@ export async function selectOption(option: string, selectName?: string) {
   const item = await waitFor(() =>
     within(
       // eslint-disable-next-line testing-library/no-node-access
-      document.querySelector('.rc-virtual-list')!,
+      document.querySelector('.ant-select-dropdown-list')!,
     ).getByText(option),
   );
   await userEvent.click(item);

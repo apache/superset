@@ -35,7 +35,8 @@ const RefreshLabel = ({
   <Tooltip title={tooltipContent}>
     <Icons.SyncOutlined
       iconSize="l"
-      role="button"
+      // role is auto-computed by BaseIconComponent as "button" whenever
+      // onClick is present (and "img" otherwise), so no explicit role here.
       tabIndex={disabled ? -1 : 0}
       onClick={disabled ? undefined : onClick}
       css={(theme: SupersetTheme) => ({

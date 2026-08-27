@@ -15,9 +15,10 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+import re
 from typing import Any, Optional
 
-from croniter import croniter
+from croniter import croniter, CroniterBadDateError
 from flask import current_app as app
 from flask_babel import gettext as _
 from marshmallow import ValidationError
@@ -25,10 +26,14 @@ from marshmallow import ValidationError
 from superset import security_manager
 from superset.commands.base import BaseCommand
 from superset.commands.report.exceptions import (
+    AlertQueryDataAccessValidationError,
+    AlertQueryDMLNotAllowedValidationError,
+    AlertQueryMultipleStatementsValidationError,
     ChartNotFoundValidationError,
     ChartNotSavedValidationError,
     DashboardNotFoundValidationError,
     DashboardNotSavedValidationError,
+    ReportScheduleCrontabNotValidError,
     ReportScheduleEitherChartOrDashboardError,
     ReportScheduleForbiddenError,
     ReportScheduleFrequencyNotAllowed,
@@ -37,15 +42,21 @@ from superset.commands.report.exceptions import (
 from superset.daos.base import BaseDAO
 from superset.daos.chart import ChartDAO
 from superset.daos.dashboard import DashboardDAO
-from superset.exceptions import SupersetSecurityException
+from superset.exceptions import SupersetParseError, SupersetSecurityException
+from superset.models.core import Database
 from superset.reports.models import (
     ReportCreationMethod,
     ReportScheduleType,
 )
 from superset.reports.types import ReportScheduleExtra
+from superset.sql.parse import SQLScript
 from superset.utils import json
 
 logger = logging.getLogger(__name__)
+
+# Matches balanced Jinja blocks so templated alert SQL can be recognized and
+# its static validation deferred to execution time.
+_JINJA_BLOCK_RE = re.compile(r"\{\{.*?\}\}|\{%.*?%\}|\{#.*?#\}", re.DOTALL)
 
 
 class BaseReportScheduleCommand(BaseCommand):
@@ -56,6 +67,52 @@ class BaseReportScheduleCommand(BaseCommand):
 
     def validate(self) -> None:
         pass
+
+    def validate_alert_query(
+        self,
+        database: Database,
+        sql: str,
+        exceptions: list[ValidationError],
+    ) -> None:
+        """
+        Validate alert SQL at save time: it must parse as a single statement,
+        must not mutate state unless the database allows DML, and the saving
+        user must be authorized for the tables it reads. Templated SQL that
+        only parses after rendering is validated at execution time on the
+        rendered query.
+        """
+        contains_jinja = bool(_JINJA_BLOCK_RE.search(sql))
+        try:
+            script = SQLScript(sql, engine=database.backend)
+        except SupersetParseError as ex:
+            if not contains_jinja:
+                exceptions.append(
+                    ValidationError(
+                        _("Invalid SQL: %(error)s", error=ex.error.message),
+                        field_name="sql",
+                    )
+                )
+            return
+        if len(script.statements) != 1:
+            exceptions.append(AlertQueryMultipleStatementsValidationError())
+            return
+        if script.has_mutation() and not database.allow_dml:
+            exceptions.append(AlertQueryDMLNotAllowedValidationError())
+            return
+        try:
+            security_manager.raise_for_access(
+                database=database, sql=sql, force_dataset_match=True
+            )
+        except SupersetSecurityException as ex:
+            exceptions.append(AlertQueryDataAccessValidationError(ex.error.message))
+        except SupersetParseError as ex:
+            if not contains_jinja:
+                exceptions.append(
+                    ValidationError(
+                        _("Invalid SQL: %(error)s", error=ex.error.message),
+                        field_name="sql",
+                    )
+                )
 
     def _check_object_access(
         self,
@@ -288,13 +345,18 @@ class BaseReportScheduleCommand(BaseCommand):
             return
 
         iterations = 60 if minimum_interval <= 3660 else 24
-        schedule = croniter(cron_schedule)
-        current_exec = next(schedule)
+        try:
+            schedule = croniter(cron_schedule)
+            current_exec = next(schedule)
 
-        for _i in range(iterations):
-            next_exec = next(schedule)
-            diff, current_exec = next_exec - current_exec, next_exec
-            if int(diff) < minimum_interval:
-                raise ReportScheduleFrequencyNotAllowed(
-                    report_type=report_type, minimum_interval=minimum_interval
-                )
+            for _i in range(iterations):
+                next_exec = next(schedule)
+                diff, current_exec = next_exec - current_exec, next_exec
+                if int(diff) < minimum_interval:
+                    raise ReportScheduleFrequencyNotAllowed(
+                        report_type=report_type, minimum_interval=minimum_interval
+                    )
+        except CroniterBadDateError as ex:
+            raise ReportScheduleCrontabNotValidError(
+                cron_schedule=cron_schedule
+            ) from ex

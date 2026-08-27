@@ -25,7 +25,11 @@ from superset import event_logger, is_feature_enabled
 from superset.daos.dashboard import EmbeddedDashboardDAO
 from superset.superset_typing import FlaskResponse
 from superset.utils import json
-from superset.views.base import BaseSupersetView, common_bootstrap_payload
+from superset.views.base import (
+    BaseSupersetView,
+    common_bootstrap_payload,
+    get_language_pack_template_context,
+)
 
 
 class EmbeddedView(BaseSupersetView):
@@ -55,6 +59,7 @@ class EmbeddedView(BaseSupersetView):
             abort(404)
 
         assert embedded is not None
+        dashboard = embedded.dashboard
 
         # validate request referrer in allowed domains
         is_referrer_allowed = not embedded.allowed_domains
@@ -107,7 +112,10 @@ class EmbeddedView(BaseSupersetView):
         return self.render_template(
             "superset/spa.html",
             entry="embedded",
+            title=dashboard.dashboard_title,
+            dashboard_description=dashboard.description,
             bootstrap_data=json.dumps(
                 bootstrap_data, default=json.pessimistic_json_iso_dttm_ser
             ),
+            **get_language_pack_template_context(bootstrap_data["common"]),
         )

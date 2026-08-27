@@ -171,6 +171,103 @@ def test_get_virtual_table_metadata_zero_row_query(
     assert [col["column_name"] for col in columns] == ["id", "name", "event_date"]
 
 
+def test_get_columns_description_retries_with_comment_safe_sql_when_empty(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Regression test for SC-114843: when the mutated query comes back with an
+    empty cursor.description (e.g. clickhouse-connect 0.14.1 failing to
+    backfill metadata for a comment-prefixed, zero-row query), and the engine
+    spec provides a comment-safe retry query via
+    ``get_column_description_retry_sql``, ``get_columns_description`` must
+    retry once with that query rather than giving up.
+    """
+    database = mocker.MagicMock()
+    cursor = mocker.MagicMock()
+
+    retry_sql = (
+        "SELECT * FROM (\n-- comment\nSELECT 1\n) AS __superset_type_probe LIMIT 0"
+    )
+    db_engine_spec = mocker.MagicMock()
+    db_engine_spec.get_column_description_retry_sql.return_value = retry_sql
+
+    database.get_raw_connection.return_value.__enter__.return_value.cursor.return_value = cursor  # noqa: E501
+    database.db_engine_spec = db_engine_spec
+    database.apply_limit_to_sql.return_value = "SELECT 1 WHERE false"
+    database.mutate_sql_based_on_config.return_value = (
+        "-- comment\nSELECT 1 WHERE false"
+    )
+
+    # First SupersetResultSet() (empty) has no columns; second (after retry)
+    # does.
+    empty_result_set = mocker.MagicMock(columns=[])
+    real_result_set = mocker.MagicMock(columns=[{"name": "Duration"}])
+    mocker.patch(
+        "superset.connectors.sqla.utils.SupersetResultSet",
+        side_effect=[empty_result_set, real_result_set],
+    )
+
+    columns = get_columns_description(
+        database, "catalog", "schema", "SELECT 1 WHERE false"
+    )
+
+    assert columns == [{"name": "Duration"}]
+    db_engine_spec.get_column_description_retry_sql.assert_called_once_with(
+        "-- comment\nSELECT 1 WHERE false"
+    )
+    # The original mutated (comment-prefixed) query is executed directly
+    # once, and then -- because the first metadata result came back empty --
+    # db_engine_spec.execute() is invoked a second time with the
+    # comment-safe retry query.
+    assert cursor.execute.call_count == 1
+    assert cursor.execute.call_args_list[0].args[0] == (
+        "-- comment\nSELECT 1 WHERE false"
+    )
+    assert db_engine_spec.execute.call_count == 2
+    assert db_engine_spec.execute.call_args_list[0].args[:2] == (
+        cursor,
+        "-- comment\nSELECT 1 WHERE false",
+    )
+    assert db_engine_spec.execute.call_args_list[1].args[:2] == (cursor, retry_sql)
+
+
+def test_get_columns_description_no_retry_when_engine_has_no_hook(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Engines that don't opt into ``get_column_description_retry_sql`` (i.e.
+    the default ``None`` from BaseEngineSpec) must not have their behavior
+    changed by this fix, even when a query legitimately returns zero
+    columns.
+    """
+    database = mocker.MagicMock()
+    cursor = mocker.MagicMock()
+    cursor.description = []
+
+    result_set = mocker.MagicMock(columns=[])
+    db_engine_spec = mocker.MagicMock()
+    db_engine_spec.get_column_description_retry_sql.return_value = None
+
+    database.get_raw_connection.return_value.__enter__.return_value.cursor.return_value = cursor  # noqa: E501
+    database.db_engine_spec = db_engine_spec
+    database.apply_limit_to_sql.return_value = "SELECT * FROM table"
+    database.mutate_sql_based_on_config.return_value = "SELECT * FROM table"
+
+    mocker.patch(
+        "superset.connectors.sqla.utils.SupersetResultSet", return_value=result_set
+    )
+
+    columns = get_columns_description(
+        database, "catalog", "schema", "SELECT * FROM table"
+    )
+
+    assert columns == []
+    assert cursor.execute.call_count == 1, (
+        "no retry should be attempted when the engine spec has no comment-safe "
+        "retry query to offer"
+    )
+
+
 def test_get_virtual_table_metadata(mocker: MockerFixture) -> None:
     """
     Test the `get_virtual_table_metadata` function.
@@ -219,15 +316,15 @@ def test_get_virtual_table_metadata_renders_jinja(mocker: MockerFixture) -> None
     be rendered via the template processor before SQL parsing. Otherwise the
     raw Jinja tokens reach sqlglot and the parser rejects them as a syntax
     error (the user-visible symptom is "Invalid SQL" when clicking
-    "SYNC COLUMNS FROM SOURCE" on a dataset that uses {{ from_dttm }} etc.).
+    "SYNC COLUMNS FROM SOURCE" on a dataset that uses Jinja macros).
     """
     mock_get_columns_description = mocker.patch(
         "superset.connectors.sqla.utils.get_columns_description",
         return_value=[{"name": "rendered_col", "type": "INTEGER"}],
     )
 
-    raw_sql = "SELECT * FROM tbl WHERE ts > '{{ from_dttm }}'"
-    rendered_sql = "SELECT * FROM tbl WHERE ts > '2024-01-01 00:00:00'"
+    raw_sql = "SELECT * FROM tbl WHERE user_id = {{ current_user_id() }}"
+    rendered_sql = "SELECT * FROM tbl WHERE user_id = 42"
 
     dataset = mocker.MagicMock(sql=raw_sql)
     dataset.database.db_engine_spec.engine = "postgresql"

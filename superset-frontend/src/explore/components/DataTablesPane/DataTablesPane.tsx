@@ -18,12 +18,8 @@
  */
 import { useCallback, useEffect, useMemo, useState, MouseEvent } from 'react';
 import { t } from '@apache-superset/core/translation';
-import {
-  isFeatureEnabled,
-  FeatureFlag,
-  handleKeyboardActivation,
-} from '@superset-ui/core';
-import { styled } from '@apache-superset/core/theme';
+import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
+import { css, styled } from '@apache-superset/core/theme';
 import { Icons } from '@superset-ui/core/components/Icons';
 import Tabs from '@superset-ui/core/components/Tabs';
 import {
@@ -184,30 +180,31 @@ export const DataTablesPane = ({
     ) : (
       <Icons.DownOutlined aria-label={t('Expand data panel')} />
     );
+    const resetButtonCss = css`
+      appearance: none;
+      border: none;
+      background: none;
+      padding: 0;
+      font: inherit;
+    `;
     return (
       <div>
         {panelOpen ? (
-          <span
-            role="button"
-            tabIndex={0}
+          <button
+            type="button"
+            css={resetButtonCss}
             onClick={() => handleCollapseChange(false)}
-            onKeyDown={handleKeyboardActivation(() =>
-              handleCollapseChange(false),
-            )}
           >
             {caretIcon}
-          </span>
+          </button>
         ) : (
-          <span
-            role="button"
-            tabIndex={0}
+          <button
+            type="button"
+            css={resetButtonCss}
             onClick={() => handleCollapseChange(true)}
-            onKeyDown={handleKeyboardActivation(() =>
-              handleCollapseChange(true),
-            )}
           >
             {caretIcon}
-          </span>
+          </button>
         )}
       </div>
     );
@@ -244,25 +241,44 @@ export const DataTablesPane = ({
     }
   }, [resultsTabFallback]);
 
+  // Hide the Samples tab for datasources that don't expose raw rows
+  // (e.g. semantic views). The check is intentionally ``=== false`` so that
+  // datasources from older backends that don't send the flag still show the
+  // tab and preserve current behavior.
+  const showSamplesTab = datasource?.supports_samples !== false;
+
+  // If the datasource swaps to one that doesn't support samples while the
+  // Samples tab is active (e.g. the user picks a semantic view), the tab
+  // disappears from ``tabItems`` and ``activeTabKey`` is orphaned. Fall back
+  // to Results so the panel keeps rendering content.
+  useEffect(() => {
+    if (!showSamplesTab && activeTabKey === ResultTypes.Samples) {
+      setActiveTabKey(ResultTypes.Results);
+    }
+  }, [showSamplesTab, activeTabKey]);
   const tabItems = [
     ...queryResultsPanes,
-    {
-      key: ResultTypes.Samples,
-      label: t('Samples'),
-      children: (
-        <StyledDiv>
-          <SamplesPane
-            datasource={datasource}
-            queryFormData={queryFormData}
-            queryForce={queryForce}
-            isRequest={isRequest.samples}
-            setForceQuery={setForceQuery}
-            isVisible={ResultTypes.Samples === activeTabKey}
-            canDownload={canDownload}
-          />
-        </StyledDiv>
-      ),
-    },
+    ...(showSamplesTab
+      ? [
+          {
+            key: ResultTypes.Samples,
+            label: t('Samples'),
+            children: (
+              <StyledDiv>
+                <SamplesPane
+                  datasource={datasource}
+                  queryFormData={queryFormData}
+                  queryForce={queryForce}
+                  isRequest={isRequest.samples}
+                  setForceQuery={setForceQuery}
+                  isVisible={ResultTypes.Samples === activeTabKey}
+                  canDownload={canDownload}
+                />
+              </StyledDiv>
+            ),
+          },
+        ]
+      : []),
   ];
 
   return (

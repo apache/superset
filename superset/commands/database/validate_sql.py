@@ -21,6 +21,7 @@ from typing import Any, Optional
 from flask import current_app as app
 from flask_babel import gettext as __
 
+from superset import security_manager
 from superset.commands.base import BaseCommand
 from superset.commands.database.exceptions import (
     DatabaseNotFoundError,
@@ -68,6 +69,17 @@ class ValidateSQLCommand(BaseCommand):
         catalog = self._properties.get("catalog")
         schema = self._properties.get("schema")
         template_params = self._properties.get("template_params") or {}
+
+        # Check access before rendering the Jinja template (mirrors the SQL
+        # Lab execute path).
+        security_manager.raise_for_access(
+            database=self._model,
+            sql=sql,
+            catalog=catalog,
+            schema=schema,
+            template_params=template_params,
+            force_dataset_match=True,
+        )
 
         try:
             # Render Jinja templates to handle template syntax before

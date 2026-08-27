@@ -5,12 +5,15 @@ updates:
     directory: "/"
     schedule:
       interval: "daily"
+    groups:
+      security:
+        applies-to: "security-updates"
+        patterns: ["*"]
     cooldown:
       default-days: 7
 
   - package-ecosystem: "npm"
     ignore:
-      - dependency-name: "@rjsf/*"
       # TODO: remove below entries once the application supports React >= 19.0.0
       - dependency-name: "react"
         update-types: ["version-update:semver-major"]
@@ -29,6 +32,11 @@ updates:
       # See https://github.com/apache/superset/pull/37384#issuecomment-3793991389
       # TODO: remove the plugin once Lodash usage has been migrated to a more readily tree-shakeable alternative
       - dependency-name: "@swc/plugin-transform-imports"
+      # deck.gl and luma.gl share strict peer constraints across the root and
+      # plugin workspaces, and root overrides pin their transitive versions.
+      # Upgrade both families together in a manually validated change.
+      - dependency-name: "@deck.gl/*"
+      - dependency-name: "@luma.gl/*"
       # `just-handlerbars-helpers` library in plugin-chart-handlebars requires `currencyformatter`` to be < 2
       - dependency-name: "currencyformatter.js"
         update-types: ["version-update:semver-major"]
@@ -43,12 +51,42 @@ updates:
       # as a single manual upgrade anyway. TODO: remove when Babel 8 support is viable.
       - dependency-name: "@babel/*"
         update-types: ["version-update:semver-major"]
+      # v2.0.0 renamed ZSTDDecompress to decompress and made it async, breaking
+      # the webpack dev proxy (see #38662, #39138, #39139). Dependabot reopened
+      # the same bump in #39369 after the first revert, so pin it here instead
+      # of relying on a package.json comment (package.json is JSON and can't
+      # hold comments). Remove this once the proxy code is updated to await
+      # the async decompress() API.
+      - dependency-name: "simple-zstd"
     directory: "/superset-frontend/"
     schedule:
       interval: "daily"
     labels:
       - npm
       - dependabot
+    groups:
+      security:
+        applies-to: "security-updates"
+        patterns: ["*"]
+      rjsf:
+        patterns:
+          - "@rjsf/*"
+      typescript-eslint:
+        patterns:
+          - "@typescript-eslint/*"
+          - "typescript-eslint"
+      babel:
+        patterns:
+          - "@babel/*"
+      storybook:
+        patterns:
+          - "@storybook/*"
+          - "storybook"
+          - "eslint-plugin-storybook"
+      ag-grid:
+        patterns:
+          - "ag-grid-react"
+          - "ag-grid-community"
     open-pull-requests-limit: 30
     versioning-strategy: increase
     cooldown:
@@ -67,6 +105,10 @@ updates:
     labels:
       - pip
       - dependabot
+    groups:
+      security:
+        applies-to: "security-updates"
+        patterns: ["*"]
     cooldown:
       default-days: 7
 
@@ -74,6 +116,10 @@ updates:
     directory: ".github/actions"
     schedule:
       interval: "daily"
+    groups:
+      security:
+        applies-to: "security-updates"
+        patterns: ["*"]
     open-pull-requests-limit: 10
     versioning-strategy: increase
     cooldown:
@@ -83,6 +129,25 @@ updates:
     directory: "/docs/"
     schedule:
       interval: "daily"
+    groups:
+      security:
+        applies-to: "security-updates"
+        patterns: ["*"]
+      storybook:
+        patterns:
+          - "@storybook/*"
+          - "storybook"
+      docusaurus:
+        patterns:
+          - "@docusaurus/*"
+      docusaurus-openapi:
+        patterns:
+          - "docusaurus-plugin-openapi-docs"
+          - "docusaurus-theme-openapi-docs"
+      typescript-eslint:
+        patterns:
+          - "@typescript-eslint/*"
+          - "typescript-eslint"
     open-pull-requests-limit: 10
     versioning-strategy: increase
     cooldown:
@@ -95,6 +160,10 @@ updates:
     labels:
       - npm
       - dependabot
+    groups:
+      security:
+        applies-to: "security-updates"
+        patterns: ["*"]
     versioning-strategy: increase
     cooldown:
       default-days: 7
@@ -106,6 +175,10 @@ updates:
     labels:
       - npm
       - dependabot
+    groups:
+      security:
+        applies-to: "security-updates"
+        patterns: ["*"]
     open-pull-requests-limit: 10
     versioning-strategy: increase
     cooldown:

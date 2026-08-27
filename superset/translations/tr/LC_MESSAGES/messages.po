@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: avsarcoteli@gmail.com\n"
-"POT-Creation-Date: 2026-06-23 03:46-0700\n"
+"POT-Creation-Date: 2026-07-31 11:53+0100\n"
 "PO-Revision-Date: 2024-02-25 14:00+0300\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: tr\n"
@@ -31,55 +31,6 @@ msgstr ""
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.17.0\n"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
-#, fuzzy, python-format
-msgid ""
-"A soft-deleted dataset (uuid %(uuid)s) already references this table. "
-"Restore it via POST /api/v1/dataset/%(uuid)s/restore before creating a "
-"new dataset over this table, or use a different table name."
-msgstr ""
-"Geçici olarak silinen bir veri kümesi (uuid %(uuid)s) zaten bu tabloya "
-"başvuruda bulunuyor. Bu tablo üzerinde yeni bir veri kümesi oluşturmadan "
-"önce POST /api/v1/dataset/%(uuid)s/restore aracılığıyla geri yükleyin "
-"veya farklı bir tablo adı kullanın."
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
-#, fuzzy, python-format
-msgid ""
-"A soft-deleted dataset (uuid %(uuid)s) already references this table. "
-"Restore it via POST /api/v1/dataset/%(uuid)s/restore before uploading, or"
-" upload to a different table name."
-msgstr ""
-"Geçici olarak silinen bir veri kümesi (uuid %(uuid)s) zaten bu tabloya "
-"başvuruda bulunuyor. Yüklemeden önce POST "
-"/api/v1/dataset/%(uuid)s/restore aracılığıyla geri yükleyin veya farklı "
-"bir tablo adına yükleyin."
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
-#, fuzzy
-msgid ""
-"Cannot delete a database whose only remaining datasets are soft-deleted. "
-"Restore them (POST /api/v1/dataset/<uuid>/restore) and delete them "
-"permanently once a purge capability ships, or remove the underlying rows "
-"out-of-band, before deleting the database."
-msgstr ""
-"Yalnızca geçici olarak silinmiş veri kümelerine sahip bir veritabanı "
-"silinemez. Onları geri yükleyin (POST /api/v1/dataset/<uuid>/restore) ve "
-"temizleme özelliği sunulduğunda kalıcı olarak silin ya da veritabanını "
-"silmeden önce altta yatan satırları bant dışı olarak kaldırın."
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
-#, fuzzy
-msgid ""
-"Dataset cannot be restored because another active dataset already "
-"references the same physical table (same database, catalog, schema, and "
-"table name). Delete the duplicate or rename the table before restoring."
-msgstr ""
-"Başka bir etkin veri kümesi zaten aynı fiziksel tabloya (aynı veritabanı,"
-" katalog, şema ve tablo adı) başvurduğundan veri kümesi geri "
-"yüklenemiyor. Geri yüklemeden önce yinelenen veri kümesini silin veya "
-"tablonun adını değiştirin."
 
 msgid ""
 "\n"
@@ -182,9 +133,6 @@ msgstr "Detaylar için."
 msgid " near '%(highlight)s'"
 msgstr "'  %(highlight)s ' yakınlarında"
 
-msgid " source code of Superset's sandboxed parser"
-msgstr "Superset'in kumboxed kaynak kodu"
-
 msgid ""
 " standard to ensure that the lexicographical ordering\n"
 "                      coincides with the chronological ordering. If the\n"
@@ -261,6 +209,10 @@ msgid "% of total"
 msgstr "% o Toplamı göster"
 
 #, python-format
+msgid "%(alertType)s \"%(alertName)s\" triggered successfully"
+msgstr ""
+
+#, python-format
 msgid "%(dialect)s cannot be used as a data source for security reasons."
 msgstr "%(dialect)s güvenlik nedenleri için bir veri kaynağı olarak kullanılamaz."
 
@@ -269,12 +221,39 @@ msgid "%(label)s file"
 msgstr "%(label)s file"
 
 #, python-format
+msgid "%(name)s deleted successfully"
+msgstr ""
+
+#, python-format
+msgid "%(name)s restored successfully"
+msgstr ""
+
+#, python-format
+msgid "%(name)s.%(extension)s"
+msgstr ""
+
+#, python-format
 msgid "%(name)s.csv"
 msgstr "%(name)s .csv"
 
 #, python-format
 msgid "%(name)s.pdf"
 msgstr "%(name)s .pdf"
+
+#, python-format
+msgid "%(num)d hour"
+msgid_plural "%(num)d hours"
+msgstr[0] ""
+
+#, python-format
+msgid "%(num)d minute"
+msgid_plural "%(num)d minutes"
+msgstr[0] ""
+
+#, python-format
+msgid "%(num)d second"
+msgid_plural "%(num)d seconds"
+msgstr[0] ""
 
 #, python-format
 msgid "%(object)s does not exist in this database."
@@ -463,6 +442,15 @@ msgid_plural "%s min ago"
 msgstr[0] "%s dk önce"
 
 #, python-format
+msgid ""
+"%s of the selected items is a semantic view, which cannot be archived: it"
+" will be deleted permanently and cannot be recovered."
+msgid_plural ""
+"%s of the selected items are semantic views, which cannot be archived: "
+"they will be deleted permanently and cannot be recovered."
+msgstr[0] ""
+
+#, python-format
 msgid "%s operator(s)"
 msgstr "%s operator(s)"
 
@@ -498,11 +486,6 @@ msgstr "%s / %s seçildi"
 #, fuzzy, python-format
 msgid "%s recipients"
 msgstr "%s son kullanılanlar"
-
-#, fuzzy, python-format
-msgid "%s record"
-msgid_plural "%s records..."
-msgstr[0] "%s saniye"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, es, sr,
 # sr_Latn]
@@ -886,12 +869,6 @@ msgstr "> = (Larger veya eşit)"
 msgid "A Big Number"
 msgstr "Büyük Bir Sayı"
 
-msgid "A JavaScript function that generates a label configuration object"
-msgstr "Bir etiket yapılandırma nesnesi yaratan bir JavaScript işlevi"
-
-msgid "A JavaScript function that generates an icon configuration object"
-msgstr "Bir ikon yapılandırma nesnesi yaratan bir JavaScript işlevi"
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy, python-brace-format
@@ -905,6 +882,9 @@ msgstr ""
 " yüksek öncelikle geçersiz kılan bir JavaScript nesnesi. (örn. { title: {"
 " text: \"My Chart\" }, tooltip: { trigger: \"item\" } }). Ayrıntılar: "
 "https://echarts.apache.org/en/option.html. "
+
+msgid "A TTL is required for ephemeral state."
+msgstr ""
 
 #, fuzzy
 msgid "A comma separated list of columns that should be parsed as dates"
@@ -1028,6 +1008,30 @@ msgid ""
 "templating syntax"
 msgstr "Jinja'yı kullanarak sorguda mevcut olan bir dizi parametre, sözel sözcüm"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy, python-format
+msgid ""
+"A soft-deleted dataset (uuid %(uuid)s) already references this table. "
+"Restore it via POST /api/v1/dataset/%(uuid)s/restore before creating a "
+"new dataset over this table, or use a different table name."
+msgstr ""
+"Geçici olarak silinen bir veri kümesi (uuid %(uuid)s) zaten bu tabloya "
+"başvuruda bulunuyor. Bu tablo üzerinde yeni bir veri kümesi oluşturmadan "
+"önce POST /api/v1/dataset/%(uuid)s/restore aracılığıyla geri yükleyin "
+"veya farklı bir tablo adı kullanın."
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy, python-format
+msgid ""
+"A soft-deleted dataset (uuid %(uuid)s) already references this table. "
+"Restore it via POST /api/v1/dataset/%(uuid)s/restore before uploading, or"
+" upload to a different table name."
+msgstr ""
+"Geçici olarak silinen bir veri kümesi (uuid %(uuid)s) zaten bu tabloya "
+"başvuruda bulunuyor. Yüklemeden önce POST "
+"/api/v1/dataset/%(uuid)s/restore aracılığıyla geri yükleyin veya farklı "
+"bir tablo adına yükleyin."
+
 msgid "A timeout occurred while executing the query."
 msgstr "Bir süre sorguyu yaparken meydana geldi."
 
@@ -1036,6 +1040,9 @@ msgstr "Bir saat bir csv oluştururken gerçekleşti."
 
 msgid "A timeout occurred while generating a dataframe."
 msgstr "Bir zaman aralığı bir veri çerçevesi oluştururken gerçekleşti."
+
+msgid "A timeout occurred while generating an Excel file."
+msgstr ""
 
 msgid "A timeout occurred while taking a screenshot."
 msgstr "Bir saat ekran görüntüsü alırken gerçekleşti."
@@ -1100,9 +1107,6 @@ msgstr "API anahtarı başarıyla iptal edildi"
 #, fuzzy
 msgid "API keys allow scoped programmatic access to Superset."
 msgstr "API anahtarları, Superset'e kapsamlı programatik erişim sağlar."
-
-msgid "APPLY"
-msgstr "UYGULA"
 
 msgid "APR"
 msgstr "NİS"
@@ -1287,6 +1291,12 @@ msgstr "Olumlu/negative değişim için renk ekleyin"
 msgid "Add colors to cell bars for +/- for all columns"
 msgstr "Tüm sütunlar için hücre çubuklarına +/- renkleri ekle"
 
+msgid ""
+"Add columns to filter by. When typing or pasting filter values, commas "
+"will separate values into multiple entries. To include a comma within a "
+"value, wrap it in double quotes: \"San Francisco, CA\""
+msgstr ""
+
 msgid "Add cross-filter"
 msgstr "Çapraz filtre ekle"
 
@@ -1379,6 +1389,9 @@ msgstr "Grafikleri önizlemek için gerekli kontrol değerleri ekleyin"
 msgid "Add required control values to save chart"
 msgstr "Grafik kaydetmek için gerekli kontrol değerleri ekleyin"
 
+msgid "Add service credentials"
+msgstr ""
+
 msgid "Add sheet"
 msgstr "Sayfa ekle"
 
@@ -1445,6 +1458,12 @@ msgid ""
 msgstr ""
 "Karşılaştırma değerden olumlu veya olumsuz değişimlere dayanan grafik "
 "sembollerine renk ekleyin."
+
+msgid "Adhoc metric SQL expression is invalid"
+msgstr ""
+
+msgid "Adhoc metric aggregate is invalid"
+msgstr ""
 
 msgid "Adjust how this database will interact with SQL Lab."
 msgstr "Bu veritabanı SQL Lab ile nasıl etkileşim kuracaktır."
@@ -1518,13 +1537,6 @@ msgstr ""
 "uygulanır."
 
 msgid ""
-"Aggregate function to apply when pivoting and computing the total rows "
-"and columns"
-msgstr ""
-"Aggregate fonksiyonu, önemli ve hesaplamak için toplam satırlar ve "
-"sütunlar"
-
-msgid ""
 "Aggregates data within the boundary of grid cells and maps the aggregated"
 " values to a dynamic color scale"
 msgstr ""
@@ -1536,9 +1548,6 @@ msgstr "Aggregation"
 
 msgid "Aggregation Method"
 msgstr "Aggregation Method"
-
-msgid "Aggregation function"
-msgstr "Aggregation function"
 
 msgid "Alert"
 msgstr "Alarm"
@@ -1652,6 +1661,9 @@ msgstr "Tüm paneller"
 msgid "All records"
 msgstr "Tüm grafikler"
 
+msgid "All time"
+msgstr ""
+
 msgid "Allow CREATE TABLE AS"
 msgstr "CREATE TABLE AS"
 
@@ -1735,6 +1747,9 @@ msgstr ""
 "Ortadaki kutu, anlamı, medyan ve içsel 2 kurtiles vurgulamaktadır. Her "
 "kutunun etrafındaki viskiler min, max, aralık ve dış 2 kurtileleri "
 "görselleştiriyor."
+
+msgid "Also overwrite all assets (charts, datasets and databases)"
+msgstr ""
 
 msgid "Altered"
 msgstr "Alternatif"
@@ -1947,6 +1962,10 @@ msgid "An error occurred while fetching function names."
 msgstr "Bir hata, işlev isimlerini alırken gerçekleşti."
 
 #, python-format
+msgid "An error occurred while fetching row level security subject values: %s"
+msgstr ""
+
+#, python-format
 msgid "An error occurred while fetching schema values: %s"
 msgstr "Bir hata, şema değerlerini alırken gerçekleşti:   %s "
 
@@ -2010,6 +2029,11 @@ msgstr "Bir hata kullanıcı değerlerini alırken gerçekleşti:   %s "
 #, fuzzy
 msgid "An error occurred while formatting SQL"
 msgstr "Verisetini kaydederken bir hata oluştu"
+
+msgid ""
+"An error occurred while generating the file. Please try again, or contact"
+" your administrator if the problem persists."
+msgstr ""
 
 #, python-format
 msgid "An error occurred while importing %s: %s"
@@ -2084,6 +2108,9 @@ msgstr ""
 msgid "An error occurred while syncing permissions for %s: %s"
 msgstr "%s için izinler senkronize ederken bir hata oluştu:   %s "
 
+msgid "An error occurred while triggering the report"
+msgstr ""
+
 #, fuzzy
 msgid "An error occurred while updating the extension."
 msgstr "Verisetini kaydederken bir hata oluştu"
@@ -2104,11 +2131,19 @@ msgstr "Verisetini kaydederken bir hata oluştu"
 msgid "An error occurred while upserting the value."
 msgstr "Bir hata, değeri verirken gerçekleşti."
 
+msgid "An export for this dashboard is already in progress."
+msgstr ""
+
 msgid "An unexpected error occurred"
 msgstr "Beklenmeyen bir hata oluştu"
 
 msgid "Anchor to"
 msgstr "Anchor to Anchor to"
+
+msgid ""
+"Angle at which the first slice begins, in degrees. 90° starts at the top,"
+" 0°/360° at the right, 270° at the bottom, and 180° at the left."
+msgstr ""
 
 msgid "Angle at which to end progress axis"
 msgstr "İlerleme eksenini sonlandırmak için"
@@ -2331,6 +2366,41 @@ msgstr "Nisan"
 msgid "Arc"
 msgstr "Arc"
 
+msgid "Archive"
+msgstr ""
+
+#, python-format
+msgid "Archive %(name)s?"
+msgstr ""
+
+#, python-format
+msgid "Archive selected %s?"
+msgstr ""
+
+msgid "Archive selected charts?"
+msgstr ""
+
+msgid "Archive selected dashboards?"
+msgstr ""
+
+msgid "Archived"
+msgstr ""
+
+#, python-format
+msgid "Archived %s item(s)"
+msgstr ""
+
+#, python-format
+msgid "Archived %s item(s); permanently deleted %s semantic view(s)"
+msgstr ""
+
+msgid "Archived by"
+msgstr ""
+
+#, python-format
+msgid "Archived: %s"
+msgstr ""
+
 msgid "Are you sure you intend to overwrite the following values?"
 msgstr "Aşağıdaki değerleri yazmak niyetinde olduğunuzdan emin misiniz?"
 
@@ -2363,6 +2433,9 @@ msgstr "%s’i silmek istiyor musunuz?"
 
 msgid "Are you sure you want to delete the selected layers?"
 msgstr "Seçilen tabakaları silmek istediğinizden emin misiniz?"
+
+msgid "Are you sure you want to delete the selected queries?"
+msgstr ""
 
 #, fuzzy
 msgid "Are you sure you want to delete the selected roles?"
@@ -2880,21 +2953,9 @@ msgstr "Anahtarla: satır isimleri anahtar sıralama olarak kullanın"
 msgid "By value: use metric values as sorting key"
 msgstr "Değere göre: anahtar sıralama olarak metrik değerleri kullanın"
 
-msgid "CANCEL"
-msgstr "İPTAL"
-
 #, fuzzy
 msgid "CC recipients"
 msgstr "son kullanılanlar"
-
-#, fuzzy
-msgid "COPY QUERY"
-msgstr "Sorgu URL’ini kopyala"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: lv]
-#, fuzzy
-msgid "Copy query"
-msgstr "Sorguyu kopyala"
 
 msgid "CREATE TABLE AS"
 msgstr "CREATE TABLE AS"
@@ -2970,9 +3031,6 @@ msgstr ""
 "CTAS (Seçilen tablo) sadece son ifadenin bir SE olduğu bir sorgu ile "
 "çalıştırılabilir. Lütfen sorgunuzun son ifadesi olarak bir SE olduğundan "
 "emin olun. Sonra, sorgunuzu tekrar çalıştırmaya çalışın."
-
-msgid "CUSTOM"
-msgstr "CUSTOM"
 
 msgid ""
 "CVAS (create view as select) can only be run with a query with a single "
@@ -3068,6 +3126,19 @@ msgstr "Soruya erişemez"
 
 msgid "Cannot delete a database that has datasets attached"
 msgstr "Veri kümeleri olan bir veritabanı silemez"
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
+msgid ""
+"Cannot delete a database whose only remaining datasets are soft-deleted. "
+"Restore them (POST /api/v1/dataset/<uuid>/restore) and delete them "
+"permanently once a purge capability ships, or remove the underlying rows "
+"out-of-band, before deleting the database."
+msgstr ""
+"Yalnızca geçici olarak silinmiş veri kümelerine sahip bir veritabanı "
+"silinemez. Onları geri yükleyin (POST /api/v1/dataset/<uuid>/restore) ve "
+"temizleme özelliği sunulduğunda kalıcı olarak silin ya da veritabanını "
+"silmeden önce altta yatan satırları bant dışı olarak kaldırın."
 
 msgid "Cannot delete system themes"
 msgstr "Sistem temaları silinemez"
@@ -3374,6 +3445,9 @@ msgstr "Grafik bulunamadı"
 msgid "Chart options"
 msgstr "Grafik seçenekleri"
 
+msgid "Chart orientation"
+msgstr ""
+
 msgid "Chart parameters are invalid."
 msgstr "Grafik parametreleri geçersizdir."
 
@@ -3626,6 +3700,9 @@ msgstr "Formu temizle"
 msgid "Clear local theme"
 msgstr "tüm filtreleri temizle"
 
+msgid "Clear search"
+msgstr ""
+
 msgid "Clear the selection to revert to the system default theme"
 msgstr "Sistem varsayılan temaya geri dönmek için seçimi temizleyin"
 
@@ -3748,6 +3825,9 @@ msgstr "Daralt"
 msgid "Collapse All"
 msgstr "Tümünü temizle"
 
+msgid "Collapse Datasource panel"
+msgstr ""
+
 msgid "Collapse all"
 msgstr "Bütün Filmler"
 
@@ -3780,6 +3860,12 @@ msgstr "Y Eksenine Göre Renklendir"
 
 msgid "Color Metric"
 msgstr "Renk Metrik"
+
+msgid "Color Range End"
+msgstr ""
+
+msgid "Color Range Start"
+msgstr ""
 
 msgid "Color Scheme"
 msgstr "Color Scheme"
@@ -4177,6 +4263,9 @@ msgstr "Bağlantı başarısız oldu, lütfen bağlantı ayarlarını kontrol ed
 msgid "Connection failed, please check your connection settings."
 msgstr "Bağlantı başarısız oldu, lütfen bağlantı ayarlarını kontrol edin."
 
+msgid "Connection looks good!"
+msgstr ""
+
 #, fuzzy
 msgid "Contains"
 msgstr "Devam"
@@ -4263,6 +4352,14 @@ msgstr "klip için kopya bölüm sorgusu"
 msgid "Copy permalink to clipboard"
 msgstr "Linki panoya kopyala"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: lv]
+#, fuzzy
+msgid "Copy query"
+msgstr "Sorguyu kopyala"
+
+msgid "Copy query URL"
+msgstr ""
+
 msgid "Copy query link to your clipboard"
 msgstr "Sorgu linkini panoya kopyala"
 
@@ -4321,6 +4418,11 @@ msgstr "Veritabanı sürücüsü yüklenemedi"
 msgid "Could not load database driver for: %(engine)s"
 msgstr "%(engine)s Veritabanı sürücüsü yüklenemedi: {}"
 
+msgid ""
+"Could not load metadata for this configuration; showing the default form."
+" See the server logs for details."
+msgstr ""
+
 #, python-format
 msgid "Could not resolve hostname: \"%(host)s\"."
 msgstr "hostnameyi çözemez: \"  %(host)s \"."
@@ -4330,18 +4432,6 @@ msgstr "Mevcut oturumdaki kullanıcıyı doğrulamayabilir."
 
 msgid "Count"
 msgstr "Say"
-
-msgid "Count Unique Values"
-msgstr "Count Unique Values"
-
-msgid "Count as Fraction of Columns"
-msgstr "Fraction of Columns"
-
-msgid "Count as Fraction of Rows"
-msgstr "Rows'un Fraction of Rows"
-
-msgid "Count as Fraction of Total"
-msgstr "Total As Fraction of Total"
 
 msgid "Country"
 msgstr "Ülke"
@@ -4388,6 +4478,11 @@ msgstr "yeni grafik oluştur"
 
 msgid "Create a new chart"
 msgstr "Yeni grafik oluştur"
+
+msgid ""
+"Create a new tag and assign it to existing entities like charts or "
+"dashboards"
+msgstr ""
 
 #, fuzzy
 msgid "Create and explore dataset"
@@ -4721,6 +4816,11 @@ msgstr "Gösterim Paneli, geçersiz parametreler nedeniyle kopyalanamaz."
 msgid "Dashboard cannot be favorited."
 msgstr "Gösterim Paneli güncellenemedi."
 
+msgid ""
+"Dashboard cannot be restored because its slug is now used by another "
+"active dashboard. Rename one of the dashboards and retry."
+msgstr ""
+
 #, fuzzy
 msgid "Dashboard cannot be unfavorited."
 msgstr "Gösterim Paneli güncellenemedi."
@@ -4995,6 +5095,18 @@ msgstr "%(table)s veri seti zaten var"
 msgid "Dataset Name"
 msgstr "Veriseti İsmi"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
+msgid ""
+"Dataset cannot be restored because another active dataset already "
+"references the same physical table (same database, catalog, schema, and "
+"table name). Delete the duplicate or rename the table before restoring."
+msgstr ""
+"Başka bir etkin veri kümesi zaten aynı fiziksel tabloya (aynı veritabanı,"
+" katalog, şema ve tablo adı) başvurduğundan veri kümesi geri "
+"yüklenemiyor. Geri yüklemeden önce yinelenen veri kümesini silin veya "
+"tablonun adını değiştirin."
+
 msgid "Dataset column delete failed."
 msgstr "Veriseti silme işlemi gerçekleşmedi."
 
@@ -5256,25 +5368,6 @@ msgstr ""
 "Varsayılan değer otomatik olarak \"ilk filtre değerini varsayılan olarak "
 "seçin\" kontrol edilir"
 
-msgid ""
-"Define a function that receives the input and outputs the content for a "
-"tooltip"
-msgstr "Bir alettip için girişi ve çıktıları alan bir işlevi tanımlayın"
-
-msgid "Define a function that returns a URL to navigate to when user clicks"
-msgstr "Kullanıcı tıkladığında bir URL döndürür bir işlevi tanımlayın"
-
-msgid ""
-"Define a javascript function that receives the data array used in the "
-"visualization and is expected to return a modified version of that array."
-" This can be used to alter properties of the data, filter, or enrich the "
-"array."
-msgstr ""
-"Görselleştirmede kullanılan veri dizisini alan bir javascript işlevi "
-"tanımlayın ve bu dizinin değiştirilmiş bir versiyonunu geri almak "
-"bekleniyor. Bu, verilerin, filtrenin özelliklerini değiştirmek veya dizi "
-"zenginleştirmek için kullanılabilir."
-
 msgid "Define color breakpoints for the data"
 msgstr "Veriler için renk uç noktaları tanımlamak"
 
@@ -5429,6 +5522,16 @@ msgstr "sil"
 #, fuzzy
 msgid "Delete item"
 msgstr "Şablonu sil"
+
+msgid "Delete permanently"
+msgstr ""
+
+#, python-format
+msgid "Delete permanently %(name)s?"
+msgstr ""
+
+msgid "Delete query"
+msgstr ""
 
 #, fuzzy
 msgid "Delete role"
@@ -5736,6 +5839,11 @@ msgstr "Ekran Adı"
 msgid "Display all"
 msgstr "Tümünü temizle"
 
+msgid ""
+"Display charts on a map. For using this plugin, users first have to "
+"create any other chart that can then be placed on the map."
+msgstr ""
+
 msgid "Display column in the chart"
 msgstr "Grafikteki Ekran sütunu"
 
@@ -5868,16 +5976,19 @@ msgstr "Tamamlandı"
 msgid "Donut"
 msgstr "Donut"
 
+msgid "Dot size metric"
+msgstr ""
+
 msgid "Dotted"
 msgstr "Dotted"
 
 msgid "Download"
 msgstr "İndir"
 
-msgid "Download as Image"
-msgstr "Resim olarak indir"
+msgid "Download Excel file"
+msgstr ""
 
-msgid "Download as image"
+msgid "Download as Image"
 msgstr "Resim olarak indir"
 
 msgid "Download is on the way"
@@ -6135,6 +6246,10 @@ msgstr "EMAIL REPORTS CTA"
 msgid "ERROR"
 msgstr "HATA"
 
+#, python-format
+msgid "ERROR: %s"
+msgstr ""
+
 msgid "Edge length"
 msgstr "Edge uzunluğu"
 
@@ -6231,6 +6346,9 @@ msgstr "Kuralı Düzenle"
 msgid "Edit properties"
 msgstr "Özellikleri düzenle"
 
+msgid "Edit query"
+msgstr ""
+
 #, fuzzy
 msgid "Edit report"
 msgstr "Raporu Düzenle"
@@ -6324,6 +6442,9 @@ msgstr "E-posta gerekli"
 msgid "Email link"
 msgstr "E-posta bağlantısı"
 
+msgid "Email recipients"
+msgstr ""
+
 msgid "Email reports active"
 msgstr "E-posta raporları etkin"
 
@@ -6391,15 +6512,9 @@ msgstr "Enable tahmin"
 msgid "Enable graph roaming"
 msgstr "Enable grafik roaming"
 
-msgid "Enable icon JavaScript mode"
-msgstr "Enable icon JavaScript modu"
-
 #, fuzzy
 msgid "Enable icons"
 msgstr "Grafik seçenekleri"
-
-msgid "Enable label JavaScript mode"
-msgstr "Etiket JavaScript modunu etkinleştir"
 
 #, fuzzy
 msgid "Enable labels"
@@ -6424,12 +6539,6 @@ msgid "Enable server side pagination of results (experimental feature)"
 msgstr ""
 "Sonuçların sunucu tarafında sayfalama özelliğini etkinleştir (deneysel "
 "özellik)"
-
-msgid "Enables custom icon configuration via JavaScript"
-msgstr "JavaScript aracılığıyla özel ikon konfigürasyonu"
-
-msgid "Enables custom label configuration via JavaScript"
-msgstr "JavaScript aracılığıyla özel etiket konfigürasyonu"
 
 msgid "Enables rendering of icons for GeoJSON points"
 msgstr "GeoJSON noktaları için ikonların uygulanması"
@@ -6510,9 +6619,6 @@ msgstr "İlk Credentials girin"
 msgid "Enter a name for this sheet"
 msgstr "Bu sayfa için bir isim girin"
 
-msgid "Enter a new title for the tab"
-msgstr "sekme için yeni bir başlık girin"
-
 #, fuzzy
 msgid "Enter a part of the object name"
 msgstr "Rapor ismi"
@@ -6580,6 +6686,9 @@ msgstr "Girişinizi ve şifrenizi aşağıda girin:"
 
 msgid "Entity"
 msgstr "Entity"
+
+msgid "Entries per page"
+msgstr ""
 
 msgid "Equal Date Sizes"
 msgstr "eşit Tarih Boyutları"
@@ -6766,6 +6875,9 @@ msgstr "Dışa aktar"
 msgid "Excel XML Export"
 msgstr "Excel XML Export"
 
+msgid "Excel export is not configured on this server."
+msgstr ""
+
 msgid "Excel file format cannot be determined"
 msgstr "Excel dosyası belirlenemez"
 
@@ -6793,6 +6905,9 @@ msgstr "Execution log"
 
 msgid "Existing dataset"
 msgstr "Mevcut veri kümesi"
+
+msgid "Exit edit mode"
+msgstr ""
 
 msgid "Exit fullscreen"
 msgstr "Tam ekrandan çık"
@@ -6860,6 +6975,12 @@ msgstr "Tüm veriyi temizle"
 msgid "Export Current View"
 msgstr "Geçerli sayfayı seç"
 
+msgid "Export Data to Excel"
+msgstr ""
+
+msgid "Export Images to Excel"
+msgstr ""
+
 #, fuzzy
 msgid "Export YAML"
 msgstr "Rapor ismi"
@@ -6867,6 +6988,9 @@ msgstr "Rapor ismi"
 #, fuzzy
 msgid "Export as Example"
 msgstr "Excel’e Aktar"
+
+msgid "Export as PDF"
+msgstr ""
 
 #, fuzzy
 msgid "Export cancelled"
@@ -6886,8 +7010,14 @@ msgstr "İhracat başarısız oldu - lütfen tekrar deneyin"
 msgid "Export failed: %s"
 msgstr "%s CSV’ye Aktar"
 
+msgid "Export query"
+msgstr ""
+
 msgid "Export screenshot (jpeg)"
 msgstr "İhracat ekran görüntüsü (jpeg)"
+
+msgid "Export screenshot (png)"
+msgstr ""
 
 #, python-format
 msgid "Export successful: %s"
@@ -6928,6 +7058,17 @@ msgstr "Orijinal .CSV'ye ihracat"
 msgid "Export to pivoted .CSV"
 msgstr ".CSV"
 
+#, python-format
+msgid ""
+"Exporting semantic views is not supported yet — %s semantic-view row(s) "
+"were skipped."
+msgstr ""
+
+msgid ""
+"Exporting semantic views is not supported yet. Deselect the semantic-view"
+" rows and try again."
+msgstr ""
+
 msgid "Expose database in SQL Lab"
 msgstr "Expose database in SQL Lab"
 
@@ -6943,6 +7084,12 @@ msgstr "İfade"
 #, fuzzy
 msgid "Expression cannot be empty"
 msgstr "boş bırakılamaz"
+
+#, python-format
+msgid ""
+"Extension '%(extension_id)s' has exceeded its persistent storage quota of"
+" %(quota)d bytes."
+msgstr ""
 
 #, fuzzy
 msgid "Extensions"
@@ -6966,9 +7113,6 @@ msgstr "Ekstra Kontroller"
 
 msgid "Extra Parameters"
 msgstr "Ekstra Parametreler"
-
-msgid "Extra data for JS"
-msgstr "JS için Ekstra Veriler"
 
 #, python-brace-format
 msgid ""
@@ -7000,15 +7144,6 @@ msgstr "Extruded"
 
 msgid "FEB"
 msgstr "ŞUB"
-
-#, fuzzy
-msgid "FIT DATA"
-msgstr "Verisetini düzenle"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: lv]
-#, fuzzy
-msgid "Fit data"
-msgstr "Verilere sığdır"
 
 msgid "FRI"
 msgstr "CUM"
@@ -7053,8 +7188,25 @@ msgid "Failed to create report"
 msgstr "Rapor oluşturmak için başarısız oldu"
 
 #, python-format
+msgid "Failed to delete %(name)s"
+msgstr ""
+
+#, python-format
+msgid "Failed to delete %(name)s: %(errMsg)s"
+msgstr ""
+
+#, python-format
+msgid "Failed to establish an SSH tunnel to the database: %(reason)s"
+msgstr ""
+
+#, python-format
 msgid "Failed to execute %(query)s"
 msgstr "%(query)s "
+
+msgid ""
+"Failed to export chart data. Please try again or contact your "
+"administrator."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -7097,6 +7249,14 @@ msgstr "Sistemi karanlık tema çıkarmak için başarısız oldu:   %s "
 msgid "Failed to remove system default theme: %s"
 msgstr "Sistem varsayılan temayı ortadan kaldırmak için başarısız oldu:   %s "
 
+#, python-format
+msgid "Failed to restore %(name)s"
+msgstr ""
+
+#, python-format
+msgid "Failed to restore %(name)s: %(errMsg)s"
+msgstr ""
+
 msgid "Failed to retrieve advanced type"
 msgstr "Gelişmiş türü almak için başarısız oldu"
 
@@ -7138,6 +7298,10 @@ msgstr "Sorgu sonuçlarını depolamak için başarısız oldu. Lütfen tekrar d
 
 msgid "Failed to tag items"
 msgstr "öğeleri etiketlemeye başarısız oldu"
+
+#, python-format
+msgid "Failed to trigger %(alertType)s \"%(alertName)s\": %(error)s"
+msgstr ""
 
 msgid "Failed to update report"
 msgstr "Güncelleme Raporuna Başarısız Oldu"
@@ -7362,6 +7526,11 @@ msgstr "İsim gereklidir"
 msgid "Fit columns dynamically"
 msgstr "Fit sütunları dinamik olarak dinamik olarak"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: lv]
+#, fuzzy
+msgid "Fit data"
+msgstr "Verilere sığdır"
+
 msgid ""
 "Fix the trend line to the full time range specified in case filtered "
 "results do not include the start or end dates"
@@ -7424,13 +7593,6 @@ msgid "For further instructions, consult the"
 msgstr "Daha fazla talimat için, danışın"
 
 msgid ""
-"For more information about objects are in context in the scope of this "
-"function, refer to the"
-msgstr ""
-"nesneler hakkında daha fazla bilgi için bu işlevin kapsamı içinde yer "
-"alır, atıfta bulunur"
-
-msgid ""
 "For regular filters, these are the subjects (users, roles, groups) this "
 "filter will be applied to. For base filters, these are the subjects that "
 "the filter DOES NOT apply to, e.g. Admin if admin should see all data."
@@ -7490,6 +7652,9 @@ msgstr "Güçler X Axis Etiketler için en yüksek aralığı olarak Zaman T'yi 
 msgid "Forecast periods"
 msgstr "Tahmin süreleri"
 
+msgid "Forecast requires at least 2 data points"
+msgstr ""
+
 msgid "Foreign key"
 msgstr "Yabancı anahtar"
 
@@ -7546,6 +7711,9 @@ msgstr ""
 
 msgid "Formatted CSV attached in email"
 msgstr "E-postada eklenmiş olan CSV"
+
+msgid "Formatted Excel attached in email"
+msgstr ""
 
 msgid "Formatted value"
 msgstr "Şekillenmiş değer"
@@ -7892,9 +8060,6 @@ msgstr "ISO 3166-2 Kod"
 msgid "ISO 8601"
 msgstr "ISO 8601"
 
-msgid "Icon JavaScript config generator"
-msgstr "Icon JavaScript yapılandırma jeneratörü"
-
 #, fuzzy
 msgid "Icon URL"
 msgstr "Kontrol"
@@ -7917,13 +8082,9 @@ msgid ""
 "as the currently logged on user who must have permission to run them. If "
 "Hive and hive.server2.enable.doAs is enabled, will run the queries as "
 "service account, but impersonate the currently logged on user via "
-"hive.server2.proxy.user property."
+"hive.server2.proxy.user property. If Databricks, uses OAuth2 to "
+"authenticate as the currently logged on user."
 msgstr ""
-"Presto veya Trino ise, SQL Lab'deki tüm sorgular şu anda onları "
-"çalıştırma izni olan kullanıcı üzerinde giriş olarak "
-"gerçekleştirilecektir. Hive ve hive.server2.enable.doAs "
-"etkinleştirilirse, sorguları servis hesabı olarak çalıştıracaktır, ancak "
-"şu anda kullanıcı üzerinde hive.server2.proxy.user mülk."
 
 msgid "If a metric is specified, sorting will be done based on the metric value"
 msgstr "Bir metrik belirtilmişse, metrik değere dayalı sıralama yapılacaktır."
@@ -7946,6 +8107,12 @@ msgstr ""
 msgid "If table already exists"
 msgstr "Veriseti %(name)s zaten var"
 
+msgid "If you delete this item, you won't be able to recover it."
+msgstr ""
+
+msgid "If you did not request this, you can ignore this email."
+msgstr ""
+
 msgid "If you don't save, changes will be lost."
 msgstr "Eğer kurtarmazsanız, değişiklikler kaybolur."
 
@@ -7964,8 +8131,10 @@ msgstr "Resim (PNG) e-postada gömülü"
 msgid "Image download failed, please refresh and try again."
 msgstr "Resim indirme başarısız oldu, lütfen yenileme ve tekrar deneyin."
 
-msgid "Impersonate logged in user (Presto, Trino, Drill, Hive, and Google Sheets)"
-msgstr "Kullanıcı Girişi (Presto, Trino, Drill, Hive ve Google Sheets)"
+msgid ""
+"Impersonate logged in user (Presto, Trino, Drill, Hive, Databricks, and "
+"Google Sheets)"
+msgstr ""
 
 msgid "Import"
 msgstr "İçe aktar"
@@ -8416,15 +8585,6 @@ msgstr "HAZ"
 msgid "January"
 msgstr "Ocak"
 
-msgid "JavaScript data interceptor"
-msgstr "JavaScript data"
-
-msgid "JavaScript onClick href"
-msgstr "JavaScript onClick href"
-
-msgid "JavaScript tooltip generator"
-msgstr "JavaScript alettip jeneratörü"
-
 msgid "Jinja templating"
 msgstr "Jinja çekicilating"
 
@@ -8472,9 +8632,6 @@ msgstr "Etiket"
 msgid "Label Contents"
 msgstr "Etiket İçerikleri"
 
-msgid "Label JavaScript config generator"
-msgstr "Etiket JavaScript yapılandırma jeneratörü"
-
 msgid "Label Line"
 msgstr "Label Line"
 
@@ -8504,6 +8661,9 @@ msgstr "index sütunu için etiket. Mevcut bir sütun adı kullanmayın."
 
 msgid "Label for your query"
 msgstr "Sorunuz için etiket"
+
+msgid "Label must not be empty."
+msgstr ""
 
 msgid "Label position"
 msgstr "Etiket pozisyonu"
@@ -8546,6 +8706,15 @@ msgstr "Büyük"
 
 msgid "Last"
 msgstr "Son"
+
+msgid "Last 30 days"
+msgstr ""
+
+msgid "Last 7 days"
+msgstr ""
+
+msgid "Last 90 days"
+msgstr ""
 
 #, fuzzy
 msgid "Last Name"
@@ -8704,6 +8873,15 @@ msgstr "Filtre tipi"
 msgid "Legend type"
 msgstr "Legend türü"
 
+msgid "Length in cm (12345678cm => 123.46km)"
+msgstr ""
+
+msgid "Length in cm (12345cm => 123.45m)"
+msgstr ""
+
+msgid "Length in m (12345m => 12.35km)"
+msgstr ""
+
 msgid "Less Than"
 msgstr "Daha az"
 
@@ -8749,8 +8927,12 @@ msgstr "Limit"
 msgid "Limit type"
 msgstr "Limit türü"
 
-msgid "Limits the number of cells that get retrieved."
-msgstr "Elde edilen hücrelerin sayısını sınırlayın."
+msgid ""
+"Limits the number of cells that get retrieved. Not applied when non-"
+"additive metrics (e.g. ratios, COUNT_DISTINCT, AVG, percentiles) are "
+"present, since totals and subtotals are then computed via a database "
+"rollup query that must see every row to stay correct."
+msgstr ""
 
 msgid "Limits the number of rows that get displayed."
 msgstr "Gösterilen satırların sayısını sınırlayın."
@@ -8826,6 +9008,9 @@ msgstr "Hat sütun"
 msgid "Lines encoding"
 msgstr "Hatları kodlama"
 
+msgid "Link Copied!"
+msgstr ""
+
 #, fuzzy
 msgid "List"
 msgstr "Son"
@@ -8837,15 +9022,9 @@ msgstr "Sorguyu düzenle"
 msgid "List Roles"
 msgstr "Liste Roller"
 
-msgid "List Unique Values"
-msgstr "Liste Benzersiz Değerler"
-
 #, fuzzy
 msgid "List Users"
 msgstr "Sorguyu düzenle"
-
-msgid "List of extra columns made available in JavaScript functions"
-msgstr "JavaScript işlevlerinde mevcut ekstra sütunların listesi"
 
 msgid "List of n+1 values for bucketing metric into n buckets."
 msgstr "n+1 değerlerin kovalama metrik için n kovalar."
@@ -8975,6 +9154,11 @@ msgstr "Varsayılan görünümün uzunluğu"
 
 msgid "Lower Threshold"
 msgstr "Aşağı Threshold"
+
+msgid ""
+"Lower bound of the color scale. When both start and end are set, the "
+"legend uses this fixed range instead of the automatic data range."
+msgstr ""
 
 msgid "Lower threshold must be lower than upper threshold"
 msgstr "Alt eşik üst eşikten daha düşük olmalıdır"
@@ -9167,6 +9351,9 @@ msgstr "maksimum Radius"
 msgid "Maximum Width"
 msgstr "Maksimum Genişlik"
 
+msgid "Maximum dot size"
+msgstr ""
+
 msgid "Maximum folder nesting depth reached"
 msgstr "En fazla klasör derinliğine ulaştı"
 
@@ -9200,9 +9387,6 @@ msgstr "Belirtilen süre boyunca değerlerin anlamı"
 
 msgid "Mean values"
 msgstr "Ortalama değerler"
-
-msgid "Median"
-msgstr "Median"
 
 msgid ""
 "Median edge width, the thickest edge will be 4 times thicker than the "
@@ -9432,6 +9616,9 @@ msgstr "Asgari Radius"
 #, fuzzy
 msgid "Minimum Width"
 msgstr "Minimum Genişlik"
+
+msgid "Minimum dot size"
+msgstr ""
 
 msgid "Minimum must be strictly less than maximum"
 msgstr "Asgari maksimumdan daha az olmalıdır"
@@ -9774,6 +9961,9 @@ msgstr "Henüz bir açıklama yok"
 msgid "No applied filters"
 msgstr "Uygulanmış filtre yok"
 
+msgid "No archived items"
+msgstr ""
+
 msgid "No available filters."
 msgstr "Uygun filtre yok."
 
@@ -9800,6 +9990,9 @@ msgstr "Veri bulunamadı"
 
 msgid "No data after filtering or data is NULL for the latest time record"
 msgstr "Filtrelemeden sonra veri bulunamadı veya en son kayıt için veriler NULL"
+
+msgid "No data found"
+msgstr ""
 
 msgid "No data in file"
 msgstr "Dosyada veri yok"
@@ -10229,6 +10422,10 @@ msgstr "Bir veya daha metrikler tekrarlanır"
 msgid "One or more metrics do not exist"
 msgstr "Bir veya daha metrikler mevcut değildir"
 
+#, python-format
+msgid "One or more parameters are missing: %(missing)s"
+msgstr ""
+
 msgid "One or more parameters needed to configure a database are missing."
 msgstr ""
 "Bir veritabanı oluşturmak için gerekli olan bir veya daha fazla parametre"
@@ -10358,6 +10555,11 @@ msgstr "Seçmeli d3 date format"
 msgid "Optional d3 number format string"
 msgstr "Seçmeli d3 numarası"
 
+msgid ""
+"Optional metric used to scale the size of each dot. Dot areas are scaled "
+"linearly between the minimum and maximum dot size."
+msgstr ""
+
 msgid "Optional name of the data column."
 msgstr "Veri sütununun Seçmeli adı."
 
@@ -10394,6 +10596,11 @@ msgstr "Bar grafiği"
 
 msgid "Orientation of filter bar"
 msgstr "Filtre barınması"
+
+msgid ""
+"Orientation of the chart. Horizontal places the dimension on the y-axis "
+"and the metric on the x-axis."
+msgstr ""
 
 msgid "Orientation of tree"
 msgstr "Ağaçlama"
@@ -10915,6 +11122,13 @@ msgstr "Lütfen Dataset ID'yi Jinja makro'daki \"  %(name)s \" metric için beli
 msgid "Please use 3 different metric labels"
 msgstr "Lütfen 3 farklı ölçüm etiketi kullanın"
 
+msgid ""
+"Plot each time-shifted series across its full time range instead of "
+"truncating it to the main series. Useful for comparing a partial current "
+"period (e.g. today so far) against complete prior periods (e.g. all of "
+"yesterday)."
+msgstr ""
+
 msgid "Plot the distance (like flight paths) between origin and destination."
 msgstr "Uzaklığı (örneğin uçuş yolları gibi) ve varış noktası."
 
@@ -11068,9 +11282,6 @@ msgstr "Primary y-axis format"
 #, fuzzy
 msgid "Private"
 msgstr "Özel"
-
-msgid "Private Channels (Bot in channel)"
-msgstr "Özel Kanallar (Bot in kanal)"
 
 msgid "Private Key"
 msgstr "Özel Anahtar"
@@ -11275,6 +11486,12 @@ msgstr "Oran"
 msgid "Raw records"
 msgstr "Raw kayıtları"
 
+msgid "Recently Archived"
+msgstr ""
+
+msgid "Recently archived"
+msgstr ""
+
 msgid "Recently modified"
 msgstr "Son zamanlarda değiştirilmiş değişiklikler"
 
@@ -11289,6 +11506,15 @@ msgstr "Recipients \"\" veya \";\" ile ayrılır."
 #, fuzzy
 msgid "Records"
 msgstr "Kayıtlar"
+
+msgid "Recover"
+msgstr ""
+
+msgid "Recover this item"
+msgstr ""
+
+msgid "Recover this item to open it"
+msgstr ""
 
 msgid "Rectangle"
 msgstr "Rect"
@@ -11385,16 +11611,11 @@ msgid "Regular"
 msgstr "Düzenli"
 
 msgid ""
-"Regular filters add where clauses to queries if a user belongs to a role "
-"referenced in the filter, base filters apply filters to all queries "
-"except the roles defined in the filter, and can be used to define what "
-"users can see if no RLS filters within a filter group apply to them."
+"Regular filters add where clauses to queries if a user matches a subject "
+"referenced in the filter. Base filters apply filters to all queries "
+"except the subjects defined in the filter, and can be used to define what"
+" users can see if no RLS filters within a filter group apply to them."
 msgstr ""
-"Düzenli filtreler, bir kullanıcının filtrede referanslanmış bir role ait "
-"olup olmadığını sorgular, baz filtreler filtreleri filtrede tanımlanmış "
-"roller dışında tüm sorgulara uygular ve kullanıcıların herhangi bir RLS "
-"filtrelerinin onlara uygulanıp uygulamadığını tanımlamak için "
-"kullanılabilir."
 
 msgid "Relational"
 msgstr "Relational"
@@ -11437,6 +11658,9 @@ msgstr "Çapraz filtrelemeyi kaldır"
 msgid "Remove customization"
 msgstr "Özelleştirmeyi kaldır"
 
+msgid "Remove dependency"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
@@ -11446,8 +11670,14 @@ msgstr "Filtreyi kaldır"
 msgid "Remove item"
 msgstr "öğeyi kaldır"
 
+msgid "Remove notification method"
+msgstr ""
+
 msgid "Remove query from log"
 msgstr "Girişten Soruyu Kaldırın"
+
+msgid "Remove sheet"
+msgstr ""
 
 #, python-format
 msgid "Removed 1 column from the virtual dataset"
@@ -11488,6 +11718,9 @@ msgstr "Rapor Programı güncellenmedi."
 msgid "Report Schedule delete failed."
 msgstr "Rapor Takvimi başarısız oldu."
 
+msgid "Report Schedule execute now failed."
+msgstr ""
+
 msgid "Report Schedule execution failed when generating a csv."
 msgstr "Report Schedule execution bir csv oluştururken başarısız oldu."
 
@@ -11500,8 +11733,21 @@ msgstr "Report Schedule execution bir pdf oluştururken başarısız oldu."
 msgid "Report Schedule execution failed when generating a screenshot."
 msgstr "Report Schedule execution, ekran görüntüsü oluştururken başarısız oldu."
 
+msgid "Report Schedule execution failed when generating an Excel file."
+msgstr ""
+
 msgid "Report Schedule execution got an unexpected error."
 msgstr "Report Schedule execution beklenmedik bir hata aldı."
+
+msgid ""
+"Report Schedule execution requires a Celery backend to be configured. "
+"Please configure a Celery broker (Redis or RabbitMQ) and worker "
+"processes."
+msgstr ""
+
+#, python-format
+msgid "Report Schedule executor user %(username)s was not found."
+msgstr ""
 
 msgid "Report Schedule is still working, refusing to re-compute."
 msgstr "Rapor Programı hala çalışıyor, yeniden müzakere etmeyi reddediyor."
@@ -11584,6 +11830,13 @@ msgstr "Eksik veri alanı talep edin."
 
 msgid "Request timed out"
 msgstr "İstek zamanı çıktı"
+
+#, python-format
+msgid ""
+"Requested page would return %(requested_size)d bytes, exceeding the "
+"maximum allowed list payload size of %(max_size)d bytes. Reduce page_size"
+" and try again."
+msgstr ""
 
 msgid "Required"
 msgstr "Zorunlu"
@@ -11823,6 +12076,13 @@ msgstr "Grafik yüksekliği"
 msgid "Row limit"
 msgstr "Row limit"
 
+msgid "Row-Level Security"
+msgstr ""
+
+#, python-format
+msgid "Row-Level Security: %d filter(s) may restrict data based on your role."
+msgstr ""
+
 msgid "Rows"
 msgstr "Satırlar"
 
@@ -11852,6 +12112,9 @@ msgstr "Kural eklendi"
 
 msgid "Run"
 msgstr "Çalıştır"
+
+msgid "Run a new query using the \"Update chart\" button or"
+msgstr ""
 
 msgid "Run a query to display query history"
 msgstr "Sorgu geçmişini görmek için sorguyu çalıştır"
@@ -11993,12 +12256,6 @@ msgstr "STRING"
 
 msgid "SUN"
 msgstr "PZR"
-
-msgid "Sample Standard Deviation"
-msgstr "Örnek Standart Deviasyon"
-
-msgid "Sample Variance"
-msgstr "Örnek Variance"
 
 msgid "Samples"
 msgstr "Tabloyu gör"
@@ -12205,15 +12462,14 @@ msgstr "Yazma değişikliklerini sağlamak için alta çıkın."
 msgid "Search"
 msgstr "Ara"
 
-#, python-format
-msgid "Search %s records"
-msgstr "Arama   %s kayıtları"
-
 msgid "Search / Filter"
 msgstr "Ara / Filtrele"
 
 msgid "Search Metrics & Columns"
 msgstr "Arama Metrikleri ve Köşeleri"
+
+msgid "Search a channel by name, or paste a channel ID"
+msgstr ""
 
 msgid "Search all charts"
 msgstr "Tüm grafikleri ara"
@@ -12268,6 +12524,9 @@ msgstr "Filtrelerde ara"
 msgid "Search metrics by key or label"
 msgstr "Metrikleri anahtara veya etikete göre ara"
 
+msgid "Search records"
+msgstr ""
+
 #, fuzzy
 msgid "Search tags"
 msgstr "Ara"
@@ -12277,6 +12536,9 @@ msgstr "Görüntüleyicileri ara"
 
 msgid "Search..."
 msgstr "Ara…"
+
+msgid "Searches all text fields: Name, Description, Database & Schema"
+msgstr ""
 
 msgid "Second"
 msgstr "İkincisi"
@@ -12318,6 +12580,9 @@ msgstr "Bakınız "
 #, python-format
 msgid "See all %(tableName)s"
 msgstr "Tümünü gör %(tableName)s"
+
+msgid "See all dashboards"
+msgstr ""
 
 msgid "See less"
 msgstr "Daha az gör"
@@ -12638,6 +12903,12 @@ msgstr ""
 msgid "Select operator"
 msgstr "Operatör seçin"
 
+msgid "Select or type BCC recipients"
+msgstr ""
+
+msgid "Select or type CC recipients"
+msgstr ""
+
 #, fuzzy
 msgid "Select or type a custom value..."
 msgstr "Değer seçin / girin"
@@ -12647,6 +12918,9 @@ msgstr "Select veya tip para sembolü"
 
 msgid "Select or type dataset name"
 msgstr "Veriseti ismini seçin / girin"
+
+msgid "Select or type email recipients"
+msgstr ""
 
 #, fuzzy
 msgid "Select page size"
@@ -12947,6 +13221,9 @@ msgstr "Semantik görünümler"
 msgid "Send as CSV"
 msgstr "Gönder"
 
+msgid "Send as Excel"
+msgstr ""
+
 msgid "Send as PDF"
 msgstr "PDF olarak gönder"
 
@@ -13175,6 +13452,9 @@ msgstr "veriseti ismi"
 msgid "Show Metric Names"
 msgstr "Show Metric Names"
 
+msgid "Show Null Values"
+msgstr ""
+
 msgid "Show Range Filter"
 msgstr "Show Range Filter"
 
@@ -13215,6 +13495,15 @@ msgstr ""
 "Y-kürücüklere gösterin. Aksi halde verilerdeki belirli veya min /max "
 "değerleri ayarlayacaklardır."
 
+msgid "Show a draggable slider to control the visible range of the Y-axis."
+msgstr ""
+
+msgid ""
+"Show a summary row of total aggregations: the selected metrics in "
+"aggregate mode, or the sum of numeric columns in raw records mode. Note "
+"that row limit does not apply to the result."
+msgstr ""
+
 msgid "Show all columns"
 msgstr "Tüm sütunları göster"
 
@@ -13254,6 +13543,9 @@ msgstr "Boş sütunlar göster"
 
 msgid "Show entries per page"
 msgstr "Sayfa başına girişleri göster"
+
+msgid "Show full range for time shift"
+msgstr ""
 
 msgid ""
 "Show hierarchical relationships of data, with the value represented by "
@@ -13337,6 +13629,11 @@ msgstr ""
 #, fuzzy
 msgid "Show value"
 msgstr "Toplamı göster"
+
+msgid ""
+"Showcases a metric along with a comparison of value, change, and percent "
+"change for a selected time period."
+msgstr ""
 
 msgid ""
 "Showcases a single metric front-and-center. Big number is best used to "
@@ -13426,6 +13723,12 @@ msgstr "kenar sembollerinin boyutu"
 msgid "Size of marker. Also applies to forecast observations."
 msgstr "işaretleyici boyutu. Ayrıca gözlemleri tahmin etmek için de geçerlidir."
 
+msgid "Size of the dot representing the largest value of the dot size metric."
+msgstr ""
+
+msgid "Size of the dot representing the smallest value of the dot size metric."
+msgstr ""
+
 msgid "Skip blank lines rather than interpreting them as Not A Number values"
 msgstr "Bir Sayı Değeri Değil Olarak Onları yorumlamak yerine boş çizgiler girin"
 
@@ -13476,6 +13779,14 @@ msgstr ""
 msgid "Solid"
 msgstr "Katı"
 
+msgid "Solid background"
+msgstr ""
+
+msgid ""
+"Some filters are inherited from physical tables referenced in this "
+"virtual dataset."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
@@ -13496,8 +13807,13 @@ msgstr ""
 "Diğer sekmelerdeki bazı zorunlu filtrelerin değerleri var ve "
 "temizlenmeyecek"
 
-msgid "Some roles do not exist"
-msgstr "Bazı roller var"
+msgid "Some tables are not shown. Refine your search."
+msgstr ""
+
+msgid ""
+"Something went wrong loading the dashboard. Check the dev console for "
+"details."
+msgstr ""
 
 msgid "Something went wrong while saving the user info"
 msgstr "Kullanıcı bilgileri tasarruf ederken bir şey yanlış gitti"
@@ -13836,6 +14152,12 @@ msgstr "Koşmayı bırakın (Ctrl + x)"
 msgid "Stopped an unsafe database connection"
 msgstr "Güvenli olmayan bir veritabanı bağlantısını durdurun"
 
+#, python-format
+msgid ""
+"Storage key exceeds the maximum allowed length of %(max_length)d "
+"characters."
+msgstr ""
+
 msgid "Stream"
 msgstr "Akış"
 
@@ -13896,6 +14218,9 @@ msgstr "Subdomain"
 msgid "Subject"
 msgstr "Özne"
 
+msgid "Subject list"
+msgstr ""
+
 msgid "Subject type"
 msgstr "Özne türü"
 
@@ -13924,6 +14249,9 @@ msgstr "Subtotal"
 msgid "Success"
 msgstr "Başarı"
 
+msgid "Success message"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy, python-format
@@ -13938,15 +14266,6 @@ msgstr "Suffix to apply after the percentage display"
 
 msgid "Sum"
 msgstr "Sum"
-
-msgid "Sum as Fraction of Columns"
-msgstr "Sum as Fraction of Columns"
-
-msgid "Sum as Fraction of Rows"
-msgstr "Sum, Rows'un Fraction of Rows"
-
-msgid "Sum as Fraction of Total"
-msgstr "Total Sum as Fraction of Total"
 
 msgid "Sum of values over specified period"
 msgstr "Belirtilen süre boyunca değerlerin sum"
@@ -13993,6 +14312,9 @@ msgstr "%s değiştir"
 
 msgid "Swap rows and columns"
 msgstr "Swap satırları ve sütunları"
+
+msgid "Sweep angle"
+msgstr ""
 
 msgid ""
 "Swiss army knife for visualizing data. Choose between step, line, "
@@ -14062,6 +14384,13 @@ msgstr "TEMPORAL RANGE"
 
 msgid "THU"
 msgstr "PER"
+
+msgid "TTL must be a positive integer."
+msgstr ""
+
+#, python-format
+msgid "TTL must not exceed %(max_ttl)d seconds."
+msgstr ""
 
 msgid "TUE"
 msgstr "SAL"
@@ -14159,6 +14488,9 @@ msgstr "Tag güncellenemezdi."
 
 msgid "Tag created"
 msgstr "Tag oluşturuldu"
+
+msgid "Tag description"
+msgstr ""
 
 msgid "Tag name"
 msgstr "Tag adı"
@@ -14310,6 +14642,10 @@ msgstr "Metin hizası"
 msgid "Text embedded in email"
 msgstr "Metin e-postada gömülü"
 
+#, python-format
+msgid "The %(key)s in metadata_cache_timeout must be a non-negative integer."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy, python-format
@@ -14342,6 +14678,13 @@ msgstr ""
 "ifadesi olarak bir SE olduğundan emin olun. Sonra, sorgunuzu tekrar "
 "çalıştırmaya çalışın."
 
+#, python-format
+msgid ""
+"The Custom SQL metric \"%(metric)s\" is not an aggregate and can't be "
+"combined with a GROUP BY. Wrap it in an aggregate function, e.g. "
+"%(example)s."
+msgstr ""
+
 msgid ""
 "The GeoJsonLayer takes in GeoJSON formatted data and renders it as "
 "interactive polygons, lines and points (circles, icons and/or texts)."
@@ -14372,6 +14715,9 @@ msgstr ""
 "bayraklarınızda GLOBAL_TASK_FRAMEWORK=True olarak ayarlayın. Yapılandırma"
 " ayrıntıları için bkz. https://superset.apache.org/docs/configuration"
 "/async-queries-celery."
+
+msgid "The SQL query mutator removed all executable statements from this query."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 #, fuzzy
@@ -14426,6 +14772,17 @@ msgstr ""
 "Renkler atamak için kullanılan kaynak düğümleri kategorisi. Eğer bir node"
 " bir kategoriden daha ilişkiliyse, sadece ilki kullanılacaktır."
 
+msgid ""
+"The chart data is too large to download. Please try reducing the date "
+"range, limiting rows, or using fewer columns."
+msgstr ""
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
+msgid "The chart is still loading. Please wait a moment and try again."
+msgstr "Grafik hâlâ yükleniyor. Lütfen bir an bekleyip tekrar deneyin."
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 #, fuzzy
 msgid ""
@@ -14435,11 +14792,8 @@ msgstr ""
 "Bu raporun hedeflediği grafik silindi. Grafiği geri yükleyin veya raporu "
 "etkin bir grafiğe işaret edecek şekilde güncelleyin."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
-# sr_Latn]
-#, fuzzy
-msgid "The chart is still loading. Please wait a moment and try again."
-msgstr "Grafik hâlâ yükleniyor. Lütfen bir an bekleyip tekrar deneyin."
+msgid "The chat failed to load."
+msgstr ""
 
 msgid ""
 "The classic. Great for showing how much of a company each investor gets, "
@@ -14532,6 +14886,9 @@ msgid ""
 msgstr ""
 "Bu raporun hedeflediği pano silindi. Panoyu geri yükleyin veya raporu "
 "etkin bir panoya işaret edecek şekilde güncelleyin."
+
+msgid "The dashboard you are looking for may have been deleted or moved."
+msgstr ""
 
 msgid "The data source seems to have been deleted"
 msgstr "Veri kaynağı silinmiş gibi görünüyor"
@@ -14667,6 +15024,19 @@ msgstr ""
 msgid "The feature property to use for point labels"
 msgstr "Nokta etiketleri için kullanmak için özellik özelliği"
 
+msgid "The following charts could not be exported:"
+msgstr ""
+
+msgid ""
+"The following charts were omitted because an error occurred while "
+"exporting them:"
+msgstr ""
+
+msgid ""
+"The following charts were omitted because they have no saved query "
+"context. To include them, open each chart in Explore and re-save."
+msgstr ""
+
 #, python-format
 msgid ""
 "The following entries in `series_columns` are missing in `columns`: "
@@ -14779,6 +15149,11 @@ msgstr "Her grubun en yüksek alt sınıfları; daha düşük değerler ilk önc
 
 msgid "The maximum value of metrics. It is an optional configuration"
 msgstr "metriklerin maksimum değeri. Seçmeli bir yapılandırmadır"
+
+msgid ""
+"The metadata_cache_timeout must be a mapping from string keys to non-"
+"negative integer values."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -14999,6 +15374,9 @@ msgstr ""
 msgid "The query contains one or more malformed template parameters."
 msgstr "Soru bir veya daha kötü bilgilendirilmiş şablon parametreleri içerir."
 
+msgid "The query context datasource does not match the chart datasource"
+msgstr ""
+
 msgid "The query couldn't be loaded"
 msgstr "Soru yüklenemez"
 
@@ -15048,6 +15426,10 @@ msgid ""
 msgstr ""
 "Aşağıda belirtilen birimlerde nokta özelliklerinin yarıçapı. Son işlenmiş"
 " boyut, bu değerin Nokta Yarıçapı Ölçeği ile çarpılmasıyla elde edilir."
+
+#, python-format
+msgid "The remaining %s will be moved to Recently Archived."
+msgstr ""
 
 msgid "The report has been created"
 msgstr "Rapor oluşturuldu"
@@ -15430,6 +15812,9 @@ msgstr "En sevdiğiniz durumu getiren bir hata vardı:   %s "
 msgid "There was an error fetching the filtered charts and dashboards:"
 msgstr "Grafiği yüklerken hata oluştu"
 
+msgid "There was an error generating the permalink."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
@@ -15498,6 +15883,26 @@ msgstr "Grafikleri getirirken hata"
 msgid "There was an error with your request"
 msgstr "İstekinizle bir hata vardı"
 
+#, python-format
+msgid "There was an issue archiving %s: %s"
+msgstr ""
+
+#, python-format
+msgid "There was an issue archiving the selected %s"
+msgstr ""
+
+#, python-format
+msgid "There was an issue archiving the selected charts: %s"
+msgstr ""
+
+#, python-format
+msgid "There was an issue archiving the selected dashboards: %s"
+msgstr ""
+
+#, python-format
+msgid "There was an issue archiving: %s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy, python-format
@@ -15538,12 +15943,17 @@ msgstr "Seçilen annotasyonları bir sorun vardı:   %s "
 msgid "There was an issue deleting the selected charts: %s"
 msgstr "Seçilmiş grafiklerle ilgili bir sorun vardı:   %s "
 
-msgid "There was an issue deleting the selected dashboards: "
-msgstr "Seçilmiş panoları bir sorun vardı:"
+#, python-format
+msgid "There was an issue deleting the selected dashboards: %s"
+msgstr ""
 
 #, python-format
 msgid "There was an issue deleting the selected layers: %s"
 msgstr "Seçilmiş tabakaları bir sorun vardı:   %s "
+
+#, python-format
+msgid "There was an issue deleting the selected queries: %s"
+msgstr ""
 
 #, python-format
 msgid "There was an issue deleting the selected templates: %s"
@@ -15589,6 +15999,9 @@ msgstr "Şemaları yüklerken hata oluştu"
 msgid "There was an issue exporting the selected dashboards"
 msgstr "Grafiği yüklerken hata oluştu"
 
+msgid "There was an issue exporting the selected queries"
+msgstr ""
+
 #, fuzzy
 msgid "There was an issue exporting the selected themes"
 msgstr "Şemaları yüklerken hata oluştu"
@@ -15627,8 +16040,32 @@ msgstr "Seçilen sorgu   %s ing'i önleyen bir sorun vardı"
 msgid "There was an issue previewing the selected query. %s"
 msgstr "Seçilmiş sorguyu gösteren bir sorun vardı.   %s "
 
+#, python-format
+msgid ""
+"These %(type)s will be moved to Recently Archived. You can recover them "
+"there within %(days)s days."
+msgstr ""
+
+#, python-format
+msgid ""
+"These %(type)s will be moved to Recently Archived. You can recover them "
+"there."
+msgstr ""
+
 msgid "These are the datasets this filter will be applied to."
 msgstr "Bunlar, bu filtrenin uygulanan veri setleri."
+
+#, python-format
+msgid ""
+"This %(type)s will be moved to Recently Archived. You can recover it "
+"there within %(days)s days."
+msgstr ""
+
+#, python-format
+msgid ""
+"This %(type)s will be moved to Recently Archived. You can recover it "
+"there."
+msgstr ""
 
 msgid ""
 "This JSON object is generated dynamically when clicking the save or "
@@ -15753,6 +16190,9 @@ msgstr ""
 "kontrol eder\n"
 "Görme, annotasyon verileri içeren grafiklere geçilmelidir."
 
+msgid "This dashboard does not exist"
+msgstr ""
+
 msgid "This dashboard is managed externally, and can't be edited in Superset"
 msgstr "Bu pano dışsal olarak yönetiliyor ve Superset'te düzenlenebilir"
 
@@ -15828,6 +16268,10 @@ msgid ""
 "one."
 msgstr "Bu e-posta zaten bir hesapla ilişkilendirilir. Lütfen başka birini seçin."
 
+#, python-format
+msgid "This export was requested on %(when)s UTC."
+msgstr ""
+
 msgid "This feature is experimental and may change or have limitations"
 msgstr "Bu özellik deneysel ve değişebilir veya sınırlamaları olabilir"
 
@@ -15870,9 +16314,6 @@ msgstr "Bu klasör yalnızca sütunları destekler"
 #, fuzzy
 msgid "This folder only supports metrics"
 msgstr "Bu klasör yalnızca metrikleri destekler"
-
-msgid "This functionality is disabled in your environment for security reasons."
-msgstr "Bu işlevsellik, güvenlik nedenleri için çevrenizde devre dışı bırakılır."
 
 msgid ""
 "This is a default columns folder. Its name cannot be changed or removed. "
@@ -15934,6 +16375,10 @@ msgstr ""
 #, fuzzy
 msgid "This link cannot be followed because its address is unsafe."
 msgstr "Bu bağlantı, adresi güvenli olmadığı için takip edilemiyor."
+
+#, python-format
+msgid "This link expires in %(duration)s (%(when)s UTC)."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -16113,8 +16558,8 @@ msgstr "Zaman Formatı"
 msgid "Time Grain"
 msgstr "Zaman"
 
-msgid "Time Grain must be specified when using Time Shift."
-msgstr "Time Shift kullanırken Time Electric belirtilmelidir."
+msgid "Time Grain must be specified when using Time Comparison."
+msgstr ""
 
 msgid "Time Granularity"
 msgstr "Zaman Granularity"
@@ -16403,9 +16848,11 @@ msgstr "Toplam"
 msgid "Total (%(aggfunc)s)"
 msgstr "Total (  %(aggfunc)s )"
 
-#, python-format
-msgid "Total (%(aggregatorName)s)"
-msgstr "Total (  %(aggregatorName)s )"
+msgid ""
+"Total angle covered by the chart, in degrees. 360° draws a full circle "
+"and 180° draws a half donut. Partial arcs are automatically re-centered "
+"and scaled to make use of the available space."
+msgstr ""
 
 msgid "Total color"
 msgstr "Toplam renk"
@@ -16429,6 +16876,9 @@ msgstr "Dönüştürebilir"
 
 msgid "Transparent"
 msgstr "Lütfen"
+
+msgid "Transparent background"
+msgstr ""
 
 msgid "Transpose pivot"
 msgstr "Transpose önemli"
@@ -16457,9 +16907,15 @@ msgstr "Üçgen"
 msgid "Trigger Alert If..."
 msgstr "Tartışma Uyarısı Eğer..."
 
+msgid "Trigger now"
+msgstr ""
+
 #, fuzzy
 msgid "True"
 msgstr "SAL"
+
+msgid "Truncate Axis"
+msgstr ""
 
 msgid "Truncate Cells"
 msgstr "Truncate Hücreleri"
@@ -16487,6 +16943,11 @@ msgstr ""
 
 msgid "Truncate long cells to the \"min width\" set above"
 msgstr "Truncate uzun hücreler yukarıda bulunan \"min genişlik\" için"
+
+msgid ""
+"Truncate the metric axis. Can be overridden by specifying a min or max "
+"bound."
+msgstr ""
 
 msgid "Truncates the specified date to the accuracy specified by the date unit."
 msgstr "Truncates, tarih ünitesi tarafından belirtilen doğruluk tarihine kadar."
@@ -16584,6 +17045,9 @@ msgstr "URL Slug"
 msgid "URL parameters"
 msgstr "URL parametreleri"
 
+msgid "UUID to track the execution status"
+msgstr ""
+
 msgid "Unable to calculate such a date delta"
 msgstr "Böyle bir tarihi delta hesaplamak için kullanılamaz"
 
@@ -16652,6 +17116,10 @@ msgstr "Böyle bir tatil bulmak mümkün değil: [  %(holiday)s ]"
 msgid "Unable to generate download payload"
 msgstr "İndirme verisi oluşturulamıyor"
 
+#, python-format
+msgid "Unable to generate forecast: %(error)s"
+msgstr ""
+
 msgid ""
 "Unable to identify temporal column for date range time comparison.Please "
 "ensure your dataset has a properly configured time column."
@@ -16659,6 +17127,12 @@ msgstr ""
 "Tarih aralığı zaman karşılaştırması için zaman sütununu tanımlamak mümkün"
 " değildir. Lütfen veri setinizin düzgün yapılandırılmış bir zaman sütunu "
 "olmasını sağlayın."
+
+#, python-format
+msgid ""
+"Unable to interpret the time offset: %(offset)s. Use a relative time such"
+" as \"1 month ago\"."
+msgstr ""
 
 msgid ""
 "Unable to load columns for the selected table. Please select a different "
@@ -16926,6 +17400,11 @@ msgstr "İsim gereklidir"
 msgid "Upper Threshold"
 msgstr "Üst Threshold"
 
+msgid ""
+"Upper bound of the color scale. When both start and end are set, the "
+"legend uses this fixed range instead of the automatic data range."
+msgstr ""
+
 msgid "Upper threshold must be greater than lower threshold"
 msgstr "Üst eşik daha düşük eşikten daha büyük olmalıdır"
 
@@ -17151,6 +17630,10 @@ msgstr "Değer   %s "
 msgid "Value difference between the time periods"
 msgstr "Zaman dönemleri arasındaki değer farkı"
 
+#, python-format
+msgid "Value exceeds the maximum allowed size of %(max_size)d bytes."
+msgstr ""
+
 msgid "Value format"
 msgstr "Değer formatı"
 
@@ -17203,6 +17686,10 @@ msgstr "Dikey (Left)"
 
 msgid "View"
 msgstr "View"
+
+#, python-format
+msgid "View %(type)s"
+msgstr ""
 
 msgid "View All »"
 msgstr "Tümünü Göster »"
@@ -17602,6 +18089,12 @@ msgstr ""
 "sütununa uygulayın."
 
 msgid ""
+"When typing or pasting filter values, commas will separate values into "
+"multiple entries. To include a comma within a value, wrap it in double "
+"quotes: \"San Francisco, CA\""
+msgstr ""
+
+msgid ""
 "When unchecked, colors from the selected color scheme will be used for "
 "time shifted series"
 msgstr ""
@@ -17674,6 +18167,9 @@ msgstr "Grafik için bir efsane gösterelim"
 
 msgid "Whether to display bubbles on top of countries"
 msgstr "Ülkelerin tepesinde balonları gösterebilmek"
+
+msgid "Whether to display entries with null values in the hierarchy"
+msgstr ""
 
 msgid "Whether to display in the chart"
 msgstr "Grafikte gösterebilmek"
@@ -17799,8 +18295,10 @@ msgstr "Ya da inmek ya da yükselmek"
 msgid "Whether to sort results by the selected metric in descending order."
 msgstr "Aşağıdaki metrik tarafından alınan siparişle sonuç alın."
 
-msgid "Whether to sort tooltip by the selected metric in descending order."
-msgstr "Seçilmiş metrik tarafından sıralayın."
+msgid ""
+"Whether to sort tooltip by the selected metric in descending order. On "
+"stacked charts, values are shown in ascending order."
+msgstr ""
 
 msgid "Whether to truncate metrics"
 msgstr "truncate metrics"
@@ -17963,6 +18461,9 @@ msgstr "Y-axis"
 
 msgid "Y-axis bounds"
 msgstr "Y-axis sınırları"
+
+msgid "Y-axis range slider"
+msgstr ""
 
 msgid "Y-scale interval"
 msgstr "Y-scale interval"
@@ -18249,6 +18750,31 @@ msgstr ""
 "erişimi istemek için bir %s düzenleyicisine ulaşın."
 
 msgid ""
+"You must be a chart editor in order to delete. Please reach out to a "
+"chart editor to request modifications or edit access."
+msgstr ""
+
+msgid ""
+"You must be a chart editor in order to edit. Please reach out to a chart "
+"editor to request modifications or edit access."
+msgstr ""
+
+msgid ""
+"You must be a dashboard editor in order to delete. Please reach out to a "
+"dashboard editor to request modifications or edit access."
+msgstr ""
+
+msgid ""
+"You must be a dashboard editor in order to edit. Please reach out to a "
+"dashboard editor to request modifications or edit access."
+msgstr ""
+
+msgid ""
+"You must be a dataset editor in order to delete. Please reach out to a "
+"dataset editor to request modifications or edit access."
+msgstr ""
+
+msgid ""
 "You must be a dataset editor in order to edit. Please reach out to a "
 "dataset editor to request modifications or edit access."
 msgstr ""
@@ -18319,11 +18845,35 @@ msgstr "grafiğiniz tarihe kadar değil"
 msgid "Your chart is ready to go!"
 msgstr "Grafikiniz gitmek için hazır!"
 
+#, python-format
+msgid "Your dashboard export could not be completed: %(title)s"
+msgstr ""
+
+#, python-format
+msgid "Your dashboard export is ready: %(title)s"
+msgstr ""
+
 msgid "Your dashboard is near the size limit."
 msgstr "Paneliniz boyut sınırının yakınında."
 
-msgid "Your dashboard is too large. Please reduce its size before saving it."
-msgstr "Gösterim Paneli’unuz çok büyük. Lütfen kaydetmeden önce boyutunu küçültün."
+#, python-format
+msgid ""
+"Your dashboard is too large to save: the serialized layout length is %s "
+"but the limit is %s. Reduce the dashboard size (for example, split it "
+"into multiple dashboards) or raise the "
+"SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting."
+msgstr ""
+
+msgid "Your export is being prepared. You'll receive an email when it's ready."
+msgstr ""
+
+#, python-format
+msgid "Your export of \"%(title)s\" could not be completed."
+msgstr ""
+
+#, python-format
+msgid "Your export of \"%(title)s\" is ready."
+msgstr ""
 
 msgid "Your query could not be saved"
 msgstr "Sorgunuz kaydedilemedi"
@@ -18847,9 +19397,6 @@ msgstr "tüm satır"
 msgid "entries"
 msgstr "giriş girişleri"
 
-msgid "entries per page"
-msgstr "Sayfa başına girişler"
-
 msgid "error"
 msgstr "hata"
 
@@ -19233,6 +19780,9 @@ msgstr "yetkilendirme sağlayın"
 msgid "quarter"
 msgstr "çeyrek"
 
+msgid "queries"
+msgstr ""
+
 msgid "query"
 msgstr "Soru"
 
@@ -19277,6 +19827,9 @@ msgstr "şema1,schema2"
 
 msgid "seconds"
 msgstr "saniye"
+
+msgid "semantic layer"
+msgstr ""
 
 msgid "series"
 msgstr "serisi"
@@ -19416,6 +19969,9 @@ msgstr "değer yükselmeye değer"
 
 msgid "value descending"
 msgstr "Değer inen"
+
+msgid "valuename"
+msgstr ""
 
 msgid "var"
 msgstr "Var"

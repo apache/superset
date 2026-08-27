@@ -55,6 +55,25 @@ test('preserves a custom icon color (antd v6 Tag icon-style regression)', () => 
   });
 });
 
+// Regression: wrapping the icon in a span (see above) stops antd's
+// `> .anticon + span` rule from matching, which had spaced the icon from the
+// label text. Label restores that gap on the content span next to the icon.
+test('keeps a gap between the icon and the label text (#42139)', () => {
+  const { getByText } = render(
+    <Label icon={<Icons.CheckCircleOutlined iconColor="#aabbcc" />}>
+      labeled
+    </Label>,
+  );
+  expect(getByText('labeled')).toHaveStyle({ marginInlineStart: '8px' });
+});
+
+// The icon gap must not leak onto icon-less labels: the content spacing is
+// gated on `icon`, so a label without an icon keeps its natural spacing.
+test('does not add the icon gap to an icon-less label (#42139)', () => {
+  const { getByText } = render(<Label>unlabeled</Label>);
+  expect(getByText('unlabeled')).not.toHaveStyle({ marginInlineStart: '8px' });
+});
+
 // test stories from the storybook!
 test('renders all the storybook gallery variants', () => {
   const { container } = render(<LabelGallery />);

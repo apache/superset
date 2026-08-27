@@ -38,6 +38,14 @@
  *
  * NOTE: the embedded suite only runs when the embedded SDK bundle is built and
  * INCLUDE_EMBEDDED=true (CI sets both). It is skipped otherwise.
+ *
+ * NOTE: the embedded project runs with admin storageState, and the session
+ * cookie the iframe ends up with is racy: the /embedded/<uuid> response
+ * rotates it to an anonymous session while the SDK's parallel csrf and
+ * guest-token fetches rewrite the admin one, so chart data requests are
+ * evaluated as either admin or guest depending on which response lands last.
+ * Fixture charts must therefore hold up under GUEST evaluation — see the
+ * query_context note below — or the suite only passes when admin wins.
  */
 import { test, expect, Browser, BrowserContext, Page } from '@playwright/test';
 import { createServer, IncomingMessage, ServerResponse, Server } from 'http';
@@ -53,6 +61,7 @@ import { apiPost, apiPut } from '../../helpers/api/requests';
 import {
   apiPostDashboard,
   apiDeleteDashboard,
+  buildSingleRowDashboardLayout,
 } from '../../helpers/api/dashboard';
 import { apiDeleteChart } from '../../helpers/api/chart';
 import { EmbeddedPage } from '../../pages/EmbeddedPage';
@@ -181,45 +190,54 @@ test.describe('Embedded Pivot Table collapse state (#33406)', () => {
         row_limit: 1000,
         order_desc: true,
       };
+      // Charts saved through Explore always persist a query_context alongside
+      // params. Store one here too: guest (embedded) requests are validated
+      // against the stored chart, and a params-only chart makes the guest
+      // payload look tampered (its query `columns` aren't found on the chart),
+      // failing every chart data request with a 403.
+      const queryContext = {
+        datasource: { id: datasetId, type: 'table' },
+        force: false,
+        queries: [
+          {
+            filters: [],
+            extras: { having: '', where: '' },
+            applied_time_extras: {},
+            columns: ['state', 'name'],
+            metrics: ['count'],
+            orderby: [['count', false]],
+            annotation_layers: [],
+            row_limit: 1000,
+            series_limit: 0,
+            order_desc: true,
+            url_params: {},
+            custom_params: {},
+            custom_form_data: {},
+          },
+        ],
+        form_data: params,
+        result_format: 'json',
+        result_type: 'full',
+      };
       const chartResp = await apiPost(setupPage, 'api/v1/chart/', {
         slice_name: `pivot_collapse_repro_${Date.now()}`,
         viz_type: 'pivot_table_v2',
         datasource_id: datasetId,
         datasource_type: 'table',
         params: JSON.stringify(params),
+        query_context: JSON.stringify(queryContext),
+        query_context_generation: true,
       });
       chartId = (await chartResp.json()).id;
 
-      const chartLayoutKey = `CHART-${chartId}`;
-      const positionJson = {
-        DASHBOARD_VERSION_KEY: 'v2',
-        ROOT_ID: { type: 'ROOT', id: 'ROOT_ID', children: ['GRID_ID'] },
-        GRID_ID: {
-          type: 'GRID',
-          id: 'GRID_ID',
-          children: ['ROW-1'],
-          parents: ['ROOT_ID'],
+      const positionJson = buildSingleRowDashboardLayout([
+        {
+          id: chartId,
+          sliceName: 'pivot_collapse_repro',
+          width: 6,
+          height: 80,
         },
-        'ROW-1': {
-          type: 'ROW',
-          id: 'ROW-1',
-          children: [chartLayoutKey],
-          parents: ['ROOT_ID', 'GRID_ID'],
-          meta: { background: 'BACKGROUND_TRANSPARENT' },
-        },
-        [chartLayoutKey]: {
-          type: 'CHART',
-          id: chartLayoutKey,
-          children: [],
-          parents: ['ROOT_ID', 'GRID_ID', 'ROW-1'],
-          meta: {
-            chartId,
-            width: 6,
-            height: 80,
-            sliceName: 'pivot_collapse_repro',
-          },
-        },
-      };
+      ]);
       const dashResp = await apiPostDashboard(setupPage, {
         dashboard_title: `pivot_collapse_repro_${Date.now()}`,
         published: true,

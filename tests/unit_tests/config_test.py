@@ -47,6 +47,32 @@ FULL_DTTM_DEFAULTS_EXAMPLE = {
 }
 
 
+def test_invalid_version_history_retention_env_uses_default(
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Invalid retention input does not prevent configuration from loading."""
+    from superset import config
+
+    monkeypatch.setenv("SUPERSET_VERSION_HISTORY_RETENTION_DAYS", "30d")
+
+    assert config._parse_version_history_retention_days() == 30
+    assert "Invalid SUPERSET_VERSION_HISTORY_RETENTION_DAYS='30d'" in caplog.text
+
+
+def test_oversized_version_history_retention_env_uses_default(
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """An oversized retention window cannot overflow cutoff arithmetic."""
+    from superset import config
+
+    monkeypatch.setenv("SUPERSET_VERSION_HISTORY_RETENTION_DAYS", "1000000000")
+
+    assert config._parse_version_history_retention_days() == 30
+    assert "exceeds the maximum" in caplog.text
+
+
 def apply_dttm_defaults(table: "SqlaTable", dttm_defaults: dict[str, Any]) -> None:
     """Applies dttm defaults to the table, mutates in place."""
     for dbcol in table.columns:

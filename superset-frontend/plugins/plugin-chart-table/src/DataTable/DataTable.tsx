@@ -258,6 +258,7 @@ export default typedMemo(function DataTable<D extends object>({
       sortTypes,
       autoResetGlobalFilter: !isEqual(columnNames, previousColumnNames),
       autoResetSortBy: !isEqual(columnNames, previousColumnNames),
+      autoResetPage: !isEqual(columnNames, previousColumnNames),
       manualSortBy: !!serverPagination,
       ...moreUseTableOptions,
     },
@@ -582,7 +583,7 @@ export default typedMemo(function DataTable<D extends object>({
             <Flex wrap align="center" gap="middle">
               {searchInput && (
                 <>
-                  {serverPagination && (
+                  {serverPagination && searchOptions?.length > 0 && (
                     <Space direction="vertical" size={4}>
                       {t('Search by')}
                       <SearchSelectDropdown

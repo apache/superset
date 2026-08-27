@@ -390,7 +390,7 @@ const ResultSet = ({
               // provides.
               redirect(getExportCsvUrl(query.id));
             },
-            confirmText: t('OK'),
+            confirmText: t('Confirm'),
             cancelText: t('Close'),
           });
         }
@@ -618,7 +618,26 @@ const ResultSet = ({
   }
 
   if (query.state === QueryState.Failed) {
-    const errors = [...(query.extra?.errors || []), ...(query.errors || [])];
+    // A failed query can carry the same error in both `query.errors` (set by
+    // the queryFailed action) and `query.extra.errors` (set by the async
+    // refresh). When falling back to async polling both get populated with
+    // identical errors, so deduplicate to avoid rendering each error twice.
+    const seenErrors = new Set<string>();
+    const errors = [
+      ...(query.extra?.errors || []),
+      ...(query.errors || []),
+    ].filter(error => {
+      // json-bigint parsing can leave native BigInt values in payloads,
+      // which JSON.stringify rejects; serialize them as strings.
+      const key = JSON.stringify(error, (_, value) =>
+        typeof value === 'bigint' ? value.toString() : value,
+      );
+      if (seenErrors.has(key)) {
+        return false;
+      }
+      seenErrors.add(key);
+      return true;
+    });
 
     return (
       <ResultlessStyles>
@@ -700,7 +719,7 @@ const ResultSet = ({
     if (data && data.length > 0) {
       const allowHTML = getItem(
         LocalStorageKeys.SqllabIsRenderHtmlEnabled,
-        true,
+        false,
       );
 
       const tableProps = {

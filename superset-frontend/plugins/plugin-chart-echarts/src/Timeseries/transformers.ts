@@ -51,6 +51,7 @@ import { extractForecastSeriesContext } from '../utils/forecast';
 import {
   EchartsTimeseriesSeriesType,
   ForecastSeriesEnum,
+  LabelPositionEnum,
   LegendOrientation,
   OrientationType,
   StackType,
@@ -68,6 +69,31 @@ import {
   StackControlsValue,
   TIMESERIES_CONSTANTS,
 } from '../constants';
+
+function parseTimeShiftToMs(timeShift?: string | null): number {
+  if (!timeShift) return 0;
+
+  const match = timeShift
+    .trim()
+    .match(/^(-?\d+(?:\.\d+)?)\s*(second|minute|hour|day|week|month|year)s?$/i);
+
+  if (!match) return 0;
+
+  const value = Number(match[1]);
+  const unit = match[2].toLowerCase();
+
+  const MS: Record<string, number> = {
+    second: 1000,
+    minute: 60 * 1000,
+    hour: 60 * 60 * 1000,
+    day: 24 * 60 * 60 * 1000,
+    week: 7 * 24 * 60 * 60 * 1000,
+    month: 30 * 24 * 60 * 60 * 1000,
+    year: 365 * 24 * 60 * 60 * 1000,
+  };
+
+  return value * (MS[unit] ?? 0);
+}
 
 // based on weighted wiggle algorithm
 // source: https://ieeexplore.ieee.org/document/4658136
@@ -145,6 +171,7 @@ export const getBaselineSeriesForStream = (
 export function transformNegativeLabelsPosition(
   series: SeriesOption,
   isHorizontal: boolean,
+  labelPosition?: string,
 ): TimeseriesDataRecord[] {
   /*
    * Adjusts label position for negative values in bar series
@@ -160,7 +187,10 @@ export function transformNegativeLabelsPosition(
       ? {
           value,
           label: {
-            position: 'outside',
+            position:
+              labelPosition && labelPosition !== 'auto'
+                ? labelPosition
+                : 'outside',
           },
         }
       : value;
@@ -205,6 +235,7 @@ export function transformSeries(
     seriesContexts?: { [key: string]: ForecastSeriesEnum[] };
     markerEnabled?: boolean;
     markerSize?: number;
+    symbolSizeFn?: (value: (number | string | null)[]) => number;
     areaOpacity?: number;
     seriesType?: EchartsTimeseriesSeriesType;
     stack?: StackType;
@@ -229,6 +260,7 @@ export function transformSeries(
     theme?: SupersetTheme;
     hasDimensions?: boolean;
     colorByPrimaryAxis?: boolean;
+    labelPosition?: string;
   },
 ): SeriesOption | undefined {
   const { name, data } = series;
@@ -239,6 +271,7 @@ export function transformSeries(
     seriesContexts = {},
     markerEnabled,
     markerSize,
+    symbolSizeFn,
     areaOpacity = 1,
     seriesType,
     stack,
@@ -260,6 +293,7 @@ export function transformSeries(
     timeShiftColor,
     theme,
     colorByPrimaryAxis = false,
+    labelPosition,
   } = opts;
   const contexts = seriesContexts[name || ''] || [];
   const hasForecast =
@@ -379,7 +413,13 @@ export function transformSeries(
             ),
           }
         : seriesType === 'bar' && !stack
-          ? { data: transformNegativeLabelsPosition(series, isHorizontal) }
+          ? {
+              data: transformNegativeLabelsPosition(
+                series,
+                isHorizontal,
+                labelPosition,
+              ),
+            }
           : null
       : null),
     connectNulls,
@@ -413,10 +453,15 @@ export function transformSeries(
     emphasis,
     showSymbol,
     symbol,
-    symbolSize: markerSize,
+    symbolSize: symbolSizeFn ?? markerSize,
     label: {
       show: !!showValue,
-      position: isHorizontal ? 'right' : 'top',
+      position: (labelPosition === 'auto' || !labelPosition
+        ? isHorizontal
+          ? LabelPositionEnum.Right
+          : LabelPositionEnum.Top
+        : labelPosition) as LabelPositionEnum,
+      ...(plotType === 'bar' ? { overflow: 'truncate' } : {}),
       color: theme?.colorText,
       textBorderWidth: 0,
       formatter: (params: any) => {
@@ -440,6 +485,14 @@ export function transformSeries(
           return formatter(numericValue);
         }
         if (!onlyTotal) {
+          // A stacked segment with no height begins and ends at the same
+          // coordinate as the top of the segment beneath it, so its label is
+          // drawn over that segment's label. Zero and null have no height, so
+          // they carry no label. The rich tooltip omits zero observations from
+          // a stacked series for the same reason.
+          if (stack && !numericValue) {
+            return '';
+          }
           if (
             numericValue >=
             (thresholdValues[dataIndex] || Number.MIN_SAFE_INTEGER)
@@ -521,7 +574,8 @@ export function transformIntervalAnnotation(
   });
 
   const allIntervalData: (
-    MarkArea1DDataItemOption | MarkArea2DDataItemOption
+    | MarkArea1DDataItemOption
+    | MarkArea2DDataItemOption
   )[] = annotations.map(annotation => {
     const { intervalEnd, time = '' } = annotation;
     const combinedLabel = (intervalsByStartTime.get(time) || []).join('\n');
@@ -685,14 +739,27 @@ export function transformTimeseriesAnnotation(
 ): SeriesOption[] {
   const series: SeriesOption[] = [];
   const { hideLine, name, opacity, showMarkers, style, width, color } = layer;
+
+  const shiftMs = parseTimeShiftToMs((layer as any)?.overrides?.time_shift);
+
   const result = annotationData[name];
   const isHorizontal = orientation === OrientationType.Horizontal;
   const { records } = result;
   if (records) {
     const data = records.map(record => {
       const keys = Object.keys(record);
-      const x = keys.length > 0 ? record[keys[0]] : 0;
+
+      let x = keys.length > 0 ? record[keys[0]] : 0;
       const y = keys.length > 1 ? record[keys[1]] : 0;
+
+      if (shiftMs !== 0 && x != null) {
+        const xMs = typeof x === 'string' ? new Date(x).getTime() : Number(x);
+
+        if (!Number.isNaN(xMs)) {
+          x = xMs + shiftMs;
+        }
+      }
+
       return isHorizontal
         ? ([y, x] as [number, OptionName])
         : ([x, y] as [OptionName, number]);

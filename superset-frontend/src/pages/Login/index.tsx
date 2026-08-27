@@ -96,7 +96,10 @@ export default function Login() {
   }, []);
 
   const loginEndpoint = useMemo(
-    () => (nextUrl ? `/login/?next=${encodeURIComponent(nextUrl)}` : '/login/'),
+    () =>
+      ensureAppRoot(
+        nextUrl ? `/login/?next=${encodeURIComponent(nextUrl)}` : '/login/',
+      ),
     [nextUrl],
   );
 
@@ -133,7 +136,7 @@ export default function Login() {
     sessionStorage.setItem('login_attempted', 'true');
 
     // Use standard form submission for Flask-AppBuilder compatibility
-    SupersetClient.postForm(loginEndpoint, values, '');
+    SupersetClient.postForm(ensureAppRoot(loginEndpoint), values, '');
   };
 
   const getAuthIconElement = (

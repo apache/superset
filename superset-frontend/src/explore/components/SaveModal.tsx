@@ -52,10 +52,7 @@ import { css, styled, useTheme } from '@apache-superset/core/theme';
 import { Alert } from '@apache-superset/core/components';
 import { Radio } from '@superset-ui/core/components/Radio';
 import { GRID_COLUMN_COUNT } from 'src/dashboard/util/constants';
-import {
-  canUserEditDashboard,
-  isUserAdmin,
-} from 'src/dashboard/util/permissionUtils';
+import { canUserEditDashboard } from 'src/dashboard/util/permissionUtils';
 import { setSaveChartModalVisibility } from 'src/explore/actions/saveModalActions';
 import {
   SaveActionType,
@@ -68,7 +65,7 @@ import {
   updateChartState,
 } from 'src/dashboard/actions/dashboardState';
 import { Dashboard } from 'src/types/Dashboard';
-import getBootstrapData from 'src/utils/getBootstrapData';
+import { canOverwriteSlice as canOverwriteSliceFor } from 'src/explore/exploreUtils/canOverwriteSlice';
 import { TabNode, TabTreeNode } from '../types';
 import { CHART_WIDTH, CHART_HEIGHT } from 'src/dashboard/constants';
 
@@ -228,38 +225,11 @@ const SaveModal = ({
   const history = useHistory();
   const theme = useTheme();
 
-  const isCurrentUserOwner = useCallback((): boolean => {
-    const userId = user?.userId;
-    if (userId === undefined) {
-      return false;
-    }
-    // The Slice type declares `owners` as `number[]`, but the explore
-    // bootstrap payload can carry owners as API `Owner` objects (`{ id }`)
-    // instead, so normalize to the numeric id before comparing.
-    return Boolean(
-      slice?.owners?.some((owner: number | { id?: number }) =>
-        typeof owner === 'number' ? owner === userId : owner?.id === userId,
-      ),
-    );
-  }, [slice, user]);
-
-  const canOverwriteSlice = useCallback((): boolean => {
-    const userSubjects = getBootstrapData()?.common?.user_subjects ?? [];
-    const canEditSlice = Boolean(
-      slice?.editors?.some((editor: { id: number } | number) =>
-        userSubjects.includes(typeof editor === 'number' ? editor : editor.id),
-      ),
-    );
-
-    return (
-      !!slice &&
-      (can_overwrite ||
-        isUserAdmin(user) ||
-        canEditSlice ||
-        isCurrentUserOwner()) &&
-      !slice?.is_managed_externally
-    );
-  }, [can_overwrite, slice, user, isCurrentUserOwner]);
+  const canOverwriteSlice = useCallback(
+    (): boolean =>
+      canOverwriteSliceFor({ slice, user, canOverwrite: can_overwrite }),
+    [can_overwrite, slice, user],
+  );
 
   const [newSliceName, setNewSliceName] = useState<string | undefined>(
     sliceName,

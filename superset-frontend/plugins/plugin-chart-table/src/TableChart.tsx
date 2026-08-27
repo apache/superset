@@ -46,6 +46,7 @@ import {
   BinaryQueryObjectFilterClause,
   extractTextFromHTML,
   TimeGranularity,
+  forceHexAlpha,
 } from '@superset-ui/core';
 import {
   styled,
@@ -1068,10 +1069,10 @@ export default function TableChart<D extends DataRecord = DataRecord>(
           const originKey = column.key.substring(column.label.length).trim();
           if (!hasColumnColorFormatters && hasBasicColorFormatters) {
             backgroundColor =
-              basicColorFormatters[row.index][originKey]?.backgroundColor;
+              basicColorFormatters[row.index]?.[originKey]?.backgroundColor;
             arrow =
               column.label === comparisonLabels[0]
-                ? basicColorFormatters[row.index][originKey]?.mainArrow
+                ? basicColorFormatters[row.index]?.[originKey]?.mainArrow
                 : '';
           }
 
@@ -1094,7 +1095,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                 formatter.objectFormatting === ObjectFormattingEnum.CELL_BAR
               ) {
                 if (generalShowCellBars)
-                  backgroundColorCellBar = formatterResult.slice(0, -2);
+                  backgroundColorCellBar = forceHexAlpha(formatterResult);
               } else {
                 backgroundColor = formatterResult;
                 valueRangeFlag = false;
@@ -1133,11 +1134,12 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             basicColorColumnFormatters?.length > 0
           ) {
             backgroundColor =
-              basicColorColumnFormatters[row.index][column.key]
+              basicColorColumnFormatters[row.index]?.[column.key]
                 ?.backgroundColor || backgroundColor;
             arrow =
               column.label === comparisonLabels[0]
-                ? basicColorColumnFormatters[row.index][column.key]?.mainArrow
+                ? (basicColorColumnFormatters[row.index]?.[column.key]
+                    ?.mainArrow ?? arrow)
                 : '';
           }
           const rowSurfaceColor =
@@ -1182,7 +1184,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                   alignPositiveNegative,
                 })}%`};
                 background-color: ${
-                  (backgroundColorCellBar && `${backgroundColorCellBar}99`) ||
+                  backgroundColorCellBar ||
                   cellBackground({
                     value: value as number,
                     colorPositiveNegative,
@@ -1193,30 +1195,36 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             }
           `;
 
-          let arrowStyles = css`
-            color: ${
+          // Plain inline style (rather than the `css` prop) so the arrow's
+          // color is guaranteed to apply regardless of whether the consuming
+          // app's build wires up the emotion JSX pragma for the `css` prop --
+          // notably, this codebase's own Jest/Babel config does not, which
+          // silently no-ops any `css` prop on a plain DOM element.
+          let arrowStyles: CSSProperties = {
+            color:
               basicColorFormatters &&
-              basicColorFormatters[row.index][originKey]?.arrowColor ===
+              basicColorFormatters[row.index]?.[originKey]?.arrowColor ===
                 ColorSchemeEnum.Green
                 ? theme.colorSuccess
-                : theme.colorError
-            };
-            margin-right: ${theme.sizeUnit}px;
-          `;
+                : theme.colorError,
+            marginRight: theme.sizeUnit,
+          };
 
           if (
             basicColorColumnFormatters &&
             basicColorColumnFormatters?.length > 0
           ) {
-            arrowStyles = css`
-              color: ${
-                basicColorColumnFormatters[row.index][column.key]
-                  ?.arrowColor === ColorSchemeEnum.Green
-                  ? theme.colorSuccess
-                  : theme.colorError
+            const columnArrowColor =
+              basicColorColumnFormatters[row.index]?.[column.key]?.arrowColor;
+            if (columnArrowColor) {
+              arrowStyles = {
+                color:
+                  columnArrowColor === ColorSchemeEnum.Green
+                    ? theme.colorSuccess
+                    : theme.colorError,
+                marginRight: theme.sizeUnit,
               };
-              margin-right: ${theme.sizeUnit}px;
-            `;
+            }
           }
 
           const cellProps = {
@@ -1301,12 +1309,12 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                   className="dt-truncate-cell"
                   style={columnWidth ? { width: columnWidth } : undefined}
                 >
-                  {arrow && <span css={arrowStyles}>{arrow}</span>}
+                  {arrow && <span style={arrowStyles}>{arrow}</span>}
                   {text}
                 </div>
               ) : (
                 <>
-                  {arrow && <span css={arrowStyles}>{arrow}</span>}
+                  {arrow && <span style={arrowStyles}>{arrow}</span>}
                   {text}
                 </>
               )}

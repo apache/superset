@@ -25,6 +25,7 @@ from superset.commands.importers.v1.utils import find_existing_for_import
 from superset.migrations.shared.migrate_viz import processors
 from superset.migrations.shared.migrate_viz.base import MigrateViz
 from superset.models.slice import Slice
+from superset.subjects.models import Subject
 from superset.utils import json
 from superset.utils.core import AnnotationType, get_user
 
@@ -137,6 +138,7 @@ def import_chart(
     config: dict[str, Any],
     overwrite: bool = False,
     ignore_permissions: bool = False,
+    default_viewers: list[Subject] | None = None,
 ) -> Slice:
     """Import a chart from a config dict, handling existing matches.
 
@@ -201,12 +203,29 @@ def import_chart(
     if chart.id is None:
         db.session.flush()
 
-    if user:
-        from superset.subjects.utils import get_user_subject
+    # Only newly created charts inherit the creator's editor/viewer defaults;
+    # re-importing over an existing chart (overwrite or soft-delete restore)
+    # must not silently grant the importer's groups access. Mirrors the
+    # dashboard importer's ``not existing`` guard.
+    if not existing and user:
+        from superset.subjects.utils import (
+            get_default_viewers_for_new_asset,
+            get_user_subject,
+        )
 
         subj = get_user_subject(user.id)
         if subj and subj not in chart.editors:
             chart.editors.append(subj)
+        # Resolved once by bulk importers and passed in; recomputed here only
+        # for direct callers that omit it (one membership query per asset).
+        viewers = (
+            default_viewers
+            if default_viewers is not None
+            else get_default_viewers_for_new_asset(user.id)
+        )
+        for viewer in viewers:
+            if viewer not in chart.viewers:
+                chart.viewers.append(viewer)
 
     return chart
 

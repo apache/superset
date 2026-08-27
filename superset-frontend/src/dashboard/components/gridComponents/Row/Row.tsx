@@ -37,6 +37,7 @@ import {
   Droppable,
 } from 'src/dashboard/components/dnd/DragDroppable';
 import DragHandle from 'src/dashboard/components/dnd/DragHandle';
+import { isMobileConsumptionEnabled } from 'src/hooks/useIsMobile';
 import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
 import DeleteComponentButton from 'src/dashboard/components/DeleteComponentButton';
 import HoverMenu from 'src/dashboard/components/menu/HoverMenu';
@@ -46,7 +47,11 @@ import WithPopoverMenu from 'src/dashboard/components/menu/WithPopoverMenu';
 import backgroundStyleOptions from 'src/dashboard/util/backgroundStyleOptions';
 import { BACKGROUND_TRANSPARENT } from 'src/dashboard/util/constants';
 import { isEmbedded } from 'src/dashboard/util/isEmbedded';
-import { EMPTY_CONTAINER_Z_INDEX } from 'src/dashboard/constants';
+import {
+  EMPTY_CONTAINER_Z_INDEX,
+  FORCE_IN_VIEW_EVENT,
+  RESTORE_VIRTUALIZATION_EVENT,
+} from 'src/dashboard/constants';
 import { isCurrentUserBot } from 'src/utils/isBot';
 
 export type RowProps = {
@@ -119,6 +124,27 @@ const GridRow = styled.div<{ editMode: boolean }>`
 
     &.grid-row--empty {
       min-height: ${theme.sizeUnit * 25}px;
+    }
+
+    ${
+      isMobileConsumptionEnabled() &&
+      css`
+        @media (max-width: ${theme.screenSMMax}px) {
+          flex-direction: column;
+
+          & > :not(.hover-menu) {
+            width: 100% !important;
+            margin-right: 0 !important;
+          }
+
+          /* Stacked children get the same vertical gutter GridContent puts
+           between rows and Column puts between its children, so spacing
+           stays uniform across the whole stacked layout */
+          & > :not(.hover-menu):not(:last-child) {
+            margin-bottom: ${theme.sizeUnit * 4}px;
+          }
+        }
+      `
     }
   `}
 `;
@@ -207,6 +233,49 @@ const Row = memo((props: RowProps) => {
         observerEnabler.observe(element);
         observerDisabler.observe(element);
       }
+
+      // Client-side "Download as Image/PDF" (see src/utils/downloadUtils.ts)
+      // dispatches these events so off-screen rows render before the capture
+      // and lazy loading is restored afterwards. Without this, virtualized
+      // charts are exported as loading spinners.
+      //
+      // The force event optionally carries a `rowIds` batch in its detail so
+      // large dashboards can be force-rendered a few rows at a time instead
+      // of every row at once (see FORCE_RENDER_BATCH_SIZE in
+      // downloadUtils.ts). No detail means "force every row", preserving the
+      // original single-shot behavior for any other future caller.
+      const handleForceInView = (event: Event) => {
+        const rowIds = (event as CustomEvent<{ rowIds?: string[] }>).detail
+          ?.rowIds;
+        if (rowIds && !rowIds.includes(rowComponent.id as string)) {
+          return;
+        }
+        observerEnabler?.disconnect();
+        observerDisabler?.disconnect();
+        setIsInView(true);
+      };
+      const handleRestoreVirtualization = () => {
+        const el = containerRef.current;
+        if (el) {
+          observerEnabler?.observe(el);
+          observerDisabler?.observe(el);
+        }
+      };
+      window.addEventListener(FORCE_IN_VIEW_EVENT, handleForceInView);
+      window.addEventListener(
+        RESTORE_VIRTUALIZATION_EVENT,
+        handleRestoreVirtualization,
+      );
+
+      return () => {
+        observerEnabler?.disconnect();
+        observerDisabler?.disconnect();
+        window.removeEventListener(FORCE_IN_VIEW_EVENT, handleForceInView);
+        window.removeEventListener(
+          RESTORE_VIRTUALIZATION_EVENT,
+          handleRestoreVirtualization,
+        );
+      };
     }
 
     return () => {
@@ -293,6 +362,8 @@ const Row = memo((props: RowProps) => {
             <DeleteComponentButton onDelete={handleDeleteComponent} />
             <IconButton
               onClick={() => handleChangeFocus(true)}
+              label={t('Row settings')}
+              hideVisibleLabel
               icon={<Icons.SettingOutlined iconSize="l" />}
             />
           </HoverMenu>
@@ -305,6 +376,7 @@ const Row = memo((props: RowProps) => {
             backgroundStyle.className,
           )}
           data-test={`grid-row-${backgroundStyle.className}`}
+          data-row-id={rowComponent.id}
           ref={containerRef}
           editMode={editMode}
         >

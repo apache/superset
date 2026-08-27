@@ -199,6 +199,31 @@ def _extract_filter_extra_form_data(
     return None, DashboardFilterStatus.NOT_APPLIED
 
 
+def _resolve_filter_extra_form_data(
+    filter_config: dict[str, Any],
+    active_data_mask: dict[str, Any] | None,
+) -> tuple[dict[str, Any] | None, DashboardFilterStatus]:
+    """
+    Resolve a filter's extra_form_data and status, preferring an active value
+    from ``active_data_mask`` over the filter's saved default.
+
+    When ``active_data_mask`` provides an entry for this filter, its
+    ``extraFormData`` is authoritative: a non-empty value is APPLIED, while an
+    empty value means the user explicitly cleared the filter (NOT_APPLIED, with
+    no fallback to the saved default). When no active entry exists, fall back to
+    the saved-default behavior in ``_extract_filter_extra_form_data``.
+
+    Returns (extra_form_data, status).
+    """
+    flt_id = filter_config.get("id", "")
+    if active_data_mask is not None and flt_id in active_data_mask:
+        active_efd = (active_data_mask[flt_id] or {}).get("extraFormData") or {}
+        if active_efd:
+            return active_efd, DashboardFilterStatus.APPLIED
+        return None, DashboardFilterStatus.NOT_APPLIED
+    return _extract_filter_extra_form_data(filter_config)
+
+
 def _get_filter_target_column(filter_config: dict[str, Any]) -> str | None:
     """Extract the target column name from a native filter configuration."""
     if targets := filter_config.get("targets", []):
@@ -244,16 +269,26 @@ def _check_dashboard_access(dashboard: Dashboard) -> None:
 def get_dashboard_filter_context(
     dashboard_id: int,
     chart_id: int,
+    *,
+    active_data_mask: dict[str, Any] | None = None,
 ) -> DashboardFilterContext:
     """
     Build a DashboardFilterContext for a chart on a dashboard.
 
     Loads the dashboard's native filter configuration, determines which
-    filters are in scope for the given chart, extracts default filter values,
+    filters are in scope for the given chart, resolves each filter's value,
     and returns the merged extra_form_data along with metadata about each filter.
+
+    When ``active_data_mask`` is provided (e.g. the live filter state from a
+    dashboard view), each in-scope filter present in the mask uses its active
+    ``extraFormData`` instead of the saved default; an empty active value means
+    the filter was cleared. Filters absent from the mask fall back to their
+    saved defaults, so omitting ``active_data_mask`` reproduces the dashboard's
+    initial-load behavior.
 
     :param dashboard_id: The ID of the dashboard
     :param chart_id: The ID of the chart
+    :param active_data_mask: Optional live filter state keyed by native filter id
     :returns: DashboardFilterContext with merged extra_form_data and filter metadata
     :raises ValueError: if dashboard not found or chart not on dashboard
     :raises SupersetSecurityException: if the user cannot access the dashboard
@@ -287,7 +322,7 @@ def get_dashboard_filter_context(
         flt_id = flt.get("id", "")
         flt_name = flt.get("name", "")
         target_column = _get_filter_target_column(flt)
-        extra_form_data, status = _extract_filter_extra_form_data(flt)
+        extra_form_data, status = _resolve_filter_extra_form_data(flt, active_data_mask)
 
         if extra_form_data and status == DashboardFilterStatus.APPLIED:
             context.extra_form_data = _merge_extra_form_data(

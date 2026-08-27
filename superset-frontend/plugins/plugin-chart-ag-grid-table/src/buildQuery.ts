@@ -35,8 +35,10 @@ import {
   BuildQuery,
 } from '@superset-ui/core';
 import {
+  getTotalsMetrics,
   isTimeComparison,
   timeCompareOperator,
+  toTotalsAggregate,
 } from '@superset-ui/chart-controls';
 import { isEmpty } from 'lodash-es';
 import { TableChartFormData } from './types';
@@ -58,7 +60,7 @@ export function getQueryMode(formData: TableChartFormData) {
   return hasRawColumns ? QueryMode.Raw : QueryMode.Aggregate;
 }
 
-const buildQuery: BuildQuery<TableChartFormData> = (
+export const buildQueryUncached: BuildQuery<TableChartFormData> = (
   formData: TableChartFormData,
   options,
 ) => {
@@ -209,6 +211,20 @@ const buildQuery: BuildQuery<TableChartFormData> = (
 
     const moreProps: Partial<QueryObject> = {};
     const ownState = options?.ownState ?? {};
+    // Server pagination sizing, shared between the per-page request below and
+    // the filter-change reset further down.
+    const pageSize =
+      Number(ownState.pageSize ?? formDataCopy.server_page_length) || 0;
+    const configuredRowLimit = Number(formDataCopy.row_limit) || 0;
+    // row_limit for the first page, capped by the configured row limit. Used
+    // when a filter change resets pagination back to page 0. A pageSize of 0
+    // means "no pagination", so the configured row limit applies directly.
+    const firstPageRowLimit =
+      pageSize > 0
+        ? configuredRowLimit > 0
+          ? Math.min(pageSize, configuredRowLimit)
+          : pageSize
+        : configuredRowLimit;
 
     // Build Query flag to check if its for either download as csv, excel or json
     const isDownloadQuery =
@@ -222,11 +238,36 @@ const buildQuery: BuildQuery<TableChartFormData> = (
     }
 
     if (!isDownloadQuery && formDataCopy.server_pagination) {
-      const pageSize = ownState.pageSize ?? formDataCopy.server_page_length;
-      const currentPage = ownState.currentPage ?? 0;
+      if (pageSize > 0) {
+        // Never page past the configured row limit. Clamping the page to the
+        // last one that still falls within the limit keeps the request inside
+        // the cap and avoids emitting row_limit: 0, which the backend treats
+        // as "no limit" rather than "no rows" (see helpers.py get_sqla_query).
+        const lastPage =
+          configuredRowLimit > 0
+            ? Math.max(Math.ceil(configuredRowLimit / pageSize) - 1, 0)
+            : Number(ownState.currentPage) || 0;
+        const currentPage = Math.min(
+          Number(ownState.currentPage) || 0,
+          lastPage,
+        );
+        const rowOffset = currentPage * pageSize;
+        const remainingRows =
+          configuredRowLimit > 0
+            ? Math.max(configuredRowLimit - rowOffset, 0)
+            : pageSize;
 
-      moreProps.row_limit = pageSize;
-      moreProps.row_offset = currentPage * pageSize;
+        moreProps.row_limit =
+          configuredRowLimit > 0 ? Math.min(pageSize, remainingRows) : pageSize;
+        moreProps.row_offset = rowOffset;
+      } else {
+        // A pageSize of 0 means "no pagination" (server_page_length: 0), so
+        // request a single unpaginated result capped at the configured row
+        // limit. Feeding 0 into the paging math would emit row_limit: 0,
+        // which the backend treats as "no limit".
+        moreProps.row_limit = configuredRowLimit;
+        moreProps.row_offset = 0;
+      }
     }
 
     let sortByFromOwnState: QueryFormOrderBy[] | undefined;
@@ -373,16 +414,27 @@ const buildQuery: BuildQuery<TableChartFormData> = (
     };
 
     if (
+      !isDownloadQuery &&
       formData.server_pagination &&
       options?.extras?.cachedChanges?.[formData.slice_id] &&
       JSON.stringify(options?.extras?.cachedChanges?.[formData.slice_id]) !==
         JSON.stringify(queryObject.filters)
     ) {
-      queryObject = { ...queryObject, row_offset: 0 };
+      // Reset to the first page: restore the full first-page row_limit rather
+      // than carrying over the last page's capped value. Skipped for download
+      // queries so CSV/JSON exports keep the full configured row_limit instead
+      // of being capped to the page size.
+      queryObject = {
+        ...queryObject,
+        row_offset: 0,
+        row_limit: firstPageRowLimit,
+      };
       const modifiedOwnState = {
         ...options?.ownState,
         currentPage: 0,
-        pageSize: queryObject.row_limit ?? 0,
+        // Persist the user-selected page size, not the per-request row_limit,
+        // which may be capped to the remaining rows on the last page.
+        pageSize,
         lastFilteredColumn: undefined,
         lastFilteredInputPosition: undefined,
       };
@@ -644,6 +696,22 @@ const buildQuery: BuildQuery<TableChartFormData> = (
       formData.show_totals &&
       queryMode === QueryMode.Aggregate,
     );
+    const totalsAggregate = toTotalsAggregate(formData.totals_aggregate);
+    // Raw-mode summary columns have no metric of their own to preserve, so
+    // ORIGINAL has nothing to fall back to; sum them as before.
+    const rawSummaryAggregate =
+      totalsAggregate === 'ORIGINAL' ? 'SUM' : totalsAggregate;
+    const totalsMetrics =
+      rawSummaryColumns.length > 0
+        ? rawSummaryColumns.map(columnName => ({
+            expressionType: 'SIMPLE' as const,
+            aggregate: rawSummaryAggregate,
+            column: { column_name: columnName },
+            label: columnName,
+          }))
+        : showAggregateTotals
+          ? getTotalsMetrics(metrics ?? [], totalsAggregate)
+          : undefined;
 
     if (showAggregateTotals || rawSummaryColumns.length > 0) {
       // Create a copy of extras without the AG Grid WHERE clause
@@ -678,14 +746,7 @@ const buildQuery: BuildQuery<TableChartFormData> = (
       extraQueries.push({
         ...queryObject,
         columns: [],
-        ...(rawSummaryColumns.length > 0 && {
-          metrics: rawSummaryColumns.map(columnName => ({
-            expressionType: 'SIMPLE' as const,
-            aggregate: 'SUM' as const,
-            column: { column_name: columnName },
-            label: columnName,
-          })),
-        }),
+        ...(totalsMetrics ? { metrics: totalsMetrics } : {}),
         extras: totalsExtras, // Use extras with AG Grid WHERE removed
         row_limit: 0,
         row_offset: 0,
@@ -732,7 +793,7 @@ export const cachedBuildQuery = (): BuildQuery<TableChartFormData> => {
   };
 
   return (formData, options) =>
-    buildQuery(
+    buildQueryUncached(
       { ...formData },
       {
         extras: { cachedChanges },

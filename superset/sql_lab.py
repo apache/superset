@@ -57,6 +57,7 @@ from superset.exceptions import (
 from superset.extensions import celery_app, event_logger
 from superset.models.sql_lab import Query
 from superset.result_set import SupersetResultSet
+from superset.sql.execution.executor import build_statement_blocks
 from superset.sql.parse import BaseSQLStatement, CTASMethod, SQLScript, Table
 from superset.sqllab.limiting_factor import LimitingFactor
 from superset.sqllab.utils import write_ipc_buffer
@@ -66,6 +67,7 @@ from superset.utils.core import (
     QuerySource,
     zlib_compress,
 )
+from superset.utils.database import warm_and_release_connection
 from superset.utils.dates import now_as_float
 from superset.utils.decorators import stats_timing
 from superset.utils.rls import apply_rls
@@ -160,6 +162,15 @@ def get_query(query_id: int) -> Query:
     try:
         return db.session.query(Query).filter_by(id=query_id).one()
     except Exception as ex:
+        # roll back so a poisoned session (e.g. PendingRollbackError after a
+        # failed flush) doesn't fail every subsequent backoff retry identically.
+        # Swallow rollback failures so a session/connection too broken to roll
+        # back doesn't replace the original exception with one the backoff
+        # decorator won't retry on.
+        try:
+            db.session.rollback()
+        except Exception:  # pylint: disable=broad-except
+            logger.warning("Failed to roll back session in get_query", exc_info=True)
         raise SqlLabException("Failed at getting query") from ex
 
 
@@ -277,13 +288,8 @@ def execute_query(  # pylint: disable=too-many-statements, too-many-locals  # no
         # that stays idle for the query duration; if the query runs longer
         # than the DB's idle_in_transaction_session_timeout the connection
         # is killed, leaving the query stuck in "running" state forever.
-        db.session.expire_on_commit = False
-        try:
-            db.session.refresh(query)
-            _ = query.database
-            db.session.commit()
-        finally:
-            db.session.expire_on_commit = True
+        db.session.refresh(query)
+        warm_and_release_connection(query, "database")
         with event_logger.log_context(
             action="execute_sql",
             database=database,
@@ -485,16 +491,13 @@ def execute_sql_statements(  # noqa: C901
     for statement in parsed_script.statements:
         apply_limit(query, statement)
 
-    # some databases (like BigQuery and Kusto) do not persist state across mmultiple
-    # statements if they're run separately (especially when using `NullPool`), so we run
-    # the query as a single block.
-    if db_engine_spec.run_multiple_statements_as_one:
-        blocks = [parsed_script.format(comments=db_engine_spec.allows_sql_comments)]
-    else:
-        blocks = [
-            statement.format(comments=db_engine_spec.allows_sql_comments)
-            for statement in parsed_script.statements
-        ]
+    # Build the execution blocks, applying `SQL_QUERY_MUTATOR` per
+    # `MUTATE_AFTER_SPLIT` (shared with the async path in `celery_task` so the
+    # `run_multiple_statements_as_one` × `MUTATE_AFTER_SPLIT` matrix behaves
+    # identically in both).
+    parsed_script, blocks = build_statement_blocks(
+        parsed_script, db_engine_spec, database
+    )
 
     with database.get_raw_connection(
         catalog=query.catalog,
@@ -528,8 +531,15 @@ def execute_sql_statements(  # noqa: C901
             query.set_extra_json_key("progress", msg)
             db.session.commit()
 
-            # Hook to allow environment-specific mutation (usually comments) to the SQL
-            query.executed_sql = database.mutate_sql_based_on_config(block)
+            # Hook to allow environment-specific mutation (usually comments) to the SQL.
+            # `is_split` reflects whether this block is an individual statement: when
+            # the engine runs everything as one block the SQL is not split, otherwise
+            # each block is a single split-out statement. This lets `MUTATE_AFTER_SPLIT`
+            # decide correctly whether the mutator fires here.
+            query.executed_sql = database.mutate_sql_based_on_config(
+                block,
+                is_split=not db_engine_spec.run_multiple_statements_as_one,
+            )
 
             try:
                 result_set = execute_query(query, cursor, log_params)

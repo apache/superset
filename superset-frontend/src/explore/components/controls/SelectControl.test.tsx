@@ -472,3 +472,39 @@ describe('SelectControl', () => {
     });
   });
 });
+
+// Control-path regression proof for the deck.gl "Legend Position: None" bug:
+// a string sentinel ('none') survives selection through the real Select and
+// reaches onChange unchanged, so it can hide the legend. A null-valued option
+// did not round-trip reliably, which is why the choice value is a sentinel.
+test('selecting a string "none" option round-trips through onChange', async () => {
+  const onChange = jest.fn();
+  render(
+    <SelectControl
+      name="legend_position"
+      label="Legend Position"
+      clearable={false}
+      default="tr"
+      value="tr"
+      choices={[
+        ['none', 'None'],
+        ['tl', 'Top left'],
+        ['tr', 'Top right'],
+        ['bl', 'Bottom left'],
+        ['br', 'Bottom right'],
+      ]}
+      onChange={onChange}
+    />,
+  );
+
+  const selectorInput = screen.getByLabelText('Legend Position', {
+    selector: 'input',
+  });
+  userEvent.click(selectorInput);
+  act(() => jest.runAllTimers());
+
+  userEvent.click(screen.getByRole('option', { name: 'None' }));
+  act(() => jest.runAllTimers());
+
+  expect(onChange).toHaveBeenCalledWith('none', expect.anything());
+});

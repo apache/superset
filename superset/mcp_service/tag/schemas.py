@@ -28,24 +28,16 @@ from pydantic import (
     BaseModel,
     ConfigDict,
     Field,
-    field_validator,
     model_serializer,
-    model_validator,
-    PositiveInt,
 )
 
 from superset.daos.base import ColumnOperator, ColumnOperatorEnum
-from superset.mcp_service.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
-from superset.mcp_service.system.schemas import (
-    PaginationInfo,
-    TagInfo as BaseTagInfo,
+from superset.mcp_service.common.pagination_schemas import (
+    PaginatedListRequest,
+    PaginatedResponse,
 )
+from superset.mcp_service.system.schemas import TagInfo as BaseTagInfo
 from superset.mcp_service.utils.response_utils import humanize_timestamp
-from superset.mcp_service.utils.sanitization import sanitize_for_llm_context
-from superset.mcp_service.utils.schema_utils import (
-    parse_json_or_list,
-    parse_json_or_model_list,
-)
 
 
 class TagFilter(ColumnOperator):
@@ -102,96 +94,12 @@ class TagInfo(BaseTagInfo):
         return data
 
 
-class TagList(BaseModel):
+class TagList(PaginatedResponse[TagFilter]):
     tags: List[TagInfo]
-    count: int
-    total_count: int
-    page: int
-    page_size: int
-    total_pages: int
-    has_previous: bool
-    has_next: bool
-    columns_requested: List[str] = Field(default_factory=list)
-    columns_loaded: List[str] = Field(default_factory=list)
-    columns_available: List[str] = Field(default_factory=list)
-    sortable_columns: List[str] = Field(default_factory=list)
-    filters_applied: List[TagFilter] = Field(default_factory=list)
-    pagination: PaginationInfo | None = None
-    timestamp: datetime | None = None
-    model_config = ConfigDict(ser_json_timedelta="iso8601")
 
 
-class ListTagsRequest(BaseModel):
+class ListTagsRequest(PaginatedListRequest[TagFilter]):
     """Request schema for list_tags."""
-
-    filters: Annotated[
-        List[TagFilter],
-        Field(
-            default_factory=list,
-            description="List of filter objects (column, operator, value). Each "
-            "filter has 'col', 'opr', and 'value' properties. Cannot be used "
-            "together with 'search'.",
-        ),
-    ]
-    select_columns: Annotated[
-        List[str],
-        Field(
-            default_factory=list,
-            description="List of columns to select. Defaults to common columns if not "
-            "specified.",
-        ),
-    ]
-    search: Annotated[
-        str | None,
-        Field(
-            default=None,
-            description="Text search string to match against tag name. Cannot be used "
-            "together with 'filters'.",
-        ),
-    ]
-    order_column: Annotated[
-        str | None, Field(default=None, description="Column to order results by")
-    ]
-    order_direction: Annotated[
-        Literal["asc", "desc"],
-        Field(
-            default="desc",
-            description="Direction to order results ('asc' or 'desc')",
-        ),
-    ]
-    page: Annotated[
-        PositiveInt,
-        Field(default=1, description="Page number for pagination (1-based)"),
-    ]
-    page_size: Annotated[
-        int,
-        Field(
-            default=DEFAULT_PAGE_SIZE,
-            gt=0,
-            le=MAX_PAGE_SIZE,
-            description=f"Number of items per page (max {MAX_PAGE_SIZE})",
-        ),
-    ]
-
-    @field_validator("filters", mode="before")
-    @classmethod
-    def parse_filters(cls, v: Any) -> List[TagFilter]:
-        return parse_json_or_model_list(v, TagFilter, "filters")
-
-    @field_validator("select_columns", mode="before")
-    @classmethod
-    def parse_columns(cls, v: Any) -> List[str]:
-        return parse_json_or_list(v, "select_columns")
-
-    @model_validator(mode="after")
-    def validate_search_and_filters(self) -> "ListTagsRequest":
-        if self.search and self.filters:
-            raise ValueError(
-                "Cannot use both 'search' and 'filters' parameters simultaneously. "
-                "Use either 'search' for text-based searching or 'filters' for "
-                "precise column-based filtering, but not both."
-            )
-        return self
 
 
 class TagError(BaseModel):
@@ -218,17 +126,6 @@ class GetTagInfoRequest(BaseModel):
     ]
 
 
-def _sanitize_tag_info_for_llm_context(tag_info: TagInfo) -> TagInfo:
-    """Wrap user-controlled tag fields before LLM exposure."""
-    payload = tag_info.model_dump(mode="python")
-    for field_name in ("name", "description"):
-        payload[field_name] = sanitize_for_llm_context(
-            payload.get(field_name),
-            field_path=(field_name,),
-        )
-    return TagInfo(**payload)
-
-
 def serialize_tag_object(tag: Any) -> TagInfo | None:
     if not tag:
         return None
@@ -237,15 +134,13 @@ def serialize_tag_object(tag: Any) -> TagInfo | None:
     if (raw_type := getattr(tag, "type", None)) is not None:
         type_str = raw_type.name if hasattr(raw_type, "name") else str(raw_type)
 
-    return _sanitize_tag_info_for_llm_context(
-        TagInfo(
-            id=getattr(tag, "id", None),
-            name=getattr(tag, "name", None),
-            type=type_str,
-            description=getattr(tag, "description", None),
-            changed_on=getattr(tag, "changed_on", None),
-            changed_on_humanized=humanize_timestamp(getattr(tag, "changed_on", None)),
-            created_on=getattr(tag, "created_on", None),
-            created_on_humanized=humanize_timestamp(getattr(tag, "created_on", None)),
-        )
+    return TagInfo(
+        id=getattr(tag, "id", None),
+        name=getattr(tag, "name", None),
+        type=type_str,
+        description=getattr(tag, "description", None),
+        changed_on=getattr(tag, "changed_on", None),
+        changed_on_humanized=humanize_timestamp(getattr(tag, "changed_on", None)),
+        created_on=getattr(tag, "created_on", None),
+        created_on_humanized=humanize_timestamp(getattr(tag, "created_on", None)),
     )

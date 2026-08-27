@@ -896,9 +896,11 @@ def diff_dashboard_layout(
       payloads carry old + new meta
     * id in both, equal → no record
 
-    The verb (add/remove/move/edit) is carried in each record's
-    ``operation`` field; ``path`` is the pure navigation address to the
-    node and carries no verb, matching the ``ChangeRecord`` contract.
+    The verb lives in each record's ``operation`` field
+    (``add`` / ``remove`` / ``move`` / ``edit``); ``path`` locates the
+    component as ``[<component-id>]`` (``[<component-id>, <leaf_key>, …]``
+    for an ``edit`` that recurses into ``meta``). Paths no longer carry
+    the verb — see :func:`_layout_chart_uuids_by_verb`.
 
     ``ROOT_ID`` / ``GRID_ID`` / ``HEADER_ID`` are suppressed (see
     :data:`_LAYOUT_SUPPRESSED_IDS`).

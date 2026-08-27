@@ -24,10 +24,10 @@
  * so SSG can render the page without a store context.
  */
 
-import React from "react";
+import React from 'react';
 
-import BrowserOnly from "@docusaurus/BrowserOnly";
-import { useSelector } from "react-redux";
+import BrowserOnly from '@docusaurus/BrowserOnly';
+import { useSelector } from 'react-redux';
 
 interface ServerVariable {
   default?: string;
@@ -44,20 +44,20 @@ interface StoreState {
 
 function colorForMethod(method: string) {
   switch (method.toLowerCase()) {
-    case "get":
-      return "primary";
-    case "post":
-      return "success";
-    case "delete":
-      return "danger";
-    case "put":
-      return "info";
-    case "patch":
-      return "warning";
-    case "head":
-      return "secondary";
-    case "event":
-      return "secondary";
+    case 'get':
+      return 'primary';
+    case 'post':
+      return 'success';
+    case 'delete':
+      return 'danger';
+    case 'put':
+      return 'info';
+    case 'patch':
+      return 'warning';
+    case 'head':
+      return 'secondary';
+    case 'event':
+      return 'secondary';
     default:
       return undefined;
   }
@@ -66,7 +66,7 @@ function colorForMethod(method: string) {
 export interface Props {
   method: string;
   path: string;
-  context?: "endpoint" | "callback";
+  context?: 'endpoint' | 'callback';
 }
 
 // Inner component rendered only in the browser, where the Redux store exists.
@@ -74,11 +74,11 @@ function ServerUrl() {
   const serverValue = useSelector((state: StoreState) => state.server.value);
 
   if (serverValue && serverValue.variables) {
-    let serverUrlWithVariables = serverValue.url.replace(/\/$/, "");
-    Object.keys(serverValue.variables).forEach((variable) => {
+    let serverUrlWithVariables = serverValue.url.replace(/\/$/, '');
+    Object.keys(serverValue.variables).forEach(variable => {
       serverUrlWithVariables = serverUrlWithVariables.replace(
         `{${variable}}`,
-        serverValue.variables?.[variable].default ?? ""
+        serverValue.variables?.[variable].default ?? '',
       );
     });
     return <>{serverUrlWithVariables}</>;
@@ -93,8 +93,8 @@ function ServerUrl() {
 
 function MethodEndpoint({ method, path, context }: Props) {
   const renderServerUrl = () => {
-    if (context === "callback") {
-      return "";
+    if (context === 'callback') {
+      return '';
     }
     return <BrowserOnly>{() => <ServerUrl />}</BrowserOnly>;
   };
@@ -102,13 +102,13 @@ function MethodEndpoint({ method, path, context }: Props) {
   return (
     <>
       <pre className="openapi__method-endpoint">
-        <span className={"badge badge--" + colorForMethod(method)}>
-          {method === "event" ? "Webhook" : method.toUpperCase()}
-        </span>{" "}
-        {method !== "event" && (
+        <span className={'badge badge--' + colorForMethod(method)}>
+          {method === 'event' ? 'Webhook' : method.toUpperCase()}
+        </span>{' '}
+        {method !== 'event' && (
           <h2 className="openapi__method-endpoint-path">
             {renderServerUrl()}
-            {`${path.replace(/{([a-z0-9-_]+)}/gi, ":$1")}`}
+            {`${path.replace(/{([a-z0-9-_]+)}/gi, ':$1')}`}
           </h2>
         )}
       </pre>

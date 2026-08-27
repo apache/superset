@@ -10,7 +10,6 @@
 .stylelintignore
 .flake8
 .nvmrc
-.prettierrc
 .rat-excludes
 .swcrc
 .*log
@@ -64,7 +63,6 @@ tsconfig.tsbuildinfo
 .*yml
 .*iml
 .esprintrc
-.prettierignore
 generator-superset/*
 temporary_superset_ui/*
 

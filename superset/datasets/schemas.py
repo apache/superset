@@ -16,6 +16,7 @@
 # under the License.
 from datetime import datetime
 from typing import Any
+from uuid import UUID
 
 from dateutil.parser import isoparse
 from flask_babel import lazy_gettext as _
@@ -33,11 +34,18 @@ from superset import security_manager
 from superset.connectors.sqla.models import SqlaTable
 from superset.exceptions import SupersetMarshmallowValidationError
 from superset.models.sql_types import parse_currency_string
-from superset.subjects.schemas import SubjectResponseSchema
 from superset.utils import json
 
-get_delete_ids_schema = {"type": "array", "items": {"type": "integer"}}
-get_export_ids_schema = {"type": "array", "items": {"type": "integer"}}
+get_delete_ids_schema = {
+    "type": "array",
+    "items": {"type": "integer"},
+    "example": [1, 2, 3],
+}
+get_export_ids_schema = {
+    "type": "array",
+    "items": {"type": "integer"},
+    "example": [1, 2, 3],
+}
 get_drill_info_schema = {
     "type": "object",
     "properties": {
@@ -276,6 +284,7 @@ class ImportV1ColumnSchema(Schema):
     description = fields.String(allow_none=True)
     python_date_format = fields.String(allow_none=True)
     datetime_format = fields.String(allow_none=True)
+    uuid = fields.UUID(allow_none=True)
 
 
 class ImportMetricCurrencySchema(Schema):
@@ -318,6 +327,7 @@ class ImportV1MetricSchema(Schema):
     currency = CurrencyField(ImportMetricCurrencySchema, allow_none=True)
     extra = fields.Dict(allow_none=True)
     warning_text = fields.String(allow_none=True)
+    uuid = fields.UUID(allow_none=True)
 
 
 class ImportV1DatasetSchema(Schema):
@@ -339,6 +349,35 @@ class ImportV1DatasetSchema(Schema):
             data["template_params"] = None
 
         return data
+
+    @validates_schema
+    def validate_unique_child_uuids(self, data: dict[str, Any], **kwargs: Any) -> None:
+        """
+        Reject a payload where two metrics (or two columns) share a UUID.
+
+        UUIDs are globally unique in the database, so such a payload cannot be
+        imported faithfully: the importer matches children within their parent
+        by name *or* UUID, so the second entry would match the first one and
+        overwrite it in place, silently collapsing two metrics/columns into one.
+        Only a hand-edited bundle can produce this — an export never does.
+        """
+        for key, singular in (("metrics", "metric"), ("columns", "column")):
+            seen: set[UUID] = set()
+            duplicates: set[UUID] = set()
+            for child in data.get(key) or []:
+                child_uuid = child.get("uuid")
+                if child_uuid is None:
+                    continue
+                if child_uuid in seen:
+                    duplicates.add(child_uuid)
+                seen.add(child_uuid)
+            if duplicates:
+                raise ValidationError(
+                    f"Duplicate UUIDs found in {key}: "
+                    f"{', '.join(sorted(str(dup) for dup in duplicates))}. "
+                    f"Each {singular} must have a unique `uuid`.",
+                    field_name=key,
+                )
 
     table_name = fields.String(required=True)
     main_dttm_col = fields.String(allow_none=True)
@@ -440,16 +479,32 @@ class DatasetColumnDrillInfoSchema(Schema):
 
 
 class UserSchema(Schema):
+    # Deliberately excludes ``email``: drill_info is reachable by any user
+    # with read access to the dataset (and, via the dashboard fallback, by
+    # embedded guests), so exposing maintainer emails here would leak user
+    # PII across an access boundary. Mirrors the dashboard/RLS user schemas,
+    # which expose names only.
     first_name = fields.String()
     last_name = fields.String()
-    email = fields.String()
+
+
+class DrillInfoEditorSchema(Schema):
+    # Deliberately excludes ``secondary_label``: for a user-backed Subject,
+    # user-subject synchronization (superset.subjects.sync.sync_user_subject)
+    # stores that user's email in this field, so including it here would
+    # leak the same maintainer PII that ``UserSchema`` above excludes
+    # ``email`` to avoid, just through a different field name.
+    id = fields.Int()
+    label = fields.String()
+    img = fields.String()
+    type = fields.Integer()
 
 
 class DatasetDrillInfoSchema(Schema):
     id = fields.Integer()
     columns = fields.List(fields.Nested(DatasetColumnDrillInfoSchema))
     table_name = fields.String()
-    editors = fields.List(fields.Nested(SubjectResponseSchema))
+    editors = fields.List(fields.Nested(DrillInfoEditorSchema))
     created_by = fields.Nested(UserSchema)
     created_on_humanized = fields.String()
     changed_by = fields.Nested(UserSchema)

@@ -55,7 +55,13 @@ from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.sql import literal_column, quoted_name, text
-from sqlalchemy.sql.expression import BinaryExpression, ColumnClause, Select, TextClause
+from sqlalchemy.sql.expression import (
+    BinaryExpression,
+    ColumnClause,
+    ColumnElement,
+    Select,
+    TextClause,
+)
 from sqlalchemy.types import TypeEngine
 
 from superset import db
@@ -275,6 +281,36 @@ class CompatibleDatabase(TypedDict, total=False):
     notes: str
     docs_url: str
     categories: list[str]  # Override parent categories (e.g., for HOSTED_OPEN_SOURCE)
+    known_incompatibilities: list[KnownIncompatibility]
+
+
+class KnownIncompatibility(TypedDict, total=False):
+    """A known, currently-unresolved incompatibility with a Superset dependency."""
+
+    dependency: str  # e.g. "SQLAlchemy 2.0"
+    reason: str
+    tracking_url: str  # upstream issue/PR tracking a fix, if one exists
+    since: str  # ISO date this was last confirmed still broken
+
+
+# Shared `known_incompatibilities` entry for the Aurora Data API driver
+# (`sqlalchemy-aurora-data-api`), used by both the MySQL and PostgreSQL
+# `compatible_databases` metadata for their respective Aurora entries.
+AURORA_DATA_API_KNOWN_INCOMPATIBILITIES: list[KnownIncompatibility] = [
+    {
+        "dependency": "SQLAlchemy 2.0",
+        "reason": (
+            "Neither our fork (preset-io/sqlalchemy-aurora-data-api, "
+            "dormant since 2021) nor the more active community fork "
+            "(cloud-utils/sqlalchemy-aurora-data-api) has resolved "
+            "SQLAlchemy 2.0 compatibility."
+        ),
+        "tracking_url": (
+            "https://github.com/cloud-utils/sqlalchemy-aurora-data-api/issues/43"
+        ),
+        "since": "2026-07-28",
+    }
+]
 
 
 class DBEngineSpecMetadata(TypedDict, total=False):
@@ -316,6 +352,11 @@ class DBEngineSpecMetadata(TypedDict, total=False):
     tutorials: list[str]
     install_instructions: str
     version_requirements: str
+
+    # Known, currently-unresolved incompatibilities with a Superset
+    # dependency (e.g. a driver that doesn't yet support SQLAlchemy 2.0).
+    # Hopefully temporary; remove the entry once resolved upstream.
+    known_incompatibilities: list[KnownIncompatibility]
 
     # Related databases (e.g., PostgreSQL-compatible databases)
     compatible_databases: list[CompatibleDatabase]
@@ -493,12 +534,24 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     time_groupby_inline = False
     limit_method = LimitMethod.FORCE_LIMIT
     supports_multivalues_insert = False
+    # Whether this engine supports first-class multi-value (array-typed) columns.
+    # When True, array columns are classified as ``GenericDataType.MULTI_VALUE`` and
+    # the ``array_*`` capability methods below must be implemented. Defaults to
+    # False so engines that have not opted in keep treating arrays as strings.
+    supports_multivalue_columns = False
+    supports_temporal_column_shift: bool = False
     allows_joins = True
     allows_subqueries = True
     allows_alias_in_select = True
     allows_alias_in_orderby = True
     allows_sql_comments = True
     allows_escaped_colons = True
+
+    # Whether the engine supports OFFSET in SQL queries. Defaults to True;
+    # engines like Elasticsearch SQL that do not support OFFSET set this to
+    # False and are expected to implement `fetch_data_with_cursor` for
+    # pagination via another mechanism (e.g. Elasticsearch's cursor API).
+    supports_offset = True
 
     # Whether ORDER BY clause can use aliases created in SELECT
     # that are the same as a source column
@@ -534,6 +587,20 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     arraysize = 0
     max_column_name_length: int | None = None
 
+    # Characters used to quote identifiers (table/column names) that aren't simple.
+    # Defaults to ANSI double quotes; dialects that differ override these — e.g.
+    # MySQL/MariaDB use backticks and SQL Server uses square brackets. These are
+    # surfaced to the client (see `get_public_information`) so identifier quoting
+    # stays owned by the engine spec rather than duplicated per client.
+    identifier_quote_start: str = '"'
+    identifier_quote_end: str = '"'
+    # How an embedded closing-quote character is escaped within a quoted
+    # identifier. Most dialects (ANSI, MySQL/MariaDB backticks, SQL Server
+    # brackets) escape by doubling the closing character. BigQuery's GoogleSQL
+    # backtick identifiers are the exception, escaping with a backslash instead,
+    # so it overrides this to False.
+    identifier_quote_escape_by_doubling: bool = True
+
     # Some databases (e.g. Druid, Pinot) build cursor.description by inspecting
     # the values in the first returned row rather than from query-plan metadata.
     # For those engines WHERE FALSE returns no rows and therefore leaves
@@ -559,6 +626,39 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # Whether the engine supports file uploads
     # if True, database will be listed as option in the upload file form
     supports_file_upload = True
+
+    # Whether the engine supports SQL GROUPING SETS / ROLLUP / CUBE. When True,
+    # consumers (e.g. the pivot table's non-additive totals) can collapse the
+    # per-rollup-level queries into a single GROUPING SETS query instead of
+    # issuing one query per level. Conservative default of False; engines opt in.
+    supports_grouping_sets = False
+
+    # SQL-generating callables for metric aggregates that have no safe, universal
+    # cross-dialect spelling -- unlike SUM/COUNT/AVG/MIN/MAX/COUNT_DISTINCT (see
+    # `SqlaTable.sqla_aggregations`), which SQLAlchemy's generic `sa.func` can emit
+    # unchanged on every engine. Keyed by `Aggregate` name (see
+    # `superset-frontend/packages/superset-ui-core/src/query/types/Metric.ts`);
+    # each value takes a SQLAlchemy column and returns the aggregate expression.
+    # Absent by default: an aggregate not present here is unsupported on this
+    # engine, and callers must surface a clear "not supported" error rather than
+    # emit unverified SQL (a wrong statistic returned silently is worse than an
+    # error). Engines opt in via `get_extended_aggregation_func` below once the
+    # expression has been verified against real engine behavior, not assumed
+    # from syntax alone -- see the MySQL engine spec for a concrete example of
+    # why this distinction matters (its `VARIANCE()` computes the *population*
+    # variance, not the *sample* variance `VAR_SAMP` denotes).
+    _extended_aggregations: dict[str, Callable[[ColumnElement], ColumnElement]] = {}
+
+    @classmethod
+    def get_extended_aggregation_func(
+        cls, aggregate: str
+    ) -> Callable[[ColumnElement], ColumnElement] | None:
+        """
+        SQL-generating callable for an aggregate not handled by the generic
+        `sa.func` mapping (e.g. MEDIAN, STDDEV_SAMP, VAR_SAMP). Returns None if
+        this engine has no verified, correct expression for it.
+        """
+        return cls._extended_aggregations.get(aggregate)
 
     # Is the DB engine spec able to change the default schema? This requires implementing  # noqa: E501
     # a custom `adjust_engine_params` method.
@@ -608,6 +708,40 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # is determined only after the specific query is executed and it will update
     # the `cancel_query` value in the `extra` field of the `query` object
     has_query_id_before_execute = True
+
+    @classmethod
+    def apply_sampling_read_limit_override(cls, sql: str) -> str | None:
+        """Build the bounded-read retry form of system-authored sampling SQL.
+
+        Some engines reject bounded queries from a pre-execution row estimate
+        that ignores LIMIT (e.g. ClickHouse ``max_rows_to_read``), which breaks
+        Superset-authored sampling queries (filter values, samples/preview,
+        datetime format detection) on large tables. Engine specs that support
+        a bounded-read override return a modified query; ``None`` (the base
+        implementation, mirroring ``get_column_description_retry_sql``) means
+        no retry is available.
+
+        The override must only be applied to sampling queries whose statement
+        Superset generated (a physical-table dataset, not a virtual dataset's
+        user-authored base query), and only as a retry after the engine
+        rejected the un-modified statement with a read-limit error (see
+        ``is_read_limit_error``), so deployments whose queries already succeed
+        — including ClickHouse users connected with ``readonly=1``, which
+        rejects in-query SETTINGS changes — never see altered SQL. Callers go
+        through ``Database.sampling_read_limit_retry_sql`` so the per-database
+        opt-out is honored.
+        """
+        return None
+
+    @classmethod
+    def is_read_limit_error(cls, ex: Exception) -> bool:
+        """Return True when the exception is this engine's read-limit rejection.
+
+        Used to decide whether a failed system-sampling query should be
+        retried with ``apply_sampling_read_limit_override``. The base
+        implementation recognizes nothing.
+        """
+        return False
 
     @classmethod
     def encrypted_extra_sensitive_field_paths(cls) -> set[str]:
@@ -842,7 +976,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             else requests.post(uri, json=req_body, timeout=timeout)
         )
         if response.status_code in (400, 401, 403):
-            raise OAuth2TokenRefreshError(response.text)
+            raise OAuth2TokenRefreshError()
         response.raise_for_status()
         return response.json()
 
@@ -1098,8 +1232,43 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             time_expr = time_expr.replace("{col}", cls.epoch_to_dttm())
         elif pdf == "epoch_ms":
             time_expr = time_expr.replace("{col}", cls.epoch_ms_to_dttm())
+        elif pdf == "%Y":
+            # a bare four-digit year (e.g. the `year` column on the `video_game_sales`
+            # example dataset) has no native date type to lean on; without this the
+            # column value is passed straight into the grain function below, which
+            # every engine interprets as something other than a calendar year (SQLite
+            # reads a bare integer as a Julian day number, for instance), silently
+            # producing NULL for every row.
+            time_expr = cls._apply_year_to_dttm(time_expr)
 
         return TimestampExpression(time_expr, col, type_=col.type)
+
+    @classmethod
+    def get_temporal_column_shift_expr(
+        cls,
+        col: ColumnClause,
+        offset_hours: int,
+    ) -> TimestampExpression:
+        """Shift a temporal SQL expression by a bounded number of hours."""
+        return TimestampExpression(
+            f"{{col}} + INTERVAL '{offset_hours}' HOUR",
+            col,
+            type_=col.type,
+        )
+
+    @classmethod
+    def _apply_year_to_dttm(cls, time_expr: str) -> str:
+        """
+        Substitute `{col}` in ``time_expr`` with the ``year_to_dttm`` expression.
+
+        Engine specs that have not implemented `year_to_dttm` fall back to the
+        prior behavior of passing the raw column through, rather than raising
+        for every dataset with a bare-year column.
+        """
+        try:
+            return time_expr.replace("{col}", cls.year_to_dttm())
+        except NotImplementedError:
+            return time_expr
 
     @classmethod
     def get_time_grains(cls) -> tuple[TimeGrain, ...]:
@@ -1223,12 +1392,12 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
                 return cursor.fetchmany(limit)
             data = cursor.fetchall()
             description = cursor.description or []
-            # Create a mapping between column name and a mutator function to normalize
-            # values with. The first two items in the description row are
-            # the column name and type.
+            # Create a mapping between column index and a mutator function to normalize
+            # values with. The first two items in the description row are the column
+            # name and type.
             column_mutators = {
-                row[0]: func
-                for row in description
+                index: func
+                for index, row in enumerate(description)
                 if (
                     func := cls.column_type_mutators.get(
                         type(cls.get_sqla_column_type(cls.get_datatype(row[1])))
@@ -1236,17 +1405,37 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
                 )
             }
             if column_mutators:
-                indexes = {row[0]: idx for idx, row in enumerate(description)}
+                if not isinstance(data, list):
+                    data = list(data)
                 for row_idx, row in enumerate(data):
                     new_row = list(row)
-                    for col, func in column_mutators.items():
-                        col_idx = indexes[col]
+                    for col_idx, func in column_mutators.items():
                         new_row[col_idx] = func(row[col_idx])
                     data[row_idx] = tuple(new_row)
 
             return data
         except Exception as ex:
             raise cls.get_dbapi_mapped_exception(ex) from ex
+
+    @classmethod
+    def fetch_data_with_cursor(
+        cls,
+        database: Database,
+        sql: str,
+        page_index: int,
+        page_size: int,
+    ) -> tuple[list[list[Any]], list[str]]:
+        """
+        Fetch a single page of results via engine-native cursor pagination.
+
+        Only called when ``cls.supports_offset`` is False and a non-first
+        page is requested (see ``superset/views/datasource/utils.py``).
+        Engines that set ``supports_offset = False`` must override this.
+        """
+        raise NotImplementedError(
+            f"{cls.__name__} sets supports_offset=False but does not "
+            "implement fetch_data_with_cursor()"
+        )
 
     @classmethod
     def expand_data(
@@ -1293,6 +1482,17 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :return: SQL Expression
         """
         return cls.epoch_to_dttm().replace("{col}", "({col}/1000)")
+
+    @classmethod
+    def year_to_dttm(cls) -> str:
+        """
+        SQL expression that converts a bare four-digit year value to the January 1st
+        datetime of that year, for use in a query. The reference column should be
+        denoted as `{col}` in the return expression, e.g. "MAKE_DATE({col}, 1, 1)"
+
+        :return: SQL Expression
+        """
+        raise NotImplementedError()
 
     @classmethod
     def get_datatype(cls, type_code: Any) -> str | None:
@@ -2327,6 +2527,36 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         return 1
 
+    @classmethod
+    def get_column_description_retry_sql(cls, sql: str) -> str | None:
+        """
+        Build a comment-safe fallback query for ``get_columns_description`` to
+        retry with when a zero-row metadata probe unexpectedly comes back with
+        an empty ``cursor.description``.
+
+        Some DB-API drivers only run their own "empty result" metadata
+        fallback -- used to populate ``cursor.description`` when a query
+        legitimately returns zero rows -- when the executed SQL text starts
+        with ``SELECT``/``WITH``. ``SQL_QUERY_MUTATOR`` can prepend comments
+        (e.g. query attribution) ahead of the ``SELECT`` keyword, which
+        defeats that startswith check on those drivers even though the query
+        itself is valid.
+
+        Engine specs affected by this can override this hook to wrap the
+        already-mutated SQL passed in so that the outer statement always
+        starts with a bare ``SELECT``. The original SQL -- including any
+        comments added by ``SQL_QUERY_MUTATOR`` -- is preserved verbatim, so
+        no mutation/audit behavior is lost, and the wrapped query still
+        returns zero rows.
+
+        Returning ``None`` (the default) means the engine doesn't support or
+        need this retry.
+
+        :param sql: The already limited and mutated SQL that was executed
+        :return: A comment-safe SQL string to retry with, or ``None``
+        """
+        return None
+
     @staticmethod
     def pyodbc_rows_to_tuples(data: list[Any]) -> list[tuple[Any, ...]]:
         """
@@ -2392,6 +2622,105 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         except json.JSONDecodeError as ex:
             logger.error(ex, exc_info=True)
             raise
+
+    @classmethod
+    def array_contains_any(cls, col: ColumnElement, values: list[Any]) -> ColumnElement:
+        """
+        Build a boolean expression testing whether array column ``col`` contains
+        **any** of ``values`` (element-level membership, like ``IN``). Engines
+        that set ``supports_multivalue_columns = True`` must override this with
+        their native function (e.g. ClickHouse ``hasAny``).
+
+        :param col: SQLAlchemy column element for the array column
+        :param values: element values to look for inside the array
+        :return: a SQLAlchemy boolean expression
+        """
+        raise NotImplementedError(
+            f"{cls.engine} does not support multi-value (array) columns"
+        )
+
+    @classmethod
+    def array_contains_all(cls, col: ColumnElement, values: list[Any]) -> ColumnElement:
+        """
+        Build a boolean expression testing whether array column ``col`` contains
+        **all** of ``values``. Engines that set
+        ``supports_multivalue_columns = True`` must override this with their
+        native function (e.g. ClickHouse ``hasAll``).
+
+        :param col: SQLAlchemy column element for the array column
+        :param values: element values that must all be present
+        :return: a SQLAlchemy boolean expression
+        """
+        raise NotImplementedError(
+            f"{cls.engine} does not support multi-value (array) columns"
+        )
+
+    @classmethod
+    def array_length(cls, col: ColumnElement) -> ColumnElement:
+        """
+        Build a numeric expression returning the number of elements in array
+        column ``col``. Engines that set ``supports_multivalue_columns = True``
+        must override this with their native array-length function. Used both for
+        the ``Length`` filter and the ``Is empty`` / ``Is not empty`` operators.
+
+        :param col: SQLAlchemy column element for the array column
+        :return: a SQLAlchemy numeric expression
+        """
+        raise NotImplementedError(
+            f"{cls.engine} does not support multi-value (array) columns"
+        )
+
+    @classmethod
+    def array_literal(cls, values: list[Any]) -> ColumnElement:
+        """
+        Build an array-literal expression from ``values`` (e.g. ClickHouse
+        ``array(v1, v2)`` == ``[v1, v2]``). Used for the whole-array (column-
+        level) operators ``=`` / ``!=`` / ``IN`` / ``NOT IN`` where the array is
+        compared as a single value. Engines that set
+        ``supports_multivalue_columns = True`` must override this.
+
+        :param values: element values that make up the array
+        :return: a SQLAlchemy array-literal expression
+        """
+        raise NotImplementedError(
+            f"{cls.engine} does not support multi-value (array) columns"
+        )
+
+    @classmethod
+    def array_explode(cls, col: ColumnElement) -> ColumnElement:
+        """
+        Build an expression that expands array column ``col`` into one row per
+        element (e.g. ClickHouse ``arrayJoin``). Used to source **element-level**
+        value suggestions (``SELECT DISTINCT array_explode(col)``) for the
+        ``Contains any`` / ``Contains all`` filter operators, so the picker offers
+        individual elements rather than whole arrays. Engines that set
+        ``supports_multivalue_columns = True`` must override this.
+
+        :param col: SQLAlchemy column element for the array column
+        :return: a SQLAlchemy expression yielding one element per row
+        """
+        raise NotImplementedError(
+            f"{cls.engine} does not support multi-value (array) columns"
+        )
+
+    @classmethod
+    def get_array_element_type(  # pylint: disable=unused-argument
+        cls, native_type: str | None
+    ) -> GenericDataType | None:
+        """
+        Return the generic type of an array column's **element** type, derived
+        from its native type string (e.g. ClickHouse ``Array(Int32)`` ->
+        ``NUMERIC``), or ``None`` when the engine has no array support or the
+        element type cannot be resolved.
+
+        Callers use this to coerce filter values to the element type before
+        building array expressions, so, for example, a ``Contains any`` filter on
+        a numeric array compares against numbers rather than quoted strings.
+
+        :param native_type: native column type string of the array column
+        :return: the element's :class:`GenericDataType`, or ``None``
+        """
+        return None
 
     @classmethod
     def get_column_spec(  # pylint: disable=unused-argument
@@ -2596,6 +2925,12 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             "supports_dynamic_catalog": cls.supports_dynamic_catalog,
             "supports_oauth2": cls.supports_oauth2,
             "supports_schemas": cls.supports_schemas,
+            "supports_offset": cls.supports_offset,
+            "identifier_quote": {
+                "start": cls.identifier_quote_start,
+                "end": cls.identifier_quote_end,
+                "escape_by_doubling": cls.identifier_quote_escape_by_doubling,
+            },
         }
 
     @classmethod
@@ -2711,6 +3046,16 @@ class BasicParametersMixin:
     # for Postgres this would be `{"sslmode": "verify-ca"}`, eg.
     encryption_parameters: dict[str, str] = {}
 
+    # query parameter to explicitly disable encryption, for drivers that do not
+    # treat the absence of `encryption_parameters` as an unencrypted connection
+    # for Databend this would be `{"sslmode": "disable"}`, eg.
+    encryption_disable_parameters: dict[str, str] = {}
+
+    # parameters that `validate_parameters` treats as mandatory; subclasses
+    # override this to relax a parameter (e.g. `port`) without duplicating
+    # the rest of `validate_parameters`
+    required_parameters: set[str] = {"host", "port", "username", "database"}
+
     @classmethod
     def build_sqlalchemy_uri(  # pylint: disable=unused-argument
         cls,
@@ -2726,28 +3071,36 @@ class BasicParametersMixin:
                     "Unable to build a URL with encryption enabled"
                 )
             query.update(cls.encryption_parameters)
+        else:
+            query.update(cls.encryption_disable_parameters)
 
-        return str(
-            URL.create(
-                f"{cls.engine}+{cls.default_driver}".rstrip("+"),  # type: ignore
-                username=parameters.get("username"),
-                password=parameters.get("password"),
-                host=parameters["host"],
-                port=parameters["port"],
-                database=parameters["database"],
-                query=query,
-            )
-        )
+        # SQLAlchemy 2.0 made URL.__str__() hide the password by default
+        # (it rendered in full under 1.4); render_as_string(hide_password=
+        # False) is required here since this URI is stored/used to actually
+        # connect, not just displayed.
+        return URL.create(
+            f"{cls.engine}+{cls.default_driver}".rstrip("+"),  # type: ignore
+            username=parameters.get("username"),
+            password=parameters.get("password"),
+            host=parameters["host"],
+            port=parameters["port"],
+            database=parameters["database"],
+            query=query,
+        ).render_as_string(hide_password=False)
 
     @classmethod
     def get_parameters_from_uri(  # pylint: disable=unused-argument
         cls, uri: str, encrypted_extra: dict[str, Any] | None = None
     ) -> BasicParametersType:
         url = make_url_safe(uri)
+        encryption_items = [
+            *cls.encryption_parameters.items(),
+            *cls.encryption_disable_parameters.items(),
+        ]
         query = {
             key: value
             for (key, value) in url.query.items()
-            if (key, value) not in cls.encryption_parameters.items()
+            if (key, value) not in encryption_items
         }
         encryption = all(
             item in url.query.items() for item in cls.encryption_parameters.items()
@@ -2774,7 +3127,7 @@ class BasicParametersMixin:
         """
         errors: list[SupersetError] = []
 
-        required = {"host", "port", "username", "database"}
+        required = cls.required_parameters
         parameters = properties.get("parameters", {})
         present = {key for key in parameters if parameters.get(key, ())}
 
@@ -2803,7 +3156,7 @@ class BasicParametersMixin:
             return errors
 
         port = parameters.get("port", None)
-        if not port:
+        if port is None or port == "":
             return errors
         try:
             port = int(port)

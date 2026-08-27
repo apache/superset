@@ -193,7 +193,7 @@ describe('ChartList - Permission-based UI Tests', () => {
     await screen.findByTestId('chart-list-view');
 
     // Verify all admin controls are visible
-    expect(screen.getByRole('button', { name: /chart/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /chart$/i })).toBeInTheDocument();
     expect(screen.getByTestId('import-button')).toBeInTheDocument();
     expect(screen.getByTestId('bulk-select')).toBeInTheDocument();
 
@@ -221,7 +221,7 @@ describe('ChartList - Permission-based UI Tests', () => {
 
     // Verify permission-gated elements are hidden
     expect(
-      screen.queryByRole('button', { name: /chart/i }),
+      screen.queryByRole('button', { name: /chart$/i }),
     ).not.toBeInTheDocument();
     expect(screen.queryByTestId('import-button')).not.toBeInTheDocument();
   });
@@ -374,7 +374,7 @@ describe('ChartList - Permission-based UI Tests', () => {
     await renderWithPermissions(PERMISSIONS.WRITE_ONLY);
     await screen.findByTestId('chart-list-view');
 
-    expect(screen.getByRole('button', { name: /chart/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /chart$/i })).toBeInTheDocument();
     expect(screen.getByTestId('import-button')).toBeInTheDocument();
   });
 
@@ -382,7 +382,7 @@ describe('ChartList - Permission-based UI Tests', () => {
     await renderWithPermissions(PERMISSIONS.ADMIN);
     await screen.findByTestId('chart-list-view');
 
-    expect(screen.getByRole('button', { name: /chart/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /chart$/i })).toBeInTheDocument();
     expect(screen.getByTestId('import-button')).toBeInTheDocument();
   });
 
@@ -391,7 +391,7 @@ describe('ChartList - Permission-based UI Tests', () => {
     await screen.findByTestId('chart-list-view');
 
     expect(
-      screen.queryByRole('button', { name: /chart/i }),
+      screen.queryByRole('button', { name: /chart$/i }),
     ).not.toBeInTheDocument();
     expect(screen.queryByTestId('import-button')).not.toBeInTheDocument();
   });
@@ -401,7 +401,7 @@ describe('ChartList - Permission-based UI Tests', () => {
     await screen.findByTestId('chart-list-view');
 
     expect(
-      screen.queryByRole('button', { name: /chart/i }),
+      screen.queryByRole('button', { name: /chart$/i }),
     ).not.toBeInTheDocument();
     expect(screen.queryByTestId('import-button')).not.toBeInTheDocument();
   });
@@ -479,7 +479,7 @@ describe('ChartList - Permission-based UI Tests', () => {
 
     // Create and Import should be hidden (no can_write)
     expect(
-      screen.queryByRole('button', { name: /chart/i }),
+      screen.queryByRole('button', { name: /chart$/i }),
     ).not.toBeInTheDocument();
     expect(screen.queryByTestId('import-button')).not.toBeInTheDocument();
   });
@@ -493,7 +493,7 @@ describe('ChartList - Permission-based UI Tests', () => {
     expect(screen.queryByTitle('Tags')).not.toBeInTheDocument();
     expect(screen.queryByTestId('bulk-select')).not.toBeInTheDocument();
     expect(
-      screen.queryByRole('button', { name: /chart/i }),
+      screen.queryByRole('button', { name: /chart$/i }),
     ).not.toBeInTheDocument();
     expect(screen.queryByTestId('import-button')).not.toBeInTheDocument();
 

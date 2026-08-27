@@ -114,7 +114,7 @@ export default {
       },
       fallback: {
         tty: false,
-        vm: require.resolve('vm-browserify')
+        vm: false,
       }
     },
     plugins: [...config.plugins, ...filteredPlugins],

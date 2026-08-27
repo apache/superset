@@ -41,27 +41,44 @@ params:
     filterOptionName: 2745eae5
     operator: NOT IN
     subject: country_code
-  compare_lag: '10'
-  compare_suffix: o10Y
-  country_fieldtype: cca3
+  color_scheme: supersetColors
   entity: country_name
   granularity_sqla: year
-  groupby: []
-  limit: 0
-  markup_type: markdown
+  legendOrientation: top
+  legendType: scroll
   max_bubble_size: '50'
-  row_limit: 50000
+  opacity: 0.6
+  order_desc: true
+  row_limit: 500
   series: region
-  show_bubbles: true
-  since: '2011-01-01'
-  size: sum__SP_POP_TOTL
-  time_range: '2014-01-01 : 2014-01-02'
-  until: '2011-01-02'
-  viz_type: bubble
-  x: sum__SP_RUR_TOTL_ZS
-  y: sum__SP_DYN_LE00_IN
+  show_legend: true
+  size:
+    aggregate: SUM
+    column:
+      column_name: SP_POP_TOTL
+    expressionType: SIMPLE
+    label: SUM(SP_POP_TOTL)
+    optionName: metric_size_life_expectancy_vs_rural
+  time_range: '2011-01-01 : 2011-01-02'
+  tooltipSizeFormat: SMART_NUMBER
+  truncateXAxis: true
+  viz_type: bubble_v2
+  x:
+    aggregate: SUM
+    column:
+      column_name: SP_RUR_TOTL_ZS
+    expressionType: SIMPLE
+    label: SUM(SP_RUR_TOTL_ZS)
+    optionName: metric_x_life_expectancy_vs_rural
+  y:
+    aggregate: SUM
+    column:
+      column_name: SP_DYN_LE00_IN
+    expressionType: SIMPLE
+    label: SUM(SP_DYN_LE00_IN)
+    optionName: metric_y_life_expectancy_vs_rural
 query_context: null
 slice_name: Life Expectancy VS Rural %
 uuid: c18faec9-ec43-4d36-8b66-4c8b1372020f
 version: 1.0.0
-viz_type: bubble
+viz_type: bubble_v2

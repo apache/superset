@@ -24,10 +24,52 @@ from superset.themes.types import ThemeMode
 from superset.themes.utils import (
     _is_valid_algorithm,
     _is_valid_theme_mode,
+    enforce_theme_algorithm,
     is_valid_theme,
     sanitize_theme_tokens,
     validate_font_urls,
 )
+
+
+@pytest.mark.parametrize(
+    "algorithm, mode, expected",
+    [
+        # A theme authored for light mode must not stay light in the dark slot
+        ("default", ThemeMode.DARK, "dark"),
+        (["default", "compact"], ThemeMode.DARK, ["dark", "compact"]),
+        # ...and vice versa
+        ("dark", ThemeMode.DEFAULT, "default"),
+        (["dark", "compact"], ThemeMode.DEFAULT, ["default", "compact"]),
+        # A missing or unusable algorithm is filled in from the slot
+        (None, ThemeMode.DARK, "dark"),
+        (None, ThemeMode.DEFAULT, "default"),
+        ("system", ThemeMode.DARK, "dark"),
+        ("compact", ThemeMode.DARK, ["dark", "compact"]),
+        # Matching algorithms are left untouched
+        ("dark", ThemeMode.DARK, "dark"),
+        (["dark", "compact"], ThemeMode.DARK, ["dark", "compact"]),
+        ("default", ThemeMode.DEFAULT, "default"),
+    ],
+)
+def test_enforce_theme_algorithm(algorithm, mode, expected):
+    """Test that a theme is served with the algorithm of the slot it fills."""
+    theme = {"token": {"colorPrimary": "#000"}}
+    if algorithm is not None:
+        theme["algorithm"] = algorithm
+
+    result = enforce_theme_algorithm(theme, mode)
+
+    assert result["algorithm"] == expected
+    assert result["token"] == {"colorPrimary": "#000"}
+
+
+def test_enforce_theme_algorithm_keeps_empty_theme_empty():
+    """Test that an empty theme is not given an algorithm.
+
+    An empty theme signals "no custom theme" to the frontend, so it must stay
+    empty rather than becoming a theme carrying only an algorithm.
+    """
+    assert enforce_theme_algorithm({}, ThemeMode.DARK) == {}
 
 
 @pytest.mark.parametrize(

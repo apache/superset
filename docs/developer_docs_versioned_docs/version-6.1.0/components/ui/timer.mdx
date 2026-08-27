@@ -33,33 +33,34 @@ A live elapsed-time display that counts up from a given start time. Used to show
 <StoryWithControls
   component="Timer"
   props={{
-  isRunning: true,
-  status: "success",
-  startTime: 1737936000000
-}}
+    isRunning: true,
+    status: 'success',
+    startTime: 1737936000000,
+  }}
   controls={[
-  {
-    name: "isRunning",
-    label: "Is Running",
-    type: "boolean",
-    description: "Whether the timer is actively counting. Toggle to start/stop."
-  },
-  {
-    name: "status",
-    label: "Status",
-    type: "select",
-    options: [
-      "success",
-      "warning",
-      "danger",
-      "info",
-      "default",
-      "primary",
-      "secondary"
-    ],
-    description: "Visual status of the timer badge."
-  }
-]}
+    {
+      name: 'isRunning',
+      label: 'Is Running',
+      type: 'boolean',
+      description:
+        'Whether the timer is actively counting. Toggle to start/stop.',
+    },
+    {
+      name: 'status',
+      label: 'Status',
+      type: 'select',
+      options: [
+        'success',
+        'warning',
+        'danger',
+        'info',
+        'default',
+        'primary',
+        'secondary',
+      ],
+      description: 'Visual status of the timer badge.',
+    },
+  ]}
 />
 
 ## Try It
@@ -72,11 +73,7 @@ function Demo() {
   const [startTime] = React.useState(Date.now());
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-      <Timer
-        startTime={startTime}
-        isRunning={isRunning}
-        status="success"
-      />
+      <Timer startTime={startTime} isRunning={isRunning} status="success" />
       <Button onClick={() => setIsRunning(r => !r)}>
         {isRunning ? 'Stop' : 'Start'}
       </Button>
@@ -92,8 +89,19 @@ function StatusVariants() {
   const [startTime] = React.useState(Date.now());
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      {['success', 'warning', 'danger', 'info', 'default', 'primary', 'secondary'].map(status => (
-        <div key={status} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+      {[
+        'success',
+        'warning',
+        'danger',
+        'info',
+        'default',
+        'primary',
+        'secondary',
+      ].map(status => (
+        <div
+          key={status}
+          style={{ display: 'flex', alignItems: 'center', gap: 12 }}
+        >
           <span style={{ width: 80 }}>{status}</span>
           <Timer startTime={startTime} isRunning status={status} />
         </div>
@@ -152,11 +160,11 @@ function StartStop() {
 
 ## Props
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `isRunning` | `boolean` | `true` | Whether the timer is actively counting. Toggle to start/stop. |
-| `status` | `string` | `"success"` | Visual status of the timer badge. |
-| `startTime` | `number` | `1737936000000` | - |
+| Prop        | Type      | Default         | Description                                                   |
+| ----------- | --------- | --------------- | ------------------------------------------------------------- |
+| `isRunning` | `boolean` | `true`          | Whether the timer is actively counting. Toggle to start/stop. |
+| `status`    | `string`  | `"success"`     | Visual status of the timer badge.                             |
+| `startTime` | `number`  | `1737936000000` | -                                                             |
 
 ## Import
 

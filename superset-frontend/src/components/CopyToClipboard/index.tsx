@@ -100,7 +100,7 @@ function CopyToClip({
     }
     const handleKeyDown = disabled
       ? undefined
-      : (event: KeyboardEvent<HTMLSpanElement>) => {
+      : (event: KeyboardEvent<HTMLButtonElement>) => {
           if (event.key === 'Enter' || event.key === ' ') {
             // Prevent space-scroll when the wrapper is focused.
             event.preventDefault();
@@ -108,16 +108,23 @@ function CopyToClip({
           }
         };
     return (
-      <span
+      <button
+        type="button"
+        css={css`
+          appearance: none;
+          border: none;
+          background: none;
+          padding: 0;
+          font: inherit;
+        `}
         style={{ cursor }}
         onClick={disabled ? undefined : onClick}
         onKeyDown={handleKeyDown}
-        role="button"
         aria-disabled={disabled || undefined}
         tabIndex={disabled ? -1 : 0}
       >
         {copyNode}
-      </span>
+      </button>
     );
   }, [copyNode, disabled, onClick]);
 

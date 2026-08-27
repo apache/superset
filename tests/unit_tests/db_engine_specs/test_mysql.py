@@ -18,12 +18,12 @@
 import builtins
 from datetime import datetime
 from decimal import Decimal
-from types import ModuleType
+from types import SimpleNamespace
 from typing import Any, Optional
 from unittest.mock import Mock, patch
 
 import pytest
-from sqlalchemy import types
+from sqlalchemy import column, types
 from sqlalchemy.dialects.mysql import (
     BIT,
     DECIMAL,
@@ -38,6 +38,8 @@ from sqlalchemy.dialects.mysql import (
 )
 from sqlalchemy.engine.url import make_url, URL  # noqa: F401
 
+from superset.constants import TimeGrain
+from superset.db_engine_specs.base import TimestampExpression
 from superset.utils.core import GenericDataType
 from tests.unit_tests.db_engine_specs.utils import (
     assert_column_spec,
@@ -65,11 +67,22 @@ from tests.unit_tests.fixtures.common import dttm  # noqa: F401
         ("TINYTEXT", TINYTEXT, None, GenericDataType.STRING, False),
         ("MEDIUMTEXT", MEDIUMTEXT, None, GenericDataType.STRING, False),
         ("LONGTEXT", LONGTEXT, None, GenericDataType.STRING, False),
+        ("var_string", types.VARCHAR, None, GenericDataType.STRING, False),
         # Temporal
         ("DATE", types.Date, None, GenericDataType.TEMPORAL, True),
         ("DATETIME", types.DateTime, None, GenericDataType.TEMPORAL, True),
         ("TIMESTAMP", types.TIMESTAMP, None, GenericDataType.TEMPORAL, True),
         ("TIME", types.Time, None, GenericDataType.TEMPORAL, True),
+        # Wire-protocol names
+        ("VAR_STRING", types.VARCHAR, None, GenericDataType.STRING, False),
+        ("NEWDECIMAL", DECIMAL, None, GenericDataType.NUMERIC, False),
+        ("TINY", TINYINT, None, GenericDataType.NUMERIC, False),
+        ("SHORT", types.SmallInteger, None, GenericDataType.NUMERIC, False),
+        ("BLOB", types.String, None, GenericDataType.STRING, False),
+        ("TEXT", types.String, None, GenericDataType.STRING, False),
+        ("YEAR", types.Integer, None, GenericDataType.NUMERIC, False),
+        ("ENUM", types.String, None, GenericDataType.STRING, False),
+        ("SET", types.String, None, GenericDataType.STRING, False),
     ],
 )
 def test_get_column_spec(
@@ -82,6 +95,50 @@ def test_get_column_spec(
     from superset.db_engine_specs.mysql import MySQLEngineSpec as spec  # noqa: N813
 
     assert_column_spec(spec, native_type, sqla_type, attrs, generic_type, is_dttm)
+
+
+def test_fetch_data_mutates_decimal_rows_in_tuple_results() -> None:
+    from superset.db_engine_specs.mysql import MySQLEngineSpec as spec  # noqa: N813
+
+    newdecimal, var_string = 246, 253
+    cursor = Mock()
+    cursor.description = [("amount", newdecimal), ("label", var_string)]
+    cursor.fetchall.return_value = (("10.50", "Ships"), ("22.30", "Planes"))
+
+    # Stub the type_code_map so this test doesn't depend on MySQLdb or
+    # pymysql being importable in the test environment.
+    original_type_code_map = spec.type_code_map
+    spec.type_code_map = {newdecimal: "NEWDECIMAL", var_string: "VAR_STRING"}
+
+    try:
+        data = spec.fetch_data(cursor)
+    finally:
+        spec.type_code_map = original_type_code_map
+
+    assert data == [(Decimal("10.50"), "Ships"), (Decimal("22.30"), "Planes")]
+
+
+def test_fetch_data_mutates_duplicate_decimal_column_names() -> None:
+    from superset.db_engine_specs.mysql import MySQLEngineSpec as spec  # noqa: N813
+
+    newdecimal, var_string = 246, 253
+    cursor = Mock()
+    cursor.description = [
+        ("amount", newdecimal),
+        ("amount", var_string),
+        ("amount", newdecimal),
+    ]
+    cursor.fetchall.return_value = [("10.50", "not a decimal", "22.30")]
+
+    original_type_code_map = spec.type_code_map
+    spec.type_code_map = {newdecimal: "NEWDECIMAL", var_string: "VAR_STRING"}
+
+    try:
+        data = spec.fetch_data(cursor)
+    finally:
+        spec.type_code_map = original_type_code_map
+
+    assert data == [(Decimal("10.50"), "not a decimal", Decimal("22.30"))]
 
 
 @pytest.mark.parametrize(
@@ -266,7 +323,7 @@ def test_column_type_mutator(
     assert spec.fetch_data(mock_cursor) == expected_result
 
 
-def test_get_datatype_pymysql_fallback():
+def test_get_datatype_pymysql_fallback() -> None:
     """get_datatype() falls back to pymysql when MySQLdb is not installed."""
     from superset.db_engine_specs.mysql import MySQLEngineSpec
 
@@ -276,15 +333,9 @@ def test_get_datatype_pymysql_fallback():
 
     try:
         # Build a fake pymysql module with constants.FIELD_TYPE
-        fake_field_type = ModuleType("pymysql.constants.FIELD_TYPE")
-        fake_field_type.TINY = 1
-        fake_field_type.VARCHAR = 15
-
-        fake_constants = ModuleType("pymysql.constants")
-        fake_constants.FIELD_TYPE = fake_field_type
-
-        fake_pymysql = ModuleType("pymysql")
-        fake_pymysql.constants = fake_constants
+        fake_field_type = SimpleNamespace(TINY=1, VARCHAR=15)
+        fake_constants = SimpleNamespace(FIELD_TYPE=fake_field_type)
+        fake_pymysql = SimpleNamespace(constants=fake_constants)
 
         original_import = builtins.__import__
 
@@ -303,3 +354,159 @@ def test_get_datatype_pymysql_fallback():
     finally:
         # Restore original state
         MySQLEngineSpec.type_code_map = original_type_code_map
+
+
+def test_get_datatype_mysqlconnector_fallback() -> None:
+    """get_datatype() supports mysql-connector-python without PyMySQL."""
+    from superset.db_engine_specs.mysql import MySQLEngineSpec
+
+    original_type_code_map = MySQLEngineSpec.type_code_map
+    MySQLEngineSpec.type_code_map = {}
+
+    try:
+        fake_field_type = SimpleNamespace(NEWDECIMAL=246)
+        fake_constants = SimpleNamespace(FieldType=fake_field_type)
+        original_import = builtins.__import__
+
+        def mock_import(name: str, *args: Any, **kwargs: Any) -> Any:
+            if name in {"MySQLdb", "pymysql"}:
+                raise ImportError(f"No module named '{name}'")
+            if name == "mysql.connector.constants":
+                return fake_constants
+            return original_import(name, *args, **kwargs)
+
+        with patch("builtins.__import__", side_effect=mock_import):
+            assert MySQLEngineSpec.get_datatype(246) == "NEWDECIMAL"
+    finally:
+        MySQLEngineSpec.type_code_map = original_type_code_map
+
+
+@pytest.mark.parametrize(
+    ("grain", "expected_expression"),
+    [
+        (None, "my_col"),
+        (
+            TimeGrain.SECOND,
+            "DATE_FORMAT(my_col, '%Y-%m-%d %H:%i:%s')",
+        ),
+        (
+            TimeGrain.MINUTE,
+            "DATE_FORMAT(my_col, '%Y-%m-%d %H:%i:00')",
+        ),
+        (
+            TimeGrain.HOUR,
+            "DATE_FORMAT(my_col, '%Y-%m-%d %H:00:00')",
+        ),
+        (TimeGrain.DAY, "DATE(my_col)"),
+        (
+            TimeGrain.WEEK,
+            "DATE(DATE_SUB(my_col, INTERVAL DAYOFWEEK(my_col) - 1 DAY))",
+        ),
+        (
+            TimeGrain.MONTH,
+            "DATE(DATE_SUB(my_col, INTERVAL DAYOFMONTH(my_col) - 1 DAY))",
+        ),
+        (
+            TimeGrain.QUARTER,
+            "MAKEDATE(YEAR(my_col), 1) "
+            "+ INTERVAL QUARTER(my_col) QUARTER - INTERVAL 1 QUARTER",
+        ),
+        (
+            TimeGrain.YEAR,
+            "DATE(DATE_SUB(my_col, INTERVAL DAYOFYEAR(my_col) - 1 DAY))",
+        ),
+        (
+            TimeGrain.WEEK_STARTING_MONDAY,
+            "DATE(DATE_SUB(my_col, "
+            "INTERVAL DAYOFWEEK(DATE_SUB(my_col, "
+            "INTERVAL 1 DAY)) - 1 DAY))",
+        ),
+    ],
+)
+def test_time_grain_expressions(
+    grain: Optional[TimeGrain], expected_expression: str
+) -> None:
+    """
+    Test that MySQL time grain expression templates produce the expected SQL.
+    Guards against the bare DATE() call being dropped by SQLGlot sanitization
+    or SQLAlchemy proxying for the SECOND/MINUTE/HOUR grains, which used to
+    truncate to a bare `DATE({col})`.
+    """
+    from superset.db_engine_specs.mysql import MySQLEngineSpec
+
+    actual = MySQLEngineSpec._time_grain_expressions[grain].replace("{col}", "my_col")
+    assert actual == expected_expression
+
+
+def test_compile_timegrain_expression_preserves_date_truncation() -> None:
+    """
+    Test that compile_timegrain_expression preserves the full DATE_FORMAT
+    truncation in the MySQL HOUR time grain expression, including when the
+    expression is proxied through a subquery (series-limit path).
+
+    Regression test for: ECharts HOUR grain generates invalid SQL (DATE()
+    dropped by sanitization/proxying).
+    """
+    from sqlalchemy import select
+
+    from superset.db_engine_specs.mysql import MySQLEngineSpec
+
+    col = column("my_col")
+    template = MySQLEngineSpec._time_grain_expressions[TimeGrain.HOUR]
+    expr = TimestampExpression(template, col)
+    expected = "DATE_FORMAT(my_col, '%Y-%m-%d %H:00:00')"
+
+    compiled = str(expr)
+    assert compiled == expected, f"DATE_FORMAT truncation was dropped. Got: {compiled}"
+
+    proxied = str(select(select(expr.label("bucket")).subquery().c.bucket))
+    assert expected in proxied, (
+        f"DATE_FORMAT truncation was dropped in proxied expression. Got: {proxied}"
+    )
+
+
+def test_identifier_quote_uses_backticks() -> None:
+    """MySQL/MariaDB quote identifiers with backticks."""
+    from superset.db_engine_specs.mysql import MySQLEngineSpec
+
+    assert MySQLEngineSpec.get_public_information()["identifier_quote"] == {
+        "start": "`",
+        "end": "`",
+        "escape_by_doubling": True,
+    }
+
+
+def test_extended_aggregation_func_stddev_var_sample() -> None:
+    """
+    Verified against a live mysql:8.0 instance, including under GROUP BY ...
+    WITH ROLLUP: these produce the correct database-wide sample statistic, and
+    match the same-input results from postgres/duckdb exactly.
+    """
+    from superset.db_engine_specs.mysql import MySQLEngineSpec as spec  # noqa: N813
+
+    col = column("sales")
+
+    stddev_expr = spec.get_extended_aggregation_func("STDDEV_SAMP")
+    assert stddev_expr is not None
+    assert (
+        str(stddev_expr(col).compile(compile_kwargs={"literal_binds": True}))
+        == "stddev_samp(sales)"
+    )
+
+    var_expr = spec.get_extended_aggregation_func("VAR_SAMP")
+    assert var_expr is not None
+    assert (
+        str(var_expr(col).compile(compile_kwargs={"literal_binds": True}))
+        == "var_samp(sales)"
+    )
+
+
+def test_extended_aggregation_func_median_unsupported() -> None:
+    """
+    MySQL has neither a MEDIAN function nor PERCENTILE_CONT (confirmed against
+    a live mysql:8.0 instance: both error). Must not silently fall back to
+    a guessed expression.
+    """
+    from superset.db_engine_specs.mysql import MySQLEngineSpec as spec  # noqa: N813
+
+    assert spec.get_extended_aggregation_func("MEDIAN") is None

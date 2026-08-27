@@ -90,7 +90,7 @@ def _run_with_alembic_context(engine: sa.engine.Engine, fn) -> None:
     migration module's ``op`` to point at this context so its
     ``op.get_bind()`` and ``op.batch_alter_table`` calls execute against
     the in-memory engine."""
-    with engine.connect() as conn:
+    with engine.begin() as conn:
         ctx = MigrationContext.configure(conn)
         ops = Operations(ctx)
         original_op = _migration.op

@@ -24,6 +24,400 @@ assists people when migrating to a new version.
 
 ## Next
 
+- `SAMPLES_ROW_LIMIT` is now the default for `/datasource/samples` requests without a valid explicit `per_page`, rather than a hard per-request ceiling; explicit limits are honored up to the existing global row-limit ceiling, matching `/chart/data` SAMPLES requests.
+
+### MCP tool results preserve stored string values
+
+Structured MCP tool results no longer add `<UNTRUSTED-CONTENT>` wrappers or
+rewrite delimiter-looking text inside string fields. Tool-result content remains
+user-controlled data, but clients must convey that trust boundary outside domain
+values instead of recognizing or removing marker strings.
+
+Clients that handled the former delimiter convention should stop stripping marker
+text: the same text can be legitimate stored content. Response models and content
+types are unchanged, and no metadata-database migration is required. Automated
+read-modify-write workflows should be paused or pinned away from older instances
+until every serving instance is upgraded; a mixed-version response has no reliable
+signal that tells a client whether its text is decorated. Redis-backed MCP response
+caches use a new internal namespace after the upgrade, so upgraded instances do not
+reuse older cached results.
+
+Values that a client already wrote back with presentation wrappers cannot be
+distinguished safely from intentional content. Operators should review possible
+`<UNTRUSTED-CONTENT>` / `</UNTRUSTED-CONTENT>` wrappers and
+`[ESCAPED-UNTRUSTED-CONTENT-OPEN]` /
+`[ESCAPED-UNTRUSTED-CONTENT-CLOSE]` substitutions rather than applying an automatic
+marker-removal migration.
+
+### OAuth2 database callback metrics include their outcome
+
+The unqualified `DatabaseRestApi.oauth2` StatsD counter has been replaced with
+`DatabaseRestApi.oauth2.success`, `DatabaseRestApi.oauth2.warning`, and
+`DatabaseRestApi.oauth2.error`. Update monitoring rules and dashboards that consume
+the old counter to use the outcome-specific replacements.
+
+- [42930](https://github.com/apache/superset/pull/42930): Dataset import data-URI fetches no longer honor an HTTP(S) proxy when `DATASET_IMPORT_ALLOW_INTERNAL_DATA_URLS` is `False` (the default): the connection is now made directly to the destination so the peer-address check validates the real target instead of a proxy's. Deployments that require an egress proxy to reach legitimate external data URLs for dataset import should set `DATASET_IMPORT_ALLOW_INTERNAL_DATA_URLS = True` or otherwise ensure those URLs resolve without one.
+- [42935](https://github.com/apache/superset/pull/42935): The MCP service now refuses to start (`MCPAuthConfigError`) when `MCP_JWT_ISSUER` trusts more than one issuer and no `MCP_USER_RESOLVER` is configured, instead of only logging a warning. This was already a documented misconfiguration (the default resolver isn't issuer-scoped, so distinct trusted issuers minting the same username/email would resolve to the same Superset user); deployments trusting multiple issuers must configure an `MCP_USER_RESOLVER` that derives its identity from the token's `iss` claim before upgrading. Single-issuer deployments are unaffected.
+- [42429](https://github.com/apache/superset/pull/42429): The Country Map chart's Iran GeoJSON now gives Alborz province its own ISO 3166-2 code, `IR-32`, instead of `IR-30`. `ISO` is the join key used to color/filter provinces on this chart, so any existing dataset keyed on `IR-30` for Alborz will silently stop matching after upgrading; re-key that data to `IR-32`.
+- [43388](https://github.com/apache/superset/pull/43388): The MCP service now refuses to start (`MCPAuthConfigError`) if `MCP_DEV_USERNAME` and `MCP_AUTH_ENABLED = True` are both set, and separately if `MCP_AUTH_ENABLED = True` but no usable JWT key material is configured (RSA key/JWKS, or an explicit `MCP_JWT_SECRET` for HMAC) — both previously started with authentication silently weaker than configured. Deployments combining a dev-mode username with JWT auth enabled, or enabling JWT auth without key material, must pick one before upgrading: unset `MCP_DEV_USERNAME` for a real auth deployment, or unset `MCP_AUTH_ENABLED` (or configure the key material) for a dev-mode one. Response caching (`MCP_CACHE_CONFIG["enabled"] = True`) now also excludes every tool with a side effect by default, not only a partial list, so a previously-cached mutating tool call is no longer served from cache; no config change is needed to pick this up.
+- [42393](https://github.com/apache/superset/pull/42393): Exported dataset YAML now carries a `uuid` for each metric and column so that custom folder assignments (which reference metrics/columns by UUID) survive an import into another workspace. This affects any export bundle that contains datasets, not just a dataset export: chart, dashboard, database and full-asset exports all embed the same dataset YAML, so a dashboard exported from this release also fails to import into an older one even though no dataset was exported directly. As with `folders` and `currency_code_column`, the affected `datasets/` files fail schema validation (`Unknown field: uuid`) when imported into Superset releases that predate this change; regenerate or hand-edit exports for older targets in mixed-version fleets.
+- [42300](https://github.com/apache/superset/pull/42300): Timeseries charts (line/area/bar) with a Y-axis bound in effect — either an explicit `yAxisBounds` or one derived from `truncateYAxis` — now clamp out-of-range data points to that bound instead of letting ECharts drop the point (and the line segments around it) entirely. Any existing chart with a configured Y-axis bound and data outside it will look different after upgrading: a gap becomes a point pinned to the boundary. The clamp also rewrites the value ECharts reads for that point's tooltip and data label, so the displayed value is the bound rather than the true observation.
+- [42087](https://github.com/apache/superset/pull/42087): Stored calculated-column and metric expressions are validated when a query is built, under the same sub-query policy already applied to adhoc expressions. Previously only the dataset update path checked them on save, so expressions written by v1 import, by dataset duplication, or before that check existed were never validated. Since `ALLOW_ADHOC_SUBQUERY` defaults to `False` (see [19242](https://github.com/apache/superset/pull/19242)), a dataset whose stored expression contains a sub-query works before upgrading and afterwards fails at chart render with `Custom SQL fields cannot contain sub-queries.` There is no migration step, and the error does not name the offending dataset column, so audit stored expressions before upgrading: either rewrite them without the sub-query, or set `ALLOW_ADHOC_SUBQUERY = True` to keep the previous behaviour for both stored and adhoc expressions.
+
+### Selenium support removed — Playwright is now required for screenshots
+
+Selenium support has been removed. **Playwright is now required** for all
+report and thumbnail screenshot generation. Install it with:
+
+```bash
+pip install playwright && playwright install chromium
+```
+
+**Breaking config changes:**
+
+- `PLAYWRIGHT_REPORTS_AND_THUMBNAILS` feature flag removed (Playwright is the only backend now)
+- `WEBDRIVER_TYPE` config key removed (Playwright always uses Chromium)
+- `WEBDRIVER_CONFIGURATION` config key removed (Selenium-only)
+- `SCREENSHOT_PAGE_LOAD_WAIT` config key removed (Selenium-only)
+- `SCREENSHOT_SELENIUM_RETRIES` config key removed (Selenium-only)
+- `SCREENSHOT_WAIT_FOR_ERROR_MODAL_VISIBLE` config key removed (Selenium-only)
+- `SCREENSHOT_WAIT_FOR_ERROR_MODAL_INVISIBLE` config key removed (Selenium-only)
+- `MachineAuthProvider.authenticate_webdriver()` removed; use `authenticate_browser_context()` instead
+
+**What operators should do before upgrading:**
+
+1. Install Playwright: `pip install playwright && playwright install chromium`
+2. Remove any references to the removed config keys from custom `superset_config.py`
+3. If you subclassed `MachineAuthProvider`, remove any `authenticate_webdriver` override and migrate auth logic to `authenticate_browser_context`
+
+### CSV/XLSX report exports of Table charts keep raw numeric values
+
+Table and Pivot Table charts sent as text in a report email now apply the
+chart's number and currency formatting so the values match what a user sees in
+Explore. As part of this, the CSV and XLSX result formats return early before
+formatting: previously the Table post-processor applied `d3NumberFormat` to
+every result format, so CSV/XLSX exports contained pre-formatted strings.
+CSV/XLSX exports now preserve numeric values and column types, which is better
+for downstream analysis but is a visible change for anyone who relied on the
+formatted text in those files. The rendered email body (the only place the
+formatting is intended for) is unaffected.
+
+### SQLAlchemy bumped to 2.0, flask-sqlalchemy to 3.1.1
+
+Superset's core ORM dependencies move from SQLAlchemy 1.4 to 2.0 and
+flask-sqlalchemy `<3.0` to 3.1.1, completing the migration tracked in
+[discussion #40273](https://github.com/apache/superset/discussions/40273).
+
+**Custom `db_engine_specs`, plugins, or extensions that import SQLAlchemy
+internals directly** should review the
+[SQLAlchemy 1.4-to-2.0 migration guide](https://docs.sqlalchemy.org/en/20/changelog/migration_20.html)
+for API changes that affect them — most 1.4 code already runs unmodified
+under 2.0's compatibility mode, but patterns like `Engine.execute()`,
+string-keyed `Row` access, and `MetaData(bind=)` are removed outright.
+
+**Several optional DB-connector extras remain capped below their
+SQLAlchemy-2.0-only releases**, either because that bump is a separate
+follow-up ([#42891](https://github.com/apache/superset/pull/42891): dremio,
+exasol, firebird, redshift, risingwave) or because the upstream dialect
+package has no SQLAlchemy 2.0 support yet at all (aurora-data-api, d1,
+kusto, solr; ocient's 2.0 compatibility is unverified). Installing one of
+these extras continues to pull a SQLAlchemy-1.4-line version of that
+dialect; each package's constraint in `pyproject.toml` documents why.
+
+No application-level configuration changes are required for deployments
+that don't touch SQLAlchemy directly.
+
+### New metric aggregates: MEDIAN, Sample Standard Deviation, Sample Variance
+
+`MEDIAN`, `STDDEV_SAMP`, and `VAR_SAMP` are now available anywhere a metric
+aggregate is chosen (every chart type, SQL Lab, MCP), not only in Pivot
+Table's controls. Support is opt-in per database engine *spec class*,
+verified against a live instance before being enabled: Postgres, MySQL
+(`STDDEV_SAMP`/`VAR_SAMP` only, no `MEDIAN`), DuckDB, and Redshift (inherits
+Postgres's support, not yet separately verified) ship enabled in this
+release. Engine specs that subclass one of those (e.g. MariaDB, Aurora
+MySQL/Postgres, TimescaleDB) inherit the same support, on the same
+not-yet-independently-verified basis. Picking one of these aggregates on a
+database that has not opted in returns a clear "not supported on this
+database" error rather than a failed query. See
+`docs/sip/median-stddev-variance-aggregates.md` for the full design
+rationale, including why this is safe to add without reintroducing the
+totals/subtotals correctness bug fixed by #41184 (SIP-216).
+
+### Soft delete is on by default, and purging is live
+
+`SOFT_DELETE` now ships **on** (`DEFAULT_FEATURE_FLAGS`), so deleting a
+dashboard, chart, or dataset archives it rather than removing it. Archived
+objects are hidden from normal listings, recoverable from **Recently Archived**,
+and permanently removed once the retention window elapses.
+`SOFT_DELETE_PURGE_DRY_RUN` also flips to `False`, so the nightly
+`deletion_retention.purge_soft_deleted` task deletes for real instead of only
+logging `would_purge` counts.
+
+**What operators should do before upgrading:**
+
+- **Size the first live purge.** The first real run removes every entity that
+  aged past `SOFT_DELETE_RETENTION_DAYS` (default 30) since soft delete began
+  capturing, which on a busy deployment can be a large batch in one window. To
+  see the size first, set `SOFT_DELETE_PURGE_DRY_RUN = True`, read the
+  `would_purge` counts from one nightly run, then set it back.
+- **Check a replaced `CELERY_CONFIG`.** A deployment that redefines it rather
+  than inheriting must carry both `superset.tasks.deletion_retention` in
+  `imports` and the `deletion_retention.purge_soft_deleted` beat entry;
+  a startup warning now names whichever is absent.
+
+**Both switches are retained.** `SOFT_DELETE = False` restores hard-delete
+behaviour and `SOFT_DELETE_PURGE_DRY_RUN = True` suspends purging, at any time.
+One caveat on turning soft delete back off: objects archived while it was on are
+**resurrected** into normal listings, since the rows were never removed — an
+emergency stop rather than a clean rollback.
+
+### Version history is on by default
+
+`VERSION_HISTORY` and `ENABLE_VERSIONING_CAPTURE` now both ship **on**. Every
+save of a chart, dashboard, or dataset writes version rows, and the version
+history panel appears on Explore and Dashboard pages. The two flip together
+deliberately: a panel with capture off renders an empty "No history yet" that
+misrepresents the entity as unchanged.
+
+**What operators should expect:**
+
+- **Storage growth.** Capture writes shadow rows per save, so the metadata
+  database grows with edit volume. The `version_history.prune_old_versions`
+  beat task removes rows whose transaction is older than
+  `SUPERSET_VERSION_HISTORY_RETENTION_DAYS` (default 30).
+- **Check a replaced `CELERY_CONFIG`.** Carry both the
+  `superset.tasks.version_history_retention` import and the
+  `version_history.prune_old_versions` beat entry; see
+  [Version-history retention (pruning)](#version-history-retention-pruning) for
+  the startup-warning behavior.
+- **`PUT` responses change shape.** Entity updates now return populated
+  `old_version_uuid` / `new_version_uuid` fields and an `ETag` header, which
+  were null or absent while capture was off.
+
+`ENABLE_VERSIONING_CAPTURE` is **retained permanently** as an operational
+kill-switch — not removed with the rollout toggles. Setting it to a falsy value
+stops capture within a restart, without a revert-and-redeploy. Unlike the
+soft-delete toggle, turning it off is a clean stop: existing version rows remain
+readable and no entity state is altered. Restore is unavailable (404) while
+capture is off. A full rollback also sets
+`FEATURE_FLAGS = {"VERSION_HISTORY": False}` to hide the panel — capture off
+with the panel left on shows an empty or stale history.
+
+### Scheduled report execution now enforces one application deadline
+
+Scheduled report (not alert) executions are now governed by a single
+end-to-end deadline shared by browser readiness, capture/PDF generation,
+notification delivery, and terminal-state persistence, configured via
+`ALERT_REPORTS_EXECUTION_BUDGET_SECONDS` (with per-phase reserve settings).
+Behavior changes to be aware of:
+
+- The effective budget for a schedule is
+  `min(ALERT_REPORTS_EXECUTION_BUDGET_SECONDS, working_timeout)`. The default
+  budget (one hour) matches the historical `working_timeout` model default,
+  so default installations see no change in how long a report may run —
+  but reports now fail cleanly (with an error notification) at the deadline
+  instead of being killed silently by Celery.
+- For REPORT schedules, the Celery `soft_time_limit`/`time_limit` are now
+  derived from that same effective budget plus
+  `ALERT_REPORTS_EXECUTION_HARD_TIMEOUT_GRACE_SECONDS`, replacing the
+  previous `working_timeout + ALERT_REPORTS_WORKING_TIME_OUT_LAG` /
+  `+ ALERT_REPORTS_WORKING_SOFT_TIME_OUT_LAG` derivation. Alert schedules
+  keep the previous behavior.
+- A `working_timeout` smaller than the summed phase reserves is floored at
+  the minimum viable budget (reserves + 30s) with a warning; such reports
+  fail fast at the first phase check rather than erroring at setup.
+- Dashboard reports whose charts have not mounted are no longer captured
+  blank: readiness is polled until the deadline, and the report fails loudly
+  if charts never mount. Thumbnails and non-report screenshots keep their
+  previous behavior.
+
+### Embedded (guest token) API responses no longer echo database errors
+
+API responses served to a guest-token principal now carry a generic
+`An error occurred while fetching the data.` in place of the underlying error
+(`You don't have permission to access this resource.` on a 401/403), and drop
+the `stacktrace` and error `extra` payloads. Engine errors routinely quote
+catalog, schema, table and column names of the warehouse, which embedded
+viewers should not see. Errors Superset authors itself — access denials, OAuth2
+redirects, timeouts, payload validation — keep their message and type, though
+their `extra` is still reduced to the fields the client needs. Responses to
+every non-guest principal are unchanged, and the full error is still logged
+server-side.
+
+### `UnsavedChangesModal` no longer accepts a `zIndex` prop
+
+`@superset-ui/core`'s `UnsavedChangesModal` dropped its `zIndex` prop (and the
+hardcoded default it fed) in favor of letting Ant Design's own stacking
+handle placement. Callers passing `zIndex` to override the modal's layering
+will now get a TypeScript error and must remove the prop; keeping a manual
+override was exactly the footgun this change removes (see #42510). No
+callers in the Superset frontend codebase itself passed this prop.
+
+### Row-level security now filters table reads a same-named CTE used to hide
+
+`extract_tables_from_statement()` decided whether a reference was a CTE by matching its
+bare name against the enclosing scope's CTE names; it now resolves the name through
+`Scope.cte_sources`. Three kinds of real table read whose bare name collided with a CTE's
+were mistaken for the CTE and dropped from a statement's tables, so they were neither
+RLS-filtered nor access-checked: a schema- or catalog-qualified reference, a non-recursive
+CTE's own name inside its body, and a forward reference to a later `WITH` item.
+
+```sql
+WITH orders AS (SELECT 1 AS d) SELECT * FROM (SELECT * FROM public.orders) AS z
+WITH orders AS (SELECT * FROM orders) SELECT * FROM orders
+WITH q1 AS (SELECT key FROM q2), q2 AS (SELECT 1 AS key) SELECT * FROM q1
+```
+
+Each read is now reported, so it is filtered when `RLS_IN_SQLLAB` is enabled, matched
+against `DISALLOWED_SQL_TABLES`, and requires dataset access under
+`raise_for_access(force_dataset_match=True)`. A query that previously ran, reading those
+rows unfiltered, may now be filtered or rejected. There is no opt-out — the previous
+behavior was a row-level-security bypass.
+
+### Table aliases keep their quoting through the row-level security rewrite
+
+Both RLS transformers took the table alias as a string with its quoting stripped and
+emitted it verbatim; they now carry the parsed identifier. Emitted SQL is unchanged for an
+unquoted identifier; a quoted one keeps its quoting, and a column-alias list
+(`FROM t AS x (c1, c2)`) survives the rewrite instead of being dropped. This repairs
+row-level security for any aliased table on Snowflake, and for at least one statement shape
+on MSSQL where the rewrite previously raised `AttributeError`.
+
+### Principal listing APIs now honour related-field filters
+
+Two authorization-related listing behaviors changed for API clients. Neither
+affects the Superset UI — `include_ids` and `security/subject` have no frontend
+callers — but external clients will notice:
+
+- `GET /api/v1/<resource>/related/<column>?include_ids=...` now applies the
+  endpoint's `base_related_field_filters`. Previously the forced IDs were fetched
+  with no filtering, so a caller could resolve principals the related-field
+  filters deliberately hide; those IDs are now omitted from the response.
+- `GET /api/v1/security/subject/` now honours `EXCLUDE_USERS_FROM_LISTS` and
+  `EXTRA_RELATED_QUERY_FILTERS`, matching every other principal-listing endpoint.
+  List counts may drop, and fetching an excluded principal via
+  `GET /api/v1/security/subject/<id>` now returns `404`.
+
+### v1 chart import no longer re-adds the importer as editor on overwrite
+
+Re-importing over an existing chart (an overwrite or a soft-delete restore) no
+longer appends the importing user to the chart's `editors`, matching the
+dashboard importer's behavior. This changes anything only for a user who was not
+already an editor of that chart — typically an admin overwriting a chart they do
+not own, who was previously added as an editor as a side effect of the import.
+Newly-created charts are unaffected.
+### ClickHouse: system sampling queries retry with a bounded read
+
+System-generated sampling queries — filter-value dropdowns, the Samples
+tab/dataset preview, and datetime format detection — that ClickHouse rejects
+with a `max_rows_to_read` error (`TOO_MANY_ROWS`, code 158) are now retried
+once with `SETTINGS read_overflow_mode='break'` appended, so they return a
+partial result bounded by the operator's row cap instead of failing. The retry
+applies only to statements Superset generates for physical-table datasets;
+virtual datasets and user-authored SQL remain fully governed by configured
+read limits, and queries that already succeed are never altered. Operators who
+rely on `max_rows_to_read` as a hard failure gate for these system queries can
+restore the previous behavior per database with
+`"disable_sampling_read_limit_override": true` in the database's Extra JSON.
+Note that a retried query returns partial data with no truncation indicator
+(e.g. a filter dropdown may list only a subset of values on tables above the
+row cap).
+
+### Dashboard "Export Data to Excel" requires a Celery worker and S3 bucket
+
+A new dashboard action exports every chart's data to a single multi-sheet
+`.xlsx` asynchronously. It is disabled by default and turns on only when
+`EXCEL_EXPORT_S3_BUCKET` is set (the endpoint returns `501` otherwise). It also
+requires a running Celery worker and a configured SMTP transport, since the task
+emails the requesting user a pre-signed download link. New config keys:
+`EXCEL_EXPORT_S3_BUCKET`, `EXCEL_EXPORT_S3_KEY_PREFIX`,
+`EXCEL_EXPORT_LINK_TTL_SECONDS`, `EXCEL_EXPORT_S3_CLIENT_KWARGS`,
+`EXCEL_EXPORT_TABLE_VIZ_TYPES`, and `EXCEL_EXPORT_QUERY_CONTEXT_BUILDER`.
+
+The feature depends on `boto3`, which is **not** installed by default; install it
+with `pip install apache-superset[excel-export]`.
+
+Charts store their `query_context` only once they have been (re-)saved in
+Explore, so older charts may have none. For a fixed, conservative set of viz
+types (`table`, `big_number_total`, `big_number`, `pie`) the export rebuilds a
+query context from the chart's saved form data so those charts still export.
+The rebuild is a single-query mapping and does **not** reproduce plugin
+post-processing (pivot, rolling, forecast) or multi-query charts, so any chart of
+another type without a saved query context is skipped and listed in the email for
+the user to re-save. To cover those types, set `EXCEL_EXPORT_QUERY_CONTEXT_BUILDER`
+to a callable that receives the chart's form data and returns a query-context
+payload (or `None` to fall back to the built-in rebuild) — for example one backed
+by a service that runs the chart's real frontend `buildQuery`.
+
+A second mode, **Export Images to Excel**, embeds non-table charts as rendered
+images (which viz types stay tabular is controlled by
+`EXCEL_EXPORT_TABLE_VIZ_TYPES`). It renders through the headless webdriver, so the
+menu option only appears when the webdriver screenshot feature flags
+(`ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS`,
+`ENABLE_DASHBOARD_DOWNLOAD_WEBDRIVER_SCREENSHOT`) are enabled.
+
+Deployments that override `CELERY_CONFIG` must add
+`"superset.tasks.export_dashboard_excel"` to their `imports` tuple, or the task
+will not register and exports will silently never run.
+
+### SQL_QUERY_MUTATOR now honors MUTATE_AFTER_SPLIT in SQL Lab
+
+SQL Lab now applies `SQL_QUERY_MUTATOR` according to `MUTATE_AFTER_SPLIT`, matching the documented semantics and the chart/query path. This only affects deployments that define `SQL_QUERY_MUTATOR` in `superset_config.py`:
+
+- With `MUTATE_AFTER_SPLIT = True`, the mutator previously never ran in SQL Lab; it now runs on each individual statement (including on engines like BigQuery and Kusto that execute multiple statements as one block, where each statement is mutated before the statements are joined).
+- With `MUTATE_AFTER_SPLIT = False` (the default), multi-statement SQL Lab queries previously applied the mutator to each statement separately; the mutator now runs once on the whole un-split query, as documented. Single-statement queries are unaffected.
+- With `MUTATE_AFTER_SPLIT = False` on engines that execute statements individually, the mutator's output is re-parsed to split it into statements. A mutator that emits SQL Superset's parser cannot parse will now fail with a clear parse error before execution, and one that strips a query down to nothing raises an invalid-SQL error instead of executing an empty query.
+
+### Python 3.10 support removed
+
+Python 3.10 is no longer supported. Superset now requires **Python 3.11 or higher**.
+Update your environment (virtualenv, Docker base image, CI configuration, etc.) to
+Python 3.11+ before upgrading. The `apache/superset-cache:3.10-slim-trixie` and
+`py310` Docker image variants are no longer published.
+
+### `from_dttm` and `to_dttm` Jinja template variables removed
+
+The `{{ from_dttm }}` and `{{ to_dttm }}` Jinja template variables, deprecated since
+v5.0, have been removed from the Jinja context and are no longer available in virtual
+dataset SQL or custom SQL expressions.
+
+Replace usages with the `get_time_filter()` function. For example:
+
+```sql
+-- Before
+SELECT * FROM tbl
+WHERE dttm_col > '{{ from_dttm }}' AND dttm_col < '{{ to_dttm }}'
+
+-- After
+{% set tf = get_time_filter("dttm_col") %}
+SELECT * FROM tbl
+WHERE dttm_col > {{ tf.from_expr }} AND dttm_col <= {{ tf.to_expr }}
+```
+
+Note that `from_expr` and `to_expr` are already fully-formatted SQL expressions (e.g.
+`TO_TIMESTAMP('2024-01-01', ...)`) — do not wrap them in single quotes.
+
+### Removed deck.gl JavaScript tooltip/data-mutator controls and ENABLE_JAVASCRIPT_CONTROLS
+
+The `ENABLE_JAVASCRIPT_CONTROLS` feature flag and the deck.gl chart controls it gated
+(`js_tooltip`, `js_onclick_href`, `js_data_mutator`, and the GeoJSON layer's label/icon
+JavaScript-mode generators) have been removed. These controls let users write arbitrary
+JavaScript, sandboxed via Node's `vm` module, to customize deck.gl tooltips, click
+behavior, and data transforms; the flag defaulted off and the feature saw negligible use.
+
+The deck.gl "Extra data for JS" control (`js_columns`) has also been removed. It only
+ever existed to feed extra columns into the JavaScript controls above; deck.gl's
+built-in field-based tooltips and cross-filtering already pull in any columns they need
+via `tooltip_contents`/`cross_filter_column`, so this control had no remaining purpose.
+Any chart layer whose "Advanced" control panel section only contained this control no
+longer has an "Advanced" section.
+
+Any saved charts with these fields set will simply ignore them going forward and fall back
+to deck.gl's built-in field-based tooltips (`tooltip_contents`/`tooltip_template`) and
+native click/cross-filter behavior. No migration is required; the fields are dropped
+silently on next save.
+
 ### Owners, dashboard roles, and RLS roles replaced by Subjects
 
 Superset now uses subject-based access assignments for dashboards, charts, datasets,
@@ -111,6 +505,12 @@ are the intended model going forward; deprecating and removing implicit viewersh
 in a later major version.
 
 - [41044](https://github.com/apache/superset/issues/41044): Removes the deprecated `AVOID_COLORS_COLLISION` feature flag (it defaulted to `True`). Color-collision avoidance is now permanently enabled; any config override setting it to `False` is ignored.
+- [41714](https://github.com/apache/superset/pull/41714): **Breaking — the legacy `explore_json` chart-data pipeline is removed** at its long-declared `5.0.0` EOL. The `/superset/explore_json/` and `/superset/explore_json/data/<cache_key>` endpoints, `superset/viz.py`, the `Slice.viz` property, the `get_viz` factory, the `load_explore_json_into_cache` celery task and the `viz=` overload of `security_manager.raise_for_access` are gone. Anything importing `superset.viz` must migrate to the QueryContext / `pandas_postprocessing` pipeline behind `/api/v1/chart/data`. All 15 remaining legacy charts were migrated first: most keep their `viz_type` and renderer (no action needed for saved charts), while saved nvd3 Bubble charts are auto-migrated to the ECharts Bubble Chart (`bubble_v2`) and saved "Time-series Percent Change" (`compare`) charts to the ECharts Line Chart, which restores the nvd3 renderer's interactive percent re-basing via a draggable baseline. The deck.gl Multiple Layers chart now fetches its layers entirely client-side, refitting the viewport as each layer's data arrives, and caps the number of sub-slices fanned out per chart at `DECK_MULTI_MAX_SLICES` (default 50, configurable); dashboard filter badges no longer aggregate child-layer filter metadata.
+
+- [41714](https://github.com/apache/superset/pull/41714): Charts migrated in place keep a `NULL` saved query context until they are next opened in Explore (which regenerates it automatically) or re-saved. Until then, cache warm-up and annotation layers referencing such a chart report an actionable error rather than warming/rendering; opening the chart once resolves it.
+- [41714](https://github.com/apache/superset/pull/41714): **Breaking for third-party viz plugins** — the `useLegacyApi` field of `ChartMetadata` in `@superset-ui/core` is removed. Plugins that set it must provide a `buildQuery` and consume `/api/v1/chart/data`. The migrated first-party packages also drop their `legacy-` prefix: `@superset-ui/legacy-plugin-chart-{calendar,chord,country-map,horizon,paired-t-test,parallel-coordinates,partition,rose,world-map}` → `@superset-ui/plugin-chart-*`, and `@superset-ui/legacy-preset-chart-nvd3` → `@superset-ui/preset-chart-nvd3`. The `can_explore_json` permission is no longer created or granted; custom roles referencing it should switch to the `can_read` permissions on `Chart`.
+
+- [41813](https://github.com/apache/superset/pull/41813): `redis` (the Python client, `redis-py`) is bumped from 5.3.1 to 8.0.1. redis-py 8 changes several connection defaults; Superset's own Redis-backed features (`GLOBAL_ASYNC_QUERIES_CACHE_BACKEND`, `DISTRIBUTED_COORDINATION_CONFIG`, and the MCP Redis store) explicitly pin the pre-upgrade behavior so this bump is a no-op for them: the wire protocol stays RESP2 (not the new RESP3 default, which requires Redis/Sentinel 6+ to speak `HELLO`) and there is still no socket timeout by default (redis-py 8 defaults to 5s, which could otherwise newly time out large cached payloads or slow networks). The no-timeout default can now be overridden via two new config keys, `CACHE_REDIS_SOCKET_TIMEOUT` / `CACHE_REDIS_SOCKET_CONNECT_TIMEOUT`, on any `CacheConfig` dict using `CACHE_TYPE: RedisCache` or `RedisSentinelCache`. Separately, redis-py 6+ changed the default for `ssl_check_hostname` from `False` to `True` for SSL connections using `ssl_cert_reqs="required"` (the default) — this is a security improvement, so it has **not** been reverted; deployments with `CACHE_REDIS_SSL=True` whose certificates lack a hostname matching the connection address should set `CACHE_REDIS_SSL_CERT_REQS="none"` (disables cert verification entirely, matching hostname-check bypass) or replace the certificate. General-purpose cache/results backends configured via `CACHE_CONFIG` / `DATA_CACHE_CONFIG` / `RESULTS_BACKEND` with `CACHE_TYPE: RedisCache` go through `flask-caching`'s own Redis backend (outside Superset's code) and are subject to the same new defaults; pass `socket_timeout` / `protocol` via `CACHE_OPTIONS` there if needed. Celery broker and result-backend connections (built by `kombu`, also outside Superset's code) keep their no-socket-timeout behavior (`kombu` passes `socket_timeout=None` explicitly) but do **not** pin the wire protocol, so they follow redis-py's RESP3 default — which requires a Redis server new enough to speak `HELLO` (Redis 6+). Deployments using a pre-6.0 Redis server (EOL) as a Celery broker should upgrade the server before taking this bump.
 
 - [39925](https://github.com/apache/superset/pull/39925): URL prefixing for `SUPERSET_APP_ROOT` subdirectory deployments is now handled automatically by helpers in `src/utils/navigationUtils` (`openInNewTab`, `redirect`, `getShareableUrl`, `<AppLink>`). Direct imports of `ensureAppRoot` / `makeUrl` from `src/utils/pathUtils` are forbidden outside `navigationUtils.ts` (enforced by a static-invariant test); contributors writing new code should use the focused helpers instead. No runtime behaviour change for existing callers — all 19 prior call sites have been migrated and four pre-existing double-prefix and missing-prefix bugs are fixed as part of the migration.
 
@@ -128,7 +528,7 @@ in a later major version.
 
 - **`SqlaTable.sql_url` query-string format.** `SqlaTable.sql_url` now URL-encodes `table_name` and joins it as a query parameter rather than concatenating a second `?`. Previously, with `Database.sql_url` returning `/sqllab/?dbid=<id>`, the concatenation produced `/sqllab/?dbid=<id>?table_name=<raw>` — a malformed second `?` that broke the query parser. External code that parsed the legacy `<base>?table_name=<raw>` shape now sees properly percent-encoded values (e.g. `/` → `%2F`, ` ` → `+` or `%20`); decode with `urllib.parse.parse_qsl`.
 
-- **New config flag `EMBEDDED_DISABLE_PERMALINK_ORIGIN_REWRITE` (default `False`).** Share/permalink URLs now substitute `window.location.origin` for the backend-supplied origin so a proxied or subdirectory-deployed Superset never hands the user an unreachable internal hostname. Operators whose reverse proxy correctly forwards `X-Forwarded-Host` *and* who want permalinks to carry the backend's literal origin can opt out by setting `EMBEDDED_DISABLE_PERMALINK_ORIGIN_REWRITE = True` in `superset_config.py`. Default `False` (rewrite is on); flipping the default would regress the dominant proxied/subdir deployment to an unreachable host.
+- **New config flag `EMBEDDED_DISABLE_PERMALINK_ORIGIN_REWRITE` (default `False`).** Share/permalink URLs now substitute `window.location.origin` for the backend-supplied origin so a proxied or subdirectory-deployed Superset never hands the user an unreachable internal hostname. Operators whose reverse proxy correctly forwards `X-Forwarded-Host` _and_ who want permalinks to carry the backend's literal origin can opt out by setting `EMBEDDED_DISABLE_PERMALINK_ORIGIN_REWRITE = True` in `superset_config.py`. Default `False` (rewrite is on); flipping the default would regress the dominant proxied/subdir deployment to an unreachable host.
 
 - [41651](https://github.com/apache/superset/pull/41651): **New do-not-translate standard for translation catalogs.** Strings that must stay identical to the source — icon names (e.g. `bolt`), enum/option values (`step-after`), SQL keywords, API field names (`error_message`), code constants, and example placeholders — are now marked with a `#. do-not-translate` extracted comment. The list lives in the `superset/translations/do-not-translate.txt` registry; `scripts/translations/apply_do_not_translate.py` stamps the marker onto `messages.pot` during `babel_update.sh`, and `pybabel update` propagates it to every `.po`, so the status is consistent across all languages. The AI backfill (`backfill_po.py`) and translators leave these entries untranslated (source fallback). The legacy per-catalog convention (a `# Не переводить` translator comment in the `ru` catalog) is still honored for back-compat but is superseded by this standard; contributors adding new machine-read strings should add the msgid to the registry rather than annotating individual catalogs.
 
@@ -165,7 +565,7 @@ Theme tokens are unaffected — antd 6 removed none of the tokens Superset expos
 
 ### Guest-token RLS rules reject unknown fields
 
-The `rls` rules passed to `POST /api/v1/security/guest_token/` are now validated strictly: a rule may only contain `dataset` and `clause`. Previously unknown fields were silently dropped, so a mistyped or legacy scope key (most commonly `datasource` instead of `dataset`) produced a rule with no `dataset`, which is treated as a *global* rule applied to every dataset the embedded resource can reach. Such a request now returns HTTP 400 identifying the offending field instead of issuing a token with an unintended global rule. Integrators that were sending extra fields in RLS rules must remove them; valid dataset-scoped (`{"dataset": 41, "clause": "..."}`) and global (`{"clause": "..."}`) rules are unaffected.
+The `rls` rules passed to `POST /api/v1/security/guest_token/` are now validated strictly: a rule may only contain `dataset` and `clause`. Previously unknown fields were silently dropped, so a mistyped or legacy scope key (most commonly `datasource` instead of `dataset`) produced a rule with no `dataset`, which is treated as a _global_ rule applied to every dataset the embedded resource can reach. Such a request now returns HTTP 400 identifying the offending field instead of issuing a token with an unintended global rule. Integrators that were sending extra fields in RLS rules must remove them; valid dataset-scoped (`{"dataset": 41, "clause": "..."}`) and global (`{"clause": "..."}`) rules are unaffected.
 
 ### MCP service requires `MCP_JWT_AUDIENCE` when JWT auth is enabled
 
@@ -192,6 +592,10 @@ helm upgrade <release-name> superset/superset
 
 Alternatively, perform a fresh install. This is a one-time migration; subsequent upgrades are unaffected.
 
+### Time-series tooltips follow the selected time grain
+
+Tooltips on the Time-series and Mixed Time-series ECharts plugins now respect the chart's time grain (and any dashboard-level time-grain override delivered via `extra_form_data`) when the tooltip time format is left on Adaptive formatting (the default). Tooltips read grain-appropriate labels such as `Jan 2021` (month), `2021 Q1` (quarter), `2021` (year), and weekly date ranges, becoming grain-aware like the x-axis, though the two are formatted independently and their labels may not always match exactly. Only a custom, explicitly-set tooltip time format (a d3 format string) is unaffected — that always wins over the grain.
+
 ### Pivot table First/Last aggregations follow data order
 
 The pivot table chart's `First` and `Last` aggregations now return the first and last value in data (query result) order, instead of effectively returning the minimum and maximum. Existing pivot tables that use these aggregations for totals/subtotals may show different values after upgrading. For deterministic results, ensure the underlying query has a stable sort order.
@@ -199,6 +603,36 @@ The pivot table chart's `First` and `Last` aggregations now return the first and
 ### `FetchRetryOptions` callback parameters widened to allow `null`
 
 The `error` and `response` parameters of the `retryDelay` and `retryOn` callbacks in `FetchRetryOptions` (exported from `@superset-ui/core`) are now typed `Error | null` and `Response | null` to match the actual call-site signature provided by `fetch-retry`. Because these parameter types are contravariant, consumers who typed their callbacks with the non-nullable `(attempt: number, error: Error, response: Response) => number` will get a TypeScript compile error. Widen your callback signatures to accept `Error | null` / `Response | null`.
+
+### Pivot Table totals are now computed by the database (per-metric "Aggregation function" control removed)
+
+Pivot Table subtotals and grand totals are now computed by the database at each
+rollup level instead of re-aggregating the already-aggregated cell values on the
+client. This fixes long-standing incorrect totals for non-additive metrics
+(ratios such as `SUM(a)/SUM(b)`, `COUNT_DISTINCT`, `AVG`, percentiles, etc.),
+which previously summed the displayed cell values.
+
+As a result the per-table **"Aggregation function"** control (which let you pick
+how totals were aggregated client-side, e.g. Sum/Average/Count) has been
+removed: totals now always reflect the metric's own definition evaluated at the
+total's granularity. For additive metrics (`SUM`/`COUNT`/`MIN`/`MAX`) the result
+is unchanged. If you previously relied on a plain sum-of-cells total for a
+non-additive metric, that specific behavior is no longer available.
+
+The "Sum as Fraction of Total/Rows/Columns" display options are back as a
+new, standalone **"Show values as"** control (below "Combine metrics" in the
+Options panel), since those were mathematically correct even before this
+change and are unrelated to the totals-correctness fix. A DB migration
+derives the new field from any still-present `aggregateFunction` Sum-fraction
+value, so a chart that had one of those options configured picks the
+equivalent "Show values as" setting back up automatically. The "Count as
+Fraction of ..." variants are **not** migrated: they divided a record count,
+while the new control divides the metric's own value, so translating them
+automatically would silently change what the chart displays rather than
+restore it; those charts need to be manually reconfigured if the value-based
+percentage is what's wanted. Charts that used any other non-fraction
+`aggregateFunction` value (Sum, Average, Count, ...) are unaffected, since
+that specific behavior remains unavailable per the above.
 
 ### `thumbnail_url` removed from dashboard list API response
 
@@ -209,6 +643,12 @@ The `thumbnail_url` field has been removed from `GET /api/v1/dashboard/` list re
 ```
 
 The thumbnail endpoint redirects to the current digest URL regardless of whether the supplied digest is exact. If the image is not yet cached, that digest URL may return `202` and trigger async generation. Using `changed_on_utc` as the digest is sufficient for cache-busting purposes.
+
+### Dashboard import can overwrite related charts, datasets, and databases
+
+Re-importing an existing dashboard previously overwrote only the dashboard itself; its related charts, datasets, and databases were never updated (the importer hardcoded `overwrite=False` for them). They can now be overwritten as part of the import.
+
+A new `overwrite_all` form field controls this, and defaults to `false` everywhere, so existing behavior is preserved: passing `overwrite=true` alone still overwrites only the dashboard, exactly as before. To also overwrite the related charts, datasets, and databases on the `/api/v1/dashboard/import/` endpoint, pass `overwrite_all=true` explicitly. The import modal in the UI exposes this as an "also overwrite all assets" checkbox, and the CLI `superset import-dashboards` and the `ImportDashboardsCommand` likewise default `overwrite_all` to `false`.
 
 ### Tagging fix for `create_all`-bootstrapped schemas
 
@@ -223,9 +663,10 @@ ALTER TABLE tagged_object DROP CONSTRAINT <constraint_name>;
 -- MySQL: find names via `SHOW CREATE TABLE tagged_object;`
 ALTER TABLE tagged_object DROP FOREIGN KEY <constraint_name>;
 ```
-### Entity version-history infrastructure (gated off by default)
 
-Introduces the schema and SQLAlchemy-Continuum wiring that captures version history for charts, dashboards, and datasets, plus read-only `GET /api/v1/{chart,dashboard,dataset}/<uuid>/versions/` endpoints. This ships **inert**: a new config flag `ENABLE_VERSIONING_CAPTURE` defaults to `False`, so no save writes any version rows and the endpoints return empty. It is an operational kill-switch (a release toggle that becomes a permanent ops switch), not a feature flag — set it to `True` to enable capture once validated. The migration is additive; existing entity `PUT` responses gain `old_version_uuid` / `new_version_uuid` body fields and an `ETag` header (both null/absent when capture is off).
+### Entity version-history infrastructure
+
+Introduces the schema and SQLAlchemy-Continuum wiring that captures version history for charts, dashboards, and datasets, plus read-only `GET /api/v1/{chart,dashboard,dataset}/<uuid>/versions/` endpoints. Capture is governed by the `ENABLE_VERSIONING_CAPTURE` config value — an operational kill-switch (a release toggle that became a permanent ops switch), not a feature flag; see "Version history is on by default" above for the shipped default. With capture off, no save writes version rows; the endpoints continue to serve already-captured rows read-only. The migration is additive; existing entity `PUT` responses gain `old_version_uuid` / `new_version_uuid` body fields and an `ETag` header (both null/absent when capture is off).
 
 A few save- and import-path internals change **unconditionally** (independent of the flag), because the versioned mappers must behave correctly whether or not capture is enabled:
 
@@ -234,6 +675,52 @@ A few save- and import-path internals change **unconditionally** (independent of
 - `UpdateDashboardCommand` runs its body under `no_autoflush`.
 
 These are behavior changes that take effect on upgrade regardless of `ENABLE_VERSIONING_CAPTURE`; no operator action is required.
+
+### Cross-entity version activity stream
+
+A read-only companion to the version-history endpoints: each entity type gains a `GET /api/v1/{chart,dashboard,dataset}/<uuid>/activity/` endpoint returning a chronological, access-filtered stream of edits — the entity's own edits plus, for charts and dashboards, transitive edits to related entities during their association windows. Datasets have no related layer in V2, so `include=related` returns an empty stream for a dataset and `include=all` reduces to the dataset's own edits.
+
+| Param                | Type                         | Default    | Purpose                                                                                                |
+| -------------------- | ---------------------------- | ---------- | ------------------------------------------------------------------------------------------------------ |
+| `since` / `until`    | ISO 8601                     | —          | Bound `issued_at`                                                                                      |
+| `include`            | `self` \| `related` \| `all` | `all`      | Own edits, related edits, or both                                                                      |
+| `q`                  | string                       | —          | Case-insensitive search over the full history, applied before pagination (so `count` reflects matches) |
+| `page` / `page_size` | integer                      | `0` / `25` | Pagination (`page_size` clamped to 200)                                                                |
+
+Authorization reuses the resource's `can_read` permission and per-object `raise_for_access`; related-entity rows are visibility-filtered to what the caller may see. The stream reflects captured history; with capture off it remains readable but stops accruing new entries.
+
+### Version-history retention (pruning)
+
+Entity version history (the `version_transaction` / `*_version` shadow tables that back version capture) is aged out by a nightly Celery beat task, `version_history.prune_old_versions` (`superset.tasks.version_history_retention`).
+
+| Key | Default | Purpose |
+|---|---|---|
+| `SUPERSET_VERSION_HISTORY_RETENTION_DAYS` | `30` | Version rows whose owning `version_transaction.issued_at` is older than this many days are pruned. Each entity's live row (`end_transaction_id IS NULL`) is always preserved, as are the live rows of its children and associations; closed historical rows (including the baseline) age out. Set to `0` or a negative value to disable pruning. |
+
+The task ships in the default `CeleryConfig` (both the `superset.tasks.version_history_retention` import and the beat entry). A deployment that overrides `CELERY_CONFIG` without the beat entry logs a startup warning. When the override explicitly defines `imports`, a missing retention module is also reported; an absent `imports` setting is not diagnosed because Celery may register tasks through `include`, autodiscovery, or worker startup imports. Retention only prunes whatever history exists — capture itself is gated separately by `ENABLE_VERSIONING_CAPTURE`, which now ships on.
+
+### Deletion retention (soft-deleted entities are eventually purged)
+
+Soft-deleted dashboards, charts, and datasets are now permanently removed after a retention window (default 30 days; `SOFT_DELETE_RETENTION_DAYS`, `0` disables; settable per workspace at runtime via the `deletion-retention set-window` CLI, which takes precedence). The `deletion_retention.purge_soft_deleted` Celery beat task runs daily and removes each aged-out entity together with its M:N join rows, owned children, datasource permission, and version-history shadow rows. After purge an entity is **unrecoverable** — its detail and `/restore` endpoints return 404 and its version history is gone.
+
+Purging is **live by default** (`SOFT_DELETE_PURGE_DRY_RUN=False`), so the retention promise above is real on a stock deployment. Set it to `True` to have the task log `would_purge` counts and delete nothing — the lever is retained, so an operator can return to dry-run at any time. Note `would_purge` is an **upper bound** — it counts every entity past the retention window without evaluating deletion blockers, so a real run may purge fewer (entities referenced by report schedules or set as a user's welcome dashboard are blocked and reported separately). The task only acts while the `SOFT_DELETE` rollout flag is on; it now ships on by default.
+
+Deployments that replace the default `CELERY_CONFIG` must ensure workers register `superset.tasks.deletion_retention` and schedule the `deletion_retention.purge_soft_deleted` task themselves. The shipped Docker development config uses `imports` and includes both entries. While `SOFT_DELETE` is statically enabled, a missing beat entry logs a startup warning; when the override explicitly defines `imports`, a missing purge module is also reported.
+
+Operators can immediately erase a specific entity for compliance (GDPR) via `superset deletion-retention force-purge --uuid <uuid>`; this applies legacy hard-delete semantics — a live chart referencing a force-purged dataset is left without a datasource until re-pointed (the chart is not modified), and it purges the named entity even when it was never soft-deleted. Every scheduled evaluation writes a provisional, content-free record to the new `purge_audit_log` table before the cascade starts. Meaningful retained outcomes survive the entity they name. Blocked audit records carry a stable machine-readable `reason` code (`report_schedule`, `user_attribute`, or `cascade_integrity_failure` for an unexpected cascade failure caused by a database integrity constraint) so the audit table alone answers why an entity was not purged; records finalized before the column existed keep a NULL reason. Apply the migration before rolling out the new code: the audit model declares the column, so a worker on the new code with an un-migrated table fails its write-ahead write and the scheduled purge fails closed until the migration lands. During a rolling deploy, workers still on the old code write reason-less blocked rows and suppress on status alone; both effects are self-healing, since a NULL-reason record never matches a reason code and the next all-new-code run re-anchors the entity. Consecutive scheduled evaluations blocked with the same status **and reason** suppress only the redundant current provisional record — a reason change writes one new blocked record carrying the new code; completed outcomes, outcome transitions, and every force-purge attempt remain independent and immutable. Retained transition records are not automatically expired, so entities whose block reason changes repeatedly can accumulate multiple audit rows. The **scheduled** purge fails closed when its provisional record cannot be written, while **force-purge** proceeds even if the audit write fails — the operator is present and deletion outranks audit for a compliance erasure. Operators can monitor `deletion_retention.blocked_audit_suppressed` and `deletion_retention.blocked_audit_dedupe_fallback` to verify suppression and fail-safe fallback behavior without changing the existing blocked-workload gauge.
+
+### Recently Archived view and permanent delete (purge) endpoints
+
+Behind the same `SOFT_DELETE` flag, a **Recently Archived** page (Settings menu, `/archived/`) lists soft-deleted charts, dashboards, and datasets with their archive time and archiving user, and offers **Recover** and **Delete permanently** row actions. The page admits any viewer holding `can_read` on **any** of the three types and offers each viewer only the types they can read; a viewer with none of the three sees an explanatory empty state, and unauthenticated requests are redirected to login.
+
+**New endpoints** — `POST /api/v1/{chart,dashboard,dataset}/<uuid>/purge` permanently delete a single **soft-deleted** row, running the same cascade as the retention task. Irreversible. Requires `can_write` on the entity plus editorship of the row (or admin), mirroring `/restore`. The endpoints answer 404 while `SOFT_DELETE` is off (restore deliberately stays live so rows archived before a flag-off remain recoverable), 404 for rows that are not soft-deleted, and 422 with a reason when the purge is blocked (an alert/report references the entity, a user has the dashboard as their welcome page, or a restrictive foreign key intervenes). A purge that cannot write its audit record is refused with 422 rather than executed unrecorded — unlike the operator CLI, an end user's purge never outranks the audit.
+
+With the flag on, delete confirmations across the chart/dashboard/dataset list pages change shape: a recoverable archive is confirmed with a primary **Archive** button and no type-DELETE friction, and the copy states the retention window when one is configured. A bulk dataset selection that includes semantic views keeps the full danger treatment, because semantic views have no soft-delete — they are deleted permanently and the confirmation says so.
+
+This also resolves the limitation noted under *Soft delete and restore for datasets*: a database blocked by soft-deleted datasets can now be freed by purging those datasets (per-entity endpoint, retention task, or `force-purge` CLI) instead of hard-deleting `tables` rows out-of-band.
+
+The `purge_audit_log` table is **never pruned by design** — the audit must survive the entities it names; operators who need to age it out should prune manually.
+
 
 ### Webhook alerts/reports block private/internal hosts by default
 
@@ -282,6 +769,7 @@ Operators can tune or disable the policy via config:
 ### Data uploads bounded by UPLOAD_MAX_FILE_SIZE_BYTES
 
 Single data-file uploads (CSV, Excel, columnar) are now bounded by the `UPLOAD_MAX_FILE_SIZE_BYTES` config option, which defaults to `100 * 1024 * 1024` (100 MB). Files larger than this are rejected with a `413` before their contents are buffered into memory. Set `UPLOAD_MAX_FILE_SIZE_BYTES = None` to disable the check and restore unbounded uploads.
+
 ### Currency symbol position follows the locale when unset
 
 When a chart's currency control leaves the **Prefix or suffix** field empty, the currency symbol position is now derived from the deployment locale's own convention via `Intl.NumberFormat` instead of always defaulting to a suffix. For example, under the default `en-US` locale `USD`, `GBP`, and `EUR` render as a prefix (`$ 1,000`), while eurozone locales such as `fr-FR` render `EUR` as a suffix (`1 000 €`). An explicit Prefix/Suffix selection is always honored and is unaffected.
@@ -407,7 +895,7 @@ SQLALCHEMY_ENCRYPTED_FIELD_ENGINE = "aes"
    ```bash
    superset re-encrypt-secrets --engine aes-gcm
    ```
-   A live instance keeps writing *new* secrets as AES-CBC during the window between step 2 and the restart in step 4; this second pass sweeps those up (it is idempotent, so already-migrated values are skipped).
+   A live instance keeps writing _new_ secrets as AES-CBC during the window between step 2 and the restart in step 4; this second pass sweeps those up (it is idempotent, so already-migrated values are skipped).
 
 Schedule the cutover in a quiet window. Runtime reads use only the single configured engine, so in a multi-worker deployment there is an unavoidable brief decrypt-outage between the migration commit and the last worker restarting with the new config — each migrator run is transactional, but the fleet-wide cutover is not zero-downtime.
 
@@ -415,7 +903,7 @@ The migration is transactional (all-or-nothing) and idempotent — it can be saf
 
 ### Soft delete and restore for datasets
 
-**The soft-delete behavior in this section applies only when the `SOFT_DELETE` feature flag is enabled. The flag defaults to `False`** (`@lifecycle: development`), so on a default deployment `DELETE /api/v1/dataset/<id>` continues to **hard-delete permanently** — nothing is recoverable. Enable `SOFT_DELETE` to get the behavior described below.
+**The soft-delete behavior in this section applies only when the `SOFT_DELETE` feature flag is enabled. The flag defaults to `True`** (`@lifecycle: testing`), so on a default deployment `DELETE /api/v1/dataset/<id>` uses the recoverable soft-delete behavior described below. Setting `SOFT_DELETE` to `False` restores legacy permanent hard-delete behavior for subsequent deletes.
 
 **Flag-toggle caveat:** the soft-delete visibility filter is evaluated per query while the flag is on. If datasets are soft-deleted during a flag-on window and the flag is later turned **off**, those rows reappear as live datasets in all lists, lookups, and relationship loads (including charts that reference them). The `POST /<uuid>/restore` endpoint and the `dataset_deleted_state` list filter remain functional regardless of the flag, deliberately, so rows soft-deleted during a flag-on window stay discoverable and restorable after a rollback of the flag.
 
@@ -435,17 +923,17 @@ With the flag enabled: `DELETE /api/v1/dataset/<id>` no longer hard-deletes the 
 
 **Schema migration:** the migration adds a nullable `deleted_at` column and an index on it (`ix_tables_deleted_at`) to the `tables` table. The column add is instant; the index build runs inline (no `CONCURRENTLY`) and may briefly block writes on the `tables` table (INSERT/UPDATE/DELETE are queued while the index builds; reads are unaffected) on large Postgres deployments. MySQL InnoDB builds the index online (no blocking). Production deployments with many thousands of datasets should run this migration during a maintenance window.
 
-**Rollback note:** if the application code is rolled back after datasets have been soft-deleted, the older code path's visibility filter no longer applies and previously hidden rows become visible to the older code. Pair the rollback with a data decision (restore the rows, hard-delete them, or also downgrade the migration) rather than assuming the old hard-delete semantics still hold. **Downgrading the migration destroys the deletion markers**: `downgrade()` drops the `deleted_at` column, so any not-yet-restored soft-deleted datasets silently become live, active datasets with no record they were ever deleted. Reconcile the trash (restore or hard-delete each row) *before* downgrading, and disable the `SOFT_DELETE` flag first so no new soft deletes land mid-rollback.
+**Rollback note:** if the application code is rolled back after datasets have been soft-deleted, the older code path's visibility filter no longer applies and previously hidden rows become visible to the older code. Pair the rollback with a data decision (restore the rows, hard-delete them, or also downgrade the migration) rather than assuming the old hard-delete semantics still hold. **Downgrading the migration destroys the deletion markers**: `downgrade()` drops the `deleted_at` column, so any not-yet-restored soft-deleted datasets silently become live, active datasets with no record they were ever deleted. Reconcile the trash (restore or hard-delete each row) _before_ downgrading, and disable the `SOFT_DELETE` flag first so no new soft deletes land mid-rollback.
 
 **SQL Lab / dataset-creation flows:** creating a dataset over a table whose dataset sits in the trash is refused. The SQL Lab "save as dataset" flow (`get_or_create_dataset`) and file uploads return a **422 naming the hidden twin and the restore endpoint**; the plain create, update, and duplicate paths currently fail with the generic "already exists" 422. In all cases the remediation is the same: restore the hidden dataset (or use a different table name). Perm-string maintenance also covers hidden rows: renaming a database rewrites `perm`/`schema_perm`/`catalog_perm` on soft-deleted datasets and their charts, so a later restore does not resurrect stale permission strings.
 
-**Importer behavior:** importing a dataset YAML whose UUID matches an existing **soft-deleted** dataset is treated as an implicit restore-with-update — **and this happens even when `overwrite` is not set**. This is a deliberate asymmetry with active rows: an active dataset imported without `overwrite=true` is returned unchanged, but a soft-deleted UUID match is restored *and* has the upload's contents applied regardless of the `overwrite` argument, on the reasoning that re-importing a deleted dataset's exact UUID is an explicit request to bring it back. The restore preserves the original PK, the chart back-reference, `table_columns`, and `sql_metrics`. Non-editors get `ImportFailedError`. Callers without `can_write` get `ImportFailedError` instead of silently receiving the soft-deleted row.
+**Importer behavior:** importing a dataset YAML whose UUID matches an existing **soft-deleted** dataset is treated as an implicit restore-with-update — **and this happens even when `overwrite` is not set**. This is a deliberate asymmetry with active rows: an active dataset imported without `overwrite=true` is returned unchanged, but a soft-deleted UUID match is restored _and_ has the upload's contents applied regardless of the `overwrite` argument, on the reasoning that re-importing a deleted dataset's exact UUID is an explicit request to bring it back. The restore preserves the original PK, the chart back-reference, `table_columns`, and `sql_metrics`. Non-editors get `ImportFailedError`. Callers without `can_write` get `ImportFailedError` instead of silently receiving the soft-deleted row.
 
 **Uniqueness-validation changes that apply regardless of the feature flag:** two dataset uniqueness checks were tightened alongside this work and are active even with `SOFT_DELETE` off. (1) Create/update uniqueness treats a dataset whose `catalog` is `NULL` as belonging to the database's default catalog, so a legacy twin pair (`catalog=NULL` vs. `catalog=<default>`, same database/schema/name) that older versions allowed now fails validation with "already exists" when either row is edited — resolve by renaming or removing one of the twins. (2) Duplicating a dataset now checks name collisions scoped to the target (database, catalog, schema) instead of globally by name alone: duplicates into other databases that were previously blocked are now allowed.
 
 ### Soft delete and restore for charts
 
-**Everything in this section applies only when the `SOFT_DELETE` feature flag is enabled. The flag defaults to `False`** (`@lifecycle: development`), so on a default deployment `DELETE /api/v1/chart/<id>` continues to **hard-delete permanently** — nothing is recoverable. Enable `SOFT_DELETE` to get the behavior described below.
+**Everything in this section applies only when the `SOFT_DELETE` feature flag is enabled. The flag defaults to `True`** (`@lifecycle: testing`), so on a default deployment `DELETE /api/v1/chart/<id>` uses the recoverable soft-delete behavior described below. Setting `SOFT_DELETE` to `False` restores legacy permanent hard-delete behavior for subsequent deletes.
 
 **Flag-toggle caveat:** the soft-delete visibility filter is evaluated per query while the flag is on. If charts are soft-deleted during a flag-on window and the flag is later turned **off**, those rows reappear as live charts in all lists, lookups, and relationship loads (including dashboards that contained them). The `POST /<uuid>/restore` endpoint and the `chart_deleted_state` list filter remain functional regardless of the flag, deliberately, so rows soft-deleted during a flag-on window stay discoverable and restorable after a rollback of the flag.
 
@@ -459,15 +947,17 @@ With the flag enabled: `DELETE /api/v1/chart/<id>` no longer hard-deletes the ch
 
 **Schema migration:** the migration adds a nullable `deleted_at` column and an index on it (`ix_slices_deleted_at`) to the `slices` table. The column add is instant; the index build runs inline (no `CONCURRENTLY`) and may briefly block writes on the `slices` table (INSERT/UPDATE/DELETE are queued while the index builds; reads are unaffected) on large Postgres deployments. MySQL InnoDB builds the index online (no blocking).
 
-**Rollback note:** if the application code is rolled back after charts have been soft-deleted, the older code path's visibility filter no longer applies and previously hidden rows become visible to the older code. Pair the rollback with a data decision (restore the rows, hard-delete them, or also downgrade the migration) rather than assuming the old hard-delete semantics still hold. **Downgrading the migration destroys the deletion markers**: `downgrade()` drops the `deleted_at` column, so any not-yet-restored soft-deleted charts silently become live, active charts with no record they were ever deleted. Reconcile the trash (restore or hard-delete each row) *before* downgrading, and disable the `SOFT_DELETE` flag first so no new soft deletes land mid-rollback.
+**Rollback note:** if the application code is rolled back after charts have been soft-deleted, the older code path's visibility filter no longer applies and previously hidden rows become visible to the older code. Pair the rollback with a data decision (restore the rows, hard-delete them, or also downgrade the migration) rather than assuming the old hard-delete semantics still hold. **Downgrading the migration destroys the deletion markers**: `downgrade()` drops the `deleted_at` column, so any not-yet-restored soft-deleted charts silently become live, active charts with no record they were ever deleted. Reconcile the trash (restore or hard-delete each row) _before_ downgrading, and disable the `SOFT_DELETE` flag first so no new soft deletes land mid-rollback.
 
-**Importer behavior:** importing a chart YAML whose UUID matches an existing **soft-deleted** chart is treated as an implicit restore-with-update — **and this happens even when `overwrite` is not set**. This is a deliberate asymmetry with active rows: an active chart imported without `overwrite=true` is returned unchanged, but a soft-deleted UUID match is restored *and* has the upload's contents applied regardless of the `overwrite` argument, on the reasoning that re-importing a deleted chart's exact UUID is an explicit request to bring it back. The restore preserves the original PK and all out-of-archive references (`dashboard_slices` junctions, `report.chart_id`, tag rows). The operation is permission-gated: non-editors get `ImportFailedError`, and callers without `can_write` get `ImportFailedError` instead of silently receiving the soft-deleted row.
+**Importer behavior:** importing a chart YAML whose UUID matches an existing **soft-deleted** chart is treated as an implicit restore-with-update — **and this happens even when `overwrite` is not set**. This is a deliberate asymmetry with active rows: an active chart imported without `overwrite=true` is returned unchanged, but a soft-deleted UUID match is restored _and_ has the upload's contents applied regardless of the `overwrite` argument, on the reasoning that re-importing a deleted chart's exact UUID is an explicit request to bring it back. The restore preserves the original PK and all out-of-archive references (`dashboard_slices` junctions, `report.chart_id`, tag rows). The operation is permission-gated: non-editors get `ImportFailedError`, and callers without `can_write` get `ImportFailedError` instead of silently receiving the soft-deleted row.
 
 - [39914](https://github.com/apache/superset/pull/39914) `ALERT_REPORT_SLACK_V2` now defaults to `True` and the legacy Slack v1 integration (`Slack` recipient type, `files.upload` API) is deprecated for removal in the next major. Slack blocked new apps from `files.upload` in May 2024 and fully retired the method for all apps on November 12, 2025; because the v1 path sends files through `files.upload`, v1 file-bearing sends now fail at the API level — only text-only `chat_postMessage` still works via the legacy path. Grant your Slack bot the `channels:read` and `groups:read` scopes so existing `Slack` recipients can be auto-upgraded to `SlackV2` on next send. Operators who explicitly override the flag to `False`, or whose Slack bot is missing those scopes, will see deprecation warnings while text-only sends continue through the legacy path.
 
+- [42089](https://github.com/apache/superset/pull/42089) automatically upgrades resolvable Slack v1 recipients, preserves text-only v1 delivery with execution warnings when migration cannot finish, and rejects retired v1 file uploads with actionable scope guidance. Slack delivery uses at-most-once terminal writes and a schedule-wide retry budget configured by `SLACK_SEND_RETRY_MAX_TIME`, clamped to the report's remaining working timeout. Deployments using `SupersetMetastoreCache` for the Slack channel cache must schedule the `slack.cache_channels` Celery task to repopulate misses outside report transactions; see [Alerts and Reports](https://superset.apache.org/admin-docs/configuration/alerts-reports#slack-delivery-timeouts-and-retries).
+
 ### Soft delete and restore for dashboards
 
-**Everything in this section applies only when the `SOFT_DELETE` feature flag is enabled. The flag defaults to `False`** (`@lifecycle: development`), so on a default deployment `DELETE /api/v1/dashboard/<id>` continues to **hard-delete permanently** — nothing is recoverable. Enable `SOFT_DELETE` to get the behavior described below.
+**Everything in this section applies only when the `SOFT_DELETE` feature flag is enabled. The flag defaults to `True`** (`@lifecycle: testing`), so on a default deployment `DELETE /api/v1/dashboard/<id>` uses the recoverable soft-delete behavior described below. Setting `SOFT_DELETE` to `False` restores legacy permanent hard-delete behavior for subsequent deletes.
 
 **Flag-toggle caveat:** the soft-delete visibility filter is evaluated per query while the flag is on. If dashboards are soft-deleted during a flag-on window and the flag is later turned **off**, those rows reappear as live dashboards in all lists and lookups (including slug lookups — if a soft-deleted dashboard's slug was reused while the flag was on, both rows become visible with the same slug). The `POST /<uuid>/restore` endpoint and the `dashboard_deleted_state` list filter remain functional regardless of the flag, deliberately, so rows soft-deleted during a flag-on window stay discoverable and restorable after a rollback of the flag.
 
@@ -485,16 +975,22 @@ The partial-index replacement is dialect-dependent: PostgreSQL uses a native `WH
 
 **Slug semantics:** on PostgreSQL and MySQL 8.0.13+, the slug of a soft-deleted dashboard is **free for reuse**. A new active dashboard can claim it immediately. Restoring a soft-deleted dashboard whose slug has since been claimed returns **422 with a clean error** (`DashboardSlugConflictError`) — rename one of the dashboards and retry; the restore is not silently rejected by a database-level constraint violation.
 
-**Importer behavior:** importing a dashboard YAML whose UUID matches an existing **soft-deleted** dashboard is treated as an implicit restore-with-update — **and this happens even when `overwrite` is not set**. This is a deliberate asymmetry with active rows: an active dashboard imported without `overwrite=true` is returned unchanged (the import never mutates it), but a soft-deleted UUID match is restored *and* has the upload's contents applied regardless of the `overwrite` argument, on the reasoning that re-importing a deleted dashboard's exact UUID is an explicit request to bring it back. The restore preserves the original PK and all pre-deletion relationship rows (`dashboard_slices` junctions, editor/viewer subjects, tags). Callers whose imports must never mutate existing state should treat bundles that may contain previously deleted UUIDs accordingly. The operation is permission-gated: it requires `can_write` and editorship of the deleted row (or admin) — non-editors get `ImportFailedError`, and callers without `can_write` get `ImportFailedError` instead of silently receiving the soft-deleted row.
+**Importer behavior:** importing a dashboard YAML whose UUID matches an existing **soft-deleted** dashboard is treated as an implicit restore-with-update — **and this happens even when `overwrite` is not set**. This is a deliberate asymmetry with active rows: an active dashboard imported without `overwrite=true` is returned unchanged (the import never mutates it), but a soft-deleted UUID match is restored _and_ has the upload's contents applied regardless of the `overwrite` argument, on the reasoning that re-importing a deleted dashboard's exact UUID is an explicit request to bring it back. The restore preserves the original PK and all pre-deletion relationship rows (`dashboard_slices` junctions, editor/viewer subjects, tags). Callers whose imports must never mutate existing state should treat bundles that may contain previously deleted UUIDs accordingly. The operation is permission-gated: it requires `can_write` and editorship of the deleted row (or admin) — non-editors get `ImportFailedError`, and callers without `can_write` get `ImportFailedError` instead of silently receiving the soft-deleted row.
+
+### Engine spec capability flag: `supports_offset`
+
+A new `BaseEngineSpec.supports_offset` attribute (default `True`) indicates whether a database engine supports the SQL `OFFSET` clause. Engines that do not support `OFFSET` — such as Elasticsearch SQL and OpenDistro — opt out by setting it to `False`, and Superset uses each engine's cursor API to paginate drill-to-detail samples instead of emitting `OFFSET`. Downstream forks maintaining custom engine specs may set the flag to `False` (and implement `fetch_data_with_cursor`) to avoid crashes when paginated drill-to-detail queries are run against engines without `OFFSET` support.
+
+**Note on deep-pagination cost:** Cursor-based engines (including Elasticsearch and OpenDistro) are forward-only, so reaching page `N` of a drill-to-detail view issues `N` round trips to the cluster. Deep pagination is therefore linear in page number; users paginating into the hundreds or thousands will notice added latency compared to `OFFSET`-capable engines.
 
 ### Granular Export Controls
 
 A new feature flag `GRANULAR_EXPORT_CONTROLS` introduces three fine-grained permissions that replace the legacy `can_csv` permission:
 
-| Permission | Controls |
-|---|---|
-| `can_export_data` | CSV, Excel, JSON exports |
-| `can_export_image` | Screenshot/PDF exports |
+| Permission           | Controls                     |
+| -------------------- | ---------------------------- |
+| `can_export_data`    | CSV, Excel, JSON exports     |
+| `can_export_image`   | Screenshot/PDF exports       |
 | `can_copy_clipboard` | Copy-to-clipboard operations |
 
 When the feature flag is enabled, these permissions are enforced on both the frontend (disabled buttons with tooltips) and backend (403 responses from API endpoints). When disabled, legacy `can_csv` behavior is preserved.
@@ -517,25 +1013,38 @@ Added a new combined datasource list endpoint at `GET /api/v1/datasource/` to se
 - Semantic views are included only when the `SEMANTIC_LAYERS` feature flag is enabled.
 - The endpoint enforces strict `order_column` validation and returns `400` for invalid sort columns.
 
+### Custom time range "Now"/"Today" anchors resolve in local time
+
+Custom time ranges that use the "Now" or "Today" anchor (for the Start, End, or the relative anchor itself) previously resolved that anchor in UTC before formatting it into a naive datetime string, which was then re-parsed elsewhere as local time. For users outside UTC, this made the resolved anchor drift by their browser's UTC offset. "Now"/"Today" now resolve directly in local time, matching the later local re-parse.
+
+Charts and dashboards using these anchors will compute a different (correct) timestamp after upgrading; if a chart's filters or drill-downs were tuned to compensate for the old offset, review them after upgrading.
+
 ## 6.1.0
 
 ### ClickHouse minimum driver version bump
 
 The minimum required version of `clickhouse-connect` has been raised to `>=0.13.0`. If you are using the ClickHouse connector, please upgrade your `clickhouse-connect` package. The `_mutate_label` workaround that appended hash suffixes to column aliases has also been removed, as it is no longer needed with modern versions of the driver.
 
+### Kenya Country Map: Updated Administrative Divisions
+
+The Kenya country map has been updated to reflect the 47 counties established under Kenya's 2010 constitution, replacing the outdated 8-province boundaries from the Natural Earth dataset. County keys now use ISO 3166-2:KE codes (`KE-01` through `KE-47`), replacing the former province codes (`KE-110`, `KE-200`, ..., `KE-800`). Dashboards that join on the old province codes will need to re-key their datasets to use the new county codes.
+
 ### MCP Tool Observability
 
 MCP (Model Context Protocol) tools now include enhanced observability instrumentation for monitoring and debugging:
 
 **Two-layer instrumentation:**
+
 1. **Middleware layer** (`LoggingMiddleware`): Automatically logs all MCP tool calls with `duration_ms` and `success` status in the audit log (Action Log UI, logs table)
 2. **Sub-operation tracking**: All 19 MCP tools include granular `event_logger.log_context()` blocks for tracking individual operations like validation, database writes, and query execution
 
 **Action naming convention:**
+
 - Tool-level logs: `mcp_tool_call` (via middleware)
 - Sub-operation logs: `mcp.{tool_name}.{operation}` (e.g., `mcp.generate_chart.validation`, `mcp.execute_sql.query_execution`)
 
 **Querying MCP logs:**
+
 ```sql
 -- Top slowest MCP operations
 SELECT action, COUNT(*) as calls, AVG(duration_ms) as avg_ms
@@ -570,6 +1079,7 @@ A new `DISTRIBUTED_COORDINATION_CONFIG` configuration provides a unified Redis-b
 The distributed coordination is used by the Global Task Framework (GTF) for abort notifications and task completion signaling, and will eventually replace `GLOBAL_ASYNC_QUERIES_CACHE_BACKEND` as the standard signaling backend. Configuring this is recommended for Redis enabled production deployments.
 
 Example configuration in `superset_config.py`:
+
 ```python
 DISTRIBUTED_COORDINATION_CONFIG = {
     "CACHE_TYPE": "RedisCache",
@@ -584,9 +1094,11 @@ See `superset/config.py` for complete configuration options.
 ### WebSocket config for GAQ with Docker
 
 [35896](https://github.com/apache/superset/pull/35896) and [37624](https://github.com/apache/superset/pull/37624) updated documentation on how to run and configure Superset with Docker. Specifically for the WebSocket configuration, a new `docker/superset-websocket/config.example.json` was added to the repo, so that users could copy it to create a `docker/superset-websocket/config.json` file. The existing `docker/superset-websocket/config.json` was removed and git-ignored, so if you're using GAQ / WebSocket make sure to:
+
 - Stash/backup your existing `config.json` file, to re-apply it after (will get git-ignored going forward)
 - Update the `volumes` configuration for the `superset-websocket` service in your `docker-compose.override.yml` file, to include the `docker/superset-websocket/config.json` file. For example:
-``` yaml
+
+```yaml
 services:
   superset-websocket:
     volumes:
@@ -599,7 +1111,9 @@ services:
 ### Example Data Loading Improvements
 
 #### New Directory Structure
+
 Examples are now organized by name with data and configs co-located:
+
 ```
 superset/examples/
 ├── _shared/              # Shared database & metadata configs
@@ -612,12 +1126,14 @@ superset/examples/
 ```
 
 #### Simplified Parquet-based Loading
+
 - Auto-discovery: create `superset/examples/my_dataset/data.parquet` to add a new example
 - Parquet is an Apache project format: compressed (~27% smaller), self-describing schema
 - YAML configs define datasets, charts, and dashboards declaratively
 - Removed Python-based data generation from individual example files
 
 #### Test Data Reorganization
+
 - Moved `big_data.py` to `superset/cli/test_loaders.py` - better reflects its purpose as a test utility
 - Fixed inverted logic for `--load-test-data` flag (now correctly includes .test.yaml files when flag is set)
 - Clarified CLI flags:
@@ -627,6 +1143,7 @@ superset/examples/
   - `--load-big-data` / `-b`: Generate synthetic stress-test data
 
 #### Bug Fixes
+
 - Fixed numpy array serialization for PostgreSQL (converts complex types to JSON strings)
 - Fixed KeyError for `allow_csv_upload` field in database configs (now optional with default)
 - Fixed test data loading logic that was incorrectly filtering files
@@ -636,6 +1153,7 @@ superset/examples/
 The MCP (Model Context Protocol) service enables AI assistants and automation tools to interact programmatically with Superset.
 
 #### New Features
+
 - MCP service infrastructure with FastMCP framework
 - Tools for dashboards, charts, datasets, SQL Lab, and instance metadata
 - Optional dependency: install with `pip install apache-superset[fastmcp]`
@@ -645,6 +1163,7 @@ The MCP (Model Context Protocol) service enables AI assistants and automation to
 #### New Configuration Options
 
 **Development** (single-user, local testing):
+
 ```python
 # superset_config.py
 MCP_DEV_USERNAME = "admin"  # User for MCP authentication
@@ -653,6 +1172,7 @@ MCP_SERVICE_PORT = 5008
 ```
 
 **Production** (JWT-based, multi-user):
+
 ```python
 # superset_config.py
 MCP_AUTH_ENABLED = True
@@ -698,12 +1218,14 @@ superset mcp run --port 5008 --use-factory-config
 The MCP service runs as a **separate process** from the Superset web server.
 
 **Important**:
+
 - Requires same Python environment and configuration as Superset
 - Shares database connections with main Superset app
 - Can be scaled independently from web server
 - Requires `fastmcp` package (optional dependency)
 
 **Installation**:
+
 ```bash
 # Install with MCP support
 pip install apache-superset[fastmcp]
@@ -717,6 +1239,7 @@ Use systemd, supervisord, or Kubernetes to manage the MCP service process.
 See `superset/mcp_service/PRODUCTION.md` for deployment guides.
 
 **Security**:
+
 - Development: Uses `MCP_DEV_USERNAME` for single-user access
 - Production: **MUST** configure JWT authentication
 - See `superset/mcp_service/SECURITY.md` for details
@@ -731,12 +1254,15 @@ See `superset/mcp_service/PRODUCTION.md` for deployment guides.
 
 ---
 
+- [38358](https://github.com/apache/superset/pull/38358): Switched CrateDB PyPI package from `crate[sqlalchemy]` to `sqlalchemy-cratedb`.
 - [35621](https://github.com/apache/superset/pull/35621): The default hash algorithm has changed from MD5 to SHA-256 for improved security and FedRAMP compliance. This affects cache keys for thumbnails, dashboard digests, chart digests, and filter option names. Existing cached data will be invalidated upon upgrade. To opt out of this change and maintain backward compatibility, set `HASH_ALGORITHM = "md5"` in your `superset_config.py`.
 - [35062](https://github.com/apache/superset/pull/35062): Changed the function signature of `setupExtensions` to `setupCodeOverrides` with options as arguments.
 
 ### Breaking Changes
+
 - [37370](https://github.com/apache/superset/pull/37370): The `APP_NAME` configuration variable no longer controls the browser window/tab title or other frontend branding. Application names should now be configured using the theme system with the `brandAppName` token. The `APP_NAME` config is still used for backend contexts (MCP service, logs, etc.) and serves as a fallback if `brandAppName` is not set.
   - **Migration:**
+
   ```python
   # Before (Superset 5.x)
   APP_NAME = "My Custom App"
@@ -780,16 +1306,16 @@ See `superset/mcp_service/PRODUCTION.md` for deployment guides.
 
 Eight M:N association tables move from a synthetic `id INTEGER PRIMARY KEY` to a composite `PRIMARY KEY (fk1, fk2)` on their two foreign-key columns. The surrogate `id` is dropped, and the redundant `UNIQUE (fk1, fk2)` on the two tables that carried one is removed (now subsumed by the PK).
 
-| Table | Composite PK |
-|---|---|
-| `dashboard_roles` | `(dashboard_id, role_id)` |
-| `dashboard_slices` | `(dashboard_id, slice_id)` |
-| `dashboard_user` | `(user_id, dashboard_id)` |
+| Table                  | Composite PK                    |
+| ---------------------- | ------------------------------- |
+| `dashboard_roles`      | `(dashboard_id, role_id)`       |
+| `dashboard_slices`     | `(dashboard_id, slice_id)`      |
+| `dashboard_user`       | `(user_id, dashboard_id)`       |
 | `report_schedule_user` | `(user_id, report_schedule_id)` |
-| `rls_filter_roles` | `(role_id, rls_filter_id)` |
-| `rls_filter_tables` | `(table_id, rls_filter_id)` |
-| `slice_user` | `(user_id, slice_id)` |
-| `sqlatable_user` | `(user_id, table_id)` |
+| `rls_filter_roles`     | `(role_id, rls_filter_id)`      |
+| `rls_filter_tables`    | `(table_id, rls_filter_id)`     |
+| `slice_user`           | `(user_id, slice_id)`           |
+| `sqlatable_user`       | `(user_id, table_id)`           |
 
 **Before upgrading:**
 
@@ -800,6 +1326,7 @@ Eight M:N association tables move from a synthetic `id INTEGER PRIMARY KEY` to a
 For large `dashboard_slices` / `report_schedule_user` tables, see the operator runbook in [#39859](https://github.com/apache/superset/pull/39859) — pre-flight inventory queries, per-dialect lock-window sizing, and the duplicate / NULL-FK roll-up — to plan the maintenance window.
 
 ## 6.0.0
+
 - [33055](https://github.com/apache/superset/pull/33055): Upgrades Flask-AppBuilder to 5.0.0. The AUTH_OID authentication type has been deprecated and is no longer available as an option in Flask-AppBuilder. OpenID (OID) is considered a deprecated authentication protocol - if you are using AUTH_OID, you will need to migrate to an alternative authentication method such as OAuth, LDAP, or database authentication before upgrading.
 - [34871](https://github.com/apache/superset/pull/34871): Fixed Jest test hanging issue from Ant Design v5 upgrade. MessageChannel is now mocked in test environment to prevent rc-overflow from causing Jest to hang. Test environment only - no production impact.
 - [34782](https://github.com/apache/superset/pull/34782): Dataset exports now include the dataset ID in their file name (similar to charts and dashboards). If managing assets as code, make sure to rename existing dataset YAMLs to include the ID (and avoid duplicated files).
@@ -808,8 +1335,8 @@ For large `dashboard_slices` / `report_schedule_user` tables, see the operator r
   - Change any hex color values to one of: `"success"`, `"processing"`, `"error"`, `"warning"`, `"default"`
   - Custom colors are no longer supported to maintain consistency with Ant Design components
 - [34561](https://github.com/apache/superset/pull/34561) Added tiled screenshot functionality for Playwright-based reports to handle large dashboards more efficiently. When enabled (default: `SCREENSHOT_TILED_ENABLED = True`), dashboards with 20+ charts or height exceeding 5000px will be captured using multiple viewport-sized tiles and combined into a single image. This improves report generation performance and reliability for large dashboards.
-Note: Pillow is now a required dependency (previously optional) to support image processing for tiled screenshots.
-`thumbnails` optional dependency is now deprecated and will be removed in the next major release (7.0).
+  Note: Pillow is now a required dependency (previously optional) to support image processing for tiled screenshots.
+  `thumbnails` optional dependency is now deprecated and will be removed in the next major release (7.0).
 - [33084](https://github.com/apache/superset/pull/33084) The DISALLOWED_SQL_FUNCTIONS configuration now includes additional potentially sensitive database functions across PostgreSQL, MySQL, SQLite, MS SQL Server, and ClickHouse. Existing queries using these functions may now be blocked. Review your SQL Lab queries and dashboards if you encounter "disallowed function" errors after upgrading
 - [34235](https://github.com/apache/superset/pull/34235) CSV exports now use `utf-8-sig` encoding by default to include a UTF-8 BOM, improving compatibility with Excel.
 - [34258](https://github.com/apache/superset/pull/34258) changing the default in Dockerfile to INCLUDE_CHROMIUM="false" (from "true") in the past. This ensures the `lean` layer is lean by default, and people can opt-in to the `chromium` layer by setting the build arg `INCLUDE_CHROMIUM=true`. This is a breaking change for anyone using the `lean` layer, as it will no longer include Chromium by default.

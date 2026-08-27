@@ -31,12 +31,18 @@ from flask import current_app, g
 from flask_appbuilder.security.sqla.models import Role
 from superset.daos.datasource import DatasourceDAO  # noqa: F401
 from superset.models.dashboard import Dashboard
-from superset import appbuilder, db, security_manager, viz
+from superset import appbuilder, db, security_manager
 from superset.connectors.sqla.models import SqlaTable
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
 from superset.models.core import Database
 from superset.models.slice import Slice
+from superset.security.guest_token import (
+    GuestTokenResource,
+    GuestTokenResourceType,
+    GuestTokenRlsRule,
+    GuestTokenUser,
+)
 from superset.sql.parse import Table
 from superset.utils.core import (
     DatasourceType,
@@ -1428,8 +1434,6 @@ class TestRolePermission(SupersetTestCase):
         assert ("can_explore", "Superset") in perm_set
         assert ("can_share_chart", "Superset") in perm_set
         assert ("can_share_dashboard", "Superset") in perm_set
-        assert ("can_explore_json", "Superset") in perm_set
-        assert ("can_explore_json", "Superset") in perm_set
         assert ("can_userinfo", "UserDBModelView") in perm_set
         assert ("can_view_chart_as_table", "Dashboard") in perm_set
         assert ("can_view_query", "Dashboard") in perm_set
@@ -1524,9 +1528,6 @@ class TestRolePermission(SupersetTestCase):
         assert security_manager._is_public_pvm(
             security_manager.find_permission_view_menu("can_dashboard", "Superset")
         )
-        assert security_manager._is_public_pvm(
-            security_manager.find_permission_view_menu("can_explore_json", "Superset")
-        )
 
         # Should NOT include write permissions on core objects
         assert not security_manager._is_public_pvm(
@@ -1553,7 +1554,6 @@ class TestRolePermission(SupersetTestCase):
         assert ("can_read", "Chart") in public_perm_set
         assert ("can_dashboard", "Superset") in public_perm_set
         assert ("can_slice", "Superset") in public_perm_set
-        assert ("can_explore_json", "Superset") in public_perm_set
         assert ("can_dashboard_permalink", "Superset") in public_perm_set
 
         # Filter state for interactive dashboards
@@ -1700,7 +1700,6 @@ class TestRolePermission(SupersetTestCase):
         assert ("can_explore", "Superset") in gamma_perm_set
         assert ("can_share_chart", "Superset") in gamma_perm_set
         assert ("can_share_dashboard", "Superset") in gamma_perm_set
-        assert ("can_explore_json", "Superset") in gamma_perm_set
         assert ("can_userinfo", "UserDBModelView") in gamma_perm_set
         assert ("can_view_chart_as_table", "Dashboard") in gamma_perm_set
         assert ("can_view_query", "Dashboard") in gamma_perm_set
@@ -1720,6 +1719,13 @@ class TestRolePermission(SupersetTestCase):
             ["CurrentUserRestApi", "update_me"],
             ["CurrentUserRestApi", "get_my_roles"],
             ["UserRestApi", "avatar"],
+            # Secured in the body: admission is "can_read on ANY of
+            # Chart/Dashboard/Dataset", which @has_access cannot express
+            # (it binds one class_permission_name). The view redirects
+            # unauthenticated requests to login and answers 403 for readers
+            # of none of the three; the contract is pinned by
+            # tests/integration_tests/views/archived_assets_tests.py.
+            ["ArchivedAssetsView", "list"],
             # TODO (embedded) remove Dashboard:embedded after uuids have been shipped
             ["Dashboard", "embedded"],
             ["EmbeddedView", "embedded"],
@@ -1740,6 +1746,10 @@ class TestRolePermission(SupersetTestCase):
             # Serves the PWA web app manifest unauthenticated (PWA install
             # fetches have no session); mirrors the RedirectView precedent.
             ["PwaManifestView", "manifest"],
+            # Serves translation catalogs (static public repo content, no
+            # user/tenant data) as content-addressed scripts; must load for
+            # anonymous principals (login page, embedded dashboards).
+            ["Superset", "language_pack_script"],
         ]
         unsecured_views = []
         for view_class in appbuilder.baseviews:
@@ -2134,24 +2144,6 @@ class TestSecurityManager(SupersetTestCase):
         with self.assertRaises(SupersetSecurityException):  # noqa: PT027
             security_manager.raise_for_access(database=database, table=table)
 
-    @patch("superset.security.SupersetSecurityManager.is_editor")
-    @patch("superset.security.SupersetSecurityManager.can_access")
-    @patch("superset.security.SupersetSecurityManager.can_access_schema")
-    def test_raise_for_access_viz(
-        self, mock_can_access_schema, mock_can_access, mock_is_editor
-    ):
-        test_viz = viz.TimeTableViz(self.get_datasource_mock(), form_data={})
-
-        mock_can_access_schema.return_value = True
-        security_manager.raise_for_access(viz=test_viz)
-
-        mock_can_access.return_value = False
-        mock_can_access_schema.return_value = False
-        mock_is_editor.return_value = False
-        with override_user(security_manager.find_user("gamma")):
-            with self.assertRaises(SupersetSecurityException):  # noqa: PT027
-                security_manager.raise_for_access(viz=test_viz)
-
     def test_get_admin_user_roles(self):
         admin = security_manager.find_user("admin")
         with override_user(admin):
@@ -2344,6 +2336,182 @@ class TestGuestTokens(SupersetTestCase):
 
         assert guest_user is not None
         assert "test_guest" == guest_user.username
+
+    def create_guest_token_with_attributes(self) -> bytes:
+        user: GuestTokenUser = {
+            "username": "test_guest_with_attrs",
+            "first_name": "Test",
+            "last_name": "Guest",
+            "attributes": {
+                "department": "Engineering",
+                "region": "US",
+                "role": "developer",
+                "team": "data-platform",
+            },
+        }
+        resources: list[GuestTokenResource] = [
+            {"type": GuestTokenResourceType.DASHBOARD, "id": "test-dashboard"}
+        ]
+        rls: list[GuestTokenRlsRule] = [{"dataset": "1", "clause": "access = 1"}]
+        return security_manager.create_guest_access_token(user, resources, rls)
+
+    def test_create_guest_access_token_with_attributes(self) -> None:
+        """Test creating guest access token with user attributes."""
+        user_with_attributes: GuestTokenUser = {
+            "username": "test_guest_attrs",
+            "first_name": "Test",
+            "last_name": "Guest",
+            "attributes": {
+                "department": "Engineering",
+                "region": "US",
+                "clearance_level": "standard",
+                "projects": ["analytics", "ml-platform"],
+                "team_lead": True,
+            },
+        }
+        resources: list[GuestTokenResource] = [
+            {"type": GuestTokenResourceType.DASHBOARD, "id": "test-dashboard"}
+        ]
+        rls: list[GuestTokenRlsRule] = [{"dataset": "1", "clause": "id = 1"}]
+
+        token = security_manager.create_guest_access_token(
+            user_with_attributes, resources, rls
+        )
+
+        # Decode and verify the token contains attributes
+        aud = get_url_host()
+        decoded_token = jwt.decode(
+            token,
+            self.app.config["GUEST_TOKEN_JWT_SECRET"],
+            algorithms=[self.app.config["GUEST_TOKEN_JWT_ALGO"]],
+            audience=aud,
+        )
+
+        assert "user" in decoded_token
+        user = decoded_token["user"]
+        assert "attributes" in user
+        assert user["attributes"]["department"] == "Engineering"
+        assert user["attributes"]["region"] == "US"
+        assert user["attributes"]["clearance_level"] == "standard"
+        assert user["attributes"]["projects"] == ["analytics", "ml-platform"]
+        assert user["attributes"]["team_lead"] is True
+
+    def test_get_guest_user_with_attributes(self) -> None:
+        """Test that guest user properly retains attributes from token."""
+        token = self.create_guest_token_with_attributes()
+        fake_request = FakeRequest()
+        fake_request.headers[current_app.config["GUEST_TOKEN_HEADER_NAME"]] = token
+
+        guest_user = security_manager.get_guest_user_from_request(fake_request)
+
+        assert guest_user is not None
+        assert "test_guest_with_attrs" == guest_user.username
+
+        # Verify attributes are accessible through guest_token
+        assert hasattr(guest_user, "guest_token")
+        token_user = guest_user.guest_token["user"]
+        assert "attributes" in token_user
+        token_attributes = token_user["attributes"]
+        assert token_attributes is not None
+        assert token_attributes["department"] == "Engineering"
+        assert token_attributes["region"] == "US"
+        assert token_attributes["role"] == "developer"
+        assert token_attributes["team"] == "data-platform"
+
+    def test_create_guest_access_token_without_attributes(self) -> None:
+        """Test creating guest access token without user attributes.
+
+        This test ensures backward compatibility.
+        """
+        user_without_attributes: GuestTokenUser = {
+            "username": "test_guest_no_attrs",
+            "first_name": "Test",
+            "last_name": "Guest",
+        }
+        resources: list[GuestTokenResource] = [
+            {"type": GuestTokenResourceType.DASHBOARD, "id": "test-dashboard"}
+        ]
+        rls: list[GuestTokenRlsRule] = [{"dataset": "1", "clause": "id = 1"}]
+
+        token = security_manager.create_guest_access_token(
+            user_without_attributes, resources, rls
+        )
+
+        # Decode and verify the token works without attributes
+        aud = get_url_host()
+        decoded_token = jwt.decode(
+            token,
+            self.app.config["GUEST_TOKEN_JWT_SECRET"],
+            algorithms=[self.app.config["GUEST_TOKEN_JWT_ALGO"]],
+            audience=aud,
+        )
+
+        assert "user" in decoded_token
+        user = decoded_token["user"]
+        assert "attributes" not in user
+        assert user["username"] == "test_guest_no_attrs"
+
+    def test_create_guest_access_token_with_empty_attributes(self) -> None:
+        """Test creating guest access token with empty attributes."""
+        user_with_empty_attributes: GuestTokenUser = {
+            "username": "test_guest_empty_attrs",
+            "first_name": "Test",
+            "last_name": "Guest",
+            "attributes": {},
+        }
+        resources: list[GuestTokenResource] = [
+            {"type": GuestTokenResourceType.DASHBOARD, "id": "test-dashboard"}
+        ]
+        rls: list[GuestTokenRlsRule] = [{"dataset": "1", "clause": "id = 1"}]
+
+        token = security_manager.create_guest_access_token(
+            user_with_empty_attributes, resources, rls
+        )
+
+        # Decode and verify the token contains empty attributes
+        aud = get_url_host()
+        decoded_token = jwt.decode(
+            token,
+            self.app.config["GUEST_TOKEN_JWT_SECRET"],
+            algorithms=[self.app.config["GUEST_TOKEN_JWT_ALGO"]],
+            audience=aud,
+        )
+
+        assert "user" in decoded_token
+        user = decoded_token["user"]
+        assert "attributes" in user
+        assert user["attributes"] == {}
+
+    def test_create_guest_access_token_with_null_attributes(self) -> None:
+        """Test creating guest access token with null attributes."""
+        user_with_null_attributes: GuestTokenUser = {
+            "username": "test_guest_null_attrs",
+            "first_name": "Test",
+            "last_name": "Guest",
+            "attributes": None,
+        }
+        resources: list[GuestTokenResource] = [
+            {"type": GuestTokenResourceType.DASHBOARD, "id": "test-dashboard"}
+        ]
+        rls: list[GuestTokenRlsRule] = [{"dataset": "1", "clause": "id = 1"}]
+
+        token = security_manager.create_guest_access_token(
+            user_with_null_attributes, resources, rls
+        )
+
+        # Decode and verify the token contains null attributes
+        aud = get_url_host()
+        decoded_token = jwt.decode(
+            token,
+            self.app.config["GUEST_TOKEN_JWT_SECRET"],
+            algorithms=[self.app.config["GUEST_TOKEN_JWT_ALGO"]],
+            audience=aud,
+        )
+
+        assert "user" in decoded_token
+        user = decoded_token["user"]
+        assert "attributes" in user
+        assert user["attributes"] is None
 
     def test_get_guest_user_with_request_form(self):
         token = self.create_guest_token()

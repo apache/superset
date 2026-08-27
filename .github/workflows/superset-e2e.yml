@@ -26,9 +26,12 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   changes:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 10
     permissions:
       contents: read
@@ -38,7 +41,7 @@ jobs:
       frontend: ${{ steps.check.outputs.frontend }}
     steps:
       - name: Checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - name: Check for file changes
@@ -50,27 +53,20 @@ jobs:
   cypress-matrix:
     needs: changes
     if: (needs.changes.outputs.python == 'true' || needs.changes.outputs.frontend == 'true') && github.event.pull_request.draft == false
-    # Somehow one test flakes on 24.04 for unknown reasons, this is the only GHA left on 22.04
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 30
     permissions:
       contents: read
       pull-requests: read
     strategy:
       # when one test fails, DO NOT cancel the other
-      # parallel_id, because this will kill Cypress processes
+      # app_root variant, because this will kill Cypress processes
       # leaving the Dashboard hanging ...
       # https://github.com/cypress-io/github-action/issues/48
       fail-fast: false
       matrix:
-        parallel_id: [0, 1]
         browser: ["chrome"]
         app_root: ${{ github.event_name == 'push' && fromJSON('["", "/app/prefix"]') || fromJSON('[""]') }}
-        # The /app/prefix variant (push events only) is smoke-tested on a single
-        # shard rather than the full matrix, so exclude it from the other shards.
-        exclude:
-          - parallel_id: 1
-            app_root: "/app/prefix"
     env:
       SUPERSET_ENV: development
       SUPERSET_CONFIG: tests.integration_tests.superset_test_config
@@ -82,14 +78,14 @@ jobs:
       USE_DASHBOARD: ${{ github.event.inputs.use_dashboard == 'true' || 'false' }}
     services:
       postgres:
-        image: postgres:17-alpine
+        image: ghcr.io/apache/superset/ci/postgres:17-alpine
         env:
           POSTGRES_USER: superset
           POSTGRES_PASSWORD: superset
         ports:
           - 15432:5432
       redis:
-        image: redis:7-alpine
+        image: ghcr.io/apache/superset/ci/redis:7-alpine
         ports:
           - 16379:6379
     steps:
@@ -97,21 +93,21 @@ jobs:
       # Conditional checkout based on context
       - name: Checkout for push or pull_request event
         if: github.event_name == 'push' || github.event_name == 'pull_request'
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
           submodules: recursive
           ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
       - name: Checkout using ref (workflow_dispatch)
         if: github.event_name == 'workflow_dispatch' && github.event.inputs.ref != ''
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
           ref: ${{ github.event.inputs.ref }}
           submodules: recursive
       - name: Checkout using PR ID (workflow_dispatch)
         if: github.event_name == 'workflow_dispatch' && github.event.inputs.pr_id != ''
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
           ref: refs/pull/${{ github.event.inputs.pr_id }}/merge
@@ -128,7 +124,7 @@ jobs:
         with:
           run: testdata
       - name: Setup Node.js
-        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version-file: "./superset-frontend/.nvmrc"
           cache: "npm"
@@ -149,8 +145,6 @@ jobs:
         uses: ./.github/actions/cached-dependencies
         env:
           CYPRESS_BROWSER: ${{ matrix.browser }}
-          PARALLEL_ID: ${{ matrix.parallel_id }}
-          PARALLELISM: 2
           CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
           NODE_OPTIONS: "--max-old-space-size=4096"
         with:
@@ -168,12 +162,12 @@ jobs:
         if: failure()
         with:
           path: ${{ github.workspace }}/superset-frontend/cypress-base/cypress/screenshots
-          name: cypress-artifact-${{ github.run_id }}-${{ github.job }}-${{ matrix.browser }}-${{ matrix.parallel_id }}--${{ steps.set-safe-app-root.outputs.safe_app_root }}
+          name: cypress-artifact-${{ github.run_id }}-${{ github.job }}-${{ matrix.browser }}--${{ steps.set-safe-app-root.outputs.safe_app_root }}
 
   playwright-tests:
     needs: changes
     if: needs.changes.outputs.python == 'true' || needs.changes.outputs.frontend == 'true'
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 30
     permissions:
       contents: read
@@ -192,14 +186,14 @@ jobs:
       GITHUB_TOKEN: ${{ github.token }}
     services:
       postgres:
-        image: postgres:17-alpine
+        image: ghcr.io/apache/superset/ci/postgres:17-alpine
         env:
           POSTGRES_USER: superset
           POSTGRES_PASSWORD: superset
         ports:
           - 15432:5432
       redis:
-        image: redis:7-alpine
+        image: ghcr.io/apache/superset/ci/redis:7-alpine
         ports:
           - 16379:6379
     steps:
@@ -207,21 +201,21 @@ jobs:
       # Conditional checkout based on context (same as Cypress workflow)
       - name: Checkout for push or pull_request event
         if: github.event_name == 'push' || github.event_name == 'pull_request'
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
           submodules: recursive
           ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
       - name: Checkout using ref (workflow_dispatch)
         if: github.event_name == 'workflow_dispatch' && github.event.inputs.ref != ''
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
           ref: ${{ github.event.inputs.ref }}
           submodules: recursive
       - name: Checkout using PR ID (workflow_dispatch)
         if: github.event_name == 'workflow_dispatch' && github.event.inputs.pr_id != ''
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
           ref: refs/pull/${{ github.event.inputs.pr_id }}/merge
@@ -238,7 +232,7 @@ jobs:
         with:
           run: playwright_testdata
       - name: Setup Node.js
-        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version-file: "./superset-frontend/.nvmrc"
           cache: "npm"
@@ -265,6 +259,21 @@ jobs:
           NODE_OPTIONS: "--max-old-space-size=4096"
         with:
           run: playwright-run "${{ matrix.app_root }}"
+      - name: Run Playwright (Soft-delete Tests)
+        uses: ./.github/actions/cached-dependencies
+        env:
+          NODE_OPTIONS: "--max-old-space-size=4096"
+          # Scoped to this step: each playwright-run boots its own gunicorn
+          # with the step's env, so the Required Tests server above keeps
+          # master's Flask configuration while this one runs with SOFT_DELETE
+          # on — the same isolation pattern as the Embedded step in
+          # superset-playwright.yml. Without a flag-on server the
+          # recently-archived specs skip themselves everywhere and ship zero
+          # executed E2E coverage; in the Required run above they are
+          # collected and skipped, which is expected.
+          SUPERSET_FEATURE_SOFT_DELETE: "true"
+        with:
+          run: playwright-run "${{ matrix.app_root }}" recently-archived/
       - name: Set safe app root
         if: failure()
         id: set-safe-app-root
@@ -301,7 +310,7 @@ jobs:
   cypress-matrix-required:
     needs: [changes, cypress-matrix]
     if: always()
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 5
     permissions: {}
     steps:
@@ -323,7 +332,7 @@ jobs:
   playwright-tests-required:
     needs: [changes, playwright-tests]
     if: always()
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 5
     permissions: {}
     steps:
@@ -341,3 +350,14 @@ jobs:
             exit 1
           fi
           echo "playwright-tests result: $RESULT (changes: $CHANGES)"
+
+  actions-timeline:
+    needs: [cypress-matrix, playwright-tests, cypress-matrix-required, playwright-tests-required]
+    if: always()
+    runs-on: ubuntu-26.04
+    permissions:
+      actions: read
+    steps:
+      - uses: Kesin11/actions-timeline@57fc93f20c6da7fbc14063c6d24a2a5627c799ad # v3.2.0
+        with:
+          expand-composite-actions: true

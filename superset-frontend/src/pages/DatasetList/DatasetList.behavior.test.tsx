@@ -457,9 +457,7 @@ test('clicking duplicate opens modal and submits duplicate request', async () =>
   expect(row).toBeInTheDocument();
 
   const duplicateIcon = await within(row!).findByTestId('copy');
-  const duplicateButton = duplicateIcon.closest(
-    '[role="button"]',
-  ) as HTMLElement | null;
+  const duplicateButton = duplicateIcon.closest('button') as HTMLElement | null;
   expect(duplicateButton).toBeTruthy();
 
   await userEvent.click(duplicateButton!);

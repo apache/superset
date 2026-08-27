@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-23 03:46-0700\n"
+"POT-Creation-Date: 2026-07-31 11:53+0100\n"
 "PO-Revision-Date: 2016-05-02 08:49-0700\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: es\n"
@@ -27,56 +27,6 @@ msgstr ""
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.17.0\n"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
-#, fuzzy, python-format
-msgid ""
-"A soft-deleted dataset (uuid %(uuid)s) already references this table. "
-"Restore it via POST /api/v1/dataset/%(uuid)s/restore before creating a "
-"new dataset over this table, or use a different table name."
-msgstr ""
-"Un conjunto de datos eliminado temporalmente (uuid %(uuid)s) ya hace "
-"referencia a esta tabla. Restáurelo mediante POST "
-"/api/v1/dataset/%(uuid)s/restore antes de crear un nuevo conjunto de "
-"datos sobre esta tabla, o utilice un nombre de tabla diferente."
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
-#, fuzzy, python-format
-msgid ""
-"A soft-deleted dataset (uuid %(uuid)s) already references this table. "
-"Restore it via POST /api/v1/dataset/%(uuid)s/restore before uploading, or"
-" upload to a different table name."
-msgstr ""
-"Un conjunto de datos eliminado temporalmente (uuid %(uuid)s) ya hace "
-"referencia a esta tabla. Restáurelo mediante POST "
-"/api/v1/dataset/%(uuid)s/restore antes de cargar, o cargue con un nombre "
-"de tabla diferente."
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
-#, fuzzy
-msgid ""
-"Cannot delete a database whose only remaining datasets are soft-deleted. "
-"Restore them (POST /api/v1/dataset/<uuid>/restore) and delete them "
-"permanently once a purge capability ships, or remove the underlying rows "
-"out-of-band, before deleting the database."
-msgstr ""
-"No se puede eliminar una base de datos cuyos únicos conjuntos de datos "
-"restantes están eliminados temporalmente. Restáurelos (POST "
-"/api/v1/dataset/<uuid>/restore) y elimínelos permanentemente una vez que "
-"esté disponible una función de purga, o elimine las filas subyacentes de "
-"forma externa antes de eliminar la base de datos."
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
-#, fuzzy
-msgid ""
-"Dataset cannot be restored because another active dataset already "
-"references the same physical table (same database, catalog, schema, and "
-"table name). Delete the duplicate or rename the table before restoring."
-msgstr ""
-"El conjunto de datos no puede restaurarse porque otro conjunto de datos "
-"activo ya hace referencia a la misma tabla física (misma base de datos, "
-"catálogo, esquema y nombre de tabla). Elimine el duplicado o cambie el "
-"nombre de la tabla antes de restaurar."
 
 msgid ""
 "\n"
@@ -186,9 +136,6 @@ msgstr "Detalles"
 msgid " near '%(highlight)s'"
 msgstr " cerca de «%(highlight)s»"
 
-msgid " source code of Superset's sandboxed parser"
-msgstr " código fuente del analizador en «sandbox» de Superset"
-
 msgid ""
 " standard to ensure that the lexicographical ordering\n"
 "                      coincides with the chronological ordering. If the\n"
@@ -276,6 +223,10 @@ msgid "% of total"
 msgstr "% del total"
 
 #, python-format
+msgid "%(alertType)s \"%(alertName)s\" triggered successfully"
+msgstr ""
+
+#, python-format
 msgid "%(dialect)s cannot be used as a data source for security reasons."
 msgstr ""
 "%(dialect)s no se puede utilizar como fuente de datos por razones de "
@@ -286,12 +237,42 @@ msgid "%(label)s file"
 msgstr "archivo %(label)s"
 
 #, python-format
+msgid "%(name)s deleted successfully"
+msgstr ""
+
+#, python-format
+msgid "%(name)s restored successfully"
+msgstr ""
+
+#, python-format
+msgid "%(name)s.%(extension)s"
+msgstr ""
+
+#, python-format
 msgid "%(name)s.csv"
 msgstr "%(name)s.csv"
 
 #, python-format
 msgid "%(name)s.pdf"
 msgstr "%(name)s.pdf"
+
+#, python-format
+msgid "%(num)d hour"
+msgid_plural "%(num)d hours"
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
+msgid "%(num)d minute"
+msgid_plural "%(num)d minutes"
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
+msgid "%(num)d second"
+msgid_plural "%(num)d seconds"
+msgstr[0] ""
+msgstr[1] ""
 
 #, python-format
 msgid "%(object)s does not exist in this database."
@@ -349,9 +330,9 @@ msgstr ""
 msgid "%s %s"
 msgstr "%s%s"
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s ENCRYPTED EXTRA"
-msgstr "Seguridad adicional"
+msgstr "%s EXTRA CIFRADO"
 
 #, python-format
 msgid "%s Error"
@@ -361,9 +342,9 @@ msgstr "%s error"
 msgid "%s PASSWORD"
 msgstr "%s CONTRASEÑA"
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s Physical"
-msgstr "Físico"
+msgstr "%s físicos"
 
 #, python-format
 msgid "%s SSH TUNNEL PASSWORD"
@@ -381,9 +362,9 @@ msgstr "%s CONTRASEÑA DE LA CLAVE PRIVADA DEL TÚNEL SSH"
 msgid "%s Selected"
 msgstr "%s seleccionado"
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s Selected (%s)"
-msgstr "%s seleccionado"
+msgstr "%s seleccionados (%s)"
 
 #, python-format
 msgid "%s Selected (Physical)"
@@ -397,13 +378,13 @@ msgstr "%s seleccionado (virtual)"
 msgid "%s Semantic View"
 msgstr "%s Vista semántica"
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s URL"
-msgstr "URL"
+msgstr "URL de %s"
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s Virtual"
-msgstr "Virtual"
+msgstr "%s virtuales"
 
 #, python-format
 msgid "%s aggregates(s)"
@@ -453,16 +434,26 @@ msgstr ""
 "%s elementos no se han podido etiquetar porque no tienes permisos de "
 "edición para todos los objetos seleccionados."
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s metric"
 msgid_plural "%s metrics"
-msgstr[0] "Ordenar métrica"
-msgstr[1] ""
+msgstr[0] "%s métrica"
+msgstr[1] "%s métricas"
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s min ago"
 msgid_plural "%s min ago"
-msgstr[0] "Hace 1 mes"
+msgstr[0] "Hace %s min"
+msgstr[1] "Hace %s min"
+
+#, python-format
+msgid ""
+"%s of the selected items is a semantic view, which cannot be archived: it"
+" will be deleted permanently and cannot be recovered."
+msgid_plural ""
+"%s of the selected items are semantic views, which cannot be archived: "
+"they will be deleted permanently and cannot be recovered."
+msgstr[0] ""
 msgstr[1] ""
 
 #, python-format
@@ -479,31 +470,25 @@ msgstr[1] "%s opciones"
 msgid "%s option(s)"
 msgstr "%s opción(es)"
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s out of %s column"
 msgid_plural "%s out of %s columns"
-msgstr[0] "Tamaño automático de columna"
-msgstr[1] ""
+msgstr[0] "%s de %s columna"
+msgstr[1] "%s de %s columnas"
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s out of %s metric"
 msgid_plural "%s out of %s metrics"
-msgstr[0] "Ordenar métrica"
-msgstr[1] ""
+msgstr[0] "%s de %s métrica"
+msgstr[1] "%s de %s métricas"
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s out of %s selected"
-msgstr "%s seleccionado"
+msgstr "%s de %s seleccionados"
 
 #, python-format
 msgid "%s recipients"
 msgstr "%s destinatarios"
-
-#, fuzzy, python-format
-msgid "%s record"
-msgid_plural "%s records..."
-msgstr[0] "%s error"
-msgstr[1] ""
 
 #, python-format
 msgid "%s record..."
@@ -517,21 +502,21 @@ msgid_plural "%s rows"
 msgstr[0] "%s fila"
 msgstr[1] "%s filas"
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s s ago"
 msgid_plural "%s s ago"
-msgstr[0] "Hace 30 días"
-msgstr[1] ""
+msgstr[0] "Hace %s s"
+msgstr[1] "Hace %s s"
 
 #, python-format
 msgid "%s saved metric(s)"
 msgstr "%s métrica(s) guardada(s)"
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s second"
 msgid_plural "%s seconds"
-msgstr[0] "5 segundos"
-msgstr[1] ""
+msgstr[0] "%s segundo"
+msgstr[1] "%s segundos"
 
 #, python-format
 msgid "%s semantic view(s) added"
@@ -547,9 +532,9 @@ msgstr "No se pudo agregar la(s) %s vista(s) semántica(s)"
 msgid "%s semantic view(s) failed to add: %s"
 msgstr "Error al agregar %s vista(s) semántica(s): %s"
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s tab selected"
-msgstr "%s seleccionado"
+msgstr "Pestaña %s seleccionada"
 
 #, python-format
 msgid "%s updated"
@@ -879,16 +864,6 @@ msgstr ">= (mayor o igual)"
 msgid "A Big Number"
 msgstr "Un número grande"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
-msgid "A JavaScript function that generates a label configuration object"
-msgstr "Una función JavaScript que genera un objeto de configuración de etiquetas"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
-msgid "A JavaScript function that generates an icon configuration object"
-msgstr "Una función JavaScript que genera un objeto de configuración de iconos"
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy, python-brace-format
@@ -902,6 +877,9 @@ msgstr ""
 "ECharts, anulando otras opciones de control con mayor precedencia. (p. "
 "ej. { title: { text: \"Mi gráfico\" }, tooltip: { trigger: \"item\" } })."
 " Detalles: https://echarts.apache.org/en/option.html. "
+
+msgid "A TTL is required for ephemeral state."
+msgstr ""
 
 #, fuzzy
 msgid "A comma separated list of columns that should be parsed as dates"
@@ -1040,6 +1018,30 @@ msgstr ""
 "Un conjunto de parámetros que están disponibles en la consulta utilizando"
 " la sintaxis de plantillas Jinja"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy, python-format
+msgid ""
+"A soft-deleted dataset (uuid %(uuid)s) already references this table. "
+"Restore it via POST /api/v1/dataset/%(uuid)s/restore before creating a "
+"new dataset over this table, or use a different table name."
+msgstr ""
+"Un conjunto de datos eliminado temporalmente (uuid %(uuid)s) ya hace "
+"referencia a esta tabla. Restáurelo mediante POST "
+"/api/v1/dataset/%(uuid)s/restore antes de crear un nuevo conjunto de "
+"datos sobre esta tabla, o utilice un nombre de tabla diferente."
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy, python-format
+msgid ""
+"A soft-deleted dataset (uuid %(uuid)s) already references this table. "
+"Restore it via POST /api/v1/dataset/%(uuid)s/restore before uploading, or"
+" upload to a different table name."
+msgstr ""
+"Un conjunto de datos eliminado temporalmente (uuid %(uuid)s) ya hace "
+"referencia a esta tabla. Restáurelo mediante POST "
+"/api/v1/dataset/%(uuid)s/restore antes de cargar, o cargue con un nombre "
+"de tabla diferente."
+
 msgid "A timeout occurred while executing the query."
 msgstr "Se ha agotado el tiempo de espera al ejecutar la consulta."
 
@@ -1048,6 +1050,9 @@ msgstr "Se ha agotado el tiempo de espera al generar un CSV."
 
 msgid "A timeout occurred while generating a dataframe."
 msgstr "Se ha agotado el tiempo de espera al generar un marco de datos."
+
+msgid "A timeout occurred while generating an Excel file."
+msgstr ""
 
 msgid "A timeout occurred while taking a screenshot."
 msgstr "Se ha agotado el tiempo de espera al hacer una captura de pantalla."
@@ -1070,27 +1075,21 @@ msgstr ""
 "          Estos valores intermedios pueden basarse en el tiempo o en la "
 "categoría."
 
-#, fuzzy
 msgid "A-Z"
-msgstr "clave a-z"
+msgstr "A-Z"
 
-#, fuzzy
 msgid "AND"
-msgstr "aleatorio"
+msgstr "Y"
 
-#, fuzzy
 msgid "API Key Created"
-msgstr "se ha creado"
+msgstr "Clave API creada"
 
-#, fuzzy
 msgid "API Keys"
-msgstr "Clave privada"
+msgstr "Claves API"
 
-#, fuzzy
 msgid "API key created successfully"
-msgstr "El informe se ha creado"
+msgstr "Clave API creada correctamente"
 
-#, fuzzy
 msgid "API key name is required"
 msgstr "El nombre de la clave API es obligatorio"
 
@@ -1104,9 +1103,6 @@ msgid "API keys allow scoped programmatic access to Superset."
 msgstr ""
 "Las claves API permiten el acceso programático con ámbito restringido a "
 "Superset."
-
-msgid "APPLY"
-msgstr "APLICAR"
 
 msgid "APR"
 msgstr "ABR"
@@ -1173,9 +1169,9 @@ msgstr "Formato adaptativo"
 msgid "Add"
 msgstr "Añadir"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Add %s view(s)"
-msgstr "%s opción(es)"
+msgstr "Añadir %s vista(s)"
 
 msgid "Add BCC Recipients"
 msgstr "Añadir destinatarios CCO"
@@ -1214,9 +1210,8 @@ msgstr "Añadir rol"
 msgid "Add Rule"
 msgstr "Añadir regla"
 
-#, fuzzy
 msgid "Add Semantic View"
-msgstr "Añadir un elemento"
+msgstr "Añadir vista semántica"
 
 msgid "Add Tag"
 msgstr "Añadir etiqueta"
@@ -1278,6 +1273,12 @@ msgstr "Añadir color para cambio positivo/negativo"
 #, fuzzy
 msgid "Add colors to cell bars for +/- for all columns"
 msgstr "añade colores a las barras de celdas para +/-"
+
+msgid ""
+"Add columns to filter by. When typing or pasting filter values, commas "
+"will separate values into multiple entries. To include a comma within a "
+"value, wrap it in double quotes: \"San Francisco, CA\""
+msgstr ""
 
 msgid "Add cross-filter"
 msgstr "Añadir filtro cruzado"
@@ -1373,6 +1374,9 @@ msgstr ""
 msgid "Add required control values to save chart"
 msgstr "Añadir los valores de control necesarios para guardar el gráfico"
 
+msgid "Add service credentials"
+msgstr ""
+
 msgid "Add sheet"
 msgstr "Añadir hoja"
 
@@ -1443,6 +1447,12 @@ msgid ""
 msgstr ""
 "Añade color a los símbolos del gráfico en función del cambio positivo o "
 "negativo del valor de comparación."
+
+msgid "Adhoc metric SQL expression is invalid"
+msgstr ""
+
+msgid "Adhoc metric aggregate is invalid"
+msgstr ""
 
 msgid "Adjust how this database will interact with SQL Lab."
 msgstr "Ajusta cómo interactuará esta base de datos con SQL Lab."
@@ -1517,13 +1527,6 @@ msgstr ""
 "producir la etiqueta del clúster."
 
 msgid ""
-"Aggregate function to apply when pivoting and computing the total rows "
-"and columns"
-msgstr ""
-"Función de agregado para aplicar al pivotar y calcular el total de filas "
-"y columnas"
-
-msgid ""
 "Aggregates data within the boundary of grid cells and maps the aggregated"
 " values to a dynamic color scale"
 msgstr ""
@@ -1535,9 +1538,6 @@ msgstr "Agregación"
 
 msgid "Aggregation Method"
 msgstr "Método de agregación"
-
-msgid "Aggregation function"
-msgstr "Función de agregación"
 
 msgid "Alert"
 msgstr "Alerta"
@@ -1647,6 +1647,9 @@ msgstr "Todos los paneles"
 msgid "All records"
 msgstr "Registros en bruto"
 
+msgid "All time"
+msgstr ""
+
 msgid "Allow CREATE TABLE AS"
 msgstr "Permitir CREAR TABLA COMO"
 
@@ -1733,6 +1736,9 @@ msgstr ""
 "internos. Los bigotes alrededor de cada caja visualizan el mínimo, el "
 "máximo, el intervalo y los 2 cuartiles externos."
 
+msgid "Also overwrite all assets (charts, datasets and databases)"
+msgstr ""
+
 msgid "Altered"
 msgstr "Alterado"
 
@@ -1782,9 +1788,8 @@ msgstr "Se ha producido un error al acceder al valor."
 msgid "An error occurred while accessing the value."
 msgstr "Se ha producido un error al acceder al valor."
 
-#, fuzzy
 msgid "An error occurred while adding semantic views"
-msgstr "Se ha producido un error al cargar el SQL"
+msgstr "Se ha producido un error al añadir las vistas semánticas"
 
 msgid ""
 "An error occurred while collapsing the table schema. Please contact your "
@@ -1807,9 +1812,8 @@ msgstr "Se ha producido un error al crear la fuente de datos"
 msgid "An error occurred while creating the extension."
 msgstr "Se ha producido un error al crear el valor."
 
-#, fuzzy
 msgid "An error occurred while creating the semantic layer"
-msgstr "Se ha producido un error al crear el valor."
+msgstr "Se ha producido un error al crear la capa semántica"
 
 msgid "An error occurred while creating the value."
 msgstr "Se ha producido un error al crear el valor."
@@ -1828,23 +1832,21 @@ msgstr ""
 "Se ha producido un error al expandir el esquema de la tabla. Contacta con"
 " tu administrador."
 
-#, fuzzy, python-format
+#, python-format
 msgid "An error occurred while fetching %s"
-msgstr "Se ha producido un error al recuperar %ss: %s"
+msgstr "Se ha producido un error al recuperar %s"
 
 #, python-format
 msgid "An error occurred while fetching %s info: %s"
 msgstr "Se ha producido un error al recuperar la información de %s: %s"
 
-#, fuzzy, python-format
+#, python-format
 msgid "An error occurred while fetching %s related data"
-msgstr ""
-"Se ha producido un error al recuperar los datos relacionados con el "
-"conjunto de datos"
+msgstr "Se ha producido un error al recuperar los datos relacionados de %s"
 
-#, fuzzy, python-format
+#, python-format
 msgid "An error occurred while fetching %s values: %s"
-msgstr "Se ha producido un error al recuperar los valores del usuario: %s"
+msgstr "Se ha producido un error al recuperar los valores de %s: %s"
 
 #, fuzzy, python-format
 msgid "An error occurred while fetching %s: %s"
@@ -1861,9 +1863,8 @@ msgstr "Se ha producido un error al recuperar las plantillas CSS disponibles"
 msgid "An error occurred while fetching available themes"
 msgstr "Se ha producido un error al recuperar las plantillas CSS disponibles"
 
-#, fuzzy
 msgid "An error occurred while fetching available views"
-msgstr "Se ha producido un error al recuperar las plantillas CSS disponibles"
+msgstr "Se ha producido un error al recuperar las vistas disponibles"
 
 #, python-format
 msgid "An error occurred while fetching chart editor values: %s"
@@ -1940,39 +1941,38 @@ msgid "An error occurred while fetching function names."
 msgstr "Se ha producido un error al recuperar los nombres de las funciones."
 
 #, python-format
+msgid "An error occurred while fetching row level security subject values: %s"
+msgstr ""
+
+#, python-format
 msgid "An error occurred while fetching schema values: %s"
 msgstr "Se ha producido un error al recuperar los valores del esquema: %s"
 
-#, fuzzy
 msgid "An error occurred while fetching semantic layer types"
-msgstr "Se ha producido un error al recuperar las plantillas CSS disponibles"
+msgstr "Se ha producido un error al recuperar los tipos de capa semántica"
 
-#, fuzzy
 msgid "An error occurred while fetching semantic layers"
-msgstr "Se ha producido un error al recuperar los valores del esquema: %s"
+msgstr "Se ha producido un error al recuperar las capas semánticas"
 
 msgid "An error occurred while fetching tab state"
 msgstr "Se ha producido un error al recuperar el estado de la pestaña"
 
-#, fuzzy, python-format
+#, python-format
 msgid "An error occurred while fetching table metadata for %s"
-msgstr "Se ha producido un error al recuperar los metadatos de la tabla"
+msgstr "Se ha producido un error al recuperar los metadatos de la tabla de %s"
 
-#, fuzzy
 msgid "An error occurred while fetching the configuration schema"
-msgstr "Se ha producido un error al recuperar los nombres de las funciones."
+msgstr "Se ha producido un error al recuperar el esquema de configuración"
 
-#, fuzzy
 msgid "An error occurred while fetching the runtime schema"
-msgstr "Se ha producido un error al recuperar los nombres de las funciones."
+msgstr "Se ha producido un error al recuperar el esquema de ejecución"
 
-#, fuzzy
 msgid "An error occurred while fetching the semantic layer"
-msgstr "Se ha producido un error al recuperar el estado de la pestaña"
+msgstr "Se ha producido un error al recuperar la capa semántica"
 
-#, fuzzy
 msgid "An error occurred while fetching the semantic view structure"
-msgstr "Se ha producido un error al recuperar el estado de la pestaña"
+msgstr ""
+"Se ha producido un error al recuperar la estructura de la vista semántica"
 
 #, fuzzy, python-format
 msgid "An error occurred while fetching theme datasource values: %s"
@@ -1991,6 +1991,11 @@ msgstr "Se ha producido un error al recuperar los valores del usuario: %s"
 #, fuzzy
 msgid "An error occurred while formatting SQL"
 msgstr "Se ha producido un error al cargar el SQL"
+
+msgid ""
+"An error occurred while generating the file. Please try again, or contact"
+" your administrator if the problem persists."
+msgstr ""
 
 #, python-format
 msgid "An error occurred while importing %s: %s"
@@ -2021,9 +2026,8 @@ msgstr "Se ha producido un error al analizar la clave."
 msgid "An error occurred while pruning logs "
 msgstr "Se ha producido un error al depurar los registros "
 
-#, fuzzy
 msgid "An error occurred while refreshing the configuration schema"
-msgstr "Se ha producido un error al renderizar la visualización: %s"
+msgstr "Se ha producido un error al actualizar el esquema de configuración"
 
 msgid "An error occurred while removing query. Please contact your administrator."
 msgstr ""
@@ -2041,9 +2045,8 @@ msgstr ""
 msgid "An error occurred while rendering the visualization: %s"
 msgstr "Se ha producido un error al renderizar la visualización: %s"
 
-#, fuzzy
 msgid "An error occurred while saving the semantic view"
-msgstr "Se ha producido un error al cargar el SQL"
+msgstr "Se ha producido un error al guardar la vista semántica"
 
 msgid "An error occurred while starring this chart"
 msgstr "Se ha producido un error al destacar este gráfico"
@@ -2061,13 +2064,15 @@ msgstr ""
 msgid "An error occurred while syncing permissions for %s: %s"
 msgstr "Se ha producido un error al sincronizar los permisos para %s: %s"
 
+msgid "An error occurred while triggering the report"
+msgstr ""
+
 #, fuzzy
 msgid "An error occurred while updating the extension."
 msgstr "Se ha producido un error al actualizar el valor."
 
-#, fuzzy
 msgid "An error occurred while updating the semantic layer"
-msgstr "Se ha producido un error al actualizar el valor."
+msgstr "Se ha producido un error al actualizar la capa semántica"
 
 msgid "An error occurred while updating the value."
 msgstr "Se ha producido un error al actualizar el valor."
@@ -2079,11 +2084,19 @@ msgstr "Se ha producido un error al actualizar el valor."
 msgid "An error occurred while upserting the value."
 msgstr "Se ha producido un error al actualizar el valor."
 
+msgid "An export for this dashboard is already in progress."
+msgstr ""
+
 msgid "An unexpected error occurred"
 msgstr "Se ha producido un error inesperado"
 
 msgid "Anchor to"
 msgstr "Anclar a"
+
+msgid ""
+"Angle at which the first slice begins, in degrees. 90° starts at the top,"
+" 0°/360° at the right, 270° at the bottom, and 180° at the left."
+msgstr ""
 
 msgid "Angle at which to end progress axis"
 msgstr "Ángulo en el que terminar el eje de progreso"
@@ -2316,6 +2329,41 @@ msgstr "Abril"
 msgid "Arc"
 msgstr "Arco"
 
+msgid "Archive"
+msgstr ""
+
+#, python-format
+msgid "Archive %(name)s?"
+msgstr ""
+
+#, python-format
+msgid "Archive selected %s?"
+msgstr ""
+
+msgid "Archive selected charts?"
+msgstr ""
+
+msgid "Archive selected dashboards?"
+msgstr ""
+
+msgid "Archived"
+msgstr ""
+
+#, python-format
+msgid "Archived %s item(s)"
+msgstr ""
+
+#, python-format
+msgid "Archived %s item(s); permanently deleted %s semantic view(s)"
+msgstr ""
+
+msgid "Archived by"
+msgstr ""
+
+#, python-format
+msgid "Archived: %s"
+msgstr ""
+
 msgid "Are you sure you intend to overwrite the following values?"
 msgstr "¿Seguro que quieres sobrescribir los siguientes valores?"
 
@@ -2348,6 +2396,9 @@ msgstr "¿Seguro que quieres eliminar las reglas seleccionadas?"
 
 msgid "Are you sure you want to delete the selected layers?"
 msgstr "¿Seguro que quieres eliminar las capas seleccionadas?"
+
+msgid "Are you sure you want to delete the selected queries?"
+msgstr ""
 
 msgid "Are you sure you want to delete the selected roles?"
 msgstr "¿Seguro que quieres eliminar los roles seleccionados?"
@@ -2389,11 +2440,11 @@ msgstr ""
 "¿Está seguro de que desea eliminar el tema predeterminado del sistema? La"
 " aplicación volverá al predeterminado del archivo de configuración."
 
-#, fuzzy
 msgid ""
 "Are you sure you want to revoke this API key? This action cannot be "
 "undone."
-msgstr "¿Seguro que quieres eliminar las anotaciones seleccionadas?"
+msgstr ""
+"¿Seguro que quieres revocar esta clave API? Esta acción no se puede deshacer."
 
 msgid "Are you sure you want to save and apply changes?"
 msgstr "¿Seguro que quieres guardar y aplicar los cambios?"
@@ -2620,9 +2671,10 @@ msgstr "Exponente de la base"
 msgid "Base height"
 msgstr "Altura de la base"
 
-#, fuzzy
 msgid "Base layer map style. Accepts a MapLibre-compatible style URL."
-msgstr "Estilo del mapa de la capa base. Consulta la documentación de Mapbox: %s"
+msgstr ""
+"Estilo del mapa de la capa base. Acepta una URL de estilo compatible con "
+"MapLibre."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -2659,9 +2711,8 @@ msgstr "Básico"
 msgid "Basic conditional formatting"
 msgstr "Formato condicional básico"
 
-#, fuzzy
 msgid "Basic information about the chart"
-msgstr "Información básica"
+msgstr "Información básica sobre el gráfico"
 
 #, python-format
 msgid "Batch editing %d filters:"
@@ -2685,9 +2736,8 @@ msgstr "Número grande con línea de tendencia"
 msgid "Bins"
 msgstr "Contenedores"
 
-#, fuzzy
 msgid "Blanks"
-msgstr "BOOLEANO"
+msgstr "En blanco"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ru]
 #, fuzzy, python-format
@@ -2871,20 +2921,8 @@ msgstr "Por clave: utilizar los nombres de las filas como clave de ordenación"
 msgid "By value: use metric values as sorting key"
 msgstr "Por valor: utilizar los valores métricos como clave de ordenación"
 
-msgid "CANCEL"
-msgstr "CANCELAR"
-
 msgid "CC recipients"
 msgstr "Destinatarios CC"
-
-#, fuzzy
-msgid "COPY QUERY"
-msgstr "Copiar URL de la consulta"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: lv]
-#, fuzzy
-msgid "Copy query"
-msgstr "Copiar consulta"
 
 msgid "CREATE TABLE AS"
 msgstr "CREAR TABLA COMO"
@@ -2960,9 +2998,6 @@ msgstr ""
 " en la que la última instrucción sea un SELECT. Comprueba que tu consulta"
 " tenga un SELECT como última instrucción. A continuación, intenta "
 "ejecutar la consulta de nuevo."
-
-msgid "CUSTOM"
-msgstr "PERSONALIZADO"
 
 msgid ""
 "CVAS (create view as select) can only be run with a query with a single "
@@ -3062,6 +3097,20 @@ msgid "Cannot delete a database that has datasets attached"
 msgstr ""
 "No se puede eliminar una base de datos que tiene conjuntos de datos "
 "adjuntos"
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
+msgid ""
+"Cannot delete a database whose only remaining datasets are soft-deleted. "
+"Restore them (POST /api/v1/dataset/<uuid>/restore) and delete them "
+"permanently once a purge capability ships, or remove the underlying rows "
+"out-of-band, before deleting the database."
+msgstr ""
+"No se puede eliminar una base de datos cuyos únicos conjuntos de datos "
+"restantes están eliminados temporalmente. Restáurelos (POST "
+"/api/v1/dataset/<uuid>/restore) y elimínelos permanentemente una vez que "
+"esté disponible una función de purga, o elimine las filas subyacentes de "
+"forma externa antes de eliminar la base de datos."
 
 #, fuzzy
 msgid "Cannot delete system themes"
@@ -3259,13 +3308,11 @@ msgstr "No se permite cambiar esta fuente de datos"
 msgid "Changing this report is forbidden"
 msgstr "No se permite cambiar este informe"
 
-#, fuzzy
 msgid "Changing this semantic layer is forbidden"
-msgstr "No se permite cambiar este gráfico"
+msgstr "No se permite cambiar esta capa semántica"
 
-#, fuzzy
 msgid "Changing this semantic view is forbidden"
-msgstr "No se permite cambiar este conjunto de datos"
+msgstr "No se permite cambiar esta vista semántica"
 
 #, fuzzy
 msgid "Changing this task is forbidden"
@@ -3386,6 +3433,9 @@ msgstr "No se ha encontrado ningún gráfico"
 msgid "Chart options"
 msgstr "Opciones del gráfico"
 
+msgid "Chart orientation"
+msgstr ""
+
 msgid "Chart parameters are invalid."
 msgstr "Los parámetros del gráfico no son válidos."
 
@@ -3457,9 +3507,9 @@ msgstr "La elección de [Label] debe estar presente en [Group By]"
 msgid "Choice of [Point Radius] must be present in [Group By]"
 msgstr "La elección de [Point Radius] debe estar presente en [Group By]"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Choose a %s"
-msgstr "Elige una fuente"
+msgstr "Elige un %s"
 
 msgid "Choose a chart for displaying on the map"
 msgstr "Elige un gráfico para mostrar en el mapa"
@@ -3606,9 +3656,9 @@ msgstr "Cláusula"
 msgid "Clear"
 msgstr "Borrar"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Clear %s filter"
-msgstr "borrar todos los filtros"
+msgstr "Borrar el filtro %s"
 
 #, fuzzy
 msgid "Clear Sort"
@@ -3639,6 +3689,9 @@ msgstr "Borrar formulario"
 #, fuzzy
 msgid "Clear local theme"
 msgstr "Esquema de color lineal"
+
+msgid "Clear search"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ru]
 #, fuzzy
@@ -3722,13 +3775,11 @@ msgstr "Haz clic para ordenar de forma ascendente"
 msgid "Click to sort descending"
 msgstr "Haz clic para ordenar de forma descendente"
 
-#, fuzzy
 msgid "Client ID"
-msgstr "Anchura de la línea"
+msgstr "ID de cliente"
 
-#, fuzzy
 msgid "Client Secret"
-msgstr "Selección de columna"
+msgstr "Secreto de cliente"
 
 msgid "Close"
 msgstr "Cerrar"
@@ -3753,9 +3804,8 @@ msgstr "Radio de agrupación"
 msgid "Code"
 msgstr "Código"
 
-#, fuzzy
 msgid "Code Copied!"
-msgstr "SQL copiado"
+msgstr "¡Código copiado!"
 
 #, fuzzy
 msgid "Collapse"
@@ -3764,6 +3814,9 @@ msgstr "Contraer fila"
 #, fuzzy
 msgid "Collapse All"
 msgstr "Contraer todo"
+
+msgid "Collapse Datasource panel"
+msgstr ""
 
 msgid "Collapse all"
 msgstr "Contraer todo"
@@ -3793,6 +3846,12 @@ msgstr "Color por"
 
 msgid "Color Metric"
 msgstr "Métrica de color"
+
+msgid "Color Range End"
+msgstr ""
+
+msgid "Color Range Start"
+msgstr ""
 
 msgid "Color Scheme"
 msgstr "Esquema de color"
@@ -4093,9 +4152,9 @@ msgstr "El intervalo de confianza debe estar entre 0 y 1 (exclusivo)"
 msgid "Configuration"
 msgstr "Configuración"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Configure %s"
-msgstr "Confirmar guardado"
+msgstr "Configurar %s"
 
 msgid "Configure Advanced Time Range "
 msgstr "Configuración avanzada de rango de tiempo "
@@ -4196,9 +4255,11 @@ msgstr "La conexión ha fallado; revisa tu configuración"
 msgid "Connection failed, please check your connection settings."
 msgstr "La conexión ha fallado; revisa la configuración de tu conexión"
 
-#, fuzzy
+msgid "Connection looks good!"
+msgstr ""
+
 msgid "Contains"
-msgstr "Continuo"
+msgstr "Contiene"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -4239,9 +4300,8 @@ msgstr "Controles etiquetados "
 msgid "Copied to clipboard!"
 msgstr "Copiado al portapapeles"
 
-#, fuzzy
 msgid "Copied!"
-msgstr "SQL copiado"
+msgstr "¡Copiado!"
 
 msgid "Copy"
 msgstr "Copiar"
@@ -4275,6 +4335,14 @@ msgstr "Copiar consulta de partición al portapapeles"
 
 msgid "Copy permalink to clipboard"
 msgstr "Copiar enlace permanente al portapapeles"
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: lv]
+#, fuzzy
+msgid "Copy query"
+msgstr "Copiar consulta"
+
+msgid "Copy query URL"
+msgstr ""
 
 msgid "Copy query link to your clipboard"
 msgstr "Copiar el enlace de la consulta al portapapeles"
@@ -4331,9 +4399,15 @@ msgstr "No se pudo cargar SQL Lab"
 msgid "Could not load database driver"
 msgstr "No se ha podido cargar el controlador de la base de datos"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Could not load database driver for: %(engine)s"
-msgstr "No se ha podido cargar el controlador de la base de datos: {}"
+msgstr ""
+"No se ha podido cargar el controlador de base de datos para: %(engine)s"
+
+msgid ""
+"Could not load metadata for this configuration; showing the default form."
+" See the server logs for details."
+msgstr ""
 
 #, python-format
 msgid "Could not resolve hostname: \"%(host)s\"."
@@ -4344,18 +4418,6 @@ msgstr "No se ha podido validar al usuario en la sesión actual."
 
 msgid "Count"
 msgstr "Recuento"
-
-msgid "Count Unique Values"
-msgstr "Contar valores únicos"
-
-msgid "Count as Fraction of Columns"
-msgstr "Contar como fracción de columnas"
-
-msgid "Count as Fraction of Rows"
-msgstr "Contar como fracción de filas"
-
-msgid "Count as Fraction of Total"
-msgstr "Contar como fracción del total"
 
 msgid "Country"
 msgstr "País"
@@ -4375,9 +4437,8 @@ msgstr "Mapa del país"
 msgid "Create"
 msgstr "Crear"
 
-#, fuzzy
 msgid "Create API Key"
-msgstr "Creado por"
+msgstr "Crear clave API"
 
 #, fuzzy
 msgid "Create Tag"
@@ -4401,6 +4462,11 @@ msgstr "crear un nuevo gráfico"
 
 msgid "Create a new chart"
 msgstr "Crear un nuevo gráfico"
+
+msgid ""
+"Create a new tag and assign it to existing entities like charts or "
+"dashboards"
+msgstr ""
 
 #, -ERR:PROP-NOT-FOUND-, fuzzy
 msgid "Create and explore dataset"
@@ -4430,9 +4496,9 @@ msgstr "Creado por"
 msgid "Created by me"
 msgstr "Creado por mí"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Created by: %s"
-msgstr "Creado por"
+msgstr "Creado por: %s"
 
 msgid "Created on"
 msgstr "Creado el"
@@ -4710,17 +4776,16 @@ msgstr "Modo oscuro"
 msgid "Dashboard"
 msgstr "Panel de control"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Dashboard %(dashboard_id)s not found"
-msgstr "No se ha encontrado el gráfico %(id)s"
+msgstr "No se ha encontrado el panel de control %(dashboard_id)s"
 
 #, fuzzy
 msgid "Dashboard Filter"
 msgstr "Titulo del panel de control"
 
-#, fuzzy
 msgid "Dashboard Id"
-msgstr "panel de control"
+msgstr "ID del panel de control"
 
 #, python-format
 msgid "Dashboard [%s] just got created and chart [%s] was added to it"
@@ -4733,6 +4798,11 @@ msgstr "El panel de control no se puede copiar debido a parámetros no válidos.
 
 msgid "Dashboard cannot be favorited."
 msgstr "El panel de control no se puede marcar como favorito."
+
+msgid ""
+"Dashboard cannot be restored because its slug is now used by another "
+"active dashboard. Rename one of the dashboards and retry."
+msgstr ""
 
 msgid "Dashboard cannot be unfavorited."
 msgstr "El panel de control no se puede quitar de los favoritos."
@@ -4831,13 +4901,11 @@ msgstr "Con puntos"
 msgid "Data"
 msgstr "Datos"
 
-#, fuzzy
 msgid "Data Connections"
-msgstr "Conexiones de la base de datos"
+msgstr "Conexiones de datos"
 
-#, fuzzy
 msgid "Data Export Options"
-msgstr "Opciones del gráfico"
+msgstr "Opciones de exportación de datos"
 
 msgid "Data Table"
 msgstr "Tabla de datos"
@@ -4848,13 +4916,11 @@ msgstr "El URI de datos no está permitido."
 msgid "Data Zoom"
 msgstr "«Zoom» de datos"
 
-#, fuzzy
 msgid "Data connection"
-msgstr "Conexiones de la base de datos"
+msgstr "Conexión de datos"
 
-#, fuzzy
 msgid "Data connections"
-msgstr "Conexiones de la base de datos"
+msgstr "Conexiones de datos"
 
 msgid ""
 "Data could not be deserialized from the results backend. The storage "
@@ -4998,6 +5064,18 @@ msgstr "El conjunto de datos %(table)s ya existe"
 msgid "Dataset Name"
 msgstr "Nombre del conjunto de datos"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
+msgid ""
+"Dataset cannot be restored because another active dataset already "
+"references the same physical table (same database, catalog, schema, and "
+"table name). Delete the duplicate or rename the table before restoring."
+msgstr ""
+"El conjunto de datos no puede restaurarse porque otro conjunto de datos "
+"activo ya hace referencia a la misma tabla física (misma base de datos, "
+"catálogo, esquema y nombre de tabla). Elimine el duplicado o cambie el "
+"nombre de la tabla antes de restaurar."
+
 msgid "Dataset column delete failed."
 msgstr "La eliminación de la columna del conjunto de datos ha fallado."
 
@@ -5082,9 +5160,8 @@ msgstr ""
 "Se requiere el tipo de fuente de datos cuando se proporciona un ID de "
 "fuentes de datos"
 
-#, fuzzy
 msgid "Datasources"
-msgstr "Fuente de datos"
+msgstr "Fuentes de datos"
 
 msgid "Date Time Format"
 msgstr "Formato de fecha y hora"
@@ -5202,15 +5279,12 @@ msgstr "Esquema predeterminado"
 msgid "Default URL"
 msgstr "URL predeterminada"
 
-#, fuzzy
 msgid ""
 "Default URL to redirect to when accessing from the dataset list page. "
 "Accepts relative URLs such as"
 msgstr ""
-"URL predeterminada de redirección al acceder desde la página de la lista "
-"de conjuntos de datos.\n"
-"            Acepta URL relativas como <span style=„white-space: "
-"nowrap;”>/superset/dashboard/{id}/</span>"
+"URL predeterminada a la que redirigir al acceder desde la página de la lista"
+" de conjuntos de datos. Acepta URL relativas como"
 
 msgid "Default Value"
 msgstr "Valor predeterminado"
@@ -5260,29 +5334,6 @@ msgid ""
 msgstr ""
 "El valor predeterminado se establece automáticamente cuando se marca "
 "«Seleccionar el primer valor de filtro por defecto»"
-
-msgid ""
-"Define a function that receives the input and outputs the content for a "
-"tooltip"
-msgstr ""
-"Define una función que recibe la entrada y emite el contenido de una "
-"sugerencia"
-
-msgid "Define a function that returns a URL to navigate to when user clicks"
-msgstr ""
-"Define una función que devuelve una URL a la que navegar cuando el "
-"usuario haga clic"
-
-msgid ""
-"Define a javascript function that receives the data array used in the "
-"visualization and is expected to return a modified version of that array."
-" This can be used to alter properties of the data, filter, or enrich the "
-"array."
-msgstr ""
-"Define una función de JavaScript que recibe la matriz de datos utilizada "
-"en la visualización y que se espera que devuelva una versión modificada "
-"de esa matriz. Esto se puede utilizar para alterar las propiedades de los"
-" datos, filtrar o enriquecer la matriz."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ru]
 #, fuzzy
@@ -5360,9 +5411,8 @@ msgstr ""
 "Define si el paso debe aparecer al principio, en el medio o al final "
 "entre dos puntos de datos"
 
-#, fuzzy
 msgid "Definition"
-msgstr "desviación"
+msgstr "Definición"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, ja, sr,
 # sr_Latn]
@@ -5375,9 +5425,9 @@ msgstr[1] "Retrasado (se omitieron %s actualizaciones)"
 msgid "Delete"
 msgstr "Eliminar"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Delete %s"
-msgstr "Se ha eliminado%s"
+msgstr "Eliminar %s"
 
 #, python-format
 msgid "Delete %s?"
@@ -5402,13 +5452,11 @@ msgstr "¿Eliminar el informe?"
 msgid "Delete Role?"
 msgstr "¿Eliminar el rol?"
 
-#, fuzzy
 msgid "Delete Semantic Layer?"
-msgstr "¿Eliminar la capa?"
+msgstr "¿Eliminar la capa semántica?"
 
-#, fuzzy
 msgid "Delete Semantic View?"
-msgstr "¿Eliminar la plantilla?"
+msgstr "¿Eliminar la vista semántica?"
 
 msgid "Delete Template?"
 msgstr "¿Eliminar la plantilla?"
@@ -5440,6 +5488,16 @@ msgstr "Eliminar rol"
 msgid "Delete item"
 msgstr "Eliminar plantilla"
 
+msgid "Delete permanently"
+msgstr ""
+
+#, python-format
+msgid "Delete permanently %(name)s?"
+msgstr ""
+
+msgid "Delete query"
+msgstr ""
+
 msgid "Delete role"
 msgstr "Eliminar rol"
 
@@ -5456,9 +5514,8 @@ msgstr "Borra este contenedor y guarda para eliminar este mensaje."
 msgid "Delete user"
 msgstr "Eliminar usuario"
 
-#, fuzzy
 msgid "Delete user registration"
-msgstr "Usuario eliminado: %s"
+msgstr "Eliminar el registro de usuario"
 
 #, fuzzy
 msgid "Delete user registration?"
@@ -5535,11 +5592,11 @@ msgstr[1] "Se han eliminado%(num)d conjuntos de datos"
 
 #, python-format
 msgid "Deleted %s"
-msgstr "Se ha eliminado%s"
+msgstr "Se ha eliminado %s"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Deleted %s item(s)"
-msgstr "Eliminar plantilla"
+msgstr "Se han eliminado %s elemento(s)"
 
 #, fuzzy, python-format
 msgid "Deleted group: %s"
@@ -5699,9 +5756,9 @@ msgstr "Dimensiones"
 msgid "Dimensions"
 msgstr "Dimensiones"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Dimensions (%s)"
-msgstr "Dimensiones"
+msgstr "Dimensiones (%s)"
 
 msgid ""
 "Dimensions contain qualitative values such as names, dates, or "
@@ -5752,6 +5809,11 @@ msgstr "Nombre a mostrar"
 msgid "Display all"
 msgstr "Mostrar todo"
 
+msgid ""
+"Display charts on a map. For using this plugin, users first have to "
+"create any other chart that can then be placed on the map."
+msgstr ""
+
 msgid "Display column in the chart"
 msgstr "Mostrar columna en el gráfico"
 
@@ -5791,13 +5853,13 @@ msgstr "Mostrar nombre de columna"
 msgid "Display controls"
 msgstr "Mostrar configuración"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Display controls (%d)"
-msgstr "Mostrar configuración"
+msgstr "Controles de visualización (%d)"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Display controls (%s)"
-msgstr "Mostrar configuración"
+msgstr "Controles de visualización (%s)"
 
 #, fuzzy
 msgid "Display cumulative total at end"
@@ -5888,12 +5950,14 @@ msgstr "Dominio"
 msgid "Don't refresh"
 msgstr "Datos actualizados"
 
-#, fuzzy
 msgid "Done"
-msgstr "Ninguno"
+msgstr "Listo"
 
 msgid "Donut"
 msgstr "Dónut"
+
+msgid "Dot size metric"
+msgstr ""
 
 msgid "Dotted"
 msgstr "Con puntos"
@@ -5901,10 +5965,10 @@ msgstr "Con puntos"
 msgid "Download"
 msgstr "Descargar"
 
-msgid "Download as Image"
-msgstr "Descargar como imagen"
+msgid "Download Excel file"
+msgstr ""
 
-msgid "Download as image"
+msgid "Download as Image"
 msgstr "Descargar como imagen"
 
 msgid "Download is on the way"
@@ -6049,9 +6113,9 @@ msgstr ""
 msgid "Duplicate dataset"
 msgstr "Duplicar conjunto de datos"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Duplicate folder name: %s"
-msgstr "Duplicar rol %(name)s"
+msgstr "Nombre de carpeta duplicado: %s"
 
 msgid "Duplicate role"
 msgstr "Duplicar rol"
@@ -6118,9 +6182,8 @@ msgstr "Duración en ms (10500 => 0:00:10.5)"
 msgid "Duration in ms (66000 => 1m 6s)"
 msgstr "Duración en ms (66 000 => 1 m 6 s)"
 
-#, fuzzy
 msgid "Duration in seconds"
-msgstr "Introduce la duración en segundos"
+msgstr "Duración en segundos"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ru]
 #, fuzzy
@@ -6134,9 +6197,8 @@ msgstr "Función de agregación dinámica"
 msgid "Dynamic Section Label"
 msgstr "Direccional"
 
-#, fuzzy
 msgid "Dynamic group by"
-msgstr "NO AGRUPADO POR"
+msgstr "Agrupación dinámica"
 
 #, fuzzy
 msgid "Dynamic section description"
@@ -6167,6 +6229,10 @@ msgstr "EMAIL_REPORTS_CTA"
 msgid "ERROR"
 msgstr "ERROR"
 
+#, python-format
+msgid "ERROR: %s"
+msgstr ""
+
 msgid "Edge length"
 msgstr "Longitud del borde"
 
@@ -6182,13 +6248,13 @@ msgstr "Anchura del borde"
 msgid "Edit"
 msgstr "Editar"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Edit %s"
-msgstr "Editar usuario"
+msgstr "Editar %s"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Edit %s in modal"
-msgstr "en modal"
+msgstr "Editar %s en una ventana modal"
 
 msgid "Edit CSS template properties"
 msgstr "Editar propiedades de la plantilla CSS"
@@ -6259,6 +6325,9 @@ msgstr "Editar regla"
 
 msgid "Edit properties"
 msgstr "Editar propiedades"
+
+msgid "Edit query"
+msgstr ""
 
 #, fuzzy
 msgid "Edit report"
@@ -6337,9 +6406,8 @@ msgstr ""
 msgid "Either the username or the password is wrong."
 msgstr "El nombre de usuario o la contraseña son incorrectos."
 
-#, fuzzy
 msgid "Elapsed"
-msgstr "Volver a cargar"
+msgstr "Transcurrido"
 
 msgid "Elevation"
 msgstr "Elevación"
@@ -6353,6 +6421,9 @@ msgstr "El correo electrónico es obligatorio"
 #, fuzzy
 msgid "Email link"
 msgstr "Correo electrónico"
+
+msgid "Email recipients"
+msgstr ""
 
 msgid "Email reports active"
 msgstr "Informes de correo electrónico activos"
@@ -6425,19 +6496,9 @@ msgstr "Habilitar previsión"
 msgid "Enable graph roaming"
 msgstr "Habilitar itinerancia de gráficos"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
-msgid "Enable icon JavaScript mode"
-msgstr "Habilitar modo JavaScript para iconos"
-
 #, fuzzy
 msgid "Enable icons"
 msgstr "Columnas de la tabla"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
-msgid "Enable label JavaScript mode"
-msgstr "Habilitar modo JavaScript para etiquetas"
 
 #, fuzzy
 msgid "Enable labels"
@@ -6461,16 +6522,6 @@ msgid "Enable server side pagination of results (experimental feature)"
 msgstr ""
 "Habilitar la paginación de resultados del lado del servidor (función "
 "experimental)"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
-msgid "Enables custom icon configuration via JavaScript"
-msgstr "Habilita la configuración personalizada de iconos mediante JavaScript"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
-msgid "Enables custom label configuration via JavaScript"
-msgstr "Habilita la configuración personalizada de etiquetas mediante JavaScript"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
 #, fuzzy
@@ -6521,13 +6572,12 @@ msgstr "Fecha final excluida del rango de tiempo"
 msgid "End date must be after start date"
 msgstr "La fecha final debe ser posterior a la fecha inicial"
 
-#, fuzzy
 msgid "Ends With"
-msgstr "Anchura del borde"
+msgstr "Termina con"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Ends with (ILIKE %x)"
-msgstr "Anchura del borde"
+msgstr "Termina con (ILIKE %x)"
 
 #, python-format
 msgid "Engine \"%(engine)s\" cannot be configured through parameters."
@@ -6551,9 +6601,6 @@ msgstr "Introduce las credenciales primarias"
 
 msgid "Enter a name for this sheet"
 msgstr "Introduce un nombre para esta hoja"
-
-msgid "Enter a new title for the tab"
-msgstr "Introduce un nuevo título para la pestaña"
 
 #, fuzzy
 msgid "Enter a part of the object name"
@@ -6623,15 +6670,17 @@ msgstr "Ingrese su nombre de usuario y contraseña a continuación:"
 msgid "Entity"
 msgstr "Entidad"
 
+msgid "Entries per page"
+msgstr ""
+
 msgid "Equal Date Sizes"
 msgstr "Tamaños de fecha iguales"
 
 msgid "Equal to (=)"
 msgstr "Igual a (=)"
 
-#, fuzzy
 msgid "Equals"
-msgstr "Secuencial"
+msgstr "Igual a"
 
 msgid "Error"
 msgstr "Error"
@@ -6750,9 +6799,9 @@ msgstr "Error: %(error)s"
 msgid "Error: %(msg)s"
 msgstr "Error: %(msg)s"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Error: %s"
-msgstr "Error: %(msg)s"
+msgstr "Error: %s"
 
 msgid "Error: permalink state not found"
 msgstr "Error: no se ha encontrado el estado del enlace permanente"
@@ -6804,6 +6853,9 @@ msgstr "Informe semanal"
 msgid "Excel XML Export"
 msgstr "Informe semanal"
 
+msgid "Excel export is not configured on this server."
+msgstr ""
+
 msgid "Excel file format cannot be determined"
 msgstr "No se puede determinar el formato de archivo de Excel"
 
@@ -6831,6 +6883,9 @@ msgstr "Registro de ejecución"
 
 msgid "Existing dataset"
 msgstr "Conjunto de datos existente"
+
+msgid "Exit edit mode"
+msgstr ""
 
 msgid "Exit fullscreen"
 msgstr "Salir de pantalla completa"
@@ -6869,9 +6924,8 @@ msgstr ""
 msgid "Experimental"
 msgstr "Experimental"
 
-#, fuzzy
 msgid "Expired"
-msgstr "Explorar"
+msgstr "Caducado"
 
 msgid "Explore"
 msgstr "Explorar"
@@ -6886,21 +6940,27 @@ msgstr "Explorar el conjunto de resultados en la vista de exploración de datos"
 msgid "Export"
 msgstr "Exportar"
 
-#, fuzzy
 msgid "Export All Data"
-msgstr "Borrar todos los datos"
+msgstr "Exportar todos los datos"
 
-#, fuzzy
 msgid "Export Current View"
-msgstr "Invertir página actual"
+msgstr "Exportar la vista actual"
 
-#, fuzzy
+msgid "Export Data to Excel"
+msgstr ""
+
+msgid "Export Images to Excel"
+msgstr ""
+
 msgid "Export YAML"
-msgstr "Nombre del informe"
+msgstr "Exportar YAML"
 
 #, fuzzy
 msgid "Export as Example"
 msgstr "Exportar a Excel"
+
+msgid "Export as PDF"
+msgstr ""
 
 #, fuzzy
 msgid "Export cancelled"
@@ -6917,18 +6977,24 @@ msgstr "El informe ha fallado"
 msgid "Export failed - please try again"
 msgstr "La descarga del PDF ha fallado; actualiza e inténtalo de nuevo."
 
-#, fuzzy, python-format
+#, python-format
 msgid "Export failed: %s"
-msgstr "El informe ha fallado"
+msgstr "Error al exportar: %s"
+
+msgid "Export query"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
 #, fuzzy
 msgid "Export screenshot (jpeg)"
 msgstr "Exportar captura de pantalla (jpeg)"
 
-#, fuzzy, python-format
+msgid "Export screenshot (png)"
+msgstr ""
+
+#, python-format
 msgid "Export successful: %s"
-msgstr "Exportar a .CSV completo"
+msgstr "Exportación completada: %s"
 
 msgid "Export to .CSV"
 msgstr "Exportar a .CSV"
@@ -6965,19 +7031,35 @@ msgstr "Exportar a .CSV original"
 msgid "Export to pivoted .CSV"
 msgstr "Exportar a .CSV dinámico"
 
+#, python-format
+msgid ""
+"Exporting semantic views is not supported yet — %s semantic-view row(s) "
+"were skipped."
+msgstr ""
+
+msgid ""
+"Exporting semantic views is not supported yet. Deselect the semantic-view"
+" rows and try again."
+msgstr ""
+
 msgid "Expose database in SQL Lab"
 msgstr "Exponer base de datos en SQL Lab"
 
 msgid "Expose in SQL Lab"
 msgstr "Exponer en SQL Lab"
 
-#, fuzzy
 msgid "Expression"
-msgstr "Expresión SQL"
+msgstr "Expresión"
 
 #, fuzzy
 msgid "Expression cannot be empty"
 msgstr "no puede estar vacío"
+
+#, python-format
+msgid ""
+"Extension '%(extension_id)s' has exceeded its persistent storage quota of"
+" %(quota)d bytes."
+msgstr ""
 
 #, fuzzy
 msgid "Extensions"
@@ -7000,9 +7082,6 @@ msgstr "Controles adicionales"
 
 msgid "Extra Parameters"
 msgstr "Parámetros adicionales"
-
-msgid "Extra data for JS"
-msgstr "Datos adicionales para JS"
 
 #, python-brace-format
 msgid ""
@@ -7037,14 +7116,6 @@ msgstr "Extruido"
 msgid "FEB"
 msgstr "FEB"
 
-msgid "FIT DATA"
-msgstr "ENCAJAR DATOS"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: lv]
-#, fuzzy
-msgid "Fit data"
-msgstr "Ajustar datos"
-
 msgid "FRI"
 msgstr "VIE"
 
@@ -7068,35 +7139,49 @@ msgstr "No se han podido recuperar los resultados"
 msgid "Failed to apply theme: Invalid JSON"
 msgstr "Error al aplicar el tema: JSON no válido"
 
-#, fuzzy
 msgid "Failed to copy API key to clipboard"
-msgstr "Copiar consulta de partición al portapapeles"
+msgstr "No se ha podido copiar la clave API al portapapeles"
 
 #, fuzzy
 msgid "Failed to copy stack trace to clipboard"
 msgstr "Copiar al portapapeles"
 
-#, fuzzy
 msgid "Failed to create API key"
-msgstr "No se ha podido generar el informe"
+msgstr "No se ha podido crear la clave API"
 
 msgid "Failed to create report"
 msgstr "No se ha podido generar el informe"
 
 #, python-format
+msgid "Failed to delete %(name)s"
+msgstr ""
+
+#, python-format
+msgid "Failed to delete %(name)s: %(errMsg)s"
+msgstr ""
+
+#, python-format
+msgid "Failed to establish an SSH tunnel to the database: %(reason)s"
+msgstr ""
+
+#, python-format
 msgid "Failed to execute %(query)s"
 msgstr "No se ha podido ejecutar %(query)s"
 
-#, fuzzy
+msgid ""
+"Failed to export chart data. Please try again or contact your "
+"administrator."
+msgstr ""
+
 msgid "Failed to fetch API keys"
-msgstr "No se han podido etiquetar los elementos"
+msgstr "No se han podido recuperar las claves API"
 
 msgid "Failed to generate chart edit URL"
 msgstr "No se ha podido generar la URL de edición del gráfico"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Failed to generate download: %s"
-msgstr "No se ha podido generar la URL de edición del gráfico"
+msgstr "No se ha podido generar la descarga: %s"
 
 msgid "Failed to load chart data"
 msgstr "No se han podido cargar los datos del gráfico"
@@ -7104,9 +7189,9 @@ msgstr "No se han podido cargar los datos del gráfico"
 msgid "Failed to load chart data."
 msgstr "No se han podido cargar los datos del gráfico."
 
-#, fuzzy, python-format
+#, python-format
 msgid "Failed to load columns for %s %s"
-msgstr "No se han podido cargar los datos del gráfico"
+msgstr "No se han podido cargar las columnas de %s %s"
 
 #, fuzzy
 msgid "Failed to load top values"
@@ -7126,12 +7211,19 @@ msgstr "Error al eliminar el tema oscuro del sistema: %s"
 msgid "Failed to remove system default theme: %s"
 msgstr "No se han podido verificar las opciones de selección: %s"
 
+#, python-format
+msgid "Failed to restore %(name)s"
+msgstr ""
+
+#, python-format
+msgid "Failed to restore %(name)s: %(errMsg)s"
+msgstr ""
+
 msgid "Failed to retrieve advanced type"
 msgstr "No se ha podido recuperar el tipo avanzado"
 
-#, fuzzy
 msgid "Failed to revoke API key"
-msgstr "No se ha podido detener la consulta."
+msgstr "No se ha podido revocar la clave API"
 
 #, fuzzy
 msgid "Failed to save chart customization"
@@ -7174,6 +7266,10 @@ msgstr ""
 msgid "Failed to tag items"
 msgstr "No se han podido etiquetar los elementos"
 
+#, python-format
+msgid "Failed to trigger %(alertType)s \"%(alertName)s\": %(error)s"
+msgstr ""
+
 msgid "Failed to update report"
 msgstr "No se ha podido actualizar el informe"
 
@@ -7193,16 +7289,14 @@ msgstr ""
 "Usando CSV como alternativa; la biblioteca de exportación a Excel no está"
 " disponible."
 
-#, fuzzy
 msgid "False"
-msgstr "Es falso"
+msgstr "Falso"
 
 msgid "Favorite"
 msgstr "Favorito"
 
-#, fuzzy
 msgid "Feature Not Enabled"
-msgstr "El túnel SSH no está habilitado"
+msgstr "Función no habilitada"
 
 msgid "Featured"
 msgstr "Destacado"
@@ -7402,6 +7496,11 @@ msgstr "El nombre es obligatorio"
 msgid "Fit columns dynamically"
 msgstr "Ordenar columnas alfabéticamente"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: lv]
+#, fuzzy
+msgid "Fit data"
+msgstr "Ajustar datos"
+
 msgid ""
 "Fix the trend line to the full time range specified in case filtered "
 "results do not include the start or end dates"
@@ -7466,13 +7565,6 @@ msgstr ""
 
 msgid "For further instructions, consult the"
 msgstr "Para obtener más instrucciones, consulta el"
-
-msgid ""
-"For more information about objects are in context in the scope of this "
-"function, refer to the"
-msgstr ""
-"Para obtener más información sobre los objetos que están en contexto en "
-"el alcance de esta función, consulta el"
 
 #, fuzzy
 msgid ""
@@ -7542,6 +7634,9 @@ msgstr ""
 msgid "Forecast periods"
 msgstr "Periodos de previsión"
 
+msgid "Forecast requires at least 2 data points"
+msgstr ""
+
 msgid "Foreign key"
 msgstr "Clave foránea"
 
@@ -7599,6 +7694,9 @@ msgstr ""
 
 msgid "Formatted CSV attached in email"
 msgstr "CSV formateado adjunto en el correo electrónico"
+
+msgid "Formatted Excel attached in email"
+msgstr ""
 
 msgid "Formatted value"
 msgstr "Valor formateado"
@@ -7732,9 +7830,8 @@ msgstr "Nombre y URL de la hoja de cálculo de Google"
 msgid "Grace period"
 msgstr "Periodo de gracia"
 
-#, fuzzy
 msgid "Grain"
-msgstr "Granularidad temporal"
+msgstr "Granularidad"
 
 msgid "Graph Chart"
 msgstr "Gráfico"
@@ -7772,9 +7869,8 @@ msgstr "Tamaño de la cuadrícula"
 msgid "Grid view"
 msgstr "Tamaño de la cuadrícula"
 
-#, fuzzy
 msgid "Group"
-msgstr "Agrupar por"
+msgstr "Grupo"
 
 msgid "Group By"
 msgstr "Agrupar por"
@@ -7950,10 +8046,6 @@ msgid "ISO 8601"
 msgstr "ISO 8601"
 
 #, fuzzy
-msgid "Icon JavaScript config generator"
-msgstr "Generador de información sobre herramientas de JavaScript"
-
-#, fuzzy
 msgid "Icon URL"
 msgstr "Copiar URL"
 
@@ -7976,14 +8068,9 @@ msgid ""
 "as the currently logged on user who must have permission to run them. If "
 "Hive and hive.server2.enable.doAs is enabled, will run the queries as "
 "service account, but impersonate the currently logged on user via "
-"hive.server2.proxy.user property."
+"hive.server2.proxy.user property. If Databricks, uses OAuth2 to "
+"authenticate as the currently logged on user."
 msgstr ""
-"Si se trata de Presto o Trino, todas las consultas en SQL Lab se "
-"ejecutarán como el usuario actualmente conectado, que debe tener permiso "
-"para ejecutarlas. Si está habilitado Hive y hive.server2.enable.doAs, se "
-"ejecutarán las consultas como cuenta de servicio, pero se suplantará al "
-"usuario conectado actualmente a través de la propiedad "
-"hive.server2.proxy.user."
 
 msgid "If a metric is specified, sorting will be done based on the metric value"
 msgstr ""
@@ -8009,6 +8096,12 @@ msgstr ""
 msgid "If table already exists"
 msgstr "Si la tabla ya existe"
 
+msgid "If you delete this item, you won't be able to recover it."
+msgstr ""
+
+msgid "If you did not request this, you can ignore this email."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ru]
 #, fuzzy
 msgid "If you don't save, changes will be lost."
@@ -8029,10 +8122,10 @@ msgstr "Imagen (PNG) incrustada en el correo electrónico"
 msgid "Image download failed, please refresh and try again."
 msgstr "La descarga de la imagen ha fallado; actualiza e inténtalo de nuevo."
 
-msgid "Impersonate logged in user (Presto, Trino, Drill, Hive, and Google Sheets)"
+msgid ""
+"Impersonate logged in user (Presto, Trino, Drill, Hive, Databricks, and "
+"Google Sheets)"
 msgstr ""
-"Suplantar al usuario conectado (Presto, Trino, Drill, Hive y hojas de "
-"cálculo de Google)"
 
 msgid "Import"
 msgstr "Importar"
@@ -8085,9 +8178,8 @@ msgstr "En"
 msgid "In Progress"
 msgstr "Progreso"
 
-#, fuzzy
 msgid "In Range"
-msgstr "Intervalo de tiempo"
+msgstr "En el intervalo"
 
 msgid ""
 "In order to connect to non-public sheets you need to either provide a "
@@ -8101,9 +8193,8 @@ msgstr ""
 msgid "In this view you can preview the first 25 rows. "
 msgstr "En esta vista puede obtener una vista previa de las primeras 25 filas. "
 
-#, fuzzy
 msgid "Inactive"
-msgstr "Activo"
+msgstr "Inactivo"
 
 msgid "Include Series"
 msgstr "Incluir series"
@@ -8267,9 +8358,9 @@ msgstr "Configuración de lat./long. no válida."
 msgid "Invalid JSON metadata"
 msgstr "Metadatos JSON"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Invalid SQL: %(error)s"
-msgstr "Función NumPy no válida: %(operator)s"
+msgstr "SQL no válido: %(error)s"
 
 #, python-format
 msgid "Invalid advanced data type: %(advanced_data_type)s"
@@ -8379,9 +8470,9 @@ msgstr "Se encontró un punto espacial inválido: %(latlong)s"
 msgid "Invalid state."
 msgstr "Estado no válido."
 
-#, fuzzy, python-format
+#, python-format
 msgid "Invalid tab ids: %(tab_ids)s"
-msgstr "ID de pestaña no válidos: %s(tab_ids)"
+msgstr "ID de pestaña no válidos: %(tab_ids)s"
 
 #, fuzzy
 msgid "Invalid username or password"
@@ -8504,15 +8595,6 @@ msgstr "JUN"
 msgid "January"
 msgstr "Enero"
 
-msgid "JavaScript data interceptor"
-msgstr "Interceptor de datos de JavaScript"
-
-msgid "JavaScript onClick href"
-msgstr "href onClick de JavaScript"
-
-msgid "JavaScript tooltip generator"
-msgstr "Generador de información sobre herramientas de JavaScript"
-
 msgid "Jinja templating"
 msgstr "Plantillas Jinja"
 
@@ -8534,9 +8616,8 @@ msgstr "Continuar editando"
 msgid "Key"
 msgstr "Clave"
 
-#, fuzzy
 msgid "Key Prefix"
-msgstr "Prefijo"
+msgstr "Prefijo de la clave"
 
 msgid "Keyboard shortcuts"
 msgstr "Accesos rápidos de teclado"
@@ -8557,10 +8638,6 @@ msgstr "Etiqueta"
 
 msgid "Label Contents"
 msgstr "Contenido de la etiqueta"
-
-#, fuzzy
-msgid "Label JavaScript config generator"
-msgstr "Generador de información sobre herramientas de JavaScript"
 
 msgid "Label Line"
 msgstr "Línea de la etiqueta"
@@ -8593,6 +8670,9 @@ msgstr ""
 
 msgid "Label for your query"
 msgstr "Etiqueta para tu consulta"
+
+msgid "Label must not be empty."
+msgstr ""
 
 msgid "Label position"
 msgstr "Posición de la etiqueta"
@@ -8637,6 +8717,15 @@ msgstr "Grande"
 msgid "Last"
 msgstr "Último"
 
+msgid "Last 30 days"
+msgstr ""
+
+msgid "Last 7 days"
+msgstr ""
+
+msgid "Last 90 days"
+msgstr ""
+
 #, fuzzy
 msgid "Last Name"
 msgstr "Apellido(s)"
@@ -8649,9 +8738,8 @@ msgstr "Última actualización %s"
 msgid "Last Updated %s by %s"
 msgstr "Última actualización %s por %s"
 
-#, fuzzy
 msgid "Last Used"
-msgstr "Listar usuarios"
+msgstr "Último uso"
 
 #, python-format
 msgid "Last available value seen on %s"
@@ -8778,6 +8866,15 @@ msgstr "Tipo de leyenda"
 msgid "Legend type"
 msgstr "Tipo de leyenda"
 
+msgid "Length in cm (12345678cm => 123.46km)"
+msgstr ""
+
+msgid "Length in cm (12345cm => 123.45m)"
+msgstr ""
+
+msgid "Length in m (12345m => 12.35km)"
+msgstr ""
+
 #, fuzzy
 msgid "Less Than"
 msgstr "Menor que (<)"
@@ -8824,8 +8921,12 @@ msgstr "LÍMITE"
 msgid "Limit type"
 msgstr "Tipo de límite"
 
-msgid "Limits the number of cells that get retrieved."
-msgstr "Limita el número de celdas que se recuperan."
+msgid ""
+"Limits the number of cells that get retrieved. Not applied when non-"
+"additive metrics (e.g. ratios, COUNT_DISTINCT, AVG, percentiles) are "
+"present, since totals and subtotals are then computed via a database "
+"rollup query that must see every row to stay correct."
+msgstr ""
 
 msgid "Limits the number of rows that get displayed."
 msgstr "Limita el número de filas que se muestran."
@@ -8902,6 +9003,9 @@ msgstr "Columna de líneas"
 msgid "Lines encoding"
 msgstr "Codificación de líneas"
 
+msgid "Link Copied!"
+msgstr ""
+
 #, fuzzy
 msgid "List"
 msgstr "Último"
@@ -8913,14 +9017,8 @@ msgstr "Listar roles"
 msgid "List Roles"
 msgstr "Listar roles"
 
-msgid "List Unique Values"
-msgstr "Listar valores únicos"
-
 msgid "List Users"
 msgstr "Listar usuarios"
-
-msgid "List of extra columns made available in JavaScript functions"
-msgstr "Lista de columnas adicionales disponibles en las funciones de JavaScript"
 
 msgid "List of n+1 values for bucketing metric into n buckets."
 msgstr "Lista de valores n+1 para la métrica de agrupación en n «buckets»."
@@ -9050,6 +9148,11 @@ msgstr "Longitud de la ventana de visualización predeterminada"
 msgid "Lower Threshold"
 msgstr "Umbral inferior"
 
+msgid ""
+"Lower bound of the color scale. When both start and end are set, the "
+"legend uses this fixed range instead of the automatic data range."
+msgstr ""
+
 msgid "Lower threshold must be lower than upper threshold"
 msgstr "El umbral inferior debe ser menor que el umbral superior"
 
@@ -9149,9 +9252,8 @@ msgstr ""
 msgid "Mapbox"
 msgstr "Mapbox"
 
-#, fuzzy
 msgid "Mapbox (API key required)"
-msgstr "El correo electrónico es obligatorio"
+msgstr "Mapbox (requiere clave API)"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -9235,6 +9337,9 @@ msgstr "Radio máximo"
 msgid "Maximum Width"
 msgstr "Anchura mínima"
 
+msgid "Maximum dot size"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
 #, fuzzy
 msgid "Maximum folder nesting depth reached"
@@ -9268,9 +9373,6 @@ msgstr "Media de los valores durante el periodo especificado"
 
 msgid "Mean values"
 msgstr "Valores medios"
-
-msgid "Median"
-msgstr "Mediana"
 
 msgid ""
 "Median edge width, the thickest edge will be 4 times thicker than the "
@@ -9435,9 +9537,9 @@ msgstr ""
 msgid "Metrics"
 msgstr "Métricas"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Metrics (%s)"
-msgstr "Métricas"
+msgstr "Métricas (%s)"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -9512,6 +9614,9 @@ msgstr "Radio mínimo"
 msgid "Minimum Width"
 msgstr "Anchura mínima"
 
+msgid "Minimum dot size"
+msgstr ""
+
 msgid "Minimum must be strictly less than maximum"
 msgstr "El mínimo debe ser necesariamente menor que el máximo"
 
@@ -9551,9 +9656,9 @@ msgstr "Minuto"
 msgid "Minutes %s"
 msgstr "Minutos %s"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Missing %s"
-msgstr "Falta el conjunto de datos"
+msgstr "Falta el %s"
 
 msgid "Missing OAuth2 token"
 msgstr "Falta el token OAuth2"
@@ -9588,9 +9693,9 @@ msgstr "Modificado por"
 msgid "Modified by: %s"
 msgstr "Modificado por: %s"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Modified from \"%s\" template"
-msgstr "Cargar una plantilla CSS"
+msgstr "Modificado a partir de la plantilla \"%s\""
 
 msgid "Monday"
 msgstr "Lunes"
@@ -9715,9 +9820,8 @@ msgstr "Nombre de la columna que contiene el ID del nodo primario"
 msgid "Name of the id column"
 msgstr "Nombre de la columna de ID"
 
-#, fuzzy
 msgid "Name of the semantic layer"
-msgstr "Nombre de la columna de ID"
+msgstr "Nombre de la capa semántica"
 
 msgid "Name of the source nodes"
 msgstr "Nombre de los nodos de origen"
@@ -9764,13 +9868,12 @@ msgstr "Error de red al intentar recuperar el recurso"
 msgid "Network error."
 msgstr "Error de red."
 
-#, fuzzy
 msgid "New"
-msgstr "Ahora"
+msgstr "Nuevo"
 
-#, -ERR:PROP-NOT-FOUND-, fuzzy
+#, -ERR:PROP-NOT-FOUND-
 msgid "New Semantic Layer"
-msgstr "No hay capas de anotación"
+msgstr "Nueva capa semántica"
 
 msgid "New chart"
 msgstr "Nuevo gráfico"
@@ -9812,9 +9915,8 @@ msgstr "Todavía no hay %s"
 msgid "No Data"
 msgstr "No hay datos"
 
-#, fuzzy
 msgid "No Logs yet"
-msgstr "Todavía no hay %s"
+msgstr "Todavía no hay registros"
 
 msgid "No Results"
 msgstr "No hay resultados"
@@ -9845,15 +9947,18 @@ msgstr "Aún no hay anotaciones"
 msgid "No applied filters"
 msgstr "No se han aplicado filtros"
 
+msgid "No archived items"
+msgstr ""
+
 msgid "No available filters."
 msgstr "No hay filtros disponibles."
 
 msgid "No columns found"
 msgstr "No se han encontrado columnas"
 
-#, fuzzy, python-format
+#, python-format
 msgid "No compatible %s found"
-msgstr "No se ha encontrado ningún esquema compatible"
+msgstr "No se han encontrado %s compatibles"
 
 msgid "No compatible catalog found"
 msgstr "No se ha encontrado ningún catálogo compatible"
@@ -9871,6 +9976,9 @@ msgid "No data after filtering or data is NULL for the latest time record"
 msgstr ""
 "No se han encontrado datos después del filtro o los datos son NULOS para "
 "el último registro de tiempo"
+
+msgid "No data found"
+msgstr ""
 
 msgid "No data in file"
 msgstr "No hay datos en el archivo"
@@ -9915,9 +10023,8 @@ msgstr "No se han conservado los ajustes del formulario"
 msgid "No global filters are currently added"
 msgstr "Actualmente no se han añadido filtros globales"
 
-#, fuzzy
 msgid "No groups"
-msgstr "NO AGRUPADO POR"
+msgstr "Sin grupos"
 
 #, fuzzy
 msgid "No groups yet"
@@ -9970,13 +10077,13 @@ msgstr "Todavía no hay roles"
 msgid "No roles yet"
 msgstr "Todavía no hay roles"
 
-#, fuzzy, python-format
+#, python-format
 msgid "No rows were returned for this %s"
-msgstr "No se devolvieron filas para este conjunto de datos"
+msgstr "No se han devuelto filas para este %s"
 
-#, fuzzy, python-format
+#, python-format
 msgid "No samples were returned for this %s"
-msgstr "No se devolvieron muestras para este conjunto de datos"
+msgstr "No se han devuelto muestras para este %s"
 
 msgid "No saved expressions found"
 msgstr "No se han encontrado expresiones guardadas"
@@ -9997,9 +10104,8 @@ msgstr ""
 msgid "No table columns"
 msgstr "No hay columnas de la tabla"
 
-#, fuzzy
 msgid "No tasks yet"
-msgstr "Todavía no hay %s"
+msgstr "Todavía no hay tareas"
 
 msgid "No temporal columns found"
 msgstr "No se han encontrado columnas temporales"
@@ -10058,9 +10164,8 @@ msgstr "Normalizar nombres de columnas"
 msgid "Normalized"
 msgstr "Normalizado"
 
-#, fuzzy
 msgid "Not Contains"
-msgstr "Denunciar un contenido"
+msgstr "No contiene"
 
 #, fuzzy
 msgid "Not Equal"
@@ -10099,9 +10204,8 @@ msgstr "No está en"
 msgid "Not null"
 msgstr "No es nulo"
 
-#, fuzzy
 msgid "Not set"
-msgstr "Todavía no hay %s"
+msgstr "Sin definir"
 
 msgid "Not triggered"
 msgstr "No activado"
@@ -10235,9 +10339,8 @@ msgstr "OCT"
 msgid "OK"
 msgstr "OK"
 
-#, fuzzy
 msgid "OR"
-msgstr "o"
+msgstr "O"
 
 #. do-not-translate
 msgid "OVERWRITE"
@@ -10298,6 +10401,10 @@ msgstr "Una o más métricas están duplicadas"
 
 msgid "One or more metrics do not exist"
 msgstr "Una o más métricas no existen"
+
+#, python-format
+msgid "One or more parameters are missing: %(missing)s"
+msgstr ""
 
 msgid "One or more parameters needed to configure a database are missing."
 msgstr "Faltan uno o más parámetros necesarios para configurar una base de datos."
@@ -10434,6 +10541,11 @@ msgstr "Cadena de formato de fecha d3 opcional"
 msgid "Optional d3 number format string"
 msgstr "Cadena de formato numérico d3 opcional"
 
+msgid ""
+"Optional metric used to scale the size of each dot. Dot areas are scaled "
+"linearly between the minimum and maximum dot size."
+msgstr ""
+
 msgid "Optional name of the data column."
 msgstr "Nombre opcional de la columna de datos."
 
@@ -10471,6 +10583,11 @@ msgstr "Orientación del gráfico de barras"
 
 msgid "Orientation of filter bar"
 msgstr "Orientación de la barra de filtro"
+
+msgid ""
+"Orientation of the chart. Horizontal places the dimension on the y-axis "
+"and the metric on the x-axis."
+msgstr ""
 
 msgid "Orientation of tree"
 msgstr "Orientación del árbol"
@@ -10697,9 +10814,8 @@ msgstr "Establecer intervalo de actualización automática"
 msgid "Pending"
 msgstr "pendiente"
 
-#, fuzzy
 msgid "Per user caching"
-msgstr "Porcentaje de cambio"
+msgstr "Caché por usuario"
 
 msgid "Percent Change"
 msgstr "Porcentaje de cambio"
@@ -10951,9 +11067,8 @@ msgstr "Confirma tu contraseña"
 msgid "Please enter your username"
 msgstr "Introduce el nombre de usuario"
 
-#, fuzzy
 msgid "Please fix the following errors"
-msgstr "Tenemos las siguientes claves: %s"
+msgstr "Corrige los siguientes errores"
 
 #, fuzzy
 msgid "Please provide a valid min or max value"
@@ -10984,9 +11099,9 @@ msgstr ""
 msgid "Please select at least one role or group"
 msgstr "Elige al menos un «groupby»"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Please select both a %s and a Chart type to proceed"
-msgstr "Selecciona un conjunto de datos y un tipo de gráfico para continuar"
+msgstr "Selecciona un %s y un tipo de gráfico para continuar"
 
 #, python-format
 msgid ""
@@ -10998,6 +11113,13 @@ msgstr ""
 
 msgid "Please use 3 different metric labels"
 msgstr "Utiliza 3 etiquetas métricas diferentes"
+
+msgid ""
+"Plot each time-shifted series across its full time range instead of "
+"truncating it to the main series. Useful for comparing a partial current "
+"period (e.g. today so far) against complete prior periods (e.g. all of "
+"yesterday)."
+msgstr ""
 
 msgid "Plot the distance (like flight paths) between origin and destination."
 msgstr "Traza la distancia (como rutas de vuelo) entre el origen y el destino."
@@ -11151,9 +11273,6 @@ msgstr "Formato del eje Y primario"
 #, fuzzy
 msgid "Private"
 msgstr "Clave privada"
-
-msgid "Private Channels (Bot in channel)"
-msgstr "Canales privados (bot en el canal)"
 
 msgid "Private Key"
 msgstr "Clave privada"
@@ -11363,6 +11482,12 @@ msgstr "Proporción"
 msgid "Raw records"
 msgstr "Registros en bruto"
 
+msgid "Recently Archived"
+msgstr ""
+
+msgid "Recently archived"
+msgstr ""
+
 msgid "Recently modified"
 msgstr "Modificado recientemente"
 
@@ -11375,6 +11500,15 @@ msgstr "Los destinatarios están separados por «,» o «;»"
 #, fuzzy
 msgid "Records"
 msgstr "Registros en bruto"
+
+msgid "Recover"
+msgstr ""
+
+msgid "Recover this item"
+msgstr ""
+
+msgid "Recover this item to open it"
+msgstr ""
 
 msgid "Rectangle"
 msgstr "Rectángulo"
@@ -11408,9 +11542,8 @@ msgstr "Consulta la"
 msgid "Referenced columns not available in DataFrame."
 msgstr "Las columnas referenciadas no están disponibles en el marco de datos."
 
-#, fuzzy
 msgid "Referrer"
-msgstr "Actualizar"
+msgstr "Referrer"
 
 msgid "Refetch results"
 msgstr "Volver a obtener resultados"
@@ -11473,17 +11606,11 @@ msgid "Regular"
 msgstr "Regular"
 
 msgid ""
-"Regular filters add where clauses to queries if a user belongs to a role "
-"referenced in the filter, base filters apply filters to all queries "
-"except the roles defined in the filter, and can be used to define what "
-"users can see if no RLS filters within a filter group apply to them."
+"Regular filters add where clauses to queries if a user matches a subject "
+"referenced in the filter. Base filters apply filters to all queries "
+"except the subjects defined in the filter, and can be used to define what"
+" users can see if no RLS filters within a filter group apply to them."
 msgstr ""
-"Los filtros regulares añaden cláusulas WHERE a las consultas si un "
-"usuario pertenece a un rol al que se hace referencia en el filtro. Los "
-"filtros base aplican filtros a todas las consultas excepto a los roles "
-"definidos en el filtro y se pueden utilizar para definir lo que los "
-"usuarios pueden ver si no se les aplican filtros RLS dentro de un grupo "
-"de filtros."
 
 msgid "Relational"
 msgstr "Relacional"
@@ -11516,9 +11643,8 @@ msgstr "Eliminar"
 msgid "Remove System Dark Theme"
 msgstr "Eliminar tema oscuro del sistema"
 
-#, fuzzy
 msgid "Remove System Default Theme"
-msgstr "Actualizar los valores predeterminados"
+msgstr "Eliminar tema predeterminado del sistema"
 
 msgid "Remove cross-filter"
 msgstr "Eliminar filtro cruzado"
@@ -11527,6 +11653,9 @@ msgstr "Eliminar filtro cruzado"
 msgid "Remove customization"
 msgstr "Tipo de visualización"
 
+msgid "Remove dependency"
+msgstr ""
+
 #, fuzzy
 msgid "Remove filter"
 msgstr "Eliminar elemento"
@@ -11534,8 +11663,14 @@ msgstr "Eliminar elemento"
 msgid "Remove item"
 msgstr "Eliminar elemento"
 
+msgid "Remove notification method"
+msgstr ""
+
 msgid "Remove query from log"
 msgstr "Eliminar consulta del registro"
+
+msgid "Remove sheet"
+msgstr ""
 
 #, python-format
 msgid "Removed 1 column from the virtual dataset"
@@ -11577,6 +11712,9 @@ msgstr "No se ha podido actualizar la programación de informes."
 msgid "Report Schedule delete failed."
 msgstr "La eliminación de la programación de informes ha fallado."
 
+msgid "Report Schedule execute now failed."
+msgstr ""
+
 msgid "Report Schedule execution failed when generating a csv."
 msgstr ""
 "Se ha producido un error en la ejecución de la programación de informes "
@@ -11597,10 +11735,23 @@ msgstr ""
 "Se ha producido un error en la ejecución de la programación de informes "
 "al generar una captura de pantalla."
 
+msgid "Report Schedule execution failed when generating an Excel file."
+msgstr ""
+
 msgid "Report Schedule execution got an unexpected error."
 msgstr ""
 "Se ha producido un error inesperado en la ejecución de la programación de"
 " informes."
+
+msgid ""
+"Report Schedule execution requires a Celery backend to be configured. "
+"Please configure a Celery broker (Redis or RabbitMQ) and worker "
+"processes."
+msgstr ""
+
+#, python-format
+msgid "Report Schedule executor user %(username)s was not found."
+msgstr ""
 
 msgid "Report Schedule is still working, refusing to re-compute."
 msgstr ""
@@ -11685,6 +11836,13 @@ msgstr "Solicitar campo de datos faltante."
 msgid "Request timed out"
 msgstr "Se ha agotado el tiempo de espera de la solicitud"
 
+#, python-format
+msgid ""
+"Requested page would return %(requested_size)d bytes, exceeding the "
+"maximum allowed list payload size of %(max_size)d bytes. Reduce page_size"
+" and try again."
+msgstr ""
+
 msgid "Required"
 msgstr "Obligatorio"
 
@@ -11720,13 +11878,11 @@ msgstr "Restablecer todas las carpetas a los valores predeterminados"
 msgid "Reset columns"
 msgstr "Restablecer columnas"
 
-#, fuzzy
 msgid "Reset my password"
-msgstr "%s CONTRASEÑA"
+msgstr "Restablecer mi contraseña"
 
-#, fuzzy
 msgid "Reset password"
-msgstr "%s CONTRASEÑA"
+msgstr "Restablecer contraseña"
 
 msgid "Reset state"
 msgstr "Restablecer estado"
@@ -11795,13 +11951,11 @@ msgstr "Lat. y long. inversas"
 msgid "Reverse lat/long "
 msgstr "Lat./long. inversa "
 
-#, fuzzy
 msgid "Revoke"
-msgstr "Eliminar"
+msgstr "Revocar"
 
-#, fuzzy
 msgid "Revoke API Key"
-msgstr "Clave de grupo"
+msgstr "Revocar clave API"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, ja, sr,
 # sr_Latn]
@@ -11809,9 +11963,8 @@ msgstr "Clave de grupo"
 msgid "Revoke this API key"
 msgstr "Revocar esta clave API"
 
-#, fuzzy
 msgid "Revoked"
-msgstr "Trazado"
+msgstr "Revocado"
 
 msgid "Rich Tooltip"
 msgstr "Información sobre herramientas mejorada"
@@ -11923,6 +12076,13 @@ msgstr "Peso"
 msgid "Row limit"
 msgstr "Límite de filas"
 
+msgid "Row-Level Security"
+msgstr ""
+
+#, python-format
+msgid "Row-Level Security: %d filter(s) may restrict data based on your role."
+msgstr ""
+
 msgid "Rows"
 msgstr "Filas"
 
@@ -11951,6 +12111,9 @@ msgstr "Regla añadida"
 
 msgid "Run"
 msgstr "Ejecutar"
+
+msgid "Run a new query using the \"Update chart\" button or"
+msgstr ""
 
 msgid "Run a query to display query history"
 msgstr "Ejecutar una consulta para mostrar el historial de consultas"
@@ -12077,9 +12240,8 @@ msgstr "Los parámetros del túnel SSH no son válidos."
 msgid "SSH Tunneling is not enabled"
 msgstr "El túnel SSH no está habilitado"
 
-#, fuzzy
 msgid "SSL"
-msgstr "sql"
+msgstr "SSL"
 
 msgid "SSL Mode \"require\" will be used."
 msgstr "Se utilizará el modo SSL «requerido»."
@@ -12093,12 +12255,6 @@ msgstr "CADENA"
 
 msgid "SUN"
 msgstr "DOM"
-
-msgid "Sample Standard Deviation"
-msgstr "Desviación estándar de la muestra"
-
-msgid "Sample Variance"
-msgstr "Varianza de la muestra"
 
 msgid "Samples"
 msgstr "Muestras"
@@ -12136,9 +12292,9 @@ msgstr "Guardar (sobrescribir)"
 msgid "Save as"
 msgstr "Guardar como"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Save as %s"
-msgstr "Guardar como"
+msgstr "Guardar como %s"
 
 msgid "Save as Dataset"
 msgstr "Guardar como conjunto de datos"
@@ -12310,15 +12466,14 @@ msgstr ""
 msgid "Search"
 msgstr "Buscar"
 
-#, python-format
-msgid "Search %s records"
-msgstr "Buscar %s registros"
-
 msgid "Search / Filter"
 msgstr "Buscar / Filtrar"
 
 msgid "Search Metrics & Columns"
 msgstr "Buscar métricas y columnas"
+
+msgid "Search a channel by name, or paste a channel ID"
+msgstr ""
 
 msgid "Search all charts"
 msgstr "Buscar todos los gráficos"
@@ -12365,6 +12520,9 @@ msgstr "Buscar en filtros"
 msgid "Search metrics by key or label"
 msgstr "Buscar métricas y columnas"
 
+msgid "Search records"
+msgstr ""
+
 #, fuzzy
 msgid "Search tags"
 msgstr "Seleccionar etiquetas"
@@ -12374,6 +12532,9 @@ msgstr "Buscar visualizadores"
 
 msgid "Search..."
 msgstr "Buscar..."
+
+msgid "Searches all text fields: Name, Description, Database & Schema"
+msgstr ""
 
 msgid "Second"
 msgstr "Segundo"
@@ -12406,13 +12567,15 @@ msgstr "Seguridad adicional"
 msgid "Security"
 msgstr "Seguridad"
 
-#, fuzzy
 msgid "See "
-msgstr "series"
+msgstr "Ver "
 
 #, python-format
 msgid "See all %(tableName)s"
 msgstr "Ver todas %(tableName)s"
+
+msgid "See all dashboards"
+msgstr ""
 
 msgid "See less"
 msgstr "Ver menos"
@@ -12426,16 +12589,15 @@ msgstr "Ver detalles de la consulta"
 msgid "Select"
 msgstr "Seleccionar"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Select %s or type to search %s"
-msgstr "Selecciona el esquema o introduce el nombre para buscar esquemas"
+msgstr "Selecciona %s o escribe para buscar %s"
 
 msgid "Select ..."
 msgstr "Seleccionar …"
 
-#, fuzzy
 msgid "Select All"
-msgstr "Deseleccionar todo"
+msgstr "Seleccionar todo"
 
 #, fuzzy
 msgid "Select Database and Schema"
@@ -12455,9 +12617,9 @@ msgstr "Seleccionar etiquetas"
 msgid "Select Value"
 msgstr "Valor izquierdo"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Select a %s"
-msgstr "Seleccionar etiquetas"
+msgstr "Selecciona un %s"
 
 #, fuzzy
 msgid "Select a CSS template"
@@ -12520,13 +12682,11 @@ msgstr "Selecciona un esquema"
 msgid "Select a schema if the database supports this"
 msgstr "Selecciona un esquema si la base de datos lo admite"
 
-#, fuzzy
 msgid "Select a semantic layer"
-msgstr "Selecciona un esquema"
+msgstr "Selecciona una capa semántica"
 
-#, fuzzy
 msgid "Select a semantic layer type"
-msgstr "Seleccionar tipo de visualización"
+msgstr "Selecciona un tipo de capa semántica"
 
 msgid "Select a sheet name from the uploaded file"
 msgstr "Seleccione un nombre de hoja del archivo subido"
@@ -12552,9 +12712,8 @@ msgstr "Selecciona un tipo de visualización"
 msgid "Select aggregate options"
 msgstr "Selecciona las opciones de agregación"
 
-#, fuzzy
 msgid "Select all"
-msgstr "Deseleccionar todo"
+msgstr "Seleccionar todo"
 
 msgid "Select all data"
 msgstr "Seleccionar todos los datos"
@@ -12723,6 +12882,12 @@ msgstr ""
 msgid "Select operator"
 msgstr "Seleccionar operador"
 
+msgid "Select or type BCC recipients"
+msgstr ""
+
+msgid "Select or type CC recipients"
+msgstr ""
+
 msgid "Select or type a custom value..."
 msgstr "Selecciona o introduce un valor personalizado..."
 
@@ -12731,6 +12896,9 @@ msgstr "Selecciona o introduce el símbolo de la moneda"
 
 msgid "Select or type dataset name"
 msgstr "Selecciona o introduce el nombre del conjunto de datos"
+
+msgid "Select or type email recipients"
+msgstr ""
 
 msgid "Select page size"
 msgstr "Selecciona el tamaño de la página"
@@ -12756,9 +12924,8 @@ msgstr "Selecciona un esquema"
 msgid "Select scheme"
 msgstr "Seleccionar esquema"
 
-#, fuzzy
 msgid "Select semantic views"
-msgstr "Seleccionar esquema"
+msgstr "Selecciona las vistas semánticas"
 
 msgid ""
 "Select shape for computing values. \"FIXED\" sets all zoom levels to the "
@@ -12913,13 +13080,11 @@ msgstr "La selección de una base de datos es obligatoria"
 msgid "Selection method"
 msgstr "Selecciona el método de entrega"
 
-#, fuzzy
 msgid "Semantic"
-msgstr "Correo electrónico"
+msgstr "Semántico"
 
-#, fuzzy
 msgid "Semantic Layer"
-msgstr "Capa de anotación"
+msgstr "Capa semántica"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -12933,61 +13098,47 @@ msgstr "Vista semántica"
 msgid "Semantic Views"
 msgstr "Vistas semánticas"
 
-#, fuzzy
 msgid "Semantic layer"
-msgstr "Capa de anotación"
+msgstr "Capa semántica"
 
-#, fuzzy
 msgid "Semantic layer could not be created."
-msgstr "No se ha podido crear la capa de anotación."
+msgstr "No se ha podido crear la capa semántica."
 
-#, fuzzy
 msgid "Semantic layer could not be deleted."
-msgstr "No se han podido eliminar las capas de anotación."
+msgstr "No se ha podido eliminar la capa semántica."
 
-#, fuzzy
 msgid "Semantic layer could not be updated."
-msgstr "No se ha podido actualizar la capa de anotación."
+msgstr "No se ha podido actualizar la capa semántica."
 
-#, fuzzy
 msgid "Semantic layer created"
-msgstr "Se ha creado la plantilla de anotación"
+msgstr "Capa semántica creada"
 
-#, fuzzy
 msgid "Semantic layer does not exist"
-msgstr "El gráfico no existe"
+msgstr "La capa semántica no existe"
 
-#, fuzzy
 msgid "Semantic layer parameters are invalid."
-msgstr "Los parámetros de la capa de anotación no son válidos."
+msgstr "Los parámetros de la capa semántica no son válidos."
 
-#, fuzzy
 msgid "Semantic layer type"
-msgstr "Tipo de la capa de anotación"
+msgstr "Tipo de capa semántica"
 
-#, fuzzy
 msgid "Semantic layer updated"
-msgstr "Se ha actualizado la plantilla de anotación"
+msgstr "Capa semántica actualizada"
 
-#, fuzzy
 msgid "Semantic view could not be created."
-msgstr "No se ha podido crear el conjunto de datos."
+msgstr "No se ha podido crear la vista semántica."
 
-#, fuzzy
 msgid "Semantic view could not be deleted."
-msgstr "No se han podido eliminar las plantillas CSS."
+msgstr "No se ha podido eliminar la vista semántica."
 
-#, fuzzy
 msgid "Semantic view could not be updated."
-msgstr "No se ha podido actualizar el conjunto de datos."
+msgstr "No se ha podido actualizar la vista semántica."
 
-#, fuzzy
 msgid "Semantic view does not exist"
-msgstr "El conjunto de datos no existe"
+msgstr "La vista semántica no existe"
 
-#, fuzzy
 msgid "Semantic view parameters are invalid."
-msgstr "Los parámetros del conjunto de datos no son válidos."
+msgstr "Los parámetros de la vista semántica no son válidos."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -13003,6 +13154,9 @@ msgstr "Vistas semánticas"
 
 msgid "Send as CSV"
 msgstr "Enviar como CSV"
+
+msgid "Send as Excel"
+msgstr ""
 
 msgid "Send as PDF"
 msgstr "Enviar como PDF"
@@ -13249,6 +13403,9 @@ msgstr "Mostrar nombres de las métricas"
 msgid "Show Metric Names"
 msgstr "Mostrar nombres de las métricas"
 
+msgid "Show Null Values"
+msgstr ""
+
 msgid "Show Range Filter"
 msgstr "Mostrar el filtro de intervalo"
 
@@ -13289,6 +13446,15 @@ msgstr ""
 " manualmente si se establece; de lo contrario, mostrará los valores "
 "mínimo/máximo en los datos."
 
+msgid "Show a draggable slider to control the visible range of the Y-axis."
+msgstr ""
+
+msgid ""
+"Show a summary row of total aggregations: the selected metrics in "
+"aggregate mode, or the sum of numeric columns in raw records mode. Note "
+"that row limit does not apply to the result."
+msgstr ""
+
 msgid "Show all columns"
 msgstr "Mostrar todas las columnas"
 
@@ -13327,6 +13493,9 @@ msgstr "Mostrar columnas vacías"
 
 msgid "Show entries per page"
 msgstr "Mostrar entradas por página"
+
+msgid "Show full range for time shift"
+msgstr ""
 
 msgid ""
 "Show hierarchical relationships of data, with the value represented by "
@@ -13413,6 +13582,11 @@ msgid "Show value"
 msgstr "Mostrar valor"
 
 msgid ""
+"Showcases a metric along with a comparison of value, change, and percent "
+"change for a selected time period."
+msgstr ""
+
+msgid ""
 "Showcases a single metric front-and-center. Big number is best used to "
 "call attention to a KPI or the one thing you want your audience to focus "
 "on."
@@ -13465,9 +13639,8 @@ msgstr "Muestra una lista de todas las series disponibles en ese momento"
 msgid "Shows or hides markers for the time series"
 msgstr "Muestra u oculta marcadores para la serie temporal"
 
-#, fuzzy
 msgid "Sign in"
-msgstr "No está en"
+msgstr "Iniciar sesión"
 
 #, fuzzy
 msgid "Sign in with"
@@ -13508,6 +13681,12 @@ msgstr "Tamaño de los símbolos del borde"
 msgid "Size of marker. Also applies to forecast observations."
 msgstr "Tamaño del marcador. También se aplica a las observaciones de previsión."
 
+msgid "Size of the dot representing the largest value of the dot size metric."
+msgstr ""
+
+msgid "Size of the dot representing the smallest value of the dot size metric."
+msgstr ""
+
 msgid "Skip blank lines rather than interpreting them as Not A Number values"
 msgstr ""
 "Se omiten las líneas en blanco en lugar de interpretarlas como valores "
@@ -13528,9 +13707,8 @@ msgstr "Omitir espacios después del delimitador"
 msgid "Skipped %d system themes that cannot be deleted"
 msgstr "Se omitieron %d temas del sistema que no se pueden eliminar"
 
-#, fuzzy
 msgid "Slice Id"
-msgstr "Anchura de la línea"
+msgstr "ID del gráfico"
 
 #, fuzzy
 msgid "Slider"
@@ -13564,6 +13742,14 @@ msgstr ""
 msgid "Solid"
 msgstr "Sólido"
 
+msgid "Solid background"
+msgstr ""
+
+msgid ""
+"Some filters are inherited from physical tables referenced in this "
+"virtual dataset."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
@@ -13584,8 +13770,13 @@ msgstr ""
 "Algunos filtros obligatorios en otras pestañas tienen valores y no se "
 "borrarán"
 
-msgid "Some roles do not exist"
-msgstr "Algunos roles no existen"
+msgid "Some tables are not shown. Refine your search."
+msgstr ""
+
+msgid ""
+"Something went wrong loading the dashboard. Check the dev console for "
+"details."
+msgstr ""
 
 #, fuzzy
 msgid "Something went wrong while saving the user info"
@@ -13760,9 +13951,8 @@ msgstr "Fuente SQL"
 msgid "Source category"
 msgstr "Categoría de fuente"
 
-#, fuzzy
 msgid "Source location"
-msgstr "Categoría de fuente"
+msgstr "Ubicación de origen"
 
 msgid "Sparkline"
 msgstr "Minigráfica"
@@ -13872,13 +14062,11 @@ msgstr ""
 msgid "Started"
 msgstr "Iniciado"
 
-#, fuzzy
 msgid "Starts With"
-msgstr "Anchura del gráfico"
+msgstr "Empieza con"
 
-#, fuzzy
 msgid "Starts with (ILIKE x%)"
-msgstr "Anchura del gráfico"
+msgstr "Empieza con (ILIKE x%)"
 
 msgid "State"
 msgstr "Estado"
@@ -13930,6 +14118,12 @@ msgstr "Detener ejecución (Ctrl + x)"
 
 msgid "Stopped an unsafe database connection"
 msgstr "Se ha detenido una conexión de base de datos insegura"
+
+#, python-format
+msgid ""
+"Storage key exceeds the maximum allowed length of %(max_length)d "
+"characters."
+msgstr ""
 
 msgid "Stream"
 msgstr "Transmitir"
@@ -13990,6 +14184,9 @@ msgstr "Subdominio"
 msgid "Subject"
 msgstr "asunto del correo"
 
+msgid "Subject list"
+msgstr ""
+
 #, fuzzy
 msgid "Subject type"
 msgstr "Tipo de paso"
@@ -14018,9 +14215,12 @@ msgstr "Subtotal"
 msgid "Success"
 msgstr "Realizado correctamente"
 
-#, fuzzy, python-format
+msgid "Success message"
+msgstr ""
+
+#, python-format
 msgid "Successfully changed %s!"
-msgstr "El conjunto de datos se ha cambiado correctamente"
+msgstr "¡Se ha cambiado el %s correctamente!"
 
 msgid "Suffix"
 msgstr "Sufijo"
@@ -14030,15 +14230,6 @@ msgstr "Sufijo a aplicar después de la visualización del porcentaje"
 
 msgid "Sum"
 msgstr "Suma"
-
-msgid "Sum as Fraction of Columns"
-msgstr "Suma como fracción de columnas"
-
-msgid "Sum as Fraction of Rows"
-msgstr "Suma como fracción de filas"
-
-msgid "Sum as Fraction of Total"
-msgstr "Suma como fracción del total"
 
 msgid "Sum of values over specified period"
 msgstr "Suma de los valores durante el periodo especificado"
@@ -14077,12 +14268,15 @@ msgstr "Superset ha encontrado un error inesperado."
 msgid "Supported databases"
 msgstr "Bases de datos compatibles"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Swap %s"
-msgstr "Intercambiar conjunto de datos"
+msgstr "Intercambiar %s"
 
 msgid "Swap rows and columns"
 msgstr "Intercambiar filas y columnas"
+
+msgid "Sweep angle"
+msgstr ""
 
 msgid ""
 "Swiss army knife for visualizing data. Choose between step, line, "
@@ -14159,6 +14353,13 @@ msgstr "TEMPORAL_RANGE"
 
 msgid "THU"
 msgstr "JUE"
+
+msgid "TTL must be a positive integer."
+msgstr ""
+
+#, python-format
+msgid "TTL must not exceed %(max_ttl)d seconds."
+msgstr ""
 
 msgid "TUE"
 msgstr "MAR"
@@ -14257,6 +14458,9 @@ msgstr "No se ha podido actualizar la etiqueta."
 msgid "Tag created"
 msgstr "Se ha creado la etiqueta"
 
+msgid "Tag description"
+msgstr ""
+
 msgid "Tag name"
 msgstr "Nombre de la etiqueta"
 
@@ -14295,9 +14499,9 @@ msgstr "Valor de destino"
 msgid "Task"
 msgstr "etiquetas"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Task cancelled: %s"
-msgstr "El informe ha fallado"
+msgstr "Tarea cancelada: %s"
 
 #, fuzzy
 msgid "Task could not be aborted."
@@ -14398,15 +14602,17 @@ msgstr "Alineación del texto"
 msgid "Text embedded in email"
 msgstr "Texto incrustado en el correo electrónico"
 
+#, python-format
+msgid "The %(key)s in metadata_cache_timeout must be a non-negative integer."
+msgstr ""
+
 #, fuzzy, python-format
 msgid "The %s"
 msgstr "Recuperado %s"
 
-#, fuzzy, python-format
+#, python-format
 msgid "The %s linked to this chart may have been deleted."
-msgstr ""
-"Es posible que se haya eliminado el conjunto de datos vinculado a este "
-"gráfico."
+msgstr "Es posible que se haya eliminado el %s vinculado a este gráfico."
 
 #, python-format
 msgid "The API response from %s does not match the IDatabaseTable interface."
@@ -14428,6 +14634,13 @@ msgstr ""
 "El CTAS (crear tabla como selección) no tiene una instrucción SELECT al "
 "final. Comprueba que tu consulta tenga un SELECT como última instrucción."
 " A continuación, intenta ejecutar la consulta de nuevo."
+
+#, python-format
+msgid ""
+"The Custom SQL metric \"%(metric)s\" is not an aggregate and can't be "
+"combined with a GROUP BY. Wrap it in an aggregate function, e.g. "
+"%(example)s."
+msgstr ""
 
 msgid ""
 "The GeoJsonLayer takes in GeoJSON formatted data and renders it as "
@@ -14459,6 +14672,9 @@ msgstr ""
 "GLOBAL_TASK_FRAMEWORK=True en las opciones de funciones para usar @task. "
 "Consulte https://superset.apache.org/docs/configuration/async-queries-"
 "celery para detalles de configuración."
+
+msgid "The SQL query mutator removed all executable statements from this query."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 #, fuzzy
@@ -14518,6 +14734,16 @@ msgstr ""
 "nodo está asociado con más de una categoría, solo se utilizará la "
 "primera."
 
+msgid ""
+"The chart data is too large to download. Please try reducing the date "
+"range, limiting rows, or using fewer columns."
+msgstr ""
+
+msgid "The chart is still loading. Please wait a moment and try again."
+msgstr ""
+"El gráfico todavía se está cargando. Por favor, espere un momento e "
+"intente de nuevo."
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
@@ -14529,10 +14755,8 @@ msgstr ""
 "El gráfico al que apunta este informe fue eliminado. Restaure el gráfico "
 "o actualice el informe para que apunte a un gráfico activo."
 
-msgid "The chart is still loading. Please wait a moment and try again."
+msgid "The chat failed to load."
 msgstr ""
-"El gráfico todavía se está cargando. Por favor, espere un momento e "
-"intente de nuevo."
 
 msgid ""
 "The classic. Great for showing how much of a company each investor gets, "
@@ -14631,6 +14855,9 @@ msgid ""
 msgstr ""
 "El panel al que apunta este informe fue eliminado. Restaure el panel o "
 "actualice el informe para que apunte a un panel activo."
+
+msgid "The dashboard you are looking for may have been deleted or moved."
+msgstr ""
 
 msgid "The data source seems to have been deleted"
 msgstr "Parece que se ha eliminado la fuente de datos"
@@ -14759,9 +14986,9 @@ msgstr ""
 msgid "The exponent to compute all sizes from. \"EXP\" only"
 msgstr "El exponente a partir del que calcular todos los tamaños. Solo «EXP»."
 
-#, fuzzy, python-format
+#, python-format
 msgid "The extension %(id)s could not be loaded."
-msgstr "La extensión del archivo no está permitida."
+msgstr "No se ha podido cargar la extensión %(id)s."
 
 msgid ""
 "The extent of the map on application start. FIT DATA automatically sets "
@@ -14777,6 +15004,19 @@ msgstr ""
 #, fuzzy
 msgid "The feature property to use for point labels"
 msgstr "La propiedad de elemento a usar para las etiquetas de puntos"
+
+msgid "The following charts could not be exported:"
+msgstr ""
+
+msgid ""
+"The following charts were omitted because an error occurred while "
+"exporting them:"
+msgstr ""
+
+msgid ""
+"The following charts were omitted because they have no saved query "
+"context. To include them, open each chart in Explore and re-save."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -14909,6 +15149,11 @@ msgstr ""
 
 msgid "The maximum value of metrics. It is an optional configuration"
 msgstr "El valor máximo de las métricas. Se trata de una configuración opcional."
+
+msgid ""
+"The metadata_cache_timeout must be a mapping from string keys to non-"
+"negative integer values."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -15152,6 +15397,9 @@ msgstr ""
 msgid "The query contains one or more malformed template parameters."
 msgstr "La consulta contiene uno o más parámetros de plantilla mal formados."
 
+msgid "The query context datasource does not match the chart datasource"
+msgstr ""
+
 msgid "The query couldn't be loaded"
 msgstr "No se ha podido cargar la consulta"
 
@@ -15206,6 +15454,10 @@ msgstr ""
 "El radio de las entidades de punto, en las unidades especificadas a "
 "continuación. El tamaño final renderizado es este valor multiplicado por "
 "la escala del radio de punto."
+
+#, python-format
+msgid "The remaining %s will be moved to Recently Archived."
+msgstr ""
 
 msgid "The report has been created"
 msgstr "El informe se ha creado"
@@ -15612,6 +15864,9 @@ msgstr "Se ha producido un error al recuperar el estado de favorito: %s"
 msgid "There was an error fetching the filtered charts and dashboards:"
 msgstr "Se ha producido un error al recuperar los gráficos y paneles filtrados:"
 
+msgid "There was an error generating the permalink."
+msgstr ""
+
 #, fuzzy
 msgid "There was an error loading groups."
 msgstr "Se ha producido un error al cargar las tablas"
@@ -15672,9 +15927,29 @@ msgstr "Se ha producido un error al recuperar el conjunto de datos"
 msgid "There was an error with your request"
 msgstr "Ha habido un error al procesar tu solicitud"
 
-#, fuzzy, python-format
+#, python-format
+msgid "There was an issue archiving %s: %s"
+msgstr ""
+
+#, python-format
+msgid "There was an issue archiving the selected %s"
+msgstr ""
+
+#, python-format
+msgid "There was an issue archiving the selected charts: %s"
+msgstr ""
+
+#, python-format
+msgid "There was an issue archiving the selected dashboards: %s"
+msgstr ""
+
+#, python-format
+msgid "There was an issue archiving: %s"
+msgstr ""
+
+#, python-format
 msgid "There was an issue cancelling the task: %s"
-msgstr "Ha habido un problema al eliminar %s: %s"
+msgstr "Ha habido un problema al cancelar la tarea: %s"
 
 #, python-format
 msgid "There was an issue deleting %s"
@@ -15692,9 +15967,9 @@ msgstr "Hubo un problema eliminando las reglas: %s"
 msgid "There was an issue deleting rules: %s"
 msgstr "Hubo un problema eliminando las reglas: %s"
 
-#, fuzzy, python-format
+#, python-format
 msgid "There was an issue deleting the selected %s"
-msgstr "Ha habido un problema al eliminar el %s seleccionado: %s"
+msgstr "Ha habido un problema al eliminar los %s seleccionados"
 
 #, python-format
 msgid "There was an issue deleting the selected %s: %s"
@@ -15708,12 +15983,17 @@ msgstr "Ha habido un problema al eliminar las anotaciones seleccionadas: %s"
 msgid "There was an issue deleting the selected charts: %s"
 msgstr "Ha habido un problema al eliminar los gráficos seleccionados: %s"
 
-msgid "There was an issue deleting the selected dashboards: "
-msgstr "Ha habido un problema al eliminar los paneles seleccionados: "
+#, python-format
+msgid "There was an issue deleting the selected dashboards: %s"
+msgstr ""
 
 #, python-format
 msgid "There was an issue deleting the selected layers: %s"
 msgstr "Ha habido un problema al eliminar las capas seleccionadas: %s"
+
+#, python-format
+msgid "There was an issue deleting the selected queries: %s"
+msgstr ""
 
 #, python-format
 msgid "There was an issue deleting the selected templates: %s"
@@ -15727,40 +16007,40 @@ msgstr "Ha habido un problema al eliminar las plantillas seleccionadas: %s"
 msgid "There was an issue deleting: %s"
 msgstr "Ha habido un problema al eliminar: %s"
 
-#, fuzzy, python-format
+#, python-format
 msgid "There was an issue duplicating the %s."
-msgstr "Ha habido un problema al duplicar el conjunto de datos."
+msgstr "Ha habido un problema al duplicar el %s."
 
 #, fuzzy, python-format
 msgid "There was an issue duplicating the selected %s: %s"
 msgstr "Ha habido un problema al eliminar el %s seleccionado: %s"
 
-#, fuzzy, python-format
+#, python-format
 msgid "There was an issue exporting the %s"
-msgstr "Ha habido un problema al duplicar el conjunto de datos."
+msgstr "Ha habido un problema al exportar el %s"
 
 #, fuzzy, python-format
 msgid "There was an issue exporting the selected %s"
 msgstr "Ha habido un problema al eliminar las plantillas seleccionadas: %s"
 
-#, fuzzy
 msgid "There was an issue exporting the selected charts"
-msgstr "Ha habido un problema al eliminar los gráficos seleccionados: %s"
+msgstr "Ha habido un problema al exportar los gráficos seleccionados"
 
 #, fuzzy
 msgid "There was an issue exporting the selected dashboards"
 msgstr "Ha habido un problema al eliminar los paneles seleccionados: "
 
-#, fuzzy
+msgid "There was an issue exporting the selected queries"
+msgstr ""
+
 msgid "There was an issue exporting the selected themes"
-msgstr "Ha habido un problema al eliminar las plantillas seleccionadas: %s"
+msgstr "Ha habido un problema al exportar los temas seleccionados"
 
 msgid "There was an issue favoriting this dashboard."
 msgstr "Ha habido un problema al marcar como favorito este panel de control."
 
-#, fuzzy
 msgid "There was an issue fetching reports."
-msgstr "Ha habido un problema al recuperar tu gráfico: %s "
+msgstr "Ha habido un problema al recuperar los informes."
 
 msgid "There was an issue fetching the favorite status of this dashboard."
 msgstr ""
@@ -15791,8 +16071,32 @@ msgstr "Ha habido un problema al previsualizar la consulta seleccionada %s"
 msgid "There was an issue previewing the selected query. %s"
 msgstr "Ha habido un problema al previsualizar la consulta seleccionada. %s"
 
+#, python-format
+msgid ""
+"These %(type)s will be moved to Recently Archived. You can recover them "
+"there within %(days)s days."
+msgstr ""
+
+#, python-format
+msgid ""
+"These %(type)s will be moved to Recently Archived. You can recover them "
+"there."
+msgstr ""
+
 msgid "These are the datasets this filter will be applied to."
 msgstr "Estos son los conjuntos de datos a los que se aplicará este filtro."
+
+#, python-format
+msgid ""
+"This %(type)s will be moved to Recently Archived. You can recover it "
+"there within %(days)s days."
+msgstr ""
+
+#, python-format
+msgid ""
+"This %(type)s will be moved to Recently Archived. You can recover it "
+"there."
+msgstr ""
 
 msgid ""
 "This JSON object is generated dynamically when clicking the save or "
@@ -15871,9 +16175,9 @@ msgstr ""
 "Este tipo de gráfico no es compatible cuando se utiliza una consulta no "
 "guardada como fuente del gráfico. "
 
-#, fuzzy, python-format
+#, python-format
 msgid "This column might be incompatible with current %s"
-msgstr "Esta columna puede ser incompatible con el conjunto de datos actual"
+msgstr "Puede que esta columna sea incompatible con el %s actual"
 
 msgid "This column might be incompatible with current dataset"
 msgstr "Esta columna puede ser incompatible con el conjunto de datos actual"
@@ -15917,6 +16221,9 @@ msgstr ""
 "Esto controla si el campo de granularidad temporal de la vista actual\n"
 "                  debe pasarse al gráfico que contiene los datos de "
 "anotación."
+
+msgid "This dashboard does not exist"
+msgstr ""
 
 msgid "This dashboard is managed externally, and can't be edited in Superset"
 msgstr ""
@@ -16010,6 +16317,10 @@ msgid ""
 "one."
 msgstr "Este correo electrónico ya está asociado con una cuenta."
 
+#, python-format
+msgid "This export was requested on %(when)s UTC."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ru]
 #, fuzzy
 msgid "This feature is experimental and may change or have limitations"
@@ -16034,9 +16345,9 @@ msgstr ""
 msgid "This filter already exist on the report"
 msgstr "La lista de valores del filtro no puede estar vacía"
 
-#, fuzzy, python-format
+#, python-format
 msgid "This filter might be incompatible with current %s"
-msgstr "Puede que este filtro sea incompatible con el conjunto de datos actual"
+msgstr "Puede que este filtro sea incompatible con el %s actual"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
 #, fuzzy
@@ -16052,11 +16363,6 @@ msgstr "Esta carpeta solo acepta columnas"
 #, fuzzy
 msgid "This folder only supports metrics"
 msgstr "Esta carpeta solo acepta métricas"
-
-msgid "This functionality is disabled in your environment for security reasons."
-msgstr ""
-"Esta funcionalidad está deshabilitada en tu entorno por razones de "
-"seguridad."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
 #, fuzzy
@@ -16135,6 +16441,10 @@ msgstr ""
 msgid "This link cannot be followed because its address is unsafe."
 msgstr "Este enlace no puede seguirse porque su dirección no es segura."
 
+#, python-format
+msgid "This link expires in %(duration)s (%(when)s UTC)."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
@@ -16163,9 +16473,9 @@ msgstr ""
 msgid "This may be triggered by:"
 msgstr "La causa de esto puede haber sido:"
 
-#, fuzzy, python-format
+#, python-format
 msgid "This metric might be incompatible with current %s"
-msgstr "Puede que esta métrica sea incompatible con el conjunto de datos actual"
+msgstr "Puede que esta métrica sea incompatible con el %s actual"
 
 #, fuzzy
 msgid "This name is already taken. Please choose another one."
@@ -16321,10 +16631,8 @@ msgstr "Formato de hora/fecha"
 msgid "Time Grain"
 msgstr "Granularidad temporal"
 
-msgid "Time Grain must be specified when using Time Shift."
+msgid "Time Grain must be specified when using Time Comparison."
 msgstr ""
-"Se debe especificar granularidad temporal al utilizar el cambio de "
-"hora/fecha."
 
 msgid "Time Granularity"
 msgstr "Granularidad temporal"
@@ -16616,9 +16924,11 @@ msgstr "Total"
 msgid "Total (%(aggfunc)s)"
 msgstr "Total (%(aggfunc)s)"
 
-#, python-format
-msgid "Total (%(aggregatorName)s)"
-msgstr "Total (%(aggregatorName)s)"
+msgid ""
+"Total angle covered by the chart, in degrees. 360° draws a full circle "
+"and 180° draws a half donut. Partial arcs are automatically re-centered "
+"and scaled to make use of the available space."
+msgstr ""
 
 #, fuzzy
 msgid "Total color"
@@ -16643,6 +16953,9 @@ msgstr "Transformable"
 
 msgid "Transparent"
 msgstr "Transparente"
+
+msgid "Transparent background"
+msgstr ""
 
 msgid "Transpose pivot"
 msgstr "Transponer pivote"
@@ -16671,9 +16984,14 @@ msgstr "Triángulo"
 msgid "Trigger Alert If..."
 msgstr "Activar alerta si..."
 
-#, fuzzy
+msgid "Trigger now"
+msgstr ""
+
 msgid "True"
-msgstr "MAR"
+msgstr "Verdadero"
+
+msgid "Truncate Axis"
+msgstr ""
 
 msgid "Truncate Cells"
 msgstr "Truncar celdas"
@@ -16699,6 +17017,11 @@ msgstr "Truncar eje Y. Se puede anular especificando un límite mínimo o máxim
 
 msgid "Truncate long cells to the \"min width\" set above"
 msgstr "Truncar las celdas largas a la «anchura mínima» establecida anteriormente"
+
+msgid ""
+"Truncate the metric axis. Can be overridden by specifying a min or max "
+"bound."
+msgstr ""
 
 msgid "Truncates the specified date to the accuracy specified by the date unit."
 msgstr ""
@@ -16800,6 +17123,9 @@ msgstr "«Slug» de la URL"
 msgid "URL parameters"
 msgstr "Parámetros de la URL"
 
+msgid "UUID to track the execution status"
+msgstr ""
+
 msgid "Unable to calculate such a date delta"
 msgstr "No se puede calcular la fecha delta en cuestión"
 
@@ -16823,17 +17149,14 @@ msgstr ""
 "estén configurados: «bigquery.readsessions.create», "
 "«bigquery.readsessions.getData»."
 
-#, fuzzy
 msgid ""
 "Unable to connect. Verify that the following roles are set on the service"
 " account: \"Cloud Datastore Viewer\", \"Cloud Datastore User\", \"Cloud "
 "Datastore Creator\""
 msgstr ""
-"No se ha podido conectar. Comprueba si los siguientes roles están "
-"configurados en la cuenta de servicio: «BigQuery Data Viewer», «BigQuery "
-"Metadata Viewer», «BigQuery Job User»; y que los siguientes permisos "
-"estén configurados: «bigquery.readsessions.create», "
-"«bigquery.readsessions.getData»."
+"No se ha podido conectar. Comprueba que los siguientes roles estén "
+"configurados en la cuenta de servicio: «Cloud Datastore Viewer», «Cloud "
+"Datastore User», «Cloud Datastore Creator»"
 
 msgid "Unable to create chart without a query id."
 msgstr "No se puede crear un gráfico sin un ID de consulta."
@@ -16870,6 +17193,10 @@ msgstr "No se ha podido encontrar el festivo en cuestión: [%(holiday)s]"
 msgid "Unable to generate download payload"
 msgstr "No se ha podido cargar el panel de control"
 
+#, python-format
+msgid "Unable to generate forecast: %(error)s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ru]
 #, fuzzy
 msgid ""
@@ -16879,6 +17206,12 @@ msgstr ""
 "No se puede identificar la columna temporal para la comparación de rangos"
 " de fechas. Asegúrese de que su conjunto de datos tenga una columna de "
 "tiempo correctamente configurada."
+
+#, python-format
+msgid ""
+"Unable to interpret the time offset: %(offset)s. Use a relative time such"
+" as \"1 month ago\"."
+msgstr ""
 
 msgid ""
 "Unable to load columns for the selected table. Please select a different "
@@ -17144,6 +17477,11 @@ msgstr "Es necesario subir un archivo"
 msgid "Upper Threshold"
 msgstr "Umbral superior"
 
+msgid ""
+"Upper bound of the color scale. When both start and end are set, the "
+"legend uses this fixed range instead of the automatic data range."
+msgstr ""
+
 msgid "Upper threshold must be greater than lower threshold"
 msgstr "El umbral superior debe ser mayor que el umbral inferior"
 
@@ -17360,9 +17698,8 @@ msgstr "Valor"
 msgid "Value Aggregation"
 msgstr "Agregación"
 
-#, fuzzy
 msgid "Value Columns"
-msgstr "Columnas de la tabla"
+msgstr "Columnas de valores"
 
 msgid "Value Domain"
 msgstr "Dominio del valor"
@@ -17382,6 +17719,10 @@ msgstr "El valor no puede exceder %s"
 
 msgid "Value difference between the time periods"
 msgstr "Diferencia de valor entre los periodos de tiempo"
+
+#, python-format
+msgid "Value exceeds the maximum allowed size of %(max_size)d bytes."
+msgstr ""
 
 msgid "Value format"
 msgstr "Formato del valor"
@@ -17439,6 +17780,10 @@ msgstr "Vertical (izquierda)"
 
 msgid "View"
 msgstr "Ver"
+
+#, python-format
+msgid "View %(type)s"
+msgstr ""
 
 msgid "View All »"
 msgstr "Ver todo »"
@@ -17681,9 +18026,8 @@ msgstr "No se ha podido comprobar su consulta"
 msgid "Waterfall Chart"
 msgstr "Gráfico de cascada"
 
-#, fuzzy
 msgid "We are unable to connect to your database."
-msgstr "No se ha podido conectar a la base de datos «%(database)s»."
+msgstr "No se ha podido conectar a tu base de datos."
 
 #, fuzzy
 msgid "We are working on your query"
@@ -17858,6 +18202,12 @@ msgstr ""
 " filtro a la columna principal de fecha y hora."
 
 msgid ""
+"When typing or pasting filter values, commas will separate values into "
+"multiple entries. To include a comma within a value, wrap it in double "
+"quotes: \"San Francisco, CA\""
+msgstr ""
+
+msgid ""
 "When unchecked, colors from the selected color scheme will be used for "
 "time shifted series"
 msgstr ""
@@ -17943,6 +18293,9 @@ msgstr "Si se debe mostrar una leyenda para el gráfico"
 
 msgid "Whether to display bubbles on top of countries"
 msgstr "Si se deben mostrar burbujas encima de los países"
+
+msgid "Whether to display entries with null values in the hierarchy"
+msgstr ""
 
 msgid "Whether to display in the chart"
 msgstr "Si se debe mostrar en el gráfico"
@@ -18076,10 +18429,10 @@ msgstr ""
 "Si se deben ordenar los resultados por la métrica seleccionada en orden "
 "descendente."
 
-msgid "Whether to sort tooltip by the selected metric in descending order."
+msgid ""
+"Whether to sort tooltip by the selected metric in descending order. On "
+"stacked charts, values are shown in ascending order."
 msgstr ""
-"Si se debe ordenar la información sobre herramientas por la métrica "
-"seleccionada en orden descendente."
 
 msgid "Whether to truncate metrics"
 msgstr "Si se deben truncar las métricas"
@@ -18241,6 +18594,9 @@ msgstr "Eje Y"
 
 msgid "Y-axis bounds"
 msgstr "Límites del eje Y"
+
+msgid "Y-axis range slider"
+msgstr ""
 
 msgid "Y-scale interval"
 msgstr "Intervalo de escala Y"
@@ -18443,9 +18799,8 @@ msgstr "No tienes acceso a este conjunto de datos."
 msgid "You don't have access to this embedded dashboard config."
 msgstr "No tienes acceso a la configuración de este panel de control incrustado."
 
-#, fuzzy
 msgid "You don't have access to this semantic view."
-msgstr "No tienes acceso a este conjunto de datos."
+msgstr "No tienes acceso a esta vista semántica."
 
 #, fuzzy
 msgid "You don't have permission to copy to clipboard"
@@ -18485,9 +18840,9 @@ msgstr "No tienes los derechos para crear un panel de control"
 msgid "You don't have the rights to export data"
 msgstr "No tienes los derechos para crear un panel de control"
 
-#, fuzzy, python-format
+#, python-format
 msgid "You have been removed from task: %s"
-msgstr "Has eliminado este filtro."
+msgstr "Se te ha eliminado de la tarea: %s"
 
 msgid "You have removed this filter."
 msgstr "Has eliminado este filtro."
@@ -18516,6 +18871,31 @@ msgid ""
 msgstr ""
 "Debes ser editor de %s para poder editar. Ponte en contacto con un editor"
 " de %s para solicitar modificaciones o acceso de edición."
+
+msgid ""
+"You must be a chart editor in order to delete. Please reach out to a "
+"chart editor to request modifications or edit access."
+msgstr ""
+
+msgid ""
+"You must be a chart editor in order to edit. Please reach out to a chart "
+"editor to request modifications or edit access."
+msgstr ""
+
+msgid ""
+"You must be a dashboard editor in order to delete. Please reach out to a "
+"dashboard editor to request modifications or edit access."
+msgstr ""
+
+msgid ""
+"You must be a dashboard editor in order to edit. Please reach out to a "
+"dashboard editor to request modifications or edit access."
+msgstr ""
+
+msgid ""
+"You must be a dataset editor in order to delete. Please reach out to a "
+"dataset editor to request modifications or edit access."
+msgstr ""
 
 msgid ""
 "You must be a dataset editor in order to edit. Please reach out to a "
@@ -18591,13 +18971,35 @@ msgstr "Tu gráfico no está actualizado"
 msgid "Your chart is ready to go!"
 msgstr "Tu gráfico está listo"
 
+#, python-format
+msgid "Your dashboard export could not be completed: %(title)s"
+msgstr ""
+
+#, python-format
+msgid "Your dashboard export is ready: %(title)s"
+msgstr ""
+
 msgid "Your dashboard is near the size limit."
 msgstr "Tu panel de control casi ha alcanzado el límite de tamaño."
 
-msgid "Your dashboard is too large. Please reduce its size before saving it."
+#, python-format
+msgid ""
+"Your dashboard is too large to save: the serialized layout length is %s "
+"but the limit is %s. Reduce the dashboard size (for example, split it "
+"into multiple dashboards) or raise the "
+"SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting."
 msgstr ""
-"Tu panel de control es demasiado grande. Reduce su tamaño antes de "
-"guardarlo."
+
+msgid "Your export is being prepared. You'll receive an email when it's ready."
+msgstr ""
+
+#, python-format
+msgid "Your export of \"%(title)s\" could not be completed."
+msgstr ""
+
+#, python-format
+msgid "Your export of \"%(title)s\" is ready."
+msgstr ""
 
 msgid "Your query could not be saved"
 msgstr "Tu consulta no se ha podido guardar"
@@ -18636,9 +19038,8 @@ msgstr "Su sesión ha finalizado. Por favor, inicie sesión de nuevo."
 msgid "Your user information"
 msgstr "Información general"
 
-#, fuzzy
 msgid "Z-A"
-msgstr "clave z-a"
+msgstr "Z-A"
 
 msgid "ZIP file contains multiple file types"
 msgstr "El archivo ZIP contiene varios tipos de archivos"
@@ -18932,20 +19333,17 @@ msgstr "panel de control"
 msgid "dashboards"
 msgstr "Paneles de control"
 
-#, fuzzy
 msgid "data connection"
-msgstr "Conexiones de la base de datos"
+msgstr "conexión de datos"
 
-#, fuzzy
 msgid "data connections"
-msgstr "Conexiones de la base de datos"
+msgstr "conexiones de datos"
 
 msgid "database"
 msgstr "base de datos"
 
-#, fuzzy
 msgid "databases"
-msgstr "Bases de datos"
+msgstr "bases de datos"
 
 msgid "dataset"
 msgstr "conjunto de datos"
@@ -18953,17 +19351,14 @@ msgstr "conjunto de datos"
 msgid "dataset name"
 msgstr "nombre del conjunto de datos"
 
-#, fuzzy
 msgid "datasets"
-msgstr "Conjuntos de datos"
+msgstr "conjuntos de datos"
 
-#, fuzzy
 msgid "datasource"
-msgstr "Fuente de datos"
+msgstr "fuente de datos"
 
-#, fuzzy
 msgid "datasources"
-msgstr "Fuente de datos"
+msgstr "fuentes de datos"
 
 msgid "date"
 msgstr "fecha"
@@ -19105,9 +19500,6 @@ msgstr "A toda la fila"
 
 msgid "entries"
 msgstr "entradas"
-
-msgid "entries per page"
-msgstr "entradas por página"
 
 msgid "error"
 msgstr "error"
@@ -19494,6 +19886,9 @@ msgstr "Se requiere autorización"
 msgid "quarter"
 msgstr "trimestre"
 
+msgid "queries"
+msgstr ""
+
 msgid "query"
 msgstr "consulta"
 
@@ -19536,6 +19931,9 @@ msgstr ""
 
 msgid "seconds"
 msgstr "segundos"
+
+msgid "semantic layer"
+msgstr ""
 
 msgid "series"
 msgstr "series"
@@ -19630,9 +20028,8 @@ msgstr "Hora/fecha"
 msgid "timestamp"
 msgstr "Mostrar marca de tiempo"
 
-#, fuzzy
 msgid "to"
-msgstr "arriba"
+msgstr "a"
 
 msgid "top"
 msgstr "arriba"
@@ -19668,6 +20065,9 @@ msgstr "valor ascendente"
 
 msgid "value descending"
 msgstr "valor descendente"
+
+msgid "valuename"
+msgstr ""
 
 msgid "var"
 msgstr "var."

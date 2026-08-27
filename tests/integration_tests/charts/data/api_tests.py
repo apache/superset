@@ -15,15 +15,20 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from __future__ import annotations
+
 import copy
 import time
 import unittest
 from contextlib import contextmanager
 from datetime import datetime
 from io import BytesIO
-from typing import Any, Optional
+from typing import Any, TYPE_CHECKING
 from unittest import mock
 from zipfile import ZipFile
+
+if TYPE_CHECKING:
+    from flask.testing import FlaskClient
 
 import pytest
 from flask import g, Response
@@ -32,6 +37,11 @@ from flask.ctx import AppContext
 from superset.charts.data.api import ChartDataRestApi
 from superset.commands.chart.data.get_data_command import ChartDataCommand
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
+from superset.common.chart_data_timing import (
+    ChartDataExecutionResult,
+    QueryDataResult,
+    QueryTiming,
+)
 from superset.connectors.sqla.models import SqlaTable, TableColumn
 from superset.constants import CACHE_DISABLED_TIMEOUT
 from superset.errors import SupersetErrorType
@@ -86,6 +96,16 @@ INCOMPATIBLE_ADHOC_COLUMN_FIXTURE: AdhocColumn = {
     "label": "exciting_or_boring",
     "sqlExpression": "case when genre = 'Action' then 'Exciting' else 'Boring' end",
 }
+
+
+def _query_timing() -> QueryTiming:
+    return QueryTiming(
+        query_planning_ns=0,
+        cache_resolution_ns=0,
+        data_acquisition_ns=None,
+        payload_assembly_ns=0,
+        total_ns=0,
+    )
 
 
 @pytest.fixture(autouse=True)
@@ -543,7 +563,7 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         assert str(ms_epoch) not in result["query"]
 
         # assert that converted timestamp is present in query where supported
-        dttm_col: Optional[TableColumn] = None
+        dttm_col: TableColumn | None = None
         for col in table.columns:
             if col.column_name == table.main_dttm_col:
                 dttm_col = col
@@ -772,23 +792,33 @@ class TestPostChartDataApi(BaseTestChartDataApi):
             result_format = ChartDataResultFormat.JSON
             result_type = ChartDataResultType.FULL
 
-        cmd_run_val = {
-            "query_context": QueryContext(),
-            "queries": [{"query": "select * from foo", "is_cached": True}],
-        }
+        cmd_execute_val = ChartDataExecutionResult(
+            query_context=QueryContext(),
+            queries=(
+                QueryDataResult(
+                    payload={"query": "select * from foo", "is_cached": True},
+                    timing=_query_timing(),
+                ),
+            ),
+        )
 
         with mock.patch.object(
-            ChartDataCommand, "run", return_value=cmd_run_val
-        ) as patched_run:
+            ChartDataCommand, "execute", return_value=cmd_execute_val
+        ) as patched_execute:
             self.query_context_payload["result_type"] = ChartDataResultType.FULL
             rv = self.post_assert_metric(
                 CHART_DATA_URI, self.query_context_payload, "data"
             )
             assert rv.status_code == 200
             data = json.loads(rv.data.decode("utf-8"))
-            patched_run.assert_called_once_with(force_cached=True)
+            patched_execute.assert_called_once_with(force_cached=True)
             assert data == {
-                "result": [{"query": "select * from foo", "is_cached": True}]
+                "result": [
+                    {
+                        "query": "select * from foo",
+                        "is_cached": True,
+                    }
+                ]
             }
 
             # Verify that is_cached was logged to event logger
@@ -834,40 +864,45 @@ class TestPostChartDataApi(BaseTestChartDataApi):
 
     @with_feature_flags(GLOBAL_ASYNC_QUERIES=True)
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    @mock.patch("superset.charts.data.api.ChartDataCommand.run")
-    def test_chart_data_async_force_refresh(self, mock_run):
+    @mock.patch("superset.charts.data.api.ChartDataCommand.execute")
+    def test_chart_data_async_force_refresh(self, mock_execute):
         """
         Chart data API: Test that force=true skips cache and triggers async job
         """
         app._got_first_request = False
         async_query_manager_factory.init_app(app)
 
-        # Mock the command.run to return cached data
+        # Mock the command execution to return cached data
         class QueryContext:
             result_format = ChartDataResultFormat.JSON
             result_type = ChartDataResultType.FULL
 
-        mock_run.return_value = {
-            "query_context": QueryContext(),
-            "queries": [{"query": "select * from foo", "is_cached": True}],
-        }
+        mock_execute.return_value = ChartDataExecutionResult(
+            query_context=QueryContext(),
+            queries=(
+                QueryDataResult(
+                    payload={"query": "select * from foo", "is_cached": True},
+                    timing=_query_timing(),
+                ),
+            ),
+        )
 
         # Test without force - should return cached data synchronously
         self.query_context_payload["result_type"] = ChartDataResultType.FULL
         rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
         assert rv.status_code == 200
-        mock_run.assert_called_once_with(force_cached=True)
+        mock_execute.assert_called_once_with(force_cached=True)
 
         # Reset the mock
-        mock_run.reset_mock()
+        mock_execute.reset_mock()
 
         # Test with force=true - should skip cache and return async response
         self.query_context_payload["force"] = True
         rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
         assert rv.status_code == 202
-        # When force=true, command.run should not be called at all in _run_async
+        # When force=true, command execution should not be called at all in _run_async
         # since we skip the cache check entirely
-        mock_run.assert_not_called()
+        mock_execute.assert_not_called()
         data = json.loads(rv.data.decode("utf-8"))
         keys = list(data.keys())
         self.assertCountEqual(  # noqa: PT009
@@ -1411,14 +1446,14 @@ class TestGetChartDataApi(BaseTestChartDataApi):
         app._got_first_request = False
         async_query_manager_factory.init_app(app)
         cache_loader.load.return_value = self.query_context_payload
-        orig_run = ChartDataCommand.run
+        orig_execute = ChartDataCommand.execute
 
-        def mock_run(self, **kwargs):
+        def mock_execute(self, **kwargs):
             assert kwargs["force_cached"] is True  # noqa: E712
             # override force_cached to get result from DB
-            return orig_run(self, force_cached=False)
+            return orig_execute(self, force_cached=False)
 
-        with mock.patch.object(ChartDataCommand, "run", new=mock_run):
+        with mock.patch.object(ChartDataCommand, "execute", new=mock_execute):
             rv = self.get_assert_metric(
                 f"{CHART_DATA_URI}/test-cache-key", "data_from_cache"
             )
@@ -1460,14 +1495,14 @@ class TestGetChartDataApi(BaseTestChartDataApi):
         async_query_manager_factory.init_app(app)
         self.logout()
         cache_loader.load.return_value = self.query_context_payload
-        orig_run = ChartDataCommand.run
+        orig_execute = ChartDataCommand.execute
 
-        def mock_run(self, **kwargs):
+        def mock_execute(self, **kwargs):
             assert kwargs["force_cached"] is True  # noqa: E712
             # override force_cached to get result from DB
-            return orig_run(self, force_cached=False)
+            return orig_execute(self, force_cached=False)
 
-        with mock.patch.object(ChartDataCommand, "run", new=mock_run):
+        with mock.patch.object(ChartDataCommand, "execute", new=mock_execute):
             rv = self.client.get(
                 f"{CHART_DATA_URI}/test-cache-key",
             )
@@ -1677,6 +1712,164 @@ def test_data_cache_default_timeout(
 ):
     rv = test_client.post(CHART_DATA_URI, json=physical_query_context)
     assert rv.json["result"][0]["cache_timeout"] == 3456
+
+
+def _native_filter_options_config(
+    native_filter_timeout: int | None = None,
+    data_cache_timeout: int = 3456,
+) -> dict[str, Any]:
+    """
+    Build a patched config for native filter option cache timeout tests.
+    """
+    config = {
+        **app.config,
+        "CACHE_DEFAULT_TIMEOUT": 100_000,
+        "DATA_CACHE_CONFIG": {
+            **app.config["DATA_CACHE_CONFIG"],
+            "CACHE_DEFAULT_TIMEOUT": data_cache_timeout,
+        },
+    }
+    if native_filter_timeout is not None:
+        config["NATIVE_FILTER_OPTIONS_CACHE_TIMEOUT"] = native_filter_timeout
+    else:
+        config.pop("NATIVE_FILTER_OPTIONS_CACHE_TIMEOUT", None)
+    return config
+
+
+_NATIVE_FILTER_SELECT_FORM_DATA: dict[str, Any] = {
+    "native_filter_id": "NATIVE_FILTER-abc123",
+    "viz_type": "filter_select",
+    "metrics": ["count"],  # CRITICAL — always present in real requests
+    "groupby": ["col1"],
+    "row_limit": 1000,
+}
+
+
+@mock.patch(
+    "superset.common.query_context_processor.current_app.config",
+    _native_filter_options_config(native_filter_timeout=None, data_cache_timeout=3456),
+)
+def test_native_filter_default_uses_data_cache_timeout(
+    test_client: FlaskClient[Any],
+    login_as_admin: Any,
+    physical_query_context: dict[str, Any],
+) -> None:
+    physical_query_context["form_data"] = copy.deepcopy(_NATIVE_FILTER_SELECT_FORM_DATA)
+    rv = test_client.post(CHART_DATA_URI, json=physical_query_context)
+    assert rv.json["result"][0]["cache_timeout"] == 3456
+
+
+@mock.patch(
+    "superset.common.query_context_processor.current_app.config",
+    _native_filter_options_config(native_filter_timeout=9999, data_cache_timeout=3456),
+)
+def test_native_filter_uses_native_filter_options_cache_timeout(
+    test_client: FlaskClient[Any],
+    login_as_admin: Any,
+    physical_query_context: dict[str, Any],
+) -> None:
+    physical_query_context["form_data"] = copy.deepcopy(_NATIVE_FILTER_SELECT_FORM_DATA)
+    rv = test_client.post(CHART_DATA_URI, json=physical_query_context)
+    assert rv.json["result"][0]["cache_timeout"] == 9999
+
+
+@mock.patch(
+    "superset.common.query_context_processor.current_app.config",
+    _native_filter_options_config(native_filter_timeout=300, data_cache_timeout=3456),
+)
+def test_native_filter_overrides_dataset_timeout(
+    test_client: FlaskClient[Any],
+    login_as_admin: Any,
+    physical_query_context: dict[str, Any],
+) -> None:
+    datasource: SqlaTable = (
+        db.session.query(SqlaTable)
+        .filter(SqlaTable.id == physical_query_context["datasource"]["id"])
+        .first()
+    )
+    datasource.cache_timeout = 86400
+    db.session.commit()
+
+    physical_query_context["form_data"] = copy.deepcopy(_NATIVE_FILTER_SELECT_FORM_DATA)
+    rv = test_client.post(CHART_DATA_URI, json=physical_query_context)
+    assert rv.json["result"][0]["cache_timeout"] == 300
+
+
+@mock.patch(
+    "superset.common.query_context_processor.current_app.config",
+    _native_filter_options_config(native_filter_timeout=300, data_cache_timeout=3456),
+)
+def test_standard_chart_uses_dataset_timeout(
+    test_client: FlaskClient[Any],
+    login_as_admin: Any,
+    physical_query_context: dict[str, Any],
+) -> None:
+    datasource: SqlaTable = (
+        db.session.query(SqlaTable)
+        .filter(SqlaTable.id == physical_query_context["datasource"]["id"])
+        .first()
+    )
+    datasource.cache_timeout = 86400
+    db.session.commit()
+
+    physical_query_context["form_data"] = {
+        "viz_type": "bar",
+        "metrics": ["count"],
+        "groupby": ["col1"],
+    }
+    rv = test_client.post(CHART_DATA_URI, json=physical_query_context)
+    assert rv.json["result"][0]["cache_timeout"] == 86400
+
+
+@mock.patch(
+    "superset.common.query_context_processor.current_app.config",
+    _native_filter_options_config(
+        native_filter_timeout=CACHE_DISABLED_TIMEOUT, data_cache_timeout=3456
+    ),
+)
+def test_native_filter_cache_disabled_semantics(
+    test_client: FlaskClient[Any],
+    login_as_admin: Any,
+    physical_query_context: dict[str, Any],
+) -> None:
+    physical_query_context["form_data"] = copy.deepcopy(_NATIVE_FILTER_SELECT_FORM_DATA)
+    test_client.post(CHART_DATA_URI, json=physical_query_context)
+    rv = test_client.post(CHART_DATA_URI, json=physical_query_context)
+    assert rv.json["result"][0]["is_cached"] is None
+
+
+@mock.patch(
+    "superset.common.query_context_processor.current_app.config",
+    _native_filter_options_config(native_filter_timeout=9999, data_cache_timeout=3456),
+)
+def test_false_positive_protection(
+    test_client: FlaskClient[Any],
+    login_as_admin: Any,
+    physical_query_context: dict[str, Any],
+) -> None:
+    physical_query_context["form_data"] = {
+        "native_filter_id": "TEST",
+        "viz_type": "table",
+        "metrics": ["count"],
+        "groupby": ["col1"],
+    }
+    rv = test_client.post(CHART_DATA_URI, json=physical_query_context)
+    assert rv.json["result"][0]["cache_timeout"] == 3456
+
+
+@mock.patch(
+    "superset.common.query_context_processor.current_app.config",
+    _native_filter_options_config(native_filter_timeout=300, data_cache_timeout=3456),
+)
+def test_explicit_custom_timeout_wins_over_native_filter(
+    test_client: FlaskClient[Any],
+    login_as_admin: Any,
+    physical_query_context: dict[str, Any],
+) -> None:
+    physical_query_context["form_data"] = copy.deepcopy(_NATIVE_FILTER_SELECT_FORM_DATA)
+    physical_query_context["custom_cache_timeout"] = CACHE_DISABLED_TIMEOUT
+    rv = test_client.post(CHART_DATA_URI, json=physical_query_context)
+    assert rv.json["result"][0]["cache_timeout"] == CACHE_DISABLED_TIMEOUT
 
 
 def test_chart_cache_timeout(
@@ -1954,6 +2147,30 @@ class TestGetChartDataWithDashboardFilter(BaseTestChartDataApi):
         assert rv.status_code == 200
         assert "dashboard_filters" not in data
         mock_get_filter_ctx.assert_not_called()
+
+    @with_config({"CHART_DATA_INCLUDE_TIMING": False})
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_get_data_excludes_timing_by_default(self):
+        """GET chart data preserves its default response contract."""
+        chart = self._setup_chart_with_query_context()
+
+        rv = self.get_assert_metric(f"api/v1/chart/{chart.id}/data/", "get_data")
+        data = json.loads(rv.data.decode("utf-8"))
+
+        assert rv.status_code == 200
+        assert "timing" not in data["result"][0]
+
+    @with_config({"CHART_DATA_INCLUDE_TIMING": True})
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_get_data_projects_opt_in_timing(self):
+        """GET chart data projects the public timing object only when enabled."""
+        chart = self._setup_chart_with_query_context()
+
+        rv = self.get_assert_metric(f"api/v1/chart/{chart.id}/data/", "get_data")
+        data = json.loads(rv.data.decode("utf-8"))
+
+        assert rv.status_code == 200
+        assert data["result"][0]["timing"]["version"] == 1
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_get_data_invalid_filters_dashboard_id_returns_400(self):

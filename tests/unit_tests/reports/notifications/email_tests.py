@@ -15,12 +15,19 @@
 # specific language governing permissions and limitations
 # under the License.
 from datetime import datetime
+from io import BytesIO
+from typing import TYPE_CHECKING
+from zipfile import is_zipfile, ZipExtFile
 
 import pandas as pd
+import pytest
 from freezegun import freeze_time
 from pytz import timezone
 
 from tests.unit_tests.conftest import with_feature_flags
+
+if TYPE_CHECKING:
+    from superset.reports.notifications.email import EmailNotification
 
 
 def test_render_description_with_html() -> None:
@@ -100,6 +107,206 @@ def test_error_template_sanitizes_html() -> None:
     assert "onerror=alert(1)" not in email_body
 
 
+def test_cta_link_included_by_default() -> None:
+    # `superset.models.helpers`, a dependency of following imports,
+    # requires app context
+    from superset.reports.models import ReportRecipients, ReportRecipientType
+    from superset.reports.notifications.base import NotificationContent
+    from superset.reports.notifications.email import EmailNotification
+
+    content = NotificationContent(
+        name="test alert",
+        description="<p>This is a test alert</p>",
+        url="http://example.com/superset/dashboard/1/",
+        header_data={
+            "notification_format": "PNG",
+            "notification_type": "Alert",
+            "editors": [1],
+            "notification_source": None,
+            "chart_id": None,
+            "dashboard_id": None,
+            "slack_channels": None,
+            "execution_id": "test-execution-id",
+        },
+    )
+    email_body = (
+        EmailNotification(
+            recipient=ReportRecipients(type=ReportRecipientType.EMAIL), content=content
+        )
+        ._get_content()
+        .body
+    )
+    assert (
+        '<b><a href="http://example.com/superset/dashboard/1/">'
+        "Explore in Superset</a></b>" in email_body
+    )
+
+
+def test_cta_link_omitted_when_include_cta_is_false() -> None:
+    # `superset.models.helpers`, a dependency of following imports,
+    # requires app context
+    from superset.reports.models import ReportRecipients, ReportRecipientType
+    from superset.reports.notifications.base import NotificationContent
+    from superset.reports.notifications.email import EmailNotification
+
+    content = NotificationContent(
+        name="test alert",
+        description="<p>This is a test alert</p>",
+        url="http://example.com/superset/dashboard/1/",
+        include_cta=False,
+        header_data={
+            "notification_format": "PNG",
+            "notification_type": "Alert",
+            "editors": [1],
+            "notification_source": None,
+            "chart_id": None,
+            "dashboard_id": None,
+            "slack_channels": None,
+            "execution_id": "test-execution-id",
+        },
+    )
+    email_body = (
+        EmailNotification(
+            recipient=ReportRecipients(type=ReportRecipientType.EMAIL), content=content
+        )
+        ._get_content()
+        .body
+    )
+    assert "Explore in Superset" not in email_body
+    assert "http://example.com/superset/dashboard/1/" not in email_body
+    assert "<p>This is a test alert</p>" in email_body
+
+
+def test_error_template_cta_link_respects_include_cta() -> None:
+    # `superset.models.helpers`, a dependency of following imports,
+    # requires app context
+    from superset.reports.models import ReportRecipients, ReportRecipientType
+    from superset.reports.notifications.base import NotificationContent
+    from superset.reports.notifications.email import EmailNotification
+
+    content = NotificationContent(
+        name="test alert",
+        text="Report generation failed",
+        url="http://example.com/superset/dashboard/1/",
+        include_cta=False,
+        header_data={
+            "notification_format": "PNG",
+            "notification_type": "Alert",
+            "editors": [1],
+            "notification_source": None,
+            "chart_id": None,
+            "dashboard_id": None,
+            "slack_channels": None,
+            "execution_id": "test-execution-id",
+        },
+    )
+    email_body = (
+        EmailNotification(
+            recipient=ReportRecipients(type=ReportRecipientType.EMAIL), content=content
+        )
+        ._get_content()
+        .body
+    )
+    assert "Report generation failed" in email_body
+    assert "Explore in Superset" not in email_body
+    assert "http://example.com/superset/dashboard/1/" not in email_body
+
+
+@pytest.mark.parametrize(
+    "include_cta",
+    [True, False],
+    ids=["with-cta", "without-cta"],
+)
+def test_retry_error_template_cta_link_respects_include_cta(
+    include_cta: bool,
+) -> None:
+    # `superset.models.helpers`, a dependency of following imports,
+    # requires app context
+    from superset.reports.models import ReportRecipients, ReportRecipientType
+    from superset.reports.notifications.base import NotificationContent
+    from superset.reports.notifications.email import EmailNotification
+
+    content = NotificationContent(
+        name="test alert",
+        text="Report generation failed",
+        url="http://example.com/superset/dashboard/1/",
+        include_cta=include_cta,
+        retry_attempt=1,
+        retry_max_attempts=3,
+        header_data={
+            "notification_format": "PNG",
+            "notification_type": "Alert",
+            "editors": [1],
+            "notification_source": None,
+            "chart_id": None,
+            "dashboard_id": None,
+            "slack_channels": None,
+            "execution_id": "test-execution-id",
+        },
+    )
+    email_body = (
+        EmailNotification(
+            recipient=ReportRecipients(type=ReportRecipientType.EMAIL), content=content
+        )
+        ._get_content()
+        .body
+    )
+    assert "Retry in Progress" in email_body
+    if include_cta:
+        assert "Explore in Superset" in email_body
+        assert "http://example.com/superset/dashboard/1/" in email_body
+    else:
+        assert "Explore in Superset" not in email_body
+        assert "http://example.com/superset/dashboard/1/" not in email_body
+
+
+@pytest.mark.parametrize(
+    "include_cta",
+    [True, False],
+    ids=["with-cta", "without-cta"],
+)
+def test_final_failure_template_cta_link_respects_include_cta(
+    include_cta: bool,
+) -> None:
+    # `superset.models.helpers`, a dependency of following imports,
+    # requires app context
+    from superset.reports.models import ReportRecipients, ReportRecipientType
+    from superset.reports.notifications.base import NotificationContent
+    from superset.reports.notifications.email import EmailNotification
+
+    content = NotificationContent(
+        name="test alert",
+        text="Report generation failed",
+        url="http://example.com/superset/dashboard/1/",
+        include_cta=include_cta,
+        retry_max_attempts=3,
+        header_data={
+            "notification_format": "PNG",
+            "notification_type": "Alert",
+            "editors": [1],
+            "notification_source": None,
+            "chart_id": None,
+            "dashboard_id": None,
+            "slack_channels": None,
+            "execution_id": "test-execution-id",
+        },
+    )
+    email_body = (
+        EmailNotification(
+            recipient=ReportRecipients(type=ReportRecipientType.EMAIL), content=content
+        )
+        ._get_content()
+        .body
+    )
+    assert "failed to generate after" in email_body
+    if include_cta:
+        assert "Explore in Superset" in email_body
+        assert "http://example.com/superset/dashboard/1/" in email_body
+    else:
+        assert "Explore in Superset" not in email_body
+        assert "http://example.com/superset/dashboard/1/" not in email_body
+
+
 @with_feature_flags(DATE_FORMAT_IN_EMAIL_SUBJECT=True)
 def test_email_subject_with_datetime() -> None:
     # `superset.models.helpers`, a dependency of following imports,
@@ -146,19 +353,24 @@ def test_email_subject_with_datetime() -> None:
     assert frozen_now.strftime(datetime_pattern) in subject
 
 
-def test_email_content_with_xlsx_attachment() -> None:
-    """Email content attaches xlsx bytes under an ``.xlsx`` filename."""
-    # `superset.models.helpers`, a dependency of following imports,
-    # requires app context
+def _make_notification(
+    *,
+    csv: bytes | None = None,
+    xlsx: bytes | None = None,
+) -> "EmailNotification":
+    """Build an email notification for attachment tests."""
     from superset.reports.models import ReportRecipients, ReportRecipientType
     from superset.reports.notifications.base import NotificationContent
     from superset.reports.notifications.email import EmailNotification
 
+    recipient = ReportRecipients(type=ReportRecipientType.EMAIL)
     content = NotificationContent(
         name="test report",
-        xlsx=b"xlsx_content",
+        text=None,
+        csv=csv,
+        xlsx=xlsx,
         header_data={
-            "notification_format": "XLSX",
+            "notification_format": "CSV" if csv is not None else "XLSX",
             "notification_type": "Report",
             "editors": [1],
             "notification_source": None,
@@ -168,11 +380,175 @@ def test_email_content_with_xlsx_attachment() -> None:
             "execution_id": "test-execution-id",
         },
     )
-    email_content = EmailNotification(
-        recipient=ReportRecipients(type=ReportRecipientType.EMAIL), content=content
-    )._get_content()
+    return EmailNotification(recipient=recipient, content=content)
 
-    assert email_content.data is not None
-    attachment_name = list(email_content.data.keys())[0]
-    assert attachment_name.endswith(".xlsx")
-    assert email_content.data[attachment_name] == b"xlsx_content"
+
+def test_get_csv_attachment_extension_for_csv_content() -> None:
+    """Plain CSV bytes keep the CSV extension."""
+    from superset.reports.notifications.email import (
+        _get_csv_attachment_extension,
+    )
+
+    assert _get_csv_attachment_extension(b"value\n1\n2\n") == "csv"
+
+
+def test_get_csv_attachment_extension_for_zip_content() -> None:
+    """A ZIP bundling one CSV per query is identified as an archive."""
+    from superset.reports.notifications.email import (
+        _get_csv_attachment_extension,
+    )
+    from superset.utils.core import create_zip
+
+    archive = create_zip({"query_1.csv": b"value\n1\n2\n"}).getvalue()
+
+    assert _get_csv_attachment_extension(archive) == "zip"
+
+
+def test_get_csv_attachment_extension_for_damaged_zip_content() -> None:
+    """Bytes carrying the archive signature stay an archive even if unreadable.
+
+    A truncated bundle no longer parses as a ZIP, but it is still what the
+    endpoint produced, so naming it ``.zip`` describes it correctly. Naming it
+    ``.csv`` would produce an attachment that opens as neither format.
+    """
+    from superset.reports.notifications.email import (
+        _get_csv_attachment_extension,
+    )
+    from superset.utils.core import create_zip
+
+    archive = create_zip(
+        {
+            "query_1.csv": b"value\n1\n2\n",
+            "query_2.csv": b"value\n3\n4\n",
+        }
+    ).getvalue()
+    truncated = archive[: len(archive) // 2]
+
+    assert not is_zipfile(BytesIO(truncated))
+    assert _get_csv_attachment_extension(truncated) == "zip"
+
+
+def test_get_xlsx_attachment_extension_for_non_zip_content() -> None:
+    """Non-ZIP responses retain the XLSX extension."""
+    from superset.reports.notifications.email import (
+        _get_xlsx_attachment_extension,
+    )
+
+    assert _get_xlsx_attachment_extension(b"xlsx-response") == "xlsx"
+
+
+def test_get_xlsx_attachment_extension_for_xlsx_content() -> None:
+    """An OOXML workbook is identified as XLSX."""
+    from superset.reports.notifications.email import (
+        _get_xlsx_attachment_extension,
+    )
+    from superset.utils import excel
+
+    xlsx = excel.df_to_excel(pd.DataFrame({"value": [1, 2]}), index=False)
+
+    assert _get_xlsx_attachment_extension(xlsx) == "xlsx"
+
+
+def test_get_xlsx_attachment_extension_for_invalid_xlsx_zip_content() -> None:
+    """A ZIP with invalid XLSX entries is not identified as a report archive."""
+    from superset.reports.notifications.email import (
+        _get_xlsx_attachment_extension,
+    )
+    from superset.utils.core import create_zip
+
+    archive = create_zip({"query_1.xlsx": b"xlsx-response"}).getvalue()
+
+    assert _get_xlsx_attachment_extension(archive) == "xlsx"
+
+
+def test_get_xlsx_attachment_extension_reads_nested_zip_signatures_only(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Nested XLSX detection should not read each workbook into memory."""
+    from superset.reports.notifications.email import (
+        _get_xlsx_attachment_extension,
+    )
+    from superset.utils import excel
+    from superset.utils.core import create_zip
+
+    read_sizes: list[int] = []
+    original_read = ZipExtFile.read
+
+    def read_signature(self: ZipExtFile, n: int = -1) -> bytes:
+        read_sizes.append(n)
+        return original_read(self, n)
+
+    monkeypatch.setattr(ZipExtFile, "read", read_signature)
+
+    xlsx = excel.df_to_excel(pd.DataFrame({"value": [1, 2]}), index=False)
+    archive = create_zip({"query_1.xlsx": xlsx, "query_2.xlsx": xlsx}).getvalue()
+
+    assert _get_xlsx_attachment_extension(archive) == "zip"
+    assert read_sizes == [4, 4]
+
+
+@pytest.mark.parametrize(
+    ("is_multi_query_bundle", "expected_extension"),
+    [
+        (False, "xlsx"),
+        (True, "zip"),
+    ],
+)
+def test_xlsx_report_attachment_extension(
+    is_multi_query_bundle: bool,
+    expected_extension: str,
+) -> None:
+    """Multi-query XLSX bundles should be attached as ZIP archives."""
+    from superset.utils import excel
+    from superset.utils.core import create_zip
+
+    xlsx = excel.df_to_excel(pd.DataFrame({"value": [1, 2]}), index=False)
+    attachment = (
+        create_zip(
+            {
+                "query_1.xlsx": xlsx,
+                "query_2.xlsx": xlsx,
+            }
+        ).getvalue()
+        if is_multi_query_bundle
+        else xlsx
+    )
+
+    email_content = _make_notification(xlsx=attachment)._get_content()
+
+    assert email_content.data == {
+        f"test report.{expected_extension}": attachment,
+    }
+
+
+@pytest.mark.parametrize(
+    ("is_multi_query_bundle", "expected_extension"),
+    [
+        (False, "csv"),
+        (True, "zip"),
+    ],
+)
+def test_csv_report_attachment_extension(
+    is_multi_query_bundle: bool,
+    expected_extension: str,
+) -> None:
+    """Multi-query CSV bundles should be attached as ZIP archives."""
+    from superset.utils.core import create_zip
+
+    csv = b"value\n1\n2\n"
+    attachment = (
+        create_zip(
+            {
+                "query_1.csv": csv,
+                "query_2.csv": csv,
+            }
+        ).getvalue()
+        if is_multi_query_bundle
+        else csv
+    )
+
+    email_content = _make_notification(csv=attachment)._get_content()
+
+    assert email_content.data == {
+        f"test report.{expected_extension}": attachment,
+    }

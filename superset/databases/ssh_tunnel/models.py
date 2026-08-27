@@ -55,6 +55,10 @@ class SSHTunnel(AuditMixinNullable, ExtraJSONMixin, ImportExportMixin, Model):
             uselist=False,
             cascade="all, delete-orphan",
             lazy="joined",
+            # SQLAlchemy 2.0 behavior: assigning `ssh_tunnel.database` no
+            # longer cascades the SSHTunnel into the Database's session;
+            # callers must add objects to a session explicitly.
+            cascade_backrefs=False,
         ),
         foreign_keys=[database_id],
     )

@@ -334,6 +334,17 @@ class SupersetTestCase(TestCase):
     def login(self, username, password=DEFAULT_PASSWORD):
         return login(self.client, username, password)
 
+    def get_bearer_auth_header(
+        self, username: str = ADMIN_USERNAME, password: str = DEFAULT_PASSWORD
+    ) -> dict[str, str]:
+        """Return an Authorization header with a login access token."""
+        response = self.client.post(
+            "/api/v1/security/login",
+            json={"username": username, "password": password, "provider": "db"},
+        )
+        assert response.status_code == 200
+        return {"Authorization": f"Bearer {response.json['access_token']}"}
+
     def get_slice(self, slice_name: str) -> Slice:
         return db.session.query(Slice).filter_by(slice_name=slice_name).one()
 

@@ -56,15 +56,6 @@ DEFAULT_DASHBOARD_COLUMNS = [
     "changed_on_humanized",
 ]
 
-SORTABLE_DASHBOARD_COLUMNS = [
-    "id",
-    "dashboard_title",
-    "slug",
-    "published",
-    "changed_on",
-    "created_on",
-]
-
 _DEFAULT_LIST_DASHBOARDS_REQUEST = ListDashboardsRequest()
 
 
@@ -98,12 +89,13 @@ async def list_dashboards(
         list_dashboards(search="sales", page=1)  # DO NOT DO THIS
 
     Valid filter columns for ``filters[].col``:
-        ``dashboard_title``, ``published``, ``favorite``,
+        ``dashboard_title``, ``published``, ``editor``, ``favorite``,
         ``created_by_fk``, ``changed_by_fk``
 
     Sortable columns for ``order_column``:
         ``id``, ``dashboard_title``, ``slug``, ``published``,
-        ``changed_on``, ``created_on``
+        ``changed_on``, ``changed_on_delta_humanized`` (alias for ``changed_on``),
+        ``created_on``
 
     To filter by a person (e.g. "dashboards Maxime is working on"), do NOT pass
     the name as the search parameter — search matches titles and slugs only.

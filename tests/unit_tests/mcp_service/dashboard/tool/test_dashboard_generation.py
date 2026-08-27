@@ -40,6 +40,7 @@ from superset.mcp_service.dashboard.tool.add_chart_to_existing_dashboard import 
 from superset.mcp_service.dashboard.tool.generate_dashboard import (
     _generate_title_from_charts,
 )
+from superset.models.dashboard import Dashboard as _RealDashboard
 from superset.utils import json
 
 logging.basicConfig(level=logging.DEBUG)
@@ -166,6 +167,24 @@ def _setup_generate_dashboard_mocks(
 
     mock_dashboard_cls.return_value = dashboard
     mock_find_by_id.return_value = dashboard
+
+    # `generate_dashboard` builds its re-fetch eager-load options with
+    # `subqueryload(Dashboard.slices).subqueryload(Slice.editors)` etc.
+    # against this same patched `Dashboard` class. SQLAlchemy 2.0 validates
+    # loader-path arguments eagerly and raises `ArgumentError` ("Wildcard
+    # token cannot be followed by another entity") when given a plain
+    # MagicMock attribute instead of a real `InstrumentedAttribute` --
+    # SQLAlchemy 1.4 didn't validate this eagerly, so the same mock chain
+    # silently worked before. Copy over the real class-level relationship
+    # attributes (captured at module import time, before `Dashboard` gets
+    # patched, since `from ... import Dashboard` done here would just
+    # return the mock itself) so `subqueryload`/`joinedload` construction
+    # sees genuine mapped attributes while `Dashboard(...)` instantiation
+    # (used to create new dashboards) still returns the mocked `dashboard`
+    # object.
+    mock_dashboard_cls.slices = _RealDashboard.slices
+    mock_dashboard_cls.editors = _RealDashboard.editors
+    mock_dashboard_cls.tags = _RealDashboard.tags
 
     # Prevent Subject DB queries during dashboard creation.
     # The mock is started here and will be cleaned up by patch.stopall()
@@ -2140,3 +2159,35 @@ class TestDashboardSerializationEagerLoading:
             assert "editors" not in dash
             assert dash["tags"] == []
             assert dash["charts"] == []
+
+
+class TestGenerateDashboardCreatorGroups:
+    """The tool creates dashboards outside CreateDashboardCommand, so it has to
+    apply the creator's default viewers itself."""
+
+    @patch("superset.models.dashboard.Dashboard")
+    @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
+    @patch("superset.db.session")
+    @pytest.mark.asyncio
+    async def test_generated_dashboard_gets_the_creators_default_viewers(
+        self, mock_db_session, mock_find_by_id, mock_dashboard_cls, mcp_server
+    ):
+        charts = [_mock_chart(id=1, slice_name="Sales Chart")]
+        mock_dashboard = _mock_dashboard(id=10, title="Analytics Dashboard")
+        mock_dashboard.viewers = []
+        _setup_generate_dashboard_mocks(
+            mock_db_session, mock_find_by_id, mock_dashboard_cls, charts, mock_dashboard
+        )
+        viewer = Mock()
+
+        with patch(
+            "superset.subjects.utils.get_default_viewers_for_new_asset",
+            return_value=[viewer],
+        ):
+            async with Client(mcp_server) as client:
+                await client.call_tool(
+                    "generate_dashboard",
+                    {"request": {"chart_ids": [1], "dashboard_title": "Analytics"}},
+                )
+
+        assert mock_dashboard.viewers == [viewer]

@@ -52,6 +52,7 @@ import {
 
 import ThemeModal from 'src/features/themes/ThemeModal';
 import { ThemeObject } from 'src/features/themes/types';
+import { hasConflictingAlgorithm } from 'src/features/themes/utils';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { useConfirmModal } from 'src/hooks/useConfirmModal';
@@ -273,9 +274,22 @@ function ThemesList({
     (theme: ThemeObject) => {
       showConfirm({
         title: t('Set System Default Theme'),
-        body: t(
-          'Are you sure you want to set "%s" as the system default theme? This will apply to all users who haven\'t set a personal preference.',
-          theme.theme_name,
+        body: (
+          <Space direction="vertical">
+            {t(
+              'Are you sure you want to set "%s" as the system default theme? This will apply to all users who haven\'t set a personal preference.',
+              theme.theme_name,
+            )}
+            {hasConflictingAlgorithm(theme.json_data, false) && (
+              <Alert
+                type="warning"
+                showIcon
+                message={t(
+                  'This theme uses the dark algorithm. It will be rendered with the light algorithm instead, so its colors may not look as designed.',
+                )}
+              />
+            )}
+          </Space>
         ),
         onConfirm: async () => {
           try {
@@ -299,9 +313,22 @@ function ThemesList({
     (theme: ThemeObject) => {
       showConfirm({
         title: t('Set System Dark Theme'),
-        body: t(
-          'Are you sure you want to set "%s" as the system dark theme? This will apply to all users who haven\'t set a personal preference.',
-          theme.theme_name,
+        body: (
+          <Space direction="vertical">
+            {t(
+              'Are you sure you want to set "%s" as the system dark theme? This will apply to all users who haven\'t set a personal preference.',
+              theme.theme_name,
+            )}
+            {hasConflictingAlgorithm(theme.json_data, true) && (
+              <Alert
+                type="warning"
+                showIcon
+                message={t(
+                  'This theme uses the light algorithm. It will be rendered with the dark algorithm instead, so its colors may not look as designed.',
+                )}
+              />
+            )}
+          </Space>
         ),
         onConfirm: async () => {
           try {

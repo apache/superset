@@ -17,7 +17,7 @@
  * under the License.
  */
 import { AdhocColumn, QueryMode, VizType } from '@superset-ui/core';
-import buildQuery from '../src/buildQuery';
+import buildQuery, { buildQueryUncached } from '../src/buildQuery';
 import { TableChartFormData } from '../src/types';
 
 const basicFormData: TableChartFormData = {
@@ -1559,6 +1559,342 @@ describe('plugin-chart-ag-grid-table', () => {
       expect(queries).toHaveLength(2);
       expect(queries[1].columns).toEqual([]);
       expect(queries[1].metrics).toEqual(['count']);
+    });
+
+    test("defaults aggregate-mode totals to the metric's own aggregate", () => {
+      const simpleMetric = {
+        expressionType: 'SIMPLE' as const,
+        column: { column_name: 'sales' },
+        aggregate: 'SUM' as const,
+        label: 'sum_sales',
+      };
+      const { queries } = buildQuery(
+        {
+          viz_type: VizType.Table,
+          datasource: '11__table',
+          query_mode: QueryMode.Aggregate,
+          groupby: ['state'],
+          metrics: [simpleMetric],
+          show_totals: true,
+        },
+        { ownState: {} },
+      );
+
+      expect(queries[1].metrics).toEqual([simpleMetric]);
+    });
+
+    test('keeps COUNT_DISTINCT in aggregate-mode totals by default', () => {
+      const countDistinctMetric = {
+        expressionType: 'SIMPLE' as const,
+        column: { column_name: 'contract_id' },
+        aggregate: 'COUNT_DISTINCT' as const,
+        label: 'contracts',
+      };
+      const { queries } = buildQuery(
+        {
+          viz_type: VizType.Table,
+          datasource: '11__table',
+          query_mode: QueryMode.Aggregate,
+          groupby: ['state'],
+          metrics: [countDistinctMetric],
+          show_totals: true,
+        },
+        { ownState: {} },
+      );
+
+      expect(queries[1].metrics).toEqual([countDistinctMetric]);
+    });
+
+    test('overrides aggregate-mode totals to AVG for a simple metric when totals_aggregate is set', () => {
+      const simpleMetric = {
+        expressionType: 'SIMPLE' as const,
+        column: { column_name: 'sales' },
+        aggregate: 'SUM' as const,
+        label: 'sum_sales',
+      };
+      const { queries } = buildQuery(
+        {
+          viz_type: VizType.Table,
+          datasource: '11__table',
+          query_mode: QueryMode.Aggregate,
+          groupby: ['state'],
+          metrics: [simpleMetric],
+          show_totals: true,
+          totals_aggregate: 'AVG',
+        },
+        { ownState: {} },
+      );
+
+      // Main query keeps the metric's own aggregation.
+      expect(queries[0].metrics).toEqual([simpleMetric]);
+      // Summary query uses the chosen totals aggregate instead.
+      expect(queries[1].metrics).toEqual([
+        { ...simpleMetric, aggregate: 'AVG' },
+      ]);
+    });
+
+    test('applies totals_aggregate to raw-mode summary columns', () => {
+      const { queries } = buildQuery(
+        { ...rawFormData, totals_aggregate: 'AVG' },
+        { ownState: { rawSummaryColumns: ['num'] } },
+      );
+
+      expect(queries[1].metrics).toEqual([
+        {
+          expressionType: 'SIMPLE',
+          aggregate: 'AVG',
+          column: { column_name: 'num' },
+          label: 'num',
+        },
+      ]);
+    });
+  });
+
+  describe('buildQuery - server pagination row limit', () => {
+    const serverPaginationFormData: TableChartFormData = {
+      ...basicFormData,
+      server_pagination: true,
+    };
+
+    test('uses user row limit when it is lower than server page size', () => {
+      const { queries } = buildQuery(
+        {
+          ...serverPaginationFormData,
+          row_limit: 10,
+          server_page_length: 20,
+          slice_id: 101,
+        },
+        {
+          ownState: {
+            currentPage: 0,
+            pageSize: 20,
+          },
+        },
+      );
+
+      expect(queries[0]).toMatchObject({
+        row_limit: 10,
+        row_offset: 0,
+      });
+    });
+
+    test('limits server page size by remaining rows inside user row limit', () => {
+      const { queries } = buildQuery(
+        {
+          ...serverPaginationFormData,
+          row_limit: 120,
+          server_page_length: 50,
+          slice_id: 102,
+        },
+        {
+          ownState: {
+            currentPage: 2,
+            pageSize: 50,
+          },
+        },
+      );
+
+      expect(queries[0]).toMatchObject({
+        row_limit: 20,
+        row_offset: 100,
+      });
+    });
+
+    test('clamps pages beyond the row limit instead of emitting row_limit: 0', () => {
+      const { queries } = buildQuery(
+        {
+          ...serverPaginationFormData,
+          row_limit: 120,
+          server_page_length: 50,
+          slice_id: 103,
+        },
+        {
+          ownState: {
+            // Page 5 is well past the cap; offset would be 250 > 120, which
+            // previously made row_limit collapse to 0 ("no limit").
+            currentPage: 5,
+            pageSize: 50,
+          },
+        },
+      );
+
+      expect(queries[0].row_limit).not.toBe(0);
+      expect(queries[0]).toMatchObject({
+        row_limit: 20,
+        row_offset: 100,
+      });
+    });
+
+    test('restores the full first-page row limit after a filter change reset', () => {
+      // Uncached export lets us seed cachedChanges directly; the default
+      // export overrides extras with its own closure.
+      const { queries } = buildQueryUncached(
+        {
+          ...serverPaginationFormData,
+          row_limit: 120,
+          server_page_length: 50,
+          slice_id: 104,
+        },
+        {
+          // User was on the capped last page (row_limit would be 20)...
+          ownState: {
+            currentPage: 2,
+            pageSize: 50,
+          },
+          // ...then an external filter changed, so the cached filters differ
+          // from the current ones and pagination resets to page 0.
+          extras: {
+            cachedChanges: {
+              104: [{ col: 'state', op: '==', val: 'previous' }],
+            },
+          },
+        },
+      );
+
+      expect(queries[0].row_limit).not.toBe(0);
+      expect(queries[0]).toMatchObject({
+        row_limit: 50,
+        row_offset: 0,
+      });
+    });
+
+    test('keeps the full export row limit on a download after a filter change', () => {
+      // A CSV/JSON export uses the same buildQuery, so a filter-reset caused
+      // by stale cachedChanges must not shrink the export to the page size.
+      const { queries } = buildQueryUncached(
+        {
+          ...serverPaginationFormData,
+          row_limit: 120,
+          server_page_length: 50,
+          result_format: 'csv',
+          slice_id: 107,
+        },
+        {
+          ownState: {
+            currentPage: 2,
+            pageSize: 50,
+          },
+          extras: {
+            cachedChanges: {
+              107: [{ col: 'state', op: '==', val: 'previous' }],
+            },
+          },
+        },
+      );
+
+      expect(queries[0]).toMatchObject({
+        row_limit: 120,
+        row_offset: 0,
+      });
+    });
+
+    test('persists the user page size, not the capped limit, on filter reset', () => {
+      const setDataMask = jest.fn();
+      buildQueryUncached(
+        {
+          ...serverPaginationFormData,
+          row_limit: 120,
+          server_page_length: 50,
+          slice_id: 106,
+        },
+        {
+          // On the capped last page, the per-request row_limit is 20.
+          ownState: {
+            currentPage: 2,
+            pageSize: 50,
+          },
+          extras: {
+            cachedChanges: {
+              106: [{ col: 'state', op: '==', val: 'previous' }],
+            },
+          },
+          hooks: { setDataMask, setCachedChanges: jest.fn() },
+        },
+      );
+
+      // The persisted page size must stay 50, not collapse to the capped 20.
+      expect(setDataMask).toHaveBeenCalledWith(
+        expect.objectContaining({
+          ownState: expect.objectContaining({
+            currentPage: 0,
+            pageSize: 50,
+          }),
+        }),
+      );
+    });
+
+    test('applies the configured row limit when pagination is disabled via page size 0', () => {
+      // server_page_length: 0 means "no pagination"; the request must still
+      // honor the configured row limit instead of emitting row_limit: 0,
+      // which the backend treats as "no limit".
+      const { queries } = buildQuery(
+        {
+          ...serverPaginationFormData,
+          row_limit: 1000,
+          server_page_length: 0,
+          slice_id: 108,
+        },
+        {
+          ownState: {
+            currentPage: 0,
+            pageSize: 0,
+          },
+        },
+      );
+
+      expect(queries[0]).toMatchObject({
+        row_limit: 1000,
+        row_offset: 0,
+      });
+    });
+
+    test('restores the configured row limit on filter reset when pagination is disabled', () => {
+      const { queries } = buildQueryUncached(
+        {
+          ...serverPaginationFormData,
+          row_limit: 1000,
+          server_page_length: 0,
+          slice_id: 109,
+        },
+        {
+          ownState: {
+            currentPage: 0,
+            pageSize: 0,
+          },
+          extras: {
+            cachedChanges: {
+              109: [{ col: 'state', op: '==', val: 'previous' }],
+            },
+          },
+        },
+      );
+
+      expect(queries[0]).toMatchObject({
+        row_limit: 1000,
+        row_offset: 0,
+      });
+    });
+
+    test('falls back to the page size when no row limit is configured', () => {
+      const { queries } = buildQuery(
+        {
+          ...serverPaginationFormData,
+          row_limit: undefined,
+          server_page_length: 50,
+          slice_id: 105,
+        },
+        {
+          ownState: {
+            currentPage: 3,
+            pageSize: 50,
+          },
+        },
+      );
+
+      expect(queries[0]).toMatchObject({
+        row_limit: 50,
+        row_offset: 150,
+      });
     });
   });
 });

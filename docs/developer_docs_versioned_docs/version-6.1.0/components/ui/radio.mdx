@@ -33,37 +33,37 @@ Radio button component for selecting one option from a set. Supports standalone 
 <StoryWithControls
   component="Radio"
   props={{
-  value: "radio1",
-  disabled: false,
-  checked: false,
-  children: "Radio"
-}}
+    value: 'radio1',
+    disabled: false,
+    checked: false,
+    children: 'Radio',
+  }}
   controls={[
-  {
-    name: "value",
-    label: "Value",
-    type: "text",
-    description: "The value associated with this radio button."
-  },
-  {
-    name: "disabled",
-    label: "Disabled",
-    type: "boolean",
-    description: "Whether the radio button is disabled."
-  },
-  {
-    name: "checked",
-    label: "Checked",
-    type: "boolean",
-    description: "Whether the radio button is checked (controlled mode)."
-  },
-  {
-    name: "children",
-    label: "Children",
-    type: "text",
-    description: "Label text displayed next to the radio button."
-  }
-]}
+    {
+      name: 'value',
+      label: 'Value',
+      type: 'text',
+      description: 'The value associated with this radio button.',
+    },
+    {
+      name: 'disabled',
+      label: 'Disabled',
+      type: 'boolean',
+      description: 'Whether the radio button is disabled.',
+    },
+    {
+      name: 'checked',
+      label: 'Checked',
+      type: 'boolean',
+      description: 'Whether the radio button is checked (controlled mode).',
+    },
+    {
+      name: 'children',
+      label: 'Children',
+      type: 'text',
+      description: 'Label text displayed next to the radio button.',
+    },
+  ]}
 />
 
 ## Try It
@@ -72,13 +72,7 @@ Edit the code below to experiment with the component:
 
 ```tsx live
 function Demo() {
-  return (
-    <Radio
-      value="radio1"
-    >
-      Radio
-    </Radio>
-  );
+  return <Radio value="radio1">Radio</Radio>;
 }
 ```
 
@@ -116,12 +110,12 @@ function VerticalDemo() {
 
 ## Props
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `value` | `string` | `"radio1"` | The value associated with this radio button. |
-| `disabled` | `boolean` | `false` | Whether the radio button is disabled. |
-| `checked` | `boolean` | `false` | Whether the radio button is checked (controlled mode). |
-| `children` | `string` | `"Radio"` | Label text displayed next to the radio button. |
+| Prop       | Type      | Default    | Description                                            |
+| ---------- | --------- | ---------- | ------------------------------------------------------ |
+| `value`    | `string`  | `"radio1"` | The value associated with this radio button.           |
+| `disabled` | `boolean` | `false`    | Whether the radio button is disabled.                  |
+| `checked`  | `boolean` | `false`    | Whether the radio button is checked (controlled mode). |
+| `children` | `string`  | `"Radio"`  | Label text displayed next to the radio button.         |
 
 ## Import
 

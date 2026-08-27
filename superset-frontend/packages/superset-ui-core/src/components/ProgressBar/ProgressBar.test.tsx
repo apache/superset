@@ -60,18 +60,26 @@ test('should render with success icon', () => {
   expect(screen.getByLabelText('check-circle')).toBeInTheDocument();
 });
 
+// The stripes are painted on antd's inner progress track, so assert the
+// computed style of that element — asserting the outer container would pass
+// whether or not the gradient ever reached the track.
+const getTrack = (container: HTMLElement) =>
+  container.querySelector('.ant-progress-track') as HTMLElement;
+
 test('should render with stripes', () => {
   const stripedProps = {
     ...mockedProps,
     striped: true,
   };
   const { container } = render(<ProgressBar {...stripedProps} />);
-  expect(container).toHaveStyle(
-    `background-image: 'linear-gradient(
-      45deg,rgba(255, 255, 255, 0.15) 25%,
-      transparent 25%, transparent 50%,
-      rgba(255, 255, 255, 0.15) 50%,
-      rgba(255, 255, 255, 0.15) 75%,
-      transparent 75%, transparent) !important'`,
+  expect(getComputedStyle(getTrack(container)).backgroundImage).toContain(
+    'linear-gradient(45deg',
+  );
+});
+
+test('should render without stripes by default', () => {
+  const { container } = render(<ProgressBar {...mockedProps} />);
+  expect(getComputedStyle(getTrack(container)).backgroundImage).not.toContain(
+    'linear-gradient',
   );
 });

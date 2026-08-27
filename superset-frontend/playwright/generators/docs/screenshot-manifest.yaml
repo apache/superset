@@ -45,7 +45,7 @@ images:
     alt: ""
     source_file: docs/using-superset/creating-your-first-dashboard.mdx
     app_path: null
-    selector: .ant-modal-content
+    selector: .ant-modal-container
   - type: tutorial
     page_url: "https://superset.apache.org/user-docs/using-superset/creating-your-first-dashboard"
     image_url: "https://superset.apache.org/img/tutorial/tutorial_03a_database_connection_string_link.png"
@@ -53,7 +53,7 @@ images:
     alt: ""
     source_file: docs/using-superset/creating-your-first-dashboard.mdx
     app_path: null
-    selector: .ant-modal-content
+    selector: .ant-modal-container
   - type: tutorial
     page_url: "https://superset.apache.org/user-docs/using-superset/creating-your-first-dashboard"
     image_url: "https://superset.apache.org/img/tutorial/tutorial_03b_connection_string_details.png"
@@ -61,7 +61,7 @@ images:
     alt: ""
     source_file: docs/using-superset/creating-your-first-dashboard.mdx
     app_path: null
-    selector: .ant-modal-content
+    selector: .ant-modal-container
   - type: tutorial
     page_url: "https://superset.apache.org/user-docs/using-superset/creating-your-first-dashboard"
     image_url: "https://superset.apache.org/img/tutorial/tutorial_09_add_new_table.png"
@@ -69,7 +69,7 @@ images:
     alt: ""
     source_file: docs/using-superset/creating-your-first-dashboard.mdx
     app_path: null
-    selector: .ant-modal-content
+    selector: .ant-modal-container
   - type: tutorial
     page_url: "https://superset.apache.org/user-docs/using-superset/creating-your-first-dashboard"
     image_url: "https://superset.apache.org/img/tutorial/tutorial_calculated_column.png"
@@ -93,7 +93,7 @@ images:
     alt: ""
     source_file: docs/using-superset/creating-your-first-dashboard.mdx
     app_path: null
-    selector: .ant-modal-content
+    selector: .ant-modal-container
   - type: tutorial
     page_url: "https://superset.apache.org/user-docs/using-superset/creating-your-first-dashboard"
     image_url: "https://superset.apache.org/img/tutorial/tutorial_explore_run.jpg"
@@ -141,7 +141,7 @@ images:
     alt: ""
     source_file: docs/using-superset/exploring-data.mdx
     app_path: null
-    selector: .ant-modal-content
+    selector: .ant-modal-container
   - type: tutorial
     page_url: "https://superset.apache.org/user-docs/using-superset/exploring-data"
     image_url: "https://superset.apache.org/img/tutorial/annotation.png"
@@ -197,7 +197,7 @@ images:
     alt: ""
     source_file: docs/using-superset/exploring-data.mdx
     app_path: null
-    selector: .ant-modal-content
+    selector: .ant-modal-container
   - type: tutorial
     page_url: "https://superset.apache.org/user-docs/using-superset/exploring-data"
     image_url: "https://superset.apache.org/img/tutorial/markdown.png"
@@ -261,7 +261,7 @@ images:
     alt: ""
     source_file: docs/using-superset/exploring-data.mdx
     app_path: null
-    selector: .ant-modal-content
+    selector: .ant-modal-container
   - type: tutorial
     page_url: "https://superset.apache.org/user-docs/using-superset/exploring-data"
     image_url: "https://superset.apache.org/img/tutorial/select_dates_pivot_table.png"

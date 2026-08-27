@@ -27,13 +27,14 @@ import {
   QueryData,
 } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/theme';
+import { Alert } from '@apache-superset/core/components';
 import { EmptyState, Loading } from '@superset-ui/core/components';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
 import { ResultsPaneProps, QueryResultInterface } from '../types';
 import { SingleQueryResultPane } from './SingleQueryResultPane';
 import { TableControls, ROW_LIMIT_OPTIONS } from './DataTableControls';
 
-const Error = styled.pre`
+const ErrorAlertWrapper = styled.div`
   margin-top: ${({ theme }) => `${theme.sizeUnit * 4}px`};
 `;
 
@@ -199,7 +200,14 @@ export const useResultsPane = ({
           isLoading={false}
           canDownload={canDownload}
         />
-        <Error>{responseError}</Error>
+        <ErrorAlertWrapper>
+          <Alert
+            type="error"
+            showIcon
+            message={t('Failed to load results')}
+            description={responseError}
+          />
+        </ErrorAlertWrapper>
       </>
     );
     return Array(queryCount).fill(err);

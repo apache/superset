@@ -248,6 +248,8 @@ def get_chart_configs_resource() -> str:
         ],
         "general": [
             "Always verify column names with get_dataset_info before charting",
+            "Set temporal_column when dashboard time filters should use a column "
+            "other than the dataset's main temporal column",
             "Use generate_explore_link for preview, generate_chart for saving",
             "Each column label must be unique across the entire configuration",
             "Column names must match: ^[a-zA-Z0-9_][a-zA-Z0-9_ \\-\\.]*$",

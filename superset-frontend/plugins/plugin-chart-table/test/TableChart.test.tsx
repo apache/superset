@@ -20,6 +20,7 @@ import '@testing-library/jest-dom';
 import {
   getTextColorForBackground,
   ObjectFormattingEnum,
+  ColorSchemeEnum,
 } from '@superset-ui/chart-controls';
 import { supersetTheme } from '@apache-superset/core/theme';
 import {
@@ -2075,6 +2076,82 @@ describe('plugin-chart-table', () => {
         });
       });
 
+      test('does not crash when a comparison-color-formatter array has no entry for a rendered row', () => {
+        // Regression test: the per-cell comparison-color lookups in the Cell
+        // renderer (`basicColorFormatters`/`basicColorColumnFormatters`,
+        // indexed by `row.index`) must stay safe even if those arrays ever
+        // end up with fewer entries than the number of rendered rows -- e.g.
+        // when "Show summary" is combined with time comparison and a
+        // comparison-based conditional color scheme ("Green for increase,
+        // red for decrease") applied to a Time Comparison column. Without
+        // the `?.` guard on the array-index lookup, this throws
+        // `TypeError: Cannot read properties of undefined (reading 'Main
+        // metric_1')`.
+        const propsInput = {
+          ...testData.comparison,
+          rawFormData: {
+            ...testData.comparison.rawFormData,
+            conditional_formatting: [
+              { column: 'Main metric_1', colorScheme: ColorSchemeEnum.Green },
+            ],
+          },
+        };
+        const transformedProps = transformProps(propsInput);
+        expect(transformedProps.data).toHaveLength(2);
+        expect(transformedProps.basicColorColumnFormatters).toHaveLength(2);
+
+        // Simulate the row-count mismatch: the formatter array has an entry
+        // for only the first row, matching the shape of the bug (an entry
+        // missing for one of the rendered rows).
+        const propsWithMissingFormatterEntry = {
+          ...transformedProps,
+          basicColorColumnFormatters:
+            transformedProps.basicColorColumnFormatters!.slice(0, 1),
+        };
+
+        expect(() =>
+          render(
+            ProviderWrapper({
+              children: (
+                <TableChart
+                  {...propsWithMissingFormatterEntry}
+                  sticky={false}
+                />
+              ),
+            }),
+          ),
+        ).not.toThrow();
+
+        // the row that still has a formatter entry keeps its comparison
+        // background color and arrow: the "Main metric_1" cell for the
+        // first row (value 100) renders before the derived "△ metric_1"
+        // cell that happens to share the same value and aria label.
+        const [styledCell] = screen.getAllByTitle('100');
+        expect(styledCell).toHaveTextContent('↑100');
+        expect(getComputedStyle(styledCell).background).toContain(
+          'rgba(0, 150, 0, 0.2)',
+        );
+
+        // the row missing a formatter entry falls back to the row-level
+        // comparison arrow instead of losing it: before the fix, this row's
+        // arrow was silently cleared (and its color, computed the same way,
+        // would have flipped to the "decrease" color) whenever the
+        // column-specific lookup for this row was undefined.
+        const arrowCell = screen
+          .getAllByTitle('110')
+          .find(cell => cell.querySelector('span'));
+        expect(arrowCell).toHaveTextContent('↑110');
+        expect(getComputedStyle(arrowCell!).background).toContain(
+          'rgba(0, 150, 0, 0.2)',
+        );
+        // the fallback arrow itself must also keep the "increase" color --
+        // asserting only the cell background would still pass if the arrow's
+        // own color had regressed to the "decrease" color.
+        expect(arrowCell!.querySelector('span')).toHaveStyle({
+          color: supersetTheme.colorSuccess,
+        });
+      });
+
       test('preserves client-side search text across temporal table rerenders', async () => {
         const formDataWithSearch = {
           ...testData.basic.formData,
@@ -2292,6 +2369,104 @@ describe('plugin-chart-table', () => {
       });
     });
 
+    test('should not reset pagination when a cell is clicked and data re-renders (#42010)', async () => {
+      const setDataMask = jest.fn();
+      const data30 = Array.from({ length: 30 }, (_, i) => ({
+        name: `User ${i + 1}`,
+        sum__num: (i + 1) * 100,
+      }));
+      const filteredData = data30.slice(0, 15);
+
+      const props = transformProps({
+        ...testData.basic,
+        rawFormData: {
+          ...testData.basic.rawFormData,
+          page_length: 10,
+          metrics: ['sum__num'],
+          groupby: ['name'],
+        },
+        queriesData: [
+          {
+            ...testData.basic.queriesData[0],
+            colnames: ['name', 'sum__num'],
+            coltypes: [GenericDataType.String, GenericDataType.Numeric],
+            data: data30,
+          },
+        ],
+        hooks: { setDataMask },
+        emitCrossFilters: true,
+      });
+
+      const { container, rerender } = render(
+        <ProviderWrapper>
+          <TableChart
+            {...props}
+            emitCrossFilters
+            setDataMask={setDataMask}
+            sticky={false}
+          />
+        </ProviderWrapper>,
+      );
+
+      expect(screen.getByText('User 1')).toBeInTheDocument();
+      expect(screen.queryByText('User 11')).not.toBeInTheDocument();
+
+      // The pagination bar is styled `visibility: hidden` until sticky
+      // height is measured, which jsdom never reports. Accessible-name
+      // computation treats CSS-hidden elements as nameless regardless of
+      // the `hidden: true` query option, so query the button directly by
+      // its `aria-label` instead of through the accessibility tree.
+      const page2Link = container.querySelector('button[aria-label="2"]')!;
+      expect(page2Link).toBeTruthy();
+      fireEvent.click(page2Link);
+
+      await waitFor(() => {
+        expect(screen.getByText('User 11')).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByText('User 11'));
+      expect(setDataMask).toHaveBeenCalled();
+
+      const filteredProps = transformProps({
+        ...testData.basic,
+        rawFormData: {
+          ...testData.basic.rawFormData,
+          page_length: 10,
+          metrics: ['sum__num'],
+          groupby: ['name'],
+        },
+        queriesData: [
+          {
+            ...testData.basic.queriesData[0],
+            colnames: ['name', 'sum__num'],
+            coltypes: [GenericDataType.String, GenericDataType.Numeric],
+            data: filteredData,
+          },
+        ],
+        hooks: { setDataMask },
+        emitCrossFilters: true,
+      });
+
+      rerender(
+        <ProviderWrapper>
+          <TableChart
+            {...filteredProps}
+            emitCrossFilters
+            setDataMask={setDataMask}
+            sticky={false}
+          />
+        </ProviderWrapper>,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('User 11')).toBeInTheDocument();
+        expect(screen.queryByText('User 1')).not.toBeInTheDocument();
+      });
+
+      const activePage = container.querySelector('li.active button')!;
+      expect(activePage).toHaveTextContent('2');
+    });
+
     test('should build columnLabelToNameMap for adhoc columns with custom labels', () => {
       const result = transformProps({
         ...testData.basic,
@@ -2432,6 +2607,111 @@ describe('plugin-chart-table', () => {
       expect(filters[0].val).toEqual(['Michael']);
     });
   });
+
+  test('does not render "Search by" if there are no search options (server pagination enabled)', () => {
+    const props = transformProps({
+      ...testData.raw,
+      rawFormData: {
+        ...testData.raw.rawFormData,
+        server_pagination: true,
+        include_search: true,
+      },
+      queriesData: [
+        {
+          ...testData.raw.queriesData[0],
+          colnames: ['num'],
+          coltypes: [GenericDataType.Numeric],
+          data: [{ num: 1 }, { num: 2 }],
+        },
+      ],
+    });
+    render(
+      ProviderWrapper({
+        children: <TableChart {...props} sticky={false} />,
+      }),
+    );
+    expect(screen.queryByText('Search by')).not.toBeInTheDocument();
+  });
+
+  test('renders "Search by" if include_search is true and there are search options (server pagination enabled)', () => {
+    const props = transformProps({
+      ...testData.raw,
+      rawFormData: {
+        ...testData.raw.rawFormData,
+        server_pagination: true,
+        include_search: true,
+      },
+      queriesData: [
+        {
+          ...testData.raw.queriesData[0],
+          colnames: ['name'],
+          coltypes: [GenericDataType.String],
+          data: [{ name: 'Michael' }, { name: 'John' }],
+        },
+      ],
+    });
+    render(
+      ProviderWrapper({
+        children: <TableChart {...props} sticky={false} />,
+      }),
+    );
+    expect(screen.queryByText('Search by')).toBeInTheDocument();
+  });
+
+  test(
+    'should read the totals row from the correct query when percent metrics ' +
+      'use the "all records" calculation mode',
+    () => {
+      // When `percent_metric_calculation` is `all_records`, buildQuery adds an
+      // extra query (used to compute percentages against the entire result set)
+      // *before* the totals query in `queriesData`. Verify totals are still
+      // sourced from the actual totals query and not this preceding query.
+      const props = {
+        ...testData.basic,
+        rawFormData: {
+          ...testData.basic.rawFormData,
+          query_mode: QueryMode.Aggregate,
+          metrics: ['sum__num'],
+          percent_metrics: ['count'],
+          percent_metric_calculation: 'all_records',
+          show_totals: true,
+          column_config: {
+            sum__num: { d3NumberFormat: '.0%' },
+          },
+        },
+        queriesData: [
+          {
+            ...testData.basic.queriesData[0],
+            colnames: ['name', 'sum__num', '%count'],
+            coltypes: [
+              GenericDataType.String,
+              GenericDataType.Numeric,
+              GenericDataType.Numeric,
+            ],
+            data: [{ name: 'Michael', sum__num: 0.1, '%count': 0.05 }],
+          },
+          // extra "all records" query used only to compute percent metrics
+          {
+            ...testData.basic.queriesData[0],
+            colnames: ['count'],
+            coltypes: [GenericDataType.Numeric],
+            data: [{ count: 999 }],
+          },
+          // actual totals query
+          {
+            ...testData.basic.queriesData[0],
+            colnames: ['sum__num'],
+            coltypes: [GenericDataType.Numeric],
+            data: [{ sum__num: 0.27 }],
+          },
+        ],
+      };
+
+      const transformedProps = transformProps(props);
+
+      expect(transformedProps.totals).toEqual({ sum__num: 0.27 });
+    },
+  );
 });
 
 /**

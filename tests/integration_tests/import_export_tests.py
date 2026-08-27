@@ -134,7 +134,9 @@ class TestImportExport(SupersetTestCase):
             params=json.dumps(params),
         )
         for col_name in cols_names:
-            table.columns.append(TableColumn(column_name=col_name))
+            column = TableColumn(column_name=col_name)
+            db.session.add(column)
+            table.columns.append(column)
         for metric_name in metric_names:
             table.metrics.append(SqlMetric(metric_name=metric_name, expression=""))
         return table
@@ -488,6 +490,56 @@ class TestImportExport(SupersetTestCase):
             "import_time": 1992,
             "native_filter_configuration": [],
         } == json.loads(imported_dash.json_metadata)
+
+    def test_import_dashboard_expand_all_slices_false(self) -> None:
+        dash = self.create_dashboard("dash", slcs=[], id=10005)
+        dash.json_metadata = json.dumps(
+            {
+                "remote_id": 10005,
+                "expand_all_slices": False,
+            }
+        )
+
+        imported_dash_id = import_dashboard(dash, import_time=1991)
+        imported_dash = self.get_dash(imported_dash_id)
+
+        expected_dash = self.create_dashboard("dash", slcs=[], id=10005)
+        make_transient(expected_dash)
+        self.assert_dash_equals(
+            imported_dash, expected_dash, check_position=False, check_slugs=False
+        )
+        expected_json_metadata = {
+            "remote_id": 10005,
+            "import_time": 1991,
+            "expand_all_slices": False,
+            "native_filter_configuration": [],
+        }
+        assert expected_json_metadata == json.loads(imported_dash.json_metadata)
+
+    def test_import_dashboard_expand_all_slices_true(self) -> None:
+        dash = self.create_dashboard("dash", slcs=[], id=10006)
+        dash.json_metadata = json.dumps(
+            {
+                "remote_id": 10006,
+                "expand_all_slices": True,
+            }
+        )
+
+        imported_dash_id = import_dashboard(dash, import_time=1991)
+        imported_dash = self.get_dash(imported_dash_id)
+
+        expected_dash = self.create_dashboard("dash", slcs=[], id=10006)
+        make_transient(expected_dash)
+        self.assert_dash_equals(
+            imported_dash, expected_dash, check_position=False, check_slugs=False
+        )
+        expected_json_metadata = {
+            "remote_id": 10006,
+            "import_time": 1991,
+            "expand_all_slices": True,
+            "native_filter_configuration": [],
+        }
+        assert expected_json_metadata == json.loads(imported_dash.json_metadata)
 
     def test_import_new_dashboard_slice_reset_ownership(self):
         admin_user = security_manager.find_user(username="admin")

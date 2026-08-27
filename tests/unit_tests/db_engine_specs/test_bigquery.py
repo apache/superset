@@ -430,6 +430,78 @@ def test_get_default_catalog(mocker: MockerFixture) -> None:
     assert BigQueryEngineSpec.get_default_catalog(database) == "project"
 
 
+@pytest.mark.parametrize(
+    ("sqlalchemy_uri", "schema", "expected_project"),
+    [
+        ("bigquery://uri-project", None, "uri-project"),
+        ("bigquery:///uri-project", None, "uri-project"),
+        ("bigquery://", "dataset_name", None),
+    ],
+)
+def test_get_client_resolves_uri_project_with_service_account_credentials(
+    mocker: MockerFixture,
+    sqlalchemy_uri: str,
+    schema: str | None,
+    expected_project: str | None,
+) -> None:
+    """Test that service-account clients use the project from the engine URI."""
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+
+    credentials_info = {"project_id": "credential-project"}
+    credentials = mock.Mock()
+    engine = mock.MagicMock()
+    engine.url = BigQueryEngineSpec.adjust_engine_params(
+        make_url(sqlalchemy_uri), {}, schema=schema
+    )[0]
+    engine.dialect.credentials_info = credentials_info
+    create_credentials = mocker.patch(
+        "superset.db_engine_specs.bigquery.service_account.Credentials."
+        "from_service_account_info",
+        return_value=credentials,
+    )
+    client = mocker.patch("superset.db_engine_specs.bigquery.bigquery.Client")
+
+    BigQueryEngineSpec._get_client(engine, mock.Mock())
+
+    create_credentials.assert_called_once_with(credentials_info)
+    client.assert_called_once_with(credentials=credentials, project=expected_project)
+
+
+@pytest.mark.parametrize(
+    ("sqlalchemy_uri", "schema", "expected_project"),
+    [
+        ("bigquery://uri-project", None, "uri-project"),
+        ("bigquery:///uri-project", None, "uri-project"),
+        ("bigquery://", "dataset_name", None),
+    ],
+)
+def test_get_client_resolves_uri_project_with_application_default_credentials(
+    mocker: MockerFixture,
+    sqlalchemy_uri: str,
+    schema: str | None,
+    expected_project: str | None,
+) -> None:
+    """Test that ADC clients use the project from the engine URI."""
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+
+    credentials = mock.Mock()
+    engine = mock.MagicMock()
+    engine.url = BigQueryEngineSpec.adjust_engine_params(
+        make_url(sqlalchemy_uri), {}, schema=schema
+    )[0]
+    engine.dialect.credentials_info = None
+    get_default_credentials = mocker.patch(
+        "superset.db_engine_specs.bigquery.google.auth.default",
+        return_value=(credentials, "credential-project"),
+    )
+    client = mocker.patch("superset.db_engine_specs.bigquery.bigquery.Client")
+
+    BigQueryEngineSpec._get_client(engine, mock.Mock())
+
+    get_default_credentials.assert_called_once_with()
+    client.assert_called_once_with(credentials=credentials, project=expected_project)
+
+
 def test_get_time_partition_column_uses_catalog_in_table_reference(
     mocker: MockerFixture,
 ) -> None:
@@ -643,12 +715,33 @@ def _patch_bq_fetch_deps(
     mocker: MockerFixture, max_mb: int = 200
 ) -> tuple[mock.MagicMock, mock.MagicMock]:
     """Helper to patch Flask g and current_app for BigQuery fetch_data tests."""
-    flask_g = mocker.patch("superset.db_engine_specs.bigquery.g")
-    app = mocker.patch("superset.db_engine_specs.bigquery.current_app")
+    # `new_callable=mock.MagicMock` is pinned explicitly rather than relying on
+    # ``mocker.patch``'s auto-detection of the mock class. That detection
+    # inspects whatever object currently sits at the patched attribute, so if
+    # an earlier test in the same session ever leaves an ``AsyncMock`` there
+    # (e.g. an improperly torn-down patch), every subsequent patch of the same
+    # attribute -- even ones created fresh here -- would also become an
+    # ``AsyncMock``, since ``AsyncMock`` classifies its own non-dunder child
+    # attributes as ``AsyncMock`` too. Pinning the callable sidesteps that
+    # self-perpetuating class inference entirely.
+    flask_g = mocker.patch(
+        "superset.db_engine_specs.bigquery.g", new_callable=mock.MagicMock
+    )
+    app = mocker.patch(
+        "superset.db_engine_specs.bigquery.current_app", new_callable=mock.MagicMock
+    )
     # Make current_app truthy and .config.get() return a plain int
     app.__bool__ = mock.Mock(return_value=True)
     app.config = mock.MagicMock()
     app.config.get = mock.Mock(return_value=max_mb)
+    # ``fetch_data`` only records ``g.bq_memory_limited*`` when
+    # ``has_request_context()`` is true. Outside of a real Flask request
+    # (as in these unit tests) that's always false, so without patching it
+    # the assignments never happen and the mocked ``g`` attributes stay
+    # unset child mocks instead of the expected booleans/counts.
+    mocker.patch(
+        "superset.db_engine_specs.bigquery.has_request_context", return_value=True
+    )
     return flask_g, app
 
 
@@ -1029,3 +1122,15 @@ def test_monkeypatch_handles_missing_bigquery_package() -> None:
     with mock.patch("builtins.__import__", side_effect=mock_import):
         # Should not raise — the except ImportError branch handles it
         _monkeypatch_bigquery_string_literal()
+
+
+def test_identifier_quote_uses_backticks() -> None:
+    """BigQuery quotes identifiers with backticks, not ANSI double quotes, and
+    escapes an embedded backtick with a backslash rather than by doubling it."""
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+
+    assert BigQueryEngineSpec.get_public_information()["identifier_quote"] == {
+        "start": "`",
+        "end": "`",
+        "escape_by_doubling": False,
+    }

@@ -80,9 +80,9 @@ def _create_energy_table() -> list[Slice]:
 
     if not any(col.metric_name == "sum__value" for col in table.metrics):
         col = str(column("value").compile(db.engine))
-        table.metrics.append(
-            SqlMetric(metric_name="sum__value", expression=f"SUM({col})")
-        )
+        metric = SqlMetric(metric_name="sum__value", expression=f"SUM({col})")
+        db.session.add(metric)
+        table.metrics.append(metric)
     table.fetch_metadata()
 
     slices = []
