@@ -505,7 +505,7 @@ All MCP settings go in `superset_config.py`. Defaults are defined in `superset/m
 | `MCP_DEV_USERNAME`   | --            | Superset username for development mode (no auth)                                                                                                                                                                                                                             |
 | `MCP_RBAC_ENABLED`   | `True`        | Enforce Superset's role-based access control on MCP tool calls. When `True`, each tool checks that the authenticated user has the required FAB permission before executing. Disable only for testing or trusted-network deployments.                                         |
 | `MCP_DISABLED_TOOLS` | `set()`       | Set of tool names to remove from the MCP server at startup. Disabled tools are never advertised to AI clients during tool discovery. Useful when a custom extension tool should replace a built-in Superset tool. See [Disabling built-in tools](#disabling-built-in-tools). |
-| `MCP_DISABLED_CHART_PLUGINS` | `frozenset()` | Set of chart type plugin names (e.g. `"handlebars"`) to hide from `generate_chart` and related chart tools. See [Disabling chart type plugins](#disabling-chart-type-plugins). |
+| `MCP_DISABLED_CHART_PLUGINS` | `frozenset()` | Set of chart type plugin names (e.g. `"handlebars"`) to hide from `generate_chart`. Does not affect `get_chart_type_schema`. See [Disabling chart type plugins](#disabling-chart-type-plugins). |
 | `MCP_CHART_PLUGIN_ENABLED_FUNC` | `None`        | Callable `(chart_type: str) -> bool` evaluated per registry lookup for dynamic enable/disable decisions. Takes precedence over `MCP_DISABLED_CHART_PLUGINS` when set. See [Disabling chart type plugins](#disabling-chart-type-plugins). |
 
 ### Authentication
@@ -897,7 +897,7 @@ Specifying a tool name that does not exist logs a warning at startup and is othe
 
 ## Disabling chart type plugins
 
-The `generate_chart` tool dispatches per chart type (`xy`, `table`, `pie`, `pivot_table`, `mixed_timeseries`, `handlebars`, `big_number`) to a registered chart type plugin. Two settings let operators enable or disable individual chart type plugins at runtime, without a code deploy.
+The `generate_chart` tool dispatches per chart type (`xy`, `table`, `pie`, `pivot_table`, `mixed_timeseries`, `handlebars`, `big_number`, `histogram`, `box_plot`, `waterfall`) to a registered chart type plugin. Two settings let operators enable or disable individual chart type plugins at runtime, without a code deploy.
 
 ### Static deny-list
 
@@ -910,7 +910,7 @@ Set `MCP_DISABLED_CHART_PLUGINS` in your `superset_config.py` to a set of chart 
 MCP_DISABLED_CHART_PLUGINS = {"handlebars"}
 ```
 
-Disabled chart types are removed from the registry at startup and are never listed in `generate_chart`'s supported chart types.
+Disabled chart types are removed from the registry at startup and are never listed in `generate_chart`'s supported chart types. `get_chart_type_schema` consults its own static schema/example map rather than the registry filter, so a disabled chart type's schema remains queryable through that tool even though `generate_chart` will reject it.
 
 ### Dynamic predicate
 
