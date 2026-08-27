@@ -44,6 +44,15 @@ QUERY_CONTEXT_EXTRA_FORM_DATA_OVERRIDE_KEYS = {
     "time_range",
 }
 
+# Of the keys above, these are not query object fields: the query object carries
+# the time grain inside ``extras`` (see ChartDataExtrasSchema), mirroring how
+# form_data is translated in superset.common.form_data_query_context. Writing
+# them at the top level instead means ChartDataQueryObjectSchema, which is
+# configured with ``unknown = EXCLUDE``, silently drops the override.
+QUERY_CONTEXT_EXTRA_FORM_DATA_EXTRAS_KEYS = {
+    "time_grain_sqla",
+}
+
 
 class ChartNotOnDashboardError(ValueError):
     """Raised when a chart is not part of the given dashboard's slices."""
@@ -249,7 +258,10 @@ def merge_form_data_filters_into_query(
             and key in form_data
             and form_data[key] is not None
         ):
-            query[key] = form_data[key]
+            if key in QUERY_CONTEXT_EXTRA_FORM_DATA_EXTRAS_KEYS:
+                query["extras"] = {**(query.get("extras") or {}), key: form_data[key]}
+            else:
+                query[key] = form_data[key]
 
     for clause in ("where", "having"):
         if additional_clause := form_data.get(clause):
