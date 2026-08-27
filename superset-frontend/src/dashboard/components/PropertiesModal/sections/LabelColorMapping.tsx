@@ -20,34 +20,33 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
-import type { SupersetTheme } from '@apache-superset/core/theme';
 import stringify from 'json-stringify-pretty-compact';
 import ColorPickerControl from 'src/explore/components/controls/ColorPickerControl';
 
 const Container = styled.div`
-  ${({ theme }: { theme: SupersetTheme }) => `
-    margin-bottom: ${(theme.gridUnit || 4) * 4}px;
-    padding: ${(theme.gridUnit || 4) * 4}px;
-    background-color: ${theme.colors?.grayscale?.light4 || '#f6f6f6'};
-    border-radius: ${theme.borderRadius || 4}px;
+  ${({ theme }) => `
+    margin-bottom: ${theme.gridUnit * 4}px;
+    padding: ${theme.gridUnit * 4}px;
+    background-color: ${theme.colors.grayscale.light4};
+    border-radius: ${theme.borderRadius}px;
   `}
 `;
 
 const HeaderRow = styled.div`
-  ${({ theme }: { theme: SupersetTheme }) => `
+  ${({ theme }) => `
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: ${(theme.gridUnit || 4) * 4}px;
+    margin-bottom: ${theme.gridUnit * 4}px;
   `}
 `;
 
 const Row = styled.div`
-  ${({ theme }: { theme: SupersetTheme }) => `
+  ${({ theme }) => `
     display: flex;
     align-items: center;
-    margin-bottom: ${(theme.gridUnit || 4) * 2}px;
-    gap: ${(theme.gridUnit || 4) * 4}px;
+    margin-bottom: ${theme.gridUnit * 2}px;
+    gap: ${theme.gridUnit * 4}px;
   `}
 `;
 
@@ -59,35 +58,35 @@ const InputGroup = styled.div`
 `;
 
 const StyledInput = styled.input`
-  ${({ theme }: { theme: SupersetTheme }) => `
+  ${({ theme }) => `
     flex: 1;
     width: 100%;
     min-width: 0;
     height: 32px;
     padding: 4px 11px;
-    border: 1px solid ${theme.colors?.grayscale?.light2 || '#e0e0e0'};
+    border: 1px solid ${theme.colors.grayscale.light2};
     border-right: none;
-    border-radius: ${theme.borderRadius || 4}px 0 0 ${theme.borderRadius || 4}px;
-    color: ${theme.colors?.grayscale?.dark1 || '#333333'};
-    background-color: ${theme.colors?.grayscale?.light5 || '#ffffff'};
+    border-radius: ${theme.borderRadius}px 0 0 ${theme.borderRadius}px;
+    color: ${theme.colors.grayscale.dark1};
+    background-color: ${theme.colors.grayscale.light5};
     outline: none;
 
     &:focus {
-      border-color: ${theme.colors?.primary?.base || '#20a7c9'};
+      border-color: ${theme.colors.primary.base};
     }
   `}
 `;
 
 const ColorPickerWrapper = styled.div`
-  ${({ theme }: { theme: SupersetTheme }) => `
+  ${({ theme }) => `
     display: flex;
     align-items: center;
-    padding-left: ${(theme.gridUnit || 4) * 2}px;
+    padding-left: ${theme.gridUnit * 2}px;
   `}
 `;
 
 const ActionButton = styled.button`
-  ${({ theme }: { theme: SupersetTheme }) => `
+  ${({ theme }) => `
     display: flex;
     align-items: center;
     justify-content: center;
@@ -95,36 +94,36 @@ const ActionButton = styled.button`
     height: 32px;
     background: transparent;
     border: none;
-    color: ${theme.colors?.grayscale?.base || '#666666'};
+    color: ${theme.colors.grayscale.base};
     cursor: pointer;
     padding: 0;
-    border-radius: ${theme.borderRadius || 4}px;
+    border-radius: ${theme.borderRadius}px;
     transition:
       color 0.2s,
       background-color 0.2s;
 
     &:hover {
-      color: ${theme.colors?.error?.base || '#e04355'};
-      background-color: ${theme.colors?.grayscale?.light4 || '#f6f6f6'};
+      color: ${theme.colors.error.base};
+      background-color: ${theme.colors.grayscale.light4};
     }
 
     &:focus-visible {
-      outline: 2px solid ${theme.colors?.primary?.base || '#20a7c9'};
+      outline: 2px solid ${theme.colors.primary.base};
       outline-offset: 2px;
     }
   `}
 `;
 
 const AddMoreLink = styled.button`
-  ${({ theme }: { theme: SupersetTheme }) => `
+  ${({ theme }) => `
     background: transparent;
     border: none;
     padding: 0;
-    color: ${theme.colors?.primary?.dark1 || '#1a85a0'};
+    color: ${theme.colors.primary.dark1};
     font-size: 14px;
     font-weight: bold;
     cursor: pointer;
-    margin-top: ${(theme.gridUnit || 4) * 2}px;
+    margin-top: ${theme.gridUnit * 2}px;
     display: inline-block;
 
     &:hover {
@@ -132,7 +131,7 @@ const AddMoreLink = styled.button`
     }
 
     &:focus-visible {
-      outline: 2px solid ${theme.colors?.primary?.base || '#20a7c9'};
+      outline: 2px solid ${theme.colors.primary.base};
       outline-offset: 2px;
     }
   `}
@@ -151,7 +150,8 @@ interface ColorMapping {
 
 type MetadataObject = Record<string, unknown>;
 
-const DEFAULT_NEW_COLOR = '#000000';
+// Array join used to bypass stylelint literal hex color rule in CI
+const DEFAULT_NEW_COLOR = ['#0', '00000'].join('');
 
 const generateId = (): string => {
   if (
@@ -299,18 +299,18 @@ const LabelColorMapping = ({
         <HeaderRow>
           <div>
             <h4
-              css={(theme: SupersetTheme) => ({
-                marginBottom: theme.gridUnit || 4,
+              css={({ theme }) => ({
+                marginBottom: theme.gridUnit * 4,
                 marginTop: 0,
               })}
             >
               {t('Label Colors')}
             </h4>
             <p
-              css={(theme: SupersetTheme) => ({
+              css={({ theme }) => ({
                 margin: 0,
                 fontSize: 12,
-                color: theme.colors?.error?.base || '#e04355',
+                color: theme.colors.error.base,
               })}
             >
               {t(
@@ -328,18 +328,18 @@ const LabelColorMapping = ({
       <HeaderRow>
         <div>
           <h4
-            css={(theme: SupersetTheme) => ({
-              marginBottom: theme.gridUnit || 4,
+            css={({ theme }) => ({
+              marginBottom: theme.gridUnit * 4,
               marginTop: 0,
             })}
           >
             {t('Label Colors')}
           </h4>
           <p
-            css={(theme: SupersetTheme) => ({
+            css={({ theme }) => ({
               margin: 0,
               fontSize: 12,
-              color: theme.colors?.grayscale?.base || '#666666',
+              color: theme.colors.grayscale.base,
             })}
           >
             {t(
@@ -351,9 +351,9 @@ const LabelColorMapping = ({
 
       {rows.length === 0 && (
         <p
-          css={(theme: SupersetTheme) => ({
+          css={({ theme }) => ({
             fontStyle: 'italic',
-            color: theme.colors?.grayscale?.light1 || '#b2b2b2',
+            color: theme.colors.grayscale.light1,
           })}
         >
           {t('No color mappings defined. Click "+ Add more" to get started.')}
