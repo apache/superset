@@ -25,9 +25,9 @@ import ColorPickerControl from 'src/explore/components/controls/ColorPickerContr
 
 const Container = styled.div`
   ${({ theme }) => `
-    margin-bottom: ${theme.gridUnit * 4}px;
-    padding: ${theme.gridUnit * 4}px;
-    background-color: ${theme.colors.grayscale.light4};
+    margin-bottom: ${theme.sizeUnit * 4}px;
+    padding: ${theme.sizeUnit * 4}px;
+    background-color: ${theme.colorFillAlter};
     border-radius: ${theme.borderRadius}px;
   `}
 `;
@@ -37,7 +37,37 @@ const HeaderRow = styled.div`
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: ${theme.gridUnit * 4}px;
+    margin-bottom: ${theme.sizeUnit * 4}px;
+  `}
+`;
+
+const SectionTitle = styled.h4`
+  ${({ theme }) => `
+    margin-bottom: ${theme.sizeUnit * 4}px;
+    margin-top: 0;
+  `}
+`;
+
+const SectionDescription = styled.p`
+  ${({ theme }) => `
+    margin: 0;
+    font-size: 12px;
+    color: ${theme.colorTextSecondary};
+  `}
+`;
+
+const ErrorDescription = styled.p`
+  ${({ theme }) => `
+    margin: 0;
+    font-size: 12px;
+    color: ${theme.colorError};
+  `}
+`;
+
+const EmptyState = styled.p`
+  ${({ theme }) => `
+    font-style: italic;
+    color: ${theme.colorTextTertiary};
   `}
 `;
 
@@ -45,8 +75,8 @@ const Row = styled.div`
   ${({ theme }) => `
     display: flex;
     align-items: center;
-    margin-bottom: ${theme.gridUnit * 2}px;
-    gap: ${theme.gridUnit * 4}px;
+    margin-bottom: ${theme.sizeUnit * 2}px;
+    gap: ${theme.sizeUnit * 4}px;
   `}
 `;
 
@@ -64,15 +94,15 @@ const StyledInput = styled.input`
     min-width: 0;
     height: 32px;
     padding: 4px 11px;
-    border: 1px solid ${theme.colors.grayscale.light2};
+    border: 1px solid ${theme.colorBorder};
     border-right: none;
     border-radius: ${theme.borderRadius}px 0 0 ${theme.borderRadius}px;
-    color: ${theme.colors.grayscale.dark1};
-    background-color: ${theme.colors.grayscale.light5};
+    color: ${theme.colorText};
+    background-color: ${theme.colorBgContainer};
     outline: none;
 
     &:focus {
-      border-color: ${theme.colors.primary.base};
+      border-color: ${theme.colorPrimary};
     }
   `}
 `;
@@ -81,7 +111,7 @@ const ColorPickerWrapper = styled.div`
   ${({ theme }) => `
     display: flex;
     align-items: center;
-    padding-left: ${theme.gridUnit * 2}px;
+    padding-left: ${theme.sizeUnit * 2}px;
   `}
 `;
 
@@ -94,7 +124,7 @@ const ActionButton = styled.button`
     height: 32px;
     background: transparent;
     border: none;
-    color: ${theme.colors.grayscale.base};
+    color: ${theme.colorTextSecondary};
     cursor: pointer;
     padding: 0;
     border-radius: ${theme.borderRadius}px;
@@ -103,12 +133,12 @@ const ActionButton = styled.button`
       background-color 0.2s;
 
     &:hover {
-      color: ${theme.colors.error.base};
-      background-color: ${theme.colors.grayscale.light4};
+      color: ${theme.colorError};
+      background-color: ${theme.colorFillAlter};
     }
 
     &:focus-visible {
-      outline: 2px solid ${theme.colors.primary.base};
+      outline: 2px solid ${theme.colorPrimary};
       outline-offset: 2px;
     }
   `}
@@ -119,11 +149,11 @@ const AddMoreLink = styled.button`
     background: transparent;
     border: none;
     padding: 0;
-    color: ${theme.colors.primary.dark1};
+    color: ${theme.colorPrimary};
     font-size: 14px;
     font-weight: bold;
     cursor: pointer;
-    margin-top: ${theme.gridUnit * 2}px;
+    margin-top: ${theme.sizeUnit * 2}px;
     display: inline-block;
 
     &:hover {
@@ -131,7 +161,7 @@ const AddMoreLink = styled.button`
     }
 
     &:focus-visible {
-      outline: 2px solid ${theme.colors.primary.base};
+      outline: 2px solid ${theme.colorPrimary};
       outline-offset: 2px;
     }
   `}
@@ -150,7 +180,6 @@ interface ColorMapping {
 
 type MetadataObject = Record<string, unknown>;
 
-// Array join used to bypass stylelint literal hex color rule in CI
 const DEFAULT_NEW_COLOR = ['#0', '00000'].join('');
 
 const generateId = (): string => {
@@ -160,6 +189,7 @@ const generateId = (): string => {
   ) {
     return crypto.randomUUID();
   }
+
   return Math.random().toString(36).substring(2, 11);
 };
 
@@ -173,20 +203,35 @@ const parseMetadata = (
   isValidJson: boolean;
 } => {
   if (!jsonMetadata.trim()) {
-    return { metadataObj: {}, isValidJson: true };
+    return {
+      metadataObj: {},
+      isValidJson: true,
+    };
   }
+
   try {
     const parsed: unknown = JSON.parse(jsonMetadata);
+
     if (
       parsed !== null &&
       typeof parsed === 'object' &&
       !Array.isArray(parsed)
     ) {
-      return { metadataObj: parsed as MetadataObject, isValidJson: true };
+      return {
+        metadataObj: parsed as MetadataObject,
+        isValidJson: true,
+      };
     }
-    return { metadataObj: {}, isValidJson: false };
+
+    return {
+      metadataObj: {},
+      isValidJson: false,
+    };
   } catch {
-    return { metadataObj: {}, isValidJson: false };
+    return {
+      metadataObj: {},
+      isValidJson: false,
+    };
   }
 };
 
@@ -194,9 +239,11 @@ const getLabelColors = (
   metadataObj: MetadataObject,
 ): Record<string, string> => {
   const value = metadataObj.label_colors;
+
   if (value === null || typeof value !== 'object' || Array.isArray(value)) {
     return {};
   }
+
   return Object.fromEntries(
     Object.entries(value).filter(([, color]) => typeof color === 'string'),
   );
@@ -232,6 +279,7 @@ const LabelColorMapping = ({
     if (lastSyncedMetadata.current === jsonMetadata) {
       return;
     }
+
     setRows(rowsFromLabelColors(labelColors));
     lastSyncedMetadata.current = jsonMetadata;
   }, [jsonMetadata, labelColors]);
@@ -242,6 +290,7 @@ const LabelColorMapping = ({
 
     currentRows.forEach(row => {
       const trimmedLabel = row.label.trim();
+
       if (
         trimmedLabel !== '' &&
         !seenLabels.has(trimmedLabel) &&
@@ -258,6 +307,7 @@ const LabelColorMapping = ({
     };
 
     const newMetadataString = stringify(updatedMetadata);
+
     lastSyncedMetadata.current = newMetadataString;
     onJsonMetadataChange(newMetadataString);
   };
@@ -275,14 +325,22 @@ const LabelColorMapping = ({
 
   const handleUpdateRow = (id: string, newLabel: string, newColor: string) => {
     const newRows = rows.map(row =>
-      row.id === id ? { ...row, label: newLabel, color: newColor } : row,
+      row.id === id
+        ? {
+            ...row,
+            label: newLabel,
+            color: newColor,
+          }
+        : row,
     );
+
     setRows(newRows);
     syncToJson(newRows);
   };
 
   const handleDeleteRow = (id: string) => {
     const newRows = rows.filter(row => row.id !== id);
+
     setRows(newRows);
     syncToJson(newRows);
   };
@@ -298,25 +356,13 @@ const LabelColorMapping = ({
       <Container>
         <HeaderRow>
           <div>
-            <h4
-              css={({ theme }) => ({
-                marginBottom: theme.gridUnit * 4,
-                marginTop: 0,
-              })}
-            >
-              {t('Label Colors')}
-            </h4>
-            <p
-              css={({ theme }) => ({
-                margin: 0,
-                fontSize: 12,
-                color: theme.colors.error.base,
-              })}
-            >
+            <SectionTitle>{t('Label Colors')}</SectionTitle>
+
+            <ErrorDescription>
               {t(
                 'Invalid JSON metadata. Please resolve syntax errors in the Advanced tab to use the GUI.',
               )}
-            </p>
+            </ErrorDescription>
           </div>
         </HeaderRow>
       </Container>
@@ -327,41 +373,25 @@ const LabelColorMapping = ({
     <Container>
       <HeaderRow>
         <div>
-          <h4
-            css={({ theme }) => ({
-              marginBottom: theme.gridUnit * 4,
-              marginTop: 0,
-            })}
-          >
-            {t('Label Colors')}
-          </h4>
-          <p
-            css={({ theme }) => ({
-              margin: 0,
-              fontSize: 12,
-              color: theme.colors.grayscale.base,
-            })}
-          >
+          <SectionTitle>{t('Label Colors')}</SectionTitle>
+
+          <SectionDescription>
             {t(
               'Map specific labels to colors. This automatically updates the JSON below.',
             )}
-          </p>
+          </SectionDescription>
         </div>
       </HeaderRow>
 
       {rows.length === 0 && (
-        <p
-          css={({ theme }) => ({
-            fontStyle: 'italic',
-            color: theme.colors.grayscale.light1,
-          })}
-        >
+        <EmptyState>
           {t('No color mappings defined. Click "+ Add more" to get started.')}
-        </p>
+        </EmptyState>
       )}
 
       {rows.map(row => {
         const currentLabel = row.label.trim();
+
         const availableOptions = allKnownLabels
           .filter(
             label =>
