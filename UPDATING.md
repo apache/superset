@@ -63,6 +63,10 @@ payload. Clients must display the new impact and obtain renewed confirmation
 before retrying. Preview or recheck failures fail closed rather than treating
 unknown impact as zero. Chart and dashboard purge endpoints are unchanged.
 
+### Nepal Country Map: Updated Administrative Divisions
+
+The Nepal country map now shows the 7 provinces created by the 2015 constitution instead of the old 14 zones from the Natural Earth dataset. Province keys use ISO 3166-2:NP codes (`NP-P1` through `NP-P7`). The old zone codes (`NP-BA`, `NP-BH`, ..., `NP-SE`) were removed from ISO 3166-2 and no longer work. Dashboards that join on the old zone codes will need to re-key their datasets to the new province codes.
+
 - `SAMPLES_ROW_LIMIT` is now the default for `/datasource/samples` requests without a valid explicit `per_page`, rather than a hard per-request ceiling; explicit limits are honored up to the existing global row-limit ceiling, matching `/chart/data` SAMPLES requests.
 - The `cockroachdb` extra (`pip install apache-superset[cockroachdb]`) now installs `sqlalchemy-cockroachdb` instead of the abandoned `cockroachdb` package, whose SQLAlchemy dialect could not be imported under SQLAlchemy 2.0. Existing environments with the old package installed should `pip uninstall cockroachdb && pip install sqlalchemy-cockroachdb` (or simply reinstall the extra) to restore CockroachDB connectivity.
 
