@@ -194,6 +194,26 @@ def test_coordinator_wait_is_bounded_when_lease_is_busy() -> None:
     assert sleeper.call_count == 2
 
 
+def test_busy_wait_spin_is_jittered_within_its_bound() -> None:
+    """Waiters released by one lease expiry must not retry in lockstep."""
+    backend: MagicMock = MagicMock()
+    backend.acquire_owner_token.return_value = False
+    times: Iterator[float] = iter([0.0, 0.0, 0.05, 0.1])
+    jitters: Iterator[float] = iter([0.0, 1.0])
+    sleeper: MagicMock = MagicMock()
+    coordinator: SemanticCacheCoordinator = SemanticCacheCoordinator(
+        backend,
+        SemanticCacheCoordinationSettings(0.1, 10),
+        clock=lambda: next(times),
+        sleeper=sleeper,
+        token_factory=lambda: "owner-a",
+        jitter=lambda: next(jitters),
+    )
+
+    assert coordinator.mutate("bucket", MagicMock()) is False
+    assert [call.args[0] for call in sleeper.call_args_list] == [0.025, 0.05]
+
+
 def test_busy_lease_timeout_emits_coordination_failure_metric() -> None:
     backend: MagicMock = MagicMock()
     backend.acquire_owner_token.return_value = False
@@ -315,6 +335,10 @@ class _ThreadCache:
     def get(self, key: str) -> object | None:
         with self.lock:
             return self.values.get(key)
+
+    def has(self, key: str) -> bool:
+        with self.lock:
+            return key in self.values
 
     def set(self, key: str, value: object, timeout: int | None = None) -> bool:
         assert timeout is None or timeout > 0

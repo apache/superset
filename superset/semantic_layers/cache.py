@@ -132,6 +132,12 @@ class SafeSemanticCacheBackend:
         except Exception as ex:  # pylint: disable=broad-exception-caught
             raise SemanticCacheBackendError("Semantic cache get failed") from ex
 
+    def has(self, key: str) -> bool:
+        try:
+            return bool(self._backend.has(key))
+        except Exception as ex:  # pylint: disable=broad-exception-caught
+            raise SemanticCacheBackendError("Semantic cache has failed") from ex
+
     def set(
         self,
         key: str,
@@ -166,12 +172,18 @@ class SemanticCacheService:
         state: SemanticCacheState,
         repository: SemanticCacheRepository | None = None,
         metrics: SemanticCacheMetrics | None = None,
+        *,
+        max_value_bytes: int | None = None,
     ) -> None:
         if state.effective and repository is None:
             raise ValueError("Effective semantic caching requires a repository")
         self.state: SemanticCacheState = state
         self._repository: SemanticCacheRepository | None = repository
         self._metrics: SemanticCacheMetrics | None = metrics
+        # Results above this many Arrow bytes are served but never stored.
+        # The value is pickled inside the lease, where a large payload stalls
+        # renewal and can flood the shared data cache; None disables the cap.
+        self._max_value_bytes: int | None = max_value_bytes
 
     def _increment(self, suffix: str) -> None:
         metrics: SemanticCacheMetrics | None = self._metrics
@@ -218,14 +230,25 @@ class SemanticCacheService:
         else:
             self._increment("bypass")
         result: SemanticResult = provider(query)
+        if self._exceeds_size_cap(result):
+            self._increment("store_skipped")
+            return SemanticCacheOutcome(result, cache_hit=False)
         try:
-            repository.store(meta, query, result)
+            # A forced refresh must replace whatever is cached; an ordinary
+            # miss may find that a concurrent identical request already stored
+            # the same value, in which case the store is redundant.
+            repository.store(meta, query, result, replace=force)
         except SemanticCacheStoreError:
             self._increment("store_failure")
         except Exception:  # pylint: disable=broad-exception-caught
             logger.warning("Semantic cache store failed unexpectedly", exc_info=True)
             self._increment("store_failure")
         return SemanticCacheOutcome(result, cache_hit=False)
+
+    def _exceeds_size_cap(self, result: SemanticResult) -> bool:
+        if self._max_value_bytes is None or result.results is None:
+            return False
+        return result.results.nbytes > self._max_value_bytes
 
     def _serve_from_cache(
         self,
@@ -317,6 +340,7 @@ def initialize_semantic_cache(
     wait_seconds: float,
     lease_seconds: int,
     metrics: SemanticCacheMetrics | None = None,
+    max_value_bytes: int | None = None,
 ) -> SemanticCacheState:
     """Replace process cache state from validated startup configuration."""
     global semantic_cache_service
@@ -388,7 +412,12 @@ def initialize_semantic_cache(
         coordinator,
     )
     state = SemanticCacheState.enabled()
-    semantic_cache_service = SemanticCacheService(state, repository, metrics)
+    semantic_cache_service = SemanticCacheService(
+        state,
+        repository,
+        metrics,
+        max_value_bytes=max_value_bytes,
+    )
     return state
 
 
