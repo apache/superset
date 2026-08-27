@@ -22,6 +22,7 @@ from zipfile import ZipFile
 
 from flask import current_app as app, request, Response, send_file
 from flask_appbuilder.api import expose, protect, rison as parse_rison, safe
+from flask_appbuilder.const import API_RESULT_RES_KEY
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
 from marshmallow import ValidationError
@@ -48,8 +49,13 @@ from superset.commands.theme.set_system_theme import (
 )
 from superset.commands.theme.update import UpdateThemeCommand
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
+from superset.daos.theme import ThemeDAO
 from superset.extensions import event_logger
 from superset.models.core import Theme
+from superset.security.manager import (
+    get_extra_editor_subject_ids,
+    get_extra_editors_by_pk,
+)
 from superset.subjects.filters import FilterRelatedSubjects, subject_type_filter
 from superset.themes.filters import ThemeAllTextFilter
 from superset.themes.schemas import (
@@ -169,6 +175,24 @@ class ThemeRestApi(BaseSupersetModelRestApi):
         ],
     }
 
+    def pre_get(self, data: dict[str, Any]) -> None:
+        """Attach ``extra_editors``, matching the dashboard/chart GET response."""
+        if app.config.get("EXTRA_EDITORS_RESOLVER"):
+            theme = ThemeDAO.find_by_id(data["id"])
+            if theme:
+                data[API_RESULT_RES_KEY]["extra_editors"] = (
+                    get_extra_editor_subject_ids(theme)
+                )
+
+    def pre_get_list(self, data: dict[str, Any]) -> None:
+        """Attach ``extra_editors`` to each row, matching the single-object GET."""
+        super().pre_get_list(data)
+        ids = data.get("ids", [])
+        extra_editors_by_id = get_extra_editors_by_pk(Theme, ids)
+        for row, row_id in zip(data.get("result", []), ids, strict=False):
+            if row_id in extra_editors_by_id:
+                row["extra_editors"] = extra_editors_by_id[row_id]
+
     @expose("/<int:pk>", methods=("DELETE",))
     @protect()
     @safe
@@ -263,6 +287,8 @@ class ThemeRestApi(BaseSupersetModelRestApi):
                         type: string
             401:
               $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
             404:
               $ref: '#/components/responses/404'
             422:
@@ -284,6 +310,8 @@ class ThemeRestApi(BaseSupersetModelRestApi):
         except ThemeNotFoundError:
             return self.response_404()
         except SystemThemeProtectedError:
+            return self.response_403()
+        except ThemeForbiddenError:
             return self.response_403()
         except SystemThemeInUseError as ex:
             return self.response_422(message=str(ex))
