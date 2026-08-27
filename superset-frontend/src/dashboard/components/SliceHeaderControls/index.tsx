@@ -34,6 +34,7 @@ import {
   isFeatureEnabled,
   FeatureFlag,
   getChartMetadataRegistry,
+  getExtensionsRegistry,
   VizType,
   BinaryQueryObjectFilterClause,
   JsonObject,
@@ -164,6 +165,8 @@ const queueChartResize = () => {
     window.dispatchEvent(new Event('resize'));
   }, 300);
 };
+
+const extensionsRegistry = getExtensionsRegistry();
 
 const SliceHeaderControls = (
   props: SliceHeaderControlsPropsWithRouter | SliceHeaderControlsProps,
@@ -513,6 +516,20 @@ const SliceHeaderControls = (
       type: 'divider',
     },
   ];
+
+  const sliceHeaderMenuExtension = extensionsRegistry.get(
+    'dashboard.slice.header.menu',
+  );
+  if (sliceHeaderMenuExtension) {
+    const extensionItems = sliceHeaderMenuExtension({
+      sliceId: slice.slice_id,
+      sliceName: slice.slice_name,
+      dashboardId,
+    });
+    if (extensionItems.length) {
+      newMenuItems.unshift(...extensionItems, { type: 'divider' });
+    }
+  }
 
   if (slice.description) {
     newMenuItems.push({
