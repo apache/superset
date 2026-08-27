@@ -42,7 +42,13 @@ class AssetTranslation(Base):  # type: ignore[valid-type, misc]
     id = Column(Integer, primary_key=True)
     model_name = Column(String(64), nullable=False)
     field_name = Column(String(64), nullable=False)
-    default_text = Column(Text, nullable=False)
+    # Bounded rather than Text because it is part of the unique constraint
+    # below, and MySQL/MariaDB cannot index a TEXT column without a prefix
+    # length. 500 covers the fields this example translates -- Slice.slice_name
+    # is String(250) and Dashboard.dashboard_title is String(500) -- and keeps
+    # the whole key inside InnoDB's index limit. The translation itself is not
+    # indexed, so it stays unbounded.
+    default_text = Column(String(500), nullable=False)
     language_code = Column(String(16), nullable=False)
     translated_text = Column(Text, nullable=False)
 
