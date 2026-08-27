@@ -16,10 +16,9 @@
 # under the License.
 """
 Tests db_engine_specs.trino against a real Trino instance, spun up on
-demand via testcontainers. Run nightly (see
-.github/workflows/nightly-testcontainers.yml), not on every merge. Only
-Presto is covered by existing docker-compose-based integration CI; Trino,
-despite sharing lineage with Presto, is not.
+demand via testcontainers. Run via .github/workflows/testcontainers.yml.
+Only Presto is covered by existing docker-compose-based integration CI;
+Trino, despite sharing lineage with Presto, is not.
 """
 
 from collections.abc import Iterator

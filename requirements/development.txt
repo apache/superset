@@ -436,10 +436,6 @@ humanize==4.12.3
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
-ibm-db==3.3.0
-    # via ibm-db-sa
-ibm-db-sa==0.4.4
-    # via apache-superset
 identify==2.5.36
     # via pre-commit
 idna==3.15
@@ -994,7 +990,6 @@ sqlalchemy==2.0.52
     #   elasticsearch-dbapi
     #   flask-appbuilder
     #   flask-sqlalchemy
-    #   ibm-db-sa
     #   marshmallow-sqlalchemy
     #   shillelagh
     #   sqlalchemy-bigquery
