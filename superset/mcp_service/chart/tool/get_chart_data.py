@@ -155,6 +155,7 @@ _VIZ_CATEGORY: dict[str, str] = {
     "heatmap_v2": "heatmap",
     "gauge_chart": "gauge",
     "funnel": "funnel",
+    "sankey_v2": "sankey",
     "histogram": "histogram",
     "histogram_v2": "histogram",
     "box_plot": "box_plot",

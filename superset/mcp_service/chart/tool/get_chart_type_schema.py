@@ -37,6 +37,7 @@ from superset.mcp_service.chart.schemas import (
     MixedTimeseriesChartConfig,
     PieChartConfig,
     PivotTableChartConfig,
+    SankeyChartConfig,
     TableChartConfig,
     WaterfallChartConfig,
     XYChartConfig,
@@ -49,6 +50,7 @@ _CHART_TYPE_ADAPTERS: Dict[str, TypeAdapter[Any]] = {
     "xy": TypeAdapter(XYChartConfig),
     "table": TypeAdapter(TableChartConfig),
     "pie": TypeAdapter(PieChartConfig),
+    "sankey_v2": TypeAdapter(SankeyChartConfig),
     "pivot_table": TypeAdapter(PivotTableChartConfig),
     "interactive_pivot": TypeAdapter(InteractivePivotChartConfig),
     "mixed_timeseries": TypeAdapter(MixedTimeseriesChartConfig),
@@ -202,6 +204,14 @@ _CHART_EXAMPLES: Dict[str, list[Dict[str, Any]]] = {
             "metric": {"name": "profit", "aggregate": "SUM"},
             "breakdown": {"name": "region"},
             "show_total": True,
+        },
+    ],
+    "sankey_v2": [
+        {
+            "chart_type": "sankey_v2",
+            "source": {"name": "from_stage"},
+            "target": {"name": "to_stage"},
+            "metric": {"name": "users", "aggregate": "SUM"},
         },
     ],
 }

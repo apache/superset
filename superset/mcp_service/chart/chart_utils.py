@@ -48,6 +48,7 @@ from superset.mcp_service.chart.schemas import (
     MixedTimeseriesChartConfig,
     PieChartConfig,
     PivotTableChartConfig,
+    SankeyChartConfig,
     SortByConfig,
     TableChartConfig,
     WaterfallChartConfig,
@@ -1044,6 +1045,27 @@ def map_pie_config(config: PieChartConfig) -> Dict[str, Any]:
     return form_data
 
 
+def map_sankey_config(config: SankeyChartConfig) -> Dict[str, Any]:
+    """Map sankey config to Superset form_data (viz_type ``sankey_v2``).
+
+    Matches the frontend Sankey buildQuery contract: a ``source`` and
+    ``target`` column form the edges (the query groups by both) and one
+    ``metric`` weights each edge. When ``sort_by_metric`` is set the query
+    orders by the metric descending.
+    """
+    form_data: Dict[str, Any] = {
+        "viz_type": "sankey_v2",
+        "source": config.source.name,
+        "target": config.target.name,
+        "metric": create_metric_object(config.metric),
+        "sort_by_metric": config.sort_by_metric,
+        "row_limit": config.row_limit,
+        "color_scheme": config.color_scheme or "supersetColors",
+    }
+    _add_adhoc_filters(form_data, config.filters)
+    return form_data
+
+
 def map_histogram_config(config: "HistogramChartConfig") -> Dict[str, Any]:
     """Map histogram config to Superset form_data (viz_type histogram_v2).
 
@@ -1552,6 +1574,14 @@ def _pie_chart_what(config: PieChartConfig) -> str:
         config.metric.label or config.metric.name or config.metric.sql_expression
     )
     return f"{dim} by {metric_label}"
+
+
+def _sankey_chart_what(config: SankeyChartConfig) -> str:
+    """Build the 'what' portion for a sankey chart name."""
+    metric_label = (
+        config.metric.label or config.metric.name or config.metric.sql_expression
+    )
+    return f"{config.source.name} to {config.target.name} by {metric_label}"
 
 
 def _pivot_table_what(config: PivotTableChartConfig) -> str:
