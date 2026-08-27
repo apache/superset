@@ -885,7 +885,7 @@ describe('SelectFilterPlugin', () => {
 
   // The native Value filter's "Select all" targets the whole column, so its
   // count must stay pinned to the full option set while the user searches — no
-  // transient scoped value (regression for Shortcut 115492). This integration
+  // transient scoped value. This integration
   // test uses `creatable: false`, where the plugin does not churn its `options`
   // reference on search, so `visibleOptions` stays narrowed and the un-fixed
   // code would leave the badge stuck at the scoped count — making the fix
