@@ -16,8 +16,7 @@
 # under the License.
 """
 Tests db_engine_specs.crate against a real CrateDB instance, spun up on
-demand via testcontainers. Run nightly (see
-.github/workflows/nightly-testcontainers.yml), not on every merge.
+demand via testcontainers. Run via .github/workflows/testcontainers.yml.
 
 crate/crate only publishes an amd64 image (no arm64 build), and requires a
 host CPU supporting the x86-64-v3 instruction set -- QEMU emulation on

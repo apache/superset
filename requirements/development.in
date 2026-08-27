@@ -16,8 +16,14 @@
 # specific language governing permissions and limitations
 # under the License.
 #
--e .[development,bigquery,cockroachdb,crate,db2,druid,duckdb,elasticsearch,fastmcp,gevent,gsheets,mssql,mysql,oracle,postgres,presto,prophet,trino,thumbnails]
+-e .[development,bigquery,cockroachdb,crate,druid,duckdb,elasticsearch,fastmcp,gevent,gsheets,mssql,mysql,oracle,postgres,presto,prophet,trino,thumbnails]
 -e ./superset-extensions-cli[test]
 # testcontainers-backed db_engine_specs tests (tests/testcontainers/) --
 # see .github/workflows/testcontainers.yml
+#
+# `db2` (the `ibm-db-sa`/`ibm-db` driver) is deliberately left out of the
+# baseline dev install above: `ibm-db` ships no Linux arm64 wheel, so
+# including it here breaks the multi-platform (amd64+arm64) dev Docker
+# image build. The testcontainers CI job installs it on demand, only for
+# the db2 matrix leg -- see .github/workflows/testcontainers.yml.
 testcontainers[cockroachdb,cratedb,db2,mssql,oracle,trino]>=4.15.0,<5
