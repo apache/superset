@@ -164,3 +164,32 @@ test('a series override is applied by stable metric key when chartType is set', 
     },
   ]);
 });
+
+test('structured chrome (legend/tooltip/axis) applies alongside raw echartsOptions, independent of chartType', async () => {
+  const id = provider.addWidget(provider.getRoot().id, 0, {
+    type: 'echarts',
+    props: {
+      dataBinding: { datasetId: 1, metrics: [] },
+      echartsOptions: {
+        xAxis: { type: 'category', axisLabel: { color: 'red' } },
+      },
+      chrome: {
+        legend: { show: false },
+        tooltip: { trigger: 'axis' },
+        xAxis: { name: 'Product', rotate: 45 },
+      },
+    },
+  });
+  render(<ChartWidget nodeId={id} />);
+
+  await waitFor(() => expect(mockSetOption).toHaveBeenCalled());
+
+  const [option] = mockSetOption.mock.calls[0];
+  expect(option.legend).toEqual({ show: false });
+  expect(option.tooltip).toEqual({ trigger: 'axis' });
+  expect(option.xAxis).toEqual({
+    type: 'category',
+    name: 'Product',
+    axisLabel: { color: 'red', rotate: 45 },
+  });
+});

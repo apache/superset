@@ -299,6 +299,99 @@ class EchartsCustomization(BaseModel):
     )
 
 
+class TitleControls(BaseModel):
+    """Structured chart title, layered on top of `echartsOptions.title`."""
+
+    text: str = Field(
+        default="",
+        title="Text",
+        description="Empty leaves echartsOptions.title exactly as authored.",
+    )
+
+
+class LegendControls(BaseModel):
+    """Structured legend visibility/position, layered on top of
+    `echartsOptions.legend`."""
+
+    show: bool = Field(
+        default=True,
+        title="Show",
+        description="Unchecking hides the legend, regardless of echartsOptions.",
+    )
+    position: Literal["top", "bottom", "left", "right"] | None = Field(
+        default=None,
+        title="Position",
+        description=(
+            "Unset leaves echartsOptions.legend's own position (or "
+            "ECharts' default) untouched."
+        ),
+        json_schema_extra={
+            "x-control": "select",
+            "x-options": ["top", "bottom", "left", "right"],
+        },
+    )
+
+
+class TooltipControls(BaseModel):
+    """Structured tooltip trigger, layered on top of
+    `echartsOptions.tooltip`."""
+
+    trigger: Literal["item", "axis"] | None = Field(
+        default=None,
+        title="Trigger",
+        description=(
+            "Unset leaves echartsOptions.tooltip's own trigger (or "
+            "ECharts' default) untouched."
+        ),
+        json_schema_extra={
+            "x-control": "select",
+            "x-options": ["item", "axis"],
+        },
+    )
+
+
+class AxisControls(BaseModel):
+    """Structured axis name/label formatting, layered on top of the
+    corresponding `echartsOptions.xAxis`/`yAxis`. Applies whenever
+    `echartsOptions` has that axis, structured `chartType` or not."""
+
+    name: str = Field(
+        default="",
+        title="Name",
+        description="Empty leaves the axis's own `name` (or none) untouched.",
+    )
+    rotate: int = Field(
+        default=0,
+        ge=-90,
+        le=90,
+        title="Label rotation (°)",
+        description="0 leaves the axis's own `axisLabel.rotate` (or none) untouched.",
+    )
+    format: str = Field(
+        default="",
+        title="Label format",
+        description=(
+            'An ECharts axisLabel formatter template, e.g. "{value} kg". Empty '
+            "leaves the axis's own `axisLabel.formatter` (or none) untouched."
+        ),
+    )
+
+
+class EchartsChrome(BaseModel):
+    """Structured chart chrome — title, legend, tooltip, axis labels — each
+    independently optional and layered on top of the matching
+    `echartsOptions` section. A leaf left at its default doesn't touch
+    `echartsOptions` at all; only the specific keys a leaf does set are
+    merged onto that section, so an unmanaged sibling property there (e.g. a
+    hand-authored `legend.orient`) survives."""
+
+    title: TitleControls = Field(default_factory=TitleControls)
+    legend: LegendControls = Field(default_factory=LegendControls)
+    tooltip: TooltipControls = Field(default_factory=TooltipControls)
+    x_axis: AxisControls = Field(alias="xAxis", default_factory=AxisControls)
+    y_axis: AxisControls = Field(alias="yAxis", default_factory=AxisControls)
+
+
 class EchartsControls(BaseModel):
     """Controls for the ``echarts`` widget (a chart from a raw ECharts option).
 
@@ -308,11 +401,15 @@ class EchartsControls(BaseModel):
 
     ``chartType``/``customize`` are an optional structured layer on top:
     when ``chartType`` is set, the frontend replaces `option.series` with one
-    generated series per ``dataBinding`` metric (styled per ``customize``);
-    every other part of ``echartsOptions`` (axes, legend, tooltip, title) is
-    still used exactly as authored. Leaving ``chartType`` unset ("Custom")
-    keeps ``echartsOptions`` fully authoritative, including mixed-series or
-    non-Cartesian (e.g. pie) shapes the structured layer doesn't cover.
+    generated series per ``dataBinding`` metric (styled per ``customize``).
+    Leaving ``chartType`` unset ("Custom") keeps ``echartsOptions.series``
+    fully authoritative, including mixed-series or non-Cartesian (e.g. pie)
+    shapes the structured layer doesn't cover.
+
+    ``chrome`` is a second, independent structured layer — title, legend,
+    tooltip, and axis labels — each leaf optional and applying (or not)
+    regardless of ``chartType``. See ``EchartsChrome`` for its own
+    leaf-by-leaf precedence.
     """
 
     model_config = ConfigDict(populate_by_name=True)
@@ -372,4 +469,9 @@ class EchartsControls(BaseModel):
         default_factory=EchartsCustomization,
         title="Customize",
         description="Per-series color, visibility, and display-name overrides.",
+    )
+    chrome: EchartsChrome = Field(
+        default_factory=EchartsChrome,
+        title="Chrome",
+        description="Structured title, legend, tooltip, and axis label overrides.",
     )

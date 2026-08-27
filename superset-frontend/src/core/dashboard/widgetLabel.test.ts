@@ -41,6 +41,24 @@ test('a chart carrying several titles is named by the first', () => {
   ).toBe('Revenue');
 });
 
+test('a chart with a structured chrome.title.text is named by it, over the raw echartsOptions title', () => {
+  expect(
+    widgetLabel('echarts', {
+      echartsOptions: { title: { text: 'Raw title' } },
+      chrome: { title: { text: 'Structured title' } },
+    }),
+  ).toBe('Structured title');
+});
+
+test('a chart with only a raw title (no structured chrome.title) still uses it', () => {
+  expect(
+    widgetLabel('echarts', {
+      echartsOptions: { title: { text: 'Raw title' } },
+      chrome: { title: { text: '' } },
+    }),
+  ).toBe('Raw title');
+});
+
 test('a metric tile is named by the label it displays', () => {
   expect(widgetLabel('metric-tile', { label: 'Total Revenue' })).toBe(
     'Total Revenue',

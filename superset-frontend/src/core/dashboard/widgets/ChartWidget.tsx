@@ -63,6 +63,10 @@ import {
   type EchartsChartType,
   type SeriesOverrideValue,
 } from './echartsStructuredSeries';
+import {
+  applyStructuredChrome,
+  type EchartsChromeValue,
+} from './echartsStructuredChrome';
 
 type DataBindingSpec = dashboardApi.DataBindingSpec;
 type DataRow = dashboardApi.DataRow;
@@ -235,6 +239,7 @@ export default function ChartWidget({ nodeId }: { nodeId: string }) {
     node?.props?.customize as
       { series?: Record<string, SeriesOverrideValue> } | undefined
   )?.series;
+  const chrome = node?.props?.chrome as EchartsChromeValue | undefined;
 
   const option = useMemo(() => {
     if (!rows) return undefined;
@@ -249,17 +254,22 @@ export default function ChartWidget({ nodeId }: { nodeId: string }) {
       rows,
       customizeSeries,
     );
+    const withStructuredChrome = applyStructuredChrome(
+      withStructuredSeries,
+      chrome,
+    );
     // The chart's name is drawn by the widget's header, which reads it from
     // this same option (see `widgetLabel`). Leaving it here too would print it
     // twice, at two sizes, in two places — and the header's copy is the one
     // that sits where every other widget's name sits.
-    const withoutTitle = { ...withStructuredSeries };
+    const withoutTitle = { ...withStructuredChrome };
     delete withoutTitle.title;
     return withoutTitle;
   }, [
     node?.props?.echartsOptions,
     chartType,
     customizeSeries,
+    chrome,
     dataBinding,
     rows,
     theme,
