@@ -412,6 +412,9 @@ const AsyncSelect = forwardRef(
           setIsLoading(false);
           return;
         }
+        // A previous fetch may have left an error on screen; clear it so the
+        // dropdown renders this fetch's outcome instead of the stale error.
+        setError('');
         setIsLoading(true);
 
         const fetchOptions = options as SelectOptionsPagePromise;

@@ -17,15 +17,8 @@
  * under the License.
  */
 import { ReactNode, useState, useEffect, useCallback, useMemo } from 'react';
-import rison from 'rison';
 import { t } from '@apache-superset/core/translation';
-import {
-  FeatureFlag,
-  isDefined,
-  isFeatureEnabled,
-  JsonResponse,
-  SupersetClient,
-} from '@superset-ui/core';
+import { FeatureFlag, isDefined, isFeatureEnabled } from '@superset-ui/core';
 import { styled, useTheme } from '@apache-superset/core/theme';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { FilterPlugins, URL_PARAMS } from 'src/constants';
@@ -50,6 +43,7 @@ import {
   Dataset,
   DatasetSelectLabel,
 } from 'src/features/datasets/DatasetSelectLabel';
+import { fetchDatasourceList } from 'src/features/datasets/fetchDatasourceList';
 import { Icons } from '@superset-ui/core/components/Icons';
 import {
   datasetLabel,
@@ -61,28 +55,18 @@ export interface ChartCreationProps {
   addSuccessToast: (arg: string) => void;
 }
 
-type ExploreDatasourceType = 'table' | 'semantic_view';
-
-type ParentDisplay = {
-  database_name: string;
-};
-
-type DatasourceListItem = {
-  id: number | string;
-  table_name: string;
-  datasource_type?: string;
-  kind?: string;
-  source_type?: string;
-  database?: ParentDisplay | null;
-  schema?: string | null;
-};
-
 type DatasourceOption = {
-  id: number | string;
+  id: number;
   label: ReactNode;
   value: string;
   table_name: string;
 };
+
+/**
+ * AsyncSelect reports the chosen option as a LabeledValue, so only the
+ * fields it carries can be relied on after selection.
+ */
+type SelectedDatasource = Pick<DatasourceOption, 'label' | 'value'>;
 
 const ESTIMATED_NAV_HEIGHT = 56;
 const ELEMENTS_EXCEPT_VIZ_GALLERY = ESTIMATED_NAV_HEIGHT + 250;
@@ -197,65 +181,42 @@ const StyledStepDescription = styled.div`
   `}
 `;
 
+// The first column shrinks to zero so the name ellipsizes and the tag stays
+// visible. AsyncSelect renders option labels inside a nowrap container, which
+// is what makes that ellipsis take effect.
 const StyledDatasourceOption = styled.div`
   ${({ theme }) => `
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
-    gap: ${theme.sizeUnit * 2}px;
+    gap: ${theme.sizeXS}px;
     align-items: center;
     width: 100%;
   `}
 `;
 
-const getExploreDatasourceType = (
-  item: DatasourceListItem,
-): ExploreDatasourceType | null => {
-  if (item.kind === 'semantic_view') {
-    return 'semantic_view';
-  }
-  if (
-    item.kind === 'physical' ||
-    item.kind === 'virtual' ||
-    item.datasource_type === 'table'
-  ) {
-    return 'table';
-  }
-  return null;
-};
-
+/**
+ * Builds a picker option whose value carries the Explore datasource identity
+ * (`<id>__table` or `<id>__semantic_view`). Datasets and semantic views are
+ * numbered independently, so the type suffix is what keeps them apart.
+ */
 const createDatasourceOption = (
-  item: DatasourceListItem,
-  showType: boolean,
-): DatasourceOption | null => {
-  const datasourceType = getExploreDatasourceType(item);
-  if (!datasourceType) {
-    return null;
-  }
-  const labelItem: Dataset = {
-    id: Number(item.id),
-    table_name: item.table_name,
-    datasource_type: datasourceType,
-    kind: item.kind,
-    schema: item.schema ?? '',
-    database: item.database ?? undefined,
-  };
-  const datasourceLabel = DatasetSelectLabel(labelItem);
-  const label = showType ? (
-    <StyledDatasourceOption>
-      {datasourceLabel}
-      <Tag>
-        {datasourceType === 'semantic_view' ? t('Semantic View') : t('Dataset')}
-      </Tag>
-    </StyledDatasourceOption>
-  ) : (
-    datasourceLabel
-  );
-
+  item: Dataset,
+  withTypeTag: boolean,
+): DatasourceOption => {
+  const isSemanticView = item.kind === 'semantic_view';
+  const datasourceLabel = DatasetSelectLabel(item);
   return {
     id: item.id,
-    value: `${item.id}__${datasourceType}`,
-    label,
+    value: `${item.id}__${isSemanticView ? 'semantic_view' : 'table'}`,
     table_name: item.table_name,
+    label: withTypeTag ? (
+      <StyledDatasourceOption>
+        {datasourceLabel}
+        <Tag>{isSemanticView ? t('Semantic View') : t('Dataset')}</Tag>
+      </StyledDatasourceOption>
+    ) : (
+      datasourceLabel
+    ),
   };
 };
 
@@ -277,7 +238,9 @@ export const ChartCreation = ({
     [],
   );
 
-  const [datasource, setDatasource] = useState<DatasourceOption | undefined>();
+  const [datasource, setDatasource] = useState<
+    SelectedDatasource | undefined
+  >();
   const [vizType, setVizType] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(hasDatasetParam);
 
@@ -294,9 +257,12 @@ export const ChartCreation = ({
     history.push(exploreUrl());
   }, [history, exploreUrl]);
 
-  const changeDatasource = useCallback((newDatasource: DatasourceOption) => {
-    setDatasource(newDatasource);
-  }, []);
+  // AsyncSelect's onChange is typed for every select value shape; narrow it
+  // to the labelled option this picker produces.
+  const changeDatasource = useCallback(
+    (selected: SelectedDatasource) => setDatasource(selected),
+    [],
+  );
 
   const changeVizType = useCallback((newVizType: string | null) => {
     setVizType(newVizType);
@@ -313,73 +279,34 @@ export const ChartCreation = ({
     }
   }, [isBtnDisabled, gotoSlice]);
 
-  const loadDatasetOptions = useCallback(
-    (search: string, page: number, pageSize: number, exactMatch = false) => {
-      const query = rison.encode({
-        columns: [
-          'id',
-          'table_name',
-          'datasource_type',
-          'database.database_name',
-          'schema',
-        ],
-        filters: [
-          { col: 'table_name', opr: exactMatch ? 'eq' : 'ct', value: search },
-        ],
-        page,
-        page_size: pageSize,
-        order_column: 'table_name',
-        order_direction: 'asc',
-      });
-      return SupersetClient.get({
-        endpoint: `/api/v1/dataset/?q=${query}`,
-      }).then((response: JsonResponse) => {
-        const list = (response.json.result as DatasourceListItem[])
-          .map(item => createDatasourceOption(item, false))
-          .filter((item): item is DatasourceOption => item !== null);
-        return {
-          data: list,
-          totalCount: response.json.count,
-        };
-      });
-    },
-    [],
+  // Type tags only make sense once the list can mix datasets and semantic
+  // views, so they follow the feature flag rather than the endpoint used.
+  const toDatasourceOption = useCallback(
+    (item: Dataset) => createDatasourceOption(item, semanticLayersEnabled),
+    [semanticLayersEnabled],
   );
 
   const loadDatasources = useCallback(
-    (search: string, page: number, pageSize: number) => {
-      if (!semanticLayersEnabled) {
-        return loadDatasetOptions(search, page, pageSize);
-      }
-      const query = rison.encode({
-        filters: [{ col: 'table_name', opr: 'ct', value: search }],
-        page,
-        page_size: pageSize,
-        order_column: 'table_name',
-        order_direction: 'asc',
-      });
-      return SupersetClient.get({
-        endpoint: `/api/v1/datasource/?q=${query}`,
-      }).then((response: JsonResponse) => {
-        const list = (response.json.result as DatasourceListItem[])
-          .map(item => createDatasourceOption(item, true))
-          .filter((item): item is DatasourceOption => item !== null);
-        return {
-          data: list,
-          totalCount: response.json.count,
-        };
-      });
-    },
-    [loadDatasetOptions, semanticLayersEnabled],
+    (search: string, page: number, pageSize: number) =>
+      fetchDatasourceList(search, page, pageSize).then(({ result, count }) => ({
+        data: result.map(toDatasourceOption),
+        totalCount: count,
+      })),
+    [toDatasourceOption],
   );
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search).get('dataset');
     if (params) {
-      loadDatasetOptions(params, 0, 1, true)
-        .then(r => {
-          const newDatasource = r.data[0];
-          setDatasource(newDatasource);
+      // The URL names a dataset that was just saved, so resolve it against
+      // datasets only: a semantic view with the same name must not win.
+      fetchDatasourceList(params, 0, 1, {
+        exactMatch: true,
+        datasetsOnly: true,
+      })
+        .then(({ result }) => {
+          const [dataset] = result;
+          setDatasource(dataset && toDatasourceOption(dataset));
           setLoading(false);
         })
         .catch(() => {
@@ -387,7 +314,7 @@ export const ChartCreation = ({
         });
       addSuccessToast(t('The dataset has been saved'));
     }
-  }, [loadDatasetOptions, addSuccessToast]);
+  }, [toDatasourceOption, addSuccessToast]);
 
   const isButtonDisabled = isBtnDisabled();
   const VIEW_INSTRUCTIONS_TEXT = t('view instructions');

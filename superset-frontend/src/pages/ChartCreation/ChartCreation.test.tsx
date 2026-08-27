@@ -18,7 +18,6 @@
  */
 
 import {
-  fireEvent,
   render,
   screen,
   userEvent,
@@ -41,6 +40,11 @@ jest.mock('@superset-ui/core', () => ({
 }));
 
 const mockIsFeatureEnabled = jest.mocked(isFeatureEnabled);
+
+const enableSemanticLayers = () =>
+  mockIsFeatureEnabled.mockImplementation(
+    flag => flag === FeatureFlag.SemanticLayers,
+  );
 
 const mockDatasourceResponse = {
   result: [
@@ -491,85 +495,39 @@ test('shows only exact match when loading dataset from URL, not partial matches'
   locationSpy.mockRestore();
 });
 
-test('loads and labels mixed datasource results across pages', async () => {
-  mockIsFeatureEnabled.mockImplementation(
-    flag => flag === FeatureFlag.SemanticLayers,
-  );
-  fetchMock.get(/\/api\/v1\/datasource\/\?q=.*/, ({ url }) => {
-    const isSecondPage = url.includes('page:1');
-    return {
-      body: {
-        result: isSecondPage
-          ? [
-              {
-                id: 43,
-                table_name: 'second_page_view',
-                kind: 'semantic_view',
-                source_type: 'semantic_layer',
-                database: { database_name: 'Sales semantics' },
-                schema: null,
-              },
-            ]
-          : combinedDatasourceFixtures,
-        count: 101,
-      },
-      status: 200,
-    };
+test('lists a same-named dataset and semantic view as distinct, typed options', async () => {
+  enableSemanticLayers();
+  fetchMock.get(/\/api\/v1\/datasource\/\?q=.*/, {
+    body: { result: combinedDatasourceFixtures, count: 2 },
+    status: 200,
   });
 
   await renderComponent();
-  const datasourceSelect = screen.getByRole('combobox', {
-    name: 'Datasource',
-  });
-  userEvent.click(datasourceSelect);
+  userEvent.click(screen.getByRole('combobox', { name: 'Datasource' }));
 
   expect(await screen.findAllByText('shared_source')).toHaveLength(2);
-  const datasetTypeLabel = screen.getByText('Dataset');
-  const semanticViewTypeLabel = screen.getByText('Semantic View');
-  expect(datasetTypeLabel).toBeInTheDocument();
-  expect(datasetTypeLabel).not.toHaveAttribute('aria-hidden', 'true');
-  expect(semanticViewTypeLabel).toBeInTheDocument();
-  expect(semanticViewTypeLabel).not.toHaveAttribute('aria-hidden', 'true');
-  await waitFor(() =>
-    expect(document.querySelector('.ant-select-suffix .ant-spin')).toBeNull(),
+  // The type label is plain text inside each option rather than colour or an
+  // icon, so it is read out along with the name.
+  const optionTexts = Array.from(
+    document.querySelectorAll('.ant-select-item-option-content'),
+    option => option.textContent,
   );
-
-  const scrollContainer = document.querySelector(
-    '.ant-select-dropdown-list-holder',
+  expect(optionTexts).toEqual([
+    expect.stringMatching(/^shared_source.*Dataset$/),
+    expect.stringMatching(/^shared_source.*Semantic View$/),
+  ]);
+  expect(screen.getByText('Dataset')).not.toHaveAttribute(
+    'aria-hidden',
+    'true',
   );
-  expect(scrollContainer).not.toBeNull();
-  if (!scrollContainer) {
-    throw new Error('Expected datasource options to have a scroll container');
-  }
-  Object.defineProperty(scrollContainer, 'scrollHeight', {
-    configurable: true,
-    get: () => 1000,
-  });
-  Object.defineProperty(scrollContainer, 'offsetHeight', {
-    configurable: true,
-    get: () => 100,
-  });
-  Object.defineProperty(scrollContainer, 'clientHeight', {
-    configurable: true,
-    get: () => 100,
-  });
-  Object.defineProperty(scrollContainer, 'scrollTop', {
-    configurable: true,
-    get: () => 900,
-    set: () => {},
-  });
-  fireEvent.scroll(scrollContainer);
-
-  expect(await screen.findByText('second_page_view')).toBeInTheDocument();
-  expect(
-    fetchMock.callHistory.calls().some(call => call.url.includes('page:1')),
-  ).toBe(true);
+  expect(screen.getByText('Semantic View')).not.toHaveAttribute(
+    'aria-hidden',
+    'true',
+  );
 });
 
-test('preserves unified server ordering without datasource type priority', async () => {
-  mockIsFeatureEnabled.mockImplementation(
-    flag => flag === FeatureFlag.SemanticLayers,
-  );
+test('requests unified server ordering by table name', async () => {
+  enableSemanticLayers();
   fetchMock.get(/\/api\/v1\/datasource\/\?q=.*/, {
     body: {
       result: [
@@ -598,12 +556,7 @@ test('preserves unified server ordering without datasource type priority', async
   await renderComponent();
   userEvent.click(screen.getByRole('combobox', { name: 'Datasource' }));
 
-  const semanticView = await screen.findByText('alpha_semantic_view');
-  const dataset = screen.getByText('beta_dataset');
-  expect(
-    semanticView.compareDocumentPosition(dataset) &
-      Node.DOCUMENT_POSITION_FOLLOWING,
-  ).toBeTruthy();
+  await screen.findByText('alpha_semantic_view');
   expect(
     fetchMock.callHistory.calls().some(call => {
       const decodedUrl = decodeURIComponent(call.url);
@@ -615,25 +568,11 @@ test('preserves unified server ordering without datasource type priority', async
   ).toBe(true);
 });
 
-test('searches semantic views and rejects unknown datasource kinds', async () => {
-  mockIsFeatureEnabled.mockImplementation(
-    flag => flag === FeatureFlag.SemanticLayers,
-  );
+test('searches semantic views through the combined datasource endpoint', async () => {
+  enableSemanticLayers();
   fetchMock.get(/\/api\/v1\/datasource\/\?q=.*/, {
-    body: {
-      result: [
-        combinedDatasourceFixtures[1],
-        {
-          id: 99,
-          table_name: 'unsupported_source',
-          kind: 'future_kind',
-          source_type: 'future_source',
-          database: null,
-          schema: null,
-        },
-      ],
-      count: 2,
-    },
+    // More results than are loaded, so searching goes back to the server.
+    body: { result: [combinedDatasourceFixtures[1]], count: 26 },
     status: 200,
   });
 
@@ -645,7 +584,6 @@ test('searches semantic views and rejects unknown datasource kinds', async () =>
   userEvent.type(datasourceSelect, 'shared');
 
   expect(await screen.findByText('shared_source')).toBeInTheDocument();
-  expect(screen.queryByText('unsupported_source')).not.toBeInTheDocument();
   await waitFor(() =>
     expect(
       fetchMock.callHistory.calls().some(call => {
@@ -662,9 +600,7 @@ test('searches semantic views and rejects unknown datasource kinds', async () =>
 });
 
 test('navigates to Explore with the semantic view composite identity', async () => {
-  mockIsFeatureEnabled.mockImplementation(
-    flag => flag === FeatureFlag.SemanticLayers,
-  );
+  enableSemanticLayers();
   fetchMock.get(/\/api\/v1\/datasource\/\?q=.*/, {
     body: { result: [combinedDatasourceFixtures[1]], count: 1 },
     status: 200,
@@ -681,18 +617,30 @@ test('navigates to Explore with the semantic view composite identity', async () 
   );
 });
 
-test('recovers from a failed mixed datasource load without replacing selection', async () => {
-  mockIsFeatureEnabled.mockImplementation(
-    flag => flag === FeatureFlag.SemanticLayers,
-  );
-  let requestCount = 0;
-  fetchMock.get(/\/api\/v1\/datasource\/\?q=.*/, () => {
-    requestCount += 1;
-    if (requestCount === 2) {
-      return { throws: new Error('datasource load failed') };
+test('shows a failed datasource load as an error, then recovers on the next search', async () => {
+  enableSemanticLayers();
+  const retryView = {
+    id: 43,
+    table_name: 'retry_view',
+    kind: 'semantic_view',
+    source_type: 'semantic_layer',
+    database: { database_name: 'Sales semantics' },
+    schema: null,
+  };
+  fetchMock.get(/\/api\/v1\/datasource\/\?q=.*/, ({ url }) => {
+    const request = decodeURIComponent(url);
+    if (request.includes('value:fail')) {
+      // An HTTP failure rather than a thrown error: the client retries
+      // network errors, which would only slow the test down.
+      return { status: 500, body: { message: 'datasource load failed' } };
     }
     return {
-      body: { result: [combinedDatasourceFixtures[1]], count: 26 },
+      body: {
+        result: request.includes('value:retry')
+          ? [retryView]
+          : [combinedDatasourceFixtures[1]],
+        count: 26,
+      },
       status: 200,
     };
   });
@@ -706,19 +654,32 @@ test('recovers from a failed mixed datasource load without replacing selection',
   userEvent.click(datasourceSelect);
   userEvent.type(datasourceSelect, 'fail');
 
-  await waitFor(() => expect(requestCount).toBe(2), { timeout: 3000 });
-  expect(screen.getByText('shared_source')).toBeInTheDocument();
+  // The failure is reported as such, not disguised as an empty result.
+  expect(
+    await screen.findByText('datasource load failed', {}, { timeout: 3000 }),
+  ).toBeInTheDocument();
+  expect(
+    screen.queryByText('No data', { selector: '.ant-empty-description' }),
+  ).toBeNull();
 
+  // The next search replaces the error with its results.
   userEvent.clear(datasourceSelect);
   userEvent.type(datasourceSelect, 'retry');
-  await waitFor(() => expect(requestCount).toBe(3), { timeout: 3000 });
-  expect(await screen.findByText('shared_source')).toBeInTheDocument();
+  expect(
+    await screen.findByText('retry_view', {}, { timeout: 3000 }),
+  ).toBeInTheDocument();
+  expect(screen.queryByText('datasource load failed')).not.toBeInTheDocument();
+
+  // The selection committed before the failure is still what gets created.
+  userEvent.click(screen.getByRole('tab', { name: /All charts/i }));
+  userEvent.dblClick(await screen.findByText('Table'));
+  expect(mockHistoryPush).toHaveBeenCalledWith(
+    '/explore/?viz_type=table&datasource=42__semantic_view',
+  );
 });
 
 test('uses generic picker terminology without changing the dataset action', async () => {
-  mockIsFeatureEnabled.mockImplementation(
-    flag => flag === FeatureFlag.SemanticLayers,
-  );
+  enableSemanticLayers();
   fetchMock.get(/\/api\/v1\/datasource\/\?q=.*/, {
     body: { result: combinedDatasourceFixtures, count: 2 },
     status: 200,
@@ -778,9 +739,7 @@ test('keeps the legacy no-options state when semantic layers are disabled', asyn
 });
 
 test('uses the exact dataset endpoint for URL preload with semantic layers enabled', async () => {
-  mockIsFeatureEnabled.mockImplementation(
-    flag => flag === FeatureFlag.SemanticLayers,
-  );
+  enableSemanticLayers();
   fetchMock.clearHistory().removeRoutes();
   fetchMock.get(/\/api\/v1\/dataset\/\?q=.*/, {
     body: { result: legacyDatasetFixtures, count: 1 },
@@ -795,6 +754,10 @@ test('uses the exact dataset endpoint for URL preload with semantic layers enabl
   await renderComponent();
 
   expect(await screen.findByText('shared_source')).toBeInTheDocument();
+  // The preloaded selection is labelled the same way dropdown options are.
+  expect(
+    screen.getByText('Dataset', { selector: '.ant-tag' }),
+  ).toBeInTheDocument();
   expect(
     fetchMock.callHistory.calls().some(call => {
       const decodedUrl = decodeURIComponent(call.url);

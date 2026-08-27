@@ -752,6 +752,25 @@ test('displays an error message when an exception is thrown while fetching', asy
   expect(screen.getByText(error)).toBeInTheDocument();
 });
 
+test('clears a previous fetch error once a later fetch succeeds', async () => {
+  const error = 'Fetch error';
+  const loadOptions = jest.fn(async (search: string) => {
+    if (search === 'fail') {
+      throw new Error(error);
+    }
+    // Report more results than are loaded so every new search hits the server.
+    return { data: [{ label: search, value: search }], totalCount: 100 };
+  });
+  render(<AsyncSelect {...defaultProps} options={loadOptions} />);
+  await open();
+  await type('fail');
+  expect(await screen.findByText(error)).toBeInTheDocument();
+
+  await type('retry');
+  expect(await findSelectOption('retry')).toBeInTheDocument();
+  expect(screen.queryByText(error)).not.toBeInTheDocument();
+});
+
 test('does not fire a new request for the same search input', async () => {
   const loadOptions = jest.fn(async () => ({ data: [], totalCount: 0 }));
   render(
