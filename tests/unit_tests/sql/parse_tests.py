@@ -29,6 +29,8 @@ from superset.jinja_context import JinjaTemplateProcessor
 from superset.sql.parse import (
     _check_script_length,
     _count_weighted_table_references,
+    _find_last_token_node,
+    _get_select_trailing_child,
     BaseSQLStatement,
     count_referenced_tables,
     CTASMethod,
@@ -1369,6 +1371,40 @@ WHERE id = 1;
     assert "SET_VAR(query_timeout /*" not in formatted
     hint_end = formatted.index(hint) + len(hint)
     assert "trailing explanation comment" in formatted[hint_end:]
+
+
+def test_find_last_token_node_branches() -> None:
+    """
+    Directly test all branches of _find_last_token_node and _get_select_trailing_child.
+    """
+    # 1. Empty select returns None from _get_select_trailing_child and falls back to node
+    empty_select = exp.Select()
+    assert _get_select_trailing_child(empty_select) is None
+    assert _find_last_token_node(empty_select) is empty_select
+
+    # 2. Select with list clause vs single Expression clause
+    select_with_exprs = exp.Select(expressions=[exp.Literal.number(1)])
+    assert _get_select_trailing_child(select_with_exprs) == exp.Literal.number(1)
+
+    select_with_where = exp.Select(where=exp.Where(this=exp.Literal.number(2)))
+    assert _get_select_trailing_child(select_with_where) == exp.Literal.number(2)
+
+    # 3. Node with hint or comments in args is skipped during child traversal
+    col_with_comment = exp.Column(this="foo", comments=["my comment"])
+    assert _find_last_token_node(col_with_comment) is not None
+
+    table_with_hint = exp.Table(
+        this="bar", hint=exp.Hint(expressions=[exp.var("HINT")])
+    )
+    assert _find_last_token_node(table_with_hint) is not None
+
+    # 4. Non-select node with list of expressions
+    tup = exp.Tuple(expressions=[exp.Literal.number(1), exp.Literal.number(2)])
+    assert _find_last_token_node(tup) == exp.Literal.number(2)
+
+    # 5. Leaf node with no children returns itself
+    lit = exp.Literal.number(42)
+    assert _find_last_token_node(lit) is lit
 
 
 @pytest.mark.parametrize(
