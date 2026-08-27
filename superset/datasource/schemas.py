@@ -19,7 +19,7 @@
 from __future__ import annotations
 
 from marshmallow import fields, Schema, validates_schema, ValidationError
-from marshmallow.validate import Range
+from marshmallow.validate import OneOf, Range
 
 from superset.charts.schemas import ChartDataFilterSchema
 from superset.common.chart_data import ChartDataResultFormat
@@ -235,6 +235,7 @@ class DatasourceQuerySchema(Schema):
         ChartDataResultFormat,
         by_value=True,
         load_default=ChartDataResultFormat.JSON,
+        validate=OneOf([ChartDataResultFormat.JSON, ChartDataResultFormat.ARROW]),
         metadata={
             "description": "'json' (default) or 'arrow' for an Arrow IPC stream."
         },

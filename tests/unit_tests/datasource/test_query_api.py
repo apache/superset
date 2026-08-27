@@ -211,3 +211,9 @@ def test_rejects_cache_timeout_below_disabled_sentinel(schema) -> None:
 
     with pytest.raises(ValidationError):
         schema.load({"metrics": ["count"], "cache_timeout": -2})
+
+
+def test_rejects_unsupported_result_formats(schema) -> None:
+    for fmt in ("csv", "xlsx"):
+        with pytest.raises(ValidationError):
+            schema.load({"metrics": ["count"], "result_format": fmt})
