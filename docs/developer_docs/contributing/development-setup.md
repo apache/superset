@@ -284,6 +284,8 @@ automatically run whenever you make a Git commit.
 
 #### Running Pre-commit Manually
 
+Before pushing your changes, run `pre-commit run --all-files` so that any issues are caught locally rather than in CI.
+
 You can also run the pre-commit checks manually in various ways:
 
 - **Run pre-commit on all files (same as CI):**
