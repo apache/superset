@@ -391,7 +391,7 @@ grpcio==1.83.0
     #   grpcio-status
 grpcio-status==1.60.1
     # via google-api-core
-gunicorn==26.0.0
+gunicorn==26.2.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -624,7 +624,6 @@ packaging==25.0
     #   duckdb-engine
     #   fastmcp-slim
     #   google-cloud-bigquery
-    #   gunicorn
     #   kombu
     #   limits
     #   matplotlib
