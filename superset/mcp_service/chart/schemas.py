@@ -1045,6 +1045,59 @@ class PieChartConfig(BaseChartConfig):
         return self
 
 
+class FunnelChartConfig(BaseChartConfig):
+    """Config for funnel charts (viz_type ``funnel``).
+
+    Matches the frontend Funnel buildQuery contract: a single ``groupby``
+    dimension whose values become the funnel stages and one ``metric`` sizing
+    each stage. When ``sort_by_metric`` is set the query orders stages by the
+    metric descending (largest stage first).
+    """
+
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    chart_type: Literal["funnel"] = "funnel"
+    dimension: ColumnRef = Field(
+        ...,
+        description="Category column whose values become the funnel stages",
+        validation_alias=AliasChoices("dimension", "groupby"),
+    )
+    metric: ColumnRef = Field(
+        ...,
+        description="Value metric sizing each stage (use aggregate e.g. SUM, "
+        "COUNT for ad-hoc, or set saved_metric=True for a saved dataset metric)",
+    )
+    sort_by_metric: bool = Field(
+        True,
+        description="Order stages by the metric descending (frontend default)",
+    )
+    row_limit: int = Field(10, description="Max funnel stages", ge=1, le=10000)
+    filters: List[FilterConfig] | None = Field(
+        None,
+        description="Structured filters (column/op/value). "
+        "Do NOT use adhoc_filters or raw SQL expressions.",
+    )
+    color_scheme: str | None = Field(
+        None,
+        description=(
+            "Superset color scheme ID (e.g. 'supersetColors', 'lyftColors', "
+            "'googleCategory10c', 'd3Category10'). Defaults to 'supersetColors'."
+        ),
+        max_length=100,
+    )
+
+    @model_validator(mode="after")
+    def reject_sql_expression_on_dimensions(self) -> "FunnelChartConfig":
+        """sql_expression and saved_metric are metric-only; reject on the dimension."""
+        _reject_sql_expression_on_dimension(self.dimension, "dimension")
+        if self.dimension and self.dimension.saved_metric:
+            raise ValueError(
+                "dimension cannot use saved_metric=True; "
+                "saved metrics belong in the 'metric' field"
+            )
+        return self
+
+
 class PivotTableChartConfig(BaseChartConfig):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
@@ -2287,6 +2340,7 @@ ChartConfig = Annotated[
     XYChartConfig
     | TableChartConfig
     | PieChartConfig
+    | FunnelChartConfig
     | PivotTableChartConfig
     | InteractivePivotChartConfig
     | MixedTimeseriesChartConfig
@@ -2299,8 +2353,8 @@ ChartConfig = Annotated[
         discriminator="chart_type",
         description=(
             "Chart configuration - specify chart_type as 'xy', 'table', "
-            "'pie', 'pivot_table', 'interactive_pivot', 'mixed_timeseries', "
-            "'handlebars', "
+            "'pie', 'funnel', 'pivot_table', 'interactive_pivot', "
+            "'mixed_timeseries', 'handlebars', "
             "'big_number', 'histogram', 'box_plot', or 'waterfall'"
         ),
     ),

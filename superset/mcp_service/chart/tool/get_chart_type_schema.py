@@ -31,6 +31,7 @@ from superset.extensions import event_logger
 from superset.mcp_service.chart.schemas import (
     BigNumberChartConfig,
     BoxPlotChartConfig,
+    FunnelChartConfig,
     HandlebarsChartConfig,
     HistogramChartConfig,
     InteractivePivotChartConfig,
@@ -49,6 +50,7 @@ _CHART_TYPE_ADAPTERS: Dict[str, TypeAdapter[Any]] = {
     "xy": TypeAdapter(XYChartConfig),
     "table": TypeAdapter(TableChartConfig),
     "pie": TypeAdapter(PieChartConfig),
+    "funnel": TypeAdapter(FunnelChartConfig),
     "pivot_table": TypeAdapter(PivotTableChartConfig),
     "interactive_pivot": TypeAdapter(InteractivePivotChartConfig),
     "mixed_timeseries": TypeAdapter(MixedTimeseriesChartConfig),
@@ -202,6 +204,13 @@ _CHART_EXAMPLES: Dict[str, list[Dict[str, Any]]] = {
             "metric": {"name": "profit", "aggregate": "SUM"},
             "breakdown": {"name": "region"},
             "show_total": True,
+        },
+    ],
+    "funnel": [
+        {
+            "chart_type": "funnel",
+            "dimension": {"name": "stage"},
+            "metric": {"name": "leads", "aggregate": "SUM"},
         },
     ],
 }
