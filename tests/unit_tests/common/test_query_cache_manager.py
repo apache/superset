@@ -61,7 +61,7 @@ class TestQueryCacheManagerGet:
         mock_cache.get.return_value = {
             "df": None,
             "query": "provider query",
-            "semantic_cache_hit": True,
+            "semantic_cache_status": "HIT",
             "dttm": "2026-08-04T00:00:00+00:00",
         }
 
@@ -72,4 +72,4 @@ class TestQueryCacheManagerGet:
             result: QueryCacheManager = QueryCacheManager.get(key="some-key")
 
         assert result.is_cached is True
-        assert result.semantic_cache_hit is False
+        assert result.semantic_cache_status == "MISS"

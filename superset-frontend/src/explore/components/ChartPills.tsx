@@ -102,12 +102,12 @@ export const ChartPills = forwardRef(
           )}
           {!isLoading &&
             (firstQueryResponse?.is_cached ||
-              firstQueryResponse?.semantic_cache_hit === true) && (
+              firstQueryResponse?.semantic_cache_status === 'HIT') && (
               <CachedLabel
                 onClick={refreshCachedQuery}
                 cachedTimestamp={firstQueryResponse.cached_dttm}
                 cacheSource={
-                  firstQueryResponse.semantic_cache_hit === true
+                  firstQueryResponse.semantic_cache_status === 'HIT'
                     ? 'semantic'
                     : 'result'
                 }

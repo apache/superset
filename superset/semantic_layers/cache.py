@@ -25,6 +25,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Protocol
 
+from flask_caching.backends.nullcache import NullCache
 from flask_caching.backends.rediscache import RedisSentinelCache
 from superset_core.semantic_layers.types import SemanticQuery, SemanticResult
 
@@ -301,6 +302,12 @@ def _backend_reads_from_replicas(backend: object) -> bool:
     )
 
 
+def _backend_discards_values(backend: object) -> bool:
+    """Detect cache backends that never retain a stored value."""
+    inner: object = getattr(backend, "cache", backend)
+    return isinstance(backend, NullCache) or isinstance(inner, NullCache)
+
+
 def initialize_semantic_cache(
     *,
     parent_enabled: bool,
@@ -323,6 +330,18 @@ def initialize_semantic_cache(
         return state
     if not requested:
         state = SemanticCacheState.disabled(SemanticCacheDisabledReason.FLAG_OFF)
+        semantic_cache_service = SemanticCacheService(state, metrics=metrics)
+        return state
+    if _backend_discards_values(backend):
+        # Containment values and descriptors live in the data cache. The
+        # default ``NullCache`` accepts every store and answers every lookup
+        # with a miss, so the feature would look enabled while paying for
+        # coordination on every request and never serving a hit. Fail closed
+        # so the operator sees the misconfiguration at startup.
+        state = SemanticCacheState.disabled(
+            SemanticCacheDisabledReason.UNSUPPORTED_BACKEND,
+            requested=True,
+        )
         semantic_cache_service = SemanticCacheService(state, metrics=metrics)
         return state
     if _backend_reads_from_replicas(backend):
