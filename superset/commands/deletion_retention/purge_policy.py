@@ -553,6 +553,9 @@ def purge_policy_registry() -> Mapping[type[Any], PurgeEntityPolicy]:
                     fk("slices", "report_schedule", "id", "chart_id", "inbound"),
                     version("slices", "slices_version"),
                     relationship("slices", "tables", "manytoone", "table"),
+                    relationship(
+                        "slices", "semantic_views", "manytoone", "semantic_view"
+                    ),
                     fk("chart_editors", "slices", "chart_id", "id", "outbound"),
                     fk("chart_editors", "subjects", "subject_id", "id", "outbound"),
                     fk("chart_viewers", "slices", "chart_id", "id", "outbound"),
@@ -581,6 +584,7 @@ def purge_policy_registry() -> Mapping[type[Any], PurgeEntityPolicy]:
                     DependencyClassification.ASSOCIATION,
                     DependencyClassification.BLOCK,
                     DependencyClassification.VERSION_OWNED,
+                    DependencyClassification.PRESERVE,
                     DependencyClassification.PRESERVE,
                     DependencyClassification.PRESERVE,
                     DependencyClassification.PRESERVE,

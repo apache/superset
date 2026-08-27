@@ -59,6 +59,12 @@ if TYPE_CHECKING:
     from superset.common.query_context_factory import QueryContextFactory
     from superset.connectors.sqla.models import SqlaTable
 
+    # avoid circular import: superset.connectors.sqla.models imports this module,
+    # and superset.semantic_layers.models -> semantic_layers.mapper imports
+    # superset.connectors.sqla.models. The ``semantic_view`` relationship below
+    # names its target as a string, so the class is only needed for typing.
+    from superset.semantic_layers.models import SemanticView
+
 metadata = Model.metadata  # pylint: disable=no-member
 logger = logging.getLogger(__name__)
 
@@ -161,6 +167,24 @@ class Slice(  # pylint: disable=too-many-public-methods
         remote_side="SqlaTable.id",
         lazy="subquery",
     )
+    # Counterpart of ``table`` for charts built on a semantic view. ``datasource_id``
+    # is only unique within a ``datasource_type``, so the join is guarded on the
+    # type to keep a same-id dataset from being resolved by mistake. View-only:
+    # ``datasource_id`` is written by the chart, never through this relationship.
+    # ``selectin`` costs one extra bounded ``IN (...)`` query per batch of charts
+    # loaded (the type predicate rules out the FK-only shortcut); the default
+    # lazy load would be one query per semantic-view chart on a list page. The
+    # string target resolves because ``superset.daos.datasource`` imports
+    # ``SemanticView`` unconditionally during app initialisation.
+    semantic_view = relationship(
+        "SemanticView",
+        foreign_keys=[datasource_id],
+        primaryjoin="and_(Slice.datasource_id == SemanticView.id, "
+        "Slice.datasource_type == 'semantic_view')",
+        remote_side="SemanticView.id",
+        viewonly=True,
+        lazy="selectin",
+    )
 
     token = ""
 
@@ -186,6 +210,19 @@ class Slice(  # pylint: disable=too-many-public-methods
     def datasource(self) -> SqlaTable | None:
         return self.table
 
+    def _display_datasource(self) -> SqlaTable | SemanticView | None:
+        """Return the datasource used to name and link this chart in listings.
+
+        Display-only counterpart of ``datasource``: it also resolves semantic
+        views, selected strictly by ``datasource_type`` so a chart can never be
+        labelled with a same-id datasource of another kind. ``datasource`` itself
+        deliberately stays ``SqlaTable``-only because access checks and exports
+        depend on that type.
+        """
+        if self.datasource_type == utils.DatasourceType.SEMANTIC_VIEW:
+            return self.semantic_view
+        return self.table
+
     def clone(self) -> Slice:
         return Slice(
             slice_name=self.slice_name,
@@ -198,36 +235,26 @@ class Slice(  # pylint: disable=too-many-public-methods
             cache_timeout=self.cache_timeout,
         )
 
+    # The helpers below read the resolved datasource through ``getattr`` so an
+    # unresolved reference (``None``) or a datasource kind lacking the attribute
+    # yields ``None`` for that one chart instead of failing a whole listing.
+
     @renders("datasource_name")
     def datasource_link(self) -> Markup | None:
-        datasource = self.datasource
-        return datasource.link if datasource else None
+        return getattr(self._display_datasource(), "link", None)
 
     @renders("datasource_url")
     def datasource_url(self) -> str | None:
-        # Use getattr to guard against datasource types that don't have explore_url
-        # (e.g. Query objects), which would otherwise raise AttributeError and cause
-        # the entire chart list response to fail.
-        if self.table:
-            return getattr(self.table, "explore_url", None)
-        datasource = self.datasource
-        return getattr(datasource, "explore_url", None) if datasource else None
+        return getattr(self._display_datasource(), "explore_url", None)
 
     def datasource_name_text(self) -> str | None:
-        if self.table:
-            if self.table.schema:
-                return f"{self.table.schema}.{self.table.table_name}"
-            return self.table.table_name
-        if self.datasource:
-            if self.datasource.schema:
-                return f"{self.datasource.schema}.{self.datasource.name}"
-            return self.datasource.name
-        return None
+        # ``SqlaTable.name`` is ``schema.table_name`` when a schema is set;
+        # ``SemanticView.name`` is the view's name.
+        return getattr(self._display_datasource(), "name", None)
 
     @property
     def datasource_edit_url(self) -> str | None:
-        datasource = self.datasource
-        return datasource.url if datasource else None
+        return getattr(self._display_datasource(), "url", None)
 
     @property
     def description_markeddown(self) -> str:
@@ -368,7 +395,7 @@ class Slice(  # pylint: disable=too-many-public-methods
         # Escape the data-controlled datasource name and edit URL before they
         # are interpolated into HTML attributes.
         url = escape(self.datasource_edit_url)
-        datasource = escape(self.datasource)
+        datasource = escape(self.datasource_name_text() or "")
         return f"""
         <a
                 href="{url}"
