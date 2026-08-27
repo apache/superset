@@ -185,6 +185,11 @@ class InteractivePivotChartPlugin(BaseChartPlugin):
             return config
         config_dict = config.model_dump()
 
+        if temporal_column := config_dict.get("temporal_column"):
+            config_dict["temporal_column"] = DatasetValidator.get_canonical_column_name(
+                temporal_column, dataset_context
+            )
+
         for key in ("rows", "columns", "metrics"):
             for column in config_dict.get(key) or []:
                 if column.get("sql_expression"):

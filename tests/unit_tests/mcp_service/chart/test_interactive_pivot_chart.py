@@ -48,6 +48,7 @@ from superset.mcp_service.chart.tool.update_chart import (
     _build_update_payload,
 )
 from superset.mcp_service.chart.validation.schema_validator import SchemaValidator
+from superset.mcp_service.common.error_schemas import DatasetContext
 from superset.utils import json
 
 
@@ -147,6 +148,38 @@ def test_series_limit_metric_requires_metric_shape() -> None:
                 "series_limit_metric": {"name": "region"},
             }
         )
+
+
+def test_normalization_canonicalizes_temporal_lookup_key() -> None:
+    plugin = InteractivePivotChartPlugin()
+    config = InteractivePivotChartConfig.model_validate(
+        {
+            "chart_type": "interactive_pivot",
+            "rows": [{"name": "REGION"}],
+            "columns": [{"name": "Order_Date"}],
+            "metrics": [{"name": "REVENUE", "aggregate": "SUM"}],
+            "temporal_column": "ORDER_DATE",
+            "time_grain": "P1M",
+        }
+    )
+    dataset_context = DatasetContext(
+        id=7,
+        table_name="orders",
+        database_name="analytics",
+        available_columns=[
+            {"name": "region", "is_temporal": False},
+            {"name": "order_date", "is_temporal": True},
+            {"name": "revenue", "is_temporal": False},
+        ],
+    )
+
+    normalized = plugin.normalize_column_refs(config, dataset_context)
+    form_data = map_interactive_pivot_config(normalized)
+
+    assert normalized.temporal_column == "order_date"
+    assert form_data["groupby"] == ["region", "order_date"]
+    assert form_data["granularity_sqla"] == "order_date"
+    assert form_data["temporal_columns_lookup"] == {"order_date": True}
 
 
 def test_registry_mapping_keeps_interactive_pivot_distinct(
