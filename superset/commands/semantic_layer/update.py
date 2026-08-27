@@ -45,37 +45,25 @@ logger = logging.getLogger(__name__)
 
 
 def _unmask_configuration(
-    sl_type: str,
     existing_raw_configuration: str | None,
     new_configuration: dict[str, Any],
 ) -> dict[str, Any]:
     """
-    Replace ``PASSWORD_MASK`` sentinels in write-only fields of an incoming
-    update payload with the value already stored.
+    Replace ``PASSWORD_MASK`` sentinels in an incoming update payload with
+    the value already stored.
 
     The GET/list endpoints mask write-only configuration values (see
-    ``superset.semantic_layers.api._mask_configuration``); a client that
-    round-trips that response back on an update (e.g. a name-only edit)
-    would otherwise overwrite the real stored credential with the literal
-    mask string.
+    ``superset.semantic_layers.api._mask_configuration``), and fail closed by
+    masking every truthy value when the connector's schema can't be
+    determined. A client that round-trips that response back on an update
+    (e.g. a name-only edit) would otherwise overwrite the real stored
+    values -- secret or not -- with the literal mask string. Restore any key
+    whose incoming value is exactly the mask sentinel from the stored
+    configuration regardless of whether the schema currently marks it
+    write-only, since a client only ever sends the sentinel back for a value
+    it previously received masked (including a value masked by the
+    fail-closed fallback).
     """
-    cls = registry.get(sl_type)
-    if not cls:
-        return new_configuration
-
-    try:
-        schema = cls.get_configuration_schema()
-    except Exception:  # pylint: disable=broad-except
-        return new_configuration
-
-    secret_keys = {
-        key
-        for key, prop in schema.get("properties", {}).items()
-        if isinstance(prop, dict) and prop.get("writeOnly")
-    }
-    if not secret_keys:
-        return new_configuration
-
     try:
         existing_configuration = (
             json.loads(existing_raw_configuration) if existing_raw_configuration else {}
@@ -86,9 +74,7 @@ def _unmask_configuration(
     return {
         key: (
             existing_configuration[key]
-            if key in secret_keys
-            and value == PASSWORD_MASK
-            and key in existing_configuration
+            if value == PASSWORD_MASK and key in existing_configuration
             else value
         )
         for key, value in new_configuration.items()
@@ -175,7 +161,6 @@ class UpdateSemanticLayerCommand(BaseCommand):
 
         if isinstance(self._properties.get("configuration"), dict):
             self._properties["configuration"] = _unmask_configuration(
-                self._model.type,
                 self._model.configuration,
                 self._properties["configuration"],
             )
