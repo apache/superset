@@ -190,6 +190,7 @@ def load_configs(
         if not content:
             continue
 
+        config: Any = None
         prefix = file_name.split("/")[0]
         schema = schemas.get(f"{prefix}/")
         if schema:
@@ -322,7 +323,8 @@ def load_configs(
                         file_name,
                         type(config).__name__,
                     )
-                exc.messages = {file_name: exc.messages}
+                if file_name not in exc.messages:
+                    exc.messages = {file_name: exc.messages}
                 exceptions.append(exc)
 
     return configs

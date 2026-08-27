@@ -15,14 +15,17 @@
 # specific language governing permissions and limitations
 # under the License.
 import time
+from copy import deepcopy
 from datetime import datetime
 from unittest.mock import patch
+from uuid import uuid4
 
 import pytest
 import yaml
 from flask import g  # noqa: F401
 
 from superset import db, security_manager
+from superset.commands.annotation_layer.exceptions import AnnotationLayerNotFoundError
 from superset.commands.chart.create import CreateChartCommand
 from superset.commands.chart.exceptions import (
     ChartForbiddenError,
@@ -39,6 +42,7 @@ from superset.commands.exceptions import CommandInvalidError
 from superset.commands.importers.exceptions import IncorrectVersionError
 from superset.connectors.sqla.models import SqlaTable
 from superset.daos.chart import ChartDAO
+from superset.models.annotations import Annotation, AnnotationLayer
 from superset.models.core import Database
 from superset.models.slice import Slice
 from superset.utils import json
@@ -761,3 +765,950 @@ class TestFavoriteChartCommand(SupersetTestCase):
             finally:
                 if example_chart.datasource:
                     self.revoke_role_access_to_table("Gamma", example_chart.datasource)
+
+
+def _create_chart_annotation_layer(name, descr=None):
+    layer = AnnotationLayer(name=name, descr=descr)
+    db.session.add(layer)
+    db.session.commit()
+    return layer
+
+
+def _create_chart_annotation(
+    layer,
+    short_descr,
+    long_descr=None,
+    json_metadata=None,
+):
+    annotation = Annotation(
+        layer=layer,
+        short_descr=short_descr,
+        long_descr=long_descr,
+        json_metadata=json_metadata,
+    )
+    db.session.add(annotation)
+    db.session.commit()
+    return annotation
+
+
+def _delete_chart_annotation_layer(layer):
+    db.session.query(Annotation).filter(Annotation.layer_id == layer.id).delete()
+    db.session.delete(layer)
+    db.session.commit()
+
+
+def _create_chart_dependency(source_chart, slice_name):
+    chart = Slice(
+        slice_name=slice_name,
+        viz_type=source_chart.viz_type,
+        datasource_id=source_chart.datasource_id,
+        datasource_type=source_chart.datasource_type,
+        params=source_chart.params,
+        query_context=source_chart.query_context,
+        cache_timeout=source_chart.cache_timeout,
+    )
+    db.session.add(chart)
+    db.session.commit()
+    return chart
+
+
+def _delete_chart_dependency(chart):
+    db.session.delete(chart)
+    db.session.commit()
+
+
+def _annotation_layer_import_config(layer_uuid, name, annotations, descr=None):
+    return {
+        "name": name,
+        "descr": descr,
+        "uuid": layer_uuid,
+        "version": "1.0.0",
+        "annotation": annotations,
+    }
+
+
+def _chart_import_config(chart_uuid, slice_name):
+    config = deepcopy(chart_config)
+    config["uuid"] = chart_uuid
+    config["slice_name"] = slice_name
+    return config
+
+
+def _cleanup_imported_chart_bundle(chart_uuids, layer_uuids):
+    for chart_uuid in chart_uuids:
+        chart = db.session.query(Slice).filter_by(uuid=chart_uuid).one_or_none()
+        if chart:
+            db.session.delete(chart)
+    for layer_uuid in layer_uuids:
+        layer = (
+            db.session.query(AnnotationLayer).filter_by(uuid=layer_uuid).one_or_none()
+        )
+        if layer:
+            db.session.query(Annotation).filter(
+                Annotation.layer_id == layer.id
+            ).delete()
+            db.session.delete(layer)
+    dataset = (
+        db.session.query(SqlaTable).filter_by(uuid=dataset_config["uuid"]).one_or_none()
+    )
+    if dataset:
+        db.session.delete(dataset)
+    database = (
+        db.session.query(Database).filter_by(uuid=database_config["uuid"]).one_or_none()
+    )
+    if database:
+        db.session.delete(database)
+    db.session.commit()
+
+
+class TestExportChartsAnnotationLayers(SupersetTestCase):
+    """Tests for annotation layer handling in chart export."""
+
+    @patch("superset.security.manager.g")
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    def test_export_chart_multiple_native_annotation_layers_with_children(self, mock_g):
+        """Export each referenced native layer once and preserve child annotations."""
+        mock_g.user = security_manager.find_user("admin")
+        chart = db.session.query(Slice).filter_by(slice_name="Energy Sankey").one()
+        original_params = json.loads(chart.params or "{}")
+        layer_one = _create_chart_annotation_layer(
+            name=f"Layer One {uuid4()}", descr="first layer"
+        )
+        layer_two = _create_chart_annotation_layer(
+            name=f"Layer Two {uuid4()}", descr="second layer"
+        )
+        unrelated_layer = _create_chart_annotation_layer(name=f"Unrelated {uuid4()}")
+        try:
+            _create_chart_annotation(
+                layer_one,
+                short_descr="layer-one-annotation",
+                long_descr="layer-one-long",
+                json_metadata='{"scope": "one"}',
+            )
+            _create_chart_annotation(
+                layer_two,
+                short_descr="layer-two-annotation",
+                long_descr="layer-two-long",
+                json_metadata='{"scope": "two"}',
+            )
+            chart.params = json.dumps(
+                {
+                    **original_params,
+                    "annotation_layers": [
+                        {
+                            "name": "Native One",
+                            "annotationType": "EVENT",
+                            "sourceType": "NATIVE",
+                            "value": layer_one.id,
+                            "show": True,
+                            "style": "solid",
+                        },
+                        {
+                            "name": "Native Two",
+                            "annotationType": "EVENT",
+                            "sourceType": "NATIVE",
+                            "value": layer_two.id,
+                            "show": False,
+                            "style": "dashed",
+                        },
+                    ],
+                }
+            )
+            db.session.commit()
+
+            contents = dict(ExportChartsCommand([chart.id]).run())
+            chart_yaml = yaml.safe_load(
+                contents[f"charts/Energy_Sankey_{chart.id}.yaml"]()
+            )
+            exported_layers = chart_yaml["params"]["annotation_layers"]
+
+            assert [layer["value"] for layer in exported_layers] == [
+                str(layer_one.uuid),
+                str(layer_two.uuid),
+            ]
+            assert [layer["sourceType"] for layer in exported_layers] == [
+                "NATIVE",
+                "NATIVE",
+            ]
+            assert [layer["style"] for layer in exported_layers] == ["solid", "dashed"]
+            assert [layer["show"] for layer in exported_layers] == [True, False]
+
+            layer_payloads = {
+                payload["uuid"]: payload
+                for path, factory in contents.items()
+                if path.startswith("annotation_layers/")
+                for payload in [yaml.safe_load(factory())]
+            }
+            assert set(layer_payloads) == {str(layer_one.uuid), str(layer_two.uuid)}
+            assert layer_payloads[str(layer_one.uuid)]["annotation"][0][
+                "short_descr"
+            ] == ("layer-one-annotation")
+            assert layer_payloads[str(layer_two.uuid)]["annotation"][0][
+                "short_descr"
+            ] == ("layer-two-annotation")
+            assert str(unrelated_layer.uuid) not in layer_payloads
+        finally:
+            chart.params = json.dumps(original_params)
+            db.session.commit()
+            _delete_chart_annotation_layer(unrelated_layer)
+            _delete_chart_annotation_layer(layer_two)
+            _delete_chart_annotation_layer(layer_one)
+
+    @patch("superset.security.manager.g")
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    def test_export_chart_duplicate_native_annotation_reference_deduplicates_files(
+        self, mock_g
+    ):
+        """Raise when the same native layer id appears twice in one chart export."""
+        mock_g.user = security_manager.find_user("admin")
+        chart = db.session.query(Slice).filter_by(slice_name="Energy Sankey").one()
+        original_params = json.loads(chart.params or "{}")
+        layer = _create_chart_annotation_layer(name=f"Duplicate {uuid4()}")
+        try:
+            chart.params = json.dumps(
+                {
+                    **original_params,
+                    "annotation_layers": [
+                        {
+                            "name": "Native One",
+                            "annotationType": "EVENT",
+                            "sourceType": "NATIVE",
+                            "value": layer.id,
+                        },
+                        {
+                            "name": "Native Two",
+                            "annotationType": "EVENT",
+                            "sourceType": "NATIVE",
+                            "value": layer.id,
+                        },
+                    ],
+                }
+            )
+            db.session.commit()
+
+            with pytest.raises(AnnotationLayerNotFoundError):
+                dict(ExportChartsCommand([chart.id]).run())
+        finally:
+            chart.params = json.dumps(original_params)
+            db.session.commit()
+            _delete_chart_annotation_layer(layer)
+
+    @patch("superset.security.manager.g")
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    def test_export_chart_missing_native_annotation_reference_preserves_value(
+        self, mock_g
+    ):
+        """Raise when a native annotation references a missing layer during export."""
+        mock_g.user = security_manager.find_user("admin")
+        chart = db.session.query(Slice).filter_by(slice_name="Energy Sankey").one()
+        original_params = json.loads(chart.params or "{}")
+        missing_layer_id = 987654321
+        try:
+            chart.params = json.dumps(
+                {
+                    **original_params,
+                    "annotation_layers": [
+                        {
+                            "name": "Missing Native",
+                            "annotationType": "EVENT",
+                            "sourceType": "NATIVE",
+                            "value": missing_layer_id,
+                        }
+                    ],
+                }
+            )
+            db.session.commit()
+
+            with pytest.raises(AnnotationLayerNotFoundError):
+                dict(ExportChartsCommand([chart.id]).run())
+        finally:
+            chart.params = json.dumps(original_params)
+            db.session.commit()
+
+    @patch("superset.security.manager.g")
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    def test_export_chart_multiple_chart_annotation_references(self, mock_g):
+        """Export each referenced table or line annotation chart exactly once."""
+        mock_g.user = security_manager.find_user("admin")
+        main_chart = db.session.query(Slice).filter_by(slice_name="Energy Sankey").one()
+        original_params = json.loads(main_chart.params or "{}")
+        ref_table_chart = _create_chart_dependency(
+            main_chart,
+            slice_name=f"Reference Table {uuid4()}",
+        )
+        ref_line_chart = _create_chart_dependency(
+            main_chart,
+            slice_name=f"Reference Line {uuid4()}",
+        )
+        try:
+            main_chart.params = json.dumps(
+                {
+                    **original_params,
+                    "annotation_layers": [
+                        {
+                            "name": "Table Ref",
+                            "annotationType": "EVENT",
+                            "sourceType": "table",
+                            "value": ref_table_chart.id,
+                            "show": True,
+                        },
+                        {
+                            "name": "Line Ref",
+                            "annotationType": "TIME_SERIES",
+                            "sourceType": "line",
+                            "value": ref_line_chart.id,
+                            "show": False,
+                        },
+                    ],
+                }
+            )
+            db.session.commit()
+
+            contents = dict(ExportChartsCommand([main_chart.id]).run())
+            chart_yaml = yaml.safe_load(
+                contents[f"charts/Energy_Sankey_{main_chart.id}.yaml"]()
+            )
+            exported_layers = chart_yaml["params"]["annotation_layers"]
+            assert exported_layers[0]["sourceType"] == "table"
+            assert exported_layers[0]["value"] == str(ref_table_chart.uuid)
+            assert exported_layers[1]["sourceType"] == "line"
+            assert exported_layers[1]["value"] == str(ref_line_chart.uuid)
+            ref_table_chart_path = (
+                "charts/"
+                f"{ref_table_chart.slice_name.replace(' ', '_')}"
+                f"_{ref_table_chart.id}.yaml"
+            )
+            assert ref_table_chart_path in contents
+            ref_line_chart_path = (
+                "charts/"
+                f"{ref_line_chart.slice_name.replace(' ', '_')}"
+                f"_{ref_line_chart.id}.yaml"
+            )
+            assert ref_line_chart_path in contents
+            assert not [
+                path for path in contents if path.startswith("annotation_layers/")
+            ]
+        finally:
+            main_chart.params = json.dumps(original_params)
+            db.session.commit()
+            _delete_chart_dependency(ref_line_chart)
+            _delete_chart_dependency(ref_table_chart)
+
+    @patch("superset.security.manager.g")
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    def test_export_chart_missing_chart_annotation_reference_raises(self, mock_g):
+        """Raise when table/line annotation references a missing chart during export."""
+        mock_g.user = security_manager.find_user("admin")
+        chart = db.session.query(Slice).filter_by(slice_name="Energy Sankey").one()
+        original_params = json.loads(chart.params or "{}")
+        missing_chart_id = 987654321
+        try:
+            chart.params = json.dumps(
+                {
+                    **original_params,
+                    "annotation_layers": [
+                        {
+                            "name": "Missing Table Ref",
+                            "annotationType": "EVENT",
+                            "sourceType": "table",
+                            "value": missing_chart_id,
+                        }
+                    ],
+                }
+            )
+            db.session.commit()
+
+            with pytest.raises(ChartNotFoundError):
+                dict(ExportChartsCommand([chart.id]).run())
+        finally:
+            chart.params = json.dumps(original_params)
+            db.session.commit()
+
+    @patch("superset.security.manager.g")
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    def test_export_chart_annotation_references_consistent_in_params_and_query_context(
+        self, mock_g
+    ):
+        """Resolve same annotation refs in params and query context."""
+        mock_g.user = security_manager.find_user("admin")
+        main_chart = db.session.query(Slice).filter_by(slice_name="Energy Sankey").one()
+        original_params = json.loads(main_chart.params or "{}")
+        original_query_context = main_chart.query_context
+        native_layer = _create_chart_annotation_layer(
+            name=f"Native Query {uuid4()}", descr="query layer"
+        )
+        ref_chart = _create_chart_dependency(
+            main_chart, slice_name=f"Query Ref {uuid4()}"
+        )
+        try:
+            _create_chart_annotation(
+                native_layer,
+                short_descr="query-child",
+                long_descr="query-child-long",
+                json_metadata='{"color": "blue"}',
+            )
+            annotations = [
+                {
+                    "name": "Native",
+                    "annotationType": "EVENT",
+                    "sourceType": "NATIVE",
+                    "value": native_layer.id,
+                    "show": True,
+                    "style": "solid",
+                },
+                {
+                    "name": "Table",
+                    "annotationType": "EVENT",
+                    "sourceType": "table",
+                    "value": ref_chart.id,
+                    "show": True,
+                    "style": "solid",
+                },
+                {
+                    "name": "Formula",
+                    "annotationType": "FORMULA",
+                    "sourceType": "FORMULA",
+                    "value": "cos(x)",
+                    "show": False,
+                    "style": "dashed",
+                },
+            ]
+            main_chart.params = json.dumps(
+                {
+                    **original_params,
+                    "annotation_layers": deepcopy(annotations),
+                }
+            )
+            main_chart.query_context = json.dumps(
+                {
+                    "datasource": {"id": main_chart.datasource_id, "type": "table"},
+                    "queries": [{"annotation_layers": deepcopy(annotations)}],
+                    "form_data": {"annotation_layers": deepcopy(annotations)},
+                }
+            )
+            db.session.commit()
+
+            contents = dict(ExportChartsCommand([main_chart.id]).run())
+            chart_yaml = yaml.safe_load(
+                contents[f"charts/Energy_Sankey_{main_chart.id}.yaml"]()
+            )
+            params_layers = chart_yaml["params"]["annotation_layers"]
+            query_context = json.loads(chart_yaml["query_context"])
+            query_layers = query_context["queries"][0]["annotation_layers"]
+            form_layers = query_context["form_data"]["annotation_layers"]
+
+            expected_values = [str(native_layer.uuid), str(ref_chart.uuid), "cos(x)"]
+            assert [layer["value"] for layer in params_layers] == expected_values
+            assert [layer["value"] for layer in query_layers] == expected_values
+            assert [layer["value"] for layer in form_layers] == expected_values
+
+            layer_payloads = [
+                yaml.safe_load(factory())
+                for path, factory in contents.items()
+                if path.startswith("annotation_layers/")
+            ]
+            assert len(layer_payloads) == 1
+            assert layer_payloads[0]["uuid"] == str(native_layer.uuid)
+            assert layer_payloads[0]["annotation"][0]["short_descr"] == "query-child"
+            assert layer_payloads[0]["annotation"][0]["json_metadata"] == {
+                "color": "blue"
+            }
+        finally:
+            main_chart.params = json.dumps(original_params)
+            main_chart.query_context = original_query_context
+            db.session.commit()
+            _delete_chart_dependency(ref_chart)
+            _delete_chart_annotation_layer(native_layer)
+
+    @patch("superset.security.manager.g")
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    def test_export_chart_without_annotation_layers_adds_no_annotation_dependencies(
+        self, mock_g
+    ):
+        """Export charts without annotation layers without adding layer artifacts."""
+        mock_g.user = security_manager.find_user("admin")
+        chart = db.session.query(Slice).filter_by(slice_name="Energy Sankey").one()
+        original_params = json.loads(chart.params or "{}")
+        original_query_context = chart.query_context
+        try:
+            params_without_annotations = deepcopy(original_params)
+            params_without_annotations.pop("annotation_layers", None)
+            chart.params = json.dumps(params_without_annotations)
+            query_context = json.loads(chart.query_context or "{}")
+            for query in query_context.get("queries", []):
+                query["annotation_layers"] = []
+            query_context.setdefault("form_data", {})["annotation_layers"] = []
+            chart.query_context = json.dumps(query_context)
+            db.session.commit()
+
+            contents = dict(ExportChartsCommand([chart.id]).run())
+            chart_yaml = yaml.safe_load(
+                contents[f"charts/Energy_Sankey_{chart.id}.yaml"]()
+            )
+            assert chart_yaml.get("params", {}).get("annotation_layers", []) == []
+            assert not [
+                path for path in contents if path.startswith("annotation_layers/")
+            ]
+        finally:
+            chart.params = json.dumps(original_params)
+            chart.query_context = original_query_context
+            db.session.commit()
+
+
+class TestImportChartsAnnotationLayers(SupersetTestCase):
+    """Tests for annotation layer handling during chart import."""
+
+    @patch("superset.utils.core.g")
+    @patch("superset.security.manager.g")
+    @patch("superset.commands.database.importers.v1.utils.add_permissions")
+    def test_import_chart_multiple_native_annotation_layers_with_children(
+        self, mock_add_permissions, sm_g, utils_g
+    ):
+        """Import multiple native layers with child annotation linkage."""
+        sm_g.user = utils_g.user = security_manager.find_user("admin")
+        main_chart_uuid = str(uuid4())
+        layer_one_uuid = str(uuid4())
+        layer_two_uuid = str(uuid4())
+        main_chart_config = _chart_import_config(
+            main_chart_uuid, "Chart With Native Layers"
+        )
+        main_chart_config["params"]["annotation_layers"] = [
+            {
+                "name": "Native One",
+                "annotationType": "EVENT",
+                "sourceType": "NATIVE",
+                "value": layer_one_uuid,
+                "show": True,
+                "style": "solid",
+            },
+            {
+                "name": "Native Two",
+                "annotationType": "EVENT",
+                "sourceType": "NATIVE",
+                "value": layer_two_uuid,
+                "show": False,
+                "style": "dashed",
+            },
+        ]
+
+        contents = {
+            "metadata.yaml": yaml.safe_dump(chart_metadata_config),
+            "databases/imported_database.yaml": yaml.safe_dump(database_config),
+            "datasets/imported_dataset.yaml": yaml.safe_dump(dataset_config),
+            "charts/main_chart.yaml": yaml.safe_dump(main_chart_config),
+            "annotation_layers/layer_one.yaml": yaml.safe_dump(
+                _annotation_layer_import_config(
+                    layer_one_uuid,
+                    "Layer One",
+                    [
+                        {
+                            "uuid": str(uuid4()),
+                            "short_descr": "one-a",
+                            "long_descr": "layer one annotation",
+                            "json_metadata": {"layer": 1},
+                        },
+                        {
+                            "uuid": str(uuid4()),
+                            "short_descr": "one-b",
+                            "long_descr": "layer one annotation two",
+                            "json_metadata": {"layer": 1, "rank": 2},
+                        },
+                    ],
+                    descr="layer one descr",
+                )
+            ),
+            "annotation_layers/layer_two.yaml": yaml.safe_dump(
+                _annotation_layer_import_config(
+                    layer_two_uuid,
+                    "Layer Two",
+                    [
+                        {
+                            "uuid": str(uuid4()),
+                            "short_descr": "two-a",
+                            "long_descr": "layer two annotation",
+                            "json_metadata": {"layer": 2},
+                        }
+                    ],
+                    descr="layer two descr",
+                )
+            ),
+        }
+
+        try:
+            ImportChartsCommand(contents, overwrite=True).run()
+
+            chart = db.session.query(Slice).filter_by(uuid=main_chart_uuid).one()
+            layer_one = (
+                db.session.query(AnnotationLayer).filter_by(uuid=layer_one_uuid).one()
+            )
+            layer_two = (
+                db.session.query(AnnotationLayer).filter_by(uuid=layer_two_uuid).one()
+            )
+            params_layers = json.loads(chart.params)["annotation_layers"]
+
+            assert [layer["value"] for layer in params_layers] == [
+                layer_one.id,
+                layer_two.id,
+            ]
+            assert [layer["style"] for layer in params_layers] == ["solid", "dashed"]
+            assert [layer["show"] for layer in params_layers] == [True, False]
+
+            layer_one_annotations = (
+                db.session.query(Annotation).filter_by(layer_id=layer_one.id).all()
+            )
+            layer_two_annotations = (
+                db.session.query(Annotation).filter_by(layer_id=layer_two.id).all()
+            )
+            assert {annotation.short_descr for annotation in layer_one_annotations} == {
+                "one-a",
+                "one-b",
+            }
+            assert {annotation.short_descr for annotation in layer_two_annotations} == {
+                "two-a"
+            }
+            assert all(
+                annotation.layer_id == layer_one.id
+                for annotation in layer_one_annotations
+            )
+            assert all(
+                annotation.layer_id == layer_two.id
+                for annotation in layer_two_annotations
+            )
+        finally:
+            _cleanup_imported_chart_bundle(
+                [main_chart_uuid], [layer_one_uuid, layer_two_uuid]
+            )
+
+    @patch("superset.utils.core.g")
+    @patch("superset.security.manager.g")
+    @patch("superset.commands.database.importers.v1.utils.add_permissions")
+    def test_import_chart_mixed_annotation_dependency_graph(
+        self, mock_add_permissions, sm_g, utils_g
+    ):
+        """Resolve mixed annotation source types across params and query context."""
+        sm_g.user = utils_g.user = security_manager.find_user("admin")
+        native_layer_uuid = str(uuid4())
+        ref_table_uuid = str(uuid4())
+        ref_line_uuid = str(uuid4())
+        main_chart_uuid = str(uuid4())
+        ref_table_chart = _chart_import_config(ref_table_uuid, "Ref Table Chart")
+        ref_line_chart = _chart_import_config(ref_line_uuid, "Ref Line Chart")
+        main_chart = _chart_import_config(main_chart_uuid, "Main Mixed Chart")
+
+        annotations = [
+            {
+                "name": "Native",
+                "annotationType": "EVENT",
+                "sourceType": "NATIVE",
+                "value": native_layer_uuid,
+                "show": True,
+                "style": "solid",
+            },
+            {
+                "name": "Table",
+                "annotationType": "EVENT",
+                "sourceType": "table",
+                "value": ref_table_uuid,
+                "show": False,
+                "style": "solid",
+            },
+            {
+                "name": "Line",
+                "annotationType": "TIME_SERIES",
+                "sourceType": "line",
+                "value": ref_line_uuid,
+                "show": True,
+                "style": "dashed",
+            },
+            {
+                "name": "Formula",
+                "annotationType": "FORMULA",
+                "sourceType": "FORMULA",
+                "value": "cos(x)",
+                "show": True,
+                "style": "solid",
+            },
+        ]
+        main_chart["params"]["annotation_layers"] = deepcopy(annotations)
+        main_chart["query_context"] = json.dumps(
+            {
+                "datasource": {"id": 12, "type": "table"},
+                "queries": [{"annotation_layers": deepcopy(annotations)}],
+                "form_data": {"annotation_layers": deepcopy(annotations)},
+            }
+        )
+
+        contents = {
+            "metadata.yaml": yaml.safe_dump(chart_metadata_config),
+            "databases/imported_database.yaml": yaml.safe_dump(database_config),
+            "datasets/imported_dataset.yaml": yaml.safe_dump(dataset_config),
+            "charts/ref_table.yaml": yaml.safe_dump(ref_table_chart),
+            "charts/ref_line.yaml": yaml.safe_dump(ref_line_chart),
+            "charts/main_chart.yaml": yaml.safe_dump(main_chart),
+            "annotation_layers/native_layer.yaml": yaml.safe_dump(
+                _annotation_layer_import_config(
+                    native_layer_uuid,
+                    "Imported Native Layer",
+                    [
+                        {
+                            "uuid": str(uuid4()),
+                            "short_descr": "native-child",
+                            "long_descr": "native child annotation",
+                            "json_metadata": {"kind": "native"},
+                        }
+                    ],
+                )
+            ),
+        }
+
+        try:
+            ImportChartsCommand(contents, overwrite=True).run()
+
+            imported_main_chart = (
+                db.session.query(Slice).filter_by(uuid=main_chart_uuid).one()
+            )
+            imported_table_chart = (
+                db.session.query(Slice).filter_by(uuid=ref_table_uuid).one()
+            )
+            imported_line_chart = (
+                db.session.query(Slice).filter_by(uuid=ref_line_uuid).one()
+            )
+            imported_native_layer = (
+                db.session.query(AnnotationLayer)
+                .filter_by(uuid=native_layer_uuid)
+                .one()
+            )
+
+            params_layers = json.loads(imported_main_chart.params)["annotation_layers"]
+            assert [layer["sourceType"] for layer in params_layers] == [
+                "NATIVE",
+                "table",
+                "line",
+                "FORMULA",
+            ]
+            assert [layer["value"] for layer in params_layers] == [
+                imported_native_layer.id,
+                imported_table_chart.id,
+                imported_line_chart.id,
+                "cos(x)",
+            ]
+            assert [layer["show"] for layer in params_layers] == [
+                True,
+                False,
+                True,
+                True,
+            ]
+            assert [layer["style"] for layer in params_layers] == [
+                "solid",
+                "solid",
+                "dashed",
+                "solid",
+            ]
+
+            query_context = json.loads(imported_main_chart.query_context)
+            assert [
+                layer["value"]
+                for layer in query_context["queries"][0]["annotation_layers"]
+            ] == [
+                imported_native_layer.id,
+                imported_table_chart.id,
+                imported_line_chart.id,
+                "cos(x)",
+            ]
+            assert [
+                layer["value"]
+                for layer in query_context["form_data"]["annotation_layers"]
+            ] == [
+                imported_native_layer.id,
+                imported_table_chart.id,
+                imported_line_chart.id,
+                "cos(x)",
+            ]
+        finally:
+            _cleanup_imported_chart_bundle(
+                [main_chart_uuid, ref_table_uuid, ref_line_uuid],
+                [native_layer_uuid],
+            )
+
+    @patch("superset.utils.core.g")
+    @patch("superset.security.manager.g")
+    @patch("superset.commands.database.importers.v1.utils.add_permissions")
+    def test_import_chart_missing_annotation_layer_dependency_drops_reference(
+        self, mock_add_permissions, sm_g, utils_g
+    ):
+        """Drop unresolved native layer UUID refs when dependency is missing."""
+        sm_g.user = utils_g.user = security_manager.find_user("admin")
+        main_chart_uuid = str(uuid4())
+        missing_layer_uuid = str(uuid4())
+        main_chart = _chart_import_config(main_chart_uuid, "Missing Native Layer")
+        annotations = [
+            {
+                "name": "Missing Native",
+                "annotationType": "EVENT",
+                "sourceType": "NATIVE",
+                "value": missing_layer_uuid,
+                "show": True,
+            }
+        ]
+        main_chart["params"]["annotation_layers"] = deepcopy(annotations)
+        main_chart["query_context"] = json.dumps(
+            {
+                "datasource": {"id": 12, "type": "table"},
+                "queries": [{"annotation_layers": deepcopy(annotations)}],
+                "form_data": {"annotation_layers": deepcopy(annotations)},
+            }
+        )
+        contents = {
+            "metadata.yaml": yaml.safe_dump(chart_metadata_config),
+            "databases/imported_database.yaml": yaml.safe_dump(database_config),
+            "datasets/imported_dataset.yaml": yaml.safe_dump(dataset_config),
+            "charts/main_chart.yaml": yaml.safe_dump(main_chart),
+        }
+
+        try:
+            ImportChartsCommand(contents, overwrite=True).run()
+
+            chart = db.session.query(Slice).filter_by(uuid=main_chart_uuid).one()
+            assert json.loads(chart.params)["annotation_layers"] == []
+            query_context = json.loads(chart.query_context)
+            assert query_context["queries"][0]["annotation_layers"] == []
+            assert query_context["form_data"]["annotation_layers"] == []
+        finally:
+            _cleanup_imported_chart_bundle([main_chart_uuid], [])
+
+    @patch("superset.utils.core.g")
+    @patch("superset.security.manager.g")
+    @patch("superset.commands.database.importers.v1.utils.add_permissions")
+    def test_import_chart_invalid_annotation_layer_uuid_drops_only_invalid_reference(
+        self, mock_add_permissions, sm_g, utils_g
+    ):
+        """Drop invalid native UUID refs and keep formula annotations."""
+        sm_g.user = utils_g.user = security_manager.find_user("admin")
+        main_chart_uuid = str(uuid4())
+        main_chart = _chart_import_config(main_chart_uuid, "Invalid Native UUID")
+        annotations = [
+            {
+                "name": "Invalid Native",
+                "annotationType": "EVENT",
+                "sourceType": "NATIVE",
+                "value": "not-a-uuid",
+                "show": True,
+            },
+            {
+                "name": "Formula",
+                "annotationType": "FORMULA",
+                "sourceType": "FORMULA",
+                "value": "sin(x)",
+                "show": False,
+            },
+        ]
+        main_chart["params"]["annotation_layers"] = [
+            *deepcopy(annotations),
+        ]
+        main_chart["query_context"] = json.dumps(
+            {
+                "datasource": {"id": 12, "type": "table"},
+                "queries": [{"annotation_layers": deepcopy(annotations)}],
+                "form_data": {"annotation_layers": deepcopy(annotations)},
+            }
+        )
+        contents = {
+            "metadata.yaml": yaml.safe_dump(chart_metadata_config),
+            "databases/imported_database.yaml": yaml.safe_dump(database_config),
+            "datasets/imported_dataset.yaml": yaml.safe_dump(dataset_config),
+            "charts/main_chart.yaml": yaml.safe_dump(main_chart),
+        }
+
+        try:
+            ImportChartsCommand(contents, overwrite=True).run()
+
+            chart = db.session.query(Slice).filter_by(uuid=main_chart_uuid).one()
+            params_layers = json.loads(chart.params)["annotation_layers"]
+            assert len(params_layers) == 1
+            assert params_layers[0]["annotationType"] == "FORMULA"
+            assert params_layers[0]["value"] == "sin(x)"
+
+            query_context = json.loads(chart.query_context)
+            query_layers = query_context["queries"][0]["annotation_layers"]
+            form_layers = query_context["form_data"]["annotation_layers"]
+            assert [layer["value"] for layer in query_layers] == ["sin(x)"]
+            assert [layer["value"] for layer in form_layers] == ["sin(x)"]
+        finally:
+            _cleanup_imported_chart_bundle([main_chart_uuid], [])
+
+    @patch("superset.utils.core.g")
+    @patch("superset.security.manager.g")
+    @patch("superset.commands.database.importers.v1.utils.add_permissions")
+    def test_import_chart_existing_annotation_layer_dependency_overwrite_reuses_layer(
+        self, mock_add_permissions, sm_g, utils_g
+    ):
+        """Reuse and overwrite existing annotation layer on chart import."""
+        sm_g.user = utils_g.user = security_manager.find_user("admin")
+        existing_layer_uuid = str(uuid4())
+        main_chart_uuid = str(uuid4())
+        existing_layer = _create_chart_annotation_layer(
+            name="existing-layer",
+            descr="before overwrite",
+        )
+        existing_layer.uuid = existing_layer_uuid
+        db.session.commit()
+        existing_layer_id = existing_layer.id
+        _create_chart_annotation(existing_layer, short_descr="stale-child")
+
+        main_chart = _chart_import_config(
+            main_chart_uuid, "Overwrite Native Layer Chart"
+        )
+        main_chart["params"]["annotation_layers"] = [
+            {
+                "name": "Native",
+                "annotationType": "EVENT",
+                "sourceType": "NATIVE",
+                "value": existing_layer_uuid,
+                "show": True,
+                "style": "solid",
+            }
+        ]
+        contents = {
+            "metadata.yaml": yaml.safe_dump(chart_metadata_config),
+            "databases/imported_database.yaml": yaml.safe_dump(database_config),
+            "datasets/imported_dataset.yaml": yaml.safe_dump(dataset_config),
+            "charts/main_chart.yaml": yaml.safe_dump(main_chart),
+            "annotation_layers/native_layer.yaml": yaml.safe_dump(
+                _annotation_layer_import_config(
+                    existing_layer_uuid,
+                    "existing-layer-updated",
+                    [
+                        {
+                            "uuid": str(uuid4()),
+                            "short_descr": "fresh-child",
+                            "long_descr": "new annotation",
+                            "json_metadata": {"fresh": True},
+                        }
+                    ],
+                    descr="after overwrite",
+                )
+            ),
+        }
+
+        try:
+            ImportChartsCommand(contents, overwrite=True).run()
+
+            chart = db.session.query(Slice).filter_by(uuid=main_chart_uuid).one()
+            layer = (
+                db.session.query(AnnotationLayer)
+                .filter_by(uuid=existing_layer_uuid)
+                .one()
+            )
+            params_layers = json.loads(chart.params)["annotation_layers"]
+            annotations = (
+                db.session.query(Annotation).filter_by(layer_id=layer.id).all()
+            )
+
+            assert layer.id == existing_layer_id
+            assert layer.name == "existing-layer-updated"
+            assert layer.descr == "after overwrite"
+            assert params_layers[0]["value"] == layer.id
+            assert len(annotations) == 1
+            assert annotations[0].short_descr == "fresh-child"
+        finally:
+            _cleanup_imported_chart_bundle([main_chart_uuid], [existing_layer_uuid])
