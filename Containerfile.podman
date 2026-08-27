@@ -28,6 +28,7 @@ ARG BUILD_TRANSLATIONS="false"
 # superset-node-ci used as a base for building frontend assets and CI
 ######################################################################
 FROM node:24-trixie-slim AS superset-node-ci
+RUN printf '%s\n' 'Acquire::ForceIPv4 "true";' > /etc/apt/apt.conf.d/99force-ipv4
 ARG BUILD_TRANSLATIONS
 ENV BUILD_TRANSLATIONS=${BUILD_TRANSLATIONS}
 ARG DEV_MODE="false"           # Skip frontend build in dev mode
@@ -106,6 +107,7 @@ RUN if [ "${BUILD_TRANSLATIONS}" = "true" ]; then \
 # Base python layer
 ######################################################################
 FROM python:${PY_VER} AS python-base
+RUN printf '%s\n' 'Acquire::ForceIPv4 "true";' > /etc/apt/apt.conf.d/99force-ipv4
 
 ARG SUPERSET_HOME="/app/superset_home"
 ENV SUPERSET_HOME=${SUPERSET_HOME}

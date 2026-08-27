@@ -27,14 +27,14 @@
 x-superset-user: &superset-user root
 x-superset-volumes: &superset-volumes
   # /app/pythonpath_docker will be appended to the PYTHONPATH in the final container
-  - ./docker:/app/docker
-  - ./superset:/app/superset
-  - ./superset-core:/app/superset-core
-  - ./superset-frontend:/app/superset-frontend
+  - ./docker:/app/docker:z
+  - ./superset:/app/superset:z
+  - ./superset-core:/app/superset-core:z
+  - ./superset-frontend:/app/superset-frontend:z
   - superset_home:/app/superset_home
-  - ./tests:/app/tests
+  - ./tests:/app/tests:z
   - superset_data:/app/data
-  - ./local_extensions:/app/local_extensions
+  - ./local_extensions:/app/local_extensions:z
 x-common-build: &common-build
   context: .
   dockerfile: Containerfile.podman
@@ -59,8 +59,8 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
-      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./docker/nginx/templates:/etc/nginx/templates:ro
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro,z
+      - ./docker/nginx/templates:/etc/nginx/templates:ro,z
     # Wait for the webpack dev server's manifest.json to be served before
     # starting nginx. This prevents 404s on static assets at startup. The
     # probe targets host.docker.internal so it works regardless of whether
@@ -110,7 +110,7 @@ services:
       - "127.0.0.1:${DATABASE_PORT:-5432}:5432"
     volumes:
       - db_home:/var/lib/postgresql/data
-      - ./docker/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
+      - ./docker/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d:z
 
   superset:
     env_file:
@@ -153,13 +153,13 @@ services:
     # Those bindings need to be compiled for each OS and the container
     # OS is not necessarily the same as host OS.
     volumes:
-      - ./superset-websocket:/home/superset-websocket
+      - ./superset-websocket:/home/superset-websocket:z
       - /home/superset-websocket/node_modules
       - /home/superset-websocket/dist
 
       # Mount config file. Create your own docker/superset-websocket/config.json
       # for custom settings, then point to it here. Do not use this example in production.
-      - ./docker/superset-websocket/config.example.json:/home/superset-websocket/config.json:ro
+      - ./docker/superset-websocket/config.example.json:/home/superset-websocket/config.json:ro,z
     environment:
       - PORT=8080
       - REDIS_HOST=redis
