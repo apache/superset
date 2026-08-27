@@ -50,6 +50,17 @@ export default class NumberFormatterRegistry extends RegistryWithDefaultKey<
 
   setD3Format(d3Format: Partial<FormatLocaleDefinition>) {
     this.d3Format = { ...DEFAULT_D3_FORMAT, ...d3Format };
+    // Drop cached format strings so they are recreated with the new locale.
+    const preserved = new Set([
+      NumberFormats.SMART_NUMBER,
+      NumberFormats.SMART_NUMBER_SIGNED,
+    ]);
+    this.keys().forEach(key => {
+      if (!preserved.has(key)) {
+        delete this.items[key];
+        delete this.promises[key];
+      }
+    });
     return this;
   }
 

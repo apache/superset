@@ -24,10 +24,13 @@ import setupClient from './setup/setupClient';
 import setupColors from './setup/setupColors';
 import setupFormatters from './setup/setupFormatters';
 import setupDashboardComponents from './setup/setupDashboardComponents';
+import { URL_PARAMS } from './constants';
 import { User } from './types/bootstrapTypes';
 import getBootstrapData, { applicationRoot } from './utils/getBootstrapData';
 import { makeUrl } from './utils/pathUtils';
 import { resolveAppLocale } from './utils/resolveAppLocale';
+import { resolveNumberFormatLocale } from './utils/resolveNumberFormatLocale';
+import { getUrlParam } from './utils/urlUtils';
 import './hooks/useLocale';
 
 // Import dayjs plugin types for global TypeScript support
@@ -55,10 +58,12 @@ export default function initPreamble(): Promise<void> {
     // Grab initial bootstrap data
     const bootstrapData = getBootstrapData();
 
-    setupFormatters(
+    const numberFormatLocale = resolveNumberFormatLocale(
+      getUrlParam(URL_PARAMS.locale),
       bootstrapData.common.d3_format,
-      bootstrapData.common.d3_time_format,
     );
+
+    setupFormatters(numberFormatLocale, bootstrapData.common.d3_time_format);
 
     // Setup SupersetClient early so we can fetch language pack
     setupClient({ appRoot: applicationRoot() });

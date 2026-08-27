@@ -16,13 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { utils, writeFile } from 'xlsx';
+import { getUrlParam } from 'src/utils/urlUtils';
+import { getExportLocale } from './getExportLocale';
 
-export default function exportPivotExcel(
-  tableSelector: string,
-  fileName: string,
-) {
-  const table = document.querySelector(tableSelector);
-  const workbook = utils.table_to_book(table, { raw: true });
-  writeFile(workbook, `${fileName}.xlsx`);
-}
+jest.mock('src/utils/urlUtils', () => ({
+  getUrlParam: jest.fn(),
+}));
+
+const getUrlParamMock = getUrlParam as jest.Mock;
+
+test('returns locale from URL when present', () => {
+  getUrlParamMock.mockReturnValue('de_DE');
+  expect(getExportLocale()).toBe('de_DE');
+});
+
+test('returns undefined when locale param is absent', () => {
+  getUrlParamMock.mockReturnValue(null);
+  expect(getExportLocale()).toBeUndefined();
+});

@@ -52,6 +52,10 @@ from superset.utils.core import (
     is_adhoc_column,
     is_adhoc_metric,
 )
+from superset.utils.export_formatting import (
+    apply_locale_number_formatting,
+    get_export_locale_from_form_data,
+)
 from superset.utils.pandas_postprocessing.utils import unescape_separator
 from superset.views.utils import get_viz
 from superset.viz import viz_types
@@ -252,15 +256,25 @@ class QueryContextProcessor:
             if verbose_map:
                 df.columns = [verbose_map.get(column, column) for column in columns]
 
+            locale_code = get_export_locale_from_form_data(
+                self._query_context.form_data
+            )
+
             result = None
             if self._query_context.result_format == ChartDataResultFormat.CSV:
+                export_df = apply_locale_number_formatting(df, coltypes, locale_code)
                 result = csv.df_to_escaped_csv(
-                    df, index=include_index, **current_app.config["CSV_EXPORT"]
+                    export_df,
+                    index=include_index,
+                    **current_app.config["CSV_EXPORT"],
                 )
             elif self._query_context.result_format == ChartDataResultFormat.XLSX:
-                excel.apply_column_types(df, coltypes)
+                excel_df = df.copy()
+                excel.apply_column_types(excel_df, coltypes)
                 result = excel.df_to_excel(
-                    df, index=include_index, **current_app.config["EXCEL_EXPORT"]
+                    excel_df,
+                    index=include_index,
+                    **current_app.config["EXCEL_EXPORT"],
                 )
             return result or ""
 

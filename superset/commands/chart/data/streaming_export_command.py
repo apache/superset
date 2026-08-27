@@ -21,6 +21,8 @@ from __future__ import annotations
 from typing import Any, TYPE_CHECKING
 
 from superset.commands.streaming_export.base import BaseStreamingCSVExportCommand
+from superset.utils.core import get_metric_names
+from superset.utils.export_formatting import get_export_locale_from_form_data
 
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
@@ -48,8 +50,27 @@ class StreamingCSVExportCommand(BaseStreamingCSVExportCommand):
             query_context: The query context containing datasource and query details
             chunk_size: Number of rows to fetch per database query (default: 1000)
         """
-        super().__init__(chunk_size)
         self._query_context = query_context
+        export_locale = get_export_locale_from_form_data(query_context.form_data)
+        super().__init__(
+            chunk_size,
+            export_locale=export_locale,
+            export_numeric_indices_resolver=(
+                self._resolve_export_numeric_indices if export_locale else None
+            ),
+        )
+
+    def _resolve_export_numeric_indices(self, column_names: list[str]) -> set[int]:
+        """Format only metric columns during streaming export."""
+        query_obj = self._query_context.queries[0]
+        # Streaming CSV headers use SQL aliases (metric_name / adhoc label), not
+        # verbose display names applied by the non-streaming export path.
+        metric_names = set(get_metric_names(query_obj.metrics))
+        return {
+            index
+            for index, column_name in enumerate(column_names)
+            if column_name in metric_names
+        }
 
     def validate(self) -> None:
         """Validate permissions and query context."""

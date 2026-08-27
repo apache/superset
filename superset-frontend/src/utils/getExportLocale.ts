@@ -16,13 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { utils, writeFile } from 'xlsx';
+import { URL_PARAMS } from 'src/constants';
+import { getUrlParam } from 'src/utils/urlUtils';
 
-export default function exportPivotExcel(
-  tableSelector: string,
-  fileName: string,
-) {
-  const table = document.querySelector(tableSelector);
-  const workbook = utils.table_to_book(table, { raw: true });
-  writeFile(workbook, `${fileName}.xlsx`);
+/**
+ * Read the number-format locale from the page URL for chart exports.
+ * Supported values: en_US, en_GB, de_DE, es_ES, fr_FR, it_IT, nl_NL, pl_PL.
+ * Returns undefined when absent.
+ */
+export function getExportLocale(): string | undefined {
+  return getUrlParam(URL_PARAMS.locale) || undefined;
 }

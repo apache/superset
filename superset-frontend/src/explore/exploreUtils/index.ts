@@ -34,6 +34,7 @@ import { availableDomains } from 'src/utils/hostNamesConfig';
 import { safeStringify } from 'src/utils/safeStringify';
 import { optionLabel } from 'src/utils/common';
 import { ensureAppRoot } from 'src/utils/pathUtils';
+import { getExportLocale } from 'src/utils/getExportLocale';
 import { URL_PARAMS } from 'src/constants';
 import {
   DISABLE_INPUT_OPERATORS,
@@ -351,6 +352,11 @@ export const getLegacyEndpointType = ({
 }): string =>
   resultFormat === 'csv' || resultFormat === 'xlsx' ? resultFormat : resultType;
 
+export const withExportLocaleQueryParam = (
+  url: string,
+  locale?: string,
+): string => (locale ? URI(url).addQuery('locale', locale).toString() : url);
+
 export const exportChart = async ({
   formData,
   resultFormat = 'json',
@@ -359,23 +365,34 @@ export const exportChart = async ({
   ownState = {},
   onStartStreamingExport = null,
 }: ExportChartParams): Promise<void> => {
+  const resolvedLocale = formData.locale ?? getExportLocale();
+  const formDataWithLocale: QueryFormData = {
+    ...formData,
+    ...(resolvedLocale ? { locale: resolvedLocale } : {}),
+  };
   let url: string | null;
   let payload: QueryFormData | ReturnType<typeof buildQueryContext>;
-  const [useLegacyApi] = getQuerySettings(formData);
+  const [useLegacyApi] = getQuerySettings(formDataWithLocale);
   if (useLegacyApi) {
     const endpointType = getLegacyEndpointType({ resultFormat, resultType });
-    url = getExploreUrl({
-      formData,
-      endpointType,
-      force,
-      allowDomainSharding: false,
-      relative: true,
-    });
-    payload = formData;
+    url = withExportLocaleQueryParam(
+      getExploreUrl({
+        formData: formDataWithLocale,
+        endpointType,
+        force,
+        allowDomainSharding: false,
+        relative: true,
+      }),
+      resolvedLocale,
+    );
+    payload = formDataWithLocale;
   } else {
-    url = ensureAppRoot('/api/v1/chart/data');
+    url = withExportLocaleQueryParam(
+      ensureAppRoot('/api/v1/chart/data'),
+      resolvedLocale,
+    );
     payload = await buildV1ChartDataPayload({
-      formData,
+      formData: formDataWithLocale,
       force,
       resultFormat,
       resultType,

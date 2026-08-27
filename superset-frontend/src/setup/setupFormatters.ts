@@ -18,6 +18,7 @@
  */
 import {
   createDurationFormatter,
+  createSmartNumberFormatter,
   getNumberFormatter,
   getNumberFormatterRegistry,
   NumberFormats,
@@ -37,8 +38,26 @@ export default function setupFormatters(
   d3NumberFormat: Partial<FormatLocaleDefinition>,
   d3TimeFormat: Partial<TimeLocaleDefinition>,
 ) {
-  getNumberFormatterRegistry()
-    .setD3Format(d3NumberFormat)
+  const numberFormatterRegistry = getNumberFormatterRegistry();
+
+  numberFormatterRegistry.setD3Format(d3NumberFormat);
+
+  // SMART_NUMBER is registered in the registry constructor with DEFAULT_D3_FORMAT.
+  // Re-register so adaptive formatting uses the active locale separators.
+  numberFormatterRegistry
+    .registerValue(
+      NumberFormats.SMART_NUMBER,
+      createSmartNumberFormatter({
+        locale: numberFormatterRegistry.d3Format,
+      }),
+    )
+    .registerValue(
+      NumberFormats.SMART_NUMBER_SIGNED,
+      createSmartNumberFormatter({
+        signed: true,
+        locale: numberFormatterRegistry.d3Format,
+      }),
+    )
     // Add shims for format strings that are deprecated or common typos.
     // Temporary solution until performing a db migration to fix this.
     .registerValue(',0', getNumberFormatter(',.4~f'))

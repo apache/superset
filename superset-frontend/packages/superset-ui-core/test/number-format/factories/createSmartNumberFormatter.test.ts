@@ -17,7 +17,11 @@
  * under the License.
  */
 
-import { NumberFormatter, createSmartNumberFormatter } from '@superset-ui/core';
+import {
+  DEFAULT_D3_FORMAT,
+  NumberFormatter,
+  createSmartNumberFormatter,
+} from '@superset-ui/core';
 
 describe('createSmartNumberFormatter(options)', () => {
   test('creates an instance of NumberFormatter', () => {
@@ -150,4 +154,16 @@ describe('createSmartNumberFormatter(options)', () => {
       });
     });
   });
+});
+
+test('formats numbers with locale-specific separators', () => {
+  const formatter = createSmartNumberFormatter({
+    locale: {
+      ...DEFAULT_D3_FORMAT,
+      decimal: ',',
+      thousands: '.',
+      grouping: [3],
+    },
+  });
+  expect(formatter(274.2856)).toBe('274,29');
 });

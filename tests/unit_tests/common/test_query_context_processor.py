@@ -41,10 +41,10 @@ def processor(mock_query_context):
     from superset.models.helpers import ExploreMixin
 
     mock_query_context.datasource.data = MagicMock()
-    mock_query_context.datasource.data.get.return_value = {
-        "col1": "Column 1",
-        "col2": "Column 2",
-    }
+    mock_query_context.datasource.data.get.side_effect = lambda key, default=None: (
+        {} if key == "verbose_map" else default
+    )
+    mock_query_context.form_data = None
 
     # Create a processor instance
     processor = QueryContextProcessor(mock_query_context)
@@ -100,6 +100,24 @@ def test_get_data_table_like(processor, mock_query_context):
 
 
 @patch("superset.common.query_context_processor.csv.df_to_escaped_csv")
+def test_get_data_csv_applies_locale_formatting(
+    mock_df_to_escaped_csv, processor, mock_query_context
+):
+    df = pd.DataFrame({"col1": [1234.5], "col2": ["a"]})
+    coltypes = [GenericDataType.NUMERIC, GenericDataType.STRING]
+    mock_query_context.result_format = ChartDataResultFormat.CSV
+    mock_query_context.form_data = {"locale": "de_DE"}
+
+    mock_df_to_escaped_csv.return_value = "col1,col2\n1.234,50,a\n"
+    result = processor.get_data(df, coltypes)
+
+    assert result == "col1,col2\n1.234,50,a\n"
+    called_df = mock_df_to_escaped_csv.call_args[0][0]
+    assert called_df["col1"].tolist() == ["1.234,50"]
+    assert called_df["col2"].tolist() == ["a"]
+
+
+@patch("superset.common.query_context_processor.csv.df_to_escaped_csv")
 def test_get_data_csv(mock_df_to_escaped_csv, processor, mock_query_context):
     df = pd.DataFrame({"col1": [1, 2, 3], "col2": ["a", "b", "c"]})
     coltypes = [GenericDataType.NUMERIC, GenericDataType.STRING]
@@ -115,6 +133,24 @@ def test_get_data_csv(mock_df_to_escaped_csv, processor, mock_query_context):
 
 @patch("superset.common.query_context_processor.excel.df_to_excel")
 @patch("superset.common.query_context_processor.excel.apply_column_types")
+def test_get_data_xlsx_skips_locale_formatting(
+    mock_apply_column_types, mock_df_to_excel, processor, mock_query_context
+):
+    df = pd.DataFrame({"col1": [1234.5], "col2": ["a"]})
+    coltypes = [GenericDataType.NUMERIC, GenericDataType.STRING]
+    mock_query_context.result_format = ChartDataResultFormat.XLSX
+    mock_query_context.form_data = {"locale": "de_DE"}
+    mock_df_to_excel.return_value = b"binary data"
+
+    processor.get_data(df, coltypes)
+
+    excel_df = mock_df_to_excel.call_args[0][0]
+    assert excel_df["col1"].tolist() == [1234.5]
+    assert excel_df["col2"].tolist() == ["a"]
+
+
+@patch("superset.common.query_context_processor.excel.df_to_excel")
+@patch("superset.common.query_context_processor.excel.apply_column_types")
 def test_get_data_xlsx(
     mock_apply_column_types, mock_df_to_excel, processor, mock_query_context
 ):
@@ -125,8 +161,11 @@ def test_get_data_xlsx(
     mock_df_to_excel.return_value = b"binary data"
     result = processor.get_data(df, coltypes)
     assert result == b"binary data"
-    mock_apply_column_types.assert_called_once_with(df, coltypes)
-    mock_df_to_excel.assert_called_once_with(df, index=False)
+    mock_apply_column_types.assert_called_once()
+    apply_df, apply_coltypes = mock_apply_column_types.call_args[0]
+    pd.testing.assert_frame_equal(apply_df, df)
+    assert apply_coltypes == coltypes
+    mock_df_to_excel.assert_called_once_with(apply_df, index=False)
 
 
 def test_get_data_json(processor, mock_query_context):
@@ -200,8 +239,11 @@ def test_get_data_empty_dataframe_xlsx(
     mock_df_to_excel.return_value = b"binary data empty"
     result = processor.get_data(df, coltypes)
     assert result == b"binary data empty"
-    mock_apply_column_types.assert_called_once_with(df, coltypes)
-    mock_df_to_excel.assert_called_once_with(df, index=False)
+    mock_apply_column_types.assert_called_once()
+    apply_df, apply_coltypes = mock_apply_column_types.call_args[0]
+    pd.testing.assert_frame_equal(apply_df, df)
+    assert apply_coltypes == coltypes
+    mock_df_to_excel.assert_called_once_with(apply_df, index=False)
 
 
 def test_get_data_nan_values_json(processor, mock_query_context):

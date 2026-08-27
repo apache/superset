@@ -23,6 +23,10 @@ jest.mock('src/utils/pathUtils', () => ({
   ensureAppRoot: jest.fn((path: string) => path),
 }));
 
+jest.mock('src/utils/getExportLocale', () => ({
+  getExportLocale: jest.fn(() => 'en_US'),
+}));
+
 // Mock SupersetClient
 jest.mock('@superset-ui/core', () => ({
   ...jest.requireActual('@superset-ui/core'),
@@ -266,4 +270,37 @@ test('exportChart legacy API includes force param when force=true', async () => 
   expect(onStartStreamingExport).toHaveBeenCalledTimes(1);
   const callArgs = onStartStreamingExport.mock.calls[0][0];
   expect(callArgs.url).toBe('/superset/explore_json/?force=true&csv=true');
+});
+
+test('exportChart includes locale from URL in v1 payload', async () => {
+  const { getExportLocale } = jest.requireMock('src/utils/getExportLocale');
+  getExportLocale.mockReturnValue('de_DE');
+
+  const onStartStreamingExport = jest.fn();
+
+  await exportChart({
+    formData: baseFormData,
+    resultFormat: 'csv',
+    onStartStreamingExport: onStartStreamingExport as unknown as null,
+  });
+
+  const callArgs = onStartStreamingExport.mock.calls[0][0];
+  expect(callArgs.payload.form_data.locale).toBe('de_DE');
+  expect(callArgs.url).toContain('locale=de_DE');
+});
+
+test('exportChart preserves explicit locale on formData', async () => {
+  const { getExportLocale } = jest.requireMock('src/utils/getExportLocale');
+  getExportLocale.mockReturnValue('de_DE');
+
+  const onStartStreamingExport = jest.fn();
+
+  await exportChart({
+    formData: { ...baseFormData, locale: 'en_US' },
+    resultFormat: 'csv',
+    onStartStreamingExport: onStartStreamingExport as unknown as null,
+  });
+
+  const callArgs = onStartStreamingExport.mock.calls[0][0];
+  expect(callArgs.payload.form_data.locale).toBe('en_US');
 });

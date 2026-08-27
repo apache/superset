@@ -17,17 +17,27 @@
  * under the License.
  */
 
-import { formatLocale } from 'd3-format';
+import { formatLocale, FormatLocaleDefinition } from 'd3-format';
 import NumberFormatter from '../NumberFormatter';
 import NumberFormats from '../NumberFormats';
 import { DEFAULT_D3_FORMAT } from '../D3FormatConfig';
 
-const locale = formatLocale(DEFAULT_D3_FORMAT);
-const siFormatter = locale.format(`.3~s`);
-const float2PointFormatter = locale.format(`.2~f`);
-const float4PointFormatter = locale.format(`.4~f`);
+function createFormatters(localeDef: FormatLocaleDefinition) {
+  const locale = formatLocale(localeDef);
+  return {
+    siFormatter: locale.format(`.3~s`),
+    float2PointFormatter: locale.format(`.2~f`),
+    float4PointFormatter: locale.format(`.4~f`),
+  };
+}
 
-function formatValue(value: number) {
+function formatValue(
+  value: number,
+  formatters: ReturnType<typeof createFormatters>,
+) {
+  const { siFormatter, float2PointFormatter, float4PointFormatter } =
+    formatters;
+
   if (value === 0) {
     return '0';
   }
@@ -55,18 +65,25 @@ export default function createSmartNumberFormatter(
     signed?: boolean;
     id?: string;
     label?: string;
+    locale?: FormatLocaleDefinition;
   } = {},
 ) {
-  const { description, signed = false, id, label } = config;
+  const {
+    description,
+    signed = false,
+    id,
+    label,
+    locale = DEFAULT_D3_FORMAT,
+  } = config;
+  const formatters = createFormatters(locale);
   const getSign = signed ? (value: number) => (value > 0 ? '+' : '') : () => '';
 
   return new NumberFormatter({
     description,
-    formatFunc: value => `${getSign(value)}${formatValue(value)}`,
+    formatFunc: value => `${getSign(value)}${formatValue(value, formatters)}`,
     id:
-      id || signed
-        ? NumberFormats.SMART_NUMBER_SIGNED
-        : NumberFormats.SMART_NUMBER,
+      id ||
+      (signed ? NumberFormats.SMART_NUMBER_SIGNED : NumberFormats.SMART_NUMBER),
     label: label ?? 'Adaptive formatter',
   });
 }
