@@ -135,7 +135,11 @@ class ExploreRestApi(BaseSupersetApi):
             return self.response(404, message=str(ex))
         except WrongEndpointError as ex:
             return self.response(302, redirect=ex.redirect)
-        except TemporaryCacheAccessDeniedError as ex:
-            return self.response(403, message=str(ex))
+        except TemporaryCacheAccessDeniedError:
+            return self.response(
+                403,
+                message="You do not have permission to access this datasource",
+                extra={"is_access_denial": True},
+            )
         except TemporaryCacheResourceNotFoundError as ex:
             return self.response(404, message=str(ex))

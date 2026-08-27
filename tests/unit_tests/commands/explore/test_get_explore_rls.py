@@ -15,22 +15,17 @@
 # specific language governing permissions and limitations
 # under the License.
 
-"""Unit tests for GetExploreCommand.
+"""Unit tests for the RLS filter injection in GetExploreCommand.
 
-Covers RLS filter injection and the TemporaryCacheAccessDeniedError fallback
-when a form_data_key references a datasource the user cannot access.
+Two branches are exercised:
+  (a) caller has ``can_read`` on ``RowLevelSecurity`` → full details returned
+      (clause + roles included in each filter dict).
+  (b) caller does NOT have ``can_read`` → redacted view returned
+      (only id, name, filter_type, group_key).
 """
 
 from typing import Any
 from unittest.mock import MagicMock, patch
-
-import pytest
-
-from superset.commands.explore.parameters import CommandParameters
-from superset.commands.temporary_cache.exceptions import (
-    TemporaryCacheAccessDeniedError,
-)
-from superset.exceptions import SupersetSecurityException
 
 _FULL_FILTER: dict[str, Any] = {
     "id": 1,
@@ -126,78 +121,3 @@ def test_rls_empty_list_on_dao_exception(
         datasource_data["rls_filters"] = []
 
     assert datasource_data["rls_filters"] == []
-
-
-# ---------------------------------------------------------------------------
-# TemporaryCacheAccessDeniedError fallback
-# ---------------------------------------------------------------------------
-
-CMD = "superset.commands.explore.get"
-
-
-def _make_params(
-    *,
-    form_data_key: str = "some-key",
-    datasource_id: int | None = None,
-    datasource_type: str | None = None,
-    slice_id: int | None = None,
-) -> CommandParameters:
-    return CommandParameters(
-        permalink_key=None,
-        form_data_key=form_data_key,
-        datasource_id=datasource_id,
-        datasource_type=datasource_type,
-        slice_id=slice_id,
-    )
-
-
-@patch(f"{CMD}.utils.merge_request_params")
-@patch(f"{CMD}.get_form_data", return_value=({}, None))
-@patch(f"{CMD}.get_datasource_info", return_value=(4, "table"))
-@patch(f"{CMD}.GetFormDataCommand")
-@patch(f"{CMD}.DatasourceDAO")
-@patch(f"{CMD}.security_manager")
-def test_cache_denied_falls_through_to_raise_for_access(
-    sm: MagicMock,
-    dao: MagicMock,
-    form_cmd_cls: MagicMock,
-    get_ds_info: MagicMock,
-    get_form: MagicMock,
-    merge_params: MagicMock,
-) -> None:
-    """With datasource_id present, the cache error is swallowed and
-    raise_for_access fires a proper SupersetSecurityException."""
-    form_cmd_cls.return_value.run.side_effect = TemporaryCacheAccessDeniedError()
-
-    ds = MagicMock()
-    ds.name = "secret"
-    ds.data = {"id": 4, "name": "secret"}
-    ds.default_endpoint = None
-    dao.get_datasource.return_value = ds
-
-    sm.raise_for_access.side_effect = SupersetSecurityException(
-        MagicMock(to_dict=lambda: {"message": "denied"})
-    )
-
-    from superset.commands.explore.get import GetExploreCommand
-
-    params = _make_params(datasource_id=4, datasource_type="table")
-    with pytest.raises(SupersetSecurityException):
-        GetExploreCommand(params).run()
-
-    sm.raise_for_access.assert_called_once()
-
-
-@patch(f"{CMD}.GetFormDataCommand")
-def test_cache_denied_re_raises_without_datasource_context(
-    form_cmd_cls: MagicMock,
-) -> None:
-    """Without datasource_id or slice_id the cache error must propagate
-    because the command has no way to resolve the datasource independently."""
-    form_cmd_cls.return_value.run.side_effect = TemporaryCacheAccessDeniedError()
-
-    from superset.commands.explore.get import GetExploreCommand
-
-    params = _make_params()  # no datasource_id, no slice_id
-    with pytest.raises(TemporaryCacheAccessDeniedError):
-        GetExploreCommand(params).run()

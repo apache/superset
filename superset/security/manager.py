@@ -203,17 +203,19 @@ def get_extra_editors_by_pk(
 def _render_permission_instructions_link(
     *,
     datasource_id: str = "",
-    datasource_name: str = "",
     table_names: str = "",
 ) -> Optional[str]:
     """Render the configured ``PERMISSION_INSTRUCTIONS_LINK``.
 
-    The configured URL may contain ``{datasource_id}``, ``{datasource_name}``,
+    The configured URL may contain ``{datasource_id}``,
     ``{table_names}`` and ``{username}`` placeholders, which are substituted with
     URL-encoded values so the link can deep-link into an organization's access
     request system. A URL with no placeholders is returned unchanged, and an
     empty/unset config returns ``None`` (no link). Unsupplied placeholders are
     replaced with an empty string.
+
+    Note: ``{datasource_name}`` was removed to prevent information disclosure.
+    Existing URLs that use it will receive an empty string for that placeholder.
     """
     link = get_conf().get("PERMISSION_INSTRUCTIONS_LINK")
     if not link:
@@ -226,7 +228,7 @@ def _render_permission_instructions_link(
 
     for token, value in (
         ("datasource_id", datasource_id),
-        ("datasource_name", datasource_name),
+        ("datasource_name", ""),  # removed to prevent information disclosure
         ("table_names", table_names),
         ("username", username),
     ):
@@ -2405,7 +2407,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         Return the link for the denied Superset datasource.
 
         The configured ``PERMISSION_INSTRUCTIONS_LINK`` may template the denied
-        datasource's id/name (and the current username) into the access URL.
+        datasource's id (and the current username) into the access URL.
+        The datasource name is intentionally omitted to prevent disclosure.
 
         :param datasource: The denied Superset datasource
         :returns: The access URL

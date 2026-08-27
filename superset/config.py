@@ -2125,9 +2125,9 @@ WTF_CSRF_TIME_LIMIT = int(timedelta(weeks=1).total_seconds())
 # The URL may include any of these placeholders, which are substituted with
 # URL-encoded values so the link can deep-link into an access-request system:
 #   {datasource_id}    - id of the denied dataset (datasource errors)
-#   {datasource_name}  - name of the denied dataset (datasource errors)
 #   {table_names}      - comma-separated denied table names (table/SQL errors)
 #   {username}         - the requesting user's username
+# Note: {datasource_name} was removed to prevent information disclosure.
 # A URL with no placeholders is used as-is. Example:
 #   "https://access.example.com/request?dataset={datasource_id}&user={username}"
 PERMISSION_INSTRUCTIONS_LINK = ""
