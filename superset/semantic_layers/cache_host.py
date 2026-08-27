@@ -101,12 +101,24 @@ def _execution_context(
 
 def build_cache_configuration(
     datasource: BaseDatasource,
+    *,
+    cache_timeout: int | None = None,
 ) -> tuple[ViewMeta, ContainmentCapabilities] | None:
-    """Build safe host metadata when the provider explicitly opts in."""
-    if datasource.cache_timeout == CACHE_DISABLED_TIMEOUT:
-        # The datasource explicitly disables caching. Passing the sentinel to a
-        # cache backend would invert it (Redis reads a negative TTL as "no
-        # expiry"), so containment caching is bypassed entirely instead.
+    """Build safe host metadata when the provider explicitly opts in.
+
+    :param cache_timeout: the timeout the query context resolved for this
+        request (custom, then chart, then datasource). Containment must
+        follow the same decision as the ordinary result cache, so it takes
+        precedence over ``datasource.cache_timeout`` whenever it is known.
+    """
+    timeout: int | None = (
+        datasource.cache_timeout if cache_timeout is None else cache_timeout
+    )
+    if timeout == CACHE_DISABLED_TIMEOUT:
+        # Caching is explicitly disabled for this request. Passing the
+        # sentinel to a cache backend would invert it (Redis reads a negative
+        # TTL as "no expiry"), so containment caching is bypassed entirely
+        # instead: nothing is read and nothing is stored.
         return None
     layer: _SemanticCacheProvider = cast(
         _SemanticCacheProvider,
@@ -166,6 +178,6 @@ def build_cache_configuration(
             provider_material.values
         ),
         scope_identity=SemanticCacheIdentityFactory.scope(scope_material),
-        timeout=datasource.cache_timeout,
+        timeout=timeout,
     )
     return meta, capabilities

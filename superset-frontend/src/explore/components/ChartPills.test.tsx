@@ -30,16 +30,19 @@ jest.mock('@superset-ui/core/components', () => ({
   Timer: () => <span data-test="timer" />,
 }));
 
-const response = (semanticCacheHit: boolean, isCached = true): QueryData =>
+const response = (
+  semanticCacheStatus: QueryData['semantic_cache_status'],
+  isCached = true,
+): QueryData =>
   ({
     is_cached: isCached,
-    semantic_cache_hit: semanticCacheHit,
+    semantic_cache_status: semanticCacheStatus,
   }) as QueryData;
 
 test('passes semantic cache source to the cached label', () => {
   render(
     <ChartPills
-      queriesResponse={[response(true)]}
+      queriesResponse={[response('HIT')]}
       chartUpdateStartTime={0}
       refreshCachedQuery={jest.fn()}
       hideRowCount
@@ -54,7 +57,7 @@ test('passes semantic cache source to the cached label', () => {
 test('keeps ordinary cache source distinct', () => {
   render(
     <ChartPills
-      queriesResponse={[response(false)]}
+      queriesResponse={[response('MISS')]}
       chartUpdateStartTime={0}
       refreshCachedQuery={jest.fn()}
       hideRowCount
@@ -69,7 +72,7 @@ test('keeps ordinary cache source distinct', () => {
 test('shows the cache label for a direct semantic cache hit', () => {
   render(
     <ChartPills
-      queriesResponse={[response(true, false)]}
+      queriesResponse={[response('HIT', false)]}
       chartUpdateStartTime={0}
       refreshCachedQuery={jest.fn()}
       hideRowCount
@@ -79,4 +82,17 @@ test('shows the cache label for a direct semantic cache hit', () => {
   expect(screen.getByTestId('cached-label')).toHaveTextContent(
     'Semantic cache',
   );
+});
+
+test('does not claim a cache hit for mixed semantic provenance', () => {
+  render(
+    <ChartPills
+      queriesResponse={[response('MIXED', false)]}
+      chartUpdateStartTime={0}
+      refreshCachedQuery={jest.fn()}
+      hideRowCount
+    />,
+  );
+
+  expect(screen.queryByTestId('cached-label')).not.toBeInTheDocument();
 });

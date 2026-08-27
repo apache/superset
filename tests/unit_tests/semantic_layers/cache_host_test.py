@@ -178,3 +178,30 @@ def test_cache_configuration_bypasses_disabled_caching() -> None:
     datasource.cache_timeout = CACHE_DISABLED_TIMEOUT
 
     assert build_cache_configuration(datasource) is None
+
+
+def test_cache_configuration_bypasses_disabled_caching_resolved_per_request() -> None:
+    """A chart-level or custom ``-1`` reaches containment as the resolved
+    timeout even when the datasource itself would cache, and must bypass."""
+    datasource: MagicMock = _datasource()
+    datasource.cache_timeout = 60
+
+    assert (
+        build_cache_configuration(datasource, cache_timeout=CACHE_DISABLED_TIMEOUT)
+        is None
+    )
+
+
+def test_cache_configuration_prefers_resolved_timeout() -> None:
+    """The resolved request timeout, not the datasource default, bounds how
+    long a stored containment value may be reused."""
+    datasource: MagicMock = _datasource()
+    datasource.cache_timeout = 3600
+
+    configuration = build_cache_configuration(datasource, cache_timeout=60)
+    assert configuration is not None
+    assert configuration[0].timeout == 60
+
+    fallback = build_cache_configuration(datasource)
+    assert fallback is not None
+    assert fallback[0].timeout == 3600

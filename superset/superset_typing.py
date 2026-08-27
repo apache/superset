@@ -207,6 +207,7 @@ class QueryObjectDict(TypedDict, total=False):
 
     # Core fields from QueryObject.to_dict()
     apply_fetch_values_predicate: bool
+    cache_timeout: int | None
     columns: list[Column]
     extras: dict[str, Any]
     filter: list["QueryObjectFilterClause"]
