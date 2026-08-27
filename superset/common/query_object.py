@@ -86,6 +86,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
     annotation_layers: list[dict[str, Any]]
     applied_time_extras: dict[str, str]
     apply_fetch_values_predicate: bool
+    cache_timeout: int | None
     columns: list[Column]
     datasource: BaseDatasource | None
     extras: dict[str, Any]
@@ -120,6 +121,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         annotation_layers: list[dict[str, Any]] | None = None,
         applied_time_extras: dict[str, str] | None = None,
         apply_fetch_values_predicate: bool = False,
+        cache_timeout: int | None = None,
         columns: list[Column] | None = None,
         datasource: BaseDatasource | None = None,
         extras: dict[str, Any] | None = None,
@@ -146,6 +148,9 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         self._set_annotation_layers(annotation_layers)
         self.applied_time_extras = applied_time_extras or {}
         self.apply_fetch_values_predicate = apply_fetch_values_predicate or False
+        # Resolved chart/custom/datasource cache timeout; None until the query
+        # context processor resolves it.
+        self.cache_timeout = cache_timeout
         self.columns = columns or []
         self.datasource = datasource
         self.extras = extras or {}
@@ -497,6 +502,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
     def to_dict(self) -> QueryObjectDict:
         query_object_dict: QueryObjectDict = {
             "apply_fetch_values_predicate": self.apply_fetch_values_predicate,
+            "cache_timeout": self.cache_timeout,
             "columns": self.columns,
             "extras": self.extras,
             "filter": self.filter,
@@ -560,8 +566,10 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
                 key=lambda value: (type(value).__name__, str(value)),
             )
 
-        # Force refresh controls cache reads, not the logical result identity.
+        # Force refresh and timeout control cache reads and retention, not the
+        # logical result identity.
         cache_dict.pop("force_query", None)
+        cache_dict.pop("cache_timeout", None)
 
         # TODO: the below KVs can all be cleaned up and moved to `to_dict()` at some
         #  predetermined point in time when orgs are aware that the previously

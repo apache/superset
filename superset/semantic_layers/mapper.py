@@ -58,7 +58,7 @@ from superset.common.utils.time_range_utils import (
     get_since_until_from_time_range,
 )
 from superset.connectors.sqla.models import BaseDatasource
-from superset.constants import NO_TIME_RANGE
+from superset.constants import NO_TIME_RANGE, SemanticCacheStatus
 from superset.models.helpers import QueryResult
 from superset.result_set import stringify_extension_columns
 from superset.semantic_layers import cache as semantic_cache
@@ -110,6 +110,7 @@ def _dispatch_semantic_query(
     *,
     force: bool = False,
     cacheable: bool = True,
+    cache_timeout: int | None = None,
 ) -> SemanticCacheOutcome:
     # Normalize before any store or reuse: a provider may return
     # ``SemanticResult(results=None)`` for zero rows, and a cached ``None``
@@ -122,7 +123,7 @@ def _dispatch_semantic_query(
             query, normalized_dispatcher
         )
     cache_configuration: tuple[ViewMeta, ContainmentCapabilities] | None = (
-        build_cache_configuration(datasource)
+        build_cache_configuration(datasource, cache_timeout=cache_timeout)
     )
     if cache_configuration is None:
         return semantic_cache.semantic_cache_service.execute_provider(
@@ -177,9 +178,13 @@ def get_results(query_object: QueryObject) -> QueryResult:
         # only defined over tabular results, so row-count dispatches bypass
         # the cache entirely.
         cacheable=not query_object.is_rowcount,
+        cache_timeout=query_object.cache_timeout,
     )
     main_result: SemanticResult = main_outcome.result
     main_result = _coerce_empty_result(main_result, main_query)
+    # One flag per dispatched semantic query, so the reported provenance
+    # covers the offset queries and not only the main one.
+    cache_hits: list[bool] = [main_outcome.cache_hit]
 
     main_df = stringify_extension_columns(main_result.results).to_pandas()
 
@@ -193,7 +198,7 @@ def get_results(query_object: QueryObject) -> QueryResult:
             main_result,
             query_object,
             duration,
-            semantic_cache_hit=main_outcome.cache_hit,
+            semantic_cache_status=SemanticCacheStatus.from_hits(cache_hits),
         )
 
     # Get metric names from the main query
@@ -217,7 +222,9 @@ def get_results(query_object: QueryObject) -> QueryResult:
             offset_query,
             force=query_object.force_query,
             cacheable=not query_object.is_rowcount,
+            cache_timeout=query_object.cache_timeout,
         )
+        cache_hits.append(outcome.cache_hit)
         result: SemanticResult = outcome.result
         result = _coerce_empty_result(result, offset_query)
 
@@ -284,7 +291,7 @@ def get_results(query_object: QueryObject) -> QueryResult:
         semantic_result,
         query_object,
         duration,
-        semantic_cache_hit=main_outcome.cache_hit,
+        semantic_cache_status=SemanticCacheStatus.from_hits(cache_hits),
     )
 
 
@@ -319,7 +326,7 @@ def map_semantic_result_to_query_result(
     query_object: ValidatedQueryObject,
     duration: timedelta,
     *,
-    semantic_cache_hit: bool = False,
+    semantic_cache_status: SemanticCacheStatus = SemanticCacheStatus.MISS,
 ) -> QueryResult:
     """
     Convert a SemanticResult to a QueryResult.
@@ -357,7 +364,7 @@ def map_semantic_result_to_query_result(
         # Time range - pass through from original query_object
         from_dttm=query_object.from_dttm,
         to_dttm=query_object.to_dttm,
-        semantic_cache_hit=semantic_cache_hit,
+        semantic_cache_status=semantic_cache_status.value,
     )
 
 

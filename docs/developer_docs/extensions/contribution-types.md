@@ -337,13 +337,38 @@ provably identical across principals and tenants. Declare only filter capabiliti
 whose provider semantics exactly match Superset's post-processing semantics.
 
 Operators enable both `SEMANTIC_LAYERS` and the development feature flag
-`SEMANTIC_LAYER_CONTAINMENT_CACHE`. `DISTRIBUTED_COORDINATION_CONFIG` must select
-`RedisCache` or `RedisSentinelCache`; containment requires its atomic owner-token
-lease operations. The bounded defaults are
+`SEMANTIC_LAYER_CONTAINMENT_CACHE`, and configure two backends:
+
+- `DATA_CACHE_CONFIG` holds the cached results and their descriptors. It must be
+  a persistent cache shared by every web and worker process, such as `RedisCache`.
+  The default `NullCache` discards every value, so containment would only ever
+  miss; `RedisSentinelCache` reads from replicas that can lag the master. Both
+  disable containment at startup rather than run it ineffectively.
+- `DISTRIBUTED_COORDINATION_CONFIG` must select `RedisCache` or
+  `RedisSentinelCache`; containment requires its atomic owner-token lease
+  operations.
+
+```python
+DATA_CACHE_CONFIG = {
+    "CACHE_TYPE": "RedisCache",
+    "CACHE_DEFAULT_TIMEOUT": 86400,
+    "CACHE_KEY_PREFIX": "superset_results",
+    "CACHE_REDIS_URL": "redis://redis:6379/1",
+}
+DISTRIBUTED_COORDINATION_CONFIG = {
+    "CACHE_TYPE": "RedisCache",
+    "CACHE_REDIS_URL": "redis://redis:6379/2",
+}
+```
+
+Containment follows the same cache timeout the ordinary result cache resolves for
+a request (custom, then chart, then dataset), so a chart-level timeout of `-1`
+bypasses containment entirely. The bounded defaults are
 `SEMANTIC_CACHE_COORDINATION_WAIT_SECONDS = 1.0` and
-`SEMANTIC_CACHE_COORDINATION_LEASE_SECONDS = 30`. Missing or invalid coordination
-disables only containment, logs a fixed warning without configuration or query
-content, and leaves provider execution available.
+`SEMANTIC_CACHE_COORDINATION_LEASE_SECONDS = 30`. A missing or unsuitable backend
+and missing or invalid coordination each disable only containment, log a fixed
+warning without configuration or query content, and leave provider execution
+available.
 
 Roll out to a canary worker cohort after recording provider latency, error rate,
 and cache-backend health for a comparable baseline. Observe at least one normal

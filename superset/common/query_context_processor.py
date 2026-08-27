@@ -107,6 +107,12 @@ class QueryContextProcessor:
         cache_key = self.query_cache_key(query_obj)
         timeout = self.get_cache_timeout()
         force_query = self._query_context.force or timeout == CACHE_DISABLED_TIMEOUT
+        if query_obj:
+            # Datasources that run their own caching (semantic containment)
+            # must honor the same resolved chart/custom timeout and force
+            # decision as the result cache, not the datasource-level default.
+            query_obj.force_query = force_query
+            query_obj.cache_timeout = timeout
         query_planning_ns = max(0, time.perf_counter_ns() - query_planning_start_ns)
 
         cache_resolution_start_ns = time.perf_counter_ns()
@@ -244,7 +250,7 @@ class QueryContextProcessor:
             "annotation_data": cache.annotation_data,
             "error": cache.error_message,
             "is_cached": cache.is_cached,
-            "semantic_cache_hit": getattr(cache, "semantic_cache_hit", None),
+            "semantic_cache_status": getattr(cache, "semantic_cache_status", None),
             "query": cache.query,
             "status": cache.status,
             "stacktrace": cache.stacktrace,

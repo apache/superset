@@ -35,6 +35,7 @@ from marshmallow_union import Union
 
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.common.chart_data_timing import CHART_DATA_TIMING_VERSION
+from superset.constants import SemanticCacheStatus
 from superset.db_engine_specs.base import builtin_time_grains
 from superset.subjects.schemas import SubjectResponseSchema
 from superset.tags.models import TagType
@@ -1685,8 +1686,14 @@ class ChartDataResponseResult(Schema):
         required=True,
         allow_none=None,
     )
-    semantic_cache_hit: fields.Boolean = fields.Boolean(
-        metadata={"description": "Whether semantic containment cache was used"},
+    semantic_cache_status: fields.String = fields.String(
+        metadata={
+            "description": "Semantic containment cache provenance of this "
+            "query: HIT when every semantic query behind it was served from "
+            "containment, MISS when none was, MIXED when only some were "
+            "(for example a time-comparison offset)."
+        },
+        validate=validate.OneOf([status.value for status in SemanticCacheStatus]),
         required=False,
         allow_none=True,
     )

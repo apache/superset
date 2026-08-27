@@ -54,7 +54,7 @@ from superset.commands.chart.exceptions import (
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.common.chart_data_timing import ChartDataExecutionResult
 from superset.connectors.sqla.models import BaseDatasource
-from superset.constants import CACHE_DISABLED_TIMEOUT
+from superset.constants import CACHE_DISABLED_TIMEOUT, SemanticCacheStatus
 from superset.daos.exceptions import DatasourceNotFound
 from superset.exceptions import QueryObjectValidationError, SupersetSecurityException
 from superset.extensions import event_logger
@@ -603,15 +603,9 @@ class ChartDataRestApi(ChartRestApi):
                 )
             resp = make_response(response_data, 200)
             resp.headers["Content-Type"] = "application/json; charset=utf-8"
-            semantic_cache_hits: list[bool] = [
-                query.get("semantic_cache_hit") is True for query in queries
-            ]
-            semantic_cache_status: str = "MISS"
-            if semantic_cache_hits and all(semantic_cache_hits):
-                semantic_cache_status = "HIT"
-            elif any(semantic_cache_hits):
-                semantic_cache_status = "MIXED"
-            resp.headers["X-Superset-Semantic-Cache"] = semantic_cache_status
+            resp.headers["X-Superset-Semantic-Cache"] = SemanticCacheStatus.combine(
+                query.get("semantic_cache_status") for query in queries
+            ).value
             return resp
 
         return self.response_400(message=f"Unsupported result_format: {result_format}")

@@ -186,6 +186,7 @@ def _query(
     country: str | None = None,
     metrics: tuple[str, ...] = ("revenue",),
     force_query: bool = False,
+    cache_timeout: int | None = None,
 ) -> ValidatedQueryObject:
     filters: list[QueryObjectFilterClause] = []
     if minimum_revenue is not None:
@@ -210,6 +211,7 @@ def _query(
         columns=list(columns),
         filters=filters,
         force_query=force_query,
+        cache_timeout=cache_timeout,
     )
 
 
@@ -229,9 +231,9 @@ def test_forced_refresh_bypasses_read_and_replaces_cached_result(
 
     assert initial.df["revenue"].tolist() == [10.0]
     assert forced.df["revenue"].tolist() == [20.0]
-    assert forced.semantic_cache_hit is False
+    assert forced.semantic_cache_status == "MISS"
     assert repeated.df["revenue"].tolist() == [20.0]
-    assert repeated.semantic_cache_hit is True
+    assert repeated.semantic_cache_status == "HIT"
     assert provider.get_table.call_count == 2
 
 
@@ -253,7 +255,7 @@ def test_failed_forced_refresh_does_not_replace_cached_result(
     repeated: QueryResult = get_results(_query(datasource))
 
     assert repeated.df["revenue"].tolist() == [10.0]
-    assert repeated.semantic_cache_hit is True
+    assert repeated.semantic_cache_status == "HIT"
     assert provider.get_table.call_count == 2
 
 
@@ -277,7 +279,7 @@ def test_forced_refresh_preserves_unrelated_query_shapes(
 
     assert forced.df["revenue"].tolist() == [30.0]
     assert unrelated.df["revenue"].tolist() == [20.0]
-    assert unrelated.semantic_cache_hit is True
+    assert unrelated.semantic_cache_status == "HIT"
     assert provider.get_table.call_count == 3
 
 
@@ -339,8 +341,8 @@ def test_exact_reuse_matches_direct_provider_result(
     cached: pd.DataFrame = cached_result.df
 
     pd.testing.assert_frame_equal(cached, direct)
-    assert direct_result.semantic_cache_hit is False
-    assert cached_result.semantic_cache_hit is True
+    assert direct_result.semantic_cache_status == "MISS"
+    assert cached_result.semantic_cache_status == "HIT"
     assert provider.get_table.call_count == 1
 
 
@@ -462,8 +464,8 @@ def test_provider_owned_layer_bypasses_containment(
     first: QueryResult = get_results(_query(datasource))
     second: QueryResult = get_results(_query(datasource))
 
-    assert first.semantic_cache_hit is False
-    assert second.semantic_cache_hit is False
+    assert first.semantic_cache_status == "MISS"
+    assert second.semantic_cache_status == "MISS"
     assert provider.get_table.call_count == 2
 
 
@@ -500,9 +502,9 @@ def test_execution_context_identity_isolates_cached_results(
     repeated: QueryResult = get_results(_query(datasource))
     isolated: QueryResult = get_results(_query(datasource))
 
-    assert first.semantic_cache_hit is False
-    assert repeated.semantic_cache_hit is True
-    assert isolated.semantic_cache_hit is False
+    assert first.semantic_cache_status == "MISS"
+    assert repeated.semantic_cache_status == "HIT"
+    assert isolated.semantic_cache_status == "MISS"
     assert provider.get_table.call_count == 2
 
 
@@ -518,8 +520,8 @@ def test_global_scope_shares_cache_without_request_context_identity(
     first: QueryResult = get_results(_query(datasource))
     second: QueryResult = get_results(_query(datasource))
 
-    assert first.semantic_cache_hit is False
-    assert second.semantic_cache_hit is True
+    assert first.semantic_cache_status == "MISS"
+    assert second.semantic_cache_status == "HIT"
     assert provider.get_table.call_count == 1
     layer.get_semantic_cache_context_identity.assert_not_called()
 
@@ -541,8 +543,8 @@ def test_missing_execution_context_bypasses_cache(
     first: QueryResult = get_results(_query(datasource))
     second: QueryResult = get_results(_query(datasource))
 
-    assert first.semantic_cache_hit is False
-    assert second.semantic_cache_hit is False
+    assert first.semantic_cache_status == "MISS"
+    assert second.semantic_cache_status == "MISS"
     assert provider.get_table.call_count == 2
 
 
@@ -625,13 +627,13 @@ def test_rowcount_dispatch_bypasses_cache_both_directions(
     rowcount: QueryResult = get_results(rowcount_query)
 
     assert rowcount.df["rowcount"].tolist() == [1]
-    assert rowcount.semantic_cache_hit is False
+    assert rowcount.semantic_cache_status == "MISS"
     assert provider.get_row_count.call_count == 1
     # The row-count dispatch neither stored anything nor disturbed the
     # tabular entry seeded by the first query.
     assert set(data_cache.store) == stored_keys
     repeated: QueryResult = get_results(_query(datasource))
-    assert repeated.semantic_cache_hit is True
+    assert repeated.semantic_cache_status == "HIT"
     assert "rowcount" not in repeated.df.columns
     assert repeated.df["revenue"].tolist() == [10.0]
 
@@ -660,7 +662,7 @@ def test_none_results_are_normalized_before_store(
 
     assert first.df.empty
     assert second.df.empty
-    assert second.semantic_cache_hit is True
+    assert second.semantic_cache_status == "HIT"
     assert provider.get_table.call_count == 1
 
 
@@ -685,5 +687,53 @@ def test_poisoned_none_entry_degrades_to_miss(
     recovered: QueryResult = get_results(_query(datasource))
 
     assert recovered.df["revenue"].tolist() == [20.0]
-    assert recovered.semantic_cache_hit is False
+    assert recovered.semantic_cache_status == "MISS"
     assert provider.get_table.call_count == 2
+
+
+def test_resolved_disabled_timeout_bypasses_containment_entirely(
+    data_cache: _InMemoryCache,
+    provider: MagicMock,
+    datasource: MagicMock,
+) -> None:
+    """A chart-level or custom ``-1`` reaches the mapper as the resolved
+    timeout. Even though the datasource itself allows caching, such a request
+    must neither store into nor be served from containment."""
+    provider.get_table.return_value = _result([("GB", "London", 10.0)])
+    get_results(_query(datasource))
+    assert data_cache.store
+
+    provider.get_table.return_value = _result([("GB", "London", 20.0)])
+    uncached: QueryResult = get_results(_query(datasource, cache_timeout=-1))
+    provider.get_table.return_value = _result([("GB", "London", 30.0)])
+    repeated: QueryResult = get_results(_query(datasource, cache_timeout=-1))
+    cached: QueryResult = get_results(_query(datasource))
+
+    assert uncached.df["revenue"].tolist() == [20.0]
+    assert uncached.semantic_cache_status == "MISS"
+    assert repeated.df["revenue"].tolist() == [30.0]
+    assert repeated.semantic_cache_status == "MISS"
+    # The value stored by the cacheable request is untouched by the two
+    # uncacheable ones: still the original rows, still a hit.
+    assert cached.df["revenue"].tolist() == [10.0]
+    assert cached.semantic_cache_status == "HIT"
+    assert provider.get_table.call_count == 3
+
+
+def test_resolved_timeout_bounds_stored_containment_values(
+    data_cache: _InMemoryCache,
+    provider: MagicMock,
+    datasource: MagicMock,
+    mocker: MockerFixture,
+) -> None:
+    """Stored values expire on the request's resolved timeout (chart or custom),
+    not on the datasource default, so a chart's own retention contract holds."""
+    set_spy = mocker.spy(data_cache, "set")
+    provider.get_table.return_value = _result([("GB", "London", 10.0)])
+
+    get_results(_query(datasource, cache_timeout=15))
+
+    timeouts: set[int | None] = {
+        call.kwargs.get("timeout") for call in set_spy.call_args_list
+    }
+    assert timeouts == {15}

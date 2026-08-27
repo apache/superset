@@ -21,6 +21,7 @@ from unittest.mock import MagicMock
 
 import pyarrow as pa
 import pytest
+from flask_caching.backends.nullcache import NullCache
 from flask_caching.backends.rediscache import RedisSentinelCache
 from pytest_mock import MockerFixture
 from superset_core.semantic_layers.types import (
@@ -664,6 +665,28 @@ def test_unexpected_store_failure_still_returns_provider_result() -> None:
 
     assert outcome.cache_hit is False
     assert outcome.result is expected
+
+
+def test_initialize_disables_on_value_discarding_backend() -> None:
+    """The default ``NullCache`` data cache accepts stores and always misses,
+    so containment would pay for coordination without ever serving a hit."""
+
+    class _WrappedBackend:
+        cache = NullCache()
+
+    for backend in (NullCache(), _WrappedBackend()):
+        state: SemanticCacheState = initialize_semantic_cache(
+            parent_enabled=True,
+            requested=True,
+            backend=cast(SemanticCacheBackend, backend),
+            coordination=MagicMock(),
+            wait_seconds=1.0,
+            lease_seconds=30,
+        )
+
+        assert state.effective is False
+        assert state.disabled_reason is SemanticCacheDisabledReason.UNSUPPORTED_BACKEND
+        assert state.requested is True
 
 
 def test_initialize_disables_on_replica_read_backend() -> None:

@@ -1452,6 +1452,22 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
                 "distributed coordination backend does not support owner-token leases; "
                 "containment caching is disabled for this process"
             )
+        elif state.disabled_reason is SemanticCacheDisabledReason.UNSUPPORTED_BACKEND:
+            try:
+                stats_logger_manager.instance.incr(
+                    "semantic_cache.containment.unsupported"
+                )
+            except Exception:  # pylint: disable=broad-exception-caught
+                logger.debug(
+                    "Semantic cache startup metric emission failed",
+                    exc_info=True,
+                )
+            logger.warning(
+                "Semantic containment caching was requested but DATA_CACHE_CONFIG "
+                "is not a persistent shared cache that containment can read back "
+                "from (NullCache never retains values; RedisSentinelCache reads "
+                "from replicas); containment caching is disabled for this process"
+            )
         elif (
             state.disabled_reason
             is SemanticCacheDisabledReason.INVALID_COORDINATION_CONFIGURATION

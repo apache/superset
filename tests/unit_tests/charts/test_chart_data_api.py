@@ -278,17 +278,20 @@ def test_send_chart_response_excludes_timing_by_default(app: SupersetApp) -> Non
 
 
 @pytest.mark.parametrize(
-    ("semantic_cache_hits", "expected_status"),
+    ("semantic_cache_statuses", "expected_status"),
     [
-        ([True], "HIT"),
-        ([False], "MISS"),
+        (["HIT"], "HIT"),
+        (["MISS"], "MISS"),
         ([None], "MISS"),
-        ([True, False], "MIXED"),
+        (["MIXED"], "MIXED"),
+        (["HIT", "MISS"], "MIXED"),
+        (["HIT", "MIXED"], "MIXED"),
+        (["HIT", None], "MIXED"),
     ],
 )
 def test_send_chart_response_reports_semantic_cache_status(
     app: SupersetApp,
-    semantic_cache_hits: list[bool | None],
+    semantic_cache_statuses: list[str | None],
     expected_status: str,
 ) -> None:
     query_context: MagicMock = MagicMock()
@@ -296,10 +299,10 @@ def test_send_chart_response_reports_semantic_cache_status(
     query_context.result_format = ChartDataResultFormat.JSON
     query_results: tuple[QueryDataResult, ...] = tuple(
         QueryDataResult(
-            payload={"semantic_cache_hit": cache_hit},
+            payload={"semantic_cache_status": cache_status},
             timing=_query_timing(),
         )
-        for cache_hit in semantic_cache_hits
+        for cache_status in semantic_cache_statuses
     )
     result: ChartDataExecutionResult = ChartDataExecutionResult(
         query_context=query_context,
