@@ -150,6 +150,7 @@ function getLegendSeriesColor(
 
 function buildTimeseriesCustomLegend({
   fallbackColor,
+  grid,
   interactive,
   legendNames,
   legendState,
@@ -157,6 +158,7 @@ function buildTimeseriesCustomLegend({
   series,
 }: {
   fallbackColor: string;
+  grid: TimeseriesCustomLegend['grid'];
   interactive: boolean;
   legendNames: string[];
   legendState?: LegendState;
@@ -195,6 +197,7 @@ function buildTimeseriesCustomLegend({
   });
 
   return {
+    grid,
     items,
     orientation,
     showSelectors: interactive,
@@ -1197,7 +1200,8 @@ export default function transformProps(
     icon: 'roundRect',
   }));
   const isSmallChart = height < TIMESERIES_CONSTANTS.compactChartHeight;
-  const isLegendVisible = showLegend && !isSmallChart;
+  const usesCompactLayout = height <= TIMESERIES_CONSTANTS.compactChartHeight;
+  const isLegendVisible = showLegend && !usesCompactLayout;
   const usesPrimaryAxisLegend = colorByPrimaryAxis && groupBy.length === 0;
   const resolvedLegendData = usesPrimaryAxisLegend
     ? colorByPrimaryAxisLegendData
@@ -1283,7 +1287,7 @@ export default function transformProps(
   // Reduce grid padding for small charts to maximize the drawing area.
   // Keep enough top padding so the max label doesn't clip against the cell border.
   // Preserve bottom padding when zoomable, since getPadding() reserves space for the dataZoom slider.
-  if (height < TIMESERIES_CONSTANTS.compactChartHeight) {
+  if (usesCompactLayout) {
     padding.top = Math.min(padding.top, 12);
     if (!zoomable) {
       padding.bottom = Math.min(padding.bottom, 5);
@@ -1466,6 +1470,9 @@ export default function transformProps(
     grid: {
       ...defaultGrid,
       ...padding,
+      // Compact charts prioritize a viable coordinate system over keeping
+      // axis labels inside an already constrained grid rectangle.
+      containLabel: !usesCompactLayout,
     },
     xAxis,
     yAxis,
@@ -1665,12 +1672,32 @@ export default function transformProps(
   const mergedEchartOptions = customEchartOptions
     ? mergeCustomEChartOptions(echartOptions, customEchartOptions)
     : echartOptions;
-  const finalSeries = Array.isArray(mergedEchartOptions.series)
-    ? (mergedEchartOptions.series as SeriesOption[])
-    : renderedSeries;
+  const mergedSeries = mergedEchartOptions.series;
+  const finalSeries = Array.isArray(mergedSeries)
+    ? (mergedSeries as SeriesOption[])
+    : mergedSeries && typeof mergedSeries === 'object'
+      ? [mergedSeries as SeriesOption]
+      : renderedSeries;
+  const mergedGrid = Array.isArray(mergedEchartOptions.grid)
+    ? mergedEchartOptions.grid[0]
+    : mergedEchartOptions.grid;
+  const finalGrid =
+    mergedGrid && typeof mergedGrid === 'object' ? mergedGrid : padding;
   const customLegend = usesCustomLegend
     ? buildTimeseriesCustomLegend({
         fallbackColor: theme.colorTextSecondary,
+        grid: {
+          bottom:
+            typeof finalGrid.bottom === 'number' ||
+            typeof finalGrid.bottom === 'string'
+              ? finalGrid.bottom
+              : padding.bottom,
+          top:
+            typeof finalGrid.top === 'number' ||
+            typeof finalGrid.top === 'string'
+              ? finalGrid.top
+              : padding.top,
+        },
         interactive: !usesPrimaryAxisLegend,
         legendNames: resolvedLegendNames,
         legendState,

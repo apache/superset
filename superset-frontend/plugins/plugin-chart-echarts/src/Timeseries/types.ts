@@ -131,6 +131,10 @@ export type TimeseriesLegendItem = {
 };
 
 export type TimeseriesCustomLegend = {
+  grid: {
+    bottom: number | string;
+    top: number | string;
+  };
   items: TimeseriesLegendItem[];
   orientation: LegendOrientation.Top | LegendOrientation.Bottom;
   showSelectors: boolean;

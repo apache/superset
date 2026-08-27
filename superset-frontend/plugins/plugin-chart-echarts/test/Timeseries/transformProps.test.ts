@@ -163,6 +163,10 @@ const formData: SqlaFormData = {
 
 type CustomLegendResult = {
   customLegend?: {
+    grid: {
+      bottom: number | string;
+      top: number | string;
+    };
     items: {
       color: string;
       interactive: boolean;
@@ -1299,6 +1303,115 @@ test('keeps the custom legend absent when a compact chart hides the Plain legend
   );
   expect(grid).toMatchObject({ top: 12, bottom: 5 });
   expect(80 - Number(grid.top) - Number(grid.bottom)).toBeGreaterThan(0);
+});
+
+test.each([
+  [99, 7],
+  [100, 8],
+])(
+  'keeps the zoomable ECharts grid viable and hides the Plain legend at %ipx',
+  (height, expectedGridHeight) => {
+    const getContext = jest
+      .spyOn(HTMLCanvasElement.prototype, 'getContext')
+      .mockReturnValue({
+        measureText: (text: string) => ({ width: text.length * 7 }),
+      } as never);
+    const transformed = transformProps(
+      createTestChartProps({
+        height,
+        formData: {
+          ...formData,
+          legendOrientation: LegendOrientation.Top,
+          legendType: LegendType.Plain,
+          showLegend: true,
+          zoomable: true,
+        },
+      }),
+    );
+    const chart = init(null, null, {
+      height,
+      renderer: 'svg',
+      ssr: true,
+      width: transformed.width,
+    });
+
+    try {
+      chart.setOption(transformed.echartOptions);
+      const gridModel = (
+        chart as unknown as {
+          getModel: () => {
+            getComponent: (component: string) => {
+              coordinateSystem: { getRect: () => { height: number } };
+            };
+          };
+        }
+      )
+        .getModel()
+        .getComponent('grid');
+
+      expect(getCustomLegend(transformed)).toBeUndefined();
+      expect(gridModel.coordinateSystem.getRect().height).toBe(
+        expectedGridHeight,
+      );
+    } finally {
+      chart.dispose();
+      getContext.mockRestore();
+    }
+  },
+);
+
+test('passes final axis-title grid reservations to the custom legend', () => {
+  const transformed = transformProps(
+    createTestChartProps({
+      height: 300,
+      formData: {
+        ...formData,
+        legendOrientation: LegendOrientation.Top,
+        legendType: LegendType.Plain,
+        showLegend: true,
+        xAxisTitle: 'Time',
+        xAxisTitleMargin: 60,
+        yAxisTitle: 'Value',
+        yAxisTitleMargin: 40,
+        yAxisTitlePosition: 'Top',
+        zoomable: true,
+      },
+    }),
+  );
+  const grid = transformed.echartOptions.grid as GridComponentOption;
+
+  expect(getCustomLegend(transformed)?.grid).toEqual({
+    bottom: grid.bottom,
+    top: grid.top,
+  });
+});
+
+test('derives custom legend items from a single-object custom series override', () => {
+  const transformed = transformProps(
+    createTestChartProps({
+      formData: {
+        ...formData,
+        echartOptions: `{
+          series: {
+            name: 'San Francisco',
+            type: 'line',
+            data: [[0, 9]],
+            itemStyle: { color: '#123456' }
+          }
+        }`,
+        legendOrientation: LegendOrientation.Top,
+        legendType: LegendType.Plain,
+        showLegend: true,
+      },
+    }),
+  );
+
+  expect(getCustomLegend(transformed)?.items).toEqual([
+    expect.objectContaining({
+      color: '#123456',
+      name: 'San Francisco',
+    }),
+  ]);
 });
 
 test('keeps a hidden native legend model active for custom legend dispatch actions', () => {

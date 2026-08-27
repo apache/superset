@@ -46,22 +46,53 @@ import {
   snapToNearestX,
   SeriesDataPoint,
 } from './percentChange';
-import { OrientationType, TimeseriesChartTransformedProps } from './types';
+import {
+  OrientationType,
+  TimeseriesChartTransformedProps,
+  TimeseriesCustomLegend,
+} from './types';
 import { formatSeriesName } from '../utils/series';
 import { getTemporalXAxisDrillByFilter } from '../utils/xAxisDrillByFilter';
 import { ExtraControls } from '../components/ExtraControls';
 import TimeseriesLegend from './TimeseriesLegend';
+import { TIMESERIES_CONSTANTS } from '../constants';
 
 const TIMER_DURATION = 300;
 const MAX_CUSTOM_LEGEND_HEIGHT = 160;
 const MAX_CUSTOM_LEGEND_HEIGHT_RATIO = 0.3;
+const MIN_TIMESERIES_PLOT_HEIGHT = 80;
+const MIN_ECHARTS_GRID_HEIGHT = 1;
 
-// Bound the legend to a minority of the allocated chart body so the plot stays
-// visible while the legend's own viewport scrolls independently.
-export const getTimeseriesLegendMaxHeight = (chartBodyHeight: number) =>
+function resolveGridOffset(offset: number | string, chartBodyHeight: number) {
+  if (typeof offset === 'number') {
+    return Number.isFinite(offset) ? Math.max(offset, 0) : 0;
+  }
+
+  const percentage = offset.match(/^\s*(-?\d+(?:\.\d+)?)%\s*$/);
+  const pixels = percentage
+    ? (Number(percentage[1]) / 100) * chartBodyHeight
+    : Number(offset);
+  return Number.isFinite(pixels) ? Math.max(pixels, 0) : 0;
+}
+
+// Bound the legend after accounting for the fixed ECharts grid reservations,
+// leaving enough coordinate space for the plot itself to remain usable.
+export const getTimeseriesLegendMaxHeight = (
+  chartBodyHeight: number,
+  grid: TimeseriesCustomLegend['grid'],
+) =>
   Math.min(
     MAX_CUSTOM_LEGEND_HEIGHT,
     Math.floor(Math.max(chartBodyHeight, 0) * MAX_CUSTOM_LEGEND_HEIGHT_RATIO),
+    Math.max(
+      Math.floor(
+        chartBodyHeight -
+          resolveGridOffset(grid.top, chartBodyHeight) -
+          resolveGridOffset(grid.bottom, chartBodyHeight) -
+          MIN_TIMESERIES_PLOT_HEIGHT,
+      ),
+      0,
+    ),
   );
 const getTimestampFromTimeAxisValue = (value: string | number) => {
   if (typeof value === 'number') {
@@ -796,6 +827,66 @@ export default function EchartsTimeseries({
   );
 
   const chartBodyHeight = Math.max(height - extraControlHeight, 0);
+  const customLegendMaxHeight = customLegend
+    ? getTimeseriesLegendMaxHeight(chartBodyHeight, customLegend.grid)
+    : 0;
+  const shouldRenderCustomLegend =
+    customLegend !== undefined &&
+    chartBodyHeight > TIMESERIES_CONSTANTS.compactChartHeight &&
+    customLegendMaxHeight > 0;
+  const chartEchartOptions = useMemo(() => {
+    if (!customLegend || shouldRenderCustomLegend) {
+      return echartOptions;
+    }
+
+    const gridOption = Array.isArray(echartOptions.grid)
+      ? echartOptions.grid[0]
+      : echartOptions.grid;
+    if (!gridOption || typeof gridOption !== 'object') {
+      return echartOptions;
+    }
+
+    const gridTop = resolveGridOffset(customLegend.grid.top, chartBodyHeight);
+    const gridBottom = resolveGridOffset(
+      customLegend.grid.bottom,
+      chartBodyHeight,
+    );
+    const isCompact =
+      chartBodyHeight <= TIMESERIES_CONSTANTS.compactChartHeight;
+    if (
+      !isCompact &&
+      chartBodyHeight - gridTop - gridBottom >= MIN_ECHARTS_GRID_HEIGHT
+    ) {
+      return echartOptions;
+    }
+
+    const top = isCompact ? Math.min(gridTop, 12) : gridTop;
+    const requestedBottom =
+      isCompact && !formData.zoomable ? Math.min(gridBottom, 5) : gridBottom;
+    const bottom = Math.min(
+      requestedBottom,
+      Math.max(chartBodyHeight - top - MIN_ECHARTS_GRID_HEIGHT, 0),
+    );
+    const compactGrid = {
+      ...gridOption,
+      bottom,
+      containLabel: false,
+      top,
+    };
+
+    return {
+      ...echartOptions,
+      grid: Array.isArray(echartOptions.grid)
+        ? [compactGrid, ...echartOptions.grid.slice(1)]
+        : compactGrid,
+    };
+  }, [
+    chartBodyHeight,
+    customLegend,
+    echartOptions,
+    formData.zoomable,
+    shouldRenderCustomLegend,
+  ]);
   const renderEchart = ({
     chartHeight,
     chartWidth,
@@ -808,7 +899,7 @@ export default function EchartsTimeseries({
       refs={refs}
       height={chartHeight}
       width={chartWidth}
-      echartOptions={echartOptions}
+      echartOptions={chartEchartOptions}
       eventHandlers={eventHandlers}
       queryEventHandlers={queryEventHandlers}
       zrEventHandlers={zrEventHandlers}
@@ -822,7 +913,7 @@ export default function EchartsTimeseries({
       <div ref={extraControlRef}>
         <ExtraControls formData={formData} setControlValue={setControlValue} />
       </div>
-      {customLegend ? (
+      {customLegend && shouldRenderCustomLegend ? (
         <WithLegend
           height={chartBodyHeight}
           position={customLegend.orientation}
@@ -830,7 +921,7 @@ export default function EchartsTimeseries({
           renderLegend={() => (
             <TimeseriesLegend
               {...customLegend}
-              maxHeight={getTimeseriesLegendMaxHeight(chartBodyHeight)}
+              maxHeight={customLegendMaxHeight}
               onAll={() => dispatchLegendAction({ type: 'legendAllSelect' })}
               onInverse={() =>
                 dispatchLegendAction({ type: 'legendInverseSelect' })

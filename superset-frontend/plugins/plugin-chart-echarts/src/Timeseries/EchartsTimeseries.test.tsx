@@ -286,6 +286,43 @@ test('observes extra control height changes when ResizeObserver is available', a
   expect(disconnectSpy).toHaveBeenCalled();
 });
 
+test('uses the post-control body height for compact custom-legend visibility', async () => {
+  mockOffsetHeight = 40;
+  const { queryByTestId } = render(
+    <EchartsTimeseries
+      {...defaultProps}
+      height={140}
+      echartOptions={{
+        grid: { bottom: 80, containLabel: true, top: 20 },
+      }}
+      formData={{ ...defaultFormData, zoomable: true }}
+      customLegend={
+        {
+          grid: { bottom: 80, top: 20 },
+          items: Array.from({ length: 20 }, (_, index) => ({
+            color: '#123456',
+            interactive: true,
+            name: `Series ${index}`,
+            selected: true,
+          })),
+          orientation: LegendOrientation.Top,
+          showSelectors: true,
+        } as never
+      }
+    />,
+  );
+
+  await waitFor(() => {
+    expect(queryByTestId('timeseries-custom-legend')).not.toBeInTheDocument();
+    expect(getLatestHeight()).toBe(100);
+    expect(getLatestEchartProps().echartOptions.grid).toEqual({
+      bottom: 80,
+      containLabel: false,
+      top: 12,
+    });
+  });
+});
+
 test('falls back to window resize listener when ResizeObserver is unavailable', async () => {
   (globalThis as { ResizeObserver?: typeof ResizeObserver }).ResizeObserver =
     undefined;

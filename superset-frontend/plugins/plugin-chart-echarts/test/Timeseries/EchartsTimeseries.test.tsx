@@ -22,7 +22,6 @@ import { AxisType, DTTM_ALIAS, TimeGranularity } from '@superset-ui/core';
 import { supersetTheme, ThemeProvider } from '@apache-superset/core/theme';
 import { logging } from '@apache-superset/core/utils';
 import type { ECElementEvent } from 'echarts/types/src/util/types';
-import type { ReactNode } from 'react';
 import EchartsTimeseries from '../../src/Timeseries/EchartsTimeseries';
 import {
   OrientationType,
@@ -32,8 +31,45 @@ import type { EchartsProps } from '../../src/types';
 import { LegendOrientation } from '../../src/types';
 
 jest.mock('@visx/responsive', () => ({
-  ParentSize: ({ children }: { children: (size: object) => ReactNode }) =>
-    children({ height: 280, width: 800 }),
+  ParentSize: ({
+    children,
+  }: {
+    children: (size: object) => React.ReactNode;
+  }) => {
+    const React = jest.requireActual<typeof import('react')>('react');
+    const hostRef = React.useRef<HTMLDivElement>(null);
+    const [size, setSize] = React.useState<{
+      height: number;
+      width: number;
+    }>();
+
+    React.useLayoutEffect(() => {
+      const frame = hostRef.current?.closest<HTMLElement>('.with-legend');
+      const legend = frame?.querySelector<HTMLElement>(
+        '[data-test="timeseries-custom-legend"]',
+      );
+      if (!frame || !legend) {
+        return;
+      }
+
+      const frameHeight = Number.parseFloat(frame.style.height);
+      const frameWidth = Number.parseFloat(frame.style.width);
+      const maxHeight = Number.parseFloat(
+        globalThis.getComputedStyle(legend).maxHeight,
+      );
+      const itemCount = legend.querySelectorAll('[aria-pressed]').length;
+      const selectorHeight = legend.querySelectorAll('[aria-pressed]').length
+        ? 20
+        : 0;
+      const naturalHeight = selectorHeight + Math.ceil(itemCount / 4) * 20;
+      setSize({
+        height: frameHeight - Math.min(maxHeight, naturalHeight),
+        width: frameWidth,
+      });
+    }, []);
+
+    return <div ref={hostRef}>{size ? children(size) : null}</div>;
+  },
 }));
 
 // Percent-change draggable baseline: this is the one piece of the ECharts
@@ -105,6 +141,7 @@ function getCustomLegend(
       selected: true,
     })),
     orientation: LegendOrientation.Top,
+    grid: { bottom: 20, top: 20 },
     showSelectors: true,
     ...overrides,
   };
@@ -229,6 +266,57 @@ test('lets a short custom Plain legend use its natural height', () => {
   expect(legend).toHaveStyle({ maxHeight: '120px' });
   expect(legend.style.height).toBe('');
   expect(screen.getAllByRole('button')).toHaveLength(4);
+  expect(screen.getByTestId('mock-echart')).toHaveAttribute(
+    'data-height',
+    '360',
+  );
+});
+
+test.each([
+  [99, 99],
+  [100, 100],
+  [120, 120],
+])(
+  'does not allocate a custom legend when a %ipx zoomable chart has no usable grid space',
+  (height, expectedChartHeight) => {
+    renderTimeseries({
+      ...({
+        customLegend: getCustomLegend(200, {
+          grid: { bottom: 80, top: 20 },
+        }),
+      } as any),
+      formData: { rebasePercentChange: false, zoomable: true } as any,
+      height,
+    });
+
+    expect(
+      screen.queryByTestId('timeseries-custom-legend'),
+    ).not.toBeInTheDocument();
+    expect(screen.getByTestId('mock-echart')).toHaveAttribute(
+      'data-height',
+      String(expectedChartHeight),
+    );
+  },
+);
+
+test('accounts for axis-title grid reservations when bounding the custom legend', () => {
+  renderTimeseries({
+    ...({
+      customLegend: getCustomLegend(200, {
+        grid: { bottom: 80, top: 60 },
+      }),
+    } as any),
+    formData: { rebasePercentChange: false } as any,
+    height: 240,
+  });
+
+  expect(screen.getByTestId('timeseries-custom-legend')).toHaveStyle({
+    maxHeight: '20px',
+  });
+  expect(screen.getByTestId('mock-echart')).toHaveAttribute(
+    'data-height',
+    '220',
+  );
 });
 
 test.each([
