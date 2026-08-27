@@ -16,10 +16,9 @@
 # under the License.
 """
 Tests db_engine_specs.cockroachdb against a real CockroachDB instance,
-spun up on demand via testcontainers. Run nightly (see
-.github/workflows/nightly-testcontainers.yml), not on every merge -- these
-exercise real SQL execution and dialect introspection, which mocked unit
-tests structurally cannot.
+spun up on demand via testcontainers. Run via
+.github/workflows/testcontainers.yml -- these exercise real SQL execution
+and dialect introspection, which mocked unit tests structurally cannot.
 """
 
 from collections.abc import Iterator

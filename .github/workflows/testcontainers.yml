@@ -77,6 +77,13 @@ jobs:
         uses: ./.github/actions/setup-backend/
         with:
           python-version: current
+      - name: Install db2 driver (ibm-db-sa)
+        # ibm-db (the db2 DBAPI) ships no Linux arm64 wheel, so it's kept out
+        # of the baseline dev install (requirements/development.in) to avoid
+        # breaking the multi-platform dev Docker image build. Install it here
+        # instead, only for this leg of the matrix.
+        if: matrix.dialect == 'db2'
+        run: uv pip install --system -e .[db2]
       - name: Run testcontainers db_engine_specs tests (${{ matrix.dialect }})
         run: |
           pytest --durations-min=2 -v -m testcontainers \
