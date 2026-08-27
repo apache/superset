@@ -256,12 +256,6 @@ def test_put_access_denied(test_client, login_as, dashboard_id: int):
 
 
 def test_post_authenticated_user_with_access(test_client, login_as, dashboard_id: int):
-    dashboard = db.session.query(Dashboard).get(dashboard_id)
-    alpha = db.session.query(User).filter_by(username="alpha").one()
-    if alpha not in dashboard.owners:
-        dashboard.owners.append(alpha)
-        db.session.commit()
-
     login_as("alpha")
     payload = {
         "value": INITIAL_VALUE,
@@ -273,12 +267,6 @@ def test_post_authenticated_user_with_access(test_client, login_as, dashboard_id
 
 
 def test_put_authenticated_user_with_access(test_client, login_as, dashboard_id: int):
-    dashboard = db.session.query(Dashboard).get(dashboard_id)
-    alpha = db.session.query(User).filter_by(username="alpha").one()
-    if alpha not in dashboard.owners:
-        dashboard.owners.append(alpha)
-        db.session.commit()
-
     login_as("alpha")
     payload = {
         "value": INITIAL_VALUE,
