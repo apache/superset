@@ -32,7 +32,7 @@ import pytest
 
 from superset import db
 from superset.ai.llm.base import ToolCall
-from superset.ai.tools import build_registry
+from superset.ai.tools import build_registry, BUNDLE_ALL
 from superset.ai.tools.base import ALL_TOOL_NAMES
 from superset.models.ai import AIChatFeedback, AIChatMessage, AIChatThread
 from superset.utils.database import get_main_database
@@ -49,7 +49,7 @@ class TestAIToolsEndToEnd(SupersetTestCase):
     def setUp(self) -> None:
         super().setUp()
         self.login("admin")
-        self.registry = build_registry()
+        self.registry = build_registry(BUNDLE_ALL)
 
     def tearDown(self) -> None:
         super().tearDown()
