@@ -1528,6 +1528,17 @@ def _stored_param_values(params: dict[str, Any], keys: tuple[str, ...]) -> set[s
     return values
 
 
+def _ensure_list(value: Any) -> list[Any]:
+    """
+    Processing a scalar (string) for the `query_context` change check function.
+    """
+    if value is None:
+        return []
+    if isinstance(value, (list, tuple)):
+        return list(value)
+    return [value]
+
+
 def _columns_metrics_modified(
     query_context: "QueryContext",
     form_data: dict[str, Any],
@@ -1557,7 +1568,7 @@ def _columns_metrics_modified(
         # ``_payload_value_identity``); metrics compare by exact frozen value.
         requested_values = {
             _payload_value_identity(value, is_metric=is_metric)
-            for value in form_data.get(key) or []
+            for value in _ensure_list(form_data.get(key))
         }
         # Stored params are read across every control name that can hold a
         # metric or column for some chart type: charts whose query is built
@@ -1576,7 +1587,7 @@ def _columns_metrics_modified(
         queries_values = {
             _payload_value_identity(value, is_metric=is_metric)
             for query in query_context.queries
-            for value in getattr(query, key, []) or []
+            for value in _ensure_list(getattr(query, key, None))
         }
         if stored_query_context:
             for query in stored_query_context.get("queries") or []:

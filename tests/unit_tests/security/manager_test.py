@@ -1473,6 +1473,59 @@ def test_query_context_modified_novel_values_still_tampered(
     assert query_context_modified(query_context)
 
 
+def test_query_context_modified_scalar_control_value_not_tampered(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Some viz types (e.g. heatmap_v2's ``groupby`` control) store a single
+    value as a bare string rather than a one-item list. A guest replaying
+    the chart's own stored value for such a control must not be treated as
+    tampering.
+
+    Regression test: the comparison iterated ``form_data.get(key)``/
+    ``getattr(query, key, [])`` directly without checking whether the value
+    was a list. Iterating a Python string yields its individual characters,
+    so the requested set never matched anything stored and every such chart
+    was permanently rejected for guest users with "Guest user cannot modify
+    chart payload", even when nothing was actually modified.
+    """
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "groupby": "string_column_name",
+    }
+
+    query_context.form_data = {
+        "slice_id": 42,
+        "groupby": "string_column_name",
+    }
+    query_context.queries = [QueryObject(columns=["string_column_name"])]
+    assert not query_context_modified(query_context)
+
+
+def test_query_context_modified_scalar_control_value_tampered(
+    mocker: MockerFixture,
+) -> None:
+    """
+    The scalar-control leniency above only authorizes the chart's own
+    stored value: a different single value is still rejected.
+    """
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "groupby": "string_column_name",
+    }
+
+    query_context.form_data = {
+        "slice_id": 42,
+        "groupby": "some_other_column",
+    }
+    query_context.queries = [QueryObject(columns=["some_other_column"])]
+    assert query_context_modified(query_context)
+
+
 def _native_filter_ctx(
     mocker: MockerFixture,
     queries: list[Any],
