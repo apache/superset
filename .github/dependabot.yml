@@ -5,6 +5,10 @@ updates:
     directory: "/"
     schedule:
       interval: "daily"
+    groups:
+      security:
+        applies-to: "security-updates"
+        patterns: ["*"]
     cooldown:
       default-days: 7
 
@@ -61,6 +65,9 @@ updates:
       - npm
       - dependabot
     groups:
+      security:
+        applies-to: "security-updates"
+        patterns: ["*"]
       rjsf:
         patterns:
           - "@rjsf/*"
@@ -98,6 +105,10 @@ updates:
     labels:
       - pip
       - dependabot
+    groups:
+      security:
+        applies-to: "security-updates"
+        patterns: ["*"]
     cooldown:
       default-days: 7
 
@@ -105,6 +116,10 @@ updates:
     directory: ".github/actions"
     schedule:
       interval: "daily"
+    groups:
+      security:
+        applies-to: "security-updates"
+        patterns: ["*"]
     open-pull-requests-limit: 10
     versioning-strategy: increase
     cooldown:
@@ -115,6 +130,9 @@ updates:
     schedule:
       interval: "daily"
     groups:
+      security:
+        applies-to: "security-updates"
+        patterns: ["*"]
       storybook:
         patterns:
           - "@storybook/*"
@@ -142,6 +160,10 @@ updates:
     labels:
       - npm
       - dependabot
+    groups:
+      security:
+        applies-to: "security-updates"
+        patterns: ["*"]
     versioning-strategy: increase
     cooldown:
       default-days: 7
@@ -153,6 +175,10 @@ updates:
     labels:
       - npm
       - dependabot
+    groups:
+      security:
+        applies-to: "security-updates"
+        patterns: ["*"]
     open-pull-requests-limit: 10
     versioning-strategy: increase
     cooldown:

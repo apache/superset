@@ -228,6 +228,7 @@ def _get_chart_type_schema_impl(
         title="Get chart type schema",
         readOnlyHint=True,
         destructiveHint=False,
+        openWorldHint=False,
     ),
 )
 def get_chart_type_schema(
