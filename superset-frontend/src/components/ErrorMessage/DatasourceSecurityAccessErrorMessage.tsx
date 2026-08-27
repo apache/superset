@@ -27,6 +27,7 @@ import { ErrorAlert } from './ErrorAlert';
 interface DatasourceSecurityAccessExtra {
   owners?: string[];
   link?: string;
+  datasource?: number | string;
   is_access_denial?: boolean;
   tables?: string[];
   issue_codes?: {

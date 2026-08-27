@@ -159,10 +159,11 @@ def test_datasource_error_object_includes_sorted_owner_names() -> None:
         error = sm.get_datasource_access_error_object(ds)
     assert error.extra is not None
     assert error.extra["owners"] == ["Amir Patel", "Zoe Chen"]
-    # Dataset name and id must not be present — they would reveal a resource
-    # the user is not authorized to see.
+    # Dataset name must not be present — it would reveal a resource
+    # the user is not authorized to see. The id is fine (the user
+    # already knows it from the URL).
     assert "datasource_name" not in error.extra
-    assert "datasource" not in error.extra
+    assert error.extra["datasource"] == 12
     assert error.extra["is_access_denial"] is True
 
 

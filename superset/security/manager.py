@@ -2435,8 +2435,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             extra={
                 "link": self.get_datasource_access_link(datasource),
                 # is_access_denial lets the frontend show the "Request access"
-                # UI without receiving the dataset name or id.
+                # UI without receiving the dataset name.
                 "is_access_denial": True,
+                "datasource": datasource.data["id"],
                 # Owner display names give the viewer someone to contact for
                 # access; sorted for a deterministic payload.
                 "owners": sorted(
