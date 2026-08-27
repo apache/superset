@@ -168,11 +168,14 @@ class UploadCommand(BaseCommand):
             )
         )
 
+        catalog = self._model.get_default_catalog()
+
         sqla_table = (
             db.session.query(SqlaTable)
             .filter_by(
                 table_name=self._table_name,
                 schema=self._schema,
+                catalog=catalog,
                 database_id=self._model_id,
             )
             .one_or_none()
@@ -206,7 +209,7 @@ class UploadCommand(BaseCommand):
             )
 
             if soft_twin := DatasetDAO.find_soft_deleted_logical_duplicate(
-                self._model, Table(self._table_name, self._schema)
+                self._model, Table(self._table_name, self._schema, catalog)
             ):
                 raise DatabaseUploadSoftDeletedDatasetExistsError(str(soft_twin.uuid))
 
@@ -217,10 +220,13 @@ class UploadCommand(BaseCommand):
                 table_name=self._table_name,
                 database=self._model,
                 database_id=self._model_id,
+                catalog=catalog,
                 editors=editors,
                 schema=self._schema,
             )
             db.session.add(sqla_table)
+        elif sqla_table.catalog is None and catalog is not None:
+            sqla_table.catalog = catalog
 
         sqla_table.fetch_metadata()
 

@@ -368,3 +368,57 @@ def test_run_proceeds_when_no_soft_deleted_twin(
     )
     command.run()
     reader.read.assert_called_once()
+
+
+def test_run_sets_default_catalog_on_dataset_creation(
+    app_context: None, mocker: MockerFixture
+) -> None:
+    """UploadCommand sets default catalog on newly created dataset."""
+    model = _stub_run_environment(mocker)
+    model.get_default_catalog.return_value = "default_catalog"
+    mocker.patch(
+        "superset.daos.dataset.DatasetDAO.find_soft_deleted_logical_duplicate",
+        return_value=None,
+    )
+    sqla_table_mock = mocker.patch(
+        "superset.commands.database.uploaders.base.SqlaTable",
+        return_value=MagicMock(),
+    )
+    mocker.patch(
+        "superset.commands.database.uploaders.base.get_user",
+        return_value=None,
+    )
+
+    reader = MagicMock()
+    command = UploadCommand(
+        model_id=1, table_name="t", file=_file(b"x"), schema="public", reader=reader
+    )
+    command.run()
+
+    sqla_table_mock.assert_called_once()
+    assert sqla_table_mock.call_args.kwargs.get("catalog") == "default_catalog"
+
+
+def test_run_updates_catalog_on_existing_dataset_with_none_catalog(
+    app_context: None, mocker: MockerFixture
+) -> None:
+    """UploadCommand updates catalog on an existing dataset if catalog was None."""
+    model = _stub_run_environment(mocker)
+    model.get_default_catalog.return_value = "default_catalog"
+
+    existing_table = MagicMock()
+    existing_table.catalog = None
+
+    db_mock = mocker.patch("superset.commands.database.uploaders.base.db")
+    db_mock.session.query.return_value.filter_by.return_value.one_or_none.return_value = (  # noqa: E501
+        existing_table
+    )
+
+    reader = MagicMock()
+    command = UploadCommand(
+        model_id=1, table_name="t", file=_file(b"x"), schema="public", reader=reader
+    )
+    command.run()
+
+    assert existing_table.catalog == "default_catalog"
+    existing_table.fetch_metadata.assert_called_once()
