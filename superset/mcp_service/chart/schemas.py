@@ -1045,6 +1045,63 @@ class PieChartConfig(BaseChartConfig):
         return self
 
 
+class GaugeChartConfig(BaseChartConfig):
+    """Config for gauge charts (viz_type ``gauge_chart``).
+
+    Matches the frontend Gauge buildQuery contract: a single ``metric`` whose
+    value the dial displays, plus an optional multi ``groupby`` — with no
+    groupby the chart is one dial; with a groupby it renders one dial per row
+    (capped at the frontend's 10). ``min_val``/``max_val`` fix the dial scale
+    (both default to auto).
+    """
+
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    chart_type: Literal["gauge_chart"] = "gauge_chart"
+    metric: ColumnRef = Field(
+        ...,
+        description="Value metric the dial displays (use aggregate e.g. AVG, "
+        "SUM for ad-hoc, or set saved_metric=True for a saved dataset metric)",
+    )
+    groupby: List[ColumnRef] | None = Field(
+        None,
+        description="Optional category columns; each row becomes one dial. "
+        "Omit for a single-value gauge.",
+    )
+    row_limit: int = Field(10, description="Max dials", ge=1, le=10)
+    min_val: float | None = Field(
+        None, description="Minimum value of the dial scale (default: auto)"
+    )
+    max_val: float | None = Field(
+        None, description="Maximum value of the dial scale (default: auto)"
+    )
+    filters: List[FilterConfig] | None = Field(
+        None,
+        description="Structured filters (column/op/value). "
+        "Do NOT use adhoc_filters or raw SQL expressions.",
+    )
+    color_scheme: str | None = Field(
+        None,
+        description=(
+            "Superset color scheme ID (e.g. 'supersetColors', 'lyftColors', "
+            "'googleCategory10c', 'd3Category10'). Defaults to 'supersetColors'."
+        ),
+        max_length=100,
+    )
+
+    @model_validator(mode="after")
+    def reject_metric_style_groupby(self) -> "GaugeChartConfig":
+        """groupby entries are dimensions, not metrics."""
+        for i, col in enumerate(self.groupby or []):
+            _reject_sql_expression_on_dimension(col, f"groupby[{i}]")
+            if col.saved_metric:
+                raise ValueError(
+                    f"groupby[{i}] cannot use saved_metric=True; "
+                    "saved metrics belong in the 'metric' field"
+                )
+        return self
+
+
 class PivotTableChartConfig(BaseChartConfig):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
@@ -2287,6 +2344,7 @@ ChartConfig = Annotated[
     XYChartConfig
     | TableChartConfig
     | PieChartConfig
+    | GaugeChartConfig
     | PivotTableChartConfig
     | InteractivePivotChartConfig
     | MixedTimeseriesChartConfig
@@ -2299,7 +2357,7 @@ ChartConfig = Annotated[
         discriminator="chart_type",
         description=(
             "Chart configuration - specify chart_type as 'xy', 'table', "
-            "'pie', 'pivot_table', 'interactive_pivot', 'mixed_timeseries', "
+            "'pie', 'gauge_chart', 'pivot_table', 'interactive_pivot', 'mixed_timeseries', "
             "'handlebars', "
             "'big_number', 'histogram', 'box_plot', or 'waterfall'"
         ),
