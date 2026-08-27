@@ -23,7 +23,7 @@ import {
   OPERATOR_ENUM_TO_OPERATOR_TYPE,
   Operators,
 } from 'src/explore/constants';
-import { translateToSql } from '../utils/translateToSQL';
+import { translateToSql, VerboseColumn } from '../utils/translateToSQL';
 import { Clauses, ExpressionTypes } from '../types';
 
 const CUSTOM_OPERATIONS = [...CUSTOM_OPERATORS].map(
@@ -193,8 +193,8 @@ export default class AdhocFilter {
     );
   }
 
-  getDefaultLabel(): string {
-    const label = this.translateToSql();
+  getDefaultLabel(columns?: VerboseColumn[]): string {
+    const label = this.translateToSql({ columns });
     return label.length < 43 ? label : `${label.substring(0, 40)}...`;
   }
 
@@ -202,8 +202,8 @@ export default class AdhocFilter {
     return this.translateToSql();
   }
 
-  translateToSql(): string {
-    return translateToSql(this as unknown as CoreAdhocFilter);
+  translateToSql(params: { columns?: VerboseColumn[] } = {}): string {
+    return translateToSql(this as unknown as CoreAdhocFilter, params);
   }
 }
 

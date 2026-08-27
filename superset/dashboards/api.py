@@ -74,6 +74,7 @@ from superset.commands.dashboard.export_example import ExportExampleCommand
 from superset.commands.dashboard.fave import AddFavoriteDashboardCommand
 from superset.commands.dashboard.importers.dispatcher import ImportDashboardsCommand
 from superset.commands.dashboard.permalink.create import CreateDashboardPermalinkCommand
+from superset.commands.dashboard.permalink.get import GetDashboardPermalinkCommand
 from superset.commands.dashboard.restore import RestoreDashboardCommand
 from superset.commands.dashboard.unfave import DelFavoriteDashboardCommand
 from superset.commands.dashboard.update import (
@@ -105,6 +106,7 @@ from superset.dashboards.filters import (
     DashboardTagNameFilter,
     DashboardTitleOrSlugFilter,
 )
+from superset.dashboards.permalink.exceptions import DashboardPermalinkGetFailedError
 from superset.dashboards.permalink.types import DashboardPermalinkState
 from superset.dashboards.schemas import (
     CacheScreenshotSchema,
@@ -140,7 +142,10 @@ from superset.extensions import event_logger, security_manager
 from superset.models.dashboard import Dashboard
 from superset.models.embedded_dashboard import EmbeddedDashboard
 from superset.security.guest_token import GuestUser
-from superset.security.manager import get_extra_editor_subject_ids
+from superset.security.manager import (
+    get_extra_editor_subject_ids,
+    get_extra_editors_by_pk,
+)
 from superset.subjects.filters import (
     FilterRelatedSubjects,
     subject_type_filter,
@@ -430,6 +435,15 @@ class DashboardRestApi(
               $ref: '#/components/responses/500'
         """
         return super().get_list(**kwargs)
+
+    def pre_get_list(self, data: dict[str, Any]) -> None:
+        """Attach ``extra_editors`` to each row, matching the single-object GET."""
+        super().pre_get_list(data)
+        ids = data.get("ids", [])
+        extra_editors_by_id = get_extra_editors_by_pk(Dashboard, ids)
+        for row, row_id in zip(data.get("result", []), ids, strict=False):
+            if row_id in extra_editors_by_id:
+                row["extra_editors"] = extra_editors_by_id[row_id]
 
     list_select_columns = list_columns + ["changed_on", "created_on", "changed_by_fk"]
     order_columns = [
@@ -1842,6 +1856,43 @@ class DashboardRestApi(
             raise
         return self.response(202, job_id=job_id)
 
+    def _validate_permalink_for_dashboard(
+        self, permalink_key: str, dashboard: Dashboard
+    ) -> WerkzeugResponse | None:
+        """
+        Resolve (and access-check, as the calling user) a caller-supplied
+        permalink key, and confirm it belongs to `dashboard`.
+
+        A permalink key is resolved as the calling user, before it's ever
+        handed to the (potentially more-privileged) screenshot executor --
+        otherwise a caller with access only to `dashboard` could pass the
+        permalink key of a dashboard they can't access and have it rendered
+        under the executor's identity.
+
+        :returns: An error response if the key doesn't resolve, isn't
+            accessible to the caller, or belongs to a different dashboard;
+            ``None`` if it's valid for `dashboard`.
+        """
+        try:
+            permalink_value = GetDashboardPermalinkCommand(permalink_key).run()
+        except DashboardPermalinkGetFailedError:
+            return self.response_404()
+        except DashboardAccessDeniedError:
+            return self.response_403()
+        if not permalink_value:
+            return self.response_404()
+        try:
+            permalink_dashboard = DashboardDAO.get_by_id_or_slug(
+                permalink_value["dashboardId"]
+            )
+        except DashboardAccessDeniedError:
+            return self.response_403()
+        except DashboardNotFoundError:
+            return self.response_404()
+        if permalink_dashboard.id != dashboard.id:
+            return self.response_403()
+        return None
+
     @expose("/<pk>/cache_dashboard_screenshot/", methods=("POST",))
     @validate_feature_flags(["THUMBNAILS", "ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS"])
     @protect()
@@ -1912,13 +1963,17 @@ class DashboardRestApi(
 
         # if the permalink key is provided, dashboard_state will be ignored
         # else, create a permalink key from the dashboard_state
-        permalink_key = (
-            payload.get("permalinkKey", None)
-            or CreateDashboardPermalinkCommand(
+        permalink_key = payload.get("permalinkKey", None)
+        if permalink_key:
+            if error_response := self._validate_permalink_for_dashboard(
+                permalink_key, dashboard
+            ):
+                return error_response
+        else:
+            permalink_key = CreateDashboardPermalinkCommand(
                 dashboard_id=str(dashboard.id),
                 state=dashboard_state,
             ).run()
-        )
 
         dashboard_url = get_url_path("Superset.dashboard_permalink", key=permalink_key)
         screenshot_obj = DashboardScreenshot(dashboard_url, dashboard.digest)
@@ -1940,7 +1995,9 @@ class DashboardRestApi(
                 task_status=cache_payload.get_status(),
             )
 
-        if cache_payload.should_trigger_task(force):
+        if cache_payload.should_trigger_task(
+            force, expected_scope=f"dashboard:{dashboard.id}"
+        ):
             logger.info("Triggering screenshot ASYNC")
             cache_dashboard_screenshot.delay(
                 username=get_current_user(),
@@ -2019,6 +2076,12 @@ class DashboardRestApi(
         # fetch the dashboard screenshot using the current user and cache if set
 
         if cache_payload := DashboardScreenshot.get_from_cache_key(digest):
+            # The digest is caller-supplied and cache entries are shared across
+            # every dashboard (and, via the same backend, charts) -- without
+            # this check any cache_key learned for one dashboard would serve
+            # its image under a different, merely-accessible `pk`.
+            if cache_payload.get_scope() != f"dashboard:{dashboard.id}":
+                return self.response_404()
             try:
                 image = cache_payload.get_image()
             except ScreenshotImageNotAvailableException:

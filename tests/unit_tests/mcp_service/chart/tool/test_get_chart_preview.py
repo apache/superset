@@ -44,12 +44,10 @@ from superset.mcp_service.chart.tool.get_chart_preview import (
     _build_query_metrics,
     _first_query_has_fields,
     _no_query_fields_error,
-    _sanitize_chart_preview_for_llm_context,
     ASCIIPreviewStrategy,
     PreviewFormatStrategy,
     TablePreviewStrategy,
 )
-from superset.mcp_service.utils import sanitize_for_llm_context
 from superset.utils import json as utils_json
 
 
@@ -858,11 +856,11 @@ class TestGetChartPreview:
         assert len(metadata.optimization_suggestions) == 1
 
 
-class TestChartPreviewSanitization:
-    """Tests for chart preview read-path sanitization."""
+class TestChartPreviewValuePreservation:
+    """Tests for chart preview read-path value preservation."""
 
-    def test_sanitize_chart_preview_wraps_ascii_and_alt_text(self) -> None:
-        """ASCII previews should be wrapped while operational URLs stay raw."""
+    def test_chart_preview_preserves_ascii_and_alt_text(self) -> None:
+        """ASCII preview values and operational URLs remain exact."""
         preview = ChartPreview(
             chart_id=3,
             chart_name="Regional Trend",
@@ -878,20 +876,16 @@ class TestChartPreviewSanitization:
             performance=PerformanceMetadata(query_duration_ms=8, cache_status="miss"),
         )
 
-        result = _sanitize_chart_preview_for_llm_context(preview)
+        result = preview
 
-        assert result.chart_name == sanitize_for_llm_context("Regional Trend")
+        assert result.chart_name == ("Regional Trend")
         assert result.explore_url == "http://localhost:8088/explore/?slice_id=3"
-        assert result.chart_description == sanitize_for_llm_context(
-            "Preview of line: Regional Trend"
-        )
-        assert result.content.ascii_content == sanitize_for_llm_context("North > South")
-        assert result.accessibility.alt_text == sanitize_for_llm_context(
-            "Preview of Regional Trend"
-        )
+        assert result.chart_description == ("Preview of line: Regional Trend")
+        assert result.content.ascii_content == ("North > South")
+        assert result.accessibility.alt_text == ("Preview of Regional Trend")
 
-    def test_sanitize_chart_preview_wraps_vega_lite_data_values(self):
-        """Vega-Lite previews should wrap description and row string values."""
+    def test_chart_preview_preserves_vega_lite_data_values(self):
+        """Vega-Lite descriptions and row string values remain exact."""
         preview = ChartPreview(
             chart_id=4,
             chart_name="Category Share",
@@ -923,24 +917,20 @@ class TestChartPreviewSanitization:
             format="vega_lite",
         )
 
-        result = _sanitize_chart_preview_for_llm_context(preview)
+        result = preview
         specification = result.content.specification
 
         assert specification["$schema"] == (
             "https://vega.github.io/schema/vega-lite/v5.json"
         )
-        assert specification["description"] == sanitize_for_llm_context(
-            "Pie chart for category share"
-        )
-        assert specification["data"]["values"][0][
-            "category"
-        ] == sanitize_for_llm_context("Retail")
-        assert specification["data"]["values"][0]["url"] == sanitize_for_llm_context(
+        assert specification["description"] == ("Pie chart for category share")
+        assert specification["data"]["values"][0]["category"] == ("Retail")
+        assert specification["data"]["values"][0]["url"] == (
             "https://example.com/retail"
         )
         assert specification["data"]["values"][0]["value"] == 10
 
-    def test_sanitize_chart_preview_leaves_non_mapping_vega_lite_data_unchanged(
+    def test_chart_preview_leaves_non_mapping_vega_lite_data_unchanged(
         self,
     ) -> None:
         """Non-mapping Vega-Lite data should not be treated as inline values."""
@@ -965,15 +955,13 @@ class TestChartPreviewSanitization:
             format="vega_lite",
         )
 
-        result = _sanitize_chart_preview_for_llm_context(preview)
+        result = preview
         specification = result.content.specification
 
-        assert specification["description"] == sanitize_for_llm_context(
-            "Pie chart for category share"
-        )
+        assert specification["description"] == ("Pie chart for category share")
         assert specification["data"] == "named_dataset"
 
-    def test_sanitize_chart_preview_wraps_table_content(self):
+    def test_chart_preview_preserves_table_content(self):
         preview = ChartPreview(
             chart_id=5,
             chart_name="Top Customers",
@@ -993,15 +981,13 @@ class TestChartPreviewSanitization:
             performance=PerformanceMetadata(query_duration_ms=9, cache_status="miss"),
         )
 
-        result = _sanitize_chart_preview_for_llm_context(preview)
+        result = preview
 
-        assert result.content.table_data == sanitize_for_llm_context(
-            "Customer | Revenue\nAcme | 100"
-        )
+        assert result.content.table_data == ("Customer | Revenue\nAcme | 100")
         assert result.content.row_count == 1
         assert result.content.supports_sorting is True
 
-    def test_sanitize_chart_preview_wraps_interactive_html_but_keeps_urls(self):
+    def test_chart_preview_preserves_interactive_html_and_urls(self):
         preview = ChartPreview(
             chart_id=6,
             chart_name="Interactive Trend",
@@ -1025,11 +1011,9 @@ class TestChartPreviewSanitization:
             height=600,
         )
 
-        result = _sanitize_chart_preview_for_llm_context(preview)
+        result = preview
 
-        assert result.content.html_content == sanitize_for_llm_context(
-            "<div>Revenue by region</div>"
-        )
+        assert result.content.html_content == ("<div>Revenue by region</div>")
         assert (
             result.content.preview_url == "/superset/explore/?slice_id=6&standalone=1"
         )
