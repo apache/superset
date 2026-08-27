@@ -2625,3 +2625,131 @@ describe('tooltip for metrics whose labels end in forecast suffixes', () => {
     expect(html).toContain('>ci<');
   });
 });
+
+test('applies user-defined minimum interval to both axes', () => {
+  const queriesData: ChartDataResponseResult[] = [
+    createTestQueryData(
+      createTestData([{ 'Series A': 1 }, { 'Series A': 2 }], {
+        intervalMs: 300000000,
+      }),
+    ),
+  ];
+
+  const chartProps = createTestChartProps({
+    formData: {
+      ...baseFormDataHorizontalBar,
+      orientation: OrientationType.Vertical,
+      xAxisMinInterval: 86400000,
+      yAxisMinInterval: 1,
+    },
+    queriesData,
+  });
+
+  const { echartOptions } = transformProps(chartProps);
+  expect((echartOptions.xAxis as any).minInterval).toBe(86400000);
+  expect((echartOptions.yAxis as any).minInterval).toBe(1);
+});
+
+test('swaps the minimum interval of both axes for horizontal bar charts', () => {
+  const queriesData: ChartDataResponseResult[] = [
+    createTestQueryData(
+      createTestData([{ 'Series A': 1 }, { 'Series A': 2 }], {
+        intervalMs: 300000000,
+      }),
+    ),
+  ];
+
+  const chartProps = createTestChartProps({
+    formData: {
+      ...baseFormDataHorizontalBar,
+      xAxisMinInterval: 86400000,
+      yAxisMinInterval: 1,
+    },
+    queriesData,
+  });
+
+  const { echartOptions } = transformProps(chartProps);
+  expect((echartOptions.xAxis as any).minInterval).toBe(1);
+  expect((echartOptions.yAxis as any).minInterval).toBe(86400000);
+});
+
+test('ignores empty or invalid minimum interval values', () => {
+  const queriesData: ChartDataResponseResult[] = [
+    createTestQueryData(
+      createTestData([{ 'Series A': 1 }, { 'Series A': 2 }], {
+        intervalMs: 300000000,
+      }),
+    ),
+  ];
+
+  const chartProps = createTestChartProps({
+    formData: {
+      ...baseFormDataHorizontalBar,
+      orientation: OrientationType.Vertical,
+      xAxisMinInterval: '',
+      yAxisMinInterval: 'not a number',
+    },
+    queriesData,
+  });
+
+  const { echartOptions } = transformProps(chartProps);
+  expect((echartOptions.yAxis as any).minInterval).toBeUndefined();
+  expect((echartOptions.xAxis as any).minInterval).toBe(0);
+});
+
+test.each([
+  ['null', null],
+  ['undefined', undefined],
+  ['zero', 0],
+  ['a negative number', -1],
+  ['a non-finite number', Number.NaN],
+])('ignores %s as a minimum interval', (_label, value) => {
+  const queriesData: ChartDataResponseResult[] = [
+    createTestQueryData(
+      createTestData([{ 'Series A': 1 }, { 'Series A': 2 }], {
+        intervalMs: 300000000,
+      }),
+    ),
+  ];
+
+  const chartProps = createTestChartProps({
+    formData: {
+      ...baseFormDataHorizontalBar,
+      orientation: OrientationType.Vertical,
+      xAxisMinInterval: value,
+      yAxisMinInterval: value,
+    },
+    queriesData,
+  });
+
+  const { echartOptions } = transformProps(chartProps);
+  // The y-axis drops the property entirely, while the x-axis falls back to the
+  // time grain derived interval, which is 0 without a time grain.
+  expect((echartOptions.yAxis as any).minInterval).toBeUndefined();
+  expect((echartOptions.xAxis as any).minInterval).toBe(0);
+});
+
+test.each([
+  ['a numeric string', '86400000', 86400000],
+  ['a decimal value', 0.5, 0.5],
+])('accepts %s as a minimum interval', (_label, value, expected) => {
+  const queriesData: ChartDataResponseResult[] = [
+    createTestQueryData(
+      createTestData([{ 'Series A': 1 }, { 'Series A': 2 }], {
+        intervalMs: 300000000,
+      }),
+    ),
+  ];
+
+  const chartProps = createTestChartProps({
+    formData: {
+      ...baseFormDataHorizontalBar,
+      orientation: OrientationType.Vertical,
+      yAxisMinInterval: value,
+    },
+    queriesData,
+  });
+
+  const { echartOptions } = transformProps(chartProps);
+  expect((echartOptions.yAxis as any).minInterval).toBe(expected);
+});

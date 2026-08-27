@@ -422,6 +422,36 @@ export const forceMaxInterval = {
   },
 };
 
+export const xAxisMinInterval = {
+  name: 'x_axis_min_interval',
+  config: {
+    type: 'TextControl',
+    label: t('X Axis Minimum Interval'),
+    renderTrigger: true,
+    isFloat: true,
+    default: null,
+    description: t(
+      'Minimum gap between two axis ticks. Only applies to numeric and time ' +
+        'axes, where time is expressed in milliseconds. Leave empty for automatic.',
+    ),
+  },
+};
+
+export const yAxisMinInterval = {
+  name: 'y_axis_min_interval',
+  config: {
+    type: 'TextControl',
+    label: t('Y Axis Minimum Interval'),
+    renderTrigger: true,
+    isFloat: true,
+    default: null,
+    description: t(
+      'Minimum gap between two axis ticks. Useful to avoid fractional ticks ' +
+        'on integer metrics. Leave empty for automatic.',
+    ),
+  },
+};
+
 export const seriesOrderSection: ControlSetRow[] = [
   [<ControlSubSectionHeader>{t('Series Order')}</ControlSubSectionHeader>],
   [sortSeriesType],
