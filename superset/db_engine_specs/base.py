@@ -977,7 +977,15 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             else requests.post(uri, json=req_body, timeout=timeout)
         )
         if response.status_code in (400, 401, 403):
-            raise OAuth2TokenRefreshError()
+            try:
+                error = response.json().get("error")
+            except (requests.exceptions.JSONDecodeError, ValueError, AttributeError):
+                error = None
+            # RFC 6749 defines invalid_grant for an invalid, expired, or revoked
+            # refresh token. Other error responses can be transient or indicate a
+            # client configuration problem and must not invalidate stored tokens.
+            if error == "invalid_grant":
+                raise OAuth2TokenRefreshError()
         response.raise_for_status()
         return response.json()
 

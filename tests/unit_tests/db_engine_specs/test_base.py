@@ -1210,21 +1210,19 @@ def test_get_oauth2_fresh_token_success(mocker: MockerFixture) -> None:
     assert result == {"access_token": "new-access-token", "expires_in": 3600}
 
 
-@pytest.mark.parametrize("status_code", [400, 401, 403])
 @with_config({"DATABASE_OAUTH2_TIMEOUT": timedelta(seconds=30)})
-def test_get_oauth2_fresh_token_raises_on_auth_error(
+def test_get_oauth2_fresh_token_raises_on_invalid_grant(
     mocker: MockerFixture,
-    status_code: int,
 ) -> None:
     """
-    Test that get_oauth2_fresh_token raises OAuth2TokenRefreshError on 400/401/403.
+    Test that a definitive refresh-token rejection requests interactive OAuth2.
     """
     from superset.db_engine_specs.base import BaseEngineSpec
     from superset.exceptions import OAuth2TokenRefreshError
 
     mock_post = mocker.patch("superset.db_engine_specs.base.requests.post")
-    mock_post.return_value.status_code = status_code
-    mock_post.return_value.text = '{"error": "provider-payload-sentinel"}'
+    mock_post.return_value.status_code = 400
+    mock_post.return_value.json.return_value = {"error": "invalid_grant"}
 
     config: OAuth2ClientConfig = {
         "id": "client-id",
@@ -1239,7 +1237,40 @@ def test_get_oauth2_fresh_token_raises_on_auth_error(
     with pytest.raises(OAuth2TokenRefreshError) as exc_info:
         BaseEngineSpec.get_oauth2_fresh_token(config, "refresh-token")
 
-    assert "provider-payload-sentinel" not in str(exc_info.value.to_dict())
+    assert "invalid_grant" not in str(exc_info.value.to_dict())
+
+
+@pytest.mark.parametrize(
+    "status_code,error", [(400, "temporarily_unavailable"), (401, "invalid_client")]
+)
+@with_config({"DATABASE_OAUTH2_TIMEOUT": timedelta(seconds=30)})
+def test_get_oauth2_fresh_token_preserves_token_on_ambiguous_error(
+    mocker: MockerFixture,
+    status_code: int,
+    error: str,
+) -> None:
+    """Non-invalid_grant responses remain ordinary provider failures."""
+    from requests.exceptions import HTTPError
+
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    mock_post = mocker.patch("superset.db_engine_specs.base.requests.post")
+    mock_post.return_value.status_code = status_code
+    mock_post.return_value.json.return_value = {"error": error}
+    mock_post.return_value.raise_for_status.side_effect = HTTPError()
+
+    config: OAuth2ClientConfig = {
+        "id": "client-id",
+        "secret": "client-secret",
+        "scope": "read write",
+        "redirect_uri": "http://localhost:8088/api/v1/database/oauth2/",
+        "authorization_request_uri": "https://oauth.example.com/authorize",
+        "token_request_uri": "https://oauth.example.com/token",
+        "request_content_type": "json",
+    }
+
+    with pytest.raises(HTTPError):
+        BaseEngineSpec.get_oauth2_fresh_token(config, "refresh-token")
 
 
 @with_config({"DATABASE_OAUTH2_TIMEOUT": timedelta(seconds=30)})

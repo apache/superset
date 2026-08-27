@@ -125,6 +125,7 @@ def test_refresh_oauth2_token_force_refreshes_valid_token(
 ) -> None:
     """A forced refresh must not reuse an unexpired access token."""
     db = mocker.patch("superset.utils.oauth2.db")
+    mocker.patch("superset.utils.oauth2.Session", return_value=db.session)
     mocker.patch("superset.utils.oauth2.DistributedLock")
     db_engine_spec = mocker.MagicMock()
     db_engine_spec.get_oauth2_fresh_token.return_value = {
@@ -135,7 +136,7 @@ def test_refresh_oauth2_token_force_refreshes_valid_token(
     token.access_token = "stale-token"  # noqa: S105
     token.access_token_expiration = datetime(2024, 1, 2)
     token.refresh_token = "refresh-token"  # noqa: S105
-    db.session.query().filter_by().one_or_none.return_value = token
+    db.session.query().populate_existing().filter_by().one_or_none.return_value = token
 
     with freeze_time("2024-01-01"):
         result = refresh_oauth2_token(
@@ -146,6 +147,32 @@ def test_refresh_oauth2_token_force_refreshes_valid_token(
     db_engine_spec.get_oauth2_fresh_token.assert_called_once_with(
         DUMMY_OAUTH2_CONFIG, "refresh-token"
     )
+    db.session.commit.assert_called_once_with()
+
+
+def test_force_refresh_reuses_concurrently_refreshed_token(
+    mocker: MockerFixture,
+) -> None:
+    """A lock waiter must not exchange a rotated refresh token again."""
+    db = mocker.patch("superset.utils.oauth2.db")
+    mocker.patch("superset.utils.oauth2.Session", return_value=db.session)
+    mocker.patch("superset.utils.oauth2.DistributedLock")
+    db_engine_spec = mocker.MagicMock()
+    token = mocker.MagicMock(access_token="winning-token")  # noqa: S106
+    db.session.query().populate_existing().filter_by().one_or_none.return_value = token
+
+    result = refresh_oauth2_token(
+        DUMMY_OAUTH2_CONFIG,
+        1,
+        1,
+        db_engine_spec,
+        force=True,
+        rejected_access_token="rejected-token",  # noqa: S106
+    )
+
+    assert result == "winning-token"
+    db_engine_spec.get_oauth2_fresh_token.assert_not_called()
+    db.session.delete.assert_not_called()
 
 
 def test_execute_with_oauth2_retry_forces_refresh_once(
@@ -161,6 +188,9 @@ def test_execute_with_oauth2_retry_forces_refresh_once(
     database.db_engine_spec.needs_oauth2.return_value = True
     database.get_oauth2_config.return_value = DUMMY_OAUTH2_CONFIG
     mocker.patch("superset.utils.oauth2.g").user.id = 2
+    db = mocker.patch("superset.utils.oauth2.db")
+    token = mocker.MagicMock(access_token="stale-token")  # noqa: S106
+    db.session.query().filter_by().one_or_none.return_value = token
     refresh = mocker.patch(
         "superset.utils.oauth2.refresh_oauth2_token", return_value="new-token"
     )
@@ -174,6 +204,7 @@ def test_execute_with_oauth2_retry_forces_refresh_once(
         2,
         database.db_engine_spec,
         force=True,
+        rejected_access_token="stale-token",  # noqa: S106
     )
 
 
@@ -186,10 +217,57 @@ def test_execute_with_oauth2_retry_does_not_retry_unrelated_error(
     database = mocker.MagicMock()
     database.is_oauth2_enabled.return_value = True
     database.db_engine_spec.needs_oauth2.return_value = False
+    db = mocker.patch("superset.utils.oauth2.db")
+    db.session.query().filter_by().one_or_none.return_value = None
     refresh = mocker.patch("superset.utils.oauth2.refresh_oauth2_token")
 
     with pytest.raises(RuntimeError, match="connection timed out"):
         execute_with_oauth2_retry(database, operation)
+
+    operation.assert_called_once_with()
+    refresh.assert_not_called()
+
+
+def test_execute_with_oauth2_retry_propagates_second_auth_error(
+    mocker: MockerFixture,
+) -> None:
+    """A second authentication failure is surfaced without another refresh."""
+    auth_error = RuntimeError("stale OAuth token")
+    operation = mocker.Mock(side_effect=auth_error)
+    database = mocker.MagicMock(id=1)
+    database.is_oauth2_enabled.return_value = True
+    database.db_engine_spec.needs_oauth2.return_value = True
+    database.get_oauth2_config.return_value = DUMMY_OAUTH2_CONFIG
+    mocker.patch("superset.utils.oauth2.g").user.id = 2
+    db = mocker.patch("superset.utils.oauth2.db")
+    db.session.query().filter_by().one_or_none.return_value = None
+    refresh = mocker.patch(
+        "superset.utils.oauth2.refresh_oauth2_token", return_value="new-token"
+    )
+
+    with pytest.raises(RuntimeError, match="stale OAuth token"):
+        execute_with_oauth2_retry(database, operation)
+
+    assert operation.call_count == 2
+    refresh.assert_called_once()
+
+
+def test_execute_with_oauth2_retry_does_not_replay_after_progress(
+    mocker: MockerFixture,
+) -> None:
+    """Completed statements prevent replay of a multi-statement query."""
+    auth_error = RuntimeError("stale OAuth token")
+    operation = mocker.Mock(side_effect=auth_error)
+    database = mocker.MagicMock(id=1)
+    database.is_oauth2_enabled.return_value = True
+    database.db_engine_spec.needs_oauth2.return_value = True
+    mocker.patch("superset.utils.oauth2.g").user.id = 2
+    db = mocker.patch("superset.utils.oauth2.db")
+    db.session.query().filter_by().one_or_none.return_value = None
+    refresh = mocker.patch("superset.utils.oauth2.refresh_oauth2_token")
+
+    with pytest.raises(RuntimeError, match="stale OAuth token"):
+        execute_with_oauth2_retry(database, operation, can_retry=lambda: False)
 
     operation.assert_called_once_with()
     refresh.assert_not_called()
