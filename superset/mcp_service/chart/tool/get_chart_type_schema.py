@@ -32,6 +32,7 @@ from superset.mcp_service.chart.schemas import (
     BigNumberChartConfig,
     BoxPlotChartConfig,
     HandlebarsChartConfig,
+    HeatmapChartConfig,
     HistogramChartConfig,
     InteractivePivotChartConfig,
     MixedTimeseriesChartConfig,
@@ -56,6 +57,7 @@ _CHART_TYPE_ADAPTERS: Dict[str, TypeAdapter[Any]] = {
     "big_number": TypeAdapter(BigNumberChartConfig),
     "histogram": TypeAdapter(HistogramChartConfig),
     "box_plot": TypeAdapter(BoxPlotChartConfig),
+    "heatmap_v2": TypeAdapter(HeatmapChartConfig),
     "waterfall": TypeAdapter(WaterfallChartConfig),
 }
 
@@ -202,6 +204,14 @@ _CHART_EXAMPLES: Dict[str, list[Dict[str, Any]]] = {
             "metric": {"name": "profit", "aggregate": "SUM"},
             "breakdown": {"name": "region"},
             "show_total": True,
+        },
+    ],
+    "heatmap_v2": [
+        {
+            "chart_type": "heatmap_v2",
+            "x_axis": {"name": "day_of_week"},
+            "y_axis": {"name": "hour"},
+            "metric": {"name": "trips", "aggregate": "COUNT"},
         },
     ],
 }
