@@ -30,6 +30,8 @@ from superset.extensions import cache_manager
 from superset.models.dashboard import Dashboard
 from superset.temporary_cache.utils import cache_key
 from superset.utils import json
+from tests.integration_tests.base_tests import DEFAULT_PASSWORD
+from tests.integration_tests.constants import ADMIN_USERNAME
 from tests.integration_tests.fixtures.world_bank_dashboard import (
     load_world_bank_dashboard_with_slices,  # noqa: F401
     load_world_bank_data,  # noqa: F401
@@ -67,6 +69,66 @@ def test_post(test_client, login_as_admin, dashboard_id: int):
         },
     )
     assert resp.status_code == 201
+
+
+def test_post_bearer_token_auth(app_context: AppContext, dashboard_id: int):
+    """POST must succeed with a bearer token and no browser session.
+
+    Regression test: fails if `@has_access_api` is restored ahead of
+    `@protect()`, since that ordering checks permissions against an
+    anonymous user before JWT authentication runs.
+    """
+    with app.test_client() as login_client:
+        login_resp = login_client.post(
+            "/api/v1/security/login",
+            json={
+                "username": ADMIN_USERNAME,
+                "password": DEFAULT_PASSWORD,
+                "provider": "db",
+                "refresh": True,
+            },
+        )
+        assert login_resp.status_code == 200
+        access_token = login_resp.json["access_token"]
+
+    headers = {"Authorization": f"Bearer {access_token}"}
+    with app.test_client() as bearer_client:
+        resp = bearer_client.post(
+            f"api/v1/dashboard/{dashboard_id}/filter_state",
+            json={"value": INITIAL_VALUE},
+            headers=headers,
+        )
+        assert resp.status_code == 201
+
+
+def test_put_bearer_token_auth(app_context: AppContext, dashboard_id: int):
+    """PUT must succeed with a bearer token and no browser session.
+
+    Regression test: fails if `@has_access_api` is restored ahead of
+    `@protect()`, since that ordering checks permissions against an
+    anonymous user before JWT authentication runs.
+    """
+    with app.test_client() as login_client:
+        login_resp = login_client.post(
+            "/api/v1/security/login",
+            json={
+                "username": ADMIN_USERNAME,
+                "password": DEFAULT_PASSWORD,
+                "provider": "db",
+                "refresh": True,
+            },
+        )
+        assert login_resp.status_code == 200
+        access_token = login_resp.json["access_token"]
+
+    headers = {"Authorization": f"Bearer {access_token}"}
+    with app.test_client() as bearer_client:
+        resp = bearer_client.put(
+            f"api/v1/dashboard/{dashboard_id}/filter_state/{KEY}",
+            json={"value": UPDATED_VALUE},
+            headers=headers,
+        )
+        assert resp.status_code == 200
 
 
 def test_post_bad_request_non_string(test_client, login_as_admin, dashboard_id: int):
