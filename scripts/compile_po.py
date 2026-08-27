@@ -48,6 +48,18 @@ def find_command(names: list[str]) -> str | None:
     return None
 
 
+def find_node_bin(root_dir: str, bin_name: str) -> str | None:
+    for base in [
+        os.path.join(root_dir, "superset-frontend", "node_modules", ".bin"),
+        os.path.join(root_dir, "node_modules", ".bin"),
+    ]:
+        for ext in ["", ".cmd", ".ps1"]:
+            candidate = os.path.join(base, f"{bin_name}{ext}")
+            if os.path.isfile(candidate):
+                return candidate
+    return None
+
+
 def install_npm_packages(npm_cmd: str, root_dir: str, packages: list[str]) -> bool:
     rc = run_command(
         [npm_cmd, "install", "--no-save", "--prefer-offline", *packages],
@@ -57,14 +69,9 @@ def install_npm_packages(npm_cmd: str, root_dir: str, packages: list[str]) -> bo
 
 
 def convert_po_file(
-    po_file: str, frontend_trans_dir: str, po2json_cmd: list[str]
+    po_file: str, po2json_cmd: list[str]
 ) -> tuple[bool, str, str]:
-    locale_rel = os.path.relpath(
-        po_file, start=os.path.dirname(os.path.dirname(po_file))
-    )
-    json_dest = os.path.join(
-        frontend_trans_dir, os.path.splitext(locale_rel)[0] + ".json"
-    )
+    json_dest = f"{os.path.splitext(po_file)[0]}.json"
     os.makedirs(os.path.dirname(json_dest), exist_ok=True)
 
     cmd = [
@@ -87,9 +94,7 @@ def compile_translations() -> int:  # noqa: C901
         os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
     )
     translations_dir = os.path.join(root_dir, "superset", "translations")
-    frontend_trans_dir = os.path.join(
-        root_dir, "superset-frontend", "src", "translations"
-    )
+    frontend_dir = os.path.join(root_dir, "superset-frontend")
 
     try:
         import babel  # noqa: F401
@@ -126,28 +131,29 @@ def compile_translations() -> int:  # noqa: C901
         print("ERROR: pybabel compile failed.", file=sys.stderr)
         return 1
 
-    node_modules_bin = os.path.join(root_dir, "node_modules", ".bin")
-    po2json_bin = os.path.join(node_modules_bin, "po2json")
-    prettier_bin = os.path.join(node_modules_bin, "prettier")
+    po2json_bin = find_node_bin(root_dir, "po2json")
+    prettier_bin = find_node_bin(root_dir, "prettier")
 
-    print("Step 2: Installing npm packages (po2json, prettier)...")
+    print("Step 2: Locating/installing npm packages (po2json, prettier)...")
     packages_needed = []
-    if not os.path.isfile(po2json_bin):
+    if not po2json_bin:
         packages_needed.append("po2json")
-    if not os.path.isfile(prettier_bin):
+    if not prettier_bin:
         packages_needed.append("prettier")
 
-    if packages_needed and not install_npm_packages(
-        npm_cmd, root_dir, packages_needed
-    ):
-        print("WARNING: npm install failed, falling back to npx.", file=sys.stderr)
+    if packages_needed:
+        install_dir = frontend_dir if os.path.isdir(frontend_dir) else root_dir
+        if not install_npm_packages(npm_cmd, install_dir, packages_needed):
+            print("WARNING: npm install failed, falling back to npx.", file=sys.stderr)
+        po2json_bin = find_node_bin(root_dir, "po2json")
+        prettier_bin = find_node_bin(root_dir, "prettier")
 
-    if os.path.isfile(po2json_bin):
+    if po2json_bin:
         po2json_cmd: list[str] = [po2json_bin]
     else:
         po2json_cmd = [npx_cmd, "-y", "po2json"]
 
-    if os.path.isfile(prettier_bin):
+    if prettier_bin:
         prettier_cmd: list[str] | None = [prettier_bin]
     else:
         prettier_cmd = [npx_cmd, "-y", "prettier"] if npx_cmd else None
@@ -155,13 +161,13 @@ def compile_translations() -> int:  # noqa: C901
     po_files = glob.glob(
         os.path.join(translations_dir, "**", "*.po"), recursive=True
     )
-    print(f"Step 3: Converting {len(po_files)} .po files to JSON (frontend path)...")
+    print(f"Step 3: Converting {len(po_files)} .po files to JSON...")
 
     failures: list[str] = []
     max_workers = min(8, (os.cpu_count() or 1) * 2)
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = {
-            executor.submit(convert_po_file, f, frontend_trans_dir, po2json_cmd): f
+            executor.submit(convert_po_file, f, po2json_cmd): f
             for f in po_files
         }
         for future in as_completed(futures):
@@ -181,7 +187,7 @@ def compile_translations() -> int:  # noqa: C901
         return 1
 
     json_files = glob.glob(
-        os.path.join(frontend_trans_dir, "**", "*.json"), recursive=True
+        os.path.join(translations_dir, "**", "*.json"), recursive=True
     )
     if json_files and prettier_cmd:
         print(f"Step 4: Running prettier on {len(json_files)} JSON files...")
@@ -193,7 +199,8 @@ def compile_translations() -> int:  # noqa: C901
             )
             != 0
         ):
-            print("WARNING: prettier step failed.", file=sys.stderr)
+            print("ERROR: prettier step failed.", file=sys.stderr)
+            return 1
 
     print("\nPipeline completed successfully!")
     return 0
