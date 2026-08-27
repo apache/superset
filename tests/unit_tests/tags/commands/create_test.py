@@ -108,6 +108,75 @@ def test_create_command_success(session_with_data: Session, mocker: MockerFixtur
         )
 
 
+def test_validate_object_access_query_malformed_jinja(
+    session_with_data: Session, mocker: MockerFixture
+):
+    """A saved query whose Jinja-templated SQL fails to parse during access
+    checks must surface as a validation error, not an unhandled
+    ``jinja2.TemplateError`` escaping as a 500.
+
+    When ``raise_for_access(query=...)`` authorizes a saved query via
+    per-table permissions it parses the query's Jinja SQL (e.g. an unclosed
+    ``{% if %}`` block raises ``TemplateSyntaxError``). Mock that call to raise
+    the ``TemplateError`` directly so the test stays hermetic and does not open
+    a live DB connection to introspect table-level perms.
+    """
+    from jinja2.exceptions import TemplateError
+
+    from superset.commands.tag.create import CreateCustomTagCommand
+    from superset.commands.tag.exceptions import TagInvalidError
+    from superset.models.sql_lab import SavedQuery
+    from superset.tags.models import ObjectType
+
+    query = db.session.query(SavedQuery).first()
+
+    mocker.patch("superset.commands.tag.create.to_object_model", return_value=query)
+    mocker.patch(
+        "superset.commands.tag.create.security_manager.raise_for_access",
+        side_effect=TemplateError("unclosed {% if %}"),
+    )
+
+    command = CreateCustomTagCommand(ObjectType.query, query.id, ["tag"])
+
+    with pytest.raises(TagInvalidError):
+        command.validate()
+
+
+def test_validate_object_access_query_unresolvable_partition_macro(
+    session_with_data: Session, mocker: MockerFixture
+):
+    """A saved query whose partition macro cannot be resolved statically raises
+    ``SupersetParseError`` during access checks. Like ``TemplateError``, it is a
+    sibling of ``SupersetSecurityException`` under ``SupersetErrorException`` and
+    would otherwise escape as an unhandled 500, so it must also surface as a
+    validation error.
+
+    Mock ``raise_for_access`` to raise the error directly so the test stays
+    hermetic and does not open a live DB connection to introspect table perms.
+    """
+    from superset.commands.tag.create import CreateCustomTagCommand
+    from superset.commands.tag.exceptions import TagInvalidError
+    from superset.exceptions import SupersetParseError
+    from superset.models.sql_lab import SavedQuery
+    from superset.tags.models import ObjectType
+
+    query = db.session.query(SavedQuery).first()
+
+    mocker.patch("superset.commands.tag.create.to_object_model", return_value=query)
+    mocker.patch(
+        "superset.commands.tag.create.security_manager.raise_for_access",
+        side_effect=SupersetParseError(
+            sql="select * from {{ latest_partition('foo') }}",
+            message="Unresolvable partition macro",
+        ),
+    )
+
+    command = CreateCustomTagCommand(ObjectType.query, query.id, ["tag"])
+
+    with pytest.raises(TagInvalidError):
+        command.validate()
+
+
 def test_create_command_success_clear(
     session_with_data: Session, mocker: MockerFixture
 ):
