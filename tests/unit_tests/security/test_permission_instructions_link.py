@@ -63,10 +63,10 @@ def test_datasource_placeholders_are_filled_and_url_encoded() -> None:
         "https://acme.example.com/req?id={datasource_id}"
         "&name={datasource_name}&u={username}",
         datasource_id="12",
-        datasource_name="Quarterly Sales",
     )
-    # space in the dataset name is URL-encoded; username injected from g.user
-    assert out == ("https://acme.example.com/req?id=12&name=Quarterly%20Sales&u=alice")
+    # datasource_name is no longer supplied (information disclosure fix);
+    # the placeholder renders as empty. Username is injected from g.user.
+    assert out == ("https://acme.example.com/req?id=12&name=&u=alice")
 
 
 def test_table_names_filled_and_encoded() -> None:
