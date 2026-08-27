@@ -141,6 +141,10 @@ export const showValueControl: ControlSetItem = {
   },
 };
 
+// Bar-only: fit-aware placement (Auto avoids/suppresses colliding labels on
+// stacked segments) plus explicit end/center/base positions. Wired into
+// showValueSectionWithoutStream (Bar charts) instead of labelPositionControl
+// below, which stays the generic picker for every other "Show value" chart.
 export const valueLabelPositionControl: ControlSetItem = {
   name: 'value_label_position',
   config: {
@@ -158,6 +162,28 @@ export const valueLabelPositionControl: ControlSetItem = {
     default: DEFAULT_FORM_DATA.valueLabelPosition,
     renderTrigger: true,
     description: t('Choose where to display values relative to the bars'),
+    visibility: ({ controls }: ControlPanelsContainerProps) =>
+      Boolean(controls?.show_value?.value),
+  },
+};
+
+export const labelPositionControl: ControlSetItem = {
+  name: 'label_position',
+  config: {
+    type: 'SelectControl',
+    freeForm: false,
+    label: t('Label Position'),
+    choices: [
+      ['auto', t('Auto')],
+      ['top', t('Top')],
+      ['inside', t('Inside')],
+      ['bottom', t('Bottom')],
+      ['left', t('Left')],
+      ['right', t('Right')],
+    ],
+    default: 'auto',
+    renderTrigger: true,
+    description: t('Position of the data label relative to the data point'),
     visibility: ({ controls }: ControlPanelsContainerProps) =>
       Boolean(controls?.show_value?.value),
   },
@@ -242,6 +268,7 @@ export const percentageThresholdControl: ControlSetItem = {
 
 export const showValueSection: ControlSetRow[] = [
   [showValueControl],
+  [labelPositionControl],
   [stackControl],
   [onlyTotalControl],
   [percentageThresholdControl],
@@ -253,9 +280,12 @@ export const colorByPrimaryAxisSection: ControlSetRow[] = [
 
 export const showValueSectionWithoutStack: ControlSetRow[] = [
   [showValueControl],
+  [labelPositionControl],
   [onlyTotalControl],
 ];
 
+// Bar charts (the only consumer of this section) use the fit-aware
+// valueLabelPositionControl instead of the generic labelPositionControl.
 export const showValueSectionWithoutStream: ControlSetRow[] = [
   [showValueControl],
   [valueLabelPositionControl],

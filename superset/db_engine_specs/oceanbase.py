@@ -17,10 +17,11 @@
 import logging
 import re
 from re import Pattern
-from typing import Any, Optional
+from typing import Any, Callable, Optional
 
 from flask_babel import gettext as __
 from sqlalchemy import Numeric, TEXT, types
+from sqlalchemy.sql.elements import ColumnElement
 from sqlalchemy.sql.type_api import TypeEngine
 
 from superset.db_engine_specs.base import DatabaseCategory
@@ -83,6 +84,12 @@ class OceanBaseEngineSpec(MySQLEngineSpec):
     )
     encryption_parameters = {"ssl": "0"}
     supports_dynamic_schema = True
+
+    # `MySQLEngineSpec._extended_aggregations` (STDDEV_SAMP/VAR_SAMP) is verified
+    # against real MySQL behavior, not OceanBase's distributed query engine;
+    # disable it here until someone confirms the same expressions against a live
+    # OceanBase instance.
+    _extended_aggregations: dict[str, Callable[[ColumnElement], ColumnElement]] = {}
 
     metadata = {
         "description": "OceanBase is a distributed relational database.",

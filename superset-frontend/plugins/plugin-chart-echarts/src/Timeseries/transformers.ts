@@ -55,6 +55,7 @@ import {
   BarValueLabelPosition,
   EchartsTimeseriesSeriesType,
   ForecastSeriesEnum,
+  LabelPositionEnum,
   LegendOrientation,
   OrientationType,
   StackType,
@@ -399,6 +400,7 @@ export function transformSeries(
     theme?: SupersetTheme;
     hasDimensions?: boolean;
     colorByPrimaryAxis?: boolean;
+    labelPosition?: string;
   },
 ): SeriesOption | undefined {
   const { name, data } = series;
@@ -432,6 +434,7 @@ export function transformSeries(
     timeShiftColor,
     theme,
     colorByPrimaryAxis = false,
+    labelPosition,
   } = opts;
   const contexts = seriesContexts[name || ''] || [];
   const hasForecast =
@@ -548,10 +551,17 @@ export function transformSeries(
     );
   }
   if (Array.isArray(transformedData) && plotType === 'bar') {
+    // An explicit labelPosition (set before valueLabelPosition existed, or
+    // still relevant to a saved chart) takes precedence for negative values;
+    // otherwise fall back to the fit-aware valueLabelPosition-derived spot.
+    const negativeLabelPosition: NegativeBarLabelPosition =
+      labelPosition && labelPosition !== 'auto'
+        ? (labelPosition as NegativeBarLabelPosition)
+        : getBarLabelPosition(valueLabelPosition, isHorizontal, true);
     transformedData = transformNegativeLabelsPosition(
       { ...series, data: transformedData },
       isHorizontal,
-      getBarLabelPosition(valueLabelPosition, isHorizontal, true),
+      negativeLabelPosition,
     );
   }
 
@@ -603,15 +613,24 @@ export function transformSeries(
       : {}),
     label: {
       show: !!showValue,
+      // An explicit labelPosition (the generic control still used by
+      // MixedTimeseries' bar series, and by standalone bar charts saved
+      // before valueLabelPosition existed) wins outright. Otherwise bar
+      // charts fall back to the fit-aware valueLabelPosition control, and
+      // every other "Show value" chart type falls back to an
+      // orientation-aware default.
       position:
-        plotType === 'bar'
-          ? getBarLabelPosition(valueLabelPosition, isHorizontal)
-          : isHorizontal
-            ? 'right'
-            : 'top',
+        labelPosition && labelPosition !== 'auto'
+          ? (labelPosition as LabelPositionEnum)
+          : plotType === 'bar'
+            ? getBarLabelPosition(valueLabelPosition, isHorizontal)
+            : isHorizontal
+              ? LabelPositionEnum.Right
+              : LabelPositionEnum.Top,
       // ECharts derives contrast from the bar fill for inside positions.
       // Auto x/y overflow clears the position, selecting its outside fill.
       ...(isInsideBarLabel ? {} : { color: theme?.colorText }),
+      ...(plotType === 'bar' ? { overflow: 'truncate' } : {}),
       textBorderWidth: 0,
       formatter: (params: any) => {
         // don't show confidence band value labels, as they're already visible on the tooltip

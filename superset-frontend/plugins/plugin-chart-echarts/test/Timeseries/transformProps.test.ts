@@ -48,6 +48,7 @@ import {
   LegendOrientation,
   LegendType,
   EchartsTimeseriesChartProps,
+  LabelPositionEnum,
 } from '../../src/types';
 import { DEFAULT_FORM_DATA } from '../../src/Timeseries/constants';
 import { createEchartsTimeseriesTestChartProps } from '../helpers';
@@ -744,6 +745,146 @@ describe('Does transformProps transform series correctly', () => {
 
     transformedSeries.forEach(series => {
       expect(series.label.show).toBe(false);
+    });
+  });
+
+  test('should respect labelPosition configuration', () => {
+    const chartProps = createTestChartProps({
+      formData: {
+        ...formData,
+        labelPosition: LabelPositionEnum.InsideBottom,
+      },
+      queriesData,
+    });
+
+    const transformedSeries = transformProps(chartProps).echartOptions
+      .series as any[];
+
+    transformedSeries.forEach(series => {
+      expect(series.label.position).toBe('insideBottom');
+      expect(series.label.overflow).toBeUndefined();
+    });
+  });
+
+  test('should default to top when labelPosition is auto and orientation is vertical', () => {
+    const chartProps = createTestChartProps({
+      formData: {
+        ...formData,
+        labelPosition: 'auto',
+        orientation: OrientationType.Vertical,
+      },
+      queriesData,
+    });
+
+    const transformedSeries = transformProps(chartProps).echartOptions
+      .series as any[];
+
+    transformedSeries.forEach(series => {
+      expect(series.label.position).toBe('top');
+      expect(series.label.overflow).toBeUndefined();
+    });
+  });
+
+  test('should default to right when labelPosition is auto and orientation is horizontal', () => {
+    const chartProps = createTestChartProps({
+      formData: {
+        ...formData,
+        labelPosition: 'auto',
+        orientation: OrientationType.Horizontal,
+      },
+      queriesData,
+    });
+
+    const transformedSeries = transformProps(chartProps).echartOptions
+      .series as any[];
+
+    transformedSeries.forEach(series => {
+      expect(series.label.position).toBe('right');
+      expect(series.label.overflow).toBeUndefined();
+    });
+  });
+
+  test('should default to right when labelPosition is unset and orientation is horizontal', () => {
+    const chartProps = createTestChartProps({
+      formData: {
+        ...formData,
+        labelPosition: undefined,
+        orientation: OrientationType.Horizontal,
+      },
+      queriesData,
+    });
+
+    const transformedSeries = transformProps(chartProps).echartOptions
+      .series as any[];
+
+    transformedSeries.forEach(series => {
+      expect(series.label.position).toBe('right');
+      expect(series.label.overflow).toBeUndefined();
+    });
+  });
+
+  test('should set overflow: truncate only for bar series', () => {
+    const barChartProps = createTestChartProps({
+      formData: {
+        ...formData,
+        seriesType: EchartsTimeseriesSeriesType.Bar,
+      },
+      queriesData,
+    });
+    const lineChartProps = createTestChartProps({
+      formData: {
+        ...formData,
+        seriesType: EchartsTimeseriesSeriesType.Line,
+      },
+      queriesData,
+    });
+
+    const barSeries = transformProps(barChartProps).echartOptions
+      .series as any[];
+    const lineSeries = transformProps(lineChartProps).echartOptions
+      .series as any[];
+
+    barSeries.forEach(series => {
+      expect(series.label.overflow).toBe('truncate');
+    });
+    lineSeries.forEach(series => {
+      expect(series.label.overflow).toBeUndefined();
+    });
+  });
+
+  test('should respect labelPosition for negative values in unstacked bar charts', () => {
+    const negativeQueriesData = [
+      createTestQueryData(
+        createTestData(
+          [
+            {
+              'San Francisco': -1,
+              'New York': 2,
+            },
+          ],
+          { intervalMs: 300000000 },
+        ),
+      ),
+    ];
+
+    const chartProps = createTestChartProps({
+      formData: {
+        ...formData,
+        seriesType: EchartsTimeseriesSeriesType.Bar,
+        stack: false,
+        labelPosition: LabelPositionEnum.Inside,
+      },
+      queriesData: negativeQueriesData,
+    });
+
+    const transformedSeries = transformProps(chartProps).echartOptions
+      .series as any[];
+
+    expect(transformedSeries[0].data[0]).toEqual({
+      value: [expect.any(Number), -1],
+      label: {
+        position: 'inside',
+      },
     });
   });
 
@@ -2083,6 +2224,39 @@ test('xAxisForceCategorical forces Category axis regardless of Numeric coltype',
   expect(xAxis.triggerEvent).toBe(true);
 });
 
+test('temporal x-axis enables trigger events when no dimensions are set', () => {
+  const ts1 = 1745784000000;
+  const ts2 = 1745870400000;
+  const chartProps = createTestChartProps({
+    formData: {
+      metrics: ['metric'],
+      granularity_sqla: 'ds',
+      x_axis: '__timestamp',
+    },
+    queriesData: [
+      createTestQueryData(
+        [
+          { __timestamp: ts1, metric: 10 },
+          { __timestamp: ts2, metric: 20 },
+        ],
+        {
+          colnames: ['__timestamp', 'metric'],
+          coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+        },
+      ),
+    ],
+  });
+
+  const { echartOptions } = transformProps(chartProps);
+  const xAxis = echartOptions.xAxis as {
+    triggerEvent?: boolean;
+    type: string;
+  };
+
+  expect(xAxis.type).toBe(AxisType.Time);
+  expect(xAxis.triggerEvent).toBe(true);
+});
+
 test('temporal x coltype forced categorical yields a Category axis with date labels', () => {
   // Issue #28204: with a temporal x-axis (e.g. weekly grain) the default Time
   // scale places ticks at "nice" intervals that don't line up with the buckets.
@@ -2330,6 +2504,7 @@ test('tooltip time grain wiring: dashboard-level extraFormData time grain overri
   });
 
   const transformedProps = transformProps(chartProps);
+  expect(transformedProps.resolvedTimeGrain).toBe(TimeGranularity.MONTH);
   const tooltipFormatter = (
     transformedProps.echartOptions as unknown as TooltipFormatterOptions
   ).tooltip.formatter;
@@ -2363,6 +2538,7 @@ test('tooltip time grain wiring: chart-level time grain drives the tooltip when 
   });
 
   const transformedProps = transformProps(chartProps);
+  expect(transformedProps.resolvedTimeGrain).toBe(TimeGranularity.YEAR);
   const tooltipFormatter = (
     transformedProps.echartOptions as unknown as TooltipFormatterOptions
   ).tooltip.formatter;
@@ -2527,5 +2703,66 @@ describe('EchartsTimeseries tooltip truncation', () => {
   test('leaves a long title alone in the default mode', () => {
     const longCategory = 'prod-us-east-1-service-checkout-cohort-2026';
     expect(buildTooltip(undefined, longCategory)).toContain(longCategory);
+  });
+});
+
+describe('tooltip for metrics whose labels end in forecast suffixes', () => {
+  const marker = '<span style="background-color:#1f77b4;"></span>';
+  const seriesIds = ['ci__yhat', 'ci__yhat_lower', 'ci__yhat_upper'];
+  const values = [1.5, 0.5, 2.0];
+
+  // Metrics can be labelled `ci__yhat*` with no forecast enabled and no plain
+  // observation series. Every series then collapses onto the same
+  // forecast-stripped tooltip key, so no raw series id matches itself.
+  const buildTooltip = (tooltipSortByMetric = false) => {
+    const chartProps = createTestChartProps({
+      formData: {
+        x_axis: 'dt',
+        metrics: seriesIds,
+        groupby: [],
+        richTooltip: true,
+        tooltipSortByMetric,
+      } as Partial<EchartsTimeseriesFormData>,
+      queriesData: [
+        createTestQueryData([
+          {
+            dt: 599616000000,
+            ci__yhat: 1.5,
+            ci__yhat_lower: 0.5,
+            ci__yhat_upper: 2.5,
+          },
+        ]),
+      ],
+    });
+    const tooltipFormatter = (transformProps(chartProps).echartOptions as any)
+      .tooltip.formatter;
+    return tooltipFormatter(
+      seriesIds.map((id, i) => ({
+        seriesId: id,
+        seriesName: id,
+        value: [599616000000, values[i]],
+        data: [599616000000, values[i]],
+        marker,
+      })),
+    );
+  };
+
+  test('renders the collapsed series rather than falling back to "No data"', () => {
+    const html = buildTooltip();
+    expect(html).not.toContain('No data');
+    expect(html).toContain('>ci<');
+    expect(html).toContain('ŷ = 1.5 (0.5, 2.5)');
+  });
+
+  test('renders a single row rather than one per forecast suffix', () => {
+    const html = buildTooltip();
+    expect(html.match(/<tr/g)).toHaveLength(1);
+    expect(html).toContain('>ci<');
+  });
+
+  test('still renders the row when the tooltip is sorted by metric', () => {
+    const html = buildTooltip(true);
+    expect(html).not.toContain('No data');
+    expect(html).toContain('>ci<');
   });
 });

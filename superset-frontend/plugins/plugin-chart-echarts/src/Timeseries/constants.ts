@@ -88,6 +88,7 @@ export const DEFAULT_FORM_DATA: EchartsTimeseriesFormData = {
   groupby: [],
   showValue: false,
   valueLabelPosition: BarValueLabelPosition.Auto,
+  labelPosition: 'auto',
   onlyTotal: false,
   percentageThreshold: 0,
   orientation: OrientationType.Vertical,

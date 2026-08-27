@@ -523,3 +523,164 @@ test('EChartOptionsParseError contains validation error details', () => {
     );
   }
 });
+
+// =============================================================================
+// Creator-authored options must not reach the tooltip's innerHTML/
+// navigation sinks unsanitized.
+// =============================================================================
+
+test('sanitizes tooltip string formatters instead of rejecting all markup', () => {
+  const input = `{ tooltip: { formatter: '<img src=x onerror=alert(1)>' } }`;
+  const result = parseEChartOptions(input);
+
+  expect(result.success).toBe(true);
+  expect(result.data?.tooltip).toEqual({ formatter: '<img src>' });
+});
+
+test('keeps presentational tags in tooltip string formatters', () => {
+  const input = `{ tooltip: { formatter: '{b}<br/>{c}' } }`;
+  const result = parseEChartOptions(input);
+
+  expect(result.success).toBe(true);
+  expect(result.data?.tooltip).toEqual({ formatter: '{b}<br />{c}' });
+});
+
+test('strips per-series tooltip config so its formatter never reaches the merge', () => {
+  const result = parseEChartOptions(
+    `{ series: [{ type: 'line', tooltip: { formatter: '<b onpointerover=alert(1)>x</b>' } }] }`,
+  );
+
+  expect(result.success).toBe(true);
+  expect(result.data).toEqual({ series: [{ type: 'line' }] });
+});
+
+test('accepts markup-free tooltip placeholder formatters', () => {
+  const input = `{ tooltip: { formatter: '{b}: {c}' } }`;
+  const result = parseEChartOptions(input);
+
+  expect(result.success).toBe(true);
+  expect(result.data).toEqual({ tooltip: { formatter: '{b}: {c}' } });
+});
+
+test('rejects javascript: URLs in title link and sublink', () => {
+  expect(() =>
+    parseEChartOptions(`{ title: { link: 'javascript:alert(1)' } }`),
+  ).toThrow(EChartOptionsParseError);
+  expect(() =>
+    parseEChartOptions(`{ title: { sublink: 'javascript:alert(1)' } }`),
+  ).toThrow(EChartOptionsParseError);
+  expect(() =>
+    parseEChartOptions(`{ title: { link: '//evil.example/x' } }`),
+  ).toThrow(EChartOptionsParseError);
+});
+
+test('accepts http(s) and same-origin relative title links', () => {
+  const result = parseEChartOptions(
+    `{ title: { link: 'https://superset.apache.org', sublink: '/dashboard/1/' } }`,
+  );
+
+  expect(result.success).toBe(true);
+  expect(result.data).toEqual({
+    title: { link: 'https://superset.apache.org', sublink: '/dashboard/1/' },
+  });
+});
+
+test('strips tooltip extraCssText instead of passing raw CSS through', () => {
+  const result = parseEChartOptions(
+    `{ tooltip: { show: true, extraCssText: 'background:url(//evil.example/x)' } }`,
+  );
+
+  expect(result.success).toBe(true);
+  expect(result.data).toEqual({ tooltip: { show: true } });
+});
+
+test('accepts a decal pattern on itemStyle', () => {
+  const result = parseEChartOptions(
+    `{ series: { itemStyle: { decal: {
+        symbol: 'rect',
+        dashArrayX: [1, 0],
+        dashArrayY: [2, 4],
+        rotation: -0.7853981633974483,
+        color: 'rgba(0, 0, 0, 0.2)',
+      } } } }`,
+  );
+
+  expect(result.success).toBe(true);
+  expect(result.data).toEqual({
+    series: {
+      itemStyle: {
+        decal: {
+          symbol: 'rect',
+          dashArrayX: [1, 0],
+          dashArrayY: [2, 4],
+          rotation: -0.7853981633974483,
+          color: 'rgba(0, 0, 0, 0.2)',
+        },
+      },
+    },
+  });
+});
+
+test('accepts the full decal shape, including per-row dash arrays', () => {
+  // `dashArrayX` nests one level to offset rows from each other; `dashArrayY`
+  // has no equivalent.
+  const result = parseEChartOptions(
+    `{ series: { itemStyle: { decal: {
+        symbol: ['rect', 'circle'],
+        symbolSize: 0.8,
+        symbolKeepAspect: false,
+        color: '#383838',
+        backgroundColor: 'transparent',
+        dashArrayX: [[1, 0], [0, 1]],
+        dashArrayY: 5,
+        rotation: 0,
+        maxTileWidth: 512,
+        maxTileHeight: 512,
+      } } } }`,
+  );
+
+  expect(result.success).toBe(true);
+  expect(
+    (result.data as { series: { itemStyle: { decal: unknown } } }).series
+      .itemStyle.decal,
+  ).toEqual({
+    symbol: ['rect', 'circle'],
+    symbolSize: 0.8,
+    symbolKeepAspect: false,
+    color: '#383838',
+    backgroundColor: 'transparent',
+    dashArrayX: [
+      [1, 0],
+      [0, 1],
+    ],
+    dashArrayY: 5,
+    rotation: 0,
+    maxTileWidth: 512,
+    maxTileHeight: 512,
+  });
+});
+
+test('strips unknown keys from a decal rather than passing them through', () => {
+  const result = parseEChartOptions(
+    `{ series: { itemStyle: { decal: { symbol: 'rect', onclick: 'alert(1)' } } } }`,
+  );
+
+  expect(result.success).toBe(true);
+  expect(result.data).toEqual({
+    series: { itemStyle: { decal: { symbol: 'rect' } } },
+  });
+});
+
+test('rejects a decal whose values are of the wrong type', () => {
+  // Unknown keys are stripped; a known key with a bad type is an error.
+  const input = `{ series: { itemStyle: { decal: { rotation: 'sideways' } } } }`;
+
+  expect(() => parseEChartOptions(input)).toThrow(EChartOptionsParseError);
+  try {
+    parseEChartOptions(input);
+  } catch (error) {
+    expect((error as EChartOptionsParseError).errorType).toBe(
+      'validation_error',
+    );
+  }
+});
