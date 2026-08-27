@@ -20,6 +20,7 @@ import uuid
 from typing import Generator
 
 import pytest
+import rison
 
 import tests.integration_tests.test_app  # noqa: F401
 from superset import db, security_manager
@@ -160,6 +161,23 @@ class TestThemeEditors(SupersetTestCase):
 
         self.login(THEME_WRITER_USER)
         rv = self.client.delete(f"/api/v1/theme/{theme.id}")
+        assert rv.status_code == 403
+        assert db.session.query(Theme).get(theme.id) is not None
+
+        db.session.delete(theme)
+        db.session.commit()
+
+    @pytest.mark.usefixtures("theme_writer")
+    def test_non_editor_cannot_bulk_delete(self):
+        """A writer who is not an editor gets 403 on bulk DELETE."""
+        admin_subject = _user_subject(ADMIN_USERNAME)
+        theme = self._insert_theme(
+            f"admin_theme_{uuid.uuid4().hex[:8]}", [admin_subject]
+        )
+
+        self.login(THEME_WRITER_USER)
+        uri = f"/api/v1/theme/?q={rison.dumps([theme.id])}"
+        rv = self.client.delete(uri)
         assert rv.status_code == 403
         assert db.session.query(Theme).get(theme.id) is not None
 
