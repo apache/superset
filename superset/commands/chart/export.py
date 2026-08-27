@@ -91,8 +91,10 @@ class ExportChartsCommand(ExportModelsCommand):
     def enable_tag_export(cls) -> None:
         cls._include_tags = True
 
-    def run(self) -> Iterator[tuple[str, Callable[[], str]]]:
-        yield from super().run()
+    def run(
+        self, seen: set[str] | None = None
+    ) -> Iterator[tuple[str, Callable[[], str]]]:
+        yield from super().run(seen=seen)
 
         # Tags are exported once for all requested charts (rather than per
         # chart in `_export`) so a multi-chart export doesn't lose tags to

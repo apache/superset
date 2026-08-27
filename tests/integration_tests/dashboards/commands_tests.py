@@ -591,20 +591,20 @@ class TestExportDashboardsCommand(SupersetTestCase):
 
             # Verify all databases are exported
             db_files = [key for key in contents.keys() if key.startswith("databases/")]
-            assert (
-                len(db_files) >= 2
-            ), f"Expected at least 2 database files, got {db_files}"
+            assert len(db_files) >= 2, (
+                f"Expected at least 2 database files, got {db_files}"
+            )
 
             # Verify the second database is included
-            assert (
-                "databases/test_db_2.yaml" in contents.keys()
-            ), f"Second database not found in export. Keys: {list(contents.keys())}"
+            assert "databases/test_db_2.yaml" in contents.keys(), (
+                f"Second database not found in export. Keys: {list(contents.keys())}"
+            )
 
             # Verify all charts are exported (original + new one)
             chart_files = [key for key in contents.keys() if key.startswith("charts/")]
-            assert (
-                len(chart_files) == original_charts_count + 1
-            ), f"Expected {original_charts_count + 1} charts, got {len(chart_files)}"
+            assert len(chart_files) == original_charts_count + 1, (
+                f"Expected {original_charts_count + 1} charts, got {len(chart_files)}"
+            )
 
             # Verify the new chart from second database is included
             chart_from_second_db_file = None
@@ -625,9 +625,9 @@ class TestExportDashboardsCommand(SupersetTestCase):
             second_dataset_file = (
                 f"datasets/test_db_2/second_dataset_{second_dataset.id}.yaml"
             )
-            assert (
-                second_dataset_file in contents.keys()
-            ), f"Second dataset not found. Dataset files: {dataset_files}"
+            assert second_dataset_file in contents.keys(), (
+                f"Second dataset not found. Dataset files: {dataset_files}"
+            )
         finally:
             # Clean up, even if an assertion above failed, so a failing run
             # doesn't leave extra Database/Slice/SqlaTable rows for later tests.
