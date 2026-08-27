@@ -14,6 +14,18 @@ Users can configure automated alerts and reports to send dashboards or charts to
 
 Alerts and reports are disabled by default. To turn them on, you'll need to change configuration settings and install a suitable headless browser in your environment.
 
+## Content Format Options
+
+When scheduling an alert or report, you can choose the format used to deliver the dashboard or chart:
+
+- **PDF** – a full-page screenshot rendered as a PDF attachment. Available for both dashboards and charts.
+- **PNG** – a screenshot embedded directly in the email or Slack message. Available for both dashboards and charts.
+- **CSV** – chart data attached as a `.csv` file. Available for charts only.
+- **XLSX (Excel)** – chart data attached as a `.xlsx` file. Available for charts only. If the chart's data spans multiple server-paginated files, the attachment is delivered instead as a `.zip` archive containing the individual `.xlsx` files.
+- **Text** – chart data embedded directly in the email or Slack message body. Available only for charts using a text-based visualization type (e.g. Table, Pivot Table, Paired t-test).
+
+Dashboard reports and alerts are limited to the PDF and PNG formats; the CSV, XLSX, and Text options are only available when scheduling a report or alert for an individual chart.
+
 ## Requirements
 
 ### Commons
