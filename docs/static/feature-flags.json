@@ -121,6 +121,12 @@
         "description": "Enables filter functionality in Alerts and Reports"
       },
       {
+        "name": "ALERT_REPORTS_RETRY",
+        "default": false,
+        "lifecycle": "testing",
+        "description": "Enables automatic retry functionality for failed report executions"
+      },
+      {
         "name": "ALERT_REPORT_SLACK_V2",
         "default": true,
         "lifecycle": "testing",

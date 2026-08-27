@@ -35,6 +35,7 @@ from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset.commands.exceptions import CommandException, ForbiddenError
 from superset.extensions import event_logger
+from superset.mcp_service.dashboard.layout_validation import normalize_chart_id
 from superset.mcp_service.dashboard.schemas import (
     DashboardInfo,
     RemoveChartFromDashboardRequest,
@@ -59,14 +60,12 @@ def _find_chart_keys(layout: Dict[str, Any], chart_id: int) -> list[str]:
     A chart can legitimately appear more than once in a layout (e.g. under
     multiple tabs), so all occurrences are returned.
     """
-    # Accept both int and string chartId — position_json is user/frontend-authored
-    # and imported or hand-edited layouts may store chartId as a string.
     return [
         key
         for key, node in layout.items()
         if isinstance(node, dict)
         and node.get("type") == "CHART"
-        and (node.get("meta") or {}).get("chartId") in (chart_id, str(chart_id))
+        and normalize_chart_id((node.get("meta") or {}).get("chartId")) == chart_id
     ]
 
 
