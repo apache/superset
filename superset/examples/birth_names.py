@@ -177,7 +177,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
         "compare_suffix": "o10Y",
         "limit": "25",
         "granularity_sqla": "ds",
-        "groupby": [],
+        "columns": [],
         "row_limit": current_app.config["ROW_LIMIT"],
         "time_range": "100 years ago : now",
         "viz_type": "table",
@@ -225,7 +225,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
             slice_name="Genders",
             viz_type="pie",
             params=get_slice_json(
-                defaults, viz_type="pie", groupby=["gender"], metric=metric
+                defaults, viz_type="pie", columns=["gender"], metric=metric
             ),
             editors=[],
         ),
@@ -236,7 +236,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
             params=get_slice_json(
                 defaults,
                 viz_type="echarts_timeseries_line",
-                groupby=["name"],
+                columns=["name"],
                 granularity_sqla="ds",
                 rich_tooltip=True,
                 show_legend=True,
@@ -277,7 +277,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
                         "optionName": "metric_12",
                     },
                 ],
-                groupby=["state"],
+                columns=["state"],
             ),
             editors=[],
         ),
@@ -287,7 +287,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
             viz_type="table",
             params=get_slice_json(
                 defaults,
-                groupby=["name"],
+                columns=["name"],
                 adhoc_filters=[gen_filter("gender", "girl")],
                 row_limit=50,
                 series_limit_metric=metric,
@@ -318,7 +318,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
             viz_type="table",
             params=get_slice_json(
                 defaults,
-                groupby=["name"],
+                columns=["name"],
                 adhoc_filters=[gen_filter("gender", "boy")],
                 row_limit=50,
                 series_limit_metric=metric,
@@ -351,7 +351,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
                 defaults,
                 adhoc_filters=[gen_filter("gender", "girl")],
                 comparison_type="values",
-                groupby=["name"],
+                columns=["name"],
                 limit=10,
                 stacked_style="expand",
                 time_grain_sqla="P1D",
@@ -369,7 +369,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
                 defaults,
                 adhoc_filters=[gen_filter("gender", "boy")],
                 comparison_type="values",
-                groupby=["name"],
+                columns=["name"],
                 limit=10,
                 stacked_style="expand",
                 time_grain_sqla="P1D",
@@ -441,7 +441,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
             viz_type="table",
             params=get_slice_json(
                 defaults,
-                groupby=["ds"],
+                columns=["ds"],
                 time_range="1983 : 2023",
                 viz_type="table",
                 metrics=metrics,
@@ -497,7 +497,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
                 ],
                 viz_type="echarts_timeseries_line",
                 granularity_sqla="ds",
-                groupby=["name"],
+                columns=["name"],
                 series_limit_metric={
                     "expressionType": "SIMPLE",
                     "column": {
@@ -520,7 +520,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
             params=get_slice_json(
                 defaults,
                 metrics=metrics,
-                groupby=["name"],
+                columns=["name"],
                 row_limit=50,
                 series_limit_metric={
                     "expressionType": "SIMPLE",
