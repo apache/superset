@@ -39,6 +39,7 @@ from superset.utils.oauth2 import (
     check_for_oauth2,
     decode_oauth2_state,
     encode_oauth2_state,
+    execute_with_oauth2_retry,
     generate_code_challenge,
     generate_code_verifier,
     get_oauth2_access_token,
@@ -117,6 +118,81 @@ def test_get_oauth2_access_token_base_no_refresh(mocker: MockerFixture) -> None:
 
     # check that token was deleted
     db.session.delete.assert_called_with(token)
+
+
+def test_refresh_oauth2_token_force_refreshes_valid_token(
+    mocker: MockerFixture,
+) -> None:
+    """A forced refresh must not reuse an unexpired access token."""
+    db = mocker.patch("superset.utils.oauth2.db")
+    mocker.patch("superset.utils.oauth2.DistributedLock")
+    db_engine_spec = mocker.MagicMock()
+    db_engine_spec.get_oauth2_fresh_token.return_value = {
+        "access_token": "new-token",
+        "expires_in": 3600,
+    }
+    token = mocker.MagicMock()
+    token.access_token = "stale-token"  # noqa: S105
+    token.access_token_expiration = datetime(2024, 1, 2)
+    token.refresh_token = "refresh-token"  # noqa: S105
+    db.session.query().filter_by().one_or_none.return_value = token
+
+    with freeze_time("2024-01-01"):
+        result = refresh_oauth2_token(
+            DUMMY_OAUTH2_CONFIG, 1, 1, db_engine_spec, force=True
+        )
+
+    assert result == "new-token"
+    db_engine_spec.get_oauth2_fresh_token.assert_called_once_with(
+        DUMMY_OAUTH2_CONFIG, "refresh-token"
+    )
+
+
+def test_execute_with_oauth2_retry_forces_refresh_once(
+    mocker: MockerFixture,
+) -> None:
+    """A tightly classified auth error triggers one refresh and one retry."""
+    auth_error = RuntimeError("stale OAuth token")
+    operation = mocker.Mock(side_effect=[auth_error, "result"])
+    database = mocker.MagicMock()
+    database.id = 1
+    database.is_oauth2_enabled.return_value = True
+    database.db_engine_spec.engine = "snowflake"
+    database.db_engine_spec.needs_oauth2.return_value = True
+    database.get_oauth2_config.return_value = DUMMY_OAUTH2_CONFIG
+    mocker.patch("superset.utils.oauth2.g").user.id = 2
+    refresh = mocker.patch(
+        "superset.utils.oauth2.refresh_oauth2_token", return_value="new-token"
+    )
+
+    assert execute_with_oauth2_retry(database, operation) == "result"
+
+    assert operation.call_count == 2
+    refresh.assert_called_once_with(
+        DUMMY_OAUTH2_CONFIG,
+        1,
+        2,
+        database.db_engine_spec,
+        force=True,
+    )
+
+
+def test_execute_with_oauth2_retry_does_not_retry_unrelated_error(
+    mocker: MockerFixture,
+) -> None:
+    """Network and other unclassified failures must not discard valid tokens."""
+    network_error = RuntimeError("connection timed out")
+    operation = mocker.Mock(side_effect=network_error)
+    database = mocker.MagicMock()
+    database.is_oauth2_enabled.return_value = True
+    database.db_engine_spec.needs_oauth2.return_value = False
+    refresh = mocker.patch("superset.utils.oauth2.refresh_oauth2_token")
+
+    with pytest.raises(RuntimeError, match="connection timed out"):
+        execute_with_oauth2_retry(database, operation)
+
+    operation.assert_called_once_with()
+    refresh.assert_not_called()
 
 
 def test_refresh_oauth2_token_deletes_token_on_oauth2_exception(

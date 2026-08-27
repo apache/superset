@@ -22,12 +22,13 @@ import hashlib
 import logging
 import secrets
 from contextlib import contextmanager
+from contextvars import ContextVar
 from datetime import datetime, timedelta, timezone
-from typing import Any, Iterator, TYPE_CHECKING
+from typing import Any, Callable, Iterator, TYPE_CHECKING, TypeVar
 
 import backoff
 import jwt
-from flask import current_app as app, url_for
+from flask import current_app as app, g, url_for
 from marshmallow import EXCLUDE, fields, post_load, Schema, validate
 from werkzeug.routing import BuildError
 
@@ -47,6 +48,10 @@ if TYPE_CHECKING:
 JWT_EXPIRATION = timedelta(minutes=5)
 
 logger = logging.getLogger(__name__)
+T = TypeVar("T")
+_oauth2_retry_active: ContextVar[bool] = ContextVar(
+    "oauth2_retry_active", default=False
+)
 
 # PKCE code verifier length (RFC 7636 recommends 43-128 characters)
 PKCE_CODE_VERIFIER_LENGTH = 64
@@ -133,6 +138,8 @@ def refresh_oauth2_token(
     database_id: int,
     user_id: int,
     db_engine_spec: type[BaseEngineSpec],
+    *,
+    force: bool = False,
 ) -> str | None:
     # pylint: disable=import-outside-toplevel
     from superset.models.core import DatabaseUserOAuth2Tokens
@@ -153,7 +160,11 @@ def refresh_oauth2_token(
         if token is None:
             return None
 
-        if token.access_token and datetime.now() < token.access_token_expiration:
+        if (
+            not force
+            and token.access_token
+            and datetime.now() < token.access_token_expiration
+        ):
             return token.access_token
 
         if not token.refresh_token:
@@ -205,6 +216,66 @@ def refresh_oauth2_token(
         db.session.add(token)
 
     return token.access_token
+
+
+def execute_with_oauth2_retry(
+    database: Database,
+    operation: Callable[[], T],
+    can_retry: Callable[[], bool] | None = None,
+) -> T:
+    """Refresh a rejected access token and retry an operation once."""
+    retry_context = _oauth2_retry_active.set(True)
+    try:
+        try:
+            return operation()
+        finally:
+            _oauth2_retry_active.reset(retry_context)
+    except Exception as ex:
+        if not (
+            database.is_oauth2_enabled()
+            and database.db_engine_spec.needs_oauth2(ex)
+            and (can_retry is None or can_retry())
+        ):
+            raise
+
+        config = database.get_oauth2_config()
+        user = getattr(g, "user", None)
+        user_id = getattr(user, "id", None)
+        if config is None or user_id is None:
+            raise
+
+        stats_logger = app.config["STATS_LOGGER"]
+        stats_logger.incr("oauth2.forced_refresh.attempt")
+        logger.info(
+            "Forcing OAuth2 token refresh after authentication failure: "
+            "database_id=%s engine=%s",
+            database.id,
+            database.db_engine_spec.engine,
+        )
+        try:
+            access_token = refresh_oauth2_token(
+                config,
+                database.id,
+                user_id,
+                database.db_engine_spec,
+                force=True,
+            )
+        except OAuth2TokenRefreshError:
+            stats_logger.incr("oauth2.forced_refresh.failure")
+            database.start_oauth2_dance()
+            raise
+
+        if access_token is None:
+            stats_logger.incr("oauth2.forced_refresh.failure")
+            database.start_oauth2_dance()
+
+        stats_logger.incr("oauth2.forced_refresh.success")
+        return operation()
+
+
+def is_oauth2_retry_active() -> bool:
+    """Return whether an outer query execution can retry an OAuth2 failure."""
+    return _oauth2_retry_active.get()
 
 
 def encode_oauth2_state(state: OAuth2State) -> str:
@@ -322,9 +393,13 @@ def check_for_oauth2(database: Database) -> Iterator[None]:
     try:
         yield
     except Exception as ex:
-        if database.is_oauth2_enabled() and (
-            isinstance(ex, OAuth2TokenRefreshError)
-            or database.db_engine_spec.needs_oauth2(ex)
+        if (
+            not is_oauth2_retry_active()
+            and database.is_oauth2_enabled()
+            and (
+                isinstance(ex, OAuth2TokenRefreshError)
+                or database.db_engine_spec.needs_oauth2(ex)
+            )
         ):
             database.db_engine_spec.start_oauth2_dance(database)
         raise
