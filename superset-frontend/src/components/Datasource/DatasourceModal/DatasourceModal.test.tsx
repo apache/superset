@@ -151,6 +151,63 @@ describe('DatasourceModal', () => {
     putSpy.mockRestore();
   });
 
+  test('sends the supplied etag as If-Match so a stale save is refused', async () => {
+    cleanup();
+    renderAndWait({ ...mockedProps, etag: '"v1"' } as typeof mockedProps);
+
+    fireEvent.click(screen.getByTestId('datasource-modal-save'));
+    fireEvent.click(await screen.findByRole('button', { name: 'Confirm' }));
+
+    await waitFor(() => {
+      const putCall = fetchMock.callHistory
+        .calls()
+        .find(call => call.options?.method === 'put');
+      expect(
+        new Headers(putCall?.options?.headers as HeadersInit).get('If-Match'),
+      ).toEqual('"v1"');
+    });
+  });
+
+  test('reads the etag from the dataset when the caller supplies none', async () => {
+    cleanup();
+    fetchMock.clearHistory().removeRoutes();
+    fetchMock.put(SAVE_DATASOURCE_ENDPOINT, {});
+    fetchMock.get(GET_DATASOURCE_ENDPOINT, {
+      body: { result: {} },
+      headers: { ETag: '"v2"' },
+    });
+    fetchMock.get(GET_DATABASE_ENDPOINT, { result: [] });
+
+    renderAndWait();
+
+    fireEvent.click(screen.getByTestId('datasource-modal-save'));
+    fireEvent.click(await screen.findByRole('button', { name: 'Confirm' }));
+
+    await waitFor(() => {
+      const putCall = fetchMock.callHistory
+        .calls()
+        .find(call => call.options?.method === 'put');
+      expect(
+        new Headers(putCall?.options?.headers as HeadersInit).get('If-Match'),
+      ).toEqual('"v2"');
+    });
+  });
+
+  test('shows a conflict dialog instead of a generic error on 412', async () => {
+    const putSpy = jest
+      .spyOn(SupersetClient, 'put')
+      .mockRejectedValue(new Response('', { status: 412 }));
+
+    fireEvent.click(screen.getByTestId('datasource-modal-save'));
+    fireEvent.click(await screen.findByRole('button', { name: 'Confirm' }));
+
+    expect(
+      await screen.findByText('Dataset changed since you opened it'),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Error saving dataset')).not.toBeInTheDocument();
+    putSpy.mockRestore();
+  });
+
   test('shows sync columns checkbox when SQL changes', async () => {
     cleanup();
     const datasourceWithSQL = {

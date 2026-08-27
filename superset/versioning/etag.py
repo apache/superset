@@ -22,6 +22,7 @@ from typing import TYPE_CHECKING
 from uuid import UUID
 
 import sqlalchemy as sa
+from flask import request
 from flask_appbuilder import Model
 
 from superset.extensions import db
@@ -76,3 +77,28 @@ def set_version_etag_by_uuid(
         response,
         VersionDAO.current_live_version_uuid(model_cls, entity_id, entity_uuid),
     )
+
+
+class StaleEntityError(Exception):
+    """The request's ``If-Match`` doesn't match the entity's live version."""
+
+
+def raise_for_stale_write(current_version_uuid: str | None) -> None:
+    """Enforce ``If-Match`` on a write request, if the client sent one.
+
+    Clients that read an entity's ``ETag`` may replay it as ``If-Match`` on a
+    subsequent write to get optimistic concurrency: the write is rejected when
+    the entity moved on in the meantime, instead of silently clobbering
+    whatever landed in between.
+
+    The condition is skipped — rather than failing closed — when there is no
+    validator to compare against (``ENABLE_VERSIONING_CAPTURE`` off, or the
+    entity has no version rows yet). Failing closed there would block every
+    conditional write on deployments that run without version capture, and
+    those deployments are no worse off than before they sent the header.
+    """
+    if_match = request.if_match
+    if not if_match or if_match.star_tag or current_version_uuid is None:
+        return
+    if not if_match.contains(str(current_version_uuid)):
+        raise StaleEntityError()

@@ -29,7 +29,7 @@ from flask_appbuilder.api import expose, protect, rison as parse_rison, safe
 from flask_appbuilder.api.schemas import get_item_schema
 from flask_appbuilder.const import API_RESULT_RES_KEY, API_SELECT_COLUMNS_RIS_KEY
 from flask_appbuilder.models.sqla.interface import SQLAInterface
-from flask_babel import ngettext
+from flask_babel import gettext as _, ngettext
 from jinja2.exceptions import TemplateError
 from marshmallow import ValidationError
 from sqlalchemy.orm.exc import MultipleResultsFound
@@ -101,7 +101,11 @@ from superset.versioning.api_helpers import (
     list_versions_endpoint,
     restore_version_endpoint,
 )
-from superset.versioning.etag import set_version_etag
+from superset.versioning.etag import (
+    raise_for_stale_write,
+    set_version_etag,
+    StaleEntityError,
+)
 from superset.versioning.schemas import VersionListItemSchema
 from superset.views.base import DatasourceFilter
 from superset.views.base_api import (
@@ -530,6 +534,14 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             schema:
               type: boolean
             name: override_columns
+          - in: header
+            schema:
+              type: string
+            name: If-Match
+            description: >-
+              Optional optimistic-concurrency guard. Pass the ``ETag`` returned
+              by a prior read of this dataset; the update is rejected with 412
+              if the dataset has changed since.
           requestBody:
             description: Dataset schema
             required: true
@@ -606,6 +618,17 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
               $ref: '#/components/responses/403'
             404:
               $ref: '#/components/responses/404'
+            412:
+              description: >-
+                The dataset changed since the version identified by the
+                request's ``If-Match`` header; the update was not applied.
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
             422:
               $ref: '#/components/responses/422'
             500:
@@ -625,6 +648,21 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         # Live version identifiers before the update (empty + query-free when
         # ``ENABLE_VERSIONING_CAPTURE`` is off).
         old_info = current_entity_version_info(SqlaTable, pk)
+
+        try:
+            raise_for_stale_write(old_info.version_uuid)
+        except StaleEntityError:
+            return set_version_etag(
+                self.response(
+                    412,
+                    message=_(
+                        "The dataset was changed by another user or browser tab "
+                        "after you opened it. Reopen it to pick up the latest "
+                        "version, then reapply your changes."
+                    ),
+                ),
+                old_info.version_uuid,
+            )
 
         try:
             # Two commands, two commits, two Continuum transactions for an

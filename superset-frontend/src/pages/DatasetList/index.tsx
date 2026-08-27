@@ -496,6 +496,8 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
 
   const [datasetCurrentlyEditing, setDatasetCurrentlyEditing] =
     useState<Dataset | null>(null);
+  const [datasetCurrentlyEditingEtag, setDatasetCurrentlyEditingEtag] =
+    useState<string | undefined>();
 
   const [datasetCurrentlyDuplicating, setDatasetCurrentlyDuplicating] =
     useState<VirtualDataset | null>(null);
@@ -565,7 +567,10 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       SupersetClient.get({
         endpoint: `/api/v1/dataset/${id}`,
       })
-        .then(({ json = {} }) => {
+        .then(({ json = {}, response }) => {
+          setDatasetCurrentlyEditingEtag(
+            response.headers.get('ETag') ?? undefined,
+          );
           const addCertificationFields = json.result.columns.map(
             (column: ColumnObject) => {
               const {
@@ -1524,6 +1529,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       {datasetCurrentlyEditing && (
         <DatasourceModal
           datasource={datasetCurrentlyEditing}
+          etag={datasetCurrentlyEditingEtag}
           onDatasourceSave={refreshData}
           onHide={closeDatasetEditModal}
           show

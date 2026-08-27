@@ -214,3 +214,45 @@ def test_handle_filters_args_returns_request_scoped_filters(
     fresh_filters = api.datamodel.get_filters.return_value
     assert fresh_filters.rest_add_filters.call_count == 2
     assert fresh_filters.get_joined_filters.call_count == 2
+
+
+def _create_dataset(name: str) -> Any:
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.models.core import Database
+
+    SqlaTable.metadata.create_all(db.session.get_bind())
+    dataset = SqlaTable(
+        table_name=name,
+        database=Database(database_name=f"{name}_db", sqlalchemy_uri="sqlite://"),
+    )
+    db.session.add(dataset)
+    db.session.flush()
+    return dataset
+
+
+def test_put_dataset_rejects_stale_if_match(
+    session: Session,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    A PUT carrying an ``If-Match`` from an older version is refused with 412.
+    """
+    from superset.versioning.api_helpers import EntityVersionInfo
+
+    dataset = _create_dataset("test_put_stale_if_match")
+
+    with patch(
+        "superset.datasets.api.current_entity_version_info",
+        return_value=EntityVersionInfo(version=1, transaction_id=2, version_uuid="new"),
+    ):
+        response = client.put(
+            f"/api/v1/dataset/{dataset.id}",
+            json={"description": "from a stale tab"},
+            headers={"If-Match": '"old"'},
+        )
+
+    assert response.status_code == 412
+    assert response.headers["ETag"] == '"new"'
+    db.session.expire(dataset)
+    assert dataset.description is None

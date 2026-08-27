@@ -91,12 +91,14 @@ export function buildExtraJsonObject(
 const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
   addSuccessToast,
   datasource,
+  etag,
   onDatasourceSave,
   onHide,
   show,
 }) => {
   const theme = useTheme();
   const [currentDatasource, setCurrentDatasource] = useState(datasource);
+  const [versionEtag, setVersionEtag] = useState(etag);
   const [syncColumns, setSyncColumns] = useState(false);
   const currencies = useSelector<
     {
@@ -111,6 +113,23 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [modal, contextHolder] = Modal.useModal();
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);
+
+  useEffect(() => {
+    setVersionEtag(etag);
+    if (etag || !show || !datasource.id) {
+      return;
+    }
+    SupersetClient.get({
+      endpoint: `/api/v1/dataset/${datasource.id}`,
+    })
+      .then(({ response }) => {
+        setVersionEtag(response.headers.get('ETag') ?? undefined);
+      })
+      .catch(() => {
+        // Without a validator the save just falls back to an unconditional
+        // write, which is what it did before — don't block editing on it.
+      });
+  }, [datasource.id, etag, show]);
   const buildPayload = (datasource: Record<string, any>) => {
     const payload: Record<string, any> = {
       table_name: datasource.table_name,
@@ -197,11 +216,13 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
       await SupersetClient.put({
         endpoint: `/api/v1/dataset/${currentDatasource.id}?override_columns=${syncColumns}`,
         jsonPayload: buildPayload(currentDatasource),
+        ...(versionEtag ? { headers: { 'If-Match': versionEtag } } : {}),
       });
 
-      const { json } = await SupersetClient.get({
+      const { json, response } = await SupersetClient.get({
         endpoint: `/api/v1/dataset/${currentDatasource?.id}`,
       });
+      setVersionEtag(response.headers.get('ETag') ?? undefined);
 
       addSuccessToast(t('The dataset has been saved'));
       // eslint-disable-next-line no-param-reassign
@@ -213,6 +234,19 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
       onHide();
     } catch (response) {
       setIsSaving(false);
+      if ((response as Response)?.status === 412) {
+        modal.error({
+          title: t('Dataset changed since you opened it'),
+          okButtonProps: { danger: true, className: 'btn-danger' },
+          content: t(
+            'Someone else — or another one of your browser tabs — saved this ' +
+              'dataset after you opened it. Saving now would undo those ' +
+              'changes, so it was cancelled. Copy your edits, close this ' +
+              'dialog, and reopen the dataset to reapply them.',
+          ),
+        });
+        return;
+      }
       const error = await getClientErrorObject(response);
       let errorResponse: SupersetError | undefined;
       let errorText: string | undefined;
