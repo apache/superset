@@ -263,15 +263,21 @@ The resolver's result is unioned with the resource's own `editors` for editorshi
 feeds `is_editor`, `raise_for_editorship`, save-as, and soft-delete restore. When
 `EXTRA_EDITORS_RESOLVER` is configured, the usual lockout-prevention behavior — automatically
 re-adding a non-admin who removes themselves from a resource's editors — is skipped, since the
-deployment has its own way of keeping the resource editable.
+deployment has its own way of keeping the resource editable. This skip is global to the setting,
+not per-resource: it still applies on a resource where the resolver currently returns no
+subjects, so a resolver that can't guarantee an alternate editor for every resource can let the
+last editor remove themselves and leave it uneditable by non-admins.
 
 Resolved subject ids are also surfaced as `extra_editors` in the chart and dashboard `GET`
 responses, so API clients can distinguish resolver-granted editorship from the resource's own
-`editors` list.
+`editors` list. This field is attached after serialization and isn't part of the OpenAPI response
+schema, so generated API clients won't see it as a typed field.
 
 Because the resolver is arbitrary per-deployment Python rather than a SQL-expressible condition,
 editorship it grants cannot be reflected in list-view filtering (for example, the soft-deleted
-archive is scoped to editors via a SQL query) — it only takes effect on direct, per-object checks.
+archive is scoped to editors via a SQL query). It does still run once per row on chart and
+dashboard list responses to populate `extra_editors`, so a slow or unavailable external resolver
+affects ordinary list requests, not just direct per-object checks.
 
 ### Dashboard Access Control
 
