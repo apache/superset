@@ -16,28 +16,95 @@
 # under the License.
 
 import logging
+from hmac import compare_digest
 from typing import Optional
 
-from flask import g, redirect
+from flask import current_app, g, redirect, request, url_for
 from flask_appbuilder import expose
 from flask_appbuilder.const import LOGMSG_ERR_SEC_NO_REGISTER_HASH
 from flask_appbuilder.security.decorators import no_cache
 from flask_appbuilder.security.views import AuthView, WerkzeugResponse
+from flask_appbuilder.utils.base import get_safe_redirect
 from flask_babel import lazy_gettext
+from itsdangerous import BadData, URLSafeTimedSerializer
 
 from superset.views.base import BaseSupersetView
 
 logger = logging.getLogger(__name__)
 
+LOGIN_REDIRECT_MARKER_PARAM = "login_redirect"
+LOGIN_REDIRECT_MARKER_SALT = "superset-login-redirect"
+LOGIN_REDIRECT_MARKER_MAX_AGE_SECONDS = 15 * 60
+
 
 class SupersetAuthView(BaseSupersetView, AuthView):
     route_base = "/login"
+
+    @staticmethod
+    def _redirect_serializer() -> URLSafeTimedSerializer:
+        """Return the serializer used to mark anonymous login redirects."""
+        return URLSafeTimedSerializer(
+            current_app.secret_key,
+            salt=LOGIN_REDIRECT_MARKER_SALT,
+        )
+
+    @staticmethod
+    def _safe_next_url() -> str:
+        """Return the requested redirect only when FAB considers it safe."""
+        next_url = request.args.get("next", "")
+        # Browsers treat backslashes as path separators for special URL schemes,
+        # while Python's URL parser does not. Reject them before FAB validates
+        # the destination so both interpret the authority consistently.
+        if not next_url or "\\" in next_url:
+            return ""
+
+        safe_url = get_safe_redirect(next_url)
+        return safe_url if safe_url == next_url else ""
+
+    def _marked_login_url(self, next_url: str) -> str:
+        """Build a login URL proving ``next_url`` was seen anonymously."""
+        query = request.args.to_dict(flat=False)
+        query[LOGIN_REDIRECT_MARKER_PARAM] = [
+            self._redirect_serializer().dumps(next_url)
+        ]
+        return url_for(f"{self.__class__.__name__}.login", **query)
+
+    def _marked_next_url(self) -> str:
+        """Validate and return a marked login redirect destination."""
+        marker = request.args.get(LOGIN_REDIRECT_MARKER_PARAM, "")
+        next_url = self._safe_next_url()
+        if not marker or not next_url:
+            return ""
+
+        try:
+            marked_next_url = self._redirect_serializer().loads(
+                marker,
+                max_age=LOGIN_REDIRECT_MARKER_MAX_AGE_SECONDS,
+            )
+        except BadData:
+            logger.info("Rejected invalid or expired login redirect marker")
+            return ""
+
+        if not isinstance(marked_next_url, str) or not compare_digest(
+            marked_next_url,
+            next_url,
+        ):
+            logger.info("Rejected login redirect marker with mismatched destination")
+            return ""
+        return next_url
 
     @expose("/")
     @no_cache
     def login(self, provider: Optional[str] = None) -> WerkzeugResponse:
         if g.user is not None and g.user.is_authenticated:
+            if next_url := self._marked_next_url():
+                return redirect(next_url)
             return redirect(self.appbuilder.get_url_for_index)
+
+        if (next_url := self._safe_next_url()) and not request.args.get(
+            LOGIN_REDIRECT_MARKER_PARAM
+        ):
+            return redirect(self._marked_login_url(next_url))
 
         return super().render_app_template()
 
