@@ -256,6 +256,12 @@ def test_put_access_denied(test_client, login_as, dashboard_id: int):
 
 
 def test_post_authenticated_user_with_access(test_client, login_as, dashboard_id: int):
+    dashboard = db.session.query(Dashboard).get(dashboard_id)
+    alpha = db.session.query(User).filter_by(username="alpha").one()
+    if alpha not in dashboard.owners:
+        dashboard.owners.append(alpha)
+        db.session.commit()
+
     login_as("alpha")
     payload = {
         "value": INITIAL_VALUE,
@@ -267,12 +273,27 @@ def test_post_authenticated_user_with_access(test_client, login_as, dashboard_id
 
 
 def test_put_authenticated_user_with_access(test_client, login_as, dashboard_id: int):
+    dashboard = db.session.query(Dashboard).get(dashboard_id)
+    alpha = db.session.query(User).filter_by(username="alpha").one()
+    if alpha not in dashboard.owners:
+        dashboard.owners.append(alpha)
+        db.session.commit()
+
     login_as("alpha")
     payload = {
+        "value": INITIAL_VALUE,
+    }
+    post_resp = test_client.post(
+        f"api/v1/dashboard/{dashboard_id}/filter_state", json=payload
+    )
+    assert post_resp.status_code == 201
+    key = json.loads(post_resp.data.decode("utf-8"))["key"]
+
+    put_payload = {
         "value": UPDATED_VALUE,
     }
     resp = test_client.put(
-        f"api/v1/dashboard/{dashboard_id}/filter_state/{KEY}", json=payload
+        f"api/v1/dashboard/{dashboard_id}/filter_state/{key}", json=put_payload
     )
     assert resp.status_code == 200
 
