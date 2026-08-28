@@ -41,6 +41,7 @@ import {
   getLegendProps,
   getOverMaxHiddenFormatter,
   getMinAndMaxFromBounds,
+  capTickMarks,
   getTemporalTickValues,
   sanitizeHtml,
   sortAndFilterSeries,
@@ -1812,6 +1813,21 @@ describe('getTemporalTickValues', () => {
         TimeGranularity.WEEK,
       ),
     ).toBeUndefined();
+  });
+});
+
+describe('capTickMarks', () => {
+  test('returns values unchanged when within the cap', () => {
+    const values = [1, 2, 3];
+    expect(capTickMarks(values, 60)).toEqual(values);
+  });
+
+  test('downsamples evenly and always keeps the last value', () => {
+    const values = Array.from({ length: 261 }, (_, i) => i);
+    const capped = capTickMarks(values, 60);
+    expect(capped.length).toBeLessThanOrEqual(60);
+    expect(capped[0]).toEqual(0);
+    expect(capped[capped.length - 1]).toEqual(260);
   });
 });
 

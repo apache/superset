@@ -73,6 +73,7 @@ import {
   getLegendProps,
   getMinAndMaxFromBounds,
   getOverMaxHiddenFormatter,
+  capTickMarks,
   getTemporalTickValues,
 } from '../utils/series';
 import { resolveLegendLayout } from '../utils/legendLayout';
@@ -814,9 +815,10 @@ export default function transformProps(
           }),
         ...(temporalTickValues && { customValues: temporalTickValues }),
       },
-      // Gridlines, when shown, follow axisTick.customValues too.
+      // Gridlines follow axisTick.customValues; cap it so a long weekly
+      // range doesn't comb.
       ...(temporalTickValues && {
-        axisTick: { customValues: temporalTickValues },
+        axisTick: { customValues: capTickMarks(temporalTickValues) },
       }),
       minorTick: { show: minorTicks },
       minInterval:

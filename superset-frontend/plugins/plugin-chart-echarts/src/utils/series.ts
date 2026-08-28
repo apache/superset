@@ -1043,6 +1043,26 @@ export function getTemporalTickValues(
   return values.size ? [...values].sort((a, b) => a - b) : undefined;
 }
 
+// Unlike axisLabel, axisTick has no overlap-based thinning, so pinning it to
+// every bucket combs a long weekly range. Downsample evenly, keeping ends.
+const MAX_PINNED_AXIS_TICKS = 60;
+
+export function capTickMarks(
+  values: number[],
+  maxTicks: number = MAX_PINNED_AXIS_TICKS,
+): number[] {
+  if (values.length <= maxTicks) {
+    return values;
+  }
+  const step = Math.ceil(values.length / maxTicks);
+  const capped = values.filter((_, index) => index % step === 0);
+  const last = values[values.length - 1];
+  if (capped[capped.length - 1] !== last) {
+    capped.push(last);
+  }
+  return capped;
+}
+
 export function getOverMaxHiddenFormatter(
   config: {
     max?: number;
