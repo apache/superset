@@ -198,6 +198,41 @@ def get_effective_hours_offset(
 R_SUFFIX = "__right_suffix"
 
 
+# Escape character for LIKE patterns built from user-supplied search text.
+# Deliberately not a backslash: dialects that escape backslashes when rendering
+# string literals would emit a two-character ESCAPE clause, which is a syntax
+# error on engines that honour standard-conforming strings.
+LIKE_ESCAPE_CHAR = "!"
+
+
+def escape_like_pattern(value: str) -> str:
+    """
+    Neutralize LIKE wildcards in user-supplied search text.
+
+    Without this a user typing ``%`` or ``_`` would match every row, which is
+    both wrong and, on a large table, a scan the search was meant to avoid.
+    """
+    return (
+        value.replace(LIKE_ESCAPE_CHAR, LIKE_ESCAPE_CHAR * 2)
+        .replace("%", f"{LIKE_ESCAPE_CHAR}%")
+        .replace("_", f"{LIKE_ESCAPE_CHAR}_")
+    )
+
+
+def build_like_predicate(
+    expr: ColumnElement[Any],
+    search: str,
+) -> ColumnElement[Any]:
+    """
+    Build a case-insensitive containment predicate for ``expr``.
+
+    ``lower(expr) LIKE lower('%term%')`` is used rather than ``ILIKE`` because
+    the latter is not portable across engines.
+    """
+    pattern = f"%{escape_like_pattern(search)}%".lower()
+    return sa.func.lower(expr).like(pattern, escape=LIKE_ESCAPE_CHAR)
+
+
 def _normalize_mssql_virtual_dataset_sql(
     sql: str, parsed_script: SQLScript, engine: str
 ) -> str:
@@ -4010,6 +4045,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         limit: int = 10000,
         denormalize_column: bool = False,
         array_elements: bool = False,
+        search: str | None = None,
     ) -> list[Any]:
         # denormalize column name before querying for values
         # unless disabled in the dataset configuration
@@ -4047,6 +4083,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             .select_from(tbl)
             .distinct()
         )
+        if search:
+            qry = qry.where(build_like_predicate(value_expr, search))
+
         if limit:
             qry = qry.limit(limit)
 

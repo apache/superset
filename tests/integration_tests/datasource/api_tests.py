@@ -155,6 +155,7 @@ class TestDatasourceApi(SupersetTestCase):
             limit=10000,
             denormalize_column=False,
             array_elements=False,
+            search=None,
         )
 
     @pytest.mark.usefixtures("app_context", "virtual_dataset")
@@ -169,6 +170,79 @@ class TestDatasourceApi(SupersetTestCase):
             "?array_elements=true"
         )
         assert values_for_column_mock.call_args.kwargs["array_elements"] is True
+
+    @pytest.mark.usefixtures("app_context", "virtual_dataset")
+    def test_get_column_values_search_filters_server_side(self):
+        """``?q=`` narrows the values in the database rather than client-side,
+        which is what makes a value beyond the row limit reachable at all."""
+        self.login(ADMIN_USERNAME)
+        table = self.get_virtual_dataset()
+        rv = self.client.get(
+            f"api/v1/datasource/table/{table.id}/column/col2/values/?q=b"
+        )
+        assert rv.status_code == 200
+        assert json.loads(rv.data.decode("utf-8"))["result"] == ["b"]
+
+    @pytest.mark.usefixtures("app_context", "virtual_dataset")
+    def test_get_column_values_search_is_case_insensitive(self):
+        self.login(ADMIN_USERNAME)
+        table = self.get_virtual_dataset()
+        rv = self.client.get(
+            f"api/v1/datasource/table/{table.id}/column/col2/values/?q=B"
+        )
+        assert rv.status_code == 200
+        assert json.loads(rv.data.decode("utf-8"))["result"] == ["b"]
+
+    @pytest.mark.usefixtures("app_context", "virtual_dataset")
+    def test_get_column_values_search_escapes_wildcards(self):
+        """A literal ``%`` must not be treated as "match everything"."""
+        self.login(ADMIN_USERNAME)
+        table = self.get_virtual_dataset()
+        rv = self.client.get(
+            f"api/v1/datasource/table/{table.id}/column/col2/values/?q=%25"
+        )
+        assert rv.status_code == 200
+        assert json.loads(rv.data.decode("utf-8"))["result"] == []
+
+    @pytest.mark.usefixtures("app_context", "virtual_dataset")
+    @patch("superset.models.helpers.ExploreMixin.values_for_column")
+    def test_get_column_values_blank_search_is_ignored(self, values_for_column_mock):
+        """Whitespace is not a search term; it must not narrow the list."""
+        values_for_column_mock.return_value = []
+        self.login(ADMIN_USERNAME)
+        table = self.get_virtual_dataset()
+        self.client.get(
+            f"api/v1/datasource/table/{table.id}/column/col2/values/?q=%20%20"
+        )
+        assert values_for_column_mock.call_args.kwargs["search"] is None
+
+    @pytest.mark.usefixtures("app_context", "virtual_dataset")
+    def test_get_column_values_returns_applied_limit(self):
+        """The client needs the limit to tell a short list from a truncated
+        one, so it can say the list is partial instead of implying it is whole."""
+        self.login(ADMIN_USERNAME)
+        table = self.get_virtual_dataset()
+        rv = self.client.get(f"api/v1/datasource/table/{table.id}/column/col2/values/")
+        assert rv.status_code == 200
+        assert json.loads(rv.data.decode("utf-8"))["limit"] == 10000
+
+    @pytest.mark.usefixtures("app_context", "virtual_dataset")
+    @patch("superset.models.helpers.ExploreMixin.values_for_column")
+    def test_get_column_values_cache_isolated_per_search(self, values_for_column_mock):
+        """Search terms must partition the cache; sharing one entry would serve
+        the results of somebody else's search."""
+        cache_manager.data_cache.clear()
+        values_for_column_mock.return_value = ["x"]
+        self.login(ADMIN_USERNAME)
+        table = self.get_virtual_dataset()
+        url = f"api/v1/datasource/table/{table.id}/column/col2/values/"
+
+        self.client.get(url)
+        self.client.get(f"{url}?q=a")
+        self.client.get(f"{url}?q=b")
+        self.client.get(f"{url}?q=a")
+
+        assert values_for_column_mock.call_count == 3
 
     @pytest.mark.usefixtures("app_context", "virtual_dataset")
     @patch("superset.db_engine_specs.base.BaseEngineSpec.denormalize_name")
@@ -191,6 +265,7 @@ class TestDatasourceApi(SupersetTestCase):
             limit=10000,
             denormalize_column=True,
             array_elements=False,
+            search=None,
         )
 
     @pytest.mark.usefixtures("app_context", "virtual_dataset")
