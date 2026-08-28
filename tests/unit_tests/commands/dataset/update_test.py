@@ -473,6 +473,10 @@ def test_update_dataset_rejects_malicious_expression(
         f"Expected a field-level ValidationError on '{field}'. Got: "
         f"{[(type(e).__name__, getattr(e, 'field_name', None), str(e)) for e in excinfo.value._exceptions]}"  # noqa: E501
     )
+    # `messages` must stay a list even though the underlying message is a
+    # `LazyString`, which marshmallow does not treat as `str`/`bytes` and so
+    # would otherwise store bare instead of wrapping it.
+    assert isinstance(expression_errors[0].messages, list)
 
 
 def test_update_dataset_accepts_benign_expression(mocker: MockerFixture) -> None:

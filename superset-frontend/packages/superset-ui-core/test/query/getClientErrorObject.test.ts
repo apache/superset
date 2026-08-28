@@ -244,6 +244,24 @@ test('parseErrorJson with message', () => {
   });
 });
 
+test('parseErrorJson preserves string-valued validation messages', () => {
+  const calculatedColumnError =
+    'Custom SQL fields cannot be parsed as a single SQL statement.';
+
+  expect(
+    parseErrorJson({
+      message: {
+        'columns.0.expression': calculatedColumnError,
+      },
+    }),
+  ).toEqual({
+    message: {
+      'columns.0.expression': calculatedColumnError,
+    },
+    error: calculatedColumnError,
+  });
+});
+
 test('parseErrorJson with HTML message', () => {
   expect(
     parseErrorJson({
