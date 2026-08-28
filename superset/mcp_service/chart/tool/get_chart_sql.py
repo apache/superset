@@ -393,6 +393,7 @@ def _extract_sql_from_result(
         title="Get chart SQL",
         readOnlyHint=True,
         destructiveHint=False,
+        openWorldHint=False,
     ),
 )
 async def get_chart_sql(

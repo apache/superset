@@ -45,7 +45,7 @@ from superset.mcp_service.chart.tool.get_chart_data import (
     _requested_filter_columns,
 )
 from superset.utils import json
-from superset.utils.core import GenericDataType
+from superset.utils.core import ExtraFiltersReasonType, GenericDataType
 
 
 def test_requested_filter_columns_supports_both_payload_shapes() -> None:
@@ -85,6 +85,56 @@ def test_rejected_requested_filter_columns_ignores_saved_chart_filters() -> None
             ]
         },
     ) == ["missing_request"]
+
+
+def test_rejected_requested_filter_columns_reads_materialized_payload() -> None:
+    """A chart-data payload reports rejections as ``rejected_filters`` entries.
+
+    ``_materialize_full_payload`` deletes the raw ``rejected_filter_columns``
+    key and emits ``rejected_filters`` instead, so this is the only shape the
+    tool ever sees in practice. Reading just the raw key made the check a
+    no-op and let unknown columns return unfiltered data as a success.
+    """
+    result = {
+        "queries": [
+            {
+                "data": [{"country": "USA"}],
+                "rejected_filters": [
+                    {
+                        "reason": "COL_NOT_IN_DATASOURCE",
+                        "column": "does_not_exist",
+                    }
+                ],
+            }
+        ]
+    }
+
+    assert _rejected_requested_filter_columns(
+        result,
+        {"filters": [{"col": "does_not_exist", "op": "==", "val": "x"}]},
+    ) == ["does_not_exist"]
+
+
+def test_rejected_requested_filter_columns_ignores_rejected_time_filters() -> None:
+    """``rejected_filters`` also carries time-extra rejections, which are not
+    request filter columns and must not be attributed to the caller."""
+    result = {
+        "queries": [
+            {
+                "rejected_filters": [
+                    {"reason": "NO_TEMPORAL_COLUMN", "column": "__time_range"}
+                ]
+            }
+        ]
+    }
+
+    assert (
+        _rejected_requested_filter_columns(
+            result,
+            {"filters": [{"col": "country", "op": "==", "val": "USA"}]},
+        )
+        == []
+    )
 
 
 def _collect_groupby_extras(
@@ -1462,13 +1512,22 @@ class TestSavedChartExtraFormDataFilters:
             def __init__(self, query_context: Any) -> None: ...
             def validate(self) -> None: ...
             def run(self) -> dict[str, Any]:
+                # Mirror the payload ChartDataCommand actually returns:
+                # _materialize_full_payload has already converted
+                # rejected_filter_columns into rejected_filters entries.
                 return {
                     "queries": [
                         {
                             "data": [{"country": "USA"}],
                             "colnames": ["country"],
                             "rowcount": 1,
-                            "rejected_filter_columns": rejected_filter_columns or [],
+                            "rejected_filters": [
+                                {
+                                    "reason": ExtraFiltersReasonType.COL_NOT_IN_DATASOURCE,  # noqa: E501
+                                    "column": column,
+                                }
+                                for column in rejected_filter_columns or []
+                            ],
                         }
                     ]
                 }

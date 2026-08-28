@@ -70,6 +70,7 @@ _NO_SAVED_METRICS_HINT = (
         title="Query dataset",
         readOnlyHint=True,
         destructiveHint=False,
+        openWorldHint=False,
     ),
 )
 @requires_data_model_metadata_access

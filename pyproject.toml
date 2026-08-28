@@ -141,7 +141,7 @@ bigquery = [
     "sqlalchemy-bigquery>=1.17.2",
     "google-cloud-bigquery>=3.42.3",
 ]
-clickhouse = ["clickhouse-connect>=1.7.1, <2.0"]
+clickhouse = ["clickhouse-connect>=1.7.2, <2.0"]
 cockroachdb = ["cockroachdb>=0.3.5, <0.4"]
 crate = ["sqlalchemy-cratedb>=0.43.1, <1"]
 # sqlalchemy-d1's only release (0.1.0, Nov 2025) pins sqlalchemy<2,>=1.4,
@@ -190,7 +190,7 @@ fastmcp = [
     # tiktoken backs the response-size-guard token estimator. Without
     # it, the middleware falls back to a coarser character-based
     # heuristic that under-counts JSON-heavy MCP responses.
-    "tiktoken>=0.13.0,<1.0",
+    "tiktoken>=0.14.0,<1.0",
 ]
 # sqlalchemy-firebird >=2.0.0 unconditionally requires SQLAlchemy 2.0 on
 # Python >=3.8 (which covers Superset's >=3.11 floor), with no dual-compat
@@ -236,7 +236,7 @@ pinot = ["pinotdb>=5.0.0, <10.0.0"]
 playwright = ["playwright>=1.62.0, <2"]
 postgres = ["psycopg2-binary==2.9.12"]
 presto = ["pyhive[presto]>=0.6.5"]
-trino = ["trino>=0.338.0"]
+trino = ["trino>=0.339.0"]
 prophet = ["prophet>=1.4.0, <2"]
 # sqlalchemy-redshift cuts hard from SQLAlchemy 1.4-only (0.8.x) to 2.0-only
 # (>=1.0.0) with no dual-compat release. Bumped now that Superset's own
@@ -250,7 +250,7 @@ risingwave = ["sqlalchemy-risingwave>=2.0.0"]
 shillelagh = ["shillelagh[all]>=1.4.5, <2"]
 singlestore = ["sqlalchemy-singlestoredb>=1.2.1, <2"]
 snowflake = ["snowflake-sqlalchemy>=1.11.0, <2"]
-sqlite = ["syntaqlite>=0.7.0,<0.8.0"]
+sqlite = ["syntaqlite>=0.9.0,<0.10.0"]
 spark = [
     "pyhive[hive_pure_sasl]>=0.7",
     "tableschema",
@@ -260,7 +260,7 @@ tdengine = [
     "taospy>=2.8.10",
     "taos-ws-py>=0.7.0"
 ]
-teradata = ["teradatasql>=20.0.0.65"]
+teradata = ["teradatasql>=20.0.0.66"]
 thumbnails = [] # deprecated, will be removed in 7.0
 vertica = ["sqlalchemy-vertica-python>= 0.6.3, < 0.7"]
 netezza = ["nzalchemy>= 11.1.2, < 11.2"]
@@ -294,7 +294,7 @@ development = [
     "ruff",
     "sqloxide",
     "statsd",
-    "syntaqlite>=0.7.0,<0.8.0",
+    "syntaqlite>=0.9.0,<0.10.0",
 ]
 
 [project.urls]
