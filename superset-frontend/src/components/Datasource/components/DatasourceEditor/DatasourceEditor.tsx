@@ -30,13 +30,13 @@ import { connect, ConnectedProps } from 'react-redux';
 import type { AnyAction } from 'redux';
 import type { ThunkDispatch } from 'redux-thunk';
 import { Radio } from '@superset-ui/core/components/Radio';
-import { formatSpecifier } from 'd3-format';
 import {
   isFeatureEnabled,
   FeatureFlag,
   SupersetClient,
   getClientErrorObject,
   getExtensionsRegistry,
+  formatSpecifier,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import { t } from '@apache-superset/core/translation';
