@@ -90,12 +90,15 @@ module.exports = {
   },
   reporters: [
     'default',
-    [
-      './node_modules/jest-html-reporter',
-      {
-        pageTitle: 'Test Report',
-      },
-    ],
+    // HTML reporter is not used on CI so skipping its generation for saving time
+    ...(process.env.CI
+      ? []
+      : [
+          './node_modules/jest-html-reporter',
+          {
+            pageTitle: 'Test Report',
+          },
+        ]),
   ],
   testTimeout: 20000,
 };
