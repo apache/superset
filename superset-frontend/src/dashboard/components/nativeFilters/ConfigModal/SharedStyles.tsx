@@ -31,13 +31,11 @@ export interface BaseModalBodyProps {
 }
 
 export const BaseModalWrapper = styled(StyledModal)<BaseModalWrapperProps>`
-  min-width: ${MIN_WIDTH}px;
-  width: ${({ expanded }) => (expanded ? '100%' : MIN_WIDTH)} !important;
-
-  @media (max-width: ${MIN_WIDTH + MODAL_MARGIN * 2}px) {
-    width: 100% !important;
-    min-width: auto;
-  }
+  width: ${({ expanded }) =>
+    `min(${expanded ? '100%' : `${MIN_WIDTH}px`}, calc(100% - ${
+      MODAL_MARGIN * 2
+    }px))`} !important;
+  max-width: calc(100% - ${MODAL_MARGIN * 2}px);
 
   .ant-modal-header {
     margin-bottom: 0;
@@ -75,9 +73,10 @@ export const BaseModalWrapper = styled(StyledModal)<BaseModalWrapperProps>`
 export const BaseModalBody = styled.div<BaseModalBodyProps>`
   display: flex;
   height: 100%;
-  min-height: 500px;
+  min-height: 0;
   flex-direction: row;
   flex: 1;
+  overflow: hidden;
 
   .filters-list {
     display: flex;
@@ -87,6 +86,8 @@ export const BaseModalBody = styled.div<BaseModalBodyProps>`
 
 export const BaseForm = styled(Form)`
   width: 100%;
+  height: 100%;
+  min-height: 0;
 `;
 
 export const BaseExpandButtonWrapper = styled.div`

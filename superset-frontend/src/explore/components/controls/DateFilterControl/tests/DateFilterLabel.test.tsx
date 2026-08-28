@@ -123,8 +123,11 @@ test('DateFilter popover should attach to document.body when not overflowing', (
 
   userEvent.click(screen.getByText(NO_TIME_RANGE));
 
-  const popover = document.querySelector('.time-range-popover');
+  const popover = document.querySelector<HTMLElement>('.time-range-popover');
   expect(popover?.parentElement).toBe(document.body);
+  expect(popover).toHaveStyle({
+    width: 'min(600px, calc(100% - 32px))',
+  });
 });
 
 test('DateFilter popover should attach to parent node when overflowing in filter bar', () => {
