@@ -20,6 +20,7 @@ from __future__ import annotations
 import copy
 from collections import namedtuple
 from datetime import datetime
+from decimal import Decimal
 from typing import Any, Optional
 from unittest.mock import MagicMock, Mock, patch
 
@@ -324,6 +325,46 @@ def test_convert_dttm(
     from superset.db_engine_specs.trino import TrinoEngineSpec
 
     assert_convert_dttm(TrinoEngineSpec, target_type, expected_result, dttm)
+
+
+@pytest.mark.parametrize(
+    "data,description,expected_result",
+    [
+        (
+            [["1.846619834", "abc"]],
+            [("dec", "decimal(12,9)"), ("str", "varchar(3)")],
+            [(Decimal("1.846619834"), "abc")],
+        ),
+        (
+            [[Decimal("1.846619834"), "abc"]],
+            [("dec", "decimal(12,9)"), ("str", "varchar(3)")],
+            [(Decimal("1.846619834"), "abc")],
+        ),
+        (
+            [["1.846619834", "abc"]],
+            [("dec", "varchar(255)"), ("str", "varchar(3)")],
+            [["1.846619834", "abc"]],
+        ),
+    ],
+)
+def test_column_type_mutator(
+    data: list[Any],
+    description: list[Any],
+    expected_result: list[Any],
+) -> None:
+    """
+    Trino's DBAPI driver can return DECIMAL columns as plain strings.
+    Superset must coerce those back to ``Decimal`` at fetch time so that
+    downstream numeric post-processing (e.g. a pivot with a mean
+    aggregate) doesn't choke on a string value.
+    """
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    mock_cursor = Mock()
+    mock_cursor.fetchall.return_value = data
+    mock_cursor.description = description
+
+    assert TrinoEngineSpec.fetch_data(mock_cursor) == expected_result
 
 
 def test_get_extra_table_metadata(mocker: MockerFixture) -> None:
