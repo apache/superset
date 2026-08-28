@@ -231,6 +231,29 @@ class TestTaskApi(SupersetTestCase):
             for task in data["result"]:
                 assert task["task_type"] == "test_type"
 
+    def test_get_task_types_distinct(self):
+        """
+        Task API: Test /distinct/task_type powers the Type filter dropdown
+        """
+        with self._create_tasks():
+            self.login(ADMIN_USERNAME)
+            uri = f"{self.TASK_API_BASE}/distinct/task_type"
+            rv = self.client.get(uri)
+            assert rv.status_code == 200
+
+            data = json.loads(rv.data.decode("utf-8"))
+            values = {item["value"] for item in data["result"]}
+            assert "test_type" in values
+
+    def test_get_task_distinct_rejects_disallowed_field(self):
+        """
+        Task API: Test /distinct only exposes allowed_distinct_fields
+        """
+        self.login(ADMIN_USERNAME)
+        uri = f"{self.TASK_API_BASE}/distinct/status"
+        rv = self.client.get(uri)
+        assert rv.status_code == 404
+
     def test_get_task_list_ordered(self):
         """
         Task API: Test get task list with ordering

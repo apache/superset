@@ -45,7 +45,11 @@ import { Icons } from '@superset-ui/core/components/Icons';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import SubMenu from 'src/features/home/SubMenu';
 import { useListViewResource } from 'src/views/CRUD/hooks';
-import { createErrorHandler, createFetchRelated } from 'src/views/CRUD/utils';
+import {
+  createErrorHandler,
+  createFetchDistinct,
+  createFetchRelated,
+} from 'src/views/CRUD/utils';
 import TaskStatusIcon from 'src/features/tasks/TaskStatusIcon';
 import TaskPayloadPopover from 'src/features/tasks/TaskPayloadPopover';
 import TaskStackTracePopover from 'src/features/tasks/TaskStackTracePopover';
@@ -662,6 +666,23 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
         Header: t('Type'),
         key: 'task_type',
         id: 'task_type',
+        input: 'select',
+        operator: FilterOperator.Equals,
+        unfilteredLabel: t('Any'),
+        fetchSelects: createFetchDistinct(
+          'task',
+          'task_type',
+          createErrorHandler(errMsg =>
+            addDangerToast(
+              t('An error occurred while fetching task types: %s', errMsg),
+            ),
+          ),
+        ),
+      },
+      {
+        Header: t('Name'),
+        key: 'task_name',
+        id: 'task_name',
         input: 'search',
         operator: FilterOperator.Contains,
       },
