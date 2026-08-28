@@ -51,6 +51,7 @@ const waitPastDebounce = () =>
 test('isCountExpression matches a COUNT(...) call, including nested calls', () => {
   expect(isCountExpression('COUNT(*)')).toBe(true);
   expect(isCountExpression('count( * )')).toBe(true);
+  expect(isCountExpression('COUNT (*)')).toBe(true);
   expect(isCountExpression('COUNT(DISTINCT name)')).toBe(true);
   expect(isCountExpression('COUNT(DISTINCT COALESCE(a, b))')).toBe(true);
   expect(isCountExpression('COUNT(*) / COUNT(*)')).toBe(false);

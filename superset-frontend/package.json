@@ -162,6 +162,7 @@
     "chrono-node": "^2.10.1",
     "classnames": "^2.2.5",
     "content-disposition": "^2.0.1",
+    "d3-format": "^3.1.2",
     "d3-scale": "^4.0.2",
     "dayjs": "^1.11.23",
     "dom-to-image-more": "^3.10.2",

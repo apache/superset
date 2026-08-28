@@ -848,7 +848,7 @@ export const isPercentD3Format = (d3format?: string): boolean => {
 // `COUNT(DISTINCT COALESCE(a, b))` is still recognized.
 export const isCountExpression = (expression?: string): boolean => {
   const trimmed = expression?.trim();
-  if (!trimmed || !/^count\(/i.test(trimmed) || !trimmed.endsWith(')')) {
+  if (!trimmed || !/^count\s*\(/i.test(trimmed) || !trimmed.endsWith(')')) {
     return false;
   }
   let depth = 0;
