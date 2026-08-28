@@ -60,15 +60,17 @@ interface TaskDependenciesPopoverProps {
   // Unmet prerequisites while this task is still pending (blocked). When > 0 the
   // chain icon turns warning-colored and the popover title reflects the wait.
   waitingOn?: number;
-  // Fired when the popover opens/closes on hover, so the list can highlight the
-  // prerequisite rows that are currently visible.
-  onOpenChange?: (open: boolean) => void;
+  // Fired on hover enter/leave of the chain icon so the list can highlight the
+  // prerequisite rows that are currently visible. Driven from mouse events
+  // rather than the Popover's onOpenChange: setting state inside antd's own
+  // open callback can wedge the hover popover.
+  onHoverChange?: (hovering: boolean) => void;
 }
 
 export default function TaskDependenciesPopover({
   dependencies,
   waitingOn = 0,
-  onOpenChange,
+  onHoverChange,
 }: TaskDependenciesPopoverProps) {
   const content = (
     <DependenciesContainer>
@@ -93,9 +95,12 @@ export default function TaskDependenciesPopover({
       content={content}
       trigger="hover"
       placement="leftTop"
-      onOpenChange={onOpenChange}
     >
-      <LinkIconWrapper $waiting={waitingOn > 0}>
+      <LinkIconWrapper
+        $waiting={waitingOn > 0}
+        onMouseEnter={() => onHoverChange?.(true)}
+        onMouseLeave={() => onHoverChange?.(false)}
+      >
         <Icons.LinkOutlined iconSize="l" />
       </LinkIconWrapper>
     </Popover>

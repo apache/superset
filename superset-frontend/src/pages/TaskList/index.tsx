@@ -506,9 +506,9 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
                 <TaskDependenciesPopover
                   dependencies={depends_on}
                   waitingOn={waitingOn}
-                  onOpenChange={open =>
+                  onHoverChange={hovering =>
                     setHighlightedDeps(
-                      open
+                      hovering
                         ? new Set(depends_on.map(dep => dep.uuid))
                         : new Set(),
                     )
