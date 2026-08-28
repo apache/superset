@@ -374,6 +374,19 @@ class TaskContext(CoreTaskContext):
             properties=self._properties_cache,
         ).run()
 
+    def set_cancellation(self, database_id: int, cancel_query_id: str) -> None:
+        """Record the engine cancel handle for the running warehouse query.
+
+        Merges the handle into the properties cache **without** writing: the task
+        registers its abort handler immediately after (see ``on_abort`` /
+        ``_set_abortable``), whose write flushes the whole cache, so the handle is
+        persisted together with ``is_abortable`` in that one UPDATE — no extra
+        write. The orphan reaper reads it to cancel the query out-of-band when
+        this worker dies; the live abort path uses its in-memory closure instead.
+        """
+        self._properties_cache["cancel_database_id"] = database_id
+        self._properties_cache["cancel_query_id"] = cancel_query_id
+
     def _start_abort_listener(self, interval: float) -> None:
         """
         Start background abort listener via TaskManager.

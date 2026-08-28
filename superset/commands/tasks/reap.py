@@ -91,6 +91,7 @@ class ReapOrphanedTasksCommand(BaseCommand):
             ),
         )
         self._revoke(properties.get("celery_task_id"), stats_logger)
+        self._cancel_orphaned_query(properties)
 
         properties["error_message"] = ORPHAN_ERROR_MESSAGE
         properties["exception_type"] = "OrphanedTaskError"
@@ -139,6 +140,27 @@ class ReapOrphanedTasksCommand(BaseCommand):
             logger.warning(
                 "Failed to revoke Celery task %s", celery_task_id, exc_info=True
             )
+
+    def _cancel_orphaned_query(self, properties: TaskProperties) -> None:
+        """Cancel the abandoned warehouse query, if one was captured.
+
+        The dead worker can't run its own ``on_abort`` handler, so the reaper
+        cancels out-of-band from the persisted handle (only present for engines
+        that expose a cancel id before execution). Best-effort: no handle, a
+        missing database, or a cancel failure never blocks the FAILURE transition.
+        """
+        cancel_query_id = properties.get("cancel_query_id")
+        database_id = properties.get("cancel_database_id")
+        if not cancel_query_id or database_id is None:
+            return
+
+        from superset.models.core import Database
+        from superset.tasks.query_cancel import cancel_chart_query
+
+        database = db.session.get(Database, database_id)
+        if database is None:
+            return
+        cancel_chart_query(database, cancel_query_id)
 
     def validate(self) -> None:
         pass

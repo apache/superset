@@ -111,20 +111,22 @@ per-principal messages) instead of the removed async-events streams; see
 Orphaned GTF tasks (a worker killed mid-execution) are now detected and cleaned
 up server-side. While a worker holds a task it writes a liveness heartbeat
 (`tasks.last_heartbeat`, every `GTF_TASK_HEARTBEAT_INTERVAL` seconds, default
-`15`); the existing `prune_tasks` Celery job now reaps any active task whose
-heartbeat is older than `GTF_ORPHAN_TASK_TIMEOUT` (default `60`) — revoking its
-Celery job and marking it `FAILURE` so waiters unblock — before its usual
-deletion of old rows. Because reaping rides on `prune_tasks`, enable that beat
-schedule (and run it on a short interval, e.g. every minute) to bound how long an
-orphaned task and its warehouse query can linger. The heartbeat write is issued
-out-of-band and deliberately does not advance `changed_on`.
+`15`); a dedicated `reap_orphaned_tasks` Celery beat job reaps any active task
+whose heartbeat is older than `GTF_ORPHAN_TASK_TIMEOUT` (default `60`) — revoking
+its Celery job, marking it `FAILURE` so waiters unblock, and (on engines that
+support query cancellation) cancelling the abandoned warehouse query out-of-band.
+Enable the `reap_orphaned_tasks` beat schedule on a short interval (e.g. every
+minute); it is separate from `prune_tasks` (a heavier retention delete run
+infrequently). The heartbeat write is issued out-of-band and deliberately does
+not advance `changed_on`.
 
 Async chart-data query tasks are now cancellable: a per-query timeout
 (`GLOBAL_ASYNC_QUERIES_QUERY_TIMEOUT`, default `None` = unbounded) or a user
 cancel aborts the task, and on database engines that support query cancellation
 (e.g. PostgreSQL, MySQL, Snowflake, Redshift) the abort also cancels the running
-warehouse query over a fresh connection. Engines without cancel support are
-unaffected — the task is still freed, but the query runs to completion.
+warehouse query over a fresh connection — including when the worker died (the
+reaper cancels it). Engines without cancel support are unaffected — the task is
+still freed, but the query runs to completion.
 
 - `SAMPLES_ROW_LIMIT` is now the default for `/datasource/samples` requests without a valid explicit `per_page`, rather than a hard per-request ceiling; explicit limits are honored up to the existing global row-limit ceiling, matching `/chart/data` SAMPLES requests.
 
