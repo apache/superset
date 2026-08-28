@@ -1140,29 +1140,6 @@
         "properties": {
           "operation": {
             "description": "Post processing operation type",
-            "enum": [
-              "aggregate",
-              "boxplot",
-              "compare",
-              "contribution",
-              "cum",
-              "diff",
-              "escape_separator",
-              "flatten",
-              "geodetic_parse",
-              "geohash_decode",
-              "geohash_encode",
-              "histogram",
-              "pivot",
-              "prophet",
-              "rank",
-              "rename",
-              "resample",
-              "rolling",
-              "select",
-              "sort",
-              "unescape_separator"
-            ],
             "example": "aggregate",
             "type": "string"
           },
