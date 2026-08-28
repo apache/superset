@@ -22,7 +22,8 @@ import math
 import threading
 import time
 from collections.abc import Sequence
-from typing import Any, TYPE_CHECKING
+from decimal import Decimal
+from typing import Any, Callable, TYPE_CHECKING
 
 import requests
 from flask import copy_current_request_context, ctx, current_app as app, Flask, g
@@ -30,6 +31,7 @@ from flask_babel import gettext as __
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 from sqlalchemy.exc import NoSuchTableError
+from sqlalchemy.types import DECIMAL, TypeEngine
 
 from superset import cache_manager, db
 from superset.common.db_query_status import QueryStatus
@@ -76,6 +78,15 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
     encrypted_extra_sensitive_fields = {
         **PrestoBaseEngineSpec.encrypted_extra_sensitive_fields,
         "$.oauth2_client_info.secret": "OAuth2 client secret",
+    }
+
+    # Trino's DBAPI driver can return DECIMAL columns as plain strings
+    # (e.g. when a value's precision/scale can't be inferred from the
+    # column type alone), which later breaks numeric post-processing
+    # (e.g. pivot with a mean aggregate). Coerce them back to Decimal.
+    column_type_mutators: dict[TypeEngine, Callable[[Any], Any]] = {
+        **PrestoBaseEngineSpec.column_type_mutators,
+        DECIMAL: lambda val: Decimal(val) if isinstance(val, str) else val,
     }
 
     # The full set of columns Trino's "<table>$partitions" exposes for an
