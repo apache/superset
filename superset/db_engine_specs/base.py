@@ -978,8 +978,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         )
         if response.status_code in (400, 401, 403):
             try:
-                error = response.json().get("error")
-            except (requests.exceptions.JSONDecodeError, ValueError, AttributeError):
+                payload = response.json()
+                if not isinstance(payload, dict):
+                    payload = json.loads(response.text)
+                error = payload.get("error")
+            except (ValueError, TypeError, AttributeError):
                 error = None
             # RFC 6749 defines invalid_grant for an invalid, expired, or revoked
             # refresh token. Other error responses can be transient or indicate a
@@ -1820,7 +1823,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             )
             if cancel_query_id is not None:
                 query.set_extra_json_key(QUERY_CANCEL_KEY, cancel_query_id)
-                db.session.commit()
+                db.session.commit()  # pylint: disable=consider-using-transaction
         logger.debug("Query %d: Handling cursor", query.id)
         cls.handle_cursor(cursor, query)
 

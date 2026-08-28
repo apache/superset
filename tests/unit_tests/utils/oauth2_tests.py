@@ -175,6 +175,33 @@ def test_force_refresh_reuses_concurrently_refreshed_token(
     db.session.delete.assert_not_called()
 
 
+def test_force_refresh_commits_deletion_without_refresh_token(
+    mocker: MockerFixture,
+) -> None:
+    """The isolated forced-refresh session durably removes unusable rows."""
+    db = mocker.patch("superset.utils.oauth2.db")
+    mocker.patch("superset.utils.oauth2.Session", return_value=db.session)
+    mocker.patch("superset.utils.oauth2.DistributedLock")
+    token = mocker.MagicMock(
+        access_token="rejected-token",  # noqa: S106
+        refresh_token=None,
+    )
+    db.session.query().populate_existing().filter_by().one_or_none.return_value = token
+
+    result = refresh_oauth2_token(
+        DUMMY_OAUTH2_CONFIG,
+        1,
+        1,
+        mocker.MagicMock(),
+        force=True,
+        rejected_access_token="rejected-token",  # noqa: S106
+    )
+
+    assert result is None
+    db.session.delete.assert_called_once_with(token)
+    db.session.commit.assert_called_once_with()
+
+
 def test_execute_with_oauth2_retry_forces_refresh_once(
     mocker: MockerFixture,
 ) -> None:

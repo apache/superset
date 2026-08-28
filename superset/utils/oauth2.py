@@ -209,6 +209,8 @@ def _refresh_oauth2_token_locked(  # noqa: C901
 
         if not token.refresh_token:
             token_session.delete(token)
+            if force:
+                token_session.commit()  # pylint: disable=consider-using-transaction
             return None
 
         try:
