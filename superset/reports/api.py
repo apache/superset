@@ -63,7 +63,10 @@ from superset.reports.schemas import (
     ReportScheduleSubscribeSchema,
 )
 from superset.subjects.filters import FilterRelatedSubjects, subject_type_filter
-from superset.utils.slack import get_channels_with_search
+from superset.utils.slack import (
+    get_channels_with_search,
+    SlackChannelListingClientError,
+)
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
     RelatedFieldFilter,
@@ -716,8 +719,16 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
                 start = page * page_size
                 channels = channels[start : start + page_size]
             return self.response(200, count=count, result=channels)
-        except SupersetException as ex:
+        except SlackChannelListingClientError as ex:
+            # Permanent token/client-setup failures are expected, already-handled
+            # noise (e.g. a revoked bot token), so log at WARNING to keep Sentry
+            # clear of an actionable-looking signal.
             logger.warning("Error fetching slack channels %s", str(ex))
+            return self.response_422(message=str(ex))
+        except SupersetException as ex:
+            # Transient listing failures (rate limits, transport errors) mean
+            # Slack is unavailable, so keep ERROR to preserve an actionable signal.
+            logger.error("Error fetching slack channels %s", str(ex))
             return self.response_422(message=str(ex))
 
     @expose("/<int:pk>/execute", methods=("POST",))
