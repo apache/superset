@@ -134,8 +134,10 @@ describe('ResultsPaneOnDashboard', () => {
     expect(
       await findByText('No results were returned for this query'),
     ).toBeVisible();
-    const [tabsProps] = (Tabs as unknown as jest.Mock).mock.calls[0];
-    expect(tabsProps).toEqual(expect.objectContaining({ fullHeight: true }));
+    expect(Tabs).toHaveBeenCalledWith(
+      expect.objectContaining({ fullHeight: true }),
+      expect.anything(),
+    );
   });
 
   test('render errorMessage', async () => {
