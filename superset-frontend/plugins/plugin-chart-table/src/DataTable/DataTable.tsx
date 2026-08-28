@@ -244,8 +244,10 @@ export default typedMemo(function DataTable<D extends object>({
     ...tableHooks,
   );
 
-   // Clamp pageIndex when filtered data shrinks below current view (#31403)
-  if (data.length > 0 && pageCount > 0 && pageIndex >= pageCount) {
+  // Clamp pageIndex when filtered data shrinks below current view (#31403).
+  // pageCount is derived from the filtered rows, so zero rows always means
+  // pageCount === 0 and is handled by the second branch.
+  if (pageCount > 0 && pageIndex >= pageCount) {
     gotoPage(pageCount - 1);
   } else if (pageCount === 0 && pageIndex !== 0) {
     gotoPage(0);
