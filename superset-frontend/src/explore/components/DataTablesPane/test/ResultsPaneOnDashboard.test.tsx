@@ -25,8 +25,14 @@ import {
 } from 'spec/helpers/testing-library';
 import { ChartMetadata, ChartPlugin, VizType } from '@superset-ui/core';
 import { setupAGGridModules } from '@superset-ui/core/components/ThemedAgGridReact';
+import Tabs from '@superset-ui/core/components/Tabs';
 import { ResultsPaneOnDashboard } from '../components';
 import { createResultsPaneOnDashboardProps } from './fixture';
+
+jest.mock('@superset-ui/core/components/Tabs', () => {
+  const actual = jest.requireActual('@superset-ui/core/components/Tabs');
+  return { __esModule: true, ...actual, default: jest.fn(actual.default) };
+});
 
 beforeAll(() => {
   setupAGGridModules();
@@ -106,6 +112,8 @@ describe('ResultsPaneOnDashboard', () => {
     expect(
       await findByText('No results were returned for this query'),
     ).toBeVisible();
+    const [tabsProps] = (Tabs as unknown as jest.Mock).mock.calls[0];
+    expect(tabsProps).toEqual(expect.objectContaining({ fullHeight: true }));
   });
 
   test('render errorMessage', async () => {
