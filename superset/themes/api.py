@@ -66,7 +66,6 @@ from superset.themes.schemas import (
     ThemePutSchema,
 )
 from superset.utils.core import send_export_zip
-from superset.utils.decorators import transaction
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
     RelatedFieldFilter,

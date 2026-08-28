@@ -189,11 +189,16 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
   );
 
   // In edit mode a non-editor (and non-admin) may only view the theme. The
-  // editorship check runs against the persisted editors from the fetched
+  // editorship check runs against the persisted editors (and any editorship
+  // granted indirectly via EXTRA_EDITORS_RESOLVER) from the fetched
   // resource, not the in-progress picker selection.
   const canEditTheme =
     !isEditMode ||
-    isUserEditorOrAdmin(currentUser, (resource?.editors as Subject[]) || []);
+    isUserEditorOrAdmin(
+      currentUser,
+      (resource?.editors as Subject[]) || [],
+      resource?.extra_editors,
+    );
   const isReadOnly = isSystemTheme || !canEditTheme;
 
   const canDevelopThemes = canDevelop;

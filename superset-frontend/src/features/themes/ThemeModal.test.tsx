@@ -23,6 +23,7 @@ import fetchMock from 'fetch-mock';
 import ThemeModal from './ThemeModal';
 import { ThemeObject } from './types';
 import { validateTheme } from 'src/theme/utils/themeStructureValidation';
+import { isUserEditorOrAdmin } from 'src/dashboard/util/permissionUtils';
 
 const mockThemeContext = {
   setTemporaryTheme: jest.fn(),
@@ -230,6 +231,45 @@ test('renders view mode title for system themes', async () => {
     await screen.findByText('System Theme - Read Only'),
   ).toBeInTheDocument();
   expect(screen.getByText('View theme properties')).toBeInTheDocument();
+});
+
+test('passes extra_editors from the fetched resource to the editorship check', async () => {
+  // A user may be granted editorship solely through a deployment's
+  // EXTRA_EDITORS_RESOLVER (surfaced by the API as `extra_editors`), not
+  // just the persisted `editors` list. The modal must factor that in the
+  // same way the chart/dashboard read-only checks do, or such a user is
+  // shown a read-only modal despite the API allowing them to save.
+  fetchMock.clearHistory().removeRoutes();
+  fetchMock.get('glob:*/api/v1/theme/related/editors*', {
+    result: [],
+    count: 0,
+  });
+  fetchMock.get('glob:*/api/v1/theme/*', {
+    result: { ...mockTheme, extra_editors: [42] },
+  });
+
+  render(
+    <ThemeModal
+      addDangerToast={jest.fn()}
+      addSuccessToast={jest.fn()}
+      onThemeAdd={jest.fn()}
+      onHide={jest.fn()}
+      show
+      canDevelop={false}
+      theme={mockTheme}
+    />,
+    { useRedux: true, useRouter: true },
+  );
+
+  await screen.findByDisplayValue('Test Theme');
+
+  await waitFor(() => {
+    expect(isUserEditorOrAdmin).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      [42],
+    );
+  });
 });
 
 test('renders theme name input field', () => {
