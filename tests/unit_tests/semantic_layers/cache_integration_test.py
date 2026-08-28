@@ -740,3 +740,27 @@ def test_resolved_timeout_bounds_stored_containment_values(
         call.kwargs.get("timeout") for call in set_spy.call_args_list
     }
     assert timeouts == {15}
+
+
+def test_secret_like_provider_identity_never_fails_the_query(
+    data_cache: _InMemoryCache,
+    provider: MagicMock,
+    datasource: MagicMock,
+) -> None:
+    """The identity guard fires outside the cache service's exception boundary,
+    so it must resolve to a bypass in the host rather than an error in the
+    chart request."""
+    layer: MagicMock = datasource.semantic_layer.implementation
+    layer.get_semantic_cache_provider_identity.return_value = (
+        SemanticCacheIdentityMaterial({"tenant_token": "abc"})
+    )
+    provider.get_table.return_value = _result([("GB", "London", 10.0)])
+
+    first: QueryResult = get_results(_query(datasource))
+    second: QueryResult = get_results(_query(datasource))
+
+    assert first.df["revenue"].tolist() == [10.0]
+    assert first.semantic_cache_status == "MISS"
+    assert second.semantic_cache_status == "MISS"
+    assert provider.get_table.call_count == 2
+    assert not data_cache.store

@@ -37,6 +37,7 @@ from superset.semantic_layers.cache_repository import (
     SemanticCacheLookupResult,
     SemanticCacheRepository,
     SemanticCacheStoreError,
+    ViewMeta,
 )
 from tests.unit_tests.semantic_layers.conftest import (
     build_semantic_query,
@@ -600,3 +601,77 @@ def test_store_surfaces_existence_check_failure_as_store_error() -> None:
         repository.store(
             build_view_meta(), query, build_semantic_result(), replace=False
         )
+
+
+def test_lookup_bounds_value_age_by_the_requesting_timeout() -> None:
+    """Requests resolve their own timeout: a value stored by a 3600 s chart
+    must not answer a 60 s chart on the same view once it is older than 60 s,
+    and the 60 s chart's own store must not be skipped as already registered."""
+    backend: _Backend = _Backend()
+    coordinator: _Coordinator = _Coordinator()
+    clock: list[float] = [0.0]
+    repository: SemanticCacheRepository = SemanticCacheRepository(
+        backend,
+        coordinator,
+        clock=lambda: clock[0],
+    )
+    query: SemanticQuery = build_semantic_query()
+    long_lived: ViewMeta = replace(build_view_meta(), timeout=3600)
+    short_lived: ViewMeta = replace(build_view_meta(), timeout=60)
+    repository.store(long_lived, query, build_semantic_result())
+
+    clock[0] = 30.0
+    assert (
+        len(repository.lookup(short_lived, query, ContainmentCapabilities()).candidates)
+        == 1
+    )
+
+    clock[0] = 1800.0
+    stale: SemanticCacheLookupResult = repository.lookup(
+        short_lived, query, ContainmentCapabilities()
+    )
+    assert stale.candidates == ()
+    # Not a missing value: it is still valid for the long-lived chart.
+    assert stale.missing_value_keys == frozenset()
+    assert (
+        len(repository.lookup(long_lived, query, ContainmentCapabilities()).candidates)
+        == 1
+    )
+    unbounded: ViewMeta = replace(build_view_meta(), timeout=None)
+    assert (
+        len(repository.lookup(unbounded, query, ContainmentCapabilities()).candidates)
+        == 1
+    )
+
+    assert repository.store(short_lived, query, build_semantic_result(), replace=False)
+    assert len(coordinator.keys) == 2
+
+
+def test_store_dedupe_requires_the_registered_ttl_to_cover_this_request() -> None:
+    """A 60 s chart storing first must not pin a 3600 s chart to its entry."""
+    backend: _Backend = _Backend()
+    coordinator: _Coordinator = _Coordinator()
+    clock: list[float] = [0.0]
+    repository: SemanticCacheRepository = SemanticCacheRepository(
+        backend,
+        coordinator,
+        clock=lambda: clock[0],
+    )
+    query: SemanticQuery = build_semantic_query()
+    short_lived: ViewMeta = replace(build_view_meta(), timeout=60)
+    long_lived: ViewMeta = replace(build_view_meta(), timeout=3600)
+    repository.store(short_lived, query, build_semantic_result())
+
+    clock[0] = 30.0
+    assert repository.store(long_lived, query, build_semantic_result(), replace=False)
+    assert len(coordinator.keys) == 2
+    # Re-registered with the longer TTL: now the 3600 s chart is covered.
+    assert repository.store(long_lived, query, build_semantic_result(), replace=False)
+    assert len(coordinator.keys) == 2
+
+    never_expiring: ViewMeta = replace(build_view_meta(), timeout=0)
+    repository.store(never_expiring, replace(query, limit=7), build_semantic_result())
+    assert repository.store(
+        long_lived, replace(query, limit=7), build_semantic_result(), replace=False
+    )
+    assert len(coordinator.keys) == 3

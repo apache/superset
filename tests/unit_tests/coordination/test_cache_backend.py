@@ -274,7 +274,7 @@ def test_owner_token_release_is_atomic_compare_and_delete(
 def test_owner_token_refresh_is_atomic_compare_and_expire(
     backend_name: str,
 ) -> None:
-    from superset.async_events.cache_backend import (
+    from superset.coordination.cache_backend import (
         RedisCacheBackend,
         RedisSentinelCacheBackend,
     )

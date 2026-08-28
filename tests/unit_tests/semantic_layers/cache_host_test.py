@@ -227,3 +227,22 @@ def test_global_scope_yields_to_row_level_security(mocker: MockerFixture) -> Non
     )
 
     assert build_cache_configuration(datasource) is None
+
+
+def test_secret_like_identity_material_bypasses_containment(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """A provider that offers secret-like identity material must cost a bypass
+    for the view, never a failed chart; the material is not echoed."""
+    datasource: MagicMock = _datasource()
+    layer: MagicMock = datasource.semantic_layer.implementation
+    layer.get_semantic_cache_provider_identity.return_value = (
+        SemanticCacheIdentityMaterial({"api_token_version": "v1-hunter2"})
+    )
+
+    with caplog.at_level("WARNING"):
+        assert build_cache_configuration(datasource) is None
+
+    assert "secret-like identity material" in caplog.text
+    assert "hunter2" not in caplog.text
+    assert "api_token_version" not in caplog.text

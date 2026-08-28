@@ -28,7 +28,7 @@ from typing import Any, TypeAlias
 import pytest
 from superset_core.semantic_layers.types import SemanticQuery
 
-from superset.async_events.cache_backend import (
+from superset.coordination.cache_backend import (
     RedisCacheBackend,
     RedisSentinelCacheBackend,
 )
