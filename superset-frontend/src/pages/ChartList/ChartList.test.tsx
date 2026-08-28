@@ -278,6 +278,10 @@ describe('ChartList', () => {
     // Served from a response of its own rather than the shared mock, which
     // other suites assert against by canonical name.
     const [translated, untranslated] = mockCharts;
+    // Reset every route rather than replacing just the chart one: a
+    // re-registered route sits behind the helper's catch-all glob, which would
+    // answer the chart request instead. Same approach as the loading-state
+    // test above.
     fetchMock.removeRoutes();
     fetchMock.get(
       API_ENDPOINTS.CHARTS,
