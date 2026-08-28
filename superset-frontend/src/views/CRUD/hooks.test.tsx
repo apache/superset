@@ -17,6 +17,7 @@
  * under the License.
  */
 import { renderHook, act } from '@testing-library/react';
+import rison from 'rison';
 import { waitFor } from 'spec/helpers/testing-library';
 import { JsonResponse, SupersetClient } from '@superset-ui/core';
 
@@ -549,6 +550,35 @@ test('useListViewResource: uses desc sort direction when desc is true', async ()
 
   const endpoint = findEndpoint(getSpy, '/api/v1/chart/?q=');
   expect(endpoint).toContain('order_direction:desc');
+});
+
+test('useListViewResource: includes extra list query parameters', async () => {
+  const getSpy = jest.spyOn(SupersetClient, 'get').mockResolvedValue({
+    json: { result: [], count: 0 },
+  } as unknown as JsonResponse);
+
+  const { result } = renderHook(() =>
+    useListViewResource('chart', 'Charts', jest.fn()),
+  );
+
+  await act(async () => {
+    await result.current.fetchData({
+      pageIndex: 0,
+      pageSize: 25,
+      sortBy: [{ id: 'viz_type' }],
+      filters: [],
+      extraQueryParams: {
+        viz_type_names: { slug_a: 'Zulu', slug_z: 'Alpha' },
+      },
+    });
+  });
+
+  const endpoint = findEndpoint(getSpy, '/api/v1/chart/?q=');
+  const query = new URL(endpoint, 'http://localhost').searchParams.get('q');
+  expect(rison.decode(query!)).toMatchObject({
+    order_column: 'viz_type',
+    viz_type_names: { slug_a: 'Zulu', slug_z: 'Alpha' },
+  });
 });
 
 // useSingleViewResource

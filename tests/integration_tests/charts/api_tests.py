@@ -1502,6 +1502,51 @@ class TestChartApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCase):
         data = json.loads(rv.data.decode("utf-8"))
         assert data["count"] == 5
 
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    def test_get_charts_orders_friendly_viz_types_before_pagination(self):
+        """Chart API: friendly chart type ordering happens before pagination."""
+        admin = self.get_user("admin")
+        charts = [
+            self.insert_chart("friendly_type_sort_a", [admin.id], 1, viz_type="slug_a"),
+            self.insert_chart(
+                "friendly_type_sort_middle", [admin.id], 1, viz_type="middle"
+            ),
+            self.insert_chart("friendly_type_sort_z", [admin.id], 1, viz_type="slug_z"),
+        ]
+        self.login(ADMIN_USERNAME)
+
+        arguments = {
+            "filters": [
+                {
+                    "col": "slice_name",
+                    "opr": "sw",
+                    "value": "friendly_type_sort_",
+                }
+            ],
+            "columns": ["slice_name", "viz_type"],
+            "order_column": "viz_type",
+            "order_direction": "asc",
+            "page_size": 2,
+            "viz_type_names": {"slug_a": "zulu", "slug_z": "alpha"},
+        }
+
+        try:
+            pages = []
+            for page in (0, 1):
+                arguments["page"] = page
+                uri = f"api/v1/chart/?q={rison.dumps(arguments)}"
+                rv = self.get_assert_metric(uri, "get_list")
+                assert rv.status_code == 200
+                data = json.loads(rv.data.decode("utf-8"))
+                assert data["count"] == 3
+                pages.extend(item["viz_type"] for item in data["result"])
+
+            assert pages == ["slug_z", "middle", "slug_a"]
+        finally:
+            for chart in charts:
+                db.session.delete(chart)
+            db.session.commit()
+
     @pytest.fixture
     def load_energy_charts(self):
         with app.app_context():

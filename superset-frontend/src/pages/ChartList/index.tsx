@@ -71,6 +71,7 @@ import {
   ListViewFilterOperator as FilterOperator,
   DashboardCrossLinks,
   type ListViewProps,
+  type ListViewFetchDataConfig,
   type ListViewFilters,
   type ListViewFilter,
 } from 'src/components';
@@ -260,10 +261,32 @@ function ChartList(props: ChartListProps) {
     },
     setResourceCollection: setCharts,
     hasPerm,
-    fetchData,
+    fetchData: fetchChartData,
     toggleBulkSelect,
     refreshData,
   } = useListViewResource<Chart>('chart', t('chart'), addDangerToast);
+
+  const fetchData = useCallback(
+    (config: ListViewFetchDataConfig) =>
+      fetchChartData({
+        ...config,
+        ...(config.sortBy[0]?.id === 'viz_type'
+          ? {
+              extraQueryParams: {
+                viz_type_names: Object.fromEntries(
+                  registry
+                    .keys()
+                    .map(vizType => [
+                      vizType,
+                      registry.get(vizType)?.name || vizType,
+                    ]),
+                ),
+              },
+            }
+          : {}),
+      }),
+    [fetchChartData],
+  );
 
   const chartIds = useMemo(() => charts.map(c => c.id), [charts]);
   const { roles } = useSelector<any, UserWithPermissionsAndRoles>(

@@ -20,7 +20,12 @@ import fetchMock from 'fetch-mock';
 import { mockUserSubjectsBootstrapData } from 'spec/helpers/mockBootstrapData';
 import { screen, waitFor, within } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
-import { isFeatureEnabled } from '@superset-ui/core';
+import rison from 'rison';
+import {
+  ChartMetadata,
+  getChartMetadataRegistry,
+  isFeatureEnabled,
+} from '@superset-ui/core';
 import {
   mockCharts,
   mockHandleResourceExport,
@@ -277,6 +282,45 @@ test('sorts table when clicking column headers', async () => {
     const latestCall = lastModifiedSortCalls.at(-1);
     expect(latestCall?.url).toContain('order_direction:asc');
   });
+});
+
+test('sends friendly chart type names for server-side sorting', async () => {
+  const registry = getChartMetadataRegistry();
+  registry
+    .registerValue(
+      'slug_a',
+      new ChartMetadata({ name: 'Zulu', thumbnail: '', behaviors: [] }),
+    )
+    .registerValue(
+      'slug_z',
+      new ChartMetadata({ name: 'Alpha', thumbnail: '', behaviors: [] }),
+    );
+
+  try {
+    renderChartList(mockUser);
+
+    const table = await screen.findByTestId('listview-table');
+    await userEvent.click(within(table).getByTitle('Type'));
+
+    await waitFor(() => {
+      const typeSortCall = fetchMock.callHistory
+        .calls(/chart\/\?q/)
+        .find(call => call.url.includes('order_column:viz_type'));
+      expect(typeSortCall).toBeDefined();
+
+      const query = new URL(
+        typeSortCall!.url,
+        'http://localhost',
+      ).searchParams.get('q');
+      expect(rison.decode(query!)).toMatchObject({
+        order_column: 'viz_type',
+        viz_type_names: { slug_a: 'Zulu', slug_z: 'Alpha' },
+      });
+    });
+  } finally {
+    registry.remove('slug_a');
+    registry.remove('slug_z');
+  }
 });
 
 test('displays chart data correctly in table rows', async () => {

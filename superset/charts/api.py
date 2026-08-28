@@ -16,6 +16,7 @@
 # under the License.
 # pylint: disable=too-many-lines
 import logging
+from contextvars import ContextVar
 from datetime import datetime
 from io import BytesIO
 from typing import Any, cast, Optional
@@ -27,6 +28,9 @@ from flask_appbuilder.hooks import before_request
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
 from marshmallow import ValidationError
+from sqlalchemy import asc, case, desc
+from sqlalchemy.orm import Query
+from sqlalchemy.orm.util import AliasedClass
 from werkzeug.wrappers import Response as WerkzeugResponse
 from werkzeug.wsgi import FileWrapper
 
@@ -142,9 +146,74 @@ _CHART_PURGE_BINDING = SoftDeleteBinding(
     delete_failed=ChartDeleteFailedError,
 )
 
+_MAX_VIZ_TYPE_NAMES = 256
+_MAX_VIZ_TYPE_NAME_LENGTH = 512
+_viz_type_names: ContextVar[dict[str, str] | None] = ContextVar(
+    "chart_viz_type_names", default=None
+)
+
+
+def _validate_viz_type_names(value: Any) -> dict[str, str]:
+    """Validate the client registry used to order chart visualization types."""
+    if not isinstance(value, dict):
+        raise ValueError("viz_type_names must be an object")
+    if len(value) > _MAX_VIZ_TYPE_NAMES:
+        raise ValueError(
+            f"viz_type_names cannot contain more than {_MAX_VIZ_TYPE_NAMES} entries"
+        )
+
+    for viz_type, name in value.items():
+        if not isinstance(viz_type, str) or not isinstance(name, str):
+            raise ValueError("viz_type_names keys and values must be strings")
+        if (
+            len(viz_type) > _MAX_VIZ_TYPE_NAME_LENGTH
+            or len(name) > _MAX_VIZ_TYPE_NAME_LENGTH
+        ):
+            raise ValueError(
+                "viz_type_names keys and values cannot exceed "
+                f"{_MAX_VIZ_TYPE_NAME_LENGTH} characters"
+            )
+    return value.copy()
+
+
+class ChartSQLAInterface(SQLAInterface):
+    """Chart model interface with request-scoped friendly viz type ordering."""
+
+    def apply_order_by(
+        self,
+        query: Query,
+        order_column: str,
+        order_direction: str,
+        aliases_mapping: dict[str, AliasedClass] | None = None,
+        bypass_many_to_many: bool = False,
+        add_pk: bool = False,
+    ) -> Query:
+        viz_type_names = _viz_type_names.get()
+        if order_column != "viz_type" or not viz_type_names:
+            return super().apply_order_by(
+                query,
+                order_column,
+                order_direction,
+                aliases_mapping=aliases_mapping,
+                bypass_many_to_many=bypass_many_to_many,
+                add_pk=add_pk,
+            )
+
+        order_expression = case(
+            viz_type_names,
+            value=Slice.viz_type,
+            else_=Slice.viz_type,
+        )
+        direction = asc if order_direction == "asc" else desc
+        order_by_columns = [direction(order_expression)]
+        primary_key = self.get_pk()
+        if add_pk and primary_key is not None:
+            order_by_columns.append(direction(primary_key))
+        return query.order_by(*order_by_columns)
+
 
 class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
-    datamodel = SQLAInterface(Slice)
+    datamodel = ChartSQLAInterface(Slice)
 
     resource_name = "chart"
     allow_browser_login = True
@@ -421,6 +490,23 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         for row, row_id in zip(data.get("result", []), ids, strict=False):
             if row_id in extra_editors_by_id:
                 row["extra_editors"] = extra_editors_by_id[row_id]
+
+    def get_list_headless(self, **kwargs: Any) -> Response:
+        """Use client chart metadata names for SQL ordering before pagination."""
+        args = kwargs.get("rison", {})
+        if args.get("order_column") != "viz_type" or "viz_type_names" not in args:
+            return super().get_list_headless(**kwargs)
+
+        try:
+            viz_type_names = _validate_viz_type_names(args["viz_type_names"])
+        except ValueError as ex:
+            return self.response_400(message=str(ex))
+
+        token = _viz_type_names.set(viz_type_names)
+        try:
+            return super().get_list_headless(**kwargs)
+        finally:
+            _viz_type_names.reset(token)
 
     @expose("/<pk>/deck_layers/", methods=("GET",))
     @protect()
