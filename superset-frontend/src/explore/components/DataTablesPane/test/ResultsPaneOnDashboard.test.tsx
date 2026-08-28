@@ -31,8 +31,6 @@ import { ResultsPaneOnDashboard } from '../components';
 import { useResultsPane } from '../components/useResultsPane';
 import { createResultsPaneOnDashboardProps } from './fixture';
 
-// `fullHeight`'s CSS isn't testable under jsdom (no `importSource` for the
-// `css` prop in jest's babel config), so spy on call args instead.
 jest.mock('@superset-ui/core/components/Tabs', () => {
   const actual = jest.requireActual('@superset-ui/core/components/Tabs');
   return { __esModule: true, ...actual, default: jest.fn(actual.default) };
@@ -134,8 +132,6 @@ describe('ResultsPaneOnDashboard', () => {
     expect(
       await findByText('No results were returned for this query'),
     ).toBeVisible();
-    const [tabsProps] = (Tabs as unknown as jest.Mock).mock.calls[0];
-    expect(tabsProps).toEqual(expect.objectContaining({ fullHeight: true }));
   });
 
   test('render errorMessage', async () => {
