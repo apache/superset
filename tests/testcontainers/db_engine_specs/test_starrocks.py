@@ -24,9 +24,12 @@ brings up both the FE (query frontend, MySQL wire protocol on port 9030)
 and BE (execution backend) in a single container -- a heavier bring-up than
 a single-process database. `root` has no password by default and no
 database exists yet, so the fixture creates one itself before yielding an
-engine pointed at it, retrying that first connection since the FE's query
-port can accept TCP connections slightly before the query engine is fully
-initialized.
+engine pointed at it. The FE's query port accepts connections, and can even
+run metadata statements like CREATE DATABASE, before the BE has registered
+with it -- an actual CREATE TABLE/INSERT then fails with "Backend node not
+found" -- so the fixture retries a real create-table-and-insert probe
+against a throwaway table rather than trusting the open port or a bare
+CREATE DATABASE as a readiness signal.
 
 Not verified locally in this environment: the `allin1-ubuntu` image is
 multiple GB and was skipped here to keep local Docker resource usage low,
@@ -48,7 +51,6 @@ from sqlalchemy import (
     text,
 )
 from sqlalchemy.engine import Engine
-from sqlalchemy.exc import OperationalError
 
 from superset.db_engine_specs.starrocks import StarRocksEngineSpec
 from superset.sql.parse import Table
@@ -85,18 +87,33 @@ def engine() -> Iterator[Engine]:
             f"starrocks://root:@{host}:{port}/default_catalog.information_schema"
         )
 
-        last_error: OperationalError | None = None
-        for _ in range(30):
+        # The FE's query port accepts connections, and can even run metadata
+        # statements like CREATE DATABASE, before any BE (execution backend)
+        # has registered with it -- an actual table create/insert then fails
+        # with "Backend node not found". Probe with the real operations the
+        # tests below need, in a throwaway table, so readiness is confirmed
+        # for what actually matters rather than just the FE's own port.
+        last_error: Exception | None = None
+        for _ in range(60):
             try:
                 with bootstrap_engine.begin() as conn:
                     conn.execute(text(f"CREATE DATABASE IF NOT EXISTS {DBNAME}"))
+                probe_engine = create_engine(
+                    f"starrocks://root:@{host}:{port}/default_catalog.{DBNAME}"
+                )
+                with probe_engine.begin() as conn:
+                    conn.execute(
+                        text("CREATE TABLE IF NOT EXISTS pilot_ready (id INT)")
+                    )
+                    conn.execute(text("INSERT INTO pilot_ready VALUES (1)"))
+                    conn.execute(text("DROP TABLE pilot_ready"))
                 break
-            except OperationalError as ex:
+            except Exception as ex:  # noqa: BLE001 -- retry on any not-ready-yet error
                 last_error = ex
                 time.sleep(2)
         else:
             raise RuntimeError(
-                "StarRocks FE never became ready to create a database"
+                "StarRocks FE/BE never became ready to create and use a table"
             ) from last_error
 
         yield create_engine(f"starrocks://root:@{host}:{port}/default_catalog.{DBNAME}")
