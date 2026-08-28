@@ -50,11 +50,11 @@ function formatValue(
     return [false, 'N/A'];
   }
   if (formatter) {
-    // If formatter is a CurrencyFormatter, pass row context for AUTO mode
-    if (formatter instanceof CurrencyFormatter) {
-      return [false, formatter(value as number, rowData, currencyColumn)];
-    }
     try {
+      // If formatter is a CurrencyFormatter, pass row context for AUTO mode
+      if (formatter instanceof CurrencyFormatter) {
+        return [false, formatter(value as number, rowData, currencyColumn)];
+      }
       return [false, formatter(value as number)];
     } catch (e) {
       return [false, String(value)];
