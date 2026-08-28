@@ -1530,7 +1530,15 @@ def _stored_param_values(params: dict[str, Any], keys: tuple[str, ...]) -> set[s
 
 def _ensure_list(value: Any) -> list[Any]:
     """
-    Processing a scalar (string) for the `query_context` change check function.
+    Normalize a value to a list for iteration.
+
+    Some viz types (e.g. heatmap_v2's 'groupby' control) store a single
+    value as a bare string rather than a one-item list. Iterating a string
+    directly yields its individual characters, which silently breaks the
+    guest payload comparison for any such chart.
+
+    ``None`` returns ``[]``; a ``list``/``tuple`` returns a list copy of
+    it; any other (scalar) value is wrapped in a single-item list.
     """
     if value is None:
         return []
