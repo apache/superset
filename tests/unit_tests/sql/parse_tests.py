@@ -5578,6 +5578,20 @@ def test_parse_predicate_length_check() -> None:
         stmt.parse_predicate("x" * 101)
 
 
+def test_parse_predicate_invalid_sql_raises_superset_parse_error() -> None:
+    """
+    A syntactically invalid RLS predicate raises ``SupersetParseError``.
+
+    ``parse_predicate`` is reachable via ``apply_rls`` for any RLS clause
+    configured on a queried table; an invalid clause must surface as the
+    typed 422 parse error rather than leaking a raw ``sqlglot`` exception.
+    """
+    stmt = SQLStatement("SELECT 1", "postgresql")
+    with pytest.raises(SupersetParseError) as excinfo:
+        stmt.parse_predicate("a >")
+    assert excinfo.value.status == 422
+
+
 @pytest.mark.usefixtures("_small_parse_cap")
 def test_transpile_to_dialect_length_check() -> None:
     """
