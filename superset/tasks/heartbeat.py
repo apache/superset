@@ -21,7 +21,7 @@ from __future__ import annotations
 import logging
 import threading
 from contextlib import contextmanager
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Callable, Iterator, TYPE_CHECKING
 
 from superset.stats_logger import BaseStatsLogger
@@ -54,6 +54,11 @@ class HeartbeatController:
     def on_fence(self, callback: Callable[[], None]) -> None:
         """Register the callback invoked when the worker self-fences."""
         self._fence_callback = callback
+
+    def invoke_fence(self) -> None:
+        """Invoke the registered fence callback, if one has been registered."""
+        if self._fence_callback is not None:
+            self._fence_callback()
 
 
 @contextmanager
@@ -95,7 +100,10 @@ def task_heartbeat(  # noqa: C901
     # Absolute time by which a heartbeat must succeed or the worker self-fences.
     # Seeded optimistically so even a never-succeeding heartbeat fences after the
     # orphan window rather than running unbounded.
-    deadline = naive_utcnow() + timedelta(seconds=orphan_timeout)
+    def _new_deadline() -> datetime:
+        return naive_utcnow() + timedelta(seconds=orphan_timeout)
+
+    deadline = _new_deadline()
 
     def _write() -> bool:
         from superset.daos.tasks import TaskDAO
@@ -119,22 +127,21 @@ def task_heartbeat(  # noqa: C901
             task_id,
             orphan_timeout,
         )
-        if controller._fence_callback is not None:  # noqa: SLF001
-            try:
-                controller._fence_callback()  # noqa: SLF001
-            except Exception:  # noqa: BLE001 pylint: disable=broad-except
-                logger.exception("Self-fence callback failed for task id=%s", task_id)
+        try:
+            controller.invoke_fence()
+        except Exception:  # noqa: BLE001 pylint: disable=broad-except
+            logger.exception("Self-fence callback failed for task id=%s", task_id)
 
     # Initial stamp runs in the worker's existing app context.
     if _write():
-        deadline = naive_utcnow() + timedelta(seconds=orphan_timeout)
+        deadline = _new_deadline()
 
     def _beat() -> None:
         nonlocal deadline
         while not stop.wait(interval):
             with app.app_context():
                 if _write():
-                    deadline = naive_utcnow() + timedelta(seconds=orphan_timeout)
+                    deadline = _new_deadline()
                 elif naive_utcnow() >= deadline:
                     _fence()
                     return

@@ -685,6 +685,76 @@ class TestSelfFence:
             if ctx._abort_listener:
                 ctx.stop_abort_polling()
 
+    def test_self_fence_still_cancels_when_aborting_write_fails(
+        self, mock_flask_app, mock_task_abortable
+    ):
+        """Partition case: the ABORTING write raises, but handlers still run."""
+        with (
+            patch("superset.tasks.context.current_app") as mock_current_app,
+            patch("superset.daos.tasks.TaskDAO") as mock_dao,
+            patch(
+                "superset.commands.tasks.update.UpdateTaskCommand",
+                side_effect=RuntimeError("metastore unreachable"),
+            ),
+            patch(
+                "superset.coordination.base.CoordinationService.get_backend",
+                return_value=None,
+            ),
+        ):
+            mock_current_app.config = mock_flask_app.config
+            mock_current_app._get_current_object.return_value = mock_flask_app
+            mock_dao.find_one_or_none.return_value = mock_task_abortable
+
+            ctx = TaskContext(mock_task_abortable)
+            ctx._app = mock_flask_app
+
+            ran = MagicMock()
+            ctx.on_abort(ran)
+
+            # Must not raise even though the best-effort ABORTING write throws.
+            ctx.trigger_self_fence("lost contact")
+
+            # The whole point: the query-cancel handler still runs, and the task
+            # stays marked for FAILURE.
+            ran.assert_called_once()
+            assert ctx.fence_triggered is True
+
+            if ctx._abort_listener:
+                ctx.stop_abort_polling()
+
+    def test_self_fence_is_noop_after_execution_completed(
+        self, mock_flask_app, mock_task_abortable
+    ):
+        """A fence racing in after the body finished must not clobber the result."""
+        with (
+            patch("superset.tasks.context.current_app") as mock_current_app,
+            patch("superset.daos.tasks.TaskDAO") as mock_dao,
+            patch("superset.commands.tasks.update.UpdateTaskCommand") as update_cmd,
+            patch(
+                "superset.coordination.base.CoordinationService.get_backend",
+                return_value=None,
+            ),
+        ):
+            mock_current_app.config = mock_flask_app.config
+            mock_current_app._get_current_object.return_value = mock_flask_app
+            mock_dao.find_one_or_none.return_value = mock_task_abortable
+
+            ctx = TaskContext(mock_task_abortable)
+            ctx._app = mock_flask_app
+            ctx.mark_execution_completed()  # task body already finished
+
+            ran = MagicMock()
+            ctx.on_abort(ran)
+            ctx.trigger_self_fence("lost contact")
+
+            # No fence flag, no handlers, no ABORTING write => SUCCESS stands.
+            assert ctx.fence_triggered is False
+            ran.assert_not_called()
+            update_cmd.assert_not_called()
+
+            if ctx._abort_listener:
+                ctx.stop_abort_polling()
+
     def test_self_fence_without_abort_handler_does_not_raise(
         self, mock_flask_app, mock_task_not_abortable
     ):

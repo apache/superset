@@ -622,6 +622,16 @@ class TaskContext(CoreTaskContext):
         """Check if the worker self-fenced the task (lost metastore contact)."""
         return self._fence_triggered
 
+    @property
+    def aborting_in_flight(self) -> bool:
+        """True while an abort, timeout, or self-fence is being finalized.
+
+        The executor uses this to route the task through its finally block
+        (which commits the correct terminal state) instead of the normal
+        SUCCESS/FAILURE paths.
+        """
+        return self._abort_detected or self._timeout_triggered or self._fence_triggered
+
     def _abort_locally(self, error_message: str) -> None:
         """Transition to ABORTING and run abort handlers in the calling thread.
 
@@ -684,9 +694,11 @@ class TaskContext(CoreTaskContext):
         lets the worker stop promptly instead of running a query the reaper has
         already (or will shortly) mark FAILURE, avoiding wasted warehouse work.
         Marked as a fence (not a timeout or user abort) so the executor
-        finalizes it FAILURE. No-op if an abort is already underway.
+        finalizes it FAILURE. No-op if an abort is already underway or the task
+        work already finished (the latter guard mirrors ``_on_abort_detected`` so
+        a fence racing in after successful completion cannot clobber the result).
         """
-        if self._abort_detected:
+        if self._abort_detected or self._execution_completed:
             return
         self._fence_triggered = True
         self._abort_locally(error_message)

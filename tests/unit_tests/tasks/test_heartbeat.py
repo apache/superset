@@ -114,3 +114,26 @@ def test_heartbeat_does_not_fence_while_writes_succeed() -> None:
             time.sleep(0.1)  # allow several successful beats
 
     fence_callback.assert_not_called()
+
+
+def test_heartbeat_tolerates_intermittent_failures() -> None:
+    """A transient blip (fail then success) resets the deadline and does not fence."""
+    stats = MagicMock()
+    # Wide orphan window: a success every other beat keeps the deadline in the
+    # future, so the accumulated failures never reach it.
+    app = _mock_app(interval=0.02, stats=stats, orphan_timeout=30)
+    fence_callback = MagicMock()
+
+    # Alternate failure/success so a beat never fails repeatedly for long enough
+    # to span the 30s window; each success pushes the deadline back out.
+    fail_then_ok = [RuntimeError("blip"), None] * 20
+
+    with patch("superset.daos.tasks.TaskDAO.touch_heartbeat", side_effect=fail_then_ok):
+        with task_heartbeat(5, app) as heartbeat:
+            heartbeat.on_fence(fence_callback)
+            time.sleep(0.15)  # several fail/success cycles
+
+    fence_callback.assert_not_called()
+    # Both the failure and success metrics were exercised.
+    stats.incr.assert_any_call("gtf.task.heartbeat_failure")
+    stats.incr.assert_any_call("gtf.task.heartbeat")

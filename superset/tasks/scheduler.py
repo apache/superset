@@ -537,7 +537,7 @@ def _execute_task_body(  # noqa: C901
 
         # Determine terminal status based on abort detection
         # Use atomic conditional updates to prevent overwriting concurrent abort
-        if ctx._abort_detected or ctx.timeout_triggered or ctx.fence_triggered:
+        if ctx.aborting_in_flight:
             # Abort/timeout/self-fence detected - will be handled in finally block
             pass
         else:
@@ -573,7 +573,7 @@ def _execute_task_body(  # noqa: C901
         # That is a successful abort, not a failure: leave the task in ABORTING
         # so the finally block finalizes it as ABORTED/TIMED_OUT/FAILURE. Only a
         # genuine error (no abort in flight) transitions to FAILURE here.
-        if ctx._abort_detected or ctx.timeout_triggered or ctx.fence_triggered:  # noqa: SLF001
+        if ctx.aborting_in_flight:
             logger.info(
                 "Task %s (uuid=%s) raised while aborting; finalizing as aborted",
                 task_type,
