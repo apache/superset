@@ -140,6 +140,7 @@ class TestForcePurge(DeletionRetentionTestBase):
         assert self.exists(Slice, chart_id)
         row = db.session.query(PurgeAuditLog).filter_by(entity_uuid=chart_uuid).one()
         assert row.status == "blocked"
+        assert row.reason == "report_schedule"
         log_info.assert_called_once_with(
             "force_purge: blocked %s uuid=%s reason=%s",
             "chart",

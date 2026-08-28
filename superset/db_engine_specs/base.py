@@ -746,18 +746,18 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     @classmethod
     def encrypted_extra_sensitive_field_paths(cls) -> set[str]:
         """
-        Returns a set of paths for fields that should be masked in the
-        ``masked_encrypted_extra`` JSON.
+        Returns a set of JSONPath expressions for fields that should be masked
+        in the ``masked_encrypted_extra`` JSON.
 
-        :param cls: Description
-        :return: Description
-        :rtype: set[str]
+        The OAuth2 client secret is always included, since
+        ``Database.get_oauth2_config`` reads ``oauth2_client_info`` from the
+        ``encrypted_extra`` of any database regardless of its engine, so engine
+        specs that override ``encrypted_extra_sensitive_fields`` cannot
+        accidentally expose it.
         """
-        return (
-            set(cls.encrypted_extra_sensitive_fields)
-            if isinstance(cls.encrypted_extra_sensitive_fields, dict)
-            else cls.encrypted_extra_sensitive_fields
-        )
+        return set(cls.encrypted_extra_sensitive_fields) | {
+            "$.oauth2_client_info.secret"
+        }
 
     @classmethod
     def get_rls_method(cls) -> RLSMethod:
@@ -2870,7 +2870,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         corresponding entry is updated, otherwise the old value is used (see
         `unmask_encrypted_extra` below).
         """
-        if encrypted_extra is None or not cls.encrypted_extra_sensitive_fields:
+        if encrypted_extra is None:
             return encrypted_extra
 
         try:

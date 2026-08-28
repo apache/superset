@@ -427,6 +427,8 @@ def _find_and_authorize_dashboard(
         title="Add chart to dashboard",
         readOnlyHint=False,
         destructiveHint=False,
+        idempotentHint=False,
+        openWorldHint=False,
     ),
 )
 def add_chart_to_existing_dashboard(  # noqa: C901 — complexity is structural (layout traversal + multi-step authorization), not accidental
