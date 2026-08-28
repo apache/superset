@@ -26,6 +26,7 @@ from superset.commands.tasks.reap import ORPHAN_ERROR_MESSAGE, ReapOrphanedTasks
 from superset.utils import json
 
 TEST_UUID = UUID("b8b61b7b-1cd3-4a31-a74a-0a95341afc06")
+_UNSET = object()
 
 
 @contextmanager
@@ -89,3 +90,71 @@ def test_missing_celery_id_skips_revoke_but_still_reaps() -> None:
     assert reaped == 1
     celery.control.revoke.assert_not_called()
     publish.assert_called_once_with(TEST_UUID, TaskStatus.FAILURE.value)
+
+
+@contextmanager
+def _patched_with_handle(properties: str, database: object = _UNSET):
+    """Patch collaborators with a specific serialized `properties` blob."""
+    stats = MagicMock()
+    app = MagicMock()
+    app.config = {"STATS_LOGGER": stats, "GTF_ORPHAN_TASK_TIMEOUT": 60}
+    resolved_db = MagicMock() if database is _UNSET else database
+    with (
+        patch("superset.commands.tasks.reap.current_app", app),
+        patch("superset.commands.tasks.reap.db") as db,
+        patch("superset.daos.tasks.TaskDAO.find_orphaned", return_value=[TEST_UUID]),
+        patch(
+            "superset.daos.tasks.TaskDAO.conditional_status_update", return_value=True
+        ),
+        patch("superset.commands.tasks.reap.celery_app"),
+        patch("superset.tasks.manager.TaskManager.publish_completion"),
+        patch("superset.tasks.manager.TaskManager.publish_entity_change"),
+        patch("superset.tasks.query_cancel.cancel_chart_query") as cancel,
+    ):
+        db.session.query.return_value.filter.return_value.scalar.return_value = (
+            properties
+        )
+        db.session.get.return_value = resolved_db
+        yield cancel, resolved_db
+
+
+def test_orphaned_query_is_cancelled_when_handle_present() -> None:
+    """A persisted cancel handle → the reaper cancels the abandoned query."""
+    properties = json.dumps(
+        {"celery_task_id": "c1", "cancel_query_id": "42", "cancel_database_id": 7}
+    )
+    with _patched_with_handle(properties) as (cancel, database):
+        assert ReapOrphanedTasksCommand().run() == 1
+
+    cancel.assert_called_once_with(database, "42")
+
+
+def test_no_cancel_when_handle_absent() -> None:
+    """No cancel handle in properties → no query cancellation attempted."""
+    with _patched_with_handle(json.dumps({"celery_task_id": "c1"})) as (cancel, _db):
+        assert ReapOrphanedTasksCommand().run() == 1
+
+    cancel.assert_not_called()
+
+
+def test_no_cancel_when_database_missing() -> None:
+    """Handle present but the database is gone → skip cancel, still reap."""
+    properties = json.dumps({"cancel_query_id": "42", "cancel_database_id": 7})
+    with _patched_with_handle(properties, database=None) as (cancel, _db):
+        assert ReapOrphanedTasksCommand().run() == 1
+
+    cancel.assert_not_called()
+
+
+def test_reap_orphaned_tasks_beat_task_delegates_to_command() -> None:
+    """The reap_orphaned_tasks beat task runs the reaper (its own schedule)."""
+    from superset.tasks.scheduler import reap_orphaned_tasks
+
+    with (
+        patch("superset.tasks.scheduler.current_app") as app,
+        patch("superset.tasks.scheduler.ReapOrphanedTasksCommand") as cmd,
+    ):
+        app.config = {"STATS_LOGGER": MagicMock()}
+        reap_orphaned_tasks()
+
+    cmd.return_value.run.assert_called_once()

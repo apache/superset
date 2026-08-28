@@ -265,17 +265,27 @@ def prune_tasks(
             "retention period, please use `kwargs` instead."
         )
 
-    # Reap first: revoke + fail tasks abandoned by a dead/wedged worker so they
-    # reach a terminal state, then let the retention pass below delete old rows.
-    try:
-        ReapOrphanedTasksCommand().run()
-    except CommandException as ex:
-        logger.exception("An error occurred while reaping orphaned tasks: %s", ex)
-
     try:
         TaskPruneCommand(retention_period_days, max_rows_per_run).run()
     except CommandException as ex:
         logger.exception("An error occurred while pruning async tasks: %s", ex)
+
+
+@celery_app.task(name="reap_orphaned_tasks", bind=True)
+def reap_orphaned_tasks(self: Task, **kwargs: Any) -> None:
+    """Recover tasks abandoned by a worker that stopped refreshing its heartbeat.
+
+    Runs on its own (short) beat schedule, separate from ``prune_tasks``: reaping
+    wants to detect a dead worker — and cancel its warehouse query — promptly,
+    whereas the retention prune is a heavy, infrequent bulk delete.
+    """
+    stats_logger: BaseStatsLogger = current_app.config["STATS_LOGGER"]
+    stats_logger.incr("reap_orphaned_tasks")
+
+    try:
+        ReapOrphanedTasksCommand().run()
+    except CommandException as ex:
+        logger.exception("An error occurred while reaping orphaned tasks: %s", ex)
 
 
 @celery_app.task(name="prune_key_value", bind=True)

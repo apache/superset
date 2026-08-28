@@ -156,6 +156,11 @@ def _capture_query_cancellation(query_context: "QueryContext") -> Iterator[None]
             return
         captured = True
 
+        # Persist the handle so the orphan reaper can cancel the query if this
+        # worker dies. Set it before on_abort: registering the first handler
+        # flushes the whole property cache, persisting the handle in that write.
+        ctx.set_cancellation(database.id, cancel_id)
+
         # Registering the first abort handler marks the task abortable and starts
         # the abort listener; on abort it cancels the query on a fresh connection.
         def _cancel() -> None:

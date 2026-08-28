@@ -1844,13 +1844,20 @@ class CeleryConfig:  # pylint: disable=too-few-public-methods
         #     "schedule": crontab(minute="*", hour="*"),
         #     "kwargs": {"retention_period_days": 180, "max_rows_per_run": 10000},
         # },
-        # Uncomment to enable pruning of the tasks table. This job also reaps
-        # orphaned GTF tasks (abandoned by a dead worker) before deleting old
-        # rows, so run it on a short interval — reaping latency tracks this
-        # cadence, and an abandoned warehouse query keeps running until reaped.
+        # Uncomment to enable reaping of orphaned GTF tasks — active tasks whose
+        # worker died without finishing them. Runs on a short interval (reaping
+        # latency, incl. cancelling an abandoned warehouse query, tracks this
+        # cadence). Independent of prune_tasks below, which is a heavy retention
+        # delete better run infrequently.
+        # "reap_orphaned_tasks": {
+        #     "task": "reap_orphaned_tasks",
+        #     "schedule": crontab(minute="*", hour="*"),
+        # },
+        # Uncomment to enable pruning of the tasks table (retention delete of old
+        # terminal rows).
         # "prune_tasks": {
         #     "task": "prune_tasks",
-        #     "schedule": crontab(minute="*", hour="*"),
+        #     "schedule": crontab(minute=0, hour=0),
         #     "kwargs": {"retention_period_days": 90, "max_rows_per_run": 10000},
         # },
         # Uncomment to enable pruning of expired entries from the key-value store
@@ -3247,18 +3254,19 @@ TASK_ABORT_POLLING_DEFAULT_INTERVAL = 10
 TASK_PROGRESS_UPDATE_THROTTLE_INTERVAL = 2  # seconds
 
 # GTF worker-liveness heartbeat. While a worker holds a task it bumps
-# tasks.last_heartbeat every GTF_TASK_HEARTBEAT_INTERVAL seconds. The prune cron
-# (prune_tasks) reaps any ACTIVE task whose heartbeat is older than
-# GTF_ORPHAN_TASK_TIMEOUT — a worker that died mid-execution — by marking it
-# FAILURE (releasing waiters) and revoking its Celery job. A task still being
-# worked on keeps a fresh heartbeat and is left to its own cooperative abort, so
-# reaping never interferes with a live worker. As the worker-side complement, a
-# worker whose heartbeat writes keep failing for this same window (cut off from
-# the metastore though still alive) self-fences: it fails the task from the
-# inside, cancelling any in-flight query, rather than run work the reaper has
-# already given up on. Keep the timeout comfortably larger than the interval
-# (>= ~3x) so a brief GC pause or CPU-bound stretch does not look like a dead
-# worker. Reaping only runs when the prune_tasks beat schedule is enabled (see
+# tasks.last_heartbeat every GTF_TASK_HEARTBEAT_INTERVAL seconds. The
+# reap_orphaned_tasks beat job reaps any ACTIVE task whose heartbeat is older
+# than GTF_ORPHAN_TASK_TIMEOUT — a worker that died mid-execution — by marking it
+# FAILURE (releasing waiters), revoking its Celery job, and, on engines that
+# support it, cancelling the abandoned warehouse query. A task still being worked
+# on keeps a fresh heartbeat and is left to its own cooperative abort, so reaping
+# never interferes with a live worker. As the worker-side complement, a worker
+# whose heartbeat writes keep failing for this same window (cut off from the
+# metastore though still alive) self-fences: it fails the task from the inside,
+# cancelling any in-flight query, rather than run work the reaper has already
+# given up on. Keep the timeout comfortably larger than the interval (>= ~3x) so
+# a brief GC pause or CPU-bound stretch does not look like a dead worker. Reaping
+# only runs when the reap_orphaned_tasks beat schedule is enabled (see
 # CELERY_CONFIG.beat_schedule).
 GTF_TASK_HEARTBEAT_INTERVAL = 15  # seconds
 GTF_ORPHAN_TASK_TIMEOUT = 60  # seconds

@@ -27,7 +27,15 @@ from superset.models.tasks import Task
 from superset.tasks.utils import naive_utcnow
 
 
-def _make_task(admin, key, status, *, heartbeat_offset=None, celery_task_id=None):
+def _make_task(
+    admin,
+    key,
+    status,
+    *,
+    heartbeat_offset=None,
+    celery_task_id=None,
+    cancel_handle=None,
+):
     """Create a task in a given state with an optional heartbeat age (seconds)."""
     task = TaskDAO.create_task(
         task_type="test_type",
@@ -41,6 +49,11 @@ def _make_task(admin, key, status, *, heartbeat_offset=None, celery_task_id=None
         task.last_heartbeat = naive_utcnow() - timedelta(seconds=heartbeat_offset)
     if celery_task_id is not None:
         task.update_properties({"celery_task_id": celery_task_id})
+    if cancel_handle is not None:
+        database_id, cancel_query_id = cancel_handle
+        task.update_properties(
+            {"cancel_database_id": database_id, "cancel_query_id": cancel_query_id}
+        )
     db.session.commit()
     return task
 
@@ -116,5 +129,39 @@ def test_reap_marks_orphan_failed_and_revokes(app_context, get_user, login_as) -
         assert orphan.status == TaskStatus.FAILURE.value
         assert orphan.ended_at is not None
         assert orphan.properties_dict["error_message"] == ORPHAN_ERROR_MESSAGE
+    finally:
+        _cleanup(orphan)
+
+
+def test_reap_cancels_orphaned_query_when_handle_present(
+    app_context, get_user, login_as
+) -> None:
+    """A reaped orphan with a persisted cancel handle → the query is cancelled."""
+    from superset.models.core import Database
+
+    login_as("admin")
+    admin = get_user("admin")
+    database = db.session.query(Database).first()
+    assert database is not None
+    orphan = _make_task(
+        admin,
+        "orphan_with_query",
+        TaskStatus.IN_PROGRESS,
+        heartbeat_offset=600,
+        cancel_handle=(database.id, "backend-pid-42"),
+    )
+    try:
+        with (
+            patch("superset.commands.tasks.reap.celery_app"),
+            patch("superset.tasks.query_cancel.cancel_chart_query") as cancel,
+        ):
+            ReapOrphanedTasksCommand().run()
+
+        cancel.assert_called_once()
+        called_db, called_id = cancel.call_args.args
+        assert called_db.id == database.id
+        assert called_id == "backend-pid-42"
+        db.session.refresh(orphan)
+        assert orphan.status == TaskStatus.FAILURE.value
     finally:
         _cleanup(orphan)
