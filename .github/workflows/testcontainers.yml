@@ -9,6 +9,13 @@ name: Testcontainers
 # just from Superset's changes) and on pull_request, scoped via `paths` to
 # only PRs that actually touch this test suite or the workflow itself, so
 # unrelated PRs across the repo are never affected.
+#
+# A matrix entry can set `nightly_only: true` to run only on the cron (or a
+# manual workflow_dispatch), never on pull_request -- for a dialect whose
+# image is too heavy (a multi-service cluster, a many-GB image, a slow
+# licensed installer) to justify adding its wall-clock/resource cost to
+# every PR that merely touches this suite. Omit the field entirely for a
+# normal dialect; it isn't nightly-only by default.
 permissions:
   contents: read
 
@@ -35,6 +42,15 @@ concurrency:
 jobs:
   testcontainers:
     runs-on: ubuntu-26.04
+    # Matrix expansion happens before this is evaluated, so `matrix` here is
+    # this specific dialect's own entry, not the whole list -- a dialect
+    # without `nightly_only` set evaluates the left side true (unset is
+    # null, and `null != true` is true) and always runs; one WITH it set
+    # only runs on the cron or a manual dispatch, never on pull_request.
+    if: >-
+      matrix.nightly_only != true ||
+      github.event_name == 'schedule' ||
+      github.event_name == 'workflow_dispatch'
     strategy:
       fail-fast: false
       matrix:
