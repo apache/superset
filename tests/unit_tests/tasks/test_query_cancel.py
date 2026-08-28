@@ -152,6 +152,11 @@ def test_capture_registers_abort_handler_once_when_id_available() -> None:
             sink(MagicMock())  # second cursor -> no double registration
 
     ctx.on_abort.assert_called_once()
+    # The handle is persisted (for the orphan reaper) before on_abort, whose
+    # write flushes it — assert both the call and the ordering.
+    ctx.set_cancellation.assert_called_once_with(qc.datasource.database.id, "42")
+    ordered = [c[0] for c in ctx.method_calls]
+    assert ordered.index("set_cancellation") < ordered.index("on_abort")
 
 
 def test_capture_skips_abort_handler_when_engine_has_no_cancel_id() -> None:
@@ -169,6 +174,25 @@ def test_capture_skips_abort_handler_when_engine_has_no_cancel_id() -> None:
             sink(MagicMock())
 
     ctx.on_abort.assert_not_called()
+    ctx.set_cancellation.assert_not_called()
+
+
+def test_task_context_set_cancellation_merges_into_properties_cache() -> None:
+    from superset.tasks.context import TaskContext
+
+    task = MagicMock()
+    task.uuid = "u"
+    task.properties_dict = {"is_abortable": False}
+    task.payload_dict = {}
+    ctx = TaskContext(task)
+
+    ctx.set_cancellation(7, "42")
+
+    # Merged into the cache (no write); a later _set_abortable flush persists them
+    # together, and existing cached keys are preserved.
+    assert ctx._properties_cache["cancel_database_id"] == 7
+    assert ctx._properties_cache["cancel_query_id"] == "42"
+    assert ctx._properties_cache["is_abortable"] is False
 
 
 def test_capture_is_noop_without_a_database() -> None:

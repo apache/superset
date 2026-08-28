@@ -88,6 +88,13 @@ class TaskProperties(TypedDict, total=False):
     exception_type: str
     stack_trace: str
 
+    # Recovery handles used by the orphan reaper (see superset.commands.tasks.reap):
+    # the Celery job id to revoke, and the engine cancel handle for the running
+    # warehouse query so it can be cancelled out-of-band when the worker is dead.
+    celery_task_id: str
+    cancel_query_id: str
+    cancel_database_id: int
+
 
 @dataclass(frozen=True)
 class TaskOptions:
