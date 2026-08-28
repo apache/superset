@@ -17,7 +17,7 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
-import { screen, userEvent } from 'spec/helpers/testing-library';
+import { screen, userEvent, within } from 'spec/helpers/testing-library';
 import { Constants } from '@superset-ui/core/components';
 import { isCountExpression, isPercentD3Format } from '../DatasourceEditor';
 import {
@@ -40,6 +40,19 @@ afterEach(async () => {
 });
 
 const WARNING_TEXT = /D3 format is a percentage/i;
+
+// Selecting the expand toggle by its position in the list is brittle: any
+// change to the fixture or the table's sort order would expand a different
+// row and negative assertions would keep passing against the wrong metric.
+// Look up the toggle via the row that actually contains the metric name.
+const expandMetricRow = async (metricName: string) => {
+  const nameCell = await screen.findByText(metricName);
+  const row = nameCell.closest('tr');
+  if (!row) {
+    throw new Error(`Could not find a table row for metric "${metricName}"`);
+  }
+  await userEvent.click(within(row).getByLabelText(/expand row/i));
+};
 
 // Negative assertions must wait past TextControl's debounce, or they pass
 // before the value even commits.
@@ -77,9 +90,7 @@ test('warns when a percent D3 format is set on a COUNT metric', async () => {
   await dismissDatasourceWarning();
 
   await userEvent.click(await screen.findByTestId('collection-tab-Metrics'));
-  const expandToggles = await screen.findAllByLabelText(/expand row/i);
-  // Rows sort by metric id descending, so `COUNT(*)` (id 7) is first.
-  await userEvent.click(expandToggles[0]);
+  await expandMetricRow('count');
 
   expect(screen.queryByText(WARNING_TEXT)).not.toBeInTheDocument();
 
@@ -94,8 +105,7 @@ test('does not warn for a non-percent format on a COUNT metric', async () => {
   await dismissDatasourceWarning();
 
   await userEvent.click(await screen.findByTestId('collection-tab-Metrics'));
-  const expandToggles = await screen.findAllByLabelText(/expand row/i);
-  await userEvent.click(expandToggles[0]);
+  await expandMetricRow('count');
 
   await userEvent.type(await screen.findByPlaceholderText('%y/%m/%d'), ',.0f');
 
@@ -109,9 +119,7 @@ test('does not warn for a percent format on a non-COUNT metric', async () => {
   await dismissDatasourceWarning();
 
   await userEvent.click(await screen.findByTestId('collection-tab-Metrics'));
-  const expandToggles = await screen.findAllByLabelText(/expand row/i);
-  // Rows sort by metric id descending, so id 1 (`SUM(...)`) sorts last.
-  await userEvent.click(expandToggles[6]);
+  await expandMetricRow('sum__num');
 
   await userEvent.type(await screen.findByPlaceholderText('%y/%m/%d'), '.0%');
 
@@ -142,9 +150,7 @@ test('does not warn for a ratio built from COUNT, e.g. COUNT(*) / COUNT(*)', asy
   await dismissDatasourceWarning();
 
   await userEvent.click(await screen.findByTestId('collection-tab-Metrics'));
-  const expandToggles = await screen.findAllByLabelText(/expand row/i);
-  // The appended metric (id 99) sorts first.
-  await userEvent.click(expandToggles[0]);
+  await expandMetricRow('ratio');
 
   await userEvent.type(await screen.findByPlaceholderText('%y/%m/%d'), '.0%');
 
@@ -158,8 +164,7 @@ test('does not warn for a garbage format string that merely ends in %', async ()
   await dismissDatasourceWarning();
 
   await userEvent.click(await screen.findByTestId('collection-tab-Metrics'));
-  const expandToggles = await screen.findAllByLabelText(/expand row/i);
-  await userEvent.click(expandToggles[0]);
+  await expandMetricRow('count');
 
   await userEvent.type(await screen.findByPlaceholderText('%y/%m/%d'), 'foo%');
 
