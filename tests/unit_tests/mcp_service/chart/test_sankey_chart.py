@@ -22,9 +22,13 @@ contract for viz_type ``sankey_v2`` — a ``source`` and ``target`` column plus
 one ``metric`` weighting each edge), and registry integration.
 """
 
+from typing import Any
+
 import pytest
 from pydantic import TypeAdapter, ValidationError
 
+from superset.common.form_data_query_context import columns_from_form_data
+from superset.mcp_service.chart.chart_helpers import resolve_groupby
 from superset.mcp_service.chart.chart_utils import map_sankey_config
 from superset.mcp_service.chart.schemas import ChartConfig, SankeyChartConfig
 
@@ -109,6 +113,7 @@ class TestMapSankeyConfig:
         assert form_data["viz_type"] == "sankey_v2"
         assert form_data["source"] == "from_stage"
         assert form_data["target"] == "to_stage"
+        assert form_data["groupby"] == ["from_stage", "to_stage"]
         assert form_data["metric"]["label"] == "SUM(users)"
         assert form_data["sort_by_metric"] is True
 
@@ -133,6 +138,40 @@ class TestMapSankeyConfig:
             metric={"name": "flow_volume", "saved_metric": True},
         )
         assert map_sankey_config(config)["metric"] == "flow_volume"
+
+
+class TestSankeySourceTargetReachQueryBuilders:
+    """The emitted form_data must group by the edge's node columns.
+
+    ``source``/``target`` are the frontend Sankey buildQuery field names; the
+    backend query builders derive grouping columns from ``groupby`` and have no
+    alias for them (unlike ``entity``/``series``). Without an explicit
+    ``groupby`` the query aggregates the whole dataset into a single row instead
+    of one row per edge, so assert against the real consumers rather than the
+    emitted key alone.
+    """
+
+    @staticmethod
+    def _form_data() -> dict[str, Any]:
+        return map_sankey_config(
+            SankeyChartConfig(
+                chart_type="sankey_v2",
+                source={"name": "from_stage"},
+                target={"name": "to_stage"},
+                metric={"name": "users", "aggregate": "SUM"},
+            )
+        )
+
+    def test_resolve_groupby_returns_the_node_columns(self) -> None:
+        """The ``get_chart_data`` path groups by source and target."""
+        assert resolve_groupby(self._form_data()) == ["from_stage", "to_stage"]
+
+    def test_columns_from_form_data_returns_the_node_columns(self) -> None:
+        """The chart-preview path groups by source and target."""
+        assert columns_from_form_data(self._form_data()) == [
+            "from_stage",
+            "to_stage",
+        ]
 
 
 class TestSankeyPluginRegistry:

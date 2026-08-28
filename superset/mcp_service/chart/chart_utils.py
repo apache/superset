@@ -1052,11 +1052,20 @@ def map_sankey_config(config: SankeyChartConfig) -> Dict[str, Any]:
     ``target`` column form the edges (the query groups by both) and one
     ``metric`` weights each edge. When ``sort_by_metric`` is set the query
     orders by the metric descending.
+
+    ``source`` and ``target`` are the control names the frontend reads, and
+    ``buildQuery`` derives ``groupby = [source, target]`` from them. The MCP
+    path does not run ``buildQuery``, and the backend builders resolve grouping
+    columns from ``groupby`` alone, carrying aliases for ``entity`` and
+    ``series`` but none for ``source``/``target``. Emit ``groupby`` explicitly,
+    as every sibling mapper does, or the query groups by nothing and collapses
+    every edge into a single aggregate row.
     """
     form_data: Dict[str, Any] = {
         "viz_type": "sankey_v2",
         "source": config.source.name,
         "target": config.target.name,
+        "groupby": [config.source.name, config.target.name],
         "metric": create_metric_object(config.metric),
         "sort_by_metric": config.sort_by_metric,
         "row_limit": config.row_limit,
