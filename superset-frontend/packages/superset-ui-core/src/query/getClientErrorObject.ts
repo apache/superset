@@ -119,6 +119,20 @@ export function retrieveErrorMessage(
   return statusError || parseStringResponse(str);
 }
 
+function getFirstValidationError(message: JsonObject): string | undefined {
+  const [firstError] = Object.values(message);
+
+  if (typeof firstError === 'string') {
+    return firstError;
+  }
+
+  if (Array.isArray(firstError)) {
+    return firstError.find((item): item is string => typeof item === 'string');
+  }
+
+  return undefined;
+}
+
 export function parseErrorJson(responseJson: JsonObject): ClientErrorObject {
   let error = { ...responseJson };
   // Backwards compatibility for old error renderers with the new error object
@@ -126,17 +140,12 @@ export function parseErrorJson(responseJson: JsonObject): ClientErrorObject {
     error.error = error.description = error.errors[0].message;
     error.link = error.errors[0]?.extra?.link;
   }
-  // Marshmallow field validation returns { field1: [msg1, msg2], ... },
-  // but some validators attach a bare string instead of a list.
+  // Marshmallow field validation returns arrays for string messages, but
+  // serializes lazy translation messages as strings instead.
   if (!error.error && error.message) {
     if (typeof error.message === 'object') {
-      const firstFieldMessage = Object.values(
-        error.message as Record<string, string[] | string>,
-      )[0];
       error.error =
-        (Array.isArray(firstFieldMessage)
-          ? firstFieldMessage[0]
-          : firstFieldMessage) || t('Invalid input');
+        getFirstValidationError(error.message) || t('Invalid input');
     }
     if (typeof error.message === 'string') {
       if (checkForHtml(error.message)) {

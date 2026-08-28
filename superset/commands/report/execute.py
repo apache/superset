@@ -1620,6 +1620,9 @@ class BaseReportState:
         (caller should ``return`` without re-raising), or False if the caller
         should fall through to its own error handling path.
         """
+        if not feature_flag_manager.is_feature_enabled("ALERT_REPORTS_RETRY"):
+            return False
+
         retry_on_failure: bool = self._report_schedule.retry_on_failure
         if not retry_on_failure:
             return False
@@ -1735,7 +1738,8 @@ class ReportNotTriggeredErrorState(BaseReportState):
         # retry delay, consider the retry chain dead and let the new window
         # proceed (e.g., apply_async failed after committing RETRYING).
         if (
-            self._report_schedule.last_state == ReportState.RETRYING
+            feature_flag_manager.is_feature_enabled("ALERT_REPORTS_RETRY")
+            and self._report_schedule.last_state == ReportState.RETRYING
             and self._is_retry_window_stale()
         ):
             max_delay: int = app.config.get(
@@ -1767,6 +1771,8 @@ class ReportNotTriggeredErrorState(BaseReportState):
                     return
             self.send()
             # Clear any retry state from previous failed attempts in this window.
+            # Always reset on success regardless of feature flag — prevents
+            # stale counters from being reused if the flag is later re-enabled.
             self._reset_retry_counter()
             warning_message = (
                 ";".join(self._execution_warnings) if self._execution_warnings else None
@@ -2056,7 +2062,8 @@ class ReportSuccessState(BaseReportState):
             raise
 
         # send() succeeded — clear retry state and log success. Any execution
-        # warnings are incorporated by create_log().
+        # warnings are incorporated by create_log(). Always reset regardless
+        # of feature flag to prevent stale counters.
         self._reset_retry_counter()
         self.update_report_schedule_and_log(ReportState.SUCCESS, error_message=None)
 
