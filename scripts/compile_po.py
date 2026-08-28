@@ -122,6 +122,7 @@ def compile_translations() -> int:  # noqa: C901
             "compile",
             "-d",
             translations_dir,
+            "--use-fuzzy",
         ],
         cwd=root_dir,
     )
