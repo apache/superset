@@ -343,6 +343,16 @@ def test_convert_dttm(
         ),
         (
             [["1.846619834", "abc"]],
+            [("dec", "decimal(12)"), ("str", "varchar(3)")],
+            [(Decimal("1.846619834"), "abc")],
+        ),
+        (
+            [["1.846619834", "abc"]],
+            [("dec", "decimal"), ("str", "varchar(3)")],
+            [(Decimal("1.846619834"), "abc")],
+        ),
+        (
+            [["1.846619834", "abc"]],
             [("dec", "varchar(255)"), ("str", "varchar(3)")],
             [["1.846619834", "abc"]],
         ),
