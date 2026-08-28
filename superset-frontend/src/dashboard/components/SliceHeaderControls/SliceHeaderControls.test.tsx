@@ -204,6 +204,30 @@ test('Injects nothing when dashboard.slice.header.menu returns no items', () => 
   expect(screen.getByText('Force refresh')).toBeInTheDocument();
 });
 
+test('Menu survives a dashboard.slice.header.menu extension that throws', () => {
+  getExtensionsRegistry().set('dashboard.slice.header.menu', () => {
+    throw new Error('boom');
+  });
+  renderWrapper();
+  openMenu();
+
+  // The throw is isolated: the built-in menu still renders.
+  expect(screen.getByText('Force refresh')).toBeInTheDocument();
+  expect(screen.getByText('Enter fullscreen')).toBeInTheDocument();
+});
+
+test('Injects nothing when the extension returns a non-array', () => {
+  getExtensionsRegistry().set(
+    'dashboard.slice.header.menu',
+    // JS registrations bypass the MenuItem[] type; a bad return must not crash.
+    (() => undefined) as never,
+  );
+  renderWrapper();
+  openMenu();
+
+  expect(screen.getByText('Force refresh')).toBeInTheDocument();
+});
+
 test('Should render default props', () => {
   const props = createProps();
 
