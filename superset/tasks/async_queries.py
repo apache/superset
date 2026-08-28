@@ -17,10 +17,12 @@
 from __future__ import annotations
 
 import logging
+from contextlib import contextmanager
 from datetime import datetime
-from typing import Any, TYPE_CHECKING
+from typing import Any, Iterator, TYPE_CHECKING
 from uuid import UUID
 
+from flask import current_app
 from flask_appbuilder.security.sqla.models import User
 from superset_core.tasks.types import TaskOptions, TaskScope
 
@@ -36,6 +38,11 @@ from superset.extensions import (
 )
 from superset.tasks.ambient_context import get_context
 from superset.tasks.decorators import task
+from superset.tasks.query_cancel import (
+    cancel_chart_query,
+    capture_cancel_id,
+    capture_cancel_query_id,
+)
 from superset.utils.core import override_user
 
 if TYPE_CHECKING:
@@ -120,10 +127,46 @@ def _get_dependency_cache_key() -> str:
     raise SupersetException("Prerequisite task did not publish a cache key")
 
 
-# No timeout is set on these tasks yet: GTF enforces a timeout by aborting the
-# task, but chart-data queries have no abort handler to cancel the underlying
-# warehouse query, so a timeout would only mark the task failed while the query
-# kept running. Restore a timeout once query cancellation is implemented.
+@contextmanager
+def _capture_query_cancellation(query_context: "QueryContext") -> Iterator[None]:
+    """Enable engine-level cancellation of this task's warehouse query.
+
+    Captures the engine cancel id off the live cursor (for engines that expose
+    one before execution) and registers an abort handler that kills the backend
+    session over a fresh connection, unblocking the task's ``get_df``. Engines
+    without cancel support capture nothing and the task stays non-abortable, so
+    an abort/timeout simply frees the task without killing the (uncancellable)
+    query — matching the pre-cancellation behavior for those engines.
+    """
+    database = getattr(query_context.datasource, "database", None)
+    if database is None:
+        yield
+        return
+
+    ctx = get_context()
+    app = current_app._get_current_object()  # noqa: SLF001
+    captured = False
+
+    def _sink(cursor: Any) -> None:
+        nonlocal captured
+        if captured:
+            return
+        cancel_id = capture_cancel_query_id(database, cursor)
+        if cancel_id is None:
+            return
+        captured = True
+
+        # Registering the first abort handler marks the task abortable and starts
+        # the abort listener; on abort it cancels the query on a fresh connection.
+        def _cancel() -> None:
+            cancel_chart_query(database, cancel_id, app)
+
+        ctx.on_abort(_cancel)
+
+    with capture_cancel_id(_sink):
+        yield
+
+
 @task(name=CHART_QUERY_TASK, scope=TaskScope.SHARED)
 def execute_chart_query(
     serialized_query: SerializedQuery,
@@ -136,7 +179,8 @@ def execute_chart_query(
     The atomic async unit: reconstruct the one query (canonical serialization),
     optionally inject contribution totals from a prerequisite totals task, then run
     the existing per-query execution/caching path so a re-request reads the same
-    DATA-cache entry.
+    DATA-cache entry. The query runs under ``_capture_query_cancellation`` so an
+    abort/timeout can cancel it on engines that support query cancellation.
     """
     with override_user(_resolve_user(user_id, guest_token), force=False):
         query_context = load_serialized_query(serialized_query)
@@ -147,7 +191,8 @@ def execute_chart_query(
         if requires_totals:
             _inject_contribution_totals(query_obj, _get_dependency_cache_key())
         # Executes on cache miss and writes CacheRegion.DATA under query_cache_key.
-        result = query_context.get_df_payload_result(query_obj)
+        with _capture_query_cancellation(query_context):
+            result = query_context.get_df_payload_result(query_obj)
         if cache_key := result.payload.get(CACHE_KEY_PAYLOAD_KEY):
             # Write synchronously: a dependent contribution query reads this
             # cache key via get_dependency_payloads once the DAG gate releases,
@@ -253,6 +298,10 @@ def submit_chart_data_query_tasks(
                 task_key=query_cache_keys[index],
                 task_name=_task_name(index),
                 depends_on=depends_on,
+                # Abort the query after this many seconds; for cancellable
+                # engines the abort handler kills the warehouse query too.
+                # None (default) leaves it unbounded.
+                timeout=current_app.config.get("GLOBAL_ASYNC_QUERIES_QUERY_TIMEOUT"),
             ),
         )
 

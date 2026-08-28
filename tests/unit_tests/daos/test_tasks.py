@@ -111,7 +111,7 @@ def test_find_by_task_key_active(session_with_task: Session) -> None:
     assert result.task_type == TEST_TASK_TYPE
     assert result.status == TaskStatus.PENDING.value
     # A task with no declared prerequisites has empty dependencies
-    assert result.dependencies == []
+    assert result.depends_on == []
 
 
 def test_find_one_or_none_refreshes_stale_task(session_with_task: Session) -> None:
@@ -620,7 +620,7 @@ def test_conditional_status_update_terminal_state_updates_dedup_key(
 
 
 def test_add_dependencies_bulk_inserts_edges(session_with_task: Session) -> None:
-    """add_dependencies bulk-inserts edges; Task.dependencies resolves them."""
+    """add_dependencies bulk-inserts edges; Task.depends_on resolves them."""
     from superset.daos.tasks import TaskDAO
 
     parent1 = create_task(session_with_task, task_key="parent1")
@@ -629,11 +629,11 @@ def test_add_dependencies_bulk_inserts_edges(session_with_task: Session) -> None
 
     TaskDAO.add_dependencies(child.id, [parent1.id, parent2.id])
 
-    # Task.dependencies resolves to the prerequisite Task entities
+    # Task.depends_on resolves to the prerequisite Task entities
     session_with_task.refresh(child)
-    assert {t.id for t in child.dependencies} == {parent1.id, parent2.id}
+    assert {t.id for t in child.depends_on} == {parent1.id, parent2.id}
     # Prerequisites themselves have no dependencies
-    assert parent1.dependencies == []
+    assert parent1.depends_on == []
 
 
 def test_add_dependencies_empty_is_noop(session_with_task: Session) -> None:
@@ -643,7 +643,7 @@ def test_add_dependencies_empty_is_noop(session_with_task: Session) -> None:
     task = create_task(session_with_task, task_key="lonely")
     TaskDAO.add_dependencies(task.id, [])
     session_with_task.refresh(task)
-    assert task.dependencies == []
+    assert task.depends_on == []
 
 
 def test_get_statuses_changed_since_baseline_returns_no_statuses(
@@ -661,7 +661,10 @@ def test_get_statuses_changed_since_baseline_returns_no_statuses(
     statuses, cursor = TaskDAO.get_statuses_changed_since(None)
 
     assert statuses == {}
-    assert cursor >= before
+    # The cursor is floored to whole seconds (metastore datetime precision, e.g.
+    # MySQL DATETIME), so compare against a floored baseline.
+    assert cursor.microsecond == 0
+    assert cursor >= before.replace(microsecond=0)
 
 
 def test_get_statuses_changed_since_redelivers_task_on_the_cursor_boundary(

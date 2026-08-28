@@ -23,7 +23,7 @@ import {
   SupersetClient,
 } from '@superset-ui/core';
 import { useTheme, css } from '@apache-superset/core/theme';
-import { t } from '@apache-superset/core/translation';
+import { t, tn } from '@apache-superset/core/translation';
 import { useMemo, useCallback, useState } from 'react';
 import { useSelector } from 'react-redux';
 import {
@@ -144,6 +144,12 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
   // State for cancel confirmation modal
   const [cancelModalTask, setCancelModalTask] = useState<Task | null>(null);
   const [forceCancel, setForceCancel] = useState(false);
+
+  // UUIDs of the prerequisite tasks to highlight while a "Depends on" popover is
+  // open, so the user can spot which visible rows this task waits on.
+  const [highlightedDeps, setHighlightedDeps] = useState<Set<string>>(
+    () => new Set(),
+  );
 
   // Determine dialog message based on task context
   const getCancelDialogMessage = useCallback((task: Task) => {
@@ -439,14 +445,14 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
       {
         Cell: ({
           row: {
-            original: { payload, properties, status, depends_on },
+            original: { payload, properties, status, depends_on, required_by },
           },
         }: TaskCellProps) => {
           const hasPayload = payload && Object.keys(payload).length > 0;
           const hasStackTrace = !!properties?.stack_trace;
-          const hasDependencies = !!depends_on && depends_on.length > 0;
+          const hasDependsOn = !!depends_on && depends_on.length > 0;
+          const hasRequiredBy = !!required_by && required_by.length > 0;
           const dedupeCount = properties?.dedupe_count ?? 0;
-          const hasDedupe = dedupeCount > 0;
 
           // Show warning if timeout is set but no abort handler during execution
           // Only show for IN_PROGRESS (abort handler registers at runtime, not during PENDING)
@@ -459,16 +465,17 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
             !hasPayload &&
             !hasStackTrace &&
             !hasTimeoutWithoutHandler &&
-            !hasDependencies &&
-            !hasDedupe
+            !hasDependsOn &&
+            !hasRequiredBy &&
+            !dedupeCount
           ) {
             return null;
           }
 
           // "Waiting on N" surfaces the block-and-wait gate: a PENDING task
           // parked until its unmet (non-SUCCESS) prerequisites finish. Folded
-          // into the dependency chain icon (warning color + popover title).
-          const unmet = hasDependencies
+          // into the dependency icon (warning color + popover title).
+          const unmet = hasDependsOn
             ? depends_on.filter(dep => dep.status !== TaskStatus.Success).length
             : 0;
           const waitingOn =
@@ -497,25 +504,43 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
               {hasStackTrace && properties.stack_trace && (
                 <TaskStackTracePopover stackTrace={properties.stack_trace} />
               )}
-              {hasDependencies && (
+              {(hasDependsOn || hasRequiredBy) && (
                 <TaskDependenciesPopover
-                  dependencies={depends_on}
+                  dependsOn={depends_on ?? []}
+                  requiredBy={required_by ?? []}
                   waitingOn={waitingOn}
+                  onHoverChange={hovering =>
+                    setHighlightedDeps(
+                      hovering
+                        ? new Set(
+                            [...(depends_on ?? []), ...(required_by ?? [])].map(
+                              dep => dep.uuid,
+                            ),
+                          )
+                        : new Set(),
+                    )
+                  }
                 />
               )}
-              {hasDedupe && (
+              {dedupeCount > 0 && (
                 <Tooltip
-                  title={t(
-                    'Deduplicated %s time(s): other submissions reused this ' +
-                      "task's result instead of running a new query.",
+                  title={tn(
+                    'Reused by 1 other submission',
+                    'Reused by %s other submissions',
+                    dedupeCount,
                     dedupeCount,
                   )}
                   placement="top"
                 >
-                  <Flex component="span" align="center" gap={theme.sizeUnit}>
-                    <Icons.PlusOutlined iconSize="l" />
-                    {dedupeCount}
-                  </Flex>
+                  {/* Wrap in a span: Tooltip needs a ref-able DOM node, and the
+                      Flex wrapper is a function component that does not forward
+                      refs (mirrors the warning Tooltip above). */}
+                  <span>
+                    <Flex component="span" align="center" gap={theme.sizeUnit}>
+                      <Icons.PlusOutlined iconSize="l" />
+                      {dedupeCount}
+                    </Flex>
+                  </span>
                 </Tooltip>
               )}
             </Flex>
@@ -700,6 +725,7 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
         filters={filters}
         initialSort={initialSort}
         loading={loading}
+        isRowHighlighted={record => highlightedDeps.has(record.uuid as string)}
         pageSize={PAGE_SIZE}
         refreshData={refreshData}
         addDangerToast={addDangerToast}

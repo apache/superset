@@ -577,6 +577,7 @@ class TestTaskApi(SupersetTestCase):
                 "subscriber_count",
                 "subscribers",
                 "depends_on",
+                "required_by",
             ]
 
             for field in expected_fields:
@@ -588,6 +589,7 @@ class TestTaskApi(SupersetTestCase):
 
             # A task with no declared prerequisites serializes an empty depends_on
             assert result["depends_on"] == []
+            assert result["required_by"] == []
 
     def test_task_depends_on_serialization(self):
         """
@@ -623,6 +625,15 @@ class TestTaskApi(SupersetTestCase):
             assert dep["uuid"] == str(prerequisite.uuid)
             assert dep["task_name"] == "Prerequisite Task"
             assert dep["status"] == prerequisite.status
+
+            # The reverse edge: the prerequisite lists the dependent under
+            # `required_by`, so the DAG is available from both directions.
+            rv = self.client.get(f"{self.TASK_API_BASE}/{prerequisite.uuid}")
+            assert rv.status_code == 200
+            prereq_result = json.loads(rv.data.decode("utf-8"))["result"]
+            assert prereq_result["depends_on"] == []
+            assert len(prereq_result["required_by"]) == 1
+            assert prereq_result["required_by"][0]["uuid"] == str(dependent.uuid)
         finally:
             if dependent is not None:
                 db.session.delete(dependent)

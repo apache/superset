@@ -35,9 +35,10 @@ from superset.commands.report.execute import AsyncExecuteReportScheduleCommand
 from superset.commands.report.log_prune import AsyncPruneReportScheduleLogCommand
 from superset.commands.sql_lab.query import QueryPruneCommand
 from superset.commands.tasks.prune import TaskPruneCommand
+from superset.commands.tasks.reap import ReapOrphanedTasksCommand
 from superset.daos.report import ReportScheduleDAO
 from superset.daos.tasks import TaskDAO
-from superset.extensions import celery_app
+from superset.extensions import celery_app, db
 from superset.key_value.commands.prune import KeyValuePruneCommand
 from superset.reports.models import ReportScheduleType
 from superset.stats_logger import BaseStatsLogger
@@ -45,6 +46,7 @@ from superset.tasks.ambient_context import use_context
 from superset.tasks.constants import ABORT_STATES, TERMINAL_STATES
 from superset.tasks.context import TaskContext
 from superset.tasks.cron_util import cron_schedule_window
+from superset.tasks.heartbeat import task_heartbeat
 from superset.tasks.manager import TaskManager
 from superset.tasks.registry import TaskRegistry
 from superset.utils.core import LoggerLevel
@@ -259,6 +261,13 @@ def prune_tasks(
             "retention period, please use `kwargs` instead."
         )
 
+    # Reap first: revoke + fail tasks abandoned by a dead/wedged worker so they
+    # reach a terminal state, then let the retention pass below delete old rows.
+    try:
+        ReapOrphanedTasksCommand().run()
+    except CommandException as ex:
+        logger.exception("An error occurred while reaping orphaned tasks: %s", ex)
+
     try:
         TaskPruneCommand(retention_period_days, max_rows_per_run).run()
     except CommandException as ex:
@@ -289,7 +298,7 @@ def _resolve_failed_prerequisite(task: "TaskModel") -> "TaskModel | None":
     run only if *all* of its direct prerequisites ended in ``SUCCESS``, so a
     non-``None`` return means the dependent must fail.
 
-    ``task.dependencies`` is already ``selectin``-loaded (in one query) with the
+    ``task.depends_on`` is already ``selectin``-loaded (in one query) with the
     task, so a prerequisite that is *already* terminal in that snapshot is
     evaluated with **no extra database reads** — a terminal status never changes,
     so the snapshot is authoritative for it (the common case under Model A, where
@@ -300,11 +309,11 @@ def _resolve_failed_prerequisite(task: "TaskModel") -> "TaskModel | None":
     Transitive failure propagation is emergent — a dependent that fails here is
     itself non-SUCCESS, so its own dependents fail in turn.
 
-    :param task: The dependent task about to run (with ``dependencies`` loaded)
+    :param task: The dependent task about to run (with ``depends_on`` loaded)
     :returns: The first prerequisite that did not end in ``SUCCESS``, or ``None``
         if the task has no prerequisites or all of them succeeded
     """
-    prerequisites = list(task.dependencies)
+    prerequisites = list(task.depends_on)
     if not prerequisites:
         return None
 
@@ -324,8 +333,25 @@ def _resolve_failed_prerequisite(task: "TaskModel") -> "TaskModel | None":
     return None
 
 
+def _persist_celery_task_id(task: "TaskModel", celery_task_id: str | None) -> None:
+    """Record the Celery job id on the task so the reaper can revoke it.
+
+    Mutates the in-memory task (so the ``TaskContext`` built later carries the id
+    through its property writes) and commits. Written once at pickup, before the
+    DAG gate and the status transition, so the reaper can revoke even a task
+    still waiting on prerequisites. The id is dropped on the terminal transition
+    along with the rest of ``properties``, which is fine — only ACTIVE tasks are
+    ever reaped.
+    """
+    if not celery_task_id:
+        return
+    task.update_properties({"celery_task_id": celery_task_id})
+    # One-shot write at pickup, outside the lifecycle transaction below.
+    db.session.commit()  # pylint: disable=consider-using-transaction
+
+
 @celery_app.task(name="tasks.execute", bind=True)
-def execute_task(  # noqa: C901
+def execute_task(
     self: Any,  # Celery task instance
     task_uuid: str,
     task_type: str,
@@ -335,17 +361,10 @@ def execute_task(  # noqa: C901
     """
     Generic task executor for GTF tasks.
 
-    This executor:
-    1. Checks if task was aborted before execution starts
-    2. Fetches task from metastore
-    3. Builds context (task + user) and sets ambient context via contextvars
-    4. Executes the task function (which accesses context via get_context())
-    5. Updates task status throughout lifecycle using atomic conditional updates
-    6. Runs cleanup handlers on task end (success/failure/abortion)
-    7. Resets context after execution
-
-    Uses atomic conditional status updates to prevent race conditions with
-    concurrent abort operations.
+    Loads the task, records the Celery job id, and runs the lifecycle body under
+    a liveness heartbeat that spans the whole time this worker holds the task
+    (DAG wait, IN_PROGRESS, ABORTING) so the prune cron can revoke and reap it if
+    this worker dies. See ``_execute_task_body`` for the lifecycle itself.
 
     :param task_uuid: UUID of the task to execute
     :param task_type: Type of the task (for registry lookup)
@@ -353,8 +372,6 @@ def execute_task(  # noqa: C901
     :param kwargs: Keyword arguments for the task function
     :returns: Dict with status and task_uuid
     """
-    from superset.commands.tasks.internal_update import InternalStatusTransitionCommand
-
     # Convert string UUID to native UUID (Celery deserializes as string)
     native_uuid = UUID(task_uuid)
 
@@ -366,6 +383,37 @@ def execute_task(  # noqa: C901
     if not task:
         logger.error("Task %s not found in metastore", task_uuid)
         return {"status": "error", "message": "Task not found"}
+
+    _persist_celery_task_id(task, self.request.id)
+    app = current_app._get_current_object()  # noqa: SLF001
+    with task_heartbeat(task.id, app):
+        return _execute_task_body(task, native_uuid, task_type, args, kwargs)
+
+
+def _execute_task_body(  # noqa: C901
+    task: "TaskModel",
+    native_uuid: UUID,
+    task_type: str,
+    args: tuple[Any, ...],
+    kwargs: dict[str, Any],
+) -> dict[str, Any]:
+    """
+    Run a claimed GTF task through its lifecycle.
+
+    This body:
+    1. Checks if task was aborted before execution starts
+    2. Builds context (task + user) and sets ambient context via contextvars
+    3. Executes the task function (which accesses context via get_context())
+    4. Updates task status throughout lifecycle using atomic conditional updates
+    5. Runs cleanup handlers on task end (success/failure/abortion)
+    6. Resets context after execution
+
+    Uses atomic conditional status updates to prevent race conditions with
+    concurrent abort operations.
+    """
+    from superset.commands.tasks.internal_update import InternalStatusTransitionCommand
+
+    task_uuid = str(native_uuid)
 
     # AUTOMATIC PRE-EXECUTION CHECK: Don't execute if already aborted/aborting
     if task.status in ABORT_STATES:
@@ -509,26 +557,38 @@ def execute_task(  # noqa: C901
         # Mark execution as completed to prevent late abort handlers
         ctx.mark_execution_completed()
 
-        # Atomic transition to FAILURE (only if still IN_PROGRESS or ABORTING)
-        InternalStatusTransitionCommand(
-            task_uuid=native_uuid,
-            new_status=TaskStatus.FAILURE,
-            expected_status=[TaskStatus.IN_PROGRESS, TaskStatus.ABORTING],
-            properties={"error_message": str(ex)},
-            set_ended_at=True,
-        ).run()
+        # An abort/timeout that actually cancels the work (e.g. an abort handler
+        # killing the underlying warehouse query) surfaces here as an exception.
+        # That is a successful abort, not a failure: leave the task in ABORTING
+        # so the finally block finalizes it as ABORTED/TIMED_OUT. Only a genuine
+        # error (no abort in flight) transitions to FAILURE.
+        if ctx._abort_detected or ctx.timeout_triggered:  # noqa: SLF001
+            logger.info(
+                "Task %s (uuid=%s) raised while aborting; finalizing as aborted",
+                task_type,
+                task_uuid,
+            )
+        else:
+            # Atomic transition to FAILURE (only if still IN_PROGRESS or ABORTING)
+            InternalStatusTransitionCommand(
+                task_uuid=native_uuid,
+                new_status=TaskStatus.FAILURE,
+                expected_status=[TaskStatus.IN_PROGRESS, TaskStatus.ABORTING],
+                properties={"error_message": str(ex)},
+                set_ended_at=True,
+            ).run()
 
-        logger.error(
-            "Task %s (uuid=%s) failed with error: %s",
-            task_type,
-            task_uuid,
-            str(ex),
-            exc_info=True,
-        )
+            logger.error(
+                "Task %s (uuid=%s) failed with error: %s",
+                task_type,
+                task_uuid,
+                str(ex),
+                exc_info=True,
+            )
 
-        # Emit stats metric for failure
-        stats_logger = current_app.config["STATS_LOGGER"]
-        stats_logger.incr("gtf.task.failure")
+            # Emit stats metric for failure
+            stats_logger = current_app.config["STATS_LOGGER"]
+            stats_logger.incr("gtf.task.failure")
 
     finally:
         # ALWAYS run cleanup handlers (also stops timeout timer)

@@ -55,7 +55,7 @@ def test_submit_task_success(app_context, login_as, get_user) -> None:
         assert result.id is not None
         assert result.uuid is not None
         # A task submitted without depends_on has no prerequisites
-        assert result.dependencies == []
+        assert result.depends_on == []
     finally:
         # Cleanup
         db.session.delete(result)
@@ -264,7 +264,7 @@ def test_submit_task_with_depends_on_persists_edges(
         db.session.refresh(dependent)
 
         # dependencies resolves to the prerequisite Task entities
-        assert [dep.uuid for dep in dependent.dependencies] == [prerequisite.uuid]
+        assert [dep.uuid for dep in dependent.depends_on] == [prerequisite.uuid]
     finally:
         # Deleting the dependent removes its edge rows via FK ON DELETE CASCADE
         if dependent is not None:

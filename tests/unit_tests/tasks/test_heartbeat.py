@@ -1,0 +1,76 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+"""Unit tests for the GTF worker-liveness heartbeat."""
+
+import time
+from unittest.mock import MagicMock, patch
+
+from superset.tasks.heartbeat import task_heartbeat
+
+
+def _mock_app(interval: float, stats: MagicMock) -> MagicMock:
+    app = MagicMock()
+    app.config = {"GTF_TASK_HEARTBEAT_INTERVAL": interval, "STATS_LOGGER": stats}
+    app.app_context.return_value.__enter__ = MagicMock(return_value=None)
+    app.app_context.return_value.__exit__ = MagicMock(return_value=None)
+    return app
+
+
+def test_heartbeat_stamps_immediately_and_stops_on_exit() -> None:
+    """An initial heartbeat is written synchronously; none after the context ends."""
+    stats = MagicMock()
+    # Large interval so the background thread never beats within the test window;
+    # only the synchronous initial write should occur.
+    app = _mock_app(interval=100, stats=stats)
+
+    with patch("superset.daos.tasks.TaskDAO.touch_heartbeat") as touch:
+        with task_heartbeat(42, app):
+            assert touch.call_count == 1
+            touch.assert_called_once_with(42)
+        stats.incr.assert_any_call("gtf.task.heartbeat")
+
+    # No further writes after the context exits.
+    assert touch.call_count == 1
+
+
+def test_heartbeat_beats_periodically() -> None:
+    """The background thread keeps bumping the heartbeat on the interval."""
+    stats = MagicMock()
+    app = _mock_app(interval=0.02, stats=stats)
+
+    with patch("superset.daos.tasks.TaskDAO.touch_heartbeat") as touch:
+        with task_heartbeat(7, app):
+            deadline = time.time() + 2.0
+            while touch.call_count < 3 and time.time() < deadline:
+                time.sleep(0.02)
+            assert touch.call_count >= 3
+
+
+def test_heartbeat_failure_is_counted_and_swallowed() -> None:
+    """A failed write emits the failure metric and does not raise."""
+    stats = MagicMock()
+    app = _mock_app(interval=100, stats=stats)
+
+    with patch(
+        "superset.daos.tasks.TaskDAO.touch_heartbeat",
+        side_effect=RuntimeError("db down"),
+    ):
+        # Must not raise even though the initial write fails.
+        with task_heartbeat(1, app):
+            pass
+
+    stats.incr.assert_any_call("gtf.task.heartbeat_failure")

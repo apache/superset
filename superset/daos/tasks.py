@@ -17,10 +17,11 @@
 """Task DAO for Global Task Framework (GTF)"""
 
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, Literal, TypedDict
 from uuid import UUID
 
+import sqlalchemy as sa
 from sqlalchemy.sql.elements import ColumnElement
 from superset_core.tasks.types import TaskProperties, TaskScope, TaskStatus
 
@@ -30,7 +31,7 @@ from superset.extensions import db
 from superset.models.task_dependencies import TaskDependency
 from superset.models.task_subscribers import TaskSubscriber
 from superset.models.tasks import Task
-from superset.tasks.constants import ABORTABLE_STATES, TERMINAL_STATES
+from superset.tasks.constants import ABORTABLE_STATES, ACTIVE_STATES, TERMINAL_STATES
 from superset.tasks.filters import TaskFilter
 from superset.tasks.utils import (
     get_active_dedup_key,
@@ -100,6 +101,53 @@ class TaskDAO(BaseDAO[Task]):
         return db.session.query(Task.id).filter(Task.uuid == task_uuid).scalar()
 
     @classmethod
+    def touch_heartbeat(cls, task_id: int) -> None:
+        """Bump a task's ``last_heartbeat`` to now without touching ``changed_on``.
+
+        Called on an interval by the executing worker's heartbeat thread so the
+        prune cron can tell a live task from an orphaned one. Uses a raw textual
+        UPDATE on the single column: ``changed_on`` carries a client-side
+        ``onupdate`` default that ORM/Core updates would fire, and any bump to
+        ``changed_on`` would resurface the task in ``get_statuses_changed_since``
+        every heartbeat (resetting client polling backoff). A textual statement
+        bypasses that default processing entirely. Bound by integer ``id`` to
+        sidestep ``UUIDType`` dialect handling.
+        """
+        db.session.execute(
+            sa.text("UPDATE tasks SET last_heartbeat = :ts WHERE id = :id"),
+            {"ts": naive_utcnow(), "id": task_id},
+        )
+        # Deliberate standalone commit: this is a single out-of-band column write,
+        # not a unit of work, and must not be wrapped in the ORM transaction flow.
+        db.session.commit()  # pylint: disable=consider-using-transaction
+
+    @classmethod
+    def find_orphaned(cls, orphan_timeout_seconds: int) -> list[UUID]:
+        """Return UUIDs of active tasks abandoned by a dead worker.
+
+        An orphan is any active task (PENDING/IN_PROGRESS/ABORTING) whose liveness
+        heartbeat has gone stale (``last_heartbeat < now - orphan_timeout_seconds``)
+        — no worker is refreshing it. A NULL heartbeat means no worker has picked
+        the task up yet (still legitimately queued), so it is excluded. A task
+        still being worked on (fresh heartbeat) is never returned, so this never
+        interferes with a live worker's cooperative abort/cleanup.
+
+        Skips the base filter: internal maintenance over all tasks, not a
+        user-facing listing.
+        """
+        stale_before = naive_utcnow() - timedelta(seconds=orphan_timeout_seconds)
+        rows = (
+            db.session.query(Task.uuid)
+            .filter(
+                Task.status.in_(ACTIVE_STATES),
+                Task.last_heartbeat.isnot(None),
+                Task.last_heartbeat < stale_before,
+            )
+            .all()
+        )
+        return [uuid for (uuid,) in rows]
+
+    @classmethod
     def get_statuses_changed_since(
         cls, cursor: datetime | None, task_type: str | None = None
     ) -> tuple[dict[str, dict[str, Any]], datetime]:
@@ -129,13 +177,19 @@ class TaskDAO(BaseDAO[Task]):
         an idle/orphaned in-progress task is re-fetched forever.)
         """
         # Baseline: no cursor → start "from now", surfacing only later changes.
+        # Floor to whole seconds: changed_on is stored at the metastore column's
+        # precision (MySQL DATETIME truncates to seconds), so a sub-second cursor
+        # could sit *after* a same-second change and miss it under the >= bound.
+        # Flooring keeps >= inclusive on every backend; re-delivering an earlier
+        # same-second change is harmless (idempotent for the client).
         if cursor is None:
-            return {}, datetime.now()
+            return {}, datetime.now().replace(microsecond=0)
 
         # Watermark for the *next* poll, captured before the read so a change
         # landing during the query is caught next time (>= is inclusive), never
-        # skipped. Same naive-local clock as ``changed_on`` (FAB AuditMixin).
-        next_cursor = datetime.now()
+        # skipped. Same naive-local clock as ``changed_on`` (FAB AuditMixin),
+        # floored to whole seconds (see the baseline case above).
+        next_cursor = datetime.now().replace(microsecond=0)
         query = cls._apply_base_filter(db.session.query(Task)).filter(
             # Task.changed_on's type is shadowed by CoreTask's bare annotation
             # (datetime | None), so reference the real column for the comparison.
@@ -586,6 +640,26 @@ class TaskDAO(BaseDAO[Task]):
             .all()
         )
         return [parse_payload(payload) for (payload,) in rows]
+
+    @classmethod
+    def get_required_by_uuids(cls, task_uuid: UUID) -> list[UUID]:
+        """Return the UUIDs of the tasks that depend on ``task_uuid``.
+
+        The reverse of the dependency edge (indexed on ``depends_on_task_id``) —
+        i.e. the task's ``required_by`` set. Used to nudge those tasks' realtime
+        rows when this task's status changes, since a dependent row displays its
+        prerequisites' statuses.
+        """
+        prerequisite_id = (
+            db.session.query(Task.id).filter(Task.uuid == task_uuid).scalar_subquery()
+        )
+        rows = (
+            db.session.query(Task.uuid)
+            .join(TaskDependency, TaskDependency.task_id == Task.id)
+            .filter(TaskDependency.depends_on_task_id == prerequisite_id)
+            .all()
+        )
+        return [required_by_uuid for (required_by_uuid,) in rows]
 
     @classmethod
     def set_properties_and_payload(

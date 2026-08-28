@@ -148,9 +148,22 @@ def upgrade():
             "uq_task_subscribers_task_guest", ["task_id", "guest_key"]
         )
 
+    # Liveness marker for orphan detection: the executing worker bumps
+    # ``tasks.last_heartbeat`` on a background thread, and the prune cron reaps
+    # ACTIVE tasks whose heartbeat has gone stale (a dead/orphaned worker). The
+    # index backs the reaper's ``last_heartbeat < now - timeout`` scan.
+    add_columns(
+        TASKS_TABLE,
+        Column("last_heartbeat", DateTime, nullable=True),
+    )
+    create_index(TASKS_TABLE, "ix_tasks_last_heartbeat", ["last_heartbeat"])
+
 
 def downgrade():
     """Drop task_dependencies and revert the task_subscribers.guest_key change."""
+    drop_index(TASKS_TABLE, "ix_tasks_last_heartbeat")
+    drop_columns(TASKS_TABLE, "last_heartbeat")
+
     # Guest subscriptions cannot be represented without the column; drop those
     # rows first so restoring user_id NOT NULL does not fail on NULL user_id.
     op.execute(sa.text("DELETE FROM task_subscribers WHERE user_id IS NULL"))
