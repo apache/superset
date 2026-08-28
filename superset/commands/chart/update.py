@@ -44,11 +44,15 @@ from superset.commands.utils import (
 from superset.daos.chart import ChartDAO
 from superset.daos.dashboard import DashboardDAO
 from superset.exceptions import SupersetSecurityException
+from superset.extensions import db
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.tags.models import ObjectType
 from superset.utils import json
 from superset.utils.decorators import on_error, transaction
+from superset.versioning.changes.normalization import (
+    register_matching_normalization_context,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -60,10 +64,16 @@ def is_query_context_update(properties: dict[str, Any]) -> bool:
 
 
 class UpdateChartCommand(UpdateMixin, BaseCommand):
-    def __init__(self, model_id: int, data: dict[str, Any]):
-        self._model_id = model_id
-        self._properties = data.copy()
+    def __init__(
+        self,
+        model_id: int,
+        data: dict[str, Any],
+        normalization_changes: object = None,
+    ) -> None:
+        self._model_id: int = model_id
+        self._properties: dict[str, Any] = data.copy()
         self._model: Optional[Slice] = None
+        self._normalization_changes: object = normalization_changes
 
     @transaction(on_error=partial(on_error, reraise=ChartUpdateFailedError))
     def run(self) -> Model:
@@ -77,6 +87,15 @@ class UpdateChartCommand(UpdateMixin, BaseCommand):
         if self._properties.get("query_context_generation") is None:
             self._properties["last_saved_at"] = datetime.now()
             self._properties["last_saved_by"] = g.user
+
+        if self._normalization_changes is not None and "params" in self._properties:
+            register_matching_normalization_context(
+                db.session,
+                self._model.id,
+                self._normalization_changes,
+                self._model.params,
+                self._properties["params"],
+            )
 
         return ChartDAO.update(self._model, self._properties)
 

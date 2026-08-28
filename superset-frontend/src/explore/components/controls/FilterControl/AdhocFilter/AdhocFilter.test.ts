@@ -370,4 +370,32 @@ describe('AdhocFilter', () => {
     });
     expect(adhocFilter.getDefaultLabel()).toBe('');
   });
+  test('uses the column verbose_name in the label when one is given', () => {
+    const adhocFilter = new AdhocFilter({
+      expressionType: ExpressionTypes.Simple,
+      subject: 'num',
+      operator: '>',
+      comparator: '500',
+      clause: Clauses.Where,
+    });
+    expect(
+      adhocFilter.getDefaultLabel([
+        { column_name: 'num', verbose_name: 'total_count' },
+      ]),
+    ).toBe('total_count > 500');
+  });
+  test('falls back to the column_name when no verbose_name is set', () => {
+    const adhocFilter = new AdhocFilter({
+      expressionType: ExpressionTypes.Simple,
+      subject: 'num',
+      operator: '>',
+      comparator: '500',
+      clause: Clauses.Where,
+    });
+    expect(
+      adhocFilter.getDefaultLabel([{ column_name: 'num', verbose_name: '' }]),
+    ).toBe('num > 500');
+    expect(adhocFilter.getDefaultLabel([])).toBe('num > 500');
+    expect(adhocFilter.getDefaultLabel()).toBe('num > 500');
+  });
 });
