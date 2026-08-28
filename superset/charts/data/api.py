@@ -585,11 +585,22 @@ class ChartDataRestApi(ChartRestApi):
                     query["timing"] = query_result.timing.as_public_dict()
 
             if security_manager.is_guest_user():
+                # Engine errors and stacktraces can name internal tables,
+                # schemas or hosts, so they are never handed to an embedded
+                # viewer, whatever the guest role was granted.
                 for query in queries:
-                    query.pop("query", None)
                     query.pop("stacktrace", None)
                     if query.get("error"):
                         query["error"] = sanitize_error_message(query["error"])
+
+                # The generated SQL is withheld by default. Operators can opt a
+                # guest role in by granting it the same `can_view_query` on
+                # `Dashboard` permission that gates the "View query" menu item
+                # in the UI; without honoring it here the menu item is offered
+                # but always renders an empty query.
+                if not security_manager.can_access("can_view_query", "Dashboard"):
+                    for query in queries:
+                        query.pop("query", None)
 
             payload: dict[str, Any] = {"result": queries}
             if dashboard_filter_context is not None:

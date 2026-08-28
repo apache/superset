@@ -328,6 +328,10 @@ def test_send_chart_response_strips_guest_query_after_timing_projection(
                 "superset.charts.data.api.security_manager.is_guest_user",
                 return_value=True,
             ),
+            patch(
+                "superset.charts.data.api.security_manager.can_access",
+                return_value=False,
+            ),
         ):
             response = api._send_chart_response(result)
     finally:
@@ -355,6 +359,10 @@ def test_send_chart_response_redacts_guest_query_error(app: SupersetApp) -> None
         patch(
             "superset.charts.data.api.security_manager.is_guest_user",
             return_value=True,
+        ),
+        patch(
+            "superset.charts.data.api.security_manager.can_access",
+            return_value=False,
         ),
     ):
         response = api._send_chart_response(result)
@@ -437,6 +445,75 @@ def test_get_data_response_redacts_a_real_engine_error_for_guests(
     assert json.loads(guest.get_data(as_text=True))["message"] == str(
         GENERIC_ERROR_MESSAGE
     )
+
+
+def test_send_chart_response_keeps_guest_query_with_view_query_perm(
+    app: SupersetApp,
+) -> None:
+    """
+    Regression test for issue #43100: "View query" on an embedded dashboard.
+
+    A guest (embedded) role that the operator granted ``can_view_query`` on
+    ``Dashboard`` -- the same permission that gates the "View query" menu item
+    in the UI -- must receive the generated SQL instead of a silently empty
+    payload.
+    """
+    query_payload = {"data": [{"col1": 1}], "query": "SELECT 1"}
+    result = _json_execution_result(query_payload, ChartDataResultType.QUERY)
+
+    api = ChartDataRestApi()
+    with (
+        app.test_request_context("/api/v1/chart/data"),
+        patch(
+            "superset.charts.data.api.security_manager.is_guest_user",
+            return_value=True,
+        ),
+        patch(
+            "superset.charts.data.api.security_manager.can_access",
+            return_value=True,
+        ) as can_access,
+    ):
+        response = api._send_chart_response(result)
+
+    query = json.loads(response.get_data(as_text=True))["result"][0]
+    assert query["query"] == "SELECT 1"
+    can_access.assert_called_once_with("can_view_query", "Dashboard")
+
+
+def test_send_chart_response_still_redacts_errors_for_permitted_guest(
+    app: SupersetApp,
+) -> None:
+    """
+    Being allowed to read the SQL (issue #43100) does not unlock engine error
+    text or stacktraces, which can name internal tables, schemas or hosts.
+    """
+    result = _json_execution_result(
+        {
+            "error": "Table mydb.myschema.mytable was not found",
+            "stacktrace": "Traceback ...",
+            "query": "SELECT 1",
+        },
+        result_type=ChartDataResultType.QUERY,
+    )
+
+    api = ChartDataRestApi()
+    with (
+        app.test_request_context("/api/v1/chart/data"),
+        patch(
+            "superset.charts.data.api.security_manager.is_guest_user",
+            return_value=True,
+        ),
+        patch(
+            "superset.charts.data.api.security_manager.can_access",
+            return_value=True,
+        ),
+    ):
+        response = api._send_chart_response(result)
+
+    query = json.loads(response.get_data(as_text=True))["result"][0]
+    assert query["query"] == "SELECT 1"
+    assert query["error"] == str(GENERIC_ERROR_MESSAGE)
+    assert "stacktrace" not in query
 
 
 def test_send_chart_response_pairs_each_timing_with_its_query(
