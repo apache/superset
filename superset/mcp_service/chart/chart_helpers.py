@@ -412,7 +412,7 @@ def resolve_deck_gl_columns(form_data: dict[str, Any]) -> list[str]:
 
 def resolve_metrics(form_data: dict[str, Any], viz_type: str) -> list[Any]:
     """Extract metrics from form_data, handling chart-type-specific fields."""
-    if viz_type == "bubble":
+    if viz_type in ("bubble", "bubble_v2"):
         return [m for field in ("x", "y", "size") if (m := form_data.get(field))]
 
     metrics = form_data.get("metrics") or []

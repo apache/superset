@@ -71,6 +71,17 @@ class TestBubbleChartConfigSchema:
         with pytest.raises(ValidationError):
             BubbleChartConfig(**_base(series={"name": "c", "saved_metric": True}))
 
+    def test_bubble_entity_rejects_aggregate(self) -> None:
+        """An aggregate makes entity metric-like; entity is a dimension."""
+        with pytest.raises(ValidationError):
+            BubbleChartConfig(**_base(entity={"name": "country", "aggregate": "SUM"}))
+
+    def test_bubble_series_rejects_aggregate(self) -> None:
+        with pytest.raises(ValidationError):
+            BubbleChartConfig(
+                **_base(series={"name": "continent", "aggregate": "COUNT"})
+            )
+
     def test_bubble_x_accepts_saved_metric(self) -> None:
         """A saved metric is a valid x/y/size value."""
         config = BubbleChartConfig(
@@ -114,6 +125,22 @@ class TestMapBubbleConfig:
             **_base(size={"name": "headcount", "saved_metric": True})
         )
         assert map_bubble_config(config)["size"] == "headcount"
+
+
+class TestBubbleMetricsResolution:
+    """The MCP query path must fold x/y/size into metrics for bubble_v2.
+
+    The mapper emits viz_type 'bubble_v2', so resolve_metrics must recognize
+    it (not just the legacy 'bubble' key) or the query drops all three metrics.
+    """
+
+    def test_bubble_v2_metrics_resolved(self) -> None:
+        from superset.mcp_service.chart.chart_helpers import resolve_metrics
+
+        form_data = map_bubble_config(BubbleChartConfig(**_base()))
+        metrics = resolve_metrics(form_data, "bubble_v2")
+        labels = [m["label"] if isinstance(m, dict) else m for m in metrics]
+        assert labels == ["AVG(gdp)", "AVG(life_expectancy)", "SUM(population)"]
 
 
 class TestBubblePluginRegistry:

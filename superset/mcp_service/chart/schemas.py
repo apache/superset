@@ -1101,10 +1101,11 @@ class BubbleChartConfig(BaseChartConfig):
             dims.append((self.series, "series"))
         for col, name in dims:
             _reject_sql_expression_on_dimension(col, name)
-            if col.saved_metric:
+            if col.is_metric:
                 raise ValueError(
-                    f"{name} cannot use saved_metric=True; "
-                    "saved metrics belong in the 'x', 'y', or 'size' fields"
+                    f"{name} must be a plain column, not a metric; drop "
+                    "'aggregate'/'saved_metric' (metrics belong in the 'x', "
+                    "'y', or 'size' fields)"
                 )
         return self
 
