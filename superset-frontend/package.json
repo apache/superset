@@ -416,7 +416,7 @@
       "brace-expansion": ">=5.0.8"
     },
     "nanoid@>=3 <4": "3.3.18",
-    "nwsapi": "^2.2.13",
+    "nwsapi": "^2.2.24",
     "puppeteer": "^22.4.1",
     "tar": "^7.5.16",
     "typescript-json-schema": "^0.68.0",
