@@ -217,6 +217,91 @@ def test_handle_filters_args_returns_request_scoped_filters(
     assert fresh_filters.get_joined_filters.call_count == 2
 
 
+def _create_dataset(name: str) -> Any:
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.models.core import Database
+
+    SqlaTable.metadata.create_all(db.session.get_bind())
+    dataset = SqlaTable(
+        table_name=name,
+        database=Database(database_name=f"{name}_db", sqlalchemy_uri="sqlite://"),
+    )
+    db.session.add(dataset)
+    db.session.flush()
+    return dataset
+
+
+def test_put_dataset_rejects_stale_if_match(
+    session: Session,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    A PUT carrying an ``If-Match`` from an older version is refused with 412.
+    """
+    from superset.versioning.api_helpers import EntityVersionInfo
+
+    dataset = _create_dataset("test_put_stale_if_match")
+
+    with patch(
+        "superset.datasets.api.current_entity_version_info",
+        return_value=EntityVersionInfo(
+            version=1,
+            transaction_id=2,
+            version_uuid="new",
+            entity_uuid=dataset.uuid,
+        ),
+    ):
+        response = client.put(
+            f"/api/v1/dataset/{dataset.id}",
+            json={"description": "from a stale tab"},
+            headers={"If-Match": '"old"'},
+        )
+
+    assert response.status_code == 412
+    assert response.headers["ETag"] == '"new"'
+    db.session.expire(dataset)
+    assert dataset.description is None
+
+
+def test_put_dataset_guards_a_dataset_with_no_version_rows(
+    session: Session,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """Baseline rows are written lazily on the first update, so a dataset that
+    has never been saved has no version rows — it must still be guarded, or
+    the first concurrent save on every pristine dataset goes unprotected.
+    """
+    from superset.versioning.api_helpers import (
+        EntityVersionInfo,
+        unversioned_entity_token,
+    )
+
+    dataset = _create_dataset("test_put_unversioned_guard")
+    entity_uuid = dataset.uuid
+
+    with patch(
+        "superset.datasets.api.current_entity_version_info",
+        # A dataset that has since been versioned by another tab's save.
+        return_value=EntityVersionInfo(
+            version=0,
+            transaction_id=1,
+            version_uuid="written-by-the-other-tab",
+            entity_uuid=entity_uuid,
+        ),
+    ):
+        response = client.put(
+            f"/api/v1/dataset/{dataset.id}",
+            json={"description": "from the tab that opened first"},
+            headers={"If-Match": f'"{unversioned_entity_token(entity_uuid)}"'},
+        )
+
+    assert response.status_code == 412
+    db.session.expire(dataset)
+    assert dataset.description is None
+
+
 def test_get_dataset_exposes_certification_metadata(
     session: Session,
     client: Any,
