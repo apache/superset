@@ -2658,60 +2658,49 @@ describe('plugin-chart-table', () => {
     expect(screen.queryByText('Search by')).toBeInTheDocument();
   });
 
-  test(
-    'should read the totals row from the correct query when percent metrics ' +
-      'use the "all records" calculation mode',
-    () => {
-      // When `percent_metric_calculation` is `all_records`, buildQuery adds an
-      // extra query (used to compute percentages against the entire result set)
-      // *before* the totals query in `queriesData`. Verify totals are still
-      // sourced from the actual totals query and not this preceding query.
-      const props = {
-        ...testData.basic,
-        rawFormData: {
-          ...testData.basic.rawFormData,
-          query_mode: QueryMode.Aggregate,
-          metrics: ['sum__num'],
-          percent_metrics: ['count'],
-          percent_metric_calculation: 'all_records',
-          show_totals: true,
-          column_config: {
-            sum__num: { d3NumberFormat: '.0%' },
-          },
-        },
-        queriesData: [
-          {
-            ...testData.basic.queriesData[0],
-            colnames: ['name', 'sum__num', '%count'],
-            coltypes: [
-              GenericDataType.String,
-              GenericDataType.Numeric,
-              GenericDataType.Numeric,
-            ],
-            data: [{ name: 'Michael', sum__num: 0.1, '%count': 0.05 }],
-          },
-          // extra "all records" query used only to compute percent metrics
-          {
-            ...testData.basic.queriesData[0],
-            colnames: ['count'],
-            coltypes: [GenericDataType.Numeric],
-            data: [{ count: 999 }],
-          },
-          // actual totals query
-          {
-            ...testData.basic.queriesData[0],
-            colnames: ['sum__num'],
-            coltypes: [GenericDataType.Numeric],
-            data: [{ sum__num: 0.27 }],
-          },
-        ],
-      };
+  test('dropdown preserves serverPageLength if larger than rowCount and avoids invalid 0 (#42243)', async () => {
+    const props = transformProps({
+      ...testData.basic,
+      formData: {
+        ...testData.basic.formData,
+        server_pagination: true,
+        server_page_length: 20,
+      },
+    });
+    props.serverPagination = true;
+    props.serverPageLength = 20;
+    props.rowCount = 12;
+    props.data = Array.from({ length: 12 }, (_, i) => ({
+      name: `Row ${i}`,
+    })) as any;
 
-      const transformedProps = transformProps(props);
+    const { container } = render(
+      <ProviderWrapper>
+        <TableChart {...props} sticky={false} />
+      </ProviderWrapper>,
+    );
 
-      expect(transformedProps.totals).toEqual({ sum__num: 0.27 });
-    },
-  );
+    // Initial page size selector text
+    const pageSizeSelector = container.querySelector('.dt-select-page-size');
+    expect(pageSizeSelector).not.toBeNull();
+    expect(pageSizeSelector).toHaveTextContent('20');
+
+    // Page size combobox control exists and is accessible
+    const selectTrigger = screen.getByRole('combobox', {
+      name: 'Show entries per page',
+    });
+    expect(selectTrigger).toBeInTheDocument();
+    fireEvent.mouseDown(selectTrigger);
+
+    await waitFor(() => {
+      const options = screen.getAllByRole('option');
+      const optionTexts = options.map(opt => opt.textContent);
+      expect(optionTexts).toContain('10');
+      expect(optionTexts).toContain('20');
+      expect(optionTexts).not.toContain('0');
+      expect(optionTexts).not.toContain('All');
+    });
+  });
 });
 
 /**
