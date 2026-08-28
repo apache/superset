@@ -239,7 +239,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
           title: t('Dataset changed since you opened it'),
           okButtonProps: { danger: true, className: 'btn-danger' },
           content: t(
-            'Someone else — or another one of your browser tabs — saved this ' +
+            'Someone else, or another one of your browser tabs, saved this ' +
               'dataset after you opened it. Saving now would undo those ' +
               'changes, so it was cancelled. Copy your edits, close this ' +
               'dialog, and reopen the dataset to reapply them.',
