@@ -3260,10 +3260,14 @@ TASK_PROGRESS_UPDATE_THROTTLE_INTERVAL = 2  # seconds
 # FAILURE (releasing waiters), revoking its Celery job, and, on engines that
 # support it, cancelling the abandoned warehouse query. A task still being worked
 # on keeps a fresh heartbeat and is left to its own cooperative abort, so reaping
-# never interferes with a live worker. Keep the timeout comfortably larger than
-# the interval (>= ~3x) so a brief GC pause or CPU-bound stretch does not look
-# like a dead worker. Reaping only runs when the reap_orphaned_tasks beat
-# schedule is enabled (see CELERY_CONFIG.beat_schedule).
+# never interferes with a live worker. As the worker-side complement, a worker
+# whose heartbeat writes keep failing for this same window (cut off from the
+# metastore though still alive) self-fences: it fails the task from the inside,
+# cancelling any in-flight query, rather than run work the reaper has already
+# given up on. Keep the timeout comfortably larger than the interval (>= ~3x) so
+# a brief GC pause or CPU-bound stretch does not look like a dead worker. Reaping
+# only runs when the reap_orphaned_tasks beat schedule is enabled (see
+# CELERY_CONFIG.beat_schedule).
 GTF_TASK_HEARTBEAT_INTERVAL = 15  # seconds
 GTF_ORPHAN_TASK_TIMEOUT = 60  # seconds
 

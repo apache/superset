@@ -71,6 +71,9 @@ class TaskContext(CoreTaskContext):
         self._abort_detected = False
         self._abort_handlers_completed = False  # Track if all abort handlers finished
         self._execution_completed = False  # Set by executor after task work completes
+        # Elects one abort trigger across the listener/timeout/fence threads so
+        # abort handlers run exactly once.
+        self._abort_lock = threading.Lock()
 
         # Collected handler failures for unified reporting
         self._handler_failures: list[TaskContext.HandlerFailure] = []
@@ -78,6 +81,12 @@ class TaskContext(CoreTaskContext):
         # Timeout timer state
         self._timeout_timer: threading.Timer | None = None
         self._timeout_triggered = False
+
+        # Set when the worker fails the task from the inside because it could no
+        # longer prove liveness to the metastore (heartbeat writes failing past
+        # GTF_ORPHAN_TASK_TIMEOUT). Distinguished from a timeout/user abort so the
+        # executor finalizes it FAILURE — there is no handover to another worker.
+        self._fence_triggered = False
 
         # Throttling state for update_task()
         # These manage the minimum interval between DB writes
@@ -410,21 +419,25 @@ class TaskContext(CoreTaskContext):
         """
         Callback invoked by TaskManager when abort is detected.
 
-        Triggers all registered abort handlers.
+        Triggers all registered abort handlers exactly once, even when the abort
+        listener, timeout timer, and heartbeat self-fence race to call this
+        concurrently: the winner is elected atomically under ``_abort_lock``.
         """
-        if self._abort_detected:
-            return  # Already handled
+        with self._abort_lock:
+            if self._abort_detected:
+                return  # Another thread already won the election
 
-        # Check if task execution has already completed (late abort race).
-        # Executor sets _execution_completed after task work finishes.
-        if self._execution_completed:
-            logger.info(
-                "Abort detected for task %s but execution already completed",
-                self._task_uuid,
-            )
-            return
+            # Check if task execution has already completed (late abort race).
+            # Executor sets _execution_completed after task work finishes.
+            if self._execution_completed:
+                logger.info(
+                    "Abort detected for task %s but execution already completed",
+                    self._task_uuid,
+                )
+                return
 
-        self._abort_detected = True
+            self._abort_detected = True
+
         logger.info("Abort detected for task %s", self._task_uuid)
         self._trigger_abort_handlers()
 
@@ -588,47 +601,12 @@ class TaskContext(CoreTaskContext):
                 return  # Already aborting
 
             self._timeout_triggered = True
-
-            # Check if task has abort handler (requires app context)
-            if not self._app:
-                logger.error(
-                    "Timeout fired for task %s but no app context available",
-                    self._task_uuid,
-                )
-                return
-
-            ctx = self._app.app_context() if not has_app_context() else nullcontext()
-            with ctx:
-                from superset.commands.tasks.update import UpdateTaskCommand
-
-                task = self._task
-                if task.properties_dict.get("is_abortable", False):
-                    logger.info(
-                        "Timeout reached for task %s after %d seconds - "
-                        "transitioning to ABORTING and triggering abort handlers",
-                        self._task_uuid,
-                        timeout_seconds,
-                    )
-                    # Set status to ABORTING (same as user abort)
-                    # The executor will determine TIMED_OUT vs FAILURE based on
-                    # whether handlers complete successfully
-                    UpdateTaskCommand(
-                        self._task_uuid,
-                        status=TaskStatus.ABORTING.value,
-                        properties={"error_message": "Task timed out"},
-                        skip_security_check=True,
-                    ).run()
-
-                    # Trigger abort handlers for cleanup
-                    self._on_abort_detected()
-                else:
-                    # No abort handler - just log warning
-                    logger.warning(
-                        "Timeout reached for task %s after %d seconds, but no "
-                        "abort handler is registered. Task will continue running.",
-                        self._task_uuid,
-                        timeout_seconds,
-                    )
+            logger.info(
+                "Timeout reached for task %s after %d seconds",
+                self._task_uuid,
+                timeout_seconds,
+            )
+            self._abort_locally("Task timed out")
 
         self._timeout_timer = threading.Timer(timeout_seconds, on_timeout)
         # Timer is daemon so it won't prevent process exit. If the worker dies,
@@ -658,6 +636,92 @@ class TaskContext(CoreTaskContext):
     def abort_handlers_completed(self) -> bool:
         """Check if all abort handlers have completed successfully."""
         return self._abort_handlers_completed
+
+    @property
+    def fence_triggered(self) -> bool:
+        """Check if the worker self-fenced the task (lost metastore contact)."""
+        return self._fence_triggered
+
+    @property
+    def aborting_in_flight(self) -> bool:
+        """True while an abort, timeout, or self-fence is being finalized.
+
+        The executor uses this to route the task through its finally block
+        (which commits the correct terminal state) instead of the normal
+        SUCCESS/FAILURE paths.
+        """
+        return self._abort_detected or self._timeout_triggered or self._fence_triggered
+
+    def _abort_locally(self, error_message: str) -> None:
+        """Transition to ABORTING and run abort handlers in the calling thread.
+
+        Shared by the timeout timer and the heartbeat self-fence: both need to
+        abort the task from *inside* the worker rather than via the external
+        abort listener. Running the handlers here cancels a query blocked
+        mid-execution over a fresh connection — reachable even when the
+        metastore is not — which unblocks the task so it can end.
+
+        Best-effort: the ABORTING write may fail (e.g. metastore unreachable),
+        but the abort handlers still run. No-op if the task registered no abort
+        handler (nothing can interrupt the running work) or has no app context.
+        """
+        if not self._app:
+            logger.error(
+                "Local abort for task %s but no app context available",
+                self._task_uuid,
+            )
+            return
+
+        ctx = self._app.app_context() if not has_app_context() else nullcontext()
+        with ctx:
+            from superset.commands.tasks.update import UpdateTaskCommand
+
+            if not self._task.properties_dict.get("is_abortable", False):
+                logger.warning(
+                    "Local abort requested for task %s but no abort handler is "
+                    "registered. Task will continue running.",
+                    self._task_uuid,
+                )
+                return
+
+            # Set status to ABORTING (same as user abort). The executor
+            # determines the terminal state from which flag was set.
+            try:
+                UpdateTaskCommand(
+                    self._task_uuid,
+                    status=TaskStatus.ABORTING.value,
+                    properties={"error_message": error_message},
+                    skip_security_check=True,
+                ).run()
+            except Exception:  # noqa: BLE001 pylint: disable=broad-except
+                # The metastore may be unreachable (the very reason a fence
+                # fires). Run the abort handlers anyway so the query is killed.
+                logger.warning(
+                    "Best-effort ABORTING write failed for task %s",
+                    self._task_uuid,
+                    exc_info=True,
+                )
+
+            # Trigger abort handlers for cleanup
+            self._on_abort_detected()
+
+    def trigger_self_fence(self, error_message: str) -> None:
+        """Fail this task from inside the worker after losing metastore contact.
+
+        Called by the heartbeat thread once it has been unable to refresh
+        ``last_heartbeat`` for longer than ``GTF_ORPHAN_TASK_TIMEOUT`` — the same
+        window after which the reaper declares the task orphaned. Self-fencing
+        lets the worker stop promptly instead of running a query the reaper has
+        already (or will shortly) mark FAILURE, avoiding wasted warehouse work.
+        Marked as a fence (not a timeout or user abort) so the executor
+        finalizes it FAILURE. No-op if an abort is already underway or the task
+        work already finished (the latter guard mirrors ``_on_abort_detected`` so
+        a fence racing in after successful completion cannot clobber the result).
+        """
+        if self._abort_detected or self._execution_completed:
+            return
+        self._fence_triggered = True
+        self._abort_locally(error_message)
 
     def _run_cleanup(self) -> None:
         """

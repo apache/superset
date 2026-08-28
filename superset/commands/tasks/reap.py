@@ -40,7 +40,7 @@ ORPHAN_ERROR_MESSAGE = "Task orphaned: worker heartbeat timed out"
 class ReapOrphanedTasksCommand(BaseCommand):
     """Recover tasks abandoned by a worker that stopped refreshing its heartbeat.
 
-    Run from the prune cron before row deletion. For each orphan (an active task
+    Run from the ``reap_orphaned_tasks`` beat job. For each orphan (an active task
     whose liveness heartbeat has gone stale — see ``TaskDAO.find_orphaned``) the
     command transitions the row to ``FAILURE`` and publishes completion so waiters
     (sync joiners, DAG dependents, chart-data pollers) unblock, then revokes the
@@ -90,12 +90,15 @@ class ReapOrphanedTasksCommand(BaseCommand):
                 )
             ),
         )
-        self._revoke(properties.get("celery_task_id"), stats_logger)
-        self._cancel_orphaned_query(properties)
-
         properties["error_message"] = ORPHAN_ERROR_MESSAGE
         properties["exception_type"] = "OrphanedTaskError"
 
+        # Claim the terminal transition FIRST, before any destructive side effect.
+        # The CAS is atomic (row-locked) against a worker that merely stalled and
+        # then revived to commit its own terminal status: if that worker wins, this
+        # returns False and we must NOT cancel its (healthy) warehouse query or
+        # revoke its job. Only once we own the FAILURE transition is the task
+        # genuinely orphaned and its query safe to cancel out-of-band.
         if not TaskDAO.conditional_status_update(
             task_uuid,
             TaskStatus.FAILURE,
@@ -107,6 +110,11 @@ class ReapOrphanedTasksCommand(BaseCommand):
             return False
 
         db.session.commit()  # pylint: disable=consider-using-transaction
+
+        # We own the terminal transition — the worker is gone (or lost the race),
+        # so its Celery job and warehouse query are safe to clean up.
+        self._revoke(properties.get("celery_task_id"), stats_logger)
+        self._cancel_orphaned_query(properties)
 
         from superset.tasks.manager import TaskManager
 

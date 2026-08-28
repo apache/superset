@@ -82,7 +82,11 @@ class TaskRestApi(BaseSupersetModelRestApi):
         "status_changes",
         "related_subscribers",
         "related",
+        "distinct",
     }
+
+    # Powers the Task List "Type" filter dropdown; scoped per-user by base_filters.
+    allowed_distinct_fields = {"task_type"}
 
     list_columns = [
         "id",

@@ -149,9 +149,9 @@ def upgrade():
         )
 
     # Liveness marker for orphan detection: the executing worker bumps
-    # ``tasks.last_heartbeat`` on a background thread, and the prune cron reaps
-    # ACTIVE tasks whose heartbeat has gone stale (a dead/orphaned worker). The
-    # index backs the reaper's ``last_heartbeat < now - timeout`` scan.
+    # ``tasks.last_heartbeat`` on a background thread, and the reap_orphaned_tasks
+    # beat job reaps ACTIVE tasks whose heartbeat has gone stale (a dead/orphaned
+    # worker). The index backs the reaper's ``last_heartbeat < now - timeout`` scan.
     add_columns(
         TASKS_TABLE,
         Column("last_heartbeat", DateTime, nullable=True),

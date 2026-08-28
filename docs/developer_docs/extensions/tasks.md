@@ -107,7 +107,7 @@ PENDING ──→ IN_PROGRESS ────→ SUCCESS
 | `IN_PROGRESS` | Executing                                            |
 | `ABORTING`    | Abort/timeout triggered, abort handlers running      |
 | `SUCCESS`     | Completed successfully                               |
-| `FAILURE`     | Failed with error or abort/cleanup handler exception |
+| `FAILURE`     | Failed with error, abort/cleanup handler exception, orphan reaping, or worker self-fence |
 | `ABORTED`     | Cancelled by user/admin                              |
 | `TIMED_OUT`   | Exceeded configured timeout                          |
 
@@ -158,7 +158,7 @@ In the Task List UI, when a payload is defined, an info icon appears in the **De
 
 #### Forcing an Immediate Write
 
-By default `update_task()` throttles database writes (batching frequent updates to limit metastore load). Pass `immediate=True` to bypass throttling and write synchronously:
+By default `update_task()` throttles database writes (batching frequent updates to limit metastore load, at most one write per `TASK_PROGRESS_UPDATE_THROTTLE_INTERVAL` seconds, default 2). Pass `immediate=True` to bypass throttling and write synchronously:
 
 ```python
 ctx.update_task(payload={"result_cache_key": key}, immediate=True)
@@ -370,6 +370,21 @@ Because dependents hold a worker slot while awaiting their prerequisites, a deep
 
 Cycles (including self-dependencies) are rejected at schedule time. Dependency edges are removed automatically when either endpoint task is pruned.
 
+**Reading a prerequisite's output.** A dependent reads the payloads its prerequisites published via `ctx.get_dependency_payloads()`, which returns the prerequisites' payloads in dependency-edge order. Pair it with the prerequisite writing its result with `ctx.update_task(payload=..., immediate=True)` so the value is flushed (not held in the write-throttle buffer) by the time the dependency gate releases the dependent:
+
+```python
+@task
+def totals_task() -> None:
+    ctx = get_context()
+    # immediate=True so the dependent observes this the moment the gate releases.
+    ctx.update_task(payload={"result_cache_key": key}, immediate=True)
+
+@task
+def dependent_task() -> None:
+    ctx = get_context()
+    upstream = ctx.get_dependency_payloads()  # [{"result_cache_key": ...}, ...]
+```
+
 ## Task Scopes
 
 ```python
@@ -418,15 +433,26 @@ A task whose worker dies mid-execution (OOM kill, crash, lost broker message) wo
 
 - **Heartbeat** — every `GTF_TASK_HEARTBEAT_INTERVAL` seconds (default 15) the executing worker refreshes `tasks.last_heartbeat`. This write is deliberately out-of-band and does not update `changed_on`.
 - **Reaping** — `reap_orphaned_tasks` marks any active task whose heartbeat is older than `GTF_ORPHAN_TASK_TIMEOUT` (default 60) as `FAILURE` so waiters and dependents unblock, revokes its Celery job so a redelivered copy (with `task_acks_late`) will not run, and — on engines that support query cancellation, when the dead worker had captured a cancel handle — cancels the abandoned warehouse query out-of-band. A task still being worked on keeps a fresh heartbeat and is never reaped, so this never interferes with a live worker's cooperative abort/cleanup.
+- **Self-fencing** — the reaper handles a *dead* worker, but a worker that is alive yet cut off from the metastore (network partition, metastore outage) would keep running a query the reaper has already marked `FAILURE`. To avoid that wasted work, if a worker's heartbeat writes keep failing for longer than `GTF_ORPHAN_TASK_TIMEOUT` — the same window the reaper uses — the worker fails the task from the inside, cancelling any in-flight query. A single failed write is tolerated; only a sustained outage spanning the orphan window fences, so a transient blip never kills a healthy task. There is no handover to another worker: the task simply fails.
 
 Enable the `reap_orphaned_tasks` beat schedule on a short interval (e.g. every minute) so orphaned tasks — and their warehouse queries — do not linger; it is separate from `prune_tasks` (a heavier retention delete that runs infrequently). Keep `GTF_ORPHAN_TASK_TIMEOUT` comfortably larger than the heartbeat interval (≥ ~3×) so a brief pause or CPU-bound stretch is not mistaken for a dead worker.
+
+```python
+# In your superset_config.py, add to your Celery beat schedule:
+CELERY_CONFIG.beat_schedule["reap_orphaned_tasks"] = {
+    "task": "reap_orphaned_tasks",
+    "schedule": crontab(minute="*", hour="*"),  # Run every minute
+}
+```
+
+Unlike `prune_tasks`, the reaper takes no kwargs — it reads `GTF_ORPHAN_TASK_TIMEOUT` from config.
 
 :::note Cancelling the underlying query
 For long-running work backed by an external query, register an `on_abort` handler that cancels it (this is how async chart-data query tasks cancel the warehouse query on engines that support cancellation). Without such a handler an abort/timeout frees the task but cannot stop the external work.
 :::
 
 :::tip Distributed Coordination for Faster Notifications
-By default, abort detection and sync join-and-wait poll the task row in the metadata database. Configure `DISTRIBUTED_COORDINATION_CONFIG` (Redis/Valkey) and these become event-driven: completion and abort are signalled over Redis **Streams**, so a waiter wakes when the signal lands instead of polling the database. Because stream entries are persisted, a waiter that reads slightly late, reconnects, or fails over still receives the signal. Each signal stream keeps only its latest entry and is given a TTL, so streams for tasks that are never awaited do not accumulate; set the retention window with `DISTRIBUTED_COORDINATION_SIGNAL_TTL` (default 24h). See [Distributed Coordination Backend](/admin-docs/configuration/cache#signal-cache-backend) for configuration details.
+By default, abort detection and sync join-and-wait poll the task row in the metadata database (every `TASK_ABORT_POLLING_DEFAULT_INTERVAL` seconds, default 10). Configure `DISTRIBUTED_COORDINATION_CONFIG` (Redis/Valkey) and these become event-driven: completion and abort are signalled over Redis **Streams**, so a waiter wakes when the signal lands instead of polling the database. Because stream entries are persisted, a waiter that reads slightly late, reconnects, or fails over still receives the signal. Each signal stream keeps only its latest entry and is given a TTL, so streams for tasks that are never awaited do not accumulate; set the retention window with `DISTRIBUTED_COORDINATION_SIGNAL_TTL` (default 24h). See [Distributed Coordination Backend](/admin-docs/configuration/cache#signal-cache-backend) for configuration details.
 :::
 
 ## API Reference
@@ -450,6 +476,7 @@ By default, abort detection and sync join-and-wait poll the task row in the meta
 | Method                           | Description                                   |
 | -------------------------------- | --------------------------------------------- |
 | `update_task(progress, payload, immediate=False)` | Update progress and/or custom payload (`immediate=True` bypasses write throttling) |
+| `get_dependency_payloads()`      | Return prerequisite tasks' payloads, in dependency-edge order |
 | `on_cleanup(handler)`            | Register cleanup handler                      |
 | `on_abort(handler)`              | Register abort handler (makes task abortable) |
 

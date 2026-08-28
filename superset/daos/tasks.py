@@ -100,23 +100,59 @@ class TaskDAO(BaseDAO[Task]):
         """
         return db.session.query(Task.id).filter(Task.uuid == task_uuid).scalar()
 
+    # Dialect SQL for the database's current time as a naive UTC timestamp. Used
+    # so the heartbeat write and the orphan scan share one clock (the DB's) rather
+    # than the worker's and the reaper's host clocks, which can skew and cause a
+    # live task to be reaped early. None -> fall back to an app-side timestamp on
+    # unrecognized dialects (correct if hosts are NTP-synced).
+    _DB_UTCNOW_SQL = {
+        "postgresql": "timezone('UTC', now())",
+        "mysql": "UTC_TIMESTAMP()",
+        "sqlite": "CURRENT_TIMESTAMP",
+    }
+
+    @classmethod
+    def _db_utcnow_sql(cls) -> str | None:
+        """Return the dialect's naive-UTC-now SQL, or None to use an app clock."""
+        return cls._DB_UTCNOW_SQL.get(db.session.get_bind().dialect.name)
+
+    @classmethod
+    def _db_utcnow(cls) -> datetime:
+        """Read the database's current time as a naive UTC datetime."""
+        if (expr := cls._db_utcnow_sql()) is None:
+            return naive_utcnow()
+        # type_coerce applies DateTime result processing so SQLite's text value is
+        # parsed into a datetime like the other drivers already return.
+        return db.session.scalar(
+            sa.select(sa.type_coerce(sa.text(expr), sa.DateTime()))
+        )
+
     @classmethod
     def touch_heartbeat(cls, task_id: int) -> None:
         """Bump a task's ``last_heartbeat`` to now without touching ``changed_on``.
 
         Called on an interval by the executing worker's heartbeat thread so the
-        prune cron can tell a live task from an orphaned one. Uses a raw textual
+        reaper can tell a live task from an orphaned one. Uses a raw textual
         UPDATE on the single column: ``changed_on`` carries a client-side
         ``onupdate`` default that ORM/Core updates would fire, and any bump to
         ``changed_on`` would resurface the task in ``get_statuses_changed_since``
         every heartbeat (resetting client polling backoff). A textual statement
         bypasses that default processing entirely. Bound by integer ``id`` to
         sidestep ``UUIDType`` dialect handling.
+
+        Stamps the *database* clock (via ``_db_utcnow_sql``) rather than the
+        worker's host clock so the value is comparable to the reaper's scan
+        without cross-host skew (see ``find_orphaned``).
         """
-        db.session.execute(
-            sa.text("UPDATE tasks SET last_heartbeat = :ts WHERE id = :id"),
-            {"ts": naive_utcnow(), "id": task_id},
-        )
+        if (expr := cls._db_utcnow_sql()) is not None:
+            # expr is a fixed per-dialect literal, not user input.
+            sql = f"UPDATE tasks SET last_heartbeat = {expr} WHERE id = :id"  # noqa: S608
+            db.session.execute(sa.text(sql), {"id": task_id})
+        else:
+            db.session.execute(
+                sa.text("UPDATE tasks SET last_heartbeat = :ts WHERE id = :id"),
+                {"ts": naive_utcnow(), "id": task_id},
+            )
         # Deliberate standalone commit: this is a single out-of-band column write,
         # not a unit of work, and must not be wrapped in the ORM transaction flow.
         db.session.commit()  # pylint: disable=consider-using-transaction
@@ -132,10 +168,14 @@ class TaskDAO(BaseDAO[Task]):
         still being worked on (fresh heartbeat) is never returned, so this never
         interferes with a live worker's cooperative abort/cleanup.
 
+        The staleness cutoff is anchored on the *database* clock (the same clock
+        the heartbeat is stamped with) so it does not depend on this host's clock
+        agreeing with the workers'.
+
         Skips the base filter: internal maintenance over all tasks, not a
         user-facing listing.
         """
-        stale_before = naive_utcnow() - timedelta(seconds=orphan_timeout_seconds)
+        stale_before = cls._db_utcnow() - timedelta(seconds=orphan_timeout_seconds)
         rows = (
             db.session.query(Task.uuid)
             .filter(

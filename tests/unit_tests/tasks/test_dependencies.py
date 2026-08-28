@@ -137,7 +137,14 @@ class TestExecuteTaskFailedPrerequisite:
 
             # Call the lifecycle body directly with the already-loaded task; the
             # heartbeat/celery-id wrapper (execute_task) is covered separately.
-            result = _execute_task_body(pending, native, "some.task", (), {})  # type: ignore[arg-type]
+            result = _execute_task_body(
+                pending,  # type: ignore[arg-type]
+                native,
+                "some.task",
+                (),
+                {},
+                MagicMock(),
+            )
             return result, task_manager.publish_completion
 
     def test_failure_published_when_transition_commits(self):

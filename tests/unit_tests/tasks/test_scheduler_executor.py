@@ -22,9 +22,16 @@ from uuid import uuid4
 
 from superset_core.tasks.types import TaskStatus
 
+from superset.tasks.heartbeat import SELF_FENCE_ERROR_MESSAGE
 
-def _run_body_with_raising_executor(*, timeout_triggered: bool, abort_detected: bool):
-    """Drive _execute_task_body where the task body raises mid-abort/timeout.
+
+def _run_body_with_raising_executor(
+    *,
+    timeout_triggered: bool = False,
+    abort_detected: bool = False,
+    fence_triggered: bool = False,
+):
+    """Drive _execute_task_body where the task body raises mid-abort/timeout/fence.
 
     Returns ``(result, transition_mock, task_manager_mock, stats_logger_mock)`` for
     the caller to assert on the terminal handling.
@@ -35,18 +42,19 @@ def _run_body_with_raising_executor(*, timeout_triggered: bool, abort_detected: 
         status=TaskStatus.PENDING.value,
         properties_dict={},  # no "timeout" key -> no timeout timer started
     )
+    if fence_triggered:
+        final_status = TaskStatus.FAILURE.value
+    elif timeout_triggered:
+        final_status = TaskStatus.TIMED_OUT.value
+    else:
+        final_status = TaskStatus.ABORTED.value
     # What the finally block's terminal transition commits, read back at the end.
-    refreshed = SimpleNamespace(
-        status=(
-            TaskStatus.TIMED_OUT.value
-            if timeout_triggered
-            else TaskStatus.ABORTED.value
-        )
-    )
+    refreshed = SimpleNamespace(status=final_status)
 
     ctx = MagicMock()
     ctx._abort_detected = abort_detected
     ctx.timeout_triggered = timeout_triggered
+    ctx.fence_triggered = fence_triggered
     ctx.abort_handlers_completed = True
 
     transition = MagicMock()
@@ -82,7 +90,7 @@ def _run_body_with_raising_executor(*, timeout_triggered: bool, abort_detected: 
         from superset.tasks.scheduler import _execute_task_body
 
         # SimpleNamespace stands in for the Task ORM row the body only reads from.
-        result = _execute_task_body(task, native, "some.task", (), {})  # type: ignore[arg-type]
+        result = _execute_task_body(task, native, "some.task", (), {}, MagicMock())  # type: ignore[arg-type]
     return result, transition, task_manager, stats_logger
 
 
@@ -131,6 +139,24 @@ def test_exception_during_abort_finalizes_aborted_not_failure() -> None:
     assert aborted is not None
     assert aborted.kwargs.get("expected_status") == TaskStatus.ABORTING
     assert result["status"] == TaskStatus.ABORTED.value
+
+
+def test_exception_during_self_fence_finalizes_failure() -> None:
+    """A body that raises after the worker self-fenced must end FAILURE."""
+    result, transition, task_manager, _stats = _run_body_with_raising_executor(
+        fence_triggered=True
+    )
+
+    failure = _find_call(transition, TaskStatus.FAILURE)
+    assert failure is not None
+    # Accepts IN_PROGRESS too: the ABORTING write may have failed under partition.
+    assert failure.kwargs.get("expected_status") == [
+        TaskStatus.IN_PROGRESS,
+        TaskStatus.ABORTING,
+    ]
+    assert failure.kwargs["properties"]["error_message"] == SELF_FENCE_ERROR_MESSAGE
+    assert result["status"] == TaskStatus.FAILURE.value
+    task_manager.publish_completion.assert_called_once()
 
 
 def test_persist_celery_task_id_writes_and_commits() -> None:

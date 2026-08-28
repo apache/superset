@@ -72,13 +72,18 @@ def test_orphan_is_failed_published_and_revoked() -> None:
     stats.incr.assert_any_call("gtf.task.revoke")
 
 
-def test_cas_noop_does_not_publish() -> None:
-    """A revived worker that already committed a terminal status wins the CAS race."""
+def test_cas_noop_leaves_revived_worker_untouched() -> None:
+    """A revived worker that already committed a terminal status wins the CAS race.
+
+    The reaper must not publish — and, critically, must not revoke the job or
+    cancel the query, since the worker is healthy (destructive cleanup is gated
+    on winning the CAS).
+    """
     with _patched(cas_result=False) as (_stats, _cas, celery, publish):
         reaped = ReapOrphanedTasksCommand().run()
 
     assert reaped == 0
-    celery.control.revoke.assert_called_once()
+    celery.control.revoke.assert_not_called()
     publish.assert_not_called()
 
 
@@ -93,7 +98,9 @@ def test_missing_celery_id_skips_revoke_but_still_reaps() -> None:
 
 
 @contextmanager
-def _patched_with_handle(properties: str, database: object = _UNSET):
+def _patched_with_handle(
+    properties: str, database: object = _UNSET, *, cas_result: bool = True
+):
     """Patch collaborators with a specific serialized `properties` blob."""
     stats = MagicMock()
     app = MagicMock()
@@ -104,7 +111,8 @@ def _patched_with_handle(properties: str, database: object = _UNSET):
         patch("superset.commands.tasks.reap.db") as db,
         patch("superset.daos.tasks.TaskDAO.find_orphaned", return_value=[TEST_UUID]),
         patch(
-            "superset.daos.tasks.TaskDAO.conditional_status_update", return_value=True
+            "superset.daos.tasks.TaskDAO.conditional_status_update",
+            return_value=cas_result,
         ),
         patch("superset.commands.tasks.reap.celery_app"),
         patch("superset.tasks.manager.TaskManager.publish_completion"),
@@ -142,6 +150,19 @@ def test_no_cancel_when_database_missing() -> None:
     properties = json.dumps({"cancel_query_id": "42", "cancel_database_id": 7})
     with _patched_with_handle(properties, database=None) as (cancel, _db):
         assert ReapOrphanedTasksCommand().run() == 1
+
+    cancel.assert_not_called()
+
+
+def test_no_cancel_when_worker_wins_cas() -> None:
+    """R1: destructive cleanup is gated on winning the CAS.
+
+    A stalled-but-healthy worker that revives and commits its own terminal status
+    beats the reaper's CAS; the reaper must then leave its warehouse query alone.
+    """
+    properties = json.dumps({"cancel_query_id": "42", "cancel_database_id": 7})
+    with _patched_with_handle(properties, cas_result=False) as (cancel, _db):
+        assert ReapOrphanedTasksCommand().run() == 0
 
     cancel.assert_not_called()
 
