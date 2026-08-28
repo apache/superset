@@ -319,3 +319,52 @@ test('drilling on a null value emits IS NULL, not IN [null]', () => {
     }),
   );
 });
+
+test('drilling on a temporal bucket passes TEMPORAL_RANGE through unchanged', () => {
+  const updateDataMask = jest.fn();
+  const formDataWithHierarchy: QueryFormData = {
+    ...baseFormData,
+    drilldown_hierarchy: ['country', 'region', 'city'],
+  };
+
+  render(
+    <DrillDownHost
+      ChartRendererComponent={CaptureRenderer as any}
+      {...baseRendererProps}
+      formData={formDataWithHierarchy}
+      emitCrossFilters
+      actions={{ updateDataMask } as any}
+    />,
+  );
+
+  act(() => {
+    capturedOnDrillDown?.(
+      [
+        {
+          col: '__timestamp',
+          op: 'TEMPORAL_RANGE',
+          val: '2020-01-01 : 2020-02-01',
+        },
+      ],
+      '2020-01',
+    );
+  });
+
+  // A temporal bucket click must be passed through as a TEMPORAL_RANGE with its
+  // original val, mirroring the native ECharts cross-filter path, not wrapped
+  // in IN [...] which would break temporal cross-filter scoping.
+  expect(updateDataMask).toHaveBeenLastCalledWith(
+    1,
+    expect.objectContaining({
+      extraFormData: {
+        filters: [
+          {
+            col: '__timestamp',
+            op: 'TEMPORAL_RANGE',
+            val: '2020-01-01 : 2020-02-01',
+          },
+        ],
+      },
+    }),
+  );
+});
