@@ -26,6 +26,9 @@ type RowCountLabelProps = {
   limit?: number;
   loading?: boolean;
   label?: JSX.Element;
+  // Overrides the default "chart" wording for panes (e.g. samples) where the
+  // limit reached isn't the chart's own row_limit.
+  limitReachedMessage?: React.ReactNode;
 };
 
 const limitReachedMsg = t(
@@ -33,7 +36,13 @@ const limitReachedMsg = t(
 );
 
 export default function RowCountLabel(props: RowCountLabelProps) {
-  const { rowcount = 0, limit = null, loading, label } = props;
+  const {
+    rowcount = 0,
+    limit = null,
+    loading,
+    label,
+    limitReachedMessage,
+  } = props;
   const limitReached = limit && rowcount >= limit;
   const type =
     limitReached || (rowcount === 0 && !loading) ? 'error' : 'default';
@@ -50,7 +59,10 @@ export default function RowCountLabel(props: RowCountLabelProps) {
     </Label>
   );
   return limitReached ? (
-    <Tooltip id="tt-rowcount-tooltip" title={<span>{limitReachedMsg}</span>}>
+    <Tooltip
+      id="tt-rowcount-tooltip"
+      title={<span>{limitReachedMessage ?? limitReachedMsg}</span>}
+    >
       {label || labelText}
     </Tooltip>
   ) : (

@@ -242,7 +242,7 @@ DEFAULT_GET_DASHBOARD_INFO_COLUMNS: List[str] = [
 
 
 class GetDashboardInfoRequest(MetadataCacheControl):
-    """Request schema for get_dashboard_info with support for ID, UUID, or slug.
+    """Request schema for dashboard identifiers and shared permalink URLs.
 
     When permalink_key is provided, the tool will retrieve the dashboard's filter
     state from the permalink, allowing you to see what filters the user has applied
@@ -253,21 +253,23 @@ class GetDashboardInfoRequest(MetadataCacheControl):
     model_config = ConfigDict(populate_by_name=True)
 
     identifier: Annotated[
-        int | str,
+        int | str | None,
         Field(
             description=(
-                "Dashboard identifier - can be numeric ID, UUID string, or slug"
+                "Dashboard ID, UUID, slug, bare permalink key, or a shared URL "
+                "containing /superset/dashboard/p/<key>/. Omit when "
+                "permalink_key is provided."
             ),
+            default=None,
             validation_alias=AliasChoices("identifier", "id", "dashboard_id"),
         ),
     ]
     permalink_key: str | None = Field(
         default=None,
         description=(
-            "Optional permalink key for retrieving dashboard filter state. When a "
-            "user applies filters in a dashboard, the state can be persisted in a "
-            "permalink. If provided, the tool returns the filter configuration "
-            "from that permalink."
+            "Key from a shared dashboard URL such as "
+            "'/superset/dashboard/p/<key>/'. Resolves the dashboard and returns "
+            "the shared active-tab and filter context; no identifier is required."
         ),
     )
     select_columns: Annotated[
@@ -295,16 +297,57 @@ class GetDashboardInfoRequest(MetadataCacheControl):
         parsed = parse_json_or_list(value, "select_columns")
         return parsed if parsed else list(DEFAULT_GET_DASHBOARD_INFO_COLUMNS)
 
+    @model_validator(mode="after")
+    def _require_identifier_or_permalink(self) -> "GetDashboardInfoRequest":
+        identifier_is_blank = self.identifier is None or (
+            isinstance(self.identifier, str) and not self.identifier.strip()
+        )
+        permalink_is_blank = (
+            self.permalink_key is None or not self.permalink_key.strip()
+        )
+        if identifier_is_blank and permalink_is_blank:
+            raise ValueError("Provide identifier or permalink_key")
+        return self
+
 
 class GetDashboardLayoutRequest(BaseModel):
-    """Request schema for get_dashboard_layout."""
+    """Request a dashboard layout by its identifier or shared permalink.
+
+    Permalink requests resolve the dashboard while preserving shared active-tab
+    and filter state in the response.
+    """
 
     identifier: Annotated[
-        int | str,
+        int | str | None,
         Field(
-            description="Dashboard identifier - can be numeric ID, UUID string, or slug"
+            default=None,
+            description=(
+                "Dashboard ID, UUID, slug, bare permalink key, or a shared URL "
+                "containing /superset/dashboard/p/<key>/. Omit when "
+                "permalink_key is provided."
+            ),
         ),
     ]
+    permalink_key: str | None = Field(
+        default=None,
+        description=(
+            "Key from a shared dashboard URL such as "
+            "'/superset/dashboard/p/<key>/'. Resolves the dashboard and includes "
+            "the shared active-tab and filter context in the layout response."
+        ),
+    )
+
+    @model_validator(mode="after")
+    def _require_identifier_or_permalink(self) -> "GetDashboardLayoutRequest":
+        identifier_is_blank = self.identifier is None or (
+            isinstance(self.identifier, str) and not self.identifier.strip()
+        )
+        permalink_is_blank = (
+            self.permalink_key is None or not self.permalink_key.strip()
+        )
+        if identifier_is_blank and permalink_is_blank:
+            raise ValueError("Provide identifier or permalink_key")
+        return self
 
 
 class GetDashboardDatasetsRequest(BaseModel):
@@ -1452,6 +1495,20 @@ class DashboardLayout(BaseModel):
     has_layout: bool = Field(
         default=False,
         description="False when position_json is missing or empty",
+    )
+    permalink_key: str | None = Field(
+        None, description="Resolved key when the input was a dashboard permalink"
+    )
+    filter_state: Dict[str, Any] | None = Field(
+        None,
+        description=(
+            "Shared dashboard state, including activeTabs, anchor, dataMask, "
+            "chartStates, and urlParams when present."
+        ),
+    )
+    is_permalink_state: bool = Field(
+        False,
+        description="True when filter_state was resolved from a dashboard permalink",
     )
 
 
