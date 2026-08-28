@@ -539,6 +539,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # the ``array_*`` capability methods below must be implemented. Defaults to
     # False so engines that have not opted in keep treating arrays as strings.
     supports_multivalue_columns = False
+    supports_temporal_column_shift: bool = False
     allows_joins = True
     allows_subqueries = True
     allows_alias_in_select = True
@@ -745,18 +746,18 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     @classmethod
     def encrypted_extra_sensitive_field_paths(cls) -> set[str]:
         """
-        Returns a set of paths for fields that should be masked in the
-        ``masked_encrypted_extra`` JSON.
+        Returns a set of JSONPath expressions for fields that should be masked
+        in the ``masked_encrypted_extra`` JSON.
 
-        :param cls: Description
-        :return: Description
-        :rtype: set[str]
+        The OAuth2 client secret is always included, since
+        ``Database.get_oauth2_config`` reads ``oauth2_client_info`` from the
+        ``encrypted_extra`` of any database regardless of its engine, so engine
+        specs that override ``encrypted_extra_sensitive_fields`` cannot
+        accidentally expose it.
         """
-        return (
-            set(cls.encrypted_extra_sensitive_fields)
-            if isinstance(cls.encrypted_extra_sensitive_fields, dict)
-            else cls.encrypted_extra_sensitive_fields
-        )
+        return set(cls.encrypted_extra_sensitive_fields) | {
+            "$.oauth2_client_info.secret"
+        }
 
     @classmethod
     def get_rls_method(cls) -> RLSMethod:
@@ -1243,6 +1244,19 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return TimestampExpression(time_expr, col, type_=col.type)
 
     @classmethod
+    def get_temporal_column_shift_expr(
+        cls,
+        col: ColumnClause,
+        offset_hours: int,
+    ) -> TimestampExpression:
+        """Shift a temporal SQL expression by a bounded number of hours."""
+        return TimestampExpression(
+            f"{{col}} + INTERVAL '{offset_hours}' HOUR",
+            col,
+            type_=col.type,
+        )
+
+    @classmethod
     def _apply_year_to_dttm(cls, time_expr: str) -> str:
         """
         Substitute `{col}` in ``time_expr`` with the ``year_to_dttm`` expression.
@@ -1378,12 +1392,12 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
                 return cursor.fetchmany(limit)
             data = cursor.fetchall()
             description = cursor.description or []
-            # Create a mapping between column name and a mutator function to normalize
-            # values with. The first two items in the description row are
-            # the column name and type.
+            # Create a mapping between column index and a mutator function to normalize
+            # values with. The first two items in the description row are the column
+            # name and type.
             column_mutators = {
-                row[0]: func
-                for row in description
+                index: func
+                for index, row in enumerate(description)
                 if (
                     func := cls.column_type_mutators.get(
                         type(cls.get_sqla_column_type(cls.get_datatype(row[1])))
@@ -1391,11 +1405,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
                 )
             }
             if column_mutators:
-                indexes = {row[0]: idx for idx, row in enumerate(description)}
+                if not isinstance(data, list):
+                    data = list(data)
                 for row_idx, row in enumerate(data):
                     new_row = list(row)
-                    for col, func in column_mutators.items():
-                        col_idx = indexes[col]
+                    for col_idx, func in column_mutators.items():
                         new_row[col_idx] = func(row[col_idx])
                     data[row_idx] = tuple(new_row)
 
@@ -2856,7 +2870,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         corresponding entry is updated, otherwise the old value is used (see
         `unmask_encrypted_extra` below).
         """
-        if encrypted_extra is None or not cls.encrypted_extra_sensitive_fields:
+        if encrypted_extra is None:
             return encrypted_extra
 
         try:

@@ -212,6 +212,18 @@ async def test_tools_list_over_real_asgi_transport() -> None:
     assert len(tools) > 0
     tool_names = {tool.name for tool in tools}
     assert "health_check" in tool_names
+    assert not {
+        tool.name
+        for tool in tools
+        if tool.annotations is None or tool.annotations.openWorldHint is not False
+    }
+    assert not {
+        tool.name
+        for tool in tools
+        if tool.annotations is not None
+        and tool.annotations.readOnlyHint is False
+        and tool.annotations.idempotentHint is not False
+    }
 
 
 @pytest.mark.asyncio
@@ -232,3 +244,21 @@ async def test_tools_call_health_check_over_real_asgi_transport() -> None:
     data = json.loads(result.content[0].text)
     assert data["status"] == "healthy"
     assert data["service"] == "Superset MCP Service"
+
+
+@pytest.mark.asyncio
+async def test_tools_call_failure_sets_is_error_over_real_asgi_transport() -> None:
+    """A failed ``tools/call`` reaches the client with ``isError: true``.
+
+    An unknown tool name raises inside the middleware chain, so this exercises
+    the real path a permission denial takes: the exception propagates to the
+    outermost ``StructuredContentStripperMiddleware`` catch-all, whose result
+    then crosses the real JSON-RPC wire. Isolated middleware tests with a mocked
+    ``call_next`` cannot prove this -- inner middlewares rebuild the result and
+    can drop the flag -- which is why this runs over the full chain.
+    """
+    async with _real_asgi_client() as client:
+        result = await client.call_tool("no_such_tool", {}, raise_on_error=False)
+
+    assert result.is_error is True
+    assert result.content[0].text.startswith("Error:")
