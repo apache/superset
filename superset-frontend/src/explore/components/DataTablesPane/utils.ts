@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect } from 'react';
 import { ResultTypes } from './types';
 
 /**
@@ -34,21 +33,3 @@ export const getStaleResultsTabFallback = (
   !resultsTabKeys.includes(activeTabKey)
     ? ResultTypes.Results
     : undefined;
-
-/**
- * Switches the active tab back to the first results tab when it goes stale,
- * per `getStaleResultsTabFallback`.
- */
-export const useStaleResultsTabFallback = (
-  activeTabKey: string,
-  tabKeys: string[],
-  setActiveTabKey: (key: string) => void,
-) => {
-  const fallback = getStaleResultsTabFallback(activeTabKey, tabKeys);
-
-  useEffect(() => {
-    if (fallback) {
-      setActiveTabKey(fallback);
-    }
-  }, [fallback, setActiveTabKey]);
-};

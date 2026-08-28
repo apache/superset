@@ -29,7 +29,7 @@ import {
 } from 'src/utils/localStorageHelpers';
 import { SamplesPane, useResultsPane } from './components';
 import { DataTablesPaneProps, ResultTypes } from './types';
-import { useStaleResultsTabFallback } from './utils';
+import { getStaleResultsTabFallback } from './utils';
 
 const StyledDiv = styled.div`
   ${() => `
@@ -215,11 +215,16 @@ export const DataTablesPane = ({
     };
   });
 
-  useStaleResultsTabFallback(
+  const resultsTabFallback = getStaleResultsTabFallback(
     activeTabKey,
     queryResultsPanes.map(({ key }) => key),
-    setActiveTabKey,
   );
+
+  useEffect(() => {
+    if (resultsTabFallback) {
+      setActiveTabKey(resultsTabFallback);
+    }
+  }, [resultsTabFallback]);
 
   // Hide the Samples tab for datasources that don't expose raw rows
   // (e.g. semantic views). The check is intentionally ``=== false`` so that
