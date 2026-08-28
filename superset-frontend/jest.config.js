@@ -18,6 +18,19 @@
  */
 // timezone for unit tests
 process.env.TZ = 'America/New_York';
+
+const reporters = ['default'];
+
+// HTML reporter is not used on CI so skipping its generation for saving time
+if (process.env.CI) {
+  reporters.push([
+    './node_modules/jest-html-reporter',
+    {
+      pageTitle: 'Test Report',
+    },
+  ]);
+}
+
 module.exports = {
   // [/\\] matches both path separators so the suite also collects on
   // native Windows, where jest hands the regex backslash-separated paths.
@@ -88,17 +101,6 @@ module.exports = {
     __DEV__: true,
     caches: true,
   },
-  reporters: [
-    'default',
-    // HTML reporter is not used on CI so skipping its generation for saving time
-    ...(process.env.CI
-      ? []
-      : [
-          './node_modules/jest-html-reporter',
-          {
-            pageTitle: 'Test Report',
-          },
-        ]),
-  ],
+  reporters: reporters,
   testTimeout: 20000,
 };
