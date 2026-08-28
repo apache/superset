@@ -1091,10 +1091,11 @@ class HeatmapChartConfig(BaseChartConfig):
         """x_axis and y_axis are dimensions, not metrics."""
         for col, name in ((self.x_axis, "x_axis"), (self.y_axis, "y_axis")):
             _reject_sql_expression_on_dimension(col, name)
-            if col and col.saved_metric:
+            if col and col.is_metric:
                 raise ValueError(
-                    f"{name} cannot use saved_metric=True; "
-                    "saved metrics belong in the 'metric' field"
+                    f"{name} must be a plain column, not a metric; drop "
+                    "'aggregate'/'saved_metric' (metrics belong in the 'metric' "
+                    "field)"
                 )
         return self
 

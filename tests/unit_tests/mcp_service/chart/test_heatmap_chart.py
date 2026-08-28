@@ -78,6 +78,23 @@ class TestHeatmapChartConfigSchema:
                 bogus=1,
             )
 
+    def test_heatmap_axis_rejects_aggregate(self) -> None:
+        """An aggregate makes an axis metric-like; x_axis/y_axis are dims."""
+        with pytest.raises(ValidationError):
+            HeatmapChartConfig(
+                chart_type="heatmap_v2",
+                x_axis={"name": "day_of_week", "aggregate": "COUNT"},
+                y_axis={"name": "hour"},
+                metric={"name": "trips", "aggregate": "COUNT"},
+            )
+        with pytest.raises(ValidationError):
+            HeatmapChartConfig(
+                chart_type="heatmap_v2",
+                x_axis={"name": "day_of_week"},
+                y_axis={"name": "hour", "aggregate": "COUNT"},
+                metric={"name": "trips", "aggregate": "COUNT"},
+            )
+
     def test_heatmap_y_axis_rejects_saved_metric(self) -> None:
         with pytest.raises(ValidationError):
             HeatmapChartConfig(
