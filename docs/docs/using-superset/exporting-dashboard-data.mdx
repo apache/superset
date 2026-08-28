@@ -68,12 +68,7 @@ This feature is **disabled by default**. It requires:
 2. **The backend's SDK dependency.** Not installed by default; install
    `pip install apache-superset[excel-export]` (boto3) for `S3ExportStorage`,
    or `pip install apache-superset[excel-export-gcs]` (google-cloud-storage)
-   for `GCSExportStorage`. Without it, exports fail. For `GCSExportStorage`
-   with token-only Application Default Credentials (GKE workload identity,
-   GCE metadata, Cloud Run), signed download URLs are minted through the IAM
-   signBlob API, which requires the service account to hold
-   `roles/iam.serviceAccountTokenCreator` on itself; key-file credentials
-   sign locally and need no extra role.
+   for `GCSExportStorage`. Without it, exports fail.
 3. **A running Celery worker.** The export runs as a Celery task. If no worker
    is running, the request is accepted but nothing is produced.
 4. **A configured SMTP transport, for email delivery only.** When set (same
@@ -99,7 +94,7 @@ will not register.
 | `EXPORT_STORAGE["bucket"]`             | unset                  | Destination bucket. Required; `501` if unset.                                                                                                                                     |
 | `EXPORT_STORAGE["backend"]`            | unset                  | Storage backend instance: `S3ExportStorage()` (`superset.utils.s3`), `GCSExportStorage()` (`superset.utils.gcs`), or a custom `superset.utils.export_storage.ExportStorage` implementation. Required; `501` if unset. |
 | `EXPORT_STORAGE["key_prefix"]`         | `"dashboard-exports/"` | Object key/blob prefix: `{prefix}{dashboard_id}/{job_id}.xlsx`. A callable (`() -> str`) is invoked per export, for prefixes only known in request/task context (e.g. per-tenant scoping of a shared bucket). |
-| `EXCEL_EXPORT_LINK_TTL_SECONDS`        | `86400`                | Lifetime of the Superset download *link* (24h) — the redirect URL shared in the email and polling response. Each click on it mints a fresh short-lived storage URL (5 minutes, enough to complete one download); this setting does not govern that storage URL's lifetime. |
+| `EXCEL_EXPORT_LINK_TTL_SECONDS`        | `86400`                | Lifetime of the Superset download link (24h) shared in the email and polling response. Each click streams the file from storage through Superset. |
 | `EXCEL_EXPORT_TABLE_VIZ_TYPES`         | `None`                 | Viz types kept tabular in **Export Images to Excel** mode; every other type is embedded as an image. `None` uses the built-in default (`table`, `pivot_table`, `pivot_table_v2`). |
 | `EXCEL_EXPORT_QUERY_CONTEXT_BUILDER`   | `None`                 | Optional `Callable[[form_data_dict], dict \| None]` to build a query context for a chart missing a saved one, tried before the built-in form-data rebuild. Point it at a service that runs the chart's real frontend `buildQuery` to faithfully export viz types the built-in rebuild can't handle. Must return `None` when it can't build faithfully, so the export falls back. |
 
@@ -108,17 +103,19 @@ variables, shared config, or an instance role, with overrides available via
 `S3ExportStorage(client_kwargs={...})` (e.g. `region_name`, or `endpoint_url`
 for MinIO/LocalStack); for GCS, Application Default Credentials. Two tiers
 need bucket access, which matters when they run under separate identities:
-the **Celery worker** uploads the file (e.g. `s3:PutObject`), while the **web
-server** signs the download URL at click time (for S3, credentials authorized
-for `s3:GetObject`; for GCS, read access plus the signBlob role described in
-the prerequisites when its credentials are token-only).
+the **Celery worker** uploads the file (write, e.g. `s3:PutObject`), while
+the **web server** streams it back at download time (read, e.g.
+`s3:GetObject`). No signing permissions are needed on either tier: downloads
+stream through Superset rather than redirecting to a signed storage URL.
 
 ## Security considerations
 
-- The emailed link resolves to a **pre-signed storage URL**: anyone who holds it
-  can download the workbook until it expires. Keep the bucket **private**, enable
-  encryption, and consider a lifecycle rule to delete objects after a few days.
-  Lower `EXCEL_EXPORT_LINK_TTL_SECONDS` if 24 hours is too long for your data.
+- The download link is an unguessable Superset URL: anyone who holds it can
+  download the workbook until the link expires, and every download streams
+  through Superset (never a transferable signed storage URL). Keep the bucket
+  **private**, enable encryption, and consider a lifecycle rule to delete
+  objects after a few days. Lower `EXCEL_EXPORT_LINK_TTL_SECONDS` if 24 hours
+  is too long for your data.
 - The export runs with the requesting user's permissions; each chart's query is
   access-checked, so users only ever receive data they are entitled to.
 

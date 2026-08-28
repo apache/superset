@@ -23,16 +23,17 @@ Set ``EXPORT_STORAGE["backend"] = GCSExportStorage()`` in
 bucket). Authentication uses Application Default Credentials (a
 service account key, workload identity, etc.) via the standard
 ``google-cloud-storage`` resolution chain -- there is no separate credential
-config here. Signed download URLs from token-only credentials (workload
-identity, GCE metadata, Cloud Run) are routed through the IAM signBlob API,
-which requires ``roles/iam.serviceAccountTokenCreator`` on the service
-account itself.
+config here, and no signing: downloads stream through Superset with the same
+identity that uploaded, so identities with no signing key (workload identity
+federation, GCE metadata, Cloud Run) need only bucket read/write access.
 """
 
 from __future__ import annotations
 
-from datetime import timedelta
+from collections.abc import Iterator
 from typing import Any
+
+DOWNLOAD_CHUNK_BYTES = 8 * 1024 * 1024
 
 
 def _get_client() -> Any:
@@ -70,42 +71,21 @@ class GCSExportStorage:
         """
         _get_client().bucket(bucket).blob(key).upload_from_filename(local_path)
 
-    def generate_download_url(self, bucket: str, key: str, expires_in: int) -> str:
+    def download(self, bucket: str, key: str) -> Iterator[bytes]:
         """
-        Generate a time-limited signed URL for downloading a GCS object.
-
-        Token-only Application Default Credentials (GKE workload identity, GCE
-        metadata, Cloud Run) carry no private key, so local V4 signing raises.
-        For those, route the signature through the IAM signBlob API by passing
-        ``service_account_email`` and ``access_token``; the service account
-        needs ``roles/iam.serviceAccountTokenCreator`` on itself.
+        Stream a GCS object in chunks.
 
         :param bucket: The GCS bucket
         :param key: The GCS blob name
-        :param expires_in: URL lifetime in seconds
-        :returns: A v4 signed URL
+        :raises FileNotFoundError: when the blob does not exist
         """
         # pylint: disable=import-outside-toplevel
-        import google.auth
-        from google.auth import credentials as auth_credentials
-        from google.auth.transport import requests as auth_requests
+        from google.api_core import exceptions as gcs_exceptions
 
         blob = _get_client().bucket(bucket).blob(key)
-        signing_kwargs: dict[str, Any] = {}
-        # External-account/workload-identity credentials cannot refresh
-        # without an explicit scope.
-        credentials, _ = google.auth.default(
-            scopes=["https://www.googleapis.com/auth/cloud-platform"]
-        )
-        if not isinstance(credentials, auth_credentials.Signing):
-            credentials.refresh(auth_requests.Request())
-            signing_kwargs = {
-                "service_account_email": credentials.service_account_email,
-                "access_token": credentials.token,
-            }
-        return blob.generate_signed_url(
-            version="v4",
-            expiration=timedelta(seconds=expires_in),
-            method="GET",
-            **signing_kwargs,
-        )
+        try:
+            with blob.open("rb", chunk_size=DOWNLOAD_CHUNK_BYTES) as stream:
+                while chunk := stream.read(DOWNLOAD_CHUNK_BYTES):
+                    yield chunk
+        except gcs_exceptions.NotFound as ex:
+            raise FileNotFoundError(f"gs://{bucket}/{key}") from ex

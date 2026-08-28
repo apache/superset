@@ -32,9 +32,12 @@ S3-compatible stores such as MinIO/LocalStack):
 from __future__ import annotations
 
 import logging
+from collections.abc import Iterator
 from typing import Any
 
 logger = logging.getLogger(__name__)
+
+DOWNLOAD_CHUNK_BYTES = 8 * 1024 * 1024
 
 
 class S3ExportStorage:
@@ -76,17 +79,20 @@ class S3ExportStorage:
         """
         self._client().upload_file(local_path, bucket, key)
 
-    def generate_download_url(self, bucket: str, key: str, expires_in: int) -> str:
+    def download(self, bucket: str, key: str) -> Iterator[bytes]:
         """
-        Generate a time-limited pre-signed URL for downloading an S3 object.
+        Stream an S3 object in chunks.
 
         :param bucket: The S3 bucket
         :param key: The S3 object key
-        :param expires_in: URL lifetime in seconds
-        :returns: A pre-signed ``get_object`` URL
+        :raises FileNotFoundError: when the object does not exist
         """
-        return self._client().generate_presigned_url(
-            "get_object",
-            Params={"Bucket": bucket, "Key": key},
-            ExpiresIn=expires_in,
-        )
+        import botocore.exceptions  # pylint: disable=import-outside-toplevel
+
+        try:
+            response = self._client().get_object(Bucket=bucket, Key=key)
+        except botocore.exceptions.ClientError as ex:
+            if ex.response.get("Error", {}).get("Code") in ("NoSuchKey", "404"):
+                raise FileNotFoundError(f"s3://{bucket}/{key}") from ex
+            raise
+        yield from response["Body"].iter_chunks(chunk_size=DOWNLOAD_CHUNK_BYTES)

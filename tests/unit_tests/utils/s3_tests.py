@@ -81,17 +81,30 @@ def test_missing_boto3_raises_actionable_error() -> None:
 
 
 @patch("boto3.client")
-def test_generate_download_url(mock_client_fn: MagicMock) -> None:
+def test_download_streams_chunks(mock_client_fn: MagicMock) -> None:
     client = mock_client_fn.return_value
-    client.generate_presigned_url.return_value = "https://signed.example/abc"
+    client.get_object.return_value = {
+        "Body": MagicMock(iter_chunks=lambda chunk_size: iter([b"aa", b"bb"]))
+    }
 
-    url = S3ExportStorage().generate_download_url(
-        "my-bucket", "exports/1/abc.xlsx", 86400
+    chunks = list(S3ExportStorage().download("my-bucket", "exports/1/abc.xlsx"))
+
+    assert chunks == [b"aa", b"bb"]
+    client.get_object.assert_called_once_with(
+        Bucket="my-bucket", Key="exports/1/abc.xlsx"
     )
 
-    assert url == "https://signed.example/abc"
-    client.generate_presigned_url.assert_called_once_with(
-        "get_object",
-        Params={"Bucket": "my-bucket", "Key": "exports/1/abc.xlsx"},
-        ExpiresIn=86400,
+
+@patch("boto3.client")
+def test_download_missing_object_raises_file_not_found(
+    mock_client_fn: MagicMock,
+) -> None:
+    import botocore.exceptions
+
+    client = mock_client_fn.return_value
+    client.get_object.side_effect = botocore.exceptions.ClientError(
+        {"Error": {"Code": "NoSuchKey"}}, "GetObject"
     )
+
+    with pytest.raises(FileNotFoundError):
+        list(S3ExportStorage().download("my-bucket", "gone.xlsx"))
