@@ -29,6 +29,16 @@ from superset.utils.pandas_postprocessing.utils import (
 
 _PERCENT_MODES = frozenset({"percent_row", "percent_col", "percent_total"})
 
+# Aggregate operator names that produce additive results across groups —
+# the sum of the per-cell values equals the row/column/grand rollup the
+# database would compute over the underlying rows. ``show_values_as``
+# percent transforms divide each cell by that sum, so they are only
+# meaningful when the sum IS the rollup. For non-additive operators
+# (mean, median, min, max, etc.) the "percent of row" the exports would
+# show is not the "percent of row" the chart's DB rollup would show,
+# and the two disagree. See sadpandajoe's finding on #42976.
+_ADDITIVE_OPERATORS = frozenset({"sum", "nansum", "count", "count_nonzero"})
+
 
 def _div_preserving_nan(numerator: DataFrame, denominator: Any, axis: int) -> DataFrame:
     """Divide ``numerator`` by ``denominator``, preserving NaN numerators.
@@ -86,7 +96,21 @@ def _apply_show_values_as(df: DataFrame, mode: str) -> DataFrame:
       as its own single-column metric block.
     - **Flat columns with 1 column** (single-metric pivot with no
       ``columns`` groupby): the whole block is one metric.
+
+    NULL preservation is *structural* only: cells that ``pivot_table``
+    left as ``NaN`` because the (row, column) group had no input rows
+    at all stay ``NaN`` in the output. Cells whose input rows all held
+    SQL NULL values have already collapsed to ``0.0`` inside
+    ``pivot_table`` (pandas ``sum([NaN]) == 0``), so they render as
+    ``0%``, not blank — reconstructing "blank vs measured zero" from an
+    aggregated value is not possible at this layer.
     """
+    if df.empty:
+        # Empty pivots can carry an empty ``MultiIndex`` with zero level-0
+        # groups; iterating and concatenating produces
+        # ``ValueError: No objects to concatenate``. Nothing to transform.
+        return df
+
     is_multi_metric_wide = isinstance(df.columns, pd.MultiIndex)
     is_flat_multi_metric = not is_multi_metric_wide and df.shape[1] > 1
 
@@ -248,6 +272,28 @@ def pivot(  # pylint: disable=too-many-arguments  # noqa: C901
                 _(
                     "show_values_as is not yet supported when "
                     "marginal_distributions is enabled."
+                )
+            )
+        # ``show_values_as`` divides each cell by the sum of its axis, so
+        # it is only meaningful when that sum equals the rollup the DB
+        # would compute. For non-additive aggregates (mean, median, min,
+        # max, distinct count, …) the summed per-cell values are not the
+        # row/column/grand rollup, and the exports would disagree with
+        # the chart. Reject up front rather than emit numbers that mix
+        # with the DB rollup incorrectly.
+        non_additive = [
+            name
+            for name, cfg in aggregates.items()
+            if not isinstance(cfg.get("operator"), str)
+            or cfg["operator"] not in _ADDITIVE_OPERATORS
+        ]
+        if non_additive:
+            raise InvalidPostProcessingError(
+                _(
+                    "show_values_as is only supported for additive aggregates "
+                    "(sum, count); got non-additive operator(s) for: "
+                    "%(metrics)s.",
+                    metrics=", ".join(non_additive),
                 )
             )
         percent_mode = show_values_as

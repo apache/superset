@@ -802,3 +802,72 @@ def test_pivot_show_values_as_with_combine_value_with_metric_preserves_per_metri
     # not the mixed-metric ones that the bug produced.
     assert result.loc["r1", ("c1", "a")] == pytest.approx(10 / 30)
     assert result.loc["r1", ("c1", "b")] == pytest.approx(1 / 4)
+
+
+def test_pivot_show_values_as_rejects_non_additive_aggregate() -> None:
+    """``show_values_as`` requires additive aggregates.
+
+    For a ``mean`` aggregate, the summed per-cell values are not the
+    row/column/grand rollup the DB would compute over the underlying
+    rows, so ``cell / sum(cells)`` disagrees with the "share of the
+    real row total" the chart shows. Reject up front rather than emit
+    numbers that mix with the DB rollup incorrectly.
+    """
+    with pytest.raises(InvalidPostProcessingError, match="additive"):
+        pivot(
+            df=_show_values_as_fixture(),
+            index=["row"],
+            columns=["col"],
+            aggregates={"v": {"operator": "mean"}},
+            show_values_as="percent_row",
+        )
+
+
+def test_pivot_show_values_as_on_empty_pivot_returns_empty_frame() -> None:
+    """Empty inputs must not crash the percent transform.
+
+    An empty pivot with a column grouping has a ``MultiIndex`` with zero
+    level-0 groups; the metric-iteration loop then feeds ``pd.concat``
+    an empty list and raises ``ValueError: No objects to concatenate``.
+    The empty frame should pass through unchanged.
+    """
+    empty = DataFrame({"row": [], "col": [], "v": []}).astype(
+        {"row": str, "col": str, "v": float}
+    )
+    result = pivot(
+        df=empty,
+        index=["row"],
+        columns=["col"],
+        aggregates={"v": {"operator": "sum"}},
+        show_values_as="percent_row",
+    )
+    assert result.empty
+
+
+def test_pivot_show_values_as_preserves_structural_nan() -> None:
+    """Structurally-missing cells (no input rows for that (row, col)) stay NaN.
+
+    NULL preservation is scoped to the structural case: cells that
+    ``pivot_table`` left as ``NaN`` because no input row exists for that
+    (row, column) group must render as blank (``NaN``), not as ``0%``.
+    Value-is-NULL cells are a separate case documented on
+    ``_apply_show_values_as``.
+    """
+    df = DataFrame(
+        {
+            "row": ["r1", "r2", "r2"],
+            "col": ["c1", "c1", "c2"],
+            "v": [10.0, 30.0, 40.0],
+        }
+    )
+    result = pivot(
+        df=df,
+        index=["row"],
+        columns=["col"],
+        aggregates={"v": {"operator": "sum"}},
+        show_values_as="percent_row",
+    )
+    # r1 has no c2 row → cell is structurally missing → stays NaN.
+    assert pd.isna(result.loc["r1", ("v", "c2")])
+    # r1's row-total is just c1 (10.0), so c1 is 100%.
+    assert result.loc["r1", ("v", "c1")] == pytest.approx(1.0)
