@@ -256,9 +256,17 @@ export async function fetchSyncedColumns(
  */
 export function withCertificationFields(columns: ColumnObject[] = []) {
   return columns.map(column => {
+    // Malformed `extra` must not take out the whole column list, the way an
+    // uncaught parse would — same fallback as `hydrateMetricExtra`.
+    let parsedExtra;
+    try {
+      parsedExtra = JSON.parse(column.extra || '{}') || {};
+    } catch {
+      parsedExtra = {};
+    }
     const {
       certification: { details = '', certified_by: certifiedBy = '' } = {},
-    } = JSON.parse(column.extra || '{}') || {};
+    } = parsedExtra;
     return {
       ...column,
       certification_details: details || '',
