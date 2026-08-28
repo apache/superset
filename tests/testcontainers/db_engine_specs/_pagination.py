@@ -45,6 +45,11 @@ def assert_paginated_query_returns_correct_rows_in_order(
         metadata,
         Column("id", Integer, primary_key=True),
     )
+    # create_all() defaults to checkfirst=True, silently skipping creation
+    # (and leaving old rows in place) if the table already exists. Drop
+    # first so a leftover table from an earlier run of this exact test
+    # can't collide with the fresh insert below on primary key.
+    metadata.drop_all(engine, checkfirst=True)
     metadata.create_all(engine)
     with engine.begin() as conn:
         conn.execute(insert(t), [{"id": i} for i in range(10)])
