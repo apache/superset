@@ -83,9 +83,8 @@
     "react-error-boundary": "^6.1.5",
     "react-js-cron": "^6.0.2",
     "react-markdown": "^10.1.0",
-    "react-resize-detector": "^7.1.2",
+    "react-resize-detector": "^12.3.0",
     "react-syntax-highlighter": "^16.1.1",
-    "react-ultimate-pagination": "^1.3.2",
     "regenerator-runtime": "^0.14.1",
     "rehype-raw": "^7.0.0",
     "rehype-sanitize": "^6.0.0",
@@ -122,13 +121,11 @@
     "@testing-library/react": "*",
     "@testing-library/user-event": "*",
     "@types/react": "*",
-    "@types/react-loadable": "*",
     "@types/tinycolor2": "*",
     "antd": "^6.0.0",
     "nanoid": "*",
-    "react": "^18.3.0",
-    "react-dom": "^18.3.0",
-    "react-loadable": "^5.5.0",
+    "react": "^18.3.0 || ^19.0.0",
+    "react-dom": "^18.3.0 || ^19.0.0",
     "tinycolor2": "*"
   }
 }

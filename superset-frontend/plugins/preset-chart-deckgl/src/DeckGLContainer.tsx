@@ -112,7 +112,7 @@ export const DeckGLContainer = memo(
     }, [props.layers]);
 
     const isCustomTooltip = (content: ReactNode): boolean =>
-      isValidElement(content) &&
+      isValidElement<{ 'data-tooltip-type'?: string }>(content) &&
       content.props?.['data-tooltip-type'] === 'custom';
 
     const renderTooltip = (tooltipState: TooltipProps['tooltip']) => {

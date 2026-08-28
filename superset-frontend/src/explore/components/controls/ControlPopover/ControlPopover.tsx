@@ -89,7 +89,7 @@ const ControlPopover: FC<PopoverProps> = ({
   autoAdjustOverflow,
   ...props
 }) => {
-  const triggerElementRef = useRef<HTMLElement>();
+  const triggerElementRef = useRef<HTMLElement | null>(null);
   const [visible, setVisible] = useState(
     visibleProp === undefined ? props.defaultOpen : visibleProp,
   );

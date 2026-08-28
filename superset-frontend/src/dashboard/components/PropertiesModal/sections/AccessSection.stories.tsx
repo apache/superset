@@ -17,6 +17,7 @@
  * under the License.
  */
 import { FeatureFlag } from '@superset-ui/core';
+import type { ReactElement } from 'react';
 import AccessSection from './AccessSection';
 
 export default {
@@ -65,7 +66,7 @@ const baseProps = {
  * for the duration of the story.
  */
 const withFeatureFlags =
-  (flags: Partial<Record<string, boolean>>) => (Story: () => JSX.Element) => {
+  (flags: Partial<Record<string, boolean>>) => (Story: () => ReactElement) => {
     const prev = window.featureFlags || {};
     window.featureFlags = { ...prev, ...flags };
     return <Story />;

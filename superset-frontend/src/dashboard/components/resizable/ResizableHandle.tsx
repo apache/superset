@@ -16,15 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export function BottomRightResizeHandle(): JSX.Element {
+import type { ReactElement } from 'react';
+
+export function BottomRightResizeHandle(): ReactElement {
   return <div className="resize-handle resize-handle--bottom-right" />;
 }
 
-export function RightResizeHandle(): JSX.Element {
+export function RightResizeHandle(): ReactElement {
   return <div className="resize-handle resize-handle--right" />;
 }
 
-export function BottomResizeHandle(): JSX.Element {
+export function BottomResizeHandle(): ReactElement {
   return <div className="resize-handle resize-handle--bottom" />;
 }
 

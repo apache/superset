@@ -19,6 +19,7 @@
 import {
   cloneElement,
   isValidElement,
+  type CSSProperties,
   type KeyboardEvent,
   ReactElement,
   useCallback,
@@ -79,7 +80,15 @@ function CopyToClip({
   const getDecoratedCopyNode = useCallback(() => {
     const cursor = disabled ? 'not-allowed' : 'pointer';
     if (isValidElement(copyNode)) {
-      const node = copyNode as ReactElement;
+      // React 19 types `ReactElement['props']` as `unknown`; declare the
+      // props read below.
+      const node = copyNode as ReactElement<{
+        style?: CSSProperties;
+        tabIndex?: number;
+        onClick?: () => void;
+        onKeyDown?: (event: KeyboardEvent<HTMLElement>) => void;
+        'aria-disabled'?: boolean;
+      }>;
       return cloneElement(node, {
         style: {
           ...node.props.style,

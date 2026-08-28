@@ -172,13 +172,12 @@ test('passes correct canEdit and editing props to EditableTitle', () => {
     useDnd: true,
   });
 
-  expect(EditableTitle).toHaveBeenCalledWith(
+  expect((EditableTitle as jest.Mock).mock.calls.at(-1)?.[0]).toEqual(
     expect.objectContaining({
       title: '🚀 Aspiring Developers',
       canEdit: true,
       editing: false,
     }),
-    expect.anything(),
   );
 
   (EditableTitle as jest.Mock).mockClear();
@@ -189,13 +188,12 @@ test('passes correct canEdit and editing props to EditableTitle', () => {
     useDnd: true,
   });
 
-  expect(EditableTitle).toHaveBeenCalledWith(
+  expect((EditableTitle as jest.Mock).mock.calls.at(-1)?.[0]).toEqual(
     expect.objectContaining({
       title: '🚀 Aspiring Developers',
       canEdit: true,
       editing: true,
     }),
-    expect.anything(),
   );
 });
 
@@ -321,8 +319,7 @@ test('Render tab (with content)', () => {
     useDnd: true,
   });
   expect(DashboardComponent).toHaveBeenCalledTimes(2);
-  expect(DashboardComponent).toHaveBeenNthCalledWith(
-    1,
+  expect((DashboardComponent as unknown as jest.Mock).mock.calls[0][0]).toEqual(
     expect.objectContaining({
       availableColumnCount: 12,
       columnWidth: 120,
@@ -337,10 +334,8 @@ test('Render tab (with content)', () => {
       onResizeStop: expect.any(Function),
       parentId: 'TAB-YT6eNksV-',
     }),
-    {},
   );
-  expect(DashboardComponent).toHaveBeenNthCalledWith(
-    2,
+  expect((DashboardComponent as unknown as jest.Mock).mock.calls[1][0]).toEqual(
     expect.objectContaining({
       availableColumnCount: 12,
       columnWidth: 120,
@@ -355,7 +350,6 @@ test('Render tab (with content)', () => {
       onResizeStop: expect.any(Function),
       parentId: 'TAB-YT6eNksV-',
     }),
-    {},
   );
   expect(queryByTestId('dragdroppable-object')).not.toBeInTheDocument();
 });
@@ -400,8 +394,7 @@ test('Render tab (with content) editMode:true', () => {
     useDnd: true,
   });
   expect(DashboardComponent).toHaveBeenCalledTimes(2);
-  expect(DashboardComponent).toHaveBeenNthCalledWith(
-    1,
+  expect((DashboardComponent as unknown as jest.Mock).mock.calls[0][0]).toEqual(
     expect.objectContaining({
       availableColumnCount: 12,
       columnWidth: 120,
@@ -416,10 +409,8 @@ test('Render tab (with content) editMode:true', () => {
       onResizeStop: expect.any(Function),
       parentId: 'TAB-YT6eNksV-',
     }),
-    {},
   );
-  expect(DashboardComponent).toHaveBeenNthCalledWith(
-    2,
+  expect((DashboardComponent as unknown as jest.Mock).mock.calls[1][0]).toEqual(
     expect.objectContaining({
       availableColumnCount: 12,
       columnWidth: 120,
@@ -434,7 +425,6 @@ test('Render tab (with content) editMode:true', () => {
       onResizeStop: expect.any(Function),
       parentId: 'TAB-YT6eNksV-',
     }),
-    {},
   );
   // 3 droppable area exists for two child components
   expect(getAllByTestId('MockDroppable')).toHaveLength(3);

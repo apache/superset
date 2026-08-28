@@ -122,6 +122,10 @@ test('applies dark theme when background is dark', () => {
   expect(theme.foregroundColor).toBe('#ffffff');
 });
 
+// The props AgGridReact was last rendered with.
+const agGridProps = () =>
+  (AgGridReact as unknown as jest.Mock).mock.calls.at(-1)?.[0];
+
 test('forwards ref to AgGridReact', () => {
   const ref = createRef<AgGridReact>();
 
@@ -133,13 +137,14 @@ test('forwards ref to AgGridReact', () => {
     />,
   );
 
-  // Check that AgGridReact was called with the ref
-  expect(AgGridReact).toHaveBeenCalledWith(
+  // React 19 hands `ref` to the component as a regular prop rather than as a
+  // second argument, so assert on the props object itself.
+  expect(agGridProps()).toEqual(
     expect.objectContaining({
       rowData: mockRowData,
       columnDefs: mockColumnDefs,
+      ref,
     }),
-    expect.any(Object), // ref is passed as second argument
   );
 });
 
@@ -160,7 +165,7 @@ test('passes all props through to AgGridReact', () => {
 
   // onGridReady and onFirstDataRendered are intercepted by the component to expose
   // the grid API on the container element; the wrapped function is passed instead.
-  expect(AgGridReact).toHaveBeenCalledWith(
+  expect(agGridProps()).toEqual(
     expect.objectContaining({
       rowData: mockRowData,
       columnDefs: mockColumnDefs,
@@ -169,7 +174,6 @@ test('passes all props through to AgGridReact', () => {
       pagination: true,
       paginationPageSize: 10,
     }),
-    expect.any(Object),
   );
 });
 

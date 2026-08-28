@@ -304,7 +304,7 @@ const FiltersConfigForm = (
     getDependencySuggestion,
     isActive,
   }: FiltersConfigFormProps,
-  ref: RefObject<FiltersConfigFormHandle>,
+  ref: RefObject<FiltersConfigFormHandle | null>,
 ) => {
   const theme = useTheme();
   const isChartCustomization = itemType === 'chartCustomization';

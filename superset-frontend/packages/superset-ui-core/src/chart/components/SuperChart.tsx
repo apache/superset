@@ -26,6 +26,7 @@ import {
   useCallback,
   useMemo,
   useRef,
+  ReactElement,
 } from 'react';
 
 import {
@@ -76,9 +77,9 @@ export type Props = Omit<SuperChartCoreProps, 'chartProps'> &
     /** Prop for form plugins using superchart */
     showOverflow?: boolean;
     /** Prop for popovercontainer ref */
-    parentRef?: RefObject<any>;
+    parentRef?: RefObject<any | null>;
     /** Prop for chart ref */
-    inputRef?: RefObject<any>;
+    inputRef?: RefObject<any | null>;
     /** Chart width */
     height?: number | string;
     /** Chart height */
@@ -125,7 +126,7 @@ function SuperChart({
   height = 400,
   width = '100%',
   ...rest
-}: Props): JSX.Element {
+}: Props): ReactElement {
   /**
    * SuperChart's core ref
    */
@@ -264,7 +265,7 @@ function SuperChart({
               ({ data }) => !data || (Array.isArray(data) && data.length === 0),
             ));
 
-      let chart: JSX.Element;
+      let chart: ReactElement;
       if (noResultQueries) {
         chart = noResults ? (
           <>{noResults}</>

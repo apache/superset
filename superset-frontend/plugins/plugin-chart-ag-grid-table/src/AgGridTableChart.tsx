@@ -34,6 +34,7 @@ import {
   useRef,
   useState,
   useMemo,
+  type ReactElement,
 } from 'react';
 import { debounce, isEqual } from 'lodash-es';
 
@@ -662,7 +663,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     [writeOwnState],
   );
 
-  const renderTimeComparisonVisibility = (): JSX.Element => (
+  const renderTimeComparisonVisibility = (): ReactElement => (
     <TimeComparisonVisibility
       comparisonColumns={comparisonColumns}
       selectedComparisonColumns={selectedComparisonColumns}

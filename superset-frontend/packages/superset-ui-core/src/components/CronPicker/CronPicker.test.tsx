@@ -28,13 +28,14 @@ test('Should send correct props to ReactCronPicker', () => {
     myCustomProp: 'myCustomProp',
   };
   render(<CronPicker {...(props as any)} />);
-  expect(spy).toHaveBeenCalledWith(
+  // React 19 calls function components with a single props argument, so assert
+  // on the props rather than the whole call signature.
+  expect(spy.mock.calls.at(-1)?.[0]).toEqual(
     expect.objectContaining({
       className: expect.any(String),
       locale: expect.anything(),
       myCustomProp: 'myCustomProp',
     }),
-    expect.anything(),
   );
 });
 

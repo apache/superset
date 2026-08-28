@@ -17,7 +17,14 @@
  * under the License.
  */
 
-import { ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  ReactElement,
+} from 'react';
 import {
   SupersetClientInterface,
   RequestConfig,
@@ -77,7 +84,7 @@ function ChartDataProvider({
   formDataRequestOptions,
   datasourceRequestOptions,
   queryRequestOptions,
-}: ChartDataProviderProps): JSX.Element | null {
+}: ChartDataProviderProps): ReactElement | null {
   const [state, setState] = useState<ChartDataProviderState>({
     status: 'uninitialized',
   });
@@ -159,7 +166,7 @@ function ChartDataProvider({
   const { status, payload, error } = state;
 
   // Wrap the children result in a Fragment so the component's return type
-  // stays `JSX.Element | null` (which TypeScript requires for JSX components)
+  // stays `ReactElement | null` (which TypeScript requires for JSX components)
   // while still letting consumers return any ReactNode (strings, fragments,
   // arrays, null, etc.) from the render prop.
   switch (status) {

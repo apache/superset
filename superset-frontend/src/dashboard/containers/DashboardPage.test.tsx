@@ -206,9 +206,8 @@ test('passes full theme object from dashboard API response to CrudThemeProvider'
     expect(screen.queryByText('loading')).not.toBeInTheDocument();
   });
 
-  expect(MockCrudThemeProvider).toHaveBeenCalledWith(
+  expect(MockCrudThemeProvider.mock.calls.map(call => call[0])).toContainEqual(
     expect.objectContaining({ theme: mockTheme }),
-    expect.anything(),
   );
 
   // Regression guard: theme data comes from the dashboard API response,
@@ -247,9 +246,8 @@ test('uses theme from Redux dashboardInfo when it differs from API response (Pro
   });
 
   // Redux theme should take priority over API response theme
-  expect(MockCrudThemeProvider).toHaveBeenCalledWith(
+  expect(MockCrudThemeProvider.mock.calls.map(call => call[0])).toContainEqual(
     expect.objectContaining({ theme: reduxTheme }),
-    expect.anything(),
   );
 });
 
@@ -444,9 +442,8 @@ test('passes null theme when Redux dashboardInfo.theme is explicitly null (theme
 
   // When theme is explicitly null in Redux (removed via Properties modal),
   // CrudThemeProvider should receive null
-  expect(MockCrudThemeProvider).toHaveBeenCalledWith(
+  expect(MockCrudThemeProvider.mock.calls.map(call => call[0])).toContainEqual(
     expect.objectContaining({ theme: null }),
-    expect.anything(),
   );
 });
 
