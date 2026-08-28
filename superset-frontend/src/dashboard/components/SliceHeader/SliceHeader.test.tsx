@@ -208,6 +208,18 @@ test('Should render', () => {
   expect(screen.getByTestId('slice-header')).toBeInTheDocument();
 });
 
+test('Should expose a class hook, not just data-test, for fullscreen styling', () => {
+  const props = createProps();
+  render(<SliceHeader {...props} />, {
+    useRedux: true,
+    useRouter: true,
+    initialState,
+  });
+  // The production build strips data-test attributes, so CSS that targets the
+  // header must hang off a class instead.
+  expect(screen.getByTestId('slice-header')).toHaveClass('slice-header');
+});
+
 test('Should render - default props', () => {
   const props = createProps();
 
