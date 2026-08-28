@@ -37,6 +37,7 @@ from sqlalchemy import (
     MetaData,
     select,
     Table as SATable,
+    text,
 )
 from sqlalchemy.engine import Engine
 
@@ -85,16 +86,23 @@ def test_paginated_query_returns_correct_rows_in_order(engine: Engine) -> None:
     this incorrectly (see apache/superset#42899, where Trino emitted OFFSET
     before LIMIT) -- only real execution can. Unlike Elasticsearch's SQL
     layer (which has no OFFSET support at all), pymongosql maps OFFSET to
-    MongoDB's native `skip`, so this dialect supports it. Going through
-    Core's `select(...).limit().offset()` (rather than a literal SQL
-    string) is what actually exercises the dialect's own compilation of
-    those clauses.
+    MongoDB's native `skip`, so this dialect supports it.
+
+    Compiled with `literal_binds=True`, matching how Superset actually
+    issues chart/SQL Lab queries (see `models/helpers.py`'s
+    `get_query_str_extended`): pymongosql's SQL-to-Mongo AST parser reads
+    LIMIT/OFFSET straight off the compiled SQL text ahead of parameter
+    substitution, so a bound `LIMIT ?`/`OFFSET ?` placeholder is rejected
+    ("invalid literal for int() with base 10: '?'") and the clause is
+    silently dropped -- unlike its WHERE-clause parameter handling, which
+    does substitute correctly. Literal binds sidestep that and exercise
+    the dialect's actual LIMIT/OFFSET compilation, per this test's intent.
     """
     t = SATable(COLLECTION, MetaData(), Column("id", Integer))
+    stmt = select(t.c.id).order_by(t.c.id).limit(3).offset(4)
+    compiled = stmt.compile(engine, compile_kwargs={"literal_binds": True})
     with engine.connect() as conn:
-        rows = conn.execute(
-            select(t.c.id).order_by(t.c.id).limit(3).offset(4)
-        ).fetchall()
+        rows = conn.execute(text(str(compiled))).fetchall()
 
     assert [row.id for row in rows] == [4, 5, 6]
 
