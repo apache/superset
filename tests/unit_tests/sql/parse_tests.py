@@ -5592,6 +5592,27 @@ def test_parse_predicate_invalid_sql_raises_superset_parse_error() -> None:
     assert excinfo.value.status == 422
 
 
+def test_parse_predicate_sqlglot_error_raises_superset_parse_error(
+    mocker: MockerFixture,
+) -> None:
+    """
+    A non-``ParseError`` ``sqlglot`` failure also surfaces as a typed error.
+
+    ``parse_predicate`` catches the generic ``SqlglotError`` base class as a
+    fallback so any sqlglot failure (e.g. tokenize errors) is converted into a
+    ``SupersetParseError`` rather than leaking a raw sqlglot exception.
+    """
+    # Build the statement before patching, since the constructor also parses.
+    stmt = SQLStatement("SELECT 1", "postgresql")
+    mocker.patch(
+        "sqlglot.parse_one",
+        side_effect=sqlglot.errors.SqlglotError("boom"),
+    )
+    with pytest.raises(SupersetParseError) as excinfo:
+        stmt.parse_predicate("a > 1")
+    assert excinfo.value.status == 422
+
+
 @pytest.mark.usefixtures("_small_parse_cap")
 def test_transpile_to_dialect_length_check() -> None:
     """
