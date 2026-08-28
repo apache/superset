@@ -20,9 +20,9 @@ import { t } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
 import Tabs from '@superset-ui/core/components/Tabs';
 import { ResultTypes, ResultsPaneProps } from '../types';
-import { getStaleResultsTabFallback } from '../utils';
+import { useStaleResultsTabFallback } from '../utils';
 import { useResultsPane } from './useResultsPane';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 const Wrapper = styled.div`
   display: flex;
@@ -79,16 +79,11 @@ export const ResultsPaneOnDashboard = ({
     };
   });
 
-  const resultsTabFallback = getStaleResultsTabFallback(
+  useStaleResultsTabFallback(
     activeTabKey,
     items.map(({ key }) => key),
+    setActiveTabKey,
   );
-
-  useEffect(() => {
-    if (resultsTabFallback) {
-      setActiveTabKey(resultsTabFallback);
-    }
-  }, [resultsTabFallback]);
 
   return (
     <Wrapper>
