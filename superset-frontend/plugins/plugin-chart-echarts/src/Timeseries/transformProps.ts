@@ -111,6 +111,7 @@ import { defaultGrid, defaultYAxis } from '../defaults';
 import {
   getBaselineSeriesForStream,
   getPadding,
+  getViableTimeseriesEchartOptions,
   transformEventAnnotation,
   transformFormulaAnnotation,
   transformIntervalAnnotation,
@@ -1672,15 +1673,20 @@ export default function transformProps(
   const mergedEchartOptions = customEchartOptions
     ? mergeCustomEChartOptions(echartOptions, customEchartOptions)
     : echartOptions;
-  const mergedSeries = mergedEchartOptions.series;
+  const viableEchartOptions = getViableTimeseriesEchartOptions(
+    mergedEchartOptions,
+    height,
+    zoomable,
+  );
+  const mergedSeries = viableEchartOptions.series;
   const finalSeries = Array.isArray(mergedSeries)
     ? (mergedSeries as SeriesOption[])
     : mergedSeries && typeof mergedSeries === 'object'
       ? [mergedSeries as SeriesOption]
       : renderedSeries;
-  const mergedGrid = Array.isArray(mergedEchartOptions.grid)
-    ? mergedEchartOptions.grid[0]
-    : mergedEchartOptions.grid;
+  const mergedGrid = Array.isArray(viableEchartOptions.grid)
+    ? viableEchartOptions.grid[0]
+    : viableEchartOptions.grid;
   const finalGrid =
     mergedGrid && typeof mergedGrid === 'object' ? mergedGrid : padding;
   const customLegend = usesCustomLegend
@@ -1707,13 +1713,13 @@ export default function transformProps(
     : undefined;
   const finalEchartOptions = usesCustomLegend
     ? {
-        ...mergedEchartOptions,
+        ...viableEchartOptions,
         legend: {
-          ...(mergedEchartOptions.legend as Record<string, unknown>),
+          ...(viableEchartOptions.legend as Record<string, unknown>),
           show: false,
         },
       }
-    : mergedEchartOptions;
+    : viableEchartOptions;
 
   return {
     customLegend,

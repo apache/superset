@@ -1306,11 +1306,15 @@ test('keeps the custom legend absent when a compact chart hides the Plain legend
 });
 
 test.each([
-  [99, 7],
-  [100, 8],
+  [10, 9, 0.25, 9, 0],
+  [13, 12, 0.25, 12, 0],
+  [20, 12, 0.25, 12, 7],
+  [30, 12, 1, 12, 17],
+  [99, 12, 7, 12, 80],
+  [100, 12, 8, 12, 80],
 ])(
-  'keeps the zoomable ECharts grid viable and hides the Plain legend at %ipx',
-  (height, expectedGridHeight) => {
+  'keeps the hidden-legend zoomable ECharts grid within a %ipx canvas',
+  (height, expectedGridY, expectedGridHeight, expectedTop, expectedBottom) => {
     const getContext = jest
       .spyOn(HTMLCanvasElement.prototype, 'getContext')
       .mockReturnValue({
@@ -1341,7 +1345,9 @@ test.each([
         chart as unknown as {
           getModel: () => {
             getComponent: (component: string) => {
-              coordinateSystem: { getRect: () => { height: number } };
+              coordinateSystem: {
+                getRect: () => { height: number; y: number };
+              };
             };
           };
         }
@@ -1350,9 +1356,17 @@ test.each([
         .getComponent('grid');
 
       expect(getCustomLegend(transformed)).toBeUndefined();
-      expect(gridModel.coordinateSystem.getRect().height).toBe(
-        expectedGridHeight,
-      );
+      expect(transformed.echartOptions.grid).toMatchObject({
+        bottom: expectedBottom,
+        top: expectedTop,
+      });
+      const gridRect = gridModel.coordinateSystem.getRect();
+      expect(gridRect).toMatchObject({
+        height: expectedGridHeight,
+        y: expectedGridY,
+      });
+      expect(gridRect.y).toBeGreaterThanOrEqual(0);
+      expect(gridRect.y + gridRect.height).toBeLessThanOrEqual(height);
     } finally {
       chart.dispose();
       getContext.mockRestore();

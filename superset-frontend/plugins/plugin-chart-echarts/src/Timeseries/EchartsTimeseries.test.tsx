@@ -323,6 +323,29 @@ test('uses the post-control body height for compact custom-legend visibility', a
   });
 });
 
+test('keeps a no-legend grid within a very small post-control body', async () => {
+  mockOffsetHeight = 40;
+  render(
+    <EchartsTimeseries
+      {...defaultProps}
+      height={50}
+      echartOptions={{
+        grid: { bottom: 37, containLabel: false, top: 12 },
+      }}
+      formData={{ ...defaultFormData, zoomable: true }}
+    />,
+  );
+
+  await waitFor(() => {
+    expect(getLatestHeight()).toBe(10);
+    expect(getLatestEchartProps().echartOptions.grid).toEqual({
+      bottom: 0,
+      containLabel: false,
+      top: 9,
+    });
+  });
+});
+
 test('falls back to window resize listener when ResizeObserver is unavailable', async () => {
   (globalThis as { ResizeObserver?: typeof ResizeObserver }).ResizeObserver =
     undefined;
