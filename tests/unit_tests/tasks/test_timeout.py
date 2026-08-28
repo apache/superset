@@ -16,6 +16,7 @@
 # under the License.
 """Unit tests for GTF timeout handling."""
 
+import threading
 import time
 from unittest.mock import MagicMock, patch
 from uuid import UUID
@@ -619,6 +620,38 @@ class TestTimeoutTerminalState:
 
 class TestSelfFence:
     """Test TaskContext.trigger_self_fence — worker fails the task from inside."""
+
+    def test_concurrent_abort_election_runs_handlers_once(
+        self, mock_flask_app, mock_task_abortable
+    ):
+        """The listener/timeout/fence threads race to abort; the lock elects one
+        winner so abort handlers run exactly once."""
+        with patch("superset.tasks.context.current_app") as mock_current_app:
+            mock_current_app.config = mock_flask_app.config
+            mock_current_app._get_current_object.return_value = mock_flask_app
+
+            ctx = TaskContext(mock_task_abortable)
+            ctx._app = mock_flask_app
+
+            calls: list[int] = []
+            # Register the handler directly to bypass on_abort's DB write; we are
+            # exercising the _on_abort_detected election, not listener setup.
+            ctx._abort_handlers.append(lambda: calls.append(1))
+
+            barrier = threading.Barrier(8)
+
+            def race() -> None:
+                barrier.wait()  # maximize contention on the election
+                ctx._on_abort_detected()
+
+            threads = [threading.Thread(target=race) for _ in range(8)]
+            for t in threads:
+                t.start()
+            for t in threads:
+                t.join()
+
+            assert calls == [1]  # handler ran exactly once despite 8 racers
+            assert ctx._abort_detected is True
 
     def test_self_fence_sets_flag_and_runs_abort_handlers(
         self, mock_flask_app, mock_task_abortable

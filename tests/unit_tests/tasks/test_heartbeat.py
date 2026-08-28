@@ -116,6 +116,24 @@ def test_heartbeat_does_not_fence_while_writes_succeed() -> None:
     fence_callback.assert_not_called()
 
 
+def test_heartbeat_does_not_fence_before_armed() -> None:
+    """During the pre-execution DAG wait (no callback yet) a stalled heartbeat
+    must not fence — it keeps retrying so recovered connectivity resumes the task."""
+    stats = MagicMock()
+    app = _mock_app(interval=0.02, stats=stats, orphan_timeout=0)
+
+    with patch(
+        "superset.daos.tasks.TaskDAO.touch_heartbeat",
+        side_effect=RuntimeError("db down"),
+    ):
+        with task_heartbeat(11, app):  # never call on_fence -> controller not armed
+            time.sleep(0.1)  # deadline passes and several beats fail
+
+    # Writes kept failing and being counted, but no fence fired (not armed).
+    stats.incr.assert_any_call("gtf.task.heartbeat_failure")
+    assert ("gtf.task.self_fenced",) not in [c.args for c in stats.incr.call_args_list]
+
+
 def test_heartbeat_tolerates_intermittent_failures() -> None:
     """A transient blip (fail then success) resets the deadline and does not fence."""
     stats = MagicMock()

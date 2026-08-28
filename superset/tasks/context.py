@@ -71,6 +71,9 @@ class TaskContext(CoreTaskContext):
         self._abort_detected = False
         self._abort_handlers_completed = False  # Track if all abort handlers finished
         self._execution_completed = False  # Set by executor after task work completes
+        # Elects one abort trigger across the listener/timeout/fence threads so
+        # abort handlers run exactly once.
+        self._abort_lock = threading.Lock()
 
         # Collected handler failures for unified reporting
         self._handler_failures: list[TaskContext.HandlerFailure] = []
@@ -416,21 +419,25 @@ class TaskContext(CoreTaskContext):
         """
         Callback invoked by TaskManager when abort is detected.
 
-        Triggers all registered abort handlers.
+        Triggers all registered abort handlers exactly once, even when the abort
+        listener, timeout timer, and heartbeat self-fence race to call this
+        concurrently: the winner is elected atomically under ``_abort_lock``.
         """
-        if self._abort_detected:
-            return  # Already handled
+        with self._abort_lock:
+            if self._abort_detected:
+                return  # Another thread already won the election
 
-        # Check if task execution has already completed (late abort race).
-        # Executor sets _execution_completed after task work finishes.
-        if self._execution_completed:
-            logger.info(
-                "Abort detected for task %s but execution already completed",
-                self._task_uuid,
-            )
-            return
+            # Check if task execution has already completed (late abort race).
+            # Executor sets _execution_completed after task work finishes.
+            if self._execution_completed:
+                logger.info(
+                    "Abort detected for task %s but execution already completed",
+                    self._task_uuid,
+                )
+                return
 
-        self._abort_detected = True
+            self._abort_detected = True
+
         logger.info("Abort detected for task %s", self._task_uuid)
         self._trigger_abort_handlers()
 

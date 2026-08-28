@@ -88,10 +88,10 @@ class Task(CoreTask, AuditMixinNullable, Model):
     ended_at = Column(DateTime, nullable=True)
 
     # Liveness marker bumped by the executing worker's heartbeat thread while it
-    # holds the task. The prune cron reaps ACTIVE tasks whose heartbeat has gone
-    # stale (a dead/orphaned worker). Written out-of-band via a raw UPDATE (see
-    # TaskDAO.touch_heartbeat) so a heartbeat never advances changed_on and thus
-    # never resurfaces the task in the status-change poll.
+    # holds the task. The reap_orphaned_tasks beat job reaps ACTIVE tasks whose
+    # heartbeat has gone stale (a dead/orphaned worker). Written out-of-band via a
+    # raw UPDATE (see TaskDAO.touch_heartbeat) so a heartbeat never advances
+    # changed_on and thus never resurfaces the task in the status-change poll.
     last_heartbeat = Column(DateTime, nullable=True, index=True)
 
     # User context for execution

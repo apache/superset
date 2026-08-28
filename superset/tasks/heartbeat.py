@@ -43,9 +43,10 @@ class HeartbeatController:
 
     The heartbeat thread starts before the ``TaskContext`` exists (it spans the
     whole time the worker holds the task, including the DAG wait), so the
-    executor registers the fence callback once the context is built. Until then
-    a fence can only stop the heartbeat and log — there is no running query to
-    cancel yet.
+    executor registers the fence callback once the context is built. The worker
+    only self-fences once it is ``armed`` (a callback is registered); before that
+    there is no running query to cancel, so a stalled heartbeat is simply left
+    for the reaper and the loop keeps trying in case connectivity recovers.
     """
 
     def __init__(self) -> None:
@@ -54,6 +55,11 @@ class HeartbeatController:
     def on_fence(self, callback: Callable[[], None]) -> None:
         """Register the callback invoked when the worker self-fences."""
         self._fence_callback = callback
+
+    @property
+    def armed(self) -> bool:
+        """True once a fence callback is registered (task is executing)."""
+        return self._fence_callback is not None
 
     def invoke_fence(self) -> None:
         """Invoke the registered fence callback, if one has been registered."""
@@ -80,7 +86,10 @@ def task_heartbeat(  # noqa: C901
     reaper has already (or will shortly) mark FAILURE, the worker fails itself
     via the registered fence callback. A single failed write is tolerated; only
     a sustained outage spanning the orphan window fences, so a transient blip
-    never kills a healthy task.
+    never kills a healthy task. Fencing only kicks in once the controller is
+    armed (the task is executing and has a fence callback); a stalled heartbeat
+    during the pre-execution DAG wait keeps retrying so recovered connectivity
+    resumes the task rather than forfeiting it.
 
     The thread is a daemon so it never blocks worker shutdown (matching the
     existing timeout/abort threads) and relies on DB drivers releasing the GIL
@@ -142,7 +151,9 @@ def task_heartbeat(  # noqa: C901
             with app.app_context():
                 if _write():
                     deadline = _new_deadline()
-                elif naive_utcnow() >= deadline:
+                elif controller.armed and naive_utcnow() >= deadline:
+                    # Only fence an executing task; a pre-execution stall is left
+                    # to the reaper and keeps retrying in case the outage clears.
                     _fence()
                     return
 
