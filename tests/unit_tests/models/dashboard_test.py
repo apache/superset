@@ -374,8 +374,12 @@ def test_tabs_handles_tab_nodes_without_a_title(
 def test_tabs_skips_tab_nodes_without_an_id(
     app_context: None, caplog: pytest.LogCaptureFixture
 ) -> None:
-    """A TAB node with no `id` cannot be addressed, so it is left out of
-    `all_tabs` with a warning rather than raising."""
+    """A TAB node without a usable `id` is left out of the result entirely.
+
+    Such a tab cannot be keyed in `all_tabs`, and it cannot carry a `value`,
+    so a tree entry for it would not satisfy `TabSchema` and could never be
+    selected in the tab picker. It is dropped from both, with a warning.
+    """
     dash = Dashboard()
     dash.id = 1
     dash.position_json = json.dumps(
@@ -409,6 +413,10 @@ def test_tabs_skips_tab_nodes_without_an_id(
     tabs = dash.tabs
 
     assert tabs["all_tabs"] == {"TAB-2": "Second"}
+    # The unusable tabs are absent from the tree too, so it cannot carry an
+    # entry that has no `value` for the API to serialise.
+    assert [node["id"] for node in tabs["tab_tree"]] == ["TAB-2"]
+    assert all("value" in node for node in tabs["tab_tree"])
     assert caplog.text.count("skipping tab node with no usable id in the layout") == 2
 
 

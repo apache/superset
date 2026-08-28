@@ -453,6 +453,19 @@ class Dashboard(CoreDashboard, SoftDeleteMixin, AuditMixinNullable, ImportExport
                     )
                     continue
                 if node_type == "TABS":
+                    # A tab that cannot be keyed by a string is unusable: it
+                    # could not be selected, and it would reach the API as a
+                    # tree entry with no ``value``. Keep it out of the tree as
+                    # well as out of ``all_tabs``.
+                    if child.get("type") == "TAB" and not isinstance(
+                        child.get("id"), str
+                    ):
+                        logger.warning(
+                            "Dashboard %s: skipping tab node with no usable id "
+                            "in the layout",
+                            self.id,
+                        )
+                        continue
                     # if TABS add create a new list and append children to it
                     # new_children.append(child)
                     children.append(child)
