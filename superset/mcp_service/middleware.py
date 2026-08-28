@@ -827,9 +827,17 @@ class StructuredContentStripperMiddleware(Middleware):
                         "duration_ms": None,
                     },
                 )
+            # Flag the failure so clients can distinguish it from a
+            # successful call. This still serializes to
+            # CallToolResult(isError=True) (see ToolResult.to_mcp_result);
+            # what keeps it encodable is that structured_content stays None
+            # and only the boolean flips false->true, not the structured
+            # payload implicated in the bridge failure above. That leg is
+            # unverified against the live Claude.ai bridge.
             return ToolResult(
                 content=[mt.TextContent(type="text", text=error_text)],
                 meta={"mcp_call_id": mcp_call_id} if mcp_call_id else None,
+                is_error=True,
             )
         if isinstance(result, ToolResult) and result.structured_content is not None:
             result = ToolResult(content=result.content, meta=result.meta)

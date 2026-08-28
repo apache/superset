@@ -125,8 +125,8 @@ Available tools:
 
 Dashboard Management:
 - list_dashboards: List dashboards with advanced filters (1-based pagination; deleted_state='only'/'include' surfaces trashed dashboards the caller may restore)
-- get_dashboard_info: Get detailed dashboard information by ID
-- get_dashboard_layout: Get parsed tabs and chart positions for a dashboard (companion to get_dashboard_info when its omitted_fields hint flags position_json)
+- get_dashboard_info: Resolve a dashboard by ID/UUID/slug or shared /dashboard/p/<key>/ permalink, including its active-tab and filter state
+- get_dashboard_layout: Get parsed tabs and chart positions by dashboard identifier or shared permalink, including the permalink's active-tab and filter context
 - get_dashboard_datasets: List the datasets used by a dashboard's charts, with columns and metrics (context for configuring native filters)
 - generate_dashboard: Create a dashboard from chart IDs (requires write access)
 - update_dashboard: Update an existing dashboard's title/description/slug/published/layout/theme/CSS (requires write access; editorship-checked per-instance)
