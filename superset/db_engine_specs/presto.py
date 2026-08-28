@@ -186,9 +186,7 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
     # literal for NaN/Infinity/-Infinity, so REAL/DOUBLE columns holding
     # those values arrive as quoted strings. Coerce them back to real
     # floats so numeric post-processing (e.g. a pivot's mean) doesn't choke
-    # on a string value. (DECIMAL has the same class of issue, but that's
-    # handled per-driver: pyhive already converts it for Presto, so only
-    # TrinoEngineSpec needs its own DECIMAL entry.)
+    # on a string value.
     column_type_mutators: dict[types.TypeEngine, Callable[[Any], Any]] = {
         types.FLOAT: lambda val: float(val) if isinstance(val, str) else val
     }

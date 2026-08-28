@@ -82,11 +82,8 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
 
     # Trino's DBAPI driver can return DECIMAL columns as plain strings
     # (e.g. when a value's precision/scale can't be inferred from the
-    # column type alone), which later breaks numeric post-processing (e.g.
-    # pivot with a mean aggregate). Coerce them back to Decimal. Unlike
-    # Trino, Presto's driver (pyhive) already converts DECIMAL itself, so
-    # this entry lives here rather than on PrestoBaseEngineSpec -- merge
-    # with the inherited FLOAT entry rather than shadowing it.
+    # column type alone), which later breaks numeric post-processing
+    # (e.g. pivot with a mean aggregate). Coerce them back to Decimal.
     column_type_mutators: dict[TypeEngine, Callable[[Any], Any]] = {
         **PrestoBaseEngineSpec.column_type_mutators,
         DECIMAL: lambda val: Decimal(val) if isinstance(val, str) else val,
