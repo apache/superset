@@ -392,7 +392,7 @@
     "@luma.gl/shadertools": "~9.2.5",
     "@luma.gl/webgl": "~9.2.5",
     "core-js": "^3.38.1",
-    "dompurify": "^3.4.11",
+    "dompurify": "^3.4.13",
     "esbuild": "^0.28.1",
     "eslint-plugin-import": {
       "eslint": "$eslint"
