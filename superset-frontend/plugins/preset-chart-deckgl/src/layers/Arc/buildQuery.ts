@@ -32,19 +32,12 @@ export interface DeckArcFormData extends SqlaFormData {
   start_spatial: SpatialFormData['spatial'];
   end_spatial: SpatialFormData['spatial'];
   dimension?: string;
-  js_columns?: string[];
   tooltip_contents?: unknown[];
   tooltip_template?: string;
 }
 
 export default function buildQuery(formData: DeckArcFormData) {
-  const {
-    start_spatial,
-    end_spatial,
-    dimension,
-    js_columns,
-    tooltip_contents,
-  } = formData;
+  const { start_spatial, end_spatial, dimension, tooltip_contents } = formData;
 
   if (!start_spatial || !end_spatial) {
     throw new Error(
@@ -65,13 +58,6 @@ export default function buildQuery(formData: DeckArcFormData) {
     if (dimension) {
       columns = [...columns, dimension];
     }
-
-    const jsColumns = ensureIsArray(js_columns || []);
-    jsColumns.forEach(col => {
-      if (!columns.includes(col)) {
-        columns.push(col);
-      }
-    });
 
     columns = addTooltipColumnsToQuery(columns, tooltip_contents);
 

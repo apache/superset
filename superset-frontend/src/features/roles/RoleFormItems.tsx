@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { useCallback } from 'react';
 import { FormItem, Input, AsyncSelect } from '@superset-ui/core/components';
 import { t } from '@apache-superset/core/translation';
 import { fetchUserOptions } from '../groups/utils';
@@ -44,51 +45,87 @@ export const RoleNameField = () => (
 export const PermissionsField = ({
   addDangerToast,
   loading = false,
-}: AsyncOptionsFieldProps) => (
-  <FormItem name="rolePermissions" label={t('Permissions')}>
-    <AsyncSelect
-      mode="multiple"
-      name="rolePermissions"
-      placeholder={t('Select permissions')}
-      options={(filterValue, page, pageSize) =>
-        fetchPermissionOptions(filterValue, page, pageSize, addDangerToast)
-      }
-      loading={loading}
-      getPopupContainer={() => document.body}
-      data-test="permissions-select"
-    />
-  </FormItem>
-);
+}: AsyncOptionsFieldProps) => {
+  const options = useCallback(
+    (filterValue: string, page: number, pageSize: number) =>
+      fetchPermissionOptions(filterValue, page, pageSize, addDangerToast),
+    [addDangerToast],
+  );
 
-export const UsersField = ({ addDangerToast, loading }: UsersFieldProps) => (
-  <FormItem name="roleUsers" label={t('Users')}>
-    <AsyncSelect
-      name="roleUsers"
-      mode="multiple"
-      placeholder={t('Select users')}
-      options={(filterValue, page, pageSize) =>
-        fetchUserOptions(filterValue, page, pageSize, addDangerToast)
-      }
-      loading={loading}
-      data-test="roles-select"
-    />
-  </FormItem>
-);
+  return (
+    <FormItem name="rolePermissions" label={t('Permissions')}>
+      <AsyncSelect
+        mode="multiple"
+        name="rolePermissions"
+        placeholder={t('Select permissions')}
+        options={options}
+        loading={loading}
+        // formatPermissionLabel renders the raw permission/view_menu name with
+        // underscores replaced by spaces, so AsyncSelect's default client-side
+        // re-filter never matches a raw-name search term (e.g. "stg_silver")
+        // against the displayed label ("stg silver") and hides the
+        // server-matched option. Normalize both sides so client-side narrowing
+        // still works without hiding valid matches. See #42041.
+        filterOption={(input, option) =>
+          String(option?.label ?? '')
+            .toLowerCase()
+            .replace(/_/g, ' ')
+            .includes(input.toLowerCase().replace(/_/g, ' '))
+        }
+        // Permission labels are long ("all datasource access on all_datasource_access",
+        // "can write on DashboardFilterStateRestApi"), and the dropdown otherwise
+        // inherits the trigger's width inside the modal, so every option was truncated
+        // to the point of being indistinguishable. Let the popup size to its content
+        // instead. See #40430.
+        popupMatchSelectWidth={false}
+        getPopupContainer={() => document.body}
+        data-test="permissions-select"
+      />
+    </FormItem>
+  );
+};
+
+export const UsersField = ({ addDangerToast, loading }: UsersFieldProps) => {
+  const options = useCallback(
+    (filterValue: string, page: number, pageSize: number) =>
+      fetchUserOptions(filterValue, page, pageSize, addDangerToast),
+    [addDangerToast],
+  );
+
+  return (
+    <FormItem name="roleUsers" label={t('Users')}>
+      <AsyncSelect
+        name="roleUsers"
+        mode="multiple"
+        placeholder={t('Select users')}
+        options={options}
+        loading={loading}
+        data-test="roles-select"
+      />
+    </FormItem>
+  );
+};
 
 export const GroupsField = ({
   addDangerToast,
   loading = false,
-}: AsyncOptionsFieldProps) => (
-  <FormItem name="roleGroups" label={t('Groups')}>
-    <AsyncSelect
-      mode="multiple"
-      name="roleGroups"
-      placeholder={t('Select groups')}
-      options={(filterValue, page, pageSize) =>
-        fetchGroupOptions(filterValue, page, pageSize, addDangerToast)
-      }
-      loading={loading}
-      data-test="groups-select"
-    />
-  </FormItem>
-);
+}: AsyncOptionsFieldProps) => {
+  const options = useCallback(
+    (filterValue: string, page: number, pageSize: number) =>
+      fetchGroupOptions(filterValue, page, pageSize, addDangerToast),
+    [addDangerToast],
+  );
+
+  return (
+    <FormItem name="roleGroups" label={t('Groups')}>
+      <AsyncSelect
+        mode="multiple"
+        name="roleGroups"
+        placeholder={t('Select groups')}
+        options={options}
+        loading={loading}
+        data-test="groups-select"
+      />
+    </FormItem>
+  );
+};

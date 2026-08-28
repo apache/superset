@@ -24,6 +24,8 @@ from superset import db
 from superset.daos.user import UserDAO
 from superset.extensions import security_manager
 from superset.models.user_attributes import UserAttribute
+from superset.subjects.models import Subject
+from superset.subjects.types import SubjectType
 from tests.unit_tests.fixtures.common import admin_user, after_each  # noqa: F401
 
 
@@ -76,3 +78,75 @@ def test_get_by_id_custom_user_class(
 
     user = UserDAO.get_by_id(admin_user.id)
     assert isinstance(user, CustomUserModel)
+
+
+def test_create_syncs_subject(after_each: None) -> None:  # noqa: F811
+    role = db.session.query(security_manager.role_model).filter_by(name="Admin").one()
+    user = UserDAO.create(
+        attributes={
+            "first_name": "Bob",
+            "last_name": "Builder",
+            "email": "bob@example.com",
+            "username": "bob_builder",
+            "roles": [role],
+        },
+    )
+    db.session.flush()
+
+    subject = (
+        db.session.query(Subject)
+        .filter_by(user_id=user.id, type=SubjectType.USER)
+        .one_or_none()
+    )
+    assert subject is not None
+    assert subject.label == "Bob Builder"
+    assert subject.secondary_label == "bob@example.com"
+
+
+def test_update_syncs_subject(
+    admin_user: User,  # noqa: F811
+    after_each: None,  # noqa: F811
+) -> None:
+    # Seed a subject for the admin_user first
+    UserDAO._sync_subject(admin_user)
+    db.session.flush()
+
+    UserDAO.update(item=admin_user, attributes={"first_name": "Updated"})
+    db.session.flush()
+
+    subject = (
+        db.session.query(Subject)
+        .filter_by(user_id=admin_user.id, type=SubjectType.USER)
+        .one()
+    )
+    assert subject.label == "Updated Admin"
+
+
+def test_delete_removes_subject(after_each: None) -> None:  # noqa: F811
+    role = db.session.query(security_manager.role_model).filter_by(name="Admin").one()
+    user = UserDAO.create(
+        attributes={
+            "first_name": "Del",
+            "last_name": "Ete",
+            "email": "del@example.com",
+            "username": "del_ete",
+            "roles": [role],
+        },
+    )
+    db.session.flush()
+    user_id = user.id
+
+    assert (
+        db.session.query(Subject)
+        .filter_by(user_id=user_id, type=SubjectType.USER)
+        .one_or_none()
+    ) is not None
+
+    UserDAO.delete([user])
+    db.session.flush()
+
+    assert (
+        db.session.query(Subject)
+        .filter_by(user_id=user_id, type=SubjectType.USER)
+        .one_or_none()
+    ) is None

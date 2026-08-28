@@ -34,6 +34,7 @@ import { DropResult } from 'src/dashboard/components/dnd/dragDroppableConfig';
 import { GetState, LayoutItem, RootState } from '../types';
 import { updateLayoutComponents } from './dashboardFilters';
 import { setUnsavedChanges } from './dashboardState';
+
 type AppDispatch = ThunkDispatch<RootState, undefined, AnyAction>;
 
 // Component CRUD -------------------------------------------------------------

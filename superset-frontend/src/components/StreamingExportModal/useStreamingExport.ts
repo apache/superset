@@ -19,7 +19,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { SupersetClient } from '@superset-ui/core';
 import { ExportStatus, StreamingProgress } from './StreamingExportModal';
-import { makeUrl } from 'src/utils/pathUtils';
+import { makeUrl } from 'src/utils/navigationUtils';
 import { applicationRoot } from 'src/utils/getBootstrapData';
 
 interface UseStreamingExportOptions {
@@ -31,13 +31,15 @@ interface StreamingExportPayload {
   [key: string]: any;
 }
 
+type StreamingExportSource = 'chart' | 'sqllab';
+
 interface StreamingExportParams {
   /**
    * The API endpoint URL for the export request.
    *
    * URLs should be prefixed with the application root at the call site using
-   * `makeUrl()` from 'src/utils/pathUtils'. This ensures proper handling for
-   * subdirectory deployments (e.g., /superset/api/v1/...).
+   * `makeUrl()` from `src/utils/navigationUtils`. This ensures proper handling
+   * for subdirectory deployments (e.g., /superset/api/v1/...).
    *
    * A defensive guard (`ensureUrlPrefix`) will apply the prefix if missing,
    * but callers should not rely on this fallback behavior.
@@ -46,6 +48,7 @@ interface StreamingExportParams {
   payload: StreamingExportPayload;
   filename?: string;
   exportType: 'csv' | 'xlsx';
+  exportSource?: StreamingExportSource;
   expectedRows?: number;
 }
 
@@ -95,6 +98,7 @@ const createFetchRequest = async (
   payload: StreamingExportPayload,
   filename: string | undefined,
   _exportType: string,
+  exportSource: StreamingExportSource | undefined,
   expectedRows: number | undefined,
   signal: AbortSignal,
 ): Promise<RequestInit> => {
@@ -102,10 +106,19 @@ const createFetchRequest = async (
     'Content-Type': 'application/x-www-form-urlencoded',
   };
 
-  // Get CSRF token using SupersetClient
-  const csrfToken = await SupersetClient.getCSRFToken();
-  if (csrfToken) {
-    headers['X-CSRFToken'] = csrfToken;
+  const guestToken = SupersetClient.getGuestToken();
+  const isGuestTokenChartExport =
+    Boolean(guestToken) &&
+    exportSource === 'chart' &&
+    !('client_id' in payload);
+
+  // Embedded guest sessions cannot fetch CSRF tokens. Guest chart exports are
+  // safe because chart data is CSRF-exempt and auth is carried by guest_token.
+  if (!isGuestTokenChartExport) {
+    const csrfToken = await SupersetClient.getCSRFToken();
+    if (csrfToken) {
+      headers['X-CSRFToken'] = csrfToken;
+    }
   }
 
   const formParams: Record<string, string> = {};
@@ -116,6 +129,10 @@ const createFetchRequest = async (
 
   if (expectedRows !== undefined) {
     formParams.expected_rows = expectedRows.toString();
+  }
+
+  if (guestToken && isGuestTokenChartExport) {
+    formParams.guest_token = guestToken;
   }
 
   if ('client_id' in payload) {
@@ -180,7 +197,8 @@ export const useStreamingExport = (options: UseStreamingExportOptions = {}) => {
 
   const executeExport = useCallback(
     async (params: StreamingExportParams) => {
-      const { url, payload, filename, exportType, expectedRows } = params;
+      const { url, payload, filename, exportType, exportSource, expectedRows } =
+        params;
       if (isExportingRef.current) {
         return;
       }
@@ -205,6 +223,7 @@ export const useStreamingExport = (options: UseStreamingExportOptions = {}) => {
           payload,
           filename,
           exportType,
+          exportSource,
           expectedRows,
           abortControllerRef.current.signal,
         );

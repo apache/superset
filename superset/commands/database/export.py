@@ -108,13 +108,17 @@ class ExportDatabasesCommand(ExportModelsCommand):
 
         payload["version"] = EXPORT_VERSION
 
-        file_content = yaml.safe_dump(payload, sort_keys=False)
+        file_content = yaml.safe_dump(payload, sort_keys=False, allow_unicode=True)
         return file_content
 
     @staticmethod
     def _export(
-        model: Database, export_related: bool = True
+        model: Database, export_related: bool = True, seen: set[str] | None = None
     ) -> Iterator[tuple[str, Callable[[], str]]]:
+        # Initialize seen set if not provided
+        if seen is None:
+            seen = set()
+
         yield (
             ExportDatabasesCommand._file_name(model),
             lambda: ExportDatabasesCommand._file_content(model),
@@ -140,6 +144,9 @@ class ExportDatabasesCommand(ExportModelsCommand):
                 yield (
                     file_path,
                     functools.partial(  # type: ignore
-                        yaml.safe_dump, payload, sort_keys=False
+                        yaml.safe_dump,
+                        payload,
+                        sort_keys=False,
+                        allow_unicode=True,
                     ),
                 )

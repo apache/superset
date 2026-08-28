@@ -19,19 +19,24 @@
 
 from __future__ import annotations
 
+import contextlib
+import copy
+import re
 from contextlib import contextmanager
-from typing import cast, TYPE_CHECKING
-from unittest.mock import patch
+from typing import Any, cast, TYPE_CHECKING
+from unittest.mock import MagicMock, patch
 
 import pytest
 from pytest_mock import MockerFixture
 from sqlalchemy import create_engine
 from sqlalchemy.orm.session import Session
 from sqlalchemy.pool import StaticPool
-from sqlalchemy.sql.elements import ColumnElement
+from sqlalchemy.sql.elements import Cast, ColumnElement
+from sqlalchemy.sql.visitors import iterate
 
-from superset.superset_typing import AdhocColumn
-from superset.utils.core import GenericDataType
+from superset.superset_typing import AdhocColumn, AdhocMetric, OrderBy
+from superset.utils.core import FilterOperator, GenericDataType
+from tests.unit_tests.conftest import with_feature_flags
 
 if TYPE_CHECKING:
     from superset.jinja_context import BaseTemplateProcessor
@@ -98,6 +103,125 @@ def test_values_for_column(database: Database) -> None:
         return_value=pd.DataFrame({"column_values": [1, np.nan]}),
     ):
         assert table.values_for_column("a") == [1, None]
+
+
+def test_values_for_column_passes_catalog_and_schema(
+    mocker: MockerFixture,
+    session: Session,
+) -> None:
+    """
+    Test that `values_for_column` forwards the dataset's catalog and schema
+    to `database.get_sqla_engine()` so that engine params are adjusted with
+    the correct schema context (e.g. for MySQL, Snowflake, Presto).
+    """
+    import pandas as pd
+
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.models.core import Database
+
+    SqlaTable.metadata.create_all(session.get_bind())
+
+    engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    database = Database(database_name="db", sqlalchemy_uri="sqlite://")
+
+    connection = engine.raw_connection()
+    connection.execute("CREATE TABLE t (a INTEGER, b TEXT)")
+    connection.execute("INSERT INTO t VALUES (1, 'Alice')")
+    connection.commit()
+
+    # Track the catalog/schema values passed to get_sqla_engine
+    captured_kwargs: dict[str, str | None] = {}
+
+    @contextmanager
+    def mock_get_sqla_engine(catalog=None, schema=None, **kwargs):
+        captured_kwargs["catalog"] = catalog
+        captured_kwargs["schema"] = schema
+        yield engine
+
+    mocker.patch.object(
+        database,
+        "get_sqla_engine",
+        new=mock_get_sqla_engine,
+    )
+
+    table = SqlaTable(
+        database=database,
+        catalog="my_catalog",
+        schema="my_schema",
+        table_name="t",
+        columns=[TableColumn(column_name="a")],
+    )
+
+    with patch(
+        "pandas.read_sql_query",
+        return_value=pd.DataFrame({"column_values": [1]}),
+    ):
+        table.values_for_column("a")
+
+    assert captured_kwargs["catalog"] == "my_catalog"
+    assert captured_kwargs["schema"] == "my_schema"
+
+
+def test_values_for_column_passes_none_catalog_and_schema(
+    mocker: MockerFixture,
+    session: Session,
+) -> None:
+    """
+    Test that `values_for_column` forwards None catalog/schema when the
+    dataset has no catalog or schema set.
+    """
+    import pandas as pd
+
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.models.core import Database
+
+    SqlaTable.metadata.create_all(session.get_bind())
+
+    engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    database = Database(database_name="db", sqlalchemy_uri="sqlite://")
+
+    connection = engine.raw_connection()
+    connection.execute("CREATE TABLE t (a INTEGER, b TEXT)")
+    connection.execute("INSERT INTO t VALUES (1, 'Alice')")
+    connection.commit()
+
+    captured_kwargs: dict[str, str | None] = {}
+
+    @contextmanager
+    def mock_get_sqla_engine(catalog=None, schema=None, **kwargs):
+        captured_kwargs["catalog"] = catalog
+        captured_kwargs["schema"] = schema
+        yield engine
+
+    mocker.patch.object(
+        database,
+        "get_sqla_engine",
+        new=mock_get_sqla_engine,
+    )
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[TableColumn(column_name="a")],
+    )
+
+    with patch(
+        "pandas.read_sql_query",
+        return_value=pd.DataFrame({"column_values": [1]}),
+    ):
+        table.values_for_column("a")
+
+    assert captured_kwargs["catalog"] is None
+    assert captured_kwargs["schema"] is None
 
 
 def test_values_for_column_with_rls(database: Database) -> None:
@@ -803,6 +927,118 @@ def test_process_orderby_expression_with_template_processor(
     assert call_args["template_processor"] is template_processor
 
     assert result == "processed_column DESC"
+
+
+def _assert_get_sqla_query_does_not_mutate_orderby(
+    database: Database,
+    sql_expression: str,
+    expected_sql_fragment: str,
+) -> None:
+    """
+    Order a query by an ad-hoc SQL metric and assert the caller's orderby
+    dicts are left untouched.
+
+    The processed (Jinja-rendered, sqlglot-normalized) expression must not be
+    written back into the shared dict, which would change the cache key of a
+    rehydrated query context (see issue #37114). ``expected_sql_fragment`` is
+    matched against the whitespace-stripped SQL, as sqlglot may normalize the
+    output slightly.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[TableColumn(column_name="a", type="INTEGER")],
+    )
+
+    adhoc_metric: AdhocMetric = {
+        "expressionType": "SQL",
+        "sqlExpression": sql_expression,
+        "label": "my metric",
+        "hasCustomLabel": True,
+    }
+    orderby: list[OrderBy] = [(copy.deepcopy(adhoc_metric), False)]
+    original_orderby = copy.deepcopy(orderby)
+
+    query = table.get_sqla_query(
+        metrics=[adhoc_metric],
+        orderby=orderby,
+        is_timeseries=False,
+        row_limit=10,
+    )
+
+    with database.get_sqla_engine() as engine:
+        sql = str(
+            query.sqla_query.compile(
+                dialect=engine.dialect, compile_kwargs={"literal_binds": True}
+            )
+        )
+
+    assert expected_sql_fragment in sql.replace(" ", "")
+    assert orderby == original_orderby
+    assert cast(AdhocMetric, orderby[0][0])["sqlExpression"] == sql_expression
+
+
+def test_get_sqla_query_does_not_mutate_adhoc_orderby(database: Database) -> None:
+    """
+    Test that `get_sqla_query` does not mutate ad-hoc ORDER BY entries.
+    """
+    _assert_get_sqla_query_does_not_mutate_orderby(
+        database,
+        "SUM(CASE \r\n      WHEN a > 0\r\n      THEN 1\r\n    END)",
+        "ORDERBY",
+    )
+
+
+@with_feature_flags(ENABLE_TEMPLATE_PROCESSING=True)
+def test_get_sqla_query_does_not_mutate_adhoc_orderby_with_jinja(
+    database: Database,
+) -> None:
+    """
+    Test that Jinja in an ad-hoc ORDER BY entry is not rendered back.
+    """
+    _assert_get_sqla_query_does_not_mutate_orderby(
+        database,
+        "SUM(CASE WHEN a > {{ 1 + 1 }} THEN 1 END)",
+        "a>2",
+    )
+
+
+def test_cache_key_stable_across_query_build(database: Database) -> None:
+    """
+    Test that `QueryObject.cache_key()` is unchanged by building the query.
+    """
+    from superset.common.query_object import QueryObject
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[TableColumn(column_name="a", type="INTEGER")],
+    )
+
+    adhoc_metric: AdhocMetric = {
+        "expressionType": "SQL",
+        "sqlExpression": "SUM(CASE \r\n  WHEN a > 0\r\n  THEN a\r\nEND)",
+        "label": "my metric",
+        "hasCustomLabel": True,
+    }
+    query_obj = QueryObject(
+        datasource=table,
+        columns=[],
+        metrics=[adhoc_metric],
+        orderby=[(copy.deepcopy(adhoc_metric), False)],
+        is_timeseries=False,
+        row_limit=10,
+    )
+
+    cache_key_before = query_obj.cache_key()
+    table.get_query_str_extended(query_obj.to_dict())
+
+    assert query_obj.cache_key() == cache_key_before
 
 
 def test_process_select_expression_basic(
@@ -1824,6 +2060,488 @@ def test_orderby_adhoc_column(database: Database) -> None:
     assert "ORDER BY" in sql.upper()
 
 
+def test_orderby_adhoc_column_label_takes_precedence_over_saved_metric(
+    database: Database,
+) -> None:
+    """
+    Test that orderby by an adhoc column label resolves to the selected column.
+    """
+    from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+
+    table: SqlaTable = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(column_name="a"),
+            TableColumn(column_name="b"),
+        ],
+        metrics=[
+            SqlMetric(metric_name="custom_col", expression="SUM(a)"),
+        ],
+    )
+
+    result = table.get_sqla_query(
+        columns=[
+            {"expressionType": "SQL", "label": "custom_col", "sqlExpression": "a + 1"},
+            "b",
+        ],
+        orderby=[("custom_col", False)],
+        metrics=[],
+        extras={},
+        filter=[],
+        granularity=None,
+        is_timeseries=False,
+    )
+
+    sql = str(result.sqla_query).upper()
+    assert "ORDER BY" in sql
+    assert "SUM(A)" not in sql
+
+
+@pytest.mark.parametrize("aggregate", [None, "MEDIAN", ["SUM"], {"op": "SUM"}])
+def test_adhoc_metric_to_sqla_invalid_simple_aggregate_raises_validation_error(
+    database: Database,
+    aggregate: Any,
+) -> None:
+    """
+    Test that malformed SIMPLE adhoc metrics fail with a validation error.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.exceptions import QueryObjectValidationError
+
+    table: SqlaTable = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(column_name="a"),
+        ],
+    )
+    metric: AdhocMetric = {
+        "expressionType": "SIMPLE",
+        "column": {"column_name": "a"},
+        "label": "Invalid metric",
+    }
+    if aggregate is not None:
+        metric["aggregate"] = aggregate
+
+    with pytest.raises(QueryObjectValidationError):
+        table.adhoc_metric_to_sqla(metric, {})
+
+
+@pytest.mark.parametrize(
+    "aggregate,expected_substring",
+    [
+        ("MEDIAN", "percentile_cont"),
+        ("STDDEV_SAMP", "stddev_samp"),
+        ("VAR_SAMP", "var_samp"),
+    ],
+)
+def test_adhoc_metric_to_sqla_extended_aggregate_on_supported_engine(
+    aggregate: str,
+    expected_substring: str,
+) -> None:
+    """
+    MEDIAN/STDDEV_SAMP/VAR_SAMP compile correctly end-to-end on an engine that
+    supports them (Postgres), via the same `adhoc_metric_to_sqla` path every
+    other aggregate uses -- no pivot-table-specific code involved.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.models.core import Database
+
+    pg_database = Database(database_name="pg", sqlalchemy_uri="postgresql://u:p@h/d")
+    table = SqlaTable(
+        database=pg_database,
+        schema=None,
+        table_name="t",
+        columns=[TableColumn(column_name="sales")],
+    )
+    metric: AdhocMetric = {
+        "expressionType": "SIMPLE",
+        "column": {"column_name": "sales"},
+        "aggregate": aggregate,
+        "label": f"{aggregate} sales",
+    }
+
+    sqla_metric = table.adhoc_metric_to_sqla(metric, {})
+
+    assert expected_substring in str(sqla_metric).lower()
+
+
+def test_adhoc_metric_to_sqla_extended_aggregate_on_unsupported_engine_raises_specific_error(  # noqa: E501
+    database: Database,
+) -> None:
+    """
+    A recognized extended aggregate (MEDIAN) that this engine (SQLite, via the
+    `database` fixture) has no verified expression for raises a specific
+    "not supported on this database" error, distinct from the generic
+    "invalid aggregate" error a bogus aggregate name gets -- callers should be
+    able to tell "this isn't a real thing" from "this engine can't do it"
+    without emitting unverified SQL either way.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.exceptions import QueryObjectValidationError
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[TableColumn(column_name="a")],
+    )
+    metric: AdhocMetric = {
+        "expressionType": "SIMPLE",
+        "column": {"column_name": "a"},
+        "aggregate": "MEDIAN",
+        "label": "Median a",
+    }
+
+    with pytest.raises(QueryObjectValidationError, match="not supported"):
+        table.adhoc_metric_to_sqla(metric, {})
+
+
+@pytest.mark.parametrize("sql_expression", [None, "", "   "])
+def test_adhoc_metric_to_sqla_invalid_sql_expression_raises_validation_error(
+    database: Database,
+    sql_expression: str | None,
+) -> None:
+    """
+    Test that malformed SQL adhoc metrics fail with a validation error.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.exceptions import QueryObjectValidationError
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(column_name="a"),
+        ],
+    )
+    metric: AdhocMetric = {
+        "expressionType": "SQL",
+        "label": "Invalid metric",
+    }
+    if sql_expression is not None:
+        metric["sqlExpression"] = sql_expression
+
+    with pytest.raises(QueryObjectValidationError):
+        table.adhoc_metric_to_sqla(metric, {})
+
+
+def test_get_sqla_query_raises_for_nonaggregate_custom_sql_metric_with_columns(
+    database: Database,
+) -> None:
+    """
+    A grouped query (e.g. a Deck.gl Screen Grid's spatial ``columns``) with a
+    non-aggregate Custom SQL metric must raise a clear validation error
+    instead of letting an invalid ``GROUP BY`` reach the database (#38913).
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.exceptions import QueryObjectValidationError
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(column_name="lon"),
+            TableColumn(column_name="lat"),
+            TableColumn(column_name="confirmed"),
+            TableColumn(column_name="predicted"),
+        ],
+    )
+    metric: AdhocMetric = {
+        "expressionType": "SQL",
+        "sqlExpression": "GREATEST(confirmed, predicted)",
+        "label": "weight",
+    }
+
+    with pytest.raises(QueryObjectValidationError, match="not an aggregate"):
+        table.get_sqla_query(
+            columns=["lon", "lat"],
+            metrics=[metric],
+            extras={},
+            filter=[],
+            granularity=None,
+            is_timeseries=False,
+        )
+
+
+def test_get_sqla_query_allows_aggregate_wrapped_custom_sql_metric_with_columns(
+    database: Database,
+) -> None:
+    """
+    Wrapping the Custom SQL metric in an aggregate (the fix's guidance) must
+    let the grouped query build normally.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(column_name="lon"),
+            TableColumn(column_name="lat"),
+            TableColumn(column_name="confirmed"),
+            TableColumn(column_name="predicted"),
+        ],
+    )
+    metric: AdhocMetric = {
+        "expressionType": "SQL",
+        "sqlExpression": "MAX(GREATEST(confirmed, predicted))",
+        "label": "weight",
+    }
+
+    result = table.get_sqla_query(
+        columns=["lon", "lat"],
+        metrics=[metric],
+        extras={},
+        filter=[],
+        granularity=None,
+        is_timeseries=False,
+    )
+    assert result is not None
+
+
+def test_get_sqla_query_allows_nonaggregate_custom_sql_metric_without_dimensions(
+    database: Database,
+) -> None:
+    """
+    A dimensionless query (e.g. Big Number) built from a non-aggregate Custom
+    SQL metric alone is valid SQL and must not be blocked: there is no
+    ``GROUP BY`` for the expression to conflict with.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(column_name="confirmed"),
+            TableColumn(column_name="predicted"),
+        ],
+    )
+    metric: AdhocMetric = {
+        "expressionType": "SQL",
+        "sqlExpression": "GREATEST(confirmed, predicted)",
+        "label": "weight",
+    }
+
+    result = table.get_sqla_query(
+        metrics=[metric],
+        extras={},
+        filter=[],
+        granularity=None,
+        is_timeseries=False,
+    )
+    assert result is not None
+
+
+def test_get_sqla_query_raises_for_nonaggregate_custom_sql_metric_with_groupby(
+    database: Database,
+) -> None:
+    """
+    A ``groupby``-driven grouped query (e.g. a Deck.gl Screen Grid, which sends
+    its spatial dimensions via ``query_obj["groupby"]`` -- see
+    ``BaseDeckGLViz.query_obj`` in ``superset/viz.py``) with a non-aggregate
+    Custom SQL metric must raise the same clear validation error as the
+    ``columns``-driven case (#38913).
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.exceptions import QueryObjectValidationError
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(column_name="longitude"),
+            TableColumn(column_name="latitude"),
+            TableColumn(column_name="confirmed"),
+            TableColumn(column_name="predicted"),
+        ],
+    )
+    metric: AdhocMetric = {
+        "expressionType": "SQL",
+        "sqlExpression": "GREATEST(confirmed, predicted)",
+        "label": "weight",
+    }
+
+    with pytest.raises(QueryObjectValidationError, match="not an aggregate"):
+        table.get_sqla_query(
+            groupby=["longitude", "latitude"],
+            metrics=[metric],
+            extras={},
+            filter=[],
+            granularity=None,
+            is_timeseries=False,
+        )
+
+
+def test_get_sqla_query_raises_for_nonaggregate_custom_sql_metric_with_timeseries(
+    database: Database,
+) -> None:
+    """
+    A timeseries query's time bucket (from ``granularity``/``is_timeseries``)
+    also produces a ``GROUP BY``, even with no ``columns``/``groupby``
+    dimensions. A non-aggregate Custom SQL metric must be rejected here too
+    (#38913).
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.exceptions import QueryObjectValidationError
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(column_name="ts", type="TIMESTAMP", is_dttm=True),
+            TableColumn(column_name="confirmed"),
+            TableColumn(column_name="predicted"),
+        ],
+    )
+    metric: AdhocMetric = {
+        "expressionType": "SQL",
+        "sqlExpression": "GREATEST(confirmed, predicted)",
+        "label": "weight",
+    }
+
+    with pytest.raises(QueryObjectValidationError, match="not an aggregate"):
+        table.get_sqla_query(
+            columns=[],
+            metrics=[metric],
+            extras={"time_grain_sqla": "P1D"},
+            filter=[],
+            granularity="ts",
+            is_timeseries=True,
+        )
+
+
+def test_get_sqla_query_allows_jinja_templated_custom_sql_metric_with_columns(
+    database: Database,
+) -> None:
+    """
+    A Jinja-templated Custom SQL metric may render to an aggregate at runtime
+    and can't be judged statically, so the guard must skip it and let the
+    grouped query build normally (#38913).
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(column_name="lon"),
+            TableColumn(column_name="lat"),
+            TableColumn(column_name="confirmed"),
+            TableColumn(column_name="predicted"),
+        ],
+    )
+    metric: AdhocMetric = {
+        "expressionType": "SQL",
+        "sqlExpression": "{{ 'SUM(confirmed)' }}",
+        "label": "weight",
+    }
+
+    result = table.get_sqla_query(
+        columns=["lon", "lat"],
+        metrics=[metric],
+        extras={},
+        filter=[],
+        granularity=None,
+        is_timeseries=False,
+    )
+    assert result is not None
+
+    # Confirm the Jinja templating actually rendered to an aggregate (as
+    # opposed to the guard's skip merely letting raw, unrendered Jinja
+    # through unchecked).
+    with database.get_sqla_engine() as engine:
+        sql = str(
+            result.sqla_query.compile(
+                dialect=engine.dialect,
+                compile_kwargs={"literal_binds": True},
+            )
+        )
+    assert "SUM(confirmed)" in sql
+    assert "{{" not in sql
+
+
+def test_get_sqla_query_virtual_dataset_filter_values_drill_to_detail(
+    database: Database,
+) -> None:
+    """
+    Regression for #35263: a Jinja-templated virtual dataset that calls
+    ``filter_values()`` in its own SQL must see filters sent in the native
+    ``{col, op, val}`` format that Drill to Detail/Drill by use, not just
+    the ``adhoc_filters`` format used by ordinary chart/explore requests.
+    Without this, Jinja-based datasets return zero rows when drilled into,
+    even though the parent chart shows data for the selected value.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        sql=(
+            "SELECT a, b FROM t WHERE 1=1 "
+            "{% if filter_values('b') %} "
+            "AND b IN {{ filter_values('b') | where_in }} "
+            "{% endif %}"
+        ),
+        columns=[
+            TableColumn(column_name="a", type="INTEGER"),
+            TableColumn(column_name="b", type="TEXT"),
+        ],
+    )
+
+    result = table.get_sqla_query(
+        columns=["a", "b"],
+        metrics=[],
+        extras={},
+        filter=[{"col": "b", "op": "IN", "val": ["Alice"]}],
+        granularity=None,
+        is_timeseries=False,
+    )
+    assert result is not None
+
+    with database.get_sqla_engine() as engine:
+        sql = str(
+            result.sqla_query.compile(
+                dialect=engine.dialect,
+                compile_kwargs={"literal_binds": True},
+            )
+        )
+
+    assert "'Alice'" in sql, (
+        "filter_values() should resolve native drill-to-detail-style "
+        f"filters inside a virtual dataset's own SQL. Generated SQL: {sql}"
+    )
+
+    # The assertion above can pass even when filter_values() itself is
+    # broken, because get_sqla_query() independently applies the native
+    # filter as an outer WHERE predicate on top of whatever the virtual
+    # dataset's own SQL renders to. Pull the virtual dataset's own rendered
+    # SQL directly out of the compiled query (rather than re-rendering it
+    # via a separately constructed template processor, which would not
+    # catch get_sqla_query() failing to forward the filter to the template
+    # processor it builds internally) to confirm filter_values() actually
+    # resolved the native filter *inside* the templated subquery.
+    virtual_table_from = result.sqla_query.get_final_froms()[0]
+    rendered_inner_sql = virtual_table_from.element.element.text
+    assert "'Alice'" in rendered_inner_sql, (
+        "filter_values() should render the native drill-to-detail-style "
+        "filter directly into the virtual dataset's own templated SQL, "
+        f"not just the outer query. Rendered SQL: {rendered_inner_sql}"
+    )
+
+
 def test_extras_where_is_parenthesized(
     database: Database,
 ) -> None:
@@ -1937,6 +2655,335 @@ def test_extras_having_is_parenthesized(
         )
 
 
+def test_calculated_column_filter_is_parenthesized(
+    database: Database,
+) -> None:
+    """
+    Test that calculated column expressions containing OR are wrapped in
+    parentheses when used in WHERE filters.
+
+    Without parentheses, a calculated column expression like
+    ``status = 'active' OR status = 'pending'`` combined with other filters
+    via AND would produce unexpected evaluation order due to SQL operator
+    precedence (AND binds tighter than OR), potentially dropping time range
+    and other filters. Same class of bug as fixed in PR #38183 for
+    extras.where/having, but on the calculated column filter path.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(column_name="a", type="INTEGER"),
+            TableColumn(
+                column_name="is_active",
+                expression="status = 'active' OR status = 'pending'",
+                type="BOOLEAN",
+            ),
+        ],
+    )
+
+    sqla_query = table.get_sqla_query(
+        columns=["a"],
+        filter=[
+            {
+                "col": "is_active",
+                "op": "IS TRUE",
+                "val": None,
+            },
+        ],
+        extras={},
+        is_timeseries=False,
+        metrics=[],
+    )
+
+    with database.get_sqla_engine() as engine:
+        sql = str(
+            sqla_query.sqla_query.compile(
+                dialect=engine.dialect,
+                compile_kwargs={"literal_binds": True},
+            )
+        )
+
+    assert "(status = 'active' OR status = 'pending')" in sql, (
+        f"Calculated column expression should be wrapped in parentheses. "
+        f"Generated SQL: {sql}"
+    )
+
+
+def test_calculated_column_nested_or_and_is_parenthesized(
+    database: Database,
+) -> None:
+    """
+    Test that calculated column expressions with nested OR/AND combinations
+    are correctly parenthesized as a single unit in WHERE filters.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(column_name="a", type="INTEGER"),
+            TableColumn(
+                column_name="is_target",
+                expression=(
+                    "(status = 'active' AND region = 'US') "
+                    "OR (status = 'pending' AND region = 'EU')"
+                ),
+                type="BOOLEAN",
+            ),
+        ],
+    )
+
+    sqla_query = table.get_sqla_query(
+        columns=["a"],
+        filter=[
+            {
+                "col": "is_target",
+                "op": "IS TRUE",
+                "val": None,
+            },
+        ],
+        extras={},
+        is_timeseries=False,
+        metrics=[],
+    )
+
+    with database.get_sqla_engine() as engine:
+        sql = str(
+            sqla_query.sqla_query.compile(
+                dialect=engine.dialect,
+                compile_kwargs={"literal_binds": True},
+            )
+        )
+
+    assert (
+        "((status = 'active' AND region = 'US') "
+        "OR (status = 'pending' AND region = 'EU'))"
+    ) in sql, (
+        f"Nested OR/AND expression should be wrapped in parentheses. "
+        f"Generated SQL: {sql}"
+    )
+
+
+def test_calculated_column_non_boolean_filter_is_parenthesized(
+    database: Database,
+) -> None:
+    """
+    Test that non-boolean calculated column expressions are parenthesized
+    when used with IN filters.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(column_name="a", type="INTEGER"),
+            TableColumn(
+                column_name="full_name",
+                expression="first_name || ' ' || last_name",
+                type="TEXT",
+            ),
+        ],
+    )
+
+    sqla_query = table.get_sqla_query(
+        columns=["a"],
+        filter=[
+            {
+                "col": "full_name",
+                "op": "IN",
+                "val": ["John Doe", "Jane Doe"],
+            },
+        ],
+        extras={},
+        is_timeseries=False,
+        metrics=[],
+    )
+
+    with database.get_sqla_engine() as engine:
+        sql = str(
+            sqla_query.sqla_query.compile(
+                dialect=engine.dialect,
+                compile_kwargs={"literal_binds": True},
+            )
+        )
+
+    assert "(first_name || ' ' || last_name)" in sql, (
+        f"Non-boolean calculated column should be wrapped in parentheses. "
+        f"Generated SQL: {sql}"
+    )
+
+
+def test_get_sqla_query_in_filter_preserves_float_precision(
+    database: Database,
+) -> None:
+    """
+    Test that mixing integer and float values in an "IN" filter does not
+    truncate the float value's decimal precision when the compiled query
+    binds parameters (see #33206).
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(column_name="global_sales", type="FLOAT"),
+        ],
+    )
+
+    sqla_query = table.get_sqla_query(
+        columns=["global_sales"],
+        filter=[
+            {
+                "col": "global_sales",
+                "op": "IN",
+                "val": [33, 29.02],
+            },
+        ],
+        extras={},
+        is_timeseries=False,
+        metrics=[],
+    )
+
+    with database.get_sqla_engine() as engine:
+        sql = str(
+            sqla_query.sqla_query.compile(
+                dialect=engine.dialect,
+                compile_kwargs={"literal_binds": True},
+            )
+        )
+
+    # The decimal value must retain its precision in the compiled SQL,
+    # rather than being silently truncated to the integer 29.
+    assert "29.02" in sql, (
+        f"Expected float value 29.02 to be preserved in the IN clause, "
+        f"but it was likely truncated. Generated SQL: {sql}"
+    )
+
+
+def test_get_sqla_query_in_filter_preserves_float_precision_with_null(
+    database: Database,
+) -> None:
+    """
+    Test that mixing integer and float values with a NULL in an "IN" filter
+    does not truncate the float value's decimal precision, even though this
+    triggers the separate `eq_without_none` code path (see #33206).
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(column_name="global_sales", type="FLOAT"),
+        ],
+    )
+
+    sqla_query = table.get_sqla_query(
+        columns=["global_sales"],
+        filter=[
+            {
+                "col": "global_sales",
+                "op": "IN",
+                "val": [33, 29.02, None],  # type: ignore[list-item]
+            },
+        ],
+        extras={},
+        is_timeseries=False,
+        metrics=[],
+    )
+
+    with database.get_sqla_engine() as engine:
+        sql = str(
+            sqla_query.sqla_query.compile(
+                dialect=engine.dialect,
+                compile_kwargs={"literal_binds": True},
+            )
+        )
+
+    # The decimal value must retain its precision in the compiled SQL,
+    # rather than being silently truncated to the integer 29, even when
+    # the filter list also contains a NULL value.
+    assert "29.02" in sql, (
+        f"Expected float value 29.02 to be preserved in the IN clause "
+        f"even with a NULL present, but it was likely truncated. "
+        f"Generated SQL: {sql}"
+    )
+
+
+def test_multiple_calculated_columns_each_parenthesized(
+    database: Database,
+) -> None:
+    """
+    Test that multiple calculated columns used as filters are each
+    independently wrapped in parentheses.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(column_name="a", type="INTEGER"),
+            TableColumn(
+                column_name="is_active",
+                expression="status = 'active' OR status = 'pending'",
+                type="BOOLEAN",
+            ),
+            TableColumn(
+                column_name="is_premium",
+                expression="tier = 'gold' OR tier = 'platinum'",
+                type="BOOLEAN",
+            ),
+        ],
+    )
+
+    sqla_query = table.get_sqla_query(
+        columns=["a"],
+        filter=[
+            {
+                "col": "is_active",
+                "op": "IS TRUE",
+                "val": None,
+            },
+            {
+                "col": "is_premium",
+                "op": "IS TRUE",
+                "val": None,
+            },
+        ],
+        extras={},
+        is_timeseries=False,
+        metrics=[],
+    )
+
+    with database.get_sqla_engine() as engine:
+        sql = str(
+            sqla_query.sqla_query.compile(
+                dialect=engine.dialect,
+                compile_kwargs={"literal_binds": True},
+            )
+        )
+
+    assert "(status = 'active' OR status = 'pending')" in sql, (
+        f"First calculated column should be parenthesized. Generated SQL: {sql}"
+    )
+    assert "(tier = 'gold' OR tier = 'platinum')" in sql, (
+        f"Second calculated column should be parenthesized. Generated SQL: {sql}"
+    )
+
+
 def _run_probe(
     database: Database,
     type_probe_needs_row: bool = False,
@@ -2017,6 +3064,51 @@ def test_adhoc_column_type_probe_uses_where_false(database: Database) -> None:
     assert "limit" not in probe_sql, (
         f"WHERE false probe must not contain LIMIT, but got: {probe_sql}"
     )
+
+
+def test_adhoc_column_type_probe_propagates_db_error(database: Database) -> None:
+    """
+    Regression test for SUPERSET-PYTHON-WE6.
+
+    A real DB/connectivity failure during the type-probe (surfaced by
+    get_columns_description as a SupersetGenericDBErrorException) must propagate
+    unchanged. It must NOT be relabeled as ColumnNotFoundException, which would
+    cause the calling adhoc-filter code in models/helpers.py to silently drop
+    the filter as if the column didn't exist.
+    """
+    from unittest.mock import patch
+
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.exceptions import (
+        ColumnNotFoundException,
+        SupersetGenericDBErrorException,
+    )
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[TableColumn(column_name="a", type="INTEGER")],
+    )
+
+    adhoc_col: AdhocColumn = {
+        "sqlExpression": "round(a / 50) * 50 / 1000",
+        "label": "Duration",
+        "columnType": "BASE_AXIS",
+        "timeGrain": "P1D",
+    }
+
+    db_error_message = "SSL error: unexpected eof while reading"
+
+    with patch(
+        "superset.connectors.sqla.models.get_columns_description",
+        side_effect=SupersetGenericDBErrorException(db_error_message),
+    ):
+        with pytest.raises(SupersetGenericDBErrorException) as excinfo:
+            table.adhoc_column_to_sqla(adhoc_col, force_type_check=True)
+
+    assert db_error_message in str(excinfo.value)
+    assert not isinstance(excinfo.value, ColumnNotFoundException)
 
 
 def test_adhoc_column_type_probe_uses_limit_1_for_row_dependent_engines(
@@ -2154,6 +3246,606 @@ def test_adhoc_column_to_sqla_skips_probe_when_not_forced(
     assert generic_type is None
 
 
+class _FakeClickHouseConnectCursor:
+    """
+    Mimics clickhouse-connect 0.14.1's ``cursor.py``: the empty-result
+    metadata fallback -- which backfills ``cursor.description`` for a
+    legitimate zero-row result -- only runs when the executed operation
+    string starts with ``SELECT``/``WITH`` after stripping whitespace. A
+    leading SQL comment (e.g. from SQL_QUERY_MUTATOR) defeats that check.
+    """
+
+    def __init__(self, real_description: list[tuple[object, ...]]) -> None:
+        self._real_description = real_description
+        self.description: list[tuple[object, ...]] | None = None
+        self.arraysize = 0
+        self.executed: list[str] = []
+
+    def execute(self, operation: str, *args: object, **kwargs: object) -> None:
+        self.executed.append(operation)
+        if operation.strip().upper().startswith(("SELECT", "WITH")):
+            self.description = self._real_description
+        else:
+            self.description = []
+
+    def fetchall(self) -> list[tuple[object, ...]]:
+        return []
+
+
+def _mutate_with_attribution_comments(sql_: str, is_split: bool = False) -> str:
+    """
+    Mirrors a typical SQL_QUERY_MUTATOR: leading query-hash/workspace
+    attribution comments plus a trailing query-hash comment.
+    """
+    return (
+        "-- query hash: abc123\n"
+        "-- workspace_slug: acme-corp\n"
+        f"{sql_}\n"
+        "-- query hash: abc123"
+    )
+
+
+def _run_probe_with_real_cursor(
+    database: Database,
+    adhoc_col: AdhocColumn,
+    mocker: MockerFixture,
+    *,
+    with_comment_safe_retry: bool,
+) -> _FakeClickHouseConnectCursor:
+    """
+    Exercise the real ``get_columns_description`` (not mocked out, unlike
+    ``_run_probe``) against a fake cursor that reproduces clickhouse-connect
+    0.14.1's comment-sensitive empty-result metadata fallback, with a mutator
+    that adds leading and trailing SQL comments like Preset's
+    SQL_QUERY_MUTATOR does.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.db_engine_specs.clickhouse import ClickHouseConnectEngineSpec
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[TableColumn(column_name="a", type="INTEGER")],
+    )
+
+    real_description: list[tuple[object, ...]] = [
+        ("Duration", "Float64", None, None, None, None, None)
+    ]
+    cursor = _FakeClickHouseConnectCursor(real_description)
+
+    @contextmanager
+    def mock_get_raw_connection(catalog=None, schema=None, **kwargs):
+        connection = MagicMock()
+        connection.cursor.return_value = cursor
+        yield connection
+
+    spec_cls = database.db_engine_spec
+    mocker.patch.object(database, "get_raw_connection", new=mock_get_raw_connection)
+    mocker.patch.object(
+        database,
+        "mutate_sql_based_on_config",
+        new=_mutate_with_attribution_comments,
+    )
+
+    patches: list[Any] = [
+        patch.object(spec_cls, "type_probe_needs_row", False),
+    ]
+    if with_comment_safe_retry:
+        patches.append(
+            patch.object(
+                spec_cls,
+                "get_column_description_retry_sql",
+                new=classmethod(
+                    lambda cls, sql: (
+                        ClickHouseConnectEngineSpec.get_column_description_retry_sql(
+                            sql
+                        )
+                    )
+                ),
+            )
+        )
+
+    with contextlib.ExitStack() as stack:
+        for p in patches:
+            stack.enter_context(p)
+        table.adhoc_column_to_sqla(adhoc_col)
+
+    return cursor
+
+
+@pytest.mark.parametrize(
+    "adhoc_col",
+    [
+        pytest.param(
+            {
+                "sqlExpression": "round(a / 50) * 50 / 1000",
+                "label": "Duration",
+                "columnType": "BASE_AXIS",
+                "timeGrain": "P1D",
+            },
+            id="simple_expression",
+        ),
+        pytest.param(
+            {
+                "sqlExpression": "arrayElement(splitByChar(',', 'a,b,c'), 1)",
+                "label": "Duration",
+                "columnType": "BASE_AXIS",
+                "timeGrain": "P1D",
+            },
+            id="array_syntax_expression",
+        ),
+    ],
+)
+def test_adhoc_column_type_probe_survives_query_mutator_comments_on_clickhouse(
+    database: Database,
+    mocker: MockerFixture,
+    adhoc_col: AdhocColumn,
+) -> None:
+    """
+    Regression test for SC-114843.
+
+    clickhouse-connect 0.14.1 only backfills ``cursor.description`` for a
+    zero-row result when the executed operation string starts with
+    SELECT/WITH after stripping whitespace. SQL_QUERY_MUTATOR prepends
+    query-attribution comments (query hash, workspace_slug) ahead of the
+    SELECT keyword and appends a trailing query-hash comment, which used to
+    make adhoc_column_to_sqla's WHERE FALSE type probe come back with an
+    empty cursor.description and raise ColumnNotFoundException at
+    superset/connectors/sqla/models.py:~1705 -- even though the underlying
+    expression is completely valid and zero rows are read.
+
+    The fix (ClickHouseConnectEngineSpec.get_column_description_retry_sql)
+    must resolve this WITHOUT falling back to a real-row probe, which would
+    reintroduce ClickHouse's max_rows_to_read failures on huge tables.
+    """
+    cursor = _run_probe_with_real_cursor(
+        database, adhoc_col, mocker, with_comment_safe_retry=True
+    )
+
+    # One or more comment-prefixed attempts (which the fake driver -- like
+    # the real one -- can't read metadata from), followed by the
+    # comment-safe wrapped retry as the last execution.
+    assert len(cursor.executed) >= 2
+    *earlier_attempts, retry = cursor.executed
+
+    for attempt in earlier_attempts:
+        assert "query hash" in attempt, "mutator comments must be applied"
+        assert not attempt.strip().upper().startswith(("SELECT", "WITH")), (
+            "prior attempts should still be comment-prefixed, reproducing the bug"
+        )
+
+    assert retry.strip().upper().startswith("SELECT"), (
+        "retry must start with a bare SELECT so clickhouse-connect's "
+        "empty-result fallback triggers"
+    )
+    assert "-- query hash: abc123" in retry, (
+        "retry must preserve the mutator's comments verbatim -- no security/"
+        "audit information should be dropped"
+    )
+    assert "-- workspace_slug: acme-corp" in retry
+    # apply_limit_to_sql reformats the query (via sqlglot), so WHERE and its
+    # condition can land on separate lines -- match loosely on whitespace.
+    always_false_pattern = re.compile(r"where\s+(false|0\s*=\s*1)", re.IGNORECASE)
+    assert always_false_pattern.search(retry), (
+        f"retry must still be a zero-row probe (WHERE false), got: {retry}"
+    )
+    assert retry.strip().lower().endswith("limit 0"), (
+        f"outer wrapper must also guarantee zero rows, got: {retry}"
+    )
+
+
+def test_adhoc_column_type_probe_raises_without_comment_safe_retry_hook(
+    database: Database,
+    mocker: MockerFixture,
+) -> None:
+    """
+    Companion negative-control for SC-114843: confirms the failure mode this
+    fix addresses. Without an engine-spec hook to retry with a comment-safe
+    query, a comment-mutated zero-row probe against a clickhouse-connect-like
+    driver raises ColumnNotFoundException, exactly as it did before this fix.
+    """
+    from superset.exceptions import ColumnNotFoundException
+
+    adhoc_col: AdhocColumn = {
+        "sqlExpression": "round(a / 50) * 50 / 1000",
+        "label": "Duration",
+        "columnType": "BASE_AXIS",
+        "timeGrain": "P1D",
+    }
+
+    with pytest.raises(ColumnNotFoundException):
+        _run_probe_with_real_cursor(
+            database, adhoc_col, mocker, with_comment_safe_retry=False
+        )
+
+
+def _normalize_df_datasource(column: object) -> MagicMock:
+    """Bind ``ExploreMixin.normalize_df`` to a minimal datasource exposing a
+    single temporal ``column`` via ``get_column``."""
+    from superset.models.helpers import ExploreMixin
+
+    datasource = MagicMock()
+    datasource.offset = 0
+    datasource.enforce_numerical_metrics = False
+    datasource.columns = [column]
+    datasource.get_column = lambda name: {"ts": column}.get(name)
+    for method in (
+        "_python_date_format",
+        "_collect_dttm_labels",
+        "_offset_only_dttm_cols",
+        "normalize_df",
+    ):
+        setattr(datasource, method, getattr(ExploreMixin, method).__get__(datasource))
+    return datasource
+
+
+def _raw_query_object() -> MagicMock:
+    """A query object for a raw/unaggregated query: ``columns`` holds the plain
+    physical column name (no base-axis adhoc wrapper, no granularity)."""
+    query_object = MagicMock()
+    query_object.columns = ["ts"]
+    query_object.granularity = None
+    query_object.time_shift = None
+    return query_object
+
+
+def test_normalize_df_applies_python_date_format_to_unaggregated_columns() -> None:
+    """A temporal column selected in a raw/unaggregated query is a plain column
+    name rather than a base-axis adhoc column, so it is excluded from
+    ``get_base_axis_labels``. It must still receive its ``python_date_format``,
+    so an ``epoch_s`` column is converted to datetimes the same way it is for
+    aggregated charts."""
+    import pandas as pd
+    from pandas.api.types import is_datetime64_any_dtype
+
+    ts_col = MagicMock(
+        column_name="ts",
+        is_dttm=True,
+        python_date_format="epoch_s",
+        datetime_format=None,
+    )
+    datasource = _normalize_df_datasource(ts_col)
+
+    # 2020-01-01, 2021-01-01, 2022-01-01 as epoch seconds
+    df = pd.DataFrame({"ts": [1577836800, 1609459200, 1640995200]})
+
+    result = datasource.normalize_df(df, _raw_query_object())
+
+    assert is_datetime64_any_dtype(result["ts"])
+    assert result["ts"][0].strftime("%Y-%m-%d") == "2020-01-01"
+    assert result["ts"][2].strftime("%Y-%m-%d") == "2022-01-01"
+
+
+def test_normalize_df_applies_epoch_ms_to_unaggregated_columns() -> None:
+    """``epoch_ms`` is a separate conversion branch from ``epoch_s``; an
+    unaggregated column declaring it must also be converted to datetimes."""
+    import pandas as pd
+    from pandas.api.types import is_datetime64_any_dtype
+
+    ts_col = MagicMock(
+        column_name="ts",
+        is_dttm=True,
+        python_date_format="epoch_ms",
+        datetime_format=None,
+    )
+    datasource = _normalize_df_datasource(ts_col)
+
+    # 2020-01-01, 2021-01-01, 2022-01-01 as epoch milliseconds
+    df = pd.DataFrame({"ts": [1577836800000, 1609459200000, 1640995200000]})
+
+    result = datasource.normalize_df(df, _raw_query_object())
+
+    assert is_datetime64_any_dtype(result["ts"])
+    assert result["ts"][0].strftime("%Y-%m-%d") == "2020-01-01"
+    assert result["ts"][2].strftime("%Y-%m-%d") == "2022-01-01"
+
+
+def test_normalize_df_handles_dict_shaped_columns() -> None:
+    """Some datasources expose columns as dicts rather than objects. The raw
+    temporal-column lookup must read is_dttm and python_date_format from either
+    shape, the same way the base-axis path already does."""
+    import pandas as pd
+    from pandas.api.types import is_datetime64_any_dtype
+
+    ts_col = {"column_name": "ts", "is_dttm": True, "python_date_format": "epoch_s"}
+    datasource = _normalize_df_datasource(ts_col)
+
+    df = pd.DataFrame({"ts": [1577836800, 1609459200]})
+
+    result = datasource.normalize_df(df, _raw_query_object())
+
+    assert is_datetime64_any_dtype(result["ts"])
+    assert result["ts"][0].strftime("%Y-%m-%d") == "2020-01-01"
+
+
+def test_normalize_df_leaves_unconfigured_integer_dttm_columns_untouched() -> None:
+    """A column flagged temporal but with no ``python_date_format`` must not be
+    coerced: a plain integer column would otherwise be reinterpreted as
+    nanoseconds since the epoch (1577836800 -> 1970-01-01 00:00:01.5...). Only
+    columns that declare a format are normalized."""
+    import pandas as pd
+    from pandas.api.types import is_datetime64_any_dtype
+
+    int_col = MagicMock(
+        column_name="ts",
+        is_dttm=True,
+        python_date_format=None,
+        datetime_format=None,
+    )
+    datasource = _normalize_df_datasource(int_col)
+
+    df = pd.DataFrame({"ts": [1577836800, 1609459200, 1640995200]})
+
+    result = datasource.normalize_df(df, _raw_query_object())
+
+    assert not is_datetime64_any_dtype(result["ts"])
+    assert result["ts"].tolist() == [1577836800, 1609459200, 1640995200]
+
+
+def test_normalize_df_without_get_column_is_a_noop() -> None:
+    """Not every datasource exposes ``get_column``; for those, the temporal
+    lookup must short-circuit instead of raising, leaving the data untouched."""
+    import pandas as pd
+    from pandas.api.types import is_datetime64_any_dtype
+
+    from superset.models.helpers import ExploreMixin
+
+    class _NoGetColumnDatasource:
+        """A datasource that does not implement ``get_column``."""
+
+        offset = 0
+        enforce_numerical_metrics = False
+        columns: list[object] = []
+
+    datasource = _NoGetColumnDatasource()
+    for method in (
+        "_python_date_format",
+        "_collect_dttm_labels",
+        "_offset_only_dttm_cols",
+        "normalize_df",
+    ):
+        setattr(datasource, method, getattr(ExploreMixin, method).__get__(datasource))
+
+    df = pd.DataFrame({"ts": [1577836800, 1609459200]})
+
+    result = datasource.normalize_df(df, _raw_query_object())  # type: ignore[attr-defined]
+
+    assert not is_datetime64_any_dtype(result["ts"])
+    assert result["ts"].tolist() == [1577836800, 1609459200]
+
+
+def test_normalize_df_normalizes_base_axis_temporal_columns() -> None:
+    """The aggregated path: a base-axis temporal column is normalized, and the
+    raw-column pass does not re-add it (it is already collected)."""
+    import pandas as pd
+    from pandas.api.types import is_datetime64_any_dtype
+
+    ts_col = MagicMock(
+        column_name="ts",
+        is_dttm=True,
+        python_date_format="epoch_s",
+        datetime_format=None,
+    )
+    datasource = _normalize_df_datasource(ts_col)
+
+    query_object = MagicMock()
+    query_object.columns = [
+        {"label": "ts", "sqlExpression": "ts", "columnType": "BASE_AXIS"}
+    ]
+    query_object.granularity = None
+    query_object.time_shift = None
+
+    df = pd.DataFrame({"ts": [1577836800, 1609459200]})
+
+    result = datasource.normalize_df(df, query_object)
+
+    assert is_datetime64_any_dtype(result["ts"])
+    assert result["ts"][0].strftime("%Y-%m-%d") == "2020-01-01"
+
+
+def test_normalize_df_dedups_column_in_granularity_and_columns() -> None:
+    """When the same temporal column is both the ``granularity`` and a selected
+    column, it is collected once (via the base path) and the raw pass does not
+    re-add it, so it is normalized a single time."""
+    import pandas as pd
+    from pandas.api.types import is_datetime64_any_dtype
+
+    ts_col = MagicMock(
+        column_name="ts",
+        is_dttm=True,
+        python_date_format="epoch_s",
+        datetime_format=None,
+    )
+    datasource = _normalize_df_datasource(ts_col)
+
+    query_object = MagicMock()
+    query_object.columns = ["ts"]
+    query_object.granularity = "ts"
+    query_object.time_shift = None
+
+    assert datasource._collect_dttm_labels(query_object) == (("ts", "epoch_s"),)
+
+    df = pd.DataFrame({"ts": [1577836800, 1609459200]})
+
+    result = datasource.normalize_df(df, query_object)
+
+    assert is_datetime64_any_dtype(result["ts"])
+    assert result["ts"][0].strftime("%Y-%m-%d") == "2020-01-01"
+
+
+def test_normalize_df_normalizes_legacy_time_column() -> None:
+    """The legacy ``__timestamp`` column is normalized using the granularity
+    column's python_date_format."""
+    import pandas as pd
+    from pandas.api.types import is_datetime64_any_dtype
+
+    from superset.utils.core import DTTM_ALIAS
+
+    ts_col = MagicMock(
+        column_name="ts",
+        is_dttm=True,
+        python_date_format="epoch_s",
+        datetime_format=None,
+    )
+    datasource = _normalize_df_datasource(ts_col)
+
+    query_object = MagicMock()
+    query_object.columns = []
+    query_object.granularity = "ts"
+    query_object.time_shift = None
+
+    df = pd.DataFrame({DTTM_ALIAS: [1577836800, 1609459200]})
+
+    result = datasource.normalize_df(df, query_object)
+
+    assert is_datetime64_any_dtype(result[DTTM_ALIAS])
+    assert result[DTTM_ALIAS][0].strftime("%Y-%m-%d") == "2020-01-01"
+
+
+def test_normalize_df_applies_offset_to_all_temporal_columns() -> None:
+    """Regression test for issue #23167: the dataset HOURS OFFSET must be applied
+    to every temporal column a query returns, not only the selected time column.
+    Two native-datetime temporal columns (neither declaring a
+    ``python_date_format``) must both be shifted by the dataset offset."""
+    import pandas as pd
+
+    from superset.models.helpers import ExploreMixin
+
+    created = MagicMock(
+        column_name="created",
+        is_dttm=True,
+        python_date_format=None,
+        datetime_format=None,
+    )
+    expired = MagicMock(
+        column_name="expired",
+        is_dttm=True,
+        python_date_format=None,
+        datetime_format=None,
+    )
+    columns = {"created": created, "expired": expired}
+
+    datasource = MagicMock()
+    datasource.offset = 4
+    datasource.enforce_numerical_metrics = False
+    datasource.columns = list(columns.values())
+    datasource.get_column = lambda name: columns.get(name)
+    for method in (
+        "_python_date_format",
+        "_collect_dttm_labels",
+        "_offset_only_dttm_cols",
+        "normalize_df",
+    ):
+        setattr(datasource, method, getattr(ExploreMixin, method).__get__(datasource))
+
+    query_object = MagicMock()
+    query_object.columns = ["created", "expired"]
+    query_object.granularity = None
+    query_object.time_shift = None
+
+    df = pd.DataFrame(
+        {
+            "created": pd.to_datetime(["2020-01-01 00:00:00", "2020-01-02 00:00:00"]),
+            "expired": pd.to_datetime(["2020-06-01 12:00:00", "2020-06-02 12:00:00"]),
+        }
+    )
+
+    result = datasource.normalize_df(df, query_object)
+
+    assert (
+        result["created"].tolist()
+        == pd.to_datetime(["2020-01-01 04:00:00", "2020-01-02 04:00:00"]).tolist()
+    )
+    assert (
+        result["expired"].tolist()
+        == pd.to_datetime(["2020-06-01 16:00:00", "2020-06-02 16:00:00"]).tolist()
+    )
+
+
+def test_normalize_df_offset_skips_unconfigured_integer_temporal_columns() -> None:
+    """The offset extension for native-datetime temporal columns must not touch a
+    temporal column whose values arrive as plain integers with no declared
+    format: such a column cannot be safely interpreted as a datetime, so it is
+    left untouched rather than reinterpreted as nanoseconds (see issue #23167)."""
+    import pandas as pd
+    from pandas.api.types import is_datetime64_any_dtype
+
+    from superset.models.helpers import ExploreMixin
+
+    int_col = MagicMock(
+        column_name="ts",
+        is_dttm=True,
+        python_date_format=None,
+        datetime_format=None,
+    )
+    datasource = MagicMock()
+    datasource.offset = 4
+    datasource.enforce_numerical_metrics = False
+    datasource.columns = [int_col]
+    datasource.get_column = lambda name: {"ts": int_col}.get(name)
+    for method in (
+        "_python_date_format",
+        "_collect_dttm_labels",
+        "_offset_only_dttm_cols",
+        "normalize_df",
+    ):
+        setattr(datasource, method, getattr(ExploreMixin, method).__get__(datasource))
+
+    query_object = MagicMock()
+    query_object.columns = ["ts"]
+    query_object.granularity = None
+    query_object.time_shift = None
+
+    df = pd.DataFrame({"ts": [1577836800, 1609459200, 1640995200]})
+
+    result = datasource.normalize_df(df, query_object)
+
+    assert not is_datetime64_any_dtype(result["ts"])
+    assert result["ts"].tolist() == [1577836800, 1609459200, 1640995200]
+
+
+def test_normalize_df_offset_applied_once_for_already_collected_column() -> None:
+    """A column already handled by ``_collect_dttm_labels`` (here, the
+    granularity column, which also declares a ``python_date_format`` and
+    arrives as a native datetime in the dataframe) must not be re-added by
+    ``_offset_only_dttm_cols``: the dataset HOURS OFFSET must shift it by
+    exactly one offset, not two (see issue #23167)."""
+    import pandas as pd
+
+    ts_col = MagicMock(
+        column_name="ts",
+        is_dttm=True,
+        python_date_format="epoch_s",
+        datetime_format=None,
+    )
+    datasource = _normalize_df_datasource(ts_col)
+    datasource.offset = 4
+
+    query_object = MagicMock()
+    query_object.columns = []
+    query_object.granularity = "ts"
+    query_object.time_shift = None
+
+    df = pd.DataFrame(
+        {"ts": pd.to_datetime(["2020-01-01 00:00:00", "2020-01-02 00:00:00"])}
+    )
+
+    # The granularity column is already collected, so the raw/offset-only
+    # pass must be a no-op for it.
+    already_collected = {
+        label for label, _ in datasource._collect_dttm_labels(query_object)
+    }
+    assert datasource._offset_only_dttm_cols(df, query_object, already_collected) == []
+
+    result = datasource.normalize_df(df, query_object)
+
+    assert (
+        result["ts"].tolist()
+        == pd.to_datetime(["2020-01-01 04:00:00", "2020-01-02 04:00:00"]).tolist()
+    )
+
+
 def test_adhoc_column_to_sqla_returns_type_from_column_metadata(
     database: Database,
 ) -> None:
@@ -2256,3 +3948,1029 @@ def test_numeric_adhoc_filter_value_is_unquoted_in_where_clause(
     # The numeric value should be emitted without quotes.
     assert "IN (3)" in sql, f"Expected numeric IN-list, got SQL: {sql}"
     assert "IN ('3')" not in sql, f"Value should not be quoted, got SQL: {sql}"
+
+
+def test_filter_by_verbose_name_resolves_to_column(
+    database: Database,
+) -> None:
+    """
+    A filter whose "col" value matches a column's verbose_name
+    (e.g. the label emitted by "Drill to detail by") must resolve to that
+    column and produce a WHERE clause on the underlying column_name.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(
+                column_name="country_code",
+                verbose_name="Country",
+                type="TEXT",
+            ),
+            TableColumn(column_name="b", type="TEXT"),
+        ],
+    )
+
+    sqla_query = table.get_sqla_query(
+        columns=["b"],
+        # Filter uses the verbose label, as "Drill to detail by" does.
+        filter=[{"col": "Country", "op": "==", "val": "US"}],
+        is_timeseries=False,
+        row_limit=10,
+    )
+
+    with database.get_sqla_engine() as engine:
+        sql = str(
+            sqla_query.sqla_query.compile(
+                dialect=engine.dialect,
+                compile_kwargs={"literal_binds": True},
+            )
+        )
+
+    # The filter should be translated to a WHERE clause on the real column.
+    assert "WHERE" in sql, f"Expected WHERE clause, got SQL: {sql}"
+    assert "country_code" in sql, f"Expected filter on 'country_code', got SQL: {sql}"
+    assert "'US'" in sql, f"Expected filter value 'US', got SQL: {sql}"
+
+
+def test_format_time_humanized_activates_non_english_locale(
+    mocker: MockerFixture,
+) -> None:
+    """Regression for #28331: `_format_time_humanized` must call
+    `humanize.i18n.activate(locale)` before formatting when the user's locale
+    is not English. The original report described last-modified strings on
+    the chart editor header always rendering in English regardless of the
+    user's language setting.
+    """
+    from datetime import datetime, timedelta
+
+    from superset.models.helpers import AuditMixinNullable
+
+    mocker.patch(
+        "superset.models.helpers.get_locale",
+        return_value="es",  # Spanish
+    )
+    mock_activate = mocker.patch("superset.models.helpers.humanize.i18n.activate")
+    mock_deactivate = mocker.patch("superset.models.helpers.humanize.i18n.deactivate")
+
+    # Detached instance — we only need the method, not a session-bound row.
+    instance = AuditMixinNullable()
+    result = instance._format_time_humanized(datetime.now() - timedelta(hours=2))
+
+    mock_activate.assert_called_once_with("es")
+    mock_deactivate.assert_called_once()
+    assert isinstance(result, str), f"expected str, got {type(result).__name__}"
+    assert result, "_format_time_humanized returned empty string"
+
+
+def test_format_time_humanized_skips_activation_for_english(
+    mocker: MockerFixture,
+) -> None:
+    """Companion to the #28331 regression: for English, humanize already
+    defaults to English, so the i18n.activate call is intentionally skipped
+    as a perf optimization. This pins that fast-path so a future refactor
+    doesn't accidentally start calling activate('en') unconditionally."""
+    from datetime import datetime, timedelta
+
+    from superset.models.helpers import AuditMixinNullable
+
+    mocker.patch(
+        "superset.models.helpers.get_locale",
+        return_value="en",
+    )
+    mock_activate = mocker.patch("superset.models.helpers.humanize.i18n.activate")
+
+    instance = AuditMixinNullable()
+    instance._format_time_humanized(datetime.now() - timedelta(hours=2))
+
+    mock_activate.assert_not_called()
+
+
+# -----------------------------------------------------------------------------
+# _process_sql_expression denylist gate (adhoc expression validation)
+# -----------------------------------------------------------------------------
+
+
+def _patch_disallowed(
+    mocker: MockerFixture,
+    functions: dict[str, set[str]] | None = None,
+    tables: dict[str, set[str]] | None = None,
+) -> None:
+    """Inject the engine-keyed denylists into the live Flask app config that
+    `_process_sql_expression` consults via `app.config[...]`."""
+    mocker.patch.dict(
+        "flask.current_app.config",
+        {
+            "DISALLOWED_SQL_FUNCTIONS": functions or {},
+            "DISALLOWED_SQL_TABLES": tables or {},
+        },
+        clear=False,
+    )
+
+
+def test_process_sql_expression_rejects_disallowed_function(
+    mocker: MockerFixture, database: Database
+) -> None:
+    """Adhoc expressions are user-controlled SQL incorporated into the final
+    query via `literal_column(...)`. A function name on the operator's
+    DISALLOWED_SQL_FUNCTIONS list must be rejected at validation time,
+    before the rendered SQL is handed to the database."""
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.exceptions import SupersetDisallowedSQLFunctionException
+
+    _patch_disallowed(mocker, functions={"postgresql": {"version"}})
+    table = SqlaTable(database=database, schema=None, table_name="t")
+    with pytest.raises(SupersetDisallowedSQLFunctionException):
+        table._process_sql_expression(
+            expression="version()",
+            database_id=database.id,
+            engine="postgresql",
+            schema="",
+            template_processor=None,
+        )
+
+
+def test_process_sql_expression_rejects_disallowed_function_in_aggregate(
+    mocker: MockerFixture, database: Database
+) -> None:
+    """A denylisted function wrapped in a legitimate aggregate
+    (`MAX(version())`) must still be rejected: the wrapper is the obvious
+    bypass attempt."""
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.exceptions import SupersetDisallowedSQLFunctionException
+
+    _patch_disallowed(mocker, functions={"postgresql": {"version"}})
+    table = SqlaTable(database=database, schema=None, table_name="t")
+    with pytest.raises(SupersetDisallowedSQLFunctionException):
+        table._process_sql_expression(
+            expression="MAX(version())",
+            database_id=database.id,
+            engine="postgresql",
+            schema="",
+            template_processor=None,
+        )
+
+
+@with_feature_flags(ALLOW_ADHOC_SUBQUERY=True)
+def test_process_sql_expression_rejects_disallowed_table(
+    mocker: MockerFixture, database: Database
+) -> None:
+    """Adhoc subqueries that reference a denylisted table must be rejected,
+    and the raised exception must carry only the tables actually found in
+    the expression (matching the canonical execution-time gate in
+    `superset.sql_lab._validate_query`). The branch is only reachable when
+    `ALLOW_ADHOC_SUBQUERY=True`; otherwise `validate_adhoc_subquery` rejects
+    the subquery first."""
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.exceptions import SupersetDisallowedSQLTableException
+
+    _patch_disallowed(
+        mocker, tables={"postgresql": {"pg_authid", "pg_shadow", "pg_stat_activity"}}
+    )
+    table = SqlaTable(database=database, schema=None, table_name="t")
+    with pytest.raises(SupersetDisallowedSQLTableException) as exc_info:
+        table._process_sql_expression(
+            expression="(SELECT id FROM pg_authid)",
+            database_id=database.id,
+            engine="postgresql",
+            schema="",
+            template_processor=None,
+        )
+    # Assert on substring (set repr ordering): only the offending table is
+    # echoed back to the user, not the full operator denylist.
+    message = exc_info.value.error.message
+    assert "pg_authid" in message
+    assert "pg_shadow" not in message
+    assert "pg_stat_activity" not in message
+
+
+def test_process_sql_expression_allows_benign_expression(
+    mocker: MockerFixture, database: Database
+) -> None:
+    """Negative control: a benign aggregate over a regular column must pass
+    even when denylists are configured."""
+    from superset.connectors.sqla.models import SqlaTable
+
+    _patch_disallowed(
+        mocker,
+        functions={"postgresql": {"version"}},
+        tables={"postgresql": {"pg_authid"}},
+    )
+    table = SqlaTable(database=database, schema=None, table_name="t")
+    result = table._process_sql_expression(
+        expression="SUM(amount)",
+        database_id=database.id,
+        engine="postgresql",
+        schema="",
+        template_processor=None,
+    )
+    assert result is not None
+    assert "SUM" in result.upper()
+
+
+def test_process_sql_expression_no_gate_when_denylists_empty(
+    mocker: MockerFixture, database: Database
+) -> None:
+    """When neither DISALLOWED_SQL_FUNCTIONS nor DISALLOWED_SQL_TABLES has an
+    entry for the engine, the new gate must not run an extra parse: any
+    SQL that passes the pre-existing `sanitize_clause` validation is
+    accepted."""
+    from superset.connectors.sqla.models import SqlaTable
+
+    _patch_disallowed(mocker, functions={}, tables={})
+    table = SqlaTable(database=database, schema=None, table_name="t")
+    result = table._process_sql_expression(
+        expression="version()",
+        database_id=database.id,
+        engine="postgresql",
+        schema="",
+        template_processor=None,
+    )
+    assert result is not None
+
+
+def test_resolve_denylist_schema_uses_query_aware_resolution(
+    mocker: MockerFixture, database: Database
+) -> None:
+    """A datasource without an explicit schema resolves the denylist schema
+    through the query-aware ``get_default_schema_for_query`` (matching the SQL
+    Lab / executor gate), not the static inspector-based ``get_default_schema``."""
+    from superset.connectors.sqla.models import SqlaTable
+
+    query_aware = mocker.patch.object(
+        database, "get_default_schema_for_query", return_value="resolved"
+    )
+    static = mocker.patch.object(database, "get_default_schema")
+    table = SqlaTable(database=database, schema=None, table_name="t")
+
+    assert table._resolve_denylist_schema("SELECT 1") == "resolved"
+    query_aware.assert_called_once()
+    static.assert_not_called()
+
+
+def test_resolve_denylist_schema_memoizes_across_expressions(
+    mocker: MockerFixture, database: Database
+) -> None:
+    """The resolved schema is cached per datasource so adhoc-expression
+    validation, which runs once per column/metric/order-by, does not re-resolve
+    (and re-probe) the schema for every expression."""
+    from superset.connectors.sqla.models import SqlaTable
+
+    query_aware = mocker.patch.object(
+        database, "get_default_schema_for_query", return_value="resolved"
+    )
+    table = SqlaTable(database=database, schema=None, table_name="t")
+
+    # Distinct expression shapes (column / metric / order-by) mirror a real
+    # request, where validation runs once per selected field with different
+    # SQL each time. Caching must be keyed on the datasource instance, not the
+    # SQL string, so a single resolution still covers all of them.
+    for sql in ("price", "SUM(price)", "created_at DESC"):
+        assert table._resolve_denylist_schema(sql) == "resolved"
+    query_aware.assert_called_once()
+
+
+def test_resolve_denylist_schema_explicit_schema_skips_probe(
+    mocker: MockerFixture, database: Database
+) -> None:
+    """An explicit datasource schema is returned directly, with no probe Query
+    and no inspector round-trip."""
+    from superset.connectors.sqla.models import SqlaTable
+
+    query_aware = mocker.patch.object(database, "get_default_schema_for_query")
+    table = SqlaTable(database=database, schema="analytics", table_name="t")
+
+    assert table._resolve_denylist_schema("SELECT 1") == "analytics"
+    query_aware.assert_not_called()
+
+
+def test_get_sqla_query_dotted_struct_column_bigquery(
+    mocker: MockerFixture,
+    session: Session,
+) -> None:
+    """
+    SC-111745: a BigQuery STRUCT field registered with a dotted ``column_name``
+    (e.g. ``forecasts.original.total_cost``) must be quoted per-segment in the
+    drill-to-detail / samples SELECT (e.g. ```forecasts`.`original`.`total_cost```),
+    not collapsed into a single quoted identifier (```forecasts.original```),
+    which BigQuery rejects with "Unrecognized name".
+    """
+    bigquery = pytest.importorskip("sqlalchemy_bigquery")
+
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.models.core import Database
+
+    SqlaTable.metadata.create_all(session.get_bind())
+
+    dialect = bigquery.BigQueryDialect()
+
+    @contextmanager
+    def fake_engine(*args, **kwargs):
+        engine = MagicMock()
+        engine.dialect = dialect
+        yield engine
+
+    database = Database(database_name="bq", sqlalchemy_uri="bigquery://project")
+    mocker.patch.object(database, "get_sqla_engine", new=fake_engine)
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="orders",
+        columns=[
+            TableColumn(column_name="id", type="INTEGER"),
+            TableColumn(column_name="forecasts.original.total_cost", type="FLOAT"),
+        ],
+    )
+
+    # Mirror the drill-to-detail / samples path: select physical columns with no
+    # groupby/metrics so the column-selection branch in ``get_sqla_query`` runs.
+    sqlaq = table.get_sqla_query(
+        columns=["id", "forecasts.original.total_cost"],
+        is_timeseries=False,
+        row_limit=100,
+    )
+    sql = str(
+        sqlaq.sqla_query.compile(
+            dialect=dialect,
+            compile_kwargs={"literal_binds": True},
+        )
+    )
+
+    # The dotted STRUCT path must be quoted per-segment so BigQuery resolves the
+    # nested field, and must not appear as a single merged identifier.
+    assert "`forecasts`.`original`.`total_cost`" in sql
+    # ```forecasts.original``` is a substring of the broken form
+    # ```forecasts.original`.`total_cost``` (the regression), so this negative
+    # assertion catches the actual failure mode, not just an exact-string match.
+    assert "`forecasts.original`" not in sql
+
+
+def test_temporal_epoch_string_filter_is_coerced_for_bigquery() -> None:
+    """
+    Drill-to-detail can send JavaScript timestamp strings for temporal values.
+    BigQuery DATE filters must receive a DATE literal instead of the raw string.
+    """
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+    from superset.models.helpers import ExploreMixin
+
+    value = ExploreMixin.filter_values_handler(
+        values="1778630400000",
+        operator=FilterOperator.EQUALS,
+        target_generic_type=GenericDataType.TEMPORAL,
+        target_native_type="DATE",
+        db_engine_spec=BigQueryEngineSpec,
+    )
+
+    assert isinstance(value, ColumnElement)
+    assert str(value) == "CAST('2026-05-13' AS DATE)"
+
+
+def test_temporal_negative_epoch_string_filter_is_coerced_for_bigquery() -> None:
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+    from superset.models.helpers import ExploreMixin
+
+    value = ExploreMixin.filter_values_handler(
+        values="-1778630400000",
+        operator=FilterOperator.EQUALS,
+        target_generic_type=GenericDataType.TEMPORAL,
+        target_native_type="DATE",
+        db_engine_spec=BigQueryEngineSpec,
+    )
+
+    assert isinstance(value, ColumnElement)
+    assert str(value) == "CAST('1913-08-22' AS DATE)"
+
+
+@pytest.mark.parametrize("value", [1778630400000, 1778630400000.0])
+def test_temporal_numeric_filter_is_coerced_for_bigquery(
+    value: int | float,
+) -> None:
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+    from superset.models.helpers import ExploreMixin
+
+    result = ExploreMixin.filter_values_handler(
+        values=value,
+        operator=FilterOperator.EQUALS,
+        target_generic_type=GenericDataType.TEMPORAL,
+        target_native_type="DATE",
+        db_engine_spec=BigQueryEngineSpec,
+    )
+
+    assert isinstance(result, ColumnElement)
+    assert str(result) == "CAST('2026-05-13' AS DATE)"
+
+
+def test_temporal_overflow_epoch_filter_is_not_coerced() -> None:
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+    from superset.models.helpers import ExploreMixin
+
+    value = "999999999999999999999999999999999999999"
+
+    result = ExploreMixin.filter_values_handler(
+        values=value,
+        operator=FilterOperator.EQUALS,
+        target_generic_type=GenericDataType.TEMPORAL,
+        target_native_type="DATE",
+        db_engine_spec=BigQueryEngineSpec,
+    )
+
+    assert result == value
+
+
+def test_temporal_epoch_filter_is_not_coerced_without_engine_literal() -> None:
+    from superset.db_engine_specs.base import BaseEngineSpec
+    from superset.models.helpers import ExploreMixin
+
+    result = ExploreMixin.filter_values_handler(
+        values="1778630400000",
+        operator=FilterOperator.EQUALS,
+        target_generic_type=GenericDataType.TEMPORAL,
+        target_native_type="UNKNOWN_TYPE",
+        db_engine_spec=BaseEngineSpec,
+    )
+
+    assert result == "1778630400000"
+
+
+@pytest.mark.parametrize(
+    "operator",
+    [FilterOperator.IN, FilterOperator.NOT_IN],
+)
+def test_temporal_epoch_string_filter_list_is_coerced_for_bigquery(
+    operator: FilterOperator,
+) -> None:
+    """
+    Cross-filtering can send JavaScript timestamp strings inside IN lists.
+    BigQuery DATE filters must receive DATE literals instead of raw strings.
+    """
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+    from superset.models.helpers import ExploreMixin
+
+    values = ExploreMixin.filter_values_handler(
+        values=["1777248000000"],
+        operator=operator,
+        target_generic_type=GenericDataType.TEMPORAL,
+        target_native_type="DATE",
+        is_list_target=True,
+        db_engine_spec=BigQueryEngineSpec,
+    )
+
+    assert isinstance(values, list)
+    assert len(values) == 1
+    assert isinstance(values[0], ColumnElement)
+    assert str(values[0]) == "CAST('2026-04-27' AS DATE)"
+
+
+def test_temporal_epoch_string_filter_list_is_coerced_for_clickhouse() -> None:
+    from superset.db_engine_specs.clickhouse import ClickHouseEngineSpec
+    from superset.models.helpers import ExploreMixin
+
+    values = ExploreMixin.filter_values_handler(
+        values=["1777248000000"],
+        operator=FilterOperator.IN,
+        target_generic_type=GenericDataType.TEMPORAL,
+        target_native_type="Date",
+        is_list_target=True,
+        db_engine_spec=ClickHouseEngineSpec,
+    )
+
+    assert isinstance(values, list)
+    assert len(values) == 1
+    assert isinstance(values[0], ColumnElement)
+    assert str(values[0]) == "toDate('2026-04-27')"
+
+
+@pytest.mark.parametrize(
+    "target_type,expected",
+    [
+        ("DATE", "TO_DATE('2026-05-13', 'YYYY-MM-DD')"),
+        (
+            "TIMESTAMP",
+            "TO_TIMESTAMP('2026-05-13 00:00:00.000000', 'YYYY-MM-DD HH24:MI:SS.US')",
+        ),
+    ],
+)
+def test_temporal_epoch_string_filter_is_coerced_for_postgres(
+    target_type: str,
+    expected: str,
+) -> None:
+    from superset.db_engine_specs.postgres import PostgresEngineSpec
+    from superset.models.helpers import ExploreMixin
+
+    value = ExploreMixin.filter_values_handler(
+        values="1778630400000",
+        operator=FilterOperator.EQUALS,
+        target_generic_type=GenericDataType.TEMPORAL,
+        target_native_type=target_type,
+        db_engine_spec=PostgresEngineSpec,
+    )
+
+    assert isinstance(value, ColumnElement)
+    assert str(value) == expected
+
+
+def test_temporal_epoch_string_filter_list_is_coerced_for_postgres() -> None:
+    from superset.db_engine_specs.postgres import PostgresEngineSpec
+    from superset.models.helpers import ExploreMixin
+
+    values = ExploreMixin.filter_values_handler(
+        values=["1777248000000"],
+        operator=FilterOperator.IN,
+        target_generic_type=GenericDataType.TEMPORAL,
+        target_native_type="DATE",
+        is_list_target=True,
+        db_engine_spec=PostgresEngineSpec,
+    )
+
+    assert isinstance(values, list)
+    assert len(values) == 1
+    assert isinstance(values[0], ColumnElement)
+    assert str(values[0]) == "TO_DATE('2026-04-27', 'YYYY-MM-DD')"
+
+
+def test_non_temporal_numeric_string_filter_is_not_coerced() -> None:
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+    from superset.models.helpers import ExploreMixin
+
+    value = ExploreMixin.filter_values_handler(
+        values="1778630400000",
+        operator=FilterOperator.EQUALS,
+        target_generic_type=GenericDataType.STRING,
+        target_native_type="DATE",
+        db_engine_spec=BigQueryEngineSpec,
+    )
+
+    assert value == "1778630400000"
+
+
+def test_temporal_range_filter_value_is_not_coerced() -> None:
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+    from superset.models.helpers import ExploreMixin
+
+    value = ExploreMixin.filter_values_handler(
+        values="No filter",
+        operator=FilterOperator.TEMPORAL_RANGE,
+        target_generic_type=GenericDataType.TEMPORAL,
+        target_native_type="DATE",
+        db_engine_spec=BigQueryEngineSpec,
+    )
+
+    assert value == "No filter"
+
+
+@pytest.mark.parametrize(
+    "target_type,expected",
+    [
+        (
+            "DATETIME",
+            "CAST('2026-05-13T14:30:00.123000' AS DATETIME)",
+        ),
+        (
+            "TIMESTAMP",
+            "CAST('2026-05-13T14:30:00.123000' AS TIMESTAMP)",
+        ),
+    ],
+)
+def test_temporal_epoch_string_filter_is_coerced_for_datetime_bigquery(
+    target_type: str,
+    expected: str,
+) -> None:
+    """Sub-second epoch precision survives DATETIME / TIMESTAMP coercion."""
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+    from superset.models.helpers import ExploreMixin
+
+    value = ExploreMixin.filter_values_handler(
+        values="1778682600123",
+        operator=FilterOperator.EQUALS,
+        target_generic_type=GenericDataType.TEMPORAL,
+        target_native_type=target_type,
+        db_engine_spec=BigQueryEngineSpec,
+    )
+
+    assert isinstance(value, ColumnElement)
+    assert str(value) == expected
+
+
+def test_temporal_non_numeric_string_filter_is_not_coerced() -> None:
+    """Non-integer temporal strings pass through without epoch coercion."""
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+    from superset.models.helpers import ExploreMixin
+
+    value = ExploreMixin.filter_values_handler(
+        values="2025-12-20",
+        operator=FilterOperator.EQUALS,
+        target_generic_type=GenericDataType.TEMPORAL,
+        target_native_type="DATE",
+        db_engine_spec=BigQueryEngineSpec,
+    )
+
+    assert value == "2025-12-20"
+
+
+def test_simple_metric_quotes_column_requiring_quoting(database: Database) -> None:
+    """
+    Regression for #30637: a SIMPLE adhoc metric that aggregates a column whose
+    name requires identifier quoting (e.g. it contains a space) must render the
+    column with the dialect's quote characters, otherwise the emitted SQL is
+    invalid for dialects that need quoting.
+
+    This exercises the metric compilation path named in the issue
+    (``adhoc_metric_to_sqla`` -> ``TableColumn.get_sqla_col`` -> ``column()``),
+    asserting the identifier is quoted rather than emitted bare.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    column_name = "Amount HT"
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="test_table",
+        columns=[TableColumn(column_name=column_name, type="INTEGER")],
+    )
+    columns_by_name = {col.column_name: col for col in table.columns}
+
+    metric: AdhocMetric = {
+        "expressionType": "SIMPLE",
+        "aggregate": "SUM",
+        "column": {"column_name": column_name},
+        "label": "total",
+    }
+
+    sqla_metric = table.adhoc_metric_to_sqla(metric, columns_by_name)
+
+    with database.get_sqla_engine() as engine:
+        dialect = engine.dialect
+
+    rendered = str(
+        sqla_metric.compile(dialect=dialect, compile_kwargs={"literal_binds": True})
+    )
+
+    # The spaced identifier must be quoted (double quotes for the SQLite/ANSI
+    # dialect used here) and must never appear bare.
+    assert f'"{column_name}"' in rendered, (
+        f"Expected quoted identifier in rendered metric SQL, got: {rendered}"
+    )
+    assert f"SUM({column_name})" not in rendered, (
+        f"Column requiring quoting was emitted unquoted: {rendered}"
+    )
+
+
+@pytest.mark.parametrize(
+    "native_type",
+    [
+        "UUID",
+        "uuid",
+        "Nullable(UUID)",
+        "uniqueidentifier",
+        "LowCardinality(UUID)",
+        "LowCardinality(Nullable(UUID))",
+    ],
+)
+@pytest.mark.parametrize(
+    "op",
+    ["LIKE", "ILIKE", "NOT LIKE", "NOT ILIKE"],
+)
+def test_like_filter_on_uuid_column_casts_to_string(
+    database: Database, native_type: str, op: str
+) -> None:
+    """
+    LIKE-family filters on native UUID columns must cast the column to string.
+
+    UUID columns map to ``GenericDataType.STRING``, so the generic-type guard
+    alone skips the string cast — but engines such as PostgreSQL and ClickHouse
+    reject LIKE/ILIKE against a raw UUID column (issue #41795: table chart
+    server-pagination search fails with e.g. "Illegal type UUID of argument of
+    function ilike"). The native column type must force the cast.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[TableColumn(column_name="event_id", type=native_type)],
+    )
+
+    result = table.get_sqla_query(
+        columns=["event_id"],
+        metrics=[],
+        extras={},
+        filter=[{"col": "event_id", "op": op, "val": "abc%"}],
+        granularity=None,
+        is_timeseries=False,
+        orderby=[],
+    )
+    whereclause: ColumnElement = result.sqla_query.whereclause
+    assert any(isinstance(node, Cast) for node in iterate(whereclause)), (
+        f"Expected a Cast node in the filter expression: {whereclause}"
+    )
+
+
+def test_like_filter_on_string_column_does_not_cast(database: Database) -> None:
+    """
+    LIKE-family filters on plain string columns must not add a redundant cast.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[TableColumn(column_name="b", type="TEXT")],
+    )
+
+    result = table.get_sqla_query(
+        columns=["b"],
+        metrics=[],
+        extras={},
+        filter=[{"col": "b", "op": "ILIKE", "val": "abc%"}],
+        granularity=None,
+        is_timeseries=False,
+        orderby=[],
+    )
+    whereclause: ColumnElement = result.sqla_query.whereclause
+    assert not any(isinstance(node, Cast) for node in iterate(whereclause)), (
+        f"Unexpected Cast node in the filter expression: {whereclause}"
+    )
+
+
+def test_get_sqla_query_calculated_column_inlined_in_raw_records(
+    database: Database,
+) -> None:
+    """Regression test for #34784: a calculated column selected as an adhoc
+    column in a raw-records query (no groupby/metrics) must have its stored
+    SQL expression inlined, not emitted as a bare column reference."""
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.models.helpers import SqlaQuery
+
+    table: SqlaTable = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(column_name="a", type="INTEGER"),
+            TableColumn(column_name="b", type="TEXT"),
+            TableColumn(
+                column_name="name_test",
+                type="TEXT",
+                expression="CASE WHEN a > 0 THEN 'positive' ELSE 'non-positive' END",
+            ),
+        ],
+    )
+
+    # No metrics/groupby => the ``elif columns:`` branch runs.
+    adhoc_col: AdhocColumn = {
+        "sqlExpression": "name_test",
+        "label": "name_test",
+        "isColumnReference": True,
+    }
+    sqlaq: SqlaQuery = table.get_sqla_query(
+        columns=[adhoc_col],
+        is_timeseries=False,
+        row_limit=10,
+    )
+
+    with database.get_sqla_engine() as engine:
+        sql: str = str(
+            sqlaq.sqla_query.compile(
+                dialect=engine.dialect,
+                compile_kwargs={"literal_binds": True},
+            )
+        )
+
+    # The stored expression must be inlined rather than emitted as a bare
+    # ``name_test`` reference.
+    assert "CASE WHEN a > 0" in sql
+    assert "'positive'" in sql
+    assert "'non-positive'" in sql
+
+
+def test_values_for_column_uses_read_limit_retry(
+    mocker: MockerFixture,
+    database: Database,
+) -> None:
+    """
+    Physical-table datasets run filter-value SQL through the database
+    read-limit retry so engines like ClickHouse can bound the read when the
+    engine rejects it.
+    """
+    import pandas as pd
+
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[TableColumn(column_name="a")],
+    )
+
+    retry = mocker.patch.object(
+        database,
+        "run_with_sampling_read_limit_retry",
+        side_effect=lambda sql, run: run(sql),
+    )
+    with patch(
+        "pandas.read_sql_query",
+        return_value=pd.DataFrame({"column_values": [1]}),
+    ):
+        table.values_for_column("a")
+
+    retry.assert_called_once()
+
+
+def test_values_for_column_virtual_dataset_skips_read_limit_retry(
+    mocker: MockerFixture,
+    database: Database,
+) -> None:
+    """
+    Virtual datasets embed user-authored SQL and must stay governed by
+    operator read limits.
+    """
+    import pandas as pd
+
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="virtual_t",
+        sql="SELECT a FROM t",
+        columns=[TableColumn(column_name="a")],
+    )
+
+    retry = mocker.patch.object(
+        database,
+        "run_with_sampling_read_limit_retry",
+        side_effect=lambda sql, run: run(sql),
+    )
+    with patch(
+        "pandas.read_sql_query",
+        return_value=pd.DataFrame({"column_values": [1]}),
+    ):
+        table.values_for_column("a")
+
+    retry.assert_not_called()
+
+
+def test_get_query_str_extended_does_not_alter_system_sampling_sql(
+    database: Database,
+) -> None:
+    """
+    The bounded-read override is a retry-time concern; the generated (and
+    user-visible) statement for a samples request must stay unmodified.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[TableColumn(column_name="a")],
+    )
+
+    query_str_ext = table.get_query_str_extended(
+        {
+            "columns": ["a"],
+            "extras": {"system_sampling": True},
+            "is_timeseries": False,
+            "row_limit": 10,
+        }
+    )
+    assert "SETTINGS" not in query_str_ext.sql
+
+
+def test_query_system_sampling_uses_read_limit_retry(
+    mocker: MockerFixture,
+    database: Database,
+) -> None:
+    """
+    The system_sampling extras marker (set by the samples query action)
+    routes execution through the read-limit retry; ordinary chart queries
+    are untouched.
+    """
+    import pandas as pd
+
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[TableColumn(column_name="a")],
+    )
+    retry = mocker.patch.object(
+        database,
+        "run_with_sampling_read_limit_retry",
+        side_effect=lambda sql, run: run(sql),
+    )
+    mocker.patch.object(database, "get_df", return_value=pd.DataFrame({"a": [1]}))
+
+    table.query(
+        {
+            "columns": ["a"],
+            "extras": {"system_sampling": True},
+            "is_timeseries": False,
+            "row_limit": 10,
+        }
+    )
+    retry.assert_called_once()
+
+    retry.reset_mock()
+    table.query({"columns": ["a"], "is_timeseries": False, "row_limit": 10})
+    retry.assert_not_called()
+
+
+def test_query_system_sampling_skips_virtual_dataset(
+    mocker: MockerFixture,
+    database: Database,
+) -> None:
+    """
+    Even sample requests do not receive the retry on virtual datasets.
+    """
+    import pandas as pd
+
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="virtual_t",
+        sql="SELECT a FROM t",
+        columns=[TableColumn(column_name="a")],
+    )
+    retry = mocker.patch.object(
+        database,
+        "run_with_sampling_read_limit_retry",
+        side_effect=lambda sql, run: run(sql),
+    )
+    mocker.patch.object(database, "get_df", return_value=pd.DataFrame({"a": [1]}))
+
+    table.query(
+        {
+            "columns": ["a"],
+            "extras": {"system_sampling": True},
+            "is_timeseries": False,
+            "row_limit": 10,
+        }
+    )
+    retry.assert_not_called()
+
+
+def test_select_star_returns_unmodified_sql(
+    mocker: MockerFixture,
+    database: Database,
+) -> None:
+    """
+    select_star output is displayed in SQL Lab, returned by the API, and
+    persisted as CTAS result-fetch SQL, so it must never carry the
+    bounded-read override.
+    """
+    from superset.sql.parse import Table
+
+    retry_sql = mocker.patch.object(database, "sampling_read_limit_retry_sql")
+    sql = database.select_star(Table("t"), limit=10, latest_partition=False)
+
+    retry_sql.assert_not_called()
+    assert "SETTINGS" not in sql
+
+
+def test_adhoc_type_probe_does_not_get_sampling_retry(
+    mocker: MockerFixture,
+    database: Database,
+) -> None:
+    """
+    The adhoc expression type probe is a zero-row WHERE FALSE query and must
+    never be routed through the sampling read-limit retry.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[TableColumn(column_name="a", type="INTEGER")],
+    )
+    retry = mocker.patch.object(
+        database,
+        "run_with_sampling_read_limit_retry",
+        side_effect=lambda sql, run: run(sql),
+    )
+    mocker.patch(
+        "superset.connectors.sqla.models.get_columns_description",
+        return_value=[{"is_dttm": False, "type_generic": GenericDataType.NUMERIC}],
+    )
+
+    adhoc_col: AdhocColumn = {
+        "sqlExpression": "a + 1",
+        "label": "probe_me",
+        "columnType": "BASE_AXIS",
+        "timeGrain": "P1D",
+    }
+    table.adhoc_column_to_sqla(adhoc_col)
+
+    retry.assert_not_called()

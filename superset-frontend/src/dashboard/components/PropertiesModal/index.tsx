@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { omit } from 'lodash';
+import { omit } from 'lodash-es';
 import jsonStringify from 'json-stringify-pretty-compact';
 import {
   Form,
@@ -39,9 +39,11 @@ import {
 
 import withToasts from 'src/components/MessageToasts/withToasts';
 import {
-  OWNER_TEXT_LABEL_PROP,
-  OWNER_EMAIL_PROP,
-} from 'src/features/owners/OwnerSelectLabel';
+  mapPickerValuesToSubjects,
+  mapSubjectValuesToIds,
+  type SubjectPickerValue,
+} from 'src/features/subjects/SubjectPicker';
+import Subject from 'src/types/Subject';
 import { fetchTags, OBJECT_TYPES } from 'src/features/tags/tags';
 import {
   applyColors,
@@ -77,16 +79,17 @@ type PropertiesModalProps = {
   addSuccessToast: (message: string) => void;
   addDangerToast: (message: string) => void;
   onlyApply?: boolean;
+  renderExtraFields?: (context: {
+    assetId: number;
+    assetType: 'dashboard';
+    accessorCount: number;
+  }) => {
+    content: React.ReactNode;
+    saveDisabled?: boolean;
+    saveTooltip?: string;
+  };
 };
 
-type Roles = { id: number; name: string }[];
-type Owners = {
-  id: number;
-  full_name?: string;
-  first_name?: string;
-  last_name?: string;
-  email?: string;
-}[];
 type DashboardInfo = {
   id: number;
   title: string;
@@ -113,6 +116,7 @@ const PropertiesModal = ({
   onlyApply = false,
   onSubmit = () => {},
   show = false,
+  renderExtraFields,
 }: PropertiesModalProps) => {
   const dispatch = useDispatch();
   const [form] = Form.useForm();
@@ -127,8 +131,19 @@ const PropertiesModal = ({
   const jsonAnnotations = useJsonValidation(jsonMetadata, {
     errorPrefix: 'Invalid JSON metadata',
   });
-  const [owners, setOwners] = useState<Owners>([]);
-  const [roles, setRoles] = useState<Roles>([]);
+  const [editors, setEditors] = useState<Subject[]>([]);
+  const [viewers, setViewers] = useState<Subject[]>([]);
+
+  const extraFields = useMemo(
+    () =>
+      renderExtraFields?.({
+        assetId: dashboardId,
+        assetType: 'dashboard',
+        accessorCount: editors.length + viewers.length,
+      }),
+    [renderExtraFields, dashboardId, editors.length, viewers.length],
+  );
+
   const saveLabel = onlyApply ? t('Apply') : t('Save');
   const [tags, setTags] = useState<TagType[]>([]);
   const [customCss, setCustomCss] = useState('');
@@ -168,23 +183,25 @@ const PropertiesModal = ({
   };
 
   const handleDashboardData = useCallback(
-    dashboardData => {
+    (dashboardData: Record<string, any>) => {
       const {
         id,
         dashboard_title,
         slug,
         certified_by,
         certification_details,
-        owners,
-        roles,
+        editors,
+        viewers,
         metadata,
         is_managed_externally,
         theme,
         css,
+        description,
       } = dashboardData;
       const dashboardInfo = {
         id,
         title: dashboard_title,
+        description: description || '',
         slug: slug || '',
         certifiedBy: certified_by || '',
         certificationDetails: certification_details || '',
@@ -195,8 +212,8 @@ const PropertiesModal = ({
 
       form.setFieldsValue(dashboardInfo);
       setDashboardInfo(dashboardInfo);
-      setOwners(owners);
-      setRoles(roles);
+      setEditors(editors || []);
+      setViewers(viewers || []);
       setCustomCss(css || '');
       if (originalCss.current === null) {
         originalCss.current = css || '';
@@ -242,37 +259,25 @@ const PropertiesModal = ({
     }, handleErrorResponse);
   }, [dashboardId, handleDashboardData]);
 
-  const getJsonMetadata = () => {
+  // Returns undefined (rather than {}) when the editor holds invalid JSON,
+  // so callers can distinguish "empty/no metadata yet" from "user is
+  // mid-edit with unparsable text" and avoid clobbering the latter.
+  const parseJsonMetadata = () => {
     try {
-      const jsonMetadataObj = jsonMetadata?.length
-        ? JSON.parse(jsonMetadata)
-        : {};
-      return jsonMetadataObj;
+      return jsonMetadata?.length ? JSON.parse(jsonMetadata) : {};
     } catch (_) {
-      return {};
+      return undefined;
     }
   };
 
-  const handleOnChangeOwners = (
-    owners: { value: number; label: string }[],
-    options: Record<string, unknown>[],
-  ) => {
-    const parsedOwners: Owners = ensureIsArray(owners).map((o, i) => ({
-      id: o.value,
-      full_name:
-        (options?.[i]?.[OWNER_TEXT_LABEL_PROP] as string) ||
-        (typeof o.label === 'string' ? o.label : ''),
-      email: (options?.[i]?.[OWNER_EMAIL_PROP] as string) || '',
-    }));
-    setOwners(parsedOwners);
+  const getJsonMetadata = () => parseJsonMetadata() ?? {};
+
+  const handleOnChangeEditors = (values: SubjectPickerValue[]) => {
+    setEditors(mapPickerValuesToSubjects(values));
   };
 
-  const handleOnChangeRoles = (roles: { value: number; label: string }[]) => {
-    const parsedRoles: Roles = ensureIsArray(roles).map(r => ({
-      id: r.value,
-      name: r.label,
-    }));
-    setRoles(parsedRoles);
+  const handleOnChangeViewers = (values: SubjectPickerValue[]) => {
+    setViewers(mapPickerValuesToSubjects(values));
   };
 
   const handleOnCancel = () => {
@@ -317,8 +322,13 @@ const PropertiesModal = ({
   };
 
   const onFinish = () => {
-    const { title, slug, certifiedBy, certificationDetails } =
-      form.getFieldsValue();
+    const {
+      title,
+      description = '',
+      slug,
+      certifiedBy,
+      certificationDetails,
+    } = form.getFieldsValue(true);
     let currentJsonMetadata = jsonMetadata;
 
     // validate currentJsonMetadata
@@ -356,7 +366,12 @@ const PropertiesModal = ({
         ? resettableCustomLabels
         : false;
     const jsonMetadataObj = getJsonMetadata();
-    jsonMetadataObj.refresh_frequency = refreshFrequency;
+    // A refresh_frequency edited directly in the Advanced JSON editor takes
+    // precedence over the Refresh dropdown state, mirroring how color_scheme is
+    // handled above. Nullish coalescing preserves an explicit 0 ("Don't
+    // refresh") rather than falling through to the dropdown value (#42116).
+    jsonMetadataObj.refresh_frequency =
+      jsonMetadataObj.refresh_frequency ?? refreshFrequency;
     jsonMetadataObj.show_chart_timestamps = Boolean(showChartTimestamps);
     const customLabelColors = jsonMetadataObj.label_colors || {};
     const updatedDashboardMetadata = {
@@ -381,14 +396,17 @@ const PropertiesModal = ({
 
     currentJsonMetadata = jsonStringify(jsonMetadataObj);
 
-    const moreOnSubmitProps: { roles?: Roles; tags?: TagType[] } = {};
-    const morePutProps: {
-      roles?: number[];
-      tags?: (string | number | undefined)[];
+    const moreOnSubmitProps: {
+      tags?: TagType[];
+      viewers?: Subject[];
     } = {};
-    if (isFeatureEnabled(FeatureFlag.DashboardRbac)) {
-      moreOnSubmitProps.roles = roles;
-      morePutProps.roles = (roles || []).map(r => r.id);
+    const morePutProps: {
+      tags?: (string | number | undefined)[];
+      viewers?: number[];
+    } = {};
+    if (isFeatureEnabled(FeatureFlag.EnableViewers)) {
+      moreOnSubmitProps.viewers = viewers;
+      morePutProps.viewers = mapSubjectValuesToIds(viewers || []);
     }
     if (isFeatureEnabled(FeatureFlag.TaggingSystem)) {
       moreOnSubmitProps.tags = tags;
@@ -397,9 +415,10 @@ const PropertiesModal = ({
     const onSubmitProps = {
       id: dashboardId,
       title,
+      description,
       slug,
       jsonMetadata: currentJsonMetadata,
-      owners,
+      editors,
       colorScheme: currentColorScheme,
       colorNamespace,
       certifiedBy,
@@ -424,9 +443,10 @@ const PropertiesModal = ({
     } else {
       const saveData = {
         dashboard_title: title,
+        description: description || null,
         slug: slug || null,
         json_metadata: currentJsonMetadata || null,
-        owners: (owners || []).map(o => o.id),
+        editors: mapSubjectValuesToIds(editors || []),
         certified_by: certifiedBy || null,
         certification_details:
           certifiedBy && certificationDetails ? certificationDetails : null,
@@ -545,8 +565,19 @@ const PropertiesModal = ({
 
   // Section handlers for extracted components
   const handleThemeChange = (value: any) => setSelectedThemeId(value || null);
-  const handleRefreshFrequencyChange = (value: number) =>
+  const handleRefreshFrequencyChange = (value: number) => {
     setRefreshFrequency(value);
+    // Keep the Advanced JSON editor in sync with the dropdown so the two
+    // sources can't diverge, mirroring onColorSchemeChange (#42116). Skip
+    // this while the editor holds invalid/in-progress JSON so we don't
+    // clobber the user's unfinished edit with a one-field object.
+    const jsonMetadataObj = parseJsonMetadata();
+    if (!jsonMetadataObj) {
+      return;
+    }
+    jsonMetadataObj.refresh_frequency = value;
+    setJsonMetadata(jsonStringify(jsonMetadataObj));
+  };
 
   // Helper function for styling section
   const hasCustomLabelsColor = !!Object.keys(
@@ -573,7 +604,7 @@ const PropertiesModal = ({
       },
       {
         key: 'access',
-        name: t('Access & ownership'),
+        name: t('Access'),
         validator: () => [],
       },
       {
@@ -588,7 +619,15 @@ const PropertiesModal = ({
           const refreshLimit =
             dashboardInfo?.common?.conf
               ?.SUPERSET_DASHBOARD_PERIODICAL_REFRESH_LIMIT;
-          return validateRefreshFrequency(refreshFrequency, refreshLimit);
+          // A refresh_frequency edited directly in the Advanced JSON editor
+          // takes precedence over the dropdown when saving (see onFinish),
+          // so validate that effective value rather than the dropdown state.
+          const effectiveRefreshFrequency =
+            getJsonMetadata()?.refresh_frequency ?? refreshFrequency;
+          return validateRefreshFrequency(
+            effectiveRefreshFrequency,
+            refreshLimit,
+          );
         },
       },
       {
@@ -680,15 +719,21 @@ const PropertiesModal = ({
       }}
       title={t('Dashboard properties')}
       isEditMode
-      saveDisabled={dashboardInfo?.isManagedExternally || hasErrors}
+      saveDisabled={
+        dashboardInfo?.isManagedExternally ||
+        hasErrors ||
+        extraFields?.saveDisabled
+      }
       saveLoading={isApplying}
       contentLoading={isLoading}
       errorTooltip={
-        dashboardInfo?.isManagedExternally
-          ? t(
-              "This dashboard is managed externally, and can't be edited in Superset",
-            )
-          : errorTooltip
+        extraFields?.saveDisabled && extraFields?.saveTooltip
+          ? extraFields.saveTooltip
+          : dashboardInfo?.isManagedExternally
+            ? t(
+                "This dashboard is managed externally, and can't be edited in Superset",
+              )
+            : errorTooltip
       }
       saveText={saveLabel}
       wrapProps={{ 'data-test': 'properties-edit-modal' }}
@@ -733,8 +778,10 @@ const PropertiesModal = ({
               key: 'access',
               label: (
                 <CollapseLabelInModal
-                  title={t('Access & ownership')}
-                  subtitle={t('Manage dashboard owners and access permissions')}
+                  title={t('Access')}
+                  subtitle={t(
+                    'Manage dashboard editors and access permissions',
+                  )}
                   validateCheckStatus={!validationStatus.access?.hasErrors}
                   testId="access-section"
                 />
@@ -742,13 +789,14 @@ const PropertiesModal = ({
               children: (
                 <AccessSection
                   isLoading={isLoading}
-                  owners={owners}
-                  roles={roles}
                   tags={tags}
-                  onChangeOwners={handleOnChangeOwners}
-                  onChangeRoles={handleOnChangeRoles}
+                  editors={editors}
+                  viewers={viewers}
+                  onChangeEditors={handleOnChangeEditors}
+                  onChangeViewers={handleOnChangeViewers}
                   onChangeTags={handleChangeTags}
                   onClearTags={handleClearTags}
+                  renderExtraFields={extraFields}
                 />
               ),
             },

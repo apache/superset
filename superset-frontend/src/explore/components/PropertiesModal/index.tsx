@@ -16,14 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChangeEvent, useMemo, useState, useCallback, useEffect } from 'react';
+import {
+  type ReactNode,
+  ChangeEvent,
+  useMemo,
+  useState,
+  useCallback,
+  useEffect,
+} from 'react';
 
 import {
   Input,
   AsyncSelect,
   Collapse,
   CollapseLabelInModal,
-  type SelectValue,
 } from '@superset-ui/core/components';
 import rison from 'rison';
 import { t } from '@apache-superset/core/translation';
@@ -37,12 +43,6 @@ import {
 import Chart, { Slice } from 'src/types/Chart';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { type TagType } from 'src/components';
-import {
-  OwnerSelectLabel,
-  OWNER_TEXT_LABEL_PROP,
-  OWNER_EMAIL_PROP,
-  OWNER_OPTION_FILTER_PROPS,
-} from 'src/features/owners/OwnerSelectLabel';
 import { TagTypeEnum } from 'src/components/Tag/TagType';
 import { loadTags } from 'src/components/Tag/utils';
 import {
@@ -50,6 +50,10 @@ import {
   ModalFormField,
   useModalValidation,
 } from 'src/components/Modal';
+import SubjectPicker, {
+  mapSubjectsToPickerValues,
+  type SubjectPickerValue,
+} from 'src/features/subjects/SubjectPicker';
 
 export type PropertiesModalProps = {
   slice: Slice;
@@ -57,9 +61,14 @@ export type PropertiesModalProps = {
   onHide: () => void;
   onSave: (chart: Chart) => void;
   permissionsError?: string;
-  existingOwners?: SelectValue;
   addSuccessToast: (msg: string) => void;
   addDangerToast: (msg: string) => void;
+  /** Optional render prop for injecting extra fields (e.g. folder selector). */
+  renderExtraFields?: (context: {
+    assetId: number;
+    assetType: 'chart';
+    accessorCount: number;
+  }) => { content: ReactNode; saveDisabled?: boolean; saveTooltip?: string };
 };
 
 function PropertiesModal({
@@ -69,6 +78,7 @@ function PropertiesModal({
   show,
   addSuccessToast,
   addDangerToast,
+  renderExtraFields,
 }: PropertiesModalProps) {
   const [submitting, setSubmitting] = useState(false);
   // values of form inputs
@@ -83,10 +93,32 @@ function PropertiesModal({
       ? slice.certification_details
       : '',
   );
-  const [selectedOwners, setSelectedOwners] = useState<SelectValue | null>(
-    null,
-  );
+  const [selectedEditors, setSelectedEditors] = useState<
+    SubjectPickerValue[] | null
+  >(null);
+  const [selectedViewers, setSelectedViewers] = useState<
+    SubjectPickerValue[] | null
+  >(null);
   const [tags, setTags] = useState<TagType[]>([]);
+
+  const chartId = slice.slice_id;
+  const extraFields = useMemo(
+    () =>
+      chartId
+        ? renderExtraFields?.({
+            assetId: chartId,
+            assetType: 'chart',
+            accessorCount:
+              (selectedEditors?.length ?? 0) + (selectedViewers?.length ?? 0),
+          })
+        : undefined,
+    [
+      chartId,
+      renderExtraFields,
+      selectedEditors?.length,
+      selectedViewers?.length,
+    ],
+  );
 
   // Validation setup
   const modalSections = useMemo(
@@ -154,48 +186,40 @@ function PropertiesModal({
 
   const fetchChartProperties = useCallback(
     async function fetchChartProperties() {
+      const selectColumns = [
+        'tags.id',
+        'tags.name',
+        'tags.type',
+        'editors.id',
+        'editors.label',
+        'editors.secondary_label',
+        'editors.type',
+        ...(isFeatureEnabled(FeatureFlag.EnableViewers)
+          ? [
+              'viewers.id',
+              'viewers.label',
+              'viewers.secondary_label',
+              'viewers.type',
+            ]
+          : []),
+      ];
       const queryParams = rison.encode({
-        select_columns: [
-          'owners.id',
-          'owners.first_name',
-          'owners.last_name',
-          'owners.email',
-          'tags.id',
-          'tags.name',
-          'tags.type',
-        ],
+        select_columns: selectColumns,
       });
       try {
         const response = await SupersetClient.get({
           endpoint: `/api/v1/chart/${slice.slice_id}?q=${queryParams}`,
         });
         const chart = response.json.result;
-        setSelectedOwners(
-          chart?.owners?.map(
-            (owner: {
-              id: number;
-              first_name: string;
-              last_name: string;
-              email?: string;
-            }) => {
-              const ownerName = `${owner.first_name} ${owner.last_name}`;
-              return {
-                value: owner.id,
-                label: OwnerSelectLabel({
-                  name: ownerName,
-                  email: owner.email,
-                }),
-                [OWNER_TEXT_LABEL_PROP]: ownerName,
-                [OWNER_EMAIL_PROP]: owner.email ?? '',
-              };
-            },
-          ),
-        );
         if (isFeatureEnabled(FeatureFlag.TaggingSystem)) {
           const customTags = chart.tags?.filter(
             (tag: TagType) => tag.type === TagTypeEnum.Custom,
           );
           setTags(customTags);
+        }
+        setSelectedEditors(mapSubjectsToPickerValues(chart?.editors ?? []));
+        if (isFeatureEnabled(FeatureFlag.EnableViewers)) {
+          setSelectedViewers(mapSubjectsToPickerValues(chart?.viewers ?? []));
         }
       } catch (response) {
         const clientError = await getClientErrorObject(response);
@@ -203,40 +227,6 @@ function PropertiesModal({
       }
     },
     [showError, slice.slice_id],
-  );
-
-  const loadOptions = useMemo(
-    () =>
-      (input = '', page: number, pageSize: number) => {
-        const query = rison.encode({
-          filter: input,
-          page,
-          page_size: pageSize,
-        });
-        return SupersetClient.get({
-          endpoint: `/api/v1/chart/related/owners?q=${query}`,
-        }).then(response => ({
-          data: response.json.result
-            .filter((item: { extra: { active: boolean } }) => item.extra.active)
-            .map(
-              (item: {
-                value: number;
-                text: string;
-                extra: { email?: string };
-              }) => ({
-                value: item.value,
-                label: OwnerSelectLabel({
-                  name: item.text,
-                  email: item.extra?.email,
-                }),
-                [OWNER_TEXT_LABEL_PROP]: item.text,
-                [OWNER_EMAIL_PROP]: item.extra?.email ?? '',
-              }),
-            ),
-          totalCount: response.json.count,
-        }));
-      },
-    [],
   );
 
   const onSubmit = async () => {
@@ -254,16 +244,14 @@ function PropertiesModal({
       certification_details:
         certifiedBy && certificationDetails ? certificationDetails : null,
     };
-    if (selectedOwners) {
-      payload.owners = (
-        selectedOwners as {
-          value: number;
-          label: string;
-        }[]
-      ).map(o => o.value);
-    }
     if (isFeatureEnabled(FeatureFlag.TaggingSystem)) {
       payload.tags = tags.map(tag => tag.id);
+    }
+    if (selectedEditors) {
+      payload.editors = selectedEditors.map(e => e.value);
+    }
+    if (selectedViewers) {
+      payload.viewers = selectedViewers.map(v => v.value);
     }
 
     try {
@@ -286,9 +274,7 @@ function PropertiesModal({
     setSubmitting(false);
   };
 
-  const ownersLabel = t('Owners');
-
-  // get the owners of this slice
+  // get the editors of this slice
   useEffect(() => {
     fetchChartProperties();
   }, [slice.slice_id]);
@@ -328,14 +314,20 @@ function PropertiesModal({
       title={t('Chart properties')}
       isEditMode
       saveDisabled={
-        submitting || !name || slice.is_managed_externally || hasErrors
+        submitting ||
+        !name ||
+        slice.is_managed_externally ||
+        hasErrors ||
+        extraFields?.saveDisabled
       }
       errorTooltip={
-        slice.is_managed_externally
-          ? t(
-              "This chart is managed externally, and can't be edited in Superset",
-            )
-          : errorTooltip
+        extraFields?.saveDisabled && extraFields?.saveTooltip
+          ? extraFields.saveTooltip
+          : slice.is_managed_externally
+            ? t(
+                "This chart is managed externally, and can't be edited in Superset",
+              )
+            : errorTooltip
       }
       wrapProps={{ 'data-test': 'properties-edit-modal' }}
     >
@@ -390,31 +382,12 @@ function PropertiesModal({
                     }
                   />
                 </ModalFormField>
-                <ModalFormField
-                  label={t('Owners')}
-                  helperText={t(
-                    'A list of users who can alter the chart. Searchable by name or username.',
-                  )}
-                >
-                  <AsyncSelect
-                    ariaLabel={ownersLabel}
-                    mode="multiple"
-                    name="owners"
-                    value={selectedOwners || []}
-                    onChange={setSelectedOwners}
-                    options={loadOptions}
-                    disabled={!selectedOwners}
-                    allowClear
-                    optionFilterProps={OWNER_OPTION_FILTER_PROPS}
-                  />
-                </ModalFormField>
                 {isFeatureEnabled(FeatureFlag.TaggingSystem) && (
                   <ModalFormField
                     label={t('Tags')}
                     helperText={t(
                       'A list of tags that have been applied to this chart.',
                     )}
-                    bottomSpacing={false}
                   >
                     <AsyncSelect
                       ariaLabel="Tags"
@@ -427,6 +400,41 @@ function PropertiesModal({
                     />
                   </ModalFormField>
                 )}
+                <ModalFormField
+                  label={t('Editors')}
+                  helperText={t(
+                    'A list of subjects who can alter the chart. Searchable by name.',
+                  )}
+                  bottomSpacing={!isFeatureEnabled(FeatureFlag.EnableViewers)}
+                >
+                  <SubjectPicker
+                    relatedUrl="/api/v1/chart/related/editors"
+                    ariaLabel={t('Editors')}
+                    value={selectedEditors || []}
+                    onChange={setSelectedEditors}
+                    disabled={!selectedEditors}
+                    allowClear
+                  />
+                </ModalFormField>
+                {isFeatureEnabled(FeatureFlag.EnableViewers) && (
+                  <ModalFormField
+                    label={t('Viewers')}
+                    helperText={t(
+                      'A list of subjects who can view the chart. Searchable by name.',
+                    )}
+                    bottomSpacing={false}
+                  >
+                    <SubjectPicker
+                      relatedUrl="/api/v1/chart/related/viewers"
+                      ariaLabel={t('Viewers')}
+                      value={selectedViewers || []}
+                      onChange={setSelectedViewers}
+                      disabled={!selectedViewers}
+                      allowClear
+                    />
+                  </ModalFormField>
+                )}
+                {extraFields?.content}
               </>
             ),
           },

@@ -18,7 +18,7 @@
  */
 import { normalizeTimestamp, QueryState } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
-import { isEqual, omit } from 'lodash';
+import { isEqual, omit } from 'lodash-es';
 import { shallowEqual } from 'react-redux';
 import { now } from '@superset-ui/core/utils/dates';
 import type { SqlLabRootState, QueryEditor, Table } from '../types';
@@ -35,6 +35,27 @@ import {
 } from '../../reduxUtils';
 
 type SqlLabState = SqlLabRootState['sqlLab'];
+
+/**
+ * A database's `extra` column is free-form and frequently empty: it is nullable
+ * in the metadata database and the API returns it verbatim. `JSON.parse` cannot
+ * represent that, and `JSON.parse(extra || '')` is guaranteed to throw, since
+ * the empty string is never valid JSON — so a single database row with no
+ * `extra` took down the whole SET_DATABASES reducer and with it SQL Lab.
+ * Malformed JSON is treated the same way: one bad row must not cost the user
+ * every other database.
+ */
+function parseDatabaseExtra(extra: unknown): Record<string, unknown> {
+  if (typeof extra !== 'string' || extra.trim() === '') {
+    return {};
+  }
+  try {
+    const parsed = JSON.parse(extra);
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
+  }
+}
 
 function alterUnsavedQueryEditorState(
   state: SqlLabState,
@@ -604,8 +625,20 @@ export default function sqlLabReducer(
     },
     [actions.QUERY_EDITOR_SET_SQL]() {
       const { unsavedQueryEditor } = state;
+      const actionId = action.queryEditor!.id!;
+      // Skip the O(n) tabViewId scan on the common path (keystroke: actionId already
+      // matches the active editor's client-side id). Only scan when ids differ, which
+      // happens when restoring from history with a backend-assigned tabViewId.
+      const normalizedId =
+        unsavedQueryEditor?.id === actionId
+          ? actionId
+          : ((
+              getFromArr(state.queryEditors, actionId, 'tabViewId') as
+                | QueryEditor
+                | undefined
+            )?.id ?? actionId);
       if (
-        unsavedQueryEditor?.id === action.queryEditor!.id &&
+        unsavedQueryEditor?.id === normalizedId &&
         unsavedQueryEditor.sql === action.sql
       ) {
         return state;
@@ -618,7 +651,7 @@ export default function sqlLabReducer(
             sql: action.sql ?? undefined,
             ...(action.queryId && { latestQueryId: action.queryId }),
           },
-          action.queryEditor!.id!,
+          normalizedId,
         ),
       };
     },
@@ -704,7 +737,7 @@ export default function sqlLabReducer(
           {
             hideLeftBar: action.hideLeftBar,
           },
-          action.queryEditor!.id!,
+          action.queryEditorId!,
         ),
       };
     },
@@ -715,10 +748,16 @@ export default function sqlLabReducer(
       (action.databases as any[])!.forEach((db: any) => {
         databases[db.id] = {
           ...db,
-          extra_json: JSON.parse(db.extra || ''),
+          extra_json: parseDatabaseExtra(db.extra),
         };
       });
-      return { ...state, databases };
+      return {
+        ...state,
+        databases: {
+          ...state.databases,
+          ...databases,
+        },
+      };
     },
     [actions.REFRESH_QUERIES]() {
       let newQueries = { ...state.queries };
@@ -751,14 +790,15 @@ export default function sqlLabReducer(
               }),
               // race condition:
               // because of async behavior, sql lab may still poll a couple of seconds
-              // when it started fetching or finished rendering results
+              // after it started fetching or finished rendering results. Guard only
+              // against re-applying a redundant Success onto a state that's already at
+              // or past Success (Fetching/Success) — Running is strictly before
+              // Success, so an incoming Success there is new information, not a stale
+              // poll, and must be allowed through (otherwise an async query can never
+              // leave Running once observed there).
               state:
                 currentState === QueryState.Success &&
-                [
-                  QueryState.Fetching,
-                  QueryState.Success,
-                  QueryState.Running,
-                ].includes(prevState)
+                [QueryState.Fetching, QueryState.Success].includes(prevState)
                   ? prevState
                   : currentState,
             };

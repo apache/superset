@@ -22,6 +22,8 @@ import pytest
 
 import tests.integration_tests.test_app  # pylint: disable=unused-import  # noqa: F401
 from superset import db, security_manager
+from superset.subjects.models import Subject
+from superset.subjects.types import SubjectType
 from superset.utils import json
 from superset.daos.dashboard import DashboardDAO
 from superset.models.dashboard import Dashboard
@@ -72,9 +74,61 @@ class TestDashboardDAO(SupersetTestCase):
             db.session.commit()
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @patch("superset.utils.core.g")
+    @patch("superset.security.manager.g")
+    def test_set_dash_metadata_preserves_unsent_fields(self, mock_sm_g, mock_g):
+        """
+        set_dash_metadata must not reset metadata fields that are absent from the
+        incoming payload, such as a ``refresh_frequency`` edited directly in the
+        Advanced JSON editor (#42116). Fields that are present still override.
+        """
+        mock_g.user = mock_sm_g.user = security_manager.find_user("admin")
+        with self.client.application.test_request_context():
+            dashboard = (
+                db.session.query(Dashboard).filter_by(slug="world_health").first()
+            )
+            original_json_metadata = dashboard.json_metadata
+            try:
+                # Seed existing values in the stored metadata, including
+                # cross_filters_enabled=False -- its default is True, so this
+                # is the field that actually exercises this PR's change (the
+                # refresh_frequency preservation alone already landed in
+                # #42354).
+                metadata = json.loads(dashboard.json_metadata or "{}")
+                metadata["refresh_frequency"] = 60
+                metadata["cross_filters_enabled"] = False
+                dashboard.json_metadata = json.dumps(metadata)
+                db.session.commit()
+
+                # Payload omits refresh_frequency and cross_filters_enabled:
+                # both must be preserved, not reset to their defaults.
+                DashboardDAO.set_dash_metadata(
+                    dashboard, {"color_scheme": "d3Category10"}
+                )
+                db.session.commit()
+                saved = json.loads(dashboard.json_metadata)
+                assert saved["refresh_frequency"] == 60
+                assert saved["cross_filters_enabled"] is False
+                assert saved["color_scheme"] == "d3Category10"
+
+                # An explicitly-sent value still overrides.
+                DashboardDAO.set_dash_metadata(
+                    dashboard,
+                    {"refresh_frequency": 30, "cross_filters_enabled": True},
+                )
+                db.session.commit()
+                saved = json.loads(dashboard.json_metadata)
+                assert saved["refresh_frequency"] == 30
+                assert saved["cross_filters_enabled"] is True
+            finally:
+                dashboard.json_metadata = original_json_metadata
+                db.session.commit()
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     @patch("superset.daos.dashboard.g")
-    def test_copy_dashboard(self, mock_g):
-        mock_g.user = security_manager.find_user("admin")
+    @patch("superset.security.manager.g")
+    def test_copy_dashboard(self, mock_sm_g, mock_g):
+        mock_g.user = mock_sm_g.user = security_manager.find_user("admin")
         original_dash = (
             db.session.query(Dashboard).filter_by(slug="world_health").first()
         )
@@ -91,7 +145,13 @@ class TestDashboardDAO(SupersetTestCase):
         assert len(dash.position) == len(original_dash.position)
         assert dash.dashboard_title == "copied dash"
         assert dash.css == "<css>"
-        assert dash.owners == [security_manager.find_user("admin")]
+        admin = security_manager.find_user("admin")
+        admin_subject = (
+            db.session.query(Subject)
+            .filter_by(user_id=admin.id, type=SubjectType.USER)
+            .first()
+        )
+        assert dash.editors == [admin_subject]
         self.assertCountEqual(dash.slices, original_dash.slices)  # noqa: PT009
 
         db.session.delete(dash)
@@ -99,8 +159,9 @@ class TestDashboardDAO(SupersetTestCase):
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     @patch("superset.daos.dashboard.g")
-    def test_copy_dashboard_copies_native_filters(self, mock_g):
-        mock_g.user = security_manager.find_user("admin")
+    @patch("superset.security.manager.g")
+    def test_copy_dashboard_copies_native_filters(self, mock_sm_g, mock_g):
+        mock_g.user = mock_sm_g.user = security_manager.find_user("admin")
         original_dash = (
             db.session.query(Dashboard).filter_by(slug="world_health").first()
         )
@@ -125,8 +186,9 @@ class TestDashboardDAO(SupersetTestCase):
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     @patch("superset.daos.dashboard.g")
-    def test_copy_dashboard_duplicate_slices(self, mock_g):
-        mock_g.user = security_manager.find_user("admin")
+    @patch("superset.security.manager.g")
+    def test_copy_dashboard_duplicate_slices(self, mock_sm_g, mock_g):
+        mock_g.user = mock_sm_g.user = security_manager.find_user("admin")
         original_dash = (
             db.session.query(Dashboard).filter_by(slug="world_health").first()
         )
@@ -143,7 +205,13 @@ class TestDashboardDAO(SupersetTestCase):
         assert len(dash.position) == len(original_dash.position)
         assert dash.dashboard_title == "copied dash"
         assert dash.css == "<css>"
-        assert dash.owners == [security_manager.find_user("admin")]
+        admin = security_manager.find_user("admin")
+        admin_subject = (
+            db.session.query(Subject)
+            .filter_by(user_id=admin.id, type=SubjectType.USER)
+            .first()
+        )
+        assert dash.editors == [admin_subject]
         assert len(dash.slices) == len(original_dash.slices)
         for original_slc in original_dash.slices:
             for slc in dash.slices:

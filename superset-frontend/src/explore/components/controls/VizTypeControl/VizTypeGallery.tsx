@@ -124,7 +124,7 @@ const LeftPane = styled.div`
       padding-bottom: ${({ theme }) => theme.sizeUnit}px;
     }
 
-    .ant-collapse-content .ant-collapse-content-box {
+    .ant-collapse-panel .ant-collapse-body {
       display: flex;
       flex-direction: column;
       padding: 0 ${({ theme }) => theme.sizeUnit * 2}px;
@@ -214,7 +214,10 @@ const IconsPane = styled.div`
   justify-content: space-evenly;
   grid-gap: ${({ theme }) => theme.sizeUnit * 2}px;
   justify-items: center;
-  // for some reason this padding doesn't seem to apply at the bottom of the container. Why is a mystery.
+  /* top-align every tile so a longer chart name never pushes the thumbnails
+     of the other tiles in the same row upward */
+  align-items: start;
+  /* for some reason this padding doesn't seem to apply at the bottom of the container. Why is a mystery. */
   padding: ${({ theme }) => theme.sizeUnit * 2}px;
 `;
 
@@ -267,9 +270,13 @@ const Examples = styled.div`
 `;
 
 const thumbnailContainerCss = (theme: SupersetTheme) => css`
+  appearance: none;
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
   cursor: pointer;
   width: ${theme.sizeUnit * THUMBNAIL_GRID_UNITS}px;
-  position: relative;
   outline: none; /* Remove focus outline to show only selected state */
 
   img {
@@ -292,6 +299,16 @@ const thumbnailContainerCss = (theme: SupersetTheme) => css`
   .viztype-label {
     margin-top: ${theme.sizeUnit * 2}px;
     text-align: center;
+    /* reserve a fixed two-line block so every tile is the same height,
+       regardless of how long the chart name is. Longer names are clamped
+       with an ellipsis; the full name stays available via the title tooltip. */
+    line-height: ${theme.sizeUnit * 4}px;
+    height: ${theme.sizeUnit * 8}px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    word-break: break-word;
   }
 `;
 
@@ -315,10 +332,19 @@ const HighlightLabel = styled.div`
   `}
 `;
 
+// Wraps the thumbnail image so the "Featured" badge can be anchored to the
+// image itself rather than to the whole tile (whose height varies with the
+// chart-name length). line-height: 0 removes the inline-image descender gap.
+const ThumbnailImageWrapper = styled.div`
+  position: relative;
+  width: ${({ theme }) => theme.sizeUnit * THUMBNAIL_GRID_UNITS}px;
+  line-height: 0;
+`;
+
 const ThumbnailLabelWrapper = styled.div`
   position: absolute;
   right: ${({ theme }) => theme.sizeUnit}px;
-  top: ${({ theme }) => theme.sizeUnit * 19}px;
+  top: ${({ theme }) => theme.sizeUnit}px;
 `;
 
 const TitleLabelWrapper = styled.div`
@@ -344,54 +370,51 @@ const Thumbnail: FC<ThumbnailProps> = ({
   const { key, value: type } = entry;
   const isSelected = selectedViz === entry.key;
 
-  const handleKeyDown = (event: React.KeyboardEvent) => {
-    if (event.key === 'Enter' || event.key === ' ') {
-      event.preventDefault();
-      setSelectedViz(key);
-    }
-  };
-
   const handleFocus = () => {
     // Auto-select chart when tabbed to
     setSelectedViz(key);
   };
 
   return (
-    <div
-      role="button"
+    <button
+      type="button"
       // using css instead of a styled component to preserve
       // the data-test attribute
       css={thumbnailContainerCss(theme)}
-      tabIndex={0}
       className={isSelected ? 'selected' : ''}
+      aria-pressed={isSelected}
       onClick={() => setSelectedViz(key)}
       onDoubleClick={onDoubleClick}
-      onKeyDown={handleKeyDown}
       onFocus={handleFocus}
       data-test="viztype-selector-container"
     >
-      <img
-        alt={type.name}
-        width="100%"
-        className={`viztype-selector ${isSelected ? 'selected' : ''}`}
-        src={
-          isDarkMode && type.thumbnailDark ? type.thumbnailDark : type.thumbnail
-        }
-      />
+      <ThumbnailImageWrapper>
+        <img
+          alt={type.name}
+          width="100%"
+          className={`viztype-selector ${isSelected ? 'selected' : ''}`}
+          src={
+            isDarkMode && type.thumbnailDark
+              ? type.thumbnailDark
+              : type.thumbnail
+          }
+        />
+        {type.label && (
+          <ThumbnailLabelWrapper>
+            <HighlightLabel>
+              <div>{t(type.label)}</div>
+            </HighlightLabel>
+          </ThumbnailLabelWrapper>
+        )}
+      </ThumbnailImageWrapper>
       <div
         className="viztype-label"
         data-test={`${VIZ_TYPE_CONTROL_TEST_ID}__viztype-label`}
+        title={type.name}
       >
         {type.name}
       </div>
-      {type.label && (
-        <ThumbnailLabelWrapper>
-          <HighlightLabel>
-            <div>{t(type.label)}</div>
-          </HighlightLabel>
-        </ThumbnailLabelWrapper>
-      )}
-    </div>
+    </button>
   );
 };
 
@@ -778,7 +801,11 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
           suffix={
             <InputIconAlignment>
               {searchInputValue && (
-                <Icons.CloseOutlined iconSize="m" onClick={stopSearching} />
+                <Icons.CloseOutlined
+                  iconSize="m"
+                  onClick={stopSearching}
+                  aria-label={t('Clear search')}
+                />
               )}
             </InputIconAlignment>
           }

@@ -9,13 +9,16 @@ on:
   workflow_dispatch:
     inputs:
       comment_body:
-        description: 'Comment Body'
+        description: "Comment Body"
         required: true
         type: string
 
+permissions:
+  contents: read
+
 jobs:
   supersetbot:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     if: >
       github.event_name == 'workflow_dispatch' ||
       (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@supersetbot'))
@@ -38,7 +41,7 @@ jobs:
             });
 
       - name: "Checkout ( ${{ github.sha }} )"
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 

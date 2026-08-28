@@ -18,11 +18,12 @@
  */
 import type { Dispatch, ReactElement, SetStateAction } from 'react';
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useSelector } from 'react-redux';
-import { useHistory } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
+import { useHistory, useLocation } from 'react-router-dom';
+import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
 import { Menu, MenuItem } from '@superset-ui/core/components/Menu';
 import { t } from '@apache-superset/core/translation';
-import { isEmpty } from 'lodash';
+import { isEmpty } from 'lodash-es';
 import { URL_PARAMS } from 'src/constants';
 import { useShareMenuItems } from 'src/dashboard/components/menu/ShareMenuItems';
 import { useDownloadMenuItems } from 'src/dashboard/components/menu/DownloadMenuItems';
@@ -37,6 +38,8 @@ import { getUrlParam } from 'src/utils/urlUtils';
 import { MenuKeys, RootState } from 'src/dashboard/types';
 import { HeaderDropdownProps } from 'src/dashboard/components/Header/types';
 import { usePermissions } from 'src/hooks/usePermissions';
+import { openVersionHistoryPanel } from 'src/features/versionHistory/reducer';
+import getUserName from 'src/utils/getUserName';
 
 export const useHeaderActionsMenu = ({
   customCss,
@@ -56,6 +59,10 @@ export const useHeaderActionsMenu = ({
   userCanCurate,
   userCanExport,
   isLoading,
+  isMobile,
+  isStarred,
+  isPublished,
+  saveFaveStar,
   lastModifiedTime,
   addSuccessToast,
   addDangerToast,
@@ -73,8 +80,10 @@ export const useHeaderActionsMenu = ({
   Dispatch<SetStateAction<boolean>>,
 ] => {
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
+  const dispatch = useDispatch();
   const { canExportImage } = usePermissions();
   const history = useHistory();
+  const location = useLocation();
   const directPathToChild = useSelector(
     (state: RootState) => state.dashboardState.directPathToChild,
   );
@@ -101,8 +110,11 @@ export const useHeaderActionsMenu = ({
         case MenuKeys.ToggleFullscreen: {
           const isCurrentlyStandalone =
             Number(getUrlParam(URL_PARAMS.standalone)) === 1;
+          // Use location.pathname from React Router (relative to basename) rather than
+          // window.location.pathname to avoid duplicating the subdirectory prefix when
+          // history.replace prepends it again.
           const url = getDashboardUrl({
-            pathname: window.location.pathname,
+            pathname: location.pathname,
             filters: getActiveFilters(),
             hash: window.location.hash,
             standalone: isCurrentlyStandalone ? null : 1,
@@ -112,6 +124,14 @@ export const useHeaderActionsMenu = ({
         }
         case MenuKeys.ManageEmbedded:
           manageEmbedded();
+          break;
+        case MenuKeys.VersionHistory:
+          dispatch(openVersionHistoryPanel('dashboard'));
+          break;
+        case 'toggle-favorite':
+          if (saveFaveStar && isStarred !== undefined) {
+            saveFaveStar(dashboardId, isStarred);
+          }
           break;
         default:
           break;
@@ -124,7 +144,12 @@ export const useHeaderActionsMenu = ({
       showPropertiesModal,
       showRefreshModal,
       manageEmbedded,
+      dispatch,
+      saveFaveStar,
+      dashboardId,
+      isStarred,
       history,
+      location,
     ],
   );
 
@@ -133,6 +158,10 @@ export const useHeaderActionsMenu = ({
     [dashboardTitle],
   );
 
+  // window.location.pathname is intentional here: this URL is used for sharing
+  // (email, embed, copy link) and must be a full browser-absolute path that
+  // includes the application root. Do NOT replace with useLocation().pathname —
+  // that would strip the subdirectory prefix and produce a broken share link.
   const url = useMemo(
     () =>
       getDashboardUrl({
@@ -196,6 +225,52 @@ export const useHeaderActionsMenu = ({
 
     const menuItems: MenuItem[] = [];
 
+    // Mobile-only: show dashboard info items in menu
+    if (isMobile && !editMode) {
+      // Favorite toggle
+      if (saveFaveStar) {
+        menuItems.push({
+          key: 'toggle-favorite',
+          label: isStarred ? t('Remove from favorites') : t('Add to favorites'),
+        });
+      }
+
+      // Published status
+      menuItems.push({
+        key: 'status-info',
+        label: isPublished ? t('Status: Published') : t('Status: Draft'),
+        disabled: true,
+      });
+
+      // Editor info
+      const editorNames = dashboardInfo?.editors?.length
+        ? dashboardInfo.editors
+            .map((editor: { label?: string }) => editor.label)
+            .filter(Boolean)
+            .join(', ')
+        : t('None');
+      menuItems.push({
+        key: 'owner-info',
+        label: t('Owner: %(names)s', { names: editorNames }),
+        disabled: true,
+      });
+
+      // Last modified
+      const modifiedBy =
+        getUserName(dashboardInfo?.changed_by) || t('Not available');
+      const modifiedDate = dashboardInfo?.changed_on_delta_humanized || '';
+      menuItems.push({
+        key: 'modified-info',
+        label: t('Modified %(date)s by %(user)s', {
+          date: modifiedDate,
+          user: modifiedBy,
+        }),
+        disabled: true,
+      });
+
+      menuItems.push({ type: 'divider' });
+    }
+
     // Refresh dashboard
     if (!editMode) {
       menuItems.push({
@@ -215,8 +290,8 @@ export const useHeaderActionsMenu = ({
       });
     }
 
-    // Toggle fullscreen
-    if (!editMode && !isEmbedded) {
+    // Toggle fullscreen (hide on mobile)
+    if (!editMode && !isEmbedded && !isMobile) {
       menuItems.push({
         key: MenuKeys.ToggleFullscreen,
         label: getUrlParam(URL_PARAMS.standalone)
@@ -236,8 +311,8 @@ export const useHeaderActionsMenu = ({
     // Divider
     menuItems.push({ type: 'divider' });
 
-    // Save as
-    if (userCanSave) {
+    // Save as (authoring action, hidden on mobile consumption-only menu)
+    if (userCanSave && !isMobile) {
       menuItems.push(
         createModalMenuItem(
           MenuKeys.SaveModal,
@@ -274,8 +349,8 @@ export const useHeaderActionsMenu = ({
       menuItems.push(shareMenuItems);
     }
 
-    // Embed dashboard
-    if (!editMode && userCanCurate) {
+    // Embed dashboard (authoring action, hidden on mobile consumption-only menu)
+    if (!editMode && userCanCurate && !isMobile) {
       menuItems.push({
         key: MenuKeys.ManageEmbedded,
         label: t('Embed dashboard'),
@@ -284,15 +359,15 @@ export const useHeaderActionsMenu = ({
 
     // Only add divider if there are items after it
     const hasItemsAfterDivider =
-      (!editMode && reportMenuItem) ||
+      (!editMode && reportMenuItem && !isMobile) ||
       (editMode && !isEmpty(dashboardInfo?.metadata?.filter_scopes));
 
     if (hasItemsAfterDivider) {
       menuItems.push({ type: 'divider' });
     }
 
-    // Report dropdown
-    if (!editMode && reportMenuItem) {
+    // Report dropdown (hide on mobile)
+    if (!editMode && reportMenuItem && !isMobile) {
       menuItems.push(reportMenuItem);
     }
 
@@ -306,6 +381,17 @@ export const useHeaderActionsMenu = ({
           />,
         ),
       );
+    }
+
+    if (
+      isFeatureEnabled(FeatureFlag.VersionHistory) &&
+      userCanEdit &&
+      !editMode
+    ) {
+      menuItems.push({
+        key: MenuKeys.VersionHistory,
+        label: t('View version history'),
+      });
     }
 
     return (
@@ -330,11 +416,15 @@ export const useHeaderActionsMenu = ({
     expandedSlices,
     handleMenuClick,
     isLoading,
+    isMobile,
+    isPublished,
+    isStarred,
     lastModifiedTime,
     layout,
     onSave,
     refreshFrequency,
     reportMenuItem,
+    saveFaveStar,
     shareMenuItems,
     shouldPersistRefreshFrequency,
     userCanCurate,

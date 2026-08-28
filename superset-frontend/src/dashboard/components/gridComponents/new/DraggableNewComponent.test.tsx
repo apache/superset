@@ -36,6 +36,7 @@ describe('DraggableNewComponent', () => {
 
   function setup(overrideProps: Record<string, unknown> = {}) {
     return render(
+      // @ts-expect-error react-dnd types not updated for React 18
       <DndProvider backend={HTML5Backend}>
         <DraggableNewComponent {...props} {...overrideProps} />
       </DndProvider>,

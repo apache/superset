@@ -55,20 +55,23 @@ class StreamingCSVExportCommand(BaseStreamingCSVExportCommand):
         """Validate permissions and query context."""
         self._query_context.raise_for_access()
 
-    def _get_sql_and_database(self) -> tuple[str, Any]:
+    def _get_sql_and_database(self) -> tuple[str, Any, str | None, str | None]:
         """
-        Get the SQL query and database for chart export.
+        Get the SQL query, database, catalog, and schema for chart export.
 
         Returns:
-            Tuple of (sql_query, database_object)
+            Tuple of (sql_query, database_object, catalog, schema)
         """
         # Get datasource and generate SQL query
         # Note: datasource should already be attached to a session from query_context
         datasource = self._query_context.datasource
         query_obj = self._query_context.queries[0]
         sql_query = datasource.get_query_str(query_obj.to_dict())
+        database = getattr(datasource, "database", None)
+        catalog = getattr(datasource, "catalog", None)
+        schema = getattr(datasource, "schema", None)
 
-        return sql_query, getattr(datasource, "database", None)
+        return sql_query, database, catalog, schema
 
     def _get_row_limit(self) -> int | None:
         """

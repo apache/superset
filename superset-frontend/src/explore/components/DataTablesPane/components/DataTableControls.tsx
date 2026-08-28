@@ -20,7 +20,7 @@ import { styled, css, useTheme } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
 import { GenericDataType } from '@apache-superset/core/common';
 import { useMemo } from 'react';
-import { zip } from 'lodash';
+import { zip } from 'lodash-es';
 import { Select, Tooltip } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import {
@@ -60,6 +60,7 @@ export const TableControls = ({
   data,
   datasourceId,
   onInputChange,
+  filterText,
   columnNames,
   columnTypes,
   rowcount,
@@ -67,6 +68,8 @@ export const TableControls = ({
   canDownload,
   rowLimit,
   rowLimitOptions,
+  effectiveRowLimit,
+  limitReachedMessage,
   onRowLimitChange,
   onDownloadCSV,
   onDownloadXLSX,
@@ -93,7 +96,11 @@ export const TableControls = ({
   const { canCopyClipboard: copyEnabled } = usePermissions();
   return (
     <TableControlsWrapper>
-      <FilterInput onChangeHandler={onInputChange} shouldFocus />
+      <FilterInput
+        onChangeHandler={onInputChange}
+        shouldFocus
+        value={filterText}
+      />
       <div
         css={css`
           display: flex;
@@ -106,14 +113,19 @@ export const TableControls = ({
             value={rowLimit}
             onChange={onRowLimitChange}
             options={rowLimitOptions ?? []}
+            // Labelled as the applied limit to avoid a second row count next to RowCountLabel.
+            prefix={t('Limit')}
             css={css`
-              min-width: 110px;
+              min-width: 160px;
             `}
           />
         )}
-        {(!onRowLimitChange || rowcount < (rowLimit ?? Infinity)) && (
-          <RowCountLabel rowcount={rowcount} loading={isLoading} />
-        )}
+        <RowCountLabel
+          rowcount={rowcount}
+          limit={effectiveRowLimit ?? rowLimit}
+          limitReachedMessage={limitReachedMessage}
+          loading={isLoading}
+        />
         {canDownload && onDownloadCSV && onDownloadXLSX && (
           <DownloadDropdown
             onDownloadCSV={onDownloadCSV}
@@ -135,11 +147,13 @@ export const TableControls = ({
         )}
         {onReload && (
           <Tooltip title={t('Reload')}>
+            {/* role is auto-computed by BaseIconComponent as "button" since
+                onClick is present, so no explicit role needed here. */}
             <Icons.ReloadOutlined
               iconColor={theme.colorIcon}
               iconSize="l"
               aria-label={t('Reload')}
-              role="button"
+              tabIndex={0}
               onClick={onReload}
             />
           </Tooltip>

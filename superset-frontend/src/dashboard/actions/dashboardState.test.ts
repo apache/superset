@@ -16,7 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SupersetClient, isFeatureEnabled } from '@superset-ui/core';
+import {
+  JsonResponse,
+  SupersetClient,
+  isFeatureEnabled,
+} from '@superset-ui/core';
 import { waitFor } from 'spec/helpers/testing-library';
 
 import {
@@ -28,9 +32,16 @@ import {
   ON_FILTERS_REFRESH,
   ON_REFRESH,
   ON_REFRESH_SUCCESS,
+  TOGGLE_FAVE_STAR,
+  TOGGLE_PUBLISHED,
+  fetchFaveStar,
+  saveFaveStar,
+  savePublished,
 } from 'src/dashboard/actions/dashboardState';
 import { refreshChart } from 'src/components/Chart/chartAction';
 import { UPDATE_COMPONENTS_PARENTS_LIST } from 'src/dashboard/actions/dashboardLayout';
+import { ADD_TOAST } from 'src/components/MessageToasts/actions';
+import { ToastType } from 'src/components/MessageToasts/types';
 import {
   DASHBOARD_GRID_ID,
   SAVE_TYPE_OVERWRITE,
@@ -43,7 +54,7 @@ import {
 } from 'spec/fixtures/mockSliceEntities';
 import { emptyFilters } from 'spec/fixtures/mockDashboardFilters';
 import mockDashboardData from 'spec/fixtures/mockDashboardData';
-import { navigateTo } from 'src/utils/navigationUtils';
+import { navigateTo, navigateWithState } from 'src/utils/navigationUtils';
 
 jest.mock('@superset-ui/core', () => ({
   ...jest.requireActual('@superset-ui/core'),
@@ -61,6 +72,7 @@ jest.mock('src/utils/navigationUtils', () => ({
 
 const mockIsFeatureEnabled = isFeatureEnabled as jest.Mock;
 const mockNavigateTo = navigateTo as jest.Mock;
+const mockNavigateWithState = navigateWithState as jest.Mock;
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('dashboardState actions', () => {
@@ -123,6 +135,15 @@ describe('dashboardState actions', () => {
 
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('saveDashboardRequest', () => {
+    const findDangerToast = (dispatch: jest.Mock) =>
+      dispatch.mock.calls
+        .map(call => call[0])
+        .find(
+          action =>
+            action?.type === ADD_TOAST &&
+            action.payload.toastType === ToastType.Danger,
+        );
+
     test('should dispatch UPDATE_COMPONENTS_PARENTS_LIST action', () => {
       const { getState, dispatch } = setup({
         dashboardState: { hasUnsavedChanges: false },
@@ -215,6 +236,89 @@ describe('dashboardState actions', () => {
         const { body } = putStub.mock.calls[0][0];
         expect(body).toBe(JSON.stringify(confirmedDashboardData));
       });
+
+      test('warns about the overwrite values when a diff is detected', async () => {
+        const { getState, dispatch } = setup();
+        const thunk = saveDashboardRequest(
+          newDashboardData,
+          192,
+          SAVE_TYPE_OVERWRITE,
+        );
+        thunk(dispatch, getState);
+        await waitFor(() =>
+          expect(findDangerToast(dispatch)?.payload.text).toBe(
+            'Please confirm the overwrite values.',
+          ),
+        );
+        expect(putStub.mock.calls.length).toBe(0);
+      });
+
+      test('reports the actual error when the overwrite precheck fails', async () => {
+        getStub.mockRestore();
+        getStub = jest
+          .spyOn(SupersetClient, 'get')
+          .mockRejectedValue(new Error('precheck exploded'));
+        const { getState, dispatch } = setup();
+        const thunk = saveDashboardRequest(
+          newDashboardData,
+          192,
+          SAVE_TYPE_OVERWRITE,
+        );
+        thunk(dispatch, getState);
+        await waitFor(() =>
+          expect(findDangerToast(dispatch)?.payload.text).toContain(
+            'precheck exploded',
+          ),
+        );
+        expect(putStub.mock.calls.length).toBe(0);
+      });
+    });
+
+    // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
+    describe('when FeatureFlag.CONFIRM_DASHBOARD_DIFF is disabled', () => {
+      beforeEach(() => {
+        mockIsFeatureEnabled.mockImplementation(() => false);
+      });
+
+      afterEach(() => {
+        mockIsFeatureEnabled.mockRestore();
+      });
+
+      test('never runs the overwrite precheck', async () => {
+        const { getState, dispatch } = setup();
+        const thunk = saveDashboardRequest(
+          newDashboardData,
+          192,
+          SAVE_TYPE_OVERWRITE,
+        );
+        thunk(dispatch, getState);
+        await waitFor(() => expect(putStub.mock.calls.length).toBe(1));
+        expect(getStub).not.toHaveBeenCalledWith(
+          expect.objectContaining({ endpoint: '/api/v1/dashboard/192' }),
+        );
+      });
+
+      // An unexpected failure used to reach the overwrite-confirm handler,
+      // which reported it as "Please confirm the overwrite values." even with
+      // the feature flag off, hiding the real error.
+      test('reports the actual error when the update throws unexpectedly', async () => {
+        putStub.mockRestore();
+        putStub = jest.spyOn(SupersetClient, 'put').mockImplementation(() => {
+          throw new Error('unexpected boom');
+        });
+        const { getState, dispatch } = setup();
+        const thunk = saveDashboardRequest(
+          newDashboardData,
+          192,
+          SAVE_TYPE_OVERWRITE,
+        );
+        thunk(dispatch, getState);
+        await waitFor(() =>
+          expect(findDangerToast(dispatch)?.payload.text).toContain(
+            'unexpected boom',
+          ),
+        );
+      });
     });
 
     test('should navigate to the new dashboard after Save As', async () => {
@@ -242,7 +346,180 @@ describe('dashboardState actions', () => {
 
       await waitFor(() => expect(postStub.mock.calls.length).toBe(1));
       expect(mockNavigateTo).toHaveBeenCalledWith(
-        `/superset/dashboard/${newDashboardId}/`,
+        `/dashboard/${newDashboardId}/`,
+      );
+    });
+
+    // `navigateWithState` regression for the
+    // dashboard-properties-changed save path. Two assertions in one shape:
+    //   (a) the emitted path is router-relative (`/dashboard/<id>/`), not
+    //       the pre-migration `/superset/dashboard/<id>/` literal that under
+    //       subdirectory deployment would double-prefix to
+    //       `/superset/superset/dashboard/<id>/`;
+    //   (b) the `event: 'dashboard_properties_changed'` history-state arg is
+    //       preserved verbatim. A previous attempt to swap `navigateWithState`
+    //       for a plain `navigateTo` would silently drop this state object and
+    //       the dashboard would lose its post-save UX cue.
+    test('saves dashboard properties via navigateWithState with state preserved', async () => {
+      const updatedId = 777;
+      const { getState, dispatch } = setup({
+        dashboardState: { hasUnsavedChanges: true },
+      });
+
+      mockNavigateWithState.mockClear();
+      putStub.mockRestore();
+      putStub = jest.spyOn(SupersetClient, 'put').mockResolvedValue({
+        json: {
+          result: { ...mockDashboardData, id: updatedId, slug: null },
+          last_modified_time: 0,
+        },
+      } as any);
+
+      const thunk = saveDashboardRequest(
+        newDashboardData,
+        updatedId,
+        SAVE_TYPE_OVERWRITE,
+      );
+      await thunk(dispatch, getState);
+
+      await waitFor(() => expect(putStub.mock.calls.length).toBe(1));
+      await waitFor(() => expect(mockNavigateWithState).toHaveBeenCalled());
+
+      expect(mockNavigateWithState).toHaveBeenCalledWith(
+        `/dashboard/${updatedId}/`,
+        { event: 'dashboard_properties_changed' },
+      );
+    });
+
+    // Regression for the reserved-URL-character slug redirect. When the
+    // submitted slug starts with a reserved character (e.g. `?` or `/`), the
+    // backend sanitizes it out of the persisted slug
+    // (BaseDashboardSchema.post_load strips `[^\w\-]`). The post-save redirect
+    // must therefore be built from the sanitized slug returned in the PUT
+    // response, not the raw slug the user submitted, or the first render lands
+    // on a malformed/blank URL (a later reload works because it reads the
+    // stored, sanitized slug).
+    test('redirects using the sanitized slug from the PUT response, not the raw submitted slug', async () => {
+      const updatedId = 778;
+      const { getState, dispatch } = setup({
+        dashboardState: { hasUnsavedChanges: true },
+      });
+
+      mockNavigateWithState.mockClear();
+      putStub.mockRestore();
+      putStub = jest.spyOn(SupersetClient, 'put').mockResolvedValue({
+        json: {
+          result: { ...mockDashboardData, id: updatedId, slug: 'test' },
+          last_modified_time: 0,
+        },
+      } as any);
+
+      const thunk = saveDashboardRequest(
+        { ...newDashboardData, slug: '?test' },
+        updatedId,
+        SAVE_TYPE_OVERWRITE,
+      );
+      await thunk(dispatch, getState);
+
+      await waitFor(() => expect(putStub.mock.calls.length).toBe(1));
+      await waitFor(() => expect(mockNavigateWithState).toHaveBeenCalled());
+
+      expect(mockNavigateWithState).toHaveBeenCalledWith('/dashboard/test/', {
+        event: 'dashboard_properties_changed',
+      });
+    });
+
+    // Regression companion: when the PUT response carries no usable slug
+    // (e.g. a slug composed solely of reserved characters, which
+    // BaseDashboardSchema.post_load sanitizes down to an empty string rather
+    // than null), the redirect must fall back to the dashboard id rather
+    // than emitting `/dashboard//` or echoing the raw submitted slug.
+    test('redirects using the id when the PUT response slug is empty', async () => {
+      const updatedId = 779;
+      const { getState, dispatch } = setup({
+        dashboardState: { hasUnsavedChanges: true },
+      });
+
+      mockNavigateWithState.mockClear();
+      putStub.mockRestore();
+      putStub = jest.spyOn(SupersetClient, 'put').mockResolvedValue({
+        json: {
+          result: { ...mockDashboardData, id: updatedId, slug: '' },
+          last_modified_time: 0,
+        },
+      } as any);
+
+      const thunk = saveDashboardRequest(
+        { ...newDashboardData, slug: '?' },
+        updatedId,
+        SAVE_TYPE_OVERWRITE,
+      );
+      await thunk(dispatch, getState);
+
+      await waitFor(() => expect(putStub.mock.calls.length).toBe(1));
+      await waitFor(() => expect(mockNavigateWithState).toHaveBeenCalled());
+
+      expect(mockNavigateWithState).toHaveBeenCalledWith(
+        `/dashboard/${updatedId}/`,
+        { event: 'dashboard_properties_changed' },
+      );
+    });
+
+    // The save-error toast mapping lives inline in `onError`, not behind
+    // `getErrorText`, so these exercise the thunk itself. A 403 whose body is
+    // the API's `{"message": "Forbidden"}` shape must surface the
+    // permission-denied copy, while a 403 from outside Superset (reverse proxy,
+    // WAF, SSO gateway) carries a non-JSON body and must fall back to the
+    // generic status-derived toast. See #42239.
+    test('maps a non-JSON 403 save failure to the generic error toast', async () => {
+      const { getState, dispatch } = setup();
+      putStub.mockRestore();
+      putStub = jest.spyOn(SupersetClient, 'put').mockRejectedValue(
+        new Response(
+          '<html><head><title>403 Forbidden</title></head><body>Forbidden</body></html>',
+          {
+            status: 403,
+            statusText: 'Forbidden',
+            headers: { 'Content-Type': 'text/html' },
+          },
+        ),
+      );
+
+      const thunk = saveDashboardRequest(
+        newDashboardData,
+        192,
+        SAVE_TYPE_OVERWRITE,
+      );
+      await thunk(dispatch, getState);
+
+      await waitFor(() =>
+        expect(findDangerToast(dispatch)?.payload.text).toBe(
+          'Sorry, there was an error saving this dashboard: Forbidden',
+        ),
+      );
+    });
+
+    test('maps a Superset JSON 403 save failure to the permission-denied toast', async () => {
+      const { getState, dispatch } = setup();
+      putStub.mockRestore();
+      putStub = jest.spyOn(SupersetClient, 'put').mockRejectedValue(
+        new Response(JSON.stringify({ message: 'Forbidden' }), {
+          status: 403,
+          statusText: 'FORBIDDEN',
+        }),
+      );
+
+      const thunk = saveDashboardRequest(
+        newDashboardData,
+        192,
+        SAVE_TYPE_OVERWRITE,
+      );
+      await thunk(dispatch, getState);
+
+      await waitFor(() =>
+        expect(findDangerToast(dispatch)?.payload.text).toBe(
+          'You do not have permission to edit this dashboard',
+        ),
       );
     });
   });
@@ -291,6 +568,50 @@ describe('dashboardState actions', () => {
     jest.useRealTimers();
 
     expect(refreshChart).toHaveBeenCalledTimes(chartIds.length);
+  });
+
+  test('fetchCharts fires each chart at evenly spaced staggered offsets', async () => {
+    jest.useFakeTimers();
+    (refreshChart as jest.Mock).mockClear();
+    const { getState } = setup({
+      dashboardInfo: {
+        metadata: { stagger_time: 4000, stagger_refresh: true },
+        common: { conf: { SUPERSET_WEBSERVER_TIMEOUT: 60 } },
+      },
+    });
+    const dispatch = (action: unknown): unknown => {
+      if (typeof action === 'function') {
+        return (action as Function)(dispatch, getState);
+      }
+      return action;
+    };
+    // refreshTime = max(interval, stagger_time) = 4000;
+    // delay between charts = 4000 / (3 - 1) = 2000.
+    const chartIds = [1, 2, 3];
+    const promise = fetchCharts(chartIds, false, 4000, 10)(dispatch, getState);
+
+    // First chart fires immediately (offset = delay * 0 = 0).
+    jest.advanceTimersByTime(0);
+    expect(refreshChart).toHaveBeenCalledTimes(1);
+    expect((refreshChart as jest.Mock).mock.calls[0][0]).toBe(1);
+
+    // Second chart fires one window later, at t = 2000.
+    jest.advanceTimersByTime(2000);
+    expect(refreshChart).toHaveBeenCalledTimes(2);
+    expect((refreshChart as jest.Mock).mock.calls[1][0]).toBe(2);
+
+    // Nothing fires in between windows.
+    jest.advanceTimersByTime(1999);
+    expect(refreshChart).toHaveBeenCalledTimes(2);
+
+    // Last chart fires at t = refreshTime = 4000.
+    jest.advanceTimersByTime(1);
+    expect(refreshChart).toHaveBeenCalledTimes(3);
+    expect((refreshChart as jest.Mock).mock.calls[2][0]).toBe(3);
+
+    jest.runAllTimers();
+    await promise;
+    jest.useRealTimers();
   });
 
   test('fetchCharts rejects for staggered refreshes when any chart refresh fails', async () => {
@@ -399,5 +720,373 @@ describe('dashboardState actions', () => {
     expect(dispatchedTypes).toContain(ON_REFRESH_SUCCESS);
     expect(dispatchedTypes).not.toContain(ON_REFRESH);
     expect(dispatchedTypes).not.toContain(ON_FILTERS_REFRESH);
+  });
+
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
+  describe('fetchFaveStar race condition', () => {
+    test('dispatches TOGGLE_FAVE_STAR when the dashboard ID still matches', async () => {
+      const id = 123;
+      const { getState, dispatch } = setup({
+        dashboardInfo: {
+          id,
+          metadata: { color_scheme: 'supersetColors' },
+        },
+      });
+
+      getStub.mockRestore();
+      getStub = jest.spyOn(SupersetClient, 'get').mockResolvedValue({
+        json: { result: [{ value: true }] },
+      } as unknown as JsonResponse);
+
+      await fetchFaveStar(id)(dispatch, getState);
+
+      expect(dispatch).toHaveBeenCalledTimes(1);
+      expect(dispatch).toHaveBeenCalledWith({
+        type: TOGGLE_FAVE_STAR,
+        isStarred: true,
+      });
+    });
+
+    test('does NOT dispatch when the dashboard ID changed before the response resolved', async () => {
+      const requestedId = 123;
+      // User navigated to a different dashboard by the time the response comes back
+      const { getState, dispatch } = setup({
+        dashboardInfo: {
+          id: 456,
+          metadata: { color_scheme: 'supersetColors' },
+        },
+      });
+
+      getStub.mockRestore();
+      getStub = jest.spyOn(SupersetClient, 'get').mockResolvedValue({
+        json: { result: [{ value: true }] },
+      } as unknown as JsonResponse);
+
+      await fetchFaveStar(requestedId)(dispatch, getState);
+
+      expect(dispatch).not.toHaveBeenCalled();
+    });
+
+    test('dispatches a danger toast on error when the dashboard ID still matches', async () => {
+      const id = 123;
+      const { getState, dispatch } = setup({
+        dashboardInfo: {
+          id,
+          metadata: { color_scheme: 'supersetColors' },
+        },
+      });
+
+      getStub.mockRestore();
+      getStub = jest
+        .spyOn(SupersetClient, 'get')
+        .mockRejectedValue(new Error('network'));
+
+      await fetchFaveStar(id)(dispatch, getState);
+
+      expect(dispatch).toHaveBeenCalledTimes(1);
+      expect(dispatch.mock.calls[0][0]).toEqual(
+        expect.objectContaining({
+          type: ADD_TOAST,
+          payload: expect.objectContaining({
+            toastType: ToastType.Danger,
+          }),
+        }),
+      );
+    });
+
+    test('does NOT dispatch a danger toast on error when the dashboard ID changed', async () => {
+      const requestedId = 123;
+      const { getState, dispatch } = setup({
+        dashboardInfo: {
+          id: 456,
+          metadata: { color_scheme: 'supersetColors' },
+        },
+      });
+
+      getStub.mockRestore();
+      getStub = jest
+        .spyOn(SupersetClient, 'get')
+        .mockRejectedValue(new Error('network'));
+
+      await fetchFaveStar(requestedId)(dispatch, getState);
+
+      expect(dispatch).not.toHaveBeenCalled();
+    });
+
+    test('does NOT dispatch a danger toast on 404 error when the dashboard ID still matches', async () => {
+      const id = 123;
+      const { getState, dispatch } = setup({
+        dashboardInfo: {
+          id,
+          metadata: { color_scheme: 'supersetColors' },
+        },
+      });
+
+      getStub.mockRestore();
+      getStub = jest.spyOn(SupersetClient, 'get').mockRejectedValue(
+        new Response(JSON.stringify({ message: 'Not found' }), {
+          status: 404,
+        }),
+      );
+
+      await fetchFaveStar(id)(dispatch, getState);
+
+      expect(dispatch).not.toHaveBeenCalled();
+    });
+
+    test('dispatches a danger toast on a non-404 error Response when the dashboard ID still matches', async () => {
+      const id = 123;
+      const { getState, dispatch } = setup({
+        dashboardInfo: {
+          id,
+          metadata: { color_scheme: 'supersetColors' },
+        },
+      });
+
+      getStub.mockRestore();
+      getStub = jest.spyOn(SupersetClient, 'get').mockRejectedValue(
+        new Response(JSON.stringify({ message: 'Server error' }), {
+          status: 500,
+        }),
+      );
+
+      await fetchFaveStar(id)(dispatch, getState);
+
+      expect(dispatch).toHaveBeenCalledTimes(1);
+      expect(dispatch.mock.calls[0][0]).toEqual(
+        expect.objectContaining({
+          type: ADD_TOAST,
+          payload: expect.objectContaining({
+            toastType: ToastType.Danger,
+          }),
+        }),
+      );
+    });
+  });
+
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
+  describe('saveFaveStar race condition', () => {
+    let deleteStub: jest.SpyInstance;
+
+    beforeEach(() => {
+      deleteStub = jest
+        .spyOn(SupersetClient, 'delete')
+        .mockResolvedValue({} as unknown as JsonResponse);
+    });
+
+    afterEach(() => {
+      deleteStub.mockRestore();
+    });
+
+    test('dispatches TOGGLE_FAVE_STAR when the dashboard ID still matches (starring)', async () => {
+      const id = 123;
+      const { getState, dispatch } = setup({
+        dashboardInfo: {
+          id,
+          metadata: { color_scheme: 'supersetColors' },
+        },
+      });
+
+      postStub.mockRestore();
+      postStub = jest
+        .spyOn(SupersetClient, 'post')
+        .mockResolvedValue({} as unknown as JsonResponse);
+
+      await saveFaveStar(id, false)(dispatch, getState);
+
+      expect(postStub).toHaveBeenCalledTimes(1);
+      expect(dispatch).toHaveBeenCalledTimes(1);
+      expect(dispatch).toHaveBeenCalledWith({
+        type: TOGGLE_FAVE_STAR,
+        isStarred: true,
+      });
+    });
+
+    test('dispatches TOGGLE_FAVE_STAR when the dashboard ID still matches (unstarring)', async () => {
+      const id = 123;
+      const { getState, dispatch } = setup({
+        dashboardInfo: {
+          id,
+          metadata: { color_scheme: 'supersetColors' },
+        },
+      });
+
+      await saveFaveStar(id, true)(dispatch, getState);
+
+      expect(deleteStub).toHaveBeenCalledTimes(1);
+      expect(dispatch).toHaveBeenCalledTimes(1);
+      expect(dispatch).toHaveBeenCalledWith({
+        type: TOGGLE_FAVE_STAR,
+        isStarred: false,
+      });
+    });
+
+    test('does NOT dispatch when the dashboard ID changed before the response resolved', async () => {
+      const requestedId = 123;
+      // User navigated to a different dashboard by the time the response comes back
+      const { getState, dispatch } = setup({
+        dashboardInfo: {
+          id: 456,
+          metadata: { color_scheme: 'supersetColors' },
+        },
+      });
+
+      postStub.mockRestore();
+      postStub = jest
+        .spyOn(SupersetClient, 'post')
+        .mockResolvedValue({} as unknown as JsonResponse);
+
+      await saveFaveStar(requestedId, false)(dispatch, getState);
+
+      expect(postStub).toHaveBeenCalledTimes(1);
+      expect(dispatch).not.toHaveBeenCalled();
+    });
+
+    test('dispatches a danger toast on error when the dashboard ID still matches', async () => {
+      const id = 123;
+      const { getState, dispatch } = setup({
+        dashboardInfo: {
+          id,
+          metadata: { color_scheme: 'supersetColors' },
+        },
+      });
+
+      postStub.mockRestore();
+      postStub = jest
+        .spyOn(SupersetClient, 'post')
+        .mockRejectedValue(new Error('network'));
+
+      await saveFaveStar(id, false)(dispatch, getState);
+
+      expect(dispatch).toHaveBeenCalledTimes(1);
+      expect(dispatch.mock.calls[0][0]).toEqual(
+        expect.objectContaining({
+          type: ADD_TOAST,
+          payload: expect.objectContaining({
+            toastType: ToastType.Danger,
+          }),
+        }),
+      );
+    });
+
+    test('does NOT dispatch a danger toast on error when the dashboard ID changed', async () => {
+      const requestedId = 123;
+      const { getState, dispatch } = setup({
+        dashboardInfo: {
+          id: 456,
+          metadata: { color_scheme: 'supersetColors' },
+        },
+      });
+
+      postStub.mockRestore();
+      postStub = jest
+        .spyOn(SupersetClient, 'post')
+        .mockRejectedValue(new Error('network'));
+
+      await saveFaveStar(requestedId, false)(dispatch, getState);
+
+      expect(dispatch).not.toHaveBeenCalled();
+    });
+  });
+
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
+  describe('savePublished race condition', () => {
+    test('dispatches success toast and TOGGLE_PUBLISHED when the dashboard ID still matches', async () => {
+      const id = 123;
+      const { getState, dispatch } = setup({
+        dashboardInfo: {
+          id,
+          metadata: { color_scheme: 'supersetColors' },
+        },
+      });
+
+      putStub.mockRestore();
+      putStub = jest
+        .spyOn(SupersetClient, 'put')
+        .mockResolvedValue({} as unknown as JsonResponse);
+
+      await savePublished(id, true)(dispatch, getState);
+
+      expect(dispatch).toHaveBeenCalledTimes(2);
+      expect(dispatch.mock.calls[0][0]).toEqual(
+        expect.objectContaining({
+          type: ADD_TOAST,
+          payload: expect.objectContaining({
+            toastType: ToastType.Success,
+          }),
+        }),
+      );
+      expect(dispatch).toHaveBeenCalledWith({
+        type: TOGGLE_PUBLISHED,
+        isPublished: true,
+      });
+    });
+
+    test('does NOT dispatch when the dashboard ID changed before the response resolved', async () => {
+      const requestedId = 123;
+      // User navigated to a different dashboard by the time the response comes back
+      const { getState, dispatch } = setup({
+        dashboardInfo: {
+          id: 456,
+          metadata: { color_scheme: 'supersetColors' },
+        },
+      });
+
+      putStub.mockRestore();
+      putStub = jest
+        .spyOn(SupersetClient, 'put')
+        .mockResolvedValue({} as unknown as JsonResponse);
+
+      await savePublished(requestedId, true)(dispatch, getState);
+
+      expect(putStub).toHaveBeenCalledTimes(1);
+      expect(dispatch).not.toHaveBeenCalled();
+    });
+
+    test('dispatches a danger toast on error when the dashboard ID still matches', async () => {
+      const id = 123;
+      const { getState, dispatch } = setup({
+        dashboardInfo: {
+          id,
+          metadata: { color_scheme: 'supersetColors' },
+        },
+      });
+
+      putStub.mockRestore();
+      putStub = jest
+        .spyOn(SupersetClient, 'put')
+        .mockRejectedValue(new Error('forbidden'));
+
+      await savePublished(id, true)(dispatch, getState);
+
+      expect(dispatch).toHaveBeenCalledTimes(1);
+      expect(dispatch.mock.calls[0][0]).toEqual(
+        expect.objectContaining({
+          type: ADD_TOAST,
+          payload: expect.objectContaining({
+            toastType: ToastType.Danger,
+          }),
+        }),
+      );
+    });
+
+    test('does NOT dispatch a danger toast on error when the dashboard ID changed', async () => {
+      const requestedId = 123;
+      const { getState, dispatch } = setup({
+        dashboardInfo: {
+          id: 456,
+          metadata: { color_scheme: 'supersetColors' },
+        },
+      });
+
+      putStub.mockRestore();
+      putStub = jest
+        .spyOn(SupersetClient, 'put')
+        .mockRejectedValue(new Error('forbidden'));
+
+      await savePublished(requestedId, true)(dispatch, getState);
+
+      expect(dispatch).not.toHaveBeenCalled();
+    });
   });
 });

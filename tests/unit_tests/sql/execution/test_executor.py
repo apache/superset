@@ -47,7 +47,11 @@ from superset.models.core import Database
 
 # Note: database, database_with_dml, mock_db_session fixtures and
 # mock_query_execution helper are imported from conftest.py
-from .conftest import mock_query_execution
+from .conftest import (
+    _passthrough_mutate_sql_based_on_config,
+    create_mock_cursor,
+    mock_query_execution,
+)
 
 # =============================================================================
 # Basic Execution Tests
@@ -871,6 +875,47 @@ def test_execute_applies_sql_mutator(
     mutate_mock.assert_called()
 
 
+@pytest.mark.parametrize("is_split", [True, False])
+def test_execute_sql_with_cursor_forwards_is_split(
+    mocker: MockerFixture,
+    database: Database,
+    app_context: None,
+    mock_db_session: MagicMock,
+    mock_query: MagicMock,
+    is_split: bool,
+) -> None:
+    """
+    `execute_sql_with_cursor` must forward `is_split` to the SQL mutator.
+
+    `Database.mutate_sql_based_on_config` only fires `SQL_QUERY_MUTATOR` when
+    `is_split == MUTATE_AFTER_SPLIT`, so passing the wrong value silently skips
+    mutation (the SQL Lab bug behind issue #30169). This guards the contract.
+    """
+    from superset.sql.execution.executor import execute_sql_with_cursor
+
+    mutate_mock: MagicMock = mocker.patch.object(
+        database,
+        "mutate_sql_based_on_config",
+        side_effect=_passthrough_mutate_sql_based_on_config,
+    )
+    mocker.patch.object(database.db_engine_spec, "execute")
+    mocker.patch.object(database.db_engine_spec, "fetch_data", return_value=[(1,)])
+    mocker.patch("superset.result_set.SupersetResultSet", return_value=MagicMock())
+
+    cursor: MagicMock = create_mock_cursor(["id"], data=[(1,)])
+
+    execute_sql_with_cursor(
+        database=database,
+        cursor=cursor,
+        statements=["SELECT id FROM t"],
+        query=mock_query,
+        is_split=is_split,
+    )
+
+    mutate_mock.assert_called_once()
+    assert mutate_mock.call_args.kwargs["is_split"] is is_split
+
+
 # =============================================================================
 # Progress Tracking Tests
 # =============================================================================
@@ -1138,6 +1183,36 @@ def test_execute_sql_with_cursor_empty_statements(app_context: None) -> None:
     assert result == []  # Returns empty list for empty statements
 
 
+@pytest.mark.parametrize("mutated_output", ["   \n", "-- governance comment\n"])
+def test_execute_sql_with_cursor_empty_after_mutation(
+    app_context: None,
+    mutated_output: str,
+) -> None:
+    """A mutator that strips a statement to nothing executable (whitespace or
+    comments only) raises a clean error."""
+    from superset.errors import SupersetErrorType
+    from superset.exceptions import SupersetErrorException
+    from superset.sql.execution.executor import execute_sql_with_cursor
+
+    mock_database = MagicMock()
+    mock_database.db_engine_spec.engine = "postgresql"
+    mock_database.mutate_sql_based_on_config = lambda sql, **kw: mutated_output
+
+    mock_cursor = MagicMock()
+    mock_query = MagicMock()
+
+    with pytest.raises(SupersetErrorException) as excinfo:
+        execute_sql_with_cursor(
+            database=mock_database,
+            cursor=mock_cursor,
+            statements=["SELECT 1"],
+            query=mock_query,
+        )
+
+    assert excinfo.value.error.error_type == SupersetErrorType.INVALID_SQL_ERROR
+    mock_database.db_engine_spec.execute.assert_not_called()
+
+
 def test_execute_sql_with_cursor_stopped_mid_execution(
     mocker: MockerFixture, app_context: None
 ) -> None:
@@ -1374,8 +1449,10 @@ def test_execute_uses_default_catalog_and_schema(
     get_default_catalog_mock = mocker.patch.object(
         database, "get_default_catalog", return_value="main"
     )
+    # Schema is resolved through the query-aware ``get_default_schema_for_query``
+    # (so per-query engine gates run), not the static ``get_default_schema``.
     get_default_schema_mock = mocker.patch.object(
-        database, "get_default_schema", return_value="public"
+        database, "get_default_schema_for_query", return_value="public"
     )
     mocker.patch.dict(
         current_app.config,
@@ -1393,6 +1470,88 @@ def test_execute_uses_default_catalog_and_schema(
     # Verify default catalog/schema were fetched
     get_default_catalog_mock.assert_called()
     get_default_schema_mock.assert_called()
+
+
+def test_resolve_query_schema_uses_query_aware_resolution(
+    mocker: MockerFixture, database: Database, app_context: None
+) -> None:
+    """``_resolve_query_schema`` resolves through the query-aware
+    ``get_default_schema_for_query`` (which runs per-query engine security gates),
+    handing it a transient probe Query that carries the request's SQL, schema,
+    catalog and template params."""
+    from superset.models.sql_lab import Query
+    from superset.sql.execution.executor import SQLExecutor
+
+    resolve_mock = mocker.patch.object(
+        database, "get_default_schema_for_query", return_value="resolved_schema"
+    )
+
+    executor = SQLExecutor(database)
+    options = QueryOptions(schema="explicit", template_params={"p": 1})
+
+    result = executor._resolve_query_schema("SELECT 1", options, "cat")
+
+    assert result == "resolved_schema"
+    probe, template_params = resolve_mock.call_args.args
+    assert isinstance(probe, Query)
+    assert probe.sql == "SELECT 1"
+    assert probe.schema == "explicit"
+    assert probe.catalog == "cat"
+    assert template_params == {"p": 1}
+
+
+def test_resolve_query_schema_omits_blank_schema(
+    mocker: MockerFixture, database: Database, app_context: None
+) -> None:
+    """An unset request schema reaches the probe as ``None`` so the engine spec
+    resolves the runtime default instead of matching on an empty string."""
+    resolve_mock = mocker.patch.object(
+        database, "get_default_schema_for_query", return_value="public"
+    )
+
+    from superset.sql.execution.executor import SQLExecutor
+
+    executor = SQLExecutor(database)
+
+    result = executor._resolve_query_schema("SELECT 1", QueryOptions(), None)
+
+    assert result == "public"
+    probe = resolve_mock.call_args.args[0]
+    assert probe.schema is None
+    assert probe.catalog is None
+
+
+def test_prepare_sql_runs_schema_gate_with_explicit_schema(
+    mocker: MockerFixture, database: Database, app_context: None
+) -> None:
+    """The per-query schema gate must run even when an explicit schema is
+    supplied, so an explicit-schema request cannot smuggle a ``SET search_path``
+    past the gate the resolver enforces (parity with the estimate path, which
+    resolves unconditionally)."""
+    from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+    from superset.exceptions import SupersetSecurityException
+    from superset.sql.execution.executor import SQLExecutor
+
+    gate = mocker.patch.object(
+        database,
+        "get_default_schema_for_query",
+        side_effect=SupersetSecurityException(
+            SupersetError(
+                message="blocked",
+                error_type=SupersetErrorType.QUERY_SECURITY_ACCESS_ERROR,
+                level=ErrorLevel.ERROR,
+            )
+        ),
+    )
+    executor = SQLExecutor(database)
+
+    with pytest.raises(SupersetSecurityException):
+        executor._prepare_sql(
+            "SET search_path = secret; SELECT 1",
+            QueryOptions(schema="explicit"),
+        )
+
+    gate.assert_called_once()
 
 
 # =============================================================================
@@ -2256,3 +2415,214 @@ def test_cached_async_result_get_result_returns_cached(
     assert retrieved_result.status == QueryStatus.SUCCESS
     assert sum(s.row_count for s in retrieved_result.statements) == 3
     assert retrieved_result is cached_result
+
+
+def test_build_statement_blocks_skips_validation_for_unparseable_mutated_sql(
+    mocker: MockerFixture, mock_database: MagicMock, app_context: None
+) -> None:
+    """
+    A mutator may emit engine-specific SQL the parser can't handle. The
+    empty-statement validation on the joined block is skipped in that case
+    instead of blocking execution, leaving the database as the authority
+    on validity.
+    """
+    from superset.exceptions import SupersetParseError
+    from superset.sql.execution.executor import build_statement_blocks
+    from superset.sql.parse import SQLScript
+
+    mocker.patch.dict(current_app.config, {"MUTATE_AFTER_SPLIT": True})
+    mock_database.db_engine_spec.run_multiple_statements_as_one = True
+    mocker.patch.object(
+        mock_database,
+        "mutate_sql_based_on_config",
+        side_effect=lambda sql, **kw: f"ENGINE SPECIFIC {sql}",
+    )
+    parsed_script = SQLScript("SELECT 1; SELECT 2;", engine="bigquery")
+    mocker.patch(
+        "superset.sql.execution.executor.SQLScript",
+        side_effect=SupersetParseError("ENGINE SPECIFIC SQL"),
+    )
+
+    _, blocks = build_statement_blocks(
+        parsed_script, mock_database.db_engine_spec, mock_database
+    )
+
+    assert len(blocks) == 1
+    assert blocks[0].count("ENGINE SPECIFIC") == 2
+
+
+# =============================================================================
+# Cache Key Identity Tests
+# =============================================================================
+
+
+def test_generate_cache_key_ignores_user_without_impersonation(
+    mocker: MockerFixture, database: Database, app_context: None
+) -> None:
+    """
+    When the connection does not carry per-user identity, the cache key
+    must not depend on the calling user -- unrelated users legitimately
+    share cache entries for identical queries.
+    """
+    from superset.sql.execution.executor import SQLExecutor
+
+    executor = SQLExecutor(database)
+    options = QueryOptions()
+
+    mocker.patch("superset.sql.execution.executor.utils.get_user_id", return_value=1)
+    key_user_1 = executor._generate_cache_key("SELECT * FROM salaries", options)
+
+    mocker.patch("superset.sql.execution.executor.utils.get_user_id", return_value=2)
+    key_user_2 = executor._generate_cache_key("SELECT * FROM salaries", options)
+
+    assert key_user_1 is not None
+    assert key_user_1 == key_user_2
+
+
+def test_generate_cache_key_scopes_by_user_when_impersonation_enabled(
+    mocker: MockerFixture, database: Database, app_context: None
+) -> None:
+    """
+    Regression: when the database impersonates the connecting user (or
+    uses per-user OAuth2), the effective identity the database sees
+    differs per user even for byte-identical SQL text. The cache key must
+    incorporate that identity so one user's cached rows can never be
+    served to another user the database itself would have denied.
+    """
+    from superset.sql.execution.executor import SQLExecutor
+
+    database.impersonate_user = True
+    executor = SQLExecutor(database)
+    options = QueryOptions()
+
+    mocker.patch("superset.sql.execution.executor.utils.get_user_id", return_value=1)
+    key_analyst_a = executor._generate_cache_key("SELECT * FROM salaries", options)
+
+    mocker.patch("superset.sql.execution.executor.utils.get_user_id", return_value=2)
+    key_analyst_b = executor._generate_cache_key("SELECT * FROM salaries", options)
+
+    assert key_analyst_a is not None
+    assert key_analyst_b is not None
+    assert key_analyst_a != key_analyst_b
+
+
+def test_generate_cache_key_includes_impersonation_key_when_present(
+    mocker: MockerFixture, database: Database, app_context: None
+) -> None:
+    """
+    The executor's result cache mirrors the chart-data cache-key path:
+    when CACHE_IMPERSONATION / CACHE_QUERY_BY_USER / per_user_caching
+    resolves an impersonation key for the connection, that key must be
+    folded into the generated cache key so it can't collide with a key
+    generated for a different impersonated identity.
+    """
+    from superset.sql.execution.executor import SQLExecutor
+
+    executor = SQLExecutor(database)
+    options = QueryOptions()
+
+    mocker.patch(
+        "superset.utils.cache_keys.add_impersonation_cache_key_if_needed",
+        side_effect=lambda db, cache_dict: cache_dict.__setitem__(
+            "impersonation_key", "engineer_a"
+        ),
+    )
+    key_engineer_a = executor._generate_cache_key("SELECT * FROM salaries", options)
+
+    mocker.patch(
+        "superset.utils.cache_keys.add_impersonation_cache_key_if_needed",
+        side_effect=lambda db, cache_dict: cache_dict.__setitem__(
+            "impersonation_key", "engineer_b"
+        ),
+    )
+    key_engineer_b = executor._generate_cache_key("SELECT * FROM salaries", options)
+
+    mocker.patch(
+        "superset.utils.cache_keys.add_impersonation_cache_key_if_needed",
+        side_effect=lambda db, cache_dict: None,
+    )
+    key_no_impersonation = executor._generate_cache_key(
+        "SELECT * FROM salaries", options
+    )
+
+    assert key_engineer_a is not None
+    assert key_engineer_b is not None
+    assert key_no_impersonation is not None
+    assert len({key_engineer_a, key_engineer_b, key_no_impersonation}) == 3
+
+
+def test_generate_cache_key_none_when_identity_unknown(
+    mocker: MockerFixture, database: Database, app_context: None
+) -> None:
+    """
+    If the database carries per-user identity but the effective user
+    cannot be determined (e.g. no request context), the query must be
+    treated as uncacheable rather than risk a shared cache entry.
+    """
+    from superset.sql.execution.executor import SQLExecutor
+
+    database.impersonate_user = True
+    executor = SQLExecutor(database)
+    options = QueryOptions()
+
+    mocker.patch("superset.sql.execution.executor.utils.get_user_id", return_value=None)
+
+    assert executor._generate_cache_key("SELECT * FROM salaries", options) is None
+
+
+def test_get_from_cache_skips_when_identity_unknown(
+    mocker: MockerFixture, database: Database, app_context: None
+) -> None:
+    """
+    ``_get_from_cache`` must not read from the cache backend at all when
+    ``_generate_cache_key`` reports the query as uncacheable.
+    """
+    from superset.extensions import cache_manager
+    from superset.sql.execution.executor import SQLExecutor
+
+    database.impersonate_user = True
+    executor = SQLExecutor(database)
+    mocker.patch("superset.sql.execution.executor.utils.get_user_id", return_value=None)
+    mock_cache_get = mocker.patch.object(cache_manager.data_cache, "get")
+
+    result = executor._get_from_cache("SELECT * FROM salaries", QueryOptions())
+
+    assert result is None
+    mock_cache_get.assert_not_called()
+
+
+def test_store_in_cache_skips_when_identity_unknown(
+    mocker: MockerFixture, database: Database, app_context: None
+) -> None:
+    """
+    ``_store_in_cache`` must not write to the cache backend at all when
+    ``_generate_cache_key`` reports the query as uncacheable.
+    """
+    from superset_core.queries.types import (
+        QueryResult as QueryResultType,
+        StatementResult,
+    )
+
+    from superset.extensions import cache_manager
+    from superset.sql.execution.executor import SQLExecutor
+
+    database.impersonate_user = True
+    executor = SQLExecutor(database)
+    mocker.patch("superset.sql.execution.executor.utils.get_user_id", return_value=None)
+    mock_cache_set = mocker.patch.object(cache_manager.data_cache, "set")
+
+    result = QueryResultType(
+        status=QueryStatus.SUCCESS,
+        statements=[
+            StatementResult(
+                original_sql="SELECT * FROM salaries",
+                executed_sql="SELECT * FROM salaries",
+                data=pd.DataFrame({"salary": [1]}),
+                row_count=1,
+            )
+        ],
+    )
+
+    executor._store_in_cache(result, "SELECT * FROM salaries", QueryOptions())
+
+    mock_cache_set.assert_not_called()

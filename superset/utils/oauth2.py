@@ -33,12 +33,16 @@ from werkzeug.routing import BuildError
 
 from superset import db
 from superset.distributed_lock import DistributedLock
-from superset.exceptions import AcquireDistributedLockFailedException, OAuth2Error
+from superset.exceptions import (
+    AcquireDistributedLockFailedException,
+    OAuth2Error,
+    OAuth2TokenRefreshError,
+)
 from superset.superset_typing import OAuth2ClientConfig, OAuth2State
 
 if TYPE_CHECKING:
     from superset.db_engine_specs.base import BaseEngineSpec
-    from superset.models.core import Database, DatabaseUserOAuth2Tokens
+    from superset.models.core import Database
 
 JWT_EXPIRATION = timedelta(minutes=5)
 
@@ -116,7 +120,7 @@ def get_oauth2_access_token(
         return token.access_token
 
     if token.refresh_token:
-        return refresh_oauth2_token(config, database_id, user_id, db_engine_spec, token)
+        return refresh_oauth2_token(config, database_id, user_id, db_engine_spec)
 
     # since the access token is expired and there's no refresh token, delete the entry
     db.session.delete(token)
@@ -129,8 +133,10 @@ def refresh_oauth2_token(
     database_id: int,
     user_id: int,
     db_engine_spec: type[BaseEngineSpec],
-    token: DatabaseUserOAuth2Tokens,
 ) -> str | None:
+    # pylint: disable=import-outside-toplevel
+    from superset.models.core import DatabaseUserOAuth2Tokens
+
     # Use longer TTL for OAuth2 token refresh (may involve network calls)
     with DistributedLock(
         namespace="refresh_oauth2_token",
@@ -138,6 +144,22 @@ def refresh_oauth2_token(
         user_id=user_id,
         database_id=database_id,
     ):
+        # Short circuit in case another request already deleted the token
+        token = (
+            db.session.query(DatabaseUserOAuth2Tokens)
+            .filter_by(user_id=user_id, database_id=database_id)
+            .one_or_none()
+        )
+        if token is None:
+            return None
+
+        if token.access_token and datetime.now() < token.access_token_expiration:
+            return token.access_token
+
+        if not token.refresh_token:
+            db.session.delete(token)
+            return None
+
         try:
             token_response = db_engine_spec.get_oauth2_fresh_token(
                 config,
@@ -146,23 +168,26 @@ def refresh_oauth2_token(
         except db_engine_spec.oauth2_exception as ex:
             # OAuth token is no longer valid, delete it and start OAuth2 dance
             logger.warning(
-                "OAuth2 token refresh failed for user=%s db=%s, "
-                "deleting token. Error: %s",
-                user_id,
+                "OAuth2 token refresh failed: database_id=%s engine=%s error_type=%s; "
+                "deleting token",
                 database_id,
-                ex,
+                db_engine_spec.engine,
+                type(ex).__name__,
             )
             db.session.delete(token)
             db.session.flush()
-            raise
-        except Exception:
-            # non-OAuth related failure, log the exception
-            logger.warning(
-                "OAuth2 token refresh failed for user=%s db=%s",
-                user_id,
+            raise OAuth2TokenRefreshError() from None
+        # Engine specs can delegate to arbitrary provider clients that do not share an
+        # exception base class. Sanitize every other provider-boundary failure while
+        # preserving the refresh token for a later retry.
+        except Exception as ex:  # pylint: disable=broad-except
+            logger.error(
+                "OAuth2 token refresh failed: database_id=%s engine=%s error_type=%s",
                 database_id,
+                db_engine_spec.engine,
+                type(ex).__name__,
             )
-            raise
+            raise OAuth2Error("Token refresh failed") from None
 
         # store new access token; note that the refresh token might be revoked, in which
         # case there would be no access token in the response
@@ -297,6 +322,9 @@ def check_for_oauth2(database: Database) -> Iterator[None]:
     try:
         yield
     except Exception as ex:
-        if database.is_oauth2_enabled() and database.db_engine_spec.needs_oauth2(ex):
+        if database.is_oauth2_enabled() and (
+            isinstance(ex, OAuth2TokenRefreshError)
+            or database.db_engine_spec.needs_oauth2(ex)
+        ):
             database.db_engine_spec.start_oauth2_dance(database)
         raise

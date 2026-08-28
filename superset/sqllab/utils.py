@@ -31,6 +31,7 @@ DATABASE_KEYS = [
     "allow_cvas",
     "allow_dml",
     "allow_run_async",
+    "allows_cost_estimate",
     "allows_subquery",
     "backend",
     "database_name",
@@ -40,6 +41,7 @@ DATABASE_KEYS = [
     "disable_data_preview",
     "disable_drill_to_detail",
     "allow_multi_catalog",
+    "engine_information",
 ]
 
 

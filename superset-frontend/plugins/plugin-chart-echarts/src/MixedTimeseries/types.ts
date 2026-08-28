@@ -24,6 +24,7 @@ import {
   ContributionType,
   TimeFormatter,
   AxisType,
+  TooltipTruncationMode,
 } from '@superset-ui/core';
 import {
   BaseChartProps,
@@ -31,6 +32,7 @@ import {
   ContextMenuTransformedProps,
   CrossFilterTransformedProps,
   EchartsTimeseriesSeriesType,
+  LabelPositionEnum,
   LegendFormData,
   StackType,
   TitleFormData,
@@ -59,6 +61,7 @@ export type EchartsMixedTimeseriesFormData = QueryFormData & {
   timeGrainSqla?: TimeGranularity;
   forceMaxInterval?: boolean;
   tooltipTimeFormat?: string;
+  tooltipTruncation?: TooltipTruncationMode;
   zoomable: boolean;
   richTooltip: boolean;
   showQueryIdentifiers?: boolean;
@@ -84,6 +87,18 @@ export type EchartsMixedTimeseriesFormData = QueryFormData & {
   seriesTypeB: EchartsTimeseriesSeriesType;
   showValue: boolean;
   showValueB: boolean;
+  /**
+   * Where the data label sits relative to its data point on query A, applied
+   * when `showValue` is on.
+   *
+   * `'auto'` keeps the orientation-aware default the chart used before this
+   * control existed: `Right` for a horizontal chart, `Top` otherwise. It is
+   * also the value every chart saved before then resolves to, so the default
+   * must stay `'auto'` for those to keep rendering as they did.
+   */
+  labelPosition?: LabelPositionEnum | 'auto';
+  /** The same, for query B. Resolved independently of {@link labelPosition}. */
+  labelPositionB?: LabelPositionEnum | 'auto';
   stack: StackType;
   stackB: StackType;
   yAxisIndex?: number;
@@ -108,6 +123,7 @@ export const DEFAULT_FORM_DATA: EchartsMixedTimeseriesFormData = {
   yAxisFormatSecondary: TIMESERIES_DEFAULTS.yAxisFormat,
   yAxisTitleSecondary: DEFAULT_TITLE_FORM_DATA.yAxisTitle,
   tooltipTimeFormat: TIMESERIES_DEFAULTS.tooltipTimeFormat,
+  tooltipTruncation: TIMESERIES_DEFAULTS.tooltipTruncation,
   xAxisBounds: TIMESERIES_DEFAULTS.xAxisBounds,
   xAxisForceCategorical: TIMESERIES_DEFAULTS.xAxisForceCategorical,
   xAxisTimeFormat: TIMESERIES_DEFAULTS.xAxisTimeFormat,
@@ -127,6 +143,8 @@ export const DEFAULT_FORM_DATA: EchartsMixedTimeseriesFormData = {
   seriesTypeB: TIMESERIES_DEFAULTS.seriesType,
   showValue: TIMESERIES_DEFAULTS.showValue,
   showValueB: TIMESERIES_DEFAULTS.showValue,
+  labelPosition: 'auto',
+  labelPositionB: 'auto',
   stack: TIMESERIES_DEFAULTS.stack,
   stackB: TIMESERIES_DEFAULTS.stack,
   yAxisIndex: 0,

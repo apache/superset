@@ -16,6 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+// Imported first: loading this before 'spec/helpers/testing-library' or
+// '@superset-ui/core' ensures mockAntdWithDesktopBreakpoint is defined
+// before anything transitively requires (and thus mocks) 'antd'.
+import {
+  mockAntdWithDesktopBreakpoint,
+  mockMobileMatchMedia,
+} from 'spec/helpers/mobileTestUtils';
 import * as reactRedux from 'react-redux';
 import fetchMock from 'fetch-mock';
 import {
@@ -24,8 +31,9 @@ import {
   userEvent,
   waitFor,
 } from 'spec/helpers/testing-library';
-import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
+import { isFeatureEnabled, FeatureFlag, CACHE_KEY } from '@superset-ui/core';
 import { isEmbedded } from 'src/dashboard/util/isEmbedded';
+import * as getBootstrapData from 'src/utils/getBootstrapData';
 import RightMenu from './RightMenu';
 import { GlobalMenuDataOptions, RightMenuProps } from './types';
 
@@ -48,6 +56,9 @@ jest.mock('react-redux', () => ({
   ...jest.requireActual('react-redux'),
   useSelector: jest.fn(),
 }));
+
+// Mock useBreakpoint to return desktop breakpoints (prevents mobile menu rendering)
+jest.mock('antd', () => mockAntdWithDesktopBreakpoint());
 
 jest.mock('src/features/databases/DatabaseModal', () => {
   const DatabaseModal = () => <span />;
@@ -105,7 +116,7 @@ const dropdownItems = [
   },
   {
     label: 'Dashboard',
-    url: '/dashboard/new',
+    url: '/dashboard/new/',
     icon: 'fa-fw fa-dashboard',
     perm: 'can_write',
     view: 'Dashboard',
@@ -194,35 +205,43 @@ beforeEach(async () => {
 
 afterEach(() => fetchMock.clearHistory().removeRoutes());
 
+// Backs useSelector with a stable implementation (rather than a queue of
+// mockReturnValueOnce values) so it returns correct data no matter how many
+// times RightMenu (re-)renders — e.g. from async DB-permission effects or
+// the mobile drawer's click-triggered re-render — instead of relying on
+// tests to predict and pre-queue an exact render count.
 const resetUseSelectorMock = () => {
-  useSelectorMock.mockReturnValueOnce({
-    createdOn: '2021-04-27T18:12:38.952304',
-    email: 'admin',
-    firstName: 'admin',
-    isActive: true,
-    lastName: 'admin',
-    permissions: {},
-    roles: {
-      Admin: [
-        ['can_upload', 'Database'], // So we can upload data (CSV, Excel, Columnar)
-        ['can_write', 'Database'], // So we can write DBs
-        ['can_write', 'Dataset'], // So we can write Datasets
-        ['can_write', 'Chart'], // So we can write Datasets
-      ],
+  const mockState = {
+    user: {
+      createdOn: '2021-04-27T18:12:38.952304',
+      email: 'admin',
+      firstName: 'admin',
+      isActive: true,
+      lastName: 'admin',
+      permissions: {},
+      roles: {
+        Admin: [
+          ['can_upload', 'Database'], // So we can upload data (CSV, Excel, Columnar)
+          ['can_write', 'Database'], // So we can write DBs
+          ['can_write', 'Dataset'], // So we can write Datasets
+          ['can_write', 'Chart'], // So we can write Datasets
+        ],
+      },
+      userId: 1,
+      username: 'admin',
     },
-    userId: 1,
-    username: 'admin',
-  });
-
-  // By default we get file extensions to be uploaded
-  useSelectorMock.mockReturnValueOnce('1');
-  // By default we get file extensions to be uploaded
-  useSelectorMock.mockReturnValueOnce({
-    CSV_EXTENSIONS: ['csv'],
-    EXCEL_EXTENSIONS: ['xls', 'xlsx'],
-    COLUMNAR_EXTENSIONS: ['parquet', 'zip'],
-    ALLOWED_EXTENSIONS: ['parquet', 'zip', 'xls', 'xlsx', 'csv'],
-  });
+    dashboardInfo: { id: '1' },
+    // By default we get file extensions to be uploaded
+    common: {
+      conf: {
+        CSV_EXTENSIONS: ['csv'],
+        EXCEL_EXTENSIONS: ['xls', 'xlsx'],
+        COLUMNAR_EXTENSIONS: ['parquet', 'zip'],
+        ALLOWED_EXTENSIONS: ['parquet', 'zip', 'xls', 'xlsx', 'csv'],
+      },
+    },
+  };
+  useSelectorMock.mockImplementation(selector => selector(mockState));
 };
 
 test('renders', async () => {
@@ -268,11 +287,6 @@ test('If only examples DB exist we must show the Connect Database option', async
   fetchMock.modifyRoute(getDatabaseWithNameFilterMockUrl, {
     response: { result: [], count: 0 },
   });
-  // Initial Load
-  resetUseSelectorMock();
-  // setAllowUploads called
-  resetUseSelectorMock();
-  // setNonExamplesDBConnected called
   resetUseSelectorMock();
   render(<RightMenu {...mockedProps} />, {
     useRedux: true,
@@ -296,11 +310,6 @@ test('If more than just examples DB exist we must show the Create dataset option
   fetchMock.modifyRoute(getDatabaseWithNameFilterMockUrl, {
     response: { result: [...mockNonExamplesDB], count: 2 },
   });
-  // Initial Load
-  resetUseSelectorMock();
-  // setAllowUploads called
-  resetUseSelectorMock();
-  // setNonExamplesDBConnected called
   resetUseSelectorMock();
   render(<RightMenu {...mockedProps} />, {
     useRedux: true,
@@ -326,11 +335,6 @@ test('If there is a DB with allow_file_upload set as True the option should be e
     'glob:*api/v1/database/?q=(filters:!((col:database_name,opr:neq,value:examples)))',
     { result: [...mockNonExamplesDB], count: 2 },
   );
-  // Initial load
-  resetUseSelectorMock();
-  // setAllowUploads called
-  resetUseSelectorMock();
-  // setNonExamplesDBConnected called
   resetUseSelectorMock();
   render(<RightMenu {...mockedProps} />, {
     useRedux: true,
@@ -361,11 +365,6 @@ test('If there is NOT a DB with allow_file_upload set as True the option should 
     'glob:*api/v1/database/?q=(filters:!((col:database_name,opr:neq,value:examples)))',
     { result: [...mockNonExamplesDB], count: 2 },
   );
-  // Initial load
-  resetUseSelectorMock();
-  // setAllowUploads called
-  resetUseSelectorMock();
-  // setNonExamplesDBConnected called
   resetUseSelectorMock();
   render(<RightMenu {...mockedProps} />, {
     useRedux: true,
@@ -377,11 +376,12 @@ test('If there is NOT a DB with allow_file_upload set as True the option should 
   await userEvent.hover(dropdown);
   const dataMenu = await screen.findByText(dropdownItems[0].label);
   await userEvent.hover(dataMenu);
-  const csvMenu = await screen.findByRole('menuitem', {
-    name: 'Upload CSV to database',
-  });
+  const csvMenu = await screen.findByText('Upload CSV to database');
   expect(csvMenu).toBeInTheDocument();
-  expect(csvMenu).toHaveAttribute('aria-disabled', 'true');
+  expect(csvMenu.closest('li[role="menuitem"]')).toHaveAttribute(
+    'aria-disabled',
+    'true',
+  );
 });
 
 test('Logs out and clears local storage item redux', async () => {
@@ -400,17 +400,35 @@ test('Logs out and clears local storage item redux', async () => {
   expect(localStorage.getItem('redux')).not.toBeNull();
   expect(sessionStorage.getItem('login_attempted')).not.toBeNull();
 
-  await userEvent.hover(await screen.findByText(/Settings/i));
+  // Mock the Cache API so we can assert the namespaced store is purged.
+  const cacheGlobal = global as unknown as { caches?: CacheStorage };
+  const priorCaches = cacheGlobal.caches;
+  const deleteMock = jest.fn().mockResolvedValue(true);
+  cacheGlobal.caches = { delete: deleteMock } as unknown as CacheStorage;
 
-  // Simulate user clicking the logout button
-  const logoutButton = await screen.findByText('Logout');
-  await userEvent.click(logoutButton);
+  try {
+    await userEvent.hover(await screen.findByText(/Settings/i));
 
-  // Wait for local and session storage to be cleared
-  await waitFor(() => {
-    expect(localStorage.getItem('redux')).toBeNull();
-    expect(sessionStorage.getItem('login_attempted')).toBeNull();
-  });
+    // Simulate user clicking the logout button
+    const logoutButton = await screen.findByText('Logout');
+    await userEvent.click(logoutButton);
+
+    // Wait for local and session storage to be cleared
+    await waitFor(() => {
+      expect(localStorage.getItem('redux')).toBeNull();
+      expect(sessionStorage.getItem('login_attempted')).toBeNull();
+    });
+    // The namespaced Cache API store is purged on logout.
+    expect(deleteMock).toHaveBeenCalledWith(CACHE_KEY);
+  } finally {
+    // Restore the global so an early assertion failure cannot leak the mock
+    // into other tests.
+    if (priorCaches === undefined) {
+      delete cacheGlobal.caches;
+    } else {
+      cacheGlobal.caches = priorCaches;
+    }
+  }
 });
 
 test('shows logout button when not embedded', async () => {
@@ -475,4 +493,102 @@ test('hides logout button when embedded and flag is enabled', async () => {
 
   userEvent.hover(await screen.findByText(/Settings/i));
   expect(screen.queryByText('Logout')).not.toBeInTheDocument();
+});
+
+test('Info link href is single-prefixed under subdirectory deployment', async () => {
+  // Backend emits a bare leading-slash path (`/user_info/` or `/users/userinfo/`).
+  // RightMenu wraps it with ensureAppRoot, which reads applicationRoot()
+  // dynamically. Under SUPERSET_APP_ROOT=/superset the rendered href must
+  // be exactly `/superset/users/userinfo/` — not `/users/userinfo/` (no
+  // prefix → 404) or `/superset/superset/users/userinfo/` (double prefix).
+  const applicationRootSpy = jest
+    .spyOn(getBootstrapData, 'applicationRoot')
+    .mockReturnValue('/superset');
+
+  try {
+    resetUseSelectorMock();
+    render(<RightMenu {...createProps()} />, {
+      useRedux: true,
+      useQueryParams: true,
+      useRouter: true,
+      useTheme: true,
+    });
+
+    userEvent.hover(await screen.findByText(/Settings/i));
+    const infoLink = await screen.findByText('Info');
+    expect(infoLink.closest('a')).toHaveAttribute(
+      'href',
+      '/superset/users/userinfo/',
+    );
+  } finally {
+    applicationRootSpy.mockRestore();
+  }
+});
+
+test('Logout link href is single-prefixed under subdirectory deployment', async () => {
+  // The logout URL is built by Flask-AppBuilder's get_url_for_logout, which
+  // is SCRIPT_NAME-aware and returns `/superset/logout/` under app_root.
+  // The frontend then routes it through ensureAppRoot, whose idempotence
+  // contract (see pathUtils.parity.test.ts) must prevent doubling.
+  const applicationRootSpy = jest
+    .spyOn(getBootstrapData, 'applicationRoot')
+    .mockReturnValue('/superset');
+
+  try {
+    const props = createProps();
+    // Mirror the SCRIPT_NAME-prefixed value the backend would emit under
+    // APPLICATION_ROOT=/superset.
+    props.navbarRight.user_logout_url = '/superset/logout/';
+    resetUseSelectorMock();
+    render(<RightMenu {...props} />, {
+      useRedux: true,
+      useQueryParams: true,
+      useRouter: true,
+      useTheme: true,
+    });
+
+    userEvent.hover(await screen.findByText(/Settings/i));
+    const logoutLink = await screen.findByText('Logout');
+    expect(logoutLink.closest('a')).toHaveAttribute(
+      'href',
+      '/superset/logout/',
+    );
+  } finally {
+    applicationRootSpy.mockRestore();
+  }
+});
+
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
+describe('mobile consumption mode', () => {
+  let restoreMatchMedia: () => void;
+
+  beforeEach(() => {
+    restoreMatchMedia = mockMobileMatchMedia();
+    mockIsFeatureEnabled.mockImplementation(
+      (flag: FeatureFlag) => flag === FeatureFlag.MobileConsumptionMode,
+    );
+  });
+
+  afterEach(() => {
+    restoreMatchMedia();
+  });
+
+  test('renders a hamburger menu instead of the desktop nav, and opens a drawer on click', async () => {
+    const mockedProps = createProps();
+    resetUseSelectorMock();
+    render(<RightMenu {...mockedProps} />, {
+      useRedux: true,
+      useRouter: true,
+      useQueryParams: true,
+      useTheme: true,
+    });
+
+    // The desktop horizontal menu never mounts on mobile.
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+
+    const hamburger = await screen.findByRole('button', { name: 'Menu' });
+    await userEvent.click(hamburger);
+
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
+  });
 });

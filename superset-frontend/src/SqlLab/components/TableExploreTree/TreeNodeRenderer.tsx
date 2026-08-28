@@ -16,11 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { handleKeyboardActivation } from '@superset-ui/core';
 import { css, styled, useTheme } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
 import type { NodeRendererProps } from 'react-arborist';
 import { Icons, Typography } from '@superset-ui/core/components';
-import RefreshLabel from '@superset-ui/core/components/RefreshLabel';
 import ColumnElement from 'src/SqlLab/components/ColumnElement';
 import { ActionButton } from '@superset-ui/core/components/ActionButton';
 import copyTextToClipboard from 'src/utils/copy';
@@ -102,7 +102,6 @@ export interface TreeNodeRendererProps extends NodeRendererProps<TreeNodeData> {
 const TreeNodeRenderer: React.FC<TreeNodeRendererProps> = ({
   node,
   style,
-  manuallyOpenedNodes,
   loadingNodes,
   searchTerm,
   catalog,
@@ -185,9 +184,13 @@ const TreeNodeRenderer: React.FC<TreeNodeRendererProps> = ({
         <ColumnElement
           column={data.columnData}
           actions={
+            // Pure event-boundary wrapper: only stops the click/keydown from
+            // reaching the row's select handler, not itself interactive.
+            // eslint-disable-next-line jsx-a11y/no-static-element-interactions
             <span
               className="col-copy-action"
               onClick={e => e.stopPropagation()}
+              onKeyDown={e => e.stopPropagation()}
             >
               <ActionButton
                 label={`copy-col-${data.name}`}
@@ -205,6 +208,11 @@ const TreeNodeRenderer: React.FC<TreeNodeRendererProps> = ({
   }
 
   return (
+    // react-arborist's row wrapper (an ancestor of this element) already
+    // supplies role="treeitem" and roving tabIndex/keyboard nav; this div
+    // just forwards clicks/keys to node.select()/toggle(), so adding its
+    // own role would create a nested-interactive-role anti-pattern.
+    // eslint-disable-next-line jsx-a11y/no-static-element-interactions
     <div
       className="tree-node"
       style={style}
@@ -217,6 +225,13 @@ const TreeNodeRenderer: React.FC<TreeNodeRendererProps> = ({
           node.toggle();
         }
       }}
+      onKeyDown={handleKeyboardActivation(() => {
+        if (node.isLeaf) {
+          node.select();
+        } else {
+          node.toggle();
+        }
+      })}
     >
       <span
         className="tree-node-icon"
@@ -238,10 +253,13 @@ const TreeNodeRenderer: React.FC<TreeNodeRendererProps> = ({
         {highlightText(data.name, searchTerm)}
       </Typography.Text>
       {identifier === 'schema' && (
+        // Pure event-boundary wrapper: only stops the click/keydown from
+        // reaching the row's select handler, not itself interactive.
+        // eslint-disable-next-line jsx-a11y/no-static-element-interactions
         <div
           className="side-action-container"
-          role="menu"
           onClick={e => e.stopPropagation()}
+          onKeyDown={e => e.stopPropagation()}
         >
           {pinnedSchemas.has(schema) && (
             <div className="action-static">
@@ -260,16 +278,17 @@ const TreeNodeRenderer: React.FC<TreeNodeRendererProps> = ({
             </div>
           )}
           <div className="action-hover">
-            <RefreshLabel
-              onClick={e => {
-                e.stopPropagation();
+            <ActionButton
+              label={`refresh-schema-${schema}`}
+              tooltip={t('Force refresh table list')}
+              icon={<Icons.SyncOutlined iconSize="m" />}
+              onClick={() => {
                 handleRefreshTables({
                   dbId: Number(_dbId),
                   catalog,
                   schema,
                 });
               }}
-              tooltipContent={t('Force refresh table list')}
             />
             <ActionButton
               label={
@@ -305,10 +324,13 @@ const TreeNodeRenderer: React.FC<TreeNodeRendererProps> = ({
           const isPinned = pinnedTableKeys.has(tableKey);
           const selectStar = selectStarMap[tableKey];
           return (
+            // Pure event-boundary wrapper: only stops the click/keydown from
+            // reaching the row's select handler, not itself interactive.
+            // eslint-disable-next-line jsx-a11y/no-static-element-interactions
             <div
               className="side-action-container"
-              role="menu"
               onClick={e => e.stopPropagation()}
+              onKeyDown={e => e.stopPropagation()}
             >
               {isPinned && (
                 <div className="action-static">
@@ -348,9 +370,9 @@ const TreeNodeRenderer: React.FC<TreeNodeRendererProps> = ({
                     <Icons.SortAscendingOutlined
                       iconSize="m"
                       css={css`
-                        color: ${sortedTables[data.id]
-                          ? theme.colorPrimary
-                          : 'inherit'};
+                        color: ${
+                          sortedTables[data.id] ? theme.colorPrimary : 'inherit'
+                        };
                       `}
                     />
                   }

@@ -23,15 +23,26 @@ import logging
 from typing import Any, TYPE_CHECKING
 
 from fastmcp import Context
+from marshmallow import ValidationError as MarshmallowValidationError
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
 if TYPE_CHECKING:
     from superset.models.slice import Slice
 
+from superset.charts.data.form_data import set_query_context_form_data
 from superset.commands.exceptions import CommandException
 from superset.commands.explore.form_data.parameters import CommandParameters
 from superset.exceptions import SupersetException, SupersetSecurityException
 from superset.extensions import event_logger
+from superset.mcp_service.chart.chart_helpers import (
+    build_query_context_from_form_data,
+    extract_x_axis_col,
+    merge_extra_form_data_filters_into_query,
+    resolve_form_data_datasource,
+    resolve_groupby,
+    resolve_metrics,
+    resolve_metrics_and_groupby,
+)
 from superset.mcp_service.chart.chart_utils import validate_chart_dataset
 from superset.mcp_service.chart.schemas import (
     ChartError,
@@ -59,77 +70,31 @@ def _get_cached_form_data(form_data_key: str) -> str | None:
 
 def _resolve_metrics(form_data: dict[str, Any], viz_type: str) -> list[Any]:
     """Extract metrics from form_data, handling chart-type-specific fields."""
-    # Bubble charts store measures in x, y, size fields
-    if viz_type == "bubble":
-        return [m for field in ("x", "y", "size") if (m := form_data.get(field))]
-
-    metrics = form_data.get("metrics", [])
-    # Fallback: some chart types store the measure as singular "metric"
-    if not metrics and (metric := form_data.get("metric")):
-        metrics = [metric]
-    return metrics
+    return resolve_metrics(form_data, viz_type)
 
 
-def _resolve_groupby(form_data: dict[str, Any]) -> list[str]:
-    """Extract groupby columns from form_data with fallback aliases.
-
-    Normalises scalar strings (e.g. heatmap_v2 migrated from legacy
-    ``all_columns_y``) so that ``list("country")`` does not split into
-    individual characters.
-    """
-    raw_groupby = form_data.get("groupby") or []
-    if isinstance(raw_groupby, str):
-        groupby: list[str] = [raw_groupby]
-    else:
-        groupby = list(raw_groupby)
-
-    if groupby:
-        return groupby
-
-    # Fallback: some chart types store dimensions in entity/series/columns
-    for field in ("entity", "series"):
-        value = form_data.get(field)
-        if isinstance(value, str) and value not in groupby:
-            groupby.append(value)
-
-    form_columns = form_data.get("columns")
-    if isinstance(form_columns, list):
-        for col in form_columns:
-            if isinstance(col, str) and col not in groupby:
-                groupby.append(col)
-
-    return groupby
+def _resolve_groupby(form_data: dict[str, Any]) -> list[Any]:
+    """Extract groupby columns from form_data with fallback aliases."""
+    return resolve_groupby(form_data)
 
 
 def _resolve_metrics_and_groupby(
     form_data: dict[str, Any],
     chart: "Slice | None",
-) -> tuple[list[Any], list[str]]:
-    """Resolve metrics and groupby columns from form_data.
+) -> tuple[list[Any], list[Any]]:
+    """Resolve metrics and groupby columns from form_data."""
+    return resolve_metrics_and_groupby(form_data, chart)
 
-    Handles chart-type-specific field names: singular ``metric`` for
-    big-number variants, bubble ``x``/``y``/``size``, and fallback
-    fields ``entity``, ``series``, and ``columns`` for dimensions.
-    """
-    viz_type = form_data.get(
-        "viz_type", getattr(chart, "viz_type", "") if chart else ""
-    )
 
-    singular_metric_no_groupby = (
-        "big_number",
-        "big_number_total",
-        "pop_kpi",
-    )
-    if viz_type in singular_metric_no_groupby:
-        metrics: list[Any] = [metric] if (metric := form_data.get("metric")) else []
-        return metrics, []
-
-    return _resolve_metrics(form_data, viz_type), _resolve_groupby(form_data)
+def _extract_x_axis_col(form_data: dict[str, Any]) -> str | None:
+    """Return the x_axis column name from form_data, or None if not set."""
+    return extract_x_axis_col(form_data)
 
 
 def _build_query_context_from_form_data(
     form_data: dict[str, Any],
     chart: "Slice | None" = None,
+    extra_form_data: dict[str, Any] | None = None,
 ) -> Any:
     """Build a QueryContext from form_data with result_type=QUERY.
 
@@ -137,56 +102,11 @@ def _build_query_context_from_form_data(
     instead of executing the query.
     """
     from superset.common.chart_data import ChartDataResultType
-    from superset.common.query_context_factory import QueryContextFactory
 
-    factory = QueryContextFactory()
-
-    datasource_id = form_data.get("datasource_id")
-    datasource_type = form_data.get("datasource_type")
-
-    # Unsaved Explore state often stores datasource as a combined field
-    # like "123__table" instead of separate datasource_id/datasource_type.
-    if not datasource_id and (combined := form_data.get("datasource")):
-        if isinstance(combined, str) and "__" in combined:
-            parts = combined.split("__", 1)
-            datasource_id = int(parts[0]) if parts[0].isdigit() else parts[0]
-            datasource_type = parts[1] if len(parts) > 1 else None
-
-    if not datasource_id and chart:
-        datasource_id = getattr(chart, "datasource_id", None)
-    if not datasource_type and chart:
-        datasource_type = getattr(chart, "datasource_type", None)
-
-    metrics, groupby = _resolve_metrics_and_groupby(form_data, chart)
-
-    # Build a minimal query object; let QueryContextFactory handle temporal
-    # fields (time_range, granularity_sqla), adhoc_filters, WHERE/HAVING
-    # clauses, etc. from form_data — same approach as get_chart_data.
-    query_dict: dict[str, Any] = {
-        "columns": groupby,
-        "metrics": metrics,
-    }
-
-    if (row_limit := form_data.get("row_limit")) is not None:
-        query_dict["row_limit"] = row_limit
-
-    # Ensure datasource fields satisfy DatasourceDict typing requirements.
-    # datasource_id must be int | str; datasource_type must be str.
-    if not isinstance(datasource_id, (int, str)):
-        raise ValueError(
-            "Cannot determine datasource ID from form_data. "
-            "Provide a chart identifier or ensure form_data contains "
-            "'datasource_id' or 'datasource'."
-        )
-    resolved_id: int | str = datasource_id
-    resolved_type: str = (
-        datasource_type if isinstance(datasource_type, str) else "table"
-    )
-
-    return factory.create(
-        datasource={"id": resolved_id, "type": resolved_type},
-        queries=[query_dict],
-        form_data=form_data,
+    return build_query_context_from_form_data(
+        form_data,
+        chart=chart,
+        extra_form_data=extra_form_data,
         result_type=ChartDataResultType.QUERY,
         force=False,
     )
@@ -236,6 +156,7 @@ def _resolve_effective_form_data(
 
 def _sql_from_saved_query_context(
     chart: "Slice",
+    extra_form_data: dict[str, Any] | None = None,
 ) -> ChartSql | ChartError | None:
     """Try to extract SQL from a chart's saved query_context.
 
@@ -254,8 +175,63 @@ def _sql_from_saved_query_context(
         qc_json["result_type"] = ChartDataResultType.QUERY
         qc_json["force"] = False
 
-        query_context = ChartDataQueryContextSchema().load(qc_json)
+        if extra_form_data:
+            # Resolve the pieces of the saved context the merge depends on first.
+            # Failures here mean the context itself is stale, not that the
+            # request's filters are bad, so the caller should rebuild it from
+            # form_data rather than surfacing a validation error.
+            try:
+                datasource_id = qc_json["datasource"]["id"]
+                datasource_type = qc_json["datasource"]["type"]
+                queries = qc_json.get("queries", [])
+                if not isinstance(queries, list):
+                    raise TypeError("queries must be a list")
+            except (AttributeError, KeyError, TypeError) as ex:
+                logger.warning(
+                    "Saved query context is unusable for chart %s; "
+                    "falling back to form_data: %s",
+                    chart.id,
+                    ex,
+                )
+                return None
+
+            try:
+                for query in queries:
+                    merge_extra_form_data_filters_into_query(
+                        query,
+                        extra_form_data,
+                        datasource_id,
+                        datasource_type,
+                    )
+            except (AttributeError, KeyError, TypeError) as ex:
+                return ChartError(
+                    error=f"Invalid extra_form_data filter: {ex}",
+                    error_type="ValidationError",
+                )
+
+        try:
+            query_context = ChartDataQueryContextSchema().load(qc_json)
+        except MarshmallowValidationError as ex:
+            # A saved query context can become stale as schemas evolve. Let the
+            # caller rebuild it from form_data; malformed request filters will
+            # still produce a ValidationError from that fallback path.
+            logger.warning(
+                "Saved query context validation failed for chart %s; "
+                "falling back to form_data: %s",
+                chart.id,
+                ex,
+            )
+            return None
         query_context.result_type = ChartDataResultType.QUERY
+        # ChartDataDatasourceSchema only requires "id", so fall back to the
+        # chart's own datasource rather than raising on a context that the
+        # schema itself considers valid.
+        datasource_json = qc_json.get("datasource") or {}
+        set_query_context_form_data(
+            query_context,
+            datasource_json.get("id", chart.datasource_id),
+            datasource_json.get("type", chart.datasource_type),
+        )
 
         command = ChartDataCommand(query_context)
         command.validate()
@@ -270,14 +246,77 @@ def _sql_from_saved_query_context(
         return None
 
 
+def _resolve_datasource_name(
+    form_data: dict[str, Any],
+    chart: "Slice | None",
+) -> str | None:
+    """Resolve datasource name from form_data or chart.
+
+    For unsaved charts (chart=None), looks up the datasource by ID
+    from form_data so that the response includes a meaningful name.
+    """
+    if chart:
+        return getattr(chart, "datasource_name", None)
+
+    # Unsaved chart — resolve from form_data
+    datasource_id = form_data.get("datasource_id")
+    datasource_type = form_data.get("datasource_type", "table")
+
+    if not datasource_id and (combined := form_data.get("datasource")):
+        if isinstance(combined, str) and "__" in combined:
+            parts = combined.split("__", 1)
+            datasource_id = int(parts[0]) if parts[0].isdigit() else parts[0]
+            datasource_type = parts[1] if len(parts) > 1 else "table"
+
+    if not datasource_id:
+        return None
+
+    try:
+        from superset.daos.datasource import DatasourceDAO
+        from superset.daos.exceptions import (
+            DatasourceNotFound,
+            DatasourceTypeNotSupportedError,
+            DatasourceValueIsIncorrect,
+        )
+        from superset.utils.core import DatasourceType
+
+        datasource = DatasourceDAO.get_datasource(
+            datasource_type=DatasourceType(datasource_type),
+            database_id_or_uuid=datasource_id,
+        )
+        return getattr(datasource, "name", None)
+    except (
+        ValueError,
+        DatasourceNotFound,
+        DatasourceTypeNotSupportedError,
+        DatasourceValueIsIncorrect,
+    ):
+        return None
+
+
 def _sql_from_form_data(
     form_data: dict[str, Any],
     chart: "Slice | None",
+    extra_form_data: dict[str, Any] | None = None,
 ) -> ChartSql | ChartError:
     """Build SQL from form_data (fallback path)."""
     from superset.commands.chart.data.get_data_command import ChartDataCommand
 
-    query_context = _build_query_context_from_form_data(form_data, chart)
+    try:
+        _, datasource_type = resolve_form_data_datasource(form_data, chart)
+        query_context = _build_query_context_from_form_data(
+            form_data, chart, extra_form_data=extra_form_data
+        )
+    except (AttributeError, KeyError, TypeError, MarshmallowValidationError) as ex:
+        return ChartError(
+            error=f"Invalid chart query data: {ex}",
+            error_type="ValidationError",
+        )
+    set_query_context_form_data(
+        query_context,
+        query_context.datasource.id,
+        datasource_type,
+    )
     command = ChartDataCommand(query_context)
     command.validate()
     result = command.run()
@@ -286,7 +325,7 @@ def _sql_from_form_data(
         result,
         chart_id=getattr(chart, "id", None),
         chart_name=getattr(chart, "slice_name", None),
-        datasource_name=getattr(chart, "datasource_name", None),
+        datasource_name=_resolve_datasource_name(form_data, chart),
     )
 
 
@@ -354,6 +393,7 @@ def _extract_sql_from_result(
         title="Get chart SQL",
         readOnlyHint=True,
         destructiveHint=False,
+        openWorldHint=False,
     ),
 )
 async def get_chart_sql(
@@ -373,6 +413,8 @@ async def get_chart_sql(
     Supports:
     - Numeric ID or UUID lookup
     - form_data_key: get SQL for unsaved chart state from Explore view
+    - extra_form_data: preview SQL with dashboard-filter-style predicates merged
+      in, same format accepted by get_chart_data
 
     Example usage:
     ```json
@@ -408,9 +450,21 @@ async def _handle_chart_sql_request(
     request: GetChartSqlRequest, ctx: Context
 ) -> ChartSql | ChartError:
     """Core logic for get_chart_sql, extracted for complexity."""
+    from superset import security_manager
+
+    # A chart's SQL exposes tables/columns/joins; deny guests (like get_dataset_info)
+    # explicitly so it holds even with MCP_RBAC_ENABLED off.
+    if security_manager.is_guest_user():
+        return ChartError(
+            error="Chart SQL is not available to embedded guests.",
+            error_type="Forbidden",
+        )
+
     # Handle unsaved chart (form_data_key only, no identifier)
     if not request.identifier and request.form_data_key:
-        return await _handle_unsaved_chart_sql(request.form_data_key, ctx)
+        return await _handle_unsaved_chart_sql(
+            request.form_data_key, ctx, request.extra_form_data
+        )
 
     # Find the chart by identifier
     if request.identifier is None:
@@ -433,7 +487,7 @@ async def _handle_chart_sql_request(
     )
 
     # Validate the chart's dataset is accessible
-    validation_result = validate_chart_dataset(chart, check_access=True)
+    validation_result = validate_chart_dataset(chart.datasource_id, check_access=True)
     if not validation_result.is_valid:
         await ctx.warning(
             "Chart found but dataset is not accessible: %s" % (validation_result.error,)
@@ -453,7 +507,7 @@ async def _handle_chart_sql_request(
     # Try saved query_context first (faster, more accurate)
     with event_logger.log_context(action="mcp.get_chart_sql.build_query"):
         if not using_unsaved_state:
-            saved_result = _sql_from_saved_query_context(chart)
+            saved_result = _sql_from_saved_query_context(chart, request.extra_form_data)
             if saved_result is not None:
                 return saved_result
             await ctx.warning(
@@ -463,7 +517,9 @@ async def _handle_chart_sql_request(
 
         # Fallback: build query context from form_data
         try:
-            return _sql_from_form_data(effective_form_data, chart)
+            return _sql_from_form_data(
+                effective_form_data, chart, request.extra_form_data
+            )
         except (SupersetException, CommandException, ValueError) as e:
             await ctx.warning("Failed to build SQL from form_data: %s" % str(e))
             return ChartError(
@@ -473,7 +529,9 @@ async def _handle_chart_sql_request(
 
 
 async def _handle_unsaved_chart_sql(
-    form_data_key: str, ctx: Context
+    form_data_key: str,
+    ctx: Context,
+    extra_form_data: dict[str, Any] | None = None,
 ) -> ChartSql | ChartError:
     """Handle SQL retrieval for unsaved charts (form_data_key only)."""
     from superset.utils import json as utils_json
@@ -504,7 +562,9 @@ async def _handle_unsaved_chart_sql(
             )
 
         try:
-            return _sql_from_form_data(form_data, chart=None)
+            return _sql_from_form_data(
+                form_data, chart=None, extra_form_data=extra_form_data
+            )
         except (SupersetException, CommandException, ValueError) as e:
             await ctx.warning("Failed to generate SQL from form_data: %s" % str(e))
             return ChartError(

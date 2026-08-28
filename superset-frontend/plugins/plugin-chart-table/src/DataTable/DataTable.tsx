@@ -43,7 +43,7 @@ import {
   Row,
 } from 'react-table';
 import { matchSorter, rankings } from 'match-sorter';
-import { isEqual } from 'lodash';
+import { isEqual } from 'lodash-es';
 import { Flex, Space } from '@superset-ui/core/components';
 import GlobalFilter, { GlobalFilterProps } from './components/GlobalFilter';
 import SelectPageSize, {
@@ -56,6 +56,7 @@ import { PAGE_SIZE_OPTIONS } from '../consts';
 import { sortAlphanumericCaseInsensitive } from './utils/sortAlphanumericCaseInsensitive';
 import { SearchOption, SortByItem } from '../types';
 import SearchSelectDropdown from './components/SearchSelectDropdown';
+import { SupersetTheme, css } from '@apache-superset/core/theme';
 
 export interface DataTableProps<D extends object> extends TableOptions<D> {
   tableClassName?: string;
@@ -119,7 +120,7 @@ export default typedMemo(function DataTable<D extends object>({
   onServerPaginationChange,
   rowCount,
   selectPageSize,
-  noResults: noResultsText = 'No data found',
+  noResults: noResultsText = t('No data found'),
   hooks,
   serverPagination,
   wrapperRef: userWrapperRef,
@@ -147,7 +148,25 @@ export default typedMemo(function DataTable<D extends object>({
     hooks || [],
   ].flat();
 
-  const columnNames = Object.keys(data?.[0] || {});
+  const columnNames = columns.map((column, index) => {
+    const normalizedColumn = column as typeof column & {
+      accessor?: string | ((row: D) => unknown);
+      columnKey?: string;
+      id?: string;
+    };
+
+    const accessorName =
+      typeof normalizedColumn.accessor === 'string'
+        ? normalizedColumn.accessor
+        : undefined;
+
+    return (
+      normalizedColumn.columnKey ??
+      normalizedColumn.id ??
+      accessorName ??
+      String(index)
+    );
+  });
   const previousColumnNames = usePrevious(columnNames);
   const resultsSize = serverPagination ? rowCount : data.length;
   const sortByRef = useRef([]); // cache initial `sortby` so sorting doesn't trigger page reset
@@ -237,7 +256,9 @@ export default typedMemo(function DataTable<D extends object>({
       getTableSize: defaultGetTableSize,
       globalFilter: defaultGlobalFilter,
       sortTypes,
+      autoResetGlobalFilter: !isEqual(columnNames, previousColumnNames),
       autoResetSortBy: !isEqual(columnNames, previousColumnNames),
+      autoResetPage: !isEqual(columnNames, previousColumnNames),
       manualSortBy: !!serverPagination,
       ...moreUseTableOptions,
     },
@@ -381,7 +402,7 @@ export default typedMemo(function DataTable<D extends object>({
             prepareRow(row);
             const { key: rowKey, ...rowProps } = row.getRowProps();
             return (
-              <tr key={rowKey || row.id} {...rowProps} role="row">
+              <tr key={rowKey || row.id} {...rowProps}>
                 {row.cells.map(cell =>
                   cell.render('Cell', { key: cell.column.id }),
                 )}
@@ -402,11 +423,7 @@ export default typedMemo(function DataTable<D extends object>({
             const { key: footerGroupKey, ...footerGroupProps } =
               footerGroup.getHeaderGroupProps();
             return (
-              <tr
-                key={footerGroupKey || footerGroup.id}
-                {...footerGroupProps}
-                role="row"
-              >
+              <tr key={footerGroupKey || footerGroup.id} {...footerGroupProps}>
                 {footerGroup.headers.map(column =>
                   column.render('Footer', { key: column.id }),
                 )}
@@ -546,6 +563,9 @@ export default typedMemo(function DataTable<D extends object>({
             align="center"
             justify="space-between"
             gap="middle"
+            css={(theme: SupersetTheme) => css`
+              font-size: ${theme.fontSizeSM}px;
+            `}
           >
             {hasPagination ? (
               <SelectPageSize
@@ -561,30 +581,32 @@ export default typedMemo(function DataTable<D extends object>({
               />
             ) : null}
             <Flex wrap align="center" gap="middle">
-              {serverPagination && (
-                <Space size="small" className="search-select-container">
-                  <span className="search-by-label">{t('Search by')}:</span>
-                  <SearchSelectDropdown
-                    searchOptions={searchOptions}
-                    value={serverPaginationData?.searchColumn || ''}
-                    onChange={onSearchColChange}
-                  />
-                </Space>
-              )}
               {searchInput && (
-                <GlobalFilter<D>
-                  searchInput={
-                    typeof searchInput === 'boolean' ? undefined : searchInput
-                  }
-                  preGlobalFilteredRows={preGlobalFilteredRows}
-                  setGlobalFilter={
-                    manualSearch ? handleSearchChange : setGlobalFilter
-                  }
-                  filterValue={manualSearch ? initialSearchText : filterValue}
-                  id={searchInputId}
-                  serverPagination={!!serverPagination}
-                  rowCount={rowCount}
-                />
+                <>
+                  {serverPagination && searchOptions?.length > 0 && (
+                    <Space direction="vertical" size={4}>
+                      {t('Search by')}
+                      <SearchSelectDropdown
+                        searchOptions={searchOptions}
+                        value={serverPaginationData?.searchColumn || ''}
+                        onChange={onSearchColChange}
+                      />
+                    </Space>
+                  )}
+                  <GlobalFilter<D>
+                    searchInput={
+                      typeof searchInput === 'boolean' ? undefined : searchInput
+                    }
+                    preGlobalFilteredRows={preGlobalFilteredRows}
+                    setGlobalFilter={
+                      manualSearch ? handleSearchChange : setGlobalFilter
+                    }
+                    filterValue={manualSearch ? initialSearchText : filterValue}
+                    id={searchInputId}
+                    serverPagination={!!serverPagination}
+                    rowCount={rowCount}
+                  />
+                </>
               )}
               {renderTimeComparisonDropdown
                 ? renderTimeComparisonDropdown()

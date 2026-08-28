@@ -16,6 +16,7 @@ import {
   ControlPanelsContainerProps,
   ControlState,
   CustomControlItem,
+  isCustomControlItem,
 } from '@superset-ui/chart-controls';
 import config from '../src/controlPanel';
 
@@ -74,4 +75,39 @@ test('time_grain_sqla visibility should be case-insensitive', () => {
   expect(vis(mkProps(['orderdate']), controlState)).toBe(true);
   expect(vis(mkProps(['ORDERDATE']), controlState)).toBe(true);
   expect(vis(mkProps(['some_other_col']), controlState)).toBe(false);
+});
+
+test('show_totals renders in the customize tab atop visual formatting', () => {
+  const visualFormatting = config.controlPanelSections.find(
+    section => section?.label === 'Visual formatting',
+  );
+  expect(visualFormatting).toBeDefined();
+
+  const [firstRow] = visualFormatting!.controlSetRows;
+  const firstControl = firstRow[0] as CustomControlItem;
+  expect(firstControl.name).toBe('show_totals');
+  // renderTrigger keeps the whole section classified into the customize tab
+  // and must not regress; without it the section moves to the data tab.
+  expect(firstControl.config.renderTrigger).toBe(true);
+  // No visibility gate: the summary checkbox must render in raw records
+  // mode as well as aggregate mode.
+  expect(firstControl.config.visibility).toBeUndefined();
+});
+
+test('every Visual formatting control is a renderTrigger', () => {
+  // A non-renderTrigger control in this section would silently drag the
+  // whole section's classification from the customize tab to the data tab.
+  const visualFormatting = config.controlPanelSections.find(
+    section => section?.label === 'Visual formatting',
+  );
+  expect(visualFormatting).toBeDefined();
+
+  const controls = visualFormatting!.controlSetRows
+    .flat()
+    .filter(isCustomControlItem);
+  expect(controls.length).toBeGreaterThan(0);
+
+  controls.forEach(control => {
+    expect(control.config.renderTrigger).toBe(true);
+  });
 });

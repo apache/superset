@@ -31,11 +31,14 @@ export type DateLabelProps = {
   onClick?: (event: MouseEvent) => void;
 };
 
-const LabelContainer = styled.div<{
+const LabelContainer = styled.button<{
   isActive?: boolean;
   isPlaceholder?: boolean;
 }>`
   ${({ theme, isActive, isPlaceholder }) => css`
+    appearance: none;
+    font: inherit;
+    width: 100%;
     height: ${theme.sizeUnit * 8}px;
 
     display: flex;
@@ -80,7 +83,7 @@ const LabelContainer = styled.div<{
 
 export const DateLabel = forwardRef(
   (props: DateLabelProps, ref: RefObject<HTMLSpanElement>) => (
-    <LabelContainer {...props} tabIndex={0} role="button">
+    <LabelContainer type="button" {...props}>
       <span
         id={`date-label-${props.name}`}
         className="date-label-content"

@@ -28,8 +28,20 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const sidebarTsPath = path.join(__dirname, '..', 'developer_docs', 'api', 'sidebar.ts');
-const sidebarJsPath = path.join(__dirname, '..', 'developer_docs', 'api', 'sidebar.js');
+const sidebarTsPath = path.join(
+  __dirname,
+  '..',
+  'developer_docs',
+  'api',
+  'sidebar.ts',
+);
+const sidebarJsPath = path.join(
+  __dirname,
+  '..',
+  'developer_docs',
+  'api',
+  'sidebar.js',
+);
 
 if (!fs.existsSync(sidebarTsPath)) {
   console.log('No sidebar.ts found, skipping conversion');
@@ -47,7 +59,7 @@ content = content.replace(/: SidebarsConfig/g, '');
 // Change export default to module.exports
 content = content.replace(
   /export default sidebar\.apisidebar;/,
-  'module.exports = sidebar.apisidebar;'
+  'module.exports = sidebar.apisidebar;',
 );
 
 // Parse the sidebar to add unique keys for duplicate labels
@@ -60,9 +72,9 @@ try {
     const sidebarObj = new Function(`return ${sidebarMatch[1]}`)();
 
     // First pass: count labels
-    const countLabels = (items) => {
+    const countLabels = items => {
       const counts = {};
-      const count = (item) => {
+      const count = item => {
         if (item.type === 'doc' && item.label) {
           counts[item.label] = (counts[item.label] || 0) + 1;
         }
@@ -105,7 +117,7 @@ module.exports = sidebar.apisidebar;
   // Fall back to simple conversion
   content = content.replace(
     /export default sidebar\.apisidebar;/,
-    'module.exports = sidebar.apisidebar;'
+    'module.exports = sidebar.apisidebar;',
   );
 }
 

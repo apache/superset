@@ -22,6 +22,8 @@ import {
   extractLabel,
   getAppliedColumnsWithFallback,
   getCrossFilterIndicator,
+  IndicatorStatus,
+  selectNativeIndicatorsForChart,
 } from './selectors';
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
@@ -198,6 +200,21 @@ test('extractLabel uses value when label is undefined', () => {
 test('getAppliedColumnsWithFallback returns columns from query response when available', () => {
   const chart = {
     queriesResponse: [
+      {
+        applied_filters: [{ column: 'age' }, { column: 'name' }],
+      },
+    ],
+  };
+  const result = getAppliedColumnsWithFallback(chart);
+  expect(result).toEqual(new Set(['age', 'name']));
+});
+
+test('getAppliedColumnsWithFallback returns columns from all query responses', () => {
+  const chart = {
+    queriesResponse: [
+      {
+        applied_filters: [],
+      },
       {
         applied_filters: [{ column: 'age' }, { column: 'name' }],
       },
@@ -564,4 +581,48 @@ test('getAppliedColumnsWithFallback prioritizes query response over fallback', (
     123,
   );
   expect(result).toEqual(new Set(['query_column']));
+});
+
+test('selectNativeIndicatorsForChart marks rejected filters from later query responses incompatible', () => {
+  const chartId = 987;
+  const nativeFilters = {
+    filter1: {
+      id: 'filter1',
+      name: 'Age',
+      type: NativeFilterType.NativeFilter,
+      chartsInScope: [chartId],
+      targets: [{ column: { name: 'age' } }],
+    },
+  } as any;
+  const dataMask = {
+    filter1: {
+      id: 'filter1',
+      filterState: { value: '25' },
+      extraFormData: {},
+    },
+  } as any;
+  const chart = {
+    queriesResponse: [
+      { rejected_filters: [] },
+      { rejected_filters: [{ column: 'age' }] },
+    ],
+  };
+
+  const result = selectNativeIndicatorsForChart(
+    nativeFilters,
+    dataMask,
+    chartId,
+    chart,
+    [],
+  );
+
+  expect(result).toEqual([
+    {
+      column: 'age',
+      name: 'Age',
+      path: ['filter1'],
+      status: IndicatorStatus.Incompatible,
+      value: '25',
+    },
+  ]);
 });

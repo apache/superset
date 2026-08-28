@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { pick } from 'lodash';
+import { pick } from 'lodash-es';
 import { useMemo } from 'react';
 import { shallowEqual, useSelector } from 'react-redux';
 import { SqlLabRootState, QueryEditor } from 'src/SqlLab/types';

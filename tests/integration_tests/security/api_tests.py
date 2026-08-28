@@ -30,6 +30,7 @@ from superset.utils import json
 from tests.conftest import with_config
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.constants import ADMIN_USERNAME, GAMMA_USERNAME
+from tests.integration_tests.test_app import app
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,  # noqa: F401
     load_birth_names_data,  # noqa: F401
@@ -195,6 +196,174 @@ class TestSecurityGuestTokenApi(SupersetTestCase):
         assert resource == decoded_token["resources"][0]
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_post_guest_token_with_attributes(self) -> None:
+        """
+        Security API: Create a guest token with user attributes
+        """
+        self.dash = db.session.query(Dashboard).filter_by(slug="births").first()
+        self.embedded = EmbeddedDashboardDAO.upsert(self.dash, [])
+        self.login(ADMIN_USERNAME)
+
+        user = {
+            "username": "bob_with_attrs",
+            "first_name": "Bob",
+            "last_name": "Also Bob",
+            "attributes": {
+                "department": "Engineering",
+                "region": "US",
+                "role": "developer",
+                "team": "data-platform",
+                "clearance_level": "standard",
+                "projects": ["analytics", "ml-platform"],
+                "team_lead": True,
+            },
+        }
+        resource = {"type": "dashboard", "id": str(self.embedded.uuid)}
+        rls_rule = {"dataset": 1, "clause": "1=1"}
+        params = {"user": user, "resources": [resource], "rls": [rls_rule]}
+
+        response = self.client.post(
+            self.uri, data=json.dumps(params), content_type="application/json"
+        )
+
+        self.assert200(response)
+        token = json.loads(response.data)["token"]
+        decoded_token = jwt.decode(
+            token,
+            self.app.config["GUEST_TOKEN_JWT_SECRET"],
+            audience=get_url_host(),
+            algorithms=["HS256"],
+        )
+
+        # Verify user attributes are preserved in the token
+        assert user == decoded_token["user"]
+        assert "attributes" in decoded_token["user"]
+        assert decoded_token["user"]["attributes"]["department"] == "Engineering"
+        assert decoded_token["user"]["attributes"]["region"] == "US"
+        assert decoded_token["user"]["attributes"]["role"] == "developer"
+        assert decoded_token["user"]["attributes"]["team"] == "data-platform"
+        assert decoded_token["user"]["attributes"]["clearance_level"] == "standard"
+        assert decoded_token["user"]["attributes"]["projects"] == [
+            "analytics",
+            "ml-platform",
+        ]
+        assert decoded_token["user"]["attributes"]["team_lead"] is True
+        assert resource == decoded_token["resources"][0]
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_post_guest_token_with_empty_attributes(self) -> None:
+        """
+        Security API: Create a guest token with empty user attributes
+        """
+        self.dash = db.session.query(Dashboard).filter_by(slug="births").first()
+        self.embedded = EmbeddedDashboardDAO.upsert(self.dash, [])
+        self.login(ADMIN_USERNAME)
+
+        user = {
+            "username": "bob_empty_attrs",
+            "first_name": "Bob",
+            "last_name": "Also Bob",
+            "attributes": {},
+        }
+        resource = {"type": "dashboard", "id": str(self.embedded.uuid)}
+        rls_rule = {"dataset": 1, "clause": "1=1"}
+        params = {"user": user, "resources": [resource], "rls": [rls_rule]}
+
+        response = self.client.post(
+            self.uri, data=json.dumps(params), content_type="application/json"
+        )
+
+        self.assert200(response)
+        token = json.loads(response.data)["token"]
+        decoded_token = jwt.decode(
+            token,
+            self.app.config["GUEST_TOKEN_JWT_SECRET"],
+            audience=get_url_host(),
+            algorithms=["HS256"],
+        )
+
+        # Verify empty attributes are preserved in the token
+        assert user == decoded_token["user"]
+        assert "attributes" in decoded_token["user"]
+        assert decoded_token["user"]["attributes"] == {}
+        assert resource == decoded_token["resources"][0]
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_post_guest_token_with_null_attributes(self) -> None:
+        """
+        Security API: Create a guest token with null user attributes
+        """
+        self.dash = db.session.query(Dashboard).filter_by(slug="births").first()
+        self.embedded = EmbeddedDashboardDAO.upsert(self.dash, [])
+        self.login(ADMIN_USERNAME)
+
+        user = {
+            "username": "bob_null_attrs",
+            "first_name": "Bob",
+            "last_name": "Also Bob",
+            "attributes": None,
+        }
+        resource = {"type": "dashboard", "id": str(self.embedded.uuid)}
+        rls_rule = {"dataset": 1, "clause": "1=1"}
+        params = {"user": user, "resources": [resource], "rls": [rls_rule]}
+
+        response = self.client.post(
+            self.uri, data=json.dumps(params), content_type="application/json"
+        )
+
+        self.assert200(response)
+        token = json.loads(response.data)["token"]
+        decoded_token = jwt.decode(
+            token,
+            self.app.config["GUEST_TOKEN_JWT_SECRET"],
+            audience=get_url_host(),
+            algorithms=["HS256"],
+        )
+
+        # Verify null attributes are preserved in the token
+        assert user == decoded_token["user"]
+        assert "attributes" in decoded_token["user"]
+        assert decoded_token["user"]["attributes"] is None
+        assert resource == decoded_token["resources"][0]
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_post_guest_token_without_attributes_backward_compatibility(self) -> None:
+        """
+        Security API: Create a guest token without attributes (backward compatibility)
+        """
+        self.dash = db.session.query(Dashboard).filter_by(slug="births").first()
+        self.embedded = EmbeddedDashboardDAO.upsert(self.dash, [])
+        self.login(ADMIN_USERNAME)
+
+        user = {
+            "username": "bob_no_attrs",
+            "first_name": "Bob",
+            "last_name": "Also Bob",
+            # Note: no attributes field
+        }
+        resource = {"type": "dashboard", "id": str(self.embedded.uuid)}
+        rls_rule = {"dataset": 1, "clause": "1=1"}
+        params = {"user": user, "resources": [resource], "rls": [rls_rule]}
+
+        response = self.client.post(
+            self.uri, data=json.dumps(params), content_type="application/json"
+        )
+
+        self.assert200(response)
+        token = json.loads(response.data)["token"]
+        decoded_token = jwt.decode(
+            token,
+            self.app.config["GUEST_TOKEN_JWT_SECRET"],
+            audience=get_url_host(),
+            algorithms=["HS256"],
+        )
+
+        # Verify user without attributes works and no attributes field is present
+        assert user == decoded_token["user"]
+        assert "attributes" not in decoded_token["user"]
+        assert resource == decoded_token["resources"][0]
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_post_guest_token_bad_resources(self):
         self.login(ADMIN_USERNAME)
         user = {"username": "bob", "first_name": "Bob", "last_name": "Also Bob"}
@@ -349,6 +518,33 @@ class TestSecurityRolesApi(SupersetTestCase):
         )
         self.assert403(response)
 
+    def test_show_roles_unexpected_error_returns_generic_message(self):
+        """
+        Security API: an unexpected error in role listing returns a generic 500
+        body (no raw exception text) and is logged server-side.
+        """
+        from unittest.mock import patch
+
+        self.login(ADMIN_USERNAME)
+        error_detail = "raw-driver-detail-should-not-leak"
+        # Patch a symbol used only inside get_list's query construction so the
+        # failure happens within the handler's try/except, not in the @protect()
+        # auth check (which also touches db.session.query).
+        with (
+            patch(
+                "superset.security.api.selectinload",
+                side_effect=Exception(error_detail),
+            ),
+            patch("superset.security.api.logger") as mock_logger,
+        ):
+            response = self.client.get(self.show_uri)
+
+        assert response.status_code == 500
+        body = response.data.decode("utf-8")
+        assert error_detail not in body
+        assert "An unexpected error occurred" in body
+        mock_logger.exception.assert_called_once()
+
     def test_show_roles_admin(self):
         """
         Security API: Admin should be able to show roles with permissions and users
@@ -402,3 +598,42 @@ class TestSecurityRolesApi(SupersetTestCase):
         assert sorted(role2_api["user_ids"]) == role2_expected["user_ids"]
         assert sorted(role2_api["permission_ids"]) == role2_expected["permission_ids"]
         assert role2_api["group_ids"] == role2_expected["group_ids"]
+
+
+class TestLogoutSessionInvalidation(SupersetTestCase):
+    """Regression for #24713: a session cookie captured pre-logout must not grant
+    access after the user logs out. The original report describes copying the
+    session cookie out, calling /logout/, and successfully reusing the cookie in
+    a second browser to bypass authentication."""
+
+    def test_session_cookie_invalidated_after_logout(self):
+        self.login(ADMIN_USERNAME)
+
+        resp_authed = self.client.get("api/v1/dashboard/", follow_redirects=False)
+        assert resp_authed.status_code == 200, (
+            f"Login did not yield an authenticated session "
+            f"(got {resp_authed.status_code})"
+        )
+
+        # Werkzeug 2.3+ exposes the test client's cookies on `_cookies` as a
+        # mapping keyed by (domain, path, key). Snapshot the session cookie
+        # value — this is what a malicious actor would copy out of a browser.
+        captured = None
+        for cookie in self.client._cookies.values():
+            if cookie.key == "session":
+                captured = cookie.value
+                break
+        assert captured, "expected a session cookie after login"
+
+        self.client.get("/logout/", follow_redirects=True)
+
+        # Replay the captured cookie in a fresh client (simulates importing
+        # the cookie into a second browser).
+        replay_client = app.test_client()
+        replay_client.set_cookie("session", captured, domain="localhost")
+
+        resp_replay = replay_client.get("api/v1/dashboard/", follow_redirects=False)
+        assert resp_replay.status_code != 200, (
+            f"Captured session cookie was still accepted after logout "
+            f"(status={resp_replay.status_code}); see issue #24713"
+        )

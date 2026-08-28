@@ -25,8 +25,9 @@ from __future__ import annotations
 
 import dataclasses
 import logging
+import traceback
 import uuid
-from typing import Any
+from typing import Any, TYPE_CHECKING
 
 import msgpack
 from celery.exceptions import SoftTimeLimitExceeded
@@ -48,13 +49,19 @@ from superset.exceptions import (
 from superset.extensions import celery_app
 from superset.models.sql_lab import Query
 from superset.result_set import SupersetResultSet
-from superset.sql.execution.executor import execute_sql_with_cursor
+from superset.sql.execution.executor import (
+    build_statement_blocks,
+    execute_sql_with_cursor,
+)
 from superset.sql.parse import SQLScript
 from superset.sqllab.utils import write_ipc_buffer
 from superset.utils import json
 from superset.utils.core import override_user, zlib_compress
 from superset.utils.dates import now_as_float
 from superset.utils.decorators import stats_timing
+
+if TYPE_CHECKING:
+    from superset.models.core import Database
 
 logger = logging.getLogger(__name__)
 
@@ -102,6 +109,9 @@ def _handle_query_error(
     payload.update(
         {"status": query.status.value, "error": msg, "errors": errors_payload}
     )
+    if app.config.get("SHOW_STACKTRACE"):
+        if stacktrace := traceback.format_exc():
+            payload["stacktrace"] = stacktrace
     if troubleshooting_link := app.config.get("TROUBLESHOOTING_LINK"):
         payload["link"] = troubleshooting_link
     return payload
@@ -121,26 +131,17 @@ def _serialize_payload(payload: dict[Any, Any]) -> bytes:
 def _prepare_statement_blocks(
     rendered_query: str,
     db_engine_spec: Any,
+    database: Database,
 ) -> tuple[SQLScript, list[str]]:
     """
     Parse SQL and build statement blocks for execution.
 
-    Some databases (like BigQuery and Kusto) do not persist state across multiple
-    statements if they're run separately (especially when using `NullPool`), so we run
-    the query as a single block when the database engine spec requires it.
+    Delegates to the shared ``build_statement_blocks`` so the sync
+    (``sql_lab``) and async (this module) SQL Lab paths apply
+    ``SQL_QUERY_MUTATOR``/``MUTATE_AFTER_SPLIT`` identically.
     """
     parsed_script = SQLScript(rendered_query, engine=db_engine_spec.engine)
-
-    # Build statement blocks for execution
-    if db_engine_spec.run_multiple_statements_as_one:
-        blocks = [parsed_script.format(comments=db_engine_spec.allows_sql_comments)]
-    else:
-        blocks = [
-            statement.format(comments=db_engine_spec.allows_sql_comments)
-            for statement in parsed_script.statements
-        ]
-
-    return parsed_script, blocks
+    return build_statement_blocks(parsed_script, db_engine_spec, database)
 
 
 def _finalize_successful_query(
@@ -157,6 +158,14 @@ def _finalize_successful_query(
 
     # Get original statement strings
     original_sqls = [stmt.format() for stmt in original_script.statements]
+
+    if len(original_sqls) != len(execution_results):
+        # A `SQL_QUERY_MUTATOR` that changes the number of statements (e.g. by
+        # prepending a `SET ROLE` statement when run on the whole, un-split
+        # query) can leave the un-mutated `original_script` no longer aligned
+        # 1:1 with `execution_results`. Fall back to labeling each result with
+        # its own executed SQL rather than crash a query that ran successfully.
+        original_sqls = [exec_sql for exec_sql, *_ in execution_results]
 
     for orig_sql, (exec_sql, result_set, exec_time, rowcount) in zip(
         original_sqls, execution_results, strict=True
@@ -347,7 +356,7 @@ def execute_sql_task(
                     start_time=start_time,
                 )
             except Exception as ex:
-                logger.debug("Query %d: %s", query_id, ex)
+                logger.exception("Query %d: %s", query_id, ex)
                 stats_logger = app.config["STATS_LOGGER"]
                 stats_logger.incr("error_sqllab_unhandled")
                 query = _get_query(query_id=query_id)
@@ -419,7 +428,9 @@ def _execute_sql_statements(
     original_script = SQLScript(query.sql, engine=db_engine_spec.engine)
 
     # Parse transformed SQL (with RLS, limits, etc.)
-    parsed_script, blocks = _prepare_statement_blocks(rendered_query, db_engine_spec)
+    parsed_script, blocks = _prepare_statement_blocks(
+        rendered_query, db_engine_spec, database
+    )
 
     with database.get_raw_connection(
         catalog=query.catalog,
@@ -441,6 +452,9 @@ def _execute_sql_statements(
                 log_query_fn=_make_log_query_fn(database),
                 check_stopped_fn=_make_check_stopped_fn(query),
                 execute_fn=_make_execute_fn(query, db_engine_spec),
+                # `blocks` is a single un-split block when the engine runs multiple
+                # statements as one; otherwise each block is an individual statement.
+                is_split=not db_engine_spec.run_multiple_statements_as_one,
             )
         except SoftTimeLimitExceeded as ex:
             query.status = QueryStatus.TIMED_OUT

@@ -17,6 +17,10 @@
 
 from __future__ import annotations
 
+from typing import Callable
+
+from sqlalchemy.sql.elements import ColumnElement
+
 from superset.db_engine_specs.base import DatabaseCategory
 from superset.db_engine_specs.postgres import PostgresBaseEngineSpec
 
@@ -31,6 +35,12 @@ class YugabyteDBEngineSpec(PostgresBaseEngineSpec):
     engine = "yugabytedb"
     engine_name = "YugabyteDB"
     default_driver = "psycopg2"
+
+    # `PostgresBaseEngineSpec._extended_aggregations` (MEDIAN/STDDEV_SAMP/VAR_SAMP)
+    # is verified against real Postgres behavior, not YugabyteDB's distributed
+    # query engine; disable it here until someone confirms the same expressions
+    # against a live YugabyteDB instance.
+    _extended_aggregations: dict[str, Callable[[ColumnElement], ColumnElement]] = {}
 
     metadata = {
         "description": (

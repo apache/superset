@@ -21,6 +21,7 @@ import pytest
 
 from superset.mcp_service.chart.tool.get_chart_type_schema import (
     _CHART_EXAMPLES,
+    _CHART_TYPE_ADAPTERS,
     _get_chart_type_schema_impl as _call_schema,
     VALID_CHART_TYPES,
 )
@@ -43,10 +44,17 @@ class TestGetChartTypeSchema:
         assert "y" in props
         assert "kind" in props
 
-    def test_table_schema_has_columns(self) -> None:
+    def test_table_schema_has_columns_and_column_config(self) -> None:
         result = _call_schema("table")
         props = result["schema"]["properties"]
         assert "columns" in props
+        assert "column_config" in props
+        description = props["column_config"]["description"]
+        assert "columnWidth" in description
+        assert "d3NumberFormat" in description
+        assert "d3TimeFormat" in description
+        column_config_schema = result["schema"]["$defs"]["TableColumnConfig"]
+        assert column_config_schema["additionalProperties"] is False
 
     def test_pie_schema_has_dimension_metric(self) -> None:
         result = _call_schema("pie")
@@ -70,15 +78,35 @@ class TestGetChartTypeSchema:
         assert "valid_chart_types" in result
         assert result["valid_chart_types"] == VALID_CHART_TYPES
 
+    def test_invalid_chart_type_returns_structured_error(self) -> None:
+        """Invalid chart_type must return a populated, structured error body.
+
+        Without this guarantee, MCP clients see an empty/unstructured payload
+        and cannot self-correct (Eval 26 Test 26.5).
+        """
+        result = _call_schema("nonexistent")
+        err = result["error"]
+        assert isinstance(err, dict)
+        assert err["error_type"] == "invalid_chart_type"
+        assert err["error_code"] == "INVALID_CHART_TYPE"
+        assert "nonexistent" in err["message"]
+        assert err["details"]
+        assert err["suggestions"]
+        # Suggestions must name at least one valid chart type so callers know
+        # what to try next.
+        assert any(vt in " ".join(err["suggestions"]) for vt in VALID_CHART_TYPES)
+
     def test_examples_match_chart_type(self) -> None:
         result = _call_schema("pie")
         for example in result["examples"]:
             assert example["chart_type"] == "pie"
 
     def test_valid_chart_types_constant(self) -> None:
-        assert len(VALID_CHART_TYPES) == 7
-        assert "xy" in VALID_CHART_TYPES
-        assert "table" in VALID_CHART_TYPES
+        # Parity with the adapter registry rather than a brittle magic number,
+        # so adding a chart type doesn't fail this test spuriously.
+        assert set(VALID_CHART_TYPES) == set(_CHART_TYPE_ADAPTERS)
+        # A few load-bearing members that must always be present.
+        assert {"xy", "table", "pie", "waterfall"} <= set(VALID_CHART_TYPES)
 
     def test_all_chart_types_have_examples(self) -> None:
         for chart_type in VALID_CHART_TYPES:

@@ -26,22 +26,29 @@ from typing import Any, Dict, List, TYPE_CHECKING
 from fastmcp import Context
 from flask import current_app
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import subqueryload
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
 if TYPE_CHECKING:
     from superset.models.slice import Slice
 
+from superset.charts.data.form_data import set_query_context_form_data
 from superset.commands.exceptions import CommandException
 from superset.exceptions import OAuth2Error, OAuth2RedirectError, SupersetException
 from superset.extensions import event_logger
+from superset.mcp_service import guest_scope
 from superset.mcp_service.chart.chart_helpers import (
+    build_query_context_from_form_data,
+    build_query_dicts_from_form_data,
     find_chart_by_identifier,
     get_cached_form_data,
+    merge_extra_form_data_filters_into_query,
 )
 from superset.mcp_service.chart.chart_utils import validate_chart_dataset
 from superset.mcp_service.chart.schemas import (
     ChartData,
     ChartError,
+    ChartQueryResult,
     DataColumn,
     GetChartDataRequest,
     PerformanceMetadata,
@@ -51,19 +58,279 @@ from superset.mcp_service.utils.oauth2_utils import (
     build_oauth2_redirect_message,
     OAUTH2_CONFIG_ERROR_MESSAGE,
 )
-from superset.utils.core import merge_extra_filters
+from superset.utils.core import GenericDataType
 
 logger = logging.getLogger(__name__)
 
 
-def _apply_extra_form_data(
-    form_data: dict[str, Any], extra_form_data: dict[str, Any] | None
-) -> None:
-    """Merge dashboard native filters into chart form_data in-place."""
+def _requested_filter_columns(extra_form_data: dict[str, Any] | None) -> set[str]:
+    """Return simple column names explicitly requested through extra form data."""
     if not extra_form_data:
-        return
-    form_data["extra_form_data"] = extra_form_data
-    merge_extra_filters(form_data)
+        return set()
+
+    columns: set[str] = set()
+    for filter_ in extra_form_data.get("filters", []):
+        if isinstance(filter_, dict) and isinstance(column := filter_.get("col"), str):
+            columns.add(column)
+    for filter_ in extra_form_data.get("adhoc_filters", []):
+        if (
+            isinstance(filter_, dict)
+            and filter_.get("expressionType") == "SIMPLE"
+            and isinstance(column := filter_.get("subject"), str)
+        ):
+            columns.add(column)
+    return columns
+
+
+def _rejected_columns_in_query(query: Any) -> set[str]:
+    """Return the rejected filter column names reported by one query payload.
+
+    ``_materialize_full_payload`` converts the datasource's raw
+    ``rejected_filter_columns`` list into the ``rejected_filters`` entries
+    (``{"reason": ..., "column": ...}``) that every consumer of a chart-data
+    payload sees, so that is the primary shape to read. The raw key is still
+    accepted for payloads captured before that conversion.
+    """
+    if not isinstance(query, dict):
+        return set()
+
+    columns = {
+        column
+        for entry in query.get("rejected_filters", [])
+        if isinstance(entry, dict) and isinstance(column := entry.get("column"), str)
+    }
+    columns.update(
+        column
+        for column in query.get("rejected_filter_columns", [])
+        if isinstance(column, str)
+    )
+    return columns
+
+
+def _rejected_requested_filter_columns(
+    result: Any, extra_form_data: dict[str, Any] | None
+) -> list[str]:
+    """Find request filters rejected by datasource query construction."""
+    if not isinstance(result, dict):
+        return []
+    requested = _requested_filter_columns(extra_form_data)
+    rejected = {
+        column
+        for query in result.get("queries", [])
+        for column in _rejected_columns_in_query(query)
+    }
+    return sorted(requested & rejected)
+
+
+_GENERIC_TYPE_MAP: dict[int, str] = {
+    GenericDataType.NUMERIC: "numeric",
+    GenericDataType.STRING: "string",
+    GenericDataType.TEMPORAL: "temporal",
+    GenericDataType.BOOLEAN: "boolean",
+}
+
+# Maps Superset viz_type strings to canonical categories so we can
+# avoid recommending a chart type the user already has.
+_VIZ_CATEGORY: dict[str, str] = {
+    "echarts_timeseries_line": "line",
+    "echarts_timeseries_smooth": "line",
+    "echarts_timeseries_step": "line",
+    "echarts_timeseries": "line",
+    "echarts_timeseries_bar": "bar",
+    "echarts_area": "area",
+    "echarts_timeseries_scatter": "scatter",
+    "mixed_timeseries": "line",
+    "table": "table",
+    "pie": "pie",
+    "big_number": "kpi",
+    "big_number_total": "kpi",
+    "pop_kpi": "kpi",
+    "dist_bar": "bar",
+    "line": "line",
+    "area": "area",
+    "scatter": "scatter",
+    "bubble": "bubble",
+    "treemap_v2": "treemap",
+    "sunburst_v2": "treemap",
+    "heatmap_v2": "heatmap",
+    "gauge_chart": "gauge",
+    "funnel": "funnel",
+    "histogram": "histogram",
+    "histogram_v2": "histogram",
+    "box_plot": "box_plot",
+    "world_map": "map",
+    "pivot_table_v2": "table",
+    # Own category: cumulative-flow semantics differ from a plain bar, like
+    # funnel/gauge carry distinct categories.
+    "waterfall": "waterfall",
+}
+
+_MAX_RECOMMENDATIONS = 4
+
+
+def _compute_effective_force(request: GetChartDataRequest) -> bool:
+    """use_cache=False must also bypass the cache, not just force_refresh=True."""
+    return request.force_refresh or not request.use_cache
+
+
+def _coerce_row_limit(value: Any, default: int) -> int:
+    """Coerce a row_limit (which may arrive as a str from chart.params) to int,
+    falling back to ``default`` when it is missing, non-numeric, or non-positive.
+    A non-positive limit would otherwise flow through apply_max_row_limit as-is
+    and emit ``LIMIT -1`` (unbounded on some engines, an error on others)."""
+    try:
+        coerced = int(value)
+    except (TypeError, ValueError):
+        return default
+    return coerced if coerced > 0 else default
+
+
+def _recommend_visualizations(
+    viz_type: str,
+    columns: list[DataColumn],
+    row_count: int,
+) -> list[str]:
+    """Suggest visualization types based on column types,
+    cardinality, and the chart's current viz_type.
+    """
+    if not columns:
+        return ["table"]
+
+    current_category = _VIZ_CATEGORY.get(viz_type, viz_type)
+    candidates = _build_candidates(columns, row_count)
+
+    if not candidates:
+        candidates = ["table", "bar chart"]
+
+    return _filter_candidates(candidates, current_category)
+
+
+def _build_candidates(
+    columns: list[DataColumn],
+    row_count: int,
+) -> list[str]:
+    """Build candidate visualization list from column metadata."""
+    temporal = [c for c in columns if c.data_type == "temporal"]
+    numeric = [c for c in columns if c.data_type == "numeric"]
+    categorical = [c for c in columns if c.data_type in ("string", "boolean")]
+
+    if temporal and numeric:
+        return _candidates_temporal_numeric(numeric, row_count)
+    if categorical and numeric:
+        return _candidates_categorical_numeric(numeric, categorical)
+    if len(numeric) >= 2:
+        return _candidates_multi_numeric(numeric, categorical)
+    if len(numeric) == 1 and not temporal and not categorical:
+        return _candidates_single_numeric(numeric[0], row_count)
+    return []
+
+
+def _candidates_temporal_numeric(
+    numeric: list[DataColumn], row_count: int
+) -> list[str]:
+    # Few data points are better as a bar chart than a line
+    if row_count < 5:
+        candidates = ["bar chart", "table"]
+    else:
+        candidates = ["line chart", "area chart", "bar chart"]
+        if len(numeric) > 1:
+            candidates.append("multi-line chart")
+    return candidates
+
+
+def _candidates_categorical_numeric(
+    numeric: list[DataColumn],
+    categorical: list[DataColumn],
+) -> list[str]:
+    candidates = ["bar chart"]
+    if len(numeric) == 1 and categorical[0].unique_count <= 10:
+        candidates.append("pie chart")
+    if len(numeric) >= 2:
+        candidates.append("scatter plot")
+        candidates.append("heatmap")
+    if any(c.unique_count > 5 for c in categorical):
+        candidates.append("treemap")
+    return candidates
+
+
+def _candidates_single_numeric(col: DataColumn, row_count: int) -> list[str]:
+    candidates = ["big number / KPI", "gauge chart"]
+    if row_count > 20 and col.unique_count > 10:
+        candidates.insert(0, "histogram")
+    return candidates
+
+
+def _candidates_multi_numeric(
+    numeric: list[DataColumn],
+    categorical: list[DataColumn],
+) -> list[str]:
+    candidates = ["scatter plot"]
+    if len(numeric) >= 3:
+        candidates.append("bubble chart")
+    if categorical:
+        candidates.append("heatmap")
+    return candidates
+
+
+# Maps each candidate string to a canonical category for dedup
+# against the current viz_type.
+_CANDIDATE_CATEGORY: dict[str, str] = {
+    "line chart": "line",
+    "multi-line chart": "line",
+    "area chart": "area",
+    "bar chart": "bar",
+    "scatter plot": "scatter",
+    "bubble chart": "bubble",
+    "pie chart": "pie",
+    "treemap": "treemap",
+    "heatmap": "heatmap",
+    "big number / KPI": "kpi",
+    "gauge chart": "gauge",
+    "histogram": "histogram",
+    "table": "table",
+}
+
+
+def _filter_candidates(
+    candidates: list[str],
+    current_category: str,
+) -> list[str]:
+    """Deduplicate, exclude the current viz category, and cap."""
+    seen: set[str] = set()
+    result: list[str] = []
+    for c in candidates:
+        if c in seen:
+            continue
+        if _CANDIDATE_CATEGORY.get(c) == current_category:
+            continue
+        seen.add(c)
+        result.append(c)
+        if len(result) >= _MAX_RECOMMENDATIONS:
+            break
+    return result
+
+
+def _build_query_results(
+    query_results: list[dict[str, Any]], limit: int | None
+) -> list[ChartQueryResult] | None:
+    """Preserve every result when a chart executes more than one query."""
+    if len(query_results) <= 1:
+        return None
+
+    results = []
+    for index, query_result in enumerate(query_results):
+        data = query_result.get("data", [])
+        returned_data = data[:limit] if limit else data
+        results.append(
+            ChartQueryResult(
+                query_index=index,
+                columns=query_result.get("colnames", []),
+                data=returned_data,
+                row_count=len(returned_data),
+                total_rows=query_result.get("rowcount"),
+            )
+        )
+    return results
 
 
 @tool(
@@ -73,6 +340,7 @@ def _apply_extra_form_data(
         title="Get chart data",
         readOnlyHint=True,
         destructiveHint=False,
+        openWorldHint=False,
     ),
 )
 async def get_chart_data(  # noqa: C901
@@ -113,6 +381,7 @@ async def get_chart_data(  # noqa: C901
             request.cache_timeout,
         )
     )
+    effective_force = _compute_effective_force(request)
 
     try:
         await ctx.report_progress(1, 4, "Looking up chart")
@@ -122,6 +391,13 @@ async def get_chart_data(  # noqa: C901
 
         # Handle unsaved chart (form_data_key only, no identifier)
         if not request.identifier and request.form_data_key:
+            # The unsaved-chart cache is not dashboard-scoped, so guests can't
+            # use it.
+            if guest_scope.is_guest_read():
+                return ChartError(
+                    error="No accessible chart found for this request.",
+                    error_type="NotFound",
+                )
             with event_logger.log_context(
                 action="mcp.get_chart_data.unsaved_chart_from_cache"
             ):
@@ -131,6 +407,10 @@ async def get_chart_data(  # noqa: C901
                 )
                 cached_form_data = get_cached_form_data(request.form_data_key)
                 if not cached_form_data:
+                    logger.warning(
+                        "get_chart_data: no cached form_data for form_data_key=%s",
+                        request.form_data_key,
+                    )
                     return ChartError(
                         error="No cached chart data found for form_data_key. "
                         "The cache may have expired.",
@@ -139,11 +419,22 @@ async def get_chart_data(  # noqa: C901
                 try:
                     cached_form_data_dict = utils_json.loads(cached_form_data)
                 except (TypeError, ValueError) as e:
+                    logger.warning(
+                        "get_chart_data: failed to parse cached form_data "
+                        "for form_data_key=%s: %s",
+                        request.form_data_key,
+                        e,
+                    )
                     return ChartError(
                         error=f"Failed to parse cached form_data: {e}",
                         error_type="ParseError",
                     )
                 if not isinstance(cached_form_data_dict, dict):
+                    logger.warning(
+                        "get_chart_data: cached form_data is not a JSON object "
+                        "for form_data_key=%s",
+                        request.form_data_key,
+                    )
                     return ChartError(
                         error="Cached form_data is not a valid JSON object.",
                         error_type="ParseError",
@@ -152,20 +443,46 @@ async def get_chart_data(  # noqa: C901
                 # Build query context entirely from cached form_data
                 return await _query_from_form_data(cached_form_data_dict, request, ctx)
 
-        # Find the chart by identifier
+        # Find the chart by identifier.
+        # Eagerly load the dataset's metrics relationship so Excel export
+        # (which may run after the request-scoped session is detached) can
+        # access dataset.metrics without triggering a lazy load. See
+        # apache/superset#39206 for the analogous database eager-load fix.
+        from superset.connectors.sqla.models import SqlaTable
+        from superset.models.slice import Slice
+
+        chart_query_options = [
+            subqueryload(Slice.table).subqueryload(SqlaTable.metrics),
+        ]
+
+        # Guest-scoped by ChartFilter; guest_dashboard_id authorizes the data
+        # query (None for non-guests).
+        guest_dashboard_id: int | None = None
         with event_logger.log_context(action="mcp.get_chart_data.chart_lookup"):
             await ctx.debug("Looking up chart: identifier=%s" % (request.identifier,))
             if request.identifier is None:
+                logger.warning("get_chart_data: called without a chart identifier")
                 return ChartError(
                     error="Chart identifier is required",
                     error_type="ValidationError",
                 )
-            chart = find_chart_by_identifier(request.identifier)
+            chart = find_chart_by_identifier(
+                request.identifier, query_options=chart_query_options
+            )
+            if chart is not None:
+                guest_dashboard_id = guest_scope.guest_dashboard_id(chart)
 
         if not chart:
-            await ctx.error("Chart not found: identifier=%s" % (request.identifier,))
+            await ctx.warning("Chart not found: identifier=%s" % (request.identifier,))
+            logger.warning(
+                "get_chart_data: chart not found: identifier=%s", request.identifier
+            )
+            display_id = str(request.identifier)[:200]
             return ChartError(
-                error=f"No chart found with identifier: {request.identifier}",
+                error=(
+                    f"No chart found with identifier: {display_id}."
+                    " Use list_charts to get valid chart IDs."
+                ),
                 error_type="NotFound",
             )
 
@@ -179,12 +496,21 @@ async def get_chart_data(  # noqa: C901
         )
         logger.info("Getting data for chart %s: %s", chart.id, chart.slice_name)
 
-        # Validate the chart's dataset is accessible before retrieving data
-        validation_result = validate_chart_dataset(chart, check_access=True)
+        # Guests skip the RBAC check (authorize_query covers it) but keep the
+        # existence check, so a deleted dataset still returns
+        # DatasetNotAccessible.
+        validation_result = validate_chart_dataset(
+            chart.datasource_id, check_access=not guest_scope.is_guest_read()
+        )
         if not validation_result.is_valid:
             await ctx.warning(
                 "Chart found but dataset is not accessible: %s"
                 % (validation_result.error,)
+            )
+            logger.warning(
+                "get_chart_data: dataset not accessible for chart_id=%s: %s",
+                chart.id,
+                validation_result.error,
             )
             return ChartError(
                 error=validation_result.error
@@ -206,8 +532,10 @@ async def get_chart_data(  # noqa: C901
             from superset.charts.schemas import ChartDataQueryContextSchema
             from superset.commands.chart.data.get_data_command import ChartDataCommand
 
-            # Check if form_data_key is provided - use cached form_data instead
-            if request.form_data_key:
+            # Guests always read the saved chart config: the cache isn't
+            # dashboard-scoped and its payload could point the query at another
+            # datasource.
+            if request.form_data_key and not guest_scope.is_guest_read():
                 with event_logger.log_context(
                     action="mcp.get_chart_data.unsaved_state_override"
                 ):
@@ -250,67 +578,23 @@ async def get_chart_data(  # noqa: C901
 
             # If using cached form_data, we need to build query_context from it
             if using_unsaved_state and cached_form_data_dict is not None:
-                # Build query context from cached form_data (unsaved state)
-                from superset.common.query_context_factory import QueryContextFactory
-
-                factory = QueryContextFactory()
-                row_limit = (
+                # row_limit may arrive as a str. The trailing fallback keeps a
+                # falsy 0 resolving to ROW_LIMIT.
+                row_limit = _coerce_row_limit(
                     request.limit
                     or cached_form_data_dict.get("row_limit")
-                    or current_app.config["ROW_LIMIT"]
+                    or current_app.config["ROW_LIMIT"],
+                    current_app.config["ROW_LIMIT"],
                 )
 
-                # Get datasource info from cached form_data or fall back to chart
-                datasource_id = cached_form_data_dict.get(
-                    "datasource_id", chart.datasource_id
-                )
-                datasource_type = cached_form_data_dict.get(
-                    "datasource_type", chart.datasource_type
-                )
-
-                # Handle different chart types that have different form_data
-                # structures. Some charts use "metric" (singular), not "metrics"
-                # (plural): big_number, big_number_total, pop_kpi.
-                # These charts also don't have groupby columns.
-                cached_viz_type = cached_form_data_dict.get(
-                    "viz_type", chart.viz_type or ""
-                )
-                if cached_viz_type in ("big_number", "big_number_total", "pop_kpi"):
-                    metric = cached_form_data_dict.get("metric")
-                    cached_metrics = [metric] if metric else []
-                    cached_groupby: list[str] = []
-                else:
-                    cached_metrics = cached_form_data_dict.get("metrics", [])
-                    raw_groupby = cached_form_data_dict.get("groupby", [])
-                    # Guard against string groupby (e.g. heatmap_v2 migrated
-                    # from legacy heatmap where all_columns_y was a string)
-                    if isinstance(raw_groupby, str):
-                        cached_groupby = [raw_groupby]
-                    else:
-                        cached_groupby = list(raw_groupby)
-
-                _apply_extra_form_data(cached_form_data_dict, request.extra_form_data)
-
-                cached_query: dict[str, Any] = {
-                    "filters": cached_form_data_dict.get("filters", []),
-                    "columns": cached_groupby,
-                    "metrics": cached_metrics,
-                    "row_limit": row_limit,
-                    "order_desc": cached_form_data_dict.get("order_desc", True),
-                }
-                # Include adhoc_filters so dashboard native filters are applied
-                cached_adhoc = cached_form_data_dict.get("adhoc_filters")
-                if cached_adhoc:
-                    cached_query["adhoc_filters"] = cached_adhoc
-
-                query_context = factory.create(
-                    datasource={
-                        "id": datasource_id,
-                        "type": datasource_type,
-                    },
-                    queries=[cached_query],
-                    form_data=cached_form_data_dict,
-                    force=request.force_refresh,
+                query_context = build_query_context_from_form_data(
+                    cached_form_data_dict,
+                    chart=chart,
+                    extra_form_data=request.extra_form_data,
+                    row_limit=row_limit,
+                    order_desc=cached_form_data_dict.get("order_desc", True),
+                    force=effective_force,
+                    custom_cache_timeout=request.cache_timeout,
                 )
                 await ctx.debug(
                     "Built query_context from cached form_data (unsaved state)"
@@ -339,10 +623,11 @@ async def get_chart_data(  # noqa: C901
                 from superset.common.query_context_factory import QueryContextFactory
 
                 factory = QueryContextFactory()
-                row_limit = (
-                    request.limit
-                    or form_data.get("row_limit")
-                    or current_app.config["ROW_LIMIT"]
+                # row_limit from chart.params may be a str; coerce for
+                # apply_max_row_limit's int comparison.
+                row_limit = _coerce_row_limit(
+                    request.limit or form_data.get("row_limit"),
+                    current_app.config["ROW_LIMIT"],
                 )
 
                 # Handle different chart types that have different form_data
@@ -353,133 +638,39 @@ async def get_chart_data(  # noqa: C901
                 # groupby-like fields (entity, series, columns):
                 #   world_map, treemap_v2, sunburst_v2, gauge_chart
                 # Bubble charts use x/y/size as separate metric fields.
+                # Deck.gl charts (deck_arc, deck_scatter, etc.) use spatial
+                # column configs (lat/lon, geohash, etc.) instead.
                 viz_type = chart.viz_type or ""
 
-                # Deck.gl chart types store spatial data (lat/lon)
-                # rather than traditional metrics/groupby. They
-                # require a saved query_context to retrieve data.
-                # Match by prefix to cover all current and future
-                # deck.gl viz types (deck_arc, deck_scatter, etc.).
-                if viz_type.startswith("deck_"):
-                    await ctx.warning(
-                        "Chart %s is a deck.gl visualization (%s) with no "
-                        "saved query_context. Data retrieval requires "
-                        "re-saving the chart in Superset." % (chart.id, viz_type)
-                    )
-                    return ChartError(
-                        error=(
-                            f"Chart {chart.id} is a deck.gl visualization "
-                            f"(type: {viz_type}) with no saved query_context. "
-                            f"Deck.gl charts use spatial data (lat/lon) that "
-                            f"cannot be reconstructed from form_data alone. "
-                            f"Please open this chart in Superset and re-save "
-                            f"it to generate a query_context."
-                        ),
-                        error_type="MissingQueryContext",
-                    )
-
-                singular_metric_no_groupby = (
-                    "big_number",
-                    "big_number_total",
-                    "pop_kpi",
+                fallback_queries = build_query_dicts_from_form_data(
+                    form_data,
+                    chart.datasource_id,
+                    chart.datasource_type,
+                    chart=chart,
+                    extra_form_data=request.extra_form_data,
+                    row_limit=row_limit,
+                    order_desc=True,
                 )
-                singular_metric_types = (
-                    *singular_metric_no_groupby,
-                    "world_map",
-                    "treemap_v2",
-                    "sunburst_v2",
-                    "gauge_chart",
-                )
-
-                if viz_type == "bubble":
-                    # Bubble charts store metrics in x, y, size fields
-                    bubble_metrics = []
-                    for field in ("x", "y", "size"):
-                        m = form_data.get(field)
-                        if m:
-                            bubble_metrics.append(m)
-                    metrics = bubble_metrics
-                    groupby_columns: list[str] = list(
-                        form_data.get("entity", None) and [form_data["entity"]] or []
-                    )
-                    series_field = form_data.get("series")
-                    if series_field and series_field not in groupby_columns:
-                        groupby_columns.append(series_field)
-                elif viz_type in singular_metric_types:
-                    # These chart types use "metric" (singular)
-                    metric = form_data.get("metric")
-                    metrics = [metric] if metric else []
-                    if viz_type in singular_metric_no_groupby:
-                        groupby_columns = []
-                    else:
-                        # Some singular-metric charts use groupby, entity,
-                        # series, or columns for dimensional breakdown
-                        groupby_columns = list(form_data.get("groupby") or [])
-                        entity = form_data.get("entity")
-                        if entity and entity not in groupby_columns:
-                            groupby_columns.append(entity)
-                        series = form_data.get("series")
-                        if series and series not in groupby_columns:
-                            groupby_columns.append(series)
-                        form_columns = form_data.get("columns")
-                        if form_columns and isinstance(form_columns, list):
-                            for col in form_columns:
-                                if isinstance(col, str) and col not in groupby_columns:
-                                    groupby_columns.append(col)
-                else:
-                    # Standard charts use "metrics" (plural) and "groupby"
-                    metrics = form_data.get("metrics", [])
-                    raw_groupby = form_data.get("groupby") or []
-                    # Guard against string groupby (e.g. heatmap_v2 migrated
-                    # from legacy heatmap where all_columns_y was a string)
-                    if isinstance(raw_groupby, str):
-                        groupby_columns = [raw_groupby]
-                    else:
-                        groupby_columns = list(raw_groupby)
-                    # Some chart types use "columns" instead of "groupby"
-                    if not groupby_columns:
-                        form_columns = form_data.get("columns")
-                        if form_columns and isinstance(form_columns, list):
-                            for col in form_columns:
-                                if isinstance(col, str):
-                                    groupby_columns.append(col)
-
-                # Fallback: if metrics is still empty, try singular "metric"
-                if not metrics:
-                    fallback_metric = form_data.get("metric")
-                    if fallback_metric:
-                        metrics = [fallback_metric]
-
-                # Fallback: try entity/series if groupby is still empty
-                if not groupby_columns:
-                    entity = form_data.get("entity")
-                    if entity:
-                        groupby_columns.append(entity)
-                    series = form_data.get("series")
-                    if series and series not in groupby_columns:
-                        groupby_columns.append(series)
-
-                # Build query columns list: include both x_axis and groupby
-                x_axis_config = form_data.get("x_axis")
-                query_columns = groupby_columns.copy()
-                if x_axis_config and isinstance(x_axis_config, str):
-                    if x_axis_config not in query_columns:
-                        query_columns.insert(0, x_axis_config)
-                elif x_axis_config and isinstance(x_axis_config, dict):
-                    col_name = x_axis_config.get("column_name")
-                    if col_name and col_name not in query_columns:
-                        query_columns.insert(0, col_name)
 
                 # Safety net: if we could not extract any metrics or
                 # columns, return a clear error instead of the cryptic
                 # "Empty query?" that comes from deeper in the stack.
-                if not metrics and not query_columns:
-                    await ctx.error(
+                if all(
+                    not query.get("metrics") and not query.get("columns")
+                    for query in fallback_queries
+                ):
+                    await ctx.warning(
                         "Cannot construct fallback query for chart %s "
                         "(viz_type=%s): no metrics, columns, or groupby "
                         "could be extracted from form_data. "
                         "Re-save the chart to populate query_context."
                         % (chart.id, viz_type)
+                    )
+                    logger.warning(
+                        "get_chart_data: cannot construct fallback query for "
+                        "chart_id=%s (viz_type=%s): no metrics/columns found",
+                        chart.id,
+                        viz_type,
                     )
                     return ChartError(
                         error=(
@@ -492,41 +683,35 @@ async def get_chart_data(  # noqa: C901
                         error_type="MissingQueryContext",
                     )
 
-                _apply_extra_form_data(form_data, request.extra_form_data)
-
-                fallback_query: dict[str, Any] = {
-                    "filters": form_data.get("filters", []),
-                    "columns": query_columns,
-                    "metrics": metrics,
-                    "row_limit": row_limit,
-                    "order_desc": True,
-                }
-                # Include adhoc_filters so dashboard native filters are applied
-                fallback_adhoc = form_data.get("adhoc_filters")
-                if fallback_adhoc:
-                    fallback_query["adhoc_filters"] = fallback_adhoc
-
                 query_context = factory.create(
                     datasource={
                         "id": chart.datasource_id,
                         "type": chart.datasource_type,
                     },
-                    queries=[fallback_query],
+                    queries=fallback_queries,
                     form_data=form_data,
-                    force=request.force_refresh,
+                    force=effective_force,
+                    custom_cache_timeout=request.cache_timeout,
                 )
             elif query_context_json is not None:
                 # Apply request overrides to the saved query_context
-                query_context_json["force"] = request.force_refresh
+                query_context_json["force"] = effective_force
+                if request.cache_timeout is not None:
+                    query_context_json["custom_cache_timeout"] = request.cache_timeout
 
-                # Apply row limit if specified (respects chart's configured limits)
-                if request.limit:
+                # Ignore a non-positive limit so it can't emit LIMIT -1 downstream.
+                if request.limit and request.limit > 0:
                     for query in query_context_json.get("queries", []):
                         query["row_limit"] = request.limit
 
-                # Merge dashboard native filters into query_context's form_data
-                qc_form_data = query_context_json.setdefault("form_data", {})
-                _apply_extra_form_data(qc_form_data, request.extra_form_data)
+                if request.extra_form_data:
+                    for query in query_context_json.get("queries", []):
+                        merge_extra_form_data_filters_into_query(
+                            query,
+                            request.extra_form_data,
+                            query_context_json["datasource"]["id"],
+                            query_context_json["datasource"]["type"],
+                        )
 
                 # Create QueryContext from the saved context using the schema
                 # This is exactly how the API does it
@@ -544,17 +729,47 @@ async def get_chart_data(  # noqa: C901
                 )
             )
 
+            # For an embedded guest, attach the dashboard context so
+            # raise_for_access authorizes the data query.
+            if guest_dashboard_id is not None:
+                guest_scope.authorize_query(query_context, guest_dashboard_id, chart)
+
+            set_query_context_form_data(
+                query_context,
+                chart.datasource_id,
+                chart.datasource_type,
+            )
+
             # Execute the query
             with event_logger.log_context(action="mcp.get_chart_data.query_execution"):
                 command = ChartDataCommand(query_context)
                 command.validate()
                 result = command.run()
 
+            if rejected := _rejected_requested_filter_columns(
+                result, request.extra_form_data
+            ):
+                rejected_columns = ", ".join(rejected)
+                await ctx.warning(
+                    "Requested filters reference unknown dataset columns: %s"
+                    % rejected_columns
+                )
+                return ChartError(
+                    error=f"Unknown dataset column(s) in filters: {rejected_columns}",
+                    error_type="ValidationError",
+                )
+
             # Handle empty query results for certain chart types
             if not result or ("queries" not in result) or len(result["queries"]) == 0:
                 await ctx.warning(
                     "Empty query results: chart_id=%s, chart_type=%s"
                     % (chart.id, chart.viz_type)
+                )
+                logger.warning(
+                    "get_chart_data: empty query results for chart_id=%s, "
+                    "chart_type=%s",
+                    chart.id,
+                    chart.viz_type,
                 )
                 return ChartError(
                     error=f"No query results returned for chart {chart.id}. "
@@ -578,15 +793,20 @@ async def get_chart_data(  # noqa: C901
             )
 
             # Check if we have data to work with
-            if not data:
+            if not any(query.get("data") for query in result["queries"]):
                 await ctx.warning("No data in query results: chart_id=%s" % (chart.id,))
+                logger.warning(
+                    "get_chart_data: no data in query results for chart_id=%s",
+                    chart.id,
+                )
                 return ChartError(
                     error=f"No data available for chart {chart.id}", error_type="NoData"
                 )
 
             # Create rich column metadata
+            coltypes = query_result.get("coltypes", [])
             columns = []
-            for col_name in raw_columns:
+            for idx, col_name in enumerate(raw_columns):
                 # Sample some values for metadata
                 sample_values = [
                     row.get(col_name)
@@ -594,13 +814,16 @@ async def get_chart_data(  # noqa: C901
                     if row.get(col_name) is not None
                 ]
 
-                # Infer data type
+                # Use SQL-derived GenericDataType when available,
+                # fall back to Python isinstance heuristic
                 data_type = "string"
-                if sample_values:
-                    if all(isinstance(v, (int, float)) for v in sample_values):
-                        data_type = "numeric"
-                    elif all(isinstance(v, bool) for v in sample_values):
+                if coltypes:
+                    data_type = _GENERIC_TYPE_MAP.get(coltypes[idx], "string")
+                elif sample_values:
+                    if all(isinstance(v, bool) for v in sample_values):
                         data_type = "boolean"
+                    elif all(isinstance(v, (int, float)) for v in sample_values):
+                        data_type = "numeric"
 
                 columns.append(
                     DataColumn(
@@ -643,13 +866,11 @@ async def get_chart_data(  # noqa: C901
             else:
                 insights.append("Fresh data retrieved from database")
 
-            recommended_visualizations = []
-            if any(
-                "time" in col.lower() or "date" in col.lower() for col in raw_columns
-            ):
-                recommended_visualizations.extend(["line chart", "time series"])
-            if len(raw_columns) <= 3:
-                recommended_visualizations.extend(["bar chart", "scatter plot"])
+            recommended_visualizations = _recommend_visualizations(
+                viz_type=chart.viz_type or "unknown",
+                columns=columns,
+                row_count=len(data),
+            )
 
             # Performance metadata with cache awareness
             execution_time = int((time.time() - start_time) * 1000)
@@ -751,6 +972,7 @@ async def get_chart_data(  # noqa: C901
                 chart_type=chart.viz_type or "unknown",
                 columns=columns,
                 data=data[: request.limit] if request.limit else data,
+                query_results=_build_query_results(result["queries"], request.limit),
                 row_count=len(data),
                 total_rows=query_result.get("rowcount"),
                 summary=summary,
@@ -762,6 +984,12 @@ async def get_chart_data(  # noqa: C901
                 cache_status=cache_status,
             )
 
+        except (OAuth2RedirectError, OAuth2Error):
+            # OAuth errors subclass SupersetException and would otherwise be
+            # swallowed by the generic handler below; re-raise so the
+            # dedicated outer handlers return the OAuth redirect message
+            # instead of a generic DataError.
+            raise
         except (CommandException, SupersetException, ValueError) as data_error:
             await ctx.error(
                 "Data retrieval failed: chart_id=%s, error=%s, error_type=%s"
@@ -778,9 +1006,13 @@ async def get_chart_data(  # noqa: C901
             )
 
     except OAuth2RedirectError as ex:
-        await ctx.error(
+        await ctx.warning(
             "Chart data requires OAuth authentication: identifier=%s"
             % request.identifier
+        )
+        logger.info(
+            "get_chart_data: OAuth authentication required for identifier=%s",
+            request.identifier,
         )
         return ChartError(
             error=build_oauth2_redirect_message(ex),
@@ -789,6 +1021,10 @@ async def get_chart_data(  # noqa: C901
     except OAuth2Error:
         await ctx.error(
             "OAuth2 configuration error: identifier=%s" % request.identifier
+        )
+        logger.warning(
+            "get_chart_data: OAuth2 configuration error for identifier=%s",
+            request.identifier,
         )
         return ChartError(
             error=OAUTH2_CONFIG_ERROR_MESSAGE,
@@ -817,7 +1053,7 @@ async def get_chart_data(  # noqa: C901
         )
 
 
-async def _query_from_form_data(
+async def _query_from_form_data(  # noqa: C901
     form_data: Dict[str, Any],
     request: GetChartDataRequest,
     ctx: Context,
@@ -827,52 +1063,43 @@ async def _query_from_form_data(
     Used for unsaved charts where we only have form_data_key.
     """
     from superset.commands.chart.data.get_data_command import ChartDataCommand
-    from superset.common.query_context_factory import QueryContextFactory
 
     datasource_id = form_data.get("datasource_id")
-    datasource_type: str = form_data.get("datasource_type") or "table"
 
     # Handle combined datasource field (e.g., "1__table")
     if not datasource_id and form_data.get("datasource"):
         parts = str(form_data["datasource"]).split("__")
         if len(parts) == 2:
-            datasource_id, datasource_type = parts[0], parts[1]
+            datasource_id = parts[0]
 
     if not datasource_id:
+        logger.warning(
+            "get_chart_data: cached form_data has no datasource information "
+            "(form_data_key=%s)",
+            request.form_data_key,
+        )
         return ChartError(
             error="Cached form_data does not contain datasource information.",
             error_type="InvalidFormData",
         )
 
-    viz_type = form_data.get("viz_type", "unknown")
-    row_limit = (
-        request.limit or form_data.get("row_limit") or current_app.config["ROW_LIMIT"]
+    # row_limit may arrive as a str. The trailing fallback keeps a falsy 0
+    # resolving to ROW_LIMIT.
+    row_limit = _coerce_row_limit(
+        request.limit or form_data.get("row_limit") or current_app.config["ROW_LIMIT"],
+        current_app.config["ROW_LIMIT"],
     )
-
-    # Extract metrics and groupby based on chart type
-    if viz_type in ("big_number", "big_number_total", "pop_kpi"):
-        metric = form_data.get("metric")
-        metrics = [metric] if metric else []
-        groupby: list[str] = []
-    else:
-        metrics = form_data.get("metrics", [])
-        groupby = list(form_data.get("groupby") or [])
+    viz_type = form_data.get("viz_type", "unknown")
+    effective_force = _compute_effective_force(request)
 
     try:
-        factory = QueryContextFactory()
-        query_context = factory.create(
-            datasource={"id": datasource_id, "type": datasource_type},
-            queries=[
-                {
-                    "filters": form_data.get("filters", []),
-                    "columns": groupby,
-                    "metrics": metrics,
-                    "row_limit": row_limit,
-                    "order_desc": form_data.get("order_desc", True),
-                }
-            ],
-            form_data=form_data,
-            force=request.force_refresh,
+        query_context = build_query_context_from_form_data(
+            form_data,
+            extra_form_data=request.extra_form_data,
+            row_limit=row_limit,
+            order_desc=form_data.get("order_desc", True),
+            force=effective_force,
+            custom_cache_timeout=request.cache_timeout,
         )
 
         await ctx.report_progress(3, 4, "Executing data query")
@@ -881,7 +1108,25 @@ async def _query_from_form_data(
             command.validate()
             result = command.run()
 
+        if rejected := _rejected_requested_filter_columns(
+            result, request.extra_form_data
+        ):
+            rejected_columns = ", ".join(rejected)
+            await ctx.warning(
+                "Requested filters reference unknown dataset columns: %s"
+                % rejected_columns
+            )
+            return ChartError(
+                error=f"Unknown dataset column(s) in filters: {rejected_columns}",
+                error_type="ValidationError",
+            )
+
         if not result or "queries" not in result or len(result["queries"]) == 0:
+            logger.warning(
+                "get_chart_data: empty query results for unsaved chart "
+                "(form_data_key=%s)",
+                request.form_data_key,
+            )
             return ChartError(
                 error="No query results returned for unsaved chart.",
                 error_type="EmptyQuery",
@@ -891,7 +1136,11 @@ async def _query_from_form_data(
         data = query_result.get("data", [])
         raw_columns = query_result.get("colnames", [])
 
-        if not data:
+        if not any(query.get("data") for query in result["queries"]):
+            logger.warning(
+                "get_chart_data: no data for unsaved chart (form_data_key=%s)",
+                request.form_data_key,
+            )
             return ChartError(
                 error="No data available for unsaved chart.",
                 error_type="NoData",
@@ -935,6 +1184,7 @@ async def _query_from_form_data(
             chart_type=viz_type,
             columns=columns,
             data=data[: request.limit] if request.limit else data,
+            query_results=_build_query_results(result["queries"], request.limit),
             row_count=len(data),
             total_rows=query_result.get("rowcount"),
             summary=summary,
@@ -955,6 +1205,11 @@ async def _query_from_form_data(
             cache_status=cache_status,
         )
 
+    except (OAuth2RedirectError, OAuth2Error):
+        # OAuth errors subclass SupersetException; re-raise so the caller's
+        # outer OAuth handlers return the redirect instead of a generic
+        # DataError.
+        raise
     except (CommandException, SupersetException, ValueError) as e:
         logger.error("Error querying unsaved chart data: %s", e)
         return ChartError(
@@ -1096,6 +1351,11 @@ def _try_xlsxwriter_fallback(
     except ImportError:
         from superset.mcp_service.chart.schemas import ChartError
 
+        logger.warning(
+            "get_chart_data: Excel export failed for chart_id=%s — "
+            "neither openpyxl nor xlsxwriter is installed",
+            chart.id,
+        )
         return ChartError(
             error="Excel export requires openpyxl or xlsxwriter package",
             error_type="ExportError",

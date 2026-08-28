@@ -21,7 +21,7 @@ import re
 from datetime import datetime
 from typing import Any, cast, Literal, NamedTuple, Optional, Union
 from re import Pattern
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, Mock, patch
 import pytest
 
 import numpy as np
@@ -138,8 +138,8 @@ class TestDatabaseModel(SupersetTestCase):
             assert col.is_temporal
 
     @patch("superset.jinja_context.get_username", return_value="abc")
-    def test_jinja_metrics_and_calc_columns(self, mock_username):
-        base_query_obj = {
+    def test_jinja_metrics_and_calc_columns(self, mock_username: MagicMock) -> None:
+        base_query_obj: dict[str, Any] = {
             "granularity": None,
             "from_dttm": None,
             "to_dttm": None,
@@ -173,18 +173,22 @@ class TestDatabaseModel(SupersetTestCase):
             "'{{ 'xyz_' + time_grain }}' as time_grain",
             database=get_example_database(),
         )
-        TableColumn(
+        db.session.add(table)
+
+        column = TableColumn(
             column_name="expr",
             expression="case when '{{ current_username() }}' = 'abc' "
             "then 'yes' else 'no' end",
             type="VARCHAR(100)",
             table=table,
         )
-        SqlMetric(
+        metric = SqlMetric(
             metric_name="count_timegrain",
             expression="count('{{ 'bar_' + time_grain }}')",
             table=table,
         )
+        db.session.add(column)
+        db.session.add(metric)
         db.session.commit()
 
         sqla_query = table.get_sqla_query(**base_query_obj)
@@ -199,8 +203,8 @@ class TestDatabaseModel(SupersetTestCase):
         assert "'foo_P1D'" in query
         # assert dataset saved metric
         assert "count('bar_P1D')" in query
-        # assert adhoc metric
-        assert "SUM(CASE WHEN user = 'user_abc' THEN 1 ELSE 0 END)" in query
+        # assert adhoc metric (sanitize_clause preserves the user's SQL verbatim)
+        assert "SUM(case when user = 'user_abc' then 1 else 0 end)" in query
         # Cleanup
         db.session.delete(table)
         db.session.commit()
@@ -212,6 +216,7 @@ class TestDatabaseModel(SupersetTestCase):
         metric = SqlMetric(
             metric_name="count_jinja_metric", expression="count(*)", table=table
         )
+        db.session.add(metric)
         db.session.commit()
 
         base_query_obj = {
@@ -275,6 +280,7 @@ class TestDatabaseModel(SupersetTestCase):
         table = SqlaTable(
             table_name="test_validate_adhoc_sql", database=get_example_database()
         )
+        db.session.add(table)
         db.session.commit()
 
         with pytest.raises(QueryObjectValidationError):
@@ -304,6 +310,11 @@ class TestDatabaseModel(SupersetTestCase):
             ),
         )
         table = self.get_table(name="birth_names")
+        # This test targets filter operators, not the dataset Hour Offset. A
+        # non-zero offset shifts temporal filter bounds (#104810) and other tests
+        # in the suite can leave one set on the shared birth_names table, so pin
+        # it to 0 here to keep the temporal-range literal deterministic.
+        table.offset = 0
         for filter_ in filters:
             query_obj = {
                 "granularity": None,
@@ -457,20 +468,23 @@ class TestDatabaseModel(SupersetTestCase):
             database=get_example_database(),
             sql="select 123 as intcol, 'abc' as strcol, 'abc' as mycase",
         )
-        TableColumn(column_name="intcol", type="FLOAT", table=table)
-        TableColumn(column_name="oldcol", type="INT", table=table)
-        TableColumn(
-            column_name="expr",
-            expression="case when 1 then 1 else 0 end",
-            type="INT",
-            table=table,
-        )
-        TableColumn(
-            column_name="mycase",
-            expression="case when 1 then 1 else 0 end",
-            type="INT",
-            table=table,
-        )
+        columns = [
+            TableColumn(column_name="intcol", type="FLOAT", table=table),
+            TableColumn(column_name="oldcol", type="INT", table=table),
+            TableColumn(
+                column_name="expr",
+                expression="case when 1 then 1 else 0 end",
+                type="INT",
+                table=table,
+            ),
+            TableColumn(
+                column_name="mycase",
+                expression="case when 1 then 1 else 0 end",
+                type="INT",
+                table=table,
+            ),
+        ]
+        db.session.add_all(columns)
 
         # make sure the columns have been mapped properly
         assert len(table.columns) == 4
@@ -544,8 +558,10 @@ def text_column_table(app_context: AppContext):
         ),
         database=get_example_database(),
     )
-    TableColumn(column_name="foo", type="VARCHAR(255)", table=table)
-    SqlMetric(metric_name="count", expression="count(*)", table=table)
+    column = TableColumn(column_name="foo", type="VARCHAR(255)", table=table)
+    metric = SqlMetric(metric_name="count", expression="count(*)", table=table)
+    db.session.add(column)
+    db.session.add(metric)
     return table
 
 
@@ -718,13 +734,15 @@ def test_should_generate_closed_and_open_time_filter_range(login_as_admin):
         ),
         database=get_example_database(),
     )
-    TableColumn(
+    column = TableColumn(
         column_name="datetime_col",
         type="TIMESTAMP",
         table=table,
         is_dttm=True,
     )
-    SqlMetric(metric_name="count", expression="count(*)", table=table)
+    db.session.add(column)
+    metric = SqlMetric(metric_name="count", expression="count(*)", table=table)
+    db.session.add(metric)
     result_object = table.query(
         {
             "metrics": ["count"],
@@ -817,7 +835,17 @@ def test_none_operand_in_filter(login_as_admin, physical_dataset):
             '{{ user_email }}' as email,
             '{{ current_user_roles()|tojson }}' as roles
             """,
-            {1, "abc", "abc@test.com", '["role1", "role2"]'},
+            # The leading `{% set %}` block isn't valid SQL, so parsing this
+            # virtual dataset's SQL for RLS predicates fails and the cache key
+            # picks up the per-user parse-failure sentinel (no user is logged
+            # in for this test, hence "user-None").
+            {
+                1,
+                "abc",
+                "abc@test.com",
+                '["role1", "role2"]',
+                "rls-predicate-parse-failed-for-user-None",
+            },
             True,
         ),
         (
@@ -827,7 +855,9 @@ def test_none_operand_in_filter(login_as_admin, physical_dataset):
             SELECT
             '{{ user_conditional_id }}' as conditional
             """,
-            {1, "abc@test.com"},
+            # Same parse-failure sentinel as above: the leading `{% set %}`
+            # block breaks SQL parsing for RLS predicate collection.
+            {1, "abc@test.com", "rls-predicate-parse-failed-for-user-None"},
             True,
         ),
         (
@@ -993,24 +1023,26 @@ def test_extra_cache_keys_in_dataset_metrics_and_columns(
     mock_username: Mock,
     mock_user_id: Mock,
 ):
+    columns = [
+        TableColumn(column_name="user", type="VARCHAR(255)"),
+        TableColumn(
+            column_name="username",
+            type="VARCHAR(255)",
+            expression="{{ current_username() }}",
+        ),
+    ]
+    db.session.add_all(columns)
+    metric = SqlMetric(
+        metric_name="variable_profit",
+        expression="SUM(price) * {{ url_param('multiplier') }}",
+    )
+    db.session.add(metric)
     table = SqlaTable(
         table_name="test_has_no_extra_cache_keys_table",
         sql="SELECT 'abc' as user",
         database=get_example_database(),
-        columns=[
-            TableColumn(column_name="user", type="VARCHAR(255)"),
-            TableColumn(
-                column_name="username",
-                type="VARCHAR(255)",
-                expression="{{ current_username() }}",
-            ),
-        ],
-        metrics=[
-            SqlMetric(
-                metric_name="variable_profit",
-                expression="SUM(price) * {{ url_param('multiplier') }}",
-            ),
-        ],
+        columns=columns,
+        metrics=[metric],
     )
     query_obj: dict[str, Any] = {
         "granularity": None,
@@ -1104,6 +1136,7 @@ def test__normalize_prequery_result_type(
             type="TIMESTAMP",
         ),
     }
+    db.session.add_all(columns_by_name.values())
 
     normalized = table._normalize_prequery_result_type(
         row,
@@ -1164,6 +1197,7 @@ def test_generic_metric_filtering_without_chart_flag(login_as_admin):
         type="VARCHAR(255)",
         table=table,
     )
+    db.session.add(col)
     table.columns = [col]
 
     metric = SqlMetric(
@@ -1171,6 +1205,7 @@ def test_generic_metric_filtering_without_chart_flag(login_as_admin):
         expression="COUNT(*)",
         table=table,
     )
+    db.session.add(metric)
     table.metrics = [metric]
 
     db.session.add(table)
@@ -1224,10 +1259,12 @@ def test_column_ordering_without_chart_flag(login_as_admin):
 
     col_a = TableColumn(column_name="col_a", type="VARCHAR(255)", table=table)
     col_b = TableColumn(column_name="col_b", type="VARCHAR(255)", table=table)
+    db.session.add_all([col_a, col_b])
     table.columns = [col_a, col_b]
 
     metric_x = SqlMetric(metric_name="metric_x", expression="COUNT(*)", table=table)
     metric_y = SqlMetric(metric_name="metric_y", expression="SUM(val)", table=table)
+    db.session.add_all([metric_x, metric_y])
     table.metrics = [metric_x, metric_y]
 
     db.session.add(table)
@@ -1271,3 +1308,152 @@ def test_column_ordering_without_chart_flag(login_as_admin):
     finally:
         db.session.delete(table)
         db.session.commit()
+
+
+def _multivalue_table() -> SqlaTable:
+    """A dataset with an ``Array(String)`` column, for multi-value query tests.
+
+    Built over the example database but never executed — the tests only compile
+    the generated SQL, so the backing table need not physically exist.
+    """
+    columns = [
+        TableColumn(column_name="skills", type="Array(String)"),
+        TableColumn(column_name="city", type="VARCHAR(255)"),
+    ]
+    return SqlaTable(
+        table_name="test_multivalue_jobs",
+        database=get_example_database(),
+        columns=columns,
+        metrics=[SqlMetric(metric_name="count", expression="COUNT(*)")],
+    )
+
+
+def _multivalue_query(
+    *,
+    filters: list[dict[str, Any]] | None = None,
+    groupby: list[Any] | None = None,
+) -> dict[str, Any]:
+    return {
+        "granularity": None,
+        "from_dttm": None,
+        "to_dttm": None,
+        "is_timeseries": False,
+        "groupby": groupby if groupby is not None else ["city"],
+        "metrics": ["count"],
+        "filter": filters or [],
+        "extras": {},
+    }
+
+
+def _compile(table: SqlaTable, query_obj: dict[str, Any]) -> str:
+    from superset.db_engine_specs.clickhouse import ClickHouseEngineSpec
+
+    with patch.object(
+        SqlaTable, "db_engine_spec", property(lambda self: ClickHouseEngineSpec)
+    ):
+        sqla_query = table.get_sqla_query(**query_obj)
+        return table.database.compile_sqla_query(sqla_query.sqla_query).lower()
+
+
+@pytest.mark.usefixtures("app_context")
+def test_multivalue_contains_any_generates_native_sql():
+    """CONTAINS_ANY compiles to ``hasAny(col, array(...))``."""
+    table = _multivalue_table()
+    sql = _compile(
+        table,
+        _multivalue_query(
+            filters=[
+                {
+                    "col": "skills",
+                    "op": FilterOperator.CONTAINS_ANY.value,
+                    "val": ["Driver", "Cook"],
+                }
+            ]
+        ),
+    )
+    assert "hasany(skills" in sql
+
+
+@pytest.mark.usefixtures("app_context")
+def test_multivalue_contains_all_generates_native_sql():
+    """CONTAINS_ALL compiles to ``hasAll(col, array(...))``."""
+    table = _multivalue_table()
+    sql = _compile(
+        table,
+        _multivalue_query(
+            filters=[
+                {
+                    "col": "skills",
+                    "op": FilterOperator.CONTAINS_ALL.value,
+                    "val": ["Driver", "Cook"],
+                }
+            ]
+        ),
+    )
+    assert "hasall(skills" in sql
+
+
+@pytest.mark.usefixtures("app_context")
+def test_multivalue_is_empty_generates_native_sql():
+    """IS_EMPTY compiles to ``length(col) = 0``."""
+    table = _multivalue_table()
+    sql = _compile(
+        table,
+        _multivalue_query(
+            filters=[{"col": "skills", "op": FilterOperator.IS_EMPTY.value}]
+        ),
+    )
+    assert "length(skills) = 0" in sql
+
+
+@pytest.mark.usefixtures("app_context")
+def test_multivalue_length_filter_generates_native_sql():
+    """A LENGTH_GREATER_THAN filter compiles to ``length(col) > N``."""
+    table = _multivalue_table()
+    sql = _compile(
+        table,
+        _multivalue_query(
+            filters=[
+                {
+                    "col": "skills",
+                    "op": FilterOperator.LENGTH_GREATER_THAN.value,
+                    "val": 2,
+                }
+            ]
+        ),
+    )
+    assert "length(skills) > 2" in sql
+
+
+@pytest.mark.usefixtures("app_context")
+def test_multivalue_contains_unsupported_engine_raises():
+    """CONTAINS_ANY on an engine without array support is rejected."""
+    table = _multivalue_table()
+    query_obj = _multivalue_query(
+        filters=[
+            {
+                "col": "skills",
+                "op": FilterOperator.CONTAINS_ANY.value,
+                "val": ["Driver"],
+            }
+        ]
+    )
+    with pytest.raises(QueryObjectValidationError):
+        table.get_sqla_query(**query_obj)
+
+
+@pytest.mark.usefixtures("app_context")
+def test_multivalue_length_filter_unsupported_engine_raises():
+    """A Length filter on an engine without array support is rejected."""
+    table = _multivalue_table()
+    query_obj = _multivalue_query(
+        filters=[
+            {
+                "col": "skills",
+                "op": FilterOperator.LENGTH_GREATER_THAN.value,
+                "val": 2,
+            }
+        ]
+    )
+    with pytest.raises(QueryObjectValidationError):
+        table.get_sqla_query(**query_obj)

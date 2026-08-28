@@ -1,0 +1,206 @@
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+suite: init containers + extraInitContainers
+templates:
+  - deployment.yaml
+  - deployment-worker.yaml
+  - deployment-beat.yaml
+  - deployment-flower.yaml
+  - deployment-ws.yaml
+  - deployment-mcp.yaml
+  - init-job.yaml
+tests:
+  - it: renders only the default wait-for container by default
+    template: deployment.yaml
+    asserts:
+      - lengthEqual:
+          path: spec.template.spec.initContainers
+          count: 1
+      - equal:
+          path: spec.template.spec.initContainers[0].name
+          value: wait-for-postgres
+
+  - it: appends extraInitContainers after the default initContainers
+    template: deployment.yaml
+    set:
+      supersetNode.extraInitContainers:
+        - name: prepare-assets
+          image: busybox
+          command: ["sh", "-c", "echo preparing"]
+    asserts:
+      - lengthEqual:
+          path: spec.template.spec.initContainers
+          count: 2
+      - equal:
+          path: spec.template.spec.initContainers[0].name
+          value: wait-for-postgres
+      - equal:
+          path: spec.template.spec.initContainers[1].name
+          value: prepare-assets
+
+  - it: templates values inside extraInitContainers
+    template: deployment.yaml
+    set:
+      image.repository: example/superset
+      supersetNode.extraInitContainers:
+        - name: prepare-assets
+          image: "{{ .Values.image.repository }}:test"
+    asserts:
+      - equal:
+          path: spec.template.spec.initContainers[1].image
+          value: example/superset:test
+
+  - it: keeps replace semantics for initContainers while appending extras
+    template: deployment.yaml
+    set:
+      supersetNode.initContainers:
+        - name: custom-wait
+          image: busybox
+      supersetNode.extraInitContainers:
+        - name: prepare-assets
+          image: busybox
+    asserts:
+      - lengthEqual:
+          path: spec.template.spec.initContainers
+          count: 2
+      - equal:
+          path: spec.template.spec.initContainers[0].name
+          value: custom-wait
+      - equal:
+          path: spec.template.spec.initContainers[1].name
+          value: prepare-assets
+
+  - it: renders only extras when initContainers is cleared
+    template: deployment.yaml
+    set:
+      supersetNode.initContainers: []
+      supersetNode.extraInitContainers:
+        - name: prepare-assets
+          image: busybox
+    asserts:
+      - lengthEqual:
+          path: spec.template.spec.initContainers
+          count: 1
+      - equal:
+          path: spec.template.spec.initContainers[0].name
+          value: prepare-assets
+
+  - it: appends worker extraInitContainers after wait-for-postgres-redis
+    template: deployment-worker.yaml
+    set:
+      supersetWorker.extraInitContainers:
+        - name: prepare-assets
+          image: busybox
+    asserts:
+      - lengthEqual:
+          path: spec.template.spec.initContainers
+          count: 2
+      - equal:
+          path: spec.template.spec.initContainers[0].name
+          value: wait-for-postgres-redis
+      - equal:
+          path: spec.template.spec.initContainers[1].name
+          value: prepare-assets
+
+  - it: appends beat extraInitContainers after wait-for-postgres-redis
+    template: deployment-beat.yaml
+    set:
+      supersetCeleryBeat.enabled: true
+      supersetCeleryBeat.extraInitContainers:
+        - name: prepare-assets
+          image: busybox
+    asserts:
+      - lengthEqual:
+          path: spec.template.spec.initContainers
+          count: 2
+      - equal:
+          path: spec.template.spec.initContainers[0].name
+          value: wait-for-postgres-redis
+      - equal:
+          path: spec.template.spec.initContainers[1].name
+          value: prepare-assets
+
+  - it: appends flower extraInitContainers after wait-for-postgres-redis
+    template: deployment-flower.yaml
+    set:
+      supersetCeleryFlower.enabled: true
+      supersetCeleryFlower.extraInitContainers:
+        - name: prepare-assets
+          image: busybox
+    asserts:
+      - lengthEqual:
+          path: spec.template.spec.initContainers
+          count: 2
+      - equal:
+          path: spec.template.spec.initContainers[0].name
+          value: wait-for-postgres-redis
+      - equal:
+          path: spec.template.spec.initContainers[1].name
+          value: prepare-assets
+
+  - it: appends websockets extraInitContainers after wait-for-redis
+    template: deployment-ws.yaml
+    set:
+      supersetWebsockets.enabled: true
+      supersetWebsockets.extraInitContainers:
+        - name: prepare-assets
+          image: busybox
+    asserts:
+      - lengthEqual:
+          path: spec.template.spec.initContainers
+          count: 2
+      - equal:
+          path: spec.template.spec.initContainers[0].name
+          value: wait-for-redis
+      - equal:
+          path: spec.template.spec.initContainers[1].name
+          value: prepare-assets
+
+  - it: appends mcp extraInitContainers after wait-for-postgres-redis
+    template: deployment-mcp.yaml
+    set:
+      supersetMcp.enabled: true
+      supersetMcp.extraInitContainers:
+        - name: prepare-assets
+          image: busybox
+    asserts:
+      - lengthEqual:
+          path: spec.template.spec.initContainers
+          count: 2
+      - equal:
+          path: spec.template.spec.initContainers[0].name
+          value: wait-for-postgres-redis
+      - equal:
+          path: spec.template.spec.initContainers[1].name
+          value: prepare-assets
+
+  - it: appends init job extraInitContainers after wait-for-postgres
+    template: init-job.yaml
+    set:
+      init.extraInitContainers:
+        - name: prepare-assets
+          image: busybox
+    asserts:
+      - lengthEqual:
+          path: spec.template.spec.initContainers
+          count: 2
+      - equal:
+          path: spec.template.spec.initContainers[0].name
+          value: wait-for-postgres
+      - equal:
+          path: spec.template.spec.initContainers[1].name
+          value: prepare-assets

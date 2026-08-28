@@ -44,7 +44,7 @@ export default function Option({
 }: OptionProps) {
   const theme = useTheme();
   const onClickClose = useCallback(
-    e => {
+    (e: React.MouseEvent) => {
       e.stopPropagation();
       clickClose(index);
     },
@@ -54,10 +54,10 @@ export default function Option({
     <OptionControlContainer data-test="option-label" withCaret={withCaret}>
       {canDelete && (
         <CloseContainer
+          type="button"
           css={css`
             text-align: center;
           `}
-          role="button"
           data-test="remove-control-button"
           onClick={onClickClose}
         >

@@ -57,8 +57,17 @@ def get_executor(  # noqa: C901
 ) -> ChosenExecutor:
     """
     Extract the user that should be used to execute a scheduled task. Certain executor
-    types extract the user from the underlying object (e.g. CREATOR), the constant
-    Selenium user (SELENIUM), or the user that initiated the request.
+    types extract the user from the underlying object (e.g. CREATOR), a fixed user
+    account, or the user that initiated the request.
+
+    The CREATOR_EDITOR, MODIFIER_EDITOR, and EDITOR types additionally require the
+    resolved user (the model's creator or modifier) to be an editor of the model,
+    directly (user-type subject) or indirectly (through a role/group subject). They
+    never resolve to any *other* attached editor: editor subjects can be attached to
+    a model by whoever creates or edits it with no consent from the attached user, so
+    resolving to an arbitrary attached editor would let a low-privileged creator or
+    modifier arrange for the task to execute as a different, potentially
+    higher-privileged, user.
 
     :param executors: The requested executor in descending order. When the
            first user is found it is returned.
@@ -72,8 +81,17 @@ def get_executor(  # noqa: C901
     :raises ExecutorNotFoundError: If no users were found in after
             iterating through all entries in `executors`
     """
-    owners = model.owners
-    owner_dict = {owner.id: owner for owner in owners}
+    from superset.subjects.utils import get_user_subject_ids
+
+    # Build set of all subject IDs that are editors of this model
+    editor_subject_ids = {e.id for e in getattr(model, "editors", [])}
+
+    def _is_editor(user_id: int) -> bool:
+        """Check if user is an editor directly or via role/group membership."""
+        if not user_id or not editor_subject_ids:
+            return False
+        return bool(set(get_user_subject_ids(user_id)) & editor_subject_ids)
+
     for executor in executors:
         if isinstance(executor, FixedExecutor):
             return ExecutorType.FIXED_USER, executor.username
@@ -81,30 +99,40 @@ def get_executor(  # noqa: C901
             raise InvalidExecutorError()
         if executor == ExecutorType.CURRENT_USER and current_user:
             return executor, current_user
-        if executor == ExecutorType.CREATOR_OWNER:
-            if (user := model.created_by) and (owner := owner_dict.get(user.id)):
-                return executor, owner.username
+        if executor == ExecutorType.CREATOR_EDITOR:
+            if (user := model.created_by) and user.is_active and _is_editor(user.id):
+                return executor, user.username
         if executor == ExecutorType.CREATOR:
-            if user := model.created_by:
+            if (user := model.created_by) and user.is_active:
                 return executor, user.username
-        if executor == ExecutorType.MODIFIER_OWNER:
-            if (user := model.changed_by) and (owner := owner_dict.get(user.id)):
-                return executor, owner.username
+        if executor == ExecutorType.MODIFIER_EDITOR:
+            if (user := model.changed_by) and user.is_active and _is_editor(user.id):
+                return executor, user.username
         if executor == ExecutorType.MODIFIER:
-            if user := model.changed_by:
+            if (user := model.changed_by) and user.is_active:
                 return executor, user.username
-        if executor == ExecutorType.OWNER:
-            owners = model.owners
-            if len(owners) == 1:
-                return executor, owners[0].username
-            if len(owners) > 1:
-                if modifier := model.changed_by:
-                    if modifier and (user := owner_dict.get(modifier.id)):
-                        return executor, user.username
-                if creator := model.created_by:
-                    if creator and (user := owner_dict.get(creator.id)):
-                        return executor, user.username
-                return executor, owners[0].username
+        if executor == ExecutorType.EDITOR:
+            # Priority: modifier -> creator. Resolves only to whoever authored
+            # the model's current state -- changed_by/created_by are set by the
+            # framework from the authenticated session on write, so a caller
+            # who edits the object becomes changed_by themselves and cannot
+            # point this at a victim. Deliberately does NOT fall through to an
+            # arbitrary other attached editor (direct or via role/group
+            # membership): that would let a low-privileged creator/modifier
+            # attach a higher-privileged user as an editor with no consent and
+            # have the task execute with that victim's credentials.
+            if (
+                (modifier := model.changed_by)
+                and modifier.is_active
+                and _is_editor(modifier.id)
+            ):
+                return executor, modifier.username
+            if (
+                (creator := model.created_by)
+                and creator.is_active
+                and _is_editor(creator.id)
+            ):
+                return executor, creator.username
 
     raise ExecutorNotFoundError()
 

@@ -93,6 +93,93 @@ def test_get_shared_value_no_fallback_when_md5() -> None:
     assert mock_dao.get_value.call_count == 2
 
 
+def test_upsert_shared_value_delegates_to_dao() -> None:
+    """upsert_shared_value writes via KeyValueDAO.upsert_entry using current UUID."""
+    from superset.key_value.shared_entries import (
+        CODEC,
+        RESOURCE,
+        upsert_shared_value,
+    )
+    from superset.key_value.types import SharedKey
+    from superset.key_value.utils import get_uuid_namespace
+
+    key = SharedKey.GUEST_TOKEN_REVOCATION_VERSION
+    value = 7
+
+    expected_uuid = uuid3(get_uuid_namespace(""), key)
+
+    mock_dao = MagicMock()
+
+    with patch("superset.key_value.shared_entries.KeyValueDAO", mock_dao):
+        upsert_shared_value(key, value)
+
+    # Should upsert (not create) so the call is idempotent across create/update paths
+    mock_dao.upsert_entry.assert_called_once_with(RESOURCE, value, CODEC, expected_uuid)
+    mock_dao.create_entry.assert_not_called()
+
+
+def test_upsert_shared_value_overwrites_existing_value() -> None:
+    """Repeated upsert_shared_value calls overwrite the prior value for the same key."""
+    from superset.key_value.shared_entries import upsert_shared_value
+    from superset.key_value.types import SharedKey
+    from superset.key_value.utils import get_uuid_namespace
+
+    key = SharedKey.GUEST_TOKEN_REVOCATION_VERSION
+    expected_uuid = uuid3(get_uuid_namespace(""), key)
+
+    mock_dao = MagicMock()
+
+    with patch("superset.key_value.shared_entries.KeyValueDAO", mock_dao):
+        upsert_shared_value(key, 1)
+        upsert_shared_value(key, 2)
+
+    # Both writes target the same UUID and use upsert, so the latest value wins
+    assert mock_dao.upsert_entry.call_count == 2
+    last_call = mock_dao.upsert_entry.call_args_list[-1]
+    assert last_call.args[1] == 2
+    assert last_call.args[3] == expected_uuid
+
+
+def test_get_shared_value_commits_migration_to_current_algorithm() -> None:
+    """A fallback hit migrates the entry to the current algorithm and commits it,
+    so future lookups no longer need the deprecated fallback algorithm."""
+    from superset.key_value.shared_entries import get_shared_value
+    from superset.key_value.types import SharedKey
+    from superset.key_value.utils import get_uuid_namespace_with_algorithm
+
+    key = SharedKey.DASHBOARD_PERMALINK_SALT
+    expected_value = "legacy_md5_salt"
+
+    # Calculate what the MD5 UUID would be
+    namespace_md5 = get_uuid_namespace_with_algorithm("", "md5")
+    uuid_md5 = uuid3(namespace_md5, key)
+
+    # Mock KeyValueDAO to simulate MD5 entry exists, SHA-256 doesn't
+    mock_dao = MagicMock()
+
+    def mock_get_value(resource, uuid_key, codec):
+        if uuid_key == uuid_md5:
+            return expected_value
+        return None
+
+    mock_dao.get_value.side_effect = mock_get_value
+
+    mock_app = MagicMock()
+    mock_app.config = {
+        "HASH_ALGORITHM": "sha256",
+        "HASH_ALGORITHM_FALLBACKS": ["md5"],
+    }
+
+    with patch("superset.key_value.shared_entries.KeyValueDAO", mock_dao):
+        with patch("superset.key_value.utils.current_app", mock_app):
+            with patch("superset.db.session.commit") as mock_commit:
+                result = get_shared_value(key)
+
+    assert result == expected_value
+    mock_dao.create_entry.assert_called_once()
+    mock_commit.assert_called_once()
+
+
 def test_get_shared_value_finds_sha256_first() -> None:
     """Test that get_shared_value finds SHA-256 entry first without fallback."""
     from superset.key_value.shared_entries import get_shared_value

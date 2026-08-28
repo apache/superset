@@ -18,11 +18,11 @@
  */
 
 declare module '*.yaml' {
-  const content: unknown;
+  const content: string;
   export default content;
 }
 
 declare module '*.yml' {
-  const content: unknown;
+  const content: string;
   export default content;
 }

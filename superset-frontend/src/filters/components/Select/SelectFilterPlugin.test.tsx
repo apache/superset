@@ -16,7 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { AppSection, Behavior, ChartProps } from '@superset-ui/core';
+import {
+  AppSection,
+  Behavior,
+  ChartProps,
+  type FilterState,
+} from '@superset-ui/core';
 import { supersetTheme } from '@apache-superset/core/theme';
 import {
   act,
@@ -29,7 +34,6 @@ import {
 import { NULL_STRING } from 'src/utils/common';
 import SelectFilterPlugin from './SelectFilterPlugin';
 import transformProps from './transformProps';
-import { FilterState } from '@superset-ui/core';
 import {
   SelectFilterOperatorType,
   PluginFilterSelectChartProps,
@@ -37,7 +41,7 @@ import {
   PluginFilterSelectQueryFormData,
 } from './types';
 
-jest.useFakeTimers();
+jest.useFakeTimers({ advanceTimers: true });
 
 const selectMultipleProps = {
   formData: {
@@ -715,6 +719,169 @@ describe('SelectFilterPlugin', () => {
     expect(options[1]).toHaveTextContent('alpha');
     expect(options[2]).toHaveTextContent('beta');
   });
+
+  test('sorts numeric filter values numerically, not lexicographically, when no sortMetric is specified', () => {
+    // Regression for #36775: numeric filter values were sorted as strings
+    // (localeCompare on the formatted label), producing "1, 10, 100, 2"
+    // instead of the expected "1, 2, 10, 100".
+    const testData = [{ age: 10 }, { age: 2 }, { age: 100 }];
+
+    const testProps = {
+      ...selectMultipleProps,
+      formData: {
+        ...selectMultipleProps.formData,
+        groupby: ['age'],
+        sortMetric: undefined,
+        sortAscending: true,
+      },
+      queriesData: [
+        {
+          rowcount: 3,
+          colnames: ['age'],
+          coltypes: [0],
+          data: testData,
+          applied_filters: [{ column: 'age' }],
+          rejected_filters: [],
+        },
+      ],
+      filterState: {
+        value: [],
+        label: '',
+        excludeFilterValues: true,
+      },
+    };
+
+    render(
+      // @ts-expect-error
+      <SelectFilterPlugin
+        // @ts-expect-error
+        {...transformProps(testProps)}
+        setDataMask={jest.fn()}
+        showOverflow={false}
+      />,
+      {
+        useRedux: true,
+        initialState: {
+          nativeFilters: {
+            filters: {
+              'test-filter': {
+                name: 'Test Filter',
+              },
+            },
+          },
+          dataMask: {
+            'test-filter': {
+              extraFormData: {},
+              filterState: {
+                value: [],
+                label: '',
+                excludeFilterValues: true,
+              },
+            },
+          },
+        },
+      },
+    );
+
+    const filterSelect = screen.getAllByRole('combobox')[0];
+    userEvent.click(filterSelect);
+
+    // Options should appear in ascending numeric order (2, 10, 100), not
+    // ascending lexicographic order of their formatted labels (10, 100, 2).
+    const options = screen.getAllByRole('option');
+    expect(options[0]).toHaveTextContent('2');
+    expect(options[1]).toHaveTextContent('10');
+    expect(options[2]).toHaveTextContent('100');
+  });
+
+  test('sorts BIGINT filter values numerically when values decode to native bigint', () => {
+    // BIGINT columns with 16+ digit values decode to native `bigint` (see
+    // json-bigint parsing of the chart data response), not `number`. Those
+    // values must still sort numerically rather than falling back to
+    // lexicographic string comparison ("10", "100", "2").
+    const testData = [
+      { age: 10000000000000000n },
+      { age: 2000000000000000n },
+      { age: 100000000000000000n },
+    ];
+
+    const testProps = {
+      ...selectMultipleProps,
+      formData: {
+        ...selectMultipleProps.formData,
+        groupby: ['age'],
+        sortMetric: undefined,
+        sortAscending: true,
+      },
+      queriesData: [
+        {
+          rowcount: 3,
+          colnames: ['age'],
+          coltypes: [0],
+          data: testData,
+          applied_filters: [{ column: 'age' }],
+          rejected_filters: [],
+        },
+      ],
+      filterState: {
+        value: [],
+        label: '',
+        excludeFilterValues: true,
+      },
+    };
+
+    render(
+      // @ts-expect-error
+      <SelectFilterPlugin
+        // @ts-expect-error
+        {...transformProps(testProps)}
+        setDataMask={jest.fn()}
+        showOverflow={false}
+      />,
+      {
+        useRedux: true,
+        initialState: {
+          nativeFilters: {
+            filters: {
+              'test-filter': {
+                name: 'Test Filter',
+              },
+            },
+          },
+          dataMask: {
+            'test-filter': {
+              extraFormData: {},
+              filterState: {
+                value: [],
+                label: '',
+                excludeFilterValues: true,
+              },
+            },
+          },
+        },
+      },
+    );
+
+    const filterSelect = screen.getAllByRole('combobox')[0];
+    userEvent.click(filterSelect);
+
+    const options = screen.getAllByRole('option');
+    expect(options[0]).toHaveTextContent('2000000000000000');
+    expect(options[1]).toHaveTextContent('10000000000000000');
+    expect(options[2]).toHaveTextContent('100000000000000000');
+  });
+
+  test('shows create option for multi-select creatable filter when typing', async () => {
+    getWrapper({ creatable: true, multiSelect: true });
+    userEvent.type(screen.getByRole('combobox'), 'brand-new');
+    expect(await screen.findByTitle('brand-new')).toBeInTheDocument();
+  });
+
+  test('does not show create option when searchAllOptions is true', () => {
+    getWrapper({ creatable: true, searchAllOptions: true });
+    userEvent.type(screen.getByRole('combobox'), 'brand-new');
+    expect(screen.queryByTitle('brand-new')).not.toBeInTheDocument();
+  });
 });
 
 test('Select boolean FALSE value in single-select mode', async () => {
@@ -1286,7 +1453,7 @@ test('resets dependent filter to first item when value does not exist in data', 
 });
 
 test('renders text input instead of dropdown when operatorType is ILIKE contains', () => {
-  jest.useFakeTimers();
+  jest.useFakeTimers({ advanceTimers: true });
   const setDataMaskMock = jest.fn();
   const props = buildSelectFilterProps({
     formData: { operatorType: SelectFilterOperatorType.Contains },
@@ -1316,7 +1483,7 @@ test('renders text input instead of dropdown when operatorType is ILIKE contains
 });
 
 test('renders text input with starts-with placeholder', () => {
-  jest.useFakeTimers();
+  jest.useFakeTimers({ advanceTimers: true });
   const setDataMaskMock = jest.fn();
   const props = buildSelectFilterProps({
     formData: { operatorType: SelectFilterOperatorType.StartsWith },
@@ -1345,7 +1512,7 @@ test('renders text input with starts-with placeholder', () => {
 });
 
 test('typing in LIKE input calls setDataMask with ILIKE Contains payload', async () => {
-  jest.useFakeTimers();
+  jest.useFakeTimers({ advanceTimers: true });
   const setDataMaskMock = jest.fn();
   const props = buildSelectFilterProps({
     formData: { operatorType: SelectFilterOperatorType.Contains },
@@ -1391,7 +1558,7 @@ test('typing in LIKE input calls setDataMask with ILIKE Contains payload', async
 });
 
 test('typing in LIKE input with inverse selection calls setDataMask with NOT ILIKE payload', async () => {
-  jest.useFakeTimers();
+  jest.useFakeTimers({ advanceTimers: true });
   const setDataMaskMock = jest.fn();
   const props = buildSelectFilterProps({
     formData: {
@@ -1440,7 +1607,7 @@ test('typing in LIKE input with inverse selection calls setDataMask with NOT ILI
 });
 
 test('clear-all resets LIKE input value and calls setDataMask with empty state', async () => {
-  jest.useFakeTimers();
+  jest.useFakeTimers({ advanceTimers: true });
   const setDataMaskMock = jest.fn();
   const likeProps = buildSelectFilterProps({
     formData: { operatorType: SelectFilterOperatorType.Contains },
@@ -1506,7 +1673,7 @@ test('clear-all resets LIKE input value and calls setDataMask with empty state',
 });
 
 test('pending LIKE debounce still applies after rerender recreates updateDataMask', async () => {
-  jest.useFakeTimers();
+  jest.useFakeTimers({ advanceTimers: true });
   const setDataMaskMock = jest.fn();
   const likeProps = buildSelectFilterProps({
     formData: { operatorType: SelectFilterOperatorType.Contains },
@@ -1573,7 +1740,7 @@ test('pending LIKE debounce still applies after rerender recreates updateDataMas
 });
 
 test('pending LIKE debounce is canceled when operatorType switches back to Exact', async () => {
-  jest.useFakeTimers();
+  jest.useFakeTimers({ advanceTimers: true });
   const setDataMaskMock = jest.fn();
   const likeProps = buildSelectFilterProps({
     formData: { operatorType: SelectFilterOperatorType.Contains },
@@ -1628,7 +1795,7 @@ test('pending LIKE debounce is canceled when operatorType switches back to Exact
 });
 
 test('renders standard Select dropdown when operatorType is Exact', () => {
-  jest.useFakeTimers();
+  jest.useFakeTimers({ advanceTimers: true });
   const setDataMaskMock = jest.fn();
   const props = buildSelectFilterProps({
     formData: { operatorType: SelectFilterOperatorType.Exact },
@@ -1657,4 +1824,86 @@ test('renders standard Select dropdown when operatorType is Exact', () => {
   });
 
   expect(screen.getAllByRole('combobox').length).toBeGreaterThan(0);
+});
+
+test('renders created filterState values not in dataset as selectable chips', async () => {
+  const props = buildSelectFilterProps({
+    formData: { creatable: true },
+    filterState: { value: ['custom-created-value'] },
+    setDataMask: jest.fn(),
+  });
+  render(<SelectFilterPlugin {...props} />, {
+    useRedux: true,
+    initialState: {
+      nativeFilters: { filters: { 'test-filter': { name: 'Test Filter' } } },
+      dataMask: {
+        'test-filter': {
+          extraFormData: {},
+          filterState: { value: ['custom-created-value'] },
+        },
+      },
+    },
+  });
+  expect(await screen.findByTitle('custom-created-value')).toBeInTheDocument();
+});
+
+test('does not duplicate chip when filterState value is already in the dataset', async () => {
+  const props = buildSelectFilterProps({
+    formData: { creatable: true },
+    filterState: { value: ['boy'] },
+    setDataMask: jest.fn(),
+  });
+  render(<SelectFilterPlugin {...props} />, {
+    useRedux: true,
+    initialState: {
+      nativeFilters: { filters: { 'test-filter': { name: 'Test Filter' } } },
+      dataMask: {
+        'test-filter': {
+          extraFormData: {},
+          filterState: { value: ['boy'] },
+        },
+      },
+    },
+  });
+  await screen.findByTitle('boy');
+  expect(screen.queryAllByTitle('boy')).toHaveLength(1);
+});
+
+test('renders dashboard select dropdown popup under document body', async () => {
+  jest.useFakeTimers({ advanceTimers: true });
+  render(<SelectFilterPlugin {...buildSelectFilterProps()} />, {
+    useRedux: true,
+    initialState: {
+      nativeFilters: {
+        filters: { 'test-filter': { name: 'Test Filter' } },
+      },
+      dataMask: {
+        'test-filter': {
+          extraFormData: {
+            filters: [{ col: 'gender', op: 'IN', val: ['boy'] }],
+          },
+          filterState: {
+            value: ['boy'],
+            label: 'boy',
+            excludeFilterValues: true,
+          },
+        },
+      },
+    },
+  });
+
+  const [filterSelect] = screen.getAllByRole('combobox');
+  userEvent.click(filterSelect);
+
+  let dropdown: Element | undefined;
+  await waitFor(() => {
+    dropdown = Array.from(
+      document.querySelectorAll('.ant-select-dropdown'),
+    ).find(
+      element => !element.classList.contains('ant-select-dropdown-hidden'),
+    );
+    expect(dropdown).toBeDefined();
+  });
+
+  expect(dropdown?.parentElement).toBe(document.body);
 });
