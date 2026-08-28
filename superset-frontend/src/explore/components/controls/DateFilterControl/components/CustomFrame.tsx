@@ -254,7 +254,7 @@ export function CustomFrame(props: FrameComponentProps) {
                     }
                     allowClear={false}
                     className="control-anchor-to-datetime"
-                  getPopupContainer={() => document.body}
+                    getPopupContainer={() => document.body}
                   />
                 </Col>
               )}
