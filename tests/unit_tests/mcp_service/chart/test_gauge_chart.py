@@ -64,6 +64,25 @@ class TestGaugeChartConfigSchema:
                 groupby=[{"name": "count", "saved_metric": True}],
             )
 
+    def test_gauge_groupby_rejects_aggregate(self) -> None:
+        """An aggregate makes a dial dimension metric-like; reject it."""
+        with pytest.raises(ValidationError):
+            GaugeChartConfig(
+                chart_type="gauge_chart",
+                metric={"name": "progress", "aggregate": "AVG"},
+                groupby=[{"name": "team", "aggregate": "SUM"}],
+            )
+
+    def test_gauge_rejects_inverted_bounds(self) -> None:
+        """min_val >= max_val yields an inverted dial; reject it."""
+        with pytest.raises(ValidationError):
+            GaugeChartConfig(
+                chart_type="gauge_chart",
+                metric={"name": "progress", "aggregate": "AVG"},
+                min_val=100,
+                max_val=0,
+            )
+
     def test_gauge_row_limit_capped_at_ten(self) -> None:
         """The frontend limits gauge dials to 10."""
         with pytest.raises(ValidationError):

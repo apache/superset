@@ -1094,11 +1094,25 @@ class GaugeChartConfig(BaseChartConfig):
         """groupby entries are dimensions, not metrics."""
         for i, col in enumerate(self.groupby or []):
             _reject_sql_expression_on_dimension(col, f"groupby[{i}]")
-            if col.saved_metric:
+            if col.is_metric:
                 raise ValueError(
-                    f"groupby[{i}] cannot use saved_metric=True; "
-                    "saved metrics belong in the 'metric' field"
+                    f"groupby[{i}] must be a plain column, not a metric; drop "
+                    "'aggregate'/'saved_metric' (metrics belong in the 'metric' "
+                    "field)"
                 )
+        return self
+
+    @model_validator(mode="after")
+    def reject_inverted_bounds(self) -> "GaugeChartConfig":
+        """A min at or above max produces an inverted/degenerate dial scale."""
+        if (
+            self.min_val is not None
+            and self.max_val is not None
+            and self.min_val >= self.max_val
+        ):
+            raise ValueError(
+                f"min_val ({self.min_val}) must be less than max_val ({self.max_val})"
+            )
         return self
 
 
