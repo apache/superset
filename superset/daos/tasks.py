@@ -18,7 +18,7 @@
 
 import logging
 from datetime import datetime, timedelta
-from typing import Any, Literal, NamedTuple, TypedDict
+from typing import Any, Literal, TypedDict
 from uuid import UUID
 
 import sqlalchemy as sa
@@ -51,23 +51,6 @@ SubscriberPrincipalType = Literal["user", "guest"]
 class TaskSubscriberPrincipal(TypedDict):
     principal_type: SubscriberPrincipalType
     sub: str
-
-
-class OrphanCandidate(NamedTuple):
-    """A task the prune cron should reap or escalate.
-
-    ``is_orphan`` distinguishes the two cases the reaper handles differently:
-    ``True`` = a dead/orphaned worker (stale heartbeat) that must be fully reaped
-    (cancel its query, revoke, force the row terminal); ``False`` = a still-live
-    worker wedged in ABORTING past the grace window, which is only escalated with
-    a forced revoke so the worker's own ``finally`` block finalizes the status.
-    """
-
-    id: int
-    uuid: UUID
-    status: str
-    properties: str | None
-    is_orphan: bool
 
 
 class TaskDAO(BaseDAO[Task]):
@@ -139,42 +122,22 @@ class TaskDAO(BaseDAO[Task]):
         db.session.commit()  # pylint: disable=consider-using-transaction
 
     @classmethod
-    def find_orphaned(
-        cls,
-        orphan_timeout_seconds: int,
-        abort_grace_seconds: int,
-    ) -> list[OrphanCandidate]:
-        """Return active tasks the prune cron should reap or escalate.
+    def find_orphaned(cls, orphan_timeout_seconds: int) -> list[UUID]:
+        """Return UUIDs of active tasks abandoned by a dead worker.
 
-        Two disjoint sets, keyed off the worker liveness heartbeat:
-
-        - **Orphans** (``is_orphan=True``): any ACTIVE task
-          (PENDING/IN_PROGRESS/ABORTING) whose heartbeat has gone stale
-          (``last_heartbeat < now - orphan_timeout_seconds``) — no live worker is
-          holding it. A NULL heartbeat means no worker has picked the task up yet
-          (still legitimately queued), so it is excluded.
-        - **Wedged aborts** (``is_orphan=False``): a task still ABORTING with a
-          *fresh* heartbeat that entered ABORTING (``changed_on``) more than
-          ``abort_grace_seconds`` ago — a live worker not honoring the cooperative
-          abort, to be escalated with a forced Celery revoke. Requiring a fresh
-          heartbeat keeps this set disjoint from the orphan set.
+        An orphan is any active task (PENDING/IN_PROGRESS/ABORTING) whose liveness
+        heartbeat has gone stale (``last_heartbeat < now - orphan_timeout_seconds``)
+        — no worker is refreshing it. A NULL heartbeat means no worker has picked
+        the task up yet (still legitimately queued), so it is excluded. A task
+        still being worked on (fresh heartbeat) is never returned, so this never
+        interferes with a live worker's cooperative abort/cleanup.
 
         Skips the base filter: internal maintenance over all tasks, not a
         user-facing listing.
-
-        :returns: candidates to reap (dead worker) or escalate (wedged abort)
         """
-        now = naive_utcnow()
-        stale_before = now - timedelta(seconds=orphan_timeout_seconds)
-        # last_heartbeat / started_at / ended_at are stored as naive UTC, but
-        # FAB's changed_on is naive *local* (its onupdate is datetime.now). Use a
-        # matching local threshold for the changed_on comparison below.
-        abort_before = datetime.now() - timedelta(seconds=abort_grace_seconds)
-
-        columns = (Task.id, Task.uuid, Task.status, Task.properties)
-
-        orphan_rows = (
-            db.session.query(*columns)
+        stale_before = naive_utcnow() - timedelta(seconds=orphan_timeout_seconds)
+        rows = (
+            db.session.query(Task.uuid)
             .filter(
                 Task.status.in_(ACTIVE_STATES),
                 Task.last_heartbeat.isnot(None),
@@ -182,25 +145,7 @@ class TaskDAO(BaseDAO[Task]):
             )
             .all()
         )
-        wedged_rows = (
-            db.session.query(*columns)
-            .filter(
-                Task.status == TaskStatus.ABORTING.value,
-                Task.last_heartbeat.isnot(None),
-                Task.last_heartbeat >= stale_before,
-                # changed_on is shadowed by CoreTask's bare annotation; reference
-                # the real column so the comparison targets the timestamp.
-                Task.__table__.c.changed_on < abort_before,
-            )
-            .all()
-        )
-        return [
-            OrphanCandidate(id_, uuid, status, properties, is_orphan=True)
-            for id_, uuid, status, properties in orphan_rows
-        ] + [
-            OrphanCandidate(id_, uuid, status, properties, is_orphan=False)
-            for id_, uuid, status, properties in wedged_rows
-        ]
+        return [uuid for (uuid,) in rows]
 
     @classmethod
     def get_statuses_changed_since(

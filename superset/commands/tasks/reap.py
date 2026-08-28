@@ -14,17 +14,18 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""Reap GTF tasks abandoned by a dead worker or wedged in ABORTING."""
+"""Reap GTF tasks abandoned by a dead worker."""
 
 import logging
 from typing import cast
+from uuid import UUID
 
 from flask import current_app
 from superset_core.tasks.types import TaskProperties, TaskStatus
 
 from superset import db
 from superset.commands.base import BaseCommand
-from superset.daos.tasks import OrphanCandidate, TaskDAO
+from superset.daos.tasks import TaskDAO
 from superset.extensions import celery_app
 from superset.models.tasks import Task
 from superset.stats_logger import BaseStatsLogger
@@ -37,82 +38,65 @@ ORPHAN_ERROR_MESSAGE = "Task orphaned: worker heartbeat timed out"
 
 
 class ReapOrphanedTasksCommand(BaseCommand):
-    """Detect and clean up tasks abandoned by a dead or wedged worker.
+    """Recover tasks abandoned by a worker that stopped refreshing its heartbeat.
 
-    Run from the prune cron before row deletion. Candidates come from
-    ``TaskDAO.find_orphaned``:
+    Run from the prune cron before row deletion. For each orphan (an active task
+    whose liveness heartbeat has gone stale — see ``TaskDAO.find_orphaned``) the
+    command transitions the row to ``FAILURE`` and publishes completion so waiters
+    (sync joiners, DAG dependents, chart-data pollers) unblock, then revokes the
+    Celery job so a redelivered copy cannot run.
 
-    - **Orphans** (dead worker, stale heartbeat): revoke any lingering Celery
-      job, then force the row to FAILURE and publish completion so waiters
-      (sync joiners, DAG dependents, chart-data pollers) unblock — the worker is
-      gone and cannot finalize itself.
-    - **Wedged aborts** (live worker still ABORTING past the grace window): only
-      escalate with a forced revoke, letting the worker's own ``finally`` block
-      finalize the status once ``SoftTimeLimitExceeded`` is raised.
-
-    All Celery/DB operations are best-effort accelerators; the atomic
-    compare-and-swap transition is authoritative, so a worker that revives and
-    commits its own terminal status simply makes the reaper's CAS a no-op.
+    It acts only on tasks with no live worker; a task still being worked on keeps
+    a fresh heartbeat and is left entirely to its own cooperative abort/cleanup.
+    The status transition is an atomic compare-and-swap, so a worker that revives
+    and commits its own terminal status simply makes the reaper's update a no-op.
     """
 
     def run(self) -> int:
         stats_logger: BaseStatsLogger = current_app.config["STATS_LOGGER"]
-        # A single threshold governs both "no heartbeat for this long → orphaned"
-        # and "ABORTING for this long despite a live heartbeat → escalate".
         timeout = current_app.config["GTF_ORPHAN_TASK_TIMEOUT"]
 
-        candidates = TaskDAO.find_orphaned(timeout, timeout)
+        uuids = TaskDAO.find_orphaned(timeout)
         reaped = 0
-        for candidate in candidates:
-            # Isolate each candidate: a transient DB error on one must neither
-            # abort the loop nor escape as a non-CommandException (which would
-            # skip the retention prune pass that runs after this command).
+        for task_uuid in uuids:
+            # Isolate each task: a transient DB error on one must neither abort the
+            # loop nor escape as a non-CommandException (which would skip the
+            # retention prune pass that runs after this command).
             try:
-                if self._process(candidate, stats_logger):
+                if self._reap(task_uuid, stats_logger):
                     reaped += 1
             except Exception:  # noqa: BLE001 pylint: disable=broad-except
                 db.session.rollback()  # pylint: disable=consider-using-transaction
                 stats_logger.incr("gtf.task.reap_error")
-                logger.exception("Failed to reap orphaned task %s", candidate.uuid)
-        if candidates:
+                logger.exception("Failed to reap orphaned task %s", task_uuid)
+        if uuids:
             logger.info(
-                "Orphan reaper processed %d task(s), reaped %d", len(candidates), reaped
+                "Orphan reaper processed %d task(s), reaped %d", len(uuids), reaped
             )
         return reaped
 
-    def _process(
-        self, candidate: OrphanCandidate, stats_logger: BaseStatsLogger
-    ) -> bool:
-        """Handle one candidate; return True if it was reaped to FAILURE."""
-        self._revoke(
-            parse_properties(candidate.properties).get("celery_task_id"), stats_logger
+    def _reap(self, task_uuid: UUID, stats_logger: BaseStatsLogger) -> bool:
+        """Recover one orphaned task; return True if it was transitioned to FAILURE."""
+        # Read the current properties so the FAILURE write preserves existing
+        # runtime state (celery_task_id, is_abortable, ...) rather than replacing
+        # the whole column with just the error fields.
+        properties = cast(
+            TaskProperties,
+            dict(
+                parse_properties(
+                    db.session.query(Task.properties)
+                    .filter(Task.uuid == task_uuid)
+                    .scalar()
+                )
+            ),
         )
+        self._revoke(properties.get("celery_task_id"), stats_logger)
 
-        if not candidate.is_orphan:
-            # Wedged abort: the live worker finalizes its own status once the
-            # forced revoke raises SoftTimeLimitExceeded in it.
-            stats_logger.incr("gtf.task.abort_escalated")
-            logger.warning(
-                "Escalated wedged abort for task %s via forced revoke", candidate.uuid
-            )
-            return False
-
-        # Re-read the latest properties right before the CAS rather than reusing
-        # the (possibly batch-stale) find_orphaned snapshot, so we don't clobber a
-        # runtime property (progress, is_abortable, ...) a worker wrote in between.
-        # The status CAS below is still the authority: for a genuine orphan the
-        # worker is dead and cannot race it.
-        latest = (
-            db.session.query(Task.properties)
-            .filter(Task.uuid == candidate.uuid)
-            .scalar()
-        )
-        properties = cast(TaskProperties, dict(parse_properties(latest)))
         properties["error_message"] = ORPHAN_ERROR_MESSAGE
         properties["exception_type"] = "OrphanedTaskError"
 
         if not TaskDAO.conditional_status_update(
-            candidate.uuid,
+            task_uuid,
             TaskStatus.FAILURE,
             expected_status=list(ACTIVE_STATES),
             properties=properties,
@@ -125,27 +109,27 @@ class ReapOrphanedTasksCommand(BaseCommand):
 
         from superset.tasks.manager import TaskManager
 
-        TaskManager.publish_completion(candidate.uuid, TaskStatus.FAILURE.value)
-        TaskManager.publish_entity_change(candidate.uuid)
+        TaskManager.publish_completion(task_uuid, TaskStatus.FAILURE.value)
+        TaskManager.publish_entity_change(task_uuid)
         stats_logger.incr("gtf.task.orphan_reaped")
-        logger.warning(
-            "Reaped orphaned task %s (worker heartbeat stale)", candidate.uuid
-        )
+        logger.warning("Reaped orphaned task %s (worker heartbeat stale)", task_uuid)
         return True
 
     def _revoke(
         self, celery_task_id: str | None, stats_logger: BaseStatsLogger
     ) -> None:
-        """Forcibly revoke a Celery job (SIGUSR1 → SoftTimeLimitExceeded).
+        """Revoke the orphan's Celery job so a redelivered copy will not run.
 
-        ``terminate=True`` signals the worker child running the task so it raises
-        and reclaims the slot; for a not-yet-started job it prevents execution.
-        Best-effort — the DB transition is the source of truth.
+        Deliberately not ``terminate=True``: a stale heartbeat means the worker is
+        gone (nothing to signal), and force-terminating would risk killing a
+        healthy task on a false-positive detection. This only marks the job id
+        revoked, which matters when ``task_acks_late`` is enabled and the broker
+        redelivers. Best-effort; the DB transition is authoritative.
         """
         if not celery_task_id:
             return
         try:
-            celery_app.control.revoke(celery_task_id, terminate=True, signal="SIGUSR1")
+            celery_app.control.revoke(celery_task_id)
             stats_logger.incr("gtf.task.revoke")
         except Exception:  # noqa: BLE001 pylint: disable=broad-except
             stats_logger.incr("gtf.task.revoke_failure")

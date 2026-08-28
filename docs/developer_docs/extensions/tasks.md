@@ -417,9 +417,9 @@ See `superset/config.py` for a complete example configuration.
 A task whose worker dies mid-execution (OOM kill, crash, lost broker message) would otherwise stay `IN_PROGRESS` forever. To prevent this, a worker writes a liveness heartbeat while it holds a task, and the `prune_tasks` job reaps orphans (before the retention deletion described above):
 
 - **Heartbeat** — every `GTF_TASK_HEARTBEAT_INTERVAL` seconds (default 15) the executing worker refreshes `tasks.last_heartbeat`. This write is deliberately out-of-band and does not update `changed_on`.
-- **Reaping** — `prune_tasks` marks any active task whose heartbeat is older than `GTF_ORPHAN_TASK_TIMEOUT` (default 60) as `FAILURE` and revokes its Celery job, so waiters and dependents unblock. A task stuck in `ABORTING` past the same window despite a live heartbeat is force-revoked so the worker's own cleanup finalizes it.
+- **Reaping** — `prune_tasks` marks any active task whose heartbeat is older than `GTF_ORPHAN_TASK_TIMEOUT` (default 60) as `FAILURE` so waiters and dependents unblock, and revokes its Celery job so a redelivered copy (with `task_acks_late`) will not run. A task still being worked on keeps a fresh heartbeat and is never reaped, so this never interferes with a live worker's cooperative abort/cleanup.
 
-Because reaping runs inside `prune_tasks`, enable that beat schedule (and run it on a short interval) so orphaned tasks — and, on engines that support query cancellation, their warehouse queries — do not linger. Keep `GTF_ORPHAN_TASK_TIMEOUT` comfortably larger than the heartbeat interval (≥ ~3×) so a brief pause is not mistaken for a dead worker.
+Because reaping runs inside `prune_tasks`, enable that beat schedule (and run it on a short interval) so orphaned tasks do not linger. Keep `GTF_ORPHAN_TASK_TIMEOUT` comfortably larger than the heartbeat interval (≥ ~3×) so a brief pause or CPU-bound stretch is not mistaken for a dead worker.
 
 :::note Cancelling the underlying query
 For long-running work backed by an external query, register an `on_abort` handler that cancels it (this is how async chart-data query tasks cancel the warehouse query on engines that support cancellation). Without such a handler an abort/timeout frees the task but cannot stop the external work.

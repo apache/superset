@@ -3249,12 +3249,13 @@ TASK_PROGRESS_UPDATE_THROTTLE_INTERVAL = 2  # seconds
 # GTF worker-liveness heartbeat. While a worker holds a task it bumps
 # tasks.last_heartbeat every GTF_TASK_HEARTBEAT_INTERVAL seconds. The prune cron
 # (prune_tasks) reaps any ACTIVE task whose heartbeat is older than
-# GTF_ORPHAN_TASK_TIMEOUT — a worker that died mid-execution — by revoking its
-# Celery job and marking it FAILURE. The same threshold escalates a task stuck
-# in ABORTING (live worker ignoring a cooperative abort) with a forced revoke.
-# Keep the timeout comfortably larger than the interval (>= ~3x) so a brief GC
-# pause or stall does not look like a dead worker. Reaping only runs when the
-# prune_tasks beat schedule is enabled (see CELERY_CONFIG.beat_schedule).
+# GTF_ORPHAN_TASK_TIMEOUT — a worker that died mid-execution — by marking it
+# FAILURE (releasing waiters) and revoking its Celery job. A task still being
+# worked on keeps a fresh heartbeat and is left to its own cooperative abort, so
+# reaping never interferes with a live worker. Keep the timeout comfortably
+# larger than the interval (>= ~3x) so a brief GC pause or CPU-bound stretch does
+# not look like a dead worker. Reaping only runs when the prune_tasks beat
+# schedule is enabled (see CELERY_CONFIG.beat_schedule).
 GTF_TASK_HEARTBEAT_INTERVAL = 15  # seconds
 GTF_ORPHAN_TASK_TIMEOUT = 60  # seconds
 

@@ -15,10 +15,9 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from datetime import datetime, timedelta
+from datetime import timedelta
 from unittest.mock import patch
 
-import sqlalchemy as sa
 from superset_core.tasks.types import TaskScope, TaskStatus
 
 from superset import db
@@ -87,38 +86,13 @@ def test_find_orphaned_selects_only_stale_active_tasks(
     never_started = _make_task(admin, "queued", TaskStatus.PENDING)  # null heartbeat
     finished = _make_task(admin, "done", TaskStatus.SUCCESS, heartbeat_offset=600)
     try:
-        found = {c.uuid for c in TaskDAO.find_orphaned(60, 60)}
+        found = set(TaskDAO.find_orphaned(60))
         assert stale.uuid in found
         assert fresh.uuid not in found
         assert never_started.uuid not in found
         assert finished.uuid not in found
     finally:
         _cleanup(stale, fresh, never_started, finished)
-
-
-def test_find_orphaned_selects_wedged_aborting_tasks(
-    app_context, get_user, login_as
-) -> None:
-    """Wedged aborts = ABORTING + fresh heartbeat + old changed_on (live worker)."""
-    login_as("admin")
-    admin = get_user("admin")
-
-    # ABORTING with a fresh heartbeat; backdate changed_on past the grace window.
-    # changed_on is naive *local* (FAB onupdate), so use datetime.now() here.
-    wedged = _make_task(admin, "wedged", TaskStatus.ABORTING, heartbeat_offset=0)
-    db.session.execute(
-        sa.text("UPDATE tasks SET changed_on = :c WHERE id = :id"),
-        {"c": datetime.now() - timedelta(seconds=600), "id": wedged.id},
-    )
-    db.session.commit()
-    # A task that just entered ABORTING (recent changed_on) must NOT be selected.
-    recent = _make_task(admin, "recent_abort", TaskStatus.ABORTING, heartbeat_offset=0)
-    try:
-        found = {c.uuid: c.is_orphan for c in TaskDAO.find_orphaned(60, 60)}
-        assert found.get(wedged.uuid) is False  # selected, flagged wedged (not orphan)
-        assert recent.uuid not in found
-    finally:
-        _cleanup(wedged, recent)
 
 
 def test_reap_marks_orphan_failed_and_revokes(app_context, get_user, login_as) -> None:
@@ -137,9 +111,7 @@ def test_reap_marks_orphan_failed_and_revokes(app_context, get_user, login_as) -
             reaped = ReapOrphanedTasksCommand().run()
 
         assert reaped == 1
-        celery.control.revoke.assert_called_once_with(
-            "celery-xyz", terminate=True, signal="SIGUSR1"
-        )
+        celery.control.revoke.assert_called_once_with("celery-xyz")
         db.session.refresh(orphan)
         assert orphan.status == TaskStatus.FAILURE.value
         assert orphan.ended_at is not None
