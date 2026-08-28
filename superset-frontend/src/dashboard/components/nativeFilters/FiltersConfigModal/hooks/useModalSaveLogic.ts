@@ -58,7 +58,7 @@ type MergedFilterMap = Record<string, MergedFilterItem>;
 
 export interface ModalSaveLogicParams {
   form: FormInstance<NativeFiltersForm>;
-  configFormRef: React.RefObject<FiltersConfigFormHandle>;
+  configFormRef: React.RefObject<FiltersConfigFormHandle | null>;
   filterState: ItemStateManager;
   customizationState: ItemStateManager;
   filterIds: string[];

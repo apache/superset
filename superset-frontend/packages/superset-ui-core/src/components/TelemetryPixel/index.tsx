@@ -42,7 +42,7 @@ interface TelemetryPixelProps {
  * @param {string} props.sha - The SHA of Superset that's currently in use.
  * @param {string} props.build - The build of Superset that's currently in use.
  * @param {boolean} props.enabled - Runtime opt-out switch; when false the pixel is not rendered.
- * @returns {JSX.Element | null} The rendered TelemetryPixel component.
+ * @returns {ReactElement | null} The rendered TelemetryPixel component.
  */
 
 const PIXEL_ID = '0d3461e1-abb1-4691-a0aa-5ed50de66af0';

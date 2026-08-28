@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState, useCallback, useEffect, type ReactNode } from 'react';
+import {
+  useState,
+  useCallback,
+  useEffect,
+  type ReactNode,
+  type ReactElement,
+} from 'react';
 import {
   Row,
   Col,
@@ -70,7 +76,7 @@ export default function SpatialControl({
   label,
   description,
   ...restProps
-}: SpatialControlProps): JSX.Element {
+}: SpatialControlProps): ReactElement {
   const v = propValue || ({} as SpatialValue);
   const defaultCol = choices.length > 0 ? choices[0][0] : undefined;
 

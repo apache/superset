@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { useCallback, useState } from 'react';
+import { useCallback, useState, ReactElement } from 'react';
 import { useDispatch } from 'react-redux';
 import { setFilterConfiguration } from 'src/dashboard/actions/nativeFilters';
 import { saveChartCustomization } from 'src/dashboard/actions/chartCustomizationActions';
@@ -35,7 +35,7 @@ interface UseFilterConfigModalReturn {
   openFilterConfigModal: () => void;
   closeFilterConfigModal: () => void;
   handleSave: (changes: SaveChangesType) => Promise<void>;
-  FilterConfigModalComponent: JSX.Element | null;
+  FilterConfigModalComponent: ReactElement | null;
 }
 
 export const useFilterConfigModal = ({

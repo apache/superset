@@ -62,7 +62,7 @@ export const ChartPills = forwardRef(
       hideRowCount = false,
       formData,
     }: ChartPillsProps,
-    ref: RefObject<HTMLDivElement>,
+    ref: RefObject<HTMLDivElement | null>,
   ) => {
     const isLoading = chartStatus === 'loading';
     const firstQueryResponse = queriesResponse?.[0];

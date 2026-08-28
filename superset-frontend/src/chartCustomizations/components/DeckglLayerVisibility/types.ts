@@ -36,5 +36,5 @@ export type PluginDeckglLayerVisibilityProps = PluginFilterStylesProps & {
   data: (ColumnOption | ColumnData)[];
   filterState: FilterState;
   formData: DeckglLayerVisibilityFormData;
-  inputRef: RefObject<RefSelectProps>;
+  inputRef: RefObject<RefSelectProps | null>;
 } & PluginFilterHooks;

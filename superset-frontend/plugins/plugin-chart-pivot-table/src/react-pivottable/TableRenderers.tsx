@@ -1527,4 +1527,3 @@ TableRenderer.propTypes = {
   tableOptions: PropTypes.object,
   onContextMenu: PropTypes.func,
 };
-TableRenderer.defaultProps = { ...PivotData.defaultProps, tableOptions: {} };

@@ -31,13 +31,13 @@ const mockPopoverContentRef = {
   current: {
     focus: jest.fn(),
   },
-} as unknown as RefObject<HTMLDivElement>;
+} as unknown as RefObject<HTMLDivElement | null>;
 
 const mockPopoverTriggerRef = {
   current: {
     focus: jest.fn(),
   },
-} as unknown as RefObject<HTMLButtonElement>;
+} as unknown as RefObject<HTMLButtonElement | null>;
 
 const createProps = () => ({
   popoverVisible: true,

@@ -22,6 +22,7 @@ import {
   ReactNode,
   useMemo,
   useEffect,
+  ReactElement,
 } from 'react';
 import type { SelectValue } from '@superset-ui/core/components';
 
@@ -104,11 +105,11 @@ interface TableSelectorProps {
     schema?: string,
   ) => void;
   tableSelectMode?: 'single' | 'multiple';
-  customTableOptionLabelRenderer?: (table: Table) => JSX.Element;
+  customTableOptionLabelRenderer?: (table: Table) => ReactElement;
 }
 
 export interface TableOption {
-  label: JSX.Element;
+  label: ReactElement;
   text: string;
   value: string;
 }

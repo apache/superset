@@ -102,7 +102,7 @@ const VerticalDotsTrigger = () => (
 );
 
 export interface SliceHeaderControlsProps {
-  chartHolderRef?: RefObject<HTMLDivElement>;
+  chartHolderRef?: RefObject<HTMLDivElement | null>;
   slice: {
     description: string;
     viz_type: string;
@@ -176,8 +176,8 @@ const SliceHeaderControls = (
   );
   const history = useHistory();
 
-  const queryMenuRef: RefObject<any> = useRef(null);
-  const resultsMenuRef: RefObject<any> = useRef(null);
+  const queryMenuRef: RefObject<any | null> = useRef(null);
+  const resultsMenuRef: RefObject<any | null> = useRef(null);
 
   const [modalFilters, setFilters] = useState<BinaryQueryObjectFilterClause[]>(
     [],

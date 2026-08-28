@@ -54,7 +54,7 @@ function SearchFilter(
     onSubmit,
     autoComplete = 'off',
   }: SearchHeaderProps,
-  ref: RefObject<FilterHandler>,
+  ref: RefObject<FilterHandler | null>,
 ) {
   const theme = useTheme();
   const [value, setValue] = useState(initialValue || '');

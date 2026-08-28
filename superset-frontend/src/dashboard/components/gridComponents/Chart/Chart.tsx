@@ -98,7 +98,7 @@ interface ChartProps {
   extraControls?: JsonObject;
   isInView?: boolean;
   cacheBusterProp?: string | number;
-  chartHolderRef?: RefObject<HTMLDivElement>;
+  chartHolderRef?: RefObject<HTMLDivElement | null>;
 }
 
 const RESIZE_TIMEOUT = 500;

@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import type { ComponentType } from 'react';
 import { DatePicker as AntdDatePicker } from 'antd';
 import { css } from '@apache-superset/core/theme';
 import type { DatePickerProps, RangePickerProps } from './types';
@@ -29,6 +30,7 @@ export const DatePicker = (props: DatePickerProps) => (
   />
 );
 
-export const { RangePicker } = AntdDatePicker;
+export const RangePicker: ComponentType<RangePickerProps> =
+  AntdDatePicker.RangePicker;
 
 export type { DatePickerProps, RangePickerProps };

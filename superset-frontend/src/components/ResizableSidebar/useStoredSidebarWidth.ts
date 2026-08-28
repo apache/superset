@@ -27,7 +27,7 @@ export default function useStoredSidebarWidth(
   id: string,
   initialWidth: number,
 ) {
-  const widthsMapRef = useRef<Record<string, number>>();
+  const widthsMapRef = useRef<Record<string, number> | undefined>(undefined);
   const [sidebarWidth, setSidebarWidth] = useState<number>(initialWidth);
 
   useEffect(() => {

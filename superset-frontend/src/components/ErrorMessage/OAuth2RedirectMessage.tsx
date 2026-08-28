@@ -104,7 +104,7 @@ export function OAuth2RedirectMessage({
   );
 
   const dispatch = useDispatch();
-  const lastHandledTabIdRef = useRef<string>();
+  const lastHandledTabIdRef = useRef<string | undefined>(undefined);
 
   useEffect(() => {
     const handleOAuthComplete = (tabId?: string) => {

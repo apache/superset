@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useRef, useCallback } from 'react';
+import { useRef, useCallback, type ReactElement } from 'react';
 import { styled } from '@apache-superset/core/theme';
 import {
   ModalTrigger,
@@ -25,7 +25,7 @@ import {
 import FilterScope from 'src/dashboard/containers/FilterScope';
 
 type FilterScopeModalProps = {
-  triggerNode: JSX.Element;
+  triggerNode: ReactElement;
 };
 
 const FilterScopeModalBody = styled.div(({ theme: { sizeUnit } }) => ({
