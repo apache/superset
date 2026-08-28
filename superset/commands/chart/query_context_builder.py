@@ -35,6 +35,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from superset.utils.core import split_adhoc_filters_into_base_filters
+
 # Datasource-less viz types render static/markdown content rather than a
 # datasource-backed query; a NULL query_context is the *correct* state for them
 # (FR-003), not a bug. Kept as a small, explicit, conservatively-expanded set.
@@ -46,48 +48,31 @@ _DEFAULT_ROW_LIMIT = 5000
 
 def _translate_adhoc_filters(
     adhoc_filters: list[Any] | None,
-) -> tuple[list[dict[str, Any]], list[str], list[str]]:
+) -> tuple[list[dict[str, Any]], str, str]:
     """
-    Translate viz ``adhoc_filters`` into simple ``{col, op, val}`` filters.
+    Translate viz ``adhoc_filters`` into base filters via the shared splitter.
 
-    - ``expressionType == "SIMPLE"`` → a ``{col, op, val}`` filter.
-    - ``expressionType == "SQL"``    → routed to ``extras.where`` (or
-      ``extras.having`` for a HAVING clause) so a hand-written SQL predicate is
-      preserved rather than lost.
-    - Anything that cannot be mapped cleanly (missing subject/operator, malformed
-      entry) is dropped **without raising** (RISK-T05) — an imported chart must
-      never abort its bundle over a single unmappable filter.
+    Delegates to ``split_adhoc_filters_into_base_filters`` — the same helper the
+    read path uses — so SQL predicates are composed identically rather than by a
+    bare ``" AND ".join``: each clause is wrapped in parentheses (preserving
+    ``OR`` precedence) and a trailing ``--`` line comment is prevented from
+    swallowing predicates joined after it. Malformed entries are dropped by the
+    shared splitter rather than raising (RISK-T05), so an imported chart never
+    aborts its bundle over a single unmappable filter.
 
-    Returns ``(filters, where_expressions, having_expressions)``.
+    Returns ``(filters, where, having)`` where ``where``/``having`` are the
+    parenthesized, comment-safe SQL strings ready for ``extras``.
     """
-    filters: list[dict[str, Any]] = []
-    where_expressions: list[str] = []
-    having_expressions: list[str] = []
-    for adhoc_filter in adhoc_filters or []:
-        if not isinstance(adhoc_filter, dict):
-            continue
-        expression_type = adhoc_filter.get("expressionType") or "SIMPLE"
-        if expression_type == "SIMPLE":
-            subject = adhoc_filter.get("subject")
-            operator = adhoc_filter.get("operator")
-            if subject and operator:
-                filters.append(
-                    {
-                        "col": subject,
-                        "op": operator,
-                        "val": adhoc_filter.get("comparator"),
-                    }
-                )
-            # else: unmappable SIMPLE filter — dropped, no crash (RISK-T05).
-        elif expression_type == "SQL":
-            sql_expression = adhoc_filter.get("sqlExpression")
-            if sql_expression:
-                clause = (adhoc_filter.get("clause") or "WHERE").upper()
-                if clause == "HAVING":
-                    having_expressions.append(sql_expression)
-                else:
-                    where_expressions.append(sql_expression)
-    return filters, where_expressions, having_expressions
+    # Drop non-dict junk up front (RISK-T05): the shared splitter calls
+    # ``.get`` on each entry and would raise on a stray non-dict item.
+    sanitized = [f for f in (adhoc_filters or []) if isinstance(f, dict)]
+    form_data: dict[str, Any] = {"adhoc_filters": sanitized}
+    split_adhoc_filters_into_base_filters(form_data)
+    return (
+        form_data.get("filters") or [],
+        form_data.get("where") or "",
+        form_data.get("having") or "",
+    )
 
 
 def _derive_orderby(params: dict[str, Any]) -> list[list[Any]]:
@@ -144,14 +129,17 @@ def build_query_context_config(
     if not datasource_id or viz_type in _NON_DATASOURCE_VIZ:
         return None
     metrics = params.get("metrics") or []
+    # Single-metric viz types (e.g. Big Number) persist the metric under the
+    # singular `metric` key; normalize it into `metrics` so those charts are not
+    # misclassified as non-derivable (#33615: Big Number left with a NULL context).
+    if not metrics and params.get("metric"):
+        metrics = [params["metric"]]
     # `groupby` is the deprecated alias of `columns`.
     columns = params.get("columns") or params.get("groupby") or []
     if not metrics and not columns:
         return None
 
-    filters, where_expressions, having_expressions = _translate_adhoc_filters(
-        params.get("adhoc_filters", [])
-    )
+    filters, where, having = _translate_adhoc_filters(params.get("adhoc_filters", []))
 
     query_object = {
         "time_range": params.get("time_range", " : "),
@@ -159,8 +147,8 @@ def build_query_context_config(
         "filters": filters,
         "extras": {
             "time_grain_sqla": params.get("time_grain_sqla"),
-            "having": " AND ".join(having_expressions),
-            "where": " AND ".join(where_expressions),
+            "having": having,
+            "where": where,
         },
         "applied_time_extras": {},
         "columns": columns,

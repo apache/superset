@@ -81,6 +81,29 @@ def test_metrics_only_is_derivable() -> None:
     assert query_context["queries"][0]["metrics"] == ["count"]
 
 
+def test_singular_metric_is_normalized_and_derivable() -> None:
+    """
+    Single-metric viz types (e.g. Big Number) persist the metric under the
+    singular ``metric`` key. It must be normalized into ``metrics`` so the chart
+    is derivable rather than classified non-derivable (#33615 review: Big Number
+    left with a NULL query_context and a 400 data endpoint).
+    """
+    query_context = build_query_context_config(
+        {"metric": "count"}, "big_number", 7, "table"
+    )
+    assert query_context is not None
+    assert query_context["queries"][0]["metrics"] == ["count"]
+
+
+def test_plural_metrics_take_precedence_over_singular() -> None:
+    """When both keys exist, the plural ``metrics`` list wins (no duplication)."""
+    query_context = build_query_context_config(
+        {"metrics": ["sum__num"], "metric": "count"}, "table", 7, "table"
+    )
+    assert query_context is not None
+    assert query_context["queries"][0]["metrics"] == ["sum__num"]
+
+
 def test_datasource_taken_from_argument_not_params() -> None:
     """
     Datasource must come from the resolved id/type, NEVER from free-form
@@ -158,9 +181,58 @@ def test_adhoc_sql_filter_routed_to_extras_and_no_crash() -> None:
     query_context = build_query_context_config(params, "table", 12, "table")
     assert query_context is not None
     extras = query_context["queries"][0]["extras"]
-    assert extras["where"] == "num > 0"
-    assert extras["having"] == "sum(num) > 1"
+    # Composed via the shared splitter: each predicate is parenthesized.
+    assert extras["where"] == "(num > 0)"
+    assert extras["having"] == "(sum(num) > 1)"
     assert query_context["queries"][0]["filters"] == []
+
+
+def test_adhoc_sql_or_predicate_is_parenthesized() -> None:
+    """
+    Multiple SQL WHERE predicates must be parenthesized before being AND-joined,
+    like ``split_adhoc_filters_into_base_filters`` (#33615 review). Without the
+    parentheses, ``status='a' OR status='b'`` AND ``type='x'`` would bind as
+    ``status='a' OR (status='b' AND type='x')`` and change the result set.
+    """
+    params = {
+        "metrics": ["sum__num"],
+        "adhoc_filters": [
+            {
+                "expressionType": "SQL",
+                "sqlExpression": "status = 'a' OR status = 'b'",
+                "clause": "WHERE",
+            },
+            {"expressionType": "SQL", "sqlExpression": "type = 'x'", "clause": "WHERE"},
+        ],
+    }
+    query_context = build_query_context_config(params, "table", 12, "table")
+    assert query_context is not None
+    assert query_context["queries"][0]["extras"]["where"] == (
+        "(status = 'a' OR status = 'b') AND (type = 'x')"
+    )
+
+
+def test_adhoc_sql_trailing_comment_is_neutralized() -> None:
+    """
+    A trailing ``--`` line comment must not swallow predicates joined after it;
+    the shared splitter appends a newline so the following ``AND`` survives.
+    """
+    params = {
+        "metrics": ["sum__num"],
+        "adhoc_filters": [
+            {
+                "expressionType": "SQL",
+                "sqlExpression": "a = 1 -- note",
+                "clause": "WHERE",
+            },
+            {"expressionType": "SQL", "sqlExpression": "b = 2", "clause": "WHERE"},
+        ],
+    }
+    query_context = build_query_context_config(params, "table", 12, "table")
+    assert query_context is not None
+    where = query_context["queries"][0]["extras"]["where"]
+    # The newline keeps `b = 2` from being commented out.
+    assert "\n) AND (b = 2)" in where
 
 
 def test_idempotent_deterministic() -> None:

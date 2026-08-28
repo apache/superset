@@ -40,7 +40,7 @@ for (const m of vizTypeSrc.matchAll(/(\w+)\s*=\s*['"]([\w-]+)['"]/g)) VIZ_ENUM[m
 
 // --- 2. MainPreset: ClassName -> viz string ---
 const mainPreset = readFileSync(
-  path.join(FE, 'src/visualizations/presets/MainPreset.js'),
+  path.join(FE, 'src/visualizations/presets/MainPreset.ts'),
   'utf8',
 );
 // MainPreset renames on import (e.g. `import { PivotTableChartPlugin as

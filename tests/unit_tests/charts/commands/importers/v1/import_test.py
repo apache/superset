@@ -519,6 +519,43 @@ def test_import_chart_preserves_existing_query_context(
     assert json.loads(chart.query_context) == json.loads(original_query_context)
 
 
+def test_synthesis_runs_after_migration_for_legacy_viz(
+    mocker: MockerFixture, session_with_schema: Session
+) -> None:
+    """
+    #33615 review: query_context synthesis must run AFTER ``migrate_chart`` so a
+    legacy viz type (``dual_line`` -> ``mixed_timeseries``) derives its context
+    from the MIGRATED viz_type/params, not the pre-migration form data. Otherwise
+    the persisted context describes a chart shape that no longer exists.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    # Force the generic fallback and capture the viz_type it is handed.
+    fallback = mocker.patch(
+        "superset.commands.chart.importers.v1.utils.build_query_context_config",
+        return_value=None,
+    )
+    # Make the V8 generator a no-op so the (spied) fallback is exercised.
+    mocker.patch(
+        "superset.commands.chart.importers.v1.utils.get_query_context_generator"
+    ).return_value.generate.return_value = None
+
+    config = copy.deepcopy(chart_config)
+    config["datasource_id"] = 1
+    config["datasource_type"] = "table"
+    config["viz_type"] = "dual_line"
+    config["params"]["viz_type"] = "dual_line"
+    config.pop("query_context", None)
+
+    chart = import_chart(config)
+
+    # The chart is migrated to the modern viz type ...
+    assert chart.viz_type == "mixed_timeseries"
+    # ... and synthesis saw the MIGRATED viz type, never "dual_line".
+    assert fallback.call_args is not None
+    passed_viz_type = fallback.call_args.args[1]
+    assert passed_viz_type == "mixed_timeseries"
+
+
 def test_import_non_derivable_chart_leaves_query_context_null(
     mocker: MockerFixture, session_with_schema: Session
 ) -> None:
