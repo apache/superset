@@ -119,7 +119,7 @@ def handle_ssh_tunnel_error(ex: sshtunnel.BaseSSHTunnelForwarderError) -> FlaskR
     )
 
 
-def handle_api_exception(
+def handle_api_exception(  # noqa: C901
     f: Callable[..., FlaskResponse],
 ) -> Callable[..., FlaskResponse]:
     """
@@ -151,6 +151,15 @@ def handle_api_exception(
             return json_error_response(
                 utils.error_msg_from_exception(ex), status=cast(int, ex.code)
             )
+        except exc.OperationalError as ex:
+            # A connection-level failure (the server dropping the connection
+            # mid-query, or a connection that could never be established) is a
+            # server-side fault, not something the caller can correct by
+            # changing the request. It must not fall through to the 422 handler
+            # below, which OperationalError would otherwise match as a
+            # DatabaseError subclass.
+            logger.exception(ex)
+            return json_error_response(utils.error_msg_from_exception(ex), status=500)
         except (exc.IntegrityError, exc.DatabaseError, exc.DataError) as ex:
             logger.exception(ex)
             return json_error_response(utils.error_msg_from_exception(ex), status=422)

@@ -24,6 +24,7 @@ import pytest
 import sshtunnel
 from flask import Flask, Response
 from flask_babel import Babel
+from sqlalchemy.exc import IntegrityError, OperationalError, ProgrammingError
 
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import QueryObjectValidationError, SupersetException
@@ -66,6 +67,81 @@ class TestHandleApiExceptionSSHTunnelError:
             and "BaseSSHTunnelForwarderError" in record.message
             for record in caplog.records
         )
+
+
+class TestHandleApiExceptionDatabaseErrors:
+    """
+    `OperationalError` is a `DatabaseError` subclass, so it must be matched by
+    its own clause ahead of the 422 handler for other `DatabaseError`s.
+    """
+
+    def _run(self, app, ex: Exception, *, guest: bool = False) -> Response:
+        @handle_api_exception
+        def view(self: object) -> FlaskResponse:
+            raise ex
+
+        with (
+            app.test_request_context(),
+            patch(
+                "superset.security.SupersetSecurityManager.is_guest_user",
+                return_value=guest,
+            ),
+        ):
+            return cast(Response, view(self=object()))
+
+    def test_operational_error_returns_500(self, app):
+        response = self._run(
+            app, OperationalError("SELECT 1", {}, Exception("connection closed"))
+        )
+
+        assert response.status_code == 500
+
+    def test_non_connection_database_error_still_returns_422(self, app):
+        response = self._run(
+            app,
+            ProgrammingError("SELECT 1", {}, Exception("relation does not exist")),
+        )
+
+        assert response.status_code == 422
+
+    def test_integrity_error_still_returns_422(self, app):
+        response = self._run(
+            app, IntegrityError("INSERT", {}, Exception("duplicate key"))
+        )
+
+        assert response.status_code == 422
+
+    def test_operational_error_message_is_redacted_for_guest_users(self, app):
+        """
+        The 500 clause hands the raw driver message to `json_error_response`,
+        which routes a bare string through `sanitize_error_message`. A driver
+        message quotes the host, port and user of the connection it failed on,
+        so an embedded viewer must receive the generic text instead.
+        """
+        leaky = (
+            "could not connect to server: Connection refused\n\tIs the server "
+            'running on host "analytics-prod.internal" (10.0.4.17) and accepting '
+            "TCP/IP connections on port 5432?"
+        )
+
+        response = self._run(
+            app, OperationalError("SELECT 1", {}, Exception(leaky)), guest=True
+        )
+
+        assert response.status_code == 500
+        payload = json.loads(response.data)
+        assert payload["error"] == str(GENERIC_ERROR_MESSAGE)
+        for secret in ("analytics-prod.internal", "10.0.4.17", "5432"):
+            assert secret not in response.get_data(as_text=True)
+
+    def test_operational_error_message_is_kept_for_regular_users(self, app):
+        """The redaction above is guest-only; an operator still needs the detail."""
+        response = self._run(
+            app, OperationalError("SELECT 1", {}, Exception("Connection refused"))
+        )
+
+        assert response.status_code == 500
+        assert "Connection refused" in json.loads(response.data)["error"]
 
 
 class TestShowUnexpectedException:

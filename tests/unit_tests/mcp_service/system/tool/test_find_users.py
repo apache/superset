@@ -141,9 +141,9 @@ async def test_find_users_returns_matches(mcp_server):
     # required for filter resolution. Catch regressions on the response shape.
     for forbidden in ("email", "active", "roles"):
         assert forbidden not in data["users"][0]
-    # or_ should have been built across the four matched columns
+    # or_ should have been built across the three matched columns (no email)
     assert mock_or.called
-    assert len(mock_or.call_args.args) == 4
+    assert len(mock_or.call_args.args) == 3
 
 
 @pytest.mark.asyncio
@@ -199,6 +199,19 @@ def test_find_users_request_strips_query_whitespace():
     # don't carry leading/trailing whitespace.
     request = FindUsersRequest(query="  maxime  ")
     assert request.query == "maxime"
+
+
+@pytest.mark.parametrize(
+    "email",
+    ["victim@example.com", "Victim@Example.COM", "a.b+tag@sub.example.co"],
+)
+def test_find_users_request_rejects_email_shaped_query(email):
+    # Usernames are frequently email addresses under OAuth provisioning, so
+    # an email-shaped query must be rejected outright rather than relying on
+    # the email-column exclusion alone -- otherwise it still confirms an
+    # account's existence via the username column.
+    with pytest.raises(ValidationError):
+        FindUsersRequest(query=email)
 
 
 # ---------------------------------------------------------------------------
@@ -336,3 +349,51 @@ async def test_find_users_escapes_literal_backslash(mcp_server):
     assert ilike_call is not None
     assert ilike_call.args[0] == "%\\\\%"
     assert ilike_call.kwargs.get("escape") == "\\"
+
+
+@pytest.mark.asyncio
+async def test_find_users_does_not_match_on_email(mcp_server):
+    """Email must not be a searchable column: substring or exact email
+    matching would let any MCP credential confirm which addresses have
+    accounts (an email-disclosure oracle the web API reserves for admins).
+    Uses a non-email-shaped query so this exercises the OR-clause contract
+    itself, independent of the email-shape rejection covered below."""
+    session, _ = _patch_user_query([])
+
+    with (
+        patch.object(find_users_module, "db") as mock_db,
+        patch.object(find_users_module, "security_manager") as mock_sm,
+        patch.object(find_users_module, "or_") as mock_or,
+    ):
+        mock_db.session = session
+        user_model = MagicMock()
+        mock_sm.user_model = user_model
+        mock_or.return_value = MagicMock()
+
+        async with Client(mcp_server) as client:
+            await client.call_tool("find_users", {"request": {"query": "victim"}})
+
+    assert user_model.username.ilike.called
+    assert user_model.first_name.ilike.called
+    assert user_model.last_name.ilike.called
+    assert not user_model.email.ilike.called
+
+
+@pytest.mark.asyncio
+async def test_find_users_rejects_email_shaped_query_via_client(mcp_server):
+    """An email-shaped query is rejected before it ever reaches the DB
+    filter: since usernames are frequently email addresses under OAuth
+    provisioning, letting it fall through to the username column would
+    still let an email lookup confirm whether an address has an account,
+    defeating the documented non-enumeration guarantee."""
+    with (
+        patch.object(find_users_module, "db") as mock_db,
+        patch.object(find_users_module, "security_manager"),
+    ):
+        async with Client(mcp_server) as client:
+            with pytest.raises(ToolError):
+                await client.call_tool(
+                    "find_users", {"request": {"query": "victim@example.com"}}
+                )
+
+    mock_db.session.query.assert_not_called()
