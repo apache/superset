@@ -577,3 +577,26 @@ def test_cached_entry_shape_is_pinned_to_the_identity_version() -> None:
         "timeout",
     )
     assert IDENTITY_FORMAT_VERSION == "v3"
+
+
+def test_store_surfaces_existence_check_failure_as_store_error() -> None:
+    """The redundant-store check is an expected backend operation like any
+    other: its failure is a typed store error, not a request failure."""
+
+    class _FailingHasBackend(_Backend):
+        def has(self, key: str) -> bool:
+            raise SemanticCacheBackendError("has unavailable")
+
+    backend: _FailingHasBackend = _FailingHasBackend()
+    repository: SemanticCacheRepository = SemanticCacheRepository(
+        backend,
+        _Coordinator(),
+        clock=lambda: 10.0,
+    )
+    query: SemanticQuery = build_semantic_query()
+    repository.store(build_view_meta(), query, build_semantic_result())
+
+    with pytest.raises(SemanticCacheStoreError, match="has failed"):
+        repository.store(
+            build_view_meta(), query, build_semantic_result(), replace=False
+        )
