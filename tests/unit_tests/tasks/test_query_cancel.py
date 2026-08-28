@@ -20,8 +20,10 @@ from unittest.mock import MagicMock, patch
 
 from superset.tasks.query_cancel import (
     _cancel_id_sink,
+    _CancellationQuery,
     cancel_chart_query,
     capture_cancel_id,
+    capture_cancel_query_id,
     notify_cursor,
 )
 
@@ -78,8 +80,34 @@ def test_cancel_chart_query_success() -> None:
     database, cursor = _mock_database(cancel_result=True)
 
     assert cancel_chart_query(database, "123", _app_with_stats(stats)) is True
-    database.db_engine_spec.cancel_query.assert_called_once_with(cursor, None, "123")
+    # Called with the live cursor, a Query stand-in bound to this database, and id.
+    call = database.db_engine_spec.cancel_query.call_args
+    assert call.args[0] is cursor
+    assert isinstance(call.args[1], _CancellationQuery)
+    assert call.args[1].database is database
+    assert call.args[2] == "123"
     stats.incr.assert_any_call("gtf.query.cancel")
+
+
+def test_cancellation_query_stub_exposes_expected_attributes() -> None:
+    database = MagicMock()
+    query = _CancellationQuery(database)
+    # id is None so an engine that cancels by query id declines rather than raises.
+    assert query.id is None
+    assert query.database is database
+    query.set_extra_json_key("early_cancel_query", True)
+    assert query.extra["early_cancel_query"] is True
+
+
+def test_capture_cancel_query_id_passes_a_query_stub() -> None:
+    database = MagicMock()
+    database.db_engine_spec.get_cancel_query_id.return_value = "42"
+    cursor = MagicMock()
+
+    assert capture_cancel_query_id(database, cursor) == "42"
+    call = database.db_engine_spec.get_cancel_query_id.call_args
+    assert call.args[0] is cursor
+    assert isinstance(call.args[1], _CancellationQuery)
 
 
 def test_cancel_chart_query_reports_failure_when_engine_declines() -> None:

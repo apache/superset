@@ -61,6 +61,10 @@ def test_touch_heartbeat_does_not_advance_changed_on(
     login_as("admin")
     admin = get_user("admin")
     task = _make_task(admin, "hb_task", TaskStatus.IN_PROGRESS)
+    # Read changed_on back from the DB first so the baseline is at the column's
+    # storage precision (MySQL DATETIME truncates to whole seconds), otherwise the
+    # post-refresh comparison below spuriously differs from the in-memory value.
+    db.session.refresh(task)
     original_changed_on = task.changed_on
     try:
         TaskDAO.touch_heartbeat(task.id)

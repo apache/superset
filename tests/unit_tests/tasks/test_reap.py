@@ -52,7 +52,7 @@ def _patched(candidates, cas_result=True):
     app.config = {"STATS_LOGGER": stats, "GTF_ORPHAN_TASK_TIMEOUT": 60}
     with (
         patch("superset.commands.tasks.reap.current_app", app),
-        patch("superset.commands.tasks.reap.db"),
+        patch("superset.commands.tasks.reap.db") as db,
         patch("superset.daos.tasks.TaskDAO.find_orphaned", return_value=candidates),
         patch(
             "superset.daos.tasks.TaskDAO.conditional_status_update",
@@ -62,6 +62,11 @@ def _patched(candidates, cas_result=True):
         patch("superset.tasks.manager.TaskManager.publish_completion") as publish,
         patch("superset.tasks.manager.TaskManager.publish_entity_change"),
     ):
+        # The fresh pre-CAS properties re-read returns the candidate's properties.
+        properties = candidates[0].properties if candidates else "{}"
+        db.session.query.return_value.filter.return_value.scalar.return_value = (
+            properties
+        )
         yield stats, cas, celery, publish
 
 

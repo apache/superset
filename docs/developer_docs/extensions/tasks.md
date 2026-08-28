@@ -412,6 +412,19 @@ The prune job only removes tasks in terminal states (`SUCCESS`, `FAILURE`, `ABOR
 
 See `superset/config.py` for a complete example configuration.
 
+### Orphan Reaping
+
+A task whose worker dies mid-execution (OOM kill, crash, lost broker message) would otherwise stay `IN_PROGRESS` forever. To prevent this, a worker writes a liveness heartbeat while it holds a task, and the `prune_tasks` job reaps orphans (before the retention deletion described above):
+
+- **Heartbeat** — every `GTF_TASK_HEARTBEAT_INTERVAL` seconds (default 15) the executing worker refreshes `tasks.last_heartbeat`. This write is deliberately out-of-band and does not update `changed_on`.
+- **Reaping** — `prune_tasks` marks any active task whose heartbeat is older than `GTF_ORPHAN_TASK_TIMEOUT` (default 60) as `FAILURE` and revokes its Celery job, so waiters and dependents unblock. A task stuck in `ABORTING` past the same window despite a live heartbeat is force-revoked so the worker's own cleanup finalizes it.
+
+Because reaping runs inside `prune_tasks`, enable that beat schedule (and run it on a short interval) so orphaned tasks — and, on engines that support query cancellation, their warehouse queries — do not linger. Keep `GTF_ORPHAN_TASK_TIMEOUT` comfortably larger than the heartbeat interval (≥ ~3×) so a brief pause is not mistaken for a dead worker.
+
+:::note Cancelling the underlying query
+For long-running work backed by an external query, register an `on_abort` handler that cancels it (this is how async chart-data query tasks cancel the warehouse query on engines that support cancellation). Without such a handler an abort/timeout frees the task but cannot stop the external work.
+:::
+
 :::tip Distributed Coordination for Faster Notifications
 By default, abort detection and sync join-and-wait poll the task row in the metadata database. Configure `DISTRIBUTED_COORDINATION_CONFIG` (Redis/Valkey) and these become event-driven: completion and abort are signalled over Redis **Streams**, so a waiter wakes when the signal lands instead of polling the database. Because stream entries are persisted, a waiter that reads slightly late, reconnects, or fails over still receives the signal. Each signal stream keeps only its latest entry and is given a TTL, so streams for tasks that are never awaited do not accumulate; set the retention window with `DISTRIBUTED_COORDINATION_SIGNAL_TTL` (default 24h). See [Distributed Coordination Backend](/admin-docs/configuration/cache#signal-cache-backend) for configuration details.
 :::

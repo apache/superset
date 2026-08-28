@@ -90,6 +90,17 @@ def _requested_statuses(transition: MagicMock):
     return [call.kwargs.get("new_status") for call in transition.call_args_list]
 
 
+def _find_call(transition: MagicMock, new_status):
+    return next(
+        (
+            c
+            for c in transition.call_args_list
+            if c.kwargs.get("new_status") == new_status
+        ),
+        None,
+    )
+
+
 def test_exception_during_timeout_finalizes_timed_out_not_failure() -> None:
     """A body that raises while timing out must end TIMED_OUT, never FAILURE."""
     result, transition, task_manager, stats_logger = _run_body_with_raising_executor(
@@ -97,6 +108,10 @@ def test_exception_during_timeout_finalizes_timed_out_not_failure() -> None:
     )
 
     assert TaskStatus.FAILURE not in _requested_statuses(transition)
+    # The finally block must actually issue the ABORTING -> TIMED_OUT transition.
+    timed_out = _find_call(transition, TaskStatus.TIMED_OUT)
+    assert timed_out is not None
+    assert timed_out.kwargs.get("expected_status") == TaskStatus.ABORTING
     assert result["status"] == TaskStatus.TIMED_OUT.value
     task_manager.publish_completion.assert_called_once()
     # The failure metric must not fire for a successful cancellation.
@@ -112,6 +127,9 @@ def test_exception_during_abort_finalizes_aborted_not_failure() -> None:
     )
 
     assert TaskStatus.FAILURE not in _requested_statuses(transition)
+    aborted = _find_call(transition, TaskStatus.ABORTED)
+    assert aborted is not None
+    assert aborted.kwargs.get("expected_status") == TaskStatus.ABORTING
     assert result["status"] == TaskStatus.ABORTED.value
 
 

@@ -26,6 +26,7 @@ from superset import db
 from superset.commands.base import BaseCommand
 from superset.daos.tasks import OrphanCandidate, TaskDAO
 from superset.extensions import celery_app
+from superset.models.tasks import Task
 from superset.stats_logger import BaseStatsLogger
 from superset.tasks.constants import ACTIVE_STATES
 from superset.tasks.utils import parse_properties
@@ -61,7 +62,18 @@ class ReapOrphanedTasksCommand(BaseCommand):
         timeout = current_app.config["GTF_ORPHAN_TASK_TIMEOUT"]
 
         candidates = TaskDAO.find_orphaned(timeout, timeout)
-        reaped = sum(self._process(candidate, stats_logger) for candidate in candidates)
+        reaped = 0
+        for candidate in candidates:
+            # Isolate each candidate: a transient DB error on one must neither
+            # abort the loop nor escape as a non-CommandException (which would
+            # skip the retention prune pass that runs after this command).
+            try:
+                if self._process(candidate, stats_logger):
+                    reaped += 1
+            except Exception:  # noqa: BLE001 pylint: disable=broad-except
+                db.session.rollback()  # pylint: disable=consider-using-transaction
+                stats_logger.incr("gtf.task.reap_error")
+                logger.exception("Failed to reap orphaned task %s", candidate.uuid)
         if candidates:
             logger.info(
                 "Orphan reaper processed %d task(s), reaped %d", len(candidates), reaped
@@ -72,10 +84,9 @@ class ReapOrphanedTasksCommand(BaseCommand):
         self, candidate: OrphanCandidate, stats_logger: BaseStatsLogger
     ) -> bool:
         """Handle one candidate; return True if it was reaped to FAILURE."""
-        # Preserve existing runtime state (is_abortable, timeout, celery_task_id,
-        # ...); conditional_status_update replaces the whole properties column.
-        properties = cast(TaskProperties, dict(parse_properties(candidate.properties)))
-        self._revoke(properties.get("celery_task_id"), stats_logger)
+        self._revoke(
+            parse_properties(candidate.properties).get("celery_task_id"), stats_logger
+        )
 
         if not candidate.is_orphan:
             # Wedged abort: the live worker finalizes its own status once the
@@ -86,6 +97,17 @@ class ReapOrphanedTasksCommand(BaseCommand):
             )
             return False
 
+        # Re-read the latest properties right before the CAS rather than reusing
+        # the (possibly batch-stale) find_orphaned snapshot, so we don't clobber a
+        # runtime property (progress, is_abortable, ...) a worker wrote in between.
+        # The status CAS below is still the authority: for a genuine orphan the
+        # worker is dead and cannot race it.
+        latest = (
+            db.session.query(Task.properties)
+            .filter(Task.uuid == candidate.uuid)
+            .scalar()
+        )
+        properties = cast(TaskProperties, dict(parse_properties(latest)))
         properties["error_message"] = ORPHAN_ERROR_MESSAGE
         properties["exception_type"] = "OrphanedTaskError"
 
@@ -99,7 +121,7 @@ class ReapOrphanedTasksCommand(BaseCommand):
             # The worker revived and committed a terminal status first.
             return False
 
-        db.session.commit()
+        db.session.commit()  # pylint: disable=consider-using-transaction
 
         from superset.tasks.manager import TaskManager
 

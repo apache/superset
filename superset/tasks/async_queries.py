@@ -38,7 +38,11 @@ from superset.extensions import (
 )
 from superset.tasks.ambient_context import get_context
 from superset.tasks.decorators import task
-from superset.tasks.query_cancel import cancel_chart_query, capture_cancel_id
+from superset.tasks.query_cancel import (
+    cancel_chart_query,
+    capture_cancel_id,
+    capture_cancel_query_id,
+)
 from superset.utils.core import override_user
 
 if TYPE_CHECKING:
@@ -147,8 +151,7 @@ def _capture_query_cancellation(query_context: "QueryContext") -> Iterator[None]
         nonlocal captured
         if captured:
             return
-        # query is unused by the explicit-id specs; the chart path has no Query.
-        cancel_id = database.db_engine_spec.get_cancel_query_id(cursor, None)
+        cancel_id = capture_cancel_query_id(database, cursor)
         if cancel_id is None:
             return
         captured = True

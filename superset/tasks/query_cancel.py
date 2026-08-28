@@ -36,7 +36,7 @@ from __future__ import annotations
 import logging
 from contextlib import closing, contextmanager
 from contextvars import ContextVar
-from typing import Any, Callable, Iterator, TYPE_CHECKING
+from typing import Any, Callable, cast, Iterator, TYPE_CHECKING
 
 from superset.stats_logger import BaseStatsLogger
 
@@ -44,6 +44,7 @@ if TYPE_CHECKING:
     from flask import Flask
 
     from superset.models.core import Database
+    from superset.models.sql_lab import Query
 
 logger = logging.getLogger(__name__)
 
@@ -54,6 +55,40 @@ logger = logging.getLogger(__name__)
 _cancel_id_sink: ContextVar["Callable[[Any], None] | None"] = ContextVar(
     "gtf_cancel_id_sink", default=None
 )
+
+
+class _CancellationQuery:
+    """Minimal stand-in for the SQL Lab ``Query`` the engine cancel contract expects.
+
+    ``db_engine_spec.get_cancel_query_id``/``cancel_query`` take a ``Query``; the
+    common explicit-id engines (Postgres, MySQL, Snowflake, Redshift) ignore it,
+    but some (e.g. Impala reads ``query.database``, Ocient reads ``query.id``) do
+    not. Chart-data tasks have no ``Query`` row, so this exposes just those
+    attributes: the database is real, ``id`` is ``None`` (so an engine that
+    cancels by query id declines gracefully via ``validate_cancel_query_id``
+    rather than raising), and the ``extra`` accessors are no-op scratch space.
+    """
+
+    def __init__(self, database: "Database") -> None:
+        self.id = None
+        self.database = database
+        self.extra: dict[str, Any] = {}
+
+    def set_extra_json_key(self, key: str, value: Any) -> None:
+        self.extra[key] = value
+
+
+def capture_cancel_query_id(database: "Database", cursor: Any) -> "str | None":
+    """Return an engine cancel id for a live cursor, or None if unsupported.
+
+    Only engines that expose a cancel id *before* execution return non-None here
+    (the seam is invoked before the blocking execute); others yield None and the
+    task simply stays non-cancellable.
+    """
+    # The stand-in duck-types the attributes the engine specs read; cast so the
+    # call type-checks against the Query the contract nominally expects.
+    stub = cast("Query", _CancellationQuery(database))
+    return database.db_engine_spec.get_cancel_query_id(cursor, stub)
 
 
 @contextmanager
@@ -103,13 +138,12 @@ def cancel_chart_query(
         "STATS_LOGGER", BaseStatsLogger()
     )
     spec = database.db_engine_spec
+    stub = cast("Query", _CancellationQuery(database))
     try:
         with database.get_sqla_engine() as engine:
             with closing(engine.raw_connection()) as conn:
                 with closing(conn.cursor()) as cursor:
-                    # query is unused by the explicit-id specs (they cancel by
-                    # the captured id alone); the chart path has no Query model.
-                    cancelled = spec.cancel_query(cursor, None, cancel_query_id)  # type: ignore[arg-type]
+                    cancelled = spec.cancel_query(cursor, stub, cancel_query_id)
         if cancelled:
             stats_logger.incr("gtf.query.cancel")
             logger.info(
