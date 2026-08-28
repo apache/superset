@@ -2882,3 +2882,49 @@ test('boundary label alignment is dropped when the orientation moves the time ax
   expect(horizontal.axisLabel.showMinLabel).toBe(true);
   expect(horizontal.axisLabel.showMaxLabel).toBe(true);
 });
+
+test('shows the value axis labels by default', () => {
+  const { echartOptions } = transformProps(createTestChartProps({}));
+  const { axisLabel } = echartOptions.yAxis as any;
+
+  expect(axisLabel.show).toBe(true);
+  expect(axisLabel.showMinLabel).toBe(true);
+  expect(axisLabel.showMaxLabel).toBe(true);
+});
+
+test('hides the value axis labels including the boundary ones', () => {
+  const { echartOptions } = transformProps(
+    createTestChartProps({ formData: { valueAxisLabels: false } }),
+  );
+  const yAxis = echartOptions.yAxis as any;
+
+  expect(yAxis.axisLabel.show).toBe(false);
+  expect(yAxis.axisLabel.showMinLabel).toBe(false);
+  expect(yAxis.axisLabel.showMaxLabel).toBe(false);
+  expect(yAxis.splitLine.show).toBe(true);
+  expect((echartOptions.xAxis as any).axisLabel.show).toBeUndefined();
+});
+
+test('keeps the value axis labels off on a micro chart even when enabled', () => {
+  const { echartOptions } = transformProps(
+    createTestChartProps({
+      height: TIMESERIES_CONSTANTS.microChartHeight - 1,
+      formData: { valueAxisLabels: true },
+    }),
+  );
+
+  expect((echartOptions.yAxis as any).axisLabel.show).toBe(false);
+});
+
+test('hides the value axis labels after a horizontal orientation swaps the axis', () => {
+  const { echartOptions } = transformProps(
+    createTestChartProps({
+      formData: {
+        orientation: OrientationType.Horizontal,
+        valueAxisLabels: false,
+      },
+    }),
+  );
+
+  expect((echartOptions.xAxis as any).axisLabel.show).toBe(false);
+});

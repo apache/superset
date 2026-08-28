@@ -69,6 +69,7 @@ export const DEFAULT_FORM_DATA: EchartsTimeseriesFormData = {
   minorSplitLine: false,
   gridlines: true,
   axisTicks: true,
+  valueAxisLabels: true,
   opacity: 0.2,
   orderDesc: true,
   rowLimit: 10000,
