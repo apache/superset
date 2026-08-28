@@ -43,13 +43,13 @@ def assert_paginated_query_returns_correct_rows_in_order(
     t = SATable(
         "pilot_pagination",
         metadata,
-        Column("id", Integer, primary_key=True),
+        # autoincrement=False: a single-column integer primary key otherwise
+        # implicitly becomes AUTO_INCREMENT on MySQL/MariaDB. That column
+        # type treats an explicit 0 as NULL by default (NO_AUTO_VALUE_ON_ZERO
+        # is off), so the id=0 row below would silently get auto-assigned 1,
+        # colliding with the explicit id=1 row in the same batch insert.
+        Column("id", Integer, primary_key=True, autoincrement=False),
     )
-    # create_all() defaults to checkfirst=True, silently skipping creation
-    # (and leaving old rows in place) if the table already exists. Drop
-    # first so a leftover table from an earlier run of this exact test
-    # can't collide with the fresh insert below on primary key.
-    metadata.drop_all(engine, checkfirst=True)
     metadata.create_all(engine)
     with engine.begin() as conn:
         conn.execute(insert(t), [{"id": i} for i in range(10)])
