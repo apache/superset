@@ -40,9 +40,11 @@ const { result } = concurrently(
   },
 );
 
-// Pass placeholder success/error handlers as CI runners should
-// show errors clearly
 result.then(
-  () => {},
-  () => {},
+  () => {
+    process.exitCode = 0;
+  },
+  () => {
+    process.exitCode = 1;
+  },
 );
