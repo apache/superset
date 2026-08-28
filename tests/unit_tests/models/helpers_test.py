@@ -105,6 +105,86 @@ def test_values_for_column(database: Database) -> None:
         assert table.values_for_column("a") == [1, None]
 
 
+@pytest.mark.parametrize(
+    "raw,expected",
+    [
+        ("plain", "plain"),
+        ("50%", "50!%"),
+        ("a_b", "a!_b"),
+        ("wow!", "wow!!"),
+        ("!%_", "!!!%!_"),
+    ],
+)
+def test_escape_like_pattern(raw: str, expected: str) -> None:
+    """Wildcards typed by a user are data, not pattern syntax."""
+    from superset.models.helpers import escape_like_pattern
+
+    assert escape_like_pattern(raw) == expected
+
+
+def test_build_like_predicate_is_case_insensitive_and_escaped() -> None:
+    import sqlalchemy as sa
+
+    from superset.models.helpers import build_like_predicate
+
+    compiled = str(
+        build_like_predicate(sa.column("c"), "50%").compile(
+            dialect=sa.dialects.registry.load("postgresql")(),
+            compile_kwargs={"literal_binds": True},
+        )
+    ).replace("%%", "%")
+
+    assert compiled == "lower(c) LIKE '%50!%%' ESCAPE '!'"
+
+
+def test_values_for_column_search(database: Database) -> None:
+    """``search`` narrows the distinct-value query in the database."""
+    import pandas as pd
+
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[TableColumn(column_name="a")],
+    )
+
+    with patch(
+        "pandas.read_sql_query",
+        return_value=pd.DataFrame({"column_values": ["Alice"]}),
+    ) as read_sql_query:
+        assert table.values_for_column("a", search="ali") == ["Alice"]
+
+    sql = str(read_sql_query.call_args.kwargs["sql"])
+    assert "LIKE" in sql
+    assert "'%ali%'" in sql
+
+
+def test_values_for_column_without_search_has_no_predicate(
+    database: Database,
+) -> None:
+    """The unsearched list must stay a plain bounded DISTINCT scan."""
+    import pandas as pd
+
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[TableColumn(column_name="a")],
+    )
+
+    with patch(
+        "pandas.read_sql_query",
+        return_value=pd.DataFrame({"column_values": ["Alice"]}),
+    ) as read_sql_query:
+        table.values_for_column("a")
+
+    assert "LIKE" not in str(read_sql_query.call_args.kwargs["sql"])
+
+
 def test_values_for_column_passes_catalog_and_schema(
     mocker: MockerFixture,
     session: Session,
