@@ -87,6 +87,25 @@ class TestSankeyChartConfigSchema:
                 metric={"name": "users", "aggregate": "SUM"},
             )
 
+    def test_sankey_source_rejects_aggregate(self) -> None:
+        """An aggregate makes source metric-like; source is a node dimension."""
+        with pytest.raises(ValidationError):
+            SankeyChartConfig(
+                chart_type="sankey_v2",
+                source={"name": "amount", "aggregate": "SUM"},
+                target={"name": "to_stage"},
+                metric={"name": "users", "aggregate": "SUM"},
+            )
+
+    def test_sankey_target_rejects_aggregate(self) -> None:
+        with pytest.raises(ValidationError):
+            SankeyChartConfig(
+                chart_type="sankey_v2",
+                source={"name": "from_stage"},
+                target={"name": "amount", "aggregate": "SUM"},
+                metric={"name": "users", "aggregate": "SUM"},
+            )
+
     def test_chart_config_union_dispatches_sankey(self) -> None:
         config = TypeAdapter(ChartConfig).validate_python(
             {
@@ -116,6 +135,9 @@ class TestMapSankeyConfig:
         assert form_data["groupby"] == ["from_stage", "to_stage"]
         assert form_data["metric"]["label"] == "SUM(users)"
         assert form_data["sort_by_metric"] is True
+        # sort_by_metric must translate to an explicit orderby (buildQuery is
+        # bypassed on the MCP path), or row-limited results drop heavy edges
+        assert form_data["orderby"] == [[form_data["metric"], False]]
 
     def test_sankey_form_data_with_filters_and_no_sort(self) -> None:
         config = SankeyChartConfig(
@@ -128,6 +150,7 @@ class TestMapSankeyConfig:
         )
         form_data = map_sankey_config(config)
         assert form_data["sort_by_metric"] is False
+        assert "orderby" not in form_data  # no metric ordering when unset
         assert form_data["adhoc_filters"], "filters must map to adhoc_filters"
 
     def test_sankey_saved_metric_maps_to_name_string(self) -> None:

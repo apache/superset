@@ -1094,10 +1094,11 @@ class SankeyChartConfig(BaseChartConfig):
         """source and target are node dimensions, not metrics."""
         for col, name in ((self.source, "source"), (self.target, "target")):
             _reject_sql_expression_on_dimension(col, name)
-            if col and col.saved_metric:
+            if col and col.is_metric:
                 raise ValueError(
-                    f"{name} cannot use saved_metric=True; "
-                    "saved metrics belong in the 'metric' field"
+                    f"{name} must be a plain node column, not a metric; "
+                    "drop 'aggregate'/'saved_metric' (metrics belong in "
+                    "the 'metric' field)"
                 )
         return self
 
