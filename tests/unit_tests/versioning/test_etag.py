@@ -15,12 +15,15 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from uuid import UUID
+
 import pytest
 from flask import Flask
 
 from superset.versioning.etag import raise_for_stale_write, StaleEntityError
 
 LIVE = "9f1f4c1e-0000-4000-8000-000000000001"
+ENTITY = UUID("9f1f4c1e-0000-4000-8000-0000000000aa")
 
 
 def _put(app: Flask, if_match: str | None):
@@ -72,3 +75,35 @@ def test_no_validator_available_passes(app: Flask) -> None:
     unconditional write rather than blocking every save."""
     with _put(app, f'"{LIVE}"'):
         raise_for_stale_write(None)
+
+
+def test_unversioned_token_is_stable_and_entity_specific() -> None:
+    """A not-yet-versioned entity still gets a validator, derived from its own
+    uuid so two such entities never share one."""
+    from superset.versioning.api_helpers import unversioned_entity_token
+
+    other = UUID("9f1f4c1e-0000-4000-8000-0000000000ff")
+    assert unversioned_entity_token(ENTITY) == unversioned_entity_token(ENTITY)
+    assert unversioned_entity_token(ENTITY) != unversioned_entity_token(other)
+
+
+def test_unversioned_token_differs_from_first_real_version(app: Flask) -> None:
+    """The first version row must invalidate the unversioned token, or the
+    first concurrent save on a pristine entity would go unguarded."""
+    from superset.daos.version import derive_version_uuid
+    from superset.versioning.api_helpers import unversioned_entity_token
+
+    stale = unversioned_entity_token(ENTITY)
+    first_real = str(derive_version_uuid(ENTITY, 1))
+    assert stale != first_real
+    with _put(app, f'"{stale}"'):
+        with pytest.raises(StaleEntityError):
+            raise_for_stale_write(first_real)
+
+
+def test_unversioned_token_matches_while_still_unversioned(app: Flask) -> None:
+    from superset.versioning.api_helpers import unversioned_entity_token
+
+    token = unversioned_entity_token(ENTITY)
+    with _put(app, f'"{token}"'):
+        raise_for_stale_write(token)

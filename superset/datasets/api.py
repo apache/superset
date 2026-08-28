@@ -95,8 +95,9 @@ from superset.subjects.filters import FilterRelatedSubjects, subject_type_filter
 from superset.utils import json
 from superset.utils.core import parse_boolean_string, sanitize_cookie_token
 from superset.versioning.api_helpers import (
-    current_entity_etag_uuid,
+    concurrency_token_from,
     current_entity_version_info,
+    entity_concurrency_token,
     get_version_endpoint,
     list_versions_endpoint,
     restore_version_endpoint,
@@ -650,7 +651,7 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         old_info = current_entity_version_info(SqlaTable, pk)
 
         try:
-            raise_for_stale_write(old_info.version_uuid)
+            raise_for_stale_write(concurrency_token_from(old_info))
         except StaleEntityError:
             return set_version_etag(
                 self.response(
@@ -661,7 +662,7 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
                         "version, then reapply your changes."
                     ),
                 ),
-                old_info.version_uuid,
+                concurrency_token_from(old_info),
             )
 
         try:
@@ -687,13 +688,13 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             new_info = current_entity_version_info(
                 SqlaTable, changed_model.id, changed_model.uuid
             )
-            etag_version_uuid = new_info.version_uuid
+            etag_version_uuid = concurrency_token_from(new_info)
             if override_columns:
                 RefreshDatasetCommand(pk).run()
                 # The ETag must reflect the entity's *current live* version,
                 # which after the refresh is the refresh's transaction —
                 # re-read it rather than reusing the pre-refresh uuid.
-                etag_version_uuid = current_entity_etag_uuid(
+                etag_version_uuid = entity_concurrency_token(
                     SqlaTable, changed_model.id, changed_model.uuid
                 )
             response = self.response(
@@ -1734,7 +1735,7 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
 
         return set_version_etag(
             self.response(200, **response),
-            current_entity_etag_uuid(SqlaTable, table.id, table.uuid),
+            entity_concurrency_token(SqlaTable, table.id, table.uuid),
         )
 
     @expose("/<int:pk>/drill_info/", methods=("GET",))

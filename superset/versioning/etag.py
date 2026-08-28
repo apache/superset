@@ -103,11 +103,11 @@ def raise_for_stale_write(current_version_uuid: str | None) -> None:
     the entity moved on in the meantime, instead of silently clobbering
     whatever landed in between.
 
-    The condition is skipped — rather than failing closed — when there is no
-    validator to compare against (``ENABLE_VERSIONING_CAPTURE`` off, or the
-    entity has no version rows yet). Failing closed there would block every
-    conditional write on deployments that run without version capture, and
-    those deployments are no worse off than before they sent the header.
+    The condition is skipped — rather than failing closed — when the caller
+    has no validator to offer (``ENABLE_VERSIONING_CAPTURE`` off). Failing
+    closed there would block every conditional write on deployments running
+    without version capture, and those are no worse off than before they sent
+    the header.
     """
     if_match = request.if_match
     if not if_match or if_match.star_tag or current_version_uuid is None:

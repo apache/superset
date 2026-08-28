@@ -244,7 +244,12 @@ def test_put_dataset_rejects_stale_if_match(
 
     with patch(
         "superset.datasets.api.current_entity_version_info",
-        return_value=EntityVersionInfo(version=1, transaction_id=2, version_uuid="new"),
+        return_value=EntityVersionInfo(
+            version=1,
+            transaction_id=2,
+            version_uuid="new",
+            entity_uuid=dataset.uuid,
+        ),
     ):
         response = client.put(
             f"/api/v1/dataset/{dataset.id}",
@@ -254,5 +259,43 @@ def test_put_dataset_rejects_stale_if_match(
 
     assert response.status_code == 412
     assert response.headers["ETag"] == '"new"'
+    db.session.expire(dataset)
+    assert dataset.description is None
+
+
+def test_put_dataset_guards_a_dataset_with_no_version_rows(
+    session: Session,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """Baseline rows are written lazily on the first update, so a dataset that
+    has never been saved has no version rows — it must still be guarded, or
+    the first concurrent save on every pristine dataset goes unprotected.
+    """
+    from superset.versioning.api_helpers import (
+        EntityVersionInfo,
+        unversioned_entity_token,
+    )
+
+    dataset = _create_dataset("test_put_unversioned_guard")
+    entity_uuid = dataset.uuid
+
+    with patch(
+        "superset.datasets.api.current_entity_version_info",
+        # A dataset that has since been versioned by another tab's save.
+        return_value=EntityVersionInfo(
+            version=0,
+            transaction_id=1,
+            version_uuid="written-by-the-other-tab",
+            entity_uuid=entity_uuid,
+        ),
+    ):
+        response = client.put(
+            f"/api/v1/dataset/{dataset.id}",
+            json={"description": "from the tab that opened first"},
+            headers={"If-Match": f'"{unversioned_entity_token(entity_uuid)}"'},
+        )
+
+    assert response.status_code == 412
     db.session.expire(dataset)
     assert dataset.description is None
