@@ -214,9 +214,9 @@ class SemanticCacheRepository:
         """
         bucket_key: str = self._bucket_key(meta)
         value_key: str = SemanticCacheIdentityFactory.value(bucket_key, query)
-        if not replace and self._is_registered(bucket_key, value_key):
-            return True
         now: float = self._clock()
+        if not replace and self._is_registered(bucket_key, value_key, meta, now):
+            return True
         descriptor: CachedEntry = CachedEntry(
             filters=frozenset(query.filters or set()),
             dimensions=frozenset(query.dimensions),
@@ -261,13 +261,41 @@ class SemanticCacheRepository:
 
         return self._mutate(bucket_key, register, SemanticCacheStoreError)
 
-    def _is_registered(self, bucket_key: str, value_key: str) -> bool:
+    @staticmethod
+    def _serves(entry: CachedEntry, meta: ViewMeta, now: float) -> bool:
+        """Whether a stored value may answer a request with ``meta``'s timeout.
+
+        Requests resolve their own cache timeout, so a value stored by a
+        long-timeout chart can outlive what a short-timeout chart on the same
+        view is allowed to reuse. The value's age is bounded by the requesting
+        timeout (``None`` and ``0`` follow the backend's unbounded conventions),
+        and for the store dedupe the stored TTL must also cover this request,
+        or the longer-lived chart would be pinned to the shorter entry.
+        """
+        if meta.timeout is None or meta.timeout <= 0:
+            return True
+        if now - entry.timestamp > meta.timeout:
+            return False
+        return (
+            entry.timeout is None
+            or entry.timeout <= 0
+            or (entry.timeout >= meta.timeout)
+        )
+
+    def _is_registered(
+        self,
+        bucket_key: str,
+        value_key: str,
+        meta: ViewMeta,
+        now: float,
+    ) -> bool:
         entries: list[CachedEntry] = self._entries(
             self._get(bucket_key, SemanticCacheStoreError)
         )
-        return any(entry.value_key == value_key for entry in entries) and self._has(
-            value_key, SemanticCacheStoreError
-        )
+        return any(
+            entry.value_key == value_key and self._serves(entry, meta, now)
+            for entry in entries
+        ) and self._has(value_key, SemanticCacheStoreError)
 
     def lookup(
         self,
@@ -277,9 +305,12 @@ class SemanticCacheRepository:
     ) -> SemanticCacheLookupResult:
         """Load ranked values and report missing descriptors without mutation."""
         bucket_key: str = self._bucket_key(meta)
-        entries: list[CachedEntry] = self._entries(
-            self._get(bucket_key, SemanticCacheLookupError)
-        )
+        now: float = self._clock()
+        entries: list[CachedEntry] = [
+            entry
+            for entry in self._entries(self._get(bucket_key, SemanticCacheLookupError))
+            if self._serves(entry, meta, now)
+        ]
         ranked: list[tuple[ReuseDecision, CachedEntry]] = rank_reuse_decisions(
             query, entries, capabilities
         )

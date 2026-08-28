@@ -65,6 +65,10 @@ PATTERNS = {
         r"^\.github/actions/change-detector/",
         r"^scripts/change_detector\.py$",
         r"^superset/semantic_layers/",
+        # The owner-token lease operations the job exercises against real
+        # Redis/Sentinel live outside the semantic_layers package.
+        r"^superset/async_events/cache_backend\.py$",
+        r"^superset/utils/cache_manager\.py$",
         r"^superset-core/src/superset_core/semantic_layers/",
         r"^tests/unit_tests/semantic_layers/",
         r"^tests/integration_tests/semantic_layers/",

@@ -18,6 +18,7 @@
 """Host adaptation for semantic cache identity and provider contracts."""
 
 import hashlib
+import logging
 from collections.abc import Iterable, Mapping
 from datetime import datetime
 from typing import cast, Protocol
@@ -37,6 +38,7 @@ from superset.constants import CACHE_DISABLED_TIMEOUT
 from superset.semantic_layers.cache_identity import (
     SemanticCacheIdentityFactory,
     SemanticViewIdentity,
+    SensitiveIdentityMaterialError,
 )
 from superset.semantic_layers.cache_policy import (
     ContainmentCapabilities,
@@ -44,6 +46,8 @@ from superset.semantic_layers.cache_policy import (
 )
 from superset.semantic_layers.cache_repository import ViewMeta
 from superset.utils import json
+
+logger: logging.Logger = logging.getLogger(__name__)
 
 
 class _SemanticCacheProvider(Protocol):
@@ -132,27 +136,8 @@ def build_cache_configuration(
     provider_material: object = layer.get_semantic_cache_provider_identity()
     if not isinstance(provider_material, SemanticCacheIdentityMaterial):
         return None
-    scope: object = getattr(layer, "semantic_cache_scope", None)
-    scope_material: Mapping[str, object]
-    if scope is SemanticCacheScope.GLOBAL:
-        if security_manager.get_rls_cache_key(datasource):
-            # Global reuse rests on the provider's guarantee that results do
-            # not vary by principal; Superset-side row-level security is a
-            # per-principal variation the provider cannot see, so it wins.
-            return None
-        scope_material = {"scope": "global"}
-    elif scope is SemanticCacheScope.EXECUTION_CONTEXT:
-        context: SemanticCacheExecutionContext | None = _execution_context(datasource)
-        if context is None:
-            return None
-        context_material: object = layer.get_semantic_cache_context_identity(context)
-        if not isinstance(context_material, SemanticCacheIdentityMaterial):
-            return None
-        scope_material = {
-            "host_identity": context.host_identity,
-            "provider_identity": context_material.values,
-        }
-    else:
+    scope_material: Mapping[str, object] | None = _scope_material(datasource, layer)
+    if scope_material is None:
         return None
     provider_capabilities: object = getattr(layer, "semantic_cache_capabilities", None)
     if not isinstance(provider_capabilities, SemanticCacheCapabilities):
@@ -174,15 +159,68 @@ def build_cache_configuration(
         if isinstance(changed_on, datetime)
         else str(changed_on),
     }
-    meta: ViewMeta = ViewMeta(
-        view_identity=SemanticViewIdentity(str(datasource.uuid)),
-        definition_identity=SemanticCacheIdentityFactory.definition(
-            definition_material
-        ),
-        provider_identity=SemanticCacheIdentityFactory.provider(
-            provider_material.values
-        ),
-        scope_identity=SemanticCacheIdentityFactory.scope(scope_material),
-        timeout=timeout,
+    meta: ViewMeta | None = _view_meta(
+        datasource, definition_material, provider_material, scope_material, timeout
     )
+    if meta is None:
+        return None
     return meta, capabilities
+
+
+def _scope_material(
+    datasource: BaseDatasource,
+    layer: _SemanticCacheProvider,
+) -> Mapping[str, object] | None:
+    """Resolve the reuse scope's identity material, or None to bypass."""
+    scope: object = getattr(layer, "semantic_cache_scope", None)
+    if scope is SemanticCacheScope.GLOBAL:
+        if security_manager.get_rls_cache_key(datasource):
+            # Global reuse rests on the provider's guarantee that results do
+            # not vary by principal; Superset-side row-level security is a
+            # per-principal variation the provider cannot see, so it wins.
+            return None
+        return {"scope": "global"}
+    if scope is SemanticCacheScope.EXECUTION_CONTEXT:
+        context: SemanticCacheExecutionContext | None = _execution_context(datasource)
+        if context is None:
+            return None
+        context_material: object = layer.get_semantic_cache_context_identity(context)
+        if not isinstance(context_material, SemanticCacheIdentityMaterial):
+            return None
+        return {
+            "host_identity": context.host_identity,
+            "provider_identity": context_material.values,
+        }
+    return None
+
+
+def _view_meta(
+    datasource: BaseDatasource,
+    definition_material: Mapping[str, object],
+    provider_material: SemanticCacheIdentityMaterial,
+    scope_material: Mapping[str, object],
+    timeout: int | None,
+) -> ViewMeta | None:
+    """Digest the identity material, or bypass when a provider offers secrets."""
+    try:
+        return ViewMeta(
+            view_identity=SemanticViewIdentity(str(datasource.uuid)),
+            definition_identity=SemanticCacheIdentityFactory.definition(
+                definition_material
+            ),
+            provider_identity=SemanticCacheIdentityFactory.provider(
+                provider_material.values
+            ),
+            scope_identity=SemanticCacheIdentityFactory.scope(scope_material),
+            timeout=timeout,
+        )
+    except SensitiveIdentityMaterialError:
+        # Identity material is the provider's contract to get right; a
+        # secret-like key must never turn into a failed chart. Bypass
+        # containment for the view and say why, without echoing the material.
+        logger.warning(
+            "Semantic containment caching bypassed for view %s: the provider "
+            "offered secret-like identity material",
+            datasource.uuid,
+        )
+        return None
