@@ -111,5 +111,8 @@ export interface SingleQueryResultPaneProp
   rowLimit?: number;
   rowLimitOptions?: { value: number; label: string }[];
   effectiveRowLimit?: number;
+  // Overrides RowCountLabel's default "chart" wording when the pane's own
+  // row-limit selector, not the chart's row_limit, is what capped the result.
+  limitReachedMessage?: React.ReactNode;
   onRowLimitChange?: (limit: number) => void;
 }
