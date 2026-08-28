@@ -138,12 +138,12 @@ The existing `APP_NAME` Python config key continues to work for backward compati
 Email and alert/report notification subjects are driven by backend settings such as
 `EMAIL_REPORTS_SUBJECT_PREFIX` and `APP_NAME`, not by this theme token.
 
-To hide the logo image in the navbar entirely (for example, when a text-only
-brand is preferred), set `HIDE_NAVBAR_LOGO` in `superset_config.py`:
+To hide the entire brand area in the navbar (both the logo image and the
+brand text), set `HIDE_NAVBAR_LOGO` in `superset_config.py`:
 
 ```python
-# Hide the logo image in the navbar. The brand text (brandAppName / APP_NAME)
-# still renders if configured. Defaults to False.
+# Hide the entire brand area in the navbar, including the logo image and the
+# brand text (brandAppName / APP_NAME). Defaults to False.
 HIDE_NAVBAR_LOGO = True
 ```
 
@@ -562,7 +562,9 @@ THEME_DEFAULT = {
 
 Chart tiles on a dashboard (not text/markdown tiles) can be restyled via
 `dashboardTile*` tokens. All fall back to the existing look — a
-`colorBgContainer` background with no border and a hairline `box-shadow`:
+`colorBgContainer` background, a `1px solid colorBorder` border, and a
+hairline `box-shadow` while the tile is fading out (e.g. when a filter
+makes it irrelevant):
 
 ```python
 THEME_DEFAULT = {
