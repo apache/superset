@@ -108,6 +108,10 @@ import {
 } from '../../FoldersEditor/treeUtils';
 import FoldersEditor from '../../FoldersEditor';
 import { DatasourceFolder } from 'src/explore/components/DatasourcePanel/types';
+import {
+  getDatasetCertification,
+  setDatasetCertification,
+} from './datasetCertification';
 
 const extensionsRegistry = getExtensionsRegistry();
 
@@ -1631,6 +1635,49 @@ function DatasourceEditor({
     onDatasourceChange,
   ]);
 
+  const renderCertificationFieldset = useCallback(() => {
+    const certification = getDatasetCertification(datasource.extra);
+
+    return isSqla ? (
+      <Fieldset
+        title={t('Certification')}
+        item={certification}
+        onChange={updatedCertification => {
+          onDatasourceChange({
+            ...datasource,
+            extra: setDatasetCertification(
+              datasource.extra,
+              updatedCertification,
+            ),
+          });
+        }}
+      >
+        <Field
+          fieldKey="certified_by"
+          label={t('Certified by')}
+          description={t('Person or group that has certified this dataset')}
+          control={
+            <TextControl
+              controlId="dataset_certified_by"
+              placeholder={t('Certified by')}
+            />
+          }
+        />
+        <Field
+          fieldKey="certification_details"
+          label={t('Certification details')}
+          description={t('Details of the dataset certification')}
+          control={
+            <TextControl
+              controlId="dataset_certification_details"
+              placeholder={t('Certification details')}
+            />
+          }
+        />
+      </Fieldset>
+    ) : null;
+  }, [datasource, onDatasourceChange, isSqla]);
+
   const renderSettingsFieldset = useCallback(
     () => (
       <Fieldset
@@ -2548,7 +2595,10 @@ function DatasourceEditor({
         children: (
           <Row gutter={16}>
             <Col xs={24} md={12}>
-              <FormContainer>{renderSettingsFieldset()}</FormContainer>
+              <FormContainer>
+                {renderCertificationFieldset()}
+                {renderSettingsFieldset()}
+              </FormContainer>
             </Col>
             <Col xs={24} md={12}>
               <FormContainer>{renderAdvancedFieldset()}</FormContainer>
@@ -2578,6 +2628,7 @@ function DatasourceEditor({
       folders,
       folderCount,
       handleFoldersChange,
+      renderCertificationFieldset,
       renderSettingsFieldset,
       renderAdvancedFieldset,
       // `renderSpatialTab` is intentionally retained (see its definition above)

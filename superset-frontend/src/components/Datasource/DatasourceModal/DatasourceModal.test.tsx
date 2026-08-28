@@ -22,6 +22,7 @@ import {
   waitFor,
   fireEvent,
   cleanup,
+  userEvent,
   defaultStore as store,
 } from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
@@ -133,6 +134,81 @@ describe('DatasourceModal', () => {
           call.options?.method === 'put',
       );
     expect(JSON.parse(putCall?.options?.body as string).editors).toEqual([1]);
+  });
+
+  test('saves dataset certification from Settings without dropping Extra metadata', async () => {
+    cleanup();
+    renderAndWait({
+      ...mockedProps,
+      datasource: {
+        ...mockedProps.datasource,
+        extra: JSON.stringify({
+          custom_key: { enabled: true },
+          warning_markdown: 'Use only finalized records',
+        }),
+      } as typeof mockedProps.datasource & { extra: string },
+    });
+
+    await userEvent.click(await screen.findByRole('tab', { name: 'Settings' }));
+
+    const certifiedBy = await screen.findByPlaceholderText('Certified by');
+    fireEvent.change(certifiedBy, { target: { value: 'E2E Team' } });
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    const details = screen.getByPlaceholderText('Certification details');
+    fireEvent.change(details, {
+      target: { value: 'Reviewed for production' },
+    });
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    fireEvent.click(screen.getByTestId('datasource-modal-save'));
+    fireEvent.click(await screen.findByRole('button', { name: 'Confirm' }));
+
+    await waitFor(() => {
+      const putCall = fetchMock.callHistory
+        .calls()
+        .find(
+          call =>
+            call.url.includes('/api/v1/dataset/7') &&
+            call.options?.method === 'put',
+        );
+      expect(putCall).toBeDefined();
+
+      const payload = JSON.parse(putCall?.options?.body as string);
+      expect(JSON.parse(payload.extra)).toEqual({
+        custom_key: { enabled: true },
+        warning_markdown: 'Use only finalized records',
+        certification: {
+          certified_by: 'E2E Team',
+          details: 'Reviewed for production',
+        },
+      });
+    });
+  });
+
+  test('shows existing dataset certification in Settings', async () => {
+    cleanup();
+    renderAndWait({
+      ...mockedProps,
+      datasource: {
+        ...mockedProps.datasource,
+        extra: JSON.stringify({
+          certification: {
+            certified_by: 'Data Platform Team',
+            details: 'Source of truth',
+          },
+        }),
+      } as typeof mockedProps.datasource & { extra: string },
+    });
+
+    await userEvent.click(await screen.findByRole('tab', { name: 'Settings' }));
+
+    expect(await screen.findByPlaceholderText('Certified by')).toHaveValue(
+      'Data Platform Team',
+    );
+    expect(screen.getByPlaceholderText('Certification details')).toHaveValue(
+      'Source of truth',
+    );
   });
 
   test('should render error dialog', async () => {
