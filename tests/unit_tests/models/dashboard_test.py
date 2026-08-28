@@ -158,13 +158,18 @@ def test_tabs_returns_all_tabs_and_tree_for_a_valid_layout(
                 "type": "TABS",
                 "children": ["TAB-1", "TAB-2"],
             },
-            # TAB-1 holds a nested tab bar of its own.
+            # TAB-1 holds a nested tab bar of its own, alongside a row, so a
+            # tab with more than one child is covered.
             "TAB-1": {
                 "id": "TAB-1",
                 "type": "TAB",
                 "meta": {"text": "First"},
-                "children": ["TABS-2"],
+                "children": ["TABS-2", "ROW-1"],
             },
+            # A non-tab sibling holding a chart: walked through, and neither
+            # it nor its child is ever part of the tree.
+            "ROW-1": {"id": "ROW-1", "type": "ROW", "children": ["CHART-1"]},
+            "CHART-1": {"id": "CHART-1", "type": "CHART", "children": []},
             "TABS-2": {
                 "id": "TABS-2",
                 "type": "TABS",
@@ -517,3 +522,36 @@ def test_tabs_handles_malformed_children(
     assert tabs["tab_tree"][0]["children"] == []
     assert "layout node TAB-1 has malformed children" in caplog.text
     assert "missing or malformed" in caplog.text
+
+
+def test_tabs_skips_an_unusable_tab_outside_a_tab_bar(
+    app_context: None, caplog: pytest.LogCaptureFixture
+) -> None:
+    """A TAB reached without a TABS parent is validated when it is registered.
+
+    Only a TABS node contributes its children to the tree, so that is where an
+    unusable tab is normally caught. A TAB stored directly under GRID or ROOT
+    never passes that check, and is rejected when its title and id are read
+    instead.
+    """
+    dash = Dashboard()
+    dash.id = 1
+    dash.position_json = json.dumps(
+        {
+            "ROOT_ID": {"id": "ROOT_ID", "type": "ROOT", "children": ["GRID_ID"]},
+            # The tab hangs straight off the grid, with no tab bar in between.
+            "GRID_ID": {"id": "GRID_ID", "type": "GRID", "children": ["TAB-1"]},
+            "TAB-1": {
+                "id": ["TAB-1"],
+                "type": "TAB",
+                "meta": {"text": "First"},
+                "children": [],
+            },
+        }
+    )
+
+    caplog.set_level(logging.WARNING, logger=LOGGER)
+    tabs = dash.tabs
+
+    assert tabs == {"all_tabs": {}, "tab_tree": []}
+    assert "skipping tab node with no usable id in the layout" in caplog.text
