@@ -152,13 +152,16 @@ You should see months in the rows and Department and Travel Class in the columns
 to your existing Tutorial Dashboard you created earlier.
 
 :::note
-Row and column totals/subtotals for the Pivot Table are computed by the database, at the same
-granularity as the total itself, rather than by summing the already-aggregated cells shown in the
-table. This means totals are correct for non-additive metrics too, such as ratios
-(`SUM(a)/SUM(b)`), `COUNT_DISTINCT`, `AVG`, and percentiles, not just additive ones like `SUM` or
-`COUNT`. Because of this, there's no separate "Aggregation function" control for totals: a total
-always reflects the metric's own definition evaluated at that total's level. The Table chart's
-**Show summary** row behaves the same way for percentage metrics.
+Row and column totals/subtotals for the Pivot Table are correct even for non-additive metrics,
+such as ratios (`SUM(a)/SUM(b)`), `COUNT_DISTINCT`, `AVG`, and percentiles, not just additive ones
+like `SUM` or `COUNT`. Additive metrics derive their totals client-side, by reducing the same
+full-detail query results used to build the table. Non-additive metrics can't be combined that
+way, so Superset instead issues a database query at each total's own granularity, so the total
+reflects the metric's definition evaluated at that level rather than an incorrect combination of
+the displayed cells. Because of this, there's no separate "Aggregation function" control for
+totals in the Pivot Table: a total always reflects the metric's own definition. The Table chart's
+**Show summary** row is different: its **Summary aggregation** control can override each metric's
+own aggregation (to Sum or Average) for the summary row only.
 :::
 
 ### Line Chart
