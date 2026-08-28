@@ -304,6 +304,39 @@ function TableCollection<T extends object>({
     [highlightRowId, isRowHighlighted],
   );
 
+  // Memoize the custom cell/row components. A fresh `components` object (with
+  // new inner function identities) makes antd treat them as new component types
+  // and remount every row and cell on each render — which would, for example,
+  // tear down an open hover popover inside a cell whenever the table re-renders
+  // (e.g. when rowClassName changes for row highlighting).
+  const tableComponents = useMemo(
+    () => ({
+      header: {
+        cell: (props: HTMLAttributes<HTMLTableCellElement>) => {
+          const isSelectionColumn =
+            props.className?.includes('ant-table-selection-column') ?? false;
+          return (
+            <th
+              {...props}
+              data-test={
+                isSelectionColumn ? 'header-toggle-all' : 'sort-header'
+              }
+            />
+          );
+        },
+      },
+      body: {
+        row: (props: HTMLAttributes<HTMLTableRowElement>) => (
+          <tr {...props} data-test="table-row" />
+        ),
+        cell: (props: HTMLAttributes<HTMLTableCellElement>) => (
+          <td {...props} data-test="table-row-cell" />
+        ),
+      },
+    }),
+    [],
+  );
+
   return (
     <StyledTable
       loading={loading}
@@ -328,30 +361,7 @@ function TableCollection<T extends object>({
         getRowClassName as unknown as TableProps<object>['rowClassName']
       }
       expandable={expandable}
-      components={{
-        header: {
-          cell: (props: HTMLAttributes<HTMLTableCellElement>) => {
-            const isSelectionColumn =
-              props.className?.includes('ant-table-selection-column') ?? false;
-            return (
-              <th
-                {...props}
-                data-test={
-                  isSelectionColumn ? 'header-toggle-all' : 'sort-header'
-                }
-              />
-            );
-          },
-        },
-        body: {
-          row: (props: HTMLAttributes<HTMLTableRowElement>) => (
-            <tr {...props} data-test="table-row" />
-          ),
-          cell: (props: HTMLAttributes<HTMLTableCellElement>) => (
-            <td {...props} data-test="table-row-cell" />
-          ),
-        },
-      }}
+      components={tableComponents}
       onChange={handleTableChange as unknown as TableProps<object>['onChange']}
     />
   );
