@@ -610,3 +610,103 @@ class TestTimeoutTerminalState:
             # Cleanup
             if ctx._abort_listener:
                 ctx.stop_abort_polling()
+
+
+# =============================================================================
+# Self-fence Tests (worker lost contact with the metastore)
+# =============================================================================
+
+
+class TestSelfFence:
+    """Test TaskContext.trigger_self_fence — worker fails the task from inside."""
+
+    def test_self_fence_sets_flag_and_runs_abort_handlers(
+        self, mock_flask_app, mock_task_abortable
+    ):
+        """A fence marks fence_triggered and runs abort handlers (query cancel)."""
+        with (
+            patch("superset.tasks.context.current_app") as mock_current_app,
+            patch("superset.daos.tasks.TaskDAO") as mock_dao,
+            patch("superset.commands.tasks.update.UpdateTaskCommand") as update_cmd,
+            patch(
+                "superset.coordination.base.CoordinationService.get_backend",
+                return_value=None,
+            ),
+        ):
+            mock_current_app.config = mock_flask_app.config
+            mock_current_app._get_current_object.return_value = mock_flask_app
+            mock_dao.find_one_or_none.return_value = mock_task_abortable
+
+            ctx = TaskContext(mock_task_abortable)
+            ctx._app = mock_flask_app
+
+            ran = MagicMock()
+            ctx.on_abort(ran)
+
+            assert ctx.fence_triggered is False
+            ctx.trigger_self_fence("lost contact")
+
+            assert ctx.fence_triggered is True
+            ran.assert_called_once()  # abort handler ran (would cancel the query)
+            # Best-effort transition to ABORTING was attempted.
+            update_cmd.assert_called_once()
+
+            if ctx._abort_listener:
+                ctx.stop_abort_polling()
+
+    def test_self_fence_is_noop_when_already_aborting(
+        self, mock_flask_app, mock_task_abortable
+    ):
+        """A fence after an abort is already in flight must not re-run handlers."""
+        with (
+            patch("superset.tasks.context.current_app") as mock_current_app,
+            patch("superset.daos.tasks.TaskDAO") as mock_dao,
+            patch("superset.commands.tasks.update.UpdateTaskCommand"),
+            patch(
+                "superset.coordination.base.CoordinationService.get_backend",
+                return_value=None,
+            ),
+        ):
+            mock_current_app.config = mock_flask_app.config
+            mock_current_app._get_current_object.return_value = mock_flask_app
+            mock_dao.find_one_or_none.return_value = mock_task_abortable
+
+            ctx = TaskContext(mock_task_abortable)
+            ctx._app = mock_flask_app
+            ctx._abort_detected = True  # an abort already ran
+
+            ran = MagicMock()
+            ctx.on_abort(ran)
+            ctx.trigger_self_fence("lost contact")
+
+            assert ctx.fence_triggered is False
+            ran.assert_not_called()
+
+            if ctx._abort_listener:
+                ctx.stop_abort_polling()
+
+    def test_self_fence_without_abort_handler_does_not_raise(
+        self, mock_flask_app, mock_task_not_abortable
+    ):
+        """A non-abortable task fences (flag set) but has no handler to run."""
+        with (
+            patch("superset.tasks.context.current_app") as mock_current_app,
+            patch("superset.daos.tasks.TaskDAO") as mock_dao,
+            patch("superset.commands.tasks.update.UpdateTaskCommand") as update_cmd,
+            patch(
+                "superset.coordination.base.CoordinationService.get_backend",
+                return_value=None,
+            ),
+        ):
+            mock_current_app.config = mock_flask_app.config
+            mock_current_app._get_current_object.return_value = mock_flask_app
+            mock_dao.find_one_or_none.return_value = mock_task_not_abortable
+
+            ctx = TaskContext(mock_task_not_abortable)
+            ctx._app = mock_flask_app
+
+            ctx.trigger_self_fence("lost contact")
+
+            assert ctx.fence_triggered is True
+            # No abort handler => no ABORTING write, nothing to interrupt.
+            update_cmd.assert_not_called()

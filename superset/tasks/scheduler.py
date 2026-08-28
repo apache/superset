@@ -46,7 +46,11 @@ from superset.tasks.ambient_context import use_context
 from superset.tasks.constants import ABORT_STATES, TERMINAL_STATES
 from superset.tasks.context import TaskContext
 from superset.tasks.cron_util import cron_schedule_window
-from superset.tasks.heartbeat import task_heartbeat
+from superset.tasks.heartbeat import (
+    HeartbeatController,
+    SELF_FENCE_ERROR_MESSAGE,
+    task_heartbeat,
+)
 from superset.tasks.manager import TaskManager
 from superset.tasks.registry import TaskRegistry
 from superset.utils.core import LoggerLevel
@@ -386,8 +390,8 @@ def execute_task(
 
     _persist_celery_task_id(task, self.request.id)
     app = current_app._get_current_object()  # noqa: SLF001
-    with task_heartbeat(task.id, app):
-        return _execute_task_body(task, native_uuid, task_type, args, kwargs)
+    with task_heartbeat(task.id, app) as heartbeat:
+        return _execute_task_body(task, native_uuid, task_type, args, kwargs, heartbeat)
 
 
 def _execute_task_body(  # noqa: C901
@@ -396,6 +400,7 @@ def _execute_task_body(  # noqa: C901
     task_type: str,
     args: tuple[Any, ...],
     kwargs: dict[str, Any],
+    heartbeat: "HeartbeatController",
 ) -> dict[str, Any]:
     """
     Run a claimed GTF task through its lifecycle.
@@ -496,6 +501,12 @@ def _execute_task_body(  # noqa: C901
     # Build context from task (includes user who created the task)
     ctx = TaskContext(task)
 
+    # Wire the heartbeat's self-fence to the context: if this worker loses
+    # contact with the metastore for longer than the orphan window, fail the
+    # task from the inside (cancelling any in-flight query) instead of running
+    # work the reaper has already given up on.
+    heartbeat.on_fence(lambda: ctx.trigger_self_fence(SELF_FENCE_ERROR_MESSAGE))
+
     # Start timeout timer if configured (timer starts from execution time)
     if timeout := task.properties_dict.get("timeout"):
         ctx.start_timeout_timer(timeout)
@@ -526,8 +537,8 @@ def _execute_task_body(  # noqa: C901
 
         # Determine terminal status based on abort detection
         # Use atomic conditional updates to prevent overwriting concurrent abort
-        if ctx._abort_detected or ctx.timeout_triggered:
-            # Abort was detected - will be handled in finally block
+        if ctx._abort_detected or ctx.timeout_triggered or ctx.fence_triggered:
+            # Abort/timeout/self-fence detected - will be handled in finally block
             pass
         else:
             # Normal completion - also allow ABORTING → SUCCESS for late abort
@@ -560,9 +571,9 @@ def _execute_task_body(  # noqa: C901
         # An abort/timeout that actually cancels the work (e.g. an abort handler
         # killing the underlying warehouse query) surfaces here as an exception.
         # That is a successful abort, not a failure: leave the task in ABORTING
-        # so the finally block finalizes it as ABORTED/TIMED_OUT. Only a genuine
-        # error (no abort in flight) transitions to FAILURE.
-        if ctx._abort_detected or ctx.timeout_triggered:  # noqa: SLF001
+        # so the finally block finalizes it as ABORTED/TIMED_OUT/FAILURE. Only a
+        # genuine error (no abort in flight) transitions to FAILURE here.
+        if ctx._abort_detected or ctx.timeout_triggered or ctx.fence_triggered:  # noqa: SLF001
             logger.info(
                 "Task %s (uuid=%s) raised while aborting; finalizing as aborted",
                 task_type,
@@ -594,9 +605,26 @@ def _execute_task_body(  # noqa: C901
         # ALWAYS run cleanup handlers (also stops timeout timer)
         ctx._run_cleanup()
 
-        # Handle abort/timeout terminal transitions
+        # Handle abort/timeout/fence terminal transitions
         # Use atomic updates to safely transition ABORTING → terminal state
-        if ctx._abort_detected or ctx.timeout_triggered:
+        if ctx.fence_triggered:
+            # Worker lost metastore contact: fail the task (no handover). The
+            # status may still be IN_PROGRESS (never became ABORTING if the
+            # ABORTING write failed under partition), so accept either.
+            InternalStatusTransitionCommand(
+                task_uuid=native_uuid,
+                new_status=TaskStatus.FAILURE,
+                expected_status=[TaskStatus.IN_PROGRESS, TaskStatus.ABORTING],
+                properties={"error_message": SELF_FENCE_ERROR_MESSAGE},
+                set_ended_at=True,
+            ).run()
+            logger.warning(
+                "Task %s (uuid=%s) self-fenced (lost metastore contact) - "
+                "marking as FAILURE",
+                task_type,
+                task_uuid,
+            )
+        elif ctx._abort_detected or ctx.timeout_triggered:
             if ctx.abort_handlers_completed:
                 # All handlers succeeded - determine terminal state based on cause
                 if ctx.timeout_triggered:

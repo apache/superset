@@ -21,18 +21,45 @@ from __future__ import annotations
 import logging
 import threading
 from contextlib import contextmanager
-from typing import Iterator, TYPE_CHECKING
+from datetime import timedelta
+from typing import Callable, Iterator, TYPE_CHECKING
 
 from superset.stats_logger import BaseStatsLogger
+from superset.tasks.utils import naive_utcnow
 
 if TYPE_CHECKING:
     from flask import Flask
 
 logger = logging.getLogger(__name__)
 
+SELF_FENCE_ERROR_MESSAGE = (
+    "Task self-terminated: worker lost contact with the metastore "
+    "(heartbeat failed for longer than GTF_ORPHAN_TASK_TIMEOUT)"
+)
+
+
+class HeartbeatController:
+    """Handle yielded by :func:`task_heartbeat` for wiring the self-fence.
+
+    The heartbeat thread starts before the ``TaskContext`` exists (it spans the
+    whole time the worker holds the task, including the DAG wait), so the
+    executor registers the fence callback once the context is built. Until then
+    a fence can only stop the heartbeat and log — there is no running query to
+    cancel yet.
+    """
+
+    def __init__(self) -> None:
+        self._fence_callback: Callable[[], None] | None = None
+
+    def on_fence(self, callback: Callable[[], None]) -> None:
+        """Register the callback invoked when the worker self-fences."""
+        self._fence_callback = callback
+
 
 @contextmanager
-def task_heartbeat(task_id: int, app: "Flask") -> Iterator[None]:
+def task_heartbeat(  # noqa: C901
+    task_id: int, app: "Flask"
+) -> Iterator[HeartbeatController]:
     """Keep ``tasks.last_heartbeat`` fresh while a worker holds the task.
 
     Stamps an initial heartbeat synchronously (so the task reads as "picked up
@@ -41,44 +68,82 @@ def task_heartbeat(task_id: int, app: "Flask") -> Iterator[None]:
     until the context exits. The prune cron uses this to tell a live task (fresh
     heartbeat) from one abandoned by a dead worker (stale heartbeat).
 
-    Best-effort: a failed write is counted and logged, and the loop continues —
-    the reaper only acts after several missed intervals. The thread is a daemon
-    so it never blocks worker shutdown (matching the existing timeout/abort
-    threads) and relies on DB drivers releasing the GIL during query I/O, so a
-    task blocked in a long warehouse query still heartbeats and is not reaped.
+    Self-fencing: if heartbeat writes keep failing for longer than
+    ``GTF_ORPHAN_TASK_TIMEOUT`` — the same window after which the reaper declares
+    the task orphaned — the worker can no longer prove liveness to the metastore
+    (network partition, metastore outage). Rather than keep running a query the
+    reaper has already (or will shortly) mark FAILURE, the worker fails itself
+    via the registered fence callback. A single failed write is tolerated; only
+    a sustained outage spanning the orphan window fences, so a transient blip
+    never kills a healthy task.
+
+    The thread is a daemon so it never blocks worker shutdown (matching the
+    existing timeout/abort threads) and relies on DB drivers releasing the GIL
+    during query I/O, so a task blocked in a long warehouse query still
+    heartbeats and is not reaped.
 
     :param task_id: integer primary key of the running task
     :param app: Flask app for DB access from the background thread
+    :returns: a :class:`HeartbeatController` for registering the fence callback
     """
     interval: float = app.config["GTF_TASK_HEARTBEAT_INTERVAL"]
+    orphan_timeout: float = app.config["GTF_ORPHAN_TASK_TIMEOUT"]
     stats_logger: BaseStatsLogger = app.config.get("STATS_LOGGER", BaseStatsLogger())
+    controller = HeartbeatController()
     stop = threading.Event()
 
-    def _write() -> None:
+    # Absolute time by which a heartbeat must succeed or the worker self-fences.
+    # Seeded optimistically so even a never-succeeding heartbeat fences after the
+    # orphan window rather than running unbounded.
+    deadline = naive_utcnow() + timedelta(seconds=orphan_timeout)
+
+    def _write() -> bool:
         from superset.daos.tasks import TaskDAO
 
         try:
             TaskDAO.touch_heartbeat(task_id)
             stats_logger.incr("gtf.task.heartbeat")
+            return True
         except Exception:  # noqa: BLE001 pylint: disable=broad-except
             stats_logger.incr("gtf.task.heartbeat_failure")
             logger.warning(
                 "Heartbeat write failed for task id=%s", task_id, exc_info=True
             )
+            return False
+
+    def _fence() -> None:
+        stats_logger.incr("gtf.task.self_fenced")
+        logger.warning(
+            "Task id=%s self-fencing: heartbeat failed for longer than the "
+            "orphan window (%ss); failing the task from the worker",
+            task_id,
+            orphan_timeout,
+        )
+        if controller._fence_callback is not None:  # noqa: SLF001
+            try:
+                controller._fence_callback()  # noqa: SLF001
+            except Exception:  # noqa: BLE001 pylint: disable=broad-except
+                logger.exception("Self-fence callback failed for task id=%s", task_id)
 
     # Initial stamp runs in the worker's existing app context.
-    _write()
+    if _write():
+        deadline = naive_utcnow() + timedelta(seconds=orphan_timeout)
 
     def _beat() -> None:
+        nonlocal deadline
         while not stop.wait(interval):
             with app.app_context():
-                _write()
+                if _write():
+                    deadline = naive_utcnow() + timedelta(seconds=orphan_timeout)
+                elif naive_utcnow() >= deadline:
+                    _fence()
+                    return
 
     thread = threading.Thread(
         target=_beat, name=f"gtf-heartbeat-{task_id}", daemon=True
     )
     thread.start()
     try:
-        yield
+        yield controller
     finally:
         stop.set()
