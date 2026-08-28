@@ -1088,10 +1088,11 @@ class RadarChartConfig(BaseChartConfig):
         """groupby entries are dimensions, not metrics."""
         for i, col in enumerate(self.groupby or []):
             _reject_sql_expression_on_dimension(col, f"groupby[{i}]")
-            if col.saved_metric:
+            if col.is_metric:
                 raise ValueError(
-                    f"groupby[{i}] cannot use saved_metric=True; "
-                    "saved metrics belong in the 'metrics' field"
+                    f"groupby[{i}] must be a plain column, not a metric; drop "
+                    "'aggregate'/'saved_metric' (metrics belong in the 'metrics' "
+                    "field)"
                 )
         return self
 

@@ -61,6 +61,15 @@ class TestRadarChartConfigSchema:
                 bogus=1,
             )
 
+    def test_radar_groupby_rejects_aggregate(self) -> None:
+        """An aggregate makes a series column metric-like; reject it."""
+        with pytest.raises(ValidationError):
+            RadarChartConfig(
+                chart_type="radar",
+                metrics=[{"name": "speed", "aggregate": "AVG"}],
+                groupby=[{"name": "model", "aggregate": "SUM"}],
+            )
+
     def test_radar_groupby_rejects_saved_metric(self) -> None:
         with pytest.raises(ValidationError):
             RadarChartConfig(
