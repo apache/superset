@@ -134,14 +134,14 @@ test('Should render correct elements for disallow ad-hoc metrics', () => {
   expect(screen.getByRole('tabpanel', { name: 'Saved' })).toBeVisible();
 });
 
-test('Clicking on "Close" should call onClose', () => {
+test('Clicking on "Close" should call onClose', async () => {
   const props = createProps();
   render(<AdhocMetricEditPopover {...props} />, {
     useRedux: true,
     initialState: { explore: {} },
   });
   expect(props.onClose).toHaveBeenCalledTimes(0);
-  userEvent.click(screen.getByRole('button', { name: 'Close' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Close' }));
   expect(props.onClose).toHaveBeenCalledTimes(1);
 });
 
@@ -153,18 +153,18 @@ test('Clicking on "Save" should call onChange and onClose', async () => {
   });
   expect(props.onChange).toHaveBeenCalledTimes(0);
   expect(props.onClose).toHaveBeenCalledTimes(0);
-  userEvent.click(
+  await userEvent.click(
     screen.getByRole('combobox', {
       name: 'Select saved metrics',
     }),
   );
   await selectOption('sum');
-  userEvent.click(screen.getByRole('button', { name: 'Save' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Save' }));
   expect(props.onChange).toHaveBeenCalledTimes(1);
   expect(props.onClose).toHaveBeenCalledTimes(1);
 });
 
-test('Clicking on "Save" should not call onChange and onClose', () => {
+test('Clicking on "Save" should not call onChange and onClose', async () => {
   const props = createProps();
   render(<AdhocMetricEditPopover {...props} />, {
     useRedux: true,
@@ -172,12 +172,12 @@ test('Clicking on "Save" should not call onChange and onClose', () => {
   });
   expect(props.onChange).toHaveBeenCalledTimes(0);
   expect(props.onClose).toHaveBeenCalledTimes(0);
-  userEvent.click(screen.getByRole('button', { name: 'Save' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Save' }));
   expect(props.onChange).toHaveBeenCalledTimes(0);
   expect(props.onClose).toHaveBeenCalledTimes(0);
 });
 
-test('Clicking on "Save" should call onChange and onClose for new metric', () => {
+test('Clicking on "Save" should call onChange and onClose for new metric', async () => {
   const props = createProps();
   render(<AdhocMetricEditPopover {...props} isNewMetric />, {
     useRedux: true,
@@ -185,12 +185,12 @@ test('Clicking on "Save" should call onChange and onClose for new metric', () =>
   });
   expect(props.onChange).toHaveBeenCalledTimes(0);
   expect(props.onClose).toHaveBeenCalledTimes(0);
-  userEvent.click(screen.getByRole('button', { name: 'Save' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Save' }));
   expect(props.onChange).toHaveBeenCalledTimes(1);
   expect(props.onClose).toHaveBeenCalledTimes(1);
 });
 
-test('Clicking on "Save" should call onChange and onClose for new title', () => {
+test('Clicking on "Save" should call onChange and onClose for new title', async () => {
   const props = createProps();
   render(<AdhocMetricEditPopover {...props} isLabelModified />, {
     useRedux: true,
@@ -198,12 +198,12 @@ test('Clicking on "Save" should call onChange and onClose for new title', () => 
   });
   expect(props.onChange).toHaveBeenCalledTimes(0);
   expect(props.onClose).toHaveBeenCalledTimes(0);
-  userEvent.click(screen.getByRole('button', { name: 'Save' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Save' }));
   expect(props.onChange).toHaveBeenCalledTimes(1);
   expect(props.onClose).toHaveBeenCalledTimes(1);
 });
 
-test('Should switch to tab:Simple', () => {
+test('Should switch to tab:Simple', async () => {
   const props = createProps();
   props.getCurrentTab.mockImplementation(tab => {
     props.adhocMetric.expressionType = tab;
@@ -220,7 +220,7 @@ test('Should switch to tab:Simple', () => {
 
   expect(props.getCurrentTab).toHaveBeenCalledTimes(1);
   const tab = screen.getByRole('tab', { name: 'Simple' }).parentElement!;
-  userEvent.click(tab);
+  await userEvent.click(tab);
 
   expect(props.getCurrentTab).toHaveBeenCalledTimes(2);
 
@@ -230,7 +230,7 @@ test('Should switch to tab:Simple', () => {
   expect(screen.getByRole('tabpanel', { name: 'Simple' })).toBeInTheDocument();
 });
 
-test('Should render "Simple" tab correctly', () => {
+test('Should render "Simple" tab correctly', async () => {
   const props = createProps();
   props.getCurrentTab.mockImplementation(tab => {
     props.adhocMetric.expressionType = tab;
@@ -241,13 +241,13 @@ test('Should render "Simple" tab correctly', () => {
   });
 
   const tab = screen.getByRole('tab', { name: 'Simple' }).parentElement!;
-  userEvent.click(tab);
+  await userEvent.click(tab);
 
   expect(screen.getByText('column')).toBeVisible();
   expect(screen.getByText('aggregate')).toBeVisible();
 });
 
-test('Should switch to tab:Custom SQL', () => {
+test('Should switch to tab:Custom SQL', async () => {
   const props = createProps();
   props.getCurrentTab.mockImplementation(tab => {
     props.adhocMetric.expressionType = tab;
@@ -264,7 +264,7 @@ test('Should switch to tab:Custom SQL', () => {
 
   expect(props.getCurrentTab).toHaveBeenCalledTimes(1);
   const tab = screen.getByRole('tab', { name: 'Custom SQL' }).parentElement!;
-  userEvent.click(tab);
+  await userEvent.click(tab);
 
   expect(props.getCurrentTab).toHaveBeenCalledTimes(2);
 
@@ -287,7 +287,7 @@ test('Should render "Custom SQL" tab correctly', async () => {
   });
 
   const tab = screen.getByRole('tab', { name: 'Custom SQL' }).parentElement!;
-  userEvent.click(tab);
+  await userEvent.click(tab);
 
   expect(await screen.findByRole('textbox')).toBeInTheDocument();
 });
@@ -336,7 +336,7 @@ test('Should filter saved metrics by metric_name and verbose_name', async () => 
   const combobox = screen.getByRole('combobox', {
     name: 'Select saved metrics',
   });
-  userEvent.click(combobox);
+  await userEvent.click(combobox);
 
   await userEvent.type(combobox, 'revenue');
 
@@ -415,7 +415,7 @@ test('Should filter columns by column_name and verbose_name in Simple tab', asyn
   });
 
   const tab = screen.getByRole('tab', { name: 'Simple' }).parentElement!;
-  userEvent.click(tab);
+  await userEvent.click(tab);
 
   const columnCombobox = screen.getByRole('combobox', {
     name: 'Select column',

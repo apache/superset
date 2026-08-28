@@ -183,15 +183,15 @@ test('renders an enabled button if datasource and viz type are selected', async 
   await renderComponent();
 
   const datasourceSelect = screen.getByRole('combobox', { name: 'Dataset' });
-  userEvent.click(datasourceSelect);
-  userEvent.click(await screen.findByText(/test_db/i));
+  await userEvent.click(datasourceSelect);
+  await userEvent.click(await screen.findByText(/test_db/i));
 
-  userEvent.click(
+  await userEvent.click(
     screen.getByRole('tab', {
       name: /All charts/i,
     }),
   );
-  userEvent.click(await screen.findByText('Table'));
+  await userEvent.click(await screen.findByText('Table'));
 
   expect(
     screen.getByRole('button', { name: 'Create new chart' }),
@@ -201,12 +201,12 @@ test('renders an enabled button if datasource and viz type are selected', async 
 test('double-click viz type does nothing if no datasource is selected', async () => {
   await renderComponent();
 
-  userEvent.click(
+  await userEvent.click(
     screen.getByRole('tab', {
       name: /All charts/i,
     }),
   );
-  userEvent.dblClick(await screen.findByText('Table'));
+  await userEvent.dblClick(await screen.findByText('Table'));
 
   expect(
     screen.getByRole('button', { name: 'Create new chart' }),
@@ -219,15 +219,15 @@ test('double-click viz type submits with formatted URL if datasource is selected
 
   const datasourceSelect = screen.getByRole('combobox', { name: 'Dataset' });
 
-  userEvent.click(datasourceSelect);
-  userEvent.click(await screen.findByText(/test_db/i));
+  await userEvent.click(datasourceSelect);
+  await userEvent.click(await screen.findByText(/test_db/i));
 
-  userEvent.click(
+  await userEvent.click(
     screen.getByRole('tab', {
       name: /All charts/i,
     }),
   );
-  userEvent.dblClick(await screen.findByText('Table'));
+  await userEvent.dblClick(await screen.findByText('Table'));
 
   expect(
     screen.getByRole('button', { name: 'Create new chart' }),
@@ -266,8 +266,8 @@ test('dropdown displays matching datasets when user types a search term', async 
   const datasourceSelect = await screen.findByRole('combobox', {
     name: 'Dataset',
   });
-  userEvent.click(datasourceSelect);
-  userEvent.type(datasourceSelect, 'flight');
+  await userEvent.click(datasourceSelect);
+  await userEvent.type(datasourceSelect, 'flight');
 
   await screen.findByText('flights');
   expect(screen.getByText('flights_delayed')).toBeInTheDocument();
@@ -418,7 +418,7 @@ test('dataset dropdown sorts options alphabetically by table name regardless of 
   await renderComponent();
 
   const datasourceSelect = screen.getByRole('combobox', { name: 'Dataset' });
-  userEvent.click(datasourceSelect);
+  await userEvent.click(datasourceSelect);
 
   // Wait for all three to appear
   await screen.findByText('apple_table');

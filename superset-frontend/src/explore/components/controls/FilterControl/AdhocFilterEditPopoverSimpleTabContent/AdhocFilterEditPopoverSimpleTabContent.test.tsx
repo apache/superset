@@ -707,11 +707,11 @@ test('should not call API when column has no advanced data type', async () => {
     'Filter value (case sensitive)',
   );
   await act(async () => {
-    userEvent.type(filterValueField, 'v');
+    await userEvent.type(filterValueField, 'v');
   });
 
   await act(async () => {
-    userEvent.type(filterValueField, '{enter}');
+    await userEvent.type(filterValueField, '{enter}');
   });
 
   await waitFor(() =>
@@ -748,11 +748,11 @@ test('should call API when column has advanced data type', async () => {
     'Filter value (case sensitive)',
   );
   await act(async () => {
-    userEvent.type(filterValueField, 'v');
+    await userEvent.type(filterValueField, 'v');
   });
 
   await act(async () => {
-    userEvent.type(filterValueField, '{enter}');
+    await userEvent.type(filterValueField, '{enter}');
   });
 
   await waitFor(() =>
@@ -792,11 +792,11 @@ test('save button should be disabled if error message from API is returned', asy
     'Filter value (case sensitive)',
   );
   await act(async () => {
-    userEvent.type(filterValueField, 'e');
+    await userEvent.type(filterValueField, 'e');
   });
 
   await act(async () => {
-    userEvent.type(filterValueField, '{enter}');
+    await userEvent.type(filterValueField, '{enter}');
   });
 
   await waitFor(() =>
@@ -836,11 +836,11 @@ test('advanced data type operator list should update after API response', async 
     'Filter value (case sensitive)',
   );
   await act(async () => {
-    userEvent.type(filterValueField, 'v');
+    await userEvent.type(filterValueField, 'v');
   });
 
   await act(async () => {
-    userEvent.type(filterValueField, '{enter}');
+    await userEvent.type(filterValueField, '{enter}');
   });
 
   await waitFor(() =>
@@ -856,11 +856,15 @@ test('advanced data type operator list should update after API response', async 
     name: 'Select operator',
   });
 
-  userEvent.click(operatorValueField);
+  await userEvent.click(operatorValueField);
 
-  await act(async () => {
-    userEvent.type(operatorValueField, '{enter}');
-  });
+  const operatorOption = await waitFor(() =>
+    within(
+      // eslint-disable-next-line testing-library/no-node-access
+      document.querySelector('.ant-select-dropdown-list')!,
+    ).getByText('Equal to (=)'),
+  );
+  await userEvent.click(operatorOption);
 
   expect(
     await screen.findByText('Equal to (=)', {
@@ -906,7 +910,7 @@ test('dropdown should remain open when clicked after filter is configured', asyn
   });
 
   await act(async () => {
-    userEvent.click(operatorDropdown);
+    await userEvent.click(operatorDropdown);
   });
 
   await waitFor(() => {
@@ -935,7 +939,7 @@ test('filters the subject select by column verbose_name as well as column_name',
   });
 
   const combobox = screen.getByRole('combobox', { name: 'Select subject' });
-  userEvent.click(combobox);
+  await userEvent.click(combobox);
 
   await userEvent.type(combobox, 'total');
 

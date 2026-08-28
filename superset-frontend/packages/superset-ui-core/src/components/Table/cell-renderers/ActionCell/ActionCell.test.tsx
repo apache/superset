@@ -27,13 +27,15 @@ test('renders with default props', async () => {
   // Open the menu
   await userEvent.click(await screen.findByTestId('dropdown-trigger'));
   // verify all of the menu items are being displayed
-  exampleMenuOptions.forEach(async (item, index) => {
+  // `forEach` doesn't wait for async callbacks, so use a `for...of` loop to
+  // ensure the click below is awaited before we assert on it.
+  for (const [index, item] of exampleMenuOptions.entries()) {
     expect(screen.getByText(item.label)).toBeInTheDocument();
     if (index === 0) {
       // verify the menu items' onClick gets invoked
       await userEvent.click(screen.getByText(item.label));
     }
-  });
+  }
   expect(clickHandler).toHaveBeenCalled();
 });
 

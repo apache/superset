@@ -157,14 +157,14 @@ describe('SaveDatasetModal', () => {
     await waitFor(() => expect(saveBtn).toBeEnabled());
   });
 
-  test('renders an overwrite button when "Overwrite existing" is selected', () => {
+  test('renders an overwrite button when "Overwrite existing" is selected', async () => {
     renderModal();
 
     // Click the overwrite radio button to reveal the overwrite confirmation and back buttons
     const overwriteRadioBtn = screen.getByRole('radio', {
       name: /overwrite existing/i,
     });
-    userEvent.click(overwriteRadioBtn);
+    await userEvent.click(overwriteRadioBtn);
 
     expect(
       screen.getByRole('button', { name: /overwrite/i }),
@@ -263,7 +263,7 @@ describe('SaveDatasetModal', () => {
     const saveConfirmationBtn = screen.getByRole('button', {
       name: /save/i,
     });
-    userEvent.click(saveConfirmationBtn);
+    await userEvent.click(saveConfirmationBtn);
 
     expect(createDatasource).toHaveBeenCalledWith({
       datasourceName: 'my dataset',
@@ -284,7 +284,7 @@ describe('SaveDatasetModal', () => {
     const saveConfirmationBtn = screen.getByRole('button', {
       name: /save/i,
     });
-    userEvent.click(saveConfirmationBtn);
+    await userEvent.click(saveConfirmationBtn);
 
     expect(createDatasource).toHaveBeenCalledWith(
       expect.objectContaining({ datasourceName: 'my dataset' }),
@@ -302,7 +302,7 @@ describe('SaveDatasetModal', () => {
     const saveConfirmationBtn = screen.getByRole('button', {
       name: /save/i,
     });
-    userEvent.click(saveConfirmationBtn);
+    await userEvent.click(saveConfirmationBtn);
 
     expect(createDatasource).toHaveBeenCalledWith({
       datasourceName: 'my dataset',
@@ -328,7 +328,7 @@ describe('SaveDatasetModal', () => {
     expect(screen.getByRole('checkbox')).toBeInTheDocument();
   });
 
-  test('correctly includes template parameters when template processing is enabled', () => {
+  test('correctly includes template parameters when template processing is enabled', async () => {
     // @ts-expect-error
     global.featureFlags = {
       [FeatureFlag.EnableTemplateProcessing]: true,
@@ -342,12 +342,12 @@ describe('SaveDatasetModal', () => {
     const inputFieldText = screen.getByDisplayValue(/unimportant/i);
     fireEvent.change(inputFieldText, { target: { value: 'my dataset' } });
 
-    userEvent.click(screen.getByRole('checkbox'));
+    await userEvent.click(screen.getByRole('checkbox'));
 
     const saveConfirmationBtn = screen.getByRole('button', {
       name: /save/i,
     });
-    userEvent.click(saveConfirmationBtn);
+    await userEvent.click(saveConfirmationBtn);
 
     expect(createDatasource).toHaveBeenCalledWith({
       datasourceName: 'my dataset',
@@ -359,7 +359,7 @@ describe('SaveDatasetModal', () => {
     });
   });
 
-  test('correctly excludes template parameters when template processing is enabled', () => {
+  test('correctly excludes template parameters when template processing is enabled', async () => {
     // @ts-expect-error
     global.featureFlags = {
       [FeatureFlag.EnableTemplateProcessing]: true,
@@ -373,12 +373,12 @@ describe('SaveDatasetModal', () => {
     const inputFieldText = screen.getByDisplayValue(/unimportant/i);
     fireEvent.change(inputFieldText, { target: { value: 'my dataset' } });
 
-    userEvent.click(screen.getByRole('checkbox'));
+    await userEvent.click(screen.getByRole('checkbox'));
 
     const saveConfirmationBtn = screen.getByRole('button', {
       name: /save/i,
     });
-    userEvent.click(saveConfirmationBtn);
+    await userEvent.click(saveConfirmationBtn);
 
     expect(createDatasource).toHaveBeenCalledWith({
       datasourceName: 'my dataset',
@@ -519,7 +519,7 @@ describe('SaveDatasetModal', () => {
     const saveConfirmationBtn = screen.getByRole('button', {
       name: /save/i,
     });
-    userEvent.click(saveConfirmationBtn);
+    await userEvent.click(saveConfirmationBtn);
 
     await waitFor(() => {
       expect(clearDatasetCache).toHaveBeenCalledWith(123);

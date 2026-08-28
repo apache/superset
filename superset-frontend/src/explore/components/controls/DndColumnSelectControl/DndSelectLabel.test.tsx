@@ -74,9 +74,9 @@ test('renders values', () => {
   expect(screen.getByText(values)).toBeInTheDocument();
 });
 
-test('Handles ghost button click', () => {
+test('Handles ghost button click', async () => {
   render(<DndSelectLabel {...defaultProps} />, { useDndKit: true });
-  userEvent.click(screen.getByText('Drop columns here or click'));
+  await userEvent.click(screen.getByText('Drop columns here or click'));
   expect(defaultProps.onClickGhostButton).toHaveBeenCalled();
 });
 

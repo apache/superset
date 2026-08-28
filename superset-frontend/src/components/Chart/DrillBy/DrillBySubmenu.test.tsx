@@ -104,7 +104,7 @@ const expectDrillByDisabled = async (tooltipContent: string) => {
   expect(drillByButton).toHaveAttribute('tabindex', '-1');
 
   const tooltipTrigger = within(drillByButton).getByTestId('tooltip-trigger');
-  userEvent.hover(tooltipTrigger as HTMLElement);
+  await userEvent.hover(tooltipTrigger as HTMLElement);
 
   const tooltip = await screen.findByRole('tooltip', { name: tooltipContent });
   expect(tooltip).toBeInTheDocument();
@@ -118,7 +118,7 @@ const expectDrillByEnabled = async () => {
   const tooltipTrigger = within(drillByButton).queryByTestId('tooltip-trigger');
   expect(tooltipTrigger).not.toBeInTheDocument();
 
-  userEvent.hover(drillByButton);
+  await userEvent.hover(drillByButton);
 
   const popover = await screen.findByRole('menu');
   expect(popover).toBeInTheDocument();
@@ -196,7 +196,7 @@ test('render menu item with submenu and searchbox', async () => {
   const searchbox = screen.getByPlaceholderText('Search columns');
   expect(searchbox).toBeInTheDocument();
 
-  userEvent.type(searchbox, 'col1');
+  await userEvent.type(searchbox, 'col1');
 
   const expectedFilteredColumnNames = ['col1', 'col10', 'col11'];
 
@@ -263,7 +263,7 @@ test('When menu item is clicked, call onSelection with clicked column and drill 
 
   // Wait for col1 to be visible before clicking
   const col1Element = await screen.findByText('col1');
-  userEvent.click(col1Element);
+  await userEvent.click(col1Element);
 
   expect(onSelectionMock).toHaveBeenCalledWith(
     {
@@ -334,7 +334,7 @@ test('apply both x-axis and series filters by default', async () => {
   await expectDrillByEnabled();
 
   const col1Element = await screen.findByText('col1');
-  userEvent.click(col1Element);
+  await userEvent.click(col1Element);
 
   expect(onSelectionMock).toHaveBeenCalledWith(
     { column_name: 'col1', groupby: true },
@@ -359,8 +359,8 @@ test('apply only x-axis filters when x-axis scope is selected', async () => {
   await screen.findByText('col1');
 
   const scopeSelector = screen.getByTestId('drill-by-scope-selector');
-  userEvent.click(within(scopeSelector).getByText('Jan 2021'));
-  userEvent.click(screen.getByText('col1'));
+  await userEvent.click(within(scopeSelector).getByText('Jan 2021'));
+  await userEvent.click(screen.getByText('col1'));
 
   expect(onSelectionMock).toHaveBeenCalledWith(
     { column_name: 'col1', groupby: true },
@@ -382,8 +382,8 @@ test('apply only series filters when series scope is selected', async () => {
   await screen.findByText('col1');
 
   const scopeSelector = screen.getByTestId('drill-by-scope-selector');
-  userEvent.click(within(scopeSelector).getByText('val'));
-  userEvent.click(screen.getByText('col1'));
+  await userEvent.click(within(scopeSelector).getByText('val'));
+  await userEvent.click(screen.getByText('col1'));
 
   expect(onSelectionMock).toHaveBeenCalledWith(
     { column_name: 'col1', groupby: true },
@@ -400,7 +400,7 @@ test('apply x-axis filters when only x-axis filters are present', async () => {
   await expectDrillByEnabled();
 
   const col1Element = await screen.findByText('col1');
-  userEvent.click(col1Element);
+  await userEvent.click(col1Element);
 
   expect(onSelectionMock).toHaveBeenCalledWith(
     { column_name: 'col1', groupby: true },
