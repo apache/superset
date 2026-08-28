@@ -32,4 +32,5 @@ export type ThemeObject = {
   json_data?: string;
   theme_name: string;
   editors?: Subject[];
+  extra_editors?: number[];
 };

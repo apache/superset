@@ -226,6 +226,42 @@ async def test_create_theme_rejects_blank_name(mcp_server: object) -> None:
             )
 
 
+@patch("superset.commands.theme.create.populate_subjects")
+@patch.object(create_theme_module, "_sanitize_and_validate_theme_config")
+@pytest.mark.asyncio
+async def test_create_theme_seeds_editors_via_shared_command(
+    mock_sanitize: MagicMock,
+    mock_populate_subjects: MagicMock,
+    mcp_server: object,
+    app: Flask,
+) -> None:
+    """The MCP tool must persist through ``CreateThemeCommand`` itself
+    (left unmocked here), not just call it, so the same editor-seeding step
+    the REST API relies on actually runs for MCP-created themes. Otherwise a
+    non-admin creator ends up with no editor on the new theme and is locked
+    out of PUT/DELETE/import-overwrite immediately after creation."""
+    config = {"token": {"colorPrimary": "#1d4ed8"}}
+    mock_sanitize.return_value = config
+
+    with patch("superset.db.session.commit"):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "create_theme",
+                {
+                    "request": {
+                        "theme_name": "Seeded Editors",
+                        "json_data": config,
+                    }
+                },
+            )
+        data = json.loads(result.content[0].text)
+
+    assert data["success"] is True
+    # populate_subjects is CreateThemeCommand's editor-seeding step; the MCP
+    # path must trigger it exactly like the REST POST path does.
+    mock_populate_subjects.assert_called_once()
+
+
 @pytest.mark.asyncio
 async def test_create_theme_rbac_denied(mcp_server: object, app: Flask) -> None:
     """RBAC-denied path: a caller lacking can_write on Theme is rejected
