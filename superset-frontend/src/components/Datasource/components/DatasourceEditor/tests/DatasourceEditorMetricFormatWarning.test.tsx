@@ -17,8 +17,12 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
-import { screen, userEvent, within } from 'spec/helpers/testing-library';
-import { Constants } from '@superset-ui/core/components';
+import {
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'spec/helpers/testing-library';
 import { isCountExpression, isPercentD3Format } from '../DatasourceEditor';
 import {
   createProps,
@@ -27,6 +31,7 @@ import {
   cleanupAsyncOperations,
   fastRender,
   dismissDatasourceWarning,
+  DatasourceEditorProps,
 } from './DatasourceEditor.test.utils';
 
 beforeEach(() => {
@@ -54,11 +59,22 @@ const expandMetricRow = async (metricName: string) => {
   await userEvent.click(within(row).getByLabelText(/expand row/i));
 };
 
-// Negative assertions must wait past TextControl's debounce, or they pass
-// before the value even commits.
-const waitPastDebounce = () =>
-  new Promise(resolve => {
-    setTimeout(resolve, Constants.FAST_DEBOUNCE + 50);
+// A fixed-time sleep can't prove the debounced value actually committed, so
+// negative assertions would pass vacuously if the commit landed late on a
+// loaded runner. Instead, wait for the real signal of a commit: the metric's
+// d3format reaching the top-level onChange the editor calls after every
+// datasource state update.
+const waitForD3FormatCommit = (
+  onChange: DatasourceEditorProps['onChange'],
+  metricName: string,
+  d3format: string,
+) =>
+  waitFor(() => {
+    const [datasource] = onChange.mock.calls.at(-1) ?? [];
+    const metric = datasource?.metrics?.find(
+      (m: { metric_name?: string }) => m.metric_name === metricName,
+    );
+    expect(metric?.d3format).toBe(d3format);
   });
 
 test('isCountExpression matches a COUNT(...) call, including nested calls', () => {
@@ -109,7 +125,7 @@ test('does not warn for a non-percent format on a COUNT metric', async () => {
 
   await userEvent.type(await screen.findByPlaceholderText('%y/%m/%d'), ',.0f');
 
-  await waitPastDebounce();
+  await waitForD3FormatCommit(testProps.onChange, 'count', ',.0f');
   expect(screen.queryByText(WARNING_TEXT)).not.toBeInTheDocument();
 });
 
@@ -123,7 +139,7 @@ test('does not warn for a percent format on a non-COUNT metric', async () => {
 
   await userEvent.type(await screen.findByPlaceholderText('%y/%m/%d'), '.0%');
 
-  await waitPastDebounce();
+  await waitForD3FormatCommit(testProps.onChange, 'sum__num', '.0%');
   expect(screen.queryByText(WARNING_TEXT)).not.toBeInTheDocument();
 });
 
@@ -154,7 +170,7 @@ test('does not warn for a ratio built from COUNT, e.g. COUNT(*) / COUNT(*)', asy
 
   await userEvent.type(await screen.findByPlaceholderText('%y/%m/%d'), '.0%');
 
-  await waitPastDebounce();
+  await waitForD3FormatCommit(testProps.onChange, 'ratio', '.0%');
   expect(screen.queryByText(WARNING_TEXT)).not.toBeInTheDocument();
 });
 
@@ -168,6 +184,6 @@ test('does not warn for a garbage format string that merely ends in %', async ()
 
   await userEvent.type(await screen.findByPlaceholderText('%y/%m/%d'), 'foo%');
 
-  await waitPastDebounce();
+  await waitForD3FormatCommit(testProps.onChange, 'count', 'foo%');
   expect(screen.queryByText(WARNING_TEXT)).not.toBeInTheDocument();
 });
