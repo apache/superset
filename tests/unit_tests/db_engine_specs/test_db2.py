@@ -109,14 +109,14 @@ def test_get_prequeries(mocker: MockerFixture) -> None:
     ("grain", "expected_expression"),
     [
         (None, "my_col"),
-        (TimeGrain.SECOND,"DATE_TRUNC('SECOND', my_col)"),
-        (TimeGrain.MINUTE,"DATE_TRUNC('MINUTE', my_col)"),
-        (TimeGrain.HOUR,"DATE_TRUNC('HOUR', my_col)"),
+        (TimeGrain.SECOND, "DATE_TRUNC('SECOND', my_col)"),
+        (TimeGrain.MINUTE, "DATE_TRUNC('MINUTE', my_col)"),
+        (TimeGrain.HOUR, "DATE_TRUNC('HOUR', my_col)"),
         (TimeGrain.DAY, "DATE_TRUNC('DAY', my_col)"),
         (TimeGrain.WEEK, "DATE_TRUNC('WEEK', my_col)"),
         (TimeGrain.MONTH, "DATE_TRUNC('MONTH', my_col)"),
-        (TimeGrain.QUARTER,"DATE_TRUNC('QUARTER', my_col)"),
-        (TimeGrain.YEAR,"DATE_TRUNC('YEAR', my_col)"),
+        (TimeGrain.QUARTER, "DATE_TRUNC('QUARTER', my_col)"),
+        (TimeGrain.YEAR, "DATE_TRUNC('YEAR', my_col)"),
     ],
 )
 def test_time_grain_expressions(grain: TimeGrain, expected_expression: str) -> None:
