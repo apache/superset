@@ -23,6 +23,7 @@ from dataclasses import dataclass
 from typing import Any, Generic, Mapping, TypeVar
 
 from pydantic import BaseModel
+
 from superset_core.semantic_layers.view import SemanticView
 
 ConfigT = TypeVar("ConfigT", bound=BaseModel)
