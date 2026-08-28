@@ -383,8 +383,12 @@ class ExportDashboardsCommand(ExportModelsCommand):
     @staticmethod
     # ruff: noqa: C901
     def _export(
-        model: Dashboard, export_related: bool = True
+        model: Dashboard, export_related: bool = True, seen: set[str] | None = None
     ) -> Iterator[tuple[str, Callable[[], str]]]:
+        # Initialize seen set if not provided
+        if seen is None:
+            seen = set()
+
         yield (
             ExportDashboardsCommand._file_name(model),
             lambda: ExportDashboardsCommand._file_content(model),
@@ -395,8 +399,11 @@ class ExportDashboardsCommand(ExportModelsCommand):
             dashboard_ids = model.id
             command = ExportChartsCommand(chart_ids)
             command.disable_tag_export()
-            yield from command.run()
-            command.enable_tag_export()
+            try:
+                # Pass the shared seen set to the chart export command
+                yield from command.run(seen=seen)
+            finally:
+                command.enable_tag_export()
             if feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
                 yield from ExportTagsCommand(
                     dashboard_ids=dashboard_ids, chart_ids=chart_ids
@@ -406,7 +413,8 @@ class ExportDashboardsCommand(ExportModelsCommand):
             if model.theme:
                 from superset.commands.theme.export import ExportThemesCommand
 
-                yield from ExportThemesCommand([model.theme.id]).run()
+                # Pass the shared seen set to the theme export command
+                yield from ExportThemesCommand([model.theme.id]).run(seen=seen)
 
         payload = model.export_to_dict(
             recursive=False,
@@ -435,7 +443,10 @@ class ExportDashboardsCommand(ExportModelsCommand):
                     if dataset_id is not None:
                         dataset = DatasetDAO.find_by_id(dataset_id)
                         if dataset:
-                            yield from ExportDatasetsCommand([dataset_id]).run()
+                            # Pass the shared seen set to the dataset export command
+                            yield from ExportDatasetsCommand([dataset_id]).run(
+                                seen=seen
+                            )
 
             # Export datasets referenced by display controls
             for customization in (
@@ -446,4 +457,7 @@ class ExportDashboardsCommand(ExportModelsCommand):
                     if dataset_id is not None:
                         dataset = DatasetDAO.find_by_id(dataset_id)
                         if dataset:
-                            yield from ExportDatasetsCommand([dataset_id]).run()
+                            # Pass the shared seen set to the dataset export command
+                            yield from ExportDatasetsCommand([dataset_id]).run(
+                                seen=seen
+                            )

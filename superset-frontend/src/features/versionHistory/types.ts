@@ -209,6 +209,45 @@ export interface SessionLogEntry {
   user: string | null;
 }
 
+export type JsonValue =
+  | null
+  | boolean
+  | number
+  | string
+  | JsonValue[]
+  | { [key: string]: JsonValue };
+
+type PresentNormalizationValue<Prefix extends 'from' | 'to'> =
+  Prefix extends 'from'
+    ? { from_present: true; from_value: JsonValue }
+    : { to_present: true; to_value: JsonValue };
+
+type MissingNormalizationValue<Prefix extends 'from' | 'to'> =
+  Prefix extends 'from'
+    ? { from_present: false; from_value?: never }
+    : { to_present: false; to_value?: never };
+
+/** One guarded hydration transition sent with an existing-chart overwrite. */
+export type AutomaticNormalizationTransition = { control: string } & (
+  | PresentNormalizationValue<'from'>
+  | MissingNormalizationValue<'from'>
+) &
+  (PresentNormalizationValue<'to'> | MissingNormalizationValue<'to'>);
+
+export type AutomaticNormalizationTransitions = Record<
+  string,
+  AutomaticNormalizationTransition
+>;
+
+/** Identity-bound state for one chart hydration and its in-flight save. */
+export interface ChartNormalizationTrackingState {
+  chartId: number;
+  hydrationSessionId: string;
+  transitions: AutomaticNormalizationTransitions;
+  invalidatedControls: Record<string, true>;
+  saveAttemptId: string | null;
+}
+
 export interface VersionHistoryState {
   isPanelOpen: boolean;
   entityType: VersionedEntityType | null;
@@ -228,4 +267,6 @@ export interface VersionHistoryState {
    * the one their page shows.
    */
   lastRestoredEntityUuid: string | null;
+  /** Advisory transitions for the active Explore chart hydration. */
+  chartNormalization?: ChartNormalizationTrackingState | null;
 }

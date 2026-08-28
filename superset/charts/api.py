@@ -21,7 +21,7 @@ from io import BytesIO
 from typing import Any, cast, Optional
 from zipfile import is_zipfile, ZipFile
 
-from flask import current_app, redirect, request, Response, send_file, url_for
+from flask import current_app, redirect, request, Response, url_for
 from flask_appbuilder.api import expose, protect, rison as parse_rison, safe
 from flask_appbuilder.hooks import before_request
 from flask_appbuilder.models.sqla.interface import SQLAInterface
@@ -103,7 +103,7 @@ from superset.subjects.filters import (
 from superset.tasks.thumbnails import cache_chart_thumbnail
 from superset.tasks.utils import get_current_user
 from superset.utils import json
-from superset.utils.core import sanitize_cookie_token
+from superset.utils.core import send_export_zip
 from superset.utils.screenshots import (
     ChartScreenshot,
     DEFAULT_CHART_WINDOW_SIZE,
@@ -427,7 +427,7 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: (f"{self.__class__.__name__}.deck_layers"),
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.deck_layers",
         log_to_statsd=False,
     )
     def deck_layers(self, pk: int) -> Response:
@@ -691,13 +691,17 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         except ValidationError as error:
             return self.response_400(message=error.messages)
 
+        normalization_changes: object = item.pop("normalization_changes", None)
+
         # Live version identifiers before the update (empty + query-free when
         # ``ENABLE_VERSIONING_CAPTURE`` is off, so this stays inert under the
         # kill-switch).
         old_info = current_entity_version_info(Slice, pk)
 
         try:
-            changed_model = UpdateChartCommand(pk, item).run()
+            changed_model = UpdateChartCommand(
+                pk, item, normalization_changes=normalization_changes
+            ).run()
             new_info = current_entity_version_info(
                 Slice, changed_model.id, changed_model.uuid
             )
@@ -1289,15 +1293,7 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
                 return self.response_404()
         buf.seek(0)
 
-        response = send_file(
-            buf,
-            mimetype="application/zip",
-            as_attachment=True,
-            download_name=filename,
-        )
-        if token := sanitize_cookie_token(request.args.get("token")):
-            response.set_cookie(token, "done", max_age=600)
-        return response
+        return send_export_zip(buf, filename)
 
     @expose("/favorite_status/", methods=("GET",))
     @protect()

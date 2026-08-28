@@ -406,6 +406,18 @@ ECharts option overrides bypass Superset's validation layer. Invalid option keys
 
 When the **Search Box** is visible in a Table chart, the **Download** action exports only the rows currently visible after the search filter is applied — not the full underlying dataset. This matches the visual output and is intentional. To export the full dataset regardless of search state, use the **Download as CSV** option from the chart's three-dot menu in the dashboard or from the Explore chart toolbar before applying a search filter.
 
+### Exporting a Chart as an Image or PDF
+
+Alongside the raw-data export options (CSV, JSON, Excel), a chart's three-dot menu — in a dashboard or from the Explore chart toolbar — offers a few ways to export a visual snapshot of the chart:
+
+- **Export screenshot (jpeg)** — a single-click JPEG screenshot of the chart.
+- **Export screenshot (png)** — opens a submenu with **Transparent background** and **Solid background** options. The solid option uses the current theme's background color. PNG produces a higher-quality image than the JPEG export.
+- **Export as PDF** — downloads the chart as a PDF file.
+
+The dropdown menu is briefly hidden while the screenshot or PDF is being captured so it doesn't appear in the exported file. In Explore, these image and PDF options are available from the **Export All Data** submenu, and also from the **Export current view** submenu when the chart type supports current-view export.
+
+These menu items respect your permissions: the dashboard export menu only appears if you can download, and the image/PDF options are disabled if you lack image-export permission.
+
 ### Sharing a Specific Tab
 
 When a dashboard has tabs, each tab gets its own shareable URL. Navigate to the tab you want to share and copy the URL from your browser's address bar — the tab anchor is encoded in the URL so that anyone opening the link lands directly on that tab.

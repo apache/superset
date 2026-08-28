@@ -575,7 +575,8 @@ def _resolve_user_from_jwt_context(app: Any) -> MCPUser | None:  # noqa: C901
         the corresponding ``GuestUser`` built from the token's resources/RLS.
 
     Raises:
-        ValueError: If JWT resolves a username that doesn't exist in the DB
+        ValueError: If JWT resolves a username that doesn't exist in the DB,
+            or a guest-marked token is presented while guest auth is disabled
             (fail closed — do NOT fall through to weaker auth sources).
         MCPAuthConfigError: If more than one JWT issuer is trusted
             (``MCP_JWT_ISSUER`` is a list/tuple/set) and no issuer-aware
@@ -618,7 +619,14 @@ def _resolve_user_from_jwt_context(app: Any) -> MCPUser | None:  # noqa: C901
                 "Guest-marked token presented but embedded guest auth is not "
                 "enabled; rejecting"
             )
-            return None
+            # Fail closed, matching the sibling failure branches below: a
+            # guest-marked token is an explicit (rejected) authentication
+            # attempt, not an absent one. Returning None here would let the
+            # request degrade to weaker auth sources (API key,
+            # MCP_DEV_USERNAME, or a middleware-set g.user).
+            raise ValueError(
+                "Guest-marked token presented but embedded guest auth is not enabled"
+            )
         logger.debug("Resolving MCP request as embedded guest user")
         # Drop the internal marker so it does not leak into GuestUser.guest_token.
         guest_claims: dict[str, Any] = {

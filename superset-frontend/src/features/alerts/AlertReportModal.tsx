@@ -723,11 +723,13 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     force_screenshot: false,
     include_cta: true,
     grace_period: undefined,
-    retry_on_failure: false,
-    retry_max_attempts: 3,
-    send_failed_reports: false,
-    retry_notify_owners: true,
-    retry_notify_recipients: false,
+    ...(isFeatureEnabled(FeatureFlag.AlertReportsRetry) && {
+      retry_on_failure: false,
+      retry_max_attempts: 3,
+      send_failed_reports: false,
+      retry_notify_owners: true,
+      retry_notify_recipients: false,
+    }),
   };
 
   const fetchDashboardFilterValues = async (
@@ -2762,7 +2764,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 </>
               ),
             },
-            ...(isReport
+            ...(isReport && isFeatureEnabled(FeatureFlag.AlertReportsRetry)
               ? [
                   {
                     key: 'error-handling',
