@@ -388,6 +388,30 @@ def test_check_disallowed_functions_matches_ast_function_nodes(
     assert executor._check_disallowed_functions(script) == expected
 
 
+def test_check_disallowed_functions_traverses_script_once(
+    mocker: MockerFixture,
+    mock_database: MagicMock,
+    app_context: None,
+) -> None:
+    """The executor checks the complete denylist in one AST traversal."""
+    from superset.sql.execution.executor import SQLExecutor
+
+    disallowed = {"version", "pg_sleep", "lo_export"}
+    mocker.patch.dict(
+        current_app.config,
+        {"DISALLOWED_SQL_FUNCTIONS": {"postgresql": disallowed}},
+    )
+    script = SQLScript("SELECT version()", engine="postgresql")
+    get_disallowed_functions = mocker.spy(
+        script.statements[0], "get_disallowed_functions"
+    )
+
+    executor = SQLExecutor(mock_database)
+
+    assert executor._check_disallowed_functions(script) == {"version"}
+    get_disallowed_functions.assert_called_once_with(disallowed)
+
+
 def test_execute_disallowed_tables(
     mocker: MockerFixture, database: Database, app_context: None
 ) -> None:

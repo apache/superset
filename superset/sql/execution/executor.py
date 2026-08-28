@@ -817,9 +817,7 @@ class SQLExecutor:
         if not engine_disallowed:
             return None
 
-        found = {
-            func for func in engine_disallowed if script.check_functions_present({func})
-        }
+        found = script.get_disallowed_functions(engine_disallowed)
 
         return found if found else None
 

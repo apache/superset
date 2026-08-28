@@ -591,6 +591,15 @@ class BaseSQLStatement(Generic[InternalRepresentation]):
         :param functions: List of functions to check for
         :return: True if any of the functions are present
         """
+        return bool(self.get_disallowed_functions(functions))
+
+    def get_disallowed_functions(self, functions: set[str]) -> set[str]:
+        """
+        Return the subset of ``functions`` referenced by this statement.
+
+        :param functions: Set of function names to check for
+        :return: The matched entries, in their original denylist form
+        """
         raise NotImplementedError()
 
     def check_tables_present(
@@ -1159,12 +1168,12 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
 
         return SQLStatement(ast=optimized, engine=self.engine)
 
-    def check_functions_present(self, functions: set[str]) -> bool:
+    def get_disallowed_functions(self, functions: set[str]) -> set[str]:
         """
-        Check if any of the given functions are present in the script.
+        Return the subset of ``functions`` referenced by this statement.
 
-        :param functions: List of functions to check for
-        :return: True if any of the functions are present
+        :param functions: Set of function names to check for
+        :return: The matched entries, in their original denylist form
         """
         # Build the set of SQL-level function names present in the AST. For
         # Anonymous nodes the name is stored directly; for named Func nodes we
@@ -1202,7 +1211,7 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         for param in self._parsed.find_all(exp.SessionParameter):
             present.add(param.name.upper())
 
-        return any(function.upper() in present for function in functions)
+        return {function for function in functions if function.upper() in present}
 
     def check_tables_present(
         self, tables: set[str], default_schema: str | None = None
@@ -1861,15 +1870,15 @@ class KustoKQLStatement(BaseSQLStatement[str]):
         """
         return KustoKQLStatement(ast=self._parsed, engine=self.engine)
 
-    def check_functions_present(self, functions: set[str]) -> bool:
+    def get_disallowed_functions(self, functions: set[str]) -> set[str]:
         """
-        Check if any of the given functions are present in the script.
+        Return the subset of ``functions`` referenced by this statement.
 
-        :param functions: List of functions to check for
-        :return: True if any of the functions are present
+        :param functions: Set of function names to check for
+        :return: The matched entries, in their original denylist form
         """
         logger.warning("Kusto KQL doesn't support checking for functions present.")
-        return False
+        return set()
 
     def check_tables_present(
         self, tables: set[str], default_schema: str | None = None
@@ -2090,6 +2099,18 @@ class SQLScript:
             statement.check_functions_present(functions)
             for statement in self.statements
         )
+
+    def get_disallowed_functions(self, functions: set[str]) -> set[str]:
+        """
+        Return the subset of ``functions`` referenced anywhere in the script.
+
+        :param functions: Set of function names to check for
+        :return: The matched entries, in their original denylist form
+        """
+        found: set[str] = set()
+        for statement in self.statements:
+            found |= statement.get_disallowed_functions(functions)
+        return found
 
     def check_tables_present(
         self, tables: set[str], default_schema: str | None = None
