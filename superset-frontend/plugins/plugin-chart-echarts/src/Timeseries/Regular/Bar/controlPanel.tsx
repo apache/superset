@@ -40,6 +40,8 @@ import {
 import {
   legendSection,
   minorTicks,
+  axisTicks,
+  gridlines,
   richTooltipSection,
   seriesOrderSection,
   showValueSectionWithoutStream,
@@ -389,6 +391,8 @@ const config: ControlPanelConfig = {
           },
         ],
         [minorTicks],
+        [axisTicks],
+        [gridlines],
         ['zoomable'],
         ...legendSection,
         [<ControlSubSectionHeader>{t('X Axis')}</ControlSubSectionHeader>],

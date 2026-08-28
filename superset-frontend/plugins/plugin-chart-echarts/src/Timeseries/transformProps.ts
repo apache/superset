@@ -283,6 +283,8 @@ export default function transformProps(
     metrics,
     minorSplitLine,
     minorTicks,
+    gridlines,
+    axisTicks,
     onlyTotal,
     opacity,
     orientation,
@@ -1281,6 +1283,8 @@ export default function transformProps(
       }),
     },
     minorTick: { show: minorTicks },
+    axisTick: { show: axisTicks ? 'auto' : false },
+    ...(gridlines ? {} : { splitLine: { show: false } }),
     minInterval:
       xAxisType === AxisType.Time && resolvedTimeGrain && !forceMaxInterval
         ? (TIMEGRAIN_TO_TIMESTAMP[
@@ -1325,7 +1329,7 @@ export default function transformProps(
     max: yAxisMax,
     minorTick: { show: isSmallChart ? false : minorTicks },
     minorSplitLine: { show: isSmallChart ? false : minorSplitLine },
-    splitLine: { show: !isSmallChart },
+    splitLine: { show: isSmallChart ? false : gridlines },
     axisLabel: {
       show: !isMicroChart,
       showMinLabel: !isMicroChart,
@@ -1339,7 +1343,7 @@ export default function transformProps(
         yAxisFormat,
       ),
     },
-    axisTick: { show: !isSmallChart },
+    axisTick: { show: isSmallChart ? false : axisTicks },
     scale: truncateYAxis,
     name: isSmallChart ? undefined : yAxisTitle,
     nameGap: convertInteger(yAxisTitleMargin),

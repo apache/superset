@@ -14,9 +14,11 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import math
 from datetime import datetime
 from typing import Any, Optional
 from unittest import mock
+from unittest.mock import Mock
 
 import pytest
 import pytz
@@ -88,6 +90,37 @@ def test_get_column_spec(
     from superset.db_engine_specs.presto import PrestoEngineSpec as spec  # noqa: N813
 
     assert_column_spec(spec, native_type, sqla_type, attrs, generic_type, is_dttm)
+
+
+@pytest.mark.parametrize(
+    "string_value,expected_float",
+    [
+        ("NaN", math.nan),
+        ("Infinity", math.inf),
+        ("-Infinity", -math.inf),
+    ],
+)
+def test_column_type_mutator_double_special_values(
+    string_value: str, expected_float: float
+) -> None:
+    """
+    Presto's coordinator sends results as JSON, which has no literal for
+    NaN/Infinity/-Infinity, so REAL/DOUBLE columns holding those values
+    arrive as quoted strings. They must be coerced back to real floats
+    (inherited from PrestoBaseEngineSpec, shared with TrinoEngineSpec).
+    """
+    from superset.db_engine_specs.presto import PrestoEngineSpec
+
+    mock_cursor = Mock()
+    mock_cursor.fetchall.return_value = [[string_value]]
+    mock_cursor.description = [("val", "double")]
+
+    (result_value,) = PrestoEngineSpec.fetch_data(mock_cursor)[0]
+    assert isinstance(result_value, float)
+    if math.isnan(expected_float):
+        assert math.isnan(result_value)
+    else:
+        assert result_value == expected_float
 
 
 def test_get_schema_from_engine_params() -> None:
