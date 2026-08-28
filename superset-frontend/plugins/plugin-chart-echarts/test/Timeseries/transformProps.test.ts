@@ -2751,12 +2751,47 @@ describe('weekly x-axis tick alignment', () => {
     expect(xAxis.splitLine).toBeUndefined();
   });
 
-  test('skips the showMaxLabel override at 0° rotation, unlike unpinned axes', () => {
-    // Pinned ticks already include the boundary buckets, and showMaxLabel
-    // can't reliably protect a label under hideOverlap anyway (#39899).
+  test('caps axisLabel.customValues to the same subset as axisTick, not the full bucket set', () => {
+    // hideOverlap thins whichever set axisLabel.customValues offers it. If
+    // that set were the full (uncapped) bucket list while axisTick/splitLine
+    // only kept a downsampled subset, a surviving label could land on a
+    // bucket with no tick or gridline under it.
+    const manyMondays = Array.from(
+      { length: 261 },
+      (_, i) => Date.UTC(2021, 0, 4) + i * WEEK_MS,
+    );
+    const chartProps = createTestChartProps({
+      formData: {
+        granularity_sqla: 'ds',
+        timeGrainSqla: TimeGranularity.WEEK_STARTING_MONDAY,
+        xAxisTimeFormat: '%m-%d',
+      },
+      queriesData: [
+        createTestQueryData(
+          manyMondays.map((__timestamp, i) => ({
+            __timestamp,
+            sales: 100 + i,
+          })),
+          {
+            colnames: ['__timestamp', 'sales'],
+            coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+          },
+        ),
+      ],
+    });
+    const { xAxis } = transformProps(chartProps).echartOptions as any;
+
+    expect(xAxis.axisTick.customValues.length).toBeLessThan(manyMondays.length);
+    expect(xAxis.axisLabel.customValues).toEqual(xAxis.axisTick.customValues);
+  });
+
+  test('keeps the showMaxLabel override at 0° rotation on pinned axes', () => {
+    // hideOverlap stays on for pinned ticks (they label every bucket), but
+    // showMaxLabel still shields the boundary label's immediate neighbour
+    // so the last bucket isn't silently dropped (#39899).
     const { xAxis } = transformProps(weeklyChartProps()).echartOptions as any;
 
-    expect(xAxis.axisLabel.showMaxLabel).toBeUndefined();
+    expect(xAxis.axisLabel.showMaxLabel).toBe(true);
     expect(xAxis.axisLabel.hideOverlap).toBe(true);
   });
 

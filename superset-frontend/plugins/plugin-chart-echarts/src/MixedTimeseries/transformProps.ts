@@ -73,7 +73,7 @@ import {
   getLegendProps,
   getMinAndMaxFromBounds,
   getOverMaxHiddenFormatter,
-  capTickMarks,
+  getTemporalAxisTickConfig,
   getTemporalTickValues,
 } from '../utils/series';
 import { resolveLegendLayout } from '../utils/legendLayout';
@@ -791,35 +791,14 @@ export default function transformProps(
       name: xAxisTitle,
       nameGap: xAxisTitleMarginPx,
       nameLocation: 'middle',
-      axisLabel: {
-        // Pinned ticks label every bucket, so keep thinning on even when the
-        // showMaxLabel/rotation branch would otherwise drop it.
-        hideOverlap:
-          !!temporalTickValues ||
-          (showMaxLabel
-            ? false
-            : !(xAxisType === AxisType.Time && xAxisLabelRotation !== 0)),
-        formatter: deduplicatedFormatter,
-        rotate: xAxisLabelRotation,
-        interval: xAxisLabelInterval,
-        // Skipped for pinned ticks: the boundary buckets are already real
-        // ticks there, and showMaxLabel only shields its immediate
-        // neighbour — hideOverlap can still drop it against a farther
-        // label on a crowded weekly axis, reopening #39899.
-        ...(showMaxLabel &&
-          !temporalTickValues && {
-            showMaxLabel: true,
-            alignMaxLabel: 'right',
-            showMinLabel: true,
-            alignMinLabel: 'left',
-          }),
-        ...(temporalTickValues && { customValues: temporalTickValues }),
-      },
-      // Gridlines follow axisTick.customValues; cap it so a long weekly
-      // range doesn't comb.
-      ...(temporalTickValues && {
-        axisTick: { customValues: capTickMarks(temporalTickValues) },
-      }),
+      ...getTemporalAxisTickConfig(
+        temporalTickValues,
+        showMaxLabel,
+        xAxisType,
+        xAxisLabelRotation,
+        xAxisLabelInterval,
+        deduplicatedFormatter,
+      ),
       minorTick: { show: minorTicks },
       minInterval:
         xAxisType === AxisType.Time && resolvedTimeGrain && !forceMaxInterval

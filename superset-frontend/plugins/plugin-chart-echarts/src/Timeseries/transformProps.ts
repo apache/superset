@@ -88,7 +88,7 @@ import {
   getHorizontalLegendAvailableWidth,
   getLegendProps,
   getMinAndMaxFromBounds,
-  capTickMarks,
+  getTemporalAxisTickConfig,
   getTemporalTickValues,
 } from '../utils/series';
 import { resolveLegendLayout } from '../utils/legendLayout';
@@ -1273,44 +1273,14 @@ export default function transformProps(
       groupBy.length === 0 && {
         triggerEvent: true,
       }),
-    axisLabel: {
-      // When rotation is applied on time axes, hideOverlap can
-      // aggressively hide the last label. Rotated labels already
-      // have less overlap, so disabling hideOverlap is safe.
-      // At 0° rotation, also disable hideOverlap when showMaxLabel
-      // is active so the forced boundary label is never suppressed
-      // by ECharts' overlap detection (#39899). Pinned ticks label
-      // every bucket, which does crowd, so thinning always wins there.
-      hideOverlap:
-        !!temporalTickValues ||
-        (showMaxLabel
-          ? false
-          : !(xAxisType === AxisType.Time && xAxisLabelRotation !== 0)),
-      formatter: deduplicatedFormatter,
-      rotate: xAxisLabelRotation,
-      interval: xAxisLabelInterval,
-      // Force the boundary labels on non-rotated time axes so the first
-      // and last dates stay visible: hideOverlap can hide the last label,
-      // and a min date that falls between "nice" ticks otherwise renders
-      // no beginning label. Skipped when rotated to avoid phantom labels
-      // at the axis boundary. Also skipped for pinned ticks: the boundary
-      // buckets are already real ticks there, and showMaxLabel only shields
-      // its immediate neighbour — hideOverlap can still drop it against a
-      // farther label on a crowded weekly axis, reopening #39899.
-      ...(showMaxLabel &&
-        !temporalTickValues && {
-          showMaxLabel: true,
-          alignMaxLabel: 'right',
-          showMinLabel: true,
-          alignMinLabel: 'left',
-        }),
-      ...(temporalTickValues && { customValues: temporalTickValues }),
-    },
-    // Gridlines follow axisTick.customValues; cap it so a long weekly
-    // range doesn't comb.
-    ...(temporalTickValues && {
-      axisTick: { customValues: capTickMarks(temporalTickValues) },
-    }),
+    ...getTemporalAxisTickConfig(
+      temporalTickValues,
+      showMaxLabel,
+      xAxisType,
+      xAxisLabelRotation,
+      xAxisLabelInterval,
+      deduplicatedFormatter,
+    ),
     minorTick: { show: minorTicks },
     minInterval:
       xAxisType === AxisType.Time && resolvedTimeGrain && !forceMaxInterval

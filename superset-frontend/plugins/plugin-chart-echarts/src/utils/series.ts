@@ -1063,6 +1063,58 @@ export function capTickMarks(
   return capped;
 }
 
+/**
+ * axisLabel/axisTick fragment for a temporal x-axis, shared by Timeseries and
+ * MixedTimeseries. When temporalTickValues pins the axis to weekly buckets,
+ * both axisLabel.customValues (what hideOverlap thins from) and
+ * axisTick.customValues (what splitLine/gridlines follow) use the same capped
+ * set, so a label that survives hideOverlap thinning always lands on a real
+ * tick and gridline rather than a capped-away bucket.
+ */
+export function getTemporalAxisTickConfig(
+  temporalTickValues: number[] | undefined,
+  showMaxLabel: boolean,
+  xAxisType: AxisType,
+  xAxisLabelRotation: number,
+  xAxisLabelInterval: number | string | undefined,
+  formatter: unknown,
+): {
+  axisLabel: Record<string, unknown>;
+  axisTick?: { customValues: number[] };
+} {
+  const cappedTickValues = temporalTickValues
+    ? capTickMarks(temporalTickValues)
+    : undefined;
+  return {
+    axisLabel: {
+      // Pinned ticks label every bucket, which does crowd, so thinning
+      // always wins there.
+      hideOverlap:
+        !!temporalTickValues ||
+        (showMaxLabel
+          ? false
+          : !(xAxisType === AxisType.Time && xAxisLabelRotation !== 0)),
+      formatter,
+      rotate: xAxisLabelRotation,
+      interval: xAxisLabelInterval,
+      // Force the boundary labels so the first and last dates stay visible:
+      // hideOverlap can hide the last label, and a min date that falls
+      // between "nice" ticks otherwise renders no beginning label. Applied
+      // for pinned axes too — showMaxLabel only shields its immediate
+      // neighbour, so a farther label on a crowded weekly axis can still be
+      // dropped, but that's strictly better than no shielding at all.
+      ...(showMaxLabel && {
+        showMaxLabel: true,
+        alignMaxLabel: 'right',
+        showMinLabel: true,
+        alignMinLabel: 'left',
+      }),
+      ...(cappedTickValues && { customValues: cappedTickValues }),
+    },
+    ...(cappedTickValues && { axisTick: { customValues: cappedTickValues } }),
+  };
+}
+
 export function getOverMaxHiddenFormatter(
   config: {
     max?: number;
