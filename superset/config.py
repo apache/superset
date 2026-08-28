@@ -759,6 +759,9 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # @lifecycle: testing
     # @docs: https://superset.apache.org/docs/configuration/alerts-reports
     "ALERT_REPORTS": False,
+    # Enables automatic retry functionality for failed report executions
+    # @lifecycle: testing
+    "ALERT_REPORTS_RETRY": False,
     # Enables Slack V2 integration for Alerts and Reports.
     # Defaults to True; the legacy Slack v1 path is deprecated and will be removed
     # in the next major release. Operators must grant the Slack bot both the

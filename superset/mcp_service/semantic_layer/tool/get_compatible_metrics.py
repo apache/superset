@@ -49,6 +49,7 @@ logger = logging.getLogger(__name__)
         title="Get compatible metrics",
         readOnlyHint=True,
         destructiveHint=False,
+        openWorldHint=False,
     ),
 )
 @requires_data_model_metadata_access

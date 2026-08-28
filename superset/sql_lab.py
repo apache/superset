@@ -67,6 +67,7 @@ from superset.utils.core import (
     QuerySource,
     zlib_compress,
 )
+from superset.utils.database import warm_and_release_connection
 from superset.utils.dates import now_as_float
 from superset.utils.decorators import stats_timing
 from superset.utils.rls import apply_rls
@@ -287,13 +288,8 @@ def execute_query(  # pylint: disable=too-many-statements, too-many-locals  # no
         # that stays idle for the query duration; if the query runs longer
         # than the DB's idle_in_transaction_session_timeout the connection
         # is killed, leaving the query stuck in "running" state forever.
-        db.session.expire_on_commit = False
-        try:
-            db.session.refresh(query)
-            _ = query.database
-            db.session.commit()
-        finally:
-            db.session.expire_on_commit = True
+        db.session.refresh(query)
+        warm_and_release_connection(query, "database")
         with event_logger.log_context(
             action="execute_sql",
             database=database,
