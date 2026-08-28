@@ -33,11 +33,17 @@ from superset.commands.dataset.exceptions import (
 )
 from superset.commands.utils import populate_subjects
 from superset.daos.dataset import DatasetDAO
+from superset.db_engine_specs.exceptions import (
+    SupersetDBAPIConnectionError,
+    SupersetDBAPIDatabaseError,
+    SupersetDBAPIOperationalError,
+)
 from superset.exceptions import (
     OAuth2RedirectError,
     SupersetException,
     SupersetParseError,
     SupersetSecurityException,
+    SupersetTimeoutException,
 )
 from superset.extensions import security_manager
 from superset.sql.parse import Table
@@ -59,6 +65,16 @@ class CreateDatasetCommand(CreateMixin, BaseCommand):
             dataset.fetch_metadata()
         except OAuth2RedirectError:
             # Must reach the caller unchanged to start the OAuth2 dance.
+            raise
+        except (
+            SupersetTimeoutException,
+            SupersetDBAPIConnectionError,
+            SupersetDBAPIOperationalError,
+            SupersetDBAPIDatabaseError,
+        ):
+            # Infra-level failures (unreachable database, query timeout), not
+            # bad user input: let them propagate with their own status
+            # instead of being coerced into a 422 "invalid table" error.
             raise
         except SupersetException as ex:
             # Not a SQLAlchemyError, so ``on_error`` re-raises it untouched and

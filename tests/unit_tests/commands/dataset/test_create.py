@@ -22,11 +22,13 @@ from pytest_mock import MockerFixture
 
 from superset.commands.dataset.create import CreateDatasetCommand
 from superset.commands.dataset.exceptions import DatasetInvalidError
+from superset.db_engine_specs.exceptions import SupersetDBAPIConnectionError
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     OAuth2RedirectError,
     SupersetGenericDBErrorException,
     SupersetParseError,
+    SupersetTimeoutException,
 )
 from superset.models.core import Database
 
@@ -345,6 +347,55 @@ def test_create_dataset_oauth2_redirect_propagates_unchanged(
     assert exc_info.value is oauth2_error
     assert exc_info.value.error.extra["url"] == "https://example.org/oauth2/authorize"
     assert exc_info.value.error.extra["tab_id"] == "tab-123"
+
+
+def test_create_dataset_timeout_propagates_unchanged(
+    mocker: MockerFixture,
+) -> None:
+    """A query timeout is an infra failure, not bad user input: it must not
+    be flattened into a 422 DatasetInvalidError on ``table``/``sql``."""
+    mocker.patch.object(CreateDatasetCommand, "validate")
+    dataset = Mock()
+    timeout_error = SupersetTimeoutException(
+        error_type=SupersetErrorType.CONNECTION_DATABASE_TIMEOUT,
+        message="Connection timed out",
+        level=ErrorLevel.ERROR,
+    )
+    dataset.fetch_metadata.side_effect = timeout_error
+    mocker.patch(
+        "superset.commands.dataset.create.DatasetDAO.create",
+        return_value=dataset,
+    )
+
+    command = CreateDatasetCommand({"database": 1, "table_name": "physical_table"})
+
+    with pytest.raises(SupersetTimeoutException) as exc_info:
+        command.run()
+
+    assert exc_info.value is timeout_error
+
+
+def test_create_dataset_connection_error_propagates_unchanged(
+    mocker: MockerFixture,
+) -> None:
+    """An unreachable database must not be reported as an invalid table name."""
+    mocker.patch.object(CreateDatasetCommand, "validate")
+    dataset = Mock()
+    connection_error = SupersetDBAPIConnectionError(
+        "could not connect to server: Connection refused"
+    )
+    dataset.fetch_metadata.side_effect = connection_error
+    mocker.patch(
+        "superset.commands.dataset.create.DatasetDAO.create",
+        return_value=dataset,
+    )
+
+    command = CreateDatasetCommand({"database": 1, "table_name": "physical_table"})
+
+    with pytest.raises(SupersetDBAPIConnectionError) as exc_info:
+        command.run()
+
+    assert exc_info.value is connection_error
 
 
 def test_create_dataset_run_succeeds_when_metadata_fetch_works(
