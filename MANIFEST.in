@@ -24,4 +24,8 @@ recursive-include superset/migrations *
 recursive-include superset/templates *
 recursive-include superset/translations *
 recursive-include superset/static *
+# Backend query_context parity bundle (#33615): a build artifact produced by
+# `npm run build` (postbuild). Ship it so deployments get exact frontend parity
+# by default instead of silently falling back to the generic derivation.
+recursive-include superset/commands/chart/_bundles *.js
 recursive-exclude tests *

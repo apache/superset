@@ -58,8 +58,24 @@ build({
   target: 'es2020',
   legalComments: 'none',
   logLevel: 'info',
-  // esbuild infers the `ts` loader from the .ts extension; keep JSX off (these
-  // buildQuery modules are pure TS, no React).
+  // `buildQuery` modules are pure query logic, but they are reached through
+  // barrel imports that transitively pull in non-JS assets (fonts, CSS, SVGs,
+  // images) from the theme/UI layer. The backend runs only `generateQueryContext`
+  // in V8 and never renders any of that, so drop those assets with the `empty`
+  // loader instead of failing to bundle. (esbuild infers the `ts` loader from the
+  // .ts extension; these modules are pure TS, no JSX.)
+  loader: {
+    '.css': 'empty',
+    '.svg': 'empty',
+    '.png': 'empty',
+    '.jpg': 'empty',
+    '.jpeg': 'empty',
+    '.gif': 'empty',
+    '.woff': 'empty',
+    '.woff2': 'empty',
+    '.ttf': 'empty',
+    '.eot': 'empty',
+  },
 })
   .then(() => {
     // eslint-disable-next-line no-console

@@ -29,9 +29,12 @@ not been built, or evaluation fails, :meth:`QueryContextGenerator.generate`
 returns ``None`` and the caller falls back to the pure-Python generic derivation
 (:func:`superset.commands.chart.query_context_builder.build_query_context_config`).
 
-Build the bundle with ``npm run build:backend-querycontext`` (from
-``superset-frontend/``); the artifact lands at
-``superset/commands/chart/_bundles/query_context_bundle.js``.
+The bundle is produced by the standard frontend build (``npm run build`` runs it
+via a ``postbuild`` hook; or ``npm run build:backend-querycontext`` alone) and
+lands at ``superset/commands/chart/_bundles/query_context_bundle.js``, shipped in
+packaged distributions via ``MANIFEST.in``. Install the V8 runtime with the
+``querycontext`` extra (``pip install "apache-superset[querycontext]"``) to make
+exact parity the default rather than the fallback.
 """
 
 from __future__ import annotations

@@ -162,6 +162,11 @@ jobs:
           docker run --rm $TAG bash -c \
           "npm i && npm run plugins:build && npm run type"
 
+      - name: backend query_context registry + bundle (superset #33615)
+        run: |
+          docker run --rm $TAG bash -c \
+          "npm i && npm run check:backend-querycontext-registry && npm run build:backend-querycontext"
+
   validate-frontend:
     needs: frontend-build
     if: needs.frontend-build.outputs.should-run == 'true'

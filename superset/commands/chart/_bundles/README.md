@@ -23,17 +23,31 @@ This directory holds the bundled frontend `buildQuery` code that the backend
 runs in V8 (`py_mini_racer`) to synthesize a faithful `query_context` for
 imported charts (Apache Superset #33615).
 
-**`query_context_bundle.js` is generated, not committed.** Build it with:
+**`query_context_bundle.js` is a generated build artifact, not committed.** It is
+produced automatically as part of the standard frontend build:
 
 ```bash
 cd superset-frontend
-npm run build:backend-querycontext
+npm run build            # runs build:backend-querycontext via the postbuild hook
 ```
+
+or on its own with `npm run build:backend-querycontext`.
+
+Because the supported build produces it and `MANIFEST.in` ships
+`superset/commands/chart/_bundles/*.js`, packaged Superset distributions carry the
+bundle by default (it is `.gitignore`d in the working tree but included at build
+time).
 
 Source entry: `superset-frontend/src/backend-querycontext/entry.ts`.
 Consumer: `superset/commands/chart/query_context_generator.py`.
 
-When the bundle is absent the generator degrades gracefully and the importer
-falls back to the pure-Python generic derivation in
+To enable exact parity at runtime, install the V8 runtime extra:
+
+```bash
+pip install "apache-superset[querycontext]"   # pulls py-mini-racer
+```
+
+When the bundle or `py_mini_racer` is absent the generator degrades gracefully and
+the importer falls back to the pure-Python generic derivation in
 `superset/commands/chart/query_context_builder.py` — nothing breaks; parity just
-isn't available until the bundle is built (a packaging/CI step).
+isn't available until both are present.

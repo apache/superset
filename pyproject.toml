@@ -238,6 +238,11 @@ postgres = ["psycopg2-binary==2.9.12"]
 presto = ["pyhive[presto]>=0.6.5"]
 trino = ["trino>=0.338.0"]
 prophet = ["prophet>=1.4.0, <2"]
+# Exact frontend-parity query_context synthesis for chart import (#33615): runs
+# the real `buildQuery` bundle in V8 via py_mini_racer. Optional — without it the
+# importer falls back to the pure-Python generic derivation. Install this extra
+# (and ship the bundle, built by `npm run build`) to make exact parity the default.
+querycontext = ["py-mini-racer>=0.12.4, <1.0"]
 # sqlalchemy-redshift cuts hard from SQLAlchemy 1.4-only (0.8.x) to 2.0-only
 # (>=1.0.0) with no dual-compat release. Bumped now that Superset's own
 # SQLAlchemy 2.0 core bump has landed (discussion #40273).
