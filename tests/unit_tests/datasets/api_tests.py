@@ -304,3 +304,46 @@ def test_post_dataset_oauth2_redirect_propagates_unchanged(
         "tab_id": "tab-1",
         "redirect_uri": "/redirect",
     }
+
+
+def test_post_dataset_unexpected_error_returns_sanitized_500(
+    session: Session,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """An unexpected, non-``SupersetException`` failure must be flattened
+    into an opaque 500 -- the same contract ``@safe`` used to provide --
+    instead of leaking raw exception text (e.g. driver/connection details)
+    through Flask's catch-all error handler.
+
+    ``DatasetRestApi.post`` doesn't use ``@safe`` so that ``OAuth2RedirectError``
+    can reach the client unchanged (see
+    ``test_post_dataset_oauth2_redirect_propagates_unchanged``); it must
+    replicate ``@safe``'s opaque-500 behavior itself for everything else.
+    """
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.models.core import Database
+
+    SqlaTable.metadata.create_all(db.session.get_bind())
+
+    database = Database(database_name="unexpected_db", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    secret = "postgresql://admin:s3cr3t@internal-db.example.com/prod"  # noqa: S105
+    with patch(
+        "superset.datasets.api.CreateDatasetCommand.run",
+        side_effect=RuntimeError(secret),
+    ):
+        response = client.post(
+            "/api/v1/dataset/",
+            json={
+                "database": database.id,
+                "schema": "main",
+                "table_name": "unexpected_table",
+            },
+        )
+
+    assert response.status_code == 500
+    assert response.json == {"message": "Fatal error"}
+    assert secret not in response.get_data(as_text=True)

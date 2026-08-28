@@ -513,6 +513,14 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
                 exc_info=True,
             )
             return self.response_422(message=str(ex))
+        except Exception:  # pylint: disable=broad-except
+            # ``@safe`` isn't used on this endpoint (it would swallow the
+            # ``OAuth2RedirectError`` re-raised above into an opaque 500), so
+            # replicate its behavior here for any other unexpected exception:
+            # log the full error server-side, but don't echo internal details
+            # (ORM/driver error text, connection info) back to the caller.
+            logger.exception("Unexpected error in DatasetRestApi.post")
+            return self.response_500(message="Fatal error")
 
     @expose("/<pk>", methods=("PUT",))
     @protect()
