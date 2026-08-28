@@ -2766,3 +2766,76 @@ describe('tooltip for metrics whose labels end in forecast suffixes', () => {
     expect(html).toContain('>ci<');
   });
 });
+
+test('shows gridlines and axis ticks by default', () => {
+  const { echartOptions } = transformProps(createTestChartProps({}));
+  const xAxis = echartOptions.xAxis as any;
+  const yAxis = echartOptions.yAxis as any;
+
+  expect(yAxis.splitLine.show).toBe(true);
+  expect(yAxis.axisTick.show).toBe(true);
+  // Left to ECharts, which draws no ticks on a banded category axis. Forcing
+  // true would add ticks the chart does not have today.
+  expect(xAxis.axisTick.show).toBe('auto');
+});
+
+test('hides gridlines without touching the minor split lines', () => {
+  const { echartOptions } = transformProps(
+    createTestChartProps({ formData: { gridlines: false } }),
+  );
+  const yAxis = echartOptions.yAxis as any;
+
+  expect(yAxis.splitLine.show).toBe(false);
+  expect(yAxis.minorSplitLine.show).toBe(DEFAULT_FORM_DATA.minorSplitLine);
+  expect(yAxis.axisTick.show).toBe(true);
+});
+
+test('leaves the category axis split lines alone until gridlines are turned off', () => {
+  const shown = transformProps(createTestChartProps({}));
+  // Writing show:true here would draw gridlines on axis types that default to
+  // none, so the key is only ever added to hide them.
+  expect((shown.echartOptions.xAxis as any).splitLine).toBeUndefined();
+
+  const hidden = transformProps(
+    createTestChartProps({ formData: { gridlines: false } }),
+  );
+  expect((hidden.echartOptions.xAxis as any).splitLine.show).toBe(false);
+});
+
+test('hides the ticks on both axes', () => {
+  const { echartOptions } = transformProps(
+    createTestChartProps({ formData: { axisTicks: false } }),
+  );
+
+  expect((echartOptions.yAxis as any).axisTick.show).toBe(false);
+  expect((echartOptions.xAxis as any).axisTick.show).toBe(false);
+  expect((echartOptions.yAxis as any).splitLine.show).toBe(true);
+});
+
+test('keeps gridlines and ticks off on a compact chart even when both are enabled', () => {
+  const { echartOptions } = transformProps(
+    createTestChartProps({
+      height: TIMESERIES_CONSTANTS.compactChartHeight - 1,
+      formData: { gridlines: true, axisTicks: true },
+    }),
+  );
+  const yAxis = echartOptions.yAxis as any;
+
+  expect(yAxis.splitLine.show).toBe(false);
+  expect(yAxis.axisTick.show).toBe(false);
+});
+
+test('applies gridlines to the value axis after a horizontal orientation swaps it', () => {
+  const { echartOptions } = transformProps(
+    createTestChartProps({
+      formData: {
+        orientation: OrientationType.Horizontal,
+        gridlines: false,
+      },
+    }),
+  );
+
+  // The transform swaps the axes for a horizontal chart, so the value axis —
+  // and the gridlines belonging to it — end up on xAxis.
+  expect((echartOptions.xAxis as any).splitLine.show).toBe(false);
+});
