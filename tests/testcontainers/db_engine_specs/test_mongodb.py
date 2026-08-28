@@ -104,7 +104,12 @@ def test_paginated_query_returns_correct_rows_in_order(engine: Engine) -> None:
     with engine.connect() as conn:
         rows = conn.execute(text(str(compiled))).fetchall()
 
-    assert [row.id for row in rows] == [4, 5, 6]
+    # Positional, not row.id: text() has no static column metadata of its
+    # own, so the row's key comes entirely from whatever pymongosql's DBAPI
+    # cursor reports for this raw SQL string -- which is the qualified
+    # "pilot_pagination.id" (matching the SELECT list's column reference),
+    # not the bare "id" attribute access would expect.
+    assert [row[0] for row in rows] == [4, 5, 6]
 
 
 def test_get_columns_maps_native_types(engine: Engine) -> None:
