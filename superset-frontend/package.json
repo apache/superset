@@ -160,7 +160,7 @@
     "antd": "^6.6.1",
     "chrono-node": "^2.10.1",
     "classnames": "^2.2.5",
-    "content-disposition": "^2.0.1",
+    "content-disposition": "^3.0.0",
     "d3-scale": "^4.0.2",
     "dayjs": "^1.11.23",
     "dom-to-image-more": "^3.10.2",
@@ -391,7 +391,7 @@
     "@luma.gl/shadertools": "~9.2.5",
     "@luma.gl/webgl": "~9.2.5",
     "core-js": "^3.38.1",
-    "dompurify": "^3.4.11",
+    "dompurify": "^3.4.13",
     "esbuild": "^0.28.1",
     "eslint-plugin-import": {
       "eslint": "$eslint"
