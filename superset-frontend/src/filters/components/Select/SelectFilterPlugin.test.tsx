@@ -1483,6 +1483,65 @@ test('keeps a dependent filter empty after the user clears it', async () => {
   expect(screen.queryByTitle('boy')).not.toBeInTheDocument();
 });
 
+test('keeps a dependent filter empty when it mounts with a cleared value', async () => {
+  // Regression: after a reload the cleared state comes back as `value: null` on
+  // a fresh component, so the in-memory "user cleared this" ref is gone. The
+  // first item must still not be re-applied.
+  const setDataMaskMock = jest.fn();
+  const testProps = {
+    ...selectMultipleProps,
+    formData: {
+      ...selectMultipleProps.formData,
+      multiSelect: false,
+      enableEmptyFilter: false,
+      defaultToFirstItem: true,
+      extraFormData: {
+        filters: [{ col: 'region', op: 'IN', val: ['North America'] }],
+      },
+    },
+    filterState: { value: null },
+  };
+
+  render(
+    // @ts-expect-error
+    <SelectFilterPlugin
+      // @ts-expect-error
+      {...transformProps(testProps)}
+      setDataMask={setDataMaskMock}
+      showOverflow={false}
+    />,
+    {
+      useRedux: true,
+      initialState: {
+        nativeFilters: {
+          filters: {
+            'test-filter': {
+              name: 'Test Filter',
+            },
+          },
+        },
+        dataMask: {
+          'test-filter': {
+            extraFormData: {},
+            filterState: { value: null },
+          },
+        },
+      },
+    },
+  );
+
+  // Let the re-validation effect run before asserting it did nothing
+  await act(async () => {
+    await Promise.resolve();
+  });
+  expect(setDataMaskMock).toHaveBeenCalled();
+  expect(setDataMaskMock).not.toHaveBeenCalledWith(
+    expect.objectContaining({
+      filterState: expect.objectContaining({ value: ['boy'] }),
+    }),
+  );
+});
+
 test('resets dependent filter to first item when value does not exist in data', async () => {
   const setDataMaskMock = jest.fn();
   const testProps = {

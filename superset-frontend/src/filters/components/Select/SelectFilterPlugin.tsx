@@ -441,13 +441,17 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
       ? (groupby.map(col => data[0][col]) as string[])
       : null;
 
-    // Skip default value update when clearAllTrigger is active
+    // Skip default value update when clearAllTrigger is active.
+    // `null` is a persisted "user cleared this" state, as opposed to
+    // `undefined` for "never set", so it must not be re-defaulted either —
+    // `userClearedRef` alone would not survive a reload.
     if (
       !clearAllTrigger &&
       defaultToFirstItem &&
       !userClearedRef.current &&
       Object.keys(formData?.extraFormData || {}).length &&
       filterState.value !== undefined &&
+      filterState.value !== null &&
       firstItem !== null &&
       filterState.value !== firstItem
     ) {
