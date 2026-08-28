@@ -58,6 +58,16 @@ jobs:
             timeout: 15
           - dialect: db2
             timeout: 25
+          - dialect: mariadb
+            timeout: 10
+          - dialect: timescaledb
+            timeout: 10
+          - dialect: yugabytedb
+            timeout: 10
+          - dialect: monetdb
+            timeout: 10
+          - dialect: mongodb
+            timeout: 10
     timeout-minutes: ${{ matrix.timeout }}
     env:
       PYTHONPATH: ${{ github.workspace }}

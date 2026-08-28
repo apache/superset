@@ -24,6 +24,8 @@ annotated-types==0.7.0
     # via
     #   -c requirements/base-constraint.txt
     #   pydantic
+antlr4-python3-runtime==4.13.2
+    # via pymongosql
 anyio==4.11.0
     # via
     #   httpx
@@ -193,6 +195,7 @@ cryptography==50.0.0
     #   oracledb
     #   paramiko
     #   pyjwt
+    #   pymysql
     #   pyopenssl
     #   secretstorage
 cycler==0.12.1
@@ -221,6 +224,7 @@ dnspython==2.7.0
     # via
     #   -c requirements/base-constraint.txt
     #   email-validator
+    #   pymongo
 docker==7.2.0
     # via
     #   apache-superset
@@ -488,6 +492,7 @@ jmespath==1.1.0
     # via
     #   boto3
     #   botocore
+    #   pymongosql
 joserfc==1.7.2
     # via fastmcp-slim
 jsonpath-ng==1.8.0
@@ -803,10 +808,22 @@ pyjwt==2.13.0
     #   mcp
 pylint==3.3.7
     # via apache-superset
+pymonetdb==1.9.1
+    # via
+    #   apache-superset
+    #   sqlalchemy-monetdb
+pymongo==4.17.0
+    # via
+    #   pymongosql
+    #   testcontainers
+pymongosql==0.7.3
+    # via apache-superset
 pymssql==2.3.13
     # via
     #   apache-superset
     #   testcontainers
+pymysql==1.2.0
+    # via testcontainers
 pynacl==1.6.2
     # via
     #   -c requirements/base-constraint.txt
@@ -1001,6 +1018,7 @@ sqlalchemy==2.0.52
     #   sqlalchemy-cockroachdb
     #   sqlalchemy-continuum
     #   sqlalchemy-cratedb
+    #   sqlalchemy-monetdb
     #   sqlalchemy-utils
     #   testcontainers
 sqlalchemy-bigquery==1.17.2
@@ -1015,6 +1033,8 @@ sqlalchemy-cratedb==0.43.1
     # via
     #   apache-superset
     #   testcontainers
+sqlalchemy-monetdb==2.1.0
+    # via apache-superset
 sqlalchemy-utils==0.42.1
     # via
     #   -c requirements/base-constraint.txt
