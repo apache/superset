@@ -157,7 +157,6 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   const [col] = groupby;
   const [initialColtypeMap] = useState(coltypeMap);
   const [search, setSearch] = useState('');
-  const prevDataRef = useRef(data);
   const userClearedRef = useRef(false);
   const [dataMask, dispatchDataMask] = useImmerReducer(reducer, {
     extraFormData: {},
@@ -454,26 +453,6 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   ]);
 
   useEffect(() => {
-    const prev = prevDataRef.current;
-    const curr = data;
-
-    const hasDataChanged =
-      prev?.length !== curr?.length ||
-      prev?.some((row, i) => {
-        const prevVal = row[col];
-        const currVal = curr[i][col];
-        return typeof prevVal === 'bigint' || typeof currVal === 'bigint'
-          ? prevVal?.toString() !== currVal?.toString()
-          : prevVal !== currVal;
-      });
-
-    // If data actually changed (e.g., due to parent filter), reset flag
-    if (hasDataChanged) {
-      prevDataRef.current = data;
-    }
-  }, [data, col]);
-
-  useEffect(() => {
     if (
       filterState.value?.every((value?: any) =>
         data.some(row => row[col] === value),
@@ -485,13 +464,17 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
       ? (groupby.map(col => data[0][col]) as string[])
       : null;
 
-    // Skip default value update when clearAllTrigger is active
+    // Skip default value update when clearAllTrigger is active.
+    // `null` is a persisted "user cleared this" state, as opposed to
+    // `undefined` for "never set", so it must not be re-defaulted either —
+    // `userClearedRef` alone would not survive a reload.
     if (
       !clearAllTrigger &&
       defaultToFirstItem &&
       !userClearedRef.current &&
       Object.keys(formData?.extraFormData || {}).length &&
       filterState.value !== undefined &&
+      filterState.value !== null &&
       firstItem !== null &&
       filterState.value !== firstItem
     ) {
