@@ -89,6 +89,12 @@ test('isCountExpression matches a COUNT(...) call, including nested calls', () =
   expect(isCountExpression(undefined)).toBe(false);
 });
 
+test('isCountExpression ignores parens inside string literals', () => {
+  expect(isCountExpression("COUNT(CASE WHEN x = '(' THEN 1 END)")).toBe(true);
+  expect(isCountExpression("COUNT(CASE WHEN x = ')' THEN 1 END)")).toBe(true);
+  expect(isCountExpression("COUNT(CASE WHEN x = '''(' THEN 1 END)")).toBe(true);
+});
+
 test('isPercentD3Format accepts only a valid D3 percent/p spec', () => {
   expect(isPercentD3Format('.0%')).toBe(true);
   expect(isPercentD3Format(',.2%')).toBe(true);

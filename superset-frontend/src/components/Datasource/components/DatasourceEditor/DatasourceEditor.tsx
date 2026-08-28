@@ -845,17 +845,29 @@ export const isPercentD3Format = (d3format?: string): boolean => {
 
 // Matches the outermost COUNT(...) call's parens by depth, so a ratio like
 // `COUNT(*) / COUNT(*)` isn't misclassified but a nested call like
-// `COUNT(DISTINCT COALESCE(a, b))` is still recognized.
+// `COUNT(DISTINCT COALESCE(a, b))` is still recognized. Parens inside a
+// single-quoted string literal (with '' as an escaped quote) are ignored so
+// they don't desync the depth count.
 export const isCountExpression = (expression?: string): boolean => {
   const trimmed = expression?.trim();
   if (!trimmed || !/^count\s*\(/i.test(trimmed) || !trimmed.endsWith(')')) {
     return false;
   }
   let depth = 0;
+  let inString = false;
   for (let i = trimmed.indexOf('('); i < trimmed.length; i += 1) {
-    if (trimmed[i] === '(') {
+    const char = trimmed[i];
+    if (inString) {
+      if (char === "'" && trimmed[i + 1] === "'") {
+        i += 1;
+      } else if (char === "'") {
+        inString = false;
+      }
+    } else if (char === "'") {
+      inString = true;
+    } else if (char === '(') {
       depth += 1;
-    } else if (trimmed[i] === ')') {
+    } else if (char === ')') {
       depth -= 1;
       if (depth === 0) {
         return i === trimmed.length - 1;
