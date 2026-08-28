@@ -31,6 +31,13 @@ const DependenciesContainer = styled.div`
   padding: ${({ theme }) => theme.sizeUnit}px 0;
 `;
 
+const SectionLabel = styled.div`
+  font-weight: ${({ theme }) => theme.fontWeightStrong};
+  color: ${({ theme }) => theme.colorTextSecondary};
+  padding: ${({ theme }) => theme.sizeUnit / 2}px
+    ${({ theme }) => theme.sizeUnit * 2}px;
+`;
+
 const DependencyRow = styled.div`
   display: flex;
   align-items: center;
@@ -45,7 +52,7 @@ const DependencyName = styled.span`
   white-space: nowrap;
 `;
 
-const LinkIconWrapper = styled.span<{ $waiting?: boolean }>`
+const DagIconWrapper = styled.span<{ $waiting?: boolean }>`
   cursor: pointer;
   color: ${({ theme, $waiting }) =>
     $waiting ? theme.colorWarningText : theme.colorIcon};
@@ -55,33 +62,54 @@ const LinkIconWrapper = styled.span<{ $waiting?: boolean }>`
   }
 `;
 
+function DependencySection({
+  label,
+  tasks,
+}: {
+  label: string;
+  tasks: TaskDependency[];
+}) {
+  if (!tasks.length) {
+    return null;
+  }
+  return (
+    <>
+      <SectionLabel>{label}</SectionLabel>
+      {tasks.map(task => (
+        <DependencyRow key={task.uuid}>
+          <TaskStatusIcon status={task.status} />
+          <DependencyName>{task.task_name || task.uuid}</DependencyName>
+        </DependencyRow>
+      ))}
+    </>
+  );
+}
+
 interface TaskDependenciesPopoverProps {
+  // Upstream prerequisites this task depends on.
   dependencies: TaskDependency[];
+  // Downstream tasks that depend on this task.
+  dependents?: TaskDependency[];
   // Unmet prerequisites while this task is still pending (blocked). When > 0 the
-  // chain icon turns warning-colored and the popover title reflects the wait.
+  // icon turns warning-colored and the popover title reflects the wait.
   waitingOn?: number;
-  // Fired on hover enter/leave of the chain icon so the list can highlight the
-  // prerequisite rows that are currently visible. Driven from mouse events
-  // rather than the Popover's onOpenChange: setting state inside antd's own
-  // open callback can wedge the hover popover.
+  // Fired on hover enter/leave of the icon so the list can highlight the related
+  // rows that are currently visible. Driven from mouse events rather than the
+  // Popover's onOpenChange: setting state inside antd's own open callback can
+  // wedge the hover popover.
   onHoverChange?: (hovering: boolean) => void;
 }
 
 export default function TaskDependenciesPopover({
   dependencies,
+  dependents = [],
   waitingOn = 0,
   onHoverChange,
 }: TaskDependenciesPopoverProps) {
   const content = (
     <DependenciesContainer>
-      {dependencies.map(dependency => (
-        <DependencyRow key={dependency.uuid}>
-          <TaskStatusIcon status={dependency.status} />
-          <DependencyName>
-            {dependency.task_name || dependency.uuid}
-          </DependencyName>
-        </DependencyRow>
-      ))}
+      <DependencySection label={t('Depends on')} tasks={dependencies} />
+      <DependencySection label={t('Required by')} tasks={dependents} />
     </DependenciesContainer>
   );
 
@@ -90,19 +118,19 @@ export default function TaskDependenciesPopover({
       title={
         waitingOn > 0
           ? t('Waiting on %s prerequisite task(s) to finish', waitingOn)
-          : t('Depends on')
+          : t('Dependencies')
       }
       content={content}
       trigger="hover"
       placement="leftTop"
     >
-      <LinkIconWrapper
+      <DagIconWrapper
         $waiting={waitingOn > 0}
         onMouseEnter={() => onHoverChange?.(true)}
         onMouseLeave={() => onHoverChange?.(false)}
       >
-        <Icons.LinkOutlined iconSize="l" />
-      </LinkIconWrapper>
+        <Icons.PartitionOutlined iconSize="l" />
+      </DagIconWrapper>
     </Popover>
   );
 }

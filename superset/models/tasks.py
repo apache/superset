@@ -137,6 +137,20 @@ class Task(CoreTask, AuditMixinNullable, Model):
         viewonly=True,
     )
 
+    # Downstream tasks that depend on this task: the reverse of `dependencies`
+    # (same viewonly selectin pattern, joins swapped). Exposing both DAG
+    # directions on the entity means callers read them directly rather than
+    # issuing a separate reverse-edge query.
+    dependents = relationship(
+        "Task",
+        secondary=TaskDependency.__table__,
+        primaryjoin=id == TaskDependency.depends_on_task_id,
+        secondaryjoin=id == TaskDependency.task_id,
+        order_by=TaskDependency.id,
+        lazy="selectin",
+        viewonly=True,
+    )
+
     def __repr__(self) -> str:
         return f"<Task {self.task_type}:{self.task_key} [{self.status}]>"
 

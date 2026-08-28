@@ -333,15 +333,15 @@ test('displays empty state when no tasks', async () => {
   });
 });
 
-test('renders the dependency chain icon in Details for tasks with prerequisites', async () => {
+test('renders the dependency icon in Details for tasks with prerequisites', async () => {
   renderTaskList();
   await screen.findByText('Shared Bulk Task');
 
-  // Dependencies live behind the chain-link icon in the Details column (antd
-  // LinkOutlined -> role "img" name "link"), no longer a standalone column. The
-  // "waiting on N" state is folded into that icon's warning color + popover
-  // title — covered by TaskDependenciesPopover.test.tsx.
-  expect(screen.getByRole('img', { name: 'link' })).toBeInTheDocument();
+  // Dependencies live behind the branching icon in the Details column (antd
+  // PartitionOutlined -> role "img" name "partition"), no longer a standalone
+  // column. The "waiting on N" state is folded into that icon's warning color +
+  // popover title — covered by TaskDependenciesPopover.test.tsx.
+  expect(screen.getByRole('img', { name: 'partition' })).toBeInTheDocument();
 });
 
 test('surfaces the dedupe count in Details for a reused task', async () => {

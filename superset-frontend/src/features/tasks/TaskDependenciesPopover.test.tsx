@@ -25,23 +25,39 @@ const dependencies = [
   { uuid: 'prereq-2', task_name: null, status: TaskStatus.InProgress },
 ];
 
-test('renders the chain-link trigger icon', () => {
+const dependents = [
+  {
+    uuid: 'dep-1',
+    task_name: 'Contribution Query',
+    status: TaskStatus.Pending,
+  },
+];
+
+test('renders the branching trigger icon', () => {
   render(<TaskDependenciesPopover dependencies={dependencies} />, {
     useRedux: true,
   });
-  expect(screen.getByRole('img', { name: 'link' })).toBeInTheDocument();
+  expect(screen.getByRole('img', { name: 'partition' })).toBeInTheDocument();
 });
 
-test('lists prerequisite tasks in the popover on hover', async () => {
-  render(<TaskDependenciesPopover dependencies={dependencies} />, {
-    useRedux: true,
-  });
+test('lists upstream and downstream tasks in the popover on hover', async () => {
+  render(
+    <TaskDependenciesPopover
+      dependencies={dependencies}
+      dependents={dependents}
+    />,
+    { useRedux: true },
+  );
 
-  fireEvent.mouseEnter(screen.getByRole('img', { name: 'link' }));
+  fireEvent.mouseEnter(screen.getByRole('img', { name: 'partition' }));
 
-  // Named prerequisite shows its name; the unnamed one falls back to its uuid
+  // Upstream section: named prerequisite shows its name, the unnamed one its uuid
   expect(await screen.findByText('Totals Query')).toBeInTheDocument();
   expect(screen.getByText('prereq-2')).toBeInTheDocument();
+  expect(screen.getByText('Depends on')).toBeInTheDocument();
+  // Downstream section
+  expect(screen.getByText('Contribution Query')).toBeInTheDocument();
+  expect(screen.getByText('Required by')).toBeInTheDocument();
 });
 
 test('surfaces the waiting-on state in the popover title', async () => {
@@ -50,19 +66,19 @@ test('surfaces the waiting-on state in the popover title', async () => {
     { useRedux: true },
   );
 
-  fireEvent.mouseEnter(screen.getByRole('img', { name: 'link' }));
+  fireEvent.mouseEnter(screen.getByRole('img', { name: 'partition' }));
 
   expect(
     await screen.findByText('Waiting on 1 prerequisite task(s) to finish'),
   ).toBeInTheDocument();
 });
 
-test('uses the neutral "Depends on" title when not waiting', async () => {
+test('uses the neutral "Dependencies" title when not waiting', async () => {
   render(<TaskDependenciesPopover dependencies={dependencies} />, {
     useRedux: true,
   });
 
-  fireEvent.mouseEnter(screen.getByRole('img', { name: 'link' }));
+  fireEvent.mouseEnter(screen.getByRole('img', { name: 'partition' }));
 
-  expect(await screen.findByText('Depends on')).toBeInTheDocument();
+  expect(await screen.findByText('Dependencies')).toBeInTheDocument();
 });

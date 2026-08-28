@@ -67,6 +67,9 @@ depends_on_description = (
     "Prerequisite tasks this task depends on. The task only runs once all of "
     "them reach a terminal SUCCESS (all_success semantics)."
 )
+dependents_description = (
+    "Downstream tasks that depend on this task (the reverse of depends_on)."
+)
 
 
 class UserSchema(Schema):
@@ -125,6 +128,9 @@ class TaskResponseSchema(Schema):
     )
     depends_on = Method(
         "get_depends_on", metadata={"description": depends_on_description}
+    )
+    dependents = Method(
+        "get_dependents", metadata={"description": dependents_description}
     )
 
     def get_payload_dict(self, obj: object) -> dict[str, object] | None:
@@ -212,6 +218,17 @@ class TaskResponseSchema(Schema):
                 "status": prerequisite.status,
             }
             for prerequisite in obj.dependencies  # type: ignore[attr-defined]
+        ]
+
+    def get_dependents(self, obj: object) -> list[dict[str, object]]:
+        """Get downstream tasks (uuid, name, status) for DAG display."""
+        return [
+            {
+                "uuid": str(dependent.uuid),
+                "task_name": dependent.task_name,
+                "status": dependent.status,
+            }
+            for dependent in obj.dependents  # type: ignore[attr-defined]
         ]
 
 

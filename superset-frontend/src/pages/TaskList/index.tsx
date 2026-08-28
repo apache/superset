@@ -445,12 +445,13 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
       {
         Cell: ({
           row: {
-            original: { payload, properties, status, depends_on },
+            original: { payload, properties, status, depends_on, dependents },
           },
         }: TaskCellProps) => {
           const hasPayload = payload && Object.keys(payload).length > 0;
           const hasStackTrace = !!properties?.stack_trace;
           const hasDependencies = !!depends_on && depends_on.length > 0;
+          const hasDependents = !!dependents && dependents.length > 0;
           const dedupeCount = properties?.dedupe_count ?? 0;
 
           // Show warning if timeout is set but no abort handler during execution
@@ -465,6 +466,7 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
             !hasStackTrace &&
             !hasTimeoutWithoutHandler &&
             !hasDependencies &&
+            !hasDependents &&
             !dedupeCount
           ) {
             return null;
@@ -472,7 +474,7 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
 
           // "Waiting on N" surfaces the block-and-wait gate: a PENDING task
           // parked until its unmet (non-SUCCESS) prerequisites finish. Folded
-          // into the dependency chain icon (warning color + popover title).
+          // into the dependency icon (warning color + popover title).
           const unmet = hasDependencies
             ? depends_on.filter(dep => dep.status !== TaskStatus.Success).length
             : 0;
@@ -502,14 +504,19 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
               {hasStackTrace && properties.stack_trace && (
                 <TaskStackTracePopover stackTrace={properties.stack_trace} />
               )}
-              {hasDependencies && (
+              {(hasDependencies || hasDependents) && (
                 <TaskDependenciesPopover
-                  dependencies={depends_on}
+                  dependencies={depends_on ?? []}
+                  dependents={dependents ?? []}
                   waitingOn={waitingOn}
                   onHoverChange={hovering =>
                     setHighlightedDeps(
                       hovering
-                        ? new Set(depends_on.map(dep => dep.uuid))
+                        ? new Set(
+                            [...(depends_on ?? []), ...(dependents ?? [])].map(
+                              dep => dep.uuid,
+                            ),
+                          )
                         : new Set(),
                     )
                   }

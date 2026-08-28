@@ -108,6 +108,8 @@ export interface Task {
   subscribers: TaskSubscriber[];
   // Prerequisite tasks this task depends on (all_success DAG semantics).
   depends_on?: TaskDependency[];
+  // Downstream tasks that depend on this task (reverse of depends_on).
+  dependents?: TaskDependency[];
 }
 
 // Derived status helpers (frontend computes these from status and properties)
