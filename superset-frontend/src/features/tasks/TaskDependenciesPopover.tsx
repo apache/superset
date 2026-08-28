@@ -17,6 +17,7 @@
  * under the License.
  */
 
+import { useState } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
 import { Popover } from '@superset-ui/core/components';
@@ -93,10 +94,8 @@ interface TaskDependenciesPopoverProps {
   // Unmet prerequisites while this task is still pending (blocked). When > 0 the
   // icon turns warning-colored and the popover title reflects the wait.
   waitingOn?: number;
-  // Fired on hover enter/leave of the icon so the list can highlight the related
-  // rows that are currently visible. Driven from mouse events rather than the
-  // Popover's onOpenChange: setting state inside antd's own open callback can
-  // wedge the hover popover.
+  // Fired when the popover opens/closes so the list can highlight the related
+  // rows that are currently visible.
   onHoverChange?: (hovering: boolean) => void;
 }
 
@@ -106,6 +105,11 @@ export default function TaskDependenciesPopover({
   waitingOn = 0,
   onHoverChange,
 }: TaskDependenciesPopoverProps) {
+  // Control the open state locally (like the other Task List popovers): the
+  // parent list re-renders when hovering updates the row highlight, which would
+  // reset an *uncontrolled* popover's open state and stop it from showing.
+  const [open, setOpen] = useState(false);
+
   const content = (
     <DependenciesContainer>
       <DependencySection label={t('Depends on')} tasks={dependencies} />
@@ -123,12 +127,13 @@ export default function TaskDependenciesPopover({
       content={content}
       trigger="hover"
       placement="leftTop"
+      open={open}
+      onOpenChange={next => {
+        setOpen(next);
+        onHoverChange?.(next);
+      }}
     >
-      <DagIconWrapper
-        $waiting={waitingOn > 0}
-        onMouseEnter={() => onHoverChange?.(true)}
-        onMouseLeave={() => onHoverChange?.(false)}
-      >
+      <DagIconWrapper $waiting={waitingOn > 0}>
         <Icons.PartitionOutlined iconSize="l" />
       </DagIconWrapper>
     </Popover>
