@@ -177,13 +177,19 @@ class TaskDAO(BaseDAO[Task]):
         an idle/orphaned in-progress task is re-fetched forever.)
         """
         # Baseline: no cursor → start "from now", surfacing only later changes.
+        # Floor to whole seconds: changed_on is stored at the metastore column's
+        # precision (MySQL DATETIME truncates to seconds), so a sub-second cursor
+        # could sit *after* a same-second change and miss it under the >= bound.
+        # Flooring keeps >= inclusive on every backend; re-delivering an earlier
+        # same-second change is harmless (idempotent for the client).
         if cursor is None:
-            return {}, datetime.now()
+            return {}, datetime.now().replace(microsecond=0)
 
         # Watermark for the *next* poll, captured before the read so a change
         # landing during the query is caught next time (>= is inclusive), never
-        # skipped. Same naive-local clock as ``changed_on`` (FAB AuditMixin).
-        next_cursor = datetime.now()
+        # skipped. Same naive-local clock as ``changed_on`` (FAB AuditMixin),
+        # floored to whole seconds (see the baseline case above).
+        next_cursor = datetime.now().replace(microsecond=0)
         query = cls._apply_base_filter(db.session.query(Task)).filter(
             # Task.changed_on's type is shadowed by CoreTask's bare annotation
             # (datetime | None), so reference the real column for the comparison.

@@ -661,7 +661,10 @@ def test_get_statuses_changed_since_baseline_returns_no_statuses(
     statuses, cursor = TaskDAO.get_statuses_changed_since(None)
 
     assert statuses == {}
-    assert cursor >= before
+    # The cursor is floored to whole seconds (metastore datetime precision, e.g.
+    # MySQL DATETIME), so compare against a floored baseline.
+    assert cursor.microsecond == 0
+    assert cursor >= before.replace(microsecond=0)
 
 
 def test_get_statuses_changed_since_redelivers_task_on_the_cursor_boundary(
