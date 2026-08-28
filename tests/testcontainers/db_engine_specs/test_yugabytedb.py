@@ -43,6 +43,7 @@ from sqlalchemy.engine import Engine
 
 from superset.db_engine_specs.yugabytedb import YugabyteDBEngineSpec
 from superset.sql.parse import Table
+from superset.utils.core import GenericDataType
 
 pytestmark = pytest.mark.testcontainers
 
@@ -114,3 +115,5 @@ def test_get_columns_maps_native_types(engine: Engine) -> None:
     for col in by_name.values():
         spec = YugabyteDBEngineSpec.get_column_spec(str(col["type"]))
         assert spec is not None
+        assert spec.generic_type == GenericDataType.NUMERIC
+        assert isinstance(spec.sqla_type, Integer)

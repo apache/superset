@@ -42,6 +42,7 @@ from sqlalchemy.engine import Engine
 
 from superset.db_engine_specs.monetdb import MonetDbEngineSpec
 from superset.sql.parse import Table
+from superset.utils.core import GenericDataType
 
 pytestmark = pytest.mark.testcontainers
 
@@ -51,7 +52,11 @@ require_driver("testcontainers.core.container")
 require_driver("sqlalchemy_monetdb")
 
 from testcontainers.core.container import DockerContainer  # noqa: E402
-from testcontainers.core.wait_strategies import LogMessageWaitStrategy  # noqa: E402
+from testcontainers.core.wait_strategies import (  # noqa: E402
+    CompositeWaitStrategy,
+    LogMessageWaitStrategy,
+    PortWaitStrategy,
+)
 
 from ._pagination import (  # noqa: E402
     assert_paginated_query_returns_correct_rows_in_order,
@@ -68,7 +73,16 @@ def engine() -> Iterator[Engine]:
     container.with_exposed_ports(PORT)
     container.with_env("MDB_DB_ADMIN_PASS", PASSWORD)
     container.with_env("MDB_CREATE_DBS", DBNAME)
-    container.waiting_for(LogMessageWaitStrategy(re.compile("Starting MonetDB daemon")))
+    # The "Starting MonetDB daemon" log line is emitted before the image
+    # actually runs `monetdbd start -n`, so it alone isn't proof the server
+    # is accepting connections yet. Follow it with a port-connect check,
+    # which only succeeds once monetdbd is really listening.
+    container.waiting_for(
+        CompositeWaitStrategy(
+            LogMessageWaitStrategy(re.compile("Starting MonetDB daemon")),
+            PortWaitStrategy(PORT),
+        )
+    )
 
     with container:
         host = container.get_container_host_ip()
@@ -109,3 +123,5 @@ def test_get_columns_maps_native_types(engine: Engine) -> None:
     for col in by_name.values():
         spec = MonetDbEngineSpec.get_column_spec(str(col["type"]))
         assert spec is not None
+        assert spec.generic_type == GenericDataType.NUMERIC
+        assert isinstance(spec.sqla_type, Integer)

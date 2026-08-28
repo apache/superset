@@ -31,4 +31,4 @@
 # they reuse the postgres/mysql container classes pointed at a different
 # image, and psycopg2-binary/mysqlclient are already pulled in above via
 # the postgres/mysql extras.
-testcontainers[cockroachdb,cratedb,db2,mongodb,mssql,mysql,oracle,postgres,trino]>=4.15.0,<5
+testcontainers[cockroachdb,cratedb,mongodb,mssql,mysql,oracle,postgres,trino]>=4.15.0,<5

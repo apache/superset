@@ -57,7 +57,7 @@ from ._pagination import (  # noqa: E402
 
 @pytest.fixture(scope="module")
 def engine() -> Iterator[Engine]:
-    with PostgresContainer("timescale/timescaledb:latest-pg16") as container:
+    with PostgresContainer("timescale/timescaledb:2.29.2-pg16") as container:
         yield create_engine(container.get_connection_url())
 
 

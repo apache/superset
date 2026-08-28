@@ -29,11 +29,20 @@ any assumption about pymongosql's own INSERT/DDL support.
 from collections.abc import Iterator
 
 import pytest
-from sqlalchemy import create_engine, inspect, text
+from sqlalchemy import (
+    Column,
+    create_engine,
+    inspect,
+    Integer,
+    MetaData,
+    select,
+    Table as SATable,
+)
 from sqlalchemy.engine import Engine
 
 from superset.db_engine_specs.mongodb import MongoDBEngineSpec
 from superset.sql.parse import Table
+from superset.utils.core import GenericDataType
 
 pytestmark = pytest.mark.testcontainers
 
@@ -71,18 +80,20 @@ def engine() -> Iterator[Engine]:
 
 def test_paginated_query_returns_correct_rows_in_order(engine: Engine) -> None:
     """
-    A plain LIMIT/OFFSET query, compiled and executed against a real
-    instance. Mocked tests cannot catch a dialect compiling this
-    incorrectly (see apache/superset#42899, where Trino emitted OFFSET
+    A plain SQLAlchemy Core LIMIT/OFFSET query, compiled and executed
+    against a real instance. Mocked tests cannot catch a dialect compiling
+    this incorrectly (see apache/superset#42899, where Trino emitted OFFSET
     before LIMIT) -- only real execution can. Unlike Elasticsearch's SQL
     layer (which has no OFFSET support at all), pymongosql maps OFFSET to
-    MongoDB's native `skip`, so this dialect supports it.
+    MongoDB's native `skip`, so this dialect supports it. Going through
+    Core's `select(...).limit().offset()` (rather than a literal SQL
+    string) is what actually exercises the dialect's own compilation of
+    those clauses.
     """
+    t = SATable(COLLECTION, MetaData(), Column("id", Integer))
     with engine.connect() as conn:
         rows = conn.execute(
-            text(
-                f"SELECT id FROM {COLLECTION} ORDER BY id LIMIT 3 OFFSET 4"  # noqa: S608
-            )
+            select(t.c.id).order_by(t.c.id).limit(3).offset(4)
         ).fetchall()
 
     assert [row.id for row in rows] == [4, 5, 6]
@@ -102,3 +113,5 @@ def test_get_columns_maps_native_types(engine: Engine) -> None:
     assert "id" in by_name
     spec = MongoDBEngineSpec.get_column_spec(str(by_name["id"]["type"]))
     assert spec is not None
+    assert spec.generic_type == GenericDataType.NUMERIC
+    assert isinstance(spec.sqla_type, Integer)

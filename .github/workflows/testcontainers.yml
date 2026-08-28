@@ -20,6 +20,10 @@ on:
     paths:
       - ".github/workflows/testcontainers.yml"
       - "tests/testcontainers/**"
+      - "superset/db_engine_specs/**"
+      - "pyproject.toml"
+      - "requirements/development.in"
+      - "requirements/development.txt"
 
 concurrency:
   # Scoped by ref, not just workflow name -- otherwise every PR run and the

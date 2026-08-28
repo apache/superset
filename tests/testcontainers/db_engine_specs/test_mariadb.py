@@ -67,11 +67,16 @@ def engine() -> Iterator[Engine]:
         # (mysqlclient) treats a "localhost" host specially and attempts a
         # Unix socket connection instead of TCP, which fails since there's
         # no local MySQL socket -- the container is reached over the
-        # network. Forcing 127.0.0.1 keeps it on TCP.
+        # network. Only rewrite that specific local case to 127.0.0.1; a
+        # remote Docker daemon reports its own real host/IP here, which
+        # must be preserved so the suite can still reach it.
+        host = container.get_container_host_ip()
+        if host == "localhost":
+            host = "127.0.0.1"
         port = container.get_exposed_port(container.port)
         yield create_engine(
             f"mysql://{container.username}:{container.password}"
-            f"@127.0.0.1:{port}/{container.dbname}"
+            f"@{host}:{port}/{container.dbname}"
         )
 
 
