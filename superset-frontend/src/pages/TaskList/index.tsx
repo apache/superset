@@ -459,7 +459,7 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
             !hasStackTrace &&
             !hasTimeoutWithoutHandler &&
             !hasDependencies &&
-            dedupeCount === 0
+            !dedupeCount
           ) {
             return null;
           }
@@ -502,6 +502,8 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
                   waitingOn={waitingOn}
                 />
               )}
+              {/* Explicit > 0, not a bare truthiness check: `{dedupeCount && …}`
+                  would render a literal 0 when the count is 0. */}
               {dedupeCount > 0 && (
                 <Tooltip
                   title={tn(
