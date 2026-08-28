@@ -62,6 +62,15 @@ class TestFunnelChartConfigSchema:
                 bogus=1,
             )
 
+    def test_funnel_dimension_rejects_aggregate(self) -> None:
+        """An aggregate makes the dimension metric-like; reject it."""
+        with pytest.raises(ValidationError):
+            FunnelChartConfig(
+                chart_type="funnel",
+                dimension={"name": "stage", "aggregate": "COUNT"},
+                metric={"name": "leads", "aggregate": "SUM"},
+            )
+
     def test_funnel_dimension_rejects_saved_metric(self) -> None:
         """The dimension is a category, not a metric."""
         with pytest.raises(ValidationError):

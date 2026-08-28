@@ -1088,12 +1088,13 @@ class FunnelChartConfig(BaseChartConfig):
 
     @model_validator(mode="after")
     def reject_sql_expression_on_dimensions(self) -> "FunnelChartConfig":
-        """sql_expression and saved_metric are metric-only; reject on the dimension."""
+        """aggregate, saved_metric and sql_expression are metric-only markers;
+        reject them on the dimension."""
         _reject_sql_expression_on_dimension(self.dimension, "dimension")
-        if self.dimension and self.dimension.saved_metric:
+        if self.dimension and self.dimension.is_metric:
             raise ValueError(
-                "dimension cannot use saved_metric=True; "
-                "saved metrics belong in the 'metric' field"
+                "dimension must be a plain column, not a metric; drop "
+                "'aggregate'/'saved_metric' (metrics belong in the 'metric' field)"
             )
         return self
 
