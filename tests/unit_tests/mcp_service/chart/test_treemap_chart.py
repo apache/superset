@@ -69,6 +69,15 @@ class TestTreemapChartConfigSchema:
                 bogus=1,
             )
 
+    def test_treemap_groupby_rejects_aggregate(self) -> None:
+        """An aggregate makes a hierarchy column metric-like; reject it."""
+        with pytest.raises(ValidationError):
+            TreemapChartConfig(
+                chart_type="treemap_v2",
+                groupby=[{"name": "region", "aggregate": "SUM"}],
+                metric={"name": "revenue", "aggregate": "SUM"},
+            )
+
     def test_treemap_groupby_rejects_saved_metric(self) -> None:
         with pytest.raises(ValidationError):
             TreemapChartConfig(
