@@ -213,6 +213,32 @@ def test_multiple_native_comparison_periods_are_rejected() -> None:
         )
 
 
+def test_comparison_period_rejects_arrays() -> None:
+    with pytest.raises(ValidationError, match="must be a single string"):
+        InteractivePivotChartConfig.model_validate(
+            {
+                "chart_type": "interactive_pivot",
+                "rows": [{"name": "region"}],
+                "metrics": [{"name": "revenue", "aggregate": "SUM"}],
+                "comparison_period": ["1 year ago"],
+                "comparison_type": "values",
+            }
+        )
+
+
+def test_comparison_period_rejects_whitespace() -> None:
+    with pytest.raises(ValidationError, match="Comparison period cannot be empty"):
+        InteractivePivotChartConfig.model_validate(
+            {
+                "chart_type": "interactive_pivot",
+                "rows": [{"name": "region"}],
+                "metrics": [{"name": "revenue", "aggregate": "SUM"}],
+                "comparison_period": " ",
+                "comparison_type": "values",
+            }
+        )
+
+
 def test_normalization_canonicalizes_temporal_lookup_key() -> None:
     plugin = InteractivePivotChartPlugin()
     config = InteractivePivotChartConfig.model_validate(

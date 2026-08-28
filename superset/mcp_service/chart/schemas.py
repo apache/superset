@@ -1228,7 +1228,11 @@ class InteractivePivotChartConfig(BaseChartConfig):
     @classmethod
     def normalize_comparison_period(cls, data: Any) -> Any:
         """Accept native single-item ``time_compare`` arrays on round trips."""
-        if isinstance(data, dict) and isinstance(data.get("time_compare"), list):
+        if not isinstance(data, dict):
+            return data
+        if isinstance(data.get("comparison_period"), list):
+            raise ValueError("comparison_period must be a single string")
+        if isinstance(data.get("time_compare"), list):
             periods = data["time_compare"]
             if len(periods) > 1:
                 raise ValueError(
@@ -1242,11 +1246,13 @@ class InteractivePivotChartConfig(BaseChartConfig):
     @classmethod
     def sanitize_comparison_period(cls, value: str | None) -> str | None:
         """Sanitize the relative time-shift label."""
+        if value is None:
+            return None
         return sanitize_user_input(
             value,
             "Comparison period",
             max_length=100,
-            allow_empty=True,
+            allow_empty=False,
         )
 
     @model_validator(mode="after")
