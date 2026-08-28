@@ -103,7 +103,7 @@ class TestExecuteTaskFailedPrerequisite:
 
     @staticmethod
     def _run_with_transition(*, transitioned: bool, refreshed_status: str):
-        """Drive execute_task through the failed-prerequisite branch.
+        """Drive the task body through the failed-prerequisite branch.
 
         Returns ``(result, publish_completion_mock)`` with the status transition
         forced to ``transitioned`` and the post-transition re-read reporting
@@ -120,7 +120,7 @@ class TestExecuteTaskFailedPrerequisite:
         with (
             patch(
                 "superset.tasks.scheduler.TaskDAO.find_one_or_none",
-                side_effect=[pending, refreshed],
+                side_effect=[refreshed],
             ),
             patch(
                 "superset.tasks.scheduler._resolve_failed_prerequisite",
@@ -133,9 +133,11 @@ class TestExecuteTaskFailedPrerequisite:
                 transition,
             ),
         ):
-            from superset.tasks.scheduler import execute_task
+            from superset.tasks.scheduler import _execute_task_body
 
-            result = execute_task.run(str(native), "some.task", (), {})
+            # Call the lifecycle body directly with the already-loaded task; the
+            # heartbeat/celery-id wrapper (execute_task) is covered separately.
+            result = _execute_task_body(pending, native, "some.task", (), {})  # type: ignore[arg-type]
             return result, task_manager.publish_completion
 
     def test_failure_published_when_transition_commits(self):

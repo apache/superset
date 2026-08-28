@@ -1844,10 +1844,13 @@ class CeleryConfig:  # pylint: disable=too-few-public-methods
         #     "schedule": crontab(minute="*", hour="*"),
         #     "kwargs": {"retention_period_days": 180, "max_rows_per_run": 10000},
         # },
-        # Uncomment to enable pruning of the tasks table
+        # Uncomment to enable pruning of the tasks table. This job also reaps
+        # orphaned GTF tasks (abandoned by a dead worker) before deleting old
+        # rows, so run it on a short interval — reaping latency tracks this
+        # cadence, and an abandoned warehouse query keeps running until reaped.
         # "prune_tasks": {
         #     "task": "prune_tasks",
-        #     "schedule": crontab(minute=0, hour=0),
+        #     "schedule": crontab(minute="*", hour="*"),
         #     "kwargs": {"retention_period_days": 90, "max_rows_per_run": 10000},
         # },
         # Uncomment to enable pruning of expired entries from the key-value store
@@ -2944,6 +2947,15 @@ GLOBAL_ASYNC_QUERIES_POLLING_STALE_TIMEOUT = int(
 # ``/chart/data`` requests are unaffected even when GLOBAL_ASYNC_QUERIES is on.
 GLOBAL_ASYNC_QUERIES_MIN_CACHE_TTL = int(timedelta(minutes=5).total_seconds())
 
+# Timeout (seconds) for an async chart-data query task. When reached, the task is
+# aborted; on engines that support query cancellation the abort handler also
+# cancels the underlying warehouse query (over a fresh connection), so the task
+# ends promptly as TIMED_OUT. On engines without cancel support the query is not
+# interrupted (the task is freed once the query returns on its own). Default None
+# leaves async chart-data queries unbounded (matching prior behavior); set an int
+# to enforce a ceiling.
+GLOBAL_ASYNC_QUERIES_QUERY_TIMEOUT: int | None = None
+
 # Deployment default for whether the UI runs chart-data queries asynchronously when
 # GLOBAL_ASYNC_QUERIES is enabled. This is a FRONTEND-ONLY policy input: async is
 # opt-in per request via an ``async_mode`` flag on ``/chart/data`` (an absent flag is
@@ -3233,6 +3245,18 @@ TASK_ABORT_POLLING_DEFAULT_INTERVAL = 10
 # Minimum interval in seconds between database writes for task progress updates.
 # Set to 0 to disable throttling (write every update to DB).
 TASK_PROGRESS_UPDATE_THROTTLE_INTERVAL = 2  # seconds
+
+# GTF worker-liveness heartbeat. While a worker holds a task it bumps
+# tasks.last_heartbeat every GTF_TASK_HEARTBEAT_INTERVAL seconds. The prune cron
+# (prune_tasks) reaps any ACTIVE task whose heartbeat is older than
+# GTF_ORPHAN_TASK_TIMEOUT — a worker that died mid-execution — by revoking its
+# Celery job and marking it FAILURE. The same threshold escalates a task stuck
+# in ABORTING (live worker ignoring a cooperative abort) with a forced revoke.
+# Keep the timeout comfortably larger than the interval (>= ~3x) so a brief GC
+# pause or stall does not look like a dead worker. Reaping only runs when the
+# prune_tasks beat schedule is enabled (see CELERY_CONFIG.beat_schedule).
+GTF_TASK_HEARTBEAT_INTERVAL = 15  # seconds
+GTF_ORPHAN_TASK_TIMEOUT = 60  # seconds
 
 # ---------------------------------------------------
 # Distributed Coordination Configuration
