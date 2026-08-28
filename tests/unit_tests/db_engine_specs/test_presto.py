@@ -311,14 +311,14 @@ def test_get_create_view_returns_view_definition() -> None:
             id="schema_qualified",
         ),
         pytest.param(
-            "s",
-            'v" OR 1=1',
-            'SHOW CREATE VIEW s.v" OR 1=1',
-            id="not_parameterised",
+            "Raw_2024",
+            "Daily_Active_Users_v2",
+            "SHOW CREATE VIEW Raw_2024.Daily_Active_Users_v2",
+            id="mixed_case_digits_underscores",
         ),
     ],
 )
-def test_get_create_view_interpolates_schema_qualified_name(
+def test_get_create_view_uses_schema_qualified_name(
     schema: str,
     table: str,
     expected_sql: str,
@@ -1244,17 +1244,32 @@ def test_handle_cursor_cancels_when_user_stops_query(
     from superset.common.db_query_status import QueryStatus
     from superset.db_engine_specs.presto import PrestoEngineSpec
 
-    _mock_db, query = _handle_cursor_query(mocker)
-    query.status = getattr(QueryStatus, status)
+    mock_db, running_query = _handle_cursor_query(mocker)
+    stopped_query = mock.MagicMock()
+    stopped_query.id = running_query.id
+    stopped_query.progress = 0
+    stopped_query.status = getattr(QueryStatus, status)
+    mock_db.session.query.return_value.filter_by.return_value.one.return_value = (
+        stopped_query
+    )
     cursor = _presto_cursor()
     cursor.poll.side_effect = [
         {"stats": {"state": "RUNNING", "completedSplits": 5, "totalSplits": 10}},
     ]
+    order = mock.Mock()
+    order.attach_mock(mock_db.session.query, "reload")
+    order.attach_mock(cursor.cancel, "cancel")
 
-    PrestoEngineSpec.handle_cursor(cursor, query)
+    PrestoEngineSpec.handle_cursor(cursor, running_query)
 
     cursor.cancel.assert_called_once_with()
-    assert query.progress == 0
+    mock_db.session.query.return_value.filter_by.assert_called_once_with(
+        id=running_query.id
+    )
+    call_names = [call[0] for call in order.mock_calls]
+    assert call_names.index("cancel") > call_names.index("reload")
+    assert running_query.status == QueryStatus.RUNNING
+    assert stopped_query.progress == 0
     assert cursor.poll.call_count == 1
 
 
