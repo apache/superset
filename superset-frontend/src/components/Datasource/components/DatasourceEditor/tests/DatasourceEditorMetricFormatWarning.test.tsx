@@ -95,6 +95,14 @@ test('isCountExpression ignores parens inside string literals', () => {
   expect(isCountExpression("COUNT(CASE WHEN x = '''(' THEN 1 END)")).toBe(true);
 });
 
+test('isCountExpression ignores parens inside double-quoted identifiers', () => {
+  expect(isCountExpression('COUNT("x\'")')).toBe(true);
+  expect(isCountExpression('COUNT("y\'")')).toBe(true);
+  expect(isCountExpression('COUNT(CASE WHEN "a""b" = 1 THEN 1 END)')).toBe(
+    true,
+  );
+});
+
 test('isPercentD3Format accepts only a valid D3 percent/p spec', () => {
   expect(isPercentD3Format('.0%')).toBe(true);
   expect(isPercentD3Format(',.2%')).toBe(true);
@@ -103,6 +111,14 @@ test('isPercentD3Format accepts only a valid D3 percent/p spec', () => {
   expect(isPercentD3Format('.0%garbage%')).toBe(false);
   expect(isPercentD3Format(',.0f')).toBe(false);
   expect(isPercentD3Format(undefined)).toBe(false);
+});
+
+// getNumberFormatter formats the stored value untrimmed at render time, so
+// this must agree rather than accept a format the renderer then rejects.
+// Trailing whitespace is invalid D3 format syntax and must not be trimmed
+// away before validating.
+test('isPercentD3Format does not trim, matching untrimmed render-time parsing', () => {
+  expect(isPercentD3Format('.0% ')).toBe(false);
 });
 
 // A '%' format is valid syntax, so it never hits the "Invalid format" fallback.

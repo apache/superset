@@ -830,13 +830,15 @@ const ResultTable =
 
 // D3's '%' and 'p' types both multiply by 100; parsed via d3-format's own
 // grammar so garbage like "foo%" is rejected rather than matched by suffix.
+// The stored value is validated untrimmed because getNumberFormatter formats
+// it untrimmed at render time; trimming here could flag a format (e.g. one
+// with trailing whitespace) as valid when the renderer's own parse rejects it.
 export const isPercentD3Format = (d3format?: string): boolean => {
-  const trimmed = d3format?.trim();
-  if (!trimmed) {
+  if (!d3format) {
     return false;
   }
   try {
-    const { type } = formatSpecifier(trimmed);
+    const { type } = formatSpecifier(d3format);
     return type === '%' || type === 'p';
   } catch {
     return false;
@@ -846,25 +848,25 @@ export const isPercentD3Format = (d3format?: string): boolean => {
 // Matches the outermost COUNT(...) call's parens by depth, so a ratio like
 // `COUNT(*) / COUNT(*)` isn't misclassified but a nested call like
 // `COUNT(DISTINCT COALESCE(a, b))` is still recognized. Parens inside a
-// single-quoted string literal (with '' as an escaped quote) are ignored so
-// they don't desync the depth count.
+// quoted string literal (single- or double-quoted, with a doubled quote as
+// an escaped quote) are ignored so they don't desync the depth count.
 export const isCountExpression = (expression?: string): boolean => {
   const trimmed = expression?.trim();
   if (!trimmed || !/^count\s*\(/i.test(trimmed) || !trimmed.endsWith(')')) {
     return false;
   }
   let depth = 0;
-  let inString = false;
+  let stringDelimiter: string | null = null;
   for (let i = trimmed.indexOf('('); i < trimmed.length; i += 1) {
     const char = trimmed[i];
-    if (inString) {
-      if (char === "'" && trimmed[i + 1] === "'") {
+    if (stringDelimiter) {
+      if (char === stringDelimiter && trimmed[i + 1] === stringDelimiter) {
         i += 1;
-      } else if (char === "'") {
-        inString = false;
+      } else if (char === stringDelimiter) {
+        stringDelimiter = null;
       }
-    } else if (char === "'") {
-      inString = true;
+    } else if (char === "'" || char === '"') {
+      stringDelimiter = char;
     } else if (char === '(') {
       depth += 1;
     } else if (char === ')') {
