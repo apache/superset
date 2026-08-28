@@ -180,3 +180,79 @@ test('cross-filter does nothing when emitCrossFilters is false', () => {
 
   expect(setDataMask).not.toHaveBeenCalled();
 });
+
+test('cross-filter ignores a click on a name absent from labelMap (#42340)', () => {
+  // The pie's Total graphic text and its aggregated "Other" slice are not
+  // categories, so they have no labelMap entry. Building a mask from one left
+  // every groupby column as `IS NULL`, because `[].every(...)` is true.
+  const setDataMask = jest.fn();
+  const props = buildProps({
+    groupby: ['topics'],
+    labelMap: { cancellations: ['cancellations'] },
+    selectedValues: {},
+    setDataMask,
+  });
+
+  const handlers = allEventHandlers(props);
+  handlers.click({ name: 'Total: 1234' });
+  handlers.click({ name: 'Other' });
+
+  expect(setDataMask).not.toHaveBeenCalled();
+});
+
+test('cross-filter ignores a click with an empty name (#42340)', () => {
+  const setDataMask = jest.fn();
+  const props = buildProps({
+    groupby: ['topics'],
+    labelMap: { cancellations: ['cancellations'] },
+    selectedValues: {},
+    setDataMask,
+  });
+
+  const handlers = allEventHandlers(props);
+  handlers.click({ name: '' });
+
+  expect(setDataMask).not.toHaveBeenCalled();
+});
+
+test('context menu offers no cross-filter for an unresolvable name (#42340)', () => {
+  const onContextMenu = jest.fn();
+  const props = buildProps({
+    groupby: ['topics'],
+    labelMap: { cancellations: ['cancellations'] },
+    selectedValues: {},
+    onContextMenu,
+  });
+
+  const handlers = allEventHandlers(props);
+  handlers.contextmenu({
+    name: 'Total: 1234',
+    event: {
+      stop: jest.fn(),
+      event: { clientX: 1, clientY: 2 } as unknown as PointerEvent,
+    },
+  });
+
+  // contextMenuEventHandler already bails out before opening the menu
+  expect(onContextMenu).not.toHaveBeenCalled();
+});
+
+test('cross-filter still clears when the last selected value is deselected (#42340)', () => {
+  const setDataMask = jest.fn();
+  const props = buildProps({
+    groupby: ['topics'],
+    labelMap: { cancellations: ['cancellations'] },
+    selectedValues: { 0: 'cancellations' },
+    setDataMask,
+  });
+
+  const handlers = allEventHandlers(props);
+  handlers.click({ name: 'cancellations' });
+
+  expect(setDataMask).toHaveBeenCalledWith(
+    expect.objectContaining({
+      extraFormData: { filters: [] },
+      filterState: { value: null, selectedValues: null },
+    }),
+  );
+});
