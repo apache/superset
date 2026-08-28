@@ -58,6 +58,7 @@ _DEFAULT_LIST_REPORTS_REQUEST = ListReportsRequest()
         title="List reports",
         readOnlyHint=True,
         destructiveHint=False,
+        openWorldHint=False,
     ),
 )
 async def list_reports(
