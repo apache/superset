@@ -23,7 +23,7 @@ import {
   SupersetClient,
 } from '@superset-ui/core';
 import { useTheme, css } from '@apache-superset/core/theme';
-import { t } from '@apache-superset/core/translation';
+import { t, tn } from '@apache-superset/core/translation';
 import { useMemo, useCallback, useState } from 'react';
 import { useSelector } from 'react-redux';
 import {
@@ -446,7 +446,6 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
           const hasStackTrace = !!properties?.stack_trace;
           const hasDependencies = !!depends_on && depends_on.length > 0;
           const dedupeCount = properties?.dedupe_count ?? 0;
-          const hasDedupe = dedupeCount > 0;
 
           // Show warning if timeout is set but no abort handler during execution
           // Only show for IN_PROGRESS (abort handler registers at runtime, not during PENDING)
@@ -460,7 +459,7 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
             !hasStackTrace &&
             !hasTimeoutWithoutHandler &&
             !hasDependencies &&
-            !hasDedupe
+            dedupeCount === 0
           ) {
             return null;
           }
@@ -503,19 +502,25 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
                   waitingOn={waitingOn}
                 />
               )}
-              {hasDedupe && (
+              {dedupeCount > 0 && (
                 <Tooltip
-                  title={t(
-                    'Deduplicated %s time(s): other submissions reused this ' +
-                      "task's result instead of running a new query.",
+                  title={tn(
+                    'Reused by 1 other submission',
+                    'Reused by %s other submissions',
+                    dedupeCount,
                     dedupeCount,
                   )}
                   placement="top"
                 >
-                  <Flex component="span" align="center" gap={theme.sizeUnit}>
-                    <Icons.PlusOutlined iconSize="l" />
-                    {dedupeCount}
-                  </Flex>
+                  {/* Wrap in a span: Tooltip needs a ref-able DOM node, and the
+                      Flex wrapper is a function component that does not forward
+                      refs (mirrors the warning Tooltip above). */}
+                  <span>
+                    <Flex component="span" align="center" gap={theme.sizeUnit}>
+                      <Icons.PlusOutlined iconSize="l" />
+                      {dedupeCount}
+                    </Flex>
+                  </span>
                 </Tooltip>
               )}
             </Flex>
