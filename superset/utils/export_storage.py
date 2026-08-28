@@ -22,7 +22,7 @@ Pluggable storage backend interface for generated export artifacts
 an instance of a class implementing this protocol (the same "instance in
 config" pattern as ``RESULTS_BACKEND`` or ``CUSTOM_SECURITY_MANAGER``): it is
 where an export task uploads its generated file and how the download
-redirect mints a fresh, time-limited URL for it. There is no implicit
+endpoint streams it back at click time. There is no implicit
 default -- pick the backend matching the bucket's provider:
 ``superset.utils.s3.S3ExportStorage`` (boto3/AWS S3) or
 ``superset.utils.gcs.GCSExportStorage`` (Google Cloud Storage), or supply a
@@ -36,25 +36,29 @@ backend's dependency is only required once an export actually runs.
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from typing import Protocol, runtime_checkable
 
 
 @runtime_checkable
 class ExportStorage(Protocol):
-    """Where the export task uploads a file, and how a download link resolves
-    it back to a fresh, time-limited URL at click time.
+    """Where the export task uploads a file, and how the download endpoint
+    reads it back at click time.
 
-    The two operations run at very different times against the same object:
-    ``upload_file`` once, when the export finishes; ``generate_download_url``
-    every time the (possibly long-lived) download link is clicked, so its
-    credentials never need to outlive the link itself. See
-    ``superset.dashboards.excel_export.download_link`` for why the link is a
-    Superset redirect rather than a raw storage URL.
+    Downloads stream through Superset with the deployment's own storage
+    credentials rather than redirecting to a signed storage URL: signing is
+    impossible for some ambient identities (e.g. direct workload identity
+    federation, which has no service account to sign as), and a signed URL is
+    a transferable bearer credential Superset can neither observe nor revoke
+    once issued. See ``superset.dashboards.excel_export.download_link`` for
+    the link's own lifetime model.
     """
 
     def upload_file(self, local_path: str, bucket: str, key: str) -> None:
         """Upload a local file to ``bucket``/``key``."""
 
-    def generate_download_url(self, bucket: str, key: str, expires_in: int) -> str:
-        """A time-limited URL for downloading ``bucket``/``key``, valid for
-        ``expires_in`` seconds from now."""
+    def download(self, bucket: str, key: str) -> Iterator[bytes]:
+        """Yield the object at ``bucket``/``key`` in chunks.
+
+        Raises ``FileNotFoundError`` when the object does not exist (e.g.
+        removed by a bucket lifecycle rule before the link expired)."""

@@ -20,11 +20,21 @@ import logging
 import uuid
 from datetime import datetime
 from io import BytesIO
+from itertools import chain
 from typing import Any, Callable, cast
 from zipfile import is_zipfile, ZipFile
 
 import rison
-from flask import current_app, g, redirect, request, Response, send_file, url_for
+from flask import (
+    current_app,
+    g,
+    redirect,
+    request,
+    Response,
+    send_file,
+    stream_with_context,
+    url_for,
+)
 from flask_appbuilder import permission_name
 from flask_appbuilder.api import (
     expose,
@@ -94,7 +104,6 @@ from superset.daos.dashboard import DashboardDAO, EmbeddedDashboardDAO
 from superset.dashboards.excel_export.download_link import (
     build_download_url,
     get_export_status,
-    PRESIGNED_URL_TTL_SECONDS,
     resolve_download_link,
     STATUS_ERROR,
     STATUS_READY,
@@ -1882,7 +1891,7 @@ class DashboardRestApi(
             embedded/guest session), the frontend polls this endpoint with the
             job_id from the export_xlsx response instead of waiting for an
             email. Behind the same @protect() as the export request itself,
-            unlike the login-free download_xlsx redirect (which also has to
+            unlike the login-free download_xlsx stream (which also has to
             work when clicked from a plain email link, possibly with no
             active session at all).
           parameters:
@@ -1922,21 +1931,21 @@ class DashboardRestApi(
     @safe
     @statsd_metrics
     def download_xlsx(self, job_id: uuid.UUID) -> WerkzeugResponse:
-        """Redirect to a freshly signed storage URL for a completed Excel export.
+        """Stream a completed Excel export from storage.
         ---
         get:
           summary: Download a completed dashboard Excel export
           description: >-
-            Intentionally requires no login, matching a raw pre-signed
-            storage URL's own access model: the unguessable job_id, emailed
+            Intentionally requires no login: the unguessable job_id, emailed
             only to the original requester (or handed to their own session
             via export_xlsx_status), is the credential. The dashboard access
             check already ran once, when the export was requested -- see
-            security_manager.raise_for_access in export_xlsx. A fresh
-            signed URL is generated at click time (instead of the one
-            baked into the export at completion time) so the link's promised
-            lifetime is independent of how long the signing credentials
-            themselves remain valid.
+            security_manager.raise_for_access in export_xlsx. The file
+            streams through Superset with the deployment's own storage
+            credentials instead of redirecting to a signed storage URL, so
+            it works for ambient identities that cannot sign (e.g. workload
+            identity federation) and never mints a bearer URL Superset
+            cannot observe or revoke.
           parameters:
           - in: path
             schema:
@@ -1945,8 +1954,8 @@ class DashboardRestApi(
             name: job_id
             description: The job_id from the export_xlsx response
           responses:
-            302:
-              description: Redirect to a signed storage download URL
+            200:
+              description: The .xlsx file as an attachment
             410:
               description: The link is unknown, expired, or the export failed
             501:
@@ -1966,12 +1975,22 @@ class DashboardRestApi(
         backend_cls = type(storage_backend)
         configured_backend = f"{backend_cls.__module__}.{backend_cls.__qualname__}"
         if uploaded_backend is not None and uploaded_backend != configured_backend:
-            # Don't sign another backend's upload; expire the link instead.
+            # Don't read another backend's upload; expire the link instead.
             return self.response(410, message="This download link has expired.")
-        download_url = storage_backend.generate_download_url(
-            bucket, key, PRESIGNED_URL_TTL_SECONDS
+        try:
+            stream = storage_backend.download(bucket, key)
+            # Pull the first chunk eagerly so a missing object surfaces as a
+            # clean 410 instead of dying mid-response.
+            first_chunk = next(stream, b"")
+        except FileNotFoundError:
+            return self.response(410, message="This download link has expired.")
+        return Response(
+            stream_with_context(chain([first_chunk], stream)),
+            mimetype=(
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            ),
+            headers={"Content-Disposition": f'attachment; filename="{job_id}.xlsx"'},
         )
-        return redirect(download_url)
 
     @expose("/<pk>/cache_dashboard_screenshot/", methods=("POST",))
     @validate_feature_flags(["THUMBNAILS", "ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS"])

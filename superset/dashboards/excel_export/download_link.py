@@ -17,31 +17,21 @@
 """
 Status tracking and long-lived download links for dashboard Excel exports.
 
-A raw S3 pre-signed URL is only valid for as long as *both* its own
-``ExpiresIn`` window and the credentials that signed it remain valid.
-Deployments whose S3 client authenticates via short-lived, auto-refreshed
-credentials (e.g. an EKS IRSA role assumed through
-``AssumeRoleWithWebIdentity``, which AWS caps at 12 hours and many clusters
-default to far less) can silently invalidate a pre-signed URL long before the
-``EXCEL_EXPORT_LINK_TTL_SECONDS`` window promised in the export email elapses,
-since the *credentials'* session -- not just the URL's own ``ExpiresIn`` --
-bounds how long it actually works.
+The download link shared with the requester is a Superset endpoint, never a
+raw or signed storage URL: signed URLs are transferable bearer credentials
+Superset cannot observe or revoke once issued, their real lifetime is bounded
+by the signing credentials' own session (not just their nominal expiry), and
+some ambient identities (e.g. direct workload identity federation) cannot
+sign at all. The link's lifetime is enforced by this module via the
+``key_value`` store's ``expires_on``, and the file itself streams through
+Superset with the deployment's storage credentials at click time.
 
-To keep that promise regardless of credential lifetime, the email links to a
-small Superset redirect endpoint instead of a raw S3 URL. The link's own
-lifetime is enforced by this module via the ``key_value`` store's
-``expires_on`` (independent of any credential session), and the actual
-pre-signed URL is generated fresh -- with then-current credentials -- at click
-time, valid only long enough to complete a single download.
-
-The redirect endpoint (``download_xlsx``) intentionally requires no login: a
-pre-signed S3 URL never did either, and the access-control decision for the
-underlying dashboard was already enforced once, when the export was
-originally requested (see ``security_manager.raise_for_access`` in
-``superset.dashboards.api.export_xlsx``). The unguessable key emailed only to
-that requester's own address is the same "possession of the link is the
-credential" model the raw pre-signed URL had; this module just re-signs it
-closer to when it is actually used.
+The download endpoint (``download_xlsx``) intentionally requires no login:
+the access-control decision for the underlying dashboard was already enforced
+once, when the export was originally requested (see
+``security_manager.raise_for_access`` in
+``superset.dashboards.api.export_xlsx``); the unguessable key handed only to
+that requester is the "possession of the link is the credential" model.
 
 Every entry is keyed by ``job_id`` -- the same id the ``export_xlsx`` POST
 response hands back -- rather than a separately-generated identifier, so a
@@ -63,11 +53,6 @@ from superset.utils.urls import headless_url
 
 RESOURCE = KeyValueResource.EXCEL_EXPORT_DOWNLOAD
 CODEC = JsonKeyValueCodec()
-
-# The fresh pre-signed URL generated at click time only needs to outlive the
-# redirect and the browser/S3 handshake that follows it, not the link's own
-# multi-hour lifetime.
-PRESIGNED_URL_TTL_SECONDS = 300
 
 DOWNLOAD_PATH = "/api/v1/dashboard/export_xlsx/download/{job_id}/"
 

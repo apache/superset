@@ -3575,11 +3575,12 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
                 db.session.delete(dashboard)
                 db.session.commit()
 
-    def test_download_xlsx_redirects_without_login(self):
-        """Dashboard API: download_xlsx requires no login, matching a raw
-        pre-signed storage URL's own access model -- the dashboard access
-        check already ran once, when the export was requested. The URL is
-        minted by the configured storage backend at click time."""
+    def test_download_xlsx_streams_without_login(self):
+        """Dashboard API: download_xlsx requires no login (the unguessable
+        job_id is the credential; the dashboard access check already ran when
+        the export was requested) and streams the file through Superset with
+        the configured storage backend instead of redirecting to a signed
+        storage URL."""
         from superset.dashboards.excel_export.download_link import (
             create_download_link,
         )
@@ -3594,20 +3595,46 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         )
         db.session.commit()
         mock_storage = MagicMock()
-        mock_storage.generate_download_url.return_value = (
-            "https://bucket.s3.amazonaws.com/signed"
-        )
+        mock_storage.download.return_value = iter([b"PK-part1-", b"part2"])
         original_storage_config = current_app.config["EXPORT_STORAGE"]
         current_app.config["EXPORT_STORAGE"] = {"backend": mock_storage}
         try:
             rv = self.client.get(f"/api/v1/dashboard/export_xlsx/download/{job_id}/")
         finally:
             current_app.config["EXPORT_STORAGE"] = original_storage_config
-        assert rv.status_code == 302
-        assert rv.headers["Location"] == "https://bucket.s3.amazonaws.com/signed"
-        mock_storage.generate_download_url.assert_called_once_with(
-            "exports", "dashboard-exports/1/job.xlsx", ANY
+        assert rv.status_code == 200
+        assert rv.data == b"PK-part1-part2"
+        assert "spreadsheetml" in rv.headers["Content-Type"]
+        assert f'filename="{job_id}.xlsx"' in rv.headers["Content-Disposition"]
+        mock_storage.download.assert_called_once_with(
+            "exports", "dashboard-exports/1/job.xlsx"
         )
+
+    def test_download_xlsx_410_when_object_gone_from_storage(self):
+        """Dashboard API: a link whose object was removed from the bucket
+        (e.g. lifecycle expiry) answers a clean 410, not a broken stream."""
+        from superset.dashboards.excel_export.download_link import (
+            create_download_link,
+        )
+
+        job_id = uuid.uuid4()
+        create_download_link(
+            job_id,
+            "exports",
+            "dashboard-exports/1/job.xlsx",
+            datetime.now() + timedelta(hours=1),
+            backend="unittest.mock.MagicMock",
+        )
+        db.session.commit()
+        mock_storage = MagicMock()
+        mock_storage.download.side_effect = FileNotFoundError("gone")
+        original_storage_config = current_app.config["EXPORT_STORAGE"]
+        current_app.config["EXPORT_STORAGE"] = {"backend": mock_storage}
+        try:
+            rv = self.client.get(f"/api/v1/dashboard/export_xlsx/download/{job_id}/")
+        finally:
+            current_app.config["EXPORT_STORAGE"] = original_storage_config
+        assert rv.status_code == 410
 
     def test_download_xlsx_501_when_backend_unset(self):
         """Dashboard API: a valid download link cannot be resolved without a
@@ -3845,11 +3872,11 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         finally:
             current_app.config["EXPORT_STORAGE"] = original_storage_config
         assert rv.status_code == 410
-        mock_storage.generate_download_url.assert_not_called()
+        mock_storage.download.assert_not_called()
 
     def test_download_xlsx_redirects_for_legacy_record_without_backend(self):
         """Dashboard API: link records written before the backend was tracked
-        still resolve, signed by the configured backend."""
+        still resolve, streamed by the configured backend."""
         from superset.dashboards.excel_export.download_link import (
             _sweep_and_upsert,
             STATUS_READY,
@@ -3867,17 +3894,15 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         )
         db.session.commit()
         mock_storage = MagicMock()
-        mock_storage.generate_download_url.return_value = (
-            "https://bucket.s3.amazonaws.com/signed"
-        )
+        mock_storage.download.return_value = iter([b"PK-legacy"])
         original_storage_config = current_app.config["EXPORT_STORAGE"]
         current_app.config["EXPORT_STORAGE"] = {"backend": mock_storage}
         try:
             rv = self.client.get(f"/api/v1/dashboard/export_xlsx/download/{job_id}/")
         finally:
             current_app.config["EXPORT_STORAGE"] = original_storage_config
-        assert rv.status_code == 302
-        assert rv.headers["Location"] == "https://bucket.s3.amazonaws.com/signed"
+        assert rv.status_code == 200
+        assert rv.data == b"PK-legacy"
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     def test_embedded_dashboards(self):
