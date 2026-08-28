@@ -48,6 +48,10 @@ jest.mock('../components/useResultsPane', () => {
   };
 });
 
+const actualUseResultsPane = jest.requireActual(
+  '../components/useResultsPane',
+).useResultsPane;
+
 beforeAll(() => {
   setupAGGridModules();
 });
@@ -112,6 +116,10 @@ describe('ResultsPaneOnDashboard', () => {
   );
 
   const setForceQuery = jest.fn();
+
+  afterEach(() => {
+    (useResultsPane as jest.Mock).mockImplementation(actualUseResultsPane);
+  });
 
   afterAll(() => {
     fetchMock.clearHistory().removeRoutes();
