@@ -263,8 +263,14 @@ export const updateSlice =
   ) => {
     const { slice_id: sliceId, editors, form_data: formDataFromSlice } = slice;
     const initialState = getState();
+    // Controls hidden by a form-section's visibility rule are stashed out of
+    // form_data so they don't affect the live query, but that hiding must not
+    // permanently delete the user's saved configuration when they save.
     const formData = JSON.parse(
-      JSON.stringify(initialState.explore?.form_data ?? {}),
+      JSON.stringify({
+        ...initialState.explore?.hiddenFormData,
+        ...initialState.explore?.form_data,
+      }),
     ) as QueryFormData;
     const tracking = initialState.versionHistory?.chartNormalization;
     const saveAttemptId = nanoid();
@@ -346,7 +352,14 @@ export const createSlice =
     },
   ) =>
   async (dispatch: Dispatch, getState: () => Partial<QueryFormData>) => {
-    const formData = getState().explore?.form_data;
+    const exploreState = getState().explore;
+    // See the comment in updateSlice: stashed values from a hidden control
+    // section must not be dropped from the saved chart just because the
+    // section is currently hidden.
+    const formData = {
+      ...exploreState?.hiddenFormData,
+      ...exploreState?.form_data,
+    };
     try {
       const response = await SupersetClient.post({
         endpoint: `/api/v1/chart/`,
