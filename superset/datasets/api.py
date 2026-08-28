@@ -285,6 +285,18 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         "database.backend",
         "database.allow_multi_catalog",
         "columns.advanced_data_type",
+        # Certification/warning metadata is stored serialized in the ``extra``
+        # column and surfaced through model properties. Exposing them keeps this
+        # payload consistent with the datasource serialization used by Explore,
+        # so clients hydrating from this endpoint don't lose the badges.
+        "columns.certification_details",
+        "columns.certified_by",
+        "columns.is_certified",
+        "columns.warning_markdown",
+        "metrics.certification_details",
+        "metrics.certified_by",
+        "metrics.is_certified",
+        "metrics.warning_markdown",
         "is_managed_externally",
         "uid",
         "uuid",
