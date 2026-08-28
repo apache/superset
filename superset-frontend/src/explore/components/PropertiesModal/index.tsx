@@ -101,18 +101,19 @@ function PropertiesModal({
   >(null);
   const [tags, setTags] = useState<TagType[]>([]);
 
+  const chartId = slice.slice_id;
   const extraFields = useMemo(
     () =>
-      slice.id
+      chartId
         ? renderExtraFields?.({
-            assetId: slice.id,
+            assetId: chartId,
             assetType: 'chart',
             accessorCount:
               (selectedEditors?.length ?? 0) + (selectedViewers?.length ?? 0),
           })
         : undefined,
     [
-      slice.id,
+      chartId,
       renderExtraFields,
       selectedEditors?.length,
       selectedViewers?.length,
@@ -320,11 +321,13 @@ function PropertiesModal({
         extraFields?.saveDisabled
       }
       errorTooltip={
-        slice.is_managed_externally
-          ? t(
-              "This chart is managed externally, and can't be edited in Superset",
-            )
-          : errorTooltip
+        extraFields?.saveDisabled && extraFields?.saveTooltip
+          ? extraFields.saveTooltip
+          : slice.is_managed_externally
+            ? t(
+                "This chart is managed externally, and can't be edited in Superset",
+              )
+            : errorTooltip
       }
       wrapProps={{ 'data-test': 'properties-edit-modal' }}
     >

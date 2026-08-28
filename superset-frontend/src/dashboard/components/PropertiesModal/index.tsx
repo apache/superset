@@ -727,11 +727,13 @@ const PropertiesModal = ({
       saveLoading={isApplying}
       contentLoading={isLoading}
       errorTooltip={
-        dashboardInfo?.isManagedExternally
-          ? t(
-              "This dashboard is managed externally, and can't be edited in Superset",
-            )
-          : errorTooltip
+        extraFields?.saveDisabled && extraFields?.saveTooltip
+          ? extraFields.saveTooltip
+          : dashboardInfo?.isManagedExternally
+            ? t(
+                "This dashboard is managed externally, and can't be edited in Superset",
+              )
+            : errorTooltip
       }
       saveText={saveLabel}
       wrapProps={{ 'data-test': 'properties-edit-modal' }}
