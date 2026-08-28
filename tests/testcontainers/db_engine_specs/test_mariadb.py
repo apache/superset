@@ -61,7 +61,18 @@ from ._pagination import (  # noqa: E402
 @pytest.fixture(scope="module")
 def engine() -> Iterator[Engine]:
     with MySqlContainer("mariadb:11") as container:
-        yield create_engine(container.get_connection_url())
+        # get_connection_url() has no host override and defaults to
+        # get_container_host_ip(), which is the literal string "localhost"
+        # on native Linux Docker (e.g. GitHub Actions runners). MySQLdb
+        # (mysqlclient) treats a "localhost" host specially and attempts a
+        # Unix socket connection instead of TCP, which fails since there's
+        # no local MySQL socket -- the container is reached over the
+        # network. Forcing 127.0.0.1 keeps it on TCP.
+        port = container.get_exposed_port(container.port)
+        yield create_engine(
+            f"mysql://{container.username}:{container.password}"
+            f"@127.0.0.1:{port}/{container.dbname}"
+        )
 
 
 def test_paginated_query_returns_correct_rows_in_order(engine: Engine) -> None:
