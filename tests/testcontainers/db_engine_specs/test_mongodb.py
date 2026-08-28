@@ -30,13 +30,12 @@ from collections.abc import Iterator
 
 import pytest
 from sqlalchemy import (
-    Column,
+    column,
     create_engine,
     inspect,
     Integer,
-    MetaData,
     select,
-    Table as SATable,
+    table,
     text,
 )
 from sqlalchemy.engine import Engine
@@ -97,19 +96,31 @@ def test_paginated_query_returns_correct_rows_in_order(engine: Engine) -> None:
     silently dropped -- unlike its WHERE-clause parameter handling, which
     does substitute correctly. Literal binds sidestep that and exercise
     the dialect's actual LIMIT/OFFSET compilation, per this test's intent.
+
+    Uses a bare `column("id")`/`table(...)` pair rather than a full
+    `Table`-bound column: SQLAlchemy always qualifies a Table-bound column
+    reference as `pilot_pagination.id` once there's a FROM clause, and
+    pymongosql's projection builder takes that qualified text completely
+    literally as a MongoDB field path -- `{"pilot_pagination.id": 1}` reads
+    a *nested* field under a top-level `pilot_pagination` key, which
+    doesn't exist on these flat documents, silently projecting None instead
+    of raising. An unbound column compiles unqualified ("id"), which
+    resolves correctly, while still exercising the dialect's own
+    LIMIT/OFFSET compilation via a real Core `select()`.
     """
-    t = SATable(COLLECTION, MetaData(), Column("id", Integer))
-    stmt = select(t.c.id).order_by(t.c.id).limit(3).offset(4)
+    id_col = column("id")
+    stmt = (
+        select(id_col)
+        .select_from(table(COLLECTION))
+        .order_by(id_col)
+        .limit(3)
+        .offset(4)
+    )
     compiled = stmt.compile(engine, compile_kwargs={"literal_binds": True})
     with engine.connect() as conn:
         rows = conn.execute(text(str(compiled))).fetchall()
 
-    # Positional, not row.id: text() has no static column metadata of its
-    # own, so the row's key comes entirely from whatever pymongosql's DBAPI
-    # cursor reports for this raw SQL string -- which is the qualified
-    # "pilot_pagination.id" (matching the SELECT list's column reference),
-    # not the bare "id" attribute access would expect.
-    assert [row[0] for row in rows] == [4, 5, 6]
+    assert [row.id for row in rows] == [4, 5, 6]
 
 
 def test_get_columns_maps_native_types(engine: Engine) -> None:
