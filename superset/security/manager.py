@@ -1537,14 +1537,17 @@ def _ensure_list(value: Any) -> list[Any]:
     directly yields its individual characters, which silently breaks the
     guest payload comparison for any such chart.
 
-    ``None`` returns ``[]``; a ``list``/``tuple`` returns a list copy of
-    it; any other (scalar) value is wrapped in a single-item list.
+    ``None`` and an empty string are treated as "no value set" (mirroring
+    ``_stored_param_values``'s treatment of an unset control) and return
+    ``[]`` — an unset scalar control must not be compared as if the guest
+    had explicitly requested an empty string. A ``list``/``tuple`` is
+    filtered the same way, element by element; any other scalar is wrapped
+    in a single-item list.
     """
     if value is None:
         return []
-    if isinstance(value, (list, tuple)):
-        return list(value)
-    return [value]
+    items = value if isinstance(value, (list, tuple)) else [value]
+    return [item for item in items if item is not None and item != ""]
 
 
 def _columns_metrics_modified(

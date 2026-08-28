@@ -1526,6 +1526,27 @@ def test_query_context_modified_scalar_control_value_tampered(
     assert query_context_modified(query_context)
 
 
+def test_query_context_modified_unset_scalar_control_not_tampered(
+    mocker: MockerFixture,
+) -> None:
+    """
+    An unset scalar control (empty string, or simply absent) must be
+    treated as "no value" on the requested side too — symmetric with how
+    _stored_param_values treats an unset control on the stored side.
+    """
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {}  # no groupby saved at all
+
+    query_context.form_data = {
+        "slice_id": 42,
+        "groupby": "",  # unset control, sent as empty string
+    }
+    query_context.queries = [QueryObject(columns=[])]
+    assert not query_context_modified(query_context)
+
+
 def _native_filter_ctx(
     mocker: MockerFixture,
     queries: list[Any],
