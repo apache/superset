@@ -71,6 +71,9 @@ export type AntdExposedProps = Pick<
   | 'virtual'
   | 'getPopupContainer'
   | 'menuItemSelectedIcon'
+  // lets a caller with long option labels stop the popup inheriting the
+  // trigger's width, which otherwise truncates every option
+  | 'popupMatchSelectWidth'
 >;
 
 export type SelectOptionsType = Exclude<AntdProps['options'], undefined>;

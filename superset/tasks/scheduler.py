@@ -311,7 +311,11 @@ def execute_task(  # noqa: C901
     # Convert string UUID to native UUID (Celery deserializes as string)
     native_uuid = UUID(task_uuid)
 
-    task = TaskDAO.find_one_or_none(uuid=native_uuid)
+    # Internal executor path: load the task Celery was dispatched to run,
+    # keyed on the UUID passed at enqueue time, not a user-requested
+    # lookup; see TaskFilter for the request-scoped vs. internal-plumbing
+    # split. The refreshes below load the same task for the same reason.
+    task = TaskDAO.find_one_or_none(uuid=native_uuid, skip_base_filter=True)
     if not task:
         logger.error("Task %s not found in metastore", task_uuid)
         return {"status": "error", "message": "Task not found"}
@@ -346,7 +350,7 @@ def execute_task(  # noqa: C901
             task_type,
             task_uuid,
         )
-        refreshed = TaskDAO.find_one_or_none(uuid=native_uuid)
+        refreshed = TaskDAO.find_one_or_none(uuid=native_uuid, skip_base_filter=True)
         return {
             "status": refreshed.status if refreshed else "unknown",
             "task_uuid": task_uuid,
@@ -489,7 +493,7 @@ def execute_task(  # noqa: C901
                 )
 
         # Refresh to get final status for return value and completion notification
-        refreshed = TaskDAO.find_one_or_none(uuid=native_uuid)
+        refreshed = TaskDAO.find_one_or_none(uuid=native_uuid, skip_base_filter=True)
         final_status = refreshed.status if refreshed else "unknown"
 
         # Publish completion notification for any waiters (e.g., sync callers)

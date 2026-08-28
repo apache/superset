@@ -37,11 +37,24 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+# extra_form_data override targets that the query object actually reads. Note
+# that ``time_grain`` is deliberately absent: the query object has no such field
+# and nothing downstream consumes it, matching the REST path, where
+# form_data_query_context reads only ``time_grain_sqla``. Listing it here would
+# write a key that ChartDataQueryObjectSchema (``unknown = EXCLUDE``) discards.
 QUERY_CONTEXT_EXTRA_FORM_DATA_OVERRIDE_KEYS = {
     "granularity",
-    "time_grain",
     "time_grain_sqla",
     "time_range",
+}
+
+# Of the keys above, these are not query object fields: the query object carries
+# the time grain inside ``extras`` (see ChartDataExtrasSchema), mirroring how
+# form_data is translated in superset.common.form_data_query_context. Writing
+# them at the top level instead means ChartDataQueryObjectSchema, which is
+# configured with ``unknown = EXCLUDE``, silently drops the override.
+QUERY_CONTEXT_EXTRA_FORM_DATA_EXTRAS_KEYS = {
+    "time_grain_sqla",
 }
 
 
@@ -199,6 +212,8 @@ def apply_form_data_filters_to_query(
         query["where"] = where
     if having := form_data.get("having"):
         query["having"] = having
+    if extras := form_data.get("extras"):
+        query["extras"] = {**(query.get("extras") or {}), **extras}
 
 
 def _join_sql_clause(existing_clause: str, additional_clause: str) -> str:
@@ -247,7 +262,10 @@ def merge_form_data_filters_into_query(
             and key in form_data
             and form_data[key] is not None
         ):
-            query[key] = form_data[key]
+            if key in QUERY_CONTEXT_EXTRA_FORM_DATA_EXTRAS_KEYS:
+                query["extras"] = {**(query.get("extras") or {}), key: form_data[key]}
+            else:
+                query[key] = form_data[key]
 
     for clause in ("where", "having"):
         if additional_clause := form_data.get(clause):
@@ -255,6 +273,9 @@ def merge_form_data_filters_into_query(
                 query[clause] = _join_sql_clause(existing_clause, additional_clause)
             else:
                 query[clause] = additional_clause
+
+    if extras := form_data.get("extras"):
+        query["extras"] = {**(query.get("extras") or {}), **extras}
 
 
 def merge_extra_form_data_filters_into_query(
@@ -655,6 +676,7 @@ def build_query_context_from_form_data(
     order_desc: bool | None = None,
     result_type: Any = None,
     force: bool = False,
+    custom_cache_timeout: int | None = None,
 ) -> Any:
     """Build a QueryContext from chart-type-aware Explore form_data."""
     # avoid circular import
@@ -683,6 +705,7 @@ def build_query_context_from_form_data(
         form_data=form_data,
         result_type=result_type,
         force=force,
+        custom_cache_timeout=custom_cache_timeout,
     )
 
 

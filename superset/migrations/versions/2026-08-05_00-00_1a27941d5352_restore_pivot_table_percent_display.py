@@ -156,7 +156,7 @@ def _migrate_query_context_form_data(slc: Slice) -> bool:
 
 def upgrade() -> None:
     bind = op.get_bind()
-    session = db.Session(bind=bind, future=True)
+    session = db.Session(bind=bind)
 
     query = session.query(Slice).filter(Slice.viz_type == _VIZ_TYPE)
     for slc in paginated_update(
