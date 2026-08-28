@@ -257,3 +257,50 @@ def test_post_dataset_with_invalid_sql_returns_actionable_422(
         db.session.query(SqlaTable).filter_by(table_name="dataset wrong").one_or_none()
         is None
     )
+
+
+def test_post_dataset_oauth2_redirect_propagates_unchanged(
+    session: Session,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """OAuth2RedirectError must reach the client with its ``url``/``tab_id``
+    extras intact so the frontend can start the OAuth2 dance.
+
+    ``DatasetRestApi.post`` doesn't use flask-appbuilder's ``@safe``
+    decorator for this reason: ``@safe`` catches any uncaught exception and
+    flattens it into an opaque 500, which would strip those extras.
+    """
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.exceptions import OAuth2RedirectError
+    from superset.models.core import Database
+
+    SqlaTable.metadata.create_all(db.session.get_bind())
+
+    database = Database(database_name="oauth2_db", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    with patch(
+        "superset.datasets.api.CreateDatasetCommand.run",
+        side_effect=OAuth2RedirectError(
+            "http://example.org/auth", "tab-1", "/redirect"
+        ),
+    ):
+        response = client.post(
+            "/api/v1/dataset/",
+            json={
+                "database": database.id,
+                "schema": "main",
+                "table_name": "oauth2_table",
+            },
+        )
+
+    assert response.status_code == 403
+    error = response.json["errors"][0]
+    assert error["error_type"] == "OAUTH2_REDIRECT"
+    assert error["extra"] == {
+        "url": "http://example.org/auth",
+        "tab_id": "tab-1",
+        "redirect_uri": "/redirect",
+    }

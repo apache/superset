@@ -87,6 +87,7 @@ from superset.datasets.schemas import (
     openapi_spec_methods_override,
 )
 from superset.exceptions import (
+    OAuth2RedirectError,
     SupersetSyntaxErrorException,
     SupersetTemplateException,
 )
@@ -440,7 +441,6 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
 
     @expose("/", methods=("POST",))
     @protect()
-    @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.post",
@@ -495,6 +495,12 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
                 data=new_model.data,
                 uuid=new_model.uuid,
             )
+        except OAuth2RedirectError:
+            # Must reach the client unchanged to start the OAuth2 dance;
+            # ``@safe`` isn't used on this endpoint since it would otherwise
+            # swallow this into an opaque 500 that drops the ``url``/``tab_id``
+            # extras the frontend needs.
+            raise
         except DatasetSoftDeletedTwinExistsError as ex:
             return self.response_422(message=str(ex))
         except DatasetInvalidError as ex:
