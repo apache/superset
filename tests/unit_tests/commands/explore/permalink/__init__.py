@@ -14,34 +14,3 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-cache_timeout: null
-certification_details: null
-certified_by: null
-dataset_uuid: 14f48794-ebfa-4f60-a26a-582c49132f1b
-description: null
-params:
-  adhoc_filters:
-  - clause: WHERE
-    comparator: boy
-    expressionType: SIMPLE
-    operator: ==
-    subject: gender
-  compare_lag: '10'
-  compare_suffix: o10Y
-  granularity: ds
-  groupby: []
-  limit: '100'
-  markup_type: markdown
-  metric: sum__num
-  rotation: square
-  row_limit: 50000
-  series: name
-  size_from: '10'
-  size_to: '70'
-  time_range: '100 years ago : now'
-  viz_type: word_cloud
-query_context: null
-slice_name: Boy Name Cloud
-uuid: d5dfa616-9542-4012-a5bc-9270985f471e
-version: 1.0.0
-viz_type: word_cloud
