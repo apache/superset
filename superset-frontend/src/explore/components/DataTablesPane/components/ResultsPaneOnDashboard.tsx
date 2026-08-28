@@ -20,14 +20,21 @@ import { t } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
 import Tabs from '@superset-ui/core/components/Tabs';
 import { ResultTypes, ResultsPaneProps } from '../types';
-import { getStaleResultsTabFallback } from '../utils';
 import { useResultsPane } from './useResultsPane';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 const Wrapper = styled.div`
   display: flex;
   flex-direction: column;
   height: 100%;
+
+  .ant-tabs {
+    height: 100%;
+  }
+
+  .ant-tabs-body {
+    height: 100%;
+  }
 
   .ant-tabs-content {
     display: flex;
@@ -78,17 +85,6 @@ export const ResultsPaneOnDashboard = ({
       children: activeTabKey === tabKey ? pane : null,
     };
   });
-
-  const resultsTabFallback = getStaleResultsTabFallback(
-    activeTabKey,
-    items.map(({ key }) => key),
-  );
-
-  useEffect(() => {
-    if (resultsTabFallback) {
-      setActiveTabKey(resultsTabFallback);
-    }
-  }, [resultsTabFallback]);
 
   return (
     <Wrapper>

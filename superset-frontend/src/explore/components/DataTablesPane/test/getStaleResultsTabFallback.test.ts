@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { getStaleResultsTabFallback } from '../utils';
+import { getStaleResultsTabFallback } from '../DataTablesPane';
 import { ResultTypes } from '../types';
 
 test('keeps the active tab when it still exists', () => {

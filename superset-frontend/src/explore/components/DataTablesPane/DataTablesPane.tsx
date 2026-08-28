@@ -29,7 +29,22 @@ import {
 } from 'src/utils/localStorageHelpers';
 import { SamplesPane, useResultsPane } from './components';
 import { DataTablesPaneProps, ResultTypes } from './types';
-import { getStaleResultsTabFallback } from './utils';
+
+/**
+ * A mixed chart can be reconfigured to return fewer result panes than before
+ * (e.g. dropping a query), which removes the corresponding results tab. If the
+ * selected tab was one of those, the active key goes stale and the data panel
+ * renders blank until the user reselects a valid tab. Returns the first
+ * results tab to fall back to in that case, otherwise undefined.
+ */
+export const getStaleResultsTabFallback = (
+  activeTabKey: string,
+  resultsTabKeys: string[],
+): string | undefined =>
+  activeTabKey.startsWith(ResultTypes.Results) &&
+  !resultsTabKeys.includes(activeTabKey)
+    ? ResultTypes.Results
+    : undefined;
 
 const StyledDiv = styled.div`
   ${() => `
