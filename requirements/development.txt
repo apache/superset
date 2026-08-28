@@ -16,6 +16,7 @@ alembic==1.15.2
     # via
     #   -c requirements/base-constraint.txt
     #   flask-migrate
+    #   starrocks
 amqp==5.3.1
     # via
     #   -c requirements/base-constraint.txt
@@ -44,6 +45,8 @@ apsw==3.50.1.0
     #   shillelagh
 astroid==3.3.10
     # via pylint
+asyncmy2==0.2.21
+    # via starrocks
 attrs==25.3.0
     # via
     #   -c requirements/base-constraint.txt
@@ -67,6 +70,7 @@ backports-tarfile==1.2.0
 backports-zstd==1.6.0
     # via
     #   -c requirements/base-constraint.txt
+    #   clickhouse-connect
     #   flask-compress
 bcrypt==4.3.0
     # via
@@ -119,6 +123,7 @@ celery==5.6.3
 certifi==2026.5.20
     # via
     #   -c requirements/base-constraint.txt
+    #   clickhouse-connect
     #   elasticsearch
     #   httpcore
     #   httpx
@@ -164,6 +169,8 @@ click-repl==0.3.0
     # via
     #   -c requirements/base-constraint.txt
     #   celery
+clickhouse-connect==1.7.2
+    # via apache-superset
 cmdstanpy==1.1.0
     # via prophet
 colorama==0.4.6
@@ -521,6 +528,8 @@ kombu==5.6.2
     # via
     #   -c requirements/base-constraint.txt
     #   celery
+lark==1.3.1
+    # via starrocks
 lazy-object-proxy==1.10.0
     # via openapi-spec-validator
 limits==5.1.0
@@ -528,7 +537,9 @@ limits==5.1.0
     #   -c requirements/base-constraint.txt
     #   flask-limiter
 lz4==4.4.5
-    # via trino
+    # via
+    #   clickhouse-connect
+    #   trino
 mako==1.4.1
     # via
     #   -c requirements/base-constraint.txt
@@ -819,7 +830,9 @@ pymssql==2.3.13
     #   apache-superset
     #   testcontainers
 pymysql==1.2.0
-    # via testcontainers
+    # via
+    #   starrocks
+    #   testcontainers
 pynacl==1.6.2
     # via
     #   -c requirements/base-constraint.txt
@@ -1015,6 +1028,7 @@ sqlalchemy==2.0.52
     #   sqlalchemy-cratedb
     #   sqlalchemy-monetdb
     #   sqlalchemy-utils
+    #   starrocks
     #   testcontainers
 sqlalchemy-bigquery==1.17.2
     # via apache-superset
@@ -1053,6 +1067,8 @@ starlette==1.3.1
     # via
     #   fastmcp-slim
     #   mcp
+starrocks==1.3.4
+    # via apache-superset
 statsd==4.0.1
     # via apache-superset
 syntaqlite==0.9.0
@@ -1128,6 +1144,7 @@ urllib3==2.7.0
     # via
     #   -c requirements/base-constraint.txt
     #   botocore
+    #   clickhouse-connect
     #   crate
     #   docker
     #   elasticsearch
