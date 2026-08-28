@@ -585,8 +585,17 @@ class ChartDataRestApi(ChartRestApi):
                     query["timing"] = query_result.timing.as_public_dict()
 
             if security_manager.is_guest_user():
+                # Guests may see the generated SQL only when the role attached to
+                # their guest token has been granted "can view query on Dashboard",
+                # mirroring the permission the frontend uses to expose the
+                # "View query" action. Stacktraces and driver errors stay redacted
+                # regardless, as those leak details of the deployment itself.
+                can_view_query = security_manager.can_access(
+                    "can_view_query", "Dashboard"
+                )
                 for query in queries:
-                    query.pop("query", None)
+                    if not can_view_query:
+                        query.pop("query", None)
                     query.pop("stacktrace", None)
                     if query.get("error"):
                         query["error"] = sanitize_error_message(query["error"])
