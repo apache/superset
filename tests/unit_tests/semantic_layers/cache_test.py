@@ -238,13 +238,23 @@ def test_application_metrics_use_fixed_names_and_are_non_fatal() -> None:
     metrics.incr.assert_called_once_with("semantic_cache.containment.bypass")
 
 
-@pytest.mark.parametrize("operation", ["get", "set", "delete"])
+def test_safe_backend_has_delegates_and_normalizes_to_bool() -> None:
+    delegate: MagicMock = MagicMock()
+    delegate.has.return_value = 1
+    backend: SafeSemanticCacheBackend = SafeSemanticCacheBackend(delegate)
+
+    assert backend.has("key") is True
+    delegate.has.assert_called_once_with("key")
+
+
+@pytest.mark.parametrize("operation", ["get", "has", "set", "delete"])
 def test_safe_backend_translates_pluggable_cache_failures(operation: str) -> None:
     delegate: MagicMock = MagicMock()
     getattr(delegate, operation).side_effect = RuntimeError("client unavailable")
     backend: SafeSemanticCacheBackend = SafeSemanticCacheBackend(delegate)
     operation_call: Callable[[], object] = {
         "get": lambda: backend.get("key"),
+        "has": lambda: backend.has("key"),
         "set": lambda: backend.set("key", "value", timeout=30),
         "delete": lambda: backend.delete("key"),
     }[operation]
