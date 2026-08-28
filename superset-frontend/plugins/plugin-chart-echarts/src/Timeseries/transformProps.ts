@@ -333,7 +333,7 @@ export default function transformProps(
     stackDimension,
   }: EchartsTimeseriesFormData = { ...DEFAULT_FORM_DATA, ...formData };
   const resolvedValueLabelPosition =
-    valueLabelPosition ?? BarValueLabelPosition.Auto;
+    valueLabelPosition ?? BarValueLabelPosition.OutsideEnd;
 
   const refs: Refs = {};
   const groupBy = ensureIsArray(groupby);

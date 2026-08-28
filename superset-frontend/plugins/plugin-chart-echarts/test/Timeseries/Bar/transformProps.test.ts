@@ -115,6 +115,7 @@ test('Auto Bar labels enable theme-aware ECharts contrast', () => {
     defaultVizType: 'echarts_timeseries_bar',
     formData: {
       seriesType: EchartsTimeseriesSeriesType.Bar,
+      valueLabelPosition: BarValueLabelPosition.Auto,
       metrics: ['Sales'],
       xAxis: '__timestamp',
       showValue: true,
@@ -134,7 +135,7 @@ test('Auto Bar labels enable theme-aware ECharts contrast', () => {
   expect(echartOptions.darkMode).toBe(false);
 });
 
-test('legacy Bar labels without a saved position enable Auto contrast', () => {
+test('legacy Bar labels without a saved position keep their pre-existing Outside End placement', () => {
   const legacyFormData: Partial<EchartsTimeseriesFormData> = {
     ...DEFAULT_FORM_DATA,
   };
@@ -163,16 +164,16 @@ test('legacy Bar labels without a saved position enable Auto contrast', () => {
   const { echartOptions } = transformProps(chartProps);
   const [series] = echartOptions.series as BarSeriesOption[];
 
-  expect(typeof series.labelLayout).toBe('function');
-  expect(echartOptions.darkMode).toBe(false);
+  expect(series.label).toMatchObject({ position: 'top' });
+  expect(series.labelLayout).toBeUndefined();
 
   Reflect.set(chartProps.formData, 'valueLabelPosition', undefined);
   const undefinedPositionOptions = transformProps(chartProps).echartOptions;
   const [undefinedPositionSeries] =
     undefinedPositionOptions.series as BarSeriesOption[];
 
-  expect(typeof undefinedPositionSeries.labelLayout).toBe('function');
-  expect(undefinedPositionOptions.darkMode).toBe(false);
+  expect(undefinedPositionSeries.label).toMatchObject({ position: 'top' });
+  expect(undefinedPositionSeries.labelLayout).toBeUndefined();
 });
 
 describe('Bar Chart X-axis Time Formatting', () => {

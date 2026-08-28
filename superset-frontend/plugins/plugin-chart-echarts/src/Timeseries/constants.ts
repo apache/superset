@@ -87,7 +87,10 @@ export const DEFAULT_FORM_DATA: EchartsTimeseriesFormData = {
   xAxisLabelInterval: defaultXAxis.xAxisLabelInterval,
   groupby: [],
   showValue: false,
-  valueLabelPosition: BarValueLabelPosition.Auto,
+  // Legacy charts saved before this field existed have no valueLabelPosition
+  // in form_data and must keep their pre-existing Outside End placement;
+  // Auto is opt-in via the Value label position control, not the default.
+  valueLabelPosition: BarValueLabelPosition.OutsideEnd,
   labelPosition: 'auto',
   onlyTotal: false,
   percentageThreshold: 0,

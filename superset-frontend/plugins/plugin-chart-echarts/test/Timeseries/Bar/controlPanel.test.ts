@@ -147,7 +147,7 @@ test('should expose Auto and manual value label positions for Bar charts', () =>
   };
 
   expect(valueLabelPositionControl.config.default).toBe(
-    BarValueLabelPosition.Auto,
+    BarValueLabelPosition.OutsideEnd,
   );
   expect(
     valueLabelPositionControl.config.choices.map(([value]) => value),
