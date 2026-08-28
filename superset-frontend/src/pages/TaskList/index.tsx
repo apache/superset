@@ -145,6 +145,12 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
   const [cancelModalTask, setCancelModalTask] = useState<Task | null>(null);
   const [forceCancel, setForceCancel] = useState(false);
 
+  // UUIDs of the prerequisite tasks to highlight while a "Depends on" popover is
+  // open, so the user can spot which visible rows this task waits on.
+  const [highlightedDeps, setHighlightedDeps] = useState<Set<string>>(
+    () => new Set(),
+  );
+
   // Determine dialog message based on task context
   const getCancelDialogMessage = useCallback((task: Task) => {
     const isSharedTask = task.scope === TaskScope.Shared;
@@ -500,10 +506,15 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
                 <TaskDependenciesPopover
                   dependencies={depends_on}
                   waitingOn={waitingOn}
+                  onOpenChange={open =>
+                    setHighlightedDeps(
+                      open
+                        ? new Set(depends_on.map(dep => dep.uuid))
+                        : new Set(),
+                    )
+                  }
                 />
               )}
-              {/* Explicit > 0, not a bare truthiness check: `{dedupeCount && …}`
-                  would render a literal 0 when the count is 0. */}
               {dedupeCount > 0 && (
                 <Tooltip
                   title={tn(
@@ -707,6 +718,7 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
         filters={filters}
         initialSort={initialSort}
         loading={loading}
+        isRowHighlighted={record => highlightedDeps.has(record.uuid as string)}
         pageSize={PAGE_SIZE}
         refreshData={refreshData}
         addDangerToast={addDangerToast}

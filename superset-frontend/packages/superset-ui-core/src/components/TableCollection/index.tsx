@@ -44,6 +44,10 @@ export interface TableCollectionProps<T extends object> {
   columns: ColumnInstance<T>[];
   loading: boolean;
   highlightRowId?: number;
+  // Optional predicate to highlight arbitrary rows (in addition to
+  // highlightRowId). Receives the mapped record (which spreads row.original), so
+  // callers can match on any field, e.g. by uuid.
+  isRowHighlighted?: (record: Record<string, unknown>) => boolean;
   columnsForWrapText?: string[];
   setSortBy?: (updater: SortingRule<T>[]) => void;
   bulkSelectEnabled?: boolean;
@@ -161,6 +165,7 @@ function TableCollection<T extends object>({
   rows,
   loading,
   highlightRowId,
+  isRowHighlighted,
   setSortBy,
   headerGroups,
   columnsForWrapText,
@@ -292,10 +297,11 @@ function TableCollection<T extends object>({
 
   const getRowClassName = useCallback(
     (record: Record<string, unknown>) =>
-      highlightRowId !== undefined && record?.id === highlightRowId
+      (highlightRowId !== undefined && record?.id === highlightRowId) ||
+      isRowHighlighted?.(record)
         ? 'table-row-highlighted'
         : '',
-    [highlightRowId],
+    [highlightRowId, isRowHighlighted],
   );
 
   return (

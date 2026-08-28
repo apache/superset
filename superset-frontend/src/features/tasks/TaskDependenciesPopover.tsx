@@ -60,11 +60,15 @@ interface TaskDependenciesPopoverProps {
   // Unmet prerequisites while this task is still pending (blocked). When > 0 the
   // chain icon turns warning-colored and the popover title reflects the wait.
   waitingOn?: number;
+  // Fired when the popover opens/closes on hover, so the list can highlight the
+  // prerequisite rows that are currently visible.
+  onOpenChange?: (open: boolean) => void;
 }
 
 export default function TaskDependenciesPopover({
   dependencies,
   waitingOn = 0,
+  onOpenChange,
 }: TaskDependenciesPopoverProps) {
   const content = (
     <DependenciesContainer>
@@ -89,6 +93,7 @@ export default function TaskDependenciesPopover({
       content={content}
       trigger="hover"
       placement="leftTop"
+      onOpenChange={onOpenChange}
     >
       <LinkIconWrapper $waiting={waitingOn > 0}>
         <Icons.LinkOutlined iconSize="l" />
