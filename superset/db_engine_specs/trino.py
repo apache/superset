@@ -290,6 +290,9 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
             if user_token is not None:
                 http_session = requests.Session()
                 http_session.headers.update({"Authorization": f"Bearer {user_token}"})
+                # Persists `verify` to the new `http_session`
+                if "verify" in connect_args:
+                    http_session.verify = connect_args["verify"]
                 connect_args["http_session"] = http_session
 
         return url, engine_kwargs

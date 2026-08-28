@@ -2403,6 +2403,54 @@ class TestDatabaseApi(SupersetTestCase):
         assert rv.status_code == 200
         assert rv.headers["Content-Type"] == "application/json; charset=utf-8"
 
+    @with_config({"PREVENT_UNSAFE_DB_CONNECTIONS": False})
+    def test_test_connection_oauth2(self):
+        """
+        Database API: Test test connection flow with a connection authenticated via
+        OAuth2.
+
+        The test would always raise ``OAuth2RedirectError``, and we can't start the
+        OAuth2 dance before the connection is saved, so it should return a 200 status.
+        """
+        self.login(ADMIN_USERNAME)
+        example_db = get_example_database()
+        masked_encrypted_extra = json.dumps(
+            {
+                "oauth2_client_info": {
+                    "id": "client_id",
+                    "secret": "client_secret",
+                    "scope": "some-scope",
+                    "authorization_request_uri": "https://example.org/authorize",
+                    "token_request_uri": "https://example.org/token",
+                }
+            }
+        )
+        data = {
+            "database_name": "examples",
+            "masked_encrypted_extra": masked_encrypted_extra,
+            "impersonate_user": True,
+            "sqlalchemy_uri": example_db.safe_sqlalchemy_uri(),
+            "server_cert": None,
+        }
+        url = "api/v1/database/test_connection/"
+
+        with (
+            mock.patch(
+                "superset.commands.database.test_connection.ping",
+                side_effect=Exception("Unauthorized"),
+            ),
+            mock.patch.object(
+                example_db.db_engine_spec,
+                "needs_oauth2",
+                return_value=True,
+            ),
+        ):
+            rv = self.post_assert_metric(url, data, "test_connection")
+
+        assert rv.status_code == 200
+        assert rv.headers["Content-Type"] == "application/json; charset=utf-8"
+        assert json.loads(rv.data.decode("utf-8")) == {"message": "OK"}
+
     def test_test_connection_failed(self):
         """
         Database API: Test test connection failed

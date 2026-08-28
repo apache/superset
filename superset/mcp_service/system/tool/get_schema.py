@@ -201,6 +201,7 @@ _MODEL_TYPE_CLASS_PERMISSION: dict[ModelType, str] = {
         title="Get schema",
         readOnlyHint=True,
         destructiveHint=False,
+        openWorldHint=False,
     ),
 )
 async def get_schema(
