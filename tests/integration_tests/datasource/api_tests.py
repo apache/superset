@@ -155,6 +155,7 @@ class TestDatasourceApi(SupersetTestCase):
             limit=10000,
             denormalize_column=False,
             array_elements=False,
+            search=None,
         )
 
     @pytest.mark.usefixtures("app_context", "virtual_dataset")
