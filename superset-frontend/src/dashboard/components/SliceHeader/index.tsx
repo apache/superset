@@ -270,7 +270,11 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
     );
 
     return (
-      <ChartHeaderStyles data-test="slice-header" ref={ref}>
+      <ChartHeaderStyles
+        className="slice-header"
+        data-test="slice-header"
+        ref={ref}
+      >
         <div className="header-title" ref={headerRef}>
           <Tooltip title={headerTooltip}>
             {/* this div ensures the hover event triggers correctly and prevents flickering */}
