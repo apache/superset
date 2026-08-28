@@ -951,3 +951,167 @@ test('filters the subject select by column verbose_name as well as column_name',
   expect(within(dropdown).getByText('total_count')).toBeInTheDocument();
   expect(within(dropdown).queryByText('Full Name')).not.toBeInTheDocument();
 });
+
+const COLUMN_VALUES_ENDPOINT =
+  'glob:*/api/v1/datasource/*/column/value/values/*';
+
+let columnValues: { result: unknown[]; limit: number } = {
+  result: [],
+  limit: 10000,
+};
+fetchMock.get(COLUMN_VALUES_ENDPOINT, () => columnValues);
+
+const setupWithFilterValues = (result: unknown[], limit = 10000) => {
+  columnValues = { result, limit };
+  const onChange = jest.fn();
+  const validHandler = jest.fn();
+  const spy = jest.spyOn(redux, 'useSelector');
+  spy.mockReturnValue({});
+  const props = {
+    adhocFilter: new AdhocFilter({
+      expressionType: ExpressionTypes.Simple,
+      subject: 'value',
+      operatorId: Operators.In,
+      operator: OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.In].operation,
+      comparator: [],
+      clause: Clauses.Where,
+    }),
+    onChange,
+    options,
+    datasource: {
+      ...TestDataset,
+      columns: [{ column_name: 'value', type: 'VARCHAR', id: 3 }],
+      filter_select: true,
+    },
+    partitionColumn: 'test',
+    validHandler,
+  };
+  render(
+    <AdhocFilterEditPopoverSimpleTabContent {...(props as unknown as Props)} />,
+  );
+  return props;
+};
+
+const openComparator = async () => {
+  const comparator = screen.getByRole('combobox', {
+    name: 'Comparator option',
+  });
+  userEvent.click(comparator);
+  return comparator;
+};
+
+test('loads comparator values from the server', async () => {
+  setupWithFilterValues(['alpha', 'beta']);
+  await openComparator();
+  expect(await screen.findByTitle('alpha')).toBeInTheDocument();
+});
+
+test('sends the typed text to the server rather than filtering the loaded page', async () => {
+  // The loaded page is bounded, so matching client-side cannot reach a value
+  // beyond the row limit. The search has to reach the database.
+  setupWithFilterValues(['alpha']);
+  const comparator = await openComparator();
+  userEvent.type(comparator, 'gamma');
+
+  await waitFor(
+    () => {
+      const searched = fetchMock.callHistory
+        .calls(COLUMN_VALUES_ENDPOINT)
+        .map(call => String(call.url));
+      expect(searched.some(url => url.includes('q=gamma'))).toBe(true);
+    },
+    { timeout: 3000 },
+  );
+});
+
+test('lets a value the server did not return still be selected', async () => {
+  // Even with server-side search a match can fall outside the page; typing the
+  // exact value has to remain a way through.
+  setupWithFilterValues([]);
+  const comparator = await openComparator();
+  userEvent.type(comparator, 'not-in-the-page');
+  expect(await screen.findByTitle('not-in-the-page')).toBeInTheDocument();
+});
+
+test('does not query for values when the dataset disables them', async () => {
+  fetchMock.clearHistory();
+  setup({
+    adhocFilter: new AdhocFilter({
+      expressionType: ExpressionTypes.Simple,
+      subject: 'value',
+      operatorId: Operators.In,
+      operator: OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.In].operation,
+      comparator: [],
+      clause: Clauses.Where,
+    }),
+  });
+  await openComparator();
+  expect(fetchMock.callHistory.calls(COLUMN_VALUES_ENDPOINT)).toHaveLength(0);
+});
+
+test('stores the picked value, not the option object', async () => {
+  // AsyncSelect is labelInValue: taking its argument at face value puts
+  // {label, value} into the comparator, and the engine then fails to render it
+  // as a literal.
+  const props = setupWithFilterValues(['Michael']);
+  await openComparator();
+  userEvent.click(await screen.findByTitle('Michael'));
+
+  await waitFor(() => expect(props.onChange).toHaveBeenCalled());
+  const [filter] = props.onChange.mock.calls.at(-1);
+  expect(filter.comparator).toEqual(['Michael']);
+});
+
+test('can remove a value that was saved earlier', async () => {
+  // Reopening the popover restores the comparator from the saved filter, and
+  // the value is not in the freshly loaded page. Removing it has to still work.
+  columnValues = { result: [], limit: 10000 };
+  const onChange = jest.fn();
+  const validHandler = jest.fn();
+  jest.spyOn(redux, 'useSelector').mockReturnValue({});
+  render(
+    <AdhocFilterEditPopoverSimpleTabContent
+      {...({
+        adhocFilter: new AdhocFilter({
+          expressionType: ExpressionTypes.Simple,
+          subject: 'value',
+          operatorId: Operators.In,
+          operator: OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.In].operation,
+          comparator: ['Michael'],
+          clause: Clauses.Where,
+        }),
+        onChange,
+        options,
+        datasource: {
+          ...TestDataset,
+          columns: [{ column_name: 'value', type: 'VARCHAR', id: 3 }],
+          filter_select: true,
+        },
+        partitionColumn: 'test',
+        validHandler,
+      } as unknown as Props)}
+    />,
+  );
+
+  // Remove it the way a user does: the tag's own close control.
+  userEvent.click(await screen.findByLabelText('close'));
+
+  await waitFor(() => expect(onChange).toHaveBeenCalled());
+  const [filter] = onChange.mock.calls.at(-1);
+  expect(filter.comparator).toEqual([]);
+});
+
+test('says the list is partial when the server capped it', async () => {
+  setupWithFilterValues(['alpha', 'beta'], 2);
+  await openComparator();
+  expect(
+    await screen.findByText(/Only the first 2 values are listed/),
+  ).toBeInTheDocument();
+});
+
+test('does not say the list is partial when it is complete', async () => {
+  setupWithFilterValues(['alpha', 'beta'], 10000);
+  await openComparator();
+  expect(await screen.findByTitle('alpha')).toBeInTheDocument();
+  expect(screen.queryByText(/Only the first/)).not.toBeInTheDocument();
+});
