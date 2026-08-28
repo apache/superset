@@ -54,7 +54,7 @@ export interface ModalProps {
   /** @deprecated Use styles.body instead */
   bodyStyle?: CSSProperties;
   styles?: { body?: CSSProperties; [key: string]: CSSProperties | undefined };
-  openerRef?: React.RefObject<HTMLElement>;
+  openerRef?: React.RefObject<HTMLElement | null>;
 }
 
 export interface StyledModalProps {

@@ -19,7 +19,7 @@
 
 import { t } from '@apache-superset/core/translation';
 import { JsonObject, QueryFormData } from '@superset-ui/core';
-import { useMemo, memo } from 'react';
+import { useMemo, memo, ReactElement } from 'react';
 import { HandlebarsRenderer } from './HandlebarsRenderer';
 import TooltipRow from '../TooltipRow';
 import { createDefaultTemplateWithLimits } from './multiValueUtils';
@@ -126,8 +126,8 @@ function formatValue(value: any): string {
 function buildFieldBasedTooltipItems(
   o: JsonObject,
   formData: QueryFormData,
-): JSX.Element[] {
-  const tooltipItems: JSX.Element[] = [];
+): ReactElement[] {
+  const tooltipItems: ReactElement[] = [];
 
   formData.tooltip_contents.forEach((item: any, index: number) => {
     let label = '';
@@ -360,7 +360,7 @@ export function generateEnhancedDefaultTemplate(
 
 export function useTooltipContent(
   formData: QueryFormData,
-  defaultTooltipGenerator: (o: JsonObject) => JSX.Element,
+  defaultTooltipGenerator: (o: JsonObject) => ReactElement,
 ) {
   const tooltipContentGenerator = useMemo(
     () => (o: JsonObject) => {
@@ -401,7 +401,7 @@ export function useTooltipContent(
 
 export function createTooltipContent(
   formData: QueryFormData,
-  defaultTooltipGenerator: (o: JsonObject) => JSX.Element,
+  defaultTooltipGenerator: (o: JsonObject) => ReactElement,
 ) {
   return (o: JsonObject) => {
     if (

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useReducer, Reducer, useEffect, useState } from 'react';
+import { useReducer, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import useDatasetsList from 'src/features/datasets/hooks/useDatasetLists';
 import Header from 'src/features/datasets/AddDataset/Header';
@@ -85,7 +85,8 @@ const prevUrl =
 
 export default function AddDataset() {
   const [dataset, setDataset] = useReducer<
-    Reducer<Partial<DatasetObject> | null, DSReducerActionType>
+    Partial<DatasetObject> | null,
+    [DSReducerActionType]
   >(datasetReducer, null);
   const [hasColumns, setHasColumns] = useState(false);
   const [editPageIsVisible, setEditPageIsVisible] = useState(false);

@@ -17,7 +17,14 @@
  * under the License.
  */
 /* eslint-env browser */
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  ReactElement,
+} from 'react';
 import {
   isFeatureEnabled,
   FeatureFlag,
@@ -230,7 +237,9 @@ interface HeaderComponentProps {
   onOpenMobileFilters?: () => void;
 }
 
-const Header = ({ onOpenMobileFilters }: HeaderComponentProps): JSX.Element => {
+const Header = ({
+  onOpenMobileFilters,
+}: HeaderComponentProps): ReactElement => {
   const dispatch = useDispatch();
   const theme = useTheme();
   const isMobile = useIsMobile();

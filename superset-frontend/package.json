@@ -195,20 +195,19 @@
     "ol": "^10.10.0",
     "query-string": "9.5.0",
     "re-resizable": "^6.11.2",
-    "react": "^18.3.0",
+    "react": "^19.2.0",
     "react-arborist": "^3.16.0",
-    "react-checkbox-tree": "^1.8.0",
+    "react-checkbox-tree": "^2.0.1",
     "react-diff-viewer-continued": "^4.4.0",
     "react-dnd": "^11.1.3",
     "react-dnd-html5-backend": "^11.1.3",
-    "react-dom": "^18.3.0",
+    "react-dom": "^19.2.0",
     "react-google-recaptcha": "^3.1.0",
     "react-intersection-observer": "^11.0.0",
     "react-json-tree": "^0.20.0",
     "react-lines-ellipsis": "^0.16.1",
-    "react-loadable": "^5.5.0",
     "react-redux": "^7.2.9",
-    "react-resize-detector": "^9.1.1",
+    "react-resize-detector": "^12.3.0",
     "react-reverse-portal": "^2.3.0",
     "react-router-dom": "^5.3.4",
     "react-search-input": "^0.11.3",
@@ -267,7 +266,7 @@
     "@swc/plugin-transform-imports": "^13.0.0",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^7.0.1",
-    "@testing-library/react": "^15.0.0",
+    "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^12.8.3",
     "@types/content-disposition": "^0.5.9",
     "@types/dom-to-image": "^2.6.7",
@@ -278,9 +277,8 @@
     "@types/lodash-es": "^4.17.12",
     "@types/mousetrap": "^1.6.15",
     "@types/node": "^26.2.0",
-    "@types/react": "^18.3.0",
-    "@types/react-dom": "^18.3.0",
-    "@types/react-loadable": "^5.5.11",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
     "@types/react-redux": "^7.1.10",
     "@types/react-router-dom": "^5.3.3",
     "@types/react-transition-group": "^4.4.12",
@@ -365,7 +363,7 @@
     "ace-builds": "^1.41.0",
     "core-js": "^3.38.1",
     "handlebars": "^4.7.8",
-    "react-ace": "^10.1.0",
+    "react-ace": "^14.0.1",
     "regenerator-runtime": "^0.14.1"
   },
   "overrides": {
@@ -381,7 +379,9 @@
     "@deck.gl/react": "~9.2.5",
     "@deck.gl/widgets": "~9.2.5",
     "@great-expectations/jsonforms-antd-renderers": {
-      "antd": "$antd"
+      "antd": "$antd",
+      "react": "^19.2.0",
+      "react-dom": "^19.2.0"
     },
     "@jest/globals": "^30.4.0",
     "@jest/types": "^30.4.0",
@@ -391,6 +391,29 @@
     "@luma.gl/gltf": "~9.2.5",
     "@luma.gl/shadertools": "~9.2.5",
     "@luma.gl/webgl": "~9.2.5",
+    "@reduxjs/toolkit": {
+      "react": "^19.2.0"
+    },
+    "@visx/axis": {
+      "react": "^19.2.0"
+    },
+    "@visx/grid": {
+      "react": "^19.2.0"
+    },
+    "@visx/responsive": {
+      "react": "^19.2.0"
+    },
+    "@visx/scale": {
+      "react": "^19.2.0"
+    },
+    "@visx/tooltip": {
+      "react": "^19.2.0",
+      "react-dom": "^19.2.0"
+    },
+    "@visx/xychart": {
+      "react": "^19.2.0",
+      "react-dom": "^19.2.0"
+    },
     "core-js": "^3.38.1",
     "dompurify": "^3.4.11",
     "esbuild": "^0.28.1",
@@ -418,6 +441,21 @@
     "nanoid@>=3 <4": "3.3.18",
     "nwsapi": "^2.2.13",
     "puppeteer": "^22.4.1",
+    "react-redux": {
+      "react": "^19.2.0",
+      "react-dom": "^19.2.0"
+    },
+    "react-router-dom": {
+      "react": "^19.2.0",
+      "react-dom": "^19.2.0"
+    },
+    "react-table": {
+      "react": "^19.2.0"
+    },
+    "react-virtualized-auto-sizer": {
+      "react": "^19.2.0",
+      "react-dom": "^19.2.0"
+    },
     "tar": "^7.5.16",
     "typescript-json-schema": "^0.68.0",
     "underscore": "^1.13.7",

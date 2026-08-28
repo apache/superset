@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ReactChild, useCallback, Key } from 'react';
+import { ReactNode, useCallback, Key } from 'react';
 
 import { t } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
@@ -31,7 +31,7 @@ enum MenuKeys {
 interface ExportToCSVButtonProps {
   exportCSVOriginal: () => void;
   exportCSVPivoted: () => void;
-  children: ReactChild;
+  children: ReactNode;
 }
 
 const MenuItemContent = styled.div`

@@ -137,7 +137,7 @@ const SparklineCell = ({
 
   const chartSeriesMap: Record<
     SparkType,
-    (props: SeriesProps<AxisScale, AxisScale, object>) => JSX.Element
+    (props: SeriesProps<AxisScale, AxisScale, object>) => ReactElement
   > = {
     line: LineSeries,
     bar: BarSeries,

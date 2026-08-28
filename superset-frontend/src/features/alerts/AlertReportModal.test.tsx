@@ -1413,7 +1413,8 @@ test('different dashboard populates its own tabs and filters', async () => {
   render(<AlertReportModal {...dash99Props} />, { useRedux: true });
 
   userEvent.click(screen.getByTestId('contents-panel'));
-  await screen.findByText(/other dashboard/i);
+  // The name renders both in the select's value and in its measurement node.
+  await screen.findAllByText(/other dashboard/i);
 
   // Wait for dashboard 99 tabs to load — increase timeout because the
   // component must first fetch /api/v1/report/99, then extract dashboard_id,

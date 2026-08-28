@@ -16,11 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { forwardRef, HTMLAttributes, MouseEventHandler } from 'react';
+import {
+  forwardRef,
+  HTMLAttributes,
+  MouseEventHandler,
+  ReactElement,
+} from 'react';
 import { styled, SupersetTheme } from '@apache-superset/core/theme';
 
 interface IconButtonProps extends HTMLAttributes<HTMLButtonElement> {
-  icon: JSX.Element;
+  icon: ReactElement;
   label?: string;
   hideVisibleLabel?: boolean;
   onClick: MouseEventHandler<HTMLButtonElement>;

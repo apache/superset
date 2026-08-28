@@ -108,7 +108,9 @@ export default function EchartsTimeseries({
   const echartRef = useRef<EchartsHandler | null>(null);
   // eslint-disable-next-line no-param-reassign
   refs.echartRef = echartRef;
-  const clickTimer = useRef<ReturnType<typeof setTimeout>>();
+  const clickTimer = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined,
+  );
 
   // Draggable percent-change baseline: when the rebase view is active, a
   // vertical line is drawn on the plot; dragging it re-indexes every series

@@ -671,8 +671,7 @@ const DashboardBuilder = () => {
                     : ''
                 }
               `}
-              // inert blocks keyboard focus too; React 18 needs the spread form
-              {...(isVersionPreviewActive ? { inert: '' } : {})}
+              inert={isVersionPreviewActive}
             >
               <FilterBar
                 orientation={FilterBarOrientation.Horizontal}
@@ -775,8 +774,7 @@ const DashboardBuilder = () => {
                       : ''
                   }
                 `}
-                // inert blocks keyboard focus too; React 18 needs the spread form
-                {...(isVersionPreviewActive ? { inert: '' } : {})}
+                inert={isVersionPreviewActive}
               >
                 <FilterBar
                   orientation={FilterBarOrientation.Vertical}

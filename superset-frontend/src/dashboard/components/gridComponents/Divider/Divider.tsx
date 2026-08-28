@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { useCallback, memo } from 'react';
+import { useCallback, memo, type Ref } from 'react';
 import { css, styled } from '@apache-superset/core/theme';
 import { Draggable } from '../../dnd/DragDroppable';
 import HoverMenu from '../../menu/HoverMenu';
@@ -88,7 +88,7 @@ function Divider({
       editMode={editMode}
     >
       {({ dragSourceRef }: { dragSourceRef: ConnectDragSource }) => (
-        <div ref={dragSourceRef}>
+        <div ref={dragSourceRef as unknown as Ref<HTMLDivElement>}>
           {editMode && (
             <HoverMenu position="left">
               <DeleteComponentButton onDelete={handleDeleteComponent} />

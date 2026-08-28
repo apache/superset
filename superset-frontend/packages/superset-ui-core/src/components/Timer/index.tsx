@@ -38,7 +38,7 @@ export function Timer({
   const [clockStr, setClockStr] = useState(
     startTime && endTime ? fDuration(startTime, endTime) : '00:00:00.00',
   );
-  const timer = useRef<ReturnType<typeof setInterval>>();
+  const timer = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
 
   useEffect(() => {
     const stopTimer = () => {

@@ -34,7 +34,7 @@ export interface FilterContentRendererProps {
   isItemActive: (id: string) => boolean;
   expanded: boolean;
   form: FormInstance<NativeFiltersForm>;
-  configFormRef: RefObject<FiltersConfigFormHandle>;
+  configFormRef: RefObject<FiltersConfigFormHandle | null>;
   restoreItem: (id: string) => void;
   getAvailableFilters: (filterId: string) => {
     label: string;

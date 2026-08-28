@@ -20,13 +20,18 @@ import { useCallback, ReactElement } from 'react';
 
 const NUM_COLUMNS = 12;
 
-type Control = ReactElement | null;
+type Control = ReactElement<{
+  type?: string;
+  isVisible?: boolean;
+  shouldStash?: boolean;
+  children?: ReactElement<{ type?: string; isVisible?: boolean }>;
+}> | null;
 
 export default function ControlRow({ controls }: { controls: Control[] }) {
   const isHiddenControl = useCallback((control: Control) => {
     const props =
       control && 'shouldStash' in control.props
-        ? control.props.children.props
+        ? control.props.children?.props
         : control?.props;
     return props?.type === 'HiddenControl' || props?.isVisible === false;
   }, []);

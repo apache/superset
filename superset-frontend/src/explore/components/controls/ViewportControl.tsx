@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useCallback, type ReactNode } from 'react';
+import { useCallback, type ReactNode, type ReactElement } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { Popover, FormLabel, Label } from '@superset-ui/core/components';
 import { decimalToSexagesimal } from 'geolib';
@@ -60,7 +60,7 @@ export default function ViewportControl({
   value = DEFAULT_VIEWPORT,
   name,
   ...restProps
-}: ViewportControlProps): JSX.Element {
+}: ViewportControlProps): ReactElement {
   const handleChange = useCallback(
     (ctrl: keyof Viewport, ctrlValue: number): void => {
       onChange({

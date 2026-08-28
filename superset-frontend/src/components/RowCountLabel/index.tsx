@@ -18,6 +18,7 @@
  */
 import { t, tn } from '@apache-superset/core/translation';
 import { getNumberFormatter } from '@superset-ui/core';
+import type { ReactElement } from 'react';
 
 import { Label, Tooltip } from '@superset-ui/core/components';
 
@@ -25,7 +26,7 @@ type RowCountLabelProps = {
   rowcount?: number;
   limit?: number;
   loading?: boolean;
-  label?: JSX.Element;
+  label?: ReactElement;
   // Overrides the default "chart" wording for panes (e.g. samples) where the
   // limit reached isn't the chart's own row_limit.
   limitReachedMessage?: React.ReactNode;

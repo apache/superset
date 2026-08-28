@@ -96,7 +96,7 @@ const OverrideConfirmModal = ({ overwriteConfirmMetadata }: Props) => {
     () => dispatch(setOverrideConfirm(undefined)),
     [dispatch],
   );
-  const anchors = useMemo<RefObject<HTMLDivElement>[]>(
+  const anchors = useMemo<RefObject<HTMLDivElement | null>[]>(
     () =>
       overwriteConfirmMetadata
         ? overwriteConfirmMetadata.overwriteConfirmItems.map(() =>

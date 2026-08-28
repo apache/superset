@@ -120,7 +120,7 @@ async function detectLastFilteredInput(
  * Gets complete filter state including SQL conversion and input position detection.
  */
 export async function getCompleteFilterState(
-  gridRef: RefObject<AgGridReact>,
+  gridRef: RefObject<AgGridReact | null>,
   metricColumns: string[],
 ): Promise<FilterState> {
   // Capture activeElement before any async operations to detect which input
