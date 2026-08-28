@@ -205,17 +205,17 @@ class TestTaskManagerEntityChange:
         assert TaskManager.publish_entity_change(uuid.uuid4()) is False
 
 
-class TestTaskManagerPublishDependentsChanged:
-    """publish_dependents_changed nudges each task that depends on the given task."""
+class TestTaskManagerPublishRequiredByChanged:
+    """publish_required_by_changed nudges each task that depends on the given task."""
 
     IS_DEFINED = "superset.coordination.base.CoordinationService.is_backend_defined"
-    GET_DEPENDENTS = "superset.daos.tasks.TaskDAO.get_dependent_uuids"
+    GET_DEPENDENTS = "superset.daos.tasks.TaskDAO.get_required_by_uuids"
     PUBLISH_ENTITY = "superset.tasks.manager.TaskManager.publish_entity_change"
 
     @patch(GET_DEPENDENTS)
     @patch(IS_DEFINED, return_value=False)
     def test_no_backend_skips_lookup(self, mock_defined, mock_get_dependents):
-        TaskManager.publish_dependents_changed(uuid.uuid4())
+        TaskManager.publish_required_by_changed(uuid.uuid4())
         mock_get_dependents.assert_not_called()
 
     @patch(PUBLISH_ENTITY)
@@ -223,7 +223,7 @@ class TestTaskManagerPublishDependentsChanged:
     def test_nudges_each_dependent(self, mock_defined, mock_publish_entity):
         dependents = [uuid.uuid4(), uuid.uuid4()]
         with patch(self.GET_DEPENDENTS, return_value=dependents):
-            TaskManager.publish_dependents_changed(uuid.uuid4())
+            TaskManager.publish_required_by_changed(uuid.uuid4())
         assert mock_publish_entity.call_count == 2
         assert {c.args[0] for c in mock_publish_entity.call_args_list} == set(
             dependents
@@ -233,7 +233,7 @@ class TestTaskManagerPublishDependentsChanged:
     @patch(IS_DEFINED, return_value=True)
     def test_no_dependents_is_noop(self, mock_defined, mock_publish_entity):
         with patch(self.GET_DEPENDENTS, return_value=[]):
-            TaskManager.publish_dependents_changed(uuid.uuid4())
+            TaskManager.publish_required_by_changed(uuid.uuid4())
         mock_publish_entity.assert_not_called()
 
 

@@ -192,7 +192,7 @@ class InternalStatusTransitionCommand(BaseCommand):
             TaskManager.publish_entity_change(self._task_uuid)
             # A prerequisite's status is shown on its dependents' rows, so refresh
             # them too (no-op when this task has no dependents).
-            TaskManager.publish_dependents_changed(self._task_uuid)
+            TaskManager.publish_required_by_changed(self._task_uuid)
         return updated
 
     @transaction(on_error=partial(on_error, reraise=TaskUpdateFailedError))

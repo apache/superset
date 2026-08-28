@@ -120,14 +120,14 @@ class Task(CoreTask, AuditMixinNullable, Model):
         lazy="selectin",
     )
 
-    # Prerequisite tasks (self-referential many-to-many over task_dependencies).
-    # `dependencies` is the list of Task entities this task depends on, so the
-    # full prerequisite tasks load in a single selectin fetch alongside the task
-    # (no per-edge round trips). It is viewonly: edges are written through
-    # TaskDAO.add_dependency, not by mutating this collection. Cleanup on task
+    # Upstream prerequisite tasks (self-referential many-to-many over
+    # task_dependencies). `depends_on` is the list of Task entities this task
+    # depends on, loaded in a single selectin fetch alongside the task (no
+    # per-edge round trips). It is viewonly: edges are written through
+    # TaskDAO.add_dependencies, not by mutating this collection. Cleanup on task
     # deletion relies on the DB-level FK ON DELETE CASCADE (see the migration),
     # since TaskPruneCommand bulk-deletes via core DELETE, not the ORM.
-    dependencies = relationship(
+    depends_on = relationship(
         "Task",
         secondary=TaskDependency.__table__,
         primaryjoin=id == TaskDependency.task_id,
@@ -137,11 +137,11 @@ class Task(CoreTask, AuditMixinNullable, Model):
         viewonly=True,
     )
 
-    # Downstream tasks that depend on this task: the reverse of `dependencies`
+    # Downstream tasks that depend on this task: the reverse of `depends_on`
     # (same viewonly selectin pattern, joins swapped). Exposing both DAG
     # directions on the entity means callers read them directly rather than
     # issuing a separate reverse-edge query.
-    dependents = relationship(
+    required_by = relationship(
         "Task",
         secondary=TaskDependency.__table__,
         primaryjoin=id == TaskDependency.depends_on_task_id,

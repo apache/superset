@@ -34,7 +34,7 @@ const dependents = [
 ];
 
 test('renders the branching trigger icon', () => {
-  render(<TaskDependenciesPopover dependencies={dependencies} />, {
+  render(<TaskDependenciesPopover dependsOn={dependencies} />, {
     useRedux: true,
   });
   expect(screen.getByRole('img', { name: 'partition' })).toBeInTheDocument();
@@ -43,8 +43,8 @@ test('renders the branching trigger icon', () => {
 test('lists upstream and downstream tasks in the popover on hover', async () => {
   render(
     <TaskDependenciesPopover
-      dependencies={dependencies}
-      dependents={dependents}
+      dependsOn={dependencies}
+      requiredBy={dependents}
     />,
     { useRedux: true },
   );
@@ -61,10 +61,9 @@ test('lists upstream and downstream tasks in the popover on hover', async () => 
 });
 
 test('surfaces the waiting-on state in the popover title', async () => {
-  render(
-    <TaskDependenciesPopover dependencies={dependencies} waitingOn={1} />,
-    { useRedux: true },
-  );
+  render(<TaskDependenciesPopover dependsOn={dependencies} waitingOn={1} />, {
+    useRedux: true,
+  });
 
   fireEvent.mouseEnter(screen.getByRole('img', { name: 'partition' }));
 
@@ -74,7 +73,7 @@ test('surfaces the waiting-on state in the popover title', async () => {
 });
 
 test('uses the neutral "Dependencies" title when not waiting', async () => {
-  render(<TaskDependenciesPopover dependencies={dependencies} />, {
+  render(<TaskDependenciesPopover dependsOn={dependencies} />, {
     useRedux: true,
   });
 

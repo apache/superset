@@ -124,7 +124,7 @@ class CancelTaskCommand(BaseCommand):
         TaskManager.publish_entity_change(self._task_uuid)
         # A cancelled prerequisite fails its dependents' all-success gate, and its
         # status shows on their rows, so refresh those too.
-        TaskManager.publish_dependents_changed(self._task_uuid)
+        TaskManager.publish_required_by_changed(self._task_uuid)
 
         return result
 

@@ -445,13 +445,13 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
       {
         Cell: ({
           row: {
-            original: { payload, properties, status, depends_on, dependents },
+            original: { payload, properties, status, depends_on, required_by },
           },
         }: TaskCellProps) => {
           const hasPayload = payload && Object.keys(payload).length > 0;
           const hasStackTrace = !!properties?.stack_trace;
-          const hasDependencies = !!depends_on && depends_on.length > 0;
-          const hasDependents = !!dependents && dependents.length > 0;
+          const hasDependsOn = !!depends_on && depends_on.length > 0;
+          const hasRequiredBy = !!required_by && required_by.length > 0;
           const dedupeCount = properties?.dedupe_count ?? 0;
 
           // Show warning if timeout is set but no abort handler during execution
@@ -465,8 +465,8 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
             !hasPayload &&
             !hasStackTrace &&
             !hasTimeoutWithoutHandler &&
-            !hasDependencies &&
-            !hasDependents &&
+            !hasDependsOn &&
+            !hasRequiredBy &&
             !dedupeCount
           ) {
             return null;
@@ -475,7 +475,7 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
           // "Waiting on N" surfaces the block-and-wait gate: a PENDING task
           // parked until its unmet (non-SUCCESS) prerequisites finish. Folded
           // into the dependency icon (warning color + popover title).
-          const unmet = hasDependencies
+          const unmet = hasDependsOn
             ? depends_on.filter(dep => dep.status !== TaskStatus.Success).length
             : 0;
           const waitingOn =
@@ -504,16 +504,16 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
               {hasStackTrace && properties.stack_trace && (
                 <TaskStackTracePopover stackTrace={properties.stack_trace} />
               )}
-              {(hasDependencies || hasDependents) && (
+              {(hasDependsOn || hasRequiredBy) && (
                 <TaskDependenciesPopover
-                  dependencies={depends_on ?? []}
-                  dependents={dependents ?? []}
+                  dependsOn={depends_on ?? []}
+                  requiredBy={required_by ?? []}
                   waitingOn={waitingOn}
                   onHoverChange={hovering =>
                     setHighlightedDeps(
                       hovering
                         ? new Set(
-                            [...(depends_on ?? []), ...(dependents ?? [])].map(
+                            [...(depends_on ?? []), ...(required_by ?? [])].map(
                               dep => dep.uuid,
                             ),
                           )

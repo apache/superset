@@ -636,12 +636,13 @@ class TaskDAO(BaseDAO[Task]):
         return [parse_payload(payload) for (payload,) in rows]
 
     @classmethod
-    def get_dependent_uuids(cls, task_uuid: UUID) -> list[UUID]:
+    def get_required_by_uuids(cls, task_uuid: UUID) -> list[UUID]:
         """Return the UUIDs of the tasks that depend on ``task_uuid``.
 
-        The reverse of the dependency edge (indexed on ``depends_on_task_id``):
-        used to nudge dependents' realtime rows when a prerequisite's status
-        changes, since a dependent row displays its prerequisites' statuses.
+        The reverse of the dependency edge (indexed on ``depends_on_task_id``) —
+        i.e. the task's ``required_by`` set. Used to nudge those tasks' realtime
+        rows when this task's status changes, since a dependent row displays its
+        prerequisites' statuses.
         """
         prerequisite_id = (
             db.session.query(Task.id).filter(Task.uuid == task_uuid).scalar_subquery()
@@ -652,7 +653,7 @@ class TaskDAO(BaseDAO[Task]):
             .filter(TaskDependency.depends_on_task_id == prerequisite_id)
             .all()
         )
-        return [dependent_uuid for (dependent_uuid,) in rows]
+        return [required_by_uuid for (required_by_uuid,) in rows]
 
     @classmethod
     def set_properties_and_payload(

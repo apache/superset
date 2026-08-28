@@ -40,13 +40,13 @@ class TestResolveFailedPrerequisite:
     def test_no_dependencies_returns_none(self):
         from superset.tasks.scheduler import _resolve_failed_prerequisite
 
-        assert _resolve_failed_prerequisite(SimpleNamespace(dependencies=[])) is None
+        assert _resolve_failed_prerequisite(SimpleNamespace(depends_on=[])) is None
 
     @patch("superset.tasks.scheduler.TaskManager.wait_for_completion")
     def test_all_success_returns_none(self, mock_wait):
         from superset.tasks.scheduler import _resolve_failed_prerequisite
 
-        task = SimpleNamespace(dependencies=[_task(), _task()])
+        task = SimpleNamespace(depends_on=[_task(), _task()])
         mock_wait.return_value = SimpleNamespace(status=TaskStatus.SUCCESS.value)
 
         assert _resolve_failed_prerequisite(task) is None
@@ -62,13 +62,13 @@ class TestResolveFailedPrerequisite:
         failed = _task(status=TaskStatus.FAILURE.value)
         assert (
             _resolve_failed_prerequisite(
-                SimpleNamespace(dependencies=[succeeded, failed])
+                SimpleNamespace(depends_on=[succeeded, failed])
             )
             is failed
         )
         # All-terminal snapshot → wait_for_completion is never called
         assert (
-            _resolve_failed_prerequisite(SimpleNamespace(dependencies=[succeeded]))
+            _resolve_failed_prerequisite(SimpleNamespace(depends_on=[succeeded]))
             is None
         )
         mock_wait.assert_not_called()
@@ -77,7 +77,7 @@ class TestResolveFailedPrerequisite:
     def test_first_non_success_is_returned(self, mock_wait):
         from superset.tasks.scheduler import _resolve_failed_prerequisite
 
-        task = SimpleNamespace(dependencies=[_task(), _task()])
+        task = SimpleNamespace(depends_on=[_task(), _task()])
         failed = SimpleNamespace(uuid=uuid4(), status=TaskStatus.FAILURE.value)
         mock_wait.side_effect = [
             SimpleNamespace(status=TaskStatus.SUCCESS.value),
@@ -91,7 +91,7 @@ class TestResolveFailedPrerequisite:
         from superset.tasks.scheduler import _resolve_failed_prerequisite
 
         prerequisite = _task()
-        task = SimpleNamespace(dependencies=[prerequisite])
+        task = SimpleNamespace(depends_on=[prerequisite])
         mock_wait.side_effect = ValueError("gone")
 
         # The (stale) prerequisite is returned rather than blocking/raising.

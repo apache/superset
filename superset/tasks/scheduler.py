@@ -298,7 +298,7 @@ def _resolve_failed_prerequisite(task: "TaskModel") -> "TaskModel | None":
     run only if *all* of its direct prerequisites ended in ``SUCCESS``, so a
     non-``None`` return means the dependent must fail.
 
-    ``task.dependencies`` is already ``selectin``-loaded (in one query) with the
+    ``task.depends_on`` is already ``selectin``-loaded (in one query) with the
     task, so a prerequisite that is *already* terminal in that snapshot is
     evaluated with **no extra database reads** — a terminal status never changes,
     so the snapshot is authoritative for it (the common case under Model A, where
@@ -309,11 +309,11 @@ def _resolve_failed_prerequisite(task: "TaskModel") -> "TaskModel | None":
     Transitive failure propagation is emergent — a dependent that fails here is
     itself non-SUCCESS, so its own dependents fail in turn.
 
-    :param task: The dependent task about to run (with ``dependencies`` loaded)
+    :param task: The dependent task about to run (with ``depends_on`` loaded)
     :returns: The first prerequisite that did not end in ``SUCCESS``, or ``None``
         if the task has no prerequisites or all of them succeeded
     """
-    prerequisites = list(task.dependencies)
+    prerequisites = list(task.depends_on)
     if not prerequisites:
         return None
 

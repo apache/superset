@@ -88,9 +88,9 @@ function DependencySection({
 
 interface TaskDependenciesPopoverProps {
   // Upstream prerequisites this task depends on.
-  dependencies: TaskDependency[];
+  dependsOn: TaskDependency[];
   // Downstream tasks that depend on this task.
-  dependents?: TaskDependency[];
+  requiredBy?: TaskDependency[];
   // Unmet prerequisites while this task is still pending (blocked). When > 0 the
   // icon turns warning-colored and the popover title reflects the wait.
   waitingOn?: number;
@@ -100,8 +100,8 @@ interface TaskDependenciesPopoverProps {
 }
 
 export default function TaskDependenciesPopover({
-  dependencies,
-  dependents = [],
+  dependsOn,
+  requiredBy = [],
   waitingOn = 0,
   onHoverChange,
 }: TaskDependenciesPopoverProps) {
@@ -112,8 +112,8 @@ export default function TaskDependenciesPopover({
 
   const content = (
     <DependenciesContainer>
-      <DependencySection label={t('Depends on')} tasks={dependencies} />
-      <DependencySection label={t('Required by')} tasks={dependents} />
+      <DependencySection label={t('Depends on')} tasks={dependsOn} />
+      <DependencySection label={t('Required by')} tasks={requiredBy} />
     </DependenciesContainer>
   );
 

@@ -148,14 +148,15 @@ class TaskManager:
             return False
 
     @classmethod
-    def publish_dependents_changed(cls, task_uuid: UUID) -> None:
+    def publish_required_by_changed(cls, task_uuid: UUID) -> None:
         """Nudge the realtime rows of the tasks that depend on ``task_uuid``.
 
         A dependent's list row shows its prerequisites' statuses (the "depends on"
         detail and the "waiting on N" indicator), so a prerequisite's status
-        change must also refresh its dependents' rows — the prerequisite's own
-        entity-change nudge only refetches the prerequisite row. Best-effort:
-        no-op without a coordination backend or when the task has no dependents.
+        change must also refresh the rows of the tasks in its ``required_by`` set
+        — the prerequisite's own entity-change nudge only refetches its own row.
+        Best-effort: no-op without a coordination backend or when nothing depends
+        on the task.
         """
         from superset.coordination.base import CoordinationService
         from superset.daos.tasks import TaskDAO
@@ -163,11 +164,13 @@ class TaskManager:
         if not CoordinationService.is_backend_defined():
             return
         try:
-            for dependent_uuid in TaskDAO.get_dependent_uuids(task_uuid):
-                cls.publish_entity_change(dependent_uuid)
+            for required_by_uuid in TaskDAO.get_required_by_uuids(task_uuid):
+                cls.publish_entity_change(required_by_uuid)
         except Exception as ex:  # noqa: BLE001 pylint: disable=broad-except
             logger.warning(
-                "Failed to publish dependent changes for task %s: %s", task_uuid, ex
+                "Failed to publish required-by changes for task %s: %s",
+                task_uuid,
+                ex,
             )
 
     # Lossy Pub/Sub channel for task status fanout. Superset publishes one

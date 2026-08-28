@@ -113,7 +113,7 @@ class ReapOrphanedTasksCommand(BaseCommand):
         TaskManager.publish_entity_change(task_uuid)
         # A reaped prerequisite fails its dependents' all-success gate, and its
         # status shows on their rows, so refresh those too.
-        TaskManager.publish_dependents_changed(task_uuid)
+        TaskManager.publish_required_by_changed(task_uuid)
         stats_logger.incr("gtf.task.orphan_reaped")
         logger.warning("Reaped orphaned task %s (worker heartbeat stale)", task_uuid)
         return True
