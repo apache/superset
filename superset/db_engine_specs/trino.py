@@ -31,7 +31,7 @@ from flask_babel import gettext as __
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 from sqlalchemy.exc import NoSuchTableError
-from sqlalchemy.types import DECIMAL, TypeEngine
+from sqlalchemy.types import DECIMAL, FLOAT, TypeEngine
 
 from superset import cache_manager, db
 from superset.common.db_query_status import QueryStatus
@@ -82,10 +82,14 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
 
     # Trino's DBAPI driver can return DECIMAL columns as plain strings
     # (e.g. when a value's precision/scale can't be inferred from the
-    # column type alone), which later breaks numeric post-processing
-    # (e.g. pivot with a mean aggregate). Coerce them back to Decimal.
+    # column type alone). REAL/DOUBLE columns hit the same issue for
+    # NaN/Infinity/-Infinity, since Trino's wire protocol has to encode
+    # those as quoted strings (JSON has no literal for them). Either one
+    # later breaks numeric post-processing (e.g. pivot with a mean
+    # aggregate), so coerce both back to their real numeric type.
     column_type_mutators: dict[TypeEngine, Callable[[Any], Any]] = {
-        DECIMAL: lambda val: Decimal(val) if isinstance(val, str) else val
+        DECIMAL: lambda val: Decimal(val) if isinstance(val, str) else val,
+        FLOAT: lambda val: float(val) if isinstance(val, str) else val,
     }
 
     # The full set of columns Trino's "<table>$partitions" exposes for an
