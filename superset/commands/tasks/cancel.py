@@ -122,6 +122,9 @@ class CancelTaskCommand(BaseCommand):
         # Abort transitions (→ABORTING/ABORTED) don't go through
         # InternalStatusTransitionCommand, so they are emitted here instead.
         TaskManager.publish_entity_change(self._task_uuid)
+        # A cancelled prerequisite fails its dependents' all-success gate, and its
+        # status shows on their rows, so refresh those too.
+        TaskManager.publish_dependents_changed(self._task_uuid)
 
         return result
 
