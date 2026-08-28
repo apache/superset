@@ -71,6 +71,8 @@ __all__ = ["CompileResult", "_compile_chart", "validate_and_compile", "generate_
         title="Create chart",
         readOnlyHint=False,
         destructiveHint=False,
+        idempotentHint=False,
+        openWorldHint=False,
     ),
 )
 async def generate_chart(  # noqa: C901

@@ -65,12 +65,16 @@ export type AntdExposedProps = Pick<
   | 'onOpenChange'
   | 'optionRender'
   | 'placeholder'
+  | 'prefix'
   | 'showArrow'
   | 'showSearch'
   | 'tokenSeparators'
   | 'virtual'
   | 'getPopupContainer'
   | 'menuItemSelectedIcon'
+  // lets a caller with long option labels stop the popup inheriting the
+  // trigger's width, which otherwise truncates every option
+  | 'popupMatchSelectWidth'
 >;
 
 export type SelectOptionsType = Exclude<AntdProps['options'], undefined>;

@@ -63,6 +63,7 @@ _DEFAULT_LIST_TAGS_REQUEST = ListTagsRequest()
         title="List tags",
         readOnlyHint=True,
         destructiveHint=False,
+        openWorldHint=False,
     ),
 )
 async def list_tags(

@@ -25,6 +25,13 @@ import {
 } from '../../../src/constants';
 import { OrientationType } from '../../../src/Timeseries/types';
 
+// Narrow shape of the control under test: enough to exercise `visibility`
+// without reaching for `any`.
+type VisibilityControl = {
+  name: string;
+  config: { visibility: (props: ControlPanelsContainerProps) => boolean };
+};
+
 const config = controlPanel;
 
 const getControl = (controlName: string) => {
@@ -291,4 +298,43 @@ test('x_axis_time_format should be hidden for numeric columns', () => {
   expect(visibilityFn(mockBarControls('year', GenericDataType.Numeric))).toBe(
     false,
   );
+});
+
+test('should have visibility function for label_position', () => {
+  const labelPositionCtrl = getControl(
+    'label_position',
+  ) as unknown as VisibilityControl;
+  expect(labelPositionCtrl).toBeDefined();
+  expect(labelPositionCtrl.config.visibility).toBeDefined();
+  expect(typeof labelPositionCtrl.config.visibility).toBe('function');
+
+  expect(
+    labelPositionCtrl.config.visibility({
+      controls: {
+        show_value: { value: true },
+        show_valueB: { value: false },
+      },
+    } as unknown as ControlPanelsContainerProps),
+  ).toBe(true);
+
+  // Visibility follows `show_value` alone. No Timeseries panel defines
+  // `show_valueB` — Mixed declares its own suffixed controls — so it must not
+  // reveal the control on its own.
+  expect(
+    labelPositionCtrl.config.visibility({
+      controls: {
+        show_value: { value: false },
+        show_valueB: { value: true },
+      },
+    } as unknown as ControlPanelsContainerProps),
+  ).toBe(false);
+
+  expect(
+    labelPositionCtrl.config.visibility({
+      controls: {
+        show_value: { value: false },
+        show_valueB: { value: false },
+      },
+    } as unknown as ControlPanelsContainerProps),
+  ).toBe(false);
 });

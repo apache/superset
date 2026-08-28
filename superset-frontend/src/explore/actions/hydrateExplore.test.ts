@@ -17,9 +17,19 @@
  * under the License.
  */
 
-import { VizType } from '@superset-ui/core';
+import { isFeatureEnabled, VizType } from '@superset-ui/core';
+import { HYDRATE_CHART_NORMALIZATION } from 'src/features/versionHistory/reducer';
 import { hydrateExplore, HYDRATE_EXPLORE } from './hydrateExplore';
 import { exploreInitialData } from '../fixtures';
+
+jest.mock('@superset-ui/core', () => ({
+  ...jest.requireActual('@superset-ui/core'),
+  isFeatureEnabled: jest.fn(),
+}));
+
+const mockedIsFeatureEnabled = isFeatureEnabled as jest.Mock;
+
+beforeEach(() => mockedIsFeatureEnabled.mockReturnValue(false));
 
 afterEach(() => {
   window.history.pushState({}, '', '/');
@@ -341,5 +351,69 @@ test('extracts currency formats from metrics in dataset', () => {
         }),
       }),
     }),
+  );
+});
+
+test('seeds only guarded matching-input hydration transitions', () => {
+  mockedIsFeatureEnabled.mockReturnValue(true);
+  const dispatch = jest.fn();
+  const getState = jest.fn(() => ({
+    user: {},
+    charts: {},
+    datasources: {},
+    common: { conf: { DEFAULT_TIME_FILTER: 'Last year' } },
+    explore: {},
+  }));
+  const persisted = {
+    ...exploreInitialData.form_data,
+  };
+  delete persisted.time_range;
+  const initialData = {
+    ...exploreInitialData,
+    form_data: { ...persisted },
+    slice: {
+      ...exploreInitialData.slice!,
+      form_data: { ...persisted },
+    },
+  };
+
+  // @ts-expect-error focused hydration fixture
+  hydrateExplore(initialData)(dispatch, getState);
+
+  expect(dispatch).toHaveBeenCalledWith(
+    expect.objectContaining({
+      type: HYDRATE_CHART_NORMALIZATION,
+      tracking: expect.objectContaining({
+        chartId: 371,
+        transitions: expect.objectContaining({
+          time_range: {
+            control: 'time_range',
+            from_present: false,
+            to_present: true,
+            to_value: 'Last year',
+          },
+        }),
+      }),
+    }),
+  );
+});
+
+test('does not seed normalization metadata for dashboard overrides', () => {
+  mockedIsFeatureEnabled.mockReturnValue(true);
+  window.history.pushState({}, '', '/explore/?dashboard_id=12');
+  const dispatch = jest.fn();
+  const getState = jest.fn(() => ({
+    user: {},
+    charts: {},
+    datasources: {},
+    common: {},
+    explore: {},
+  }));
+
+  // @ts-expect-error focused hydration fixture
+  hydrateExplore(exploreInitialData)(dispatch, getState);
+
+  expect(dispatch).not.toHaveBeenCalledWith(
+    expect.objectContaining({ type: HYDRATE_CHART_NORMALIZATION }),
   );
 });
