@@ -401,6 +401,10 @@ const AsyncSelect = forwardRef(
     const fetchPage = useMemo(
       () => (search: string, page: number) => {
         setPage(page);
+        // A previous fetch may have left an error on screen. Clear it before
+        // any early return so a page served from cache, or from an already
+        // complete option set, is not shown next to a stale error.
+        setError('');
         if (allValuesLoaded) {
           setIsLoading(false);
           return;
@@ -412,9 +416,6 @@ const AsyncSelect = forwardRef(
           setIsLoading(false);
           return;
         }
-        // A previous fetch may have left an error on screen; clear it so the
-        // dropdown renders this fetch's outcome instead of the stale error.
-        setError('');
         setIsLoading(true);
 
         const fetchOptions = options as SelectOptionsPagePromise;
@@ -489,7 +490,15 @@ const AsyncSelect = forwardRef(
               setTotalCount(totalCount);
             }
           })
-          .catch(internalOnError)
+          .catch((response: Response) => {
+            // Same rule as for results: a failure belonging to a search the
+            // user has since moved on from must not replace the outcome of
+            // the fetch that superseded it.
+            if (inputValueRef.current === search) {
+              return internalOnError(response);
+            }
+            return undefined;
+          })
           .finally(() => {
             inFlightFetchesRef.current = Math.max(
               0,
