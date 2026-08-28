@@ -308,7 +308,7 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
         accessor: 'task_name',
         Header: t('Task'),
         size: 'xl',
-        id: 'task',
+        id: 'task_name',
       },
       {
         Cell: ({
