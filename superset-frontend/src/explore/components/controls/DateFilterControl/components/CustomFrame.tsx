@@ -142,7 +142,11 @@ export function CustomFrame(props: FrameComponentProps) {
                     onChange('sinceDatetime', datetime.format(DAYJS_FORMAT))
                   }
                   allowClear={false}
-                  getPopupContainer={() => document.body}
+                  getPopupContainer={(triggerNode: HTMLElement) =>
+                    props.isOverflowingFilterBar
+                      ? (triggerNode.parentNode as HTMLElement)
+                      : document.body
+                  }
                 />
               </Row>
             )}
@@ -197,7 +201,11 @@ export function CustomFrame(props: FrameComponentProps) {
                     onChange('untilDatetime', datetime.format(DAYJS_FORMAT))
                   }
                   allowClear={false}
-                  getPopupContainer={() => document.body}
+                  getPopupContainer={(triggerNode: HTMLElement) =>
+                    props.isOverflowingFilterBar
+                      ? (triggerNode.parentNode as HTMLElement)
+                      : document.body
+                  }
                 />
               </Row>
             )}
@@ -254,7 +262,11 @@ export function CustomFrame(props: FrameComponentProps) {
                     }
                     allowClear={false}
                     className="control-anchor-to-datetime"
-                    getPopupContainer={() => document.body}
+                    getPopupContainer={(triggerNode: HTMLElement) =>
+                      props.isOverflowingFilterBar
+                        ? (triggerNode.parentNode as HTMLElement)
+                        : document.body
+                    }
                   />
                 </Col>
               )}
