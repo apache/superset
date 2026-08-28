@@ -100,9 +100,11 @@ from superset.versioning.api_helpers import (
     entity_concurrency_token,
     get_version_endpoint,
     list_versions_endpoint,
+    lock_entity_for_update,
     restore_version_endpoint,
 )
 from superset.versioning.etag import (
+    is_conditional_write,
     raise_for_stale_write,
     set_version_etag,
     StaleEntityError,
@@ -645,6 +647,13 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         # This validates custom Schema with custom validations
         except ValidationError as error:
             return self.response_400(message=error.messages)
+
+        # Serialise conditional saves on this dataset: the guard below reads
+        # the live version, the command writes, and the two must not interleave
+        # with another request's. Only a conditional save pays for the lock; an
+        # unconditional PUT behaves exactly as it did before the guard existed.
+        if is_conditional_write():
+            lock_entity_for_update(SqlaTable, pk)
 
         # Live version identifiers before the update (empty + query-free when
         # ``ENABLE_VERSIONING_CAPTURE`` is off).

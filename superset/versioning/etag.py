@@ -95,6 +95,11 @@ def _entity_tag(tag: str) -> str:
     return tag.split(":", 1)[0]
 
 
+def is_conditional_write() -> bool:
+    """Whether the request carries an ``If-Match`` precondition."""
+    return bool(request.if_match)
+
+
 def raise_for_stale_write(current_version_uuid: str | None) -> None:
     """Enforce ``If-Match`` on a write request, if the client sent one.
 

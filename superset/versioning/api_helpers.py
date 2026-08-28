@@ -187,6 +187,29 @@ def entity_concurrency_token(
     ) or unversioned_entity_token(entity_uuid)
 
 
+def lock_entity_for_update(model_cls: type[Model], entity_id: int | None) -> None:
+    """Row-lock *entity* so a conditional write's check and its update are atomic.
+
+    ``If-Match`` is verified against a read taken before the update command
+    runs. Without a lock two overlapping requests can both read the same live
+    version, both pass the check, and then commit one after the other,
+    reintroducing the lost update the check exists to prevent. The lock is
+    held until the command commits, because both run in the same scoped
+    session.
+
+    Renders no ``FOR UPDATE`` on SQLite, which serialises writers anyway.
+    """
+    try:
+        # The PUT route declares ``/<pk>`` (a string segment), so a non-numeric
+        # id must not raise a SQL cast error ahead of the command's 404.
+        entity_id = int(entity_id)  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        return
+    db.session.execute(
+        sa.select(model_cls.id).where(model_cls.id == entity_id).with_for_update()
+    )
+
+
 def concurrency_token_from(info: EntityVersionInfo) -> str | None:
     """Concurrency token for an already-resolved :class:`EntityVersionInfo`.
 

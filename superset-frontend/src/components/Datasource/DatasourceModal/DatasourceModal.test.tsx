@@ -67,14 +67,23 @@ async function renderAndWait(props = mockedProps) {
   container = renderedContainer;
 }
 
-beforeEach(() => {
+// A modal that wasn't handed an `etag` reads the dataset itself and can't save
+// until that lands, so tests must wait before acting on the Save button.
+async function waitForSaveEnabled() {
+  await waitFor(() =>
+    expect(screen.getByTestId('datasource-modal-save')).toBeEnabled(),
+  );
+}
+
+beforeEach(async () => {
   fetchMock.clearHistory().removeRoutes();
   cleanup();
-  renderAndWait();
   fetchMock.post(SAVE_ENDPOINT, SAVE_PAYLOAD);
   fetchMock.put(SAVE_DATASOURCE_ENDPOINT, {});
   fetchMock.get(GET_DATASOURCE_ENDPOINT, { result: {} });
   fetchMock.get(GET_DATABASE_ENDPOINT, { result: [] });
+  renderAndWait();
+  await waitForSaveEnabled();
 });
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
@@ -118,6 +127,7 @@ describe('DatasourceModal', () => {
       onDatasourceSave:
         onDatasourceSave as unknown as typeof mockedProps.onDatasourceSave,
     });
+    await waitForSaveEnabled();
     const saveButton = screen.getByTestId('datasource-modal-save');
     fireEvent.click(saveButton);
     const okButton = await screen.findByRole('button', { name: 'Confirm' });
@@ -180,6 +190,11 @@ describe('DatasourceModal', () => {
 
     renderAndWait();
 
+    // The form is seeded from the same read as the validator, so saving is
+    // unavailable until it lands.
+    expect(screen.getByTestId('datasource-modal-save')).toBeDisabled();
+    await screen.findByTestId('datasource-editor');
+
     fireEvent.click(screen.getByTestId('datasource-modal-save'));
     fireEvent.click(await screen.findByRole('button', { name: 'Confirm' }));
 
@@ -191,6 +206,28 @@ describe('DatasourceModal', () => {
         new Headers(putCall?.options?.headers as HeadersInit).get('If-Match'),
       ).toEqual('"v2"');
     });
+  });
+
+  test('never saves unguarded while the validator read is in flight', async () => {
+    cleanup();
+    fetchMock.clearHistory().removeRoutes();
+    fetchMock.put(SAVE_DATASOURCE_ENDPOINT, {});
+    // A read that never resolves: the save path must stay closed rather than
+    // fall through to an unconditional PUT.
+    fetchMock.get(GET_DATASOURCE_ENDPOINT, new Promise(() => {}));
+    fetchMock.get(GET_DATABASE_ENDPOINT, { result: [] });
+
+    renderAndWait();
+
+    const saveButton = await screen.findByTestId('datasource-modal-save');
+    expect(saveButton).toBeDisabled();
+    fireEvent.click(saveButton);
+
+    expect(
+      fetchMock.callHistory
+        .calls()
+        .find(call => call.options?.method === 'put'),
+    ).toBeUndefined();
   });
 
   test('shows a conflict dialog instead of a generic error on 412', async () => {
@@ -226,15 +263,24 @@ describe('DatasourceModal', () => {
     };
 
     const { rerender } = render(
-      <DatasourceModal {...mockedProps} datasource={datasourceWithSQL} />,
+      <DatasourceModal
+        {...mockedProps}
+        datasource={datasourceWithSQL}
+        etag='"v1"'
+      />,
       { store, useRouter: true },
     );
 
     // Update with modified SQL
     rerender(
-      <DatasourceModal {...mockedProps} datasource={modifiedDatasource} />,
+      <DatasourceModal
+        {...mockedProps}
+        datasource={modifiedDatasource}
+        etag='"v1"'
+      />,
     );
 
+    await waitForSaveEnabled();
     const saveButton = screen.getByTestId('datasource-modal-save');
     fireEvent.click(saveButton);
 
@@ -271,15 +317,24 @@ describe('DatasourceModal', () => {
     fetchMock.get(GET_DATABASE_ENDPOINT, { result: [] });
 
     const { rerender } = render(
-      <DatasourceModal {...mockedProps} datasource={datasourceWithSQL} />,
+      <DatasourceModal
+        {...mockedProps}
+        datasource={datasourceWithSQL}
+        etag='"v1"'
+      />,
       { store, useRouter: true },
     );
 
     // Update with modified SQL to trigger checkbox
     rerender(
-      <DatasourceModal {...mockedProps} datasource={modifiedDatasource} />,
+      <DatasourceModal
+        {...mockedProps}
+        datasource={modifiedDatasource}
+        etag='"v1"'
+      />,
     );
 
+    await waitForSaveEnabled();
     const saveButton = screen.getByTestId('datasource-modal-save');
     fireEvent.click(saveButton);
 
@@ -332,15 +387,24 @@ describe('DatasourceModal', () => {
     fetchMock.get(GET_DATABASE_ENDPOINT, { result: [] });
 
     const { rerender } = render(
-      <DatasourceModal {...mockedProps} datasource={datasourceWithSQL} />,
+      <DatasourceModal
+        {...mockedProps}
+        datasource={datasourceWithSQL}
+        etag='"v1"'
+      />,
       { store, useRouter: true },
     );
 
     // Update with modified SQL to trigger checkbox
     rerender(
-      <DatasourceModal {...mockedProps} datasource={modifiedDatasource} />,
+      <DatasourceModal
+        {...mockedProps}
+        datasource={modifiedDatasource}
+        etag='"v1"'
+      />,
     );
 
+    await waitForSaveEnabled();
     const saveButton = screen.getByTestId('datasource-modal-save');
     fireEvent.click(saveButton);
 

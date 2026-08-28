@@ -33,12 +33,14 @@ import {
   Icons,
   Button,
   Checkbox,
+  Loading,
   Modal,
   AsyncEsmComponent,
 } from '@superset-ui/core/components';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { ErrorMessageWithStackTrace } from 'src/components';
 import type { DatasetObject } from 'src/features/datasets/types';
+import { withCertificationFields } from '../utils';
 import { mapSubjectValuesToIds } from 'src/features/subjects/SubjectPicker';
 import type { DatasourceModalProps } from '../types';
 
@@ -98,6 +100,10 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
 }) => {
   const theme = useTheme();
   const [currentDatasource, setCurrentDatasource] = useState(datasource);
+  // SQL of the server snapshot the form started from. The caller's, unless
+  // this modal read the dataset itself — then "did the SQL change?" has to be
+  // asked against the snapshot the payload is actually built from.
+  const [seededSql, setSeededSql] = useState<string | undefined>();
   const [versionEtag, setVersionEtag] = useState(etag);
   const [syncColumns, setSyncColumns] = useState(false);
   const currencies = useSelector<
@@ -113,23 +119,52 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [modal, contextHolder] = Modal.useModal();
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);
+  const [isLoadingDatasource, setIsLoadingDatasource] = useState(false);
 
+  // Callers that read the dataset themselves (the dataset list) hand down the
+  // ETag of that read. The rest — Explore, where `datasource` comes from the
+  // page's bootstrap state — read it here, and must seed the form from the
+  // *same* response: a payload built from an older snapshot than the ETag
+  // guarding it would still be accepted, and would still clobber.
   useEffect(() => {
     setVersionEtag(etag);
     if (etag || !show || !datasource.id) {
-      return;
+      return undefined;
     }
+    let cancelled = false;
+    setIsLoadingDatasource(true);
     SupersetClient.get({
       endpoint: `/api/v1/dataset/${datasource.id}`,
     })
-      .then(({ response }) => {
+      .then(({ json, response }) => {
+        if (cancelled) {
+          return;
+        }
+        const seeded = {
+          ...datasource,
+          ...json.result,
+          columns: withCertificationFields(json.result.columns),
+        };
+        setSeededSql(seeded.sql);
+        setCurrentDatasource(seeded);
         setVersionEtag(response.headers.get('ETag') ?? undefined);
       })
       .catch(() => {
-        // Without a validator the save just falls back to an unconditional
-        // write, which is what it did before — don't block editing on it.
+        // The read failed outright, so there is no fresher snapshot to edit
+        // and no validator to send. Fall back to the caller's snapshot and an
+        // unconditional save, which is what this modal did before the guard.
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setIsLoadingDatasource(false);
+        }
       });
+    return () => {
+      cancelled = true;
+    };
   }, [datasource.id, etag, show]);
+  const baselineSql = seededSql ?? datasource.sql;
+
   const buildPayload = (datasource: Record<string, any>) => {
     const payload: Record<string, any> = {
       table_name: datasource.table_name,
@@ -298,7 +333,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
                 here may affect other charts
                 in undesirable ways.`)}
         />
-        {datasource.sql !== currentDatasource.sql && (
+        {baselineSql !== currentDatasource.sql && (
           <div
             css={theme => ({
               marginBottom: theme.marginMD,
@@ -332,14 +367,14 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
         {t('Are you sure you want to save and apply changes?')}
       </div>
     ),
-    [currentDatasource.sql, datasource.sql, syncColumns],
+    [currentDatasource.sql, baselineSql, syncColumns],
   );
 
   useEffect(() => {
-    if (datasource.sql !== currentDatasource.sql) {
+    if (baselineSql !== currentDatasource.sql) {
       setSyncColumns(true);
     }
-  }, [datasource.sql, currentDatasource.sql]);
+  }, [baselineSql, currentDatasource.sql]);
 
   const onClickSave = () => {
     setConfirmModalOpen(true);
@@ -390,6 +425,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
             onClick={onClickSave}
             disabled={
               isSaving ||
+              isLoadingDatasource ||
               errors.length > 0 ||
               currentDatasource.is_managed_externally
             }
@@ -415,14 +451,18 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
       }}
       draggable
     >
-      <DatasourceEditor
-        showLoadingForImport
-        height={500}
-        datasource={currentDatasource}
-        onChange={onDatasourceChange}
-        setIsEditing={setIsEditing}
-        currencies={currencies}
-      />
+      {isLoadingDatasource ? (
+        <Loading />
+      ) : (
+        <DatasourceEditor
+          showLoadingForImport
+          height={500}
+          datasource={currentDatasource}
+          onChange={onDatasourceChange}
+          setIsEditing={setIsEditing}
+          currencies={currencies}
+        />
+      )}
       {contextHolder}
       <Modal
         title={t('Confirm save')}
