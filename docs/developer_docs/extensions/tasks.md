@@ -177,14 +177,14 @@ A task's state lives in three tiers:
    **only in debug mode** (otherwise the whole `private` key is stripped). It has
    two structurally isolated namespaces so a task type's freeform key can never
    collide with a framework key:
-   - `private.framework` — framework-owned named keys: the Celery job id and the
-     engine cancel handle the orphan reaper needs (`celery_task_id`,
-     `cancel_query_id` lives under `task`, see below), plus error debug
+   - `private.framework` — framework-owned named keys common to every task: the
+     Celery job id the orphan reaper revokes (`celery_task_id`) plus error debug
      (`exception_type`, `stack_trace`). Written only by the framework via
      `task.update_framework_private({...})`.
    - `private.task` — freeform, task-type-specific internal handles (e.g. the
-     engine `cancel_query_id`/`cancel_database_id`). Written by task/execution
-     code via `task.update_task_private({...})`.
+     chart-data query task's engine cancel handle,
+     `cancel_query_id`/`cancel_database_id`). Written by task/execution code via
+     `task.update_task_private({...})`.
    Both namespaces merge independently (a write to one never clobbers the other).
 3. **Results (`payload`)** — end-user-facing task output (intermediate/final):
    e.g. a `cache_key` or an engine tracking URL. Set via

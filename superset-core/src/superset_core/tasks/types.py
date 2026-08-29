@@ -97,15 +97,15 @@ class TaskProperties(TypedDict, total=False):
 class FrameworkPrivateProperties(TypedDict, total=False):
     """Framework-owned internal task state, under ``private["framework"]``.
 
-    Named keys written *only* by the framework: orchestration handles used by the
-    orphan reaper (the Celery job id to revoke, the engine cancel handle for the
-    running warehouse query) and error-debug detail (exception class + traceback).
-    Isolated from task-owned keys so a task type can never clobber them.
+    Named keys written *only* by the framework, common to every task type: the
+    Celery job id the orphan reaper revokes, and error-debug detail (exception
+    class + traceback). Isolated from task-owned keys so a task type can never
+    clobber them. Task-execution handles specific to one kind of task (e.g. a
+    warehouse-query cancel handle) belong in the freeform ``task`` namespace, not
+    here.
     """
 
     celery_task_id: str
-    cancel_query_id: str
-    cancel_database_id: int
     exception_type: str
     stack_trace: str
 
@@ -118,9 +118,11 @@ class PrivateProperties(TypedDict, total=False):
     structurally isolated namespaces so a task type's freeform key can never
     collide with a framework orchestration key:
 
-    - ``framework``: named framework-owned keys (see ``FrameworkPrivateProperties``).
+    - ``framework``: named framework-owned keys, common to all tasks (see
+      ``FrameworkPrivateProperties``).
     - ``task``: freeform, task-type-specific internal handles, written only by
-      task/execution code.
+      task/execution code. E.g. the chart-data query task stores its engine
+      cancel handle here (``cancel_query_id`` / ``cancel_database_id``).
     """
 
     framework: "FrameworkPrivateProperties"
