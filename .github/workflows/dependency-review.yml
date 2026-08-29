@@ -66,7 +66,14 @@ jobs:
 
       - name: "Set up liccheck"
         run: |
-          uv pip install --system liccheck
+          # liccheck (as of 0.9.2) still does a bare `import pkg_resources` and
+          # doesn't declare setuptools as a dependency, relying on it having
+          # historically been bundled. setuptools 81+ (installed above via
+          # requirements/base.txt, needed to build superset itself) dropped
+          # pkg_resources entirely, so liccheck's own import breaks. The
+          # superset install above is already done, so it's safe to reinstall
+          # an old setuptools in this job just to give liccheck what it needs.
+          uv pip install --system "setuptools<81" liccheck
       - name: "Run liccheck"
         run: |
           # run the checks
