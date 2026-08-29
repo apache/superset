@@ -166,7 +166,9 @@ def test_persist_celery_task_id_writes_and_commits() -> None:
     with patch("superset.tasks.scheduler.db") as db:
         _persist_celery_task_id(task, "celery-9")
 
-    task.update_properties.assert_called_once_with({"celery_task_id": "celery-9"})
+    task.update_private_properties.assert_called_once_with(
+        {"celery_task_id": "celery-9"}
+    )
     db.session.commit.assert_called_once()
 
 
@@ -177,5 +179,5 @@ def test_persist_celery_task_id_is_noop_without_an_id() -> None:
     with patch("superset.tasks.scheduler.db") as db:
         _persist_celery_task_id(task, None)
 
-    task.update_properties.assert_not_called()
+    task.update_private_properties.assert_not_called()
     db.session.commit.assert_not_called()

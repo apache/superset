@@ -138,10 +138,15 @@ class TaskResponseSchema(Schema):
         return obj.payload_dict  # type: ignore[attr-defined]
 
     def get_properties(self, obj: object) -> dict[str, object]:
-        """Get properties dict, filtering debug fields unless SHOW_STACKTRACE."""
+        """Get properties dict, stripping internal state and gated debug fields."""
         from flask import current_app
 
         properties = dict(obj.properties_dict)  # type: ignore[attr-defined]
+
+        # Strip the internal ``private`` bucket entirely: it holds framework
+        # runtime plumbing (job/cancel handles), never task output, and must not
+        # reach API consumers.
+        properties.pop("private", None)
 
         # Remove internal debugging details unless SHOW_STACKTRACE is enabled.
         # The full traceback and the raw exception class name disclose internal

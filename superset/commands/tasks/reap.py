@@ -17,7 +17,7 @@
 """Reap GTF tasks abandoned by a dead worker."""
 
 import logging
-from typing import cast
+from typing import Any, cast
 from uuid import UUID
 
 from flask import current_app
@@ -78,7 +78,7 @@ class ReapOrphanedTasksCommand(BaseCommand):
     def _reap(self, task_uuid: UUID, stats_logger: BaseStatsLogger) -> bool:
         """Recover one orphaned task; return True if it was transitioned to FAILURE."""
         # Read the current properties so the FAILURE write preserves existing
-        # runtime state (celery_task_id, is_abortable, ...) rather than replacing
+        # runtime state (private handles, is_abortable, ...) rather than replacing
         # the whole column with just the error fields.
         properties = cast(
             TaskProperties,
@@ -112,9 +112,11 @@ class ReapOrphanedTasksCommand(BaseCommand):
         db.session.commit()  # pylint: disable=consider-using-transaction
 
         # We own the terminal transition — the worker is gone (or lost the race),
-        # so its Celery job and warehouse query are safe to clean up.
-        self._revoke(properties.get("celery_task_id"), stats_logger)
-        self._cancel_orphaned_query(properties)
+        # so its Celery job and warehouse query are safe to clean up. The recovery
+        # handles live in the internal ``private`` bucket.
+        private = cast("dict[str, Any]", properties.get("private") or {})
+        self._revoke(private.get("celery_task_id"), stats_logger)
+        self._cancel_orphaned_query(private)
 
         from superset.tasks.manager import TaskManager
 
@@ -149,16 +151,18 @@ class ReapOrphanedTasksCommand(BaseCommand):
                 "Failed to revoke Celery task %s", celery_task_id, exc_info=True
             )
 
-    def _cancel_orphaned_query(self, properties: TaskProperties) -> None:
+    def _cancel_orphaned_query(self, private: "dict[str, Any]") -> None:
         """Cancel the abandoned warehouse query, if one was captured.
 
         The dead worker can't run its own ``on_abort`` handler, so the reaper
         cancels out-of-band from the persisted handle (only present for engines
         that expose a cancel id before execution). Best-effort: no handle, a
         missing database, or a cancel failure never blocks the FAILURE transition.
+
+        :param private: the task's internal ``private`` properties bucket
         """
-        cancel_query_id = properties.get("cancel_query_id")
-        database_id = properties.get("cancel_database_id")
+        cancel_query_id = private.get("cancel_query_id")
+        database_id = private.get("cancel_database_id")
         if not cancel_query_id or database_id is None:
             return
 

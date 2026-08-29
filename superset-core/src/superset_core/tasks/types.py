@@ -88,6 +88,19 @@ class TaskProperties(TypedDict, total=False):
     exception_type: str
     stack_trace: str
 
+    # Internal runtime state, never surfaced to user-facing API payloads (the Task
+    # REST API strips this key). Holds framework plumbing rather than task output.
+    private: "PrivateProperties"
+
+
+class PrivateProperties(TypedDict, total=False):
+    """Internal task runtime state, stored under ``TaskProperties["private"]``.
+
+    Framework plumbing that must never reach user-facing API payloads (the Task
+    REST API strips the whole ``private`` bucket). Distinct from task output,
+    which belongs in the task's ``payload``.
+    """
+
     # Recovery handles used by the orphan reaper (see superset.commands.tasks.reap):
     # the Celery job id to revoke, and the engine cancel handle for the running
     # warehouse query so it can be cancelled out-of-band when the worker is dead.

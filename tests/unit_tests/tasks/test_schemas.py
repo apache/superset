@@ -69,6 +69,30 @@ def test_get_properties_exposes_debug_fields_when_show_stacktrace(
     assert str(properties["stack_trace"]).startswith("Traceback")
 
 
+def test_get_properties_strips_private_bucket(
+    app_context: None, mocker: MockerFixture
+) -> None:
+    """The internal ``private`` bucket is never surfaced; public keys remain."""
+    mocker.patch.dict(current_app.config, {"SHOW_STACKTRACE": False})
+    task = SimpleNamespace(
+        properties_dict={
+            "private": {
+                "celery_task_id": "celery-123",
+                "cancel_query_id": "42",
+                "cancel_database_id": 7,
+            },
+            "progress_percent": 0.5,
+            "error_message": "boom",
+        }
+    )
+
+    properties = TaskResponseSchema().get_properties(task)
+
+    assert "private" not in properties
+    assert properties["progress_percent"] == 0.5
+    assert properties["error_message"] == "boom"
+
+
 def test_get_subscribers_mixes_users_and_anonymized_guests() -> None:
     """User subscribers keep their profile; guests get anonymized G1/G2 labels."""
     from datetime import datetime

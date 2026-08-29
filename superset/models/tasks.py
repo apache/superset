@@ -187,6 +187,22 @@ class Task(CoreTask, AuditMixinNullable, Model):
         current.update(updates)  # Merge updates
         self.properties = serialize_properties(current)
 
+    def update_private_properties(self, updates: dict[str, Any]) -> None:
+        """
+        Merge keys into the ``private`` properties bucket (internal runtime state).
+
+        ``private`` holds framework plumbing (job/cancel handles) that is never
+        surfaced to user-facing API payloads. Merges rather than replaces, so a
+        later write (e.g. the engine cancel handle) preserves an earlier one (e.g.
+        the Celery job id).
+
+        :param updates: private keys to set/merge
+        """
+        current = cast(TaskProperties, dict(self.properties_dict))
+        private: dict[str, Any] = {**(current.get("private") or {}), **updates}
+        current["private"] = cast("Any", private)
+        self.properties = serialize_properties(current)
+
     # -------------------------------------------------------------------------
     # Payload accessor (for task-specific output data)
     # -------------------------------------------------------------------------

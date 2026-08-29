@@ -359,7 +359,7 @@ def _persist_celery_task_id(task: "TaskModel", celery_task_id: str | None) -> No
     """
     if not celery_task_id:
         return
-    task.update_properties({"celery_task_id": celery_task_id})
+    task.update_private_properties({"celery_task_id": celery_task_id})
     # One-shot write at pickup, outside the lifecycle transaction below.
     db.session.commit()  # pylint: disable=consider-using-transaction
 
