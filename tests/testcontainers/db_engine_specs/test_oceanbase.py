@@ -34,6 +34,17 @@ has a pre-existing, unrelated native-library linking issue against this
 machine's Homebrew-installed libmysqlclient, and this dialect wasn't
 pulled/run locally at all given its heavier resource footprint -- CI-only
 verification, matching the nightly_only gating.
+
+oceanbase_py.sqlalchemy.dialect.OceanBaseDialect.has_table() -- called by
+both create_all()'s default checkfirst=True and by Inspector.get_columns()
+internally -- passes a raw string straight to Connection.execute()
+(`connection.execute(f"DESCRIBE {full_name}")`), which SQLAlchemy 2.0
+rejects outright (ObjectNotExecutableError, confirmed on real CI). Every
+*other* raw-SQL method in the same dialect module correctly uses
+`connection.exec_driver_sql(...)` instead -- this looks like an isolated
+oversight in just this one method, not a deliberate design choice, so this
+test monkeypatches has_table() to do the same thing the rest of the
+dialect already does, rather than working around it from the test side.
 """
 
 from collections.abc import Iterator
@@ -47,7 +58,7 @@ from sqlalchemy import (
     MetaData,
     Table as SATable,
 )
-from sqlalchemy.engine import Engine, URL
+from sqlalchemy.engine import Connection, Engine, URL
 
 from superset.db_engine_specs.oceanbase import OceanBaseEngineSpec
 from superset.sql.parse import Table
@@ -60,12 +71,33 @@ from ._driver import require_driver  # noqa: E402
 require_driver("testcontainers.core.container")
 require_driver("oceanbase_py")
 
+from oceanbase_py.sqlalchemy.dialect import OceanBaseDialect  # noqa: E402
 from testcontainers.core.container import DockerContainer  # noqa: E402
 from testcontainers.core.wait_strategies import LogMessageWaitStrategy  # noqa: E402
 
 from ._pagination import (  # noqa: E402
     assert_paginated_query_returns_correct_rows_in_order,
 )
+
+
+def _has_table(
+    self: OceanBaseDialect,
+    connection: Connection,
+    table_name: str,
+    schema: str | None = None,
+    **kw: object,
+) -> bool:
+    if schema is None:
+        schema = self.default_schema_name
+    quote = self.identifier_preparer.quote_identifier
+    full_name = quote(table_name)
+    if schema:
+        full_name = f"{quote(schema)}.{full_name}"
+    res = connection.exec_driver_sql(f"DESCRIBE {full_name}")
+    return res.first() is not None
+
+
+OceanBaseDialect.has_table = _has_table
 
 PORT = 2881
 PASSWORD = "pilot"  # noqa: S105 -- fixed test-fixture password, not a secret
@@ -106,15 +138,8 @@ def test_paginated_query_returns_correct_rows_in_order(engine: Engine) -> None:
     a real instance. Mocked tests cannot catch a dialect compiling this
     incorrectly (see apache/superset#42899, where Trino emitted OFFSET
     before LIMIT) -- only real execution can.
-
-    checkfirst=False: create_all()'s default checkfirst=True calls
-    oceanbase_py's has_table() first, which passes a raw string straight to
-    Connection.execute() -- SQLAlchemy 2.0 requires an executable construct
-    (text(...), select(...), etc.) and rejects a bare string outright
-    (confirmed on real CI: ObjectNotExecutableError). Safe to skip the
-    existence check here: each test gets a genuinely fresh container.
     """
-    assert_paginated_query_returns_correct_rows_in_order(engine, checkfirst=False)
+    assert_paginated_query_returns_correct_rows_in_order(engine)
 
 
 def test_get_columns_maps_native_types(engine: Engine) -> None:
@@ -122,10 +147,6 @@ def test_get_columns_maps_native_types(engine: Engine) -> None:
     OceanBaseEngineSpec.get_columns wraps a real SQLAlchemy Inspector; this
     exercises that against actual server-reported column metadata rather
     than a mocked Inspector.
-
-    checkfirst=False: see the note on the previous test -- create_all()'s
-    default checkfirst=True calls oceanbase_py's has_table(), which is
-    broken under SQLAlchemy 2.0.
     """
     metadata = MetaData()
     SATable(
@@ -134,7 +155,7 @@ def test_get_columns_maps_native_types(engine: Engine) -> None:
         Column("id", Integer, primary_key=True),
         Column("amount", Integer),
     )
-    metadata.create_all(engine, checkfirst=False)
+    metadata.create_all(engine)
 
     inspector = inspect(engine)
     columns = OceanBaseEngineSpec.get_columns(inspector, Table("pilot_types"))
