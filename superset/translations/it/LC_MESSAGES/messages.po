@@ -793,7 +793,7 @@ msgstr "percentili 10/90"
 
 #. do-not-translate
 msgid "10000"
-msgstr "10000"
+msgstr ""
 
 msgid "104 weeks"
 msgstr "104 settimane"
@@ -5759,7 +5759,7 @@ msgstr "DIC"
 
 #. do-not-translate
 msgid "DELETE"
-msgstr "CANCELLA"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -7464,7 +7464,7 @@ msgstr ""
 
 #. do-not-translate
 msgid "ECharts"
-msgstr "ECharts"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -7473,7 +7473,7 @@ msgstr "Opzioni ECharts (letterali oggetto JS)"
 
 #. do-not-translate
 msgid "EMAIL_REPORTS_CTA"
-msgstr "EMAIL_REPORTS_CTA"
+msgstr ""
 
 msgid "ERROR"
 msgstr "ERRORE"
@@ -9327,7 +9327,7 @@ msgstr ""
 
 #. do-not-translate
 msgid "GROUP BY"
-msgstr "RAGGRUPPA PER"
+msgstr ""
 
 msgid "Gantt Chart"
 msgstr "Grafico Gantt"
@@ -11972,7 +11972,7 @@ msgstr "N/A"
 
 #. do-not-translate
 msgid "NOT GROUPED BY"
-msgstr "NON RAGGRUPPATO"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -12612,7 +12612,7 @@ msgstr "OPPURE"
 
 #. do-not-translate
 msgid "OVERWRITE"
-msgstr "SOVRASCRITTURA"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -17531,7 +17531,7 @@ msgstr "TABELLE"
 
 #. do-not-translate
 msgid "TEMPORAL_RANGE"
-msgstr "INTERVALLO_TEMPORALE"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -21926,11 +21926,11 @@ msgstr "MER"
 
 #. do-not-translate
 msgid "WFS"
-msgstr "WFS"
+msgstr ""
 
 #. do-not-translate
 msgid "WMS"
-msgstr "WMS"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -22726,7 +22726,7 @@ msgstr "Intervallo scala X"
 
 #. do-not-translate
 msgid "XYZ"
-msgstr "XYZ"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -23596,7 +23596,7 @@ msgstr "bfill"
 
 #. do-not-translate
 msgid "bolt"
-msgstr "bullone"
+msgstr ""
 
 msgid "boolean"
 msgstr "booleano"
@@ -23713,7 +23713,7 @@ msgstr "creare un set di dati da una query SQL"
 
 #. do-not-translate
 msgid "crontab"
-msgstr "crontab"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -23809,7 +23809,7 @@ msgstr "deck.gl Contour"
 
 #. do-not-translate
 msgid "deck.gl Geojson"
-msgstr "deck.gl Geojson"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
@@ -23879,7 +23879,7 @@ msgstr "documentazione"
 
 #. do-not-translate
 msgid "dttm"
-msgstr "dttm"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -23974,7 +23974,7 @@ msgstr "errore"
 
 #. do-not-translate
 msgid "error_message"
-msgstr "error_message"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -24377,19 +24377,19 @@ msgstr "precisione p-value"
 
 #. do-not-translate
 msgid "p1"
-msgstr "p1"
+msgstr ""
 
 #. do-not-translate
 msgid "p5"
-msgstr "p5"
+msgstr ""
 
 #. do-not-translate
 msgid "p95"
-msgstr "p95"
+msgstr ""
 
 #. do-not-translate
 msgid "p99"
-msgstr "p99"
+msgstr ""
 
 msgid "pending"
 msgstr "in attesa"
@@ -24409,7 +24409,7 @@ msgstr "Stato del permalink non trovato"
 
 #. do-not-translate
 msgid "pivoted_xlsx"
-msgstr "pivoted_xlsx"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk, zh,
@@ -24492,7 +24492,7 @@ msgstr "salva"
 
 #. do-not-translate
 msgid "schema1,schema2"
-msgstr "schema1,schema2"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
@@ -24518,7 +24518,7 @@ msgstr ""
 
 #. do-not-translate
 msgid "sql"
-msgstr "sql"
+msgstr ""
 
 msgid "square"
 msgstr "quadrato"
@@ -24541,11 +24541,11 @@ msgstr "std"
 
 #. do-not-translate
 msgid "step-after"
-msgstr "Cerca / Filtra"
+msgstr ""
 
 #. do-not-translate
 msgid "step-before"
-msgstr "passo prima"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
@@ -24575,7 +24575,7 @@ msgstr "somma"
 
 #. do-not-translate
 msgid "superset.example.com"
-msgstr "superset.example.com"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
@@ -24727,7 +24727,7 @@ msgstr "anno"
 
 #. do-not-translate
 msgid "your-project-1234-a1"
-msgstr "your-project-1234-a1"
+msgstr ""
 
 msgid "zoom area"
 msgstr "area zoom"
