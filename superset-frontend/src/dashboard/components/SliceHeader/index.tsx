@@ -28,6 +28,7 @@ import {
 import { t } from '@apache-superset/core/translation';
 import {
   getExtensionsRegistry,
+  handleKeyboardActivation,
   JsonObject,
   QueryData,
   VizType,
@@ -216,6 +217,8 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
       state => state.charts[slice.slice_id].queriesResponse?.[1],
     );
 
+    const [isDescriptionOpen, setIsDescriptionOpen] = useState(false);
+
     const theme = useTheme();
 
     const rowLimit = Number(formData.row_limit ?? 0);
@@ -346,26 +349,20 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
                   trigger={['hover', 'click']}
                   content={<SliceInfo slice={slice} />}
                   placement="leftBottom"
+                  open={isDescriptionOpen}
+                  onOpenChange={setIsDescriptionOpen}
                 >
-                  <button
-                    type="button"
+                  <Icons.InfoCircleOutlined
+                    iconSize="m"
+                    // eslint-disable-next-line jsx-a11y/prefer-tag-over-role
+                    role="button"
+                    tabIndex={0}
                     aria-label={t('Chart description')}
                     data-test="chart-description-info-icon"
-                    css={css`
-                      appearance: none;
-                      border: none;
-                      background: none;
-                      padding: 0;
-                      margin: 0;
-                      font: inherit;
-                      line-height: 1;
-                      display: inline-flex;
-                      align-items: center;
-                      cursor: pointer;
-                    `}
-                  >
-                    <Icons.InfoCircleOutlined iconSize="m" />
-                  </button>
+                    onKeyDown={handleKeyboardActivation(() =>
+                      setIsDescriptionOpen(open => !open),
+                    )}
+                  />
                 </Popover>
               )}
               {!uiConfig.hideChartControls && (

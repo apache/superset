@@ -19,7 +19,12 @@
 import { Router } from 'react-router-dom';
 import { createMemoryHistory } from 'history';
 import { getExtensionsRegistry, VizType } from '@superset-ui/core';
-import { render, screen, userEvent } from 'spec/helpers/testing-library';
+import {
+  fireEvent,
+  render,
+  screen,
+  userEvent,
+} from 'spec/helpers/testing-library';
 import {
   enableMobileConsumptionFlag,
   mockMobileMatchMedia,
@@ -677,6 +682,56 @@ test('Should show chart description in popover on click', async () => {
 
   await userEvent.click(screen.getByTestId('chart-description-info-icon'));
 
+  expect(await screen.findByTestId('slice-info')).toHaveTextContent(
+    'Test chart description',
+  );
+});
+
+test('Should open chart description popover with Enter', async () => {
+  const props = createProps({
+    slice: {
+      ...createProps().slice,
+      description: 'Test chart description',
+    },
+    isExpanded: false,
+  });
+  render(<SliceHeader {...props} />, {
+    useRedux: true,
+    useRouter: true,
+    initialState,
+  });
+
+  const icon = screen.getByRole('button', { name: 'Chart description' });
+  expect(screen.queryByTestId('slice-info')).not.toBeInTheDocument();
+
+  // user-event v12 (pinned in this repo) doesn't expose .keyboard(); use
+  // fireEvent to dispatch keydown directly to the focused icon.
+  icon.focus();
+  fireEvent.keyDown(icon, { key: 'Enter' });
+  expect(await screen.findByTestId('slice-info')).toHaveTextContent(
+    'Test chart description',
+  );
+});
+
+test('Should open chart description popover with Space', async () => {
+  const props = createProps({
+    slice: {
+      ...createProps().slice,
+      description: 'Test chart description',
+    },
+    isExpanded: false,
+  });
+  render(<SliceHeader {...props} />, {
+    useRedux: true,
+    useRouter: true,
+    initialState,
+  });
+
+  const icon = screen.getByRole('button', { name: 'Chart description' });
+  expect(screen.queryByTestId('slice-info')).not.toBeInTheDocument();
+
+  icon.focus();
+  fireEvent.keyDown(icon, { key: ' ' });
   expect(await screen.findByTestId('slice-info')).toHaveTextContent(
     'Test chart description',
   );
