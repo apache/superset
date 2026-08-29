@@ -1276,10 +1276,15 @@ export default function transformProps(
       // at the axis boundary.
       ...(showMaxLabel && {
         showMaxLabel: true,
-        alignMaxLabel: 'right',
         showMinLabel: true,
-        alignMinLabel: 'left',
       }),
+      // The alignments assume the axis runs along the bottom; a horizontal
+      // chart puts this axis on the side, where they misplace the labels.
+      ...(showMaxLabel &&
+        !isHorizontal && {
+          alignMaxLabel: 'right',
+          alignMinLabel: 'left',
+        }),
     },
     minorTick: { show: minorTicks },
     axisTick: { show: axisTicks ? 'auto' : false },
