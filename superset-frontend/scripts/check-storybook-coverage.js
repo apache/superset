@@ -120,7 +120,7 @@ function main() {
 
     for (const pluginDir of pluginDirs) {
       const fullPath = path.join(ROOT, pluginDir);
-      if (!fs.existsglob.sync(fullPath)) continue;
+      if (!fs.existsSync(fullPath)) continue;
 
       const pluginName = getPluginName(pluginDir);
 
@@ -153,10 +153,7 @@ function main() {
 
     for (const componentDir of componentDirs) {
       const fullPath = path.join(ROOT, componentDir);
-      if (
-        !fs.existsglob.sync(fullPath) ||
-        !fs.statglob.sync(fullPath).isDirectory()
-      )
+      if (!fs.existsSync(fullPath) || !fs.statSync(fullPath).isDirectory())
         continue;
 
       const componentName = getComponentName(componentDir);

@@ -37,7 +37,7 @@
 import 'tsx/cjs';
 
 import tsParser from '@typescript-eslint/parser';
-import themeColorsPlugin from 'eslint-plugin-theme-color';
+import themeColorsPlugin from 'eslint-plugin-theme-colors';
 import iconsPlugin from 'eslint-plugin-icons';
 import i18nStringsPlugin from 'eslint-plugin-i18n-strings';
 
