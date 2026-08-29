@@ -104,7 +104,14 @@ const config: ControlPanelConfig = {
             config: {
               type: 'ColorPickerControl',
               label: t('Color for increase'),
-              default: ColorSchemeEnum.Green,
+              // No static default: charts saved before this control existed
+              // only have `comparison_color_scheme` ('Green' | 'Red', where
+              // 'Red' reverses increase/decrease colors). Leaving this
+              // control's value undefined lets `resolveComparisonColorKeys`
+              // (see BigNumberPeriodOverPeriod/utils.ts) resolve the correct
+              // color from that legacy scheme at render time. A hardcoded
+              // default here would win over the legacy fallback via
+              // `applyDefaultFormData` and silently repaint old dashboards.
               renderTrigger: true,
               presets: [
                 {
@@ -127,7 +134,9 @@ const config: ControlPanelConfig = {
             config: {
               type: 'ColorPickerControl',
               label: t('Color for decrease'),
-              default: ColorSchemeEnum.Red,
+              // See the comment on `increase_color` above: no static
+              // default, so `resolveComparisonColorKeys` can apply the
+              // legacy `comparison_color_scheme` fallback for old charts.
               renderTrigger: true,
               presets: [
                 {
