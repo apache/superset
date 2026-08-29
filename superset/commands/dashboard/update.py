@@ -42,6 +42,7 @@ from superset.commands.utils import (
 )
 from superset.daos.dashboard import DashboardDAO
 from superset.daos.report import ReportScheduleDAO
+from superset.dashboards.schemas import validate_css
 from superset.exceptions import SupersetSecurityException
 from superset.models.dashboard import Dashboard
 from superset.reports.models import ReportSchedule
@@ -129,6 +130,19 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
             validate_tags(ObjectType.dashboard, self._model.tags, tag_ids)
         except ValidationError as ex:
             exceptions.append(ex)
+
+        # A dashboard PUT resends the full object on every save, so only
+        # validate css when it's actually changing -- otherwise a dashboard
+        # whose existing css predates this check (or was imported without
+        # going through it) becomes uneditable for unrelated changes like a
+        # rename or a chart move.
+        if "css" in self._properties:
+            new_css = self._properties["css"]
+            if new_css != self._model.css:
+                try:
+                    validate_css(new_css)
+                except ValidationError as ex:
+                    exceptions.append(ex)
 
         if exceptions:
             raise DashboardInvalidError(exceptions=exceptions)

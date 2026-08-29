@@ -14,9 +14,14 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from __future__ import annotations
 
 from unittest.mock import MagicMock, patch, PropertyMock
 
+import pytest
+from pytest_mock import MockerFixture
+
+from superset.commands.dashboard.exceptions import DashboardInvalidError
 from superset.commands.dashboard.update import UpdateDashboardCommand
 from superset.utils import json
 
@@ -80,3 +85,80 @@ def test_process_tab_diff_deactivates_reports_on_deleted_tabs(
     # TAB-2 is gone from the new layout, TAB-1 is not.
     report_dao.find_by_extra_metadata.assert_called_once_with("TAB-2")
     report_dao.update.assert_called_once_with(report, {"active": False})
+
+
+def _mock_dependencies(mocker: MockerFixture, existing_css: str) -> None:
+    model = mocker.MagicMock(id=1, tags=[], css=existing_css)
+    mocker.patch(
+        "superset.commands.dashboard.update.DashboardDAO.find_by_id",
+        return_value=model,
+    )
+    mocker.patch(
+        "superset.commands.dashboard.update.DashboardDAO"
+        ".validate_update_slug_uniqueness",
+        return_value=True,
+    )
+    mocker.patch("superset.commands.dashboard.update.security_manager")
+    mocker.patch("superset.commands.dashboard.update.compute_subjects")
+    mocker.patch("superset.commands.dashboard.update.validate_tags")
+
+
+def test_update_dashboard_does_not_reject_unchanged_dangerous_css(
+    mocker: MockerFixture,
+) -> None:
+    """A dashboard whose stored css predates the check (or was imported
+    before the check covered imports) stays editable for changes that
+    don't touch css -- resending the unchanged value must not re-trigger
+    validation. This is the regression covered by apache/superset#40640's
+    follow-up: renaming a dashboard, moving a chart, or editing a filter all
+    resend the full object, including an untouched ``css`` field."""
+    existing_css = "@import url('https://evil.example.com/x.css');"
+    _mock_dependencies(mocker, existing_css)
+
+    UpdateDashboardCommand(
+        1, {"dashboard_title": "Renamed", "css": existing_css}
+    ).validate()
+
+
+def test_update_dashboard_rejects_new_dangerous_css(mocker: MockerFixture) -> None:
+    """A genuinely new css value is still validated on update."""
+    _mock_dependencies(mocker, existing_css="")
+
+    dangerous_css = "div { width: expression(alert(1)); }"
+    with pytest.raises(DashboardInvalidError) as exc_info:
+        UpdateDashboardCommand(1, {"css": dangerous_css}).validate()
+    assert any(
+        "disallowed construct" in str(message)
+        for exc in exc_info.value._exceptions
+        for message in exc.messages
+    )
+
+
+def test_update_dashboard_rejects_dangerous_css_replacing_a_prior_value(
+    mocker: MockerFixture,
+) -> None:
+    """Changing an already-dangerous css to a different, still-dangerous
+    value is rejected -- the exemption is only for resending the exact
+    stored value unchanged, not for editing css at all."""
+    _mock_dependencies(
+        mocker, existing_css="@import url('https://old.example.com/x.css');"
+    )
+
+    dangerous_css = "@import url('https://new.example.com/y.css');"
+    with pytest.raises(DashboardInvalidError) as exc_info:
+        UpdateDashboardCommand(1, {"css": dangerous_css}).validate()
+    assert any(
+        "disallowed construct" in str(message)
+        for exc in exc_info.value._exceptions
+        for message in exc.messages
+    )
+
+
+def test_update_dashboard_skips_css_check_when_css_absent(
+    mocker: MockerFixture,
+) -> None:
+    """A PUT payload that omits css entirely (a partial update) doesn't
+    trigger the check at all."""
+    _mock_dependencies(mocker, existing_css="@import url('https://evil.example.com');")
+
+    UpdateDashboardCommand(1, {"dashboard_title": "Renamed"}).validate()

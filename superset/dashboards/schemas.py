@@ -506,10 +506,15 @@ class DashboardPutSchema(BaseDashboardSchema):
         allow_none=True,
         validate=validate_json,
     )
+    # Not validated here: a dashboard PUT sends the full object on every save
+    # (renaming, moving a chart, editing a filter all resend the unchanged
+    # css), so a field-level validator would re-reject a dashboard's existing
+    # css on any edit, not just an edit to css itself. UpdateDashboardCommand
+    # validates it, but only when the incoming value actually differs from
+    # what's stored.
     css = fields.String(
         metadata={"description": css_description},
         allow_none=True,
-        validate=validate_css,
     )
     theme_id = fields.Integer(
         metadata={"description": "Theme ID for the dashboard"}, allow_none=True
@@ -596,7 +601,7 @@ class GetFavStarIdsSchema(Schema):
 class ImportV1DashboardSchema(Schema):
     dashboard_title = fields.String(required=True)
     description = fields.String(allow_none=True)
-    css = fields.String(allow_none=True)
+    css = fields.String(allow_none=True, validate=validate_css)
     slug = fields.String(allow_none=True)
     uuid = fields.UUID(required=True)
     position = fields.Dict()
