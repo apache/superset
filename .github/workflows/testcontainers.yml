@@ -42,15 +42,6 @@ concurrency:
 jobs:
   testcontainers:
     runs-on: ubuntu-26.04
-    # Matrix expansion happens before this is evaluated, so `matrix` here is
-    # this specific dialect's own entry, not the whole list -- a dialect
-    # without `nightly_only` set evaluates the left side true (unset is
-    # null, and `null != true` is true) and always runs; one WITH it set
-    # only runs on the cron or a manual dispatch, never on pull_request.
-    if: >-
-      matrix.nightly_only != true ||
-      github.event_name == 'schedule' ||
-      github.event_name == 'workflow_dispatch'
     strategy:
       fail-fast: false
       matrix:
@@ -126,6 +117,16 @@ jobs:
         if: matrix.dialect == 'db2'
         run: uv pip install --system -e .[db2]
       - name: Run testcontainers db_engine_specs tests (${{ matrix.dialect }})
+        # A job-level `if:` can't reference `matrix` (only github/inputs/
+        # needs/vars are available there), so the nightly_only skip has to
+        # live on the step instead. A dialect without `nightly_only` set
+        # evaluates the left side true (unset is null, and `null != true`
+        # is true) and always runs; one WITH it set only runs on the cron
+        # or a manual dispatch, never on pull_request.
+        if: >-
+          matrix.nightly_only != true ||
+          github.event_name == 'schedule' ||
+          github.event_name == 'workflow_dispatch'
         run: |
           pytest --durations-min=2 -v -m testcontainers \
             ./tests/testcontainers/db_engine_specs/test_${{ matrix.dialect }}.py \
