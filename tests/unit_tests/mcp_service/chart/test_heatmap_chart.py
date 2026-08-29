@@ -179,6 +179,35 @@ class TestMapHeatmapConfig:
         assert map_heatmap_config(config)["metric"] == "avg_fare"
 
 
+class TestHeatmapQueryContext:
+    """The built query must GROUP BY both axes, not just the Y (groupby) column.
+
+    map_heatmap_config emits X under 'x_axis' and Y under 'groupby'; the query
+    builder folds x_axis into the columns only for time-series viz types, so
+    heatmap_v2 needs an explicit fold or its X dimension is dropped.
+    """
+
+    def test_x_axis_reaches_group_by(self, monkeypatch) -> None:
+        from superset.mcp_service.chart import chart_helpers
+
+        monkeypatch.setattr(
+            chart_helpers,
+            "resolve_datasource_engine",
+            lambda datasource_id, datasource_type: "base",
+        )
+        config = HeatmapChartConfig(
+            chart_type="heatmap_v2",
+            x_axis={"name": "day_of_week"},
+            y_axis={"name": "hour"},
+            metric={"name": "trips", "aggregate": "COUNT"},
+        )
+        form_data = map_heatmap_config(config)
+        queries = chart_helpers.build_query_dicts_from_form_data(form_data, 1, "table")
+        columns = queries[0]["columns"]
+        assert "day_of_week" in columns, "x_axis must reach GROUP BY"
+        assert "hour" in columns, "y_axis must reach GROUP BY"
+
+
 class TestHeatmapPluginRegistry:
     """Plugin registration and viz-type resolution."""
 
