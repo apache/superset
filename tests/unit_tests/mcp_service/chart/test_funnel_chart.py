@@ -142,6 +142,34 @@ class TestMapFunnelConfig:
         assert form_data["metric"] == "conversion_rate"
 
 
+class TestFunnelQueryContext:
+    """sort_by_metric must reach the built query as an orderby.
+
+    The MCP query builder never reads a top-level form_data['orderby'], so the
+    ordering has to be emitted into the query dict — otherwise row_limit
+    truncates an unordered result (arbitrary stages instead of the top-N).
+    """
+
+    def test_sort_by_metric_becomes_orderby(self, monkeypatch) -> None:
+        from superset.mcp_service.chart import chart_helpers
+
+        monkeypatch.setattr(
+            chart_helpers,
+            "resolve_datasource_engine",
+            lambda datasource_id, datasource_type: "base",
+        )
+        config = FunnelChartConfig(
+            chart_type="funnel",
+            dimension={"name": "stage"},
+            metric={"name": "leads", "aggregate": "SUM"},
+        )
+        form_data = map_funnel_config(config)
+        queries = chart_helpers.build_query_dicts_from_form_data(form_data, 1, "table")
+        orderby = queries[0].get("orderby")
+        assert orderby, "sort_by_metric must produce an orderby"
+        assert orderby[0][1] is False, "ordering must be descending by the metric"
+
+
 class TestFunnelPluginRegistry:
     """Plugin registration and viz-type resolution."""
 
