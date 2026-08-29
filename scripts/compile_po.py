@@ -131,31 +131,31 @@ def compile_translations() -> int:  # noqa: C901
         return 1
 
     po2json_bin = find_node_bin(root_dir, "po2json")
-    prettier_bin = find_node_bin(root_dir, "prettier")
+    oxfmt_bin = find_node_bin(root_dir, "oxfmt")
 
-    print("Step 2: Locating/installing npm packages (po2json, prettier)...")
+    print("Step 2: Locating/installing npm packages (po2json, oxfmt)...")
     packages_needed = []
     if not po2json_bin:
         packages_needed.append("po2json")
-    if not prettier_bin:
-        packages_needed.append("prettier")
+    if not oxfmt_bin:
+        packages_needed.append("oxfmt")
 
     if packages_needed:
         install_dir = frontend_dir if os.path.isdir(frontend_dir) else root_dir
         if not install_npm_packages(npm_cmd, install_dir, packages_needed):
             print("WARNING: npm install failed, falling back to npx.", file=sys.stderr)
         po2json_bin = find_node_bin(root_dir, "po2json")
-        prettier_bin = find_node_bin(root_dir, "prettier")
+        oxfmt_bin = find_node_bin(root_dir, "oxfmt")
 
     if po2json_bin:
         po2json_cmd: list[str] = [po2json_bin]
     else:
         po2json_cmd = [npx_cmd, "-y", "po2json"]
 
-    if prettier_bin:
-        prettier_cmd: list[str] | None = [prettier_bin]
+    if oxfmt_bin:
+        oxfmt_cmd: list[str] = [oxfmt_bin]
     else:
-        prettier_cmd = [npx_cmd, "-y", "prettier"] if npx_cmd else None
+        oxfmt_cmd = [npx_cmd, "-y", "oxfmt"]
 
     po_files = glob.glob(os.path.join(translations_dir, "**", "*.po"), recursive=True)
     print(f"Step 3: Converting {len(po_files)} .po files to JSON...")
@@ -183,17 +183,21 @@ def compile_translations() -> int:  # noqa: C901
     json_files = glob.glob(
         os.path.join(translations_dir, "**", "*.json"), recursive=True
     )
-    if json_files and prettier_cmd:
-        print(f"Step 4: Running prettier on {len(json_files)} JSON files...")
+    if json_files:
+        print(f"Step 4: Running oxfmt on {len(json_files)} JSON files...")
+        # messages.json is gitignored (generated output); oxfmt >=0.62 respects
+        # .gitignore even for explicitly-passed paths, so it would otherwise
+        # exit non-zero here with "All matched files may have been excluded by
+        # ignore rules." Passing --no-error-on-unmatched-pattern avoids failure.
         if (
             run_command(
-                [*prettier_cmd, "--write", *json_files],
+                [*oxfmt_cmd, "--write", "--no-error-on-unmatched-pattern", *json_files],
                 cwd=root_dir,
                 timeout=300,
             )
             != 0
         ):
-            print("ERROR: prettier step failed.", file=sys.stderr)
+            print("ERROR: oxfmt step failed.", file=sys.stderr)
             return 1
 
     print("\nPipeline completed successfully!")
