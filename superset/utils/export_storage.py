@@ -37,7 +37,18 @@ backend's dependency is only required once an export actually runs.
 from __future__ import annotations
 
 from collections.abc import Iterator
-from typing import Protocol, runtime_checkable
+from typing import NamedTuple, Protocol, runtime_checkable
+
+
+class ExportDownload(NamedTuple):
+    """A downloadable object: its total size in bytes and its content chunks.
+
+    The size lets the download endpoint set ``Content-Length``, so a stream
+    that dies midway is detected by the browser as a failed download instead
+    of being saved as a silently truncated file."""
+
+    size: int
+    chunks: Iterator[bytes]
 
 
 @runtime_checkable
@@ -57,8 +68,9 @@ class ExportStorage(Protocol):
     def upload_file(self, local_path: str, bucket: str, key: str) -> None:
         """Upload a local file to ``bucket``/``key``."""
 
-    def download(self, bucket: str, key: str) -> Iterator[bytes]:
-        """Yield the object at ``bucket``/``key`` in chunks.
+    def download(self, bucket: str, key: str) -> ExportDownload:
+        """The object at ``bucket``/``key`` as ``(size, chunks)``.
 
-        Raises ``FileNotFoundError`` when the object does not exist (e.g.
-        removed by a bucket lifecycle rule before the link expired)."""
+        Existence is checked eagerly: raises ``FileNotFoundError`` at call
+        time when the object does not exist (e.g. removed by a bucket
+        lifecycle rule before the link expired)."""

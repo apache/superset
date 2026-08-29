@@ -84,12 +84,14 @@ def test_missing_boto3_raises_actionable_error() -> None:
 def test_download_streams_chunks(mock_client_fn: MagicMock) -> None:
     client = mock_client_fn.return_value
     client.get_object.return_value = {
-        "Body": MagicMock(iter_chunks=lambda chunk_size: iter([b"aa", b"bb"]))
+        "ContentLength": 4,
+        "Body": MagicMock(iter_chunks=lambda chunk_size: iter([b"aa", b"bb"])),
     }
 
-    chunks = list(S3ExportStorage().download("my-bucket", "exports/1/abc.xlsx"))
+    size, chunks = S3ExportStorage().download("my-bucket", "exports/1/abc.xlsx")
 
-    assert chunks == [b"aa", b"bb"]
+    assert size == 4
+    assert list(chunks) == [b"aa", b"bb"]
     client.get_object.assert_called_once_with(
         Bucket="my-bucket", Key="exports/1/abc.xlsx"
     )
@@ -107,4 +109,4 @@ def test_download_missing_object_raises_file_not_found(
     )
 
     with pytest.raises(FileNotFoundError):
-        list(S3ExportStorage().download("my-bucket", "gone.xlsx"))
+        S3ExportStorage().download("my-bucket", "gone.xlsx")

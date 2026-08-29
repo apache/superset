@@ -65,13 +65,17 @@ def test_upload_file(mock_get_client: MagicMock) -> None:
 @patch("superset.utils.gcs._get_client")
 def test_download_streams_chunks(mock_get_client: MagicMock) -> None:
     blob = mock_get_client.return_value.bucket.return_value.blob.return_value
+    blob.size = 6
     blob.open.return_value.__enter__ = lambda self: io.BytesIO(b"abcdef")
     blob.open.return_value.__exit__ = MagicMock(return_value=False)
 
     with patch.dict(sys.modules, _api_core_modules()):
-        chunks = list(GCSExportStorage().download("my-bucket", "exports/1/abc.xlsx"))
+        size, chunks = GCSExportStorage().download("my-bucket", "exports/1/abc.xlsx")
+        body = b"".join(chunks)
 
-    assert b"".join(chunks) == b"abcdef"
+    assert size == 6
+    assert body == b"abcdef"
+    blob.reload.assert_called_once_with()
 
 
 @patch("superset.utils.gcs._get_client")
@@ -79,13 +83,13 @@ def test_download_missing_blob_raises_file_not_found(
     mock_get_client: MagicMock,
 ) -> None:
     blob = mock_get_client.return_value.bucket.return_value.blob.return_value
-    blob.open.side_effect = _NotFound("gone")
+    blob.reload.side_effect = _NotFound("gone")
 
     with (
         patch.dict(sys.modules, _api_core_modules()),
         pytest.raises(FileNotFoundError),
     ):
-        list(GCSExportStorage().download("my-bucket", "gone.xlsx"))
+        GCSExportStorage().download("my-bucket", "gone.xlsx")
 
 
 def test_implements_export_storage_protocol() -> None:

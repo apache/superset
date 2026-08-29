@@ -20,7 +20,6 @@ import logging
 import uuid
 from datetime import datetime
 from io import BytesIO
-from itertools import chain
 from typing import Any, Callable, cast
 from zipfile import is_zipfile, ZipFile
 
@@ -1978,18 +1977,21 @@ class DashboardRestApi(
             # Don't read another backend's upload; expire the link instead.
             return self.response(410, message="This download link has expired.")
         try:
-            stream = storage_backend.download(bucket, key)
-            # Pull the first chunk eagerly so a missing object surfaces as a
-            # clean 410 instead of dying mid-response.
-            first_chunk = next(stream, b"")
+            # Existence is checked eagerly, so a missing object is a clean 410.
+            size, chunks = storage_backend.download(bucket, key)
         except FileNotFoundError:
             return self.response(410, message="This download link has expired.")
         return Response(
-            stream_with_context(chain([first_chunk], stream)),
+            stream_with_context(chunks),
             mimetype=(
                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             ),
-            headers={"Content-Disposition": f'attachment; filename="{job_id}.xlsx"'},
+            headers={
+                # With a declared length, a stream that dies midway is a
+                # failed download in the browser, not a corrupt file.
+                "Content-Length": str(size),
+                "Content-Disposition": f'attachment; filename="{job_id}.xlsx"',
+            },
         )
 
     @expose("/<pk>/cache_dashboard_screenshot/", methods=("POST",))
