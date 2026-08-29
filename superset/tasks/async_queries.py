@@ -125,6 +125,14 @@ class ChartQueryConsumerPolicy(TaskSubscriptionPolicy):
         prefix = f"{principal}:"
         return not any(existing.startswith(prefix) for existing in remaining)
 
+    def routing_channels(self, task: "CoreTask") -> list[str] | None:
+        # The consumer entries are exactly the per-tab realtime routing keys
+        # (`"<principal>:<tab_id>"` -> `realtime:<principal>:<tab_id>`), so a
+        # task-status message reaches only the tabs watching this task. Empty ->
+        # None so a chart task with no recorded tab (all detached, or a no-tab
+        # caller) falls back to principal-grain fanout instead of dropping it.
+        return self._consumers(task) or None
+
 
 def _resolve_user(user_id: int | None, guest_token: "GuestToken | None") -> User:
     """Resolve the acting user for an async chart-data task.

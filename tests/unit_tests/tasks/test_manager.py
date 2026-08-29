@@ -238,7 +238,7 @@ class TestTaskManagerPublishRequiredByChanged:
 
 
 class TestTaskManagerPublishTaskStatus:
-    """publish_task_status emits one fanout message carrying subscribers."""
+    """publish_task_status emits one fanout message carrying routing channels."""
 
     def setup_method(self):
         _reset_prefixes()
@@ -249,19 +249,22 @@ class TestTaskManagerPublishTaskStatus:
     IS_DEFINED = "superset.coordination.base.CoordinationService.is_backend_defined"
     PUBLISH = "superset.coordination.base.CoordinationService.publish"
     DAO = "superset.daos.tasks.TaskDAO"
+    POLICY = "superset.tasks.registry.TaskRegistry.get_subscription_policy"
 
     @patch(IS_DEFINED, return_value=False)
     def test_no_backend(self, mock_defined):
         assert TaskManager.publish_task_status(uuid.uuid4(), "success") is False
 
+    @patch(POLICY, return_value=None)
     @patch(DAO)
     @patch(PUBLISH)
     @patch(IS_DEFINED, return_value=True)
-    def test_publishes_one_status_message_with_subscribers(
-        self, mock_defined, mock_publish, mock_dao
+    def test_publishes_principal_channels_without_policy(
+        self, mock_defined, mock_publish, mock_dao, mock_policy
     ):
+        """No policy -> principal-grain channels derived from subscribers."""
         task_uuid = uuid.uuid4()
-        mock_dao.find_one_or_none.return_value = MagicMock(id=7)
+        mock_dao.find_one_or_none.return_value = MagicMock(id=7, task_type="some_type")
         mock_dao.get_subscriber_principals.return_value = [
             {"principal_type": "user", "sub": "1"},
             {"principal_type": "guest", "sub": "guest:abc"},
@@ -276,17 +279,53 @@ class TestTaskManagerPublishTaskStatus:
         assert json.loads(message) == {
             "task_id": str(task_uuid),
             "status": "success",
-            "subscribers": [
-                {"principal_type": "user", "sub": "1"},
-                {"principal_type": "guest", "sub": "guest:abc"},
-            ],
+            "channels": ["user:1", "guest:abc"],
         }
 
     @patch(DAO)
     @patch(PUBLISH)
     @patch(IS_DEFINED, return_value=True)
-    def test_no_subscribers_is_noop(self, mock_defined, mock_publish, mock_dao):
-        mock_dao.find_one_or_none.return_value = MagicMock(id=7)
+    def test_uses_policy_routing_channels(self, mock_defined, mock_publish, mock_dao):
+        """A task type's policy narrows delivery to its per-tab channels."""
+        task_uuid = uuid.uuid4()
+        mock_dao.find_one_or_none.return_value = MagicMock(id=7, task_type="chart")
+        policy = MagicMock()
+        policy.routing_channels.return_value = ["user:5:tabA", "user:5:tabB"]
+
+        with patch(self.POLICY, return_value=policy):
+            assert TaskManager.publish_task_status(task_uuid, "success") is True
+
+        # Per-tab keys used; the principal-grain fallback is not consulted.
+        mock_dao.get_subscriber_principals.assert_not_called()
+        _, message = mock_publish.call_args.args[:2]
+        assert json.loads(message)["channels"] == ["user:5:tabA", "user:5:tabB"]
+
+    @patch(POLICY)
+    @patch(DAO)
+    @patch(PUBLISH)
+    @patch(IS_DEFINED, return_value=True)
+    def test_policy_none_result_falls_back_to_principal(
+        self, mock_defined, mock_publish, mock_dao, mock_policy
+    ):
+        """A policy returning None defers to principal-grain channels."""
+        mock_dao.find_one_or_none.return_value = MagicMock(id=7, task_type="chart")
+        mock_policy.return_value.routing_channels.return_value = None
+        mock_dao.get_subscriber_principals.return_value = [
+            {"principal_type": "user", "sub": "1"},
+        ]
+
+        assert TaskManager.publish_task_status(uuid.uuid4(), "success") is True
+        _, message = mock_publish.call_args.args[:2]
+        assert json.loads(message)["channels"] == ["user:1"]
+
+    @patch(POLICY, return_value=None)
+    @patch(DAO)
+    @patch(PUBLISH)
+    @patch(IS_DEFINED, return_value=True)
+    def test_no_channels_is_noop(
+        self, mock_defined, mock_publish, mock_dao, mock_policy
+    ):
+        mock_dao.find_one_or_none.return_value = MagicMock(id=7, task_type="some_type")
         mock_dao.get_subscriber_principals.return_value = []
 
         assert TaskManager.publish_task_status(uuid.uuid4(), "success") is False
@@ -301,11 +340,14 @@ class TestTaskManagerPublishTaskStatus:
         assert TaskManager.publish_task_status(uuid.uuid4(), "success") is False
         mock_publish.assert_not_called()
 
+    @patch(POLICY, return_value=None)
     @patch(DAO)
     @patch(PUBLISH, side_effect=redis.RedisError("boom"))
     @patch(IS_DEFINED, return_value=True)
-    def test_redis_error_is_swallowed(self, mock_defined, mock_publish, mock_dao):
-        mock_dao.find_one_or_none.return_value = MagicMock(id=7)
+    def test_redis_error_is_swallowed(
+        self, mock_defined, mock_publish, mock_dao, mock_policy
+    ):
+        mock_dao.find_one_or_none.return_value = MagicMock(id=7, task_type="some_type")
         mock_dao.get_subscriber_principals.return_value = [
             {"principal_type": "user", "sub": "1"}
         ]

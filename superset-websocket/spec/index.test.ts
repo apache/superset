@@ -401,7 +401,7 @@ describe('server', () => {
   });
 
   describe('routeRedisMessage', () => {
-    test('fans a task-status message out to subscriber principals only', () => {
+    test('fans a task-status message out to the named channels only', () => {
       // Two principals connected; a task-status message targeting user:5 reaches
       // only user:5 and is forwarded as a per-principal browser message.
       const wsA = new wsMock('localhost');
@@ -415,7 +415,7 @@ describe('server', () => {
       const payload = {
         task_id: 'abc',
         status: 'success',
-        subscribers: [{ principal_type: 'user', sub: '5' }],
+        channels: ['user:5'],
       };
       server.routeRedisMessage('task-status', JSON.stringify(payload));
 
@@ -429,7 +429,7 @@ describe('server', () => {
       expect(sendB).not.toHaveBeenCalled();
     });
 
-    test('fans a task-status message out to a guest subscriber principal', () => {
+    test('fans a task-status message out to a guest channel', () => {
       const ws = new wsMock('localhost');
       const send = vi.spyOn(ws, 'send');
       trackSocket('guest:abc', ws);
@@ -437,7 +437,7 @@ describe('server', () => {
       const payload = {
         task_id: 'xyz',
         status: 'failure',
-        subscribers: [{ principal_type: 'guest', sub: 'guest:abc' }],
+        channels: ['guest:abc'],
       };
       server.routeRedisMessage('task-status', JSON.stringify(payload));
 
@@ -449,24 +449,37 @@ describe('server', () => {
       );
     });
 
-    test('drops a guest subscriber whose key is not namespaced', () => {
-      const ws = new wsMock('localhost');
-      const send = vi.spyOn(ws, 'send');
-      trackSocket('abc', ws);
+    test('fans a per-tab task-status message out to only that tab', () => {
+      // Two tabs of one principal, each dual-registered on user:5 and its own
+      // per-tab channel. A message targeting user:5:tabA reaches only tab A.
+      const wsA = new wsMock('localhost');
+      const sendA = vi.spyOn(wsA, 'send');
+      server.wsConnection(wsA, makeIdentity('user:5'), 'tabA');
+
+      const wsB = new wsMock('localhost');
+      const sendB = vi.spyOn(wsB, 'send');
+      server.wsConnection(wsB, makeIdentity('user:5'), 'tabB');
 
       server.routeRedisMessage(
         'task-status',
         JSON.stringify({
           task_id: 'abc',
           status: 'success',
-          subscribers: [{ principal_type: 'guest', sub: 'abc' }],
+          channels: ['user:5:tabA'],
         }),
       );
 
-      expect(send).not.toHaveBeenCalled();
+      expect(sendA).toHaveBeenCalledTimes(1);
+      expect(sendA).toHaveBeenCalledWith(
+        JSON.stringify({
+          channel: 'realtime:user:5:tabA',
+          payload: { task_id: 'abc', status: 'success' },
+        }),
+      );
+      expect(sendB).not.toHaveBeenCalled();
     });
 
-    test('deduplicates subscriber principals within a task-status message', () => {
+    test('drops an empty-string channel key', () => {
       const ws = new wsMock('localhost');
       const send = vi.spyOn(ws, 'send');
       trackSocket('user:5', ws);
@@ -476,10 +489,24 @@ describe('server', () => {
         JSON.stringify({
           task_id: 'abc',
           status: 'success',
-          subscribers: [
-            { principal_type: 'user', sub: '5' },
-            { principal_type: 'user', sub: '5' },
-          ],
+          channels: [''],
+        }),
+      );
+
+      expect(send).not.toHaveBeenCalled();
+    });
+
+    test('deduplicates repeated channel keys within a task-status message', () => {
+      const ws = new wsMock('localhost');
+      const send = vi.spyOn(ws, 'send');
+      trackSocket('user:5', ws);
+
+      server.routeRedisMessage(
+        'task-status',
+        JSON.stringify({
+          task_id: 'abc',
+          status: 'success',
+          channels: ['user:5', 'user:5'],
         }),
       );
 
@@ -504,6 +531,21 @@ describe('server', () => {
       });
       expect(sendA).toHaveBeenCalledWith(expected);
       expect(sendB).toHaveBeenCalledWith(expected);
+    });
+
+    test('broadcasts once to a dual-registered (per-tab) socket', () => {
+      // A socket registered under both its principal and per-tab channel must
+      // receive a broadcast exactly once (dedup by socket, not by channel).
+      const ws = new wsMock('localhost');
+      const send = vi.spyOn(ws, 'send');
+      server.wsConnection(ws, makeIdentity('user:5'), 'tabA');
+
+      server.routeRedisMessage(
+        'entity-changes:task',
+        JSON.stringify({ entity_type: 'task', id: 'abc' }),
+      );
+
+      expect(send).toHaveBeenCalledTimes(1);
     });
 
     test('ignores a message on an unrecognized channel', () => {
@@ -681,6 +723,19 @@ describe('server', () => {
         principalType: 'guest',
         subject: guestChannelId,
       });
+    });
+
+    test('a tab_id also binds the socket to its per-tab channel', async () => {
+      server.wsConnection(ws, makeIdentity(channelId), 'tabA');
+
+      // One socket id, indexed under both the principal and the per-tab channel.
+      const principalSockets = server.channels[channelId].sockets;
+      const tabSockets = server.channels[`${channelId}:tabA`].sockets;
+      expect(principalSockets).toHaveLength(1);
+      expect(tabSockets).toEqual(principalSockets);
+      const socketId = principalSockets[0];
+      expect(Object.keys(server.sockets)).toEqual([socketId]);
+      expect(server.sockets[socketId].tabChannel).toEqual(`${channelId}:tabA`);
     });
 
     test('unsolicited pong payload cannot pollute Object.prototype', async () => {
@@ -894,6 +949,27 @@ describe('server', () => {
       server.httpUpgrade(request, socket, Buffer.alloc(5));
 
       expect(server.channels[channelId].sockets).toHaveLength(1);
+    });
+
+    test('an accepted upgrade binds the per-tab channel from ?tab_id', async () => {
+      const token = signRealtimeToken();
+      const ws = new wsMock('localhost');
+      const request = makeRequest({
+        token,
+        url: 'http://localhost/?tab_id=tabA',
+      });
+      wssUpgradeSpy.mockImplementation(
+        (_request, _socket, _head, callback: (ws: WebSocket) => void) => {
+          callback(ws);
+        },
+      );
+
+      server.httpUpgrade(request, socket, Buffer.alloc(5));
+
+      expect(server.channels[channelId].sockets).toHaveLength(1);
+      expect(server.channels[`${channelId}:tabA`].sockets).toEqual(
+        server.channels[channelId].sockets,
+      );
     });
 
     describe('origin validation', () => {

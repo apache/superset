@@ -59,25 +59,24 @@ interface RealtimeJwtPayload extends JsonWebTokenPayload {
  *   - `entity-changes:<type>` - a lossy "an entity of this type changed"
  *     nudge, broadcast to every authenticated socket; `payload` carries opaque
  *     ids only (`{entity_type, id}`).
- *   - `realtime:<principalChannel>` - a targeted task/status browser message,
- *     delivered only to sockets whose JWT proves that principal identity and
- *     binds it to that channel; `payload` is feature-defined (e.g.
- *     `{task_id, status}`).
+ *   - `realtime:<routingKey>` - a targeted task/status browser message,
+ *     delivered only to sockets bound to that routing key. The producer chooses
+ *     the key: a principal channel (`user:<id>` / `guest:<hmac>`) reaches all of
+ *     a principal's tabs, while a per-tab key (`user:<id>:<tabId>`) reaches only
+ *     the one tab. `payload` is feature-defined (e.g. `{task_id, status}`).
  */
 export interface OutboundMessage {
   channel: string;
   payload: unknown;
 }
 
-interface TaskStatusSubscriber {
-  principal_type: PrincipalType;
-  sub: string;
-}
-
 interface TaskStatusRedisPayload {
   task_id: string;
   status: string;
-  subscribers: TaskStatusSubscriber[];
+  // Realtime routing keys to deliver to, produced by Superset (each is delivered
+  // on `realtime:<key>`). Principal-grain (`user:<id>`) by default; a task type
+  // may narrow to per-tab keys (`user:<id>:<tabId>`) via its subscription policy.
+  channels: string[];
 }
 
 export interface SocketIdentity {
@@ -90,6 +89,9 @@ export interface SocketIdentity {
 export interface SocketInstance {
   ws: WebSocket;
   channel: string;
+  // Additional per-tab channel the socket is also registered under, when the
+  // browser advertised a `tab_id` at connect (`<channel>:<tabId>`).
+  tabChannel?: string;
   identity: SocketIdentity;
   pongTs: number;
 }
@@ -288,6 +290,55 @@ export const trackClient = (
 };
 
 /**
+ * Sends one already-serialized message to a single socket, applying backpressure
+ * and cleanup. Returns whether the send succeeded. When `cleanupChannel` is
+ * given, a missing/terminated/errored socket triggers a `cleanChannel` on it;
+ * broadcast callers omit it (the next targeted send or GC prunes the socket).
+ */
+const sendToSocket = (
+  socketId: string,
+  strData: string,
+  cleanupChannel?: string,
+): boolean => {
+  const socketInstance: SocketInstance = sockets[socketId];
+  if (!socketInstance) {
+    if (cleanupChannel) cleanChannel(cleanupChannel);
+    return false;
+  }
+  // Backpressure: if a slow or stalled client has let its outbound buffer
+  // grow past the configured cap, terminate it rather than buffering
+  // unbounded data in server memory. Opt-in: a cap of 0 disables the check.
+  const { maxSocketBufferBytes } = opts;
+  if (
+    maxSocketBufferBytes > 0 &&
+    socketInstance.ws.bufferedAmount > maxSocketBufferBytes
+  ) {
+    statsd.increment('ws_client_backpressure_disconnect');
+    logger.warn(
+      `Terminating socket ${socketId}: send buffer ` +
+        `(${socketInstance.ws.bufferedAmount} bytes) exceeded the ` +
+        `configured limit (${maxSocketBufferBytes} bytes)`,
+    );
+    socketInstance.ws.terminate();
+    // Drop the terminated socket from the global registry immediately
+    // rather than waiting for the next checkSockets sweep, so a burst of
+    // slow clients doesn't leave dead entries resident between pings.
+    delete sockets[socketId];
+    if (cleanupChannel) cleanChannel(cleanupChannel);
+    return false;
+  }
+  try {
+    socketInstance.ws.send(strData);
+    return true;
+  } catch (err) {
+    statsd.increment('ws_client_send_error');
+    logger.debug(`Error sending to socket: ${err}`);
+    if (cleanupChannel) cleanChannel(cleanupChannel);
+    return false;
+  }
+};
+
+/**
  * Sends a single message to every socket registered on a channel.
  * A channel may have multiple connected sockets (e.g. one browser tab each);
  * this emits the message to all of them, leaving it to the client to decide
@@ -303,39 +354,9 @@ export const sendToChannel = (
     return;
   }
   let sentCount = 0;
-  channels[channel].sockets.forEach(socketId => {
-    const socketInstance: SocketInstance = sockets[socketId];
-    if (!socketInstance) return cleanChannel(channel);
-    // Backpressure: if a slow or stalled client has let its outbound buffer
-    // grow past the configured cap, terminate it rather than buffering
-    // unbounded data in server memory. Opt-in: a cap of 0 disables the check.
-    const { maxSocketBufferBytes } = opts;
-    if (
-      maxSocketBufferBytes > 0 &&
-      socketInstance.ws.bufferedAmount > maxSocketBufferBytes
-    ) {
-      statsd.increment('ws_client_backpressure_disconnect');
-      logger.warn(
-        `Terminating socket on channel ${channel}: send buffer ` +
-          `(${socketInstance.ws.bufferedAmount} bytes) exceeded the ` +
-          `configured limit (${maxSocketBufferBytes} bytes)`,
-      );
-      socketInstance.ws.terminate();
-      // Drop the terminated socket from the global registry immediately
-      // rather than waiting for the next checkSockets sweep, so a burst of
-      // slow clients doesn't leave dead entries resident between pings.
-      delete sockets[socketId];
-      cleanChannel(channel);
-      return;
-    }
-    try {
-      socketInstance.ws.send(strData);
-      sentCount += 1;
-    } catch (err) {
-      statsd.increment('ws_client_send_error');
-      logger.debug(`Error sending to socket: ${err}`);
-      cleanChannel(channel);
-    }
+  // Iterate a copy: a failed send may cleanChannel and mutate the sockets list.
+  channels[channel].sockets.slice().forEach(socketId => {
+    if (sendToSocket(socketId, strData, channel)) sentCount += 1;
   });
   logger.debug(
     `Forwarded message ${message.channel} to ${sentCount} socket(s) on channel ${channel}`,
@@ -344,33 +365,18 @@ export const sendToChannel = (
 
 /**
  * Sends a message to every connected socket, regardless of channel. Used for
- * the lossy tier-1 entity-change nudges (`entity-changes:*`), which carry only
- * opaque ids and are broadcast to authenticated sockets - each client filters
- * to the ids it renders. Reuses `sendToChannel` per channel so backpressure and
- * cleanup apply uniformly.
+ * the lossy entity-change nudges (`entity-changes:*`), which carry only opaque
+ * ids and are broadcast to authenticated sockets - each client filters to the
+ * ids it renders. Iterates the unique socket registry (not per channel) so a
+ * socket registered under both its principal and its per-tab channel still
+ * receives each broadcast exactly once.
  */
 export const broadcastToAll = (message: OutboundMessage): void => {
-  for (const channel in channels) {
-    sendToChannel(channel, message);
-  }
+  const strData = JSON.stringify(message);
+  Object.keys(sockets).forEach(socketId => {
+    sendToSocket(socketId, strData);
+  });
 };
-
-function isTaskStatusSubscriber(
-  subscriber: unknown,
-): subscriber is TaskStatusSubscriber {
-  if (!subscriber || typeof subscriber !== 'object') {
-    return false;
-  }
-  const candidate = subscriber as {
-    principal_type?: unknown;
-    sub?: unknown;
-  };
-  return (
-    isPrincipalType(candidate.principal_type) &&
-    typeof candidate.sub === 'string' &&
-    candidate.sub.length > 0
-  );
-}
 
 function isTaskStatusRedisPayload(
   payload: unknown,
@@ -381,13 +387,15 @@ function isTaskStatusRedisPayload(
   const candidate = payload as {
     task_id?: unknown;
     status?: unknown;
-    subscribers?: unknown;
+    channels?: unknown;
   };
   return (
     typeof candidate.task_id === 'string' &&
     typeof candidate.status === 'string' &&
-    Array.isArray(candidate.subscribers) &&
-    candidate.subscribers.every(isTaskStatusSubscriber)
+    Array.isArray(candidate.channels) &&
+    candidate.channels.every(
+      channel => typeof channel === 'string' && channel.length > 0,
+    )
   );
 }
 
@@ -412,9 +420,12 @@ export const principalChannel = (
 };
 
 /**
- * Fan out one task-status Redis message to every subscriber principal in the
- * payload. `subscribers` is a server-side routing field produced by Superset
- * from task subscribers; it is intentionally stripped from the browser payload.
+ * Fan out one task-status Redis message to every routing key in the payload.
+ * `channels` is a server-side routing field produced by Superset (principal
+ * channels by default, or per-tab channels for task types that opt in); each key
+ * is delivered on `realtime:<key>` and the routing field is stripped from the
+ * browser payload. The keys are opaque here - the server does not re-derive or
+ * validate them (Superset builds every key from an authorized identity).
  */
 export const sendTaskStatusToSubscribers = (payload: unknown): void => {
   if (!isTaskStatusRedisPayload(payload)) {
@@ -427,9 +438,7 @@ export const sendTaskStatusToSubscribers = (payload: unknown): void => {
     status: payload.status,
   };
   const sent = new Set<string>();
-  payload.subscribers.forEach(subscriber => {
-    const channel = principalChannel(subscriber.principal_type, subscriber.sub);
-    if (channel === null) return;
+  payload.channels.forEach(channel => {
     if (sent.has(channel)) return;
     sent.add(channel);
     sendToChannel(channel, {
@@ -591,11 +600,17 @@ export const readSocketIdentity = (
  * during the HTTP upgrade (see `httpUpgrade`), so each connection's JWT is
  * verified exactly once.
  */
-export const wsConnection = (ws: WebSocket, identity: SocketIdentity) => {
+export const wsConnection = (
+  ws: WebSocket,
+  identity: SocketIdentity,
+  tabId?: string,
+) => {
   const { channel } = identity;
 
   // Refuse the connection if a configured connection limit has been reached,
-  // before tracking it against the internal registries.
+  // before tracking it against the internal registries. The cap is keyed on the
+  // principal channel (which counts all of a principal's tabs); the per-tab
+  // channel is a delivery refinement and is not separately limit-checked.
   const limitReason = connectionLimitReason(channel);
   if (limitReason) {
     statsd.increment('ws_connection_rejected');
@@ -604,15 +619,33 @@ export const wsConnection = (ws: WebSocket, identity: SocketIdentity) => {
     return;
   }
 
+  // When the browser advertised a tab id at connect, also register the socket
+  // under a per-tab channel derived from its authorized principal channel
+  // (`<channel>:<tabId>`). The tab id is client-supplied but always prefixed by
+  // the authorized principal channel, so it can never address another
+  // principal's sockets. Task-status can then target one tab, while the
+  // principal channel still reaches all of a principal's tabs.
+  const tabChannel = tabId ? `${channel}:${tabId}` : undefined;
+
   const socketInstance: SocketInstance = {
     ws,
     channel,
+    tabChannel,
     identity,
     pongTs: Date.now(),
   };
 
+  // Register once (mints a single socket id), then also index that same id under
+  // the per-tab channel - never call trackClient twice (it would mint a second
+  // id and a duplicate registry entry).
   const socketId = trackClient(channel, socketInstance);
-  logger.debug(`socket ${socketId} connected on channel ${channel}`);
+  if (tabChannel) {
+    (channels[tabChannel] ??= { sockets: [] }).sockets.push(socketId);
+  }
+  logger.debug(
+    `socket ${socketId} connected on channel ${channel}` +
+      (tabChannel ? ` (tab channel ${tabChannel})` : ''),
+  );
 
   ws.on('pong', function pong(data: Buffer) {
     const socketId = data.toString();
@@ -713,9 +746,24 @@ export const httpUpgrade = (
     return;
   }
 
+  // Optional per-tab id advertised on the connect URL (`?tab_id=<id>`), used to
+  // also bind the socket to a per-tab channel for targeted task-status delivery.
+  // Parsed from the request URL (mirrors httpRequest); absent/blank -> no per-tab
+  // channel (principal-grain delivery, as before).
+  let tabId: string | undefined;
+  try {
+    const parsed = new URL(
+      request.url ?? '',
+      `http://${request.headers.host ?? 'localhost'}`,
+    ).searchParams.get('tab_id');
+    if (parsed) tabId = parsed;
+  } catch {
+    // Malformed URL: ignore the tab hint and fall back to principal-grain.
+  }
+
   wss.handleUpgrade(request, socket, head, function cb(ws: WebSocket) {
     wss.emit('connection', ws, request);
-    wsConnection(ws, identity);
+    wsConnection(ws, identity, tabId);
   });
 };
 

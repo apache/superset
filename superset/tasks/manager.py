@@ -174,30 +174,34 @@ class TaskManager:
             )
 
     # Lossy Pub/Sub channel for task status fanout. Superset publishes one
-    # message per status transition with the already-authorized subscriber
-    # principals. The websocket server does the local fanout and strips
-    # ``subscribers`` before forwarding the task status to browsers.
+    # message per status transition carrying the already-authorized realtime
+    # routing keys. The websocket server delivers to the matching sockets and
+    # strips ``channels`` before forwarding the task status to browsers.
     TASK_STATUS_CHANNEL = "task-status"
 
     @classmethod
     def publish_task_status(cls, task_uuid: UUID, status: str) -> bool:
         """Publish one task ``status`` message for websocket fanout.
 
-        Best-effort tier-2 delivery: publish ``{task_id, status, subscribers}``
-        once to ``task-status``. The superset-websocket server maps those
-        principal identities to its own socket routing keys, so the submitter
-        and any SHARED-dedup joiners see the transition immediately without the
-        Flask app publishing once per subscriber. No-op when no coordination
-        backend is configured or the task has no resolvable subscribers; callers
-        must never let a failure here disrupt completion signalling (the
-        interval poll is the backstop).
+        Best-effort delivery: publish ``{task_id, status, channels}`` once to
+        ``task-status``, where ``channels`` are the realtime routing keys the
+        websocket server delivers to (it prefixes each with ``realtime:``). By
+        default the keys are principal-grain (``user:<id>`` / ``guest:<hmac>``),
+        so the submitter and any SHARED-dedup joiners see the transition on their
+        principal channel. A task type may narrow delivery via its subscription
+        policy's ``routing_channels`` — chart-data returns its per-tab keys
+        (``user:<id>:<tabId>``) so only the tab watching the task is notified.
+        No-op when no coordination backend is configured or the task has no
+        resolvable routing keys; callers must never let a failure here disrupt
+        completion signalling (the interval poll is the backstop).
 
         :param task_uuid: public UUID of the task (also carried in the payload)
         :param status: the task's current status
-        :returns: True if at least one message was published, False otherwise
+        :returns: True if a message was published, False otherwise
         """
         from superset.coordination.base import CoordinationService
         from superset.daos.tasks import TaskDAO
+        from superset.tasks.registry import TaskRegistry
         from superset.utils import json
 
         if not CoordinationService.is_backend_defined():
@@ -206,14 +210,23 @@ class TaskManager:
             task = TaskDAO.find_one_or_none(uuid=task_uuid, skip_base_filter=True)
             if task is None:
                 return False
-            subscribers = TaskDAO.get_subscriber_principals(task.id)
-            if not subscribers:
+            # A task type may target specific routing keys (e.g. chart-data's
+            # per-tab channels); otherwise fall back to principal-grain keys
+            # derived from the task's subscribers.
+            policy = TaskRegistry.get_subscription_policy(task.task_type)
+            channels = policy.routing_channels(task) if policy else None
+            if channels is None:
+                channels = [
+                    f"user:{p['sub']}" if p["principal_type"] == "user" else p["sub"]
+                    for p in TaskDAO.get_subscriber_principals(task.id)
+                ]
+            if not channels:
                 return False
             message = json.dumps(
                 {
                     "task_id": str(task_uuid),
                     "status": status,
-                    "subscribers": subscribers,
+                    "channels": channels,
                 }
             )
             CoordinationService.publish(cls.TASK_STATUS_CHANNEL, message)

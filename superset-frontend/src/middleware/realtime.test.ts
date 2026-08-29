@@ -132,7 +132,13 @@ test('opens a socket when enabled and routes its messages to handlers', () => {
 
   expect(FakeWebSocket.instances).toHaveLength(1);
   const ws = FakeWebSocket.instances[0];
-  expect(ws.url).toBe(ENABLED.WEBSOCKET_URL);
+  // The connect URL is the configured base plus this tab's id, so the server
+  // can bind a per-tab channel. getTabId is mocked to 'test-tab-id' (shim).
+  const wsUrl = new URL(ws.url);
+  expect(`${wsUrl.protocol}//${wsUrl.host}${wsUrl.pathname}`).toBe(
+    ENABLED.WEBSOCKET_URL,
+  );
+  expect(wsUrl.searchParams.get('tab_id')).toBe('test-tab-id');
 
   ws.onmessage?.({
     data: JSON.stringify({ channel: 'realtime:user:1', payload: { ok: true } }),

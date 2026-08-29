@@ -35,6 +35,7 @@
  */
 import { logging } from '@apache-superset/core/utils';
 import getBootstrapData from 'src/utils/getBootstrapData';
+import { getTabId } from 'src/hooks/useTabId';
 
 /** The generic envelope the server forwards to the browser. */
 export interface RealtimeMessage {
@@ -98,9 +99,21 @@ export const dispatchRealtimeMessage = (rawData: string): void => {
 const openSocket = (thisGeneration: number): void => {
   if (thisGeneration !== generation) return;
   if (!enabled || !url || typeof WebSocket === 'undefined') return;
+  // Advertise this tab's id on the connect URL so the server can also bind the
+  // socket to a per-tab channel and deliver tab-targeted messages (e.g. this
+  // tab's own task-status) to it alone. Built per-connection so the stored base
+  // `url` stays stable for connectRealtime's idempotency check.
+  let connectUrl = url;
+  try {
+    const parsed = new URL(url);
+    parsed.searchParams.set('tab_id', getTabId());
+    connectUrl = parsed.toString();
+  } catch {
+    // Non-absolute/unparseable URL: connect to the base as-is.
+  }
   let ws: WebSocket;
   try {
-    ws = new WebSocket(url);
+    ws = new WebSocket(connectUrl);
   } catch (err) {
     logging.warn('Failed to open realtime WebSocket', err);
     return;

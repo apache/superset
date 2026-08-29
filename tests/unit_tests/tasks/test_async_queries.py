@@ -362,3 +362,17 @@ def test_consumer_policy_without_client_ref_is_principal_grain() -> None:
     policy.on_subscribe(task, principal="user:5", client_ref=None)
     assert _consumers(task) == []
     assert policy.on_unsubscribe(task, principal="user:5", client_ref=None) is True
+
+
+def test_consumer_policy_routing_channels_are_the_consumers() -> None:
+    """Per-tab realtime routing keys are exactly the recorded consumer entries;
+    empty -> None so fanout falls back to principal-grain."""
+    from superset.tasks.async_queries import ChartQueryConsumerPolicy
+
+    policy = ChartQueryConsumerPolicy()
+    task = _make_task()
+    assert policy.routing_channels(task) is None  # no consumers yet
+
+    policy.on_subscribe(task, principal="user:5", client_ref="A")
+    policy.on_subscribe(task, principal="user:7", client_ref="B")
+    assert policy.routing_channels(task) == ["user:5:A", "user:7:B"]

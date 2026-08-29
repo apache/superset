@@ -117,3 +117,24 @@ class TaskSubscriptionPolicy(ABC):
             ``client_ref``); ``False`` to keep ``principal`` subscribed because it
             still has other clients on this task (a single client detached).
         """
+
+    def routing_channels(self, task: "Task") -> list[str] | None:
+        """Realtime websocket routing keys for this task's status fanout.
+
+        Lets a task type deliver ``task-status`` at a finer grain than the
+        principal — e.g. only to the specific browser tab watching the task,
+        rather than every tab the principal has open. Returns the list of opaque
+        routing keys the realtime transport should target (it prefixes each with
+        ``realtime:`` and never parses them); the caller delivers to exactly those
+        keys.
+
+        Return ``None`` (the default) to keep principal-grain fanout — the
+        framework then derives one key per subscriber principal. A concrete policy
+        that manages per-client keys should also return ``None`` (not an empty
+        list) when it currently has no keys, so fanout falls back to
+        principal-grain rather than silently delivering to no one.
+
+        :param task: the task whose status is being published
+        :returns: the routing keys to target, or ``None`` for principal-grain
+        """
+        return None
