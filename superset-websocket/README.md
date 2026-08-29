@@ -148,6 +148,26 @@ skipped and any origin is accepted; a single `"*"` entry explicitly allows any
 origin. Setting this is recommended for production deployments, especially when
 the JWT cookie uses `SameSite=None`.
 
+### Production hardening checklist
+
+Because the websocket is now a shared realtime transport and ships in the main
+image, review these before exposing it publicly:
+
+- **`ALLOWED_ORIGINS`** — set it to your Superset origin(s) (see above). The
+  default (empty) accepts any origin.
+- **Secure, scoped JWT cookie** — on the Flask side set
+  `WEBSOCKET_JWT_COOKIE_SECURE = True` (HTTPS only) and choose an explicit
+  `WEBSOCKET_JWT_COOKIE_SAMESITE` (`"Lax"` when the app and websocket share a
+  site; `"None"` only for cross-site, which then *requires* `Secure` and an
+  `ALLOWED_ORIGINS` allowlist). Scope with `WEBSOCKET_JWT_COOKIE_DOMAIN` if
+  needed. Cookies are short-lived and JWT-bound, but these flags close the
+  cross-site surface.
+- **Connection caps** — the server accepts unlimited connections by default
+  (`0`). Set `maxTotalConnections` and `maxConnectionsPerChannel` (and
+  optionally `maxSocketBufferBytes`) to bound resource use and blunt abuse.
+- **Keepalive/timeouts** — `pingSocketsIntervalMs` / `socketResponseTimeoutMs`
+  govern dead-connection reaping; the defaults are sane, tune per environment.
+
 ## Superset Configuration
 
 Enable realtime push in the Superset Flask app (in `superset_config.py`):

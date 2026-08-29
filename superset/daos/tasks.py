@@ -101,6 +101,17 @@ class TaskDAO(BaseDAO[Task]):
         """
         return db.session.query(Task.id).filter(Task.uuid == task_uuid).scalar()
 
+    @classmethod
+    def visible_task_ids_query(cls) -> Any:
+        """Base-filtered query of task ids the current user can access.
+
+        Applies ``TaskFilter`` (subscribed tasks for regular users, all for
+        admins). Used to scope task-adjacent listings — e.g. the subscriber
+        filter dropdown — to tasks the caller can actually see, rather than
+        leaking the whole subscriber set.
+        """
+        return cls._apply_base_filter(db.session.query(Task.id))
+
     # Dialect SQL for the database's current time as a naive UTC timestamp. Used
     # so the heartbeat write and the orphan scan share one clock (the DB's) rather
     # than the worker's and the reaper's host clocks, which can skew and cause a

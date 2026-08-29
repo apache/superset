@@ -506,17 +506,19 @@ class TaskRestApi(BaseSupersetModelRestApi):
         from flask import request
 
         from superset import db, security_manager
+        from superset.daos.tasks import TaskDAO
         from superset.models.task_subscribers import TaskSubscriber
-
-        # Get search query
 
         # Get user model
         user_model = security_manager.user_model
 
-        # Query distinct users who are task subscribers
+        # Query distinct users who subscribe to tasks the caller can see. Scoping
+        # through the base-filtered task set keeps the dropdown from enumerating
+        # subscribers of tasks outside the caller's visibility.
         query = (
             db.session.query(user_model.id, user_model.first_name, user_model.last_name)
             .join(TaskSubscriber, user_model.id == TaskSubscriber.user_id)
+            .filter(TaskSubscriber.task_id.in_(TaskDAO.visible_task_ids_query()))
             .distinct()
         )
 
