@@ -34,6 +34,7 @@ import {
   LegendOrientation,
   LegendType,
   EchartsTimeseriesSeriesType,
+  LabelPositionEnum,
 } from '../../src';
 import transformProps from '../../src/MixedTimeseries/transformProps';
 import {
@@ -42,7 +43,7 @@ import {
   EchartsMixedTimeseriesProps,
 } from '../../src/MixedTimeseries/types';
 import { createEchartsTimeseriesTestChartProps } from '../helpers';
-import type { SeriesOption } from 'echarts';
+import type { BarSeriesOption, LineSeriesOption, SeriesOption } from 'echarts';
 
 type LabelFormatterParams = {
   value: [number, number];
@@ -115,6 +116,8 @@ const formData: EchartsMixedTimeseriesFormData = {
   markerSizeB: 0,
   minorSplitLine: false,
   minorTicks: false,
+  gridlines: true,
+  axisTicks: true,
   opacity: 0,
   opacityB: 0,
   orderDesc: false,
@@ -431,6 +434,58 @@ test('keeps bar value label clipping aligned with the assigned y-axis', () => {
   const barSeries = getSeriesWithLabelFormatter(series, 'barMetric');
 
   expect(formatSeriesLabel(barSeries, [timestamp, 0.5])).toBe('');
+});
+
+test('threads labelPosition and labelPositionB to series A and B', () => {
+  const timestamp = 1704067200000;
+  const queryAData = createTestQueryData(
+    [{ __timestamp: timestamp, lineMetric: 0.25 }],
+    {
+      colnames: ['__timestamp', 'lineMetric'],
+      coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+      label_map: { lineMetric: ['lineMetric'] },
+    },
+  );
+  const queryBData = createTestQueryData(
+    [{ __timestamp: timestamp, barMetric: 0.5 }],
+    {
+      colnames: ['__timestamp', 'barMetric'],
+      coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+      label_map: { 'barMetric (1)': ['barMetric'] },
+    },
+  );
+  const chartProps = createEchartsTimeseriesTestChartProps<
+    EchartsMixedTimeseriesFormData,
+    EchartsMixedTimeseriesProps
+  >({
+    ...MIXED_TIMESERIES_CHART_PROPS_DEFAULTS,
+    defaultQueriesData: [queryAData, queryBData],
+    formData: {
+      ...formData,
+      groupby: [],
+      groupbyB: [],
+      metrics: ['lineMetric'],
+      metricsB: ['barMetric'],
+      showValue: true,
+      showValueB: true,
+      labelPosition: LabelPositionEnum.Inside,
+      labelPositionB: LabelPositionEnum.Bottom,
+      stack: null,
+      stackB: null,
+      x_axis: '__timestamp',
+    },
+    queriesData: [queryAData, queryBData],
+  });
+
+  const { echartOptions } = transformProps(chartProps);
+  // `SeriesOption` is a union across every echarts series type and does not
+  // carry `label`; the two series under test are a line and a bar.
+  const series = echartOptions.series as (LineSeriesOption | BarSeriesOption)[];
+  const seriesA = series.find(s => s.name === 'lineMetric');
+  const seriesB = series.find(s => s.name === 'barMetric');
+
+  expect(seriesA?.label?.position).toBe(LabelPositionEnum.Inside);
+  expect(seriesB?.label?.position).toBe(LabelPositionEnum.Bottom);
 });
 
 describe('legend sorting', () => {
@@ -1455,4 +1510,57 @@ describe('EchartsMixedTimeseries tooltip truncation', () => {
     expect(html).toContain('prod-us-east-1-servi…heckout-latency-p99');
     expect(html).not.toContain(longSeriesName);
   });
+});
+
+function transformWithChrome(
+  overrides: Partial<EchartsMixedTimeseriesFormData>,
+) {
+  const chartProps = createEchartsTimeseriesTestChartProps<
+    EchartsMixedTimeseriesFormData,
+    EchartsMixedTimeseriesProps
+  >({
+    ...MIXED_TIMESERIES_CHART_PROPS_DEFAULTS,
+    defaultQueriesData: queriesData,
+    formData: { ...formData, ...overrides },
+    queriesData,
+  });
+  const { echartOptions } = transformProps(chartProps);
+  return {
+    xAxis: echartOptions.xAxis as any,
+    yAxis: echartOptions.yAxis as any[],
+  };
+}
+
+test('draws gridlines and axis ticks when both are enabled', () => {
+  const { xAxis, yAxis } = transformWithChrome({});
+
+  expect(yAxis[0].splitLine.show).toBe(true);
+  // Both axes keep ECharts' own default, which the Mixed chart never overrode.
+  expect(yAxis[0].axisTick.show).toBe('auto');
+  expect(xAxis.axisTick.show).toBe('auto');
+});
+
+test('hides the gridlines on the primary axis', () => {
+  const { xAxis, yAxis } = transformWithChrome({ gridlines: false });
+
+  expect(yAxis[0].splitLine.show).toBe(false);
+  // The secondary axis never draws gridlines, so the two grids cannot double up.
+  expect(yAxis[1].splitLine.show).toBe(false);
+  expect(xAxis.splitLine.show).toBe(false);
+});
+
+test('never turns the secondary axis gridlines on', () => {
+  const { xAxis, yAxis } = transformWithChrome({ gridlines: true });
+
+  expect(yAxis[0].splitLine.show).toBe(true);
+  expect(yAxis[1].splitLine.show).toBe(false);
+  expect(xAxis.splitLine).toBeUndefined();
+});
+
+test('hides the ticks on the x axis and both y axes', () => {
+  const { xAxis, yAxis } = transformWithChrome({ axisTicks: false });
+
+  expect(xAxis.axisTick.show).toBe(false);
+  expect(yAxis[0].axisTick.show).toBe(false);
+  expect(yAxis[1].axisTick.show).toBe(false);
 });

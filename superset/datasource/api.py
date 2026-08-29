@@ -41,6 +41,9 @@ from superset.views.base_api import BaseSupersetApi, statsd_metrics
 
 logger = logging.getLogger(__name__)
 
+# Cache lifetime for search-filtered column values, in seconds.
+SEARCH_CACHE_TIMEOUT = 60
+
 
 class DatasourceRestApi(BaseSupersetApi):
     allow_browser_login = True
@@ -87,6 +90,14 @@ class DatasourceRestApi(BaseSupersetApi):
               type: string
             name: column_name
             description: The name of the column to get values for
+          - in: query
+            schema:
+              type: string
+            name: q
+            description: >-
+              Optional case-insensitive substring; only values containing it are
+              returned. Lets the client search the full column rather than the
+              truncated first page.
           responses:
             200:
               description: A List of distinct values for the column
@@ -136,6 +147,10 @@ class DatasourceRestApi(BaseSupersetApi):
         # Element-level operators (Contains any / Contains all) request the
         # distinct array *elements* rather than distinct whole arrays.
         array_elements = parse_boolean_string(request.args.get("array_elements"))
+        # Server-side search. Without it the client can only match against the
+        # bounded first page, so a value beyond ``FILTER_SELECT_ROW_LIMIT`` is
+        # unfindable on a high-cardinality column.
+        search = (request.args.get("q") or "").strip() or None
 
         # Cache distinct column-value results so a dashboard with many filters
         # backed by the same (often heavy) virtual dataset doesn't re-execute
@@ -169,6 +184,7 @@ class DatasourceRestApi(BaseSupersetApi):
                         "limit": row_limit,
                         "denorm": denormalize_column,
                         "elements": array_elements,
+                        "q": search,
                         "rls": security_manager.get_rls_cache_key(datasource),
                         "changed_on": str(getattr(datasource, "changed_on", "")),
                     },
@@ -184,7 +200,7 @@ class DatasourceRestApi(BaseSupersetApi):
             logger.debug(
                 "column-values cache HIT: uid=%s col=%s", datasource.uid, column_name
             )
-            response = self.response(200, result=cached)
+            response = self.response(200, result=cached, limit=row_limit)
             response.headers["X-Cache-Status"] = "HIT"
             return response
 
@@ -194,6 +210,7 @@ class DatasourceRestApi(BaseSupersetApi):
                 limit=row_limit,
                 denormalize_column=denormalize_column,
                 array_elements=array_elements,
+                search=search,
             )
         except KeyError:
             return self.response(
@@ -225,11 +242,15 @@ class DatasourceRestApi(BaseSupersetApi):
         timeout = datasource.cache_timeout or app.config.get(
             "CACHE_DEFAULT_TIMEOUT", 300
         )
+        if search:
+            # Every distinct search term is its own key, so a few users typing
+            # would otherwise pin one entry per keystroke for the full timeout.
+            timeout = min(timeout, SEARCH_CACHE_TIMEOUT)
         cache_manager.data_cache.set(cache_key, payload, timeout=timeout)
         logger.debug(
             "column-values cache MISS: uid=%s col=%s", datasource.uid, column_name
         )
-        response = self.response(200, result=payload)
+        response = self.response(200, result=payload, limit=row_limit)
         response.headers["X-Cache-Status"] = "MISS"
         return response
 
