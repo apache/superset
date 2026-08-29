@@ -44,20 +44,12 @@ jobs:
     permissions:
       pull-requests: write # to post the approving review via `gh pr review`
     steps:
-      - name: Fetch Dependabot metadata
-        id: metadata
-        # This exact SHA is on ASF Infra's action allowlist
-        # (apache/infrastructure-actions approved_patterns.yml) as of this
-        # writing. Do not bump without opening an Infra ticket to allow
-        # the new SHA first!
-        uses: dependabot/fetch-metadata@25dd0e34f4fe68f24cc83900b1fe3fe149efef98 # v3.1.0
-
+      # Dependabot automatically attaches semver labels (major, minor and patch) to its generated PRs
       - name: Approve patch-level bump
-        if: steps.metadata.outputs.update-type == 'version-update:semver-patch'
+        if: contains(github.event.pull_request.labels.*.name, 'patch')
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_URL: ${{ github.event.pull_request.html_url }}
-          DEPENDENCY_NAMES: ${{ steps.metadata.outputs.dependency-names }}
         run: |
           gh pr review --approve "$PR_URL" \
-            --body "Auto-approved: patch-level bump only ($DEPENDENCY_NAMES)."
+            --body "Auto-approved: patch-level bump only."
