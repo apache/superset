@@ -22,6 +22,8 @@ Validates that referenced columns exist in the dataset schema.
 
 import difflib
 import logging
+import re
+from collections.abc import Mapping
 from typing import Any, Dict, List, Tuple, TypeVar
 
 from superset.mcp_service.chart.schemas import (
@@ -37,6 +39,18 @@ from superset.mcp_service.common.error_schemas import (
 _C = TypeVar("_C", bound=ChartConfig)
 
 logger = logging.getLogger(__name__)
+
+_NUMERIC_TYPE_PATTERN = re.compile(
+    r"\b(?:(?:TINY|SMALL|MEDIUM|BIG)?INT(?:EGER)?|INT[248]|FLOAT[48]?|"
+    r"DOUBLE(?:\s+PRECISION)?|DECIMAL|NUMERIC|REAL|NUMBER|(?:SMALL)?MONEY)\b"
+)
+
+
+def is_numeric_column(column: Mapping[str, Any]) -> bool:
+    """Return whether dataset metadata identifies a numeric SQL column."""
+    if column.get("is_numeric", False):
+        return True
+    return bool(_NUMERIC_TYPE_PATTERN.search(str(column.get("type") or "").upper()))
 
 
 def is_dataset_column_temporal(
@@ -693,12 +707,20 @@ class DatasetValidator:
                 # and text in most SQL engines, so restricting them here would
                 # produce false-positive errors.  Leave those to the Tier-2
                 # compile check.
-                numeric_aggs = ["SUM", "AVG", "STDDEV", "VAR", "MEDIAN"]
+                numeric_aggs = [
+                    "SUM",
+                    "AVG",
+                    "STDDEV_SAMP",
+                    "VAR_SAMP",
+                    "MEDIAN",
+                    "STDDEV",
+                    "VAR",
+                ]
+                type_name = str(col_info.get("type") or "").strip().upper()
                 if (
                     col_ref.aggregate in numeric_aggs
-                    and not col_info.get("is_numeric", False)
-                    and col_info.get("type", "").upper()
-                    not in ["INTEGER", "FLOAT", "DOUBLE", "DECIMAL", "NUMERIC"]
+                    and type_name not in {"", "UNKNOWN"}
+                    and not is_numeric_column(col_info)
                 ):
                     from superset.mcp_service.utils.error_builder import (  # noqa: E501
                         ChartErrorBuilder,

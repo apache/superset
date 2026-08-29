@@ -58,6 +58,7 @@ from superset.utils.core import (
     get_column_name,
     get_column_names_from_columns,
     get_column_names_from_metrics,
+    get_user_id,
     is_adhoc_column,
     is_adhoc_metric,
 )
@@ -270,6 +271,11 @@ class QueryContextProcessor:
         datasource = self._qc_datasource
         extra_cache_keys = datasource.get_extra_cache_keys(query_obj.to_dict())
 
+        # Annotation data is cached on the same entry as the dataframe, so the
+        # key must also bind the annotation sources' security context.
+        if query_obj and query_obj.annotation_layers:
+            kwargs["annotation_context"] = self._annotation_cache_context(query_obj)
+
         cache_key = (
             query_obj.cache_key(
                 datasource=datasource.uid,
@@ -282,6 +288,32 @@ class QueryContextProcessor:
             else None
         )
         return cache_key
+
+    def _annotation_cache_context(self, query_obj: QueryObject) -> dict[str, Any]:
+        """
+        Cache-key material binding cached annotation data to its security
+        context.
+
+        Annotation payloads are fetched per requesting user and stored on the
+        same cache entry as the dataframe, so the key also binds the requesting
+        user and, for chart-backed layers, the RLS clauses of the referenced
+        chart's datasource.
+        """
+        source_rls: dict[str, list[str] | None] = {}
+        for layer in query_obj.annotation_layers:
+            if layer.get("sourceType") not in ("line", "table"):
+                continue
+            layer_value = layer.get("value")
+            chart = (
+                ChartDAO.find_by_id(layer_value) if layer_value is not None else None
+            )
+            annotation_datasource = chart.datasource if chart else None
+            source_rls[str(layer.get("value"))] = (
+                security_manager.get_rls_cache_key(annotation_datasource)
+                if annotation_datasource
+                else None
+            )
+        return {"user_id": get_user_id(), "source_rls": source_rls}
 
     def get_query_result(self, query_object: QueryObject) -> QueryResult:
         """
@@ -636,6 +668,11 @@ class QueryContextProcessor:
             if layer["sourceType"] == "NATIVE"
         ]
         layer_ids = [layer["value"] for layer in annotation_layers]
+        # Enforce the annotation read permission before returning layer records.
+        if layer_ids and not security_manager.can_access("can_read", "Annotation"):
+            raise QueryObjectValidationError(
+                _("You don't have access to annotation layers")
+            )
         layer_objects = {
             layer_object.id: layer_object
             for layer_object in AnnotationLayerDAO.find_by_ids(layer_ids)
@@ -645,6 +682,15 @@ class QueryContextProcessor:
         for layer in annotation_layers:
             layer_id = layer["value"]
             layer_name = layer["name"]
+            # A request may reference a layer id that does not exist; treat it
+            # as a validation error rather than failing on the missing key.
+            if (layer_object := layer_objects.get(layer_id)) is None:
+                raise QueryObjectValidationError(
+                    _(
+                        "Annotation layer with ID %(layer_id)s was not found",
+                        layer_id=layer_id,
+                    )
+                )
             columns = [
                 "start_dttm",
                 "end_dttm",
@@ -652,7 +698,6 @@ class QueryContextProcessor:
                 "long_descr",
                 "json_metadata",
             ]
-            layer_object = layer_objects[layer_id]
             records = [
                 {column: getattr(annotation, column) for column in columns}
                 for annotation in layer_object.annotation

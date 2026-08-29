@@ -183,10 +183,3 @@ def prompt(
         "MCP prompt decorator not initialized. "
         "This decorator should be replaced during Superset startup."
     )
-
-
-__all__ = [
-    "tool",
-    "prompt",
-    "ToolAnnotations",
-]

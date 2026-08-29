@@ -76,7 +76,7 @@ const typeIntoSelect = async (text: string) => {
 const findOption = (text: string) =>
   waitFor(() => {
     // eslint-disable-next-line testing-library/no-node-access
-    const virtualList = document.querySelector('.rc-virtual-list');
+    const virtualList = document.querySelector('.ant-select-dropdown-list');
     if (!virtualList) {
       throw new Error('Virtual list not found');
     }

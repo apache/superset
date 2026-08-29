@@ -493,8 +493,8 @@ Frontend assets (TypeScript, JavaScript, CSS, and images) must be compiled in or
 
 First, be sure you are using the following versions of Node.js and npm:
 
-- `Node.js`: Version 22 (LTS)
-- `npm`: Version 10
+- `Node.js`: Version 24 (see `superset-frontend/.nvmrc` for the exact version)
+- `npm`: Version 11
 
 We recommend using [nvm](https://github.com/nvm-sh/nvm) to manage your node environment:
 
@@ -507,8 +507,8 @@ export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
 
 cd superset-frontend
-nvm install --lts
-nvm use --lts
+nvm install
+nvm use
 ```
 
 Or if you use the default macOS starting with Catalina shell `zsh`, try:

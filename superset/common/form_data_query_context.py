@@ -213,7 +213,9 @@ def orderby_from_form_data(
     # The drag-and-drop "sort by" control persists a list; the frontend unwraps it
     # with ``ensureIsArray(...)[0]`` (``plugin-chart-table/src/buildQuery.ts:67``).
     # Read raw, a list would nest inside ``orderby`` and fail the query.
-    raw_sort_metric = form_data.get("timeseries_limit_metric")
+    raw_sort_metric = form_data.get("series_limit_metric") or form_data.get(
+        "timeseries_limit_metric"
+    )
     sort_metric = (
         next(iter(as_list(raw_sort_metric)), None) if raw_sort_metric else None
     ) or (metrics[0] if form_data.get("sort_by_metric") else None)
