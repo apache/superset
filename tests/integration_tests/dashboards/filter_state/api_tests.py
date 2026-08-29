@@ -255,6 +255,51 @@ def test_put_access_denied(test_client, login_as, dashboard_id: int):
     assert resp.status_code == 404
 
 
+@patch("superset.commands.dashboard.filter_state.create.check_access")
+def test_post_authenticated_user_with_access(
+    mock_check_access, test_client, login_as, dashboard_id: int
+):
+    login_as("alpha")
+    payload = {
+        "value": INITIAL_VALUE,
+    }
+    resp = test_client.post(
+        f"api/v1/dashboard/{dashboard_id}/filter_state", json=payload
+    )
+    assert resp.status_code == 201
+    mock_check_access.assert_called_once_with(dashboard_id)
+
+
+@patch("superset.commands.dashboard.filter_state.create.check_access")
+@patch("superset.commands.dashboard.filter_state.update.check_access")
+def test_put_authenticated_user_with_access(
+    mock_update_check_access,
+    mock_create_check_access,
+    test_client,
+    login_as,
+    dashboard_id: int,
+):
+    login_as("alpha")
+    payload = {
+        "value": INITIAL_VALUE,
+    }
+    post_resp = test_client.post(
+        f"api/v1/dashboard/{dashboard_id}/filter_state", json=payload
+    )
+    assert post_resp.status_code == 201
+    key = json.loads(post_resp.data.decode("utf-8"))["key"]
+
+    put_payload = {
+        "value": UPDATED_VALUE,
+    }
+    resp = test_client.put(
+        f"api/v1/dashboard/{dashboard_id}/filter_state/{key}", json=put_payload
+    )
+    assert resp.status_code == 200
+    mock_create_check_access.assert_called_once_with(dashboard_id)
+    mock_update_check_access.assert_called_once_with(dashboard_id)
+
+
 def test_get_key_not_found(test_client, login_as_admin, dashboard_id: int):
     resp = test_client.get(f"api/v1/dashboard/{dashboard_id}/filter_state/unknown-key/")
     assert resp.status_code == 404
