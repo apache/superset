@@ -159,12 +159,10 @@ export default function transformProps(
       if (uniqueKey === undefined) {
         return acc;
       }
-      return {
-        ...acc,
-        [uniqueKey]: groupbyLabels.map(col =>
-          Object.hasOwn(datum, col) ? (datum[col] as string) : '',
-        ),
-      };
+      acc[uniqueKey] = groupbyLabels.map(col =>
+        Object.hasOwn(datum, col) ? (datum[col] as string) : '',
+      );
+      return acc;
     },
     {},
   );
