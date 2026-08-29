@@ -38,6 +38,9 @@ import fs from 'fs';
 import path from 'path';
 import { Page, test, expect } from '@playwright/test';
 import { URL } from '../../utils/urls';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const MOBILE_SCREENSHOTS_DIR = path.resolve(
   __dirname,
