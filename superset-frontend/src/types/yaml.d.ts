@@ -1,4 +1,5 @@
-/* Licensed to the Apache Software Foundation (ASF) under one
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
  * regarding copyright ownership.  The ASF licenses this file
@@ -16,15 +17,12 @@
  * under the License.
  */
 
-const loadModule = async () => {
-  try {
-    // eslint-disable-next-line import/no-unresolved
-    return (await import('../../../superset_text.yml')) || {};
-  } catch (e) {
-    return {};
-  }
-};
+declare module '*.yaml' {
+  const content: string;
+  export default content;
+}
 
-const supersetText = await loadModule();
-
-export default supersetText;
+declare module '*.yml' {
+  const content: string;
+  export default content;
+}

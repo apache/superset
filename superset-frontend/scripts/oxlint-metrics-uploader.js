@@ -16,9 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-const { execSync } = require('child_process');
-const { GoogleAuth } = require('google-auth-library');
-const googleSheets = require('@googleapis/sheets');
+import { execSync } from 'node:child_process';
+import { GoogleAuth } from 'google-auth-library';
+import googleSheets from '@googleapis/sheets';
 
 const { SPREADSHEET_ID } = process.env;
 const SERVICE_ACCOUNT_KEY = JSON.parse(process.env.SERVICE_ACCOUNT_KEY || '{}');
@@ -280,8 +280,8 @@ async function runOxlintAndProcess() {
 
 // Run the process, unless this file was imported (e.g. by a test) rather than
 // executed, in which case nothing should be linted or uploaded on import.
-if (require.main === module) {
+if (__filename === process.argv[1]) {
   runOxlintAndProcess().catch(console.error);
 }
 
-module.exports = { parseRuleId };
+export default { parseRuleId };

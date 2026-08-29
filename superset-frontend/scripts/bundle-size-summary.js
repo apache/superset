@@ -26,7 +26,8 @@
 //
 // Usage: node scripts/bundle-size-summary.js <path-to-stats.json>
 
-const fs = require('fs');
+import fs from 'node:fs';
+import { pathToFileURL } from 'node:url';
 
 // Entrypoints worth tracking: the two user-facing app shells. `menu`,
 // `preamble`, `theme`, and `service-worker` are small, low-variance
@@ -79,8 +80,11 @@ function main() {
   console.log(JSON.stringify(results, null, 2));
 }
 
-if (require.main === module) {
+const isMain =
+  process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
+
+if (isMain) {
   main();
 }
 
-module.exports = { entrypointSizeByExt, main, TRACKED_ENTRYPOINTS };
+export default { entrypointSizeByExt, main, TRACKED_ENTRYPOINTS };

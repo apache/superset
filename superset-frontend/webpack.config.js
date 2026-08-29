@@ -17,29 +17,40 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-const fs = require('fs');
-const path = require('path');
-const webpack = require('webpack');
-
-const { ModuleFederationPlugin } = webpack.container;
-const { BundleAnalyzerPlugin } = require('webpack-bundle-analyzer');
-const CopyPlugin = require('copy-webpack-plugin');
-const HtmlWebpackPlugin = require('html-webpack-plugin');
-const MiniCssExtractPlugin = require('mini-css-extract-plugin');
-const MinimizerPlugin = require('minimizer-webpack-plugin');
-const LightningCSS = require('lightningcss');
-const SpeedMeasurePlugin = require('speed-measure-webpack-plugin');
-const {
+import fs from 'node:fs';
+import path from 'node:path';
+import { createRequire } from 'node:module';
+import { fileURLToPath } from 'node:url';
+import webpack from 'webpack';
+import * as webpackBundleAnalyzer from 'webpack-bundle-analyzer';
+import CopyPlugin from 'copy-webpack-plugin';
+import HtmlWebpackPlugin from 'html-webpack-plugin';
+import MiniCssExtractPlugin from 'mini-css-extract-plugin';
+import MinimizerPlugin from 'minimizer-webpack-plugin';
+import * as LightningCSS from 'lightningcss';
+import SpeedMeasurePlugin from 'speed-measure-webpack-plugin';
+import {
   WebpackManifestPlugin,
   getCompilerHooks,
-} = require('webpack-manifest-plugin');
-const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
-const ReactRefreshWebpackPlugin = require('@pmmmwh/react-refresh-webpack-plugin');
-const yargs = require('yargs');
-const { hideBin } = require('yargs/helpers');
-const Visualizer = require('webpack-visualizer-plugin2');
-const getProxyConfig = require('./webpack.proxy-config');
-const packageConfig = require('./package.json');
+} from 'webpack-manifest-plugin';
+import ForkTsCheckerWebpackPlugin from 'fork-ts-checker-webpack-plugin';
+import ReactRefreshWebpackPlugin from '@pmmmwh/react-refresh-webpack-plugin';
+import yargs from 'yargs';
+import { hideBin } from 'yargs/helpers';
+import Visualizer from 'webpack-visualizer-plugin2';
+import getProxyConfig from './webpack.proxy-config.js';
+
+const { ModuleFederationPlugin } = webpack.container;
+const { BundleAnalyzerPlugin } = webpackBundleAnalyzer;
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const resolveEsmModule = specifier =>
+  fileURLToPath(import.meta.resolve(specifier));
+
+const packageConfig = JSON.parse(
+  fs.readFileSync(new URL('./package.json', import.meta.url), 'utf8'),
+);
 
 const parsedArgs = yargs(hideBin(process.argv)).parse();
 
@@ -478,8 +489,8 @@ const config = {
       fs: false,
       vm: false,
       path: false,
-      stream: require.resolve('stream-browserify'),
-      ...(isDevMode ? { buffer: require.resolve('buffer/') } : {}), // Fix plugin-chart-paired-t-test broken Story
+      stream: resolveEsmModule('stream-browserify'),
+      ...(isDevMode ? { buffer: resolveEsmModule('buffer/') } : {}), // Fix plugin-chart-paired-t-test broken Story
     },
   },
   context: APP_DIR, // to automatically find tsconfig.json
@@ -600,20 +611,6 @@ const config = {
         test: /\.geojson$/,
         type: 'asset/resource',
       },
-      // {
-      //   test: /\.mdx?$/,
-      //   use: [
-      //     {
-      //       loader: require.resolve('@storybook/mdx2-csf/loader'),
-      //       options: {
-      //         skipCsf: false,
-      //         mdxCompileOptions: {
-      //           remarkPlugins: [remarkGfm],
-      //         },
-      //       },
-      //     },
-      //   ],
-      // },
     ],
   },
   externals: {
@@ -748,4 +745,4 @@ if (process.env.BUNDLE_SIZE_STATS) {
   config.stats = { all: false, assets: true, entrypoints: true };
 }
 
-module.exports = smp.wrap(config);
+export default smp.wrap(config);

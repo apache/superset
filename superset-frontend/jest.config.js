@@ -18,7 +18,8 @@
  */
 // timezone for unit tests
 process.env.TZ = 'America/New_York';
-module.exports = {
+
+export default {
   // [/\\] matches both path separators so the suite also collects on
   // native Windows, where jest hands the regex backslash-separated paths.
   testRegex:

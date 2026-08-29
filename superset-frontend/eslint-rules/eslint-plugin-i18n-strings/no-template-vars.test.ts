@@ -22,10 +22,10 @@
  * @author Apache
  */
 /* eslint-disable no-template-curly-in-string */
-import type { Rule } from 'eslint';
+import { type Rule, RuleTester } from 'eslint';
+import plugin from '.';
 
-const { RuleTester } = require('eslint');
-const plugin: { rules: Record<string, Rule.RuleModule> } = require('.');
+// const plugin: { rules: Record<string, Rule.RuleModule> } = ('.');
 
 //------------------------------------------------------------------------------
 // Tests
