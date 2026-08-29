@@ -94,9 +94,19 @@ def engine() -> Iterator[Engine]:
     with container:
         host = container.get_container_host_ip()
         port = container.get_exposed_port(PORT)
-        yield create_engine(
+        eng = create_engine(
             f"firebird://sysdba:{PASSWORD}@{host}:{port}//firebird/data/{DB_FILE}"
         )
+        yield eng
+        # firebird-driver registers its own atexit handler that talks to
+        # the Firebird subsystem to shut it down cleanly. Without disposing
+        # here first, that handler fires at interpreter exit against a
+        # server the container has *already* torn down -- confirmed on
+        # real CI as a segfault (exit code 139) after both tests had
+        # already passed. Disposing while the server is still up lets the
+        # driver close out normally, so the later atexit call has nothing
+        # left to talk to.
+        eng.dispose()
 
 
 def test_paginated_query_returns_correct_rows_in_order(engine: Engine) -> None:
