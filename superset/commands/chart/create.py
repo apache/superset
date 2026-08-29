@@ -29,6 +29,7 @@ from superset.commands.chart.exceptions import (
     ChartCreateFailedError,
     ChartForbiddenError,
     ChartInvalidError,
+    ChartParamsInvalidJSONValidationError,
     DashboardsForbiddenError,
     DashboardsNotFoundValidationError,
 )
@@ -47,7 +48,12 @@ class CreateChartCommand(CreateMixin, BaseCommand):
         self._properties = data.copy()
 
         if params_str := self._properties.get("params"):
-            params = json.loads(params_str)
+            try:
+                params = json.loads(params_str)
+            except json.JSONDecodeError as ex:
+                raise ChartInvalidError(
+                    exceptions=[ChartParamsInvalidJSONValidationError()]
+                ) from ex
             if isinstance(params, dict) and "viz_type" in params:
                 # Only fall back to params when no top-level viz_type was supplied;
                 # an explicit top-level field takes precedence.

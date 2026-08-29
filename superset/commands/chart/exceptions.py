@@ -116,6 +116,15 @@ class ChartQueryContextDatasourceMismatchValidationError(ValidationError):
         )
 
 
+class ChartParamsInvalidJSONValidationError(ValidationError):
+    """
+    Raised when the params field is not valid JSON.
+    """
+
+    def __init__(self) -> None:
+        super().__init__(_("Chart params contains invalid JSON"), field_name="params")
+
+
 class ChartNotFoundError(CommandException):
     message = "Chart not found."
 
