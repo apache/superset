@@ -51,6 +51,35 @@ function extractImportUrl(params: string): string | null {
   return match[1] ?? match[2] ?? null;
 }
 
+// Matches CSS `url(...)` function calls, optionally quoted, e.g.
+// `url(../fonts/font.woff2)`, `url('img/bg.png')`, `url("./x.svg")`.
+const CSS_URL_PATTERN = /url\(\s*(['"]?)([^'")]+)\1\s*\)/gi;
+
+/**
+ * Rewrites relative `url(...)` references in a fetched stylesheet (font,
+ * image, and other asset paths) so they resolve against the stylesheet's
+ * own URL instead of the dashboard document. Without this, an imported
+ * stylesheet like `@import url('https://fonts.example.com/css2')` whose
+ * body contains `url(../fonts/font.woff2)` would, once inlined verbatim,
+ * resolve that relative path against the dashboard's own origin and fail
+ * to load. Absolute URLs, protocol-relative URLs, and data URIs are left
+ * untouched.
+ */
+function rebaseCssUrls(css: string, baseUrl: string): string {
+  return css.replace(CSS_URL_PATTERN, (match, quote, rawUrl) => {
+    const url = rawUrl.trim();
+    if (/^(?:[a-z][a-z0-9+.-]*:|\/\/|data:)/i.test(url)) {
+      return match;
+    }
+    try {
+      const rebased = new URL(url, baseUrl).toString();
+      return `url(${quote}${rebased}${quote})`;
+    } catch {
+      return match;
+    }
+  });
+}
+
 /**
  * Replaces every top-level `@import url(...)` in `css` with the fetched
  * target stylesheet's own contents, so the result can be saved without
@@ -106,7 +135,7 @@ export async function resolveCssImports(
         if (contentType && !contentType.includes('css')) {
           throw new Error(`${url} did not return a CSS response`);
         }
-        const importedCss = await response.text();
+        const importedCss = rebaseCssUrls(await response.text(), url);
         const importedRoot = postcss.parse(importedCss);
         rule.replaceWith(importedRoot.nodes);
         resolvedCount += 1;

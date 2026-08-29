@@ -63,6 +63,44 @@ test('replaces a Google-Fonts-style @import with the fetched @font-face rules', 
   expect(result.css).toContain('fonts.gstatic.com');
 });
 
+test('rebases a relative url() in the fetched stylesheet against the import URL', async () => {
+  const fontUrl = 'https://fonts.example.com/css2?family=Inter';
+  const fontCss =
+    "@font-face { font-family: 'Inter'; src: url('../fonts/font.woff2') format('woff2'); }";
+  fetchMock.get(fontUrl, {
+    status: 200,
+    body: fontCss,
+    headers: { 'content-type': 'text/css; charset=utf-8' },
+  });
+
+  const result = await resolveCssImports(`@import url('${fontUrl}');`);
+
+  expect(result.resolvedCount).toBe(1);
+  expect(result.css).toContain(
+    "url('https://fonts.example.com/fonts/font.woff2')",
+  );
+});
+
+test('leaves absolute, protocol-relative, and data urls in the fetched stylesheet untouched', async () => {
+  const cssUrl = 'https://cdn.example.com/theme/base.css';
+  const fetchedCss = [
+    ".a { background: url('https://other.example.com/img/a.png'); }",
+    ".b { background: url('//other.example.com/img/b.png'); }",
+    ".c { background: url('data:image/png;base64,AAAA'); }",
+  ].join('\n');
+  fetchMock.get(cssUrl, {
+    status: 200,
+    body: fetchedCss,
+    headers: { 'content-type': 'text/css; charset=utf-8' },
+  });
+
+  const result = await resolveCssImports(`@import url('${cssUrl}');`);
+
+  expect(result.css).toContain("url('https://other.example.com/img/a.png')");
+  expect(result.css).toContain("url('//other.example.com/img/b.png')");
+  expect(result.css).toContain("url('data:image/png;base64,AAAA')");
+});
+
 test('leaves an @import unresolved and reports it when the fetch fails', async () => {
   const brokenUrl = 'https://no-cors.example.com/branding.css';
   fetchMock.get(brokenUrl, { throws: new TypeError('Failed to fetch') });

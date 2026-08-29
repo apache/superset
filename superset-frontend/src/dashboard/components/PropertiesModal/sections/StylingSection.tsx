@@ -310,6 +310,7 @@ const StylingSection = ({
           language="css"
           width="100%"
           height="160px"
+          readOnly={isConvertingCssImports}
         />
       </ModalFormField>
       {hasCssImport(customCss) && (
