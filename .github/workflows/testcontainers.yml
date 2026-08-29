@@ -40,13 +40,22 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  testcontainers:
+  compute-matrix:
+    # Filters out `nightly_only` dialects for a pull_request run *before* any
+    # testcontainers job is created for them, so a heavy dialect costs a PR
+    # nothing at all -- not even its checkout/setup/driver-install steps --
+    # rather than being merely skipped at the test step. A job-level `if:`
+    # can't reference `matrix` (only github/inputs/needs/vars are available
+    # there), so the filtering has to happen here, before the matrix exists,
+    # instead of on the testcontainers job itself.
     runs-on: ubuntu-26.04
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          # One job per dialect rather than one job for the whole suite: a
+    outputs:
+      include: ${{ steps.filter.outputs.include }}
+    steps:
+      - name: Filter nightly-only dialects
+        id: filter
+        env:
+          # One entry per dialect rather than one job for the whole suite: a
           # single slow container would otherwise inflate the wall-clock
           # time for every dialect, not just its own. Running in parallel
           # means the suite's total time is bounded by the slowest dialect,
@@ -55,41 +64,40 @@ jobs:
           # process start) and untested locally here (no arm64 image), so
           # it gets a wider timeout margin than the rest until real CI data
           # says otherwise.
-          - dialect: cockroachdb
-            timeout: 10
-          - dialect: crate
-            timeout: 10
-          - dialect: trino
-            timeout: 10
-          - dialect: mssql
-            timeout: 10
-          - dialect: elasticsearch
-            timeout: 10
-          - dialect: oracle
-            timeout: 15
-          - dialect: db2
-            timeout: 25
-          - dialect: mariadb
-            timeout: 10
-          - dialect: timescaledb
-            timeout: 10
-          - dialect: yugabytedb
-            timeout: 10
-          - dialect: monetdb
-            timeout: 10
-          - dialect: mongodb
-            timeout: 10
-          - dialect: postgres
-            timeout: 10
-          - dialect: mysql
-            timeout: 10
-          - dialect: clickhouse
-            timeout: 10
-          # StarRocks' allin1-ubuntu image brings up both FE and BE in one
-          # container, which is a heavier bring-up than a single-process
-          # database -- wider margin until real CI data says otherwise.
-          - dialect: starrocks
-            timeout: 15
+          FULL_MATRIX: |
+            [
+              {"dialect": "cockroachdb", "timeout": 10},
+              {"dialect": "crate", "timeout": 10},
+              {"dialect": "trino", "timeout": 10},
+              {"dialect": "mssql", "timeout": 10},
+              {"dialect": "elasticsearch", "timeout": 10},
+              {"dialect": "oracle", "timeout": 15},
+              {"dialect": "db2", "timeout": 25},
+              {"dialect": "mariadb", "timeout": 10},
+              {"dialect": "timescaledb", "timeout": 10},
+              {"dialect": "yugabytedb", "timeout": 10},
+              {"dialect": "monetdb", "timeout": 10},
+              {"dialect": "mongodb", "timeout": 10},
+              {"dialect": "postgres", "timeout": 10},
+              {"dialect": "mysql", "timeout": 10},
+              {"dialect": "clickhouse", "timeout": 10},
+              {"dialect": "starrocks", "timeout": 15}
+            ]
+        run: |
+          if [[ "${{ github.event_name }}" == "schedule" || "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            include="$(jq -c '.' <<<"$FULL_MATRIX")"
+          else
+            include="$(jq -c '[.[] | select(.nightly_only != true)]' <<<"$FULL_MATRIX")"
+          fi
+          echo "include=${include}" >> "$GITHUB_OUTPUT"
+
+  testcontainers:
+    needs: [compute-matrix]
+    runs-on: ubuntu-26.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJson(needs.compute-matrix.outputs.include) }}
     timeout-minutes: ${{ matrix.timeout }}
     env:
       PYTHONPATH: ${{ github.workspace }}
@@ -117,16 +125,9 @@ jobs:
         if: matrix.dialect == 'db2'
         run: uv pip install --system -e .[db2]
       - name: Run testcontainers db_engine_specs tests (${{ matrix.dialect }})
-        # A job-level `if:` can't reference `matrix` (only github/inputs/
-        # needs/vars are available there), so the nightly_only skip has to
-        # live on the step instead. A dialect without `nightly_only` set
-        # evaluates the left side true (unset is null, and `null != true`
-        # is true) and always runs; one WITH it set only runs on the cron
-        # or a manual dispatch, never on pull_request.
-        if: >-
-          matrix.nightly_only != true ||
-          github.event_name == 'schedule' ||
-          github.event_name == 'workflow_dispatch'
+        # nightly_only dialects are already excluded from the matrix itself
+        # on pull_request runs (see the compute-matrix job above), so this
+        # step needs no additional gating.
         run: |
           pytest --durations-min=2 -v -m testcontainers \
             ./tests/testcontainers/db_engine_specs/test_${{ matrix.dialect }}.py \
