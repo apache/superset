@@ -17,4 +17,4 @@
  * under the License.
  */
 
-export default 'test-file-stub';
+module.exports = 'test-file-stub';

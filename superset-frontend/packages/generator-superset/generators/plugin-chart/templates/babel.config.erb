@@ -1,4 +1,4 @@
-import { getConfig } from '@airbnb/config-babel';
+const { getConfig } = require('@airbnb/config-babel');
 
 const config = getConfig({
   library: true,
@@ -18,4 +18,4 @@ config.plugins = [
   ['@babel/plugin-proposal-class-properties', { loose: true }],
 ];
 
-export default plugin;
+module.exports = config;
