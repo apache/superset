@@ -664,7 +664,7 @@ pillow==12.3.0
     #   -c requirements/base-constraint.txt
     #   apache-superset
     #   matplotlib
-pip==25.1.1
+pip==26.2.1
     # via apache-superset
 platformdirs==4.3.8
     # via
@@ -921,7 +921,7 @@ secretstorage==3.5.0
     # via keyring
 semver==3.0.4
     # via apache-superset-extensions-cli
-setuptools==80.9.0
+setuptools==84.0.0
     # via
     #   -c requirements/base-constraint.txt
     #   nodeenv
