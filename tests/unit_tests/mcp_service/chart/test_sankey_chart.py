@@ -135,9 +135,9 @@ class TestMapSankeyConfig:
         assert form_data["groupby"] == ["from_stage", "to_stage"]
         assert form_data["metric"]["label"] == "SUM(users)"
         assert form_data["sort_by_metric"] is True
-        # sort_by_metric must translate to an explicit orderby (buildQuery is
-        # bypassed on the MCP path), or row-limited results drop heavy edges
-        assert form_data["orderby"] == [[form_data["metric"], False]]
+        # orderby is applied by the query-dict builder, not stashed in form_data
+        # (a top-level form_data['orderby'] is a no-op on the MCP path)
+        assert "orderby" not in form_data
 
     def test_sankey_form_data_with_filters_and_no_sort(self) -> None:
         config = SankeyChartConfig(
@@ -195,6 +195,36 @@ class TestSankeySourceTargetReachQueryBuilders:
             "from_stage",
             "to_stage",
         ]
+
+
+class TestSankeyQueryContext:
+    """The built query must GROUP BY source+target and ORDER BY the metric.
+
+    Both transforms live in the frontend buildQuery; the MCP path rebuilds the
+    query dict directly, so they must be re-derived or the query collapses to a
+    single unordered aggregate row.
+    """
+
+    def test_group_by_and_order_by(self, monkeypatch) -> None:
+        from superset.mcp_service.chart import chart_helpers
+
+        monkeypatch.setattr(
+            chart_helpers,
+            "resolve_datasource_engine",
+            lambda datasource_id, datasource_type: "base",
+        )
+        config = SankeyChartConfig(
+            chart_type="sankey_v2",
+            source={"name": "from_stage"},
+            target={"name": "to_stage"},
+            metric={"name": "users", "aggregate": "SUM"},
+        )
+        form_data = map_sankey_config(config)
+        queries = chart_helpers.build_query_dicts_from_form_data(form_data, 1, "table")
+        assert queries[0]["columns"] == ["from_stage", "to_stage"]
+        orderby = queries[0].get("orderby")
+        assert orderby, "sort_by_metric must produce an orderby"
+        assert orderby[0][1] is False, "ordering must be descending by the metric"
 
 
 class TestSankeyPluginRegistry:

@@ -1071,11 +1071,10 @@ def map_sankey_config(config: SankeyChartConfig) -> Dict[str, Any]:
         "row_limit": config.row_limit,
         "color_scheme": config.color_scheme or "supersetColors",
     }
-    # buildQuery orders by the metric descending when sort_by_metric is set; the
-    # MCP path bypasses buildQuery, so emit orderby explicitly or the heaviest
-    # edges can be dropped once the row_limit truncates an unordered result.
-    if config.sort_by_metric:
-        form_data["orderby"] = [[form_data["metric"], False]]
+    # sort_by_metric ordering is applied by the shared query-dict builder
+    # (_build_single_query_dict), which emits ORDER BY the metric descending. A
+    # top-level form_data['orderby'] would be ignored on the MCP path, so it is
+    # deliberately not set here.
     _add_adhoc_filters(form_data, config.filters)
     return form_data
 
