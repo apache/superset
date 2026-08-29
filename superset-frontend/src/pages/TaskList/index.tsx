@@ -323,7 +323,7 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
             progressTotal={properties?.progress_total}
             durationSeconds={duration_seconds}
             errorMessage={properties?.error_message}
-            exceptionType={properties?.exception_type}
+            exceptionType={properties?.private?.framework?.exception_type}
           />
         ),
         accessor: 'status',
@@ -453,7 +453,14 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
           },
         }: TaskCellProps) => {
           const hasPayload = payload && Object.keys(payload).length > 0;
-          const hasStackTrace = !!properties?.stack_trace;
+          // Internal (debug-only) state; the API includes `private` only in debug
+          // mode, and seeds empty framework/task namespaces, so check for content.
+          const taskPrivate = properties?.private;
+          const hasPrivate =
+            !!taskPrivate &&
+            (Object.keys(taskPrivate.framework ?? {}).length > 0 ||
+              Object.keys(taskPrivate.task ?? {}).length > 0);
+          const hasStackTrace = !!taskPrivate?.framework?.stack_trace;
           const hasDependsOn = !!depends_on && depends_on.length > 0;
           const hasRequiredBy = !!required_by && required_by.length > 0;
           const dedupeCount = properties?.dedupe_count ?? 0;
@@ -467,6 +474,7 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
 
           if (
             !hasPayload &&
+            !hasPrivate &&
             !hasStackTrace &&
             !hasTimeoutWithoutHandler &&
             !hasDependsOn &&
@@ -504,9 +512,16 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
                   </span>
                 </Tooltip>
               )}
-              {hasPayload && <TaskPayloadPopover payload={payload} />}
-              {hasStackTrace && properties.stack_trace && (
-                <TaskStackTracePopover stackTrace={properties.stack_trace} />
+              {(hasPayload || hasPrivate) && (
+                <TaskPayloadPopover
+                  payload={payload}
+                  taskPrivate={taskPrivate}
+                />
+              )}
+              {hasStackTrace && taskPrivate?.framework?.stack_trace && (
+                <TaskStackTracePopover
+                  stackTrace={taskPrivate.framework.stack_trace}
+                />
               )}
               {(hasDependsOn || hasRequiredBy) && (
                 <TaskDependenciesPopover

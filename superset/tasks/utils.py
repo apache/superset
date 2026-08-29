@@ -26,7 +26,7 @@ from urllib import request
 from uuid import UUID, uuid4
 
 from celery.utils.log import get_task_logger
-from flask import g
+from flask import current_app, g
 from superset_core.tasks.types import TaskProperties, TaskScope
 
 from superset.tasks.exceptions import ExecutorNotFoundError, InvalidExecutorError
@@ -196,6 +196,23 @@ def naive_utcnow() -> datetime:
     return datetime.now(timezone.utc).replace(tzinfo=None)
 
 
+def floored_status_cursor() -> datetime:
+    """Return the current wall-clock time floored to whole seconds.
+
+    Used as the ``status_changes`` poll cursor. ``changed_on`` (FAB AuditMixin,
+    naive local) is stored at the metastore column's precision, and MySQL
+    ``DATETIME`` truncates to whole seconds — so a sub-second cursor could sit
+    *after* a same-second change and miss it under the ``changed_on >= cursor``
+    bound. Flooring keeps ``>=`` inclusive on every backend; re-delivering an
+    earlier same-second change is idempotent for the client. All producers of a
+    status cursor (the 202 handshake and each poll response) share this helper so
+    the precision contract lives in one place.
+
+    :returns: Current naive-local time with sub-second precision dropped
+    """
+    return datetime.now().replace(microsecond=0)
+
+
 def generate_random_task_key() -> str:
     """
     Generate a random task key.
@@ -314,14 +331,61 @@ def error_update(exception: BaseException) -> TaskProperties:
     """
     Create a properties update dict from an exception.
 
+    ``error_message`` is the consumer-facing failure reason (public); the
+    exception class and traceback are internal debug detail and go under
+    ``private["framework"]`` (visible only in debug mode). The nested ``private``
+    key is merged recursively by ``Task.update_properties`` so it does not clobber
+    other framework/task handles.
+
     :param exception: The exception that caused the failure
     :returns: TaskProperties dict with error fields populated
     """
-    return {
-        "error_message": str(exception),
-        "exception_type": type(exception).__name__,
-        "stack_trace": traceback.format_exc(),
-    }
+    return cast(
+        TaskProperties,
+        {
+            "error_message": str(exception),
+            "private": {
+                "framework": {
+                    "exception_type": type(exception).__name__,
+                    "stack_trace": traceback.format_exc(),
+                }
+            },
+        },
+    )
+
+
+def task_internals_visible() -> bool:
+    """Whether internal (``private``) task properties may be surfaced to API
+    consumers. Single source of truth for the visibility gate: internal task
+    state (framework orchestration handles, error tracebacks, task-execution
+    handles) is exposed only in debug mode.
+    """
+    return bool(current_app.debug)
+
+
+def merge_private_subtree(
+    current_private: Any, updates_private: dict[str, Any]
+) -> dict[str, Any]:
+    """Recursively merge the ``private`` properties subtree, per namespace.
+
+    Each namespace (``framework``, ``task``) is a dict merged independently, so a
+    write to one never clobbers the other or drops earlier keys — this is what
+    structurally isolates task-owned freeform keys from framework orchestration
+    keys. Defensive against a malformed persisted value: a non-dict subtree or a
+    non-dict namespace is treated as empty rather than raising ``TypeError`` on
+    unpacking (``private`` is framework-managed, so this only guards corrupted or
+    externally-tampered rows).
+    """
+    merged: dict[str, Any] = (
+        dict(current_private) if isinstance(current_private, dict) else {}
+    )
+    for namespace, ns_updates in updates_private.items():
+        existing = merged.get(namespace)
+        if isinstance(ns_updates, dict) and isinstance(existing, dict):
+            merged[namespace] = {**existing, **ns_updates}
+        else:
+            merged[namespace] = ns_updates
+    return merged
 
 
 def parse_properties(json_str: str | None) -> TaskProperties:

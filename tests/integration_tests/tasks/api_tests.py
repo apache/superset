@@ -254,6 +254,35 @@ class TestTaskApi(SupersetTestCase):
         rv = self.client.get(uri)
         assert rv.status_code == 404
 
+    def test_related_subscribers_scoped_to_visible_tasks(self):
+        """
+        Task API: /related/subscribers only lists subscribers of visible tasks.
+
+        Gamma sees only its own tasks (TaskFilter), so the admin who created the
+        other fixture tasks must not appear in Gamma's subscriber dropdown, while
+        the admin (who can see all tasks) sees both.
+        """
+        with self._create_tasks():
+            admin = self.get_user("admin")
+            gamma = self.get_user("gamma")
+            uri = f"{self.TASK_API_BASE}/related/subscribers"
+
+            self.login(GAMMA_USERNAME)
+            rv = self.client.get(uri)
+            assert rv.status_code == 200
+            gamma_ids = {
+                item["value"] for item in json.loads(rv.data.decode("utf-8"))["result"]
+            }
+            assert gamma.id in gamma_ids
+            assert admin.id not in gamma_ids
+
+            self.login(ADMIN_USERNAME)
+            rv = self.client.get(uri)
+            admin_ids = {
+                item["value"] for item in json.loads(rv.data.decode("utf-8"))["result"]
+            }
+            assert {admin.id, gamma.id} <= admin_ids
+
     def test_get_task_list_ordered(self):
         """
         Task API: Test get task list with ordering

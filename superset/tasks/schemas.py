@@ -17,9 +17,11 @@
 """Task API schemas"""
 
 from datetime import datetime
+from typing import cast
 
 from marshmallow import fields, Schema
 from marshmallow.fields import Method
+from superset_core.tasks.types import TaskProperties
 
 # RISON/JSON schemas for query parameters
 get_delete_ids_schema = {
@@ -47,9 +49,11 @@ created_by_description = "User who created the task"
 user_id_description = "ID of the user context for task execution"
 payload_description = "Task-specific data in JSON format"
 properties_description = (
-    "Runtime state and execution config. Contains: is_abortable, progress_percent, "
-    "progress_current, progress_total, error_message, timeout. Also includes "
-    "exception_type and stack_trace, but only when SHOW_STACKTRACE is enabled"
+    "Runtime state and execution config. Public keys: is_abortable, "
+    "progress_percent, progress_current, progress_total, dedupe_count, "
+    "execution_mode, timeout, error_message. Internal state (a `private` bucket "
+    "with `framework` orchestration/debug handles and `task`-specific handles) is "
+    "included only in debug mode."
 )
 duration_seconds_description = (
     "Duration in seconds - for finished tasks: execution time, "
@@ -137,21 +141,18 @@ class TaskResponseSchema(Schema):
         """Get payload as dictionary"""
         return obj.payload_dict  # type: ignore[attr-defined]
 
-    def get_properties(self, obj: object) -> dict[str, object]:
-        """Get properties dict, filtering debug fields unless SHOW_STACKTRACE."""
-        from flask import current_app
+    def get_properties(self, obj: object) -> TaskProperties:
+        """Get properties dict, stripping internal state outside debug mode."""
+        from superset.tasks.utils import task_internals_visible
 
-        properties = dict(obj.properties_dict)  # type: ignore[attr-defined]
+        properties = cast(TaskProperties, dict(obj.properties_dict))  # type: ignore[attr-defined]
 
-        # Remove internal debugging details unless SHOW_STACKTRACE is enabled.
-        # The full traceback and the raw exception class name disclose internal
-        # file paths, library versions, and architecture details (CWE-209), so
-        # they are gated behind the same flag that controls stack traces
-        # elsewhere in Superset. ``error_message`` is left in place as the
+        # The internal ``private`` bucket (framework orchestration + error debug +
+        # task-execution handles) is surfaced only in debug mode; otherwise it is
+        # stripped wholesale. ``error_message`` stays top-level (public) as the
         # consumer-facing failure reason.
-        if not current_app.config["SHOW_STACKTRACE"]:
-            properties.pop("stack_trace", None)
-            properties.pop("exception_type", None)
+        if not task_internals_visible():
+            properties.pop("private", None)
 
         return properties
 

@@ -166,6 +166,36 @@ ctx.update_task(payload={"result_cache_key": key}, immediate=True)
 
 Use this only when another consumer must observe the update as soon as the task finishes — for example, a dependent task that reads a prerequisite's payload the moment the dependency gate releases. For ordinary progress reporting, prefer the default throttled behavior.
 
+#### Task state: public properties, private (debug-only), and results
+
+A task's state lives in three tiers:
+
+1. **Public `properties`** — named runtime state and execution config
+   (`is_abortable`, `progress_*`, `dedupe_count`, `execution_mode`, `timeout`,
+   `error_message`). Returned by the Task REST API and shown in the Task List UI.
+2. **Private properties** — internal state that is surfaced to API consumers
+   **only in debug mode** (otherwise the whole `private` key is stripped). It has
+   two structurally isolated namespaces so a task type's freeform key can never
+   collide with a framework key:
+   - `private.framework` — framework-owned named keys common to every task: the
+     Celery job id the orphan reaper revokes (`celery_task_id`) plus error debug
+     (`exception_type`, `stack_trace`). Written only by the framework via
+     `task.update_framework_private({...})`.
+   - `private.task` — freeform, task-type-specific internal handles (e.g. the
+     chart-data query task's engine cancel handle,
+     `cancel_query_id`/`cancel_database_id`). Written by task/execution code via
+     `task.update_task_private({...})`.
+   Both namespaces merge independently (a write to one never clobbers the other).
+3. **Results (`payload`)** — end-user-facing task output (intermediate/final):
+   e.g. a `cache_key` or an engine tracking URL. Set via
+   `ctx.update_task(payload=...)` and rendered in the Task List info bubble. In
+   debug mode the bubble shows the `private` state in a separate section below.
+
+Rule of thumb: user-facing status → top-level `properties`; user-facing output →
+`payload`; framework plumbing → `private.framework`; task-specific internal
+handles → `private.task`.
+
+
 ### Handlers
 
 Register handlers to run cleanup logic or respond to abort requests:

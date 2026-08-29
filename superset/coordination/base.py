@@ -467,7 +467,26 @@ class CoordinationService:
             name=f"coord-listen-{name or channel}",
         )
         thread.start()
-        return SignalListener(thread, stop_event)
+        # With a backend the loop parks in a blocking stream read, so ``stop`` must
+        # nudge the stream to make that read return at once (the no-backend loop
+        # already wakes on ``stop_event``). Bind the ttl now, while an app context
+        # is guaranteed, so the wake closure does not depend on one.
+        wake: Callable[[], None] | None = None
+        if (backend := cls.get_backend()) is not None:
+            ttl = current_app.config.get(
+                "DISTRIBUTED_COORDINATION_SIGNAL_TTL",
+                _DEFAULT_SIGNAL_STREAM_TTL_SECONDS,
+            )
+
+            def wake() -> None:
+                try:
+                    cls.notify(channel, "__wake__", ttl=ttl, backend=backend)
+                except Exception:  # pylint: disable=broad-except
+                    logger.debug(
+                        "Listener wake nudge failed for %s", channel, exc_info=True
+                    )
+
+        return SignalListener(thread, stop_event, wake=wake)
 
     @classmethod
     def _run_listen_loop(

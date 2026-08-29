@@ -34,6 +34,7 @@ from superset.models.tasks import Task
 from superset.tasks.constants import ABORTABLE_STATES, ACTIVE_STATES, TERMINAL_STATES
 from superset.tasks.filters import TaskFilter
 from superset.tasks.utils import (
+    floored_status_cursor,
     get_active_dedup_key,
     get_finished_dedup_key,
     json,
@@ -99,6 +100,17 @@ class TaskDAO(BaseDAO[Task]):
         owns, not a user-facing lookup.
         """
         return db.session.query(Task.id).filter(Task.uuid == task_uuid).scalar()
+
+    @classmethod
+    def visible_task_ids_query(cls) -> Any:
+        """Base-filtered query of task ids the current user can access.
+
+        Applies ``TaskFilter`` (subscribed tasks for regular users, all for
+        admins). Used to scope task-adjacent listings — e.g. the subscriber
+        filter dropdown — to tasks the caller can actually see, rather than
+        leaking the whole subscriber set.
+        """
+        return cls._apply_base_filter(db.session.query(Task.id))
 
     # Dialect SQL for the database's current time as a naive UTC timestamp. Used
     # so the heartbeat write and the orphan scan share one clock (the DB's) rather
@@ -223,13 +235,13 @@ class TaskDAO(BaseDAO[Task]):
         # Flooring keeps >= inclusive on every backend; re-delivering an earlier
         # same-second change is harmless (idempotent for the client).
         if cursor is None:
-            return {}, datetime.now().replace(microsecond=0)
+            return {}, floored_status_cursor()
 
         # Watermark for the *next* poll, captured before the read so a change
         # landing during the query is caught next time (>= is inclusive), never
         # skipped. Same naive-local clock as ``changed_on`` (FAB AuditMixin),
         # floored to whole seconds (see the baseline case above).
-        next_cursor = datetime.now().replace(microsecond=0)
+        next_cursor = floored_status_cursor()
         query = cls._apply_base_filter(db.session.query(Task)).filter(
             # Task.changed_on's type is shadowed by CoreTask's bare annotation
             # (datetime | None), so reference the real column for the comparison.
@@ -346,8 +358,16 @@ class TaskDAO(BaseDAO[Task]):
 
         # Set properties after creation via update_properties (handles caching).
         # Seed dedupe_count so every task carries it from the start (bumped each
-        # time a later submit joins this task instead of creating a new one).
-        task.update_properties({"dedupe_count": 0, **(properties or {})})
+        # time a later submit joins this task instead of creating a new one), and
+        # the two internal ``private`` namespaces (framework/task) so internal
+        # runtime state always has an isolated home.
+        task.update_properties(
+            {
+                "dedupe_count": 0,
+                "private": {"framework": {}, "task": {}},
+                **(properties or {}),
+            }
+        )
 
         # Flush to get the task ID (auto-incremented primary key)
         db.session.flush()

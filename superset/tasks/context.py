@@ -386,6 +386,7 @@ class TaskContext(CoreTaskContext):
     def set_cancellation(self, database_id: int, cancel_query_id: str) -> None:
         """Record the engine cancel handle for the running warehouse query.
 
+        Stored under ``private["task"]`` (task-execution-specific internal state).
         Merges the handle into the properties cache **without** writing: the task
         registers its abort handler immediately after (see ``on_abort`` /
         ``_set_abortable``), whose write flushes the whole cache, so the handle is
@@ -393,8 +394,20 @@ class TaskContext(CoreTaskContext):
         write. The orphan reaper reads it to cancel the query out-of-band when
         this worker dies; the live abort path uses its in-memory closure instead.
         """
-        self._properties_cache["cancel_database_id"] = database_id
-        self._properties_cache["cancel_query_id"] = cancel_query_id
+        from superset.tasks.utils import merge_private_subtree
+
+        self._properties_cache["private"] = cast(
+            "Any",
+            merge_private_subtree(
+                self._properties_cache.get("private"),
+                {
+                    "task": {
+                        "cancel_database_id": database_id,
+                        "cancel_query_id": cancel_query_id,
+                    }
+                },
+            ),
+        )
 
     def _start_abort_listener(self, interval: float) -> None:
         """
@@ -536,11 +549,16 @@ class TaskContext(CoreTaskContext):
         if self._app:
             ctx = self._app.app_context() if not has_app_context() else nullcontext()
             with ctx:
-                # Check if task already has an error (preserve original context)
+                # Check if task already has an error (preserve original context).
+                # error_message is public (top-level); the exception class and
+                # traceback are internal debug detail under private["framework"].
                 task = self._task
+                private_fw = (task.properties_dict.get("private") or {}).get(
+                    "framework"
+                ) or {}
                 original_error = task.properties_dict.get("error_message")
-                original_type = task.properties_dict.get("exception_type")
-                original_trace = task.properties_dict.get("stack_trace")
+                original_type = private_fw.get("exception_type")
+                original_trace = private_fw.get("stack_trace")
 
                 if original_error:
                     # Append handler failures to original error
@@ -563,14 +581,20 @@ class TaskContext(CoreTaskContext):
                     exception_type = handler_exception_type
                     stack_trace = handler_stack_trace
 
-                # Update task with combined error info
+                # Update task with combined error info. error_message is public;
+                # exception_type/stack_trace go under private["framework"] (merged
+                # recursively, so task/other framework handles are preserved).
                 UpdateTaskCommand(
                     self._task_uuid,
                     status=TaskStatus.FAILURE.value,
                     properties={
                         "error_message": error_msg,
-                        "exception_type": exception_type,
-                        "stack_trace": stack_trace,
+                        "private": {
+                            "framework": {
+                                "exception_type": exception_type,
+                                "stack_trace": stack_trace,
+                            }
+                        },
                     },
                     skip_security_check=True,
                 ).run()

@@ -321,3 +321,77 @@ def test_signal_listener_stop_signals_and_joins(mocker: MockerFixture) -> None:
 
     assert stop_event.is_set()
     thread.join.assert_called_once_with(timeout=2.0)
+
+
+def test_signal_listener_stop_wakes_before_join(mocker: MockerFixture) -> None:
+    """stop() fires the wake nudge (so a blocked read returns) and still joins.
+
+    The nudge runs on a daemon thread so a degraded backend can't make stop()
+    block past the bounded join, so wait briefly for it to be invoked.
+    """
+    thread = mocker.MagicMock(name="thread")
+    thread.is_alive.side_effect = [True, False]
+    stop_event = threading.Event()
+    woken = threading.Event()
+    wake = mocker.MagicMock(name="wake", side_effect=lambda: woken.set())
+
+    SignalListener(thread, stop_event, wake=wake).stop()
+
+    assert stop_event.is_set()
+    assert woken.wait(timeout=2.0)  # wake was invoked (off-thread)
+    thread.join.assert_called_once_with(timeout=2.0)
+
+
+def test_signal_listener_stop_bounded_when_wake_hangs(mocker: MockerFixture) -> None:
+    """A wake that blocks (degraded backend) must not stall stop(): the nudge is
+    off-thread, so stop() still returns via the bounded join."""
+    thread = mocker.MagicMock(name="thread")
+    thread.is_alive.side_effect = [True, False]
+    stop_event = threading.Event()
+    release = threading.Event()
+    # A wake that never returns until released — simulates a hung Redis write.
+    wake = mocker.MagicMock(name="wake", side_effect=lambda: release.wait(timeout=5.0))
+
+    SignalListener(thread, stop_event, wake=wake).stop()
+
+    # stop() returned despite the still-blocked wake.
+    thread.join.assert_called_once_with(timeout=2.0)
+    release.set()  # let the daemon wake thread unwind
+
+
+def test_listen_stop_wakes_blocked_backend_read(
+    app_context: None, mocker: MockerFixture
+) -> None:
+    """A listener parked in a blocking XREAD terminates promptly on stop() because
+    the wake nudge (a stream write) makes the read return."""
+    backend = mocker.MagicMock(name="backend")
+    backend.stream_last_id.return_value = "0-0"
+    entered = threading.Event()
+    woken = threading.Event()
+
+    def blocking_xread(*_args: object, **_kwargs: object) -> list[object]:
+        # Park like a real blocking XREAD until the wake write lands.
+        entered.set()
+        woken.wait(timeout=2.0)
+        return []
+
+    backend.xread.side_effect = blocking_xread
+    # notify() -> backend.xadd is the wake nudge; unblock the read when it fires.
+    backend.xadd.side_effect = lambda *a, **k: woken.set()
+    mocker.patch.object(CoordinationService, "get_backend", return_value=backend)
+
+    listener = CoordinationService.listen_for_signal(
+        "ch", check=lambda: False, on_signal=mocker.MagicMock(), poll_interval=0.01
+    )
+    assert entered.wait(timeout=2.0)  # listener is parked in the blocking read
+
+    listener.stop()
+
+    assert woken.is_set()  # the wake nudge was actually issued
+    assert not listener._thread.is_alive()  # and it made the listener terminate
+
+    # The wake nudge is a stream write (via notify) carrying the wake marker.
+    assert any(
+        call.args[:2] == ("ch", {"m": "__wake__"})
+        for call in backend.xadd.call_args_list
+    )

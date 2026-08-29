@@ -18,7 +18,6 @@ from __future__ import annotations
 
 import logging
 from contextlib import contextmanager
-from datetime import datetime
 from typing import Any, Iterator, TYPE_CHECKING
 from uuid import UUID
 
@@ -43,6 +42,7 @@ from superset.tasks.query_cancel import (
     capture_cancel_id,
     capture_cancel_query_id,
 )
+from superset.tasks.utils import floored_status_cursor
 from superset.utils.core import override_user
 
 if TYPE_CHECKING:
@@ -251,8 +251,10 @@ def submit_chart_data_query_tasks(
     # the client can poll `status_changes` from it and is guaranteed to observe
     # each task's completion — closing the race where a task finishes before the
     # client's waiter/poll is established. Returned in the 202 (one small value,
-    # unlike echoing every task id back).
-    poll_cursor = datetime.now()
+    # unlike echoing every task id back). Floored to whole seconds via the shared
+    # helper so it can't sit after a same-second change under the metastore's
+    # ``changed_on`` precision (see floored_status_cursor).
+    poll_cursor = floored_status_cursor()
 
     queries = query_context.queries
     # Contribution queries normalize against a shared totals row. Identify the coupling

@@ -17,7 +17,7 @@
 """Reap GTF tasks abandoned by a dead worker."""
 
 import logging
-from typing import cast
+from typing import Any, cast
 from uuid import UUID
 
 from flask import current_app
@@ -78,7 +78,7 @@ class ReapOrphanedTasksCommand(BaseCommand):
     def _reap(self, task_uuid: UUID, stats_logger: BaseStatsLogger) -> bool:
         """Recover one orphaned task; return True if it was transitioned to FAILURE."""
         # Read the current properties so the FAILURE write preserves existing
-        # runtime state (celery_task_id, is_abortable, ...) rather than replacing
+        # runtime state (private handles, is_abortable, ...) rather than replacing
         # the whole column with just the error fields.
         properties = cast(
             TaskProperties,
@@ -91,7 +91,16 @@ class ReapOrphanedTasksCommand(BaseCommand):
             ),
         )
         properties["error_message"] = ORPHAN_ERROR_MESSAGE
-        properties["exception_type"] = "OrphanedTaskError"
+        # exception_type is internal debug detail → private["framework"]. Build on
+        # the existing private subtree so the framework orchestration handles and
+        # the task-owned cancel handles are preserved.
+        private = cast("dict[str, Any]", dict(properties.get("private") or {}))
+        framework = {
+            **(private.get("framework") or {}),
+            "exception_type": "OrphanedTaskError",
+        }
+        private["framework"] = framework
+        properties["private"] = cast("Any", private)
 
         # Claim the terminal transition FIRST, before any destructive side effect.
         # The CAS is atomic (row-locked) against a worker that merely stalled and
@@ -112,9 +121,10 @@ class ReapOrphanedTasksCommand(BaseCommand):
         db.session.commit()  # pylint: disable=consider-using-transaction
 
         # We own the terminal transition — the worker is gone (or lost the race),
-        # so its Celery job and warehouse query are safe to clean up.
-        self._revoke(properties.get("celery_task_id"), stats_logger)
-        self._cancel_orphaned_query(properties)
+        # so its Celery job and warehouse query are safe to clean up. The Celery id
+        # is a framework handle; the engine cancel handle is a task handle.
+        self._revoke(framework.get("celery_task_id"), stats_logger)
+        self._cancel_orphaned_query(cast("dict[str, Any]", private.get("task") or {}))
 
         from superset.tasks.manager import TaskManager
 
@@ -149,16 +159,19 @@ class ReapOrphanedTasksCommand(BaseCommand):
                 "Failed to revoke Celery task %s", celery_task_id, exc_info=True
             )
 
-    def _cancel_orphaned_query(self, properties: TaskProperties) -> None:
+    def _cancel_orphaned_query(self, task_private: "dict[str, Any]") -> None:
         """Cancel the abandoned warehouse query, if one was captured.
 
         The dead worker can't run its own ``on_abort`` handler, so the reaper
         cancels out-of-band from the persisted handle (only present for engines
         that expose a cancel id before execution). Best-effort: no handle, a
         missing database, or a cancel failure never blocks the FAILURE transition.
+
+        :param task_private: the task's ``private["task"]`` namespace (task-owned
+            internal handles)
         """
-        cancel_query_id = properties.get("cancel_query_id")
-        database_id = properties.get("cancel_database_id")
+        cancel_query_id = task_private.get("cancel_query_id")
+        database_id = task_private.get("cancel_database_id")
         if not cancel_query_id or database_id is None:
             return
 
