@@ -233,21 +233,36 @@ test('formats axis and tooltip values as absolute numbers', () => {
   const tooltipHtml = tooltip?.formatter?.([
     {
       name: categoryKeyA,
+      dataIndex: 0,
       seriesName: 'left_sum',
       value: -10,
     } as CallbackDataParams,
     {
       name: categoryKeyA,
+      dataIndex: 0,
       seriesName: 'right_sum',
       value: 25,
     } as CallbackDataParams,
   ]);
 
-  expect(tooltipHtml).toContain(categoryKeyA);
+  expect(tooltipHtml).toContain('A');
+  expect(tooltipHtml).not.toContain(categoryKeyA);
   expect(tooltipHtml).toContain('left_sum');
   expect(tooltipHtml).toContain('right_sum');
   expect(tooltipHtml).toContain('10');
   expect(tooltipHtml).toContain('25');
+});
+
+test('shows the category label in the tooltip when ECharts reports a unique key', () => {
+  const transformedProps = transformProps(createChartProps());
+  const tooltipHtml = getEchartOptions(transformedProps).tooltip?.formatter?.({
+    name: categoryKeyA,
+    seriesName: 'left_sum',
+    value: -10,
+  } as CallbackDataParams);
+
+  expect(tooltipHtml).toContain('A');
+  expect(tooltipHtml).not.toContain(categoryKeyA);
 });
 
 test('hides tooltip while the context menu is open', () => {

@@ -100,7 +100,8 @@ test('context menu exposes drill to detail for the selected category', () => {
   const { eventHandlers, onContextMenu } = setup();
 
   eventHandlers.contextmenu({
-    name: categoryKeyA,
+    name: 'A',
+    data: { name: categoryKeyA },
     event: { stop: jest.fn(), event: { clientX: 10, clientY: 20 } },
   });
 
@@ -121,7 +122,7 @@ test('context menu exposes drill to detail for the selected category', () => {
 test('click emits cross-filter for the selected category', () => {
   const { eventHandlers, setDataMask } = setup();
 
-  eventHandlers.click({ name: categoryKeyB });
+  eventHandlers.click({ name: 'B', data: { name: categoryKeyB } });
 
   expect(setDataMask).toHaveBeenCalledWith(
     expect.objectContaining({
@@ -141,7 +142,7 @@ test('click clears cross-filter when the category is already selected', () => {
     filterState: { selectedValues: [categoryKeyB] },
   });
 
-  eventHandlers.click({ name: categoryKeyB });
+  eventHandlers.click({ name: 'B', data: { name: categoryKeyB } });
 
   expect(setDataMask).toHaveBeenCalledWith(
     expect.objectContaining({

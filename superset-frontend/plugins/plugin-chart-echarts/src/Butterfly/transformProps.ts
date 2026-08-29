@@ -52,6 +52,8 @@ const LABEL_RIGHT = { position: 'right' as const };
 function formatTooltip(
   params: CallbackDataParams[],
   formatter: NumberFormatter | CurrencyFormatter,
+  categoryLabels: string[],
+  categoryByKey: Record<string, string>,
 ) {
   const axisParams = params.filter(
     param => param.seriesName && typeof param.value === 'number',
@@ -60,7 +62,11 @@ function formatTooltip(
     return '';
   }
 
-  const title = axisParams[0].name;
+  const { dataIndex, name } = axisParams[0];
+  const title =
+    (typeof dataIndex === 'number' ? categoryLabels[dataIndex] : undefined) ??
+    (name ? categoryByKey[name] : undefined) ??
+    name;
   const rows = axisParams.map(param => [
     param.seriesName!,
     formatter(Math.abs(param.value as number)),
@@ -133,6 +139,9 @@ export default function transformProps(
   const categoryKeys = data.map(
     (datum, index) =>
       `${categories[index]}__${JSON.stringify(groupbyLabels.map(col => datum[col]))}`,
+  );
+  const categoryByKey = Object.fromEntries(
+    categoryKeys.map((key, index) => [key, categories[index]]),
   );
 
   const labelMap = data.reduce<Record<string, string[]>>(
@@ -307,6 +316,8 @@ export default function transformProps(
         formatTooltip(
           ensureIsArray(params) as CallbackDataParams[],
           defaultFormatter,
+          categories,
+          categoryByKey,
         ),
     },
     series,

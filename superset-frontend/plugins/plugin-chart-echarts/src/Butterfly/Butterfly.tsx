@@ -21,6 +21,15 @@ import Echart from '../components/Echart';
 import { EventHandlers } from '../types';
 import { ButterflyTransformedProps } from './types';
 
+type ButterflyChartEvent = {
+  name?: string;
+  data?: { name?: string };
+};
+
+function getCategoryKey(params: ButterflyChartEvent): string {
+  return params.data?.name ?? params.name ?? '';
+}
+
 export default function Butterfly(props: ButterflyTransformedProps) {
   const {
     height,
@@ -32,8 +41,18 @@ export default function Butterfly(props: ButterflyTransformedProps) {
     formData,
   } = props;
 
+  const { click, contextmenu } = allEventHandlers(props);
+
   const eventHandlers: EventHandlers = {
-    ...allEventHandlers(props),
+    click: (params: ButterflyChartEvent) => {
+      click({ name: getCategoryKey(params) });
+    },
+    contextmenu: (params: ButterflyChartEvent) => {
+      contextmenu({
+        ...params,
+        name: getCategoryKey(params),
+      });
+    },
     legendselectchanged: payload => {
       onLegendStateChanged?.(payload.selected);
     },
