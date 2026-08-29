@@ -64,7 +64,9 @@ function formatTooltip(
 
   const { dataIndex, name } = axisParams[0];
   const title =
-    (typeof dataIndex === 'number' ? categoryLabels.at(dataIndex) : undefined) ??
+    (typeof dataIndex === 'number'
+      ? categoryLabels.at(dataIndex)
+      : undefined) ??
     (typeof name === 'string' ? categoryByKey.get(name) : undefined) ??
     name;
   const rows = axisParams.map(param => [
