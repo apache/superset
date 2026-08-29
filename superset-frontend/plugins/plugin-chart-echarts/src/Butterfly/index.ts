@@ -22,6 +22,7 @@ import buildQuery from './buildQuery';
 import controlPanel from './controlPanel';
 import transformProps from './transformProps';
 import { EchartsButterflyChartProps, EchartsButterflyFormData } from './types';
+import thumbnail from './images/thumbnail.png';
 
 export default class EchartsButterflyChartPlugin extends ChartPlugin<
   EchartsButterflyFormData,
@@ -33,10 +34,7 @@ export default class EchartsButterflyChartPlugin extends ChartPlugin<
       controlPanel,
       loadChart: () => import('./Butterfly'),
       metadata: new ChartMetadata({
-        behaviors: [
-          Behavior.InteractiveChart,
-          Behavior.DrillToDetail,
-        ],
+        behaviors: [Behavior.InteractiveChart, Behavior.DrillToDetail],
         credits: ['https://echarts.apache.org'],
         category: t('Comparison'),
         description: t(
@@ -50,7 +48,7 @@ export default class EchartsButterflyChartPlugin extends ChartPlugin<
           t('ECharts'),
           t('Multi-Variables'),
         ],
-        thumbnail: '',
+        thumbnail,
       }),
       transformProps,
     });
