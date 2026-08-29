@@ -18,11 +18,11 @@
  */
 
 declare module '*.yaml' {
-  const content: string;
+  const content: Record<string, any>;
   export default content;
 }
 
 declare module '*.yml' {
-  const content: string;
+  const content: Record<string, any>;
   export default content;
 }

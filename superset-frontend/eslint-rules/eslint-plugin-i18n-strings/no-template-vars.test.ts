@@ -25,8 +25,6 @@
 import { type Rule, RuleTester } from 'eslint';
 import plugin from '.';
 
-// const plugin: { rules: Record<string, Rule.RuleModule> } = ('.');
-
 //------------------------------------------------------------------------------
 // Tests
 //------------------------------------------------------------------------------
