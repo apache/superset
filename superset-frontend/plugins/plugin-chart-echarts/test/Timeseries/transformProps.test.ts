@@ -4156,9 +4156,18 @@ test('tooltip keeps the metric format on a Difference time comparison', () => {
   expect(result).toContain('$ 25');
 });
 
+type AxisLabelOptions = {
+  axisLabel: {
+    show?: boolean;
+    showMinLabel?: boolean;
+    showMaxLabel?: boolean;
+  };
+  splitLine?: { show?: boolean };
+};
+
 test('shows the value axis labels by default', () => {
   const { echartOptions } = transformProps(createTestChartProps({}));
-  const { axisLabel } = echartOptions.yAxis as any;
+  const { axisLabel } = echartOptions.yAxis as AxisLabelOptions;
 
   expect(axisLabel.show).toBe(true);
   expect(axisLabel.showMinLabel).toBe(true);
@@ -4169,13 +4178,14 @@ test('hides the value axis labels including the boundary ones', () => {
   const { echartOptions } = transformProps(
     createTestChartProps({ formData: { valueAxisLabels: false } }),
   );
-  const yAxis = echartOptions.yAxis as any;
+  const yAxis = echartOptions.yAxis as AxisLabelOptions;
+  const xAxis = echartOptions.xAxis as AxisLabelOptions;
 
   expect(yAxis.axisLabel.show).toBe(false);
   expect(yAxis.axisLabel.showMinLabel).toBe(false);
   expect(yAxis.axisLabel.showMaxLabel).toBe(false);
-  expect(yAxis.splitLine.show).toBe(true);
-  expect((echartOptions.xAxis as any).axisLabel.show).toBeUndefined();
+  expect(yAxis.splitLine?.show).toBe(true);
+  expect(xAxis.axisLabel.show).toBeUndefined();
 });
 
 test('keeps the value axis labels off on a micro chart even when enabled', () => {
@@ -4185,8 +4195,11 @@ test('keeps the value axis labels off on a micro chart even when enabled', () =>
       formData: { valueAxisLabels: true },
     }),
   );
+  const { axisLabel } = echartOptions.yAxis as AxisLabelOptions;
 
-  expect((echartOptions.yAxis as any).axisLabel.show).toBe(false);
+  expect(axisLabel.show).toBe(false);
+  expect(axisLabel.showMinLabel).toBe(false);
+  expect(axisLabel.showMaxLabel).toBe(false);
 });
 
 test('hides the value axis labels after a horizontal orientation swaps the axis', () => {
@@ -4198,6 +4211,7 @@ test('hides the value axis labels after a horizontal orientation swaps the axis'
       },
     }),
   );
+  const xAxis = echartOptions.xAxis as AxisLabelOptions;
 
-  expect((echartOptions.xAxis as any).axisLabel.show).toBe(false);
+  expect(xAxis.axisLabel.show).toBe(false);
 });
