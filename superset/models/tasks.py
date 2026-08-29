@@ -105,10 +105,12 @@ class Task(CoreTask, AuditMixinNullable, Model):
     # - progress_percent: float - progress 0.0-1.0
     # - progress_current: int - current iteration count
     # - progress_total: int - total iterations
-    # - error_message: str - human-readable error message
-    # - exception_type: str - exception class name
-    # - stack_trace: str - full formatted traceback
+    # - error_message: str - human-readable error message (public)
+    # - dedupe_count: int - times this task was reused by a later submit
     # - timeout: int - timeout in seconds
+    # - private: dict - internal, debug-only; two isolated namespaces:
+    #     - framework: celery_task_id, exception_type, stack_trace (framework-owned)
+    #     - task: freeform task-type handles, e.g. cancel_query_id/cancel_database_id
     properties = Column(Text, nullable=True, default="{}")
 
     # Relationships
@@ -175,7 +177,11 @@ class Task(CoreTask, AuditMixinNullable, Model):
         """
         Update specific properties fields (merge semantics).
 
-        Only updates fields present in the updates dict.
+        Only updates fields present in the updates dict. Top-level keys are
+        shallow-merged, but the ``private`` subtree is merged *recursively* — its
+        ``framework`` and ``task`` namespaces (and the keys within each) merge
+        independently, so a write to one namespace never clobbers the other or
+        drops earlier keys.
 
         :param updates: TaskProperties dict with fields to update
 
@@ -183,25 +189,53 @@ class Task(CoreTask, AuditMixinNullable, Model):
             task.update_properties({"is_abortable": True})
             task.update_properties(progress_update((50, 100)))
         """
-        current = cast(TaskProperties, dict(self.properties_dict))
-        current.update(updates)  # Merge updates
-        self.properties = serialize_properties(current)
+        current: dict[str, Any] = dict(self.properties_dict)
+        incoming: dict[str, Any] = dict(updates)
+        if "private" in incoming:
+            current["private"] = self._merge_private(
+                current.get("private"), incoming.pop("private")
+            )
+        current.update(incoming)  # shallow-merge the remaining top-level keys
+        self.properties = serialize_properties(cast(TaskProperties, current))
 
-    def update_private_properties(self, updates: dict[str, Any]) -> None:
+    @staticmethod
+    def _merge_private(
+        current_private: "dict[str, Any] | None",
+        updates_private: "dict[str, Any]",
+    ) -> dict[str, Any]:
+        """Recursively merge the ``private`` subtree, per namespace.
+
+        Each namespace (``framework``, ``task``) is a dict merged independently, so
+        updating one leaves the other — and existing keys within the updated one —
+        intact. This is what structurally isolates task-owned freeform keys from
+        framework-owned orchestration keys.
         """
-        Merge keys into the ``private`` properties bucket (internal runtime state).
+        merged: dict[str, Any] = {**(current_private or {})}
+        for namespace, ns_updates in updates_private.items():
+            if isinstance(ns_updates, dict) and isinstance(merged.get(namespace), dict):
+                merged[namespace] = {**merged[namespace], **ns_updates}
+            else:
+                merged[namespace] = ns_updates
+        return merged
 
-        ``private`` holds framework plumbing (job/cancel handles) that is never
-        surfaced to user-facing API payloads. Merges rather than replaces, so a
-        later write (e.g. the engine cancel handle) preserves an earlier one (e.g.
-        the Celery job id).
+    def update_framework_private(self, updates: dict[str, Any]) -> None:
+        """Merge keys into ``private["framework"]`` (framework-owned internal state).
 
-        :param updates: private keys to set/merge
+        Named orchestration/error-debug handles the framework writes (e.g.
+        ``celery_task_id``); never surfaced to users except in debug mode.
         """
-        current = cast(TaskProperties, dict(self.properties_dict))
-        private: dict[str, Any] = {**(current.get("private") or {}), **updates}
-        current["private"] = cast("Any", private)
-        self.properties = serialize_properties(current)
+        self.update_properties(
+            cast(TaskProperties, {"private": {"framework": updates}})
+        )
+
+    def update_task_private(self, updates: dict[str, Any]) -> None:
+        """Merge keys into ``private["task"]`` (freeform task-type internal state).
+
+        Task-execution handles written by task/framework-on-behalf-of-task code
+        (e.g. the engine cancel handle). Isolated from the ``framework`` namespace
+        so a task key can never collide with a framework key.
+        """
+        self.update_properties(cast(TaskProperties, {"private": {"task": updates}}))
 
     # -------------------------------------------------------------------------
     # Payload accessor (for task-specific output data)

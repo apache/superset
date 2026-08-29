@@ -48,7 +48,7 @@ def _make_task(
     if heartbeat_offset is not None:
         task.last_heartbeat = naive_utcnow() - timedelta(seconds=heartbeat_offset)
     if celery_task_id is not None:
-        task.update_private_properties({"celery_task_id": celery_task_id})
+        task.update_framework_private({"celery_task_id": celery_task_id})
     if cancel_handle is not None:
         database_id, cancel_query_id = cancel_handle
         task.update_properties(

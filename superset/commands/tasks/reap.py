@@ -91,7 +91,16 @@ class ReapOrphanedTasksCommand(BaseCommand):
             ),
         )
         properties["error_message"] = ORPHAN_ERROR_MESSAGE
-        properties["exception_type"] = "OrphanedTaskError"
+        # exception_type is internal debug detail → private["framework"]. Build on
+        # the existing private subtree so the framework orchestration handles and
+        # the task-owned cancel handles are preserved.
+        private = cast("dict[str, Any]", dict(properties.get("private") or {}))
+        framework = {
+            **(private.get("framework") or {}),
+            "exception_type": "OrphanedTaskError",
+        }
+        private["framework"] = framework
+        properties["private"] = cast("Any", private)
 
         # Claim the terminal transition FIRST, before any destructive side effect.
         # The CAS is atomic (row-locked) against a worker that merely stalled and
@@ -112,11 +121,10 @@ class ReapOrphanedTasksCommand(BaseCommand):
         db.session.commit()  # pylint: disable=consider-using-transaction
 
         # We own the terminal transition — the worker is gone (or lost the race),
-        # so its Celery job and warehouse query are safe to clean up. The recovery
-        # handles live in the internal ``private`` bucket.
-        private = cast("dict[str, Any]", properties.get("private") or {})
-        self._revoke(private.get("celery_task_id"), stats_logger)
-        self._cancel_orphaned_query(private)
+        # so its Celery job and warehouse query are safe to clean up. The Celery id
+        # is a framework handle; the engine cancel handle is a task handle.
+        self._revoke(framework.get("celery_task_id"), stats_logger)
+        self._cancel_orphaned_query(cast("dict[str, Any]", private.get("task") or {}))
 
         from superset.tasks.manager import TaskManager
 
@@ -151,7 +159,7 @@ class ReapOrphanedTasksCommand(BaseCommand):
                 "Failed to revoke Celery task %s", celery_task_id, exc_info=True
             )
 
-    def _cancel_orphaned_query(self, private: "dict[str, Any]") -> None:
+    def _cancel_orphaned_query(self, task_private: "dict[str, Any]") -> None:
         """Cancel the abandoned warehouse query, if one was captured.
 
         The dead worker can't run its own ``on_abort`` handler, so the reaper
@@ -159,10 +167,11 @@ class ReapOrphanedTasksCommand(BaseCommand):
         that expose a cancel id before execution). Best-effort: no handle, a
         missing database, or a cancel failure never blocks the FAILURE transition.
 
-        :param private: the task's internal ``private`` properties bucket
+        :param task_private: the task's ``private["task"]`` namespace (task-owned
+            internal handles)
         """
-        cancel_query_id = private.get("cancel_query_id")
-        database_id = private.get("cancel_database_id")
+        cancel_query_id = task_private.get("cancel_query_id")
+        database_id = task_private.get("cancel_database_id")
         if not cancel_query_id or database_id is None:
             return
 

@@ -55,6 +55,23 @@ export enum TaskScope {
 }
 
 /**
+ * Internal, debug-only task state, under `properties.private`. Present in API
+ * responses only in debug mode. Two isolated namespaces so a task-specific key
+ * can never collide with a framework key.
+ */
+export interface TaskPrivateProperties {
+  // Framework-owned orchestration + error debug.
+  framework?: {
+    celery_task_id?: string;
+    exception_type?: string;
+    stack_trace?: string;
+    [key: string]: unknown;
+  };
+  // Freeform task-type-specific handles (e.g. cancel_query_id/cancel_database_id).
+  task?: Record<string, unknown>;
+}
+
+/**
  * Task properties - runtime state and execution config stored in JSON blob.
  */
 export interface TaskProperties {
@@ -68,14 +85,16 @@ export interface TaskProperties {
   progress_current: number | null;
   progress_total: number | null;
 
-  // Error info - set when task fails
+  // Consumer-facing failure reason (public). The exception class and traceback
+  // are internal debug detail under `private.framework` (debug mode only).
   error_message: string | null;
-  exception_type: string | null;
-  stack_trace: string | null;
 
   // Dedup tracking - times a submit joined this task instead of creating a new
   // one (a new subscriber or an existing subscriber's resubmit); 0 when unique.
   dedupe_count: number | null;
+
+  // Internal, debug-only; absent from API responses outside debug mode.
+  private?: TaskPrivateProperties;
 }
 
 export interface Task {

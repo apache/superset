@@ -83,30 +83,48 @@ class TaskProperties(TypedDict, total=False):
     progress_total: int
     dedupe_count: int
 
-    # Error info - set when task fails
+    # Error info - set when task fails. ``error_message`` is the consumer-facing
+    # failure reason (public); the exception class and traceback are internal
+    # debug detail and live under ``private["framework"]`` instead.
     error_message: str
+
+    # Internal runtime state, surfaced to user-facing API payloads only in debug
+    # mode (the Task REST API strips this key otherwise). Holds framework/task
+    # plumbing rather than task output. See ``PrivateProperties``.
+    private: "PrivateProperties"
+
+
+class FrameworkPrivateProperties(TypedDict, total=False):
+    """Framework-owned internal task state, under ``private["framework"]``.
+
+    Named keys written *only* by the framework: orchestration handles used by the
+    orphan reaper (the Celery job id to revoke, the engine cancel handle for the
+    running warehouse query) and error-debug detail (exception class + traceback).
+    Isolated from task-owned keys so a task type can never clobber them.
+    """
+
+    celery_task_id: str
+    cancel_query_id: str
+    cancel_database_id: int
     exception_type: str
     stack_trace: str
-
-    # Internal runtime state, never surfaced to user-facing API payloads (the Task
-    # REST API strips this key). Holds framework plumbing rather than task output.
-    private: "PrivateProperties"
 
 
 class PrivateProperties(TypedDict, total=False):
     """Internal task runtime state, stored under ``TaskProperties["private"]``.
 
-    Framework plumbing that must never reach user-facing API payloads (the Task
-    REST API strips the whole ``private`` bucket). Distinct from task output,
-    which belongs in the task's ``payload``.
+    Never surfaced to user-facing API payloads except in debug mode; distinct
+    from task output, which belongs in the task's ``payload``. Split into two
+    structurally isolated namespaces so a task type's freeform key can never
+    collide with a framework orchestration key:
+
+    - ``framework``: named framework-owned keys (see ``FrameworkPrivateProperties``).
+    - ``task``: freeform, task-type-specific internal handles, written only by
+      task/execution code.
     """
 
-    # Recovery handles used by the orphan reaper (see superset.commands.tasks.reap):
-    # the Celery job id to revoke, and the engine cancel handle for the running
-    # warehouse query so it can be cancelled out-of-band when the worker is dead.
-    celery_task_id: str
-    cancel_query_id: str
-    cancel_database_id: int
+    framework: "FrameworkPrivateProperties"
+    task: dict[str, Any]
 
 
 @dataclass(frozen=True)

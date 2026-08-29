@@ -188,10 +188,11 @@ def test_task_context_set_cancellation_merges_into_properties_cache() -> None:
 
     ctx.set_cancellation(7, "42")
 
-    # Merged into the cache's private bucket (no write); a later _set_abortable
-    # flush persists them together, and existing cached keys are preserved.
-    assert ctx._properties_cache["private"]["cancel_database_id"] == 7
-    assert ctx._properties_cache["private"]["cancel_query_id"] == "42"
+    # Merged into the cache's private.task namespace (no write); a later
+    # _set_abortable flush persists them together, and existing cached keys and
+    # the framework namespace are preserved.
+    assert ctx._properties_cache["private"]["task"]["cancel_database_id"] == 7
+    assert ctx._properties_cache["private"]["task"]["cancel_query_id"] == "42"
     assert ctx._properties_cache["is_abortable"] is False
 
 

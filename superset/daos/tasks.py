@@ -348,8 +348,15 @@ class TaskDAO(BaseDAO[Task]):
         # Set properties after creation via update_properties (handles caching).
         # Seed dedupe_count so every task carries it from the start (bumped each
         # time a later submit joins this task instead of creating a new one), and
-        # an empty ``private`` bucket so internal runtime state always has a home.
-        task.update_properties({"dedupe_count": 0, "private": {}, **(properties or {})})
+        # the two internal ``private`` namespaces (framework/task) so internal
+        # runtime state always has an isolated home.
+        task.update_properties(
+            {
+                "dedupe_count": 0,
+                "private": {"framework": {}, "task": {}},
+                **(properties or {}),
+            }
+        )
 
         # Flush to get the task ID (auto-incremented primary key)
         db.session.flush()

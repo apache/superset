@@ -36,7 +36,9 @@ def _patched(*, celery_task_id="celery-1", cas_result=True):
     app = MagicMock()
     app.config = {"STATS_LOGGER": stats, "GTF_ORPHAN_TASK_TIMEOUT": 60}
     properties = json.dumps(
-        {"private": {"celery_task_id": celery_task_id}} if celery_task_id else {}
+        {"private": {"framework": {"celery_task_id": celery_task_id}}}
+        if celery_task_id
+        else {}
     )
     with (
         patch("superset.commands.tasks.reap.current_app", app),
@@ -131,9 +133,8 @@ def test_orphaned_query_is_cancelled_when_handle_present() -> None:
     properties = json.dumps(
         {
             "private": {
-                "celery_task_id": "c1",
-                "cancel_query_id": "42",
-                "cancel_database_id": 7,
+                "framework": {"celery_task_id": "c1"},
+                "task": {"cancel_query_id": "42", "cancel_database_id": 7},
             }
         }
     )
@@ -145,7 +146,7 @@ def test_orphaned_query_is_cancelled_when_handle_present() -> None:
 
 def test_no_cancel_when_handle_absent() -> None:
     """No cancel handle in properties → no query cancellation attempted."""
-    properties = json.dumps({"private": {"celery_task_id": "c1"}})
+    properties = json.dumps({"private": {"framework": {"celery_task_id": "c1"}}})
     with _patched_with_handle(properties) as (cancel, _db):
         assert ReapOrphanedTasksCommand().run() == 1
 
@@ -155,7 +156,7 @@ def test_no_cancel_when_handle_absent() -> None:
 def test_no_cancel_when_database_missing() -> None:
     """Handle present but the database is gone → skip cancel, still reap."""
     properties = json.dumps(
-        {"private": {"cancel_query_id": "42", "cancel_database_id": 7}}
+        {"private": {"task": {"cancel_query_id": "42", "cancel_database_id": 7}}}
     )
     with _patched_with_handle(properties, database=None) as (cancel, _db):
         assert ReapOrphanedTasksCommand().run() == 1
@@ -170,7 +171,7 @@ def test_no_cancel_when_worker_wins_cas() -> None:
     beats the reaper's CAS; the reaper must then leave its warehouse query alone.
     """
     properties = json.dumps(
-        {"private": {"cancel_query_id": "42", "cancel_database_id": 7}}
+        {"private": {"task": {"cancel_query_id": "42", "cancel_database_id": 7}}}
     )
     with _patched_with_handle(properties, cas_result=False) as (cancel, _db):
         assert ReapOrphanedTasksCommand().run() == 0

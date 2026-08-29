@@ -166,11 +166,34 @@ ctx.update_task(payload={"result_cache_key": key}, immediate=True)
 
 Use this only when another consumer must observe the update as soon as the task finishes — for example, a dependent task that reads a prerequisite's payload the moment the dependency gate releases. For ordinary progress reporting, prefer the default throttled behavior.
 
-#### Public vs. internal properties
+#### Task state: public properties, private (debug-only), and results
 
-A task's `properties` (runtime state and execution config: `is_abortable`, `progress_*`, `error_message`, `timeout`, …) are **public** — returned by the Task REST API and shown in the Task List UI. Internal runtime state that must never reach API consumers lives under a reserved **`private`** key (initialized as an empty dict on every task), which the API strips entirely from responses.
+A task's state lives in three tiers:
 
-The framework uses `private` for its own plumbing — the Celery job id and the engine cancel handle the orphan reaper needs (`celery_task_id`, `cancel_query_id`, `cancel_database_id`). Framework and task code merge into it via `task.update_private_properties({...})` (a merge, so independent writers don't clobber each other). Put job/connection handles and other non-user-facing state there; put anything a user should see in the top-level properties (or, for task output, in the `payload`). `stack_trace` and `exception_type` are a separate case — kept top-level but surfaced only when `SHOW_STACKTRACE` is enabled.
+1. **Public `properties`** — named runtime state and execution config
+   (`is_abortable`, `progress_*`, `dedupe_count`, `execution_mode`, `timeout`,
+   `error_message`). Returned by the Task REST API and shown in the Task List UI.
+2. **Private properties** — internal state that is surfaced to API consumers
+   **only in debug mode** (otherwise the whole `private` key is stripped). It has
+   two structurally isolated namespaces so a task type's freeform key can never
+   collide with a framework key:
+   - `private.framework` — framework-owned named keys: the Celery job id and the
+     engine cancel handle the orphan reaper needs (`celery_task_id`,
+     `cancel_query_id` lives under `task`, see below), plus error debug
+     (`exception_type`, `stack_trace`). Written only by the framework via
+     `task.update_framework_private({...})`.
+   - `private.task` — freeform, task-type-specific internal handles (e.g. the
+     engine `cancel_query_id`/`cancel_database_id`). Written by task/execution
+     code via `task.update_task_private({...})`.
+   Both namespaces merge independently (a write to one never clobbers the other).
+3. **Results (`payload`)** — end-user-facing task output (intermediate/final):
+   e.g. a `cache_key` or an engine tracking URL. Set via
+   `ctx.update_task(payload=...)` and rendered in the Task List info bubble. In
+   debug mode the bubble shows the `private` state in a separate section below.
+
+Rule of thumb: user-facing status → top-level `properties`; user-facing output →
+`payload`; framework plumbing → `private.framework`; task-specific internal
+handles → `private.task`.
 
 
 ### Handlers

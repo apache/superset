@@ -26,7 +26,7 @@ from urllib import request
 from uuid import UUID, uuid4
 
 from celery.utils.log import get_task_logger
-from flask import g
+from flask import current_app, g
 from superset_core.tasks.types import TaskProperties, TaskScope
 
 from superset.tasks.exceptions import ExecutorNotFoundError, InvalidExecutorError
@@ -331,14 +331,36 @@ def error_update(exception: BaseException) -> TaskProperties:
     """
     Create a properties update dict from an exception.
 
+    ``error_message`` is the consumer-facing failure reason (public); the
+    exception class and traceback are internal debug detail and go under
+    ``private["framework"]`` (visible only in debug mode). The nested ``private``
+    key is merged recursively by ``Task.update_properties`` so it does not clobber
+    other framework/task handles.
+
     :param exception: The exception that caused the failure
     :returns: TaskProperties dict with error fields populated
     """
-    return {
-        "error_message": str(exception),
-        "exception_type": type(exception).__name__,
-        "stack_trace": traceback.format_exc(),
-    }
+    return cast(
+        TaskProperties,
+        {
+            "error_message": str(exception),
+            "private": {
+                "framework": {
+                    "exception_type": type(exception).__name__,
+                    "stack_trace": traceback.format_exc(),
+                }
+            },
+        },
+    )
+
+
+def task_internals_visible() -> bool:
+    """Whether internal (``private``) task properties may be surfaced to API
+    consumers. Single source of truth for the visibility gate: internal task
+    state (framework orchestration handles, error tracebacks, task-execution
+    handles) is exposed only in debug mode.
+    """
+    return bool(current_app.debug)
 
 
 def parse_properties(json_str: str | None) -> TaskProperties:
