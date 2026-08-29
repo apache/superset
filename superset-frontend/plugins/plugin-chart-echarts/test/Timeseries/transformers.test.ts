@@ -419,6 +419,55 @@ test('#39899 - x-axis dates do not overlap and last label stays visible at 0° r
   expect(axisLabel.hideOverlap).toBe(false);
 });
 
+test('SC-119084 - closely spaced x-axis time labels do not visually overlap', () => {
+  const formData = {
+    colorScheme: 'bnbColors',
+    datasource: '3__table',
+    granularity_sqla: 'ds',
+    timeGrainSqla: TimeGranularity.MINUTE,
+    x_axis_time_format: '%Y-%m-%d %H:%M:%S',
+    metric: 'sum__num',
+    viz_type: 'my_viz',
+  };
+  const startTime = new Date('2026-01-01T00:00:00Z').getTime();
+  const data = Array.from({ length: 20 }, (_, i) => ({
+    sum__num: i,
+    __timestamp: startTime + i * 60 * 1000,
+  }));
+  const chartProps = new ChartProps({
+    formData,
+    width: 300,
+    height: 400,
+    queriesData: [
+      {
+        data,
+        colnames: ['sum__num', '__timestamp'],
+        coltypes: [GenericDataType.Numeric, GenericDataType.Temporal],
+      },
+    ],
+    theme: supersetTheme,
+  });
+
+  const result = transformProps(
+    chartProps as unknown as EchartsTimeseriesChartProps,
+  );
+  const { axisLabel } = result.echartOptions.xAxis as Record<string, any>;
+  const labels = data.map(({ __timestamp }) =>
+    axisLabel.formatter(__timestamp),
+  );
+
+  // hideOverlap must stay off so ECharts' own collision detection can never
+  // suppress the forced boundary label (#39899 must not regress).
+  expect(axisLabel.hideOverlap).toBe(false);
+  // The formatter itself must thin out labels that are too close together to
+  // render legibly in the available width.
+  expect(labels.filter(label => label === '').length).toBeGreaterThan(0);
+  // The first and last labels are the forced axis boundaries and must always
+  // stay visible.
+  expect(labels[0]).not.toBe('');
+  expect(labels[labels.length - 1]).not.toBe('');
+});
+
 test('last x-axis date is visible and not cut off when rotated -45°', () => {
   const lastDataPointTimestamp = new Date('2026-12-01').getTime();
   const result = transformProps(

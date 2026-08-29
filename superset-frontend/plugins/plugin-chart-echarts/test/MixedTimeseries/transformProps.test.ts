@@ -1324,6 +1324,58 @@ test('#39899 - x-axis dates do not overlap and last label stays visible at 0° r
   expect(axisLabel.hideOverlap).toBe(false);
 });
 
+test('SC-119084 - closely spaced x-axis time labels do not visually overlap (mixed)', () => {
+  const startTime = Date.UTC(2026, 0, 1);
+  const data = Array.from({ length: 20 }, (_, i) => ({
+    __timestamp: startTime + i * 60 * 1000,
+    sum__num: i,
+  }));
+  const queryData = createTestQueryData(data, {
+    colnames: ['__timestamp', 'sum__num'],
+    coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+    label_map: { __timestamp: ['__timestamp'], sum__num: ['sum__num'] },
+  });
+
+  const chartProps = createEchartsTimeseriesTestChartProps<
+    EchartsMixedTimeseriesFormData,
+    EchartsMixedTimeseriesProps
+  >({
+    ...MIXED_TIMESERIES_CHART_PROPS_DEFAULTS,
+    width: 300,
+    height: 400,
+    defaultQueriesData: [queryData, queryData],
+    formData: {
+      ...formData,
+      x_axis: '__timestamp',
+      xAxisTimeFormat: '%Y-%m-%d %H:%M:%S',
+      metrics: ['sum__num'],
+      metricsB: ['sum__num'],
+      groupby: [],
+      groupbyB: [],
+      xAxisLabelRotation: 0,
+      timeGrainSqla: TimeGranularity.MINUTE,
+    },
+    queriesData: [queryData, queryData],
+  });
+
+  const { echartOptions } = transformProps(chartProps);
+  const { axisLabel } = echartOptions.xAxis as Record<string, any>;
+  const labels = data.map(({ __timestamp }) =>
+    axisLabel.formatter(__timestamp),
+  );
+
+  // hideOverlap must stay off so ECharts' own collision detection can never
+  // suppress the forced boundary label (#39899 must not regress).
+  expect(axisLabel.hideOverlap).toBe(false);
+  // The formatter itself must thin out labels that are too close together to
+  // render legibly in the available width.
+  expect(labels.filter(label => label === '').length).toBeGreaterThan(0);
+  // The first and last labels are the forced axis boundaries and must always
+  // stay visible.
+  expect(labels[0]).not.toBe('');
+  expect(labels[labels.length - 1]).not.toBe('');
+});
+
 test('regression #37921: multi-metric Query A with groupby does not duplicate first metric in series names', () => {
   // Regression test for https://github.com/apache/superset/issues/37921
   // ("Residual" follow-up to #37055).
