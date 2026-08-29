@@ -575,7 +575,13 @@ def test_resolve_rejects_guest_marker_when_guest_auth_disabled(
     app: SupersetApp,
 ) -> None:
     """Even with the marker + client_id, a token is not treated as a guest when
-    embedded guest auth is disabled (defense against marker forgery)."""
+    embedded guest auth is disabled (defense against marker forgery).
+
+    A guest-marked token is an explicit, rejected authentication attempt, not
+    an absent one, so it must fail closed (raise) rather than return None and
+    let the caller fall through to a weaker auth source (API key,
+    MCP_DEV_USERNAME, or a middleware-set g.user).
+    """
     token = MagicMock()
     token.claims = {GUEST_TOKEN_CLAIM: True, **_parsed_guest_claims()}
     token.client_id = "guest"
@@ -586,15 +592,15 @@ def test_resolve_rejects_guest_marker_when_guest_auth_disabled(
             patch("fastmcp.server.dependencies.get_access_token", return_value=token),
             patch("superset.mcp_service.auth.is_feature_enabled", return_value=True),
         ):
-            result = _resolve_user_from_jwt_context(app)
-
-    assert result is None
+            with pytest.raises(ValueError, match="Guest-marked token"):
+                _resolve_user_from_jwt_context(app)
 
 
 def test_resolve_rejects_guest_marker_when_embedded_flag_off(app: SupersetApp) -> None:
     """The other half of the gate: with the marker + client_id + the MCP guest
     flag on, a token is still not treated as a guest when the EMBEDDED_SUPERSET
-    feature flag is off (both gates are required)."""
+    feature flag is off (both gates are required). Same fail-closed
+    requirement as the sibling case above."""
     token = MagicMock()
     token.claims = {GUEST_TOKEN_CLAIM: True, **_parsed_guest_claims()}
     token.client_id = "guest"
@@ -605,9 +611,8 @@ def test_resolve_rejects_guest_marker_when_embedded_flag_off(app: SupersetApp) -
             patch("fastmcp.server.dependencies.get_access_token", return_value=token),
             patch("superset.mcp_service.auth.is_feature_enabled", return_value=False),
         ):
-            result = _resolve_user_from_jwt_context(app)
-
-    assert result is None
+            with pytest.raises(ValueError, match="Guest-marked token"):
+                _resolve_user_from_jwt_context(app)
 
 
 def test_resolve_ignores_guest_marker_without_guest_client_id(app: SupersetApp) -> None:

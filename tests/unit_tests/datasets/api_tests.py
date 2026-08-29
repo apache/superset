@@ -21,6 +21,7 @@ from unittest.mock import MagicMock, patch
 from sqlalchemy.orm.session import Session
 
 from superset import db
+from superset.utils import json
 
 
 def test_put_invalid_dataset(
@@ -214,3 +215,148 @@ def test_handle_filters_args_returns_request_scoped_filters(
     fresh_filters = api.datamodel.get_filters.return_value
     assert fresh_filters.rest_add_filters.call_count == 2
     assert fresh_filters.get_joined_filters.call_count == 2
+
+
+def _create_dataset(name: str) -> Any:
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.models.core import Database
+
+    SqlaTable.metadata.create_all(db.session.get_bind())
+    dataset = SqlaTable(
+        table_name=name,
+        database=Database(database_name=f"{name}_db", sqlalchemy_uri="sqlite://"),
+    )
+    db.session.add(dataset)
+    db.session.flush()
+    return dataset
+
+
+def test_put_dataset_rejects_stale_if_match(
+    session: Session,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    A PUT carrying an ``If-Match`` from an older version is refused with 412.
+    """
+    from superset.versioning.api_helpers import EntityVersionInfo
+
+    dataset = _create_dataset("test_put_stale_if_match")
+
+    with patch(
+        "superset.datasets.api.current_entity_version_info",
+        return_value=EntityVersionInfo(
+            version=1,
+            transaction_id=2,
+            version_uuid="new",
+            entity_uuid=dataset.uuid,
+        ),
+    ):
+        response = client.put(
+            f"/api/v1/dataset/{dataset.id}",
+            json={"description": "from a stale tab"},
+            headers={"If-Match": '"old"'},
+        )
+
+    assert response.status_code == 412
+    assert response.headers["ETag"] == '"new"'
+    db.session.expire(dataset)
+    assert dataset.description is None
+
+
+def test_put_dataset_guards_a_dataset_with_no_version_rows(
+    session: Session,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """Baseline rows are written lazily on the first update, so a dataset that
+    has never been saved has no version rows — it must still be guarded, or
+    the first concurrent save on every pristine dataset goes unprotected.
+    """
+    from superset.versioning.api_helpers import (
+        EntityVersionInfo,
+        unversioned_entity_token,
+    )
+
+    dataset = _create_dataset("test_put_unversioned_guard")
+    entity_uuid = dataset.uuid
+
+    with patch(
+        "superset.datasets.api.current_entity_version_info",
+        # A dataset that has since been versioned by another tab's save.
+        return_value=EntityVersionInfo(
+            version=0,
+            transaction_id=1,
+            version_uuid="written-by-the-other-tab",
+            entity_uuid=entity_uuid,
+        ),
+    ):
+        response = client.put(
+            f"/api/v1/dataset/{dataset.id}",
+            json={"description": "from the tab that opened first"},
+            headers={"If-Match": f'"{unversioned_entity_token(entity_uuid)}"'},
+        )
+
+    assert response.status_code == 412
+    db.session.expire(dataset)
+    assert dataset.description is None
+
+
+def test_get_dataset_exposes_certification_metadata(
+    session: Session,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    Dataset API: Test that the show payload exposes the certification and
+    warning metadata for both columns and metrics.
+
+    Regression test for #43279: Explore hydrates its datasource from this
+    endpoint after a dataset save or swap. Without these fields the certified
+    and warning badges disappeared until the page was reloaded, because the
+    Explore bootstrap payload serializes them but this endpoint did not.
+    """
+    from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+    from superset.models.core import Database
+
+    SqlaTable.metadata.create_all(db.session.get_bind())
+
+    extra = json.dumps(
+        {
+            "certification": {
+                "certified_by": "Data Platform",
+                "details": "Reviewed quarterly",
+            },
+            "warning_markdown": "This is a **warning**",
+        }
+    )
+    database = Database(
+        database_name="my_db",
+        sqlalchemy_uri="sqlite://",
+    )
+    dataset = SqlaTable(
+        table_name="test_certification_table",
+        database=database,
+        columns=[
+            TableColumn(column_name="ds", type="TIMESTAMP", extra=extra),
+            TableColumn(
+                column_name="calculated",
+                type="INTEGER",
+                expression="1 + 1",
+                extra=extra,
+            ),
+        ],
+        metrics=[SqlMetric(metric_name="cnt", expression="COUNT(*)", extra=extra)],
+    )
+    db.session.add(dataset)
+    db.session.flush()
+
+    response = client.get(f"/api/v1/dataset/{dataset.id}")
+
+    assert response.status_code == 200
+    result = response.json["result"]
+    for item in [*result["columns"], *result["metrics"]]:
+        assert item["is_certified"] is True
+        assert item["certified_by"] == "Data Platform"
+        assert item["certification_details"] == "Reviewed quarterly"
+        assert item["warning_markdown"] == "This is a **warning**"

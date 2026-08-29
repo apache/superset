@@ -21,7 +21,7 @@ from functools import partial
 from typing import cast
 from uuid import UUID
 
-from superset import db
+from superset import db, security_manager
 from superset.commands.base import BaseCommand
 from superset.commands.database.exceptions import DatabaseNotFoundError
 from superset.daos.database import DatabaseUserOAuth2TokensDAO
@@ -31,6 +31,7 @@ from superset.exceptions import OAuth2Error
 from superset.key_value.types import JsonKeyValueCodec, KeyValueResource
 from superset.models.core import Database, DatabaseUserOAuth2Tokens
 from superset.superset_typing import OAuth2State
+from superset.utils.core import get_user_id
 from superset.utils.decorators import on_error, transaction
 from superset.utils.oauth2 import decode_oauth2_state
 
@@ -120,6 +121,14 @@ class OAuth2StoreTokenCommand(BaseCommand):
             raise OAuth2Error(error)
 
         self._state = decode_oauth2_state(self._parameters["state"])
+
+        # Bind the callback to the current session: require an authenticated,
+        # non-guest user whose id matches the one carried in the state.
+        user_id = get_user_id()
+        if user_id is None or security_manager.is_guest_user():
+            raise OAuth2Error("The OAuth2 callback requires an authenticated user")
+        if user_id != self._state["user_id"]:
+            raise OAuth2Error("The OAuth2 state belongs to a different user")
 
         if database := DatabaseUserOAuth2TokensDAO.get_database(
             self._state["database_id"]

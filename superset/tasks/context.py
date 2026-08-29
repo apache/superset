@@ -129,7 +129,12 @@ class TaskContext(CoreTaskContext):
         """
         from superset.daos.tasks import TaskDAO
 
-        fresh_task = TaskDAO.find_one_or_none(uuid=self._task_uuid)
+        # Internal executor path: load the running task itself, keyed on a
+        # UUID this instance already holds, not a user-requested lookup;
+        # see TaskFilter for the request-scoped vs. internal-plumbing split.
+        fresh_task = TaskDAO.find_one_or_none(
+            uuid=self._task_uuid, skip_base_filter=True
+        )
         if not fresh_task:
             raise ValueError(f"Task {self._task_uuid} not found")
 
