@@ -30,7 +30,6 @@ import {
   ChartCustomization,
   ChartCustomizationType,
   getChartMetadataRegistry,
-  JsonResponse,
   NativeFilterType,
   SupersetApiError,
   ClientErrorObject,
@@ -51,7 +50,6 @@ import {
   RefObject,
   memo,
 } from 'react';
-import rison from 'rison';
 import {
   PluginFilterSelectCustomizeProps,
   SelectFilterOperatorType,
@@ -75,13 +73,17 @@ import { BasicErrorAlert, ErrorMessageWithStackTrace } from 'src/components';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { Radio } from '@superset-ui/core/components/Radio';
 import Tabs from '@superset-ui/core/components/Tabs';
-import { cachedSupersetGet } from 'src/utils/cachedSupersetGet';
+import {
+  useDatasetMetadata,
+  useSemanticViewStructure,
+} from 'src/dashboard/queries';
 import {
   Chart,
   ChartsState,
   DatasourcesState,
   RootState,
 } from 'src/dashboard/types';
+import { useDashboardId } from 'src/dashboard/stores';
 import DateFilterControl from 'src/explore/components/controls/DateFilterControl';
 import AdhocFilterControl from 'src/explore/components/controls/FilterControl/AdhocFilterControl';
 import type AdhocFilterClass from 'src/explore/components/controls/FilterControl/AdhocFilter';
@@ -316,9 +318,7 @@ const FiltersConfigForm = (
   const [activeTabKey, setActiveTabKey] = useState<string>(
     FilterTabs.configuration.key,
   );
-  const dashboardId = useSelector<RootState, number>(
-    state => state.dashboardInfo.id,
-  );
+  const dashboardId = useDashboardId();
   const [undoFormValues, setUndoFormValues] = useState<Record<
     string,
     any
@@ -760,95 +760,92 @@ const FiltersConfigForm = (
 
   const DateFilterComponent = DateFilterControlExtension ?? DateFilterControl;
 
+  // Datasets and semantic views expose columns/metrics through different
+  // endpoints; source from whichever matches the selected datasource type.
+  const isSemanticView = datasourceType === DatasourceType.SemanticView;
+  const { data: datasetResult, error: datasetError } = useDatasetMetadata(
+    datasetId,
+    [
+      'columns.column_name',
+      'columns.expression',
+      'columns.filterable',
+      'columns.is_dttm',
+      'columns.type',
+      'columns.type_generic',
+      'columns.verbose_name',
+      'database.id',
+      'database.database_name',
+      'datasource_type',
+      'filter_select_enabled',
+      'id',
+      'is_sqllab_view',
+      'main_dttm_col',
+      'metrics.metric_name',
+      'metrics.verbose_name',
+      'schema',
+      'sql',
+      'table_name',
+      'time_grain_sqla',
+    ],
+    { enabled: !isSemanticView },
+  );
+  const { data: semanticStructure, error: semanticError } =
+    useSemanticViewStructure(datasetId, { enabled: isSemanticView });
+
   useEffect(() => {
-    if (datasetId) {
-      if (datasourceType === DatasourceType.SemanticView) {
-        cachedSupersetGet({
-          endpoint: `/api/v1/semantic_view/${datasetId}/structure`,
-        })
-          .then((response: JsonResponse) => {
-            const {
-              name: svName,
-              dimensions = [],
-              metrics: svMetrics = [],
-            } = response.json?.result ?? {};
-            const columns = dimensions.map(
-              (dim: { name: string; type: string }) => {
-                const mappedType = mapSemanticTypeToGenericDataType(dim.type);
-                return {
-                  column_name: dim.name,
-                  type: dim.type,
-                  is_dttm: mappedType === GenericDataType.Temporal,
-                  filterable: true,
-                  type_generic: mappedType,
-                };
-              },
-            );
-            const mappedMetrics = svMetrics.map(
-              (m: { name: string; definition: string }) => ({
-                metric_name: m.name,
-                expression: m.definition,
-                verbose_name: null,
-              }),
-            );
-            setMetrics(mappedMetrics);
-            setDatasetDetails({
-              columns,
-              metrics: mappedMetrics,
-              datasource_type: DatasourceType.SemanticView,
-              type: DatasourceType.SemanticView,
-              filter_select: true,
-              filter_select_enabled: true,
-              time_grain_sqla: [],
-              main_dttm_col: null,
-              id: datasetId,
-              table_name: svName,
-            });
-          })
-          .catch((response: SupersetApiError) => {
-            addDangerToast(response.message);
-          });
-      } else {
-        cachedSupersetGet({
-          endpoint: `/api/v1/dataset/${datasetId}?q=${rison.encode({
-            columns: [
-              'columns.column_name',
-              'columns.expression',
-              'columns.filterable',
-              'columns.is_dttm',
-              'columns.type',
-              'columns.type_generic',
-              'columns.verbose_name',
-              'database.id',
-              'database.database_name',
-              'datasource_type',
-              'filter_select_enabled',
-              'id',
-              'is_sqllab_view',
-              'main_dttm_col',
-              'metrics.metric_name',
-              'metrics.verbose_name',
-              'schema',
-              'sql',
-              'table_name',
-              'time_grain_sqla',
-            ],
-          })}`,
-        })
-          .then((response: JsonResponse) => {
-            setMetrics(response.json?.result?.metrics);
-            const dataset = response.json?.result;
-            // modify the response to fit structure expected by AdhocFilterControl
-            dataset.type = dataset.datasource_type;
-            dataset.filter_select = true;
-            setDatasetDetails(dataset);
-          })
-          .catch((response: SupersetApiError) => {
-            addDangerToast(response.message);
-          });
+    if (isSemanticView) {
+      if (!semanticStructure) {
+        return;
       }
+      const columns = semanticStructure.dimensions.map(dim => {
+        const mappedType = mapSemanticTypeToGenericDataType(dim.type);
+        return {
+          column_name: dim.name,
+          type: dim.type,
+          is_dttm: mappedType === GenericDataType.Temporal,
+          filterable: true,
+          type_generic: mappedType,
+        };
+      });
+      const mappedMetrics = semanticStructure.metrics.map(m => ({
+        metric_name: m.name,
+        expression: m.definition,
+        verbose_name: null,
+      }));
+      setMetrics(mappedMetrics as unknown as Metric[]);
+      // reshape to the structure expected by AdhocFilterControl
+      setDatasetDetails({
+        columns,
+        metrics: mappedMetrics,
+        datasource_type: DatasourceType.SemanticView,
+        type: DatasourceType.SemanticView,
+        filter_select: true,
+        filter_select_enabled: true,
+        time_grain_sqla: [],
+        main_dttm_col: null,
+        id: datasetId,
+        table_name: semanticStructure.name,
+      });
+      return;
     }
-  }, [datasetId, datasourceType]);
+    if (!datasetResult) {
+      return;
+    }
+    setMetrics((datasetResult.metrics as Metric[]) ?? []);
+    // reshape to the structure expected by AdhocFilterControl
+    setDatasetDetails({
+      ...datasetResult,
+      type: datasetResult.datasource_type,
+      filter_select: true,
+    });
+  }, [isSemanticView, semanticStructure, datasetResult, datasetId]);
+
+  useEffect(() => {
+    const err = isSemanticView ? semanticError : datasetError;
+    if (err) {
+      addDangerToast((err as SupersetApiError).message);
+    }
+  }, [isSemanticView, datasetError, semanticError]);
 
   useImperativeHandle(ref, () => ({
     changeTab(tab: 'configuration' | 'scoping') {

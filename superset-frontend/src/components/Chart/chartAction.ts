@@ -48,6 +48,8 @@ import { logEvent } from 'src/logger/actions';
 import { Logger, LOG_ACTIONS_LOAD_CHART } from 'src/logger/LogUtils';
 import { allowCrossDomain as domainShardingEnabled } from 'src/utils/hostNamesConfig';
 import { updateDataMask } from 'src/dataMask/actions';
+import { useDataMaskStore } from 'src/dataMask/useDataMaskStore';
+import { useDashboardInfoStore } from 'src/dashboard/stores';
 import { waitForAsyncData } from 'src/middleware/asyncEvent';
 import { ensureAppRoot } from 'src/utils/navigationUtils';
 import { safeStringify } from 'src/utils/safeStringify';
@@ -69,23 +71,12 @@ export interface CommonState {
   };
 }
 
-export interface DashboardInfoState {
-  common: CommonState;
-}
-
-export interface DataMaskState {
-  [key: number]: {
-    ownState?: JsonObject;
-  };
-}
-
 // RootState uses flexible types to accommodate various state shapes
-// across dashboard and explore views
+// across dashboard and explore views. dashboardInfo and dataMask live in
+// Zustand now (read via their stores), so they are intentionally absent here.
 export interface RootState {
   charts: ChartsState;
   common: CommonState;
-  dashboardInfo: DashboardInfoState;
-  dataMask: DataMaskState;
   explore: {
     form_data: QueryFormData;
     datasource?: { type: string };
@@ -941,7 +932,8 @@ export function refreshChart(
       return Promise.resolve();
     }
     const timeout =
-      getState().dashboardInfo.common.conf.SUPERSET_WEBSERVER_TIMEOUT;
+      useDashboardInfoStore.getState().dashboardInfo.common.conf
+        .SUPERSET_WEBSERVER_TIMEOUT;
 
     if (
       !chart.latestQueryFormData ||
@@ -956,7 +948,7 @@ export function refreshChart(
         timeout,
         chart.id,
         dashboardId,
-        getState().dataMask[chart.id]?.ownState,
+        useDataMaskStore.getState().dataMask[chart.id]?.ownState,
       ),
     ) as unknown as Promise<void>;
   };

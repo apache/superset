@@ -23,7 +23,11 @@ import { t } from '@apache-superset/core/translation';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { URL_PARAMS } from 'src/constants';
-import type { RootState } from 'src/dashboard/types';
+import {
+  useDashboardInfo,
+  useHasUnsavedChanges,
+  useLastModifiedTime,
+} from 'src/dashboard/stores';
 import type {
   ActivityInclude,
   ActivityRecord,
@@ -42,7 +46,7 @@ import {
   setVersionHistoryInclude,
   setVersionPreview,
 } from './reducer';
-import { selectCanRestoreDashboard } from './canRestoreDashboard';
+import { useCanRestoreDashboard } from './canRestoreDashboard';
 import { openRelatedEntity } from './openRelated';
 import { useVersionActivity } from './useVersionActivity';
 import { useVersionActions } from './useVersionActions';
@@ -53,16 +57,14 @@ import VersionHistoryPanel from './VersionHistoryPanel';
 export default function DashboardVersionHistory() {
   const dispatch = useDispatch();
   const { addDangerToast } = useToasts();
-  const uuid = useSelector<RootState, string | undefined>(
-    state => state.dashboardInfo?.uuid,
-  );
-  const canRestore = useSelector(selectCanRestoreDashboard);
+  const dashboardInfo = useDashboardInfo();
+  const uuid = dashboardInfo?.uuid;
+  const lastModifiedTime = useLastModifiedTime();
+  const canRestore = useCanRestoreDashboard();
   const isPanelOpen = useSelector(selectIsVersionHistoryPanelOpen);
   const include = useSelector(selectVersionHistoryInclude);
   const preview = useSelector(selectVersionPreview);
-  const hasUnsavedChanges = useSelector<RootState, boolean>(
-    state => !!state.dashboardState?.hasUnsavedChanges,
-  );
+  const hasUnsavedChanges = useHasUnsavedChanges();
   // Dashboard edits are tracked coarsely (no per-control log like
   // explore): a single "unsaved edits" entry while edit mode is dirty.
   // The timestamp is captured when the dashboard first turns dirty —
@@ -145,12 +147,10 @@ export default function DashboardVersionHistory() {
   // depending on the path: edit-mode saves round-trip through ON_SAVE
   // (dashboardState.lastModifiedTime), while native-filter and
   // properties saves bump dashboardInfo.last_modified_time.
-  const saveSignal = useSelector<RootState, string>(state =>
-    [
-      state.dashboardState?.lastModifiedTime ?? '',
-      state.dashboardInfo?.last_modified_time ?? '',
-    ].join('|'),
-  );
+  const saveSignal = [
+    lastModifiedTime ?? '',
+    dashboardInfo?.last_modified_time ?? '',
+  ].join('|');
   const lastRestoreCountRef = useRef(restoreCount);
   const lastSaveSignalRef = useRef(saveSignal);
   const refreshActivity = activity.refresh;
