@@ -2839,3 +2839,46 @@ test('applies gridlines to the value axis after a horizontal orientation swaps i
   // and the gridlines belonging to it — end up on xAxis.
   expect((echartOptions.xAxis as any).splitLine.show).toBe(false);
 });
+
+test('boundary label alignment is dropped when the orientation moves the time axis to the side', () => {
+  // The alignments position labels against the left and right edges of a
+  // bottom axis. A horizontal chart swaps the axes, so applying them there
+  // shifts the first label out of line with the rest (#43428 follow-up).
+  const monthData = [
+    { __timestamp: Date.UTC(2003, 4, 1), sales: 100 },
+    { __timestamp: Date.UTC(2003, 5, 1), sales: 200 },
+  ];
+  const build = (orientation: OrientationType) =>
+    transformProps(
+      createTestChartProps({
+        formData: {
+          granularity_sqla: 'ds',
+          timeGrainSqla: TimeGranularity.MONTH,
+          xAxisTimeFormat: 'smart_date',
+          seriesType: EchartsTimeseriesSeriesType.Bar,
+          orientation,
+        },
+        queriesData: [
+          createTestQueryData(monthData, {
+            colnames: ['__timestamp', 'sales'],
+            coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+          }),
+        ],
+      }),
+    ).echartOptions;
+
+  const vertical = build(OrientationType.Vertical).xAxis as any;
+  expect(vertical.axisLabel.alignMinLabel).toBe('left');
+  expect(vertical.axisLabel.alignMaxLabel).toBe('right');
+
+  // Horizontal swaps the axes, so the time axis is now yAxis.
+  const horizontal = build(OrientationType.Horizontal).yAxis as any;
+  expect(horizontal.axisLabel.alignMinLabel).toBeUndefined();
+  expect(horizontal.axisLabel.alignMaxLabel).toBeUndefined();
+
+  // The boundary labels themselves stay forced in both orientations.
+  expect(vertical.axisLabel.showMinLabel).toBe(true);
+  expect(vertical.axisLabel.showMaxLabel).toBe(true);
+  expect(horizontal.axisLabel.showMinLabel).toBe(true);
+  expect(horizontal.axisLabel.showMaxLabel).toBe(true);
+});
