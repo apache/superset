@@ -35,24 +35,27 @@ machine's Homebrew-installed libmysqlclient, and this dialect wasn't
 pulled/run locally at all given its heavier resource footprint -- CI-only
 verification, matching the nightly_only gating.
 
-oceanbase_py.sqlalchemy.dialect.OceanBaseDialect.has_table() -- called by
-both create_all()'s default checkfirst=True and by Inspector.get_columns()
-internally -- has two real bugs, both confirmed on real CI:
-1. It passes a raw string straight to Connection.execute()
-   (`connection.execute(f"DESCRIBE {full_name}")`), which SQLAlchemy 2.0
+oceanbase_py.sqlalchemy.dialect.OceanBaseDialect has real bugs, all
+confirmed on real CI, in both has_table() (called by create_all()'s
+default checkfirst=True) and get_columns() (called by
+OceanBaseEngineSpec.get_columns(), which this suite's second test needs
+to actually exercise):
+1. Both pass a raw string straight to Connection.execute() (e.g.
+   `connection.execute(f"DESCRIBE {full_name}")`), which SQLAlchemy 2.0
    rejects outright (ObjectNotExecutableError). Every *other* raw-SQL
    method in the same dialect module correctly uses
    `connection.exec_driver_sql(...)` instead.
-2. It never catches the error DESCRIBE raises for a table that doesn't
-   exist (1146) -- so even with (1) fixed, it can only ever return True,
-   raising instead of returning False for exactly the case checkfirst
-   exists to handle.
-This test monkeypatches has_table() to do what the rest of the dialect's
-raw-SQL methods already do, plus the missing not-found handling, rather
-than working around either bug from the test side.
+2. has_table() never catches the error DESCRIBE raises for a table that
+   doesn't exist (1146) -- so even with (1) fixed, it can only ever
+   return True, raising instead of returning False for exactly the case
+   checkfirst exists to handle.
+This test monkeypatches both methods to do what the rest of the dialect's
+raw-SQL methods already do, plus has_table()'s missing not-found
+handling, rather than working around any of this from the test side.
 """
 
 from collections.abc import Iterator
+from typing import Any
 
 import pytest
 from sqlalchemy import (
@@ -64,7 +67,7 @@ from sqlalchemy import (
     Table as SATable,
 )
 from sqlalchemy.engine import Connection, Engine, URL
-from sqlalchemy.exc import ProgrammingError
+from sqlalchemy.exc import NoSuchTableError, ProgrammingError
 
 from superset.db_engine_specs.oceanbase import OceanBaseEngineSpec
 from superset.sql.parse import Table
@@ -77,6 +80,7 @@ from ._driver import require_driver  # noqa: E402
 require_driver("testcontainers.core.container")
 require_driver("oceanbase_py")
 
+from oceanbase_py.sqlalchemy import datatype  # noqa: E402
 from oceanbase_py.sqlalchemy.dialect import OceanBaseDialect  # noqa: E402
 from testcontainers.core.container import DockerContainer  # noqa: E402
 from testcontainers.core.wait_strategies import LogMessageWaitStrategy  # noqa: E402
@@ -112,7 +116,40 @@ def _has_table(
     return res.first() is not None
 
 
+def _get_columns(
+    self: OceanBaseDialect,
+    connection: Connection,
+    table_name: str,
+    schema: str | None = None,
+    **kw: object,
+) -> list[dict[str, Any]]:
+    # Same connection.execute(raw string) anti-pattern as has_table(),
+    # confirmed on real CI as the same ObjectNotExecutableError -- this is
+    # the actual column-introspection call OceanBaseEngineSpec.get_columns
+    # (and this test) needs, so it gets the same exec_driver_sql fix.
+    if not self.has_table(connection, table_name, schema):
+        raise NoSuchTableError(f"schema={schema}, table={table_name}")
+    schema = schema or self._get_default_schema_name(connection)
+
+    quote = self.identifier_preparer.quote_identifier
+    full_name = quote(table_name)
+    if schema:
+        full_name = f"{quote(schema)}.{full_name}"
+
+    res = connection.exec_driver_sql(f"SHOW COLUMNS FROM {full_name}")
+    return [
+        {
+            "name": record.Field,
+            "type": datatype.parse_sql_type(record.Type),
+            "nullable": record.Null == "YES",
+            "default": record.Default,
+        }
+        for record in res
+    ]
+
+
 OceanBaseDialect.has_table = _has_table
+OceanBaseDialect.get_columns = _get_columns
 
 PORT = 2881
 PASSWORD = "pilot"  # noqa: S105 -- fixed test-fixture password, not a secret
