@@ -3755,6 +3755,66 @@ test('applies gridlines to the value axis after a horizontal orientation swaps i
   expect((echartOptions.xAxis as any).splitLine.show).toBe(false);
 });
 
+type AxisLabelOptions = {
+  axisLabel: {
+    show?: boolean;
+    showMinLabel?: boolean;
+    showMaxLabel?: boolean;
+  };
+  splitLine?: { show?: boolean };
+};
+
+test('shows the value axis labels by default', () => {
+  const { echartOptions } = transformProps(createTestChartProps({}));
+  const { axisLabel } = echartOptions.yAxis as AxisLabelOptions;
+
+  expect(axisLabel.show).toBe(true);
+  expect(axisLabel.showMinLabel).toBe(true);
+  expect(axisLabel.showMaxLabel).toBe(true);
+});
+
+test('hides the value axis labels including the boundary ones', () => {
+  const { echartOptions } = transformProps(
+    createTestChartProps({ formData: { valueAxisLabels: false } }),
+  );
+  const yAxis = echartOptions.yAxis as AxisLabelOptions;
+  const xAxis = echartOptions.xAxis as AxisLabelOptions;
+
+  expect(yAxis.axisLabel.show).toBe(false);
+  expect(yAxis.axisLabel.showMinLabel).toBe(false);
+  expect(yAxis.axisLabel.showMaxLabel).toBe(false);
+  expect(yAxis.splitLine?.show).toBe(true);
+  expect(xAxis.axisLabel.show).toBeUndefined();
+});
+
+test('keeps the value axis labels off on a micro chart even when enabled', () => {
+  const { echartOptions } = transformProps(
+    createTestChartProps({
+      height: TIMESERIES_CONSTANTS.microChartHeight - 1,
+      formData: { valueAxisLabels: true },
+    }),
+  );
+  const { axisLabel } = echartOptions.yAxis as AxisLabelOptions;
+
+  expect(axisLabel.show).toBe(false);
+  expect(axisLabel.showMinLabel).toBe(false);
+  expect(axisLabel.showMaxLabel).toBe(false);
+});
+
+test('hides the value axis labels after a horizontal orientation swaps the axis', () => {
+  const { echartOptions } = transformProps(
+    createTestChartProps({
+      formData: {
+        orientation: OrientationType.Horizontal,
+        valueAxisLabels: false,
+      },
+    }),
+  );
+  const xAxis = echartOptions.xAxis as AxisLabelOptions;
+
+  expect(xAxis.axisLabel.show).toBe(false);
+});
+
 test('#39899 - horizontal orientation does not over-thin the time axis labels', () => {
   // The spacing formatter estimates label collisions using horizontal plot
   // geometry (width, 7px/char). A horizontal chart swaps the time axis onto
@@ -4576,50 +4636,4 @@ test('tooltip keeps the metric format on a Difference time comparison', () => {
 
   expect(result).toContain('$ 100');
   expect(result).toContain('$ 25');
-});
-
-test('shows the value axis labels by default', () => {
-  const { echartOptions } = transformProps(createTestChartProps({}));
-  const { axisLabel } = echartOptions.yAxis as any;
-
-  expect(axisLabel.show).toBe(true);
-  expect(axisLabel.showMinLabel).toBe(true);
-  expect(axisLabel.showMaxLabel).toBe(true);
-});
-
-test('hides the value axis labels including the boundary ones', () => {
-  const { echartOptions } = transformProps(
-    createTestChartProps({ formData: { valueAxisLabels: false } }),
-  );
-  const yAxis = echartOptions.yAxis as any;
-
-  expect(yAxis.axisLabel.show).toBe(false);
-  expect(yAxis.axisLabel.showMinLabel).toBe(false);
-  expect(yAxis.axisLabel.showMaxLabel).toBe(false);
-  expect(yAxis.splitLine.show).toBe(true);
-  expect((echartOptions.xAxis as any).axisLabel.show).toBeUndefined();
-});
-
-test('keeps the value axis labels off on a micro chart even when enabled', () => {
-  const { echartOptions } = transformProps(
-    createTestChartProps({
-      height: TIMESERIES_CONSTANTS.microChartHeight - 1,
-      formData: { valueAxisLabels: true },
-    }),
-  );
-
-  expect((echartOptions.yAxis as any).axisLabel.show).toBe(false);
-});
-
-test('hides the value axis labels after a horizontal orientation swaps the axis', () => {
-  const { echartOptions } = transformProps(
-    createTestChartProps({
-      formData: {
-        orientation: OrientationType.Horizontal,
-        valueAxisLabels: false,
-      },
-    }),
-  );
-
-  expect((echartOptions.xAxis as any).axisLabel.show).toBe(false);
 });
