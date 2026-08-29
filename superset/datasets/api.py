@@ -23,13 +23,13 @@ from io import BytesIO
 from typing import Any, Callable
 from zipfile import is_zipfile, ZipFile
 
-from flask import request, Response, send_file
+from flask import request, Response
 from flask_appbuilder import permission_name
 from flask_appbuilder.api import expose, protect, rison as parse_rison, safe
 from flask_appbuilder.api.schemas import get_item_schema
 from flask_appbuilder.const import API_RESULT_RES_KEY, API_SELECT_COLUMNS_RIS_KEY
 from flask_appbuilder.models.sqla.interface import SQLAInterface
-from flask_babel import ngettext
+from flask_babel import gettext as _, ngettext
 from jinja2.exceptions import TemplateError
 from marshmallow import ValidationError
 from sqlalchemy.orm.exc import MultipleResultsFound
@@ -93,15 +93,22 @@ from superset.exceptions import (
 from superset.jinja_context import BaseTemplateProcessor, get_template_processor
 from superset.subjects.filters import FilterRelatedSubjects, subject_type_filter
 from superset.utils import json
-from superset.utils.core import parse_boolean_string, sanitize_cookie_token
+from superset.utils.core import parse_boolean_string, send_export_zip
 from superset.versioning.api_helpers import (
-    current_entity_etag_uuid,
+    concurrency_token_from,
     current_entity_version_info,
+    entity_concurrency_token,
     get_version_endpoint,
     list_versions_endpoint,
+    lock_entity_for_update,
     restore_version_endpoint,
 )
-from superset.versioning.etag import set_version_etag
+from superset.versioning.etag import (
+    is_conditional_write,
+    raise_for_stale_write,
+    set_version_etag,
+    StaleEntityError,
+)
 from superset.versioning.schemas import VersionListItemSchema
 from superset.views.base import DatasourceFilter
 from superset.views.base_api import (
@@ -278,6 +285,18 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         "database.backend",
         "database.allow_multi_catalog",
         "columns.advanced_data_type",
+        # Certification/warning metadata is stored serialized in the ``extra``
+        # column and surfaced through model properties. Exposing them keeps this
+        # payload consistent with the datasource serialization used by Explore,
+        # so clients hydrating from this endpoint don't lose the badges.
+        "columns.certification_details",
+        "columns.certified_by",
+        "columns.is_certified",
+        "columns.warning_markdown",
+        "metrics.certification_details",
+        "metrics.certified_by",
+        "metrics.is_certified",
+        "metrics.warning_markdown",
         "is_managed_externally",
         "uid",
         "uuid",
@@ -530,6 +549,14 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             schema:
               type: boolean
             name: override_columns
+          - in: header
+            schema:
+              type: string
+            name: If-Match
+            description: >-
+              Optional optimistic-concurrency guard. Pass the ``ETag`` returned
+              by a prior read of this dataset; the update is rejected with 412
+              if the dataset has changed since.
           requestBody:
             description: Dataset schema
             required: true
@@ -606,6 +633,17 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
               $ref: '#/components/responses/403'
             404:
               $ref: '#/components/responses/404'
+            412:
+              description: >-
+                The dataset changed since the version identified by the
+                request's ``If-Match`` header; the update was not applied.
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
             422:
               $ref: '#/components/responses/422'
             500:
@@ -622,9 +660,31 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         except ValidationError as error:
             return self.response_400(message=error.messages)
 
+        # Serialise conditional saves on this dataset: the guard below reads
+        # the live version, the command writes, and the two must not interleave
+        # with another request's. Only a conditional save pays for the lock; an
+        # unconditional PUT behaves exactly as it did before the guard existed.
+        if is_conditional_write():
+            lock_entity_for_update(SqlaTable, pk)
+
         # Live version identifiers before the update (empty + query-free when
         # ``ENABLE_VERSIONING_CAPTURE`` is off).
         old_info = current_entity_version_info(SqlaTable, pk)
+
+        try:
+            raise_for_stale_write(concurrency_token_from(old_info))
+        except StaleEntityError:
+            return set_version_etag(
+                self.response(
+                    412,
+                    message=_(
+                        "The dataset was changed by another user or browser tab "
+                        "after you opened it. Reopen it to pick up the latest "
+                        "version, then reapply your changes."
+                    ),
+                ),
+                concurrency_token_from(old_info),
+            )
 
         try:
             # Two commands, two commits, two Continuum transactions for an
@@ -649,13 +709,13 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             new_info = current_entity_version_info(
                 SqlaTable, changed_model.id, changed_model.uuid
             )
-            etag_version_uuid = new_info.version_uuid
+            etag_version_uuid = concurrency_token_from(new_info)
             if override_columns:
                 RefreshDatasetCommand(pk).run()
                 # The ETag must reflect the entity's *current live* version,
                 # which after the refresh is the refresh's transaction —
                 # re-read it rather than reusing the pre-refresh uuid.
-                etag_version_uuid = current_entity_etag_uuid(
+                etag_version_uuid = entity_concurrency_token(
                     SqlaTable, changed_model.id, changed_model.uuid
                 )
             response = self.response(
@@ -811,15 +871,7 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
                 return self.response_404()
         buf.seek(0)
 
-        response = send_file(
-            buf,
-            mimetype="application/zip",
-            as_attachment=True,
-            download_name=filename,
-        )
-        if token := sanitize_cookie_token(request.args.get("token")):
-            response.set_cookie(token, "done", max_age=600)
-        return response
+        return send_export_zip(buf, filename)
 
     @expose("/duplicate", methods=("POST",))
     @protect()
@@ -1696,7 +1748,7 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
 
         return set_version_etag(
             self.response(200, **response),
-            current_entity_etag_uuid(SqlaTable, table.id, table.uuid),
+            entity_concurrency_token(SqlaTable, table.id, table.uuid),
         )
 
     @expose("/<int:pk>/drill_info/", methods=("GET",))

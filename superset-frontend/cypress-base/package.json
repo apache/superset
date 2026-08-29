@@ -30,14 +30,20 @@
   "overrides": {
     "@babel/core": "^7.29.6",
     "@cypress/code-coverage": {
-      "js-yaml": "4.1.1"
+      "js-yaml": "4.3.1"
     },
     "@cypress/request": "^3.0.0",
     "cypress": {
       "form-data": "^2.3.4"
     },
+    "d3-interpolate": {
+      "d3-color": "3.1.0"
+    },
+    "minimatch@<10": {
+      "brace-expansion": "1.1.18"
+    },
     "minimatch@>=10": {
-      "brace-expansion": ">=5.0.8"
+      "brace-expansion": ">=5.0.9"
     },
     "qs": "^6.14.2",
     "uuid": "^11.1.1"
