@@ -34,6 +34,7 @@ import {
 } from '@superset-ui/core';
 import { logging } from '@apache-superset/core/utils';
 import getBootstrapData from 'src/utils/getBootstrapData';
+import { getTabId } from 'src/hooks/useTabId';
 import {
   connectRealtime,
   subscribeRealtime,
@@ -145,10 +146,28 @@ const cancelTask = (taskId: string) => {
   // Best-effort task abort/unsubscribe. This can prevent pending work from
   // starting, but chart tasks do not cancel an underlying warehouse query after
   // execution starts. Failures are non-fatal: the client has stopped waiting.
+  //
+  // Send this tab's id so the backend detaches only this tab from a shared task:
+  // if another tab of the same user is still watching it, the task keeps running
+  // and only aborts once its last tab leaves.
   SupersetClient.post({
     endpoint: `/api/v1/task/${taskId}/cancel`,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ tab_id: getTabId() }),
   }).catch(error => {
     logging.warn('Failed to cancel task', taskId, error);
+  });
+};
+
+// Cancel only tasks no local waiter still needs. A SHARED task can back several
+// charts for the same principal through a single backend subscriber, so
+// cancelling one chart while another local waiter still awaits the same task id
+// would tell the server the last subscriber left and abort work the other chart
+// needs. Call *after* removing the aborting waiter (or before registering it),
+// so a task id still present in the registry means another waiter depends on it.
+const cancelUnwaitedTasks = (taskIds: string[]) => {
+  taskIds.forEach(taskId => {
+    if (!waitersByTaskId.has(taskId)) cancelTask(taskId);
   });
 };
 
@@ -313,7 +332,7 @@ export const waitForAsyncData = async <T = unknown[]>(
   // waiter exists and be dropped.
   await new Promise<void>((resolve, reject) => {
     if (signal?.aborted) {
-      taskIds.forEach(cancelTask);
+      cancelUnwaitedTasks(taskIds);
       reject(new DOMException('Aborted', 'AbortError'));
       return;
     }
@@ -328,7 +347,7 @@ export const waitForAsyncData = async <T = unknown[]>(
     if (signal) {
       waiter.onAbort = () => {
         unregister(waiter);
-        taskIds.forEach(cancelTask);
+        cancelUnwaitedTasks(taskIds);
         reject(new DOMException('Aborted', 'AbortError'));
       };
       signal.addEventListener('abort', waiter.onAbort, { once: true });

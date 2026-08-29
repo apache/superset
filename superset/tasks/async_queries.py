@@ -42,6 +42,7 @@ from superset.tasks.query_cancel import (
     capture_cancel_id,
     capture_cancel_query_id,
 )
+from superset.tasks.subscription import TaskSubscriptionPolicy
 from superset.tasks.utils import floored_status_cursor
 from superset.utils.core import override_user
 
@@ -63,6 +64,66 @@ logger = logging.getLogger(__name__)
 # type is versioned to allow the serialization/execution contract to evolve.
 CHART_QUERY_TASK = "superset.query_object_v1"
 CACHE_KEY_PAYLOAD_KEY = "cache_key"
+
+# Key under ``private["task"]`` holding the chart-data consumer list (see
+# ``ChartQueryConsumerPolicy``).
+CONSUMERS_PRIVATE_KEY = "consumers"
+
+
+class ChartQueryConsumerPolicy(TaskSubscriptionPolicy):
+    """Ref-count the browser tabs watching a shared chart-data task.
+
+    A chart-data task is ``SHARED`` and deduplicated across every request for the
+    same ``query_cache_key``, so one user viewing the same chart in two tabs is a
+    single principal with a single subscriber row. Treating either tab's cancel
+    (an explicit cancel, or the navigate-away teardown that cancels unwaited
+    tasks) as *the* principal leaving would abort the shared task and kill the
+    other tab's still-pending query.
+
+    This policy keeps a list of ``"<principal>:<tab_id>"`` entries in the task's
+    ``private["task"]`` namespace (framework-invisible, task-owned, debug-gated).
+    On subscribe it adds the calling tab; on unsubscribe it removes the calling
+    tab and reports whether the principal has any tab left, so the framework
+    aborts the task only once the principal's last tab is gone. Both hooks run
+    under the submit/cancel lock, so the read-modify-write on the list is
+    race-free.
+
+    A request without a ``tab_id`` (a non-interactive or legacy caller) is a
+    no-op on subscribe and proceeds (principal-grain) on unsubscribe; in practice
+    the chart-data client always supplies a stable per-tab id.
+    """
+
+    @staticmethod
+    def _consumers(task: "CoreTask") -> list[str]:
+        private = task.properties_dict.get("private") or {}
+        task_private = private.get("task") or {}
+        consumers = task_private.get(CONSUMERS_PRIVATE_KEY) or []
+        return [entry for entry in consumers if isinstance(entry, str)]
+
+    def on_subscribe(
+        self, task: "CoreTask", *, principal: str, client_ref: str | None
+    ) -> None:
+        if client_ref is None:
+            return
+        entry = f"{principal}:{client_ref}"
+        if entry not in (consumers := self._consumers(task)):
+            task.update_task_private({CONSUMERS_PRIVATE_KEY: [*consumers, entry]})
+
+    def on_unsubscribe(
+        self, task: "CoreTask", *, principal: str, client_ref: str | None
+    ) -> bool:
+        if client_ref is None:
+            # No per-tab id: fall back to principal-grain (proceed to unsubscribe).
+            return True
+        entry = f"{principal}:{client_ref}"
+        consumers = self._consumers(task)
+        remaining = [existing for existing in consumers if existing != entry]
+        if remaining != consumers:
+            task.update_task_private({CONSUMERS_PRIVATE_KEY: remaining})
+        # Proceed to unsubscribe the principal only once it has no tab left on
+        # this task; a surviving tab of the same principal keeps it subscribed.
+        prefix = f"{principal}:"
+        return not any(existing.startswith(prefix) for existing in remaining)
 
 
 def _resolve_user(user_id: int | None, guest_token: "GuestToken | None") -> User:
@@ -172,7 +233,11 @@ def _capture_query_cancellation(query_context: "QueryContext") -> Iterator[None]
         yield
 
 
-@task(name=CHART_QUERY_TASK, scope=TaskScope.SHARED)
+@task(
+    name=CHART_QUERY_TASK,
+    scope=TaskScope.SHARED,
+    subscription_policy=ChartQueryConsumerPolicy(),
+)
 def execute_chart_query(
     serialized_query: SerializedQuery,
     user_id: int | None = None,

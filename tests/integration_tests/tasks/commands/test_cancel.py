@@ -492,3 +492,154 @@ def test_cancel_shared_task_not_subscribed_raises_not_found(
             # Cleanup
             db.session.delete(task)
             db.session.commit()
+
+
+def _consumers(task) -> list[str]:
+    """Read the chart-data per-tab consumer list off a task's private state."""
+    return task.properties_dict.get("private", {}).get("task", {}).get("consumers", [])
+
+
+def test_cancel_detaches_one_tab_and_keeps_task_alive(app_context, get_user) -> None:
+    """A tab cancel of a shared chart-data task the same user watches from two
+    tabs detaches only that tab; the task keeps running for the other tab."""
+    from superset.tasks.async_queries import CHART_QUERY_TASK
+
+    admin = get_user("admin")
+    unique_key = f"detach_test_{uuid4().hex[:8]}"
+
+    task = TaskDAO.create_task(
+        task_type=CHART_QUERY_TASK,
+        task_key=unique_key,
+        scope=TaskScope.SHARED,
+        user_id=admin.id,
+    )
+    task.created_by = admin
+    # Two tabs of the same principal are watching (single subscriber row).
+    task.update_task_private(
+        {"consumers": [f"user:{admin.id}:tabA", f"user:{admin.id}:tabB"]}
+    )
+    db.session.commit()
+
+    try:
+        with override_user(admin):
+            command = CancelTaskCommand(task_uuid=task.uuid, tab_id="tabA")
+            result = command.run()
+
+        # tabA detaches; the task is untouched and tabB's entry remains.
+        assert command.action_taken == "detached"
+        assert result.status == TaskStatus.PENDING.value
+        db.session.refresh(task)
+        assert task.status == TaskStatus.PENDING.value
+        assert _consumers(task) == [f"user:{admin.id}:tabB"]
+        assert task.subscriber_count == 1
+    finally:
+        db.session.delete(task)
+        db.session.commit()
+
+
+def test_cancel_last_tab_aborts_shared_task(app_context, get_user) -> None:
+    """Cancelling the principal's last watching tab aborts the shared task."""
+    from superset.tasks.async_queries import CHART_QUERY_TASK
+
+    admin = get_user("admin")
+    unique_key = f"last_tab_test_{uuid4().hex[:8]}"
+
+    task = TaskDAO.create_task(
+        task_type=CHART_QUERY_TASK,
+        task_key=unique_key,
+        scope=TaskScope.SHARED,
+        user_id=admin.id,
+    )
+    task.created_by = admin
+    task.update_task_private({"consumers": [f"user:{admin.id}:tabA"]})
+    db.session.commit()
+
+    try:
+        with override_user(admin):
+            command = CancelTaskCommand(task_uuid=task.uuid, tab_id="tabA")
+            result = command.run()
+
+        # The principal's last tab left, so the (last-subscriber) task aborts.
+        assert command.action_taken == "aborted"
+        assert result.status == TaskStatus.ABORTED.value
+        db.session.refresh(task)
+        assert _consumers(task) == []
+    finally:
+        db.session.delete(task)
+        db.session.commit()
+
+
+def test_cancel_last_tab_of_one_user_unsubscribes_not_aborts(
+    app_context, get_user
+) -> None:
+    """When another user still watches a shared task, one user's last-tab cancel
+    unsubscribes only that user; the task keeps running."""
+    from superset.tasks.async_queries import CHART_QUERY_TASK
+
+    admin = get_user("admin")
+    gamma = get_user("gamma")
+    unique_key = f"multi_user_tab_test_{uuid4().hex[:8]}"
+
+    with app.test_request_context():
+        with override_user(admin):
+            task = TaskDAO.create_task(
+                task_type=CHART_QUERY_TASK,
+                task_key=unique_key,
+                scope=TaskScope.SHARED,
+                user_id=admin.id,
+            )
+            db.session.commit()
+        TaskDAO.add_subscriber(task.id, user_id=gamma.id)
+        task.update_task_private(
+            {"consumers": [f"user:{admin.id}:tabA", f"user:{gamma.id}:tabB"]}
+        )
+        db.session.commit()
+
+        try:
+            # gamma cancels its only tab: gamma is unsubscribed, task keeps running
+            # for admin.
+            with override_user(gamma):
+                command = CancelTaskCommand(task_uuid=task.uuid, tab_id="tabB")
+                result = command.run()
+
+            assert command.action_taken == "unsubscribed"
+            assert result.status == TaskStatus.PENDING.value
+            db.session.refresh(task)
+            assert not task.has_subscriber(gamma.id)
+            assert task.has_subscriber(admin.id)
+            assert _consumers(task) == [f"user:{admin.id}:tabA"]
+        finally:
+            db.session.delete(task)
+            db.session.commit()
+
+
+def test_force_cancel_aborts_regardless_of_tabs(app_context, get_user) -> None:
+    """An admin force-cancel aborts a shared chart-data task even while tabs
+    are watching (the per-tab policy pre-gate is skipped for force)."""
+    from superset.tasks.async_queries import CHART_QUERY_TASK
+
+    admin = get_user("admin")
+    unique_key = f"force_tab_test_{uuid4().hex[:8]}"
+
+    task = TaskDAO.create_task(
+        task_type=CHART_QUERY_TASK,
+        task_key=unique_key,
+        scope=TaskScope.SHARED,
+        user_id=admin.id,
+    )
+    task.created_by = admin
+    task.update_task_private(
+        {"consumers": [f"user:{admin.id}:tabA", f"user:{admin.id}:tabB"]}
+    )
+    db.session.commit()
+
+    try:
+        with override_user(admin):
+            command = CancelTaskCommand(task_uuid=task.uuid, force=True, tab_id="tabA")
+            result = command.run()
+
+        assert command.action_taken == "aborted"
+        assert result.status == TaskStatus.ABORTED.value
+    finally:
+        db.session.delete(task)
+        db.session.commit()

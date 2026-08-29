@@ -16,6 +16,7 @@
 # under the License.
 """Unit tests for the GTF chart-data fan-out orchestrator."""
 
+from typing import Any
 from unittest import mock
 from uuid import uuid4
 
@@ -279,3 +280,85 @@ def test_task_name_disambiguates_multiple_queries(mocker: MockerFixture) -> None
 
     names = [s["kwargs"]["options"].task_name for s in scheduled]
     assert names == ["births (1)", "births (2)"]
+
+
+def _make_task(properties: dict[str, Any] | None = None):
+    """A real ``Task`` seeded with ``properties`` (no DB — property JSON only)."""
+    from superset.models.tasks import Task
+    from superset.tasks.utils import serialize_properties
+
+    task = Task()
+    task.properties = serialize_properties(properties or {})
+    return task
+
+
+def _consumers(task) -> list[str]:
+    return task.properties_dict.get("private", {}).get("task", {}).get("consumers", [])
+
+
+def test_chart_query_task_registers_subscription_policy() -> None:
+    """The chart-data task type wires its per-tab consumer policy at import."""
+    from superset.tasks.async_queries import (
+        CHART_QUERY_TASK,
+        ChartQueryConsumerPolicy,
+    )
+    from superset.tasks.registry import TaskRegistry
+
+    policy = TaskRegistry.get_subscription_policy(CHART_QUERY_TASK)
+    assert isinstance(policy, ChartQueryConsumerPolicy)
+
+
+def test_consumer_policy_on_subscribe_adds_dedups_and_preserves_framework() -> None:
+    from superset.tasks.async_queries import ChartQueryConsumerPolicy
+
+    policy = ChartQueryConsumerPolicy()
+    # Seed a framework-owned key to prove the task-namespace write leaves it intact.
+    task = _make_task({"private": {"framework": {"celery_task_id": "c1"}}})
+
+    policy.on_subscribe(task, principal="user:5", client_ref="A")
+    policy.on_subscribe(task, principal="user:5", client_ref="B")
+    policy.on_subscribe(task, principal="user:5", client_ref="A")  # idempotent
+
+    assert _consumers(task) == ["user:5:A", "user:5:B"]
+    assert task.properties_dict["private"]["framework"]["celery_task_id"] == "c1"
+
+
+def test_consumer_policy_detach_then_last_tab_aborts() -> None:
+    from superset.tasks.async_queries import ChartQueryConsumerPolicy
+
+    policy = ChartQueryConsumerPolicy()
+    task = _make_task()
+    policy.on_subscribe(task, principal="user:5", client_ref="A")
+    policy.on_subscribe(task, principal="user:5", client_ref="B")
+
+    # First tab leaving -> principal still has another tab -> keep task alive.
+    assert policy.on_unsubscribe(task, principal="user:5", client_ref="A") is False
+    assert _consumers(task) == ["user:5:B"]
+
+    # Last tab leaving -> principal is done -> proceed to unsubscribe/abort.
+    assert policy.on_unsubscribe(task, principal="user:5", client_ref="B") is True
+    assert _consumers(task) == []
+
+
+def test_consumer_policy_scopes_by_principal() -> None:
+    from superset.tasks.async_queries import ChartQueryConsumerPolicy
+
+    policy = ChartQueryConsumerPolicy()
+    task = _make_task()
+    policy.on_subscribe(task, principal="user:5", client_ref="A")
+    policy.on_subscribe(task, principal="user:7", client_ref="B")
+
+    # user 5's only tab leaving proceeds (its last tab), but user 7's entry stays.
+    assert policy.on_unsubscribe(task, principal="user:5", client_ref="A") is True
+    assert _consumers(task) == ["user:7:B"]
+
+
+def test_consumer_policy_without_client_ref_is_principal_grain() -> None:
+    from superset.tasks.async_queries import ChartQueryConsumerPolicy
+
+    policy = ChartQueryConsumerPolicy()
+    task = _make_task()
+    # No tab id: record nothing and proceed like a plain principal-grain cancel.
+    policy.on_subscribe(task, principal="user:5", client_ref=None)
+    assert _consumers(task) == []
+    assert policy.on_unsubscribe(task, principal="user:5", client_ref=None) is True

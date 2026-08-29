@@ -427,13 +427,15 @@ class TaskRestApi(BaseSupersetModelRestApi):
         from flask import request
 
         force = False
+        tab_id: str | None = None
         # Use get_json with silent=True to handle missing Content-Type gracefully
         json_data = request.get_json(silent=True)
         if json_data:
             parsed = self.cancel_request_schema.load(json_data)
             force = parsed.get("force", False)
+            tab_id = parsed.get("tab_id")
 
-        command = CancelTaskCommand(task_uuid, force=force)
+        command = CancelTaskCommand(task_uuid, force=force, tab_id=tab_id)
         updated_task = command.run()
         return command, updated_task
 
@@ -442,13 +444,13 @@ class TaskRestApi(BaseSupersetModelRestApi):
     ) -> Response:
         """Build the response for a successful cancel operation."""
         action = command.action_taken
-        message = (
-            "Task cancelled"
-            if action == "aborted"
-            else "You have been removed from this task"
-        )
+        messages = {
+            "aborted": "Task cancelled",
+            "unsubscribed": "You have been removed from this task",
+            "detached": "You have stopped watching this task",
+        }
         result = {
-            "message": message,
+            "message": messages.get(action, "You have been removed from this task"),
             "action": action,
             "task": self.show_model_schema.dump(updated_task),
         }

@@ -25,45 +25,82 @@ import {
 
 const TAB_ID_CHANNEL_NAME = 'tab_id_channel';
 
-const channel: StrictBroadcastChannel<TabIdChannelMessage> =
-  new BroadcastChannel(TAB_ID_CHANNEL_NAME);
+// Constructed lazily (on first hook use) rather than at module load: importing
+// this module must have no side effects, so non-React callers of getTabId (and
+// test environments without BroadcastChannel) don't need the native channel.
+let channel: StrictBroadcastChannel<TabIdChannelMessage> | undefined;
+
+function getChannel(): StrictBroadcastChannel<TabIdChannelMessage> {
+  if (!channel) {
+    channel = new BroadcastChannel(TAB_ID_CHANNEL_NAME);
+  }
+  return channel;
+}
+
+function isStorageAvailable() {
+  try {
+    return window.localStorage && window.sessionStorage;
+  } catch (error) {
+    return false;
+  }
+}
+
+// Fallback id for when storage is unavailable: stable for the page lifetime.
+let fallbackTabId: string | undefined;
+
+function createTabId(): string {
+  let lastTabId;
+  try {
+    lastTabId = window.localStorage.getItem('last_tab_id');
+  } catch (error) {
+    // continue regardless of error
+  }
+  const newTabId = String(lastTabId ? Number.parseInt(lastTabId, 10) + 1 : 1);
+  try {
+    window.sessionStorage.setItem('tab_id', newTabId);
+    window.localStorage.setItem('last_tab_id', newTabId);
+  } catch (error) {
+    // continue regardless of error
+  }
+  return newTabId;
+}
+
+/**
+ * Return this browser tab's stable id, creating (and persisting) one if absent.
+ *
+ * Shared by the `useTabId` hook and non-React callers (e.g. the async task
+ * middleware, which sends it as `tab_id` on chart-data submit/cancel so the
+ * backend can ref-count tabs of a shared task). Both read/write the same
+ * `sessionStorage['tab_id']`, so a tab presents one consistent id everywhere,
+ * whichever runs first.
+ */
+export function getTabId(): string {
+  if (!isStorageAvailable()) {
+    if (!fallbackTabId) {
+      fallbackTabId = nanoid();
+    }
+    return fallbackTabId;
+  }
+  let stored;
+  try {
+    stored = window.sessionStorage.getItem('tab_id');
+  } catch (error) {
+    // continue regardless of error
+  }
+  return stored || createTabId();
+}
 
 export function useTabId() {
   const [tabId, setTabId] = useState<string>();
 
-  function isStorageAvailable() {
-    try {
-      return window.localStorage && window.sessionStorage;
-    } catch (error) {
-      return false;
-    }
-  }
   useEffect(() => {
     if (!isStorageAvailable()) {
       if (!tabId) {
-        setTabId(nanoid());
+        setTabId(getTabId());
       }
       return;
     }
 
-    const updateTabId = () => {
-      let lastTabId;
-      try {
-        lastTabId = window.localStorage.getItem('last_tab_id');
-      } catch (error) {
-        // continue regardless of error
-      }
-      const newTabId = String(
-        lastTabId ? Number.parseInt(lastTabId, 10) + 1 : 1,
-      );
-      try {
-        window.sessionStorage.setItem('tab_id', newTabId);
-        window.localStorage.setItem('last_tab_id', newTabId);
-      } catch (error) {
-        // continue regardless of error
-      }
-      setTabId(newTabId);
-    };
     let storedTabId;
     try {
       storedTabId = window.sessionStorage.getItem('tab_id');
@@ -71,25 +108,25 @@ export function useTabId() {
       // continue regardless of error
     }
     if (storedTabId) {
-      channel.postMessage({
+      getChannel().postMessage({
         type: 'REQUESTING_TAB_ID',
         tabId: storedTabId,
       });
       setTabId(storedTabId);
     } else {
-      updateTabId();
+      setTabId(createTabId());
     }
 
-    channel.onmessage = messageEvent => {
+    getChannel().onmessage = messageEvent => {
       if (messageEvent.data.tabId === tabId) {
         if (messageEvent.data.type === 'REQUESTING_TAB_ID') {
           const message: TabIdChannelMessage = {
             type: 'TAB_ID_DENIED',
             tabId: messageEvent.data.tabId,
           };
-          channel.postMessage(message);
+          getChannel().postMessage(message);
         } else if (messageEvent.data.type === 'TAB_ID_DENIED') {
-          updateTabId();
+          setTabId(createTabId());
         }
       }
     };

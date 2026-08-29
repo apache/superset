@@ -113,7 +113,7 @@ def test_create_race_joins_winner_on_unique_violation(
     mocker.patch("superset.db.session.begin_nested", return_value=_null_cm())
 
     task, is_new = SubmitTaskCommand({})._create_or_join(
-        "superset.query_object_v1", "k", "shared", 1, None
+        "superset.query_object_v1", "k", "shared", 1, None, None
     )
 
     assert is_new is False

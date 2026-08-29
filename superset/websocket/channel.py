@@ -63,17 +63,16 @@ class RealtimePrincipal(TypedDict):
 def channel_id_for(user_id: int | None, guest_key: str | None) -> str | None:
     """Derive a principal's realtime channel from its identity, or ``None``.
 
-    The single source of truth for the socket routing-key format used by the
-    JWT cookie and the websocket server's targeted fanout. ``user:<id>`` for an
-    authenticated user; the guest's token-derived key (already namespaced
-    ``guest:<hmac>``) for an embedded guest; ``None`` when neither identifies a
-    principal.
+    The socket routing-key format used by the JWT cookie and the websocket
+    server's targeted fanout. ``user:<id>`` for an authenticated user; the
+    guest's token-derived key (already namespaced ``guest:<hmac>``) for an
+    embedded guest; ``None`` when neither identifies a principal. This is the
+    same principal-grain routing string GTF subscription policies key off, so it
+    delegates to the single source of truth in ``superset.tasks.subscription``.
     """
-    if user_id is not None:
-        return f"user:{user_id}"
-    if guest_key:
-        return guest_key
-    return None
+    from superset.tasks.subscription import principal_channel
+
+    return principal_channel(user_id, guest_key)
 
 
 def get_realtime_principal() -> RealtimePrincipal | None:

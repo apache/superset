@@ -183,7 +183,9 @@ A task's state lives in three tiers:
      `task.update_framework_private({...})`.
    - `private.task` — freeform, task-type-specific internal handles (e.g. the
      chart-data query task's engine cancel handle,
-     `cancel_query_id`/`cancel_database_id`). Written by task/execution code via
+     `cancel_query_id`/`cancel_database_id`, or a
+     [subscription policy](#per-client-subscriptions-subscription-policies)'s
+     per-client bookkeeping). Written by task/execution code via
      `task.update_task_private({...})`.
    Both namespaces merge independently (a write to one never clobbers the other).
 3. **Results (`payload`)** — end-user-facing task output (intermediate/final):
@@ -283,6 +285,58 @@ The framework automatically skips execution if a task was aborted while pending:
 :::tip
 Always implement an abort handler for long-running tasks. This allows users to cancel unneeded tasks and free up worker capacity for other operations.
 :::
+
+### Per-client subscriptions (subscription policies)
+
+The framework subscribes tasks at **principal grain**: one subscriber row per
+authenticated user (or embedded guest). The abort-vs-unsubscribe decision above
+counts principals. For most task types that is exactly right.
+
+Some task types need a finer grain than the principal. The canonical case is
+async chart-data: a single `SHARED` task is deduplicated across every request
+for the same query, so one user viewing the same chart in **two browser tabs** is
+a single principal with a single subscriber row. If either tab's cancel (an
+explicit cancel, or the navigate-away teardown) were treated as *the* principal
+leaving, it would abort the shared task and kill the other tab's still-pending
+query.
+
+A **subscription policy** lets a task type refine this without the framework
+knowing anything about tabs (or any other per-client grain). Register one on the
+`@task` decorator:
+
+```python
+from superset_core.tasks.subscription import TaskSubscriptionPolicy
+
+class MyConsumerPolicy(TaskSubscriptionPolicy):
+    def on_subscribe(self, task, *, principal, client_ref):
+        # Record this client (e.g. append f"{principal}:{client_ref}" to a list
+        # in task.update_task_private({...})). Called after the framework has
+        # ensured the principal's subscriber row.
+        ...
+
+    def on_unsubscribe(self, task, *, principal, client_ref) -> bool:
+        # Drop this client. Return True if the principal now has no client left
+        # (the framework then proceeds with its normal principal-grain rule:
+        # unsubscribe the principal, and abort if it was the last subscriber);
+        # return False to keep the principal subscribed because another of its
+        # clients is still watching.
+        ...
+
+@task(name="my_task", scope=TaskScope.SHARED, subscription_policy=MyConsumerPolicy())
+def my_task() -> None:
+    ...
+```
+
+Both hooks run in the web request process, inside the lock that serializes
+concurrent submit/cancel for the task, so an implementation can safely
+read-modify-write task state (typically a list under `private.task`, which the
+framework never inspects) without extra locking. `client_ref` is the caller's
+opaque per-client id (for chart-data, the browser tab id sent as `tab_id` on the
+request); it is **not** an authorization token — the framework authorizes the
+calling principal before the policy runs, and the policy only ever records or
+removes entries scoped to that principal. A task type with no policy, or a
+request with no `client_ref`, keeps plain principal-grain behavior. An admin
+**Force abort** always aborts, bypassing the policy.
 
 ## Timeouts
 
@@ -437,6 +491,10 @@ def system_task(): ...
 | `SHARED`  | All subscribers | Last subscriber cancels; others unsubscribe |
 | `SYSTEM`  | Admins only     | Admin cancels                               |
 
+For `SHARED` tasks, "last subscriber" is at principal grain by default; a task
+type can refine cancel to a finer per-client (e.g. per browser tab) grain with a
+[subscription policy](#per-client-subscriptions-subscription-policies).
+
 ## Task Cleanup
 
 Completed tasks accumulate in the database over time. Configure a scheduled prune job to automatically remove old tasks:
@@ -493,13 +551,17 @@ By default, abort detection and sync join-and-wait poll the task row in the meta
 @task(
     name: str | None = None,
     scope: TaskScope = TaskScope.PRIVATE,
-    timeout: int | None = None
+    timeout: int | None = None,
+    subscription_policy: TaskSubscriptionPolicy | None = None,
 )
 ```
 
 - `name`: Task identifier (defaults to function name)
 - `scope`: `PRIVATE`, `SHARED`, or `SYSTEM`
 - `timeout`: Default timeout in seconds (can be overridden via `TaskOptions`)
+- `subscription_policy`: Optional per-client subscription policy that refines the
+  principal-grain cancel decision (see
+  [Per-client subscriptions](#per-client-subscriptions-subscription-policies))
 
 ### TaskContext Methods
 

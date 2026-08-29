@@ -144,6 +144,44 @@ test('aborting cancels the tasks and rejects with AbortError', async () => {
 
   await expect(promise).rejects.toThrow('Aborted');
   expect(refetch).not.toHaveBeenCalled();
+  const cancelCalls = fetchMock.callHistory.calls(CANCEL_ENDPOINT);
+  expect(cancelCalls).toHaveLength(1);
+  // The cancel carries this tab's id so the backend detaches only this tab.
+  const cancelBody = JSON.parse(String(cancelCalls[0].options.body));
+  expect(typeof cancelBody.tab_id).toBe('string');
+  expect(cancelBody.tab_id.length).toBeGreaterThan(0);
+});
+
+test('aborting one chart does not cancel a shared task another chart still awaits', async () => {
+  // Two charts for the same principal join one deduplicated SHARED task (one
+  // backend subscriber). Aborting one must NOT cancel the task while the other
+  // still awaits it — otherwise the server sees the last subscriber leave and
+  // aborts work the surviving chart needs. Cancellation is deferred until the
+  // last local waiter goes away.
+  queueStatuses(); // task never resolves on its own
+  asyncEvent.init(config);
+
+  const controllerA = new AbortController();
+  const controllerB = new AbortController();
+  const a = asyncEvent.waitForAsyncData(
+    { task_ids: ['shared'] },
+    jest.fn(),
+    controllerA.signal,
+  );
+  const b = asyncEvent.waitForAsyncData(
+    { task_ids: ['shared'] },
+    jest.fn(),
+    controllerB.signal,
+  );
+
+  // First abort: the other chart still awaits 'shared', so nothing is cancelled.
+  controllerA.abort();
+  await expect(a).rejects.toThrow('Aborted');
+  expect(fetchMock.callHistory.calls(CANCEL_ENDPOINT)).toHaveLength(0);
+
+  // Second abort: now the last waiter is gone, so the task is cancelled once.
+  controllerB.abort();
+  await expect(b).rejects.toThrow('Aborted');
   expect(fetchMock.callHistory.calls(CANCEL_ENDPOINT)).toHaveLength(1);
 });
 

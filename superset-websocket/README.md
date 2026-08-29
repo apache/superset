@@ -200,9 +200,12 @@ this server's `config.json` (or its environment-variable overrides):
 | Cookie name                 | `WEBSOCKET_JWT_COOKIE_NAME` | `jwtCookieName` / `JWT_COOKIE_NAME`         |
 
 The Redis connection (`redis` / `REDIS_*`) must point at the same Redis instance
-Superset publishes to (`DISTRIBUTED_COORDINATION_CONFIG`). The Pub/Sub channel
-prefixes (`entity-changes:`, `realtime:`) are a fixed wire-protocol contract with
-the backend producer and are not configurable.
+Superset publishes to (`DISTRIBUTED_COORDINATION_CONFIG`). The channels the server
+**subscribes** to (`entity-changes:*` and `task-status`) are a fixed wire-protocol
+contract with the backend producer and are not configurable; the server
+republishes to browsers on the derived `realtime:<channel_id>` channel. A Redis
+ACL for this server must therefore allow subscribing to `entity-changes:*` and
+`task-status`.
 
 ## StatsD monitoring
 
