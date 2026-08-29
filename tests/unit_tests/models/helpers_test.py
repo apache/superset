@@ -105,6 +105,86 @@ def test_values_for_column(database: Database) -> None:
         assert table.values_for_column("a") == [1, None]
 
 
+@pytest.mark.parametrize(
+    "raw,expected",
+    [
+        ("plain", "plain"),
+        ("50%", "50!%"),
+        ("a_b", "a!_b"),
+        ("wow!", "wow!!"),
+        ("!%_", "!!!%!_"),
+    ],
+)
+def test_escape_like_pattern(raw: str, expected: str) -> None:
+    """Wildcards typed by a user are data, not pattern syntax."""
+    from superset.models.helpers import escape_like_pattern
+
+    assert escape_like_pattern(raw) == expected
+
+
+def test_build_like_predicate_is_case_insensitive_and_escaped() -> None:
+    import sqlalchemy as sa
+
+    from superset.models.helpers import build_like_predicate
+
+    compiled = str(
+        build_like_predicate(sa.column("c"), "50%").compile(
+            dialect=sa.dialects.registry.load("postgresql")(),
+            compile_kwargs={"literal_binds": True},
+        )
+    ).replace("%%", "%")
+
+    assert compiled == "lower(c) LIKE '%50!%%' ESCAPE '!'"
+
+
+def test_values_for_column_search(database: Database) -> None:
+    """``search`` narrows the distinct-value query in the database."""
+    import pandas as pd
+
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[TableColumn(column_name="a")],
+    )
+
+    with patch(
+        "pandas.read_sql_query",
+        return_value=pd.DataFrame({"column_values": ["Alice"]}),
+    ) as read_sql_query:
+        assert table.values_for_column("a", search="ali") == ["Alice"]
+
+    sql = str(read_sql_query.call_args.kwargs["sql"])
+    assert "LIKE" in sql
+    assert "'%ali%'" in sql
+
+
+def test_values_for_column_without_search_has_no_predicate(
+    database: Database,
+) -> None:
+    """The unsearched list must stay a plain bounded DISTINCT scan."""
+    import pandas as pd
+
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[TableColumn(column_name="a")],
+    )
+
+    with patch(
+        "pandas.read_sql_query",
+        return_value=pd.DataFrame({"column_values": ["Alice"]}),
+    ) as read_sql_query:
+        table.values_for_column("a")
+
+    assert "LIKE" not in str(read_sql_query.call_args.kwargs["sql"])
+
+
 def test_values_for_column_passes_catalog_and_schema(
     mocker: MockerFixture,
     session: Session,
@@ -4974,3 +5054,56 @@ def test_adhoc_type_probe_does_not_get_sampling_retry(
     table.adhoc_column_to_sqla(adhoc_col)
 
     retry.assert_not_called()
+
+
+def test_filter_adhoc_column(database: Database) -> None:
+    """
+    Test that filter works with adhoc column labels.
+    When filter contains a string that matches the label of an adhoc column
+    in the columns list, it should correctly convert to a SQLAlchemy column
+    instead of raising QueryObjectValidationError.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        table_name="test_table",
+        database=database,
+        columns=[
+            TableColumn(column_name="name", type="TEXT"),
+            TableColumn(column_name="real_name", type="TEXT"),
+        ],
+    )
+
+    # Should not raise QueryObjectValidationError
+    result = table.get_sqla_query(
+        columns=[
+            "name",
+            {
+                "expressionType": "SQL",
+                "label": "full_name",
+                "sqlExpression": "real_name",
+            },
+        ],
+        orderby=[],
+        metrics=[],
+        extras={},
+        filter=[
+            {"col": "full_name", "op": "ILIKE", "val": "Zona%"}
+        ],  # Filter by adhoc column label
+        granularity=None,
+        is_timeseries=False,
+    )
+    assert result is not None
+
+    # Verify the WHERE predicate uses the resolved adhoc expression and value.
+    with database.get_sqla_engine() as engine:
+        sql = str(
+            result.sqla_query.compile(
+                dialect=engine.dialect,
+                compile_kwargs={"literal_binds": True},
+            )
+        )
+
+    assert "real_name AS full_name" in sql
+    assert "WHERE" in sql
+    assert "lower(real_name) LIKE lower('Zona%')" in sql

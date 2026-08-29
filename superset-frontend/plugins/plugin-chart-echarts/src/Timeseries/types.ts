@@ -32,6 +32,7 @@ import {
   BaseTransformedProps,
   ContextMenuTransformedProps,
   CrossFilterTransformedProps,
+  LabelPositionEnum,
   LegendFormData,
   StackType,
   TitleFormData,
@@ -72,6 +73,8 @@ export type EchartsTimeseriesFormData = QueryFormData & {
   metrics: QueryFormMetric[];
   minorSplitLine: boolean;
   minorTicks: boolean;
+  gridlines: boolean;
+  axisTicks: boolean;
   opacity: number;
   orderDesc: boolean;
   rowLimit: number;
@@ -99,6 +102,16 @@ export type EchartsTimeseriesFormData = QueryFormData & {
   xAxisLabelRotation: number;
   xAxisLabelInterval: number | string;
   showValue: boolean;
+  /**
+   * Where the data label sits relative to its data point, applied when
+   * `showValue` is on.
+   *
+   * `'auto'` keeps the orientation-aware default the chart used before this
+   * control existed: `Right` for a horizontal chart, `Top` otherwise. It is
+   * also the value every chart saved before then resolves to, so the default
+   * must stay `'auto'` for those to keep rendering as they did.
+   */
+  labelPosition?: LabelPositionEnum | 'auto';
   onlyTotal: boolean;
   showExtraControls: boolean;
   percentageThreshold: number;
