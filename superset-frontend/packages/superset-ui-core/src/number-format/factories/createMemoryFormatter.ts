@@ -38,19 +38,17 @@ function formatMemory(
         : ['B', 'kB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB', 'RB', 'QB'];
       const base = binary ? 1024 : 1000;
 
-  let scaleIndex = absValue < 1 ? 0 : Math.floor(Math.log(absValue) / Math.log(base));
-  let i = Math.min(suffixes.length - 1, scaleIndex);
+      let scaleIndex = absValue < 1 ? 0 : Math.floor(Math.log(absValue) / Math.log(base));
+      let i = Math.min(suffixes.length - 1, scaleIndex);
 
-  let scaled = parseFloat((absValue / Math.pow(base, i)).toFixed(decimals));
+      let scaled = parseFloat((absValue / Math.pow(base, i)).toFixed(decimals));
 
-  while (scaled >= base && i < suffixes.length - 1) {
-    i += 1;
-    scaled = parseFloat((absValue / Math.pow(base, i)).toFixed(decimals));
-  }
+      while (scaled >= base && i < suffixes.length - 1) {
+       i += 1;
+       scaled = parseFloat((absValue / Math.pow(base, i)).toFixed(decimals));
+      }
 
-  formatted = `${sign}${parseFloat(
-    (absValue / Math.pow(base, i)).toFixed(decimals),
-  )}${suffixes[i]}`;
+      formatted = `${sign}${parseFloat((absValue / Math.pow(base, i)).toFixed(decimals),)}${suffixes[i]}`;
     }
 
     if (transfer) {
