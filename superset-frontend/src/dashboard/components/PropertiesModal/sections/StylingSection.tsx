@@ -202,6 +202,16 @@ const StylingSection = ({
           ),
         });
       }
+    } catch {
+      // Most commonly the editor contains CSS that postcss can't parse
+      // (a mid-edit syntax error); surface it rather than leaving the user
+      // with no feedback and an unhandled rejection.
+      setCssImportConversionMessage({
+        type: 'warning',
+        text: t(
+          'Could not parse the CSS to convert @import rules. Check for syntax errors and try again.',
+        ),
+      });
     } finally {
       setIsConvertingCssImports(false);
     }

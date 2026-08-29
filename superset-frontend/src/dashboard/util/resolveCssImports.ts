@@ -96,11 +96,14 @@ function rebaseCssUrls(css: string, baseUrl: string): string {
  * a save attempt still fails with a clear reason and nothing is lost.
  *
  * Only one level of `@import` is resolved: an `@import` found inside a
- * fetched stylesheet is left as-is in the merged output. A save with a
- * remaining `@import` still fails backend validation exactly as before --
- * there is no security reliance on this function fully resolving anything,
- * only a UX convenience for the common case (a single Google-Fonts-style
- * `@import` resolving to a handful of `@font-face` rules).
+ * fetched stylesheet is not itself fetched, and is carried through to the
+ * merged output as-is aside from having its own `url(...)` rebased against
+ * the parent stylesheet (the same rebasing every other relative URL in that
+ * stylesheet gets). A save with a remaining `@import` still fails backend
+ * validation exactly as before -- there is no security reliance on this
+ * function fully resolving anything, only a UX convenience for the common
+ * case (a single Google-Fonts-style `@import` resolving to a handful of
+ * `@font-face` rules).
  */
 export async function resolveCssImports(
   css: string,

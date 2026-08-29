@@ -91,6 +91,11 @@ const defaultProps = {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  // clearAllMocks() only clears call history, not implementations set via
+  // mockResolvedValue/mockRejectedValue -- reset this one explicitly so a
+  // value set by an earlier test can't leak into a test that forgets to
+  // set its own.
+  mockResolveCssImports.mockReset();
   // Reset mocks
   mockIsFeatureEnabled.mockReturnValue(false);
   mockSupersetClient.get.mockResolvedValue({
@@ -356,6 +361,28 @@ test('converting reports an unresolved import instead of silently dropping it', 
     expect(
       screen.getByTestId('css-import-conversion-result'),
     ).toHaveTextContent('no-cors.example.com');
+  });
+  expect(onCustomCssChange).not.toHaveBeenCalled();
+});
+
+test('converting surfaces a warning instead of an unhandled rejection on parse failure', async () => {
+  const onCustomCssChange = jest.fn();
+  mockResolveCssImports.mockRejectedValue(new Error('CssSyntaxError'));
+
+  render(
+    <StylingSection
+      {...defaultProps}
+      customCss="@import url('https://fonts.googleapis.com/css2?family=Inter');"
+      onCustomCssChange={onCustomCssChange}
+    />,
+  );
+
+  await userEvent.click(screen.getByTestId('convert-css-import-button'));
+
+  await waitFor(() => {
+    expect(
+      screen.getByTestId('css-import-conversion-result'),
+    ).toHaveTextContent('Could not parse the CSS');
   });
   expect(onCustomCssChange).not.toHaveBeenCalled();
 });
