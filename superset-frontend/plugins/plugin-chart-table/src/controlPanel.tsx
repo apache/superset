@@ -46,10 +46,13 @@ import {
 import { t } from '@apache-superset/core/translation';
 import {
   ensureIsArray,
+  getColumnLabel,
+  getMetricLabel,
   isAdhocColumn,
   isPhysicalColumn,
   validateInteger,
   QueryFormColumn,
+  QueryFormMetric,
   QueryMode,
   SMART_DATE_ID,
   validateMaxValue,
@@ -559,7 +562,8 @@ const config: ControlPanelConfig = {
                 "Allow end user to drag-and-drop column headers to rearrange them. Note their changes won't persist for the next time they open the chart.",
               ),
               visibility: ({ controls }) =>
-                isEmpty(controls?.time_compare?.value),
+                isEmpty(controls?.time_compare?.value) &&
+                !controls?.enable_multi_header?.value,
             },
           },
         ],
@@ -574,6 +578,83 @@ const config: ControlPanelConfig = {
               description: t(
                 'Renders table cells as HTML when applicable. For example, HTML <a> tags will be rendered as hyperlinks.',
               ),
+            },
+          },
+        ],
+      ],
+    },
+    {
+      label: t('Multi-level header'),
+      expanded: true,
+      visibility: ({ controls }) => isEmpty(controls?.time_compare?.value),
+      controlSetRows: [
+        [
+          {
+            name: 'enable_multi_header',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Enable multi-level header'),
+              default: false,
+              renderTrigger: true,
+              description: t(
+                'Group column headers into nested levels. Unavailable when time comparison is enabled.',
+              ),
+              visibility: ({ controls }) =>
+                isEmpty(controls?.time_compare?.value),
+            },
+          },
+        ],
+        [
+          {
+            name: 'header_groups',
+            config: {
+              type: 'HeaderGroupsControl',
+              label: t('Column groups'),
+              default: [],
+              renderTrigger: true,
+              visibility: ({ controls }) =>
+                controls.enable_multi_header?.value === true &&
+                isEmpty(controls?.time_compare?.value),
+              shouldMapStateToProps() {
+                return true;
+              },
+              mapStateToProps(explore, _, chart) {
+                const verboseMap = explore?.datasource?.hasOwnProperty(
+                  'verbose_map',
+                )
+                  ? (explore?.datasource as Dataset)?.verbose_map
+                  : {};
+                const { colnames: queryColnames } =
+                  chart?.queriesResponse?.[0] ?? {};
+                const formData = explore?.form_data ?? {};
+                const fallbackKeys = [
+                  ...ensureIsArray(formData.groupby).map(col =>
+                    getColumnLabel(col as QueryFormColumn),
+                  ),
+                  ...ensureIsArray(formData.all_columns).map(col =>
+                    getColumnLabel(col as QueryFormColumn),
+                  ),
+                  ...ensureIsArray(formData.metrics).map(metric =>
+                    getMetricLabel(metric as QueryFormMetric),
+                  ),
+                  ...ensureIsArray(formData.percent_metrics).map(
+                    metric => `%${getMetricLabel(metric as QueryFormMetric)}`,
+                  ),
+                ].filter(Boolean);
+                const colnames =
+                  Array.isArray(queryColnames) && queryColnames.length > 0
+                    ? queryColnames
+                    : [...new Set(fallbackKeys)];
+
+                return {
+                  columnOptions: colnames.map((colname: string) => ({
+                    value: colname,
+                    label: Array.isArray(verboseMap)
+                      ? colname
+                      : (verboseMap?.[colname] ?? colname),
+                  })),
+                };
+              },
             },
           },
         ],
@@ -901,7 +982,8 @@ const config: ControlPanelConfig = {
         showCalculationType: false,
         showFullChoices: false,
       }),
-      visibility: isAggMode,
+      visibility: ({ controls }) =>
+        isAggMode({ controls }) && !controls?.enable_multi_header?.value,
     },
     sections.matrixifyRowSection,
     sections.matrixifyColumnSection,

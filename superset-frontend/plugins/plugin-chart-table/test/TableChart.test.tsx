@@ -151,6 +151,32 @@ test('sanitizeHeaderId should handle inputs with only special characters', () =>
   expect(sanitizeHeaderId('% # △')).toBe('percent_hash_delta');
 });
 
+test('renders multi-level header groups above column names', () => {
+  const props = {
+    ...transformProps(testData.basic),
+    enableMultiHeader: true,
+    headerGroups: [
+      {
+        id: 'metrics',
+        label: 'Metrics',
+        columns: ['sum__num'],
+        children: [],
+      },
+    ],
+  };
+
+  const { container } = render(<TableChart {...props} sticky={false} />);
+  const headerRows = container.querySelectorAll('thead tr');
+
+  expect(headerRows.length).toBeGreaterThanOrEqual(2);
+  expect(headerRows[0].textContent).toContain('Metrics');
+  expect(
+    Array.from(headerRows[0].querySelectorAll('th')).some(
+      th => th.textContent === 'Metrics',
+    ),
+  ).toBe(true);
+});
+
 describe('plugin-chart-table', () => {
   describe('transformProps', () => {
     test('should parse pageLength to pageSize', () => {

@@ -67,6 +67,48 @@ function mkProps(
   } as unknown as ControlPanelsContainerProps;
 }
 
+test('enable_multi_header is hidden when time comparison is set', () => {
+  const vis = getVisibility(config, 'enable_multi_header');
+  expect(
+    vis({
+      controls: { time_compare: { value: '1 year ago' } },
+    } as unknown as ControlPanelsContainerProps),
+  ).toBe(false);
+  expect(
+    vis({
+      controls: { time_compare: { value: [] } },
+    } as unknown as ControlPanelsContainerProps),
+  ).toBe(true);
+});
+
+test('header_groups is visible only when multi-header is enabled', () => {
+  const vis = getVisibility(config, 'header_groups');
+  expect(
+    vis({
+      controls: {
+        enable_multi_header: { value: false },
+        time_compare: { value: [] },
+      },
+    } as unknown as ControlPanelsContainerProps),
+  ).toBe(false);
+  expect(
+    vis({
+      controls: {
+        enable_multi_header: { value: true },
+        time_compare: { value: [] },
+      },
+    } as unknown as ControlPanelsContainerProps),
+  ).toBe(true);
+  expect(
+    vis({
+      controls: {
+        enable_multi_header: { value: true },
+        time_compare: { value: '1 year ago' },
+      },
+    } as unknown as ControlPanelsContainerProps),
+  ).toBe(false);
+});
+
 test('time_grain_sqla visibility should be case-insensitive', () => {
   const vis = getVisibility(config, 'time_grain_sqla');
   const controlState = {} as ControlState;
