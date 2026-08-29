@@ -987,3 +987,12 @@ class TestGetCurrentUser:
         mock_user.username = "admin"
         mock_g.user = mock_user
         assert get_current_user() == "admin"
+
+
+def test_floored_status_cursor_drops_subsecond_precision() -> None:
+    """The status cursor must have no sub-second component, so it can't sit after
+    a same-second changed_on under the metastore's second precision (MySQL)."""
+    from superset.tasks.utils import floored_status_cursor
+
+    cursor = floored_status_cursor()
+    assert cursor.microsecond == 0

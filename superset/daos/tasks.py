@@ -34,6 +34,7 @@ from superset.models.tasks import Task
 from superset.tasks.constants import ABORTABLE_STATES, ACTIVE_STATES, TERMINAL_STATES
 from superset.tasks.filters import TaskFilter
 from superset.tasks.utils import (
+    floored_status_cursor,
     get_active_dedup_key,
     get_finished_dedup_key,
     json,
@@ -223,13 +224,13 @@ class TaskDAO(BaseDAO[Task]):
         # Flooring keeps >= inclusive on every backend; re-delivering an earlier
         # same-second change is harmless (idempotent for the client).
         if cursor is None:
-            return {}, datetime.now().replace(microsecond=0)
+            return {}, floored_status_cursor()
 
         # Watermark for the *next* poll, captured before the read so a change
         # landing during the query is caught next time (>= is inclusive), never
         # skipped. Same naive-local clock as ``changed_on`` (FAB AuditMixin),
         # floored to whole seconds (see the baseline case above).
-        next_cursor = datetime.now().replace(microsecond=0)
+        next_cursor = floored_status_cursor()
         query = cls._apply_base_filter(db.session.query(Task)).filter(
             # Task.changed_on's type is shadowed by CoreTask's bare annotation
             # (datetime | None), so reference the real column for the comparison.

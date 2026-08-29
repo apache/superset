@@ -196,6 +196,23 @@ def naive_utcnow() -> datetime:
     return datetime.now(timezone.utc).replace(tzinfo=None)
 
 
+def floored_status_cursor() -> datetime:
+    """Return the current wall-clock time floored to whole seconds.
+
+    Used as the ``status_changes`` poll cursor. ``changed_on`` (FAB AuditMixin,
+    naive local) is stored at the metastore column's precision, and MySQL
+    ``DATETIME`` truncates to whole seconds — so a sub-second cursor could sit
+    *after* a same-second change and miss it under the ``changed_on >= cursor``
+    bound. Flooring keeps ``>=`` inclusive on every backend; re-delivering an
+    earlier same-second change is idempotent for the client. All producers of a
+    status cursor (the 202 handshake and each poll response) share this helper so
+    the precision contract lives in one place.
+
+    :returns: Current naive-local time with sub-second precision dropped
+    """
+    return datetime.now().replace(microsecond=0)
+
+
 def generate_random_task_key() -> str:
     """
     Generate a random task key.
