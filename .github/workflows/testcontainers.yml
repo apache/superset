@@ -142,7 +142,11 @@ jobs:
         # module was still missing). This job only needs oceanbase_py's
         # dialect module importable, not its sqlalchemy-utils dependency
         # satisfied, since nothing here calls into it.
-        if: matrix.dialect == 'oceanbase'
+        if: >-
+          matrix.dialect == 'oceanbase' &&
+          (matrix.nightly_only != true ||
+           github.event_name == 'schedule' ||
+           github.event_name == 'workflow_dispatch')
         run: uv pip install --system --no-deps "oceanbase_py>=0.0.1.2"
       - name: Install Firebird client library (libfbclient2)
         # sqlalchemy-firebird's driver (firebird-driver) is a pure-Python
