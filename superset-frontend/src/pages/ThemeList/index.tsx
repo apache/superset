@@ -485,10 +485,15 @@ function ThemesList({
           const handleExport = () => handleBulkThemeExport([original]);
 
           // A user may edit a non-system theme only if they are an editor
-          // (or an admin). Everyone else gets a read-only view.
+          // (or an admin), including editorship granted indirectly via
+          // EXTRA_EDITORS_RESOLVER. Everyone else gets a read-only view.
           const allowEdit =
             !original.is_system &&
-            isUserEditorOrAdmin(currentUser, original.editors);
+            isUserEditorOrAdmin(
+              currentUser,
+              original.editors,
+              original.extra_editors,
+            );
 
           const actions = [
             canEdit

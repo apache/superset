@@ -25,7 +25,13 @@ import {
 import fetchMock from 'fetch-mock';
 import * as hooks from 'src/views/CRUD/hooks';
 import { useThemeContext } from 'src/theme/ThemeProvider';
+import { isUserEditorOrAdmin } from 'src/dashboard/util/permissionUtils';
 import ThemesList from './index';
+
+jest.mock('src/dashboard/util/permissionUtils', () => ({
+  ...jest.requireActual('src/dashboard/util/permissionUtils'),
+  isUserEditorOrAdmin: jest.fn(() => false),
+}));
 
 // Mock the getBootstrapData function
 jest.mock('src/utils/getBootstrapData', () => ({
@@ -488,6 +494,57 @@ test('renders an Editors column with a subject pile for each theme', async () =>
   expect(screen.getAllByText('Editors').length).toBeGreaterThan(0);
   // ...and the SubjectPile renders an avatar with the editor's initials.
   expect(await screen.findAllByText('JD')).not.toHaveLength(0);
+});
+
+test('passes extra_editors from each row to the editorship check', async () => {
+  // A user may be granted editorship of a theme solely through a
+  // deployment's EXTRA_EDITORS_RESOLVER (surfaced by the API as
+  // `extra_editors` on each row), not just the persisted `editors` list.
+  // The row action must factor that in the same way ThemeModal does, or
+  // such a user sees a read-only 'View' action despite the API allowing
+  // them to save.
+  (isUserEditorOrAdmin as jest.Mock).mockClear();
+  const themesWithExtraEditors = mockThemes.map(theme => ({
+    ...theme,
+    extra_editors: [42],
+  }));
+  (hooks.useListViewResource as jest.Mock).mockReturnValue({
+    state: {
+      loading: false,
+      resourceCollection: themesWithExtraEditors,
+      resourceCount: 3,
+      bulkSelectEnabled: false,
+    },
+    setResourceCollection: jest.fn(),
+    hasPerm: jest.fn().mockReturnValue(true),
+    refreshData: mockRefreshData,
+    fetchData: jest.fn(),
+    toggleBulkSelect: jest.fn(),
+  });
+
+  render(
+    <ThemesList
+      user={mockUser}
+      addDangerToast={jest.fn()}
+      addSuccessToast={jest.fn()}
+    />,
+    {
+      useRedux: true,
+      useRouter: true,
+      useQueryParams: true,
+      useTheme: true,
+    },
+  );
+
+  await screen.findByText('Custom Theme');
+
+  await waitFor(() => {
+    expect(isUserEditorOrAdmin).toHaveBeenCalledWith(
+      expect.anything(),
+      undefined,
+      [42],
+    );
+  });
 });
 
 test('shows bulk select button when user has permissions', async () => {
