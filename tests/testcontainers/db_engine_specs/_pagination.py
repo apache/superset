@@ -26,9 +26,12 @@ real execution can.
 Each call site keeps its own test function (and dialect-specific docstring)
 so failures still report against the right module; this only factors out
 the identical table setup/assert body, via an optional post-insert hook for
-dialects (CrateDB) that need one, and an optional extra-table-args hook for
+dialects (CrateDB) that need one, an optional extra-table-args hook for
 dialects (ClickHouse) whose CREATE TABLE requires a schema item a plain
-Column/primary key can't express.
+Column/primary key can't express, and an optional checkfirst override for
+a dialect (OceanBase) whose has_table() -- create_all()'s default
+checkfirst=True calls it before creating each table -- passes a raw string
+to Connection.execute(), which SQLAlchemy 2.0 rejects outright.
 """
 
 from collections.abc import Callable
@@ -42,6 +45,7 @@ def assert_paginated_query_returns_correct_rows_in_order(
     engine: Engine,
     after_insert: Callable[[Connection], None] | None = None,
     extra_table_args: tuple[Any, ...] = (),
+    checkfirst: bool = True,
 ) -> None:
     metadata = MetaData()
     t = SATable(
@@ -55,7 +59,7 @@ def assert_paginated_query_returns_correct_rows_in_order(
         Column("id", Integer, primary_key=True, autoincrement=False),
         *extra_table_args,
     )
-    metadata.create_all(engine)
+    metadata.create_all(engine, checkfirst=checkfirst)
     with engine.begin() as conn:
         conn.execute(insert(t), [{"id": i} for i in range(10)])
         if after_insert is not None:

@@ -106,8 +106,15 @@ def test_paginated_query_returns_correct_rows_in_order(engine: Engine) -> None:
     a real instance. Mocked tests cannot catch a dialect compiling this
     incorrectly (see apache/superset#42899, where Trino emitted OFFSET
     before LIMIT) -- only real execution can.
+
+    checkfirst=False: create_all()'s default checkfirst=True calls
+    oceanbase_py's has_table() first, which passes a raw string straight to
+    Connection.execute() -- SQLAlchemy 2.0 requires an executable construct
+    (text(...), select(...), etc.) and rejects a bare string outright
+    (confirmed on real CI: ObjectNotExecutableError). Safe to skip the
+    existence check here: each test gets a genuinely fresh container.
     """
-    assert_paginated_query_returns_correct_rows_in_order(engine)
+    assert_paginated_query_returns_correct_rows_in_order(engine, checkfirst=False)
 
 
 def test_get_columns_maps_native_types(engine: Engine) -> None:
@@ -115,6 +122,10 @@ def test_get_columns_maps_native_types(engine: Engine) -> None:
     OceanBaseEngineSpec.get_columns wraps a real SQLAlchemy Inspector; this
     exercises that against actual server-reported column metadata rather
     than a mocked Inspector.
+
+    checkfirst=False: see the note on the previous test -- create_all()'s
+    default checkfirst=True calls oceanbase_py's has_table(), which is
+    broken under SQLAlchemy 2.0.
     """
     metadata = MetaData()
     SATable(
@@ -123,7 +134,7 @@ def test_get_columns_maps_native_types(engine: Engine) -> None:
         Column("id", Integer, primary_key=True),
         Column("amount", Integer),
     )
-    metadata.create_all(engine)
+    metadata.create_all(engine, checkfirst=False)
 
     inspector = inspect(engine)
     columns = OceanBaseEngineSpec.get_columns(inspector, Table("pilot_types"))
