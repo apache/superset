@@ -291,8 +291,12 @@ const config: ControlPanelConfig = {
               shouldMapStateToProps: () => true,
               mapStateToProps: (state: ControlPanelState) => ({
                 intervals: state?.controls?.intervals?.value as string,
-                legacyIntervalColorIndices: state?.controls
-                  ?.interval_color_indices?.value as string,
+                // `interval_color_indices` is no longer a registered control
+                // (replaced by this one), so it never appears under
+                // `state.controls`. Read it from the raw persisted
+                // `form_data` instead, where legacy charts still carry it.
+                legacyIntervalColorIndices: state?.form_data
+                  ?.interval_color_indices as string,
                 colorScheme: state?.controls?.color_scheme?.value as string,
               }),
             },
