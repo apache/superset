@@ -37,14 +37,19 @@ verification, matching the nightly_only gating.
 
 oceanbase_py.sqlalchemy.dialect.OceanBaseDialect.has_table() -- called by
 both create_all()'s default checkfirst=True and by Inspector.get_columns()
-internally -- passes a raw string straight to Connection.execute()
-(`connection.execute(f"DESCRIBE {full_name}")`), which SQLAlchemy 2.0
-rejects outright (ObjectNotExecutableError, confirmed on real CI). Every
-*other* raw-SQL method in the same dialect module correctly uses
-`connection.exec_driver_sql(...)` instead -- this looks like an isolated
-oversight in just this one method, not a deliberate design choice, so this
-test monkeypatches has_table() to do the same thing the rest of the
-dialect already does, rather than working around it from the test side.
+internally -- has two real bugs, both confirmed on real CI:
+1. It passes a raw string straight to Connection.execute()
+   (`connection.execute(f"DESCRIBE {full_name}")`), which SQLAlchemy 2.0
+   rejects outright (ObjectNotExecutableError). Every *other* raw-SQL
+   method in the same dialect module correctly uses
+   `connection.exec_driver_sql(...)` instead.
+2. It never catches the error DESCRIBE raises for a table that doesn't
+   exist (1146) -- so even with (1) fixed, it can only ever return True,
+   raising instead of returning False for exactly the case checkfirst
+   exists to handle.
+This test monkeypatches has_table() to do what the rest of the dialect's
+raw-SQL methods already do, plus the missing not-found handling, rather
+than working around either bug from the test side.
 """
 
 from collections.abc import Iterator
@@ -59,6 +64,7 @@ from sqlalchemy import (
     Table as SATable,
 )
 from sqlalchemy.engine import Connection, Engine, URL
+from sqlalchemy.exc import ProgrammingError
 
 from superset.db_engine_specs.oceanbase import OceanBaseEngineSpec
 from superset.sql.parse import Table
@@ -93,7 +99,16 @@ def _has_table(
     full_name = quote(table_name)
     if schema:
         full_name = f"{quote(schema)}.{full_name}"
-    res = connection.exec_driver_sql(f"DESCRIBE {full_name}")
+    try:
+        res = connection.exec_driver_sql(f"DESCRIBE {full_name}")
+    except ProgrammingError:
+        # The original never catches this at all -- DESCRIBE on a
+        # nonexistent table raises 1146 ("table doesn't exist") rather
+        # than returning an empty result set, so the unpatched method can
+        # only ever return True, and raises instead of returning False for
+        # exactly the case create_all()'s checkfirst exists to handle
+        # (confirmed on real CI).
+        return False
     return res.first() is not None
 
 
