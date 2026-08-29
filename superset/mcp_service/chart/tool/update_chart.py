@@ -46,6 +46,7 @@ from superset.mcp_service.chart.chart_utils import (
 from superset.mcp_service.chart.compile import validate_and_compile
 from superset.mcp_service.chart.schemas import (
     AccessibilityMetadata,
+    ChartConfig,
     ColumnRef,
     GenerateChartResponse,
     PerformanceMetadata,
@@ -196,9 +197,11 @@ def _append_table_columns(
 def _merge_replacement_config(
     existing_form_data: dict[str, Any],
     new_form_data: dict[str, Any],
-    parsed_config: Any,
+    parsed_config: ChartConfig,
 ) -> dict[str, Any]:
-    """Merge a replacement config, honoring an explicit empty filter list."""
+    """Merge same-type config, honoring explicit filters and type changes."""
+    if existing_form_data.get("viz_type") != new_form_data.get("viz_type"):
+        return dict(new_form_data)
     merged = {
         **{
             key: value
@@ -209,6 +212,25 @@ def _merge_replacement_config(
     }
     if getattr(parsed_config, "filters", None) == []:
         merged.pop("adhoc_filters", None)
+    return merged
+
+
+def _build_replacement_form_data(
+    existing_form_data: dict[str, Any],
+    parsed_config: ChartConfig,
+    effective_dataset_id: int | None,
+    replacement_dataset_id: int | None = None,
+) -> dict[str, Any]:
+    """Map and merge a replacement config for both preview and save paths."""
+    new_form_data = map_config_to_form_data(
+        parsed_config, dataset_id=effective_dataset_id
+    )
+    new_form_data.pop("_mcp_warnings", None)
+    merge_table_column_config(existing_form_data, new_form_data)
+    merge_interactive_pivot_ui_config(existing_form_data, new_form_data)
+    merged = _merge_replacement_config(existing_form_data, new_form_data, parsed_config)
+    if replacement_dataset_id is not None:
+        merged["datasource"] = f"{replacement_dataset_id}__table"
     return merged
 
 
@@ -230,12 +252,13 @@ def _build_update_payload(
     )
 
     if parsed_config is not None:
-        new_form_data = map_config_to_form_data(
-            parsed_config, dataset_id=effective_dataset_id
+        existing_form_data = _get_existing_form_data(chart)
+        new_form_data = _build_replacement_form_data(
+            existing_form_data,
+            parsed_config,
+            effective_dataset_id,
+            replacement_dataset_id=request.dataset_id,
         )
-        new_form_data.pop("_mcp_warnings", None)
-        merge_table_column_config(_get_existing_form_data(chart), new_form_data)
-        merge_interactive_pivot_ui_config(_get_existing_form_data(chart), new_form_data)
 
         chart_name = (
             request.chart_name
@@ -312,16 +335,11 @@ def _build_preview_form_data(
     )
 
     if parsed_config is not None:
-        new_form_data = map_config_to_form_data(
-            parsed_config, dataset_id=effective_dataset_id
-        )
-        new_form_data.pop("_mcp_warnings", None)
-        merge_table_column_config(existing_form_data, new_form_data)
-        merge_interactive_pivot_ui_config(existing_form_data, new_form_data)
-        # In the preview, an explicit filters list, including [], replaces saved
-        # filters. An omitted filters field preserves them through the shallow merge.
-        merged = _merge_replacement_config(
-            existing_form_data, new_form_data, parsed_config
+        merged = _build_replacement_form_data(
+            existing_form_data,
+            parsed_config,
+            effective_dataset_id,
+            replacement_dataset_id=request.dataset_id,
         )
     elif request.add_columns is not None:
         patched = _append_table_columns(existing_form_data, request.add_columns)
