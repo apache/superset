@@ -351,6 +351,8 @@ httproute:
   `matches`, `filters`, and `timeouts` fields, and an optional `weight` (defaults to `1`) applied to
   its single backend reference. Since each rule maps to one backend, `weight` has no traffic-splitting
   effect here; it only matters if you fork the template to add multiple `backendRefs` to a rule.
+  `timeouts` only joined the Gateway API Standard channel in v1.2, so it requires a v1.2+ Gateway
+  controller; drop it if yours predates that.
 - If `supersetWebsockets.enabled` is set, an extra rule routing `supersetWebsockets.ingress.path`
   (default `/ws`) to the `-ws` service is appended automatically, mirroring the `Ingress` behavior
   so global async queries keep working behind a Gateway.
