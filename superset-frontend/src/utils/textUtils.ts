@@ -48,17 +48,16 @@ export interface SupersetTextConfig {
   [key: string]: unknown;
 }
 
-const loadModule = async (): Promise<SupersetTextConfig> => {
+const loadModule = (): SupersetTextConfig => {
   try {
-    // eslint-disable-next-line import/no-unresolved
-    const maybeModule = await import('../../../superset_text.yml');
-    const config = 'default' in maybeModule ? maybeModule.default : maybeModule;
-    return (config as SupersetTextConfig) || {};
+    // eslint-disable-next-line @typescript-eslint/no-var-requires, import/no-dynamic-require
+    const config = require('../../../superset_text.yml') as SupersetTextConfig;
+    return config || {};
   } catch (e) {
     return {};
   }
 };
 
-const supersetText: SupersetTextConfig = await loadModule();
+const supersetText: SupersetTextConfig = loadModule();
 
 export default supersetText;
