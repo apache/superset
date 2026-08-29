@@ -366,7 +366,7 @@ rpds-py==0.25.0
     # via
     #   jsonschema
     #   referencing
-setuptools==80.9.0
+setuptools==84.0.0
     # via -r requirements/base.in
 shillelagh==1.4.5
     # via apache-superset (pyproject.toml)
