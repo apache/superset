@@ -31,7 +31,6 @@ import controlPanel from './controlPanel';
 import buildQuery from './buildQuery';
 import { TableChartFormData, TableChartProps } from './types';
 
-// must export something for the module to be exist in dev mode
 export * from './types';
 export {
   convertAgGridStateToOwnState,
