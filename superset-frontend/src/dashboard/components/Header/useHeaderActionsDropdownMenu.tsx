@@ -291,7 +291,7 @@ export const useHeaderActionsMenu = ({
     }
 
     // Toggle fullscreen (hide on mobile)
-    if (!editMode && !isEmbedded && !isMobile) {
+    if (!editMode && !isEmbedded && !isMobile && !getUrlParam(URL_PARAMS.standalone)) {
       menuItems.push({
         key: MenuKeys.ToggleFullscreen,
         label: getUrlParam(URL_PARAMS.standalone)

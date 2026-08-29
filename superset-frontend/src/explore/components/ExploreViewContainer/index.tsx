@@ -64,7 +64,7 @@ import {
   LocalStorageKeys,
 } from 'src/utils/localStorageHelpers';
 import { RESERVED_CHART_URL_PARAMS, URL_PARAMS } from 'src/constants';
-import { QUERY_MODE_REQUISITES } from 'src/explore/constants';
+import { QUERY_MODE_REQUISITES, ExploreStandaloneMode } from 'src/explore/constants';
 import { areObjectsEqual } from 'src/reduxUtils';
 import * as logActions from 'src/logger/actions';
 import {
@@ -333,7 +333,7 @@ interface ExploreRootState {
     can_overwrite: boolean;
     sliceName?: string;
     triggerRender: boolean;
-    standalone: boolean;
+    standalone: number;
     force: boolean;
     form_data?: QueryFormData;
     saveAction?: SaveActionType | null;
@@ -380,7 +380,7 @@ interface StateProps {
   form_data: QueryFormData;
   table_name?: string;
   vizType?: string;
-  standalone: boolean;
+  standalone: number;
   force: boolean;
   chart: ChartState;
   timeout: number;
@@ -1023,7 +1023,7 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
     );
   }
 
-  if (props.standalone) {
+  if (props.standalone === ExploreStandaloneMode.HideNav) {
     return renderChartContainer();
   }
 
@@ -1387,7 +1387,7 @@ function mapStateToProps(state: ExploreRootState) {
     form_data: patchedFormData,
     table_name: datasource.table_name,
     vizType: form_data.viz_type,
-    standalone: !!explore.standalone,
+    standalone: explore.standalone || 0,
     force: !!explore.force,
     chart,
     timeout: common.conf.SUPERSET_WEBSERVER_TIMEOUT,
