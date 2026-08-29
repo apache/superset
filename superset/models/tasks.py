@@ -41,6 +41,7 @@ from superset.tasks.constants import TERMINAL_STATES
 from superset.tasks.utils import (
     error_update,
     get_finished_dedup_key,
+    merge_private_subtree,
     naive_utcnow,
     parse_payload,
     parse_properties,
@@ -192,31 +193,11 @@ class Task(CoreTask, AuditMixinNullable, Model):
         current: dict[str, Any] = dict(self.properties_dict)
         incoming: dict[str, Any] = dict(updates)
         if "private" in incoming:
-            current["private"] = self._merge_private(
+            current["private"] = merge_private_subtree(
                 current.get("private"), incoming.pop("private")
             )
         current.update(incoming)  # shallow-merge the remaining top-level keys
         self.properties = serialize_properties(cast(TaskProperties, current))
-
-    @staticmethod
-    def _merge_private(
-        current_private: "dict[str, Any] | None",
-        updates_private: "dict[str, Any]",
-    ) -> dict[str, Any]:
-        """Recursively merge the ``private`` subtree, per namespace.
-
-        Each namespace (``framework``, ``task``) is a dict merged independently, so
-        updating one leaves the other — and existing keys within the updated one —
-        intact. This is what structurally isolates task-owned freeform keys from
-        framework-owned orchestration keys.
-        """
-        merged: dict[str, Any] = {**(current_private or {})}
-        for namespace, ns_updates in updates_private.items():
-            if isinstance(ns_updates, dict) and isinstance(merged.get(namespace), dict):
-                merged[namespace] = {**merged[namespace], **ns_updates}
-            else:
-                merged[namespace] = ns_updates
-        return merged
 
     def update_framework_private(self, updates: dict[str, Any]) -> None:
         """Merge keys into ``private["framework"]`` (framework-owned internal state).

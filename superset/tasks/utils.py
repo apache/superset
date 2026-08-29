@@ -363,6 +363,31 @@ def task_internals_visible() -> bool:
     return bool(current_app.debug)
 
 
+def merge_private_subtree(
+    current_private: Any, updates_private: dict[str, Any]
+) -> dict[str, Any]:
+    """Recursively merge the ``private`` properties subtree, per namespace.
+
+    Each namespace (``framework``, ``task``) is a dict merged independently, so a
+    write to one never clobbers the other or drops earlier keys — this is what
+    structurally isolates task-owned freeform keys from framework orchestration
+    keys. Defensive against a malformed persisted value: a non-dict subtree or a
+    non-dict namespace is treated as empty rather than raising ``TypeError`` on
+    unpacking (``private`` is framework-managed, so this only guards corrupted or
+    externally-tampered rows).
+    """
+    merged: dict[str, Any] = (
+        dict(current_private) if isinstance(current_private, dict) else {}
+    )
+    for namespace, ns_updates in updates_private.items():
+        existing = merged.get(namespace)
+        if isinstance(ns_updates, dict) and isinstance(existing, dict):
+            merged[namespace] = {**existing, **ns_updates}
+        else:
+            merged[namespace] = ns_updates
+    return merged
+
+
 def parse_properties(json_str: str | None) -> TaskProperties:
     """
     Parse JSON string into TaskProperties dict.

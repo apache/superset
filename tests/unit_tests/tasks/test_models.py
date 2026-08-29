@@ -57,3 +57,17 @@ def test_update_properties_does_not_clobber_private() -> None:
 
     assert task.properties_dict["is_abortable"] is True
     assert task.properties_dict["private"]["framework"]["celery_task_id"] == "c1"
+
+
+def test_private_merge_tolerates_malformed_existing_value() -> None:
+    """A legacy/corrupted non-dict private (or namespace) must not break a write;
+    the bad value is treated as empty rather than raising TypeError."""
+    # Whole private bucket is a non-dict scalar.
+    task = _task({"private": "legacy-garbage"})
+    task.update_framework_private({"celery_task_id": "c1"})
+    assert task.properties_dict["private"]["framework"] == {"celery_task_id": "c1"}
+
+    # A single namespace holds a non-dict value.
+    task = _task({"private": {"framework": "oops", "task": {}}})
+    task.update_framework_private({"celery_task_id": "c1"})
+    assert task.properties_dict["private"]["framework"] == {"celery_task_id": "c1"}

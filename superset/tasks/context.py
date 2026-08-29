@@ -394,13 +394,20 @@ class TaskContext(CoreTaskContext):
         write. The orphan reaper reads it to cancel the query out-of-band when
         this worker dies; the live abort path uses its in-memory closure instead.
         """
-        private: dict[str, Any] = dict(self._properties_cache.get("private") or {})
-        private["task"] = {
-            **(private.get("task") or {}),
-            "cancel_database_id": database_id,
-            "cancel_query_id": cancel_query_id,
-        }
-        self._properties_cache["private"] = cast("Any", private)
+        from superset.tasks.utils import merge_private_subtree
+
+        self._properties_cache["private"] = cast(
+            "Any",
+            merge_private_subtree(
+                self._properties_cache.get("private"),
+                {
+                    "task": {
+                        "cancel_database_id": database_id,
+                        "cancel_query_id": cancel_query_id,
+                    }
+                },
+            ),
+        )
 
     def _start_abort_listener(self, interval: float) -> None:
         """

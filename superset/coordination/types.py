@@ -58,10 +58,15 @@ class SignalListener:
         """Signal the listener to stop and wait briefly for the thread to finish."""
         self._stop_event.set()
         # Wake a listener blocked in a backend read so it observes the stop flag
-        # immediately (the no-backend loop already wakes on the event). Best-effort:
-        # a failed nudge just falls back to the bounded join below.
+        # immediately (the no-backend loop already wakes on the event). Fire the
+        # nudge on a daemon thread: it does a synchronous Redis write, which could
+        # hang on a degraded backend with no socket timeout, and stop() must stay
+        # bounded by the join below regardless. Best-effort — a failed/slow nudge
+        # just falls back to the bounded join + daemon reap.
         if self._wake is not None:
-            self._wake()
+            threading.Thread(
+                target=self._safe_wake, daemon=True, name="coord-listen-wake"
+            ).start()
         if self._thread.is_alive():
             self._thread.join(timeout=2.0)
             if self._thread.is_alive():
@@ -70,3 +75,11 @@ class SignalListener:
                     "Signal listener thread %s did not terminate within 2s.",
                     self._thread.name,
                 )
+
+    def _safe_wake(self) -> None:
+        """Run the wake nudge, swallowing errors (best-effort accelerator)."""
+        try:
+            if self._wake is not None:
+                self._wake()
+        except Exception:  # pylint: disable=broad-except
+            logger.debug("Signal listener wake nudge failed", exc_info=True)
