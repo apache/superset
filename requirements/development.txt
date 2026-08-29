@@ -921,7 +921,6 @@ python-dateutil==2.9.0.post0
     #   pyhive
     #   shillelagh
     #   trino
-    #   vertica-python
 python-dotenv==1.2.2
     # via
     #   -c requirements/base-constraint.txt
@@ -1038,7 +1037,6 @@ six==1.17.0
     #   prison
     #   python-dateutil
     #   rfc3339-validator
-    #   vertica-python
     #   wtforms-json
 slack-sdk==3.43.0
     # via
@@ -1094,8 +1092,6 @@ sqlalchemy-utils==0.42.1
     #   apache-superset
     #   apache-superset-core
     #   flask-appbuilder
-sqlalchemy-vertica-python==0.6.3
-    # via apache-superset
 sqlglot==30.17.0
     # via
     #   -c requirements/base-constraint.txt
@@ -1209,8 +1205,6 @@ verlib2==0.3.2
     # via
     #   crate
     #   sqlalchemy-cratedb
-vertica-python==1.4.0
-    # via sqlalchemy-vertica-python
 vine==5.1.0
     # via
     #   -c requirements/base-constraint.txt

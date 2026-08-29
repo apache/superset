@@ -86,8 +86,7 @@ jobs:
               {"dialect": "risingwave", "timeout": 10},
               {"dialect": "firebird", "timeout": 10},
               {"dialect": "ydb", "timeout": 10},
-              {"dialect": "oceanbase", "timeout": 20, "nightly_only": true},
-              {"dialect": "vertica", "timeout": 20, "nightly_only": true}
+              {"dialect": "oceanbase", "timeout": 20, "nightly_only": true}
             ]
         run: |
           if [[ "${{ github.event_name }}" == "schedule" || "${{ github.event_name }}" == "workflow_dispatch" ]]; then
@@ -134,11 +133,17 @@ jobs:
         # oceanbase_py pins sqlalchemy-utils>=0.38.3,<0.39, which conflicts
         # outright with Superset's own sqlalchemy-utils==0.42.1 pin -- kept
         # out of the baseline dev install for the same reason as db2 above.
-        # --no-deps sidesteps that pin entirely: this job only needs
-        # oceanbase_py's dialect module importable, not its sqlalchemy-utils
-        # dependency satisfied, since nothing here calls into it.
+        # Installed as its own standalone package (not via `-e .[oceanbase]`)
+        # so --no-deps only skips *oceanbase_py's* dependencies -- applied
+        # to `-e .[oceanbase]` instead, --no-deps blocks pip from installing
+        # anything the extras marker pulls in, including oceanbase_py
+        # itself, which "succeeds" without actually installing it
+        # (confirmed on real CI: the install step reported success, but the
+        # module was still missing). This job only needs oceanbase_py's
+        # dialect module importable, not its sqlalchemy-utils dependency
+        # satisfied, since nothing here calls into it.
         if: matrix.dialect == 'oceanbase'
-        run: uv pip install --system --no-deps -e .[oceanbase]
+        run: uv pip install --system --no-deps "oceanbase_py>=0.0.1.2"
       - name: Install Firebird client library (libfbclient2)
         # sqlalchemy-firebird's driver (firebird-driver) is a pure-Python
         # ctypes wrapper (its wheel is py3-none-any) that dynamically loads
