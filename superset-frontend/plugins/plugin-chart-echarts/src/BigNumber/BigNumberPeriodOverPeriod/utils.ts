@@ -121,8 +121,11 @@ export const resolveComparisonColorKeys = (
  * the color picker) to the (arrow/text, background, strong-text) triad used
  * across the comparison pills. 'Green' / 'Red' keep using the paired
  * success/error theme tokens exactly as before these colors were
- * customizable; any other value is a literal hex, in which case the
- * background is a light (~10% opacity) tint of that same color.
+ * customizable; any other value is either a theme token name (e.g.
+ * 'colorPrimary', emitted by the picker's `resolveThemeTokens` option) or a
+ * literal hex -- 6-digit, or 8-digit when the alpha-enabled picker is used
+ * -- in which case the background is a light (~10% opacity) tint of that
+ * same color.
  */
 export const getComparisonColorTokens = (
   colorValue: string,
@@ -142,9 +145,22 @@ export const getComparisonColorTokens = (
       strongText: theme.colorErrorText,
     };
   }
+  const themeColors = theme as unknown as Record<string, string>;
+  const resolvedColor = Object.prototype.hasOwnProperty.call(
+    themeColors,
+    colorValue,
+  )
+    ? themeColors[colorValue]
+    : colorValue;
+  // An 8-digit hex (alpha-enabled picker) already carries its own alpha
+  // channel; strip it before appending the tint suffix below so the
+  // background stays a valid 8-digit hex instead of stacking a second one.
+  const opaqueColor = /^#[0-9a-f]{8}$/i.test(resolvedColor)
+    ? resolvedColor.slice(0, 7)
+    : resolvedColor;
   return {
-    text: colorValue,
-    background: `${colorValue}1A`,
-    strongText: colorValue,
+    text: resolvedColor,
+    background: `${opaqueColor}1A`,
+    strongText: resolvedColor,
   };
 };
