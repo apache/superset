@@ -22,7 +22,10 @@ import buildQuery from './buildQuery';
 import controlPanel from './controlPanel';
 import transformProps from './transformProps';
 import { EchartsButterflyChartProps, EchartsButterflyFormData } from './types';
+import example from './images/example.png';
+import exampleDark from './images/example-dark.png';
 import thumbnail from './images/thumbnail.png';
+import thumbnailDark from './images/thumbnail-dark.png';
 
 export default class EchartsButterflyChartPlugin extends ChartPlugin<
   EchartsButterflyFormData,
@@ -41,6 +44,7 @@ export default class EchartsButterflyChartPlugin extends ChartPlugin<
           'A butterfly chart compares two metrics across categories using horizontal bars ' +
             'that extend left and right from a central axis.',
         ),
+        exampleGallery: [{ url: example, urlDark: exampleDark }],
         name: t('Butterfly Chart'),
         tags: [
           t('Categorical'),
@@ -49,6 +53,7 @@ export default class EchartsButterflyChartPlugin extends ChartPlugin<
           t('Multi-Variables'),
         ],
         thumbnail,
+        thumbnailDark,
       }),
       transformProps,
     });
