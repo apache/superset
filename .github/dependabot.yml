@@ -24,14 +24,6 @@ updates:
       - dependency-name: "@types/react-dom"
         update-types: ["version-update:semver-major"]
       - dependency-name: "react-icons"
-      # JSDOM v30 doesn't play well with Jest v30
-      # Source: https://jestjs.io/blog#known-issues
-      # GH thread: https://github.com/jsdom/jsdom/issues/3492
-      - dependency-name: "jest-environment-jsdom"
-      # `@swc/plugin-transform-imports` doesn't work with current Webpack-SWC hybrid setup
-      # See https://github.com/apache/superset/pull/37384#issuecomment-3793991389
-      # TODO: remove the plugin once Lodash usage has been migrated to a more readily tree-shakeable alternative
-      - dependency-name: "@swc/plugin-transform-imports"
       # deck.gl and luma.gl share strict peer constraints across the root and
       # plugin workspaces, and root overrides pin their transitive versions.
       # Upgrade both families together in a manually validated change.
@@ -87,6 +79,11 @@ updates:
         patterns:
           - "ag-grid-react"
           - "ag-grid-community"
+      swc:
+        patterns:
+          - "@swc/core"
+          - "@swc/plugin-emotion"
+          - "@swc/plugin-transform-imports"
     open-pull-requests-limit: 30
     versioning-strategy: increase
     cooldown:
