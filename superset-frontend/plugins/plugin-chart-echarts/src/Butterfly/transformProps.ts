@@ -130,44 +130,45 @@ export default function transformProps(
   const categories = data.map(datum =>
     extractGroupbyLabel({ datum, groupby: groupbyLabels, coltypeMapping }),
   );
+  const categoryKeys = data.map(
+    (datum, index) =>
+      `${categories[index]}__${JSON.stringify(groupbyLabels.map(col => datum[col]))}`,
+  );
 
-  const labelMap = data.reduce<Record<string, string[]>>((acc, datum) => {
-    const label = extractGroupbyLabel({
-      datum,
-      groupby: groupbyLabels,
-      coltypeMapping,
-    });
-    // Use a unique key by combining the label with a unique identifier or index
-    const uniqueKey = `${label}__${JSON.stringify(groupbyLabels.map(col => datum[col]))}`;
-    return {
-      ...acc,
-      [uniqueKey]: groupbyLabels.map(col => datum[col] as string),
-    };
-  }, {});
+  const labelMap = data.reduce<Record<string, string[]>>(
+    (acc, datum, index) => {
+      const uniqueKey = categoryKeys[index];
+      return {
+        ...acc,
+        [uniqueKey]: groupbyLabels.map(col => datum[col] as string),
+      };
+    },
+    {},
+  );
   const selectedValues = (filterState.selectedValues || []).reduce(
     (acc: Record<number, string>, value: string) => {
-      const index = categories.indexOf(value);
+      const index = categoryKeys.indexOf(value);
       return index >= 0 ? { ...acc, [index]: value } : acc;
     },
     {},
   );
-  const getOpacity = (categoryLabel: string) =>
+  const getOpacity = (categoryKey: string) =>
     filterState.selectedValues?.length &&
-    !filterState.selectedValues.includes(categoryLabel)
+    !filterState.selectedValues.includes(categoryKey)
       ? OpacityEnum.SemiTransparent
       : OpacityEnum.NonTransparent;
 
   const leftData = data.map((row, i) => ({
-    name: categories[i],
+    name: categoryKeys[i],
     value: -Math.abs(Number(row[leftMetricLabel] ?? 0)),
     label: LABEL_LEFT,
-    itemStyle: { opacity: getOpacity(categories[i]) },
+    itemStyle: { opacity: getOpacity(categoryKeys[i]) },
   }));
   const rightData = data.map((row, i) => ({
-    name: categories[i],
+    name: categoryKeys[i],
     value: Math.abs(Number(row[rightMetricLabel] ?? 0)),
     label: LABEL_RIGHT,
-    itemStyle: { opacity: getOpacity(categories[i]) },
+    itemStyle: { opacity: getOpacity(categoryKeys[i]) },
   }));
 
   const labelFormatter = (params: CallbackDataParams) => {

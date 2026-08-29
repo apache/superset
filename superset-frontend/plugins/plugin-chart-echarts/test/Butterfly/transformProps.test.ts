@@ -18,25 +18,40 @@
  */
 import { ChartProps } from '@superset-ui/core';
 import { supersetTheme } from '@apache-superset/core/theme';
+import type { CallbackDataParams } from 'echarts/types/src/util/types';
 import {
   EchartsButterflyChartProps,
   ButterflyTransformedProps,
 } from '../../src/Butterfly/types';
 import transformProps from '../../src/Butterfly/transformProps';
-import { NULL_STRING } from '../../src/constants';
+import { NULL_STRING, OpacityEnum } from '../../src/constants';
 
-type SeriesDataPoint = { value?: number } | number;
+const categoryKeyA = 'A__["A"]';
+const categoryKeyB = 'B__["B"]';
+
+type SeriesDataPoint = {
+  name?: string;
+  value?: number;
+  itemStyle?: { opacity?: number };
+};
 
 type ButterflyTestSeries = {
   name?: string;
   data?: SeriesDataPoint[];
   itemStyle?: { color?: string };
-  label?: { show?: boolean };
+  label?: {
+    show?: boolean;
+    formatter?: (params: CallbackDataParams) => string;
+  };
 };
 
 type ButterflyTestEchartOptions = {
   series?: ButterflyTestSeries[];
-  xAxis?: { name?: string; nameGap?: number };
+  xAxis?: {
+    name?: string;
+    nameGap?: number;
+    axisLabel?: { formatter?: (value: number) => string };
+  };
   yAxis?: {
     name?: string;
     nameGap?: number;
@@ -45,7 +60,10 @@ type ButterflyTestEchartOptions = {
   };
   legend?: { orient?: string; data?: string[] };
   grid?: { left?: number; top?: number };
-  tooltip?: { show?: boolean };
+  tooltip?: {
+    show?: boolean;
+    formatter?: (params: CallbackDataParams | CallbackDataParams[]) => string;
+  };
 };
 
 const getEchartOptions = (
@@ -55,13 +73,7 @@ const getEchartOptions = (
 
 const extractSeriesValues = (props: ButterflyTransformedProps) => {
   const series = getEchartOptions(props).series ?? [];
-  return series.map(item =>
-    (item.data ?? []).map(entry =>
-      typeof entry === 'object' && entry !== null && 'value' in entry
-        ? entry.value
-        : entry,
-    ),
-  );
+  return series.map(item => (item.data ?? []).map(entry => entry.value));
 };
 
 const extractSeriesNames = (props: ButterflyTransformedProps) => {
@@ -88,19 +100,22 @@ const createChartProps = (
   overrides: Record<string, unknown> = {},
   queryData: Record<string, unknown>[] = data,
 ) =>
-  new ChartProps({
-    formData: { ...formData, ...overrides },
-    width: 800,
-    height: 600,
-    queriesData: [{ data: queryData }],
-    theme: supersetTheme,
-    ...((overrides.hooks ? { hooks: overrides.hooks } : {}) as object),
-  });
+  ({
+    ...new ChartProps({
+      formData: { ...formData, ...overrides },
+      width: 800,
+      height: 600,
+      queriesData: [{ data: queryData }],
+      theme: supersetTheme,
+      ...((overrides.hooks ? { hooks: overrides.hooks } : {}) as object),
+    }),
+    filterState: overrides.filterState ?? {},
+    emitCrossFilters: overrides.emitCrossFilters,
+    inContextMenu: overrides.inContextMenu,
+  }) as unknown as EchartsButterflyChartProps;
 
 test('transforms chart props into diverging bar series', () => {
-  const transformedProps = transformProps(
-    createChartProps() as unknown as EchartsButterflyChartProps,
-  );
+  const transformedProps = transformProps(createChartProps());
 
   expect(extractSeriesValues(transformedProps)).toEqual([
     [-10, -5],
@@ -108,11 +123,23 @@ test('transforms chart props into diverging bar series', () => {
   ]);
 });
 
+test('assigns composite category keys to each bar data point', () => {
+  const transformedProps = transformProps(createChartProps());
+  const series = getEchartOptions(transformedProps).series ?? [];
+
+  expect(series[0]?.data?.map(point => point.name)).toEqual([
+    categoryKeyA,
+    categoryKeyB,
+  ]);
+  expect(series[1]?.data?.map(point => point.name)).toEqual([
+    categoryKeyA,
+    categoryKeyB,
+  ]);
+});
+
 test('uses absolute values for negative right-side metrics', () => {
   const transformedProps = transformProps(
-    createChartProps({}, [
-      { category: 'A', left_sum: -8, right_sum: -15 },
-    ]) as unknown as EchartsButterflyChartProps,
+    createChartProps({}, [{ category: 'A', left_sum: -8, right_sum: -15 }]),
   );
 
   expect(extractSeriesValues(transformedProps)).toEqual([[-8], [15]]);
@@ -122,7 +149,7 @@ test('formats null categories and missing metric values', () => {
   const transformedProps = transformProps(
     createChartProps({}, [
       { category: null, left_sum: undefined, right_sum: 7 },
-    ]) as unknown as EchartsButterflyChartProps,
+    ]),
   );
   const { yAxis } = getEchartOptions(transformedProps);
 
@@ -141,7 +168,7 @@ test('applies custom series labels, colors, and axis titles', () => {
       right_color: { r: 0, g: 255, b: 0 },
       x_axis_label: 'Value axis',
       y_axis_label: 'Category axis',
-    }) as unknown as EchartsButterflyChartProps,
+    }),
   );
   const { series, xAxis, yAxis } = getEchartOptions(transformedProps);
 
@@ -163,7 +190,7 @@ test('applies legend orientation, sort, and axis margin settings', () => {
       xAxisLabelRotation: 45,
       x_axis_title_margin: 60,
       y_axis_title_margin: 80,
-    }) as unknown as EchartsButterflyChartProps,
+    }),
   );
   const { legend, xAxis, yAxis, grid } = getEchartOptions(transformedProps);
 
@@ -178,9 +205,7 @@ test('applies legend orientation, sort, and axis margin settings', () => {
 
 test('hides value labels when showValue is false', () => {
   const transformedProps = transformProps(
-    createChartProps({
-      showValue: false,
-    }) as unknown as EchartsButterflyChartProps,
+    createChartProps({ showValue: false }),
   );
   const { series } = getEchartOptions(transformedProps);
 
@@ -188,27 +213,114 @@ test('hides value labels when showValue is false', () => {
   expect(series?.[1]?.label?.show).toBe(false);
 });
 
-test('hides tooltip while the context menu is open', () => {
+test('hides zero value labels but keeps non-zero labels', () => {
   const transformedProps = transformProps(
-    createChartProps({}, data) as unknown as EchartsButterflyChartProps,
+    createChartProps({}, [{ category: 'A', left_sum: 0, right_sum: 12 }]),
   );
-  const withContextMenu = transformProps({
-    ...createChartProps(),
-    inContextMenu: true,
-  } as unknown as EchartsButterflyChartProps);
+  const formatter =
+    getEchartOptions(transformedProps).series?.[0]?.label?.formatter;
+
+  expect(formatter?.({ value: 0 } as CallbackDataParams)).toBe('');
+  expect(formatter?.({ value: -10 } as CallbackDataParams)).toBe('10');
+});
+
+test('formats axis and tooltip values as absolute numbers', () => {
+  const transformedProps = transformProps(createChartProps());
+  const { xAxis, tooltip } = getEchartOptions(transformedProps);
+
+  expect(xAxis?.axisLabel?.formatter?.(-25)).toBe('25');
+
+  const tooltipHtml = tooltip?.formatter?.([
+    {
+      name: categoryKeyA,
+      seriesName: 'left_sum',
+      value: -10,
+    } as CallbackDataParams,
+    {
+      name: categoryKeyA,
+      seriesName: 'right_sum',
+      value: 25,
+    } as CallbackDataParams,
+  ]);
+
+  expect(tooltipHtml).toContain(categoryKeyA);
+  expect(tooltipHtml).toContain('left_sum');
+  expect(tooltipHtml).toContain('right_sum');
+  expect(tooltipHtml).toContain('10');
+  expect(tooltipHtml).toContain('25');
+});
+
+test('hides tooltip while the context menu is open', () => {
+  const transformedProps = transformProps(createChartProps());
+  const withContextMenu = transformProps(
+    createChartProps({ inContextMenu: true }),
+  );
 
   expect(getEchartOptions(transformedProps).tooltip?.show).toBe(true);
   expect(getEchartOptions(withContextMenu).tooltip?.show).toBe(false);
 });
 
 test('builds labelMap and groupby for drill and cross-filter handlers', () => {
-  const transformedProps = transformProps(
-    createChartProps() as unknown as EchartsButterflyChartProps,
-  );
+  const transformedProps = transformProps(createChartProps());
 
   expect(transformedProps.groupby).toEqual(['category']);
   expect(transformedProps.labelMap).toEqual({
-    A: ['A'],
-    B: ['B'],
+    'A__["A"]': ['A'],
+    'B__["B"]': ['B'],
   });
+});
+
+test('uses unique keys for interactions and readable labels on the y-axis', () => {
+  const transformedProps = transformProps(
+    createChartProps({ groupby: ['country', 'state'] }, [
+      { country: 'US', state: 'CA', left_sum: 4, right_sum: 6 },
+      { country: 'US', state: 'NY', left_sum: 8, right_sum: 3 },
+    ]),
+  );
+  const series = getEchartOptions(transformedProps).series ?? [];
+  const firstKey = 'US, CA__["US","CA"]';
+  const secondKey = 'US, NY__["US","NY"]';
+
+  expect(firstKey).not.toBe(secondKey);
+  expect(series[0]?.data?.map(point => point.name)).toEqual([
+    firstKey,
+    secondKey,
+  ]);
+  expect(transformedProps.labelMap).toEqual({
+    [firstKey]: ['US', 'CA'],
+    [secondKey]: ['US', 'NY'],
+  });
+  expect(getEchartOptions(transformedProps).yAxis?.data).toEqual([
+    'US, CA',
+    'US, NY',
+  ]);
+});
+
+test('dims unselected categories when a cross-filter is active', () => {
+  const transformedProps = transformProps(
+    createChartProps({
+      filterState: { selectedValues: [categoryKeyA] },
+    }),
+  );
+  const series = getEchartOptions(transformedProps).series ?? [];
+
+  expect(series[0]?.data?.[0]?.itemStyle?.opacity).toBe(
+    OpacityEnum.NonTransparent,
+  );
+  expect(series[0]?.data?.[1]?.itemStyle?.opacity).toBe(
+    OpacityEnum.SemiTransparent,
+  );
+  expect(series[1]?.data?.[1]?.itemStyle?.opacity).toBe(
+    OpacityEnum.SemiTransparent,
+  );
+});
+
+test('maps selectedValues to category indexes', () => {
+  const transformedProps = transformProps(
+    createChartProps({
+      filterState: { selectedValues: [categoryKeyB] },
+    }),
+  );
+
+  expect(transformedProps.selectedValues).toEqual({ 1: categoryKeyB });
 });

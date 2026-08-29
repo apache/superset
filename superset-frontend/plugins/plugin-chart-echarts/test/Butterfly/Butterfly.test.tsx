@@ -23,6 +23,7 @@ import Butterfly from '../../src/Butterfly/Butterfly';
 import transformProps from '../../src/Butterfly/transformProps';
 import { EchartsButterflyChartProps } from '../../src/Butterfly/types';
 import Echart from '../../src/components/Echart';
+import { EventHandlers } from '../../src/types';
 
 jest.mock('../../src/components/Echart', () => ({
   __esModule: true,
@@ -36,21 +37,35 @@ const data = [
   { category: 'B', left_sum: 5, right_sum: 19 },
 ];
 
-function setup() {
+const categoryKeyA = 'A__["A"]';
+const categoryKeyB = 'B__["B"]';
+
+function setup(
+  overrides: {
+    filterState?: { selectedValues?: string[] };
+    onLegendStateChanged?: jest.Mock;
+  } = {},
+) {
   const onContextMenu = jest.fn();
   const setDataMask = jest.fn();
-  const chartProps = new ChartProps({
-    formData: {
-      groupby: ['category'],
-      left_metric: 'left_sum',
-      right_metric: 'right_sum',
-    },
-    width: 800,
-    height: 600,
-    queriesData: [{ data }],
-    theme: supersetTheme,
-    hooks: { onContextMenu, setDataMask },
-  }) as unknown as EchartsButterflyChartProps;
+  const onLegendStateChanged = overrides.onLegendStateChanged ?? jest.fn();
+  const chartProps = {
+    ...new ChartProps({
+      formData: {
+        groupby: ['category'],
+        left_metric: 'left_sum',
+        right_metric: 'right_sum',
+        viz_type: 'butterfly',
+      },
+      width: 800,
+      height: 600,
+      queriesData: [{ data }],
+      theme: supersetTheme,
+      hooks: { onContextMenu, setDataMask, onLegendStateChanged },
+    }),
+    filterState: overrides.filterState ?? {},
+    emitCrossFilters: true,
+  } as unknown as EchartsButterflyChartProps;
 
   const transformed = transformProps(chartProps);
   render(
@@ -58,15 +73,23 @@ function setup() {
       {...transformed}
       onContextMenu={onContextMenu}
       setDataMask={setDataMask}
+      onLegendStateChanged={onLegendStateChanged}
       emitCrossFilters
     />,
   );
 
   const lastCall = mockedEchart.mock.calls[mockedEchart.mock.calls.length - 1];
-  const { eventHandlers } = lastCall[0] as {
-    eventHandlers: Record<string, Function>;
+  const { eventHandlers, selectedValues } = lastCall[0] as {
+    eventHandlers: EventHandlers;
+    selectedValues: Record<number, string>;
   };
-  return { eventHandlers, onContextMenu, setDataMask };
+  return {
+    eventHandlers,
+    onContextMenu,
+    setDataMask,
+    onLegendStateChanged,
+    selectedValues,
+  };
 }
 
 beforeEach(() => {
@@ -77,7 +100,7 @@ test('context menu exposes drill to detail for the selected category', () => {
   const { eventHandlers, onContextMenu } = setup();
 
   eventHandlers.contextmenu({
-    name: 'A',
+    name: categoryKeyA,
     event: { stop: jest.fn(), event: { clientX: 10, clientY: 20 } },
   });
 
@@ -98,7 +121,7 @@ test('context menu exposes drill to detail for the selected category', () => {
 test('click emits cross-filter for the selected category', () => {
   const { eventHandlers, setDataMask } = setup();
 
-  eventHandlers.click({ name: 'B' });
+  eventHandlers.click({ name: categoryKeyB });
 
   expect(setDataMask).toHaveBeenCalledWith(
     expect.objectContaining({
@@ -107,8 +130,49 @@ test('click emits cross-filter for the selected category', () => {
       },
       filterState: {
         value: [['B']],
-        selectedValues: ['B'],
+        selectedValues: [categoryKeyB],
       },
     }),
   );
+});
+
+test('click clears cross-filter when the category is already selected', () => {
+  const { eventHandlers, setDataMask } = setup({
+    filterState: { selectedValues: [categoryKeyB] },
+  });
+
+  eventHandlers.click({ name: categoryKeyB });
+
+  expect(setDataMask).toHaveBeenCalledWith(
+    expect.objectContaining({
+      extraFormData: {
+        filters: [],
+      },
+      filterState: {
+        value: null,
+        selectedValues: null,
+      },
+    }),
+  );
+});
+
+test('legend selection forwards legend state to the chart hook', () => {
+  const onLegendStateChanged = jest.fn();
+  const { eventHandlers } = setup({ onLegendStateChanged });
+  const selected = { left_sum: true, right_sum: false };
+
+  eventHandlers.legendselectchanged({ selected });
+  eventHandlers.legendselectall({ selected });
+  eventHandlers.legendinverseselect({ selected });
+
+  expect(onLegendStateChanged).toHaveBeenCalledTimes(3);
+  expect(onLegendStateChanged).toHaveBeenCalledWith(selected);
+});
+
+test('passes selectedValues through to the chart component', () => {
+  const { selectedValues } = setup({
+    filterState: { selectedValues: [categoryKeyA] },
+  });
+
+  expect(selectedValues).toEqual({ 0: categoryKeyA });
 });
