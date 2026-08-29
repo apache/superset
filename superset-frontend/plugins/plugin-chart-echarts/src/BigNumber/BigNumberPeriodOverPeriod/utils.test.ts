@@ -105,3 +105,19 @@ test('getComparisonColorTokens treats any other value as a literal hex color', (
     strongText: '#336699',
   });
 });
+
+test('getComparisonColorTokens resolves a theme token name emitted by resolveThemeTokens', () => {
+  expect(getComparisonColorTokens('colorPrimary', supersetTheme)).toEqual({
+    text: supersetTheme.colorPrimary,
+    background: `${supersetTheme.colorPrimary}1A`,
+    strongText: supersetTheme.colorPrimary,
+  });
+});
+
+test('getComparisonColorTokens strips an existing alpha channel from an 8-digit hex before tinting', () => {
+  expect(getComparisonColorTokens('#33669980', supersetTheme)).toEqual({
+    text: '#33669980',
+    background: '#3366991A',
+    strongText: '#33669980',
+  });
+});
