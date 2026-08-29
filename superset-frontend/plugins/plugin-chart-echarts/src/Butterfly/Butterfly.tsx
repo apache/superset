@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { allEventHandlers } from '../utils/eventHandlers';
+import { allEventHandlers, type Event } from '../utils/eventHandlers';
 import Echart from '../components/Echart';
 import { EventHandlers } from '../types';
 import { ButterflyTransformedProps } from './types';
@@ -24,6 +24,7 @@ import { ButterflyTransformedProps } from './types';
 type ButterflyChartEvent = {
   name?: string;
   data?: { name?: string };
+  event?: Event['event'];
 };
 
 function getCategoryKey(params: ButterflyChartEvent): string {

@@ -53,7 +53,7 @@ function formatTooltip(
   params: CallbackDataParams[],
   formatter: NumberFormatter | CurrencyFormatter,
   categoryLabels: string[],
-  categoryByKey: Record<string, string>,
+  categoryByKey: Map<string, string>,
 ) {
   const axisParams = params.filter(
     param => param.seriesName && typeof param.value === 'number',
@@ -64,8 +64,8 @@ function formatTooltip(
 
   const { dataIndex, name } = axisParams[0];
   const title =
-    (typeof dataIndex === 'number' ? categoryLabels[dataIndex] : undefined) ??
-    (name ? categoryByKey[name] : undefined) ??
+    (typeof dataIndex === 'number' ? categoryLabels.at(dataIndex) : undefined) ??
+    (typeof name === 'string' ? categoryByKey.get(name) : undefined) ??
     name;
   const rows = axisParams.map(param => [
     param.seriesName!,
@@ -136,20 +136,32 @@ export default function transformProps(
   const categories = data.map(datum =>
     extractGroupbyLabel({ datum, groupby: groupbyLabels, coltypeMapping }),
   );
-  const categoryKeys = data.map(
-    (datum, index) =>
-      `${categories[index]}__${JSON.stringify(groupbyLabels.map(col => datum[col]))}`,
-  );
-  const categoryByKey = Object.fromEntries(
-    categoryKeys.map((key, index) => [key, categories[index]]),
+  const categoryKeys = data.map((datum, index) => {
+    const label = categories.at(index) ?? '';
+    return `${label}__${JSON.stringify(
+      groupbyLabels.map(col =>
+        Object.hasOwn(datum, col) ? datum[col] : undefined,
+      ),
+    )}`;
+  });
+  const categoryByKey = new Map(
+    categoryKeys.flatMap((key, index) => {
+      const label = categories.at(index);
+      return label === undefined ? [] : [[key, label] as const];
+    }),
   );
 
   const labelMap = data.reduce<Record<string, string[]>>(
     (acc, datum, index) => {
-      const uniqueKey = categoryKeys[index];
+      const uniqueKey = categoryKeys.at(index);
+      if (uniqueKey === undefined) {
+        return acc;
+      }
       return {
         ...acc,
-        [uniqueKey]: groupbyLabels.map(col => datum[col] as string),
+        [uniqueKey]: groupbyLabels.map(col =>
+          Object.hasOwn(datum, col) ? (datum[col] as string) : '',
+        ),
       };
     },
     {},
