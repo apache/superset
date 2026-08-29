@@ -24,6 +24,7 @@ import {
   getTimeFormatter,
   isSavedMetric,
   NumberFormats,
+  NumberFormatter,
   QueryFormMetric,
   SMART_DATE_DETAILED_ID,
   SMART_DATE_ID,
@@ -217,6 +218,7 @@ export function getXAxisFormatter(
 
 type XAxisFormatterFn =
   | TimeFormatter
+  | NumberFormatter
   | StringConstructor
   | ((value: number | string) => string);
 
