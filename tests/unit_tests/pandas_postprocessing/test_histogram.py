@@ -61,6 +61,21 @@ def test_histogram_with_groupby():
     assert result.values.tolist() == [["A", 2, 0, 2, 0, 2], ["B", 0, 2, 0, 2, 0]]
 
 
+def test_histogram_preserves_null_groupby_values():
+    df = DataFrame(
+        {
+            "group": ["A", None, "A", None],
+            "value": [1, 2, 3, 4],
+        }
+    )
+
+    result = histogram(df, "value", ["group"], bins=2)
+
+    assert result.shape == (2, 3)
+    assert result.loc[result["group"] == "A"].iloc[0, 1:].tolist() == [1, 1]
+    assert result.loc[result["group"].isna()].iloc[0, 1:].tolist() == [1, 1]
+
+
 def test_histogram_with_groupby_and_normalize():
     result = histogram(data, "a", ["group"], bins, normalize=True)
     assert result.shape == (2, bins + 1)
