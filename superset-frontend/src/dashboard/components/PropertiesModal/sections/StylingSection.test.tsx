@@ -23,7 +23,18 @@ import {
   waitFor,
 } from 'spec/helpers/testing-library';
 import { SupersetClient, isFeatureEnabled } from '@superset-ui/core';
+import * as resolveCssImportsModule from 'src/dashboard/util/resolveCssImports';
 import StylingSection from './StylingSection';
+
+jest.mock('src/dashboard/util/resolveCssImports', () => ({
+  ...jest.requireActual('src/dashboard/util/resolveCssImports'),
+  resolveCssImports: jest.fn(),
+}));
+
+const mockResolveCssImports =
+  resolveCssImportsModule.resolveCssImports as jest.MockedFunction<
+    typeof resolveCssImportsModule.resolveCssImports
+  >;
 
 // Mock SupersetClient
 jest.mock('@superset-ui/core', () => ({
@@ -273,4 +284,78 @@ describe('CSS Template functionality', () => {
       screen.queryByTestId('dashboard-css-template-field'),
     ).not.toBeInTheDocument();
   });
+});
+
+test('does not show the @import warning for ordinary CSS', () => {
+  render(
+    <StylingSection {...defaultProps} customCss=".header { color: red; }" />,
+  );
+
+  expect(screen.queryByTestId('css-import-warning')).not.toBeInTheDocument();
+});
+
+test('shows a convert button when the CSS contains @import', () => {
+  render(
+    <StylingSection
+      {...defaultProps}
+      customCss="@import url('https://fonts.googleapis.com/css2?family=Inter');"
+    />,
+  );
+
+  expect(screen.getByTestId('css-import-warning')).toBeInTheDocument();
+  expect(screen.getByTestId('convert-css-import-button')).toBeInTheDocument();
+});
+
+test('converting replaces the CSS and reports success', async () => {
+  const onCustomCssChange = jest.fn();
+  mockResolveCssImports.mockResolvedValue({
+    css: "@font-face { font-family: 'Inter'; src: url('x.woff2'); }",
+    resolvedCount: 1,
+    unresolvedUrls: [],
+  });
+
+  render(
+    <StylingSection
+      {...defaultProps}
+      customCss="@import url('https://fonts.googleapis.com/css2?family=Inter');"
+      onCustomCssChange={onCustomCssChange}
+    />,
+  );
+
+  await userEvent.click(screen.getByTestId('convert-css-import-button'));
+
+  await waitFor(() => {
+    expect(onCustomCssChange).toHaveBeenCalledWith(
+      "@font-face { font-family: 'Inter'; src: url('x.woff2'); }",
+    );
+  });
+  expect(screen.getByTestId('css-import-conversion-result')).toHaveTextContent(
+    'Converted 1 @import',
+  );
+});
+
+test('converting reports an unresolved import instead of silently dropping it', async () => {
+  const onCustomCssChange = jest.fn();
+  mockResolveCssImports.mockResolvedValue({
+    css: "@import url('https://no-cors.example.com/x.css');",
+    resolvedCount: 0,
+    unresolvedUrls: ['https://no-cors.example.com/x.css'],
+  });
+
+  render(
+    <StylingSection
+      {...defaultProps}
+      customCss="@import url('https://no-cors.example.com/x.css');"
+      onCustomCssChange={onCustomCssChange}
+    />,
+  );
+
+  await userEvent.click(screen.getByTestId('convert-css-import-button'));
+
+  await waitFor(() => {
+    expect(
+      screen.getByTestId('css-import-conversion-result'),
+    ).toHaveTextContent('no-cors.example.com');
+  });
+  expect(onCustomCssChange).not.toHaveBeenCalled();
 });
