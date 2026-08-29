@@ -32,8 +32,9 @@ S3-compatible stores such as MinIO/LocalStack):
 from __future__ import annotations
 
 import logging
-from collections.abc import Iterator
 from typing import Any
+
+from superset.utils.export_storage import ExportDownload
 
 logger = logging.getLogger(__name__)
 
@@ -79,9 +80,9 @@ class S3ExportStorage:
         """
         self._client().upload_file(local_path, bucket, key)
 
-    def download(self, bucket: str, key: str) -> Iterator[bytes]:
+    def download(self, bucket: str, key: str) -> ExportDownload:
         """
-        Stream an S3 object in chunks.
+        An S3 object as ``(size, chunks)``, existence checked eagerly.
 
         :param bucket: The S3 bucket
         :param key: The S3 object key
@@ -95,4 +96,7 @@ class S3ExportStorage:
             if ex.response.get("Error", {}).get("Code") in ("NoSuchKey", "404"):
                 raise FileNotFoundError(f"s3://{bucket}/{key}") from ex
             raise
-        yield from response["Body"].iter_chunks(chunk_size=DOWNLOAD_CHUNK_BYTES)
+        return ExportDownload(
+            size=response["ContentLength"],
+            chunks=response["Body"].iter_chunks(chunk_size=DOWNLOAD_CHUNK_BYTES),
+        )

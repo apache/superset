@@ -3595,7 +3595,7 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         )
         db.session.commit()
         mock_storage = MagicMock()
-        mock_storage.download.return_value = iter([b"PK-part1-", b"part2"])
+        mock_storage.download.return_value = (14, iter([b"PK-part1-", b"part2"]))
         original_storage_config = current_app.config["EXPORT_STORAGE"]
         current_app.config["EXPORT_STORAGE"] = {"backend": mock_storage}
         try:
@@ -3604,6 +3604,7 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
             current_app.config["EXPORT_STORAGE"] = original_storage_config
         assert rv.status_code == 200
         assert rv.data == b"PK-part1-part2"
+        assert rv.headers["Content-Length"] == "14"
         assert "spreadsheetml" in rv.headers["Content-Type"]
         assert f'filename="{job_id}.xlsx"' in rv.headers["Content-Disposition"]
         mock_storage.download.assert_called_once_with(
@@ -3894,7 +3895,7 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         )
         db.session.commit()
         mock_storage = MagicMock()
-        mock_storage.download.return_value = iter([b"PK-legacy"])
+        mock_storage.download.return_value = (9, iter([b"PK-legacy"]))
         original_storage_config = current_app.config["EXPORT_STORAGE"]
         current_app.config["EXPORT_STORAGE"] = {"backend": mock_storage}
         try:

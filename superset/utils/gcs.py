@@ -33,6 +33,8 @@ from __future__ import annotations
 from collections.abc import Iterator
 from typing import Any
 
+from superset.utils.export_storage import ExportDownload
+
 DOWNLOAD_CHUNK_BYTES = 8 * 1024 * 1024
 
 
@@ -71,9 +73,9 @@ class GCSExportStorage:
         """
         _get_client().bucket(bucket).blob(key).upload_from_filename(local_path)
 
-    def download(self, bucket: str, key: str) -> Iterator[bytes]:
+    def download(self, bucket: str, key: str) -> ExportDownload:
         """
-        Stream a GCS object in chunks.
+        A GCS object as ``(size, chunks)``, existence checked eagerly.
 
         :param bucket: The GCS bucket
         :param key: The GCS blob name
@@ -84,8 +86,14 @@ class GCSExportStorage:
 
         blob = _get_client().bucket(bucket).blob(key)
         try:
+            # Fetches metadata (incl. size) and doubles as the existence check.
+            blob.reload()
+        except gcs_exceptions.NotFound as ex:
+            raise FileNotFoundError(f"gs://{bucket}/{key}") from ex
+
+        def chunks() -> Iterator[bytes]:
             with blob.open("rb", chunk_size=DOWNLOAD_CHUNK_BYTES) as stream:
                 while chunk := stream.read(DOWNLOAD_CHUNK_BYTES):
                     yield chunk
-        except gcs_exceptions.NotFound as ex:
-            raise FileNotFoundError(f"gs://{bucket}/{key}") from ex
+
+        return ExportDownload(size=blob.size, chunks=chunks())
