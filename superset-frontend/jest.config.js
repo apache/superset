@@ -22,7 +22,7 @@ process.env.TZ = 'America/New_York';
 const reporters = ['default'];
 
 // HTML reporter is not used on CI so skipping its generation for saving time
-if (process.env.CI) {
+if (!process.env.CI) {
   reporters.push([
     './node_modules/jest-html-reporter',
     {
