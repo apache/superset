@@ -321,3 +321,39 @@ def test_signal_listener_stop_signals_and_joins(mocker: MockerFixture) -> None:
 
     assert stop_event.is_set()
     thread.join.assert_called_once_with(timeout=2.0)
+
+
+def test_signal_listener_stop_wakes_before_join(mocker: MockerFixture) -> None:
+    """stop() nudges the wake (so a blocked read returns) before joining."""
+    thread = mocker.MagicMock(name="thread")
+    thread.is_alive.side_effect = [True, False]
+    stop_event = threading.Event()
+    wake = mocker.MagicMock(name="wake")
+
+    SignalListener(thread, stop_event, wake=wake).stop()
+
+    assert stop_event.is_set()
+    wake.assert_called_once_with()
+    thread.join.assert_called_once_with(timeout=2.0)
+
+
+def test_listen_stop_wakes_blocked_backend_read(
+    app_context: None, mocker: MockerFixture
+) -> None:
+    """With a backend, stop() writes a wake entry so a listener parked in a
+    blocking XREAD returns at once instead of waiting out the block interval."""
+    backend = mocker.MagicMock(name="backend")
+    backend.stream_last_id.return_value = "0-0"
+    backend.xread.return_value = []  # no entries → the loop keeps reading
+    mocker.patch.object(CoordinationService, "get_backend", return_value=backend)
+
+    listener = CoordinationService.listen_for_signal(
+        "ch", check=lambda: False, on_signal=mocker.MagicMock(), poll_interval=0.01
+    )
+    listener.stop()
+
+    # The wake nudge is a stream write (via notify) carrying the wake marker.
+    assert any(
+        call.args[:2] == ("ch", {"m": "__wake__"})
+        for call in backend.xadd.call_args_list
+    )

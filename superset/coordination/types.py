@@ -20,7 +20,7 @@ from __future__ import annotations
 
 import logging
 import threading
-from typing import TYPE_CHECKING
+from typing import Callable, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from superset.coordination.cache_backend import (
@@ -38,22 +38,30 @@ class SignalListener:
     """Handle for a background listener started by
     :meth:`~superset.coordination.base.CoordinationService.listen_for_signal`.
 
-    Wraps the daemon thread and its stop flag. :meth:`stop` sets the flag and joins;
-    the listener's bounded blocking read means it notices the flag within one short
-    tick.
+    Wraps the daemon thread and its stop flag. :meth:`stop` sets the flag and,
+    when a ``wake`` is provided, nudges the backend stream so a listener parked in
+    a blocking read returns at once rather than waiting out its block interval —
+    keeping task teardown from paying the full read timeout.
     """
 
     def __init__(
         self,
         thread: threading.Thread,
         stop_event: threading.Event,
+        wake: "Callable[[], None] | None" = None,
     ) -> None:
         self._thread = thread
         self._stop_event = stop_event
+        self._wake = wake
 
     def stop(self) -> None:
         """Signal the listener to stop and wait briefly for the thread to finish."""
         self._stop_event.set()
+        # Wake a listener blocked in a backend read so it observes the stop flag
+        # immediately (the no-backend loop already wakes on the event). Best-effort:
+        # a failed nudge just falls back to the bounded join below.
+        if self._wake is not None:
+            self._wake()
         if self._thread.is_alive():
             self._thread.join(timeout=2.0)
             if self._thread.is_alive():
