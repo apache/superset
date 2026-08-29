@@ -103,10 +103,13 @@ secret rotation, set the websocket server's `previousJwtSecret` /
 `WEBSOCKET_JWT_SECRET`. The server is bundled in the official Superset image
 and launched via an alternate entrypoint — no separate image is required:
 `docker run <superset-image> /app/docker/entrypoints/run-websocket.sh` (or the
-opt-in `websocket` profile in `docker compose`). It now consumes Redis Pub/Sub
-channels (`entity-changes:*` broadcast nudges, `realtime:<channel_id>`
-per-principal messages) instead of the removed async-events streams; see
-`superset-websocket/README.md`.
+opt-in `websocket` profile in `docker compose`). It now **subscribes** to the
+Redis Pub/Sub channels `entity-changes:*` (broadcast entity-change nudges) and
+`task-status` (per-principal task-status messages) instead of the removed
+async-events streams, and republishes to browsers on `realtime:<channel_id>`
+after fanout — so a Redis ACL for the websocket server must allow
+`entity-changes:*` and `task-status` (omitting `task-status` prevents task
+updates from reaching clients); see `superset-websocket/README.md`.
 
 Orphaned GTF tasks (a worker killed mid-execution) are now detected and cleaned
 up server-side. While a worker holds a task it writes a liveness heartbeat

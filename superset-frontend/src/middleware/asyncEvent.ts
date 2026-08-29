@@ -152,6 +152,18 @@ const cancelTask = (taskId: string) => {
   });
 };
 
+// Cancel only tasks no local waiter still needs. A SHARED task can back several
+// charts for the same principal through a single backend subscriber, so
+// cancelling one chart while another local waiter still awaits the same task id
+// would tell the server the last subscriber left and abort work the other chart
+// needs. Call *after* removing the aborting waiter (or before registering it),
+// so a task id still present in the registry means another waiter depends on it.
+const cancelUnwaitedTasks = (taskIds: string[]) => {
+  taskIds.forEach(taskId => {
+    if (!waitersByTaskId.has(taskId)) cancelTask(taskId);
+  });
+};
+
 // Drop a waiter from the registry entry of every task it was awaiting, so a
 // settled/aborted waiter never leaks and completion of one task can't re-touch it.
 const unregister = (waiter: Waiter) => {
@@ -313,7 +325,7 @@ export const waitForAsyncData = async <T = unknown[]>(
   // waiter exists and be dropped.
   await new Promise<void>((resolve, reject) => {
     if (signal?.aborted) {
-      taskIds.forEach(cancelTask);
+      cancelUnwaitedTasks(taskIds);
       reject(new DOMException('Aborted', 'AbortError'));
       return;
     }
@@ -328,7 +340,7 @@ export const waitForAsyncData = async <T = unknown[]>(
     if (signal) {
       waiter.onAbort = () => {
         unregister(waiter);
-        taskIds.forEach(cancelTask);
+        cancelUnwaitedTasks(taskIds);
         reject(new DOMException('Aborted', 'AbortError'));
       };
       signal.addEventListener('abort', waiter.onAbort, { once: true });
