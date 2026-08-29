@@ -137,9 +137,11 @@ export default function transformProps(
       groupby: groupbyLabels,
       coltypeMapping,
     });
+    // Use a unique key by combining the label with a unique identifier or index
+    const uniqueKey = `${label}__${JSON.stringify(groupbyLabels.map(col => datum[col]))}`;
     return {
       ...acc,
-      [label]: groupbyLabels.map(col => datum[col] as string),
+      [uniqueKey]: groupbyLabels.map(col => datum[col] as string),
     };
   }, {});
   const selectedValues = (filterState.selectedValues || []).reduce(

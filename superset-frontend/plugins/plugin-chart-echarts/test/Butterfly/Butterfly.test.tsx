@@ -16,15 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render } from "@testing-library/react";
-import { ChartProps } from "@superset-ui/core";
-import { supersetTheme } from "@apache-superset/core/theme";
-import Butterfly from "../../src/Butterfly/Butterfly";
-import transformProps from "../../src/Butterfly/transformProps";
-import { EchartsButterflyChartProps } from "../../src/Butterfly/types";
-import Echart from "../../src/components/Echart";
+import { render } from '@testing-library/react';
+import { ChartProps } from '@superset-ui/core';
+import { supersetTheme } from '@apache-superset/core/theme';
+import Butterfly from '../../src/Butterfly/Butterfly';
+import transformProps from '../../src/Butterfly/transformProps';
+import { EchartsButterflyChartProps } from '../../src/Butterfly/types';
+import Echart from '../../src/components/Echart';
 
-jest.mock("../../src/components/Echart", () => ({
+jest.mock('../../src/components/Echart', () => ({
   __esModule: true,
   default: jest.fn(() => null),
 }));
@@ -32,8 +32,8 @@ jest.mock("../../src/components/Echart", () => ({
 const mockedEchart = jest.mocked(Echart);
 
 const data = [
-  { category: "A", left_sum: 10, right_sum: 25 },
-  { category: "B", left_sum: 5, right_sum: 19 },
+  { category: 'A', left_sum: 10, right_sum: 25 },
+  { category: 'B', left_sum: 5, right_sum: 19 },
 ];
 
 function setup() {
@@ -41,9 +41,9 @@ function setup() {
   const setDataMask = jest.fn();
   const chartProps = new ChartProps({
     formData: {
-      groupby: ["category"],
-      left_metric: "left_sum",
-      right_metric: "right_sum",
+      groupby: ['category'],
+      left_metric: 'left_sum',
+      right_metric: 'right_sum',
     },
     width: 800,
     height: 600,
@@ -73,11 +73,11 @@ beforeEach(() => {
   mockedEchart.mockClear();
 });
 
-test("context menu exposes drill to detail for the selected category", () => {
+test('context menu exposes drill to detail for the selected category', () => {
   const { eventHandlers, onContextMenu } = setup();
 
   eventHandlers.contextmenu({
-    name: "A",
+    name: 'A',
     event: { stop: jest.fn(), event: { clientX: 10, clientY: 20 } },
   });
 
@@ -95,19 +95,19 @@ test("context menu exposes drill to detail for the selected category", () => {
   ]);
 });
 
-test("click emits cross-filter for the selected category", () => {
+test('click emits cross-filter for the selected category', () => {
   const { eventHandlers, setDataMask } = setup();
 
-  eventHandlers.click({ name: "B" });
+  eventHandlers.click({ name: 'B' });
 
   expect(setDataMask).toHaveBeenCalledWith(
     expect.objectContaining({
       extraFormData: {
-        filters: [{ col: "category", op: "IN", val: ["B"] }],
+        filters: [{ col: 'category', op: 'IN', val: ['B'] }],
       },
       filterState: {
-        value: [["B"]],
-        selectedValues: ["B"],
+        value: [['B']],
+        selectedValues: ['B'],
       },
     }),
   );
