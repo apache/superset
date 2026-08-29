@@ -142,7 +142,7 @@ export interface ExplorePageState {
     hiddenFormData?: Partial<QueryFormData>;
     slice: Slice;
     controlsTransferred: string[];
-    standalone: boolean;
+    standalone: number;
     force: boolean;
     common: JsonObject;
     compatibleMetrics?: string[] | null;

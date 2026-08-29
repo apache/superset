@@ -154,6 +154,7 @@ class DashboardStandaloneMode(Enum):
 
 class ChartStandaloneMode(Enum):
     HIDE_NAV = "true"
+    HIDE_NAV_SHOW_CONTROLS = 2
     SHOW_NAV = 0
 
 

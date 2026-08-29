@@ -117,7 +117,7 @@ jest.mock('../ExploreChartPanel', () => ({
     standalone,
     onQuery,
   }: {
-    standalone?: boolean;
+    standalone?: number;
     onQuery?: () => void;
   }) => {
     const { useEffect, useRef } = jest.requireActual('react');
@@ -131,7 +131,7 @@ jest.mock('../ExploreChartPanel', () => ({
     }, [onQuery]);
 
     return (
-      <div data-test={standalone ? 'standalone-app' : 'explore-chart-panel'} />
+      <div data-test={standalone === 1 ? 'standalone-app' : 'explore-chart-panel'} />
     );
   },
 }));
@@ -289,10 +289,20 @@ test('renders chart in standalone mode', () => {
   const { queryByTestId } = renderWithRouter({
     initialState: {
       ...reduxState,
-      explore: { ...reduxState.explore, standalone: true },
+      explore: { ...reduxState.explore, standalone: 1 },
     },
   });
   expect(queryByTestId('standalone-app')).toBeInTheDocument();
+});
+
+test('renders full editor in standalone=2 mode (hide nav, show controls)', () => {
+  const { queryByTestId } = renderWithRouter({
+    initialState: {
+      ...reduxState,
+      explore: { ...reduxState.explore, standalone: 2 },
+    },
+  });
+  expect(queryByTestId('standalone-app')).not.toBeInTheDocument();
 });
 
 test('generates a form_data param with datasource_id when mounting with existing key', async () => {
