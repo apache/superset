@@ -81,7 +81,13 @@ jobs:
               {"dialect": "postgres", "timeout": 10},
               {"dialect": "mysql", "timeout": 10},
               {"dialect": "clickhouse", "timeout": 10},
-              {"dialect": "starrocks", "timeout": 15}
+              {"dialect": "starrocks", "timeout": 15},
+              {"dialect": "databend", "timeout": 10},
+              {"dialect": "risingwave", "timeout": 10},
+              {"dialect": "firebird", "timeout": 10},
+              {"dialect": "ydb", "timeout": 10},
+              {"dialect": "oceanbase", "timeout": 20, "nightly_only": true},
+              {"dialect": "vertica", "timeout": 20, "nightly_only": true}
             ]
         run: |
           if [[ "${{ github.event_name }}" == "schedule" || "${{ github.event_name }}" == "workflow_dispatch" ]]; then
@@ -124,6 +130,25 @@ jobs:
         # instead, only for this leg of the matrix.
         if: matrix.dialect == 'db2'
         run: uv pip install --system -e .[db2]
+      - name: Install oceanbase driver (oceanbase_py)
+        # oceanbase_py pins sqlalchemy-utils>=0.38.3,<0.39, which conflicts
+        # outright with Superset's own sqlalchemy-utils==0.42.1 pin -- kept
+        # out of the baseline dev install for the same reason as db2 above.
+        # --no-deps sidesteps that pin entirely: this job only needs
+        # oceanbase_py's dialect module importable, not its sqlalchemy-utils
+        # dependency satisfied, since nothing here calls into it.
+        if: matrix.dialect == 'oceanbase'
+        run: uv pip install --system --no-deps -e .[oceanbase]
+      - name: Install Firebird client library (libfbclient2)
+        # sqlalchemy-firebird's driver (firebird-driver) is a pure-Python
+        # ctypes wrapper (its wheel is py3-none-any) that dynamically loads
+        # the native Firebird client library from the host at import time
+        # -- it doesn't bundle that library itself, so it has to come from
+        # the system package manager, only for this leg of the matrix.
+        if: matrix.dialect == 'firebird'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libfbclient2
       - name: Run testcontainers db_engine_specs tests (${{ matrix.dialect }})
         # nightly_only dialects are already excluded from the matrix itself
         # on pull_request runs (see the compute-matrix job above), so this
