@@ -37,6 +37,8 @@ from superset.daos.exceptions import DAOCreateFailedError
 from superset.stats_logger import BaseStatsLogger
 from superset.tasks.guest import get_guest_subscriber_key_for
 from superset.tasks.locks import task_lock
+from superset.tasks.registry import TaskRegistry
+from superset.tasks.subscription import get_request_tab_id, principal_channel
 from superset.tasks.utils import generate_random_task_key, get_active_dedup_key
 from superset.utils.core import get_user_id
 from superset.utils.decorators import on_error, transaction
@@ -123,6 +125,11 @@ class SubmitTaskCommand(BaseCommand):
         # Embedded guests have no ab_user id; they subscribe by a token-derived
         # key so TaskFilter can grant them visibility of their own tasks.
         guest_key = get_guest_subscriber_key_for(user_id)
+        # Opaque per-client (e.g. browser-tab) id, when the caller advertised one.
+        # Passed to the task type's subscription policy so it can ref-count clients
+        # of a single principal (see superset.tasks.subscription); None for
+        # non-interactive callers, which keep principal-grain behavior.
+        tab_id = get_request_tab_id()
 
         # Build dedup_key for lock
         dedup_key = get_active_dedup_key(
@@ -135,7 +142,9 @@ class SubmitTaskCommand(BaseCommand):
         # Acquire the lock around the whole transaction (see docstring): it is
         # released only after _create_or_join commits.
         with task_lock(dedup_key):
-            return self._create_or_join(task_type, task_key, scope, user_id, guest_key)
+            return self._create_or_join(
+                task_type, task_key, scope, user_id, guest_key, tab_id
+            )
 
     @transaction(on_error=partial(on_error, reraise=TaskCreateFailedError))
     def _create_or_join(
@@ -145,6 +154,7 @@ class SubmitTaskCommand(BaseCommand):
         scope: str,
         user_id: int | None,
         guest_key: str | None,
+        tab_id: str | None,
     ) -> tuple["Task", bool]:
         """Find an existing task for ``dedup_key`` and join it, or create a new one.
 
@@ -159,7 +169,10 @@ class SubmitTaskCommand(BaseCommand):
 
         # Check for an existing task under the lock; join it if present.
         if existing := TaskDAO.find_by_task_key(task_type, task_key, scope, user_id):
-            return self._join_existing(existing, user_id, guest_key, task_key), False
+            return (
+                self._join_existing(existing, user_id, guest_key, task_key, tab_id),
+                False,
+            )
 
         # Create the new task. The task lock serializes concurrent submits for
         # this dedup_key, but as a backstop — the lock has a fixed TTL and could
@@ -191,10 +204,16 @@ class SubmitTaskCommand(BaseCommand):
             if existing is None:
                 raise
             current_app.config["STATS_LOGGER"].incr("gtf.task.create_race_joined")
-            return self._join_existing(existing, user_id, guest_key, task_key), False
+            return (
+                self._join_existing(existing, user_id, guest_key, task_key, tab_id),
+                False,
+            )
         except DAOCreateFailedError as ex:
             raise TaskCreateFailedError() from ex
 
+        # Record the creator as a client of the task for the subscription policy
+        # (the framework already added the creator's principal subscriber row).
+        self._apply_on_subscribe(task, task_type, user_id, guest_key, tab_id)
         current_app.config["STATS_LOGGER"].incr("gtf.task.create")
         return task, True  # is_new=True: created new task
 
@@ -204,6 +223,7 @@ class SubmitTaskCommand(BaseCommand):
         user_id: int | None,
         guest_key: str | None,
         task_key: str,
+        tab_id: str | None,
     ) -> "Task":
         """Join an existing task: bump its dedupe count and subscribe the caller.
 
@@ -235,7 +255,36 @@ class SubmitTaskCommand(BaseCommand):
             logger.debug(
                 "Deduplication hit for task: %s (user_id=%s)", task_key, user_id
             )
+        # Record this client under the caller's principal. The principal may
+        # already be subscribed (a second tab of the same user), which is exactly
+        # the case the policy ref-counts so a later cancel from one tab does not
+        # abort the shared task the other tab is still awaiting.
+        self._apply_on_subscribe(
+            existing, existing.task_type, user_id, guest_key, tab_id
+        )
         return existing
+
+    def _apply_on_subscribe(
+        self,
+        task: "Task",
+        task_type: str,
+        user_id: int | None,
+        guest_key: str | None,
+        tab_id: str | None,
+    ) -> None:
+        """Invoke the task type's subscription policy, if any, for this subscribe.
+
+        The framework's principal-grain subscriber row is already written by the
+        caller; this lets the task type additionally record the calling client
+        (e.g. a browser tab). No-op for task types without a policy or for callers
+        with no resolvable principal. Runs inside the submit lock + transaction.
+        """
+        policy = TaskRegistry.get_subscription_policy(task_type)
+        if policy is None:
+            return
+        if (principal := principal_channel(user_id, guest_key)) is None:
+            return
+        policy.on_subscribe(task, principal=principal, client_ref=tab_id)
 
     def _persist_dependencies(self, task: "Task", dao: type["TaskDAO"]) -> None:
         """

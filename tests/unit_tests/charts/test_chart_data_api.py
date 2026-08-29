@@ -89,6 +89,13 @@ def test_should_run_async_requires_async_mode_flag() -> None:
     with (
         patch("superset.charts.data.api.is_feature_enabled", return_value=True),
         patch("superset.charts.data.api.cache_manager") as cache_manager,
+        # A subscribe-able identity is required for async; an authenticated user
+        # satisfies it (the identity requirement is covered on its own below).
+        patch("superset.charts.data.api.get_user_id", return_value=1),
+        patch(
+            "superset.charts.data.api.get_current_guest_subscriber_key",
+            return_value=None,
+        ),
     ):
         # A real (non-null) DATA cache backend so async is viable.
         cache_manager.data_cache.cache = MagicMock()
@@ -117,6 +124,58 @@ def test_should_run_async_requires_async_mode_flag() -> None:
     # Feature flag off → always sync.
     with patch("superset.charts.data.api.is_feature_enabled", return_value=False):
         assert api._should_run_async({"async_mode": True}, qc) is False
+
+
+def test_should_run_async_requires_subscribeable_identity() -> None:
+    """Async needs a user or guest identity to subscribe/observe the task.
+
+    A fully anonymous request (no login, no guest token) can neither poll nor
+    cancel the scheduled task, so it runs synchronously instead. An embedded
+    guest — which has a token-derived subscriber key — keeps async delivery.
+    """
+    from flask_caching.backends import NullCache  # noqa: F401
+
+    api = ChartDataRestApi()
+    qc = MagicMock()
+    qc.result_format = ChartDataResultFormat.JSON
+    qc.result_type = ChartDataResultType.FULL
+    qc.get_cache_timeout.return_value = 300
+
+    with (
+        patch("superset.charts.data.api.is_feature_enabled", return_value=True),
+        patch("superset.charts.data.api.cache_manager") as cache_manager,
+    ):
+        cache_manager.data_cache.cache = MagicMock()
+
+        # Fully anonymous → sync.
+        with (
+            patch("superset.charts.data.api.get_user_id", return_value=None),
+            patch(
+                "superset.charts.data.api.get_current_guest_subscriber_key",
+                return_value=None,
+            ),
+        ):
+            assert api._should_run_async({"async_mode": True}, qc) is False
+
+        # Authenticated user → async.
+        with (
+            patch("superset.charts.data.api.get_user_id", return_value=1),
+            patch(
+                "superset.charts.data.api.get_current_guest_subscriber_key",
+                return_value=None,
+            ),
+        ):
+            assert api._should_run_async({"async_mode": True}, qc) is True
+
+        # Embedded guest (no user id, but a subscriber key) → async.
+        with (
+            patch("superset.charts.data.api.get_user_id", return_value=None),
+            patch(
+                "superset.charts.data.api.get_current_guest_subscriber_key",
+                return_value="guest:abc",
+            ),
+        ):
+            assert api._should_run_async({"async_mode": True}, qc) is True
 
 
 def test_get_data_sets_g_form_data_without_dashboard_filter() -> None:

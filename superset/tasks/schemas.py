@@ -275,6 +275,17 @@ class TaskCancelRequestSchema(Schema):
             "Only applicable for shared tasks with multiple subscribers."
         },
     )
+    tab_id = fields.String(
+        required=False,
+        allow_none=True,
+        load_default=None,
+        metadata={
+            "description": "Opaque per-client (browser tab) id. For task types with "
+            "a per-client subscription policy (e.g. chart-data), a cancel from one "
+            "tab detaches only that tab; the task keeps running while the "
+            "principal has other tabs watching it. Ignored otherwise."
+        },
+    )
 
 
 class TaskCancelResponseSchema(Schema):
@@ -283,8 +294,9 @@ class TaskCancelResponseSchema(Schema):
     message = fields.String(metadata={"description": "Success or status message"})
     action = fields.String(
         metadata={
-            "description": "The action taken: 'aborted' (task terminated) or "
-            "'unsubscribed' (user removed from shared task)"
+            "description": "The action taken: 'aborted' (task terminated), "
+            "'unsubscribed' (principal removed from a shared task), or 'detached' "
+            "(one client/tab of the principal stopped watching; the task continues)"
         }
     )
     task = fields.Nested(TaskResponseSchema, allow_none=True)

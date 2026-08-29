@@ -49,6 +49,7 @@ import { Logger, LOG_ACTIONS_LOAD_CHART } from 'src/logger/LogUtils';
 import { allowCrossDomain as domainShardingEnabled } from 'src/utils/hostNamesConfig';
 import { updateDataMask } from 'src/dataMask/actions';
 import { AsyncJob, waitForAsyncData } from 'src/middleware/asyncEvent';
+import { getTabId } from 'src/hooks/useTabId';
 import {
   resolveAsyncMode,
   selectAsyncModeOverride,
@@ -460,8 +461,12 @@ const v1ChartDataRequest = async (
     allowDomainSharding,
   }).toString();
 
+  // In async mode, send the tab id so the backend can ref-count this tab as a
+  // consumer of the (shared) chart-data task — a later cancel/navigate-away from
+  // this tab then detaches only this tab rather than aborting a task another tab
+  // of the same user is still awaiting.
   const body = JSON.stringify(
-    asyncMode ? { ...payload, async_mode: true } : payload,
+    asyncMode ? { ...payload, async_mode: true, tab_id: getTabId() } : payload,
   );
 
   const querySettings: QuerySettings = {

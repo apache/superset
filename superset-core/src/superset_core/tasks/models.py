@@ -120,11 +120,28 @@ class Task(CoreModel):
         """
         raise NotImplementedError("Property will be replaced during initialization")
 
+    @property
+    def properties_dict(self) -> "TaskProperties":
+        """
+        Get the parsed properties as a sparse ``TaskProperties`` dict.
+
+        The canonical read accessor for runtime state and execution config
+        (progress, error info, the internal ``private`` bucket). Always use
+        ``.get()`` since only explicitly-set keys are present.
+
+        Host implementations will replace this property during initialization.
+
+        :returns: Parsed ``TaskProperties`` dict
+        """
+        raise NotImplementedError("Property will be replaced during initialization")
+
     def update_properties(self, updates: "TaskProperties") -> None:
         """
         Update specific properties fields (merge semantics).
 
-        Only updates fields present in the updates dict.
+        Only updates fields present in the updates dict. The ``private`` subtree
+        is merged recursively (its ``framework`` and ``task`` namespaces merge
+        independently), so a write to one namespace never clobbers the other.
 
         Host implementations will replace this method during initialization.
 
@@ -132,6 +149,22 @@ class Task(CoreModel):
 
         Example:
             task.update_properties({"is_abortable": True})
+        """
+        raise NotImplementedError("Method will be replaced during initialization")
+
+    def update_task_private(self, updates: dict[str, Any]) -> None:
+        """
+        Merge keys into the task-owned ``private["task"]`` namespace.
+
+        The freeform, task-type-specific internal namespace (isolated from the
+        framework-owned ``private["framework"]`` keys) for handles a task type
+        needs to persist but that are not task output — e.g. an engine query
+        cancel handle, or a subscription policy's per-client bookkeeping. Never
+        surfaced to user-facing API payloads except in debug mode.
+
+        Host implementations will replace this method during initialization.
+
+        :param updates: Keys to merge into ``private["task"]``
         """
         raise NotImplementedError("Method will be replaced during initialization")
 

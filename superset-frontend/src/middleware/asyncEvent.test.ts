@@ -144,7 +144,12 @@ test('aborting cancels the tasks and rejects with AbortError', async () => {
 
   await expect(promise).rejects.toThrow('Aborted');
   expect(refetch).not.toHaveBeenCalled();
-  expect(fetchMock.callHistory.calls(CANCEL_ENDPOINT)).toHaveLength(1);
+  const cancelCalls = fetchMock.callHistory.calls(CANCEL_ENDPOINT);
+  expect(cancelCalls).toHaveLength(1);
+  // The cancel carries this tab's id so the backend detaches only this tab.
+  const cancelBody = JSON.parse(String(cancelCalls[0].options.body));
+  expect(typeof cancelBody.tab_id).toBe('string');
+  expect(cancelBody.tab_id.length).toBeGreaterThan(0);
 });
 
 test('aborting one chart does not cancel a shared task another chart still awaits', async () => {

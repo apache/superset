@@ -56,6 +56,7 @@ from superset.exceptions import QueryObjectValidationError, SupersetSecurityExce
 from superset.extensions import cache_manager, event_logger
 from superset.models.sql_lab import Query
 from superset.tasks.async_queries import submit_chart_data_query_tasks
+from superset.tasks.guest import get_current_guest_subscriber_key
 from superset.utils import json
 from superset.utils.core import (
     create_zip,
@@ -361,6 +362,15 @@ class ChartDataRestApi(ChartRestApi):
         refused for it and the request runs synchronously — otherwise every chart
         would schedule tasks, succeed, and then loop on an uncacheable re-request.
 
+        Async also requires a subscribe-able identity — an authenticated user or
+        an embedded guest — because the task is observed/cancelled through a
+        per-principal subscription (see ``superset.tasks.subscription``). A fully
+        anonymous request (public dashboard viewed directly, no login and no guest
+        token) has no principal, so it would schedule a task it could never poll
+        or cancel; those requests run synchronously instead. Public async delivery
+        is supported via guest tokens (embedded dashboards), which do have a
+        principal.
+
         The eligibility check reads :meth:`QueryContext.get_cache_timeout`, which
         only resolves the explicitly configured chart/dataset/database TTL. That is
         deliberately the un-floored value: only an explicit
@@ -375,6 +385,10 @@ class ChartDataRestApi(ChartRestApi):
             and query_context.result_type == ChartDataResultType.FULL
             and query_context.get_cache_timeout() != CACHE_DISABLED_TIMEOUT
             and not isinstance(cache_manager.data_cache.cache, NullCache)
+            and (
+                get_user_id() is not None
+                or get_current_guest_subscriber_key() is not None
+            )
         )
 
     def _run_async(

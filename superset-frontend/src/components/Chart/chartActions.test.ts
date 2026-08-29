@@ -599,6 +599,13 @@ describe('chart actions', () => {
         const history = fetchMock.callHistory.calls(`glob:*${MOCK_URL}*`);
         expect(history).toHaveLength(2);
         expect(String(history[1].options.body)).not.toContain('async_mode');
+
+        // The initial async submit carries this tab's id, so the backend can
+        // ref-count the tab as a consumer of the (shared) chart-data task.
+        const initialBody = JSON.parse(String(history[0].options.body));
+        expect(initialBody.async_mode).toBe(true);
+        expect(typeof initialBody.tab_id).toBe('string');
+        expect(initialBody.tab_id.length).toBeGreaterThan(0);
       });
 
       test('re-issues synchronously after async completion, preserving force', async () => {

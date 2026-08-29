@@ -146,6 +146,37 @@ class TestTaskDecorator:
             def bad_task(options, arg1: int) -> None:  # noqa: ARG001
                 pass
 
+    def test_decorator_registers_subscription_policy(self):
+        """A subscription policy passed to @task is carried on the wrapper and
+        resolvable from the registry by task type."""
+        from superset.tasks.subscription import TaskSubscriptionPolicy
+
+        class _Policy(TaskSubscriptionPolicy):
+            def on_subscribe(self, task, *, principal, client_ref):  # noqa: ARG002
+                pass
+
+            def on_unsubscribe(self, task, *, principal, client_ref):  # noqa: ARG002
+                return True
+
+        policy = _Policy()
+
+        @task(name="policy_task", scope=TaskScope.SHARED, subscription_policy=policy)
+        def my_task() -> None:
+            pass
+
+        assert my_task.subscription_policy is policy
+        assert TaskRegistry.get_subscription_policy("policy_task") is policy
+
+    def test_decorator_without_policy_defaults_to_none(self):
+        """A task without a subscription policy keeps principal-grain behavior."""
+
+        @task(name="no_policy_task")
+        def my_task() -> None:
+            pass
+
+        assert my_task.subscription_policy is None
+        assert TaskRegistry.get_subscription_policy("no_policy_task") is None
+
 
 class TestTaskWrapperMergeOptions:
     """Tests for TaskWrapper._merge_options()"""

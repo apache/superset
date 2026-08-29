@@ -35,6 +35,8 @@ from superset.extensions import security_manager
 from superset.stats_logger import BaseStatsLogger
 from superset.tasks.guest import get_guest_subscriber_key_for
 from superset.tasks.locks import task_lock
+from superset.tasks.registry import TaskRegistry
+from superset.tasks.subscription import principal_channel
 from superset.tasks.utils import get_active_dedup_key
 from superset.utils.core import get_user_id
 from superset.utils.decorators import on_error, transaction
@@ -63,17 +65,24 @@ class CancelTaskCommand(BaseCommand):
     we only fetch the task once, then validate permissions on the fetched data.
     """
 
-    def __init__(self, task_uuid: UUID, force: bool = False):
+    def __init__(self, task_uuid: UUID, force: bool = False, tab_id: str | None = None):
         """
         Initialize the cancel command.
 
         :param task_uuid: UUID of the task to cancel
         :param force: If True, force abort even with multiple subscribers (admin only)
+        :param tab_id: Opaque per-client (e.g. browser-tab) id, when the caller
+            advertised one. Passed to the task type's subscription policy so a
+            cancel from one client of a principal detaches only that client rather
+            than aborting a SHARED task the principal's other clients still await
+            (see ``superset.tasks.subscription``). ``None`` keeps principal-grain
+            behavior.
         """
         self._task_uuid = task_uuid
         self._force = force
+        self._tab_id = tab_id
         self._action_taken: str = (
-            "cancelled"  # Will be set to 'aborted' or 'unsubscribed'
+            "cancelled"  # Will be set to 'aborted', 'unsubscribed', or 'detached'
         )
         self._should_publish_abort: bool = False
 
@@ -221,11 +230,39 @@ class CancelTaskCommand(BaseCommand):
         :returns: The updated task model
         """
         user_id = get_user_id()
+        force_abort = is_admin and self._force
 
-        # Determine action based on task scope and force flag
+        # Per-client subscription policy pre-gate. A task type may track a finer
+        # grain than the principal (e.g. one browser tab per client); consult it
+        # first so a cancel from one client of a principal detaches only that
+        # client, keeping the (SHARED) task running for the principal's other
+        # clients. Skipped for an admin force-abort, which must terminate the task
+        # regardless of how many clients are watching.
+        if not force_abort and (
+            policy := TaskRegistry.get_subscription_policy(task.task_type)
+        ):
+            guest_key = get_guest_subscriber_key_for(user_id)
+            principal = principal_channel(user_id, guest_key)
+            if principal is not None and not policy.on_unsubscribe(
+                task, principal=principal, client_ref=self._tab_id
+            ):
+                # One client detached but the principal still has other clients on
+                # this task: keep it subscribed and running.
+                self._action_taken = "detached"
+                stats_logger: BaseStatsLogger = current_app.config["STATS_LOGGER"]
+                stats_logger.incr("gtf.task.detach")
+                logger.info("Client detached from shared task: %s", task.uuid)
+                return task
+
+        # Principal-grain decision (unchanged): abort for an admin force, a
+        # private/system task, or the last remaining subscriber; otherwise
+        # unsubscribe the calling principal. When a policy is active we only reach
+        # here once the principal's last client is gone (or for an admin force),
+        # so ``subscriber_count <= 1`` still correctly covers private/single-tab
+        # tasks.
         should_abort = (
             # Admin with force flag always aborts
-            (is_admin and self._force)
+            force_abort
             # Private tasks always abort (only one user)
             or task.is_private
             # System tasks always abort (admin only anyway)

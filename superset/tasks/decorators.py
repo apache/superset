@@ -44,6 +44,7 @@ from superset.tasks.utils import generate_random_task_key
 
 if TYPE_CHECKING:
     from superset.models.tasks import Task
+    from superset.tasks.subscription import TaskSubscriptionPolicy
 
 logger = logging.getLogger(__name__)
 
@@ -62,6 +63,7 @@ def task(
     name: str | None = None,
     scope: TaskScope = TaskScope.PRIVATE,
     timeout: int | None = None,
+    subscription_policy: "TaskSubscriptionPolicy | None" = None,
 ) -> Callable[[Callable[P, R]], "TaskWrapper[P]"]: ...
 
 
@@ -71,6 +73,7 @@ def task(
     name: str | None = None,
     scope: TaskScope = TaskScope.PRIVATE,
     timeout: int | None = None,
+    subscription_policy: "TaskSubscriptionPolicy | None" = None,
 ) -> Callable[[Callable[P, R]], "TaskWrapper[P]"] | "TaskWrapper[P]":
     """
     Decorator to register a task with default scope.
@@ -97,6 +100,12 @@ def task(
         timeout: Optional timeout in seconds. When the timeout is reached,
                  abort handlers are triggered if registered. Can be overridden
                  at call time via TaskOptions(timeout=...).
+        subscription_policy: Optional per-client subscription policy. The
+                 framework's subscriptions are principal-grain; a policy refines
+                 that with a finer per-client grain (e.g. one browser tab), so a
+                 cancel from one client of a principal does not abort a SHARED
+                 task another client of the same principal is still awaiting. See
+                 ``superset.tasks.subscription.TaskSubscriptionPolicy``.
 
     Usage:
         # Private task (default scope) - no parentheses
@@ -164,10 +173,12 @@ def task(
             )
 
         # Register task
-        TaskRegistry.register(task_name, f)
+        TaskRegistry.register(task_name, f, subscription_policy=subscription_policy)
 
         # Create wrapper with schedule() method, default options, scope, and timeout
-        wrapper = TaskWrapper(task_name, f, default_options, scope, timeout)
+        wrapper = TaskWrapper(
+            task_name, f, default_options, scope, timeout, subscription_policy
+        )
 
         # Preserve signature for introspection
         wrapper.__signature__ = sig  # type: ignore[attr-defined]
@@ -205,12 +216,14 @@ class TaskWrapper(Generic[P]):
         default_options: TaskOptions,
         scope: TaskScope = TaskScope.PRIVATE,
         default_timeout: int | None = None,
+        subscription_policy: "TaskSubscriptionPolicy | None" = None,
     ) -> None:
         self.name = name
         self.func = func
         self.default_options = default_options
         self.scope = scope
         self.default_timeout = default_timeout
+        self.subscription_policy = subscription_policy
         self.__name__ = func.__name__
         self.__doc__ = func.__doc__
         self.__module__ = func.__module__

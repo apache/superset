@@ -34,6 +34,7 @@ import {
 } from '@superset-ui/core';
 import { logging } from '@apache-superset/core/utils';
 import getBootstrapData from 'src/utils/getBootstrapData';
+import { getTabId } from 'src/hooks/useTabId';
 import {
   connectRealtime,
   subscribeRealtime,
@@ -145,8 +146,14 @@ const cancelTask = (taskId: string) => {
   // Best-effort task abort/unsubscribe. This can prevent pending work from
   // starting, but chart tasks do not cancel an underlying warehouse query after
   // execution starts. Failures are non-fatal: the client has stopped waiting.
+  //
+  // Send this tab's id so the backend detaches only this tab from a shared task:
+  // if another tab of the same user is still watching it, the task keeps running
+  // and only aborts once its last tab leaves.
   SupersetClient.post({
     endpoint: `/api/v1/task/${taskId}/cancel`,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ tab_id: getTabId() }),
   }).catch(error => {
     logging.warn('Failed to cancel task', taskId, error);
   });
