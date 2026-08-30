@@ -702,6 +702,21 @@ def freeze_value(value: Any) -> str:
     return json.dumps(_strip_overridable_keys(value), sort_keys=True)
 
 
+def _ensure_list(value: Any) -> list[Any]:
+    """
+    Ensure value is returned as a list.
+
+    Scalar values (strings, numbers, dicts) are wrapped in a single-element list.
+    Empty strings or None return an empty list.
+    """
+    if value is None or value == "":
+        return []
+    if isinstance(value, (list, tuple, set)):
+        return [item for item in value if item is not None and item != ""]
+    return [value]
+
+
+
 # Frontend-only markers that ``normalizeTimeColumn`` adds when it synthesizes a
 # chart's x-axis into a ``BASE_AXIS`` column. Like ``timeGrain`` they decorate
 # the column without changing which data is queried, so they must not count as
@@ -1052,11 +1067,14 @@ def _collect_stored_orderby_entries(
     Frozen saved orderby entries a guest may replay exactly.
     """
     allowed: set[str] = {
-        freeze_value(entry) for entry in stored_chart.params_dict.get("orderby") or []
+        freeze_value(entry)
+        for entry in _ensure_list(stored_chart.params_dict.get("orderby"))
     }
     if stored_query_context:
         for query in stored_query_context.get("queries") or []:
-            allowed.update(freeze_value(entry) for entry in query.get("orderby") or [])
+            allowed.update(
+                freeze_value(entry) for entry in _ensure_list(query.get("orderby"))
+            )
     return allowed
 
 
@@ -1064,11 +1082,7 @@ def _metric_control_values(value: Any) -> list[Any]:
     """
     Return non-empty values from a metric-valued control.
     """
-    if value is None or value == "":
-        return []
-    if isinstance(value, (list, tuple)):
-        return [item for item in value if item is not None and item != ""]
-    return [value]
+    return _ensure_list(value)
 
 
 def _add_frozen_metric_control_values(allowed: set[str], value: Any) -> None:
@@ -1506,20 +1520,6 @@ _STORED_COLUMN_PARAMS = (
     "x_axis",
     "granularity_sqla",
 )
-
-
-def _ensure_list(value: Any) -> list[Any]:
-    """
-    Ensure value is returned as a list.
-
-    Scalar values (strings, numbers, dicts) are wrapped in a single-element list.
-    Empty strings or None return an empty list.
-    """
-    if value is None or value == "":
-        return []
-    if isinstance(value, (list, tuple, set)):
-        return list(value)
-    return [value]
 
 
 def _stored_param_values(params: dict[str, Any], keys: tuple[str, ...]) -> set[str]:
