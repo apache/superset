@@ -362,3 +362,33 @@ def test_consumer_policy_without_client_ref_is_principal_grain() -> None:
     policy.on_subscribe(task, principal="user:5", client_ref=None)
     assert _consumers(task) == []
     assert policy.on_unsubscribe(task, principal="user:5", client_ref=None) is True
+
+
+def test_consumer_policy_no_client_ref_clears_that_principals_tab_entries() -> None:
+    """A principal-grain unsubscribe drops all of that principal's tab entries so
+    later status events aren't routed to a principal that has left, while other
+    principals' entries are preserved."""
+    from superset.tasks.async_queries import ChartQueryConsumerPolicy
+
+    policy = ChartQueryConsumerPolicy()
+    task = _make_task()
+    policy.on_subscribe(task, principal="user:5", client_ref="A")
+    policy.on_subscribe(task, principal="user:5", client_ref="B")
+    policy.on_subscribe(task, principal="user:7", client_ref="C")
+
+    assert policy.on_unsubscribe(task, principal="user:5", client_ref=None) is True
+    assert _consumers(task) == ["user:7:C"]
+
+
+def test_consumer_policy_routing_channels_are_the_consumers() -> None:
+    """Per-tab realtime routing keys are exactly the recorded consumer entries;
+    empty -> None so fanout falls back to principal-grain."""
+    from superset.tasks.async_queries import ChartQueryConsumerPolicy
+
+    policy = ChartQueryConsumerPolicy()
+    task = _make_task()
+    assert policy.routing_channels(task) is None  # no consumers yet
+
+    policy.on_subscribe(task, principal="user:5", client_ref="A")
+    policy.on_subscribe(task, principal="user:7", client_ref="B")
+    assert policy.routing_channels(task) == ["user:5:A", "user:7:B"]

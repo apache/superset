@@ -48,6 +48,33 @@ function isStorageAvailable() {
 // Fallback id for when storage is unavailable: stable for the page lifetime.
 let fallbackTabId: string | undefined;
 
+// Listeners notified when this tab's id *changes* after first use — e.g. a
+// duplicated tab is reassigned a fresh id on a TAB_ID_DENIED collision. Consumers
+// that bake the tab id into long-lived state (the realtime socket registers its
+// per-tab channel from it) subscribe to re-sync.
+const tabIdChangeListeners = new Set<() => void>();
+
+/**
+ * Subscribe to tab-id changes. Returns an unsubscribe function. The listener
+ * fires when the id is reassigned (collision resolution), not on first creation.
+ */
+export function subscribeTabIdChange(listener: () => void): () => void {
+  tabIdChangeListeners.add(listener);
+  return () => {
+    tabIdChangeListeners.delete(listener);
+  };
+}
+
+function notifyTabIdChange() {
+  tabIdChangeListeners.forEach(listener => {
+    try {
+      listener();
+    } catch (error) {
+      // A listener error must not break tab-id coordination.
+    }
+  });
+}
+
 function createTabId(): string {
   let lastTabId;
   try {
@@ -127,6 +154,9 @@ export function useTabId() {
           getChannel().postMessage(message);
         } else if (messageEvent.data.type === 'TAB_ID_DENIED') {
           setTabId(createTabId());
+          // The id was reassigned; tell consumers that pinned the old one (e.g.
+          // the realtime socket's per-tab channel) to re-sync.
+          notifyTabIdChange();
         }
       }
     };

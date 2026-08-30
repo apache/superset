@@ -51,7 +51,10 @@ def _make_task(
         task.update_framework_private({"celery_task_id": celery_task_id})
     if cancel_handle is not None:
         database_id, cancel_query_id = cancel_handle
-        task.update_properties(
+        # The engine cancel handle lives in the task-owned ``private["task"]``
+        # namespace (where the executor's ``set_cancellation`` writes it and the
+        # reaper reads it), not at the top level of ``properties``.
+        task.update_task_private(
             {"cancel_database_id": database_id, "cancel_query_id": cancel_query_id}
         )
     db.session.commit()

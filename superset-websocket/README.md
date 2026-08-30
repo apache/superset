@@ -43,7 +43,8 @@ Realtime events are published to Redis **Pub/Sub** by the Superset Flask app
 (`superset/tasks/manager.py`). Pub/Sub is intentionally lossy (fire-and-forget):
 a missed message must be reconciled by a frontend poll or REST refetch.
 Broadcast messages therefore carry only nudges; targeted task-status messages
-carry a server-side `subscribers` routing field derived from task subscribers.
+carry a server-side `channels` routing field naming the browser channels to
+deliver to.
 
 The server tails two Pub/Sub channels/patterns:
 
@@ -54,16 +55,23 @@ The server tails two Pub/Sub channels/patterns:
    and re-fetch just the affected rows through the authorized API. Each client
    filters to the ids it renders.
 2. **Tier 2 - targeted task-status fanout** (`task-status`). Published once per
-   task status transition with `{task_id, status, subscribers}`. Each subscriber
-   is a principal identity such as `{principal_type: "user", sub: "42"}` or
-   `{principal_type: "guest", sub: "guest:<hmac>"}`. The websocket server strips
-   `subscribers` and forwards `{task_id, status}` to each matching
-   `realtime:<channel_id>` browser channel.
+   task status transition with `{task_id, status, channels}`. `channels` is a
+   list of server-computed routing keys; the websocket server strips it and
+   forwards `{task_id, status}` to each `realtime:<key>` browser channel. Keys
+   are principal-grain by default — `user:<id>` or `guest:<hmac>`, reaching all
+   of a principal's tabs — but a task type may narrow them to a **per-tab**
+   channel (`user:<id>:<tabId>`) so only the tab watching a task is notified
+   (async chart-data does this). A socket is bound to its per-tab channel only
+   when the browser advertises a `tab_id` on the connect URL (see Connection);
+   it is always also reachable on its principal channel.
 
 The server forwards each browser message as `{channel, payload}`. Entity-change
 messages preserve the Redis channel (`entity-changes:task`). Task-status
-messages use the derived browser channel (`realtime:user:42` or
-`realtime:guest:<hmac>`) and do not expose the subscriber list to the browser.
+messages use the server-computed browser channel (`realtime:user:42`,
+`realtime:guest:<hmac>`, or `realtime:user:42:<tabId>`) and do not expose the
+routing list to the browser. The websocket server treats each routing key as
+opaque; correctness of the keys is the producer's responsibility (Superset
+builds every key from an authorized identity).
 
 ### Connection
 
@@ -80,12 +88,16 @@ Superset mints the token only after the request principal has `can_read` on the
 principal identity. The permission itself is not serialized into the token: a
 valid token signed with the websocket secret is the proof that Superset already
 authorized the transport.
-The socket is then bound to the `channel` claim, which is how task-status fanout
-selects recipient sockets. A principal may have multiple sockets (e.g. several
-browser tabs); all matching messages are sent to all of them. Because permission
-is checked when Superset mints the JWT and when the websocket server accepts the
-upgrade, revocation after minting is bounded by the token lifetime; the Superset
-default is 15 minutes.
+The socket is bound to the `channel` claim (its principal channel), which is how
+principal-grain task-status fanout selects recipient sockets. A principal may
+have multiple sockets (e.g. several browser tabs); a message to the principal
+channel is sent to all of them. When a browser also advertises a `tab_id` on the
+connect URL (`wss://…/?tab_id=<id>`), its socket is additionally bound to a
+per-tab channel (`<channel>:<tab_id>`, derived from the authorized principal
+channel so it can never cross principals), letting the producer target one tab.
+Because permission is checked when Superset mints the JWT and when the websocket
+server accepts the upgrade, revocation after minting is bounded by the token
+lifetime; the Superset default is 15 minutes.
 
 During websocket JWT secret rotation, the websocket service can accept both the
 current key (`jwtSecret` / `JWT_SECRET`) and one previous verify-only key

@@ -2983,10 +2983,15 @@ GLOBAL_ASYNC_QUERIES_DEFAULT = True
 #     (e.g. entity-changes:task) for lossy list-view activity (opaque entity
 #     ids only), and
 #   - targeted task-status pub/sub messages for the dashboard chart-data path,
-#     fanned out by the websocket server to JWT-bound principal sockets.
-# The JWT authenticates the socket connection and binds it to its channel; the
-# server delivers targeted task-status events only to matching principal
-# sockets. Set a strong random WEBSOCKET_JWT_SECRET (>= 32 bytes) in production.
+#     fanned out by the websocket server to the routing keys the producer names.
+#     Keys are principal-grain by default (all of a principal's tabs); a task
+#     type may narrow them to a per-tab channel so only the tab watching a task
+#     is notified.
+# The JWT authenticates the socket connection and binds it to its principal
+# channel; a browser may also advertise a tab id on the connect URL to bind a
+# per-tab channel (derived from the authorized principal channel). The server
+# delivers targeted task-status events only to the named channels. Set a strong
+# random WEBSOCKET_JWT_SECRET (>= 32 bytes) in production.
 # The websocket server can be configured with a previous validation secret
 # during rotations; the Flask app always mints new cookies with the current key.
 # The websocket server validates the signed token at connection time and

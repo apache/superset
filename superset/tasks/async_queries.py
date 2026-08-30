@@ -112,18 +112,30 @@ class ChartQueryConsumerPolicy(TaskSubscriptionPolicy):
     def on_unsubscribe(
         self, task: "CoreTask", *, principal: str, client_ref: str | None
     ) -> bool:
-        if client_ref is None:
-            # No per-tab id: fall back to principal-grain (proceed to unsubscribe).
-            return True
-        entry = f"{principal}:{client_ref}"
         consumers = self._consumers(task)
-        remaining = [existing for existing in consumers if existing != entry]
+        prefix = f"{principal}:"
+        if client_ref is None:
+            # Principal-grain unsubscribe (no tab id): the whole principal is
+            # leaving, so drop ALL of its recorded tab entries. Otherwise a later
+            # status transition would still route to this principal's tab
+            # channels (via routing_channels) after it unsubscribed.
+            remaining = [c for c in consumers if not c.startswith(prefix)]
+        else:
+            entry = f"{principal}:{client_ref}"
+            remaining = [c for c in consumers if c != entry]
         if remaining != consumers:
             task.update_task_private({CONSUMERS_PRIVATE_KEY: remaining})
         # Proceed to unsubscribe the principal only once it has no tab left on
         # this task; a surviving tab of the same principal keeps it subscribed.
-        prefix = f"{principal}:"
-        return not any(existing.startswith(prefix) for existing in remaining)
+        return not any(c.startswith(prefix) for c in remaining)
+
+    def routing_channels(self, task: "CoreTask") -> list[str] | None:
+        # The consumer entries are exactly the per-tab realtime routing keys
+        # (`"<principal>:<tab_id>"` -> `realtime:<principal>:<tab_id>`), so a
+        # task-status message reaches only the tabs watching this task. Empty ->
+        # None so a chart task with no recorded tab (all detached, or a no-tab
+        # caller) falls back to principal-grain fanout instead of dropping it.
+        return self._consumers(task) or None
 
 
 def _resolve_user(user_id: int | None, guest_token: "GuestToken | None") -> User:
