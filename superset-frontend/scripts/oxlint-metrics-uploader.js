@@ -17,7 +17,7 @@
  * under the License.
  */
 import { fileURLToPath } from 'node:url';
-import { runOxlintAndProcess } from './internal/oxlint-metrics-uploader';
+import { runOxlintAndProcess } from './internal/oxlint-metrics-uploader.js';
 
 const __filename = fileURLToPath(import.meta.url);
 

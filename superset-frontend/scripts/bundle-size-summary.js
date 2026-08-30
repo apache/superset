@@ -27,7 +27,7 @@
 // Usage: node scripts/bundle-size-summary.js <path-to-stats.json>
 
 import { fileURLToPath } from 'node:url';
-import { main } from './internal/bundle-size-summary';
+import { main } from './internal/bundle-size-summary.js';
 
 const __filename = fileURLToPath(import.meta.url);
 
