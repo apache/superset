@@ -72,6 +72,17 @@ jobs:
             timeout: 10
           - dialect: mongodb
             timeout: 10
+          - dialect: postgres
+            timeout: 10
+          - dialect: mysql
+            timeout: 10
+          - dialect: clickhouse
+            timeout: 10
+          # StarRocks' allin1-ubuntu image brings up both FE and BE in one
+          # container, which is a heavier bring-up than a single-process
+          # database -- wider margin until real CI data says otherwise.
+          - dialect: starrocks
+            timeout: 15
     timeout-minutes: ${{ matrix.timeout }}
     env:
       PYTHONPATH: ${{ github.workspace }}

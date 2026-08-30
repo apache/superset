@@ -26,10 +26,13 @@ real execution can.
 Each call site keeps its own test function (and dialect-specific docstring)
 so failures still report against the right module; this only factors out
 the identical table setup/assert body, via an optional post-insert hook for
-dialects (CrateDB) that need one.
+dialects (CrateDB) that need one, and an optional extra-table-args hook for
+dialects (ClickHouse) whose CREATE TABLE requires a schema item a plain
+Column/primary key can't express.
 """
 
 from collections.abc import Callable
+from typing import Any
 
 from sqlalchemy import Column, insert, Integer, MetaData, select, Table as SATable
 from sqlalchemy.engine import Connection, Engine
@@ -38,6 +41,7 @@ from sqlalchemy.engine import Connection, Engine
 def assert_paginated_query_returns_correct_rows_in_order(
     engine: Engine,
     after_insert: Callable[[Connection], None] | None = None,
+    extra_table_args: tuple[Any, ...] = (),
 ) -> None:
     metadata = MetaData()
     t = SATable(
@@ -49,6 +53,7 @@ def assert_paginated_query_returns_correct_rows_in_order(
         # is off), so the id=0 row below would silently get auto-assigned 1,
         # colliding with the explicit id=1 row in the same batch insert.
         Column("id", Integer, primary_key=True, autoincrement=False),
+        *extra_table_args,
     )
     metadata.create_all(engine)
     with engine.begin() as conn:
