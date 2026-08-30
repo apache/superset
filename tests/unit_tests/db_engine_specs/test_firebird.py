@@ -104,3 +104,22 @@ def test_convert_dttm(
     )
 
     assert_convert_dttm(spec, target_type, expected_result, dttm)
+
+
+def test_firebird_properties() -> None:
+    from superset.db_engine_specs.firebird import FirebirdEngineSpec
+
+    assert FirebirdEngineSpec.engine == "firebird"
+    assert FirebirdEngineSpec.engine_name == "Firebird"
+    assert FirebirdEngineSpec.default_driver == "fdb"
+
+
+def test_firebird_metadata() -> None:
+    from superset.db_engine_specs.firebird import FirebirdEngineSpec
+
+    metadata = FirebirdEngineSpec.metadata
+    assert "Firebird is an open-source relational database" in metadata["description"]
+    assert metadata["logo"] == "firebird.png"
+    assert "sqlalchemy-firebird" in metadata["pypi_packages"]
+    assert metadata["default_port"] == 3050
+
