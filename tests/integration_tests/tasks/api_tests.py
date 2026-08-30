@@ -267,6 +267,11 @@ class TestTaskApi(SupersetTestCase):
             gamma = self.get_user("gamma")
             uri = f"{self.TASK_API_BASE}/related/subscribers"
 
+            # Log out before each login: the test client reuses one session, and
+            # POST /login/ while already authenticated redirects without switching
+            # users, so the second login would otherwise leave the request scoped
+            # to the first user.
+            self.logout()
             self.login(GAMMA_USERNAME)
             rv = self.client.get(uri)
             assert rv.status_code == 200
@@ -276,6 +281,7 @@ class TestTaskApi(SupersetTestCase):
             assert gamma.id in gamma_ids
             assert admin.id not in gamma_ids
 
+            self.logout()
             self.login(ADMIN_USERNAME)
             rv = self.client.get(uri)
             admin_ids = {
