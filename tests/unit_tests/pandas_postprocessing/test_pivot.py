@@ -1051,3 +1051,89 @@ def test_pivot_preserves_null_index_value_datetime_timezone_aware() -> None:
         f"Expected '{NULL_STRING}' in pivot index; got {result.index.tolist()}"
     )
     assert result.loc[NULL_STRING, "v"] == 99
+
+
+def test_pivot_preserves_null_index_value_categorical_already_in_categories() -> None:
+    """A categorical index that already has NULL_STRING in its categories
+    must not fail or attempt duplicate category insertion and must fill NULLs.
+    """
+    df = DataFrame(
+        {
+            "row": pd.Categorical(["r1", None, "r2"], categories=["r1", "r2", NULL_STRING]),
+            "v": [10, 99, 30],
+        }
+    )
+    result = pivot(
+        df=df,
+        index=["row"],
+        aggregates={"v": {"operator": "sum"}},
+    )
+    assert NULL_STRING in result.index, (
+        f"Expected '{NULL_STRING}' in pivot index; got {result.index.tolist()}"
+    )
+    assert result.loc[NULL_STRING, "v"] == 99
+
+
+def test_pivot_categorical_column_with_null() -> None:
+    """A categorical groupby column containing NULL values must add the
+    column_fill_value to categories and preserve '<NULL>' in MultiIndex columns.
+    """
+    df = DataFrame(
+        {
+            "row": ["r1", "r2", "r3"],
+            "col": pd.Categorical(["c1", None, "c2"]),
+            "v": [10, 99, 30],
+        }
+    )
+    result = pivot(
+        df=df,
+        index=["row"],
+        columns=["col"],
+        aggregates={"v": {"operator": "sum"}},
+    )
+    assert ("v", NULL_STRING) in result.columns
+    assert result.loc["r2", ("v", NULL_STRING)] == 99
+
+
+def test_pivot_categorical_column_already_in_categories() -> None:
+    """A categorical groupby column that already includes the fill value in its
+    categories must properly fill NULLs without error.
+    """
+    df = DataFrame(
+        {
+            "row": ["r1", "r2", "r3"],
+            "col": pd.Categorical(["c1", None, "c2"], categories=["c1", "c2", "CUSTOM_NULL"]),
+            "v": [10, 99, 30],
+        }
+    )
+    result = pivot(
+        df=df,
+        index=["row"],
+        columns=["col"],
+        column_fill_value="CUSTOM_NULL",
+        aggregates={"v": {"operator": "sum"}},
+    )
+    assert ("v", "CUSTOM_NULL") in result.columns
+    assert result.loc["r2", ("v", "CUSTOM_NULL")] == 99
+
+
+def test_pivot_preserves_null_numeric_index_value() -> None:
+    """A numeric index containing NaN must be converted/filled with NULL_STRING
+    so that the NaN row is preserved through pivot_table().
+    """
+    df = DataFrame(
+        {
+            "num_idx": [1.0, np.nan, 2.0],
+            "v": [10, 99, 30],
+        }
+    )
+    result = pivot(
+        df=df,
+        index=["num_idx"],
+        aggregates={"v": {"operator": "sum"}},
+    )
+    assert NULL_STRING in result.index, (
+        f"Expected '{NULL_STRING}' in pivot index; got {result.index.tolist()}"
+    )
+    assert result.loc[NULL_STRING, "v"] == 99
+
