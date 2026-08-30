@@ -33,3 +33,17 @@ def test_mariadb_inherits_extended_aggregations() -> None:
     assert MariaDBEngineSpec.get_extended_aggregation_func("VAR_SAMP") is not None
     # Same as MySQL, MEDIAN is not supported.
     assert MariaDBEngineSpec.get_extended_aggregation_func("MEDIAN") is None
+
+
+def test_mariadb_properties() -> None:
+    assert MariaDBEngineSpec.engine == "mariadb"
+    assert MariaDBEngineSpec.engine_name == "MariaDB"
+
+
+def test_mariadb_metadata() -> None:
+    metadata = MariaDBEngineSpec.metadata
+    assert "MariaDB is a community-developed fork of MySQL" in metadata["description"]
+    assert metadata["logo"] == "mariadb.png"
+    assert "mysqlclient" in metadata["pypi_packages"]
+    assert metadata["default_port"] == 3306
+
