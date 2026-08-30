@@ -218,3 +218,21 @@ def test_get_function_names_with_db() -> None:
     assert "is_prime" in functions
 
     mock_database.get_df.assert_called_once_with("SHOW FUNCTIONS IN `db``1`")
+
+
+def test_singlestore_properties() -> None:
+    from superset.db_engine_specs.mysql import MySQLEngineSpec
+
+    assert SingleStoreSpec.engine == "singlestoredb"
+    assert SingleStoreSpec.engine_name == "SingleStore"
+    assert issubclass(SingleStoreSpec, MySQLEngineSpec)
+    assert SingleStoreSpec.supports_dynamic_schema is True
+
+
+def test_singlestore_metadata() -> None:
+    metadata = SingleStoreSpec.metadata
+    assert "SingleStore" in metadata["description"]
+    assert metadata["logo"] == "singlestore.png"
+    assert "singlestoredb" in metadata["pypi_packages"]
+    assert metadata["default_port"] == 3306
+
