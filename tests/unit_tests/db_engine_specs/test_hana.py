@@ -43,3 +43,25 @@ def test_convert_dttm(
     from superset.db_engine_specs.hana import HanaEngineSpec as spec  # noqa: N813
 
     assert_convert_dttm(spec, target_type, expected_result, dttm)
+
+
+def test_hana_properties() -> None:
+    from superset.db_engine_specs.hana import HanaEngineSpec
+    from superset.db_engine_specs.postgres import PostgresBaseEngineSpec
+
+    assert HanaEngineSpec.engine == "hana"
+    assert HanaEngineSpec.engine_name == "SAP HANA"
+    assert issubclass(HanaEngineSpec, PostgresBaseEngineSpec)
+    assert HanaEngineSpec.max_column_name_length == 30
+    assert HanaEngineSpec._extended_aggregations == {}
+
+
+def test_hana_metadata() -> None:
+    from superset.db_engine_specs.hana import HanaEngineSpec
+
+    metadata = HanaEngineSpec.metadata
+    assert "SAP HANA is an in-memory relational database" in metadata["description"]
+    assert metadata["logo"] == "sap-hana.png"
+    assert "sqlalchemy-hana" in metadata["pypi_packages"]
+    assert metadata["default_port"] == 30015
+
