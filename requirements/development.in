@@ -16,7 +16,7 @@
 # specific language governing permissions and limitations
 # under the License.
 #
--e .[development,bigquery,cockroachdb,crate,druid,duckdb,elasticsearch,fastmcp,gevent,gsheets,mssql,mysql,oracle,postgres,presto,prophet,trino,thumbnails]
+-e .[development,bigquery,clickhouse,cockroachdb,crate,druid,duckdb,elasticsearch,fastmcp,gevent,gsheets,monetdb,mongodb,mssql,mysql,oracle,postgres,presto,prophet,starrocks,trino,thumbnails]
 -e ./superset-extensions-cli[test]
 # testcontainers-backed db_engine_specs tests (tests/testcontainers/) --
 # see .github/workflows/testcontainers.yml
@@ -26,4 +26,15 @@
 # including it here breaks the multi-platform (amd64+arm64) dev Docker
 # image build. The testcontainers CI job installs it on demand, only for
 # the db2 matrix leg -- see .github/workflows/testcontainers.yml.
-testcontainers[cockroachdb,cratedb,db2,mssql,oracle,trino]>=4.15.0,<5
+#
+# mariadb/timescaledb/yugabytedb need no testcontainers extra of their own:
+# they reuse the postgres/mysql container classes pointed at a different
+# image, and psycopg2-binary/mysqlclient are already pulled in above via
+# the postgres/mysql extras. Plain postgres/mysql obviously need nothing
+# extra either. clickhouse and starrocks also need no testcontainers extra:
+# ClickHouseContainer has no driver import of its own (clickhouse-connect,
+# pulled in above via the clickhouse extra, is all the test needs), and
+# StarRocks has no dedicated testcontainers module at all -- its test uses
+# a generic DockerContainer plus the same mysqlclient the mysql extra
+# already provides.
+testcontainers[cockroachdb,cratedb,mongodb,mssql,mysql,oracle,postgres,trino]>=4.15.0,<5
