@@ -248,6 +248,9 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
   useEffect(() => {
     // eslint-disable-next-line consistent-return
     async function getDataMaskApplied() {
+      if (!readyToRender) {
+        return null;
+      }
       const permalinkKey = getUrlParam(URL_PARAMS.permalinkKey);
       const nativeFilterKeyValue = getUrlParam(URL_PARAMS.nativeFiltersKey);
       const isOldRison = getUrlParam(URL_PARAMS.nativeFilters);
@@ -373,32 +376,30 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
         }
       }
 
-      if (readyToRender) {
-        if (!isDashboardHydrated.current) {
-          isDashboardHydrated.current = true;
-        }
-        dispatch(
-          hydrateDashboard({
-            history,
-            dashboard: dashboard!,
-            charts: charts!,
-            activeTabs: activeTabs ?? null,
-            dataMask,
-            chartStates: chartStates ?? null,
-          } as unknown as Parameters<typeof hydrateDashboard>[0]),
-        );
-        dispatch(clearDashboardHistory());
+      if (!isDashboardHydrated.current) {
+        isDashboardHydrated.current = true;
+      }
+      dispatch(
+        hydrateDashboard({
+          history,
+          dashboard: dashboard!,
+          charts: charts!,
+          activeTabs: activeTabs ?? null,
+          dataMask,
+          chartStates: chartStates ?? null,
+        } as unknown as Parameters<typeof hydrateDashboard>[0]),
+      );
+      dispatch(clearDashboardHistory());
 
-        // Scroll to anchor element if specified in permalink state
-        if (anchor) {
-          // Use setTimeout to ensure the DOM has been updated after hydration
-          setTimeout(() => {
-            const element = document.getElementById(anchor);
-            if (element) {
-              element.scrollIntoView({ behavior: 'smooth' });
-            }
-          }, 0);
-        }
+      // Scroll to anchor element if specified in permalink state
+      if (anchor) {
+        // Use setTimeout to ensure the DOM has been updated after hydration
+        setTimeout(() => {
+          const element = document.getElementById(anchor);
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth' });
+          }
+        }, 0);
       }
       return null;
     }
@@ -456,7 +457,8 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
   const activeFilters = useSelector(selectActiveFilters);
 
   useEffect(() => {
-    if (!id || hydratedDashboardId !== id) return;
+    if (!id || hydratedDashboardId !== id || !isDashboardHydrated.current)
+      return;
     // Persist only entries that correspond to configured native filters.
     // This avoids saving chart customization or other transient dataMask
     // entries that are not part of the user's filter selections.
