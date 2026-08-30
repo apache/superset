@@ -42,9 +42,13 @@ class ArcEngineSpec(BaseEngineSpec):
 
     metadata = {
         "description": "Arc is a data platform with multiple connection options.",
+        "logo": "arc.png",
+        "homepage_url": "https://arc.net",
         "categories": [DatabaseCategory.OTHER, DatabaseCategory.PROPRIETARY],
         "pypi_packages": ["arc-superset-arrow"],
         "connection_string": ("arc+arrow://{api_key}@{hostname}:{port}/{database}"),
+        "default_port": 443,
+        "docs_url": "https://docs.arcdata.io",
         "parameters": {
             "api_key": "Arc API key",
             "hostname": "Arc hostname",
