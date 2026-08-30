@@ -42,3 +42,47 @@ def test_convert_dttm(
     )
 
     assert_convert_dttm(spec, target_type, expected_result, dttm)
+
+
+def test_dynamodb_properties() -> None:
+    from superset.db_engine_specs.dynamodb import DynamoDBEngineSpec
+
+    assert DynamoDBEngineSpec.engine == "dynamodb"
+    assert DynamoDBEngineSpec.engine_name == "Amazon DynamoDB"
+
+
+def test_dynamodb_metadata() -> None:
+    from superset.db_engine_specs.dynamodb import DynamoDBEngineSpec
+
+    metadata = DynamoDBEngineSpec.metadata
+    assert "Amazon DynamoDB is a serverless NoSQL database" in metadata["description"]
+    assert metadata["logo"] == "aws.png"
+    assert "pydynamodb" in metadata["pypi_packages"]
+
+
+def test_epoch_to_dttm() -> None:
+    from superset.db_engine_specs.dynamodb import DynamoDBEngineSpec
+
+    assert (
+        DynamoDBEngineSpec.epoch_to_dttm().format(col="ts")
+        == "datetime(ts, 'unixepoch')"
+    )
+
+
+@pytest.mark.parametrize(
+    "time_grain,expected",
+    [
+        (None, "ts"),
+        ("PT1S", "DATETIME(STRFTIME('%Y-%m-%dT%H:%M:%S', ts))"),
+        ("PT1M", "DATETIME(STRFTIME('%Y-%m-%dT%H:%M:00', ts))"),
+        ("PT1H", "DATETIME(STRFTIME('%Y-%m-%dT%H:00:00', ts))"),
+        ("P1D", "DATETIME(ts, 'start of day')"),
+        ("P1M", "DATETIME(ts, 'start of month')"),
+        ("P1Y", "DATETIME(ts, 'start of year')"),
+    ],
+)
+def test_time_grain_expressions(time_grain: str | None, expected: str) -> None:
+    from superset.db_engine_specs.dynamodb import DynamoDBEngineSpec
+
+    assert DynamoDBEngineSpec._time_grain_expressions[time_grain].format(col="ts") == expected
+
