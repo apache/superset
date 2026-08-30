@@ -35,3 +35,18 @@ def test_timescaledb_inherits_extended_aggregations() -> None:
         TimescaleDBEngineSpec.get_extended_aggregation_func("STDDEV_SAMP") is not None
     )
     assert TimescaleDBEngineSpec.get_extended_aggregation_func("VAR_SAMP") is not None
+
+
+def test_timescaledb_properties() -> None:
+    assert TimescaleDBEngineSpec.engine == "timescaledb"
+    assert TimescaleDBEngineSpec.engine_name == "TimescaleDB"
+    assert TimescaleDBEngineSpec.default_driver == "psycopg2"
+
+
+def test_timescaledb_metadata() -> None:
+    metadata = TimescaleDBEngineSpec.metadata
+    assert "TimescaleDB is an open-source relational database" in metadata["description"]
+    assert metadata["logo"] == "timescale.png"
+    assert "psycopg2" in metadata["pypi_packages"]
+    assert metadata["default_port"] == 5432
+
