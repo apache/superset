@@ -1508,6 +1508,20 @@ _STORED_COLUMN_PARAMS = (
 )
 
 
+def _ensure_list(value: Any) -> list[Any]:
+    """
+    Ensure value is returned as a list.
+
+    Scalar values (strings, numbers, dicts) are wrapped in a single-element list.
+    Empty strings or None return an empty list.
+    """
+    if value is None or value == "":
+        return []
+    if isinstance(value, (list, tuple, set)):
+        return list(value)
+    return [value]
+
+
 def _stored_param_values(params: dict[str, Any], keys: tuple[str, ...]) -> set[str]:
     """
     Frozen values stored under any of the given chart params keys.
