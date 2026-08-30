@@ -55,17 +55,32 @@ interface ParsedThemeJson {
   [key: string]: unknown;
 }
 
+const isPlainObject = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
 /** Attempts to parse `jsonData` as a theme config object; returns `null`
  * (never throws) when the JSON is empty, mid-edit, or otherwise invalid --
  * matching the JSON-parse error handling already used elsewhere in
- * ThemeModal (`formatJsonData`, `isValidJson`). */
+ * ThemeModal (`formatJsonData`, `isValidJson`). A `token` that parses but
+ * isn't itself a plain object (a string, array, or number) also counts as
+ * invalid here, since `patchThemeJsonToken` below spreads it -- and
+ * spreading a string or array silently rewrites it into numeric-keyed
+ * junk rather than the token map callers expect. */
 export const tryParseThemeJson = (
   jsonData: string | undefined,
 ): ParsedThemeJson | null => {
   if (!jsonData?.trim()) return null;
   try {
     const parsed = JSON.parse(jsonData);
-    return parsed && typeof parsed === 'object' ? parsed : null;
+    if (!isPlainObject(parsed)) return null;
+    if (
+      'token' in parsed &&
+      parsed.token !== undefined &&
+      !isPlainObject(parsed.token)
+    ) {
+      return null;
+    }
+    return parsed;
   } catch {
     return null;
   }
