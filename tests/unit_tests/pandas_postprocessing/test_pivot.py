@@ -982,3 +982,72 @@ def test_pivot_preserves_null_index_value_categorical_with_columns() -> None:
         f"Expected '{NULL_STRING}' in pivot index; got {result.index.tolist()}"
     )
     assert result.loc[NULL_STRING, ("v", NULL_STRING)] == 99
+
+
+def test_pivot_preserves_null_index_value_datetime() -> None:
+    """A datetime index column containing NaT/NULL must not raise a TypeError
+    when filled and must be preserved as '<NULL>' in the pivot output.
+
+    Regression for #43547: datetime64 columns cannot store strings directly;
+    converting NaT-containing datetime columns to string ensures NaT keys
+    survive pivot_table() without dtype/sort errors.
+    """
+    df = DataFrame(
+        {
+            "dttm": to_datetime(["2019-01-01", None, "2019-01-03"]),
+            "v": [10, 99, 30],
+        }
+    )
+    result = pivot(
+        df=df,
+        index=["dttm"],
+        aggregates={"v": {"operator": "sum"}},
+    )
+    assert NULL_STRING in result.index, (
+        f"Expected '{NULL_STRING}' in pivot index; got {result.index.tolist()}"
+    )
+    assert result.loc[NULL_STRING, "v"] == 99
+
+
+def test_pivot_preserves_null_index_value_datetime_with_columns() -> None:
+    """A datetime index column containing NaT/NULL with a columns groupby
+    must preserve '<NULL>' in the MultiIndex output without type errors.
+    """
+    df = DataFrame(
+        {
+            "dttm": to_datetime(["2019-01-01", None, "2019-01-03"]),
+            "col": ["c1", "c1", "c2"],
+            "v": [10, 99, 30],
+        }
+    )
+    result = pivot(
+        df=df,
+        index=["dttm"],
+        columns=["col"],
+        aggregates={"v": {"operator": "sum"}},
+    )
+    assert NULL_STRING in result.index, (
+        f"Expected '{NULL_STRING}' in pivot index; got {result.index.tolist()}"
+    )
+    assert result.loc[NULL_STRING, ("v", "c1")] == 99
+
+
+def test_pivot_preserves_null_index_value_datetime_timezone_aware() -> None:
+    """A timezone-aware datetime index containing NaT must preserve '<NULL>'
+    without dtype or timezone conversion errors.
+    """
+    df = DataFrame(
+        {
+            "dttm": to_datetime(["2019-01-01", None, "2019-01-03"], utc=True),
+            "v": [10, 99, 30],
+        }
+    )
+    result = pivot(
+        df=df,
+        index=["dttm"],
+        aggregates={"v": {"operator": "sum"}},
+    )
+    assert NULL_STRING in result.index, (
+        f"Expected '{NULL_STRING}' in pivot index; got {result.index.tolist()}"
+    )
+    assert result.loc[NULL_STRING, "v"] == 99
