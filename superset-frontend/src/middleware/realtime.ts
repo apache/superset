@@ -20,34 +20,37 @@
 /**
  * Shared client for the realtime WebSocket transport (`superset-websocket`).
  *
- * Owns the single browser socket and fans every message out to registered
- * handlers, so multiple features share one connection: async chart-data
- * completion (per-principal `realtime:*` messages, see `asyncEvent.ts`) and
- * realtime list views (authenticated `entity-changes:*` nudges, see
- * `useListViewResource`). The server forwards a generic `{channel, payload}`
- * envelope and this client is deliberately payload-agnostic — each handler
- * routes on `channel` and interprets `payload` for its own feature.
+ * Owns the single browser socket and fans every message out to handlers
+ * registered for its topic, so multiple features share one connection: async
+ * chart-data completion (`task.status`, see `asyncEvent.ts`) and realtime list
+ * views (`entity.changed` nudges, see `useListViewResource`). The server forwards
+ * a generic `{topic, payload}` envelope — the semantic topic separated from the
+ * route it arrived by — and this client dispatches purely on `topic`; each
+ * handler interprets `payload` for its own feature.
  *
  * The transport is strictly best-effort: it is only an acceleration layer over
  * each feature's own authorized fetch/poll, so a socket outage costs latency,
  * not correctness. Connection auth is the `superset-ws-token` JWT cookie, which
  * rides the handshake automatically (same-host requirement).
  */
+import { SupersetClient } from '@superset-ui/core';
 import { logging } from '@apache-superset/core/utils';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import { getTabId, subscribeTabIdChange } from 'src/hooks/useTabId';
 
 /** The generic envelope the server forwards to the browser. */
 export interface RealtimeMessage {
-  channel: string;
+  topic: string;
   payload: unknown;
 }
 
-type RealtimeHandler = (message: RealtimeMessage) => void;
+/** A topic handler receives the message payload; the topic already matched. */
+type RealtimeHandler = (payload: unknown) => void;
 
 type RealtimeConfig = {
   WEBSOCKET_ENABLE?: boolean;
   WEBSOCKET_URL?: string;
+  WEBSOCKET_JWT_EXPIRATION_SECONDS?: number;
 };
 
 // Backoff before reconnecting after the socket closes (mirrors the Node
@@ -57,39 +60,55 @@ const RECONNECT_DELAY_MS = 5000;
 const WS_CONNECTING = 0;
 const WS_OPEN = 1;
 
+// Fraction of the token lifetime after which the client proactively refreshes the
+// channel cookie and reconnects, so the socket rides a fresh token before the
+// server terminates it at expiry (see Finding 6 / superset/websocket/channel.py's
+// sliding-window re-mint). Half the lifetime lands inside that server window.
+const KEEPALIVE_FRACTION = 0.5;
+// An authed, same-origin GET whose response passes through the Flask
+// `after_request` hook that (re)mints the ws cookie. Any authed endpoint works;
+// `me` is the cheapest stable one.
+const COOKIE_REFRESH_ENDPOINT = '/api/v1/me/';
+
 let socket: WebSocket | undefined;
 let reconnectTimeoutId: number;
+let keepaliveTimeoutId: number;
+// Token lifetime (ms) from bootstrap config; 0 disables the proactive keepalive.
+let tokenLifetimeMs = 0;
 let enabled = false;
 let url: string | undefined;
 let started = false;
 // Bumped on every (re)configuration so an in-flight reconnect scheduled against
 // a superseded socket detects it is stale and stops.
 let generation = 0;
-const handlers = new Set<RealtimeHandler>();
+const handlersByTopic = new Map<string, Set<RealtimeHandler>>();
 
 /**
- * Parse a raw socket message and dispatch the `{channel, payload}` envelope to
- * every handler. Exported for tests. Strictly best-effort: malformed data and a
- * throwing handler are logged and swallowed, never propagated.
+ * Parse a raw socket message and dispatch the `{topic, payload}` envelope to the
+ * handlers registered for its topic. Exported for tests. Strictly best-effort:
+ * malformed data and a throwing handler are logged and swallowed, never
+ * propagated.
  */
 export const dispatchRealtimeMessage = (rawData: string): void => {
   let message: RealtimeMessage;
   try {
     const parsed: unknown = JSON.parse(rawData) ?? {};
     if (!parsed || typeof parsed !== 'object') return;
-    const { channel, payload } = parsed as {
-      channel?: unknown;
+    const { topic, payload } = parsed as {
+      topic?: unknown;
       payload?: unknown;
     };
-    if (typeof channel !== 'string') return;
-    message = { channel, payload };
+    if (typeof topic !== 'string') return;
+    message = { topic, payload };
   } catch (err) {
     logging.warn('Failed to parse realtime message', err);
     return;
   }
-  handlers.forEach(handler => {
+  const topicHandlers = handlersByTopic.get(message.topic);
+  if (!topicHandlers) return;
+  topicHandlers.forEach(handler => {
     try {
-      handler(message);
+      handler(message.payload);
     } catch (err) {
       logging.warn('Realtime handler error', err);
     }
@@ -119,6 +138,27 @@ const buildConnectUrl = (baseUrl: string): string => {
   }
 };
 
+const hasActiveSocket = (): boolean =>
+  socket?.readyState === WS_CONNECTING || socket?.readyState === WS_OPEN;
+
+const teardownSocket = (): void => {
+  if (reconnectTimeoutId) clearTimeout(reconnectTimeoutId);
+  if (keepaliveTimeoutId) clearTimeout(keepaliveTimeoutId);
+  if (socket) {
+    // Detach handlers first so the closing socket can't schedule a reconnect
+    // against the superseded generation.
+    socket.onmessage = null;
+    socket.onclose = null;
+    socket.onerror = null;
+    try {
+      socket.close();
+    } catch {
+      // ignore: closing an already-closed/broken socket is harmless
+    }
+    socket = undefined;
+  }
+};
+
 const openSocket = (thisGeneration: number): void => {
   if (thisGeneration !== generation) return;
   if (!enabled || !url || typeof WebSocket === 'undefined') return;
@@ -131,6 +171,28 @@ const openSocket = (thisGeneration: number): void => {
     return;
   }
   socket = ws;
+
+  // Proactively refresh the channel cookie and reconnect before this
+  // connection's token expires, so an idle realtime surface (one making no other
+  // HTTP requests, e.g. a quiet list view) does not silently lose the socket at
+  // JWT expiry. The GET re-mints the httponly cookie via the Flask after_request
+  // hook (inside its sliding window); the reconnect then rides the fresh token.
+  // Best-effort: reconnect regardless of the GET's outcome (a stale cookie just
+  // fails the handshake, and onclose retries).
+  if (enabled && tokenLifetimeMs > 0) {
+    keepaliveTimeoutId = window.setTimeout(() => {
+      if (thisGeneration !== generation || !hasActiveSocket()) return;
+      SupersetClient.get({ endpoint: COOKIE_REFRESH_ENDPOINT })
+        .catch(() => {})
+        .finally(() => {
+          if (thisGeneration !== generation) return;
+          generation += 1;
+          teardownSocket();
+          openSocket(generation);
+        });
+    }, tokenLifetimeMs * KEEPALIVE_FRACTION);
+  }
+
   ws.onmessage = (event: MessageEvent) => {
     if (thisGeneration === generation)
       dispatchRealtimeMessage(String(event.data));
@@ -145,26 +207,6 @@ const openSocket = (thisGeneration: number): void => {
   // Errors surface as a subsequent close; let onclose own the reconnect and
   // avoid logging the (payload-free) error event on every transient blip.
   ws.onerror = () => {};
-};
-
-const hasActiveSocket = (): boolean =>
-  socket?.readyState === WS_CONNECTING || socket?.readyState === WS_OPEN;
-
-const teardownSocket = (): void => {
-  if (reconnectTimeoutId) clearTimeout(reconnectTimeoutId);
-  if (socket) {
-    // Detach handlers first so the closing socket can't schedule a reconnect
-    // against the superseded generation.
-    socket.onmessage = null;
-    socket.onclose = null;
-    socket.onerror = null;
-    try {
-      socket.close();
-    } catch {
-      // ignore: closing an already-closed/broken socket is harmless
-    }
-    socket = undefined;
-  }
 };
 
 /**
@@ -192,6 +234,7 @@ export const connectRealtime = (config?: RealtimeConfig): void => {
   started = true;
   enabled = nextEnabled;
   url = nextUrl;
+  tokenLifetimeMs = (conf?.WEBSOCKET_JWT_EXPIRATION_SECONDS ?? 0) * 1000;
   openSocket(generation);
 };
 
@@ -202,16 +245,27 @@ export const disconnectRealtime = (): void => {
 };
 
 /**
- * Register a handler for every realtime message; returns an unsubscribe
- * function. On the first subscription this lazily connects the socket from
- * bootstrap config (unless `connectRealtime` was already called), so a feature
- * can opt into realtime purely by subscribing.
+ * Register a handler for a realtime `topic`; returns an unsubscribe function. On
+ * the first subscription this lazily connects the socket from bootstrap config
+ * (unless `connectRealtime` was already called), so a feature can opt into
+ * realtime purely by subscribing.
  */
-export const subscribeRealtime = (handler: RealtimeHandler): (() => void) => {
-  handlers.add(handler);
+export const subscribeRealtime = (
+  topic: string,
+  handler: RealtimeHandler,
+): (() => void) => {
+  let topicHandlers = handlersByTopic.get(topic);
+  if (!topicHandlers) {
+    topicHandlers = new Set();
+    handlersByTopic.set(topic, topicHandlers);
+  }
+  topicHandlers.add(handler);
   if (!started) connectRealtime();
   return () => {
-    handlers.delete(handler);
+    const current = handlersByTopic.get(topic);
+    if (!current) return;
+    current.delete(handler);
+    if (current.size === 0) handlersByTopic.delete(topic);
   };
 };
 
@@ -230,7 +284,7 @@ subscribeTabIdChange(() => {
 // Test-only: reset module state between cases.
 export const resetRealtimeForTests = (): void => {
   disconnectRealtime();
-  handlers.clear();
+  handlersByTopic.clear();
   started = false;
   enabled = false;
   url = undefined;

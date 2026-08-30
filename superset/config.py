@@ -2978,25 +2978,28 @@ GLOBAL_ASYNC_QUERIES_DEFAULT = True
 # views update without waiting for the interval poll (which stays as the
 # fallback). Requires the superset-websocket server, a Redis coordination
 # backend (DISTRIBUTED_COORDINATION_CONFIG), and `can_read` on `Realtime`.
-# Two channel tiers:
-#   - an authenticated broadcast per-entity-type pub/sub
-#     (e.g. entity-changes:task) for lossy list-view activity (opaque entity
-#     ids only), and
-#   - targeted task-status pub/sub messages for the dashboard chart-data path,
-#     fanned out by the websocket server to the routing keys the producer names.
-#     Keys are principal-grain by default (all of a principal's tabs); a task
-#     type may narrow them to a per-tab channel so only the tab watching a task
-#     is notified.
+# Two delivery scopes, carried on one lossy `realtime` pub/sub channel as a
+# self-describing `{topic, scope, routes, payload}` envelope:
+#   - `authenticated_global` — a broadcast nudge (e.g. topic `entity.changed`,
+#     opaque entity ids only) delivered to every authenticated socket for lossy
+#     list-view activity, and
+#   - `principal`/`tab` — targeted messages (e.g. topic `task.status` for the
+#     dashboard chart-data path), fanned out by the websocket server to the
+#     routing keys the producer names. Keys are principal-grain by default (all of
+#     a principal's tabs); a task type may narrow them to a per-tab channel so only
+#     the tab watching a task is notified. The route never reaches the browser,
+#     which dispatches on `topic`.
 # The JWT authenticates the socket connection and binds it to its principal
 # channel; a browser may also advertise a tab id on the connect URL to bind a
-# per-tab channel (derived from the authorized principal channel). The server
-# delivers targeted task-status events only to the named channels. Set a strong
+# per-tab channel (derived from the authorized principal channel). Set a strong
 # random WEBSOCKET_JWT_SECRET (>= 32 bytes) in production.
 # The websocket server can be configured with a previous validation secret
 # during rotations; the Flask app always mints new cookies with the current key.
 # The websocket server validates the signed token at connection time and
-# terminates sockets after JWT expiry, so post-mint permission revocation is
-# bounded by this lifetime plus the server ping interval.
+# terminates sockets after JWT expiry; the Flask app re-mints the cookie inside a
+# sliding window before expiry (on any request), and the browser proactively
+# refreshes and reconnects, so an active realtime surface stays connected. Post-
+# mint permission revocation is bounded by this lifetime plus the ping interval.
 WEBSOCKET_ENABLE = False
 WEBSOCKET_URL = "ws://127.0.0.1:8080/"
 WEBSOCKET_JWT_SECRET = CHANGE_ME_WEBSOCKET_JWT_SECRET

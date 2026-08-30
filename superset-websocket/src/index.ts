@@ -54,29 +54,32 @@ interface RealtimeJwtPayload extends JsonWebTokenPayload {
 }
 
 /**
- * The generic message the server forwards to browsers. Every connected socket
- * has a valid realtime JWT; a browser client routes on `channel`:
- *   - `entity-changes:<type>` - a lossy "an entity of this type changed"
- *     nudge, broadcast to every authenticated socket; `payload` carries opaque
- *     ids only (`{entity_type, id}`).
- *   - `realtime:<routingKey>` - a targeted task/status browser message,
- *     delivered only to sockets bound to that routing key. The producer chooses
- *     the key: a principal channel (`user:<id>` / `guest:<hmac>`) reaches all of
- *     a principal's tabs, while a per-tab key (`user:<id>:<tabId>`) reaches only
- *     the one tab. `payload` is feature-defined (e.g. `{task_id, status}`).
+ * The generic envelope the server forwards to browsers. Every connected socket
+ * has a valid realtime JWT. A browser client dispatches on `topic` (the semantic
+ * stream), never on the route it arrived by:
+ *   - `entity.changed` - a lossy "an entity changed" nudge broadcast to every
+ *     authenticated socket; `payload` carries opaque ids only (`{entity_type, id}`).
+ *   - `task.status` - a targeted task/status message delivered only to the sockets
+ *     the producer routed to; `payload` is feature-defined (e.g. `{task_id, status}`).
+ * The server-side routing keys never reach the browser.
  */
 export interface OutboundMessage {
-  channel: string;
+  topic: string;
   payload: unknown;
 }
 
-interface TaskStatusRedisPayload {
-  task_id: string;
-  status: string;
-  // Realtime routing keys to deliver to, produced by Superset (each is delivered
-  // on `realtime:<key>`). Principal-grain (`user:<id>`) by default; a task type
-  // may narrow to per-tab keys (`user:<id>:<tabId>`) via its subscription policy.
-  channels: string[];
+/**
+ * A Redis message from the Superset producer. Self-describing: `topic` is the
+ * semantic stream forwarded to the browser, `scope` is the delivery breadth the
+ * server routes by (`authenticated_global` => broadcast; otherwise targeted to
+ * `routes`), `routes` are the server-side routing keys (present for a targeted
+ * scope, absent/ignored for a broadcast), and `payload` is forwarded verbatim.
+ */
+interface RealtimeEnvelope {
+  topic: string;
+  scope: string;
+  routes?: string[];
+  payload: unknown;
 }
 
 export interface SocketIdentity {
@@ -189,16 +192,24 @@ export const wss = new WebSocketServer({
 
 const SOCKET_ACTIVE_STATES: number[] = [WebSocket.OPEN, WebSocket.CONNECTING];
 
-// The Pub/Sub channel prefixes the server tails. These are a wire-protocol
-// contract with the Superset producer (superset/tasks/manager.py:
-// ENTITY_CHANGES_CHANNEL_PREFIX / TASK_STATUS_CHANNEL), NOT a deployment
-// knob - an independent override on this side with no matching producer config
-// would silently subscribe to channels nothing publishes to, so they are fixed
-// constants that must stay in lockstep with the producer.
-const ENTITY_CHANGES_CHANNEL_PREFIX = 'entity-changes:';
-const TASK_STATUS_CHANNEL = 'task-status';
-const REALTIME_BROWSER_CHANNEL_PREFIX = 'realtime:';
-const ENTITY_CHANGES_PATTERN = `${ENTITY_CHANGES_CHANNEL_PREFIX}*`;
+// The single Pub/Sub channel the server tails. This is a wire-protocol contract
+// with the Superset producer (superset/tasks/manager.py: REALTIME_CHANNEL), NOT a
+// deployment knob - an independent override on this side with no matching producer
+// config would silently subscribe to a channel nothing publishes to, so it is a
+// fixed constant that must stay in lockstep with the producer.
+const REALTIME_CHANNEL = 'realtime';
+
+// Envelope scopes (delivery breadth), mirrored from the producer. A message is
+// broadcast to every authenticated socket when its scope is `authenticated_global`,
+// and otherwise targeted to the routing keys it names.
+const SCOPE_AUTHENTICATED_GLOBAL = 'authenticated_global';
+
+// Bound on a client-supplied tab id before it is concatenated into a channel key
+// (`<channel>:<tabId>`). The principal prefix is server-derived, but the tab
+// suffix is client-controlled, so cap its length and restrict its charset. Kept
+// in lockstep with the Flask ingress guard (superset/tasks/subscription.py).
+const TAB_ID_PATTERN = /^[A-Za-z0-9_-]{1,64}$/;
+const isValidTabId = (value: string): boolean => TAB_ID_PATTERN.test(value);
 
 // Backoff before retrying an initial Pub/Sub subscription that failed (e.g.
 // Redis unreachable at startup); see subscribeToChannels.
@@ -359,17 +370,17 @@ export const sendToChannel = (
     if (sendToSocket(socketId, strData, channel)) sentCount += 1;
   });
   logger.debug(
-    `Forwarded message ${message.channel} to ${sentCount} socket(s) on channel ${channel}`,
+    `Forwarded ${message.topic} to ${sentCount} socket(s) on channel ${channel}`,
   );
 };
 
 /**
- * Sends a message to every connected socket, regardless of channel. Used for
- * the lossy entity-change nudges (`entity-changes:*`), which carry only opaque
- * ids and are broadcast to authenticated sockets - each client filters to the
- * ids it renders. Iterates the unique socket registry (not per channel) so a
- * socket registered under both its principal and its per-tab channel still
- * receives each broadcast exactly once.
+ * Sends a message to every connected socket, regardless of channel. Used for the
+ * `authenticated_global` broadcast scope (e.g. lossy `entity.changed` nudges),
+ * which carries only opaque ids - each client filters to the ids it renders.
+ * Iterates the unique socket registry (not per channel) so a socket registered
+ * under both its principal and its per-tab channel still receives each broadcast
+ * exactly once.
  */
 export const broadcastToAll = (message: OutboundMessage): void => {
   const strData = JSON.stringify(message);
@@ -378,25 +389,43 @@ export const broadcastToAll = (message: OutboundMessage): void => {
   });
 };
 
-function isTaskStatusRedisPayload(
-  payload: unknown,
-): payload is TaskStatusRedisPayload {
-  if (!payload || typeof payload !== 'object') {
-    return false;
-  }
+/**
+ * Validate and narrow a parsed Redis message to a RealtimeEnvelope, or return
+ * null (logging) when it is malformed. A targeted (non-broadcast) envelope must
+ * carry a non-empty `routes` array of non-empty strings; a broadcast may omit it.
+ */
+function parseRealtimeEnvelope(payload: unknown): RealtimeEnvelope | null {
+  if (!payload || typeof payload !== 'object') return null;
   const candidate = payload as {
-    task_id?: unknown;
-    status?: unknown;
-    channels?: unknown;
+    topic?: unknown;
+    scope?: unknown;
+    routes?: unknown;
+    payload?: unknown;
   };
-  return (
-    typeof candidate.task_id === 'string' &&
-    typeof candidate.status === 'string' &&
-    Array.isArray(candidate.channels) &&
-    candidate.channels.every(
-      channel => typeof channel === 'string' && channel.length > 0,
-    )
-  );
+  if (typeof candidate.topic !== 'string' || candidate.topic.length === 0) {
+    return null;
+  }
+  if (typeof candidate.scope !== 'string' || candidate.scope.length === 0) {
+    return null;
+  }
+  let routes: string[] | undefined;
+  if (candidate.routes !== undefined) {
+    if (
+      !Array.isArray(candidate.routes) ||
+      !candidate.routes.every(
+        route => typeof route === 'string' && route.length > 0,
+      )
+    ) {
+      return null;
+    }
+    routes = candidate.routes as string[];
+  }
+  return {
+    topic: candidate.topic,
+    scope: candidate.scope,
+    routes,
+    payload: candidate.payload,
+  };
 }
 
 /**
@@ -420,103 +449,80 @@ export const principalChannel = (
 };
 
 /**
- * Fan out one task-status Redis message to every routing key in the payload.
- * `channels` is a server-side routing field produced by Superset (principal
- * channels by default, or per-tab channels for task types that opt in); each key
- * is delivered on `realtime:<key>` and the routing field is stripped from the
- * browser payload. The keys are opaque here - the server does not re-derive or
- * validate them (Superset builds every key from an authorized identity).
- */
-export const sendTaskStatusToSubscribers = (payload: unknown): void => {
-  if (!isTaskStatusRedisPayload(payload)) {
-    logger.error(`Invalid task status message on ${TASK_STATUS_CHANNEL}`);
-    return;
-  }
-
-  const outboundPayload = {
-    task_id: payload.task_id,
-    status: payload.status,
-  };
-  const sent = new Set<string>();
-  payload.channels.forEach(channel => {
-    if (sent.has(channel)) return;
-    sent.add(channel);
-    sendToChannel(channel, {
-      channel: `${REALTIME_BROWSER_CHANNEL_PREFIX}${channel}`,
-      payload: outboundPayload,
-    });
-  });
-};
-
-/**
- * Routes a raw Redis Pub/Sub message to the appropriate sockets.
- *
- * Task-status messages (`task-status`) include subscriber principals and are
- * fanned out to sockets whose JWT bound a matching routing key. Entity-change
- * messages (`entity-changes:<type>`) are broadcast to all sockets. Entity-change
- * messages forward the Redis channel name; task-status messages forward
- * `realtime:<routingKey>` and strip server-side routing fields.
+ * Routes a raw Redis Pub/Sub message to the appropriate sockets by its envelope
+ * scope, forwarding the browser-facing `{topic, payload}` (the server-side
+ * `routes` are stripped). An `authenticated_global` message is broadcast to every
+ * socket; any other scope is targeted to each of its `routes` (principal channels
+ * by default, or per-tab channels for task types that opt in). The routes are
+ * opaque here - the server does not re-derive or validate them (Superset builds
+ * every key from an authorized identity and validates policy-supplied keys before
+ * publishing).
  */
 export const routeRedisMessage = (
   channel: string,
   rawMessage: string,
 ): void => {
-  let payload: unknown;
+  let parsed: unknown;
   try {
-    payload = JSON.parse(rawMessage);
+    parsed = JSON.parse(rawMessage);
   } catch (err) {
     logger.error(`Failed to parse message on channel ${channel}: ${err}`);
     return;
   }
-  if (channel === TASK_STATUS_CHANNEL) {
-    sendTaskStatusToSubscribers(payload);
-  } else if (channel.startsWith(ENTITY_CHANGES_CHANNEL_PREFIX)) {
-    const message: OutboundMessage = { channel, payload };
-    broadcastToAll(message);
-  } else {
-    logger.debug(`Ignoring message on unrecognized channel ${channel}`);
+  const envelope = parseRealtimeEnvelope(parsed);
+  if (!envelope) {
+    logger.error(`Invalid realtime envelope on channel ${channel}`);
+    return;
   }
+  const outbound: OutboundMessage = {
+    topic: envelope.topic,
+    payload: envelope.payload,
+  };
+  if (envelope.scope === SCOPE_AUTHENTICATED_GLOBAL) {
+    broadcastToAll(outbound);
+    return;
+  }
+  // Targeted (principal/tab) scope: deliver to each named route once.
+  const sent = new Set<string>();
+  (envelope.routes ?? []).forEach(route => {
+    if (sent.has(route)) return;
+    sent.add(route);
+    sendToChannel(route, outbound);
+  });
 };
 
 /**
- * Subscribes the Redis connection to tier-1 entity-change nudges and tier-2
- * task-status fanout messages.
+ * Subscribes the Redis connection to the single `realtime` channel that carries
+ * every browser-bound message (broadcast and targeted, distinguished by each
+ * envelope's scope).
  *
- * Pub/Sub is lossy and not replayable, so neither tier offers server-side
- * catch-up: a message published while a socket was away is simply gone, and the
- * browser's interval poll is the correctness backstop.
+ * Pub/Sub is lossy and not replayable, so there is no server-side catch-up: a
+ * message published while a socket was away is simply gone, and the browser's
+ * interval poll is the correctness backstop.
  *
  * Failure to subscribe at all is observable and self-healing rather than silent:
- * if the initial ``psubscribe`` rejects (e.g. Redis unreachable at startup) it is
+ * if the initial ``subscribe`` rejects (e.g. Redis unreachable at startup) it is
  * logged and retried, so the transport can't end up running with no
- * subscription. ioredis additionally re-establishes these subscriptions
- * automatically across reconnects once they exist.
+ * subscription. ioredis additionally re-establishes the subscription
+ * automatically across reconnects once it exists.
  */
-let pmessageBound = false;
+let messageBound = false;
 
 export const subscribeToChannels = async (): Promise<void> => {
   // Bind the router exactly once; retries must not stack duplicate listeners
   // (which would route every message N times).
-  if (!pmessageBound) {
-    redisSubscriber.on(
-      'pmessage',
-      (_pattern: string, channel: string, message: string) => {
-        routeRedisMessage(channel, message);
-      },
-    );
-    pmessageBound = true;
+  if (!messageBound) {
+    redisSubscriber.on('message', (channel: string, message: string) => {
+      routeRedisMessage(channel, message);
+    });
+    messageBound = true;
   }
   try {
-    await redisSubscriber.psubscribe(
-      ENTITY_CHANGES_PATTERN,
-      TASK_STATUS_CHANNEL,
-    );
-    logger.info(
-      `Subscribed to Redis channels: ${ENTITY_CHANGES_PATTERN}, ${TASK_STATUS_CHANNEL}`,
-    );
+    await redisSubscriber.subscribe(REALTIME_CHANNEL);
+    logger.info(`Subscribed to Redis channel: ${REALTIME_CHANNEL}`);
   } catch (err) {
     logger.error(
-      `Failed to subscribe to Redis channels; retrying in ` +
+      `Failed to subscribe to Redis channel; retrying in ` +
         `${SUBSCRIBE_RETRY_MS}ms: ${err}`,
     );
     setTimeout(subscribeToChannels, SUBSCRIBE_RETRY_MS);
@@ -748,15 +754,15 @@ export const httpUpgrade = (
 
   // Optional per-tab id advertised on the connect URL (`?tab_id=<id>`), used to
   // also bind the socket to a per-tab channel for targeted task-status delivery.
-  // Parsed from the request URL (mirrors httpRequest); absent/blank -> no per-tab
-  // channel (principal-grain delivery, as before).
+  // Parsed from the request URL (mirrors httpRequest); absent/blank/invalid ->
+  // no per-tab channel (principal-grain delivery, as before).
   let tabId: string | undefined;
   try {
     const parsed = new URL(
       request.url ?? '',
       `http://${request.headers.host ?? 'localhost'}`,
     ).searchParams.get('tab_id');
-    if (parsed) tabId = parsed;
+    if (parsed && isValidTabId(parsed)) tabId = parsed;
   } catch {
     // Malformed URL: ignore the tab hint and fall back to principal-grain.
   }
@@ -871,5 +877,5 @@ if (startServer) {
 export const resetState = () => {
   channels = {};
   sockets = {};
-  pmessageBound = false;
+  messageBound = false;
 };

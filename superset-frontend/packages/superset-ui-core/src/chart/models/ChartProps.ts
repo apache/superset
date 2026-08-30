@@ -84,6 +84,13 @@ export type Hooks = {
    * execution, per the app's resolved async policy.
    */
   resolveAsyncMode?: () => boolean;
+  /**
+   * The app's stable per-tab id, sent with an async chart-data request so the
+   * backend ref-counts this tab as a consumer of the (shared) task — a later
+   * cancel/navigate-away then detaches only this tab. Injected from the app (the
+   * package cannot import the app-level tab-id hook).
+   */
+  getTabId?: () => string;
 } & PlainObject;
 
 /**

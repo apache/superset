@@ -34,15 +34,15 @@ import { WebSocket } from 'ws';
 import * as server from '../src/index';
 import { statsd } from '../src/index';
 
-const { mockPsubscribe, mockOn } = vi.hoisted(() => {
-  return { mockPsubscribe: vi.fn(), mockOn: vi.fn() };
+const { mockSubscribe, mockOn } = vi.hoisted(() => {
+  return { mockSubscribe: vi.fn(), mockOn: vi.fn() };
 });
 
 vi.mock('ws');
 vi.mock('ioredis', () => {
   return {
     Redis: vi.fn().mockImplementation(function () {
-      return { psubscribe: mockPsubscribe, on: mockOn };
+      return { subscribe: mockSubscribe, on: mockOn };
     }),
   };
 });
@@ -250,69 +250,69 @@ describe('server', () => {
   });
 
   describe('subscribeToChannels', () => {
-    const pmessageHandlers = () =>
-      mockOn.mock.calls.filter(([event]) => event === 'pmessage');
+    const messageHandlers = () =>
+      mockOn.mock.calls.filter(([event]) => event === 'message');
 
     beforeEach(() => {
-      mockPsubscribe.mockReset();
+      mockSubscribe.mockReset();
       mockOn.mockClear();
     });
 
-    test('subscribes to the entity-change pattern and the task-status channel', async () => {
-      mockPsubscribe.mockResolvedValue(2);
+    test('subscribes to the single realtime channel', async () => {
+      mockSubscribe.mockResolvedValue(1);
 
       await server.subscribeToChannels();
 
-      expect(mockPsubscribe).toHaveBeenCalledTimes(1);
-      expect(mockPsubscribe).toHaveBeenCalledWith(
-        'entity-changes:*',
-        'task-status',
-      );
-      expect(pmessageHandlers()).toHaveLength(1);
+      expect(mockSubscribe).toHaveBeenCalledTimes(1);
+      expect(mockSubscribe).toHaveBeenCalledWith('realtime');
+      expect(messageHandlers()).toHaveLength(1);
     });
 
     test('retries a rejected subscription without stacking a second router', async () => {
       vi.useFakeTimers();
       try {
-        mockPsubscribe
+        mockSubscribe
           .mockRejectedValueOnce(new Error('redis unreachable'))
-          .mockResolvedValueOnce(2);
+          .mockResolvedValueOnce(1);
 
         await server.subscribeToChannels();
-        expect(mockPsubscribe).toHaveBeenCalledTimes(1);
+        expect(mockSubscribe).toHaveBeenCalledTimes(1);
 
         await vi.advanceTimersByTimeAsync(5000);
 
-        expect(mockPsubscribe).toHaveBeenCalledTimes(2);
-        // A retry must leave exactly one `pmessage` listener: a second one
+        expect(mockSubscribe).toHaveBeenCalledTimes(2);
+        // A retry must leave exactly one `message` listener: a second one
         // would route every message twice.
-        expect(pmessageHandlers()).toHaveLength(1);
+        expect(messageHandlers()).toHaveLength(1);
       } finally {
         vi.useRealTimers();
       }
     });
 
-    test('the registered pmessage handler routes to the matching socket', async () => {
-      mockPsubscribe.mockResolvedValue(2);
+    test('the registered message handler routes to the matching socket', async () => {
+      mockSubscribe.mockResolvedValue(1);
       await server.subscribeToChannels();
 
       const ws = new wsMock('localhost');
       const send = vi.spyOn(ws, 'send');
       trackSocket(channelId, ws);
 
-      const [, handler] = pmessageHandlers()[0] as [
+      const [, handler] = messageHandlers()[0] as [
         string,
-        (pattern: string, channel: string, message: string) => void,
+        (channel: string, message: string) => void,
       ];
       handler(
-        'entity-changes:*',
-        'entity-changes:task',
-        JSON.stringify({ entity_type: 'task', id: 'abc' }),
+        'realtime',
+        JSON.stringify({
+          topic: 'entity.changed',
+          scope: 'authenticated_global',
+          payload: { entity_type: 'task', id: 'abc' },
+        }),
       );
 
       expect(send).toHaveBeenCalledWith(
         JSON.stringify({
-          channel: 'entity-changes:task',
+          topic: 'entity.changed',
           payload: { entity_type: 'task', id: 'abc' },
         }),
       );
@@ -401,7 +401,15 @@ describe('server', () => {
   });
 
   describe('routeRedisMessage', () => {
-    test('fans a task-status message out to the named channels only', () => {
+    const taskStatus = (routes: string[], scope = 'tab') =>
+      JSON.stringify({
+        topic: 'task.status',
+        scope,
+        routes,
+        payload: { task_id: 'abc', status: 'success' },
+      });
+
+    test('fans a task-status message out to the named routes only', () => {
       // Two principals connected; a task-status message targeting user:5 reaches
       // only user:5 and is forwarded as a per-principal browser message.
       const wsA = new wsMock('localhost');
@@ -412,17 +420,12 @@ describe('server', () => {
       const sendB = vi.spyOn(wsB, 'send');
       trackSocket('user:9', wsB);
 
-      const payload = {
-        task_id: 'abc',
-        status: 'success',
-        channels: ['user:5'],
-      };
-      server.routeRedisMessage('task-status', JSON.stringify(payload));
+      server.routeRedisMessage('realtime', taskStatus(['user:5'], 'principal'));
 
       expect(sendA).toHaveBeenCalledTimes(1);
       expect(sendA).toHaveBeenCalledWith(
         JSON.stringify({
-          channel: 'realtime:user:5',
+          topic: 'task.status',
           payload: { task_id: 'abc', status: 'success' },
         }),
       );
@@ -434,16 +437,19 @@ describe('server', () => {
       const send = vi.spyOn(ws, 'send');
       trackSocket('guest:abc', ws);
 
-      const payload = {
-        task_id: 'xyz',
-        status: 'failure',
-        channels: ['guest:abc'],
-      };
-      server.routeRedisMessage('task-status', JSON.stringify(payload));
+      server.routeRedisMessage(
+        'realtime',
+        JSON.stringify({
+          topic: 'task.status',
+          scope: 'principal',
+          routes: ['guest:abc'],
+          payload: { task_id: 'xyz', status: 'failure' },
+        }),
+      );
 
       expect(send).toHaveBeenCalledWith(
         JSON.stringify({
-          channel: 'realtime:guest:abc',
+          topic: 'task.status',
           payload: { task_id: 'xyz', status: 'failure' },
         }),
       );
@@ -460,55 +466,34 @@ describe('server', () => {
       const sendB = vi.spyOn(wsB, 'send');
       server.wsConnection(wsB, makeIdentity('user:5'), 'tabB');
 
-      server.routeRedisMessage(
-        'task-status',
-        JSON.stringify({
-          task_id: 'abc',
-          status: 'success',
-          channels: ['user:5:tabA'],
-        }),
-      );
+      server.routeRedisMessage('realtime', taskStatus(['user:5:tabA']));
 
       expect(sendA).toHaveBeenCalledTimes(1);
       expect(sendA).toHaveBeenCalledWith(
         JSON.stringify({
-          channel: 'realtime:user:5:tabA',
+          topic: 'task.status',
           payload: { task_id: 'abc', status: 'success' },
         }),
       );
       expect(sendB).not.toHaveBeenCalled();
     });
 
-    test('drops an empty-string channel key', () => {
+    test('drops an envelope with an empty-string routing key', () => {
       const ws = new wsMock('localhost');
       const send = vi.spyOn(ws, 'send');
       trackSocket('user:5', ws);
 
-      server.routeRedisMessage(
-        'task-status',
-        JSON.stringify({
-          task_id: 'abc',
-          status: 'success',
-          channels: [''],
-        }),
-      );
+      server.routeRedisMessage('realtime', taskStatus(['']));
 
       expect(send).not.toHaveBeenCalled();
     });
 
-    test('deduplicates repeated channel keys within a task-status message', () => {
+    test('deduplicates repeated routing keys within a targeted message', () => {
       const ws = new wsMock('localhost');
       const send = vi.spyOn(ws, 'send');
       trackSocket('user:5', ws);
 
-      server.routeRedisMessage(
-        'task-status',
-        JSON.stringify({
-          task_id: 'abc',
-          status: 'success',
-          channels: ['user:5', 'user:5'],
-        }),
-      );
+      server.routeRedisMessage('realtime', taskStatus(['user:5', 'user:5']));
 
       expect(send).toHaveBeenCalledTimes(1);
     });
@@ -523,12 +508,16 @@ describe('server', () => {
       trackSocket('guest:abc', wsB);
 
       const payload = { entity_type: 'task', id: 'abc' };
-      server.routeRedisMessage('entity-changes:task', JSON.stringify(payload));
+      server.routeRedisMessage(
+        'realtime',
+        JSON.stringify({
+          topic: 'entity.changed',
+          scope: 'authenticated_global',
+          payload,
+        }),
+      );
 
-      const expected = JSON.stringify({
-        channel: 'entity-changes:task',
-        payload,
-      });
+      const expected = JSON.stringify({ topic: 'entity.changed', payload });
       expect(sendA).toHaveBeenCalledWith(expected);
       expect(sendB).toHaveBeenCalledWith(expected);
     });
@@ -541,21 +530,15 @@ describe('server', () => {
       server.wsConnection(ws, makeIdentity('user:5'), 'tabA');
 
       server.routeRedisMessage(
-        'entity-changes:task',
-        JSON.stringify({ entity_type: 'task', id: 'abc' }),
+        'realtime',
+        JSON.stringify({
+          topic: 'entity.changed',
+          scope: 'authenticated_global',
+          payload: { entity_type: 'task', id: 'abc' },
+        }),
       );
 
       expect(send).toHaveBeenCalledTimes(1);
-    });
-
-    test('ignores a message on an unrecognized channel', () => {
-      const ws = new wsMock('localhost');
-      const send = vi.spyOn(ws, 'send');
-      trackSocket(channelId, ws);
-
-      server.routeRedisMessage('some-other:channel', JSON.stringify({ a: 1 }));
-
-      expect(send).not.toHaveBeenCalled();
     });
 
     test('swallows a malformed (non-JSON) message', () => {
@@ -565,19 +548,36 @@ describe('server', () => {
 
       // Must not throw; simply drops the unparseable message.
       expect(() =>
-        server.routeRedisMessage('task-status', 'not json'),
+        server.routeRedisMessage('realtime', 'not json'),
       ).not.toThrow();
       expect(send).not.toHaveBeenCalled();
     });
 
-    test('drops a malformed task-status message', () => {
+    test('drops a malformed envelope (missing topic)', () => {
       const ws = new wsMock('localhost');
       const send = vi.spyOn(ws, 'send');
       trackSocket(channelId, ws);
 
       server.routeRedisMessage(
-        'task-status',
-        JSON.stringify({ task_id: 'abc', status: 'success' }),
+        'realtime',
+        JSON.stringify({ scope: 'authenticated_global', payload: { id: 1 } }),
+      );
+
+      expect(send).not.toHaveBeenCalled();
+    });
+
+    test('a targeted envelope with no routes delivers nowhere', () => {
+      const ws = new wsMock('localhost');
+      const send = vi.spyOn(ws, 'send');
+      trackSocket('user:5', ws);
+
+      server.routeRedisMessage(
+        'realtime',
+        JSON.stringify({
+          topic: 'task.status',
+          scope: 'principal',
+          payload: { task_id: 'abc', status: 'success' },
+        }),
       );
 
       expect(send).not.toHaveBeenCalled();
@@ -586,7 +586,7 @@ describe('server', () => {
 
   describe('backpressure', () => {
     const message: server.OutboundMessage = {
-      channel: 'realtime:user:5',
+      topic: 'task.status',
       payload: { task_id: 'abc', status: 'success' },
     };
 
@@ -970,6 +970,28 @@ describe('server', () => {
       expect(server.channels[`${channelId}:tabA`].sockets).toEqual(
         server.channels[channelId].sockets,
       );
+    });
+
+    test('an accepted upgrade ignores an invalid ?tab_id', async () => {
+      // A tab id outside the allowed length/charset must not become a channel
+      // key; the socket falls back to principal-grain (no per-tab channel).
+      const token = signRealtimeToken();
+      const ws = new wsMock('localhost');
+      const badTabId = 'a'.repeat(65);
+      const request = makeRequest({
+        token,
+        url: `http://localhost/?tab_id=${badTabId}`,
+      });
+      wssUpgradeSpy.mockImplementation(
+        (_request, _socket, _head, callback: (ws: WebSocket) => void) => {
+          callback(ws);
+        },
+      );
+
+      server.httpUpgrade(request, socket, Buffer.alloc(5));
+
+      expect(server.channels[channelId].sockets).toHaveLength(1);
+      expect(server.channels[`${channelId}:${badTabId}`]).toBeUndefined();
     });
 
     describe('origin validation', () => {

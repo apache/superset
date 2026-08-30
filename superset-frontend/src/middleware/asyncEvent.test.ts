@@ -25,6 +25,19 @@ jest.mock('@superset-ui/core', () => ({
   isFeatureEnabled: jest.fn(),
 }));
 
+// Mutable tab-id mock (overrides the global shim) so a test can change the tab id
+// between submit and cancel. `var` + lazy init sidesteps jest.mock hoisting/TDZ.
+/* eslint-disable no-var, vars-on-top */
+var mockTabId: string;
+/* eslint-enable no-var, vars-on-top */
+jest.mock('src/hooks/useTabId', () => {
+  mockTabId = 'test-tab-id';
+  return {
+    getTabId: () => mockTabId,
+    subscribeTabIdChange: () => () => {},
+  };
+});
+
 const mockedIsFeatureEnabled = isFeatureEnabled as jest.Mock;
 
 const STATUS_CHANGES_ENDPOINT = 'glob:*/api/v1/task/status_changes*';
@@ -63,6 +76,7 @@ afterEach(() => {
   jest.useRealTimers();
   fetchMock.clearHistory().removeRoutes();
   mockedIsFeatureEnabled.mockRestore();
+  mockTabId = 'test-tab-id';
 });
 
 test('re-issues the request once every query task succeeds', async () => {
@@ -183,6 +197,32 @@ test('aborting one chart does not cancel a shared task another chart still await
   controllerB.abort();
   await expect(b).rejects.toThrow('Aborted');
   expect(fetchMock.callHistory.calls(CANCEL_ENDPOINT)).toHaveLength(1);
+});
+
+test('cancel uses the tab id captured at submit, not a reassigned one', async () => {
+  // A duplicate-tab collision can reassign this tab's id after submit. Cancel
+  // must carry the id used at submit so the backend detaches the right per-tab
+  // subscription (reading getTabId() fresh at cancel would send the new id and
+  // orphan the original subscription).
+  queueStatuses(); // task never resolves on its own
+  asyncEvent.init(config);
+
+  mockTabId = 'tab-A';
+  const controller = new AbortController();
+  const promise = asyncEvent.waitForAsyncData(
+    { task_ids: ['task-1'] },
+    jest.fn(),
+    controller.signal,
+  );
+
+  mockTabId = 'tab-B'; // reassigned after submit
+  controller.abort();
+
+  await expect(promise).rejects.toThrow('Aborted');
+  const cancelCalls = fetchMock.callHistory.calls(CANCEL_ENDPOINT);
+  expect(cancelCalls).toHaveLength(1);
+  const body = JSON.parse(String(cancelCalls[0].options.body));
+  expect(body.tab_id).toBe('tab-A');
 });
 
 test('settles every request awaiting a deduplicated shared task', async () => {
@@ -334,9 +374,12 @@ test('backs off while awaited tasks stay quiet, then polls eagerly again on prog
   await expect(promise).resolves.toEqual([]);
 });
 
-const realtime = (taskId: string, status: string) => ({
-  channel: `realtime:user:1`,
-  payload: { task_id: taskId, status },
+// The shared realtime client passes a `task.status` message's payload straight to
+// the handler (the topic already matched), so tests call the handler with just
+// the payload.
+const taskStatusPayload = (taskId: string, status: string) => ({
+  task_id: taskId,
+  status,
 });
 
 test('a realtime message settles a waiting chart without a poll', async () => {
@@ -355,7 +398,7 @@ test('a realtime message settles a waiting chart without a poll', async () => {
   // registers its waiter synchronously (before any await), so a fast task
   // whose event arrives immediately after the 202 is never missed. (Regression
   // guard: registration must not sit behind an awaited baseline fetch.)
-  asyncEvent.handleRealtimeMessage(realtime('task-1', 'success'));
+  asyncEvent.handleTaskStatus(taskStatusPayload('task-1', 'success'));
 
   expect(await promise).toEqual([{ rows: 1 }]);
   expect(refetch).toHaveBeenCalledTimes(1);
@@ -371,13 +414,13 @@ test('a realtime failure message rejects the waiting chart', async () => {
     refetch,
   );
 
-  asyncEvent.handleRealtimeMessage(realtime('task-1', 'failure'));
+  asyncEvent.handleTaskStatus(taskStatusPayload('task-1', 'failure'));
 
   await expect(promise).rejects.toThrow();
   expect(refetch).not.toHaveBeenCalled();
 });
 
-test('ignores non-realtime channels', async () => {
+test('ignores a payload without task_id/status', async () => {
   queueStatuses();
   asyncEvent.init(config);
 
@@ -387,15 +430,13 @@ test('ignores non-realtime channels', async () => {
     refetch,
   );
 
-  // A public entity-change nudge carries no status and must not settle a chart.
-  asyncEvent.handleRealtimeMessage({
-    channel: 'entity-changes:task',
-    payload: { entity_type: 'task', id: 'task-1' },
-  });
+  // A non-task-status payload (e.g. an entity-change nudge shape) must not
+  // settle a chart.
+  asyncEvent.handleTaskStatus({ entity_type: 'task', id: 'task-1' });
   expect(refetch).not.toHaveBeenCalled();
 
   // The task is still pending; complete it so the test doesn't leak a waiter.
-  asyncEvent.handleRealtimeMessage(realtime('task-1', 'success'));
+  asyncEvent.handleTaskStatus(taskStatusPayload('task-1', 'success'));
   await promise;
 });
 
@@ -407,6 +448,6 @@ test('a realtime message is a no-op when async queries are disabled', () => {
   asyncEvent.init(config);
 
   expect(() =>
-    asyncEvent.handleRealtimeMessage(realtime('task-1', 'success')),
+    asyncEvent.handleTaskStatus(taskStatusPayload('task-1', 'success')),
   ).not.toThrow();
 });

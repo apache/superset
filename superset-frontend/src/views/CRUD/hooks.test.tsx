@@ -607,7 +607,10 @@ test('useListViewResource: realtime nudge live-patches a displayed row in place'
   // and the fetched row is merged in place; the untouched row is unchanged.
   act(() => {
     dispatchRealtimeMessage(
-      JSON.stringify({ channel: 'entity-changes:chart', payload: { id: 1 } }),
+      JSON.stringify({
+        topic: 'entity.changed',
+        payload: { entity_type: 'chart', id: 1 },
+      }),
     );
   });
 
@@ -656,7 +659,10 @@ test('useListViewResource: realtime ignores nudges for rows not on screen', asyn
   const callsBefore = getSpy.mock.calls.length;
   act(() => {
     dispatchRealtimeMessage(
-      JSON.stringify({ channel: 'entity-changes:chart', payload: { id: 999 } }),
+      JSON.stringify({
+        topic: 'entity.changed',
+        payload: { entity_type: 'chart', id: 999 },
+      }),
     );
   });
 

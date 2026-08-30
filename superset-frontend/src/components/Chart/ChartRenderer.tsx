@@ -59,6 +59,7 @@ import ChartContextMenu, {
 } from './ChartContextMenu/ChartContextMenu';
 import { handleChartDataResponse } from './chartAction';
 import { resolveAsyncMode } from 'src/utils/asyncMode';
+import { getTabId } from 'src/hooks/useTabId';
 
 // Types for filter values
 type FilterValue = string | number | boolean | null | undefined;
@@ -147,7 +148,10 @@ export interface ChartRendererProps {
 // Async resolution is injected for self-contained chart components in
 // superset-ui-core (e.g. StatefulChart), which read these off `Hooks` and cannot
 // import app-level async-event middleware themselves.
-type AsyncChartHooks = Pick<Hooks, 'handleAsyncChartData' | 'resolveAsyncMode'>;
+type AsyncChartHooks = Pick<
+  Hooks,
+  'handleAsyncChartData' | 'resolveAsyncMode' | 'getTabId'
+>;
 
 // Hooks interface
 interface ChartHooks extends AsyncChartHooks {
@@ -400,6 +404,10 @@ function ChartRendererComponent({
       // Shares the async opt-in policy (feature flag + deployment default) with
       // those self-contained producers so they don't always run synchronously.
       resolveAsyncMode: () => resolveAsyncMode(),
+      // Lets those producers send this tab's id on an async request so the
+      // backend ref-counts the tab (per-tab cancel/detach), matching the Redux
+      // chart path (see chartAction.ts).
+      getTabId: () => getTabId(),
     }),
     [
       handleAddFilter,

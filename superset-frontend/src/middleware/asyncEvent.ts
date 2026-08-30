@@ -35,11 +35,7 @@ import {
 import { logging } from '@apache-superset/core/utils';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import { getTabId } from 'src/hooks/useTabId';
-import {
-  connectRealtime,
-  subscribeRealtime,
-  type RealtimeMessage,
-} from 'src/middleware/realtime';
+import { connectRealtime, subscribeRealtime } from 'src/middleware/realtime';
 
 // The GTF task type chart-data queries run under (see
 // superset/tasks/async_queries.py CHART_QUERY_TASK). Polling is filtered to this
@@ -128,11 +124,11 @@ const stopIfStale = (generation: number): boolean => {
   return true;
 };
 
-// Browser channel prefix for per-principal messages emitted by
-// superset-websocket after it fans out backend task-status events. The browser
-// socket is JWT-bound to its own principal routing key, so it only ever receives
-// its own realtime messages.
-const REALTIME_CHANNEL_PREFIX = 'realtime:';
+// GTF task-status topic emitted by superset-websocket after it fans out backend
+// task-status events (see superset/tasks/manager.py TOPIC_TASK_STATUS). Delivery
+// is scoped server-side to this principal's (or tab's) routing key, so a message
+// that reaches this browser is always its own.
+const TASK_STATUS_TOPIC = 'task.status';
 
 const fetchStatusChanges = makeApi<
   { cursor?: string | null; task_type: string },
@@ -142,18 +138,20 @@ const fetchStatusChanges = makeApi<
   endpoint: STATUS_CHANGES_URL,
 });
 
-const cancelTask = (taskId: string) => {
+const cancelTask = (taskId: string, tabId: string) => {
   // Best-effort task abort/unsubscribe. This can prevent pending work from
   // starting, but chart tasks do not cancel an underlying warehouse query after
   // execution starts. Failures are non-fatal: the client has stopped waiting.
   //
-  // Send this tab's id so the backend detaches only this tab from a shared task:
-  // if another tab of the same user is still watching it, the task keeps running
-  // and only aborts once its last tab leaves.
+  // Send the tab id captured at submit time (not read fresh here) so the backend
+  // detaches exactly the tab that subscribed: if another tab of the same user is
+  // still watching the shared task, it keeps running and only aborts once its
+  // last tab leaves. Reading getTabId() at cancel time could send a reassigned id
+  // (a duplicate-tab collision) and orphan the original per-tab subscription.
   SupersetClient.post({
     endpoint: `/api/v1/task/${taskId}/cancel`,
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ tab_id: getTabId() }),
+    body: JSON.stringify({ tab_id: tabId }),
   }).catch(error => {
     logging.warn('Failed to cancel task', taskId, error);
   });
@@ -165,9 +163,10 @@ const cancelTask = (taskId: string) => {
 // would tell the server the last subscriber left and abort work the other chart
 // needs. Call *after* removing the aborting waiter (or before registering it),
 // so a task id still present in the registry means another waiter depends on it.
-const cancelUnwaitedTasks = (taskIds: string[]) => {
+// `tabId` is the id captured when the aborting request was submitted.
+const cancelUnwaitedTasks = (taskIds: string[], tabId: string) => {
   taskIds.forEach(taskId => {
-    if (!waitersByTaskId.has(taskId)) cancelTask(taskId);
+    if (!waitersByTaskId.has(taskId)) cancelTask(taskId, tabId);
   });
 };
 
@@ -286,17 +285,14 @@ const ensurePolling = () => {
 };
 
 /**
- * Handle a realtime message from the shared client.
+ * Handle a `task.status` message from the shared realtime client.
  *
- * A per-principal chart-data payload is ``{task_id, status}``; because delivery
- * is scoped to this principal's own JWT-bound channel the status is
- * authoritative enough to settle the waiter immediately (the ensuing ``refetch``
- * reads the authorized per-query cache anyway). Other channels (e.g. the
- * ``entity-changes:*`` list-view nudges) are not chart-data's concern.
+ * The payload is ``{task_id, status}``; because delivery is scoped server-side to
+ * this principal's (or tab's) own routing key, the status is authoritative enough
+ * to settle the waiter immediately (the ensuing ``refetch`` reads the authorized
+ * per-query cache anyway).
  */
-export const handleRealtimeMessage = (message: RealtimeMessage) => {
-  const { channel, payload } = message;
-  if (!channel.startsWith(REALTIME_CHANNEL_PREFIX)) return;
+export const handleTaskStatus = (payload: unknown) => {
   if (!payload || typeof payload !== 'object') return;
   const { task_id: taskId, status } = payload as {
     task_id?: unknown;
@@ -309,7 +305,7 @@ export const handleRealtimeMessage = (message: RealtimeMessage) => {
 
 // The handler reads the live waiter registry, so it stays correct across init()
 // generations.
-subscribeRealtime(handleRealtimeMessage);
+subscribeRealtime(TASK_STATUS_TOPIC, handleTaskStatus);
 
 /**
  * Await completion of an async chart-data job's query tasks, then re-issue the
@@ -327,12 +323,18 @@ export const waitForAsyncData = async <T = unknown[]>(
 ): Promise<T> => {
   const taskIds = asyncJob.task_ids ?? [];
 
+  // Capture the tab id once, in the same tick the 202 was received, and reuse it
+  // for any later cancel/detach of these tasks. Reading it fresh at cancel time
+  // could send a different id if the tab id was reassigned meanwhile (a
+  // duplicate-tab collision), orphaning the original per-tab subscription.
+  const submitTabId = getTabId();
+
   // Register the waiter synchronously, in the same tick the 202 was received —
   // NOT after an await — so a completion socket event can't arrive before the
   // waiter exists and be dropped.
   await new Promise<void>((resolve, reject) => {
     if (signal?.aborted) {
-      cancelUnwaitedTasks(taskIds);
+      cancelUnwaitedTasks(taskIds, submitTabId);
       reject(new DOMException('Aborted', 'AbortError'));
       return;
     }
@@ -347,7 +349,7 @@ export const waitForAsyncData = async <T = unknown[]>(
     if (signal) {
       waiter.onAbort = () => {
         unregister(waiter);
-        cancelUnwaitedTasks(taskIds);
+        cancelUnwaitedTasks(taskIds, submitTabId);
         reject(new DOMException('Aborted', 'AbortError'));
       };
       signal.addEventListener('abort', waiter.onAbort, { once: true });
