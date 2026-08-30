@@ -20,6 +20,7 @@ import pandas as pd
 import pytest
 from pandas import DataFrame, to_datetime
 
+from superset.constants import NULL_STRING
 from superset.exceptions import InvalidPostProcessingError
 from superset.utils.pandas_postprocessing import flatten, pivot
 from tests.unit_tests.fixtures.dataframes import categories_df
@@ -871,3 +872,113 @@ def test_pivot_show_values_as_preserves_structural_nan() -> None:
     assert pd.isna(result.loc["r1", ("v", "c2")])
     # r1's row-total is just c1 (10.0), so c1 is 100%.
     assert result.loc["r1", ("v", "c1")] == pytest.approx(1.0)
+
+
+# --- NULL index preservation tests (#43547) ----------------------------------
+#
+# pandas pivot_table() silently drops rows whose index columns contain NaN,
+# regardless of the dropna= setting (which only governs the column axis).
+# The fix fills index columns with NULL_STRING before calling pivot_table(),
+# mirroring the existing treatment of the columns= parameter.
+
+
+def test_pivot_preserves_null_index_value() -> None:
+    """A NULL value in a flat (no columns groupby) index column must appear
+    as a '<NULL>' row in the result rather than being silently dropped.
+
+    Regression for #43547: pivot_table() drops NaN index rows regardless of
+    dropna=; filling the index with NULL_STRING before the call preserves them.
+    """
+    df = DataFrame(
+        {
+            "row": ["r1", None, "r2"],  # middle row has a NULL index value
+            "v": [10, 99, 30],
+        }
+    )
+    result = pivot(
+        df=df,
+        index=["row"],
+        aggregates={"v": {"operator": "sum"}},
+    )
+    # The NULL group must survive as a real index label, not be dropped.
+    assert NULL_STRING in result.index, (
+        f"Expected '{NULL_STRING}' in pivot index; got {result.index.tolist()}"
+    )
+    # The metric value for the NULL group must be correct.
+    assert result.loc[NULL_STRING, "v"] == 99
+
+
+def test_pivot_preserves_null_index_value_with_columns() -> None:
+    """A NULL value in an index column must survive as '<NULL>' even when a
+    columns= groupby is also active (MultiIndex column case).
+
+    Regression for #43547: the fix must work for both the flat pivot and the
+    MultiIndex pivot so that NULL row groups are never silently dropped.
+    """
+    df = DataFrame(
+        {
+            "row": ["r1", None, "r2"],  # middle row has a NULL index value
+            "col": ["c1", "c1", "c1"],
+            "v": [10, 99, 30],
+        }
+    )
+    result = pivot(
+        df=df,
+        index=["row"],
+        columns=["col"],
+        aggregates={"v": {"operator": "sum"}},
+    )
+    # The NULL group must survive as a real index label in the MultiIndex pivot.
+    assert NULL_STRING in result.index, (
+        f"Expected '{NULL_STRING}' in pivot index; got {result.index.tolist()}"
+    )
+    # The metric value for the NULL-indexed group must be correct.
+    assert result.loc[NULL_STRING, ("v", "c1")] == 99
+
+
+def test_pivot_preserves_null_index_value_categorical() -> None:
+    """A categorical index column with a NULL value must have NULL_STRING added
+    as a valid category first and be preserved as '<NULL>' in the pivot output.
+
+    Regression for #43547: ensures fillna() on CategoricalDtype does not raise
+    and preserves the NULL index group.
+    """
+    df = DataFrame(
+        {
+            "row": pd.Categorical(["r1", None, "r2"]),
+            "v": [10, 99, 30],
+        }
+    )
+    result = pivot(
+        df=df,
+        index=["row"],
+        aggregates={"v": {"operator": "sum"}},
+    )
+    assert NULL_STRING in result.index, (
+        f"Expected '{NULL_STRING}' in pivot index; got {result.index.tolist()}"
+    )
+    assert result.loc[NULL_STRING, "v"] == 99
+
+
+def test_pivot_preserves_null_index_value_categorical_with_columns() -> None:
+    """Both index and column dimensions as categorical dtypes with NULL values
+    must properly add NULL_STRING to categories and preserve '<NULL>' rows and
+    columns in the MultiIndex output.
+    """
+    df = DataFrame(
+        {
+            "row": pd.Categorical(["r1", None, "r2"]),
+            "col": pd.Categorical(["c1", None, "c2"]),
+            "v": [10, 99, 30],
+        }
+    )
+    result = pivot(
+        df=df,
+        index=["row"],
+        columns=["col"],
+        aggregates={"v": {"operator": "sum"}},
+    )
+    assert NULL_STRING in result.index, (
+        f"Expected '{NULL_STRING}' in pivot index; got {result.index.tolist()}"
+    )
+    assert result.loc[NULL_STRING, ("v", NULL_STRING)] == 99
