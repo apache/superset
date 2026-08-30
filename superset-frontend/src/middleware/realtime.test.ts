@@ -24,6 +24,32 @@ import {
   type RealtimeMessage,
 } from 'src/middleware/realtime';
 
+// Controllable useTabId mock (overrides the global shim for this file) so we can
+// drive both the current tab id baked into the connect URL and tab-id-change
+// notifications. `var` + lazy init sidesteps jest.mock hoisting/TDZ.
+/* eslint-disable no-var, vars-on-top */
+var mockTabIdValue: string;
+var mockTabIdListeners: Set<() => void>;
+/* eslint-enable no-var, vars-on-top */
+jest.mock('src/hooks/useTabId', () => {
+  mockTabIdValue = 'test-tab-id';
+  mockTabIdListeners = new Set();
+  return {
+    useTabId: () => 1,
+    getTabId: () => mockTabIdValue,
+    subscribeTabIdChange: (listener: () => void) => {
+      mockTabIdListeners.add(listener);
+      return () => mockTabIdListeners.delete(listener);
+    },
+  };
+});
+
+/** Simulate useTabId reassigning this tab a new id (TAB_ID_DENIED collision). */
+const fireTabIdChange = (newId: string) => {
+  mockTabIdValue = newId;
+  mockTabIdListeners.forEach(listener => listener());
+};
+
 // A minimal fake WebSocket so connectRealtime can "open" a socket without a
 // real network connection. Instances register themselves so a test can drive
 // onmessage/onclose.
@@ -57,6 +83,7 @@ beforeEach(() => {
 afterEach(() => {
   resetRealtimeForTests();
   global.WebSocket = originalWebSocket;
+  mockTabIdValue = 'test-tab-id';
 });
 
 const ENABLED = {
@@ -148,6 +175,38 @@ test('opens a socket when enabled and routes its messages to handlers', () => {
     channel: 'realtime:user:1',
     payload: { ok: true },
   });
+});
+
+test('resolves a root-relative ws url against the page and adds tab_id', () => {
+  // A root-relative endpoint (e.g. behind a same-origin proxy) is valid for
+  // WebSocket; it must resolve against the page URL and normalize to ws(s),
+  // still carrying tab_id — not silently drop the tab id.
+  connectRealtime({ WEBSOCKET_ENABLE: true, WEBSOCKET_URL: '/superset-ws' });
+
+  expect(FakeWebSocket.instances).toHaveLength(1);
+  const u = new URL(FakeWebSocket.instances[0].url);
+  expect(u.protocol).toBe('ws:'); // jsdom page is http:// → ws://
+  expect(u.pathname).toBe('/superset-ws');
+  expect(u.searchParams.get('tab_id')).toBe('test-tab-id');
+});
+
+test('reconnects with the new tab id when the tab id changes', () => {
+  connectRealtime(ENABLED);
+  expect(FakeWebSocket.instances).toHaveLength(1);
+  expect(
+    new URL(FakeWebSocket.instances[0].url).searchParams.get('tab_id'),
+  ).toBe('test-tab-id');
+
+  // A duplicated tab is reassigned a new id: the socket must reconnect so it
+  // re-registers under the new per-tab channel (else tab-targeted events miss
+  // it and only polling notices completion).
+  fireTabIdChange('tab-2');
+
+  expect(FakeWebSocket.instances).toHaveLength(2);
+  expect(FakeWebSocket.instances[0].close).toHaveBeenCalled();
+  expect(
+    new URL(FakeWebSocket.instances[1].url).searchParams.get('tab_id'),
+  ).toBe('tab-2');
 });
 
 test('keeps the active socket when reconnecting with the same config', () => {

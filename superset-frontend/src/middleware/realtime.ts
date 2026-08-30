@@ -35,7 +35,7 @@
  */
 import { logging } from '@apache-superset/core/utils';
 import getBootstrapData from 'src/utils/getBootstrapData';
-import { getTabId } from 'src/hooks/useTabId';
+import { getTabId, subscribeTabIdChange } from 'src/hooks/useTabId';
 
 /** The generic envelope the server forwards to the browser. */
 export interface RealtimeMessage {
@@ -96,21 +96,33 @@ export const dispatchRealtimeMessage = (rawData: string): void => {
   });
 };
 
+// Build the per-connection ws URL. The configured endpoint may be absolute
+// (`ws://host/`) or root-relative (`/superset-ws`, behind a same-origin proxy),
+// so resolve it against the page URL and normalize an http(s) result to ws(s).
+// The tab id is advertised as a query param so the server binds a per-tab channel
+// for tab-targeted delivery. The stored base `url` is left untouched so
+// connectRealtime's idempotency compare stays stable.
+const buildConnectUrl = (baseUrl: string): string => {
+  try {
+    const base =
+      typeof window !== 'undefined' ? window.location.href : undefined;
+    const parsed = new URL(baseUrl, base);
+    if (parsed.protocol === 'http:') parsed.protocol = 'ws:';
+    else if (parsed.protocol === 'https:') parsed.protocol = 'wss:';
+    parsed.searchParams.set('tab_id', getTabId());
+    return parsed.toString();
+  } catch {
+    // Last resort (unparseable and no page URL): still advertise the tab id so
+    // per-tab delivery works rather than silently falling back to polling.
+    const sep = baseUrl.includes('?') ? '&' : '?';
+    return `${baseUrl}${sep}tab_id=${encodeURIComponent(getTabId())}`;
+  }
+};
+
 const openSocket = (thisGeneration: number): void => {
   if (thisGeneration !== generation) return;
   if (!enabled || !url || typeof WebSocket === 'undefined') return;
-  // Advertise this tab's id on the connect URL so the server can also bind the
-  // socket to a per-tab channel and deliver tab-targeted messages (e.g. this
-  // tab's own task-status) to it alone. Built per-connection so the stored base
-  // `url` stays stable for connectRealtime's idempotency check.
-  let connectUrl = url;
-  try {
-    const parsed = new URL(url);
-    parsed.searchParams.set('tab_id', getTabId());
-    connectUrl = parsed.toString();
-  } catch {
-    // Non-absolute/unparseable URL: connect to the base as-is.
-  }
+  const connectUrl = buildConnectUrl(url);
   let ws: WebSocket;
   try {
     ws = new WebSocket(connectUrl);
@@ -202,6 +214,18 @@ export const subscribeRealtime = (handler: RealtimeHandler): (() => void) => {
     handlers.delete(handler);
   };
 };
+
+// Keep the socket's per-tab channel in sync with the tab id. If this tab's id is
+// reassigned (a duplicated tab resolving a TAB_ID_DENIED collision), the live
+// socket stays bound to the old per-tab channel while new subscriptions use the
+// new id, so tab-targeted status events would miss it. Reconnect to re-register
+// under the current id (openSocket re-reads getTabId). No-op unless active.
+subscribeTabIdChange(() => {
+  if (!enabled || !hasActiveSocket()) return;
+  generation += 1;
+  teardownSocket();
+  openSocket(generation);
+});
 
 // Test-only: reset module state between cases.
 export const resetRealtimeForTests = (): void => {

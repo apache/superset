@@ -88,6 +88,7 @@ setupSupersetClient();
 jest.mock('src/hooks/useTabId', () => ({
   useTabId: () => 1,
   getTabId: () => 'test-tab-id',
+  subscribeTabIdChange: () => () => {},
 }));
 
 // Check https://github.com/remarkjs/react-markdown/issues/635
