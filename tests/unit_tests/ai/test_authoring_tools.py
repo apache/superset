@@ -127,6 +127,24 @@ def test_mcp_runner_isolates_request_state(app_context: None) -> None:
     assert g.user is original_user
 
 
+def test_mcp_runner_times_out_stalled_worker(app_context: None) -> None:
+    from flask import current_app, g
+
+    g.user = MagicMock(username="admin", email="admin@example.test")
+    worker = MagicMock()
+    worker.is_alive.return_value = True
+
+    with (
+        patch.dict(current_app.config, {"AI_AGENT_TIMEOUT_SECONDS": 12}),
+        patch("superset.ai.tools.authoring.Thread", return_value=worker),
+        pytest.raises(ToolError, match="authoring timed out"),
+    ):
+        _run_mcp_tool("generate_chart", MagicMock())
+
+    worker.start.assert_called_once_with()
+    worker.join.assert_called_once_with(12.0)
+
+
 @pytest.mark.asyncio
 async def test_mcp_call_prefers_structured_content() -> None:
     client = MagicMock()

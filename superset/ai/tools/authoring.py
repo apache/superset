@@ -140,7 +140,10 @@ def _run_mcp_tool(tool_name: str, request: BaseModel) -> dict[str, Any]:
 
     worker = Thread(target=run, name="superset-ai-authoring", daemon=True)
     worker.start()
-    worker.join()
+    worker.join(float(app.config.get("AI_AGENT_TIMEOUT_SECONDS", 300)))
+
+    if worker.is_alive():
+        raise ToolError("Superset authoring timed out.")
 
     if error := outcome.get("error"):
         raise error
