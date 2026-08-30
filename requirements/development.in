@@ -16,16 +16,20 @@
 # specific language governing permissions and limitations
 # under the License.
 #
--e .[development,bigquery,clickhouse,cockroachdb,crate,druid,duckdb,elasticsearch,fastmcp,gevent,gsheets,monetdb,mongodb,mssql,mysql,oracle,postgres,presto,prophet,starrocks,trino,thumbnails]
+-e .[development,bigquery,clickhouse,cockroachdb,crate,databend,druid,duckdb,elasticsearch,fastmcp,firebird,gevent,gsheets,monetdb,mongodb,mssql,mysql,oracle,postgres,presto,prophet,risingwave,starrocks,trino,thumbnails,ydb]
 -e ./superset-extensions-cli[test]
 # testcontainers-backed db_engine_specs tests (tests/testcontainers/) --
 # see .github/workflows/testcontainers.yml
 #
-# `db2` (the `ibm-db-sa`/`ibm-db` driver) is deliberately left out of the
-# baseline dev install above: `ibm-db` ships no Linux arm64 wheel, so
-# including it here breaks the multi-platform (amd64+arm64) dev Docker
-# image build. The testcontainers CI job installs it on demand, only for
-# the db2 matrix leg -- see .github/workflows/testcontainers.yml.
+# `db2` (the `ibm-db-sa`/`ibm-db` driver) and `oceanbase` (the `oceanbase_py`
+# driver) are both deliberately left out of the baseline dev install above:
+# `ibm-db` ships no Linux arm64 wheel, breaking the multi-platform
+# (amd64+arm64) dev Docker image build; `oceanbase_py` pins
+# `sqlalchemy-utils>=0.38.3,<0.39`, which conflicts outright with Superset's
+# own `sqlalchemy-utils==0.42.1` pin -- there's no version of both that can
+# coexist in one resolved environment. Both testcontainers CI jobs install
+# their driver on demand instead, only for their own matrix leg -- see
+# .github/workflows/testcontainers.yml.
 #
 # mariadb/timescaledb/yugabytedb need no testcontainers extra of their own:
 # they reuse the postgres/mysql container classes pointed at a different
@@ -36,5 +40,8 @@
 # pulled in above via the clickhouse extra, is all the test needs), and
 # StarRocks has no dedicated testcontainers module at all -- its test uses
 # a generic DockerContainer plus the same mysqlclient the mysql extra
-# already provides.
+# already provides. databend/risingwave/firebird/ydb are the same story:
+# none has a dedicated testcontainers module, so each test uses a generic
+# DockerContainer plus whatever driver its own extra above already
+# provides.
 testcontainers[cockroachdb,cratedb,mongodb,mssql,mysql,oracle,postgres,trino]>=4.15.0,<5

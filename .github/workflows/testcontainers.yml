@@ -9,6 +9,13 @@ name: Testcontainers
 # just from Superset's changes) and on pull_request, scoped via `paths` to
 # only PRs that actually touch this test suite or the workflow itself, so
 # unrelated PRs across the repo are never affected.
+#
+# A matrix entry can set `nightly_only: true` to run only on the cron (or a
+# manual workflow_dispatch), never on pull_request -- for a dialect whose
+# image is too heavy (a multi-service cluster, a many-GB image, a slow
+# licensed installer) to justify adding its wall-clock/resource cost to
+# every PR that merely touches this suite. Omit the field entirely for a
+# normal dialect; it isn't nightly-only by default.
 permissions:
   contents: read
 
@@ -33,13 +40,22 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  testcontainers:
+  compute-matrix:
+    # Filters out `nightly_only` dialects for a pull_request run *before* any
+    # testcontainers job is created for them, so a heavy dialect costs a PR
+    # nothing at all -- not even its checkout/setup/driver-install steps --
+    # rather than being merely skipped at the test step. A job-level `if:`
+    # can't reference `matrix` (only github/inputs/needs/vars are available
+    # there), so the filtering has to happen here, before the matrix exists,
+    # instead of on the testcontainers job itself.
     runs-on: ubuntu-26.04
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          # One job per dialect rather than one job for the whole suite: a
+    outputs:
+      include: ${{ steps.filter.outputs.include }}
+    steps:
+      - name: Filter nightly-only dialects
+        id: filter
+        env:
+          # One entry per dialect rather than one job for the whole suite: a
           # single slow container would otherwise inflate the wall-clock
           # time for every dialect, not just its own. Running in parallel
           # means the suite's total time is bounded by the slowest dialect,
@@ -48,41 +64,45 @@ jobs:
           # process start) and untested locally here (no arm64 image), so
           # it gets a wider timeout margin than the rest until real CI data
           # says otherwise.
-          - dialect: cockroachdb
-            timeout: 10
-          - dialect: crate
-            timeout: 10
-          - dialect: trino
-            timeout: 10
-          - dialect: mssql
-            timeout: 10
-          - dialect: elasticsearch
-            timeout: 10
-          - dialect: oracle
-            timeout: 15
-          - dialect: db2
-            timeout: 25
-          - dialect: mariadb
-            timeout: 10
-          - dialect: timescaledb
-            timeout: 10
-          - dialect: yugabytedb
-            timeout: 10
-          - dialect: monetdb
-            timeout: 10
-          - dialect: mongodb
-            timeout: 10
-          - dialect: postgres
-            timeout: 10
-          - dialect: mysql
-            timeout: 10
-          - dialect: clickhouse
-            timeout: 10
-          # StarRocks' allin1-ubuntu image brings up both FE and BE in one
-          # container, which is a heavier bring-up than a single-process
-          # database -- wider margin until real CI data says otherwise.
-          - dialect: starrocks
-            timeout: 15
+          FULL_MATRIX: |
+            [
+              {"dialect": "cockroachdb", "timeout": 10},
+              {"dialect": "crate", "timeout": 10},
+              {"dialect": "trino", "timeout": 10},
+              {"dialect": "mssql", "timeout": 10},
+              {"dialect": "elasticsearch", "timeout": 10},
+              {"dialect": "oracle", "timeout": 15},
+              {"dialect": "db2", "timeout": 25},
+              {"dialect": "mariadb", "timeout": 10},
+              {"dialect": "timescaledb", "timeout": 10},
+              {"dialect": "yugabytedb", "timeout": 10},
+              {"dialect": "monetdb", "timeout": 10},
+              {"dialect": "mongodb", "timeout": 10},
+              {"dialect": "postgres", "timeout": 10},
+              {"dialect": "mysql", "timeout": 10},
+              {"dialect": "clickhouse", "timeout": 10},
+              {"dialect": "starrocks", "timeout": 15},
+              {"dialect": "databend", "timeout": 10},
+              {"dialect": "risingwave", "timeout": 10},
+              {"dialect": "firebird", "timeout": 10},
+              {"dialect": "ydb", "timeout": 10},
+              {"dialect": "oceanbase", "timeout": 20, "nightly_only": true}
+            ]
+        run: |
+          if [[ "${{ github.event_name }}" == "schedule" || "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            include="$(jq -c '.' <<<"$FULL_MATRIX")"
+          else
+            include="$(jq -c '[.[] | select(.nightly_only != true)]' <<<"$FULL_MATRIX")"
+          fi
+          echo "include=${include}" >> "$GITHUB_OUTPUT"
+
+  testcontainers:
+    needs: [compute-matrix]
+    runs-on: ubuntu-26.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJson(needs.compute-matrix.outputs.include) }}
     timeout-minutes: ${{ matrix.timeout }}
     env:
       PYTHONPATH: ${{ github.workspace }}
@@ -109,7 +129,39 @@ jobs:
         # instead, only for this leg of the matrix.
         if: matrix.dialect == 'db2'
         run: uv pip install --system -e .[db2]
+      - name: Install oceanbase driver (oceanbase_py)
+        # oceanbase_py pins sqlalchemy-utils>=0.38.3,<0.39, which conflicts
+        # outright with Superset's own sqlalchemy-utils==0.42.1 pin -- kept
+        # out of the baseline dev install for the same reason as db2 above.
+        # Installed as its own standalone package (not via `-e .[oceanbase]`)
+        # so --no-deps only skips *oceanbase_py's* dependencies -- applied
+        # to `-e .[oceanbase]` instead, --no-deps blocks pip from installing
+        # anything the extras marker pulls in, including oceanbase_py
+        # itself, which "succeeds" without actually installing it
+        # (confirmed on real CI: the install step reported success, but the
+        # module was still missing). This job only needs oceanbase_py's
+        # dialect module importable, not its sqlalchemy-utils dependency
+        # satisfied, since nothing here calls into it.
+        if: >-
+          matrix.dialect == 'oceanbase' &&
+          (matrix.nightly_only != true ||
+           github.event_name == 'schedule' ||
+           github.event_name == 'workflow_dispatch')
+        run: uv pip install --system --no-deps "oceanbase_py>=0.0.1.2"
+      - name: Install Firebird client library (libfbclient2)
+        # sqlalchemy-firebird's driver (firebird-driver) is a pure-Python
+        # ctypes wrapper (its wheel is py3-none-any) that dynamically loads
+        # the native Firebird client library from the host at import time
+        # -- it doesn't bundle that library itself, so it has to come from
+        # the system package manager, only for this leg of the matrix.
+        if: matrix.dialect == 'firebird'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libfbclient2
       - name: Run testcontainers db_engine_specs tests (${{ matrix.dialect }})
+        # nightly_only dialects are already excluded from the matrix itself
+        # on pull_request runs (see the compute-matrix job above), so this
+        # step needs no additional gating.
         run: |
           pytest --durations-min=2 -v -m testcontainers \
             ./tests/testcontainers/db_engine_specs/test_${{ matrix.dialect }}.py \
