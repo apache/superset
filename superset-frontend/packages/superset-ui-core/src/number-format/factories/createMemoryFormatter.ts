@@ -41,7 +41,7 @@ function formatMemory(
       let scaleIndex = absValue < 1 ? 0 : Math.floor(Math.log(absValue) / Math.log(base));
       let i = Math.min(suffixes.length - 1, scaleIndex);
 
-      let scaledValue = absValue / Math.pow(base, i);
+      const scaledValue = absValue / Math.pow(base, i);
       let scaled = parseFloat(scaledValue.toFixed(decimals));
 
       if (scaled >= base && i < suffixes.length - 1) {
