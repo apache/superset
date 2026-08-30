@@ -16,26 +16,26 @@
 # under the License.
 from typing import Any
 
-from flask import current_app, g
+from flask import current_app
 from flask_babel import lazy_gettext as _
 from sqlalchemy import and_, or_
 from sqlalchemy.orm.query import Query
 
-from superset import db, is_feature_enabled, security_manager
+from superset import db, security_manager
 from superset.connectors.sqla.models import SqlaTable
 from superset.models.core import Database
-from superset.models.dashboard import Dashboard, is_uuid
-from superset.models.embedded_dashboard import EmbeddedDashboard
+from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
-from superset.security.guest_token import GuestTokenResourceType, GuestUser
 from superset.subjects.filters import (
     EditableFilter,
-    subject_relation_exists_for_current_user,
 )
 from superset.subjects.models import dashboard_editors, dashboard_viewers
 from superset.tags.filters import BaseTagIdFilter, BaseTagNameFilter
 from superset.utils.core import get_user_id
-from superset.utils.filters import get_dataset_access_filters
+from superset.utils.filters import (
+    get_dataset_access_filters,
+    guest_embedded_dashboard_filter,
+)
 from superset.views.base import BaseFilter
 from superset.views.base_api import BaseFavoriteFilter
 from superset.views.filters import BaseDeletedRecencyFilter, BaseDeletedStateFilter
@@ -110,20 +110,20 @@ class DashboardAccessFilter(BaseFilter):  # pylint: disable=too-few-public-metho
     """
     List dashboards with the following criteria:
 
-    When ``ENABLE_VIEWERS`` is on:
-        1. Those where the user is an editor (published or not)
-        2. Those where the user is a viewer (published only)
-        3. Those with no viewers → fall back to dataset-based access (published only)
-        4. Embedded dashboard access (preserved as-is)
-
-    When ``ENABLE_VIEWERS`` is off (legacy):
-        1. Those which the user is an editor of
-        2. Those which have been published (if they have access to at least one slice)
-
-    If the user is an admin then show all dashboards.
+        1. Embedded guests: only the dashboards in their token, nothing else
+        2. Admins: all dashboards
+        3. Editors: their dashboards (published or not)
+        4. Viewers: published dashboards
+        5. Dashboards with no viewers → fall back to dataset-based access
+           (published only)
     """
 
     def apply(self, query: Query, value: Any) -> Query:
+        # Guests are scoped to their token's dashboards only, never widened by
+        # the role paths below (mirrors ChartFilter).
+        if (guest_condition := guest_embedded_dashboard_filter()) is not None:
+            return query.filter(guest_condition)
+
         if security_manager.is_admin():
             return query
 
@@ -192,90 +192,7 @@ class DashboardAccessFilter(BaseFilter):  # pylint: disable=too-few-public-metho
             if user_id:
                 filters.append(Dashboard.id.in_(extra_dashboards_filter(user_id)))
 
-        # (D) Embedded: preserved as-is
-        if is_feature_enabled("EMBEDDED_SUPERSET") and security_manager.is_guest_user(
-            g.user
-        ):
-            guest_user: GuestUser = g.user
-            embedded_dashboard_ids = [
-                r["id"]
-                for r in guest_user.resources
-                if r["type"] == GuestTokenResourceType.DASHBOARD.value
-            ]
-            condition = (
-                Dashboard.embedded.any(
-                    EmbeddedDashboard.uuid.in_(embedded_dashboard_ids)
-                )
-                if any(is_uuid(id_) for id_ in embedded_dashboard_ids)
-                else Dashboard.id.in_(embedded_dashboard_ids)
-            )
-            filters.append(condition)
-
         return query.filter(or_(*filters)) if filters else query
-
-    def _apply_legacy(self, query: Query) -> Query:
-        datasource_perm_query = (
-            db.session.query(Dashboard.id)
-            .join(Dashboard.slices, isouter=True)
-            .join(SqlaTable, Slice.datasource_id == SqlaTable.id)
-            .join(Database, SqlaTable.database_id == Database.id)
-            .filter(
-                and_(
-                    Dashboard.published.is_(True),
-                    get_dataset_access_filters(
-                        Slice,
-                        security_manager.can_access_all_datasources(),
-                    ),
-                )
-            )
-        )
-
-        # Editors query
-        editor_ids_query = db.session.query(dashboard_editors.c.dashboard_id).filter(
-            subject_relation_exists_for_current_user(dashboard_editors)
-        )
-
-        feature_flagged_filters = []
-        if is_feature_enabled("EMBEDDED_SUPERSET") and security_manager.is_guest_user(
-            g.user
-        ):
-            guest_user: GuestUser = g.user
-            embedded_dashboard_ids = [
-                r["id"]
-                for r in guest_user.resources
-                if r["type"] == GuestTokenResourceType.DASHBOARD.value
-            ]
-
-            # TODO (embedded): only use uuid filter once uuids are rolled out
-            condition = (
-                Dashboard.embedded.any(
-                    EmbeddedDashboard.uuid.in_(embedded_dashboard_ids)
-                )
-                if any(is_uuid(id_) for id_ in embedded_dashboard_ids)
-                else Dashboard.id.in_(embedded_dashboard_ids)
-            )
-
-            feature_flagged_filters.append(condition)
-
-        extra_access_filters = []
-        extra_filters = current_app.config.get("EXTRA_ACCESS_QUERY_FILTERS", {})
-        if extra_dashboards_filter := extra_filters.get("dashboards"):
-            user_id = get_user_id()
-            if user_id:
-                extra_access_filters.append(
-                    Dashboard.id.in_(extra_dashboards_filter(user_id))
-                )
-
-        query = query.filter(
-            or_(
-                Dashboard.id.in_(editor_ids_query),
-                Dashboard.id.in_(datasource_perm_query),
-                *feature_flagged_filters,
-                *extra_access_filters,
-            )
-        )
-
-        return query
 
 
 class DashboardEditableFilter(EditableFilter):  # pylint: disable=too-few-public-methods

@@ -46,6 +46,7 @@ Configuration:
 
 import logging
 from contextlib import AbstractContextManager, contextmanager
+from contextvars import ContextVar
 from typing import Any, Callable, cast, Generator, TYPE_CHECKING, TypeAlias, TypeVar
 
 from flask import current_app, g, has_app_context, has_request_context
@@ -60,11 +61,17 @@ from superset.mcp_service.guest_token_verifier import GUEST_TOKEN_CLAIM
 from superset.mcp_service.mcp_config import (
     default_user_resolver,
     get_mcp_api_key_enabled,
+    MCP_GUEST_ALLOWED_TOOLS,
     validate_multi_issuer_user_resolver,
 )
 from superset.mcp_service.session_scope import _mcp_session_token
 from superset.mcp_service.utils.error_sanitization import (
     sanitize_for_log as _sanitize_for_log,
+)
+from superset.security.api_key_scopes import (
+    get_resource_scope,
+    METHOD_PERMISSION_SCOPE_ACTION,
+    RESOURCE_SCOPE_NAME as RESOURCE_SCOPE_NAME,
 )
 from superset.security.guest_token import GuestUser
 
@@ -77,6 +84,15 @@ if TYPE_CHECKING:
 F = TypeVar("F", bound=Callable[..., Any])
 
 logger = logging.getLogger(__name__)
+
+# The resolved user's id for the current tool call, set by
+# _setup_user_context(). g.user is only valid for the lifetime of the
+# per-call app context pushed by _get_app_context_manager() (see its
+# docstring) and is gone by the time LoggingMiddleware's on_call_tool/
+# on_message finally-blocks run after call_next() returns. This ContextVar
+# survives that context pop (mirrors _mcp_call_id_var in middleware.py) so
+# audit logging can attribute the call to the right user.
+_mcp_user_id_var: ContextVar[int | None] = ContextVar("mcp_user_id", default=None)
 
 # An MCP request resolves to a real DB ``User`` or, for embedded guests, a
 # ``GuestUser`` (an AnonymousUserMixin, not a ``User`` subclass). Both are valid
@@ -115,17 +131,22 @@ class MCPNoAuthSourceError(ValueError):
 # is a privileged, write-class operation and therefore requires the write
 # scope. When introducing a new method permission, add it here.
 _METHOD_TO_REQUIRED_SCOPE = {
-    "read": "superset:read",
-    # "get" is the read-class permission FAB registers on its security API
-    # views (User/Role) — those views have no can_read, so tools targeting
-    # them declare method_permission_name="get".
-    "get": "superset:read",
-    "write": "superset:write",
-    "delete": "superset:write",
-    # SQL execution (execute_sql, get_chart_sql) runs arbitrary queries and is
-    # treated as a write-class privileged operation for scope purposes.
-    "execute_sql_query": "superset:write",
+    method: f"superset:{action}"
+    for method, action in METHOD_PERMISSION_SCOPE_ACTION.items()
 }
+
+
+def _required_resource_scope(
+    class_permission_name: str, method_permission_name: str
+) -> str | None:
+    """Compute the ``superset:<resource>:<action>`` scope string for a tool.
+
+    Returns None if either the resource or the action isn't mapped — callers
+    must treat that as "no per-resource scope available," not as a grant;
+    the flat ``_METHOD_TO_REQUIRED_SCOPE`` fallback still applies in that case
+    (see ``_token_scope_allows``).
+    """
+    return get_resource_scope(class_permission_name, method_permission_name)
 
 
 def _get_token_scopes() -> set[str] | None:
@@ -143,8 +164,13 @@ def _get_token_scopes() -> set[str] | None:
 
     try:
         access_token = get_access_token()
-    except Exception:  # noqa: BLE001 - no JWT context for this request
-        return None
+    except Exception:  # noqa: BLE001 - fail closed on token-context errors
+        logger.exception("Unable to resolve MCP access-token scopes")
+        # ``None`` means that no scoped credential was presented and enables
+        # legacy RBAC-only behavior. An empty set instead makes every scope
+        # check fail, so an unexpected context error cannot erase restrictions
+        # carried by a credential.
+        return set()
 
     if access_token is None:
         return None
@@ -156,12 +182,21 @@ def _get_token_scopes() -> set[str] | None:
     return {str(s) for s in scopes}
 
 
-def _token_scope_allows(method_permission_name: str) -> bool:
+def _token_scope_allows(
+    method_permission_name: str, class_permission_name: str | None = None
+) -> bool:
     """Return whether the current token's scopes permit the given method.
 
     Back-compat: returns True (allow) when the token carries no scopes or there
     is no JWT context, so deployments not using scopes keep RBAC-only behavior.
     Only when the token advertises scopes is the mapped required scope enforced.
+
+    The per-resource scope (``superset:<resource>:<action>``, derived via
+    ``_required_resource_scope``) is an ALTERNATIVE grant path alongside the
+    flat method scope: a token carrying either the flat scope
+    (e.g. ``superset:read``) or the matching per-resource scope
+    (e.g. ``superset:dashboard:read``) is allowed, so already-issued
+    flat-scoped tokens keep working unchanged.
     """
     token_scopes = _get_token_scopes()
     if token_scopes is None:
@@ -179,7 +214,15 @@ def _token_scope_allows(method_permission_name: str) -> bool:
             method_permission_name,
         )
         return False
-    return required_scope in token_scopes
+    if required_scope in token_scopes:
+        return True
+    if class_permission_name is not None:
+        resource_scope = _required_resource_scope(
+            class_permission_name, method_permission_name
+        )
+        if resource_scope is not None and resource_scope in token_scopes:
+            return True
+    return False
 
 
 class MCPPermissionDeniedError(PermissionError):
@@ -223,12 +266,20 @@ def _log_scope_denial(
     cyclomatic complexity in check.
     """
     required_scope = _METHOD_TO_REQUIRED_SCOPE.get(method_permission_name)
+    resource_scope = _required_resource_scope(
+        class_permission_name, method_permission_name
+    )
+    scope_desc = (
+        resource_scope
+        or required_scope
+        or f"unmapped method permission '{method_permission_name}'"
+    )
     if log_denial:
         logger.warning(
             "Scope denied for user %s: token lacks required scope "
             "'%s' for %s on %s (tool: %s)",
             _sanitize_for_log(g.user.username),
-            required_scope,
+            scope_desc,
             permission_str,
             class_permission_name,
             func.__name__,
@@ -237,28 +288,16 @@ def _log_scope_denial(
         logger.debug(
             "Tool hidden for user %s: token lacks required scope '%s' (tool: %s)",
             _sanitize_for_log(g.user.username),
-            required_scope,
+            scope_desc,
             func.__name__,
         )
 
 
 # Default-deny allow-list for embedded guests: a guest may call only these tools,
 # regardless of MCP_RBAC_ENABLED or how the guest role (PUBLIC_ROLE_LIKE) is
-# configured. Everything else is denied, including newly added tools until listed
-# here. Sync with mcp_config.py.
-_DEFAULT_GUEST_ALLOWED_TOOLS: frozenset[str] = frozenset(
-    {
-        # Dashboard structure, scoped to the token's embedded dashboards.
-        "get_dashboard_info",
-        "get_dashboard_layout",
-        "list_dashboards",
-        # Chart read + data, scoped by ChartFilter; data-model fields redacted.
-        "list_charts",
-        "get_chart_info",
-        "get_chart_data",
-        "get_chart_preview",
-    }
-)
+# configured. Everything else is denied, including newly added tools until listed.
+# Single source of truth: MCP_GUEST_ALLOWED_TOOLS in mcp_config.py.
+_DEFAULT_GUEST_ALLOWED_TOOLS: frozenset[str] = frozenset(MCP_GUEST_ALLOWED_TOOLS)
 
 
 def _guest_allowed_tools() -> frozenset[str]:
@@ -355,8 +394,13 @@ def check_tool_permission(  # noqa: C901
                 )
             return False
 
+        method_permission_name = getattr(func, METHOD_PERMISSION_ATTR, "read")
+        class_permission_name = getattr(func, CLASS_PERMISSION_ATTR, None)
+
+        # Token capabilities and user RBAC are independent restrictions.
+        # Disabling RBAC must not discard scopes explicitly carried by a key.
         if not current_app.config.get("MCP_RBAC_ENABLED", True):
-            return True
+            return _token_scope_allows(method_permission_name, class_permission_name)
 
         if not hasattr(g, "user") or not g.user:
             if log_denial:
@@ -369,7 +413,6 @@ def check_tool_permission(  # noqa: C901
                 )
             return False
 
-        class_permission_name = getattr(func, CLASS_PERMISSION_ATTR, None)
         if not class_permission_name:
             # No RBAC configured for this tool; allow by default. This is a
             # supported configuration (a protected tool may intentionally
@@ -383,9 +426,17 @@ def check_tool_permission(  # noqa: C901
                     "class_permission_name; allowing access without an RBAC check",
                     func.__name__,
                 )
+            if not _token_scope_allows(method_permission_name):
+                if log_denial:
+                    logger.warning(
+                        "Scope denied for permission-less tool %s: token lacks "
+                        "flat scope for method %s",
+                        func.__name__,
+                        method_permission_name,
+                    )
+                return False
             return True
 
-        method_permission_name = getattr(func, METHOD_PERMISSION_ATTR, "read")
         permission_str = f"{PERMISSION_PREFIX}{method_permission_name}"
 
         has_permission = security_manager.can_access(
@@ -400,7 +451,9 @@ def check_tool_permission(  # noqa: C901
         # advertises scopes. Tokens/deployments that don't use scopes (API keys,
         # scope-less JWTs, dev-mode) fall through to RBAC-only behavior — see
         # ``_token_scope_allows``.
-        if has_permission and not _token_scope_allows(method_permission_name):
+        if has_permission and not _token_scope_allows(
+            method_permission_name, class_permission_name
+        ):
             _log_scope_denial(
                 func,
                 method_permission_name,
@@ -463,7 +516,7 @@ def is_tool_visible_to_current_user(tool: Any) -> bool:
             return False
 
         if not current_app.config.get("MCP_RBAC_ENABLED", True):
-            return True
+            return check_tool_permission(tool_func, log_denial=False)
 
         from superset.mcp_service.privacy import (
             tool_requires_data_model_metadata_access,
@@ -475,10 +528,6 @@ def is_tool_visible_to_current_user(tool: Any) -> bool:
             and not user_can_view_data_model_metadata()
         ):
             return False
-
-        class_permission_name = getattr(tool_func, CLASS_PERMISSION_ATTR, None)
-        if not class_permission_name:
-            return True
 
         return check_tool_permission(tool_func, log_denial=False)
 
@@ -526,7 +575,8 @@ def _resolve_user_from_jwt_context(app: Any) -> MCPUser | None:  # noqa: C901
         the corresponding ``GuestUser`` built from the token's resources/RLS.
 
     Raises:
-        ValueError: If JWT resolves a username that doesn't exist in the DB
+        ValueError: If JWT resolves a username that doesn't exist in the DB,
+            or a guest-marked token is presented while guest auth is disabled
             (fail closed — do NOT fall through to weaker auth sources).
         MCPAuthConfigError: If more than one JWT issuer is trusted
             (``MCP_JWT_ISSUER`` is a list/tuple/set) and no issuer-aware
@@ -569,7 +619,14 @@ def _resolve_user_from_jwt_context(app: Any) -> MCPUser | None:  # noqa: C901
                 "Guest-marked token presented but embedded guest auth is not "
                 "enabled; rejecting"
             )
-            return None
+            # Fail closed, matching the sibling failure branches below: a
+            # guest-marked token is an explicit (rejected) authentication
+            # attempt, not an absent one. Returning None here would let the
+            # request degrade to weaker auth sources (API key,
+            # MCP_DEV_USERNAME, or a middleware-set g.user).
+            raise ValueError(
+                "Guest-marked token presented but embedded guest auth is not enabled"
+            )
         logger.debug("Resolving MCP request as embedded guest user")
         # Drop the internal marker so it does not leak into GuestUser.guest_token.
         guest_claims: dict[str, Any] = {
@@ -890,9 +947,9 @@ def _assert_user_active(user: MCPUser | None) -> None:
         )
 
 
-def _setup_user_context() -> MCPUser | None:
+def _resolve_user_with_retry() -> MCPUser | None:
     """
-    Set up user context for MCP tool execution.
+    Resolve the current user, retrying once on a stale DB connection.
 
     Includes retry logic for stale database connections (e.g., SSL dropped
     by proxy/load balancer after idle periods). On OperationalError, the
@@ -901,14 +958,6 @@ def _setup_user_context() -> MCPUser | None:
     Returns:
         User object with roles and groups loaded, or None if no Flask context
     """
-    # Clear stale g.user to prevent user impersonation across
-    # tool calls when no per-request middleware refreshes it.
-    # Only clear in app-context-only mode; preserve g.user when
-    # a request context is active (external middleware set it).
-
-    if not has_request_context():
-        g.pop("user", None)
-
     from sqlalchemy.exc import OperationalError
 
     user = None  # Ensure defined before loop in case of unexpected exit
@@ -925,7 +974,7 @@ def _setup_user_context() -> MCPUser | None:
             if hasattr(user, "groups"):
                 user_groups = user.groups  # noqa: F841
 
-            break
+            return user
         except RuntimeError as e:
             # No Flask application context (e.g., prompts before middleware runs)
             if "application context" in str(e):
@@ -959,8 +1008,38 @@ def _setup_user_context() -> MCPUser | None:
                 g.pop("user", None)
             raise
 
+    return user
+
+
+def _setup_user_context() -> MCPUser | None:
+    """
+    Set up user context for MCP tool execution.
+
+    Returns:
+        User object with roles and groups loaded, or None if no Flask context
+    """
+    # Clear stale g.user to prevent user impersonation across
+    # tool calls when no per-request middleware refreshes it.
+    # Only clear in app-context-only mode; preserve g.user when
+    # a request context is active (external middleware set it).
+
+    if not has_request_context():
+        g.pop("user", None)
+    # Clear any user_id left over from a previous call in this context
+    # (e.g. sequential calls sharing one asyncio task) so a failed/
+    # unauthenticated lookup below doesn't inherit a stale value.
+    _mcp_user_id_var.set(None)
+
+    user = _resolve_user_with_retry()
+    if user is None:
+        return None
+
     _assert_user_active(user)
     g.user = user
+    # GuestUser (embedded auth) has no numeric id; leave the ContextVar
+    # cleared (already reset above) rather than raise.
+    if (user_id := getattr(user, "id", None)) is not None:
+        _mcp_user_id_var.set(user_id)
     return user
 
 

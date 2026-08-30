@@ -259,10 +259,15 @@ class TaskManager:
             return remaining if remaining > 0 else 0
 
         def get_task() -> "Task | None":
+            # Reads back the task named by the caller's own task_uuid, not
+            # a user-requested lookup; see TaskFilter for the
+            # request-scoped vs. internal-plumbing split.
             if app and not has_app_context():
                 with app.app_context():
-                    return TaskDAO.find_one_or_none(uuid=task_uuid)
-            return TaskDAO.find_one_or_none(uuid=task_uuid)
+                    return TaskDAO.find_one_or_none(
+                        uuid=task_uuid, skip_base_filter=True
+                    )
+            return TaskDAO.find_one_or_none(uuid=task_uuid, skip_base_filter=True)
 
         # Check current state first
         task = get_task()
@@ -478,7 +483,9 @@ class TaskManager:
         """
         from superset.daos.tasks import TaskDAO
 
-        task = TaskDAO.find_one_or_none(uuid=task_uuid)
+        # Internal control-flow check on the task the executor is already
+        # running, not a user-facing lookup; see TaskFilter.
+        task = TaskDAO.find_one_or_none(uuid=task_uuid, skip_base_filter=True)
         return task is not None and task.status in ABORT_STATES
 
     @classmethod

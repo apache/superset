@@ -187,7 +187,7 @@ async function openAndSaveChanges(
   await userEvent.click(screen.getByTestId('datasource-menu-trigger'));
   await userEvent.click(await screen.findByTestId('edit-dataset'));
   await userEvent.click(await screen.findByTestId('datasource-modal-save'));
-  await userEvent.click(await screen.findByText('OK'));
+  await userEvent.click(await screen.findByText('Confirm'));
 }
 
 test('Should render', async () => {
@@ -297,6 +297,12 @@ test('Click on Edit dataset', async () => {
   const props = createProps();
   fetchMock.removeRoute(getDbWithQuery);
   fetchMock.get(getDbWithQuery, { result: [] }, { name: getDbWithQuery });
+  fetchMock.removeRoute(getDatasetWithAllMockRouteName);
+  fetchMock.get(
+    getDatasetWithAll,
+    { result: {} },
+    { name: getDatasetWithAllMockRouteName },
+  );
   render(<DatasourceControl {...props} />, {
     useRedux: true,
     useRouter: true,
@@ -307,7 +313,9 @@ test('Click on Edit dataset', async () => {
     await userEvent.click(screen.getByText('Edit dataset'));
   });
 
-  expect(screen.getByTestId('mock-datasource-editor')).toBeInTheDocument();
+  expect(
+    await screen.findByTestId('mock-datasource-editor'),
+  ).toBeInTheDocument();
 });
 
 test('Edit dataset should be disabled when user is not admin', async () => {
@@ -714,10 +722,10 @@ test('should handle metric save confirmation modal', async () => {
   await userEvent.click(await screen.findByTestId('datasource-modal-save'));
 
   // Verify confirmation modal appears
-  expect(await screen.findByText('OK')).toBeInTheDocument();
+  expect(await screen.findByText('Confirm')).toBeInTheDocument();
 
   // Confirm save
-  await userEvent.click(screen.getByText('OK'));
+  await userEvent.click(screen.getByText('Confirm'));
 
   await waitFor(() => {
     expect(props.onDatasourceSave).toHaveBeenCalled();

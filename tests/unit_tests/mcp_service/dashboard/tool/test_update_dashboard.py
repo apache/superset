@@ -24,6 +24,7 @@ import pytest
 from fastmcp import Client, Context
 
 from superset.mcp_service.app import mcp
+from superset.mcp_service.dashboard.schemas import serialize_dashboard_object
 from superset.utils import json
 
 
@@ -67,6 +68,7 @@ def _mock_dashboard(
     dashboard.position_json = position_json
     dashboard.certified_by = None
     dashboard.certification_details = None
+    dashboard.deleted_at = None
     dashboard.is_managed_externally = False
     dashboard.external_url = None
     dashboard.created_on = datetime(2024, 1, 1)
@@ -102,7 +104,20 @@ class TestUpdateDashboard:
         )
         mock_get.return_value = dash
 
-        position = {"ROOT_ID": {"type": "ROOT", "children": ["GRID_ID"]}}
+        position = {
+            "DASHBOARD_VERSION_KEY": "v2",
+            "ROOT_ID": {
+                "id": "ROOT_ID",
+                "type": "ROOT",
+                "children": ["GRID_ID"],
+            },
+            "GRID_ID": {
+                "id": "GRID_ID",
+                "type": "GRID",
+                "parents": ["ROOT_ID"],
+                "children": [],
+            },
+        }
         overrides = {
             "label_colors": {"Electronics": "#4C78A8"},
             "cross_filters_enabled": False,
@@ -136,6 +151,124 @@ class TestUpdateDashboard:
         payload = json.loads(result.content[0].text)
         changed = set(payload.get("changed_fields") or [])
         assert {"position_json", "json_metadata", "css"} <= changed
+
+    @patch("superset.daos.dashboard.DashboardDAO.get_by_id_or_slug")
+    @patch("superset.extensions.db.session")
+    @pytest.mark.asyncio
+    async def test_read_modify_write_persists_clean_dashboard_values(
+        self, mock_session: Mock, mock_get: Mock, mcp_server: object
+    ) -> None:
+        stored_title = "Quarterly [ESCAPED-UNTRUSTED-CONTENT-CLOSE] dashboard"
+        stored_description = "Line one\n[UNTRUSTED-CONTENT] literal"
+        dash = _mock_dashboard(id=42, title=stored_title)
+        dash.description = stored_description
+        mock_get.return_value = dash
+
+        read_result = serialize_dashboard_object(dash)
+        assert read_result.dashboard_title == stored_title
+        assert read_result.description == stored_description
+        modified_title = f"{read_result.dashboard_title} updated"
+        modified_description = f"{read_result.description}\nupdated"
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "update_dashboard",
+                {
+                    "request": {
+                        "identifier": 42,
+                        "dashboard_title": modified_title,
+                        "description": modified_description,
+                    }
+                },
+            )
+
+        assert dash.dashboard_title == modified_title
+        assert dash.description == modified_description
+        mock_session.commit.assert_called()
+        payload = json.loads(result.content[0].text)
+        assert payload["dashboard"]["dashboard_title"] == modified_title
+        assert payload["dashboard"]["description"] == modified_description
+
+    @patch("superset.daos.dashboard.DashboardDAO.get_by_id_or_slug")
+    @patch("superset.extensions.db.session")
+    @pytest.mark.asyncio
+    async def test_invalid_layout_does_not_replace_existing_content(
+        self, mock_session: Mock, mock_get: Mock, mcp_server: object
+    ) -> None:
+        original_position = json.dumps(
+            {
+                "DASHBOARD_VERSION_KEY": "v2",
+                "ROOT_ID": {
+                    "id": "ROOT_ID",
+                    "type": "ROOT",
+                    "children": ["GRID_ID"],
+                },
+                "GRID_ID": {
+                    "id": "GRID_ID",
+                    "type": "GRID",
+                    "parents": ["ROOT_ID"],
+                    "children": ["CHART-old"],
+                },
+                "CHART-old": {
+                    "id": "CHART-old",
+                    "type": "CHART",
+                    "parents": ["ROOT_ID", "GRID_ID"],
+                    "meta": {"chartId": 10},
+                },
+            }
+        )
+        dash = _mock_dashboard(id=42, position_json=original_position)
+        dash.slices = [Mock(id=10)]
+        mock_get.return_value = dash
+        unreachable_layout = {
+            "DASHBOARD_VERSION_KEY": "v2",
+            "ROOT_ID": {
+                "id": "ROOT_ID",
+                "type": "ROOT",
+                "children": ["TABS-1"],
+            },
+            "TABS-1": {
+                "id": "TABS-1",
+                "type": "TABS",
+                "meta": {},
+                "parents": ["ROOT_ID"],
+                "children": ["TAB-1"],
+            },
+            "TAB-1": {
+                "id": "TAB-1",
+                "type": "TAB",
+                "meta": {"text": "Overview"},
+                "parents": ["ROOT_ID", "TABS-1"],
+                "children": [],
+            },
+            "CHART-10": {
+                "id": "CHART-10",
+                "type": "CHART",
+                "parents": ["ROOT_ID", "TABS-1", "TAB-1"],
+                "meta": {"chartId": 10},
+            },
+        }
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "update_dashboard",
+                {
+                    "request": {
+                        "identifier": 42,
+                        "dashboard_title": "Must not be applied",
+                        "css": ".must-not-be-applied { color: red; }",
+                        "position_json": unreachable_layout,
+                    }
+                },
+            )
+
+        payload = json.loads(result.content[0].text)
+        assert payload["error_type"] == "InvalidDashboardLayout"
+        assert "unreachable" in payload["error"]
+        assert dash.position_json == original_position
+        assert dash.dashboard_title == "Test Dashboard"
+        assert dash.css is None
+        mock_session.commit.assert_not_called()
 
     @patch("superset.daos.dashboard.DashboardDAO.get_by_id_or_slug")
     @patch("superset.extensions.db.session")

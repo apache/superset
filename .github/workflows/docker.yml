@@ -51,6 +51,53 @@ jobs:
           echo "matrix_config=${MATRIX_CONFIG}" >> $GITHUB_OUTPUT
           echo $GITHUB_OUTPUT
 
+  # Runs unconditionally (no dependency on `changes`, and no build-preset
+  # matrix restriction) so a regression in the PY_VER override logic is
+  # always caught on PRs. Without this, the real docker-build job only runs
+  # when the change detector flags docker/python/frontend changes (a
+  # workflow-only edit like this one does not), and even then the PR build
+  # matrix never includes the "py311"/"py312" presets that logic protects -
+  # so a break here would otherwise first surface on a push to master.
+  pyver-override-check:
+    name: verify docker build PY_VER override
+    runs-on: ubuntu-26.04
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Setup supersetbot
+        uses: ./.github/actions/setup-supersetbot/
+      - name: Assert PY_VER override applies to every preset except py311/py312
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          # Asserts against the actual buildx command line `supersetbot docker
+          # --dry-run` would run, not just this repo's own extra-flags helper,
+          # so a regression in supersetbot itself (dropping the py311/py312
+          # PY_VER pin, or reordering args so our override no longer lands
+          # last) is caught here too, instead of only surfacing on master.
+          assert_effective_py_ver() {
+            local preset="$1" expected="$2" extra_flags command actual
+            extra_flags="$(scripts/docker-build-extra-flags.sh "$preset" dummy-tag)"
+            command="$(supersetbot docker --preset "$preset" --platform linux/amd64 --extra-flags "$extra_flags" --dry-run)"
+            # docker buildx keeps the LAST value of a repeated --build-arg key.
+            actual="$(grep -oE -- '--build-arg PY_VER=[^[:space:]]+' <<<"$command" | tail -1)"
+            if [ "$actual" != "--build-arg PY_VER=$expected" ]; then
+              echo "::error::preset '$preset' expected effective --build-arg PY_VER=$expected, got: ${actual:-<none>} (full command: $command)"
+              exit 1
+            fi
+          }
+          for preset in dev lean websocket dockerize; do
+            assert_effective_py_ver "$preset" "3.11.14-slim-trixie"
+          done
+          assert_effective_py_ver py311 "3.11-slim-bookworm"
+          assert_effective_py_ver py312 "3.12-slim-bookworm"
+          echo "PY_VER override logic verified against the assembled buildx command for all build presets"
+
   docker-build:
     name: docker-build
     needs: [setup_matrix, changes]
@@ -124,19 +171,21 @@ jobs:
           # the whole job. buildx reuses the buildkit layer cache from the
           # failed attempt, so a retry mostly re-does just the failed push.
           #
-          # supersetbot's "dev"/"lean" presets pin their own --build-arg
-          # PY_VER, which lands ahead of --extra-flags on the assembled
-          # buildx command line; docker/buildx keeps the last value for a
-          # repeated --build-arg key, so appending PY_VER here overrides
-          # supersetbot's pin and keeps the build on the Dockerfile's own
-          # supported Python version.
+          # See scripts/docker-build-extra-flags.sh for why "py311"/"py312"
+          # are excluded from the PY_VER override applied to every other
+          # preset; that logic is also exercised on every PR by the
+          # always-on pyver-override-check job below, since this job itself
+          # only runs when the change detector flags docker/python/frontend
+          # changes and the PR build matrix never includes py311/py312.
+          EXTRA_FLAGS="$(scripts/docker-build-extra-flags.sh "$BUILD_PRESET" "$IMAGE_TAG")"
+
           for attempt in 1 2 3; do
             if supersetbot docker \
               $PUSH_OR_LOAD \
               --preset "$BUILD_PRESET" \
               --context "$EVENT" \
               --context-ref "$RELEASE" $FORCE_LATEST \
-              --extra-flags "--build-arg PY_VER=3.11.14-slim-trixie --build-arg INCLUDE_CHROMIUM=false --tag $IMAGE_TAG" \
+              --extra-flags "$EXTRA_FLAGS" \
               $PLATFORM_ARG; then
               break
             fi

@@ -180,6 +180,33 @@ test('disables Datamaps highlightOnHover while the context menu is open', () => 
   expect(geographyConfig?.highlightOnHover).toBe(false);
 });
 
+test('escapes markup in hover popup templates', () => {
+  // Regression test for stored XSS via the number-formatter fallback: an
+  // invalid Y Axis Format string is echoed verbatim by the formatter
+  // (createD3NumberFormatter's catch branch), so the popup templates must
+  // HTML-escape formatter output before datamaps assigns it via innerHTML.
+  const maliciousFormatter = getNumberFormatter('<img src=x onerror=alert(1)>');
+  WorldMap(container, { ...baseProps, formatter: maliciousFormatter });
+
+  const geographyConfig = lastDatamapConfig?.geographyConfig as {
+    popupTemplate: (geo: unknown, d: unknown) => string;
+  };
+  const bubblesConfig = lastDatamapConfig?.bubblesConfig as {
+    popupTemplate: (geo: unknown, d: unknown) => string;
+  };
+  const entry = { name: '<b>United States</b>', m1: 100, m2: 200 };
+
+  const geoPopup = geographyConfig.popupTemplate({}, entry);
+  const bubblePopup = bubblesConfig.popupTemplate({}, entry);
+
+  [geoPopup, bubblePopup].forEach(popup => {
+    expect(popup).not.toContain('<img');
+    expect(popup).not.toContain('<b>');
+    expect(popup).toContain('&lt;img src=x onerror=alert(1)&gt;');
+    expect(popup).toContain('&lt;b&gt;United States&lt;/b&gt;');
+  });
+});
+
 test('does not throw error when onContextMenu is undefined', () => {
   const propsWithoutContextMenu = {
     ...baseProps,
