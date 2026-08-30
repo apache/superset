@@ -55,3 +55,24 @@ def test_extras_without_ssl() -> None:
     database.server_cert = None
     extras = spec.get_extra_params(database)
     assert "connect_args" not in extras["engine_params"]
+
+
+def test_pinot_properties() -> None:
+    from superset.db_engine_specs.pinot import PinotEngineSpec
+
+    assert PinotEngineSpec.engine == "pinot"
+    assert PinotEngineSpec.engine_name == "Apache Pinot"
+    assert PinotEngineSpec.allows_joins is False
+    assert PinotEngineSpec.allows_subqueries is False
+    assert PinotEngineSpec.type_probe_needs_row is True
+
+
+def test_pinot_metadata() -> None:
+    from superset.db_engine_specs.pinot import PinotEngineSpec
+
+    metadata = PinotEngineSpec.metadata
+    assert "Apache Pinot is a real-time distributed OLAP" in metadata["description"]
+    assert metadata["logo"] == "apache-pinot.svg"
+    assert "pinotdb" in metadata["pypi_packages"]
+    assert metadata["default_port"] == 8099
+
