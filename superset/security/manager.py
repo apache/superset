@@ -1477,11 +1477,11 @@ def _sql_filters_modified(
     # Vector 2: SQL adhoc filters in form_data
     stored_sql_filters: set[str] = {
         freeze_value(flt)
-        for flt in stored_chart.params_dict.get("adhoc_filters") or []
+        for flt in _ensure_list(stored_chart.params_dict.get("adhoc_filters"))
         if isinstance(flt, dict) and flt.get("expressionType") == "SQL"
     }
 
-    for flt in form_data.get("adhoc_filters") or []:
+    for flt in _ensure_list(form_data.get("adhoc_filters")):
         if not isinstance(flt, dict):
             continue
         if flt.get("expressionType") == "SQL":
