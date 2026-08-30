@@ -199,23 +199,22 @@ test('aborting one chart does not cancel a shared task another chart still await
   expect(fetchMock.callHistory.calls(CANCEL_ENDPOINT)).toHaveLength(1);
 });
 
-test('cancel uses the tab id captured at submit, not a reassigned one', async () => {
-  // A duplicate-tab collision can reassign this tab's id after submit. Cancel
-  // must carry the id used at submit so the backend detaches the right per-tab
-  // subscription (reading getTabId() fresh at cancel would send the new id and
-  // orphan the original subscription).
+test('cancel uses the tab id the backend recorded (echoed in the 202)', async () => {
+  // The 202 echoes the tab id the backend recorded as this tab's consumer.
+  // Cancel must use that value, not the tab id read fresh at cancel time — a
+  // duplicate-tab collision could otherwise reassign getTabId() and detach the
+  // wrong subscription.
   queueStatuses(); // task never resolves on its own
   asyncEvent.init(config);
 
-  mockTabId = 'tab-A';
   const controller = new AbortController();
   const promise = asyncEvent.waitForAsyncData(
-    { task_ids: ['task-1'] },
+    { task_ids: ['task-1'], tab_id: 'tab-A' },
     jest.fn(),
     controller.signal,
   );
 
-  mockTabId = 'tab-B'; // reassigned after submit
+  mockTabId = 'tab-B'; // reassigned after submit — must NOT be used for cancel
   controller.abort();
 
   await expect(promise).rejects.toThrow('Aborted');
@@ -223,6 +222,25 @@ test('cancel uses the tab id captured at submit, not a reassigned one', async ()
   expect(cancelCalls).toHaveLength(1);
   const body = JSON.parse(String(cancelCalls[0].options.body));
   expect(body.tab_id).toBe('tab-A');
+});
+
+test('cancel falls back to the current tab id when the 202 carried none', async () => {
+  queueStatuses();
+  asyncEvent.init(config);
+
+  mockTabId = 'tab-current';
+  const controller = new AbortController();
+  const promise = asyncEvent.waitForAsyncData(
+    { task_ids: ['task-1'] }, // no tab_id echoed
+    jest.fn(),
+    controller.signal,
+  );
+  controller.abort();
+
+  await expect(promise).rejects.toThrow('Aborted');
+  const cancelCalls = fetchMock.callHistory.calls(CANCEL_ENDPOINT);
+  const body = JSON.parse(String(cancelCalls[0].options.body));
+  expect(body.tab_id).toBe('tab-current');
 });
 
 test('settles every request awaiting a deduplicated shared task', async () => {

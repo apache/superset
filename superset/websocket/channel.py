@@ -23,10 +23,10 @@ logged-in user, a stable HMAC for an embedded guest - so the
 ``superset-websocket`` server can validate the socket and bind it to that
 routing key.
 
-Targeted messages are delivered only to sockets bound to the intended
-principal's routing key. The lossy list-view Pub/Sub tier (``entity-changes:*``)
-is broadcast to all authenticated realtime sockets, but carries only opaque
-entity nudges - see
+Targeted messages (``scope=principal``/``tab``) are delivered only to sockets
+bound to the intended routing key. Broadcast messages (``scope=authenticated_global``,
+e.g. the lossy ``entity.changed`` list-view nudge) go to all authenticated
+realtime sockets but carry only opaque entity nudges - see
 ``TaskManager.publish_entity_change``.
 """
 

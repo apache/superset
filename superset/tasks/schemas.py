@@ -283,7 +283,8 @@ class TaskCancelRequestSchema(Schema):
             "description": "Opaque per-client (browser tab) id. For task types with "
             "a per-client subscription policy (e.g. chart-data), a cancel from one "
             "tab detaches only that tab; the task keeps running while the "
-            "principal has other tabs watching it. Ignored otherwise."
+            "principal has other tabs watching it. Ignored otherwise. Must match "
+            "^[A-Za-z0-9_-]{1,64}$; a value failing that is dropped at ingress."
         },
     )
 

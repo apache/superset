@@ -63,8 +63,10 @@ const WS_OPEN = 1;
 // Fraction of the token lifetime after which the client proactively refreshes the
 // channel cookie and reconnects, so the socket rides a fresh token before the
 // server terminates it at expiry (see Finding 6 / superset/websocket/channel.py's
-// sliding-window re-mint). Half the lifetime lands inside that server window.
-const KEEPALIVE_FRACTION = 0.5;
+// sliding-window re-mint). Past the 0.5 sliding-window boundary (and clear of it,
+// so timer jitter can't land exactly on the boundary and miss the re-mint), while
+// still leaving ample margin before expiry.
+const KEEPALIVE_FRACTION = 0.6;
 // An authed, same-origin GET whose response passes through the Flask
 // `after_request` hook that (re)mints the ws cookie. Any authed endpoint works;
 // `me` is the cheapest stable one.
@@ -181,11 +183,14 @@ const openSocket = (thisGeneration: number): void => {
   // fails the handshake, and onclose retries).
   if (enabled && tokenLifetimeMs > 0) {
     keepaliveTimeoutId = window.setTimeout(() => {
-      if (thisGeneration !== generation || !hasActiveSocket()) return;
+      // Bail if this socket was already superseded (config change) or replaced by
+      // a reconnect (a blip's onclose reopens under the same generation), so the
+      // refresh can't tear down a newer, healthy socket.
+      if (thisGeneration !== generation || socket !== ws) return;
       SupersetClient.get({ endpoint: COOKIE_REFRESH_ENDPOINT })
         .catch(() => {})
         .finally(() => {
-          if (thisGeneration !== generation) return;
+          if (thisGeneration !== generation || socket !== ws) return;
           generation += 1;
           teardownSocket();
           openSocket(generation);

@@ -426,14 +426,17 @@ class TaskRestApi(BaseSupersetModelRestApi):
         """Parse request and run the cancel command."""
         from flask import request
 
+        from superset.tasks.subscription import get_request_tab_id
+
         force = False
-        tab_id: str | None = None
         # Use get_json with silent=True to handle missing Content-Type gracefully
         json_data = request.get_json(silent=True)
         if json_data:
             parsed = self.cancel_request_schema.load(json_data)
             force = parsed.get("force", False)
-            tab_id = parsed.get("tab_id")
+        # Read the tab id through the shared validator (same rule as submit), so a
+        # malformed/oversized value is dropped rather than flowing into routing.
+        tab_id = get_request_tab_id()
 
         command = CancelTaskCommand(task_uuid, force=force, tab_id=tab_id)
         updated_task = command.run()

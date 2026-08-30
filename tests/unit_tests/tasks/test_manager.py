@@ -335,10 +335,14 @@ class TestTaskManagerPublishTaskStatus:
     @patch(DAO)
     @patch(PUBLISH)
     @patch(IS_DEFINED, return_value=True)
-    def test_all_policy_routes_invalid_falls_back_to_principal(
+    def test_all_policy_routes_invalid_publishes_nothing(
         self, mock_defined, mock_publish, mock_dao
     ):
-        """When every policy key is rejected, fall back to principal-grain."""
+        """When a policy scoped delivery but every key is rejected, publish nothing.
+
+        Broadening to every tab of the principal would break the policy's intended
+        isolation; the interval poll remains the correctness path.
+        """
         task_uuid = uuid.uuid4()
         mock_dao.find_one_or_none.return_value = MagicMock(id=7, task_type="chart")
         mock_dao.get_subscriber_principals.return_value = [
@@ -348,12 +352,9 @@ class TestTaskManagerPublishTaskStatus:
         policy.routing_channels.return_value = ["user:999:tabX"]
 
         with patch(self.POLICY, return_value=policy):
-            assert TaskManager.publish_task_status(task_uuid, "success") is True
+            assert TaskManager.publish_task_status(task_uuid, "success") is False
 
-        _, message = mock_publish.call_args.args[:2]
-        body = json.loads(message)
-        assert body["scope"] == "principal"
-        assert body["routes"] == ["user:5"]
+        mock_publish.assert_not_called()
 
     @patch(POLICY)
     @patch(DAO)

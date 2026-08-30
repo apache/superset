@@ -42,7 +42,7 @@ from superset.tasks.query_cancel import (
     capture_cancel_id,
     capture_cancel_query_id,
 )
-from superset.tasks.subscription import TaskSubscriptionPolicy
+from superset.tasks.subscription import get_request_tab_id, TaskSubscriptionPolicy
 from superset.tasks.utils import floored_status_cursor
 from superset.utils.core import override_user
 
@@ -131,10 +131,10 @@ class ChartQueryConsumerPolicy(TaskSubscriptionPolicy):
 
     def routing_channels(self, task: "CoreTask") -> list[str] | None:
         # The consumer entries are exactly the per-tab realtime routing keys
-        # (`"<principal>:<tab_id>"` -> `realtime:<principal>:<tab_id>`), so a
-        # task-status message reaches only the tabs watching this task. Empty ->
-        # None so a chart task with no recorded tab (all detached, or a no-tab
-        # caller) falls back to principal-grain fanout instead of dropping it.
+        # (`"<principal>:<tab_id>"`), so a task-status message reaches only the
+        # tabs watching this task. Empty -> None so a chart task with no recorded
+        # tab (all detached, or a no-tab caller) falls back to principal-grain
+        # fanout instead of dropping it.
         return self._consumers(task) or None
 
 
@@ -403,4 +403,11 @@ def submit_chart_data_query_tasks(
     return {
         "task_ids": [str(tasks[index].uuid) for index in range(len(queries))],
         "cursor": poll_cursor.isoformat(),
+        # Echo back the tab id the subscription policy recorded as this tab's
+        # consumer entry, so a later cancel detaches exactly that entry. Returning
+        # the server-recorded value (rather than the client re-reading its tab id
+        # at cancel time) closes the window where a tab-id reassignment between the
+        # POST and the 202 would target the wrong subscription. Omitted when the
+        # caller supplied no (valid) tab id.
+        **({"tab_id": tab_id} if (tab_id := get_request_tab_id()) else {}),
     }

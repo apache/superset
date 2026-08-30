@@ -257,13 +257,13 @@ test('refreshes the cookie and reconnects before the token expires', async () =>
     .spyOn(SupersetClient, 'get')
     .mockResolvedValue({} as never);
   try {
-    // A 900s token → the keepalive fires at half its life (450s), issuing the
+    // A 900s token → the keepalive fires at 0.6 of its life (540s), issuing the
     // authed cookie-refresh GET, then reconnecting so the new handshake rides a
     // freshly minted token before the server terminates the socket at expiry.
     connectRealtime({ ...ENABLED, WEBSOCKET_JWT_EXPIRATION_SECONDS: 900 });
     expect(FakeWebSocket.instances).toHaveLength(1);
 
-    jest.advanceTimersByTime(450_000);
+    jest.advanceTimersByTime(540_000);
     expect(getSpy).toHaveBeenCalledWith({ endpoint: '/api/v1/me/' });
 
     // Flush the refresh promise chain so the .finally reconnect runs.

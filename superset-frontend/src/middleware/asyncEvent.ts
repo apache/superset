@@ -58,10 +58,16 @@ type StatusChangesResponse = {
   cursor: string | null;
 };
 
-// The 202 body from POST /chart/data when async: the query tasks to await, plus
-// a status-poll cursor captured server-side *before* the tasks were created, so
-// polling from it can never skip a task's terminal transition.
-export type AsyncJob = { task_ids: string[]; cursor?: string | null };
+// The 202 body from POST /chart/data when async: the query tasks to await, a
+// status-poll cursor captured server-side *before* the tasks were created (so
+// polling from it can never skip a task's terminal transition), and the tab id
+// the backend recorded as this tab's consumer (echoed back so a later cancel
+// detaches exactly that entry).
+export type AsyncJob = {
+  task_ids: string[];
+  cursor?: string | null;
+  tab_id?: string | null;
+};
 
 type AppConfig = {
   WEBSOCKET_ENABLE?: boolean;
@@ -323,11 +329,12 @@ export const waitForAsyncData = async <T = unknown[]>(
 ): Promise<T> => {
   const taskIds = asyncJob.task_ids ?? [];
 
-  // Capture the tab id once, in the same tick the 202 was received, and reuse it
-  // for any later cancel/detach of these tasks. Reading it fresh at cancel time
-  // could send a different id if the tab id was reassigned meanwhile (a
-  // duplicate-tab collision), orphaning the original per-tab subscription.
-  const submitTabId = getTabId();
+  // Use the tab id the backend recorded for this job (echoed in the 202), so a
+  // cancel detaches exactly the subscription this request created. Falls back to
+  // the current tab id for a non-async/legacy job without one. Reading getTabId()
+  // fresh at cancel time could send a reassigned id (a duplicate-tab collision)
+  // and orphan the original per-tab subscription.
+  const submitTabId = asyncJob.tab_id ?? getTabId();
 
   // Register the waiter synchronously, in the same tick the 202 was received —
   // NOT after an await — so a completion socket event can't arrive before the

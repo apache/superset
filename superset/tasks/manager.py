@@ -245,9 +245,10 @@ class TaskManager:
         """Publish one task ``status`` message for websocket fanout.
 
         Best-effort targeted delivery: publish a ``task.status`` envelope carrying
-        ``{task_id, status}`` to the realtime routing keys the websocket server
-        delivers to (it prefixes each with ``realtime:``). By default the keys are
-        principal-grain (``user:<id>`` / ``guest:<hmac>``, ``scope=principal``), so
+        ``{task_id, status}`` and the realtime routing keys the websocket server
+        delivers to (it forwards ``{topic, payload}`` to the sockets bound to each
+        key). By default the keys are principal-grain (``user:<id>`` /
+        ``guest:<hmac>``, ``scope=principal``), so
         the submitter and any SHARED-dedup joiners see the transition on their
         principal channel. A task type may narrow delivery via its subscription
         policy's ``routing_channels`` — chart-data returns its per-tab keys
@@ -281,17 +282,22 @@ class TaskManager:
                 for p in TaskDAO.get_subscriber_principals(task.id)
             ]
             # A task type may target specific routing keys (e.g. chart-data's
-            # per-tab channels); validate them against the subscriber principals and
-            # fall back to principal-grain if none survive (or no policy narrowed).
+            # per-tab channels). Distinguish "no policy narrowing" from "policy
+            # scoped delivery but nothing survived validation".
             policy = TaskRegistry.get_subscription_policy(task.task_type)
             policy_routes = policy.routing_channels(task) if policy else None
-            if policy_routes is not None:
+            if policy_routes is None:
+                # No policy (or the policy declined to narrow): principal-grain
+                # fanout to every subscriber principal.
+                routes, scope = principal_routes, cls.SCOPE_PRINCIPAL
+            else:
+                # The policy explicitly scoped delivery (e.g. per-tab). Keep only
+                # its keys within the task's subscriber principals; if that leaves
+                # none, publish nothing rather than broadening to every tab of the
+                # principal (which would break the policy's intended isolation) —
+                # the interval poll remains the correctness path.
                 routes = cls._authorized_routes(policy_routes, principal_routes)
                 scope = cls.SCOPE_TAB
-            else:
-                routes = []
-            if not routes:
-                routes, scope = principal_routes, cls.SCOPE_PRINCIPAL
             if not routes:
                 return False
             return cls._publish_realtime(
