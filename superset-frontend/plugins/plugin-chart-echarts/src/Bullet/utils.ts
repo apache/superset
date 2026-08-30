@@ -21,13 +21,16 @@
 export function tokenizeToNumericArray(value?: string): number[] | null {
   if (!value?.trim()) return null;
   // Lenient by design: this runs on every keystroke, so partial input like
-  // "50," must not throw. Empty and non-numeric tokens are dropped.
+  // "50," must not throw. Empty, non-numeric, and non-finite tokens (e.g.
+  // "Infinity", or a value large enough to overflow to it) are dropped --
+  // matching BulletRangeColorsControl's own `parseRanges`, whose per-range
+  // colors are matched positionally against this same tokenized list.
   const numbers = value
     .split(',')
     .map(token => token.trim())
     .filter(token => token !== '')
     .map(token => Number(token))
-    .filter(n => !Number.isNaN(n));
+    .filter(n => Number.isFinite(n));
   return numbers.length ? numbers : null;
 }
 

@@ -303,3 +303,24 @@ test('falls back to the default ramp for individual ranges left unset in range_c
     supersetTheme.colorFillSecondary,
   ]);
 });
+
+test('drops a range value that overflows to Infinity instead of shifting range_colors onto the wrong bands', () => {
+  // BulletRangeColorsControl parses `ranges` itself (dropping non-finite
+  // tokens) to render one color row per threshold, so `rangeColors` here is
+  // authored against only the two finite thresholds (100, 300) -- index 1
+  // means "300", not "the third comma-separated token". `ranges` must drop
+  // the same overflowing token the same way, or that color lands on the
+  // wrong band.
+  const { echartOptions } = transformProps(
+    chartProps({
+      ranges: '100,1e999,300',
+      rangeColors: ['#ff0000', '#00ff00'],
+    }),
+  );
+  const { series } = echartOptions as any;
+
+  const bandColors = series[0].markArea.data.map(
+    (d: any) => d[0].itemStyle.color,
+  );
+  expect(bandColors).toEqual(['#00ff00', '#ff0000']);
+});
