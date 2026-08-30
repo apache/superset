@@ -22,6 +22,7 @@ import {
   dispatchRealtimeMessage,
   resetRealtimeForTests,
   subscribeRealtime,
+  subscribeRealtimeOpen,
 } from 'src/middleware/realtime';
 
 // Controllable useTabId mock (overrides the global shim for this file) so we can
@@ -57,6 +58,8 @@ class FakeWebSocket {
   static instances: FakeWebSocket[] = [];
 
   readyState = 0;
+
+  onopen: (() => void) | null = null;
 
   onmessage: ((event: { data: string }) => void) | null = null;
 
@@ -155,6 +158,24 @@ test('a throwing handler does not break other handlers', () => {
     ),
   ).not.toThrow();
   expect(good).toHaveBeenCalledTimes(1);
+});
+
+test('notifies open-listeners when the socket connects', () => {
+  const onOpen = jest.fn();
+  const unsubscribe = subscribeRealtimeOpen(onOpen);
+  connectRealtime(ENABLED);
+
+  expect(FakeWebSocket.instances).toHaveLength(1);
+  FakeWebSocket.instances[0].onopen?.();
+  expect(onOpen).toHaveBeenCalledTimes(1);
+
+  // A reopen (openSocket wires onopen on every socket) notifies again.
+  FakeWebSocket.instances[0].onopen?.();
+  expect(onOpen).toHaveBeenCalledTimes(2);
+
+  unsubscribe();
+  FakeWebSocket.instances[0].onopen?.();
+  expect(onOpen).toHaveBeenCalledTimes(2); // no longer notified
 });
 
 test('does not open a socket when disabled', () => {

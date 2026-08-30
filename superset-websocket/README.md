@@ -139,8 +139,11 @@ events, and forwards only to matching sockets connected to that replica. Sticky
 sessions are not required; reconnecting to another replica reuses the JWT cookie
 and binds the socket to the same principal channel. Short websocket JWT
 lifetimes keep connection lifetime bounded for pod recycling; if a pod is
-terminated before expiry, connected browsers reconnect and polling reconciles
-missed events.
+terminated before expiry, connected browsers reconnect and a one-shot catch-up
+fetch on reconnect reconciles any events missed while disconnected (chart-data
+waiters re-check `/task/status_changes` from their retained cursor; list views
+refetch their displayed rows). There is no recurring poll while the socket is
+connected.
 
 ### Connection Management
 

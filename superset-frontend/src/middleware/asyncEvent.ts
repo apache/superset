@@ -19,12 +19,18 @@
 /**
  * Await completion of asynchronous chart-data queries (GLOBAL_ASYNC_QUERIES).
  *
- * A 202 from POST /chart/data carries the GTF tasks the query runs as. Their
- * completion is learned two ways: the shared realtime socket
- * (src/middleware/realtime.ts) delivers per-principal status events, and a
- * single shared poll of /task/status_changes runs while anything is awaited. The
- * socket is best-effort and only accelerates things; the poll is the correctness
- * backstop.
+ * A 202 from POST /chart/data carries the GTF tasks the query runs as. How their
+ * completion is learned depends on whether the realtime websocket is enabled:
+ *
+ * - `WEBSOCKET_ENABLE` on: the shared socket (src/middleware/realtime.ts) is the
+ *   sole mechanism — we do NOT poll while it is the transport. If the socket drops
+ *   and reconnects, we run a single `status_changes` catch-up from the pre-task
+ *   cursor to pick up anything that completed during the gap; a per-waiter give-up
+ *   bounds a message that is genuinely lost.
+ * - `WEBSOCKET_ENABLE` off: a shared interval poll of `status_changes` is the only
+ *   mechanism (no websocket server deployed).
+ *
+ * Either way the pre-task cursor from the 202 makes reconciliation exact.
  */
 import {
   isFeatureEnabled,
@@ -35,7 +41,11 @@ import {
 import { logging } from '@apache-superset/core/utils';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import { getTabId } from 'src/hooks/useTabId';
-import { connectRealtime, subscribeRealtime } from 'src/middleware/realtime';
+import {
+  connectRealtime,
+  subscribeRealtime,
+  subscribeRealtimeOpen,
+} from 'src/middleware/realtime';
 
 // The GTF task type chart-data queries run under (see
 // superset/tasks/async_queries.py CHART_QUERY_TASK). Polling is filtered to this
@@ -87,9 +97,15 @@ type Waiter = {
   reject: (error: unknown) => void;
   signal?: AbortSignal;
   onAbort?: () => void;
+  // WS mode only: last-resort timer that rejects a waiter whose completion was
+  // never delivered (a lost socket message with no reconnect). Cleared on settle.
+  giveUpId?: number;
 };
 
 let config: AppConfig;
+// Whether the realtime websocket is the transport. When true we never poll: the
+// socket is the mechanism and a reconnect catch-up reconciles any gap.
+let wsEnabled = false;
 let pollingDelayMs: number;
 // Backoff state: the poll starts eager (`pollingDelayMs`), degrades — doubling up
 // to `pollBackoffMaxMs` — while awaited tasks are quiet, and snaps back to eager
@@ -179,6 +195,7 @@ const cancelUnwaitedTasks = (taskIds: string[], tabId: string) => {
 // Drop a waiter from the registry entry of every task it was awaiting, so a
 // settled/aborted waiter never leaks and completion of one task can't re-touch it.
 const unregister = (waiter: Waiter) => {
+  if (waiter.giveUpId) clearTimeout(waiter.giveUpId);
   waiter.taskIds.forEach(taskId => {
     const waiters = waitersByTaskId.get(taskId);
     if (!waiters) return;
@@ -280,8 +297,10 @@ const loadStatusChanges = async (generation: number) => {
 
 // Start (or wake) the poll loop for a freshly registered waiter: poll eagerly
 // again, and kick the loop if it had gone idle. Idempotent — a no-op while the
-// loop is already running or when async queries are disabled.
+// loop is already running, when async queries are disabled, or when the websocket
+// is the transport (WS mode never polls; reconnect catch-up reconciles instead).
 const ensurePolling = () => {
+  if (wsEnabled) return;
   currentPollDelayMs = pollingDelayMs;
   lastProgressAt = Date.now(); // a fresh request restarts the give-up clock
   if (!pollingActive && isFeatureEnabled(FeatureFlag.GlobalAsyncQueries)) {
@@ -289,6 +308,29 @@ const ensurePolling = () => {
     loadStatusChanges(pollingGeneration);
   }
 };
+
+// WS mode: on a socket (re)connect, run a single `status_changes` catch-up from
+// the retained pre-task cursor to settle anything that completed while the socket
+// was down ("pick up where we left off"). Not a loop — the socket is the
+// steady-state mechanism; still-running tasks resolve via the resubscribed socket.
+// No-op unless WS is the transport and something is pending.
+const catchUpFromSocket = async () => {
+  if (!wsEnabled || !waitersByTaskId.size) return;
+  try {
+    const { statuses, cursor: next } = await fetchStatusChanges({
+      cursor,
+      task_type: CHART_QUERY_TASK_TYPE,
+    });
+    cursor = next;
+    Object.entries(statuses).forEach(([taskId, { status }]) =>
+      applyStatus(taskId, status),
+    );
+  } catch (err) {
+    logging.warn(err);
+  }
+};
+
+subscribeRealtimeOpen(catchUpFromSocket);
 
 /**
  * Handle a `task.status` message from the shared realtime client.
@@ -384,8 +426,24 @@ export const waitForAsyncData = async <T = unknown[]>(
       }
       waiters.add(waiter);
     });
-    // Wake the poll loop (eager again) now that there's something to await.
+    if (wsEnabled) {
+      // WS is the transport (no polling). Bound a genuinely-lost completion (a
+      // dropped socket message with no reconnect) so a chart can't spin forever;
+      // a reconnect catch-up normally settles it well before this fires.
+      waiter.giveUpId = window.setTimeout(() => {
+        settle(
+          waiter,
+          new Error('Timed out waiting for chart-data query results'),
+        );
+      }, pollStaleTimeoutMs);
+    }
+    // Wake the poll loop (poll mode only; a no-op under WS).
     ensurePolling();
+    // WS mode: reconcile once right after registering, to cover a task that
+    // completed between the POST and the waiter existing (its socket message may
+    // have arrived before this waiter, or before the socket subscribed). One
+    // fetch, not a loop.
+    if (wsEnabled) catchUpFromSocket();
   });
 
   return refetch();
@@ -397,9 +455,15 @@ export const init = (appConfig?: AppConfig) => {
 
   config = appConfig || getBootstrapData().common.conf;
 
+  // When the websocket transport is enabled it is the sole completion mechanism:
+  // we never run the recurring poll, only a one-shot catch-up on
+  // registration/reconnect. With it disabled, the interval poll below is the only
+  // mechanism.
+  wsEnabled = Boolean(config.WEBSOCKET_ENABLE);
+
   // (Re)connect the shared realtime socket whenever the websocket transport is
   // enabled — independent of GLOBAL_ASYNC_QUERIES, since realtime list views
-  // (tier-1 entity-change nudges) ride the same socket. Idempotent: a no-op when
+  // (entity-change nudges) ride the same socket. Idempotent: a no-op when
   // WEBSOCKET_ENABLE is false, and supersedes any prior socket otherwise.
   connectRealtime(config);
 
@@ -410,8 +474,8 @@ export const init = (appConfig?: AppConfig) => {
   pollingActive = false;
 
   pollingDelayMs = config.GLOBAL_ASYNC_QUERIES_POLLING_DELAY || 500;
-  // Backoff ceiling (never below the eager interval) and the no-progress give-up
-  // window, both operator-configurable (ms).
+  // Backoff ceiling (never below the eager interval) and the give-up window (also
+  // the WS-mode per-waiter last-resort timeout), both operator-configurable (ms).
   pollBackoffMaxMs = Math.max(
     pollingDelayMs,
     config.GLOBAL_ASYNC_QUERIES_POLLING_MAX_DELAY || 30_000,
@@ -422,7 +486,7 @@ export const init = (appConfig?: AppConfig) => {
   lastProgressAt = Date.now();
 
   // Stay idle until a chart request returns 202. The 202 body includes a
-  // server-captured pre-task cursor, so polling does not need a startup
+  // server-captured pre-task cursor, so reconciliation does not need a startup
   // baseline request.
 };
 

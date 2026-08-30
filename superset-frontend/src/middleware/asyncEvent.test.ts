@@ -38,6 +38,22 @@ jest.mock('src/hooks/useTabId', () => {
   };
 });
 
+// Mock the shared realtime client so no real socket is opened and we can drive
+// the "socket (re)connected" event that triggers the WS-mode catch-up.
+/* eslint-disable no-var, vars-on-top */
+var mockRealtimeOpenListener: (() => void) | undefined;
+/* eslint-enable no-var, vars-on-top */
+jest.mock('src/middleware/realtime', () => ({
+  connectRealtime: jest.fn(),
+  subscribeRealtime: jest.fn(() => () => {}),
+  subscribeRealtimeOpen: (listener: () => void) => {
+    mockRealtimeOpenListener = listener;
+    return () => {
+      mockRealtimeOpenListener = undefined;
+    };
+  },
+}));
+
 const mockedIsFeatureEnabled = isFeatureEnabled as jest.Mock;
 
 const STATUS_CHANGES_ENDPOINT = 'glob:*/api/v1/task/status_changes*';
@@ -468,4 +484,113 @@ test('a realtime message is a no-op when async queries are disabled', () => {
   expect(() =>
     asyncEvent.handleTaskStatus(taskStatusPayload('task-1', 'success')),
   ).not.toThrow();
+});
+
+// --- WebSocket mode: no interval polling; catch-up on registration/reconnect ---
+
+const wsConfig = {
+  WEBSOCKET_ENABLE: true,
+  GLOBAL_ASYNC_QUERIES_POLLING_DELAY: 20,
+  GLOBAL_ASYNC_QUERIES_POLLING_STALE_TIMEOUT: 600_000,
+};
+
+test('WS mode: settles via the socket without any status_changes polling', async () => {
+  queueStatuses(); // registration catch-up sees no change
+  asyncEvent.init(wsConfig);
+
+  const refetch = jest.fn().mockResolvedValue([{ rows: 1 }]);
+  const promise = asyncEvent.waitForAsyncData(
+    { task_ids: ['task-1'] },
+    refetch,
+  );
+
+  // Completion arrives over the socket, not a poll.
+  asyncEvent.handleTaskStatus(taskStatusPayload('task-1', 'success'));
+
+  expect(await promise).toEqual([{ rows: 1 }]);
+  // Exactly one status_changes call: the one-shot registration catch-up. No loop.
+  expect(fetchMock.callHistory.calls(STATUS_CHANGES_ENDPOINT)).toHaveLength(1);
+});
+
+test('WS mode: does not start an interval poll loop', async () => {
+  jest.useFakeTimers();
+  queueStatuses();
+  asyncEvent.init(wsConfig);
+
+  const controller = new AbortController();
+  const promise = asyncEvent.waitForAsyncData(
+    { task_ids: ['task-1'] },
+    jest.fn(),
+    controller.signal,
+  );
+
+  // Advance well past several poll intervals; a poll loop would fire repeatedly.
+  await jest.advanceTimersByTimeAsync(5000);
+  // Only the single registration catch-up ran — no recurring polling.
+  expect(fetchMock.callHistory.calls(STATUS_CHANGES_ENDPOINT)).toHaveLength(1);
+
+  controller.abort(); // clean up the pending waiter + give-up timer
+  await expect(promise).rejects.toThrow('Aborted');
+  jest.useRealTimers();
+});
+
+test('WS mode: registration catch-up settles a task that completed pre-registration', async () => {
+  // The very first (registration) catch-up fetch returns the task as already
+  // succeeded — no empty baseline in front of it.
+  statusResponses = [
+    {
+      statuses: { 'task-1': { status: 'success' } },
+      cursor: '2020-01-01T00:00:01',
+    },
+  ];
+  asyncEvent.init(wsConfig);
+
+  const refetch = jest.fn().mockResolvedValue([{ rows: 2 }]);
+  // No socket message is delivered; the registration catch-up alone settles it.
+  const result = await asyncEvent.waitForAsyncData(
+    { task_ids: ['task-1'] },
+    refetch,
+  );
+
+  expect(result).toEqual([{ rows: 2 }]);
+  expect(refetch).toHaveBeenCalledTimes(1);
+});
+
+test('WS mode: a reconnect runs one catch-up that reconciles the gap', async () => {
+  // queueStatuses prepends an empty baseline (consumed by the registration
+  // catch-up); the success batch is served to the reconnect catch-up.
+  queueStatuses({ 'task-1': { status: 'success' } });
+  asyncEvent.init(wsConfig);
+
+  const refetch = jest.fn().mockResolvedValue([{ rows: 3 }]);
+  const promise = asyncEvent.waitForAsyncData(
+    { task_ids: ['task-1'] },
+    refetch,
+  );
+
+  // Simulate the socket reconnecting: the shared client fires its open-listener.
+  await mockRealtimeOpenListener?.();
+
+  expect(await promise).toEqual([{ rows: 3 }]);
+  expect(refetch).toHaveBeenCalledTimes(1);
+});
+
+test('WS mode: a genuinely lost completion gives up after the timeout', async () => {
+  jest.useFakeTimers();
+  queueStatuses(); // nothing ever reports success
+  asyncEvent.init({
+    ...wsConfig,
+    GLOBAL_ASYNC_QUERIES_POLLING_STALE_TIMEOUT: 1000,
+  });
+
+  const promise = asyncEvent.waitForAsyncData(
+    { task_ids: ['task-1'] },
+    jest.fn(),
+  );
+  // Attach the rejection handler before the give-up timer fires.
+  const expectation = expect(promise).rejects.toThrow('Timed out');
+
+  await jest.advanceTimersByTimeAsync(1000);
+  await expectation;
+  jest.useRealTimers();
 });

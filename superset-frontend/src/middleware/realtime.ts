@@ -84,6 +84,22 @@ let started = false;
 // a superseded socket detects it is stale and stops.
 let generation = 0;
 const handlersByTopic = new Map<string, Set<RealtimeHandler>>();
+// Fired every time a socket transitions to OPEN (initial connect and each
+// reconnect), so a feature can reconcile state it may have missed while the
+// socket was down (see asyncEvent's reconnect catch-up).
+const openListeners = new Set<() => void>();
+
+/**
+ * Register a listener fired when the socket (re)connects (transitions to OPEN);
+ * returns an unsubscribe function. Used to trigger a one-shot reconcile after a
+ * drop, so realtime consumers need not poll while the socket is healthy.
+ */
+export const subscribeRealtimeOpen = (listener: () => void): (() => void) => {
+  openListeners.add(listener);
+  return () => {
+    openListeners.delete(listener);
+  };
+};
 
 /**
  * Parse a raw socket message and dispatch the `{topic, payload}` envelope to the
@@ -149,6 +165,7 @@ const teardownSocket = (): void => {
   if (socket) {
     // Detach handlers first so the closing socket can't schedule a reconnect
     // against the superseded generation.
+    socket.onopen = null;
     socket.onmessage = null;
     socket.onclose = null;
     socket.onerror = null;
@@ -198,6 +215,16 @@ const openSocket = (thisGeneration: number): void => {
     }, tokenLifetimeMs * KEEPALIVE_FRACTION);
   }
 
+  ws.onopen = () => {
+    if (thisGeneration !== generation) return;
+    openListeners.forEach(listener => {
+      try {
+        listener();
+      } catch (err) {
+        logging.warn('Realtime open-listener error', err);
+      }
+    });
+  };
   ws.onmessage = (event: MessageEvent) => {
     if (thisGeneration === generation)
       dispatchRealtimeMessage(String(event.data));
@@ -290,7 +317,13 @@ subscribeTabIdChange(() => {
 export const resetRealtimeForTests = (): void => {
   disconnectRealtime();
   handlersByTopic.clear();
+  openListeners.clear();
   started = false;
   enabled = false;
   url = undefined;
+};
+
+// Test-only: simulate a socket (re)connect firing the open-listeners.
+export const emitRealtimeOpenForTests = (): void => {
+  openListeners.forEach(listener => listener());
 };

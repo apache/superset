@@ -2975,8 +2975,11 @@ GLOBAL_ASYNC_QUERIES_DEFAULT = True
 
 # Realtime websocket transport (the `superset-websocket` server) config.
 # When enabled, GTF task changes are pushed to the browser so charts and list
-# views update without waiting for the interval poll (which stays as the
-# fallback). Requires the superset-websocket server, a Redis coordination
+# views update without polling: with the websocket on, the recurring
+# `/task/status_changes` poll is not run at all — the socket is the mechanism, and
+# a single catch-up fetch on waiter registration and on socket reconnect
+# reconciles anything missed (the interval poll is used only when the websocket is
+# disabled). Requires the superset-websocket server, a Redis coordination
 # backend (DISTRIBUTED_COORDINATION_CONFIG), and `can_read` on `Realtime`.
 # Two delivery scopes, carried on one lossy `realtime` pub/sub channel as a
 # self-describing `{topic, scope, routes, payload}` envelope:
