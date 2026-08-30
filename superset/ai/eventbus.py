@@ -47,11 +47,9 @@ logger = logging.getLogger(__name__)
 #: interval, so a caller can emit a keep-alive rather than block indefinitely.
 IDLE = None
 
-#: Terminal event types. Seeing one ends consumption, so a reader does not hang
-#: waiting for a producer that has already finished.
-_TERMINAL = frozenset(
-    {StreamEventType.DONE, StreamEventType.ERROR, StreamEventType.CANCELLED}
-)
+#: ``done`` is always the last frame; errors and cancellation may still be
+#: followed by an authoritative answer replacement.
+_TERMINAL = frozenset({StreamEventType.DONE})
 
 
 class BaseEventBus(ABC):
