@@ -34,8 +34,13 @@ import { DEFAULT_FORM_DATA } from './constants';
 import { defaultGrid } from '../defaults';
 import { getDefaultTooltip } from '../utils/tooltip';
 import { Refs } from '../types';
-import { NULL_STRING } from '../constants';
-import { getChartPadding, getLegendProps } from '../utils/series';
+import { OpacityEnum } from '../constants';
+import {
+  getChartPadding,
+  getLegendProps,
+  getColtypesMapping,
+  extractGroupbyLabel,
+} from '../utils/series';
 import { resolveLegendLayout } from '../utils/legendLayout';
 import { convertInteger } from '../utils/convertInteger';
 
@@ -44,19 +49,11 @@ type EChartsOption = ComposeOption<BarSeriesOption>;
 const LABEL_LEFT = { position: 'left' as const };
 const LABEL_RIGHT = { position: 'right' as const };
 
-function formatCategory(value: unknown): string {
-  if (value == null) {
-    return NULL_STRING;
-  }
-  if (typeof value === 'string' || typeof value === 'number') {
-    return String(value);
-  }
-  return String(value);
-}
-
 function formatTooltip(
   params: CallbackDataParams[],
   formatter: NumberFormatter | CurrencyFormatter,
+  categoryLabels: string[],
+  categoryByKey: Map<string, string>,
 ) {
   const axisParams = params.filter(
     param => param.seriesName && typeof param.value === 'number',
@@ -65,7 +62,13 @@ function formatTooltip(
     return '';
   }
 
-  const title = axisParams[0].name;
+  const { dataIndex, name } = axisParams[0];
+  const title =
+    (typeof dataIndex === 'number'
+      ? categoryLabels.at(dataIndex)
+      : undefined) ??
+    (typeof name === 'string' ? categoryByKey.get(name) : undefined) ??
+    name;
   const rows = axisParams.map(param => [
     param.seriesName!,
     formatter(Math.abs(param.value as number)),
@@ -86,6 +89,8 @@ export default function transformProps(
     hooks,
     theme,
     inContextMenu,
+    filterState,
+    emitCrossFilters,
   } = chartProps;
   const refs: Refs = {};
   const { data = [] } = queriesData[0];
@@ -117,32 +122,75 @@ export default function transformProps(
     ...formData,
   };
 
-  const groupbyColumn = ensureIsArray(groupby)[0];
-  const categoryLabel = getColumnLabel(groupbyColumn);
   const leftMetricLabel = leftMetric ? getMetricLabel(leftMetric) : '';
   const rightMetricLabel = rightMetric ? getMetricLabel(rightMetric) : '';
   const leftSeriesName = leftLabel || leftMetricLabel;
   const rightSeriesName = rightLabel || rightMetricLabel;
 
+  const coltypeMapping = getColtypesMapping(queriesData[0]);
+  const groupbyColumns = ensureIsArray(groupby);
+  const groupbyLabels = groupbyColumns.map(getColumnLabel);
+
   const defaultFormatter = currencyFormat?.symbol
     ? new CurrencyFormatter({ d3Format: xAxisFormat, currency: currencyFormat })
     : getNumberFormatter(xAxisFormat);
 
-  const categories = data.map(row => formatCategory(row[categoryLabel]));
-  const leftData = data.map(row => {
-    const value = Number(row[leftMetricLabel] ?? 0);
-    return {
-      value: -Math.abs(value),
-      label: LABEL_LEFT,
-    };
+  const categories = data.map(datum =>
+    extractGroupbyLabel({ datum, groupby: groupbyLabels, coltypeMapping }),
+  );
+  const categoryKeys = data.map((datum, index) => {
+    const label = categories.at(index) ?? '';
+    return `${label}__${JSON.stringify(
+      groupbyLabels.map(col =>
+        Object.hasOwn(datum, col) ? datum[col] : undefined,
+      ),
+    )}`;
   });
-  const rightData = data.map(row => {
-    const value = Number(row[rightMetricLabel] ?? 0);
-    return {
-      value: Math.abs(value),
-      label: LABEL_RIGHT,
-    };
-  });
+  const categoryByKey = new Map(
+    categoryKeys.flatMap((key, index) => {
+      const label = categories.at(index);
+      return label === undefined ? [] : [[key, label] as const];
+    }),
+  );
+
+  const labelMap = data.reduce<Record<string, string[]>>(
+    (acc, datum, index) => {
+      const uniqueKey = categoryKeys.at(index);
+      if (uniqueKey === undefined) {
+        return acc;
+      }
+      acc[uniqueKey] = groupbyLabels.map(col =>
+        Object.hasOwn(datum, col) ? (datum[col] as string) : '',
+      );
+      return acc;
+    },
+    {},
+  );
+  const selectedValues = (filterState.selectedValues || []).reduce(
+    (acc: Record<number, string>, value: string) => {
+      const index = categoryKeys.indexOf(value);
+      return index >= 0 ? { ...acc, [index]: value } : acc;
+    },
+    {},
+  );
+  const getOpacity = (categoryKey: string) =>
+    filterState.selectedValues?.length &&
+    !filterState.selectedValues.includes(categoryKey)
+      ? OpacityEnum.SemiTransparent
+      : OpacityEnum.NonTransparent;
+
+  const leftData = data.map((row, i) => ({
+    name: categoryKeys[i],
+    value: -Math.abs(Number(row[leftMetricLabel] ?? 0)),
+    label: LABEL_LEFT,
+    itemStyle: { opacity: getOpacity(categoryKeys[i]) },
+  }));
+  const rightData = data.map((row, i) => ({
+    name: categoryKeys[i],
+    value: Math.abs(Number(row[rightMetricLabel] ?? 0)),
+    label: LABEL_RIGHT,
+    itemStyle: { opacity: getOpacity(categoryKeys[i]) },
+  }));
 
   const labelFormatter = (params: CallbackDataParams) => {
     const value = Math.abs(params.value as number);
@@ -280,6 +328,8 @@ export default function transformProps(
         formatTooltip(
           ensureIsArray(params) as CallbackDataParams[],
           defaultFormatter,
+          categories,
+          categoryByKey,
         ),
     },
     series,
@@ -294,5 +344,10 @@ export default function transformProps(
     setDataMask,
     onContextMenu,
     onLegendStateChanged,
+    groupby: groupbyColumns,
+    labelMap,
+    selectedValues,
+    emitCrossFilters,
+    coltypeMapping,
   };
 }
