@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useMemo, useState, useEffect, useCallback } from 'react';
+import { useMemo, useState, useCallback } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
 import { GenericDataType } from '@apache-superset/core/common';
@@ -550,9 +550,10 @@ export const FormattingPopoverContent = ({
     );
   };
 
-  const [column, setColumn] = useState<string>(
-    config?.column || columns[0]?.value,
-  );
+  // Mirrors the column form field; the form store is the source of truth,
+  // the fallback applies before the field is registered
+  const column =
+    Form.useWatch('column', form) ?? (config?.column || columns[0]?.value);
   const visibleAllColumns = useMemo(
     () =>
       !metricOnly &&
@@ -585,10 +586,6 @@ export const FormattingPopoverContent = ({
     Form.useWatch<ObjectFormattingEnum>('objectFormatting', form) ??
     (config?.objectFormatting || formattingOptions[0].value);
 
-  const [previousColumnType, setPreviousColumnType] = useState<
-    GenericDataType | undefined
-  >();
-
   const columnType = useMemo(
     () => columns.find(item => item.value === column)?.dataType,
     [columns, column],
@@ -596,7 +593,10 @@ export const FormattingPopoverContent = ({
 
   const handleColumnChange = (value: string) => {
     const newColumnType = columns.find(item => item.value === value)?.dataType;
-    if (newColumnType !== previousColumnType) {
+    const currentColumnType = columns.find(
+      item => item.value === column,
+    )?.dataType;
+    if (newColumnType !== currentColumnType) {
       let defaultOperator: Comparator;
 
       switch (newColumnType) {
@@ -616,8 +616,6 @@ export const FormattingPopoverContent = ({
         operator: defaultOperator,
       });
     }
-    setColumn(value);
-    setPreviousColumnType(newColumnType);
   };
 
   const handleAllColumnChange = (value: string | undefined) => {
@@ -664,14 +662,6 @@ export const FormattingPopoverContent = ({
     [objectFormatting, numericColumns, allColumns],
   );
 
-  useEffect(() => {
-    if (column && !previousColumnType) {
-      setPreviousColumnType(
-        columns.find(item => item.value === column)?.dataType,
-      );
-    }
-  }, [column, columns, previousColumnType]);
-
   const trendColorsTooltip = (
     <div>
       <div>{t('Trend colors are added (for time-based comparison):')}</div>
@@ -694,7 +684,7 @@ export const FormattingPopoverContent = ({
             name="column"
             label={t('Column')}
             rules={rulesRequired}
-            initialValue={columns[0]?.value}
+            initialValue={config?.column || columns[0]?.value}
           >
             <Select
               ariaLabel={t('Select column')}
