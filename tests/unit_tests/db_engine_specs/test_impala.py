@@ -172,3 +172,23 @@ def test_cancel_query_allows_internal_host_with_opt_out(
         allow_redirects=False,
     )
     assert result is True
+
+
+def test_impala_properties() -> None:
+    from superset.db_engine_specs.impala import ImpalaEngineSpec
+
+    assert ImpalaEngineSpec.engine == "impala"
+    assert ImpalaEngineSpec.engine_name == "Apache Impala"
+    assert ImpalaEngineSpec.default_driver == "impala"
+    assert ImpalaEngineSpec.force_column_alias_quotes is True
+
+
+def test_impala_metadata() -> None:
+    from superset.db_engine_specs.impala import ImpalaEngineSpec
+
+    metadata = ImpalaEngineSpec.metadata
+    assert "Apache Impala" in metadata["description"]
+    assert metadata["logo"] == "impala.png"
+    assert "impyla" in metadata["pypi_packages"]
+    assert metadata["default_port"] == 21050
+
