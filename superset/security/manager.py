@@ -1280,7 +1280,7 @@ def _add_allowed_sql_from_query_context(
             if composed:
                 extras_allowed.add(composed)
         for key in ("columns", "groupby"):
-            for col in query.get(key) or []:
+            for col in _ensure_list(query.get(key)):
                 if isinstance(col, dict) and col.get("sqlExpression"):
                     col_allowed.add(col["sqlExpression"])
 
