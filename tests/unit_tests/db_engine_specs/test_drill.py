@@ -174,3 +174,22 @@ def test_connect_make_label_compatible(column_name: str, expected_result: str) -
 
     label = spec.make_label_compatible(column_name)
     assert label == expected_result
+
+
+def test_drill_properties() -> None:
+    from superset.db_engine_specs.drill import DrillEngineSpec
+
+    assert DrillEngineSpec.engine == "drill"
+    assert DrillEngineSpec.engine_name == "Apache Drill"
+    assert DrillEngineSpec.default_driver == "sadrill"
+
+
+def test_drill_metadata() -> None:
+    from superset.db_engine_specs.drill import DrillEngineSpec
+
+    metadata = DrillEngineSpec.metadata
+    assert "Apache Drill" in metadata["description"]
+    assert metadata["logo"] == "drill.png"
+    assert "sqlalchemy-drill" in metadata["pypi_packages"]
+    assert metadata["default_port"] == 8047
+
