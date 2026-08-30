@@ -550,10 +550,11 @@ export const FormattingPopoverContent = ({
         : undefined),
   );
 
-  const [objectFormatting, setObjectFormatting] =
-    useState<ObjectFormattingEnum>(
-      config?.objectFormatting || formattingOptions[0].value,
-    );
+  // Mirrors the objectFormatting form field; the form store is the source
+  // of truth, the fallback applies before the field is registered
+  const objectFormatting =
+    Form.useWatch<ObjectFormattingEnum>('objectFormatting', form) ??
+    (config?.objectFormatting || formattingOptions[0].value);
 
   const [previousColumnType, setPreviousColumnType] = useState<
     GenericDataType | undefined
@@ -609,8 +610,6 @@ export const FormattingPopoverContent = ({
   );
 
   const handleObjectChange = (value: ObjectFormattingEnum) => {
-    setObjectFormatting(value);
-
     if (value === ObjectFormattingEnum.CELL_BAR) {
       const currentColumnValue = form.getFieldValue('columnFormatting');
 
@@ -718,7 +717,7 @@ export const FormattingPopoverContent = ({
               name="objectFormatting"
               label={t('Formatting object')}
               rules={rulesRequired}
-              initialValue={objectFormatting}
+              initialValue={config?.objectFormatting || formattingOptions[0].value}
               tooltip={
                 objectFormatting === ObjectFormattingEnum.CELL_BAR
                   ? t(
