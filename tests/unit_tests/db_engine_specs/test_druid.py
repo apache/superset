@@ -258,3 +258,23 @@ def test_unmask_encrypted_extra() -> None:
     assert DruidEngineSpec.unmask_encrypted_extra(old, new) == json.dumps(
         {"connect_args": {"scheme": "http", "jwt": "old-token", "password": "new"}}
     )
+
+
+def test_druid_properties() -> None:
+    from superset.db_engine_specs.druid import DruidEngineSpec
+
+    assert DruidEngineSpec.engine == "druid"
+    assert DruidEngineSpec.engine_name == "Apache Druid"
+    assert DruidEngineSpec.allows_joins is True
+    assert DruidEngineSpec.allows_subqueries is True
+
+
+def test_druid_metadata() -> None:
+    from superset.db_engine_specs.druid import DruidEngineSpec
+
+    metadata = DruidEngineSpec.metadata
+    assert "Apache Druid" in metadata["description"]
+    assert metadata["logo"] == "druid.png"
+    assert "pydruid" in metadata["pypi_packages"]
+    assert metadata["default_port"] == 8082
+
