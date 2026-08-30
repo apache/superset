@@ -81,3 +81,22 @@ def test_specify_credentials() -> None:
     YDBEngineSpec.update_params_from_encrypted_extra(database, params)
     connect_args = params.setdefault("connect_args", {})
     assert connect_args.get("credentials") == auth_params
+
+
+def test_ydb_properties() -> None:
+    from superset.db_engine_specs.ydb import YDBEngineSpec
+
+    assert YDBEngineSpec.engine == "yql"
+    assert YDBEngineSpec.engine_name == "YDB"
+    assert YDBEngineSpec.default_driver == "ydb"
+    assert YDBEngineSpec.allows_alias_in_orderby is True
+
+
+def test_ydb_metadata() -> None:
+    from superset.db_engine_specs.ydb import YDBEngineSpec
+
+    metadata = YDBEngineSpec.metadata
+    assert "YDB is a distributed SQL database" in metadata["description"]
+    assert metadata["logo"] == "ydb.svg"
+    assert "ydb" in metadata["pypi_packages"]
+
