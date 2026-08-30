@@ -1473,6 +1473,34 @@ def test_query_context_modified_novel_values_still_tampered(
     assert query_context_modified(query_context)
 
 
+def test_query_context_modified_scalar_groupby_param(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Charts such as heatmap_v2 store a single-value control as a scalar string
+    (e.g. ``groupby: "division"``). The guest payload tamper check must not
+    decompose the string into individual characters and must accept the chart's
+    own request.
+    """
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "groupby": "division",
+        "metric": "count",
+    }
+    query_context.form_data = {
+        "slice_id": 42,
+        "groupby": "division",
+        "metric": "count",
+    }
+    query_context.queries = [
+        QueryObject(columns=["division"], metrics=["count"])
+    ]
+    assert not query_context_modified(query_context)
+
+
+
 def _native_filter_ctx(
     mocker: MockerFixture,
     queries: list[Any],
