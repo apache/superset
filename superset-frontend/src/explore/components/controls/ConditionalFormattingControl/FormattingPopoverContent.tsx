@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useMemo, useState, useCallback } from 'react';
+import { useMemo, useCallback } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
 import { GenericDataType } from '@apache-superset/core/common';
@@ -523,17 +523,13 @@ export const FormattingPopoverContent = ({
 }) => {
   const [form] = Form.useForm();
   const colors = colorScheme();
-  const [showOperatorFields, setShowOperatorFields] = useState(
-    config === undefined ||
-      (config?.colorScheme !== ColorSchemeEnum.Green &&
-        config?.colorScheme !== ColorSchemeEnum.Red),
-  );
-
-  const handleChange = (event: any) => {
-    setShowOperatorFields(
-      !(event === ColorSchemeEnum.Green || event === ColorSchemeEnum.Red),
-    );
-  };
+  // Watch the colorScheme form field; trend color schemes hide the
+  // operator fields
+  const colorSchemeValue =
+    Form.useWatch('colorScheme', form) ?? config?.colorScheme;
+  const showOperatorFields =
+    colorSchemeValue !== ColorSchemeEnum.Green &&
+    colorSchemeValue !== ColorSchemeEnum.Red;
 
   // Mirrors the column form field; the form store is the source of truth,
   // the fallback applies before the field is registered
@@ -669,12 +665,11 @@ export const FormattingPopoverContent = ({
             name="colorScheme"
             label={t('Color scheme')}
             rules={rulesRequired}
-            initialValue={defaultColorToken}
+            initialValue={config?.colorScheme ?? defaultColorToken}
             tooltip={extraColorChoices.length > 0 ? trendColorsTooltip : ''}
           >
             <ColorPickerControl
               ariaLabel={t('Color scheme')}
-              onChange={event => handleChange(event)}
               presets={[...colors, ...extraColorChoices]}
               resolveThemeTokens
               outputFormat="hex"
