@@ -109,33 +109,14 @@ def test_get_prequeries(mocker: MockerFixture) -> None:
     ("grain", "expected_expression"),
     [
         (None, "my_col"),
-        (
-            TimeGrain.SECOND,
-            "CAST(my_col as TIMESTAMP) - MICROSECOND(my_col) MICROSECONDS",
-        ),
-        (
-            TimeGrain.MINUTE,
-            "CAST(my_col as TIMESTAMP)"
-            " - SECOND(my_col) SECONDS - MICROSECOND(my_col) MICROSECONDS",
-        ),
-        (
-            TimeGrain.HOUR,
-            "CAST(my_col as TIMESTAMP)"
-            " - MINUTE(my_col) MINUTES"
-            " - SECOND(my_col) SECONDS - MICROSECOND(my_col) MICROSECONDS ",
-        ),
-        (TimeGrain.DAY, "DATE(my_col)"),
-        (TimeGrain.WEEK, "my_col - (DAYOFWEEK(my_col)) DAYS"),
-        (TimeGrain.MONTH, "my_col - (DAY(my_col)-1) DAYS"),
-        (
-            TimeGrain.QUARTER,
-            "my_col - (DAY(my_col)-1) DAYS"
-            " - (MONTH(my_col)-1) MONTHS + ((QUARTER(my_col)-1) * 3) MONTHS",
-        ),
-        (
-            TimeGrain.YEAR,
-            "my_col - (DAY(my_col)-1) DAYS - (MONTH(my_col)-1) MONTHS",
-        ),
+        (TimeGrain.SECOND, "DATE_TRUNC('SECOND', my_col)"),
+        (TimeGrain.MINUTE, "DATE_TRUNC('MINUTE', my_col)"),
+        (TimeGrain.HOUR, "DATE_TRUNC('HOUR', my_col)"),
+        (TimeGrain.DAY, "DATE_TRUNC('DAY', my_col)"),
+        (TimeGrain.WEEK, "DATE_TRUNC('WEEK', my_col)"),
+        (TimeGrain.MONTH, "DATE_TRUNC('MONTH', my_col)"),
+        (TimeGrain.QUARTER, "DATE_TRUNC('QUARTER', my_col)"),
+        (TimeGrain.YEAR, "DATE_TRUNC('YEAR', my_col)"),
     ],
 )
 def test_time_grain_expressions(grain: TimeGrain, expected_expression: str) -> None:
@@ -148,14 +129,29 @@ def test_time_grain_expressions(grain: TimeGrain, expected_expression: str) -> N
     assert actual == expected_expression
 
 
+def test_db2_properties() -> None:
+    from superset.db_engine_specs.db2 import Db2EngineSpec
+
+    assert Db2EngineSpec.engine == "db2"
+    assert Db2EngineSpec.engine_name == "IBM Db2"
+    assert Db2EngineSpec.max_column_name_length == 30
+    assert Db2EngineSpec.supports_dynamic_schema is True
+
+
+def test_db2_metadata() -> None:
+    from superset.db_engine_specs.db2 import Db2EngineSpec
+
+    metadata = Db2EngineSpec.metadata
+    assert "IBM Db2 is a family of data management products" in metadata["description"]
+    assert metadata["logo"] == "ibm-db2.svg"
+    assert "ibm_db_sa" in metadata["pypi_packages"]
+    assert metadata["default_port"] == 50000
+
+
 def test_time_grain_day_parseable() -> None:
     """
     Test that the DAY time grain expression generates valid SQL
     that can be parsed by sqlglot.
-
-    This test addresses the bug where the previous expression
-    "CAST({col} as TIMESTAMP) - HOUR({col}) HOURS - ..."
-    could not be parsed by sqlglot.
     """
     from superset.db_engine_specs.db2 import Db2EngineSpec
 
@@ -170,3 +166,4 @@ def test_time_grain_day_parseable() -> None:
         assert parsed is not None
     except ParseError as e:
         pytest.fail(f"Failed to parse DAY time grain SQL: {e}")
+
