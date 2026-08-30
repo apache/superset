@@ -222,6 +222,11 @@ impala = ["impyla>=0.24.0, <0.25"]
 # superset/db_engine_specs/kusto.py's known_incompatibilities metadata.
 kusto = ["sqlalchemy-kusto>=3.1.2, <4"]
 kylin = ["kylinpy>=2.8.4, <2.9"]
+# MariaDB is a MySQL fork implementing the same wire protocol - connects via
+# the plain mysql dialect, same driver as mysql.
+mariadb = ["apache-superset[mysql]"]
+monetdb = ["sqlalchemy-monetdb>=2.1.0, <3", "pymonetdb>=1.9.1, <2"]
+mongodb = ["pymongosql>=0.7.3, <1"]
 mssql = ["pymssql>=2.3.13, <3"]
 # motherduck is an alias for duckdb - MotherDuck works via the duckdb driver
 motherduck = ["apache-superset[duckdb]"]
@@ -270,6 +275,9 @@ tdengine = [
     "taos-ws-py>=0.7.0"
 ]
 teradata = ["teradatasql>=20.0.0.66"]
+# TimescaleDB is a genuine Postgres extension, not a fork - connects via the
+# plain postgresql dialect, same driver as postgres.
+timescaledb = ["apache-superset[postgres]"]
 thumbnails = [] # deprecated, will be removed in 7.0
 vertica = ["sqlalchemy-vertica-python>= 0.6.3, < 0.7"]
 netezza = ["nzalchemy>= 11.1.2, < 11.2"]
@@ -277,6 +285,9 @@ starrocks = ["starrocks>=1.3.4, <2"]
 doris = ["pydoris>=1.2.0, <2.0.0"]
 oceanbase = ["oceanbase_py>=0.0.1.2"]
 ydb = ["ydb-sqlalchemy>=0.1.22", "ydb-sqlglot-plugin>=0.2.8"]
+# YugabyteDB's YSQL layer is fully Postgres-wire compatible - connects via
+# the plain postgresql dialect, same driver as postgres.
+yugabytedb = ["apache-superset[postgres]"]
 development = [
     # no bounds for apache-superset-extensions-cli until a stable version
     "apache-superset-extensions-cli",

@@ -20,6 +20,10 @@ on:
     paths:
       - ".github/workflows/testcontainers.yml"
       - "tests/testcontainers/**"
+      - "superset/db_engine_specs/**"
+      - "pyproject.toml"
+      - "requirements/development.in"
+      - "requirements/development.txt"
 
 concurrency:
   # Scoped by ref, not just workflow name -- otherwise every PR run and the
@@ -58,6 +62,27 @@ jobs:
             timeout: 15
           - dialect: db2
             timeout: 25
+          - dialect: mariadb
+            timeout: 10
+          - dialect: timescaledb
+            timeout: 10
+          - dialect: yugabytedb
+            timeout: 10
+          - dialect: monetdb
+            timeout: 10
+          - dialect: mongodb
+            timeout: 10
+          - dialect: postgres
+            timeout: 10
+          - dialect: mysql
+            timeout: 10
+          - dialect: clickhouse
+            timeout: 10
+          # StarRocks' allin1-ubuntu image brings up both FE and BE in one
+          # container, which is a heavier bring-up than a single-process
+          # database -- wider margin until real CI data says otherwise.
+          - dialect: starrocks
+            timeout: 15
     timeout-minutes: ${{ matrix.timeout }}
     env:
       PYTHONPATH: ${{ github.workspace }}

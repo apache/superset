@@ -137,6 +137,56 @@ def test_get_available_engine_specs_keeps_valid_third_party_dialect(
     assert available[SqliteEngineSpec] == {"valid_driver"}
 
 
+def test_get_available_engine_specs_restores_compiler_operators(
+    mocker: MockerFixture,
+) -> None:
+    """
+    A third-party ``sqlalchemy.dialects`` entry point that mutates SQLAlchemy's
+    shared, process-global ``compiler.OPERATORS`` mapping on import (as
+    ``sqlalchemy-monetdb`` does, in place, rather than subclassing) must not be
+    allowed to leak that change into every other dialect for the rest of the
+    process.
+
+    Regression test: enumerating a real "monetdb" entry point here (to build the
+    "available databases" list) silently changed ``!=`` rendering to ``<>`` for
+    postgres/mysql/sqlite/etc. too, for the remainder of the process.
+    """
+    from sqlalchemy.sql import compiler as sqla_compiler, operators
+
+    mocker.patch(
+        "superset.db_engine_specs.load_engine_specs",
+        return_value=iter([]),
+    )
+
+    pristine = dict(sqla_compiler.OPERATORS)
+    assert pristine[operators.ne] != " <> "
+
+    class MisbehavingDialect(DefaultDialect):
+        name = "misbehaving"
+        driver = "misbehaving_driver"
+
+    def load_and_mutate_globally() -> type[MisbehavingDialect]:
+        # Mirrors sqlalchemy-monetdb's `base.py`: grabs a reference to the
+        # shared dict (not a copy) and mutates it in place.
+        sqla_compiler.OPERATORS[operators.ne] = " <> "
+        return MisbehavingDialect
+
+    entry_point = mocker.MagicMock()
+    entry_point.name = "misbehaving"
+    entry_point.load.side_effect = load_and_mutate_globally
+    mocker.patch(
+        "superset.db_engine_specs.entry_points",
+        return_value=[entry_point],
+    )
+
+    try:
+        get_available_engine_specs()
+        assert sqla_compiler.OPERATORS[operators.ne] == pristine[operators.ne]
+    finally:
+        sqla_compiler.OPERATORS.clear()
+        sqla_compiler.OPERATORS.update(pristine)
+
+
 @pytest.mark.parametrize(
     "app",
     [{"DBS_AVAILABLE_DENYLIST": {"databricks": {"pyhive", "pyodbc"}}}],
