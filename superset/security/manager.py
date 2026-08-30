@@ -862,10 +862,10 @@ def _native_filter_query_modified(
     # Columns, group-by, and series columns may only reference target column(s);
     # adhoc (free-form SQL) columns cannot be validated, so reject them.
     for key in ("columns", "groupby", "series_columns"):
-        for col in getattr(query, key, None) or []:
+        for col in _ensure_list(getattr(query, key, None)):
             if not isinstance(col, str) or col not in allowed_columns:
                 return True
-    for metric in getattr(query, "metrics", None) or []:
+    for metric in _ensure_list(getattr(query, "metrics", None)):
         if not _native_filter_term_allowed(metric, allowed_columns, allowed_metrics):
             return True
     # A series-limit metric ranks the top-N groups in the inner query, so it is
@@ -878,7 +878,7 @@ def _native_filter_query_modified(
     ):
         return True
     # order-by entries are ``(expression, asc)`` pairs.
-    for order in getattr(query, "orderby", None) or []:
+    for order in _ensure_list(getattr(query, "orderby", None)):
         expr = order[0] if isinstance(order, (list, tuple)) and order else order
         if not _native_filter_term_allowed(expr, allowed_columns, allowed_metrics):
             return True
