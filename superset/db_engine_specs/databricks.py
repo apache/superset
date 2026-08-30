@@ -247,9 +247,24 @@ class DatabricksHiveEngineSpec(HiveEngineSpec):
     drivers = {"pyhive": "Hive driver for Interactive Cluster"}
     default_driver = "pyhive"
 
-    # Note: Primary metadata is in DatabricksPythonConnectorEngineSpec which
-    # consolidates all Databricks connection methods. This spec exists for
-    # backwards compatibility with Interactive Cluster connections.
+    metadata = {
+        "description": (
+            "Databricks interactive cluster connection using the Hive connector."
+        ),
+        "logo": "databricks.png",
+        "homepage_url": "https://www.databricks.com/",
+        "categories": [
+            DatabaseCategory.CLOUD_DATA_WAREHOUSES,
+            DatabaseCategory.ANALYTICAL_DATABASES,
+            DatabaseCategory.HOSTED_OPEN_SOURCE,
+        ],
+        "pypi_packages": ["databricks-dbapi[sqlalchemy]", "pyhive"],
+        "connection_string": (
+            "databricks+pyhive://token:{access_token}@{host}:{port}/{database}"
+        ),
+        "default_port": 443,
+        "docs_url": "https://docs.databricks.com/",
+    }
 
     _show_functions_column = "function"
 
@@ -303,9 +318,24 @@ class DatabricksODBCEngineSpec(DatabricksBaseEngineSpec):
     drivers = {"pyodbc": "ODBC driver for SQL endpoint"}
     default_driver = "pyodbc"
 
-    # Note: Primary metadata is in DatabricksPythonConnectorEngineSpec which
-    # consolidates all Databricks connection methods. This spec exists for
-    # backwards compatibility with ODBC connections to SQL Endpoints.
+    metadata = {
+        "description": (
+            "Databricks SQL Endpoint connection using the ODBC driver."
+        ),
+        "logo": "databricks.png",
+        "homepage_url": "https://www.databricks.com/",
+        "categories": [
+            DatabaseCategory.CLOUD_DATA_WAREHOUSES,
+            DatabaseCategory.ANALYTICAL_DATABASES,
+            DatabaseCategory.HOSTED_OPEN_SOURCE,
+        ],
+        "pypi_packages": ["pyodbc"],
+        "connection_string": (
+            "databricks+pyodbc://token:{access_token}@{host}:{port}/{database}"
+        ),
+        "default_port": 443,
+        "docs_url": "https://docs.databricks.com/",
+    }
 
 
 class DatabricksDynamicBaseEngineSpec(BasicParametersMixin, DatabricksBaseEngineSpec):
@@ -629,9 +659,24 @@ class DatabricksNativeEngineSpec(DatabricksDynamicBaseEngineSpec):
         "databricks+connector://token:{access_token}@{host}:{port}/{database_name}"
     )
 
-    # Note: Primary metadata is in DatabricksPythonConnectorEngineSpec which
-    # consolidates all Databricks connection methods. This spec exists for
-    # backwards compatibility with legacy databricks-dbapi connections.
+    metadata = {
+        "description": (
+            "Databricks legacy connector using databricks-dbapi."
+        ),
+        "logo": "databricks.png",
+        "homepage_url": "https://www.databricks.com/",
+        "categories": [
+            DatabaseCategory.CLOUD_DATA_WAREHOUSES,
+            DatabaseCategory.ANALYTICAL_DATABASES,
+            DatabaseCategory.HOSTED_OPEN_SOURCE,
+        ],
+        "pypi_packages": ["databricks-dbapi[sqlalchemy]"],
+        "connection_string": (
+            "databricks+connector://token:{access_token}@{host}:{port}/{database}"
+        ),
+        "default_port": 443,
+        "docs_url": "https://docs.databricks.com/",
+    }
     context_key_mapping = {
         **DatabricksDynamicBaseEngineSpec.context_key_mapping,
         "database": "database",
@@ -807,6 +852,7 @@ class DatabricksPythonConnectorEngineSpec(DatabricksDynamicBaseEngineSpec):
             "databricks://token:{access_token}@{host}:{port}"
             "?http_path={http_path}&catalog={catalog}&schema={schema}"
         ),
+        "default_port": 443,
         "parameters": {
             "access_token": "Personal access token from Settings > User Settings",
             "host": "Server hostname from cluster JDBC/ODBC settings",
