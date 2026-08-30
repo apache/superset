@@ -91,8 +91,10 @@ class ExportChartsCommand(ExportModelsCommand):
     def enable_tag_export(cls) -> None:
         cls._include_tags = True
 
-    def run(self) -> Iterator[tuple[str, Callable[[], str]]]:
-        yield from super().run()
+    def run(
+        self, seen: set[str] | None = None
+    ) -> Iterator[tuple[str, Callable[[], str]]]:
+        yield from super().run(seen=seen)
 
         # Tags are exported once for all requested charts (rather than per
         # chart in `_export`) so a multi-chart export doesn't lose tags to
@@ -108,12 +110,17 @@ class ExportChartsCommand(ExportModelsCommand):
 
     @staticmethod
     def _export(
-        model: Slice, export_related: bool = True
+        model: Slice, export_related: bool = True, seen: set[str] | None = None
     ) -> Iterator[tuple[str, Callable[[], str]]]:
+        # Initialize seen set if not provided
+        if seen is None:
+            seen = set()
+
         yield (
             ExportChartsCommand._file_name(model),
             lambda: ExportChartsCommand._file_content(model),
         )
 
         if model.table and export_related:
-            yield from ExportDatasetsCommand([model.table.id]).run()
+            # Pass the shared seen set to the dataset export command
+            yield from ExportDatasetsCommand([model.table.id]).run(seen=seen)
