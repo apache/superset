@@ -40,3 +40,41 @@ def test_convert_dttm(
     from superset.db_engine_specs.kylin import KylinEngineSpec as spec  # noqa: N813
 
     assert_convert_dttm(spec, target_type, expected_result, dttm)
+
+
+def test_kylin_properties() -> None:
+    from superset.db_engine_specs.kylin import KylinEngineSpec
+
+    assert KylinEngineSpec.engine == "kylin"
+    assert KylinEngineSpec.engine_name == "Apache Kylin"
+
+
+def test_kylin_metadata() -> None:
+    from superset.db_engine_specs.kylin import KylinEngineSpec
+
+    metadata = KylinEngineSpec.metadata
+    assert "Apache Kylin is an open-source OLAP engine" in metadata["description"]
+    assert metadata["logo"] == "apache-kylin.png"
+    assert "kylinpy" in metadata["pypi_packages"]
+    assert metadata["default_port"] == 7070
+
+
+@pytest.mark.parametrize(
+    "time_grain,expected",
+    [
+        (None, "ts"),
+        ("PT1S", "CAST(FLOOR(CAST(ts AS TIMESTAMP) TO SECOND) AS TIMESTAMP)"),
+        ("PT1M", "CAST(FLOOR(CAST(ts AS TIMESTAMP) TO MINUTE) AS TIMESTAMP)"),
+        ("PT1H", "CAST(FLOOR(CAST(ts AS TIMESTAMP) TO HOUR) AS TIMESTAMP)"),
+        ("P1D", "CAST(FLOOR(CAST(ts AS TIMESTAMP) TO DAY) AS DATE)"),
+        ("P1W", "CAST(FLOOR(CAST(ts AS TIMESTAMP) TO WEEK) AS DATE)"),
+        ("P1M", "CAST(FLOOR(CAST(ts AS TIMESTAMP) TO MONTH) AS DATE)"),
+        ("P3M", "CAST(FLOOR(CAST(ts AS TIMESTAMP) TO QUARTER) AS DATE)"),
+        ("P1Y", "CAST(FLOOR(CAST(ts AS TIMESTAMP) TO YEAR) AS DATE)"),
+    ],
+)
+def test_time_grain_expressions(time_grain: str | None, expected: str) -> None:
+    from superset.db_engine_specs.kylin import KylinEngineSpec
+
+    assert KylinEngineSpec._time_grain_expressions[time_grain].format(col="ts") == expected
+
