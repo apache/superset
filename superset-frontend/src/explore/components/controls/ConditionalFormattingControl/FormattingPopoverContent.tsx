@@ -544,10 +544,6 @@ export const FormattingPopoverContent = ({
         config?.colorScheme !== ColorSchemeEnum.Red),
   );
 
-  const [useGradient, setUseGradient] = useState(() =>
-    config?.useGradient !== undefined ? config.useGradient : true,
-  );
-
   const handleChange = (event: any) => {
     setShowOperatorFields(
       !(event === ColorSchemeEnum.Green || event === ColorSchemeEnum.Red),
@@ -777,12 +773,11 @@ export const FormattingPopoverContent = ({
             <FormItem
               name="useGradient"
               valuePropName="checked"
-              initialValue={useGradient}
+              initialValue={
+                config?.useGradient !== undefined ? config.useGradient : true
+              }
             >
-              <Checkbox
-                onChange={event => setUseGradient(event.target.checked)}
-                checked={useGradient}
-              />
+              <Checkbox />
             </FormItem>
           </Col>
           <Col>
