@@ -167,16 +167,16 @@ test('formats bytes in human readable format with additional decimals option', (
 });
 
 test('formats values below one byte without dropping the unit', () => {
-  const formatter = createMemoryFormatter();
-  expect(formatter(0.5)).toBe('0.5B');
-  expect(formatter(0.004)).toBe('0B');
-  expect(formatter(-0.25)).toBe('-0.25B');
+    const formatter = createMemoryFormatter();
+    expect(formatter(0.5)).toBe('0.5B');
+    expect(formatter(0.004)).toBe('0B');
+    expect(formatter(-0.25)).toBe('-0.25B');
 });
 
 test('rolls over to the next unit when rounding reaches the base', () => {
-  const formatter = createMemoryFormatter();
-  expect(formatter(999999)).toBe('1MB');
-  expect(formatter(999995)).toBe('1MB');
-  expect(formatter(999994)).toBe('999.99kB');
-  expect(formatter(-999999)).toBe('-1MB');
+    const formatter = createMemoryFormatter();
+    expect(formatter(999999)).toBe('1MB');
+    expect(formatter(999995)).toBe('1MB');
+    expect(formatter(999994)).toBe('999.99kB');
+    expect(formatter(-999999)).toBe('-1MB');
 });
