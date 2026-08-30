@@ -1532,10 +1532,7 @@ def _stored_param_values(params: dict[str, Any], keys: tuple[str, ...]) -> set[s
     """
     values: set[str] = set()
     for key in keys:
-        value = params.get(key)
-        if value is None or value == "":
-            continue
-        items = value if isinstance(value, (list, tuple)) else [value]
+        items = _ensure_list(params.get(key))
         values.update(
             freeze_value(item) for item in items if item is not None and item != ""
         )
