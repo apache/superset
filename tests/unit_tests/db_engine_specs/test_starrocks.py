@@ -385,3 +385,25 @@ def test_time_grain_expressions_inherit_mysql() -> None:
         "{col}", "my_col"
     )
     assert actual == "DATE_FORMAT(my_col, '%Y-%m-%d %H:00:00')"
+
+
+def test_starrocks_properties() -> None:
+    from superset.db_engine_specs.mysql import MySQLEngineSpec
+    from superset.db_engine_specs.starrocks import StarRocksEngineSpec
+
+    assert StarRocksEngineSpec.engine == "starrocks"
+    assert StarRocksEngineSpec.engine_name == "StarRocks"
+    assert issubclass(StarRocksEngineSpec, MySQLEngineSpec)
+    assert StarRocksEngineSpec.default_driver == "starrocks"
+    assert StarRocksEngineSpec.supports_dynamic_schema is True
+
+
+def test_starrocks_metadata() -> None:
+    from superset.db_engine_specs.starrocks import StarRocksEngineSpec
+
+    metadata = StarRocksEngineSpec.metadata
+    assert "StarRocks" in metadata["description"]
+    assert metadata["logo"] == "starrocks.png"
+    assert "starrocks" in metadata["pypi_packages"]
+    assert metadata["default_port"] == 9030
+
