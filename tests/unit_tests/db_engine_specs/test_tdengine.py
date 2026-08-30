@@ -32,3 +32,36 @@ def test_get_schema_from_engine_params() -> None:
         )
         == "dbname"
     )
+
+
+def test_tdengine_properties() -> None:
+    from superset.db_engine_specs.tdengine import TDengineEngineSpec
+
+    assert TDengineEngineSpec.engine == "taosws"
+    assert TDengineEngineSpec.engine_name == "TDengine"
+    assert TDengineEngineSpec.default_driver == "taosws"
+    assert TDengineEngineSpec.max_column_name_length == 64
+
+
+def test_tdengine_metadata() -> None:
+    from superset.db_engine_specs.tdengine import TDengineEngineSpec
+
+    metadata = TDengineEngineSpec.metadata
+    assert "TDengine is a high-performance time-series database" in metadata["description"]
+    assert metadata["logo"] == "tdengine.png"
+    assert "taospy" in metadata["pypi_packages"]
+    assert metadata["default_port"] == 6041
+
+
+def test_time_grain_expressions() -> None:
+    from superset.db_engine_specs.tdengine import TDengineEngineSpec
+
+    assert (
+        TDengineEngineSpec._time_grain_expressions["PT1S"].format(col="ts")
+        == "TIMETRUNCATE(ts, 1s, 0)"
+    )
+    assert (
+        TDengineEngineSpec._time_grain_expressions["P1D"].format(col="ts")
+        == "TIMETRUNCATE(ts, 1d, 0)"
+    )
+
