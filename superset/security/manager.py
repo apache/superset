@@ -1568,7 +1568,7 @@ def _columns_metrics_modified(
         # ``_payload_value_identity``); metrics compare by exact frozen value.
         requested_values = {
             _payload_value_identity(value, is_metric=is_metric)
-            for value in form_data.get(key) or []
+            for value in _ensure_list(form_data.get(key))
         }
         # Stored params are read across every control name that can hold a
         # metric or column for some chart type: charts whose query is built
@@ -1587,14 +1587,14 @@ def _columns_metrics_modified(
         queries_values = {
             _payload_value_identity(value, is_metric=is_metric)
             for query in query_context.queries
-            for value in getattr(query, key, []) or []
+            for value in _ensure_list(getattr(query, key, None))
         }
         if stored_query_context:
             for query in stored_query_context.get("queries") or []:
                 for equiv_key in equivalent:
                     stored_values.update(
                         _payload_value_identity(value, is_metric=is_metric)
-                        for value in query.get(equiv_key) or []
+                        for value in _ensure_list(query.get(equiv_key))
                     )
 
         if not queries_values.issubset(stored_values):
