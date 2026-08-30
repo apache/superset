@@ -574,7 +574,7 @@ def test_get_event_bus_returns_a_redis_bus_configured_from_config(
     from superset.ai.events import done_event
 
     cache = FakeStreamCache()
-    mocker.patch.object(eventbus_module, "_stream_backend", return_value=cache)
+    mocker.patch.object(eventbus_module, "get_event_bus_backend", return_value=cache)
     mocker.patch.dict(
         current_app.config,
         {
