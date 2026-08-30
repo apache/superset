@@ -42,6 +42,24 @@ test('tryParseThemeJson returns the parsed object for valid JSON', () => {
   });
 });
 
+test('tryParseThemeJson rejects a non-object token instead of letting a picker edit corrupt it', () => {
+  expect(tryParseThemeJson('{"token":"not an object"}')).toBeNull();
+  expect(tryParseThemeJson('{"token":["also","not"]}')).toBeNull();
+  expect(tryParseThemeJson('{"token":42}')).toBeNull();
+});
+
+test('patchThemeJsonToken never spreads a malformed token into numeric-keyed junk', () => {
+  // A picker's onChange is gated on tryParseThemeJson succeeding first (see
+  // ThemeColorPickers' isValid check), but patchThemeJsonToken is exported
+  // and tested standalone -- it must not corrupt data even if called directly.
+  const result = patchThemeJsonToken(
+    '{"token":"not an object"}',
+    'colorPrimary',
+    '#336699',
+  );
+  expect(JSON.parse(result)).toEqual({ token: { colorPrimary: '#336699' } });
+});
+
 test('patchThemeJsonToken sets the token under an empty theme', () => {
   const result = patchThemeJsonToken('{}', 'colorPrimary', '#336699');
   expect(JSON.parse(result)).toEqual({ token: { colorPrimary: '#336699' } });
