@@ -109,3 +109,24 @@ def test_extended_aggregation_func_inherited_from_postgres() -> None:
 
     for aggregate in ("STDDEV_SAMP", "VAR_SAMP"):
         assert RedshiftEngineSpec.get_extended_aggregation_func(aggregate) is not None
+
+
+def test_redshift_properties() -> None:
+    from superset.db_engine_specs.postgres import PostgresBaseEngineSpec
+    from superset.db_engine_specs.redshift import RedshiftEngineSpec
+
+    assert RedshiftEngineSpec.engine == "redshift"
+    assert RedshiftEngineSpec.engine_name == "Amazon Redshift"
+    assert RedshiftEngineSpec.max_column_name_length == 127
+    assert issubclass(RedshiftEngineSpec, PostgresBaseEngineSpec)
+
+
+def test_redshift_metadata() -> None:
+    from superset.db_engine_specs.redshift import RedshiftEngineSpec
+
+    metadata = RedshiftEngineSpec.metadata
+    assert "Amazon Redshift is a fully managed, petabyte-scale" in metadata["description"]
+    assert metadata["logo"] == "aws.png"
+    assert "redshift_connector" in metadata["pypi_packages"]
+    assert metadata["default_port"] == 5439
+
