@@ -299,7 +299,25 @@ def pivot(  # pylint: disable=too-many-arguments  # noqa: C901
         percent_mode = show_values_as
 
     if columns and column_fill_value:
+        for col in columns:
+            if (
+                isinstance(df[col].dtype, pd.CategoricalDtype)
+                and column_fill_value not in df[col].cat.categories
+            ):
+                df[col] = df[col].cat.add_categories([column_fill_value])
         df[columns] = df[columns].fillna(value=column_fill_value)
+
+    # Fill NULL/NaN values in the index columns with NULL_STRING so that
+    # NULL grouping keys survive as a real "<NULL>" row in the pivot output.
+    # Mirrors the column fill above; pivot_table() drops NaN index rows
+    # regardless of the dropna= setting (dropna only governs the column axis).
+    for col in index:
+        if (
+            isinstance(df[col].dtype, pd.CategoricalDtype)
+            and NULL_STRING not in df[col].cat.categories
+        ):
+            df[col] = df[col].cat.add_categories([NULL_STRING])
+    df[index] = df[index].fillna(value=NULL_STRING)
 
     aggregate_funcs = _get_aggregate_funcs(df, aggregates)
 
