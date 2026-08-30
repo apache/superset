@@ -119,6 +119,29 @@ test('context menu exposes drill to detail for the selected category', () => {
   ]);
 });
 
+test('context menu exposes drill by for the selected category', () => {
+  const { eventHandlers, onContextMenu } = setup();
+
+  eventHandlers.contextmenu({
+    name: 'A',
+    data: { name: categoryKeyA },
+    event: { stop: jest.fn(), event: { clientX: 10, clientY: 20 } },
+  });
+
+  const payload = onContextMenu.mock.calls[0][2];
+  expect(payload.drillBy).toEqual({
+    filters: [
+      expect.objectContaining({
+        col: 'category',
+        op: '==',
+        val: 'A',
+        formattedVal: 'A',
+      }),
+    ],
+    groupbyFieldName: 'groupby',
+  });
+});
+
 test('click emits cross-filter for the selected category', () => {
   const { eventHandlers, setDataMask } = setup();
 
