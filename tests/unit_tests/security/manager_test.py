@@ -1500,6 +1500,32 @@ def test_query_context_modified_scalar_groupby_param(
     assert not query_context_modified(query_context)
 
 
+def test_query_context_modified_scalar_columns_param(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Ensure single string values for columns or metrics in form_data and query
+    objects do not trigger false positive tamper rejection.
+    """
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "columns": "region",
+        "metrics": "sales",
+    }
+    query_context.form_data = {
+        "slice_id": 42,
+        "columns": "region",
+        "metrics": "sales",
+    }
+    query_context.queries = [
+        QueryObject(columns=["region"], metrics=["sales"])
+    ]
+    assert not query_context_modified(query_context)
+
+
+
 
 def _native_filter_ctx(
     mocker: MockerFixture,
