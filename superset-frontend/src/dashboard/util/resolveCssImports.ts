@@ -36,19 +36,94 @@ export interface ResolveCssImportsResult {
 }
 
 /**
- * Extracts the URL from an `@import` at-rule's raw params, e.g.
+ * Splits an `@import` at-rule's raw params into the URL and whatever
+ * trails it (layer/supports/media conditions), e.g.
  * `url('https://fonts.googleapis.com/css2?family=Inter') screen` or
  * `"https://example.com/x.css"`. Returns null for a params string this
  * can't confidently pull a URL out of.
  */
-function extractImportUrl(params: string): string | null {
-  const match = params
-    .trim()
-    .match(/^url\(\s*['"]?([^'")]+)['"]?\s*\)|^['"]([^'"]+)['"]/i);
-  if (!match) {
+function parseImportParams(
+  params: string,
+): { url: string; conditionsRaw: string } | null {
+  const trimmed = params.trim();
+  const match = trimmed.match(
+    /^url\(\s*['"]?([^'")]+)['"]?\s*\)|^['"]([^'"]+)['"]/i,
+  );
+  const url = match?.[1] ?? match?.[2];
+  if (!match || !url) {
     return null;
   }
-  return match[1] ?? match[2] ?? null;
+  return { url, conditionsRaw: trimmed.slice(match[0].length).trim() };
+}
+
+/**
+ * Reads a balanced `(...)` group starting at `openIdx` (which must point at
+ * the opening paren). Returns the content between the parens and the index
+ * of the closing paren, or null if the parens never balance.
+ */
+function readBalanced(
+  str: string,
+  openIdx: number,
+): { content: string; end: number } | null {
+  let depth = 0;
+  for (let i = openIdx; i < str.length; i += 1) {
+    if (str[i] === '(') {
+      depth += 1;
+    } else if (str[i] === ')') {
+      depth -= 1;
+      if (depth === 0) {
+        return { content: str.slice(openIdx + 1, i), end: i };
+      }
+    }
+  }
+  return null;
+}
+
+interface ImportConditions {
+  /** Layer name; empty string for the anonymous `layer` keyword. */
+  layer: string | null;
+  supports: string | null;
+  media: string | null;
+}
+
+/**
+ * Parses the conditions that may trail an `@import` URL, in their
+ * spec-defined order: an optional `layer`/`layer(name)`, an optional
+ * `supports(...)`, then a media query list. Returns null when the string
+ * can't be parsed confidently (e.g. unbalanced parens), so the caller can
+ * leave the rule alone rather than guess at its meaning.
+ */
+function parseImportConditions(raw: string): ImportConditions | null {
+  let rest = raw.trim().replace(/;\s*$/, '');
+  const conditions: ImportConditions = {
+    layer: null,
+    supports: null,
+    media: null,
+  };
+
+  if (/^layer\(/i.test(rest)) {
+    const group = readBalanced(rest, 'layer'.length);
+    if (!group) {
+      return null;
+    }
+    conditions.layer = group.content.trim();
+    rest = rest.slice(group.end + 1).trim();
+  } else if (/^layer(\s|$)/i.test(rest)) {
+    conditions.layer = '';
+    rest = rest.slice('layer'.length).trim();
+  }
+
+  if (/^supports\(/i.test(rest)) {
+    const group = readBalanced(rest, 'supports'.length);
+    if (!group) {
+      return null;
+    }
+    conditions.supports = group.content.trim();
+    rest = rest.slice(group.end + 1).trim();
+  }
+
+  conditions.media = rest || null;
+  return conditions;
 }
 
 // Matches CSS `url(...)` function calls, optionally quoted, e.g.
@@ -95,6 +170,11 @@ function rebaseCssUrls(css: string, baseUrl: string): string {
  * output and reported in `unresolvedUrls`, rather than silently dropped, so
  * a save attempt still fails with a clear reason and nothing is lost.
  *
+ * An `@import`'s layer/supports/media conditions (e.g.
+ * `@import url('print.css') print`) are preserved by wrapping the inlined
+ * stylesheet in the equivalent `@layer`/`@supports`/`@media` blocks, so
+ * conditional imports keep applying under the same conditions.
+ *
  * Only one level of `@import` is resolved: an `@import` found inside a
  * fetched stylesheet is not itself fetched, and is carried through to the
  * merged output as-is aside from having its own `url(...)` rebased against
@@ -124,9 +204,20 @@ export async function resolveCssImports(
 
   await Promise.all(
     importRules.map(async rule => {
-      const url = extractImportUrl(rule.params);
-      if (!url) {
+      const parsed = parseImportParams(rule.params);
+      if (!parsed) {
         unresolvedUrls.push(rule.params);
+        return;
+      }
+      const { url } = parsed;
+      // An @import's layer/supports/media conditions must survive the
+      // conversion (e.g. `@import url('print.css') print` must not start
+      // applying on screen), so the fetched rules get wrapped in the
+      // equivalent block form below. Conditions we can't parse mean we
+      // leave the rule alone rather than change what it applies to.
+      const conditions = parseImportConditions(parsed.conditionsRaw);
+      if (!conditions) {
+        unresolvedUrls.push(url);
         return;
       }
       try {
@@ -140,7 +231,40 @@ export async function resolveCssImports(
         }
         const importedCss = rebaseCssUrls(await response.text(), url);
         const importedRoot = postcss.parse(importedCss);
-        rule.replaceWith(importedRoot.nodes);
+        // Wrap innermost-first (layer, then supports, then media) so the
+        // block nesting mirrors the @import's own semantics:
+        // @media { @supports { @layer { ...imported rules... } } }.
+        let replacement = importedRoot.nodes;
+        if (conditions.layer !== null) {
+          const layerRule = postcss.atRule({
+            name: 'layer',
+            params: conditions.layer,
+          });
+          layerRule.append(replacement);
+          replacement = [layerRule];
+        }
+        if (conditions.supports !== null) {
+          const supportsRule = postcss.atRule({
+            name: 'supports',
+            // A bare declaration like `display: grid` needs wrapping
+            // parens to be a valid @supports condition; a condition that
+            // already starts with `(` or `not` is valid as-is.
+            params: /^\(|^not\s/i.test(conditions.supports)
+              ? conditions.supports
+              : `(${conditions.supports})`,
+          });
+          supportsRule.append(replacement);
+          replacement = [supportsRule];
+        }
+        if (conditions.media !== null) {
+          const mediaRule = postcss.atRule({
+            name: 'media',
+            params: conditions.media,
+          });
+          mediaRule.append(replacement);
+          replacement = [mediaRule];
+        }
+        rule.replaceWith(replacement);
         resolvedCount += 1;
       } catch {
         // Most commonly a CORS rejection: fetch() can't read the response

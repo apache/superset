@@ -147,6 +147,48 @@ test('resolves one @import and reports another it could not fetch', async () => 
   expect(result.css).toContain(badUrl);
 });
 
+test('preserves a media condition by wrapping the inlined rules in @media', async () => {
+  const printUrl = 'https://cdn.example.com/print.css';
+  fetchMock.get(printUrl, {
+    status: 200,
+    body: '.report { font-size: 10pt; }',
+    headers: { 'content-type': 'text/css' },
+  });
+
+  const result = await resolveCssImports(`@import url('${printUrl}') print;`);
+
+  expect(result.resolvedCount).toBe(1);
+  expect(result.css).not.toMatch(/@import/i);
+  expect(result.css).toContain('@media print');
+  expect(result.css).toContain('.report');
+});
+
+test('preserves layer, supports, and media conditions with spec-order nesting', async () => {
+  const url = 'https://cdn.example.com/grid.css';
+  fetchMock.get(url, {
+    status: 200,
+    body: '.grid { display: grid; }',
+    headers: { 'content-type': 'text/css' },
+  });
+
+  const result = await resolveCssImports(
+    `@import url('${url}') layer(base) supports(display: grid) screen;`,
+  );
+
+  expect(result.resolvedCount).toBe(1);
+  expect(result.css).not.toMatch(/@import/i);
+  // Nesting mirrors the @import's semantics: media outermost, then
+  // supports, then layer around the imported rules.
+  const mediaIdx = result.css.indexOf('@media screen');
+  const supportsIdx = result.css.indexOf('@supports (display: grid)');
+  const layerIdx = result.css.indexOf('@layer base');
+  const ruleIdx = result.css.indexOf('.grid');
+  expect(mediaIdx).toBeGreaterThanOrEqual(0);
+  expect(supportsIdx).toBeGreaterThan(mediaIdx);
+  expect(layerIdx).toBeGreaterThan(supportsIdx);
+  expect(ruleIdx).toBeGreaterThan(layerIdx);
+});
+
 test('does not resolve an @import nested inside a fetched stylesheet', async () => {
   const outerUrl = 'https://fonts.googleapis.com/css2?family=Inter';
   const innerCss = "@import url('https://example.com/nested.css');";
