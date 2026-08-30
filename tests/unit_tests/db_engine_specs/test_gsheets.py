@@ -1103,3 +1103,22 @@ def test_convert_dttm(
     from superset.db_engine_specs.gsheets import GSheetsEngineSpec
 
     assert_convert_dttm(GSheetsEngineSpec, target_type, expected_result, dttm)
+
+
+def test_gsheets_properties() -> None:
+    from superset.db_engine_specs.gsheets import GSheetsEngineSpec
+    from superset.db_engine_specs.shillelagh import ShillelaghEngineSpec
+
+    assert GSheetsEngineSpec.engine == "gsheets"
+    assert GSheetsEngineSpec.engine_name == "Google Sheets"
+    assert issubclass(GSheetsEngineSpec, ShillelaghEngineSpec)
+
+
+def test_gsheets_metadata() -> None:
+    from superset.db_engine_specs.gsheets import GSheetsEngineSpec
+
+    metadata = GSheetsEngineSpec.metadata
+    assert "Google Sheets" in metadata["description"]
+    assert metadata["logo"] == "google-sheets.png"
+    assert "shillelagh[gsheetsapi]" in metadata["pypi_packages"]
+
