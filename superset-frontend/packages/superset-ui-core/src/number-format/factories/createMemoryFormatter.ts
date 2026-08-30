@@ -41,14 +41,16 @@ function formatMemory(
       let scaleIndex = absValue < 1 ? 0 : Math.floor(Math.log(absValue) / Math.log(base));
       let i = Math.min(suffixes.length - 1, scaleIndex);
 
-      let scaled = parseFloat((absValue / Math.pow(base, i)).toFixed(decimals));
+      let scaledValue = absValue / Math.pow(base, i);
+      let scaled = parseFloat(scaledValue.toFixed(decimals));
 
-      while (scaled >= base && i < suffixes.length - 1) {
-       i += 1;
-       scaled = parseFloat((absValue / Math.pow(base, i)).toFixed(decimals));
+      if (scaled >= base && i < suffixes.length - 1) {
+        scaleIndex += 1;
+        i = Math.min(suffixes.length - 1, scaleIndex);
+        scaled = parseFloat((absValue / Math.pow(base, i)).toFixed(decimals));
       }
 
-      formatted = `${sign}${parseFloat((absValue / Math.pow(base, i)).toFixed(decimals),)}${suffixes[i]}`;
+      formatted = `${sign}${scaled}${suffixes[i]}`;
     }
 
     if (transfer) {
