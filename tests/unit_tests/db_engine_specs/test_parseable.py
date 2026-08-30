@@ -15,46 +15,31 @@
 # specific language governing permissions and limitations
 # under the License.
 from datetime import datetime
-from typing import Optional
 
 import pytest
 
+from superset.constants import TimeGrain
+from superset.db_engine_specs.parseable import ParseableEngineSpec
 from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
 from tests.unit_tests.fixtures.common import dttm  # noqa: F401
 
 
+def test_parseable_properties() -> None:
+    assert ParseableEngineSpec.engine == "parseable"
+    assert ParseableEngineSpec.engine_name == "Parseable"
+
+
+def test_parseable_metadata() -> None:
+    metadata = ParseableEngineSpec.metadata
+    assert "Parseable is a distributed log analytics database" in metadata["description"]
+    assert metadata["logo"] == "parseable.png"
+    assert "sqlalchemy-parseable" in metadata["pypi_packages"]
+    assert metadata["default_port"] == 8000
+
+
 def test_epoch_to_dttm() -> None:
-    """
-    DB Eng Specs (parseable): Test epoch to dttm
-    """
-    from superset.db_engine_specs.parseable import ParseableEngineSpec
-
-    assert ParseableEngineSpec.epoch_to_dttm() == "to_timestamp({col})"
-
-
-def test_epoch_ms_to_dttm() -> None:
-    """
-    DB Eng Specs (parseable): Test epoch ms to dttm
-    """
-    from superset.db_engine_specs.parseable import ParseableEngineSpec
-
-    assert ParseableEngineSpec.epoch_ms_to_dttm() == "to_timestamp({col} / 1000)"
-
-
-def test_alter_new_orm_column() -> None:
-    """
-    DB Eng Specs (parseable): Test alter orm column
-    """
-    from superset.connectors.sqla.models import SqlaTable, TableColumn
-    from superset.db_engine_specs.parseable import ParseableEngineSpec
-    from superset.models.core import Database
-
-    database = Database(database_name="parseable", sqlalchemy_uri="parseable://db")
-    tbl = SqlaTable(table_name="tbl", database=database)
-    col = TableColumn(column_name="p_timestamp", type="TIMESTAMP", table=tbl)
-    ParseableEngineSpec.alter_new_orm_column(col)
-    assert col.python_date_format == "epoch_ms"
-    assert col.is_dttm is True
+    assert ParseableEngineSpec.epoch_to_dttm().format(col="ts") == "to_timestamp(ts)"
+    assert ParseableEngineSpec.epoch_ms_to_dttm().format(col="ts") == "to_timestamp(ts / 1000)"
 
 
 @pytest.mark.parametrize(
@@ -66,12 +51,25 @@ def test_alter_new_orm_column() -> None:
 )
 def test_convert_dttm(
     target_type: str,
-    expected_result: Optional[str],
+    expected_result: str | None,
     dttm: datetime,  # noqa: F811
 ) -> None:
-    """
-    DB Eng Specs (parseable): Test conversion to date time
-    """
-    from superset.db_engine_specs.parseable import ParseableEngineSpec
-
     assert_convert_dttm(ParseableEngineSpec, target_type, expected_result, dttm)
+
+
+@pytest.mark.parametrize(
+    "time_grain,expected",
+    [
+        (None, "ts"),
+        (TimeGrain.SECOND, "date_trunc('second', ts)"),
+        (TimeGrain.MINUTE, "date_trunc('minute', ts)"),
+        (TimeGrain.HOUR, "date_trunc('hour', ts)"),
+        (TimeGrain.DAY, "date_trunc('day', ts)"),
+        (TimeGrain.WEEK, "date_trunc('week', ts)"),
+        (TimeGrain.MONTH, "date_trunc('month', ts)"),
+        (TimeGrain.QUARTER, "date_trunc('quarter', ts)"),
+        (TimeGrain.YEAR, "date_trunc('year', ts)"),
+    ],
+)
+def test_time_grain_expressions(time_grain: str | None, expected: str) -> None:
+    assert ParseableEngineSpec._time_grain_expressions[time_grain].format(col="ts") == expected
