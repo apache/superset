@@ -544,12 +544,14 @@ export const FormattingPopoverContent = ({
     [allColumns],
   );
 
-  const [columnFormatting, setColumnFormatting] = useState<string | undefined>(
+  // Initial value of the formatting column field; the form store is the
+  // source of truth once the user interacts
+  const initialColumn = config?.column || columns[0]?.value;
+  const initialColumnFormatting =
     config?.columnFormatting ??
-      (Array.isArray(allColumns)
-        ? allColumns.find(item => item.value === column)?.value
-        : undefined),
-  );
+    (Array.isArray(allColumns)
+      ? allColumns.find(item => item.value === initialColumn)?.value
+      : undefined);
 
   // Mirrors the objectFormatting form field; the form store is the source
   // of truth, the fallback applies before the field is registered
@@ -589,9 +591,6 @@ export const FormattingPopoverContent = ({
     }
   };
 
-  const handleAllColumnChange = (value: string | undefined) => {
-    setColumnFormatting(value);
-  };
   const numericColumns = useMemo(
     () => allColumns.filter(col => col.dataType === GenericDataType.Numeric),
     [allColumns],
@@ -620,7 +619,6 @@ export const FormattingPopoverContent = ({
         form.setFieldsValue({
           columnFormatting: newValue,
         });
-        setColumnFormatting(newValue);
       }
     }
   };
@@ -691,14 +689,11 @@ export const FormattingPopoverContent = ({
               name="columnFormatting"
               label={t('Formatting column')}
               rules={rulesRequired}
-              initialValue={columnFormatting}
+              initialValue={initialColumnFormatting}
             >
               <Select
                 ariaLabel={t('Select column name')}
                 options={getColumnOptions()}
-                onChange={(value: string | undefined) => {
-                  handleAllColumnChange(value as string);
-                }}
               />
             </FormItem>
           </Col>
