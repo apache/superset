@@ -274,3 +274,23 @@ def test_spark_identifier_quote_uses_backticks() -> None:
         "end": "`",
         "escape_by_doubling": True,
     }
+
+
+def test_hive_properties() -> None:
+    from superset.db_engine_specs.hive import HiveEngineSpec
+
+    assert HiveEngineSpec.engine == "hive"
+    assert HiveEngineSpec.engine_name == "Apache Hive"
+    assert HiveEngineSpec.default_driver == "pyhive"
+    assert HiveEngineSpec.max_column_name_length == 767
+
+
+def test_hive_metadata() -> None:
+    from superset.db_engine_specs.hive import HiveEngineSpec
+
+    metadata = HiveEngineSpec.metadata
+    assert "Apache Hive" in metadata["description"]
+    assert metadata["logo"] == "hive.png"
+    assert "pyhive" in metadata["pypi_packages"]
+    assert metadata["default_port"] == 10000
+
