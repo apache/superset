@@ -224,3 +224,27 @@ def test_kql_execute_array_processing(raw_query: str, expected_query: str) -> No
     KustoKqlEngineSpec.execute(mock_cursor, raw_query, mock_db)
 
     mock_cursor.execute.assert_called_once_with(expected_query)
+
+
+def test_kusto_properties() -> None:
+    from superset.db_engine_specs.kusto import KustoKqlEngineSpec, KustoSqlEngineSpec
+
+    assert KustoSqlEngineSpec.engine == "kustosql"
+    assert KustoSqlEngineSpec.engine_name == "Azure Data Explorer (Kusto SQL)"
+    assert KustoKqlEngineSpec.engine == "kustokql"
+    assert KustoKqlEngineSpec.engine_name == "Azure Data Explorer (Kusto KQL)"
+
+
+def test_kusto_metadata() -> None:
+    from superset.db_engine_specs.kusto import KustoKqlEngineSpec, KustoSqlEngineSpec
+
+    sql_meta = KustoSqlEngineSpec.metadata
+    assert "Azure Data Explorer" in sql_meta["description"]
+    assert sql_meta["logo"] == "azure.svg"
+    assert "sqlalchemy-kusto" in sql_meta["pypi_packages"]
+
+    kql_meta = KustoKqlEngineSpec.metadata
+    assert "Azure Data Explorer" in kql_meta["description"]
+    assert kql_meta["logo"] == "azure.svg"
+    assert "sqlalchemy-kusto" in kql_meta["pypi_packages"]
+
