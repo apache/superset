@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from secrets import token_bytes
 from types import SimpleNamespace
 from urllib.parse import parse_qs, urlparse
 
@@ -24,6 +23,7 @@ from flask import Flask, g, make_response
 
 from superset.views.auth import (
     LOGIN_REDIRECT_MARKER_PARAM,
+    LOGIN_REDIRECT_MARKER_VALUE,
     SupersetAuthView,
 )
 from superset.views.base import BaseSupersetView
@@ -32,7 +32,6 @@ from superset.views.base import BaseSupersetView
 @pytest.fixture
 def app(monkeypatch: pytest.MonkeyPatch) -> Flask:
     app = Flask(__name__)
-    app.config["SECRET_KEY"] = token_bytes(32)
     appbuilder = SimpleNamespace(get_url_for_index="/")
     app.appbuilder = appbuilder
 
@@ -73,7 +72,7 @@ def test_anonymous_login_marks_next_url(app: Flask) -> None:
 
     query = parse_qs(urlparse(location).query)
     assert query["next"] == ["/superset/dashboard/1/"]
-    assert query[LOGIN_REDIRECT_MARKER_PARAM]
+    assert query[LOGIN_REDIRECT_MARKER_PARAM] == [LOGIN_REDIRECT_MARKER_VALUE]
 
 
 def test_authenticated_marked_login_preserves_next_url(app: Flask) -> None:
@@ -121,58 +120,12 @@ def test_anonymous_login_does_not_mark_unsafe_next_url(
     assert response.status_code == 200
 
 
-def test_authenticated_login_rejects_tampered_marker(app: Flask) -> None:
-    location = _marked_login_location(app, "/superset/dashboard/1/")
-    parsed = urlparse(location)
-    query = parse_qs(parsed.query)
-    query[LOGIN_REDIRECT_MARKER_PARAM][0] += "tampered"
-
-    with app.test_request_context(parsed.path, query_string=query):
-        _set_user(True)
-        response = _auth_view(app).login()
-
-    assert response.location == app.appbuilder.get_url_for_index
-
-
-def test_authenticated_login_rejects_mismatched_next_url(app: Flask) -> None:
-    location = _marked_login_location(app, "/superset/dashboard/1/")
-    parsed = urlparse(location)
-    query = parse_qs(parsed.query)
-    query["next"] = ["/superset/dashboard/2/"]
-
-    with app.test_request_context(parsed.path, query_string=query):
-        _set_user(True)
-        response = _auth_view(app).login()
-
-    assert response.location == app.appbuilder.get_url_for_index
-
-
-def test_authenticated_login_rejects_expired_marker(
-    app: Flask,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    location = _marked_login_location(app, "/superset/dashboard/1/")
-    monkeypatch.setattr(
-        "superset.views.auth.LOGIN_REDIRECT_MARKER_MAX_AGE_SECONDS",
-        -1,
-    )
-
-    with app.test_request_context(location):
-        _set_user(True)
-        response = _auth_view(app).login()
-
-    assert response.location == app.appbuilder.get_url_for_index
-
-
-def test_authenticated_login_rejects_non_string_marker_payload(app: Flask) -> None:
-    with app.test_request_context("/login/"):
-        marker = _auth_view(app)._redirect_serializer().dumps(123)
-
+def test_authenticated_login_ignores_invalid_marker(app: Flask) -> None:
     with app.test_request_context(
         "/login/",
         query_string={
             "next": "/superset/dashboard/1/",
-            LOGIN_REDIRECT_MARKER_PARAM: marker,
+            LOGIN_REDIRECT_MARKER_PARAM: "invalid",
         },
     ):
         _set_user(True)

@@ -16,37 +16,26 @@
 # under the License.
 
 import logging
-from hmac import compare_digest
 from typing import Optional
 
-from flask import current_app, g, redirect, request, url_for
+from flask import g, redirect, request, url_for
 from flask_appbuilder import expose
 from flask_appbuilder.const import LOGMSG_ERR_SEC_NO_REGISTER_HASH
 from flask_appbuilder.security.decorators import no_cache
 from flask_appbuilder.security.views import AuthView, WerkzeugResponse
 from flask_appbuilder.utils.base import get_safe_redirect
 from flask_babel import lazy_gettext
-from itsdangerous import BadData, URLSafeTimedSerializer
 
 from superset.views.base import BaseSupersetView
 
 logger = logging.getLogger(__name__)
 
 LOGIN_REDIRECT_MARKER_PARAM = "login_redirect"
-LOGIN_REDIRECT_MARKER_SALT = "superset-login-redirect"
-LOGIN_REDIRECT_MARKER_MAX_AGE_SECONDS = 15 * 60
+LOGIN_REDIRECT_MARKER_VALUE = "1"
 
 
 class SupersetAuthView(BaseSupersetView, AuthView):
     route_base = "/login"
-
-    @staticmethod
-    def _redirect_serializer() -> URLSafeTimedSerializer:
-        """Return the serializer used to mark anonymous login redirects."""
-        return URLSafeTimedSerializer(
-            current_app.secret_key,
-            salt=LOGIN_REDIRECT_MARKER_SALT,
-        )
 
     @staticmethod
     def _safe_next_url() -> str:
@@ -61,37 +50,17 @@ class SupersetAuthView(BaseSupersetView, AuthView):
         safe_url = get_safe_redirect(next_url)
         return safe_url if safe_url == next_url else ""
 
-    def _marked_login_url(self, next_url: str) -> str:
-        """Build a login URL proving ``next_url`` was seen anonymously."""
+    def _marked_login_url(self) -> str:
+        """Build a login URL marked as having been visited anonymously."""
         query = request.args.to_dict(flat=False)
-        query[LOGIN_REDIRECT_MARKER_PARAM] = [
-            self._redirect_serializer().dumps(next_url)
-        ]
+        query[LOGIN_REDIRECT_MARKER_PARAM] = [LOGIN_REDIRECT_MARKER_VALUE]
         return url_for(f"{self.__class__.__name__}.login", **query)
 
     def _marked_next_url(self) -> str:
-        """Validate and return a marked login redirect destination."""
-        marker = request.args.get(LOGIN_REDIRECT_MARKER_PARAM, "")
-        next_url = self._safe_next_url()
-        if not marker or not next_url:
+        """Return a safe redirect from a login URL visited anonymously."""
+        if request.args.get(LOGIN_REDIRECT_MARKER_PARAM) != LOGIN_REDIRECT_MARKER_VALUE:
             return ""
-
-        try:
-            marked_next_url = self._redirect_serializer().loads(
-                marker,
-                max_age=LOGIN_REDIRECT_MARKER_MAX_AGE_SECONDS,
-            )
-        except BadData:
-            logger.info("Rejected invalid or expired login redirect marker")
-            return ""
-
-        if not isinstance(marked_next_url, str) or not compare_digest(
-            marked_next_url,
-            next_url,
-        ):
-            logger.info("Rejected login redirect marker with mismatched destination")
-            return ""
-        return next_url
+        return self._safe_next_url()
 
     @expose("/")
     @no_cache
@@ -101,10 +70,12 @@ class SupersetAuthView(BaseSupersetView, AuthView):
                 return redirect(next_url)
             return redirect(self.appbuilder.get_url_for_index)
 
-        if (next_url := self._safe_next_url()) and not request.args.get(
-            LOGIN_REDIRECT_MARKER_PARAM
+        if (
+            self._safe_next_url()
+            and request.args.get(LOGIN_REDIRECT_MARKER_PARAM)
+            != LOGIN_REDIRECT_MARKER_VALUE
         ):
-            return redirect(self._marked_login_url(next_url))
+            return redirect(self._marked_login_url())
 
         return super().render_app_template()
 
