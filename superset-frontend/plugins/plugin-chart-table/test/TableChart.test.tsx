@@ -174,6 +174,14 @@ test('renders multi-level header groups above column names', () => {
       th => th.textContent === 'Metrics',
     ),
   ).toBe(true);
+
+  const extraHeaderCells = headerRows[0].querySelectorAll('th');
+  extraHeaderCells.forEach(th => {
+    if (th.textContent !== 'Metrics') {
+      expect(th.getAttribute('data-dimension-separator')).toBe('true');
+      expect(Number(th.getAttribute('rowspan') ?? '1')).toBe(1);
+    }
+  });
 });
 
 describe('plugin-chart-table', () => {

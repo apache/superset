@@ -115,7 +115,8 @@ test('builds nested header rows with colspan and rowspan', () => {
     expect.objectContaining({
       label: '',
       colSpan: 1,
-      rowSpan: 2,
+      rowSpan: 1,
+      columnIndex: 0,
     }),
     expect.objectContaining({
       label: 'Sales',
@@ -130,6 +131,13 @@ test('builds nested header rows with colspan and rowspan', () => {
     }),
   ]);
   expect(rows[1]).toEqual([
+    expect.objectContaining({
+      label: '',
+      colSpan: 1,
+      rowSpan: 1,
+      columnIndex: 0,
+      isLastColumn: false,
+    }),
     expect.objectContaining({
       label: '',
       colSpan: 1,
@@ -154,6 +162,38 @@ test('builds nested header rows with colspan and rowspan', () => {
       rowSpan: 1,
       isLastColumn: false,
     }),
+  ]);
+});
+
+test('draws a placeholder cell on every extra header row for ungrouped columns', () => {
+  const nested: HeaderGroupConfig[] = [
+    {
+      id: 'sales',
+      label: 'Sales',
+      columns: [],
+      children: [
+        {
+          id: 'online',
+          label: 'Online',
+          columns: ['SUM(online_sales)'],
+        },
+      ],
+    },
+  ];
+  const rows = buildHeaderGroupRows(nested, [
+    'country',
+    'name',
+    'SUM(online_sales)',
+  ]);
+
+  expect(rows).toHaveLength(2);
+  expect(rows[0].filter(cell => cell.label === '')).toEqual([
+    expect.objectContaining({ columnIndex: 0, rowSpan: 1, colSpan: 1 }),
+    expect.objectContaining({ columnIndex: 1, rowSpan: 1, colSpan: 1 }),
+  ]);
+  expect(rows[1].filter(cell => cell.label === '')).toEqual([
+    expect.objectContaining({ columnIndex: 0, rowSpan: 1, colSpan: 1 }),
+    expect.objectContaining({ columnIndex: 1, rowSpan: 1, colSpan: 1 }),
   ]);
 });
 

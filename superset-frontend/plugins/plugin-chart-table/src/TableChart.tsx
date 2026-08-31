@@ -903,6 +903,9 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     th:first-of-type {
       border-left: none;
     }
+    th[data-dimension-separator='true'] {
+      border-right: 2px solid ${theme.colorSplit};
+    }
     th[data-last-column='true'] {
       border-right: none;
     }
@@ -920,20 +923,30 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             key={`multi-header-row-${rowIndex}`}
             css={multiLevelHeaderRowStyles}
           >
-            {row.map(cell => (
-              <th
-                key={cell.key}
-                colSpan={cell.colSpan}
-                rowSpan={cell.rowSpan}
-                data-last-column={cell.isLastColumn || undefined}
-                style={{
-                  borderBottom: cell.label ? undefined : 0,
-                  textAlign: cell.labelAlign ?? 'center',
-                }}
-              >
-                {cell.label}
-              </th>
-            ))}
+            {row.map(cell => {
+              const lastColumn =
+                visibleColumnsMeta[cell.columnIndex + cell.colSpan - 1];
+              const hasDimensionSeparator = Boolean(
+                lastColumn &&
+                !lastColumn.isMetric &&
+                !lastColumn.isPercentMetric,
+              );
+              return (
+                <th
+                  key={cell.key}
+                  colSpan={cell.colSpan}
+                  rowSpan={cell.rowSpan}
+                  data-last-column={cell.isLastColumn || undefined}
+                  data-dimension-separator={hasDimensionSeparator || undefined}
+                  style={{
+                    borderBottom: cell.label ? undefined : 0,
+                    textAlign: cell.labelAlign ?? 'center',
+                  }}
+                >
+                  {cell.label}
+                </th>
+              );
+            })}
           </tr>
         ))}
       </>

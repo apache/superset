@@ -36,6 +36,7 @@ export type HeaderGroupCell = {
   label: string;
   colSpan: number;
   rowSpan: number;
+  columnIndex: number;
   labelAlign?: HeaderGroupLabelAlign;
   isLastColumn: boolean;
 };
@@ -179,6 +180,7 @@ export function buildHeaderGroupRows(
           label,
           colSpan,
           rowSpan,
+          columnIndex: colIndex,
           labelAlign: ancestor?.aligns[level] ?? 'center',
           isLastColumn: colIndex + colSpan >= columnKeys.length,
         });
@@ -192,17 +194,17 @@ export function buildHeaderGroupRows(
         continue;
       }
 
-      const rowSpan = maxDepth - level;
+      // One cell per extra-header row so vertical separators between
+      // ungrouped columns are drawn at every level.
       rows[level].push({
         key: `empty-${columnKey}-${level}`,
         label: '',
         colSpan: 1,
-        rowSpan,
+        rowSpan: 1,
+        columnIndex: colIndex,
         isLastColumn: colIndex + 1 >= columnKeys.length,
       });
-      for (let rowOffset = 0; rowOffset < rowSpan; rowOffset += 1) {
-        covered[level + rowOffset][colIndex] = true;
-      }
+      covered[level][colIndex] = true;
       colIndex += 1;
     }
   }
