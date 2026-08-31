@@ -1900,6 +1900,101 @@ def test_pivot_df_show_values_as_keeps_metrics_separate():
     assert pivoted.loc[("US",), ("SUM(num)", "boy")] == 0.25
     assert pivoted.loc[("UK",), ("MAX(num)", "boy")] == 0.375
     assert pivoted.loc[("UK",), ("MAX(num)", "girl")] == 0.625
+    # the cross-metric Total column divides by the denominator spanning every
+    # metric, so it still reads 100%
+    assert pivoted.loc[("US",), (total_label(), "")] == 1
+
+
+def test_pivot_df_show_values_as_with_combined_metrics():
+    """`combineMetric` moves the metric to the lowest column level."""
+    df = show_values_as_df()
+    df["MAX(num)"] = [1, 3, 6, 10]
+    pivoted = pivot_df(
+        df,
+        **{
+            **SHOW_VALUES_AS_OPTIONS,
+            "metrics": ["SUM(num)", "MAX(num)"],
+            "combine_metrics": True,
+            "show_rows_total": False,
+            "show_columns_total": False,
+        },
+        show_values_as="percent_row",
+    )
+
+    assert pivoted.loc[("US",), ("boy", "SUM(num)")] == 0.25
+    assert pivoted.loc[("US",), ("girl", "SUM(num)")] == 0.75
+    # each metric keeps its own denominator across the combined layout
+    assert pivoted.loc[("UK",), ("boy", "MAX(num)")] == 0.375
+    assert pivoted.loc[("UK",), ("girl", "MAX(num)")] == 0.625
+
+
+def test_pivot_table_v2_show_values_as_uses_min_max_rollups():
+    """A MIN/MAX metric divides by the row's extreme, not its sum.
+
+    Mirrors `additiveReducerFor` in the plugin's `plugin/utilities.ts`: the
+    chart rolls a MAX metric up with max, so a row of [6, 10] reads 60%/100%.
+    """
+    df = pd.DataFrame(
+        {
+            "nation": ["US", "US", "UK", "UK"],
+            "gender": ["boy", "girl", "boy", "girl"],
+            "MAX(num)": [1, 3, 6, 10],
+        }
+    )
+    form_data = {
+        "groupbyRows": ["nation"],
+        "groupbyColumns": ["gender"],
+        "metrics": [
+            {
+                "expressionType": "SIMPLE",
+                "aggregate": "MAX",
+                "column": {"column_name": "num"},
+                "label": "MAX(num)",
+            }
+        ],
+        "showValuesAs": "percent_row",
+        "rowTotals": True,
+    }
+
+    pivoted = pivot_table_v2(df, form_data, apply_number_format=False)
+
+    assert pivoted.loc[("UK",), ("MAX(num)", "boy")] == 0.6
+    assert pivoted.loc[("UK",), ("MAX(num)", "girl")] == 1
+    # the total divides by itself whatever the reducer
+    assert pivoted.loc[("UK",), (total_label(), "")] == 1
+
+
+def test_pivot_table_v2_drops_grouping_sets_rollup_rows():
+    """Rollup levels must not be pivoted as if they were leaf rows.
+
+    A non-additive metric makes `buildQuery` request every rollup level in one
+    frame, tagged with `GROUPING()` markers. Counting those rows as leaves both
+    inflates the denominators and adds a phantom row for the collapsed
+    dimensions.
+    """
+    df = pd.DataFrame(
+        {
+            "nation": ["US", "UK", None],
+            "gender": ["boy", "boy", None],
+            "nation__superset_grouping": [0, 0, 1],
+            "gender__superset_grouping": [0, 0, 1],
+            "AVG(num)": [10, 20, 30],
+        }
+    )
+    form_data = {
+        "groupbyRows": ["nation"],
+        "groupbyColumns": ["gender"],
+        "metrics": ["AVG(num)"],
+        "showValuesAs": "percent_col",
+    }
+
+    pivoted = pivot_table_v2(df, form_data, apply_number_format=False)
+
+    # only the two leaf rows survive; the grand-total row would have added a
+    # third and pushed the column denominator from 30 to 60
+    assert len(pivoted.index) == 2
+    assert pivoted.loc[("US",), ("AVG(num)", "boy")] == pytest.approx(10 / 30)
+    assert pivoted.loc[("UK",), ("AVG(num)", "boy")] == pytest.approx(20 / 30)
 
 
 def test_pivot_df_show_values_as_metrics_on_rows():
