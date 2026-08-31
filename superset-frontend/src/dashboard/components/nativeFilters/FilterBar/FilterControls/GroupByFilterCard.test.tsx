@@ -69,7 +69,7 @@ test('preserves source order when sortAscending is unset', () => {
 });
 
 /**
- * Characterization tests (sc-111089 T002): pin today's regular-dataset
+ * Characterization tests (sc-111089 T002): pin the existing regular-dataset
  * behaviour BEFORE the type-aware refactor, so FR-004's "byte-identical"
  * regression guard is falsifiable. Each test uses a distinct dataset id —
  * cachedSupersetGet holds a module-level cache keyed by endpoint.
