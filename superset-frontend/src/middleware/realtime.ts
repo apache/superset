@@ -217,14 +217,30 @@ const openSocket = (
   // seamless handover), so open-listeners can skip an expensive reconcile.
   if (enabled && tokenLifetimeMs > 0) {
     keepaliveTimeoutId = window.setTimeout(() => {
-      // Bail if this socket was already superseded (config change) or replaced by
-      // a reconnect (a blip's onclose reopens under the same generation), so the
-      // refresh can't tear down a newer, healthy socket.
-      if (thisGeneration !== generation || socket !== ws) return;
+      // Only hand off a socket that is still OPEN. Besides a superseded
+      // generation or a replaced socket, guard on readyState: `onclose` merely
+      // *schedules* a delayed reconnect (it doesn't clear `socket` or bump the
+      // generation), so a just-closed socket still satisfies `socket === ws`. A
+      // seamless keepalive handoff of a closed socket would cancel that real
+      // `reconnect` and reopen as `keepalive` — and list views skip reconcile on
+      // `keepalive`, so they'd miss entity changes from the actual outage.
+      if (
+        thisGeneration !== generation ||
+        socket !== ws ||
+        ws.readyState !== WS_OPEN
+      ) {
+        return;
+      }
       SupersetClient.get({ endpoint: COOKIE_REFRESH_ENDPOINT })
         .catch(() => {})
         .finally(() => {
-          if (thisGeneration !== generation || socket !== ws) return;
+          if (
+            thisGeneration !== generation ||
+            socket !== ws ||
+            ws.readyState !== WS_OPEN
+          ) {
+            return;
+          }
           generation += 1;
           teardownSocket();
           openSocket(generation, 'keepalive');

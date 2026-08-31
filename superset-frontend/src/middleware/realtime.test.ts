@@ -283,6 +283,9 @@ test('refreshes the cookie and reconnects before the token expires', async () =>
     // freshly minted token before the server terminates the socket at expiry.
     connectRealtime({ ...ENABLED, WEBSOCKET_JWT_EXPIRATION_SECONDS: 900 });
     expect(FakeWebSocket.instances).toHaveLength(1);
+    // Simulate the socket having connected — the keepalive only hands off a
+    // socket that is still OPEN (readyState 1).
+    FakeWebSocket.instances[0].readyState = 1;
 
     jest.advanceTimersByTime(540_000);
     expect(getSpy).toHaveBeenCalledWith({ endpoint: '/api/v1/me/' });
@@ -291,6 +294,44 @@ test('refreshes the cookie and reconnects before the token expires', async () =>
     await Promise.resolve();
     await Promise.resolve();
     expect(FakeWebSocket.instances).toHaveLength(2);
+  } finally {
+    getSpy.mockRestore();
+    jest.useRealTimers();
+  }
+});
+
+test('a socket that drops just before keepalive reconnects (not a keepalive handoff)', async () => {
+  jest.useFakeTimers();
+  const getSpy = jest
+    .spyOn(SupersetClient, 'get')
+    .mockResolvedValue({} as never);
+  const reasons: string[] = [];
+  subscribeRealtimeOpen(reason => reasons.push(reason));
+  try {
+    connectRealtime({ ...ENABLED, WEBSOCKET_JWT_EXPIRATION_SECONDS: 900 });
+    const ws = FakeWebSocket.instances[0];
+    ws.readyState = 1; // OPEN
+    ws.onopen?.();
+    expect(reasons).toEqual(['initial']);
+
+    // The socket really drops just before the keepalive (540s) fires; onclose
+    // schedules a real reconnect at +5s.
+    jest.advanceTimersByTime(539_000);
+    ws.readyState = 3; // CLOSED
+    ws.onclose?.();
+
+    // The keepalive timer fires while the socket is closed → it must bail (no
+    // refresh GET, no keepalive handoff), leaving the real reconnect to run.
+    jest.advanceTimersByTime(2_000);
+    await Promise.resolve();
+    expect(getSpy).not.toHaveBeenCalled();
+
+    // The scheduled reconnect opens with reason 'reconnect' — so list views still
+    // reconcile the outage rather than treating it as a seamless keepalive.
+    jest.advanceTimersByTime(5_000);
+    FakeWebSocket.instances[1].readyState = 1;
+    FakeWebSocket.instances[1].onopen?.();
+    expect(reasons).toEqual(['initial', 'reconnect']);
   } finally {
     getSpy.mockRestore();
     jest.useRealTimers();

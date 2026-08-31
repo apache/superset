@@ -621,10 +621,14 @@ class TaskContext(CoreTaskContext):
             return  # Already started
 
         def on_timeout() -> None:
-            if self._abort_detected:
-                return  # Already aborting
-
-            self._timeout_triggered = True
+            # Elect under the same lock as abort detection, and skip if the work
+            # already finished — a timeout firing in the window between the task
+            # function returning and the terminal-state decision must not flip a
+            # completed task to TIMED_OUT (mirrors _on_abort_detected).
+            with self._abort_lock:
+                if self._execution_completed or self._abort_detected:
+                    return
+                self._timeout_triggered = True
             logger.info(
                 "Timeout reached for task %s after %d seconds",
                 self._task_uuid,

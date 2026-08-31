@@ -355,8 +355,13 @@ test('gives up (rejects) after the stale timeout with no progress', async () => 
 
 test('poll mode gives up (rejects) on a persistent status_changes error', async () => {
   // A sustained fetch error must age toward the give-up too — not spin forever.
+  // Use a 400 (client error, not retried by SupersetClient) so it rejects fast
+  // and deterministically rather than retrying over real timers.
   fetchMock.removeRoutes().clearHistory();
-  fetchMock.get(STATUS_CHANGES_ENDPOINT, { throws: new Error('network down') });
+  fetchMock.get(STATUS_CHANGES_ENDPOINT, {
+    status: 400,
+    body: { message: 'bad' },
+  });
   fetchMock.post(CANCEL_ENDPOINT, { status: 200, body: { action: 'aborted' } });
   asyncEvent.init({
     ...config,

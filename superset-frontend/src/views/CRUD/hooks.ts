@@ -287,6 +287,10 @@ export function useListViewResource<D extends object = any>(
     // count, and untouched row references so React re-renders only changed rows).
     const patchRows = (ids: string[]) => {
       if (!ids.length) return;
+      // Snapshot the latest full-fetch request id; if a newer page/filter/refresh
+      // (fetchData) lands before this background patch resolves, discard the patch
+      // so a stale reconcile snapshot can't overwrite fresher rows by id.
+      const requestId = latestRequestIdRef.current;
       const query = rison.encode_uri({
         filters: [{ col: 'id', opr: 'in', value: ids }],
         page: 0,
@@ -294,6 +298,7 @@ export function useListViewResource<D extends object = any>(
       });
       SupersetClient.get({ endpoint: `/api/v1/${resource}/?q=${query}` })
         .then(({ json = {} }) => {
+          if (latestRequestIdRef.current !== requestId) return;
           const fetched: D[] = json.result ?? [];
           if (!fetched.length) return;
           const byId = new Map(fetched.map(row => [rowId(row), row]));
