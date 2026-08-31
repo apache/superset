@@ -180,3 +180,21 @@ updates:
     versioning-strategy: increase
     cooldown:
       default-days: 7
+
+  - package-ecosystem: "npm"
+    directory: "/superset-embedded-sdk/"
+    schedule:
+      interval: "daily"
+    labels:
+      - npm
+      - dependabot
+    groups:
+      security:
+        applies-to: "security-updates"
+        patterns: ["*"]
+      babel:
+        patterns:
+          - "@babel/*"
+    versioning-strategy: increase
+    cooldown:
+      default-days: 7
