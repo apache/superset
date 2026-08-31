@@ -264,7 +264,17 @@ def execute_chart_query(
     DATA-cache entry. The query runs under ``_capture_query_cancellation`` so an
     abort/timeout can cancel it on engines that support query cancellation.
     """
+    from superset.charts.data.form_data import set_form_data
+
     with override_user(_resolve_user(user_id, guest_token), force=False):
+        # Re-establish ``g.form_data`` from the serialized payload. There is no
+        # request context in the worker, and Jinja helpers (``filter_values``,
+        # ``url_param``, ``get_filters``) resolve form data from ``g`` via
+        # ``get_form_data()``. Without this, a templated dataset renders empty
+        # filter values — executing/caching the wrong SQL AND computing a
+        # ``query_cache_key`` that diverges from the submit-time ``task_key`` (so
+        # the client's re-request never reads back the cache the task wrote).
+        set_form_data(serialized_query["form_data"] or {})
         query_context = load_serialized_query(serialized_query)
         # Floor the result-cache TTL: async caches the result for a follow-up
         # request to read back (see get_cache_timeout).

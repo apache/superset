@@ -287,6 +287,10 @@ export function useListViewResource<D extends object = any>(
     // count, and untouched row references so React re-renders only changed rows).
     const patchRows = (ids: string[]) => {
       if (!ids.length) return;
+      // Snapshot the latest full-fetch request id; if a newer page/filter/refresh
+      // (fetchData) lands before this background patch resolves, discard the patch
+      // so a stale reconcile snapshot can't overwrite fresher rows by id.
+      const requestId = latestRequestIdRef.current;
       const query = rison.encode_uri({
         filters: [{ col: 'id', opr: 'in', value: ids }],
         page: 0,
@@ -294,6 +298,7 @@ export function useListViewResource<D extends object = any>(
       });
       SupersetClient.get({ endpoint: `/api/v1/${resource}/?q=${query}` })
         .then(({ json = {} }) => {
+          if (latestRequestIdRef.current !== requestId) return;
           const fetched: D[] = json.result ?? [];
           if (!fetched.length) return;
           const byId = new Map(fetched.map(row => [rowId(row), row]));
@@ -339,10 +344,14 @@ export function useListViewResource<D extends object = any>(
       },
     );
 
-    // Nudges are lossy and not replayed, so on a socket (re)connect refetch the
-    // currently-displayed rows once to reconcile anything missed while the socket
-    // was down. In-place merge, no full-list redraw.
-    const unsubscribeOpen = subscribeRealtimeOpen(() => {
+    // Nudges are lossy and not replayed, so after recovering from a dropped
+    // socket refetch the currently-displayed rows once to reconcile anything
+    // missed while disconnected. Only on a real `reconnect` — not the initial
+    // connect (rows were just fetched) or a seamless `keepalive` token refresh —
+    // so a healthy socket doesn't trigger a full re-fetch every keepalive cycle.
+    // In-place merge, no full-list redraw.
+    const unsubscribeOpen = subscribeRealtimeOpen(reason => {
+      if (reason !== 'reconnect') return;
       patchRows(collectionRef.current.map(rowId));
     });
 

@@ -54,6 +54,16 @@ jest.mock('src/middleware/realtime', () => ({
   },
 }));
 
+// Bootstrap can carry no `conf` (e.g. a component test with no data-bootstrap);
+// init() runs at module load, so it must not throw when conf is undefined.
+/* eslint-disable no-var, vars-on-top */
+var mockBootstrapConf: object | undefined;
+/* eslint-enable no-var, vars-on-top */
+jest.mock('src/utils/getBootstrapData', () => ({
+  __esModule: true,
+  default: () => ({ common: { conf: mockBootstrapConf } }),
+}));
+
 const mockedIsFeatureEnabled = isFeatureEnabled as jest.Mock;
 
 const STATUS_CHANGES_ENDPOINT = 'glob:*/api/v1/task/status_changes*';
@@ -117,6 +127,15 @@ test('does not poll status changes until a chart is awaiting async data', () => 
   asyncEvent.init(config);
 
   expect(fetchMock.callHistory.calls(STATUS_CHANGES_ENDPOINT)).toHaveLength(0);
+});
+
+test('init does not throw when bootstrap carries no conf', () => {
+  // Regression: init() runs at module load; reading WEBSOCKET_ENABLE off an
+  // undefined conf (async off, no data-bootstrap) must not crash the module —
+  // which would break every test file that transitively imports it.
+  mockedIsFeatureEnabled.mockReturnValue(false);
+  mockBootstrapConf = undefined;
+  expect(() => asyncEvent.init()).not.toThrow();
 });
 
 test('waits for every task before re-issuing', async () => {
@@ -341,6 +360,28 @@ test('restarts polling for a new job after going idle', async () => {
 
 test('gives up (rejects) after the stale timeout with no progress', async () => {
   queueStatuses(); // no terminal status for the awaited task
+  asyncEvent.init({
+    ...config,
+    GLOBAL_ASYNC_QUERIES_POLLING_STALE_TIMEOUT: 40, // ms
+  });
+
+  const refetch = jest.fn();
+  await expect(
+    asyncEvent.waitForAsyncData({ task_ids: ['stuck-task'] }, refetch),
+  ).rejects.toThrow('Timed out waiting for chart-data query results');
+  expect(refetch).not.toHaveBeenCalled();
+});
+
+test('poll mode gives up (rejects) on a persistent status_changes error', async () => {
+  // A sustained fetch error must age toward the give-up too — not spin forever.
+  // Use a 400 (client error, not retried by SupersetClient) so it rejects fast
+  // and deterministically rather than retrying over real timers.
+  fetchMock.removeRoutes().clearHistory();
+  fetchMock.get(STATUS_CHANGES_ENDPOINT, {
+    status: 400,
+    body: { message: 'bad' },
+  });
+  fetchMock.post(CANCEL_ENDPOINT, { status: 200, body: { action: 'aborted' } });
   asyncEvent.init({
     ...config,
     GLOBAL_ASYNC_QUERIES_POLLING_STALE_TIMEOUT: 40, // ms

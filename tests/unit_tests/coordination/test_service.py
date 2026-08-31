@@ -252,6 +252,33 @@ def test_wait_for_signal_stream_socket_timeout_is_retried(
     assert backend.xread.call_count == 2
 
 
+def test_wait_for_signal_stream_connection_error_degrades_not_dies(
+    app_context: None, mocker: MockerFixture
+) -> None:
+    """A transient backend error (connection drop/failover) must not propagate out
+    of the blocking read; the waiter degrades to re-checking the DB predicate."""
+    from redis.exceptions import ConnectionError as RedisConnectionError
+
+    backend = mocker.MagicMock(name="backend")
+    backend.stream_last_id.return_value = "0-0"
+    # First read raises a connection error (not a socket timeout); the loop must
+    # swallow it, back off, and re-check rather than crashing.
+    backend.xread.side_effect = [
+        RedisConnectionError("connection lost"),
+        [["ch", [("1-0", {})]]],
+    ]
+    mocker.patch.object(CoordinationService, "get_backend", return_value=backend)
+    sleep = mocker.patch("superset.coordination.base.time.sleep")
+    results = iter([None, None, None, "done"])
+
+    result = CoordinationService.wait_for_signal(
+        "ch", lambda: next(results), timeout=5.0
+    )
+    assert result == "done"
+    assert backend.xread.call_count == 2
+    sleep.assert_called()  # backed off on the connection error rather than spinning
+
+
 def test_wait_for_signal_already_satisfied_skips_backend(
     app_context: None, mocker: MockerFixture
 ) -> None:
