@@ -93,6 +93,7 @@ import {
   mergeExtraFormData,
 } from 'src/dashboard/components/nativeFilters/utils';
 import { DatasetSelectLabel } from 'src/features/datasets/DatasetSelectLabel';
+import { ChartCustomizationPlugins } from 'src/constants';
 import {
   ALLOW_DEPENDENCIES as TYPES_SUPPORT_DEPENDENCIES,
   getFiltersConfigModalTestId,
@@ -389,6 +390,12 @@ const FiltersConfigForm = (
   const hasDataset =
     // @ts-expect-error
     !!nativeFilterAndCustomizationItems[itemTypeField]?.value?.datasourceCount;
+
+  // The Dynamic Group By customization lets builders curate which columns
+  // viewers may group by via a column allowlist (stored in controlValues).
+  const isDynamicGroupBy =
+    isChartCustomization &&
+    itemTypeField === ChartCustomizationPlugins.DynamicGroupBy;
 
   const getDatasetId = () => {
     if (isChartCustomization) {
@@ -1192,6 +1199,17 @@ const FiltersConfigForm = (
                                 datasourceType: newDatasourceType,
                                 defaultDataMask: null,
                                 column: null,
+                                // Columns are dataset-specific, so drop any
+                                // configured Group By allowlist when the
+                                // dataset changes to avoid stale entries.
+                                ...(isDynamicGroupBy
+                                  ? {
+                                      controlValues: {
+                                        ...formFilter?.controlValues,
+                                        columnsAllowlist: undefined,
+                                      },
+                                    }
+                                  : {}),
                               });
                             }
                             forceUpdate();
@@ -1213,6 +1231,47 @@ const FiltersConfigForm = (
                         key => mainControlItems[key].element,
                       )}
                   </StyledRowContainer>
+                )}
+                {isDynamicGroupBy && hasDataset && showDataset && (
+                  <StyledRowFormItem
+                    expanded={expanded}
+                    name={[
+                      'filters',
+                      filterId,
+                      'controlValues',
+                      'columnsAllowlist',
+                    ]}
+                    initialValue={
+                      customizationToEdit?.controlValues?.columnsAllowlist
+                    }
+                    label={
+                      <>
+                        <StyledLabel>{t('Groupable columns')}</StyledLabel>
+                        &nbsp;
+                        <InfoTooltip
+                          placement="top"
+                          tooltip={t(
+                            'Columns viewers are allowed to group by. Leave empty to allow all groupable columns.',
+                          )}
+                        />
+                      </>
+                    }
+                    data-test="groupby-columns-allowlist"
+                  >
+                    <ColumnSelect
+                      mode="multiple"
+                      allowClear
+                      form={form}
+                      filterId={filterId}
+                      datasetId={datasetId}
+                      datasourceType={datasourceType}
+                      filterValues={(column: Column) => !!column?.filterable}
+                      onChange={() => {
+                        forceUpdate();
+                        formChanged();
+                      }}
+                    />
+                  </StyledRowFormItem>
                 )}
                 <Collapse
                   modalMode

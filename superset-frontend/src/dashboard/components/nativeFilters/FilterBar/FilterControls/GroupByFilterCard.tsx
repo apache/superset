@@ -217,6 +217,21 @@ const DescriptionTooltip = ({ description }: { description: string }) => (
   </ToolTipContainer>
 );
 
+// Restrict the groupable column options to the builder-configured allowlist.
+// An unset or empty allowlist means "no restriction" so existing Group By
+// customizations (which never stored an allowlist) keep offering every
+// groupable column, preserving backwards compatibility.
+export const applyColumnAllowlist = <T extends { value: string }>(
+  options: T[],
+  allowlist?: string[] | null,
+): T[] => {
+  if (!Array.isArray(allowlist) || allowlist.length === 0) {
+    return options;
+  }
+  const allowed = new Set(allowlist);
+  return options.filter(option => allowed.has(option.value));
+};
+
 // Sort display values by label: ascending when sortAscending is true, descending
 // when false, and source order (no sort) when it is unset.
 export const createLabelSortComparator =
@@ -353,6 +368,16 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
   const sortComparator = useMemo(
     () => createLabelSortComparator(sortAscending),
     [sortAscending],
+  );
+
+  // Builder-configured allowlist of columns viewers are allowed to group by.
+  const columnsAllowlist = customizationItem.controlValues?.columnsAllowlist as
+    | string[]
+    | undefined;
+
+  const allowedColumnOptions = useMemo(
+    () => applyColumnAllowlist(columnOptions, columnsAllowlist),
+    [columnOptions, columnsAllowlist],
   );
 
   const columnDisplayName = useMemo(() => {
@@ -599,7 +624,7 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
               placeholder={t('Search columns...')}
               value={currentValue}
               onChange={handleColumnChange}
-              options={columnOptions}
+              options={allowedColumnOptions}
               showSearch
               mode={canSelectMultiple ? 'multiple' : undefined}
               filterOption={(input, option) =>
@@ -629,7 +654,7 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
             placeholder={t('Search columns...')}
             value={currentValue}
             onChange={handleColumnChange}
-            options={columnOptions}
+            options={allowedColumnOptions}
             showSearch
             mode={canSelectMultiple ? 'multiple' : undefined}
             filterOption={(input, option) =>
