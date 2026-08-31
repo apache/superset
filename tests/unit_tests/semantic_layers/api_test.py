@@ -2275,6 +2275,8 @@ def test_get_semantic_view_structure(
 
     mock_view = MagicMock()
     mock_view.name = "orders"
+    mock_view.description = "All orders"
+    mock_view.cache_timeout = 600
     mock_view.implementation.get_dimensions.return_value = {mock_dim}
     mock_view.implementation.get_metrics.return_value = {mock_metric}
 
@@ -2288,6 +2290,10 @@ def test_get_semantic_view_structure(
     assert response.status_code == 200
     result = response.json["result"]
     assert result["name"] == "orders"
+    # The edit modal has no detail route to hydrate from, so these must ride
+    # along with the structure or a saved description cannot be read back.
+    assert result["description"] == "All orders"
+    assert result["cache_timeout"] == 600
     assert len(result["dimensions"]) == 1
     assert result["dimensions"][0]["name"] == "order_date"
     assert result["dimensions"][0]["type"] == "timestamp[us]"
@@ -2371,6 +2377,8 @@ def test_get_semantic_view_structure_no_grain(
 
     mock_view = MagicMock()
     mock_view.name = "customers"
+    mock_view.description = None
+    mock_view.cache_timeout = None
     mock_view.implementation.get_dimensions.return_value = {mock_dim}
     mock_view.implementation.get_metrics.return_value = set()
 
@@ -2385,6 +2393,10 @@ def test_get_semantic_view_structure_no_grain(
     result = response.json["result"]
     assert result["dimensions"][0]["grain"] is None
     assert result["metrics"] == []
+    # An unset description must come back as null, not be omitted: the modal
+    # distinguishes "cleared" from "absent" when hydrating.
+    assert result["description"] is None
+    assert result["cache_timeout"] is None
     mock_view.raise_for_access.assert_called_once()
 
 
