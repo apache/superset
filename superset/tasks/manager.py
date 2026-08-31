@@ -620,8 +620,10 @@ class TaskManager:
                 cls.publish_completion(task_uuid, TaskStatus.FAILURE.value)
         except Exception:  # noqa: BLE001
             logger.exception(
-                "Cleanup after failed enqueue of task %s (uuid=%s) also failed; the "
-                "orphan reaper will eventually reclaim it",
+                "Cleanup after failed enqueue of task %s (uuid=%s) also failed; it "
+                "is left PENDING with no heartbeat and will NOT be auto-reaped "
+                "(the reaper only reclaims tasks that have started). Its dedup key "
+                "stays occupied until it is manually cleared or its row is pruned",
                 task_type,
                 task_uuid,
             )

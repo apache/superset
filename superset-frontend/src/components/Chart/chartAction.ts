@@ -731,10 +731,15 @@ export function handleChartDataResponse(
  * re-issue recomputing the identical query) is prevented by a per-refresh
  * idempotency nonce: a nonce is minted once here when `force` is set and carried
  * on both the submit and the re-issue. The async task recomputes and records a
- * server-side marker keyed by (nonce, cache_key); the re-issue — and any retry,
- * double-click, or second tab reusing this nonce — reads the freshly-warmed
- * cache instead. A new force refresh mints a new nonce, so it genuinely
- * recomputes. Non-forced requests carry no nonce and keep the plain flow.
+ * server-side marker keyed by (nonce, cache_key); the re-issue reuses the same
+ * nonce, sees the marker, and reads the freshly-warmed cache instead of
+ * recomputing. A new force refresh mints a new nonce, so it genuinely recomputes.
+ * Non-forced requests carry no nonce and keep the plain flow.
+ *
+ * Scope: this dedups one refresh's own submit/read-back pair. It does NOT make
+ * concurrent force refreshes idempotent — a second refresh (new nonce) that
+ * joins the first's shared task (deduped by query cache key) will still force its
+ * own read-back, since the first task only recorded its own nonce.
  *
  * `signal` aborts the wait (Stop pressed, chart superseded or unmounted) and
  * cancels the outstanding tasks.

@@ -446,10 +446,10 @@ Passing the `Task` object is the canonical pattern. For convenience, a prerequis
 
 **Semantics (`all_success`).** A task runs only once **every** direct prerequisite has reached a terminal `SUCCESS`. If **any** prerequisite ends in a non-`SUCCESS` terminal state (`FAILURE`, `ABORTED`, or `TIMED_OUT`), the dependent does **not** run and is transitioned to `FAILURE`. This propagates transitively: because a failed dependent is itself non-`SUCCESS`, its own dependents fail in turn, so a failure anywhere short-circuits everything downstream.
 
-**Scheduling model (block-and-wait).** All tasks in a DAG are enqueued immediately. Each dependent's worker blocks — holding its worker slot — until its prerequisites finish; while waiting, the task remains `PENDING` (shown as "waiting on N prerequisites" in the Task List). Tasks are enqueued in dependency order, so a dependent is rarely dequeued before its prerequisites.
+**Scheduling model (non-blocking defer).** All tasks in a DAG are enqueued immediately. When a dependent is dequeued before its prerequisites are terminal, it does **not** hold its worker slot: it is re-enqueued via a Celery retry with a short, growing backoff (roughly 1s, 3s, 5s… capped) and the worker moves on to other work. While waiting, the task remains `PENDING` (shown as "waiting on N prerequisites" in the Task List). Each defer emits the `gtf.task.dag_deferred` metric.
 
-:::warning Worker fleet sizing
-Because dependents hold a worker slot while awaiting their prerequisites, a deep or wide DAG can occupy many workers simultaneously. Deployments that use chained tasks heavily must size their Celery worker fleet large enough to absorb the idle waiting, or a large DAG can exhaust the pool and deadlock.
+:::note
+A deferred dependent carries no heartbeat and no Celery job id until it is actually claimed (its prerequisites met), so the orphan reaper never mistakes a waiting task for abandoned work.
 :::
 
 Cycles (including self-dependencies) are rejected at schedule time. Dependency edges are removed automatically when either endpoint task is pruned.

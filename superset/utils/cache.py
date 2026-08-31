@@ -60,9 +60,18 @@ def set_and_log_cache(
     cache_value: dict[str, Any],
     cache_timeout: int | None = None,
     datasource_uid: str | None = None,
-) -> None:
+) -> bool:
+    """Write a value to the cache, logging outcomes.
+
+    :returns: ``True`` only when the value was actually persisted to the backend;
+        ``False`` when caching was skipped (null cache, disabled timeout, value
+        too large) or the backend write failed. Callers that need to know the
+        value is really cached (e.g. the forced-refresh idempotency marker) must
+        gate on this, since a silent skip would otherwise let a follow-up read
+        serve a stale value.
+    """
     if isinstance(cache_instance.cache, NullCache):
-        return
+        return False
 
     timeout = (
         cache_timeout
@@ -72,7 +81,7 @@ def set_and_log_cache(
 
     # Skip caching if timeout is CACHE_DISABLED_TIMEOUT (no caching requested)
     if timeout == CACHE_DISABLED_TIMEOUT:
-        return
+        return False
     try:
         dttm: str = (
             datetime.now(timezone.utc).replace(tzinfo=None).isoformat().split(".")[0]
@@ -96,7 +105,7 @@ def set_and_log_cache(
                     max_value_size,
                 )
                 app.config["STATS_LOGGER"].incr("skip_cache_value_too_large")
-                return
+                return False
 
         cache_instance.set(cache_key, value, timeout=timeout)
         stats_logger = app.config["STATS_LOGGER"]
@@ -117,11 +126,13 @@ def set_and_log_cache(
                 datasource_uid=datasource_uid,
             )
             db.session.add(ck)
+        return True
     except Exception as ex:  # pylint: disable=broad-except
         # cache.set call can fail if the backend is down or if
         # the key is too large or whatever other reasons
         logger.warning("Could not cache key %s", cache_key)
         logger.exception(ex)
+        return False
 
 
 # If a user sets `max_age` to 0, for long the browser should cache the

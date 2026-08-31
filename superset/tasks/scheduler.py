@@ -23,7 +23,7 @@ from typing import Any, cast, TYPE_CHECKING
 from uuid import UUID
 
 from celery import Task
-from celery.exceptions import SoftTimeLimitExceeded
+from celery.exceptions import Retry, SoftTimeLimitExceeded
 from celery.signals import task_failure
 from flask import current_app
 from superset_core.tasks.types import TaskStatus
@@ -377,11 +377,13 @@ def _persist_celery_task_id(task: "TaskModel", celery_task_id: str | None) -> No
     """Record the Celery job id on the task so the reaper can revoke it.
 
     Mutates the in-memory task (so the ``TaskContext`` built later carries the id
-    through its property writes) and commits. Written once at pickup, before the
-    DAG gate and the status transition, so the reaper can revoke even a task
-    still waiting on prerequisites. The id is dropped on the terminal transition
-    along with the rest of ``properties``, which is fine — only ACTIVE tasks are
-    ever reaped.
+    through its property writes) and commits. Written once when the task is
+    claimed — after the DAG gate has confirmed the prerequisites are met and
+    immediately before the heartbeat/status transition — so the reaper can revoke
+    the running job. A task still deferred on prerequisites carries no Celery id
+    or heartbeat and is simply re-enqueued rather than reaped. The id is dropped
+    on the terminal transition along with the rest of ``properties``, which is
+    fine — only ACTIVE tasks are ever reaped.
     """
     if not celery_task_id:
         return
@@ -390,7 +392,13 @@ def _persist_celery_task_id(task: "TaskModel", celery_task_id: str | None) -> No
     db.session.commit()  # pylint: disable=consider-using-transaction
 
 
-@celery_app.task(name="tasks.execute", bind=True)
+# max_retries=None makes the DAG-defer retries truly unlimited. Celery's
+# self.retry(max_retries=None) falls back to the *task's* max_retries attribute
+# (default 3), not infinity — so the ceiling has to be lifted here, on the task,
+# or a parent that runs longer than a few defer intervals would exhaust retries
+# and leave the dependent stuck PENDING. Only the DAG defer path retries; real
+# failures go through the FAILURE transition instead.
+@celery_app.task(name="tasks.execute", bind=True, max_retries=None)
 def execute_task(
     self: Any,  # Celery task instance
     task_uuid: str,
@@ -461,10 +469,32 @@ def execute_task(
             countdown,
             self.request.retries,
         )
-        # Re-sends the same task id/args/kwargs; max_retries=None because a
-        # prerequisite is guaranteed to become terminal (its own timeout/reaper),
-        # so the defer loop always ends.
-        raise self.retry(countdown=countdown, max_retries=None)
+        # Re-sends the same task id/args/kwargs. self.retry raises the Retry
+        # sentinel Celery expects; if it instead fails to publish the replacement
+        # message (broker down), that would escape as a non-Retry exception and
+        # leave this task PENDING with no heartbeat — unreapable, the same shape as
+        # a failed enqueue. So only the Retry sentinel is allowed to propagate;
+        # any other error fails the task terminally.
+        try:
+            raise self.retry(countdown=countdown, max_retries=None)
+        except Retry:
+            raise
+        except Exception:  # noqa: BLE001  pylint: disable=broad-except
+            logger.exception(
+                "Failed to defer task %s (uuid=%s); failing it so it is not "
+                "stranded PENDING",
+                task_type,
+                task_uuid,
+            )
+            if InternalStatusTransitionCommand(
+                task_uuid=native_uuid,
+                new_status=TaskStatus.FAILURE,
+                expected_status=[TaskStatus.PENDING, TaskStatus.ABORTING],
+                set_ended_at=True,
+                properties={"error_message": "Failed to defer task for execution"},
+            ).run():
+                TaskManager.publish_completion(native_uuid, TaskStatus.FAILURE.value)
+            return {"status": TaskStatus.FAILURE.value, "task_uuid": task_uuid}
     if unmet is not None:
         # A prerequisite ended non-success (unmet is that Task): fail without
         # running the body. Its failure then cascades to this task's dependents.

@@ -2047,6 +2047,7 @@ def test_get_df_payload_invalidates_cache_missing_applied_filter_columns():
             self.annotation_data = {}
             self.bq_memory_limited = False
             self.bq_memory_limited_row_count = 0
+            self.result_persisted = False
             self.set_query_result = MagicMock()
 
     mock_cache = MockCache()
@@ -2513,10 +2514,25 @@ def test_mark_force_executed_sets_marker_for_nonce_refresh(
         patch("superset.common.query_context_processor.cache_manager") as cache_manager,
         patch.object(processor, "get_cache_timeout", return_value=123),
     ):
-        processor._mark_force_executed("ck")
+        processor._mark_force_executed("ck", persisted=True)
     cache_manager.data_cache.set.assert_called_once_with(
         "gtf-force-nonce:nonce-1:ck", 1, timeout=123
     )
+
+
+def test_mark_force_executed_noop_when_result_not_persisted(
+    processor, mock_query_context
+):
+    """If the fresh result wasn't actually cached (oversized/backend error), the
+    marker must NOT be written — otherwise a follow-up read stops forcing and can
+    serve a stale pre-refresh value."""
+    mock_query_context.force = True
+    mock_query_context.force_nonce = "nonce-1"
+    with patch(
+        "superset.common.query_context_processor.cache_manager"
+    ) as cache_manager:
+        processor._mark_force_executed("ck", persisted=False)
+    cache_manager.data_cache.set.assert_not_called()
 
 
 def test_mark_force_executed_noop_without_nonce(processor, mock_query_context):
@@ -2525,5 +2541,30 @@ def test_mark_force_executed_noop_without_nonce(processor, mock_query_context):
     with patch(
         "superset.common.query_context_processor.cache_manager"
     ) as cache_manager:
-        processor._mark_force_executed("ck")
+        processor._mark_force_executed("ck", persisted=True)
     cache_manager.data_cache.set.assert_not_called()
+
+
+def test_mark_force_executed_swallows_marker_write_error(processor, mock_query_context):
+    """A marker write failure is best-effort — logged and swallowed."""
+    mock_query_context.force = True
+    mock_query_context.force_nonce = "nonce-1"
+    with (
+        patch("superset.common.query_context_processor.cache_manager") as cache_manager,
+        patch.object(processor, "get_cache_timeout", return_value=123),
+    ):
+        cache_manager.data_cache.set.side_effect = RuntimeError("backend down")
+        processor._mark_force_executed("ck", persisted=True)  # must not raise
+
+
+def test_resolve_forced_query_forces_when_marker_read_errors(
+    processor, mock_query_context
+):
+    """A marker read failure degrades to 'absent' (force), never an error."""
+    mock_query_context.force = True
+    mock_query_context.force_nonce = "nonce-1"
+    with patch(
+        "superset.common.query_context_processor.cache_manager"
+    ) as cache_manager:
+        cache_manager.data_cache.get.side_effect = RuntimeError("backend down")
+        assert processor._resolve_forced_query("ck") is True

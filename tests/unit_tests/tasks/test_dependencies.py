@@ -126,9 +126,11 @@ class TestDagDeferCountdown:
         assert 1.0 <= _dag_defer_countdown(0) <= 2.0
         assert 3.0 <= _dag_defer_countdown(1) <= 4.0
         assert 5.0 <= _dag_defer_countdown(2) <= 6.0
-        # Monotonic non-decreasing base across retries.
-        bases = [_dag_defer_countdown(r) for r in range(0, 40)]
-        assert all(b <= a + 1.0 for b, a in zip(bases, bases[1:], strict=False)) or True
+        # Strictly increasing before the cap: the base grows by 2s each retry and
+        # the jitter is bounded by 1s, so consecutive values can't overlap.
+        vals = [_dag_defer_countdown(r) for r in range(0, 14)]
+        pairs = zip(vals, vals[1:], strict=False)
+        assert all(earlier < later for earlier, later in pairs)
         # Capped: even a huge retry count stays at the ceiling (+ jitter).
         capped = _dag_defer_countdown(1000)
         assert _DAG_DEFER_MAX_SECONDS <= capped <= _DAG_DEFER_MAX_SECONDS + 1.0
@@ -176,6 +178,8 @@ class TestExecuteTaskDagGate:
             return result, stats_logger, task_manager
 
     def test_waiting_defers_via_retry_and_emits_metric(self):
+        from celery.exceptions import Retry
+
         from superset.tasks.scheduler import _DAG_WAITING
 
         native = uuid4()
@@ -184,10 +188,12 @@ class TestExecuteTaskDagGate:
         )
         fake_self = MagicMock()
         fake_self.request.retries = 2
-        fake_self.retry.side_effect = RuntimeError("retry raised")
+        # The normal defer path: self.retry raises Celery's Retry sentinel, which
+        # must propagate so Celery reschedules the message.
+        fake_self.retry.side_effect = Retry()
         stats_logger = MagicMock()
 
-        with pytest.raises(RuntimeError, match="retry raised"):
+        with pytest.raises(Retry):
             self._call(
                 fake_self, task, unmet_return=_DAG_WAITING, stats_logger=stats_logger
             )
@@ -198,6 +204,34 @@ class TestExecuteTaskDagGate:
         _, kwargs = fake_self.retry.call_args
         assert kwargs["max_retries"] is None
         assert kwargs["countdown"] >= 1.0
+
+    def test_defer_publish_failure_fails_task(self):
+        """If self.retry can't publish the replacement message (broker down), the
+        task must be failed rather than left stranded PENDING with no heartbeat."""
+        from superset.tasks.scheduler import _DAG_WAITING
+
+        native = uuid4()
+        task = SimpleNamespace(
+            id=1, uuid=native, status=TaskStatus.PENDING.value, depends_on=[]
+        )
+        fake_self = MagicMock()
+        fake_self.request.retries = 0
+        # A non-Retry error from self.retry models a publish failure.
+        fake_self.retry.side_effect = RuntimeError("broker down")
+
+        transition = MagicMock()
+        transition.return_value.run.return_value = True
+
+        with patch(
+            "superset.commands.tasks.internal_update.InternalStatusTransitionCommand",
+            transition,
+        ):
+            result, _, task_manager = self._call(
+                fake_self, task, unmet_return=_DAG_WAITING
+            )
+
+        assert result["status"] == TaskStatus.FAILURE.value
+        task_manager.publish_completion.assert_called_once()
 
     def test_failed_prerequisite_publishes_failure(self):
         native = uuid4()
