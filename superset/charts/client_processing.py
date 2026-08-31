@@ -62,6 +62,11 @@ logger = logging.getLogger(__name__)
 # ``transformProps`` formatter selection.
 PERCENT_3_POINT = ",.3%"
 
+# The pivot renderer formats a fraction with ``usFmtPct``
+# (``react-pivottable/utilities.ts``), which is one decimal place -- not the
+# Table plugin's three.
+PERCENT_1_POINT = ",.1%"
+
 
 def get_column_key(label: tuple[str, ...], metrics: list[str]) -> tuple[Any, ...]:
     """
@@ -668,7 +673,7 @@ def pivot_table_v2(
                 form_data,
                 detected_currency,
                 datasource,
-                force_number_format=PERCENT_3_POINT,
+                force_number_format=PERCENT_1_POINT,
             )
         currency_context = None
         if (

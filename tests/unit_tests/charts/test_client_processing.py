@@ -1986,8 +1986,8 @@ def test_pivot_table_v2_show_values_as_formats_as_percent() -> None:
         },
     )
 
-    assert result.loc[("US",), ("SUM(num)", "boy")] == "12.500%"
-    assert result.loc[("US",), ("SUM(num)", "girl")] == "37.500%"
+    assert result.loc[("US",), ("SUM(num)", "boy")] == "12.5%"
+    assert result.loc[("US",), ("SUM(num)", "girl")] == "37.5%"
 
 
 def test_pivot_table_v2_show_values_as_actual_keeps_raw_values() -> None:
