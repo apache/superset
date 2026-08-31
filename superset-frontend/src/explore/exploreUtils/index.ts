@@ -83,6 +83,7 @@ interface GetExploreUrlParams {
 interface BuildV1ChartDataPayloadParams {
   formData: QueryFormData;
   force?: boolean;
+  forceNonce?: string;
   resultFormat?: string;
   resultType?: string;
   setDataMask?: SetDataMaskHook;
@@ -281,6 +282,7 @@ export const getQuerySettings = (
 export const buildV1ChartDataPayload = async ({
   formData,
   force,
+  forceNonce,
   resultFormat,
   resultType,
   setDataMask,
@@ -303,6 +305,7 @@ export const buildV1ChartDataPayload = async ({
     {
       ...formData,
       force,
+      force_nonce: forceNonce,
       result_format: resultFormat,
       result_type: resultType,
     } as QueryFormData,

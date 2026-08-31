@@ -58,6 +58,14 @@ class QueryContext:
     result_type: ChartDataResultType
     result_format: ChartDataResultFormat
     force: bool
+    # Optional idempotency token for a forced refresh. Set once per user-initiated
+    # force refresh (Explore/Dashboard) and carried on every request of that
+    # refresh — the async submit and the follow-up read-back. The first execution
+    # to see it recomputes and records a per-(nonce, cache_key) marker; later
+    # requests carrying the same nonce read the freshly-cached result instead of
+    # recomputing it (see QueryContextProcessor.get_df_payload_result). Kept
+    # separate from the result cache key, so non-forced loads stay warm.
+    force_nonce: str | None
     custom_cache_timeout: int | None
 
     # Set by the async chart-data execution path (see
@@ -83,6 +91,7 @@ class QueryContext:
         result_type: ChartDataResultType,
         result_format: ChartDataResultFormat,
         force: bool = False,
+        force_nonce: str | None = None,
         custom_cache_timeout: int | None = None,
         cache_values: dict[str, Any],
     ) -> None:
@@ -93,6 +102,7 @@ class QueryContext:
         self.queries = queries
         self.form_data = form_data
         self.force = force
+        self.force_nonce = force_nonce
         self.custom_cache_timeout = custom_cache_timeout
         self.cache_values = cache_values
         # Normalize the contribution totals query before any cache key is

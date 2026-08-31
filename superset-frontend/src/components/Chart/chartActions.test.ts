@@ -608,7 +608,7 @@ describe('chart actions', () => {
         expect(initialBody.tab_id.length).toBeGreaterThan(0);
       });
 
-      test('re-issues synchronously after async completion, preserving force', async () => {
+      test('re-issues synchronously after async completion, reading the warm cache', async () => {
         // 1: initial async request → 202; 2: the post-completion re-issue is
         // synchronous and returns the payload inline (200). No third call and no
         // second background task.
@@ -627,7 +627,7 @@ describe('chart actions', () => {
 
         const actionThunk = actions.postChartFormData(
           { viz_type: 'my_viz' } as QueryFormData,
-          true, // force: the re-issue must preserve it
+          true, // force: the async task computes fresh, the re-issue reads its result
           undefined,
           undefined,
         );
@@ -642,11 +642,26 @@ describe('chart actions', () => {
         expect(calls).toBe(2);
         const history = fetchMock.callHistory.calls(`glob:*${MOCK_URL}*`);
         expect(history).toHaveLength(2);
-        // The re-issue carries no async_mode (synchronous → no new GTF task)...
-        expect(String(history[1].options.body)).not.toContain('async_mode');
-        // ...and preserves the caller's force (carried in the query string), so a
-        // forced refresh can't return a stale cached result.
+        // Both requests keep force=true — server-side dedup (the force nonce), not
+        // a client-flipped force, is what prevents the re-issue from recomputing.
+        expect(history[0].url).toContain('force=true');
         expect(history[1].url).toContain('force=true');
+        // The submit opts into async; the re-issue is synchronous (no new GTF task).
+        expect(String(history[0].options.body)).toContain('async_mode');
+        expect(String(history[1].options.body)).not.toContain('async_mode');
+        // One idempotency nonce is minted for the refresh and carried on BOTH the
+        // submit and the re-issue, so the server recomputes exactly once and the
+        // re-issue reads the freshly-warmed cache.
+        const forceCalls = buildV1ChartDataPayloadStub.mock.calls.filter(
+          ([arg]) => (arg as { force?: boolean }).force === true,
+        );
+        expect(forceCalls).toHaveLength(2);
+        const submitNonce = (forceCalls[0][0] as { forceNonce?: string })
+          .forceNonce;
+        const reissueNonce = (forceCalls[1][0] as { forceNonce?: string })
+          .forceNonce;
+        expect(submitNonce).toBeDefined();
+        expect(reissueNonce).toBe(submitNonce);
 
         const succeeded = dispatch.mock.calls.find(
           ([action]) => action?.type === actions.CHART_UPDATE_SUCCEEDED,

@@ -317,7 +317,15 @@ class TestTimeoutTrigger:
     def test_timeout_logs_warning_when_not_abortable(
         self, mock_flask_app, mock_task_not_abortable
     ):
-        """Test that timeout logs warning when task has no abort handler."""
+        """A non-abortable task's timeout is a no-op: it logs a warning and does
+        NOT set _timeout_triggered.
+
+        Setting the flag would block the executor's IN_PROGRESS→SUCCESS transition
+        (which is gated on no abort being in flight), while the finalize only moves
+        TIMED_OUT from ABORTING — a transition that never happens for a task with no
+        abort handlers — stranding it IN_PROGRESS. So the task must run to natural
+        completion instead.
+        """
         with (
             patch("superset.tasks.context.current_app") as mock_current_app,
             patch("superset.daos.tasks.TaskDAO") as mock_dao,
@@ -342,11 +350,12 @@ class TestTimeoutTrigger:
             # Wait for timeout to fire
             time.sleep(1.5)
 
-            # Should have logged warning
+            # Should have logged a warning that the task can't be cancelled…
             mock_logger.warning.assert_called()
             warning_call = mock_logger.warning.call_args
-            assert "no abort handler" in warning_call[0][0].lower()
-            assert ctx._timeout_triggered
+            assert "cannot be cancelled" in warning_call[0][0].lower()
+            # …and crucially left the task un-triggered so SUCCESS can still commit.
+            assert ctx._timeout_triggered is False
             assert not ctx._abort_detected  # No abort since no handler
 
             # Cleanup

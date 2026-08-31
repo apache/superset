@@ -35,6 +35,7 @@ def _payload() -> SerializedQuery:
         result_type="full",
         result_format="json",
         force=True,
+        force_nonce="nonce-abc",
         custom_cache_timeout=42,
     )
 
@@ -51,10 +52,13 @@ def test_serialize_query_extracts_raw_query_and_context_params(
     ctx.result_type = ChartDataResultType.FULL
     ctx.result_format = ChartDataResultFormat.JSON
     ctx.force = True
+    ctx.force_nonce = "nonce-abc"
     ctx.custom_cache_timeout = 42
 
     # Serializes the *raw* query dict (not the processed QueryObject) plus the
-    # context-level params (force/custom_cache_timeout live on the context).
+    # context-level params (force/force_nonce/custom_cache_timeout live on the
+    # context). force_nonce is carried so the async task and the follow-up
+    # read-back share one forced-refresh idempotency token.
     assert serialize_query(ctx, 1) == {
         "datasource": {"id": 1, "type": "table"},
         "query": {"b": 2},
@@ -62,6 +66,7 @@ def test_serialize_query_extracts_raw_query_and_context_params(
         "result_type": "full",
         "result_format": "json",
         "force": True,
+        "force_nonce": "nonce-abc",
         "custom_cache_timeout": 42,
     }
 
@@ -113,6 +118,7 @@ def test_load_serialized_query_rebuilds_via_factory(mocker: MockerFixture) -> No
         result_type=ChartDataResultType.FULL,
         result_format=ChartDataResultFormat.JSON,
         force=True,
+        force_nonce="nonce-abc",
         custom_cache_timeout=42,
         preserve_null_row_limit=False,
     )

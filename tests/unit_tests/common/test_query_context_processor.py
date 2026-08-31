@@ -2448,3 +2448,82 @@ def test_get_native_annotation_data_requires_annotation_read_access():
             QueryContextProcessor.get_native_annotation_data(query_obj)
     security_manager_mock.can_access.assert_called_once_with("can_read", "Annotation")
     find_by_ids_mock.assert_not_called()
+
+
+# =============================================================================
+# Forced-refresh idempotency nonce (GTF async double-execution guard)
+# =============================================================================
+
+
+def test_resolve_forced_query_false_when_not_forced(processor, mock_query_context):
+    mock_query_context.force = False
+    assert processor._resolve_forced_query("ck") is False
+
+
+def test_resolve_forced_query_true_when_forced_without_nonce(
+    processor, mock_query_context
+):
+    """A forced refresh with no nonce (sync/legacy) forces verbatim."""
+    mock_query_context.force = True
+    mock_query_context.force_nonce = None
+    assert processor._resolve_forced_query("ck") is True
+
+
+def test_resolve_forced_query_true_when_forced_without_cache_key(
+    processor, mock_query_context
+):
+    mock_query_context.force = True
+    mock_query_context.force_nonce = "nonce-1"
+    assert processor._resolve_forced_query(None) is True
+
+
+def test_resolve_forced_query_reads_cache_when_marker_present(
+    processor, mock_query_context
+):
+    """Marker present => this forced refresh already cached its result; read it."""
+    mock_query_context.force = True
+    mock_query_context.force_nonce = "nonce-1"
+    with patch(
+        "superset.common.query_context_processor.cache_manager"
+    ) as cache_manager:
+        cache_manager.data_cache.get.return_value = 1  # marker exists
+        assert processor._resolve_forced_query("ck") is False
+    cache_manager.data_cache.get.assert_called_once_with("gtf-force-nonce:nonce-1:ck")
+
+
+def test_resolve_forced_query_forces_when_marker_absent(processor, mock_query_context):
+    """No marker for THIS (nonce, cache_key) — including a cache_key that shifted
+    since the forced compute (templated/time-relative keys) — forces a recompute
+    rather than mis-reading another key's result."""
+    mock_query_context.force = True
+    mock_query_context.force_nonce = "nonce-1"
+    with patch(
+        "superset.common.query_context_processor.cache_manager"
+    ) as cache_manager:
+        cache_manager.data_cache.get.return_value = None  # no marker
+        assert processor._resolve_forced_query("ck") is True
+
+
+def test_mark_force_executed_sets_marker_for_nonce_refresh(
+    processor, mock_query_context
+):
+    mock_query_context.force = True
+    mock_query_context.force_nonce = "nonce-1"
+    with (
+        patch("superset.common.query_context_processor.cache_manager") as cache_manager,
+        patch.object(processor, "get_cache_timeout", return_value=123),
+    ):
+        processor._mark_force_executed("ck")
+    cache_manager.data_cache.set.assert_called_once_with(
+        "gtf-force-nonce:nonce-1:ck", 1, timeout=123
+    )
+
+
+def test_mark_force_executed_noop_without_nonce(processor, mock_query_context):
+    mock_query_context.force = True
+    mock_query_context.force_nonce = None
+    with patch(
+        "superset.common.query_context_processor.cache_manager"
+    ) as cache_manager:
+        processor._mark_force_executed("ck")
+    cache_manager.data_cache.set.assert_not_called()

@@ -33,6 +33,7 @@ from functools import partial
 from typing import Any
 from uuid import UUID
 
+from flask import current_app
 from superset_core.tasks.types import TaskProperties, TaskStatus
 
 from superset.commands.base import BaseCommand
@@ -189,6 +190,16 @@ class InternalStatusTransitionCommand(BaseCommand):
         """
         updated = self._run_in_transaction()
         if updated:
+            # Track every lifecycle transition (gtf.task.transition.<status>) so
+            # completion/abort/timeout/failure rates are observable.
+            status_value = (
+                self._new_status.value
+                if isinstance(self._new_status, TaskStatus)
+                else self._new_status
+            )
+            current_app.config["STATS_LOGGER"].incr(
+                f"gtf.task.transition.{status_value}"
+            )
             TaskManager.publish_entity_change(self._task_uuid)
             # A prerequisite's status is shown on its dependents' rows, so refresh
             # them too (no-op when this task has no dependents).

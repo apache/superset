@@ -17,8 +17,9 @@
 from __future__ import annotations
 
 import logging
+import random
 from datetime import datetime, timezone
-from typing import Any, TYPE_CHECKING
+from typing import Any, cast, TYPE_CHECKING
 from uuid import UUID
 
 from celery import Task
@@ -303,46 +304,71 @@ def prune_key_value(
         logger.exception("An error occurred while pruning the key-value store: %s", ex)
 
 
-def _resolve_failed_prerequisite(task: "TaskModel") -> "TaskModel | None":
+# Non-blocking DAG dependency gate: a dependent picked up before its
+# prerequisites are terminal is deferred (Celery retry) rather than parking the
+# worker slot. Growing backoff (1s, 3s, 5s… capped) keyed off Celery's per-message
+# retry count, with jitter to avoid a thundering herd. The cap stays below
+# GTF_ORPHAN_TASK_TIMEOUT so a deferred task never looks abandoned.
+_DAG_DEFER_BASE_SECONDS = 1.0
+_DAG_DEFER_STEP_SECONDS = 2.0
+_DAG_DEFER_MAX_SECONDS = 30.0
+
+# Sentinel: at least one prerequisite is not yet terminal (defer and re-check).
+_DAG_WAITING = object()
+
+
+def _dag_defer_countdown(retries: int) -> float:
+    """Growing, jittered backoff (seconds) for a DAG-deferred task.
+
+    ``retries`` is Celery's per-message retry count (preserved across
+    ``self.retry()`` on the same task id), so the backoff needs no persisted
+    state. 1s, 3s, 5s, … capped at ``_DAG_DEFER_MAX_SECONDS``, plus up to ~1s of
+    jitter so many dependents of the same prerequisite don't wake in lockstep.
     """
-    Return the first direct prerequisite of ``task`` that did not end in ``SUCCESS``,
-    blocking until every prerequisite has reached a terminal state.
+    base = min(
+        _DAG_DEFER_BASE_SECONDS + retries * _DAG_DEFER_STEP_SECONDS,
+        _DAG_DEFER_MAX_SECONDS,
+    )
+    # Jitter only spreads wake-ups; it is not security-sensitive.
+    return base + random.uniform(0, min(base, 1.0))  # noqa: S311
 
-    Implements the ``all_success`` trigger rule for the task DAG: the task may
-    run only if *all* of its direct prerequisites ended in ``SUCCESS``, so a
-    non-``None`` return means the dependent must fail.
 
-    ``task.depends_on`` is already ``selectin``-loaded (in one query) with the
-    task, so a prerequisite that is *already* terminal in that snapshot is
-    evaluated with **no extra database reads** — a terminal status never changes,
-    so the snapshot is authoritative for it (the common case under Model A, where
-    FIFO enqueue order means parents usually finish before the dependent runs).
-    Only prerequisites that are not yet terminal fall through to
-    ``TaskManager.wait_for_completion`` (wake-on-completion else poll), and they
-    are awaited one at a time (≈1 read/poll-interval total, not per-prerequisite).
-    Transitive failure propagation is emergent — a dependent that fails here is
-    itself non-SUCCESS, so its own dependents fail in turn.
+def _unmet_prerequisite(task: "TaskModel") -> "TaskModel | object | None":
+    """Non-blocking ``all_success`` DAG gate for ``task``.
 
-    :param task: The dependent task about to run (with ``depends_on`` loaded)
-    :returns: The first prerequisite that did not end in ``SUCCESS``, or ``None``
-        if the task has no prerequisites or all of them succeeded
+    Returns ``None`` when the task has no prerequisites or all ended in
+    ``SUCCESS`` (ready to run); ``_DAG_WAITING`` when at least one prerequisite is
+    not yet terminal (the caller defers and re-checks); or the first prerequisite
+    that reached a terminal non-``SUCCESS`` state (the caller fails the dependent,
+    which cascades to its own dependents).
+
+    ``task.depends_on`` is ``selectin``-loaded with the task, so a prerequisite
+    already terminal in that snapshot is trusted with no extra read (a terminal
+    status never changes). A prerequisite that is *not* terminal in the snapshot
+    is re-read fresh, since the snapshot may lag its completion. Unlike the old
+    block-and-wait resolver, this never parks the worker: waiting is expressed by
+    deferring the Celery message.
+
+    :param task: the dependent task about to run (with ``depends_on`` loaded)
+    :returns: ``None`` (ready), ``_DAG_WAITING`` (defer), or a failed prerequisite
     """
     prerequisites = list(task.depends_on)
     if not prerequisites:
         return None
 
     for prerequisite in prerequisites:
-        # Trust an already-terminal status from the loaded snapshot (no extra
-        # read); otherwise block on a fresh wait until it becomes terminal.
-        if prerequisite.status not in TERMINAL_STATES:
-            try:
-                prerequisite = TaskManager.wait_for_completion(prerequisite.uuid)
-            except ValueError:
-                # Prerequisite no longer exists (e.g. pruned mid-wait) — treat as
-                # a failed prerequisite rather than blocking or crashing.
+        current = prerequisite
+        if current.status not in TERMINAL_STATES:
+            current = TaskDAO.find_one_or_none(
+                uuid=prerequisite.uuid, skip_base_filter=True
+            )
+            if current is None:
+                # Prerequisite no longer exists (e.g. pruned) — treat as failed.
                 return prerequisite
-        if prerequisite.status != TaskStatus.SUCCESS.value:
-            return prerequisite
+        if current.status not in TERMINAL_STATES:
+            return _DAG_WAITING
+        if current.status != TaskStatus.SUCCESS.value:
+            return current
 
     return None
 
@@ -375,10 +401,11 @@ def execute_task(
     """
     Generic task executor for GTF tasks.
 
-    Loads the task, records the Celery job id, and runs the lifecycle body under
-    a liveness heartbeat that spans the whole time this worker holds the task
-    (DAG wait, IN_PROGRESS, ABORTING) so the prune cron can revoke and reap it if
-    this worker dies. See ``_execute_task_body`` for the lifecycle itself.
+    Loads the task, resolves the DAG gate (deferring via Celery retry while
+    prerequisites are pending, rather than blocking a worker slot), records the
+    Celery job id, and runs the lifecycle body under a liveness heartbeat that
+    spans IN_PROGRESS/ABORTING so the prune cron can revoke and reap it if this
+    worker dies. See ``_execute_task_body`` for the lifecycle itself.
 
     :param task_uuid: UUID of the task to execute
     :param task_type: Type of the task (for registry lookup)
@@ -386,6 +413,8 @@ def execute_task(
     :param kwargs: Keyword arguments for the task function
     :returns: Dict with status and task_uuid
     """
+    from superset.commands.tasks.internal_update import InternalStatusTransitionCommand
+
     # Convert string UUID to native UUID (Celery deserializes as string)
     native_uuid = UUID(task_uuid)
 
@@ -398,6 +427,81 @@ def execute_task(
         logger.error("Task %s not found in metastore", task_uuid)
         return {"status": "error", "message": "Task not found"}
 
+    # Abort-before-claim: a task aborted while queued or DAG-deferred finalizes
+    # here (this also stops the defer loop below from retrying an aborted task).
+    if task.status in ABORT_STATES:
+        logger.info(
+            "Task %s (uuid=%s) was aborted before execution started",
+            task_type,
+            task_uuid,
+        )
+        InternalStatusTransitionCommand(
+            task_uuid=native_uuid,
+            new_status=TaskStatus.ABORTED,
+            expected_status=[TaskStatus.PENDING, TaskStatus.ABORTING],
+            set_ended_at=True,
+        ).run()
+        return {"status": TaskStatus.ABORTED.value, "task_uuid": task_uuid}
+
+    # DAG gate (non-blocking): defer via Celery retry until every prerequisite is
+    # terminal, instead of parking this worker slot. Crucially this runs BEFORE
+    # _persist_celery_task_id and the heartbeat, so a merely-deferred PENDING task
+    # carries no heartbeat and can't be mistaken for abandoned active work by the
+    # reaper (which ignores null-heartbeat tasks). all_success semantics: if any
+    # prerequisite ended non-success, fail without running (cascades to dependents).
+    unmet = _unmet_prerequisite(task)
+    if unmet is _DAG_WAITING:
+        countdown = _dag_defer_countdown(self.request.retries)
+        current_app.config["STATS_LOGGER"].incr("gtf.task.dag_deferred")
+        logger.info(
+            "Task %s (uuid=%s) waiting on prerequisites; deferring ~%.0fs "
+            "(retry %d) without holding the worker",
+            task_type,
+            task_uuid,
+            countdown,
+            self.request.retries,
+        )
+        # Re-sends the same task id/args/kwargs; max_retries=None because a
+        # prerequisite is guaranteed to become terminal (its own timeout/reaper),
+        # so the defer loop always ends.
+        raise self.retry(countdown=countdown, max_retries=None)
+    if unmet is not None:
+        # A prerequisite ended non-success (unmet is that Task): fail without
+        # running the body. Its failure then cascades to this task's dependents.
+        # The _DAG_WAITING sentinel was handled above, so this is a Task.
+        unmet = cast("TaskModel", unmet)
+        logger.info(
+            "Task %s (uuid=%s) failing: prerequisite %s did not succeed (status=%s)",
+            task_type,
+            task_uuid,
+            unmet.uuid,
+            unmet.status,
+        )
+        failed_transition = InternalStatusTransitionCommand(
+            task_uuid=native_uuid,
+            new_status=TaskStatus.FAILURE,
+            expected_status=[TaskStatus.PENDING, TaskStatus.ABORTING],
+            set_ended_at=True,
+            properties={
+                "error_message": (
+                    f"Prerequisite task {unmet.uuid} did not "
+                    f"succeed (status={unmet.status})"
+                )
+            },
+        ).run()
+        if failed_transition:
+            TaskManager.publish_completion(native_uuid, TaskStatus.FAILURE.value)
+            return {"status": TaskStatus.FAILURE.value, "task_uuid": task_uuid}
+        # The dependent moved to a terminal state concurrently (e.g. aborted while
+        # deferred), so the FAILURE transition was a no-op — report the committed
+        # status instead of publishing a contradictory FAILURE completion.
+        refreshed = TaskDAO.find_one_or_none(uuid=native_uuid, skip_base_filter=True)
+        return {
+            "status": refreshed.status if refreshed else "unknown",
+            "task_uuid": task_uuid,
+        }
+
+    # Prerequisites satisfied → claim the task and run it under the heartbeat.
     _persist_celery_task_id(task, self.request.id)
     app = current_app._get_current_object()  # noqa: SLF001
     with task_heartbeat(task.id, app) as heartbeat:
@@ -416,74 +520,21 @@ def _execute_task_body(  # noqa: C901
     Run a claimed GTF task through its lifecycle.
 
     This body:
-    1. Checks if task was aborted before execution starts
-    2. Builds context (task + user) and sets ambient context via contextvars
-    3. Executes the task function (which accesses context via get_context())
-    4. Updates task status throughout lifecycle using atomic conditional updates
-    5. Runs cleanup handlers on task end (success/failure/abortion)
-    6. Resets context after execution
+    1. Builds context (task + user) and sets ambient context via contextvars
+    2. Executes the task function (which accesses context via get_context())
+    3. Updates task status throughout lifecycle using atomic conditional updates
+    4. Runs cleanup handlers on task end (success/failure/abortion)
+    5. Resets context after execution
 
-    Uses atomic conditional status updates to prevent race conditions with
-    concurrent abort operations.
+    The pre-claim abort check and the DAG dependency gate run in ``execute_task``
+    before the task is claimed (heartbeat + Celery id), so by here the task is
+    ready to run; a concurrent abort in the claim window is still caught by the
+    PENDING → IN_PROGRESS transition below. Uses atomic conditional status updates
+    to prevent race conditions with concurrent abort operations.
     """
     from superset.commands.tasks.internal_update import InternalStatusTransitionCommand
 
     task_uuid = str(native_uuid)
-
-    # AUTOMATIC PRE-EXECUTION CHECK: Don't execute if already aborted/aborting
-    if task.status in ABORT_STATES:
-        logger.info(
-            "Task %s (uuid=%s) was aborted before execution started",
-            task_type,
-            task_uuid,
-        )
-        # Atomic transition to ABORTED (if not already)
-        InternalStatusTransitionCommand(
-            task_uuid=native_uuid,
-            new_status=TaskStatus.ABORTED,
-            expected_status=[TaskStatus.PENDING, TaskStatus.ABORTING],
-            set_ended_at=True,
-        ).run()
-        return {"status": TaskStatus.ABORTED.value, "task_uuid": task_uuid}
-
-    # DAG gate: wait for prerequisites before claiming the task. The task stays
-    # PENDING while waiting, so the "waiting on prerequisites" indicator applies
-    # and an abort mid-wait is caught by the PENDING → IN_PROGRESS transition
-    # below. If any prerequisite did not succeed, fail without running the body
-    # (all_success semantics); the failure then cascades to this task's own
-    # dependents.
-    if (failed_prerequisite := _resolve_failed_prerequisite(task)) is not None:
-        logger.info(
-            "Task %s (uuid=%s) failing: prerequisite %s did not succeed (status=%s)",
-            task_type,
-            task_uuid,
-            failed_prerequisite.uuid,
-            failed_prerequisite.status,
-        )
-        failed_transition = InternalStatusTransitionCommand(
-            task_uuid=native_uuid,
-            new_status=TaskStatus.FAILURE,
-            expected_status=[TaskStatus.PENDING, TaskStatus.ABORTING],
-            set_ended_at=True,
-            properties={
-                "error_message": (
-                    f"Prerequisite task {failed_prerequisite.uuid} did not "
-                    f"succeed (status={failed_prerequisite.status})"
-                )
-            },
-        ).run()
-        if failed_transition:
-            TaskManager.publish_completion(native_uuid, TaskStatus.FAILURE.value)
-            return {"status": TaskStatus.FAILURE.value, "task_uuid": task_uuid}
-        # The dependent was moved to a terminal state concurrently (e.g. aborted
-        # while waiting on prerequisites), so the FAILURE transition was a no-op.
-        # Report the status that actually committed rather than publishing a
-        # FAILURE completion that contradicts the DB.
-        refreshed = TaskDAO.find_one_or_none(uuid=native_uuid, skip_base_filter=True)
-        return {
-            "status": refreshed.status if refreshed else "unknown",
-            "task_uuid": task_uuid,
-        }
 
     # Atomic transition: PENDING → IN_PROGRESS (set started_at for duration tracking)
     if not InternalStatusTransitionCommand(
