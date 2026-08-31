@@ -24,6 +24,7 @@ import {
   sanitizeHtml,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
+import { logging } from '@apache-superset/core/utils';
 import { DataColumnMeta } from '../types';
 import DateWithFormatter from './DateWithFormatter';
 
@@ -57,6 +58,7 @@ function formatValue(
       }
       return [false, formatter(value as number)];
     } catch (e) {
+      logging.warn('Formatter failed, falling back to raw value', e);
       return [false, String(value)];
     }
   }

@@ -117,6 +117,50 @@ test('formatColumnValue with AUTO mode normalizes currency codes', () => {
   expect(result2).toContain('£');
 });
 
+test('formatColumnValue falls back to raw value when formatter throws', () => {
+  const column: DataColumnMeta = {
+    key: 'pct',
+    label: 'Pct',
+    dataType: GenericDataType.Numeric,
+    formatter: (() => {
+      throw new Error('boom');
+    }) as unknown as DataColumnMeta['formatter'],
+    isNumeric: true,
+  };
+
+  const [isHtml, result] = formatColumnValue(column, -0.00001229);
+
+  expect(isHtml).toBe(false);
+  expect(result).toBe('-0.00001229');
+});
+
+test('formatColumnValue falls back to raw value when CurrencyFormatter throws', () => {
+  const formatter = new CurrencyFormatter({
+    d3Format: ',.2f',
+    currency: { symbol: 'AUTO', symbolPosition: 'prefix' },
+  });
+  formatter.format = () => {
+    throw new Error('boom');
+  };
+
+  const column: DataColumnMeta = {
+    key: 'revenue',
+    label: 'Revenue',
+    dataType: GenericDataType.Numeric,
+    formatter,
+    isNumeric: true,
+    currencyCodeColumn: 'currency_code',
+  };
+
+  const [isHtml, result] = formatColumnValue(column, 1000, {
+    revenue: 1000,
+    currency_code: 'EUR',
+  });
+
+  expect(isHtml).toBe(false);
+  expect(result).toBe('1000');
+});
+
 test('formatColumnValue handles null values', () => {
   const column: DataColumnMeta = {
     key: 'revenue',
