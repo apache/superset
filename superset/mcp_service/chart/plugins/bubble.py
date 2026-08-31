@@ -36,7 +36,7 @@ from superset.mcp_service.common.error_schemas import ChartGenerationError
 class BubbleChartPlugin(BaseChartPlugin):
     """Plugin for bubble chart type."""
 
-    chart_type = "bubble"
+    chart_type = "bubble_v2"
     display_name = "Bubble Chart"
     native_viz_types: ClassVar[Mapping[str, str]] = {
         "bubble_v2": "Bubble Chart",
@@ -139,7 +139,7 @@ class BubbleChartPlugin(BaseChartPlugin):
             suggestions=[
                 "Ensure 'entity' has a 'name'",
                 "Ensure 'x', 'y', and 'size' each have 'name' and 'aggregate'",
-                "Example: {'chart_type': 'bubble', "
+                "Example: {'chart_type': 'bubble_v2', "
                 "'entity': {'name': 'country'}, "
                 "'x': {'name': 'gdp', 'aggregate': 'AVG'}, "
                 "'y': {'name': 'life_expectancy', 'aggregate': 'AVG'}, "
