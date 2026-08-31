@@ -97,6 +97,7 @@ jobs:
           mkdir -p ${{ github.workspace }}/superset-frontend/coverage
           docker run \
           -v ${{ github.workspace }}/superset-frontend/coverage:/app/superset-frontend/coverage \
+          -e CI=true \
           --rm $TAG \
           bash -c \
           "npm run test -- --coverage --shard=${{ matrix.shard }}/8 --coverageReporters=json"
