@@ -325,14 +325,23 @@ const runCatchUp = async () => {
   if (!wsEnabled || !waitersByTaskId.size) return;
   catchUpInFlight = true;
   try {
+    // Capture the cursor this fetch starts from; a waiter registering mid-flight
+    // can rewind the global cursor to its own earlier 202 watermark and queue a
+    // follow-up.
+    const requestCursor = cursor;
     const { statuses, cursor: next } = await fetchStatusChanges({
-      cursor,
+      cursor: requestCursor,
       task_type: CHART_QUERY_TASK_TYPE,
     });
-    cursor = next;
     Object.entries(statuses).forEach(([taskId, { status }]) =>
       applyStatus(taskId, status),
     );
+    // Only advance if nobody rewound the cursor while this fetch was in flight;
+    // otherwise the queued follow-up must start from that earlier watermark so it
+    // doesn't skip statuses in [rewound, requestCursor).
+    if (cursor === requestCursor) {
+      cursor = next;
+    }
   } catch (err) {
     logging.warn(err);
   } finally {

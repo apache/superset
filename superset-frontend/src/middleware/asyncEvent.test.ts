@@ -613,6 +613,73 @@ test('WS mode: coalesces many same-tick registrations into one catch-up', async 
   jest.useRealTimers();
 });
 
+test('WS mode: an in-flight catch-up does not clobber a cursor rewound mid-flight', async () => {
+  asyncEvent.init(wsConfig);
+
+  // Control the first catch-up's resolution so a second waiter can register
+  // (rewinding the cursor to an earlier watermark) while it is in flight.
+  let resolveFirst: () => void = () => {};
+  const firstInFlight = new Promise<void>(res => {
+    resolveFirst = res;
+  });
+  let calls = 0;
+  fetchMock.removeRoutes().clearHistory();
+  fetchMock.get(STATUS_CHANGES_ENDPOINT, () => {
+    calls += 1;
+    // First catch-up (from T2) stays in flight, then returns a later cursor T3.
+    if (calls === 1) {
+      return firstInFlight.then(() => ({
+        status: 200,
+        body: { statuses: {}, cursor: '2020-01-01T00:00:03' },
+      }));
+    }
+    return {
+      status: 200,
+      body: { statuses: {}, cursor: '2020-01-01T00:00:09' },
+    };
+  });
+  fetchMock.post(CANCEL_ENDPOINT, { status: 200, body: { action: 'aborted' } });
+
+  // Waiter 1 (202 cursor T2) → global cursor T2 → first catch-up fetches from T2.
+  const c1 = new AbortController();
+  const p1 = asyncEvent.waitForAsyncData(
+    { task_ids: ['t1'], cursor: '2020-01-01T00:00:02' },
+    jest.fn(),
+    c1.signal,
+  );
+  // Let the first catch-up actually start its (deferred) fetch.
+  await new Promise(resolve => {
+    setTimeout(resolve, 0);
+  });
+  expect(calls).toBe(1);
+
+  // Waiter 2 (earlier 202 cursor T1) registers while the first is in flight →
+  // rewinds the global cursor to T1 and queues a follow-up catch-up.
+  const c2 = new AbortController();
+  const p2 = asyncEvent.waitForAsyncData(
+    { task_ids: ['t2'], cursor: '2020-01-01T00:00:01' },
+    jest.fn(),
+    c2.signal,
+  );
+
+  // The first catch-up resolves (returns T3); it must NOT overwrite the rewound T1.
+  resolveFirst();
+  await new Promise(resolve => {
+    setTimeout(resolve, 0);
+  });
+
+  // The queued follow-up must fetch from T1 (the rewound watermark), not T3.
+  const secondCall = fetchMock.callHistory.calls(STATUS_CHANGES_ENDPOINT)[1];
+  expect(decodeURIComponent(secondCall.url)).toContain('2020-01-01T00:00:01');
+  expect(decodeURIComponent(secondCall.url)).not.toContain(
+    '2020-01-01T00:00:03',
+  );
+
+  c1.abort();
+  c2.abort();
+  await Promise.allSettled([p1, p2]);
+});
+
 test('WS mode: a genuinely lost completion gives up after the timeout', async () => {
   jest.useFakeTimers();
   queueStatuses(); // nothing ever reports success
