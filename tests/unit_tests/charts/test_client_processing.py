@@ -1900,8 +1900,8 @@ def test_pivot_df_show_values_as_keeps_metrics_separate():
     assert pivoted.loc[("US",), ("SUM(num)", "boy")] == 0.25
     assert pivoted.loc[("UK",), ("MAX(num)", "boy")] == 0.375
     assert pivoted.loc[("UK",), ("MAX(num)", "girl")] == 0.625
-    # the cross-metric Total column divides by the denominator spanning every
-    # metric, so it still reads 100%
+    # a total collapsing the metric axis resolves to one metric, as the
+    # renderer does, so it still divides by itself
     assert pivoted.loc[("US",), (total_label(), "")] == 1
 
 
@@ -1964,23 +1964,27 @@ def test_pivot_table_v2_show_values_as_uses_min_max_rollups():
     assert pivoted.loc[("UK",), (total_label(), "")] == 1
 
 
-def test_pivot_table_v2_drops_grouping_sets_rollup_rows():
-    """Rollup levels must not be pivoted as if they were leaf rows.
+def grouping_sets_df() -> pd.DataFrame:
+    """A GROUPING SETS result whose rollups differ from any leaf reduction.
 
-    A non-additive metric makes `buildQuery` request every rollup level in one
-    frame, tagged with `GROUPING()` markers. Counting those rows as leaves both
-    inflates the denominators and adds a phantom row for the collapsed
-    dimensions.
+    Leaves are 10 and 20, so a leaf-derived total would be 30 (sum) or 15
+    (mean). The database rollups are deliberately none of those: 18 down the
+    column, 11/21 across the rows, 19 overall -- as a weighted average or a
+    distinct count would be.
     """
-    df = pd.DataFrame(
+    return pd.DataFrame(
         {
-            "nation": ["US", "UK", None],
-            "gender": ["boy", "boy", None],
-            "nation__superset_grouping": [0, 0, 1],
-            "gender__superset_grouping": [0, 0, 1],
-            "AVG(num)": [10, 20, 30],
+            "nation": ["US", "UK", None, "US", "UK", None],
+            "gender": ["boy", "boy", "boy", None, None, None],
+            "nation__superset_grouping": [0, 0, 1, 0, 0, 1],
+            "gender__superset_grouping": [0, 0, 0, 1, 1, 1],
+            "AVG(num)": [10, 20, 18, 11, 21, 19],
         }
     )
+
+
+def test_pivot_table_v2_pivots_only_grouping_sets_leaf_rows():
+    """Rollup levels must not be pivoted as if they were leaf rows."""
     form_data = {
         "groupbyRows": ["nation"],
         "groupbyColumns": ["gender"],
@@ -1988,13 +1992,50 @@ def test_pivot_table_v2_drops_grouping_sets_rollup_rows():
         "showValuesAs": "percent_col",
     }
 
-    pivoted = pivot_table_v2(df, form_data, apply_number_format=False)
+    pivoted = pivot_table_v2(grouping_sets_df(), form_data, apply_number_format=False)
 
-    # only the two leaf rows survive; the grand-total row would have added a
-    # third and pushed the column denominator from 30 to 60
+    # the rollup rows would otherwise add phantom rows for their NULL dimensions
     assert len(pivoted.index) == 2
-    assert pivoted.loc[("US",), ("AVG(num)", "boy")] == pytest.approx(10 / 30)
-    assert pivoted.loc[("UK",), ("AVG(num)", "boy")] == pytest.approx(20 / 30)
+
+
+@pytest.mark.parametrize(
+    "mode,expected",
+    [
+        # each leaf divides by the rollup the database computed, never by a
+        # total re-derived from the leaves
+        ("percent_col", 20 / 18),
+        ("percent_row", 20 / 21),
+        ("percent_total", 20 / 19),
+    ],
+)
+def test_pivot_table_v2_divides_by_database_rollups(mode: str, expected: float):
+    """For a non-additive metric the DB rollup is the only correct total."""
+    form_data = {
+        "groupbyRows": ["nation"],
+        "groupbyColumns": ["gender"],
+        "metrics": ["AVG(num)"],
+        "showValuesAs": mode,
+    }
+
+    pivoted = pivot_table_v2(grouping_sets_df(), form_data, apply_number_format=False)
+
+    assert pivoted.loc[("UK",), ("AVG(num)", "boy")] == pytest.approx(expected)
+
+
+def test_pivot_table_v2_rollup_totals_divide_by_themselves():
+    """A whole-axis total takes its value from the same level as its denominator."""
+    form_data = {
+        "groupbyRows": ["nation"],
+        "groupbyColumns": ["gender"],
+        "metrics": ["AVG(num)"],
+        "showValuesAs": "percent_row",
+        "rowTotals": True,
+    }
+
+    pivoted = pivot_table_v2(grouping_sets_df(), form_data, apply_number_format=False)
+
+    # 21/21, not the leaf sum over the database row rollup
+    assert pivoted.loc[("UK",), (total_label(), "")] == 1
 
 
 def test_pivot_df_show_values_as_metrics_on_rows():

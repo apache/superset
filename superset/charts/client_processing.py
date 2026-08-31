@@ -92,17 +92,25 @@ _ROLLUP_REDUCERS: dict[str, str] = {"MIN": "min", "MAX": "max"}
 DEFAULT_ROLLUP_REDUCER = "sum"
 
 
-def drop_grouping_sets_rollups(df: pd.DataFrame) -> pd.DataFrame:
+def split_grouping_sets_levels(
+    df: pd.DataFrame,
+) -> tuple[pd.DataFrame, dict[frozenset[str], pd.DataFrame]]:
     """
-    Keep only the leaf rows of a GROUPING SETS result.
+    Separate a GROUPING SETS result into its leaf frame and rollup levels.
 
     A pivot chart with non-additive metrics asks for every rollup level in one
     frame, tagging each row with a ``GROUPING()`` marker per groupby column
-    (see ``common/grouping_sets.py``). The chart splits those levels apart, but
-    the server-side render derives its own totals from the leaf rows, so the
-    rollup rows must not reach ``pivot_df`` -- it would pivot them as ordinary
-    rows, inflating every denominator and adding phantom rows and columns whose
-    collapsed dimensions render as NULL.
+    (see ``common/grouping_sets.py``): ``0`` where the column is grouped at that
+    row's level, ``1`` where it has been rolled up. The rollup rows must not be
+    pivoted as ordinary rows -- their collapsed dimensions are NULL, so they
+    would add phantom rows and columns and inflate every denominator.
+
+    They are not discardable either: for a non-additive metric the database
+    rollup is the only correct total, and re-deriving one from the leaf cells
+    gives a different number (the mean of means, say, rather than the mean).
+    The chart divides by these values, so the export has to as well.
+
+    :return: the leaf frame, and each rollup level keyed by its grouped columns
     """
     markers = [
         column
@@ -110,9 +118,24 @@ def drop_grouping_sets_rollups(df: pd.DataFrame) -> pd.DataFrame:
         if isinstance(column, str) and column.endswith(GROUPING_MARKER_SUFFIX)
     ]
     if not markers:
-        return df
-    is_leaf = (df[markers] == 0).all(axis=1)
-    return df[is_leaf].drop(columns=markers).reset_index(drop=True)
+        return df, {}
+
+    grouped_of = {marker: marker[: -len(GROUPING_MARKER_SUFFIX)] for marker in markers}
+    levels: dict[frozenset[str], pd.DataFrame] = {}
+    leaf = df
+    for keys, rows_at_level in df.groupby(markers, sort=False):
+        # `groupby` yields a scalar key for a single column and a tuple beyond.
+        marker_values = keys if isinstance(keys, tuple) else (keys,)
+        grouped = frozenset(
+            grouped_of[marker]
+            for marker, rolled_up in zip(markers, marker_values, strict=True)
+            if not rolled_up
+        )
+        level = rows_at_level.drop(columns=markers).reset_index(drop=True)
+        levels[grouped] = level
+        if len(grouped) == len(markers):
+            leaf = level
+    return leaf, levels
 
 
 def get_metric_rollup_reducers(
@@ -130,6 +153,25 @@ def get_metric_rollup_reducers(
     return reducers
 
 
+def _collapsed_metric(present: list[Any], metrics: list[str]) -> Any:
+    """
+    The metric a rollup spanning `present` stands for.
+
+    A total that collapses the metric axis is undefined in the renderer, which
+    resolves it to the last metric pushed into the shared slot (see the
+    ``metricAxis`` handling in ``react-pivottable/utilities.ts``). Mirror that
+    by taking the last metric in the configured order, so exported percentages
+    match the chart rather than summing metrics that share no unit.
+    """
+    distinct = set(present)
+    if len(distinct) == 1:
+        return distinct.pop()
+    for metric in reversed(metrics):
+        if metric in distinct:
+            return metric
+    return None
+
+
 def _metric_of_column(column: Any, metric_level: int) -> Any:
     """The metric a pivoted column belongs to."""
     return column[metric_level] if isinstance(column, tuple) else column
@@ -145,6 +187,157 @@ def _reduce(
     return method(axis=axis) if axis is not None else method()
 
 
+def _keyed_rollup(
+    frame: pd.DataFrame, dimensions: list[str]
+) -> dict[tuple[str, ...], dict[str, Any]]:
+    """Index a rollup level by its grouped dimension values, as strings."""
+    filled = frame.fillna("SUPERSET_PANDAS_NAN")
+    return {
+        tuple(str(record[dimension]) for dimension in dimensions): record
+        for record in filled.to_dict("records")
+    }
+
+
+def _apply_rollup_totals(  # pylint: disable=too-many-arguments,too-many-locals
+    df: pd.DataFrame,
+    rows: list[str],
+    columns: list[str],
+    metrics: list[str],
+    rollup_levels: dict[frozenset[str], pd.DataFrame],
+    metric_level: int,
+    full_total_rows: list[Any],
+    full_total_columns: list[Any],
+) -> pd.DataFrame:
+    """
+    Replace whole-axis totals with the values the database computed.
+
+    The totals inserted above are reductions of the leaf cells, which is exact
+    only for an additive metric. Where the chart requested a rollup level, use
+    it, so that a total matches the chart and still divides by itself -- the
+    denominators come from the same levels.
+
+    Subtotals over a prefix of an axis are left as leaf reductions: the chart
+    gates those on their own toggles, so the matching level is not always
+    requested.
+    """
+    by_row = rollup_levels.get(frozenset(rows))
+    by_column = rollup_levels.get(frozenset(columns))
+    grand = rollup_levels.get(frozenset())
+    if grand is None:
+        return df
+
+    metric_names = set(metrics)
+
+    def metric_of(column: Any) -> Any:
+        name = _metric_of_column(column, metric_level)
+        return (
+            name if name in metric_names else _collapsed_metric(list(metrics), metrics)
+        )
+
+    grand_record = next(iter(_keyed_rollup(grand, []).values()), {})
+
+    if by_row is not None and full_total_columns:
+        keyed = _keyed_rollup(by_row, rows)
+        for column in full_total_columns:
+            metric = metric_of(column)
+            df[column] = [
+                (keyed.get(tuple(str(part) for part in row)) or {}).get(metric)
+                for row in df.index
+            ]
+
+    if by_column is not None and full_total_rows:
+        keyed = _keyed_rollup(by_column, columns)
+        for row in full_total_rows:
+            values = []
+            for column in df.columns:
+                metric = metric_of(column)
+                if column in full_total_columns:
+                    values.append(grand_record.get(metric))
+                    continue
+                key = tuple(
+                    str(part)
+                    for index, part in enumerate(column)
+                    if index != (metric_level % len(column))
+                )
+                values.append((keyed.get(key) or {}).get(metric))
+            df.loc[row] = values
+
+    return df
+
+
+def _rollup_denominators(  # pylint: disable=too-many-arguments,too-many-locals
+    df: pd.DataFrame,
+    mode: str,
+    rows: list[str],
+    columns: list[str],
+    metrics: list[str],
+    rollup_levels: dict[frozenset[str], pd.DataFrame],
+    metric_level: int,
+    inserted_rows: list[Any],
+    inserted_columns: list[Any],
+) -> Optional[pd.DataFrame]:
+    """
+    Each cell's denominator, taken from the database-computed rollup levels.
+
+    A percent mode makes the chart request the rollup level its denominator
+    needs -- all rows with the columns collapsed for "% of row", the reverse for
+    "% of column", both collapsed for "% of total" (see
+    ``buildGroupbyCombinations``). Those values are the totals the database
+    computed, so for a non-additive metric they are the only correct ones.
+
+    Returns ``None`` when the level is absent, leaving the caller to derive the
+    denominators from the leaf cells instead: additive metrics never request
+    rollup levels in the first place, and re-deriving is exact for them.
+    """
+    grouped_for_mode = {
+        ShowValuesAs.PERCENT_OF_ROW: rows,
+        ShowValuesAs.PERCENT_OF_COLUMN: columns,
+        ShowValuesAs.PERCENT_OF_TOTAL: [],
+    }[ShowValuesAs(mode)]
+    level = rollup_levels.get(frozenset(grouped_for_mode))
+    grand = rollup_levels.get(frozenset())
+    if level is None or grand is None:
+        return None
+
+    by_key = _keyed_rollup(level, grouped_for_mode)
+    grand_record = next(iter(_keyed_rollup(grand, []).values()), {})
+
+    def metric_of(column: Any) -> Any:
+        name = _metric_of_column(column, metric_level)
+        return (
+            name if name in set(metrics) else _collapsed_metric(list(metrics), metrics)
+        )
+
+    def denominator(row: Any, column: Any) -> Any:
+        metric = metric_of(column)
+        # A total collapses its axis entirely, so it divides by the grand total.
+        collapsed = (
+            row in inserted_rows
+            if mode == ShowValuesAs.PERCENT_OF_ROW
+            else column in inserted_columns
+        )
+        if mode == ShowValuesAs.PERCENT_OF_TOTAL or collapsed:
+            return grand_record.get(metric)
+        source = row if mode == ShowValuesAs.PERCENT_OF_ROW else column
+        values = tuple(str(part) for part in source)
+        # The column key carries the metric alongside the dimension values.
+        if mode == ShowValuesAs.PERCENT_OF_COLUMN:
+            values = tuple(
+                part
+                for index, part in enumerate(values)
+                if index != (metric_level % len(values))
+            )
+        record = by_key.get(values)
+        return record.get(metric) if record else None
+
+    built = pd.DataFrame(
+        [[denominator(row, column) for column in df.columns] for row in df.index],
+        index=df.index,
+        columns=df.columns,
+    )
+    return built.apply(pd.to_numeric, errors="coerce").astype(float)
+
+
 def _apply_show_values_as(  # pylint: disable=too-many-arguments
     df: pd.DataFrame,
     mode: str,
@@ -154,6 +347,7 @@ def _apply_show_values_as(  # pylint: disable=too-many-arguments
     inserted_rows: list[Any],
     inserted_columns: list[Any],
     reducers: dict[str, str],
+    denominators: Optional[pd.DataFrame] = None,
 ) -> pd.DataFrame:
     """
     Express each cell as a fraction of its row, column, or grand total.
@@ -169,13 +363,17 @@ def _apply_show_values_as(  # pylint: disable=too-many-arguments
     - A total is rolled up within a single metric, so a cell is never divided by
       a total that mixes in another metric, and each metric uses its own
       reducer -- a MIN/MAX metric divides by the row's minimum/maximum rather
-      than its sum. Cross-metric totals (whose metric level holds a total label
-      rather than a metric name) sum across every metric.
+      than its sum. A total that collapses the metric axis resolves to a single
+      metric the way the renderer does; see ``_collapsed_metric``.
 
     A zero denominator yields NaN (blank) rather than infinity, matching
     ``pandas_postprocessing.pivot``'s ``show_values_as``.
     """
     numeric = df.apply(pd.to_numeric, errors="coerce").astype(float)
+    if denominators is not None:
+        # Database-computed rollups: the only correct totals for a non-additive
+        # metric, and what the chart divides by.
+        return numeric / denominators.replace(0, np.nan)
     is_multi_index = isinstance(df.columns, pd.MultiIndex)
     # `combine_metrics` has already moved the metric to the lowest column level.
     metric_level = df.columns.nlevels - 1 if combine_metrics and is_multi_index else 0
@@ -195,20 +393,22 @@ def _apply_show_values_as(  # pylint: disable=too-many-arguments
         )
         # Derive the reducer from the columns forming the denominator, not from
         # the numerator's own label: a total column carries a total label, but
-        # must still divide by a rollup of the metric it totals. A denominator
-        # spanning several metrics has no single reducer, so it sums.
-        denominator_metrics = {
-            column_metric
-            for column_metric, keep in zip(
-                metric_of_column, denominator_selection, strict=True
-            )
-            if keep and column_metric is not None
-        }
-        reducer = (
-            reducers.get(str(next(iter(denominator_metrics))), DEFAULT_ROLLUP_REDUCER)
-            if len(denominator_metrics) == 1
-            else DEFAULT_ROLLUP_REDUCER
+        # must still divide by a rollup of the metric it totals.
+        denominator_metric = _collapsed_metric(
+            [
+                column_metric
+                for column_metric, keep in zip(
+                    metric_of_column, denominator_selection, strict=True
+                )
+                if keep and column_metric is not None
+            ],
+            metrics,
         )
+        reducer = reducers.get(str(denominator_metric), DEFAULT_ROLLUP_REDUCER)
+        if denominator_metric is not None:
+            denominator_selection = denominator_selection & np.array(
+                [column == denominator_metric for column in metric_of_column]
+            )
         block = numeric.loc[:, selection]
         if mode == ShowValuesAs.PERCENT_OF_TOTAL:
             leaf = numeric.loc[leaf_rows, leaf_columns & denominator_selection]
@@ -252,6 +452,7 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
     metric_name_aggfunc: Optional[str] = None,
     show_values_as: Optional[str] = None,
     metric_rollup_reducers: Optional[dict[str, str]] = None,
+    rollup_levels: Optional[dict[frozenset[str], pd.DataFrame]] = None,
 ) -> pd.DataFrame:
     percent_mode = (
         show_values_as if show_values_as in SHOW_VALUES_AS_PERCENT_MODES else None
@@ -269,6 +470,11 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
     # `showValuesAs` denominators can be summed over leaf cells only.
     inserted_rows: list[Any] = []
     inserted_columns: list[Any] = []
+    # Totals that collapse their entire axis, as opposed to subtotals over a
+    # prefix of it. Only these correspond to a rollup level the chart requests
+    # for a percent mode, so only these can take database-computed values.
+    full_total_rows: list[Any] = []
+    full_total_columns: list[Any] = []
 
     if transpose_pivot:
         rows, columns = columns, rows
@@ -355,23 +561,25 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
     # and dividing that maximum by itself reads 100%.
     totals_metric_level = df.columns.nlevels - 1 if combine_metrics else 0
     # A column carrying a total label rather than a metric name rolls up
-    # everything, so it follows the sole metric's reducer when there is one.
+    # everything; with no metric to resolve it to, it sums.
     cross_metric_reducer = (
         reducers.get(metrics[0], DEFAULT_ROLLUP_REDUCER)
         if len(set(metrics)) == 1
         else DEFAULT_ROLLUP_REDUCER
     )
 
-    def reducer_for(pivot_columns: Any) -> str:
-        found = {
-            reducers.get(
-                str(_metric_of_column(column, totals_metric_level)),
-                cross_metric_reducer,
-            )
-            for column in pivot_columns
-        }
-        # A total spanning several metrics has no single reducer; sum it.
-        return found.pop() if len(found) == 1 else DEFAULT_ROLLUP_REDUCER
+    def collapse(block: pd.DataFrame) -> tuple[pd.DataFrame, str]:
+        """Narrow a total's source columns to one metric, and pick its reducer."""
+        metric_names = set(metrics)
+        present = [
+            _metric_of_column(column, totals_metric_level) for column in block.columns
+        ]
+        known = [metric for metric in present if metric in metric_names]
+        metric = _collapsed_metric(known, metrics) if known else None
+        if metric is None:
+            return block, cross_metric_reducer
+        keep = [column == metric for column in present]
+        return block.loc[:, keep], reducers.get(str(metric), DEFAULT_ROLLUP_REDUCER)
 
     if show_rows_total:
         # add subtotal for each group and overall total; we start from the
@@ -394,17 +602,20 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
             for subgroup in subgroups:
                 slice_ = df.columns.get_loc(subgroup)
                 block = df.iloc[:, slice_]
-                subtotal = (
-                    _reduce(block, reducer_for(block.columns), axis=1)
-                    if percent_mode
-                    else pivot_v2_aggfunc_map[aggfunc](block, axis=1)
-                )
+                if percent_mode:
+                    source, reducer = collapse(block)
+                    subtotal = _reduce(source, reducer, axis=1)
+                else:
+                    subtotal = pivot_v2_aggfunc_map[aggfunc](block, axis=1)
                 depth = df.columns.nlevels - len(subgroup) - 1
                 total = metric_name if level == 0 else __("Subtotal")
                 subtotal_name = tuple([*subgroup, total, *([""] * depth)])  # noqa: C409
                 # insert column after subgroup
                 df.insert(int(slice_.stop), subtotal_name, subtotal)
                 inserted_columns.append(subtotal_name)
+                covered = level if combine_metrics else max(0, level - 1)
+                if covered == 0:
+                    full_total_columns.append(subtotal_name)
 
     if rows and show_columns_total:
         # add subtotal for each group and overall total; we start from the
@@ -428,13 +639,12 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
                     subtotal_values = subtotal_values.apply(
                         pd.to_numeric, errors="coerce"
                     )
-                subtotal = (
-                    subtotal_values.apply(
-                        lambda series: _reduce(series, reducer_for([series.name]))
+                if percent_mode:
+                    subtotal = subtotal_values.apply(
+                        lambda series: _reduce(series, collapse(series.to_frame())[1])
                     )
-                    if percent_mode
-                    else pivot_v2_aggfunc_map[aggfunc](subtotal_values, axis=0)
-                )
+                else:
+                    subtotal = pivot_v2_aggfunc_map[aggfunc](subtotal_values, axis=0)
                 depth = groups.nlevels - len(subgroup) - 1
                 total = metric_name if level == 0 else __("Subtotal")
                 subtotal.name = tuple([*subgroup, total, *([""] * depth)])  # noqa: C409
@@ -443,6 +653,20 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
                     [df[: slice_.stop], subtotal.to_frame().T, df[slice_.stop :]]
                 )
                 inserted_rows.append(subtotal.name)
+                if level == 0:
+                    full_total_rows.append(subtotal.name)
+
+    if percent_mode and not apply_metrics_on_rows and rollup_levels:
+        df = _apply_rollup_totals(
+            df,
+            rows,
+            columns,
+            metrics,
+            rollup_levels,
+            totals_metric_level,
+            full_total_rows,
+            full_total_columns,
+        )
 
     if percent_mode:
         df = _apply_show_values_as(
@@ -454,6 +678,19 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
             inserted_rows,
             inserted_columns,
             reducers,
+            _rollup_denominators(
+                df,
+                percent_mode,
+                rows,
+                columns,
+                metrics,
+                rollup_levels or {},
+                totals_metric_level,
+                inserted_rows,
+                inserted_columns,
+            )
+            if not apply_metrics_on_rows
+            else None,
         )
 
     # if we want to apply the metrics on the rows we need to pivot the
@@ -765,9 +1002,10 @@ def pivot_table_v2(
     """
     verbose_map = datasource.data["verbose_map"] if datasource else None
     metrics = get_metric_names(form_data["metrics"], verbose_map)
-    # A non-additive metric makes the chart query every rollup level at once;
-    # only the leaf rows describe the table being rendered.
-    df = drop_grouping_sets_rollups(df)
+    # A non-additive metric makes the chart query every rollup level at once:
+    # the leaf rows describe the table, the rest are its database-computed
+    # totals.
+    df, rollup_levels = split_grouping_sets_levels(df)
     show_values_as = form_data.get("showValuesAs")
     percent_mode = (
         show_values_as if show_values_as in SHOW_VALUES_AS_PERCENT_MODES else None
@@ -786,6 +1024,7 @@ def pivot_table_v2(
         "metric_rollup_reducers": get_metric_rollup_reducers(
             form_data["metrics"], verbose_map
         ),
+        "rollup_levels": rollup_levels,
     }
 
     pivoted = pivot_df(df, **pivot_options)
