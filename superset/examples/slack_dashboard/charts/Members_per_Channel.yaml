@@ -24,7 +24,7 @@ params:
   annotation_layers: []
   color_scheme: supersetColors
   datasource: 57__table
-  groupby:
+  columns:
   - channel_name
   label_colors: {}
   metric: count

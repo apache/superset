@@ -26,7 +26,7 @@ params:
   datasource: 42__table
   donut: true
   granularity_sqla: time_start
-  groupby:
+  columns:
   - ethnic_minority
   innerRadius: 44
   label_line: true

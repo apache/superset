@@ -25,7 +25,7 @@ params:
   color_scheme: supersetColors
   datasource: 21__table
   granularity_sqla: year
-  groupby:
+  columns:
   - platform
   label_colors:
     '2600': '#D1C6BC'

@@ -25,7 +25,7 @@ params:
   color_scheme: supersetColors
   datasource: 1559__table
   granularity_sqla: year
-  groupby:
+  columns:
   - genre
   label_colors:
     '0': '#1FA8C9'

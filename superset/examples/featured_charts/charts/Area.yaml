@@ -35,7 +35,7 @@ params:
   extra_form_data: {}
   forecastInterval: 0.8
   forecastPeriods: 10
-  groupby:
+  columns:
   - deal_size
   legendOrientation: top
   legendType: scroll

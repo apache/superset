@@ -32,7 +32,7 @@ params:
   datasource: 23__table
   date_format: smart_date
   extra_form_data: {}
-  groupby:
+  columns:
   - year
   - product_line
   label_type: key_value
