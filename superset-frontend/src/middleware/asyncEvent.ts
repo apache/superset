@@ -106,6 +106,11 @@ let config: AppConfig;
 // Whether the realtime websocket is the transport. When true we never poll: the
 // socket is the mechanism and a reconnect catch-up reconciles any gap.
 let wsEnabled = false;
+// Coalescing state for the WS-mode catch-up (see scheduleCatchUp): a microtask is
+// pending, a fetch is in flight, and/or a follow-up is queued.
+let catchUpScheduled = false;
+let catchUpInFlight = false;
+let catchUpQueued = false;
 let pollingDelayMs: number;
 // Backoff state: the poll starts eager (`pollingDelayMs`), degrades — doubling up
 // to `pollBackoffMaxMs` — while awaited tasks are quiet, and snaps back to eager
@@ -309,13 +314,16 @@ const ensurePolling = () => {
   }
 };
 
-// WS mode: on a socket (re)connect, run a single `status_changes` catch-up from
-// the retained pre-task cursor to settle anything that completed while the socket
-// was down ("pick up where we left off"). Not a loop — the socket is the
-// steady-state mechanism; still-running tasks resolve via the resubscribed socket.
-// No-op unless WS is the transport and something is pending.
-const catchUpFromSocket = async () => {
+// WS mode: reconcile with a single `status_changes` catch-up from the retained
+// pre-task cursor — settling anything that completed while the socket was down
+// ("pick up where we left off") or before a waiter existed. Not a loop; the
+// socket is the steady-state mechanism. Since waitersByTaskId is global, one
+// fetch reconciles every pending waiter, so registrations and reconnects are
+// coalesced (see scheduleCatchUp) rather than each firing their own request.
+const runCatchUp = async () => {
+  catchUpScheduled = false;
   if (!wsEnabled || !waitersByTaskId.size) return;
+  catchUpInFlight = true;
   try {
     const { statuses, cursor: next } = await fetchStatusChanges({
       cursor,
@@ -327,10 +335,34 @@ const catchUpFromSocket = async () => {
     );
   } catch (err) {
     logging.warn(err);
+  } finally {
+    catchUpInFlight = false;
+    // A trigger fired mid-flight (another registration, or a reconnect): run
+    // exactly one follow-up to reconcile whatever registered since.
+    if (catchUpQueued) {
+      catchUpQueued = false;
+      catchUpScheduled = true;
+      Promise.resolve().then(runCatchUp);
+    }
   }
 };
 
-subscribeRealtimeOpen(catchUpFromSocket);
+// Coalesce catch-up triggers into a single in-flight request. Same-tick triggers
+// (a dashboard registering many async charts at once) collapse via a microtask;
+// a trigger during an in-flight request schedules exactly one follow-up. Avoids a
+// burst of redundant /task/status_changes calls while keeping the design simple.
+const scheduleCatchUp = () => {
+  if (!wsEnabled) return;
+  if (catchUpInFlight) {
+    catchUpQueued = true;
+    return;
+  }
+  if (catchUpScheduled) return;
+  catchUpScheduled = true;
+  Promise.resolve().then(runCatchUp);
+};
+
+subscribeRealtimeOpen(scheduleCatchUp);
 
 /**
  * Handle a `task.status` message from the shared realtime client.
@@ -441,9 +473,9 @@ export const waitForAsyncData = async <T = unknown[]>(
     ensurePolling();
     // WS mode: reconcile once right after registering, to cover a task that
     // completed between the POST and the waiter existing (its socket message may
-    // have arrived before this waiter, or before the socket subscribed). One
-    // fetch, not a loop.
-    if (wsEnabled) catchUpFromSocket();
+    // have arrived before this waiter, or before the socket subscribed). Coalesced
+    // with sibling registrations/reconnects into one request.
+    if (wsEnabled) scheduleCatchUp();
   });
 
   return refetch();
@@ -472,6 +504,9 @@ export const init = (appConfig?: AppConfig) => {
   waitersByTaskId = new Map();
   cursor = null;
   pollingActive = false;
+  catchUpScheduled = false;
+  catchUpInFlight = false;
+  catchUpQueued = false;
 
   pollingDelayMs = config.GLOBAL_ASYNC_QUERIES_POLLING_DELAY || 500;
   // Backoff ceiling (never below the eager interval) and the give-up window (also

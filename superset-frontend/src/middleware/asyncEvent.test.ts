@@ -508,8 +508,11 @@ test('WS mode: settles via the socket without any status_changes polling', async
   asyncEvent.handleTaskStatus(taskStatusPayload('task-1', 'success'));
 
   expect(await promise).toEqual([{ rows: 1 }]);
-  // Exactly one status_changes call: the one-shot registration catch-up. No loop.
-  expect(fetchMock.callHistory.calls(STATUS_CHANGES_ENDPOINT)).toHaveLength(1);
+  // At most the single one-shot registration catch-up ran — never a loop. (It
+  // no-ops if the socket settled the waiter before its microtask ran.)
+  expect(
+    fetchMock.callHistory.calls(STATUS_CHANGES_ENDPOINT).length,
+  ).toBeLessThanOrEqual(1);
 });
 
 test('WS mode: does not start an interval poll loop', async () => {
@@ -568,11 +571,46 @@ test('WS mode: a reconnect runs one catch-up that reconciles the gap', async () 
     refetch,
   );
 
+  // Let the registration catch-up run and finish (consuming the empty baseline)
+  // so the reconnect below is a distinct, non-coalesced catch-up.
+  await new Promise(resolve => {
+    setTimeout(resolve, 0);
+  });
+
   // Simulate the socket reconnecting: the shared client fires its open-listener.
-  await mockRealtimeOpenListener?.();
+  mockRealtimeOpenListener?.();
 
   expect(await promise).toEqual([{ rows: 3 }]);
   expect(refetch).toHaveBeenCalledTimes(1);
+});
+
+test('WS mode: coalesces many same-tick registrations into one catch-up', async () => {
+  jest.useFakeTimers();
+  queueStatuses(); // all catch-ups see no change
+  asyncEvent.init(wsConfig);
+
+  // Three charts register in the same tick (a dashboard loading async charts).
+  const controllers = [
+    new AbortController(),
+    new AbortController(),
+    new AbortController(),
+  ];
+  const promises = controllers.map((c, i) =>
+    asyncEvent.waitForAsyncData(
+      { task_ids: [`task-${i}`] },
+      jest.fn(),
+      c.signal,
+    ),
+  );
+
+  await jest.advanceTimersByTimeAsync(0); // flush the coalescing microtask + fetch
+  // A single status_changes request reconciles all three (waitersByTaskId is
+  // global) — not one request per chart.
+  expect(fetchMock.callHistory.calls(STATUS_CHANGES_ENDPOINT)).toHaveLength(1);
+
+  controllers.forEach(c => c.abort());
+  await Promise.allSettled(promises);
+  jest.useRealTimers();
 });
 
 test('WS mode: a genuinely lost completion gives up after the timeout', async () => {
