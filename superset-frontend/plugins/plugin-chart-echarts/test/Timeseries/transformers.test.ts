@@ -419,7 +419,7 @@ test('#39899 - x-axis dates do not overlap and last label stays visible at 0° r
   expect(axisLabel.hideOverlap).toBe(false);
 });
 
-test('SC-119084 - closely spaced x-axis time labels do not visually overlap', () => {
+test('#39899 - closely spaced x-axis time labels do not visually overlap', () => {
   const formData = {
     colorScheme: 'bnbColors',
     datasource: '3__table',

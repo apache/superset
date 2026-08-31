@@ -124,6 +124,7 @@ import {
 } from '../constants';
 import { getDefaultTooltip } from '../utils/tooltip';
 import {
+  createDedupXAxisFormatter,
   createSpacedXAxisFormatter,
   getPercentFormatter,
   getTooltipTimeFormatter,
@@ -1213,20 +1214,25 @@ export default function transformProps(
   // that forced boundary label is never suppressed (#39899). Wrap the
   // formatter to suppress consecutive duplicate labels and to thin out
   // labels that would otherwise visually collide, since hideOverlap can no
-  // longer do that for us.
+  // longer do that for us. The spacing estimate assumes the axis runs along
+  // the bottom of the chart (pixel width, character width); a horizontal
+  // orientation chart puts the time axis on the side instead, so it falls
+  // back to dedup-only there.
   const showMaxLabel =
     xAxisType === AxisType.Time &&
     xAxisLabelRotation === 0 &&
     !!resolvedTimeGrain;
   const deduplicatedFormatter = showMaxLabel
-    ? createSpacedXAxisFormatter(
-        xAxisFormatter,
-        ...getXAxisDomain(
-          [rebasedData as Record<string, unknown>[]],
-          xAxisLabel,
-        ),
-        Math.max(width - 2 * TIMESERIES_CONSTANTS.gridOffsetLeft, 0),
-      )
+    ? isHorizontal
+      ? createDedupXAxisFormatter(xAxisFormatter)
+      : createSpacedXAxisFormatter(
+          xAxisFormatter,
+          ...getXAxisDomain(
+            [rebasedData as Record<string, unknown>[]],
+            xAxisLabel,
+          ),
+          Math.max(width - 2 * TIMESERIES_CONSTANTS.gridOffsetLeft, 0),
+        )
     : xAxisFormatter;
 
   const temporalTickValues = resolveTemporalTickValues(

@@ -223,6 +223,52 @@ type XAxisFormatterFn =
   | ((value: number | string) => string);
 
 /**
+ * Wraps an x-axis time formatter so that consecutive ticks that format to
+ * identical text are blanked (e.g. the boundary label forced by
+ * showMaxLabel duplicating the last real tick).
+ *
+ * Use this instead of createSpacedXAxisFormatter when the axis geometry
+ * doesn't match the spacing model's horizontal-plot assumptions, e.g. a
+ * horizontal orientation chart, where the time axis runs vertically along
+ * the side of the chart rather than along the bottom.
+ */
+export function createDedupXAxisFormatter(
+  xAxisFormatter: XAxisFormatterFn | undefined,
+): (value: number | string) => string {
+  let lastLabel: string | undefined;
+  let lastValue: number | undefined;
+  const wrapper = (value: number | string) => {
+    // ECharts formats the labels in repeated ascending passes. Reset the
+    // dedup state when the sequence restarts so a forced boundary label
+    // (e.g. the min date) isn't blanked by the previous pass's last label
+    // when both format identically (e.g. a May-to-May range).
+    if (
+      typeof value === 'number' &&
+      lastValue !== undefined &&
+      value <= lastValue
+    ) {
+      lastLabel = undefined;
+    }
+    if (typeof value === 'number') {
+      lastValue = value;
+    }
+    const label =
+      typeof xAxisFormatter === 'function'
+        ? (xAxisFormatter as Function)(value)
+        : String(value);
+    if (label === lastLabel) {
+      return '';
+    }
+    lastLabel = label;
+    return label;
+  };
+  if (typeof xAxisFormatter === 'function' && 'id' in xAxisFormatter) {
+    (wrapper as { id?: unknown }).id = (xAxisFormatter as { id?: unknown }).id;
+  }
+  return wrapper;
+}
+
+/**
  * Wraps an x-axis time formatter so that:
  * - consecutive ticks that format to identical text are blanked (e.g. the
  *   boundary label forced by showMaxLabel duplicating the last real tick).

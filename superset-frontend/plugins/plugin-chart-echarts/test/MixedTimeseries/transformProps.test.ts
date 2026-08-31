@@ -1324,7 +1324,7 @@ test('#39899 - x-axis dates do not overlap and last label stays visible at 0° r
   expect(axisLabel.hideOverlap).toBe(false);
 });
 
-test('SC-119084 - closely spaced x-axis time labels do not visually overlap (mixed)', () => {
+test('#39899 - closely spaced x-axis time labels do not visually overlap (mixed)', () => {
   const startTime = Date.UTC(2026, 0, 1);
   const data = Array.from({ length: 20 }, (_, i) => ({
     __timestamp: startTime + i * 60 * 1000,
