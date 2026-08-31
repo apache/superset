@@ -19,6 +19,7 @@
 
 from __future__ import annotations
 
+import logging
 import uuid
 from collections.abc import Hashable
 from dataclasses import dataclass
@@ -38,6 +39,11 @@ from sqlalchemy_utils.types.json import JSONType
 from superset_core.semantic_layers.layer import (
     SemanticLayer as SemanticLayerABC,
 )
+from superset_core.semantic_layers.types import (
+    Filter,
+    Operator,
+    PredicateType,
+)
 from superset_core.semantic_layers.view import (
     SemanticView as SemanticViewABC,
 )
@@ -50,6 +56,7 @@ from superset.exceptions import (
 from superset.explorables.base import TimeGrainDict
 from superset.extensions import encrypted_field_factory
 from superset.models.helpers import AuditMixinNullable, QueryResult
+from superset.result_set import stringify_extension_columns
 from superset.semantic_layers.mapper import get_results
 from superset.semantic_layers.registry import registry
 from superset.utils import json
@@ -57,6 +64,9 @@ from superset.utils.core import GenericDataType
 
 if TYPE_CHECKING:
     from superset.superset_typing import ExplorableData, QueryObjectDict
+
+
+logger = logging.getLogger(__name__)
 
 
 def get_column_type(semantic_type: pa.DataType) -> GenericDataType:
@@ -321,6 +331,99 @@ class SemanticView(AuditMixinNullable, Model):
 
     def get_query_str(self, query_obj: QueryObjectDict) -> str:
         return "Not implemented for semantic layers"
+
+    @property
+    def normalize_columns(self) -> bool:
+        """Dimension names are provider-verbatim; nothing to (de)normalize.
+
+        Exists for the datasource values endpoint, which reads it before
+        requesting filter-value suggestions.
+        """
+        return False
+
+    def values_for_column(
+        self,
+        column_name: str,
+        limit: int = 10000,
+        denormalize_column: bool = False,  # pylint: disable=unused-argument
+        array_elements: bool = False,  # pylint: disable=unused-argument
+        search: str | None = None,
+    ) -> list[Any]:
+        """Return the distinct values of one dimension for filter suggestions.
+
+        Delegates to the provider ABC's purpose-built ``get_values`` — an
+        abstract member every provider implements, consumed here for the
+        first time. ``search`` narrows at the provider with a containment
+        ``LIKE`` filter on the dimension, so values beyond the first page are
+        findable. Two documented parity gaps with datasets, both inherent to
+        the standard filter model: case sensitivity follows the provider's
+        collation (no case-folding operator), and ``%``/``_`` in the search
+        term act as wildcards (no portable escape declaration; over-matching
+        is the safe failure for suggestions). A provider that rejects the
+        narrowing filter — a non-text dimension, say — falls back to the
+        unfiltered bounded page with a logged warning rather than an error.
+
+        ``get_values`` takes no limit or order, so both are applied here:
+        sorted ascending (nulls first) and then truncated, so the page is
+        deterministic and not an arbitrary provider-order subset.
+        ``denormalize_column`` and ``array_elements`` are dataset concepts
+        (dialect name denormalization, array-element explosion) with no
+        semantic-view counterpart; they are accepted for endpoint signature
+        compatibility and ignored.
+
+        Raises ``KeyError`` for a name that is not a dimension of the view —
+        a metric name included — which the endpoint reports as the caller's
+        error naming the column, exactly as a dataset does.
+        """
+        dimensions = {
+            dimension.name: dimension for dimension in self._unique_dimensions
+        }
+        if column_name not in dimensions:
+            raise KeyError(column_name)
+        dimension = dimensions[column_name]
+
+        if search:
+            narrowing = Filter(
+                type=PredicateType.WHERE,
+                column=dimension,
+                operator=Operator.LIKE,
+                value=f"%{search}%",
+            )
+            try:
+                result = self.implementation.get_values(dimension, {narrowing})
+            except Exception:  # pylint: disable=broad-exception-caught
+                # The narrowing filter is best-effort: a provider that cannot
+                # apply it must degrade to the bounded first page (the picker
+                # still narrows within it), never to an error — but say so,
+                # or the degradation is the next silent failure.
+                logger.warning(
+                    "Semantic view %s rejected the value-search filter on "
+                    "dimension %s; returning the unfiltered page",
+                    self.uuid,
+                    dimension.name,
+                    exc_info=True,
+                )
+                result = self.implementation.get_values(dimension, None)
+        else:
+            result = self.implementation.get_values(dimension, None)
+
+        # Some drivers report zero rows as ``results is None``.
+        if result.results is None or result.results.num_rows == 0:
+            return []
+        table = stringify_extension_columns(result.results)
+        if dimension.name in table.column_names:
+            column = table.column(dimension.name)
+        elif table.num_columns == 1:
+            column = table.column(0)
+        else:
+            # A provider-contract violation is the server's fault, not the
+            # caller's; surface it rather than mislabeling it a bad column.
+            raise ValueError(
+                f"Provider result is missing the requested dimension {dimension.name}"
+            )
+        values = column.to_pylist()
+        values.sort(key=lambda value: (value is not None, value))
+        return values[:limit]
 
     @property
     def table_name(self) -> str:
