@@ -17,11 +17,15 @@
  * under the License.
  */
 import { t } from '@apache-superset/core/translation';
-import { ChartMetadata, ChartPlugin } from '@superset-ui/core';
+import { Behavior, ChartMetadata, ChartPlugin } from '@superset-ui/core';
 import buildQuery from './buildQuery';
 import controlPanel from './controlPanel';
 import transformProps from './transformProps';
 import { EchartsButterflyChartProps, EchartsButterflyFormData } from './types';
+import example from './images/example.png';
+import exampleDark from './images/example-dark.png';
+import thumbnail from './images/thumbnail.png';
+import thumbnailDark from './images/thumbnail-dark.png';
 
 export default class EchartsButterflyChartPlugin extends ChartPlugin<
   EchartsButterflyFormData,
@@ -33,12 +37,18 @@ export default class EchartsButterflyChartPlugin extends ChartPlugin<
       controlPanel,
       loadChart: () => import('./Butterfly'),
       metadata: new ChartMetadata({
+        behaviors: [
+          Behavior.InteractiveChart,
+          Behavior.DrillToDetail,
+          Behavior.DrillBy,
+        ],
         credits: ['https://echarts.apache.org'],
         category: t('Comparison'),
         description: t(
           'A butterfly chart compares two metrics across categories using horizontal bars ' +
             'that extend left and right from a central axis.',
         ),
+        exampleGallery: [{ url: example, urlDark: exampleDark }],
         name: t('Butterfly Chart'),
         tags: [
           t('Categorical'),
@@ -46,7 +56,8 @@ export default class EchartsButterflyChartPlugin extends ChartPlugin<
           t('ECharts'),
           t('Multi-Variables'),
         ],
-        thumbnail: '',
+        thumbnail,
+        thumbnailDark,
       }),
       transformProps,
     });
