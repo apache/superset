@@ -2670,3 +2670,89 @@ def test_import_includes_configuration_method(
         f"'configuration_method' not found in database list response: {db_obj_api}"
     )
     assert db_obj_api["configuration_method"] == "dynamic_form"
+
+
+def test_related_objects_reports_attached_datasets(
+    session: Session,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """``related_objects`` must report the datasets attached to a connection.
+
+    ``DeleteDatabaseCommand`` refuses to delete a database while any dataset
+    still references it. When the preview behind the delete confirmation omits
+    datasets, a connection whose only dependents are datasets reads as having
+    nothing attached, and the delete the operator then confirms fails with a
+    422 they had no way to anticipate.
+    """
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.databases.api import DatabaseRestApi
+    from superset.models.core import Database
+
+    DatabaseRestApi.datamodel._session = session
+    SqlaTable.metadata.create_all(session.get_bind())  # pylint: disable=no-member
+
+    database = Database(database_name="related_db", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+    db.session.add_all(
+        [
+            SqlaTable(table_name="qa_orders", database=database),
+            SqlaTable(
+                table_name="qa_archived",
+                database=database,
+                deleted_at=datetime(2026, 1, 1, 12, 0, 0),
+            ),
+        ]
+    )
+    db.session.commit()
+
+    response = client.get(f"/api/v1/database/{database.id}/related_objects/")
+    assert response.status_code == 200
+
+    datasets = response.json["datasets"]
+    assert datasets["count"] == 1
+    assert [dataset["table_name"] for dataset in datasets["result"]] == ["qa_orders"]
+    # The soft-deleted row is hidden from the dataset list, but it still holds a
+    # reference that blocks the delete, so it is reported separately instead of
+    # being dropped from the preview entirely.
+    assert datasets["soft_deleted_count"] == 1
+
+
+def test_related_objects_reports_soft_deleted_only_datasets(
+    session: Session,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """A connection whose datasets were all deleted still cannot be deleted.
+
+    This is the case the preview is most likely to get wrong: ``Database.tables``
+    hides soft-deleted datasets, so without a separate count the response says
+    the connection has no dependents at all while the delete stays blocked.
+    """
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.databases.api import DatabaseRestApi
+    from superset.models.core import Database
+
+    DatabaseRestApi.datamodel._session = session
+    SqlaTable.metadata.create_all(session.get_bind())  # pylint: disable=no-member
+
+    database = Database(database_name="soft_deleted_db", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+    db.session.add(
+        SqlaTable(
+            table_name="qa_archived",
+            database=database,
+            deleted_at=datetime(2026, 1, 1, 12, 0, 0),
+        )
+    )
+    db.session.commit()
+
+    response = client.get(f"/api/v1/database/{database.id}/related_objects/")
+    assert response.status_code == 200
+
+    datasets = response.json["datasets"]
+    assert datasets["count"] == 0
+    assert datasets["result"] == []
+    assert datasets["soft_deleted_count"] == 1

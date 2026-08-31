@@ -929,9 +929,31 @@ class DatabaseRelatedDashboards(Schema):
     )
 
 
+class DatabaseRelatedDataset(Schema):
+    id = fields.Integer()
+    table_name = fields.String()
+
+
+class DatabaseRelatedDatasets(Schema):
+    count = fields.Integer(metadata={"description": "Live dataset count"})
+    result = fields.List(
+        fields.Nested(DatabaseRelatedDataset),
+        metadata={"description": "A list of datasets"},
+    )
+    soft_deleted_count = fields.Integer(
+        metadata={
+            "description": (
+                "Soft-deleted datasets that still reference the database. They "
+                "are hidden from the dataset list but continue to block deletion."
+            )
+        }
+    )
+
+
 class DatabaseRelatedObjectsResponse(Schema):
     charts = fields.Nested(DatabaseRelatedCharts)
     dashboards = fields.Nested(DatabaseRelatedDashboards)
+    datasets = fields.Nested(DatabaseRelatedDatasets)
 
 
 class DatabaseFunctionNamesResponse(Schema):

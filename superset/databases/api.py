@@ -1337,10 +1337,10 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     def related_objects(self, pk: int) -> Response:
-        """Get charts and dashboards count associated to a database.
+        """Get charts, dashboards and datasets count associated to a database.
         ---
         get:
-          summary: Get charts and dashboards count associated to a database
+          summary: Get charts, dashboards and datasets count associated to a database
           parameters:
           - in: path
             name: pk
@@ -1387,6 +1387,14 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             {"id": tab_state.id, "label": tab_state.label, "active": tab_state.active}
             for tab_state in data["sqllab_tab_states"]
         ]
+        # Datasets are reported unfiltered, unlike charts and dashboards above:
+        # every one of them blocks ``DeleteDatabaseCommand``, so hiding the ones
+        # the caller cannot open would under-report why the delete is refused.
+        # Reaching this route already requires access to the parent database.
+        datasets = [
+            {"id": dataset.id, "table_name": dataset.table_name}
+            for dataset in data["datasets"]
+        ]
         return self.response(
             200,
             charts={"count": len(charts), "result": charts},
@@ -1394,6 +1402,11 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             sqllab_tab_states={
                 "count": len(sqllab_tab_states),
                 "result": sqllab_tab_states,
+            },
+            datasets={
+                "count": len(datasets),
+                "result": datasets,
+                "soft_deleted_count": len(data["soft_deleted_datasets"]),
             },
         )
 

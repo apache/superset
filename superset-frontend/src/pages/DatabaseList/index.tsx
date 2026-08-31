@@ -96,10 +96,22 @@ type ConnectionItem = DatabaseObject & {
   changed_on_delta_humanized?: string;
 };
 
+interface DatabaseRelatedDatasets {
+  count: number;
+  result: { id: number; table_name: string }[];
+  /**
+   * Datasets that were deleted but still reference the connection. They are
+   * hidden from the dataset list yet still block the connection's delete, so
+   * the confirmation accounts for them separately from `count`.
+   */
+  soft_deleted_count: number;
+}
+
 interface DatabaseDeleteObject extends DatabaseObject {
   charts: any;
   dashboards: any;
   sqllab_tab_count: number;
+  datasets: DatabaseRelatedDatasets;
 }
 
 /** How many dependent semantic views the delete confirmation lists by name. */
@@ -376,6 +388,7 @@ function DatabaseList({
             charts: json.charts,
             dashboards: json.dashboards,
             sqllab_tab_count: json.sqllab_tab_states.count,
+            datasets: json.datasets,
           });
         })
         .catch(
@@ -1010,6 +1023,16 @@ function DatabaseList({
     return baseFilters;
   }, [showSemanticLayers]);
 
+  // A connection with any dataset still attached cannot be deleted at all: the
+  // backend refuses with a 422 rather than cascading. Soft-deleted datasets
+  // count too — they stay hidden from the dataset list but keep the reference
+  // alive — so the confirmation has to warn about them even though it cannot
+  // name them usefully.
+  const datasetsBlockingDelete = databaseCurrentlyDeleting
+    ? databaseCurrentlyDeleting.datasets.count +
+      databaseCurrentlyDeleting.datasets.soft_deleted_count
+    : 0;
+
   return (
     <>
       <SubMenu {...menuData} />
@@ -1102,12 +1125,77 @@ function DatabaseList({
                 {t('The %s', databaseLabelLower())}{' '}
                 <b>{databaseCurrentlyDeleting.database_name}</b>{' '}
                 {t(
-                  'is linked to %s charts that appear on %s dashboards and users have %s SQL Lab tabs using this database open. Are you sure you want to continue? Deleting the database will break those objects.',
+                  'is linked to %s datasets and %s charts that appear on %s dashboards, and users have %s SQL Lab tabs using this database open.',
+                  databaseCurrentlyDeleting.datasets.count,
                   databaseCurrentlyDeleting.charts.count,
                   databaseCurrentlyDeleting.dashboards.count,
                   databaseCurrentlyDeleting.sqllab_tab_count,
-                )}
+                )}{' '}
+                {datasetsBlockingDelete === 0 &&
+                  t(
+                    'Are you sure you want to continue? Deleting the database will break those objects.',
+                  )}
               </p>
+              {datasetsBlockingDelete > 0 && (
+                <p>
+                  <b>
+                    {databaseCurrentlyDeleting.datasets.count > 0
+                      ? t(
+                          'This %s cannot be deleted until its datasets are removed.',
+                          databaseLabelLower(),
+                        )
+                      : t(
+                          'This %s cannot be deleted yet: %s deleted datasets still reference it. Their names no longer appear in the dataset list, but the references have to be cleared before the connection can be removed.',
+                          databaseLabelLower(),
+                          databaseCurrentlyDeleting.datasets.soft_deleted_count,
+                        )}
+                  </b>
+                </p>
+              )}
+              {databaseCurrentlyDeleting.datasets.count >= 1 && (
+                <>
+                  <h4>{t('Affected Datasets')}</h4>
+                  <List
+                    split={false}
+                    size="small"
+                    dataSource={databaseCurrentlyDeleting.datasets.result.slice(
+                      0,
+                      10,
+                    )}
+                    renderItem={(result: {
+                      id: number;
+                      table_name: string;
+                    }) => (
+                      <List.Item key={result.id} compact>
+                        <List.Item.Meta
+                          avatar={<span>•</span>}
+                          title={
+                            <Typography.Link
+                              href={ensureAppRoot(
+                                `/explore/?datasource_type=table&datasource_id=${result.id}`,
+                              )}
+                              target="_atRiskItem"
+                            >
+                              {result.table_name}
+                            </Typography.Link>
+                          }
+                        />
+                      </List.Item>
+                    )}
+                    footer={
+                      databaseCurrentlyDeleting.datasets.result.length > 10 && (
+                        <div>
+                          {t(
+                            '... and %s others',
+                            databaseCurrentlyDeleting.datasets.result.length -
+                              10,
+                          )}
+                        </div>
+                      )
+                    }
+                  />
+                </>
+              )}
               {databaseCurrentlyDeleting.dashboards.count >= 1 && (
                 <>
                   <h4>{t('Affected Dashboards')}</h4>

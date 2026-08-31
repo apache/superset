@@ -230,10 +230,29 @@ class DatabaseDAO(BaseDAO[Database]):
             db.session.query(TabState).filter(TabState.database_id == database_id).all()
         )
 
+        # ``database.tables`` only sees live datasets: ``SqlaTable`` inherits
+        # ``SoftDeleteMixin``, so the relationship load applies the visibility
+        # filter. ``DeleteDatabaseCommand`` blocks the delete on soft-deleted
+        # rows too (they still FK-reference the database), so look those up with
+        # the filter bypassed. Without them a database whose datasets were all
+        # deleted reports zero dependents here and then fails the delete with a
+        # 422 the caller had no way to anticipate.
+        soft_deleted_datasets = (
+            db.session.query(SqlaTable)
+            .filter(
+                SqlaTable.database_id == database_id,
+                SqlaTable.deleted_at.is_not(None),
+            )
+            .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {SqlaTable}})
+            .all()
+        )
+
         return {
             "charts": charts,
             "dashboards": dashboards,
             "sqllab_tab_states": sqllab_tab_states,
+            "datasets": datasets,
+            "soft_deleted_datasets": soft_deleted_datasets,
         }
 
     @classmethod
