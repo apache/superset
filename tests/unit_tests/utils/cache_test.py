@@ -213,6 +213,20 @@ def test_set_and_log_cache_returns_persistence_outcome(mocker: MockerFixture) ->
     failing.set.side_effect = RuntimeError("backend down")
     assert set_and_log_cache(failing, "k", {"df": "small"}) is False
 
+    # Backend reports a failed write by returning False (no exception) → False.
+    # cachelib backends do this; ignoring it would let the marker claim a write
+    # that never landed.
+    _patch_config(mocker, DATA_CACHE_MAX_VALUE_SIZE=10 * 1024 * 1024)
+    reports_false = _make_cache_instance(mocker)
+    reports_false.set.return_value = False
+    assert set_and_log_cache(reports_false, "k", {"df": "small"}) is False
+
+    # Backend returns None (no status reported) → treated as success.
+    _patch_config(mocker, DATA_CACHE_MAX_VALUE_SIZE=10 * 1024 * 1024)
+    reports_none = _make_cache_instance(mocker)
+    reports_none.set.return_value = None
+    assert set_and_log_cache(reports_none, "k", {"df": "small"}) is True
+
 
 def test_set_and_log_cache_over_threshold(mocker: MockerFixture) -> None:
     """A value exceeding DATA_CACHE_MAX_VALUE_SIZE is not cached."""

@@ -107,7 +107,14 @@ def set_and_log_cache(
                 app.config["STATS_LOGGER"].incr("skip_cache_value_too_large")
                 return False
 
-        cache_instance.set(cache_key, value, timeout=timeout)
+        # Flask-Caching's set() returns bool | None: cachelib backends can report
+        # a failed write by returning False without raising, while some backends
+        # return None (no status). Treat an explicit False as failure so callers
+        # that gate on persistence (the forced-refresh marker) don't claim a write
+        # that never landed; treat None as success.
+        if cache_instance.set(cache_key, value, timeout=timeout) is False:
+            logger.warning("Cache backend reported a failed set for key %s", cache_key)
+            return False
         stats_logger = app.config["STATS_LOGGER"]
         stats_logger.incr("set_cache_key")
 
