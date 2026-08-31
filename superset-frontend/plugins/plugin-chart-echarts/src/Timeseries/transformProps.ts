@@ -1400,7 +1400,7 @@ export default function transformProps(
     showMaxLabel,
     xAxisType,
     xAxisLabelRotation,
-    xAxisLabelInterval,
+    xAxisLabelInterval === '0' ? 0 : xAxisLabelInterval,
     deduplicatedFormatter,
     isHorizontal,
     zoomable,

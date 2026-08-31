@@ -1926,3 +1926,8 @@ test('should not apply a dashed lineStyle when timeShiftColor is disabled', () =
   expect(derivedSeries).toBeDefined();
   expect(derivedSeries?.lineStyle?.type).toBeUndefined();
 });
+
+test('converts xAxisLabelInterval string "0" to number 0', () => {
+  const { xAxis } = transformWithChrome({ xAxisLabelInterval: '0' });
+  expect(xAxis.axisLabel.interval).toBe(0);
+});
