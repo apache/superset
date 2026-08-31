@@ -40,17 +40,30 @@ export type DatasourceListPage = {
 };
 
 export type FetchDatasourceListOptions = {
-  /** Match `search` against the name exactly rather than as a substring. */
-  exactMatch?: boolean;
-  /**
-   * Query the dataset-only endpoint even when semantic layers are enabled.
-   * Used by callers that resolve a dataset by name and must not be answered
-   * with a same-named semantic view.
-   */
-  datasetsOnly?: boolean;
   /** Transport to use; pass a cached variant to share responses. */
   get?: typeof SupersetClient.get;
-};
+} & (
+  | {
+      /**
+       * Match `search` against the name exactly rather than as a substring.
+       * Only supported together with `datasetsOnly`: the combined datasource
+       * endpoint's filter parser honours only substring (`ct`) name filters
+       * and silently drops an `eq` filter, so an exact-match preload against
+       * it would resolve to an arbitrary unfiltered page.
+       */
+      exactMatch: true;
+      datasetsOnly: true;
+    }
+  | {
+      exactMatch?: false;
+      /**
+       * Query the dataset-only endpoint even when semantic layers are
+       * enabled. Used by callers that resolve a dataset by name and must not
+       * be answered with a same-named semantic view.
+       */
+      datasetsOnly?: boolean;
+    }
+);
 
 /**
  * Fetches one page of datasources by name, ordered by name.
@@ -71,6 +84,13 @@ export const fetchDatasourceList = (
     get = SupersetClient.get,
   }: FetchDatasourceListOptions = {},
 ): Promise<DatasourceListPage> => {
+  if (exactMatch && !datasetsOnly) {
+    // Enforced at the type level too; this guards plain-JS callers.
+    throw new Error(
+      'fetchDatasourceList: exactMatch requires datasetsOnly — the combined ' +
+        'datasource endpoint only supports substring name filters.',
+    );
+  }
   const useCombinedList =
     !datasetsOnly && isFeatureEnabled(FeatureFlag.SemanticLayers);
   const query = rison.encode({

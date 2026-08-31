@@ -820,6 +820,29 @@ test('ignores a late failure from a search the user has moved on from', async ()
   expect(await findSelectOption('fast')).toBeInTheDocument();
 });
 
+test('still surfaces a base-fetch failure that lands mid-search', async () => {
+  const error = 'Fetch error';
+  let rejectBase: (reason: Error) => void = () => {};
+  const loadOptions = jest.fn(async (search: string) => {
+    if (search === '') {
+      // Defer the base page so it can fail after the user starts searching.
+      return new Promise<never>((_, reject) => {
+        rejectBase = reject;
+      });
+    }
+    return { data: [{ label: search, value: search }], totalCount: 100 };
+  });
+  render(<AsyncSelect {...defaultProps} options={loadOptions} />);
+  await open();
+  await type('abc');
+  expect(await findSelectOption('abc')).toBeInTheDocument();
+
+  // Base fetches keep the accumulator and allValuesLoaded up to date even
+  // mid-search, so their failures must surface too.
+  rejectBase(new Error(error));
+  expect(await screen.findByText(error)).toBeInTheDocument();
+});
+
 test('does not fire a new request for the same search input', async () => {
   const loadOptions = jest.fn(async () => ({ data: [], totalCount: 0 }));
   render(

@@ -491,13 +491,17 @@ const AsyncSelect = forwardRef(
             }
           })
           .catch((response: Response) => {
-            // Same rule as for results: a failure belonging to a search the
-            // user has since moved on from must not replace the outcome of
-            // the fetch that superseded it.
-            if (inputValueRef.current === search) {
-              return internalOnError(response);
+            // Mirror the results guard above: a failure belonging to a search
+            // the user has since moved on from must not replace the outcome
+            // of the fetch that superseded it. Base fetches (search === '')
+            // are exempt exactly as their results are — they maintain the
+            // accumulator and allValuesLoaded, so their failures must stay
+            // visible even when they land mid-search. The consumer's onError
+            // is skipped along with the banner for superseded searches.
+            if (search && inputValueRef.current !== search) {
+              return undefined;
             }
-            return undefined;
+            return internalOnError(response);
           })
           .finally(() => {
             inFlightFetchesRef.current = Math.max(
