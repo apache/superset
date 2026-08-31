@@ -32,6 +32,7 @@ import {
 } from 'spec/helpers/testing-library';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import GroupByFilterCard, {
+  applyColumnAllowlist,
   createLabelSortComparator,
 } from './GroupByFilterCard';
 
@@ -66,6 +67,33 @@ test('preserves source order when sortAscending is unset', () => {
   const compare = createLabelSortComparator(undefined);
   expect(compare(apple, banana)).toBe(0);
   expect(compare(banana, apple)).toBe(0);
+});
+
+const columnOptions = [
+  { label: 'Country', value: 'country' },
+  { label: 'State', value: 'state' },
+  { label: 'City', value: 'city' },
+];
+
+test('returns all options when the allowlist is unset (backwards compatible)', () => {
+  expect(applyColumnAllowlist(columnOptions, undefined)).toEqual(columnOptions);
+});
+
+test('returns all options when the allowlist is empty (no restriction)', () => {
+  expect(applyColumnAllowlist(columnOptions, [])).toEqual(columnOptions);
+});
+
+test('keeps only allowlisted columns and preserves their order', () => {
+  expect(applyColumnAllowlist(columnOptions, ['city', 'country'])).toEqual([
+    { label: 'Country', value: 'country' },
+    { label: 'City', value: 'city' },
+  ]);
+});
+
+test('ignores allowlist entries that are not real columns', () => {
+  expect(
+    applyColumnAllowlist(columnOptions, ['state', 'does_not_exist']),
+  ).toEqual([{ label: 'State', value: 'state' }]);
 });
 
 /**
@@ -370,4 +398,53 @@ test('renders the column-loading spinner small and muted', async () => {
   const spinner = await screen.findByTestId('loading-indicator');
   expect(spinner).toHaveClass('inline');
   expect(spinner).toHaveStyle({ opacity: 0.25, width: '40px' });
+});
+
+/**
+ * sc-119327: the builder-configured column allowlist (stored on
+ * controlValues.columnsAllowlist) restricts which groupable columns a viewer
+ * may pick. Re-expressed in this suite's fetchMock idiom; the pure filtering
+ * logic is proven by the applyColumnAllowlist unit tests above.
+ */
+const allowlistDataset = {
+  result: {
+    table_name: 'cleaned_sales_data',
+    columns: [
+      { column_name: 'country', verbose_name: 'Country', filterable: true },
+      { column_name: 'state', verbose_name: 'State', filterable: true },
+      { column_name: 'city', verbose_name: 'City', filterable: true },
+    ],
+  },
+};
+
+test('only offers allowlisted columns to viewers', async () => {
+  fetchMock.get('glob:*/api/v1/dataset/320', allowlistDataset);
+
+  render(
+    <GroupByFilterCard
+      customizationItem={{
+        ...customization([{ datasetId: 320 }]),
+        controlValues: { columnsAllowlist: ['country', 'city'] },
+      }}
+    />,
+    { useRedux: true, initialState },
+  );
+
+  userEvent.click(await screen.findByRole('combobox'));
+
+  expect(await screen.findByText('Country')).toBeInTheDocument();
+  expect(screen.getByText('City')).toBeInTheDocument();
+  expect(screen.queryByText('State')).not.toBeInTheDocument();
+});
+
+test('offers every groupable column when no allowlist is configured', async () => {
+  fetchMock.get('glob:*/api/v1/dataset/321', allowlistDataset);
+
+  renderCard([{ datasetId: 321 }]);
+
+  userEvent.click(await screen.findByRole('combobox'));
+
+  expect(await screen.findByText('Country')).toBeInTheDocument();
+  expect(screen.getByText('State')).toBeInTheDocument();
+  expect(screen.getByText('City')).toBeInTheDocument();
 });
