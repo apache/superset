@@ -29,6 +29,12 @@ export interface DatasourceModalProps {
   addSuccessToast: (msg: string) => void;
   addDangerToast: (msg: string) => void;
   datasource: DatasetObject;
+  /**
+   * ETag of the dataset read the form was seeded from. Replayed as `If-Match`
+   * on save so a stale form can't clobber a newer write. Fetched by the modal
+   * when the caller doesn't already have one.
+   */
+  etag?: string;
   onChange: () => {};
   onDatasourceSave: (datasource: object, errors?: Array<any>) => {};
   onHide: () => {};
