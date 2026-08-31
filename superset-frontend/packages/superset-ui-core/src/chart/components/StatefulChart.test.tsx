@@ -750,7 +750,35 @@ test('resolves async (202) responses via the injected handleAsyncChartData hook'
   });
 });
 
-test('requests async_mode when resolveAsyncMode opts in and 202 is handled', async () => {
+test('requests async_mode and the tab id when opting in and 202 is handled', async () => {
+  mockChartClient.client.post.mockResolvedValue({
+    response: { status: 200 } as Response,
+    json: [{ data: 'sync-from-cache' }],
+  });
+  const handleAsyncChartData = jest.fn().mockResolvedValue([{ data: 'x' }]);
+
+  render(
+    <StatefulChart
+      formData={mockFormData}
+      chartType="test_chart"
+      hooks={{
+        handleAsyncChartData,
+        resolveAsyncMode: () => true,
+        getTabId: () => 'tab-7',
+      }}
+    />,
+  );
+
+  await waitFor(() => {
+    expect(mockChartClient.client.post).toHaveBeenCalledTimes(1);
+  });
+  const { jsonPayload } = mockChartClient.client.post.mock.calls[0][0];
+  expect(jsonPayload.async_mode).toBe(true);
+  // The tab id lets the backend ref-count this tab (per-tab cancel/detach).
+  expect(jsonPayload.tab_id).toBe('tab-7');
+});
+
+test('omits the tab id when no getTabId hook is wired', async () => {
   mockChartClient.client.post.mockResolvedValue({
     response: { status: 200 } as Response,
     json: [{ data: 'sync-from-cache' }],
@@ -770,6 +798,7 @@ test('requests async_mode when resolveAsyncMode opts in and 202 is handled', asy
   });
   const { jsonPayload } = mockChartClient.client.post.mock.calls[0][0];
   expect(jsonPayload.async_mode).toBe(true);
+  expect(jsonPayload.tab_id).toBeUndefined();
 });
 
 test('omits async_mode when resolveAsyncMode opts out', async () => {

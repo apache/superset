@@ -206,6 +206,62 @@ def test_cookie_signed_with_old_secret_is_reminted_with_current_secret(mocker) -
     assert _ws_set_cookies(client.get("/_ws_probe"))
 
 
+def _mint_ws_token(
+    exp_delta_seconds: int,
+    secret: str = "x" * 40,
+    channel_id: str = "user:1",
+) -> str:
+    from superset.websocket.permissions import (
+        REALTIME_NOTIFICATION_JWT_AUDIENCE,
+        REALTIME_NOTIFICATION_JWT_ISSUER,
+    )
+
+    return jwt.encode(
+        {
+            "channel": channel_id,
+            "principal_type": "user",
+            "sub": channel_id.split(":")[1],
+            "aud": REALTIME_NOTIFICATION_JWT_AUDIENCE,
+            "iss": REALTIME_NOTIFICATION_JWT_ISSUER,
+            "exp": datetime.now(tz=timezone.utc) + timedelta(seconds=exp_delta_seconds),
+        },
+        secret,
+        algorithm="HS256",
+    )
+
+
+def test_cookie_not_reminted_when_fresh(mocker) -> None:
+    from superset.websocket import channel
+
+    client = _make_ws_app().test_client()
+    mocker.patch.object(channel, "can_access_realtime_notifications", return_value=True)
+    mocker.patch.object(
+        channel.security_manager, "get_current_guest_user_if_guest", return_value=None
+    )
+    mocker.patch.object(channel, "get_user_id", return_value=1)
+
+    # Full lifetime remaining (> half of 3600s) → the hook leaves it alone, so a
+    # Set-Cookie header is not written on every request.
+    client.set_cookie("superset-ws-token", _mint_ws_token(3600))
+    assert not _ws_set_cookies(client.get("/_ws_probe"))
+
+
+def test_cookie_reminted_inside_refresh_window(mocker) -> None:
+    from superset.websocket import channel
+
+    client = _make_ws_app().test_client()
+    mocker.patch.object(channel, "can_access_realtime_notifications", return_value=True)
+    mocker.patch.object(
+        channel.security_manager, "get_current_guest_user_if_guest", return_value=None
+    )
+    mocker.patch.object(channel, "get_user_id", return_value=1)
+
+    # Only 60s remaining (< half of 3600s) → sliding-window re-mint keeps an active
+    # surface's socket alive past the original expiry (Finding 6).
+    client.set_cookie("superset-ws-token", _mint_ws_token(60))
+    assert _ws_set_cookies(client.get("/_ws_probe"))
+
+
 def test_cookie_cleared_for_anonymous(mocker) -> None:
     from superset.websocket import channel
 

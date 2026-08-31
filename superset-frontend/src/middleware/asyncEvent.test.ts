@@ -25,6 +25,35 @@ jest.mock('@superset-ui/core', () => ({
   isFeatureEnabled: jest.fn(),
 }));
 
+// Mutable tab-id mock (overrides the global shim) so a test can change the tab id
+// between submit and cancel. `var` + lazy init sidesteps jest.mock hoisting/TDZ.
+/* eslint-disable no-var, vars-on-top */
+var mockTabId: string;
+/* eslint-enable no-var, vars-on-top */
+jest.mock('src/hooks/useTabId', () => {
+  mockTabId = 'test-tab-id';
+  return {
+    getTabId: () => mockTabId,
+    subscribeTabIdChange: () => () => {},
+  };
+});
+
+// Mock the shared realtime client so no real socket is opened and we can drive
+// the "socket (re)connected" event that triggers the WS-mode catch-up.
+/* eslint-disable no-var, vars-on-top */
+var mockRealtimeOpenListener: (() => void) | undefined;
+/* eslint-enable no-var, vars-on-top */
+jest.mock('src/middleware/realtime', () => ({
+  connectRealtime: jest.fn(),
+  subscribeRealtime: jest.fn(() => () => {}),
+  subscribeRealtimeOpen: (listener: () => void) => {
+    mockRealtimeOpenListener = listener;
+    return () => {
+      mockRealtimeOpenListener = undefined;
+    };
+  },
+}));
+
 const mockedIsFeatureEnabled = isFeatureEnabled as jest.Mock;
 
 const STATUS_CHANGES_ENDPOINT = 'glob:*/api/v1/task/status_changes*';
@@ -63,6 +92,7 @@ afterEach(() => {
   jest.useRealTimers();
   fetchMock.clearHistory().removeRoutes();
   mockedIsFeatureEnabled.mockRestore();
+  mockTabId = 'test-tab-id';
 });
 
 test('re-issues the request once every query task succeeds', async () => {
@@ -183,6 +213,50 @@ test('aborting one chart does not cancel a shared task another chart still await
   controllerB.abort();
   await expect(b).rejects.toThrow('Aborted');
   expect(fetchMock.callHistory.calls(CANCEL_ENDPOINT)).toHaveLength(1);
+});
+
+test('cancel uses the tab id the backend recorded (echoed in the 202)', async () => {
+  // The 202 echoes the tab id the backend recorded as this tab's consumer.
+  // Cancel must use that value, not the tab id read fresh at cancel time — a
+  // duplicate-tab collision could otherwise reassign getTabId() and detach the
+  // wrong subscription.
+  queueStatuses(); // task never resolves on its own
+  asyncEvent.init(config);
+
+  const controller = new AbortController();
+  const promise = asyncEvent.waitForAsyncData(
+    { task_ids: ['task-1'], tab_id: 'tab-A' },
+    jest.fn(),
+    controller.signal,
+  );
+
+  mockTabId = 'tab-B'; // reassigned after submit — must NOT be used for cancel
+  controller.abort();
+
+  await expect(promise).rejects.toThrow('Aborted');
+  const cancelCalls = fetchMock.callHistory.calls(CANCEL_ENDPOINT);
+  expect(cancelCalls).toHaveLength(1);
+  const body = JSON.parse(String(cancelCalls[0].options.body));
+  expect(body.tab_id).toBe('tab-A');
+});
+
+test('cancel falls back to the current tab id when the 202 carried none', async () => {
+  queueStatuses();
+  asyncEvent.init(config);
+
+  mockTabId = 'tab-current';
+  const controller = new AbortController();
+  const promise = asyncEvent.waitForAsyncData(
+    { task_ids: ['task-1'] }, // no tab_id echoed
+    jest.fn(),
+    controller.signal,
+  );
+  controller.abort();
+
+  await expect(promise).rejects.toThrow('Aborted');
+  const cancelCalls = fetchMock.callHistory.calls(CANCEL_ENDPOINT);
+  const body = JSON.parse(String(cancelCalls[0].options.body));
+  expect(body.tab_id).toBe('tab-current');
 });
 
 test('settles every request awaiting a deduplicated shared task', async () => {
@@ -334,9 +408,12 @@ test('backs off while awaited tasks stay quiet, then polls eagerly again on prog
   await expect(promise).resolves.toEqual([]);
 });
 
-const realtime = (taskId: string, status: string) => ({
-  channel: `realtime:user:1`,
-  payload: { task_id: taskId, status },
+// The shared realtime client passes a `task.status` message's payload straight to
+// the handler (the topic already matched), so tests call the handler with just
+// the payload.
+const taskStatusPayload = (taskId: string, status: string) => ({
+  task_id: taskId,
+  status,
 });
 
 test('a realtime message settles a waiting chart without a poll', async () => {
@@ -355,7 +432,7 @@ test('a realtime message settles a waiting chart without a poll', async () => {
   // registers its waiter synchronously (before any await), so a fast task
   // whose event arrives immediately after the 202 is never missed. (Regression
   // guard: registration must not sit behind an awaited baseline fetch.)
-  asyncEvent.handleRealtimeMessage(realtime('task-1', 'success'));
+  asyncEvent.handleTaskStatus(taskStatusPayload('task-1', 'success'));
 
   expect(await promise).toEqual([{ rows: 1 }]);
   expect(refetch).toHaveBeenCalledTimes(1);
@@ -371,13 +448,13 @@ test('a realtime failure message rejects the waiting chart', async () => {
     refetch,
   );
 
-  asyncEvent.handleRealtimeMessage(realtime('task-1', 'failure'));
+  asyncEvent.handleTaskStatus(taskStatusPayload('task-1', 'failure'));
 
   await expect(promise).rejects.toThrow();
   expect(refetch).not.toHaveBeenCalled();
 });
 
-test('ignores non-realtime channels', async () => {
+test('ignores a payload without task_id/status', async () => {
   queueStatuses();
   asyncEvent.init(config);
 
@@ -387,15 +464,13 @@ test('ignores non-realtime channels', async () => {
     refetch,
   );
 
-  // A public entity-change nudge carries no status and must not settle a chart.
-  asyncEvent.handleRealtimeMessage({
-    channel: 'entity-changes:task',
-    payload: { entity_type: 'task', id: 'task-1' },
-  });
+  // A non-task-status payload (e.g. an entity-change nudge shape) must not
+  // settle a chart.
+  asyncEvent.handleTaskStatus({ entity_type: 'task', id: 'task-1' });
   expect(refetch).not.toHaveBeenCalled();
 
   // The task is still pending; complete it so the test doesn't leak a waiter.
-  asyncEvent.handleRealtimeMessage(realtime('task-1', 'success'));
+  asyncEvent.handleTaskStatus(taskStatusPayload('task-1', 'success'));
   await promise;
 });
 
@@ -407,6 +482,220 @@ test('a realtime message is a no-op when async queries are disabled', () => {
   asyncEvent.init(config);
 
   expect(() =>
-    asyncEvent.handleRealtimeMessage(realtime('task-1', 'success')),
+    asyncEvent.handleTaskStatus(taskStatusPayload('task-1', 'success')),
   ).not.toThrow();
+});
+
+// --- WebSocket mode: no interval polling; catch-up on registration/reconnect ---
+
+const wsConfig = {
+  WEBSOCKET_ENABLE: true,
+  GLOBAL_ASYNC_QUERIES_POLLING_DELAY: 20,
+  GLOBAL_ASYNC_QUERIES_POLLING_STALE_TIMEOUT: 600_000,
+};
+
+test('WS mode: settles via the socket without any status_changes polling', async () => {
+  queueStatuses(); // registration catch-up sees no change
+  asyncEvent.init(wsConfig);
+
+  const refetch = jest.fn().mockResolvedValue([{ rows: 1 }]);
+  const promise = asyncEvent.waitForAsyncData(
+    { task_ids: ['task-1'] },
+    refetch,
+  );
+
+  // Completion arrives over the socket, not a poll.
+  asyncEvent.handleTaskStatus(taskStatusPayload('task-1', 'success'));
+
+  expect(await promise).toEqual([{ rows: 1 }]);
+  // At most the single one-shot registration catch-up ran — never a loop. (It
+  // no-ops if the socket settled the waiter before its microtask ran.)
+  expect(
+    fetchMock.callHistory.calls(STATUS_CHANGES_ENDPOINT).length,
+  ).toBeLessThanOrEqual(1);
+});
+
+test('WS mode: does not start an interval poll loop', async () => {
+  jest.useFakeTimers();
+  queueStatuses();
+  asyncEvent.init(wsConfig);
+
+  const controller = new AbortController();
+  const promise = asyncEvent.waitForAsyncData(
+    { task_ids: ['task-1'] },
+    jest.fn(),
+    controller.signal,
+  );
+
+  // Advance well past several poll intervals; a poll loop would fire repeatedly.
+  await jest.advanceTimersByTimeAsync(5000);
+  // Only the single registration catch-up ran — no recurring polling.
+  expect(fetchMock.callHistory.calls(STATUS_CHANGES_ENDPOINT)).toHaveLength(1);
+
+  controller.abort(); // clean up the pending waiter + give-up timer
+  await expect(promise).rejects.toThrow('Aborted');
+  jest.useRealTimers();
+});
+
+test('WS mode: registration catch-up settles a task that completed pre-registration', async () => {
+  // The very first (registration) catch-up fetch returns the task as already
+  // succeeded — no empty baseline in front of it.
+  statusResponses = [
+    {
+      statuses: { 'task-1': { status: 'success' } },
+      cursor: '2020-01-01T00:00:01',
+    },
+  ];
+  asyncEvent.init(wsConfig);
+
+  const refetch = jest.fn().mockResolvedValue([{ rows: 2 }]);
+  // No socket message is delivered; the registration catch-up alone settles it.
+  const result = await asyncEvent.waitForAsyncData(
+    { task_ids: ['task-1'] },
+    refetch,
+  );
+
+  expect(result).toEqual([{ rows: 2 }]);
+  expect(refetch).toHaveBeenCalledTimes(1);
+});
+
+test('WS mode: a reconnect runs one catch-up that reconciles the gap', async () => {
+  // queueStatuses prepends an empty baseline (consumed by the registration
+  // catch-up); the success batch is served to the reconnect catch-up.
+  queueStatuses({ 'task-1': { status: 'success' } });
+  asyncEvent.init(wsConfig);
+
+  const refetch = jest.fn().mockResolvedValue([{ rows: 3 }]);
+  const promise = asyncEvent.waitForAsyncData(
+    { task_ids: ['task-1'] },
+    refetch,
+  );
+
+  // Let the registration catch-up run and finish (consuming the empty baseline)
+  // so the reconnect below is a distinct, non-coalesced catch-up.
+  await new Promise(resolve => {
+    setTimeout(resolve, 0);
+  });
+
+  // Simulate the socket reconnecting: the shared client fires its open-listener.
+  mockRealtimeOpenListener?.();
+
+  expect(await promise).toEqual([{ rows: 3 }]);
+  expect(refetch).toHaveBeenCalledTimes(1);
+});
+
+test('WS mode: coalesces many same-tick registrations into one catch-up', async () => {
+  jest.useFakeTimers();
+  queueStatuses(); // all catch-ups see no change
+  asyncEvent.init(wsConfig);
+
+  // Three charts register in the same tick (a dashboard loading async charts).
+  const controllers = [
+    new AbortController(),
+    new AbortController(),
+    new AbortController(),
+  ];
+  const promises = controllers.map((c, i) =>
+    asyncEvent.waitForAsyncData(
+      { task_ids: [`task-${i}`] },
+      jest.fn(),
+      c.signal,
+    ),
+  );
+
+  await jest.advanceTimersByTimeAsync(0); // flush the coalescing microtask + fetch
+  // A single status_changes request reconciles all three (waitersByTaskId is
+  // global) — not one request per chart.
+  expect(fetchMock.callHistory.calls(STATUS_CHANGES_ENDPOINT)).toHaveLength(1);
+
+  controllers.forEach(c => c.abort());
+  await Promise.allSettled(promises);
+  jest.useRealTimers();
+});
+
+test('WS mode: an in-flight catch-up does not clobber a cursor rewound mid-flight', async () => {
+  asyncEvent.init(wsConfig);
+
+  // Control the first catch-up's resolution so a second waiter can register
+  // (rewinding the cursor to an earlier watermark) while it is in flight.
+  let resolveFirst: () => void = () => {};
+  const firstInFlight = new Promise<void>(res => {
+    resolveFirst = res;
+  });
+  let calls = 0;
+  fetchMock.removeRoutes().clearHistory();
+  fetchMock.get(STATUS_CHANGES_ENDPOINT, () => {
+    calls += 1;
+    // First catch-up (from T2) stays in flight, then returns a later cursor T3.
+    if (calls === 1) {
+      return firstInFlight.then(() => ({
+        status: 200,
+        body: { statuses: {}, cursor: '2020-01-01T00:00:03' },
+      }));
+    }
+    return {
+      status: 200,
+      body: { statuses: {}, cursor: '2020-01-01T00:00:09' },
+    };
+  });
+  fetchMock.post(CANCEL_ENDPOINT, { status: 200, body: { action: 'aborted' } });
+
+  // Waiter 1 (202 cursor T2) → global cursor T2 → first catch-up fetches from T2.
+  const c1 = new AbortController();
+  const p1 = asyncEvent.waitForAsyncData(
+    { task_ids: ['t1'], cursor: '2020-01-01T00:00:02' },
+    jest.fn(),
+    c1.signal,
+  );
+  // Let the first catch-up actually start its (deferred) fetch.
+  await new Promise(resolve => {
+    setTimeout(resolve, 0);
+  });
+  expect(calls).toBe(1);
+
+  // Waiter 2 (earlier 202 cursor T1) registers while the first is in flight →
+  // rewinds the global cursor to T1 and queues a follow-up catch-up.
+  const c2 = new AbortController();
+  const p2 = asyncEvent.waitForAsyncData(
+    { task_ids: ['t2'], cursor: '2020-01-01T00:00:01' },
+    jest.fn(),
+    c2.signal,
+  );
+
+  // The first catch-up resolves (returns T3); it must NOT overwrite the rewound T1.
+  resolveFirst();
+  await new Promise(resolve => {
+    setTimeout(resolve, 0);
+  });
+
+  // The queued follow-up must fetch from T1 (the rewound watermark), not T3.
+  const secondCall = fetchMock.callHistory.calls(STATUS_CHANGES_ENDPOINT)[1];
+  expect(decodeURIComponent(secondCall.url)).toContain('2020-01-01T00:00:01');
+  expect(decodeURIComponent(secondCall.url)).not.toContain(
+    '2020-01-01T00:00:03',
+  );
+
+  c1.abort();
+  c2.abort();
+  await Promise.allSettled([p1, p2]);
+});
+
+test('WS mode: a genuinely lost completion gives up after the timeout', async () => {
+  jest.useFakeTimers();
+  queueStatuses(); // nothing ever reports success
+  asyncEvent.init({
+    ...wsConfig,
+    GLOBAL_ASYNC_QUERIES_POLLING_STALE_TIMEOUT: 1000,
+  });
+
+  const promise = asyncEvent.waitForAsyncData(
+    { task_ids: ['task-1'] },
+    jest.fn(),
+  );
+  // Attach the rejection handler before the give-up timer fires.
+  const expectation = expect(promise).rejects.toThrow('Timed out');
+
+  await jest.advanceTimersByTimeAsync(1000);
+  await expectation;
+  jest.useRealTimers();
 });

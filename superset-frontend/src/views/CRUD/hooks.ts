@@ -47,7 +47,7 @@ import SupersetText from 'src/utils/textUtils';
 import { DatabaseObject } from 'src/features/databases/types';
 import {
   subscribeRealtime,
-  type RealtimeMessage,
+  subscribeRealtimeOpen,
 } from 'src/middleware/realtime';
 import {
   FavoriteStatus,
@@ -273,7 +273,6 @@ export function useListViewResource<D extends object = any>(
   useEffect(() => {
     if (!enableRealtime) return undefined;
 
-    const channel = `entity-changes:${resource}`;
     const pendingIds = new Set<string>();
     let debounceId: ReturnType<typeof setTimeout> | undefined;
 
@@ -284,14 +283,10 @@ export function useListViewResource<D extends object = any>(
     const isDisplayed = (id: string): boolean =>
       collectionRef.current.some(row => rowId(row) === id);
 
-    const flush = () => {
-      debounceId = undefined;
-      // Re-check membership: the collection may have changed (paged/filtered)
-      // since the nudges arrived, so only fetch rows still on screen.
-      const ids = [...pendingIds].filter(isDisplayed);
-      pendingIds.clear();
+    // Batch-fetch the given displayed rows and merge them in place (keep order,
+    // count, and untouched row references so React re-renders only changed rows).
+    const patchRows = (ids: string[]) => {
       if (!ids.length) return;
-
       const query = rison.encode_uri({
         filters: [{ col: 'id', opr: 'in', value: ids }],
         page: 0,
@@ -302,8 +297,6 @@ export function useListViewResource<D extends object = any>(
           const fetched: D[] = json.result ?? [];
           if (!fetched.length) return;
           const byId = new Map(fetched.map(row => [rowId(row), row]));
-          // Replace matched rows in place; keep order, count, and every
-          // untouched row reference (so React only re-renders changed rows).
           setState(current => ({
             ...current,
             collection: current.collection.map(
@@ -317,22 +310,45 @@ export function useListViewResource<D extends object = any>(
         });
     };
 
-    const unsubscribe = subscribeRealtime((message: RealtimeMessage) => {
-      if (message.channel !== channel) return;
-      const { payload } = message;
-      if (!payload || typeof payload !== 'object') return;
-      const { id } = payload as { id?: unknown };
-      if (id == null) return;
-      const idStr = String(id);
-      if (!isDisplayed(idStr)) return;
-      pendingIds.add(idStr);
-      if (debounceId === undefined) {
-        debounceId = setTimeout(flush, REALTIME_REFETCH_DEBOUNCE_MS);
-      }
+    const flush = () => {
+      debounceId = undefined;
+      // Re-check membership: the collection may have changed (paged/filtered)
+      // since the nudges arrived, so only fetch rows still on screen.
+      const ids = [...pendingIds].filter(isDisplayed);
+      pendingIds.clear();
+      patchRows(ids);
+    };
+
+    // `entity.changed` nudges are broadcast for every entity type; filter to this
+    // list's resource by the payload's entity_type before matching rows.
+    const unsubscribe = subscribeRealtime(
+      'entity.changed',
+      (payload: unknown) => {
+        if (!payload || typeof payload !== 'object') return;
+        const { entity_type: entityType, id } = payload as {
+          entity_type?: unknown;
+          id?: unknown;
+        };
+        if (entityType !== resource || id == null) return;
+        const idStr = String(id);
+        if (!isDisplayed(idStr)) return;
+        pendingIds.add(idStr);
+        if (debounceId === undefined) {
+          debounceId = setTimeout(flush, REALTIME_REFETCH_DEBOUNCE_MS);
+        }
+      },
+    );
+
+    // Nudges are lossy and not replayed, so on a socket (re)connect refetch the
+    // currently-displayed rows once to reconcile anything missed while the socket
+    // was down. In-place merge, no full-list redraw.
+    const unsubscribeOpen = subscribeRealtimeOpen(() => {
+      patchRows(collectionRef.current.map(rowId));
     });
 
     return () => {
       unsubscribe();
+      unsubscribeOpen();
       if (debounceId !== undefined) clearTimeout(debounceId);
     };
   }, [enableRealtime, resource]);

@@ -16,12 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { SupersetClient } from '@superset-ui/core';
 import {
   connectRealtime,
   dispatchRealtimeMessage,
   resetRealtimeForTests,
   subscribeRealtime,
-  type RealtimeMessage,
+  subscribeRealtimeOpen,
 } from 'src/middleware/realtime';
 
 // Controllable useTabId mock (overrides the global shim for this file) so we can
@@ -58,6 +59,8 @@ class FakeWebSocket {
 
   readyState = 0;
 
+  onopen: (() => void) | null = null;
+
   onmessage: ((event: { data: string }) => void) | null = null;
 
   onclose: (() => void) | null = null;
@@ -91,42 +94,52 @@ const ENABLED = {
   WEBSOCKET_URL: 'ws://localhost:8080/',
 };
 
-test('dispatches a parsed envelope to every subscribed handler', () => {
+test('dispatches a parsed envelope to every handler of its topic', () => {
   const a = jest.fn();
   const b = jest.fn();
-  subscribeRealtime(a);
-  subscribeRealtime(b);
+  subscribeRealtime('entity.changed', a);
+  subscribeRealtime('entity.changed', b);
 
   dispatchRealtimeMessage(
-    JSON.stringify({ channel: 'entity-changes:task', payload: { id: '7' } }),
+    JSON.stringify({ topic: 'entity.changed', payload: { id: '7' } }),
   );
 
-  const expected: RealtimeMessage = {
-    channel: 'entity-changes:task',
-    payload: { id: '7' },
-  };
-  expect(a).toHaveBeenCalledWith(expected);
-  expect(b).toHaveBeenCalledWith(expected);
+  expect(a).toHaveBeenCalledWith({ id: '7' });
+  expect(b).toHaveBeenCalledWith({ id: '7' });
+});
+
+test('dispatches only to handlers subscribed to the message topic', () => {
+  const taskStatus = jest.fn();
+  const entityChanged = jest.fn();
+  subscribeRealtime('task.status', taskStatus);
+  subscribeRealtime('entity.changed', entityChanged);
+
+  dispatchRealtimeMessage(
+    JSON.stringify({ topic: 'task.status', payload: { task_id: 'a' } }),
+  );
+
+  expect(taskStatus).toHaveBeenCalledWith({ task_id: 'a' });
+  expect(entityChanged).not.toHaveBeenCalled();
 });
 
 test('unsubscribe stops a handler from receiving further messages', () => {
   const handler = jest.fn();
-  const unsubscribe = subscribeRealtime(handler);
+  const unsubscribe = subscribeRealtime('entity.changed', handler);
 
   unsubscribe();
   dispatchRealtimeMessage(
-    JSON.stringify({ channel: 'entity-changes:task', payload: {} }),
+    JSON.stringify({ topic: 'entity.changed', payload: {} }),
   );
 
   expect(handler).not.toHaveBeenCalled();
 });
 
-test('ignores malformed data and messages without a channel', () => {
+test('ignores malformed data and messages without a topic', () => {
   const handler = jest.fn();
-  subscribeRealtime(handler);
+  subscribeRealtime('entity.changed', handler);
 
   expect(() => dispatchRealtimeMessage('not json')).not.toThrow();
-  dispatchRealtimeMessage(JSON.stringify({ payload: { id: '7' } })); // no channel
+  dispatchRealtimeMessage(JSON.stringify({ payload: { id: '7' } })); // no topic
 
   expect(handler).not.toHaveBeenCalled();
 });
@@ -136,15 +149,33 @@ test('a throwing handler does not break other handlers', () => {
     throw new Error('boom');
   });
   const good = jest.fn();
-  subscribeRealtime(bad);
-  subscribeRealtime(good);
+  subscribeRealtime('entity.changed', bad);
+  subscribeRealtime('entity.changed', good);
 
   expect(() =>
     dispatchRealtimeMessage(
-      JSON.stringify({ channel: 'entity-changes:task', payload: {} }),
+      JSON.stringify({ topic: 'entity.changed', payload: {} }),
     ),
   ).not.toThrow();
   expect(good).toHaveBeenCalledTimes(1);
+});
+
+test('notifies open-listeners when the socket connects', () => {
+  const onOpen = jest.fn();
+  const unsubscribe = subscribeRealtimeOpen(onOpen);
+  connectRealtime(ENABLED);
+
+  expect(FakeWebSocket.instances).toHaveLength(1);
+  FakeWebSocket.instances[0].onopen?.();
+  expect(onOpen).toHaveBeenCalledTimes(1);
+
+  // A reopen (openSocket wires onopen on every socket) notifies again.
+  FakeWebSocket.instances[0].onopen?.();
+  expect(onOpen).toHaveBeenCalledTimes(2);
+
+  unsubscribe();
+  FakeWebSocket.instances[0].onopen?.();
+  expect(onOpen).toHaveBeenCalledTimes(2); // no longer notified
 });
 
 test('does not open a socket when disabled', () => {
@@ -154,7 +185,7 @@ test('does not open a socket when disabled', () => {
 
 test('opens a socket when enabled and routes its messages to handlers', () => {
   const handler = jest.fn();
-  subscribeRealtime(handler);
+  subscribeRealtime('task.status', handler);
   connectRealtime(ENABLED);
 
   expect(FakeWebSocket.instances).toHaveLength(1);
@@ -168,13 +199,10 @@ test('opens a socket when enabled and routes its messages to handlers', () => {
   expect(wsUrl.searchParams.get('tab_id')).toBe('test-tab-id');
 
   ws.onmessage?.({
-    data: JSON.stringify({ channel: 'realtime:user:1', payload: { ok: true } }),
+    data: JSON.stringify({ topic: 'task.status', payload: { ok: true } }),
   });
 
-  expect(handler).toHaveBeenCalledWith({
-    channel: 'realtime:user:1',
-    payload: { ok: true },
-  });
+  expect(handler).toHaveBeenCalledWith({ ok: true });
 });
 
 test('resolves a root-relative ws url against the page and adds tab_id', () => {
@@ -242,4 +270,43 @@ test('disconnect closes the socket and stops reconnecting', () => {
   jest.advanceTimersByTime(5000);
   expect(FakeWebSocket.instances).toHaveLength(1); // no new socket
   jest.useRealTimers();
+});
+
+test('refreshes the cookie and reconnects before the token expires', async () => {
+  jest.useFakeTimers();
+  const getSpy = jest
+    .spyOn(SupersetClient, 'get')
+    .mockResolvedValue({} as never);
+  try {
+    // A 900s token → the keepalive fires at 0.6 of its life (540s), issuing the
+    // authed cookie-refresh GET, then reconnecting so the new handshake rides a
+    // freshly minted token before the server terminates the socket at expiry.
+    connectRealtime({ ...ENABLED, WEBSOCKET_JWT_EXPIRATION_SECONDS: 900 });
+    expect(FakeWebSocket.instances).toHaveLength(1);
+
+    jest.advanceTimersByTime(540_000);
+    expect(getSpy).toHaveBeenCalledWith({ endpoint: '/api/v1/me/' });
+
+    // Flush the refresh promise chain so the .finally reconnect runs.
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(FakeWebSocket.instances).toHaveLength(2);
+  } finally {
+    getSpy.mockRestore();
+    jest.useRealTimers();
+  }
+});
+
+test('does not schedule a keepalive without a configured token lifetime', () => {
+  jest.useFakeTimers();
+  const getSpy = jest.spyOn(SupersetClient, 'get');
+  try {
+    connectRealtime(ENABLED); // no WEBSOCKET_JWT_EXPIRATION_SECONDS
+    jest.advanceTimersByTime(60 * 60 * 1000);
+    expect(getSpy).not.toHaveBeenCalled();
+    expect(FakeWebSocket.instances).toHaveLength(1);
+  } finally {
+    getSpy.mockRestore();
+    jest.useRealTimers();
+  }
 });

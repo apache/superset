@@ -315,9 +315,14 @@ export default function StatefulChart(props: StatefulChartProps) {
           ...(force && { force: true }),
           // Opt into async execution per the injected policy (feature flag +
           // deployment default + dashboard override). We handle the 202 below via
-          // handleAsyncChartData; without the hook we stay synchronous.
+          // handleAsyncChartData; without the hook we stay synchronous. Send the
+          // tab id (when the app injected getTabId) so the backend ref-counts
+          // this tab as a consumer of the shared task, matching the Redux path.
           ...(hooks?.handleAsyncChartData && hooks?.resolveAsyncMode?.()
-            ? { async_mode: true }
+            ? {
+                async_mode: true,
+                ...(hooks?.getTabId ? { tab_id: hooks.getTabId() } : {}),
+              }
             : {}),
         },
       };

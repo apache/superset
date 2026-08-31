@@ -159,7 +159,7 @@ class TestTaskManagerPublish:
 
 
 class TestTaskManagerEntityChange:
-    """publish_entity_change emits one opaque nudge to the per-type channel."""
+    """publish_entity_change emits one opaque broadcast nudge on ``realtime``."""
 
     def setup_method(self):
         _reset_prefixes()
@@ -178,18 +178,22 @@ class TestTaskManagerEntityChange:
     @patch(GET_ID, return_value=42)
     @patch(PUBLISH)
     @patch(IS_DEFINED, return_value=True)
-    def test_publishes_opaque_nudge_to_per_type_channel(
+    def test_publishes_opaque_broadcast_nudge(
         self, mock_defined, mock_publish, mock_get_id
     ):
         assert TaskManager.publish_entity_change(uuid.uuid4()) is True
 
-        # One publish to the task type's channel, carrying ONLY opaque ids (the
-        # integer primary key) - no status or payload (the contract is general
-        # across all entity types).
+        # One publish on the single realtime channel, an entity.changed broadcast
+        # envelope carrying ONLY opaque ids (the integer primary key) - no status
+        # (the contract is general across all entity types).
         mock_publish.assert_called_once()
         channel, message = mock_publish.call_args.args[:2]
-        assert channel == "entity-changes:task"
-        assert json.loads(message) == {"entity_type": "task", "id": 42}
+        assert channel == "realtime"
+        assert json.loads(message) == {
+            "topic": "entity.changed",
+            "scope": "authenticated_global",
+            "payload": {"entity_type": "task", "id": 42},
+        }
 
     @patch(GET_ID, return_value=None)
     @patch(PUBLISH)
@@ -238,7 +242,7 @@ class TestTaskManagerPublishRequiredByChanged:
 
 
 class TestTaskManagerPublishTaskStatus:
-    """publish_task_status emits one fanout message carrying routing channels."""
+    """publish_task_status emits one task.status envelope carrying routing keys."""
 
     def setup_method(self):
         _reset_prefixes()
@@ -259,10 +263,10 @@ class TestTaskManagerPublishTaskStatus:
     @patch(DAO)
     @patch(PUBLISH)
     @patch(IS_DEFINED, return_value=True)
-    def test_publishes_principal_channels_without_policy(
+    def test_publishes_principal_routes_without_policy(
         self, mock_defined, mock_publish, mock_dao, mock_policy
     ):
-        """No policy -> principal-grain channels derived from subscribers."""
+        """No policy -> principal-grain routes derived from subscribers."""
         task_uuid = uuid.uuid4()
         mock_dao.find_one_or_none.return_value = MagicMock(id=7, task_type="some_type")
         mock_dao.get_subscriber_principals.return_value = [
@@ -275,11 +279,12 @@ class TestTaskManagerPublishTaskStatus:
         mock_dao.get_subscriber_principals.assert_called_once_with(7)
         mock_publish.assert_called_once()
         channel, message = mock_publish.call_args.args[:2]
-        assert channel == "task-status"
+        assert channel == "realtime"
         assert json.loads(message) == {
-            "task_id": str(task_uuid),
-            "status": "success",
-            "channels": ["user:1", "guest:abc"],
+            "topic": "task.status",
+            "scope": "principal",
+            "payload": {"task_id": str(task_uuid), "status": "success"},
+            "routes": ["user:1", "guest:abc"],
         }
 
     @patch(DAO)
@@ -289,16 +294,67 @@ class TestTaskManagerPublishTaskStatus:
         """A task type's policy narrows delivery to its per-tab channels."""
         task_uuid = uuid.uuid4()
         mock_dao.find_one_or_none.return_value = MagicMock(id=7, task_type="chart")
+        # The per-tab keys are within the task's subscriber principal (user:5), so
+        # they survive validation.
+        mock_dao.get_subscriber_principals.return_value = [
+            {"principal_type": "user", "sub": "5"},
+        ]
         policy = MagicMock()
         policy.routing_channels.return_value = ["user:5:tabA", "user:5:tabB"]
 
         with patch(self.POLICY, return_value=policy):
             assert TaskManager.publish_task_status(task_uuid, "success") is True
 
-        # Per-tab keys used; the principal-grain fallback is not consulted.
-        mock_dao.get_subscriber_principals.assert_not_called()
         _, message = mock_publish.call_args.args[:2]
-        assert json.loads(message)["channels"] == ["user:5:tabA", "user:5:tabB"]
+        body = json.loads(message)
+        assert body["scope"] == "tab"
+        assert body["routes"] == ["user:5:tabA", "user:5:tabB"]
+
+    @patch(DAO)
+    @patch(PUBLISH)
+    @patch(IS_DEFINED, return_value=True)
+    def test_drops_policy_routes_outside_subscriber_principals(
+        self, mock_defined, mock_publish, mock_dao
+    ):
+        """A policy key outside the task's principals is dropped (Finding 5)."""
+        task_uuid = uuid.uuid4()
+        mock_dao.find_one_or_none.return_value = MagicMock(id=7, task_type="chart")
+        mock_dao.get_subscriber_principals.return_value = [
+            {"principal_type": "user", "sub": "5"},
+        ]
+        policy = MagicMock()
+        # user:5:tabA is valid; user:999 belongs to another principal → dropped.
+        policy.routing_channels.return_value = ["user:5:tabA", "user:999"]
+
+        with patch(self.POLICY, return_value=policy):
+            assert TaskManager.publish_task_status(task_uuid, "success") is True
+
+        _, message = mock_publish.call_args.args[:2]
+        assert json.loads(message)["routes"] == ["user:5:tabA"]
+
+    @patch(DAO)
+    @patch(PUBLISH)
+    @patch(IS_DEFINED, return_value=True)
+    def test_all_policy_routes_invalid_publishes_nothing(
+        self, mock_defined, mock_publish, mock_dao
+    ):
+        """When a policy scoped delivery but every key is rejected, publish nothing.
+
+        Broadening to every tab of the principal would break the policy's intended
+        isolation; the interval poll remains the correctness path.
+        """
+        task_uuid = uuid.uuid4()
+        mock_dao.find_one_or_none.return_value = MagicMock(id=7, task_type="chart")
+        mock_dao.get_subscriber_principals.return_value = [
+            {"principal_type": "user", "sub": "5"},
+        ]
+        policy = MagicMock()
+        policy.routing_channels.return_value = ["user:999:tabX"]
+
+        with patch(self.POLICY, return_value=policy):
+            assert TaskManager.publish_task_status(task_uuid, "success") is False
+
+        mock_publish.assert_not_called()
 
     @patch(POLICY)
     @patch(DAO)
@@ -316,7 +372,9 @@ class TestTaskManagerPublishTaskStatus:
 
         assert TaskManager.publish_task_status(uuid.uuid4(), "success") is True
         _, message = mock_publish.call_args.args[:2]
-        assert json.loads(message)["channels"] == ["user:1"]
+        body = json.loads(message)
+        assert body["scope"] == "principal"
+        assert body["routes"] == ["user:1"]
 
     @patch(POLICY, return_value=None)
     @patch(DAO)

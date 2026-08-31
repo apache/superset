@@ -37,41 +37,62 @@ same browser-visible host.
 
 ## Architecture
 
-### Redis Pub/Sub channels and the two tiers
+### The `realtime` Pub/Sub channel and the message envelope
 
-Realtime events are published to Redis **Pub/Sub** by the Superset Flask app
-(`superset/tasks/manager.py`). Pub/Sub is intentionally lossy (fire-and-forget):
-a missed message must be reconciled by a frontend poll or REST refetch.
-Broadcast messages therefore carry only nudges; targeted task-status messages
-carry a server-side `channels` routing field naming the browser channels to
-deliver to.
+Realtime events are published to a single Redis **Pub/Sub** channel, `realtime`,
+by the Superset Flask app (`superset/tasks/manager.py`). Pub/Sub is intentionally
+lossy (fire-and-forget): a missed message must be reconciled by a frontend poll or
+REST refetch.
 
-The server tails two Pub/Sub channels/patterns:
+Each Redis message is a self-describing envelope that separates **what** a message
+is from **who** receives it:
 
-1. **Tier 1 - authenticated entity-change nudges** (`entity-changes:<type>`,
-   e.g. `entity-changes:task`). Broadcast to every connected realtime socket.
-   The payload carries only opaque ids (`{entity_type, id}`) - no status or
-   sensitive data - so a list view can learn "an entity of this type changed"
-   and re-fetch just the affected rows through the authorized API. Each client
-   filters to the ids it renders.
-2. **Tier 2 - targeted task-status fanout** (`task-status`). Published once per
-   task status transition with `{task_id, status, channels}`. `channels` is a
-   list of server-computed routing keys; the websocket server strips it and
-   forwards `{task_id, status}` to each `realtime:<key>` browser channel. Keys
-   are principal-grain by default — `user:<id>` or `guest:<hmac>`, reaching all
-   of a principal's tabs — but a task type may narrow them to a **per-tab**
-   channel (`user:<id>:<tabId>`) so only the tab watching a task is notified
-   (async chart-data does this). A socket is bound to its per-tab channel only
-   when the browser advertises a `tab_id` on the connect URL (see Connection);
-   it is always also reachable on its principal channel.
+```
+{ topic, scope, routes?, payload }
+```
 
-The server forwards each browser message as `{channel, payload}`. Entity-change
-messages preserve the Redis channel (`entity-changes:task`). Task-status
-messages use the server-computed browser channel (`realtime:user:42`,
-`realtime:guest:<hmac>`, or `realtime:user:42:<tabId>`) and do not expose the
-routing list to the browser. The websocket server treats each routing key as
-opaque; correctness of the keys is the producer's responsibility (Superset
-builds every key from an authorized identity).
+- **`topic`** — the semantic stream the browser dispatches on: `task.status`,
+  `entity.changed`, and future topics (`notification.*`, `report.progress`, …). A
+  new surface adds a topic without inventing channel names or overloading payload
+  shapes.
+- **`scope`** — the delivery breadth the server routes by:
+  - `authenticated_global` — broadcast to **every authenticated** realtime socket.
+    This is authenticated-global, **not** public: anonymous users get no realtime
+    principal, no JWT cookie, and therefore no socket, so they never receive these
+    messages. (True anonymous/Public-role realtime would need a separate,
+    restricted model and is out of scope.)
+  - `principal` / `tab` — targeted to the routing keys in `routes`. The server
+    treats the two the same way (deliver to `routes`); the distinction is only
+    descriptive.
+- **`routes`** — server-computed routing keys for a targeted scope: principal-grain
+  `user:<id>` / `guest:<hmac>` (all of a principal's tabs), or per-tab
+  `user:<id>:<tabId>` (one tab). Omitted for a broadcast. **Never forwarded to the
+  browser.**
+- **`payload`** — the feature-defined body forwarded verbatim to the browser.
+
+The two topics in use:
+
+1. **`entity.changed`** (`scope: authenticated_global`). A lossy "an entity
+   changed" broadcast whose payload carries only opaque ids
+   (`{entity_type, id}`) — no status or sensitive data — so a list view can learn
+   that an entity of a type it renders changed and re-fetch just the affected rows
+   through the authorized API. Each client filters by `entity_type` and id.
+2. **`task.status`** (`scope: principal` or `tab`). A targeted `{task_id, status}`
+   message. It is published on a task's **terminal** completion (SUCCESS, FAILURE,
+   ABORTED, TIMED_OUT), not on every intermediate transition — the chart-data
+   client only needs to learn a task finished; intermediate progress for list
+   views rides the `entity.changed` broadcast instead. Keys are principal-grain by
+   default (reaching all of a principal's tabs) but a task type may narrow them to
+   a per-tab channel (async chart-data does this), so only the tab watching a task
+   is notified. A socket is bound to its per-tab channel only when the browser
+   advertises a `tab_id` on the connect URL (see Connection); it is always also
+   reachable on its principal channel.
+
+The server forwards each browser message as `{topic, payload}` — the browser
+dispatches on `topic` and never sees the route it arrived by. The server treats
+each routing key as opaque; the producer is responsible for their correctness and
+validates every policy-supplied key against the task's own subscriber principals
+before publishing, so a key can never target another principal.
 
 ### Connection
 
@@ -97,7 +118,12 @@ per-tab channel (`<channel>:<tab_id>`, derived from the authorized principal
 channel so it can never cross principals), letting the producer target one tab.
 Because permission is checked when Superset mints the JWT and when the websocket
 server accepts the upgrade, revocation after minting is bounded by the token
-lifetime; the Superset default is 15 minutes.
+lifetime; the Superset default is 15 minutes. To keep a long-lived surface
+connected without waiting for a hard disconnect at expiry, Superset re-mints the
+cookie inside a sliding window (any request in the second half of the token's
+life gets a fresh cookie), and the browser client proactively refreshes the
+cookie and reconnects before expiry — so an active or idle-but-open realtime
+surface stays connected while revocation remains bounded by the same lifetime.
 
 During websocket JWT secret rotation, the websocket service can accept both the
 current key (`jwtSecret` / `JWT_SECRET`) and one previous verify-only key
@@ -108,13 +134,16 @@ previous key configured on the websocket service until old cookies and open
 sockets have aged out, then remove it.
 
 The service is stateless apart from process-local live socket handles. Each
-replica subscribes to the same Redis Pub/Sub channels, receives the same lossy
+replica subscribes to the same Redis Pub/Sub channel, receives the same lossy
 events, and forwards only to matching sockets connected to that replica. Sticky
 sessions are not required; reconnecting to another replica reuses the JWT cookie
 and binds the socket to the same principal channel. Short websocket JWT
 lifetimes keep connection lifetime bounded for pod recycling; if a pod is
-terminated before expiry, connected browsers reconnect and polling reconciles
-missed events.
+terminated before expiry, connected browsers reconnect and a one-shot catch-up
+fetch on reconnect reconciles any events missed while disconnected (chart-data
+waiters re-check `/task/status_changes` from their retained cursor; list views
+refetch their displayed rows). There is no recurring poll while the socket is
+connected.
 
 ### Connection Management
 
@@ -212,12 +241,11 @@ this server's `config.json` (or its environment-variable overrides):
 | Cookie name                 | `WEBSOCKET_JWT_COOKIE_NAME` | `jwtCookieName` / `JWT_COOKIE_NAME`         |
 
 The Redis connection (`redis` / `REDIS_*`) must point at the same Redis instance
-Superset publishes to (`DISTRIBUTED_COORDINATION_CONFIG`). The channels the server
-**subscribes** to (`entity-changes:*` and `task-status`) are a fixed wire-protocol
-contract with the backend producer and are not configurable; the server
-republishes to browsers on the derived `realtime:<channel_id>` channel. A Redis
-ACL for this server must therefore allow subscribing to `entity-changes:*` and
-`task-status`.
+Superset publishes to (`DISTRIBUTED_COORDINATION_CONFIG`). The channel the server
+**subscribes** to (`realtime`) is a fixed wire-protocol contract with the backend
+producer and is not configurable; the server forwards each envelope to browsers as
+`{topic, payload}`. A Redis ACL for this server must therefore allow subscribing to
+`realtime`.
 
 ## StatsD monitoring
 

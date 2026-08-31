@@ -23,6 +23,8 @@ stable routing id and the caller's opaque per-client id.
 
 from __future__ import annotations
 
+import re
+
 from flask import has_request_context, request
 from superset_core.tasks.subscription import TaskSubscriptionPolicy
 
@@ -30,6 +32,18 @@ __all__ = ["TaskSubscriptionPolicy", "principal_channel", "get_request_tab_id"]
 
 # Body/query key a client uses to advertise its per-tab id on submit and cancel.
 TAB_ID_KEY = "tab_id"
+
+# A client-supplied tab id is concatenated into routing keys, private task
+# properties, Redis channels, logs, and URLs. The principal prefix is
+# server-derived, but the tab suffix is client-controlled, so bound it: at most 64
+# chars from a conservative charset. Kept in lockstep with the websocket server's
+# ingress guard (superset-websocket/src/index.ts TAB_ID_PATTERN).
+_TAB_ID_RE = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
+
+
+def _is_valid_tab_id(value: object) -> bool:
+    """Return whether ``value`` is a well-formed, safely-bounded tab id."""
+    return isinstance(value, str) and bool(_TAB_ID_RE.match(value))
 
 
 def principal_channel(user_id: int | None, guest_key: str | None) -> str | None:
@@ -55,7 +69,8 @@ def get_request_tab_id() -> str | None:
     Clients advertise a stable per-tab id (see ``superset-frontend`` ``getTabId``)
     in the JSON body — falling back to a query arg — of chart-data submit and task
     cancel requests. It is ``None`` outside a request context (e.g. a Celery
-    worker) or when the caller supplied none, in which case the task's
+    worker), when the caller supplied none, or when the supplied value is not a
+    well-formed tab id (see ``_is_valid_tab_id``), in which case the task's
     subscription policy falls back to principal-grain behavior.
     """
     if not has_request_context():
@@ -63,7 +78,7 @@ def get_request_tab_id() -> str | None:
     body = request.get_json(silent=True)
     if isinstance(body, dict):
         tab_id = body.get(TAB_ID_KEY)
-        if isinstance(tab_id, str) and tab_id:
+        if _is_valid_tab_id(tab_id):
             return tab_id
     tab_id = request.args.get(TAB_ID_KEY)
-    return tab_id or None
+    return tab_id if _is_valid_tab_id(tab_id) else None

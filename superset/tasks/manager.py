@@ -96,36 +96,103 @@ class TaskManager:
 
         cls._initialized = True
 
-    # Lossy pub/sub channels carrying opaque entity-change nudges, one
-    # channel per entity type (``entity-changes:task``, later ``:dashboard``,
-    # ``:chart``, ``:dataset`` etc.) so consumers subscribe only to the types they
-    # care about. The contract is general across all entity types: a nudge carries
-    # ONLY ``{entity_type, id}`` (the integer primary key) - no status or payload
-    # (status is task-specific and would not generalize). It's published once to
-    # the type's channel (not fanned out per subscriber). Anything sensitive
-    # (including a task's status/result) is delivered through targeted websocket
-    # fanout or fetched through the authorized REST API (``TaskFilter``/RLS), so
-    # this channel never carries authz-sensitive data.
-    ENTITY_CHANGES_CHANNEL_PREFIX = "entity-changes:"
+    # Single lossy Pub/Sub channel carrying every browser-bound realtime message
+    # (superset-websocket subscribes to just this one). Each message is a
+    # self-describing envelope ``{topic, scope, routes, payload}``:
+    #   - ``topic``   - the semantic stream (``task.status``, ``entity.changed``,
+    #     later ``notification.*`` etc.); the browser dispatches on it.
+    #   - ``scope``   - the delivery breadth the server routes by:
+    #     ``authenticated_global`` (broadcast to every authenticated socket) or
+    #     ``principal``/``tab`` (targeted to the keys in ``routes`` — the server
+    #     treats both the same way; the distinction is only descriptive).
+    #   - ``routes``  - server-computed routing keys (``user:<id>`` /
+    #     ``guest:<hmac>`` / per-tab ``user:<id>:<tabId>``), omitted for a
+    #     broadcast. They never reach the browser.
+    #   - ``payload`` - the feature-defined body forwarded to the browser.
+    # This separates the semantic topic (what a message is) from the route (who
+    # receives it): a new surface adds a topic without inventing channel names or
+    # overloading payload shapes. The channel name and envelope shape are a
+    # wire-protocol contract with the Node server. Pub/Sub is lossy, so no message
+    # here may carry a signal a receiver must not miss — each feature's authorized
+    # REST poll/fetch is the correctness backstop.
+    REALTIME_CHANNEL = "realtime"
+
+    # Envelope topics.
+    TOPIC_TASK_STATUS = "task.status"
+    TOPIC_ENTITY_CHANGED = "entity.changed"
+
+    # Envelope scopes (delivery breadth).
+    SCOPE_AUTHENTICATED_GLOBAL = "authenticated_global"
+    SCOPE_PRINCIPAL = "principal"
+    SCOPE_TAB = "tab"
+
+    @classmethod
+    def _publish_realtime(
+        cls,
+        topic: str,
+        scope: str,
+        payload: dict[str, Any],
+        routes: list[str] | None = None,
+    ) -> bool:
+        """Publish one realtime envelope on the shared channel (best-effort).
+
+        Returns False (no-op) when no coordination backend is configured; a
+        transient publish error propagates to the caller's best-effort guard.
+        ``routes`` carries the targeted routing keys and is omitted for a
+        broadcast (``authenticated_global``) scope.
+        """
+        from superset.coordination.base import CoordinationService
+        from superset.utils import json
+
+        if not CoordinationService.is_backend_defined():
+            return False
+        envelope: dict[str, Any] = {"topic": topic, "scope": scope, "payload": payload}
+        if routes is not None:
+            envelope["routes"] = routes
+        CoordinationService.publish(cls.REALTIME_CHANNEL, json.dumps(envelope))
+        return True
+
+    @staticmethod
+    def _authorized_routes(routes: list[str], principals: list[str]) -> list[str]:
+        """Keep only routing keys within one of the task's subscriber principals.
+
+        A subscription policy computes its own routing keys (e.g. per-tab
+        ``user:<id>:<tabId>``). This guards against a policy bug — or a future
+        policy — routing to a principal that is not a subscriber of the task: a key
+        is allowed only when it equals a subscriber principal channel or is a
+        per-client suffix of one (``<principal>:...``). Rejected keys are logged
+        and dropped.
+        """
+        allowed = set(principals)
+        authorized: list[str] = []
+        for route in routes:
+            if route in allowed or any(route.startswith(f"{p}:") for p in allowed):
+                authorized.append(route)
+            else:
+                logger.warning(
+                    "Dropping task-status route %s outside subscriber principals",
+                    route,
+                )
+        return authorized
 
     @classmethod
     def publish_entity_change(cls, task_uuid: UUID) -> bool:
         """Publish a lossy, opaque "entity changed" nudge for realtime UIs.
 
-        Best-effort pub/sub (may be dropped) carrying only ``{entity_type, id}``
+        Best-effort broadcast (may be dropped) carrying only ``{entity_type, id}``
         (the integer primary key, which a realtime list view matches and refetches
-        by) - no status or payload - published once to the per-type channel
-        (``entity-changes:task``). A browser transport (superset-websocket) forwards
-        it to authenticated sockets, which then re-fetch the actual (authz-scoped)
-        state through the authorized REST API. No-op when no coordination backend
-        is configured or the task no longer exists.
+        by) — no status or payload, which are task-specific and would not
+        generalize across entity types. Broadcast to every authenticated socket
+        (``scope=authenticated_global``); each client filters to the ids and types
+        it renders and re-fetches the actual (authz-scoped) state through the
+        authorized REST API. No-op when no coordination backend is configured or
+        the task no longer exists.
 
         :param task_uuid: UUID of the changed task
         :returns: True if the nudge was published, False otherwise
         """
         from superset.coordination.base import CoordinationService
         from superset.daos.tasks import TaskDAO
-        from superset.utils import json
 
         if not CoordinationService.is_backend_defined():
             return False
@@ -133,11 +200,11 @@ class TaskManager:
             task_id = TaskDAO.get_id(task_uuid)
             if task_id is None:
                 return False
-            CoordinationService.publish(
-                f"{cls.ENTITY_CHANGES_CHANNEL_PREFIX}task",
-                json.dumps({"entity_type": "task", "id": task_id}),
+            return cls._publish_realtime(
+                cls.TOPIC_ENTITY_CHANGED,
+                cls.SCOPE_AUTHENTICATED_GLOBAL,
+                {"entity_type": "task", "id": task_id},
             )
-            return True
         except Exception as ex:  # noqa: BLE001 pylint: disable=broad-except
             # Strictly best-effort: a Redis or serialization hiccup here must never
             # disrupt completion signalling - the client's interval poll is the
@@ -173,27 +240,25 @@ class TaskManager:
                 ex,
             )
 
-    # Lossy Pub/Sub channel for task status fanout. Superset publishes one
-    # message per status transition carrying the already-authorized realtime
-    # routing keys. The websocket server delivers to the matching sockets and
-    # strips ``channels`` before forwarding the task status to browsers.
-    TASK_STATUS_CHANNEL = "task-status"
-
     @classmethod
     def publish_task_status(cls, task_uuid: UUID, status: str) -> bool:
         """Publish one task ``status`` message for websocket fanout.
 
-        Best-effort delivery: publish ``{task_id, status, channels}`` once to
-        ``task-status``, where ``channels`` are the realtime routing keys the
-        websocket server delivers to (it prefixes each with ``realtime:``). By
-        default the keys are principal-grain (``user:<id>`` / ``guest:<hmac>``),
-        so the submitter and any SHARED-dedup joiners see the transition on their
+        Best-effort targeted delivery: publish a ``task.status`` envelope carrying
+        ``{task_id, status}`` and the realtime routing keys the websocket server
+        delivers to (it forwards ``{topic, payload}`` to the sockets bound to each
+        key). By default the keys are principal-grain (``user:<id>`` /
+        ``guest:<hmac>``, ``scope=principal``), so
+        the submitter and any SHARED-dedup joiners see the transition on their
         principal channel. A task type may narrow delivery via its subscription
         policy's ``routing_channels`` — chart-data returns its per-tab keys
-        (``user:<id>:<tabId>``) so only the tab watching the task is notified.
-        No-op when no coordination backend is configured or the task has no
-        resolvable routing keys; callers must never let a failure here disrupt
-        completion signalling (the interval poll is the backstop).
+        (``user:<id>:<tabId>``, ``scope=tab``) so only the tab watching the task is
+        notified. Policy-returned keys are validated against the task's own
+        subscriber principals (see ``_authorized_routes``) so a policy can never
+        route to another principal. No-op when no coordination backend is
+        configured or the task has no resolvable routing keys; callers must never
+        let a failure here disrupt completion signalling (the interval poll is the
+        backstop).
 
         :param task_uuid: public UUID of the task (also carried in the payload)
         :param status: the task's current status
@@ -202,7 +267,6 @@ class TaskManager:
         from superset.coordination.base import CoordinationService
         from superset.daos.tasks import TaskDAO
         from superset.tasks.registry import TaskRegistry
-        from superset.utils import json
 
         if not CoordinationService.is_backend_defined():
             return False
@@ -210,27 +274,38 @@ class TaskManager:
             task = TaskDAO.find_one_or_none(uuid=task_uuid, skip_base_filter=True)
             if task is None:
                 return False
+            # Principal-grain keys derived from the task's own subscribers: always
+            # trusted (built here from the authorized subscriber rows) and the set a
+            # policy's keys are validated against.
+            principal_routes = [
+                f"user:{p['sub']}" if p["principal_type"] == "user" else p["sub"]
+                for p in TaskDAO.get_subscriber_principals(task.id)
+            ]
             # A task type may target specific routing keys (e.g. chart-data's
-            # per-tab channels); otherwise fall back to principal-grain keys
-            # derived from the task's subscribers.
+            # per-tab channels). Distinguish "no policy narrowing" from "policy
+            # scoped delivery but nothing survived validation".
             policy = TaskRegistry.get_subscription_policy(task.task_type)
-            channels = policy.routing_channels(task) if policy else None
-            if channels is None:
-                channels = [
-                    f"user:{p['sub']}" if p["principal_type"] == "user" else p["sub"]
-                    for p in TaskDAO.get_subscriber_principals(task.id)
-                ]
-            if not channels:
+            policy_routes = policy.routing_channels(task) if policy else None
+            if policy_routes is None:
+                # No policy (or the policy declined to narrow): principal-grain
+                # fanout to every subscriber principal.
+                routes, scope = principal_routes, cls.SCOPE_PRINCIPAL
+            else:
+                # The policy explicitly scoped delivery (e.g. per-tab). Keep only
+                # its keys within the task's subscriber principals; if that leaves
+                # none, publish nothing rather than broadening to every tab of the
+                # principal (which would break the policy's intended isolation) —
+                # the interval poll remains the correctness path.
+                routes = cls._authorized_routes(policy_routes, principal_routes)
+                scope = cls.SCOPE_TAB
+            if not routes:
                 return False
-            message = json.dumps(
-                {
-                    "task_id": str(task_uuid),
-                    "status": status,
-                    "channels": channels,
-                }
+            return cls._publish_realtime(
+                cls.TOPIC_TASK_STATUS,
+                scope,
+                {"task_id": str(task_uuid), "status": status},
+                routes=routes,
             )
-            CoordinationService.publish(cls.TASK_STATUS_CHANNEL, message)
-            return True
         except Exception as ex:  # noqa: BLE001 pylint: disable=broad-except
             # Strictly best-effort (mirrors publish_entity_change): a Redis or
             # serialization hiccup must never disrupt completion signalling.

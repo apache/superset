@@ -19,12 +19,18 @@
 /**
  * Await completion of asynchronous chart-data queries (GLOBAL_ASYNC_QUERIES).
  *
- * A 202 from POST /chart/data carries the GTF tasks the query runs as. Their
- * completion is learned two ways: the shared realtime socket
- * (src/middleware/realtime.ts) delivers per-principal status events, and a
- * single shared poll of /task/status_changes runs while anything is awaited. The
- * socket is best-effort and only accelerates things; the poll is the correctness
- * backstop.
+ * A 202 from POST /chart/data carries the GTF tasks the query runs as. How their
+ * completion is learned depends on whether the realtime websocket is enabled:
+ *
+ * - `WEBSOCKET_ENABLE` on: the shared socket (src/middleware/realtime.ts) is the
+ *   sole mechanism — we do NOT poll while it is the transport. If the socket drops
+ *   and reconnects, we run a single `status_changes` catch-up from the pre-task
+ *   cursor to pick up anything that completed during the gap; a per-waiter give-up
+ *   bounds a message that is genuinely lost.
+ * - `WEBSOCKET_ENABLE` off: a shared interval poll of `status_changes` is the only
+ *   mechanism (no websocket server deployed).
+ *
+ * Either way the pre-task cursor from the 202 makes reconciliation exact.
  */
 import {
   isFeatureEnabled,
@@ -38,7 +44,7 @@ import { getTabId } from 'src/hooks/useTabId';
 import {
   connectRealtime,
   subscribeRealtime,
-  type RealtimeMessage,
+  subscribeRealtimeOpen,
 } from 'src/middleware/realtime';
 
 // The GTF task type chart-data queries run under (see
@@ -62,10 +68,16 @@ type StatusChangesResponse = {
   cursor: string | null;
 };
 
-// The 202 body from POST /chart/data when async: the query tasks to await, plus
-// a status-poll cursor captured server-side *before* the tasks were created, so
-// polling from it can never skip a task's terminal transition.
-export type AsyncJob = { task_ids: string[]; cursor?: string | null };
+// The 202 body from POST /chart/data when async: the query tasks to await, a
+// status-poll cursor captured server-side *before* the tasks were created (so
+// polling from it can never skip a task's terminal transition), and the tab id
+// the backend recorded as this tab's consumer (echoed back so a later cancel
+// detaches exactly that entry).
+export type AsyncJob = {
+  task_ids: string[];
+  cursor?: string | null;
+  tab_id?: string | null;
+};
 
 type AppConfig = {
   WEBSOCKET_ENABLE?: boolean;
@@ -85,9 +97,20 @@ type Waiter = {
   reject: (error: unknown) => void;
   signal?: AbortSignal;
   onAbort?: () => void;
+  // WS mode only: last-resort timer that rejects a waiter whose completion was
+  // never delivered (a lost socket message with no reconnect). Cleared on settle.
+  giveUpId?: number;
 };
 
 let config: AppConfig;
+// Whether the realtime websocket is the transport. When true we never poll: the
+// socket is the mechanism and a reconnect catch-up reconciles any gap.
+let wsEnabled = false;
+// Coalescing state for the WS-mode catch-up (see scheduleCatchUp): a microtask is
+// pending, a fetch is in flight, and/or a follow-up is queued.
+let catchUpScheduled = false;
+let catchUpInFlight = false;
+let catchUpQueued = false;
 let pollingDelayMs: number;
 // Backoff state: the poll starts eager (`pollingDelayMs`), degrades — doubling up
 // to `pollBackoffMaxMs` — while awaited tasks are quiet, and snaps back to eager
@@ -128,11 +151,11 @@ const stopIfStale = (generation: number): boolean => {
   return true;
 };
 
-// Browser channel prefix for per-principal messages emitted by
-// superset-websocket after it fans out backend task-status events. The browser
-// socket is JWT-bound to its own principal routing key, so it only ever receives
-// its own realtime messages.
-const REALTIME_CHANNEL_PREFIX = 'realtime:';
+// GTF task-status topic emitted by superset-websocket after it fans out backend
+// task-status events (see superset/tasks/manager.py TOPIC_TASK_STATUS). Delivery
+// is scoped server-side to this principal's (or tab's) routing key, so a message
+// that reaches this browser is always its own.
+const TASK_STATUS_TOPIC = 'task.status';
 
 const fetchStatusChanges = makeApi<
   { cursor?: string | null; task_type: string },
@@ -142,18 +165,20 @@ const fetchStatusChanges = makeApi<
   endpoint: STATUS_CHANGES_URL,
 });
 
-const cancelTask = (taskId: string) => {
+const cancelTask = (taskId: string, tabId: string) => {
   // Best-effort task abort/unsubscribe. This can prevent pending work from
   // starting, but chart tasks do not cancel an underlying warehouse query after
   // execution starts. Failures are non-fatal: the client has stopped waiting.
   //
-  // Send this tab's id so the backend detaches only this tab from a shared task:
-  // if another tab of the same user is still watching it, the task keeps running
-  // and only aborts once its last tab leaves.
+  // Send the tab id captured at submit time (not read fresh here) so the backend
+  // detaches exactly the tab that subscribed: if another tab of the same user is
+  // still watching the shared task, it keeps running and only aborts once its
+  // last tab leaves. Reading getTabId() at cancel time could send a reassigned id
+  // (a duplicate-tab collision) and orphan the original per-tab subscription.
   SupersetClient.post({
     endpoint: `/api/v1/task/${taskId}/cancel`,
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ tab_id: getTabId() }),
+    body: JSON.stringify({ tab_id: tabId }),
   }).catch(error => {
     logging.warn('Failed to cancel task', taskId, error);
   });
@@ -165,15 +190,17 @@ const cancelTask = (taskId: string) => {
 // would tell the server the last subscriber left and abort work the other chart
 // needs. Call *after* removing the aborting waiter (or before registering it),
 // so a task id still present in the registry means another waiter depends on it.
-const cancelUnwaitedTasks = (taskIds: string[]) => {
+// `tabId` is the id captured when the aborting request was submitted.
+const cancelUnwaitedTasks = (taskIds: string[], tabId: string) => {
   taskIds.forEach(taskId => {
-    if (!waitersByTaskId.has(taskId)) cancelTask(taskId);
+    if (!waitersByTaskId.has(taskId)) cancelTask(taskId, tabId);
   });
 };
 
 // Drop a waiter from the registry entry of every task it was awaiting, so a
 // settled/aborted waiter never leaks and completion of one task can't re-touch it.
 const unregister = (waiter: Waiter) => {
+  if (waiter.giveUpId) clearTimeout(waiter.giveUpId);
   waiter.taskIds.forEach(taskId => {
     const waiters = waitersByTaskId.get(taskId);
     if (!waiters) return;
@@ -275,8 +302,10 @@ const loadStatusChanges = async (generation: number) => {
 
 // Start (or wake) the poll loop for a freshly registered waiter: poll eagerly
 // again, and kick the loop if it had gone idle. Idempotent — a no-op while the
-// loop is already running or when async queries are disabled.
+// loop is already running, when async queries are disabled, or when the websocket
+// is the transport (WS mode never polls; reconnect catch-up reconciles instead).
 const ensurePolling = () => {
+  if (wsEnabled) return;
   currentPollDelayMs = pollingDelayMs;
   lastProgressAt = Date.now(); // a fresh request restarts the give-up clock
   if (!pollingActive && isFeatureEnabled(FeatureFlag.GlobalAsyncQueries)) {
@@ -285,18 +314,74 @@ const ensurePolling = () => {
   }
 };
 
+// WS mode: reconcile with a single `status_changes` catch-up from the retained
+// pre-task cursor — settling anything that completed while the socket was down
+// ("pick up where we left off") or before a waiter existed. Not a loop; the
+// socket is the steady-state mechanism. Since waitersByTaskId is global, one
+// fetch reconciles every pending waiter, so registrations and reconnects are
+// coalesced (see scheduleCatchUp) rather than each firing their own request.
+const runCatchUp = async () => {
+  catchUpScheduled = false;
+  if (!wsEnabled || !waitersByTaskId.size) return;
+  catchUpInFlight = true;
+  try {
+    // Capture the cursor this fetch starts from; a waiter registering mid-flight
+    // can rewind the global cursor to its own earlier 202 watermark and queue a
+    // follow-up.
+    const requestCursor = cursor;
+    const { statuses, cursor: next } = await fetchStatusChanges({
+      cursor: requestCursor,
+      task_type: CHART_QUERY_TASK_TYPE,
+    });
+    Object.entries(statuses).forEach(([taskId, { status }]) =>
+      applyStatus(taskId, status),
+    );
+    // Only advance if nobody rewound the cursor while this fetch was in flight;
+    // otherwise the queued follow-up must start from that earlier watermark so it
+    // doesn't skip statuses in [rewound, requestCursor).
+    if (cursor === requestCursor) {
+      cursor = next;
+    }
+  } catch (err) {
+    logging.warn(err);
+  } finally {
+    catchUpInFlight = false;
+    // A trigger fired mid-flight (another registration, or a reconnect): run
+    // exactly one follow-up to reconcile whatever registered since.
+    if (catchUpQueued) {
+      catchUpQueued = false;
+      catchUpScheduled = true;
+      Promise.resolve().then(runCatchUp);
+    }
+  }
+};
+
+// Coalesce catch-up triggers into a single in-flight request. Same-tick triggers
+// (a dashboard registering many async charts at once) collapse via a microtask;
+// a trigger during an in-flight request schedules exactly one follow-up. Avoids a
+// burst of redundant /task/status_changes calls while keeping the design simple.
+const scheduleCatchUp = () => {
+  if (!wsEnabled) return;
+  if (catchUpInFlight) {
+    catchUpQueued = true;
+    return;
+  }
+  if (catchUpScheduled) return;
+  catchUpScheduled = true;
+  Promise.resolve().then(runCatchUp);
+};
+
+subscribeRealtimeOpen(scheduleCatchUp);
+
 /**
- * Handle a realtime message from the shared client.
+ * Handle a `task.status` message from the shared realtime client.
  *
- * A per-principal chart-data payload is ``{task_id, status}``; because delivery
- * is scoped to this principal's own JWT-bound channel the status is
- * authoritative enough to settle the waiter immediately (the ensuing ``refetch``
- * reads the authorized per-query cache anyway). Other channels (e.g. the
- * ``entity-changes:*`` list-view nudges) are not chart-data's concern.
+ * The payload is ``{task_id, status}``; because delivery is scoped server-side to
+ * this principal's (or tab's) own routing key, the status is authoritative enough
+ * to settle the waiter immediately (the ensuing ``refetch`` reads the authorized
+ * per-query cache anyway).
  */
-export const handleRealtimeMessage = (message: RealtimeMessage) => {
-  const { channel, payload } = message;
-  if (!channel.startsWith(REALTIME_CHANNEL_PREFIX)) return;
+export const handleTaskStatus = (payload: unknown) => {
   if (!payload || typeof payload !== 'object') return;
   const { task_id: taskId, status } = payload as {
     task_id?: unknown;
@@ -309,7 +394,7 @@ export const handleRealtimeMessage = (message: RealtimeMessage) => {
 
 // The handler reads the live waiter registry, so it stays correct across init()
 // generations.
-subscribeRealtime(handleRealtimeMessage);
+subscribeRealtime(TASK_STATUS_TOPIC, handleTaskStatus);
 
 /**
  * Await completion of an async chart-data job's query tasks, then re-issue the
@@ -327,12 +412,19 @@ export const waitForAsyncData = async <T = unknown[]>(
 ): Promise<T> => {
   const taskIds = asyncJob.task_ids ?? [];
 
+  // Use the tab id the backend recorded for this job (echoed in the 202), so a
+  // cancel detaches exactly the subscription this request created. Falls back to
+  // the current tab id for a non-async/legacy job without one. Reading getTabId()
+  // fresh at cancel time could send a reassigned id (a duplicate-tab collision)
+  // and orphan the original per-tab subscription.
+  const submitTabId = asyncJob.tab_id ?? getTabId();
+
   // Register the waiter synchronously, in the same tick the 202 was received —
   // NOT after an await — so a completion socket event can't arrive before the
   // waiter exists and be dropped.
   await new Promise<void>((resolve, reject) => {
     if (signal?.aborted) {
-      cancelUnwaitedTasks(taskIds);
+      cancelUnwaitedTasks(taskIds, submitTabId);
       reject(new DOMException('Aborted', 'AbortError'));
       return;
     }
@@ -347,7 +439,7 @@ export const waitForAsyncData = async <T = unknown[]>(
     if (signal) {
       waiter.onAbort = () => {
         unregister(waiter);
-        cancelUnwaitedTasks(taskIds);
+        cancelUnwaitedTasks(taskIds, submitTabId);
         reject(new DOMException('Aborted', 'AbortError'));
       };
       signal.addEventListener('abort', waiter.onAbort, { once: true });
@@ -375,8 +467,24 @@ export const waitForAsyncData = async <T = unknown[]>(
       }
       waiters.add(waiter);
     });
-    // Wake the poll loop (eager again) now that there's something to await.
+    if (wsEnabled) {
+      // WS is the transport (no polling). Bound a genuinely-lost completion (a
+      // dropped socket message with no reconnect) so a chart can't spin forever;
+      // a reconnect catch-up normally settles it well before this fires.
+      waiter.giveUpId = window.setTimeout(() => {
+        settle(
+          waiter,
+          new Error('Timed out waiting for chart-data query results'),
+        );
+      }, pollStaleTimeoutMs);
+    }
+    // Wake the poll loop (poll mode only; a no-op under WS).
     ensurePolling();
+    // WS mode: reconcile once right after registering, to cover a task that
+    // completed between the POST and the waiter existing (its socket message may
+    // have arrived before this waiter, or before the socket subscribed). Coalesced
+    // with sibling registrations/reconnects into one request.
+    if (wsEnabled) scheduleCatchUp();
   });
 
   return refetch();
@@ -388,9 +496,15 @@ export const init = (appConfig?: AppConfig) => {
 
   config = appConfig || getBootstrapData().common.conf;
 
+  // When the websocket transport is enabled it is the sole completion mechanism:
+  // we never run the recurring poll, only a one-shot catch-up on
+  // registration/reconnect. With it disabled, the interval poll below is the only
+  // mechanism.
+  wsEnabled = Boolean(config.WEBSOCKET_ENABLE);
+
   // (Re)connect the shared realtime socket whenever the websocket transport is
   // enabled — independent of GLOBAL_ASYNC_QUERIES, since realtime list views
-  // (tier-1 entity-change nudges) ride the same socket. Idempotent: a no-op when
+  // (entity-change nudges) ride the same socket. Idempotent: a no-op when
   // WEBSOCKET_ENABLE is false, and supersedes any prior socket otherwise.
   connectRealtime(config);
 
@@ -399,10 +513,13 @@ export const init = (appConfig?: AppConfig) => {
   waitersByTaskId = new Map();
   cursor = null;
   pollingActive = false;
+  catchUpScheduled = false;
+  catchUpInFlight = false;
+  catchUpQueued = false;
 
   pollingDelayMs = config.GLOBAL_ASYNC_QUERIES_POLLING_DELAY || 500;
-  // Backoff ceiling (never below the eager interval) and the no-progress give-up
-  // window, both operator-configurable (ms).
+  // Backoff ceiling (never below the eager interval) and the give-up window (also
+  // the WS-mode per-waiter last-resort timeout), both operator-configurable (ms).
   pollBackoffMaxMs = Math.max(
     pollingDelayMs,
     config.GLOBAL_ASYNC_QUERIES_POLLING_MAX_DELAY || 30_000,
@@ -413,7 +530,7 @@ export const init = (appConfig?: AppConfig) => {
   lastProgressAt = Date.now();
 
   // Stay idle until a chart request returns 202. The 202 body includes a
-  // server-captured pre-task cursor, so polling does not need a startup
+  // server-captured pre-task cursor, so reconciliation does not need a startup
   // baseline request.
 };
 

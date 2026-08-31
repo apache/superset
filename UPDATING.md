@@ -75,14 +75,18 @@ resolves the `async_mode` it sends from a policy chain — per-dashboard overrid
 deployment default `GLOBAL_ASYNC_QUERIES_DEFAULT` (default `true`) → the feature
 flag — so the UI keeps its existing async behavior by default.
 
-Enabling the realtime WebSocket transport (optional; accelerates completion, the
-`status_changes` interval poll remains the correctness backstop):
+Enabling the realtime WebSocket transport (optional; when enabled it becomes the
+completion transport for async chart-data — see the note on the interval poll):
 
 > **Note:** the realtime WebSocket transport is opt-in (`WEBSOCKET_ENABLE`
-> defaults to `False`) and should be treated as experimental. Chart-data
-> completion correctness does not depend on it — the `status_changes` interval
-> poll is the source of truth — so it can be enabled or left off without
-> affecting async chart results.
+> defaults to `False`). When it is **disabled**, async chart-data completion is
+> driven entirely by the `status_changes` interval poll (the source of truth).
+> When it is **enabled**, completion is delivered over the socket and the
+> recurring interval poll does not run; a one-shot `status_changes` catch-up on
+> waiter registration and on socket reconnect reconciles anything missed while
+> disconnected. Redis Pub/Sub is lossy, so a `task.status` lost while the socket
+> stays open is only recovered on the next reconnect/registration or, failing
+> that, a per-request give-up timeout (a page reload re-establishes state).
 
 ```python
 WEBSOCKET_ENABLE = True
@@ -103,13 +107,13 @@ secret rotation, set the websocket server's `previousJwtSecret` /
 `WEBSOCKET_JWT_SECRET`. The server is bundled in the official Superset image
 and launched via an alternate entrypoint — no separate image is required:
 `docker run <superset-image> /app/docker/entrypoints/run-websocket.sh` (or the
-opt-in `websocket` profile in `docker compose`). It now **subscribes** to the
-Redis Pub/Sub channels `entity-changes:*` (broadcast entity-change nudges) and
-`task-status` (per-principal task-status messages) instead of the removed
-async-events streams, and republishes to browsers on `realtime:<channel_id>`
-after fanout — so a Redis ACL for the websocket server must allow
-`entity-changes:*` and `task-status` (omitting `task-status` prevents task
-updates from reaching clients); see `superset-websocket/README.md`.
+opt-in `websocket` profile in `docker compose`). It **subscribes** to a single
+Redis Pub/Sub channel, `realtime`, which carries a self-describing
+`{topic, scope, routes, payload}` envelope (both the broadcast `entity.changed`
+nudges and the targeted `task.status` messages), and forwards `{topic, payload}`
+to browsers after routing — so a Redis ACL for the websocket server must allow
+subscribing to `realtime` (this replaces the earlier `entity-changes:*` /
+`task-status` channels); see `superset-websocket/README.md`.
 
 Orphaned GTF tasks (a worker killed mid-execution) are now detected and cleaned
 up server-side. While a worker holds a task it writes a liveness heartbeat

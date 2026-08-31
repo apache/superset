@@ -42,7 +42,7 @@ from superset.tasks.query_cancel import (
     capture_cancel_id,
     capture_cancel_query_id,
 )
-from superset.tasks.subscription import TaskSubscriptionPolicy
+from superset.tasks.subscription import get_request_tab_id, TaskSubscriptionPolicy
 from superset.tasks.utils import floored_status_cursor
 from superset.utils.core import override_user
 
@@ -131,10 +131,10 @@ class ChartQueryConsumerPolicy(TaskSubscriptionPolicy):
 
     def routing_channels(self, task: "CoreTask") -> list[str] | None:
         # The consumer entries are exactly the per-tab realtime routing keys
-        # (`"<principal>:<tab_id>"` -> `realtime:<principal>:<tab_id>`), so a
-        # task-status message reaches only the tabs watching this task. Empty ->
-        # None so a chart task with no recorded tab (all detached, or a no-tab
-        # caller) falls back to principal-grain fanout instead of dropping it.
+        # (`"<principal>:<tab_id>"`), so a task-status message reaches only the
+        # tabs watching this task. Empty -> None so a chart task with no recorded
+        # tab (all detached, or a no-tab caller) falls back to principal-grain
+        # fanout instead of dropping it.
         return self._consumers(task) or None
 
 
@@ -308,17 +308,22 @@ def submit_chart_data_query_tasks(
     DATA cache a later re-request reads back. A contribution query ``depends_on`` the
     totals query's task and reads its cached result to normalize.
 
-    There is no coordinator task: the client polls ``/api/v1/task/status_changes`` and
-    aggregates the query tasks' own honest statuses itself (all ``SUCCESS`` → re-issue
-    the request, now served entirely from the per-query cache; any terminal non-success
-    → error). Completion is emitted per task by GTF (via the coordination service), so
-    that is also what the websocket transport subscribes to.
+    There is no coordinator task: the client learns each query task's own honest
+    status and aggregates them itself (all ``SUCCESS`` → re-issue the request, now
+    served entirely from the per-query cache; any terminal non-success → error).
+    How it learns them depends on the client's transport: with the realtime
+    websocket enabled it waits for pushed ``task.status`` messages (reconciling via
+    a one-shot ``/api/v1/task/status_changes`` catch-up on connect/reconnect), and
+    otherwise it polls that endpoint. Completion is emitted per task by GTF (via the
+    coordination service), which is also what the websocket transport delivers.
 
-    Returns the HTTP 202 body ``{"task_ids": [...], "cursor": "..."}`` — the query
-    tasks' UUIDs, in query order, plus the server-issued polling cursor. The client
-    uses those values to poll through the GTF task API. Client aborts may unsubscribe
-    from shared work or abort pending work; engine-level query cancellation is outside
-    this chart async path.
+    Returns the HTTP 202 body ``{"task_ids": [...], "cursor": "...", "tab_id": ...}``
+    — the query tasks' UUIDs in query order, the server-captured pre-task status
+    cursor (the recovery watermark for polling/catch-up), and the tab id the
+    subscription policy recorded for this request (echoed so a later cancel detaches
+    exactly this tab; omitted when the caller supplied none). Client aborts may
+    unsubscribe from shared work or abort pending work; engine-level query
+    cancellation is outside this chart async path.
     """
     guest_user = security_manager.get_current_guest_user_if_guest()
     guest_token = guest_user.guest_token if guest_user else None
@@ -403,4 +408,11 @@ def submit_chart_data_query_tasks(
     return {
         "task_ids": [str(tasks[index].uuid) for index in range(len(queries))],
         "cursor": poll_cursor.isoformat(),
+        # Echo back the tab id the subscription policy recorded as this tab's
+        # consumer entry, so a later cancel detaches exactly that entry. Returning
+        # the server-recorded value (rather than the client re-reading its tab id
+        # at cancel time) closes the window where a tab-id reassignment between the
+        # POST and the 202 would target the wrong subscription. Omitted when the
+        # caller supplied no (valid) tab id.
+        **({"tab_id": tab_id} if (tab_id := get_request_tab_id()) else {}),
     }

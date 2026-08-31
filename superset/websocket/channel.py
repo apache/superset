@@ -23,10 +23,10 @@ logged-in user, a stable HMAC for an embedded guest - so the
 ``superset-websocket`` server can validate the socket and bind it to that
 routing key.
 
-Targeted messages are delivered only to sockets bound to the intended
-principal's routing key. The lossy list-view Pub/Sub tier (``entity-changes:*``)
-is broadcast to all authenticated realtime sockets, but carries only opaque
-entity nudges - see
+Targeted messages (``scope=principal``/``tab``) are delivered only to sockets
+bound to the intended routing key. Broadcast messages (``scope=authenticated_global``,
+e.g. the lossy ``entity.changed`` list-view nudge) go to all authenticated
+realtime sockets but carry only opaque entity nudges - see
 ``TaskManager.publish_entity_change``.
 """
 
@@ -145,8 +145,8 @@ def _valid_payload_channel(payload: dict[str, object]) -> str | None:
     return channel
 
 
-def _cookie_channel(token: str) -> str | None:
-    """Return the ``channel`` claim of a valid, unexpired channel token, else None."""
+def _decode_cookie(token: str) -> dict[str, object] | None:
+    """Return the claims of a valid, unexpired channel token, else None."""
     from flask import current_app
 
     try:
@@ -159,20 +159,46 @@ def _cookie_channel(token: str) -> str | None:
         )
     except jwt.InvalidTokenError:
         return None
-    if not isinstance(payload, dict):
-        return None
-    return _valid_payload_channel(payload)
+    return payload if isinstance(payload, dict) else None
+
+
+def _should_remint(existing: str | None, channel_id: str) -> bool:
+    """Whether the channel cookie must be (re)minted for ``channel_id``.
+
+    Re-mints when the cookie is missing, invalid/expired, bound to a different
+    principal's channel, or inside a sliding refresh window before expiry (less
+    than half its lifetime remaining). The sliding window keeps an active
+    surface's socket alive indefinitely: any request in the second half of the
+    token's life issues a fresh cookie, so the socket reconnects before the
+    server terminates it at expiry (rather than only re-minting after expiry).
+    """
+    from flask import current_app
+
+    if not existing:
+        return True
+    payload = _decode_cookie(existing)
+    if payload is None:
+        return True
+    if _valid_payload_channel(payload) != channel_id:
+        return True
+    exp = payload.get("exp")
+    if not isinstance(exp, (int, float)):
+        return True
+    lifetime = current_app.config["WEBSOCKET_JWT_EXPIRATION_SECONDS"]
+    remaining = exp - datetime.now(tz=timezone.utc).timestamp()
+    return remaining < lifetime / 2
 
 
 def register_ws_channel_cookie(app: Flask) -> None:
     """Keep the websocket channel-token cookie in sync with the request principal.
 
     Sets an ``httponly`` JWT cookie (which the ``superset-websocket`` server
-    verifies) bound to the current principal's channel. Critically, it re-mints
-    the cookie whenever the bound channel no longer matches the current principal
-    — e.g. after a logout/login in the same browser — and deletes it when there is
-    no principal (anonymous / logged out), so a stale token can never bind a new
-    session to a previous user's channel.
+    verifies) bound to the current principal's channel. Re-mints the cookie
+    whenever the bound channel no longer matches the current principal — e.g.
+    after a logout/login in the same browser — or when it is inside the sliding
+    refresh window before expiry, and deletes it when there is no principal
+    (anonymous / logged out), so a stale token can never bind a new session to a
+    previous user's channel and an active surface never silently loses realtime.
     """
     cookie_name = app.config["WEBSOCKET_JWT_COOKIE_NAME"]
     cookie_domain = app.config["WEBSOCKET_JWT_COOKIE_DOMAIN"]
@@ -193,10 +219,7 @@ def register_ws_channel_cookie(app: Flask) -> None:
             return response
 
         channel_id = principal["channel"]
-
-        # Leave a cookie that already binds the current channel; re-mint when it is
-        # missing, invalid/expired, or bound to a different principal's channel.
-        if existing and _cookie_channel(existing) == channel_id:
+        if not _should_remint(existing, channel_id):
             return response
 
         response.set_cookie(
