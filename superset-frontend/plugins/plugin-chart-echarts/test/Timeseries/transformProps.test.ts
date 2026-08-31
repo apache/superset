@@ -3207,6 +3207,77 @@ test('boundary label alignment is dropped when the orientation moves the time ax
   expect(horizontal.axisLabel.alignMaxLabel).toBeUndefined();
 
   // The boundary labels themselves stay forced in both orientations.
+
+describe('xAxisLabelInterval string "0" is converted to number 0', () => {
+  test('converts string "0" to number 0 so ECharts shows all labels', () => {
+    const result = transformProps(
+      createTestChartProps({
+        formData: {
+          granularity_sqla: 'ds',
+          timeGrainSqla: TimeGranularity.MONTH,
+          xAxisTimeFormat: 'smart_date',
+          seriesType: EchartsTimeseriesSeriesType.Line,
+          xAxisLabelInterval: '0',
+        },
+        queriesData: [
+          createTestQueryData(monthData, {
+            colnames: ['__timestamp', 'sales'],
+            coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+          }),
+        ],
+      }),
+    ).echartOptions;
+
+    const xAxisRaw = (result.xAxis as any).axisLabel;
+    expect(xAxisRaw.interval).toBe(0);
+  });
+
+  test('passes "auto" through unchanged', () => {
+    const result = transformProps(
+      createTestChartProps({
+        formData: {
+          granularity_sqla: 'ds',
+          timeGrainSqla: TimeGranularity.MONTH,
+          xAxisTimeFormat: 'smart_date',
+          seriesType: EchartsTimeseriesSeriesType.Line,
+          xAxisLabelInterval: 'auto',
+        },
+        queriesData: [
+          createTestQueryData(monthData, {
+            colnames: ['__timestamp', 'sales'],
+            coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+          }),
+        ],
+      }),
+    ).echartOptions;
+
+    const xAxisRaw = (result.xAxis as any).axisLabel;
+    expect(xAxisRaw.interval).toBe('auto');
+  });
+
+  test('passes numeric interval unchanged', () => {
+    const result = transformProps(
+      createTestChartProps({
+        formData: {
+          granularity_sqla: 'ds',
+          timeGrainSqla: TimeGranularity.MONTH,
+          xAxisTimeFormat: 'smart_date',
+          seriesType: EchartsTimeseriesSeriesType.Line,
+          xAxisLabelInterval: 3,
+        },
+        queriesData: [
+          createTestQueryData(monthData, {
+            colnames: ['__timestamp', 'sales'],
+            coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+          }),
+        ],
+      }),
+    ).echartOptions;
+
+    const xAxisRaw = (result.xAxis as any).axisLabel;
+    expect(xAxisRaw.interval).toBe(3);
+  });
+});
   expect(vertical.axisLabel.showMinLabel).toBe(true);
   expect(vertical.axisLabel.showMaxLabel).toBe(true);
   expect(horizontal.axisLabel.showMinLabel).toBe(true);

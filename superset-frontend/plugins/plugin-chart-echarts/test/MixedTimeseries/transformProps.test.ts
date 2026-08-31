@@ -1763,3 +1763,8 @@ test('hides the ticks on the x axis and both y axes', () => {
   expect(yAxis[0].axisTick.show).toBe(false);
   expect(yAxis[1].axisTick.show).toBe(false);
 });
+
+test('converts xAxisLabelInterval string "0" to number 0', () => {
+  const { xAxis } = transformWithChrome({ xAxisLabelInterval: '0' });
+  expect(xAxis.axisLabel.interval).toBe(0);
+});
