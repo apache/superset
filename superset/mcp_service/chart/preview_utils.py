@@ -38,7 +38,7 @@ logger = logging.getLogger(__name__)
 SUPPORTED_FORM_DATA_PREVIEW_FORMATS = frozenset({"ascii", "table", "vega_lite"})
 
 
-def _build_query_columns(form_data: Dict[str, Any]) -> list[str]:
+def _build_query_columns(form_data: Dict[str, Any]) -> list[Any]:
     """Build query columns list from form_data, including both x_axis and groupby.
 
     Delegates to the shared builder so the MCP and dashboard-export paths stay in
@@ -47,6 +47,26 @@ def _build_query_columns(form_data: Dict[str, Any]) -> list[str]:
     from superset.common.form_data_query_context import columns_from_form_data
 
     return columns_from_form_data(form_data)
+
+
+def _build_query_fields(
+    form_data: Dict[str, Any],
+) -> tuple[list[Any], list[Any]]:
+    """Resolve query columns and metrics using chart-aware shared helpers."""
+    from superset.mcp_service.chart.chart_helpers import (
+        resolve_metrics_and_groupby,
+    )
+
+    metrics, chart_columns = resolve_metrics_and_groupby(form_data)
+    columns = _build_query_columns(form_data)
+    for column in chart_columns:
+        if column not in columns:
+            columns.append(column)
+
+    # Big Number with trendline uses granularity_sqla as the time column.
+    if not columns and form_data.get("granularity_sqla"):
+        columns = [form_data["granularity_sqla"]]
+    return columns, metrics
 
 
 def generate_preview_from_form_data(
@@ -81,22 +101,13 @@ def generate_preview_from_form_data(
             adhoc_filters_to_query_filters,
         )
 
-        # Build columns list: include x_axis and groupby for XY charts,
-        # fall back to form_data "columns" for table charts
-        columns = _build_query_columns(form_data)
+        # Resolve standard query fields plus chart-specific aliases such as
+        # Bubble's entity/series dimensions and x/y/size metrics.
+        columns, metrics = _build_query_fields(form_data)
 
         query_filters = adhoc_filters_to_query_filters(
             form_data.get("adhoc_filters", [])
         )
-
-        # Big Number charts use singular "metric" instead of "metrics"
-        metrics = form_data.get("metrics", [])
-        if not metrics and form_data.get("metric"):
-            metrics = [form_data["metric"]]
-
-        # Big Number with trendline uses granularity_sqla as the time column
-        if not columns and form_data.get("granularity_sqla"):
-            columns = [form_data["granularity_sqla"]]
 
         factory = QueryContextFactory()
         query_context_obj = factory.create(

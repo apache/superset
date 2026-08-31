@@ -23,16 +23,30 @@ separate metric keys ``x``/``y``/``size`` and an optional ``series``), and
 registry integration.
 """
 
+from unittest.mock import MagicMock, Mock, patch
+
 import pytest
 from pydantic import TypeAdapter, ValidationError
 
-from superset.mcp_service.chart.chart_utils import map_bubble_config
-from superset.mcp_service.chart.schemas import BubbleChartConfig, ChartConfig
+from superset.mcp_service.chart.chart_utils import (
+    analyze_chart_capabilities,
+    analyze_chart_semantics,
+    map_bubble_config,
+)
+from superset.mcp_service.chart.compile import _compile_chart
+from superset.mcp_service.chart.preview_utils import _build_query_fields
+from superset.mcp_service.chart.schemas import (
+    BubbleChartConfig,
+    ChartConfig,
+    GenerateChartRequest,
+    UpdateChartRequest,
+)
+from superset.utils import json
 
 
 def _base(**overrides):
     cfg = {
-        "chart_type": "bubble_v2",
+        "chart_type": "bubble",
         "entity": {"name": "country"},
         "x": {"name": "gdp", "aggregate": "AVG"},
         "y": {"name": "life_expectancy", "aggregate": "AVG"},
@@ -93,6 +107,58 @@ class TestBubbleChartConfigSchema:
         config = TypeAdapter(ChartConfig).validate_python(_base())
         assert isinstance(config, BubbleChartConfig)
 
+    def test_native_viz_type_and_form_data_round_trip(self) -> None:
+        native_form_data = map_bubble_config(
+            BubbleChartConfig(
+                **_base(filters=[{"column": "year", "op": "=", "value": 2026}])
+            )
+        )
+
+        generate_request = GenerateChartRequest.model_validate(
+            {"dataset_id": 7, "config": dict(native_form_data)}
+        )
+        update_request = UpdateChartRequest.model_validate(
+            {"identifier": 9, "config": dict(native_form_data)}
+        )
+
+        for config in (generate_request.config, update_request.config):
+            assert isinstance(config, BubbleChartConfig)
+            assert config.chart_type == "bubble"
+            assert config.entity.name == "country"
+            assert config.x.aggregate == "AVG"
+            assert config.filters is not None
+            assert config.filters[0].column == "year"
+            assert config.filters[0].op == "="
+
+    def test_native_saved_and_sql_metrics_round_trip(self) -> None:
+        request = UpdateChartRequest.model_validate(
+            {
+                "identifier": 9,
+                "config": {
+                    "viz_type": "bubble_v2",
+                    "entity": "country",
+                    "x": "saved_x",
+                    "y": {
+                        "expressionType": "SQL",
+                        "sqlExpression": "AVG(revenue / NULLIF(cost, 0))",
+                        "label": "Efficiency",
+                    },
+                    "size": {
+                        "expressionType": "SIMPLE",
+                        "column": {"column_name": "population"},
+                        "aggregate": "SUM",
+                        "label": "Population",
+                        "hasCustomLabel": True,
+                    },
+                },
+            }
+        )
+
+        assert isinstance(request.config, BubbleChartConfig)
+        assert request.config.x.saved_metric is True
+        assert request.config.y.sql_expression is not None
+        assert request.config.size.label == "Population"
+
 
 class TestMapBubbleConfig:
     """form_data mapping must match the frontend Bubble buildQuery."""
@@ -142,6 +208,37 @@ class TestBubbleMetricsResolution:
         labels = [m["label"] if isinstance(m, dict) else m for m in metrics]
         assert labels == ["AVG(gdp)", "AVG(life_expectancy)", "SUM(population)"]
 
+    def test_compile_and_preview_fields_include_bubble_contract(self) -> None:
+        form_data = map_bubble_config(
+            BubbleChartConfig(**_base(series={"name": "continent"}))
+        )
+
+        columns, metrics = _build_query_fields(form_data)
+        labels = [metric["label"] for metric in metrics]
+
+        assert columns == ["country", "continent"]
+        assert labels == ["AVG(gdp)", "AVG(life_expectancy)", "SUM(population)"]
+
+    @patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
+    @patch("superset.common.query_context_factory.QueryContextFactory")
+    def test_compile_builds_non_empty_bubble_query(
+        self, mock_factory_cls: MagicMock, mock_command_cls: MagicMock
+    ) -> None:
+        mock_factory_cls.return_value.create.return_value = MagicMock()
+        mock_command_cls.return_value.run.return_value = {"queries": [{"data": []}]}
+        form_data = map_bubble_config(BubbleChartConfig(**_base()))
+
+        result = _compile_chart(form_data, dataset_id=7)
+
+        assert result.success is True
+        query = mock_factory_cls.return_value.create.call_args.kwargs["queries"][0]
+        assert query["columns"] == ["country"]
+        assert [metric["label"] for metric in query["metrics"]] == [
+            "AVG(gdp)",
+            "AVG(life_expectancy)",
+            "SUM(population)",
+        ]
+
 
 class TestBubblePluginRegistry:
     """Plugin registration and viz-type resolution."""
@@ -149,7 +246,7 @@ class TestBubblePluginRegistry:
     def test_bubble_plugin_registered(self) -> None:
         from superset.mcp_service.chart import registry
 
-        plugin = registry.get("bubble_v2")
+        plugin = registry.get("bubble")
         assert plugin is not None
         assert plugin.resolve_viz_type(None) == "bubble_v2"
 
@@ -161,12 +258,36 @@ class TestBubblePluginRegistry:
     def test_pre_validate_missing_fields(self) -> None:
         from superset.mcp_service.chart import registry
 
-        plugin = registry.get("bubble_v2")
+        plugin = registry.get("bubble")
         assert plugin is not None
-        error = plugin.pre_validate({"chart_type": "bubble_v2"})
+        error = plugin.pre_validate({"chart_type": "bubble"})
         assert error is not None
         assert "entity" in error.message
         assert "x" in error.message
+
+    def test_update_preserves_native_viz_type(self) -> None:
+        from superset.mcp_service.chart.tool.update_chart import _build_update_payload
+
+        config = BubbleChartConfig(**_base())
+        request = UpdateChartRequest(identifier=9, config=config)
+        chart = Mock(datasource_id=7, slice_name="Bubble", params="{}")
+
+        payload = _build_update_payload(request, chart, parsed_config=config)
+
+        assert isinstance(payload, dict)
+        assert payload["viz_type"] == "bubble_v2"
+        assert json.loads(payload["params"])["viz_type"] == "bubble_v2"
+
+    def test_capabilities_and_semantics_cover_bubble(self) -> None:
+        config = BubbleChartConfig(**_base())
+
+        capabilities = analyze_chart_capabilities("bubble_v2", config)
+        semantics = analyze_chart_semantics("bubble_v2", config)
+
+        assert capabilities.supports_interaction is True
+        assert set(capabilities.data_types) == {"categorical", "metric"}
+        assert "three metrics" in semantics.primary_insight
+        assert "country" in semantics.data_story
 
 
 class TestBubbleRecommendationCategory:
@@ -182,4 +303,4 @@ class TestBubbleRecommendationCategory:
             _CHART_TYPE_ADAPTERS,
         )
 
-        assert "bubble_v2" in _CHART_TYPE_ADAPTERS
+        assert "bubble" in _CHART_TYPE_ADAPTERS

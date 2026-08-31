@@ -1706,6 +1706,7 @@ def analyze_chart_capabilities(viz_type: str | None, config: Any) -> ChartCapabi
         "deck_hex",
         "ag-grid-table",  # AG Grid tables are interactive
         "ag-grid-pivot-table",
+        "bubble_v2",
     ]
 
     supports_interaction = viz_type in interactive_types
@@ -1728,9 +1729,11 @@ def analyze_chart_capabilities(viz_type: str | None, config: Any) -> ChartCapabi
 
     # Classify data types
     data_types = []
-    if hasattr(config, "x") and config.x:
+    if isinstance(config, BubbleChartConfig):
+        data_types.extend(["categorical", "metric"])
+    elif hasattr(config, "x") and config.x:
         data_types.append("categorical" if not config.x.is_metric else "metric")
-    if hasattr(config, "y") and config.y:
+    if not isinstance(config, BubbleChartConfig) and hasattr(config, "y") and config.y:
         data_types.extend(["metric"] * len(config.y))
     if "time" in viz_type or "timeseries" in viz_type:
         data_types.append("time_series")
@@ -1784,6 +1787,10 @@ def analyze_chart_semantics(viz_type: str | None, config: Any) -> ChartSemantics
         "big_number_total": (
             "Highlights a single key metric value as a prominent number"
         ),
+        "bubble_v2": (
+            "Shows relationships among three metrics through horizontal position, "
+            "vertical position, and bubble size"
+        ),
     }
 
     primary_insight = insights_map.get(
@@ -1791,10 +1798,19 @@ def analyze_chart_semantics(viz_type: str | None, config: Any) -> ChartSemantics
     )
 
     # Generate data story
-    columns = []
-    if hasattr(config, "x") and config.x:
+    columns: list[str] = []
+    if isinstance(config, BubbleChartConfig):
+        refs = [config.entity, config.x, config.y, config.size]
+        if config.series is not None:
+            refs.append(config.series)
+        columns.extend(
+            label
+            for ref in refs
+            if (label := ref.name or ref.label or ref.sql_expression) is not None
+        )
+    elif hasattr(config, "x") and config.x:
         columns.append(config.x.name)
-    if hasattr(config, "y") and config.y:
+    if not isinstance(config, BubbleChartConfig) and hasattr(config, "y") and config.y:
         # SQL metrics have no name; fall back to label or the expression.
         columns.extend(
             [col.name or col.label or col.sql_expression for col in config.y]

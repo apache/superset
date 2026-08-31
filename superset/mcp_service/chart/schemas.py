@@ -1045,6 +1045,51 @@ class PieChartConfig(BaseChartConfig):
         return self
 
 
+def _coerce_native_bubble_metric(metric: Any) -> Any:
+    """Translate one native Bubble metric into a typed ColumnRef payload."""
+    if isinstance(metric, str):
+        return {"name": metric, "saved_metric": True}
+    if not isinstance(metric, dict) or "expressionType" not in metric:
+        return metric
+    if metric.get("expressionType") == "SQL":
+        return {
+            "sql_expression": metric.get("sqlExpression"),
+            "label": metric.get("label"),
+        }
+
+    column = metric.get("column")
+    if isinstance(column, dict):
+        column = column.get("column_name")
+    coerced_metric = {
+        "name": column,
+        "aggregate": metric.get("aggregate"),
+    }
+    if metric.get("hasCustomLabel"):
+        coerced_metric["label"] = metric.get("label")
+    return coerced_metric
+
+
+def _coerce_native_bubble_filter(filter_: Any) -> dict[str, Any]:
+    """Translate one supported native adhoc filter into FilterConfig fields."""
+    if (
+        not isinstance(filter_, dict)
+        or filter_.get("expressionType") != "SIMPLE"
+        or filter_.get("clause", "WHERE").upper() != "WHERE"
+        or not filter_.get("subject")
+        or not filter_.get("operator")
+    ):
+        raise ValueError(
+            "Bubble updates can only round-trip SIMPLE WHERE "
+            "adhoc_filters; pass structured 'filters' instead"
+        )
+    operator = filter_["operator"]
+    return {
+        "column": filter_["subject"],
+        "op": "=" if operator == "==" else operator,
+        "value": filter_.get("comparator"),
+    }
+
+
 class BubbleChartConfig(BaseChartConfig):
     """Config for bubble charts (viz_type ``bubble_v2``).
 
@@ -1056,7 +1101,7 @@ class BubbleChartConfig(BaseChartConfig):
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    chart_type: Literal["bubble_v2"] = "bubble_v2"
+    chart_type: Literal["bubble"] = "bubble"
     entity: ColumnRef = Field(
         ...,
         description="Category column identifying each bubble (e.g. country)",
@@ -1092,6 +1137,34 @@ class BubbleChartConfig(BaseChartConfig):
         ),
         max_length=100,
     )
+
+    @model_validator(mode="before")
+    @classmethod
+    def coerce_native_form_data(cls, data: Any) -> Any:
+        """Translate Bubble's native form-data fields into typed references.
+
+        Existing charts store dimensions as bare strings and metrics as either
+        saved-metric strings or frontend adhoc-metric objects. Accepting those
+        shapes lets callers round-trip Bubble's core form-data fields through
+        ``update_chart`` without confusing the internal ``bubble_v2`` viz type
+        with the public ``bubble`` chart-type discriminator.
+        """
+        if not isinstance(data, dict):
+            return data
+
+        for key in ("entity", "series"):
+            if isinstance(data.get(key), str):
+                data[key] = {"name": data[key]}
+
+        native_filters = data.pop("adhoc_filters", None)
+        if "filters" not in data and isinstance(native_filters, list):
+            data["filters"] = [
+                _coerce_native_bubble_filter(filter_) for filter_ in native_filters
+            ]
+
+        for key in ("x", "y", "size"):
+            data[key] = _coerce_native_bubble_metric(data.get(key))
+        return data
 
     @model_validator(mode="after")
     def reject_metric_style_dimensions(self) -> "BubbleChartConfig":
@@ -2365,7 +2438,7 @@ ChartConfig = Annotated[
         discriminator="chart_type",
         description=(
             "Chart configuration - specify chart_type as 'xy', 'table', "
-            "'pie', 'bubble_v2', 'pivot_table', 'interactive_pivot', "
+            "'pie', 'bubble', 'pivot_table', 'interactive_pivot', "
             "'mixed_timeseries', "
             "'handlebars', "
             "'big_number', 'histogram', 'box_plot', or 'waterfall'"
@@ -2398,6 +2471,7 @@ _VIZ_TYPE_TO_CHART_TYPE: dict[str, tuple[str, str | None]] = {
     "pivot_table_v2": ("pivot_table", None),
     "ag-grid-pivot-table": ("interactive_pivot", None),
     "histogram_v2": ("histogram", None),
+    "bubble_v2": ("bubble", None),
 }
 
 

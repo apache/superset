@@ -33,6 +33,7 @@ from superset.mcp_service.chart.compile import (
 )
 from superset.mcp_service.chart.schemas import (
     BigNumberChartConfig,
+    BubbleChartConfig,
     ColumnRef,
     FilterConfig,
     PieChartConfig,
@@ -147,6 +148,34 @@ class TestValidateAndCompileChartTypeCoverage:
             metric=ColumnRef(name="sum_boys", saved_metric=True),
         )
         result = validate_and_compile(config, {}, ds, run_compile_check=False)
+        assert result.success, result.error
+
+    def test_bubble_sum_on_non_numeric_column_rejected(self):
+        ds = _orm_dataset()
+        config = BubbleChartConfig(
+            entity=ColumnRef(name="name"),
+            x=ColumnRef(name="num", aggregate="AVG"),
+            y=ColumnRef(name="gender", aggregate="SUM"),
+            size=ColumnRef(name="num", aggregate="SUM"),
+        )
+
+        result = validate_and_compile(config, {}, ds, run_compile_check=False)
+
+        assert not result.success
+        assert result.error_obj is not None
+        assert result.error_obj.error_code == "INVALID_AGGREGATION"
+
+    def test_bubble_numeric_metrics_pass(self):
+        ds = _orm_dataset()
+        config = BubbleChartConfig(
+            entity=ColumnRef(name="name"),
+            x=ColumnRef(name="num", aggregate="AVG"),
+            y=ColumnRef(name="num", aggregate="MAX"),
+            size=ColumnRef(name="num", aggregate="SUM"),
+        )
+
+        result = validate_and_compile(config, {}, ds, run_compile_check=False)
+
         assert result.success, result.error
 
     def test_pivot_table_bad_row_rejected(self):

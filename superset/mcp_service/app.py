@@ -395,6 +395,8 @@ Chart Types You Can CREATE with generate_chart/generate_explore_link:
 - chart_type="table": Data table for detailed views
 - chart_type="table", viz_type="ag-grid-table": Interactive AG Grid table
 - chart_type="pie": Pie chart for proportional data (set donut=True for donut)
+- chart_type="bubble": Bubble chart comparing x, y, and size metrics for each
+  entity (optional series groups entities by color)
 - chart_type="pivot_table": OSS Pivot Table for cross-tabulation
 - chart_type="interactive_pivot": Extension-provided AG Grid Interactive Pivot Table.
   This type is distinct from pivot_table/pivot_table_v2 and is available only
@@ -421,7 +423,7 @@ Chart Types in Existing Charts (viewable via list_charts/get_chart_info):
 Each chart returned by list_charts / get_chart_info includes a
 chart_type_display_name field with a human-readable name when available.
 This field is populated for chart types known to the MCP registry
-(xy, pie, table, pivot_table, big_number, mixed_timeseries, handlebars,
+(xy, pie, bubble, table, pivot_table, big_number, mixed_timeseries, handlebars,
 histogram, box_plot, waterfall, and interactive_pivot). Availability gates
 creation and schema discovery, not display names for existing charts.
 For all other viz_types (Funnel, Gauge, Heatmap, etc.) it will be null —
