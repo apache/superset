@@ -220,6 +220,97 @@ def test_real_saved_example_adapts_and_round_trips_presentation() -> None:
     ]
 
 
+def test_mapper_output_round_trips_saved_adhoc_and_sql_tooltip_metrics() -> None:
+    original = map_gantt_config(
+        _config(
+            tooltip_metrics=[
+                {"name": "Completion", "saved_metric": True},
+                {"name": "cost", "aggregate": "SUM"},
+                {"name": "hours", "aggregate": "AVG", "label": "Avg hours"},
+                {"sql_expression": "SUM(cost) / COUNT(*)", "label": "Unit cost"},
+            ],
+            time_range="Last 30 days",
+        )
+    )
+
+    adapted = GanttChartConfig.model_validate(original)
+    assert adapted.tooltip_metrics[0].saved_metric is True
+    assert adapted.tooltip_metrics[1].aggregate == "SUM"
+    assert adapted.tooltip_metrics[1].label is None
+    assert adapted.tooltip_metrics[2].label == "Avg hours"
+    assert adapted.tooltip_metrics[3].sql_expression == "SUM(cost) / COUNT(*)"
+    assert map_gantt_config(adapted) == original
+
+    cached = dict(original)
+    cached_metric = dict(original["tooltip_metrics"][1])
+    cached_metric["column"] = {
+        "advanced_data_type": None,
+        "certification_details": None,
+        "certified_by": None,
+        "column_name": "cost",
+        "description": "Task cost",
+        "expression": None,
+        "filterable": True,
+        "groupby": True,
+        "id": 734,
+        "is_certified": False,
+        "is_dttm": False,
+        "python_date_format": None,
+        "type": "DOUBLE PRECISION",
+        "type_generic": 0,
+        "verbose_name": None,
+        "warning_markdown": None,
+    }
+    cached["tooltip_metrics"] = [cached_metric]
+    normalized_cached = map_gantt_config(GanttChartConfig.model_validate(cached))
+    assert normalized_cached["tooltip_metrics"] == [original["tooltip_metrics"][1]]
+    GanttChartConfig.model_validate(normalized_cached)
+
+    malformed = dict(original)
+    malformed_metric = dict(original["tooltip_metrics"][1])
+    malformed_metric["expressonType"] = malformed_metric.pop("expressionType")
+    malformed["tooltip_metrics"] = [malformed_metric]
+    with pytest.raises(ValidationError, match="expressonType"):
+        GanttChartConfig.model_validate(malformed)
+
+
+def test_native_temporal_filters_reject_multiple_or_conflicting_bindings() -> None:
+    base = map_gantt_config(_config())
+    second = {
+        "clause": "WHERE",
+        "expressionType": "SIMPLE",
+        "subject": "end_time",
+        "operator": "TEMPORAL_RANGE",
+        "comparator": "No filter",
+    }
+    for filters in (
+        [*base["adhoc_filters"], second],
+        [*base["adhoc_filters"], dict(base["adhoc_filters"][0])],
+    ):
+        with pytest.raises(ValidationError, match="at most one TEMPORAL_RANGE"):
+            GanttChartConfig.model_validate({**base, "adhoc_filters": filters})
+
+    with pytest.raises(
+        ValidationError, match="_mcp_dashboard_time_filter_subject conflicts"
+    ):
+        GanttChartConfig.model_validate(
+            {**base, "_mcp_dashboard_time_filter_subject": "end_time"}
+        )
+    with pytest.raises(ValidationError, match="time_range conflicts"):
+        GanttChartConfig.model_validate(
+            {
+                **base,
+                "time_range": "Last 7 days",
+                "adhoc_filters": [
+                    {**base["adhoc_filters"][0], "comparator": "Last 30 days"}
+                ],
+            }
+        )
+
+    one_filter = GanttChartConfig.model_validate(base)
+    assert map_gantt_config(one_filter) == base
+
+
 def test_typed_mapping_matches_frontend_build_query_contract() -> None:
     form_data = map_gantt_config(
         _config(
@@ -388,6 +479,112 @@ def test_unsaved_gantt_vega_preview_representative_empty_and_invalid_data() -> N
     assert missing.error_type == "InvalidGanttResult"
 
 
+@pytest.mark.parametrize(
+    ("bad_row", "message"),
+    [
+        (
+            {"start_time": None, "end_time": "2026-01-02", "task": "Build"},
+            "invalid temporal value for start_time",
+        ),
+        (
+            {"start_time": True, "end_time": "2026-01-02", "task": "Build"},
+            "invalid temporal value for start_time",
+        ),
+        (
+            {"start_time": "not-a-date", "end_time": "2026-01-02", "task": "Build"},
+            "invalid temporal value for start_time",
+        ),
+        (
+            {"start_time": "2026-01-03", "end_time": "2026-01-02", "task": "Build"},
+            "ends before it starts",
+        ),
+        (
+            {"start_time": "2026-01-01", "end_time": "2026-01-02", "task": None},
+            "invalid category value for task",
+        ),
+        (
+            {"start_time": "2026-01-01", "end_time": "2026-01-02", "task": True},
+            "invalid category value for task",
+        ),
+    ],
+)
+def test_gantt_preview_rejects_invalid_values_in_every_row(
+    bad_row: dict[str, object], message: str
+) -> None:
+    form_data = {
+        "viz_type": "gantt_chart",
+        "start_time": "start_time",
+        "end_time": "end_time",
+        "y_axis": "task",
+    }
+    valid = {
+        "start_time": 1767225600000,
+        "end_time": 1767312000000,
+        "task": "Plan",
+    }
+    result = _generate_gantt_vega_lite_preview([valid, bad_row], form_data)
+    assert isinstance(result, ChartError)
+    assert result.error_type == "InvalidGanttResult"
+    assert "row 1" in result.error
+    assert message in result.error
+
+
+def test_gantt_preview_resolves_custom_column_and_metric_aliases() -> None:
+    form_data = {
+        "viz_type": "gantt_chart",
+        "start_time": {
+            "expressionType": "SQL",
+            "sqlExpression": "MIN(started_at)",
+            "label": "Start alias",
+        },
+        "end_time": {
+            "expressionType": "SQL",
+            "sqlExpression": "MAX(ended_at)",
+            "label": "End alias",
+        },
+        "y_axis": {
+            "expressionType": "SQL",
+            "sqlExpression": "task",
+            "label": "Task alias",
+        },
+        "tooltip_columns": [
+            {
+                "expressionType": "SQL",
+                "sqlExpression": "owner",
+                "label": "Owner alias",
+            }
+        ],
+        "tooltip_metrics": [{"label": "Total cost"}],
+    }
+    data = [
+        {
+            "Start alias": "2026-01-01T00:00:00Z",
+            "End alias": "2026-01-02T00:00:00Z",
+            "Task alias": "Build",
+            "Owner alias": "Amin",
+            "Total cost": 42,
+        }
+    ]
+    preview = _generate_gantt_vega_lite_preview(data, form_data)
+    assert isinstance(preview, VegaLitePreview)
+    assert preview.specification["encoding"]["x"]["field"] == "Start alias"
+    assert {item["field"] for item in preview.specification["encoding"]["tooltip"]} >= {
+        "Owner alias",
+        "Total cost",
+    }
+
+    missing_later_alias = _generate_gantt_vega_lite_preview(
+        [
+            data[0],
+            {key: value for key, value in data[0].items() if key != "Owner alias"},
+        ],
+        form_data,
+    )
+    assert isinstance(missing_later_alias, ChartError)
+    assert "row 1" in missing_later_alias.error
+    assert "Owner alias" in missing_later_alias.error
+
+
 def test_saved_gantt_vega_preview_supports_valid_empty_result() -> None:
     form_data = {
         "start_time": "start_time",
@@ -422,10 +619,56 @@ def test_saved_gantt_vega_preview_supports_valid_empty_result() -> None:
         ]
     )
     assert representative["encoding"]["x2"] == {"field": "end_time"}
-    with pytest.raises(ValueError, match="missing required field: end_time"):
+    with pytest.raises(ValueError, match="missing required output fields: end_time"):
         strategy._create_vega_lite_spec(
             [{"start_time": "2026-01-01T00:00:00", "task": "Review"}]
         )
+
+
+def test_saved_and_unsaved_gantt_preview_return_the_same_structured_error() -> None:
+    form_data = {
+        "viz_type": "gantt_chart",
+        "start_time": "start_time",
+        "end_time": "end_time",
+        "y_axis": "task",
+    }
+    data = [
+        {
+            "start_time": "2026-01-03",
+            "end_time": "2026-01-02",
+            "task": "Review",
+        }
+    ]
+    unsaved = _generate_gantt_vega_lite_preview(data, form_data)
+    assert isinstance(unsaved, ChartError)
+
+    chart = SimpleNamespace(
+        id=1,
+        slice_name="Schedule",
+        viz_type="gantt_chart",
+        params=__import__("json").dumps(form_data),
+    )
+    strategy = VegaLitePreviewStrategy(
+        chart,
+        GetChartPreviewRequest(identifier=1, format="vega_lite"),
+    )
+    with (
+        patch(
+            "superset.mcp_service.chart.tool.get_chart_preview."
+            "build_query_context_from_form_data",
+            return_value=object(),
+        ),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand"
+        ) as command,
+        patch.object(strategy, "_authorize_guest_query"),
+    ):
+        command.return_value.run.return_value = {"queries": [{"data": data}]}
+        saved = strategy.generate()
+
+    assert isinstance(saved, ChartError)
+    assert saved.error_type == unsaved.error_type
+    assert saved.error == unsaved.error
 
 
 def test_saved_update_and_preview_first_paths_preserve_native_gantt_state() -> None:
@@ -453,6 +696,63 @@ def test_saved_update_and_preview_first_paths_preserve_native_gantt_state() -> N
     assert preview_form_data["legendOrientation"] == "right"
     assert preview_form_data["zoomable"] is False
     assert preview_form_data["slice_id"] == 1495
+
+
+@pytest.mark.parametrize(
+    "overrides",
+    [
+        {},
+        {"filters": []},
+        {"filters": [{"column": "owner", "op": "=", "value": "Amin"}]},
+        {"temporal_column": "end_time", "time_range": "Last 7 days"},
+    ],
+)
+def test_gantt_update_preview_matches_would_be_persisted_state(
+    overrides: dict[str, object],
+) -> None:
+    existing = {
+        **_native_example(),
+        "adhoc_filters": [
+            {
+                "clause": "WHERE",
+                "expressionType": "SIMPLE",
+                "subject": "project",
+                "operator": "==",
+                "comparator": "Legacy",
+            }
+        ],
+    }
+    chart = SimpleNamespace(
+        id=1495,
+        datasource_id=None,
+        slice_name="Gantt",
+        params=__import__("json").dumps(existing),
+    )
+    config = _config(**overrides)
+    request = UpdateChartRequest(identifier=1495, config=config)
+
+    payload = _build_update_payload(request, chart, parsed_config=config)
+    preview = _build_preview_form_data(request, chart, parsed_config=config)
+    assert isinstance(payload, dict)
+    assert isinstance(preview, dict)
+    persisted = __import__("json").loads(payload["params"])
+    preview_state = {
+        key: value
+        for key, value in preview.items()
+        if key not in {"datasource", "slice_id", "slice_name"}
+    }
+    assert preview_state == persisted
+
+    marker = persisted["_mcp_dashboard_time_filter_subject"]
+    temporal_filters = [
+        filter_
+        for filter_ in persisted["adhoc_filters"]
+        if filter_["operator"] == "TEMPORAL_RANGE"
+    ]
+    assert len(temporal_filters) == 1
+    assert temporal_filters[0]["subject"] == marker
+    expected_range = overrides.get("time_range", "No filter")
+    assert temporal_filters[0]["comparator"] == expected_range
 
 
 def test_registry_schema_validation_and_presentation_merge_wiring() -> None:

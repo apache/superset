@@ -2462,6 +2462,12 @@ class GanttChartConfig(BaseChartConfig):
         ):
             data.pop(key, None)
 
+        marker_key = "_mcp_dashboard_time_filter_subject"
+        marker_present = marker_key in data
+        marker = data.pop(marker_key, None)
+        if marker_present and (not isinstance(marker, str) or not marker):
+            raise ValueError(f"{marker_key} must be a non-empty physical column name")
+
         for key in (
             "start_time",
             "startTime",
@@ -2485,11 +2491,9 @@ class GanttChartConfig(BaseChartConfig):
                     for item in data[key]
                 ]
         if isinstance(data.get("tooltip_metrics"), list):
-            # Native metric strings name saved dataset metrics. Typed callers can
-            # use explicit aggregate/saved_metric objects to avoid ambiguity.
             data["tooltip_metrics"] = [
-                {"name": item, "saved_metric": True} if isinstance(item, str) else item
-                for item in data["tooltip_metrics"]
+                cls._adapt_native_tooltip_metric(item, index)
+                for index, item in enumerate(data["tooltip_metrics"])
             ]
 
         if "adhoc_filters" in data:
@@ -2503,6 +2507,14 @@ class GanttChartConfig(BaseChartConfig):
             if len(native_filters) > 100:
                 raise ValueError("adhoc_filters accepts at most 100 entries")
             filters: list[dict[str, Any]] = []
+            temporal_filters: list[tuple[int, str, Any]] = []
+            allowed_filter_keys = {
+                "clause",
+                "comparator",
+                "expressionType",
+                "operator",
+                "subject",
+            }
             for index, native_filter in enumerate(native_filters):
                 if not isinstance(native_filter, dict):
                     raise ValueError(f"adhoc_filters[{index}] must be an object")
@@ -2511,6 +2523,14 @@ class GanttChartConfig(BaseChartConfig):
                         f"adhoc_filters[{index}] must use expressionType='SIMPLE'; "
                         "free-form SQL filters are not supported by typed Gantt"
                     )
+                unknown_filter_keys = set(native_filter) - allowed_filter_keys
+                if unknown_filter_keys:
+                    raise ValueError(
+                        f"adhoc_filters[{index}] has unsupported fields: "
+                        f"{', '.join(sorted(unknown_filter_keys))}"
+                    )
+                if native_filter.get("clause") not in (None, "WHERE"):
+                    raise ValueError(f"adhoc_filters[{index}] must use clause='WHERE'")
                 subject = native_filter.get("subject")
                 operator = native_filter.get("operator")
                 comparator = native_filter.get("comparator")
@@ -2519,14 +2539,12 @@ class GanttChartConfig(BaseChartConfig):
                         raise ValueError(
                             f"adhoc_filters[{index}] temporal filter needs subject"
                         )
-                    data.setdefault("temporal_column", subject)
-                    if comparator not in (None, "", "No filter"):
-                        if not isinstance(comparator, str):
-                            raise ValueError(
-                                f"adhoc_filters[{index}] temporal comparator must "
-                                "be a string"
-                            )
-                        data.setdefault("time_range", comparator)
+                    if comparator is not None and not isinstance(comparator, str):
+                        raise ValueError(
+                            f"adhoc_filters[{index}] temporal comparator must "
+                            "be a string"
+                        )
+                    temporal_filters.append((index, subject, comparator))
                     continue
                 if not isinstance(subject, str) or not subject:
                     raise ValueError(f"adhoc_filters[{index}] needs subject")
@@ -2538,7 +2556,199 @@ class GanttChartConfig(BaseChartConfig):
                     }
                 )
             data["filters"] = filters or None
+
+            if len(temporal_filters) > 1:
+                indexes = ", ".join(str(item[0]) for item in temporal_filters)
+                raise ValueError(
+                    "Typed Gantt supports at most one TEMPORAL_RANGE adhoc filter; "
+                    f"found filters at indexes {indexes}"
+                )
+            if temporal_filters:
+                index, subject, comparator = temporal_filters[0]
+                configured_subject = data.get("temporal_column")
+                if configured_subject is not None and configured_subject != subject:
+                    raise ValueError(
+                        f"temporal_column conflicts with adhoc_filters[{index}].subject"
+                    )
+                data["temporal_column"] = subject
+                if marker_present and marker != subject:
+                    raise ValueError(
+                        f"{marker_key} conflicts with adhoc_filters[{index}].subject"
+                    )
+                if comparator not in (None, "", "No filter"):
+                    configured_range = data.get("time_range")
+                    if configured_range is not None and configured_range != comparator:
+                        raise ValueError(
+                            "time_range conflicts with "
+                            f"adhoc_filters[{index}].comparator"
+                        )
+                    data["time_range"] = comparator
+            elif marker_present:
+                raise ValueError(
+                    f"{marker_key} requires a matching TEMPORAL_RANGE adhoc filter"
+                )
+        elif marker_present:
+            raise ValueError(
+                f"{marker_key} requires a matching TEMPORAL_RANGE adhoc filter"
+            )
         return data
+
+    @staticmethod
+    def _adapt_native_tooltip_metric(metric: Any, index: int) -> Any:  # noqa: C901
+        """Convert one bounded native QueryFormMetric into a typed metric ref."""
+        if isinstance(metric, str):
+            return {"name": metric, "saved_metric": True}
+        if not isinstance(metric, dict):
+            raise ValueError(
+                f"tooltip_metrics[{index}] must be a saved metric name or object"
+            )
+        # Typed ColumnRef objects do not carry the frontend discriminator and
+        # must continue through normal Pydantic validation unchanged.
+        if "expressionType" not in metric:
+            return metric
+
+        allowed_keys = {
+            "aggregate",
+            "column",
+            "datasourceWarning",
+            "expressionType",
+            "hasCustomLabel",
+            "label",
+            "optionName",
+            "sqlExpression",
+        }
+        if unknown := set(metric) - allowed_keys:
+            raise ValueError(
+                f"tooltip_metrics[{index}] has unsupported fields: "
+                f"{', '.join(sorted(unknown))}"
+            )
+        option_name = metric.get("optionName")
+        if option_name is not None and (
+            not isinstance(option_name, str)
+            or not option_name
+            or len(option_name) > 500
+        ):
+            raise ValueError(
+                f"tooltip_metrics[{index}].optionName must be a non-empty string"
+            )
+        datasource_warning = metric.get("datasourceWarning")
+        if datasource_warning is not None and not isinstance(datasource_warning, bool):
+            raise ValueError(
+                f"tooltip_metrics[{index}].datasourceWarning must be boolean"
+            )
+        custom_label = metric.get("hasCustomLabel")
+        if custom_label is not None and not isinstance(custom_label, bool):
+            raise ValueError(f"tooltip_metrics[{index}].hasCustomLabel must be boolean")
+
+        expression_type = metric.get("expressionType")
+        label = metric.get("label")
+        if label is not None and (not isinstance(label, str) or not label):
+            raise ValueError(
+                f"tooltip_metrics[{index}].label must be a non-empty string"
+            )
+        if expression_type == "SIMPLE":
+            aggregate = metric.get("aggregate")
+            column = metric.get("column")
+            if not isinstance(aggregate, str) or not aggregate:
+                raise ValueError(
+                    f"tooltip_metrics[{index}] SIMPLE metric needs aggregate"
+                )
+            if not isinstance(column, dict):
+                raise ValueError(f"tooltip_metrics[{index}] SIMPLE metric needs column")
+            # QueryFormMetric embeds the selected frontend Column metadata.
+            # Accept only the documented fields plus certification fields found
+            # in saved chart YAML; none affect the typed metric reference.
+            allowed_column_keys = {
+                "advanced_data_type",
+                "certification_details",
+                "certified_by",
+                "columnName",
+                "column_name",
+                "database_expression",
+                "description",
+                "expression",
+                "filterBy",
+                "filterable",
+                "groupby",
+                "id",
+                "is_certified",
+                "is_dttm",
+                "optionName",
+                "python_date_format",
+                "type",
+                "type_generic",
+                "value",
+                "verbose_name",
+                "warning_markdown",
+            }
+            unknown_column_keys = set(column) - allowed_column_keys
+            if unknown_column_keys:
+                raise ValueError(
+                    f"tooltip_metrics[{index}].column has unsupported fields: "
+                    f"{', '.join(sorted(unknown_column_keys))}"
+                )
+            for metadata_key, metadata_value in column.items():
+                if isinstance(metadata_value, (dict, list, tuple, set)) or (
+                    isinstance(metadata_value, str) and len(metadata_value) > 2000
+                ):
+                    raise ValueError(
+                        f"tooltip_metrics[{index}].column.{metadata_key} "
+                        "has an unsupported value"
+                    )
+            column_name = column.get("column_name") or column.get("columnName")
+            if not isinstance(column_name, str) or not column_name:
+                raise ValueError(f"tooltip_metrics[{index}].column needs column_name")
+            if (
+                column.get("column_name") is not None
+                and column.get("columnName") is not None
+                and column["column_name"] != column["columnName"]
+            ):
+                raise ValueError(
+                    f"tooltip_metrics[{index}].column has conflicting column names"
+                )
+            column_type = column.get("type")
+            if column_type is not None and (
+                not isinstance(column_type, str) or len(column_type) > 255
+            ):
+                raise ValueError(
+                    f"tooltip_metrics[{index}].column.type must be a string"
+                )
+            if metric.get("sqlExpression") is not None:
+                raise ValueError(
+                    f"tooltip_metrics[{index}] SIMPLE metric cannot set sqlExpression"
+                )
+            if custom_label is True and label is None:
+                raise ValueError(
+                    f"tooltip_metrics[{index}] custom label requires label"
+                )
+            default_label = f"{aggregate.upper()}({column_name})"
+            typed_label = label if custom_label or label != default_label else None
+            return {
+                "name": column_name,
+                "aggregate": aggregate,
+                "label": typed_label,
+            }
+        if expression_type == "SQL":
+            sql_expression = metric.get("sqlExpression")
+            if not isinstance(sql_expression, str) or not sql_expression:
+                raise ValueError(
+                    f"tooltip_metrics[{index}] SQL metric needs sqlExpression"
+                )
+            if not isinstance(label, str) or not label:
+                raise ValueError(f"tooltip_metrics[{index}] SQL metric needs label")
+            if metric.get("aggregate") is not None or metric.get("column") is not None:
+                raise ValueError(
+                    f"tooltip_metrics[{index}] SQL metric cannot set "
+                    "aggregate or column"
+                )
+            if custom_label is False:
+                raise ValueError(
+                    f"tooltip_metrics[{index}] SQL metric must use a custom label"
+                )
+            return {"sql_expression": sql_expression, "label": label}
+        raise ValueError(
+            f"tooltip_metrics[{index}].expressionType must be 'SIMPLE' or 'SQL'"
+        )
 
     @field_validator("start_time", "end_time", "category", "series", mode="before")
     @classmethod

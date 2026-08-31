@@ -322,11 +322,18 @@ def _build_preview_form_data(
         merge_table_column_config(existing_form_data, new_form_data)
         merge_interactive_pivot_ui_config(existing_form_data, new_form_data)
         merge_gantt_ui_config(existing_form_data, new_form_data)
-        # In the preview, an explicit filters list, including [], replaces saved
-        # filters. An omitted filters field preserves them through the shallow merge.
-        merged = _merge_replacement_config(
-            existing_form_data, new_form_data, parsed_config
-        )
+        if new_form_data.get("viz_type") == "gantt_chart":
+            # The persisted Gantt payload is the mapped replacement plus the
+            # presentation controls merged above. Build the preview from that
+            # same state so generated temporal bindings, explicit empty filters,
+            # and marker provenance cannot diverge before Save.
+            merged = dict(new_form_data)
+        else:
+            # In the preview, an explicit filters list, including [], replaces
+            # saved filters. Omitted filters preserve them through this merge.
+            merged = _merge_replacement_config(
+                existing_form_data, new_form_data, parsed_config
+            )
     elif request.add_columns is not None:
         patched = _append_table_columns(existing_form_data, request.add_columns)
         if isinstance(patched, GenerateChartResponse):

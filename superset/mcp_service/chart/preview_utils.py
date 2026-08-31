@@ -25,6 +25,7 @@ from form data without requiring a saved chart object.
 import logging
 import math
 from copy import deepcopy
+from datetime import date, datetime, time, timezone
 from typing import Any, Dict, List
 
 from superset.mcp_service.chart.schemas import (
@@ -455,26 +456,145 @@ def _gantt_metric_label(metric: Any) -> str | None:
     return None
 
 
+def _gantt_result_field(field: Any, _field_name: str) -> str | None:
+    """Resolve the query-result key using the frontend getColumnLabel contract."""
+    if isinstance(field, str) and field:
+        return field
+    if not isinstance(field, dict) or not 0 < len(field) <= 20:
+        return None
+    label = field.get("label") or field.get("sqlExpression")
+    return label if isinstance(label, str) and label else None
+
+
+def _gantt_temporal_value(value: Any) -> float | None:  # noqa: C901
+    """Return a comparable millisecond timestamp for one bounded date value."""
+    if value is None or isinstance(value, bool):
+        return None
+    if isinstance(value, (int, float)):
+        try:
+            converted = float(value)
+        except OverflowError:
+            return None
+        return converted if math.isfinite(converted) else None
+    if isinstance(value, datetime):
+        parsed = value
+    elif isinstance(value, date):
+        parsed = datetime.combine(value, time.min)
+    elif isinstance(value, str) and 0 < len(value) <= 128:
+        try:
+            parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except ValueError:
+            try:
+                parsed = datetime.combine(date.fromisoformat(value), time.min)
+            except ValueError:
+                return None
+    else:
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    try:
+        return parsed.timestamp() * 1000
+    except (OverflowError, OSError, ValueError):
+        return None
+
+
+def _is_valid_gantt_category(value: Any) -> bool:
+    """Return whether a category can produce a stable, visible nominal label."""
+    if value is None or isinstance(value, bool):
+        return False
+    if isinstance(value, str):
+        return bool(value.strip())
+    if isinstance(value, (int, float)):
+        try:
+            return math.isfinite(float(value))
+        except OverflowError:
+            return False
+    return False
+
+
 def _generate_gantt_vega_lite_preview(  # noqa: C901
-    data: List[Dict[str, Any]], form_data: Dict[str, Any]
+    data: Any, form_data: Dict[str, Any]
 ) -> VegaLitePreview | ChartError:
-    """Build a faithful interval-bar preview for ECharts Gantt form data."""
-    start = form_data.get("start_time")
-    end = form_data.get("end_time")
-    category = form_data.get("y_axis")
-    if not all(isinstance(field, str) and field for field in (start, end, category)):
+    """Validate all Gantt rows and build the shared interval-bar preview."""
+    if not isinstance(data, list):
+        return ChartError(
+            error="Gantt result data is not an array of rows.",
+            error_type="InvalidGanttResult",
+        )
+    start = _gantt_result_field(form_data.get("start_time"), "start_time")
+    end = _gantt_result_field(form_data.get("end_time"), "end_time")
+    category = _gantt_result_field(form_data.get("y_axis"), "y_axis")
+    if not all((start, end, category)):
         return ChartError(
             error=(
-                "Gantt Vega-Lite preview requires string start_time, end_time, "
-                "and y_axis form-data fields."
+                "Gantt Vega-Lite preview requires valid start_time, end_time, "
+                "and y_axis form-data column references."
             ),
             error_type="InvalidGanttFormData",
         )
     assert isinstance(start, str)
     assert isinstance(end, str)
     assert isinstance(category, str)
+    if len({start, end, category}) != 3:
+        return ChartError(
+            error=(
+                "Gantt start_time, end_time, and y_axis must resolve to distinct "
+                "query-result fields."
+            ),
+            error_type="InvalidGanttFormData",
+        )
 
-    required = {start, end, category}
+    series_value = form_data.get("series")
+    series = (
+        _gantt_result_field(series_value, "series")
+        if series_value is not None
+        else None
+    )
+    if series_value is not None and series is None:
+        return ChartError(
+            error="Gantt series must be a valid column reference.",
+            error_type="InvalidGanttFormData",
+        )
+
+    raw_tooltip_columns = form_data.get("tooltip_columns") or []
+    raw_tooltip_metrics = form_data.get("tooltip_metrics") or []
+    if not isinstance(raw_tooltip_columns, list) or len(raw_tooltip_columns) > 50:
+        return ChartError(
+            error="Gantt tooltip_columns must contain at most 50 column references.",
+            error_type="InvalidGanttFormData",
+        )
+    if not isinstance(raw_tooltip_metrics, list) or len(raw_tooltip_metrics) > 50:
+        return ChartError(
+            error="Gantt tooltip_metrics must contain at most 50 metric references.",
+            error_type="InvalidGanttFormData",
+        )
+    tooltip_columns: list[str] = []
+    for index, field in enumerate(raw_tooltip_columns):
+        label = _gantt_result_field(field, f"tooltip_columns[{index}]")
+        if label is None:
+            return ChartError(
+                error=(
+                    f"Gantt tooltip_columns[{index}] must be a valid column reference."
+                ),
+                error_type="InvalidGanttFormData",
+            )
+        tooltip_columns.append(label)
+    tooltip_metrics: list[str] = []
+    for index, metric in enumerate(raw_tooltip_metrics):
+        label = _gantt_metric_label(metric)
+        if label is None:
+            return ChartError(
+                error=(
+                    f"Gantt tooltip_metrics[{index}] must expose a non-empty "
+                    "result label."
+                ),
+                error_type="InvalidGanttFormData",
+            )
+        tooltip_metrics.append(label)
+
+    required = {start, end, category, *tooltip_columns, *tooltip_metrics}
+    if series:
+        required.add(series)
     for index, row in enumerate(data):
         if not isinstance(row, dict):
             return ChartError(
@@ -490,30 +610,52 @@ def _generate_gantt_vega_lite_preview(  # noqa: C901
                 ),
                 error_type="InvalidGanttResult",
             )
-
-    series = form_data.get("series")
-    if series is not None and (not isinstance(series, str) or not series):
-        return ChartError(
-            error="Gantt series must be a physical column name.",
-            error_type="InvalidGanttFormData",
-        )
+        start_value = _gantt_temporal_value(row[start])
+        if start_value is None:
+            return ChartError(
+                error=(
+                    f"Gantt result row {index} has an invalid temporal value for "
+                    f"{start}."
+                ),
+                error_type="InvalidGanttResult",
+            )
+        end_value = _gantt_temporal_value(row[end])
+        if end_value is None:
+            return ChartError(
+                error=(
+                    f"Gantt result row {index} has an invalid temporal value for {end}."
+                ),
+                error_type="InvalidGanttResult",
+            )
+        if end_value < start_value:
+            return ChartError(
+                error=(
+                    f"Gantt result row {index} ends before it starts: "
+                    f"{end} is earlier than {start}."
+                ),
+                error_type="InvalidGanttResult",
+            )
+        if not _is_valid_gantt_category(row[category]):
+            return ChartError(
+                error=(
+                    f"Gantt result row {index} has an invalid category value for "
+                    f"{category}."
+                ),
+                error_type="InvalidGanttResult",
+            )
 
     tooltip_fields: list[dict[str, str]] = [
         {"field": category, "type": "nominal"},
         {"field": start, "type": "temporal"},
         {"field": end, "type": "temporal"},
     ]
-    extra_tooltips = form_data.get("tooltip_columns") or []
-    for field in ([series] if series else []) + list(extra_tooltips):
+    for field in ([series] if series else []) + tooltip_columns:
         if isinstance(field, str) and field not in {
             item["field"] for item in tooltip_fields
         }:
             tooltip_fields.append({"field": field, "type": "nominal"})
-    for metric in form_data.get("tooltip_metrics") or []:
-        label = _gantt_metric_label(metric)
-        if label is not None and label not in {
-            item["field"] for item in tooltip_fields
-        }:
+    for label in tooltip_metrics:
+        if label not in {item["field"] for item in tooltip_fields}:
             tooltip_fields.append({"field": label, "type": "quantitative"})
 
     encoding: dict[str, Any] = {
