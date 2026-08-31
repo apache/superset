@@ -78,6 +78,18 @@ Charts are **not saved by default**. The workflow is intentionally iterative:
 To skip the preview and save immediately, include "and save it" in your prompt.
 :::
 
+:::info Deployment-specific chart types
+Use `get_chart_type_schema` before generating a chart to discover the types
+available on your Superset instance. Some deployments expose additional
+feature-gated visualizations. For example, a deployment with an AG Grid pivot
+extension enabled can expose `interactive_pivot`, which supports interactive
+row groups, pivot columns, totals, and period-over-period comparisons. Pair
+`comparison_period` (for example, `1 year ago`) with `comparison_type`
+(`values`, `difference`, `percentage`, or `ratio`). It is distinct from the
+built-in `pivot_table` chart type and is not offered when the host visualization
+is unavailable.
+:::
+
 ### Create Dashboards
 
 Build dashboards from a collection of charts:
