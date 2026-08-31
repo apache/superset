@@ -16,6 +16,7 @@
 # under the License.
 
 from io import BytesIO, StringIO
+from typing import Any
 from unittest.mock import MagicMock
 
 import pandas as pd
@@ -1811,7 +1812,7 @@ def test_pivot_df_complex_null_values():
 # total, computed per metric, with totals dividing by their own rollup rather
 # than summing the fractions around them.
 
-SHOW_VALUES_AS_OPTIONS = {
+SHOW_VALUES_AS_OPTIONS: dict[str, Any] = {
     "rows": ["nation"],
     "columns": ["gender"],
     "metrics": ["SUM(num)"],
@@ -1938,6 +1939,26 @@ def test_pivot_df_show_values_as_skips_empty_cells_in_denominators():
     assert pivoted.loc[("US",), ("SUM(num)", "boy")] == pytest.approx(10 / 60)
     assert pivoted.loc[("UK",), ("SUM(num)", "boy")] == pytest.approx(20 / 60)
     assert pd.isna(pivoted.loc[("UK",), ("SUM(num)", "girl")])
+
+
+@pytest.mark.parametrize("aggfunc", ["Sum", "Average", "Maximum"])
+def test_pivot_df_show_values_as_ignores_legacy_aggregate_function(aggfunc: str):
+    """A total always divides by itself, whatever `aggregateFunction` says.
+
+    The chart ignores `aggregateFunction` post-SIP-216, so a percent export must
+    too: computing totals with it while the denominators sum leaves the Total
+    row/column reading something other than 100%.
+    """
+    pivoted = pivot_df(
+        show_values_as_df(),
+        **{**SHOW_VALUES_AS_OPTIONS, "aggfunc": aggfunc},
+        show_values_as="percent_row",
+    )
+    total = total_label()
+
+    assert pivoted.loc[("US",), (total, "")] == 1
+    assert pivoted.loc[(total,), (total, "")] == 1
+    assert pivoted.loc[("US",), ("SUM(num)", "boy")] == 0.25
 
 
 def test_pivot_df_show_values_as_supersedes_legacy_fraction_aggfunc():

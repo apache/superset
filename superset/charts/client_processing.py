@@ -164,10 +164,17 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
     metric_name_aggfunc: Optional[str] = None,
     show_values_as: Optional[str] = None,
 ) -> pd.DataFrame:
-    metric_name = __("Total (%(aggfunc)s)", aggfunc=metric_name_aggfunc or aggfunc)
     percent_mode = (
         show_values_as if show_values_as in SHOW_VALUES_AS_PERCENT_MODES else None
     )
+    if percent_mode:
+        # The chart ignores `aggregateFunction` post-SIP-216: cells arrive
+        # pre-aggregated from the database and totals are plain rollups of them.
+        # Match that here so the totals and the percent denominators cannot
+        # disagree -- otherwise a total stops dividing by itself and the Total
+        # row/column reads something other than 100%.
+        aggfunc = "Sum"
+    metric_name = __("Total (%(aggfunc)s)", aggfunc=metric_name_aggfunc or aggfunc)
     # Labels of the total/subtotal rows and columns inserted below, so the
     # `showValuesAs` denominators can be summed over leaf cells only.
     inserted_rows: list[Any] = []
