@@ -134,14 +134,6 @@
         "prefer-rest-params": "error",
         "prefer-spread": "error"
       }
-    },
-    {
-      "files": [
-        "eslint.config.js"
-      ],
-      "rules": {
-        "typescript/no-require-imports": "off"
-      }
     }
   ]
 }
