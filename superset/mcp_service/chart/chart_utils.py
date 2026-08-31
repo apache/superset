@@ -571,6 +571,33 @@ def merge_table_column_config(
     new_form_data["column_config"] = merged_column_config
 
 
+def merge_interactive_pivot_ui_config(
+    existing_form_data: Mapping[str, Any], new_form_data: Dict[str, Any]
+) -> None:
+    """Preserve UI-managed Interactive Pivot config during MCP replacement.
+
+    Rows, columns, and metric aggregation are declarative MCP fields, so their
+    three state sections come from ``new_form_data``. Other state sections
+    (column sizing/order, filters, sorting, and pagination) are managed by the
+    grid UI and survive an update. Formatting controls that MCP cannot express
+    also survive rather than being erased by an unrelated config change.
+    """
+    viz_type = "ag-grid-pivot-table"
+    if (
+        existing_form_data.get("viz_type") != viz_type
+        or new_form_data.get("viz_type") != viz_type
+    ):
+        return
+    for key in ("column_config", "conditional_formatting"):
+        if key in existing_form_data and key not in new_form_data:
+            new_form_data[key] = existing_form_data[key]
+
+    existing_state = existing_form_data.get("pivot_table_state")
+    new_state = new_form_data.get("pivot_table_state")
+    if isinstance(existing_state, dict) and isinstance(new_state, dict):
+        new_form_data["pivot_table_state"] = {**existing_state, **new_state}
+
+
 def create_metric_object(col: ColumnRef) -> Dict[str, Any] | str:
     """Create a metric object for a column with enhanced validation.
 
@@ -1647,10 +1674,16 @@ def analyze_chart_capabilities(viz_type: str | None, config: Any) -> ChartCapabi
         "deck_scatter",
         "deck_hex",
         "ag-grid-table",  # AG Grid tables are interactive
+        "ag-grid-pivot-table",
     ]
 
     supports_interaction = viz_type in interactive_types
-    supports_drill_down = viz_type in ["table", "pivot_table_v2", "ag-grid-table"]
+    supports_drill_down = viz_type in [
+        "table",
+        "pivot_table_v2",
+        "ag-grid-table",
+        "ag-grid-pivot-table",
+    ]
     supports_real_time = viz_type in [
         "echarts_timeseries_line",
         "echarts_timeseries_bar",
@@ -1700,6 +1733,10 @@ def analyze_chart_semantics(viz_type: str | None, config: Any) -> ChartSemantics
         "pivot_table_v2": (
             "Cross-tabulates data with rows, columns, and aggregated metrics "
             "for multi-dimensional analysis"
+        ),
+        "ag-grid-pivot-table": (
+            "Interactively cross-tabulates data with AG Grid row groups, pivot "
+            "columns, value aggregation, and side-panel reconfiguration"
         ),
         "mixed_timeseries": (
             "Combines two different chart types on the same time axis "

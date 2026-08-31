@@ -22,7 +22,7 @@ description: null
 params:
   compare_lag: '10'
   compare_suffix: o10Y
-  granularity_sqla: ds
+  granularity: ds
   groupby:
   - name
   limit: '25'

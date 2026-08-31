@@ -198,6 +198,41 @@ def get_effective_hours_offset(
 R_SUFFIX = "__right_suffix"
 
 
+# Escape character for LIKE patterns built from user-supplied search text.
+# Deliberately not a backslash: dialects that escape backslashes when rendering
+# string literals would emit a two-character ESCAPE clause, which is a syntax
+# error on engines that honour standard-conforming strings.
+LIKE_ESCAPE_CHAR = "!"
+
+
+def escape_like_pattern(value: str) -> str:
+    """
+    Neutralize LIKE wildcards in user-supplied search text.
+
+    Without this a user typing ``%`` or ``_`` would match every row, which is
+    both wrong and, on a large table, a scan the search was meant to avoid.
+    """
+    return (
+        value.replace(LIKE_ESCAPE_CHAR, LIKE_ESCAPE_CHAR * 2)
+        .replace("%", f"{LIKE_ESCAPE_CHAR}%")
+        .replace("_", f"{LIKE_ESCAPE_CHAR}_")
+    )
+
+
+def build_like_predicate(
+    expr: ColumnElement[Any],
+    search: str,
+) -> ColumnElement[Any]:
+    """
+    Build a case-insensitive containment predicate for ``expr``.
+
+    ``lower(expr) LIKE lower('%term%')`` is used rather than ``ILIKE`` because
+    the latter is not portable across engines.
+    """
+    pattern = f"%{escape_like_pattern(search)}%".lower()
+    return sa.func.lower(expr).like(pattern, escape=LIKE_ESCAPE_CHAR)
+
+
 def _normalize_mssql_virtual_dataset_sql(
     sql: str, parsed_script: SQLScript, engine: str
 ) -> str:
@@ -1611,16 +1646,28 @@ class ExtraJSONMixin:
         return value
 
 
+_EXTRA_DICT_CACHE_UNSET = object()
+
+
 class CertificationMixin:
     """Mixin to add extra certification fields"""
 
     extra = sa.Column(sa.Text, default="{}")
 
     def get_extra_dict(self) -> dict[str, Any]:
-        try:
-            return json.loads(self.extra)
-        except (TypeError, json.JSONDecodeError):
-            return {}
+        # Cache the parsed ``extra`` payload on the instance, keyed by the raw
+        # string it was parsed from, so callers reading multiple
+        # certification/warning properties off the same object don't each
+        # trigger their own ``json.loads``. The cache is transient (not a
+        # mapped column) and self-invalidates whenever ``extra`` changes.
+        cache_raw = getattr(self, "_extra_dict_cache_raw", _EXTRA_DICT_CACHE_UNSET)
+        if cache_raw is _EXTRA_DICT_CACHE_UNSET or cache_raw != self.extra:
+            try:
+                self._extra_dict_cache = json.loads(self.extra)
+            except (TypeError, json.JSONDecodeError):
+                self._extra_dict_cache = {}
+            self._extra_dict_cache_raw = self.extra
+        return self._extra_dict_cache
 
     @property
     def is_certified(self) -> bool:
@@ -4010,6 +4057,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         limit: int = 10000,
         denormalize_column: bool = False,
         array_elements: bool = False,
+        search: str | None = None,
     ) -> list[Any]:
         # denormalize column name before querying for values
         # unless disabled in the dataset configuration
@@ -4047,6 +4095,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             .select_from(tbl)
             .distinct()
         )
+        if search:
+            qry = qry.where(build_like_predicate(value_expr, search))
+
         if limit:
             qry = qry.limit(limit)
 
@@ -4772,6 +4823,18 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         template_processor=template_processor
                     )
                     is_metric_filter = True
+                elif (
+                    col_obj is None
+                    and isinstance(flt_col, str)
+                    and flt_col in adhoc_columns_by_label
+                ):
+                    sqla_col, _unused = self.adhoc_column_to_sqla(
+                        col=adhoc_columns_by_label[flt_col],
+                        template_processor=template_processor,
+                    )
+                    if isinstance(sqla_col, ColumnElement):
+                        applied_adhoc_filters_columns.append(flt_col)
+
             filter_grain = flt.get("grain")
 
             # Check if this filter should be skipped because it was handled in

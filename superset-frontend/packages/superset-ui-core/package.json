@@ -68,7 +68,7 @@
     "d3-time": "^3.1.0",
     "d3-time-format": "^4.1.0",
     "dayjs": "^1.11.23",
-    "dompurify": "^3.4.13",
+    "dompurify": "^3.4.14",
     "fetch-retry": "^6.0.0",
     "handlebars": "^4.7.9",
     "jed": "^1.1.1",
@@ -89,7 +89,7 @@
     "rehype-raw": "^7.0.0",
     "rehype-sanitize": "^6.0.0",
     "remark-gfm": "^4.0.1",
-    "reselect": "^5.2.0",
+    "reselect": "^5.3.0",
     "rison": "^0.1.1",
     "seedrandom": "^3.0.5",
     "xss": "^1.0.15"
