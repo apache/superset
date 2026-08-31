@@ -101,7 +101,6 @@ The tables below (generated via `python superset/db_engine_specs/lib.py`) summar
 | SQLite | 41 | Supported | Partial | Supported | Supported | Not supported | Not supported |
 | Shillelagh | 41 | Supported | Partial | Supported | Supported | Not supported | Not supported |
 | KustoKQL | 40 | Supported | Partial | Partial | Partial | Partial | Not supported |
-| Ascend | 38 | Supported | Partial | Supported | Not supported | Partial | Not supported |
 | DuckDB | 38 | Supported | Partial | Supported | Not supported | Partial | Not supported |
 | IBM Db2 | 38 | Supported | Partial | Supported | Not supported | Partial | Not supported |
 | IBM Db2 for i | 38 | Supported | Partial | Supported | Not supported | Partial | Not supported |
@@ -149,7 +148,6 @@ The tables below (generated via `python superset/db_engine_specs/lib.py`) summar
 | Apache Pinot | superset.db_engine_specs.pinot | FORCE_LIMIT | True | None |
 | Apache Solr | superset.db_engine_specs.solr | FORCE_LIMIT | True | None |
 | Apache Spark SQL | superset.db_engine_specs.spark | FORCE_LIMIT | True | 767 |
-| Ascend | superset.db_engine_specs.ascend | FORCE_LIMIT | True | None |
 | Aurora MySQL (Data API) | superset.db_engine_specs.aurora | FORCE_LIMIT | True | 64 |
 | Aurora PostgreSQL (Data API) | superset.db_engine_specs.aurora | FORCE_LIMIT | True | 63 |
 | Azure Synapse | superset.db_engine_specs.mssql | FORCE_LIMIT | True | 128 |
@@ -219,7 +217,6 @@ The tables below (generated via `python superset/db_engine_specs/lib.py`) summar
 | Apache Pinot | False | False | False | False | True | True | True | False | False | True | False |
 | Apache Solr | False | False | True | True | True | True | True | False | False | True | False |
 | Apache Spark SQL | True | True | True | True | True | True | True | False | False | False | False |
-| Ascend | True | True | True | True | True | True | True | False | False | True | False |
 | Aurora MySQL (Data API) | True | True | True | True | True | True | True | False | False | True | False |
 | Aurora PostgreSQL (Data API) | True | True | True | True | True | True | True | False | False | True | False |
 | Azure Synapse | True | True | True | True | False | True | True | False | False | True | False |
@@ -289,7 +286,6 @@ The tables below (generated via `python superset/db_engine_specs/lib.py`) summar
 | Apache Pinot | True | True | True | True | True | True | True | True |
 | Apache Solr | False | False | False | False | False | False | False | False |
 | Apache Spark SQL | True | True | True | True | True | True | True | True |
-| Ascend | True | True | True | True | True | True | True | True |
 | Aurora MySQL (Data API) | True | True | True | True | True | True | True | True |
 | Aurora PostgreSQL (Data API) | True | True | True | True | True | True | True | True |
 | Azure Synapse | True | True | True | True | True | True | True | True |
@@ -359,7 +355,6 @@ The tables below (generated via `python superset/db_engine_specs/lib.py`) summar
 | Apache Pinot | False | False | True | True | True | True | False | False | False | False | False | False | False |
 | Apache Solr | False | False | False | False | False | False | False | False | False | False | False | False | False |
 | Apache Spark SQL | False | False | False | False | False | False | False | False | True | False | True | False | False |
-| Ascend | False | False | False | False | False | False | False | False | False | False | False | False | False |
 | Aurora MySQL (Data API) | False | False | False | False | False | False | False | False | False | True | False | False | False |
 | Aurora PostgreSQL (Data API) | True | True | True | True | True | True | False | False | False | False | False | False | False |
 | Azure Synapse | False | False | True | True | True | True | False | False | True | True | False | False | False |
@@ -432,7 +427,6 @@ Integration with platform features and metadata handling.
 | Apache Pinot | False | False | False | True | False | False | False | True | False | False | False | False | False | False |
 | Apache Solr | False | False | False | True | False | False | False | True | False | False | False | False | False | False |
 | Apache Spark SQL | False | True | True | True | True | True | True | True | True | True | False | True | False | False |
-| Ascend | False | False | False | True | False | False | False | True | False | True | False | False | False | False |
 | Aurora MySQL (Data API) | False | True | False | True | True | False | False | True | False | True | False | False | False | False |
 | Aurora PostgreSQL (Data API) | False | True | False | True | True | True | True | True | False | True | False | False | False | False |
 | Azure Synapse | False | True | False | True | False | False | False | True | False | False | False | False | False | False |
@@ -502,7 +496,6 @@ Integration with platform features and metadata handling.
 | Apache Pinot | False | False | False | False |
 | Apache Solr | False | False | False | False |
 | Apache Spark SQL | True | True | True | False |
-| Ascend | False | False | False | False |
 | Aurora MySQL (Data API) | False | False | False | False |
 | Aurora PostgreSQL (Data API) | False | False | True | True |
 | Azure Synapse | False | False | False | False |

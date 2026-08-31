@@ -105,7 +105,6 @@ def _check_script_length(script: str, engine: str | None) -> None:
 # mapping between DB engine specs and sqlglot dialects
 SQLGLOT_DIALECTS = {
     "base": Dialects.DIALECT,
-    "ascend": Dialects.HIVE,
     "awsathena": Dialects.ATHENA,
     "bigquery": Dialects.BIGQUERY,
     "datastore": Dialects.BIGQUERY,
