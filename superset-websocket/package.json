@@ -7,7 +7,9 @@
   "scripts": {
     "start": "node dist/index.js start",
     "test": "npx vitest --run --dir spec",
-    "lint": "npx oxlint --config oxlint.json && tsc --noEmit",
+    "type": " tsc --noEmit",
+    "lint-check": "npx oxlint --config oxlint.json",
+    "lint": "npm run type && npm run lint-check",
     "dev-server": "npm run build && npm run start",
     "build": "tsc",
     "format": "oxfmt --write .",
