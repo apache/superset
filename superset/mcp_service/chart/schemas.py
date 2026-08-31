@@ -1068,6 +1068,11 @@ class GaugeChartConfig(BaseChartConfig):
         description="Optional category columns; each row becomes one dial. "
         "Omit for a single-value gauge.",
     )
+    sort_by_metric: bool = Field(
+        True,
+        description="Order the dials by the metric descending, so a row_limit "
+        "keeps the top-N dials deterministically rather than an arbitrary set",
+    )
     row_limit: int = Field(10, description="Max dials", ge=1, le=10)
     min_val: float | None = Field(
         None, description="Minimum value of the dial scale (default: auto)"

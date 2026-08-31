@@ -1057,6 +1057,7 @@ def map_gauge_config(config: GaugeChartConfig) -> Dict[str, Any]:
         "viz_type": "gauge_chart",
         "groupby": [g.name for g in (config.groupby or [])],
         "metric": create_metric_object(config.metric),
+        "sort_by_metric": config.sort_by_metric,
         "row_limit": config.row_limit,
         "min_val": config.min_val,
         "max_val": config.max_val,

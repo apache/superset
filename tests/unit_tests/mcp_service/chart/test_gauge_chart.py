@@ -131,6 +131,49 @@ class TestMapGaugeConfig:
         assert form_data["max_val"] == 100
         assert form_data["adhoc_filters"], "filters must map to adhoc_filters"
 
+    def test_gauge_color_scheme_defaults_and_bounds_emitted(self) -> None:
+        """color_scheme defaults to supersetColors; min/max keys are emitted."""
+        config = GaugeChartConfig(
+            chart_type="gauge_chart",
+            metric={"name": "progress", "aggregate": "AVG"},
+            min_val=0,
+            max_val=100,
+        )
+        form_data = map_gauge_config(config)
+        assert form_data["color_scheme"] == "supersetColors"
+        assert form_data["min_val"] == 0
+        assert form_data["max_val"] == 100
+        # explicit scheme passes through unchanged
+        explicit = map_gauge_config(
+            GaugeChartConfig(
+                chart_type="gauge_chart",
+                metric={"name": "progress", "aggregate": "AVG"},
+                color_scheme="lyftColors",
+            )
+        )
+        assert explicit["color_scheme"] == "lyftColors"
+
+    def test_gauge_sort_by_metric_becomes_orderby(self, monkeypatch) -> None:
+        """sort_by_metric (default True) must reach the query as a metric orderby."""
+        from superset.mcp_service.chart import chart_helpers
+
+        monkeypatch.setattr(
+            chart_helpers,
+            "resolve_datasource_engine",
+            lambda datasource_id, datasource_type: "base",
+        )
+        config = GaugeChartConfig(
+            chart_type="gauge_chart",
+            metric={"name": "progress", "aggregate": "AVG"},
+            groupby=[{"name": "team"}],
+        )
+        assert config.sort_by_metric is True
+        form_data = map_gauge_config(config)
+        queries = chart_helpers.build_query_dicts_from_form_data(form_data, 1, "table")
+        orderby = queries[0].get("orderby")
+        assert orderby, "sort_by_metric must produce an orderby"
+        assert orderby[0][1] is False, "dials must order by metric descending"
+
     def test_gauge_saved_metric_maps_to_name_string(self) -> None:
         config = GaugeChartConfig(
             chart_type="gauge_chart",
