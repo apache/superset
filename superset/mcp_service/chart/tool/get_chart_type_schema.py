@@ -301,7 +301,7 @@ def get_chart_type_schema(
     for a chart configuration before calling generate_chart or update_chart.
 
     Valid chart_type values depend on the host deployment. Core types are xy,
-    table, pie, pivot_table, mixed_timeseries, handlebars, big_number,
+    table, pie, heatmap_v2, pivot_table, mixed_timeseries, handlebars, big_number,
     histogram, box_plot, and waterfall. Deployments that enable an AG Grid
     pivot extension also expose interactive_pivot.
 
