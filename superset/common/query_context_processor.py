@@ -194,11 +194,20 @@ class QueryContextProcessor:
         if not (persisted and self._query_context.force and nonce and cache_key):
             return
         try:
-            cache_manager.data_cache.set(
-                self._force_marker_key(nonce, cache_key),
-                1,
-                timeout=self.get_cache_timeout(),
-            )
+            # A False return (backend reported a failed write) or an exception are
+            # both benign here — the result is cached, so a missing marker only
+            # costs one extra recompute on the follow-up read, never stale data.
+            if (
+                cache_manager.data_cache.set(
+                    self._force_marker_key(nonce, cache_key),
+                    1,
+                    timeout=self.get_cache_timeout(),
+                )
+                is False
+            ):
+                logger.warning(
+                    "Force-nonce marker write reported failure; may recompute once more"
+                )
         except Exception:  # noqa: BLE001  pylint: disable=broad-except
             logger.warning("Force-nonce marker write failed; may recompute once more")
 

@@ -585,7 +585,9 @@ class TestSubmitTaskEnqueueFailure:
 
     def test_cleanup_failure_is_swallowed_and_original_error_reraised(self):
         """If the FAILURE cleanup itself throws, the original enqueue error still
-        surfaces (the reaper reclaims the orphan later)."""
+        surfaces. The task is left PENDING with no heartbeat and is NOT auto-reaped
+        (the reaper only reclaims started tasks); its dedup key stays occupied
+        until manually cleared or pruned."""
         from superset_core.tasks.types import TaskScope
 
         task = MagicMock()
