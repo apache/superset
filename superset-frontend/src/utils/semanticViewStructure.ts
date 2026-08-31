@@ -18,7 +18,10 @@
  */
 import { Column } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
-import { cachedSupersetGet } from 'src/utils/cachedSupersetGet';
+import {
+  cachedSupersetGet,
+  supersetGetCache,
+} from 'src/utils/cachedSupersetGet';
 
 /**
  * Shared semantic-view structure helpers. This module is deliberately
@@ -89,11 +92,19 @@ export interface SemanticViewStructure {
 export const fetchSemanticViewStructure = async (
   semanticViewId: number | string,
 ): Promise<SemanticViewStructure> => {
-  const response = await cachedSupersetGet({
-    endpoint: `/api/v1/semantic_view/${semanticViewId}/structure`,
-  });
-  const { name, dimensions = [], metrics = [] } = response.json?.result ?? {};
-  return { name, dimensions, metrics };
+  const endpoint = `/api/v1/semantic_view/${semanticViewId}/structure`;
+  try {
+    const response = await cachedSupersetGet({ endpoint });
+    const { name, dimensions = [], metrics = [] } = response.json?.result ?? {};
+    return { name, dimensions, metrics };
+  } catch (error) {
+    // cacheWrapper caches the promise itself and never evicts on rejection, so
+    // a single failed response would poison this endpoint for the rest of the
+    // page session. Evict on error so a later call refetches — mirroring the
+    // regular-dataset drill branch (hooks/apiResources/datasets.ts).
+    supersetGetCache.delete(endpoint);
+    throw error;
+  }
 };
 
 /**

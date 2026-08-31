@@ -146,3 +146,18 @@ test('nullish id is inert: no fetch, empty columns, not loading', async () => {
   await new Promise(resolve => setTimeout(resolve, 50));
   expect(fetchMock.callHistory.calls('glob:*')).toHaveLength(0);
 });
+
+test('legacy 0 null-sentinel id is inert: no fetch to /dataset/0, no toast', async () => {
+  // migrateChartCustomization.extractDatasetId emits 0 for an unresolvable
+  // legacy dataset; the falsy guard must treat it as unbound, not fetch it.
+  fetchMock.get('glob:*', 200);
+
+  const { result } = renderHook(() => useDisplayControlDatasource(0));
+
+  expect(result.current.loading).toBe(false);
+  expect(result.current.columns).toEqual([]);
+  expect(result.current.name).toBeUndefined();
+  expect(result.current.error).toBeUndefined();
+  await new Promise(resolve => setTimeout(resolve, 50));
+  expect(fetchMock.callHistory.calls('glob:*')).toHaveLength(0);
+});

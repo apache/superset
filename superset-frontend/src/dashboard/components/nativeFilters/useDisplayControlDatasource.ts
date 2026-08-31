@@ -74,8 +74,12 @@ export function useDisplayControlDatasource(
     requestIdRef.current += 1;
     const requestId = requestIdRef.current;
 
-    if (datasetId === undefined || datasetId === null || datasetId === '') {
-      // Unbound control: inert, nothing to fetch.
+    if (!datasetId) {
+      // Unbound control: inert, nothing to fetch. The falsy guard covers
+      // undefined/null/'' and the legacy `0` null-sentinel that
+      // migrateChartCustomization.extractDatasetId emits for an unresolvable
+      // dataset (runs on dashboard hydrate) — restoring byte-identical legacy
+      // behaviour and avoiding a spurious GET /api/v1/dataset/0 → 404 + toast.
       setName(undefined);
       setColumns([]);
       setLoading(false);
