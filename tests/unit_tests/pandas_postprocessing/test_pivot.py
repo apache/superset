@@ -1059,7 +1059,9 @@ def test_pivot_preserves_null_index_value_categorical_already_in_categories() ->
     """
     df = DataFrame(
         {
-            "row": pd.Categorical(["r1", None, "r2"], categories=["r1", "r2", NULL_STRING]),
+            "row": pd.Categorical(
+                ["r1", None, "r2"], categories=["r1", "r2", NULL_STRING]
+            ),
             "v": [10, 99, 30],
         }
     )
@@ -1102,7 +1104,9 @@ def test_pivot_categorical_column_already_in_categories() -> None:
     df = DataFrame(
         {
             "row": ["r1", "r2", "r3"],
-            "col": pd.Categorical(["c1", None, "c2"], categories=["c1", "c2", "CUSTOM_NULL"]),
+            "col": pd.Categorical(
+                ["c1", None, "c2"], categories=["c1", "c2", "CUSTOM_NULL"]
+            ),
             "v": [10, 99, 30],
         }
     )
@@ -1136,4 +1140,3 @@ def test_pivot_preserves_null_numeric_index_value() -> None:
         f"Expected '{NULL_STRING}' in pivot index; got {result.index.tolist()}"
     )
     assert result.loc[NULL_STRING, "v"] == 99
-
