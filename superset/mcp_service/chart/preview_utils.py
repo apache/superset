@@ -24,6 +24,7 @@ from form data without requiring a saved chart object.
 
 import logging
 import math
+from copy import deepcopy
 from typing import Any, Dict, List
 
 from superset.mcp_service.chart.schemas import (
@@ -75,43 +76,18 @@ def generate_preview_from_form_data(
                 error=f"Dataset {dataset_id} not found", error_type="DatasetNotFound"
             )
 
-        # Create query context from form data using factory
-        from superset.common.query_context_factory import QueryContextFactory
-        from superset.mcp_service.chart.chart_utils import (
-            adhoc_filters_to_query_filters,
+        # Create query context through the chart-aware shared builder used by
+        # saved/cached get_chart_data and compile validation.
+        from superset.mcp_service.chart.chart_helpers import (
+            build_query_context_from_form_data,
         )
 
-        # Build columns list: include x_axis and groupby for XY charts,
-        # fall back to form_data "columns" for table charts
-        columns = _build_query_columns(form_data)
-
-        query_filters = adhoc_filters_to_query_filters(
-            form_data.get("adhoc_filters", [])
-        )
-
-        # Big Number charts use singular "metric" instead of "metrics"
-        metrics = form_data.get("metrics", [])
-        if not metrics and form_data.get("metric"):
-            metrics = [form_data["metric"]]
-
-        # Big Number with trendline uses granularity_sqla as the time column
-        if not columns and form_data.get("granularity_sqla"):
-            columns = [form_data["granularity_sqla"]]
-
-        factory = QueryContextFactory()
-        query_context_obj = factory.create(
-            datasource={"id": dataset_id, "type": "table"},
-            queries=[
-                {
-                    "columns": columns,
-                    "metrics": metrics,
-                    "orderby": form_data.get("orderby", []),
-                    "row_limit": form_data.get("row_limit", 100),
-                    "filters": query_filters,
-                    "time_range": form_data.get("time_range", "No filter"),
-                }
-            ],
-            form_data=form_data,
+        query_form_data = deepcopy(form_data)
+        query_form_data["datasource"] = f"{dataset_id}__table"
+        query_context_obj = build_query_context_from_form_data(
+            query_form_data,
+            row_limit=form_data.get("row_limit", 100),
+            force=False,
         )
 
         # Execute query
@@ -469,11 +445,117 @@ def _is_nan(value: Any) -> bool:
         return False
 
 
+def _gantt_metric_label(metric: Any) -> str | None:
+    """Return the result label for a native saved/adhoc metric definition."""
+    if isinstance(metric, str) and metric:
+        return metric
+    if isinstance(metric, dict):
+        label = metric.get("label")
+        return label if isinstance(label, str) and label else None
+    return None
+
+
+def _generate_gantt_vega_lite_preview(  # noqa: C901
+    data: List[Dict[str, Any]], form_data: Dict[str, Any]
+) -> VegaLitePreview | ChartError:
+    """Build a faithful interval-bar preview for ECharts Gantt form data."""
+    start = form_data.get("start_time")
+    end = form_data.get("end_time")
+    category = form_data.get("y_axis")
+    if not all(isinstance(field, str) and field for field in (start, end, category)):
+        return ChartError(
+            error=(
+                "Gantt Vega-Lite preview requires string start_time, end_time, "
+                "and y_axis form-data fields."
+            ),
+            error_type="InvalidGanttFormData",
+        )
+    assert isinstance(start, str)
+    assert isinstance(end, str)
+    assert isinstance(category, str)
+
+    required = {start, end, category}
+    for index, row in enumerate(data):
+        if not isinstance(row, dict):
+            return ChartError(
+                error=f"Gantt result row {index} is not an object.",
+                error_type="InvalidGanttResult",
+            )
+        missing = required - row.keys()
+        if missing:
+            return ChartError(
+                error=(
+                    f"Gantt result row {index} is missing required output fields: "
+                    f"{', '.join(sorted(missing))}."
+                ),
+                error_type="InvalidGanttResult",
+            )
+
+    series = form_data.get("series")
+    if series is not None and (not isinstance(series, str) or not series):
+        return ChartError(
+            error="Gantt series must be a physical column name.",
+            error_type="InvalidGanttFormData",
+        )
+
+    tooltip_fields: list[dict[str, str]] = [
+        {"field": category, "type": "nominal"},
+        {"field": start, "type": "temporal"},
+        {"field": end, "type": "temporal"},
+    ]
+    extra_tooltips = form_data.get("tooltip_columns") or []
+    for field in ([series] if series else []) + list(extra_tooltips):
+        if isinstance(field, str) and field not in {
+            item["field"] for item in tooltip_fields
+        }:
+            tooltip_fields.append({"field": field, "type": "nominal"})
+    for metric in form_data.get("tooltip_metrics") or []:
+        label = _gantt_metric_label(metric)
+        if label is not None and label not in {
+            item["field"] for item in tooltip_fields
+        }:
+            tooltip_fields.append({"field": label, "type": "quantitative"})
+
+    encoding: dict[str, Any] = {
+        "x": {
+            "field": start,
+            "type": "temporal",
+            "title": form_data.get("x_axis_title"),
+        },
+        "x2": {"field": end},
+        "y": {
+            "field": category,
+            "type": "nominal",
+            "title": form_data.get("y_axis_title") or category,
+        },
+        "tooltip": tooltip_fields,
+    }
+    if series:
+        encoding["color"] = {"field": series, "type": "nominal", "title": series}
+        if form_data.get("subcategories"):
+            encoding["yOffset"] = {"field": series, "type": "nominal"}
+
+    return VegaLitePreview(
+        specification={
+            "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+            "data": {"values": data},
+            "mark": {"type": "bar", "tooltip": True},
+            "encoding": encoding,
+            "width": "container",
+            "height": 400,
+        },
+        data_url=None,
+        supports_streaming=False,
+    )
+
+
 def _generate_vega_lite_preview_from_data(  # noqa: C901
     data: List[Dict[str, Any]], form_data: Dict[str, Any]
-) -> VegaLitePreview:
+) -> VegaLitePreview | ChartError:
     """Generate Vega-Lite preview from raw data and form_data."""
     viz_type = form_data.get("viz_type", "table")
+    if viz_type == "gantt_chart":
+        return _generate_gantt_vega_lite_preview(data, form_data)
 
     # Map Superset viz types to Vega-Lite marks
     viz_to_mark = {

@@ -33,6 +33,7 @@ tier(s) appropriate for its SLA.
 from __future__ import annotations
 
 import logging
+from copy import deepcopy
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Literal
 
@@ -116,39 +117,17 @@ def _compile_chart(
         ChartDataCacheLoadError,
         ChartDataQueryFailedError,
     )
-    from superset.common.query_context_factory import QueryContextFactory
-    from superset.mcp_service.chart.chart_utils import adhoc_filters_to_query_filters
-    from superset.mcp_service.chart.preview_utils import _build_query_columns
+    from superset.mcp_service.chart.chart_helpers import (
+        build_query_context_from_form_data,
+    )
 
     try:
-        columns = _build_query_columns(form_data)
-        query_filters = adhoc_filters_to_query_filters(
-            form_data.get("adhoc_filters", [])
-        )
-
-        # Big Number charts use singular "metric" instead of "metrics"
-        metrics = form_data.get("metrics", [])
-        if not metrics and form_data.get("metric"):
-            metrics = [form_data["metric"]]
-
-        # Big Number with trendline uses granularity_sqla as the time column
-        if not columns and form_data.get("granularity_sqla"):
-            columns = [form_data["granularity_sqla"]]
-
-        factory = QueryContextFactory()
-        query_context = factory.create(
-            datasource={"id": dataset_id, "type": "table"},
-            queries=[
-                {
-                    "columns": columns,
-                    "metrics": metrics,
-                    "orderby": form_data.get("orderby", []),
-                    "row_limit": 2,
-                    "filters": query_filters,
-                    "time_range": form_data.get("time_range", "No filter"),
-                }
-            ],
-            form_data=form_data,
+        query_form_data = deepcopy(form_data)
+        query_form_data["datasource"] = f"{dataset_id}__table"
+        query_context = build_query_context_from_form_data(
+            query_form_data,
+            row_limit=2,
+            force=False,
         )
 
         command = ChartDataCommand(query_context)

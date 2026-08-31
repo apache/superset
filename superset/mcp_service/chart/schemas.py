@@ -24,7 +24,7 @@ from __future__ import annotations
 import difflib
 import logging
 import re
-from datetime import datetime
+from datetime import datetime, time
 from typing import Annotated, Any, Dict, List, Literal, Protocol
 
 from pydantic import (
@@ -56,6 +56,7 @@ from superset.mcp_service.common.pagination_schemas import (
     PaginatedListRequest,
     PaginatedResponse,
 )
+from superset.mcp_service.common.time_range_validation import validate_time_range
 from superset.mcp_service.privacy import (
     filter_user_directory_fields,
     strip_user_directory_fields_from_schema,
@@ -968,6 +969,35 @@ class SortByConfig(UnknownFieldCheckMixin):
         description="Sort ascending. Defaults to False (descending) to match "
         "the typical sort-by-metric top-N use case.",
     )
+
+
+class GanttSortByConfig(UnknownFieldCheckMixin):
+    """One physical-column ordering applied before Gantt rendering."""
+
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    column: str = Field(
+        ...,
+        min_length=1,
+        max_length=255,
+        validation_alias=AliasChoices("column", "col"),
+        description="Physical dataset column used to order Gantt tasks",
+    )
+    ascending: bool = Field(
+        True,
+        description="Sort this column ascending when true, descending when false",
+    )
+
+    @field_validator("column")
+    @classmethod
+    def sanitize_column(cls, value: str) -> str:
+        """Sanitize the order column like every other dimension name."""
+        return sanitize_user_input(
+            value,
+            "Gantt order column",
+            max_length=255,
+            check_sql_keywords=True,
+        )  # type: ignore[return-value]
 
 
 # Actual chart types
@@ -2282,6 +2312,350 @@ class WaterfallChartConfig(BaseChartConfig):
         return self
 
 
+class GanttChartConfig(BaseChartConfig):
+    """Typed contract for the ECharts Gantt visualization.
+
+    The field names intentionally describe Gantt semantics while validation
+    aliases accept the native keys used by ``Gantt/buildQuery.ts`` and saved
+    Explore ``form_data``.
+    """
+
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    chart_type: Literal["gantt"] = "gantt"
+    start_time: ColumnRef = Field(
+        ...,
+        description="Temporal column containing each task's start timestamp",
+        validation_alias=AliasChoices("start_time", "startTime", "start"),
+    )
+    end_time: ColumnRef = Field(
+        ...,
+        description="Temporal column containing each task's end timestamp",
+        validation_alias=AliasChoices("end_time", "endTime", "end"),
+    )
+    category: ColumnRef = Field(
+        ...,
+        description=(
+            "Task/category dimension shown as the Gantt row label (native y_axis)"
+        ),
+        validation_alias=AliasChoices("category", "task", "y_axis", "yAxis"),
+    )
+    series: ColumnRef | None = Field(
+        None,
+        description="Optional dimension used for color series and legend entries",
+    )
+    subcategories: bool = Field(
+        False,
+        description=(
+            "Split each category into separate rows for series values; requires series"
+        ),
+    )
+    tooltip_columns: List[ColumnRef] = Field(
+        default_factory=list,
+        description="Additional physical columns included in task tooltips",
+        max_length=50,
+    )
+    tooltip_metrics: List[ColumnRef] = Field(
+        default_factory=list,
+        description=("Additional aggregate or saved metrics included in task tooltips"),
+        max_length=50,
+    )
+    order_by: List[GanttSortByConfig] = Field(
+        default_factory=list,
+        description=(
+            "Stable task ordering. Native order_by_cols JSON pairs are also "
+            "accepted for saved-form-data round trips."
+        ),
+        validation_alias=AliasChoices("order_by", "order_by_cols"),
+        max_length=100,
+    )
+    filters: List[FilterConfig] | None = Field(
+        None,
+        description=(
+            "Structured filters (column/op/value). Native SIMPLE adhoc_filters "
+            "are adapted; free-form SQL filters are rejected."
+        ),
+    )
+    time_range: str | None = Field(
+        None,
+        max_length=1000,
+        description=(
+            "Optional bounded Superset time range applied to the chart, such as "
+            "'Last 30 days' or '2025-01-01 : 2025-12-31'"
+        ),
+    )
+    row_limit: int = Field(
+        10000,
+        ge=1,
+        le=50000,
+        description="Maximum number of task rows returned",
+    )
+
+    # Presentation controls read by Gantt/transformProps.ts.
+    color_scheme: str | None = Field(None, max_length=100)
+    show_legend: bool = True
+    legend_orientation: LEGEND_POSITION_LITERAL = Field(
+        "top",
+        validation_alias=AliasChoices("legend_orientation", "legendOrientation"),
+    )
+    legend_type: Literal["plain", "scroll"] = Field(
+        "scroll",
+        validation_alias=AliasChoices("legend_type", "legendType"),
+    )
+    legend_margin: int | None = Field(
+        None,
+        ge=0,
+        le=1000,
+        validation_alias=AliasChoices("legend_margin", "legendMargin"),
+    )
+    legend_sort: Literal["asc", "desc"] | None = Field(
+        None,
+        validation_alias=AliasChoices("legend_sort", "legendSort"),
+    )
+    zoomable: bool = False
+    show_extra_controls: bool = False
+    x_axis_time_bounds: tuple[str | None, str | None] | None = Field(
+        None,
+        description="Optional daily HH:MM:SS lower/upper bounds for the time axis",
+    )
+    x_axis_time_format: str = Field("smart_date", max_length=100)
+    tooltip_time_format: str = Field(
+        "smart_date",
+        max_length=100,
+        validation_alias=AliasChoices("tooltip_time_format", "tooltipTimeFormat"),
+    )
+    tooltip_values_format: str = Field(
+        "SMART_NUMBER",
+        max_length=100,
+        validation_alias=AliasChoices("tooltip_values_format", "tooltipValuesFormat"),
+    )
+    x_axis_title: str | None = Field(None, max_length=200)
+    x_axis_title_margin: int | None = Field(None, ge=0, le=1000)
+    y_axis_title: str | None = Field(None, max_length=200)
+    y_axis_title_margin: int | None = Field(None, ge=0, le=1000)
+    y_axis_title_position: str | None = Field(None, max_length=100)
+
+    @model_validator(mode="before")
+    @classmethod
+    def adapt_native_form_data(cls, raw: Any) -> Any:  # noqa: C901
+        """Adapt bounded, recognized native Gantt form data without typo drops."""
+        if not isinstance(raw, dict):
+            return raw
+        data = dict(raw)
+
+        # Request normalization maps viz_type before this validator, while direct
+        # model validation may still carry the native discriminator.
+        if data.get("viz_type") == "gantt_chart":
+            data.setdefault("chart_type", "gantt")
+            data.pop("viz_type", None)
+        if data.get("chart_type") == "gantt_chart":
+            data["chart_type"] = "gantt"
+
+        # Saved chart transport metadata is not visualization configuration.
+        # Keep this allowlist deliberately narrow so misspelled controls still fail.
+        for key in (
+            "annotation_layers",
+            "dashboards",
+            "datasource",
+            "extra_form_data",
+            "slice_id",
+        ):
+            data.pop(key, None)
+
+        for key in (
+            "start_time",
+            "startTime",
+            "start",
+            "end_time",
+            "endTime",
+            "end",
+            "category",
+            "task",
+            "y_axis",
+            "yAxis",
+            "series",
+        ):
+            if isinstance(data.get(key), str):
+                data[key] = {"name": data[key]}
+
+        for key in ("tooltip_columns",):
+            if key in data and isinstance(data[key], list):
+                data[key] = [
+                    {"name": item} if isinstance(item, str) else item
+                    for item in data[key]
+                ]
+        if isinstance(data.get("tooltip_metrics"), list):
+            # Native metric strings name saved dataset metrics. Typed callers can
+            # use explicit aggregate/saved_metric objects to avoid ambiguity.
+            data["tooltip_metrics"] = [
+                {"name": item, "saved_metric": True} if isinstance(item, str) else item
+                for item in data["tooltip_metrics"]
+            ]
+
+        if "adhoc_filters" in data:
+            if "filters" in data:
+                raise ValueError(
+                    "Use either filters or native adhoc_filters for Gantt, not both"
+                )
+            native_filters = data.pop("adhoc_filters")
+            if not isinstance(native_filters, list):
+                raise ValueError("adhoc_filters must be an array")
+            if len(native_filters) > 100:
+                raise ValueError("adhoc_filters accepts at most 100 entries")
+            filters: list[dict[str, Any]] = []
+            for index, native_filter in enumerate(native_filters):
+                if not isinstance(native_filter, dict):
+                    raise ValueError(f"adhoc_filters[{index}] must be an object")
+                if native_filter.get("expressionType") != "SIMPLE":
+                    raise ValueError(
+                        f"adhoc_filters[{index}] must use expressionType='SIMPLE'; "
+                        "free-form SQL filters are not supported by typed Gantt"
+                    )
+                subject = native_filter.get("subject")
+                operator = native_filter.get("operator")
+                comparator = native_filter.get("comparator")
+                if operator == "TEMPORAL_RANGE":
+                    if not isinstance(subject, str) or not subject:
+                        raise ValueError(
+                            f"adhoc_filters[{index}] temporal filter needs subject"
+                        )
+                    data.setdefault("temporal_column", subject)
+                    if comparator not in (None, "", "No filter"):
+                        if not isinstance(comparator, str):
+                            raise ValueError(
+                                f"adhoc_filters[{index}] temporal comparator must "
+                                "be a string"
+                            )
+                        data.setdefault("time_range", comparator)
+                    continue
+                if not isinstance(subject, str) or not subject:
+                    raise ValueError(f"adhoc_filters[{index}] needs subject")
+                filters.append(
+                    {
+                        "column": subject,
+                        "op": "=" if operator == "==" else operator,
+                        "value": comparator,
+                    }
+                )
+            data["filters"] = filters or None
+        return data
+
+    @field_validator("start_time", "end_time", "category", "series", mode="before")
+    @classmethod
+    def coerce_single_column(cls, value: Any) -> Any:
+        """Accept native bare physical-column names."""
+        return {"name": value} if isinstance(value, str) else value
+
+    @field_validator("tooltip_columns", mode="before")
+    @classmethod
+    def coerce_tooltip_columns(cls, value: Any) -> Any:
+        if not isinstance(value, list):
+            return value
+        return [{"name": item} if isinstance(item, str) else item for item in value]
+
+    @field_validator("order_by", mode="before")
+    @classmethod
+    def parse_native_order_by(cls, value: Any) -> Any:
+        """Parse the frontend's JSON ``[column, ascending]`` strings safely."""
+        if value is None:
+            return []
+        if not isinstance(value, list):
+            raise ValueError("order_by must be an array")
+        if len(value) > 100:
+            raise ValueError("order_by accepts at most 100 entries")
+
+        from superset.utils import json as utils_json
+
+        parsed: list[Any] = []
+        for index, item in enumerate(value):
+            if isinstance(item, str):
+                if len(item) > 1000:
+                    raise ValueError(f"order_by[{index}] is too long")
+                try:
+                    item = utils_json.loads(item)
+                except (TypeError, ValueError) as ex:
+                    raise ValueError(f"order_by[{index}] is not valid JSON") from ex
+            if isinstance(item, (list, tuple)):
+                if (
+                    len(item) != 2
+                    or not isinstance(item[0], str)
+                    or not item[0]
+                    or not isinstance(item[1], bool)
+                ):
+                    raise ValueError(
+                        f"order_by[{index}] must be [column, ascending_boolean]"
+                    )
+                item = {"column": item[0], "ascending": item[1]}
+            parsed.append(item)
+        return parsed
+
+    @field_validator("time_range")
+    @classmethod
+    def validate_gantt_time_range(cls, value: str | None) -> str | None:
+        return validate_time_range(value)
+
+    @field_validator("x_axis_time_bounds")
+    @classmethod
+    def validate_time_bounds(
+        cls, value: tuple[str | None, str | None] | None
+    ) -> tuple[str | None, str | None] | None:
+        if value is None:
+            return None
+        for bound in value:
+            if bound is None:
+                continue
+            try:
+                time.fromisoformat(bound)
+            except ValueError as ex:
+                raise ValueError("x_axis_time_bounds values must use HH:MM:SS") from ex
+            if len(bound) != 8:
+                raise ValueError("x_axis_time_bounds values must use HH:MM:SS")
+        return value
+
+    @model_validator(mode="after")
+    def validate_gantt_roles(self) -> "GanttChartConfig":
+        """Keep metric and dimension roles aligned with the frontend controls."""
+        dimension_fields: list[tuple[str, ColumnRef | None]] = [
+            ("start_time", self.start_time),
+            ("end_time", self.end_time),
+            ("category", self.category),
+            ("series", self.series),
+        ]
+        dimension_fields.extend(
+            (f"tooltip_columns[{index}]", column)
+            for index, column in enumerate(self.tooltip_columns)
+        )
+        for field_name, column in dimension_fields:
+            _reject_sql_expression_on_dimension(column, field_name)
+            if column is not None and column.saved_metric:
+                raise ValueError(
+                    f"{field_name} cannot use saved_metric=True; it is a dimension"
+                )
+            if column is not None and column.aggregate:
+                raise ValueError(
+                    f"{field_name} cannot define aggregate; it is a dimension"
+                )
+
+        for index, metric in enumerate(self.tooltip_metrics):
+            if not metric.is_metric:
+                raise ValueError(
+                    f"tooltip_metrics[{index}] must define aggregate, "
+                    "saved_metric=True, or sql_expression"
+                )
+
+        if self.start_time.name == self.end_time.name:
+            raise ValueError("start_time and end_time must reference different columns")
+        if self.series and self.series.name == self.category.name:
+            raise ValueError("series and category must reference different columns")
+        if self.subcategories and self.series is None:
+            raise ValueError("subcategories=True requires series")
+
+        order_names = [item.column.casefold() for item in self.order_by]
+        if len(order_names) != len(set(order_names)):
+            raise ValueError("order_by cannot contain duplicate columns")
+        return self
+
+
 # Discriminated union for runtime validation (not exposed in JSON Schema)
 ChartConfig = Annotated[
     XYChartConfig
@@ -2294,14 +2668,15 @@ ChartConfig = Annotated[
     | BigNumberChartConfig
     | HistogramChartConfig
     | BoxPlotChartConfig
-    | WaterfallChartConfig,
+    | WaterfallChartConfig
+    | GanttChartConfig,
     Field(
         discriminator="chart_type",
         description=(
             "Chart configuration - specify chart_type as 'xy', 'table', "
             "'pie', 'pivot_table', 'interactive_pivot', 'mixed_timeseries', "
             "'handlebars', "
-            "'big_number', 'histogram', 'box_plot', or 'waterfall'"
+            "'big_number', 'histogram', 'box_plot', 'waterfall', or 'gantt'"
         ),
     ),
 ]
@@ -2331,6 +2706,7 @@ _VIZ_TYPE_TO_CHART_TYPE: dict[str, tuple[str, str | None]] = {
     "pivot_table_v2": ("pivot_table", None),
     "ag-grid-pivot-table": ("interactive_pivot", None),
     "histogram_v2": ("histogram", None),
+    "gantt_chart": ("gantt", None),
 }
 
 

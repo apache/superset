@@ -478,6 +478,92 @@ def resolve_metrics_and_groupby(
     return resolve_metrics(form_data, viz_type), resolve_groupby(form_data)
 
 
+def resolve_gantt_query_fields(  # noqa: C901
+    form_data: dict[str, Any],
+) -> tuple[list[Any], list[Any], list[list[Any]], list[Any]]:
+    """Mirror the ECharts Gantt ``buildQuery`` field extraction contract.
+
+    Returns ``(columns, metrics, orderby, series_columns)``. Saved form data is
+    user-editable, so malformed or oversized native ordering is rejected rather
+    than silently dropped or passed into ``QueryContextFactory``.
+    """
+    from superset.utils import json as utils_json
+
+    def require_column(value: Any, field_name: str) -> Any:
+        if isinstance(value, str) and value:
+            return value
+        if isinstance(value, dict) and 0 < len(value) <= 20:
+            # QueryFormColumn objects use column_name for physical columns or
+            # expressionType/sqlExpression/label for adhoc columns.
+            if value.get("column_name") or (
+                value.get("expressionType") and value.get("label")
+            ):
+                return value
+        raise ValueError(f"Gantt {field_name} must be a column reference")
+
+    start_time = require_column(form_data.get("start_time"), "start_time")
+    end_time = require_column(form_data.get("end_time"), "end_time")
+    category = require_column(form_data.get("y_axis"), "y_axis")
+
+    raw_series = form_data.get("series")
+    series_columns = (
+        [require_column(raw_series, "series")] if raw_series is not None else []
+    )
+
+    raw_tooltip_columns = form_data.get("tooltip_columns") or []
+    raw_tooltip_metrics = form_data.get("tooltip_metrics") or []
+    if not isinstance(raw_tooltip_columns, list) or len(raw_tooltip_columns) > 50:
+        raise ValueError("Gantt tooltip_columns must contain at most 50 entries")
+    if not isinstance(raw_tooltip_metrics, list) or len(raw_tooltip_metrics) > 50:
+        raise ValueError("Gantt tooltip_metrics must contain at most 50 entries")
+    tooltip_columns = [
+        require_column(column, f"tooltip_columns[{index}]")
+        for index, column in enumerate(raw_tooltip_columns)
+    ]
+
+    raw_order = form_data.get("order_by_cols") or []
+    if not isinstance(raw_order, list) or len(raw_order) > 100:
+        raise ValueError("Gantt order_by_cols must contain at most 100 entries")
+    orderby: list[list[Any]] = []
+    for index, entry in enumerate(raw_order):
+        if isinstance(entry, str):
+            if len(entry) > 1000:
+                raise ValueError(f"Gantt order_by_cols[{index}] is too long")
+            try:
+                entry = utils_json.loads(entry)
+            except (TypeError, ValueError) as ex:
+                raise ValueError(
+                    f"Gantt order_by_cols[{index}] is not valid JSON"
+                ) from ex
+        if (
+            not isinstance(entry, (list, tuple))
+            or len(entry) != 2
+            or not isinstance(entry[0], str)
+            or not entry[0]
+            or not isinstance(entry[1], bool)
+        ):
+            raise ValueError(
+                f"Gantt order_by_cols[{index}] must be [column, ascending_boolean]"
+            )
+        orderby.append([entry[0], entry[1]])
+
+    columns: list[Any] = []
+    seen: set[str] = set()
+    for column in (
+        start_time,
+        end_time,
+        category,
+        *series_columns,
+        *tooltip_columns,
+        *(entry[0] for entry in orderby),
+    ):
+        key = utils_json.dumps(column, sort_keys=True, default=str)
+        if key not in seen:
+            seen.add(key)
+            columns.append(column)
+    return columns, list(raw_tooltip_metrics), orderby, series_columns
+
+
 def extract_x_axis_col(form_data: dict[str, Any]) -> str | None:
     """Return the x_axis column name from form_data, or None if not set."""
     x_axis = form_data.get("x_axis")
@@ -584,6 +670,20 @@ def build_query_dicts_from_form_data(
         or (getattr(chart, "viz_type", "") if chart else "")
         or ""
     )
+
+    if viz_type == "gantt_chart":
+        columns, gantt_metrics, orderby, series_columns = resolve_gantt_query_fields(
+            form_data
+        )
+        query = _build_single_query_dict(
+            form_data,
+            columns,
+            gantt_metrics,
+            row_limit=row_limit,
+        )
+        query["orderby"] = orderby
+        query["series_columns"] = series_columns
+        return [query]
 
     # Deck.gl charts use spatial column configs rather than the standard
     # metrics / groupby fields. Extract columns from the spatial controls.

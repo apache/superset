@@ -31,6 +31,7 @@ from superset.extensions import event_logger
 from superset.mcp_service.chart.schemas import (
     BigNumberChartConfig,
     BoxPlotChartConfig,
+    GanttChartConfig,
     HandlebarsChartConfig,
     HistogramChartConfig,
     InteractivePivotChartConfig,
@@ -57,6 +58,7 @@ _CHART_TYPE_ADAPTERS: Dict[str, TypeAdapter[Any]] = {
     "histogram": TypeAdapter(HistogramChartConfig),
     "box_plot": TypeAdapter(BoxPlotChartConfig),
     "waterfall": TypeAdapter(WaterfallChartConfig),
+    "gantt": TypeAdapter(GanttChartConfig),
 }
 
 VALID_CHART_TYPES = sorted(_CHART_TYPE_ADAPTERS.keys())
@@ -204,6 +206,17 @@ _CHART_EXAMPLES: Dict[str, list[Dict[str, Any]]] = {
             "show_total": True,
         },
     ],
+    "gantt": [
+        {
+            "chart_type": "gantt",
+            "start_time": {"name": "start_time"},
+            "end_time": {"name": "end_time"},
+            "category": {"name": "task_name"},
+            "series": {"name": "owner"},
+            "tooltip_columns": [{"name": "project"}],
+            "order_by": [{"column": "start_time", "ascending": True}],
+        },
+    ],
 }
 
 
@@ -292,7 +305,7 @@ def get_chart_type_schema(
 
     Valid chart_type values depend on the host deployment. Core types are xy,
     table, pie, pivot_table, mixed_timeseries, handlebars, big_number,
-    histogram, box_plot, and waterfall. Deployments that enable an AG Grid
+    histogram, box_plot, waterfall, and gantt. Deployments that enable an AG Grid
     pivot extension also expose interactive_pivot.
 
     Returns the JSON Schema for the requested chart type, optionally

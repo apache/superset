@@ -43,6 +43,7 @@ from superset.mcp_service.chart.schemas import (
     ColumnRef,
     CurrencyFormat,
     FilterConfig,
+    GanttChartConfig,
     HandlebarsChartConfig,
     HistogramChartConfig,
     MixedTimeseriesChartConfig,
@@ -598,6 +599,44 @@ def merge_interactive_pivot_ui_config(
         new_form_data["pivot_table_state"] = {**existing_state, **new_state}
 
 
+_GANTT_PRESENTATION_KEYS = frozenset(
+    {
+        "color_scheme",
+        "legendMargin",
+        "legendOrientation",
+        "legendSort",
+        "legendType",
+        "show_extra_controls",
+        "show_legend",
+        "subcategories",
+        "tooltipTimeFormat",
+        "tooltipValuesFormat",
+        "x_axis_time_bounds",
+        "x_axis_time_format",
+        "x_axis_title",
+        "x_axis_title_margin",
+        "y_axis_title",
+        "y_axis_title_margin",
+        "y_axis_title_position",
+        "zoomable",
+    }
+)
+
+
+def merge_gantt_ui_config(
+    previous_form_data: Mapping[str, Any], new_form_data: Dict[str, Any]
+) -> None:
+    """Preserve native Gantt presentation controls omitted by a typed update."""
+    if (
+        previous_form_data.get("viz_type") != "gantt_chart"
+        or new_form_data.get("viz_type") != "gantt_chart"
+    ):
+        return
+    for key in _GANTT_PRESENTATION_KEYS:
+        if key not in new_form_data and key in previous_form_data:
+            new_form_data[key] = previous_form_data[key]
+
+
 def create_metric_object(col: ColumnRef) -> Dict[str, Any] | str:
     """Create a metric object for a column with enhanced validation.
 
@@ -811,12 +850,33 @@ def _ensure_generated_temporal_binding(form_data: Dict[str, Any], column: str) -
         form_data[MCP_DASHBOARD_TIME_FILTER_SUBJECT] = column
 
 
-def _bind_dashboard_time_range_filter(
+def _uses_mapper_owned_temporal_binding(
+    form_data: Dict[str, Any], dataset_id: int | str | None
+) -> bool:
+    """Whether a mapper supplied a validated natural time-filter binding."""
+    existing_binding = form_data.get(MCP_DASHBOARD_TIME_FILTER_SUBJECT)
+    if not isinstance(existing_binding, str) or not any(
+        isinstance(filter_, dict)
+        and filter_.get("operator") == FilterOperator.TEMPORAL_RANGE.value
+        and filter_.get("subject") == existing_binding
+        for filter_ in form_data.get("adhoc_filters", [])
+    ):
+        return False
+    # Mappers such as Gantt own their natural time field even though it is
+    # neither x_axis nor granularity_sqla. Validate the physical type rather
+    # than trusting the internal marker alone.
+    return _is_temporal_for_dashboard_binding(existing_binding, dataset_id)
+
+
+def _bind_dashboard_time_range_filter(  # noqa: C901
     form_data: Dict[str, Any],
     config: ChartConfig,
     dataset_id: int | str | None,
 ) -> None:
     """Bind charts without time configuration to a temporal filter subject."""
+    if _uses_mapper_owned_temporal_binding(form_data, dataset_id):
+        return
+
     if temporal_column := getattr(config, "temporal_column", None):
         if _is_temporal_for_dashboard_binding(temporal_column, dataset_id):
             granularity = form_data.get("granularity_sqla")
@@ -1134,6 +1194,87 @@ def map_waterfall_config(config: WaterfallChartConfig) -> Dict[str, Any]:
         form_data["granularity_sqla"] = config.x_axis.name
     add_currency_format(form_data, config.currency_format)
     _add_adhoc_filters(form_data, config.filters)
+    return form_data
+
+
+def map_gantt_config(config: GanttChartConfig) -> Dict[str, Any]:
+    """Map typed Gantt config to the exact ECharts Gantt form-data contract."""
+    form_data: Dict[str, Any] = {
+        "viz_type": "gantt_chart",
+        "start_time": config.start_time.name,
+        "end_time": config.end_time.name,
+        "y_axis": config.category.name,
+        "tooltip_columns": [column.name for column in config.tooltip_columns],
+        "tooltip_metrics": [
+            create_metric_object(metric) for metric in config.tooltip_metrics
+        ],
+        "order_by_cols": [
+            json.dumps([order.column, order.ascending]) for order in config.order_by
+        ],
+        "row_limit": config.row_limit,
+    }
+    if config.series is not None:
+        form_data["series"] = config.series.name
+    if config.time_range is not None:
+        form_data["time_range"] = config.time_range
+
+    # Only explicitly supplied presentation fields are persisted. Update paths
+    # merge native values for omitted controls; fresh charts use frontend defaults.
+    presentation_fields = {
+        "color_scheme": ("color_scheme", config.color_scheme),
+        "show_legend": ("show_legend", config.show_legend),
+        "legend_orientation": ("legendOrientation", config.legend_orientation),
+        "legend_type": ("legendType", config.legend_type),
+        "legend_margin": ("legendMargin", config.legend_margin),
+        "legend_sort": ("legendSort", config.legend_sort),
+        "zoomable": ("zoomable", config.zoomable),
+        "subcategories": ("subcategories", config.subcategories),
+        "show_extra_controls": (
+            "show_extra_controls",
+            config.show_extra_controls,
+        ),
+        "x_axis_time_bounds": (
+            "x_axis_time_bounds",
+            list(config.x_axis_time_bounds) if config.x_axis_time_bounds else None,
+        ),
+        "x_axis_time_format": ("x_axis_time_format", config.x_axis_time_format),
+        "tooltip_time_format": ("tooltipTimeFormat", config.tooltip_time_format),
+        "tooltip_values_format": (
+            "tooltipValuesFormat",
+            config.tooltip_values_format,
+        ),
+        "x_axis_title": ("x_axis_title", config.x_axis_title),
+        "x_axis_title_margin": (
+            "x_axis_title_margin",
+            config.x_axis_title_margin,
+        ),
+        "y_axis_title": ("y_axis_title", config.y_axis_title),
+        "y_axis_title_margin": (
+            "y_axis_title_margin",
+            config.y_axis_title_margin,
+        ),
+        "y_axis_title_position": (
+            "y_axis_title_position",
+            config.y_axis_title_position,
+        ),
+    }
+    for field_name, (form_key, value) in presentation_fields.items():
+        if field_name in config.model_fields_set:
+            form_data[form_key] = value
+
+    _add_adhoc_filters(form_data, config.filters)
+    temporal_binding = config.temporal_column or config.start_time.name
+    if temporal_binding:
+        _ensure_generated_temporal_binding(form_data, temporal_binding)
+        if config.time_range:
+            for filter_ in form_data.get("adhoc_filters", []):
+                if (
+                    isinstance(filter_, dict)
+                    and filter_.get("operator") == FilterOperator.TEMPORAL_RANGE.value
+                    and filter_.get("subject") == temporal_binding
+                    and filter_.get("comparator") == NO_TIME_RANGE
+                ):
+                    filter_["comparator"] = config.time_range
     return form_data
 
 

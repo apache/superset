@@ -423,7 +423,16 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
             if result and "queries" in result and len(result["queries"]) > 0:
                 chart_data = result["queries"][0].get("data", [])
 
-            if not chart_data or not isinstance(chart_data, list):
+            viz_type = getattr(self.chart, "viz_type", None)
+            if not isinstance(chart_data, list):
+                return ChartError(
+                    error="Chart result data is not an array of rows",
+                    error_type="InvalidResultData",
+                )
+            # An empty Gantt query is still a valid interval chart and has a
+            # useful, typed Vega-Lite spec. Other chart types retain the existing
+            # explicit no-data response.
+            if not chart_data and viz_type != "gantt_chart":
                 return ChartError(
                     error="No data available for Vega-Lite visualization",
                     error_type="NoDataError",
@@ -456,9 +465,6 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
 
     def _create_vega_lite_spec(self, data: List[Any]) -> Dict[str, Any]:
         """Create Vega-Lite specification from chart data."""
-        if not data:
-            return {"data": {"values": []}, "mark": "point"}
-
         # Get data fields and analyze types
         first_row = data[0] if data else {}
         fields = list(first_row.keys()) if first_row else []
@@ -516,6 +522,7 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
             "funnel": ["funnel"],
             "gauge": ["gauge_chart"],
             "mixed": ["mixed_timeseries"],
+            "gantt": ["gantt_chart"],
             "table": ["table"],
         }
 
@@ -529,6 +536,85 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
         # Default fallback
         logger.info("Unknown chart type '%s', using scatter plot fallback", viz_type)
         return self._scatter_chart_spec(fields, field_types)
+
+    def _gantt_chart_spec(  # noqa: C901
+        self, fields: List[str], field_types: Dict[str, str] | None = None
+    ) -> Dict[str, Any]:
+        """Create an interval-bar spec from the native Gantt form-data fields."""
+        form_data = self._get_form_data() or {}
+        start = form_data.get("start_time")
+        end = form_data.get("end_time")
+        category = form_data.get("y_axis")
+        if not all(
+            isinstance(field, str) and field for field in (start, end, category)
+        ):
+            raise ValueError(
+                "Gantt preview requires start_time, end_time, and y_axis form data"
+            )
+        assert isinstance(start, str)
+        assert isinstance(end, str)
+        assert isinstance(category, str)
+        for field in (start, end, category):
+            if fields and field not in fields:
+                raise ValueError(
+                    f"Gantt query result is missing required field: {field}"
+                )
+
+        series = form_data.get("series")
+        if series is not None and (not isinstance(series, str) or not series):
+            raise ValueError("Gantt series must be a physical column name")
+
+        tooltip_fields: list[dict[str, str]] = [
+            {"field": category, "type": "nominal"},
+            {"field": start, "type": "temporal"},
+            {"field": end, "type": "temporal"},
+        ]
+        for field in ([series] if series else []) + list(
+            form_data.get("tooltip_columns") or []
+        ):
+            if isinstance(field, str) and field not in {
+                item["field"] for item in tooltip_fields
+            }:
+                tooltip_fields.append({"field": field, "type": "nominal"})
+        for metric in form_data.get("tooltip_metrics") or []:
+            label = (
+                metric
+                if isinstance(metric, str)
+                else metric.get("label")
+                if isinstance(metric, dict)
+                else None
+            )
+            if isinstance(label, str) and label not in {
+                item["field"] for item in tooltip_fields
+            }:
+                tooltip_fields.append({"field": label, "type": "quantitative"})
+
+        encoding: dict[str, Any] = {
+            "x": {
+                "field": start,
+                "type": "temporal",
+                "title": form_data.get("x_axis_title"),
+            },
+            "x2": {"field": end},
+            "y": {
+                "field": category,
+                "type": "nominal",
+                "title": form_data.get("y_axis_title") or category,
+            },
+            "tooltip": tooltip_fields,
+        }
+        if series:
+            encoding["color"] = {
+                "field": series,
+                "type": "nominal",
+                "title": series,
+            }
+            if form_data.get("subcategories"):
+                encoding["yOffset"] = {"field": series, "type": "nominal"}
+        return {
+            "mark": {"type": "bar", "tooltip": True},
+            "encoding": encoding,
+        }
 
     def _analyze_field_types(
         self, data: List[Any], fields: List[str]
