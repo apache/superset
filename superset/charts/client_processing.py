@@ -35,6 +35,7 @@ from flask import current_app
 from flask_babel import gettext as __
 
 from superset.common.chart_data import ChartDataResultFormat
+from superset.constants import SHOW_VALUES_AS_PERCENT_MODES, ShowValuesAs
 from superset.extensions import event_logger
 from superset.utils import csv, excel
 from superset.utils.core import (
@@ -60,15 +61,6 @@ logger = logging.getLogger(__name__)
 # ``number-format/NumberFormats.ts::PERCENT_3_POINT`` as used in the frontend's
 # ``transformProps`` formatter selection.
 PERCENT_3_POINT = ",.3%"
-
-# ``showValuesAs`` percent modes, mirroring ``ShowValuesAsEnum`` in the pivot
-# table plugin's ``types.ts``. Any other value (including "actual") is a no-op.
-PERCENT_OF_ROW = "percent_row"
-PERCENT_OF_COLUMN = "percent_col"
-PERCENT_OF_TOTAL = "percent_total"
-SHOW_VALUES_AS_PERCENT_MODES = frozenset(
-    {PERCENT_OF_ROW, PERCENT_OF_COLUMN, PERCENT_OF_TOTAL}
-)
 
 
 def get_column_key(label: tuple[str, ...], metrics: list[str]) -> tuple[Any, ...]:
@@ -131,14 +123,14 @@ def _apply_show_values_as(  # pylint: disable=too-many-arguments
             selection if metric is not None else np.ones(len(selection), dtype=bool)
         )
         block = numeric.loc[:, selection]
-        if mode == PERCENT_OF_TOTAL:
+        if mode == ShowValuesAs.PERCENT_OF_TOTAL:
             leaf = numeric.loc[leaf_rows, leaf_columns & denominator_selection]
             grand_total = leaf.to_numpy().sum()
             fraction = block / (np.nan if grand_total == 0 else grand_total)
         else:
             summed, divided = (
                 (axis["rows"], axis["columns"])
-                if mode == PERCENT_OF_COLUMN
+                if mode == ShowValuesAs.PERCENT_OF_COLUMN
                 else (axis["columns"], axis["rows"])
             )
             # The metric lives on the column axis, so only a sum taken along
