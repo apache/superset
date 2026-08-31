@@ -1804,6 +1804,200 @@ def test_pivot_df_complex_null_values():
     )
 
 
+# --- `showValuesAs` percent modes (#42809) -----------------------------------
+#
+# Exports and scheduled reports render server-side, so they have to reproduce
+# the client's `fractionOf` aggregator: each cell over its row, column, or grand
+# total, computed per metric, with totals dividing by their own rollup rather
+# than summing the fractions around them.
+
+SHOW_VALUES_AS_OPTIONS = {
+    "rows": ["nation"],
+    "columns": ["gender"],
+    "metrics": ["SUM(num)"],
+    "aggfunc": "Sum",
+    "transpose_pivot": False,
+    "combine_metrics": False,
+    "show_rows_total": True,
+    "show_columns_total": True,
+    "apply_metrics_on_rows": False,
+}
+
+
+def show_values_as_df() -> pd.DataFrame:
+    """A 2x2 pivot: row totals 40/40, column totals 30/50, grand total 80."""
+    return pd.DataFrame(
+        {
+            "nation": ["US", "US", "UK", "UK"],
+            "gender": ["boy", "girl", "boy", "girl"],
+            "SUM(num)": [10, 30, 20, 20],
+        }
+    )
+
+
+def total_label() -> str:
+    return f"{_('Total')} (Sum)"
+
+
+def test_pivot_df_show_values_as_percent_row():
+    pivoted = pivot_df(
+        show_values_as_df(), **SHOW_VALUES_AS_OPTIONS, show_values_as="percent_row"
+    )
+    total = total_label()
+
+    assert pivoted.loc[("US",), ("SUM(num)", "boy")] == 0.25
+    assert pivoted.loc[("US",), ("SUM(num)", "girl")] == 0.75
+    assert pivoted.loc[("UK",), ("SUM(num)", "boy")] == 0.5
+    # a row is always 100% of itself
+    assert pivoted.loc[("US",), (total, "")] == 1
+    # the totals row shows each column's share of the grand total (30/80 and
+    # 50/80), not the sum of the fractions above it
+    assert pivoted.loc[(total,), ("SUM(num)", "boy")] == 0.375
+    assert pivoted.loc[(total,), ("SUM(num)", "girl")] == 0.625
+    assert pivoted.loc[(total,), (total, "")] == 1
+
+
+def test_pivot_df_show_values_as_percent_col():
+    pivoted = pivot_df(
+        show_values_as_df(), **SHOW_VALUES_AS_OPTIONS, show_values_as="percent_col"
+    )
+    total = total_label()
+
+    assert pivoted.loc[("US",), ("SUM(num)", "boy")] == pytest.approx(1 / 3)
+    assert pivoted.loc[("UK",), ("SUM(num)", "boy")] == pytest.approx(2 / 3)
+    assert pivoted.loc[("US",), ("SUM(num)", "girl")] == 0.6
+    # a column is always 100% of itself
+    assert pivoted.loc[(total,), ("SUM(num)", "boy")] == 1
+    # the totals column shows each row's share of the grand total
+    assert pivoted.loc[("US",), (total, "")] == 0.5
+
+
+def test_pivot_df_show_values_as_percent_total():
+    pivoted = pivot_df(
+        show_values_as_df(), **SHOW_VALUES_AS_OPTIONS, show_values_as="percent_total"
+    )
+    total = total_label()
+
+    assert pivoted.loc[("US",), ("SUM(num)", "boy")] == 0.125
+    assert pivoted.loc[("US",), ("SUM(num)", "girl")] == 0.375
+    assert pivoted.loc[("UK",), ("SUM(num)", "boy")] == 0.25
+    assert pivoted.loc[(total,), ("SUM(num)", "boy")] == 0.375
+    assert pivoted.loc[("US",), (total, "")] == 0.5
+    assert pivoted.loc[(total,), (total, "")] == 1
+
+
+def test_pivot_df_show_values_as_keeps_metrics_separate():
+    """One metric's cells are never divided by another metric's total."""
+    df = show_values_as_df()
+    df["MAX(num)"] = [1, 3, 6, 10]
+    pivoted = pivot_df(
+        df,
+        **{**SHOW_VALUES_AS_OPTIONS, "metrics": ["SUM(num)", "MAX(num)"]},
+        show_values_as="percent_row",
+    )
+
+    assert pivoted.loc[("US",), ("SUM(num)", "boy")] == 0.25
+    assert pivoted.loc[("UK",), ("MAX(num)", "boy")] == 0.375
+    assert pivoted.loc[("UK",), ("MAX(num)", "girl")] == 0.625
+
+
+def test_pivot_df_show_values_as_metrics_on_rows():
+    pivoted = pivot_df(
+        show_values_as_df(),
+        **{**SHOW_VALUES_AS_OPTIONS, "apply_metrics_on_rows": True},
+        show_values_as="percent_col",
+    )
+    total = total_label()
+
+    assert pivoted.loc[("SUM(num)", "US"), ("boy",)] == pytest.approx(1 / 3)
+    assert pivoted.loc[("SUM(num)", "US"), ("girl",)] == 0.6
+    assert pivoted.loc[("SUM(num)", "US"), (total,)] == 0.5
+    assert pivoted.loc[(total, ""), ("boy",)] == 1
+
+
+def test_pivot_df_show_values_as_zero_denominator_is_blank():
+    """A zero total renders blank rather than infinity."""
+    df = show_values_as_df()
+    df.loc[df["nation"] == "UK", "SUM(num)"] = 0
+    pivoted = pivot_df(df, **SHOW_VALUES_AS_OPTIONS, show_values_as="percent_row")
+
+    assert pd.isna(pivoted.loc[("UK",), ("SUM(num)", "boy")])
+    assert pivoted.loc[("US",), ("SUM(num)", "boy")] == 0.25
+
+
+def test_pivot_df_show_values_as_supersedes_legacy_fraction_aggfunc():
+    """`showValuesAs` wins over a pre-SIP-216 fraction aggregate function."""
+    pivoted = pivot_df(
+        show_values_as_df(),
+        **{**SHOW_VALUES_AS_OPTIONS, "aggfunc": "Sum as Fraction of Total"},
+        show_values_as="percent_row",
+    )
+
+    assert pivoted.loc[("US",), ("SUM(num)", "boy")] == 0.25
+
+
+def test_pivot_table_v2_show_values_as_formats_as_percent() -> None:
+    """A ratio ignores the configured value format and currency, as the chart does."""
+    result = pivot_table_v2(
+        show_values_as_df(),
+        {
+            "groupbyRows": ["nation"],
+            "groupbyColumns": ["gender"],
+            "metrics": ["SUM(num)"],
+            "showValuesAs": "percent_total",
+            "valueFormat": "$,.2f",
+            "currencyFormat": {"symbol": "USD", "symbolPosition": "prefix"},
+        },
+    )
+
+    assert result.loc[("US",), ("SUM(num)", "boy")] == "12.500%"
+    assert result.loc[("US",), ("SUM(num)", "girl")] == "37.500%"
+
+
+def test_pivot_table_v2_show_values_as_actual_keeps_raw_values() -> None:
+    result = pivot_table_v2(
+        show_values_as_df(),
+        {
+            "groupbyRows": ["nation"],
+            "groupbyColumns": ["gender"],
+            "metrics": ["SUM(num)"],
+            "showValuesAs": "actual",
+            "valueFormat": ",d",
+        },
+    )
+
+    assert result.loc[("US",), ("SUM(num)", "boy")] == "10"
+
+
+def test_apply_client_processing_csv_format_show_values_as():
+    """CSV exports carry the percentages the chart displays."""
+    result = {
+        "queries": [
+            {
+                "result_format": ChartDataResultFormat.CSV,
+                "data": (
+                    "nation,gender,SUM(num)\n"
+                    "US,boy,10\nUS,girl,30\nUK,boy,20\nUK,girl,20\n"
+                ),
+            }
+        ]
+    }
+    form_data = {
+        "viz_type": "pivot_table_v2",
+        "groupbyRows": ["nation"],
+        "groupbyColumns": ["gender"],
+        "metrics": ["SUM(num)"],
+        "showValuesAs": "percent_row",
+        "metricsLayout": "COLUMNS",
+    }
+
+    processed = apply_client_processing(result, form_data)
+
+    assert processed["queries"][0]["data"] == (
+        ",SUM(num) boy,SUM(num) girl\nUK,0.5,0.5\nUS,0.25,0.75\n"
+    )
+
+
 def test_table():
     """
     Test that the table reports honor `d3NumberFormat`.

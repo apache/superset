@@ -61,6 +61,15 @@ logger = logging.getLogger(__name__)
 # ``transformProps`` formatter selection.
 PERCENT_3_POINT = ",.3%"
 
+# ``showValuesAs`` percent modes, mirroring ``ShowValuesAsEnum`` in the pivot
+# table plugin's ``types.ts``. Any other value (including "actual") is a no-op.
+PERCENT_OF_ROW = "percent_row"
+PERCENT_OF_COLUMN = "percent_col"
+PERCENT_OF_TOTAL = "percent_total"
+SHOW_VALUES_AS_PERCENT_MODES = frozenset(
+    {PERCENT_OF_ROW, PERCENT_OF_COLUMN, PERCENT_OF_TOTAL}
+)
+
 
 def get_column_key(label: tuple[str, ...], metrics: list[str]) -> tuple[Any, ...]:
     """
@@ -75,6 +84,75 @@ def get_column_key(label: tuple[str, ...], metrics: list[str]) -> tuple[Any, ...
     return tuple(parts)
 
 
+def _apply_show_values_as(  # pylint: disable=too-many-arguments
+    df: pd.DataFrame,
+    mode: str,
+    axis: dict[str, int],
+    metrics: list[str],
+    combine_metrics: bool,
+    inserted_rows: list[Any],
+    inserted_columns: list[Any],
+) -> pd.DataFrame:
+    """
+    Express each cell as a fraction of its row, column, or grand total.
+
+    Mirrors the client's ``fractionOf`` aggregator in
+    ``plugin-chart-pivot-table/src/react-pivottable/utilities.ts``. Two details
+    it inherits from there:
+
+    - Denominators are summed over leaf cells only. Totals and subtotals
+      inserted into the frame are numerators like any other cell -- a "% of
+      row" grand total row reads ``column total / grand total``, not the sum of
+      the fractions above it.
+    - A total is summed within a single metric, so a cell is never divided by a
+      total that mixes in another metric. Cross-metric totals (whose metric
+      level holds a total label rather than a metric name) divide by the
+      denominator spanning every metric.
+
+    A zero denominator yields NaN (blank) rather than infinity, matching
+    ``pandas_postprocessing.pivot``'s ``show_values_as``.
+    """
+    numeric = df.apply(pd.to_numeric, errors="coerce").astype(float)
+    is_multi_index = isinstance(df.columns, pd.MultiIndex)
+    # `combine_metrics` has already moved the metric to the lowest column level.
+    metric_level = df.columns.nlevels - 1 if combine_metrics and is_multi_index else 0
+    metric_names = set(metrics)
+    metric_of_column = [
+        key if key in metric_names else None
+        for key in df.columns.get_level_values(metric_level)
+    ]
+    leaf_rows = ~df.index.isin(inserted_rows)
+    leaf_columns = ~df.columns.isin(inserted_columns)
+
+    result = numeric.copy()
+    for metric in dict.fromkeys(metric_of_column):
+        selection = np.array([column == metric for column in metric_of_column])
+        denominator_selection = (
+            selection if metric is not None else np.ones(len(selection), dtype=bool)
+        )
+        block = numeric.loc[:, selection]
+        if mode == PERCENT_OF_TOTAL:
+            leaf = numeric.loc[leaf_rows, leaf_columns & denominator_selection]
+            grand_total = leaf.to_numpy().sum()
+            fraction = block / (np.nan if grand_total == 0 else grand_total)
+        else:
+            summed, divided = (
+                (axis["rows"], axis["columns"])
+                if mode == PERCENT_OF_COLUMN
+                else (axis["columns"], axis["rows"])
+            )
+            # The metric lives on the column axis, so only a sum taken along
+            # that axis has to stay within one metric.
+            leaf = (
+                numeric.loc[:, leaf_columns & denominator_selection]
+                if summed == 1
+                else numeric.loc[leaf_rows, :]
+            )
+            fraction = block.div(leaf.sum(axis=summed).replace(0, np.nan), axis=divided)
+        result.loc[:, selection] = fraction
+    return result
+
+
 def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-statements, too-many-branches  # noqa: C901
     df: pd.DataFrame,
     rows: list[str],
@@ -87,8 +165,16 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
     show_columns_total: bool = False,
     apply_metrics_on_rows: bool = False,
     metric_name_aggfunc: Optional[str] = None,
+    show_values_as: Optional[str] = None,
 ) -> pd.DataFrame:
     metric_name = __("Total (%(aggfunc)s)", aggfunc=metric_name_aggfunc or aggfunc)
+    percent_mode = (
+        show_values_as if show_values_as in SHOW_VALUES_AS_PERCENT_MODES else None
+    )
+    # Labels of the total/subtotal rows and columns inserted below, so the
+    # `showValuesAs` denominators can be summed over leaf cells only.
+    inserted_rows: list[Any] = []
+    inserted_columns: list[Any] = []
 
     if transpose_pivot:
         rows, columns = columns, rows
@@ -150,16 +236,19 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
         # of metrics defined by the user
         df = df[metrics]
 
-    # compute fractions, if needed
-    if aggfunc.endswith(" as Fraction of Total"):
-        total = df.sum().sum()
-        df = df.astype(total.dtypes) / total
-    elif aggfunc.endswith(" as Fraction of Columns"):
-        total = df.sum(axis=axis["rows"])
-        df = df.astype(total.dtypes).div(total, axis=axis["columns"])
-    elif aggfunc.endswith(" as Fraction of Rows"):
-        total = df.sum(axis=axis["columns"])
-        df = df.astype(total.dtypes).div(total, axis=axis["rows"])
+    # Compute fractions, if needed. `showValuesAs` supersedes the pre-SIP-216
+    # "... as Fraction of ..." aggregate functions, and is applied after the
+    # totals below so each total divides by its own rollup, as the chart does.
+    if not percent_mode:
+        if aggfunc.endswith(" as Fraction of Total"):
+            total = df.sum().sum()
+            df = df.astype(total.dtypes) / total
+        elif aggfunc.endswith(" as Fraction of Columns"):
+            total = df.sum(axis=axis["rows"])
+            df = df.astype(total.dtypes).div(total, axis=axis["columns"])
+        elif aggfunc.endswith(" as Fraction of Rows"):
+            total = df.sum(axis=axis["columns"])
+            df = df.astype(total.dtypes).div(total, axis=axis["rows"])
 
     # convert to a MultiIndex to simplify logic
     if not isinstance(df.index, pd.MultiIndex):
@@ -193,6 +282,7 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
                 subtotal_name = tuple([*subgroup, total, *([""] * depth)])  # noqa: C409
                 # insert column after subgroup
                 df.insert(int(slice_.stop), subtotal_name, subtotal)
+                inserted_columns.append(subtotal_name)
 
     if rows and show_columns_total:
         # add subtotal for each group and overall total; we start from the
@@ -224,6 +314,18 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
                 df = pd.concat(
                     [df[: slice_.stop], subtotal.to_frame().T, df[slice_.stop :]]
                 )
+                inserted_rows.append(subtotal.name)
+
+    if percent_mode:
+        df = _apply_show_values_as(
+            df,
+            percent_mode,
+            axis,
+            metrics,
+            combine_metrics,
+            inserted_rows,
+            inserted_columns,
+        )
 
     # if we want to apply the metrics on the rows we need to pivot the
     # dataframe back
@@ -452,6 +554,9 @@ def build_pivot_currency_context(
         **pivot_options,
         "aggfunc": CURRENCY_CONTEXT_AGGREGATION,
         "metric_name_aggfunc": pivot_options["aggfunc"],
+        # Cells here hold currency-code sets, not numbers, so a percent
+        # transform would coerce them away.
+        "show_values_as": None,
     }
     return pivot_df(currency_source, **currency_pivot_options)
 
@@ -531,6 +636,10 @@ def pivot_table_v2(
     """
     verbose_map = datasource.data["verbose_map"] if datasource else None
     metrics = get_metric_names(form_data["metrics"], verbose_map)
+    show_values_as = form_data.get("showValuesAs")
+    percent_mode = (
+        show_values_as if show_values_as in SHOW_VALUES_AS_PERCENT_MODES else None
+    )
     pivot_options: dict[str, Any] = {
         "rows": get_column_names(form_data.get("groupbyRows"), verbose_map),
         "columns": get_column_names(form_data.get("groupbyColumns"), verbose_map),
@@ -541,10 +650,22 @@ def pivot_table_v2(
         "show_rows_total": bool(form_data.get("rowTotals")),
         "show_columns_total": bool(form_data.get("colTotals")),
         "apply_metrics_on_rows": form_data.get("metricsLayout") == "ROWS",
+        "show_values_as": percent_mode,
     }
 
     pivoted = pivot_df(df, **pivot_options)
     if apply_number_format:
+        if percent_mode:
+            # A ratio has no currency and ignores per-metric value formats, the
+            # same way the client skips `formattedAggregators` while a fraction
+            # is active.
+            return apply_pivot_number_formats(
+                pivoted,
+                form_data,
+                detected_currency,
+                datasource,
+                force_number_format=PERCENT_3_POINT,
+            )
         currency_context = None
         if (
             pivot_options["aggfunc"] not in PIVOT_AGGREGATIONS_WITHOUT_CURRENCY_CONTEXT
@@ -573,6 +694,7 @@ def apply_pivot_number_formats(
     detected_currency: Optional[str] = None,
     datasource: Optional[Union["BaseDatasource", "Query"]] = None,
     currency_context: Optional[pd.DataFrame] = None,
+    force_number_format: Optional[str] = None,
 ) -> pd.DataFrame:
     """
     Apply `valueFormat`/`columnFormats` and currency config to pivot values.
@@ -580,11 +702,20 @@ def apply_pivot_number_formats(
     The metric name is the first column level, or the last when `combineMetric`
     moves it there; in the ROWS metrics layout it is on the index instead.
     Per-metric overrides fall back to the global value format.
+
+    `force_number_format` applies one d3 format to every metric and drops the
+    currency config, for values whose configured format no longer applies.
     """
     value_format = form_data.get("valueFormat")
     column_formats = merge_column_formats(form_data, datasource)
     currency_format = get_pivot_currency_format(form_data)
     currency_formats = merge_currency_formats(form_data, datasource)
+    if force_number_format:
+        value_format = force_number_format
+        column_formats = {}
+        currency_format = {}
+        currency_formats = {}
+        currency_context = None
     metric_level = -1 if form_data.get("combineMetric") else 0
     metrics_on_rows = form_data.get("metricsLayout") == "ROWS"
 
