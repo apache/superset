@@ -91,7 +91,7 @@ export function mapColumns<T extends object>(
   return columns.map(column => {
     const { isSorted, isSortedDesc } = getSortingInfo(headerGroups, column.id);
     return {
-      title: column.Header,
+      title: column.Header as ReactNode,
       dataIndex: column.id?.includes('.') ? column.id.split('.') : column.id,
       hidden: column.hidden,
       key: column.id,
@@ -121,7 +121,7 @@ export function mapColumns<T extends object>(
             column,
           });
         }
-        return val;
+        return val as ReactNode;
       },
       className: column.className,
     };

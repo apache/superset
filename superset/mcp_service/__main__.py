@@ -25,53 +25,69 @@ import io
 import logging
 import os
 import sys
-from typing import Any
+from typing import Any, Callable
 
 # Must redirect click output BEFORE importing anything that uses it
 import click
 
 # Monkey-patch click to redirect output to stderr in stdio mode
 if os.environ.get("FASTMCP_TRANSPORT", "stdio") == "stdio":
+    original_echo = click.echo
     original_secho = click.secho
 
-    def secho_to_stderr(*args: Any, **kwargs: Any) -> Any:
-        kwargs["file"] = sys.stderr
-        return original_secho(*args, **kwargs)
+    def redirect_to_stderr(
+        original_func: Callable[..., None],
+        *args: Any,
+        **kwargs: Any,
+    ) -> None:
+        if len(args) >= 2:
+            args = (args[0], sys.stderr, *args[2:])
+            kwargs.pop("file", None)
+        else:
+            kwargs["file"] = sys.stderr
 
+        original_func(*args, **kwargs)
+
+    def echo_to_stderr(*args: Any, **kwargs: Any) -> None:
+        redirect_to_stderr(original_echo, *args, **kwargs)
+
+    def secho_to_stderr(*args: Any, **kwargs: Any) -> None:
+        redirect_to_stderr(original_secho, *args, **kwargs)
+
+    click.echo = echo_to_stderr
     click.secho = secho_to_stderr
-    click.echo = lambda *args, **kwargs: click.echo(*args, file=sys.stderr, **kwargs)
 
 from superset.mcp_service.app import init_fastmcp_server, mcp
+from superset.mcp_service.caching import create_response_caching_middleware
+from superset.mcp_service.middleware import create_response_size_guard_middleware
+from superset.mcp_service.server import build_middleware_list
 
 
 def _add_default_middlewares() -> None:
     """Add the standard middleware stack to the MCP instance.
 
-    This ensures all entry points (stdio, streamable-http, etc.) get
-    the same protection middlewares that the Flask CLI and server.py add.
-    Order is innermost → outermost (last-added wraps everything).
-    """
-    from superset.mcp_service.middleware import (
-        create_response_size_guard_middleware,
-        GlobalErrorHandlerMiddleware,
-        LoggingMiddleware,
-        StructuredContentStripperMiddleware,
-    )
+    Delegates to ``server.build_middleware_list()`` for the core stack so
+    the stdio entry point stays in sync with the HTTP server without
+    duplicating middleware ordering.  The optional response size guard and
+    response caching middleware are appended separately (innermost
+    position, same order as in run_server()).
 
-    # Response size guard (innermost among these)
+    FastMCP wraps handlers so that the FIRST-added middleware is outermost.
+    ``build_middleware_list()`` already returns middlewares in the correct
+    outermost-first order.
+    """
+    for middleware in build_middleware_list():
+        mcp.add_middleware(middleware)
+
+    # Response size guard is innermost (added last), then response caching.
     if size_guard := create_response_size_guard_middleware():
         mcp.add_middleware(size_guard)
         limit = size_guard.token_limit
         sys.stderr.write(f"[MCP] Response size guard enabled (token_limit={limit})\n")
 
-    # Logging
-    mcp.add_middleware(LoggingMiddleware())
-
-    # Global error handler
-    mcp.add_middleware(GlobalErrorHandlerMiddleware())
-
-    # Structured content stripper (must be outermost)
-    mcp.add_middleware(StructuredContentStripperMiddleware())
+    if caching_middleware := create_response_caching_middleware():
+        mcp.add_middleware(caching_middleware)
+        sys.stderr.write("[MCP] Response caching enabled\n")
 
 
 def main() -> None:
@@ -147,15 +163,41 @@ def main() -> None:
                 sys.stderr.write(f"[MCP] Client disconnected: {e}\n")
                 sys.exit(0)
     else:
-        # For other transports, use normal initialization
-        init_fastmcp_server()
+        # For other transports (network listeners), install the same auth
+        # provider as the supported entry point (`superset mcp run` ->
+        # server.run_server()) instead of starting with no verifier at all.
+        # _create_auth_provider fails closed (raises MCPAuthConfigError) when
+        # auth is configured but a verifier could not be built, so letting
+        # that propagate here refuses to start rather than silently running
+        # this transport unauthenticated.
+        from superset.mcp_service.flask_singleton import get_flask_app
+        from superset.mcp_service.server import _create_auth_provider
+
+        flask_app = get_flask_app()
+        auth_provider = _create_auth_provider(flask_app)
+        init_fastmcp_server(auth=auth_provider)
         _add_default_middlewares()
 
         # Run with specified transport
         if transport == "streamable-http":
             host = os.environ.get("FASTMCP_HOST", "127.0.0.1")
             port = int(os.environ.get("FASTMCP_PORT", "5008"))
-            mcp.run(transport=transport, host=host, port=port, stateless_http=True)
+
+            # See MCP_STATELESS_HTTP's docstring in mcp_config.py -- stateless
+            # mode races a tool's progress notifications against the
+            # transport teardown that follows its HTTP request.
+            from superset.mcp_service.flask_singleton import get_flask_app
+            from superset.mcp_service.mcp_config import MCP_STATELESS_HTTP
+
+            stateless_http = get_flask_app().config.get(
+                "MCP_STATELESS_HTTP", MCP_STATELESS_HTTP
+            )
+            mcp.run(
+                transport=transport,
+                host=host,
+                port=port,
+                stateless_http=stateless_http,
+            )
         else:
             mcp.run(transport=transport)
 

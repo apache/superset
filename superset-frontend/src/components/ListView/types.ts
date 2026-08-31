@@ -26,6 +26,10 @@ export interface SortColumn {
 export interface SelectOption {
   label: ReactNode;
   value: any;
+  // Plain-text representation of the option. Callers should set this when
+  // `label` is a ReactNode so that the option can be serialized (e.g. into
+  // URL filter state) without losing the human-readable name.
+  title?: string;
   [key: string]: unknown;
 }
 
@@ -125,6 +129,7 @@ export enum ListViewFilterOperator {
   Between = 'between',
   DashboardIsFav = 'dashboard_is_favorite',
   ChartIsFav = 'chart_is_favorite',
+  TagIsFav = 'tag_is_favorite',
   ChartIsCertified = 'chart_is_certified',
   DashboardIsCertified = 'dashboard_is_certified',
   DatasetIsCertified = 'dataset_is_certified',
@@ -136,4 +141,10 @@ export enum ListViewFilterOperator {
   ChartTagById = 'chart_tag_id',
   SavedQueryTagByName = 'saved_query_tags',
   SavedQueryTagById = 'saved_query_tag_id',
+  ChartDeletedState = 'chart_deleted_state',
+  ChartDeletedRecency = 'chart_deleted_recency',
+  DashboardDeletedState = 'dashboard_deleted_state',
+  DashboardDeletedRecency = 'dashboard_deleted_recency',
+  DatasetDeletedState = 'dataset_deleted_state',
+  DatasetDeletedRecency = 'dataset_deleted_recency',
 }

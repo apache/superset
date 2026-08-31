@@ -61,7 +61,9 @@ export const useFilterConfigModal = ({
           dispatch(setFilterConfiguration(changes.filterChanges));
         }
         if (changes.customizationChanges) {
-          dispatch(
+          // Await so the delete commits before the modal closes, otherwise a
+          // quick "Apply filters" can re-persist the still-present control.
+          await dispatch(
             saveChartCustomization(
               changes.customizationChanges.modified,
               changes.customizationChanges.deleted,

@@ -14,16 +14,18 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import logging
+from collections.abc import Iterator
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from typing import Optional
-from unittest.mock import call, Mock, patch
-from uuid import uuid4
+from unittest.mock import ANY, call, Mock, patch
+from uuid import UUID, uuid4
 
+import pandas as pd
 import pytest
 from flask.ctx import AppContext
 from flask_appbuilder.security.sqla.models import User
-from flask_sqlalchemy import BaseQuery
 from freezegun import freeze_time
 from slack_sdk.errors import (
     BotUserAccessError,
@@ -35,7 +37,15 @@ from slack_sdk.errors import (
     SlackRequestError,
     SlackTokenRotationError,
 )
-from sqlalchemy.sql import func
+from sqlalchemy.exc import OperationalError
+from sqlalchemy.sql import func, text
+
+try:
+    # Flask-SQLAlchemy 3.x (required by SQLAlchemy 2.0)
+    from flask_sqlalchemy.query import Query as BaseQuery
+except ImportError:  # pragma: no cover
+    # Flask-SQLAlchemy 2.x
+    from flask_sqlalchemy import BaseQuery
 
 from superset import db
 from superset.commands.report.exceptions import (
@@ -45,12 +55,12 @@ from superset.commands.report.exceptions import (
     AlertQueryMultipleRowsError,
     ReportScheduleClientErrorsException,
     ReportScheduleCsvFailedError,
-    ReportScheduleCsvTimeout,
     ReportScheduleNotFoundError,
     ReportSchedulePreviousWorkingError,
     ReportScheduleScreenshotFailedError,
     ReportScheduleScreenshotTimeout,
     ReportScheduleSystemErrorsException,
+    ReportScheduleUnexpectedError,
     ReportScheduleWorkingTimeoutError,
 )
 from superset.commands.report.execute import (
@@ -58,6 +68,7 @@ from superset.commands.report.execute import (
     BaseReportState,
 )
 from superset.commands.report.log_prune import AsyncPruneReportScheduleLogCommand
+from superset.daos.report import ReportScheduleDAO
 from superset.exceptions import SupersetException
 from superset.key_value.models import KeyValueEntry
 from superset.models.core import Database
@@ -66,6 +77,7 @@ from superset.models.slice import Slice
 from superset.reports.models import (
     ReportDataFormat,
     ReportExecutionLog,
+    ReportRecipients,
     ReportRecipientType,
     ReportSchedule,
     ReportScheduleType,
@@ -79,6 +91,9 @@ from superset.reports.notifications.exceptions import (
 from superset.tasks.types import ExecutorType
 from superset.utils import json
 from superset.utils.database import get_example_database
+from superset.utils.report_execution import ReportExecutionContext
+from superset.utils.webdriver import PlaywrightTimeout
+from tests.integration_tests.conftest import with_feature_flags
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,  # noqa: F401
     load_birth_names_data,  # noqa: F401
@@ -91,6 +106,7 @@ from tests.integration_tests.fixtures.world_bank_dashboard import (
     load_world_bank_data,  # noqa: F401
 )
 from tests.integration_tests.reports.utils import (
+    _subjects_for_users,
     cleanup_report_schedule,
     create_report_notification,
     CSV_FILE,
@@ -98,12 +114,35 @@ from tests.integration_tests.reports.utils import (
     reset_key_values,
     SCREENSHOT_FILE,
     TEST_ID,
+    XLSX_FILE,
 )
 from tests.integration_tests.test_app import app
 
 pytestmark = pytest.mark.usefixtures(
     "load_world_bank_dashboard_with_slices_module_scope"
 )
+
+
+def _configure_v2_upload_client(client: Mock) -> Mock:
+    """Configure a Slack SDK-shaped three-phase file upload mock."""
+    client.timeout = 30
+    client.proxy = None
+    client.ssl = None
+    client.files_getUploadURLExternal.return_value = {
+        "file_id": "F1",
+        "upload_url": "https://files.slack.com/upload/F1",
+    }
+    client.files_completeUploadExternal.return_value = {"files": [{"id": "F1"}]}
+    return client
+
+
+@pytest.fixture(autouse=True)
+def slack_raw_upload_mock(mocker):
+    """Keep report integration tests off Slack's issued upload URL."""
+    return mocker.patch(
+        "superset.reports.notifications.slackv2._upload_file_data",
+        return_value=(200, "ok"),
+    )
 
 
 def get_target_from_report_schedule(report_schedule: ReportSchedule) -> list[str]:
@@ -152,15 +191,26 @@ def assert_log(state: str, error_message: Optional[str] = None):
     db.session.commit()
     logs = db.session.query(ReportExecutionLog).all()
 
-    if state == ReportState.ERROR:
-        # On error we send an email
-        assert len(logs) == 3
-    else:
+    if state == ReportState.WORKING:
+        # A refused invocation gets its own terminal ERROR audit row while the
+        # active owner's seeded row and schedule remain WORKING.
         assert len(logs) == 2
+    elif state == ReportState.ERROR:
+        # On error we also send a notification, which is recorded as a separate
+        # error-notification marker row.
+        assert len(logs) == 2
+    else:
+        # A single execution yields a single log row: the terminal result replaces
+        # the WORKING "trigger" row rather than adding a second row (issue #29857).
+        assert len(logs) == 1
     log_states = [log.state for log in logs]
-    assert ReportState.WORKING in log_states
     assert state in log_states
-    assert error_message in [log.error_message for log in logs]
+    # Previously a standalone WORKING "trigger" row always contributed a ``None``
+    # error_message, so the default ``None`` match was trivially satisfied and never
+    # verified the terminal row. With the result now written onto that single row,
+    # only assert an explicitly expected message.
+    if error_message is not None:
+        assert error_message in [log.error_message for log in logs]
 
     for log in logs:
         if log.state == ReportState.WORKING:
@@ -168,18 +218,50 @@ def assert_log(state: str, error_message: Optional[str] = None):
             assert log.value_row_json is None
 
 
+def assert_refused_execution_history(report_schedule: ReportSchedule) -> None:
+    """Assert a refusal is terminal without adding another active WORKING row."""
+
+    logs = (
+        db.session.query(ReportExecutionLog)
+        .filter(ReportExecutionLog.report_schedule == report_schedule)
+        .all()
+    )
+    active_logs = [
+        log
+        for log in logs
+        if log.state == ReportState.WORKING and log.error_message is None
+    ]
+    refused_logs = [
+        log
+        for log in logs
+        if log.state == ReportState.ERROR
+        and log.error_message == str(ReportSchedulePreviousWorkingError())
+    ]
+    assert len(active_logs) == 1
+    assert len(refused_logs) == 1
+    refused_log = refused_logs[0]
+    assert refused_log.start_dttm is not None
+    assert refused_log.end_dttm is not None
+    assert refused_log.end_dttm >= refused_log.start_dttm
+
+
 @contextmanager
 def create_test_table_context(database: Database):
     with database.get_sqla_engine() as engine:
-        engine.execute(
-            "CREATE TABLE IF NOT EXISTS test_table AS SELECT 1 as first, 2 as second"
-        )
-        engine.execute("INSERT INTO test_table (first, second) VALUES (1, 2)")
-        engine.execute("INSERT INTO test_table (first, second) VALUES (3, 4)")
+        with engine.begin() as conn:
+            conn.execute(
+                text("""
+                CREATE TABLE IF NOT EXISTS test_table AS
+                SELECT 1 as first, 2 as second
+                """)
+            )
+            conn.execute(text("INSERT INTO test_table (first, second) VALUES (1, 2)"))
+            conn.execute(text("INSERT INTO test_table (first, second) VALUES (3, 4)"))
 
     yield db.session
     with database.get_sqla_engine() as engine:
-        engine.execute("DROP TABLE test_table")
+        with engine.begin() as conn:
+            conn.execute(text("DROP TABLE test_table"))
 
 
 @pytest.fixture
@@ -209,10 +291,11 @@ def create_report_email_chart_with_cc_and_bcc():
 
 @pytest.fixture
 def create_report_email_chart_alpha_owner(get_user):
-    owners = [get_user("alpha")]
+    alpha = get_user("alpha")
+    editors = _subjects_for_users([alpha])
     chart = db.session.query(Slice).first()
     report_schedule = create_report_notification(
-        email_target="target@email.com", chart=chart, owners=owners
+        email_target="target@email.com", chart=chart, editors=editors
     )
     yield report_schedule
 
@@ -238,6 +321,20 @@ def create_report_email_chart_with_csv():
         email_target="target@email.com",
         chart=chart,
         report_format=ReportDataFormat.CSV,
+    )
+    yield report_schedule
+    cleanup_report_schedule(report_schedule)
+
+
+@pytest.fixture
+def create_report_email_chart_with_xlsx() -> Iterator[ReportSchedule]:
+    """Email report schedule on a chart with the XLSX (Excel) attachment format."""
+    chart = db.session.query(Slice).first()
+    chart.query_context = '{"mock": "query_context"}'
+    report_schedule = create_report_notification(
+        email_target="target@email.com",
+        chart=chart,
+        report_format=ReportDataFormat.XLSX,
     )
     yield report_schedule
     cleanup_report_schedule(report_schedule)
@@ -325,6 +422,21 @@ def create_report_slack_chart_with_csv():
         slack_channel="slack_channel",
         chart=chart,
         report_format=ReportDataFormat.CSV,
+    )
+    yield report_schedule
+
+    cleanup_report_schedule(report_schedule)
+
+
+@pytest.fixture
+def create_report_slack_chart_with_xlsx() -> Iterator[ReportSchedule]:
+    """Slack report schedule on a chart with the XLSX (Excel) attachment format."""
+    chart = db.session.query(Slice).first()
+    chart.query_context = '{"mock": "query_context"}'
+    report_schedule = create_report_notification(
+        slack_channel="slack_channel",
+        chart=chart,
+        report_format=ReportDataFormat.XLSX,
     )
     yield report_schedule
 
@@ -762,6 +874,45 @@ def test_email_chart_report_schedule(
 
 
 @pytest.mark.usefixtures(
+    "load_birth_names_dashboard_with_slices", "create_report_email_chart"
+)
+@patch("superset.reports.notifications.email.send_email_smtp")
+@patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
+def test_email_chart_report_schedule_single_log_per_execution(
+    screenshot_mock,
+    email_mock,
+    create_report_email_chart,
+):
+    """
+    ExecuteReport Command: a single execution should produce a single log row.
+
+    Regression for #29857: the Alerts & Reports execution log shows duplicated
+    entries for a single execution. Each execution transitions through the
+    WORKING state and then a terminal state (SUCCESS/ERROR), and every
+    transition writes a ReportExecutionLog row sharing the same execution
+    ``uuid``. As a result one execution surfaces as two rows in the log view
+    (the "trigger" row and the "result" row). This test asserts that one
+    execution -- identified by its execution uuid -- yields exactly one log row.
+    """
+    screenshot_mock.return_value = SCREENSHOT_FILE
+
+    with freeze_time("2020-01-01T00:00:00Z"):
+        AsyncExecuteReportScheduleCommand(
+            TEST_ID, create_report_email_chart.id, datetime.utcnow()
+        ).run()
+
+        db.session.commit()
+        logs = (
+            db.session.query(ReportExecutionLog)
+            .filter(ReportExecutionLog.uuid == UUID(TEST_ID))
+            .all()
+        )
+        # A single execution (one uuid) must map to a single log entry, not one
+        # row per intermediate state transition.
+        assert len(logs) == 1
+
+
+@pytest.mark.usefixtures(
     "load_birth_names_dashboard_with_slices", "create_report_email_chart_alpha_owner"
 )
 @patch("superset.reports.notifications.email.send_email_smtp")
@@ -773,16 +924,20 @@ def test_email_chart_report_schedule_alpha_owner(
 ):
     """
     ExecuteReport Command: Test chart email report schedule with screenshot
-    executed as the chart owner
+    executed as the chart editor
     """
     config_key = "ALERT_REPORTS_EXECUTORS"
     original_config_value = app.config[config_key]
-    app.config[config_key] = [ExecutorType.OWNER]
+    app.config[config_key] = [ExecutorType.EDITOR]
 
     # setup screenshot mock
     username = ""
 
-    def _screenshot_side_effect(user: User) -> Optional[bytes]:
+    def _screenshot_side_effect(
+        user: User,
+        log_context: Optional[str] = None,
+        report_execution_context: ReportExecutionContext | None = None,
+    ) -> Optional[bytes]:
         nonlocal username
         username = user.username
 
@@ -971,6 +1126,50 @@ def test_email_chart_report_schedule_with_csv(
         # Assert the email csv file
         smtp_images = email_mock.call_args[1]["data"]
         assert smtp_images[list(smtp_images.keys())[0]] == CSV_FILE
+        # Assert logs are correct
+        assert_log(ReportState.SUCCESS)
+
+
+@pytest.mark.usefixtures(
+    "load_birth_names_dashboard_with_slices",
+    "create_report_email_chart_with_xlsx",
+)
+@patch("superset.utils.csv.urllib.request.urlopen")
+@patch("superset.utils.csv.urllib.request.OpenerDirector.open")
+@patch("superset.reports.notifications.email.send_email_smtp")
+@patch("superset.utils.csv.get_chart_csv_data")
+def test_email_chart_report_schedule_with_xlsx(
+    xlsx_mock: Mock,
+    email_mock: Mock,
+    mock_open: Mock,
+    mock_urlopen: Mock,
+    create_report_email_chart_with_xlsx: ReportSchedule,
+) -> None:
+    """
+    ExecuteReport Command: Test chart email report schedule with Excel
+    """
+    # setup xlsx mock
+    response = Mock()
+    mock_open.return_value = response
+    mock_urlopen.return_value = response
+    mock_urlopen.return_value.getcode.return_value = 200
+    response.read.return_value = XLSX_FILE
+
+    with freeze_time("2020-01-01T00:00:00Z"):
+        AsyncExecuteReportScheduleCommand(
+            TEST_ID, create_report_email_chart_with_xlsx.id, datetime.utcnow()
+        ).run()
+
+        notification_targets = get_target_from_report_schedule(
+            create_report_email_chart_with_xlsx
+        )
+        # Assert the email smtp address
+        assert email_mock.call_args[0][0] == notification_targets[0]
+        # Assert the Excel attachment is sent with an .xlsx filename
+        attachments = email_mock.call_args[1]["data"]
+        attachment_name = list(attachments.keys())[0]
+        assert attachment_name.endswith(".xlsx")
+        assert attachments[attachment_name] == XLSX_FILE
         # Assert logs are correct
         assert_log(ReportState.SUCCESS)
 
@@ -1323,7 +1522,9 @@ def test_email_dashboard_report_schedule_force_screenshot(
 
 
 @pytest.mark.usefixtures("create_report_slack_chart")
-@patch("superset.commands.report.execute.get_channels_with_search")
+@patch(
+    "superset.reports.notifications.slack_channel_resolver.get_channels_with_search_and_cache_status"
+)
 @patch("superset.reports.notifications.slack.should_use_v2_api", return_value=True)
 @patch("superset.reports.notifications.slackv2.get_slack_client")
 @patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
@@ -1333,6 +1534,7 @@ def test_slack_chart_report_schedule_converts_to_v2(
     slack_should_use_v2_api_mock,
     get_channels_with_search_mock,
     create_report_slack_chart,
+    slack_raw_upload_mock,
 ):
     """
     ExecuteReport Command: Test chart slack report schedule
@@ -1340,15 +1542,19 @@ def test_slack_chart_report_schedule_converts_to_v2(
     """
     # setup screenshot mock
     screenshot_mock.return_value = SCREENSHOT_FILE
+    slack_client = _configure_v2_upload_client(slack_client_mock.return_value)
     channel_id = "slack_channel_id"
-    get_channels_with_search_mock.return_value = [
-        {
-            "id": channel_id,
-            "name": "slack_channel",
-            "is_member": True,
-            "is_private": False,
-        },
-    ]
+    get_channels_with_search_mock.return_value = (
+        [
+            {
+                "id": channel_id,
+                "name": "slack_channel",
+                "is_member": True,
+                "is_private": False,
+            },
+        ],
+        False,
+    )
 
     with freeze_time("2020-01-01T00:00:00Z"):
         with patch(
@@ -1359,13 +1565,10 @@ def test_slack_chart_report_schedule_converts_to_v2(
             ).run()
 
             assert (
-                slack_client_mock.return_value.files_upload_v2.call_args[1]["channel"]
+                slack_client.files_completeUploadExternal.call_args[1]["channel_id"]
                 == channel_id
             )
-            assert (
-                slack_client_mock.return_value.files_upload_v2.call_args[1]["file"]
-                == SCREENSHOT_FILE
-            )
+            assert slack_raw_upload_mock.call_args.kwargs["data"] == SCREENSHOT_FILE
 
             # Assert that the report recipients were updated
             assert create_report_slack_chart.recipients[
@@ -1378,14 +1581,12 @@ def test_slack_chart_report_schedule_converts_to_v2(
 
             # Assert logs are correct
             assert_log(ReportState.SUCCESS)
-            # this will send a warning
-            assert statsd_mock.call_args_list[0] == call(
-                "reports.slack.send.warning", 1
-            )
-            assert statsd_mock.call_args_list[1] == call("reports.slack.send.ok", 1)
+            statsd_mock.assert_called_once_with("reports.slack.send.ok", 1)
 
 
-@patch("superset.commands.report.execute.get_channels_with_search")
+@patch(
+    "superset.reports.notifications.slack_channel_resolver.get_channels_with_search_and_cache_status"
+)
 @patch("superset.reports.notifications.slack.should_use_v2_api", return_value=True)
 @patch("superset.reports.notifications.slackv2.get_slack_client")
 @patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
@@ -1394,6 +1595,7 @@ def test_slack_chart_report_schedule_converts_to_v2_channel_with_hash(
     slack_client_mock,
     slack_should_use_v2_api_mock,
     get_channels_with_search_mock,
+    slack_raw_upload_mock,
 ):
     """
     ExecuteReport Command: Test converting a Slack report to v2 when
@@ -1401,19 +1603,23 @@ def test_slack_chart_report_schedule_converts_to_v2_channel_with_hash(
     """
     # setup screenshot mock
     screenshot_mock.return_value = SCREENSHOT_FILE
+    slack_client = _configure_v2_upload_client(slack_client_mock.return_value)
     channel_id = "slack_channel_id"
     chart = db.session.query(Slice).first()
     report_schedule = create_report_notification(
         slack_channel="#slack_channel", chart=chart
     )
-    get_channels_with_search_mock.return_value = [
-        {
-            "id": channel_id,
-            "name": "slack_channel",
-            "is_member": True,
-            "is_private": False,
-        },
-    ]
+    get_channels_with_search_mock.return_value = (
+        [
+            {
+                "id": channel_id,
+                "name": "slack_channel",
+                "is_member": True,
+                "is_private": False,
+            },
+        ],
+        False,
+    )
 
     with freeze_time("2020-01-01T00:00:00Z"):
         with patch(
@@ -1424,13 +1630,10 @@ def test_slack_chart_report_schedule_converts_to_v2_channel_with_hash(
             ).run()
 
             assert (
-                slack_client_mock.return_value.files_upload_v2.call_args[1]["channel"]
+                slack_client.files_completeUploadExternal.call_args[1]["channel_id"]
                 == channel_id
             )
-            assert (
-                slack_client_mock.return_value.files_upload_v2.call_args[1]["file"]
-                == SCREENSHOT_FILE
-            )
+            assert slack_raw_upload_mock.call_args.kwargs["data"] == SCREENSHOT_FILE
 
             # Assert that the report recipients were updated
             assert report_schedule.recipients[0].recipient_config_json == json.dumps(
@@ -1440,28 +1643,24 @@ def test_slack_chart_report_schedule_converts_to_v2_channel_with_hash(
 
             # Assert logs are correct
             assert_log(ReportState.SUCCESS)
-            # this will send a warning
-            assert statsd_mock.call_args_list[0] == call(
-                "reports.slack.send.warning", 1
-            )
-            assert statsd_mock.call_args_list[1] == call("reports.slack.send.ok", 1)
+            statsd_mock.assert_called_once_with("reports.slack.send.ok", 1)
 
     cleanup_report_schedule(report_schedule)
 
 
-@patch("superset.commands.report.execute.get_channels_with_search")
+@patch(
+    "superset.reports.notifications.slack_channel_resolver.get_channels_with_search_and_cache_status"
+)
 @patch("superset.reports.notifications.slack.should_use_v2_api", return_value=True)
 @patch("superset.reports.notifications.slackv2.get_slack_client")
 @patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
-def test_slack_chart_report_schedule_fails_to_converts_to_v2(
+def test_slack_chart_report_schedule_failed_v2_conversion_rejects_v1_file_upload(
     screenshot_mock,
     slack_client_mock,
     slack_should_use_v2_api_mock,
     get_channels_with_search_mock,
 ):
-    """
-    ExecuteReport Command: Test converting a Slack report to v2 fails.
-    """
+    """A failed Slack v2 conversion rejects unsupported Slack v1 file uploads."""
     # setup screenshot mock
     screenshot_mock.return_value = SCREENSHOT_FILE
     channel_id = "slack_channel_id"
@@ -1469,34 +1668,50 @@ def test_slack_chart_report_schedule_fails_to_converts_to_v2(
     report_schedule = create_report_notification(
         slack_channel="#slack_channel,my_member_ID", chart=chart
     )
-    get_channels_with_search_mock.return_value = [
-        {
-            "id": channel_id,
-            "name": "slack_channel",
-            "is_member": True,
-            "is_private": False,
-        },
-    ]
-
-    with pytest.raises(ReportScheduleSystemErrorsException):
-        AsyncExecuteReportScheduleCommand(
-            TEST_ID, report_schedule.id, datetime.utcnow()
-        ).run()
-
-    # Assert failuer with proper log
-    expected_message = (
-        "Failed to update slack recipients to v2: "
-        "Could not find the following channels: my_member_ID"
+    get_channels_with_search_mock.return_value = (
+        [
+            {
+                "id": channel_id,
+                "name": "slack_channel",
+                "is_member": True,
+                "is_private": False,
+            },
+        ],
+        False,
     )
-    assert_log(ReportState.ERROR, error_message=expected_message)
 
-    # Assert that previous configuration was kept for manual correction
-    assert report_schedule.recipients[0].recipient_config_json == json.dumps(
-        {"target": "#slack_channel,my_member_ID"}
-    )
-    assert report_schedule.recipients[0].type == ReportRecipientType.SLACK
+    try:
+        with (
+            patch(
+                "superset.extensions.stats_logger_manager.instance.gauge"
+            ) as statsd_mock,
+            pytest.raises(ReportScheduleClientErrorsException),
+        ):
+            AsyncExecuteReportScheduleCommand(
+                TEST_ID, report_schedule.id, datetime.utcnow()
+            ).run()
 
-    cleanup_report_schedule(report_schedule)
+        expected_message = (
+            "Slack v1 file uploads are no longer supported because Slack retired "
+            "`files.upload`. Enable `ALERT_REPORT_SLACK_V2` and grant the Slack bot "
+            "both the `channels:read` and `groups:read` scopes so the recipient can "
+            "be upgraded to Slack v2. Slack v2 upgrade failed: Failed to update "
+            "slack recipients to v2: Could not find the following channels: "
+            "my_member_ID"
+        )
+        assert_log(ReportState.ERROR, error_message=expected_message)
+
+        # Keep the previous configuration for manual correction.
+        assert report_schedule.recipients[0].recipient_config_json == json.dumps(
+            {"target": "#slack_channel,my_member_ID"}
+        )
+        assert report_schedule.recipients[0].type == ReportRecipientType.SLACK
+        slack_client_mock.assert_not_called()
+        assert (
+            statsd_mock.call_args_list.count(call("reports.slack.send.warning", 1)) == 1
+        )
+    finally:
+        cleanup_report_schedule(report_schedule)
 
 
 @pytest.mark.usefixtures("create_report_slack_chartv2")
@@ -1508,12 +1723,14 @@ def test_slack_chart_report_schedule_v2(
     slack_client_mock,
     slack_should_use_v2_api_mock,
     create_report_slack_chartv2,
+    slack_raw_upload_mock,
 ):
     """
     ExecuteReport Command: Test chart slack report schedule using Slack v2.
     """
     # setup screenshot mock
     screenshot_mock.return_value = SCREENSHOT_FILE
+    slack_client = _configure_v2_upload_client(slack_client_mock.return_value)
 
     with freeze_time("2020-01-01T00:00:00Z"):
         with patch(
@@ -1524,13 +1741,10 @@ def test_slack_chart_report_schedule_v2(
             ).run()
 
             assert (
-                slack_client_mock.return_value.files_upload_v2.call_args[1]["channel"]
+                slack_client.files_completeUploadExternal.call_args[1]["channel_id"]
                 == "slack_channel_id"
             )
-            assert (
-                slack_client_mock.return_value.files_upload_v2.call_args[1]["file"]
-                == SCREENSHOT_FILE
-            )
+            assert slack_raw_upload_mock.call_args.kwargs["data"] == SCREENSHOT_FILE
 
             # Assert logs are correct
             assert_log(ReportState.SUCCESS)
@@ -1594,6 +1808,7 @@ def test_slack_chart_report_schedule_with_errors(
 @pytest.mark.usefixtures(
     "load_birth_names_dashboard_with_slices", "create_report_slack_chart_with_csv"
 )
+@with_feature_flags(ALERT_REPORT_SLACK_V2=False)
 @patch("superset.reports.notifications.slack.should_use_v2_api", return_value=False)
 @patch("superset.reports.notifications.slack.get_slack_client")
 @patch("superset.utils.csv.urllib.request.urlopen")
@@ -1607,9 +1822,7 @@ def test_slack_chart_report_schedule_with_csv(
     slack_should_use_v2_api_mock,
     create_report_slack_chart_with_csv,
 ):
-    """
-    ExecuteReport Command: Test chart slack report V1 schedule with CSV
-    """
+    """A v1 CSV report fails before calling Slack's retired upload API."""
     # setup csv mock
     response = Mock()
     mock_open.return_value = response
@@ -1617,28 +1830,61 @@ def test_slack_chart_report_schedule_with_csv(
     mock_urlopen.return_value.getcode.return_value = 200
     response.read.return_value = CSV_FILE
 
-    notification_targets = get_target_from_report_schedule(
-        create_report_slack_chart_with_csv
-    )
+    with freeze_time("2020-01-01T00:00:00Z"):
+        with pytest.raises(ReportScheduleClientErrorsException):
+            AsyncExecuteReportScheduleCommand(
+                TEST_ID, create_report_slack_chart_with_csv.id, datetime.utcnow()
+            ).run()
 
-    channel_name = notification_targets[0]
+        expected_message = (
+            "Slack v1 file uploads are no longer supported because Slack retired "
+            "`files.upload`. Enable `ALERT_REPORT_SLACK_V2` and grant the Slack bot "
+            "both the `channels:read` and `groups:read` scopes so the recipient can "
+            "be upgraded to Slack v2."
+        )
+        assert_log(ReportState.ERROR, error_message=expected_message)
+        slack_client_mock_class.assert_not_called()
+
+
+@pytest.mark.usefixtures(
+    "load_birth_names_dashboard_with_slices", "create_report_slack_chart_with_xlsx"
+)
+@with_feature_flags(ALERT_REPORT_SLACK_V2=False)
+@patch("superset.reports.notifications.slack.should_use_v2_api", return_value=False)
+@patch("superset.reports.notifications.slack.get_slack_client")
+@patch("superset.utils.csv.urllib.request.urlopen")
+@patch("superset.utils.csv.urllib.request.OpenerDirector.open")
+@patch("superset.utils.csv.get_chart_csv_data")
+def test_slack_chart_report_schedule_with_xlsx(
+    xlsx_mock: Mock,
+    mock_open: Mock,
+    mock_urlopen: Mock,
+    slack_client_mock_class: Mock,
+    slack_should_use_v2_api_mock: Mock,
+    create_report_slack_chart_with_xlsx: ReportSchedule,
+) -> None:
+    """A v1 XLSX report fails before calling Slack's retired upload API."""
+    # setup xlsx mock
+    response = Mock()
+    mock_open.return_value = response
+    mock_urlopen.return_value = response
+    mock_urlopen.return_value.getcode.return_value = 200
+    response.read.return_value = XLSX_FILE
 
     with freeze_time("2020-01-01T00:00:00Z"):
-        AsyncExecuteReportScheduleCommand(
-            TEST_ID, create_report_slack_chart_with_csv.id, datetime.utcnow()
-        ).run()
+        with pytest.raises(ReportScheduleClientErrorsException):
+            AsyncExecuteReportScheduleCommand(
+                TEST_ID, create_report_slack_chart_with_xlsx.id, datetime.utcnow()
+            ).run()
 
-        assert (
-            slack_client_mock_class.return_value.files_upload.call_args[1]["channels"]
-            == channel_name
+        expected_message = (
+            "Slack v1 file uploads are no longer supported because Slack retired "
+            "`files.upload`. Enable `ALERT_REPORT_SLACK_V2` and grant the Slack bot "
+            "both the `channels:read` and `groups:read` scopes so the recipient can "
+            "be upgraded to Slack v2."
         )
-        assert (
-            slack_client_mock_class.return_value.files_upload.call_args[1]["file"]
-            == CSV_FILE
-        )
-
-        # Assert logs are correct
-        assert_log(ReportState.SUCCESS)
+        assert_log(ReportState.ERROR, error_message=expected_message)
+        slack_client_mock_class.assert_not_called()
 
 
 @pytest.mark.usefixtures(
@@ -1708,6 +1954,207 @@ def test_slack_chart_report_schedule_with_text(
         assert_log(ReportState.SUCCESS)
 
 
+@pytest.mark.usefixtures(
+    "load_birth_names_dashboard_with_slices", "create_report_slack_chart_with_text"
+)
+@patch(
+    "superset.reports.notifications.slack_channel_resolver.get_channels_with_search_and_cache_status",
+    return_value=([], False),
+)
+@patch("superset.reports.notifications.slack.should_use_v2_api", return_value=True)
+@patch("superset.reports.notifications.slack.get_slack_client")
+@patch("superset.commands.report.execute.get_chart_dataframe")
+def test_slack_text_fallback_persists_success_for_multiple_recipient_rows(
+    dataframe_mock,
+    slack_client_mock,
+    slack_should_use_v2_api_mock,
+    get_channels_with_search_mock,
+    create_report_slack_chart_with_text,
+):
+    """Failed migration sends every text recipient and persists v1 success."""
+    dataframe_mock.return_value = pd.DataFrame({"value": [1]})
+    original_configs = [
+        json.dumps({"target": "private-a"}),
+        json.dumps({"target": "private-b"}),
+    ]
+    create_report_slack_chart_with_text.recipients[
+        0
+    ].recipient_config_json = original_configs[0]
+    create_report_slack_chart_with_text.recipients.append(
+        ReportRecipients(
+            type=ReportRecipientType.SLACK,
+            recipient_config_json=original_configs[1],
+        )
+    )
+    db.session.commit()
+    report_schedule_id = create_report_slack_chart_with_text.id
+
+    with patch(
+        "superset.extensions.stats_logger_manager.instance.gauge"
+    ) as statsd_mock:
+        AsyncExecuteReportScheduleCommand(
+            TEST_ID,
+            report_schedule_id,
+            datetime.utcnow(),
+        ).run()
+
+    db.session.expire_all()
+    persisted_schedule = db.session.get(ReportSchedule, report_schedule_id)
+    assert persisted_schedule is not None
+    assert persisted_schedule.last_state == ReportState.SUCCESS
+    assert all(
+        recipient.type == ReportRecipientType.SLACK
+        for recipient in persisted_schedule.recipients
+    )
+    assert {
+        recipient.recipient_config_json for recipient in persisted_schedule.recipients
+    } == set(original_configs)
+    assert {
+        slack_call.kwargs["channel"]
+        for slack_call in slack_client_mock.return_value.chat_postMessage.call_args_list
+    } == {"private-a", "private-b"}
+    assert slack_client_mock.return_value.chat_postMessage.call_count == 2
+    assert statsd_mock.call_args_list == [
+        call("reports.slack.send.ok", 1),
+        call("reports.slack.send.ok", 1),
+    ]
+    assert slack_should_use_v2_api_mock.call_count == 1
+    get_channels_with_search_mock.assert_called_once_with(
+        search_string=ANY,
+        types=ANY,
+        exact_match=True,
+    )
+    success_logs = (
+        db.session.query(ReportExecutionLog)
+        .filter(
+            ReportExecutionLog.report_schedule_id == report_schedule_id,
+            ReportExecutionLog.state == ReportState.SUCCESS,
+        )
+        .all()
+    )
+    assert len(success_logs) == 1
+    assert "deprecated Slack v1" in success_logs[0].error_message
+
+
+@pytest.mark.usefixtures(
+    "load_birth_names_dashboard_with_slices", "create_report_slack_chart_with_text"
+)
+@patch(
+    "superset.reports.notifications.slack_channel_resolver.get_channels_with_search_and_cache_status",
+    return_value=([], False),
+)
+@patch("superset.reports.notifications.slack.should_use_v2_api", return_value=True)
+@patch("superset.reports.notifications.slack.get_slack_client")
+@patch("superset.commands.report.execute.get_chart_dataframe")
+@patch("superset.reports.notifications.email.send_email_smtp")
+@pytest.mark.parametrize(
+    "error_notification_fails",
+    [False, True],
+    ids=["notification-succeeds", "notification-fails"],
+)
+def test_slack_text_fallback_persists_later_recipient_ambiguous_failure(
+    email_mock,
+    dataframe_mock,
+    slack_client_mock,
+    slack_should_use_v2_api_mock,
+    get_channels_with_search_mock,
+    create_report_slack_chart_with_text,
+    error_notification_fails,
+):
+    """Mixed-outcome errors persist the fallback warning exactly once."""
+    dataframe_mock.return_value = pd.DataFrame({"value": [1]})
+    original_configs = [
+        json.dumps({"target": "private-a"}),
+        json.dumps({"target": "private-b"}),
+    ]
+    create_report_slack_chart_with_text.recipients[
+        0
+    ].recipient_config_json = original_configs[0]
+    create_report_slack_chart_with_text.recipients.append(
+        ReportRecipients(
+            type=ReportRecipientType.SLACK,
+            recipient_config_json=original_configs[1],
+        )
+    )
+    db.session.commit()
+    report_schedule_id = create_report_slack_chart_with_text.id
+
+    successful_channels: list[str] = []
+
+    def chat_side_effect(channel, text):
+        if not successful_channels:
+            successful_channels.append(channel)
+            return {"ok": True}
+        if channel != successful_channels[0]:
+            raise SlackApiError(
+                message="service unavailable",
+                response={"ok": False, "error": "service_unavailable"},
+            )
+        return {"ok": True}
+
+    slack_client_mock.return_value.chat_postMessage.side_effect = chat_side_effect
+    if error_notification_fails:
+        email_mock.side_effect = RuntimeError("SMTP unavailable")
+
+    with (
+        patch("time.sleep"),
+        pytest.raises(ReportScheduleSystemErrorsException),
+    ):
+        AsyncExecuteReportScheduleCommand(
+            TEST_ID,
+            report_schedule_id,
+            datetime.utcnow(),
+        ).run()
+
+    db.session.expire_all()
+    persisted_schedule = db.session.get(ReportSchedule, report_schedule_id)
+    assert persisted_schedule is not None
+    assert persisted_schedule.last_state == ReportState.ERROR
+    assert all(
+        recipient.type == ReportRecipientType.SLACK
+        for recipient in persisted_schedule.recipients
+    )
+    assert {
+        recipient.recipient_config_json for recipient in persisted_schedule.recipients
+    } == set(original_configs)
+    call_channels = [
+        slack_call.kwargs["channel"]
+        for slack_call in slack_client_mock.return_value.chat_postMessage.call_args_list
+    ]
+    successful_channel = call_channels[0]
+    failed_channel = ({"private-a", "private-b"} - {successful_channel}).pop()
+    assert call_channels == [successful_channel, failed_channel]
+    execution_logs = (
+        db.session.query(ReportExecutionLog)
+        .filter(ReportExecutionLog.report_schedule_id == report_schedule_id)
+        .all()
+    )
+    log_states = {log.state for log in execution_logs}
+    assert log_states == {ReportState.ERROR}
+    error_messages = [
+        log.error_message or ""
+        for log in execution_logs
+        if log.state == ReportState.ERROR
+    ]
+    warning_messages = [
+        message for message in error_messages if "deprecated Slack v1" in message
+    ]
+    assert len(warning_messages) == 1
+    assert warning_messages[0].count("deprecated Slack v1") == 1
+    assert "service unavailable" in warning_messages[0]
+    last_error_notification = ReportScheduleDAO.find_last_error_notification(
+        persisted_schedule
+    )
+    if error_notification_fails:
+        assert any("SMTP unavailable" in message for message in error_messages)
+        assert last_error_notification is None
+    else:
+        assert last_error_notification is not None
+    assert slack_should_use_v2_api_mock.call_count == 1
+    assert get_channels_with_search_mock.call_count == 1
+    email_mock.assert_called_once()
+
+
 @pytest.mark.usefixtures("create_report_slack_chart")
 def test_report_schedule_not_found(create_report_slack_chart):
     """
@@ -1736,7 +2183,91 @@ def test_report_schedule_working(create_report_slack_chart_working):
             ReportState.WORKING,
             error_message=ReportSchedulePreviousWorkingError.message,
         )
+        assert_refused_execution_history(create_report_slack_chart_working)
         assert create_report_slack_chart_working.last_state == ReportState.WORKING
+
+
+@pytest.mark.usefixtures("create_report_slack_chart_working")
+def test_report_schedule_same_execution_replay_stays_working(
+    create_report_slack_chart_working,
+):
+    """A fresh replay must not terminalize the active execution it duplicates."""
+
+    active_log = (
+        db.session.query(ReportExecutionLog)
+        .filter(
+            ReportExecutionLog.report_schedule == create_report_slack_chart_working,
+            ReportExecutionLog.state == ReportState.WORKING,
+            ReportExecutionLog.error_message.is_(None),
+        )
+        .one()
+    )
+
+    with freeze_time("2020-01-01T00:00:00Z"):
+        with pytest.raises(ReportSchedulePreviousWorkingError):
+            AsyncExecuteReportScheduleCommand(
+                str(active_log.uuid),
+                create_report_slack_chart_working.id,
+                datetime.utcnow(),
+            ).run()
+
+    db.session.refresh(active_log)
+    db.session.refresh(create_report_slack_chart_working)
+    assert active_log.state == ReportState.WORKING
+    assert active_log.error_message is None
+    assert_refused_execution_history(create_report_slack_chart_working)
+    assert create_report_slack_chart_working.last_state == ReportState.WORKING
+
+
+@pytest.mark.usefixtures("create_report_slack_chart_working")
+def test_same_execution_replay_write_failure_does_not_claim_active_row(
+    create_report_slack_chart_working,
+    monkeypatch,
+):
+    """A failed refusal write must not make a replay own the active row."""
+
+    active_log = (
+        db.session.query(ReportExecutionLog)
+        .filter(
+            ReportExecutionLog.report_schedule == create_report_slack_chart_working,
+            ReportExecutionLog.state == ReportState.WORKING,
+            ReportExecutionLog.error_message.is_(None),
+        )
+        .one()
+    )
+
+    def fail_refusal_write(
+        state: BaseReportState,
+        error_message: Optional[str] = None,
+        *,
+        log_state: ReportState | None = None,
+        reuse_working_log: bool = True,
+    ) -> None:
+        raise OperationalError(
+            "INSERT report_execution_log",
+            {},
+            RuntimeError("connection lost while refusing replay"),
+        )
+
+    monkeypatch.setattr(
+        BaseReportState,
+        "create_log",
+        fail_refusal_write,
+    )
+
+    with freeze_time("2020-01-01T00:00:00Z"):
+        with pytest.raises(ReportScheduleUnexpectedError):
+            AsyncExecuteReportScheduleCommand(
+                str(active_log.uuid),
+                create_report_slack_chart_working.id,
+                datetime.utcnow(),
+            ).run()
+
+    db.session.refresh(active_log)
+    db.session.refresh(create_report_slack_chart_working)
+    assert active_log.state == ReportState.WORKING
+    assert active_log.error_message is None
+    assert create_report_slack_chart_working.last_state == ReportState.WORKING
 
 
 @pytest.mark.usefixtures("create_report_slack_chart_working")
@@ -1761,6 +2292,8 @@ def test_report_schedule_working_timeout(create_report_slack_chart_working):
     assert ReportScheduleWorkingTimeoutError.message in [
         log.error_message for log in logs
     ]
+    assert sum(log.state == ReportState.WORKING for log in logs) == 1
+    assert sum(log.state == ReportState.ERROR for log in logs) == 1
     assert create_report_slack_chart_working.last_state == ReportState.ERROR
 
 
@@ -1784,20 +2317,24 @@ def test_report_schedule_success_grace(create_alert_slack_chart_success):
 
 
 @pytest.mark.usefixtures("create_alert_slack_chart_grace")
-@patch("superset.utils.slack.WebClient.files_upload")
+@patch(
+    "superset.reports.notifications.slack_channel_resolver.get_channels_with_search_and_cache_status"
+)
+@patch("superset.reports.notifications.slack.should_use_v2_api", return_value=True)
+@patch("superset.reports.notifications.slackv2.get_slack_client")
 @patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
-@patch("superset.reports.notifications.slack.get_slack_client")
 def test_report_schedule_success_grace_end(
-    slack_client_mock_class,
     screenshot_mock,
-    file_upload_mock,
+    slack_client_mock,
+    slack_should_use_v2_api_mock,
+    get_channels_with_search_mock,
     create_alert_slack_chart_grace,
+    slack_raw_upload_mock,
 ):
-    """
-    ExecuteReport Command: Test report schedule on grace to noop
-    """
+    """A Slack alert leaving grace upgrades to v2 and sends successfully."""
 
     screenshot_mock.return_value = SCREENSHOT_FILE
+    slack_client = _configure_v2_upload_client(slack_client_mock.return_value)
 
     # set current time to after the grace period
     current_time = create_alert_slack_chart_grace.last_eval_dttm + timedelta(
@@ -1811,9 +2348,17 @@ def test_report_schedule_success_grace_end(
     channel_name = notification_targets[0]
     channel_id = "channel_id"
 
-    slack_client_mock_class.return_value.conversations_list.return_value = {
-        "channels": [{"id": channel_id, "name": channel_name}]
-    }
+    get_channels_with_search_mock.return_value = (
+        [
+            {
+                "id": channel_id,
+                "name": channel_name,
+                "is_member": True,
+                "is_private": True,
+            }
+        ],
+        False,
+    )
 
     with freeze_time(current_time):
         AsyncExecuteReportScheduleCommand(
@@ -1822,6 +2367,13 @@ def test_report_schedule_success_grace_end(
 
     db.session.commit()
     assert create_alert_slack_chart_grace.last_state == ReportState.SUCCESS
+    recipient = create_alert_slack_chart_grace.recipients[0]
+    assert recipient.type == ReportRecipientType.SLACKV2
+    assert json.loads(recipient.recipient_config_json) == {"target": channel_id}
+    slack_should_use_v2_api_mock.assert_called_once_with(raise_on_error=True)
+    completion_call = slack_client.files_completeUploadExternal.call_args
+    assert completion_call.kwargs["channel_id"] == channel_id
+    assert slack_raw_upload_mock.call_args.kwargs["data"] == SCREENSHOT_FILE
 
 
 @pytest.mark.usefixtures("create_alert_email_chart")
@@ -1902,7 +2454,7 @@ def test_email_dashboard_report_fails_uncaught_exception(
 
     assert_log(ReportState.ERROR, error_message="Uncaught exception")
     assert (
-        '<a href="http://0.0.0.0:8080/superset/dashboard/'
+        '<a href="http://0.0.0.0:8080/dashboard/'
         f"{create_report_email_dashboard.dashboard.uuid}/"
         '?force=false">Call to action</a>' in email_mock.call_args[0][2]
     )
@@ -1975,11 +2527,15 @@ def test_slack_chart_alert_no_attachment(email_mock, create_alert_email_chart):
     "load_birth_names_dashboard_with_slices",
     "create_report_slack_chart",
 )
+@patch(
+    "superset.reports.notifications.slack_channel_resolver.get_channels_with_search_and_cache_status"
+)
 @patch("superset.utils.slack.WebClient")
 @patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
 def test_slack_token_callable_chart_report(
     screenshot_mock,
     slack_client_mock_class,
+    get_channels_with_search_mock,
     create_report_slack_chart,
 ):
     """
@@ -1990,9 +2546,24 @@ def test_slack_token_callable_chart_report(
     channel_name = notification_targets[0]
     channel_id = "channel_id"
     slack_client_mock_class.return_value = Mock()
+    _configure_v2_upload_client(slack_client_mock_class.return_value)
+    # should_use_v2_api() probes via conversations_list(); a non-erroring return
+    # is enough — it doesn't read the response body. The v2 upgrade then resolves
+    # channel names through get_channels_with_search, which we mock directly.
     slack_client_mock_class.return_value.conversations_list.return_value = {
         "channels": [{"id": channel_id, "name": channel_name}]
     }
+    get_channels_with_search_mock.return_value = (
+        [
+            {
+                "id": channel_id,
+                "name": channel_name,
+                "is_member": True,
+                "is_private": False,
+            }
+        ],
+        False,
+    )
 
     slack_token_mock = Mock(return_value="cool_code")
     with patch.dict("flask.current_app.config", {"SLACK_API_TOKEN": slack_token_mock}):
@@ -2004,7 +2575,20 @@ def test_slack_token_callable_chart_report(
                 TEST_ID, create_report_slack_chart.id, datetime.utcnow()
             ).run()
             slack_token_mock.assert_called()
-            slack_client_mock_class.assert_called_with(token="cool_code", proxy=None)  # noqa: S106
+            assert slack_client_mock_class.call_args_list == [
+                call(
+                    token="cool_code",  # noqa: S106
+                    proxy=None,
+                    timeout=30,
+                    retry_handlers=None,
+                ),
+                call(
+                    token="cool_code",  # noqa: S106
+                    proxy=None,
+                    timeout=30,
+                    retry_handlers=[],
+                ),
+            ]
             assert_log(ReportState.SUCCESS)
 
 
@@ -2117,19 +2701,18 @@ def test_soft_timeout_csv(
     mock_urlopen.return_value = response
     mock_urlopen.return_value.getcode.side_effect = SoftTimeLimitExceeded()
 
-    with pytest.raises(ReportScheduleCsvTimeout):
+    with pytest.raises(SoftTimeLimitExceeded):
         AsyncExecuteReportScheduleCommand(
             TEST_ID, create_report_email_chart_with_csv.id, datetime.utcnow()
         ).run()
 
-    get_target_from_report_schedule(create_report_email_chart_with_csv)  # noqa: F841
-    # Assert the email smtp address, asserts a notification was sent with the error
-    assert email_mock.call_args[0][0] == DEFAULT_OWNER_EMAIL
+    # Reports preserve the hard-limit grace for terminal persistence instead
+    # of attempting an error notification after Celery's soft deadline.
+    email_mock.assert_not_called()
 
-    assert_log(
-        ReportState.ERROR,
-        error_message="A timeout occurred while generating a csv.",
-    )
+    logs = get_error_logs_query(create_report_email_chart_with_csv).all()
+    assert len(logs) == 1
+    assert logs[0].error_message == "celery_soft_timeout"
 
 
 @pytest.mark.usefixtures(
@@ -2196,6 +2779,99 @@ def test_fail_screenshot(screenshot_mock, email_mock, create_report_email_chart)
     assert_log(
         ReportState.ERROR, error_message="Failed taking a screenshot Unexpected error"
     )
+
+
+@pytest.mark.usefixtures(
+    "load_birth_names_dashboard_with_slices", "create_report_email_chart"
+)
+@patch("superset.reports.notifications.email.send_email_smtp")
+@patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
+def test_readiness_timeout_retries_terminal_persistence_and_allows_next_schedule(
+    screenshot_mock,
+    email_mock,
+    create_report_email_chart,
+    caplog,
+    monkeypatch,
+):
+    """A failed first terminal write must not leave a timed-out report WORKING."""
+
+    original_update = BaseReportState.update_report_schedule_and_log
+    terminal_write_failed = False
+
+    def fail_first_terminal_write(
+        state: BaseReportState,
+        report_state: ReportState,
+        error_message: Optional[str] = None,
+    ) -> None:
+        nonlocal terminal_write_failed
+        if report_state == ReportState.ERROR and not terminal_write_failed:
+            terminal_write_failed = True
+            raise OperationalError(
+                "UPDATE report_execution_log",
+                {},
+                RuntimeError("connection lost before terminal commit"),
+            )
+        original_update(state, report_state, error_message)
+
+    monkeypatch.setattr(
+        BaseReportState,
+        "update_report_schedule_and_log",
+        fail_first_terminal_write,
+    )
+    caplog.set_level(logging.INFO, logger="superset.commands.report.execute")
+    screenshot_mock.side_effect = PlaywrightTimeout(
+        "readiness allocation expired with 12/52 holders ready"
+    )
+    create_report_email_chart.last_state = ReportState.SUCCESS
+    db.session.commit()
+
+    with pytest.raises(ReportScheduleScreenshotFailedError):
+        AsyncExecuteReportScheduleCommand(
+            TEST_ID,
+            create_report_email_chart.id,
+            datetime.utcnow(),
+        ).run()
+
+    assert terminal_write_failed
+    db.session.refresh(create_report_email_chart)
+    timed_out_log = (
+        db.session.query(ReportExecutionLog)
+        .filter(ReportExecutionLog.uuid == UUID(TEST_ID))
+        .one()
+    )
+    assert timed_out_log.state == ReportState.ERROR
+    assert "readiness allocation expired" in timed_out_log.error_message
+    assert timed_out_log.start_dttm is not None
+    assert timed_out_log.end_dttm is not None
+    # MySQL's metadata schema can store these values with one-second precision.
+    assert timed_out_log.end_dttm >= timed_out_log.start_dttm
+    assert create_report_email_chart.last_state == ReportState.ERROR
+    email_mock.assert_not_called()
+    assert any(
+        "report_execution_terminal" in record.message
+        and TEST_ID in record.message
+        and "terminal_reason=ReportScheduleScreenshotFailedError" in record.message
+        for record in caplog.records
+    )
+
+    next_execution_id = str(uuid4())
+    screenshot_mock.side_effect = None
+    screenshot_mock.return_value = SCREENSHOT_FILE
+
+    AsyncExecuteReportScheduleCommand(
+        next_execution_id,
+        create_report_email_chart.id,
+        datetime.utcnow(),
+    ).run()
+
+    db.session.refresh(create_report_email_chart)
+    next_log = (
+        db.session.query(ReportExecutionLog)
+        .filter(ReportExecutionLog.uuid == UUID(next_execution_id))
+        .one()
+    )
+    assert next_log.state == ReportState.SUCCESS
+    assert create_report_email_chart.last_state == ReportState.SUCCESS
 
 
 @pytest.mark.usefixtures(
@@ -2409,9 +3085,10 @@ def test_prune_log_soft_time_out(bulk_delete_logs, create_report_email_dashboard
 def test__send_with_client_errors(notification_mock, logger_mock):
     notification_content = "I am some content"
     recipients = ["test@foo.com"]
+    report_state = BaseReportState(ReportSchedule(), datetime.utcnow(), uuid4())
     notification_mock.return_value.send.side_effect = NotificationParamException()
     with pytest.raises(ReportScheduleClientErrorsException) as excinfo:
-        BaseReportState._send(BaseReportState, notification_content, recipients)
+        report_state._send(notification_content, recipients)
 
     assert excinfo.errisinstance(SupersetException)
     logger_mock.warning.assert_called_with(
@@ -2424,13 +3101,14 @@ def test__send_with_client_errors(notification_mock, logger_mock):
 def test__send_with_multiple_errors(notification_mock, logger_mock):
     notification_content = "I am some content"
     recipients = ["test@foo.com", "test2@bar.com"]
+    report_state = BaseReportState(ReportSchedule(), datetime.utcnow(), uuid4())
     notification_mock.return_value.send.side_effect = [
         NotificationParamException(),
         NotificationError(),
     ]
     # it raises the error with a 500 status if present
     with pytest.raises(ReportScheduleSystemErrorsException) as excinfo:
-        BaseReportState._send(BaseReportState, notification_content, recipients)
+        report_state._send(notification_content, recipients)
 
     assert excinfo.errisinstance(SupersetException)
     # it logs both errors as warnings
@@ -2451,12 +3129,442 @@ def test__send_with_multiple_errors(notification_mock, logger_mock):
 def test__send_with_server_errors(notification_mock, logger_mock):
     notification_content = "I am some content"
     recipients = ["test@foo.com"]
+    report_state = BaseReportState(ReportSchedule(), datetime.utcnow(), uuid4())
     notification_mock.return_value.send.side_effect = NotificationError()
     with pytest.raises(ReportScheduleSystemErrorsException) as excinfo:
-        BaseReportState._send(BaseReportState, notification_content, recipients)
+        report_state._send(notification_content, recipients)
 
     assert excinfo.errisinstance(SupersetException)
     # it logs the error
     logger_mock.warning.assert_called_with(
         "SupersetError(message='', error_type=<SupersetErrorType.REPORT_NOTIFICATION_ERROR: 'REPORT_NOTIFICATION_ERROR'>, level=<ErrorLevel.ERROR: 'error'>, extra=None)"  # noqa: E501
     )
+
+
+# ---------------------------------------------------------------------------
+# Retry tests
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+@with_feature_flags(ALERT_REPORTS_RETRY=True)
+@patch("superset.commands.report.execute.ReportNotTriggeredErrorState._schedule_retry")
+@patch("superset.reports.notifications.email.send_email_smtp")
+@patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
+def test_retry_on_failure_schedules_retry(
+    screenshot_mock: Mock,
+    email_mock: Mock,
+    schedule_retry_mock: Mock,
+) -> None:
+    """
+    ExecuteReport Command: when retry_on_failure is enabled and the report fails,
+    the state transitions to RETRYING and a retry task is enqueued with the
+    correct exponential-backoff delay.
+    """
+    chart = db.session.query(Slice).first()
+    report_schedule = create_report_notification(
+        email_target="target@email.com",
+        chart=chart,
+        retry_on_failure=True,
+        retry_max_attempts=3,
+        retry_notify_owners=False,
+        retry_notify_recipients=False,
+    )
+    try:
+        screenshot_mock.side_effect = Exception("screenshot failed")
+
+        # Should NOT re-raise (retry path exits cleanly)
+        AsyncExecuteReportScheduleCommand(
+            TEST_ID, report_schedule.id, datetime.utcnow()
+        ).run()
+
+        db.session.refresh(report_schedule)
+        assert report_schedule.last_state == ReportState.RETRYING
+        assert report_schedule.retry_attempt == 1
+        # Verify delay: base=60, attempt=1 → min(60 * 2^1, 3600) = 120
+        # Verify delay: base=60, attempt-1=0 → min(60 * 2^0, 3600) = 60
+        schedule_retry_mock.assert_called_once_with(60)
+        # No error email should be sent on the first failure (notification is
+        # sent after a *retry* fails, not after the original failure)
+        email_mock.assert_not_called()
+    finally:
+        cleanup_report_schedule(report_schedule)
+
+
+@pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+@with_feature_flags(ALERT_REPORTS_RETRY=True)
+@patch("superset.commands.report.execute.ReportNotTriggeredErrorState._schedule_retry")
+@patch("superset.commands.report.execute.BaseReportState.send_retry_notification")
+@patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
+def test_retry_exhausted_transitions_to_error(
+    screenshot_mock: Mock,
+    retry_notification_mock: Mock,
+    schedule_retry_mock: Mock,
+) -> None:
+    """
+    ExecuteReport Command: when all retries are exhausted the state transitions
+    to ERROR, the retry counter is reset, and the retry notification is sent
+    for the final attempt.
+    """
+    chart = db.session.query(Slice).first()
+    report_schedule = create_report_notification(
+        email_target="target@email.com",
+        chart=chart,
+        retry_on_failure=True,
+        retry_max_attempts=2,
+        retry_notify_owners=False,
+        retry_notify_recipients=False,
+    )
+    # Pre-set retry_attempt to the max so the next execution exhausts retries.
+    # Use the same timestamp for both so _is_retry_window_stale() returns False.
+    # Truncate microseconds — MySQL DateTime columns drop them, which would make
+    # the round-tripped value differ from the in-memory one.
+    # Truncate microseconds — MySQL DATETIME columns drop them, causing
+    # _is_retry_window_stale() to see a mismatch after DB round-trip.
+    scheduled_dttm = datetime.now(tz=timezone.utc).replace(tzinfo=None, microsecond=0)
+    report_schedule.retry_attempt = 2
+    report_schedule.retry_scheduled_dttm = scheduled_dttm
+    report_schedule.last_state = ReportState.RETRYING
+    db.session.commit()
+
+    try:
+        screenshot_mock.side_effect = Exception("screenshot failed")
+
+        with pytest.raises(Exception, match="screenshot failed"):
+            AsyncExecuteReportScheduleCommand(
+                TEST_ID, report_schedule.id, scheduled_dttm
+            ).run()
+
+        db.session.refresh(report_schedule)
+        assert report_schedule.last_state == ReportState.ERROR
+        # Counter is reset after exhaustion
+        assert report_schedule.retry_attempt == 0
+        # No further retry should have been scheduled
+        schedule_retry_mock.assert_not_called()
+        # Retry notification sent for the exhausted attempt (attempt 2 of 2)
+        # The error message is wrapped by the screenshot layer, so use ANY.
+        retry_notification_mock.assert_called_once_with(2, 2, ANY)
+    finally:
+        cleanup_report_schedule(report_schedule)
+
+
+@pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+@with_feature_flags(ALERT_REPORTS_RETRY=True)
+@patch("superset.commands.report.execute.ReportNotTriggeredErrorState._schedule_retry")
+@patch("superset.commands.report.execute.BaseReportState.send_final_failure_report")
+@patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
+def test_send_failed_reports_sends_to_recipients(
+    screenshot_mock: Mock,
+    final_failure_mock: Mock,
+    schedule_retry_mock: Mock,
+) -> None:
+    """
+    ExecuteReport Command: when send_failed_reports is True and all retries are
+    exhausted, send_final_failure_report is called with the error message.
+    """
+    chart = db.session.query(Slice).first()
+    report_schedule = create_report_notification(
+        email_target="target@email.com",
+        chart=chart,
+        retry_on_failure=True,
+        retry_max_attempts=1,
+        send_failed_reports=True,
+        retry_notify_owners=False,
+        retry_notify_recipients=False,
+    )
+    scheduled_dttm = datetime.now(tz=timezone.utc).replace(tzinfo=None, microsecond=0)
+    report_schedule.retry_attempt = 1
+    report_schedule.retry_scheduled_dttm = scheduled_dttm
+    report_schedule.last_state = ReportState.RETRYING
+    db.session.commit()
+
+    try:
+        screenshot_mock.side_effect = Exception("screenshot failed")
+
+        with pytest.raises(Exception, match="screenshot failed"):
+            AsyncExecuteReportScheduleCommand(
+                TEST_ID, report_schedule.id, scheduled_dttm
+            ).run()
+
+        # send_final_failure_report should have been called
+        final_failure_mock.assert_called_once_with(ANY)
+        schedule_retry_mock.assert_not_called()
+    finally:
+        cleanup_report_schedule(report_schedule)
+
+
+@pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+@with_feature_flags(ALERT_REPORTS_RETRY=True)
+@patch("superset.commands.report.execute.ReportNotTriggeredErrorState._schedule_retry")
+@patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
+def test_retrying_state_schedules_another_retry(
+    screenshot_mock: Mock,
+    schedule_retry_mock: Mock,
+) -> None:
+    """
+    ExecuteReport Command: a schedule with last_state=RETRYING is routed to
+    ReportNotTriggeredErrorState, which increments the counter and schedules
+    another retry with the correct delay.
+    """
+    chart = db.session.query(Slice).first()
+    report_schedule = create_report_notification(
+        email_target="target@email.com",
+        chart=chart,
+        retry_on_failure=True,
+        retry_max_attempts=3,
+        retry_notify_owners=False,
+        retry_notify_recipients=False,
+    )
+    scheduled_dttm = datetime.now(tz=timezone.utc).replace(tzinfo=None, microsecond=0)
+    report_schedule.last_state = ReportState.RETRYING
+    report_schedule.retry_attempt = 1
+    report_schedule.retry_scheduled_dttm = scheduled_dttm
+    db.session.commit()
+
+    try:
+        screenshot_mock.side_effect = Exception("still failing")
+
+        # Should not raise — still within retry budget
+        AsyncExecuteReportScheduleCommand(
+            TEST_ID, report_schedule.id, scheduled_dttm
+        ).run()
+
+        db.session.refresh(report_schedule)
+        assert report_schedule.last_state == ReportState.RETRYING
+        assert report_schedule.retry_attempt == 2
+        # Verify delay: base=60, attempt=2 → min(60 * 2^2, 3600) = 240
+        # Verify delay: base=60, attempt-1=1 → min(60 * 2^1, 3600) = 120
+        schedule_retry_mock.assert_called_once_with(120)
+    finally:
+        cleanup_report_schedule(report_schedule)
+
+
+@pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+@with_feature_flags(ALERT_REPORTS_RETRY=True)
+@patch("superset.commands.report.execute.ReportNotTriggeredErrorState._schedule_retry")
+@patch("superset.reports.notifications.email.send_email_smtp")
+@patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
+def test_retry_disabled_preserves_default_error_path(
+    screenshot_mock: Mock,
+    email_mock: Mock,
+    schedule_retry_mock: Mock,
+) -> None:
+    """
+    ExecuteReport Command: when retry_on_failure is False (default), the
+    existing error behavior is unchanged — no RETRYING state, no retry
+    scheduled, the exception is re-raised normally.
+    """
+    chart = db.session.query(Slice).first()
+    report_schedule = create_report_notification(
+        email_target="target@email.com",
+        chart=chart,
+        retry_on_failure=False,
+    )
+    try:
+        screenshot_mock.side_effect = Exception("screenshot failed")
+
+        with pytest.raises(Exception, match="screenshot failed"):
+            AsyncExecuteReportScheduleCommand(
+                TEST_ID, report_schedule.id, datetime.utcnow()
+            ).run()
+
+        db.session.refresh(report_schedule)
+        assert report_schedule.last_state == ReportState.ERROR
+        assert report_schedule.retry_attempt == 0
+        schedule_retry_mock.assert_not_called()
+    finally:
+        cleanup_report_schedule(report_schedule)
+
+
+@pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+@with_feature_flags(ALERT_REPORTS_RETRY=True)
+@patch("superset.commands.report.execute.ReportNotTriggeredErrorState._schedule_retry")
+@patch("superset.commands.report.execute.BaseReportState.send_retry_notification")
+@patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
+def test_retry_notify_owners_sends_notification(
+    screenshot_mock: Mock,
+    retry_notification_mock: Mock,
+    schedule_retry_mock: Mock,
+) -> None:
+    """
+    ExecuteReport Command: when retry_notify_owners is True (default) and a
+    retry attempt fails, send_retry_notification is called.
+    """
+    chart = db.session.query(Slice).first()
+    report_schedule = create_report_notification(
+        email_target="target@email.com",
+        chart=chart,
+        retry_on_failure=True,
+        retry_max_attempts=3,
+        retry_notify_owners=True,
+        retry_notify_recipients=False,
+    )
+    # Set up as a retry attempt (current_attempt=1) so the notification fires
+    scheduled_dttm = datetime.now(tz=timezone.utc).replace(tzinfo=None, microsecond=0)
+    report_schedule.last_state = ReportState.RETRYING
+    report_schedule.retry_attempt = 1
+    report_schedule.retry_scheduled_dttm = scheduled_dttm
+    db.session.commit()
+
+    try:
+        screenshot_mock.side_effect = Exception("screenshot failed")
+
+        AsyncExecuteReportScheduleCommand(
+            TEST_ID, report_schedule.id, scheduled_dttm
+        ).run()
+
+        # Notification sent for the failed retry (attempt 1 of 3)
+        retry_notification_mock.assert_called_once_with(1, 3, ANY)
+    finally:
+        cleanup_report_schedule(report_schedule)
+
+
+@pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+@with_feature_flags(ALERT_REPORTS_RETRY=True)
+@patch("superset.commands.report.execute.ReportNotTriggeredErrorState._schedule_retry")
+@patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
+def test_new_crontab_window_skipped_while_retrying(
+    screenshot_mock: Mock,
+    schedule_retry_mock: Mock,
+) -> None:
+    """
+    ExecuteReport Command: when a new crontab window fires while retries from
+    a previous window are still in-flight, the execution is skipped — the
+    retry chain is left undisturbed.
+    """
+    chart = db.session.query(Slice).first()
+    report_schedule = create_report_notification(
+        email_target="target@email.com",
+        chart=chart,
+        retry_on_failure=True,
+        retry_max_attempts=3,
+        retry_notify_owners=False,
+        retry_notify_recipients=False,
+    )
+    # Simulate: previous window set retry_attempt=2 with an old anchor
+    # last_eval_dttm must be recent so the guard's timeout considers the
+    # retry chain still alive (not stale/crashed).
+    old_anchor = datetime(2020, 1, 1, 0, 0, 0)
+    report_schedule.retry_attempt = 2
+    report_schedule.retry_scheduled_dttm = old_anchor
+    report_schedule.last_state = ReportState.RETRYING
+    report_schedule.last_eval_dttm = datetime.now(tz=timezone.utc).replace(tzinfo=None)
+    db.session.commit()
+
+    try:
+        screenshot_mock.side_effect = Exception("screenshot failed")
+        # Pass a *different* scheduled_dttm (new crontab window)
+        new_dttm = datetime.now(tz=timezone.utc).replace(tzinfo=None)
+
+        AsyncExecuteReportScheduleCommand(TEST_ID, report_schedule.id, new_dttm).run()
+
+        db.session.refresh(report_schedule)
+        # Execution was skipped — state and counter are unchanged
+        assert report_schedule.retry_attempt == 2
+        assert report_schedule.last_state == ReportState.RETRYING
+        schedule_retry_mock.assert_not_called()
+        screenshot_mock.assert_not_called()
+    finally:
+        cleanup_report_schedule(report_schedule)
+
+
+@pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+@with_feature_flags(ALERT_REPORTS_RETRY=True)
+@patch("superset.commands.report.execute.ReportNotTriggeredErrorState._schedule_retry")
+@patch("superset.reports.notifications.email.send_email_smtp")
+@patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
+def test_success_after_retry_clears_retry_state(
+    screenshot_mock: Mock,
+    email_mock: Mock,
+    schedule_retry_mock: Mock,
+) -> None:
+    """
+    ExecuteReport Command: when a retry attempt succeeds, the retry counter
+    and scheduled_dttm are reset.
+    """
+    chart = db.session.query(Slice).first()
+    report_schedule = create_report_notification(
+        email_target="target@email.com",
+        chart=chart,
+        retry_on_failure=True,
+        retry_max_attempts=3,
+        retry_notify_owners=False,
+        retry_notify_recipients=False,
+    )
+    scheduled_dttm = datetime.now(tz=timezone.utc).replace(tzinfo=None, microsecond=0)
+    report_schedule.last_state = ReportState.RETRYING
+    report_schedule.retry_attempt = 2
+    report_schedule.retry_scheduled_dttm = scheduled_dttm
+    db.session.commit()
+
+    try:
+        # Screenshot succeeds this time
+        screenshot_mock.return_value = SCREENSHOT_FILE
+
+        AsyncExecuteReportScheduleCommand(
+            TEST_ID, report_schedule.id, scheduled_dttm
+        ).run()
+
+        db.session.refresh(report_schedule)
+        assert report_schedule.last_state == ReportState.SUCCESS
+        assert report_schedule.retry_attempt == 0
+        assert report_schedule.retry_scheduled_dttm is None
+        schedule_retry_mock.assert_not_called()
+    finally:
+        cleanup_report_schedule(report_schedule)
+
+
+def test_is_retry_window_stale_naive_vs_aware() -> None:
+    """
+    _is_retry_window_stale: the comparison must work correctly when
+    retry_scheduled_dttm (DB column, always naive) is compared against
+    _scheduled_dttm which may be tz-aware in production.
+    """
+    now_naive = datetime(2026, 7, 30, 14, 0, 0)
+    now_aware = datetime(2026, 7, 30, 14, 0, 0, tzinfo=timezone.utc)
+    different_aware = datetime(2026, 7, 30, 15, 0, 0, tzinfo=timezone.utc)
+
+    report_schedule = ReportSchedule(
+        type=ReportScheduleType.REPORT,
+        name="stale_test",
+        crontab="0 * * * *",
+    )
+    # Simulate DB round-trip: anchor is always naive
+    report_schedule.retry_scheduled_dttm = now_naive
+
+    # Same time but tz-aware — should NOT be stale
+    state = BaseReportState(report_schedule, now_aware, uuid4())
+    assert not state._is_retry_window_stale()
+
+    # Same time, both naive — should NOT be stale
+    state = BaseReportState(report_schedule, now_naive, uuid4())
+    assert not state._is_retry_window_stale()
+
+    # Different time, tz-aware — should be stale
+    state = BaseReportState(report_schedule, different_aware, uuid4())
+    assert state._is_retry_window_stale()
+
+    # No anchor set — should NOT be stale
+    report_schedule.retry_scheduled_dttm = None
+    state = BaseReportState(report_schedule, now_aware, uuid4())
+    assert not state._is_retry_window_stale()
+
+
+def test_get_retry_delay_exponential_backoff() -> None:
+    """
+    _get_retry_delay: verify exponential backoff with cap.
+    base=60, cap=3600 → delay = min(60 * 2^attempt, 3600)
+    """
+    report_schedule = ReportSchedule(
+        type=ReportScheduleType.REPORT,
+        name="delay_test",
+        crontab="0 9 * * *",
+    )
+    state = BaseReportState(report_schedule, datetime.utcnow(), uuid4())
+    assert state._get_retry_delay(0) == 60  # 60 * 2^0 = 60
+    assert state._get_retry_delay(1) == 120  # 60 * 2^1 = 120
+    assert state._get_retry_delay(2) == 240  # 60 * 2^2 = 240
+    assert state._get_retry_delay(3) == 480  # 60 * 2^3 = 480
+    assert state._get_retry_delay(5) == 1920  # 60 * 2^5 = 1920
+    assert state._get_retry_delay(6) == 3600  # 60 * 2^6 = 3840 → capped at 3600
+    assert state._get_retry_delay(10) == 3600  # still capped

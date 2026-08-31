@@ -36,6 +36,7 @@ import type {
   QueryResponse,
   TimeFormatter,
 } from '@superset-ui/core';
+import { type RGBColor } from '@superset-ui/core/components';
 import { GenericDataType } from '@apache-superset/core/common';
 import { sharedControls, sharedControlComponents } from './shared-controls';
 
@@ -86,7 +87,7 @@ export interface Dataset {
   name?: string;
   description: string | null;
   uid?: string;
-  owners?: Owner[];
+  editors?: Owner[];
   filter_select?: boolean;
   filter_select_enabled?: boolean;
   column_names?: string[];
@@ -204,8 +205,14 @@ export type TabOverride = 'data' | 'customize' | 'matrixify' | boolean;
  * these configs will be passed to the UI component for control as props.
  *
  * - type: the control type, referencing a React component of the same name
- * - label: the label as shown in the control's header
- * - description: shown in the info tooltip of the control's header
+ * - label: the label as shown in the control's header. When the value involves
+ *   `t()`/`tn()`, prefer the arrow-function form (`label: () => t('Foo')`) so
+ *   the lookup runs at render time rather than at module load — eager
+ *   `label: t('Foo')` captures the fallback language before i18n initializes
+ *   and does not update on runtime language change. The
+ *   `i18n-strings/no-eager-t-in-config` lint rule autofixes this.
+ * - description: shown in the info tooltip of the control's header. Same
+ *   lazy-form guidance as `label`.
  * - default: the default value when opening a new chart, or changing visualization type
  * - renderTrigger: a bool that defines whether the visualization should be re-rendered
  *    when changed. This should `true` for controls that only affect the rendering (client side)
@@ -488,7 +495,7 @@ export type ConditionalFormattingConfig = {
   targetValueLeft?: number;
   targetValueRight?: number;
   column?: string;
-  colorScheme?: string;
+  colorScheme?: RGBColor | string;
   toAllRow?: boolean;
   toTextColor?: boolean;
   useGradient?: boolean;
@@ -588,6 +595,7 @@ export type ControlFormItemSpec<T extends ControlType = ControlType> = {
       creatable?: boolean;
       minWidth?: number | string;
       validators?: ControlFormValueValidator<string>[];
+      tokenSeparators?: string[];
     }
   : T extends 'RadioButtonControl'
     ? {
@@ -670,7 +678,9 @@ export interface ServerPaginationData {
 
 export type TableColumnConfig = {
   d3NumberFormat?: string;
-  d3SmallNumberFormat?: string;
+  // Allow null to match JSON round-trips, where an unset value deserializes
+  // from the metadata DB as `null` rather than `undefined`.
+  d3SmallNumberFormat?: string | null;
   d3TimeFormat?: string;
   columnWidth?: number;
   horizontalAlign?: 'left' | 'right' | 'center';
@@ -704,4 +714,5 @@ export interface DataColumnMeta {
   isChildColumn?: boolean;
   description?: string;
   currencyCodeColumn?: string;
+  isFilterable?: boolean;
 }

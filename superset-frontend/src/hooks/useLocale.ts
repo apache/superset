@@ -31,6 +31,7 @@ import 'dayjs/locale/pt';
 import 'dayjs/locale/pt-br';
 import 'dayjs/locale/ru';
 import 'dayjs/locale/ko';
+import 'dayjs/locale/cs';
 import 'dayjs/locale/sk';
 import 'dayjs/locale/sl';
 import 'dayjs/locale/nl';
@@ -50,6 +51,7 @@ export const LOCALE_MAPPING = {
   pt_BR: () => import('antd/locale/pt_BR'),
   ru: () => import('antd/locale/ru_RU'),
   ko: () => import('antd/locale/ko_KR'),
+  cs: () => import('antd/locale/cs_CZ'),
   sk: () => import('antd/locale/sk_SK'),
   sl: () => import('antd/locale/sl_SI'),
   nl: () => import('antd/locale/nl_NL'),

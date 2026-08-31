@@ -21,28 +21,45 @@ Pydantic schemas for dataset-related responses
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Annotated, Any, Dict, List, Literal
 
-import humanize
 from pydantic import (
+    AliasChoices,
     BaseModel,
     ConfigDict,
     Field,
     field_validator,
     model_serializer,
     model_validator,
-    PositiveInt,
+    StrictBool,
 )
 
 from superset.daos.base import ColumnOperator, ColumnOperatorEnum
-from superset.mcp_service.common.cache_schemas import MetadataCacheControl
-from superset.mcp_service.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
-from superset.mcp_service.privacy import filter_user_directory_fields
+from superset.mcp_service.chart.schemas import DataColumn, PerformanceMetadata
+from superset.mcp_service.common.cache_schemas import (
+    CacheStatus,
+    CreatedByMeMixin,
+    EditedByMeMixin,
+    MetadataCacheControl,
+    QueryCacheControl,
+)
+from superset.mcp_service.common.pagination_schemas import (
+    PaginatedListRequest,
+    PaginatedResponse,
+)
+from superset.mcp_service.common.time_range_validation import validate_time_range
+from superset.mcp_service.privacy import (
+    filter_user_directory_fields,
+    strip_user_directory_fields_from_schema,
+)
 from superset.mcp_service.system.schemas import (
-    PaginationInfo,
+    serialize_subject_object,
+    SubjectInfo,
     TagInfo,
 )
+from superset.mcp_service.utils.response_utils import humanize_timestamp
+from superset.sql.parse import has_aggregate
 from superset.utils import json
 
 
@@ -54,14 +71,19 @@ class DatasetFilter(ColumnOperator):
     value: The value to filter by (type depends on col and opr).
     """
 
-    col: Literal[
+    col: Literal[  # pyright: ignore[reportIncompatibleVariableOverride]
         "table_name",
         "schema",
         "database_name",
+        "editor",
+        "created_by_fk",
+        "changed_by_fk",
     ] = Field(
         ...,
         description="Column to filter on. Use get_schema(model_type='dataset') for "
-        "available filter columns.",
+        "available filter columns. To filter by a person, first call find_users "
+        "to resolve a name to a user ID, then filter by created_by_fk or "
+        "changed_by_fk with that integer ID.",
     )
     opr: ColumnOperatorEnum = Field(
         ...,
@@ -82,12 +104,33 @@ class TableColumnInfo(BaseModel):
     filterable: bool | None = Field(None, description="Is filterable")
     description: str | None = Field(None, description="Column description")
 
+    @model_serializer(mode="wrap")
+    def _filter_column_fields_by_context(
+        self, serializer: Any, info: Any
+    ) -> Dict[str, Any]:
+        """Filter column fields based on serialization context.
+
+        If context contains 'column_fields', only include those fields plus
+        column_name (always required). Keeps wide datasets small when the
+        caller only needs column_name + type.
+        """
+        data = serializer(self)
+        if info.context and isinstance(info.context, dict):
+            column_fields = info.context.get("column_fields")
+            if column_fields is not None:
+                requested = set(column_fields)
+                requested.add("column_name")
+                return {k: v for k, v in data.items() if k in requested}
+        return data
+
 
 class SqlMetricInfo(BaseModel):
     metric_name: str = Field(
         ...,
-        description="Saved metric name. In chart configs, reference as "
-        '{"name": "<metric_name>", "saved_metric": true}.',
+        description=(
+            "Saved metric name. In chart configs, reference as "
+            '{"name": "<metric_name>", "saved_metric": true}.'
+        ),
     )
     verbose_name: str | None = Field(None, description="Verbose name")
     expression: str | None = Field(None, description="SQL expression")
@@ -118,13 +161,16 @@ class DatasetInfo(BaseModel):
         None, description="Humanized creation time"
     )
     tags: List[TagInfo] = Field(default_factory=list, description="Dataset tags")
+    editors: List[SubjectInfo] = Field(
+        default_factory=list, description="Dataset editors"
+    )
     is_virtual: bool | None = Field(
         None, description="Whether the dataset is virtual (uses SQL)"
     )
     database_id: int | None = Field(None, description="Database ID")
     uuid: str | None = Field(None, description="Dataset UUID")
     schema_perm: str | None = Field(None, description="Schema permission string")
-    url: str | None = Field(None, description="Dataset URL")
+    url: str | None = Field(None, description="Explore view URL for this dataset")
     sql: str | None = Field(None, description="SQL for virtual datasets")
     main_dttm_col: str | None = Field(None, description="Main datetime column")
     offset: int | None = Field(None, description="Offset")
@@ -149,6 +195,7 @@ class DatasetInfo(BaseModel):
         from_attributes=True,
         ser_json_timedelta="iso8601",
         populate_by_name=True,  # Allow both 'schema' (alias) and 'schema_name' (field)
+        json_schema_extra=strip_user_directory_fields_from_schema,
     )
 
     @model_serializer(mode="wrap")
@@ -179,102 +226,46 @@ class DatasetInfo(BaseModel):
         return data
 
 
-class DatasetList(BaseModel):
+class DatasetList(PaginatedResponse[DatasetFilter]):
     datasets: List[DatasetInfo]
-    count: int
-    total_count: int
-    page: int
-    page_size: int
-    total_pages: int
-    has_previous: bool
-    has_next: bool
-    columns_requested: List[str] = Field(
-        default_factory=list,
-        description="Requested columns for the response",
-    )
-    columns_loaded: List[str] = Field(
-        default_factory=list,
-        description="Columns that were actually loaded for each dataset",
-    )
-    columns_available: List[str] = Field(
-        default_factory=list,
-        description="All columns available for selection via select_columns parameter",
-    )
-    sortable_columns: List[str] = Field(
-        default_factory=list,
-        description="Columns that can be used with order_column parameter",
-    )
-    filters_applied: List[DatasetFilter] = Field(
-        default_factory=list,
-        description="List of advanced filter dicts applied to the query.",
-    )
-    pagination: PaginationInfo | None = None
-    timestamp: datetime | None = None
-    model_config = ConfigDict(ser_json_timedelta="iso8601")
 
 
-class ListDatasetsRequest(MetadataCacheControl):
-    """Request schema for list_datasets with clear, unambiguous types."""
+class ListDatasetsRequest(
+    EditedByMeMixin,
+    CreatedByMeMixin,
+    MetadataCacheControl,
+    PaginatedListRequest[DatasetFilter],
+):
+    """Request schema for list_datasets with clear, unambiguous types.
 
-    filters: Annotated[
-        List[DatasetFilter],
-        Field(
-            default_factory=list,
-            description="List of filter objects (column, operator, value). Each "
-            "filter is an object with 'col', 'opr', and 'value' "
-            "properties. Cannot be used together with 'search'.",
-        ),
-    ]
-    select_columns: Annotated[
-        List[str],
-        Field(
-            default_factory=list,
-            description="List of columns to select. Defaults to common columns if not "
-            "specified.",
-        ),
-    ]
-    search: Annotated[
-        str | None,
+    Unlike its siblings, this schema does NOT parse JSON-string `filters`/
+    `select_columns` into lists — it relies on Pydantic's native list
+    validation instead. Preserved intentionally; see
+    test_list_datasets_with_string_filters.
+    """
+
+    certified: Annotated[
+        StrictBool | None,
         Field(
             default=None,
-            description="Text search string to match against dataset fields. Cannot "
-            "be used together with 'filters'.",
-        ),
-    ]
-    order_column: Annotated[
-        str | None, Field(default=None, description="Column to order results by")
-    ]
-    order_direction: Annotated[
-        Literal["asc", "desc"],
-        Field(
-            default="desc", description="Direction to order results ('asc' or 'desc')"
-        ),
-    ]
-    page: Annotated[
-        PositiveInt,
-        Field(default=1, description="Page number for pagination (1-based)"),
-    ]
-    page_size: Annotated[
-        int,
-        Field(
-            default=DEFAULT_PAGE_SIZE,
-            gt=0,
-            le=MAX_PAGE_SIZE,
-            description=f"Number of items per page (max {MAX_PAGE_SIZE})",
+            description=(
+                "Filter by governance certification status. Use true to return "
+                "only certified datasets (preferred when selecting governed "
+                "semantic-layer assets), false to return only uncertified "
+                "datasets, or omit to return both (default)."
+            ),
         ),
     ]
 
-    @model_validator(mode="after")
-    def validate_search_and_filters(self) -> "ListDatasetsRequest":
-        """Prevent using both search and filters simultaneously to avoid query
-        conflicts."""
-        if self.search and self.filters:
-            raise ValueError(
-                "Cannot use both 'search' and 'filters' parameters simultaneously. "
-                "Use either 'search' for text-based searching across multiple fields, "
-                "or 'filters' for precise column-based filtering, but not both."
-            )
-        return self
+    @field_validator("filters", mode="before")
+    @classmethod
+    def parse_filters(cls, v: Any) -> Any:
+        return v
+
+    @field_validator("select_columns", mode="before")
+    @classmethod
+    def parse_select_columns(cls, v: Any) -> Any:
+        return v
 
 
 class DatasetError(BaseModel):
@@ -286,8 +277,6 @@ class DatasetError(BaseModel):
     @classmethod
     def create(cls, error: str, error_type: str) -> "DatasetError":
         """Create a standardized DatasetError with timestamp."""
-        from datetime import datetime, timezone
-
         return cls(
             error=error,
             error_type=error_type,
@@ -295,13 +284,201 @@ class DatasetError(BaseModel):
         )
 
 
+DEFAULT_GET_DATASET_INFO_COLUMNS: List[str] = [
+    "id",
+    "table_name",
+    "schema",
+    "database_name",
+    "database_id",
+    "uuid",
+    "is_virtual",
+    "description",
+    "main_dttm_col",
+    "sql",
+    "url",
+    "columns",
+    "metrics",
+]
+
+DEFAULT_GET_DATASET_INFO_COLUMN_FIELDS: List[str] = [
+    "column_name",
+    "type",
+    "is_dttm",
+]
+
+
 class GetDatasetInfoRequest(MetadataCacheControl):
     """Request schema for get_dataset_info with support for ID or UUID."""
 
+    model_config = ConfigDict(populate_by_name=True)
+
     identifier: Annotated[
         int | str,
-        Field(description="Dataset identifier - can be numeric ID or UUID string"),
+        Field(
+            description="Dataset identifier - can be numeric ID or UUID string",
+            validation_alias=AliasChoices("identifier", "id", "dataset_id"),
+        ),
     ]
+    select_columns: Annotated[
+        List[str],
+        Field(
+            default_factory=lambda: list(DEFAULT_GET_DATASET_INFO_COLUMNS),
+            description=(
+                "Top-level fields to include in the response. "
+                "Default set: 'id', 'table_name', 'schema', 'database_name', "
+                "'database_id', 'uuid', 'is_virtual', 'description', "
+                "'main_dttm_col', 'sql', 'url', 'columns', 'metrics'. "
+                "Additional available fields: 'certified_by', "
+                "'certification_details', 'changed_on', 'changed_on_humanized', "
+                "'created_on', 'created_on_humanized', 'tags', 'schema_perm', "
+                "'offset', 'cache_timeout', 'params', 'template_params', "
+                "'extra', 'is_favorite'. "
+                "Pass an explicit list to select only what you need "
+                "(e.g. ['id', 'table_name', 'columns', 'metrics'])."
+            ),
+            validation_alias=AliasChoices("select_columns", "columns"),
+        ),
+    ]
+    column_fields: Annotated[
+        List[str],
+        Field(
+            default_factory=lambda: list(DEFAULT_GET_DATASET_INFO_COLUMN_FIELDS),
+            description=(
+                "Per-column fields to include for entries in 'columns'. Defaults "
+                "to ['column_name','type','is_dttm']. Pass a wider list to "
+                "include 'verbose_name','groupby','filterable','description' "
+                "when needed."
+            ),
+        ),
+    ]
+
+    @field_validator("select_columns", mode="before")
+    @classmethod
+    def _parse_select_columns(cls, value: Any) -> Any:
+        from superset.mcp_service.utils.schema_utils import parse_json_or_list
+
+        if value is None:
+            return list(DEFAULT_GET_DATASET_INFO_COLUMNS)
+        parsed = parse_json_or_list(value, "select_columns")
+        return parsed if parsed else list(DEFAULT_GET_DATASET_INFO_COLUMNS)
+
+    @field_validator("column_fields", mode="before")
+    @classmethod
+    def _parse_column_fields(cls, value: Any) -> Any:
+        from superset.mcp_service.utils.schema_utils import parse_json_or_list
+
+        if value is None or value == "":
+            return list(DEFAULT_GET_DATASET_INFO_COLUMN_FIELDS)
+        parsed = parse_json_or_list(value, "column_fields")
+        return parsed
+
+
+class CreateDatasetMetric(BaseModel):
+    """Metric definition for dataset creation."""
+
+    metric_name: str = Field(..., description="Name of the metric")
+    expression: str = Field(
+        ...,
+        description="Aggregate SQL expression for the metric, e.g. SUM(amount)",
+    )
+    verbose_name: str | None = None
+    description: str | None = None
+    metric_type: str | None = None
+    d3format: str | None = None
+    warning_text: str | None = None
+
+    @field_validator("expression")
+    @classmethod
+    def expression_must_aggregate(cls, value: str) -> str:
+        if not has_aggregate(value):
+            raise ValueError(
+                "saved metrics must aggregate rows; wrap a row-level column in "
+                "an aggregate such as MAX(column), or omit the saved metric and "
+                "use the dataset column directly"
+            )
+        return value
+
+
+class CreateDatasetCalculatedColumn(BaseModel):
+    """Calculated column definition for dataset creation."""
+
+    column_name: str = Field(..., description="Name of the calculated column")
+    expression: str = Field(..., description="SQL expression for the column")
+    verbose_name: str | None = None
+    description: str | None = None
+    type: str | None = None
+    advanced_data_type: str | None = None
+    is_dttm: bool | None = None
+
+
+class CreateDatasetRequest(BaseModel):
+    """Request schema for create_dataset to register a physical table as a dataset."""
+
+    model_config = ConfigDict(populate_by_name=True, extra="forbid")
+
+    database_id: Annotated[
+        int,
+        Field(
+            description="ID of the database connection to register the table against"
+        ),
+    ]
+    schema_: Annotated[
+        str | None,
+        Field(
+            default=None,
+            alias="schema",
+            serialization_alias="schema",
+            max_length=250,
+            description="Schema (namespace) where the table lives, e.g. 'public'. "
+            "Omit or pass None for databases without schema namespaces (e.g. SQLite).",
+        ),
+    ]
+    catalog: Annotated[
+        str | None,
+        Field(
+            default=None,
+            max_length=250,
+            description="Catalog where the table lives. Omit for databases without "
+            "catalog support.",
+        ),
+    ]
+    table_name: Annotated[
+        str,
+        Field(
+            min_length=1,
+            max_length=250,
+            description="Name of the physical table to register as a dataset",
+        ),
+    ]
+    editors: Annotated[
+        List[int] | None,
+        Field(
+            default=None,
+            description="Optional list of editor user IDs. "
+            "Defaults to the calling user.",
+        ),
+    ]
+
+    @field_validator("schema_", "catalog", mode="before")
+    @classmethod
+    def _normalize_optional_str(cls, v: object) -> object:
+        """Strip whitespace and convert blank strings to None.
+
+        Non-string values pass through unchanged so Pydantic's type validation
+        rejects them, rather than silently treating a malformed value (e.g. an
+        int or dict) as an omitted namespace.
+        """
+        if isinstance(v, str):
+            return v.strip() or None
+        return v
+
+    @field_validator("table_name", mode="before")
+    @classmethod
+    def _strip_table_name(cls, v: object) -> object:
+        """Strip leading/trailing whitespace from table_name."""
+        if isinstance(v, str):
+            return v.strip()
+        return v
 
 
 class CreateVirtualDatasetRequest(BaseModel):
@@ -337,6 +514,16 @@ class CreateVirtualDatasetRequest(BaseModel):
     description: str | None = Field(
         None,
         description="Human-readable description of the dataset (optional).",
+    )
+    metrics: list[CreateDatasetMetric] | None = Field(
+        None,
+        description="Optional list of saved metrics to create. Each metric "
+        "must have 'metric_name' and 'expression'.",
+    )
+    calculated_columns: list[CreateDatasetCalculatedColumn] | None = Field(
+        None,
+        description="Optional list of calculated columns to create. Each column "
+        "must have 'column_name' and 'expression'.",
     )
 
     @field_validator("sql")
@@ -380,6 +567,320 @@ class CreateVirtualDatasetResponse(BaseModel):
     )
 
 
+UPDATABLE_METRIC_FIELDS: frozenset[str] = frozenset(
+    {
+        "metric_name",
+        "expression",
+        "verbose_name",
+        "description",
+        "d3format",
+        "metric_type",
+        "currency",
+        "warning_text",
+        "extra",
+    }
+)
+
+
+class MetricCurrency(BaseModel):
+    """Currency formatting configuration for a metric."""
+
+    symbol: str | None = Field(
+        None, description="ISO 4217 currency code (e.g. 'USD', 'EUR')."
+    )
+    symbolPosition: str | None = Field(  # noqa: N815
+        None,
+        description="Where to render the symbol relative to the value "
+        "(typically 'prefix' or 'suffix').",
+    )
+
+
+class UpdateDatasetMetricRequest(BaseModel):
+    """Request schema for update_dataset_metric."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    dataset_id: int | str = Field(
+        ...,
+        description="Dataset identifier — numeric ID or UUID string. "
+        "Use list_datasets to find valid IDs.",
+    )
+    metric: int | str = Field(
+        ...,
+        description="Metric to update — numeric metric ID, metric UUID, or "
+        "metric_name (e.g. 'sum_revenue'). Numeric strings are treated as IDs. "
+        "Use get_dataset_info to discover a dataset's saved metrics.",
+    )
+    metric_name: str | None = Field(
+        None,
+        max_length=255,
+        description="New metric name, unique within the dataset. "
+        "Only pass this to rename the metric.",
+    )
+    expression: str | None = Field(
+        None,
+        description="New SQL aggregation expression (e.g. 'SUM(revenue)').",
+    )
+    verbose_name: str | None = Field(
+        None, max_length=1024, description="Human-friendly display label."
+    )
+    description: str | None = Field(None, description="Metric description.")
+    d3format: str | None = Field(
+        None,
+        min_length=1,
+        max_length=128,
+        description="D3 number format string (e.g. ',.2f', '.1%').",
+    )
+    metric_type: str | None = Field(
+        None,
+        min_length=1,
+        max_length=32,
+        description="Metric type (e.g. 'count', 'sum').",
+    )
+    currency: MetricCurrency | None = Field(
+        None, description="Currency formatting configuration."
+    )
+    warning_text: str | None = Field(
+        None, description="Warning shown to users of this metric."
+    )
+    extra: str | None = Field(
+        None, description="JSON-encoded string with extra metric metadata."
+    )
+
+    def updates(self) -> Dict[str, Any]:
+        """Return only the metric properties explicitly provided by the caller.
+
+        ``exclude_unset`` distinguishes "not provided" (leave the stored value
+        alone) from an explicit ``null`` (clear the stored value).
+        """
+        return self.model_dump(
+            exclude_unset=True,
+            include=set(UPDATABLE_METRIC_FIELDS),
+        )
+
+    @model_validator(mode="after")
+    def validate_updates(self) -> "UpdateDatasetMetricRequest":
+        """Require at least one updatable property and reject empty/invalid values.
+
+        Guards against no-op requests, empty ``metric_name``/``expression``, and
+        malformed ``extra`` JSON before the update reaches the command layer.
+        """
+        provided = self.model_fields_set & UPDATABLE_METRIC_FIELDS
+        if not provided:
+            raise ValueError(
+                "At least one metric property must be provided to update. "
+                f"Updatable properties: {sorted(UPDATABLE_METRIC_FIELDS)}."
+            )
+        if "metric_name" in provided and not (self.metric_name or "").strip():
+            raise ValueError("metric_name cannot be empty or null")
+        if "expression" in provided and not (self.expression or "").strip():
+            raise ValueError("expression cannot be empty or null")
+        if "extra" in provided and self.extra is not None:
+            try:
+                json.loads(self.extra)
+            except (ValueError, TypeError) as ex:
+                raise ValueError("extra must be a valid JSON-encoded string") from ex
+        return self
+
+
+class DatasetMetricDetail(SqlMetricInfo):
+    """Full saved-metric details, including identifiers."""
+
+    id: int | None = Field(None, description="Metric ID")
+    uuid: str | None = Field(None, description="Metric UUID")
+    metric_type: str | None = Field(None, description="Metric type")
+    currency: MetricCurrency | None = Field(
+        None, description="Currency formatting configuration"
+    )
+    warning_text: str | None = Field(None, description="Warning text")
+    extra: str | None = Field(
+        None, description="JSON-encoded string with extra metric metadata"
+    )
+
+
+class UpdateDatasetMetricResponse(BaseModel):
+    """Response schema for update_dataset_metric."""
+
+    dataset_id: int | None = Field(None, description="Dataset ID")
+    dataset_name: str | None = Field(None, description="Dataset name")
+    metric: DatasetMetricDetail | None = Field(
+        None, description="The metric after the update. None if the update failed."
+    )
+    updated_properties: List[str] = Field(
+        default_factory=list,
+        description="Names of the metric properties that were updated.",
+    )
+    url: str | None = Field(
+        None, description="Explore URL for the dataset. None if the update failed."
+    )
+    error: str | None = Field(
+        None, description="Error message if the update failed, otherwise null."
+    )
+
+
+VALID_FILTER_OPS = Literal[
+    "==",
+    "!=",
+    ">",
+    "<",
+    ">=",
+    "<=",
+    "LIKE",
+    "NOT LIKE",
+    "ILIKE",
+    "NOT ILIKE",
+    "IN",
+    "NOT IN",
+    "IS NULL",
+    "IS NOT NULL",
+    "IS TRUE",
+    "IS FALSE",
+    "TEMPORAL_RANGE",
+]
+
+
+class QueryDatasetFilter(BaseModel):
+    """A single filter condition for dataset queries."""
+
+    col: str = Field(..., description="Column name to filter on")
+    op: VALID_FILTER_OPS = Field(
+        ...,
+        description=(
+            'Filter operator. Use "==" for equals, "!=" for not equals, '
+            '"IN" / "NOT IN" for membership, "IS NULL" / "IS NOT NULL", '
+            '"LIKE" for pattern matching, "TEMPORAL_RANGE" for time filters.'
+        ),
+    )
+    val: Any = Field(
+        default=None,
+        description="Filter value (omit for IS NULL/IS NOT NULL)",
+    )
+
+    @model_validator(mode="after")
+    def _validate_temporal_range_val(self) -> "QueryDatasetFilter":
+        """Hold a TEMPORAL_RANGE filter to the same grammar as ``time_range``.
+
+        This operator resolves through ``get_since_until()`` exactly like the
+        dedicated ``time_range`` field does, so an unparseable value here
+        produces the same silent full-table match. Validating only
+        ``time_range`` would leave that gap open to any caller that spells
+        the same filter out longhand.
+        """
+        if self.op == "TEMPORAL_RANGE" and isinstance(self.val, str):
+            self.val = validate_time_range(self.val)
+        return self
+
+
+class QueryDatasetRequest(QueryCacheControl):
+    """Request schema for query_dataset tool."""
+
+    dataset_id: int | str = Field(
+        ...,
+        description="Dataset identifier — numeric ID or UUID string.",
+    )
+    metrics: List[str] = Field(
+        default_factory=list,
+        description=(
+            "Saved metric names to compute (e.g. ['count', 'avg_revenue']). "
+            "Use get_dataset_info to discover available metrics."
+        ),
+    )
+    columns: List[str] = Field(
+        default_factory=list,
+        description=(
+            "Column/dimension names for GROUP BY or SELECT "
+            "(e.g. ['category', 'region']). "
+            "Use get_dataset_info to discover available columns."
+        ),
+    )
+    filters: List[QueryDatasetFilter] = Field(
+        default_factory=list,
+        description=(
+            'Filter conditions (e.g. [{"col": "status", "op": "==", "val": "active"}]).'
+        ),
+    )
+    time_range: str | None = Field(
+        default=None,
+        description=(
+            "Time range filter. Use Superset relative shorthands like "
+            "'Last 7 days', 'Last month', 'Last year', 'Last quarter', "
+            "'Current week', 'previous calendar year', or an ISO-8601 range "
+            "like '2024-01-01 : 2024-12-31'. Requires a temporal column "
+            "on the dataset. Bracket shorthands like '[year]' or "
+            "'[quarter]' are also accepted and normalized to the "
+            "equivalent 'Last <unit>' form."
+        ),
+    )
+    time_column: str | None = Field(
+        default=None,
+        description=(
+            "Temporal column to apply time_range to. "
+            "Defaults to the dataset's main datetime column."
+        ),
+    )
+    order_by: List[str] | None = Field(
+        default=None,
+        description="Column or metric names to sort results by.",
+    )
+    order_desc: bool = Field(
+        default=True,
+        description="Sort descending (True) or ascending (False).",
+    )
+    row_limit: int = Field(
+        default=1000,
+        ge=1,
+        le=50000,
+        description="Maximum number of rows to return (default 1000, max 50000).",
+    )
+
+    @field_validator("time_range")
+    @classmethod
+    def _validate_time_range(cls, v: str | None) -> str | None:
+        return validate_time_range(v)
+
+    @model_validator(mode="after")
+    def validate_metrics_or_columns(self) -> "QueryDatasetRequest":
+        """At least one of metrics or columns must be provided."""
+        if not self.metrics and not self.columns:
+            raise ValueError(
+                "At least one of 'metrics' or 'columns' must be provided. "
+                "Use get_dataset_info to discover available metrics and columns."
+            )
+        return self
+
+
+class QueryDatasetResponse(BaseModel):
+    """Response schema for query_dataset tool."""
+
+    model_config = ConfigDict(ser_json_timedelta="iso8601")
+
+    dataset_id: int = Field(..., description="Dataset ID")
+    dataset_name: str = Field(..., description="Dataset name")
+    columns: List[DataColumn] = Field(
+        default_factory=list, description="Column metadata for returned data"
+    )
+    data: List[Dict[str, Any]] = Field(
+        default_factory=list, description="Query result rows"
+    )
+    row_count: int = Field(0, description="Number of rows returned")
+    total_rows: int | None = Field(
+        None, description="Total row count from the query engine"
+    )
+    summary: str = Field("", description="Human-readable summary of the results")
+    performance: PerformanceMetadata | None = Field(
+        None, description="Query performance metadata"
+    )
+    cache_status: CacheStatus | None = Field(
+        None, description="Cache hit/miss information"
+    )
+    applied_filters: List[QueryDatasetFilter] = Field(
+        default_factory=list, description="Filters that were applied to the query"
+    )
+    warnings: List[str] = Field(
+        default_factory=list, description="Any warnings encountered during execution"
+    )
+
+
 def _parse_json_field(obj: Any, field_name: str) -> Dict[str, Any] | None:
     """Parse a field that may be stored as a JSON string into a dict."""
     value = getattr(obj, field_name, None)
@@ -394,13 +895,6 @@ def _parse_json_field(obj: Any, field_name: str) -> Dict[str, Any] | None:
     return value
 
 
-def _humanize_timestamp(dt: datetime | None) -> str | None:
-    """Convert a datetime to a humanized string like '2 hours ago'."""
-    if dt is None:
-        return None
-    return humanize.naturaltime(datetime.now() - dt)
-
-
 def serialize_dataset_object(dataset: Any) -> DatasetInfo | None:
     if not dataset:
         return None
@@ -411,11 +905,11 @@ def serialize_dataset_object(dataset: Any) -> DatasetInfo | None:
     if isinstance(params, str):
         try:
             params = json.loads(params)
-        except Exception:
+        except (json.JSONDecodeError, TypeError):
             params = None
     columns = [
         TableColumnInfo(
-            column_name=getattr(col, "column_name", None),
+            column_name=getattr(col, "column_name", None) or "",
             verbose_name=getattr(col, "verbose_name", None),
             type=getattr(col, "type", None),
             is_dttm=getattr(col, "is_dttm", None),
@@ -427,7 +921,7 @@ def serialize_dataset_object(dataset: Any) -> DatasetInfo | None:
     ]
     metrics = [
         SqlMetricInfo(
-            metric_name=getattr(metric, "metric_name", None),
+            metric_name=getattr(metric, "metric_name", None) or "",
             verbose_name=getattr(metric, "verbose_name", None),
             expression=getattr(metric, "expression", None),
             description=getattr(metric, "description", None),
@@ -446,14 +940,21 @@ def serialize_dataset_object(dataset: Any) -> DatasetInfo | None:
         certified_by=getattr(dataset, "certified_by", None),
         certification_details=getattr(dataset, "certification_details", None),
         changed_on=getattr(dataset, "changed_on", None),
-        changed_on_humanized=_humanize_timestamp(getattr(dataset, "changed_on", None)),
+        changed_on_humanized=humanize_timestamp(getattr(dataset, "changed_on", None)),
         created_on=getattr(dataset, "created_on", None),
-        created_on_humanized=_humanize_timestamp(getattr(dataset, "created_on", None)),
+        created_on_humanized=humanize_timestamp(getattr(dataset, "created_on", None)),
         tags=[
             TagInfo.model_validate(tag, from_attributes=True)
             for tag in getattr(dataset, "tags", [])
         ]
         if getattr(dataset, "tags", None)
+        else [],
+        editors=[
+            info
+            for editor in getattr(dataset, "editors", [])
+            if (info := serialize_subject_object(editor)) is not None
+        ]
+        if getattr(dataset, "editors", None)
         else [],
         is_virtual=getattr(dataset, "is_virtual", None),
         database_id=getattr(dataset, "database_id", None),
@@ -462,8 +963,8 @@ def serialize_dataset_object(dataset: Any) -> DatasetInfo | None:
         else None,
         schema_perm=getattr(dataset, "schema_perm", None),
         url=(
-            f"{get_superset_base_url()}/tablemodelview/edit/"
-            f"{getattr(dataset, 'id', None)}"
+            f"{get_superset_base_url()}/explore/"
+            f"?datasource_type=table&datasource_id={getattr(dataset, 'id', None)}"
             if getattr(dataset, "id", None)
             else None
         ),

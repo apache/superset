@@ -19,7 +19,7 @@
 import {
   cloneElement,
   forwardRef,
-  RefObject,
+  ForwardedRef,
   useEffect,
   useImperativeHandle,
   useLayoutEffect,
@@ -54,7 +54,7 @@ export const DropdownContainer = forwardRef(
       forceRender,
       style,
     }: DropdownContainerProps,
-    outerRef: RefObject<DropdownRef>,
+    outerRef: ForwardedRef<DropdownRef>,
   ) => {
     const theme = useTheme();
     const { ref, width = 0 } = useResizeDetector<HTMLDivElement>();
@@ -71,6 +71,15 @@ export const DropdownContainer = forwardRef(
     }
 
     const [showOverflow, setShowOverflow] = useState(false);
+
+    // When the item set changes, the overflow index is briefly reset while the
+    // new widths are measured (see the layout effect below). During that window
+    // the dropdown content momentarily becomes empty, which would hide and then
+    // re-show the trigger, causing a flicker. We track whether a recalculation
+    // is pending so the trigger can stay mounted across the transient (when it
+    // was showing content just before) without lingering in the steady state
+    // when nothing actually overflows.
+    const [recalculating, setRecalculating] = useState(false);
 
     // callback to update item widths so that the useLayoutEffect runs whenever
     // width of any of the child changes
@@ -171,6 +180,7 @@ export const DropdownContainer = forwardRef(
             );
           } else {
             setOverflowingIndex(-1);
+            setRecalculating(true);
             return;
           }
         }
@@ -211,6 +221,7 @@ export const DropdownContainer = forwardRef(
         }
 
         setOverflowingIndex(newOverflowingIndex);
+        setRecalculating(false);
       }
     }, [
       current,
@@ -260,6 +271,15 @@ export const DropdownContainer = forwardRef(
         overflowedItems,
       ],
     );
+
+    // The trigger had content in the previous render if popoverContent was
+    // truthy then. During the brief mid-recalculation render where
+    // popoverContent flips to null, this still reflects the prior (non-empty)
+    // value, letting us keep the trigger mounted across the transient.
+    const hadPopoverContent = usePrevious(!!popoverContent, false);
+
+    const showDropdownButton =
+      !!popoverContent || (recalculating && hadPopoverContent);
 
     useLayoutEffect(() => {
       if (popoverVisible) {
@@ -314,13 +334,13 @@ export const DropdownContainer = forwardRef(
         >
           {notOverflowedItems.map(item => item.element)}
         </div>
-        {popoverContent && (
+        {showDropdownButton && (
           <>
             <Global
               styles={css`
-                .ant-popover-inner {
-                  // Some OS versions only show the scroll when hovering.
-                  // These settings will make the scroll always visible.
+                .ant-popover-container {
+                  /* Some OS versions only show the scroll when hovering. */
+                  /* These settings will make the scroll always visible. */
                   ::-webkit-scrollbar {
                     -webkit-appearance: none;
                     width: 14px;
@@ -341,15 +361,21 @@ export const DropdownContainer = forwardRef(
 
             <Popover
               styles={{
-                body: {
+                // antd v6 renamed the inner content slot `body` -> `container`
+                container: {
                   maxHeight: `${MAX_HEIGHT}px`,
                   overflow: showOverflow ? 'auto' : 'visible',
                 },
               }}
               content={popoverContent}
               trigger="click"
-              open={popoverVisible}
-              onOpenChange={visible => setPopoverVisible(visible)}
+              open={popoverVisible && !!popoverContent}
+              onOpenChange={visible => {
+                // While a recalculation keeps the trigger mounted but there is
+                // no content yet, ignore open attempts so it stays visible
+                // without opening an empty popover.
+                if (popoverContent) setPopoverVisible(visible);
+              }}
               placement="bottom"
               forceRender={forceRender}
               fresh // This prop prevents caching and stale data for filter scoping.

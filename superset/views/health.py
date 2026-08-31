@@ -37,9 +37,20 @@ def health() -> FlaskResponse:
 @talisman(force_https=False)
 def version() -> FlaskResponse:
     """
-    Return comprehensive version information including Git SHA
-    and branch when available.
+    Return version information. Precise build details (the git SHA and build
+    number) are only exposed to admins unless the deployment opts in via
+    EXPOSE_BUILD_DETAILS_TO_USERS; the release version string is always
+    included.
     """
-    from superset.utils.version import get_version_metadata
+    from superset import security_manager
+    from superset.utils.version import (
+        get_version_metadata,
+        visible_version_metadata,
+    )
 
-    return jsonify(get_version_metadata())
+    expose_build_details = (
+        app.config["EXPOSE_BUILD_DETAILS_TO_USERS"] or security_manager.is_admin()
+    )
+    return jsonify(
+        visible_version_metadata(get_version_metadata(), expose_build_details)
+    )

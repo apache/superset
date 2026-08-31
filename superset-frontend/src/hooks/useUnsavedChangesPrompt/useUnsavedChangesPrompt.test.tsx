@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { renderHook, act } from '@testing-library/react-hooks';
+import { renderHook, act } from '@testing-library/react';
 import { Router } from 'react-router-dom';
 import { createMemoryHistory } from 'history';
 import { useUnsavedChangesPrompt } from '.';
@@ -56,10 +56,9 @@ test('should block navigation and show modal if there are unsaved changes', () =
     { wrapper },
   );
 
-  // Simulate blocked navigation
-  const unblock = history.block((tx: any) => tx);
-  unblock();
-  history.push('/another-page');
+  act(() => {
+    history.push('/another-page');
+  });
 
   expect(result.current.showModal).toBe(true);
 });
@@ -113,14 +112,16 @@ test('should close modal when handleConfirmNavigation is called', () => {
   );
 
   // First, trigger navigation to show the modal
-  const unblock = history.block((tx: any) => tx);
-  unblock();
-  history.push('/another-page');
+  act(() => {
+    history.push('/another-page');
+  });
 
   expect(result.current.showModal).toBe(true);
 
   // Then call handleConfirmNavigation to discard changes
-  result.current.handleConfirmNavigation();
+  act(() => {
+    result.current.handleConfirmNavigation();
+  });
 
   expect(result.current.showModal).toBe(false);
 });

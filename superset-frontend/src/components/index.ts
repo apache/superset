@@ -48,4 +48,4 @@ export {
   usePluginContext,
   type PluginContextType,
 } from './DynamicPlugins';
-export * from './FacePile';
+export { KebabMenuButton, type KebabMenuButtonProps } from './KebabMenuButton';

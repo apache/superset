@@ -18,7 +18,8 @@ from __future__ import annotations
 
 import inspect
 import logging
-from datetime import datetime, timedelta
+import pickle
+from datetime import datetime, timedelta, timezone
 from functools import wraps
 from typing import Any, Callable
 
@@ -73,8 +74,30 @@ def set_and_log_cache(
     if timeout == CACHE_DISABLED_TIMEOUT:
         return
     try:
-        dttm = datetime.utcnow().isoformat().split(".")[0]
+        dttm: str = (
+            datetime.now(timezone.utc).replace(tzinfo=None).isoformat().split(".")[0]
+        )
         value = {**cache_value, "dttm": dttm}
+
+        # Skip caching results that are too large to protect the cache backend
+        # (e.g. Redis/Memcached) from being flooded by huge result sets. The chart
+        # still renders; the value is simply not cached, causing a re-query on the
+        # next load instead of a cache hit. Disabled when DATA_CACHE_MAX_VALUE_SIZE
+        # is None (the default), in which case no serialization overhead is incurred.
+        max_value_size = app.config.get("DATA_CACHE_MAX_VALUE_SIZE")
+        if max_value_size is not None:
+            value_size = len(pickle.dumps(value, protocol=pickle.HIGHEST_PROTOCOL))
+            if value_size > max_value_size:
+                logger.warning(
+                    "Skipping cache set for key %s: serialized value size %d bytes "
+                    "exceeds DATA_CACHE_MAX_VALUE_SIZE (%d bytes)",
+                    cache_key,
+                    value_size,
+                    max_value_size,
+                )
+                app.config["STATS_LOGGER"].incr("skip_cache_value_too_large")
+                return
+
         cache_instance.set(cache_key, value, timeout=timeout)
         stats_logger = app.config["STATS_LOGGER"]
         stats_logger.incr("set_cache_key")
@@ -139,12 +162,20 @@ def memoized_func(key: str, cache: Cache = cache_manager.cache) -> Callable[...,
         def wrapped_f(*args: Any, **kwargs: Any) -> Any:
             should_cache = kwargs.pop("cache", True)
             force = kwargs.pop("force", False)
-            cache_timeout = kwargs.pop(
-                "cache_timeout", app.config["CACHE_DEFAULT_TIMEOUT"]
-            )
+            # always popped, even when caching is skipped, so it is never forwarded
+            # to the decorated function as an unexpected keyword argument.
+            cache_timeout = kwargs.pop("cache_timeout", None)
 
             if not should_cache:
                 return f(*args, **kwargs)
+
+            # callers may explicitly pass ``cache_timeout=None`` (eg, when a database
+            # has no custom metadata cache timeout configured), which should fall back
+            # to the default timeout rather than be forwarded to the cache backend.
+            # the config lookup happens here so the uncached path stays independent
+            # of the Flask app config.
+            if cache_timeout is None:
+                cache_timeout = app.config["CACHE_DEFAULT_TIMEOUT"]
 
             # format the key using args/kwargs passed to the decorated function
             signature = inspect.signature(f)
@@ -226,7 +257,9 @@ def etag_cache(  # noqa: C901
 
             # Check if the cache is stale. Default the content_changed_time to now
             # if we don't know when it was last modified.
-            content_changed_time = datetime.utcnow()
+            content_changed_time: datetime = datetime.now(timezone.utc).replace(
+                tzinfo=None
+            )
             if get_last_modified:
                 content_changed_time = get_last_modified(*args, **kwargs)
                 if (

@@ -30,7 +30,7 @@ import {
 } from 'src/features/datasets/AddDataset/types';
 import { Table } from 'src/hooks/apiResources';
 import { Typography } from '@superset-ui/core/components/Typography';
-import { ensureAppRoot } from 'src/utils/pathUtils';
+import { ensureAppRoot } from 'src/utils/navigationUtils';
 
 interface LeftPanelProps {
   setDataset: Dispatch<SetStateAction<object>>;

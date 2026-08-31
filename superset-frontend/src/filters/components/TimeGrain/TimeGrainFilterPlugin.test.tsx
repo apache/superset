@@ -85,12 +85,12 @@ test('renders all options when time_grains is not set', async () => {
   expect(options[3]).toHaveTextContent('Year');
 });
 
-test('filters options based on time_grains allowlist', async () => {
+test('filters options based on timeGrains allowlist', async () => {
   const propsWithAllowlist = {
     ...defaultProps,
     formData: {
       ...defaultProps.formData,
-      time_grains: ['P1D', 'P1W'],
+      timeGrains: ['P1D', 'P1W'],
     },
   };
 
@@ -106,12 +106,12 @@ test('filters options based on time_grains allowlist', async () => {
   expect(options[1]).toHaveTextContent('Week');
 });
 
-test('shows all options when time_grains is empty array', async () => {
+test('shows all options when timeGrains is empty array', async () => {
   const propsWithEmptyAllowlist = {
     ...defaultProps,
     formData: {
       ...defaultProps.formData,
-      time_grains: [],
+      timeGrains: [],
     },
   };
 
@@ -125,12 +125,12 @@ test('shows all options when time_grains is empty array', async () => {
   expect(options.length).toBe(4);
 });
 
-test('shows all options when time_grains is undefined', async () => {
+test('shows all options when timeGrains is undefined', async () => {
   const propsWithUndefined = {
     ...defaultProps,
     formData: {
       ...defaultProps.formData,
-      time_grains: undefined,
+      timeGrains: undefined,
     },
   };
 

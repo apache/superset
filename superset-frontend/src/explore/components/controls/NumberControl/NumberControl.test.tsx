@@ -90,7 +90,7 @@ test('stepper arrows trigger onChange immediately', async () => {
   };
   render(<NumberControl {...props} />);
   const upButton = document.querySelector(
-    '.ant-input-number-handler-up',
+    '.ant-input-number-action-up',
   ) as HTMLElement;
   expect(upButton).toBeInTheDocument();
   await userEvent.click(upButton);

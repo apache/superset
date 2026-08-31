@@ -17,11 +17,13 @@
 from unittest.mock import ANY, call, MagicMock, patch
 
 import pytest
+from flask_appbuilder.security.sqla import models as ab_models
 
 from superset import db, security_manager
 from superset.commands.dashboard.update import UpdateDashboardCommand
 from superset.models.dashboard import Dashboard
 from superset.utils.json import dumps
+from tests.integration_tests.base_tests import subjects_from_users
 from tests.integration_tests.fixtures.tabbed_dashboard import (
     tabbed_dashboard,  # noqa: F401
 )
@@ -51,6 +53,17 @@ def remove_tabs_from_dashboard(dashboard: Dashboard, tabs: list[str]):
     return data
 
 
+def get_users_by_username(usernames: list[str]) -> list[ab_models.User]:
+    user_model = security_manager.user_model
+    users_by_username = {
+        user.username: user
+        for user in db.session.query(user_model)
+        .filter(user_model.username.in_(usernames))
+        .all()
+    }
+    return [users_by_username[username] for username in usernames]
+
+
 @patch("superset.commands.dashboard.update.send_email_smtp")
 @patch.dict(
     "superset.extensions.feature_flag_manager._feature_flags", ALERT_REPORT_TABS=True
@@ -65,7 +78,7 @@ def test_tab_deletion_single_report(
     report = create_report_notification(
         dashboard=tabbed_dashboard,
         extra={"dashboard": {"anchor": tab_to_delete}},
-        owners=[users[0]],
+        editors=subjects_from_users([users[0]]),
     )
     assert report.active is True
     UpdateDashboardCommand(
@@ -94,24 +107,24 @@ def test_tab_deletion_multiple_reports(
 ):
     tab_to_delete = tab1
     retained_tab = tab2
-    users = db.session.query(security_manager.user_model).all()
+    users = get_users_by_username(["gamma", "alpha", "admin"])
     report1 = create_report_notification(
         name="report 1",
         dashboard=tabbed_dashboard,
         extra={"dashboard": {"anchor": tab_to_delete}},
-        owners=[users[0], users[1]],
+        editors=subjects_from_users([users[0], users[1]]),
     )
     report2 = create_report_notification(
         name="report 2",
         dashboard=tabbed_dashboard,
         extra={"dashboard": {"anchor": tab_to_delete}},
-        owners=[users[1]],
+        editors=subjects_from_users([users[1]]),
     )
     report3 = create_report_notification(
         name="report 3",
         dashboard=tabbed_dashboard,
         extra={"dashboard": {"anchor": retained_tab}},
-        owners=[users[2]],
+        editors=subjects_from_users([users[2]]),
     )
 
     assert report1.active is True
@@ -149,7 +162,7 @@ def test_tab_deletion_multiple_reports(
     ]
 
     assert send_email_smtp_mock.call_count == 3
-    assert send_email_smtp_mock.call_args_list == expected_calls
+    send_email_smtp_mock.assert_has_calls(expected_calls, any_order=True)
 
     cleanup_report_schedule(report1)
     cleanup_report_schedule(report2)
@@ -166,18 +179,18 @@ def test_multitple_tabs_removed(
     login_as_admin,
 ):
     tabs_to_delete = [tab1, tab2]
-    users = db.session.query(security_manager.user_model).all()
+    users = get_users_by_username(["gamma", "alpha", "admin"])
     report1 = create_report_notification(
         name="report 1",
         dashboard=tabbed_dashboard,
         extra={"dashboard": {"anchor": tabs_to_delete[0]}},
-        owners=[users[0], users[1]],
+        editors=subjects_from_users([users[0], users[1]]),
     )
     report2 = create_report_notification(
         name="report 2",
         dashboard=tabbed_dashboard,
         extra={"dashboard": {"anchor": tabs_to_delete[1]}},
-        owners=[users[2]],
+        editors=subjects_from_users([users[2]]),
     )
 
     assert report1.active is True
@@ -213,7 +226,7 @@ def test_multitple_tabs_removed(
     ]
 
     assert send_email_smtp_mock.call_count == 3
-    assert send_email_smtp_mock.call_args_list == expected_calls
+    send_email_smtp_mock.assert_has_calls(expected_calls, any_order=True)
 
     cleanup_report_schedule(report1)
     cleanup_report_schedule(report2)

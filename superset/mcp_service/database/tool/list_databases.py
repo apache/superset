@@ -59,6 +59,7 @@ _DEFAULT_LIST_DATABASES_REQUEST = ListDatabasesRequest()
         title="List databases",
         readOnlyHint=True,
         destructiveHint=False,
+        openWorldHint=False,
     ),
 )
 @requires_data_model_metadata_access
@@ -154,6 +155,7 @@ async def list_databases(
                 order_direction=request.order_direction,
                 page=max(request.page - 1, 0),
                 page_size=request.page_size,
+                created_by_me=request.created_by_me,
             )
 
         await ctx.info(

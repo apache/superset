@@ -21,6 +21,7 @@ from copy import copy
 from datetime import timedelta
 
 from sqlalchemy.engine import make_url
+from sqlalchemy.pool import NullPool
 
 from superset.config import *  # noqa: F403
 from superset.config import DATA_DIR
@@ -58,6 +59,23 @@ if make_url(SQLALCHEMY_DATABASE_URI).get_backend_name() == "sqlite":
         "SQLite Database support for metadata databases will be "
         "removed in a future version of Superset."
     )
+    # SQLAlchemy 2.0 changed the default poolclass for file-based SQLite
+    # engines from NullPool to QueuePool (SQLAlchemy 1.4 always created a
+    # fresh low-level connection per checkout for sqlite files, so a pooled
+    # connection was never handed to a thread other than the one that opened
+    # it). QueuePool reuses connections across checkouts, including checkouts
+    # from background threads (e.g. the GTF task framework's deferred-flush
+    # timer in superset/tasks/context.py). Combined with our
+    # `?check_same_thread=true` test URIs, a connection opened on the main
+    # thread can now be handed to a timer thread, which pysqlite rejects with
+    # "SQLite objects created in a thread can only be used in that same
+    # thread." Pin poolclass back to NullPool to restore the 1.4 behavior for
+    # the test suite specifically; Superset's non-test default config uses
+    # `check_same_thread=false`, which is unaffected by this pool reuse.
+    SQLALCHEMY_ENGINE_OPTIONS = {  # noqa: F405
+        **SQLALCHEMY_ENGINE_OPTIONS,  # noqa: F405
+        "poolclass": NullPool,  # noqa: F405
+    }
 
 # Speeding up the tests.integration_tests.
 PRESTO_POLL_INTERVAL = 0.1
@@ -70,10 +88,12 @@ FEATURE_FLAGS = {
     "foo": "bar",
     "ENABLE_TEMPLATE_PROCESSING": True,
     "ALERT_REPORTS": True,
-    "AVOID_COLORS_COLLISION": True,
     "DRILL_TO_DETAIL": True,
     "DRILL_BY": True,
     "GLOBAL_TASK_FRAMEWORK": True,
+    # Version-history UI ships dark; e2e coverage needs the panel reachable
+    # (capture itself is enabled via ENABLE_VERSIONING_CAPTURE below).
+    "VERSION_HISTORY": True,
 }
 
 WEBDRIVER_BASEURL = "http://0.0.0.0:8081/"
@@ -86,7 +106,16 @@ def GET_FEATURE_FLAGS_FUNC(ff):  # noqa: N802
 
 
 TESTING = True
+TALISMAN_ENABLED = False
 WTF_CSRF_ENABLED = False
+
+# Production ships entity-version capture OFF (see ``config.py``); the test
+# suite turns it ON so the capture pipeline (Continuum shadow rows + baseline
+# + ``version_changes``) is actually exercised. The dark/kill-switch contract
+# is proven separately by
+# ``tests/integration_tests/versioning/capture_disabled_tests.py``, which
+# detaches the listeners within the test.
+ENABLE_VERSIONING_CAPTURE = True
 
 FAB_ROLES = {"TestRole": [["Security", "menu_access"], ["List Users", "menu_access"]]}
 
@@ -133,6 +162,10 @@ ALERT_REPORTS_WORKING_TIME_OUT_KILL = True
 ALERT_REPORTS_QUERY_EXECUTION_MAX_TRIES = 3
 
 FAB_ADD_SECURITY_API = True
+
+# Swagger UI / OpenAPI spec is opt-in in the base config; enable it for tests
+# that exercise the /api/v1/_openapi spec endpoint.
+FAB_API_SWAGGER_UI = True
 
 
 class CeleryConfig:

@@ -28,6 +28,7 @@ import {
   Typography,
 } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
+import { redirect } from 'src/utils/navigationUtils';
 import { getTargetUrl, isUrlTrusted, trustUrl, isAllowedScheme } from './utils';
 
 const PageContainer = styled(Flex)`
@@ -99,7 +100,7 @@ export default function RedirectWarning() {
   // Redirect immediately if the URL is already trusted
   useEffect(() => {
     if (targetUrl && isAllowedScheme(targetUrl) && isUrlTrusted(targetUrl)) {
-      window.location.href = targetUrl;
+      redirect(targetUrl);
     }
   }, [targetUrl]);
 
@@ -108,11 +109,11 @@ export default function RedirectWarning() {
     if (trustChecked) {
       trustUrl(targetUrl);
     }
-    window.location.href = targetUrl;
+    redirect(targetUrl);
   }, [trustChecked, targetUrl]);
 
   const handleReturn = useCallback(() => {
-    window.location.href = '/';
+    redirect('/');
   }, []);
 
   if (!targetUrl) {
@@ -124,6 +125,37 @@ export default function RedirectWarning() {
               {t('Missing URL parameter')}
             </Typography.Text>
           </WarningBody>
+        </WarningCard>
+      </PageContainer>
+    );
+  }
+
+  // Defense-in-depth: when the URL's scheme is rejected we render a
+  // visible "blocked" state without a Continue button, instead of the
+  // standard "External link warning" Card. The handler also short-circuits
+  // on `isAllowedScheme(targetUrl)`, but rendering Continue for a URL we
+  // refuse to follow lets the page mislead the user into believing the
+  // target is safe to consent to.
+  if (!isAllowedScheme(targetUrl)) {
+    return (
+      <PageContainer justify="center" align="center">
+        <WarningCard>
+          <WarningHeader align="center" gap="middle">
+            <Icons.WarningOutlined iconColor={theme.colorError} iconSize="xl" />
+            <WarningTitle level={4}>{t('Unsafe link blocked')}</WarningTitle>
+          </WarningHeader>
+          <WarningBody>
+            <Typography.Paragraph type="secondary">
+              {t('This link cannot be followed because its address is unsafe.')}
+            </Typography.Paragraph>
+            <UrlDisplay align="center" gap="small">
+              <Icons.LinkOutlined iconColor={theme.colorTextTertiary} />
+              <UrlText>{targetUrl}</UrlText>
+            </UrlDisplay>
+          </WarningBody>
+          <WarningFooter justify="flex-end" gap="small">
+            <Button onClick={handleReturn}>{t('Return to Superset')}</Button>
+          </WarningFooter>
         </WarningCard>
       </PageContainer>
     );

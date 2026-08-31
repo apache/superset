@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { sanitizeUrl } from '@braintree/sanitize-url';
 import { EventHandler, ChangeEvent, MouseEvent, ReactNode } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { SupersetTheme } from '@apache-superset/core/theme';
@@ -87,7 +88,9 @@ const SqlAlchemyTab = ({
         <div className="helper">
           {t('Refer to the')}{' '}
           <a
-            href={fallbackDocsUrl || conf?.SQLALCHEMY_DOCS_URL || ''}
+            href={sanitizeUrl(
+              fallbackDocsUrl || conf?.SQLALCHEMY_DOCS_URL || '',
+            )}
             target="_blank"
             rel="noopener noreferrer"
           >

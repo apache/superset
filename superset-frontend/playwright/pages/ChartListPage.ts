@@ -19,7 +19,8 @@
 
 import { Page, Locator } from '@playwright/test';
 import { Table } from '../components/core';
-import { BulkSelect } from '../components/ListView';
+import { BulkSelect, BulkSelectActionKey } from '../components/ListView';
+import { gotoWithRetry } from '../helpers/navigation';
 import { URL } from '../utils/urls';
 
 /**
@@ -31,13 +32,12 @@ export class ChartListPage {
   readonly bulkSelect: BulkSelect;
 
   /**
-   * Action button names for getByRole('button', { name })
-   * Verified: ChartList uses Icons.DeleteOutlined, Icons.UploadOutlined, Icons.EditOutlined
+   * Stable data-test keys for the row action buttons in ChartList.
    */
-  private static readonly ACTION_BUTTONS = {
-    DELETE: 'delete',
-    EDIT: 'edit',
-    EXPORT: 'upload',
+  private static readonly ACTION_TEST_IDS = {
+    DELETE: 'chart-row-delete',
+    EDIT: 'chart-row-edit',
+    EXPORT: 'chart-row-export',
   } as const;
 
   constructor(page: Page) {
@@ -52,14 +52,14 @@ export class ChartListPage {
    * (ListviewsDefaultCardView feature flag may enable card view).
    */
   async goto(): Promise<void> {
-    await this.page.goto(`${URL.CHART_LIST}?viewMode=table`);
+    await gotoWithRetry(this.page, `${URL.CHART_LIST}?viewMode=table`);
   }
 
   /**
    * Navigate to the chart list page in card view.
    */
   async gotoCardView(): Promise<void> {
-    await this.page.goto(`${URL.CHART_LIST}?viewMode=card`);
+    await gotoWithRetry(this.page, `${URL.CHART_LIST}?viewMode=card`);
   }
 
   /**
@@ -97,9 +97,7 @@ export class ChartListPage {
    */
   async clickDeleteAction(chartName: string): Promise<void> {
     const row = this.table.getRow(chartName);
-    await row
-      .getByRole('button', { name: ChartListPage.ACTION_BUTTONS.DELETE })
-      .click();
+    await row.getByTestId(ChartListPage.ACTION_TEST_IDS.DELETE).click();
   }
 
   /**
@@ -108,9 +106,7 @@ export class ChartListPage {
    */
   async clickEditAction(chartName: string): Promise<void> {
     const row = this.table.getRow(chartName);
-    await row
-      .getByRole('button', { name: ChartListPage.ACTION_BUTTONS.EDIT })
-      .click();
+    await row.getByTestId(ChartListPage.ACTION_TEST_IDS.EDIT).click();
   }
 
   /**
@@ -119,9 +115,7 @@ export class ChartListPage {
    */
   async clickExportAction(chartName: string): Promise<void> {
     const row = this.table.getRow(chartName);
-    await row
-      .getByRole('button', { name: ChartListPage.ACTION_BUTTONS.EXPORT })
-      .click();
+    await row.getByTestId(ChartListPage.ACTION_TEST_IDS.EXPORT).click();
   }
 
   /**
@@ -140,11 +134,11 @@ export class ChartListPage {
   }
 
   /**
-   * Clicks a bulk action button by name (e.g., "Export", "Delete")
-   * @param actionName - The name of the bulk action to click
+   * Clicks a bulk action button by its stable action key (e.g., "delete", "export").
+   * @param actionKey - The stable key of the bulk action to click
    */
-  async clickBulkAction(actionName: string): Promise<void> {
-    await this.bulkSelect.clickAction(actionName);
+  async clickBulkAction(actionKey: BulkSelectActionKey): Promise<void> {
+    await this.bulkSelect.clickAction(actionKey);
   }
 
   // --- Card view methods ---

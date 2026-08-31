@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { renderHook } from '@testing-library/react-hooks';
+import { renderHook } from '@testing-library/react';
 import { useJsonValidation } from './useJsonValidation';
 
 describe('useJsonValidation', () => {
@@ -60,7 +60,7 @@ describe('useJsonValidation', () => {
     expect(result.current[0]).toMatchObject({
       type: 'error',
       row: 0,
-      column: 0,
+      column: 1,
       text: expect.stringContaining('Invalid JSON'),
     });
   });

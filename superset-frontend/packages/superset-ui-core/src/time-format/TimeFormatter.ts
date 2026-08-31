@@ -28,7 +28,7 @@ export const PREVIEW_TIME = new Date(Date.UTC(2017, 1, 14, 11, 22, 33));
 // Use type augmentation to indicate that
 // an instance of TimeFormatter is also a function
 interface TimeFormatter {
-  (value: Date | number | null | undefined): string;
+  (value: Date | number | string | null | undefined): string;
 }
 
 class TimeFormatter extends ExtensibleFunction {
@@ -49,7 +49,9 @@ class TimeFormatter extends ExtensibleFunction {
     formatFunc: TimeFormatFunction;
     useLocalTime?: boolean;
   }) {
-    super((value: Date | number | null | undefined) => this.format(value));
+    super((value: Date | number | string | null | undefined) =>
+      this.format(value),
+    );
 
     const {
       id = isRequired('config.id'),
@@ -66,7 +68,7 @@ class TimeFormatter extends ExtensibleFunction {
     this.useLocalTime = useLocalTime;
   }
 
-  format(value: Date | number | null | undefined) {
+  format(value: Date | number | string | null | undefined) {
     return stringifyTimeInput(value, time => this.formatFunc(time));
   }
 

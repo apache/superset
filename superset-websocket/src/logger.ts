@@ -43,6 +43,7 @@ export function createLogger(opts: LoggingOptionsType) {
     level: opts.logLevel,
     transports: logTransports,
     format: winston.format.combine(
+      winston.format.timestamp(),
       winston.format.errors({ stack: true }),
       winston.format.json(),
     ),

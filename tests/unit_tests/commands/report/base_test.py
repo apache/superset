@@ -24,9 +24,13 @@ from typing import Any, Callable
 from unittest.mock import patch
 
 import pytest
+from pytest_mock import MockerFixture
 
 from superset.commands.report.base import BaseReportScheduleCommand
-from superset.commands.report.exceptions import ReportScheduleFrequencyNotAllowed
+from superset.commands.report.exceptions import (
+    ReportScheduleCrontabNotValidError,
+    ReportScheduleFrequencyNotAllowed,
+)
 from superset.reports.models import ReportScheduleType
 
 REPORT_TYPES = {
@@ -175,6 +179,28 @@ def test_validate_report_frequency_report_only(schedule: str) -> None:
 
 
 @pytest.mark.parametrize("report_type", REPORT_TYPES)
+@app_custom_config(
+    alert_minimum_interval=int(timedelta(minutes=5).total_seconds()),
+    report_minimum_interval=int(timedelta(minutes=5).total_seconds()),
+)
+def test_validate_report_frequency_never_matching_crontab(report_type: str) -> None:
+    """
+    Test the ``validate_report_frequency`` method with a crontab that is
+    syntactically valid but never matches a real calendar date (Feb 30th).
+
+    Such schedules pass ``croniter.is_valid()`` (purely syntactic) and thus
+    marshmallow schema validation, but raise ``CroniterBadDateError`` when
+    iterated. This should surface as a ``ValidationError`` rather than
+    propagating the raw croniter exception.
+    """
+    with pytest.raises(ReportScheduleCrontabNotValidError):
+        BaseReportScheduleCommand().validate_report_frequency(
+            "0 0 30 2 *",
+            report_type,
+        )
+
+
+@pytest.mark.parametrize("report_type", REPORT_TYPES)
 @pytest.mark.parametrize("schedule", TEST_SCHEDULES)
 @app_custom_config(
     alert_minimum_interval=int(timedelta(minutes=1).total_seconds()),
@@ -293,3 +319,94 @@ def test_validate_report_frequency_using_callable() -> None:
         "1,6 * * * *",
         ReportScheduleType.REPORT,
     )
+
+
+def test_validate_alert_query_rejects_multi_statement_sql() -> None:
+    """
+    Alert SQL is validated at save time; multi-statement SQL cannot be
+    persisted for later raw execution by the alert runner.
+    """
+    from unittest.mock import MagicMock
+
+    from marshmallow import ValidationError
+
+    from superset.commands.report.base import BaseReportScheduleCommand
+    from superset.commands.report.exceptions import (
+        AlertQueryMultipleStatementsValidationError,
+    )
+
+    database = MagicMock()
+    database.backend = "sqlite"
+    database.allow_dml = False
+
+    exceptions: list[ValidationError] = []
+    BaseReportScheduleCommand().validate_alert_query(
+        database, "SELECT 1; DROP TABLE ab_user", exceptions
+    )
+
+    assert len(exceptions) == 1
+    assert isinstance(exceptions[0], AlertQueryMultipleStatementsValidationError)
+
+
+def test_validate_alert_query_rejects_dml_when_not_allowed() -> None:
+    """A mutating alert query is rejected unless the database allows DML."""
+    from unittest.mock import MagicMock
+
+    from marshmallow import ValidationError
+
+    from superset.commands.report.base import BaseReportScheduleCommand
+    from superset.commands.report.exceptions import (
+        AlertQueryDMLNotAllowedValidationError,
+    )
+
+    database = MagicMock()
+    database.backend = "sqlite"
+    database.allow_dml = False
+
+    exceptions: list[ValidationError] = []
+    BaseReportScheduleCommand().validate_alert_query(
+        database, "UPDATE ab_user SET active = 1", exceptions
+    )
+
+    assert len(exceptions) == 1
+    assert isinstance(exceptions[0], AlertQueryDMLNotAllowedValidationError)
+
+
+def test_validate_alert_query_rejects_unauthorized_tables(
+    mocker: MockerFixture,
+) -> None:
+    """A single read-only statement referencing tables the user cannot access
+    is rejected via the table-level authorization check."""
+    from unittest.mock import MagicMock
+
+    from marshmallow import ValidationError
+
+    from superset.commands.report.base import BaseReportScheduleCommand
+    from superset.commands.report.exceptions import (
+        AlertQueryDataAccessValidationError,
+    )
+    from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+    from superset.exceptions import SupersetSecurityException
+
+    mocker.patch(
+        "superset.commands.report.base.security_manager.raise_for_access",
+        side_effect=SupersetSecurityException(
+            SupersetError(
+                error_type=SupersetErrorType.TABLE_SECURITY_ACCESS_ERROR,
+                message="You need access to the following tables: `secret`",
+                level=ErrorLevel.ERROR,
+            )
+        ),
+    )
+
+    database = MagicMock()
+    database.backend = "sqlite"
+    database.allow_dml = False
+
+    exceptions: list[ValidationError] = []
+    BaseReportScheduleCommand().validate_alert_query(
+        database, "SELECT * FROM secret", exceptions
+    )
+
+    assert len(exceptions) == 1
+    assert isinstance(exceptions[0], AlertQueryDataAccessValidationError)

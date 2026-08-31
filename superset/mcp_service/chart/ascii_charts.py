@@ -79,7 +79,12 @@ def _generate_ascii_bar_chart(data: list[Any], width: int, height: int) -> str:
             label_val = None
 
             for _key, val in row.items():
-                if isinstance(val, (int, float)) and numeric_val is None:
+                if (
+                    isinstance(val, (int, float))
+                    and not isinstance(val, bool)
+                    and not _is_nan_value(val)
+                    and numeric_val is None
+                ):
                     numeric_val = val
                 elif isinstance(val, str) and label_val is None:
                     label_val = val
@@ -121,7 +126,10 @@ def _generate_horizontal_bar_chart(
         # Calculate bar length
         if max_val > min_val:
             normalized = (value - min_val) / (max_val - min_val)
-            bar_length = max(1, int(normalized * max_bar_width))
+            if _is_nan_value(normalized):
+                bar_length = 0
+            else:
+                bar_length = max(1, int(normalized * max_bar_width))
         else:
             bar_length = 1
 
@@ -164,7 +172,10 @@ def _generate_vertical_bar_chart(  # noqa: C901
     for col, value in enumerate(values):
         if max_val > min_val:
             normalized = (value - min_val) / (max_val - min_val)
-            bar_height = max(1, int(normalized * chart_height))
+            if _is_nan_value(normalized):
+                bar_height = 0
+            else:
+                bar_height = max(1, int(normalized * chart_height))
         else:
             bar_height = 1
 
@@ -240,7 +251,7 @@ def _generate_ascii_line_chart(data: list[Any], width: int, height: int) -> str:
     lines.append("═" * min(width, 60))
 
     # Extract values and labels for plotting
-    values, labels = _extract_time_series_data(data)
+    values, labels, is_temporal = _extract_time_series_data(data)
 
     if not values:
         return "No numeric data found for line chart"
@@ -254,7 +265,7 @@ def _generate_ascii_line_chart(data: list[Any], width: int, height: int) -> str:
         lines.extend(sparkline_data)
 
     # Add trend analysis
-    trend_analysis = _analyze_trend(values)
+    trend_analysis = _analyze_trend(values, is_temporal=is_temporal)
     lines.append("")
     lines.append("📊 Trend Analysis:")
     lines.extend(trend_analysis)
@@ -262,10 +273,17 @@ def _generate_ascii_line_chart(data: list[Any], width: int, height: int) -> str:
     return "\n".join(lines)
 
 
-def _extract_time_series_data(data: list[Any]) -> tuple[list[float], list[str]]:
-    """Extract time series data with labels."""
+def _extract_time_series_data(
+    data: list[Any],
+) -> tuple[list[float], list[str], bool]:
+    """Extract time series data with labels.
+
+    Returns a tuple of (values, labels, is_temporal) where is_temporal indicates
+    whether the label column appears to represent temporal data based on its name.
+    """
     values = []
     labels = []
+    is_temporal = False
 
     for row in data[:20]:  # Limit points for readability
         if isinstance(row, dict):
@@ -274,7 +292,12 @@ def _extract_time_series_data(data: list[Any]) -> tuple[list[float], list[str]]:
             label_val = None
 
             for key, val in row.items():
-                if isinstance(val, (int, float)) and numeric_val is None:
+                if (
+                    isinstance(val, (int, float))
+                    and not isinstance(val, bool)
+                    and not _is_nan_value(val)
+                    and numeric_val is None
+                ):
                     numeric_val = val
                 elif isinstance(val, str) and label_val is None:
                     # Use the key name if it looks like a date/time field
@@ -283,6 +306,7 @@ def _extract_time_series_data(data: list[Any]) -> tuple[list[float], list[str]]:
                         for date_word in ["date", "time", "month", "day", "year"]
                     ):
                         label_val = str(val)[:10]  # Truncate long dates
+                        is_temporal = True
                     else:
                         label_val = str(val)[:8]  # Truncate long strings
 
@@ -290,7 +314,7 @@ def _extract_time_series_data(data: list[Any]) -> tuple[list[float], list[str]]:
                 values.append(numeric_val)
                 labels.append(label_val or f"P{len(values)}")
 
-    return values, labels
+    return values, labels, is_temporal
 
 
 def _create_enhanced_line_chart(
@@ -391,8 +415,15 @@ def _draw_line_segment(
                     grid[y][x] = "│"
 
 
-def _analyze_trend(values: list[float]) -> list[str]:
-    """Analyze trend in the data."""
+def _analyze_trend(values: list[float], *, is_temporal: bool = True) -> list[str]:
+    """Analyze trend in the data.
+
+    Args:
+        values: Numeric data points to analyze.
+        is_temporal: Whether the data represents a time series. When False,
+            directional trend analysis is skipped because the ordering of
+            categorical data is arbitrary.
+    """
     if len(values) < 2:
         return ["• Insufficient data for trend analysis"]
 
@@ -405,24 +436,28 @@ def _analyze_trend(values: list[float]) -> list[str]:
     max_val = max(values)
     avg_val = sum(values) / len(values)
 
-    # Overall trend
-    if last_val > first_val * 1.1:
-        trend_icon = "📈"
-        trend_desc = "Strong upward trend"
-    elif last_val > first_val * 1.05:
-        trend_icon = "📊"
-        trend_desc = "Moderate upward trend"
-    elif last_val < first_val * 0.9:
-        trend_icon = "📉"
-        trend_desc = "Strong downward trend"
-    elif last_val < first_val * 0.95:
-        trend_icon = "📊"
-        trend_desc = "Moderate downward trend"
-    else:
-        trend_icon = "➡️"
-        trend_desc = "Relatively stable"
+    if is_temporal:
+        # Overall trend (only meaningful for temporally ordered data)
+        if last_val > first_val * 1.1:
+            trend_icon = "📈"
+            trend_desc = "Strong upward trend"
+        elif last_val > first_val * 1.05:
+            trend_icon = "📊"
+            trend_desc = "Moderate upward trend"
+        elif last_val < first_val * 0.9:
+            trend_icon = "📉"
+            trend_desc = "Strong downward trend"
+        elif last_val < first_val * 0.95:
+            trend_icon = "📊"
+            trend_desc = "Moderate downward trend"
+        else:
+            trend_icon = "➡️"
+            trend_desc = "Relatively stable"
 
-    analysis.append(f"• {trend_icon} {trend_desc}")
+        analysis.append(f"• {trend_icon} {trend_desc}")
+    else:
+        analysis.append("• ⚠️ Data is categorical — directional trend not meaningful")
+
     analysis.append(f"• Range: {min_val:.1f} to {max_val:.1f} (avg: {avg_val:.1f})")
 
     # Volatility
@@ -520,9 +555,11 @@ def _extract_scatter_data(
     if data and isinstance(data[0], dict):
         # Find the first two numeric columns
         for key, val in data[0].items():
-            if isinstance(val, (int, float)) and not (
-                isinstance(val, float) and (val != val)
-            ):  # Exclude NaN
+            if (
+                isinstance(val, (int, float))
+                and not isinstance(val, bool)
+                and not _is_nan_value(val)
+            ):
                 numeric_columns.append(key)
 
         if len(numeric_columns) >= 2:
@@ -534,15 +571,14 @@ def _extract_scatter_data(
                 if isinstance(row, dict):
                     x_val = row.get(x_column)
                     y_val = row.get(y_column)
-                    # Check for valid numbers (not NaN)
                     if (
                         isinstance(x_val, (int, float))
+                        and not isinstance(x_val, bool)
+                        and not _is_nan_value(x_val)
                         and isinstance(y_val, (int, float))
-                        and not (
-                            isinstance(x_val, float) and (x_val != x_val)
-                        )  # Not NaN
-                        and not (isinstance(y_val, float) and (y_val != y_val))
-                    ):  # Not NaN
+                        and not isinstance(y_val, bool)
+                        and not _is_nan_value(y_val)
+                    ):
                         x_values.append(x_val)
                         y_values.append(y_val)
 

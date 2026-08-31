@@ -852,7 +852,7 @@ describe('Bar Chart X-axis Time Formatting', () => {
         type: LegendType.Plain,
       });
 
-    test('should fall back to scroll for horizontal bottom legends after margin expansion reduces available width', () => {
+    test('honors an explicit List selection for horizontal bottom legends and reserves margin', () => {
       const legendLabels = [
         'This is a long sales legend',
         'This is a long marketing legend',
@@ -899,48 +899,9 @@ describe('Bar Chart X-axis Time Formatting', () => {
         legendType: LegendType.Plain,
         showLegend: true,
       };
-      const baselineChartProps = createEchartsTimeseriesTestChartProps<
-        EchartsTimeseriesFormData,
-        EchartsTimeseriesChartProps
-      >({
-        defaultFormData: regressionFormData,
-        defaultVizType: 'echarts_timeseries_bar',
-        defaultQueriesData: longLegendData,
-        width: baseChartPropsConfig.width,
-        height: baseChartPropsConfig.height,
-      });
-      const baselineTransformed = transformProps(baselineChartProps);
-      const legendItems = (
-        (baselineTransformed.echartOptions.legend as LegendComponentOption)
-          .data as Array<string | { name: string }>
-      ).map(item => (typeof item === 'string' ? item : item.name));
-      let chartWidth: number | undefined;
-      let expandedLegendMargin: number | null = null;
-
-      for (let width = 300; width <= 700; width += 1) {
-        const initialLayout = getBottomLegendLayout(width, legendItems, null);
-
-        if (initialLayout.effectiveType !== LegendType.Plain) {
-          continue;
-        }
-
-        const refinedLayout = getBottomLegendLayout(
-          width,
-          legendItems,
-          initialLayout.effectiveMargin ?? null,
-        );
-
-        if (refinedLayout.effectiveType === LegendType.Scroll) {
-          chartWidth = width;
-          expandedLegendMargin = initialLayout.effectiveMargin ?? null;
-          break;
-        }
-      }
-
-      expect(chartWidth).toBeDefined();
-      expect(expandedLegendMargin).not.toBeNull();
-      const resolvedChartWidth = chartWidth ?? baseChartPropsConfig.width;
-
+      // A narrow chart forces the long-label bottom legend to wrap onto
+      // multiple rows — the case that previously flipped List to scroll.
+      const chartWidth = 320;
       const chartProps = createEchartsTimeseriesTestChartProps<
         EchartsTimeseriesFormData,
         EchartsTimeseriesChartProps
@@ -948,7 +909,7 @@ describe('Bar Chart X-axis Time Formatting', () => {
         defaultFormData: regressionFormData,
         defaultVizType: 'echarts_timeseries_bar',
         defaultQueriesData: longLegendData,
-        width: resolvedChartWidth,
+        width: chartWidth,
         height: baseChartPropsConfig.height,
       });
 
@@ -956,7 +917,12 @@ describe('Bar Chart X-axis Time Formatting', () => {
       const legend = transformedProps.echartOptions
         .legend as LegendComponentOption;
       const grid = transformedProps.echartOptions.grid as GridComponentOption;
-      const expectedPadding = getPadding(
+      const legendItems = (legend.data as Array<string | { name: string }>).map(
+        item => (typeof item === 'string' ? item : item.name),
+      );
+
+      const layout = getBottomLegendLayout(chartWidth, legendItems, null);
+      const basePadding = getPadding(
         true,
         LegendOrientation.Bottom,
         false,
@@ -968,30 +934,131 @@ describe('Bar Chart X-axis Time Formatting', () => {
         undefined,
         true,
       );
-      [expectedPadding.bottom, expectedPadding.left] = [
-        expectedPadding.left,
-        expectedPadding.bottom,
+      [basePadding.bottom, basePadding.left] = [
+        basePadding.left,
+        basePadding.bottom,
       ];
-      const expandedPadding = getPadding(
+
+      // The explicit List selection is honored end-to-end (never flips).
+      expect(legend.type).toBe(LegendType.Plain);
+      expect(layout.effectiveType).toBe(LegendType.Plain);
+
+      // #38675's margin reservation is retained: the wrapped rows reserve a
+      // finite margin beyond the single-row baseline, so the grid shrinks to
+      // reduce clipping instead of the legend flipping to scroll.
+      expect(Number.isFinite(layout.effectiveMargin)).toBe(true);
+
+      const reservedPadding = getPadding(
         true,
         LegendOrientation.Bottom,
         false,
         false,
-        expandedLegendMargin,
+        layout.effectiveMargin,
         false,
         undefined,
         undefined,
         undefined,
         true,
       );
-      [expandedPadding.bottom, expandedPadding.left] = [
-        expandedPadding.left,
-        expandedPadding.bottom,
+      [reservedPadding.bottom, reservedPadding.left] = [
+        reservedPadding.left,
+        reservedPadding.bottom,
       ];
 
-      expect(legend.type).toBe(LegendType.Scroll);
-      expect(grid.bottom).toBe(expectedPadding.bottom);
-      expect(grid.bottom).not.toBe(expandedPadding.bottom);
+      expect(grid.bottom).toBe(reservedPadding.bottom);
+      expect(grid.bottom as number).toBeGreaterThan(
+        basePadding.bottom as number,
+      );
+    });
+  });
+
+  describe('Regression test for Issue #42560', () => {
+    const numericXAxisData = [
+      {
+        data: [
+          { x_value: 1000, metric: 10 },
+          { x_value: 2000, metric: 20 },
+          { x_value: 3000, metric: 30 },
+        ],
+        colnames: ['x_value', 'metric'],
+        coltypes: [GenericDataType.Numeric, GenericDataType.Numeric],
+      },
+    ];
+
+    const categoricalXAxisData = [
+      {
+        data: [
+          { category: 'A', metric: 10 },
+          { category: 'B', metric: 20 },
+          { category: 'C', metric: 30 },
+        ],
+        colnames: ['category', 'metric'],
+        coltypes: [GenericDataType.String, GenericDataType.Numeric],
+      },
+    ];
+
+    test('custom X Axis Title is preserved verbatim, not overwritten by the axis number/currency format ("unit")', () => {
+      // Uses a numeric (non-temporal) x-axis column so `xAxisNumberFormat`
+      // actually drives `getNumberFormatter` in the axis-label formatter
+      // path, rather than being ignored in favor of the temporal formatter.
+      const formData = {
+        ...baseFormData,
+        orientation: 'vertical',
+        groupby: [],
+        x_axis: 'x_value',
+        metric: 'metric',
+        xAxisTitle: 'My X Axis',
+        xAxisNumberFormat: 'SMART_NUMBER',
+        yAxisFormat: '$,.2f',
+      };
+
+      const chartProps = new ChartProps({
+        ...baseChartPropsConfig,
+        queriesData: numericXAxisData,
+        formData,
+      });
+
+      const transformedProps = transformProps(
+        chartProps as unknown as EchartsTimeseriesChartProps,
+      );
+      const xAxis = transformedProps.echartOptions.xAxis as any;
+
+      expect(xAxis.name).toBe('My X Axis');
+    });
+
+    test('X Axis Title control maps onto the rendered category (left) axis in horizontal orientation, not the bottom axis', () => {
+      // Documents the axis swap for horizontal bar charts: `xAxisTitle` ends
+      // up on `echartOptions.yAxis.name` (the vertical category axis) and
+      // `yAxisTitle` ends up on `echartOptions.xAxis.name` (the horizontal
+      // value axis). This is existing, intentional swap behavior, not the
+      // "unit" overwrite described in the issue. Uses categorical x-axis
+      // data so the rendered left axis is actually type `category`, matching
+      // what the test name claims.
+      const formData = {
+        ...baseFormData,
+        orientation: 'horizontal',
+        groupby: [],
+        x_axis: 'category',
+        metric: 'metric',
+        xAxisTitle: 'My X Axis',
+        yAxisTitle: 'My Y Axis',
+      };
+
+      const chartProps = new ChartProps({
+        ...baseChartPropsConfig,
+        queriesData: categoricalXAxisData,
+        formData,
+      });
+
+      const transformedProps = transformProps(
+        chartProps as unknown as EchartsTimeseriesChartProps,
+      );
+      const renderedXAxis = transformedProps.echartOptions.xAxis as any;
+      const renderedYAxis = transformedProps.echartOptions.yAxis as any;
+
+      expect(renderedYAxis.type).toBe('category');
+      expect(renderedYAxis.name).toBe('My X Axis');
+      expect(renderedXAxis.name).toBe('My Y Axis');
     });
   });
 });

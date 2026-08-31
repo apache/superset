@@ -30,7 +30,8 @@ import {
 
 import type { editors } from '@apache-superset/core';
 import useEffectEvent from 'src/hooks/useEffectEvent';
-import { shallowEqual, useDispatch, useSelector } from 'react-redux';
+import { shallowEqual, useSelector } from 'react-redux';
+import { useAppDispatch } from 'src/SqlLab/hooks/useAppDispatch';
 import AutoSizer from 'react-virtualized-auto-sizer';
 import { t } from '@apache-superset/core/translation';
 import {
@@ -39,6 +40,7 @@ import {
   getExtensionsRegistry,
   QueryResponse,
   Query,
+  QueryState,
 } from '@superset-ui/core';
 import { Alert } from '@apache-superset/core/components';
 import { css, styled, useTheme } from '@apache-superset/core/theme';
@@ -48,7 +50,7 @@ import type {
   CursorPosition,
 } from 'src/SqlLab/types';
 import type { DatabaseObject } from 'src/features/databases/types';
-import { debounce, isEmpty } from 'lodash';
+import { debounce, isEmpty } from 'lodash-es';
 import Mousetrap from 'mousetrap';
 import {
   Button,
@@ -120,6 +122,7 @@ import KeyboardShortcutButton, {
   KeyboardShortcut,
 } from '../KeyboardShortcutButton';
 import SqlEditorTopBar from '../SqlEditorTopBar';
+import SqlEditorLeftBar from '../SqlEditorLeftBar';
 
 const bootstrapData = getBootstrapData();
 const scheduledQueriesConf = bootstrapData?.common?.conf?.SCHEDULED_QUERIES;
@@ -187,7 +190,7 @@ const StyledSqlEditor = styled.div`
     }
 
     .SouthPane {
-      & .ant-tabs-tabpane {
+      & .ant-tabs-content {
         margin: 0 ${theme.sizeUnit * 4}px;
         & .ant-tabs {
           margin: 0 ${theme.sizeUnit * -4}px;
@@ -237,36 +240,38 @@ const SqlEditor: FC<Props> = ({
   scheduleQueryWarning,
 }) => {
   const theme = useTheme();
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
 
-  const { database, latestQuery, currentQueryEditorId, hasSqlStatement } =
-    useSelector<
-      SqlLabRootState,
-      {
-        database?: DatabaseObject;
-        latestQuery?: QueryResponse;
-        hideLeftBar?: boolean;
-        currentQueryEditorId: QueryEditor['id'];
-        hasSqlStatement: boolean;
-      }
-    >(({ sqlLab: { unsavedQueryEditor, databases, queries, tabHistory } }) => {
-      let { dbId, latestQueryId, hideLeftBar } = queryEditor;
-      if (unsavedQueryEditor?.id === queryEditor.id) {
-        dbId = unsavedQueryEditor.dbId || dbId;
-        latestQueryId = unsavedQueryEditor.latestQueryId || latestQueryId;
-        hideLeftBar =
-          typeof unsavedQueryEditor.hideLeftBar === 'boolean'
-            ? unsavedQueryEditor.hideLeftBar
-            : hideLeftBar;
-      }
-      return {
-        hasSqlStatement: Boolean(queryEditor.sql?.trim().length > 0),
-        database: databases[dbId || ''],
-        latestQuery: queries[latestQueryId || ''],
-        hideLeftBar,
-        currentQueryEditorId: tabHistory.slice(-1)[0],
-      };
-    }, shallowEqual);
+  const {
+    database,
+    latestQuery,
+    hideLeftBar,
+    currentQueryEditorId,
+    hasSqlStatement,
+  } = useSelector<
+    SqlLabRootState,
+    {
+      database?: DatabaseObject;
+      latestQuery?: QueryResponse;
+      hideLeftBar?: boolean;
+      currentQueryEditorId: QueryEditor['id'];
+      hasSqlStatement: boolean;
+    }
+  >(({ sqlLab: { unsavedQueryEditor, databases, queries, tabHistory } }) => {
+    let { dbId, latestQueryId, hideLeftBar } = queryEditor;
+    if (unsavedQueryEditor?.id === queryEditor.id) {
+      dbId = unsavedQueryEditor.dbId || dbId;
+      latestQueryId = unsavedQueryEditor.latestQueryId || latestQueryId;
+      hideLeftBar = unsavedQueryEditor.hideLeftBar === true;
+    }
+    return {
+      hasSqlStatement: Boolean(queryEditor.sql?.trim().length > 0),
+      database: databases[dbId || ''],
+      latestQuery: queries[latestQueryId || ''],
+      hideLeftBar,
+      currentQueryEditorId: tabHistory.slice(-1)[0],
+    };
+  }, shallowEqual);
 
   const logAction = useLogAction({ queryEditorId: queryEditor.id });
   const isActive = currentQueryEditorId === queryEditor.id;
@@ -279,7 +284,7 @@ const SqlEditor: FC<Props> = ({
     getItem(LocalStorageKeys.SqllabIsAutocompleteEnabled, true),
   );
   const [renderHTMLEnabled, setRenderHTMLEnabled] = useState(
-    getItem(LocalStorageKeys.SqllabIsRenderHtmlEnabled, true),
+    getItem(LocalStorageKeys.SqllabIsRenderHtmlEnabled, false),
   );
   const [showCreateAsModal, setShowCreateAsModal] = useState(false);
   const [createAs, setCreateAs] = useState('');
@@ -291,8 +296,14 @@ const SqlEditor: FC<Props> = ({
 
   const SqlFormExtension = extensionsRegistry.get('sqleditor.extension.form');
 
+  const successful = latestQuery?.state === QueryState.Success;
+  const resultColumns = latestQuery?.results?.columns || [];
+
   const startQuery = useCallback(
-    (ctasArg = false, ctas_method = CtasEnum.Table) => {
+    (
+      ctasArg = false,
+      ctas_method: (typeof CtasEnum)[keyof typeof CtasEnum] = CtasEnum.Table,
+    ) => {
       if (!database) {
         return;
       }
@@ -705,7 +716,6 @@ const SqlEditor: FC<Props> = ({
 
   const getSecondaryMenuItems = () => {
     const qe = queryEditor;
-    const successful = latestQuery?.state === 'success';
     const scheduleToolTip = successful
       ? t('Schedule the query periodically')
       : t('You must run the query successfully first');
@@ -851,13 +861,14 @@ const SqlEditor: FC<Props> = ({
           )}
         <SaveQuery
           queryEditorId={queryEditor.id}
-          columns={latestQuery?.results?.columns || []}
+          columns={resultColumns}
           onSave={onSaveQuery}
           onUpdate={(query, remoteId) =>
             dispatch(updateSavedQuery(query, remoteId))
           }
           saveQueryWarning={saveQueryWarning}
           database={database}
+          canSaveDataset={successful && resultColumns.length > 0}
         />
         <ShareSqlLabQuery queryEditorId={queryEditor.id} />
       </>
@@ -887,7 +898,7 @@ const SqlEditor: FC<Props> = ({
     callback(currentSQL.current);
   };
   const renderCopyQueryButton = () => (
-    <Button type="primary">{t('COPY QUERY')}</Button>
+    <Button type="primary">{t('Copy query')}</Button>
   );
 
   const renderDatasetWarning = () => (
@@ -895,7 +906,7 @@ const SqlEditor: FC<Props> = ({
       css={css`
         margin-bottom: ${theme.sizeUnit * 2}px;
         padding-top: ${theme.sizeUnit * 4}px;
-        .ant-alert-action {
+        .ant-alert-actions {
           align-self: center;
         }
       `}
@@ -971,6 +982,11 @@ const SqlEditor: FC<Props> = ({
               queryEditorId={queryEditor.id}
               defaultPrimaryActions={renderEditorPrimaryAction()}
               defaultSecondaryActions={getSecondaryMenuItems()}
+              extra={
+                hideLeftBar && (
+                  <SqlEditorLeftBar queryEditorId={queryEditor.id} collapsed />
+                )
+              }
             />
           )}
           {queryEditor.isDataset && renderDatasetWarning()}

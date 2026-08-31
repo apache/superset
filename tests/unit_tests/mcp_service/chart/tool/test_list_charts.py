@@ -20,10 +20,12 @@ Tests for the list_charts request schema
 """
 
 import importlib
+from copy import copy
 from unittest.mock import Mock, patch
 
 import pytest
 from fastmcp import Client
+from fastmcp.exceptions import ToolError
 
 from superset.mcp_service.app import mcp
 from superset.mcp_service.chart.schemas import (
@@ -80,7 +82,7 @@ def mock_chart():
     chart.created_on = None
     chart.created_on_humanized = "2 days ago"
     chart.tags = []
-    chart.owners = []
+    chart.editors = []
     chart.uuid = "test-uuid-123"
     chart.cache_timeout = None
     chart.form_data = {}
@@ -147,6 +149,12 @@ class TestListChartsRequestSchema:
         assert request.page == 2
         assert request.page_size == 50
 
+    @pytest.mark.parametrize("value", ["true", "false", 0, 1])
+    def test_certified_requires_json_boolean(self, value):
+        """Reject values that Pydantic's non-strict bool would coerce."""
+        with pytest.raises(ValueError, match="valid boolean"):
+            ListChartsRequest(certified=value)
+
     def test_invalid_order_direction(self):
         """Test that invalid order direction raises validation error."""
         with pytest.raises(ValueError, match="Input should be 'asc' or 'desc'"):
@@ -183,6 +191,29 @@ class TestListChartsRequestSchema:
         # Invalid filter - missing required fields
         with pytest.raises(ValueError, match="Field required"):
             ChartFilter(col="slice_name")  # Missing opr and value
+
+    def test_dashboards_filter_accepted(self):
+        """`dashboards` is a valid filter column for finding charts on a dashboard."""
+        # The filter is accepted at schema-validation time
+        f = ChartFilter(col="dashboards", opr="eq", value=42)
+        assert f.col == "dashboards"
+        assert f.opr.value == "eq"
+        assert f.value == 42
+
+        # And composes into a request like any other filter
+        request = ListChartsRequest(filters=[f])
+        assert request.filters[0].col == "dashboards"
+
+    def test_invalid_filter_column_rejected(self):
+        """Unknown filter columns are rejected by the literal."""
+        with pytest.raises(
+            ValueError,
+            match=(
+                "Input should be 'slice_name', 'viz_type', 'datasource_name', "
+                "'editor', 'created_by_fk', 'changed_by_fk' or 'dashboards'"
+            ),
+        ):
+            ChartFilter(col="nonexistent_column", opr="eq", value=1)
 
     def test_search_and_filters_conflict_validation(self):
         """Test that using both search and filters raises validation error."""
@@ -284,6 +315,7 @@ class TestChartDataModelMetadataPrivacy:
 
     def test_user_can_view_data_model_metadata_uses_dataset_permission(self):
         with patch("superset.security_manager", new_callable=Mock) as security_manager:
+            security_manager.is_guest_user.return_value = False
             security_manager.can_access.side_effect = [False, True, False]
 
             assert user_can_view_data_model_metadata() is True
@@ -318,3 +350,112 @@ class TestChartDataModelMetadataPrivacy:
 
         data = json.loads(result.content[0].text)
         assert data["error_type"] == DATA_MODEL_METADATA_ERROR_TYPE
+
+
+@patch("superset.daos.chart.ChartDAO.list")
+@pytest.mark.asyncio
+async def test_list_charts_no_arguments(mock_list, mcp_server):
+    """Regression test: list_charts must accept zero arguments without raising
+    pydantic_core.ValidationError: Missing required argument: request."""
+    mock_list.return_value = ([], 0)
+    async with Client(mcp_server) as client:
+        result = await client.call_tool("list_charts", {})
+    data = json.loads(result.content[0].text)
+    assert "charts" in data
+
+
+@patch("superset.daos.chart.ChartDAO.list")
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("certified", "expected_names"),
+    [
+        (True, ["Certified"]),
+        (False, ["Uncertified"]),
+        (None, ["Certified", "Uncertified"]),
+    ],
+)
+async def test_list_charts_certified_filter(
+    mock_list, mcp_server, mock_chart, certified, expected_names
+):
+    """Certification is opt-in and supports certified, uncertified, and all."""
+    certified_chart = copy(mock_chart)
+    certified_chart.id = 1
+    certified_chart.slice_name = "Certified"
+    certified_chart.certified_by = "Data Governance"
+    certified_chart.deleted_at = None
+    uncertified_chart = mock_chart
+    uncertified_chart.id = 2
+    uncertified_chart.slice_name = "Uncertified"
+    uncertified_chart.deleted_at = None
+    charts = [certified_chart, uncertified_chart]
+
+    def list_side_effect(**kwargs):
+        custom_filter = (kwargs.get("custom_filters") or {}).get("certified")
+        if custom_filter is None:
+            selected = charts
+        else:
+            query = Mock()
+            custom_filter.apply(query, None)
+            predicate = str(query.filter.call_args.args[0])
+            expected_predicate = (
+                "slices.certified_by IS NOT NULL"
+                if certified
+                else "slices.certified_by IS NULL"
+            )
+            assert expected_predicate in predicate
+            selected = [charts[0] if certified else charts[1]]
+        return selected, len(selected)
+
+    mock_list.side_effect = list_side_effect
+    request = ListChartsRequest(certified=certified)
+    async with Client(mcp_server) as client:
+        result = await client.call_tool(
+            "list_charts", {"request": request.model_dump()}
+        )
+
+    data = json.loads(result.content[0].text)
+    actual_names = [chart["slice_name"] for chart in data["charts"]]
+    assert len(actual_names) == len(expected_names)
+    assert all(
+        expected in actual
+        for expected, actual in zip(expected_names, actual_names, strict=False)
+    )
+
+
+@patch("superset.daos.chart.ChartDAO.list")
+@pytest.mark.asyncio
+async def test_list_charts_changed_on_delta_humanized_order_column(
+    mock_list, mcp_server
+):
+    """Regression test: order_column='changed_on_delta_humanized' is the
+    "Last modified" column name used by Superset's own REST API and list
+    views. Production chatbot calls pass it when asked to sort by "most
+    recently modified" and must not be rejected. It resolves to 'changed_on'
+    for the DAO, matching REST API sort behaviour (see
+    models/helpers.py:changed_on_delta_humanized, @renders("changed_on"))."""
+    mock_list.return_value = ([], 0)
+    async with Client(mcp_server) as client:
+        result = await client.call_tool(
+            "list_charts",
+            {"request": {"order_column": "changed_on_delta_humanized"}},
+        )
+    mock_list.assert_called_once()
+    call_args = mock_list.call_args[1]
+    assert call_args["order_column"] == "changed_on"
+    data = json.loads(result.content[0].text)
+    assert "charts" in data
+
+
+@patch("superset.daos.chart.ChartDAO.list")
+@pytest.mark.asyncio
+async def test_list_charts_invalid_order_column_raises_tool_error(
+    mock_list, mcp_server
+):
+    """A genuinely unknown order_column must still be rejected."""
+    async with Client(mcp_server) as client:
+        with pytest.raises(ToolError) as excinfo:  # noqa: PT012
+            await client.call_tool(
+                "list_charts", {"request": {"order_column": "random"}}
+            )
+        assert "Invalid order_column" in str(excinfo.value)
+    mock_list.assert_not_called()

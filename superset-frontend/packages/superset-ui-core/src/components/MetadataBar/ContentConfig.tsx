@@ -84,15 +84,15 @@ const config = (contentType: ContentType) => {
         ),
       };
 
-    case MetadataType.Owner:
+    case MetadataType.Editor:
       return {
         icon: Icons.UserOutlined,
         title: contentType.createdBy,
         tooltip: (
           <div>
             <Info header={t('Created by')} text={contentType.createdBy} />
-            {!!contentType.owners && (
-              <Info header={t('Owners')} text={contentType.owners} />
+            {!!contentType.editors && (
+              <Info header={t('Editors')} text={contentType.editors} />
             )}
             <Info header={t('Created on')} text={contentType.createdOn} />
           </div>

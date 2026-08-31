@@ -84,7 +84,7 @@ If Docker is not available, you can set up manually:
 git clone https://github.com/apache/superset.git
 cd superset
 
-# 2. Set up Python environment (Python 3.10 or 3.11 required)
+# 2. Set up Python environment (Python 3.11 or 3.12 required)
 python3 -m venv venv
 source venv/bin/activate
 
@@ -157,7 +157,7 @@ Add this to your Claude Desktop config file:
 
 **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
 
-Since claude desktop doesnt like non https mcp servers you can use this proxy:
+Since claude desktop doesn't like non https mcp servers you can use this proxy:
 ```json
 {
   "mcpServers": {
@@ -672,21 +672,34 @@ kubectl get ingress -n superset
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `MCP_DEV_USERNAME` | Superset username for MCP authentication | `admin` |
-| `MCP_AUTH_ENABLED` | Enable/disable authentication | `true` |
+| `MCP_DEV_USERNAME` | Superset username for MCP authentication in dev mode. Mutually exclusive with `MCP_AUTH_ENABLED = True`: the server refuses to start if both are set. | - |
+| `MCP_AUTH_ENABLED` | Enable/disable authentication | `false` |
 | `MCP_JWT_PUBLIC_KEY` | JWT public key for token validation | - |
 | `SUPERSET_WEBSERVER_ADDRESS` | Internal Superset URL | `http://localhost:8088` |
 | `WEBDRIVER_BASEURL` | URL for screenshot generation | Same as webserver |
 
 #### superset_config.py Options
 
+Dev mode (`MCP_DEV_USERNAME`) and JWT authentication (`MCP_AUTH_ENABLED`) are
+mutually exclusive -- the server raises at startup if both are set, since a
+fixed dev-mode identity would defeat the point of requiring real auth. Pick one:
+
 ```python
-# MCP Service Configuration
+# MCP Service Configuration -- development/testing (no auth)
 MCP_DEV_USERNAME = 'admin'                    # Username for development/testing
+
+# WebDriver for chart screenshots
+WEBDRIVER_BASEURL = 'http://superset:8088/'
+WEBDRIVER_TYPE = 'chrome'
+WEBDRIVER_OPTION_ARGS = ['--headless', '--no-sandbox']
+```
+
+```python
+# MCP Service Configuration -- production with JWT authentication
 MCP_AUTH_ENABLED = True                       # Enable authentication
 MCP_JWT_PUBLIC_KEY = 'your-public-key'        # For JWT token validation
 
-# For production with JWT authentication
+# Or, for a fully custom auth setup instead of the built-in JWT verifier:
 MCP_AUTH_FACTORY = 'your.custom.auth_factory'
 MCP_USER_RESOLVER = 'your.custom.user_resolver'
 

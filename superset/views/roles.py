@@ -25,7 +25,7 @@ from .base import BaseSupersetView
 
 class RolesListView(BaseSupersetView):
     route_base = "/"
-    class_permission_name = "security"
+    class_permission_name = "Security"
 
     @expose("/roles/")
     @has_access

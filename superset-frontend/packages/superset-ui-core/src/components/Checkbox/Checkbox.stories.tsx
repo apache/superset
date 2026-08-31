@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useArgs } from '@storybook/preview-api';
+import { useArgs } from 'storybook/preview-api';
 import { useState } from 'react';
 import { Checkbox } from '.';
 import type { CheckboxProps, CheckboxChangeEvent } from './types';

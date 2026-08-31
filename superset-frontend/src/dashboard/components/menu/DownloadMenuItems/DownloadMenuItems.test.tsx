@@ -26,6 +26,7 @@ import {
 import { Menu, MenuItem } from '@superset-ui/core/components/Menu';
 import {
   FeatureFlag,
+  getClientErrorObject,
   isFeatureEnabled,
   SupersetClient,
 } from '@superset-ui/core';
@@ -46,12 +47,15 @@ jest.mock('src/components/MessageToasts/withToasts', () => ({
 jest.mock('@superset-ui/core', () => ({
   ...jest.requireActual('@superset-ui/core'),
   isFeatureEnabled: jest.fn().mockReturnValue(false),
+  getClientErrorObject: jest.fn().mockResolvedValue({}),
   SupersetClient: {
     get: jest.fn(),
+    post: jest.fn(),
   },
 }));
 
 const mockSupersetClient = SupersetClient as jest.Mocked<typeof SupersetClient>;
+const mockGetClientErrorObject = getClientErrorObject as jest.Mock;
 
 const createProps = () => ({
   pdfMenuItemTitle: 'Export to PDF',
@@ -70,12 +74,32 @@ const MenuWrapper = () => {
   return <Menu forceSubMenuRender items={menuItems} />;
 };
 
+const MenuWrapperWithProps = (
+  overrides: Partial<ReturnType<typeof createProps>> & {
+    canExportImage?: boolean;
+  },
+) => {
+  const downloadMenuItem = useDownloadMenuItems({
+    ...createProps(),
+    ...overrides,
+  });
+  const menuItems: MenuItem[] = [downloadMenuItem];
+  return <Menu forceSubMenuRender items={menuItems} />;
+};
+
 const originalCreateObjectURL = window.URL.createObjectURL;
 const originalRevokeObjectURL = window.URL.revokeObjectURL;
 
 beforeEach(() => {
   jest.clearAllMocks();
+  // Reset the implementation each test: clearAllMocks resets call history but
+  // not mockReturnValue, so an override in one test would otherwise leak.
+  (isFeatureEnabled as jest.Mock).mockReturnValue(false);
 });
+
+// "Export Images to Excel" is gated on the webdriver screenshot feature flags.
+const enableWebDriverScreenshot = () =>
+  (isFeatureEnabled as jest.Mock).mockReturnValue(true);
 
 afterEach(() => {
   window.URL.createObjectURL = originalCreateObjectURL;
@@ -83,6 +107,7 @@ afterEach(() => {
 });
 
 test('Should render all menu items', () => {
+  enableWebDriverScreenshot();
   render(<MenuWrapper />, {
     useRedux: true,
   });
@@ -92,8 +117,118 @@ test('Should render all menu items', () => {
   expect(screen.getByText('Download as Image')).toBeInTheDocument();
 
   // Export options
+  expect(screen.getByText('Export Data to Excel')).toBeInTheDocument();
+  expect(screen.getByText('Export Images to Excel')).toBeInTheDocument();
   expect(screen.getByText('Export YAML')).toBeInTheDocument();
   expect(screen.getByText('Export as Example')).toBeInTheDocument();
+});
+
+test('Export Images to Excel is hidden when the webdriver is not enabled', () => {
+  // Default: webdriver screenshot flags off. Image export needs the webdriver,
+  // so only the data export is offered.
+  render(<MenuWrapper />, { useRedux: true });
+
+  expect(screen.getByText('Export Data to Excel')).toBeInTheDocument();
+  expect(screen.queryByText('Export Images to Excel')).not.toBeInTheDocument();
+});
+
+test('Excel export items are hidden when userCanExport is false', () => {
+  render(<MenuWrapperWithProps userCanExport={false} />, { useRedux: true });
+
+  expect(screen.queryByText('Export Data to Excel')).not.toBeInTheDocument();
+  expect(screen.queryByText('Export Images to Excel')).not.toBeInTheDocument();
+  // YAML export is not gated and remains visible
+  expect(screen.getByText('Export YAML')).toBeInTheDocument();
+});
+
+test('Export Data to Excel posts mode "data" and shows a pending toast', async () => {
+  mockSupersetClient.post.mockResolvedValue({
+    json: { job_id: 'abc' },
+  } as never);
+
+  render(<MenuWrapper />, { useRedux: true });
+
+  await userEvent.click(screen.getByText('Export Data to Excel'));
+
+  await waitFor(() => {
+    expect(mockSupersetClient.post).toHaveBeenCalledWith({
+      endpoint: '/api/v1/dashboard/123/export_xlsx/',
+      jsonPayload: { active_data_mask: {}, mode: 'data' },
+    });
+    expect(mockAddSuccessToast).toHaveBeenCalledWith(
+      "Your export is being prepared. You'll receive an email when it's ready.",
+    );
+  });
+});
+
+test('Export Images to Excel posts mode "images" and shows a pending toast', async () => {
+  enableWebDriverScreenshot();
+  mockSupersetClient.post.mockResolvedValue({
+    json: { job_id: 'abc' },
+  } as never);
+
+  render(<MenuWrapper />, { useRedux: true });
+
+  await userEvent.click(screen.getByText('Export Images to Excel'));
+
+  await waitFor(() => {
+    expect(mockSupersetClient.post).toHaveBeenCalledWith({
+      endpoint: '/api/v1/dashboard/123/export_xlsx/',
+      jsonPayload: { active_data_mask: {}, mode: 'images' },
+    });
+    expect(mockAddSuccessToast).toHaveBeenCalledWith(
+      "Your export is being prepared. You'll receive an email when it's ready.",
+    );
+  });
+});
+
+test('Export Data to Excel shows an "already in progress" toast when throttled', async () => {
+  // The throttle response is 202 with a message but no job_id.
+  mockSupersetClient.post.mockResolvedValue({
+    json: {
+      message: 'An Excel export for this dashboard is already in progress.',
+    },
+  } as never);
+
+  render(<MenuWrapper />, { useRedux: true });
+
+  await userEvent.click(screen.getByText('Export Data to Excel'));
+
+  await waitFor(() => {
+    expect(mockAddSuccessToast).toHaveBeenCalledWith(
+      'An export for this dashboard is already in progress.',
+    );
+  });
+});
+
+test('Export Data to Excel shows a config error toast on 501', async () => {
+  mockSupersetClient.post.mockRejectedValue(new Error('not configured'));
+  mockGetClientErrorObject.mockResolvedValue({ status: 501 });
+
+  render(<MenuWrapper />, { useRedux: true });
+
+  await userEvent.click(screen.getByText('Export Data to Excel'));
+
+  await waitFor(() => {
+    expect(mockAddDangerToast).toHaveBeenCalledWith(
+      'Excel export is not configured on this server.',
+    );
+  });
+});
+
+test('Export Data to Excel shows a generic error toast on other failures', async () => {
+  mockSupersetClient.post.mockRejectedValue(new Error('boom'));
+  mockGetClientErrorObject.mockResolvedValue({ status: 500 });
+
+  render(<MenuWrapper />, { useRedux: true });
+
+  await userEvent.click(screen.getByText('Export Data to Excel'));
+
+  await waitFor(() => {
+    expect(mockAddDangerToast).toHaveBeenCalledWith(
+      'Sorry, something went wrong. Try again later.',
+    );
+  });
 });
 
 test('Export as Example calls SupersetClient.get with correct endpoint', async () => {
@@ -143,19 +278,6 @@ test('Export as Example shows error toast on failure', async () => {
 });
 
 const mockIsFeatureEnabled = isFeatureEnabled as jest.Mock;
-
-const MenuWrapperWithProps = (
-  overrides: Partial<ReturnType<typeof createProps>> & {
-    canExportImage?: boolean;
-  },
-) => {
-  const downloadMenuItem = useDownloadMenuItems({
-    ...createProps(),
-    ...overrides,
-  });
-  const menuItems: MenuItem[] = [downloadMenuItem];
-  return <Menu forceSubMenuRender items={menuItems} />;
-};
 
 test('Screenshot menu items should be disabled when GranularExportControls is ON and canExportImage is false', () => {
   mockIsFeatureEnabled.mockImplementation(

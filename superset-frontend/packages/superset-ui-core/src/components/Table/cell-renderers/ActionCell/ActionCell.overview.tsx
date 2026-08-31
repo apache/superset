@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import Markdown from 'markdown-to-jsx';
+import MarkdownToJsx from 'markdown-to-jsx';
 
 export default {
   title: 'Design System/Components/Table/Cell Renderers/ActionCell/Overview"',
@@ -25,7 +25,7 @@ export default {
 
 export const ActionCell = () => (
   <>
-    <Markdown>
+    <MarkdownToJsx>
       {`
 # ActionCell
 
@@ -34,6 +34,6 @@ specific to the data in the table row that the cell is a member of.
 
 ### [Basic example](./?path=/docs/design-system-components-table-cell-renderers-actioncell--basic)
       `}
-    </Markdown>
+    </MarkdownToJsx>
   </>
 );

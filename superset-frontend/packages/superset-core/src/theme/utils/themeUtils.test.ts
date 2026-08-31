@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { renderHook } from '@testing-library/react-hooks';
+import { renderHook } from '@testing-library/react';
 import { ThemeProvider } from '@emotion/react';
 import { theme as antdTheme } from 'antd';
 import {

@@ -18,9 +18,10 @@
  */
 
 import fetchMock from 'fetch-mock';
-import { renderHook } from '@testing-library/react-hooks';
-import { createWrapper, render } from 'spec/helpers/testing-library';
+import { renderHook } from '@testing-library/react';
+import { createWrapper, render, userEvent } from 'spec/helpers/testing-library';
 import { supersetGetCache } from 'src/utils/cachedSupersetGet';
+import { SubjectType } from 'src/types/Subject';
 import { useDatasetMetadataBar } from './useDatasetMetadataBar';
 
 const MOCK_DATASET = {
@@ -31,11 +32,11 @@ const MOCK_DATASET = {
   created_on: '2023-01-26T12:06:54.965034',
   created_on_humanized: 'a month ago',
   table_name: `This is dataset's name`,
-  owners: [
-    { first_name: 'John', last_name: 'Doe' },
-    { first_name: 'Luke', last_name: 'Skywalker' },
-  ],
   description: 'This is a dataset description',
+  editors: [
+    { id: 1, label: 'John Doe', type: SubjectType.User },
+    { id: 2, label: 'Luke Skywalker', type: SubjectType.User },
+  ],
 };
 
 afterEach(() => {
@@ -55,9 +56,13 @@ test('renders dataset metadata bar with dataset prop', async () => {
   const { findByText, findAllByRole } = render(result.current.metadataBar!);
   expect(await findByText(`This is dataset's name`)).toBeVisible();
   expect(await findByText('This is a dataset description')).toBeVisible();
-  expect(await findByText('Luke Skywalker')).toBeVisible();
+  const createdBy = await findByText('Luke Skywalker');
+  expect(createdBy).toBeVisible();
   expect(await findByText('a month ago')).toBeVisible();
   expect(await findAllByRole('img')).toHaveLength(4);
+
+  await userEvent.hover(createdBy);
+  expect(await findByText('John Doe')).toBeInTheDocument();
 });
 
 test('renders dataset metadata bar with minimal dataset', async () => {
@@ -68,7 +73,6 @@ test('renders dataset metadata bar with minimal dataset', async () => {
     created_on_humanized: 'a month ago',
     table_name: `This is dataset's name`,
     description: undefined,
-    owners: [],
   } as any;
 
   const { result } = renderHook(

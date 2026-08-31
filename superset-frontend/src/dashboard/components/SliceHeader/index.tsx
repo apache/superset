@@ -26,7 +26,13 @@ import {
   useState,
 } from 'react';
 import { t } from '@apache-superset/core/translation';
-import { getExtensionsRegistry, QueryData } from '@superset-ui/core';
+import {
+  getExtensionsRegistry,
+  handleKeyboardActivation,
+  JsonObject,
+  QueryData,
+  VizType,
+} from '@superset-ui/core';
 import {
   css,
   styled,
@@ -35,17 +41,24 @@ import {
 } from '@apache-superset/core/theme';
 import { useUiConfig } from 'src/components/UiConfigContext';
 import { isEmbedded } from 'src/dashboard/util/isEmbedded';
-import { Tooltip, EditableTitle, Icons } from '@superset-ui/core/components';
+import {
+  Tooltip,
+  EditableTitle,
+  Icons,
+  Popover,
+} from '@superset-ui/core/components';
 import { useSelector } from 'react-redux';
 import SliceHeaderControls from 'src/dashboard/components/SliceHeaderControls';
+import { useIsMobile } from 'src/hooks/useIsMobile';
 import { SliceHeaderControlsProps } from 'src/dashboard/components/SliceHeaderControls/types';
-import FiltersBadge from 'src/dashboard/components/FiltersBadge';
-import CustomizationsBadge from 'src/dashboard/components/CustomizationsBadge';
+import MemoizedFiltersBadge from 'src/dashboard/components/FiltersBadge';
+import MemoizedCustomizationsBadge from 'src/dashboard/components/CustomizationsBadge';
 import { RootState } from 'src/dashboard/types';
 import { getSliceHeaderTooltip } from 'src/dashboard/util/getSliceHeaderTooltip';
 import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';
 import RowCountLabel from 'src/components/RowCountLabel';
 import { Link } from 'react-router-dom';
+import SliceInfo from './SliceInfo';
 
 const extensionsRegistry = getExtensionsRegistry();
 
@@ -58,6 +71,7 @@ type SliceHeaderProps = SliceHeaderControlsProps & {
   filters: object;
   handleToggleFullSize: () => void;
   formData: object;
+  ownState?: JsonObject;
   width: number;
   height: number;
   queriedDttm?: string | null;
@@ -157,7 +171,7 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
       sliceName = '',
       supersetCanExplore = false,
       supersetCanShare = false,
-      supersetCanCSV = false,
+      supersetCanDownload = false,
       exportPivotCSV,
       exportFullCSV,
       exportFullXLSX,
@@ -174,6 +188,7 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
       height,
       exportPivotExcel = () => ({}),
       chartHolderRef,
+      ownState,
     },
     ref,
   ) => {
@@ -202,13 +217,18 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
       state => state.charts[slice.slice_id].queriesResponse?.[1],
     );
 
+    const [isDescriptionOpen, setIsDescriptionOpen] = useState(false);
+
     const theme = useTheme();
 
     const rowLimit = Number(formData.row_limit ?? 0);
 
-    const isTableChart = formData.viz_type === 'table';
-    const countFromSecondQuery =
-      isTableChart && secondQueryResponse?.data?.[0]?.rowcount;
+    const isTableChart =
+      formData.viz_type === VizType.Table ||
+      formData.viz_type === VizType.TableAgGrid;
+    const countFromSecondQuery = isTableChart
+      ? secondQueryResponse?.data?.[0]?.rowcount
+      : undefined;
 
     const sqlRowCount =
       countFromSecondQuery != null
@@ -219,7 +239,9 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
               0,
           );
 
-    const canExplore = !editMode && supersetCanExplore;
+    // Consumption-only mobile mode: no explore link, no chart controls
+    const isMobile = useIsMobile();
+    const canExplore = !editMode && supersetCanExplore && !isMobile;
     const showRowLimitWarning =
       shouldShowRowLimitWarning && sqlRowCount >= rowLimit && rowLimit > 0;
 
@@ -257,7 +279,11 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
     );
 
     return (
-      <ChartHeaderStyles data-test="slice-header" ref={ref}>
+      <ChartHeaderStyles
+        className="slice-header"
+        data-test="slice-header"
+        ref={ref}
+      >
         <div className="header-title" ref={headerRef}>
           <Tooltip title={headerTooltip}>
             {/* this div ensures the hover event triggers correctly and prevents flickering */}
@@ -322,12 +348,33 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
                   <CrossFilterIcon iconSize="m" />
                 </Tooltip>
               )}
+              {slice.description && !isExpanded && (
+                <Popover
+                  trigger={['hover', 'click']}
+                  content={<SliceInfo slice={slice} />}
+                  placement="leftBottom"
+                  open={isDescriptionOpen}
+                  onOpenChange={setIsDescriptionOpen}
+                >
+                  <Icons.InfoCircleOutlined
+                    iconSize="m"
+                    // eslint-disable-next-line jsx-a11y/prefer-tag-over-role
+                    role="button"
+                    tabIndex={0}
+                    aria-label={t('Chart description')}
+                    data-test="chart-description-info-icon"
+                    onKeyDown={handleKeyboardActivation(() =>
+                      setIsDescriptionOpen(open => !open),
+                    )}
+                  />
+                </Popover>
+              )}
               {!uiConfig.hideChartControls && (
-                <CustomizationsBadge chartId={slice.slice_id} />
+                <MemoizedCustomizationsBadge chartId={slice.slice_id} />
               )}
 
               {!uiConfig.hideChartControls && (
-                <FiltersBadge chartId={slice.slice_id} />
+                <MemoizedFiltersBadge chartId={slice.slice_id} />
               )}
 
               {showRowLimitWarning && (
@@ -345,7 +392,7 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
                   }
                 />
               )}
-              {!uiConfig.hideChartControls && (
+              {!uiConfig.hideChartControls && !isMobile && (
                 <SliceHeaderControls
                   slice={slice}
                   isCached={isCached}
@@ -364,7 +411,7 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
                   exportFullXLSX={exportFullXLSX}
                   supersetCanExplore={supersetCanExplore}
                   supersetCanShare={supersetCanShare}
-                  supersetCanCSV={supersetCanCSV}
+                  supersetCanDownload={supersetCanDownload}
                   componentId={componentId}
                   dashboardId={dashboardId}
                   addSuccessToast={addSuccessToast}
@@ -378,6 +425,7 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
                   crossFiltersEnabled={isCrossFiltersEnabled}
                   exportPivotExcel={exportPivotExcel}
                   chartHolderRef={chartHolderRef}
+                  ownState={ownState}
                 />
               )}
             </>

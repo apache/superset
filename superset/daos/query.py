@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Union
 
 from superset import sql_lab
@@ -48,7 +48,9 @@ class QueryDAO(BaseDAO[Query]):
     @staticmethod
     def get_queries_changed_after(last_updated_ms: Union[float, int]) -> list[Query]:
         # UTC date time, same that is stored in the DB.
-        last_updated_dt = datetime.utcfromtimestamp(last_updated_ms / 1000)
+        last_updated_dt: datetime = datetime.fromtimestamp(
+            last_updated_ms / 1000, timezone.utc
+        ).replace(tzinfo=None)
 
         return (
             db.session.query(Query)
@@ -58,7 +60,11 @@ class QueryDAO(BaseDAO[Query]):
 
     @staticmethod
     def stop_query(client_id: str) -> None:
-        query = db.session.query(Query).filter_by(client_id=client_id).one_or_none()
+        query = (
+            db.session.query(Query)
+            .filter(Query.client_id == client_id, Query.user_id == get_user_id())
+            .one_or_none()
+        )
         if not query:
             raise QueryNotFoundException(f"Query with client_id {client_id} not found")
 

@@ -73,8 +73,8 @@ export const HorizontalOverflowFilterControlTitleBox = styled(
 `;
 
 export const AllFilterControlContainer = styled(Form)`
-  // TODO this is a hack related to having form items inside others which is not
-  // normal antd-expected usage
+  /* TODO this is a hack related to having form items inside others which is not */
+  /* normal antd-expected usage */
   .ant-form-item .ant-form-item {
     margin-bottom: 0 !important;
   }
@@ -236,6 +236,10 @@ export const DescriptionToolTip = ({
         whiteSpace: 'normal',
       }}
     >
+      {/* Deliberate role="button" on this tooltip-trigger icon (no click
+          handler) — mirrors DeckglLayerVisibilityTooltip below; not a fit
+          for the linter's suggested <button> tag. */}
+      {/* eslint-disable-next-line jsx-a11y/prefer-tag-over-role */}
       <StyledInfoCircleOutlined className="text-muted" role="button" />
     </Tooltip>
   </ToolTipContainer>
@@ -249,8 +253,12 @@ export const DeckglLayerVisibilityTooltip = () => (
       )}
       placement="right"
     >
+      {/* Deliberate role="button" on this tooltip-trigger icon (no click
+          handler) — covered by existing test expectations; not a fit for
+          the linter's suggested <button> tag. */}
       <StyledInfoCircleOutlined
         className="text-muted"
+        // eslint-disable-next-line jsx-a11y/prefer-tag-over-role
         role="button"
         data-test="deckgl-layer-visibility-tooltip-icon"
       />

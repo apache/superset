@@ -22,6 +22,7 @@ import {
   SupersetClient,
   getClientErrorObject,
   ClientErrorObject,
+  sanitizeHtml,
 } from '@superset-ui/core';
 import setupErrorMessages from 'src/setup/setupErrorMessages';
 
@@ -41,7 +42,7 @@ function showApiMessage(resp: ClientErrorObject) {
   const severity = resp.severity || 'info';
   $(template)
     .addClass(`alert-${severity}`)
-    .append(resp.message || '')
+    .append(sanitizeHtml(resp.message || ''))
     .appendTo($('#alert-container'));
 }
 
@@ -61,14 +62,14 @@ function toggleCheckbox(apiUrlPrefix: string, selector: string) {
 
 export default function setupApp() {
   $(document).ready(function () {
-    $(':checkbox[data-checkbox-api-prefix]').change(function (
-      this: HTMLElement,
-    ) {
-      const $this = $(this);
-      const prefix = $this.data('checkbox-api-prefix');
-      const id = $this.attr('id');
-      toggleCheckbox(prefix, `#${id}`);
-    });
+    $(':checkbox[data-checkbox-api-prefix]').change(
+      function (this: HTMLElement) {
+        const $this = $(this);
+        const prefix = $this.data('checkbox-api-prefix');
+        const id = $this.attr('id');
+        toggleCheckbox(prefix, `#${id}`);
+      },
+    );
 
     // for language picker dropdown
     $<HTMLAnchorElement>('#language-picker a').click(function (
