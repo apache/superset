@@ -42,8 +42,8 @@ export interface DisplayControlDatasource {
 
 /**
  * The single, type-aware datasource resolution point for dashboard display
- * controls (Dynamic group by today; siblings adopt this hook as they gain
- * loaders).
+ * controls (Dynamic group by is the first adopter; siblings adopt this
+ * hook as they gain loaders).
  *
  * Semantic views and regular datasets have independent numeric-id
  * sequences, so a binding must be resolved by BOTH id and datasourceType —
