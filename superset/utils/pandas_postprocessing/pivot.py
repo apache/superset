@@ -195,10 +195,7 @@ def _fill_dimension_column(df: DataFrame, col: str, fill_value: str) -> None:
     dtype errors and preserve NULL/NaN/NaT keys through pivot_table().
     """
     s = df[col]
-    if (
-        isinstance(s.dtype, pd.CategoricalDtype)
-        and fill_value not in s.cat.categories
-    ):
+    if isinstance(s.dtype, pd.CategoricalDtype) and fill_value not in s.cat.categories:
         df[col] = s.cat.add_categories([fill_value]).fillna(value=fill_value)
     elif pd.api.types.is_datetime64_any_dtype(s.dtype) or (
         getattr(s.dtype, "kind", None) == "M"
