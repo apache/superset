@@ -125,8 +125,13 @@ def _apply_show_values_as(  # pylint: disable=too-many-arguments
         block = numeric.loc[:, selection]
         if mode == ShowValuesAs.PERCENT_OF_TOTAL:
             leaf = numeric.loc[leaf_rows, leaf_columns & denominator_selection]
-            grand_total = leaf.to_numpy().sum()
-            fraction = block / (np.nan if grand_total == 0 else grand_total)
+            # Sum through pandas, not numpy: a sparse pivot leaves NaN in cells
+            # whose group had no rows, and numpy would propagate that to the
+            # grand total, blanking every cell.
+            grand_total = leaf.sum().sum()
+            fraction = block / (
+                np.nan if pd.isna(grand_total) or grand_total == 0 else grand_total
+            )
         else:
             summed, divided = (
                 (axis["rows"], axis["columns"])

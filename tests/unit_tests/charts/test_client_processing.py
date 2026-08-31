@@ -1925,6 +1925,21 @@ def test_pivot_df_show_values_as_zero_denominator_is_blank():
     assert pivoted.loc[("US",), ("SUM(num)", "boy")] == 0.25
 
 
+def test_pivot_df_show_values_as_skips_empty_cells_in_denominators():
+    """A sparse pivot leaves NaN cells; they must not blank the whole table."""
+    df = show_values_as_df()
+    # drop UK/girl entirely, so that cell has no rows and pivots to NaN
+    sparse = df[~((df["nation"] == "UK") & (df["gender"] == "girl"))]
+    options = {**SHOW_VALUES_AS_OPTIONS, "show_rows_total": False}
+
+    pivoted = pivot_df(sparse, **options, show_values_as="percent_total")
+
+    # grand total is 10 + 30 + 20 = 60, the NaN cell contributing nothing
+    assert pivoted.loc[("US",), ("SUM(num)", "boy")] == pytest.approx(10 / 60)
+    assert pivoted.loc[("UK",), ("SUM(num)", "boy")] == pytest.approx(20 / 60)
+    assert pd.isna(pivoted.loc[("UK",), ("SUM(num)", "girl")])
+
+
 def test_pivot_df_show_values_as_supersedes_legacy_fraction_aggfunc():
     """`showValuesAs` wins over a pre-SIP-216 fraction aggregate function."""
     pivoted = pivot_df(
