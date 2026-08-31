@@ -133,6 +133,8 @@ const defaultFormData: EchartsTimeseriesFormData & {
   metrics: [],
   minorSplitLine: false,
   minorTicks: false,
+  gridlines: true,
+  axisTicks: true,
   opacity: 1,
   orderDesc: false,
   rowLimit: 0,

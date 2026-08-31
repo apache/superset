@@ -366,6 +366,66 @@ def test_unmask_encrypted_extra() -> None:
     )
 
 
+def test_mask_encrypted_extra_oauth2_client_info_with_narrow_override() -> None:
+    """
+    Test that the OAuth2 client secret is masked even when an engine spec
+    overrides `encrypted_extra_sensitive_fields` without including it.
+    """
+
+    class NarrowFieldsSpec(BaseEngineSpec):
+        encrypted_extra_sensitive_fields = {"$.auth_params.password"}
+
+    config = json.dumps(
+        {
+            "auth_params": {"password": "my_password"},
+            "oauth2_client_info": {
+                "id": "my_client_id",
+                "secret": "my_client_secret",
+            },
+        }
+    )
+
+    assert NarrowFieldsSpec.mask_encrypted_extra(config) == json.dumps(
+        {
+            "auth_params": {"password": "XXXXXXXXXX"},
+            "oauth2_client_info": {
+                "id": "my_client_id",
+                "secret": "XXXXXXXXXX",
+            },
+        }
+    )
+
+
+def test_mask_encrypted_extra_oauth2_client_info_without_sensitive_fields() -> None:
+    """
+    Test that the OAuth2 client secret is masked even when an engine spec
+    declares no sensitive fields at all.
+    """
+
+    class NoFieldsSpec(BaseEngineSpec):
+        encrypted_extra_sensitive_fields: set[str] = set()
+
+    config = json.dumps(
+        {
+            "auth_params": {"password": "my_password"},
+            "oauth2_client_info": {
+                "id": "my_client_id",
+                "secret": "my_client_secret",
+            },
+        }
+    )
+
+    assert NoFieldsSpec.mask_encrypted_extra(config) == json.dumps(
+        {
+            "auth_params": {"password": "my_password"},
+            "oauth2_client_info": {
+                "id": "my_client_id",
+                "secret": "XXXXXXXXXX",
+            },
+        }
+    )
+
+
 @pytest.mark.parametrize(
     "masked_encrypted_extra,expected_result",
     [
@@ -377,6 +437,7 @@ def test_unmask_encrypted_extra() -> None:
             {
                 "$.credentials_info.private_key",
                 "$.access_token",
+                "$.oauth2_client_info.secret",
             },
         ),
         (
@@ -387,11 +448,12 @@ def test_unmask_encrypted_extra() -> None:
             {
                 "$.credentials_info.private_key",
                 "$.access_token",
+                "$.oauth2_client_info.secret",
             },
         ),
         (
             None,
-            {"$.*"},
+            {"$.*", "$.oauth2_client_info.secret"},
         ),
     ],
 )

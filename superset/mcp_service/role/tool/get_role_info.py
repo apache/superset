@@ -45,6 +45,7 @@ logger = logging.getLogger(__name__)
         title="Get role info",
         readOnlyHint=True,
         destructiveHint=False,
+        openWorldHint=False,
     ),
 )
 async def get_role_info(

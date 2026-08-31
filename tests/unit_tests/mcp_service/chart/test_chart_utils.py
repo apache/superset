@@ -38,6 +38,7 @@ from superset.mcp_service.chart.chart_utils import (
     map_filter_operator,
     map_table_config,
     map_xy_config,
+    merge_interactive_pivot_ui_config,
     merge_table_column_config,
     validate_chart_dataset,
 )
@@ -231,6 +232,75 @@ class TestMergeTableColumnConfig:
         merge_table_column_config(existing, updated)
 
         assert "column_config" not in updated
+
+
+class TestMergeInteractivePivotUiConfig:
+    @pytest.mark.parametrize(
+        "existing_viz_type,updated_viz_type",
+        [
+            ("ag-grid-pivot-table", "pivot_table_v2"),
+            ("pivot_table_v2", "ag-grid-pivot-table"),
+        ],
+    )
+    def test_does_not_cross_visualization_types(
+        self, existing_viz_type: str, updated_viz_type: str
+    ) -> None:
+        updated = {
+            "viz_type": updated_viz_type,
+            "pivot_table_state": {"rowGroup": {"groupColIds": ["new"]}},
+        }
+
+        merge_interactive_pivot_ui_config(
+            {
+                "viz_type": existing_viz_type,
+                "pivot_table_state": {"filter": {"filterModel": {}}},
+            },
+            updated,
+        )
+
+        assert "filter" not in updated["pivot_table_state"]
+
+    def test_preserves_ui_only_formatting_when_omitted(self) -> None:
+        existing = {
+            "viz_type": "ag-grid-pivot-table",
+            "column_config": {"Revenue": {"d3NumberFormat": "$,.2f"}},
+            "conditional_formatting": [
+                {"column": "Revenue", "operator": ">", "targetValue": 1000}
+            ],
+        }
+        updated: dict[str, Any] = {
+            "viz_type": "ag-grid-pivot-table",
+            "pivot_table_state": {},
+        }
+
+        merge_interactive_pivot_ui_config(existing, updated)
+
+        assert updated["column_config"] == existing["column_config"]
+        assert updated["conditional_formatting"] == existing["conditional_formatting"]
+
+    def test_merges_state_with_new_declarative_sections_winning(self) -> None:
+        existing = {
+            "viz_type": "ag-grid-pivot-table",
+            "pivot_table_state": {
+                "sort": {"sortModel": [{"colId": "Revenue", "sort": "desc"}]},
+                "rowGroup": {"groupColIds": ["old_region"]},
+            },
+        }
+        updated = {
+            "viz_type": "ag-grid-pivot-table",
+            "pivot_table_state": {
+                "rowGroup": {"groupColIds": ["region"]},
+                "pivot": {"pivotMode": True, "pivotColIds": ["quarter"]},
+            },
+        }
+
+        merge_interactive_pivot_ui_config(existing, updated)
+
+        assert updated["pivot_table_state"] == {
+            "sort": {"sortModel": [{"colId": "Revenue", "sort": "desc"}]},
+            "rowGroup": {"groupColIds": ["region"]},
+            "pivot": {"pivotMode": True, "pivotColIds": ["quarter"]},
+        }
 
 
 class TestMapTableConfig:
@@ -479,6 +549,25 @@ class TestMapTableConfig:
 
         assert result["row_limit"] == 500
 
+    def test_map_table_config_supports_null_filter(self) -> None:
+        config = TableChartConfig(
+            chart_type="table",
+            columns=[ColumnRef(name="optional_value")],
+            filters=[FilterConfig(column="optional_value", op="IS NOT NULL")],
+        )
+
+        result = map_table_config(config)
+
+        assert result["adhoc_filters"] == [
+            {
+                "clause": "WHERE",
+                "expressionType": "SIMPLE",
+                "subject": "optional_value",
+                "operator": "IS NOT NULL",
+                "comparator": None,
+            }
+        ]
+
     def test_map_table_config_default_row_limit(self) -> None:
         """Test that default row_limit is mapped to form_data."""
         config = TableChartConfig(
@@ -685,6 +774,23 @@ class TestMapXYConfig:
         assert result["viz_type"] == "echarts_timeseries_scatter"
         assert result["show_legend"] is False
         assert result["legendOrientation"] == "top"
+
+    def test_map_xy_config_with_legend_orientation(self) -> None:
+        config = XYChartConfig.model_validate(
+            {
+                "chart_type": "xy",
+                "x": {"name": "date"},
+                "y": [{"name": "revenue", "aggregate": "SUM"}],
+                "show_legend": True,
+                "legend_orientation": "bottom",
+            }
+        )
+
+        result = map_xy_config(config)
+
+        assert config.legend is not None
+        assert config.legend.show is True
+        assert result["legendOrientation"] == "bottom"
 
     def test_map_xy_config_with_color_scheme(self) -> None:
         """color_scheme propagates to form_data when set."""
