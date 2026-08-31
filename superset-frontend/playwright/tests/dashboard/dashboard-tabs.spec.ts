@@ -191,5 +191,32 @@ testWithAssets(
         },
       )
       .toBeLessThan(widthAtWide);
+
+    // Guards against a container that shrinks via CSS while the chart's
+    // rendered content stays at its old (wider) size: offsetWidth alone
+    // can't tell the two apart, since it reflects the container's CSS box,
+    // not what ECharts actually painted. `.echarts-host` renders its
+    // content at exact pixel sizes, so any gap beyond sub-pixel rounding
+    // means the content is overflowing rather than having resized with it.
+    // ECharts' resize is debounced relative to the CSS reflow the poll
+    // above waits on, so this needs its own poll rather than a one-shot
+    // read right after.
+    await expect
+      .poll(
+        async () => {
+          const { offsetWidth, scrollWidth } = await echartsHost.evaluate(
+            (element: HTMLElement) => ({
+              offsetWidth: element.offsetWidth,
+              scrollWidth: element.scrollWidth,
+            }),
+          );
+          return scrollWidth - offsetWidth;
+        },
+        {
+          timeout: TIMEOUT.API_RESPONSE,
+          message: "treemap content should not overflow its container's width",
+        },
+      )
+      .toBeLessThanOrEqual(2);
   },
 );
