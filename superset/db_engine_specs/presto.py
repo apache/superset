@@ -26,7 +26,7 @@ from collections import defaultdict, deque
 from datetime import datetime
 from re import Pattern
 from textwrap import dedent
-from typing import Any, cast, Optional, TYPE_CHECKING
+from typing import Any, Callable, cast, Optional, TYPE_CHECKING
 from urllib import parse
 
 import pandas as pd
@@ -181,6 +181,15 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
     # expressions (e.g. columns defined as `(expiration = 1) AS expiration`),
     # which raises a query error. Use = true/false instead.
     use_equality_for_boolean_filters = True
+
+    # Presto/Trino's coordinator sends query results as JSON, which has no
+    # literal for NaN/Infinity/-Infinity, so REAL/DOUBLE columns holding
+    # those values arrive as quoted strings. Coerce them back to real
+    # floats so numeric post-processing (e.g. a pivot's mean) doesn't choke
+    # on a string value.
+    column_type_mutators: dict[types.TypeEngine, Callable[[Any], Any]] = {
+        types.FLOAT: lambda val: float(val) if isinstance(val, str) else val
+    }
 
     column_type_mappings = (
         (

@@ -116,6 +116,8 @@ const formData: EchartsMixedTimeseriesFormData = {
   markerSizeB: 0,
   minorSplitLine: false,
   minorTicks: false,
+  gridlines: true,
+  axisTicks: true,
   opacity: 0,
   opacityB: 0,
   orderDesc: false,
@@ -1508,4 +1510,57 @@ describe('EchartsMixedTimeseries tooltip truncation', () => {
     expect(html).toContain('prod-us-east-1-servi…heckout-latency-p99');
     expect(html).not.toContain(longSeriesName);
   });
+});
+
+function transformWithChrome(
+  overrides: Partial<EchartsMixedTimeseriesFormData>,
+) {
+  const chartProps = createEchartsTimeseriesTestChartProps<
+    EchartsMixedTimeseriesFormData,
+    EchartsMixedTimeseriesProps
+  >({
+    ...MIXED_TIMESERIES_CHART_PROPS_DEFAULTS,
+    defaultQueriesData: queriesData,
+    formData: { ...formData, ...overrides },
+    queriesData,
+  });
+  const { echartOptions } = transformProps(chartProps);
+  return {
+    xAxis: echartOptions.xAxis as any,
+    yAxis: echartOptions.yAxis as any[],
+  };
+}
+
+test('draws gridlines and axis ticks when both are enabled', () => {
+  const { xAxis, yAxis } = transformWithChrome({});
+
+  expect(yAxis[0].splitLine.show).toBe(true);
+  // Both axes keep ECharts' own default, which the Mixed chart never overrode.
+  expect(yAxis[0].axisTick.show).toBe('auto');
+  expect(xAxis.axisTick.show).toBe('auto');
+});
+
+test('hides the gridlines on the primary axis', () => {
+  const { xAxis, yAxis } = transformWithChrome({ gridlines: false });
+
+  expect(yAxis[0].splitLine.show).toBe(false);
+  // The secondary axis never draws gridlines, so the two grids cannot double up.
+  expect(yAxis[1].splitLine.show).toBe(false);
+  expect(xAxis.splitLine.show).toBe(false);
+});
+
+test('never turns the secondary axis gridlines on', () => {
+  const { xAxis, yAxis } = transformWithChrome({ gridlines: true });
+
+  expect(yAxis[0].splitLine.show).toBe(true);
+  expect(yAxis[1].splitLine.show).toBe(false);
+  expect(xAxis.splitLine).toBeUndefined();
+});
+
+test('hides the ticks on the x axis and both y axes', () => {
+  const { xAxis, yAxis } = transformWithChrome({ axisTicks: false });
+
+  expect(xAxis.axisTick.show).toBe(false);
+  expect(yAxis[0].axisTick.show).toBe(false);
+  expect(yAxis[1].axisTick.show).toBe(false);
 });
