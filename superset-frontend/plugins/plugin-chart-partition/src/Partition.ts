@@ -73,18 +73,24 @@ interface IcicleProps {
 function init(root: PartitionNode): PartitionNode[] {
   const flat: PartitionNode[] = [];
   const dy = 1 / (root.height + 1);
-  let prev: PartitionNode | null = null;
+  // Tracks, per parent, how much of its [x, x+dx] band has already been
+  // claimed by earlier siblings -- so each child is always positioned
+  // relative to its own parent, regardless of how unevenly the tree
+  // branches (e.g. a sibling branch terminating before the deepest
+  // configured level).
+  const siblingOffsets = new Map<PartitionNode, number>();
   root.each((n: PartitionNode) => {
     n.y = dy * n.depth;
     n.dy = dy;
     if (n.parent) {
-      n.x = prev!.depth === n.parent.depth ? 0 : prev!.x + prev!.dx;
+      const offset = siblingOffsets.get(n.parent) || 0;
+      n.x = n.parent.x + offset;
       n.dx = (n.weight / n.parent.sum) * n.parent.dx;
+      siblingOffsets.set(n.parent, offset + n.dx);
     } else {
       n.x = 0;
       n.dx = 1;
     }
-    prev = n;
     flat.push(n);
   });
 
