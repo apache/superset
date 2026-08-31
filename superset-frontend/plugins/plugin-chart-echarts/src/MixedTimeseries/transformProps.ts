@@ -185,6 +185,8 @@ export default function transformProps(
     opacityB,
     minorSplitLine,
     minorTicks,
+    gridlines,
+    axisTicks,
     seriesType,
     seriesTypeB,
     showLegend,
@@ -791,6 +793,8 @@ export default function transformProps(
         }),
       },
       minorTick: { show: minorTicks },
+      axisTick: { show: axisTicks ? 'auto' : false },
+      ...(gridlines ? {} : { splitLine: { show: false } }),
       minInterval:
         xAxisType === AxisType.Time && resolvedTimeGrain && !forceMaxInterval
           ? (TIMEGRAIN_TO_TIMESTAMP[
@@ -821,6 +825,8 @@ export default function transformProps(
         min: yAxisMin,
         max: yAxisMax,
         minorTick: { show: minorTicks },
+        axisTick: { show: axisTicks ? 'auto' : false },
+        splitLine: { show: gridlines },
         minorSplitLine: { show: minorSplitLine },
         axisLabel: {
           formatter: getYAxisFormatter(
@@ -843,6 +849,7 @@ export default function transformProps(
         min: minSecondary,
         max: maxSecondary,
         minorTick: { show: minorTicks },
+        axisTick: { show: axisTicks ? 'auto' : false },
         splitLine: { show: false },
         minorSplitLine: { show: minorSplitLine },
         axisLabel: {

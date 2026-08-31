@@ -355,25 +355,31 @@ describe('SqlEditor', () => {
       }),
     );
 
+  // findByRole('button', { name }) walks every stylesheet rule via nwsapi to
+  // compute the accessible name, which can crash on an unrelated antd Tabs
+  // "more" button style; findByLabelText matches the same aria-label without
+  // that traversal.
   test('enables the save dataset button when the latest query succeeded', async () => {
-    const { findByRole } = setupWithLatestQuery({ state: QueryState.Success });
-    expect(await findByRole('button', { name: 'Save dataset' })).toBeEnabled();
+    const { findByLabelText } = setupWithLatestQuery({
+      state: QueryState.Success,
+    });
+    expect(await findByLabelText('Save dataset')).toBeEnabled();
   });
 
   test('disables the save dataset button when the latest query failed', async () => {
-    const { findByRole } = setupWithLatestQuery({
+    const { findByLabelText } = setupWithLatestQuery({
       state: QueryState.Failed,
       results: undefined,
     });
-    expect(await findByRole('button', { name: 'Save dataset' })).toBeDisabled();
+    expect(await findByLabelText('Save dataset')).toBeDisabled();
   });
 
   test('disables the save dataset button when the results are not loaded', async () => {
-    const { findByRole } = setupWithLatestQuery({
+    const { findByLabelText } = setupWithLatestQuery({
       state: QueryState.Success,
       results: undefined,
     });
-    expect(await findByRole('button', { name: 'Save dataset' })).toBeDisabled();
+    expect(await findByLabelText('Save dataset')).toBeDisabled();
   });
 
   test('renders an Extension if provided', async () => {

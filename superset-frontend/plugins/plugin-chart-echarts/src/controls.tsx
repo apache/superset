@@ -524,6 +524,28 @@ export const minorTicks: ControlSetItem = {
   },
 };
 
+export const axisTicks: ControlSetItem = {
+  name: 'axisTicks',
+  config: {
+    type: 'CheckboxControl',
+    label: t('Axis ticks'),
+    default: true,
+    renderTrigger: true,
+    description: t('Show the main ticks on axes.'),
+  },
+};
+
+export const gridlines: ControlSetItem = {
+  name: 'gridlines',
+  config: {
+    type: 'CheckboxControl',
+    label: t('Gridlines'),
+    default: true,
+    renderTrigger: true,
+    description: t('Draw split lines for the main value axis ticks.'),
+  },
+};
+
 export const forceCategorical: ControlSetItem = {
   name: 'forceCategorical',
   config: {
