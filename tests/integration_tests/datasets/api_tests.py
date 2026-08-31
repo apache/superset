@@ -3269,6 +3269,61 @@ class TestDatasetApi(SupersetTestCase):
         assert rv.status_code == 400
         assert "Specify the 'schema' field" in rv.data.decode("utf-8")
 
+    def test_get_or_create_dataset_with_schema_returns_400_when_ambiguous(self):
+        """
+        Dataset API: regression for the ``if schema:`` branch of
+        ``get_or_create``.
+
+        Two legacy datasets can share ``(database_id, schema, table_name)``
+        while both carry ``catalog=None``: the composite unique constraint
+        treats NULL catalogs as distinct, so it does not prevent this. When
+        the caller supplies ``schema`` and two such rows match,
+        ``one_or_none()`` raises ``MultipleResultsFound``. The API must return
+        a 400 with an actionable message rather than 500-ing — mirroring the
+        no-schema guard.
+        """
+        if get_main_database().backend == "sqlite":
+            pytest.skip(
+                "SQLite has a legacy single-column unique constraint on "
+                "table_name that prevents seeding two same-name datasets in "
+                "the same schema"
+            )
+
+        self.login(ADMIN_USERNAME)
+        admin_id = self.get_user("admin").id
+        examples_db = get_example_database()
+        table_name = "test_get_or_create_ambiguous_catalog"
+        schema = "same_schema"
+
+        # Both rows share database_id + schema + table_name with catalog=None
+        # (the default), so they match the ``if schema:`` lookup ambiguously.
+        ds_a = self.insert_dataset(
+            table_name,
+            [admin_id],
+            examples_db,
+            schema=schema,
+            fetch_metadata=False,
+        )
+        ds_b = self.insert_dataset(
+            table_name,
+            [admin_id],
+            examples_db,
+            schema=schema,
+            fetch_metadata=False,
+        )
+        self.items_to_delete = [ds_a, ds_b]
+
+        rv = self.client.post(
+            "api/v1/dataset/get_or_create/",
+            json={
+                "table_name": table_name,
+                "schema": schema,
+                "database_id": examples_db.id,
+            },
+        )
+        assert rv.status_code == 400
+        assert "catalog" in rv.data.decode("utf-8")
+
     @pytest.mark.usefixtures(
         "load_energy_table_with_slice", "load_birth_names_dashboard_with_slices"
     )
