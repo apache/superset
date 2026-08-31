@@ -79,6 +79,15 @@ type PropertiesModalProps = {
   addSuccessToast: (message: string) => void;
   addDangerToast: (message: string) => void;
   onlyApply?: boolean;
+  renderExtraFields?: (context: {
+    assetId: number;
+    assetType: 'dashboard';
+    accessorCount: number;
+  }) => {
+    content: React.ReactNode;
+    saveDisabled?: boolean;
+    saveTooltip?: string;
+  };
 };
 
 type DashboardInfo = {
@@ -107,6 +116,7 @@ const PropertiesModal = ({
   onlyApply = false,
   onSubmit = () => {},
   show = false,
+  renderExtraFields,
 }: PropertiesModalProps) => {
   const dispatch = useDispatch();
   const [form] = Form.useForm();
@@ -123,6 +133,17 @@ const PropertiesModal = ({
   });
   const [editors, setEditors] = useState<Subject[]>([]);
   const [viewers, setViewers] = useState<Subject[]>([]);
+
+  const extraFields = useMemo(
+    () =>
+      renderExtraFields?.({
+        assetId: dashboardId,
+        assetType: 'dashboard',
+        accessorCount: editors.length + viewers.length,
+      }),
+    [renderExtraFields, dashboardId, editors.length, viewers.length],
+  );
+
   const saveLabel = onlyApply ? t('Apply') : t('Save');
   const [tags, setTags] = useState<TagType[]>([]);
   const [customCss, setCustomCss] = useState('');
@@ -698,15 +719,21 @@ const PropertiesModal = ({
       }}
       title={t('Dashboard properties')}
       isEditMode
-      saveDisabled={dashboardInfo?.isManagedExternally || hasErrors}
+      saveDisabled={
+        dashboardInfo?.isManagedExternally ||
+        hasErrors ||
+        extraFields?.saveDisabled
+      }
       saveLoading={isApplying}
       contentLoading={isLoading}
       errorTooltip={
-        dashboardInfo?.isManagedExternally
-          ? t(
-              "This dashboard is managed externally, and can't be edited in Superset",
-            )
-          : errorTooltip
+        extraFields?.saveDisabled && extraFields?.saveTooltip
+          ? extraFields.saveTooltip
+          : dashboardInfo?.isManagedExternally
+            ? t(
+                "This dashboard is managed externally, and can't be edited in Superset",
+              )
+            : errorTooltip
       }
       saveText={saveLabel}
       wrapProps={{ 'data-test': 'properties-edit-modal' }}
@@ -769,6 +796,7 @@ const PropertiesModal = ({
                   onChangeViewers={handleOnChangeViewers}
                   onChangeTags={handleChangeTags}
                   onClearTags={handleClearTags}
+                  renderExtraFields={extraFields}
                 />
               ),
             },

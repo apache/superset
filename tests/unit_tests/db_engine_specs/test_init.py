@@ -137,6 +137,41 @@ def test_get_available_engine_specs_keeps_valid_third_party_dialect(
     assert available[SqliteEngineSpec] == {"valid_driver"}
 
 
+def test_get_available_engine_specs_supports_sqlalchemy_2_native_dialect(
+    mocker: MockerFixture,
+) -> None:
+    """A native SQLAlchemy 2 dialect is discovered through import_dbapi()."""
+    import sqlalchemy.dialects
+
+    from superset.db_engine_specs.mysql import MySQLEngineSpec
+
+    class ValidDialect(DefaultDialect):
+        driver = "mysqldb"
+
+        @classmethod
+        def import_dbapi(cls) -> object:
+            return object()
+
+    mocker.patch.object(sqlalchemy.dialects, "__all__", ["mysql"])
+    mocker.patch.object(
+        sqlalchemy.dialects.registry,
+        "load",
+        return_value=ValidDialect,
+    )
+    mocker.patch(
+        "superset.db_engine_specs.load_engine_specs",
+        return_value=iter([MySQLEngineSpec]),
+    )
+    mocker.patch(
+        "superset.db_engine_specs.entry_points",
+        return_value=[],
+    )
+
+    available = get_available_engine_specs()
+
+    assert available[MySQLEngineSpec] == {"mysqldb"}
+
+
 @pytest.mark.parametrize(
     "app",
     [{"DBS_AVAILABLE_DENYLIST": {"databricks": {"pyhive", "pyodbc"}}}],

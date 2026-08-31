@@ -17,6 +17,10 @@
  * under the License.
  */
 
+import { getNumberFormatter } from '@superset-ui/core';
+import { render, fireEvent } from '../../../../spec/helpers/testing-library';
+import BigNumberVis from './BigNumberViz';
+
 /**
  * Tests for the color threshold formatter logic in BigNumberViz.
  *
@@ -81,5 +85,35 @@ describe('BigNumberViz color formatters', () => {
     applyColorFormatters(undefined, [{ getColorFromValue }]);
 
     expect(getColorFromValue).not.toHaveBeenCalled();
+  });
+});
+
+describe('BigNumberViz context menu', () => {
+  test('invokes onContextMenu and stops the event bubbling to ancestor handlers', () => {
+    const onContextMenu = jest.fn();
+    const ancestorHandler = jest.fn();
+
+    const { container } = render(
+      <div onContextMenu={ancestorHandler}>
+        <BigNumberVis
+          width={200}
+          height={100}
+          bigNumber={42}
+          headerFormatter={getNumberFormatter()}
+          headerFontSize={0.3}
+          subheaderFontSize={0.125}
+          subtitleFontSize={0.125}
+          subtitle=""
+          refs={{}}
+          onContextMenu={onContextMenu}
+        />
+      </div>,
+    );
+
+    const headerLine = container.querySelector('.header-line');
+    fireEvent.contextMenu(headerLine!, { clientX: 10, clientY: 20 });
+
+    expect(onContextMenu).toHaveBeenCalledWith(10, 20);
+    expect(ancestorHandler).not.toHaveBeenCalled();
   });
 });
