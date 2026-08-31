@@ -54,6 +54,16 @@ jest.mock('src/middleware/realtime', () => ({
   },
 }));
 
+// Bootstrap can carry no `conf` (e.g. a component test with no data-bootstrap);
+// init() runs at module load, so it must not throw when conf is undefined.
+/* eslint-disable no-var, vars-on-top */
+var mockBootstrapConf: object | undefined;
+/* eslint-enable no-var, vars-on-top */
+jest.mock('src/utils/getBootstrapData', () => ({
+  __esModule: true,
+  default: () => ({ common: { conf: mockBootstrapConf } }),
+}));
+
 const mockedIsFeatureEnabled = isFeatureEnabled as jest.Mock;
 
 const STATUS_CHANGES_ENDPOINT = 'glob:*/api/v1/task/status_changes*';
@@ -117,6 +127,15 @@ test('does not poll status changes until a chart is awaiting async data', () => 
   asyncEvent.init(config);
 
   expect(fetchMock.callHistory.calls(STATUS_CHANGES_ENDPOINT)).toHaveLength(0);
+});
+
+test('init does not throw when bootstrap carries no conf', () => {
+  // Regression: init() runs at module load; reading WEBSOCKET_ENABLE off an
+  // undefined conf (async off, no data-bootstrap) must not crash the module —
+  // which would break every test file that transitively imports it.
+  mockedIsFeatureEnabled.mockReturnValue(false);
+  mockBootstrapConf = undefined;
+  expect(() => asyncEvent.init()).not.toThrow();
 });
 
 test('waits for every task before re-issuing', async () => {

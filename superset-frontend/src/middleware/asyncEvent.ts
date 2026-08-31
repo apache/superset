@@ -514,8 +514,9 @@ export const init = (appConfig?: AppConfig) => {
   // When the websocket transport is enabled it is the sole completion mechanism:
   // we never run the recurring poll, only a one-shot catch-up on
   // registration/reconnect. With it disabled, the interval poll below is the only
-  // mechanism.
-  wsEnabled = Boolean(config.WEBSOCKET_ENABLE);
+  // mechanism. (`config` can be undefined when bootstrap carries no conf — e.g.
+  // under test — so read it defensively; this runs before the feature gate.)
+  wsEnabled = Boolean(config?.WEBSOCKET_ENABLE);
 
   // (Re)connect the shared realtime socket whenever the websocket transport is
   // enabled — independent of GLOBAL_ASYNC_QUERIES, since realtime list views
