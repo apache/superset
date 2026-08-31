@@ -832,8 +832,16 @@ const Select = forwardRef(
       if (onChangeCount !== previousChangeCount) {
         const array = ensureIsArray(selectValue);
         const set = new Set(array.map(getValue));
+        // Flatten grouped columns so the option metadata resolves to the leaf
+        // options rather than the value-less group headers (which would leave
+        // this array empty). A flat list is returned unchanged.
+        // Flatten grouped columns so the option metadata resolves to the leaf
+        // options rather than the value-less group headers (which would leave
+        // this array empty). A flat list is returned unchanged.
         const options = mapOptions(
-          fullSelectOptions.filter(opt => set.has(opt.value)),
+          flattenGroupedOptions(fullSelectOptions).filter(opt =>
+            set.has(opt.value),
+          ),
         );
         if (isSingleMode) {
           handleOnChange(selectValue, selectValue ? options[0] : undefined);

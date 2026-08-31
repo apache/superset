@@ -1509,7 +1509,17 @@ test('stableSelectAll counts and selects grouped options by their leaf values', 
 
   await userEvent.click(selectAll);
   await waitFor(() => expect(onChange).toHaveBeenCalled());
-  expect(onChange.mock.calls.at(-1)?.[0]).toHaveLength(5);
+
+  const [selectedValues, selectedOptions] = onChange.mock.calls.at(-1) ?? [];
+  const valueOf = (item: number | { value: number }) =>
+    item && typeof item === 'object' ? item.value : item;
+  const sortNumeric = (values: number[]) => [...values].sort((a, b) => a - b);
+
+  // The five leaf values are selected — never the value-less group headers.
+  expect(sortNumeric(selectedValues.map(valueOf))).toEqual([1, 2, 3, 4, 5]);
+  // The option metadata alongside the values is also the flattened leaf set,
+  // not an empty array left over from filtering the group nodes.
+  expect(sortNumeric(selectedOptions.map(valueOf))).toEqual([1, 2, 3, 4, 5]);
 });
 
 test('dropdown takes full width of the select input for multi select', async () => {
