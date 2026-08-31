@@ -126,7 +126,6 @@ def test_datasource_taken_from_argument_not_params() -> None:
         ({}, "table", 12),  # no metrics AND no columns/groupby
         ({"metrics": [], "groupby": []}, "table", 12),  # empty query intent
         ({"metrics": ["x"]}, "markup", 12),  # datasource-less viz
-        ({"metrics": ["x"]}, "handlebars", 12),  # datasource-less viz
         ({"metrics": ["x"]}, "divider", 12),  # datasource-less viz
     ],
 )
@@ -136,6 +135,20 @@ def test_non_derivable_returns_none(
     """Every FR-003 non-derivable branch → None (never a fabricated context)."""
     # --- RED anchor: honest-fail classification (FR-003) ---
     assert build_query_context_config(params, viz_type, datasource_id, "table") is None
+
+
+def test_handlebars_is_derivable() -> None:
+    """
+    `handlebars` renders a template over query results — it has a real buildQuery
+    and a parity golden — so the fallback must derive it too. Classifying it
+    datasource-less left imported handlebars charts with a null context that 400s
+    when the V8 bundle is unavailable (#33615 review).
+    """
+    query_context = build_query_context_config(
+        {"metrics": ["count"]}, "handlebars", 7, "table"
+    )
+    assert query_context is not None
+    assert query_context["queries"][0]["metrics"] == ["count"]
 
 
 def test_adhoc_simple_filter_translation() -> None:

@@ -84,7 +84,7 @@ def _derive_query_context(chart: Any, generator: Any) -> Optional[dict[str, Any]
     type=int,
     default=200,
     show_default=True,
-    help="Commit every N updated charts.",
+    help="Number of charts to load, process, and commit per batch.",
 )
 def backfill_query_context(
     dry_run: bool, viz_types: tuple[str, ...], batch_size: int
@@ -106,50 +106,53 @@ def backfill_query_context(
     from superset.models.slice import Slice
     from superset.utils import json
 
+    if batch_size < 1:
+        raise click.BadParameter(
+            "must be a positive integer", param_hint="'--batch-size'"
+        )
+
     generator = get_query_context_generator()
 
-    # `enable_eagerloads(False)` is required for `yield_per`: Slice has eager
-    # (joined) collection relationships that otherwise raise
-    # "Can't use yield_per with eager loaders that require uniquing/buffering".
-    query = (
-        db.session.query(Slice)
-        .filter(Slice.query_context.is_(None))
-        .enable_eagerloads(False)
-    )
+    # Snapshot the candidate primary keys up front (a light id-only query), then
+    # process them in stable-id pages. We must NOT stream with ``yield_per`` and
+    # commit mid-iteration: on PostgreSQL the commit closes the server-side cursor,
+    # so the next fetch fails and a backfill spanning more than one batch leaves the
+    # remaining charts untouched (#33615 review). Paging by id means each batch is
+    # its own query, so committing between batches is safe.
+    id_query = db.session.query(Slice.id).filter(Slice.query_context.is_(None))
     if viz_types:
-        query = query.filter(Slice.viz_type.in_(viz_types))
+        id_query = id_query.filter(Slice.viz_type.in_(viz_types))
+    chart_ids = [row[0] for row in id_query.all()]
 
     updated = 0
     non_derivable = 0
     errors = 0
-    pending = 0
 
-    for chart in query.yield_per(batch_size):
-        try:
-            context = _derive_query_context(chart, generator)
-        except Exception as ex:  # pylint: disable=broad-except
-            errors += 1
-            logger.warning(
-                "backfill-query-context: chart id=%s failed: %s", chart.id, ex
-            )
-            continue
+    for start in range(0, len(chart_ids), batch_size):
+        batch_ids = chart_ids[start : start + batch_size]
+        for chart in db.session.query(Slice).filter(Slice.id.in_(batch_ids)):
+            try:
+                context = _derive_query_context(chart, generator)
+            except Exception as ex:  # pylint: disable=broad-except
+                errors += 1
+                logger.warning(
+                    "backfill-query-context: chart id=%s failed: %s", chart.id, ex
+                )
+                continue
 
-        if context is None:
-            non_derivable += 1
-            continue
+            if context is None:
+                non_derivable += 1
+                continue
 
-        updated += 1
-        if dry_run:
-            continue
+            updated += 1
+            if not dry_run:
+                chart.query_context = json.dumps(context)
 
-        chart.query_context = json.dumps(context)
-        pending += 1
-        if pending >= batch_size:
+        if not dry_run:
             db.session.commit()  # pylint: disable=consider-using-transaction
-            pending = 0
-
-    if not dry_run and pending:
-        db.session.commit()  # pylint: disable=consider-using-transaction
+        # Keep the session (and memory) bounded across a large backfill; the next
+        # page loads its own rows by id.
+        db.session.expunge_all()
 
     prefix = "[dry-run] would update" if dry_run else "updated"
     click.echo(

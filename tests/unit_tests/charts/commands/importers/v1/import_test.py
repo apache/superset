@@ -556,6 +556,38 @@ def test_synthesis_runs_after_migration_for_legacy_viz(
     assert passed_viz_type == "mixed_timeseries"
 
 
+def test_synthesis_drops_source_slice_id_from_generator_params(
+    mocker: MockerFixture, session_with_schema: Session
+) -> None:
+    """
+    #33615 review: the exported ``slice_id`` must not reach the V8 buildQuery form
+    data. If that id belongs to an unrelated chart in the destination,
+    ``QueryContextFactory`` would resolve that chart from the synthesized context,
+    changing its cache/guest-access behavior. It is dropped before generation.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    generator = mocker.patch(
+        "superset.commands.chart.importers.v1.utils.get_query_context_generator"
+    ).return_value
+    generator.generate.return_value = None  # force fallback; we inspect the call
+
+    config = copy.deepcopy(chart_config)
+    config["datasource_id"] = 1
+    config["datasource_type"] = "table"
+    config["viz_type"] = "table"
+    config["params"]["viz_type"] = "table"
+    config["params"]["metrics"] = ["count"]
+    config["params"]["slice_id"] = 999999  # a foreign id from the source export
+    config.pop("query_context", None)
+
+    import_chart(config)
+
+    # The V8 generator was called with form data that no longer carries slice_id.
+    assert generator.generate.called
+    passed_params = generator.generate.call_args.args[1]
+    assert "slice_id" not in passed_params
+
+
 def test_import_non_derivable_chart_leaves_query_context_null(
     mocker: MockerFixture, session_with_schema: Session
 ) -> None:

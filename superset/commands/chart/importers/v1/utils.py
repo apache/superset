@@ -184,6 +184,12 @@ def _synthesize_query_context_if_absent(config: dict[str, Any]) -> None:
                 **params,
                 "datasource": f"{datasource_id}__{datasource_type}",
             }
+            # Drop the source chart's exported `slice_id`: passing it to the V8
+            # buildQuery would let QueryContextFactory resolve an unrelated chart
+            # that happens to share that id in this installation, changing that
+            # chart's cache/guest-access behavior. The synthesized context must be
+            # bound to the datasource only, never a foreign slice.
+            js_params.pop("slice_id", None)
             query_context_config = get_query_context_generator().generate(
                 viz_type, js_params
             )

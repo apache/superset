@@ -40,7 +40,12 @@ from superset.utils.core import split_adhoc_filters_into_base_filters
 # Datasource-less viz types render static/markdown content rather than a
 # datasource-backed query; a NULL query_context is the *correct* state for them
 # (FR-003), not a bug. Kept as a small, explicit, conservatively-expanded set.
-_NON_DATASOURCE_VIZ: frozenset[str] = frozenset({"markup", "handlebars", "divider"})
+# NOTE: `handlebars` is deliberately NOT here — it renders a template over query
+# results and ships a real buildQuery (its generated registry entry and golden
+# fixture build a datasource-backed query), so it must stay on the derivable path.
+# Classifying it datasource-less left imported handlebars charts with a NULL
+# context that 400s on the data endpoint whenever the V8 bundle is unavailable.
+_NON_DATASOURCE_VIZ: frozenset[str] = frozenset({"markup", "divider"})
 
 # Default row limit mirrors the query-object default used across the read path.
 _DEFAULT_ROW_LIMIT = 5000
