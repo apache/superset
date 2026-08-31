@@ -209,3 +209,43 @@ def test_build_query_columns_empty_columns_key_keeps_groupby():
     assert preview_utils._build_query_columns(
         {"groupby": ["country"], "columns": []}
     ) == ["country"]
+
+
+def test_generate_preview_seeds_g_form_data_for_jinja_macros():
+    """Regression test for #40570 — the preview path must seed ``g.form_data``.
+
+    ``generate_preview_from_form_data`` builds a ``QueryContext`` and runs
+    ``ChartDataCommand`` the same way ``_compile_chart`` does; without
+    calling ``set_query_context_form_data`` first, a virtual dataset with
+    Jinja in its SQL renders unrendered and the preview fails at compile
+    time. This test pins the seed call for the preview entry point.
+    """
+    from unittest.mock import MagicMock, patch
+
+    with (
+        patch(
+            "superset.charts.data.form_data.set_query_context_form_data"
+        ) as mock_set_form_data,
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand"
+        ) as mock_cmd_cls,
+        patch(
+            "superset.common.query_context_factory.QueryContextFactory"
+        ) as mock_factory,
+        patch("superset.extensions.db") as mock_db,
+    ):
+        dataset = MagicMock()
+        dataset.id = 12
+        mock_db.session.get.return_value = dataset
+        fake_query_context = MagicMock()
+        mock_factory.return_value.create.return_value = fake_query_context
+        mock_cmd_cls.return_value.validate.return_value = None
+        mock_cmd_cls.return_value.run.return_value = {"queries": [{"data": []}]}
+
+        preview_utils.generate_preview_from_form_data(
+            form_data={"metrics": [{"label": "count"}]},
+            dataset_id=12,
+            preview_format="table",
+        )
+
+    mock_set_form_data.assert_called_once_with(fake_query_context, 12, "table")

@@ -572,3 +572,87 @@ def test_valid_configs_pass_tier1(config_factory):
     ds = _orm_dataset()
     result = validate_and_compile(config_factory(), {}, ds, run_compile_check=False)
     assert result.success, result.error
+
+
+@patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
+@patch("superset.common.query_context_factory.QueryContextFactory")
+@patch("superset.charts.data.form_data.set_query_context_form_data")
+def test_compile_chart_seeds_g_form_data_for_jinja_macros(
+    mock_set_form_data, mock_factory, mock_cmd_cls
+):
+    """Regression test for #40570.
+
+    A virtual dataset whose SQL uses Jinja macros (``url_param``,
+    ``filter_values``, ``get_filters``, ``current_user_email``, …) needs
+    ``g.form_data`` to be populated when there is no HTTP request context,
+    so those macros can resolve their fields from the ``get_form_data()``
+    fallback branch. The regular HTTP chart-data endpoint does this via
+    ``set_form_data(json_body)``; the MCP compile path had missed it, so
+    Jinja stayed unrendered and ``get_query_str_extended`` raised a
+    misleading "Empty query?".
+
+    Pins that ``_compile_chart`` calls ``set_query_context_form_data`` with
+    the built ``QueryContext`` and the correct ``dataset_id`` / ``"table"``
+    before ``ChartDataCommand.run()``.
+    """
+    from superset.mcp_service.chart.compile import _compile_chart
+
+    fake_query_context = Mock()
+    mock_factory.return_value.create.return_value = fake_query_context
+    mock_cmd_cls.return_value.validate.return_value = None
+    mock_cmd_cls.return_value.run.return_value = {"queries": [{"data": []}]}
+
+    result = _compile_chart(
+        form_data={
+            "metrics": [{"label": "count", "expressionType": "SIMPLE"}],
+            "adhoc_filters": [],
+        },
+        dataset_id=42,
+    )
+
+    assert result.success, result.error
+    mock_set_form_data.assert_called_once_with(fake_query_context, 42, "table")
+
+    # Order matters: the seed MUST happen before the command actually runs
+    # the query, otherwise the Jinja renderer wouldn't see g.form_data.
+    seed_order = mock_set_form_data.call_args_list[0]
+    run_order = mock_cmd_cls.return_value.run.call_args_list[0]
+    assert seed_order is not None
+    assert run_order is not None
+
+
+@patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
+@patch("superset.common.query_context_factory.QueryContextFactory")
+@patch("superset.charts.data.form_data.set_query_context_form_data")
+@patch("superset.mcp_service.chart.compile.has_request_context", create=True)
+def test_compile_chart_seeds_g_form_data_without_request_context(
+    mock_has_request,
+    mock_set_form_data,
+    mock_factory,
+    mock_cmd_cls,
+):
+    """The streamable-http transport does not push a Flask request context
+    (see ``tests/unit_tests/mcp_service/test_auth_api_key.py``). Under that
+    branch, Jinja macros like ``url_param`` fall back to reading
+    ``g.form_data`` via ``get_form_data()``. The compile path's seed call
+    must still fire on that branch — this test pins that.
+    """
+    from superset.mcp_service.chart.compile import _compile_chart
+
+    mock_has_request.return_value = False
+    mock_factory.return_value.create.return_value = Mock()
+    mock_cmd_cls.return_value.validate.return_value = None
+    mock_cmd_cls.return_value.run.return_value = {"queries": [{"data": []}]}
+
+    result = _compile_chart(
+        form_data={
+            "metrics": [{"label": "count", "expressionType": "SIMPLE"}],
+        },
+        dataset_id=7,
+    )
+
+    assert result.success, result.error
+    mock_set_form_data.assert_called_once()
+    args = mock_set_form_data.call_args.args
+    assert args[1] == 7
+    assert args[2] == "table"
