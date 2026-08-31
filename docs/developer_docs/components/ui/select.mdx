@@ -34,7 +34,6 @@ A versatile select component supporting single and multi-select modes, search fi
   component="Select"
   props={{
   mode: "single",
-  placeholder: "Select ...",
   showSearch: true,
   allowNewOptions: false,
   allowClear: false,
@@ -102,12 +101,6 @@ A versatile select component supporting single and multi-select modes, search fi
     description: "Whether to allow selection of a single option or multiple."
   },
   {
-    name: "placeholder",
-    label: "Placeholder",
-    type: "text",
-    description: "Placeholder text when no option is selected."
-  },
-  {
     name: "showSearch",
     label: "Show Search",
     type: "boolean",
@@ -154,6 +147,12 @@ A versatile select component supporting single and multi-select modes, search fi
     label: "Max Tag Count",
     type: "number",
     description: "Maximum number of tags to display in multiple mode before showing an overflow count."
+  },
+  {
+    name: "placeholder",
+    label: "Placeholder",
+    type: "text",
+    description: "Placeholder text when no option is selected."
   }
 ]}
 />
@@ -283,7 +282,6 @@ function OneLineDemo() {
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `mode` | `string` | `"single"` | Whether to allow selection of a single option or multiple. |
-| `placeholder` | `string` | `"Select ..."` | Placeholder text when no option is selected. |
 | `showSearch` | `boolean` | `true` | Whether to show a search input for filtering. |
 | `allowNewOptions` | `boolean` | `false` | Whether users can create new options by typing a value not in the list. |
 | `allowClear` | `boolean` | `false` | Whether to show a clear button to reset the selection. |

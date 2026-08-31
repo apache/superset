@@ -10,20 +10,19 @@ Future phases will add support for these sources.
 
 ## Summary
 
-- **Total skipped:** 19 story files
+- **Total skipped:** 22 story files
 - **Reason:** Import path resolution not yet implemented
 
 ## Skipped by Source
 
 ### App Components
 
-9 components
+8 components
 
 - [ ] `superset-frontend/src/components/AlteredSliceTag/AlteredSliceTag.stories.tsx`
 - [ ] `superset-frontend/src/components/Chart/DrillDetail/DrillDetailTableControls.stories.tsx`
 - [ ] `superset-frontend/src/components/CopyToClipboard/CopyToClipboard.stories.tsx`
 - [ ] `superset-frontend/src/components/ErrorMessage/ErrorAlert.stories.tsx`
-- [ ] `superset-frontend/src/components/FacePile/FacePile.stories.tsx`
 - [ ] `superset-frontend/src/components/FilterableTable/FilterableTable.stories.tsx`
 - [ ] `superset-frontend/src/components/RowCountLabel/RowCountLabel.stories.tsx`
 - [ ] `superset-frontend/src/components/Tag/Tag.stories.tsx`
@@ -31,9 +30,10 @@ Future phases will add support for these sources.
 
 ### Dashboard Components
 
-2 components
+3 components
 
 - [ ] `superset-frontend/src/dashboard/components/AnchorLink/AnchorLink.stories.tsx`
+- [ ] `superset-frontend/src/dashboard/components/PropertiesModal/sections/AccessSection.stories.tsx`
 - [ ] `superset-frontend/src/dashboard/components/nativeFilters/FilterBar/FilterControls/FilterDivider.stories.tsx`
 
 ### Explore Components
@@ -47,10 +47,13 @@ Future phases will add support for these sources.
 
 ### Feature Components
 
-2 components
+5 components
 
 - [ ] `superset-frontend/src/features/datasets/AddDataset/DatasetPanel/DatasetPanel.stories.tsx`
 - [ ] `superset-frontend/src/features/home/LanguagePicker.stories.tsx`
+- [ ] `superset-frontend/src/features/subjects/SubjectPicker/SubjectPicker.stories.tsx`
+- [ ] `superset-frontend/src/features/subjects/SubjectPile/SubjectPile.stories.tsx`
+- [ ] `superset-frontend/src/features/subjects/SubjectSelectLabel/SubjectSelectLabel.stories.tsx`
 
 ### Filter Components
 
