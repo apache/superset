@@ -1302,7 +1302,37 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     def purge_impact(self, uuid: str) -> Response:
-        """Preview the dependency impact of purging an archived dataset."""
+        """Preview the dependency impact of purging an archived dataset.
+        ---
+        get:
+          summary: Preview the dependency impact of purging an archived dataset
+          description: >-
+            Report the charts and dashboards that depend on an archived
+            dataset, with an impact token that must be echoed back on the
+            purge request. Limited to owners and admins (same audience as
+            restore).
+          parameters:
+          - in: path
+            schema:
+              type: string
+              format: uuid
+            name: uuid
+          responses:
+            200:
+              description: Dependency impact of purging the dataset
+              content:
+                application/json:
+                  schema:
+                    $ref: '#/components/schemas/DatasetPurgeImpactSchema'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
         try:
             impact: DatasetPurgeImpact = PurgeArchivedCommand(
                 uuid, _DATASET_PURGE_BINDING

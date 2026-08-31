@@ -368,12 +368,14 @@ function ArchivedListBody({
         }),
         headers: { 'Content-Type': 'application/json' },
       });
-      if (impactRequestGeneration.current !== generation) {
-        return;
-      }
+      // The purge succeeded even if the modal was closed while the request
+      // was in flight, so the toast and refresh must not be gated on the
+      // request generation — only the modal state is.
       const name = String(item[config.nameField] ?? '');
       addSuccessToast(t('%(name)s deleted successfully', { name }));
-      setDatasetPurgeModal({ status: 'closed' });
+      if (impactRequestGeneration.current === generation) {
+        setDatasetPurgeModal({ status: 'closed' });
+      }
       await refreshData();
     } catch (error) {
       if (impactRequestGeneration.current !== generation) {

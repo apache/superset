@@ -137,6 +137,7 @@ jest.mock('@superset-ui/core', () => ({
 }));
 
 const mockAddDangerToast = jest.fn();
+const mockAddSuccessToast = jest.fn();
 jest.mock('src/components/MessageToasts/withToasts', () => ({
   __esModule: true,
   default:
@@ -145,7 +146,7 @@ jest.mock('src/components/MessageToasts/withToasts', () => ({
       <Component
         {...props}
         addDangerToast={mockAddDangerToast}
-        addSuccessToast={jest.fn()}
+        addSuccessToast={mockAddSuccessToast}
         addInfoToast={jest.fn()}
         addWarningToast={jest.fn()}
       />
@@ -193,6 +194,7 @@ beforeEach(() => {
   fetchMock.removeRoutes();
   fetchMock.clearHistory();
   mockAddDangerToast.mockClear();
+  mockAddSuccessToast.mockClear();
 });
 
 afterEach(() => {
@@ -736,6 +738,81 @@ test('dataset purge fails closed when impact is unavailable', async () => {
   expect(screen.getByRole('button', { name: 'Delete' })).toBeDisabled();
   expect(screen.queryByText('No affected charts.')).not.toBeInTheDocument();
   expect(fetchMock.callHistory.calls(datasetPurgeEndpoint)).toHaveLength(0);
+});
+
+test('a purge that succeeds after the modal closes still toasts and refetches', async () => {
+  let resolvePurge: (value: {
+    status: number;
+    body: object;
+  }) => void = () => {};
+  const deferredPurge = new Promise<{ status: number; body: object }>(
+    resolve => {
+      resolvePurge = resolve;
+    },
+  );
+  mockRoutes(200, deferredPurge);
+  renderArchivedList();
+  await screen.findByTestId('archived-list-view');
+  await openDatasetPurgeModal();
+  await screen.findByText('2 Charts');
+
+  await userEvent.type(screen.getByTestId('delete-modal-input'), 'DELETE');
+  await userEvent.click(screen.getByRole('button', { name: 'Delete' }));
+  const listCallsBefore =
+    fetchMock.callHistory.calls(datasetListEndpoint).length;
+
+  // The user closes the modal while the purge request is still in flight;
+  // the deletion still happens server-side.
+  await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
+  resolvePurge({ status: 200, body: { message: 'OK' } });
+
+  await waitFor(() =>
+    expect(mockAddSuccessToast).toHaveBeenCalledWith(
+      expect.stringContaining('deleted successfully'),
+    ),
+  );
+  await waitFor(() =>
+    expect(
+      fetchMock.callHistory.calls(datasetListEndpoint).length,
+    ).toBeGreaterThan(listCallsBefore),
+  );
+});
+
+test('impact entries with non-application URLs render as text, not links', async () => {
+  mockRoutes(
+    200,
+    {},
+    buildImpact({
+      dashboards: {
+        count: 2,
+        restricted_count: 0,
+        result: [
+          {
+            uuid: 'external-dashboard',
+            name: 'External dashboard',
+            archived: false,
+            url: 'https://evil.example/dashboard',
+          },
+          {
+            uuid: 'schemeless-dashboard',
+            name: 'Schemeless dashboard',
+            archived: false,
+            url: '//evil.example/dashboard',
+          },
+        ],
+      },
+    }),
+  );
+  renderArchivedList();
+  await screen.findByTestId('archived-list-view');
+
+  await openDatasetPurgeModal();
+
+  expect(await screen.findByText('External dashboard')).toBeInTheDocument();
+  expect(screen.getByText('External dashboard').closest('a')).toBeNull();
+  expect(screen.getByText('Schemeless dashboard').closest('a')).toBeNull();
 });
 
 test('a 409 replaces impact and re-arms DELETE confirmation', async () => {

@@ -55,8 +55,17 @@ const Message = styled.p`
 const DEFAULT_VISIBLE_ITEMS = 5;
 
 function ImpactItem({ item }: { item: PurgeImpactItem }) {
+  // Only link server-issued application paths; anything else (absolute or
+  // scheme-relative URLs, javascript: and data: schemes) renders as text.
+  const isSafeAppPath = Boolean(
+    item.url && item.url.startsWith('/') && !item.url.startsWith('//'),
+  );
   const label =
-    item.url && !item.archived ? <a href={item.url}>{item.name}</a> : item.name;
+    item.url && isSafeAppPath && !item.archived ? (
+      <a href={item.url}>{item.name}</a>
+    ) : (
+      item.name
+    );
 
   return (
     <li>
