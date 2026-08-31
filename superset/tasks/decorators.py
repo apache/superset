@@ -513,6 +513,10 @@ class TaskWrapper(Generic[P]):
             with use_context(ctx):
                 self.func(*args, **kwargs)
 
+            # The work finished; stop the abort listener from flipping this to
+            # ABORTED if a cancel signal lands now (mirrors the async executor).
+            ctx.mark_execution_completed()
+
             # Determine terminal status based on abort detection
             # Use atomic conditional updates to prevent overwriting concurrent abort
             if ctx._abort_detected or ctx.timeout_triggered:
@@ -570,6 +574,9 @@ class TaskWrapper(Generic[P]):
             return final_task if final_task else task
 
         except Exception as ex:
+            # The work is done (it raised); stop a late cancel signal from also
+            # running abort handlers on top of failure handling.
+            ctx.mark_execution_completed()
             # Atomic transition to FAILURE (only if still IN_PROGRESS)
             InternalStatusTransitionCommand(
                 task_uuid=task_uuid,

@@ -736,6 +736,53 @@ test('useListViewResource: realtime reconciles displayed rows on reconnect', asy
   expect(endpoint).toContain('opr:in');
 });
 
+test('useListViewResource: realtime does NOT reconcile on a keepalive reconnect', async () => {
+  // A seamless keepalive token refresh must not trigger a full displayed-row
+  // re-fetch every cycle — only a real `reconnect` (drop recovery) reconciles.
+  const initial = [{ id: 1, name: 'A' }];
+  const getSpy = jest
+    .spyOn(SupersetClient, 'get')
+    .mockResolvedValueOnce({
+      json: { permissions: [] },
+    } as unknown as JsonResponse) // _info
+    .mockResolvedValueOnce({
+      json: { result: initial, count: 1 },
+    } as unknown as JsonResponse); // fetchData
+
+  const { result } = renderHook(() =>
+    useListViewResource(
+      'chart',
+      'Charts',
+      jest.fn(),
+      true,
+      [],
+      undefined,
+      true,
+      undefined,
+      true, // enableRealtime
+    ),
+  );
+
+  await act(async () => {
+    await result.current.fetchData({
+      pageIndex: 0,
+      pageSize: 25,
+      sortBy: [{ id: 'id', desc: false }],
+      filters: [],
+    });
+  });
+
+  const callsBefore = getSpy.mock.calls.length;
+  act(() => {
+    emitRealtimeOpenForTests('keepalive');
+  });
+  // No reconcile fetch for a keepalive reconnect.
+  await new Promise(resolve => {
+    setTimeout(resolve, 50);
+  });
+  expect(getSpy.mock.calls.length).toBe(callsBefore);
+});
+
 // useSingleViewResource
 test('useSingleViewResource: initial state has loading false and null resource', () => {
   const { result } = renderHook(() =>

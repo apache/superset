@@ -400,6 +400,33 @@ class TestTaskWrapperCall:
         """Clear task registry before each test"""
         TaskRegistry._tasks.clear()
 
+    @patch("superset.tasks.context.TaskContext.mark_execution_completed")
+    @patch("superset.commands.tasks.internal_update.InternalStatusTransitionCommand")
+    @patch("superset.daos.tasks.TaskDAO.find_one_or_none")
+    @patch("superset.commands.tasks.submit.SubmitTaskCommand.run_with_info")
+    def test_call_marks_execution_completed_after_func(
+        self, mock_submit, mock_find, mock_transition, mock_mark
+    ):
+        """Sync inline execution marks completion after the body runs, so a late
+        cancel signal can't flip a finished task to ABORTED (mirrors async)."""
+        task_obj = MagicMock()
+        task_obj.uuid = TEST_UUID
+        task_obj.status = "pending"
+        mock_submit.return_value = (task_obj, True)  # new task → executes inline
+        mock_find.return_value = task_obj
+        mock_transition.return_value.run.return_value = True  # transitions succeed
+
+        ran = []
+
+        @task(name="test_mark_completed_unique")
+        def call_task(value: int) -> None:
+            ran.append(value)
+
+        call_task(7)
+
+        assert ran == [7]  # the body executed
+        mock_mark.assert_called_once()  # and completion was marked afterwards
+
     @patch("superset.commands.tasks.update.UpdateTaskCommand.run")
     @patch("superset.daos.tasks.TaskDAO.find_one_or_none")
     @patch("superset.commands.tasks.submit.SubmitTaskCommand.run_with_info")

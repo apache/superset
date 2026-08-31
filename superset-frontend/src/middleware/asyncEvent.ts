@@ -249,6 +249,20 @@ const applyStatus = (taskId: string, status: string) => {
   waitersByTaskId.delete(taskId);
 };
 
+// Age the poll toward giving up when it isn't making progress (a quiet no-change
+// poll OR a persistent fetch error). Returns true when it has been stale past
+// `pollStaleTimeoutMs` — the caller then abandons its waiters and stops — else
+// backs off (bounded) so a stuck task or a degraded endpoint isn't polled at the
+// eager interval forever. `lastProgressAt` only resets on real progress.
+const backOffOrGiveUp = (): boolean => {
+  if (Date.now() - lastProgressAt >= pollStaleTimeoutMs) {
+    abandonPolling();
+    return true;
+  }
+  currentPollDelayMs = Math.min(currentPollDelayMs * 2, pollBackoffMaxMs);
+  return false;
+};
+
 const loadStatusChanges = async (generation: number) => {
   if (stopIfStale(generation)) return;
   if (waitersByTaskId.size) {
@@ -270,19 +284,20 @@ const loadStatusChanges = async (generation: number) => {
         // Reset to eager polling and restart the give-up clock on any change.
         currentPollDelayMs = pollingDelayMs;
         lastProgressAt = Date.now();
-      } else {
-        // No progress: give up if we've been stale too long (a stuck/orphaned
-        // task), else back off (bounded).
-        if (Date.now() - lastProgressAt >= pollStaleTimeoutMs) {
-          abandonPolling();
-          pollingActive = false;
-          return;
-        }
-        currentPollDelayMs = Math.min(currentPollDelayMs * 2, pollBackoffMaxMs);
+      } else if (backOffOrGiveUp()) {
+        pollingActive = false;
+        return;
       }
     } catch (err) {
       if (stopIfStale(generation)) return;
       logging.warn(err);
+      // A persistent status_changes failure must also age toward the give-up and
+      // back off — otherwise a WS-off chart spins forever with no error while
+      // hammering a degraded endpoint at the eager interval.
+      if (backOffOrGiveUp()) {
+        pollingActive = false;
+        return;
+      }
     }
   }
   // Reschedule from the tail so a slow request never overlaps the next tick.

@@ -353,6 +353,23 @@ test('gives up (rejects) after the stale timeout with no progress', async () => 
   expect(refetch).not.toHaveBeenCalled();
 });
 
+test('poll mode gives up (rejects) on a persistent status_changes error', async () => {
+  // A sustained fetch error must age toward the give-up too — not spin forever.
+  fetchMock.removeRoutes().clearHistory();
+  fetchMock.get(STATUS_CHANGES_ENDPOINT, { throws: new Error('network down') });
+  fetchMock.post(CANCEL_ENDPOINT, { status: 200, body: { action: 'aborted' } });
+  asyncEvent.init({
+    ...config,
+    GLOBAL_ASYNC_QUERIES_POLLING_STALE_TIMEOUT: 40, // ms
+  });
+
+  const refetch = jest.fn();
+  await expect(
+    asyncEvent.waitForAsyncData({ task_ids: ['stuck-task'] }, refetch),
+  ).rejects.toThrow('Timed out waiting for chart-data query results');
+  expect(refetch).not.toHaveBeenCalled();
+});
+
 test('backs off while awaited tasks stay quiet, then polls eagerly again on progress', async () => {
   jest.useFakeTimers();
   queueStatuses(); // every poll comes back empty: no progress

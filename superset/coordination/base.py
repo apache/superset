@@ -27,7 +27,7 @@ import time
 from typing import Any, Callable, TYPE_CHECKING, TypeVar, Union
 
 from flask import current_app
-from redis.exceptions import TimeoutError as RedisTimeoutError
+from redis.exceptions import RedisError, TimeoutError as RedisTimeoutError
 
 from superset.coordination.exceptions import CoordinationBackendUnavailableError
 from superset.coordination.types import SignalListener
@@ -60,6 +60,10 @@ _DEFAULT_SIGNAL_STREAM_TTL_SECONDS = 86400
 _STREAM_BLOCK_MS = 5000
 # Shorter chunk for background listeners so stop() and signal detection stay prompt.
 _LISTEN_BLOCK_MS = 1000
+# Backoff after a transient stream-read error (connection drop/failover): xread
+# fails fast rather than honoring block_ms, so pause before retrying to avoid a
+# busy-spin while the backend is unavailable.
+_STREAM_ERROR_BACKOFF_SECONDS = 1.0
 
 
 class CoordinationService:
@@ -424,11 +428,22 @@ class CoordinationService:
 
         A socket timeout mid-block means "nothing arrived yet": the caller re-checks
         the predicate and reads again, so a short ``socket_timeout`` only affects
-        cadence, never correctness.
+        cadence, never correctness. A transient backend error (connection drop or
+        failover) is likewise non-fatal: the DB predicate is the source of truth, so
+        we degrade to re-checking it rather than letting the waiter/listener die —
+        with a short backoff, since ``xread`` fails fast on a broken connection.
         """
         try:
             entries = backend.xread({channel: last_id}, block_ms=block_ms)
         except (RedisTimeoutError, OSError):
+            return last_id
+        except RedisError:
+            logger.debug(
+                "Stream read on %s failed; degrading to predicate re-check",
+                channel,
+                exc_info=True,
+            )
+            time.sleep(min(block_ms / 1000, _STREAM_ERROR_BACKOFF_SECONDS))
             return last_id
         for _stream, items in entries:
             if items:

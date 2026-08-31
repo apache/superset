@@ -87,14 +87,27 @@ const handlersByTopic = new Map<string, Set<RealtimeHandler>>();
 // Fired every time a socket transitions to OPEN (initial connect and each
 // reconnect), so a feature can reconcile state it may have missed while the
 // socket was down (see asyncEvent's reconnect catch-up).
-const openListeners = new Set<() => void>();
+// Why a socket became OPEN, passed to open-listeners so a consumer can decide
+// whether to reconcile: `initial` (first connect), `reconnect` (recovered from a
+// drop — a message may have been missed), or `keepalive` (a planned pre-expiry
+// token refresh — seamless, so an expensive reconcile isn't warranted).
+export type RealtimeOpenReason = 'initial' | 'reconnect' | 'keepalive';
+
+type RealtimeOpenListener = (reason: RealtimeOpenReason) => void;
+
+// Fired every time a socket transitions to OPEN, with the reason (see above), so
+// a feature can reconcile state it may have missed while the socket was down.
+const openListeners = new Set<RealtimeOpenListener>();
 
 /**
  * Register a listener fired when the socket (re)connects (transitions to OPEN);
- * returns an unsubscribe function. Used to trigger a one-shot reconcile after a
- * drop, so realtime consumers need not poll while the socket is healthy.
+ * returns an unsubscribe function. The listener receives a `RealtimeOpenReason` so
+ * it can skip an expensive reconcile on a seamless `keepalive` reconnect and only
+ * reconcile on a real `reconnect` after a drop.
  */
-export const subscribeRealtimeOpen = (listener: () => void): (() => void) => {
+export const subscribeRealtimeOpen = (
+  listener: RealtimeOpenListener,
+): (() => void) => {
   openListeners.add(listener);
   return () => {
     openListeners.delete(listener);
@@ -178,7 +191,10 @@ const teardownSocket = (): void => {
   }
 };
 
-const openSocket = (thisGeneration: number): void => {
+const openSocket = (
+  thisGeneration: number,
+  reason: RealtimeOpenReason,
+): void => {
   if (thisGeneration !== generation) return;
   if (!enabled || !url || typeof WebSocket === 'undefined') return;
   const connectUrl = buildConnectUrl(url);
@@ -197,7 +213,8 @@ const openSocket = (thisGeneration: number): void => {
   // JWT expiry. The GET re-mints the httponly cookie via the Flask after_request
   // hook (inside its sliding window); the reconnect then rides the fresh token.
   // Best-effort: reconnect regardless of the GET's outcome (a stale cookie just
-  // fails the handshake, and onclose retries).
+  // fails the handshake, and onclose retries). This reconnect is `keepalive` (a
+  // seamless handover), so open-listeners can skip an expensive reconcile.
   if (enabled && tokenLifetimeMs > 0) {
     keepaliveTimeoutId = window.setTimeout(() => {
       // Bail if this socket was already superseded (config change) or replaced by
@@ -210,7 +227,7 @@ const openSocket = (thisGeneration: number): void => {
           if (thisGeneration !== generation || socket !== ws) return;
           generation += 1;
           teardownSocket();
-          openSocket(generation);
+          openSocket(generation, 'keepalive');
         });
     }, tokenLifetimeMs * KEEPALIVE_FRACTION);
   }
@@ -219,7 +236,7 @@ const openSocket = (thisGeneration: number): void => {
     if (thisGeneration !== generation) return;
     openListeners.forEach(listener => {
       try {
-        listener();
+        listener(reason);
       } catch (err) {
         logging.warn('Realtime open-listener error', err);
       }
@@ -232,7 +249,7 @@ const openSocket = (thisGeneration: number): void => {
   ws.onclose = () => {
     if (thisGeneration !== generation) return;
     reconnectTimeoutId = window.setTimeout(
-      () => openSocket(thisGeneration),
+      () => openSocket(thisGeneration, 'reconnect'),
       RECONNECT_DELAY_MS,
     );
   };
@@ -267,7 +284,7 @@ export const connectRealtime = (config?: RealtimeConfig): void => {
   enabled = nextEnabled;
   url = nextUrl;
   tokenLifetimeMs = (conf?.WEBSOCKET_JWT_EXPIRATION_SECONDS ?? 0) * 1000;
-  openSocket(generation);
+  openSocket(generation, 'initial');
 };
 
 /** Tear down the socket and stop reconnecting. */
@@ -310,7 +327,7 @@ subscribeTabIdChange(() => {
   if (!enabled || !hasActiveSocket()) return;
   generation += 1;
   teardownSocket();
-  openSocket(generation);
+  openSocket(generation, 'reconnect');
 });
 
 // Test-only: reset module state between cases.
@@ -324,6 +341,8 @@ export const resetRealtimeForTests = (): void => {
 };
 
 // Test-only: simulate a socket (re)connect firing the open-listeners.
-export const emitRealtimeOpenForTests = (): void => {
-  openListeners.forEach(listener => listener());
+export const emitRealtimeOpenForTests = (
+  reason: RealtimeOpenReason = 'reconnect',
+): void => {
+  openListeners.forEach(listener => listener(reason));
 };
