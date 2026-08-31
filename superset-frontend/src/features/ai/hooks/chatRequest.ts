@@ -527,6 +527,9 @@ export const streamRun = async ({
       buffer = parsed.remainder;
 
       for (const raw of parsed.events) {
+        if (signal?.aborted) {
+          throw new ChatRequestAbortedError('Chat request was cancelled');
+        }
         const body = frameBody(raw.data);
         switch (raw.event) {
           case 'session': {
