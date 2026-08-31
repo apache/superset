@@ -359,7 +359,9 @@ const openDimensionsDropdown = () => {
 };
 
 const getOptionItem = (label: string) => {
-  const dropdown = document.querySelector('.rc-virtual-list') as HTMLElement;
+  const dropdown = document.querySelector(
+    '.ant-select-dropdown-list',
+  ) as HTMLElement;
   return within(dropdown).getByText(label).closest('.ant-select-item');
 };
 
@@ -409,7 +411,9 @@ test('lists every expression-less dimension as a Saved option without mutating m
 
   openDimensionsDropdown();
 
-  const dropdown = document.querySelector('.rc-virtual-list') as HTMLElement;
+  const dropdown = document.querySelector(
+    '.ant-select-dropdown-list',
+  ) as HTMLElement;
   expect(within(dropdown).getByText('Order Date')).toBeInTheDocument();
   expect(within(dropdown).getByText('Product Category')).toBeInTheDocument();
   expect(within(dropdown).getByText('region')).toBeInTheDocument();
@@ -428,7 +432,9 @@ test('searches Saved dimensions by name and verbose name', async () => {
   const combobox = openDimensionsDropdown();
   await userEvent.type(combobox, 'Product');
 
-  let dropdown = document.querySelector('.rc-virtual-list') as HTMLElement;
+  let dropdown = document.querySelector(
+    '.ant-select-dropdown-list',
+  ) as HTMLElement;
   expect(within(dropdown).getByText('Product Category')).toBeInTheDocument();
   expect(within(dropdown).queryByText('Order Date')).not.toBeInTheDocument();
   expect(within(dropdown).queryByText('region')).not.toBeInTheDocument();
@@ -436,7 +442,7 @@ test('searches Saved dimensions by name and verbose name', async () => {
   await userEvent.clear(combobox);
   await userEvent.type(combobox, 'region');
 
-  dropdown = document.querySelector('.rc-virtual-list') as HTMLElement;
+  dropdown = document.querySelector('.ant-select-dropdown-list') as HTMLElement;
   expect(within(dropdown).getByText('region')).toBeInTheDocument();
   expect(
     within(dropdown).queryByText('Product Category'),
@@ -589,7 +595,9 @@ test('an edited dimension that became incompatible cannot be saved until replace
   expect(saveButton).toHaveAttribute('aria-describedby', feedback.id);
 
   openDimensionsDropdown();
-  const dropdown = document.querySelector('.rc-virtual-list') as HTMLElement;
+  const dropdown = document.querySelector(
+    '.ant-select-dropdown-list',
+  ) as HTMLElement;
   userEvent.click(within(dropdown).getByText('Order Date'));
 
   await waitFor(() => expect(saveButton).toBeEnabled());
@@ -625,7 +633,9 @@ test('a legacy edited adhoc value opens Saved, stays inspectable, and blocks Sav
   // Explicitly choosing a compatible dimension is the only way to save.
   fireEvent.click(screen.getByRole('tab', { name: 'Saved' }));
   openDimensionsDropdown();
-  const dropdown = document.querySelector('.rc-virtual-list') as HTMLElement;
+  const dropdown = document.querySelector(
+    '.ant-select-dropdown-list',
+  ) as HTMLElement;
   userEvent.click(within(dropdown).getByText('Order Date'));
 
   await waitFor(() => expect(saveButton).toBeEnabled());
@@ -669,7 +679,9 @@ test('table datasources keep expression-based classification and enabled modes',
     name: 'Columns and metrics',
   });
   userEvent.click(combobox);
-  const dropdown = document.querySelector('.rc-virtual-list') as HTMLElement;
+  const dropdown = document.querySelector(
+    '.ant-select-dropdown-list',
+  ) as HTMLElement;
   expect(within(dropdown).getByText('plain_col')).toBeInTheDocument();
   expect(within(dropdown).queryByText('calc_col')).not.toBeInTheDocument();
 });
@@ -735,7 +747,9 @@ test('a feature-declaring semantic view keeps expression-based classification an
     name: 'Columns and metrics',
   });
   userEvent.click(simpleCombobox);
-  const dropdown = document.querySelector('.rc-virtual-list') as HTMLElement;
+  const dropdown = document.querySelector(
+    '.ant-select-dropdown-list',
+  ) as HTMLElement;
   expect(within(dropdown).getByText('Plain Dimension')).toBeInTheDocument();
   expect(
     within(dropdown).queryByText('calc_dimension'),
@@ -779,7 +793,9 @@ test('non-semantic datasources still filter Saved options by compatibility metad
   userEvent.click(
     screen.getByRole('combobox', { name: 'Columns and metrics' }),
   );
-  const dropdown = document.querySelector('.rc-virtual-list') as HTMLElement;
+  const dropdown = document.querySelector(
+    '.ant-select-dropdown-list',
+  ) as HTMLElement;
   expect(
     within(dropdown).getByText('keep_me').closest('.ant-select-item'),
   ).not.toHaveClass('ant-select-item-option-disabled');

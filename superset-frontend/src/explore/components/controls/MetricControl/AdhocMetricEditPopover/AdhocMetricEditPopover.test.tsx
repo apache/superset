@@ -480,7 +480,9 @@ test('disables saved metrics absent from a verified compatibility result', async
 
   const dropdown = (await screen
     .findByText('sum')
-    .then(() => document.querySelector('.rc-virtual-list'))) as HTMLElement;
+    .then(() =>
+      document.querySelector('.ant-select-dropdown-list'),
+    )) as HTMLElement;
   expect(
     within(dropdown).getByText('sum').closest('.ant-select-item'),
   ).toHaveClass('ant-select-item-option-disabled');
@@ -504,7 +506,9 @@ test('keeps every saved metric enabled after a failed compatibility request', as
 
   const dropdown = (await screen
     .findByText('sum')
-    .then(() => document.querySelector('.rc-virtual-list'))) as HTMLElement;
+    .then(() =>
+      document.querySelector('.ant-select-dropdown-list'),
+    )) as HTMLElement;
   expect(
     within(dropdown).getByText('sum').closest('.ant-select-item'),
   ).not.toHaveClass('ant-select-item-option-disabled');

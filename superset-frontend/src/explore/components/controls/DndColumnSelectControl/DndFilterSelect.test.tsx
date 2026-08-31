@@ -497,7 +497,9 @@ test('Filter control commits a compatible Cube dimension as a filter subject', a
   fireEvent.mouseDown(subjectSelect);
 
   const dropdown = await waitFor(() => {
-    const list = document.querySelector('.rc-virtual-list') as HTMLElement;
+    const list = document.querySelector(
+      '.ant-select-dropdown-list',
+    ) as HTMLElement;
     if (!list) throw new Error('dropdown not open');
     return list;
   });
