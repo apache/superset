@@ -643,6 +643,68 @@ test('a legacy edited adhoc value opens Saved, stays inspectable, and blocks Sav
   expect(onChange).toHaveBeenCalledWith(SEMANTIC_COLUMNS[0]);
 });
 
+const SEMANTIC_METRICS = [
+  {
+    metric_name: 'total_sales',
+    verbose_name: 'Total Sales',
+    expression: 'SUM(sales)',
+    uuid: 'm1',
+  },
+  {
+    metric_name: 'tax_amount',
+    verbose_name: 'Tax Amount',
+    expression: 'SUM(tax)',
+    uuid: 'm2',
+  },
+];
+
+test('disables Saved metrics by the compatible-metric list, not the dimension list', () => {
+  // Adversarial fixture: the dimension list contains the OTHER metric name, so
+  // keying metric options off compatible dimensions inverts both outcomes.
+  renderSemanticPopover(
+    {
+      metrics: SEMANTIC_METRICS,
+      selectedMetrics: ['total_sales', 'tax_amount'],
+    },
+    {
+      datasource: { type: 'semantic_view', semantic_view_features: [] },
+      compatibility: {
+        status: 'verified',
+        metrics: ['total_sales'],
+        dimensions: ['tax_amount', 'order_date'],
+      },
+    },
+  );
+
+  const combobox = screen.getByRole('combobox', {
+    name: 'Dimensions and metrics',
+  });
+  userEvent.click(combobox);
+
+  expect(getOptionItem('Total Sales')).not.toHaveClass(
+    'ant-select-item-option-disabled',
+  );
+  expect(getOptionItem('Tax Amount')).toHaveClass(
+    'ant-select-item-option-disabled',
+  );
+});
+
+test('a metrics-only semantic view still renders the Saved select', () => {
+  renderSemanticPopover({
+    columns: [],
+    metrics: SEMANTIC_METRICS,
+    selectedMetrics: ['total_sales', 'tax_amount'],
+  });
+
+  const combobox = screen.getByRole('combobox', {
+    name: 'Dimensions and metrics',
+  });
+  userEvent.click(combobox);
+
+  expect(getOptionItem('Total Sales')).toBeInTheDocument();
+  expect(getOptionItem('Tax Amount')).toBeInTheDocument();
+});
+
 test('table datasources keep expression-based classification and enabled modes', async () => {
   const store = mockStore({ explore: { datasource: { type: 'table' } } });
   render(

@@ -693,6 +693,20 @@ def test_semantic_view_supports_samples_is_false() -> None:
     assert SemanticView.supports_samples is False
 
 
+def test_semantic_view_abc_features_default_empty() -> None:
+    """A provider that declares nothing inherits an empty feature set.
+
+    ``features`` is a class attribute with a ``frozenset()`` default, so
+    ``implementation.features`` never raises for minimal providers and the
+    picker degrades to Saved-only instead of a 500.
+    """
+    from superset_core.semantic_layers.view import (
+        SemanticView as SemanticViewABC,
+    )
+
+    assert SemanticViewABC.features == frozenset()
+
+
 def test_semantic_view_data_features_empty(
     mock_implementation: MagicMock,
     semantic_view: SemanticView,

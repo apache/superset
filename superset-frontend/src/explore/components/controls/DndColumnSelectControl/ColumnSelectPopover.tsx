@@ -64,6 +64,7 @@ import { ExplorePageState } from 'src/explore/types';
 import {
   selectCompatibility,
   selectCompatibleDimensionNames,
+  selectCompatibleMetricNames,
 } from 'src/explore/selectors/compatibility';
 import useResizeButton from './useResizeButton';
 import { getColumnPickerCapabilities } from './utils/pickerCapabilities';
@@ -176,6 +177,7 @@ const ColumnSelectPopover = ({
   const savedClassification = capabilities.dimensionClassification === 'saved';
   const compatibility = useSelector(selectCompatibility);
   const compatibleDimensions = useSelector(selectCompatibleDimensionNames);
+  const compatibleMetrics = useSelector(selectCompatibleMetricNames);
   const [initialLabel] = useState(label);
   const [initialAdhocColumn, initialCalculatedColumn, initialSimpleColumn] =
     getInitialColumnValues(editedColumn, savedClassification);
@@ -484,12 +486,26 @@ const ColumnSelectPopover = ({
         'This dimension is not compatible with the current selections. Select a compatible dimension.',
       );
     }
+    // A metric can be selected while verification is still in flight, so an
+    // unfavourable result must also block Save (options are disabled too, but
+    // only after the result arrives).
+    if (
+      selectedMetric &&
+      compatibleMetrics != null &&
+      !compatibleMetrics.includes(selectedMetric.metric_name)
+    ) {
+      return t(
+        'This metric is not compatible with the current selections. Select a compatible metric.',
+      );
+    }
     return null;
   }, [
     savedClassification,
     adhocColumn,
     selectedCalculatedColumn,
     compatibleDimensions,
+    selectedMetric,
+    compatibleMetrics,
   ]);
 
   const showCompatibilityFailureWarning =
@@ -541,7 +557,8 @@ const ColumnSelectPopover = ({
                   label: t('Saved'),
                   children: (
                     <>
-                      {calculatedColumns.length > 0 ? (
+                      {calculatedColumns.length > 0 ||
+                      (savedClassification && availableMetrics.length > 0) ? (
                         <FormItem label={savedExpressionsLabel}>
                           <StyledSelect
                             ariaLabel={savedExpressionsLabel}
@@ -605,8 +622,8 @@ const ColumnSelectPopover = ({
                                     metric_name: metric.metric_name,
                                     verbose_name: metric.verbose_name ?? '',
                                     disabled:
-                                      compatibleDimensions != null &&
-                                      !compatibleDimensions.includes(
+                                      compatibleMetrics != null &&
+                                      !compatibleMetrics.includes(
                                         metric.metric_name,
                                       ),
                                   }))
