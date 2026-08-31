@@ -419,7 +419,6 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     onContextMenu,
     emitCrossFilters,
     isUsingTimeComparison,
-    enableMultiHeader = false,
     headerGroups = [],
     basicColorFormatters,
     basicColorColumnFormatters,
@@ -871,20 +870,11 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     const visible = filteredColumnsMeta.filter(
       col => col.config?.visible !== false,
     );
-    if (
-      enableMultiHeader &&
-      !isUsingTimeComparison &&
-      hasRenderableHeaderGroups(headerGroups)
-    ) {
+    if (hasRenderableHeaderGroups(headerGroups)) {
       return orderColumnsByHeaderGroups(visible, headerGroups);
     }
     return visible;
-  }, [
-    filteredColumnsMeta,
-    enableMultiHeader,
-    isUsingTimeComparison,
-    headerGroups,
-  ]);
+  }, [filteredColumnsMeta, headerGroups]);
 
   // Use visibleColumnsMeta for groupHeaderColumns to ensure indices match the actual
   // table columns. This fixes header misalignment when columns are filtered.
@@ -951,11 +941,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
   };
 
   const renderGroupingHeaders = (): JSX.Element => {
-    if (
-      enableMultiHeader &&
-      !isUsingTimeComparison &&
-      hasRenderableHeaderGroups(headerGroups)
-    ) {
+    if (hasRenderableHeaderGroups(headerGroups)) {
       return renderMultiLevelHeaders();
     }
 
@@ -1735,9 +1721,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         sticky={sticky}
         renderGroupingHeaders={
           !isEmpty(groupHeaderColumns) ||
-          (enableMultiHeader &&
-            !isUsingTimeComparison &&
-            hasRenderableHeaderGroups(headerGroups))
+          hasRenderableHeaderGroups(headerGroups)
             ? renderGroupingHeaders
             : undefined
         }

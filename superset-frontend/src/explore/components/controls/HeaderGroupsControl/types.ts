@@ -27,11 +27,15 @@ export type HeaderGroupColumnOption = {
 
 export type HeaderGroupLabelAlign = 'left' | 'center' | 'right';
 
+export type HeaderGroupPlacement = 'left' | 'right';
+
 export type HeaderGroupConfig = {
   id: string;
   label: string;
   columns: string[];
   labelAlign?: HeaderGroupLabelAlign;
+  placement?: HeaderGroupPlacement;
+  source?: 'time_compare';
   children?: HeaderGroupConfig[];
 };
 
@@ -39,4 +43,5 @@ export type HeaderGroupsControlProps = ControlComponentProps<
   HeaderGroupConfig[]
 > & {
   columnOptions?: HeaderGroupColumnOption[];
+  timeComparisonGroups?: HeaderGroupConfig[];
 };

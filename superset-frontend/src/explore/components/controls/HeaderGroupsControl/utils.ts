@@ -25,8 +25,29 @@ export function createHeaderGroup(): HeaderGroupConfig {
     label: '',
     columns: [],
     labelAlign: 'center',
+    placement: 'right',
     children: [],
   };
+}
+
+export function moveHeaderGroup(
+  groups: HeaderGroupConfig[],
+  fromIndex: number,
+  toIndex: number,
+): HeaderGroupConfig[] {
+  if (
+    fromIndex === toIndex ||
+    fromIndex < 0 ||
+    toIndex < 0 ||
+    fromIndex >= groups.length ||
+    toIndex >= groups.length
+  ) {
+    return groups;
+  }
+  const next = [...groups];
+  const [moved] = next.splice(fromIndex, 1);
+  next.splice(toIndex, 0, moved);
+  return next;
 }
 
 export function collectHeaderGroupColumns(
@@ -88,11 +109,38 @@ export function pruneStaleHeaderGroupColumns(
   columnOptions: HeaderGroupColumnOption[],
 ): HeaderGroupConfig[] {
   const validKeys = new Set(columnOptions.map(option => option.value));
-  return groups.map(group => ({
-    ...group,
-    columns: (group.columns ?? []).filter(column => validKeys.has(column)),
-    children: pruneStaleHeaderGroupColumns(group.children ?? [], columnOptions),
-  }));
+  return groups.map(group => {
+    if (group.source === 'time_compare') {
+      return group;
+    }
+    return {
+      ...group,
+      columns: (group.columns ?? []).filter(column => validKeys.has(column)),
+      children: pruneStaleHeaderGroupColumns(
+        group.children ?? [],
+        columnOptions,
+      ),
+    };
+  });
+}
+
+export function syncTimeComparisonGroups(
+  groups: HeaderGroupConfig[],
+  timeComparisonGroups: HeaderGroupConfig[] = [],
+): HeaderGroupConfig[] {
+  const autoIds = new Set(timeComparisonGroups.map(group => group.id));
+  const existingAutoIds = new Set(
+    groups
+      .filter(group => group.source === 'time_compare')
+      .map(group => group.id),
+  );
+  const kept = groups.filter(
+    group => group.source !== 'time_compare' || autoIds.has(group.id),
+  );
+  const missing = timeComparisonGroups.filter(
+    group => !existingAutoIds.has(group.id),
+  );
+  return missing.length === 0 ? kept : [...kept, ...missing];
 }
 
 export function headerGroupsHaveSameColumns(

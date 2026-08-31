@@ -563,7 +563,7 @@ const config: ControlPanelConfig = {
               ),
               visibility: ({ controls }) =>
                 isEmpty(controls?.time_compare?.value) &&
-                !controls?.enable_multi_header?.value,
+                isEmpty(controls?.header_groups?.value),
             },
           },
         ],
@@ -586,24 +586,7 @@ const config: ControlPanelConfig = {
     {
       label: t('Multi-level header'),
       expanded: true,
-      visibility: ({ controls }) => isEmpty(controls?.time_compare?.value),
       controlSetRows: [
-        [
-          {
-            name: 'enable_multi_header',
-            config: {
-              type: 'CheckboxControl',
-              label: t('Enable multi-level header'),
-              default: false,
-              renderTrigger: true,
-              description: t(
-                'Group column headers into nested levels. Unavailable when time comparison is enabled.',
-              ),
-              visibility: ({ controls }) =>
-                isEmpty(controls?.time_compare?.value),
-            },
-          },
-        ],
         [
           {
             name: 'header_groups',
@@ -612,9 +595,6 @@ const config: ControlPanelConfig = {
               label: t('Column groups'),
               default: [],
               renderTrigger: true,
-              visibility: ({ controls }) =>
-                controls.enable_multi_header?.value === true &&
-                isEmpty(controls?.time_compare?.value),
               shouldMapStateToProps() {
                 return true;
               },
@@ -627,13 +607,9 @@ const config: ControlPanelConfig = {
                 const { colnames: queryColnames } =
                   chart?.queriesResponse?.[0] ?? {};
                 const formData = explore?.form_data ?? {};
-                const fallbackKeys = [
-                  ...ensureIsArray(formData.groupby).map(col =>
-                    getColumnLabel(col as QueryFormColumn),
-                  ),
-                  ...ensureIsArray(formData.all_columns).map(col =>
-                    getColumnLabel(col as QueryFormColumn),
-                  ),
+                const timeCompareValue = explore?.controls?.time_compare?.value;
+                const hasTimeComparison = !isEmpty(timeCompareValue);
+                const metricKeys = [
                   ...ensureIsArray(formData.metrics).map(metric =>
                     getMetricLabel(metric as QueryFormMetric),
                   ),
@@ -641,18 +617,65 @@ const config: ControlPanelConfig = {
                     metric => `%${getMetricLabel(metric as QueryFormMetric)}`,
                   ),
                 ].filter(Boolean);
-                const colnames =
+                const fallbackKeys = [
+                  ...ensureIsArray(formData.groupby).map(col =>
+                    getColumnLabel(col as QueryFormColumn),
+                  ),
+                  ...ensureIsArray(formData.all_columns).map(col =>
+                    getColumnLabel(col as QueryFormColumn),
+                  ),
+                  ...metricKeys,
+                ].filter(Boolean);
+                let colnames =
                   Array.isArray(queryColnames) && queryColnames.length > 0
-                    ? queryColnames
+                    ? [...queryColnames]
                     : [...new Set(fallbackKeys)];
+
+                if (hasTimeComparison) {
+                  const sourceColnames = colnames;
+                  colnames = colnames.flatMap((colname: string) => {
+                    if (last(colname.split('__')) === timeCompareValue) {
+                      return [];
+                    }
+                    if (
+                      shouldSkipMetricColumn({
+                        colname,
+                        colnames: sourceColnames,
+                        formData,
+                      })
+                    ) {
+                      return [];
+                    }
+                    if (
+                      isRegularMetric(colname, formData) ||
+                      isPercentMetric(colname, formData)
+                    ) {
+                      return generateComparisonColumns(colname);
+                    }
+                    return [colname];
+                  });
+                }
+
+                const columnLabel = (colname: string) =>
+                  Array.isArray(verboseMap)
+                    ? colname
+                    : (verboseMap?.[colname] ?? colname);
 
                 return {
                   columnOptions: colnames.map((colname: string) => ({
                     value: colname,
-                    label: Array.isArray(verboseMap)
-                      ? colname
-                      : (verboseMap?.[colname] ?? colname),
+                    label: columnLabel(colname),
                   })),
+                  timeComparisonGroups: hasTimeComparison
+                    ? metricKeys.map(key => ({
+                        id: `time-compare-${key}`,
+                        label: columnLabel(key),
+                        columns: generateComparisonColumns(key),
+                        labelAlign: 'center',
+                        placement: 'right',
+                        source: 'time_compare',
+                      }))
+                    : [],
                 };
               },
             },
@@ -982,8 +1005,7 @@ const config: ControlPanelConfig = {
         showCalculationType: false,
         showFullChoices: false,
       }),
-      visibility: ({ controls }) =>
-        isAggMode({ controls }) && !controls?.enable_multi_header?.value,
+      visibility: ({ controls }) => isAggMode({ controls }),
     },
     sections.matrixifyRowSection,
     sections.matrixifyColumnSection,

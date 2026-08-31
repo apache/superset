@@ -34,6 +34,7 @@ const createGroup = (
   label: overrides.label ?? 'Sales',
   columns: overrides.columns ?? ['SUM(sales)'],
   labelAlign: overrides.labelAlign ?? 'center',
+  placement: overrides.placement ?? 'right',
   children: overrides.children ?? [],
 });
 
@@ -45,15 +46,49 @@ const baseProps = {
   columnOptions,
 };
 
-test('renders an add group action when empty', () => {
-  render(
-    <HeaderGroupsControl {...baseProps} value={[]} onChange={jest.fn()} />,
-  );
+test('opens the add popover immediately without creating a group', async () => {
+  const onChange = jest.fn();
+  render(<HeaderGroupsControl {...baseProps} value={[]} onChange={onChange} />);
 
-  expect(screen.getByText('Add group')).toBeInTheDocument();
+  await userEvent.click(screen.getByText('Add group'));
+
+  expect(screen.getByLabelText('Group name')).toBeInTheDocument();
+  expect(screen.getByText('Table side')).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Apply' })).toBeInTheDocument();
+  expect(onChange).not.toHaveBeenCalled();
 });
 
-test('renders existing groups in a compact list and edits them in a popover', async () => {
+test('saves a new group from the add popover', async () => {
+  const onChange = jest.fn();
+  render(<HeaderGroupsControl {...baseProps} value={[]} onChange={onChange} />);
+
+  await userEvent.click(screen.getByText('Add group'));
+  await userEvent.type(screen.getByLabelText('Group name'), 'Sales');
+  await userEvent.click(screen.getByRole('button', { name: 'Apply' }));
+
+  expect(onChange).toHaveBeenCalled();
+  const nextGroups = onChange.mock.calls.at(-1)?.[0] as HeaderGroupConfig[];
+  expect(nextGroups[0].label).toBe('Sales');
+});
+
+test('disables adding a subgroup when the group name is empty', async () => {
+  const onChange = jest.fn();
+  render(
+    <HeaderGroupsControl
+      {...baseProps}
+      value={[createGroup({ label: '' })]}
+      onChange={onChange}
+    />,
+  );
+
+  await userEvent.click(screen.getByText('Group 1'));
+
+  expect(screen.getByRole('button', { name: /Add subgroup/ })).toBeDisabled();
+  await userEvent.click(screen.getByRole('button', { name: /Add subgroup/ }));
+  expect(onChange).not.toHaveBeenCalled();
+});
+
+test('renders existing groups as numbered labels and edits them in a popover', async () => {
   const onChange = jest.fn();
   render(
     <HeaderGroupsControl
@@ -63,19 +98,55 @@ test('renders existing groups in a compact list and edits them in a popover', as
     />,
   );
 
-  expect(screen.getByText('Group 1: Sales')).toBeInTheDocument();
+  expect(screen.getByText('Group 1')).toBeInTheDocument();
+  expect(screen.queryByText('Group 1: Sales')).not.toBeInTheDocument();
   expect(screen.queryByDisplayValue('Sales')).not.toBeInTheDocument();
 
-  await userEvent.click(screen.getByText('Group 1: Sales'));
+  await userEvent.click(screen.getByText('Group 1'));
 
   expect(screen.getByDisplayValue('Sales')).toBeInTheDocument();
   expect(screen.getByText('Label position')).toBeInTheDocument();
+  expect(screen.getByText('Table side')).toBeInTheDocument();
 
   await userEvent.click(screen.getByRole('button', { name: /Add subgroup/ }));
 
   expect(onChange).toHaveBeenCalled();
   const nextGroups = onChange.mock.calls.at(-1)?.[0] as HeaderGroupConfig[];
   expect(nextGroups[0].children).toHaveLength(1);
+});
+
+test('creates time comparison groups when they are provided', () => {
+  const onChange = jest.fn();
+  const timeComparisonGroups: HeaderGroupConfig[] = [
+    {
+      id: 'time-compare-sales',
+      label: 'Sales',
+      columns: [
+        'Main SUM(sales)',
+        '# SUM(sales)',
+        '△ SUM(sales)',
+        '% SUM(sales)',
+      ],
+      source: 'time_compare',
+    },
+  ];
+
+  render(
+    <HeaderGroupsControl
+      {...baseProps}
+      value={[]}
+      timeComparisonGroups={timeComparisonGroups}
+      onChange={onChange}
+    />,
+  );
+
+  expect(onChange).toHaveBeenCalledWith([
+    expect.objectContaining({
+      id: 'time-compare-sales',
+      source: 'time_compare',
+      columns: timeComparisonGroups[0].columns,
+    }),
+  ]);
 });
 
 test('removes stale columns that are no longer available', () => {

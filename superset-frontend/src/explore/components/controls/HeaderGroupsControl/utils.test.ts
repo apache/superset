@@ -21,8 +21,10 @@ import {
   collectHeaderGroupColumns,
   createHeaderGroup,
   headerGroupsHaveSameColumns,
+  moveHeaderGroup,
   pruneStaleHeaderGroupColumns,
   removeHeaderGroupAt,
+  syncTimeComparisonGroups,
   updateHeaderGroupAt,
 } from './utils';
 
@@ -48,7 +50,20 @@ test('createHeaderGroup returns an empty group with an id', () => {
   expect(group.label).toBe('');
   expect(group.columns).toEqual([]);
   expect(group.labelAlign).toBe('center');
+  expect(group.placement).toBe('right');
   expect(group.children).toEqual([]);
+});
+
+test('moveHeaderGroup reorders top-level groups', () => {
+  const next = moveHeaderGroup(
+    [
+      { id: 'a', label: 'A', columns: [] },
+      { id: 'b', label: 'B', columns: [] },
+    ],
+    0,
+    1,
+  );
+  expect(next.map(group => group.id)).toEqual(['b', 'a']);
 });
 
 test('collectHeaderGroupColumns walks nested groups', () => {
@@ -78,6 +93,67 @@ test('pruneStaleHeaderGroupColumns drops unknown columns', () => {
   ]);
   expect(pruned[0].columns).toEqual(['SUM(sales)']);
   expect(pruned[0].children?.[0].columns).toEqual([]);
+});
+
+test('pruneStaleHeaderGroupColumns keeps time comparison groups intact', () => {
+  const pruned = pruneStaleHeaderGroupColumns(
+    [
+      {
+        id: 'time-compare-sales',
+        label: 'Sales',
+        columns: ['Main SUM(sales)', '# SUM(sales)'],
+        source: 'time_compare',
+      },
+    ],
+    [{ value: 'SUM(cost)', label: 'SUM(cost)' }],
+  );
+  expect(pruned[0].columns).toEqual(['Main SUM(sales)', '# SUM(sales)']);
+});
+
+test('syncTimeComparisonGroups adds missing and drops stale auto groups', () => {
+  const userGroup: HeaderGroupConfig = {
+    id: 'custom',
+    label: 'Custom',
+    columns: ['SUM(cost)'],
+  };
+  const existingAuto: HeaderGroupConfig = {
+    id: 'time-compare-sales',
+    label: 'Renamed sales',
+    columns: ['Main SUM(sales)'],
+    source: 'time_compare',
+  };
+  const staleAuto: HeaderGroupConfig = {
+    id: 'time-compare-old',
+    label: 'Old',
+    columns: ['Main old'],
+    source: 'time_compare',
+  };
+  const nextAuto: HeaderGroupConfig[] = [
+    {
+      id: 'time-compare-sales',
+      label: 'Sales',
+      columns: ['Main SUM(sales)', '# SUM(sales)'],
+      source: 'time_compare',
+    },
+    {
+      id: 'time-compare-profit',
+      label: 'Profit',
+      columns: ['Main SUM(profit)'],
+      source: 'time_compare',
+    },
+  ];
+
+  const next = syncTimeComparisonGroups(
+    [userGroup, existingAuto, staleAuto],
+    nextAuto,
+  );
+
+  expect(next.map(group => group.id)).toEqual([
+    'custom',
+    'time-compare-sales',
+    'time-compare-profit',
+  ]);
+  expect(next[1].label).toBe('Renamed sales');
 });
 
 test('headerGroupsHaveSameColumns compares ids and columns', () => {

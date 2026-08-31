@@ -16,27 +16,35 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { type ReactNode } from "react";
-import { t } from "@apache-superset/core/translation";
-import { css, styled } from "@apache-superset/core/theme";
-import { Button, Input, Popover, Select } from "@superset-ui/core/components";
-import { Radio } from "@superset-ui/core/components/Radio";
-import { Icons } from "@superset-ui/core/components/Icons";
+import { useState, type ReactNode } from 'react';
+import { t } from '@apache-superset/core/translation';
+import { css, styled } from '@apache-superset/core/theme';
+import { Button, Input, Popover, Select } from '@superset-ui/core/components';
+import { Radio } from '@superset-ui/core/components/Radio';
+import { Icons } from '@superset-ui/core/components/Icons';
 import {
   HeaderGroupColumnOption,
   HeaderGroupConfig,
   HeaderGroupLabelAlign,
+  HeaderGroupPlacement,
   MAX_HEADER_GROUP_DEPTH,
-} from "./types";
+} from './types';
+import {
+  createHeaderGroup,
+  removeHeaderGroupAt,
+  updateHeaderGroupAt,
+} from './utils';
 
 export type HeaderGroupEditorProps = {
-  group: HeaderGroupConfig;
+  group?: HeaderGroupConfig;
   path: number[];
   columnOptions: HeaderGroupColumnOption[];
   usedColumns: Set<string>;
-  onChange: (path: number[], next: HeaderGroupConfig) => void;
-  onAddChild: (path: number[]) => void;
-  onRemove: (path: number[]) => void;
+  onChange?: (path: number[], next: HeaderGroupConfig) => void;
+  onAddChild?: (path: number[]) => void;
+  onRemove?: (path: number[]) => void;
+  onSave?: (group: HeaderGroupConfig) => void;
+  mode?: 'add' | 'edit';
   children?: ReactNode;
 };
 
@@ -45,7 +53,7 @@ const FormStack = styled.div`
     display: flex;
     flex-direction: column;
     gap: ${theme.sizeUnit * 3}px;
-    min-width: ${theme.sizeUnit * 70}px;
+    min-width: ${theme.sizeUnit * 92}px;
   `}
 `;
 
@@ -54,6 +62,42 @@ const FieldRow = styled.div`
     display: flex;
     flex-direction: column;
     gap: ${theme.sizeUnit}px;
+  `}
+`;
+
+const InlineFields = styled.div`
+  ${({ theme }) => css`
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: flex-start;
+    gap: ${theme.sizeUnit * 3}px;
+
+    & > *:first-of-type {
+      flex: 1.4 1 auto;
+    }
+
+    & > *:last-of-type {
+      flex: 1 1 auto;
+    }
+  `}
+`;
+
+const CompactRadioGroup = styled.div`
+  ${({ theme }) => css`
+    .ant-radio-group {
+      display: flex;
+      flex-wrap: nowrap;
+      width: 100%;
+    }
+
+    .ant-radio-button-wrapper {
+      flex: 1 1 auto;
+      height: ${theme.sizeUnit * 6}px;
+      line-height: ${theme.sizeUnit * 6 - 2}px;
+      padding-inline: ${theme.sizeUnit}px;
+      font-size: ${theme.fontSizeSM}px;
+      text-align: center;
+    }
   `}
 `;
 
@@ -84,25 +128,27 @@ const NestedHeader = styled.div`
   `}
 `;
 
+const ApplyRow = styled.div`
+  display: flex;
+  justify-content: flex-end;
+`;
+
 const LABEL_ALIGN_OPTIONS: { label: string; value: HeaderGroupLabelAlign }[] = [
-  { label: t("Left"), value: "left" },
-  { label: t("Center"), value: "center" },
-  { label: t("Right"), value: "right" },
+  { label: t('Left'), value: 'left' },
+  { label: t('Center'), value: 'center' },
+  { label: t('Right'), value: 'right' },
+];
+
+const PLACEMENT_OPTIONS: { label: string; value: HeaderGroupPlacement }[] = [
+  { label: t('Left'), value: 'left' },
+  { label: t('Right'), value: 'right' },
 ];
 
 export function getGroupTitle(path: number[]): string {
-  const numberedPath = path.map((index) => index + 1).join(".");
+  const numberedPath = path.map(index => index + 1).join('.');
   return path.length === 1
-    ? t("Group %s", numberedPath)
-    : t("Subgroup %s", numberedPath);
-}
-
-export function getGroupSummary(
-  group: HeaderGroupConfig,
-  path: number[],
-): string {
-  const title = getGroupTitle(path);
-  return group.label ? `${title}: ${group.label}` : title;
+    ? t('Group %s', numberedPath)
+    : t('Subgroup %s', numberedPath);
 }
 
 function HeaderGroupForm({
@@ -113,14 +159,26 @@ function HeaderGroupForm({
   onChange,
   onAddChild,
   onRemove,
+  onApply,
   showRemove = false,
-}: HeaderGroupEditorProps & { showRemove?: boolean }) {
+}: {
+  group: HeaderGroupConfig;
+  path: number[];
+  columnOptions: HeaderGroupColumnOption[];
+  usedColumns: Set<string>;
+  onChange: (path: number[], next: HeaderGroupConfig) => void;
+  onAddChild: (path: number[]) => void;
+  onRemove: (path: number[]) => void;
+  onApply?: () => void;
+  showRemove?: boolean;
+}) {
   const availableOptions = columnOptions.filter(
-    (option) =>
+    option =>
       (group.columns ?? []).includes(option.value) ||
       !usedColumns.has(option.value),
   );
-  const canAddChild = path.length < MAX_HEADER_GROUP_DEPTH;
+  const hasName = Boolean(group.label?.trim());
+  const isTopLevel = path.length === 1;
 
   return (
     <FormStack data-test="header-group-editor">
@@ -130,34 +188,35 @@ function HeaderGroupForm({
           <Button
             buttonStyle="link"
             buttonSize="small"
-            aria-label={t("Remove group")}
+            aria-label={t('Remove group')}
             onClick={() => onRemove(path)}
             icon={<Icons.DeleteOutlined iconSize="s" />}
           />
         </NestedHeader>
       )}
       <FieldRow>
-        <FieldLabel>{t("Name")}</FieldLabel>
+        <FieldLabel>{t('Name')}</FieldLabel>
         <Input
-          aria-label={t("Group name")}
+          aria-label={t('Group name')}
           value={group.label}
-          placeholder={t("Enter group name")}
-          onChange={(event) =>
+          placeholder={t('Enter group name')}
+          onChange={event =>
             onChange(path, { ...group, label: event.target.value })
           }
         />
       </FieldRow>
       <FieldRow>
-        <FieldLabel>{t("Columns")}</FieldLabel>
+        <FieldLabel>{t('Columns')}</FieldLabel>
         <Select
-          ariaLabel={t("Group columns")}
+          ariaLabel={t('Group columns')}
           mode="multiple"
           allowClear
           showSearch
           value={group.columns ?? []}
           options={availableOptions}
-          placeholder={t("Select columns")}
-          onChange={(columns) =>
+          placeholder={t('Select columns')}
+          maxTagCount={3}
+          onChange={columns =>
             onChange(path, {
               ...group,
               columns: Array.isArray(columns) ? columns : [],
@@ -165,26 +224,54 @@ function HeaderGroupForm({
           }
         />
       </FieldRow>
-      <FieldRow>
-        <FieldLabel>{t("Label position")}</FieldLabel>
-        <Radio.Group
-          size="small"
-          optionType="button"
-          value={group.labelAlign ?? "center"}
-          onChange={(event) =>
-            onChange(path, {
-              ...group,
-              labelAlign: event.target.value as HeaderGroupLabelAlign,
-            })
-          }
-        >
-          {LABEL_ALIGN_OPTIONS.map((option) => (
-            <Radio.Button key={option.value} value={option.value}>
-              {option.label}
-            </Radio.Button>
-          ))}
-        </Radio.Group>
-      </FieldRow>
+      <InlineFields>
+        <FieldRow>
+          <FieldLabel>{t('Label position')}</FieldLabel>
+          <CompactRadioGroup>
+            <Radio.Group
+              size="small"
+              optionType="button"
+              value={group.labelAlign ?? 'center'}
+              onChange={event =>
+                onChange(path, {
+                  ...group,
+                  labelAlign: event.target.value as HeaderGroupLabelAlign,
+                })
+              }
+            >
+              {LABEL_ALIGN_OPTIONS.map(option => (
+                <Radio.Button key={option.value} value={option.value}>
+                  {option.label}
+                </Radio.Button>
+              ))}
+            </Radio.Group>
+          </CompactRadioGroup>
+        </FieldRow>
+        {isTopLevel && (
+          <FieldRow>
+            <FieldLabel>{t('Table side')}</FieldLabel>
+            <CompactRadioGroup>
+              <Radio.Group
+                size="small"
+                optionType="button"
+                value={group.placement ?? 'right'}
+                onChange={event =>
+                  onChange(path, {
+                    ...group,
+                    placement: event.target.value as HeaderGroupPlacement,
+                  })
+                }
+              >
+                {PLACEMENT_OPTIONS.map(option => (
+                  <Radio.Button key={option.value} value={option.value}>
+                    {option.label}
+                  </Radio.Button>
+                ))}
+              </Radio.Group>
+            </CompactRadioGroup>
+          </FieldRow>
+        )}
+      </InlineFields>
       {(group.children ?? []).length > 0 && (
         <FieldRow>
           {(group.children ?? []).map((child, index) => (
@@ -203,15 +290,27 @@ function HeaderGroupForm({
           ))}
         </FieldRow>
       )}
-      {canAddChild && (
+      {path.length < MAX_HEADER_GROUP_DEPTH && (
         <Button
           buttonStyle="dashed"
           buttonSize="small"
+          disabled={!hasName}
           icon={<Icons.PlusOutlined iconSize="s" />}
-          onClick={() => onAddChild(path)}
+          onClick={() => {
+            if (hasName) {
+              onAddChild(path);
+            }
+          }}
         >
-          {t("Add subgroup")}
+          {t('Add subgroup')}
         </Button>
+      )}
+      {onApply && (
+        <ApplyRow>
+          <Button buttonStyle="primary" onClick={onApply}>
+            {t('Apply')}
+          </Button>
+        </ApplyRow>
       )}
     </FormStack>
   );
@@ -219,15 +318,89 @@ function HeaderGroupForm({
 
 export default function HeaderGroupEditor({
   children,
-  ...formProps
+  group,
+  path,
+  columnOptions,
+  usedColumns,
+  onChange,
+  onAddChild,
+  onRemove,
+  onSave,
+  mode = 'edit',
 }: HeaderGroupEditorProps) {
+  const [visible, setVisible] = useState(false);
+  const [draft, setDraft] = useState<HeaderGroupConfig>(
+    group ?? createHeaderGroup(),
+  );
+
+  const isAddMode = mode === 'add';
+  const currentGroup = isAddMode ? draft : (group ?? draft);
+
+  const handleOpenChange = (open: boolean) => {
+    setVisible(open);
+    if (open && isAddMode) {
+      setDraft(createHeaderGroup());
+    }
+  };
+
+  const handleChange = (nextPath: number[], next: HeaderGroupConfig) => {
+    if (isAddMode) {
+      setDraft(updateHeaderGroupAt([draft], nextPath, () => next)[0]);
+      return;
+    }
+    onChange?.(nextPath, next);
+  };
+
+  const handleAddChild = (nextPath: number[]) => {
+    if (isAddMode) {
+      setDraft(
+        updateHeaderGroupAt([draft], nextPath, current => ({
+          ...current,
+          children: [...(current.children ?? []), createHeaderGroup()],
+        }))[0],
+      );
+      return;
+    }
+    onAddChild?.(nextPath);
+  };
+
+  const handleRemove = (nextPath: number[]) => {
+    if (isAddMode) {
+      const nextGroups = removeHeaderGroupAt([draft], nextPath);
+      if (nextGroups[0]) {
+        setDraft(nextGroups[0]);
+      }
+      return;
+    }
+    onRemove?.(nextPath);
+  };
+
+  const handleApply = () => {
+    onSave?.(draft);
+    setVisible(false);
+    setDraft(createHeaderGroup());
+  };
+
   return (
     <Popover
-      title={getGroupTitle(formProps.path)}
-      trigger={["click"]}
+      title={isAddMode ? t('Add group') : getGroupTitle(path)}
+      trigger={['click']}
+      open={visible}
+      onOpenChange={handleOpenChange}
       destroyOnHidden
-      overlayStyle={{ maxWidth: 420 }}
-      content={<HeaderGroupForm {...formProps} />}
+      overlayStyle={{ maxWidth: 480 }}
+      content={
+        <HeaderGroupForm
+          group={currentGroup}
+          path={isAddMode ? [0] : path}
+          columnOptions={columnOptions}
+          usedColumns={usedColumns}
+          onChange={handleChange}
+          onAddChild={handleAddChild}
+          onRemove={handleRemove}
+          onApply={isAddMode ? handleApply : undefined}
+        />
+      }
     >
       {children}
     </Popover>

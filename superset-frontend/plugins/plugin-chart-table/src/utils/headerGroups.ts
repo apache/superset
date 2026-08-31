@@ -19,11 +19,15 @@
 
 export type HeaderGroupLabelAlign = 'left' | 'center' | 'right';
 
+export type HeaderGroupPlacement = 'left' | 'right';
+
 export type HeaderGroupConfig = {
   id: string;
   label: string;
   columns: string[];
   labelAlign?: HeaderGroupLabelAlign;
+  placement?: HeaderGroupPlacement;
+  source?: 'time_compare';
   children?: HeaderGroupConfig[];
 };
 
@@ -87,6 +91,22 @@ function buildAncestorMap(
   return map;
 }
 
+function collectGroupedColumns<T extends { key: string }>(
+  groups: HeaderGroupConfig[],
+  byKey: Map<string, T>,
+  seen: Set<string>,
+): T[] {
+  return groups.flatMap(collectHeaderGroupLeaves).reduce<T[]>((acc, key) => {
+    const column = byKey.get(key);
+    if (!column || seen.has(key)) {
+      return acc;
+    }
+    seen.add(key);
+    acc.push(column);
+    return acc;
+  }, []);
+}
+
 export function orderColumnsByHeaderGroups<T extends { key: string }>(
   columns: T[],
   groups: HeaderGroupConfig[],
@@ -96,16 +116,11 @@ export function orderColumnsByHeaderGroups<T extends { key: string }>(
   const byKey = new Map(columns.map(column => [column.key, column]));
   const ungrouped = columns.filter(column => !leafSet.has(column.key));
   const seen = new Set<string>();
-  const grouped = leafKeys.reduce<T[]>((acc, key) => {
-    const column = byKey.get(key);
-    if (!column || seen.has(key)) {
-      return acc;
-    }
-    seen.add(key);
-    acc.push(column);
-    return acc;
-  }, []);
-  return [...ungrouped, ...grouped];
+  const leftGroups = groups.filter(group => group.placement === 'left');
+  const rightGroups = groups.filter(group => group.placement !== 'left');
+  const leftGrouped = collectGroupedColumns(leftGroups, byKey, seen);
+  const rightGrouped = collectGroupedColumns(rightGroups, byKey, seen);
+  return [...leftGrouped, ...ungrouped, ...rightGrouped];
 }
 
 export function buildHeaderGroupRows(

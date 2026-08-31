@@ -67,43 +67,42 @@ function mkProps(
   } as unknown as ControlPanelsContainerProps;
 }
 
-test('enable_multi_header is hidden when time comparison is set', () => {
-  const vis = getVisibility(config, 'enable_multi_header');
-  expect(
-    vis({
-      controls: { time_compare: { value: '1 year ago' } },
-    } as unknown as ControlPanelsContainerProps),
-  ).toBe(false);
-  expect(
-    vis({
-      controls: { time_compare: { value: [] } },
-    } as unknown as ControlPanelsContainerProps),
-  ).toBe(true);
+test('header_groups is always present without a visibility gate', () => {
+  const item = (config.controlPanelSections || [])
+    .flatMap(section => section?.controlSetRows || [])
+    .flat()
+    .find(
+      control =>
+        typeof control === 'object' &&
+        control !== null &&
+        'name' in control &&
+        control.name === 'header_groups',
+    ) as CustomControlItem | undefined;
+
+  expect(item).toBeDefined();
+  expect(item?.config.visibility).toBeUndefined();
 });
 
-test('header_groups is visible only when multi-header is enabled', () => {
-  const vis = getVisibility(config, 'header_groups');
+test('allow_rearrange_columns is hidden when time comparison or header groups are set', () => {
+  const vis = getVisibility(config, 'allow_rearrange_columns');
+  expect(
+    vis({
+      controls: { time_compare: { value: [] }, header_groups: { value: [] } },
+    } as unknown as ControlPanelsContainerProps),
+  ).toBe(true);
   expect(
     vis({
       controls: {
-        enable_multi_header: { value: false },
-        time_compare: { value: [] },
+        time_compare: { value: '1 year ago' },
+        header_groups: { value: [] },
       },
     } as unknown as ControlPanelsContainerProps),
   ).toBe(false);
   expect(
     vis({
       controls: {
-        enable_multi_header: { value: true },
         time_compare: { value: [] },
-      },
-    } as unknown as ControlPanelsContainerProps),
-  ).toBe(true);
-  expect(
-    vis({
-      controls: {
-        enable_multi_header: { value: true },
-        time_compare: { value: '1 year ago' },
+        header_groups: { value: [{ id: 'g1' }] },
       },
     } as unknown as ControlPanelsContainerProps),
   ).toBe(false);

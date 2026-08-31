@@ -48,6 +48,33 @@ const groups: HeaderGroupConfig[] = [
   },
 ];
 
+test('places left-side groups before ungrouped columns', () => {
+  const columns = [
+    { key: 'country' },
+    { key: 'SUM(cost)' },
+    { key: 'SUM(sales)' },
+    { key: 'name' },
+  ];
+  const mixedGroups: HeaderGroupConfig[] = [
+    {
+      id: 'sales',
+      label: 'Sales',
+      columns: ['SUM(sales)'],
+      placement: 'left',
+    },
+    {
+      id: 'costs',
+      label: 'Costs',
+      columns: ['SUM(cost)'],
+      placement: 'right',
+    },
+  ];
+
+  expect(
+    orderColumnsByHeaderGroups(columns, mixedGroups).map(col => col.key),
+  ).toEqual(['SUM(sales)', 'country', 'name', 'SUM(cost)']);
+});
+
 test('orders grouped columns after ungrouped columns', () => {
   const columns = [
     { key: 'country' },

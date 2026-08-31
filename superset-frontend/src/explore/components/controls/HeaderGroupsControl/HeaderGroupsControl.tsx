@@ -16,27 +16,47 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect, useMemo } from "react";
-import { t } from "@apache-superset/core/translation";
-import { css, styled } from "@apache-superset/core/theme";
-import { Icons } from "@superset-ui/core/components/Icons";
-import ControlHeader from "src/explore/components/ControlHeader";
-import HeaderGroupEditor, { getGroupSummary } from "./HeaderGroupEditor";
-import { HeaderGroupConfig, HeaderGroupsControlProps } from "./types";
+import { useCallback, useEffect, useMemo } from 'react';
+import { t } from '@apache-superset/core/translation';
+import { css, styled, type SupersetTheme } from '@apache-superset/core/theme';
+import { Button } from '@superset-ui/core/components';
+import { Icons } from '@superset-ui/core/components/Icons';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { restrictToVerticalAxis } from '@dnd-kit/modifiers';
+import { CSS } from '@dnd-kit/utilities';
+import ControlHeader from 'src/explore/components/ControlHeader';
+import HeaderGroupEditor, { getGroupTitle } from './HeaderGroupEditor';
+import { HeaderGroupConfig, HeaderGroupsControlProps } from './types';
 import {
   collectHeaderGroupColumns,
   createHeaderGroup,
   headerGroupsHaveSameColumns,
+  moveHeaderGroup,
   pruneStaleHeaderGroupColumns,
   removeHeaderGroupAt,
+  syncTimeComparisonGroups,
   updateHeaderGroupAt,
-} from "./utils";
+} from './utils';
 import {
   AddControlLabel,
   CaretContainer,
   Label,
   OptionControlContainer,
-} from "../OptionControls";
+} from '../OptionControls';
 
 const GroupsContainer = styled.div`
   ${({ theme }) => css`
@@ -71,40 +91,137 @@ const CloseButton = styled.button`
   `}
 `;
 
+function DragHandle() {
+  return <Icons.MenuOutlined aria-hidden className="text-primary" />;
+}
+
+type SortableGroupRowProps = {
+  group: HeaderGroupConfig;
+  index: number;
+  columnOptions: HeaderGroupsControlProps['columnOptions'];
+  usedColumns: Set<string>;
+  onChange: (path: number[], next: HeaderGroupConfig) => void;
+  onAddChild: (path: number[]) => void;
+  onRemove: (path: number[]) => void;
+};
+
+function SortableGroupRow({
+  group,
+  index,
+  columnOptions = [],
+  usedColumns,
+  onChange,
+  onAddChild,
+  onRemove,
+}: SortableGroupRowProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    setActivatorNodeRef,
+    transform,
+    transition,
+  } = useSortable({ id: group.id });
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition: transition ?? undefined,
+      }}
+    >
+      <GroupRow>
+        <span ref={setActivatorNodeRef} css={{ display: 'inline-flex' }}>
+          <Button
+            buttonStyle="link"
+            buttonSize="small"
+            aria-label={t('Drag to reorder')}
+            icon={<DragHandle />}
+            css={(theme: SupersetTheme) => ({
+              cursor: 'ns-resize',
+              paddingInline: theme.sizeUnit,
+            })}
+            {...attributes}
+            {...listeners}
+          />
+        </span>
+        <CloseButton
+          aria-label={t('Remove group')}
+          onClick={() => onRemove([index])}
+        >
+          <Icons.CloseOutlined iconSize="m" />
+        </CloseButton>
+        <HeaderGroupEditor
+          mode="edit"
+          group={group}
+          path={[index]}
+          columnOptions={columnOptions}
+          usedColumns={usedColumns}
+          onChange={onChange}
+          onAddChild={onAddChild}
+          onRemove={onRemove}
+        >
+          <OptionControlContainer withCaret>
+            <Label>{getGroupTitle([index])}</Label>
+            <CaretContainer>
+              <Icons.RightOutlined iconSize="m" />
+            </CaretContainer>
+          </OptionControlContainer>
+        </HeaderGroupEditor>
+      </GroupRow>
+    </div>
+  );
+}
+
 export default function HeaderGroupsControl({
   value = [],
   onChange,
   columnOptions = [],
+  timeComparisonGroups = [],
   ...props
 }: HeaderGroupsControlProps) {
   const groups = value ?? [];
 
   useEffect(() => {
-    if (columnOptions.length === 0 || !onChange) {
+    if (!onChange) {
       return;
     }
-    const pruned = pruneStaleHeaderGroupColumns(groups, columnOptions);
-    if (!headerGroupsHaveSameColumns(groups, pruned)) {
-      onChange(pruned);
+    const synced = syncTimeComparisonGroups(groups, timeComparisonGroups);
+    const next =
+      columnOptions.length === 0
+        ? synced
+        : pruneStaleHeaderGroupColumns(synced, columnOptions);
+    if (!headerGroupsHaveSameColumns(groups, next)) {
+      onChange(next);
     }
-  }, [columnOptions, groups, onChange]);
+  }, [columnOptions, groups, onChange, timeComparisonGroups]);
 
   const usedColumns = useMemo(
     () => new Set(collectHeaderGroupColumns(groups)),
     [groups],
   );
 
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 5 },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
+  );
+
   const handleGroupChange = (path: number[], next: HeaderGroupConfig) => {
     onChange?.(updateHeaderGroupAt(groups, path, () => next));
   };
 
-  const handleAddGroup = () => {
-    onChange?.([...groups, createHeaderGroup()]);
+  const handleAddGroup = (group: HeaderGroupConfig) => {
+    onChange?.([...groups, group]);
   };
 
   const handleAddChild = (path: number[]) => {
     onChange?.(
-      updateHeaderGroupAt(groups, path, (group) => ({
+      updateHeaderGroupAt(groups, path, group => ({
         ...group,
         children: [...(group.children ?? []), createHeaderGroup()],
       })),
@@ -115,46 +232,65 @@ export default function HeaderGroupsControl({
     onChange?.(removeHeaderGroupAt(groups, path));
   };
 
+  const handleDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      const { active, over } = event;
+      if (!over || active.id === over.id) {
+        return;
+      }
+      const fromIndex = groups.findIndex(group => group.id === active.id);
+      const toIndex = groups.findIndex(group => group.id === over.id);
+      onChange?.(moveHeaderGroup(groups, fromIndex, toIndex));
+    },
+    [groups, onChange],
+  );
+
   return (
     <div data-test="header-groups-control">
       <ControlHeader {...props} />
       <GroupsContainer>
-        {groups.map((group, index) => (
-          <GroupRow key={group.id}>
-            <CloseButton
-              aria-label={t("Remove group")}
-              onClick={() => handleRemove([index])}
-            >
-              <Icons.CloseOutlined iconSize="m" />
-            </CloseButton>
-            <HeaderGroupEditor
-              group={group}
-              path={[index]}
-              columnOptions={columnOptions}
-              usedColumns={usedColumns}
-              onChange={handleGroupChange}
-              onAddChild={handleAddChild}
-              onRemove={handleRemove}
-            >
-              <OptionControlContainer withCaret>
-                <Label>{getGroupSummary(group, [index])}</Label>
-                <CaretContainer>
-                  <Icons.RightOutlined iconSize="m" />
-                </CaretContainer>
-              </OptionControlContainer>
-            </HeaderGroupEditor>
-          </GroupRow>
-        ))}
-        <AddControlLabel onClick={handleAddGroup}>
-          <Icons.PlusOutlined
-            iconSize="m"
-            css={(theme) => ({
-              margin: `auto ${theme.sizeUnit}px auto 0`,
-              verticalAlign: "baseline",
-            })}
-          />
-          {t("Add group")}
-        </AddControlLabel>
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          modifiers={[restrictToVerticalAxis]}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext
+            items={groups.map(group => group.id)}
+            strategy={verticalListSortingStrategy}
+          >
+            {groups.map((group, index) => (
+              <SortableGroupRow
+                key={group.id}
+                group={group}
+                index={index}
+                columnOptions={columnOptions}
+                usedColumns={usedColumns}
+                onChange={handleGroupChange}
+                onAddChild={handleAddChild}
+                onRemove={handleRemove}
+              />
+            ))}
+          </SortableContext>
+        </DndContext>
+        <HeaderGroupEditor
+          mode="add"
+          path={[groups.length]}
+          columnOptions={columnOptions}
+          usedColumns={usedColumns}
+          onSave={handleAddGroup}
+        >
+          <AddControlLabel>
+            <Icons.PlusOutlined
+              iconSize="m"
+              css={theme => ({
+                margin: `auto ${theme.sizeUnit}px auto 0`,
+                verticalAlign: 'baseline',
+              })}
+            />
+            {t('Add group')}
+          </AddControlLabel>
+        </HeaderGroupEditor>
       </GroupsContainer>
     </div>
   );

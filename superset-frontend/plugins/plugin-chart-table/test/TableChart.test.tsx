@@ -154,7 +154,6 @@ test('sanitizeHeaderId should handle inputs with only special characters', () =>
 test('renders multi-level header groups above column names', () => {
   const props = {
     ...transformProps(testData.basic),
-    enableMultiHeader: true,
     headerGroups: [
       {
         id: 'metrics',

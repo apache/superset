@@ -21,5 +21,6 @@ export type {
   HeaderGroupConfig,
   HeaderGroupColumnOption,
   HeaderGroupLabelAlign,
+  HeaderGroupPlacement,
   HeaderGroupsControlProps,
 } from './types';

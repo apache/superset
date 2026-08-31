@@ -73,7 +73,6 @@ export type TableChartFormData = QueryFormData & {
   time_grain_sqla?: TimeGranularity;
   column_config?: Record<string, TableColumnConfig>;
   allow_rearrange_columns?: boolean;
-  enable_multi_header?: boolean;
   header_groups?: HeaderGroupConfig[];
 };
 
@@ -121,7 +120,6 @@ export interface TableChartTransformedProps<D extends DataRecord = DataRecord> {
     filters?: ContextMenuFilters,
   ) => void;
   isUsingTimeComparison?: boolean;
-  enableMultiHeader?: boolean;
   headerGroups?: HeaderGroupConfig[];
   basicColorFormatters?: { [Key: string]: BasicColorFormatterType }[];
   basicColorColumnFormatters?: { [Key: string]: BasicColorFormatterType }[];
