@@ -43,7 +43,7 @@ params:
   color_scheme: supersetColors
   datasource: 42__table
   granularity_sqla: time_start
-  columns:
+  groupby:
   - job_pref
   label_colors: {}
   metric: count
