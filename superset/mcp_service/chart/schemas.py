@@ -2371,8 +2371,8 @@ ChartConfig = Annotated[
         discriminator="chart_type",
         description=(
             "Chart configuration - specify chart_type as 'xy', 'table', "
-            "'pie', 'gauge_chart', 'pivot_table', 'interactive_pivot', 'mixed_timeseries', "
-            "'handlebars', "
+            "'pie', 'gauge_chart', 'pivot_table', 'interactive_pivot', "
+            "'mixed_timeseries', 'handlebars', "
             "'big_number', 'histogram', 'box_plot', or 'waterfall'"
         ),
     ),
