@@ -41,10 +41,7 @@ import type {
   AutomaticNormalizationTransitions,
   ChartNormalizationTrackingState,
 } from 'src/features/versionHistory/types';
-import {
-  matchingAutomaticNormalizationTransitions,
-  stashDropNormalizationTransitions,
-} from 'src/features/versionHistory/normalization';
+import { matchingAutomaticNormalizationTransitions } from 'src/features/versionHistory/normalization';
 
 export interface PayloadSlice extends Slice {
   params: string;
@@ -295,22 +292,11 @@ export const updateSlice =
         formDataFromSlice,
       );
       const savedFormData = JSON.parse(payload.params ?? '{}') as QueryFormData;
-      // Hydration-time transitions that still hold, plus save-time drops of
-      // keys the stash removed (mutually exclusive per control: a surviving
-      // hydration transition implies the key is present in the payload, a
-      // stash drop implies it is absent).
+      // Hydration-time transitions that still hold. Stashed values are now
+      // always merged back into the saved payload above, so a save can no
+      // longer drop a hidden control's value.
       const matchingTransitions = shouldAttachNormalization
-        ? {
-            ...matchingAutomaticNormalizationTransitions(
-              tracking,
-              savedFormData,
-            ),
-            ...stashDropNormalizationTransitions(
-              (formDataFromSlice ?? {}) as Record<string, unknown>,
-              initialState.explore?.hiddenFormData,
-              savedFormData,
-            ),
-          }
+        ? matchingAutomaticNormalizationTransitions(tracking, savedFormData)
         : {};
       if (
         shouldAttachNormalization &&
@@ -351,7 +337,15 @@ export const createSlice =
       new?: boolean;
     },
   ) =>
-  async (dispatch: Dispatch, getState: () => Partial<QueryFormData>) => {
+  async (
+    dispatch: Dispatch,
+    getState: () => {
+      explore?: {
+        form_data?: QueryFormData;
+        hiddenFormData?: Record<string, unknown>;
+      };
+    },
+  ) => {
     const exploreState = getState().explore;
     // See the comment in updateSlice: stashed values from a hidden control
     // section must not be dropped from the saved chart just because the
