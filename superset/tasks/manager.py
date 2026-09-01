@@ -179,7 +179,7 @@ class TaskManager:
 
     @classmethod
     def publish_entity_change(cls, task_uuid: UUID) -> bool:
-        """Publish a best-effort, opaque "entity changed" nudge for realtime UIs.
+        """Publish an opaque "entity changed" nudge for realtime UIs.
 
         Best-effort broadcast (may be dropped) carrying only ``{entity_type, id}``
         (the integer primary key, which a realtime list view matches and refetches

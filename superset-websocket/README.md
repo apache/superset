@@ -74,7 +74,7 @@ is from **who** receives it:
 
 The two topics in use:
 
-1. **`entity.changed`** (`scope: authenticated_global`). A best-effort "an entity
+1. **`entity.changed`** (`scope: authenticated_global`). An "an entity
    changed" broadcast whose payload carries only opaque ids
    (`{entity_type, id}`) — no status or sensitive data — so a list view can learn
    that an entity of a type it renders changed and re-fetch just the affected rows
@@ -136,7 +136,7 @@ previous key configured on the websocket service until old cookies and open
 sockets have aged out, then remove it.
 
 The service is stateless apart from process-local live socket handles. Each
-replica subscribes to the same Redis Pub/Sub channel, receives the same best-effort
+replica subscribes to the same Redis Pub/Sub channel, receives the same
 events, and forwards only to matching sockets connected to that replica. Sticky
 sessions are not required; reconnecting to another replica reuses the JWT cookie
 and binds the socket to the same principal channel. Short websocket JWT

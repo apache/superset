@@ -2984,7 +2984,7 @@ GLOBAL_ASYNC_QUERIES_DEFAULT = True
 # Two delivery scopes, carried on one best-effort `realtime` pub/sub channel as a
 # self-describing `{topic, scope, routes, payload}` envelope:
 #   - `authenticated_global` — a broadcast nudge (e.g. topic `entity.changed`,
-#     opaque entity ids only) delivered to every authenticated socket for best-effort
+#     opaque entity ids only) delivered to every authenticated socket for
 #     list-view activity, and
 #   - `principal`/`tab` — targeted messages (e.g. topic `task.status` for the
 #     dashboard chart-data path), fanned out by the websocket server to the
