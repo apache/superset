@@ -38,6 +38,8 @@ from pydantic import (
     model_serializer,
     model_validator,
     StrictBool,
+    StrictInt,
+    StrictStr,
     ValidationError,
 )
 from typing_extensions import Self
@@ -881,6 +883,13 @@ class FilterConfig(UnknownFieldCheckMixin):
         max_length=255,
         validation_alias=AliasChoices("column", "col"),
     )
+    clause: Literal["WHERE"] = Field(
+        "WHERE",
+        description=(
+            "Query clause for this SIMPLE filter. Only WHERE is supported; "
+            "SIMPLE HAVING cannot be represented without changing semantics."
+        ),
+    )
     op: Literal[
         "=",
         ">",
@@ -1076,7 +1085,83 @@ class SunburstStandardizedFormData(UnknownFieldCheckMixin):
     )
 
 
+class SunburstNativeMetricColumn(UnknownFieldCheckMixin):
+    """Bounded frontend column metadata nested in a native SIMPLE metric."""
+
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    column_name: StrictStr = Field(
+        ...,
+        min_length=1,
+        max_length=255,
+        validation_alias=AliasChoices("column_name", "columnName"),
+    )
+    id: StrictInt | None = Field(None, ge=0)
+    type: StrictStr | None = Field(None, max_length=255)
+    type_generic: StrictInt | None = Field(None, ge=0, le=10)
+    groupby: StrictBool | None = None
+    is_dttm: StrictBool | None = None
+    filterable: StrictBool | None = None
+    verbose_name: StrictStr | None = Field(None, max_length=500)
+    description: StrictStr | None = Field(None, max_length=2000)
+    expression: StrictStr | None = Field(None, max_length=2000)
+    database_expression: StrictStr | None = Field(None, max_length=2000)
+    python_date_format: StrictStr | None = Field(None, max_length=255)
+    option_name: StrictStr | None = Field(
+        None,
+        max_length=500,
+        validation_alias=AliasChoices("option_name", "optionName"),
+    )
+    filter_by: StrictStr | None = Field(
+        None,
+        max_length=255,
+        validation_alias=AliasChoices("filter_by", "filterBy"),
+    )
+    value: StrictStr | None = Field(None, max_length=500)
+    advanced_data_type: StrictStr | None = Field(None, max_length=255)
+    uuid: StrictStr | None = Field(None, max_length=64)
+
+
+class SunburstLegacySavedFields(BaseModel):
+    """Known obsolete controls tolerated only while reading saved Sunbursts."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    country_fieldtype: StrictStr | None = Field(None, max_length=255)
+    entity: StrictStr | None = Field(None, max_length=255)
+    granularity: StrictStr | None = Field(None, max_length=255)
+    limit: StrictInt | StrictStr | None = None
+    markup_type: Literal["markdown", "html"] | None = None
+    show_bubbles: StrictBool | None = None
+
+    @field_validator("limit")
+    @classmethod
+    def validate_legacy_limit(cls, value: int | str | None) -> int | str | None:
+        """Bound the ignored legacy row limit and reject non-numeric strings."""
+        if value is None:
+            return None
+        if isinstance(value, str):
+            if not value.isascii() or not value.isdigit():
+                raise ValueError("legacy Sunburst limit must be an integer")
+            numeric_value = int(value)
+        else:
+            numeric_value = value
+        if not 1 <= numeric_value <= 50000:
+            raise ValueError("legacy Sunburst limit must be between 1 and 50000")
+        return value
+
+
 _NATIVE_FORM_DATA_MARKER = "_mcp_native_form_data"
+_SUNBURST_IGNORED_LEGACY_FIELDS = frozenset(
+    {
+        "country_fieldtype",
+        "entity",
+        "granularity",
+        "limit",
+        "markup_type",
+        "show_bubbles",
+    }
+)
 
 
 class SunburstChartConfig(BaseChartConfig):
@@ -1123,7 +1208,7 @@ class SunburstChartConfig(BaseChartConfig):
     filters: List[FilterConfig] | None = Field(
         None,
         description=(
-            "Structured WHERE filters (column/op/value). An omitted list is "
+            "Structured WHERE filters (column/op/value/clause). An omitted list is "
             "preserved on updates; an explicit [] clears saved filters."
         ),
     )
@@ -1249,6 +1334,8 @@ class SunburstChartConfig(BaseChartConfig):
                 "Unknown Sunburst native metric field(s): " + ", ".join(sorted(unknown))
             )
 
+        SunburstChartConfig._validate_native_metric_metadata(value)
+
         expression_type = value.get("expressionType")
         label = value.get("label")
         has_custom_label = value.get("hasCustomLabel")
@@ -1265,28 +1352,9 @@ class SunburstChartConfig(BaseChartConfig):
         if expression_type == "SIMPLE":
             column = value.get("column")
             if isinstance(column, dict):
-                allowed_column_keys = {
-                    "columnName",
-                    "column_name",
-                    "description",
-                    "expression",
-                    "filterable",
-                    "groupby",
-                    "id",
-                    "is_dttm",
-                    "python_date_format",
-                    "type",
-                    "uuid",
-                    "verbose_name",
-                }
-                unknown_column = set(column) - allowed_column_keys
-                if unknown_column:
-                    raise ValueError(
-                        "Unknown Sunburst native metric column field(s): "
-                        + ", ".join(sorted(unknown_column))
-                    )
-                name = column.get("column_name") or column.get("columnName")
-                dtype = column.get("type")
+                column_metadata = SunburstNativeMetricColumn.model_validate(column)
+                name = column_metadata.column_name
+                dtype = column_metadata.type
             else:
                 name = column
                 dtype = None
@@ -1298,6 +1366,20 @@ class SunburstChartConfig(BaseChartConfig):
                 "dtype": dtype,
             }
         return value
+
+    @staticmethod
+    def _validate_native_metric_metadata(value: dict[str, Any]) -> None:
+        """Validate bounded frontend-only attributes on an adhoc metric."""
+        for key in ("label", "optionName", "sqlExpression"):
+            item = value.get(key)
+            if item is not None and not isinstance(item, str):
+                raise ValueError(f"Sunburst native metric {key} must be a string")
+        if isinstance(value.get("optionName"), str) and len(value["optionName"]) > 500:
+            raise ValueError("Sunburst native metric optionName is too long")
+        for key in ("datasourceWarning", "hasCustomLabel"):
+            item = value.get(key)
+            if item is not None and not isinstance(item, bool):
+                raise ValueError(f"Sunburst native metric {key} must be a boolean")
 
     @staticmethod
     def _coerce_native_hierarchy(data: dict[str, Any]) -> None:
@@ -1315,6 +1397,10 @@ class SunburstChartConfig(BaseChartConfig):
             data[hierarchy_key] = [
                 {"name": item} if isinstance(item, str) else item for item in hierarchy
             ]
+        if hierarchy_key != "groupby":
+            # Saved Sunburst payloads sometimes retain an empty groupby from a
+            # previous plugin. The explicit columns/hierarchy control wins.
+            data.pop("groupby", None)
 
     @staticmethod
     def _coerce_native_filter(
@@ -1345,6 +1431,13 @@ class SunburstChartConfig(BaseChartConfig):
                 "only; express filters with the typed 'filters' field"
             )
         operator = native_filter.get("operator")
+        clause = native_filter.get("clause", "WHERE")
+        if not isinstance(clause, str) or clause != "WHERE":
+            raise ValueError(
+                "Sunburst native SIMPLE filter clause must be 'WHERE'; "
+                "SIMPLE HAVING is unsupported because the shared query mapper "
+                "cannot preserve HAVING semantics"
+            )
         if operator == "TEMPORAL_RANGE":
             data.setdefault("temporal_column", native_filter.get("subject"))
             data.setdefault("time_range", native_filter.get("comparator"))
@@ -1355,9 +1448,21 @@ class SunburstChartConfig(BaseChartConfig):
             comparator = None
         return {
             "column": native_filter.get("subject"),
+            "clause": clause,
             "op": mapped_operator,
             "value": comparator,
         }
+
+    @staticmethod
+    def _discard_legacy_saved_fields(data: dict[str, Any]) -> None:
+        """Validate and ignore only the known obsolete saved-chart controls."""
+        legacy = {
+            key: data[key] for key in _SUNBURST_IGNORED_LEGACY_FIELDS if key in data
+        }
+        if legacy:
+            SunburstLegacySavedFields.model_validate(legacy)
+            for key in legacy:
+                data.pop(key, None)
 
     @classmethod
     def _coerce_native_filters(cls, data: dict[str, Any]) -> None:
@@ -1385,6 +1490,7 @@ class SunburstChartConfig(BaseChartConfig):
         data.pop(_NATIVE_FORM_DATA_MARKER, None)
 
         if is_native_form_data:
+            cls._discard_legacy_saved_fields(data)
             cls._coerce_native_hierarchy(data)
 
             for key in ("metric", "secondary_metric", "secondaryMetric"):

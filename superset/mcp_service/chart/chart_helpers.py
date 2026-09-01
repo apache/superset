@@ -577,6 +577,19 @@ _DECK_TIMESERIES_VIZ_TYPES: frozenset[str] = frozenset(
 )
 
 
+def _validate_sunburst_simple_filter_clauses(
+    form_data: dict[str, Any], viz_type: str
+) -> None:
+    """Reject clauses the Sunburst query builders cannot preserve."""
+    if viz_type != "sunburst_v2":
+        return
+    from superset.common.form_data_query_context import (
+        adhoc_filters_to_query_filters,
+    )
+
+    adhoc_filters_to_query_filters(form_data.get("adhoc_filters", []))
+
+
 def build_query_dicts_from_form_data(
     form_data: dict[str, Any],
     datasource_id: Any,
@@ -587,6 +600,13 @@ def build_query_dicts_from_form_data(
     order_desc: bool | None = None,
 ) -> list[dict[str, Any]]:
     """Build chart-type-aware query dicts from Explore form_data."""
+    viz_type: str = (
+        form_data.get("viz_type")
+        or (getattr(chart, "viz_type", "") if chart else "")
+        or ""
+    )
+    _validate_sunburst_simple_filter_clauses(form_data, viz_type)
+
     engine = resolve_datasource_engine(datasource_id, datasource_type)
     prepare_form_data_for_query(
         form_data,
@@ -597,12 +617,6 @@ def build_query_dicts_from_form_data(
     )
 
     metrics, groupby = resolve_metrics_and_groupby(form_data, chart)
-    viz_type: str = (
-        form_data.get("viz_type")
-        or (getattr(chart, "viz_type", "") if chart else "")
-        or ""
-    )
-
     # Deck.gl charts use spatial column configs rather than the standard
     # metrics / groupby fields. Extract columns from the spatial controls.
     if viz_type.startswith("deck_"):

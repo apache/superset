@@ -106,13 +106,8 @@ class HistogramChartPlugin(BaseChartPlugin):
         if dataset_context is None:
             return None
 
-        col_info = next(
-            (
-                col
-                for col in dataset_context.available_columns
-                if col["name"].lower() == (config.column.name or "").lower()
-            ),
-            None,
+        col_info, _ambiguity = DatasetValidator._resolve_metadata_entry(
+            config.column.name or "", dataset_context.available_columns
         )
         if col_info is None:
             # Column existence is validated separately; don't double-report.

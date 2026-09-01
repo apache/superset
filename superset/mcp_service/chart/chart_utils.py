@@ -56,6 +56,7 @@ from superset.mcp_service.chart.schemas import (
 )
 from superset.mcp_service.chart.validation.dataset_validator import (
     is_dataset_column_temporal,
+    resolve_exact_first_casefold,
 )
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.utils import json
@@ -64,6 +65,11 @@ from superset.utils.core import FilterOperator
 logger = logging.getLogger(__name__)
 
 MCP_DASHBOARD_TIME_FILTER_SUBJECT = "_mcp_dashboard_time_filter_subject"
+
+
+def _orm_column_name(candidate: Any) -> str:
+    """Return an ORM dataset column's name for exact-first resolution."""
+    return str(candidate.column_name)
 
 
 @dataclass
@@ -330,11 +336,22 @@ def is_column_truly_temporal(
         if not dataset:
             return True  # Default to temporal if dataset not found
 
-        column_lower = column_name.lower()
-        for col in dataset.columns:
-            if col.column_name.lower() == column_lower:
-                db_engine_spec = dataset.database.db_engine_spec
-                return is_dataset_column_temporal(col, column_name, db_engine_spec)
+        column, ambiguous_matches = resolve_exact_first_casefold(
+            column_name,
+            dataset.columns,
+            _orm_column_name,
+        )
+        if ambiguous_matches:
+            logger.warning(
+                "Ambiguous temporal column reference %r in dataset %s: %s",
+                column_name,
+                dataset_id,
+                ", ".join(repr(name) for name in ambiguous_matches),
+            )
+            return False
+        if column is not None:
+            db_engine_spec = dataset.database.db_engine_spec
+            return is_dataset_column_temporal(column, column_name, db_engine_spec)
 
         return True  # Default if column not found
 
@@ -400,7 +417,7 @@ def _add_adhoc_filters(
     if filters:
         form_data["adhoc_filters"] = [
             {
-                "clause": "WHERE",
+                "clause": filter_config.clause,
                 "expressionType": "SIMPLE",
                 "subject": filter_config.column,
                 "operator": map_filter_operator(filter_config.op),
@@ -1287,12 +1304,7 @@ def merge_form_data_for_update(  # noqa: C901
     ``None`` and ``[]``) win.
     """
     same_viz = existing_form_data.get("viz_type") == new_form_data.get("viz_type")
-    if isinstance(config, SunburstChartConfig) and same_viz:
-        # Same-viz native UI state may include bounded plugin memory not modeled
-        # by typed controls. Required Sunburst roles are always replaced below.
-        merged = {**existing_form_data, **new_form_data}
-    else:
-        merged = _merge_allowlisted_form_data(existing_form_data, new_form_data)
+    merged = _merge_allowlisted_form_data(existing_form_data, new_form_data)
 
     fields_set: set[str] = getattr(config, "model_fields_set", set())
     if getattr(config, "filters", None) is None:

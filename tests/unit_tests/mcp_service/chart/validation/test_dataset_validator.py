@@ -238,3 +238,63 @@ def test_nonexact_case_twins_are_actionably_ambiguous_for_every_role(
     assert error.error_type == "ambiguous_dataset_reference"
     assert "Use the exact dataset spelling" in error.details
     assert len(error.suggestions) == 2
+
+
+def test_unicode_casefold_resolves_physical_saved_metric_and_filter_roles() -> None:
+    context = DatasetContext(
+        id=7,
+        table_name="unicode_names",
+        schema=None,
+        database_name="database",
+        available_columns=[
+            {"name": "Straße", "type": "DECIMAL", "is_numeric": True},
+            {"name": "Land", "type": "VARCHAR", "is_numeric": False},
+        ],
+        available_metrics=[{"name": "Maße", "expression": "SUM(value)"}],
+    )
+    config = TypeAdapter(ChartConfig).validate_python(
+        {
+            "chart_type": "sunburst",
+            "hierarchy": [{"name": "land"}],
+            "metric": {"name": "STRASSE", "aggregate": "SUM"},
+            "secondary_metric": {"name": "MASSE", "saved_metric": True},
+            "filters": [
+                {"column": "STRASSE", "op": ">", "value": 0, "clause": "WHERE"},
+            ],
+        }
+    )
+
+    assert DatasetValidator.validate_against_dataset(
+        config, 7, dataset_context=context
+    ) == (True, None)
+    normalized = DatasetValidator.normalize_column_names(
+        config, 7, dataset_context=context
+    )
+    assert normalized.metric.name == "Straße"
+    assert normalized.secondary_metric.name == "Maße"
+    assert [filter_.column for filter_ in normalized.filters] == ["Straße"]
+
+
+def test_unicode_casefold_ambiguity_rejects_nonexact_reference() -> None:
+    context = DatasetContext(
+        id=7,
+        table_name="unicode_twins",
+        schema=None,
+        database_name="database",
+        available_columns=[
+            {"name": "Straße", "type": "DECIMAL", "is_numeric": True},
+            {"name": "STRASSE", "type": "VARCHAR", "is_numeric": False},
+        ],
+    )
+    config = TypeAdapter(ChartConfig).validate_python(
+        {
+            "chart_type": "table",
+            "columns": [{"name": "Strasse", "aggregate": "SUM"}],
+        }
+    )
+    valid, error = DatasetValidator.validate_against_dataset(
+        config, 7, dataset_context=context
+    )
+    assert valid is False
+    assert error is not None
+    assert error.error_type == "ambiguous_dataset_reference"

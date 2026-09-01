@@ -1708,6 +1708,55 @@ class TestIsColumnTrulyTemporal:
         result = is_column_truly_temporal("year", 123)
         assert result is False
 
+    @pytest.mark.parametrize("reverse", [False, True])
+    @patch("superset.daos.dataset.DatasetDAO")
+    def test_exact_temporal_case_twin_wins_regardless_orm_order(
+        self, mock_dao, reverse: bool
+    ) -> None:
+        """The exact ORM column, not the first folded twin, controls its type."""
+        temporal = MagicMock(
+            column_name="eventtime",
+            type="TIMESTAMP",
+            is_dttm=True,
+            python_date_format=None,
+        )
+        text = MagicMock(
+            column_name="EventTime",
+            type="VARCHAR",
+            is_dttm=False,
+            python_date_format=None,
+        )
+        columns = [temporal, text]
+        if reverse:
+            columns.reverse()
+        db_engine_spec = MagicMock()
+        db_engine_spec.get_column_spec.side_effect = lambda type_: ColumnSpec(
+            sqla_type=MagicMock(),
+            generic_type=(
+                GenericDataType.TEMPORAL
+                if type_ == "TIMESTAMP"
+                else GenericDataType.STRING
+            ),
+            is_dttm=False,
+        )
+        mock_dao.find_by_id_or_uuid.return_value = MagicMock(
+            columns=columns,
+            database=MagicMock(db_engine_spec=db_engine_spec),
+        )
+
+        assert is_column_truly_temporal("eventtime", 123) is True
+        assert is_column_truly_temporal("EventTime", 123) is False
+        assert is_column_truly_temporal("EVENTTIME", 123) is False
+
+    @patch("superset.daos.dataset.DatasetDAO")
+    def test_unicode_casefold_temporal_lookup(self, mock_dao) -> None:
+        mock_dataset = self._create_mock_dataset(
+            "Straße", "TIMESTAMP", GenericDataType.TEMPORAL
+        )
+        mock_dao.find_by_id_or_uuid.return_value = mock_dataset
+
+        assert is_column_truly_temporal("STRASSE", 123) is True
+
     @patch("superset.daos.dataset.DatasetDAO")
     def test_returns_true_on_value_error(self, mock_dao) -> None:
         """Test returns True (default) when ValueError occurs"""

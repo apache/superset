@@ -50,6 +50,8 @@ from superset.mcp_service.chart.sunburst import validate_sunburst_result_data
 from superset.mcp_service.chart.validation.dataset_validator import (
     build_dataset_context_from_orm,
     DatasetValidator,
+    metadata_entry_name,
+    resolve_exact_first_casefold,
 )
 from superset.mcp_service.common.error_schemas import (
     ChartGenerationError,
@@ -252,20 +254,39 @@ def _validate_adhoc_filter_columns(  # noqa: C901
         # so skip those.
         if f.get("expressionType") and f.get("expressionType") != "SIMPLE":
             continue
+        clause = f.get("clause", "WHERE")
+        if not isinstance(clause, str) or clause not in {"WHERE", "HAVING"}:
+            return ChartGenerationError(
+                error_type="invalid_filter_clause",
+                message="SIMPLE filter clause must be 'WHERE' or 'HAVING'",
+                details=(
+                    f"A SIMPLE filter has malformed clause {clause!r}; the clause "
+                    "is never coerced or defaulted when explicitly set."
+                ),
+                suggestions=["Use clause='WHERE'"],
+                error_code="INVALID_FILTER_CLAUSE",
+            )
+        if clause == "HAVING":
+            return ChartGenerationError(
+                error_type="unsupported_filter_clause",
+                message="SIMPLE HAVING filters are unsupported",
+                details=(
+                    "The shared query mapper cannot preserve SIMPLE HAVING "
+                    "semantics and will not coerce the filter to WHERE."
+                ),
+                suggestions=["Use a supported WHERE filter"],
+                error_code="UNSUPPORTED_FILTER_CLAUSE",
+            )
         column = f.get("subject") or f.get("col")
         if not column or not isinstance(column, str):
             continue
-        clause = f.get("clause", "WHERE").upper()
         candidates = list(dataset_context.available_columns)
-        if clause == "HAVING":
-            candidates.extend(dataset_context.available_metrics)
-        names = [str(candidate["name"]) for candidate in candidates]
-        if column in names:
+        match, folded_matches = resolve_exact_first_casefold(
+            column, candidates, metadata_entry_name
+        )
+        if match is not None:
             continue
-        folded_matches = [
-            name for name in names if name.casefold() == column.casefold()
-        ]
-        if len(folded_matches) > 1:
+        if folded_matches:
             return ChartGenerationError(
                 error_type="ambiguous_dataset_reference",
                 message=f"Filter reference {column!r} is ambiguous",
@@ -278,8 +299,7 @@ def _validate_adhoc_filter_columns(  # noqa: C901
                 ],
                 error_code="AMBIGUOUS_DATASET_REFERENCE",
             )
-        if not folded_matches:
-            invalid.append(column)
+        invalid.append(column)
 
     if not invalid:
         return None
@@ -344,14 +364,12 @@ def _validate_sunburst_temporal_state(
             suggestions=["Choose a temporal column from the dataset"],
             error_code="NON_TEMPORAL_COLUMN",
         )
-    names = [str(column["name"]) for column in dataset_context.available_columns]
-    if temporal_column in names:
-        matches = [temporal_column]
-    else:
-        matches = [
-            name for name in names if name.casefold() == temporal_column.casefold()
-        ]
-    if len(matches) > 1:
+    matching_column, matches = resolve_exact_first_casefold(
+        temporal_column,
+        dataset_context.available_columns,
+        metadata_entry_name,
+    )
+    if matches:
         return ChartGenerationError(
             error_type="ambiguous_dataset_reference",
             message=f"Temporal reference {temporal_column!r} is ambiguous",
@@ -362,7 +380,7 @@ def _validate_sunburst_temporal_state(
             suggestions=[f"Use the exact name {name!r}" for name in matches[:10]],
             error_code="AMBIGUOUS_DATASET_REFERENCE",
         )
-    if not matches:
+    if matching_column is None:
         return ChartGenerationError(
             error_type="missing_temporal_column",
             message=f"Temporal column {temporal_column!r} does not exist",
@@ -370,15 +388,10 @@ def _validate_sunburst_temporal_state(
             suggestions=["Choose a temporal column from the dataset"],
             error_code="MISSING_TEMPORAL_COLUMN",
         )
-    matching_column = next(
-        column
-        for column in dataset_context.available_columns
-        if column["name"] == matches[0]
-    )
     if not matching_column.get("is_temporal", False):
         return ChartGenerationError(
             error_type="invalid_temporal_column",
-            message=f"Column {matches[0]!r} is not temporal",
+            message=f"Column {matching_column['name']!r} is not temporal",
             details="Sunburst time grain requires a temporal dataset column.",
             suggestions=["Choose a temporal column from the dataset"],
             error_code="NON_TEMPORAL_COLUMN",

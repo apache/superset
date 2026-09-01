@@ -66,18 +66,24 @@ def adhoc_filters_to_query_filters(
     val}`` equivalent and are handled separately (see
     :func:`freeform_where_having`).
 
-    By default all ``SIMPLE`` filters are converted (the behavior the MCP
-    compile/preview path relies on). Pass ``where_only=True`` to convert only
-    ``WHERE``-clause filters, matching the frontend's ``processFilters``
-    (``superset-ui-core/src/query/processFilters.ts``) — the dashboard export uses
-    this so it applies the same rows the chart shows and does not additionally
-    filter on ``SIMPLE`` ``HAVING`` clauses.
+    By default ``SIMPLE HAVING`` is rejected because a QueryObject filter would
+    silently change it to ``WHERE`` semantics. Pass ``where_only=True`` for the
+    legacy export behavior that converts only ``WHERE`` filters, matching the
+    frontend's ``processFilters`` (``superset-ui-core/src/query/processFilters.ts``).
     """
     result: list[dict[str, Any]] = []
     for flt in adhoc_filters or []:
         if flt.get("expressionType") != "SIMPLE":
             continue
-        if where_only and (flt.get("clause") or "WHERE").upper() != "WHERE":
+        clause = flt.get("clause", "WHERE")
+        if not isinstance(clause, str) or clause not in {"WHERE", "HAVING"}:
+            raise ValueError("SIMPLE filter clause must be 'WHERE' or 'HAVING'")
+        if clause == "HAVING" and not where_only:
+            raise ValueError(
+                "SIMPLE HAVING filters are unsupported; they cannot be mapped "
+                "to a query filter without changing HAVING semantics"
+            )
+        if where_only and clause != "WHERE":
             continue
         result.append(
             {
@@ -316,6 +322,12 @@ def build_query_context_from_form_data(
     :returns: A single-query query-context dict.
     """
     columns, metrics = _columns_and_metrics(form_data, viz_type)
+
+    if viz_type == "sunburst_v2":
+        # Sunburst's typed/native contract rejects SIMPLE HAVING because the
+        # frontend query mapper ignores it and a QueryObject filter would turn
+        # it into WHERE. Validate before the export-compatible where-only pass.
+        adhoc_filters_to_query_filters(form_data.get("adhoc_filters", []))
 
     # SIMPLE adhoc filters (+ legacy top-level ``filters``) become query filters;
     # free-form SQL predicates go into ``extras``. Only ``WHERE``-clause SIMPLE

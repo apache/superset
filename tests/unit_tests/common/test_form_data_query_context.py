@@ -14,6 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import pytest
+
 from superset.common.form_data_query_context import (
     adhoc_filters_to_query_filters,
     build_query_context_from_form_data,
@@ -343,8 +345,8 @@ def test_table_groupby_time_column_without_time_range_is_bucketed() -> None:
     assert query["granularity"] == "order_date"
 
 
-def test_simple_having_filter_converted_by_default_but_not_where_only() -> None:
-    # Default: all SIMPLE filters convert (the behavior MCP relies on).
+def test_simple_having_filter_rejected_by_default_but_not_where_only() -> None:
+    # Default conversion must not silently turn HAVING into WHERE.
     # where_only=True: SIMPLE HAVING is dropped (matching the chart), which the
     # export uses so it doesn't filter on a clause the chart ignores.
     adhoc = [
@@ -356,9 +358,8 @@ def test_simple_having_filter_converted_by_default_but_not_where_only() -> None:
             "comparator": 5,
         }
     ]
-    assert adhoc_filters_to_query_filters(adhoc) == [
-        {"col": "count", "op": ">", "val": 5}
-    ]
+    with pytest.raises(ValueError, match="SIMPLE HAVING filters are unsupported"):
+        adhoc_filters_to_query_filters(adhoc)
     assert adhoc_filters_to_query_filters(adhoc, where_only=True) == []
 
 

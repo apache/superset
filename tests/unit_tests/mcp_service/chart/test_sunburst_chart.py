@@ -17,9 +17,12 @@
 
 """Product-path coverage for typed MCP Sunburst support."""
 
+from copy import deepcopy
+from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
+import yaml
 from pydantic import ValidationError
 
 from superset.common.form_data_query_context import (
@@ -111,6 +114,17 @@ def _dataset() -> Mock:
             Mock(metric_name="SavedSales", expression="SUM(sales)", description=None)
         ],
     )
+
+
+def _rural_breakdown_params() -> dict[str, object]:
+    """Load the repository's exported Sunburst form_data fixture."""
+    fixture = (
+        Path(__file__).parents[4]
+        / "superset/examples/world_health/charts/Rural_Breakdown.yaml"
+    )
+    payload = yaml.safe_load(fixture.read_text())
+    assert isinstance(payload["params"], dict)
+    return payload["params"]
 
 
 def test_schema_uses_typed_mcp_and_frontend_tags() -> None:
@@ -353,6 +367,163 @@ def test_real_native_request_schema_round_trip(
         "standardizedFormData",
     ):
         assert reparsed_form_data.get(key) == form_data.get(key)
+
+
+@pytest.mark.parametrize(
+    "request_model",
+    [GenerateChartRequest, UpdateChartRequest, UpdateChartPreviewRequest],
+)
+def test_repository_rural_breakdown_fixture_round_trips_through_requests(
+    request_model: type[
+        GenerateChartRequest | UpdateChartRequest | UpdateChartPreviewRequest
+    ],
+) -> None:
+    params = _rural_breakdown_params()
+    if request_model is GenerateChartRequest:
+        payload: dict[str, object] = {"dataset_id": 7, "config": params}
+    elif request_model is UpdateChartRequest:
+        payload = {"identifier": 19, "config": params}
+    else:
+        payload = {
+            "dataset_id": 7,
+            "form_data_key": "rural-breakdown",
+            "config": params,
+        }
+
+    request = request_model.model_validate(payload)
+    assert isinstance(request.config, SunburstChartConfig)
+    assert [column.name for column in request.config.hierarchy] == [
+        "region",
+        "country_name",
+    ]
+    assert request.config.metric.name == "sum__SP_POP_TOTL"
+    assert request.config.metric.saved_metric is True
+    assert request.config.secondary_metric is not None
+    assert request.config.secondary_metric.name == "SP_RUR_TOTL"
+
+    form_data = map_config_to_form_data(request.config)
+    assert form_data["columns"] == ["region", "country_name"]
+    assert form_data["metric"] == "sum__SP_POP_TOTL"
+    assert form_data["secondary_metric"]["column"] == {"column_name": "SP_RUR_TOTL"}
+    assert form_data["row_limit"] == 50000
+    assert form_data["time_range"] == "2014-01-01 : 2014-01-02"
+    assert _SUNBURST_LEGACY_FIXTURE_KEYS.isdisjoint(form_data)
+
+    second_payload = dict(payload)
+    second_payload["config"] = form_data
+    reparsed = request_model.model_validate(second_payload)
+    assert isinstance(reparsed.config, SunburstChartConfig)
+    assert map_config_to_form_data(reparsed.config) == form_data
+
+
+_SUNBURST_LEGACY_FIXTURE_KEYS = {
+    "country_fieldtype",
+    "entity",
+    "granularity",
+    "limit",
+    "markup_type",
+    "show_bubbles",
+}
+
+
+@pytest.mark.parametrize(
+    "mutation,error",
+    [
+        (lambda params: params.__setitem__("show_bubbles", "true"), "show_bubbles"),
+        (
+            lambda params: params["secondary_metric"]["column"].__setitem__(
+                "optionName", 7
+            ),
+            "optionName",
+        ),
+        (
+            lambda params: params["secondary_metric"]["column"].__setitem__(
+                "optionNmae", "typo"
+            ),
+            "optionNmae",
+        ),
+        (lambda params: params.__setitem__("show_buble", True), "show_buble"),
+    ],
+)
+def test_repository_rural_breakdown_fixture_rejects_bad_native_state(
+    mutation: object, error: str
+) -> None:
+    params = deepcopy(_rural_breakdown_params())
+    assert callable(mutation)
+    mutation(params)
+    with pytest.raises(ValidationError, match=error):
+        GenerateChartRequest.model_validate({"dataset_id": 7, "config": params})
+
+
+def test_native_simple_where_filter_clause_round_trips_without_coercion() -> None:
+    payload = _native_request_payload(GenerateChartRequest, "SavedSales", None)
+    config = payload["config"]
+    assert isinstance(config, dict)
+    config["adhoc_filters"] = [
+        {
+            "expressionType": "SIMPLE",
+            "clause": "WHERE",
+            "subject": "status",
+            "operator": "==",
+            "comparator": "active",
+        }
+    ]
+    request = GenerateChartRequest.model_validate(payload)
+    assert isinstance(request.config, SunburstChartConfig)
+    assert request.config.filters is not None
+    assert request.config.filters[0].clause == "WHERE"
+    assert (
+        map_config_to_form_data(request.config)["adhoc_filters"][0]["clause"] == "WHERE"
+    )
+
+
+@pytest.mark.parametrize("clause", ["HAVING", "where", "GROUP", "", None, 7])
+def test_native_simple_filter_rejects_malformed_clause(clause: object) -> None:
+    payload = _native_request_payload(GenerateChartRequest, "SavedSales", None)
+    config = payload["config"]
+    assert isinstance(config, dict)
+    config["adhoc_filters"] = [
+        {
+            "expressionType": "SIMPLE",
+            "clause": clause,
+            "subject": "status",
+            "operator": "==",
+            "comparator": "active",
+        }
+    ]
+    with pytest.raises(ValidationError, match="clause"):
+        GenerateChartRequest.model_validate(payload)
+
+
+def test_saved_simple_having_is_rejected_by_both_sunburst_query_builders() -> None:
+    form_data = map_config_to_form_data(_config())
+    form_data["adhoc_filters"] = [
+        {
+            "expressionType": "SIMPLE",
+            "clause": "HAVING",
+            "subject": "Sales",
+            "operator": ">",
+            "comparator": 10,
+        }
+    ]
+    with pytest.raises(ValueError, match="SIMPLE HAVING filters are unsupported"):
+        build_query_context_from_form_data(
+            form_data,
+            {"id": 7, "type": "table"},
+            viz_type="sunburst_v2",
+        )
+    with (
+        patch(
+            "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+            return_value="base",
+        ),
+        pytest.raises(ValueError, match="SIMPLE HAVING filters are unsupported"),
+    ):
+        build_query_dicts_from_form_data(
+            form_data,
+            datasource_id=7,
+            datasource_type="table",
+        )
 
 
 @pytest.mark.parametrize(
@@ -1102,6 +1273,12 @@ def test_update_tool_preserves_omitted_state_and_honors_explicit_values() -> Non
                 "viz_type": "sunburst_v2",
                 "columns": ["old_region", "old_country"],
                 "metric": "old_metric",
+                "secondary_metric": "old_secondary_metric",
+                "all_columns": ["old_raw_column"],
+                "groupby": ["old_groupby"],
+                "metrics": ["old_plural_metric"],
+                "series": "old_series",
+                "x_axis": "old_x_axis",
                 "color_scheme": "savedScheme",
                 "show_labels": True,
                 "show_total": True,
@@ -1138,8 +1315,43 @@ def test_update_tool_preserves_omitted_state_and_honors_explicit_values() -> Non
         assert form_data["show_total"] is True
         assert form_data["color_scheme"] == "savedScheme"
         assert form_data["adhoc_filters"][0]["subject"] == "status"
-        assert form_data["plugin_only_ui_state"] == {"kept": True}
+        assert "plugin_only_ui_state" not in form_data
         assert "secondary_metric" not in form_data
+        assert {
+            "all_columns",
+            "groupby",
+            "metrics",
+            "series",
+            "x_axis",
+        }.isdisjoint(form_data)
+
+    query = build_query_context_from_form_data(
+        preview,
+        {"id": 7, "type": "table"},
+        viz_type="sunburst_v2",
+    )["queries"][0]
+    assert query["columns"] == ["region", "country"]
+    assert query["metrics"] == [preview["metric"]]
+
+    factory = MagicMock()
+    factory.create.return_value = object()
+    command = MagicMock()
+    command.run.return_value = {"queries": [{"data": []}]}
+    with (
+        patch(
+            "superset.common.query_context_factory.QueryContextFactory",
+            return_value=factory,
+        ),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand",
+            return_value=command,
+        ),
+    ):
+        result = _compile_chart(preview, 7)
+    assert result.success is True
+    compiled_query = factory.create.call_args.kwargs["queries"][0]
+    assert compiled_query["columns"] == ["region", "country"]
+    assert compiled_query["metrics"] == [preview["metric"]]
 
 
 def test_update_tool_explicit_empty_filters_clear_saved_filters() -> None:
@@ -1271,6 +1483,11 @@ def test_update_chart_preview_product_path_preserves_cached_sunburst_state() -> 
         "viz_type": "sunburst_v2",
         "columns": ["old_region", "old_country"],
         "metric": "count",
+        "all_columns": ["stale_raw"],
+        "groupby": ["stale_group"],
+        "metrics": ["stale_metric"],
+        "series": "stale_series",
+        "x_axis": "stale_x",
         "color_scheme": "savedScheme",
         "show_labels": True,
         "show_total": True,
@@ -1333,7 +1550,14 @@ def test_update_chart_preview_product_path_preserves_cached_sunburst_state() -> 
     assert captured_form_data["show_labels"] is False
     assert captured_form_data["show_total"] is True
     assert captured_form_data["color_scheme"] == "savedScheme"
-    assert captured_form_data["plugin_only_ui_state"] == {"kept": True}
+    assert "plugin_only_ui_state" not in captured_form_data
+    assert {
+        "all_columns",
+        "groupby",
+        "metrics",
+        "series",
+        "x_axis",
+    }.isdisjoint(captured_form_data)
 
 
 def test_unsaved_preview_validates_query_envelopes_and_all_rows() -> None:

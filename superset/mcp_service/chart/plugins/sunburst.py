@@ -76,7 +76,6 @@ class SunburstChartPlugin(BaseChartPlugin):
         refs = [*config.hierarchy, config.metric]
         if config.secondary_metric is not None:
             refs.append(config.secondary_metric)
-        refs.extend(ColumnRef(name=filter_.column) for filter_ in config.filters or [])
         return refs
 
     def to_form_data(

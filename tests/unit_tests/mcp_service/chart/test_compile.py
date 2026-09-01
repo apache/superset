@@ -381,8 +381,7 @@ class TestAdhocFiltersFromFormData:
     def test_where_filter_with_metric_name_rejected(self):
         """A saved-metric name used as a WHERE filter subject must be rejected.
 
-        WHERE filters need a physical column; metric names are only valid in
-        HAVING clauses where Superset can resolve them.
+        WHERE filters need a physical column; a saved metric cannot satisfy it.
         """
         ds = _orm_dataset()
         config = TableChartConfig(
@@ -406,12 +405,8 @@ class TestAdhocFiltersFromFormData:
         assert result.error_obj is not None
         assert "sum_boys" in (result.error_obj.message or "")
 
-    def test_having_filter_with_metric_name_passes(self):
-        """A saved-metric name used in a HAVING filter must be accepted.
-
-        HAVING filters are aggregate-level conditions; Superset resolves metric
-        names there so they are valid references.
-        """
+    def test_simple_having_filter_is_rejected_without_where_coercion(self):
+        """SIMPLE HAVING is unsupported and must never become a WHERE filter."""
         ds = _orm_dataset()
         config = TableChartConfig(
             chart_type="table", columns=[ColumnRef(name="gender")]
@@ -428,9 +423,31 @@ class TestAdhocFiltersFromFormData:
             ]
         }
         result = validate_and_compile(config, form_data, ds, run_compile_check=False)
-        assert result.success, (
-            "A saved-metric name in a HAVING filter should pass Tier-1 validation"
+        assert not result.success
+        assert result.error_obj is not None
+        assert result.error_obj.error_code == "UNSUPPORTED_FILTER_CLAUSE"
+
+    @pytest.mark.parametrize("clause", [None, 7, "where", "", "GROUP"])
+    def test_malformed_simple_filter_clause_is_rejected(self, clause):
+        ds = _orm_dataset()
+        config = TableChartConfig(
+            chart_type="table", columns=[ColumnRef(name="gender")]
         )
+        form_data = {
+            "adhoc_filters": [
+                {
+                    "expressionType": "SIMPLE",
+                    "clause": clause,
+                    "subject": "gender",
+                    "operator": "==",
+                    "comparator": "boy",
+                }
+            ]
+        }
+        result = validate_and_compile(config, form_data, ds, run_compile_check=False)
+        assert not result.success
+        assert result.error_obj is not None
+        assert result.error_obj.error_code == "INVALID_FILTER_CLAUSE"
 
 
 class TestValidateAndCompileTier2:
