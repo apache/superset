@@ -47,11 +47,13 @@ from superset.utils.report_execution import (
 from superset.utils.retries import retry_call
 from superset.utils.screenshot_utils import (
     ANNOTATE_PRINT_COLUMNS_JS,
+    BAND_TABLE_COLUMNS_JS,
     CHART_CONTAINER_READY_JS,
     CHART_CONTAINER_STATE_JS,
     CHART_HOLDERS_READY_JS,
     EXPAND_TABLE_CONTAINERS_JS,
     FIND_CHART_HOLDER_STATES_JS,
+    MEASURE_TABLE_COLUMNS_JS,
     PRINT_ALL_CHART_HOLDERS_READY_JS,
     REPORT_CHART_HOLDERS_READY_JS,
     resolve_screenshot_task_budget_seconds,
@@ -1295,7 +1297,7 @@ class WebDriverPlaywright(WebDriverProxy):
                 content=footer_content,
             )
 
-        def _render_page(render_url: str) -> bytes:
+        def _render_page(render_url: str) -> bytes:  # noqa: C901
             """Navigate, wait for charts, apply JS patches, return PDF bytes."""
             page.goto(
                 render_url,
@@ -1358,10 +1360,48 @@ class WebDriverPlaywright(WebDriverProxy):
                     log_context or "",
                 )
 
-            # After expanding table height/overflow constraints, detect tables
-            # whose natural rendered width exceeds the viewport width.
-            # In 'auto' orientation mode, mark wide-table elements with
-            # data-print-landscape="true" so the CSS @page named page rule
+            # Column banding: measure actual rendered column widths then split
+            # tables that exceed the usable page width into per-band clones, each
+            # fitting within one page, with the leftmost key column(s) repeated
+            # in every band.  Must run AFTER EXPAND_TABLE_CONTAINERS_JS (final
+            # widths) and BEFORE SCALE_WIDE_TABLES_JS (so already-banded tables
+            # are not unnecessarily scaled — each band ≤ usableWidth).
+            _landscape_factor = 1.414 if print_orientation == "landscape" else 1.0
+            _usable_width = int((pdf_viewport_width - 24) * _landscape_factor)
+            col_measurements = page.evaluate(MEASURE_TABLE_COLUMNS_JS)
+            band_opts = {
+                "usableWidth": _usable_width,
+                "keyColCount": 1,
+                "measurements": col_measurements,
+            }
+            band_result = page.evaluate(BAND_TABLE_COLUMNS_JS, band_opts)
+            if band_result.get("banded", 0) or any(
+                band_result.get(k, 0)
+                for k in (
+                    "situation_b_wrap",
+                    "situation_b_rotate",
+                    "situation_b_truncate",
+                    "situation_b_pullout",
+                )
+            ):
+                logger.info(
+                    "browser_print_pdf_col_banding url=%s banded=%d "
+                    "sit_b_wrap=%d sit_b_rotate=%d sit_b_truncate=%d "
+                    "sit_b_pullout=%d log_context=%s",
+                    render_url,
+                    band_result.get("banded", 0),
+                    band_result.get("situation_b_wrap", 0),
+                    band_result.get("situation_b_rotate", 0),
+                    band_result.get("situation_b_truncate", 0),
+                    band_result.get("situation_b_pullout", 0),
+                    log_context or "",
+                )
+
+            # After column banding, detect tables whose natural rendered width
+            # still exceeds the viewport width (tables that needed only modest
+            # column overflow, where banding produced a single band and was
+            # skipped).  In 'auto' orientation mode, mark wide-table elements
+            # with data-print-landscape="true" so the CSS @page named page rule
             # rotates that page to landscape.  For portrait and landscape
             # modes (whole-document rotation), apply a CSS scale transform
             # so all columns fit without horizontal clipping.

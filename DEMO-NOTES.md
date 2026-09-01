@@ -171,3 +171,208 @@ BROWSER_PRINT_PDF_ORIENTATION: str | None = None  # None/'portrait'/'landscape'/
 - **wb_health_population (328 cols)** would still require shrink-to-fit in both portrait and landscape — at that extreme column count no single-page technique produces readable output. Column banding remains the correct long-term solution for that use case.
 - **ECharts/canvas** SVG labels are not affected by orientation changes — they draw at their authored pixel sizes.
 
+
+---
+
+## Phase E — Column Banding for Many-Column Tables
+
+### What was investigated in the codebase before deciding
+
+**1. Existing row-pagination plumbing — is it reusable for column axis?**
+
+`SHOW_ALL_TABLE_ROWS_JS` triggers react-table's `onChange(0)` on the antd
+page-size selector, which flips `pageSize=0` on react-table's `usePagination`
+hook — forcing all rows into the current render. This is purely a row-axis
+mechanism. There is no equivalent column-axis hook in Superset's table plugin:
+react-table v7's `useTable` receives the full column array from props at
+construction time; no pagination/windowing exists for columns. Column
+subsetting would require cloning the `<table>` DOM and rewriting which
+`<col>`/`<th>`/`<td>` nodes are visible — a fundamentally different operation
+from flipping one React state value. There is no existing plumbing to reuse.
+
+**2. How Superset's table plugin sets column widths.**
+
+`TableChart.tsx` applies a single global `columnWidth` config value as an
+inline `style={{ width: columnWidth }}` on every `<col>` element in the
+`<colgroup>` block. The `useSticky` hook (`DataTable/hooks/useSticky.tsx`)
+measures actual rendered column widths by reading
+`th.getBoundingClientRect().width` (with fallback to `th.clientWidth`) on
+the last header row after the component mounts. These measurements are stored
+in `sticky.columnWidths: number[]`. They are correct at the time the print
+pipeline runs (all chart holders have already reached terminal state before any
+JS post-processing is called). This is the right measurement source for
+column banding — real rendered widths, not authored config values.
+
+**3. Whether CSS `transform: scale()` (Phase D) already covers the cases that need banding.**
+
+At the 1600px viewport and A4 scale factor (≈0.496×):
+- Portrait usable width: ~(1600 − 24) × 0.496 ≈ 779 pt ≈ 10.8 inches
+- Landscape usable width: ~779 × 1.414 ≈ 1102 pt ≈ 15.3 inches
+- Flights table (44 cols): confirmed fits in landscape without scaling.
+- `wb_health_population` (328 cols): does not fit even landscape — shrink
+  factor would be ~1/15 at the CSS pixel level (~0.033 pt per column), making
+  every cell unreadable. This is the case banding is designed for.
+
+Phase D's shrink-to-fit is the correct fallback for modest column overflow
+(~1–2× page width). Column banding is the correct approach for severe overflow
+(>3× page width) where no single page can present the data readably.
+
+**4. Situation B edge cases (one column too wide for even a full page).**
+
+Verified in live DOM: the Superset table plugin's scroll container has
+`overflow: hidden` and `box-sizing: border-box`. After `EXPAND_TABLE_CONTAINERS_JS`
+clears the container's inline `width`, each `<th>` and `<td>` expands to its
+natural content width. Long free-text fields (e.g. "Notes") do set `white-space`
+on `<td>` through the table plugin's cell renderer styles — the plugin sets
+`white-space: nowrap` on the whole table by default. So the four-step fallback
+from the brief applies directly.
+
+**5. The `th.getBoundingClientRect().width` call from `useSticky` vs. DOM availability
+at JS post-processing time.**
+
+By the time `EXPAND_TABLE_CONTAINERS_JS` runs, all chart holders are in terminal
+state, meaning the table component has fully mounted and `useSticky`'s
+`useLayoutEffect` has already fired. The `<th>` elements and their computed widths
+are available in the DOM. `getBoundingClientRect()` returns correct widths at
+this point.
+
+### Decision record
+
+**Decision: implement column banding in JS, applied after `EXPAND_TABLE_CONTAINERS_JS`
+and before `SCALE_WIDE_TABLES_JS`.**
+
+Rationale:
+- Banding must happen before `SCALE_WIDE_TABLES_JS` because `SCALE_WIDE_TABLES_JS`
+  measures `tableEl.scrollWidth` to decide whether to scale. If banding has already
+  split the table DOM into multiple per-band blocks, each block's scrollWidth will
+  be ≤ page width and `SCALE_WIDE_TABLES_JS` will correctly skip all of them
+  (fall-through: no tables too wide → no scaling applied).
+- No server round-trip, no new API calls, no query-context fetch. The DOM already
+  contains all columns and all rows after Phase D's render sequence. Banding
+  re-slices the already-rendered DOM.
+- No reuse of row-pagination plumbing is possible (confirmed above). The
+  implementation is new but self-contained in two JS constants.
+
+**Column-banding algorithm chosen: greedy pack + DOM clone.**
+
+1. Measure every column's actual rendered width via `th.getBoundingClientRect().width`
+   on the header row. This matches exactly what `useSticky` uses.
+2. Choose a minimum acceptable font size for printed output. The task brief
+   states "~8–10pt" as the readable floor. At our scale factor (×0.496), 8pt on
+   paper ≈ 8/0.496 ≈ 16px CSS. We are not changing font size during banding
+   (the font-size tier is already applied separately). The measurement step just
+   reads current rendered widths, which already reflect whatever font tier is
+   active.
+3. Determine usable page width in CSS pixels: `(viewport − 24px)` in portrait,
+   or `(viewport − 24px) × 1.414` in landscape.
+4. Select a "key column" set — the leftmost N columns that serve as row identity
+   (default: 1 column, or 2 if the first column is a numeric index and the second
+   is a label). Key columns repeat in every band.
+5. Greedy pack non-key columns into bands: start a new band when adding the next
+   column would exceed `usableWidth − keyColsTotalWidth`.
+6. If the table produces only one band (all columns fit), leave the DOM unmodified.
+7. For each band: clone the `<table>` DOM subtree, keep only key columns + band
+   columns (by `<col>`, `<th>`, and all `<td>` in each row at those indices),
+   insert a synthetic `<div class="print-col-band">` immediately after the
+   original `<table>`'s scroll container, add a `page-break-before: always`
+   CSS rule on band 2+. Remove the original `<table>` after all band nodes
+   are inserted.
+
+**Situation B fallback chain (per-column, applied during the measure step).**
+
+For any column where `colWidth > usableWidth − keyColsTotalWidth` (i.e. it
+would not fit even as the sole non-key column on a page):
+
+1. **Text wrap first**: set `white-space: normal; overflow-wrap: break-word` on
+   all `<td>` cells in that column. Re-measure: most long-text fields shrink
+   significantly because they were only wide due to `white-space: nowrap`.
+   If the column now fits (`colWidth ≤ usableWidth − keyColsTotalWidth`), stop.
+2. **Header rotation**: if it is specifically the `<th>` header cell that is
+   wide and the data cells are short (column header text length > data cell
+   average text length × 2), rotate the header 90° with CSS
+   `writing-mode: vertical-lr; transform: rotate(180deg)` and cap the header
+   height at 80px. Re-measure the data column width. If it now fits, stop.
+3. **Truncate with visible marker**: set `max-width: <usableWidth>px;
+   overflow: hidden; text-overflow: ellipsis; white-space: nowrap` on all cells
+   in that column, and append a `<div class="print-truncation-note">` below
+   the table noting that some fields were abbreviated. This loses information
+   and is only reached if steps 1–2 did not resolve the width.
+4. **Pull out as a below-row section**: if a column is still wider than
+   `usableWidth / 2` after steps 1–3, extract it from the grid entirely and
+   render it as a labeled block below each table row (e.g. "Notes: [full cell
+   text]"). This is implemented as a separate `<dl>` block inserted after
+   the table, one entry per row, with the column label as `<dt>` and the cell
+   content as `<dd>`. The column is removed from the main `<table>`.
+
+**Open questions that cannot be resolved from the codebase alone:**
+
+Q1. **Key-column count**: The algorithm defaults to 1 key column (leftmost).
+    Some tables have a numeric row index as column 0 and a human-readable
+    label as column 1 — in those cases 2 key columns would be more useful.
+    There is no metadata in the rendered DOM to distinguish "this is an ID
+    column" from "this is a data column". The current implementation repeats
+    exactly 1 column (index 0) in every band. Should this be configurable
+    per-dashboard / per-table via a URL param or config key?
+
+Q2. **Minimum acceptable font size**: The brief states 8–10pt as the readable
+    floor. The current implementation does not change font sizes during banding.
+    If operators use `BROWSER_PRINT_PDF_FONT_SIZE='large'` (30px table cells
+    → ~15pt on paper), bands will be narrower (fewer columns per band = more
+    pages). This is the correct behaviour — font size and column count trade
+    off against each other — but it may surprise operators who set large font
+    expecting "bigger" not "more pages". Worth documenting in UPDATING.md.
+
+Q3. **Truncation indicator wording**: Step 3 appends a note reading
+    "Some fields in column '<name>' were abbreviated due to page width
+    constraints." Is this the right wording for the UI? Should it be
+    localised / configurable?
+
+Q4. **Interaction with 2col layout**: When `?print_layout=2col` is active and
+    a table chart is in a two-column row, the table is forced full-width by
+    `ANNOTATE_PRINT_COLUMNS_JS` (tables always skip 2col). Column banding is
+    then applied to the full-width table. This is the correct order (banding
+    after 2col annotation). Verified by reading the call order in
+    `_render_page()` in `webdriver.py` — `EXPAND_TABLE_CONTAINERS_JS` runs
+    before `ANNOTATE_PRINT_COLUMNS_JS`, and banding will be inserted after
+    `EXPAND_TABLE_CONTAINERS_JS` and before `ANNOTATE_PRINT_COLUMNS_JS`.
+
+### What was implemented
+
+Two new JS constants in `superset/utils/screenshot_utils.py`:
+
+**`MEASURE_TABLE_COLUMNS_JS`** — measures each table's actual rendered column
+widths (via `th.getBoundingClientRect().width`) and returns a JSON-serialisable
+array of per-table column width arrays. Called after chart holders are ready.
+
+**`BAND_TABLE_COLUMNS_JS`** — accepts the measurement result and an options
+object `{ usableWidth, keyColCount, orientation }`. Applies the greedy
+column-banding algorithm and Situation B fallbacks to each table in the DOM
+whose total column width exceeds `usableWidth`. Tables that fit are untouched.
+Returns `{ banded, situation_b_wrap, situation_b_rotate, situation_b_truncate }`.
+
+Wired into `_render_page()` in `superset/utils/webdriver.py`:
+- Called after `EXPAND_TABLE_CONTAINERS_JS` (so containers are at their final
+  sizes) and before `SCALE_WIDE_TABLES_JS` (so `SCALE_WIDE_TABLES_JS` only sees
+  already-banded tables, each fitting within the page width, and correctly
+  skips them).
+- `usableWidth` is computed from `pdf_viewport_width` and `print_orientation`.
+
+Controlled by the existing `DASHBOARD_REPORTS_BROWSER_PRINT_PDF` feature flag
+(no new flag). The banding logic activates automatically whenever a table's
+rendered columns exceed the usable page width — it is not a separate opt-in.
+
+### Limitations
+
+- **Key-column count is fixed at 1** (leftmost column). See Q1 above.
+- **Column banding does not interact with server-side paginated tables**: those
+  tables only have the current page's rows in the DOM. Banding still works (it
+  splits whatever columns are present across multiple page-width bands) but the
+  row content is limited to the fetched page.
+- **The Situation B step 4 (pull-out section)** is implemented as a structural
+  DOM mutation that produces a `<dl>` block after the table. This is readable
+  but not styled to match the Superset table UI — further polish is a follow-on.
+- **ECharts/canvas columns** (e.g. a sparkline column in a table) are measured
+  by their container width, not by the SVG/canvas content. The banding algorithm
+  treats them as regular columns and will include them in bands. If the canvas
+  element is narrower than the container, it will re-render at the band width
+  (which is correct).
