@@ -1166,3 +1166,29 @@ def test_readiness_predicates_gate_on_unpainted_echarts_hosts() -> None:
     assert ECHARTS_UNPAINTED_HOST_SELECTOR in REPORT_CHART_HOLDERS_READY_JS
     assert ECHARTS_UNPAINTED_HOST_SELECTOR in CHART_CONTAINER_READY_JS
     assert "mounted_unpainted" in FIND_CHART_HOLDER_STATES_JS
+
+
+def test_readiness_predicates_gate_on_unpainted_ag_grid_hosts() -> None:
+    """Report readiness follows the AG Grid first-data-rendered contract used
+    by the frontend image export path, rather than accepting its mounted shell."""
+    from superset.utils.screenshot_utils import (
+        AG_GRID_HOST_SELECTOR,
+        CHART_CONTAINER_READY_JS,
+        CHART_CONTAINER_STATE_JS,
+        CHART_HOLDERS_READY_JS,
+        FIND_CHART_HOLDER_STATES_JS,
+        REPORT_ALL_CHART_HOLDERS_READY_JS,
+        REPORT_CHART_HOLDERS_READY_JS,
+    )
+
+    assert AG_GRID_HOST_SELECTOR == '[data-themed-ag-grid="true"]'
+    for predicate in (
+        CHART_HOLDERS_READY_JS,
+        REPORT_CHART_HOLDERS_READY_JS,
+        REPORT_ALL_CHART_HOLDERS_READY_JS,
+        CHART_CONTAINER_READY_JS,
+    ):
+        assert AG_GRID_HOST_SELECTOR in predicate
+        assert "_agGridFirstDataRendered !== true" in predicate
+    assert "ag_grid_unpainted" in FIND_CHART_HOLDER_STATES_JS
+    assert "ag_grid_unpainted" in CHART_CONTAINER_STATE_JS

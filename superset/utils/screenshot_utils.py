@@ -155,6 +155,7 @@ CHART_ID_CLASS_PATTERN = r"\bdashboard-chart-id-(\d+)\b"
 # ECharts hosts are gated; DOM/SVG vizzes paint on commit and non-ECharts canvas
 # vizzes (deck.gl/mapbox/etc.) have no ``.echarts-host`` so they are unaffected.
 ECHARTS_UNPAINTED_HOST_SELECTOR = r".echarts-host:not(.echarts-render-finished)"
+AG_GRID_HOST_SELECTOR = r'[data-themed-ag-grid="true"]'
 CHART_ERROR_OR_EMPTY_SELECTOR = (
     f"{ALERT_SELECTOR}, {EMPTY_SELECTOR}, {MISSING_CHART_SELECTOR}"
 )
@@ -212,11 +213,16 @@ def _unready_chart_holders_js_body(*, viewport_only: bool) -> str:
         const hasUnpaintedEchart = holder.querySelector(
             '{ECHARTS_UNPAINTED_HOST_SELECTOR}'
         ) !== null;
+        const hasUnpaintedAgGrid = Array.from(holder.querySelectorAll(
+            '{AG_GRID_HOST_SELECTOR}'
+        )).some(grid => grid._agGridFirstDataRendered !== true);
         // Ready = a settled error/empty/missing state, or a slice container
-        // whose ECharts canvas has finished painting. An unpainted ECharts host
-        // keeps the holder unready so a blank chart is never captured.
+        // whose renderer has painted. ECharts and AG Grid expose explicit
+        // completion signals; keep either host unready until its signal fires.
         const isReady = !stillLoading && (
-            hasErrorOrEmpty || (hasSliceContainer && !hasUnpaintedEchart)
+            hasErrorOrEmpty || (
+                hasSliceContainer && !hasUnpaintedEchart && !hasUnpaintedAgGrid
+            )
         );
         if (!isReady) {{
             const chartIdMatch = holder.className.match(/{CHART_ID_CLASS_PATTERN}/);
@@ -228,6 +234,8 @@ def _unready_chart_holders_js_body(*, viewport_only: bool) -> str:
                 state = 'waiting_on_database';
             }} else if (hasSliceContainer && hasUnpaintedEchart) {{
                 state = 'mounted_unpainted';
+            }} else if (hasSliceContainer && hasUnpaintedAgGrid) {{
+                state = 'ag_grid_unpainted';
             }} else {{
                 state = 'nothing_mounted';
             }}
@@ -262,6 +270,9 @@ FIND_CHART_HOLDER_STATES_JS = f"""
             '{SLICE_CONTAINER_SELECTOR}'
         ) !== null;
         const stillLoading = holder.querySelector('{LOADING_SELECTOR}') !== null;
+        const hasUnpaintedAgGrid = Array.from(holder.querySelectorAll(
+            '{AG_GRID_HOST_SELECTOR}'
+        )).some(grid => grid._agGridFirstDataRendered !== true);
         if (stillLoading && hasSliceContainer) {{
             return {{ chartId, state: 'spinner_mounted' }};
         }}
@@ -280,6 +291,9 @@ FIND_CHART_HOLDER_STATES_JS = f"""
             '{ECHARTS_UNPAINTED_HOST_SELECTOR}'
         ) !== null) {{
             return {{ chartId, state: 'mounted_unpainted' }};
+        }}
+        if (hasSliceContainer && hasUnpaintedAgGrid) {{
+            return {{ chartId, state: 'ag_grid_unpainted' }};
         }}
         if (hasSliceContainer) {{
             return {{ chartId, state: 'rendered' }};
@@ -323,7 +337,10 @@ CHART_CONTAINER_READY_JS = f"""
     return chart !== null
         && chart.querySelector('{LOADING_SELECTOR}') === null
         && chart.querySelector('{TERMINAL_MARKER_SELECTOR}') !== null
-        && chart.querySelector('{ECHARTS_UNPAINTED_HOST_SELECTOR}') === null;
+        && chart.querySelector('{ECHARTS_UNPAINTED_HOST_SELECTOR}') === null
+        && !Array.from(chart.querySelectorAll('{AG_GRID_HOST_SELECTOR}')).some(
+            grid => grid._agGridFirstDataRendered !== true
+        );
 }}
 """
 
@@ -337,6 +354,11 @@ CHART_CONTAINER_STATE_JS = f"""
     if (chart.querySelector('{LOADING_SELECTOR}') !== null) {{ return 'loading'; }}
     if (chart.querySelector('{ECHARTS_UNPAINTED_HOST_SELECTOR}') !== null) {{
         return 'mounted_unpainted';
+    }}
+    if (Array.from(chart.querySelectorAll('{AG_GRID_HOST_SELECTOR}')).some(
+        grid => grid._agGridFirstDataRendered !== true
+    )) {{
+        return 'ag_grid_unpainted';
     }}
     if (chart.querySelector('{TERMINAL_MARKER_SELECTOR}') !== null) {{
         return 'terminal';
