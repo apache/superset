@@ -2751,33 +2751,55 @@ describe('weekly x-axis tick alignment', () => {
     expect(xAxis.splitLine).toBeUndefined();
   });
 
-  test('caps axisTick.customValues but keeps the full bucket set for axisLabel', () => {
-    // axisLabel.customValues stays uncapped so hideOverlap keeps thinning it
-    // dynamically (including after a dataZoom); a capped set would freeze
-    // the visible labels to the pre-zoom subset. axisTick has no such
-    // thinning, so it's downsampled to avoid combing a long weekly range.
+  const manyMondaysChartProps = (overrides: Record<string, unknown> = {}) => {
     const manyMondays = Array.from(
       { length: 261 },
       (_, i) => Date.UTC(2021, 0, 4) + i * WEEK_MS,
     );
-    const chartProps = createTestChartProps({
-      formData: {
-        granularity_sqla: 'ds',
-        timeGrainSqla: TimeGranularity.WEEK_STARTING_MONDAY,
-        xAxisTimeFormat: '%m-%d',
-      },
-      queriesData: [
-        createTestQueryData(
-          manyMondays.map((__timestamp, i) => ({
-            __timestamp,
-            sales: 100 + i,
-          })),
-          {
-            colnames: ['__timestamp', 'sales'],
-            coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
-          },
-        ),
-      ],
+    return {
+      manyMondays,
+      chartProps: createTestChartProps({
+        formData: {
+          granularity_sqla: 'ds',
+          timeGrainSqla: TimeGranularity.WEEK_STARTING_MONDAY,
+          xAxisTimeFormat: '%m-%d',
+          ...overrides,
+        },
+        queriesData: [
+          createTestQueryData(
+            manyMondays.map((__timestamp, i) => ({
+              __timestamp,
+              sales: 100 + i,
+            })),
+            {
+              colnames: ['__timestamp', 'sales'],
+              coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+            },
+          ),
+        ],
+      }),
+    };
+  };
+
+  test('caps both axisTick and axisLabel customValues on a non-zoomable axis', () => {
+    // customValues never recomputes, so on a non-zoomable axis (no dataZoom
+    // to reach hidden buckets) axisLabel is capped to the same subset as
+    // axisTick: a label surviving hideOverlap thinning then always lands on
+    // a real tick and gridline rather than a capped-away bucket.
+    const { manyMondays, chartProps } = manyMondaysChartProps();
+    const { xAxis } = transformProps(chartProps).echartOptions as any;
+
+    expect(xAxis.axisTick.customValues.length).toBeLessThan(manyMondays.length);
+    expect(xAxis.axisLabel.customValues).toEqual(xAxis.axisTick.customValues);
+  });
+
+  test('keeps the full bucket set for axisLabel on a zoomable axis', () => {
+    // A capped, uncapped label set would freeze the visible labels to the
+    // pre-zoom subset since customValues never recomputes on dataZoom, so a
+    // zoomable axis keeps the full set for axisLabel and lets hideOverlap
+    // thin it dynamically; only axisTick (no such thinning) stays capped.
+    const { manyMondays, chartProps } = manyMondaysChartProps({
+      zoomable: true,
     });
     const { xAxis } = transformProps(chartProps).echartOptions as any;
 

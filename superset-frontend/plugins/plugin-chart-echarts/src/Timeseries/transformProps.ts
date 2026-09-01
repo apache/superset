@@ -1265,6 +1265,7 @@ export default function transformProps(
     xAxisLabelInterval,
     deduplicatedFormatter,
     isHorizontal,
+    zoomable,
   );
 
   let xAxis: any = {

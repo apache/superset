@@ -1089,10 +1089,14 @@ export function capTickMarks(
 /**
  * axisLabel/axisTick fragment for a temporal x-axis, shared by Timeseries and
  * MixedTimeseries. When temporalTickValues pins the axis to weekly buckets,
- * both axisLabel.customValues (what hideOverlap thins from) and
- * axisTick.customValues (what splitLine/gridlines follow) use the same capped
- * set, so a label that survives hideOverlap thinning always lands on a real
- * tick and gridline rather than a capped-away bucket.
+ * axisTick.customValues (what splitLine/gridlines follow) is downsampled to
+ * avoid combing a long weekly range. axisLabel.customValues (what hideOverlap
+ * thins from) uses the same capped set on a zoomable axis — zooming lets the
+ * user reach any bucket, but customValues never recomputes on dataZoom, so a
+ * capped set there would freeze the visible labels to the pre-zoom subset.
+ * On a non-zoomable axis the full set is used instead, so a label surviving
+ * hideOverlap thinning always lands on a real tick and gridline rather than a
+ * capped-away bucket.
  */
 export function getTemporalAxisTickConfig(
   temporalTickValues: number[] | undefined,
@@ -1102,6 +1106,7 @@ export function getTemporalAxisTickConfig(
   xAxisLabelInterval: number | string | undefined,
   formatter: unknown,
   isHorizontal: boolean = false,
+  zoomable: boolean = false,
 ): {
   axisLabel: Record<string, unknown>;
   axisTick?: { customValues: number[] };
@@ -1109,6 +1114,7 @@ export function getTemporalAxisTickConfig(
   const cappedTickValues = temporalTickValues
     ? capTickMarks(temporalTickValues)
     : undefined;
+  const labelCustomValues = zoomable ? temporalTickValues : cappedTickValues;
   return {
     axisLabel: {
       // Pinned ticks label every bucket, which does crowd, so thinning
@@ -1138,10 +1144,7 @@ export function getTemporalAxisTickConfig(
           alignMaxLabel: 'right',
           alignMinLabel: 'left',
         }),
-      // Labels keep the full (uncapped) bucket set: hideOverlap thins them
-      // dynamically at render time, including after a dataZoom, whereas a
-      // capped set would freeze the visible labels to the pre-zoom subset.
-      ...(temporalTickValues && { customValues: temporalTickValues }),
+      ...(labelCustomValues && { customValues: labelCustomValues }),
     },
     ...(cappedTickValues && { axisTick: { customValues: cappedTickValues } }),
   };

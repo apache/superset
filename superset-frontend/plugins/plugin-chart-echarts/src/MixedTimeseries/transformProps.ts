@@ -782,6 +782,8 @@ export default function transformProps(
     xAxisLabelRotation,
     xAxisLabelInterval,
     deduplicatedFormatter,
+    false,
+    zoomable,
   );
 
   const echartOptions: EChartsCoreOption = {
