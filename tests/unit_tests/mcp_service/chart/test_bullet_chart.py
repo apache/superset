@@ -18,6 +18,7 @@
 """Product-path coverage for typed ECharts Bullet MCP support."""
 
 import math
+from enum import Enum
 from types import SimpleNamespace
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -76,6 +77,27 @@ from superset.mcp_service.chart.tool.update_chart import (
 from superset.mcp_service.chart.tool.update_chart_preview import update_chart_preview
 from superset.mcp_service.chart.validation.dataset_validator import DatasetValidator
 from superset.mcp_service.common.error_schemas import DatasetContext
+
+
+def _reject_scalar_conversion(*_args: object, **_kwargs: object) -> Any:
+    raise AssertionError("hostile query scalar method must not run")
+
+
+class _PathHostileStr(str):
+    __getitem__ = _reject_scalar_conversion
+    __str__ = _reject_scalar_conversion
+
+
+class _PathHostileEnum(str, Enum):
+    FAILED = "warehouse unavailable"
+
+    @property
+    def value(self) -> str:
+        """Reject the public descriptor while preserving Enum's stored value."""
+        return _reject_scalar_conversion()
+
+    __getitem__ = _reject_scalar_conversion
+    __str__ = _reject_scalar_conversion
 
 
 def _simple_metric(name: str = "revenue") -> dict[str, str]:
@@ -1327,6 +1349,31 @@ def _saved_bullet_preview_with_result(result: object, format_: str) -> ChartErro
         preview = strategy.generate()
     assert isinstance(preview, ChartError)
     return preview
+
+
+@pytest.mark.parametrize(
+    ("payload", "message"),
+    [
+        (_PathHostileStr("x" * 1_000_000), "<_PathHostileStr object>"),
+        (_PathHostileEnum.FAILED, "warehouse unavailable"),
+    ],
+)
+def test_bullet_compile_and_preview_paths_safely_render_hostile_scalars(
+    payload: object, message: str
+) -> None:
+    envelope = {"error": payload}
+    compiled = _compile_bullet_with_result(envelope)
+    assert compiled.success is False
+    assert message in (compiled.error or "")
+    assert len((compiled.error or "").encode("utf-8")) <= 2100
+
+    unsaved = _unsaved_bullet_preview_with_result(envelope)
+    saved = _saved_bullet_preview_with_result(envelope, "vega_lite")
+    assert unsaved.error_type == saved.error_type == "QueryError"
+    assert message in unsaved.error
+    assert message in saved.error
+    assert len(unsaved.error.encode("utf-8")) <= 2100
+    assert len(saved.error.encode("utf-8")) <= 2100
 
 
 @pytest.mark.parametrize("format_", ["ascii", "vega_lite"])
