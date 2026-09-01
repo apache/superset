@@ -40,9 +40,11 @@ from superset.mcp_service import guest_scope
 from superset.mcp_service.chart.chart_helpers import (
     build_query_context_from_form_data,
     build_query_dicts_from_form_data,
+    canonicalize_operation_form_data,
     find_chart_by_identifier,
     get_cached_form_data,
     merge_extra_form_data_filters_into_query,
+    resolve_form_data_datasource,
 )
 from superset.mcp_service.chart.chart_utils import validate_chart_dataset
 from superset.mcp_service.chart.schemas import (
@@ -579,9 +581,29 @@ async def get_chart_data(  # noqa: C901
             # The query_context contains all the information needed to reproduce
             # the chart's data exactly as shown in the visualization
             query_context_json = None
+            query_datasource_id = chart.datasource_id
+            query_datasource_type = chart.datasource_type
 
             # If using cached form_data, we need to build query_context from it
             if using_unsaved_state and cached_form_data_dict is not None:
+                cached_datasource_id, cached_datasource_type = (
+                    resolve_form_data_datasource(cached_form_data_dict)
+                )
+                if not isinstance(cached_datasource_id, (int, str)):
+                    return ChartError(
+                        error=(
+                            "Cached form_data does not contain datasource information."
+                        ),
+                        error_type="InvalidFormData",
+                    )
+                cached_form_data_dict = canonicalize_operation_form_data(
+                    cached_form_data_dict,
+                    datasource_id=cached_datasource_id,
+                    datasource_type=cached_datasource_type,
+                    chart_id=chart.id,
+                )
+                query_datasource_id = cached_datasource_id
+                query_datasource_type = cached_datasource_type
                 # row_limit may arrive as a str. The trailing fallback keeps a
                 # falsy 0 resolving to ROW_LIMIT.
                 row_limit = _coerce_row_limit(
@@ -606,6 +628,13 @@ async def get_chart_data(  # noqa: C901
             elif chart.query_context:
                 try:
                     query_context_json = utils_json.loads(chart.query_context)
+                    query_datasource = query_context_json.get("datasource", {})
+                    query_datasource_id = query_datasource.get(
+                        "id", chart.datasource_id
+                    )
+                    query_datasource_type = query_datasource.get(
+                        "type", chart.datasource_type
+                    )
                     await ctx.debug(
                         "Using chart's saved query_context for data retrieval"
                     )
@@ -624,6 +653,12 @@ async def get_chart_data(  # noqa: C901
                 )
                 # Try to construct from form_data as a fallback
                 form_data = utils_json.loads(chart.params) if chart.params else {}
+                form_data = canonicalize_operation_form_data(
+                    form_data,
+                    datasource_id=chart.datasource_id,
+                    datasource_type=chart.datasource_type,
+                    chart_id=chart.id,
+                )
                 from superset.common.query_context_factory import QueryContextFactory
 
                 factory = QueryContextFactory()
@@ -740,8 +775,8 @@ async def get_chart_data(  # noqa: C901
 
             set_query_context_form_data(
                 query_context,
-                chart.datasource_id,
-                chart.datasource_type,
+                query_datasource_id,
+                query_datasource_type,
             )
 
             # Execute the query
@@ -1068,13 +1103,7 @@ async def _query_from_form_data(  # noqa: C901
     """
     from superset.commands.chart.data.get_data_command import ChartDataCommand
 
-    datasource_id = form_data.get("datasource_id")
-
-    # Handle combined datasource field (e.g., "1__table")
-    if not datasource_id and form_data.get("datasource"):
-        parts = str(form_data["datasource"]).split("__")
-        if len(parts) == 2:
-            datasource_id = parts[0]
+    datasource_id, datasource_type = resolve_form_data_datasource(form_data)
 
     if not datasource_id:
         logger.warning(
@@ -1086,6 +1115,12 @@ async def _query_from_form_data(  # noqa: C901
             error="Cached form_data does not contain datasource information.",
             error_type="InvalidFormData",
         )
+
+    form_data = canonicalize_operation_form_data(
+        form_data,
+        datasource_id=datasource_id,
+        datasource_type=datasource_type,
+    )
 
     # row_limit may arrive as a str. The trailing fallback keeps a falsy 0
     # resolving to ROW_LIMIT.

@@ -235,13 +235,13 @@ def generate_explore_link(
                 f"{base_url}/explore/?datasource_type=table&datasource_id={dataset_id}"
             )
 
-        # Bind native operation-owned fields to this unsaved Explore state.
-        # The local import avoids the chart_utils -> schemas -> sunburst cycle.
-        from superset.mcp_service.chart.sunburst import (
-            canonicalize_sunburst_operation_fields,
+        # Bind operation-owned fields to this unsaved Explore state. The local
+        # import avoids the chart_utils -> chart_helpers -> schemas cycle.
+        from superset.mcp_service.chart.chart_helpers import (
+            canonicalize_operation_form_data,
         )
 
-        form_data_with_datasource = canonicalize_sunburst_operation_fields(
+        form_data_with_datasource = canonicalize_operation_form_data(
             form_data,
             datasource_id=numeric_dataset_id,
         )
@@ -1153,10 +1153,11 @@ def map_sunburst_config(config: SunburstChartConfig) -> Dict[str, Any]:
     return form_data
 
 
-# Sunburst fields whose mapper defaults must not overwrite existing values when
-# a same-type update omitted the corresponding typed field. Required query roles
-# (hierarchy and metric) are deliberately absent: a full replacement always
-# updates them.
+# Sunburst fields with explicit omission/clear semantics. Mapper defaults must
+# not overwrite same-viz state when the typed field was omitted, while explicit
+# clears must also beat the shared preservation registry on cross-viz updates.
+# Required query roles (hierarchy and metric) are deliberately absent: a full
+# replacement always updates them.
 _SUNBURST_UPDATE_FIELD_KEYS: dict[str, str] = {
     "secondary_metric": "secondary_metric",
     "time_range": "time_range",
@@ -1306,14 +1307,16 @@ def merge_form_data_for_update(  # noqa: C901
     Cross-viz and generic same-viz replacements start from mapped target state
     and retain only registry-approved envelope/presentation/filter/time keys.
     Same-viz Sunburst mapper defaults are replaced by saved values when the
-    caller omitted that field; explicit values (including ``False``, ``0``,
-    ``None`` and ``[]``) win.
+    caller omitted that field. Explicit values (including ``False``, ``0``,
+    ``None`` and ``[]``) win for both same- and cross-viz Sunburst targets.
     """
     same_viz = existing_form_data.get("viz_type") == new_form_data.get("viz_type")
     merged = _merge_allowlisted_form_data(existing_form_data, new_form_data)
 
     fields_set: set[str] = getattr(config, "model_fields_set", set())
-    if getattr(config, "filters", None) is None:
+    if getattr(config, "filters", None) == []:
+        merged.pop("adhoc_filters", None)
+    elif getattr(config, "filters", None) is None:
         filters = _merge_preserved_adhoc_filters(
             existing_form_data,
             new_form_data,
@@ -1322,7 +1325,7 @@ def merge_form_data_for_update(  # noqa: C901
         if filters is not None:
             merged["adhoc_filters"] = filters
 
-    if not isinstance(config, SunburstChartConfig) or not same_viz:
+    if not isinstance(config, SunburstChartConfig):
         return merged
 
     temporal_fields = {"time_grain", "temporal_column"}
@@ -1330,15 +1333,21 @@ def merge_form_data_for_update(  # noqa: C901
         if field_name in temporal_fields:
             continue
         if field_name not in fields_set:
-            if form_key in existing_form_data:
-                merged[form_key] = existing_form_data[form_key]
-            else:
-                merged.pop(form_key, None)
+            if same_viz:
+                if form_key in existing_form_data:
+                    merged[form_key] = existing_form_data[form_key]
+                else:
+                    merged.pop(form_key, None)
             continue
 
         value = getattr(config, field_name)
         if value is None:
             merged.pop(form_key, None)
+            if field_name == "time_range":
+                # The generic query-context mapper reconstructs time_range from
+                # these legacy keys. A clear must remove all three sources.
+                merged.pop("since", None)
+                merged.pop("until", None)
 
     # Merge the temporal subject and grain as one final-state control pair.
     temporal_set = "temporal_column" in fields_set

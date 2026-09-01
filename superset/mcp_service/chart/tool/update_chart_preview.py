@@ -31,7 +31,10 @@ from superset.commands.exceptions import CommandException
 from superset.exceptions import OAuth2Error, OAuth2RedirectError, SupersetException
 from superset.extensions import event_logger
 from superset.mcp_service.auth import has_dataset_access
-from superset.mcp_service.chart.chart_helpers import extract_form_data_key_from_url
+from superset.mcp_service.chart.chart_helpers import (
+    canonicalize_operation_form_data,
+    extract_form_data_key_from_url,
+)
 from superset.mcp_service.chart.chart_utils import (
     analyze_chart_capabilities,
     analyze_chart_semantics,
@@ -53,10 +56,7 @@ from superset.mcp_service.chart.schemas import (
     PerformanceMetadata,
     UpdateChartPreviewRequest,
 )
-from superset.mcp_service.chart.sunburst import (
-    canonicalize_sunburst_operation_fields,
-    normalize_sunburst_form_data_references,
-)
+from superset.mcp_service.chart.sunburst import normalize_sunburst_form_data_references
 from superset.mcp_service.utils.oauth2_utils import (
     build_oauth2_redirect_message,
     OAUTH2_CONFIG_ERROR_MESSAGE,
@@ -235,7 +235,7 @@ def update_chart_preview(  # noqa: C901
                 config, dataset_id=request.dataset_id
             )
             new_form_data.pop("_mcp_warnings", None)
-            new_form_data = canonicalize_sunburst_operation_fields(
+            new_form_data = canonicalize_operation_form_data(
                 new_form_data,
                 datasource_id=dataset.id,
             )
@@ -259,7 +259,7 @@ def update_chart_preview(  # noqa: C901
             # This tool owns an unsaved cache entry, not a chart update target.
             # Rebind datasource state to the authorized dataset and remove any
             # native/cached chart identity before compile and recaching.
-            new_form_data = canonicalize_sunburst_operation_fields(
+            new_form_data = canonicalize_operation_form_data(
                 new_form_data,
                 datasource_id=dataset.id,
             )

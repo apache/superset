@@ -1439,7 +1439,8 @@ class SunburstChartConfig(BaseChartConfig):
                 "cannot preserve HAVING semantics"
             )
         if operator == "TEMPORAL_RANGE":
-            data.setdefault("temporal_column", native_filter.get("subject"))
+            if "temporal_column" not in data and "granularity_sqla" not in data:
+                data["temporal_column"] = native_filter.get("subject")
             data.setdefault("time_range", native_filter.get("comparator"))
             return None
         mapped_operator = "=" if operator == "==" else operator
@@ -1506,7 +1507,7 @@ class SunburstChartConfig(BaseChartConfig):
                 data["time_range"] = (
                     f"{data.get('since') or ''} : {data.get('until') or ''}"
                 )
-            if "temporal_column" not in data and data.get("granularity_sqla"):
+            if "temporal_column" not in data and "granularity_sqla" in data:
                 data["temporal_column"] = data["granularity_sqla"]
             data.pop("granularity_sqla", None)
         # Native mode intentionally accepts only the explicitly typed keys

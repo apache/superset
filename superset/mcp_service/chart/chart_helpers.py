@@ -62,6 +62,42 @@ class ChartNotOnDashboardError(ValueError):
     """Raised when a chart is not part of the given dashboard's slices."""
 
 
+def canonicalize_operation_form_data(
+    form_data: dict[str, Any],
+    *,
+    datasource_id: int | str | None,
+    datasource_type: str = "table",
+    chart_id: int | None = None,
+) -> dict[str, Any]:
+    """Bind chart and datasource identity to the active MCP operation.
+
+    Explore form data can carry a saved ``slice_id`` and one of several
+    datasource representations. Those values describe cached/native input;
+    they do not select the chart or datasource affected by an MCP operation.
+    Callers pass the already resolved datasource and, for saved-chart update
+    operations, the already authorized target chart. Creation, compilation,
+    and standalone preview callers leave ``chart_id`` unset so stale input
+    identity cannot turn unsaved state into a chart update.
+    """
+    canonical = dict(form_data)
+    canonical.pop("datasource", None)
+    canonical.pop("datasource_id", None)
+    canonical.pop("datasource_type", None)
+    if datasource_id is not None:
+        resolved_type = (
+            datasource_type
+            if isinstance(datasource_type, str) and datasource_type
+            else "table"
+        )
+        canonical["datasource"] = f"{datasource_id}__{resolved_type}"
+
+    if isinstance(chart_id, int) and not isinstance(chart_id, bool):
+        canonical["slice_id"] = chart_id
+    else:
+        canonical.pop("slice_id", None)
+    return canonical
+
+
 def find_chart_by_identifier(
     identifier: int | str,
     query_options: list[Any] | None = None,

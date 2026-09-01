@@ -36,6 +36,7 @@ from superset.mcp_service.chart.ascii_charts import (
 )
 from superset.mcp_service.chart.chart_helpers import (
     build_query_context_from_form_data,
+    canonicalize_operation_form_data,
     find_chart_by_identifier,
 )
 from superset.mcp_service.chart.chart_utils import validate_chart_dataset
@@ -210,6 +211,15 @@ class PreviewFormatStrategy:
         if (dashboard_id := guest_scope.guest_dashboard_id(self.chart)) is not None:
             guest_scope.authorize_query(query_context, dashboard_id, self.chart)
 
+    def _canonical_form_data(self, form_data: dict[str, Any]) -> dict[str, Any]:
+        """Bind saved-preview identity to the resolved chart and datasource."""
+        return canonicalize_operation_form_data(
+            form_data,
+            datasource_id=self.chart.datasource_id,
+            datasource_type=self.chart.datasource_type,
+            chart_id=self.chart.id,
+        )
+
 
 class URLPreviewStrategy(PreviewFormatStrategy):
     """Generate URL-based preview with explore link."""
@@ -237,7 +247,9 @@ class ASCIIPreviewStrategy(PreviewFormatStrategy):
             from superset.commands.chart.data.get_data_command import ChartDataCommand
             from superset.utils import json as utils_json
 
-            form_data = utils_json.loads(self.chart.params) if self.chart.params else {}
+            form_data = self._canonical_form_data(
+                utils_json.loads(self.chart.params) if self.chart.params else {}
+            )
 
             logger.info("Chart form_data keys: %s", list(form_data.keys()))
             logger.info("Chart viz_type: %s", self.chart.viz_type)
@@ -312,7 +324,9 @@ class TablePreviewStrategy(PreviewFormatStrategy):
             from superset.commands.chart.data.get_data_command import ChartDataCommand
             from superset.utils import json as utils_json
 
-            form_data = utils_json.loads(self.chart.params) if self.chart.params else {}
+            form_data = self._canonical_form_data(
+                utils_json.loads(self.chart.params) if self.chart.params else {}
+            )
 
             # Check if datasource_id is None
             if self.chart.datasource_id is None:
@@ -414,11 +428,11 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
                         error_type="ChartNotFound",
                     )
 
-                form_data = (
+                form_data = self._canonical_form_data(
                     utils_json.loads(chart_obj.params) if chart_obj.params else {}
                 )
             else:
-                form_data = (
+                form_data = self._canonical_form_data(
                     utils_json.loads(self.chart.params) if self.chart.params else {}
                 )
 

@@ -29,7 +29,10 @@ from superset.commands.exceptions import CommandException
 from superset.exceptions import OAuth2Error, OAuth2RedirectError
 from superset.extensions import event_logger
 from superset.mcp_service.auth import has_dataset_access
-from superset.mcp_service.chart.chart_helpers import extract_form_data_key_from_url
+from superset.mcp_service.chart.chart_helpers import (
+    canonicalize_operation_form_data,
+    extract_form_data_key_from_url,
+)
 from superset.mcp_service.chart.chart_utils import (
     analyze_chart_capabilities,
     analyze_chart_semantics,
@@ -50,9 +53,6 @@ from superset.mcp_service.chart.schemas import (
     GenerateChartRequest,
     GenerateChartResponse,
     PerformanceMetadata,
-)
-from superset.mcp_service.chart.sunburst import (
-    canonicalize_sunburst_operation_fields,
 )
 from superset.mcp_service.utils.oauth2_utils import (
     build_oauth2_redirect_message,
@@ -323,7 +323,7 @@ async def generate_chart(  # noqa: C901
         # Map the simplified config to Superset's form_data format
         # Pass dataset_id to enable column type checking for proper viz_type selection
         form_data = map_config_to_form_data(config, dataset_id=request.dataset_id)
-        form_data = canonicalize_sunburst_operation_fields(
+        form_data = canonicalize_operation_form_data(
             form_data,
             datasource_id=None,
         )
@@ -418,7 +418,7 @@ async def generate_chart(  # noqa: C901
                     }
                 )
 
-            form_data = canonicalize_sunburst_operation_fields(
+            form_data = canonicalize_operation_form_data(
                 form_data,
                 datasource_id=dataset.id,
             )
@@ -522,7 +522,7 @@ async def generate_chart(  # noqa: C901
                     # Chart identity is assigned by creation, never by native
                     # form-data input. It is safe to expose/cache only after the
                     # command returned the newly created chart ID.
-                    form_data = canonicalize_sunburst_operation_fields(
+                    form_data = canonicalize_operation_form_data(
                         form_data,
                         datasource_id=dataset.id,
                         chart_id=chart_id,
@@ -590,7 +590,7 @@ async def generate_chart(  # noqa: C901
                     )
                     from superset.utils.core import DatasourceType
 
-                    form_data_with_datasource = canonicalize_sunburst_operation_fields(
+                    form_data_with_datasource = canonicalize_operation_form_data(
                         form_data,
                         datasource_id=dataset.id,
                         chart_id=chart_id,
@@ -643,7 +643,7 @@ async def generate_chart(  # noqa: C901
                 if ds and has_dataset_access(ds):
                     numeric_dataset_id = ds.id
 
-            form_data = canonicalize_sunburst_operation_fields(
+            form_data = canonicalize_operation_form_data(
                 form_data,
                 datasource_id=numeric_dataset_id,
             )

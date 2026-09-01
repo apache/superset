@@ -2069,18 +2069,7 @@ class TestBuildUpdatePayloadDatasetId:
         """dataset_id alone produces a payload with datasource_id + datasource_type."""
         request = UpdateChartRequest(identifier=1, dataset_id=42)
         chart = Mock()
-        chart.datasource_id = 10
-
-        result = _build_update_payload(request, chart)
-
-        assert isinstance(result, dict)
-        assert result == {"datasource_id": 42, "datasource_type": "table"}
-
-    def test_dataset_and_name_update(self) -> None:
-        """dataset_id + chart_name: payload includes datasource fields
-        and slice_name."""
-        request = UpdateChartRequest(identifier=1, dataset_id=42, chart_name="Renamed")
-        chart = Mock()
+        chart.id = 1
         chart.datasource_id = 10
 
         result = _build_update_payload(request, chart)
@@ -2089,6 +2078,26 @@ class TestBuildUpdatePayloadDatasetId:
         assert result == {
             "datasource_id": 42,
             "datasource_type": "table",
+            "params": '{"datasource": "42__table", "slice_id": 1}',
+            "query_context": None,
+        }
+
+    def test_dataset_and_name_update(self) -> None:
+        """dataset_id + chart_name: payload includes datasource fields
+        and slice_name."""
+        request = UpdateChartRequest(identifier=1, dataset_id=42, chart_name="Renamed")
+        chart = Mock()
+        chart.id = 1
+        chart.datasource_id = 10
+
+        result = _build_update_payload(request, chart)
+
+        assert isinstance(result, dict)
+        assert result == {
+            "datasource_id": 42,
+            "datasource_type": "table",
+            "params": '{"datasource": "42__table", "slice_id": 1}',
+            "query_context": None,
             "slice_name": "Renamed",
         }
 

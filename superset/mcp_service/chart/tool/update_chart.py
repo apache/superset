@@ -32,6 +32,7 @@ from superset.common.form_data_query_context import is_raw_query_mode
 from superset.exceptions import OAuth2Error, OAuth2RedirectError
 from superset.extensions import event_logger
 from superset.mcp_service.chart.chart_helpers import (
+    canonicalize_operation_form_data,
     extract_form_data_key_from_url,
     find_chart_by_identifier,
 )
@@ -54,10 +55,7 @@ from superset.mcp_service.chart.schemas import (
     TableChartConfig,
     UpdateChartRequest,
 )
-from superset.mcp_service.chart.sunburst import (
-    canonicalize_sunburst_operation_fields,
-    normalize_sunburst_form_data_references,
-)
+from superset.mcp_service.chart.sunburst import normalize_sunburst_form_data_references
 from superset.mcp_service.utils.oauth2_utils import (
     build_oauth2_redirect_message,
     OAUTH2_CONFIG_ERROR_MESSAGE,
@@ -219,14 +217,14 @@ def _merge_replacement_config(
 def _build_dataset_rebind_payload(
     request: UpdateChartRequest, chart: Any
 ) -> dict[str, Any]:
-    """Rebind a chart and keep native Sunburst params aligned with the target."""
+    """Rebind a chart and keep operation-owned params aligned with the target."""
     assert request.dataset_id is not None
     payload: dict[str, Any] = {
         "datasource_id": request.dataset_id,
         "datasource_type": "table",
     }
     existing_form_data = _get_existing_form_data(chart)
-    canonical_form_data = canonicalize_sunburst_operation_fields(
+    canonical_form_data = canonicalize_operation_form_data(
         existing_form_data,
         datasource_id=request.dataset_id,
         chart_id=chart.id,
@@ -270,7 +268,7 @@ def _build_update_payload(
         new_form_data = _merge_replacement_config(
             existing_form_data, new_form_data, parsed_config
         )
-        new_form_data = canonicalize_sunburst_operation_fields(
+        new_form_data = canonicalize_operation_form_data(
             new_form_data,
             datasource_id=effective_dataset_id,
             datasource_type=(
@@ -307,6 +305,16 @@ def _build_update_payload(
         patched = _append_table_columns(existing_form_data, request.add_columns)
         if isinstance(patched, GenerateChartResponse):
             return patched
+        patched = canonicalize_operation_form_data(
+            patched,
+            datasource_id=effective_dataset_id,
+            datasource_type=(
+                "table"
+                if request.dataset_id is not None
+                else getattr(chart, "datasource_type", "table")
+            ),
+            chart_id=chart.id,
+        )
         chart_name = request.chart_name or chart.slice_name
         additive_payload: dict[str, Any] = {
             "slice_name": chart_name,
@@ -380,7 +388,7 @@ def _build_preview_form_data(
     if effective_dataset_id:
         merged["datasource"] = f"{effective_dataset_id}__table"
 
-    merged = canonicalize_sunburst_operation_fields(
+    merged = canonicalize_operation_form_data(
         merged,
         datasource_id=effective_dataset_id,
         datasource_type=(
@@ -438,7 +446,7 @@ def _validate_update_against_dataset(
             }
         )
 
-    canonical_form_data = canonicalize_sunburst_operation_fields(
+    canonical_form_data = canonicalize_operation_form_data(
         form_data,
         datasource_id=dataset.id,
         datasource_type=getattr(dataset, "type", "table"),
@@ -529,6 +537,14 @@ def _create_preview_url(
         )
         return f"{base_url}/explore/?slice_id={chart.id}", None, [warning]
 
+    form_data = canonicalize_operation_form_data(
+        form_data,
+        datasource_id=effective_datasource_id,
+        datasource_type=(
+            "table" if datasource_id is not None else chart.datasource_type
+        ),
+        chart_id=chart.id,
+    )
     cmd_params = CommandParameters(
         datasource_type=DatasourceType.TABLE,
         datasource_id=effective_datasource_id,

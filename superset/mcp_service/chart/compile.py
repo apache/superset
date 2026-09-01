@@ -41,15 +41,13 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from superset.commands.exceptions import CommandException
 from superset.errors import SupersetErrorType
+from superset.mcp_service.chart.chart_helpers import canonicalize_operation_form_data
 from superset.mcp_service.chart.query_result import (
     first_query_data,
     query_result_failure,
 )
 from superset.mcp_service.chart.schemas import ChartError
-from superset.mcp_service.chart.sunburst import (
-    canonicalize_sunburst_operation_fields,
-    validate_sunburst_result_data,
-)
+from superset.mcp_service.chart.sunburst import validate_sunburst_result_data
 from superset.mcp_service.chart.validation.dataset_validator import (
     build_dataset_context_from_orm,
     DatasetValidator,
@@ -143,7 +141,7 @@ def _compile_chart(  # noqa: C901
     )
 
     try:
-        query_form_data = canonicalize_sunburst_operation_fields(
+        query_form_data = canonicalize_operation_form_data(
             deepcopy(form_data),
             datasource_id=dataset_id,
         )
