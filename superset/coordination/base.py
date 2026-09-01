@@ -368,7 +368,7 @@ class CoordinationService:
         # Capture the stream position, then re-check: a signal that lands between the
         # fast-path check and now is caught here (peers write the authoritative state
         # before they notify); anything after is delivered by the blocking read.
-        last_id = backend.stream_last_id(channel)
+        last_id = cls._baseline_stream_id(backend, channel)
         if (result := check()) is not None:
             return result
         while True:
@@ -451,6 +451,26 @@ class CoordinationService:
                 last_id = new_id.decode() if isinstance(new_id, bytes) else new_id
         return last_id
 
+    @staticmethod
+    def _baseline_stream_id(backend: "CoordinationBackend", channel: str) -> str:
+        """Capture the stream position to start reading from.
+
+        Guarded like :meth:`_read_stream`: a transient backend error (connection
+        drop/failover) at the instant a waiter/listener starts must not escape and
+        kill the daemon thread or abort a lock acquisition — the DB predicate is the
+        source of truth, so we degrade to ``"0-0"`` (read from the stream start) and
+        let the blocking read recover.
+        """
+        try:
+            return backend.stream_last_id(channel)
+        except RedisError:
+            logger.debug(
+                "Baseline stream read on %s failed; starting from 0-0",
+                channel,
+                exc_info=True,
+            )
+            return "0-0"
+
     @classmethod
     def listen_for_signal(
         cls,
@@ -515,10 +535,13 @@ class CoordinationService:
         """Body of the background listener thread (see :meth:`listen_for_signal`)."""
         backend = cls.get_backend()
         # Baseline before the first check (see wait_for_signal), so a signal that
-        # lands between capturing it and the first check is not missed.
-        last_id = backend.stream_last_id(channel) if backend is not None else "0-0"
-        try:
-            while not stop_event.is_set():
+        # lands between capturing it and the first check is not missed. Guarded so a
+        # transient backend error at startup can't kill the thread before the loop.
+        last_id = (
+            cls._baseline_stream_id(backend, channel) if backend is not None else "0-0"
+        )
+        while not stop_event.is_set():
+            try:
                 if check():
                     on_signal()
                     return
@@ -528,6 +551,15 @@ class CoordinationService:
                     )
                 else:
                     stop_event.wait(timeout=poll_interval)
-        except Exception:  # pylint: disable=broad-except
-            if not stop_event.is_set():
-                logger.exception("Signal listener on %s crashed", channel)
+            except Exception:  # pylint: disable=broad-except
+                # A transient predicate/handler error (e.g. a metastore blip inside
+                # ``check``) must not permanently kill this one-shot listener — that
+                # would drop the awaited signal (cancel/abort) for the task's whole
+                # lifetime. Log and continue with a short backoff; termination is
+                # driven solely by ``stop_event``.
+                if stop_event.is_set():
+                    return
+                logger.exception(
+                    "Signal listener on %s errored; retrying after backoff", channel
+                )
+                stop_event.wait(timeout=_STREAM_ERROR_BACKOFF_SECONDS)

@@ -339,6 +339,40 @@ def test_listen_fires_via_stream(app_context: None, mocker: MockerFixture) -> No
     backend.xread.assert_called()
 
 
+def test_baseline_stream_id_degrades_on_backend_error(
+    app_context: None, mocker: MockerFixture
+) -> None:
+    """A transient error capturing the baseline must not propagate (it would kill a
+    listener thread or abort a lock acquisition); it degrades to reading from 0-0."""
+    from redis.exceptions import ConnectionError as RedisConnectionError
+
+    backend = mocker.MagicMock(name="backend")
+    backend.stream_last_id.side_effect = RedisConnectionError("down")
+    assert CoordinationService._baseline_stream_id(backend, "ch") == "0-0"
+
+
+def test_listen_survives_transient_check_error(
+    app_context: None, mocker: MockerFixture
+) -> None:
+    """A transient predicate error must not permanently kill the one-shot listener
+    (that would drop the awaited cancel/abort signal); it retries and still fires."""
+    mocker.patch.object(CoordinationService, "get_backend", return_value=None)
+    # First check raises (metastore blip), then it recovers and reports satisfied.
+    calls = iter([RuntimeError("db blip")])
+
+    def check() -> bool:
+        for exc in calls:
+            raise exc
+        return True
+
+    fired = threading.Event()
+    listener = CoordinationService.listen_for_signal(
+        "ch", check=check, on_signal=fired.set, poll_interval=0.01, name="t"
+    )
+    assert fired.wait(timeout=2.0) is True
+    listener.stop()
+
+
 def test_signal_listener_stop_signals_and_joins(mocker: MockerFixture) -> None:
     thread = mocker.MagicMock(name="thread")
     thread.is_alive.side_effect = [True, False]
