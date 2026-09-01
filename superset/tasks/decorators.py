@@ -251,11 +251,9 @@ class TaskWrapper(Generic[P]):
         """
         Merge decorator defaults with call-time overrides.
 
-        Call-time options take precedence over decorator defaults. For ``timeout``,
-        ``None`` (the default) means "inherit the decorator's timeout"; a call-time
-        ``TaskOptions.timeout`` only overrides when it is a concrete value. There is
-        therefore no way to *disable* a decorator timeout for a single call — pass a
-        distinct value instead. (A sentinel could add that if a use case needs it.)
+        Call-time options take precedence over decorator defaults. A call-time
+        ``timeout`` overrides only when set to a concrete value; ``None`` inherits
+        the decorator's timeout.
 
         Args:
             override_options: Options provided at call time, or None

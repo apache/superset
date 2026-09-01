@@ -112,9 +112,11 @@ class TaskManager:
     # This separates the semantic topic (what a message is) from the route (who
     # receives it): a new surface adds a topic without inventing channel names or
     # overloading payload shapes. The channel name and envelope shape are a
-    # wire-protocol contract with the Node server. Pub/Sub is best-effort, so no message
-    # here may carry a signal a receiver must not miss — each feature's authorized
-    # REST poll/fetch is the correctness backstop.
+    # wire-protocol contract with the Node server. Pub/Sub is best-effort, so no
+    # message here may carry a signal a receiver must not miss — each feature's
+    # authorized REST poll/fetch is the correctness backstop today. Moving a surface
+    # to websocket-only (retiring its poll) requires guaranteed, replayable delivery
+    # first (e.g. Redis Streams with a per-consumer cursor).
     REALTIME_CHANNEL = "realtime"
 
     # Envelope topics.
