@@ -28,7 +28,10 @@ from fastmcp import Client
 
 from superset.extensions import feature_flag_manager
 from superset.mcp_service.app import mcp
-from superset.mcp_service.chart.chart_utils import map_big_number_config
+from superset.mcp_service.chart.chart_utils import (
+    map_big_number_config,
+    preserve_previous_adhoc_filters,
+)
 from superset.mcp_service.chart.schemas import (
     AxisConfig,
     BigNumberChartConfig,
@@ -616,7 +619,7 @@ class TestUpdateChartPreview:
             ]
         }
 
-        update_chart_preview_module._preserve_previous_adhoc_filters(
+        preserve_previous_adhoc_filters(
             new_form_data,
             previous_form_data,
         )
@@ -649,7 +652,7 @@ class TestUpdateChartPreview:
             "subject": "ds",
         }
 
-        update_chart_preview_module._preserve_previous_adhoc_filters(
+        preserve_previous_adhoc_filters(
             new_form_data,
             {"adhoc_filters": [cached_temporal_filter]},
         )
@@ -682,7 +685,7 @@ class TestUpdateChartPreview:
         new_form_data: dict[str, Any] = {"adhoc_filters": [new_temporal_filter]}
         new_form_data["_mcp_dashboard_time_filter_subject"] = "created_at"
 
-        update_chart_preview_module._preserve_previous_adhoc_filters(
+        preserve_previous_adhoc_filters(
             new_form_data,
             {
                 "adhoc_filters": [region_filter, previous_temporal_filter],
@@ -713,7 +716,7 @@ class TestUpdateChartPreview:
             "_mcp_dashboard_time_filter_subject": "created_at",
         }
 
-        update_chart_preview_module._preserve_previous_adhoc_filters(
+        preserve_previous_adhoc_filters(
             new_form_data,
             {
                 "adhoc_filters": [previous_binding],
@@ -748,7 +751,7 @@ class TestUpdateChartPreview:
             previous_form_data = map_big_number_config(config, dataset_id=42)
             new_form_data = map_big_number_config(rebound_config, dataset_id=42)
 
-        update_chart_preview_module._preserve_previous_adhoc_filters(
+        preserve_previous_adhoc_filters(
             new_form_data,
             previous_form_data,
         )
@@ -777,7 +780,7 @@ class TestUpdateChartPreview:
         }
         new_form_data: dict[str, Any] = {}
 
-        update_chart_preview_module._preserve_previous_adhoc_filters(
+        preserve_previous_adhoc_filters(
             new_form_data,
             {
                 "adhoc_filters": [region_filter, previous_temporal_filter],
@@ -805,7 +808,7 @@ class TestUpdateChartPreview:
         }
 
         new_form_data: dict[str, Any] = {}
-        update_chart_preview_module._preserve_previous_adhoc_filters(
+        preserve_previous_adhoc_filters(
             new_form_data,
             {
                 "adhoc_filters": [generated_binding, user_filter],
@@ -843,7 +846,7 @@ class TestUpdateChartPreview:
             "_mcp_dashboard_time_filter_subject": "created_at",
         }
 
-        update_chart_preview_module._preserve_previous_adhoc_filters(
+        preserve_previous_adhoc_filters(
             new_form_data,
             {
                 "adhoc_filters": [previous_binding, unrelated_filter],

@@ -34,6 +34,7 @@ from pydantic import (
     ConfigDict,
     Field,
     field_validator,
+    JsonValue,
     model_serializer,
     model_validator,
     StrictBool,
@@ -709,6 +710,14 @@ class ColumnRef(UnknownFieldCheckMixin):
         validation_alias=AliasChoices("name", "column_name", "column"),
     )
     label: str | None = Field(None, max_length=500)
+    has_custom_label: bool | None = Field(
+        None,
+        validation_alias=AliasChoices("has_custom_label", "hasCustomLabel"),
+        description=(
+            "Native form-data label provenance. False keeps the frontend's "
+            "effective result label without treating it as user-authored."
+        ),
+    )
     dtype: str | None = None
     aggregate: (
         Literal[
@@ -1045,6 +1054,31 @@ class PieChartConfig(BaseChartConfig):
         return self
 
 
+class SunburstStandardizedControls(UnknownFieldCheckMixin):
+    """Bounded shared controls retained by Explore across viz changes."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    metrics: list[JsonValue] = Field(default_factory=list)
+    columns: list[JsonValue] = Field(default_factory=list)
+
+
+class SunburstStandardizedFormData(UnknownFieldCheckMixin):
+    """Validated shape of Explore's cross-plugin UI memory."""
+
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    controls: SunburstStandardizedControls
+    memorized_form_data: list[tuple[str, dict[str, JsonValue]]] = Field(
+        default_factory=list,
+        validation_alias=AliasChoices("memorized_form_data", "memorizedFormData"),
+        serialization_alias="memorizedFormData",
+    )
+
+
+_NATIVE_FORM_DATA_MARKER = "_mcp_native_form_data"
+
+
 class SunburstChartConfig(BaseChartConfig):
     """Config for the ECharts Sunburst plugin (viz_type ``sunburst_v2``).
 
@@ -1141,11 +1175,37 @@ class SunburstChartConfig(BaseChartConfig):
     number_format: str = Field("SMART_NUMBER", min_length=1, max_length=50)
     date_format: str = Field("smart_date", min_length=1, max_length=50)
     currency_format: CurrencyFormat | None = None
+    # Bounded native Explore envelope/UI state. These keys occur in real saved
+    # form_data and are safe to round-trip, but remain typed so native mode does
+    # not become an escape hatch for arbitrary plugin keys or malformed nesting.
+    annotation_layers: list[dict[str, JsonValue]] | None = None
+    dashboard_id: int | None = Field(
+        None,
+        validation_alias=AliasChoices("dashboard_id", "dashboardId"),
+        serialization_alias="dashboardId",
+    )
+    dashboards: list[int] | None = None
+    datasource: str | None = Field(None, min_length=1, max_length=255)
+    extra_form_data: dict[str, JsonValue] | None = None
+    slice_id: int | None = None
+    url_params: dict[str, JsonValue] | None = None
+    standardized_form_data: SunburstStandardizedFormData | None = Field(
+        None,
+        validation_alias=AliasChoices("standardized_form_data", "standardizedFormData"),
+        serialization_alias="standardizedFormData",
+    )
+    since: str | None = Field(None, max_length=1000)
+    until: str | None = Field(None, max_length=1000)
+    time_compare: str | list[str] | None = None
+    compare_lag: int | str | None = None
+    compare_suffix: str | None = Field(None, max_length=255)
 
     @staticmethod
     def _looks_like_native_form_data(data: Any) -> bool:
         """Identify saved Explore payloads without weakening typed typo checks."""
-        if not isinstance(data, dict) or data.get("viz_type") != "sunburst_v2":
+        if not isinstance(data, dict) or not (
+            data.get(_NATIVE_FORM_DATA_MARKER) or data.get("viz_type") == "sunburst_v2"
+        ):
             return False
         metric = data.get("metric")
         return (
@@ -1174,16 +1234,57 @@ class SunburstChartConfig(BaseChartConfig):
         if not isinstance(value, dict) or "expressionType" not in value:
             return value
 
+        allowed_keys = {
+            "aggregate",
+            "column",
+            "datasourceWarning",
+            "expressionType",
+            "hasCustomLabel",
+            "label",
+            "optionName",
+            "sqlExpression",
+        }
+        if unknown := set(value) - allowed_keys:
+            raise ValueError(
+                "Unknown Sunburst native metric field(s): " + ", ".join(sorted(unknown))
+            )
+
         expression_type = value.get("expressionType")
-        label = value.get("label") if value.get("hasCustomLabel", True) else None
+        label = value.get("label")
+        has_custom_label = value.get("hasCustomLabel")
         if expression_type == "SQL":
+            sql_expression = value.get("sqlExpression")
             return {
-                "sql_expression": value.get("sqlExpression"),
-                "label": label,
+                "sql_expression": sql_expression,
+                # The frontend still assigns a result label when the label is
+                # not custom. Preserve a nonempty native label first, then use
+                # the SQL expression as the same effective fallback.
+                "label": label or sql_expression,
+                "has_custom_label": has_custom_label,
             }
         if expression_type == "SIMPLE":
             column = value.get("column")
             if isinstance(column, dict):
+                allowed_column_keys = {
+                    "columnName",
+                    "column_name",
+                    "description",
+                    "expression",
+                    "filterable",
+                    "groupby",
+                    "id",
+                    "is_dttm",
+                    "python_date_format",
+                    "type",
+                    "uuid",
+                    "verbose_name",
+                }
+                unknown_column = set(column) - allowed_column_keys
+                if unknown_column:
+                    raise ValueError(
+                        "Unknown Sunburst native metric column field(s): "
+                        + ", ".join(sorted(unknown_column))
+                    )
                 name = column.get("column_name") or column.get("columnName")
                 dtype = column.get("type")
             else:
@@ -1193,6 +1294,7 @@ class SunburstChartConfig(BaseChartConfig):
                 "name": name,
                 "aggregate": value.get("aggregate"),
                 "label": label,
+                "has_custom_label": has_custom_label,
                 "dtype": dtype,
             }
         return value
@@ -1220,7 +1322,23 @@ class SunburstChartConfig(BaseChartConfig):
     ) -> dict[str, Any] | None:
         """Convert one native SIMPLE filter, extracting temporal controls."""
         if not isinstance(native_filter, dict):
-            return None
+            raise ValueError("Each Sunburst native adhoc_filter must be an object")
+        allowed_keys = {
+            "clause",
+            "comparator",
+            "datasourceWarning",
+            "expressionType",
+            "filterOptionName",
+            "isExtra",
+            "operator",
+            "sqlExpression",
+            "subject",
+        }
+        if unknown := set(native_filter) - allowed_keys:
+            raise ValueError(
+                "Unknown Sunburst native adhoc_filter field(s): "
+                + ", ".join(sorted(unknown))
+            )
         if native_filter.get("expressionType") != "SIMPLE":
             raise ValueError(
                 "Sunburst native adhoc_filters round-trip supports SIMPLE filters "
@@ -1264,43 +1382,30 @@ class SunburstChartConfig(BaseChartConfig):
             return data
         data = dict(data)
         is_native_form_data = cls._looks_like_native_form_data(data)
+        data.pop(_NATIVE_FORM_DATA_MARKER, None)
 
-        # These form-data envelope keys are not chart configuration roles.
-        for key in (
-            "annotation_layers",
-            "dashboards",
-            "datasource",
-            "extra_form_data",
-            "slice_id",
-            "url_params",
-        ):
-            data.pop(key, None)
-
-        cls._coerce_native_hierarchy(data)
-
-        for key in ("metric", "secondary_metric", "secondaryMetric"):
-            if key in data and data[key] is not None:
-                data[key] = cls._coerce_native_metric(data[key])
-
-        # Native saved filters can be round-tripped when they use the SIMPLE
-        # controls. SQL filter clauses intentionally remain outside the typed
-        # MCP filter contract rather than being accepted as arbitrary SQL.
-        cls._coerce_native_filters(data)
-
-        if "time_range" not in data and (data.get("since") or data.get("until")):
-            data["time_range"] = (
-                f"{data.get('since') or ''} : {data.get('until') or ''}"
-            )
-        data.pop("since", None)
-        data.pop("until", None)
-
-        if "temporal_column" not in data and data.get("granularity_sqla"):
-            data["temporal_column"] = data["granularity_sqla"]
-        data.pop("granularity_sqla", None)
         if is_native_form_data:
-            known_fields = _get_known_fields(cls)
-            for key in set(data) - known_fields:
-                data.pop(key)
+            cls._coerce_native_hierarchy(data)
+
+            for key in ("metric", "secondary_metric", "secondaryMetric"):
+                if key in data and data[key] is not None:
+                    data[key] = cls._coerce_native_metric(data[key])
+
+            # Native saved filters can be round-tripped when they use the SIMPLE
+            # controls. SQL filter clauses intentionally remain outside the typed
+            # MCP filter contract rather than being accepted as arbitrary SQL.
+            cls._coerce_native_filters(data)
+
+            if "time_range" not in data and (data.get("since") or data.get("until")):
+                data["time_range"] = (
+                    f"{data.get('since') or ''} : {data.get('until') or ''}"
+                )
+            if "temporal_column" not in data and data.get("granularity_sqla"):
+                data["temporal_column"] = data["granularity_sqla"]
+            data.pop("granularity_sqla", None)
+        # Native mode intentionally accepts only the explicitly typed keys
+        # above. Leave unknown keys in place so UnknownFieldCheckMixin rejects
+        # typos and stale type-specific payload rather than silently dropping it.
         return data
 
     @field_validator("time_range")
@@ -2666,11 +2771,19 @@ def _normalize_chart_request_input(data: Any) -> Any:
     """
     if not isinstance(data, dict):
         return data
+    data = dict(data)
     if "dataset_id" not in data and "datasource_id" in data:
         data["dataset_id"] = data.pop("datasource_id")
     config = data.get("config")
     if isinstance(config, dict):
+        config = dict(config)
+        data["config"] = config
         viz_type = config.get("viz_type")
+        if viz_type == "sunburst_v2":
+            # The discriminator normalization below removes viz_type before the
+            # nested model runs. Carry native provenance through that boundary
+            # so saved Explore payloads retain their bounded round-trip mode.
+            config[_NATIVE_FORM_DATA_MARKER] = True
         if isinstance(viz_type, str) and "chart_type" not in config:
             config["chart_type"] = viz_type
         chart_type = config.get("chart_type")

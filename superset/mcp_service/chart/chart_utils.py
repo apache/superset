@@ -608,6 +608,9 @@ def create_metric_object(col: ColumnRef) -> Dict[str, Any] | str:
     For ad-hoc column metrics, returns a SIMPLE expression dict.
     """
     if col.sql_expression:
+        has_custom_label = (
+            col.has_custom_label if col.has_custom_label is not None else True
+        )
         return {
             "aggregate": None,
             "column": None,
@@ -620,7 +623,7 @@ def create_metric_object(col: ColumnRef) -> Dict[str, Any] | str:
                     col.sql_expression.encode("utf-8"), usedforsecurity=False
                 ).hexdigest()[:8]
             ),
-            "hasCustomLabel": True,
+            "hasCustomLabel": has_custom_label,
             "datasourceWarning": False,
         }
 
@@ -653,16 +656,20 @@ def create_metric_object(col: ColumnRef) -> Dict[str, Any] | str:
     if aggregate.upper() not in valid_aggregates:
         aggregate = "SUM"  # Safe fallback
 
+    label = col.label or f"{aggregate.upper()}({col.name})"
+    has_custom_label = (
+        col.has_custom_label if col.has_custom_label is not None else bool(col.label)
+    )
     return {
         "aggregate": aggregate.upper(),
         "column": {
             "column_name": col.name,
         },
         "expressionType": "SIMPLE",
-        "label": col.label or f"{aggregate.upper()}({col.name})",
+        "label": label,
         "optionName": f"metric_{col.name}",
         "sqlExpression": None,
-        "hasCustomLabel": bool(col.label),
+        "hasCustomLabel": has_custom_label,
         "datasourceWarning": False,
     }
 
@@ -812,12 +819,14 @@ def _ensure_generated_temporal_binding(form_data: Dict[str, Any], column: str) -
         form_data[MCP_DASHBOARD_TIME_FILTER_SUBJECT] = column
 
 
-def _bind_dashboard_time_range_filter(
+def _bind_explicit_temporal_column(
     form_data: Dict[str, Any],
     config: ChartConfig,
     dataset_id: int | str | None,
-) -> None:
-    """Bind charts without time configuration to a temporal filter subject."""
+) -> bool:
+    """Bind an explicit time subject and report whether fallback is disabled."""
+    if "temporal_column" not in config.model_fields_set:
+        return False
     if temporal_column := getattr(config, "temporal_column", None):
         if _is_temporal_for_dashboard_binding(temporal_column, dataset_id):
             granularity = form_data.get("granularity_sqla")
@@ -827,6 +836,18 @@ def _bind_dashboard_time_range_filter(
                 form_data["granularity_sqla"] = None
             _ensure_temporal_adhoc_filter(form_data, temporal_column)
             form_data[MCP_DASHBOARD_TIME_FILTER_SUBJECT] = temporal_column
+    # Explicit null disables fallback binding; omission permits the dataset main
+    # temporal column to provide dashboard-filter compatibility.
+    return True
+
+
+def _bind_dashboard_time_range_filter(
+    form_data: Dict[str, Any],
+    config: ChartConfig,
+    dataset_id: int | str | None,
+) -> None:
+    """Bind charts without time configuration to a temporal filter subject."""
+    if _bind_explicit_temporal_column(form_data, config, dataset_id):
         return
 
     dataset = None
@@ -1080,6 +1101,30 @@ def map_sunburst_config(config: SunburstChartConfig) -> Dict[str, Any]:
     if config.time_grain is not None:
         form_data["time_grain_sqla"] = config.time_grain
 
+    native_passthrough = {
+        "annotation_layers": "annotation_layers",
+        "dashboard_id": "dashboardId",
+        "dashboards": "dashboards",
+        "datasource": "datasource",
+        "extra_form_data": "extra_form_data",
+        "slice_id": "slice_id",
+        "url_params": "url_params",
+        "since": "since",
+        "until": "until",
+        "time_compare": "time_compare",
+        "compare_lag": "compare_lag",
+        "compare_suffix": "compare_suffix",
+    }
+    for field_name, form_key in native_passthrough.items():
+        if field_name in config.model_fields_set:
+            form_data[form_key] = getattr(config, field_name)
+    if "standardized_form_data" in config.model_fields_set:
+        form_data["standardizedFormData"] = (
+            config.standardized_form_data.model_dump(by_alias=True, mode="json")
+            if config.standardized_form_data is not None
+            else None
+        )
+
     add_currency_format(form_data, config.currency_format)
     _add_adhoc_filters(form_data, config.filters)
     return form_data
@@ -1091,7 +1136,6 @@ def map_sunburst_config(config: SunburstChartConfig) -> Dict[str, Any]:
 # updates them.
 _SUNBURST_UPDATE_FIELD_KEYS: dict[str, str] = {
     "secondary_metric": "secondary_metric",
-    "filters": "adhoc_filters",
     "time_range": "time_range",
     "time_grain": "time_grain_sqla",
     "temporal_column": "granularity_sqla",
@@ -1110,25 +1154,159 @@ _SUNBURST_UPDATE_FIELD_KEYS: dict[str, str] = {
 }
 
 
+# One bounded registry owns state that may survive a form-data replacement.
+# Query roles and plugin-specific controls are deliberately absent. This keeps
+# cross-viz transitions preview/save-safe without chart-by-chart allowlists that
+# can drift as new plugins are registered.
+FORM_DATA_UPDATE_PRESERVE_KEYS: dict[str, frozenset[str]] = {
+    "envelope": frozenset(
+        {
+            "dashboardId",
+            "dashboards",
+            "datasource",
+            "extra_form_data",
+            "slice_id",
+            "slice_name",
+            "standardizedFormData",
+            "url_params",
+        }
+    ),
+    "presentation": frozenset(
+        {
+            "color_scheme",
+            "currency_format",
+            "date_format",
+            "legendOrientation",
+            "linear_color_scheme",
+            "number_format",
+            "show_legend",
+        }
+    ),
+    "filters": frozenset({"adhoc_filters", "extra_filters"}),
+    "time": frozenset(
+        {
+            "granularity_sqla",
+            "since",
+            "time_grain_sqla",
+            "time_range",
+            "until",
+        }
+    ),
+}
+_FORM_DATA_UPDATE_PRESERVE_KEYS = frozenset().union(
+    *FORM_DATA_UPDATE_PRESERVE_KEYS.values()
+)
+
+
+def _merge_preserved_adhoc_filters(
+    existing_form_data: Mapping[str, Any],
+    new_form_data: Mapping[str, Any],
+    *,
+    drop_existing_temporal: bool,
+) -> list[Any] | None:
+    """Merge omitted structured filters while removing stale time bindings."""
+    previous = existing_form_data.get("adhoc_filters")
+    generated = new_form_data.get("adhoc_filters")
+    if not isinstance(previous, list):
+        return list(generated) if isinstance(generated, list) else None
+
+    previous_binding = existing_form_data.get(MCP_DASHBOARD_TIME_FILTER_SUBJECT)
+    new_binding = new_form_data.get(MCP_DASHBOARD_TIME_FILTER_SUBJECT)
+    merged: list[Any] = []
+    for filter_ in previous:
+        is_temporal = (
+            isinstance(filter_, dict)
+            and filter_.get("operator") == FilterOperator.TEMPORAL_RANGE.value
+        )
+        stale_generated_binding = (
+            is_temporal
+            and previous_binding
+            and previous_binding != new_binding
+            and filter_.get("subject") == previous_binding
+            and filter_.get("comparator") == NO_TIME_RANGE
+        )
+        if (drop_existing_temporal and is_temporal) or stale_generated_binding:
+            continue
+        merged.append(filter_)
+
+    for filter_ in generated if isinstance(generated, list) else []:
+        if isinstance(filter_, dict):
+            same_filter = any(
+                isinstance(previous_filter, dict)
+                and previous_filter.get("clause") == filter_.get("clause")
+                and previous_filter.get("expressionType")
+                == filter_.get("expressionType")
+                and previous_filter.get("subject") == filter_.get("subject")
+                and previous_filter.get("operator") == filter_.get("operator")
+                for previous_filter in merged
+            )
+            if same_filter:
+                continue
+        elif filter_ in merged:
+            continue
+        merged.append(filter_)
+    return merged
+
+
+def preserve_previous_adhoc_filters(
+    new_form_data: Dict[str, Any], previous_form_data: Mapping[str, Any]
+) -> None:
+    """Compatibility entry point backed by the shared filter merge."""
+    filters = _merge_preserved_adhoc_filters(
+        previous_form_data,
+        new_form_data,
+        drop_existing_temporal=False,
+    )
+    if filters is not None:
+        new_form_data["adhoc_filters"] = filters
+
+
+def _merge_allowlisted_form_data(
+    existing_form_data: Mapping[str, Any],
+    new_form_data: Mapping[str, Any],
+) -> Dict[str, Any]:
+    """Start from mapped target state and add only registry-approved omissions."""
+    merged = dict(new_form_data)
+    for key in _FORM_DATA_UPDATE_PRESERVE_KEYS:
+        if key not in merged and key in existing_form_data:
+            merged[key] = existing_form_data[key]
+    return merged
+
+
 def merge_form_data_for_update(  # noqa: C901
     existing_form_data: Dict[str, Any],
     new_form_data: Dict[str, Any],
     config: Any,
 ) -> Dict[str, Any]:
-    """Merge a same-viz update without resetting omitted Sunburst UI state.
+    """Merge updates through the bounded registry and Sunburst omission rules.
 
-    Native keys that MCP does not model are retained, matching the established
-    preview-update behavior. For a same-type Sunburst update, mapper defaults
-    are replaced by saved values when the caller omitted that field; explicit
-    values (including ``False``, ``0``, ``None`` and ``[]``) win.
+    Cross-viz and generic same-viz replacements start from mapped target state
+    and retain only registry-approved envelope/presentation/filter/time keys.
+    Same-viz Sunburst mapper defaults are replaced by saved values when the
+    caller omitted that field; explicit values (including ``False``, ``0``,
+    ``None`` and ``[]``) win.
     """
-    merged = {**existing_form_data, **new_form_data}
-    if not isinstance(config, SunburstChartConfig) or existing_form_data.get(
-        "viz_type"
-    ) != new_form_data.get("viz_type"):
+    same_viz = existing_form_data.get("viz_type") == new_form_data.get("viz_type")
+    if isinstance(config, SunburstChartConfig) and same_viz:
+        # Same-viz native UI state may include bounded plugin memory not modeled
+        # by typed controls. Required Sunburst roles are always replaced below.
+        merged = {**existing_form_data, **new_form_data}
+    else:
+        merged = _merge_allowlisted_form_data(existing_form_data, new_form_data)
+
+    fields_set: set[str] = getattr(config, "model_fields_set", set())
+    if getattr(config, "filters", None) is None:
+        filters = _merge_preserved_adhoc_filters(
+            existing_form_data,
+            new_form_data,
+            drop_existing_temporal=bool({"temporal_column", "time_range"} & fields_set),
+        )
+        if filters is not None:
+            merged["adhoc_filters"] = filters
+
+    if not isinstance(config, SunburstChartConfig) or not same_viz:
         return merged
 
-    fields_set = config.model_fields_set
     temporal_fields = {"time_grain", "temporal_column"}
     for field_name, form_key in _SUNBURST_UPDATE_FIELD_KEYS.items():
         if field_name in temporal_fields:
@@ -1141,7 +1319,7 @@ def merge_form_data_for_update(  # noqa: C901
             continue
 
         value = getattr(config, field_name)
-        if value is None or (field_name == "filters" and value == []):
+        if value is None:
             merged.pop(form_key, None)
 
     # Merge the temporal subject and grain as one final-state control pair.

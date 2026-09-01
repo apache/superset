@@ -1256,8 +1256,9 @@ class TestBuildPreviewFormData:
         result = _build_preview_form_data(request, chart, parsed_config=config)
 
         assert isinstance(result, dict)
-        # Existing keys not touched by the new config are preserved
-        assert result["custom_flag"] is True
+        # A type change starts from mapped target state; arbitrary source-plugin
+        # keys must not leak into the new chart's query or UI controls.
+        assert "custom_flag" not in result
         # New config overrides existing keys
         assert result["viz_type"] == "table"
         # slice_id and datasource are always stamped onto the preview

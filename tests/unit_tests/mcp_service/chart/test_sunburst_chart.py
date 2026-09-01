@@ -200,7 +200,7 @@ def test_native_simple_sql_and_saved_metrics_round_trip() -> None:
     assert round_trip["secondary_metric"]["expressionType"] == "SQL"
 
 
-def test_native_saved_form_data_ignores_stale_plugin_state_on_round_trip() -> None:
+def test_native_saved_form_data_preserves_bounded_ui_state_on_round_trip() -> None:
     config = SunburstChartConfig.model_validate(
         {
             "viz_type": "sunburst_v2",
@@ -211,7 +211,11 @@ def test_native_saved_form_data_ignores_stale_plugin_state_on_round_trip() -> No
             "until": "2025-02-01",
             "annotation_layers": [],
             "compare_lag": "10",
-            "plugin_only_ui_state": {"preserved_by_update_merge": True},
+            "compare_suffix": "over prior period",
+            "standardizedFormData": {
+                "controls": {"metrics": ["count"], "columns": ["region"]},
+                "memorizedFormData": [["pie", {"viz_type": "pie"}]],
+            },
         }
     )
 
@@ -220,6 +224,187 @@ def test_native_saved_form_data_ignores_stale_plugin_state_on_round_trip() -> No
     round_trip = map_config_to_form_data(config)
     assert round_trip["columns"] == ["region", "country"]
     assert round_trip["metric"] == "count"
+    assert round_trip["since"] == "2025-01-01"
+    assert round_trip["until"] == "2025-02-01"
+    assert round_trip["annotation_layers"] == []
+    assert round_trip["compare_lag"] == "10"
+    assert round_trip["standardizedFormData"]["memorizedFormData"] == [
+        ["pie", {"viz_type": "pie"}]
+    ]
+
+
+def _native_request_payload(
+    request_model: type[
+        GenerateChartRequest | UpdateChartRequest | UpdateChartPreviewRequest
+    ],
+    metric: object,
+    secondary_metric: object | None,
+) -> dict[str, object]:
+    config: dict[str, object] = {
+        "viz_type": "sunburst_v2",
+        "columns": ["region", "country"],
+        "metric": metric,
+        "secondary_metric": secondary_metric,
+        "since": "2025-01-01",
+        "until": "2025-02-01",
+        "annotation_layers": [{"name": "release", "annotationType": "FORMULA"}],
+        "dashboardId": 12,
+        "extra_form_data": {"time_range": "Last year"},
+        "time_compare": ["1 year ago"],
+        "standardizedFormData": {
+            "controls": {"metrics": [metric], "columns": ["region", "country"]},
+            "memorizedFormData": [["table", {"viz_type": "table"}]],
+        },
+    }
+    if request_model is GenerateChartRequest:
+        return {"dataset_id": 7, "config": config}
+    if request_model is UpdateChartRequest:
+        return {"identifier": 19, "config": config}
+    return {"dataset_id": 7, "form_data_key": "native-key", "config": config}
+
+
+@pytest.mark.parametrize(
+    "request_model",
+    [GenerateChartRequest, UpdateChartRequest, UpdateChartPreviewRequest],
+)
+@pytest.mark.parametrize(
+    "metric,secondary_metric,expected_metric,expected_secondary",
+    [
+        ("SavedSales", None, "SavedSales", None),
+        (
+            {
+                "expressionType": "SIMPLE",
+                "column": {"column_name": "sales", "type": "DOUBLE"},
+                "aggregate": "SUM",
+                "hasCustomLabel": True,
+                "label": "Sales",
+            },
+            "SavedProfit",
+            "SIMPLE",
+            "SavedProfit",
+        ),
+        (
+            {
+                "expressionType": "SQL",
+                "sqlExpression": "SUM(sales)",
+                "hasCustomLabel": False,
+                "label": "SUM(sales)",
+            },
+            {
+                "expressionType": "SQL",
+                "sqlExpression": "SUM(profit)",
+                "hasCustomLabel": True,
+                "label": "Profit",
+            },
+            "SQL",
+            "SQL",
+        ),
+    ],
+)
+def test_real_native_request_schema_round_trip(
+    request_model: type[
+        GenerateChartRequest | UpdateChartRequest | UpdateChartPreviewRequest
+    ],
+    metric: object,
+    secondary_metric: object | None,
+    expected_metric: str,
+    expected_secondary: str | None,
+) -> None:
+    request = request_model.model_validate(
+        _native_request_payload(request_model, metric, secondary_metric)
+    )
+    assert isinstance(request.config, SunburstChartConfig)
+
+    form_data = map_config_to_form_data(request.config)
+    mapped_metric = form_data["metric"]
+    assert (
+        mapped_metric
+        if isinstance(mapped_metric, str)
+        else mapped_metric["expressionType"]
+    ) == expected_metric
+    mapped_secondary = form_data.get("secondary_metric")
+    assert (
+        mapped_secondary
+        if isinstance(mapped_secondary, str) or mapped_secondary is None
+        else mapped_secondary["expressionType"]
+    ) == expected_secondary
+    assert form_data["since"] == "2025-01-01"
+    assert form_data["until"] == "2025-02-01"
+    assert form_data["annotation_layers"][0]["name"] == "release"
+    assert form_data["dashboardId"] == 12
+    assert form_data["time_compare"] == ["1 year ago"]
+    assert form_data["standardizedFormData"]["memorizedFormData"][0][0] == "table"
+
+    round_trip_payload = _native_request_payload(request_model, "SavedSales", None)
+    round_trip_payload["config"] = form_data
+    reparsed = request_model.model_validate(round_trip_payload)
+    reparsed_form_data = map_config_to_form_data(reparsed.config)
+    for key in (
+        "viz_type",
+        "columns",
+        "metric",
+        "secondary_metric",
+        "since",
+        "until",
+        "annotation_layers",
+        "dashboardId",
+        "extra_form_data",
+        "time_compare",
+        "standardizedFormData",
+    ):
+        assert reparsed_form_data.get(key) == form_data.get(key)
+
+
+@pytest.mark.parametrize(
+    "request_model",
+    [GenerateChartRequest, UpdateChartRequest, UpdateChartPreviewRequest],
+)
+@pytest.mark.parametrize(
+    "bad_key,bad_value,error",
+    [
+        ("show_lables", True, "Unknown field 'show_lables'"),
+        ("annotation_layers", [["not-an-object"]], "annotation_layers"),
+        ("adhoc_filters", ["not-an-object"], "adhoc_filter must be an object"),
+        (
+            "standardizedFormData",
+            {"controls": {"metrics": "bad", "columns": []}},
+            "metrics",
+        ),
+    ],
+)
+def test_native_requests_reject_unknown_and_malformed_nested_state(
+    request_model: type[
+        GenerateChartRequest | UpdateChartRequest | UpdateChartPreviewRequest
+    ],
+    bad_key: str,
+    bad_value: object,
+    error: str,
+) -> None:
+    payload = _native_request_payload(request_model, "SavedSales", None)
+    config = payload["config"]
+    assert isinstance(config, dict)
+    config[bad_key] = bad_value
+    with pytest.raises(ValidationError, match=error):
+        request_model.model_validate(payload)
+
+
+def test_native_noncustom_sql_metric_uses_effective_frontend_label() -> None:
+    request = GenerateChartRequest.model_validate(
+        _native_request_payload(
+            GenerateChartRequest,
+            {
+                "expressionType": "SQL",
+                "sqlExpression": "SUM(sales)",
+                "hasCustomLabel": False,
+                "label": "",
+            },
+            None,
+        )
+    )
+    assert request.config.metric.label == "SUM(sales)"
+    form_data = map_config_to_form_data(request.config)
+    assert form_data["metric"]["label"] == "SUM(sales)"
+    assert form_data["metric"]["hasCustomLabel"] is False
 
 
 def test_typed_input_still_rejects_unknown_fields() -> None:
@@ -388,6 +573,129 @@ def test_query_builders_have_matching_sunburst_ordering(
     assert common_query["orderby"] == expected
     assert chart_query.get("orderby", []) == expected
     assert common_query["row_limit"] == chart_query["row_limit"] == 17
+
+
+@pytest.mark.parametrize(
+    "source_form_data",
+    [
+        {
+            "viz_type": "pie",
+            "groupby": ["old_pie_dimension"],
+            "metric": "old_pie_metric",
+        },
+        {
+            "viz_type": "echarts_timeseries_line",
+            "x_axis": "old_x",
+            "groupby": ["old_series"],
+            "metrics": ["old_xy_metric"],
+            "series": "old_series_role",
+            "groupby_b": ["old_secondary_group"],
+            "metrics_b": ["old_secondary_metric"],
+        },
+        {
+            "viz_type": "table",
+            "query_mode": "raw",
+            "all_columns": ["old_raw_column"],
+            "columns": ["old_table_column"],
+            "metrics": ["old_table_metric"],
+        },
+    ],
+    ids=["pie", "xy", "table"],
+)
+def test_cross_viz_preview_and_compile_start_from_mapped_sunburst_roles(
+    source_form_data: dict[str, object],
+) -> None:
+    source_form_data = {
+        **source_form_data,
+        "adhoc_filters": [
+            {
+                "clause": "WHERE",
+                "expressionType": "SIMPLE",
+                "subject": "status",
+                "operator": "==",
+                "comparator": "active",
+            }
+        ],
+        "annotation_layers": [{"source": "source-plugin-query-state"}],
+        "color_scheme": "savedScheme",
+        "extra_form_data": {"dashboard_filter": True},
+        "time_range": "Last year",
+        "plugin_only_ui_state": {"must_not_cross": True},
+    }
+    chart = Mock(
+        id=19,
+        datasource_id=0,
+        slice_name="Source chart",
+        params=json.dumps(source_form_data),
+    )
+    config = _config(
+        secondary_metric={"name": "profit", "aggregate": "SUM"},
+        sort_by_metric=True,
+    )
+    request = UpdateChartRequest(identifier=19, config=config)
+
+    preview = _build_preview_form_data(request, chart, parsed_config=config)
+    payload = _build_update_payload(request, chart, parsed_config=config)
+    assert isinstance(preview, dict)
+    assert isinstance(payload, dict)
+    saved = json.loads(payload["params"])
+
+    stale_query_keys = {
+        "all_columns",
+        "groupby",
+        "groupby_b",
+        "metrics",
+        "metrics_b",
+        "query_mode",
+        "series",
+        "x_axis",
+    }
+    for state in (preview, saved):
+        assert state["viz_type"] == "sunburst_v2"
+        assert state["columns"] == ["region", "country"]
+        assert state["metric"]["column"] == {"column_name": "sales"}
+        assert state["secondary_metric"]["column"] == {"column_name": "profit"}
+        assert stale_query_keys.isdisjoint(state)
+        assert "plugin_only_ui_state" not in state
+        assert "annotation_layers" not in state
+        assert state["adhoc_filters"][0]["subject"] == "status"
+        assert state["color_scheme"] == "savedScheme"
+        assert state["extra_form_data"] == {"dashboard_filter": True}
+        assert state["time_range"] == "Last year"
+
+    # Exercise the real shared query builder, then the real compile product
+    # through QueryContextFactory's boundary. Only database execution/factory
+    # construction are isolated; no transition or query-building helper is mocked.
+    query = build_query_context_from_form_data(
+        preview,
+        {"id": 7, "type": "table"},
+        viz_type="sunburst_v2",
+    )["queries"][0]
+    assert query["columns"] == ["region", "country"]
+    assert query["metrics"] == [preview["metric"], preview["secondary_metric"]]
+
+    factory = MagicMock()
+    factory.create.return_value = object()
+    command = MagicMock()
+    command.run.return_value = {"queries": [{"data": []}]}
+    with (
+        patch(
+            "superset.common.query_context_factory.QueryContextFactory",
+            return_value=factory,
+        ),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand",
+            return_value=command,
+        ),
+    ):
+        result = _compile_chart(preview, 7)
+    assert result.success is True
+    compiled_query = factory.create.call_args.kwargs["queries"][0]
+    assert compiled_query["columns"] == ["region", "country"]
+    assert compiled_query["metrics"] == [
+        preview["metric"],
+        preview["secondary_metric"],
+    ]
 
 
 def test_compile_path_uses_chart_faithful_query() -> None:
@@ -855,6 +1163,55 @@ def test_update_tool_explicit_empty_filters_clear_saved_filters() -> None:
     assert "adhoc_filters" not in json.loads(payload["params"])
 
 
+@pytest.mark.parametrize("cleared_field", ["time_range", "temporal_column"])
+def test_explicit_temporal_clear_removes_preserved_temporal_filters(
+    cleared_field: str,
+) -> None:
+    chart = Mock(
+        id=19,
+        datasource_id=7,
+        slice_name="Saved hierarchy",
+        params=json.dumps(
+            {
+                "viz_type": "sunburst_v2",
+                "columns": ["region", "country"],
+                "metric": "SavedSales",
+                "granularity_sqla": "order_date",
+                "time_range": "Last month",
+                "adhoc_filters": [
+                    {
+                        "clause": "WHERE",
+                        "expressionType": "SIMPLE",
+                        "subject": "order_date",
+                        "operator": "TEMPORAL_RANGE",
+                        "comparator": "Last month",
+                    },
+                    {
+                        "clause": "WHERE",
+                        "expressionType": "SIMPLE",
+                        "subject": "status",
+                        "operator": "==",
+                        "comparator": "active",
+                    },
+                ],
+            }
+        ),
+    )
+    config = _config(**{cleared_field: None})
+    request = UpdateChartRequest(identifier=19, config=config)
+    payload = _build_update_payload(request, chart, parsed_config=config)
+    preview = _build_preview_form_data(request, chart, parsed_config=config)
+    assert isinstance(payload, dict)
+    assert isinstance(preview, dict)
+
+    for state in (json.loads(payload["params"]), preview):
+        filters = state.get("adhoc_filters", [])
+        assert all(filter_.get("comparator") != "Last month" for filter_ in filters)
+        assert any(filter_["subject"] == "status" for filter_ in filters)
+        if cleared_field == "temporal_column":
+            assert all(filter_["operator"] != "TEMPORAL_RANGE" for filter_ in filters)
+
+
 @pytest.mark.parametrize(
     "overrides, expected_column, expected_grain",
     [
@@ -1134,19 +1491,40 @@ async def test_generate_chart_product_path_returns_sunburst_preview() -> None:
 
 
 @pytest.mark.asyncio
-async def test_cross_viz_preview_update_and_immediate_save_report_sunburst_state() -> (
-    None
-):
+@pytest.mark.parametrize(
+    "source_viz,source_params",
+    [
+        ("pie", {"groupby": ["old_region"], "metric": "old_count"}),
+        (
+            "echarts_timeseries_line",
+            {
+                "x_axis": "old_date",
+                "groupby": ["old_series"],
+                "metrics": ["old_xy_metric"],
+            },
+        ),
+        (
+            "table",
+            {
+                "query_mode": "raw",
+                "all_columns": ["old_table_column"],
+                "metrics": ["old_table_metric"],
+            },
+        ),
+    ],
+    ids=["pie", "xy", "table"],
+)
+async def test_cross_viz_preview_update_and_immediate_save_report_sunburst_state(
+    source_viz: str, source_params: dict[str, object]
+) -> None:
     chart = Mock(
         id=19,
         datasource_id=7,
         datasource_type="table",
-        slice_name="Old pie",
-        viz_type="pie",
+        slice_name="Source chart",
+        viz_type=source_viz,
         uuid="chart-uuid",
-        params=json.dumps(
-            {"viz_type": "pie", "groupby": ["region"], "metric": "count"}
-        ),
+        params=json.dumps({"viz_type": source_viz, **source_params}),
     )
     config = _config()
     context = MagicMock()

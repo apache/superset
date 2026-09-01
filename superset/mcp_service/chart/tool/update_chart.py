@@ -215,20 +215,6 @@ def _merge_replacement_config(
     return merged
 
 
-def _merge_saved_sunburst_form_data(
-    existing_form_data: dict[str, Any],
-    new_form_data: dict[str, Any],
-    parsed_config: Any,
-) -> dict[str, Any]:
-    """Preserve omitted controls only for a saved same-type Sunburst update."""
-    if (
-        new_form_data.get("viz_type") != "sunburst_v2"
-        or existing_form_data.get("viz_type") != "sunburst_v2"
-    ):
-        return new_form_data
-    return _merge_replacement_config(existing_form_data, new_form_data, parsed_config)
-
-
 def _build_update_payload(
     request: UpdateChartRequest,
     chart: Any,
@@ -254,10 +240,10 @@ def _build_update_payload(
         merge_table_column_config(_get_existing_form_data(chart), new_form_data)
         merge_interactive_pivot_ui_config(_get_existing_form_data(chart), new_form_data)
         existing_form_data = _get_existing_form_data(chart)
-        # Sunburst exposes a dense presentation panel whose omitted values must
-        # preserve the saved chart. Keep the established replacement behavior
-        # for every other registered chart type.
-        new_form_data = _merge_saved_sunburst_form_data(
+        # Apply the same bounded registry used by preview updates. Cross-viz
+        # changes cannot inherit source query roles; same-viz Sunburst updates
+        # additionally preserve explicitly omitted native presentation state.
+        new_form_data = _merge_replacement_config(
             existing_form_data, new_form_data, parsed_config
         )
 

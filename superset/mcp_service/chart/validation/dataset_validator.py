@@ -147,6 +147,42 @@ class DatasetValidator:
     """Validates chart configuration against dataset schema."""
 
     @staticmethod
+    def _resolve_metadata_entry(
+        reference: str,
+        candidates: List[Dict[str, Any]],
+    ) -> tuple[Dict[str, Any] | None, list[str]]:
+        """Resolve exact spelling first, then one unambiguous casefold match."""
+        for candidate in candidates:
+            if str(candidate["name"]) == reference:
+                return candidate, []
+
+        folded_matches = [
+            candidate
+            for candidate in candidates
+            if str(candidate["name"]).casefold() == reference.casefold()
+        ]
+        if len(folded_matches) == 1:
+            return folded_matches[0], []
+        return None, [str(candidate["name"]) for candidate in folded_matches]
+
+    @staticmethod
+    def _ambiguous_reference_error(
+        reference: str, matches: list[str]
+    ) -> ChartGenerationError:
+        """Build the common actionable error for ambiguous metadata names."""
+        joined = ", ".join(repr(name) for name in matches)
+        return ChartGenerationError(
+            error_type="ambiguous_dataset_reference",
+            message=f"Dataset reference {reference!r} is ambiguous",
+            details=(
+                "The case-insensitive reference matches multiple candidates: "
+                f"{joined}. Use the exact dataset spelling."
+            ),
+            suggestions=[f"Use the exact name {name!r}" for name in matches[:10]],
+            error_code="AMBIGUOUS_DATASET_REFERENCE",
+        )
+
+    @staticmethod
     def validate_against_dataset(
         config: ChartConfig,
         dataset_id: int | str,
@@ -227,14 +263,13 @@ class DatasetValidator:
         if not temporal_column:
             return None
 
-        matching_column = next(
-            (
-                column
-                for column in dataset_context.available_columns
-                if column["name"].lower() == temporal_column.lower()
-            ),
-            None,
+        matching_column, ambiguous_matches = DatasetValidator._resolve_metadata_entry(
+            temporal_column, dataset_context.available_columns
         )
+        if ambiguous_matches:
+            return DatasetValidator._ambiguous_reference_error(
+                temporal_column, ambiguous_matches
+            )
         if matching_column is None:
             return ChartGenerationError(
                 error_type="missing_temporal_column",
@@ -441,27 +476,12 @@ class DatasetValidator:
                 if ref.saved_metric
                 else dataset_context.available_columns
             )
-            names = [str(candidate["name"]) for candidate in candidates]
-            if ref.name in names:
-                continue
-            folded_matches = [
-                name for name in names if name.casefold() == ref.name.casefold()
-            ]
+            _entry, folded_matches = DatasetValidator._resolve_metadata_entry(
+                ref.name, candidates
+            )
             if len(folded_matches) <= 1:
                 continue
-            joined = ", ".join(repr(name) for name in folded_matches)
-            return ChartGenerationError(
-                error_type="ambiguous_dataset_reference",
-                message=f"Dataset reference {ref.name!r} is ambiguous",
-                details=(
-                    f"The case-insensitive reference matches multiple candidates: "
-                    f"{joined}. Use the exact dataset spelling."
-                ),
-                suggestions=[
-                    f"Use the exact name {name!r}" for name in folded_matches[:10]
-                ],
-                error_code="AMBIGUOUS_DATASET_REFERENCE",
-            )
+            return DatasetValidator._ambiguous_reference_error(ref.name, folded_matches)
         return None
 
     @staticmethod
@@ -762,12 +782,16 @@ class DatasetValidator:
                 # Should be unreachable per validate_metric_shape; defensive.
                 continue
 
-            # Find column info
-            col_info = None
-            for col in dataset_context.available_columns:
-                if col["name"].lower() == col_ref.name.lower():
-                    col_info = col
-                    break
+            col_info, ambiguous_matches = DatasetValidator._resolve_metadata_entry(
+                col_ref.name, dataset_context.available_columns
+            )
+            if ambiguous_matches:
+                errors.append(
+                    DatasetValidator._ambiguous_reference_error(
+                        col_ref.name, ambiguous_matches
+                    )
+                )
+                continue
 
             if col_info:
                 # Check numeric aggregates on non-numeric columns.
