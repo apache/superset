@@ -2461,3 +2461,84 @@ test('refreshSystemThemes ignores a stale out-of-order response', async () => {
 
   getSpy.mockRestore();
 });
+
+test('refreshSystemThemes applies a valid earlier response when a newer refresh fails', async () => {
+  const controller = createController();
+  mockSetConfig.mockClear();
+
+  const EARLIER_DEFAULT: AnyThemeConfig = {
+    token: { colorBgBase: '#aaa111', colorPrimary: '#a1' },
+  };
+
+  let resolveEarlier: (value: unknown) => void = () => {};
+  const earlierPending = new Promise(resolve => {
+    resolveEarlier = resolve;
+  });
+
+  const getSpy = jest
+    .spyOn(SupersetClient, 'get')
+    // Earlier request (seq 1) stays pending.
+    .mockImplementationOnce(() => earlierPending as any)
+    // Newer request (seq 2) fails outright.
+    .mockRejectedValueOnce(new Error('newer refresh failed'));
+
+  const earlier = controller.refreshSystemThemes(); // seq 1, pending
+  const newer = controller.refreshSystemThemes(); // seq 2, rejects, applies nothing
+  await newer;
+
+  // The earlier request now resolves with a valid slice. Because the newer one
+  // never applied, the earlier (still-valid) response must not be discarded.
+  resolveEarlier({
+    json: {
+      result: {
+        default: EARLIER_DEFAULT,
+        dark: DARK_THEME,
+        defaultMode: 'default',
+      },
+    },
+  });
+  await earlier;
+
+  const lastConfig =
+    mockSetConfig.mock.calls[mockSetConfig.mock.calls.length - 1][0];
+  expect(lastConfig.token.colorBgBase).toBe('#aaa111');
+
+  getSpy.mockRestore();
+});
+
+test('refreshSystemThemes does not clobber an override applied while its fetch was in flight', async () => {
+  const controller = createController();
+
+  let resolveGet: (value: unknown) => void = () => {};
+  const pending = new Promise(resolve => {
+    resolveGet = resolve;
+  });
+  const getSpy = jest
+    .spyOn(SupersetClient, 'get')
+    .mockImplementationOnce(() => pending as any);
+
+  // Override is inactive at entry, so the refresh proceeds and awaits the GET.
+  const refresh = controller.refreshSystemThemes();
+
+  // An embedded theme-config override is applied while the request is in flight.
+  controller.setThemeConfig({
+    theme_default: DEFAULT_THEME,
+    theme_dark: DARK_THEME,
+  });
+  expect(controller.hasThemeConfigOverride()).toBe(true);
+  mockSetConfig.mockClear();
+
+  // The in-flight refresh resolves; the post-await guard must drop it so the
+  // SDK-provided theme is preserved.
+  resolveGet({
+    json: {
+      result: { default: { token: { colorBgBase: '#stale' } }, dark: {} },
+    },
+  });
+  await refresh;
+
+  expect(mockSetConfig).not.toHaveBeenCalled();
+  expect(controller.hasThemeConfigOverride()).toBe(true);
+
+  getSpy.mockRestore();
+});

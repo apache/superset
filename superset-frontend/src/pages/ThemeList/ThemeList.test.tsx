@@ -55,6 +55,32 @@ jest.mock('src/features/themes/api', () => ({
   unsetSystemDarkTheme: jest.fn(() => Promise.resolve()),
 }));
 
+// Mock ThemeModal so we can trigger its save callback directly, without
+// rendering the full editor. onThemeAdd wiring is what we assert on.
+jest.mock('src/features/themes/ThemeModal', () => ({
+  __esModule: true,
+  default: ({
+    onThemeAdd,
+    show,
+  }: {
+    onThemeAdd: () => void;
+    show: boolean;
+  }) => {
+    const React = jest.requireActual('react');
+    return show
+      ? React.createElement(
+          'button',
+          {
+            type: 'button',
+            'data-test': 'mock-modal-save',
+            onClick: () => onThemeAdd(),
+          },
+          'save',
+        )
+      : null;
+  },
+}));
+
 // Mock the CRUD hooks
 jest.mock('src/views/CRUD/hooks', () => ({
   ...jest.requireActual('src/views/CRUD/hooks'),
@@ -684,4 +710,136 @@ test('a failed system default mutation skips the live refresh', async () => {
   });
   // A failed mutation must not attempt the live re-apply.
   expect(mockRefreshSystemThemes).not.toHaveBeenCalled();
+});
+
+test('editing the current system default theme re-applies it live on save', async () => {
+  render(
+    <ThemesList
+      user={mockUser}
+      addDangerToast={jest.fn()}
+      addSuccessToast={jest.fn()}
+    />,
+    {
+      useRedux: true,
+      useRouter: true,
+      useQueryParams: true,
+      useTheme: true,
+    },
+  );
+
+  // The first row (Light Theme) is the current system default.
+  const editButtons = await screen.findAllByTestId('edit-action');
+  await userEvent.click(editButtons[0]);
+
+  const save = await screen.findByTestId('mock-modal-save');
+  await userEvent.click(save);
+
+  await waitFor(() => {
+    expect(mockRefreshSystemThemes).toHaveBeenCalled();
+  });
+  expect(mockRefreshData).toHaveBeenCalled();
+});
+
+test('editing a non-system theme does not re-apply live on save', async () => {
+  render(
+    <ThemesList
+      user={mockUser}
+      addDangerToast={jest.fn()}
+      addSuccessToast={jest.fn()}
+    />,
+    {
+      useRedux: true,
+      useRouter: true,
+      useQueryParams: true,
+      useTheme: true,
+    },
+  );
+
+  // The third row (Custom Theme) is neither system default nor system dark.
+  const editButtons = await screen.findAllByTestId('edit-action');
+  await userEvent.click(editButtons[2]);
+
+  const save = await screen.findByTestId('mock-modal-save');
+  await userEvent.click(save);
+
+  await waitFor(() => {
+    expect(mockRefreshData).toHaveBeenCalled();
+  });
+  expect(mockRefreshSystemThemes).not.toHaveBeenCalled();
+});
+
+test('editing the current system dark theme re-applies it live on save', async () => {
+  render(
+    <ThemesList
+      user={mockUser}
+      addDangerToast={jest.fn()}
+      addSuccessToast={jest.fn()}
+    />,
+    {
+      useRedux: true,
+      useRouter: true,
+      useQueryParams: true,
+      useTheme: true,
+    },
+  );
+
+  // The second row (Dark Theme) is the current system dark theme.
+  const editButtons = await screen.findAllByTestId('edit-action');
+  await userEvent.click(editButtons[1]);
+
+  const save = await screen.findByTestId('mock-modal-save');
+  await userEvent.click(save);
+
+  await waitFor(() => {
+    expect(mockRefreshSystemThemes).toHaveBeenCalled();
+  });
+  expect(mockRefreshData).toHaveBeenCalled();
+});
+
+test('a slow live re-apply does not block the confirm modal, list refresh, or toast', async () => {
+  // Make the live re-apply hang to simulate a slow /system request.
+  let resolveRefresh: () => void = () => {};
+  mockRefreshSystemThemes.mockImplementationOnce(
+    () =>
+      new Promise<void>(resolve => {
+        resolveRefresh = resolve;
+      }),
+  );
+
+  render(
+    <ThemesList
+      user={mockUser}
+      addDangerToast={jest.fn()}
+      addSuccessToast={jest.fn()}
+    />,
+    {
+      useRedux: true,
+      useRouter: true,
+      useQueryParams: true,
+      useTheme: true,
+    },
+  );
+
+  const setDefaultButtons = await screen.findAllByTestId('set-default-action');
+  await userEvent.click(setDefaultButtons[0]);
+
+  const confirmButton = await screen.findByRole('button', { name: 'Confirm' });
+  await userEvent.click(confirmButton);
+
+  // The mutation ran and the list refreshed without waiting on the re-apply.
+  await waitFor(() => {
+    expect(setSystemDefaultTheme as jest.Mock).toHaveBeenCalled();
+  });
+  expect(mockRefreshData).toHaveBeenCalled();
+  expect(mockRefreshSystemThemes).toHaveBeenCalled();
+
+  // The confirm dialog closes even though the re-apply is still pending
+  // (it would stay open if the handler awaited refreshSystemThemes).
+  await waitFor(() => {
+    expect(
+      screen.queryByRole('button', { name: 'Confirm' }),
+    ).not.toBeInTheDocument();
+  });
+
+  resolveRefresh();
 });

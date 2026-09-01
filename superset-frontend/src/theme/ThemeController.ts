@@ -116,8 +116,12 @@ export class ThemeController {
 
   private initialMode: ThemeMode | undefined;
 
-  // Monotonic counter used to drop out-of-order refreshSystemThemes responses.
+  // Assigns a monotonically increasing id to each refreshSystemThemes call, and
+  // tracks the highest id that has actually applied a slice, so out-of-order or
+  // superseded /system responses can be dropped ("newest applied wins").
   private refreshSeq = 0;
+
+  private appliedRefreshSeq = 0;
 
   constructor({
     storage = new LocalStorageAdapter(),
@@ -579,8 +583,9 @@ export class ThemeController {
    * without a full page reload. The endpoint returns the same resolved theme
    * slice used to bootstrap the page, so the live result matches a reload.
    *
-   * Skips entirely when an explicit theme-config override is active (e.g. from
-   * the Embedded SDK), so it can never clobber an externally-provided theme.
+   * Bails before applying whenever an explicit theme-config override is active
+   * (e.g. from the Embedded SDK) — checked both at entry and again after the
+   * fetch resolves — so it does not overwrite an externally-provided theme.
    *
    * Non-throwing: the server mutation has already succeeded by the time this
    * runs, so a failed refresh must not surface a failure to the caller. A
@@ -592,22 +597,29 @@ export class ThemeController {
     // An explicit theme-config override takes precedence over system themes.
     if (this.themeConfigOverride) return;
 
-    // Only the most recent refresh may apply its slice, so two rapid mutations
-    // cannot let an out-of-order (stale) response win.
-    const seq = this.refreshSeq + 1;
-    this.refreshSeq = seq;
+    // Assign this refresh a monotonically increasing id so out-of-order
+    // responses can be resolved by "newest successfully-applied wins".
+    this.refreshSeq += 1;
+    const seq = this.refreshSeq;
 
     try {
       const response = await SupersetClient.get({
         endpoint: '/api/v1/theme/system',
       });
-      // A newer refresh started while this request was in flight; drop this one.
-      if (seq !== this.refreshSeq) return;
+      // Drop this response if a newer refresh has already applied a slice (so a
+      // slow older request can't clobber it, and a newer request that fails to
+      // fetch can't discard this valid one), or if an embedded theme-config
+      // override took over while this request was in flight.
+      if (seq <= this.appliedRefreshSeq || this.themeConfigOverride) return;
 
       const themeConfig = response.json?.result as
         | BootstrapThemeDataConfig
         | undefined;
       if (!themeConfig) return;
+
+      // This response wins; record it before mutating so an older in-flight
+      // response can't overwrite it.
+      this.appliedRefreshSeq = seq;
 
       const {
         bootstrapDefaultTheme,

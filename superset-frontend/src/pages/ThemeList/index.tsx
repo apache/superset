@@ -298,13 +298,14 @@ function ThemesList({
         onConfirm: async () => {
           try {
             await setSystemDefaultTheme(theme.id!);
-            // Apply the new system theme live so it takes effect without a
-            // page reload. Non-throwing, so it never masks the success toast.
-            await refreshSystemThemes();
             refreshData();
             addSuccessToast(
               t('"%s" is now the system default theme', theme.theme_name),
             );
+            // Re-apply the new system theme live in the background. Not awaited
+            // (and non-throwing) so a slow /system request never blocks the
+            // confirm modal from closing, the list refresh, or the toast.
+            refreshSystemThemes();
           } catch (err: any) {
             addDangerToast(
               t('Failed to set system default theme: %s', err.message),
@@ -346,13 +347,14 @@ function ThemesList({
         onConfirm: async () => {
           try {
             await setSystemDarkTheme(theme.id!);
-            // Apply the new system theme live so it takes effect without a
-            // page reload. Non-throwing, so it never masks the success toast.
-            await refreshSystemThemes();
             refreshData();
             addSuccessToast(
               t('"%s" is now the system dark theme', theme.theme_name),
             );
+            // Re-apply the new system theme live in the background. Not awaited
+            // (and non-throwing) so a slow /system request never blocks the
+            // confirm modal from closing, the list refresh, or the toast.
+            refreshSystemThemes();
           } catch (err: any) {
             addDangerToast(
               t('Failed to set system dark theme: %s', err.message),
@@ -379,11 +381,12 @@ function ThemesList({
       onConfirm: async () => {
         try {
           await unsetSystemDefaultTheme();
-          // Revert to the fallback theme live, without a page reload.
-          // Non-throwing, so it never masks the success toast.
-          await refreshSystemThemes();
           refreshData();
           addSuccessToast(t('System default theme removed'));
+          // Revert to the fallback theme live in the background. Not awaited
+          // (and non-throwing) so a slow /system request never blocks the
+          // confirm modal from closing, the list refresh, or the toast.
+          refreshSystemThemes();
         } catch (err: any) {
           addDangerToast(
             t('Failed to remove system default theme: %s', err.message),
@@ -408,11 +411,12 @@ function ThemesList({
       onConfirm: async () => {
         try {
           await unsetSystemDarkTheme();
-          // Revert to the fallback theme live, without a page reload.
-          // Non-throwing, so it never masks the success toast.
-          await refreshSystemThemes();
           refreshData();
           addSuccessToast(t('System dark theme removed'));
+          // Revert to the fallback theme live in the background. Not awaited
+          // (and non-throwing) so a slow /system request never blocks the
+          // confirm modal from closing, the list refresh, or the toast.
+          refreshSystemThemes();
         } catch (err: any) {
           addDangerToast(
             t('Failed to remove system dark theme: %s', err.message),
@@ -699,12 +703,14 @@ function ThemesList({
         addDangerToast={addDangerToast}
         theme={currentTheme}
         onThemeAdd={async () => {
+          // Refresh the list row first so it is decoupled from the live
+          // re-apply below (a slow /system request must not block it).
+          refreshData();
           // If the edited theme is the current system default/dark, re-apply it
           // live so JSON edits take effect without a full page reload.
           if (currentTheme?.is_system_default || currentTheme?.is_system_dark) {
             await refreshSystemThemes();
           }
-          refreshData();
         }}
         onThemeApply={handleThemeModalApply}
         onHide={() => setThemeModalOpen(false)}
