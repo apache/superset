@@ -20,6 +20,7 @@ import {
   memo,
   ComponentType,
   ChangeEventHandler,
+  CompositionEvent,
   CompositionEventHandler,
   useRef,
   useEffect,
@@ -134,9 +135,7 @@ export default (memo as <T>(fn: T) => T)(function GlobalFilter<
     isComposingRef.current = true;
   };
 
-  const handleCompositionEnd = (
-    e: React.CompositionEvent<HTMLInputElement>,
-  ) => {
+  const handleCompositionEnd = (e: CompositionEvent<HTMLInputElement>) => {
     isComposingRef.current = false;
     setValue(e.currentTarget.value);
   };
