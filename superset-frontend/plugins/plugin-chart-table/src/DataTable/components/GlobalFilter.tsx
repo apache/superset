@@ -127,6 +127,7 @@ export default (memo as <T>(fn: T) => T)(function GlobalFilter<
 
   const handleBlur = () => {
     isSearchFocused.set(id, false);
+    isComposingRef.current = false;
   };
 
   const handleCompositionStart = () => {
