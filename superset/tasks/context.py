@@ -35,6 +35,8 @@ from superset.tasks.constants import ABORT_STATES
 from superset.tasks.utils import error_update, merge_properties, progress_update
 
 if TYPE_CHECKING:
+    from uuid import UUID
+
     from superset.coordination.types import SignalListener
     from superset.models.tasks import Task
 
@@ -738,6 +740,11 @@ class TaskContext(CoreTaskContext):
         if self._timeout_timer is not None:
             self._timeout_timer.cancel()
             self._timeout_timer = None
+
+    @property
+    def task_uuid(self) -> "UUID":
+        """The executing task's UUID (its stable, server-assigned identity)."""
+        return self._task_uuid
 
     @property
     def timeout_triggered(self) -> bool:

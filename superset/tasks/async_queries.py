@@ -288,6 +288,13 @@ def execute_chart_query(
         # request to read back (see get_cache_timeout).
         query_context.is_async_execution = True
         query_obj = query_context.queries[0]
+        # Stamp this query with the executing task's UUID as its forced-refresh
+        # nonce. A forced async refresh recomputes and records a marker keyed by
+        # (task_uuid, cache_key); the client's synchronous read-back carries the
+        # same task_id (from the 202) per query, so it reads the warmed result
+        # instead of recomputing — and a concurrent refresh joining this SHARED
+        # task reads back under the same id. Only consulted when force is true.
+        query_obj.force_nonce = str(get_context().task_uuid)
         if requires_totals:
             _inject_contribution_totals(query_obj, _get_dependency_cache_key())
         # Executes on cache miss and writes CacheRegion.DATA under query_cache_key.

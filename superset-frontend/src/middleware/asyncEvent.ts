@@ -422,7 +422,7 @@ subscribeRealtime(TASK_STATUS_TOPIC, handleTaskStatus);
  */
 export const waitForAsyncData = async <T = unknown[]>(
   asyncJob: AsyncJob,
-  refetch: () => Promise<T>,
+  refetch: (queryForceNonces?: string[]) => Promise<T>,
   signal?: AbortSignal,
 ): Promise<T> => {
   const taskIds = asyncJob.task_ids ?? [];
@@ -502,7 +502,10 @@ export const waitForAsyncData = async <T = unknown[]>(
     if (wsEnabled) scheduleCatchUp();
   });
 
-  return refetch();
+  // Read the warmed results back synchronously. The per-query task ids double as
+  // forced-refresh idempotency nonces (see chartAction.requestChartDataResolved),
+  // so a forced refresh reads the result its task cached instead of recomputing.
+  return refetch(taskIds);
 };
 
 export const init = (appConfig?: AppConfig) => {

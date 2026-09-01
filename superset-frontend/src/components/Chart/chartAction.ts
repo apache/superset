@@ -32,7 +32,6 @@ import {
   LatestQueryFormData,
 } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
-import { nanoid } from 'nanoid';
 import type { ControlStateMapping } from '@superset-ui/chart-controls';
 import { getControlsState } from 'src/explore/store';
 import {
@@ -289,10 +288,11 @@ export interface GetChartDataRequestParams {
   resultFormat?: string;
   resultType?: string;
   force?: boolean;
-  // Idempotency token for a forced refresh, minted once per refresh and sent on
-  // both the async submit and the follow-up read-back so the server recomputes
-  // exactly once (see requestChartDataResolved). Only meaningful with `force`.
-  forceNonce?: string;
+  // Forced-refresh idempotency tokens for the synchronous read-back: each is the
+  // async task's UUID for the query at the same index (from the 202 `task_ids`),
+  // so a forced refresh reads the result its task warmed instead of recomputing
+  // (see requestChartDataResolved). Only meaningful with `force`.
+  queryForceNonces?: string[];
   requestParams?: RequestParams;
   ownState?: JsonObject;
   // Opt into asynchronous execution. Only set by callers that handle an HTTP 202
@@ -437,14 +437,14 @@ const v1ChartDataRequest = async (
   ownState: JsonObject,
   parseMethod: string | undefined,
   asyncMode: boolean,
-  forceNonce?: string,
+  queryForceNonces?: string[],
 ): Promise<ChartDataRequestResponse> => {
   const payload = await buildV1ChartDataPayload({
     formData: formData as QueryFormData,
     resultType,
     resultFormat,
     force,
-    forceNonce,
+    queryForceNonces,
     setDataMask,
     ownState,
   });
@@ -495,7 +495,7 @@ export async function getChartDataRequest({
   resultFormat = 'json',
   resultType = 'full',
   force = false,
-  forceNonce,
+  queryForceNonces,
   requestParams = {},
   ownState = {},
   enableAsyncMode = false,
@@ -535,7 +535,7 @@ export async function getChartDataRequest({
     ownState,
     parseMethod,
     asyncMode,
-    forceNonce,
+    queryForceNonces,
   );
 }
 
@@ -697,7 +697,7 @@ const extractResult = (json: ChartDataRequestResponse['json']): QueryData[] =>
 export function handleChartDataResponse(
   response: Response,
   json: ChartDataRequestResponse['json'],
-  refetch: () => Promise<QueryData[]>,
+  refetch: (queryForceNonces?: string[]) => Promise<QueryData[]>,
   signal?: AbortSignal,
 ): Promise<QueryData[]> | QueryData[] {
   if (isFeatureEnabled(FeatureFlag.GlobalAsyncQueries)) {
@@ -728,18 +728,16 @@ export function handleChartDataResponse(
  * On a 202 the body is the async job rather than data: every query task is
  * awaited, then the same request is re-issued *synchronously* so the server
  * serves it inline. Double execution (the async task computing, then the
- * re-issue recomputing the identical query) is prevented by a per-refresh
- * idempotency nonce: a nonce is minted once here when `force` is set and carried
- * on both the submit and the re-issue. The async task recomputes and records a
- * server-side marker keyed by (nonce, cache_key); the re-issue reuses the same
- * nonce, sees the marker, and reads the freshly-warmed cache instead of
- * recomputing. A new force refresh mints a new nonce, so it genuinely recomputes.
- * Non-forced requests carry no nonce and keep the plain flow.
- *
- * Scope: this dedups one refresh's own submit/read-back pair. It does NOT make
- * concurrent force refreshes idempotent — a second refresh (new nonce) that
- * joins the first's shared task (deduped by query cache key) will still force its
- * own read-back, since the first task only recorded its own nonce.
+ * re-issue recomputing the identical query) is prevented by a forced-refresh
+ * idempotency nonce that IS the async task's UUID: the async submit carries no
+ * nonce (the worker stamps each query with its own task UUID and records a marker
+ * keyed by (task_uuid, cache_key) once cached), and the synchronous read-back
+ * carries each query's task id — returned in the 202 `task_ids`, in query order —
+ * as that query's `force_nonce`, so it reads the freshly-warmed cache instead of
+ * recomputing. Because the token is the task's identity, a concurrent force
+ * refresh that joins the same shared task (deduped by query cache key) reads back
+ * under the same id — so it does NOT double-execute either. Non-forced requests
+ * carry no nonce and keep the plain flow.
  *
  * `signal` aborts the wait (Stop pressed, chart superseded or unmounted) and
  * cancels the outstanding tasks.
@@ -748,13 +746,14 @@ export async function requestChartDataResolved(
   params: Omit<GetChartDataRequestParams, 'enableAsyncMode'>,
   signal?: AbortSignal,
 ): Promise<QueryData[]> {
-  const paramsWithNonce = params.force
-    ? { ...params, forceNonce: nanoid() }
-    : params;
-
-  const reissueSynchronously = async (): Promise<QueryData[]> => {
+  // The synchronous read-back of a forced refresh stamps each query with its
+  // task id (from the 202, index-aligned to queries) as the forced-refresh nonce.
+  const reissueSynchronously = async (
+    queryForceNonces?: string[],
+  ): Promise<QueryData[]> => {
     const { response, json } = await getChartDataRequest({
-      ...paramsWithNonce,
+      ...params,
+      queryForceNonces: params.force ? queryForceNonces : undefined,
       enableAsyncMode: false,
     });
     if (response.status !== 200) {
@@ -766,7 +765,7 @@ export async function requestChartDataResolved(
   };
 
   const { response, json } = await getChartDataRequest({
-    ...paramsWithNonce,
+    ...params,
     enableAsyncMode: true,
   });
   return handleChartDataResponse(response, json, reissueSynchronously, signal);
