@@ -100,6 +100,17 @@ class DatasetColumnsPutSchema(Schema):
     datetime_format = fields.String(
         allow_none=True, validate=[Length(1, 100), validate_python_date_format]
     )
+    partition_value_transform = fields.String(
+        allow_none=True,
+        metadata={
+            "description": (
+                "SQL expression containing a :value placeholder. Filters on "
+                "this column are mirrored onto the dataset's partition column "
+                "with the value passed through this transform."
+            )
+        },
+    )
+    partition_transform_is_monotonic = fields.Boolean(load_default=False)
     uuid = fields.UUID(allow_none=True)
 
 
@@ -178,6 +189,8 @@ class DatasetPostSchema(Schema):
     normalize_columns = fields.Boolean(load_default=False)
     always_filter_main_dttm = fields.Boolean(load_default=False)
     currency_code_column = fields.String(allow_none=True, validate=Length(0, 250))
+    partition_column = fields.String(allow_none=True, validate=Length(0, 250))
+    partition_mapped_column = fields.String(allow_none=True, validate=Length(0, 250))
     template_params = fields.String(allow_none=True)
     uuid = fields.UUID(allow_none=True)
 
@@ -193,6 +206,8 @@ class DatasetPutSchema(Schema):
     description = fields.String(allow_none=True)
     main_dttm_col = fields.String(allow_none=True)
     currency_code_column = fields.String(allow_none=True, validate=Length(0, 250))
+    partition_column = fields.String(allow_none=True, validate=Length(0, 250))
+    partition_mapped_column = fields.String(allow_none=True, validate=Length(0, 250))
     normalize_columns = fields.Boolean(allow_none=True, dump_default=False)
     always_filter_main_dttm = fields.Boolean(load_default=False)
     offset = fields.Integer(allow_none=True)
@@ -285,6 +300,10 @@ class ImportV1ColumnSchema(Schema):
     description = fields.String(allow_none=True)
     python_date_format = fields.String(allow_none=True)
     datetime_format = fields.String(allow_none=True)
+    partition_value_transform = fields.String(allow_none=True)
+    # Bundles predating the field must not claim their transform preserves
+    # ordering, which would silently enable range mirroring on import.
+    partition_transform_is_monotonic = fields.Boolean(load_default=False)
     uuid = fields.UUID(allow_none=True)
 
 
@@ -407,6 +426,8 @@ class ImportV1DatasetSchema(Schema):
     external_url = fields.String(allow_none=True)
     normalize_columns = fields.Boolean(load_default=False)
     always_filter_main_dttm = fields.Boolean(load_default=False)
+    partition_column = fields.String(allow_none=True)
+    partition_mapped_column = fields.String(allow_none=True)
     folders = fields.List(fields.Nested(FolderSchema), required=False, allow_none=True)
     # data_file is used by the example loading system to reference Parquet files
     data_file = fields.String(allow_none=True, load_default=None)

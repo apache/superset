@@ -448,6 +448,37 @@ class DatasetDAO(BaseDAO[SqlaTable]):
                     "python_date_format is an invalid date/timestamp format."
                 )
 
+    @staticmethod
+    def clear_dangling_partition_mapping(
+        model: SqlaTable, surviving_column_names: set[str]
+    ) -> None:
+        """
+        Drop parts of the partition filter mapping whose columns no longer exist.
+
+        A metadata sync can remove the partition column at the source, which
+        would otherwise leave the dataset pointing at a column that isn't there.
+        The query layer bails out defensively on a dangling mapping, so this is
+        about the dataset's stored state being honest rather than about
+        correctness of the SQL.
+
+        Called from the backend `override_columns=true` path, which is the
+        authoritative one: the editor clears the mapping client-side too, but an
+        API-driven sync bypasses the editor entirely.
+        """
+        if (
+            model.partition_column
+            and model.partition_column not in surviving_column_names
+        ):
+            model.partition_column = None
+            model.partition_mapped_column = None
+            return
+
+        if (
+            model.partition_mapped_column
+            and model.partition_mapped_column not in surviving_column_names
+        ):
+            model.partition_mapped_column = None
+
     @classmethod
     def _override_columns(
         cls, model: SqlaTable, property_columns: list[dict[str, Any]]
@@ -517,6 +548,8 @@ class DatasetDAO(BaseDAO[SqlaTable]):
                     if key not in protected_keys
                 }
                 db.session.add(TableColumn(**{**cleaned, "table_id": model.id}))
+
+        cls.clear_dangling_partition_mapping(model, set(incoming_by_name))
 
     @classmethod
     def _upsert_columns(

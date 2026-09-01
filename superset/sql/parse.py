@@ -594,6 +594,44 @@ class BaseSQLStatement(Generic[InternalRepresentation]):
         """
         raise NotImplementedError()
 
+    def get_niladic_functions(self) -> set[str]:
+        """
+        Names of functions called with no arguments.
+
+        Some functions mean something entirely different with an empty argument
+        list: on Hive and Impala ``unix_timestamp()`` is the current time while
+        ``unix_timestamp(x)`` is a pure conversion. Callers that care about
+        determinism have to tell those apart by arity, so a name-based check
+        like ``check_functions_present`` is not enough.
+        """
+        niladic: set[str] = set()
+        for function in self._parsed.find_all(exp.Func):
+            sql_name = function.sql_name()
+            name = function.name.upper() if sql_name == "ANONYMOUS" else sql_name
+            if not self._function_args(function):
+                niladic.add(name.upper())
+        return niladic
+
+    @staticmethod
+    def _function_args(function: exp.Func) -> list[Any]:
+        """
+        The arguments a function node was called with.
+
+        `exp.Anonymous` keeps the function *name* in `this` and the arguments in
+        `expressions`, while a named node like `exp.Lower` keeps its single
+        argument in `this` -- so the two shapes have to be read differently or
+        every anonymous call looks like it takes one argument.
+        """
+        if isinstance(function, exp.Anonymous):
+            return list(function.expressions or [])
+
+        args: list[Any] = []
+        for value in function.args.values():
+            if value is None:
+                continue
+            args.extend(value if isinstance(value, list) else [value])
+        return args
+
     def check_tables_present(
         self, tables: set[str], default_schema: str | None = None
     ) -> bool:

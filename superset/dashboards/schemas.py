@@ -366,6 +366,9 @@ class DashboardDatasetSchema(Schema):
     granularity_sqla = fields.List(fields.List(fields.Str()))
     normalize_columns = fields.Bool()
     always_filter_main_dttm = fields.Bool()
+    partition_column = fields.Str()
+    partition_mapped_column = fields.Str()
+    partition_filter_mapping = fields.Dict(allow_none=True)
 
     # pylint: disable=unused-argument
     @post_dump()
