@@ -48,6 +48,13 @@ The entry appears for users who may edit the entity — the same rule the server
 applies to overwriting it: administrators, plus anyone whose subjects are among
 the entity's editors. Users who cannot edit do not see the panel.
 
+One entry can appear that nobody typed: the first save through the chart
+editor of a chart created by an older Superset version, an import, or an
+external tool may record a one-time settings-migration entry alongside the
+user's change, as legacy settings are rewritten to their modern form. It
+happens at most once per chart per upgrade, and later saves record only what
+the user changed.
+
 ## Previewing a version
 
 Selecting a version loads it into the page so you can see it before deciding

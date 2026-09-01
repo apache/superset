@@ -39,6 +39,7 @@ payload. Clients must display the new impact and obtain renewed confirmation
 before retrying. Preview or recheck failures fail closed rather than treating
 unknown impact as zero. Chart and dashboard purge endpoints are unchanged.
 
+- With version history enabled, the first save through the chart editor of a chart created by an older Superset version, an import, or the API may record a one-time settings-migration entry alongside the user's change (legacy keys such as `granularity_sqla`/`time_range` being rewritten to their modern form). Subsequent saves of the same chart are unaffected. This can recur once per pre-existing chart after an upgrade.
 - `SAMPLES_ROW_LIMIT` is now the default for `/datasource/samples` requests without a valid explicit `per_page`, rather than a hard per-request ceiling; explicit limits are honored up to the existing global row-limit ceiling, matching `/chart/data` SAMPLES requests.
 - The `cockroachdb` extra (`pip install apache-superset[cockroachdb]`) now installs `sqlalchemy-cockroachdb` instead of the abandoned `cockroachdb` package, whose SQLAlchemy dialect could not be imported under SQLAlchemy 2.0. Existing environments with the old package installed should `pip uninstall cockroachdb && pip install sqlalchemy-cockroachdb` (or simply reinstall the extra) to restore CockroachDB connectivity.
 
