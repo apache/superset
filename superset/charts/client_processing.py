@@ -70,6 +70,9 @@ PERCENT_3_POINT = ",.3%"
 # Table plugin's three.
 PERCENT_1_POINT = ",.1%"
 
+# The Excel equivalent, applied as a cell format so the value stays numeric.
+EXCEL_PERCENT_FORMAT = "0.0%"
+
 
 def get_column_key(label: tuple[str, ...], metrics: list[str]) -> tuple[Any, ...]:
     """
@@ -1429,6 +1432,14 @@ def apply_client_processing(  # noqa: C901
             excel.apply_column_types(processed_df, query["coltypes"])
             query["data"] = excel.df_to_excel(
                 processed_df,
+                # A percent mode leaves every cell a fraction. Excel can render
+                # those as percentages without turning them into text, so the
+                # workbook reads like the chart and still calculates.
+                number_format=(
+                    EXCEL_PERCENT_FORMAT
+                    if form_data.get("showValuesAs") in SHOW_VALUES_AS_PERCENT_MODES
+                    else None
+                ),
                 **{
                     **current_app.config["EXCEL_EXPORT"],
                     "index": show_default_index,

@@ -2261,6 +2261,43 @@ def test_pivot_table_v2_show_values_as_actual_keeps_raw_values() -> None:
     assert result.loc[("US",), ("SUM(num)", "boy")] == "10"
 
 
+def test_apply_client_processing_xlsx_formats_percentages_as_cells():
+    """The workbook shows percentages without giving up numeric cells.
+
+    A scheduled XLSX report and the browser's pivoted-Excel download have to
+    agree; writing formatted text would match the download but stop Excel from
+    summing the column.
+    """
+    import openpyxl  # noqa: PLC0415
+
+    source = pd.DataFrame(
+        {"nation": ["US", "US"], "gender": ["boy", "girl"], "SUM(num)": [1, 99]}
+    )
+    result = {
+        "queries": [
+            {
+                "result_format": ChartDataResultFormat.XLSX,
+                "data": excel.df_to_excel(source, index=False),
+            }
+        ]
+    }
+    form_data = {
+        "viz_type": "pivot_table_v2",
+        "groupbyRows": ["nation"],
+        "groupbyColumns": ["gender"],
+        "metrics": ["SUM(num)"],
+        "showValuesAs": "percent_row",
+        "metricsLayout": "COLUMNS",
+    }
+
+    processed = apply_client_processing(result, form_data)
+
+    workbook = openpyxl.load_workbook(BytesIO(processed["queries"][0]["data"]))
+    sheet = workbook.active
+    assert sheet.cell(row=2, column=2).value == pytest.approx(0.01)
+    assert sheet.cell(row=2, column=2).number_format == "0.0%"
+
+
 def test_apply_client_processing_csv_format_show_values_as():
     """CSV exports carry the percentages the chart displays."""
     result = {
