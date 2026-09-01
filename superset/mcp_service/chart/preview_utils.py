@@ -76,6 +76,7 @@ def generate_preview_from_form_data(
 
     try:
         # Execute query to get data
+        from superset.charts.data.form_data import set_query_context_form_data
         from superset.commands.chart.data.get_data_command import ChartDataCommand
         from superset.connectors.sqla.models import SqlaTable
         from superset.extensions import db
@@ -101,6 +102,7 @@ def generate_preview_from_form_data(
             row_limit=form_data.get("row_limit", 100),
             force=False,
         )
+        set_query_context_form_data(query_context_obj, dataset_id, "table")
 
         # Execute query
         command = ChartDataCommand(query_context_obj)

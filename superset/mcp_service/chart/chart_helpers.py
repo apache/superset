@@ -37,6 +37,13 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+# QueryContext and Jinja consumers treat these envelope values as mappings.
+# Pydantic accepts an explicit null for the optional native fields, so remove
+# that sentinel before form data crosses an operation boundary.
+MAPPING_ENVELOPE_KEYS = frozenset(
+    {"extra_form_data", "standardizedFormData", "url_params"}
+)
+
 # extra_form_data override targets that the query object actually reads. Note
 # that ``time_grain`` is deliberately absent: the query object has no such field
 # and nothing downstream consumes it, matching the REST path, where
@@ -80,6 +87,9 @@ def canonicalize_operation_form_data(
     identity cannot turn unsaved state into a chart update.
     """
     canonical = dict(form_data)
+    for key in MAPPING_ENVELOPE_KEYS:
+        if canonical.get(key) is None:
+            canonical.pop(key, None)
     canonical.pop("datasource", None)
     canonical.pop("datasource_id", None)
     canonical.pop("datasource_type", None)
@@ -185,6 +195,10 @@ def prepare_form_data_for_query(
         simple_filter_to_adhoc,
         split_adhoc_filters_into_base_filters,
     )
+
+    for key in MAPPING_ENVELOPE_KEYS:
+        if form_data.get(key) is None:
+            form_data.pop(key, None)
 
     if isinstance(form_data.get("adhoc_filters"), list):
         adhoc_filters = [

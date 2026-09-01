@@ -36,6 +36,7 @@ from superset.mcp_service.chart.schemas import (
     FilterConfig,
     GenerateChartResponse,
     LegendConfig,
+    MixedTimeseriesChartConfig,
     TableChartConfig,
     UpdateChartRequest,
     XYChartConfig,
@@ -737,6 +738,45 @@ class TestBuildUpdatePayload:
         assert result["slice_name"] == "Existing Name"
         # query_context must be cleared so get_chart_data uses updated params
         assert result["query_context"] is None
+
+    def test_same_viz_mixed_timeseries_preserves_native_controls_in_both_paths(
+        self,
+    ) -> None:
+        """Simplified updates retain valid controls owned by the same plugin."""
+        config = MixedTimeseriesChartConfig(
+            x=ColumnRef(name="ds"),
+            y=[ColumnRef(name="revenue", aggregate="SUM")],
+            y_secondary=[ColumnRef(name="profit", aggregate="SUM")],
+        )
+        request = UpdateChartRequest(identifier=11, config=config)
+        chart = Mock(
+            id=11,
+            datasource_id=7,
+            datasource_type="table",
+            slice_name="Comparison",
+            params=json.dumps(
+                {
+                    "viz_type": "mixed_timeseries",
+                    "metrics": ["old_primary"],
+                    "metrics_b": ["old_secondary"],
+                    "time_compare": ["1 year ago"],
+                    "comparison_type_b": "percentage",
+                    "y_axis_format": ",.2f",
+                }
+            ),
+        )
+
+        payload = _build_update_payload(request, chart, parsed_config=config)
+        preview = _build_preview_form_data(request, chart, parsed_config=config)
+
+        assert isinstance(payload, dict)
+        assert isinstance(preview, dict)
+        for form_data in (json.loads(payload["params"]), preview):
+            assert form_data["time_compare"] == ["1 year ago"]
+            assert form_data["comparison_type_b"] == "percentage"
+            assert form_data["y_axis_format"] == ",.2f"
+            assert form_data["metrics"][0]["column"] == {"column_name": "revenue"}
+            assert form_data["metrics_b"][0]["column"] == {"column_name": "profit"}
 
     def test_add_columns_preserves_existing_columns_and_metrics(self):
         """An additive update does not require reconstructing the table."""

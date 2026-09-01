@@ -30,6 +30,7 @@ from superset.common.form_data_query_context import (
     build_query_context_from_form_data,
 )
 from superset.mcp_service.chart.chart_helpers import (
+    build_query_context_from_form_data as build_mcp_query_context_from_form_data,
     build_query_dicts_from_form_data,
     canonicalize_operation_form_data,
     resolve_form_data_datasource,
@@ -57,11 +58,14 @@ from superset.mcp_service.chart.schemas import (
     GenerateChartRequest,
     GetChartDataRequest,
     GetChartPreviewRequest,
+    HistogramChartConfig,
+    MixedTimeseriesChartConfig,
     PieChartConfig,
     SunburstChartConfig,
     TableChartConfig,
     UpdateChartPreviewRequest,
     UpdateChartRequest,
+    XYChartConfig,
 )
 from superset.mcp_service.chart.sunburst import (
     normalize_sunburst_form_data_references,
@@ -89,6 +93,13 @@ from superset.mcp_service.chart.validation.runtime.chart_type_suggester import (
 )
 from superset.mcp_service.common.error_schemas import DatasetContext
 from superset.utils import json
+
+
+@pytest.fixture(autouse=True)
+def mock_programmatic_query_form_data_seed():
+    """Keep query-result tests focused on their isolated context doubles."""
+    with patch("superset.charts.data.form_data.set_query_context_form_data"):
+        yield
 
 
 def _config(**overrides: object) -> SunburstChartConfig:
@@ -483,6 +494,51 @@ def test_registering_sunburst_keeps_all_core_chart_plugins() -> None:
     } <= set(get_registry().all_types())
 
 
+@pytest.mark.parametrize(
+    "config",
+    [
+        TableChartConfig(columns=[ColumnRef(name="region")]),
+        PieChartConfig(
+            dimension=ColumnRef(name="region"),
+            metric=ColumnRef(name="sales", aggregate="SUM"),
+        ),
+        HistogramChartConfig(column=ColumnRef(name="sales")),
+        XYChartConfig(
+            x=ColumnRef(name="order_date"),
+            y=[ColumnRef(name="sales", aggregate="SUM")],
+        ),
+        MixedTimeseriesChartConfig(
+            x=ColumnRef(name="order_date"),
+            y=[ColumnRef(name="sales", aggregate="SUM")],
+            y_secondary=[ColumnRef(name="profit", aggregate="SUM")],
+        ),
+        _config(),
+    ],
+    ids=["table", "pie", "histogram", "xy", "mixed", "sunburst"],
+)
+def test_registered_same_viz_updates_preserve_native_plugin_controls(config) -> None:
+    """Same-viz merges retain valid native state not exposed by typed configs."""
+    with patch(
+        "superset.mcp_service.chart.chart_utils.is_column_truly_temporal",
+        return_value=True,
+    ):
+        mapped = map_config_to_form_data(config)
+
+    existing = {
+        "viz_type": mapped["viz_type"],
+        "native_plugin_control": {"enabled": True},
+    }
+    merged = merge_form_data_for_update(existing, mapped, config)
+    assert merged["native_plugin_control"] == {"enabled": True}
+
+    cross_viz = merge_form_data_for_update(
+        {"viz_type": "foreign_viz", "native_plugin_control": {"enabled": True}},
+        mapped,
+        config,
+    )
+    assert "native_plugin_control" not in cross_viz
+
+
 def test_generate_request_accepts_native_viz_type_alias() -> None:
     request = GenerateChartRequest.model_validate(
         {
@@ -699,6 +755,115 @@ def test_real_native_request_schema_round_trip(
         "standardizedFormData",
     ):
         assert reparsed_form_data.get(key) == form_data.get(key)
+
+
+@pytest.mark.parametrize(
+    "request_model",
+    [GenerateChartRequest, UpdateChartRequest, UpdateChartPreviewRequest],
+)
+def test_native_requests_omit_explicit_null_mapping_envelopes(request_model) -> None:
+    """Validated null mapping fields never reach persisted or cached form data."""
+    payload = _native_request_payload(request_model, "SavedSales", None)
+    config_payload = payload["config"]
+    assert isinstance(config_payload, dict)
+    config_payload.update(
+        {
+            "extra_form_data": None,
+            "url_params": None,
+            "standardizedFormData": None,
+        }
+    )
+
+    request = request_model.model_validate(payload)
+    form_data = map_config_to_form_data(request.config)
+
+    assert {
+        "extra_form_data",
+        "url_params",
+        "standardizedFormData",
+    }.isdisjoint(form_data)
+
+
+@pytest.mark.parametrize("source_viz", ["sunburst_v2", "pie"])
+def test_explicit_null_extra_form_data_deletes_same_and_cross_viz_state(
+    source_viz: str,
+) -> None:
+    config = _config(extra_form_data=None)
+    existing = {
+        "viz_type": source_viz,
+        "extra_form_data": {"filters": [{"col": "region", "op": "IN"}]},
+    }
+
+    merged = merge_form_data_for_update(
+        existing, map_config_to_form_data(config), config
+    )
+
+    assert "extra_form_data" not in merged
+    canonical = canonicalize_operation_form_data(
+        {**merged, "extra_form_data": None}, datasource_id=7
+    )
+    assert "extra_form_data" not in canonical
+
+
+def test_compile_and_preview_pass_only_mapping_envelopes() -> None:
+    """Null native envelope values are omitted before query preparation."""
+    form_data = {
+        "viz_type": "table",
+        "query_mode": "raw",
+        "all_columns": ["region"],
+        "datasource": "7__table",
+        "extra_form_data": None,
+        "url_params": None,
+        "standardizedFormData": None,
+    }
+    compiled: list[dict[str, object]] = []
+    previewed: list[dict[str, object]] = []
+    command = MagicMock()
+    command.run.return_value = {"queries": [{"data": [{"region": "North"}]}]}
+
+    def capture_compile(query_form_data, **_kwargs):
+        compiled.append(deepcopy(query_form_data))
+        return object()
+
+    with (
+        patch(
+            "superset.mcp_service.chart.chart_helpers."
+            "build_query_context_from_form_data",
+            side_effect=capture_compile,
+        ),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand",
+            return_value=command,
+        ),
+    ):
+        result = _compile_chart(form_data, 7)
+    assert result.success is True
+
+    def capture_preview(query_form_data, **_kwargs):
+        previewed.append(deepcopy(query_form_data))
+        return object()
+
+    with (
+        patch("superset.extensions.db.session.get", return_value=Mock(id=7)),
+        patch(
+            "superset.mcp_service.chart.chart_helpers."
+            "build_query_context_from_form_data",
+            side_effect=capture_preview,
+        ),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand",
+            return_value=command,
+        ),
+    ):
+        preview = generate_preview_from_form_data(form_data, 7, "table")
+    assert not isinstance(preview, ChartError)
+
+    for prepared in (*compiled, *previewed):
+        assert {
+            "extra_form_data",
+            "url_params",
+            "standardizedFormData",
+        }.isdisjoint(prepared)
 
 
 @pytest.mark.parametrize(
@@ -1777,7 +1942,7 @@ def test_update_tool_preserves_omitted_state_and_honors_explicit_values() -> Non
         assert form_data["show_total"] is True
         assert form_data["color_scheme"] == "savedScheme"
         assert form_data["adhoc_filters"][0]["subject"] == "status"
-        assert "plugin_only_ui_state" not in form_data
+        assert form_data["plugin_only_ui_state"] == {"kept": True}
         assert "secondary_metric" not in form_data
         assert {
             "all_columns",
@@ -2025,9 +2190,13 @@ def test_sunburst_clear_preserves_only_omitted_independent_state(
         map_config_to_form_data(range_config),
         range_config,
     )
-    assert {"time_range", "since", "until"}.isdisjoint(range_clear)
-    assert range_clear["granularity_sqla"] == "order_date"
-    assert range_clear["time_grain_sqla"] == "P1M"
+    assert {
+        "granularity_sqla",
+        "time_grain_sqla",
+        "time_range",
+        "since",
+        "until",
+    }.isdisjoint(range_clear)
     assert range_clear.get("adhoc_filters", []) == []
 
 
@@ -2149,12 +2318,117 @@ def test_explicit_temporal_clear_removes_preserved_temporal_filters(
             assert all(filter_["operator"] != "TEMPORAL_RANGE" for filter_ in filters)
 
 
+@pytest.mark.parametrize("source_viz", ["sunburst_v2", "pie"])
+@pytest.mark.parametrize(
+    "cleared_field", ["time_range", "temporal_column", "time_grain"]
+)
+def test_each_temporal_clear_scrubs_every_reconstruction_source(
+    source_viz: str,
+    cleared_field: str,
+) -> None:
+    """A clear wins after adversarial native and override merge ordering."""
+    temporal_adhoc = {
+        "clause": "WHERE",
+        "expressionType": "SIMPLE",
+        "subject": "order_date",
+        "operator": "TEMPORAL_RANGE",
+        "comparator": "Last month",
+    }
+    regular_adhoc = {
+        "clause": "WHERE",
+        "expressionType": "SIMPLE",
+        "subject": "status",
+        "operator": "==",
+        "comparator": "active",
+    }
+    existing = {
+        "viz_type": source_viz,
+        "granularity": "order_date",
+        "granularity_sqla": "order_date",
+        "time_grain": "P1M",
+        "time_grain_sqla": "P1M",
+        "time_range": "Last month",
+        "since": "2025-01-01",
+        "until": "2025-02-01",
+        "adhoc_filters": [temporal_adhoc, regular_adhoc],
+        "extra_filters": [
+            {"col": "__time_range", "op": "==", "val": "Last year"},
+            {"col": "country", "op": "IN", "val": ["US"]},
+        ],
+        "extra_form_data": {
+            "granularity_sqla": "ship_date",
+            "time_grain_sqla": "P1Y",
+            "time_range": "Last year",
+            "filters": [
+                {"col": "ship_date", "op": "TEMPORAL_RANGE", "val": "Last year"},
+                {"col": "segment", "op": "IN", "val": ["Enterprise"]},
+            ],
+            "adhoc_filters": [temporal_adhoc, regular_adhoc],
+            "custom_form_data": {"retained": True},
+        },
+    }
+    chart = Mock(
+        id=19,
+        datasource_id=7,
+        datasource_type="table",
+        slice_name="Saved chart",
+        params=json.dumps(existing),
+    )
+    config = _config(**{cleared_field: None})
+    request = UpdateChartRequest(identifier=19, config=config)
+
+    payload = _build_update_payload(request, chart, parsed_config=config)
+    preview = _build_preview_form_data(request, chart, parsed_config=config)
+    assert isinstance(payload, dict)
+    assert isinstance(preview, dict)
+
+    for state in (json.loads(payload["params"]), preview):
+        assert {
+            "granularity",
+            "granularity_sqla",
+            "since",
+            "time_grain",
+            "time_grain_sqla",
+            "time_range",
+            "until",
+        }.isdisjoint(state)
+        assert state["adhoc_filters"] == [regular_adhoc]
+        assert state["extra_filters"] == [{"col": "country", "op": "IN", "val": ["US"]}]
+        extra = state["extra_form_data"]
+        assert extra["custom_form_data"] == {"retained": True}
+        assert extra["filters"] == [
+            {"col": "segment", "op": "IN", "val": ["Enterprise"]}
+        ]
+        assert extra["adhoc_filters"] == [regular_adhoc]
+        assert {
+            "granularity_sqla",
+            "time_grain_sqla",
+            "time_range",
+        }.isdisjoint(extra)
+
+        factory = MagicMock()
+        factory.create.return_value = object()
+        with patch(
+            "superset.common.query_context_factory.QueryContextFactory",
+            return_value=factory,
+        ):
+            build_mcp_query_context_from_form_data(deepcopy(state))
+        query = factory.create.call_args.kwargs["queries"][0]
+        assert "granularity" not in query
+        assert "time_range" not in query
+        assert "time_grain_sqla" not in query.get("extras", {})
+        assert all(
+            filter_.get("op") != "TEMPORAL_RANGE"
+            for filter_ in query.get("filters", [])
+        )
+
+
 @pytest.mark.parametrize(
     "overrides, expected_column, expected_grain",
     [
         ({}, "order_date", "P1M"),
         ({"temporal_column": None}, None, None),
-        ({"time_grain": None}, "order_date", None),
+        ({"time_grain": None}, None, None),
         ({"time_grain": "P1Y"}, "order_date", "P1Y"),
         ({"temporal_column": "ship_date"}, "ship_date", "P1M"),
         (
@@ -2405,16 +2679,13 @@ def test_cached_update_preview_rebinds_datasource_and_stays_unsaved() -> None:
 
 
 @pytest.mark.parametrize("source_viz", ["sunburst_v2", "pie", "table"])
+@pytest.mark.parametrize(
+    "cleared_field", ["time_range", "temporal_column", "time_grain"]
+)
 def test_cached_update_preview_honors_explicit_sunburst_clears(
-    source_viz: str,
+    source_viz: str, cleared_field: str
 ) -> None:
-    config = _config(
-        color_scheme=None,
-        linear_color_scheme=None,
-        temporal_column=None,
-        time_grain=None,
-        time_range=None,
-    )
+    config = _config(**{cleared_field: None})
     request = UpdateChartPreviewRequest(
         form_data_key="saved-preview",
         dataset_id=7,
@@ -2455,6 +2726,16 @@ def test_cached_update_preview_honors_explicit_sunburst_clears(
                 "time_range": "Last month",
                 "since": "2025-01-01",
                 "until": "2025-02-01",
+                "extra_filters": [
+                    {"col": "__time_range", "op": "==", "val": "Last year"},
+                    {"col": "Region", "op": "IN", "val": ["North"]},
+                ],
+                "extra_form_data": {
+                    "time_range": "Last year",
+                    "granularity_sqla": "OrderDate",
+                    "time_grain_sqla": "P1Y",
+                    "custom_form_data": {"retained": True},
+                },
                 "adhoc_filters": [
                     {
                         "clause": "WHERE",
@@ -2490,15 +2771,19 @@ def test_cached_update_preview_honors_explicit_sunburst_clears(
 
     assert result["success"] is True
     assert {
-        "color_scheme",
-        "linear_color_scheme",
+        "granularity",
         "granularity_sqla",
+        "time_grain",
         "time_grain_sqla",
         "time_range",
         "since",
         "until",
     }.isdisjoint(captured)
     assert captured.get("adhoc_filters", []) == []
+    assert captured["extra_filters"] == [
+        {"col": "Region", "op": "IN", "val": ["North"]}
+    ]
+    assert captured["extra_form_data"] == {"custom_form_data": {"retained": True}}
 
 
 @pytest.mark.parametrize(
@@ -2727,7 +3012,7 @@ def test_update_chart_preview_product_path_preserves_cached_sunburst_state() -> 
     assert captured_form_data["show_labels"] is False
     assert captured_form_data["show_total"] is True
     assert captured_form_data["color_scheme"] == "savedScheme"
-    assert "plugin_only_ui_state" not in captured_form_data
+    assert captured_form_data["plugin_only_ui_state"] == {"kept": True}
     assert {
         "all_columns",
         "groupby",
@@ -2735,6 +3020,149 @@ def test_update_chart_preview_product_path_preserves_cached_sunburst_state() -> 
         "series",
         "x_axis",
     }.isdisjoint(captured_form_data)
+
+
+def test_cached_mixed_timeseries_update_preserves_native_controls() -> None:
+    """Cached preview updates use the same same-viz preservation contract."""
+    config = MixedTimeseriesChartConfig(
+        x=ColumnRef(name="OrderDate"),
+        y=[ColumnRef(name="Sales", aggregate="SUM")],
+        y_secondary=[ColumnRef(name="Profit", aggregate="SUM")],
+    )
+    request = UpdateChartPreviewRequest(
+        form_data_key="mixed-key",
+        dataset_id=7,
+        config=config,
+        generate_preview=False,
+    )
+    captured: dict[str, object] = {}
+
+    def generate_link(
+        _dataset_id: int | str,
+        form_data: dict[str, object],
+        *,
+        prefer_permalink: bool,
+    ) -> str:
+        assert prefer_permalink is False
+        captured.update(deepcopy(form_data))
+        return "http://localhost/explore/?form_data_key=mixed-next"
+
+    with (
+        patch(
+            "superset.mcp_service.auth.get_user_from_request",
+            return_value=Mock(id=1, username="admin", roles=[], groups=[]),
+        ),
+        patch(
+            "superset.mcp_service.chart.tool.update_chart_preview._find_dataset",
+            return_value=_dataset(),
+        ),
+        patch(
+            "superset.mcp_service.chart.tool.update_chart_preview."
+            "_get_previous_form_data",
+            return_value={
+                "viz_type": "mixed_timeseries",
+                "metrics": ["OldSales"],
+                "metrics_b": ["OldProfit"],
+                "time_compare": ["1 year ago"],
+                "comparison_type_b": "percentage",
+                "y_axis_format": ",.2f",
+            },
+        ),
+        patch(
+            "superset.mcp_service.chart.tool.update_chart_preview.has_dataset_access",
+            return_value=True,
+        ),
+        patch.object(DatasetValidator, "normalize_column_names", return_value=config),
+        patch(
+            "superset.mcp_service.chart.tool.update_chart_preview.validate_and_compile",
+            return_value=Mock(success=True),
+        ),
+        patch(
+            "superset.mcp_service.chart.tool.update_chart_preview."
+            "generate_explore_link",
+            side_effect=generate_link,
+        ),
+    ):
+        result = update_chart_preview(request, ctx=MagicMock())
+
+    assert result["success"] is True
+    assert captured["time_compare"] == ["1 year ago"]
+    assert captured["comparison_type_b"] == "percentage"
+    assert captured["y_axis_format"] == ",.2f"
+    assert captured["metrics"] != ["OldSales"]
+    assert captured["metrics_b"] != ["OldProfit"]
+
+
+def test_cached_update_deletes_explicit_null_mapping_envelopes() -> None:
+    config = _config(
+        extra_form_data=None,
+        url_params=None,
+        standardized_form_data=None,
+    )
+    request = UpdateChartPreviewRequest(
+        form_data_key="mapping-key",
+        dataset_id=7,
+        config=config,
+        generate_preview=False,
+    )
+    captured: dict[str, object] = {}
+
+    def generate_link(
+        _dataset_id: int | str,
+        form_data: dict[str, object],
+        *,
+        prefer_permalink: bool,
+    ) -> str:
+        captured.update(deepcopy(form_data))
+        return "http://localhost/explore/?form_data_key=mapping-next"
+
+    with (
+        patch(
+            "superset.mcp_service.auth.get_user_from_request",
+            return_value=Mock(id=1, username="admin", roles=[], groups=[]),
+        ),
+        patch(
+            "superset.mcp_service.chart.tool.update_chart_preview._find_dataset",
+            return_value=_dataset(),
+        ),
+        patch(
+            "superset.mcp_service.chart.tool.update_chart_preview."
+            "_get_previous_form_data",
+            return_value={
+                "viz_type": "sunburst_v2",
+                "extra_form_data": {"filters": []},
+                "url_params": {"tenant": "acme"},
+                "standardizedFormData": {"controls": {}},
+            },
+        ),
+        patch(
+            "superset.mcp_service.chart.tool.update_chart_preview.has_dataset_access",
+            return_value=True,
+        ),
+        patch.object(DatasetValidator, "normalize_column_names", return_value=config),
+        patch(
+            "superset.mcp_service.chart.tool.update_chart_preview.validate_and_compile",
+            return_value=Mock(success=True),
+        ),
+        patch(
+            "superset.mcp_service.chart.tool.update_chart_preview."
+            "normalize_sunburst_form_data_references",
+            side_effect=lambda form_data, _context: form_data,
+        ),
+        patch(
+            "superset.mcp_service.chart.tool.update_chart_preview."
+            "generate_explore_link",
+            side_effect=generate_link,
+        ),
+    ):
+        result = update_chart_preview(request, ctx=MagicMock())
+
+    assert result["success"] is True
+    assert {
+        "extra_form_data",
+        "url_params",
+        "standardizedFormData",
+    }.isdisjoint(captured)
 
 
 def test_unsaved_preview_validates_query_envelopes_and_all_rows() -> None:

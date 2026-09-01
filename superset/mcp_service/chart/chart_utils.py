@@ -1089,6 +1089,45 @@ def map_pie_config(config: PieChartConfig) -> Dict[str, Any]:
     return form_data
 
 
+_SUNBURST_NATIVE_PASSTHROUGH = {
+    "annotation_layers": "annotation_layers",
+    "dashboard_id": "dashboardId",
+    "dashboards": "dashboards",
+    "datasource": "datasource",
+    "extra_form_data": "extra_form_data",
+    "slice_id": "slice_id",
+    "url_params": "url_params",
+    "since": "since",
+    "until": "until",
+    "time_compare": "time_compare",
+    "compare_lag": "compare_lag",
+    "compare_suffix": "compare_suffix",
+}
+
+
+def _copy_sunburst_native_envelope(
+    form_data: Dict[str, Any], config: SunburstChartConfig
+) -> None:
+    """Copy explicitly supplied typed native state into the mapped payload."""
+    for field_name, form_key in _SUNBURST_NATIVE_PASSTHROUGH.items():
+        if field_name not in config.model_fields_set:
+            continue
+        value = getattr(config, field_name)
+        # Mapping envelope fields are optional at the request boundary but
+        # must be mappings whenever serialized into form data.
+        if field_name in {"extra_form_data", "url_params"} and value is None:
+            continue
+        form_data[form_key] = value
+
+    if (
+        "standardized_form_data" in config.model_fields_set
+        and config.standardized_form_data is not None
+    ):
+        form_data["standardizedFormData"] = config.standardized_form_data.model_dump(
+            by_alias=True, mode="json"
+        )
+
+
 def map_sunburst_config(config: SunburstChartConfig) -> Dict[str, Any]:
     """Map typed Sunburst config to the ECharts ``sunburst_v2`` form_data.
 
@@ -1124,29 +1163,7 @@ def map_sunburst_config(config: SunburstChartConfig) -> Dict[str, Any]:
     if config.time_grain is not None:
         form_data["time_grain_sqla"] = config.time_grain
 
-    native_passthrough = {
-        "annotation_layers": "annotation_layers",
-        "dashboard_id": "dashboardId",
-        "dashboards": "dashboards",
-        "datasource": "datasource",
-        "extra_form_data": "extra_form_data",
-        "slice_id": "slice_id",
-        "url_params": "url_params",
-        "since": "since",
-        "until": "until",
-        "time_compare": "time_compare",
-        "compare_lag": "compare_lag",
-        "compare_suffix": "compare_suffix",
-    }
-    for field_name, form_key in native_passthrough.items():
-        if field_name in config.model_fields_set:
-            form_data[form_key] = getattr(config, field_name)
-    if "standardized_form_data" in config.model_fields_set:
-        form_data["standardizedFormData"] = (
-            config.standardized_form_data.model_dump(by_alias=True, mode="json")
-            if config.standardized_form_data is not None
-            else None
-        )
+    _copy_sunburst_native_envelope(form_data, config)
 
     add_currency_format(form_data, config.currency_format)
     _add_adhoc_filters(form_data, config.filters)
@@ -1175,7 +1192,88 @@ _SUNBURST_UPDATE_FIELD_KEYS: dict[str, str] = {
     "number_format": "number_format",
     "date_format": "date_format",
     "currency_format": "currency_format",
+    "extra_form_data": "extra_form_data",
+    "url_params": "url_params",
+    "standardized_form_data": "standardizedFormData",
 }
+
+
+# Query roles owned by the typed target must not survive simply because a
+# same-viz update starts from saved form data. In particular, native Sunburst
+# payloads can contain hidden roles left by a previous visualization.
+_TARGET_QUERY_ROLE_KEYS: dict[str, frozenset[str]] = {
+    "ag-grid-table": frozenset(
+        {"all_columns", "columns", "groupby", "metrics", "query_mode"}
+    ),
+    "table": frozenset({"all_columns", "columns", "groupby", "metrics", "query_mode"}),
+    "mixed_timeseries": frozenset({"groupby", "groupby_b"}),
+    "sunburst_v2": frozenset(
+        {
+            "all_columns",
+            "groupby",
+            "groupby_b",
+            "metrics",
+            "metrics_b",
+            "query_mode",
+            "series",
+            "x_axis",
+        }
+    ),
+}
+
+
+_TEMPORAL_FORM_DATA_KEYS = frozenset(
+    {
+        "granularity",
+        "granularity_sqla",
+        "since",
+        "time_grain",
+        "time_grain_sqla",
+        "time_range",
+        "until",
+    }
+)
+
+
+def _is_temporal_filter(filter_: Any) -> bool:
+    """Return whether a native, adhoc, or legacy filter carries a time range."""
+    return isinstance(filter_, dict) and (
+        filter_.get("operator") == FilterOperator.TEMPORAL_RANGE.value
+        or filter_.get("op") == FilterOperator.TEMPORAL_RANGE.value
+        or filter_.get("col") in {"__time_col", "__time_grain", "__time_range"}
+    )
+
+
+def _without_temporal_filters(value: Any) -> Any:
+    """Copy a filter list without temporal predicates, preserving other shapes."""
+    if not isinstance(value, list):
+        return value
+    return [filter_ for filter_ in value if not _is_temporal_filter(filter_)]
+
+
+def _scrub_temporal_form_data(form_data: Mapping[str, Any]) -> Dict[str, Any]:
+    """Remove every source capable of reconstructing explicitly cleared time state."""
+    scrubbed = dict(form_data)
+    for key in _TEMPORAL_FORM_DATA_KEYS:
+        scrubbed.pop(key, None)
+    scrubbed.pop(MCP_DASHBOARD_TIME_FILTER_SUBJECT, None)
+
+    for key in ("adhoc_filters", "extra_filters"):
+        if key in scrubbed:
+            scrubbed[key] = _without_temporal_filters(scrubbed[key])
+
+    extra_form_data = scrubbed.get("extra_form_data")
+    if isinstance(extra_form_data, dict):
+        cleaned_extra = dict(extra_form_data)
+        for key in _TEMPORAL_FORM_DATA_KEYS:
+            cleaned_extra.pop(key, None)
+        for key in ("adhoc_filters", "extra_filters", "filters"):
+            if key in cleaned_extra:
+                cleaned_extra[key] = _without_temporal_filters(cleaned_extra[key])
+        scrubbed["extra_form_data"] = cleaned_extra
+    elif extra_form_data is None:
+        scrubbed.pop("extra_form_data", None)
+    return scrubbed
 
 
 # One bounded registry owns state that may survive a form-data replacement.
@@ -1302,16 +1400,22 @@ def merge_form_data_for_update(  # noqa: C901
     new_form_data: Dict[str, Any],
     config: Any,
 ) -> Dict[str, Any]:
-    """Merge updates through the bounded registry and Sunburst omission rules.
+    """Merge mapped updates without leaking query roles across visualizations.
 
-    Cross-viz and generic same-viz replacements start from mapped target state
-    and retain only registry-approved envelope/presentation/filter/time keys.
-    Same-viz Sunburst mapper defaults are replaced by saved values when the
-    caller omitted that field. Explicit values (including ``False``, ``0``,
-    ``None`` and ``[]``) win for both same- and cross-viz Sunburst targets.
+    Same-viz updates retain native controls outside the simplified MCP schema by
+    starting from saved form data. Cross-viz updates remain bounded by the
+    shared preservation registry. Explicit clears are applied last.
     """
     same_viz = existing_form_data.get("viz_type") == new_form_data.get("viz_type")
-    merged = _merge_allowlisted_form_data(existing_form_data, new_form_data)
+    if same_viz:
+        merged = {**existing_form_data, **new_form_data}
+        for key in _TARGET_QUERY_ROLE_KEYS.get(
+            str(new_form_data.get("viz_type")), frozenset()
+        ):
+            if key not in new_form_data:
+                merged.pop(key, None)
+    else:
+        merged = _merge_allowlisted_form_data(existing_form_data, new_form_data)
 
     fields_set: set[str] = getattr(config, "model_fields_set", set())
     if getattr(config, "filters", None) == []:
@@ -1320,7 +1424,9 @@ def merge_form_data_for_update(  # noqa: C901
         filters = _merge_preserved_adhoc_filters(
             existing_form_data,
             new_form_data,
-            drop_existing_temporal=bool({"temporal_column", "time_range"} & fields_set),
+            drop_existing_temporal=bool(
+                {"temporal_column", "time_grain", "time_range"} & fields_set
+            ),
         )
         if filters is not None:
             merged["adhoc_filters"] = filters
@@ -1349,20 +1455,28 @@ def merge_form_data_for_update(  # noqa: C901
                 merged.pop("since", None)
                 merged.pop("until", None)
 
+    # A null temporal control is an atomic clear. Apply it after every merge so
+    # cached/native aliases and extra-form-data overrides cannot recreate time
+    # state in QueryContextFactory.
+    explicit_temporal_clear = any(
+        field_name in fields_set and getattr(config, field_name) is None
+        for field_name in ("temporal_column", "time_grain", "time_range")
+    )
+    if explicit_temporal_clear:
+        merged = _scrub_temporal_form_data(merged)
+
     # Merge the temporal subject and grain as one final-state control pair.
     temporal_set = "temporal_column" in fields_set
     grain_set = "time_grain" in fields_set
-    if temporal_set and config.temporal_column is None:
-        merged.pop("granularity_sqla", None)
-        merged.pop("time_grain_sqla", None)
-    elif temporal_set:
+    if temporal_set and config.temporal_column is not None:
         merged["granularity_sqla"] = config.temporal_column
 
-    if grain_set:
-        if config.time_grain is None:
-            merged.pop("time_grain_sqla", None)
-        else:
-            merged["time_grain_sqla"] = config.time_grain
+    if grain_set and config.time_grain is not None:
+        merged["time_grain_sqla"] = config.time_grain
+
+    for key in ("extra_form_data", "standardizedFormData", "url_params"):
+        if merged.get(key) is None:
+            merged.pop(key, None)
 
     # Do not discard an orphan grain here. The final-form-data validator must
     # see and reject it consistently across immediate, preview-first, and
