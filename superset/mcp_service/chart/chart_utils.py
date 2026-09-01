@@ -887,11 +887,16 @@ def _bind_dashboard_time_range_filter(  # noqa: C901
     if isinstance(granularity, str) and _is_temporal_for_dashboard_binding(
         granularity, dataset_id, dataset
     ):
-        # Temporal XY mappers create the neutral filter before this binding pass.
-        # Record its provenance so preview updates can replace it if the subject
-        # changes, without treating user-authored temporal ranges as generated.
-        if _has_generated_temporal_filter(form_data, granularity):
-            form_data[MCP_DASHBOARD_TIME_FILTER_SUBJECT] = granularity
+        # Native temporal axes need the same generated dashboard binding whether
+        # their mapper is XY, Mixed Timeseries, Waterfall, or another plugin. XY
+        # already supplies the neutral filter; the shared binder creates it for
+        # mappers that expose granularity without constructing adhoc filters.
+        _bind_temporal_filter(
+            form_data,
+            granularity,
+            range_explicit="time_range" in explicit_fields,
+            time_range=getattr(config, "time_range", None),
+        )
         return
 
     x_axis = form_data.get("x_axis")
@@ -1513,6 +1518,38 @@ def merge_update_form_data(  # noqa: C901
     merge_bullet_form_data(existing_form_data, new_form_data)
 
 
+def merge_same_viz_form_data(
+    existing_form_data: Mapping[str, Any], new_form_data: Dict[str, Any]
+) -> None:
+    """Preserve saved controls that the typed mapper does not represent.
+
+    The typed MCP surface deliberately models a bounded subset of every Explore
+    control panel. For a replacement within the exact same native ``viz_type``,
+    keys absent from the mapper therefore represent omitted controls and retain
+    their saved values. Mapper output and the chart-specific merge helpers run
+    first and remain authoritative, including explicit empty, false, null, and
+    nested values.
+
+    No generic state crosses a visualization boundary. This prevents query-role
+    keys from the previous plugin (for example ``metric`` or ``groupby``) from
+    leaking into a different plugin whose role contract is unrelated.
+    """
+    existing_viz_type = existing_form_data.get("viz_type")
+    if not isinstance(existing_viz_type, str) or existing_viz_type != new_form_data.get(
+        "viz_type"
+    ):
+        return
+
+    for key, value in existing_form_data.items():
+        if key == MCP_DASHBOARD_TIME_FILTER_SUBJECT:
+            # merge_update_form_data owns this provenance marker. Its absence
+            # may be an intentional subject clear and must not be undone by the
+            # generic preservation layer.
+            continue
+        if key not in new_form_data:
+            new_form_data[key] = value
+
+
 def validate_merged_bullet_form_data(
     form_data: Mapping[str, Any],
     update_config: ChartConfig | None = None,
@@ -1605,6 +1642,10 @@ def map_waterfall_config(config: WaterfallChartConfig) -> Dict[str, Any]:
     if config.time_grain:
         form_data["time_grain_sqla"] = config.time_grain
         form_data["granularity_sqla"] = config.x_axis.name
+    elif "time_grain" in config.model_fields_set:
+        # An explicit null clears a saved bucket while the x-axis remains the
+        # authoritative temporal subject for dashboard filter provenance.
+        form_data["time_grain_sqla"] = None
     add_currency_format(form_data, config.currency_format)
     _add_adhoc_filters(form_data, config.filters)
     return form_data
@@ -1805,12 +1846,14 @@ def _apply_axis_to_form_data(
     """Apply a single axis configuration to form_data."""
     if not axis_config:
         return
-    if axis_config.title:
+    if axis_config.title or "title" in axis_config.model_fields_set:
         form_data[title_key] = axis_config.title
-    if axis_config.format:
+    if axis_config.format or "format" in axis_config.model_fields_set:
         form_data[format_key] = axis_config.format
-    if log_key and axis_config.scale == "log":
-        form_data[log_key] = True
+    if log_key and (
+        axis_config.scale == "log" or "scale" in axis_config.model_fields_set
+    ):
+        form_data[log_key] = axis_config.scale == "log"
 
 
 def _add_mixed_axis_config(
@@ -1833,7 +1876,7 @@ def _add_mixed_axis_config(
     )
 
 
-def map_mixed_timeseries_config(
+def map_mixed_timeseries_config(  # noqa: C901
     config: MixedTimeseriesChartConfig,
     dataset_id: int | str | None = None,
 ) -> Dict[str, Any]:
@@ -1879,12 +1922,16 @@ def map_mixed_timeseries_config(
 
     # Configure temporal handling
     configure_temporal_handling(form_data, x_is_temporal, config.time_grain)
+    if "time_grain" in config.model_fields_set and config.time_grain is None:
+        form_data["time_grain_sqla"] = None
 
     # Primary groupby (Query A)
     if config.group_by:
         groupby = [c.name for c in config.group_by if c.name != config.x.name]
         if groupby:
             form_data["groupby"] = groupby
+    elif "group_by" in config.model_fields_set:
+        form_data["groupby"] = []
 
     # Secondary groupby (Query B)
     if config.group_by_secondary:
@@ -1893,6 +1940,8 @@ def map_mixed_timeseries_config(
         ]
         if groupby_b:
             form_data["groupby_b"] = groupby_b
+    elif "group_by_secondary" in config.model_fields_set:
+        form_data["groupby_b"] = []
 
     form_data["row_limit"] = config.row_limit
 

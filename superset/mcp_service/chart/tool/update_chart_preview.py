@@ -39,6 +39,7 @@ from superset.mcp_service.chart.chart_utils import (
     generate_explore_link,
     map_config_to_form_data,
     merge_interactive_pivot_ui_config,
+    merge_same_viz_form_data,
     merge_table_column_config,
     merge_update_form_data,
     validate_merged_bullet_form_data,
@@ -264,6 +265,7 @@ def update_chart_preview(  # noqa: C901
                 merge_update_form_data(previous_form_data, new_form_data, config)
                 merge_table_column_config(previous_form_data, new_form_data)
                 merge_interactive_pivot_ui_config(previous_form_data, new_form_data)
+                merge_same_viz_form_data(previous_form_data, new_form_data)
 
             validation_config = config
             try:

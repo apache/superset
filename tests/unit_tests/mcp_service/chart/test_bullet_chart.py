@@ -1001,20 +1001,26 @@ def test_bullet_compile_returns_stable_error_for_malformed_envelopes(
 
 
 @pytest.mark.parametrize(
-    "data",
+    ("data", "expected_code", "expected_type"),
     [
-        [1],
-        [{"Revenue": 10**10000}],
+        ([1], "CHART_COMPILE_FAILED", "compile_error"),
+        (
+            [{"Revenue": 10**10000}],
+            "MALFORMED_BULLET_OUTPUT",
+            "malformed_bullet_output",
+        ),
     ],
 )
 def test_bullet_compile_returns_malformed_output_for_bad_rows(
     data: list[object],
+    expected_code: str,
+    expected_type: str,
 ) -> None:
     result = _compile_bullet_with_result({"queries": [{"data": data}]})
     assert result.success is False
-    assert result.error_code == "MALFORMED_BULLET_OUTPUT"
+    assert result.error_code == expected_code
     assert result.error_obj is not None
-    assert result.error_obj.error_type == "malformed_bullet_output"
+    assert result.error_obj.error_type == expected_type
 
 
 def test_bullet_shared_query_builder_matches_frontend_build_query() -> None:
@@ -1465,8 +1471,8 @@ def test_bullet_output_rejects_scalar_subclasses_on_every_query_path(
     saved = _saved_bullet_preview_with_result(envelope, "vega_lite")
 
     assert compiled.success is False
-    assert compiled.error_code == "MALFORMED_BULLET_OUTPUT"
-    assert unsaved.error_type == saved.error_type == "MalformedBulletOutput"
+    assert compiled.error_code == "CHART_COMPILE_FAILED"
+    assert unsaved.error_type == saved.error_type == "MalformedQueryResult"
     assert len((compiled.error or "").encode("utf-8")) <= 2000
     assert len(unsaved.error.encode("utf-8")) <= 2000
     assert len(saved.error.encode("utf-8")) <= 2000

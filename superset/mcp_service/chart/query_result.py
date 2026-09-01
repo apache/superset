@@ -20,8 +20,11 @@
 import math
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
+from datetime import date, datetime, time, timedelta
+from decimal import Decimal
 from enum import Enum
 from typing import Any
+from uuid import UUID
 
 from superset.mcp_service.chart.schemas import ChartError
 
@@ -37,8 +40,22 @@ _MAX_ERROR_PARTS = 3
 _MAX_ERROR_BYTES = 2000
 _MAX_INTEGER_DIGITS = 1000
 _MAX_QUERY_COUNT = 64
+_MAX_ROW_CONTAINER_DEPTH = 32
+_MAX_ROW_CONTAINER_ITEMS = 4096
 _BUILTIN_SCALAR_TYPES = (str, bytes, bytearray, memoryview, int, float, bool)
 _SCALAR_BASE_TYPES = (*_BUILTIN_SCALAR_TYPES, Enum)
+_SAFE_ROW_SCALAR_TYPES = (
+    str,
+    int,
+    float,
+    bool,
+    Decimal,
+    date,
+    datetime,
+    time,
+    timedelta,
+    UUID,
+)
 
 
 @dataclass(frozen=True)
@@ -280,9 +297,64 @@ def _malformed_result(message: str) -> ChartError:
     )
 
 
+def _unsafe_row_value(value: Any) -> str | None:  # noqa: C901
+    """Return a bounded reason when a result value is unsafe to serialize.
+
+    ChartDataCommand output is expected to have crossed its JSON-materialization
+    boundary. Exact builtin containers and the small scalar set emitted by SQL
+    result adapters are safe to inspect. Subclasses and arbitrary objects are
+    rejected without calling their conversion, comparison, iteration, or
+    descriptor hooks.
+    """
+    stack: list[tuple[Any, int]] = [(value, 0)]
+    visited = 0
+    seen: set[int] = set()
+
+    while stack:
+        item, depth = stack.pop()
+        visited += 1
+        if visited > _MAX_ROW_CONTAINER_ITEMS:
+            return "contains too many nested values"
+        if depth > _MAX_ROW_CONTAINER_DEPTH:
+            return "exceeds the nesting depth limit"
+
+        if item is None or any(type(item) is type_ for type_ in _SAFE_ROW_SCALAR_TYPES):
+            continue
+
+        if type(item) is list:
+            identity = id(item)
+            if identity in seen:
+                return "contains repeated or cyclic containers"
+            seen.add(identity)
+            width = list.__len__(item)
+            if width > _MAX_ROW_CONTAINER_ITEMS:
+                return "contains an oversized array"
+            stack.extend(
+                (list.__getitem__(item, index), depth + 1) for index in range(width)
+            )
+            continue
+
+        if type(item) is dict:
+            identity = id(item)
+            if identity in seen:
+                return "contains repeated or cyclic containers"
+            seen.add(identity)
+            if dict.__len__(item) > _MAX_ROW_CONTAINER_ITEMS:
+                return "contains an oversized object"
+            for key, child in dict.items(item):
+                if type(key) is not str:
+                    return "contains a non-string object key"
+                stack.append((child, depth + 1))
+            continue
+
+        return "contains an unsupported or subclassed value"
+
+    return None
+
+
 def query_result_data(  # noqa: C901
     result: Any,
-) -> tuple[list[list[Any]] | None, ChartError | None]:
+) -> tuple[list[list[dict[str, Any]]] | None, ChartError | None]:
     """Validate a chart-data envelope and return each query's data array.
 
     Every query is checked before callers use the first one so malformed nested
@@ -305,7 +377,7 @@ def query_result_data(  # noqa: C901
     if query_count > _MAX_QUERY_COUNT:
         return None, _malformed_result("queries exceeds the item limit")
 
-    data_arrays: list[list[Any]] = []
+    data_arrays: list[list[dict[str, Any]]] = []
     for offset in range(query_count):
         index = offset + 1
         query = list.__getitem__(queries, offset)
@@ -320,12 +392,13 @@ def query_result_data(  # noqa: C901
             return None, _malformed_result(f"query {index} data must be an array")
         for row_offset in range(list.__len__(data)):
             row = list.__getitem__(data, row_offset)
-            if type(row) is not dict and _mro_contains(
-                _type_mro(type(row)), (dict, Mapping)
-            ):
+            if type(row) is not dict:
                 return None, _malformed_result(
-                    f"query {index} data row {row_offset + 1} uses an "
-                    "unsupported object container"
+                    f"query {index} data row {row_offset + 1} must be an exact object"
+                )
+            if reason := _unsafe_row_value(row):
+                return None, _malformed_result(
+                    f"query {index} data row {row_offset + 1} {reason}"
                 )
         for metadata_key in (
             "colnames",
@@ -337,6 +410,27 @@ def query_result_data(  # noqa: C901
             if metadata is not None and type(metadata) is not list:
                 return None, _malformed_result(
                     f"query {index} {metadata_key} must be an array"
+                )
+        colnames = dict.get(query, "colnames")
+        if type(colnames) is list and any(
+            type(list.__getitem__(colnames, offset)) is not str
+            for offset in range(list.__len__(colnames))
+        ):
+            return None, _malformed_result(
+                f"query {index} colnames must contain exact strings"
+            )
+        for metadata_key, allowed_types in (
+            ("rowcount", (int, float)),
+            ("is_cached", (bool,)),
+            ("cache_key", (str,)),
+            ("cache_dttm", (str, datetime)),
+        ):
+            metadata = dict.get(query, metadata_key)
+            if metadata is not None and not any(
+                type(metadata) is allowed for allowed in allowed_types
+            ):
+                return None, _malformed_result(
+                    f"query {index} {metadata_key} has an unsupported value"
                 )
         data_arrays.append(data)
     return data_arrays, None

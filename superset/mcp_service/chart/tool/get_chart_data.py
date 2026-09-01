@@ -21,7 +21,10 @@ MCP tool: get_chart_data
 
 import logging
 import time
+from datetime import date, datetime, time as datetime_time, timedelta
+from decimal import Decimal
 from typing import Any, Dict, List, TYPE_CHECKING
+from uuid import UUID
 
 from fastmcp import Context
 from flask import current_app
@@ -340,6 +343,65 @@ def _build_query_results(
     return results
 
 
+def _safe_value_identity(value: Any) -> tuple[Any, ...]:
+    """Build a hashable identity from a strictly validated result value."""
+    if type(value) is list:
+        return (
+            list,
+            tuple(
+                _safe_value_identity(list.__getitem__(value, index))
+                for index in range(list.__len__(value))
+            ),
+        )
+    if type(value) is dict:
+        return (
+            dict,
+            tuple(
+                (key, _safe_value_identity(child))
+                for key, child in sorted(dict.items(value))
+            ),
+        )
+    if value is None or any(
+        type(value) is type_
+        for type_ in (
+            str,
+            int,
+            float,
+            bool,
+            Decimal,
+            date,
+            datetime,
+            datetime_time,
+            timedelta,
+            UUID,
+        )
+    ):
+        return (type(value), value)
+    # query_result_data rejects this branch before callers inspect rows.
+    return (object,)
+
+
+def _strict_bullet_result_data(
+    data: list[dict[str, Any]], form_data: dict[str, Any]
+) -> tuple[list[dict[str, Any]] | None, ChartError | None]:
+    """Validate and sanitize Bullet data with the shared render contract."""
+    from superset.mcp_service.chart.preview_utils import (
+        BulletOutputError,
+        resolve_bullet_render_model,
+    )
+
+    try:
+        model = resolve_bullet_render_model(data, form_data)
+    except BulletOutputError as ex:
+        return None, ChartError(
+            error=safe_exception_message(ex), error_type=ex.error_type
+        )
+    # The strict model retains exact result keys while replacing unselected
+    # values with None and normalizing the selected roles. Return those rows so
+    # get-data never serializes a value the Bullet renderer did not approve.
+    return model.rows, None
+
+
 @tool(
     tags=["data"],
     class_permission_name="Chart",
@@ -585,9 +647,16 @@ async def get_chart_data(  # noqa: C901
             # The query_context contains all the information needed to reproduce
             # the chart's data exactly as shown in the visualization
             query_context_json = None
+            form_data: dict[str, Any] = {}
+            if chart.params:
+                parsed_form_data = utils_json.loads(chart.params)
+                if type(parsed_form_data) is dict:
+                    form_data = parsed_form_data
+            effective_form_data = form_data
 
             # If using cached form_data, we need to build query_context from it
             if using_unsaved_state and cached_form_data_dict is not None:
+                effective_form_data = cached_form_data_dict
                 # row_limit may arrive as a str. The trailing fallback keeps a
                 # falsy 0 resolving to ROW_LIMIT.
                 row_limit = _coerce_row_limit(
@@ -630,7 +699,6 @@ async def get_chart_data(  # noqa: C901
                     "Consider re-saving the chart to enable full data retrieval."
                 )
                 # Try to construct from form_data as a fallback
-                form_data = utils_json.loads(chart.params) if chart.params else {}
                 from superset.common.query_context_factory import QueryContextFactory
 
                 factory = QueryContextFactory()
@@ -781,6 +849,14 @@ async def get_chart_data(  # noqa: C901
             data = queries_data[0] if queries_data is not None else []
             raw_columns = query_result.get("colnames", [])
 
+            if chart.viz_type == "bullet":
+                strict_data, bullet_error = _strict_bullet_result_data(
+                    data, effective_form_data
+                )
+                if bullet_error is not None:
+                    return bullet_error
+                data = strict_data or []
+
             await ctx.debug(
                 "Query results received: row_count=%s, column_count=%s, "
                 "has_cache_key=%s"
@@ -808,9 +884,9 @@ async def get_chart_data(  # noqa: C901
             for idx, col_name in enumerate(raw_columns):
                 # Sample some values for metadata
                 sample_values = [
-                    row.get(col_name)
+                    dict.get(row, col_name)
                     for row in data[:3]
-                    if row.get(col_name) is not None
+                    if dict.get(row, col_name) is not None
                 ]
 
                 # Use SQL-derived GenericDataType when available,
@@ -819,9 +895,9 @@ async def get_chart_data(  # noqa: C901
                 if coltypes:
                     data_type = _GENERIC_TYPE_MAP.get(coltypes[idx], "string")
                 elif sample_values:
-                    if all(isinstance(v, bool) for v in sample_values):
+                    if all(type(v) is bool for v in sample_values):
                         data_type = "boolean"
-                    elif all(isinstance(v, (int, float)) for v in sample_values):
+                    elif all(type(v) in (int, float, Decimal) for v in sample_values):
                         data_type = "numeric"
 
                 columns.append(
@@ -830,8 +906,15 @@ async def get_chart_data(  # noqa: C901
                         display_name=col_name.replace("_", " ").title(),
                         data_type=data_type,
                         sample_values=sample_values[:3],
-                        null_count=sum(1 for row in data if row.get(col_name) is None),
-                        unique_count=len({str(row.get(col_name)) for row in data}),
+                        null_count=sum(
+                            1 for row in data if dict.get(row, col_name) is None
+                        ),
+                        unique_count=len(
+                            {
+                                _safe_value_identity(dict.get(row, col_name))
+                                for row in data
+                            }
+                        ),
                     )
                 )
 
@@ -1064,12 +1147,14 @@ async def _query_from_form_data(  # noqa: C901
     from superset.commands.chart.data.get_data_command import ChartDataCommand
 
     datasource_id = form_data.get("datasource_id")
+    datasource_type = form_data.get("datasource_type") or "table"
 
     # Handle combined datasource field (e.g., "1__table")
     if not datasource_id and form_data.get("datasource"):
         parts = str(form_data["datasource"]).split("__")
         if len(parts) == 2:
             datasource_id = parts[0]
+            datasource_type = parts[1]
 
     if not datasource_id:
         logger.warning(
@@ -1102,6 +1187,7 @@ async def _query_from_form_data(  # noqa: C901
         )
 
         await ctx.report_progress(3, 4, "Executing data query")
+        set_query_context_form_data(query_context, datasource_id, datasource_type)
         with event_logger.log_context(action="mcp.get_chart_data.query_execution"):
             command = ChartDataCommand(query_context)
             command.validate()
@@ -1129,6 +1215,12 @@ async def _query_from_form_data(  # noqa: C901
         data = queries_data[0] if queries_data is not None else []
         raw_columns = query_result.get("colnames", [])
 
+        if viz_type == "bullet":
+            strict_data, bullet_error = _strict_bullet_result_data(data, form_data)
+            if bullet_error is not None:
+                return bullet_error
+            data = strict_data or []
+
         if not any(queries_data or []):
             logger.warning(
                 "get_chart_data: no data for unsaved chart (form_data_key=%s)",
@@ -1142,11 +1234,13 @@ async def _query_from_form_data(  # noqa: C901
         columns = []
         for col_name in raw_columns:
             sample_values = [
-                row.get(col_name) for row in data[:3] if row.get(col_name) is not None
+                dict.get(row, col_name)
+                for row in data[:3]
+                if dict.get(row, col_name) is not None
             ]
             data_type = "string"
             if sample_values and all(
-                isinstance(v, (int, float)) for v in sample_values
+                type(v) in (int, float, Decimal) for v in sample_values
             ):
                 data_type = "numeric"
             columns.append(
@@ -1155,8 +1249,12 @@ async def _query_from_form_data(  # noqa: C901
                     display_name=col_name.replace("_", " ").title(),
                     data_type=data_type,
                     sample_values=sample_values[:3],
-                    null_count=sum(1 for row in data if row.get(col_name) is None),
-                    unique_count=len({str(row.get(col_name)) for row in data}),
+                    null_count=sum(
+                        1 for row in data if dict.get(row, col_name) is None
+                    ),
+                    unique_count=len(
+                        {_safe_value_identity(dict.get(row, col_name)) for row in data}
+                    ),
                 )
             )
 

@@ -338,6 +338,12 @@ class _HostileList(list[Any]):
     __len__ = _hostile_call
 
 
+class _HostileRowScalar(str):
+    __hash__ = _hostile_call
+    __repr__ = _hostile_call
+    __str__ = _hostile_call
+
+
 @pytest.mark.parametrize(
     "result",
     [
@@ -351,6 +357,37 @@ def test_query_result_rejects_container_subclasses_without_invoking_them(
     result: object,
 ) -> None:
     data, failure = query_result_data(result)
+    assert data is None
+    assert failure is not None
+    assert failure.error_type == "MalformedQueryResult"
+
+
+@pytest.mark.parametrize(
+    "row_factory",
+    [
+        lambda: 1,
+        lambda: "row",
+        object,
+        _HostileBoolLike,
+        lambda: _HostileDict(value=1),
+    ],
+)
+def test_query_result_requires_exact_dict_rows_without_conversion(
+    row_factory: Callable[[], Any],
+) -> None:
+    data, failure = query_result_data({"queries": [{"data": [row_factory()]}]})
+
+    assert data is None
+    assert failure is not None
+    assert failure.error_type == "MalformedQueryResult"
+    assert len(failure.error.encode()) <= 2000
+
+
+def test_query_result_rejects_scalar_subclasses_inside_exact_rows() -> None:
+    data, failure = query_result_data(
+        {"queries": [{"data": [{"value": _HostileRowScalar("unsafe")}]}]}
+    )
+
     assert data is None
     assert failure is not None
     assert failure.error_type == "MalformedQueryResult"

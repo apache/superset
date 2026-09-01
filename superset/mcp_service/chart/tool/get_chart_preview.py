@@ -26,6 +26,7 @@ from fastmcp import Context
 from sqlalchemy.exc import SQLAlchemyError
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
+from superset.charts.data.form_data import set_query_context_form_data
 from superset.commands.exceptions import CommandException
 from superset.exceptions import OAuth2Error, OAuth2RedirectError, SupersetException
 from superset.extensions import db, event_logger
@@ -263,6 +264,11 @@ class ASCIIPreviewStrategy(PreviewFormatStrategy):
                 return _no_query_fields_error(self.chart)
 
             self._authorize_guest_query(query_context)
+            set_query_context_form_data(
+                query_context,
+                self.chart.datasource_id,
+                self.chart.datasource_type,
+            )
             command = ChartDataCommand(query_context)
             command.validate()
             result = command.run()
@@ -348,6 +354,11 @@ class TablePreviewStrategy(PreviewFormatStrategy):
                 return _no_query_fields_error(self.chart)
 
             self._authorize_guest_query(query_context)
+            set_query_context_form_data(
+                query_context,
+                self.chart.datasource_id,
+                self.chart.datasource_type,
+            )
             command = ChartDataCommand(query_context)
             command.validate()
             result = command.run()
@@ -451,6 +462,11 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
 
             # Execute the query
             self._authorize_guest_query(query_context)
+            set_query_context_form_data(
+                query_context,
+                self.chart.datasource_id,
+                self.chart.datasource_type,
+            )
             command = ChartDataCommand(query_context)
             command.validate()
             result = command.run()
