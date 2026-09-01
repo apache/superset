@@ -1648,11 +1648,16 @@ function DatasourceEditor({
       <Fieldset
         title={t('Certification')}
         item={datasource}
-        onChange={updatedCertification => {
+        onFieldChange={(fieldKey, value) => {
+          if (
+            fieldKey !== 'certified_by' &&
+            fieldKey !== 'certification_details'
+          ) {
+            return;
+          }
           setDatasource(previousDatasource => ({
             ...previousDatasource,
-            certified_by: updatedCertification.certified_by,
-            certification_details: updatedCertification.certification_details,
+            [fieldKey]: typeof value === 'string' ? value : undefined,
             dataset_certification_changed: true,
           }));
         }}
@@ -1692,7 +1697,9 @@ function DatasourceEditor({
       <Fieldset
         title={t('Basic')}
         item={datasource}
-        onChange={onDatasourceChange}
+        onFieldChange={(fieldKey, value) =>
+          onDatasourcePropChange(String(fieldKey), value)
+        }
       >
         <Field
           fieldKey="description"
@@ -1773,7 +1780,7 @@ function DatasourceEditor({
         )}
       </Fieldset>
     ),
-    [datasource, onDatasourceChange, onDatasourcePropChange, isSqla],
+    [datasource, onDatasourcePropChange, isSqla],
   );
 
   const renderAdvancedFieldset = useCallback(
@@ -1781,7 +1788,9 @@ function DatasourceEditor({
       <Fieldset
         title={t('Advanced')}
         item={datasource}
-        onChange={onDatasourceChange}
+        onFieldChange={(fieldKey, value) =>
+          onDatasourcePropChange(String(fieldKey), value)
+        }
       >
         <Field
           fieldKey="cache_timeout"
@@ -1829,7 +1838,7 @@ function DatasourceEditor({
         />
       </Fieldset>
     ),
-    [datasource, onDatasourceChange, isSqla],
+    [datasource, onDatasourcePropChange, isSqla],
   );
 
   const renderSourceFieldset = useCallback(

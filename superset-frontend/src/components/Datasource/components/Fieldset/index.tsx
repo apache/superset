@@ -25,6 +25,7 @@ import Field from '../Field';
 export interface FieldsetProps {
   children: ReactNode;
   onChange?: (updatedItem: Record<string, any>) => void;
+  onFieldChange?: (fieldKey: fieldKeyType, value: unknown) => void;
   item?: Record<string, any>;
   title?: ReactNode;
   compact?: boolean;
@@ -35,6 +36,7 @@ type fieldKeyType = string | number;
 export default function Fieldset({
   children,
   onChange,
+  onFieldChange,
   item = {},
   title = null,
   compact = false,
@@ -59,9 +61,13 @@ export default function Fieldset({
       // the effect above has synchronized the item passed back by the parent.
       // Advance the ref synchronously so the later commit includes its sibling.
       itemRef.current = updatedItem;
-      onChange?.(updatedItem);
+      if (onFieldChange) {
+        onFieldChange(fieldKey, val);
+      } else {
+        onChange?.(updatedItem);
+      }
     },
-    [onChange],
+    [onChange, onFieldChange],
   );
 
   const propExtender = (field: { props: { fieldKey: fieldKeyType } }) => ({

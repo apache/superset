@@ -17,7 +17,9 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
+import { Constants } from '@superset-ui/core/components';
 import {
+  act,
   fireEvent,
   screen,
   userEvent,
@@ -38,11 +40,12 @@ beforeEach(() => {
 });
 
 afterEach(async () => {
+  jest.useRealTimers();
   await cleanupAsyncOperations();
   fetchMock.clearHistory().removeRoutes();
 });
 
-test('rapid Basic and Certification edits keep every dataset field', async () => {
+test('a trailing Basic edit keeps pending Certification fields', async () => {
   const testProps = createProps();
   const extra = '{ "custom_key": true }';
   testProps.datasource.extra = extra;
@@ -56,16 +59,25 @@ test('rapid Basic and Certification edits keep every dataset field', async () =>
     .closest('.ant-form-item')
     ?.querySelector('input');
   expect(defaultUrl).not.toBeNull();
+  const certifiedBy = await screen.findByPlaceholderText('Certified by');
+  const certificationDetails = screen.getByPlaceholderText(
+    'Certification details',
+  );
 
+  jest.useFakeTimers();
+  fireEvent.change(certifiedBy, {
+    target: { value: 'Data Team' },
+  });
+  fireEvent.change(certificationDetails, {
+    target: { value: 'Reviewed for production' },
+  });
   fireEvent.change(defaultUrl as HTMLInputElement, {
     target: { value: '/dashboard/7/' },
   });
-  fireEvent.change(await screen.findByPlaceholderText('Certified by'), {
-    target: { value: 'Data Team' },
+  act(() => {
+    jest.advanceTimersByTime(Constants.FAST_DEBOUNCE);
   });
-  fireEvent.change(screen.getByPlaceholderText('Certification details'), {
-    target: { value: 'Reviewed for production' },
-  });
+  jest.useRealTimers();
 
   await waitFor(() => {
     const { calls } = testProps.onChange.mock;
