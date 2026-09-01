@@ -2433,7 +2433,6 @@ class GanttChartConfig(BaseChartConfig):
     x_axis_title_margin: int | None = Field(None, ge=0, le=1000)
     y_axis_title: str | None = Field(None, max_length=200)
     y_axis_title_margin: int | None = Field(None, ge=0, le=1000)
-    y_axis_title_position: str | None = Field(None, max_length=100)
 
     @model_validator(mode="before")
     @classmethod
@@ -2442,6 +2441,12 @@ class GanttChartConfig(BaseChartConfig):
         if not isinstance(raw, dict):
             return raw
         data = dict(raw)
+
+        if "y_axis_title_position" in data:
+            raise ValueError(
+                "y_axis_title_position is unsupported by Gantt; the frontend "
+                "always centers the Y-axis title"
+            )
 
         # Request normalization maps viz_type before this validator, while direct
         # model validation may still carry the native discriminator.
@@ -2511,8 +2516,14 @@ class GanttChartConfig(BaseChartConfig):
             allowed_filter_keys = {
                 "clause",
                 "comparator",
+                "datasourceWarning",
                 "expressionType",
+                "filterOptionName",
+                "isExtra",
+                "isNew",
                 "operator",
+                "operatorId",
+                "sqlExpression",
                 "subject",
             }
             for index, native_filter in enumerate(native_filters):
@@ -2531,6 +2542,33 @@ class GanttChartConfig(BaseChartConfig):
                     )
                 if native_filter.get("clause") not in (None, "WHERE"):
                     raise ValueError(f"adhoc_filters[{index}] must use clause='WHERE'")
+                for metadata_key in ("isExtra", "isNew", "datasourceWarning"):
+                    metadata_value = native_filter.get(metadata_key)
+                    if metadata_value is not None and not isinstance(
+                        metadata_value, bool
+                    ):
+                        raise ValueError(
+                            f"adhoc_filters[{index}].{metadata_key} must be boolean"
+                        )
+                for metadata_key, max_length in (
+                    ("filterOptionName", 500),
+                    ("operatorId", 100),
+                ):
+                    metadata_value = native_filter.get(metadata_key)
+                    if metadata_value is not None and (
+                        not isinstance(metadata_value, str)
+                        or not metadata_value
+                        or len(metadata_value) > max_length
+                    ):
+                        raise ValueError(
+                            f"adhoc_filters[{index}].{metadata_key} must be a "
+                            "non-empty string"
+                        )
+                if native_filter.get("sqlExpression") is not None:
+                    raise ValueError(
+                        f"adhoc_filters[{index}].sqlExpression must be null for "
+                        "expressionType='SIMPLE'"
+                    )
                 subject = native_filter.get("subject")
                 operator = native_filter.get("operator")
                 comparator = native_filter.get("comparator")
@@ -2613,6 +2651,7 @@ class GanttChartConfig(BaseChartConfig):
             "datasourceWarning",
             "expressionType",
             "hasCustomLabel",
+            "isNew",
             "label",
             "optionName",
             "sqlExpression",
@@ -2639,6 +2678,9 @@ class GanttChartConfig(BaseChartConfig):
         custom_label = metric.get("hasCustomLabel")
         if custom_label is not None and not isinstance(custom_label, bool):
             raise ValueError(f"tooltip_metrics[{index}].hasCustomLabel must be boolean")
+        is_new = metric.get("isNew")
+        if is_new is not None and not isinstance(is_new, bool):
+            raise ValueError(f"tooltip_metrics[{index}].isNew must be boolean")
 
         expression_type = metric.get("expressionType")
         label = metric.get("label")
@@ -2734,18 +2776,19 @@ class GanttChartConfig(BaseChartConfig):
                 raise ValueError(
                     f"tooltip_metrics[{index}] SQL metric needs sqlExpression"
                 )
-            if not isinstance(label, str) or not label:
-                raise ValueError(f"tooltip_metrics[{index}] SQL metric needs label")
             if metric.get("aggregate") is not None or metric.get("column") is not None:
                 raise ValueError(
                     f"tooltip_metrics[{index}] SQL metric cannot set "
                     "aggregate or column"
                 )
-            if custom_label is False:
+            if custom_label is True and label is None:
                 raise ValueError(
-                    f"tooltip_metrics[{index}] SQL metric must use a custom label"
+                    f"tooltip_metrics[{index}] custom label requires label"
                 )
-            return {"sql_expression": sql_expression, "label": label}
+            # ColumnRef requires an output alias for SQL metrics. The frontend's
+            # getMetricLabel uses sqlExpression when no custom label is present,
+            # so using that exact fallback keeps the query-result key stable.
+            return {"sql_expression": sql_expression, "label": label or sql_expression}
         raise ValueError(
             f"tooltip_metrics[{index}].expressionType must be 'SIMPLE' or 'SQL'"
         )

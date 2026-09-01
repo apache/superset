@@ -626,10 +626,10 @@ class TestUpdateChartPreview:
             "ds",
         ]
 
-    def test_cached_temporal_filter_takes_precedence_over_generated_default(
+    def test_generated_temporal_state_replaces_cached_unmarked_comparator(
         self,
     ) -> None:
-        """A cached chart-specific time range is not duplicated or reset."""
+        """The typed comparator wins without duplicating an unmarked filter."""
         new_form_data = {
             "adhoc_filters": [
                 {
@@ -654,7 +654,15 @@ class TestUpdateChartPreview:
             {"adhoc_filters": [cached_temporal_filter]},
         )
 
-        assert new_form_data["adhoc_filters"] == [cached_temporal_filter]
+        assert new_form_data["adhoc_filters"] == [
+            {
+                "clause": "WHERE",
+                "comparator": "No filter",
+                "expressionType": "SIMPLE",
+                "operator": "TEMPORAL_RANGE",
+                "subject": "ds",
+            }
+        ]
 
     def test_replaces_cached_temporal_filter_when_column_changes(self) -> None:
         """A newly selected temporal column replaces the cached binding."""
@@ -787,8 +795,8 @@ class TestUpdateChartPreview:
 
         assert new_form_data["adhoc_filters"] == [region_filter]
 
-    def test_preserves_user_temporal_filter_on_generated_subject(self) -> None:
-        """A user-authored range on the binding subject is not generated state."""
+    def test_marker_removes_every_prior_binding_comparator(self) -> None:
+        """Marker provenance owns its subject regardless of comparator."""
         generated_binding = {
             "clause": "WHERE",
             "comparator": "No filter",
@@ -813,7 +821,7 @@ class TestUpdateChartPreview:
             },
         )
 
-        assert new_form_data["adhoc_filters"] == [user_filter]
+        assert new_form_data["adhoc_filters"] == []
 
     def test_rebinding_preserves_unrelated_cached_temporal_filter(self) -> None:
         """Only the generated binding is replaced; user filters retain provenance."""

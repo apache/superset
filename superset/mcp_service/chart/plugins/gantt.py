@@ -136,6 +136,7 @@ class GanttChartPlugin(BaseChartPlugin):
         )
 
     def normalize_column_refs(self, config: Any, dataset_context: Any) -> Any:
+        explicit_fields = set(config.model_fields_set)
         config_dict = config.model_dump()
         canonical_column = DatasetValidator.get_canonical_column_name
         canonical_metric = DatasetValidator.get_canonical_metric_name
@@ -157,7 +158,14 @@ class GanttChartPlugin(BaseChartPlugin):
         for order in config_dict.get("order_by") or []:
             order["column"] = canonical_column(order["column"], dataset_context)
         DatasetValidator.normalize_filters(config_dict, dataset_context)
-        return GanttChartConfig.model_validate(config_dict)
+        normalized = GanttChartConfig.model_validate(config_dict)
+        # ``model_dump()`` necessarily contains defaults, but mapping relies on
+        # ``model_fields_set`` to distinguish omitted presentation controls from
+        # explicitly supplied default values. Keep that request-level intent
+        # after canonicalizing column names.
+        normalized.model_fields_set.clear()
+        normalized.model_fields_set.update(explicit_fields)
+        return normalized
 
     def generate_name(self, config: Any, dataset_name: str | None = None) -> str:
         category = config.category.label or config.category.name

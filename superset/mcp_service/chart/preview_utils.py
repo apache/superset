@@ -447,12 +447,42 @@ def _is_nan(value: Any) -> bool:
 
 
 def _gantt_metric_label(metric: Any) -> str | None:
-    """Return the result label for a native saved/adhoc metric definition."""
+    """Resolve a native metric result key like frontend ``getMetricLabel``."""
     if isinstance(metric, str) and metric:
         return metric
-    if isinstance(metric, dict):
-        label = metric.get("label")
-        return label if isinstance(label, str) and label else None
+    if not isinstance(metric, dict) or not 0 < len(metric) <= 20:
+        return None
+
+    label = metric.get("label")
+    if label:
+        return label if isinstance(label, str) else None
+    if label not in (None, ""):
+        return None
+
+    expression_type = metric.get("expressionType")
+    if expression_type == "SIMPLE":
+        aggregate = metric.get("aggregate")
+        column = metric.get("column")
+        if (
+            not isinstance(aggregate, str)
+            or not aggregate
+            or len(aggregate) > 100
+            or not isinstance(column, dict)
+            or not 0 < len(column) <= 50
+        ):
+            return None
+        column_name = column.get("columnName") or column.get("column_name")
+        if not isinstance(column_name, str) or not column_name:
+            return None
+        return f"{aggregate}({column_name})"
+    if expression_type == "SQL":
+        sql_expression = metric.get("sqlExpression")
+        if (
+            isinstance(sql_expression, str)
+            and sql_expression
+            and len(sql_expression) <= 2000
+        ):
+            return sql_expression
     return None
 
 

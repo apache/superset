@@ -617,7 +617,6 @@ _GANTT_PRESENTATION_KEYS = frozenset(
         "x_axis_title_margin",
         "y_axis_title",
         "y_axis_title_margin",
-        "y_axis_title_position",
         "zoomable",
     }
 )
@@ -1252,10 +1251,6 @@ def map_gantt_config(config: GanttChartConfig) -> Dict[str, Any]:
         "y_axis_title_margin": (
             "y_axis_title_margin",
             config.y_axis_title_margin,
-        ),
-        "y_axis_title_position": (
-            "y_axis_title_position",
-            config.y_axis_title_position,
         ),
     }
     for field_name, (form_key, value) in presentation_fields.items():

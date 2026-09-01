@@ -17,9 +17,10 @@
 
 """Typed MCP coverage for the existing ECharts Gantt visualization."""
 
+import importlib
 from pathlib import Path
 from types import SimpleNamespace
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import pytest
 import yaml
@@ -60,6 +61,13 @@ from superset.mcp_service.chart.tool.update_chart import (
 from superset.mcp_service.chart.validation.dataset_validator import DatasetValidator
 from superset.mcp_service.chart.validation.schema_validator import SchemaValidator
 from superset.mcp_service.common.error_schemas import DatasetContext
+
+update_chart_module = importlib.import_module(
+    "superset.mcp_service.chart.tool.update_chart"
+)
+update_chart_preview_module = importlib.import_module(
+    "superset.mcp_service.chart.tool.update_chart_preview"
+)
 
 
 def _config(**overrides: object) -> GanttChartConfig:
@@ -274,6 +282,116 @@ def test_mapper_output_round_trips_saved_adhoc_and_sql_tooltip_metrics() -> None
         GanttChartConfig.model_validate(malformed)
 
 
+def test_native_adapter_accepts_bounded_standard_explore_metadata() -> None:
+    native = map_gantt_config(_config())
+    native["adhoc_filters"] = [
+        {
+            "clause": "WHERE",
+            "comparator": "Build",
+            "datasourceWarning": False,
+            "expressionType": "SIMPLE",
+            "filterOptionName": "filter_123",
+            "isExtra": False,
+            "isNew": False,
+            "operator": "==",
+            "operatorId": "EQUALS",
+            "sqlExpression": None,
+            "subject": "task",
+        },
+        {
+            "clause": "WHERE",
+            "comparator": "Last 30 days",
+            "datasourceWarning": False,
+            "expressionType": "SIMPLE",
+            "filterOptionName": "filter_456",
+            "isExtra": True,
+            "isNew": False,
+            "operator": "TEMPORAL_RANGE",
+            "operatorId": "TEMPORAL_RANGE",
+            "sqlExpression": None,
+            "subject": "start_time",
+        },
+    ]
+    native["tooltip_metrics"] = [
+        {
+            "aggregate": "SUM",
+            "column": {"column_name": "cost"},
+            "datasourceWarning": False,
+            "expressionType": "SIMPLE",
+            "hasCustomLabel": False,
+            "isNew": False,
+            "label": "SUM(cost)",
+            "optionName": "metric_cost",
+            "sqlExpression": None,
+        }
+    ]
+
+    adapted = GanttChartConfig.model_validate(native)
+
+    assert adapted.filters is not None
+    assert adapted.filters[0].column == "task"
+    assert adapted.time_range == "Last 30 days"
+    assert adapted.tooltip_metrics[0].name == "cost"
+
+
+def test_native_adapter_uses_frontend_fallback_for_unlabeled_sql_metric() -> None:
+    native = map_gantt_config(_config())
+    native["tooltip_metrics"] = [
+        {
+            "aggregate": None,
+            "column": None,
+            "datasourceWarning": False,
+            "expressionType": "SQL",
+            "hasCustomLabel": False,
+            "isNew": False,
+            "label": None,
+            "optionName": "metric_sql_123",
+            "sqlExpression": "SUM(cost) / COUNT(*)",
+        }
+    ]
+
+    adapted = GanttChartConfig.model_validate(native)
+    metric = adapted.tooltip_metrics[0]
+
+    assert metric.sql_expression == "SUM(cost) / COUNT(*)"
+    assert metric.label == "SUM(cost) / COUNT(*)"
+    assert map_gantt_config(adapted)["tooltip_metrics"][0]["label"] == metric.label
+
+
+@pytest.mark.parametrize(
+    ("container", "field", "value", "message"),
+    [
+        ("filter", "filterOptionName", 123, "filterOptionName"),
+        ("filter", "isExtra", "false", "isExtra"),
+        ("filter", "sqlExpression", "task = 'x'", "must be null"),
+        ("filter", "filterOptionNmae", "typo", "filterOptionNmae"),
+        ("metric", "isNew", "false", "isNew"),
+        ("metric", "isNwe", False, "isNwe"),
+    ],
+)
+def test_native_adapter_rejects_malformed_or_unknown_explore_metadata(
+    container: str, field: str, value: object, message: str
+) -> None:
+    native = map_gantt_config(_config())
+    if container == "filter":
+        target = native["adhoc_filters"][0]
+    else:
+        native["tooltip_metrics"] = [
+            {
+                "aggregate": "SUM",
+                "column": {"column_name": "cost"},
+                "expressionType": "SIMPLE",
+                "label": "SUM(cost)",
+                "sqlExpression": None,
+            }
+        ]
+        target = native["tooltip_metrics"][0]
+    target[field] = value
+
+    with pytest.raises(ValidationError, match=message):
+        GanttChartConfig.model_validate(native)
+
+
 def test_native_temporal_filters_reject_multiple_or_conflicting_bindings() -> None:
     base = map_gantt_config(_config())
     second = {
@@ -431,6 +549,238 @@ def test_dataset_validation_and_case_normalization() -> None:
     assert any("Task" in suggestion for suggestion in error.suggestions)
 
 
+@pytest.mark.parametrize("generate_query_preview", [False, True])
+def test_update_chart_preview_normalizes_all_gantt_refs_before_url_and_query_preview(
+    generate_query_preview: bool,
+) -> None:
+    columns = [
+        SimpleNamespace(
+            column_name=column["name"],
+            type=column["type"],
+            is_temporal=column["is_temporal"],
+            is_numeric=False,
+        )
+        for column in _dataset_context().available_columns
+    ]
+    metrics = [
+        SimpleNamespace(
+            metric_name="Completion",
+            expression="AVG(progress)",
+            description=None,
+        )
+    ]
+    dataset = SimpleNamespace(
+        id=1,
+        table_name="tasks",
+        schema=None,
+        columns=columns,
+        metrics=metrics,
+        database=SimpleNamespace(database_name="main", db_engine_spec=None),
+    )
+    request = UpdateChartPreviewRequest(
+        dataset_id=1,
+        config=_config(
+            start_time={"name": "start_time"},
+            end_time={"name": "end_time"},
+            category={"name": "task"},
+            series={"name": "owner"},
+            temporal_column="end_time",
+            tooltip_columns=[{"name": "project"}],
+            tooltip_metrics=[{"name": "completion", "saved_metric": True}],
+            filters=[{"column": "owner", "op": "=", "value": "Amin"}],
+            order_by=[{"column": "priority", "ascending": False}],
+            time_range="Last 7 days",
+        ),
+        generate_preview=generate_query_preview,
+        preview_formats=["vega_lite"],
+    )
+
+    with (
+        patch(
+            "superset.mcp_service.auth.get_user_from_request",
+            return_value=Mock(id=1),
+        ),
+        patch.object(
+            update_chart_preview_module, "_find_dataset", return_value=dataset
+        ),
+        patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=dataset),
+        patch.object(
+            update_chart_preview_module, "has_dataset_access", return_value=True
+        ),
+        patch.object(update_chart_preview_module, "validate_and_compile") as validate,
+        patch.object(
+            update_chart_preview_module,
+            "generate_explore_link",
+            return_value="http://superset/explore/?form_data_key=canonical",
+        ) as generate_link,
+        patch.object(
+            update_chart_preview_module, "generate_preview_from_form_data"
+        ) as generate_preview,
+        patch.object(
+            update_chart_preview_module, "analyze_chart_capabilities", return_value=None
+        ),
+        patch.object(
+            update_chart_preview_module, "analyze_chart_semantics", return_value=None
+        ),
+    ):
+        validate.return_value = SimpleNamespace(success=True)
+        generate_preview.return_value = VegaLitePreview(
+            specification={"mark": "bar"},
+            data_url=None,
+            supports_streaming=False,
+        )
+        result = update_chart_preview_module.update_chart_preview(
+            request=request, ctx=Mock()
+        )
+
+    assert result["success"] is True
+    form_data = generate_link.call_args.args[1]
+    assert form_data["start_time"] == "Start_Time"
+    assert form_data["end_time"] == "End_Time"
+    assert form_data["y_axis"] == "Task"
+    assert form_data["series"] == "Owner"
+    assert form_data["tooltip_columns"] == ["Project"]
+    assert form_data["tooltip_metrics"] == ["Completion"]
+    assert form_data["order_by_cols"] == ['["Priority", false]']
+    assert form_data["adhoc_filters"][0]["subject"] == "Owner"
+    temporal = [
+        filter_
+        for filter_ in form_data["adhoc_filters"]
+        if filter_["operator"] == "TEMPORAL_RANGE"
+    ]
+    assert temporal == [
+        {
+            "clause": "WHERE",
+            "expressionType": "SIMPLE",
+            "subject": "End_Time",
+            "operator": "TEMPORAL_RANGE",
+            "comparator": "Last 7 days",
+        }
+    ]
+    if generate_query_preview:
+        preview_form_data = generate_preview.call_args.kwargs["form_data"]
+        assert preview_form_data == form_data
+    else:
+        generate_preview.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    ("overrides", "expected_subject", "expected_range", "keeps_unrelated"),
+    [
+        (
+            {"temporal_column": "end_time", "time_range": "Last 7 days"},
+            "End_Time",
+            "Last 7 days",
+            True,
+        ),
+        (
+            {"temporal_column": "start_time", "time_range": "Last 7 days"},
+            "Start_Time",
+            "Last 7 days",
+            True,
+        ),
+        ({}, "Start_Time", "No filter", True),
+        ({"filters": []}, "Start_Time", "No filter", False),
+    ],
+)
+def test_cached_update_chart_preview_replaces_generated_temporal_binding(
+    overrides: dict[str, object],
+    expected_subject: str,
+    expected_range: str,
+    keeps_unrelated: bool,
+) -> None:
+    columns = [
+        SimpleNamespace(
+            column_name=column["name"],
+            type=column["type"],
+            is_temporal=column["is_temporal"],
+            is_numeric=False,
+        )
+        for column in _dataset_context().available_columns
+    ]
+    dataset = SimpleNamespace(
+        id=1,
+        table_name="tasks",
+        schema=None,
+        columns=columns,
+        metrics=[],
+        database=SimpleNamespace(database_name="main", db_engine_spec=None),
+    )
+    old_binding = {
+        "clause": "WHERE",
+        "comparator": "Last 30 days",
+        "expressionType": "SIMPLE",
+        "operator": "TEMPORAL_RANGE",
+        "subject": "Start_Time",
+    }
+    unrelated = {
+        "clause": "WHERE",
+        "comparator": "MCP",
+        "expressionType": "SIMPLE",
+        "operator": "==",
+        "subject": "Project",
+    }
+    previous = {
+        "viz_type": "gantt_chart",
+        "adhoc_filters": [old_binding, unrelated],
+        "_mcp_dashboard_time_filter_subject": "Start_Time",
+    }
+    request = UpdateChartPreviewRequest(
+        form_data_key="previous",
+        dataset_id=1,
+        config=_config(**overrides),
+        generate_preview=False,
+    )
+
+    with (
+        patch(
+            "superset.mcp_service.auth.get_user_from_request",
+            return_value=Mock(id=1),
+        ),
+        patch.object(
+            update_chart_preview_module, "_find_dataset", return_value=dataset
+        ),
+        patch.object(
+            update_chart_preview_module,
+            "_get_previous_form_data",
+            return_value=previous,
+        ),
+        patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=dataset),
+        patch.object(
+            update_chart_preview_module, "has_dataset_access", return_value=True
+        ),
+        patch.object(update_chart_preview_module, "validate_and_compile") as validate,
+        patch.object(
+            update_chart_preview_module,
+            "generate_explore_link",
+            return_value="http://superset/explore/?form_data_key=current",
+        ) as generate_link,
+        patch.object(
+            update_chart_preview_module, "analyze_chart_capabilities", return_value=None
+        ),
+        patch.object(
+            update_chart_preview_module, "analyze_chart_semantics", return_value=None
+        ),
+    ):
+        validate.return_value = SimpleNamespace(success=True)
+        result = update_chart_preview_module.update_chart_preview(
+            request=request, ctx=Mock()
+        )
+
+    assert result["success"] is True
+    form_data = generate_link.call_args.args[1]
+    temporal = [
+        filter_
+        for filter_ in form_data["adhoc_filters"]
+        if filter_["operator"] == "TEMPORAL_RANGE"
+    ]
+    assert len(temporal) == 1
+    assert temporal[0]["subject"] == expected_subject
+    assert temporal[0]["comparator"] == expected_range
+    assert form_data["_mcp_dashboard_time_filter_subject"] == expected_subject
+    assert (unrelated in form_data["adhoc_filters"]) is keeps_unrelated
+
+
 def test_temporal_dataset_semantics() -> None:
     from superset.mcp_service.chart import registry
 
@@ -585,6 +935,116 @@ def test_gantt_preview_resolves_custom_column_and_metric_aliases() -> None:
     assert "Owner alias" in missing_later_alias.error
 
 
+@pytest.mark.parametrize(
+    ("metric", "result_label"),
+    [
+        ("Completion", "Completion"),
+        (
+            {
+                "expressionType": "SIMPLE",
+                "aggregate": "SUM",
+                "column": {"column_name": "cost"},
+                "label": "Total cost",
+            },
+            "Total cost",
+        ),
+        (
+            {
+                "expressionType": "SIMPLE",
+                "aggregate": "AVG",
+                "column": {"columnName": "hours"},
+            },
+            "AVG(hours)",
+        ),
+        (
+            {
+                "expressionType": "SQL",
+                "sqlExpression": "SUM(cost) / COUNT(*)",
+                "label": "Unit cost",
+            },
+            "Unit cost",
+        ),
+        (
+            {
+                "expressionType": "SQL",
+                "sqlExpression": "SUM(cost) / COUNT(*)",
+            },
+            "SUM(cost) / COUNT(*)",
+        ),
+    ],
+)
+def test_saved_and_unsaved_preview_resolve_metric_result_labels(
+    metric: object, result_label: str
+) -> None:
+    form_data = {
+        "viz_type": "gantt_chart",
+        "start_time": "start_time",
+        "end_time": "end_time",
+        "y_axis": "task",
+        "tooltip_metrics": [metric],
+    }
+    data = [
+        {
+            "start_time": "2026-01-01",
+            "end_time": "2026-01-02",
+            "task": "Build",
+            result_label: 42,
+        }
+    ]
+
+    unsaved = _generate_gantt_vega_lite_preview(data, form_data)
+    assert isinstance(unsaved, VegaLitePreview)
+    assert result_label in {
+        item["field"] for item in unsaved.specification["encoding"]["tooltip"]
+    }
+
+    chart = SimpleNamespace(
+        id=1,
+        slice_name="Schedule",
+        viz_type="gantt_chart",
+        params=__import__("json").dumps(form_data),
+    )
+    strategy = VegaLitePreviewStrategy(
+        chart,
+        GetChartPreviewRequest(identifier=1, format="vega_lite"),
+    )
+    saved = strategy._create_vega_lite_spec(data)
+    assert result_label in {item["field"] for item in saved["encoding"]["tooltip"]}
+
+
+@pytest.mark.parametrize(
+    "metric",
+    [
+        {},
+        {"expressionType": "SIMPLE", "aggregate": "SUM", "column": {}},
+        {"expressionType": "SIMPLE", "aggregate": 1, "column": {}},
+        {"expressionType": "SQL", "sqlExpression": ""},
+        {"expressionType": "SQL", "sqlExpression": 123},
+        {"expressionType": "UNKNOWN", "sqlExpression": "SUM(cost)"},
+    ],
+)
+def test_gantt_preview_rejects_malformed_metric_objects(metric: object) -> None:
+    result = _generate_gantt_vega_lite_preview(
+        [
+            {
+                "start_time": "2026-01-01",
+                "end_time": "2026-01-02",
+                "task": "Build",
+            }
+        ],
+        {
+            "viz_type": "gantt_chart",
+            "start_time": "start_time",
+            "end_time": "end_time",
+            "y_axis": "task",
+            "tooltip_metrics": [metric],
+        },
+    )
+
+    assert isinstance(result, ChartError)
+    assert result.error_type == "InvalidGanttFormData"
+
+
 def test_saved_gantt_vega_preview_supports_valid_empty_result() -> None:
     form_data = {
         "start_time": "start_time",
@@ -696,6 +1156,170 @@ def test_saved_update_and_preview_first_paths_preserve_native_gantt_state() -> N
     assert preview_form_data["legendOrientation"] == "right"
     assert preview_form_data["zoomable"] is False
     assert preview_form_data["slice_id"] == 1495
+
+
+@pytest.mark.asyncio
+async def test_real_update_preserves_omitted_and_overrides_explicit_defaults() -> None:
+    saved_presentation = {
+        "color_scheme": "legacyColors",
+        "show_legend": False,
+        "legendOrientation": "right",
+        "legendType": "plain",
+        "legendMargin": 91,
+        "legendSort": "desc",
+        "zoomable": True,
+        "subcategories": True,
+        "show_extra_controls": True,
+        "x_axis_time_bounds": ["08:00:00", "19:00:00"],
+        "x_axis_time_format": "%Y-%m-%d",
+        "tooltipTimeFormat": "%H:%M",
+        "tooltipValuesFormat": ",.2f",
+        "x_axis_title": "Saved X title",
+        "x_axis_title_margin": 23,
+        "y_axis_title": "Saved Y title",
+        "y_axis_title_margin": 37,
+    }
+    chart = SimpleNamespace(
+        id=1495,
+        datasource_id=1,
+        datasource=object(),
+        slice_name="Gantt",
+        params=__import__("json").dumps(
+            {
+                **_native_example(),
+                **saved_presentation,
+                "series": "priority",
+                "y_axis_title_position": "start",
+            }
+        ),
+        uuid="chart-uuid",
+        viz_type="gantt_chart",
+    )
+    updated_chart = SimpleNamespace(
+        id=1495,
+        slice_name="Gantt",
+        uuid="chart-uuid",
+        viz_type="gantt_chart",
+    )
+
+    async def run_update(config: GanttChartConfig) -> dict[str, object]:
+        request = UpdateChartRequest(
+            identifier=1495,
+            config=config,
+            generate_preview=False,
+            preview_formats=[],
+        )
+        with (
+            patch(
+                "superset.mcp_service.auth.get_user_from_request",
+                return_value=Mock(id=1),
+            ),
+            patch.object(
+                update_chart_module, "find_chart_by_identifier", return_value=chart
+            ),
+            patch(
+                "superset.mcp_service.auth.check_chart_data_access",
+                return_value=SimpleNamespace(is_valid=True, error=None),
+            ),
+            patch.object(
+                DatasetValidator,
+                "_get_dataset_context",
+                return_value=_dataset_context(),
+            ),
+            patch.object(
+                update_chart_module,
+                "_validate_update_against_dataset",
+                return_value=None,
+            ),
+            patch("superset.commands.chart.update.UpdateChartCommand") as command,
+            patch.object(
+                update_chart_module, "analyze_chart_capabilities", return_value=None
+            ),
+            patch.object(
+                update_chart_module, "analyze_chart_semantics", return_value=None
+            ),
+            patch.object(
+                update_chart_module,
+                "get_superset_base_url",
+                return_value="http://superset",
+            ),
+        ):
+            command.return_value.run.return_value = updated_chart
+            result = await update_chart_module.update_chart(request=request, ctx=Mock())
+
+        assert result.success is True
+        payload = command.call_args.args[1]
+        return __import__("json").loads(payload["params"])
+
+    omitted = await run_update(
+        _config(
+            series={"name": "priority"},
+            tooltip_columns=[{"name": "project"}],
+            order_by=[{"column": "priority", "ascending": True}],
+        )
+    )
+    assert {key: omitted[key] for key in saved_presentation} == saved_presentation
+    assert "y_axis_title_position" not in omitted
+    assert omitted["start_time"] == "Start_Time"
+    assert omitted["end_time"] == "End_Time"
+    assert omitted["y_axis"] == "Task"
+    assert omitted["series"] == "Priority"
+    assert omitted["tooltip_columns"] == ["Project"]
+    assert omitted["order_by_cols"] == ['["Priority", true]']
+
+    explicit_defaults = {
+        "color_scheme": None,
+        "show_legend": True,
+        "legend_orientation": "top",
+        "legend_type": "scroll",
+        "legend_margin": None,
+        "legend_sort": None,
+        "zoomable": False,
+        "subcategories": False,
+        "show_extra_controls": False,
+        "x_axis_time_bounds": None,
+        "x_axis_time_format": "smart_date",
+        "tooltip_time_format": "smart_date",
+        "tooltip_values_format": "SMART_NUMBER",
+        "x_axis_title": None,
+        "x_axis_title_margin": None,
+        "y_axis_title": None,
+        "y_axis_title_margin": None,
+    }
+    overridden = await run_update(
+        _config(series={"name": "priority"}, **explicit_defaults)
+    )
+    expected_native_defaults = {
+        "color_scheme": None,
+        "show_legend": True,
+        "legendOrientation": "top",
+        "legendType": "scroll",
+        "legendMargin": None,
+        "legendSort": None,
+        "zoomable": False,
+        "subcategories": False,
+        "show_extra_controls": False,
+        "x_axis_time_bounds": None,
+        "x_axis_time_format": "smart_date",
+        "tooltipTimeFormat": "smart_date",
+        "tooltipValuesFormat": "SMART_NUMBER",
+        "x_axis_title": None,
+        "x_axis_title_margin": None,
+        "y_axis_title": None,
+        "y_axis_title_margin": None,
+    }
+    assert {
+        key: overridden[key] for key in expected_native_defaults
+    } == expected_native_defaults
+
+
+def test_gantt_rejects_false_success_y_axis_title_position() -> None:
+    schema = _get_chart_type_schema_impl("gantt")["schema"]
+    assert "y_axis_title_position" not in schema["properties"]
+    with pytest.raises(ValidationError, match="unsupported by Gantt"):
+        GanttChartConfig.model_validate(
+            {**_config().model_dump(), "y_axis_title_position": "start"}
+        )
 
 
 @pytest.mark.parametrize(
