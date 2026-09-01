@@ -787,8 +787,8 @@ class TestUpdateChartPreview:
 
         assert new_form_data["adhoc_filters"] == [region_filter]
 
-    def test_preserves_user_temporal_filter_on_generated_subject(self) -> None:
-        """A user-authored range on the binding subject is not generated state."""
+    def test_rejects_ambiguous_temporal_filters_on_generated_subject(self) -> None:
+        """Provenance cannot choose between duplicate subject/operator roles."""
         generated_binding = {
             "clause": "WHERE",
             "comparator": "No filter",
@@ -805,15 +805,14 @@ class TestUpdateChartPreview:
         }
 
         new_form_data: dict[str, Any] = {}
-        update_chart_preview_module._preserve_previous_adhoc_filters(
-            new_form_data,
-            {
-                "adhoc_filters": [generated_binding, user_filter],
-                "_mcp_dashboard_time_filter_subject": "ds",
-            },
-        )
-
-        assert new_form_data["adhoc_filters"] == [user_filter]
+        with pytest.raises(ValueError, match="must match exactly one"):
+            update_chart_preview_module._preserve_previous_adhoc_filters(
+                new_form_data,
+                {
+                    "adhoc_filters": [generated_binding, user_filter],
+                    "_mcp_dashboard_time_filter_subject": "ds",
+                },
+            )
 
     def test_rebinding_preserves_unrelated_cached_temporal_filter(self) -> None:
         """Only the generated binding is replaced; user filters retain provenance."""

@@ -29,6 +29,7 @@ from superset.mcp_service.chart.chart_helpers import (
     build_query_dicts_from_form_data,
 )
 from superset.mcp_service.chart.chart_utils import (
+    analyze_chart_capabilities,
     map_bullet_config,
     map_config_to_form_data,
     MCP_DASHBOARD_TIME_FILTER_SUBJECT,
@@ -312,8 +313,53 @@ def test_bullet_native_saved_metric_and_legacy_metric_aliases() -> None:
     )
     assert saved.metric.saved_metric is True
     assert saved.metric.name == "saved_revenue"
-    assert legacy.metric.name == "revenue"
-    assert legacy.metric.aggregate == "SUM"
+    assert legacy.metric.name == "sum__revenue"
+    assert legacy.metric.saved_metric is True
+
+
+@pytest.mark.parametrize("metric_name", ["sum__num", "sum__SP_POP_TOTL"])
+@pytest.mark.parametrize(
+    ("request_type", "request_fields"),
+    [
+        (GenerateChartRequest, {"dataset_id": 7}),
+        (UpdateChartRequest, {"identifier": 9}),
+        (UpdateChartPreviewRequest, {"dataset_id": 7}),
+    ],
+)
+def test_bullet_repository_metric_names_round_trip_as_saved_metrics_on_all_requests(
+    metric_name: str,
+    request_type: type[
+        GenerateChartRequest | UpdateChartRequest | UpdateChartPreviewRequest
+    ],
+    request_fields: dict[str, object],
+) -> None:
+    request = request_type.model_validate(
+        {**request_fields, "config": {"chart_type": "bullet", "metric": metric_name}}
+    )
+    config = request.config
+    assert isinstance(config, BulletChartConfig)
+    assert config.metric.saved_metric is True
+    assert map_bullet_config(config)["metric"] == metric_name
+
+
+def test_bullet_legacy_label_only_saved_metric_adapter_is_strict_and_bounded() -> None:
+    config = BulletChartConfig.model_validate(
+        {"viz_type": "bullet", "metric": {"label": "sum__num"}}
+    )
+    assert config.metric.saved_metric is True
+    assert map_bullet_config(config)["metric"] == "sum__num"
+
+    with pytest.raises(ValidationError):
+        BulletChartConfig.model_validate(
+            {
+                "viz_type": "bullet",
+                "metric": {"label": "sum__num", "aggregate": "SUM"},
+            }
+        )
+    with pytest.raises(ValidationError, match="at most 255"):
+        BulletChartConfig.model_validate(
+            {"viz_type": "bullet", "metric": {"label": "m" * 256}}
+        )
 
 
 @pytest.mark.parametrize(
@@ -1008,6 +1054,33 @@ def test_bullet_unsaved_preview_path_returns_faithful_vega_spec() -> None:
     }
 
 
+def test_bullet_vega_internal_category_key_avoids_adversarial_row_aliases() -> None:
+    form_data = map_bullet_config(
+        BulletChartConfig(
+            metric={"name": "value", "aggregate": "SUM", "label": "Metric"},
+            dimensions=[{"name": "__mcp_bullet_category"}],
+        )
+    )
+    preview = _generate_vega_lite_preview_from_data(
+        [
+            {
+                "__mcp_bullet_category": "North",
+                "__mcp_bullet_category_1": "occupied",
+                "Metric": 10,
+            }
+        ],
+        form_data,
+    )
+    specification = preview.specification
+    category_field = specification["transform"][0]["as"]
+    assert category_field == "__mcp_bullet_category_2"
+    assert specification["data"]["values"][0][category_field] == "North"
+    bar = next(
+        layer for layer in specification["layer"] if layer["mark"]["type"] == "bar"
+    )
+    assert bar["encoding"]["y"]["field"] == category_field
+
+
 def test_bullet_preview_applies_default_band_and_every_presentation_control() -> None:
     form_data = map_bullet_config(
         BulletChartConfig(
@@ -1199,6 +1272,28 @@ def test_bullet_unsaved_preview_structures_oversized_numeric_output() -> None:
     assert preview.error_type == "MalformedBulletOutput"
 
 
+def test_bullet_empty_saved_and_unsaved_vega_use_same_no_data_contract() -> None:
+    envelope: dict[str, Any] = {"queries": [{"data": []}]}
+    unsaved = _unsaved_bullet_preview_with_result(envelope)
+    saved = _saved_bullet_preview_with_result(envelope, "vega_lite")
+    assert unsaved.error_type == saved.error_type == "MalformedBulletOutput"
+    assert unsaved.error == saved.error == "Bullet query returned no rows"
+
+    chart = SimpleNamespace(
+        id=9,
+        params=__import__("json").dumps(
+            {"viz_type": "bullet", "metric": "SavedRevenue"}
+        ),
+        viz_type="bullet",
+        slice_name="Saved Bullet",
+    )
+    strategy = VegaLitePreviewStrategy(
+        chart, GetChartPreviewRequest(identifier=9, format="vega_lite")
+    )
+    with pytest.raises(BulletOutputError, match="returned no rows"):
+        strategy._create_vega_lite_spec([])
+
+
 def _saved_bullet_preview_with_result(result: object, format_: str) -> ChartError:
     form_data = {"viz_type": "bullet", "metric": "Revenue"}
     chart = SimpleNamespace(
@@ -1265,6 +1360,25 @@ def test_bullet_saved_table_preview_is_explicitly_unsupported() -> None:
     ).generate()
     assert isinstance(result, ChartError)
     assert result.error_type == "UnsupportedFormat"
+
+
+def test_bullet_capabilities_match_implemented_preview_and_data_roles() -> None:
+    ungrouped = BulletChartConfig(metric=_simple_metric())
+    grouped = BulletChartConfig(
+        metric=_simple_metric(), dimensions=[{"name": "Region"}]
+    )
+    assert analyze_chart_capabilities("bullet", ungrouped).model_dump() == {
+        "supports_interaction": True,
+        "supports_real_time": False,
+        "supports_drill_down": False,
+        "supports_export": True,
+        "optimal_formats": ["url", "vega_lite", "ascii"],
+        "data_types": ["metric"],
+    }
+    assert analyze_chart_capabilities("bullet", grouped).data_types == [
+        "metric",
+        "categorical",
+    ]
 
 
 def test_bullet_saved_preview_uses_native_roles_aliases_and_overlays() -> None:
@@ -1513,6 +1627,85 @@ def test_bullet_temporal_binding_override_replaces_in_place() -> None:
     assert mapped["adhoc_filters"][1]["comparator"] == "Last 30 days"
 
 
+@pytest.mark.parametrize(
+    ("time_range", "expected_comparator"),
+    [("Last 30 days", "Last 30 days"), (None, "No filter")],
+)
+@pytest.mark.parametrize("path", ["immediate", "preview_first", "cached"])
+def test_bullet_time_range_only_updates_saved_subject_on_every_update_path(
+    time_range: str | None, expected_comparator: str, path: str
+) -> None:
+    existing = _saved_bullet_with_filters()
+    existing[MCP_DASHBOARD_TIME_FILTER_SUBJECT] = "EventDate"
+    existing_filters = existing["adhoc_filters"]
+    assert isinstance(existing_filters, list)
+    existing_filters[1] = {**existing_filters[1], "subject": "EventDate"}
+    config = BulletChartConfig(metric=_simple_metric(), time_range=time_range)
+    chart = SimpleNamespace(
+        id=9,
+        datasource_id=7,
+        slice_name="Saved Bullet",
+        params=__import__("json").dumps(existing),
+    )
+    request = UpdateChartRequest(identifier=9, config=config)
+
+    with (
+        patch(
+            "superset.mcp_service.chart.chart_utils._find_dataset_by_id_or_uuid",
+            return_value=_orm_dataset(),
+        ),
+        patch(
+            "superset.mcp_service.chart.chart_utils._is_temporal_for_dashboard_binding",
+            return_value=True,
+        ),
+    ):
+        if path == "immediate":
+            payload = _build_update_payload(request, chart, config)
+            assert isinstance(payload, dict)
+            merged = __import__("json").loads(payload["params"])
+        elif path == "preview_first":
+            result = _build_preview_form_data(request, chart, config)
+            assert isinstance(result, dict)
+            merged = result
+        else:
+            merged = map_config_to_form_data(config, dataset_id=7)
+            merge_update_form_data(existing, merged, config)
+
+    assert merged[MCP_DASHBOARD_TIME_FILTER_SUBJECT] == "EventDate"
+    assert [item["subject"] for item in merged["adhoc_filters"]] == [
+        "Status",
+        "EventDate",
+    ]
+    assert merged["adhoc_filters"][1]["comparator"] == expected_comparator
+
+
+def test_bullet_subject_only_update_preserves_saved_active_range() -> None:
+    existing = _saved_bullet_with_filters()
+    config = BulletChartConfig(metric=_simple_metric(), temporal_column="EventDate")
+    with patch(
+        "superset.mcp_service.chart.chart_utils._is_temporal_for_dashboard_binding",
+        return_value=True,
+    ):
+        mapped = map_config_to_form_data(config, dataset_id=7)
+    merge_update_form_data(existing, mapped, config)
+    assert mapped[MCP_DASHBOARD_TIME_FILTER_SUBJECT] == "EventDate"
+    assert mapped["adhoc_filters"][1]["subject"] == "EventDate"
+    assert mapped["adhoc_filters"][1]["comparator"] == "Last year"
+
+
+def test_bullet_rejects_ambiguous_provenance_subject_operator_matches() -> None:
+    existing = _saved_bullet_with_filters()
+    filters = existing["adhoc_filters"]
+    assert isinstance(filters, list)
+    filters.append({**filters[1], "comparator": "Last month"})
+    config = BulletChartConfig(metric=_simple_metric())
+    with pytest.raises(ValueError, match="must match exactly one"):
+        merge_update_form_data(existing, map_bullet_config(config), config)
+
+    with pytest.raises(ValidationError, match="must match exactly one"):
+        BulletChartConfig.model_validate(existing)
+
+
 def test_bullet_omitted_filters_preserve_missing_native_filter_key() -> None:
     existing = {"viz_type": "bullet", "metric": "SavedRevenue"}
     config = BulletChartConfig(metric=_simple_metric())
@@ -1685,6 +1878,17 @@ def test_bullet_presentation_updates_are_atomic_and_comma_safe() -> None:
         BulletChartConfig(
             metric=_simple_metric(), ranges=[1], range_labels=["Low, medium"]
         )
+
+    partial = BulletChartConfig.model_validate(
+        {
+            "viz_type": "bullet",
+            "metric": "SavedRevenue",
+            "ranges": "10,20,30",
+            "range_labels": "Low,,High",
+        }
+    )
+    assert partial.range_labels == ["Low", "", "High"]
+    assert map_bullet_config(partial)["range_labels"] == "Low,,High"
 
     existing = {
         "viz_type": "bullet",
