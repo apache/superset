@@ -16,13 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  RefObject,
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-} from 'react';
+import { RefObject, useCallback, useEffect, useRef, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { css, styled } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
@@ -125,7 +119,8 @@ export default function EmbeddedChart({ chartId }: { chartId: string }) {
   }, [data, dispatch]);
 
   if (loading || (!hydrated && !error)) return <Loading />;
-  if (error || !data) return <div>{error ?? t('The chart could not be loaded.')}</div>;
+  if (error || !data)
+    return <div>{error ?? t('The chart could not be loaded.')}</div>;
 
   return (
     <Fill>
