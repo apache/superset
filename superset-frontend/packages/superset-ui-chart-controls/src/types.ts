@@ -97,7 +97,19 @@ export interface Dataset {
   database?: Record<string, unknown>;
   normalize_columns?: boolean;
   always_filter_main_dttm?: boolean;
+  partition_column?: string | null;
+  partition_mapped_column?: string | null;
+  // Self-contained summary for the partition pruning indicator. Kept separate
+  // from `columns` because the dashboard payload prunes columns no chart
+  // references, and the partition column is typically referenced by none.
+  partition_filter_mapping?: PartitionFilterMapping | null;
   extra?: object | string;
+}
+
+export interface PartitionFilterMapping {
+  partition_column: string;
+  mapped_column: string | null;
+  active: boolean;
 }
 
 export interface ControlPanelState {
