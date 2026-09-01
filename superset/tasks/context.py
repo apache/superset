@@ -390,7 +390,8 @@ class TaskContext(CoreTaskContext):
         exception: BaseException | None = None,
         error_message: str | None = None,
     ) -> TaskProperties:
-        """Build the full properties dict for a terminal FAILURE write.
+        """Build the full properties dict for a terminal FAILURE write, and keep
+        the cache authoritative.
 
         Merges the executor's authoritative in-memory property cache (runtime
         state, private handles written during execution) with error detail, so a
@@ -399,6 +400,12 @@ class TaskContext(CoreTaskContext):
         structured debug detail (class + traceback via ``error_update``);
         ``error_message`` sets a plain message when there is no exception (e.g. a
         self-fence or incomplete abort).
+
+        The merged result is written back to ``self._properties_cache`` so the cache
+        reflects what the caller commits to the DB (the DAO writes a *complete*
+        properties column and leaves merging to the caller's cache). Without this,
+        a later cleanup-failure write built from the cache would erase the error
+        detail recorded here.
         """
         if exception is not None:
             updates = error_update(exception)
@@ -406,7 +413,8 @@ class TaskContext(CoreTaskContext):
             updates = cast(TaskProperties, {"error_message": error_message})
         else:
             updates = cast(TaskProperties, {})
-        return merge_properties(self._properties_cache, updates)
+        self._properties_cache = merge_properties(self._properties_cache, updates)
+        return self._properties_cache
 
     def set_cancellation(self, database_id: int, cancel_query_id: str) -> None:
         """Record the engine cancel handle for the running warehouse query.
@@ -577,14 +585,17 @@ class TaskContext(CoreTaskContext):
         if self._app:
             ctx = self._app.app_context() if not has_app_context() else nullcontext()
             with ctx:
-                # Check if task already has an error (preserve original context).
-                # error_message is public (top-level); the exception class and
-                # traceback are internal debug detail under private["framework"].
-                task = self._task
-                private_fw = (task.properties_dict.get("private") or {}).get(
+                # Preserve any error already recorded for this task (e.g. a task-body
+                # exception written via ``error_properties`` before cleanup ran).
+                # Read it from the authoritative in-memory cache — NOT ``self._task``,
+                # which is a stale construction-time snapshot that never saw that
+                # out-of-band write. error_message is public (top-level); the
+                # exception class and traceback are debug detail under
+                # private["framework"].
+                private_fw = (self._properties_cache.get("private") or {}).get(
                     "framework"
                 ) or {}
-                original_error = task.properties_dict.get("error_message")
+                original_error = self._properties_cache.get("error_message")
                 original_type = private_fw.get("exception_type")
                 original_trace = private_fw.get("stack_trace")
 
@@ -642,13 +653,15 @@ class TaskContext(CoreTaskContext):
                 ).run()
                 if not transitioned:
                     # Task already reached a terminal state (e.g. SUCCESS committed
-                    # before cleanup ran). Preserve that status; record the handler
-                    # failure as debug-only detail so it isn't lost.
+                    # before cleanup ran, or a body FAILURE was already recorded).
+                    # Preserve that status and any existing error; record only the
+                    # handler failure as debug-only detail under distinct keys so it
+                    # isn't lost and doesn't clobber the original error.
                     logger.warning(
                         "Handler failure for task %s after it reached a terminal "
                         "state; recording detail without changing status: %s",
                         self._task_uuid,
-                        error_msg,
+                        handler_error_msg,
                     )
                     InternalUpdateTaskCommand(
                         task_uuid=self._task_uuid,
@@ -659,9 +672,11 @@ class TaskContext(CoreTaskContext):
                                 {
                                     "private": {
                                         "framework": {
-                                            "cleanup_error_message": error_msg,
-                                            "cleanup_exception_type": exception_type,
-                                            "cleanup_stack_trace": stack_trace,
+                                            "cleanup_error_message": handler_error_msg,
+                                            "cleanup_exception_type": (
+                                                handler_exception_type
+                                            ),
+                                            "cleanup_stack_trace": handler_stack_trace,
                                         }
                                     }
                                 },

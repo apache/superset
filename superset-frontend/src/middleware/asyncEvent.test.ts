@@ -538,9 +538,26 @@ test('a realtime message is a no-op when async queries are disabled', () => {
 
 const wsConfig = {
   WEBSOCKET_ENABLE: true,
+  WEBSOCKET_URL: 'ws://localhost:8080/',
   GLOBAL_ASYNC_QUERIES_POLLING_DELAY: 20,
   GLOBAL_ASYNC_QUERIES_POLLING_STALE_TIMEOUT: 600_000,
 };
+
+test('WEBSOCKET_ENABLE without a URL keeps polling (never disables the poll)', async () => {
+  // A socket can never open without a URL, so the transport must not be treated
+  // as enabled — otherwise the poll is disabled and completion never arrives.
+  queueStatuses({ 'task-1': { status: 'success' } });
+  asyncEvent.init({
+    WEBSOCKET_ENABLE: true,
+    GLOBAL_ASYNC_QUERIES_POLLING_DELAY: 20,
+  });
+
+  const refetch = jest.fn().mockResolvedValue([{ rows: 1 }]);
+  // Resolves via the interval poll (no socket message is delivered).
+  expect(
+    await asyncEvent.waitForAsyncData({ task_ids: ['task-1'] }, refetch),
+  ).toEqual([{ rows: 1 }]);
+});
 
 test('WS mode: settles via the socket without any status_changes polling', async () => {
   queueStatuses(); // registration catch-up sees no change

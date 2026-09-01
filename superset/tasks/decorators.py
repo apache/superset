@@ -464,6 +464,10 @@ class TaskWrapper(Generic[P]):
         while unmet is DAG_WAITING:
             for prerequisite in current.depends_on:
                 if prerequisite.status not in TERMINAL_STATES:
+                    # Unbounded wait by design: it mirrors the async path's
+                    # unbounded defer-retry (wait until the prerequisite is
+                    # terminal). Follow-up: bound it by TaskOptions.timeout for the
+                    # sync caller if a use case needs it.
                     TaskManager.wait_for_completion(
                         task_uuid=prerequisite.uuid, poll_interval=1.0, app=app
                     )

@@ -546,7 +546,10 @@ export const init = (appConfig?: AppConfig) => {
   // registration/reconnect. With it disabled, the interval poll below is the only
   // mechanism. (`config` can be undefined when bootstrap carries no conf — e.g.
   // under test — so read it defensively; this runs before the feature gate.)
-  wsEnabled = Boolean(config?.WEBSOCKET_ENABLE);
+  // Require a usable URL too: WEBSOCKET_ENABLE without WEBSOCKET_URL can never open
+  // a socket (openSocket no-ops), so treating it as the transport would disable the
+  // poll AND never deliver completion — keep polling as the safe fallback instead.
+  wsEnabled = Boolean(config?.WEBSOCKET_ENABLE && config?.WEBSOCKET_URL);
 
   // (Re)connect the shared realtime socket whenever the websocket transport is
   // enabled — independent of GLOBAL_ASYNC_QUERIES, since realtime list views

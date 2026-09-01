@@ -746,6 +746,47 @@ class TestHandlerFailureStatusWrite:
         transition.assert_called_once()
         update.assert_not_called()
 
+    def test_cleanup_failure_after_body_failure_preserves_original_error(
+        self, task_context
+    ):
+        """Regression: a task-body exception writes the terminal error, then a
+        cleanup handler also fails. The properties-only fallback (task already
+        terminal) must PRESERVE the original body error — its message, exception
+        type, and stack trace — and add the cleanup detail alongside it, rather than
+        erasing it by writing a complete column built from a stale cache."""
+        # Body failed first: error_properties records the terminal error and keeps
+        # the cache authoritative.
+        try:
+            raise ValueError("body boom")
+        except ValueError as ex:
+            task_context.error_properties(exception=ex)
+
+        task_context._handler_failures = [
+            ("cleanup", RuntimeError("cleanup boom"), "cleanup-trace")
+        ]
+        with (
+            patch(
+                "superset.commands.tasks.internal_update."
+                "InternalStatusTransitionCommand"
+            ) as transition,
+            patch(
+                "superset.commands.tasks.internal_update.InternalUpdateTaskCommand"
+            ) as update,
+        ):
+            transition.return_value.run.return_value = False  # already terminal
+            task_context._write_handler_failures_to_db()
+
+        props = update.call_args.kwargs["properties"]
+        # The original body error survives...
+        assert props["error_message"] == "body boom"
+        assert props["private"]["framework"]["exception_type"] == "ValueError"
+        assert "body boom" in props["private"]["framework"]["stack_trace"]
+        # ...and the cleanup failure is recorded alongside it.
+        assert (
+            props["private"]["framework"]["cleanup_error_message"]
+            == "Cleanup handler failed: cleanup boom"
+        )
+
 
 class TestErrorProperties:
     """error_properties merges the executor cache with error detail (no wipe)."""
