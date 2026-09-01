@@ -468,9 +468,15 @@ class TaskWrapper(Generic[P]):
                     # unbounded defer-retry (wait until the prerequisite is
                     # terminal). Follow-up: bound it by TaskOptions.timeout for the
                     # sync caller if a use case needs it.
-                    TaskManager.wait_for_completion(
-                        task_uuid=prerequisite.uuid, poll_interval=1.0, app=app
-                    )
+                    try:
+                        TaskManager.wait_for_completion(
+                            task_uuid=prerequisite.uuid, poll_interval=1.0, app=app
+                        )
+                    except ValueError:
+                        # The prerequisite was pruned mid-wait (no row). Stop
+                        # waiting and let the re-check below treat it as failed,
+                        # matching the async path's missing-prerequisite handling.
+                        break
             current = (
                 TaskDAO.find_one_or_none(uuid=task.uuid, skip_base_filter=True)
                 or current

@@ -463,7 +463,7 @@ class CoordinationService:
         """
         try:
             return backend.stream_last_id(channel)
-        except RedisError:
+        except (RedisError, OSError):
             logger.debug(
                 "Baseline stream read on %s failed; starting from 0-0",
                 channel,

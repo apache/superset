@@ -377,6 +377,9 @@ export const connectRealtime = (config?: RealtimeConfig): void => {
 
   teardownSocket();
   generation += 1;
+  // Fresh (re)configuration: start the failure counter clean so a prior outage's
+  // count can't make the first new attempt look unhealthy.
+  reconnectAttempts = 0;
   started = true;
   enabled = nextEnabled;
   url = nextUrl;
@@ -387,6 +390,7 @@ export const connectRealtime = (config?: RealtimeConfig): void => {
 /** Tear down the socket and stop reconnecting. */
 export const disconnectRealtime = (): void => {
   generation += 1;
+  reconnectAttempts = 0;
   teardownSocket();
 };
 
@@ -444,11 +448,4 @@ export const emitRealtimeOpenForTests = (
   reason: RealtimeOpenReason = 'reconnect',
 ): void => {
   openListeners.forEach(listener => listener(reason));
-};
-
-// Test-only: simulate a connection-state transition firing the state-listeners.
-export const emitRealtimeStateForTests = (
-  state: RealtimeConnectionState,
-): void => {
-  emitState(state);
 };
