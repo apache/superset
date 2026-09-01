@@ -190,6 +190,42 @@ test('a connection with no datasets keeps the existing dependents copy', async (
   ).not.toBeInTheDocument();
 });
 
+test('datasets the user cannot access are counted but not named', async () => {
+  // The endpoint access-filters the names while leaving the count intact, so
+  // the modal must explain the block using the full count and list only what
+  // came back.
+  setupMocks({ datasets: [dataset(1, 'qa_orders')], datasetCount: 3 });
+  renderDatabaseList();
+
+  const dialog = await openDeleteModal();
+
+  expect(
+    within(dialog).getByText(
+      /cannot be deleted because 3 datasets are still attached to it/i,
+    ),
+  ).toBeInTheDocument();
+  expect(within(dialog).getByText('qa_orders')).toBeInTheDocument();
+  expect(within(dialog).getByText('... and 2 others')).toBeInTheDocument();
+});
+
+test('a fully access-filtered dataset list still explains the block', async () => {
+  // The caller can see the connection but none of its datasets. The count
+  // still has to explain why the delete is refused, without an empty list.
+  setupMocks({ datasets: [], datasetCount: 2 });
+  renderDatabaseList();
+
+  const dialog = await openDeleteModal();
+
+  expect(
+    within(dialog).getByText(
+      /cannot be deleted because 2 datasets are still attached to it/i,
+    ),
+  ).toBeInTheDocument();
+  expect(
+    within(dialog).queryByText('Affected Datasets'),
+  ).not.toBeInTheDocument();
+});
+
 test('the dataset list footer reports dependents beyond the listed page', async () => {
   setupMocks({
     datasets: Array.from({ length: 12 }, (_, i) =>

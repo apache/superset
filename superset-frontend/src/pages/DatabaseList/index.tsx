@@ -193,6 +193,56 @@ function SemanticLayerCascadeWarning({
     </>
   );
 }
+/**
+ * Names the datasets blocking a connection delete.
+ *
+ * ``count`` is every dataset that blocks the delete; ``result`` is only the
+ * subset the caller may see, because the related_objects endpoint
+ * access-filters the names. The two therefore diverge, and the overflow footer
+ * counts from what is actually listed rather than assuming a full page.
+ */
+function DatabaseDatasetDependents({
+  datasets,
+}: {
+  datasets: DatabaseDeleteObject['datasets'];
+}) {
+  const listed = datasets.result.slice(0, MAX_DEPENDENT_DATASETS_LISTED);
+  if (listed.length === 0) {
+    // The count still explains the block in the message above; an empty list
+    // under a heading would only imply the dependents had vanished.
+    return null;
+  }
+  const unlistedCount = datasets.count - listed.length;
+
+  return (
+    <>
+      <h4>{t('Affected Datasets')}</h4>
+      <List
+        split={false}
+        size="small"
+        dataSource={listed}
+        renderItem={(result: { id: number; table_name: string }) => (
+          <List.Item key={result.id} compact>
+            <List.Item.Meta avatar={<span>•</span>} title={result.table_name} />
+          </List.Item>
+        )}
+        footer={
+          unlistedCount > 0 && (
+            <div>
+              {tn(
+                '... and %s other',
+                '... and %s others',
+                unlistedCount,
+                unlistedCount,
+              )}
+            </div>
+          )
+        }
+      />
+    </>
+  );
+}
+
 interface DatabaseListProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
@@ -1136,45 +1186,9 @@ function DatabaseList({
                   )}
                 </p>
               )}
-              {databaseCurrentlyDeleting.datasets.count >= 1 && (
-                <>
-                  <h4>{t('Affected Datasets')}</h4>
-                  <List
-                    split={false}
-                    size="small"
-                    dataSource={databaseCurrentlyDeleting.datasets.result.slice(
-                      0,
-                      MAX_DEPENDENT_DATASETS_LISTED,
-                    )}
-                    renderItem={(result: {
-                      id: number;
-                      table_name: string;
-                    }) => (
-                      <List.Item key={result.id} compact>
-                        <List.Item.Meta
-                          avatar={<span>•</span>}
-                          title={result.table_name}
-                        />
-                      </List.Item>
-                    )}
-                    footer={
-                      databaseCurrentlyDeleting.datasets.count >
-                        MAX_DEPENDENT_DATASETS_LISTED && (
-                        <div>
-                          {tn(
-                            '... and %s other',
-                            '... and %s others',
-                            databaseCurrentlyDeleting.datasets.count -
-                              MAX_DEPENDENT_DATASETS_LISTED,
-                            databaseCurrentlyDeleting.datasets.count -
-                              MAX_DEPENDENT_DATASETS_LISTED,
-                          )}
-                        </div>
-                      )
-                    }
-                  />
-                </>
-              )}
+              <DatabaseDatasetDependents
+                datasets={databaseCurrentlyDeleting.datasets}
+              />
               {databaseCurrentlyDeleting.dashboards.count >= 1 && (
                 <>
                   <h4>{t('Affected Dashboards')}</h4>

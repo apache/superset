@@ -1387,10 +1387,13 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             {"id": tab_state.id, "label": tab_state.label, "active": tab_state.active}
             for tab_state in data["sqllab_tab_states"]
         ]
-        # Not access-filtered, unlike charts and dashboards above: this count is
-        # what blocks the delete, so hiding a dataset here would put the caller
-        # back in front of a confirmation reporting no dataset dependents for a
-        # database the delete then refuses.
+        # Names are access-filtered like charts and dashboards above, but the
+        # count is not. This route only requires ``can_read`` on Database, and
+        # ``DatabaseFilter`` admits a caller holding ``datasource_access`` on a
+        # single dataset in the database, so returning every name here would let
+        # them enumerate datasets they hold no permission on. The count has to
+        # stay unfiltered because it is what explains the delete being blocked --
+        # a bare number discloses far less than a name and schema.
         datasets = [
             {
                 "id": dataset.id,
@@ -1398,6 +1401,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                 "schema": dataset.schema,
             }
             for dataset in data["datasets"]
+            if security_manager.can_access_datasource(dataset)
         ]
         return self.response(
             200,
@@ -1407,7 +1411,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                 "count": len(sqllab_tab_states),
                 "result": sqllab_tab_states,
             },
-            datasets={"count": len(datasets), "result": datasets},
+            datasets={"count": len(data["datasets"]), "result": datasets},
         )
 
     @expose("/<int:pk>/validate_sql/", methods=("POST",))
