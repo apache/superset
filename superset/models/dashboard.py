@@ -379,11 +379,15 @@ class Dashboard(CoreDashboard, SoftDeleteMixin, AuditMixinNullable, ImportExport
 
     @property
     def tabs(self) -> dict[str, Any]:  # noqa: C901
+        # Callers index ``all_tabs`` and iterate ``tab_tree``, so every exit
+        # returns that shape. A bare ``{}`` reaches the API as a payload with
+        # neither key, which a caller cannot iterate.
+        no_tabs: dict[str, Any] = {"all_tabs": {}, "tab_tree": []}
         if not isinstance(self.position, dict):
             logger.warning("Dashboard %s: layout is not a mapping", self.id)
-            return {}
+            return no_tabs
         if self.position == {}:
-            return {}
+            return no_tabs
 
         def get_node(node_id: str) -> Optional[dict[str, Any]]:
             """
@@ -453,22 +457,22 @@ class Dashboard(CoreDashboard, SoftDeleteMixin, AuditMixinNullable, ImportExport
                     )
                     continue
                 if node_type == "TABS":
-                    # A tab that cannot be keyed by a string is unusable: it
-                    # could not be selected, and it would reach the API as a
-                    # tree entry with no ``value``. Keep it out of the tree as
-                    # well as out of ``all_tabs``.
-                    if child.get("type") == "TAB" and not isinstance(
-                        child.get("id"), str
-                    ):
+                    # Only a node that will register as a tab belongs in the
+                    # tree. Anything else -- an untyped node, or a tab whose id
+                    # cannot key ``all_tabs`` -- is rejected later and would be
+                    # left in the tree with no ``value`` and no ``title``. It is
+                    # still walked, so tabs stored below it are not lost.
+                    if child.get("type") == "TAB" and isinstance(child.get("id"), str):
+                        # if TABS add create a new list and append children to it
+                        # new_children.append(child)
+                        children.append(child)
+                    else:
                         logger.warning(
-                            "Dashboard %s: skipping tab node with no usable id "
-                            "in the layout",
+                            "Dashboard %s: keeping layout node %s out of the "
+                            "tab tree, it is not a usable tab",
                             self.id,
+                            child_id,
                         )
-                        continue
-                    # if TABS add create a new list and append children to it
-                    # new_children.append(child)
-                    children.append(child)
                     queue.append((child, new_children))
                 elif node_type in ["GRID", "ROOT"]:
                     queue.append((child, children))
@@ -481,7 +485,7 @@ class Dashboard(CoreDashboard, SoftDeleteMixin, AuditMixinNullable, ImportExport
         root = get_node("ROOT_ID")
         if not isinstance(root, dict):
             logger.warning("Dashboard %s: layout has no usable ROOT_ID node", self.id)
-            return {}
+            return no_tabs
 
         tab_tree: list[dict[str, Any]] = []
         all_tabs: dict[str, str] = {}

@@ -425,14 +425,15 @@ def test_tabs_skips_tab_nodes_without_an_id(
     assert caplog.text.count("skipping tab node with no usable id in the layout") == 2
 
 
-def test_tabs_returns_empty_dict_when_layout_has_no_root(
+def test_tabs_returns_no_tabs_when_layout_has_no_root(
     app_context: None, caplog: pytest.LogCaptureFixture
 ) -> None:
     """A non-empty layout with no ROOT_ID node yields no tabs.
 
     The empty-layout early return does not cover this case, because the parsed
     layout is a non-empty mapping — it simply has nothing to start the walk
-    from.
+    from. Like every other exit it returns the normal payload shape, since
+    callers index `all_tabs` and iterate `tab_tree`.
     """
     dash = Dashboard()
     dash.id = 1
@@ -442,26 +443,26 @@ def test_tabs_returns_empty_dict_when_layout_has_no_root(
 
     caplog.set_level(logging.WARNING, logger=LOGGER)
 
-    assert dash.tabs == {}
+    assert dash.tabs == {"all_tabs": {}, "tab_tree": []}
     assert "layout has no usable ROOT_ID node" in caplog.text
 
 
-def test_tabs_returns_empty_dict_for_an_empty_layout(app_context: None) -> None:
+def test_tabs_returns_no_tabs_for_an_empty_layout(app_context: None) -> None:
     """No layout at all — unset, blank or an empty object — yields no tabs."""
     dash = Dashboard()
     dash.id = 1
 
     dash.position_json = None
-    assert dash.tabs == {}
+    assert dash.tabs == {"all_tabs": {}, "tab_tree": []}
 
     dash.position_json = ""
-    assert dash.tabs == {}
+    assert dash.tabs == {"all_tabs": {}, "tab_tree": []}
 
     dash.position_json = json.dumps({})
-    assert dash.tabs == {}
+    assert dash.tabs == {"all_tabs": {}, "tab_tree": []}
 
 
-def test_tabs_returns_empty_dict_when_layout_is_not_a_mapping(
+def test_tabs_returns_no_tabs_when_layout_is_not_a_mapping(
     app_context: None, caplog: pytest.LogCaptureFixture
 ) -> None:
     """Valid JSON that is not an object yields no tabs instead of raising.
@@ -475,10 +476,10 @@ def test_tabs_returns_empty_dict_when_layout_is_not_a_mapping(
     caplog.set_level(logging.WARNING, logger=LOGGER)
 
     dash.position_json = json.dumps(None)
-    assert dash.tabs == {}
+    assert dash.tabs == {"all_tabs": {}, "tab_tree": []}
 
     dash.position_json = json.dumps([])
-    assert dash.tabs == {}
+    assert dash.tabs == {"all_tabs": {}, "tab_tree": []}
 
     assert caplog.text.count("layout is not a mapping") == 2
 
@@ -555,3 +556,49 @@ def test_tabs_skips_an_unusable_tab_outside_a_tab_bar(
 
     assert tabs == {"all_tabs": {}, "tab_tree": []}
     assert "skipping tab node with no usable id in the layout" in caplog.text
+
+
+def test_tabs_keeps_nodes_that_are_not_usable_tabs_out_of_the_tree(
+    app_context: None, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Only a node that registers as a tab is added to the tree.
+
+    A TABS node contributes its children to `tab_tree`, but a child that is
+    untyped, or is not a TAB, never reaches `register_tab` and so never gets a
+    `value` or a `title`. Such an entry would not satisfy `TabSchema`, so it is
+    kept out of the tree, while still being walked in case tabs are stored
+    below it.
+    """
+    dash = Dashboard()
+    dash.id = 1
+    dash.position_json = json.dumps(
+        {
+            "ROOT_ID": {"id": "ROOT_ID", "type": "ROOT", "children": ["GRID_ID"]},
+            "GRID_ID": {"id": "GRID_ID", "type": "GRID", "children": ["TABS-1"]},
+            "TABS-1": {
+                "id": "TABS-1",
+                "type": "TABS",
+                "children": ["TAB-1", "ROW-1", "TAB-2"],
+            },
+            # No `type`, so the walk rejects it before it can be registered.
+            "TAB-1": {"id": "TAB-1", "meta": {"text": "Untyped"}, "children": []},
+            # Typed, but not a tab.
+            "ROW-1": {"id": "ROW-1", "type": "ROW", "children": []},
+            "TAB-2": {
+                "id": "TAB-2",
+                "type": "TAB",
+                "meta": {"text": "Second"},
+                "children": [],
+            },
+        }
+    )
+
+    caplog.set_level(logging.WARNING, logger=LOGGER)
+    tabs = dash.tabs
+
+    assert tabs["all_tabs"] == {"TAB-2": "Second"}
+    assert [node["id"] for node in tabs["tab_tree"]] == ["TAB-2"]
+    # Nothing in the tree may be missing the fields the API serialises.
+    assert all("value" in node and "title" in node for node in tabs["tab_tree"])
+    for node_id in ("TAB-1", "ROW-1"):
+        assert f"keeping layout node {node_id} out of the tab tree" in caplog.text
