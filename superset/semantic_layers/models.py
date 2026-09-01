@@ -69,6 +69,41 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+# Known grains ranked finest to coarsest by their ISO-8601 durations, so that
+# collapsing same-named grain variants picks the least-aggregated one
+# deterministically. Grains outside this table rank after every known one.
+_GRAIN_FINENESS: dict[str, int] = {
+    "PT1S": 0,
+    "PT1M": 1,
+    "PT1H": 2,
+    "P1D": 3,
+    "P1W": 4,
+    "P1M": 5,
+    "P3M": 6,
+    "P1Y": 7,
+}
+
+
+def _grain_preference(dimension: Any) -> tuple[int, int, str]:
+    """Sort key for choosing among same-named grain variants.
+
+    The unaggregated variant (``grain is None``) always wins; otherwise the
+    finest grain does, with the grain's representation as a deterministic
+    tie-break. ``get_dimensions()`` returns an unordered set, so without an
+    explicit preference the collapsed pick — and with it column metadata and
+    value suggestions — would vary run to run.
+    """
+    grain = getattr(dimension, "grain", None)
+    if grain is None:
+        return (0, 0, "")
+    representation = str(getattr(grain, "representation", grain))
+    return (
+        1,
+        _GRAIN_FINENESS.get(representation, len(_GRAIN_FINENESS)),
+        representation,
+    )
+
+
 def get_column_type(semantic_type: pa.DataType) -> GenericDataType:
     """
     Map Arrow data types to generic data types.
@@ -460,10 +495,18 @@ class SemanticView(AuditMixinNullable, Model):
         # same ``name`` but different grains (one variant per supported time
         # grain). For column-list purposes we collapse these into a single
         # entry; the available grains are surfaced separately via
-        # ``get_time_grains`` and ``data["time_grain_sqla"]``.
+        # ``get_time_grains`` and ``data["time_grain_sqla"]``. The variant
+        # kept is chosen by ``_grain_preference`` (unaggregated, else finest
+        # grain) rather than by encounter order: ``get_dimensions()`` is an
+        # unordered set, and both the column metadata and the filter-value
+        # suggestions built from this list must not vary run to run.
         seen: dict[str, Any] = {}
         for dimension in self.implementation.get_dimensions():
-            seen.setdefault(dimension.name, dimension)
+            incumbent = seen.get(dimension.name)
+            if incumbent is None or (
+                _grain_preference(dimension) < _grain_preference(incumbent)
+            ):
+                seen[dimension.name] = dimension
         return list(seen.values())
 
     @property

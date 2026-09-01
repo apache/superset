@@ -1756,12 +1756,17 @@ def test_values_for_column_ambiguous_result_is_a_server_error(
             view.values_for_column("category")
 
 
+@pytest.mark.parametrize("reverse", [False, True])
 def test_values_for_column_uses_grain_collapsed_dimensions(
     mock_implementation: MagicMock,
     mock_dimensions: list[Dimension],
+    reverse: bool,
 ) -> None:
     """Grain variants share a name; the values fetch uses the same collapsed
-    dimension that columns/column_names present to the picker."""
+    dimension that columns/column_names present to the picker, and the pick
+    must not depend on ``get_dimensions()`` iteration order — the ABC returns
+    a set. The least-aggregated variant wins: DAY-truncated values beat
+    MONTH-truncated ones as suggestions. Both orders assert the same pick."""
     variant = Dimension(
         id="orders.order_date",
         name="order_date",
@@ -1769,7 +1774,10 @@ def test_values_for_column_uses_grain_collapsed_dimensions(
         definition="orders.order_date",
         grain=Grains.MONTH,
     )
-    mock_implementation.get_dimensions.return_value = [*mock_dimensions, variant]
+    dims = [*mock_dimensions, variant]
+    if reverse:
+        dims = list(reversed(dims))
+    mock_implementation.get_dimensions.return_value = dims
     mock_implementation.get_values.return_value = _values_result([], name="order_date")
     view = SemanticView()
 
@@ -1781,6 +1789,46 @@ def test_values_for_column_uses_grain_collapsed_dimensions(
         view.values_for_column("order_date")
 
     assert mock_implementation.get_values.call_args.args[0] == mock_dimensions[0]
+
+
+@pytest.mark.parametrize("reverse", [False, True])
+def test_values_for_column_prefers_the_unaggregated_variant(
+    mock_implementation: MagicMock,
+    mock_dimensions: list[Dimension],
+    reverse: bool,
+) -> None:
+    """When a name has an unaggregated variant (``grain is None``) alongside
+    grained ones, the unaggregated one is the suggestion source, whatever
+    order the provider's set iterates in."""
+    unaggregated = Dimension(
+        id="orders.order_date",
+        name="order_date",
+        type=pa.date32(),
+        definition="orders.order_date",
+        grain=None,
+    )
+    monthly = Dimension(
+        id="orders.order_date",
+        name="order_date",
+        type=pa.date32(),
+        definition="orders.order_date",
+        grain=Grains.MONTH,
+    )
+    dims = [*mock_dimensions, monthly, unaggregated]
+    if reverse:
+        dims = list(reversed(dims))
+    mock_implementation.get_dimensions.return_value = dims
+    mock_implementation.get_values.return_value = _values_result([], name="order_date")
+    view = SemanticView()
+
+    with patch.object(
+        SemanticView,
+        "implementation",
+        new_callable=lambda: property(lambda s: mock_implementation),
+    ):
+        view.values_for_column("order_date")
+
+    assert mock_implementation.get_values.call_args.args[0] == unaggregated
 
 
 def test_semantic_view_normalize_columns_is_false() -> None:
