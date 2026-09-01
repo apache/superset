@@ -602,7 +602,16 @@ def test_compile_chart_seeds_g_form_data_for_jinja_macros(
     fake_query_context = Mock()
     mock_factory.return_value.create.return_value = fake_query_context
     mock_cmd_cls.return_value.validate.return_value = None
-    mock_cmd_cls.return_value.run.return_value = {"queries": [{"data": []}]}
+    # Record the seed / run call order so the "before ChartDataCommand.run"
+    # ordering claim is actually checked. Indexing ``call_args_list`` alone
+    # would only prove both were called, not their relative order — and if
+    # the seed runs *after* ``run()`` the fix is defeated (Jinja renders
+    # during ``run()``).
+    call_order: list[str] = []
+    mock_set_form_data.side_effect = lambda *a, **k: call_order.append("seed")
+    mock_cmd_cls.return_value.run.side_effect = lambda *a, **k: (
+        call_order.append("run") or {"queries": [{"data": []}]}
+    )
 
     result = _compile_chart(
         form_data={
@@ -614,47 +623,60 @@ def test_compile_chart_seeds_g_form_data_for_jinja_macros(
 
     assert result.success, result.error
     mock_set_form_data.assert_called_once_with(fake_query_context, 42, "table")
-
-    # Order matters: the seed MUST happen before the command actually runs
-    # the query, otherwise the Jinja renderer wouldn't see g.form_data.
-    seed_order = mock_set_form_data.call_args_list[0]
-    run_order = mock_cmd_cls.return_value.run.call_args_list[0]
-    assert seed_order is not None
-    assert run_order is not None
+    assert call_order == ["seed", "run"]
 
 
 @patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
 @patch("superset.common.query_context_factory.QueryContextFactory")
-@patch("superset.charts.data.form_data.set_query_context_form_data")
-@patch("superset.mcp_service.chart.compile.has_request_context", create=True)
-def test_compile_chart_seeds_g_form_data_without_request_context(
-    mock_has_request,
-    mock_set_form_data,
+def test_compile_chart_populates_g_form_data_for_jinja_macros(
     mock_factory,
     mock_cmd_cls,
 ):
-    """The streamable-http transport does not push a Flask request context
-    (see ``tests/unit_tests/mcp_service/test_auth_api_key.py``). Under that
-    branch, Jinja macros like ``url_param`` fall back to reading
-    ``g.form_data`` via ``get_form_data()``. The compile path's seed call
-    must still fire on that branch — this test pins that.
+    """The streamable-http transport does not push a Flask request context,
+    so Jinja macros like ``url_param``, ``filter_values``, and ``get_filters``
+    reach for ``g.form_data`` via ``get_form_data()``'s no-request-context
+    fallback (see ``superset/views/utils.py`` ``get_form_data`` and
+    ``tests/unit_tests/mcp_service/test_auth_api_key.py`` for context). This
+    test runs the real ``set_query_context_form_data`` and asserts the
+    resulting ``g.form_data`` carries the query shape those macros expect —
+    proving the seed is not just called but produces a usable payload.
     """
+    from types import SimpleNamespace
+
+    from flask import current_app, g
+
+    from superset.common.query_object import QueryObject
     from superset.mcp_service.chart.compile import _compile_chart
 
-    mock_has_request.return_value = False
-    mock_factory.return_value.create.return_value = Mock()
+    query = QueryObject(
+        filters=[{"col": "region", "op": "IN", "val": ["North"]}],
+        time_range="Last week",
+    )
+    fake_query_context = SimpleNamespace(
+        queries=[query],
+        form_data={"url_params": {"tenant": "acme"}},
+    )
+    mock_factory.return_value.create.return_value = fake_query_context
     mock_cmd_cls.return_value.validate.return_value = None
     mock_cmd_cls.return_value.run.return_value = {"queries": [{"data": []}]}
 
-    result = _compile_chart(
-        form_data={
-            "metrics": [{"label": "count", "expressionType": "SIMPLE"}],
-        },
-        dataset_id=7,
-    )
+    with current_app.app_context():
+        result = _compile_chart(
+            form_data={
+                "metrics": [{"label": "count", "expressionType": "SIMPLE"}],
+            },
+            dataset_id=7,
+        )
 
-    assert result.success, result.error
-    mock_set_form_data.assert_called_once()
-    args = mock_set_form_data.call_args.args
-    assert args[1] == 7
-    assert args[2] == "table"
+        assert result.success, result.error
+        # The seed ran and produced the shape the Jinja macros consume via
+        # ``get_form_data()``: identifies the datasource and carries the
+        # per-query fields (filters, time_range, url_params).
+        assert g.form_data["datasource"] == {"id": 7, "type": "table"}
+        seeded_queries = g.form_data["queries"]
+        assert len(seeded_queries) == 1
+        assert seeded_queries[0]["filters"] == [
+            {"col": "region", "op": "IN", "val": ["North"]}
+        ]
+        assert seeded_queries[0]["time_range"] == "Last week"
+        assert seeded_queries[0]["url_params"] == {"tenant": "acme"}

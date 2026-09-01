@@ -153,11 +153,11 @@ def _compile_chart(
         )
 
         # Seed ``g.form_data`` so the Jinja macros that back a virtual
-        # dataset's SQL (``url_param``, ``filter_values``, ``get_filters``,
-        # ``current_user_email``, …) can find the query's fields in the no-
-        # request-context branch of ``get_form_data()``. The HTTP chart-data
-        # endpoint does the equivalent via ``set_form_data(json_body)``;
-        # peer MCP tools ``get_chart_data`` and ``query_dataset`` do it via
+        # dataset's SQL (``url_param``, ``filter_values``, ``get_filters``)
+        # can find the query's fields in the no-request-context branch of
+        # ``get_form_data()``. The HTTP chart-data endpoint does the
+        # equivalent via ``set_form_data(json_body)``; peer MCP tools
+        # ``get_chart_data`` and ``query_dataset`` do it via
         # ``set_query_context_form_data`` — this compile path had missed it,
         # so any virtual dataset with Jinja in its SQL failed at compile
         # time with a misleading "Empty query?" from ``get_query_str_extended``.
