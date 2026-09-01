@@ -31,7 +31,7 @@ from superset.subjects.filters import (
 )
 from superset.subjects.models import dashboard_editors, dashboard_viewers
 from superset.tags.filters import BaseTagIdFilter, BaseTagNameFilter
-from superset.utils.core import get_user_id
+from superset.utils.core import DatasourceType, get_user_id
 from superset.utils.filters import (
     get_dataset_access_filters,
     guest_embedded_dashboard_filter,
@@ -171,8 +171,21 @@ class DashboardAccessFilter(BaseFilter):  # pylint: disable=too-few-public-metho
         no_viewer_query = (
             db.session.query(Dashboard.id)
             .join(Dashboard.slices, isouter=True)
-            .join(SqlaTable, Slice.datasource_id == SqlaTable.id)
-            .join(Database, SqlaTable.database_id == Database.id)
+            # Type-aware datasource joins: the SqlaTable join is constrained
+            # to table-backed charts (an unconstrained id join can bind a
+            # semantic-view chart to an unrelated table sharing its numeric
+            # id) and kept outer so charts on other datasource types survive
+            # into the access filter — their access matches through the perm
+            # columns denormalized onto Slice by ``set_related_perm``.
+            .join(
+                SqlaTable,
+                and_(
+                    Slice.datasource_id == SqlaTable.id,
+                    Slice.datasource_type == DatasourceType.TABLE,
+                ),
+                isouter=True,
+            )
+            .join(Database, SqlaTable.database_id == Database.id, isouter=True)
             .filter(
                 and_(
                     Dashboard.published.is_(True),

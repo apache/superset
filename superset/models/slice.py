@@ -58,6 +58,7 @@ if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
     from superset.common.query_context_factory import QueryContextFactory
     from superset.connectors.sqla.models import SqlaTable
+    from superset.daos.datasource import Datasource
 
     # avoid circular import: superset.connectors.sqla.models imports this module,
     # and superset.semantic_layers.models -> semantic_layers.mapper imports
@@ -229,6 +230,38 @@ class Slice(  # pylint: disable=too-many-public-methods
         if self.datasource_type == utils.DatasourceType.SEMANTIC_VIEW:
             return self.semantic_view
         return self.table
+
+    @property
+    @property
+    def resolved_datasource(self) -> Datasource | None:
+        """The chart's datasource, resolved across datasource types.
+
+        ``Slice.datasource`` is pinned to table-backed datasources (the
+        ``table`` relationship joins on ``datasource_type == 'table'``), so
+        charts on other datasource types — semantic views in particular —
+        resolve to ``None`` there. Authorization call sites must use this
+        resolver instead, so those charts participate in access checks
+        rather than silently vanishing from them. Returns ``None`` when the
+        datasource row does not exist or the type is unknown; callers must
+        treat that as inaccessible, never as absent.
+        """
+        if not self.datasource_id:
+            return None
+        if self.datasource_type in (None, "", utils.DatasourceType.TABLE):
+            return self.table
+        # pylint: disable=import-outside-toplevel
+        from superset.daos.datasource import DatasourceDAO
+        from superset.daos.exceptions import (
+            DatasourceNotFound,
+            DatasourceTypeNotSupportedError,
+        )
+
+        try:
+            return DatasourceDAO.get_datasource(
+                self.datasource_type, self.datasource_id
+            )
+        except (DatasourceNotFound, DatasourceTypeNotSupportedError):
+            return None
 
     def clone(self) -> Slice:
         return Slice(

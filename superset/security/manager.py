@@ -4786,11 +4786,25 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             if dashboard.viewers:
                 if dashboard.published and self.is_viewer(dashboard):
                     return
-            elif not dashboard.datasources or any(
-                self.can_access_datasource(datasource)
-                for datasource in dashboard.datasources
-            ):
-                return
+            else:
+                # Datasource-based fallback. Member chart datasources are
+                # resolved across datasource types via
+                # ``Slice.resolved_datasource`` — ``Dashboard.datasources``
+                # only ever contains SqlaTable-backed datasources, so an
+                # unqualified emptiness check would grant every authenticated
+                # user access to a dashboard composed solely of, e.g.,
+                # semantic-view charts. A dashboard with no charts remains
+                # accessible; a chart whose datasource cannot be resolved
+                # counts as inaccessible, never as absent.
+                resolved_datasources = {
+                    (slc.datasource_type, slc.datasource_id): slc.resolved_datasource
+                    for slc in dashboard.slices
+                }
+                if not resolved_datasources or any(
+                    resolved is not None and self.can_access_datasource(resolved)
+                    for resolved in resolved_datasources.values()
+                ):
+                    return
 
             raise SupersetSecurityException(
                 self.get_dashboard_access_error_object(dashboard)
@@ -4803,7 +4817,12 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             if chart.viewers:
                 if self.is_viewer(chart):
                     return
-            elif chart.datasource and self.can_access_datasource(chart.datasource):
+            elif (
+                # Resolved across datasource types: ``chart.datasource`` is
+                # SqlaTable-only, which silently denied entitled users of
+                # semantic-view charts here.
+                chart_datasource := chart.resolved_datasource
+            ) is not None and self.can_access_datasource(chart_datasource):
                 return
 
             # An embedded guest may access a member chart of a dashboard their
