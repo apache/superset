@@ -186,6 +186,25 @@ test('a field edit rejected by backend validation is not committed, and its erro
   expect(provider.getNode(id)?.props?.prefix).toBe('kept');
 });
 
+test('a rejected edit does not linger in the field — the form reverts to the last accepted value', async () => {
+  // JsonForms is uncontrolled past mount, so without an explicit remount a
+  // rejected pick would keep showing in its own field forever, even though
+  // `config.formData` (what sibling controls actually read) is still the
+  // last *accepted* props — the two would disagree until some unrelated
+  // change happened to force a remount.
+  mount('metric-tile', {
+    dataBinding: { datasetId: 1, metrics: ['count'] },
+    prefix: 'kept',
+  });
+  await screen.findByRole('textbox');
+  mockPost(SCHEMA, [{ loc: ['prefix'], message: 'Too long' }]);
+
+  await userEvent.type(screen.getByRole('textbox'), 'x');
+  await screen.findByText(/prefix: Too long/);
+
+  await waitFor(() => expect(screen.getByRole('textbox')).toHaveValue('kept'));
+});
+
 test('discovers series from the color dimension (the last dimension by default), not the first', async () => {
   // Grouped by [name, gender]: the widget colors by the last dimension, so the
   // customizable series must be the distinct genders — not the many names.

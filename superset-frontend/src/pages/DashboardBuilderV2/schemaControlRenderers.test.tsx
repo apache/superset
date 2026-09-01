@@ -16,15 +16,35 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { loadDatasetOptions } from 'src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/DatasetSelect';
 import {
   columnOptions,
   disallowsAdhocMetrics,
   isUnrepresentableMetric,
+  loadDatasetOnlyOptions,
   metricOptions,
   resolveDatasetPick,
   seriesDefaults,
   toDatasetSelectValue,
 } from './schemaControlRenderers';
+
+jest.mock(
+  'src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/DatasetSelect',
+  () => ({
+    ...jest.requireActual(
+      'src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/DatasetSelect',
+    ),
+    loadDatasetOptions: jest.fn(),
+  }),
+);
+
+const mockedLoadDatasetOptions = loadDatasetOptions as jest.MockedFunction<
+  typeof loadDatasetOptions
+>;
+
+beforeEach(() => {
+  mockedLoadDatasetOptions.mockReset();
+});
 
 test('columnOptions filters by x-column-types when given', () => {
   const metadata = {
@@ -155,6 +175,71 @@ test('resolveDatasetPick rejects a semantic view — datasetId has no way to rep
 
 test('resolveDatasetPick passes undefined through (nothing picked)', () => {
   expect(resolveDatasetPick(undefined)).toBeUndefined();
+});
+
+test('loadDatasetOnlyOptions returns a page as-is once it has surviving datasets', async () => {
+  mockedLoadDatasetOptions.mockResolvedValueOnce({
+    data: [
+      { label: 'sales', value: 'ds:1', table_name: 'sales', kind: 'dataset' },
+    ],
+    totalCount: 1,
+  });
+  const result = await loadDatasetOnlyOptions('', 0, 25);
+  expect(result).toEqual({
+    data: [
+      { label: 'sales', value: 'ds:1', table_name: 'sales', kind: 'dataset' },
+    ],
+    totalCount: 1,
+  });
+  expect(mockedLoadDatasetOptions).toHaveBeenCalledTimes(1);
+});
+
+test('loadDatasetOnlyOptions pages forward internally past a page that filters down to empty', async () => {
+  mockedLoadDatasetOptions
+    .mockResolvedValueOnce({
+      data: [
+        {
+          label: 'view',
+          value: 'sv:1',
+          table_name: 'view',
+          kind: 'semantic_view',
+        },
+      ],
+      totalCount: 3,
+    })
+    .mockResolvedValueOnce({
+      data: [
+        { label: 'sales', value: 'ds:2', table_name: 'sales', kind: 'dataset' },
+      ],
+      totalCount: 3,
+    });
+  const result = await loadDatasetOnlyOptions('', 0, 1);
+  expect(result).toEqual({
+    data: [
+      { label: 'sales', value: 'ds:2', table_name: 'sales', kind: 'dataset' },
+    ],
+    totalCount: 3,
+  });
+  expect(mockedLoadDatasetOptions).toHaveBeenCalledTimes(2);
+  expect(mockedLoadDatasetOptions).toHaveBeenNthCalledWith(1, '', 0, 1);
+  expect(mockedLoadDatasetOptions).toHaveBeenNthCalledWith(2, '', 1, 1);
+});
+
+test('loadDatasetOnlyOptions stops once the underlying result set itself runs out, even if still empty', async () => {
+  mockedLoadDatasetOptions.mockResolvedValueOnce({
+    data: [
+      {
+        label: 'view',
+        value: 'sv:1',
+        table_name: 'view',
+        kind: 'semantic_view',
+      },
+    ],
+    totalCount: 1,
+  });
+  const result = await loadDatasetOnlyOptions('', 0, 1);
+  expect(result).toEqual({ data: [], totalCount: 1 });
+  expect(mockedLoadDatasetOptions).toHaveBeenCalledTimes(1);
 });
 
 test("seriesDefaults reads a not-yet-customized entry's own palette-defaulted color and size", () => {

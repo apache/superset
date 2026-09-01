@@ -150,7 +150,7 @@ class Widget:
         every rule lives declaratively on the model; this method just surfaces
         whatever the model enforces.
         """
-        if not control_values:
+        if control_values is None:
             return []
         try:
             cls.controls_class.model_validate(control_values)

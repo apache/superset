@@ -45,6 +45,16 @@ class _WithBadOverride(BaseModel):
     a: int = 0
 
 
+class _WithDuplicateOverride(BaseModel):
+    # Same set of names as its own properties, but "a" is repeated instead of
+    # naming "b" -- a set() comparison alone can't tell this apart from a
+    # valid permutation.
+    field_order: ClassVar[list[str]] = ["a", "a"]
+
+    b: int = 0
+    a: int = 0
+
+
 class _Nested(BaseModel):
     field_order: ClassVar[list[str]] = ["y", "x"]
 
@@ -84,6 +94,11 @@ def test_field_order_override_reorders_properties() -> None:
 def test_field_order_override_must_be_exact_permutation() -> None:
     with pytest.raises(ValueError, match="field_order"):
         build_configuration_schema(_WithBadOverride)
+
+
+def test_field_order_override_rejects_a_duplicate_with_the_right_set_of_names() -> None:
+    with pytest.raises(ValueError, match="field_order"):
+        build_configuration_schema(_WithDuplicateOverride)
 
 
 def test_field_order_applies_to_nested_defs_models() -> None:

@@ -44,9 +44,24 @@ test('a structured chart type generates one series per metric, keyed and typed c
     undefined,
   );
   expect(series).toEqual([
-    { name: 'count', type: 'bar', data: [3, 5] },
-    { name: 'sum__sales', type: 'bar', data: [100, 200] },
+    {
+      name: 'count',
+      type: 'bar',
+      data: [3, 5],
+      itemStyle: { color: '#e74c3c' },
+    },
+    {
+      name: 'sum__sales',
+      type: 'bar',
+      data: [100, 200],
+      itemStyle: { color: '#3498db' },
+    },
   ]);
+});
+
+test('an uncustomized series falls back to the same per-index palette default the schema advertises as its color, not to whatever ECharts would otherwise pick', () => {
+  const series = buildStructuredSeries('bar', ['count'], ROWS, undefined);
+  expect(series[0].itemStyle).toEqual({ color: '#e74c3c' });
 });
 
 test('an ad-hoc metric is keyed by its stable getMetricLabel, not its raw shape', () => {
@@ -65,6 +80,7 @@ test('an ad-hoc metric is keyed by its stable getMetricLabel, not its raw shape'
   );
   expect(series[0].name).toBe('AVG(price)');
   expect(series[0].data).toEqual([10]);
+  expect(series[0].itemStyle).toEqual({ color: '#e74c3c' });
 });
 
 test('a series override applies color and display name by stable metric key', () => {
@@ -91,9 +107,16 @@ test('visible: false omits that series entirely, not just hides it', () => {
 
 test('an override for a metric no longer in dataBinding.metrics is silently ignored, not an error', () => {
   const series = buildStructuredSeries('bar', ['count'], ROWS, {
-    stale__metric: { color: '#e74c3c' },
+    stale__metric: { color: '#9b59b6' },
   });
-  expect(series).toEqual([{ name: 'count', type: 'bar', data: [3, 5] }]);
+  expect(series).toEqual([
+    {
+      name: 'count',
+      type: 'bar',
+      data: [3, 5],
+      itemStyle: { color: '#e74c3c' },
+    },
+  ]);
 });
 
 test('unmanaged raw ECharts properties survive the merge — only series is replaced', () => {
@@ -115,5 +138,12 @@ test('unmanaged raw ECharts properties survive the merge — only series is repl
   expect(merged.legend).toBe(raw.legend);
   expect(merged.xAxis).toBe(raw.xAxis);
   expect(merged.tooltip).toBe(raw.tooltip);
-  expect(merged.series).toEqual([{ name: 'count', type: 'bar', data: [3, 5] }]);
+  expect(merged.series).toEqual([
+    {
+      name: 'count',
+      type: 'bar',
+      data: [3, 5],
+      itemStyle: { color: '#e74c3c' },
+    },
+  ]);
 });

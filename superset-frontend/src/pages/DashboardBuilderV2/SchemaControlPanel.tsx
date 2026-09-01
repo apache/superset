@@ -384,18 +384,36 @@ export default function SchemaControlPanel({ nodeId }: { nodeId: string }) {
               validateSeqRef.current += 1;
               const seq = validateSeqRef.current;
               commitWidgetProps(nodeId, widgetType, next, {
-                // Only fires once validation has already accepted the
-                // candidate, immediately before the commit that changes
-                // `propsKey` — so the resync effect never remounts the form
-                // and drops input focus for an edit it made itself.
+                // Runs immediately before the actual `updateProps` write, so
+                // a superseded validation (a newer edit already bumped
+                // `validateSeqRef`) is vetoed here rather than after the
+                // fact — by the time `.then()` below can check `seq`, a
+                // committed write can no longer be un-committed. Only once
+                // accepted does it set the flag telling the resync effect
+                // "this `props` change was mine", so it never remounts the
+                // form and drops input focus for an edit it made itself.
                 onBeforeCommit: () => {
+                  if (validateSeqRef.current !== seq) return false;
                   selfEditRef.current = true;
+                  return true;
                 },
               })
                 .then(result => {
                   if (validateSeqRef.current !== seq) return;
                   setValidationErrors(result.ok ? [] : result.errors);
-                  if (result.ok) maybeRefreshSchema(next);
+                  if (result.ok) {
+                    maybeRefreshSchema(next);
+                  } else {
+                    // JsonForms is uncontrolled past mount (see the resync
+                    // effect's own comment) — a rejected pick otherwise keeps
+                    // showing in its field forever, while `config.formData`
+                    // (which sibling controls like the column/metric pickers
+                    // read `datasetId` off) is still the last *accepted*
+                    // `props`, since nothing was committed. Remounting from
+                    // `props` snaps the whole form back to what's actually
+                    // stored, so every field agrees again.
+                    setFormKey(key => key + 1);
+                  }
                 })
                 .catch(async e => {
                   if (validateSeqRef.current !== seq) return;

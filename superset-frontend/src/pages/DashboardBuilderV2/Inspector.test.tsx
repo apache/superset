@@ -140,10 +140,16 @@ test('applying properties writes them to the widget', async () => {
   });
   await userEvent.click(screen.getByTestId('inspector-props-apply'));
 
-  expect(provider.getNode(id)?.props?.dataBinding).toEqual({
-    datasetId: 3,
-    metrics: ['count'],
-  });
+  // Apply now always round-trips through `commitWidgetProps` (see the 404
+  // fallback tests below), so even a widget type with no backend schema
+  // commits asynchronously — this can no longer assert immediately after
+  // the click.
+  await waitFor(() =>
+    expect(provider.getNode(id)?.props?.dataBinding).toEqual({
+      datasetId: 3,
+      metrics: ['count'],
+    }),
+  );
 });
 
 test('a key deleted from the properties stops reaching the widget', async () => {
@@ -159,8 +165,11 @@ test('a key deleted from the properties stops reaching the widget', async () => 
   // the widget would go on rendering from the value it appeared to lose.
   // Sending `undefined` is as close to a removal as a merge can express: the
   // widget reads nothing there, and the key does not survive serialization
-  // back into the editor.
-  expect(provider.getNode(id)?.props?.drop).toBeUndefined();
+  // back into the editor. Apply is asynchronous (see the comment on the
+  // previous test), so this waits for the commit to actually land.
+  await waitFor(() =>
+    expect(provider.getNode(id)?.props?.drop).toBeUndefined(),
+  );
   expect(provider.getNode(id)?.props?.keep).toBe(1);
   expect(screen.getByTestId('inspector-props')).toHaveValue(
     JSON.stringify({ keep: 1 }, null, 2),
@@ -514,23 +523,51 @@ test('switching between Form and JSON tabs does not reset already-accepted value
   expect(provider.getNode(id)?.props?.prefix).toBe('kept');
 });
 
-test('a non-schema-controlled widget keeps committing JSON edits without a backend round-trip', async () => {
-  // `echarts` has no backend control schema, so there is no
-  // `Widget.validate_control_values` gate to reach — the JSON editor keeps
-  // its original, unvalidated commit behavior rather than silently skipping
-  // a validation it cannot actually perform.
+test('a widget type the backend confirms has no schema (a 404 from /validate) keeps committing JSON edits without a validation gate', async () => {
+  // The JSON editor always attempts `/validate` first — the Inspector's own
+  // `useSchemaControlledWidgetTypes` cache is `null` while loading and empty
+  // on a fetch failure, so gating on it (rather than on the backend's own
+  // 404) would silently skip validation for a widget that does have a
+  // schema, for as long as that list hasn't resolved.
   const id = select('echarts', { title: 'Revenue' });
   await openJson();
+  postSpy.mockImplementation(({ endpoint }: { endpoint: string }) =>
+    endpoint.endsWith('/validate')
+      ? Promise.reject(new Response(null, { status: 404 }))
+      : Promise.resolve({ json: { result: METRIC_TILE_SCHEMA } } as never),
+  );
 
   fireEvent.change(screen.getByTestId('inspector-props'), {
     target: { value: '{"title":"Quarterly"}' },
   });
   await userEvent.click(screen.getByTestId('inspector-props-apply'));
 
-  expect(provider.getNode(id)?.props?.title).toBe('Quarterly');
-  expect(postSpy).not.toHaveBeenCalledWith(
+  await waitFor(() =>
+    expect(provider.getNode(id)?.props?.title).toBe('Quarterly'),
+  );
+  expect(postSpy).toHaveBeenCalledWith(
     expect.objectContaining({
       endpoint: expect.stringContaining('/validate'),
     }),
   );
+});
+
+test('a non-404 failure from /validate leaves node.props unchanged and surfaces the error, even for a widget type the cached list has not resolved for', async () => {
+  const id = select('echarts', { title: 'Revenue' });
+  await openJson();
+  postSpy.mockImplementation(({ endpoint }: { endpoint: string }) =>
+    endpoint.endsWith('/validate')
+      ? Promise.reject(new Error('network error'))
+      : Promise.resolve({ json: { result: METRIC_TILE_SCHEMA } } as never),
+  );
+
+  fireEvent.change(screen.getByTestId('inspector-props'), {
+    target: { value: '{"title":"Quarterly"}' },
+  });
+  await userEvent.click(screen.getByTestId('inspector-props-apply'));
+
+  expect(
+    await screen.findByTestId('inspector-props-validation-error'),
+  ).toHaveTextContent('network error');
+  expect(provider.getNode(id)?.props?.title).toBe('Revenue');
 });

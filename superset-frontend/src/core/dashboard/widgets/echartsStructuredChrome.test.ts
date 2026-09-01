@@ -40,10 +40,10 @@ test('every field at its default leaves the raw option untouched, same reference
   expect(applyStructuredChrome(raw, chrome)).toBe(raw);
 });
 
-test('a structured titleText wins over the raw title, merged onto its own object', () => {
+test('titleText is left for ChartWidget/widgetLabel to handle — title is never merged here', () => {
   const raw = { title: { textStyle: { fontSize: 20 } } };
   const merged = applyStructuredChrome(raw, { titleText: 'Sales' });
-  expect(merged.title).toEqual({ textStyle: { fontSize: 20 }, text: 'Sales' });
+  expect(merged.title).toBe(raw.title);
 });
 
 test('legendShow: false hides the legend regardless of the raw config', () => {
@@ -84,6 +84,36 @@ test('xAxis and yAxis are managed independently', () => {
   );
   expect(merged.xAxis).toEqual({ name: 'X' });
   expect(merged.yAxis).toEqual({ name: 'Y' });
+});
+
+test('a multi-axis xAxis array merges onto its first entry, rest untouched', () => {
+  const raw = {
+    xAxis: [
+      { type: 'category', axisLabel: { color: 'red' } },
+      { type: 'value' },
+    ],
+  };
+  const merged = applyStructuredChrome(raw, {
+    xAxisName: 'Product',
+    xAxisRotate: 45,
+  });
+  expect(merged.xAxis).toEqual([
+    {
+      type: 'category',
+      name: 'Product',
+      axisLabel: { color: 'red', rotate: 45 },
+    },
+    { type: 'value' },
+  ]);
+});
+
+test('an array-valued legend merges onto its first entry, rest untouched', () => {
+  const raw = { legend: [{ orient: 'vertical' }, { top: 'bottom' }] };
+  const merged = applyStructuredChrome(raw, { legendShow: false });
+  expect(merged.legend).toEqual([
+    { orient: 'vertical', show: false },
+    { top: 'bottom' },
+  ]);
 });
 
 test('unmanaged raw properties outside title/legend/tooltip/xAxis/yAxis survive untouched', () => {

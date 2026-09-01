@@ -144,7 +144,17 @@ def run_enrichers(
         if enricher is None:
             continue
         node = fields[path]
-        if parsed is not None and not check_dependencies(node, parsed):
-            continue
+        if parsed is not None:
+            # `check_dependencies` is a plain attribute-truthiness gate — it
+            # has no notion of `fields`, so an ordering-edge entry (naming
+            # another dynamic field's path, e.g. "group/options") would
+            # never resolve via `getattr` and would wrongly fail the gate
+            # for every dependent every time, regardless of whether the
+            # upstream enricher it names already ran. Only the non-edge
+            # subset of `x-dependsOn` is a value gate at all — the edges
+            # are already enforced by `order` itself.
+            gates = [dep for dep in node.get("x-dependsOn", []) if dep not in fields]
+            if not check_dependencies({"x-dependsOn": gates}, parsed):
+                continue
         result = enricher(schema, node, parsed, series, upstream_results)
         upstream_results[path] = result

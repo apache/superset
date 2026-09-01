@@ -88,16 +88,18 @@ async function validateControlValues(
  *
  * `onBeforeCommit`, if given, runs synchronously immediately before the
  * `provider.updateProps` call — not part of the merge/validate/commit
- * contract itself, but the one hook a caller needs to set a flag in the
- * exact tick its own commit lands (e.g. `SchemaControlPanel` telling its
- * own resync effect "this `props` change was mine"), without racing the
- * async validation round-trip to do it.
+ * contract itself, but the one hook a caller needs to both veto a commit
+ * that's gone stale during the async validation round-trip (returning
+ * `false` skips `updateProps` entirely — the caller's own sequence check
+ * can't do this after the fact, since by then the write already landed) and
+ * set a flag in the exact tick its own commit lands (e.g. `SchemaControlPanel`
+ * telling its own resync effect "this `props` change was mine").
  */
 export async function commitWidgetProps(
   nodeId: string,
   widgetType: string,
   delta: Record<string, unknown>,
-  options?: { onBeforeCommit?: () => void },
+  options?: { onBeforeCommit?: () => boolean | void },
 ): Promise<CommitPropsResult> {
   const node = provider.getNode(nodeId);
   const candidate = { ...node?.props, ...delta };
@@ -105,7 +107,9 @@ export async function commitWidgetProps(
   if (errors.length > 0) {
     return { ok: false, errors };
   }
-  options?.onBeforeCommit?.();
+  if (options?.onBeforeCommit?.() === false) {
+    return { ok: false, errors: [] };
+  }
   provider.updateProps(nodeId, candidate);
   return { ok: true, values: candidate };
 }

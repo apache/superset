@@ -93,14 +93,19 @@ class MetricControl(BaseModel):
     metrics: list[Any] = Field(
         title="Metrics",
         description=(
-            "Metrics to fetch. Each entry is EITHER a string naming a saved "
-            'metric on the dataset (e.g. "count"), OR an ad-hoc aggregate '
-            "object of the shape "
+            "Metrics to fetch. Each entry is a string naming a saved metric "
+            'on the dataset (e.g. "count"), OR an ad-hoc aggregate object, '
+            "either "
             '{"expressionType": "SIMPLE", "column": {"column_name": "<col>"}, '
             '"aggregate": "SUM"|"AVG"|"COUNT"|"COUNT_DISTINCT"|"MIN"|"MAX", '
-            '"label": "<optional display label>"}. Do not pass a raw SQL string '
-            'like "SUM(sales)" — a plain string is looked up as a saved-metric '
-            "name, not evaluated as an expression."
+            '"label": "<optional display label>"} '
+            'or {"expressionType": "SQL", "sqlExpression": "<raw SQL '
+            'expression, e.g. \\"SUM(sales)\\">", '
+            '"label": "<optional display label>"}. Do not pass a raw SQL '
+            "string directly in place of an entry — a plain string is always "
+            "looked up as a saved-metric name, not evaluated as an "
+            "expression; a SQL expression must be wrapped in the "
+            '{"expressionType": "SQL", ...} object above.'
         ),
         json_schema_extra={"x-control": "metric-multi", "x-language": "json"},
     )

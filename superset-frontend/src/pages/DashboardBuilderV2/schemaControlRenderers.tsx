@@ -157,7 +157,10 @@ function CodeControl({
   );
 }
 
-/** Native color picker for an `x-control: color` string field. */
+/** Themed color picker for an `x-control: color` string field — the same
+ * `ColorPicker` `SeriesEntryPropertyControl` uses for a per-series `color`,
+ * so a swatch reads the same way everywhere in the panel and follows the
+ * active theme rather than the browser's native (unthemed) picker. */
 function ColorControl({
   data,
   handleChange,
@@ -172,11 +175,24 @@ function ColorControl({
     theme.colorText) as string;
   return (
     <Form.Item label={label} tooltip={description}>
-      <input
-        type="color"
+      <ColorPicker
         value={value}
-        onChange={event => handleChange(path, event.target.value)}
-      />
+        onChange={next => handleChange(path, next.toHexString())}
+      >
+        <button
+          type="button"
+          aria-label={t('%s color', label)}
+          style={{
+            width: 20,
+            height: 20,
+            borderRadius: 4,
+            border: '1px solid rgba(0, 0, 0, 0.15)',
+            background: value,
+            cursor: 'pointer',
+            padding: 0,
+          }}
+        />
+      </ColorPicker>
     </Form.Item>
   );
 }
@@ -1021,7 +1037,13 @@ function MetricEntryList({
         })}
         {addOptions.length > 0 && (
           <Select
-            key={`${availableSaved.length}-${values.length}`}
+            // `addingNew` is in the key too: picking "Custom metric…"
+            // changes neither `availableSaved.length` nor `values.length`
+            // (the metric isn't added until the editor's own save), so
+            // without it this wouldn't remount on that pick — leaving
+            // rc-select's echoed "Custom metric…" label on screen even
+            // after canceling out of the editor.
+            key={`${availableSaved.length}-${values.length}-${addingNew}`}
             value={null}
             placeholder={t('Add field')}
             ariaLabel={t('Add %s', label)}
@@ -1154,28 +1176,37 @@ export function resolveDatasetPick(
  * its own fetched-options cache, and a fresh arrow function on every render
  * would do exactly that.
  *
- * `totalCount` is passed through unfiltered — it counts datasets and
- * semantic views together, same as the page `data` was drawn from before
- * this function's own filter ran. With the Semantic Layers flag on and
- * enough semantic views sorted ahead of the wanted datasets on the current
- * search, a page that filters down to nothing still reports more rows
- * exist, but `AsyncSelect` only requests the next page on scroll — and a
- * dropdown with nothing to scroll never gets the chance. Narrow (flag off,
- * the filter is a no-op and this never applies) and not addressed here;
- * paging forward internally past an empty filtered page, or asking the
- * backend to exclude semantic views from the query in the first place,
- * would close it.
+ * `totalCount` counts datasets and semantic views together — the same mix
+ * the backend page was drawn from — so `AsyncSelect`'s own pagination math
+ * (`page * pageSize < totalCount`) still knows there's more to fetch even
+ * once every semantic view is filtered out here. What it can't do on its
+ * own is trigger that next fetch: it only requests a page on scroll, and a
+ * dropdown showing zero options has nothing to scroll. So when a page
+ * filters down to empty while the backend says more rows exist somewhere
+ * ahead — every semantic view sorted before the datasets wanted, on the
+ * current search — this pages forward internally, on the same call,
+ * until either a dataset survives the filter or the underlying result set
+ * itself runs out.
  */
-async function loadDatasetOnlyOptions(
+export async function loadDatasetOnlyOptions(
   search: string,
   page: number,
   pageSize: number,
 ) {
-  const { data, totalCount } = await loadDatasetOptions(search, page, pageSize);
-  return {
-    data: data.filter(option => option.kind !== 'semantic_view'),
-    totalCount,
-  };
+  let currentPage = page;
+  for (;;) {
+    const { data, totalCount } = await loadDatasetOptions(
+      search,
+      currentPage,
+      pageSize,
+    );
+    const filtered = data.filter(option => option.kind !== 'semantic_view');
+    const isLastPage = (currentPage + 1) * pageSize >= totalCount;
+    if (filtered.length > 0 || isLastPage) {
+      return { data: filtered, totalCount };
+    }
+    currentPage += 1;
+  }
 }
 
 /**

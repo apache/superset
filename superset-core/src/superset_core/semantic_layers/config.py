@@ -53,10 +53,17 @@ def _resolve_field_order(
     if declared_order is None:
         return [field.alias or name for name, field in model_cls.model_fields.items()]
     declared = set(declared_order)
-    if declared != (actual := set(schema_node.get("properties", {}))):
+    actual = set(schema_node.get("properties", {}))
+    # A `set()` comparison alone can't catch a duplicate: `["a", "a", "b"]`
+    # collapses to the same set as `["a", "b"]`, so a repeated entry would
+    # otherwise pass this check and then be silently absorbed by `_reorder`'s
+    # dict comprehension (a later duplicate key just overwrites the same
+    # slot) rather than surfacing the invalid declaration.
+    if len(declared_order) != len(declared) or declared != actual:
         raise ValueError(
             f"{model_cls.__name__}.field_order must be a permutation of its "
-            f"schema properties; declared={sorted(declared)} actual={sorted(actual)}"
+            f"schema properties; declared={sorted(declared_order)} "
+            f"actual={sorted(actual)}"
         )
     return declared_order
 

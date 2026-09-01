@@ -48,6 +48,30 @@ export interface SeriesOverrideValue {
   displayName?: string;
 }
 
+// A categorical palette of distinct colors — one per series index. The
+// literal hex is intentional (and must match the backend palette in
+// `superset/widgets/builtin.py`'s `Echarts.PALETTE`, the same convention
+// `BalloonsWidget`'s own `PALETTE` follows) so a series' color is stable
+// before the author touches `customize`: the per-series schema control
+// advertises `Echarts.PALETTE[index]` as that series' default swatch (see
+// `_populate_chart_series`), so the rendered series has to fall back to the
+// very same color, not ECharts' own default palette, or the swatch shown
+// would lie about what's actually on screen.
+const PALETTE = [
+  // eslint-disable-next-line theme-colors/no-literal-colors
+  '#e74c3c',
+  // eslint-disable-next-line theme-colors/no-literal-colors
+  '#3498db',
+  // eslint-disable-next-line theme-colors/no-literal-colors
+  '#2ecc71',
+  // eslint-disable-next-line theme-colors/no-literal-colors
+  '#f1c40f',
+  // eslint-disable-next-line theme-colors/no-literal-colors
+  '#9b59b6',
+  // eslint-disable-next-line theme-colors/no-literal-colors
+  '#1abc9c',
+];
+
 /**
  * One ECharts series per metric, in `dataBinding.metrics` order. A metric
  * overridden with `visible: false` is omitted entirely (there is no ECharts
@@ -60,19 +84,18 @@ export function buildStructuredSeries(
   overrides: Record<string, SeriesOverrideValue> | undefined,
 ): Record<string, unknown>[] {
   return metrics
-    .map(metric => {
+    .map((metric, index): Record<string, unknown> | null => {
       const key = getMetricLabel(metric);
       const override = overrides?.[key];
       if (override?.visible === false) return null;
-      const series: Record<string, unknown> = {
+      return {
         name: override?.displayName || key,
         type: chartType,
         data: rows.map(row => row[key]),
+        itemStyle: {
+          color: override?.color || PALETTE[index % PALETTE.length],
+        },
       };
-      if (override?.color) {
-        series.itemStyle = { color: override.color };
-      }
-      return series;
     })
     .filter((entry): entry is Record<string, unknown> => entry !== null);
 }

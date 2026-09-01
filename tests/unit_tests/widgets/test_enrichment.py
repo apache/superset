@@ -19,6 +19,7 @@ from __future__ import annotations
 from typing import Any
 
 import pytest
+from pydantic import BaseModel
 from superset_core.widgets.enrichment import (
     build_dependency_graph,
     dynamic_field_paths,
@@ -110,3 +111,55 @@ def test_run_enrichers_skips_ungated_field_without_error() -> None:
     fields = dynamic_field_paths(schema)
     order = toposort_or_raise(build_dependency_graph(fields), "test-widget")
     run_enrichers(schema, fields, order, {}, None, [])  # must not raise
+
+
+def test_run_enrichers_does_not_gate_on_its_own_ordering_edge() -> None:
+    # "b" depends on "a" only as an ordering edge (both are x-dynamic paths in
+    # `fields`) — that's enforced by `order`, not a plain-attribute gate. A
+    # naive check_dependencies(node, parsed) call would look up an attribute
+    # literally named "a", find nothing, and skip "b" forever.
+    schema: dict[str, Any] = {
+        "properties": {
+            "a": {"x-dynamic": True},
+            "b": {"x-dynamic": True, "x-dependsOn": ["a"]},
+        }
+    }
+    fields = dynamic_field_paths(schema)
+    order = toposort_or_raise(build_dependency_graph(fields), "test-widget")
+
+    class Config(BaseModel):
+        pass
+
+    ran = []
+
+    def enrich_a(schema_arg, node, parsed, series, upstream):
+        ran.append("a")
+
+    def enrich_b(schema_arg, node, parsed, series, upstream):
+        ran.append("b")
+
+    run_enrichers(schema, fields, order, {"a": enrich_a, "b": enrich_b}, Config(), [])
+
+    assert ran == ["a", "b"]
+
+
+def test_run_enrichers_still_gates_on_a_plain_non_edge_dependency() -> None:
+    schema: dict[str, Any] = {
+        "properties": {"a": {"x-dynamic": True, "x-dependsOn": ["flag"]}}
+    }
+    fields = dynamic_field_paths(schema)
+    order = toposort_or_raise(build_dependency_graph(fields), "test-widget")
+
+    class Config(BaseModel):
+        flag: bool = False
+
+    ran = []
+
+    def enrich_a(schema_arg, node, parsed, series, upstream):
+        ran.append("a")
+
+    run_enrichers(schema, fields, order, {"a": enrich_a}, Config(flag=False), [])
+    assert ran == []
+
+    run_enrichers(schema, fields, order, {"a": enrich_a}, Config(flag=True), [])
+    assert ran == ["a"]

@@ -144,7 +144,14 @@ test('selecting a structured chart type replaces series with one generated per m
   // The structured layer only manages `series` — everything else the raw
   // option authored survives unmanaged.
   expect(option.legend).toEqual({ show: true });
-  expect(option.series).toEqual([{ name: 'count', type: 'bar', data: [3, 5] }]);
+  expect(option.series).toEqual([
+    {
+      name: 'count',
+      type: 'bar',
+      data: [3, 5],
+      itemStyle: { color: '#e74c3c' },
+    },
+  ]);
 });
 
 test('a series override is applied by stable metric key when chartType is set', async () => {

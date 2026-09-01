@@ -191,24 +191,28 @@ const COPIED_FOR_MS = 1500;
  * that, deleting a line here would silently do nothing and the widget would
  * go on rendering from the value it appeared to lose.
  *
- * For a schema-controlled widget type, applying goes through the same
- * `commitWidgetProps` validation gate the Form tab's edits do — one
- * candidate, one gate, regardless of which tab wrote it — so Apply can
- * reject a change and leave both the draft and the stored node as they were.
- * A widget type with no backend schema has no gate to validate against, so
- * it keeps committing straight to the store, as it always has; conflating
- * the two would mean either inventing a schema that does not exist or
- * silently skipping validation while claiming to enforce it.
+ * Applying always goes through the same `commitWidgetProps` validation gate
+ * the Form tab's edits do — one candidate, one gate, regardless of which tab
+ * wrote it — so Apply can reject a change and leave both the draft and the
+ * stored node as they were. This asks the backend directly rather than
+ * consulting the Inspector's own cached `useSchemaControlledWidgetTypes` list
+ * the way the Form tab's panel choice does: that list is `null` while
+ * loading and empty on a fetch failure (deliberately, so the Form tab falls
+ * back to the generic form rather than hanging — see that hook's own
+ * comment), and gating Apply on it too would silently skip validation for a
+ * widget that does have a schema, for as long as the list hasn't resolved. A
+ * `404` from `/type/<widget_type>/validate` is the backend's own confirmation
+ * that this widget type has no schema to validate against, so only then does
+ * this fall back to committing straight to the store, as every widget type
+ * did before this gate existed.
  */
 const PropsJsonEditor = ({
   nodeId,
   widgetType,
-  validated,
   props,
 }: {
   nodeId: string;
   widgetType: string;
-  validated: boolean;
   props: Record<string, unknown> | undefined;
 }): ReactElement => {
   const theme = useTheme();
@@ -309,17 +313,24 @@ const PropsJsonEditor = ({
               ...parsed,
               ...Object.fromEntries(removed.map(key => [key, undefined])),
             };
-            if (!validated) {
-              provider.updateProps(nodeId, delta);
-              return;
-            }
             setSubmitting(true);
             try {
               const result = await commitWidgetProps(nodeId, widgetType, delta);
               setValidationErrors(result.ok ? [] : result.errors);
             } catch (e) {
-              const message = await describeError(e);
-              setValidationErrors([{ loc: [], message }]);
+              if (
+                typeof Response !== 'undefined' &&
+                e instanceof Response &&
+                e.status === 404
+              ) {
+                // No backend schema registered for this widget type —
+                // nothing to validate against, so commit directly.
+                provider.updateProps(nodeId, delta);
+                setValidationErrors([]);
+              } else {
+                const message = await describeError(e);
+                setValidationErrors([{ loc: [], message }]);
+              }
             } finally {
               setSubmitting(false);
             }
@@ -432,7 +443,6 @@ const PropsEditor = ({
   // area above it). `updateProps` merges, so a key absent from the form's data
   // is left untouched rather than removed.
   const schemaControlledTypes = useSchemaControlledWidgetTypes();
-  const validated = schemaControlledTypes?.has(widgetType) ?? false;
   const formProps =
     formOmitKeys && formOmitKeys.length > 0 && props
       ? Object.fromEntries(
@@ -478,7 +488,6 @@ const PropsEditor = ({
               <PropsJsonEditor
                 nodeId={nodeId}
                 widgetType={widgetType}
-                validated={validated}
                 props={props}
               />
             </Form>
