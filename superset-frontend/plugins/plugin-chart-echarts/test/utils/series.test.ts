@@ -1822,12 +1822,31 @@ describe('capTickMarks', () => {
     expect(capTickMarks(values, 60)).toEqual(values);
   });
 
-  test('downsamples evenly and always keeps the last value', () => {
+  test('downsamples to every step-th value when the last value already lands on the step', () => {
     const values = Array.from({ length: 261 }, (_, i) => i);
-    const capped = capTickMarks(values, 60);
-    expect(capped.length).toBeLessThanOrEqual(60);
-    expect(capped[0]).toEqual(0);
-    expect(capped[capped.length - 1]).toEqual(260);
+    // step = ceil(261 / 60) = 5, and 260 is already a multiple of 5, so
+    // nothing needs to be appended for the last bucket.
+    expect(capTickMarks(values, 60)).toEqual(
+      Array.from({ length: 53 }, (_, i) => i * 5),
+    );
+  });
+
+  test('appends the last value when it does not land on the step', () => {
+    const values = Array.from({ length: 262 }, (_, i) => i);
+    // step = ceil(262 / 60) = 5, stepping lands on 0..260, and the true last
+    // value (261) is appended on top since it isn't a multiple of 5.
+    expect(capTickMarks(values, 60)).toEqual([
+      ...Array.from({ length: 53 }, (_, i) => i * 5),
+      261,
+    ]);
+  });
+
+  test('maxTicks is not a hard bound once the last value has to be appended', () => {
+    const values = Array.from({ length: 300 }, (_, i) => i);
+    // step = ceil(300 / 60) = 5, which already lands on 60 stepped values
+    // (0..295) plus the appended last value (299), totaling 61 — one over
+    // maxTicks. Keeping the true last bucket wins over a hard cap.
+    expect(capTickMarks(values, 60)).toHaveLength(61);
   });
 });
 
