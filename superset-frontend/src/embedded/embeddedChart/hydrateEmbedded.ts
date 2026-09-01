@@ -22,6 +22,14 @@ import { getInitialDataMask } from 'src/dataMask/reducer';
 import { applyDefaultFormData } from 'src/explore/store';
 import { CommonBootstrapData } from 'src/types/bootstrapTypes';
 import { HYDRATE_DASHBOARD } from 'src/dashboard/actions/hydrate';
+import {
+  DASHBOARD_ROOT_ID,
+  DASHBOARD_GRID_ID,
+} from 'src/dashboard/util/constants';
+import {
+  DASHBOARD_ROOT_TYPE,
+  DASHBOARD_GRID_TYPE,
+} from 'src/dashboard/util/componentTypes';
 
 /**
  * A chart embedded on its own still renders through the dashboard's chart
@@ -114,6 +122,28 @@ const hydrateEmbedded = (
       dashboardState: {
         expandedSlices: { [key]: false },
         sliceIds: [key],
+      },
+      // Both of these reducers dereference their slice unconditionally on
+      // HYDRATE_DASHBOARD, so they have to be present even though a lone chart
+      // has no layout tree and no native filters of its own.
+      dashboardLayout: {
+        present: {
+          [DASHBOARD_ROOT_ID]: {
+            id: DASHBOARD_ROOT_ID,
+            type: DASHBOARD_ROOT_TYPE,
+            children: [DASHBOARD_GRID_ID],
+          },
+          [DASHBOARD_GRID_ID]: {
+            id: DASHBOARD_GRID_ID,
+            type: DASHBOARD_GRID_TYPE,
+            parents: [DASHBOARD_ROOT_ID],
+            children: [],
+            meta: {},
+          },
+        },
+      },
+      nativeFilters: {
+        filters: {},
       },
     },
   };
