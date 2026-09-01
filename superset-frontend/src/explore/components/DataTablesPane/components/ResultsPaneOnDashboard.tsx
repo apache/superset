@@ -29,21 +29,9 @@ const Wrapper = styled.div`
   flex-direction: column;
   height: 100%;
 
-  .ant-tabs {
-    height: 100%;
-  }
-
-  .ant-tabs-body {
-    height: 100%;
-  }
-
   .ant-tabs-content {
     display: flex;
     flex-direction: column;
-  }
-
-  .table-condensed {
-    overflow: auto;
   }
 `;
 
@@ -95,7 +83,12 @@ export const ResultsPaneOnDashboard = ({
 
   return (
     <Wrapper>
-      <Tabs activeKey={activeTabKey} onChange={setActiveTabKey} items={items} />
+      <Tabs
+        fullHeight
+        activeKey={activeTabKey}
+        onChange={setActiveTabKey}
+        items={items}
+      />
     </Wrapper>
   );
 };
