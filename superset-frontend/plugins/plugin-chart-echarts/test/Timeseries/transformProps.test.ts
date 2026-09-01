@@ -2751,11 +2751,11 @@ describe('weekly x-axis tick alignment', () => {
     expect(xAxis.splitLine).toBeUndefined();
   });
 
-  test('caps axisLabel.customValues to the same subset as axisTick, not the full bucket set', () => {
-    // hideOverlap thins whichever set axisLabel.customValues offers it. If
-    // that set were the full (uncapped) bucket list while axisTick/splitLine
-    // only kept a downsampled subset, a surviving label could land on a
-    // bucket with no tick or gridline under it.
+  test('caps axisTick.customValues but keeps the full bucket set for axisLabel', () => {
+    // axisLabel.customValues stays uncapped so hideOverlap keeps thinning it
+    // dynamically (including after a dataZoom); a capped set would freeze
+    // the visible labels to the pre-zoom subset. axisTick has no such
+    // thinning, so it's downsampled to avoid combing a long weekly range.
     const manyMondays = Array.from(
       { length: 261 },
       (_, i) => Date.UTC(2021, 0, 4) + i * WEEK_MS,
@@ -2782,7 +2782,7 @@ describe('weekly x-axis tick alignment', () => {
     const { xAxis } = transformProps(chartProps).echartOptions as any;
 
     expect(xAxis.axisTick.customValues.length).toBeLessThan(manyMondays.length);
-    expect(xAxis.axisLabel.customValues).toEqual(xAxis.axisTick.customValues);
+    expect(xAxis.axisLabel.customValues).toEqual(manyMondays);
   });
 
   test('keeps the showMaxLabel override at 0° rotation on pinned axes', () => {
@@ -3035,4 +3035,120 @@ describe('tooltip for metrics whose labels end in forecast suffixes', () => {
     expect(html).not.toContain('No data');
     expect(html).toContain('>ci<');
   });
+});
+
+test('shows gridlines and axis ticks by default', () => {
+  const { echartOptions } = transformProps(createTestChartProps({}));
+  const xAxis = echartOptions.xAxis as any;
+  const yAxis = echartOptions.yAxis as any;
+
+  expect(yAxis.splitLine.show).toBe(true);
+  expect(yAxis.axisTick.show).toBe(true);
+  // Left to ECharts, which draws no ticks on a banded category axis. Forcing
+  // true would add ticks the chart does not have today.
+  expect(xAxis.axisTick.show).toBe('auto');
+});
+
+test('hides gridlines without touching the minor split lines', () => {
+  const { echartOptions } = transformProps(
+    createTestChartProps({ formData: { gridlines: false } }),
+  );
+  const yAxis = echartOptions.yAxis as any;
+
+  expect(yAxis.splitLine.show).toBe(false);
+  expect(yAxis.minorSplitLine.show).toBe(DEFAULT_FORM_DATA.minorSplitLine);
+  expect(yAxis.axisTick.show).toBe(true);
+});
+
+test('leaves the category axis split lines alone until gridlines are turned off', () => {
+  const shown = transformProps(createTestChartProps({}));
+  // Writing show:true here would draw gridlines on axis types that default to
+  // none, so the key is only ever added to hide them.
+  expect((shown.echartOptions.xAxis as any).splitLine).toBeUndefined();
+
+  const hidden = transformProps(
+    createTestChartProps({ formData: { gridlines: false } }),
+  );
+  expect((hidden.echartOptions.xAxis as any).splitLine.show).toBe(false);
+});
+
+test('hides the ticks on both axes', () => {
+  const { echartOptions } = transformProps(
+    createTestChartProps({ formData: { axisTicks: false } }),
+  );
+
+  expect((echartOptions.yAxis as any).axisTick.show).toBe(false);
+  expect((echartOptions.xAxis as any).axisTick.show).toBe(false);
+  expect((echartOptions.yAxis as any).splitLine.show).toBe(true);
+});
+
+test('keeps gridlines and ticks off on a compact chart even when both are enabled', () => {
+  const { echartOptions } = transformProps(
+    createTestChartProps({
+      height: TIMESERIES_CONSTANTS.compactChartHeight - 1,
+      formData: { gridlines: true, axisTicks: true },
+    }),
+  );
+  const yAxis = echartOptions.yAxis as any;
+
+  expect(yAxis.splitLine.show).toBe(false);
+  expect(yAxis.axisTick.show).toBe(false);
+});
+
+test('applies gridlines to the value axis after a horizontal orientation swaps it', () => {
+  const { echartOptions } = transformProps(
+    createTestChartProps({
+      formData: {
+        orientation: OrientationType.Horizontal,
+        gridlines: false,
+      },
+    }),
+  );
+
+  // The transform swaps the axes for a horizontal chart, so the value axis —
+  // and the gridlines belonging to it — end up on xAxis.
+  expect((echartOptions.xAxis as any).splitLine.show).toBe(false);
+});
+
+test('boundary label alignment is dropped when the orientation moves the time axis to the side', () => {
+  // The alignments position labels against the left and right edges of a
+  // bottom axis. A horizontal chart swaps the axes, so applying them there
+  // shifts the first label out of line with the rest (#43428 follow-up).
+  const monthData = [
+    { __timestamp: Date.UTC(2003, 4, 1), sales: 100 },
+    { __timestamp: Date.UTC(2003, 5, 1), sales: 200 },
+  ];
+  const build = (orientation: OrientationType) =>
+    transformProps(
+      createTestChartProps({
+        formData: {
+          granularity_sqla: 'ds',
+          timeGrainSqla: TimeGranularity.MONTH,
+          xAxisTimeFormat: 'smart_date',
+          seriesType: EchartsTimeseriesSeriesType.Bar,
+          orientation,
+        },
+        queriesData: [
+          createTestQueryData(monthData, {
+            colnames: ['__timestamp', 'sales'],
+            coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+          }),
+        ],
+      }),
+    ).echartOptions;
+
+  const vertical = build(OrientationType.Vertical).xAxis as any;
+  expect(vertical.axisLabel.alignMinLabel).toBe('left');
+  expect(vertical.axisLabel.alignMaxLabel).toBe('right');
+
+  // Horizontal swaps the axes, so the time axis is now yAxis.
+  const horizontal = build(OrientationType.Horizontal).yAxis as any;
+  expect(horizontal.axisLabel.alignMinLabel).toBeUndefined();
+  expect(horizontal.axisLabel.alignMaxLabel).toBeUndefined();
+
+  // The boundary labels themselves stay forced in both orientations.
+  expect(vertical.axisLabel.showMinLabel).toBe(true);
+  expect(vertical.axisLabel.showMaxLabel).toBe(true);
+  expect(horizontal.axisLabel.showMinLabel).toBe(true);
+  expect(horizontal.axisLabel.showMaxLabel).toBe(true);
 });

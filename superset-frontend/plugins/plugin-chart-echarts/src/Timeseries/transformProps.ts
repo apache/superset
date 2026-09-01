@@ -89,7 +89,7 @@ import {
   getLegendProps,
   getMinAndMaxFromBounds,
   getTemporalAxisTickConfig,
-  getTemporalTickValues,
+  resolveTemporalTickValues,
 } from '../utils/series';
 import { resolveLegendLayout } from '../utils/legendLayout';
 import {
@@ -285,6 +285,8 @@ export default function transformProps(
     metrics,
     minorSplitLine,
     minorTicks,
+    gridlines,
+    axisTicks,
     onlyTotal,
     opacity,
     orientation,
@@ -1247,22 +1249,23 @@ export default function transformProps(
       })()
     : xAxisFormatter;
 
-  // Weekly grains: pin the ticks to the buckets ECharts would otherwise miss.
-  // A timeseries annotation contributes its own timestamps and widens the axis
-  // past the buckets, and ECharts clips pinned ticks to the extent, so that
-  // span would render bare — leave those charts on ECharts' own ticks.
-  const hasTimeseriesAnnotation = annotationLayers.some(
-    (layer: AnnotationLayer) =>
-      layer.show && isTimeseriesAnnotationLayer(layer),
+  const temporalTickValues = resolveTemporalTickValues(
+    rebasedData,
+    xAxisLabel,
+    xAxisType,
+    resolvedTimeGrain,
+    annotationLayers,
   );
-  const temporalTickValues = hasTimeseriesAnnotation
-    ? undefined
-    : getTemporalTickValues(
-        rebasedData,
-        xAxisLabel,
-        xAxisType,
-        resolvedTimeGrain,
-      );
+
+  const temporalAxisTickConfig = getTemporalAxisTickConfig(
+    temporalTickValues,
+    showMaxLabel,
+    xAxisType,
+    xAxisLabelRotation,
+    xAxisLabelInterval,
+    deduplicatedFormatter,
+    isHorizontal,
+  );
 
   let xAxis: any = {
     type: xAxisType,
@@ -1273,15 +1276,13 @@ export default function transformProps(
       groupBy.length === 0 && {
         triggerEvent: true,
       }),
-    ...getTemporalAxisTickConfig(
-      temporalTickValues,
-      showMaxLabel,
-      xAxisType,
-      xAxisLabelRotation,
-      xAxisLabelInterval,
-      deduplicatedFormatter,
-    ),
+    ...temporalAxisTickConfig,
     minorTick: { show: minorTicks },
+    axisTick: {
+      ...temporalAxisTickConfig.axisTick,
+      show: axisTicks ? 'auto' : false,
+    },
+    ...(gridlines ? {} : { splitLine: { show: false } }),
     minInterval:
       xAxisType === AxisType.Time && resolvedTimeGrain && !forceMaxInterval
         ? (TIMEGRAIN_TO_TIMESTAMP[
@@ -1326,7 +1327,7 @@ export default function transformProps(
     max: yAxisMax,
     minorTick: { show: isSmallChart ? false : minorTicks },
     minorSplitLine: { show: isSmallChart ? false : minorSplitLine },
-    splitLine: { show: !isSmallChart },
+    splitLine: { show: isSmallChart ? false : gridlines },
     axisLabel: {
       show: !isMicroChart,
       showMinLabel: !isMicroChart,
@@ -1340,7 +1341,7 @@ export default function transformProps(
         yAxisFormat,
       ),
     },
-    axisTick: { show: !isSmallChart },
+    axisTick: { show: isSmallChart ? false : axisTicks },
     scale: truncateYAxis,
     name: isSmallChart ? undefined : yAxisTitle,
     nameGap: convertInteger(yAxisTitleMargin),

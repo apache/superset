@@ -18,12 +18,14 @@
  * under the License.
  */
 import {
+  AnnotationLayer,
   AxisType,
   ChartDataResponseResult,
   DataRecord,
   DataRecordValue,
   DTTM_ALIAS,
   ensureIsArray,
+  isTimeseriesAnnotationLayer,
   LegendState,
   normalizeTimestamp,
   NumberFormats,
@@ -1043,6 +1045,27 @@ export function getTemporalTickValues(
   return values.size ? [...values].sort((a, b) => a - b) : undefined;
 }
 
+/**
+ * Weekly grains: pin the ticks to the buckets ECharts would otherwise miss.
+ * A timeseries annotation contributes its own timestamps and widens the axis
+ * past the buckets, and ECharts clips pinned ticks to the extent, so that
+ * span would render bare — leave those charts on ECharts' own ticks.
+ */
+export function resolveTemporalTickValues(
+  data: DataRecord[],
+  xAxisLabel: string,
+  xAxisType: AxisType,
+  timeGrain: string | undefined,
+  annotationLayers: AnnotationLayer[],
+): number[] | undefined {
+  const hasTimeseriesAnnotation = annotationLayers.some(
+    layer => layer.show && isTimeseriesAnnotationLayer(layer),
+  );
+  return hasTimeseriesAnnotation
+    ? undefined
+    : getTemporalTickValues(data, xAxisLabel, xAxisType, timeGrain);
+}
+
 // Unlike axisLabel, axisTick has no overlap-based thinning, so pinning it to
 // every bucket combs a long weekly range. Downsample evenly, keeping ends.
 const MAX_PINNED_AXIS_TICKS = 60;
@@ -1078,6 +1101,7 @@ export function getTemporalAxisTickConfig(
   xAxisLabelRotation: number,
   xAxisLabelInterval: number | string | undefined,
   formatter: unknown,
+  isHorizontal: boolean = false,
 ): {
   axisLabel: Record<string, unknown>;
   axisTick?: { customValues: number[] };
@@ -1105,11 +1129,19 @@ export function getTemporalAxisTickConfig(
       // dropped, but that's strictly better than no shielding at all.
       ...(showMaxLabel && {
         showMaxLabel: true,
-        alignMaxLabel: 'right',
         showMinLabel: true,
-        alignMinLabel: 'left',
       }),
-      ...(cappedTickValues && { customValues: cappedTickValues }),
+      // The alignments assume the axis runs along the bottom; a horizontal
+      // chart puts this axis on the side, where they misplace the labels.
+      ...(showMaxLabel &&
+        !isHorizontal && {
+          alignMaxLabel: 'right',
+          alignMinLabel: 'left',
+        }),
+      // Labels keep the full (uncapped) bucket set: hideOverlap thins them
+      // dynamically at render time, including after a dataZoom, whereas a
+      // capped set would freeze the visible labels to the pre-zoom subset.
+      ...(temporalTickValues && { customValues: temporalTickValues }),
     },
     ...(cappedTickValues && { axisTick: { customValues: cappedTickValues } }),
   };

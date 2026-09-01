@@ -74,7 +74,7 @@ import {
   getMinAndMaxFromBounds,
   getOverMaxHiddenFormatter,
   getTemporalAxisTickConfig,
-  getTemporalTickValues,
+  resolveTemporalTickValues,
 } from '../utils/series';
 import { resolveLegendLayout } from '../utils/legendLayout';
 import {
@@ -186,6 +186,8 @@ export default function transformProps(
     opacityB,
     minorSplitLine,
     minorTicks,
+    gridlines,
+    axisTicks,
     seriesType,
     seriesTypeB,
     showLegend,
@@ -764,21 +766,23 @@ export default function transformProps(
   const { setDataMask = () => {}, onContextMenu } = hooks;
   const alignTicks = yAxisIndex !== yAxisIndexB;
 
-  // Weekly grains: pin the ticks to the buckets. Both queries share the axis.
-  // Skipped when a timeseries annotation is shown: it widens the axis past the
-  // buckets and ECharts clips pinned ticks to the extent, leaving that span bare.
-  const hasTimeseriesAnnotation = annotationLayers.some(
-    (layer: AnnotationLayer) =>
-      layer.show && isTimeseriesAnnotationLayer(layer),
+  // Both queries share the axis, so a bucket contributed by either needs a tick.
+  const temporalTickValues = resolveTemporalTickValues(
+    [...rebasedDataA, ...rebasedDataB],
+    xAxisLabel,
+    xAxisType,
+    resolvedTimeGrain,
+    annotationLayers,
   );
-  const temporalTickValues = hasTimeseriesAnnotation
-    ? undefined
-    : getTemporalTickValues(
-        [...rebasedDataA, ...rebasedDataB],
-        xAxisLabel,
-        xAxisType,
-        resolvedTimeGrain,
-      );
+
+  const temporalAxisTickConfig = getTemporalAxisTickConfig(
+    temporalTickValues,
+    showMaxLabel,
+    xAxisType,
+    xAxisLabelRotation,
+    xAxisLabelInterval,
+    deduplicatedFormatter,
+  );
 
   const echartOptions: EChartsCoreOption = {
     useUTC: true,
@@ -791,15 +795,13 @@ export default function transformProps(
       name: xAxisTitle,
       nameGap: xAxisTitleMarginPx,
       nameLocation: 'middle',
-      ...getTemporalAxisTickConfig(
-        temporalTickValues,
-        showMaxLabel,
-        xAxisType,
-        xAxisLabelRotation,
-        xAxisLabelInterval,
-        deduplicatedFormatter,
-      ),
+      ...temporalAxisTickConfig,
       minorTick: { show: minorTicks },
+      axisTick: {
+        ...temporalAxisTickConfig.axisTick,
+        show: axisTicks ? 'auto' : false,
+      },
+      ...(gridlines ? {} : { splitLine: { show: false } }),
       minInterval:
         xAxisType === AxisType.Time && resolvedTimeGrain && !forceMaxInterval
           ? (TIMEGRAIN_TO_TIMESTAMP[
@@ -830,6 +832,8 @@ export default function transformProps(
         min: yAxisMin,
         max: yAxisMax,
         minorTick: { show: minorTicks },
+        axisTick: { show: axisTicks ? 'auto' : false },
+        splitLine: { show: gridlines },
         minorSplitLine: { show: minorSplitLine },
         axisLabel: {
           formatter: getYAxisFormatter(
@@ -852,6 +856,7 @@ export default function transformProps(
         min: minSecondary,
         max: maxSecondary,
         minorTick: { show: minorTicks },
+        axisTick: { show: axisTicks ? 'auto' : false },
         splitLine: { show: false },
         minorSplitLine: { show: minorSplitLine },
         axisLabel: {
