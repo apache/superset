@@ -293,7 +293,7 @@ export async function createDashboardWithCharts(
   testInfo: TestInfo,
   options: CreateDashboardWithChartsOptions,
 ): Promise<{ dashboardId: number; charts: DashboardLayoutChart[] }> {
-  let datasetId = options.datasetId;
+  let { datasetId } = options;
   if (datasetId === undefined) {
     if (!options.datasetName) {
       throw new Error('Provide either datasetName or datasetId');
