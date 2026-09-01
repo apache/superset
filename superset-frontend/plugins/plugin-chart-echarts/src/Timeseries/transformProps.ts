@@ -126,8 +126,11 @@ import {
 } from '../constants';
 import { getDefaultTooltip } from '../utils/tooltip';
 import {
+  createDedupXAxisFormatter,
+  createSpacedXAxisFormatter,
   getPercentFormatter,
   getTooltipTimeFormatter,
+  getXAxisDomain,
   getXAxisFormatter,
   getYAxisFormatter,
 } from '../utils/formatters';
@@ -1213,46 +1216,29 @@ export default function transformProps(
 
   // When showMaxLabel is true, ECharts may render a label at the axis
   // boundary that formats identically to the last data-point tick (e.g.
-  // "2005" appears twice with Year grain). Wrap the formatter to suppress
-  // consecutive duplicate labels.
+  // "2005" appears twice with Year grain), and hideOverlap must stay off so
+  // that forced boundary label is never suppressed (#39899). Wrap the
+  // formatter to suppress consecutive duplicate labels and to thin out
+  // labels that would otherwise visually collide, since hideOverlap can no
+  // longer do that for us. The spacing estimate assumes the axis runs along
+  // the bottom of the chart (pixel width, character width); a horizontal
+  // orientation chart puts the time axis on the side instead, so it falls
+  // back to dedup-only there.
   const showMaxLabel =
     xAxisType === AxisType.Time &&
     xAxisLabelRotation === 0 &&
     !!resolvedTimeGrain;
   const deduplicatedFormatter = showMaxLabel
-    ? (() => {
-        let lastLabel: string | undefined;
-        let lastValue: number | undefined;
-        const wrapper = (value: number | string) => {
-          // ECharts formats the labels in repeated ascending passes. Reset the
-          // dedup state when the sequence restarts so a forced boundary label
-          // (e.g. the min date) isn't blanked by the previous pass's last label
-          // when both format identically (e.g. a May-to-May range).
-          if (
-            typeof value === 'number' &&
-            lastValue !== undefined &&
-            value <= lastValue
-          ) {
-            lastLabel = undefined;
-          }
-          if (typeof value === 'number') {
-            lastValue = value;
-          }
-          const label =
-            typeof xAxisFormatter === 'function'
-              ? (xAxisFormatter as Function)(value)
-              : String(value);
-          if (label === lastLabel) {
-            return '';
-          }
-          lastLabel = label;
-          return label;
-        };
-        if (typeof xAxisFormatter === 'function' && 'id' in xAxisFormatter) {
-          (wrapper as any).id = (xAxisFormatter as any).id;
-        }
-        return wrapper;
-      })()
+    ? isHorizontal
+      ? createDedupXAxisFormatter(xAxisFormatter)
+      : createSpacedXAxisFormatter(
+          xAxisFormatter,
+          ...getXAxisDomain(
+            [rebasedData as Record<string, unknown>[]],
+            xAxisLabel,
+          ),
+          Math.max(width - 2 * TIMESERIES_CONSTANTS.gridOffsetLeft, 0),
+        )
     : xAxisFormatter;
 
   const temporalTickValues = resolveTemporalTickValues(
