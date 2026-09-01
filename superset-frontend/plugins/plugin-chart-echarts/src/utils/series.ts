@@ -1091,12 +1091,12 @@ export function capTickMarks(
  * MixedTimeseries. When temporalTickValues pins the axis to weekly buckets,
  * axisTick.customValues (what splitLine/gridlines follow) is downsampled to
  * avoid combing a long weekly range. axisLabel.customValues (what hideOverlap
- * thins from) uses the same capped set on a zoomable axis — zooming lets the
- * user reach any bucket, but customValues never recomputes on dataZoom, so a
- * capped set there would freeze the visible labels to the pre-zoom subset.
- * On a non-zoomable axis the full set is used instead, so a label surviving
- * hideOverlap thinning always lands on a real tick and gridline rather than a
- * capped-away bucket.
+ * thins from) uses the same capped set on a non-zoomable axis, so a label
+ * surviving hideOverlap thinning always lands on a real tick and gridline
+ * rather than a capped-away bucket. On a zoomable axis the full set is used
+ * instead — zooming lets the user reach any bucket, but customValues never
+ * recomputes on dataZoom, so a capped set there would freeze the visible
+ * labels to the pre-zoom subset.
  */
 export function getTemporalAxisTickConfig(
   temporalTickValues: number[] | undefined,
