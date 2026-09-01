@@ -25,6 +25,8 @@ import {
   ReactElement,
 } from 'react';
 import { usePrevious } from '@superset-ui/core';
+import { URL_PARAMS } from 'src/constants';
+import { getUrlParam } from 'src/utils/urlUtils';
 import { useTheme, styled } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
 import { useSelector } from 'react-redux';
@@ -402,6 +404,8 @@ const Tabs = (props: TabsProps): ReactElement => {
     [props.component, props.updateComponents, selectedTabIndex, activeKey],
   );
 
+  const isPrintMode = getUrlParam(URL_PARAMS.print) === 1;
+
   const {
     depth,
     component: tabsComponent,
@@ -454,6 +458,10 @@ const Tabs = (props: TabsProps): ReactElement => {
     () =>
       tabIds.map((tabId, tabIndex) => ({
         key: tabId,
+        // In print mode, force all tab panels to pre-render their content
+        // so the PDF captures all tabs, not just the active one.
+        // rc-tabs/antd reads forceRender per-item from the items array.
+        ...(isPrintMode && { forceRender: true }),
         label: (
           <>
             {showDropIndicators(tabIndex).left && (
@@ -499,7 +507,9 @@ const Tabs = (props: TabsProps): ReactElement => {
             onResizeStop={onResizeStop}
             onDropOnTab={handleDropOnTab}
             isComponentVisible={
-              selectedTabIndex === tabIndex && isCurrentTabVisible
+              // In print mode all tabs must render their content regardless
+              // of which tab is currently selected.
+              isPrintMode ? true : selectedTabIndex === tabIndex && isCurrentTabVisible
             }
           />
         ) : undefined,
@@ -522,6 +532,7 @@ const Tabs = (props: TabsProps): ReactElement => {
       onResizeStop,
       selectedTabIndex,
       isCurrentTabVisible,
+      isPrintMode,
       handleTabTitleEditingChange,
     ],
   );

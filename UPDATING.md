@@ -105,6 +105,29 @@ This fixed embedding cap is independent of the operator's
 `MCP_RESPONSE_SIZE_CONFIG['token_limit']` (25,000 by default); it does not guarantee
 that every payload fits a configured response limit.
 
+### New feature flag: `DASHBOARD_REPORTS_BROWSER_PRINT_PDF`
+
+A new opt-in feature flag `DASHBOARD_REPORTS_BROWSER_PRINT_PDF` has been added
+(default: `False`).
+
+When enabled alongside the existing `PLAYWRIGHT_REPORTS_AND_THUMBNAILS` flag,
+dashboard PDF reports are generated using Playwright's native `page.pdf()` call
+instead of stitching together raster screenshots. The result is a true vector
+PDF with selectable text and sharper chart graphics.
+
+To opt in, add to your Superset config:
+
+```python
+FEATURE_FLAGS = {
+    "DASHBOARD_REPORTS_BROWSER_PRINT_PDF": True,
+    "PLAYWRIGHT_REPORTS_AND_THUMBNAILS": True,  # required
+}
+```
+
+Note: reports targeting dashboards spread across multiple permalink URLs
+(via `ALERT_REPORT_TABS` with multiple tabs selected) fall back to the
+existing screenshot path when this flag is enabled.
+
 ### Default Docker image is now batteries-included; the minimal image moves to `-lean`
 
 The default `apache/superset` Docker image (the plain tags: `latest`, `master`,

@@ -25,7 +25,7 @@ from typing import cast, TYPE_CHECKING, TypedDict
 
 from flask import current_app as app
 
-from superset import thumbnail_cache
+from superset import feature_flag_manager, thumbnail_cache
 from superset.distributed_lock import DistributedLock
 from superset.exceptions import (
     LockAlreadyHeldException,
@@ -38,6 +38,7 @@ from superset.utils.urls import modify_url_query
 from superset.utils.webdriver import (
     ChartStandaloneMode,
     DashboardStandaloneMode,
+    PLAYWRIGHT_AVAILABLE,
     WebDriverPlaywright,
     WebDriverProxy,
     WindowSize,
@@ -73,13 +74,6 @@ class ScreenshotCachePayloadType(TypedDict):
     image: str | None
     timestamp: str
     status: str
-    # Identifies which object (e.g. "dashboard:<id>" or "chart:<id>") this
-    # entry was rendered for. Cache entries written before this field existed
-    # (or by a not-yet-upgraded worker during a rolling deploy) have no scope
-    # and are treated as belonging to no object -- read access is fail-closed
-    # until the entry is recomputed. Optional at the type level via `.get()`
-    # in `from_dict` for that reason.
-    scope: str | None
 
 
 # Magic bytes for a cheap image sanity check. This is intentionally not a full
@@ -108,12 +102,10 @@ class ScreenshotCachePayload:
         image: bytes | None = None,
         status: StatusValues = StatusValues.PENDING,
         timestamp: str = "",
-        scope: str | None = None,
     ):
         self._image = image
         self._timestamp = timestamp or datetime.now().isoformat()
         self.status = StatusValues.UPDATED if image else status
-        self._scope = scope
 
     @classmethod
     def from_dict(cls, payload: ScreenshotCachePayloadType) -> ScreenshotCachePayload:
@@ -121,9 +113,6 @@ class ScreenshotCachePayload:
             image=base64.b64decode(payload["image"]) if payload["image"] else None,
             status=StatusValues(payload["status"]),
             timestamp=payload["timestamp"],
-            # `.get` rather than `payload["scope"]`: entries cached before this
-            # field existed won't have the key.
-            scope=payload.get("scope"),
         )
 
     def to_dict(self) -> ScreenshotCachePayloadType:
@@ -133,14 +122,7 @@ class ScreenshotCachePayload:
             else None,
             "timestamp": self._timestamp,
             "status": self.status.value,
-            "scope": self._scope,
         }
-
-    def get_scope(self) -> str | None:
-        return self._scope
-
-    def set_scope(self, scope: str | None) -> None:
-        self._scope = scope
 
     def update_timestamp(self) -> None:
         self._timestamp = datetime.now().isoformat()
@@ -196,31 +178,13 @@ class ScreenshotCachePayload:
             datetime.now() - datetime.fromisoformat(self.get_timestamp())
         ).total_seconds() >= computing_ttl
 
-    def should_trigger_task(
-        self, force: bool = False, expected_scope: str | None = None
-    ) -> bool:
-        """
-        :param expected_scope: The scope (e.g. "dashboard:<id>") the caller
-            requires this entry to carry. Entries written before scope
-            tracking existed -- or by a stale/mismatched caller -- deserialize
-            with no scope (or a different one) and are otherwise
-            indistinguishable from a fresh, valid ``UPDATED`` entry, which
-            would leave them permanently un-refreshed: the scope check at
-            read time rejects them, but nothing ever re-triggers computation.
-            Treat a scope mismatch on an ``UPDATED`` entry as a cache miss so
-            it gets recomputed and re-scoped.
-        """
+    def should_trigger_task(self, force: bool = False) -> bool:
         return (
             force
             or self.status == StatusValues.PENDING
             or (self.status == StatusValues.ERROR and self.is_error_cache_ttl_expired())
             or (self.status == StatusValues.COMPUTING and self.is_computing_stale())
             or (self.status == StatusValues.UPDATED and self._image is None)
-            or (
-                self.status == StatusValues.UPDATED
-                and expected_scope is not None
-                and self._scope != expected_scope
-            )
         )
 
 
@@ -333,7 +297,7 @@ class BaseScreenshot:
         Computes the thumbnail and caches the result
 
         :param user: If no user is given will use the current context
-        :param cache_key: The cache key to store the thumbnail payload under
+        :param cache: The cache to keep the thumbnail payload
         :param window_size: The window size from which will process the thumb
         :param thumb_size: The final thumbnail size
         :param force: Will force the computation even if it's already cached
@@ -349,9 +313,7 @@ class BaseScreenshot:
                 cache_payload = (
                     self.get_from_cache_key(cache_key) or ScreenshotCachePayload()
                 )
-                if not cache_payload.should_trigger_task(
-                    force=force, expected_scope=self.cache_scope
-                ):
+                if not cache_payload.should_trigger_task(force=force):
                     logger.info(
                         "Skipping compute - already processed for thumbnail: %s",
                         cache_key,
@@ -361,44 +323,27 @@ class BaseScreenshot:
                 window_size = window_size or self.window_size
                 thumb_size = thumb_size or self.thumb_size
                 logger.info("Processing url for thumbnail: %s", cache_key)
-                cache_payload.set_scope(self.cache_scope)
                 cache_payload.computing()
                 self.cache.set(cache_key, cache_payload.to_dict())
                 image = None
                 # Assuming all sorts of things can go wrong with Selenium
                 try:
-                    logger.info(
-                        "trying to generate screenshot for cache_key=%s", cache_key
-                    )
+                    logger.info("trying to generate screenshot")
                     with event_logger.log_context(
                         f"screenshot.compute.{self.thumbnail_type}"
                     ):
-                        image = self.get_screenshot(
-                            user=user,
-                            window_size=window_size,
-                            log_context=f"cache_key={cache_key}",
-                        )
+                        image = self.get_screenshot(user=user, window_size=window_size)
                 except Exception as ex:  # pylint: disable=broad-except
                     logger.warning(
-                        "Failed at generating thumbnail for cache_key=%s: %s",
-                        cache_key,
-                        ex,
-                        exc_info=True,
+                        "Failed at generating thumbnail %s", ex, exc_info=True
                     )
                     cache_payload.error()
                 if image and window_size != thumb_size:
                     try:
-                        image = self.resize_image(
-                            image,
-                            thumb_size=thumb_size,
-                            log_context=f"cache_key={cache_key}",
-                        )
+                        image = self.resize_image(image, thumb_size=thumb_size)
                     except Exception as ex:  # pylint: disable=broad-except
                         logger.warning(
-                            "Failed at resizing thumbnail for cache_key=%s: %s",
-                            cache_key,
-                            ex,
-                            exc_info=True,
+                            "Failed at resizing thumbnail %s", ex, exc_info=True
                         )
                         cache_payload.error()
                         image = None
@@ -430,9 +375,7 @@ class BaseScreenshot:
                 logger.info("Caching thumbnail: %s", cache_key)
                 self.cache.set(cache_key, cache_payload.to_dict())
                 logger.info(
-                    "Updated thumbnail cache for %s; Status: %s",
-                    cache_key,
-                    cache_payload.get_status(),
+                    "Updated thumbnail cache; Status: %s", cache_payload.get_status()
                 )
         except LockAlreadyHeldException:
             logger.info(
@@ -447,23 +390,16 @@ class BaseScreenshot:
         output: str = "png",
         thumb_size: WindowSize | None = None,
         crop: bool = True,
-        log_context: str | None = None,
     ) -> bytes:
-        context_suffix = f" [{log_context}]" if log_context else ""
         thumb_size = thumb_size or cls.thumb_size
         img = Image.open(BytesIO(img_bytes))
-        logger.debug("Selenium image size: %s%s", str(img.size), context_suffix)
+        logger.debug("Selenium image size: %s", str(img.size))
         if crop and img.size[1] != cls.window_size[1]:
             desired_ratio = float(cls.window_size[1]) / cls.window_size[0]
             desired_width = int(img.size[0] * desired_ratio)
-            logger.debug(
-                "Cropping to: %s*%s%s",
-                str(img.size[0]),
-                str(desired_width),
-                context_suffix,
-            )
+            logger.debug("Cropping to: %s*%s", str(img.size[0]), str(desired_width))
             img = img.crop((0, 0, img.size[0], desired_width))
-        logger.debug("Resizing to %s%s", str(thumb_size), context_suffix)
+        logger.debug("Resizing to %s", str(thumb_size))
         img = img.resize(thumb_size, Image.Resampling.LANCZOS)
         new_img = BytesIO()
         if output != "png":
@@ -532,3 +468,107 @@ class DashboardScreenshot(BaseScreenshot):
             "permalink_key": permalink_key,
         }
         return hash_from_dict(args)
+
+
+class DashboardPrintScreenshot(DashboardScreenshot):
+    """
+    Extends DashboardScreenshot for the browser-print PDF path.
+    Appends ?print=1 to trigger print-mode CSS and force all
+    charts to render regardless of viewport position.
+
+    Optionally accepts a font_size ('small' | 'medium' | 'large') that is
+    forwarded to the frontend via ?print_font_size=<value>.  When omitted or
+    'small', no font-size param is appended ('small' is the no-override default).
+
+    Optionally accepts a print_layout ('2col') that is forwarded to the
+    frontend via ?print_layout=<value>.  When omitted or '1col', no param is
+    appended (single-column is the default).
+
+    Optionally accepts a print_orientation ('portrait' | 'landscape' | 'auto')
+    that is forwarded to the frontend via ?print_orientation=<value>.
+    'portrait' (default / None) appends no param.
+    'landscape' → page.pdf(landscape=True) full-document landscape.
+    'auto' → CSS @page named pages with prefer_css_page_size=True so wide
+    tables automatically render in landscape while other pages stay portrait.
+    """
+
+    def __init__(
+        self,
+        url: str,
+        digest: str | None,
+        window_size: WindowSize | None = None,
+        thumb_size: WindowSize | None = None,
+        font_size: str | None = None,
+        print_layout: str | None = None,
+        print_orientation: str | None = None,
+    ):
+        # DashboardScreenshot.__init__ already adds standalone=3
+        super().__init__(url, digest, window_size, thumb_size)
+        # Add print=1 so the frontend applies print-mode CSS and
+        # bypasses DashboardVirtualization for all chart rows.
+        self.url = modify_url_query(self.url, print=1)
+        # Forward the font-size tier to the frontend when non-default.
+        # 'small' (or None) is the no-override tier; 'medium' and 'large'
+        # apply progressively larger CSS overrides.
+        if font_size and font_size in ("medium", "large"):
+            self.url = modify_url_query(self.url, print_font_size=font_size)
+        # Forward the layout tier to the frontend so the CSS is injected.
+        # '2col' triggers two-column adaptive layout; '1col'/None is default.
+        if print_layout == "2col":
+            self.url = modify_url_query(self.url, print_layout=print_layout)
+        # Forward the orientation to the frontend.
+        # 'portrait' (default/None) needs no URL param.
+        if print_orientation in ("landscape", "auto"):
+            self.url = modify_url_query(self.url, print_orientation=print_orientation)
+
+    def get_print_pdf(
+        self,
+        user: "User",
+        window_size: WindowSize | None = None,
+        log_context: str | None = None,
+        report_execution_context: ReportExecutionContext | None = None,
+        header_title: str | None = None,
+        font_size: str | None = None,
+        print_layout: str | None = None,
+        print_orientation: str | None = None,
+        tab_ids: list[str] | None = None,
+        header_content: dict[str, str] | None = None,
+        footer_content: dict[str, str] | None = None,
+    ) -> bytes | None:
+        """
+        Use Playwright's page.pdf() for native print output.
+        Returns None on any failure so callers can fall back.
+        The font_size tier is embedded in self.url (CSS overrides) via __init__
+        AND passed to the webdriver (JS overrides for inline-styled elements).
+        header_title, when provided, stamps a header and footer on every page.
+        print_layout ('2col') enables two-column adaptive layout; the URL param
+        injects the CSS and the webdriver runs ANNOTATE_PRINT_COLUMNS_JS before
+        page.pdf() to set data-print-col-span attributes on grid columns.
+        print_orientation ('portrait'|'landscape'|'auto') controls page rotation.
+        tab_ids, when provided (list of Superset TAB-xxx component IDs), causes
+        the webdriver to render each tab separately using a URL hash fragment
+        and merge the resulting PDFs via pypdf.
+        header_content / footer_content, when provided, override the global
+        BROWSER_PRINT_PDF_HEADER_CONTENT / BROWSER_PRINT_PDF_FOOTER_CONTENT
+        config for this specific report.
+        """
+        if not feature_flag_manager.is_feature_enabled(
+            "PLAYWRIGHT_REPORTS_AND_THUMBNAILS"
+        ):
+            return None
+        if not PLAYWRIGHT_AVAILABLE:
+            return None
+        driver = WebDriverPlaywright("", window_size or self.window_size)
+        return driver.get_print_pdf(
+            self.url,
+            user=user,
+            log_context=log_context,
+            report_execution_context=report_execution_context,
+            header_title=header_title,
+            font_size=font_size,
+            print_layout=print_layout,
+            print_orientation=print_orientation,
+            tab_ids=tab_ids,
+            header_content=header_content,
+            footer_content=footer_content,
+        )
