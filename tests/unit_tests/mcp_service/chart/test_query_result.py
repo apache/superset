@@ -17,11 +17,106 @@
 
 """Adversarial tests for the shared chart query-result envelope contract."""
 
+from collections.abc import Callable
+from enum import Enum
 from typing import Any
 
 import pytest
 
 from superset.mcp_service.chart.query_result import query_result_data
+
+
+def _hostile_call(*_args: object, **_kwargs: object) -> Any:
+    raise AssertionError("hostile scalar method must not run")
+
+
+class _HostileStr(str):
+    __getitem__ = _hostile_call
+    __str__ = _hostile_call
+
+
+class _HostileInt(int):
+    __abs__ = _hostile_call
+    __eq__ = _hostile_call
+    __lt__ = _hostile_call
+    __str__ = _hostile_call
+    bit_length = _hostile_call
+
+
+class _HostileFloat(float):
+    __str__ = _hostile_call
+
+
+class _HostileBytes(bytes):
+    __bytes__ = _hostile_call
+    __getitem__ = _hostile_call
+    decode = _hostile_call
+
+
+class _HostileBytearray(bytearray):
+    __bytes__ = _hostile_call
+    __getitem__ = _hostile_call
+    decode = _hostile_call
+
+
+class _HostileBoolLike:
+    @property  # type: ignore[misc]
+    def __class__(self) -> type[object]:  # type: ignore[override]
+        """Reject ABC instance checks that consult a spoofed class."""
+        return _hostile_call()
+
+    __bool__ = _hostile_call
+    __repr__ = _hostile_call
+    __str__ = _hostile_call
+
+
+class _HostileBytesLike:
+    __bytes__ = _hostile_call
+    __getitem__ = _hostile_call
+    __len__ = _hostile_call
+    __repr__ = _hostile_call
+    __str__ = _hostile_call
+
+
+class _HostileEnumValue:
+    __repr__ = _hostile_call
+    __str__ = _hostile_call
+
+
+class _HostileStringEnum(str, Enum):
+    FAILED = "failed"
+
+    @property
+    def value(self) -> str:
+        """Reject the public descriptor while leaving Enum's stored value intact."""
+        return _hostile_call()
+
+    __getitem__ = _hostile_call
+    __str__ = _hostile_call
+
+
+class _TextEnum(Enum):
+    VALUE = "warehouse unavailable"
+
+
+class _IntegerEnum(Enum):
+    VALUE = 503
+
+
+class _FloatEnum(Enum):
+    VALUE = 1.25
+
+
+class _BooleanEnum(Enum):
+    VALUE = True
+
+
+class _BytesEnum(Enum):
+    VALUE = b"binary failure"
+
+
+class _UnsupportedEnum(Enum):
+    VALUE = _HostileEnumValue()
 
 
 @pytest.mark.parametrize(
@@ -131,3 +226,93 @@ def test_query_result_never_calls_custom_object_string_or_repr() -> None:
     assert failure is not None
     assert failure.error_type == "QueryError"
     assert "<HostileScalar object>" in failure.error
+
+
+@pytest.mark.parametrize(
+    ("payload_factory", "descriptor"),
+    [
+        (lambda: _HostileStr("x" * 1_000_000), "<_HostileStr object>"),
+        (lambda: _HostileInt(10**10000), "<_HostileInt object>"),
+        (lambda: _HostileFloat(1.25), "<_HostileFloat object>"),
+        (lambda: _HostileBytes(b"x" * 1_000_000), "<_HostileBytes object>"),
+        (
+            lambda: _HostileBytearray(b"x" * 1_000_000),
+            "<_HostileBytearray object>",
+        ),
+        (lambda: _HostileBoolLike(), "<_HostileBoolLike object>"),
+        (lambda: _HostileBytesLike(), "<_HostileBytesLike object>"),
+    ],
+)
+def test_query_result_describes_builtin_subclasses_without_invoking_them(
+    payload_factory: Callable[[], object], descriptor: str
+) -> None:
+    data, failure = query_result_data({"error": payload_factory()})
+    assert data is None
+    assert failure is not None
+    assert failure.error_type == "QueryError"
+    assert descriptor in failure.error
+    assert len(failure.error.encode("utf-8")) <= 2100
+
+
+@pytest.mark.parametrize(
+    ("payload", "message"),
+    [
+        ("warehouse unavailable", "warehouse unavailable"),
+        (503, "503"),
+        (1.25, "1.25"),
+        (True, "True"),
+        (b"binary failure", "binary failure"),
+        (bytearray(b"binary failure"), "binary failure"),
+        (memoryview(b"binary failure"), "binary failure"),
+    ],
+)
+def test_query_result_retains_useful_exact_builtin_errors(
+    payload: object, message: str
+) -> None:
+    data, failure = query_result_data({"error": payload})
+    assert data is None
+    assert failure is not None
+    assert failure.error_type == "QueryError"
+    assert message in failure.error
+
+
+@pytest.mark.parametrize(
+    ("payload", "message"),
+    [
+        (_HostileStringEnum.FAILED, "failed"),
+        (_TextEnum.VALUE, "warehouse unavailable"),
+        (_IntegerEnum.VALUE, "503"),
+        (_FloatEnum.VALUE, "1.25"),
+        (_BooleanEnum.VALUE, "True"),
+        (_BytesEnum.VALUE, "binary failure"),
+        (_UnsupportedEnum.VALUE, "<_UnsupportedEnum object>"),
+    ],
+)
+def test_query_result_safely_renders_supported_enum_values(
+    payload: object, message: str
+) -> None:
+    data, failure = query_result_data({"error": payload})
+    assert data is None
+    assert failure is not None
+    assert failure.error_type == "QueryError"
+    assert message in failure.error
+
+
+def test_query_result_reads_enum_status_without_public_value_or_string_hooks() -> None:
+    data, failure = query_result_data(
+        {"status": _HostileStringEnum.FAILED, "message": "warehouse timeout"}
+    )
+    assert data is None
+    assert failure is not None
+    assert failure.error_type == "QueryError"
+    assert "warehouse timeout" in failure.error
+
+
+def test_query_result_bounds_non_invoking_type_descriptors() -> None:
+    hostile_type = type("T" * 1_000_000, (), {"__str__": _hostile_call})
+    data, failure = query_result_data({"error": hostile_type()})
+    assert data is None
+    assert failure is not None
+    assert failure.error_type == "QueryError"
+    assert "[truncated]" in failure.error
+    assert len(failure.error.encode("utf-8")) <= 2100

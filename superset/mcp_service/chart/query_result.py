@@ -36,6 +36,8 @@ _MAX_SEQUENCE_ITEMS = 64
 _MAX_ERROR_PARTS = 3
 _MAX_ERROR_BYTES = 2000
 _MAX_INTEGER_DIGITS = 1000
+_BUILTIN_SCALAR_TYPES = (str, bytes, bytearray, memoryview, int, float, bool)
+_SCALAR_BASE_TYPES = (*_BUILTIN_SCALAR_TYPES, Enum)
 
 
 @dataclass(frozen=True)
@@ -56,20 +58,64 @@ def _truncate_utf8(value: str, max_bytes: int) -> str:
         return candidate
     suffix = "... [truncated]"
     suffix_bytes = suffix.encode()
+    if max_bytes <= len(suffix_bytes):
+        return suffix_bytes[:max_bytes].decode("ascii")
     content_limit = max(0, max_bytes - len(suffix_bytes))
     content = encoded[:content_limit].decode("utf-8", errors="ignore")
     return content + suffix
 
 
-def _safe_scalar_text(value: Any, max_bytes: int) -> str | None:
+def _type_descriptor(value: Any, max_bytes: int) -> str | None:
+    """Describe an unsupported value without consulting its implementation."""
+    if max_bytes <= 0:
+        return None
+    value_type = type(value)
+    try:
+        type_name = type.__getattribute__(value_type, "__name__")
+    except (AttributeError, TypeError):  # pragma: no cover - defensive metaclass
+        type_name = "unknown"
+    if type(type_name) is not str:
+        type_name = "unknown"
+    bounded_name = _truncate_utf8(type_name, max_bytes)
+    return _truncate_utf8(f"<{bounded_name} object>", max_bytes)
+
+
+def _type_mro(value_type: type[Any]) -> tuple[type[Any], ...]:
+    """Read a concrete type's MRO without consulting its metaclass overrides."""
+    try:
+        mro = type.__getattribute__(value_type, "__mro__")
+    except (AttributeError, TypeError):  # pragma: no cover - all normal types have MRO
+        return ()
+    return mro if type(mro) is tuple else ()
+
+
+def _mro_contains(
+    value_mro: tuple[type[Any], ...], base_types: tuple[type[Any], ...]
+) -> bool:
+    """Return whether an MRO contains a base, using identity-only comparisons."""
+    return any(
+        base is expected_base for base in value_mro for expected_base in base_types
+    )
+
+
+def _safe_scalar_text(value: Any, max_bytes: int) -> str | None:  # noqa: C901
     """Render a bounded scalar without invoking attacker-controlled string code."""
+    value_type = type(value)
+    if _mro_contains(_type_mro(value_type), (Enum,)):
+        try:
+            enum_value = object.__getattribute__(value, "_value_")
+        except Exception:
+            return _type_descriptor(value, max_bytes)
+        if not any(
+            type(enum_value) is scalar_type for scalar_type in _BUILTIN_SCALAR_TYPES
+        ):
+            return _type_descriptor(value, max_bytes)
+        return _safe_scalar_text(enum_value, max_bytes)
     if value is None or value is False:
         return None
-    if isinstance(value, Enum):
-        value = value.value
-    if isinstance(value, str):
+    if value_type is str:
         return _truncate_utf8(value, max_bytes) if value else None
-    if isinstance(value, (bytes, bytearray, memoryview)):
+    if value_type is bytes or value_type is bytearray or value_type is memoryview:
         try:
             view = memoryview(value).cast("B")
             sample = view[: max(0, max_bytes)].tobytes()
@@ -78,18 +124,21 @@ def _safe_scalar_text(value: Any, max_bytes: int) -> str | None:
                 text += "... [truncated]"
             return _truncate_utf8(text, max_bytes) if text else None
         except (TypeError, ValueError):
-            return f"<{type(value).__name__} payload could not be read>"
-    if isinstance(value, int) and not isinstance(value, bool):
+            return _type_descriptor(value, max_bytes)
+    if value_type is int:
         digits = (
             1 if value == 0 else int((abs(value).bit_length() - 1) * math.log10(2)) + 1
         )
         if digits > _MAX_INTEGER_DIGITS:
             sign = "negative " if value < 0 else ""
-            return f"<{sign}integer with approximately {digits} decimal digits>"
-        return str(value)
-    if isinstance(value, (bool, float)):
-        return str(value)
-    return _truncate_utf8(f"<{type(value).__name__} object>", max_bytes)
+            return _truncate_utf8(
+                f"<{sign}integer with approximately {digits} decimal digits>",
+                max_bytes,
+            )
+        return _truncate_utf8(str(value), max_bytes)
+    if value_type is bool or value_type is float:
+        return _truncate_utf8(str(value), max_bytes)
+    return _type_descriptor(value, max_bytes)
 
 
 def _query_error_text(value: Any) -> _ErrorText:  # noqa: C901
@@ -113,9 +162,13 @@ def _query_error_text(value: Any) -> _ErrorText:  # noqa: C901
         if depth > _MAX_ERROR_DEPTH:
             return _ErrorText(malformed="error payload exceeds the depth limit")
 
-        is_mapping = isinstance(item, Mapping)
-        is_sequence = isinstance(item, Sequence) and not isinstance(
-            item, (str, bytes, bytearray, memoryview)
+        item_mro = _type_mro(type(item))
+        is_mapping = _mro_contains(item_mro, (dict, Mapping))
+        is_sequence = _mro_contains(
+            item_mro, (list, tuple, range, Sequence)
+        ) and not _mro_contains(
+            item_mro,
+            _SCALAR_BASE_TYPES,
         )
         if is_mapping or is_sequence:
             identity = id(item)
@@ -186,7 +239,7 @@ def _failure_for_query_payload(  # noqa: C901
             )
 
     raw_status = payload.get("status")
-    status = _safe_scalar_text(getattr(raw_status, "value", raw_status), 200) or ""
+    status = _safe_scalar_text(raw_status, 200) or ""
     normalized_status = status.strip().casefold().replace("-", "_").replace(" ", "_")
     if normalized_status in FAILED_QUERY_STATUSES:
         extracted = _query_error_text(payload.get("message"))
