@@ -698,7 +698,14 @@ function ThemesList({
       <ThemeModal
         addDangerToast={addDangerToast}
         theme={currentTheme}
-        onThemeAdd={() => refreshData()}
+        onThemeAdd={async () => {
+          // If the edited theme is the current system default/dark, re-apply it
+          // live so JSON edits take effect without a full page reload.
+          if (currentTheme?.is_system_default || currentTheme?.is_system_dark) {
+            await refreshSystemThemes();
+          }
+          refreshData();
+        }}
         onThemeApply={handleThemeModalApply}
         onHide={() => setThemeModalOpen(false)}
         show={themeModalOpen}

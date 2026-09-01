@@ -2385,3 +2385,79 @@ test('refreshSystemThemes is a no-op when the server returns no result', async (
 
   getSpy.mockRestore();
 });
+
+test('refreshSystemThemes is skipped when an embedded theme-config override is active', async () => {
+  const controller = createController();
+  controller.setThemeConfig({
+    theme_default: DEFAULT_THEME,
+    theme_dark: DARK_THEME,
+  });
+  expect(controller.hasThemeConfigOverride()).toBe(true);
+
+  mockSetConfig.mockClear();
+  const getSpy = jest.spyOn(SupersetClient, 'get').mockResolvedValue({
+    json: { result: { default: DEFAULT_THEME, dark: DARK_THEME } },
+  } as any);
+
+  await controller.refreshSystemThemes();
+
+  // An SDK-provided theme must not be clobbered: no fetch, no re-apply.
+  expect(getSpy).not.toHaveBeenCalled();
+  expect(mockSetConfig).not.toHaveBeenCalled();
+
+  getSpy.mockRestore();
+});
+
+test('refreshSystemThemes ignores a stale out-of-order response', async () => {
+  const controller = createController();
+  mockSetConfig.mockClear();
+
+  const NEW_DEFAULT: AnyThemeConfig = {
+    token: { colorBgBase: '#new111', colorPrimary: '#111' },
+  };
+  const STALE_DEFAULT: AnyThemeConfig = {
+    token: { colorBgBase: '#old999', colorPrimary: '#999' },
+  };
+
+  let resolveStale: (value: unknown) => void = () => {};
+  const stalePending = new Promise(resolve => {
+    resolveStale = resolve;
+  });
+
+  const getSpy = jest
+    .spyOn(SupersetClient, 'get')
+    // The first (older) request stays pending until we resolve it last.
+    .mockImplementationOnce(() => stalePending as any)
+    // The second (newer) request resolves immediately and should win.
+    .mockResolvedValueOnce({
+      json: {
+        result: {
+          default: NEW_DEFAULT,
+          dark: DARK_THEME,
+          defaultMode: 'default',
+        },
+      },
+    } as any);
+
+  const older = controller.refreshSystemThemes(); // seq 1, pending
+  const newer = controller.refreshSystemThemes(); // seq 2, applies NEW_DEFAULT
+  await newer;
+
+  // Deliver the stale response last; it must be dropped, not applied.
+  resolveStale({
+    json: {
+      result: {
+        default: STALE_DEFAULT,
+        dark: DARK_THEME,
+        defaultMode: 'default',
+      },
+    },
+  });
+  await older;
+
+  const lastConfig =
+    mockSetConfig.mock.calls[mockSetConfig.mock.calls.length - 1][0];
+  expect(lastConfig.token.colorBgBase).toBe('#new111');
+
+  getSpy.mockRestore();
+});

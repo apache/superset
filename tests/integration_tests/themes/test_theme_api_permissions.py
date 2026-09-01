@@ -331,3 +331,11 @@ class TestThemeAPIPermissions(SupersetTestCase):
         assert after["enableUiThemeAdministration"] is True
         assert isinstance(after["default"], dict)
         assert after["default"]  # non-empty: the DB theme is now resolved
+
+    def test_anonymous_cannot_get_system_theme_slice(self):
+        """An unauthenticated request to /system is rejected with 401."""
+        self.logout()
+
+        response = self.client.get("/api/v1/theme/system")
+
+        assert response.status_code == 401

@@ -116,6 +116,9 @@ export class ThemeController {
 
   private initialMode: ThemeMode | undefined;
 
+  // Monotonic counter used to drop out-of-order refreshSystemThemes responses.
+  private refreshSeq = 0;
+
   constructor({
     storage = new LocalStorageAdapter(),
     modeStorageKey = STORAGE_KEYS.THEME_MODE,
@@ -576,15 +579,31 @@ export class ThemeController {
    * without a full page reload. The endpoint returns the same resolved theme
    * slice used to bootstrap the page, so the live result matches a reload.
    *
+   * Skips entirely when an explicit theme-config override is active (e.g. from
+   * the Embedded SDK), so it can never clobber an externally-provided theme.
+   *
    * Non-throwing: the server mutation has already succeeded by the time this
-   * runs, so a failed refresh must not surface a failure to the caller; it logs
-   * and leaves the current theme untouched (a later reload still corrects it).
+   * runs, so a failed refresh must not surface a failure to the caller. A
+   * failed fetch or parse logs and leaves the current theme unchanged; if a
+   * fetched slice is valid-shaped but throws while applying, updateTheme's own
+   * recovery path handles the fallback.
    */
   public async refreshSystemThemes(): Promise<void> {
+    // An explicit theme-config override takes precedence over system themes.
+    if (this.themeConfigOverride) return;
+
+    // Only the most recent refresh may apply its slice, so two rapid mutations
+    // cannot let an out-of-order (stale) response win.
+    const seq = this.refreshSeq + 1;
+    this.refreshSeq = seq;
+
     try {
       const response = await SupersetClient.get({
         endpoint: '/api/v1/theme/system',
       });
+      // A newer refresh started while this request was in flight; drop this one.
+      if (seq !== this.refreshSeq) return;
+
       const themeConfig = response.json?.result as
         | BootstrapThemeDataConfig
         | undefined;
