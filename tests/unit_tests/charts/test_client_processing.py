@@ -1983,6 +1983,92 @@ def grouping_sets_df() -> pd.DataFrame:
     )
 
 
+def nested_grouping_sets_df() -> pd.DataFrame:
+    """Two row dimensions, so prefix subtotal rows appear beside the rollups.
+
+    Every level holds a value no leaf reduction would produce: the `{region}`
+    rollups are 17 and 24, `{region, nation}` are 18 and 25, `{gender}` are 26
+    and 24, and the grand total is 21.
+    """
+    records = [
+        # (region, nation, gender, rolled-up markers, value)
+        ("EU", "UK", "boy", (0, 0, 0), 10),
+        ("EU", "UK", "girl", (0, 0, 0), 30),
+        ("NA", "US", "boy", (0, 0, 0), 40),
+        ("NA", "US", "girl", (0, 0, 0), 20),
+        ("EU", "UK", None, (0, 0, 1), 18),
+        ("NA", "US", None, (0, 0, 1), 25),
+        ("EU", None, "boy", (0, 1, 0), 10),
+        ("EU", None, "girl", (0, 1, 0), 30),
+        ("NA", None, "boy", (0, 1, 0), 40),
+        ("NA", None, "girl", (0, 1, 0), 20),
+        ("EU", None, None, (0, 1, 1), 17),
+        ("NA", None, None, (0, 1, 1), 24),
+        (None, None, "boy", (1, 1, 0), 26),
+        (None, None, "girl", (1, 1, 0), 24),
+        (None, None, None, (1, 1, 1), 21),
+    ]
+    return pd.DataFrame(
+        [
+            {
+                "region": region,
+                "nation": nation,
+                "gender": gender,
+                "region__superset_grouping": markers[0],
+                "nation__superset_grouping": markers[1],
+                "gender__superset_grouping": markers[2],
+                "AVG(num)": value,
+            }
+            for region, nation, gender, markers, value in records
+        ]
+    )
+
+
+NESTED_FORM_DATA = {
+    "groupbyRows": ["region", "nation"],
+    "groupbyColumns": ["gender"],
+    "metrics": ["AVG(num)"],
+    "showValuesAs": "percent_row",
+    "rowTotals": True,
+    "colTotals": True,
+}
+
+
+def test_row_subtotal_keeps_its_total_column_cell():
+    """A subtotal row is not a whole-axis total; it must not be looked up as one."""
+    pivoted = pivot_table_v2(
+        nested_grouping_sets_df(), NESTED_FORM_DATA, apply_number_format=False
+    )
+
+    assert not pd.isna(pivoted.loc[("EU", "Subtotal"), (total_label(), "")])
+
+
+def test_row_subtotal_divides_by_its_own_rollup():
+    """An "EU" subtotal divides by the {region} rollup, not the grand total."""
+    pivoted = pivot_table_v2(
+        nested_grouping_sets_df(), NESTED_FORM_DATA, apply_number_format=False
+    )
+
+    assert pivoted.loc[("EU", "Subtotal"), ("AVG(num)", "boy")] == pytest.approx(
+        10 / 17
+    )
+    assert pivoted.loc[("NA", "Subtotal"), ("AVG(num)", "boy")] == pytest.approx(
+        40 / 24
+    )
+
+
+def test_nested_leaf_rows_still_divide_by_database_rollups():
+    """Regression guard: the leaf and whole-axis behaviour is unchanged."""
+    pivoted = pivot_table_v2(
+        nested_grouping_sets_df(), NESTED_FORM_DATA, apply_number_format=False
+    )
+
+    assert pivoted.loc[("EU", "UK"), ("AVG(num)", "boy")] == pytest.approx(10 / 18)
+    assert pivoted.loc[("NA", "US"), ("AVG(num)", "boy")] == pytest.approx(40 / 25)
+    assert pivoted.loc[("EU", "UK"), (total_label(), "")] == 1
+    assert pivoted.loc[(total_label(), ""), (total_label(), "")] == 1
+
+
 def test_pivot_table_v2_pivots_only_grouping_sets_leaf_rows():
     """Rollup levels must not be pivoted as if they were leaf rows."""
     form_data = {
