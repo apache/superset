@@ -118,8 +118,20 @@ def task_lock(dedup_key: str) -> Iterator[None]:
         yield
     finally:
         # Release (delete) BEFORE notifying, so a woken waiter sees the freed lock.
-        # notify() needs a backend; without one, waiters are on the poll fallback.
-        ReleaseDistributedLock("gtf:task", params, token=acquire.token).run()
-        if CoordinationService.is_backend_defined():
-            CoordinationService.notify(release_channel)
-        logger.debug("Released task lock for key: %s", dedup_key)
+        # Best-effort: a release/notify failure must NOT propagate out of the lock.
+        # This teardown runs after the caller's create-or-join transaction has
+        # committed, so letting it escape would skip the caller's post-commit work
+        # (notably enqueuing the Celery job in submit_task), stranding a committed
+        # PENDING task the reaper won't reclaim. The lock's TTL reclaims the lock.
+        try:
+            ReleaseDistributedLock("gtf:task", params, token=acquire.token).run()
+            if CoordinationService.is_backend_defined():
+                CoordinationService.notify(release_channel)
+            logger.debug("Released task lock for key: %s", dedup_key)
+        except Exception:  # noqa: BLE001  pylint: disable=broad-except
+            logger.warning(
+                "Best-effort release/notify of task lock %s failed; the lock TTL "
+                "will reclaim it",
+                dedup_key,
+                exc_info=True,
+            )
