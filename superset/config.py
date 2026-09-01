@@ -420,6 +420,11 @@ RATELIMIT_APPLICATION = "50 per second"
 # second-granularity relative ranges ("Last 24 hours") essentially never.
 PARTITION_TRANSFORM_PROBE_CACHE_TIMEOUT = int(timedelta(days=1).total_seconds())
 
+# Per-user, per-dataset budget for the partition mapping preview endpoint, which
+# fires a real warehouse query from a text input in the dataset editor. Counted
+# in a fixed 60-second window; set to 0 to disable.
+PARTITION_TRANSFORM_PREVIEW_RATE_LIMIT = 30
+
 AUTH_RATE_LIMITED = True
 AUTH_RATE_LIMIT = "5 per second"
 
