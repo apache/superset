@@ -2108,6 +2108,40 @@ def test_pivot_table_v2_divides_by_database_rollups(mode: str, expected: float):
     assert pivoted.loc[("UK",), ("AVG(num)", "boy")] == pytest.approx(expected)
 
 
+def test_pivot_table_v2_uses_database_rollups_with_metrics_on_rows():
+    """The metrics layout moves the displayed axes but not the rollup levels."""
+    form_data = {
+        "groupbyRows": ["nation"],
+        "groupbyColumns": ["gender"],
+        "metrics": ["AVG(num)"],
+        "showValuesAs": "percent_col",
+        "metricsLayout": "ROWS",
+    }
+
+    pivoted = pivot_table_v2(grouping_sets_df(), form_data, apply_number_format=False)
+
+    # 20/18 and 10/18 from the database rollup, not 20/30 from the leaf sum
+    assert pivoted.loc[("AVG(num)", "UK"), ("boy",)] == pytest.approx(20 / 18)
+    assert pivoted.loc[("AVG(num)", "US"), ("boy",)] == pytest.approx(10 / 18)
+
+
+def test_pivot_table_v2_keeps_a_null_rollup_blank():
+    """A NULL rollup is not a missing one: it blanks the cell, as the chart does."""
+    df = grouping_sets_df()
+    df.loc[df["nation"].isna() & df["gender"].notna(), "AVG(num)"] = None
+    form_data = {
+        "groupbyRows": ["nation"],
+        "groupbyColumns": ["gender"],
+        "metrics": ["AVG(num)"],
+        "showValuesAs": "percent_col",
+    }
+
+    pivoted = pivot_table_v2(df, form_data, apply_number_format=False)
+
+    # falling back to the leaf-derived total would have produced 10/30 here
+    assert pd.isna(pivoted.loc[("US",), ("AVG(num)", "boy")])
+
+
 def test_pivot_table_v2_rollup_totals_divide_by_themselves():
     """A whole-axis total takes its value from the same level as its denominator."""
     form_data = {
