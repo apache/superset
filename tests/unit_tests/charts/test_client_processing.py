@@ -2108,6 +2108,36 @@ def test_pivot_table_v2_divides_by_database_rollups(mode: str, expected: float):
     assert pivoted.loc[("UK",), ("AVG(num)", "boy")] == pytest.approx(expected)
 
 
+def _axis_has_total(axis) -> bool:
+    return any(
+        total_label() in (label if isinstance(label, tuple) else (label,))
+        for label in axis
+    )
+
+
+@pytest.mark.parametrize("layout", ["COLUMNS", "ROWS"])
+@pytest.mark.parametrize("toggle", ["rowTotals", "colTotals"])
+def test_pivot_table_v2_totals_land_on_the_displayed_axis(layout: str, toggle: str):
+    """`rowTotals` is always the right-hand column, whatever the metrics layout.
+
+    Moving metrics to rows transposes the frame on the way out, which would
+    otherwise flip the axis each total was inserted on.
+    """
+    form_data = {
+        "groupbyRows": ["nation"],
+        "groupbyColumns": ["gender"],
+        "metrics": ["AVG(num)"],
+        "showValuesAs": "percent_row",
+        "metricsLayout": layout,
+        toggle: True,
+    }
+
+    pivoted = pivot_table_v2(grouping_sets_df(), form_data, apply_number_format=False)
+
+    assert _axis_has_total(pivoted.columns) is (toggle == "rowTotals")
+    assert _axis_has_total(pivoted.index) is (toggle == "colTotals")
+
+
 def test_pivot_table_v2_uses_database_rollups_with_metrics_on_rows():
     """The metrics layout moves the displayed axes but not the rollup levels."""
     form_data = {

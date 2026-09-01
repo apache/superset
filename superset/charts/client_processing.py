@@ -525,6 +525,13 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
     # returning it
     if apply_metrics_on_rows:
         rows, columns = columns, rows
+        # The frame is transposed on the way out, which flips the axis each
+        # total was inserted on. Swap the toggles too, so `rowTotals` still
+        # means the right-hand Total column of the rendered table. The
+        # `columns and not rows` branch below transposes once more on its own,
+        # cancelling that flip, so it keeps the toggles as given.
+        if rows:
+            show_rows_total, show_columns_total = show_columns_total, show_rows_total
         axis = {"columns": 0, "rows": 1}
     else:
         axis = {"columns": 1, "rows": 0}
