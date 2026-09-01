@@ -209,3 +209,35 @@ def test_build_query_columns_empty_columns_key_keeps_groupby():
     assert preview_utils._build_query_columns(
         {"groupby": ["country"], "columns": []}
     ) == ["country"]
+
+
+def test_generate_preview_seeds_form_data_before_query():
+    from unittest.mock import MagicMock, patch
+
+    call_order: list[str] = []
+    with (
+        patch(
+            "superset.charts.data.form_data.set_query_context_form_data"
+        ) as mock_set_form_data,
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand"
+        ) as mock_cmd_cls,
+        patch(
+            "superset.common.query_context_factory.QueryContextFactory"
+        ) as mock_factory,
+        patch("superset.extensions.db") as mock_db,
+    ):
+        mock_db.session.get.return_value = MagicMock(id=12)
+        query_context = MagicMock()
+        mock_factory.return_value.create.return_value = query_context
+        mock_set_form_data.side_effect = lambda *_args: call_order.append("seed")
+        mock_cmd_cls.return_value.run.side_effect = lambda: (
+            call_order.append("run") or {"queries": [{"data": []}]}
+        )
+
+        preview_utils.generate_preview_from_form_data(
+            {"metrics": [{"label": "count"}]}, 12, "table"
+        )
+
+    mock_set_form_data.assert_called_once_with(query_context, 12, "table")
+    assert call_order == ["seed", "run"]

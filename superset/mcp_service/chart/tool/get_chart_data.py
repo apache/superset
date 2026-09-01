@@ -46,7 +46,10 @@ from superset.mcp_service.chart.chart_helpers import (
     rejected_requested_filter_columns,
 )
 from superset.mcp_service.chart.chart_utils import validate_chart_dataset
-from superset.mcp_service.chart.query_result import query_result_data
+from superset.mcp_service.chart.query_result import (
+    query_result_data,
+    safe_exception_message,
+)
 from superset.mcp_service.chart.schemas import (
     ChartData,
     ChartError,
@@ -364,15 +367,16 @@ async def get_chart_data(  # noqa: C901
                     )
                 try:
                     cached_form_data_dict = utils_json.loads(cached_form_data)
-                except (TypeError, ValueError) as e:
+                except (TypeError, ValueError, AssertionError) as e:
+                    error_text = safe_exception_message(e)
                     logger.warning(
                         "get_chart_data: failed to parse cached form_data "
                         "for form_data_key=%s: %s",
                         request.form_data_key,
-                        e,
+                        error_text,
                     )
                     return ChartError(
-                        error=f"Failed to parse cached form_data: {e}",
+                        error=f"Failed to parse cached form_data: {error_text}",
                         error_type="ParseError",
                     )
                 if not isinstance(cached_form_data_dict, dict):
@@ -505,10 +509,12 @@ async def get_chart_data(  # noqa: C901
                                     "Cached form_data is not a JSON object. "
                                     "Falling back to saved chart configuration."
                                 )
-                        except (TypeError, ValueError) as e:
+                        except (TypeError, ValueError, AssertionError) as e:
+                            error_text = safe_exception_message(e)
                             await ctx.warning(
                                 "Failed to parse cached form_data: %s. "
-                                "Falling back to saved chart configuration." % str(e)
+                                "Falling back to saved chart configuration."
+                                % error_text
                             )
                     else:
                         await ctx.warning(
@@ -551,9 +557,10 @@ async def get_chart_data(  # noqa: C901
                     await ctx.debug(
                         "Using chart's saved query_context for data retrieval"
                     )
-                except (TypeError, ValueError) as e:
+                except (TypeError, ValueError, AssertionError) as e:
+                    error_text = safe_exception_message(e)
                     await ctx.warning(
-                        "Failed to parse chart query_context: %s" % str(e)
+                        "Failed to parse chart query_context: %s" % error_text
                     )
 
             if query_context_json is None and not using_unsaved_state:
@@ -692,6 +699,10 @@ async def get_chart_data(  # noqa: C901
                 command.validate()
                 result = command.run()
 
+            queries_data, query_failure = query_result_data(result)
+            if query_failure is not None:
+                return query_failure
+
             if rejected := rejected_requested_filter_columns(
                 result, request.extra_form_data
             ):
@@ -704,10 +715,6 @@ async def get_chart_data(  # noqa: C901
                     error=f"Unknown dataset column(s) in filters: {rejected_columns}",
                     error_type="ValidationError",
                 )
-
-            queries_data, query_failure = query_result_data(result)
-            if query_failure is not None:
-                return query_failure
 
             # The shared validator guarantees a nonempty query list and a data
             # array on every query before any consumer reads query metadata.
@@ -924,18 +931,19 @@ async def get_chart_data(  # noqa: C901
             # dedicated outer handlers return the OAuth redirect message
             # instead of a generic DataError.
             raise
-        except (CommandException, SupersetException, ValueError) as data_error:
+        except (
+            CommandException,
+            SupersetException,
+            ValueError,
+            AssertionError,
+        ) as data_error:
+            error_text = safe_exception_message(data_error)
             await ctx.error(
-                "Data retrieval failed: chart_id=%s, error=%s, error_type=%s"
-                % (
-                    chart.id,
-                    str(data_error),
-                    type(data_error).__name__,
-                )
+                "Data retrieval failed: chart_id=%s, error=%s" % (chart.id, error_text)
             )
-            logger.error("Data retrieval error for chart %s: %s", chart.id, data_error)
+            logger.error("Data retrieval error for chart %s: %s", chart.id, error_text)
             return ChartError(
-                error=f"Error retrieving chart data: {str(data_error)}",
+                error=f"Error retrieving chart data: {error_text}",
                 error_type="DataError",
             )
 
@@ -972,18 +980,17 @@ async def get_chart_data(  # noqa: C901
         ValueError,
         TypeError,
         AttributeError,
+        AssertionError,
     ) as e:
+        error_text = safe_exception_message(e)
         await ctx.error(
-            "Chart data retrieval failed: identifier=%s, error=%s, error_type=%s"
-            % (
-                request.identifier,
-                str(e),
-                type(e).__name__,
-            )
+            "Chart data retrieval failed: identifier=%s, error=%s"
+            % (request.identifier, error_text)
         )
-        logger.error("Error in get_chart_data: %s", e)
+        logger.error("Error in get_chart_data: %s", error_text)
         return ChartError(
-            error=f"Failed to get chart data: {str(e)}", error_type="InternalError"
+            error=f"Failed to get chart data: {error_text}",
+            error_type="InternalError",
         )
 
 
@@ -1042,6 +1049,10 @@ async def _query_from_form_data(  # noqa: C901
             command.validate()
             result = command.run()
 
+        queries_data, query_failure = query_result_data(result)
+        if query_failure is not None:
+            return query_failure
+
         if rejected := rejected_requested_filter_columns(
             result, request.extra_form_data
         ):
@@ -1054,10 +1065,6 @@ async def _query_from_form_data(  # noqa: C901
                 error=f"Unknown dataset column(s) in filters: {rejected_columns}",
                 error_type="ValidationError",
             )
-
-        queries_data, query_failure = query_result_data(result)
-        if query_failure is not None:
-            return query_failure
 
         query_results = result["queries"]
         query_result = query_results[0]
@@ -1138,10 +1145,16 @@ async def _query_from_form_data(  # noqa: C901
         # outer OAuth handlers return the redirect instead of a generic
         # DataError.
         raise
-    except (CommandException, SupersetException, ValueError) as e:
-        logger.error("Error querying unsaved chart data: %s", e)
+    except (
+        CommandException,
+        SupersetException,
+        ValueError,
+        AssertionError,
+    ) as e:
+        error_text = safe_exception_message(e)
+        logger.error("Error querying unsaved chart data: %s", error_text)
         return ChartError(
-            error=f"Error querying unsaved chart data: {e}",
+            error=f"Error querying unsaved chart data: {error_text}",
             error_type="DataError",
         )
 

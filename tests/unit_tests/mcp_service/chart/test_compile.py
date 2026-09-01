@@ -465,11 +465,12 @@ class TestValidateAndCompileTier2:
         assert result.error_code == "DATASET_NOT_FOUND"
 
 
+@patch("superset.charts.data.form_data.set_query_context_form_data")
 @patch("superset.daos.dataset.DatasetDAO")
 @patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
 @patch("superset.common.query_context_factory.QueryContextFactory")
 def test_compile_chart_returns_database_error_when_wrapped_in_query_failed(
-    mock_factory, mock_cmd_cls, mock_dataset_dao
+    mock_factory, mock_cmd_cls, mock_dataset_dao, mock_set_form_data
 ):
     """ChartDataCommand converts OperationalError to a string inside
     ChartDataQueryFailedError (no __cause__ set). _classify_as_database_error
@@ -518,10 +519,11 @@ def test_compile_chart_returns_database_error_when_wrapped_in_query_failed(
     mock_db.db_engine_spec.extract_errors.assert_called_once()
 
 
+@patch("superset.charts.data.form_data.set_query_context_form_data")
 @patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
 @patch("superset.common.query_context_factory.QueryContextFactory")
 def test_compile_chart_returns_database_error_on_raw_sqlalchemy_error(
-    mock_factory, mock_cmd_cls
+    mock_factory, mock_cmd_cls, mock_set_form_data
 ):
     """When SQLAlchemyError escapes unwrapped, _compile_chart should
     catch it and return a database_connection_error."""
@@ -572,3 +574,26 @@ def test_valid_configs_pass_tier1(config_factory):
     ds = _orm_dataset()
     result = validate_and_compile(config_factory(), {}, ds, run_compile_check=False)
     assert result.success, result.error
+
+
+@patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
+@patch("superset.common.query_context_factory.QueryContextFactory")
+@patch("superset.charts.data.form_data.set_query_context_form_data")
+def test_compile_chart_seeds_form_data_before_query(
+    mock_set_form_data, mock_factory, mock_cmd_cls
+):
+    from superset.mcp_service.chart.compile import _compile_chart
+
+    query_context = Mock()
+    mock_factory.return_value.create.return_value = query_context
+    call_order: list[str] = []
+    mock_set_form_data.side_effect = lambda *_args: call_order.append("seed")
+    mock_cmd_cls.return_value.run.side_effect = lambda: (
+        call_order.append("run") or {"queries": [{"data": []}]}
+    )
+
+    result = _compile_chart({"metrics": ["count"]}, 42)
+
+    assert result.success
+    mock_set_form_data.assert_called_once_with(query_context, 42, "table")
+    assert call_order == ["seed", "run"]

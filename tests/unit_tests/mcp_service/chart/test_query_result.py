@@ -23,7 +23,11 @@ from typing import Any
 
 import pytest
 
-from superset.mcp_service.chart.query_result import query_result_data
+from superset.mcp_service.chart.query_result import (
+    _truncate_utf8,
+    query_result_data,
+    safe_exception_message,
+)
 
 
 def _hostile_call(*_args: object, **_kwargs: object) -> Any:
@@ -316,3 +320,71 @@ def test_query_result_bounds_non_invoking_type_descriptors() -> None:
     assert failure.error_type == "QueryError"
     assert "[truncated]" in failure.error
     assert len(failure.error.encode("utf-8")) <= 2100
+
+
+class _HostileDict(dict[str, Any]):
+    __bool__ = _hostile_call
+    __contains__ = _hostile_call
+    __getitem__ = _hostile_call
+    __iter__ = _hostile_call
+    __len__ = _hostile_call
+    get = _hostile_call
+
+
+class _HostileList(list[Any]):
+    __bool__ = _hostile_call
+    __getitem__ = _hostile_call
+    __iter__ = _hostile_call
+    __len__ = _hostile_call
+
+
+@pytest.mark.parametrize(
+    "result",
+    [
+        _HostileDict(queries=[]),
+        {"queries": _HostileList([{"data": []}])},
+        {"queries": [_HostileDict(data=[])]},
+        {"queries": [{"data": _HostileList()}]},
+    ],
+)
+def test_query_result_rejects_container_subclasses_without_invoking_them(
+    result: object,
+) -> None:
+    data, failure = query_result_data(result)
+    assert data is None
+    assert failure is not None
+    assert failure.error_type == "MalformedQueryResult"
+
+
+def test_query_result_rejects_hostile_error_containers_without_invoking_them() -> None:
+    data, failure = query_result_data({"error": _HostileDict(message="no")})
+    assert data is None
+    assert failure is not None
+    assert failure.error_type == "MalformedQueryResult"
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        ("short\ud800text", "short?text"),
+        ("é\ud800中", "é?中"),
+        ("\ud800" * 5000, "[truncated]"),
+    ],
+)
+def test_utf8_truncation_replacement_sanitizes_surrogates(
+    value: str, expected: str
+) -> None:
+    result = _truncate_utf8(value, 2000)
+    assert expected in result
+    assert "\ud800" not in result
+    assert len(result.encode("utf-8")) <= 2000
+
+
+def test_safe_exception_message_bounds_assertions_without_string_conversion() -> None:
+    class HostileAssertionError(AssertionError):
+        __str__ = _hostile_call
+
+    message = safe_exception_message(HostileAssertionError("x" * 100_000 + "\ud800"))
+    assert "[truncated]" in message
+    assert "\ud800" not in message
+    assert len(message.encode("utf-8")) <= 2000

@@ -41,6 +41,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from superset.commands.exceptions import CommandException
 from superset.errors import SupersetErrorType
+from superset.mcp_service.chart.query_result import safe_exception_message
 from superset.mcp_service.chart.validation.dataset_validator import (
     build_dataset_context_from_orm,
     DatasetValidator,
@@ -113,6 +114,7 @@ def _compile_chart(
     Returns a :class:`CompileResult` with ``success=True`` when the
     query executes cleanly.
     """
+    from superset.charts.data.form_data import set_query_context_form_data
     from superset.commands.chart.data.get_data_command import ChartDataCommand
     from superset.commands.chart.exceptions import (
         ChartDataCacheLoadError,
@@ -135,6 +137,10 @@ def _compile_chart(
             row_limit=2,
             force=False,
         )
+
+        # Seed the no-request-context form data used by virtual-dataset Jinja
+        # macros, matching the chart-data and dataset-query MCP paths.
+        set_query_context_form_data(query_context, dataset_id, "table")
 
         command = ChartDataCommand(query_context)
         command.validate()
@@ -162,56 +168,64 @@ def _compile_chart(
             try:
                 resolve_bullet_render_model(data, form_data)
             except BulletOutputError as ex:
+                error_text = safe_exception_message(ex)
                 return CompileResult(
                     success=False,
-                    error=str(ex),
+                    error=error_text,
                     error_code="MALFORMED_BULLET_OUTPUT",
                     tier="compile",
-                    error_obj=_build_bullet_output_error(str(ex)),
+                    error_obj=_build_bullet_output_error(error_text),
                 )
 
         return CompileResult(success=True, warnings=warnings, row_count=row_count)
     except (ChartDataQueryFailedError, ChartDataCacheLoadError) as exc:
+        error_text = safe_exception_message(exc)
         if _classify_as_database_error(exc, dataset_id):
             logger.warning(
-                "Database connection error during chart compile check: %s: %s",
-                type(exc).__name__,
-                str(exc),
+                "Database connection error during chart compile check: %s",
+                error_text,
             )
             return CompileResult(
                 success=False,
-                error=f"Database connection error: {exc}",
+                error=f"Database connection error: {error_text}",
                 error_code="CHART_COMPILE_FAILED",
                 tier="compile",
-                error_obj=_build_database_error(str(exc)),
+                error_obj=_build_database_error(error_text),
             )
         return CompileResult(
             success=False,
-            error=str(exc),
+            error=error_text,
             error_code="CHART_COMPILE_FAILED",
             tier="compile",
-            error_obj=_build_compile_error(str(exc)),
+            error_obj=_build_compile_error(error_text),
         )
-    except (CommandException, ValueError, KeyError, OverflowError) as exc:
+    except (
+        CommandException,
+        ValueError,
+        KeyError,
+        OverflowError,
+        AssertionError,
+    ) as exc:
+        error_text = safe_exception_message(exc)
         return CompileResult(
             success=False,
-            error=str(exc),
+            error=error_text,
             error_code="CHART_COMPILE_FAILED",
             tier="compile",
-            error_obj=_build_compile_error(str(exc)),
+            error_obj=_build_compile_error(error_text),
         )
     except SQLAlchemyError as exc:
+        error_text = safe_exception_message(exc)
         logger.warning(
-            "Database connection error during chart compile check: %s: %s",
-            type(exc).__name__,
-            str(exc),
+            "Database connection error during chart compile check: %s",
+            error_text,
         )
         return CompileResult(
             success=False,
-            error=f"Database connection error: {exc}",
+            error=f"Database connection error: {error_text}",
             error_code="CHART_COMPILE_FAILED",
             tier="compile",
-            error_obj=_build_database_error(str(exc)),
+            error_obj=_build_database_error(error_text),
         )
 
 
@@ -328,24 +342,52 @@ def _classify_as_database_error(exc: BaseException, dataset_id: int) -> bool:
     """
     # Direct SQLAlchemy errors (unwrapped or in cause chain)
     current: BaseException | None = exc
-    while current is not None:
-        if isinstance(current, SQLAlchemyError):
+    seen: set[int] = set()
+    for _depth in range(16):
+        if current is None or id(current) in seen:
+            break
+        seen.add(id(current))
+        try:
+            mro = type.__getattribute__(type(current), "__mro__")
+        except (AttributeError, TypeError):
+            mro = ()
+        if type(mro) is tuple and any(base is SQLAlchemyError for base in mro):
             return True
-        current = current.__cause__
+        try:
+            cause = object.__getattribute__(current, "__cause__")
+        except Exception:
+            break
+        if cause is None:
+            current = None
+        else:
+            try:
+                cause_mro = type.__getattribute__(type(cause), "__mro__")
+            except (AttributeError, TypeError):
+                cause_mro = ()
+            current = (
+                cause
+                if type(cause_mro) is tuple
+                and any(base is BaseException for base in cause_mro)
+                else None
+            )
 
     # Use the dataset's engine spec to classify (same as the UI)
     try:
         from superset.daos.dataset import DatasetDAO
 
         dataset = DatasetDAO.find_by_id(dataset_id)
-        if dataset and dataset.database and isinstance(exc, Exception):
-            errors = dataset.database.db_engine_spec.extract_errors(exc)
+        if dataset and dataset.database:
+            # Engine specs only need bounded text for regex classification; do
+            # not give adapter code the potentially hostile exception object.
+            errors = dataset.database.db_engine_spec.extract_errors(
+                Exception(safe_exception_message(exc))
+            )
             return any(e.error_type in _CONNECTION_ERROR_TYPES for e in errors)
-    except Exception:  # pylint: disable=broad-except
+    except Exception as classification_error:  # pylint: disable=broad-except
         logger.debug(
             "Failed to classify error via engine spec for dataset %s: %s",
             dataset_id,
-            exc,
+            safe_exception_message(classification_error),
         )
 
     return False
