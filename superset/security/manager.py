@@ -4625,6 +4625,30 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
                 return self.is_viewer(viewer_slc) or self.is_editor(viewer_slc)
 
+            def has_embedded_chart_access() -> bool:
+                # A chart embedded on its own has no parent dashboard, so the
+                # dashboard leg below can never authorize it. Grant datasource
+                # access when the guest token was issued for this very chart and
+                # the request is for that chart's own datasource.
+                if not (
+                    is_feature_enabled("EMBEDDED_SUPERSET")
+                    and self.is_guest_user()
+                    and form_data
+                    and form_data.get("type") != "NATIVE_FILTER"
+                    and (embedded_slice_id := form_data.get("slice_id"))
+                    and (
+                        embedded_slc := self.session.query(Slice)
+                        .filter(Slice.id == embedded_slice_id)
+                        .one_or_none()
+                    )
+                ):
+                    return False
+
+                return (
+                    embedded_slc.datasource == datasource
+                    and self.has_guest_access_to_chart(embedded_slc)
+                )
+
             if not (
                 self.can_access_schema(datasource)
                 or self.can_access("datasource_access", datasource.perm or "")
@@ -4731,6 +4755,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 # access if the user is a viewer or editor of the chart
                 # and promiscuous mode is enabled.
                 or has_promiscuous_chart_access()
+                # Standalone embedded chart, authorized by its own guest token.
+                or has_embedded_chart_access()
             ):
                 raise SupersetSecurityException(
                     self.get_datasource_access_error_object(datasource)
