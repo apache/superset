@@ -33,6 +33,33 @@ from typing import Any, ClassVar, Protocol, runtime_checkable
 from superset.mcp_service.chart.schemas import ColumnRef
 from superset.mcp_service.common.error_schemas import ChartGenerationError
 
+# Query builders intentionally accept multiple native and legacy role names.
+# A replacement config must clear the whole vocabulary before applying the
+# chart mapper's canonical roles; otherwise a hidden alias can win a fallback
+# (raw ``all_columns`` over aggregate metrics, plural ``metrics`` over a Pie's
+# singular ``metric``, or primary roles leaking into Mixed Timeseries query B).
+# Keeping the vocabulary here makes every registered native viz type acquire
+# identical alias-cleanup semantics without parallel per-tool allowlists.
+QUERY_ROLE_KEYS = frozenset(
+    {
+        "all_columns",
+        "column",
+        "columns",
+        "entity",
+        "groupby",
+        "groupby_b",
+        "groupbyColumns",
+        "groupbyRows",
+        "metric",
+        "metrics",
+        "metrics_b",
+        "query_mode",
+        "secondary_metric",
+        "series",
+        "x_axis",
+    }
+)
+
 
 @runtime_checkable
 class ChartTypePlugin(Protocol):
@@ -55,6 +82,12 @@ class ChartTypePlugin(Protocol):
     #: Used by the registry to resolve display names for existing charts without
     #: needing a separate JSON mapping file.
     native_viz_types: ClassVar[Mapping[str, str]]
+
+    #: Every form-data key that can act as a query field for this plugin,
+    #: including legacy aliases and mutually exclusive query-mode controls.
+    #: Same-viz replacement updates remove this complete set before overlaying
+    #: freshly mapped state so hidden controls cannot change the resulting query.
+    query_role_keys: ClassVar[frozenset[str]]
 
     def pre_validate(
         self,
@@ -199,6 +232,7 @@ class BaseChartPlugin:
     display_name: str = ""
     # Subclasses must override this with their own class attribute.
     native_viz_types: ClassVar[Mapping[str, str]] = {}
+    query_role_keys: ClassVar[frozenset[str]] = QUERY_ROLE_KEYS
 
     def is_available(self) -> bool:
         """Return whether the host deployment provides this visualization."""

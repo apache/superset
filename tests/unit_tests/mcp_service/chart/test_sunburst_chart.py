@@ -53,18 +53,24 @@ from superset.mcp_service.chart.preview_utils import (
 )
 from superset.mcp_service.chart.registry import display_name_for_viz_type, get_registry
 from superset.mcp_service.chart.schemas import (
+    BigNumberChartConfig,
+    BoxPlotChartConfig,
+    ChartConfig,
     ChartError,
     ColumnRef,
     GenerateChartRequest,
     GetChartDataRequest,
     GetChartPreviewRequest,
+    HandlebarsChartConfig,
     HistogramChartConfig,
     MixedTimeseriesChartConfig,
     PieChartConfig,
+    PivotTableChartConfig,
     SunburstChartConfig,
     TableChartConfig,
     UpdateChartPreviewRequest,
     UpdateChartRequest,
+    WaterfallChartConfig,
     XYChartConfig,
 )
 from superset.mcp_service.chart.sunburst import (
@@ -110,6 +116,76 @@ def _config(**overrides: object) -> SunburstChartConfig:
     }
     payload.update(overrides)
     return SunburstChartConfig.model_validate(payload)
+
+
+def _registered_query_role_matrix() -> list[ChartConfig]:
+    """Return configs covering every registered native viz and query mode."""
+    metric = ColumnRef(name="sales", aggregate="SUM")
+    return [
+        TableChartConfig(
+            viz_type=viz_type,
+            query_mode=query_mode,
+            columns=(
+                [ColumnRef(name="region")]
+                if query_mode == "raw"
+                else [ColumnRef(name="region"), metric]
+            ),
+        )
+        for viz_type in ("table", "ag-grid-table")
+        for query_mode in ("raw", "aggregate")
+    ] + [
+        PieChartConfig(dimension=ColumnRef(name="region"), metric=metric),
+        *[
+            XYChartConfig(
+                kind=kind,
+                x=ColumnRef(name="order_date"),
+                y=[metric],
+            )
+            for kind in ("line", "bar", "area", "scatter")
+        ],
+        PivotTableChartConfig(
+            rows=[ColumnRef(name="region")],
+            columns=[ColumnRef(name="country")],
+            metrics=[metric],
+        ),
+        MixedTimeseriesChartConfig(
+            x=ColumnRef(name="order_date"),
+            y=[metric],
+            y_secondary=[ColumnRef(name="profit", aggregate="SUM")],
+        ),
+        HandlebarsChartConfig(
+            chart_type="handlebars",
+            handlebars_template="{{ data }}",
+            query_mode="raw",
+            columns=[ColumnRef(name="region")],
+        ),
+        HandlebarsChartConfig(
+            chart_type="handlebars",
+            handlebars_template="{{ data }}",
+            query_mode="aggregate",
+            groupby=[ColumnRef(name="region")],
+            metrics=[metric],
+        ),
+        BigNumberChartConfig(chart_type="big_number", metric=metric),
+        BigNumberChartConfig(
+            chart_type="big_number",
+            metric=metric,
+            show_trendline=True,
+            temporal_column="order_date",
+        ),
+        HistogramChartConfig(column=ColumnRef(name="sales")),
+        BoxPlotChartConfig(
+            metrics=[metric],
+            distribute_across=[ColumnRef(name="country")],
+            dimensions=[ColumnRef(name="region")],
+        ),
+        WaterfallChartConfig(
+            x_axis=ColumnRef(name="order_date"),
+            metric=metric,
+            breakdown=ColumnRef(name="region"),
+        ),
+        _config(),
+    ]
 
 
 def _dataset() -> Mock:
@@ -537,6 +613,156 @@ def test_registered_same_viz_updates_preserve_native_plugin_controls(config) -> 
         config,
     )
     assert "native_plugin_control" not in cross_viz
+
+
+@pytest.mark.parametrize(
+    "config",
+    _registered_query_role_matrix(),
+    ids=lambda config: (
+        f"{config.chart_type}-{getattr(config, 'viz_type', '')}-"
+        f"{getattr(config, 'query_mode', '')}-{getattr(config, 'kind', '')}"
+    ),
+)
+def test_registered_same_viz_role_registry_is_complete_across_update_products(
+    config: ChartConfig,
+) -> None:
+    """Every native viz/mode replaces aliases without changing real queries."""
+    with (
+        patch(
+            "superset.mcp_service.chart.chart_utils.is_column_truly_temporal",
+            return_value=True,
+        ),
+        patch(
+            "superset.mcp_service.chart.chart_utils._find_dataset_by_id_or_uuid",
+            return_value=None,
+        ),
+    ):
+        mapped = map_config_to_form_data(config)
+
+    role_keys = get_registry().query_role_keys_for_viz_type(mapped["viz_type"])
+    assert role_keys
+    stale_roles: dict[str, object] = {
+        "all_columns": ["stale_raw"],
+        "column": "stale_histogram",
+        "columns": ["stale_columns"],
+        "entity": "stale_entity",
+        "groupby": ["stale_group"],
+        "groupby_b": ["stale_secondary_group"],
+        "groupbyColumns": ["stale_pivot_column"],
+        "groupbyRows": ["stale_pivot_row"],
+        "metric": "stale_singular_metric",
+        "metrics": ["stale_plural_metric"],
+        "metrics_b": ["stale_secondary_metric"],
+        "query_mode": "raw",
+        "secondary_metric": "stale_secondary_singular_metric",
+        "series": "stale_series",
+        "x_axis": "stale_x_axis",
+    }
+    assert set(stale_roles) == set(role_keys)
+    existing = {
+        "viz_type": mapped["viz_type"],
+        **stale_roles,
+        "native_plugin_control": {"enabled": True},
+    }
+    chart = Mock(
+        id=19,
+        datasource_id=7,
+        datasource_type="table",
+        slice_name="Alias adversary",
+        params=json.dumps(existing),
+    )
+    request = UpdateChartRequest(identifier=19, config=config)
+
+    with (
+        patch(
+            "superset.mcp_service.chart.chart_utils.is_column_truly_temporal",
+            return_value=True,
+        ),
+        patch(
+            "superset.mcp_service.chart.chart_utils._find_dataset_by_id_or_uuid",
+            return_value=None,
+        ),
+    ):
+        cached_overlay = merge_form_data_for_update(existing, mapped, config)
+        immediate = _build_update_payload(request, chart, parsed_config=config)
+        preview = _build_preview_form_data(request, chart, parsed_config=config)
+
+    assert isinstance(immediate, dict)
+    assert isinstance(preview, dict)
+    saved = json.loads(immediate["params"])
+    for state in (cached_overlay, saved, preview):
+        assert state["native_plugin_control"] == {"enabled": True}
+        assert {key: state[key] for key in role_keys if key in state} == {
+            key: mapped[key] for key in role_keys if key in mapped
+        }
+
+        # Both production query rebuilders must be invariant to the adversarial
+        # aliases after immediate, saved-preview, or cached overlay updates.
+        common_query = build_query_context_from_form_data(
+            deepcopy(state),
+            {"id": 7, "type": "table"},
+            viz_type=mapped["viz_type"],
+        )
+        mapped_common_query = build_query_context_from_form_data(
+            deepcopy(mapped),
+            {"id": 7, "type": "table"},
+            viz_type=mapped["viz_type"],
+        )
+        common_queries_without_limits = [
+            {key: value for key, value in query.items() if key != "row_limit"}
+            for query in common_query["queries"]
+        ]
+        mapped_queries_without_limits = [
+            {key: value for key, value in query.items() if key != "row_limit"}
+            for query in mapped_common_query["queries"]
+        ]
+        assert common_queries_without_limits == mapped_queries_without_limits
+
+        with patch(
+            "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+            return_value="base",
+        ):
+            chart_queries = build_query_dicts_from_form_data(
+                deepcopy(state),
+                datasource_id=7,
+                datasource_type="table",
+            )
+            mapped_chart_queries = build_query_dicts_from_form_data(
+                deepcopy(mapped),
+                datasource_id=7,
+                datasource_type="table",
+            )
+        chart_queries_without_limits = [
+            {key: value for key, value in query.items() if key != "row_limit"}
+            for query in chart_queries
+        ]
+        mapped_chart_queries_without_limits = [
+            {key: value for key, value in query.items() if key != "row_limit"}
+            for query in mapped_chart_queries
+        ]
+        assert chart_queries_without_limits == mapped_chart_queries_without_limits
+
+    # The generated matrix must cover every native viz alias in the registry.
+    with (
+        patch(
+            "superset.mcp_service.chart.chart_utils.is_column_truly_temporal",
+            return_value=True,
+        ),
+        patch(
+            "superset.mcp_service.chart.chart_utils._find_dataset_by_id_or_uuid",
+            return_value=None,
+        ),
+    ):
+        covered_viz_types = {
+            map_config_to_form_data(matrix_config)["viz_type"]
+            for matrix_config in _registered_query_role_matrix()
+        }
+    enabled_viz_types: set[str] = set()
+    for chart_type in get_registry().all_types():
+        plugin = get_registry().get(chart_type)
+        assert plugin is not None
+        enabled_viz_types.update(plugin.native_viz_types)
+    assert covered_viz_types == enabled_viz_types
 
 
 def test_generate_request_accepts_native_viz_type_alias() -> None:
@@ -2355,6 +2581,10 @@ def test_each_temporal_clear_scrubs_every_reconstruction_source(
             {"col": "__time_range", "op": "==", "val": "Last year"},
             {"col": "country", "op": "IN", "val": ["US"]},
         ],
+        "filters": [
+            {"col": "ship_date", "op": "TEMPORAL_RANGE", "val": "Last year"},
+            {"col": "region", "op": "IN", "val": ["North"]},
+        ],
         "extra_form_data": {
             "granularity_sqla": "ship_date",
             "time_grain_sqla": "P1Y",
@@ -2394,6 +2624,7 @@ def test_each_temporal_clear_scrubs_every_reconstruction_source(
         }.isdisjoint(state)
         assert state["adhoc_filters"] == [regular_adhoc]
         assert state["extra_filters"] == [{"col": "country", "op": "IN", "val": ["US"]}]
+        assert state["filters"] == [{"col": "region", "op": "IN", "val": ["North"]}]
         extra = state["extra_form_data"]
         assert extra["custom_form_data"] == {"retained": True}
         assert extra["filters"] == [
@@ -2420,6 +2651,9 @@ def test_each_temporal_clear_scrubs_every_reconstruction_source(
         assert all(
             filter_.get("op") != "TEMPORAL_RANGE"
             for filter_ in query.get("filters", [])
+        )
+        assert {"col": "region", "op": "IN", "val": ["North"]} in query.get(
+            "filters", []
         )
 
 
@@ -2730,6 +2964,14 @@ def test_cached_update_preview_honors_explicit_sunburst_clears(
                     {"col": "__time_range", "op": "==", "val": "Last year"},
                     {"col": "Region", "op": "IN", "val": ["North"]},
                 ],
+                "filters": [
+                    {
+                        "col": "OrderDate",
+                        "op": "TEMPORAL_RANGE",
+                        "val": "Last year",
+                    },
+                    {"col": "Country", "op": "IN", "val": ["US"]},
+                ],
                 "extra_form_data": {
                     "time_range": "Last year",
                     "granularity_sqla": "OrderDate",
@@ -2783,7 +3025,43 @@ def test_cached_update_preview_honors_explicit_sunburst_clears(
     assert captured["extra_filters"] == [
         {"col": "Region", "op": "IN", "val": ["North"]}
     ]
+    assert captured["filters"] == [{"col": "Country", "op": "IN", "val": ["US"]}]
     assert captured["extra_form_data"] == {"custom_form_data": {"retained": True}}
+
+    common_query = build_query_context_from_form_data(
+        deepcopy(captured),
+        {"id": 7, "type": "table"},
+        viz_type="sunburst_v2",
+    )["queries"][0]
+    assert "granularity" not in common_query
+    assert common_query["time_range"] == "No filter"
+    assert "time_grain_sqla" not in common_query.get("extras", {})
+    assert all(
+        filter_.get("op") != "TEMPORAL_RANGE"
+        for filter_ in common_query.get("filters", [])
+    )
+
+    factory = MagicMock()
+    factory.create.return_value = object()
+    with (
+        patch(
+            "superset.common.query_context_factory.QueryContextFactory",
+            return_value=factory,
+        ),
+        patch(
+            "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+            return_value="base",
+        ),
+    ):
+        build_mcp_query_context_from_form_data(deepcopy(captured))
+    final_query = factory.create.call_args.kwargs["queries"][0]
+    assert "granularity" not in final_query
+    assert "time_range" not in final_query
+    assert "time_grain_sqla" not in final_query.get("extras", {})
+    assert all(
+        filter_.get("op") != "TEMPORAL_RANGE"
+        for filter_ in final_query.get("filters", [])
+    )
 
 
 @pytest.mark.parametrize(
@@ -2946,8 +3224,15 @@ def test_update_chart_preview_product_path_preserves_cached_sunburst_state() -> 
         "columns": ["old_region", "old_country"],
         "metric": "count",
         "all_columns": ["stale_raw"],
+        "column": "stale_column",
         "groupby": ["stale_group"],
+        "groupby_b": ["stale_secondary_group"],
+        "groupbyColumns": ["stale_pivot_column"],
+        "groupbyRows": ["stale_pivot_row"],
         "metrics": ["stale_metric"],
+        "metrics_b": ["stale_secondary_metric"],
+        "query_mode": "raw",
+        "secondary_metric": "stale_secondary_singular_metric",
         "series": "stale_series",
         "x_axis": "stale_x",
         "color_scheme": "savedScheme",
@@ -3013,13 +3298,8 @@ def test_update_chart_preview_product_path_preserves_cached_sunburst_state() -> 
     assert captured_form_data["show_total"] is True
     assert captured_form_data["color_scheme"] == "savedScheme"
     assert captured_form_data["plugin_only_ui_state"] == {"kept": True}
-    assert {
-        "all_columns",
-        "groupby",
-        "metrics",
-        "series",
-        "x_axis",
-    }.isdisjoint(captured_form_data)
+    role_keys = get_registry().query_role_keys_for_viz_type("sunburst_v2")
+    assert (role_keys - {"columns", "metric"}).isdisjoint(captured_form_data)
 
 
 def test_cached_mixed_timeseries_update_preserves_native_controls() -> None:
@@ -3063,6 +3343,12 @@ def test_cached_mixed_timeseries_update_preserves_native_controls() -> None:
                 "viz_type": "mixed_timeseries",
                 "metrics": ["OldSales"],
                 "metrics_b": ["OldProfit"],
+                "query_mode": "raw",
+                "all_columns": ["OldRaw"],
+                "columns": ["OldColumns"],
+                "metric": "OldSingular",
+                "secondary_metric": "OldSecondarySingular",
+                "series": "OldSeries",
                 "time_compare": ["1 year ago"],
                 "comparison_type_b": "percentage",
                 "y_axis_format": ",.2f",
@@ -3091,6 +3377,14 @@ def test_cached_mixed_timeseries_update_preserves_native_controls() -> None:
     assert captured["y_axis_format"] == ",.2f"
     assert captured["metrics"] != ["OldSales"]
     assert captured["metrics_b"] != ["OldProfit"]
+    assert {
+        "all_columns",
+        "columns",
+        "metric",
+        "query_mode",
+        "secondary_metric",
+        "series",
+    }.isdisjoint(captured)
 
 
 def test_cached_update_deletes_explicit_null_mapping_envelopes() -> None:

@@ -1176,7 +1176,6 @@ def map_sunburst_config(config: SunburstChartConfig) -> Dict[str, Any]:
 # Required query roles (hierarchy and metric) are deliberately absent: a full
 # replacement always updates them.
 _SUNBURST_UPDATE_FIELD_KEYS: dict[str, str] = {
-    "secondary_metric": "secondary_metric",
     "time_range": "time_range",
     "time_grain": "time_grain_sqla",
     "temporal_column": "granularity_sqla",
@@ -1195,30 +1194,6 @@ _SUNBURST_UPDATE_FIELD_KEYS: dict[str, str] = {
     "extra_form_data": "extra_form_data",
     "url_params": "url_params",
     "standardized_form_data": "standardizedFormData",
-}
-
-
-# Query roles owned by the typed target must not survive simply because a
-# same-viz update starts from saved form data. In particular, native Sunburst
-# payloads can contain hidden roles left by a previous visualization.
-_TARGET_QUERY_ROLE_KEYS: dict[str, frozenset[str]] = {
-    "ag-grid-table": frozenset(
-        {"all_columns", "columns", "groupby", "metrics", "query_mode"}
-    ),
-    "table": frozenset({"all_columns", "columns", "groupby", "metrics", "query_mode"}),
-    "mixed_timeseries": frozenset({"groupby", "groupby_b"}),
-    "sunburst_v2": frozenset(
-        {
-            "all_columns",
-            "groupby",
-            "groupby_b",
-            "metrics",
-            "metrics_b",
-            "query_mode",
-            "series",
-            "x_axis",
-        }
-    ),
 }
 
 
@@ -1258,7 +1233,7 @@ def _scrub_temporal_form_data(form_data: Mapping[str, Any]) -> Dict[str, Any]:
         scrubbed.pop(key, None)
     scrubbed.pop(MCP_DASHBOARD_TIME_FILTER_SUBJECT, None)
 
-    for key in ("adhoc_filters", "extra_filters"):
+    for key in ("adhoc_filters", "extra_filters", "filters"):
         if key in scrubbed:
             scrubbed[key] = _without_temporal_filters(scrubbed[key])
 
@@ -1304,7 +1279,7 @@ FORM_DATA_UPDATE_PRESERVE_KEYS: dict[str, frozenset[str]] = {
             "show_legend",
         }
     ),
-    "filters": frozenset({"adhoc_filters", "extra_filters"}),
+    "filters": frozenset({"adhoc_filters", "extra_filters", "filters"}),
     "time": frozenset(
         {
             "granularity_sqla",
@@ -1408,12 +1383,23 @@ def merge_form_data_for_update(  # noqa: C901
     """
     same_viz = existing_form_data.get("viz_type") == new_form_data.get("viz_type")
     if same_viz:
-        merged = {**existing_form_data, **new_form_data}
-        for key in _TARGET_QUERY_ROLE_KEYS.get(
-            str(new_form_data.get("viz_type")), frozenset()
-        ):
-            if key not in new_form_data:
-                merged.pop(key, None)
+        from superset.mcp_service.chart.registry import (
+            query_role_keys_for_viz_type,
+        )
+
+        # Strip every target-owned query role first, then overlay the mapper's
+        # complete replacement. This removes mutually exclusive aliases (for
+        # example Pie ``metrics`` vs ``metric`` and raw vs aggregate table
+        # roles) without dropping unmodeled native presentation controls.
+        query_role_keys = query_role_keys_for_viz_type(
+            str(new_form_data.get("viz_type"))
+        )
+        merged = {
+            key: value
+            for key, value in existing_form_data.items()
+            if key not in query_role_keys
+        }
+        merged.update(new_form_data)
     else:
         merged = _merge_allowlisted_form_data(existing_form_data, new_form_data)
 

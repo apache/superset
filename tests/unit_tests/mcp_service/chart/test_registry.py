@@ -24,7 +24,7 @@ from types import ModuleType
 import pytest
 
 import superset.mcp_service.chart.registry as registry_module
-from superset.mcp_service.chart.plugin import BaseChartPlugin
+from superset.mcp_service.chart.plugin import BaseChartPlugin, QUERY_ROLE_KEYS
 from superset.mcp_service.chart.registry import (
     _RegistryProxy,
     _reset_for_testing,
@@ -33,6 +33,7 @@ from superset.mcp_service.chart.registry import (
     get,
     get_registry,
     is_registered,
+    query_role_keys_for_viz_type,
     register,
 )
 
@@ -139,6 +140,12 @@ def test_display_name_for_viz_type_not_found():
     assert display_name_for_viz_type("unknown_viz") is None
 
 
+def test_query_role_keys_resolve_from_registered_native_viz_type():
+    register(_FakePlugin())
+    assert query_role_keys_for_viz_type("fake_viz") == QUERY_ROLE_KEYS
+    assert query_role_keys_for_viz_type("unknown_viz") == frozenset()
+
+
 def test_display_name_searches_all_plugins():
     register(_FakePlugin())
     register(_AnotherPlugin())
@@ -175,6 +182,11 @@ def test_registry_proxy_display_name_for_viz_type():
     register(_FakePlugin())
     assert get_registry().display_name_for_viz_type("fake_viz") == "Fake Viz"
     assert get_registry().display_name_for_viz_type("unknown") is None
+
+
+def test_registry_proxy_query_role_keys_for_viz_type():
+    register(_FakePlugin())
+    assert get_registry().query_role_keys_for_viz_type("fake_viz") == QUERY_ROLE_KEYS
 
 
 def test_ensure_plugins_loaded_skips_when_load_failed(monkeypatch):

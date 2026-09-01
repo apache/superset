@@ -220,6 +220,16 @@ class PreviewFormatStrategy:
             chart_id=self.chart.id,
         )
 
+    def _seed_query_context_form_data(self, query_context: Any) -> None:
+        """Seed Flask form data before saved-preview query execution."""
+        from superset.charts.data.form_data import set_query_context_form_data
+
+        set_query_context_form_data(
+            query_context,
+            self.chart.datasource_id,
+            self.chart.datasource_type,
+        )
+
 
 class URLPreviewStrategy(PreviewFormatStrategy):
     """Generate URL-based preview with explore link."""
@@ -277,6 +287,7 @@ class ASCIIPreviewStrategy(PreviewFormatStrategy):
             self._authorize_guest_query(query_context)
             command = ChartDataCommand(query_context)
             command.validate()
+            self._seed_query_context_form_data(query_context)
             result = command.run()
             data, result_error = first_query_data(
                 result, none_as_empty=self.chart.viz_type != "sunburst_v2"
@@ -349,6 +360,7 @@ class TablePreviewStrategy(PreviewFormatStrategy):
             self._authorize_guest_query(query_context)
             command = ChartDataCommand(query_context)
             command.validate()
+            self._seed_query_context_form_data(query_context)
             result = command.run()
             data, result_error = first_query_data(
                 result, none_as_empty=self.chart.viz_type != "sunburst_v2"
@@ -448,6 +460,7 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
             self._authorize_guest_query(query_context)
             command = ChartDataCommand(query_context)
             command.validate()
+            self._seed_query_context_form_data(query_context)
             result = command.run()
             data, result_error = first_query_data(
                 result, none_as_empty=self.chart.viz_type != "sunburst_v2"
