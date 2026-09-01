@@ -1203,6 +1203,19 @@ def merge_bullet_form_data(
         "show_legend",
         MCP_DASHBOARD_TIME_FILTER_SUBJECT,
     }
+
+    # Threshold and label arrays are one frontend control pair. If callers
+    # replace the values without replacing their labels, clear the stale labels
+    # instead of accidentally reassigning them by position.
+    dependent_controls = {
+        "ranges": "range_labels",
+        "markers": "marker_labels",
+        "marker_lines": "marker_line_labels",
+    }
+    for values_key, labels_key in dependent_controls.items():
+        if values_key in new_form_data and labels_key not in new_form_data:
+            new_form_data[labels_key] = ""
+
     for key in preserved_keys:
         if (
             key == MCP_DASHBOARD_TIME_FILTER_SUBJECT
@@ -1213,6 +1226,129 @@ def merge_bullet_form_data(
             continue
         if key in existing_form_data and key not in new_form_data:
             new_form_data[key] = existing_form_data[key]
+
+
+def _filter_identity(filter_: Any) -> tuple[Any, ...] | None:
+    """Return the native identity used when one filter replaces another."""
+    if not isinstance(filter_, Mapping):
+        return None
+    return (
+        filter_.get("clause"),
+        filter_.get("expressionType"),
+        filter_.get("subject"),
+        filter_.get("operator"),
+    )
+
+
+def _temporal_binding_filter(filters: list[Any], subject: Any) -> dict[str, Any] | None:
+    """Find the filter owned by a recorded MCP temporal-binding marker."""
+    if not isinstance(subject, str) or not subject:
+        return None
+    return next(
+        (
+            filter_
+            for filter_ in filters
+            if isinstance(filter_, dict)
+            and filter_.get("subject") == subject
+            and filter_.get("operator") == FilterOperator.TEMPORAL_RANGE.value
+        ),
+        None,
+    )
+
+
+def _append_or_replace_filter(filters: list[Any], filter_: Any) -> None:
+    """Append a filter, replacing the same native role when identifiable."""
+    identity = _filter_identity(filter_)
+    if identity is None:
+        if filter_ not in filters:
+            filters.append(filter_)
+        return
+    filters[:] = [item for item in filters if _filter_identity(item) != identity]
+    filters.append(filter_)
+
+
+def merge_update_form_data(
+    existing_form_data: Mapping[str, Any],
+    new_form_data: Dict[str, Any],
+    config: ChartConfig,
+) -> None:
+    """Apply the shared omission/provenance contract for chart updates.
+
+    Mapper-generated neutral temporal bindings are infrastructure, not evidence
+    that the caller supplied ``filters`` or changed a saved time-range binding.
+    This helper is used by immediate saves, preview-first saved updates, and
+    cached-preview updates so omission, clear, replacement, and temporal
+    overrides have identical behavior.
+    """
+    existing_filters = list(existing_form_data.get("adhoc_filters") or [])
+    incoming_filters = list(new_form_data.get("adhoc_filters") or [])
+    existing_subject = existing_form_data.get(MCP_DASHBOARD_TIME_FILTER_SUBJECT)
+    incoming_subject = new_form_data.get(MCP_DASHBOARD_TIME_FILTER_SUBJECT)
+    existing_binding = _temporal_binding_filter(existing_filters, existing_subject)
+    incoming_binding = _temporal_binding_filter(incoming_filters, incoming_subject)
+
+    existing_user_filters = [
+        filter_ for filter_ in existing_filters if filter_ is not existing_binding
+    ]
+    incoming_user_filters = [
+        filter_ for filter_ in incoming_filters if filter_ is not incoming_binding
+    ]
+    explicit_fields = set(getattr(config, "model_fields_set", set()))
+    filters_explicit = "filters" in explicit_fields
+    temporal_explicit = bool(
+        {"time_range", "temporal_column"}.intersection(explicit_fields)
+    )
+
+    merged_filters: list[Any] = []
+    if not filters_explicit:
+        merged_filters.extend(existing_user_filters)
+    for filter_ in incoming_user_filters:
+        _append_or_replace_filter(merged_filters, filter_)
+
+    chosen_binding: dict[str, Any] | None
+    chosen_subject: Any
+    if existing_binding is not None and not temporal_explicit:
+        chosen_binding = existing_binding
+        chosen_subject = existing_subject
+    else:
+        chosen_binding = incoming_binding
+        chosen_subject = incoming_subject
+    if (
+        chosen_binding is not None
+        and not temporal_explicit
+        and not filters_explicit
+        and _filter_identity(chosen_binding) is not None
+        and any(
+            _filter_identity(filter_) == _filter_identity(chosen_binding)
+            for filter_ in existing_user_filters
+        )
+    ):
+        # Without an existing provenance marker, the saved temporal filter is
+        # user-authored. Keep it instead of replacing it with a neutral binding.
+        chosen_binding = None
+        chosen_subject = None
+    if chosen_binding is not None:
+        _append_or_replace_filter(merged_filters, chosen_binding)
+
+    # Always materialize the authoritative filter list when filters were
+    # explicit or either side carried filters. This lets [] clear saved state.
+    if filters_explicit or existing_filters or incoming_filters:
+        new_form_data["adhoc_filters"] = merged_filters
+    if chosen_binding is not None and isinstance(chosen_subject, str):
+        new_form_data[MCP_DASHBOARD_TIME_FILTER_SUBJECT] = chosen_subject
+    else:
+        new_form_data.pop(MCP_DASHBOARD_TIME_FILTER_SUBJECT, None)
+
+    merge_bullet_form_data(existing_form_data, new_form_data)
+
+
+def validate_merged_bullet_form_data(
+    form_data: Mapping[str, Any],
+) -> BulletChartConfig | None:
+    """Validate the final native Bullet state after all preservation merges."""
+    if form_data.get("viz_type") != "bullet":
+        return None
+    return BulletChartConfig.model_validate(dict(form_data))
 
 
 # The exact strings the frontend boxplotOperator understands; the percentile

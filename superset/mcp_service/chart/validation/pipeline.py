@@ -119,6 +119,29 @@ class ValidationPipeline:
                 request.dataset_id
             )
 
+            # Canonicalize against the same authorized schema used by
+            # validation. Ambiguous case-insensitive matches must fail rather
+            # than silently selecting one dataset field.
+            try:
+                normalized_request = ValidationPipeline._normalize_column_names(
+                    request, dataset_context, typed_config=typed_config
+                )
+            except ValueError as ex:
+                return ValidationResult(
+                    is_valid=False,
+                    request=request,
+                    error=ChartGenerationError(
+                        error_type="ambiguous_column_reference",
+                        message="Chart references could not be canonicalized",
+                        details=str(ex),
+                        suggestions=[
+                            "Use get_dataset_info and copy exact-case field names"
+                        ],
+                        error_code="AMBIGUOUS_COLUMN_REFERENCE",
+                    ),
+                )
+            typed_config = normalized_request.config
+
             # Layer 2: Dataset validation (reuses context)
             is_valid, error = ValidationPipeline._validate_dataset(
                 typed_config, request.dataset_id, dataset_context
@@ -131,11 +154,6 @@ class ValidationPipeline:
                 typed_config, request.dataset_id
             )
             # Runtime validation always returns True now, warnings are informational
-
-            # Layer 4: Column name normalization (reuses context)
-            normalized_request = ValidationPipeline._normalize_column_names(
-                request, dataset_context, typed_config=typed_config
-            )
 
             return ValidationResult(
                 is_valid=True,
@@ -265,7 +283,7 @@ class ValidationPipeline:
 
             return GenerateChartRequest.model_validate(request_dict)
 
-        except (ImportError, AttributeError, KeyError, ValueError, TypeError) as e:
+        except (ImportError, AttributeError, KeyError, TypeError) as e:
             # If normalization fails, return the original request
             # Validation has already passed, so this is a non-critical failure
             logger.warning("Column name normalization failed: %s", e)

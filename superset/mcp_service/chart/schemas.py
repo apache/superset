@@ -2306,6 +2306,11 @@ class BulletChartConfig(BaseChartConfig):
     def validate_presentation_labels(cls, labels: List[str]) -> List[str]:
         result: list[str] = []
         for label in labels:
+            if "," in label:
+                raise ValueError(
+                    "Bullet labels cannot contain commas because the frontend "
+                    "comma-separated controls have no escaping"
+                )
             sanitized = sanitize_user_input(
                 label, "Bullet label", max_length=200, allow_empty=False
             )

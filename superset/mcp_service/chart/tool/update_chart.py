@@ -40,9 +40,10 @@ from superset.mcp_service.chart.chart_utils import (
     analyze_chart_semantics,
     generate_chart_name,
     map_config_to_form_data,
-    merge_bullet_form_data,
     merge_interactive_pivot_ui_config,
     merge_table_column_config,
+    merge_update_form_data,
+    validate_merged_bullet_form_data,
 )
 from superset.mcp_service.chart.compile import validate_and_compile
 from superset.mcp_service.chart.schemas import (
@@ -197,10 +198,9 @@ def _append_table_columns(
 def _merge_replacement_config(
     existing_form_data: dict[str, Any],
     new_form_data: dict[str, Any],
-    parsed_config: Any,
 ) -> dict[str, Any]:
-    """Merge a replacement config, honoring an explicit empty filter list."""
-    merged = {
+    """Merge preview-only saved fields after authoritative scoped merges."""
+    return {
         **{
             key: value
             for key, value in existing_form_data.items()
@@ -208,9 +208,6 @@ def _merge_replacement_config(
         },
         **new_form_data,
     }
-    if getattr(parsed_config, "filters", None) == []:
-        merged.pop("adhoc_filters", None)
-    return merged
 
 
 def _build_update_payload(
@@ -235,9 +232,10 @@ def _build_update_payload(
             parsed_config, dataset_id=effective_dataset_id
         )
         new_form_data.pop("_mcp_warnings", None)
-        merge_bullet_form_data(_get_existing_form_data(chart), new_form_data)
-        merge_table_column_config(_get_existing_form_data(chart), new_form_data)
-        merge_interactive_pivot_ui_config(_get_existing_form_data(chart), new_form_data)
+        existing_form_data = _get_existing_form_data(chart)
+        merge_update_form_data(existing_form_data, new_form_data, parsed_config)
+        merge_table_column_config(existing_form_data, new_form_data)
+        merge_interactive_pivot_ui_config(existing_form_data, new_form_data)
 
         chart_name = (
             request.chart_name
@@ -318,14 +316,12 @@ def _build_preview_form_data(
             parsed_config, dataset_id=effective_dataset_id
         )
         new_form_data.pop("_mcp_warnings", None)
-        merge_bullet_form_data(existing_form_data, new_form_data)
+        merge_update_form_data(existing_form_data, new_form_data, parsed_config)
         merge_table_column_config(existing_form_data, new_form_data)
         merge_interactive_pivot_ui_config(existing_form_data, new_form_data)
         # In the preview, an explicit filters list, including [], replaces saved
         # filters. An omitted filters field preserves them through the shallow merge.
-        merged = _merge_replacement_config(
-            existing_form_data, new_form_data, parsed_config
-        )
+        merged = _merge_replacement_config(existing_form_data, new_form_data)
     elif request.add_columns is not None:
         patched = _append_table_columns(existing_form_data, request.add_columns)
         if isinstance(patched, GenerateChartResponse):
@@ -390,6 +386,15 @@ def _validate_update_against_dataset(
                 "schema_version": "2.0",
                 "api_version": "v1",
             }
+        )
+
+    try:
+        if merged_config := validate_merged_bullet_form_data(form_data):
+            parsed_config = merged_config
+    except (TypeError, ValueError) as ex:
+        return _validation_error_response(
+            message="Merged Bullet chart configuration is invalid.",
+            details=str(ex),
         )
 
     compile_result = validate_and_compile(
@@ -653,7 +658,6 @@ async def update_chart(  # noqa: C901
         if validation_config is not None and effective_norm_dataset_id is not None:
             from superset.mcp_service.chart.validation.dataset_validator import (
                 DatasetValidator,
-                NORMALIZATION_EXCEPTIONS,
             )
 
             try:
@@ -666,7 +670,12 @@ async def update_chart(  # noqa: C901
                     request = request.model_copy(
                         update={"add_columns": validation_config.columns}
                     )
-            except NORMALIZATION_EXCEPTIONS as e:
+            except ValueError as e:
+                return _validation_error_response(
+                    message="Chart references could not be canonicalized.",
+                    details=str(e),
+                )
+            except (ImportError, AttributeError, KeyError, TypeError) as e:
                 logger.warning(
                     "Column normalization failed for chart %s: %s", chart.id, e
                 )

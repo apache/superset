@@ -1254,8 +1254,6 @@ class TestUpdateChartPreviewValidation:
             mock_create_form_data.assert_not_called()
 
     @patch.object(update_chart_preview_module, "_find_dataset")
-    @patch.object(update_chart_preview_module, "has_dataset_access", return_value=False)
-    @patch("superset.daos.dataset.DatasetDAO.find_by_id")
     @patch(
         "superset.mcp_service.commands.create_form_data.MCPCreateFormDataCommand.run"
     )
@@ -1263,15 +1261,12 @@ class TestUpdateChartPreviewValidation:
     async def test_dataset_access_denied_short_circuits(
         self,
         mock_create_form_data,
-        mock_find_by_id,
-        unused_access_mock,
         mock_find_dataset,
         mcp_server,
         mock_auth,
     ):
-        """has_dataset_access=False → DatasetNotAccessible, no cache write."""
-        mock_find_dataset.return_value = _mock_dataset(id=3)
-        mock_find_by_id.return_value = _mock_dataset(id=3)
+        """An inaccessible dataset short-circuits before mapping or cache writes."""
+        mock_find_dataset.return_value = None
 
         config = TableChartConfig(
             chart_type="table", columns=[ColumnRef(name="region")]
@@ -1289,5 +1284,5 @@ class TestUpdateChartPreviewValidation:
             assert result.data["chart"] is None
             error = result.data["error"]
             assert isinstance(error, dict)
-            assert error["error_type"] == "DatasetNotAccessible"
+            assert error["error_type"] == "dataset_not_found"
             mock_create_form_data.assert_not_called()

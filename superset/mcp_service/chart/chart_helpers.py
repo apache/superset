@@ -495,8 +495,14 @@ def _build_single_query_dict(
     metrics: list[Any],
     row_limit: int | None = None,
     order_desc: bool | None = None,
+    orderby: list[Any] | None = None,
 ) -> dict[str, Any]:
-    """Build one query entry for QueryContextFactory from form_data fields."""
+    """Build one query entry with explicitly scoped ordering.
+
+    ``mixed_timeseries`` has two independent form-data namespaces.  Callers
+    must therefore select the ordering for each query rather than allowing a
+    primary ``form_data.orderby`` value to leak into every query shape.
+    """
     qd: dict[str, Any] = {"columns": columns, "metrics": metrics}
     effective_row_limit = row_limit
     if effective_row_limit is None:
@@ -505,7 +511,7 @@ def _build_single_query_dict(
         qd["row_limit"] = effective_row_limit
     if order_desc is not None:
         qd["order_desc"] = order_desc
-    if orderby := form_data.get("orderby"):
+    if orderby:
         qd["orderby"] = orderby
     apply_form_data_filters_to_query(qd, form_data)
     return qd
@@ -534,6 +540,7 @@ def _build_mixed_timeseries_secondary(
         metrics_b,
         row_limit=row_limit,
         order_desc=order_desc,
+        orderby=form_data.get("orderby_b"),
     )
     if time_range_b := form_data.get("time_range_b"):
         qd["time_range"] = time_range_b
@@ -598,6 +605,7 @@ def build_query_dicts_from_form_data(
             deck_metrics,
             row_limit=row_limit,
             order_desc=order_desc,
+            orderby=form_data.get("orderby"),
         )
         if deck_metrics:
             # Mirror BaseDeckGLViz.query_obj(): order by first metric descending
@@ -631,6 +639,7 @@ def build_query_dicts_from_form_data(
             metrics,
             row_limit=row_limit,
             order_desc=order_desc,
+            orderby=form_data.get("orderby"),
         )
     ]
     if viz_type == "mixed_timeseries":
