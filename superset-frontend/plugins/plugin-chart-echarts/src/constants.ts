@@ -89,6 +89,16 @@ export const StackControlOptionsWithoutStream: [
   [StackControlsValue.Stack, t('Stack')],
 ];
 
+// Grains ECharts' time axis cannot tick on; see getTemporalTickValues in
+// utils/series.
+export const WEEKLY_TIME_GRAINS: ReadonlySet<string> = new Set([
+  TimeGranularity.WEEK,
+  TimeGranularity.WEEK_STARTING_SUNDAY,
+  TimeGranularity.WEEK_STARTING_MONDAY,
+  TimeGranularity.WEEK_ENDING_SATURDAY,
+  TimeGranularity.WEEK_ENDING_SUNDAY,
+]);
+
 export const TIMEGRAIN_TO_TIMESTAMP = {
   [TimeGranularity.HOUR]: 3600 * 1000,
   [TimeGranularity.DAY]: 3600 * 1000 * 24,
