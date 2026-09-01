@@ -614,6 +614,37 @@ const FiltersConfigForm = (
     [filterId, form, formChanged],
   );
 
+  // Seed a NEW Dynamic Group By control's allowlist with every groupable
+  // column so it defaults to "all selected" (builders can then deselect to
+  // restrict). Only seeds when no allowlist is set yet — a freshly created
+  // control, or one whose dataset just changed (which clears the allowlist).
+  // An existing selection, including a deliberately narrowed or emptied one,
+  // is never overwritten. The column names come from the same source that
+  // populates the multi-select options, so the default matches exactly what
+  // the builder can choose from. Seeding does not mark the form as changed, so
+  // editing a legacy control that never stored an allowlist stays a no-op
+  // unless the builder actually narrows the selection.
+  const seedGroupByAllowlist = useCallback(
+    (columnNames: string[]) => {
+      if (!isDynamicGroupBy || columnNames.length === 0) {
+        return;
+      }
+      const currentControlValues =
+        form.getFieldValue(['filters', filterId, 'controlValues']) || {};
+      if (currentControlValues.columnsAllowlist !== undefined) {
+        return;
+      }
+      setNativeFilterFieldValues(form, filterId, {
+        controlValues: {
+          ...currentControlValues,
+          columnsAllowlist: columnNames,
+        },
+      });
+      forceUpdate();
+    },
+    [isDynamicGroupBy, form, filterId, forceUpdate],
+  );
+
   const hasPreFilter =
     !!formFilter?.adhoc_filters ||
     !!formFilter?.time_range ||
@@ -1199,9 +1230,12 @@ const FiltersConfigForm = (
                                 datasourceType: newDatasourceType,
                                 defaultDataMask: null,
                                 column: null,
-                                // Columns are dataset-specific, so drop any
-                                // configured Group By allowlist when the
-                                // dataset changes to avoid stale entries.
+                                // Columns are dataset-specific, so clear the
+                                // Group By allowlist when the dataset changes to
+                                // avoid stale entries. Clearing it to undefined
+                                // lets seedGroupByAllowlist re-seed the default
+                                // (all groupable columns) once the new dataset's
+                                // columns load.
                                 ...(isDynamicGroupBy
                                   ? {
                                       controlValues: {
@@ -1267,6 +1301,7 @@ const FiltersConfigForm = (
                         datasetId={datasetId}
                         datasourceType={datasourceType}
                         filterValues={(column: Column) => !!column?.filterable}
+                        onColumnsLoaded={seedGroupByAllowlist}
                         onChange={() => {
                           forceUpdate();
                           formChanged();
