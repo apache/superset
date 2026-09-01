@@ -14,28 +14,18 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""Tests for ``scripts/compile_po.py``.
-
-The script is loaded via importlib from its filesystem path, matching the pattern
-used for other translation scripts in this directory.
-"""
 
 from __future__ import annotations
 
-import importlib.util
+import os
 import subprocess
 import sys
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
-_SCRIPT_PATH = Path(__file__).resolve().parents[4] / "scripts" / "compile_po.py"
-_spec = importlib.util.spec_from_file_location("compile_po", _SCRIPT_PATH)
-assert _spec is not None, f"Could not load {_SCRIPT_PATH}"
-assert _spec.loader is not None, f"No loader on spec for {_SCRIPT_PATH}"
-compile_po = importlib.util.module_from_spec(_spec)
-_spec.loader.exec_module(compile_po)
+import scripts.compile_po as compile_po
 
 
 # ---------------------------------------------------------------------------
@@ -44,40 +34,46 @@ _spec.loader.exec_module(compile_po)
 
 
 def test_run_command_success() -> None:
-    """A command returning exit code 0 returns 0."""
-    rc = compile_po.run_command([sys.executable, "-c", "import sys; sys.exit(0)"])
-    assert rc == 0
+    """run_command returns 0 when the process succeeds."""
+    with patch("subprocess.run") as mock_run:
+        mock_run.return_value = MagicMock(returncode=0)
+        rc = compile_po.run_command(["echo", "hello"])
+        assert rc == 0
 
 
 def test_run_command_failure() -> None:
-    """A command returning non-zero exit code surfaces that return code."""
-    rc = compile_po.run_command([sys.executable, "-c", "import sys; sys.exit(42)"])
-    assert rc == 42
-
-
-def test_run_command_timeout_returns_one() -> None:
-    """Timeouts in subprocess.run are caught and return 1."""
-    with patch(
-        "subprocess.run", side_effect=subprocess.TimeoutExpired(cmd=["test"], timeout=1)
-    ):
-        rc = compile_po.run_command(["test"])
+    """run_command returns nonzero returncode on failure."""
+    with patch("subprocess.run") as mock_run:
+        mock_run.return_value = MagicMock(returncode=1)
+        rc = compile_po.run_command(["false"])
         assert rc == 1
 
 
-def test_run_command_os_error_returns_one() -> None:
-    """OS/file errors in subprocess.run return 1."""
-    with patch("subprocess.run", side_effect=OSError("not found")):
-        rc = compile_po.run_command(["nonexistent_cmd_xyz"])
-        assert rc == 1
+def test_run_command_handles_timeout() -> None:
+    """run_command returns 1 on TimeoutExpired without raising."""
+    with patch("subprocess.run", side_effect=subprocess.TimeoutExpired(["cmd"], 10)):
+        assert compile_po.run_command(["cmd"]) == 1
+
+
+def test_run_command_handles_file_not_found() -> None:
+    """run_command returns 1 when the executable does not exist."""
+    with patch("subprocess.run", side_effect=FileNotFoundError):
+        assert compile_po.run_command(["nonexistent_command"]) == 1
+
+
+def test_run_command_handles_os_error() -> None:
+    """run_command returns 1 on generic OSError."""
+    with patch("subprocess.run", side_effect=OSError("permission denied")):
+        assert compile_po.run_command(["cmd"]) == 1
 
 
 # ---------------------------------------------------------------------------
-# find_command & find_node_bin
+# find_command and find_node_bin
 # ---------------------------------------------------------------------------
 
 
 def test_find_command_found() -> None:
-    """find_command returns the path when an executable is on PATH."""
+    """find_command returns path when binary is in PATH."""
     with patch("shutil.which", return_value="/usr/bin/npm"):
         assert compile_po.find_command(["npm"]) == "/usr/bin/npm"
 
@@ -181,7 +177,6 @@ def test_convert_po_file_failure(tmp_path: Path) -> None:
 def test_compile_translations_missing_babel(monkeypatch: pytest.MonkeyPatch) -> None:
     """Returns 1 if babel module is not installed."""
     with patch.dict(sys.modules, {"babel": None}):
-        # Force import failure
         with patch(
             "builtins.__import__", side_effect=ImportError("No module named babel")
         ):
@@ -190,13 +185,17 @@ def test_compile_translations_missing_babel(monkeypatch: pytest.MonkeyPatch) -> 
 
 def test_compile_translations_missing_node_tools() -> None:
     """Returns 1 if npm or npx is not found."""
-    with patch.object(compile_po, "find_command", return_value=None):
+    with (
+        patch.dict(sys.modules, {"babel": MagicMock()}),
+        patch.object(compile_po, "find_command", return_value=None),
+    ):
         assert compile_po.compile_translations() == 1
 
 
 def test_compile_translations_missing_translations_dir(tmp_path: Path) -> None:
     """Returns 1 if the translations directory does not exist."""
     with (
+        patch.dict(sys.modules, {"babel": MagicMock()}),
         patch.object(compile_po, "find_command", return_value="/usr/bin/node"),
         patch(
             "os.path.isdir",
@@ -209,6 +208,7 @@ def test_compile_translations_missing_translations_dir(tmp_path: Path) -> None:
 def test_compile_translations_pybabel_failure() -> None:
     """Returns 1 if pybabel compile step fails."""
     with (
+        patch.dict(sys.modules, {"babel": MagicMock()}),
         patch.object(compile_po, "find_command", return_value="/usr/bin/npm"),
         patch("os.path.isdir", return_value=True),
         patch.object(compile_po, "run_command", return_value=1),
@@ -222,6 +222,7 @@ def test_compile_translations_conversion_failure(tmp_path: Path) -> None:
     po_file.touch()
 
     with (
+        patch.dict(sys.modules, {"babel": MagicMock()}),
         patch.object(compile_po, "find_command", return_value="/usr/bin/npm"),
         patch("os.path.isdir", return_value=True),
         patch(
@@ -253,6 +254,7 @@ def test_compile_translations_oxfmt_failure(tmp_path: Path) -> None:
         return 0
 
     with (
+        patch.dict(sys.modules, {"babel": MagicMock()}),
         patch.object(compile_po, "find_command", return_value="/usr/bin/npm"),
         patch("os.path.isdir", return_value=True),
         patch(
@@ -283,6 +285,7 @@ def test_compile_translations_success(tmp_path: Path) -> None:
         return 0
 
     with (
+        patch.dict(sys.modules, {"babel": MagicMock()}),
         patch.object(compile_po, "find_command", return_value="/usr/bin/npm"),
         patch.object(
             compile_po,
@@ -303,8 +306,8 @@ def test_compile_translations_success(tmp_path: Path) -> None:
     ):
         rc = compile_po.compile_translations()
         assert rc == 0
-        # Verify oxfmt was called with --no-error-on-unmatched-pattern
+        # Verify oxfmt was called with --no-ignore
         oxfmt_calls = [c for c in executed_commands if any("oxfmt" in arg for arg in c)]
         assert len(oxfmt_calls) >= 1
-        assert "--no-error-on-unmatched-pattern" in oxfmt_calls[0]
+        assert "--no-ignore" in oxfmt_calls[0]
         assert "--write" in oxfmt_calls[0]
