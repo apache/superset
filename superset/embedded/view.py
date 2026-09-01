@@ -75,9 +75,16 @@ class EmbeddedView(BaseSupersetView):
         # validate request referrer in allowed domains
         is_referrer_allowed = not embedded.allowed_domains
         for domain in embedded.allowed_domains:
-            if same_origin(request.referrer, domain):
-                is_referrer_allowed = True
-                break
+            try:
+                if same_origin(request.referrer, domain):
+                    is_referrer_allowed = True
+                    break
+            except ValueError:
+                # The referrer is attacker-controlled and same_origin parses it
+                # eagerly, so a malformed authority (e.g. a host that looks like
+                # it carries a non-numeric port) raises rather than returning
+                # False. Treat it as a non-match instead of a 500.
+                continue
 
         if not is_referrer_allowed:
             abort(403)
