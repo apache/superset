@@ -31,6 +31,7 @@ from superset.mcp_service.chart.schemas import BulletChartConfig, ColumnRef
 from superset.mcp_service.chart.validation.dataset_validator import (
     DatasetValidator,
     is_numeric_column,
+    resolve_dataset_column,
 )
 from superset.mcp_service.common.error_schemas import (
     ChartGenerationError,
@@ -101,7 +102,7 @@ class BulletChartPlugin(BaseChartPlugin):
             raise TypeError("BulletChartPlugin requires BulletChartConfig")
         return map_bullet_config(config)
 
-    def post_map_validate(
+    def post_map_validate(  # noqa: C901
         self,
         config: Any,
         form_data: dict[str, Any],
@@ -165,14 +166,16 @@ class BulletChartPlugin(BaseChartPlugin):
             return None
         if (metric.aggregate or "SUM") in {"COUNT", "COUNT_DISTINCT"}:
             return None
-        column = next(
-            (
-                column
-                for column in dataset_context.available_columns
-                if column["name"].casefold() == (metric.name or "").casefold()
-            ),
-            None,
-        )
+        try:
+            column = resolve_dataset_column(metric.name or "", dataset_context)
+        except ValueError as ex:
+            return ChartGenerationError(
+                error_type="ambiguous_bullet_reference",
+                message=f"Bullet metric column {metric.name!r} is ambiguous by case",
+                details=str(ex),
+                suggestions=["Use get_dataset_info and copy the exact-case field name"],
+                error_code="AMBIGUOUS_BULLET_REFERENCE",
+            )
         if column is None or is_numeric_column(column):
             return None
         return ChartGenerationError(

@@ -49,6 +49,7 @@ from superset.mcp_service.chart.schemas import (
     MixedTimeseriesChartConfig,
     PieChartConfig,
     PivotTableChartConfig,
+    resolve_bullet_order_target,
     SortByConfig,
     TableChartConfig,
     WaterfallChartConfig,
@@ -1097,34 +1098,20 @@ def map_bullet_config(config: BulletChartConfig) -> Dict[str, Any]:  # noqa: C90
         form_data["time_range"] = config.time_range
 
     if config.order_by:
-        metric_output = metric if isinstance(metric, str) else metric.get("label")
-        metric_targets = {
-            candidate.casefold()
-            for candidate in (
-                config.metric.name,
-                config.metric.label,
-                metric_output,
-            )
-            if candidate
-        }
         dimensions = config.dimensions or []
-        dimension_targets = {
-            candidate.casefold(): dimension.name
-            for dimension in dimensions
-            for candidate in (dimension.name, dimension.label)
-            if candidate and dimension.name
-        }
-        form_data["orderby"] = [
-            [
-                (
-                    metric
-                    if order.column.casefold() in metric_targets
-                    else dimension_targets[order.column.casefold()]
-                ),
-                order.ascending,
-            ]
-            for order in config.order_by
-        ]
+        orderby: list[list[Any]] = []
+        for order in config.order_by:
+            role, index = resolve_bullet_order_target(
+                order.column, dimensions, config.metric
+            )
+            if role == "metric":
+                order_target: Any = metric
+            else:
+                if index is None:  # Defensive: resolver pairs dimensions with indexes.
+                    raise ValueError("Bullet dimension order target has no index")
+                order_target = dimensions[index].name
+            orderby.append([order_target, order.ascending])
+        form_data["orderby"] = orderby
     elif "order_by" in config.model_fields_set:
         form_data["orderby"] = []
 
@@ -1344,11 +1331,26 @@ def merge_update_form_data(
 
 def validate_merged_bullet_form_data(
     form_data: Mapping[str, Any],
+    update_config: ChartConfig | None = None,
 ) -> BulletChartConfig | None:
-    """Validate the final native Bullet state after all preservation merges."""
+    """Validate final Bullet state without reclassifying preserved filters.
+
+    The typed Bullet surface intentionally creates only SIMPLE WHERE filters,
+    while saved Explore state may legitimately contain SQL WHERE or SIMPLE
+    HAVING filters. When an update omitted ``filters``, those native objects
+    came from the saved state and are validated by the form-data/query layer;
+    removing them only from this schema-validation copy avoids pretending they
+    were newly supplied typed filters. Explicit filter replacements, including
+    ``[]``, still take the strict native-to-typed path.
+    """
     if form_data.get("viz_type") != "bullet":
         return None
-    return BulletChartConfig.model_validate(dict(form_data))
+    validation_data = dict(form_data)
+    if isinstance(update_config, BulletChartConfig) and (
+        "filters" not in update_config.model_fields_set
+    ):
+        validation_data.pop("adhoc_filters", None)
+    return BulletChartConfig.model_validate(validation_data)
 
 
 # The exact strings the frontend boxplotOperator understands; the percentile

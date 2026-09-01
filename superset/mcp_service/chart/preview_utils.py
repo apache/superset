@@ -110,7 +110,7 @@ def generate_preview_from_form_data(
         from superset.mcp_service.chart.chart_helpers import (
             build_query_context_from_form_data,
         )
-        from superset.mcp_service.chart.query_result import query_result_failure
+        from superset.mcp_service.chart.query_result import query_result_data
 
         dataset = db.session.get(SqlaTable, dataset_id)
         if not dataset:
@@ -131,16 +131,16 @@ def generate_preview_from_form_data(
         command.validate()
         result = command.run()
 
-        if failure := query_result_failure(result):
+        queries_data, failure = query_result_data(result)
+        if failure is not None:
             return failure
 
-        if not result or not result.get("queries"):
+        if not queries_data:
             return ChartError(
                 error="No data returned from query", error_type="EmptyResult"
             )
 
-        query_result = result["queries"][0]
-        data = query_result.get("data", [])
+        data = queries_data[0]
 
         # Generate preview based on format
         if preview_format == "ascii":
@@ -416,7 +416,12 @@ def _bullet_number(value: Any, row_index: int, metric_field: str) -> float:
             f"Bullet metric {metric_field!r} row {row_index} returned a boolean"
         )
     elif isinstance(value, (Real, Decimal)):
-        number = float(value)
+        try:
+            number = float(value)
+        except (TypeError, ValueError, OverflowError) as ex:
+            raise BulletOutputError(
+                f"Bullet metric {metric_field!r} row {row_index} is not numeric"
+            ) from ex
     elif isinstance(value, str) and value.strip():
         try:
             number = float(Decimal(value.strip()))
@@ -452,7 +457,7 @@ def _validate_bullet_format(format_: Any, values: list[float]) -> str:
     try:
         for value in values:
             format_numeric(format_, value)
-    except (TypeError, ValueError) as ex:
+    except (TypeError, ValueError, OverflowError) as ex:
         raise BulletOutputError(
             f"Bullet number format {format_!r} is unsupported by previews",
             error_type="UnsupportedFormat",
@@ -581,16 +586,18 @@ def _generate_ascii_bullet_chart(
             for index, value in enumerate(values)
         ]
 
-    if model.show_labels or model.show_legend:
+    if model.show_labels or model.show_legend or model.marker_lines:
         lines.append("Key:")
-        lines.extend(
-            f"  range {item}"
-            for item in labeled(model.ranges, model.range_labels, "Range")
-        )
-        lines.extend(
-            f"  marker {item}"
-            for item in labeled(model.markers, model.marker_labels, "Marker")
-        )
+        if model.show_labels or model.show_legend:
+            lines.extend(
+                f"  range {item}"
+                for item in labeled(model.ranges, model.range_labels, "Range")
+            )
+            lines.extend(
+                f"  marker {item}"
+                for item in labeled(model.markers, model.marker_labels, "Marker")
+            )
+        # ECharts markLine labels are visible independently of show_labels.
         lines.extend(
             f"  line {item}"
             for item in labeled(
@@ -975,6 +982,19 @@ def _generate_bullet_vega_lite_preview(  # noqa: C901
                             "title": "Value",
                         },
                     ],
+                },
+            }
+        )
+        # ECharts markLine renders its label regardless of show_labels. Keep
+        # Vega faithful by always materializing one label per reference line.
+        layers.append(
+            {
+                "transform": [{"aggregate": []}],
+                "mark": {"type": "text", "align": "right", "dx": -3, "dy": -8},
+                "encoding": {
+                    "x": {"datum": marker_line, "type": "quantitative"},
+                    "y": {"value": 8},
+                    "text": {"value": label},
                 },
             }
         )

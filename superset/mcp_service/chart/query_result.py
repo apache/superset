@@ -76,18 +76,48 @@ def _failure_for_query_payload(
     return None
 
 
-def query_result_failure(result: Any) -> ChartError | None:
-    """Return a structured failure embedded in a chart-data result."""
+def _malformed_result(message: str) -> ChartError:
+    """Build a stable error for an invalid ChartDataCommand envelope."""
+    return ChartError(
+        error=f"Malformed chart query result: {message}",
+        error_type="MalformedQueryResult",
+    )
+
+
+def query_result_data(
+    result: Any,
+) -> tuple[list[list[Any]] | None, ChartError | None]:
+    """Validate a chart-data envelope and return each query's data array.
+
+    Every query is checked before callers use the first one so malformed nested
+    entries cannot be hidden behind an otherwise valid leading query.
+    """
     if not isinstance(result, Mapping):
-        return None
+        return None, _malformed_result("top-level result must be an object")
 
     if failure := _failure_for_query_payload(result, "Chart query"):
-        return failure
-    queries = result.get("queries")
-    if isinstance(queries, list):
-        for index, query in enumerate(queries, start=1):
-            if isinstance(query, Mapping) and (
-                failure := _failure_for_query_payload(query, f"Chart query {index}")
-            ):
-                return failure
-    return None
+        return None, failure
+
+    if "queries" not in result:
+        return None, _malformed_result("missing queries array")
+    queries = result["queries"]
+    if not isinstance(queries, list):
+        return None, _malformed_result("queries must be an array")
+
+    data_arrays: list[list[Any]] = []
+    for index, query in enumerate(queries, start=1):
+        if not isinstance(query, Mapping):
+            return None, _malformed_result(f"query {index} must be an object")
+        if failure := _failure_for_query_payload(query, f"Chart query {index}"):
+            return None, failure
+        data = query.get("data", [])
+        if not isinstance(data, list):
+            return None, _malformed_result(f"query {index} data must be an array")
+        data_arrays.append(data)
+    return data_arrays, None
+
+
+def query_result_failure(result: Any) -> ChartError | None:
+    """Return an embedded failure or malformed-envelope error."""
+    _data, failure = query_result_data(result)
+    return failure

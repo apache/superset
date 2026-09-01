@@ -53,6 +53,41 @@ def is_numeric_column(column: Mapping[str, Any]) -> bool:
     return bool(_NUMERIC_TYPE_PATTERN.search(str(column.get("type") or "").upper()))
 
 
+def resolve_dataset_column(
+    column_name: str, dataset_context: DatasetContext
+) -> Mapping[str, Any] | None:
+    """Resolve an exact, otherwise unique case-insensitive dataset column.
+
+    Metadata ordering must never decide which SQL type is used for validation.
+    Exact case is authoritative; a case-insensitive fallback is safe only when
+    it identifies one column.
+    """
+
+    exact = [
+        column
+        for column in dataset_context.available_columns
+        if column["name"] == column_name
+    ]
+    if len(exact) == 1:
+        return exact[0]
+    if len(exact) > 1:
+        raise ValueError(f"Duplicate exact dataset column {column_name!r}")
+
+    folded = [
+        column
+        for column in dataset_context.available_columns
+        if column["name"].casefold() == column_name.casefold()
+    ]
+    if len(folded) == 1:
+        return folded[0]
+    if len(folded) > 1:
+        names = ", ".join(sorted(column["name"] for column in folded))
+        raise ValueError(
+            f"Ambiguous column reference {column_name!r}; candidates: {names}"
+        )
+    return None
+
+
 def is_dataset_column_temporal(
     column: Any, column_name: str, db_engine_spec: Any
 ) -> bool:
@@ -218,14 +253,16 @@ class DatasetValidator:
         if not temporal_column:
             return None
 
-        matching_column = next(
-            (
-                column
-                for column in dataset_context.available_columns
-                if column["name"].lower() == temporal_column.lower()
-            ),
-            None,
-        )
+        try:
+            matching_column = resolve_dataset_column(temporal_column, dataset_context)
+        except ValueError as ex:
+            return ChartGenerationError(
+                error_type="ambiguous_column_reference",
+                message=f"Temporal column '{temporal_column}' is ambiguous",
+                details=str(ex),
+                suggestions=["Use the exact-case dataset column name"],
+                error_code="AMBIGUOUS_COLUMN_REFERENCE",
+            )
         if matching_column is None:
             return ChartGenerationError(
                 error_type="missing_temporal_column",
@@ -711,12 +748,21 @@ class DatasetValidator:
                 # Should be unreachable per validate_metric_shape; defensive.
                 continue
 
-            # Find column info
-            col_info = None
-            for col in dataset_context.available_columns:
-                if col["name"].lower() == col_ref.name.lower():
-                    col_info = col
-                    break
+            try:
+                col_info = resolve_dataset_column(col_ref.name, dataset_context)
+            except ValueError as ex:
+                errors.append(
+                    ChartGenerationError(
+                        error_type="ambiguous_column_reference",
+                        message=(
+                            f"Aggregate column '{col_ref.name}' is ambiguous by case"
+                        ),
+                        details=str(ex),
+                        suggestions=["Use the exact-case dataset column name"],
+                        error_code="AMBIGUOUS_COLUMN_REFERENCE",
+                    )
+                )
+                continue
 
             if col_info:
                 # Check numeric aggregates on non-numeric columns.

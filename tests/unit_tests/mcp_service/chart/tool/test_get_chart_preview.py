@@ -569,12 +569,11 @@ class TestGetChartPreview:
         assert "no metrics or columns" in preview.error
         assert command_calls == []
 
-    def test_ascii_preview_handles_none_data_gracefully(
+    def test_ascii_preview_rejects_none_data_as_malformed_envelope(
         self,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
-        """A query result with an explicit ``"data": None`` (as opposed to a
-        missing key) must not crash ASCII rendering."""
+        """An explicit ``data=None`` must return a structured envelope error."""
         query_context_factory_module = importlib.import_module(
             "superset.common.query_context_factory"
         )
@@ -625,8 +624,9 @@ class TestGetChartPreview:
             GetChartPreviewRequest(identifier=103, format="ascii"),
         ).generate()
 
-        assert isinstance(preview, ASCIIPreview)
-        assert "No data" in preview.ascii_content
+        assert isinstance(preview, ChartError)
+        assert preview.error_type == "MalformedQueryResult"
+        assert "data must be an array" in preview.error
 
     @pytest.mark.asyncio
     async def test_form_data_key_overrides_saved_params_for_table_preview(

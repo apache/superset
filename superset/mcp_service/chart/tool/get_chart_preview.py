@@ -233,7 +233,7 @@ class ASCIIPreviewStrategy(PreviewFormatStrategy):
                 _generate_ascii_preview_from_data,
                 BulletOutputError,
             )
-            from superset.mcp_service.chart.query_result import query_result_failure
+            from superset.mcp_service.chart.query_result import query_result_data
             from superset.utils import json as utils_json
 
             form_data = utils_json.loads(self.chart.params) if self.chart.params else {}
@@ -266,12 +266,11 @@ class ASCIIPreviewStrategy(PreviewFormatStrategy):
             command.validate()
             result = command.run()
 
-            if failure := query_result_failure(result):
+            queries_data, failure = query_result_data(result)
+            if failure is not None:
                 return failure
 
-            data: list[Any] = []
-            if result and "queries" in result and len(result["queries"]) > 0:
-                data = result["queries"][0].get("data") or []
+            data: list[Any] = queries_data[0] if queries_data else []
 
             if self.chart.viz_type == "bullet":
                 return _generate_ascii_preview_from_data(data, form_data)
@@ -348,14 +347,13 @@ class TablePreviewStrategy(PreviewFormatStrategy):
             command.validate()
             result = command.run()
 
-            from superset.mcp_service.chart.query_result import query_result_failure
+            from superset.mcp_service.chart.query_result import query_result_data
 
-            if failure := query_result_failure(result):
+            queries_data, failure = query_result_data(result)
+            if failure is not None:
                 return failure
 
-            data: list[Any] = []
-            if result and "queries" in result and len(result["queries"]) > 0:
-                data = result["queries"][0].get("data") or []
+            data: list[Any] = queries_data[0] if queries_data else []
 
             table_data = generate_ascii_table(data, 120)
 
@@ -404,7 +402,7 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
                 _generate_bullet_vega_lite_preview,
                 BulletOutputError,
             )
-            from superset.mcp_service.chart.query_result import query_result_failure
+            from superset.mcp_service.chart.query_result import query_result_data
             from superset.utils import json as utils_json
 
             # Get the chart object if we don't have form_data access
@@ -450,13 +448,12 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
             command.validate()
             result = command.run()
 
-            if failure := query_result_failure(result):
+            queries_data, failure = query_result_data(result)
+            if failure is not None:
                 return failure
 
             # Extract data from result
-            chart_data = []
-            if result and "queries" in result and len(result["queries"]) > 0:
-                chart_data = result["queries"][0].get("data", [])
+            chart_data = queries_data[0] if queries_data else []
 
             if not chart_data or not isinstance(chart_data, list):
                 return ChartError(

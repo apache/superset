@@ -1841,6 +1841,89 @@ def _metric_display_label(col: ColumnRef) -> str:
     return col.label or col.name or ""
 
 
+def _require_unique_bullet_order_match(
+    matches: list[tuple[str, int | None]], target: str, role: str
+) -> tuple[str, int | None] | None:
+    """Return a unique sort-role match or reject ambiguity."""
+    if len(matches) == 1:
+        return matches[0]
+    if len(matches) > 1:
+        raise ValueError(f"ambiguous {role}: {target}")
+    return None
+
+
+def _bullet_metric_output_label(metric: ColumnRef) -> str:
+    """Return the field name emitted by Bullet's native metric shape."""
+    if metric.saved_metric:
+        # Saved metrics are serialized as a bare metric-name string; a
+        # ColumnRef display label does not change the query output alias.
+        return metric.name or ""
+    return _metric_display_label(metric)
+
+
+def resolve_bullet_order_target(
+    target: str,
+    dimensions: List[ColumnRef],
+    metric: ColumnRef,
+) -> tuple[str, int | None]:
+    """Resolve a Bullet sort target to one actual query output role.
+
+    Physical dimension names and the emitted metric label are authoritative.
+    Friendly dimension labels and a metric's source name are accepted only as
+    secondary input aliases. This makes an exact physical name win when, for
+    example, another dimension uses that name as its display label.
+    """
+
+    physical = [dimension.name or "" for dimension in dimensions]
+    metric_output = _bullet_metric_output_label(metric)
+
+    # Exact actual output fields are always preferred, with physical columns
+    # taking precedence over all display/source aliases.
+    for index, name in enumerate(physical):
+        if target == name:
+            return "dimension", index
+    if target == metric_output:
+        return "metric", None
+
+    actual_matches: list[tuple[str, int | None]] = [
+        ("dimension", index)
+        for index, name in enumerate(physical)
+        if name.casefold() == target.casefold()
+    ]
+    if metric_output.casefold() == target.casefold():
+        actual_matches.append(("metric", None))
+    if match := _require_unique_bullet_order_match(
+        actual_matches, target, "actual output"
+    ):
+        return match
+
+    aliases: list[tuple[str, int | None, str]] = [
+        ("dimension", index, dimension.label)
+        for index, dimension in enumerate(dimensions)
+        if dimension.label
+    ]
+    for alias in (metric.name, metric.label):
+        if alias and alias != metric_output:
+            aliases.append(("metric", None, alias))
+
+    exact_aliases = [(kind, index) for kind, index, alias in aliases if alias == target]
+    if match := _require_unique_bullet_order_match(
+        exact_aliases, target, "display alias"
+    ):
+        return match
+
+    folded_aliases = [
+        (kind, index)
+        for kind, index, alias in aliases
+        if alias.casefold() == target.casefold()
+    ]
+    if match := _require_unique_bullet_order_match(
+        folded_aliases, target, "display alias"
+    ):
+        return match
+    raise ValueError(f"unknown: {target}")
+
+
 class XYChartConfig(BaseChartConfig):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
@@ -2251,6 +2334,7 @@ class BulletChartConfig(BaseChartConfig):
             "datasource_type",
             "extra_form_data",
             "slice_id",
+            "slice_name",
         ):
             data.pop(key, None)
 
@@ -2329,7 +2413,6 @@ class BulletChartConfig(BaseChartConfig):
     def validate_roles_and_outputs(self) -> "BulletChartConfig":  # noqa: C901
         dimensions = self.dimensions or []
         seen_names: set[str] = set()
-        seen_outputs: set[str] = set()
         for index, dimension in enumerate(dimensions):
             _reject_sql_expression_on_dimension(dimension, f"dimensions[{index}]")
             if dimension.saved_metric or dimension.aggregate:
@@ -2340,16 +2423,17 @@ class BulletChartConfig(BaseChartConfig):
             if name.casefold() in seen_names:
                 raise ValueError(f"Duplicate Bullet dimension: {name!r}")
             seen_names.add(name.casefold())
-            output = dimension.label or name
-            if output.casefold() in seen_outputs:
-                raise ValueError(f"Duplicate Bullet output label: {output!r}")
-            seen_outputs.add(output.casefold())
 
-        metric_output = _metric_display_label(self.metric)
-        if metric_output.casefold() in seen_outputs:
+        metric_output = _bullet_metric_output_label(self.metric)
+        # ``map_bullet_config`` deliberately emits physical groupby names. The
+        # frontend therefore reads dimension results under those names even when
+        # a friendly ``ColumnRef.label`` was supplied. Only the metric is emitted
+        # with an output alias. Keep validation aligned with those actual result
+        # fields instead of treating dimension display labels as SQL aliases.
+        if metric_output.casefold() in seen_names:
             raise ValueError(
                 f"Bullet metric output label {metric_output!r} conflicts with a "
-                "dimension; provide a unique metric label"
+                "dimension (its physical output name); provide a unique metric label"
             )
 
         pairs = (
@@ -2373,30 +2457,18 @@ class BulletChartConfig(BaseChartConfig):
                     f"{label_field} must contain one label per {value_field} value"
                 )
 
-        valid_order_targets = {
-            *(dimension.name.casefold() for dimension in dimensions if dimension.name),
-            *(
-                (dimension.label or "").casefold()
-                for dimension in dimensions
-                if dimension.label
-            ),
-            metric_output.casefold(),
-        }
-        if self.metric.name:
-            valid_order_targets.add(self.metric.name.casefold())
-        ordered = [item.column.casefold() for item in self.order_by]
-        if len(ordered) != len(set(ordered)):
+        resolved_order: list[tuple[str, int | None]] = []
+        for item in self.order_by:
+            try:
+                resolved_order.append(
+                    resolve_bullet_order_target(item.column, dimensions, self.metric)
+                )
+            except ValueError as ex:
+                raise ValueError(
+                    f"order_by must reference a Bullet dimension or metric output; {ex}"
+                ) from ex
+        if len(resolved_order) != len(set(resolved_order)):
             raise ValueError("order_by cannot contain duplicate outputs")
-        invalid_order = [
-            item.column
-            for item in self.order_by
-            if item.column.casefold() not in valid_order_targets
-        ]
-        if invalid_order:
-            raise ValueError(
-                "order_by must reference a Bullet dimension or metric output; "
-                f"unknown: {', '.join(invalid_order)}"
-            )
         return self
 
 
