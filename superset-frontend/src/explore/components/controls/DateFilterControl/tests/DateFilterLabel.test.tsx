@@ -168,10 +168,13 @@ test('DateFilter popover should attach to parent node when overflowing in filter
 
   userEvent.click(screen.getByText(NO_TIME_RANGE));
 
-  const popover = document.querySelector('.time-range-popover');
+  const popover = document.querySelector<HTMLElement>('.time-range-popover');
   const trigger = screen.getByTestId(DateFilterTestKey.PopoverOverlay);
 
   expect(popover?.parentElement).toBe(trigger.parentElement);
+  expect(popover).toHaveStyle({
+    width: 'min(600px, calc(100vw - 32px))',
+  });
 });
 
 test('DateFilter should properly handle isOverflowingFilterBar prop changes', () => {
