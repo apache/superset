@@ -38,14 +38,14 @@ class TestUnmetPrerequisite:
     """Tests for the scheduler's non-blocking ``all_success`` DAG gate."""
 
     def test_no_dependencies_returns_none(self):
-        from superset.tasks.scheduler import _unmet_prerequisite
+        from superset.tasks.dependencies import unmet_prerequisite
 
-        assert _unmet_prerequisite(SimpleNamespace(depends_on=[])) is None
+        assert unmet_prerequisite(SimpleNamespace(depends_on=[])) is None
 
     @patch("superset.tasks.scheduler.TaskDAO.find_one_or_none")
     def test_all_terminal_success_snapshot_needs_no_read(self, mock_find):
         """Prerequisites already SUCCESS in the loaded snapshot skip any DB read."""
-        from superset.tasks.scheduler import _unmet_prerequisite
+        from superset.tasks.dependencies import unmet_prerequisite
 
         task = SimpleNamespace(
             depends_on=[
@@ -53,18 +53,18 @@ class TestUnmetPrerequisite:
                 _task(status=TaskStatus.SUCCESS.value),
             ]
         )
-        assert _unmet_prerequisite(task) is None
+        assert unmet_prerequisite(task) is None
         # A terminal status never changes, so no fresh read is issued.
         mock_find.assert_not_called()
 
     @patch("superset.tasks.scheduler.TaskDAO.find_one_or_none")
     def test_failed_prerequisite_in_snapshot_is_returned(self, mock_find):
-        from superset.tasks.scheduler import _unmet_prerequisite
+        from superset.tasks.dependencies import unmet_prerequisite
 
         succeeded = _task(status=TaskStatus.SUCCESS.value)
         failed = _task(status=TaskStatus.FAILURE.value)
         assert (
-            _unmet_prerequisite(SimpleNamespace(depends_on=[succeeded, failed]))
+            unmet_prerequisite(SimpleNamespace(depends_on=[succeeded, failed]))
             is failed
         )
         mock_find.assert_not_called()
@@ -72,45 +72,43 @@ class TestUnmetPrerequisite:
     @patch("superset.tasks.scheduler.TaskDAO.find_one_or_none")
     def test_non_terminal_snapshot_reread_still_pending_defers(self, mock_find):
         """A prerequisite still non-terminal after a fresh read → defer signal."""
-        from superset.tasks.scheduler import _DAG_WAITING, _unmet_prerequisite
+        from superset.tasks.dependencies import DAG_WAITING, unmet_prerequisite
 
         pending = _task(status=TaskStatus.PENDING.value)
         mock_find.return_value = _task(status=TaskStatus.IN_PROGRESS.value)
 
-        assert (
-            _unmet_prerequisite(SimpleNamespace(depends_on=[pending])) is _DAG_WAITING
-        )
+        assert unmet_prerequisite(SimpleNamespace(depends_on=[pending])) is DAG_WAITING
         mock_find.assert_called_once()
 
     @patch("superset.tasks.scheduler.TaskDAO.find_one_or_none")
     def test_non_terminal_snapshot_reread_succeeded_is_ready(self, mock_find):
         """A stale non-terminal snapshot that actually finished SUCCESS → ready."""
-        from superset.tasks.scheduler import _unmet_prerequisite
+        from superset.tasks.dependencies import unmet_prerequisite
 
         stale = _task(status=TaskStatus.IN_PROGRESS.value)
         mock_find.return_value = _task(status=TaskStatus.SUCCESS.value)
 
-        assert _unmet_prerequisite(SimpleNamespace(depends_on=[stale])) is None
+        assert unmet_prerequisite(SimpleNamespace(depends_on=[stale])) is None
 
     @patch("superset.tasks.scheduler.TaskDAO.find_one_or_none")
     def test_non_terminal_snapshot_reread_failed_is_returned(self, mock_find):
-        from superset.tasks.scheduler import _unmet_prerequisite
+        from superset.tasks.dependencies import unmet_prerequisite
 
         stale = _task(status=TaskStatus.PENDING.value)
         failed = _task(status=TaskStatus.FAILURE.value)
         mock_find.return_value = failed
 
-        assert _unmet_prerequisite(SimpleNamespace(depends_on=[stale])) is failed
+        assert unmet_prerequisite(SimpleNamespace(depends_on=[stale])) is failed
 
     @patch("superset.tasks.scheduler.TaskDAO.find_one_or_none")
     def test_missing_prerequisite_treated_as_failed(self, mock_find):
-        from superset.tasks.scheduler import _unmet_prerequisite
+        from superset.tasks.dependencies import unmet_prerequisite
 
         stale = _task(status=TaskStatus.PENDING.value)
         mock_find.return_value = None  # prerequisite pruned/gone
 
         # The (stale) prerequisite is returned as failed rather than deferring.
-        assert _unmet_prerequisite(SimpleNamespace(depends_on=[stale])) is stale
+        assert unmet_prerequisite(SimpleNamespace(depends_on=[stale])) is stale
 
 
 class TestDagDeferCountdown:
@@ -164,13 +162,20 @@ class TestExecuteTaskDagGate:
             if find_side_effect is not None
             else MagicMock(return_value=task)
         )
+        # The DAG-defer path publishes via scheduler's TaskManager; the failed-
+        # prerequisite path delegates to dependencies.fail_dependent_on_unmet_
+        # prerequisite, which imports TaskManager lazily from superset.tasks.manager.
+        # Patch both to the SAME mock so either path's publish_completion is captured.
+        task_manager = MagicMock()
         with (
             patch("superset.tasks.scheduler.TaskDAO.find_one_or_none", find),
+            patch("superset.tasks.dependencies.TaskDAO.find_one_or_none", find),
             patch(
-                "superset.tasks.scheduler._unmet_prerequisite",
+                "superset.tasks.scheduler.unmet_prerequisite",
                 return_value=unmet_return,
             ),
-            patch("superset.tasks.scheduler.TaskManager") as task_manager,
+            patch("superset.tasks.scheduler.TaskManager", task_manager),
+            patch("superset.tasks.manager.TaskManager", task_manager),
             patch("superset.tasks.scheduler.current_app", app),
             patch("superset.commands.tasks.internal_update.current_app", app),
         ):
@@ -180,7 +185,7 @@ class TestExecuteTaskDagGate:
     def test_waiting_defers_via_retry_and_emits_metric(self):
         from celery.exceptions import Retry
 
-        from superset.tasks.scheduler import _DAG_WAITING
+        from superset.tasks.dependencies import DAG_WAITING
 
         native = uuid4()
         task = SimpleNamespace(
@@ -195,7 +200,7 @@ class TestExecuteTaskDagGate:
 
         with pytest.raises(Retry):
             self._call(
-                fake_self, task, unmet_return=_DAG_WAITING, stats_logger=stats_logger
+                fake_self, task, unmet_return=DAG_WAITING, stats_logger=stats_logger
             )
 
         # A defer metric fired before the retry raised…
@@ -208,7 +213,7 @@ class TestExecuteTaskDagGate:
     def test_defer_publish_failure_fails_task(self):
         """If self.retry can't publish the replacement message (broker down), the
         task must be failed rather than left stranded PENDING with no heartbeat."""
-        from superset.tasks.scheduler import _DAG_WAITING
+        from superset.tasks.dependencies import DAG_WAITING
 
         native = uuid4()
         task = SimpleNamespace(
@@ -227,7 +232,7 @@ class TestExecuteTaskDagGate:
             transition,
         ):
             result, _, task_manager = self._call(
-                fake_self, task, unmet_return=_DAG_WAITING
+                fake_self, task, unmet_return=DAG_WAITING
             )
 
         assert result["status"] == TaskStatus.FAILURE.value
@@ -282,6 +287,76 @@ class TestExecuteTaskDagGate:
 
         assert result["status"] == TaskStatus.ABORTED.value
         task_manager.publish_completion.assert_not_called()
+
+
+class TestInlineDagGate:
+    """The sync/inline path enforces the same DAG gate as the async path."""
+
+    @staticmethod
+    def _wrapper():
+        from superset.tasks.decorators import task
+        from superset.tasks.registry import TaskRegistry
+
+        TaskRegistry._tasks.clear()
+
+        @task(name="inline_gate_probe")
+        def _fn() -> None:
+            pass
+
+        return _fn
+
+    def test_ready_returns_none(self):
+        wrapper = self._wrapper()
+        task = _task()
+        with (
+            patch("superset.daos.tasks.TaskDAO.find_one_or_none", return_value=task),
+            patch("superset.tasks.dependencies.unmet_prerequisite", return_value=None),
+        ):
+            assert wrapper._gate_on_prerequisites(task) is None
+
+    def test_failed_prerequisite_fails_and_returns_terminal(self):
+        wrapper = self._wrapper()
+        task = _task()
+        terminal = _task(status=TaskStatus.FAILURE.value)
+        failed_prereq = _task(status=TaskStatus.FAILURE.value)
+        with (
+            patch(
+                "superset.daos.tasks.TaskDAO.find_one_or_none",
+                side_effect=[task, terminal],
+            ),
+            patch(
+                "superset.tasks.dependencies.unmet_prerequisite",
+                return_value=failed_prereq,
+            ),
+            # fail_dependent_on_unmet_prerequisite is imported lazily inside the
+            # gate from superset.tasks.dependencies, so patch it there.
+            patch(
+                "superset.tasks.dependencies.fail_dependent_on_unmet_prerequisite"
+            ) as fail,
+        ):
+            result = wrapper._gate_on_prerequisites(task)
+
+        fail.assert_called_once()
+        assert result is terminal
+
+    def test_waits_on_pending_prerequisite_then_proceeds(self):
+        from superset.tasks.dependencies import DAG_WAITING
+
+        wrapper = self._wrapper()
+        pending = _task(status=TaskStatus.IN_PROGRESS.value)
+        current = SimpleNamespace(uuid=uuid4(), depends_on=[pending])
+        with (
+            patch("superset.daos.tasks.TaskDAO.find_one_or_none", return_value=current),
+            patch(
+                "superset.tasks.dependencies.unmet_prerequisite",
+                side_effect=[DAG_WAITING, None],
+            ),
+            # TaskManager is bound at decorators import time, so patch it there.
+            patch("superset.tasks.decorators.TaskManager") as task_manager,
+        ):
+            assert wrapper._gate_on_prerequisites(_task()) is None
+            # The inline wait action blocks on the coordination completion signal.
+            task_manager.wait_for_completion.assert_called_once()
 
 
 class TestPersistDependencies:

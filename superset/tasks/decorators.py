@@ -43,6 +43,8 @@ from superset.tasks.registry import TaskRegistry
 from superset.tasks.utils import generate_random_task_key
 
 if TYPE_CHECKING:
+    from uuid import UUID
+
     from superset.models.tasks import Task
     from superset.tasks.subscription import TaskSubscriptionPolicy
 
@@ -427,6 +429,132 @@ class TaskWrapper(Generic[P]):
             refreshed = TaskDAO.find_one_or_none(uuid=task.uuid, skip_base_filter=True)
             return refreshed if refreshed else task
 
+    def _gate_on_prerequisites(self, task: "Task") -> "Task | None":
+        """Block the inline caller until this task's prerequisites are terminal.
+
+        Same ``all_success`` DAG semantics as the async path (shared via
+        :mod:`superset.tasks.dependencies`): ready → returns ``None`` (proceed); a
+        prerequisite still running → block on the coordination completion signal
+        (the sync analogue of the async defer — the caller *is* the executor and
+        has no worker slot to free), then re-check; a prerequisite that ended
+        non-success → fail this dependent and return its terminal ``Task`` for the
+        caller to return.
+        """
+        from flask import current_app
+
+        from superset.daos.tasks import TaskDAO
+        from superset.tasks.dependencies import (
+            DAG_WAITING,
+            fail_dependent_on_unmet_prerequisite,
+            unmet_prerequisite,
+        )
+
+        try:
+            app = current_app._get_current_object()  # noqa: SLF001
+        except RuntimeError:
+            app = None
+
+        # Re-read fresh so ``depends_on`` reflects committed edges (the just-created
+        # task's selectin collection can be stale), matching the async path's fresh
+        # worker load.
+        current = (
+            TaskDAO.find_one_or_none(uuid=task.uuid, skip_base_filter=True) or task
+        )
+        unmet = unmet_prerequisite(current)
+        while unmet is DAG_WAITING:
+            for prerequisite in current.depends_on:
+                if prerequisite.status not in TERMINAL_STATES:
+                    TaskManager.wait_for_completion(
+                        task_uuid=prerequisite.uuid, poll_interval=1.0, app=app
+                    )
+            current = (
+                TaskDAO.find_one_or_none(uuid=task.uuid, skip_base_filter=True)
+                or current
+            )
+            unmet = unmet_prerequisite(current)
+        if unmet is not None:
+            fail_dependent_on_unmet_prerequisite(task.uuid, cast("Task", unmet))
+            return (
+                TaskDAO.find_one_or_none(uuid=task.uuid, skip_base_filter=True) or task
+            )
+        return None
+
+    def _abort_if_preaborted(self, task: "Task") -> "Task | None":
+        """If the task was aborted before inline execution started, finalize it as
+        ABORTED and return the terminal task; otherwise return ``None`` to proceed.
+        Matches the async pre-execution check in ``scheduler.py``."""
+        from superset.commands.tasks.internal_update import (
+            InternalStatusTransitionCommand,
+        )
+        from superset.daos.tasks import TaskDAO
+        from superset.tasks.constants import ABORT_STATES
+
+        if task.status not in ABORT_STATES:
+            return None
+        logger.info(
+            "Task %s (uuid=%s) was aborted before execution started",
+            self.name,
+            task.uuid,
+        )
+        # Ensure status is ABORTED (not just ABORTING)
+        InternalStatusTransitionCommand(
+            task_uuid=task.uuid,
+            new_status=TaskStatus.ABORTED,
+            expected_status=[TaskStatus.PENDING, TaskStatus.ABORTING],
+            set_ended_at=True,
+        ).run()
+        refreshed = TaskDAO.find_one_or_none(uuid=task.uuid, skip_base_filter=True)
+        return refreshed if refreshed else task
+
+    def _finalize_inline_terminal_status(
+        self, ctx: "TaskContext", task_uuid: "UUID"
+    ) -> None:
+        """After the inline body returned, write the terminal status via atomic
+        conditional transitions: TIMED_OUT / ABORTED when an abort was detected, or
+        IN_PROGRESS → SUCCESS on normal completion (a no-op if concurrently aborted).
+        """
+        from superset.commands.tasks.internal_update import (
+            InternalStatusTransitionCommand,
+        )
+
+        if ctx._abort_detected or ctx.timeout_triggered:  # noqa: SLF001
+            new_status = (
+                TaskStatus.TIMED_OUT if ctx.timeout_triggered else TaskStatus.ABORTED
+            )
+            InternalStatusTransitionCommand(
+                task_uuid=task_uuid,
+                new_status=new_status,
+                expected_status=TaskStatus.ABORTING,
+                set_ended_at=True,
+            ).run()
+            logger.info(
+                "Task %s (uuid=%s) finalized as %s",
+                self.name,
+                task_uuid,
+                new_status.value,
+            )
+            return
+        # Normal completion - atomic IN_PROGRESS → SUCCESS (a no-op if the task was
+        # concurrently aborted).
+        if InternalStatusTransitionCommand(
+            task_uuid=task_uuid,
+            new_status=TaskStatus.SUCCESS,
+            expected_status=TaskStatus.IN_PROGRESS,
+            set_ended_at=True,
+        ).run():
+            logger.debug(
+                "Synchronous execution of task %s (uuid=%s) completed successfully",
+                self.name,
+                task_uuid,
+            )
+        else:
+            logger.info(
+                "Task %s (uuid=%s) IN_PROGRESS → SUCCESS failed "
+                "(may have been aborted concurrently)",
+                self.name,
+                task_uuid,
+            )
+
     def _execute_inline(
         self,
         task: "Task",
@@ -450,26 +578,17 @@ class TaskWrapper(Generic[P]):
             InternalStatusTransitionCommand,
         )
         from superset.daos.tasks import TaskDAO
-        from superset.tasks.constants import ABORT_STATES
 
-        # PRE-EXECUTION CHECK: Don't execute if already aborted/aborting
-        # (Matches async flow in scheduler.py)
-        if task.status in ABORT_STATES:
-            logger.info(
-                "Task %s (uuid=%s) was aborted before execution started",
-                self.name,
-                task.uuid,
-            )
-            # Ensure status is ABORTED (not just ABORTING)
-            InternalStatusTransitionCommand(
-                task_uuid=task.uuid,
-                new_status=TaskStatus.ABORTED,
-                expected_status=[TaskStatus.PENDING, TaskStatus.ABORTING],
-                set_ended_at=True,
-            ).run()
-            # Refresh to get updated task
-            refreshed = TaskDAO.find_one_or_none(uuid=task.uuid, skip_base_filter=True)
-            return refreshed if refreshed else task
+        # PRE-EXECUTION CHECK: don't execute if already aborted/aborting.
+        if (preaborted := self._abort_if_preaborted(task)) is not None:
+            return preaborted
+
+        # DAG gate: block/fail on unmet prerequisites before claiming the task,
+        # mirroring the async path's all_success semantics (shared via
+        # superset.tasks.dependencies). Returns a terminal task if a prerequisite
+        # failed (fail-fast); otherwise proceeds once prerequisites succeed.
+        if (gated := self._gate_on_prerequisites(task)) is not None:
+            return gated
 
         # Atomic transition: PENDING → IN_PROGRESS (set started_at for duration
         # tracking)
@@ -517,57 +636,8 @@ class TaskWrapper(Generic[P]):
             # ABORTED if a cancel signal lands now (mirrors the async executor).
             ctx.mark_execution_completed()
 
-            # Determine terminal status based on abort detection
-            # Use atomic conditional updates to prevent overwriting concurrent abort
-            if ctx._abort_detected or ctx.timeout_triggered:
-                # Abort was detected - transition ABORTING → terminal
-                if ctx.timeout_triggered:
-                    InternalStatusTransitionCommand(
-                        task_uuid=task_uuid,
-                        new_status=TaskStatus.TIMED_OUT,
-                        expected_status=TaskStatus.ABORTING,
-                        set_ended_at=True,
-                    ).run()
-                    logger.info(
-                        "Task %s (uuid=%s) timed out and completed cleanup",
-                        self.name,
-                        task_uuid,
-                    )
-                else:
-                    InternalStatusTransitionCommand(
-                        task_uuid=task_uuid,
-                        new_status=TaskStatus.ABORTED,
-                        expected_status=TaskStatus.ABORTING,
-                        set_ended_at=True,
-                    ).run()
-                    logger.info(
-                        "Task %s (uuid=%s) was aborted by user",
-                        self.name,
-                        task_uuid,
-                    )
-            else:
-                # Normal completion - atomic IN_PROGRESS → SUCCESS
-                # This will fail (return False) if task was concurrently aborted
-                if InternalStatusTransitionCommand(
-                    task_uuid=task_uuid,
-                    new_status=TaskStatus.SUCCESS,
-                    expected_status=TaskStatus.IN_PROGRESS,
-                    set_ended_at=True,
-                ).run():
-                    logger.debug(
-                        "Synchronous execution of task %s (uuid=%s) "
-                        "completed successfully",
-                        self.name,
-                        task_uuid,
-                    )
-                else:
-                    # Transition failed - task was likely aborted concurrently
-                    logger.info(
-                        "Task %s (uuid=%s) IN_PROGRESS → SUCCESS failed "
-                        "(may have been aborted concurrently)",
-                        self.name,
-                        task_uuid,
-                    )
+            # Determine and write the terminal status (abort/timeout vs success).
+            self._finalize_inline_terminal_status(ctx, task_uuid)
 
             # Refresh once at end to return current state
             final_task = TaskDAO.find_one_or_none(uuid=task_uuid, skip_base_filter=True)
