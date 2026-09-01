@@ -339,7 +339,7 @@ export const createSlice =
   ) =>
   async (
     dispatch: Dispatch,
-    getState: () => {
+    getState: () => Partial<QueryFormData> & {
       explore?: {
         form_data?: QueryFormData;
         hiddenFormData?: Record<string, unknown>;
@@ -350,10 +350,12 @@ export const createSlice =
     // See the comment in updateSlice: stashed values from a hidden control
     // section must not be dropped from the saved chart just because the
     // section is currently hidden.
-    const formData = {
-      ...exploreState?.hiddenFormData,
-      ...exploreState?.form_data,
-    };
+    const formData = JSON.parse(
+      JSON.stringify({
+        ...exploreState?.hiddenFormData,
+        ...exploreState?.form_data,
+      }),
+    ) as QueryFormData;
     try {
       const response = await SupersetClient.post({
         endpoint: `/api/v1/chart/`,
