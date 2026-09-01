@@ -20,6 +20,7 @@ import { t } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
 import Tabs from '@superset-ui/core/components/Tabs';
 import { ResultTypes, ResultsPaneProps } from '../types';
+import { useStaleResultsTabFallback } from '../utils';
 import { useResultsPane } from './useResultsPane';
 import { useState } from 'react';
 
@@ -77,6 +78,12 @@ export const ResultsPaneOnDashboard = ({
       children: activeTabKey === tabKey ? pane : null,
     };
   });
+
+  useStaleResultsTabFallback(
+    activeTabKey,
+    items.map(({ key }) => key),
+    setActiveTabKey,
+  );
 
   return (
     <Wrapper>
