@@ -967,7 +967,7 @@ const FiltersConfigForm = (
   return (
     <Tabs
       allowOverflow={false}
-      fullHeight
+      contentHeight={`calc(100vh - ${theme.sizeUnit * 55}px)`}
       contentPadding={css`
         padding-top: ${theme.sizeUnit * 4}px;
       `}

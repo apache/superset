@@ -18,7 +18,7 @@
  */
 import { render } from 'spec/helpers/testing-library';
 
-import { BaseForm, BaseModalBody, BaseModalWrapper } from './SharedStyles';
+import { BaseModalWrapper } from './SharedStyles';
 
 test('filter config modal is bounded by its containing block', () => {
   const { rerender } = render(
@@ -29,10 +29,7 @@ test('filter config modal is bounded by its containing block', () => {
 
   const modal = document.querySelector('.ant-modal');
   expect(modal).toBeInTheDocument();
-  expect(modal).toHaveStyleRule(
-    'width',
-    'min(880px, calc(100% - 32px))!important',
-  );
+  expect(modal).toHaveStyleRule('width', '880px!important');
   expect(modal).toHaveStyleRule('max-width', 'calc(100% - 32px)');
   expect(modal).not.toHaveStyleRule('min-width', '880px');
 
@@ -43,22 +40,6 @@ test('filter config modal is bounded by its containing block', () => {
   );
   expect(document.querySelector('.ant-modal')).toHaveStyleRule(
     'width',
-    'min(100%, calc(100% - 32px))!important',
+    '100%!important',
   );
-});
-
-test('filter config modal height propagates to its scrolling children', () => {
-  const { container } = render(
-    <BaseModalBody expanded={false}>
-      <BaseForm>
-        <div>Form content</div>
-      </BaseForm>
-    </BaseModalBody>,
-  );
-
-  const body = container.firstChild;
-  const form = container.querySelector('form');
-  expect(body).toHaveStyleRule('min-height', '0');
-  expect(form).toHaveStyleRule('height', '100%');
-  expect(form).toHaveStyleRule('min-height', '0');
 });

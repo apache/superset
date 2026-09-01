@@ -20,7 +20,7 @@ import { styled, css } from '@apache-superset/core/theme';
 import { Form, StyledModal } from '@superset-ui/core/components';
 
 const MODAL_MARGIN = 16;
-const MIN_WIDTH = 880;
+const MODAL_WIDTH = 880;
 
 export interface BaseModalWrapperProps {
   expanded: boolean;
@@ -32,9 +32,7 @@ export interface BaseModalBodyProps {
 
 export const BaseModalWrapper = styled(StyledModal)<BaseModalWrapperProps>`
   width: ${({ expanded }) =>
-    `min(${expanded ? '100%' : `${MIN_WIDTH}px`}, calc(100% - ${
-      MODAL_MARGIN * 2
-    }px))`} !important;
+    expanded ? '100%' : `${MODAL_WIDTH}px`} !important;
   max-width: calc(100% - ${MODAL_MARGIN * 2}px);
 
   .ant-modal-header {
@@ -73,10 +71,9 @@ export const BaseModalWrapper = styled(StyledModal)<BaseModalWrapperProps>`
 export const BaseModalBody = styled.div<BaseModalBodyProps>`
   display: flex;
   height: 100%;
-  min-height: 0;
+  min-height: 500px;
   flex-direction: row;
   flex: 1;
-  overflow: hidden;
 
   .filters-list {
     display: flex;
@@ -86,8 +83,6 @@ export const BaseModalBody = styled.div<BaseModalBodyProps>`
 
 export const BaseForm = styled(Form)`
   width: 100%;
-  height: 100%;
-  min-height: 0;
 `;
 
 export const BaseExpandButtonWrapper = styled.div`

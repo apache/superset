@@ -36,12 +36,14 @@ import { FilterRemoval } from '../types';
 import { FILTER_TYPE, CUSTOMIZATION_TYPE } from '../DraggableFilter';
 import { isFilterId, isChartCustomizationId, isDivider } from '../utils';
 
+// max-height constrains the sidebar so its inner Collapse can scroll when
+// there are many filters (sc-101839). The parent height chain through the
+// antd Form is unreliable, so a viewport-relative max-height is used instead
+// of height: 100%.
 const StyledSidebarFlex = styled(Flex)`
   min-width: 290px;
   max-width: 290px;
-  height: 100%;
-  max-height: 100%;
-  min-height: 0;
+  max-height: 70vh;
   border-right: 1px solid ${({ theme }) => theme.colorBorderSecondary};
 `;
 
