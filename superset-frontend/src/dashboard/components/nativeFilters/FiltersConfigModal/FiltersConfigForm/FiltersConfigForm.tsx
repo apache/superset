@@ -1233,45 +1233,47 @@ const FiltersConfigForm = (
                   </StyledRowContainer>
                 )}
                 {isDynamicGroupBy && hasDataset && showDataset && (
-                  <StyledRowFormItem
-                    expanded={expanded}
-                    name={[
-                      'filters',
-                      filterId,
-                      'controlValues',
-                      'columnsAllowlist',
-                    ]}
-                    initialValue={
-                      customizationToEdit?.controlValues?.columnsAllowlist
-                    }
-                    label={
-                      <>
-                        <StyledLabel>{t('Groupable columns')}</StyledLabel>
-                        &nbsp;
-                        <InfoTooltip
-                          placement="top"
-                          tooltip={t(
-                            'Columns viewers are allowed to group by. Leave empty to allow all groupable columns.',
-                          )}
-                        />
-                      </>
-                    }
-                    data-test="groupby-columns-allowlist"
-                  >
-                    <ColumnSelect
-                      mode="multiple"
-                      allowClear
-                      form={form}
-                      filterId={filterId}
-                      datasetId={datasetId}
-                      datasourceType={datasourceType}
-                      filterValues={(column: Column) => !!column?.filterable}
-                      onChange={() => {
-                        forceUpdate();
-                        formChanged();
-                      }}
-                    />
-                  </StyledRowFormItem>
+                  <StyledRowContainer justify="space-between">
+                    <StyledRowFormItem
+                      expanded={expanded}
+                      name={[
+                        'filters',
+                        filterId,
+                        'controlValues',
+                        'columnsAllowlist',
+                      ]}
+                      initialValue={
+                        customizationToEdit?.controlValues?.columnsAllowlist
+                      }
+                      label={
+                        <>
+                          <StyledLabel>{t('Groupable columns')}</StyledLabel>
+                          &nbsp;
+                          <InfoTooltip
+                            placement="top"
+                            tooltip={t(
+                              'Columns viewers are allowed to group by. Leave empty to allow all groupable columns.',
+                            )}
+                          />
+                        </>
+                      }
+                      data-test="groupby-columns-allowlist"
+                    >
+                      <ColumnSelect
+                        mode="multiple"
+                        allowClear
+                        form={form}
+                        filterId={filterId}
+                        datasetId={datasetId}
+                        datasourceType={datasourceType}
+                        filterValues={(column: Column) => !!column?.filterable}
+                        onChange={() => {
+                          forceUpdate();
+                          formChanged();
+                        }}
+                      />
+                    </StyledRowFormItem>
+                  </StyledRowContainer>
                 )}
                 <Collapse
                   modalMode
