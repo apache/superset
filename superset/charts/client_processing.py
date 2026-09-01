@@ -527,11 +527,9 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
         rows, columns = columns, rows
         # The frame is transposed on the way out, which flips the axis each
         # total was inserted on. Swap the toggles too, so `rowTotals` still
-        # means the right-hand Total column of the rendered table. The
-        # `columns and not rows` branch below transposes once more on its own,
-        # cancelling that flip, so it keeps the toggles as given.
-        if rows:
-            show_rows_total, show_columns_total = show_columns_total, show_rows_total
+        # means the right-hand Total column of the rendered table, whether or
+        # not there are column dimensions to group by.
+        show_rows_total, show_columns_total = show_columns_total, show_rows_total
         axis = {"columns": 0, "rows": 1}
     else:
         axis = {"columns": 1, "rows": 0}
@@ -650,6 +648,12 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
             for subgroup in subgroups:
                 slice_ = df.columns.get_loc(subgroup)
                 block = df.iloc[:, slice_]
+                if aggfunc != CURRENCY_CONTEXT_AGGREGATION:
+                    # A metric column can hold non-numeric values (a literal
+                    # "NULL", say), which a reduction across columns cannot add
+                    # to a number. The row totals below already coerce; do the
+                    # same here so a total means the same thing on both axes.
+                    block = block.apply(pd.to_numeric, errors="coerce")
                 if percent_mode:
                     source, reducer = collapse(block)
                     subtotal = _reduce(source, reducer, axis=1)
