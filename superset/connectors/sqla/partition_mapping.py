@@ -651,6 +651,73 @@ def validate_transform(
     return []
 
 
+def preview_partition_mapping(
+    datasource: SqlaTable,
+    *,
+    mapped_column: str,
+    value_transform: str | None,
+    sample_value: str,
+) -> dict[str, Any]:
+    """
+    Evaluate a candidate mapping and describe the predicate it would emit.
+
+    Shares the evaluator -- and therefore the probe cache -- with the query
+    path, so preview and runtime cannot drift and a previewed transform warms
+    the chart path for free.
+
+    Validation runs first and the engine second: a half-typed transform is by
+    definition unparseable, so most of what a text input produces costs zero
+    queries.
+    """
+    partition_column = datasource.partition_column
+    if not partition_column:
+        return {"valid": False, "error": _("No partition column is set.")}
+
+    column_names = {str(column.column_name) for column in datasource.columns}
+    if mapped_column not in column_names:
+        return {
+            "valid": False,
+            "error": _("%(name)s is not a column on this dataset.", name=mapped_column),
+        }
+
+    engine = datasource.database.backend
+    for issue in validate_partition_mapping(
+        column_names=column_names,
+        partition_column=str(partition_column),
+        partition_mapped_column=mapped_column,
+        main_dttm_col=datasource.main_dttm_col,
+        transform=value_transform,
+        engine=engine,
+    ):
+        return {"valid": False, "error": str(issue.message)}
+
+    evaluated = evaluate_transform(
+        datasource.database,
+        datasource.catalog,
+        datasource.schema,
+        cast(str, value_transform),
+        [sample_value],
+    )
+    if evaluated is None:
+        return {
+            "valid": False,
+            "error": _("The transform could not be evaluated against the database."),
+        }
+
+    return {
+        "valid": True,
+        "emitted_predicate": (f"{partition_column} >= {_render_literal(evaluated[0])}"),
+    }
+
+
+def _render_literal(value: Any) -> str:
+    """Render a probed value the way it appears in the generated SQL."""
+    if isinstance(value, str):
+        escaped = value.replace("'", "''")
+        return f"'{escaped}'"
+    return str(value)
+
+
 def build_mirrored_predicates(
     datasource: SqlaTable,
     mapping: PartitionMapping,

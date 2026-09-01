@@ -455,6 +455,24 @@ class GetOrCreateDatasetSchema(Schema):
     always_filter_main_dttm = fields.Boolean(load_default=False)
 
 
+class PartitionMappingPreviewSchema(Schema):
+    """Payload for the dataset editor's partition mapping preview panel."""
+
+    mapped_column = fields.String(
+        required=True,
+        metadata={"description": "Column whose filters would be mirrored"},
+    )
+    value_transform = fields.String(
+        required=True,
+        allow_none=True,
+        metadata={"description": "SQL expression containing a :value placeholder"},
+    )
+    sample_value = fields.String(
+        required=True,
+        metadata={"description": "Value to evaluate the transform at"},
+    )
+
+
 class DatasetCacheWarmUpRequestSchema(Schema):
     db_name = fields.String(
         required=True,

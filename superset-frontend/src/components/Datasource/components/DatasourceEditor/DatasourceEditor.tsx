@@ -93,7 +93,11 @@ import SpatialControl from 'src/explore/components/controls/SpatialControl';
 import CollectionTable from '../CollectionTable';
 import Fieldset from '../Fieldset';
 import Field from '../Field';
-import { fetchSyncedColumns, updateColumns } from '../../utils';
+import {
+  clearDanglingPartitionMapping,
+  fetchSyncedColumns,
+  updateColumns,
+} from '../../utils';
 import DatasetUsageTab from './components/DatasetUsageTab';
 import {
   DEFAULT_COLUMNS_FOLDER_UUID,
@@ -151,6 +155,8 @@ interface Column {
   certified_by?: string;
   certification_details?: string;
   is_certified?: boolean;
+  partition_value_transform?: string | null;
+  partition_transform_is_monotonic?: boolean;
 }
 
 interface Database {
@@ -190,6 +196,8 @@ interface DatasourceObject {
   cache_timeout?: number;
   normalize_columns?: boolean;
   always_filter_main_dttm?: boolean;
+  partition_column?: string | null;
+  partition_mapped_column?: string | null;
   template_params?: string;
   spatials?: SpatialConfig[];
   all_cols?: string[];
@@ -1216,6 +1224,27 @@ function DatasourceEditor({
         ) as Column[],
       });
 
+      // A sync can remove the partition column at the source. Leave the editor
+      // showing a mapping that points at a column the table no longer has and
+      // the owner has no way to tell why pruning stopped.
+      const clearedMapping = clearDanglingPartitionMapping(
+        datasource,
+        columnChanges.finalColumns,
+      );
+      if (clearedMapping) {
+        onDatasourcePropChange(
+          'partition_column',
+          clearedMapping.partition_column,
+        );
+        onDatasourcePropChange(
+          'partition_mapped_column',
+          clearedMapping.partition_mapped_column,
+        );
+        addSuccessToast(
+          t('The partition filter mapping was cleared: its column is gone'),
+        );
+      }
+
       if (datasource.id !== undefined) {
         clearDatasetCache(datasource.id);
       }
@@ -1239,7 +1268,13 @@ function DatasourceEditor({
     } finally {
       abortControllers.current.syncMetadata = null;
     }
-  }, [datasource, addSuccessToast, addDangerToast, setColumns]);
+  }, [
+    datasource,
+    addSuccessToast,
+    addDangerToast,
+    setColumns,
+    onDatasourcePropChange,
+  ]);
 
   // After a physical table change, refresh columns from the new table, matching
   // the legacy class component's tableChangeAndSyncMetadata path. Declared after
