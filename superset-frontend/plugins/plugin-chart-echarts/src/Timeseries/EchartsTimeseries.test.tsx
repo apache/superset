@@ -40,6 +40,7 @@ import {
 } from '../types';
 import EchartsTimeseries from './EchartsTimeseries';
 import {
+  BarValueLabelPosition,
   EchartsTimeseriesSeriesType,
   OrientationType,
   type EchartsTimeseriesFormData,
@@ -159,6 +160,7 @@ const defaultFormData: EchartsTimeseriesFormData & {
   xAxisLabelRotation: 0,
   xAxisLabelInterval: 0,
   showValue: false,
+  valueLabelPosition: BarValueLabelPosition.Auto,
   onlyTotal: false,
   showExtraControls: true,
   percentageThreshold: 0,
