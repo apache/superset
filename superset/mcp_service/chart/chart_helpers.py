@@ -418,6 +418,12 @@ def resolve_metrics(form_data: dict[str, Any], viz_type: str) -> list[Any]:
     metrics = form_data.get("metrics") or []
     if not metrics and (metric := form_data.get("metric")):
         metrics = [metric]
+    if viz_type == "sunburst_v2" and (
+        secondary_metric := form_data.get("secondary_metric")
+    ):
+        metrics = list(metrics)
+        if secondary_metric not in metrics:
+            metrics.append(secondary_metric)
     return metrics
 
 
@@ -507,6 +513,18 @@ def _build_single_query_dict(
         qd["order_desc"] = order_desc
     apply_form_data_filters_to_query(qd, form_data)
     return qd
+
+
+def _apply_sunburst_query_transforms(
+    query: dict[str, Any], form_data: dict[str, Any]
+) -> None:
+    """Mirror the frontend-only transformations in Sunburst/buildQuery.ts."""
+    if form_data.get("sort_by_metric") and form_data.get("metric"):
+        query["orderby"] = [[form_data["metric"], False]]
+    if granularity := form_data.get("granularity_sqla"):
+        query["granularity"] = granularity
+    if time_grain := form_data.get("time_grain_sqla"):
+        query.setdefault("extras", {})["time_grain_sqla"] = time_grain
 
 
 def _build_mixed_timeseries_secondary(
@@ -622,15 +640,17 @@ def build_query_dicts_from_form_data(
         if x_axis_col and x_axis_col not in groupby:
             groupby = [x_axis_col] + groupby
 
-    queries = [
-        _build_single_query_dict(
-            form_data,
-            groupby,
-            metrics,
-            row_limit=row_limit,
-            order_desc=order_desc,
-        )
-    ]
+    query = _build_single_query_dict(
+        form_data,
+        groupby,
+        metrics,
+        row_limit=row_limit,
+        order_desc=order_desc,
+    )
+    if viz_type == "sunburst_v2":
+        _apply_sunburst_query_transforms(query, form_data)
+
+    queries = [query]
     if viz_type == "mixed_timeseries":
         queries.append(
             _build_mixed_timeseries_secondary(

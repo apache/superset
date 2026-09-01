@@ -116,38 +116,24 @@ def _compile_chart(
         ChartDataCacheLoadError,
         ChartDataQueryFailedError,
     )
+    from superset.common.form_data_query_context import (
+        build_query_context_from_form_data,
+    )
     from superset.common.query_context_factory import QueryContextFactory
-    from superset.mcp_service.chart.chart_utils import adhoc_filters_to_query_filters
-    from superset.mcp_service.chart.preview_utils import _build_query_columns
 
     try:
-        columns = _build_query_columns(form_data)
-        query_filters = adhoc_filters_to_query_filters(
-            form_data.get("adhoc_filters", [])
+        query_payload = build_query_context_from_form_data(
+            form_data,
+            {"id": dataset_id, "type": "table"},
+            viz_type=form_data.get("viz_type"),
         )
-
-        # Big Number charts use singular "metric" instead of "metrics"
-        metrics = form_data.get("metrics", [])
-        if not metrics and form_data.get("metric"):
-            metrics = [form_data["metric"]]
-
-        # Big Number with trendline uses granularity_sqla as the time column
-        if not columns and form_data.get("granularity_sqla"):
-            columns = [form_data["granularity_sqla"]]
+        query = query_payload["queries"][0]
+        query["row_limit"] = 2
 
         factory = QueryContextFactory()
         query_context = factory.create(
             datasource={"id": dataset_id, "type": "table"},
-            queries=[
-                {
-                    "columns": columns,
-                    "metrics": metrics,
-                    "orderby": form_data.get("orderby", []),
-                    "row_limit": 2,
-                    "filters": query_filters,
-                    "time_range": form_data.get("time_range", "No filter"),
-                }
-            ],
+            queries=[query],
             form_data=form_data,
         )
 

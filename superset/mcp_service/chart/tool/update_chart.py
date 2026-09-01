@@ -40,6 +40,7 @@ from superset.mcp_service.chart.chart_utils import (
     analyze_chart_semantics,
     generate_chart_name,
     map_config_to_form_data,
+    merge_form_data_for_update,
     merge_interactive_pivot_ui_config,
     merge_table_column_config,
 )
@@ -199,17 +200,29 @@ def _merge_replacement_config(
     parsed_config: Any,
 ) -> dict[str, Any]:
     """Merge a replacement config, honoring an explicit empty filter list."""
-    merged = {
-        **{
-            key: value
-            for key, value in existing_form_data.items()
-            if key != "column_config"
-        },
-        **new_form_data,
+    merge_source = {
+        key: value
+        for key, value in existing_form_data.items()
+        if key != "column_config"
     }
+    merged = merge_form_data_for_update(merge_source, new_form_data, parsed_config)
     if getattr(parsed_config, "filters", None) == []:
         merged.pop("adhoc_filters", None)
     return merged
+
+
+def _merge_saved_sunburst_form_data(
+    existing_form_data: dict[str, Any],
+    new_form_data: dict[str, Any],
+    parsed_config: Any,
+) -> dict[str, Any]:
+    """Preserve omitted controls only for a saved same-type Sunburst update."""
+    if (
+        new_form_data.get("viz_type") != "sunburst_v2"
+        or existing_form_data.get("viz_type") != "sunburst_v2"
+    ):
+        return new_form_data
+    return _merge_replacement_config(existing_form_data, new_form_data, parsed_config)
 
 
 def _build_update_payload(
@@ -236,6 +249,13 @@ def _build_update_payload(
         new_form_data.pop("_mcp_warnings", None)
         merge_table_column_config(_get_existing_form_data(chart), new_form_data)
         merge_interactive_pivot_ui_config(_get_existing_form_data(chart), new_form_data)
+        existing_form_data = _get_existing_form_data(chart)
+        # Sunburst exposes a dense presentation panel whose omitted values must
+        # preserve the saved chart. Keep the established replacement behavior
+        # for every other registered chart type.
+        new_form_data = _merge_saved_sunburst_form_data(
+            existing_form_data, new_form_data, parsed_config
+        )
 
         chart_name = (
             request.chart_name
@@ -525,6 +545,20 @@ async def update_chart(  # noqa: C901
         "identifier": 123,
         "generate_preview": false,
         "config": {"chart_type": "table", "columns": [{"name": "region"}]}
+    }
+    ```
+
+    Update a Sunburst while preserving omitted saved presentation and filter
+    settings (pass filters=[] explicitly to clear filters):
+    ```json
+    {
+        "identifier": 123,
+        "config": {
+            "chart_type": "sunburst",
+            "hierarchy": [{"name": "region"}, {"name": "country"}],
+            "metric": {"name": "revenue", "aggregate": "SUM"},
+            "show_total": true
+        }
     }
     ```
 

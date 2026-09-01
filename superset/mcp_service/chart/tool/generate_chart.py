@@ -86,7 +86,7 @@ async def generate_chart(  # noqa: C901
     - LLM clients MUST display returned chart URL to users
     - Use numeric dataset ID or UUID (NOT schema.table_name format)
     - MUST include chart_type in config (one of: 'xy', 'table', 'pie',
-      'pivot_table', 'mixed_timeseries', 'handlebars', 'big_number',
+      'sunburst', 'pivot_table', 'mixed_timeseries', 'handlebars', 'big_number',
       'histogram', 'box_plot', 'waterfall', plus host-gated types returned by
       get_chart_type_schema such as 'interactive_pivot')
 
@@ -106,6 +106,9 @@ async def generate_chart(  # noqa: C901
 
     - chart_type='pie' for pie/donut charts.
       Required fields: dimension, metric
+
+    - chart_type='sunburst' for multi-ring hierarchical part-to-whole charts.
+      Required fields: hierarchy, metric; secondary_metric is optional
 
     - chart_type='pivot_table' for pivot table visualizations.
       Required fields: rows, metrics (columns is optional, for cross-tabs)
@@ -140,6 +143,7 @@ async def generate_chart(  # noqa: C901
     - "bar chart" / "line chart" / "area chart" / "scatter plot"
       -> chart_type='xy', kind='bar'/'line'/'area'/'scatter'
     - "pie chart" / "donut chart" -> chart_type='pie'
+    - "sunburst" / "hierarchical rings" -> chart_type='sunburst'
     - "table" / "data grid" -> chart_type='table'
     - "pivot table" / "cross-tab" -> chart_type='pivot_table'
     - "interactive pivot" / "AG Grid pivot" -> chart_type='interactive_pivot'
@@ -186,6 +190,20 @@ async def generate_chart(  # noqa: C901
             "chart_type": "pie",
             "dimension": {"name": "product_category"},
             "metric": {"name": "revenue", "aggregate": "SUM"}
+        }
+    }
+    ```
+
+    Example usage for a Sunburst hierarchy (frontend viz_type sunburst_v2):
+    ```json
+    {
+        "dataset_id": 123,
+        "config": {
+            "chart_type": "sunburst",
+            "hierarchy": [{"name": "region"}, {"name": "country"}],
+            "metric": {"name": "revenue", "aggregate": "SUM"},
+            "secondary_metric": {"name": "profit", "aggregate": "SUM"},
+            "show_labels": true
         }
     }
     ```

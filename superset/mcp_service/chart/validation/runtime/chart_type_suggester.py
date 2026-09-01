@@ -402,12 +402,15 @@ class ChartTypeSuggester:
             suggestions.append("Or break into multiple focused views")
 
         if issues:
+            recommended_types = (
+                ["table", "pivot_table"] if metric_columns > 0 else ["table"]
+            )
+            if raw_columns >= 2 and metric_columns > 0:
+                recommended_types.append("sunburst")
             return False, {
                 "issues": issues,
                 "suggestions": suggestions,
-                "recommended_types": ["table", "pivot_table"]
-                if metric_columns > 0
-                else ["table"],
+                "recommended_types": recommended_types,
             }
 
         return True, None
@@ -447,6 +450,10 @@ class ChartTypeSuggester:
             "scatter": "Reveals correlations between two continuous variables",
             "table": "Displays detailed data or many dimensions at once",
             "pie": "Shows proportions of a whole (use sparingly, max 5-7 slices)",
+            "sunburst": (
+                "Shows hierarchical part-to-whole relationships across multiple "
+                "categorical levels"
+            ),
             "pivot_table": "Summarizes data across multiple dimensions",
         }
         return descriptions.get(

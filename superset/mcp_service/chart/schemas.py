@@ -1045,6 +1045,323 @@ class PieChartConfig(BaseChartConfig):
         return self
 
 
+class SunburstChartConfig(BaseChartConfig):
+    """Config for the ECharts Sunburst plugin (viz_type ``sunburst_v2``).
+
+    ``hierarchy`` follows the frontend ``columns`` control: the first entry is
+    the innermost ring and each later entry adds a child level.  The primary
+    metric sizes arcs; an optional secondary metric colors arcs by the
+    secondary/primary ratio.
+    """
+
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    chart_type: Literal["sunburst"] = "sunburst"
+    viz_type: Literal["sunburst_v2"] = Field(
+        "sunburst_v2",
+        description="Exact Superset frontend visualization tag",
+    )
+    hierarchy: List[ColumnRef] = Field(
+        ...,
+        min_length=1,
+        description=(
+            "Hierarchy dimensions in ring order, from the innermost/root level "
+            "to the outermost/leaf level"
+        ),
+        validation_alias=AliasChoices("hierarchy", "columns", "groupby"),
+    )
+    metric: ColumnRef = Field(
+        ...,
+        description=(
+            "Primary metric used to size arcs. Use aggregate for a SIMPLE "
+            "adhoc metric, saved_metric=True for a dataset metric, or "
+            "sql_expression plus label for a SQL metric."
+        ),
+    )
+    secondary_metric: ColumnRef | None = Field(
+        None,
+        description=(
+            "Optional metric used to color arcs by secondary/primary ratio. "
+            "When omitted, colors are categorical."
+        ),
+        validation_alias=AliasChoices("secondary_metric", "secondaryMetric"),
+    )
+    filters: List[FilterConfig] | None = Field(
+        None,
+        description=(
+            "Structured WHERE filters (column/op/value). An omitted list is "
+            "preserved on updates; an explicit [] clears saved filters."
+        ),
+    )
+    time_range: str | None = Field(
+        None,
+        min_length=1,
+        max_length=1000,
+        description=(
+            "Superset time range, for example 'Last year', "
+            "'2025-01-01 : 2025-12-31', or 'No filter'"
+        ),
+    )
+    time_grain: TimeGrain | None = Field(
+        None,
+        description="Optional bucket for temporal hierarchy columns",
+        validation_alias=AliasChoices("time_grain", "time_grain_sqla"),
+    )
+    sort_by_metric: bool = Field(
+        False,
+        description=(
+            "Order hierarchy rows by the primary metric descending before "
+            "applying row_limit, matching the frontend buildQuery transform"
+        ),
+    )
+    row_limit: int = Field(10000, description="Maximum hierarchy rows", ge=1, le=50000)
+    color_scheme: str | None = Field(
+        None,
+        max_length=100,
+        description="Categorical scheme used when secondary_metric is omitted",
+    )
+    linear_color_scheme: str | None = Field(
+        None,
+        max_length=100,
+        description="Sequential scheme used when secondary_metric is present",
+    )
+    show_labels: bool = False
+    show_labels_threshold: float = Field(
+        5,
+        ge=0,
+        le=100,
+        description="Minimum arc size in percentage points for showing a label",
+    )
+    show_total: bool = False
+    show_null_values: bool = Field(
+        True,
+        description="Keep null-valued hierarchy nodes in the rendered tree",
+    )
+    label_type: Literal["key", "value", "key_value"] = "key"
+    number_format: str = Field("SMART_NUMBER", min_length=1, max_length=50)
+    date_format: str = Field("smart_date", min_length=1, max_length=50)
+    currency_format: CurrencyFormat | None = None
+
+    @staticmethod
+    def _looks_like_native_form_data(data: Any) -> bool:
+        """Identify saved Explore payloads without weakening typed typo checks."""
+        if not isinstance(data, dict) or data.get("viz_type") != "sunburst_v2":
+            return False
+        metric = data.get("metric")
+        return (
+            any(
+                key in data
+                for key in (
+                    "adhoc_filters",
+                    "annotation_layers",
+                    "datasource",
+                    "extra_form_data",
+                    "since",
+                    "slice_id",
+                    "standardizedFormData",
+                    "until",
+                )
+            )
+            or isinstance(metric, str)
+            or (isinstance(metric, dict) and "expressionType" in metric)
+        )
+
+    @staticmethod
+    def _coerce_native_metric(value: Any) -> Any:
+        """Accept saved metric names and native SIMPLE/SQL metric objects."""
+        if isinstance(value, str):
+            return {"name": value, "saved_metric": True}
+        if not isinstance(value, dict) or "expressionType" not in value:
+            return value
+
+        expression_type = value.get("expressionType")
+        label = value.get("label") if value.get("hasCustomLabel", True) else None
+        if expression_type == "SQL":
+            return {
+                "sql_expression": value.get("sqlExpression"),
+                "label": label,
+            }
+        if expression_type == "SIMPLE":
+            column = value.get("column")
+            if isinstance(column, dict):
+                name = column.get("column_name") or column.get("columnName")
+                dtype = column.get("type")
+            else:
+                name = column
+                dtype = None
+            return {
+                "name": name,
+                "aggregate": value.get("aggregate"),
+                "label": label,
+                "dtype": dtype,
+            }
+        return value
+
+    @staticmethod
+    def _coerce_native_hierarchy(data: dict[str, Any]) -> None:
+        """Normalize native ``columns``/``groupby`` dimension shortcuts."""
+        hierarchy_key = next(
+            (key for key in ("hierarchy", "columns", "groupby") if key in data),
+            None,
+        )
+        if hierarchy_key is None:
+            return
+        hierarchy = data[hierarchy_key]
+        if isinstance(hierarchy, (str, dict)):
+            hierarchy = [hierarchy]
+        if isinstance(hierarchy, list):
+            data[hierarchy_key] = [
+                {"name": item} if isinstance(item, str) else item for item in hierarchy
+            ]
+
+    @staticmethod
+    def _coerce_native_filter(
+        native_filter: Any, data: dict[str, Any]
+    ) -> dict[str, Any] | None:
+        """Convert one native SIMPLE filter, extracting temporal controls."""
+        if not isinstance(native_filter, dict):
+            return None
+        if native_filter.get("expressionType") != "SIMPLE":
+            raise ValueError(
+                "Sunburst native adhoc_filters round-trip supports SIMPLE filters "
+                "only; express filters with the typed 'filters' field"
+            )
+        operator = native_filter.get("operator")
+        if operator == "TEMPORAL_RANGE":
+            data.setdefault("temporal_column", native_filter.get("subject"))
+            data.setdefault("time_range", native_filter.get("comparator"))
+            return None
+        mapped_operator = "=" if operator == "==" else operator
+        comparator = native_filter.get("comparator")
+        if mapped_operator in {"IS NULL", "IS NOT NULL"}:
+            comparator = None
+        return {
+            "column": native_filter.get("subject"),
+            "op": mapped_operator,
+            "value": comparator,
+        }
+
+    @classmethod
+    def _coerce_native_filters(cls, data: dict[str, Any]) -> None:
+        """Round-trip native saved filters into the typed filter contract."""
+        native_filters = data.pop("adhoc_filters", None)
+        if native_filters is None or "filters" in data:
+            return
+        if not isinstance(native_filters, list):
+            raise ValueError("Sunburst native adhoc_filters must be a list")
+        filters = [
+            converted
+            for native_filter in native_filters or []
+            if (converted := cls._coerce_native_filter(native_filter, data)) is not None
+        ]
+        data["filters"] = filters
+
+    @model_validator(mode="before")
+    @classmethod
+    def accept_native_form_data(cls, data: Any) -> Any:
+        """Translate native saved Sunburst form_data into the typed contract."""
+        if not isinstance(data, dict):
+            return data
+        data = dict(data)
+        is_native_form_data = cls._looks_like_native_form_data(data)
+
+        # These form-data envelope keys are not chart configuration roles.
+        for key in (
+            "annotation_layers",
+            "dashboards",
+            "datasource",
+            "extra_form_data",
+            "slice_id",
+            "url_params",
+        ):
+            data.pop(key, None)
+
+        cls._coerce_native_hierarchy(data)
+
+        for key in ("metric", "secondary_metric", "secondaryMetric"):
+            if key in data and data[key] is not None:
+                data[key] = cls._coerce_native_metric(data[key])
+
+        # Native saved filters can be round-tripped when they use the SIMPLE
+        # controls. SQL filter clauses intentionally remain outside the typed
+        # MCP filter contract rather than being accepted as arbitrary SQL.
+        cls._coerce_native_filters(data)
+
+        if "time_range" not in data and (data.get("since") or data.get("until")):
+            data["time_range"] = (
+                f"{data.get('since') or ''} : {data.get('until') or ''}"
+            )
+        data.pop("since", None)
+        data.pop("until", None)
+
+        if "temporal_column" not in data and data.get("granularity_sqla"):
+            data["temporal_column"] = data["granularity_sqla"]
+        data.pop("granularity_sqla", None)
+        if is_native_form_data:
+            known_fields = _get_known_fields(cls)
+            for key in set(data) - known_fields:
+                data.pop(key)
+        return data
+
+    @field_validator("time_range")
+    @classmethod
+    def sanitize_time_range(cls, value: str | None) -> str | None:
+        """Sanitize a human-readable Superset time-range expression."""
+        return sanitize_user_input(
+            value,
+            "Time range",
+            max_length=1000,
+            allow_empty=True,
+        )
+
+    @model_validator(mode="after")
+    def validate_roles(self) -> "SunburstChartConfig":
+        """Enforce dimension/metric roles and unique query output labels."""
+        hierarchy_names: list[str] = []
+        for index, dimension in enumerate(self.hierarchy):
+            _reject_sql_expression_on_dimension(dimension, f"hierarchy[{index}]")
+            if dimension.saved_metric or dimension.aggregate:
+                raise ValueError(
+                    f"hierarchy[{index}] must be a physical dimension column, "
+                    "not a metric"
+                )
+            hierarchy_names.append(dimension.name or "")
+
+        folded_hierarchy = [name.casefold() for name in hierarchy_names]
+        if len(folded_hierarchy) != len(set(folded_hierarchy)):
+            raise ValueError("Sunburst hierarchy dimensions must be unique")
+
+        metrics = [("metric", self.metric)]
+        if self.secondary_metric is not None:
+            metrics.append(("secondary_metric", self.secondary_metric))
+        for role, metric in metrics:
+            if not metric.is_metric:
+                raise ValueError(
+                    f"{role} must define aggregate, saved_metric=True, or "
+                    "sql_expression with label"
+                )
+
+        output_labels: list[tuple[str, str]] = [
+            (f"hierarchy[{index}]", name) for index, name in enumerate(hierarchy_names)
+        ]
+        output_labels.extend(
+            (role, _metric_display_label(metric)) for role, metric in metrics
+        )
+        seen: dict[str, str] = {}
+        for role, label in output_labels:
+            folded = label.casefold()
+            if folded in seen:
+                raise ValueError(
+                    f"Duplicate Sunburst query output label {label!r}: "
+                    f"{role} conflicts with {seen[folded]}. Use a unique metric label."
+                )
+            seen[folded] = role
+
+        if self.time_grain and not self.temporal_column:
+            raise ValueError("time_grain requires temporal_column")
+        return self
+
+
 class PivotTableChartConfig(BaseChartConfig):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
@@ -2287,6 +2604,7 @@ ChartConfig = Annotated[
     XYChartConfig
     | TableChartConfig
     | PieChartConfig
+    | SunburstChartConfig
     | PivotTableChartConfig
     | InteractivePivotChartConfig
     | MixedTimeseriesChartConfig
@@ -2299,7 +2617,8 @@ ChartConfig = Annotated[
         discriminator="chart_type",
         description=(
             "Chart configuration - specify chart_type as 'xy', 'table', "
-            "'pie', 'pivot_table', 'interactive_pivot', 'mixed_timeseries', "
+            "'pie', 'sunburst', 'pivot_table', 'interactive_pivot', "
+            "'mixed_timeseries', "
             "'handlebars', "
             "'big_number', 'histogram', 'box_plot', or 'waterfall'"
         ),
@@ -2331,6 +2650,7 @@ _VIZ_TYPE_TO_CHART_TYPE: dict[str, tuple[str, str | None]] = {
     "pivot_table_v2": ("pivot_table", None),
     "ag-grid-pivot-table": ("interactive_pivot", None),
     "histogram_v2": ("histogram", None),
+    "sunburst_v2": ("sunburst", None),
 }
 
 

@@ -39,6 +39,7 @@ from superset.mcp_service.chart.chart_utils import (
     generate_explore_link,
     map_config_to_form_data,
     MCP_DASHBOARD_TIME_FILTER_SUBJECT,
+    merge_form_data_for_update,
     merge_interactive_pivot_ui_config,
     merge_table_column_config,
     NO_TIME_RANGE,
@@ -178,6 +179,10 @@ def update_chart_preview(  # noqa: C901
     - Iterating on chart design without creating permanent charts
     - Testing different configurations
 
+    Sunburst uses chart_type="sunburst" and the exact frontend viz_type
+    ``sunburst_v2``. Supply hierarchy plus metric; omitted cached presentation
+    and filter controls are preserved, while explicit false/None/[] values win.
+
     Returns new form_data_key, preview images, and explore URL. The explore_url
     scheme matches the configured instance URL (HTTPS in production/staging,
     HTTP in local development).
@@ -240,6 +245,11 @@ def update_chart_preview(  # noqa: C901
             if previous_form_data:
                 merge_table_column_config(previous_form_data, new_form_data)
                 merge_interactive_pivot_ui_config(previous_form_data, new_form_data)
+                new_form_data = merge_form_data_for_update(
+                    previous_form_data, new_form_data, config
+                )
+                if getattr(config, "filters", None) == []:
+                    new_form_data.pop("adhoc_filters", None)
 
             # Tier-1 schema validation against the dataset (no DB roundtrip).
             # Runs AFTER the filter merge so filter columns are also validated.

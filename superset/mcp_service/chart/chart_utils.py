@@ -49,6 +49,7 @@ from superset.mcp_service.chart.schemas import (
     PieChartConfig,
     PivotTableChartConfig,
     SortByConfig,
+    SunburstChartConfig,
     TableChartConfig,
     WaterfallChartConfig,
     XYChartConfig,
@@ -1044,6 +1045,109 @@ def map_pie_config(config: PieChartConfig) -> Dict[str, Any]:
     return form_data
 
 
+def map_sunburst_config(config: SunburstChartConfig) -> Dict[str, Any]:
+    """Map typed Sunburst config to the ECharts ``sunburst_v2`` form_data.
+
+    The frontend control panel stores hierarchy levels under ``columns`` and
+    metrics under singular ``metric`` / ``secondary_metric`` keys.  Its
+    buildQuery adds primary-metric descending ordering when ``sort_by_metric``
+    is enabled; server-side query builders mirror that transform separately.
+    """
+    form_data: Dict[str, Any] = {
+        "viz_type": "sunburst_v2",
+        "columns": [dimension.name for dimension in config.hierarchy],
+        "metric": create_metric_object(config.metric),
+        "sort_by_metric": config.sort_by_metric,
+        "row_limit": config.row_limit,
+        "show_labels": config.show_labels,
+        "show_labels_threshold": config.show_labels_threshold,
+        "show_total": config.show_total,
+        "show_null_values": config.show_null_values,
+        "label_type": config.label_type,
+        "number_format": config.number_format,
+        "date_format": config.date_format,
+    }
+    if config.secondary_metric is not None:
+        form_data["secondary_metric"] = create_metric_object(config.secondary_metric)
+    if config.color_scheme is not None:
+        form_data["color_scheme"] = config.color_scheme
+    if config.linear_color_scheme is not None:
+        form_data["linear_color_scheme"] = config.linear_color_scheme
+    if config.time_range is not None:
+        form_data["time_range"] = config.time_range
+    if config.time_grain is not None:
+        form_data["time_grain_sqla"] = config.time_grain
+        form_data["granularity_sqla"] = config.temporal_column
+
+    add_currency_format(form_data, config.currency_format)
+    _add_adhoc_filters(form_data, config.filters)
+    return form_data
+
+
+# Sunburst fields whose mapper defaults must not overwrite existing values when
+# a same-type update omitted the corresponding typed field. Required query roles
+# (hierarchy and metric) are deliberately absent: a full replacement always
+# updates them.
+_SUNBURST_UPDATE_FIELD_KEYS: dict[str, str] = {
+    "secondary_metric": "secondary_metric",
+    "filters": "adhoc_filters",
+    "time_range": "time_range",
+    "time_grain": "time_grain_sqla",
+    "temporal_column": "granularity_sqla",
+    "sort_by_metric": "sort_by_metric",
+    "row_limit": "row_limit",
+    "color_scheme": "color_scheme",
+    "linear_color_scheme": "linear_color_scheme",
+    "show_labels": "show_labels",
+    "show_labels_threshold": "show_labels_threshold",
+    "show_total": "show_total",
+    "show_null_values": "show_null_values",
+    "label_type": "label_type",
+    "number_format": "number_format",
+    "date_format": "date_format",
+    "currency_format": "currency_format",
+}
+
+
+def merge_form_data_for_update(
+    existing_form_data: Dict[str, Any],
+    new_form_data: Dict[str, Any],
+    config: Any,
+) -> Dict[str, Any]:
+    """Merge a same-viz update without resetting omitted Sunburst UI state.
+
+    Native keys that MCP does not model are retained, matching the established
+    preview-update behavior. For a same-type Sunburst update, mapper defaults
+    are replaced by saved values when the caller omitted that field; explicit
+    values (including ``False``, ``0``, ``None`` and ``[]``) win.
+    """
+    merged = {**existing_form_data, **new_form_data}
+    if not isinstance(config, SunburstChartConfig) or existing_form_data.get(
+        "viz_type"
+    ) != new_form_data.get("viz_type"):
+        return merged
+
+    fields_set = config.model_fields_set
+    for field_name, form_key in _SUNBURST_UPDATE_FIELD_KEYS.items():
+        if field_name not in fields_set:
+            if form_key in existing_form_data:
+                merged[form_key] = existing_form_data[form_key]
+            else:
+                merged.pop(form_key, None)
+            continue
+
+        value = getattr(config, field_name)
+        if value is None or (field_name == "filters" and value == []):
+            merged.pop(form_key, None)
+
+    # time_grain and its temporal subject are one frontend query-control pair.
+    if "time_grain" in fields_set and config.time_grain is None:
+        merged.pop("granularity_sqla", None)
+    if "temporal_column" in fields_set and config.temporal_column is None:
+        merged.pop("granularity_sqla", None)
+    return merged
+
+
 def map_histogram_config(config: "HistogramChartConfig") -> Dict[str, Any]:
     """Map histogram config to Superset form_data (viz_type histogram_v2).
 
@@ -1675,6 +1779,7 @@ def analyze_chart_capabilities(viz_type: str | None, config: Any) -> ChartCapabi
         "deck_hex",
         "ag-grid-table",  # AG Grid tables are interactive
         "ag-grid-pivot-table",
+        "sunburst_v2",
     ]
 
     supports_interaction = viz_type in interactive_types
@@ -1701,6 +1806,8 @@ def analyze_chart_capabilities(viz_type: str | None, config: Any) -> ChartCapabi
         data_types.append("categorical" if not config.x.is_metric else "metric")
     if hasattr(config, "y") and config.y:
         data_types.extend(["metric"] * len(config.y))
+    if isinstance(config, SunburstChartConfig):
+        data_types.extend(["categorical", "hierarchical", "metric"])
     if "time" in viz_type or "timeseries" in viz_type:
         data_types.append("time_series")
 
@@ -1753,6 +1860,10 @@ def analyze_chart_semantics(viz_type: str | None, config: Any) -> ChartSemantics
         "big_number_total": (
             "Highlights a single key metric value as a prominent number"
         ),
+        "sunburst_v2": (
+            "Shows hierarchical part-to-whole relationships, with each ring "
+            "adding a deeper categorical level"
+        ),
     }
 
     primary_insight = insights_map.get(
@@ -1767,6 +1878,11 @@ def analyze_chart_semantics(viz_type: str | None, config: Any) -> ChartSemantics
         # SQL metrics have no name; fall back to label or the expression.
         columns.extend(
             [col.name or col.label or col.sql_expression for col in config.y]
+        )
+    if isinstance(config, SunburstChartConfig):
+        columns.extend(dimension.name for dimension in config.hierarchy)
+        columns.append(
+            config.metric.name or config.metric.label or config.metric.sql_expression
         )
 
     if columns:

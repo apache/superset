@@ -76,41 +76,23 @@ def generate_preview_from_form_data(
             )
 
         # Create query context from form data using factory
+        from superset.common.form_data_query_context import (
+            build_query_context_from_form_data,
+        )
         from superset.common.query_context_factory import QueryContextFactory
-        from superset.mcp_service.chart.chart_utils import (
-            adhoc_filters_to_query_filters,
+
+        query_payload = build_query_context_from_form_data(
+            form_data,
+            {"id": dataset_id, "type": "table"},
+            viz_type=form_data.get("viz_type"),
         )
-
-        # Build columns list: include x_axis and groupby for XY charts,
-        # fall back to form_data "columns" for table charts
-        columns = _build_query_columns(form_data)
-
-        query_filters = adhoc_filters_to_query_filters(
-            form_data.get("adhoc_filters", [])
-        )
-
-        # Big Number charts use singular "metric" instead of "metrics"
-        metrics = form_data.get("metrics", [])
-        if not metrics and form_data.get("metric"):
-            metrics = [form_data["metric"]]
-
-        # Big Number with trendline uses granularity_sqla as the time column
-        if not columns and form_data.get("granularity_sqla"):
-            columns = [form_data["granularity_sqla"]]
+        query = query_payload["queries"][0]
+        query["row_limit"] = form_data.get("row_limit", 100)
 
         factory = QueryContextFactory()
         query_context_obj = factory.create(
             datasource={"id": dataset_id, "type": "table"},
-            queries=[
-                {
-                    "columns": columns,
-                    "metrics": metrics,
-                    "orderby": form_data.get("orderby", []),
-                    "row_limit": form_data.get("row_limit", 100),
-                    "filters": query_filters,
-                    "time_range": form_data.get("time_range", "No filter"),
-                }
-            ],
+            queries=[query],
             form_data=form_data,
         )
 
@@ -160,6 +142,8 @@ def _generate_ascii_preview_from_data(
         content = _generate_safe_ascii_line_chart(data)
     elif viz_type == "pie":
         content = _generate_safe_ascii_pie_chart(data)
+    elif viz_type == "sunburst_v2":
+        content = _generate_safe_ascii_sunburst(data, form_data)
     else:
         content = _generate_safe_ascii_table(data)
 
@@ -431,6 +415,85 @@ def _generate_safe_ascii_pie_chart(data: List[Dict[str, Any]]) -> str:
         lines.append(f"{label[:15]:>15}: {bar} {percentage:.1f}%")
 
     return "\n".join(lines)
+
+
+def _generate_safe_ascii_sunburst(
+    data: List[Dict[str, Any]], form_data: Dict[str, Any]
+) -> str:
+    """Render hierarchy paths and both Sunburst metrics without flattening roles."""
+    if not data:
+        return "No data available for sunburst chart"
+
+    hierarchy = [
+        _sunburst_column_label(column) for column in form_data.get("columns") or []
+    ]
+    primary_label = _sunburst_metric_label(form_data.get("metric"))
+    if primary_label is None:
+        return "Malformed primary metric for sunburst chart"
+
+    secondary_label = None
+    if secondary_metric := form_data.get("secondary_metric"):
+        secondary_label = _sunburst_metric_label(secondary_metric)
+        if secondary_label is None:
+            return "Malformed secondary metric for sunburst chart"
+
+    if not hierarchy:
+        return "No hierarchy columns available for sunburst chart"
+
+    lines = _sunburst_preview_lines(data, hierarchy, primary_label, secondary_label)
+    rows_rendered = len(lines) - 2
+
+    if not rows_rendered:
+        return "Malformed data returned for sunburst chart"
+    if len(data) > rows_rendered:
+        lines.append(f"... {len(data) - rows_rendered} more rows")
+    return "\n".join(lines)
+
+
+def _sunburst_preview_lines(
+    data: List[Dict[str, Any]],
+    hierarchy: list[str],
+    primary_label: str,
+    secondary_label: str | None,
+) -> list[str]:
+    """Build safe Sunburst hierarchy rows for the ASCII representation."""
+    lines = ["ASCII Sunburst Hierarchy", "=" * 50]
+    for row in data[:20]:
+        if not isinstance(row, dict):
+            continue
+        path = " > ".join(
+            "N/A" if row.get(column) is None else str(row.get(column))
+            for column in hierarchy
+        )
+        values = [f"{primary_label}={row.get(primary_label, 'N/A')}"]
+        if secondary_label:
+            values.append(f"{secondary_label}={row.get(secondary_label, 'N/A')}")
+        lines.append(f"{path}: {', '.join(values)}")
+    return lines
+
+
+def _sunburst_column_label(column: Any) -> str:
+    """Return the query output label for a native Sunburst hierarchy column."""
+    if isinstance(column, str):
+        return column
+    if not isinstance(column, dict):
+        return ""
+    return (
+        column.get("label")
+        or column.get("column_name")
+        or column.get("sqlExpression")
+        or ""
+    )
+
+
+def _sunburst_metric_label(metric: Any) -> str | None:
+    """Return a native metric's query label, or None for malformed input."""
+    from superset.utils.core import get_metric_name
+
+    try:
+        return get_metric_name(metric)
+    except (TypeError, ValueError):
+        return None
 
 
 def _generate_safe_ascii_table(data: List[Dict[str, Any]]) -> str:

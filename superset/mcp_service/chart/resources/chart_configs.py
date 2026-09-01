@@ -230,6 +230,51 @@ def get_chart_configs_resource() -> str:
         },
     }
 
+    sunburst_chart_configs = {
+        "hierarchical_revenue": {
+            "description": "Nested revenue from region to country to product",
+            "config": {
+                "chart_type": "sunburst",
+                "hierarchy": [
+                    {"name": "region"},
+                    {"name": "country"},
+                    {"name": "product"},
+                ],
+                "metric": {
+                    "name": "revenue",
+                    "aggregate": "SUM",
+                    "label": "Revenue",
+                },
+                "show_labels": True,
+                "show_labels_threshold": 3,
+                "sort_by_metric": True,
+            },
+            "use_cases": [
+                "Hierarchical part-to-whole analysis",
+                "Drilling from broad categories to nested contributors",
+            ],
+        },
+        "ratio_colored_hierarchy": {
+            "description": (
+                "Arc size from a primary metric and sequential color from a "
+                "secondary-to-primary ratio"
+            ),
+            "config": {
+                "chart_type": "sunburst",
+                "hierarchy": [{"name": "division"}, {"name": "product_line"}],
+                "metric": {"name": "sales", "aggregate": "SUM"},
+                "secondary_metric": {"name": "profit", "aggregate": "SUM"},
+                "linear_color_scheme": "superset_seq_1",
+                "number_format": "$,.0f",
+                "show_total": True,
+            },
+            "use_cases": [
+                "Comparing magnitude and performance in one hierarchy",
+                "Finding high-volume branches with weak secondary ratios",
+            ],
+        },
+    }
+
     from superset.mcp_service.chart.registry import get_registry
 
     interactive_pivot_configs = {}
@@ -284,6 +329,13 @@ def get_chart_configs_resource() -> str:
             "Pair comparison_period with comparison_type for time comparison",
             "This type appears only when the host enables its visualization plugin",
         ],
+        "sunburst_charts": [
+            "Order hierarchy from broad/root categories to narrow/leaf categories",
+            "Use unique physical columns for every hierarchy level",
+            "Use secondary_metric only when ratio-based sequential coloring is useful",
+            "Keep row_limit and hierarchy cardinality bounded for readable rings",
+            "Use show_labels_threshold to suppress labels on very small arcs",
+        ],
         "general": [
             "Always verify column names with get_dataset_info before charting",
             "Set temporal_column when dashboard time filters should use a column "
@@ -297,6 +349,7 @@ def get_chart_configs_resource() -> str:
     resource_data = {
         "xy_chart_configs": xy_chart_configs,
         "table_chart_configs": table_chart_configs,
+        "sunburst_chart_configs": sunburst_chart_configs,
         "interactive_pivot_configs": interactive_pivot_configs,
         "best_practices": best_practices,
         "usage_notes": [

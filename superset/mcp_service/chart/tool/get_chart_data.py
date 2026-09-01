@@ -151,7 +151,7 @@ _VIZ_CATEGORY: dict[str, str] = {
     "scatter": "scatter",
     "bubble": "bubble",
     "treemap_v2": "treemap",
-    "sunburst_v2": "treemap",
+    "sunburst_v2": "sunburst",
     "heatmap_v2": "heatmap",
     "gauge_chart": "gauge",
     "funnel": "funnel",
@@ -251,6 +251,8 @@ def _candidates_categorical_numeric(
         candidates.append("heatmap")
     if any(c.unique_count > 5 for c in categorical):
         candidates.append("treemap")
+    if len(categorical) >= 2:
+        candidates.append("sunburst chart")
     return candidates
 
 
@@ -284,6 +286,7 @@ _CANDIDATE_CATEGORY: dict[str, str] = {
     "bubble chart": "bubble",
     "pie chart": "pie",
     "treemap": "treemap",
+    "sunburst chart": "sunburst",
     "heatmap": "heatmap",
     "big number / KPI": "kpi",
     "gauge chart": "gauge",

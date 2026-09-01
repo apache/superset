@@ -249,6 +249,13 @@ def _columns_and_metrics(
     # ``metrics``.
     if not metrics and form_data.get("metric"):
         metrics = [form_data["metric"]]
+    # Sunburst's frontend standardized controls promote both singular metric
+    # controls into the query. The secondary metric is not presentation-only:
+    # transformProps reads it to color nodes by secondary/primary ratio.
+    if viz_type == "sunburst_v2" and form_data.get("secondary_metric"):
+        secondary_metric = form_data["secondary_metric"]
+        if secondary_metric not in metrics:
+            metrics.append(secondary_metric)
     columns = columns_from_form_data(form_data)
     # Only a Big Number *with a trendline* (viz_type ``big_number``) groups by its
     # time column; ``big_number_total`` is a single aggregate and must not be
