@@ -500,6 +500,25 @@ body.print-mode {
   .dt-global-filter,
   .pagination-container { display: none !important; }
 
+  /* ── Row striping ───────────────────────────────────────────────── */
+  /*
+   * The Superset table plugin's stripe rule lives inside an Emotion
+   * CSS-in-JS scope (superset-xxxxxxx) on the viz root.  Column-band
+   * clones produced by BAND_TABLE_COLUMNS_JS sit outside that scope,
+   * so the Emotion rule never fires for them.  Replicate it here with
+   * an explicit scope-free rule that covers both normal tables and the
+   * .print-col-band wrappers.  The colour matches the plugin's
+   * colorBgLayout token value (#f5f5f5 / Ant Design light token).
+   */
+  .superset-chart-table table.table-striped tbody tr:nth-child(odd),
+  .print-col-band table.table-striped tbody tr:nth-child(odd) {
+    background-color: #f5f5f5 !important;
+  }
+  .superset-chart-table table.table-striped tbody tr:nth-child(even),
+  .print-col-band table.table-striped tbody tr:nth-child(even) {
+    background-color: #ffffff !important;
+  }
+
   /* ── 5. Page breaks ──────────────────────────────────────────────── */
   /*
    * Avoid splitting a single chart card across a page break.
