@@ -103,7 +103,7 @@ function expectFillToMatchLinearScheme(
   linearColorScheme: string,
 ): void {
   expect(region).not.toBeNull();
-  const {fill} = (region as HTMLElement).style;
+  const { fill } = (region as HTMLElement).style;
   expect(fill).toBeTruthy();
   expect(d3Any.rgb(fill).toString()).toBe(
     d3Any.rgb(expectedLinearFill(data, linearColorScheme)).toString(),
