@@ -1408,7 +1408,7 @@ class TestBuildPreviewFormData:
         result = _build_preview_form_data(request, chart, parsed_config=config)
 
         assert isinstance(result, dict)
-        assert "adhoc_filters" not in result
+        assert result["adhoc_filters"] == []
 
 
 class TestUpdateChartSaveWithConfig:

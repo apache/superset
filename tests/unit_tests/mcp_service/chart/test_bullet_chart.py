@@ -17,7 +17,9 @@
 
 """Product-path coverage for typed ECharts Bullet MCP support."""
 
+import math
 from types import SimpleNamespace
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -29,11 +31,17 @@ from superset.mcp_service.chart.chart_helpers import (
 from superset.mcp_service.chart.chart_utils import (
     map_bullet_config,
     map_config_to_form_data,
+    MCP_DASHBOARD_TIME_FILTER_SUBJECT,
+    merge_update_form_data,
+    validate_merged_bullet_form_data,
 )
 from superset.mcp_service.chart.compile import _compile_chart
 from superset.mcp_service.chart.preview_utils import (
+    _generate_ascii_preview_from_data,
     _generate_vega_lite_preview_from_data,
+    BulletOutputError,
     generate_preview_from_form_data,
+    resolve_bullet_render_model,
 )
 from superset.mcp_service.chart.schemas import (
     BulletChartConfig,
@@ -50,7 +58,10 @@ from superset.mcp_service.chart.tool.get_chart_data import (
     _candidates_single_numeric,
     _VIZ_CATEGORY,
 )
-from superset.mcp_service.chart.tool.get_chart_preview import VegaLitePreviewStrategy
+from superset.mcp_service.chart.tool.get_chart_preview import (
+    TablePreviewStrategy,
+    VegaLitePreviewStrategy,
+)
 from superset.mcp_service.chart.tool.get_chart_type_schema import (
     _get_chart_type_schema_impl,
     VALID_CHART_TYPES,
@@ -71,6 +82,43 @@ def _simple_metric(name: str = "revenue") -> dict[str, str]:
 
 def _tool_user() -> SimpleNamespace:
     return SimpleNamespace(id=1, username="admin", roles=[], groups=[])
+
+
+def _orm_dataset() -> SimpleNamespace:
+    def column(
+        name: str, type_: str, *, temporal: bool = False, numeric: bool = False
+    ) -> SimpleNamespace:
+        return SimpleNamespace(
+            column_name=name,
+            type=type_,
+            is_temporal=temporal,
+            is_numeric=numeric,
+            is_dttm=temporal,
+            python_date_format=None,
+        )
+
+    return SimpleNamespace(
+        id=7,
+        table_name="sales",
+        schema=None,
+        main_dttm_col="OrderDate",
+        database=SimpleNamespace(database_name="main", db_engine_spec=None),
+        columns=[
+            column("Revenue", "NUMERIC", numeric=True),
+            column("Region", "VARCHAR"),
+            column("Team", "VARCHAR"),
+            column("Status", "VARCHAR"),
+            column("OrderDate", "TIMESTAMP", temporal=True),
+            column("EventDate", "TIMESTAMP", temporal=True),
+        ],
+        metrics=[
+            SimpleNamespace(
+                metric_name="SavedRevenue",
+                expression="SUM(Revenue)",
+                description=None,
+            )
+        ],
+    )
 
 
 def test_bullet_discriminated_union_uses_exact_tag() -> None:
@@ -160,6 +208,49 @@ def test_bullet_native_saved_metric_and_legacy_metric_aliases() -> None:
     assert legacy.metric.aggregate == "SUM"
 
 
+@pytest.mark.parametrize(
+    "metric",
+    [
+        "SavedRevenue",
+        {
+            "aggregate": "SUM",
+            "column": {"column_name": "Revenue"},
+            "expressionType": "SIMPLE",
+            "label": "Simple Revenue",
+        },
+        {
+            "aggregate": None,
+            "column": None,
+            "expressionType": "SQL",
+            "sqlExpression": "SUM(Revenue)",
+            "label": "SQL Revenue",
+        },
+    ],
+)
+def test_bullet_all_metric_shapes_round_trip_full_native_presentation(
+    metric: object,
+) -> None:
+    native = {
+        "viz_type": "bullet",
+        "metric": metric,
+        "groupby": ["Region"],
+        "ranges": "50,100",
+        "range_labels": "Low,High",
+        "markers": "75",
+        "marker_labels": "Plan",
+        "marker_lines": "90",
+        "marker_line_labels": "Forecast",
+        "y_axis_format": "$,.0f",
+        "show_labels": True,
+        "show_legend": True,
+    }
+    mapped = map_bullet_config(BulletChartConfig.model_validate(native))
+    assert validate_merged_bullet_form_data(mapped) is not None
+    assert mapped["groupby"] == ["Region"]
+    assert mapped["ranges"] == "50,100"
+    assert mapped["marker_line_labels"] == "Forecast"
+
+
 def test_bullet_rejects_invalid_roles_and_output_collisions() -> None:
     with pytest.raises(ValidationError, match="physical dimension"):
         BulletChartConfig(
@@ -221,6 +312,7 @@ def test_bullet_mapper_preserves_omission_and_honors_explicit_values() -> None:
 
 
 def test_bullet_registry_schema_and_recommendation_metadata() -> None:
+    from superset.mcp_service.app import get_default_instructions
     from superset.mcp_service.chart.registry import display_name_for_viz_type, get
 
     plugin = get("bullet")
@@ -244,6 +336,9 @@ def test_bullet_registry_schema_and_recommendation_metadata() -> None:
         row_count=1,
     )
     assert "bullet chart" in candidates
+    guidance = get_default_instructions()
+    assert 'chart_type="bullet": Bullet Chart' in guidance
+    assert "waterfall, bullet, and interactive_pivot" in guidance
 
 
 def test_bullet_dataset_normalization_canonicalizes_every_reference() -> None:
@@ -280,6 +375,27 @@ def test_bullet_dataset_normalization_canonicalizes_every_reference() -> None:
     assert normalized.model_fields_set == config.model_fields_set
 
 
+def test_bullet_dataset_normalization_rejects_ambiguous_casefold_candidates() -> None:
+    from superset.mcp_service.chart.registry import get
+
+    context = DatasetContext(
+        id=7,
+        table_name="sales",
+        schema=None,
+        database_name="main",
+        available_columns=[
+            {"name": "Revenue", "type": "NUMERIC", "is_numeric": True},
+            {"name": "revenue", "type": "NUMERIC", "is_numeric": True},
+        ],
+        available_metrics=[],
+    )
+    plugin = get("bullet")
+    assert plugin is not None
+    config = BulletChartConfig(metric={"name": "REVENUE", "aggregate": "SUM"})
+    with pytest.raises(ValueError, match="Revenue, revenue"):
+        plugin.normalize_column_refs(config, context)
+
+
 def test_bullet_numeric_output_constraint_rejects_text_min() -> None:
     from superset.mcp_service.chart.registry import get
 
@@ -298,6 +414,140 @@ def test_bullet_numeric_output_constraint_rejects_text_min() -> None:
         error = plugin.post_map_validate(config, {}, dataset_id=7)
     assert error is not None
     assert error.error_type == "non_numeric_bullet_metric"
+
+
+@pytest.mark.parametrize(
+    ("metric", "field"),
+    [
+        ({"name": "Revenue", "aggregate": "SUM", "label": "Simple"}, "Simple"),
+        ({"name": "SavedRevenue", "saved_metric": True}, "SavedRevenue"),
+        ({"sql_expression": "SUM(Revenue)", "label": "SQL Total"}, "SQL Total"),
+    ],
+)
+def test_bullet_result_roles_are_exact_for_every_metric_shape(
+    metric: dict[str, object], field: str
+) -> None:
+    form_data = map_bullet_config(BulletChartConfig(metric=metric))
+    model = resolve_bullet_render_model([{field.swapcase(): "12.5"}], form_data)
+    assert model.metric_field == field.swapcase()
+    assert model.measures == [12.5]
+
+
+@pytest.mark.parametrize(
+    "rows, message",
+    [
+        ([{"other": 123}], "missing"),
+        ([{"Revenue": "not a number"}], "non-numeric text"),
+        ([{"Revenue": math.nan}], "NaN or infinite"),
+        ([{"Revenue": math.inf}], "NaN or infinite"),
+        ([{"Revenue": 1}, {}], "row 1.*missing"),
+        ([{"REVENUE": 1, "revenue": 2}], "ambiguous"),
+    ],
+)
+def test_bullet_result_validation_rejects_malformed_rows(
+    rows: list[dict[str, object]], message: str
+) -> None:
+    form_data = map_bullet_config(
+        BulletChartConfig(
+            metric={"name": "amount", "aggregate": "SUM", "label": "Revenue"}
+        )
+    )
+    with pytest.raises(BulletOutputError, match=message):
+        resolve_bullet_render_model(rows, form_data)
+
+
+def test_bullet_result_validation_accepts_null_and_numeric_strings() -> None:
+    form_data = map_bullet_config(
+        BulletChartConfig(
+            metric={"name": "amount", "aggregate": "SUM", "label": "Revenue"},
+            dimensions=[{"name": "Region"}],
+        )
+    )
+    model = resolve_bullet_render_model(
+        [
+            {"Region": "North", "Revenue": None},
+            {"Region": "South", "Revenue": " 4.25 "},
+        ],
+        form_data,
+    )
+    assert model.measures == [0.0, 4.25]
+
+
+@pytest.mark.parametrize(
+    ("presentation", "message"),
+    [
+        ({"ranges": "10,nope"}, r"ranges\[1\].*not numeric"),
+        ({"markers": "NaN"}, r"markers\[0\].*NaN or infinite"),
+        (
+            {"ranges": "10,20", "range_labels": "Only one"},
+            "one label per value",
+        ),
+    ],
+)
+def test_bullet_result_validation_rejects_malformed_presentation(
+    presentation: dict[str, object], message: str
+) -> None:
+    form_data = {
+        **map_bullet_config(
+            BulletChartConfig(metric={"name": "amount", "aggregate": "SUM"})
+        ),
+        **presentation,
+    }
+    with pytest.raises(BulletOutputError, match=message):
+        resolve_bullet_render_model([{"SUM(amount)": 1}], form_data)
+
+
+def test_bullet_compile_rejects_empty_or_malformed_sizing_measure() -> None:
+    form_data = map_bullet_config(
+        BulletChartConfig(
+            metric={"name": "Revenue", "aggregate": "SUM", "label": "Revenue"}
+        )
+    )
+    factory = MagicMock()
+    factory.create.return_value = MagicMock()
+    command = MagicMock()
+    command.run.return_value = {"queries": [{"data": []}]}
+    with (
+        patch(
+            "superset.common.query_context_factory.QueryContextFactory",
+            return_value=factory,
+        ),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand",
+            return_value=command,
+        ),
+    ):
+        result = _compile_chart(form_data, 7)
+    assert result.success is False
+    assert result.error_code == "MALFORMED_BULLET_OUTPUT"
+    assert result.error_obj is not None
+    assert result.error_obj.error_type == "malformed_bullet_output"
+
+
+def test_bullet_compile_inspects_top_level_and_query_error_envelopes() -> None:
+    form_data = map_bullet_config(
+        BulletChartConfig(metric={"name": "Revenue", "aggregate": "SUM"})
+    )
+    factory = MagicMock()
+    factory.create.return_value = MagicMock()
+    command = MagicMock()
+    command.run.return_value = {
+        "status": "success",
+        "queries": [{"status": "failed", "message": "warehouse timeout"}],
+    }
+    with (
+        patch(
+            "superset.common.query_context_factory.QueryContextFactory",
+            return_value=factory,
+        ),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand",
+            return_value=command,
+        ),
+    ):
+        result = _compile_chart(form_data, 7)
+    assert result.success is False
+    assert "warehouse timeout" in (result.error or "")
 
 
 def test_bullet_shared_query_builder_matches_frontend_build_query() -> None:
@@ -321,7 +571,7 @@ def test_bullet_shared_query_builder_matches_frontend_build_query() -> None:
     assert queries[0]["row_limit"] == 25
 
 
-def test_bullet_compile_path_uses_groupby_metric_orderby_and_empty_results() -> None:
+def test_bullet_compile_path_uses_groupby_metric_orderby_and_usable_result() -> None:
     form_data = map_bullet_config(
         BulletChartConfig(
             metric={"name": "Revenue", "aggregate": "SUM", "label": "Revenue"},
@@ -333,7 +583,9 @@ def test_bullet_compile_path_uses_groupby_metric_orderby_and_empty_results() -> 
     factory = MagicMock()
     factory.create.return_value = context
     command = MagicMock()
-    command.run.return_value = {"queries": [{"data": []}]}
+    command.run.return_value = {
+        "queries": [{"data": [{"Region": "North", "Revenue": "12.5"}]}]
+    }
     with (
         patch(
             "superset.common.query_context_factory.QueryContextFactory",
@@ -350,7 +602,7 @@ def test_bullet_compile_path_uses_groupby_metric_orderby_and_empty_results() -> 
     assert query["metrics"] == [form_data["metric"]]
     assert query["orderby"] == form_data["orderby"]
     assert result.success is True
-    assert result.row_count == 0
+    assert result.row_count == 1
 
 
 def test_bullet_unsaved_preview_path_returns_faithful_vega_spec() -> None:
@@ -392,6 +644,75 @@ def test_bullet_unsaved_preview_path_returns_faithful_vega_spec() -> None:
     }
 
 
+def test_bullet_preview_applies_default_band_and_every_presentation_control() -> None:
+    form_data = map_bullet_config(
+        BulletChartConfig(
+            metric={"name": "Revenue", "aggregate": "SUM", "label": "Revenue"},
+            dimensions=[{"name": "Region"}],
+            range_labels=["Baseline", "Capacity"],
+            markers=[90],
+            marker_labels=["Plan"],
+            marker_lines=[105],
+            marker_line_labels=["Forecast"],
+            y_axis_format="$,.1f",
+            show_labels=True,
+            show_legend=True,
+        )
+    )
+    preview = _generate_vega_lite_preview_from_data(
+        [
+            {"Region": "North", "Revenue": 100},
+            {"Region": "South", "Revenue": 50},
+        ],
+        form_data,
+    )
+    bullet = preview.specification["usermeta"]["bullet"]
+    assert bullet["metric"] == "Revenue"
+    assert bullet["dimensions"] == ["Region"]
+    assert bullet["ranges"] == pytest.approx([0, 110])
+    assert bullet["range_labels"] == ["Baseline", "Capacity"]
+    assert bullet["markers"] == [90.0]
+    assert bullet["marker_labels"] == ["Plan"]
+    assert bullet["marker_lines"] == [105.0]
+    assert bullet["marker_line_labels"] == ["Forecast"]
+    assert bullet["y_axis_format"] == "$,.1f"
+    assert bullet["show_labels"] is True
+    assert bullet["show_legend"] is True
+    assert any(
+        layer["mark"]["type"] == "text" for layer in preview.specification["layer"]
+    )
+    assert any(
+        encoding.get("color", {}).get("legend") == {"title": None}
+        for layer in preview.specification["layer"]
+        if isinstance((encoding := layer.get("encoding")), dict)
+    )
+
+
+def test_bullet_ascii_uses_shared_roles_labels_and_format() -> None:
+    form_data = map_bullet_config(
+        BulletChartConfig(
+            metric={"name": "Revenue", "aggregate": "SUM", "label": "Revenue"},
+            dimensions=[{"name": "Region"}],
+            ranges=[100],
+            range_labels=["Healthy"],
+            markers=[80],
+            marker_labels=["Plan"],
+            marker_lines=[90],
+            marker_line_labels=["Forecast"],
+            y_axis_format="$,.0f",
+            show_legend=True,
+        )
+    )
+    preview = _generate_ascii_preview_from_data(
+        [{"Region": "North", "Revenue": "75"}], form_data
+    )
+    assert "North" in preview.ascii_content
+    assert "$75" in preview.ascii_content
+    assert "Healthy" in preview.ascii_content
+    assert "Plan" in preview.ascii_content
+    assert "Forecast" in preview.ascii_content
+
+
 def test_bullet_unsaved_preview_handles_empty_and_error_results() -> None:
     dataset = SimpleNamespace(id=7)
     factory = MagicMock()
@@ -413,7 +734,50 @@ def test_bullet_unsaved_preview_handles_empty_and_error_results() -> None:
             {"viz_type": "bullet", "metric": "count"}, 7, "table"
         )
     assert isinstance(result, ChartError)
-    assert result.error_type == "EmptyResult"
+    assert result.error_type == "UnsupportedFormat"
+
+
+def test_bullet_unsaved_preview_rejects_embedded_query_error() -> None:
+    dataset = SimpleNamespace(id=7)
+    factory = MagicMock()
+    factory.create.return_value = MagicMock()
+    command = MagicMock()
+    command.run.return_value = {
+        "queries": [{"status": "error", "error": "metric failed"}]
+    }
+    with (
+        patch("superset.extensions.db.session.get", return_value=dataset),
+        patch(
+            "superset.common.query_context_factory.QueryContextFactory",
+            return_value=factory,
+        ),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand",
+            return_value=command,
+        ),
+    ):
+        result = generate_preview_from_form_data(
+            {"viz_type": "bullet", "metric": "count"}, 7, "vega_lite"
+        )
+    assert isinstance(result, ChartError)
+    assert result.error_type == "QueryError"
+    assert "metric failed" in result.error
+
+
+def test_bullet_saved_table_preview_is_explicitly_unsupported() -> None:
+    chart = SimpleNamespace(
+        id=9,
+        params=__import__("json").dumps(
+            {"viz_type": "bullet", "metric": "SavedRevenue"}
+        ),
+        viz_type="bullet",
+        slice_name="Saved Bullet",
+    )
+    result = TablePreviewStrategy(
+        chart, GetChartPreviewRequest(identifier=9, format="table")
+    ).generate()
+    assert isinstance(result, ChartError)
+    assert result.error_type == "UnsupportedFormat"
 
 
 def test_bullet_saved_preview_uses_native_roles_aliases_and_overlays() -> None:
@@ -537,6 +901,153 @@ def test_bullet_update_paths_honor_explicit_clear_and_false() -> None:
     assert persisted["adhoc_filters"] == []
 
 
+def _saved_bullet_with_filters() -> dict[str, object]:
+    return {
+        "viz_type": "bullet",
+        "metric": "SavedRevenue",
+        "groupby": ["Region"],
+        "time_range": "Last year",
+        MCP_DASHBOARD_TIME_FILTER_SUBJECT: "OrderDate",
+        "adhoc_filters": [
+            {
+                "clause": "WHERE",
+                "expressionType": "SIMPLE",
+                "subject": "Status",
+                "operator": "==",
+                "comparator": "Active",
+            },
+            {
+                "clause": "WHERE",
+                "expressionType": "SIMPLE",
+                "subject": "OrderDate",
+                "operator": "TEMPORAL_RANGE",
+                "comparator": "Last year",
+            },
+        ],
+    }
+
+
+@pytest.mark.parametrize("preview_first", [False, True])
+def test_bullet_saved_update_paths_preserve_omitted_user_filters_with_binding(
+    preview_first: bool,
+) -> None:
+    existing = _saved_bullet_with_filters()
+    chart = SimpleNamespace(
+        id=9,
+        datasource_id=7,
+        slice_name="Saved Bullet",
+        params=__import__("json").dumps(existing),
+    )
+    config = BulletChartConfig(metric=_simple_metric("Revenue"))
+    request = UpdateChartRequest(identifier=9, config=config)
+    with (
+        patch(
+            "superset.mcp_service.chart.chart_utils._find_dataset_by_id_or_uuid",
+            return_value=_orm_dataset(),
+        ),
+        patch(
+            "superset.mcp_service.chart.chart_utils._is_temporal_for_dashboard_binding",
+            return_value=True,
+        ),
+    ):
+        if preview_first:
+            merged = _build_preview_form_data(request, chart, config)
+            assert isinstance(merged, dict)
+        else:
+            payload = _build_update_payload(request, chart, config)
+            assert isinstance(payload, dict)
+            merged = __import__("json").loads(payload["params"])
+
+    assert merged["adhoc_filters"] == existing["adhoc_filters"]
+    assert merged[MCP_DASHBOARD_TIME_FILTER_SUBJECT] == "OrderDate"
+
+
+@pytest.mark.parametrize(
+    ("filters", "expected_subjects"),
+    [
+        ([], ["OrderDate"]),
+        (
+            [{"column": "Status", "op": "=", "value": "Inactive"}],
+            ["Status", "OrderDate"],
+        ),
+    ],
+)
+def test_bullet_filter_clear_and_replacement_are_authoritative(
+    filters: list[dict[str, object]], expected_subjects: list[str]
+) -> None:
+    existing = _saved_bullet_with_filters()
+    config = BulletChartConfig(metric=_simple_metric("Revenue"), filters=filters)
+    mapped: dict[str, Any] = {"viz_type": "bullet", "metric": "new"}
+    if filters:
+        mapped["adhoc_filters"] = [
+            {
+                "clause": "WHERE",
+                "expressionType": "SIMPLE",
+                "subject": "Status",
+                "operator": "==",
+                "comparator": "Inactive",
+            }
+        ]
+    merge_update_form_data(existing, mapped, config)
+    assert [item["subject"] for item in mapped["adhoc_filters"]] == expected_subjects
+
+
+def test_bullet_temporal_override_replaces_only_provenanced_binding() -> None:
+    existing = _saved_bullet_with_filters()
+    config = BulletChartConfig(
+        metric=_simple_metric("Revenue"),
+        temporal_column="EventDate",
+        time_range="Last 30 days",
+    )
+    with (
+        patch(
+            "superset.mcp_service.chart.chart_utils._find_dataset_by_id_or_uuid",
+            return_value=_orm_dataset(),
+        ),
+        patch(
+            "superset.mcp_service.chart.chart_utils._is_temporal_for_dashboard_binding",
+            return_value=True,
+        ),
+    ):
+        mapped = map_config_to_form_data(config, dataset_id=7)
+    merge_update_form_data(existing, mapped, config)
+    assert [item["subject"] for item in mapped["adhoc_filters"]] == [
+        "Status",
+        "EventDate",
+    ]
+    assert mapped["adhoc_filters"][1]["comparator"] == "Last 30 days"
+    assert mapped[MCP_DASHBOARD_TIME_FILTER_SUBJECT] == "EventDate"
+
+
+def test_bullet_presentation_updates_are_atomic_and_comma_safe() -> None:
+    with pytest.raises(ValidationError, match="cannot contain commas"):
+        BulletChartConfig(
+            metric=_simple_metric(), ranges=[1], range_labels=["Low, medium"]
+        )
+
+    existing = {
+        "viz_type": "bullet",
+        "metric": "SavedRevenue",
+        "ranges": "10,20",
+        "range_labels": "Low,High",
+        "markers": "15,18",
+        "marker_labels": "Plan,Stretch",
+    }
+    config = BulletChartConfig(metric=_simple_metric(), ranges=[30], markers=[25])
+    mapped = map_bullet_config(config)
+    merge_update_form_data(existing, mapped, config)
+    assert mapped["ranges"] == "30"
+    assert mapped["range_labels"] == ""
+    assert mapped["markers"] == "25"
+    assert mapped["marker_labels"] == ""
+    assert validate_merged_bullet_form_data(mapped) is not None
+
+    stale = dict(existing)
+    stale["ranges"] = "10"
+    with pytest.raises(ValidationError, match="one label per ranges"):
+        validate_merged_bullet_form_data(stale)
+
+
 def test_mapping_other_registered_chart_type_is_unchanged() -> None:
     from superset.mcp_service.chart.schemas import PieChartConfig
 
@@ -602,16 +1113,33 @@ def test_update_chart_preview_tool_preserves_omitted_bullet_state() -> None:
     request = UpdateChartPreviewRequest(
         form_data_key="previous_bullet_key",
         dataset_id=7,
-        config=BulletChartConfig(metric=_simple_metric("NewRevenue")),
+        config=BulletChartConfig(metric=_simple_metric("revenue")),
         generate_preview=False,
     )
-    dataset = SimpleNamespace(id=7)
+    dataset = _orm_dataset()
     previous = {
         "viz_type": "bullet",
         "metric": "old_metric",
         "groupby": ["Region", "Team"],
         "ranges": "100,250",
         "show_labels": True,
+        MCP_DASHBOARD_TIME_FILTER_SUBJECT: "OrderDate",
+        "adhoc_filters": [
+            {
+                "clause": "WHERE",
+                "expressionType": "SIMPLE",
+                "subject": "Status",
+                "operator": "==",
+                "comparator": "Active",
+            },
+            {
+                "clause": "WHERE",
+                "expressionType": "SIMPLE",
+                "subject": "OrderDate",
+                "operator": "TEMPORAL_RANGE",
+                "comparator": "No filter",
+            },
+        ],
     }
     link = MagicMock(
         return_value="http://localhost:8088/explore/?form_data_key=new_bullet_key"
@@ -633,6 +1161,10 @@ def test_update_chart_preview_tool_preserves_omitted_bullet_state() -> None:
         patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=dataset),
         patch(
             "superset.mcp_service.chart.tool.update_chart_preview.has_dataset_access",
+            return_value=True,
+        ),
+        patch(
+            "superset.mcp_service.chart.chart_utils._is_temporal_for_dashboard_binding",
             return_value=True,
         ),
         patch(
@@ -659,10 +1191,11 @@ def test_update_chart_preview_tool_preserves_omitted_bullet_state() -> None:
 
     assert result["success"] is True
     preview_form_data = link.call_args.args[1]
-    assert preview_form_data["metric"]["column"]["column_name"] == "NewRevenue"
+    assert preview_form_data["metric"]["column"]["column_name"] == "Revenue"
     assert preview_form_data["groupby"] == ["Region", "Team"]
     assert preview_form_data["ranges"] == "100,250"
     assert preview_form_data["show_labels"] is True
+    assert preview_form_data["adhoc_filters"] == previous["adhoc_filters"]
 
 
 @pytest.mark.asyncio

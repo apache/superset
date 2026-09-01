@@ -199,7 +199,7 @@ class BulletChartPlugin(BaseChartPlugin):
         if not isinstance(config, BulletChartConfig):
             return config
         explicit_fields = set(config.model_fields_set)
-        config_dict = config.model_dump()
+        config_dict = config.model_dump(exclude_unset=True)
         columns = [column["name"] for column in dataset_context.available_columns]
         metrics = [metric["name"] for metric in dataset_context.available_metrics]
         canonical_roles: dict[str, str] = {}

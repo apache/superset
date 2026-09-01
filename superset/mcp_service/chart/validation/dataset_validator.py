@@ -123,8 +123,8 @@ def build_dataset_context_from_orm(dataset: Any) -> DatasetContext | None:
     database_name = getattr(database, "database_name", None) or ""
     return DatasetContext(
         id=dataset.id,
-        table_name=dataset.table_name,
-        schema=dataset.schema,
+        table_name=getattr(dataset, "table_name", str(dataset.id)),
+        schema=getattr(dataset, "schema", None),
         database_name=database_name,
         available_columns=columns,
         available_metrics=metrics,
@@ -438,17 +438,21 @@ class DatasetValidator:
             The canonical column name from the dataset, or the original name
             if no match is found.
         """
-        column_lower = column_name.lower()
+        names = [col["name"] for col in dataset_context.available_columns]
+        names.extend(metric["name"] for metric in dataset_context.available_metrics)
+        if column_name in names:
+            return column_name
 
-        # Check regular columns first
-        for col in dataset_context.available_columns:
-            if col["name"].lower() == column_lower:
-                return col["name"]
-
-        # Check metrics
-        for metric in dataset_context.available_metrics:
-            if metric["name"].lower() == column_lower:
-                return metric["name"]
+        candidates = [
+            name for name in names if name.casefold() == column_name.casefold()
+        ]
+        if len(candidates) == 1:
+            return candidates[0]
+        if len(candidates) > 1:
+            raise ValueError(
+                f"Ambiguous column reference {column_name!r}; candidates: "
+                f"{', '.join(sorted(candidates))}"
+            )
 
         # Return original if not found (validation should catch this case)
         return column_name
@@ -466,10 +470,19 @@ class DatasetValidator:
         Returns the original name when no metric matches (validation catches
         the missing-metric case separately).
         """
-        metric_lower = metric_name.lower()
-        for metric in dataset_context.available_metrics:
-            if metric["name"].lower() == metric_lower:
-                return metric["name"]
+        names = [metric["name"] for metric in dataset_context.available_metrics]
+        if metric_name in names:
+            return metric_name
+        candidates = [
+            name for name in names if name.casefold() == metric_name.casefold()
+        ]
+        if len(candidates) == 1:
+            return candidates[0]
+        if len(candidates) > 1:
+            raise ValueError(
+                f"Ambiguous metric reference {metric_name!r}; candidates: "
+                f"{', '.join(sorted(candidates))}"
+            )
         return metric_name
 
     @staticmethod
@@ -534,6 +547,7 @@ class DatasetValidator:
             )
             return config
 
+        explicit_fields = set(config.model_fields_set)
         normalized_config = plugin.normalize_column_refs(config, dataset_context)
         if temporal_column := getattr(normalized_config, "temporal_column", None):
             canonical_temporal_column = DatasetValidator.get_canonical_column_name(
@@ -543,6 +557,9 @@ class DatasetValidator:
                 normalized_config = normalized_config.model_copy(
                     update={"temporal_column": canonical_temporal_column}
                 )
+        # Plugin implementations may rebuild the model from a full dump. Keep
+        # caller provenance intact so omitted update fields remain omissions.
+        normalized_config.__pydantic_fields_set__ = explicit_fields
         return normalized_config
 
     @staticmethod

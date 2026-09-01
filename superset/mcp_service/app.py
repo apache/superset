@@ -413,6 +413,8 @@ Chart Types You Can CREATE with generate_chart/generate_explore_link:
    whisker_type: tukey | min_max | percentile)
 - chart_type="waterfall": Waterfall chart of cumulative increases/decreases
   (x_axis + metric required; optional single breakdown column, show_total)
+- chart_type="bullet": Bullet Chart for comparing one numeric measure per row
+  against qualitative ranges, point markers, and marker lines
 
 Time grain for temporal x-axis (time_grain parameter):
 - PT1H (hourly), P1D (daily), P1W (weekly), P1M (monthly), P1Y (yearly)
@@ -422,7 +424,7 @@ Each chart returned by list_charts / get_chart_info includes a
 chart_type_display_name field with a human-readable name when available.
 This field is populated for chart types known to the MCP registry
 (xy, pie, table, pivot_table, big_number, mixed_timeseries, handlebars,
-histogram, box_plot, waterfall, and interactive_pivot). Availability gates
+histogram, box_plot, waterfall, bullet, and interactive_pivot). Availability gates
 creation and schema discovery, not display names for existing charts.
 For all other viz_types (Funnel, Gauge, Heatmap, etc.) it will be null —
 use the raw viz_type field instead when referring to those chart types.

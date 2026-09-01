@@ -24,6 +24,9 @@ from form data without requiring a saved chart object.
 
 import logging
 import math
+from dataclasses import dataclass
+from decimal import Decimal, InvalidOperation
+from numbers import Real
 from typing import Any, Dict, List
 
 from superset.mcp_service.chart.schemas import (
@@ -36,6 +39,33 @@ from superset.mcp_service.chart.schemas import (
 logger = logging.getLogger(__name__)
 
 SUPPORTED_FORM_DATA_PREVIEW_FORMATS = frozenset({"ascii", "table", "vega_lite"})
+
+
+class BulletOutputError(ValueError):
+    """A Bullet query result cannot be rendered without guessing its roles."""
+
+    def __init__(self, message: str, error_type: str = "MalformedBulletOutput") -> None:
+        super().__init__(message)
+        self.error_type = error_type
+
+
+@dataclass(frozen=True)
+class BulletRenderModel:
+    """Strict, frontend-aligned data and presentation roles for one preview."""
+
+    rows: list[dict[str, Any]]
+    metric_field: str
+    dimensions: list[str]
+    measures: list[float]
+    ranges: list[float]
+    range_labels: list[str]
+    markers: list[float]
+    marker_labels: list[str]
+    marker_lines: list[float]
+    marker_line_labels: list[str]
+    y_axis_format: str
+    show_labels: bool
+    show_legend: bool
 
 
 def _build_query_columns(form_data: Dict[str, Any]) -> list[str]:
@@ -64,10 +94,23 @@ def generate_preview_from_form_data(
         Preview object or ChartError
     """
     try:
+        if form_data.get("viz_type") == "bullet" and preview_format == "table":
+            return ChartError(
+                error=(
+                    "Table previews cannot represent Bullet ranges, markers, "
+                    "labels, and legend semantics"
+                ),
+                error_type="UnsupportedFormat",
+            )
+
         # Execute query to get data
         from superset.commands.chart.data.get_data_command import ChartDataCommand
         from superset.connectors.sqla.models import SqlaTable
         from superset.extensions import db
+        from superset.mcp_service.chart.chart_helpers import (
+            build_query_context_from_form_data,
+        )
+        from superset.mcp_service.chart.query_result import query_result_failure
 
         dataset = db.session.get(SqlaTable, dataset_id)
         if not dataset:
@@ -75,49 +118,21 @@ def generate_preview_from_form_data(
                 error=f"Dataset {dataset_id} not found", error_type="DatasetNotFound"
             )
 
-        # Create query context from form data using factory
-        from superset.common.query_context_factory import QueryContextFactory
-        from superset.mcp_service.chart.chart_utils import (
-            adhoc_filters_to_query_filters,
-        )
-
-        # Build columns list: include x_axis and groupby for XY charts,
-        # fall back to form_data "columns" for table charts
-        columns = _build_query_columns(form_data)
-
-        query_filters = adhoc_filters_to_query_filters(
-            form_data.get("adhoc_filters", [])
-        )
-
-        # Big Number charts use singular "metric" instead of "metrics"
-        metrics = form_data.get("metrics", [])
-        if not metrics and form_data.get("metric"):
-            metrics = [form_data["metric"]]
-
-        # Big Number with trendline uses granularity_sqla as the time column
-        if not columns and form_data.get("granularity_sqla"):
-            columns = [form_data["granularity_sqla"]]
-
-        factory = QueryContextFactory()
-        query_context_obj = factory.create(
-            datasource={"id": dataset_id, "type": "table"},
-            queries=[
-                {
-                    "columns": columns,
-                    "metrics": metrics,
-                    "orderby": form_data.get("orderby", []),
-                    "row_limit": form_data.get("row_limit", 100),
-                    "filters": query_filters,
-                    "time_range": form_data.get("time_range", "No filter"),
-                }
-            ],
-            form_data=form_data,
+        query_form_data = dict(form_data)
+        query_form_data["datasource"] = f"{dataset_id}__table"
+        query_context_obj = build_query_context_from_form_data(
+            query_form_data,
+            row_limit=form_data.get("row_limit", 100),
+            force=False,
         )
 
         # Execute query
         command = ChartDataCommand(query_context_obj)
         command.validate()
         result = command.run()
+
+        if failure := query_result_failure(result):
+            return failure
 
         if not result or not result.get("queries"):
             return ChartError(
@@ -140,6 +155,8 @@ def generate_preview_from_form_data(
                 error_type="UnsupportedFormat",
             )
 
+    except BulletOutputError as ex:
+        return ChartError(error=str(ex), error_type=ex.error_type)
     except Exception as e:
         logger.error("Preview generation from form data failed: %s", e)
         return ChartError(
@@ -354,70 +371,232 @@ def _form_column_label(column: Any) -> str | None:
 
 
 def _canonical_result_field(label: str | None, row: Dict[str, Any]) -> str | None:
-    """Resolve a query result field by exact match, then unambiguous casefold."""
+    """Resolve an exact or one unambiguous casefold result-field match."""
     if label is None:
         return None
     if label in row:
         return label
-    matches = [field for field in row if field.casefold() == label.casefold()]
+    matches = [
+        field
+        for field in row
+        if isinstance(field, str) and field.casefold() == label.casefold()
+    ]
     return matches[0] if len(matches) == 1 else None
 
 
-def _bullet_result_roles(
-    data: List[Dict[str, Any]], form_data: Dict[str, Any]
-) -> tuple[str | None, list[str]]:
-    """Resolve Bullet metric and full category hierarchy in query output."""
-    if not data:
-        return None, []
-    first_row = data[0]
-    metric_field = _canonical_result_field(
-        _form_metric_label(form_data.get("metric")), first_row
-    )
-    if metric_field is None:
-        metric_field = next(
-            (
-                field
-                for field, value in first_row.items()
-                if isinstance(value, (int, float)) and not _is_nan(value)
-            ),
-            None,
-        )
-    dimensions = [
+def _require_result_field(label: str | None, row: dict[str, Any], role: str) -> str:
+    """Resolve a role without falling back to an unrelated result field."""
+    if not label:
+        raise BulletOutputError(f"Bullet {role} has no declared result alias")
+    if label in row:
+        return label
+    matches = sorted(
         field
-        for column in form_data.get("groupby") or []
-        if (field := _canonical_result_field(_form_column_label(column), first_row))
+        for field in row
+        if isinstance(field, str) and field.casefold() == label.casefold()
+    )
+    if len(matches) == 1:
+        return matches[0]
+    if matches:
+        raise BulletOutputError(
+            f"Bullet {role} alias {label!r} is ambiguous; candidates: "
+            f"{', '.join(matches)}"
+        )
+    raise BulletOutputError(
+        f"Bullet {role} alias {label!r} is missing from query output"
+    )
+
+
+def _bullet_number(value: Any, row_index: int, metric_field: str) -> float:
+    """Apply the frontend's useful ``Number(value ?? 0)`` numeric subset."""
+    if value is None:
+        number = 0.0
+    elif isinstance(value, bool):
+        raise BulletOutputError(
+            f"Bullet metric {metric_field!r} row {row_index} returned a boolean"
+        )
+    elif isinstance(value, (Real, Decimal)):
+        number = float(value)
+    elif isinstance(value, str) and value.strip():
+        try:
+            number = float(Decimal(value.strip()))
+        except (InvalidOperation, ValueError, OverflowError) as ex:
+            raise BulletOutputError(
+                f"Bullet metric {metric_field!r} row {row_index} returned "
+                f"non-numeric text"
+            ) from ex
+    else:
+        raise BulletOutputError(
+            f"Bullet metric {metric_field!r} row {row_index} is not numeric"
+        )
+    if not math.isfinite(number):
+        raise BulletOutputError(
+            f"Bullet metric {metric_field!r} row {row_index} is NaN or infinite"
+        )
+    return number
+
+
+def _bullet_string_tokens(value: Any) -> list[str]:
+    """Parse labels exactly like the frontend's comma tokenizer."""
+    if not isinstance(value, str) or not value.strip():
+        return []
+    return [token.strip() for token in value.split(",")]
+
+
+def _validate_bullet_format(format_: Any, values: list[float]) -> str:
+    """Reject a presentation format the backend cannot reproduce."""
+    from superset.utils.number_format import format_numeric
+
+    if not isinstance(format_, str) or not format_:
+        format_ = "SMART_NUMBER"
+    try:
+        for value in values:
+            format_numeric(format_, value)
+    except (TypeError, ValueError) as ex:
+        raise BulletOutputError(
+            f"Bullet number format {format_!r} is unsupported by previews",
+            error_type="UnsupportedFormat",
+        ) from ex
+    return format_
+
+
+def resolve_bullet_render_model(  # noqa: C901
+    data: List[Dict[str, Any]], form_data: Dict[str, Any]
+) -> BulletRenderModel:
+    """Resolve and validate every Bullet row and presentation control."""
+    if not data:
+        raise BulletOutputError("Bullet query returned no rows")
+    if not all(isinstance(row, dict) for row in data):
+        raise BulletOutputError("Bullet query output must be an array of objects")
+
+    first_row = data[0]
+    metric_label = _form_metric_label(form_data.get("metric"))
+    metric_field = _require_result_field(metric_label, first_row, "metric")
+    dimension_labels = [
+        _form_column_label(column) for column in form_data.get("groupby") or []
     ]
-    return metric_field, dimensions
+    dimensions = [
+        _require_result_field(label, first_row, "dimension")
+        for label in dimension_labels
+    ]
+
+    measures: list[float] = []
+    copied_rows: list[dict[str, Any]] = []
+    for index, row in enumerate(data):
+        row_metric_field = _require_result_field(
+            metric_label, row, f"metric row {index}"
+        )
+        measure = _bullet_number(row[row_metric_field], index, metric_field)
+        copied = dict(row)
+        copied[metric_field] = measure
+        for label, dimension in zip(dimension_labels, dimensions, strict=True):
+            row_dimension = _require_result_field(label, row, f"dimension row {index}")
+            copied[dimension] = row[row_dimension]
+        copied_rows.append(copied)
+        measures.append(measure)
+
+    # The frontend validates/coerces the whole result array but renders only
+    # the first row for an ungrouped aggregate.
+    if not dimensions:
+        copied_rows = copied_rows[:1]
+        measures = measures[:1]
+
+    ranges = _strict_bullet_numeric_tokens(form_data.get("ranges"), "ranges")
+    if not ranges:
+        # Match Bullet/transformProps.ts: the largest measure drives one
+        # qualitative band whose upper threshold is 110% of that measure.
+        ranges = [0.0, max(measures) * 1.1]
+    markers = _strict_bullet_numeric_tokens(form_data.get("markers"), "markers")
+    marker_lines = _strict_bullet_numeric_tokens(
+        form_data.get("marker_lines"), "marker lines"
+    )
+    all_numbers = [*measures, *ranges, *markers, *marker_lines]
+    if any(not math.isfinite(value) for value in all_numbers):
+        raise BulletOutputError("Bullet presentation values must be finite")
+
+    show_labels = form_data.get("show_labels", False)
+    show_legend = form_data.get("show_legend", False)
+    if not isinstance(show_labels, bool) or not isinstance(show_legend, bool):
+        raise BulletOutputError("Bullet label and legend controls must be booleans")
+
+    range_labels = _bullet_string_tokens(form_data.get("range_labels"))
+    marker_labels = _bullet_string_tokens(form_data.get("marker_labels"))
+    marker_line_labels = _bullet_string_tokens(form_data.get("marker_line_labels"))
+    for role, labels, values in (
+        ("range", range_labels, ranges),
+        ("marker", marker_labels, markers),
+        ("marker line", marker_line_labels, marker_lines),
+    ):
+        if labels and len(labels) != len(values):
+            raise BulletOutputError(
+                f"Bullet {role} labels must contain one label per value"
+            )
+
+    return BulletRenderModel(
+        rows=copied_rows,
+        metric_field=metric_field,
+        dimensions=dimensions,
+        measures=measures,
+        ranges=ranges,
+        range_labels=range_labels,
+        markers=markers,
+        marker_labels=marker_labels,
+        marker_lines=marker_lines,
+        marker_line_labels=marker_line_labels,
+        y_axis_format=_validate_bullet_format(
+            form_data.get("y_axis_format", "SMART_NUMBER"), all_numbers
+        ),
+        show_labels=show_labels,
+        show_legend=show_legend,
+    )
 
 
 def _generate_ascii_bullet_chart(
     data: List[Dict[str, Any]], form_data: Dict[str, Any]
 ) -> str:
-    """Generate a horizontal Bullet preview using its exact result roles."""
-    if not data:
-        return "No data available for Bullet chart"
-    metric_field, dimensions = _bullet_result_roles(data, form_data)
-    if metric_field is None:
-        return "No numeric metric data found for Bullet chart"
-    values = [
-        value
-        for row in data[:10]
-        if isinstance(value := row.get(metric_field), (int, float))
-        and not _is_nan(value)
-    ]
-    if not values:
-        return "No numeric metric data found for Bullet chart"
-    scale = max((abs(float(value)) for value in values), default=0) or 1
-    lines = [f"ASCII Bullet Chart — {metric_field}", "=" * 50]
-    for index, row in enumerate(data[:10]):
-        value = row.get(metric_field)
-        if not isinstance(value, (int, float)) or _is_nan(value):
-            continue
-        category = ", ".join(str(row.get(field, "")) for field in dimensions)
-        category = category or f"Item {index + 1}"
-        bar = "█" * round(abs(float(value)) / scale * 30)
-        sign = "-" if value < 0 else ""
-        lines.append(f"{category[:20]:>20} |{sign}{bar:<30} {value:g}")
+    """Generate a horizontal Bullet preview from the shared strict model."""
+    from superset.utils.number_format import format_numeric
+
+    model = resolve_bullet_render_model(data, form_data)
+    extent = (
+        max(
+            [abs(value) for value in [*model.measures, *model.ranges, *model.markers]],
+            default=1,
+        )
+        or 1
+    )
+    lines = [f"ASCII Bullet Chart — {model.metric_field}", "=" * 60]
+    for row, value in zip(model.rows[:10], model.measures[:10], strict=True):
+        category = ", ".join(str(row.get(field, "")) for field in model.dimensions)
+        category = category or "Measure"
+        width = round(abs(value) / extent * 32)
+        bar = "█" * width
+        formatted = format_numeric(model.y_axis_format, value)
+        lines.append(f"{category[:20]:>20} |{bar:<32} {formatted}")
+
+    def labeled(values: list[float], labels: list[str], prefix: str) -> list[str]:
+        return [
+            f"{labels[index] if index < len(labels) and labels[index] else prefix}: "
+            f"{format_numeric(model.y_axis_format, value)}"
+            for index, value in enumerate(values)
+        ]
+
+    if model.show_labels or model.show_legend:
+        lines.append("Key:")
+        lines.extend(
+            f"  range {item}"
+            for item in labeled(model.ranges, model.range_labels, "Range")
+        )
+        lines.extend(
+            f"  marker {item}"
+            for item in labeled(model.markers, model.marker_labels, "Marker")
+        )
+        lines.extend(
+            f"  line {item}"
+            for item in labeled(
+                model.marker_lines, model.marker_line_labels, "Marker line"
+            )
+        )
     return "\n".join(lines)
 
 
@@ -586,39 +765,111 @@ def _bullet_numeric_tokens(value: Any) -> list[float]:
     return result
 
 
-def _generate_bullet_vega_lite_preview(
+def _strict_bullet_numeric_tokens(value: Any, role: str) -> list[float]:
+    """Parse all native presentation values or reject the malformed control."""
+    if value is None or value == "":
+        return []
+    if isinstance(value, str):
+        tokens: list[Any] = [token.strip() for token in value.split(",")]
+    elif isinstance(value, list):
+        tokens = value
+    else:
+        raise BulletOutputError(f"Bullet {role} must be a comma-separated list")
+
+    numbers: list[float] = []
+    for index, token in enumerate(tokens):
+        if token == "":
+            continue
+        if isinstance(token, bool):
+            raise BulletOutputError(f"Bullet {role}[{index}] is not numeric")
+        try:
+            number = float(token)
+        except (TypeError, ValueError, OverflowError) as ex:
+            raise BulletOutputError(f"Bullet {role}[{index}] is not numeric") from ex
+        if not math.isfinite(number):
+            raise BulletOutputError(f"Bullet {role}[{index}] is NaN or infinite")
+        numbers.append(number)
+    return numbers
+
+
+def _generate_bullet_vega_lite_preview(  # noqa: C901
     data: List[Dict[str, Any]], form_data: Dict[str, Any]
-) -> VegaLitePreview | None:
-    """Build a horizontal layered preview faithful to Bullet result roles."""
-    metric_field, dimensions = _bullet_result_roles(data, form_data)
-    if metric_field is None:
-        return None
+) -> VegaLitePreview:
+    """Build a horizontal layered preview from the shared strict model."""
+    from superset.utils import json as utils_json
+    from superset.utils.number_format import format_numeric
+
+    model = resolve_bullet_render_model(data, form_data)
 
     category_field = "__mcp_bullet_category"
     values = []
-    for index, row in enumerate(data):
+    for row in model.rows:
         copied = dict(row)
         copied[category_field] = (
-            ", ".join(str(row.get(field, "")) for field in dimensions)
-            if dimensions
-            else str(index + 1)
+            ", ".join(str(row.get(field, "")) for field in model.dimensions)
+            if model.dimensions
+            else ""
         )
         values.append(copied)
 
     y_encoding = {
         "field": category_field,
         "type": "nominal",
-        "title": ", ".join(dimensions) if dimensions else None,
+        "title": ", ".join(model.dimensions) if model.dimensions else None,
         "sort": None,
     }
     tooltip = [
-        *({"field": field, "type": "nominal"} for field in dimensions),
-        {"field": metric_field, "type": "quantitative"},
+        *({"field": field, "type": "nominal"} for field in model.dimensions),
+        {
+            "field": model.metric_field,
+            "type": "quantitative",
+            "format": (
+                "~s" if model.y_axis_format == "SMART_NUMBER" else model.y_axis_format
+            ),
+        },
     ]
+    axis_min = min(
+        0.0,
+        *model.measures,
+        *model.ranges,
+        *model.markers,
+        *model.marker_lines,
+    )
+    axis_max = max(
+        *model.measures,
+        *model.ranges,
+        *model.markers,
+        *model.marker_lines,
+    )
+    if axis_min == axis_max:
+        axis_max = axis_min + (abs(axis_min) or 1)
+    vega_format = "~s" if model.y_axis_format == "SMART_NUMBER" else model.y_axis_format
+
+    def label_at(labels: list[str], index: int, value: float, prefix: str) -> str:
+        if index < len(labels) and labels[index]:
+            return labels[index]
+        return f"{prefix} {format_numeric(model.y_axis_format, value)}"
+
+    def legend_color(name: str) -> dict[str, Any]:
+        return {
+            "datum": name,
+            "type": "nominal",
+            "legend": {"title": None} if model.show_legend else None,
+        }
+
     layers: list[dict[str, Any]] = []
-    for index, threshold in enumerate(
-        sorted(_bullet_numeric_tokens(form_data.get("ranges")), reverse=True)
-    ):
+    range_entries = sorted(
+        [
+            (
+                threshold,
+                label_at(model.range_labels, index, threshold, "Range"),
+            )
+            for index, threshold in enumerate(model.ranges)
+        ],
+        key=lambda entry: entry[0],
+        reverse=True,
+    )
+    for index, (threshold, label) in enumerate(range_entries):
         layers.append(
             {
                 "mark": {
@@ -626,26 +877,52 @@ def _generate_bullet_vega_lite_preview(
                     "opacity": max(0.08, 0.28 - index * 0.04),
                 },
                 "encoding": {
-                    "x": {"datum": 0, "type": "quantitative"},
+                    "x": {"datum": axis_min, "type": "quantitative"},
                     "x2": {"datum": threshold},
+                    "y": y_encoding,
+                    "color": legend_color(
+                        f"{label}: ≤ {format_numeric(model.y_axis_format, threshold)}"
+                    ),
+                    "tooltip": [
+                        {"value": label, "title": "Range"},
+                        {
+                            "value": format_numeric(model.y_axis_format, threshold),
+                            "title": "Threshold",
+                        },
+                    ],
                 },
             }
         )
+        if model.show_labels and index < len(model.range_labels):
+            layers.append(
+                {
+                    "mark": {"type": "text", "align": "right", "dx": -3},
+                    "encoding": {
+                        "x": {"datum": threshold, "type": "quantitative"},
+                        "y": y_encoding,
+                        "text": {"value": label},
+                    },
+                }
+            )
     layers.append(
         {
             "mark": {"type": "bar", "tooltip": True, "size": 16},
             "encoding": {
                 "x": {
-                    "field": metric_field,
+                    "field": model.metric_field,
                     "type": "quantitative",
-                    "title": metric_field,
+                    "title": model.metric_field,
+                    "scale": {"domain": [axis_min, axis_max]},
+                    "axis": {"format": vega_format},
                 },
                 "y": y_encoding,
                 "tooltip": tooltip,
+                "color": legend_color(model.metric_field),
             },
         }
     )
-    for marker in _bullet_numeric_tokens(form_data.get("markers")):
+    for index, marker in enumerate(model.markers):
+        label = label_at(model.marker_labels, index, marker, "Marker")
         layers.append(
             {
                 "mark": {
@@ -657,14 +934,48 @@ def _generate_bullet_vega_lite_preview(
                 "encoding": {
                     "x": {"datum": marker, "type": "quantitative"},
                     "y": y_encoding,
+                    "color": legend_color(
+                        f"{label}: {format_numeric(model.y_axis_format, marker)}"
+                    ),
+                    "tooltip": [
+                        {"value": label, "title": "Marker"},
+                        {
+                            "value": format_numeric(model.y_axis_format, marker),
+                            "title": "Value",
+                        },
+                    ],
                 },
             }
         )
-    for marker_line in _bullet_numeric_tokens(form_data.get("marker_lines")):
+        if model.show_labels:
+            layers.append(
+                {
+                    "mark": {"type": "text", "dy": 14},
+                    "encoding": {
+                        "x": {"datum": marker, "type": "quantitative"},
+                        "y": y_encoding,
+                        "text": {"value": label},
+                    },
+                }
+            )
+    for index, marker_line in enumerate(model.marker_lines):
+        label = label_at(model.marker_line_labels, index, marker_line, "Marker line")
         layers.append(
             {
                 "mark": {"type": "rule", "strokeWidth": 2},
-                "encoding": {"x": {"datum": marker_line, "type": "quantitative"}},
+                "encoding": {
+                    "x": {"datum": marker_line, "type": "quantitative"},
+                    "color": legend_color(
+                        f"{label}: {format_numeric(model.y_axis_format, marker_line)}"
+                    ),
+                    "tooltip": [
+                        {"value": label, "title": "Marker line"},
+                        {
+                            "value": format_numeric(model.y_axis_format, marker_line),
+                            "title": "Value",
+                        },
+                    ],
+                },
             }
         )
 
@@ -673,7 +984,36 @@ def _generate_bullet_vega_lite_preview(
         specification={
             "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
             "data": {"values": values},
+            "transform": [
+                {
+                    "calculate": (
+                        " + ', ' + ".join(
+                            f"toString(datum[{utils_json.dumps(field)}])"
+                            for field in model.dimensions
+                        )
+                        if model.dimensions
+                        else "''"
+                    ),
+                    "as": category_field,
+                }
+            ],
             "layer": layers,
+            "resolve": {"scale": {"color": "independent"}},
+            "usermeta": {
+                "bullet": {
+                    "metric": model.metric_field,
+                    "dimensions": model.dimensions,
+                    "ranges": model.ranges,
+                    "range_labels": model.range_labels,
+                    "markers": model.markers,
+                    "marker_labels": model.marker_labels,
+                    "marker_lines": model.marker_lines,
+                    "marker_line_labels": model.marker_line_labels,
+                    "y_axis_format": model.y_axis_format,
+                    "show_labels": model.show_labels,
+                    "show_legend": model.show_legend,
+                }
+            },
         },
         supports_streaming=False,
     )
@@ -685,8 +1025,7 @@ def _generate_vega_lite_preview_from_data(  # noqa: C901
     """Generate Vega-Lite preview from raw data and form_data."""
     viz_type = form_data.get("viz_type", "table")
     if viz_type == "bullet" and data:
-        if bullet_preview := _generate_bullet_vega_lite_preview(data, form_data):
-            return bullet_preview
+        return _generate_bullet_vega_lite_preview(data, form_data)
 
     # Map Superset viz types to Vega-Lite marks
     viz_to_mark = {

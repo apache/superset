@@ -229,6 +229,11 @@ class ASCIIPreviewStrategy(PreviewFormatStrategy):
     def generate(self) -> ASCIIPreview | ChartError:
         try:
             from superset.commands.chart.data.get_data_command import ChartDataCommand
+            from superset.mcp_service.chart.preview_utils import (
+                _generate_ascii_preview_from_data,
+                BulletOutputError,
+            )
+            from superset.mcp_service.chart.query_result import query_result_failure
             from superset.utils import json as utils_json
 
             form_data = utils_json.loads(self.chart.params) if self.chart.params else {}
@@ -261,11 +266,17 @@ class ASCIIPreviewStrategy(PreviewFormatStrategy):
             command.validate()
             result = command.run()
 
+            if failure := query_result_failure(result):
+                return failure
+
             data: list[Any] = []
             if result and "queries" in result and len(result["queries"]) > 0:
                 data = result["queries"][0].get("data") or []
 
-            ascii_chart = generate_ascii_chart(
+            if self.chart.viz_type == "bullet":
+                return _generate_ascii_preview_from_data(data, form_data)
+
+            ascii_content = generate_ascii_chart(
                 data,
                 self.chart.viz_type or "table",
                 self.request.ascii_width or 80,
@@ -273,11 +284,13 @@ class ASCIIPreviewStrategy(PreviewFormatStrategy):
             )
 
             return ASCIIPreview(
-                ascii_content=ascii_chart,
+                ascii_content=ascii_content,
                 width=self.request.ascii_width or 80,
                 height=self.request.ascii_height or 20,
             )
 
+        except BulletOutputError as ex:
+            return ChartError(error=str(ex), error_type=ex.error_type)
         except (
             CommandException,
             SupersetException,
@@ -303,6 +316,15 @@ class TablePreviewStrategy(PreviewFormatStrategy):
 
             form_data = utils_json.loads(self.chart.params) if self.chart.params else {}
 
+            if self.chart.viz_type == "bullet":
+                return ChartError(
+                    error=(
+                        "Table previews cannot represent Bullet ranges, markers, "
+                        "labels, and legend semantics"
+                    ),
+                    error_type="UnsupportedFormat",
+                )
+
             # Check if datasource_id is None
             if self.chart.datasource_id is None:
                 return ChartError(
@@ -325,6 +347,11 @@ class TablePreviewStrategy(PreviewFormatStrategy):
             command = ChartDataCommand(query_context)
             command.validate()
             result = command.run()
+
+            from superset.mcp_service.chart.query_result import query_result_failure
+
+            if failure := query_result_failure(result):
+                return failure
 
             data: list[Any] = []
             if result and "queries" in result and len(result["queries"]) > 0:
@@ -366,13 +393,18 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
         except (ValueError, TypeError):
             return None
 
-    def generate(self) -> VegaLitePreview | ChartError:
+    def generate(self) -> VegaLitePreview | ChartError:  # noqa: C901
         """Generate Vega-Lite JSON specification from chart data."""
         try:
             # Get chart data directly using the same logic as get_chart_data tool
             # but without calling the MCP tool wrapper
             from superset.commands.chart.data.get_data_command import ChartDataCommand
             from superset.daos.chart import ChartDAO
+            from superset.mcp_service.chart.preview_utils import (
+                _generate_bullet_vega_lite_preview,
+                BulletOutputError,
+            )
+            from superset.mcp_service.chart.query_result import query_result_failure
             from superset.utils import json as utils_json
 
             # Get the chart object if we don't have form_data access
@@ -418,6 +450,9 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
             command.validate()
             result = command.run()
 
+            if failure := query_result_failure(result):
+                return failure
+
             # Extract data from result
             chart_data = []
             if result and "queries" in result and len(result["queries"]) > 0:
@@ -429,6 +464,9 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
                     error_type="NoDataError",
                 )
 
+            if self.chart.viz_type == "bullet":
+                return _generate_bullet_vega_lite_preview(chart_data, form_data)
+
             # Convert Superset chart type to Vega-Lite specification
             vega_spec = self._create_vega_lite_spec(chart_data)
 
@@ -438,6 +476,8 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
                 supports_streaming=False,
             )
 
+        except BulletOutputError as ex:
+            return ChartError(error=str(ex), error_type=ex.error_type)
         except (
             CommandException,
             SupersetException,
@@ -458,6 +498,15 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
         """Create Vega-Lite specification from chart data."""
         if not data:
             return {"data": {"values": []}, "mark": "point"}
+
+        if getattr(self.chart, "viz_type", None) == "bullet":
+            from superset.mcp_service.chart.preview_utils import (
+                _generate_bullet_vega_lite_preview,
+            )
+
+            return _generate_bullet_vega_lite_preview(
+                data, self._get_form_data() or {}
+            ).specification
 
         # Get data fields and analyze types
         first_row = data[0] if data else {}
@@ -709,6 +758,7 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
             _bullet_numeric_tokens,
             _form_column_label,
             _form_metric_label,
+            BulletOutputError,
         )
         from superset.utils import json as utils_json
 
@@ -728,21 +778,14 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
 
         metric_field = result_field(_form_metric_label(form_data.get("metric")))
         if metric_field is None:
-            metric_field = next(
-                (
-                    field
-                    for field in reversed(fields)
-                    if field_types.get(field) == "quantitative"
-                ),
-                fields[-1] if fields else "metric",
+            raise BulletOutputError(
+                "Declared Bullet metric alias is missing from preview fields"
             )
         dimensions = [
             field
             for column in form_data.get("groupby") or []
             if (field := result_field(_form_column_label(column)))
         ]
-        if not dimensions:
-            dimensions = [field for field in fields if field != metric_field]
 
         category_field = "__mcp_bullet_category"
         calculate = (

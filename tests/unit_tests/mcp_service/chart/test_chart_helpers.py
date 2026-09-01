@@ -222,6 +222,80 @@ def test_build_query_dicts_from_form_data_uses_raw_all_columns(monkeypatch):
     ]
 
 
+def test_build_query_dicts_scopes_mixed_timeseries_ordering(monkeypatch):
+    """Primary ordering must never leak into the secondary metric contract."""
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda datasource_id, datasource_type: "base",
+    )
+    m1 = {"expressionType": "SQL", "sqlExpression": "SUM(a)", "label": "m1"}
+    m2 = {"expressionType": "SQL", "sqlExpression": "SUM(b)", "label": "m2"}
+    form_data = {
+        "viz_type": "mixed_timeseries",
+        "x_axis": "ds",
+        "metrics": [m1],
+        "metrics_b": [m2],
+        "groupby": ["primary_group"],
+        "groupby_b": ["secondary_group"],
+        "orderby": [[m1, False]],
+        "orderby_b": [[m2, True]],
+    }
+
+    primary, secondary = build_query_dicts_from_form_data(form_data, 1, "table")
+
+    assert primary["metrics"] == [m1]
+    assert primary["orderby"] == [[m1, False]]
+    assert secondary["metrics"] == [m2]
+    assert secondary["orderby"] == [[m2, True]]
+
+
+def test_build_query_dicts_mixed_secondary_does_not_inherit_primary_orderby(
+    monkeypatch,
+):
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda datasource_id, datasource_type: "base",
+    )
+    form_data = {
+        "viz_type": "mixed_timeseries",
+        "metrics": ["m1"],
+        "metrics_b": ["m2"],
+        "orderby": [["m1", False]],
+    }
+
+    primary, secondary = build_query_dicts_from_form_data(form_data, 1, "table")
+
+    assert primary["orderby"] == [["m1", False]]
+    assert "orderby" not in secondary
+
+
+def test_build_query_dicts_preserves_native_orderby_for_single_query(monkeypatch):
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda datasource_id, datasource_type: "base",
+    )
+    orderby = [["SUM(revenue)", False]]
+    queries = build_query_dicts_from_form_data(
+        {
+            "viz_type": "bullet",
+            "metric": "SUM(revenue)",
+            "groupby": ["region"],
+            "orderby": orderby,
+        },
+        1,
+        "table",
+    )
+
+    assert queries == [
+        {
+            "columns": ["region"],
+            "filters": [],
+            "metrics": ["SUM(revenue)"],
+            "orderby": orderby,
+        }
+    ]
+
+
 def test_merge_form_data_filters_into_query_applies_regular_overrides():
     query = {
         "filters": [{"col": "country", "op": "==", "val": "US"}],
