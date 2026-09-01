@@ -55,6 +55,9 @@ from superset.mcp_service.chart.schemas import (
     PerformanceMetadata,
     UpdateChartPreviewRequest,
 )
+from superset.mcp_service.chart.sunburst import (
+    normalize_sunburst_form_data_references,
+)
 from superset.mcp_service.utils.oauth2_utils import (
     build_oauth2_redirect_message,
     OAUTH2_CONFIG_ERROR_MESSAGE,
@@ -71,10 +74,30 @@ INVALID_FORM_DATA_KEY_WARNING = (
 )
 
 
+def _validation_error_result(compile_result: Any) -> Dict[str, Any]:
+    """Build the structured response used for preview validation failures."""
+    if compile_result.error_obj is not None:
+        error_payload = compile_result.error_obj.model_dump()
+    else:
+        error_payload = {
+            "error_type": "validation_error",
+            "message": "Chart preview validation failed",
+            "details": compile_result.error or "",
+            "error_code": compile_result.error_code,
+            "suggestions": [],
+        }
+    return {
+        "chart": None,
+        "error": error_payload,
+        "success": False,
+        "schema_version": "2.0",
+        "api_version": "v1",
+    }
+
+
 def _find_dataset(dataset_id: int | str) -> Any | None:
-    """Look up a dataset by numeric ID or UUID and check access."""
+    """Look up a dataset by numeric ID or UUID."""
     from superset.daos.dataset import DatasetDAO
-    from superset.mcp_service.auth import has_dataset_access
 
     if isinstance(dataset_id, int) or (
         isinstance(dataset_id, str) and dataset_id.isdigit()
@@ -83,8 +106,6 @@ def _find_dataset(dataset_id: int | str) -> Any | None:
     else:
         dataset = DatasetDAO.find_by_id(dataset_id, id_column="uuid")
 
-    if dataset and not has_dataset_access(dataset):
-        return None
     return dataset
 
 
@@ -197,6 +218,21 @@ def update_chart_preview(  # noqa: C901
         with event_logger.log_context(action="mcp.update_chart_preview.dataset_lookup"):
             dataset = _find_dataset(request.dataset_id)
 
+            if dataset is not None and not has_dataset_access(dataset):
+                return {
+                    "chart": None,
+                    "error": {
+                        "error_type": "DatasetNotAccessible",
+                        "message": f"Dataset not found: {request.dataset_id}",
+                        "details": (
+                            f"Dataset {request.dataset_id} is missing or inaccessible."
+                        ),
+                    },
+                    "success": False,
+                    "schema_version": "2.0",
+                    "api_version": "v1",
+                }
+
             if not dataset:
                 return {
                     "chart": None,
@@ -221,6 +257,23 @@ def update_chart_preview(  # noqa: C901
                 }
 
         with event_logger.log_context(action="mcp.update_chart_preview.form_data"):
+            from superset.mcp_service.chart.validation.dataset_validator import (
+                build_dataset_context_from_orm,
+                DatasetValidator,
+            )
+
+            dataset_context = build_dataset_context_from_orm(dataset)
+            static_result = validate_and_compile(
+                config, {}, dataset, run_compile_check=False
+            )
+            if not static_result.success:
+                return _validation_error_result(static_result)
+            config = DatasetValidator.normalize_column_names(
+                config,
+                dataset.id,
+                dataset_context=dataset_context,
+            )
+
             # Map the new config to form_data format
             # Pass dataset_id to enable column type checking
             new_form_data = map_config_to_form_data(
@@ -251,60 +304,23 @@ def update_chart_preview(  # noqa: C901
                 if getattr(config, "filters", None) == []:
                     new_form_data.pop("adhoc_filters", None)
 
-            # Tier-1 schema validation against the dataset (no DB roundtrip).
-            # Runs AFTER the filter merge so filter columns are also validated.
-            from superset.daos.dataset import DatasetDAO
-
-            if isinstance(request.dataset_id, int) or (
-                isinstance(request.dataset_id, str) and request.dataset_id.isdigit()
+            if (
+                new_form_data.get("viz_type") == "sunburst_v2"
+                and dataset_context is not None
             ):
-                dataset = DatasetDAO.find_by_id(int(request.dataset_id))
-            else:
-                dataset = DatasetDAO.find_by_id(request.dataset_id, id_column="uuid")
-
-            if dataset is None or not has_dataset_access(dataset):
-                return {
-                    "chart": None,
-                    "error": {
-                        "error_type": "DatasetNotAccessible",
-                        "message": (
-                            f"Dataset not found: {request.dataset_id}. "
-                            "Use list_datasets to find valid dataset IDs."
-                        ),
-                        "details": (
-                            f"Dataset {request.dataset_id} is missing or inaccessible."
-                        ),
-                    },
-                    "success": False,
-                    "schema_version": "2.0",
-                    "api_version": "v1",
-                }
+                new_form_data = normalize_sunburst_form_data_references(
+                    new_form_data, dataset_context
+                )
 
             compile_result = validate_and_compile(
-                config, new_form_data, dataset, run_compile_check=False
+                config, new_form_data, dataset, run_compile_check=True
             )
             if not compile_result.success:
                 logger.warning(
                     "update_chart_preview validation failed: %s",
                     compile_result.error,
                 )
-                if compile_result.error_obj is not None:
-                    error_payload = compile_result.error_obj.model_dump()
-                else:
-                    error_payload = {
-                        "error_type": "validation_error",
-                        "message": "Chart preview validation failed",
-                        "details": compile_result.error or "",
-                        "error_code": compile_result.error_code,
-                        "suggestions": [],
-                    }
-                return {
-                    "chart": None,
-                    "error": error_payload,
-                    "success": False,
-                    "schema_version": "2.0",
-                    "api_version": "v1",
-                }
+                return _validation_error_result(compile_result)
 
             # Generate new explore link with updated form_data. This preview flow
             # extracts and re-caches the form_data_key, so force that URL shape.
@@ -349,6 +365,7 @@ def update_chart_preview(  # noqa: C901
         )
 
         previews: Dict[str, Any] = {}
+        preview_errors: Dict[str, Any] = {}
         if request.generate_preview:
             try:
                 with event_logger.log_context(
@@ -367,6 +384,9 @@ def update_chart_preview(  # noqa: C901
                         )
 
                         if isinstance(preview_result, ChartError):
+                            preview_errors[format_type] = preview_result.model_dump(
+                                mode="json"
+                            )
                             logger.warning(
                                 "Preview '%s' failed: %s",
                                 format_type,
@@ -396,6 +416,7 @@ def update_chart_preview(  # noqa: C901
             "error": None,
             # Enhanced fields for better LLM integration
             "previews": previews,
+            "preview_errors": preview_errors,
             "capabilities": capabilities.model_dump() if capabilities else None,
             "semantics": semantics.model_dump() if semantics else None,
             "explore_url": explore_url,

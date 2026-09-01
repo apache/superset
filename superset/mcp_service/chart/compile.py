@@ -33,6 +33,7 @@ tier(s) appropriate for its SLA.
 from __future__ import annotations
 
 import logging
+from copy import deepcopy
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Literal
 
@@ -40,6 +41,12 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from superset.commands.exceptions import CommandException
 from superset.errors import SupersetErrorType
+from superset.mcp_service.chart.query_result import (
+    first_query_data,
+    query_result_failure,
+)
+from superset.mcp_service.chart.schemas import ChartError
+from superset.mcp_service.chart.sunburst import validate_sunburst_result_data
 from superset.mcp_service.chart.validation.dataset_validator import (
     build_dataset_context_from_orm,
     DatasetValidator,
@@ -97,7 +104,7 @@ class CompileResult:
     row_count: int | None = None
 
 
-def _compile_chart(
+def _compile_chart(  # noqa: C901
     form_data: Dict[str, Any],
     dataset_id: int,
 ) -> CompileResult:
@@ -116,36 +123,61 @@ def _compile_chart(
         ChartDataCacheLoadError,
         ChartDataQueryFailedError,
     )
-    from superset.common.form_data_query_context import (
+    from superset.mcp_service.chart.chart_helpers import (
         build_query_context_from_form_data,
     )
-    from superset.common.query_context_factory import QueryContextFactory
 
     try:
-        query_payload = build_query_context_from_form_data(
-            form_data,
-            {"id": dataset_id, "type": "table"},
-            viz_type=form_data.get("viz_type"),
-        )
-        query = query_payload["queries"][0]
-        query["row_limit"] = 2
-
-        factory = QueryContextFactory()
-        query_context = factory.create(
-            datasource={"id": dataset_id, "type": "table"},
-            queries=[query],
-            form_data=form_data,
+        query_form_data = deepcopy(form_data)
+        query_form_data["datasource"] = f"{dataset_id}__table"
+        query_context = build_query_context_from_form_data(
+            query_form_data,
+            row_limit=2,
+            force=False,
         )
 
         command = ChartDataCommand(query_context)
         command.validate()
         result = command.run()
 
+        if query_failure := query_result_failure(result):
+            error_str = query_failure.error
+            return CompileResult(
+                success=False,
+                error=error_str,
+                error_code="CHART_COMPILE_FAILED",
+                tier="compile",
+                error_obj=_build_compile_error(error_str),
+            )
+
+        data, result_error = first_query_data(result)
+        if result_error is not None:
+            return CompileResult(
+                success=False,
+                error=result_error.error,
+                error_code="CHART_COMPILE_FAILED",
+                tier="compile",
+                error_obj=_build_compile_error(result_error.error),
+            )
+        assert data is not None
+
+        if form_data.get("viz_type") == "sunburst_v2":
+            _, sunburst_error = validate_sunburst_result_data(data, form_data)
+            if sunburst_error is not None:
+                return CompileResult(
+                    success=False,
+                    error=sunburst_error.error,
+                    error_code="INVALID_SUNBURST_RESULT",
+                    tier="compile",
+                    error_obj=_build_sunburst_result_error(sunburst_error),
+                )
+
         warnings: List[str] = []
         row_count = 0
-        for query in result.get("queries", []):
-            if query.get("error"):
-                error_str = str(query["error"])
+        for query in result["queries"]:
+            query_data = query.get("data")
+            if not isinstance(query_data, list):
+                error_str = "Chart query result data is not an array of rows."
                 return CompileResult(
                     success=False,
                     error=error_str,
@@ -153,7 +185,7 @@ def _compile_chart(
                     tier="compile",
                     error_obj=_build_compile_error(error_str),
                 )
-            row_count += len(query.get("data", []))
+            row_count += len(query_data)
 
         return CompileResult(success=True, warnings=warnings, row_count=row_count)
     except (ChartDataQueryFailedError, ChartDataCacheLoadError) as exc:
@@ -200,23 +232,7 @@ def _compile_chart(
         )
 
 
-def _adhoc_filter_column_valid(
-    column: str, clause: str, dataset_context: DatasetContext
-) -> bool:
-    """Return True if *column* is a valid reference for this filter clause.
-
-    WHERE filters must reference a physical column; HAVING filters may also
-    reference a saved metric because Superset resolves metric names there.
-    """
-    if clause == "HAVING":
-        return DatasetValidator._column_exists(column, dataset_context)
-    return any(
-        col["name"].lower() == column.lower()
-        for col in dataset_context.available_columns
-    )
-
-
-def _validate_adhoc_filter_columns(
+def _validate_adhoc_filter_columns(  # noqa: C901
     form_data: Dict[str, Any], dataset_context: DatasetContext
 ) -> ChartGenerationError | None:
     """Tier-1 check for adhoc-filter column references stored in ``form_data``.
@@ -240,7 +256,29 @@ def _validate_adhoc_filter_columns(
         if not column or not isinstance(column, str):
             continue
         clause = f.get("clause", "WHERE").upper()
-        if not _adhoc_filter_column_valid(column, clause, dataset_context):
+        candidates = list(dataset_context.available_columns)
+        if clause == "HAVING":
+            candidates.extend(dataset_context.available_metrics)
+        names = [str(candidate["name"]) for candidate in candidates]
+        if column in names:
+            continue
+        folded_matches = [
+            name for name in names if name.casefold() == column.casefold()
+        ]
+        if len(folded_matches) > 1:
+            return ChartGenerationError(
+                error_type="ambiguous_dataset_reference",
+                message=f"Filter reference {column!r} is ambiguous",
+                details=(
+                    "The case-insensitive filter reference matches multiple "
+                    f"candidates: {', '.join(repr(name) for name in folded_matches)}."
+                ),
+                suggestions=[
+                    f"Use the exact name {name!r}" for name in folded_matches[:10]
+                ],
+                error_code="AMBIGUOUS_DATASET_REFERENCE",
+            )
+        if not folded_matches:
             invalid.append(column)
 
     if not invalid:
@@ -272,6 +310,80 @@ def _validate_adhoc_filter_columns(
         suggestions=suggestions,
         error_code="CHART_VALIDATION_FAILED",
     )
+
+
+def _validate_sunburst_temporal_state(
+    form_data: Dict[str, Any], dataset_context: DatasetContext
+) -> ChartGenerationError | None:
+    """Validate the final native temporal column/grain pair for Sunburst."""
+    if form_data.get("viz_type") != "sunburst_v2":
+        return None
+    grain = form_data.get("time_grain_sqla")
+    temporal_column = form_data.get("granularity_sqla")
+    if grain and not temporal_column:
+        return ChartGenerationError(
+            error_type="invalid_temporal_state",
+            message="Sunburst time grain requires a temporal column",
+            details=(
+                "time_grain_sqla cannot be retained without granularity_sqla in "
+                "the final chart state."
+            ),
+            suggestions=[
+                "Set temporal_column together with time_grain",
+                "Clear time_grain when clearing temporal_column",
+            ],
+            error_code="INVALID_TEMPORAL_STATE",
+        )
+    if not temporal_column:
+        return None
+    if not isinstance(temporal_column, str):
+        return ChartGenerationError(
+            error_type="invalid_temporal_column",
+            message="Sunburst temporal column must be a dataset column name",
+            details="granularity_sqla is malformed in the final chart state.",
+            suggestions=["Choose a temporal column from the dataset"],
+            error_code="NON_TEMPORAL_COLUMN",
+        )
+    names = [str(column["name"]) for column in dataset_context.available_columns]
+    if temporal_column in names:
+        matches = [temporal_column]
+    else:
+        matches = [
+            name for name in names if name.casefold() == temporal_column.casefold()
+        ]
+    if len(matches) > 1:
+        return ChartGenerationError(
+            error_type="ambiguous_dataset_reference",
+            message=f"Temporal reference {temporal_column!r} is ambiguous",
+            details=(
+                "The case-insensitive temporal reference matches multiple "
+                f"candidates: {', '.join(repr(name) for name in matches)}."
+            ),
+            suggestions=[f"Use the exact name {name!r}" for name in matches[:10]],
+            error_code="AMBIGUOUS_DATASET_REFERENCE",
+        )
+    if not matches:
+        return ChartGenerationError(
+            error_type="missing_temporal_column",
+            message=f"Temporal column {temporal_column!r} does not exist",
+            details="The final Sunburst temporal column must exist on the dataset.",
+            suggestions=["Choose a temporal column from the dataset"],
+            error_code="MISSING_TEMPORAL_COLUMN",
+        )
+    matching_column = next(
+        column
+        for column in dataset_context.available_columns
+        if column["name"] == matches[0]
+    )
+    if not matching_column.get("is_temporal", False):
+        return ChartGenerationError(
+            error_type="invalid_temporal_column",
+            message=f"Column {matches[0]!r} is not temporal",
+            details="Sunburst time grain requires a temporal dataset column.",
+            suggestions=["Choose a temporal column from the dataset"],
+            error_code="NON_TEMPORAL_COLUMN",
+        )
+    return None
 
 
 def _is_inert_adhoc_filter(filter_: dict[str, Any]) -> bool:
@@ -358,6 +470,21 @@ def _build_compile_error(message: str) -> ChartGenerationError:
     )
 
 
+def _build_sunburst_result_error(error: ChartError) -> ChartGenerationError:
+    """Promote Sunburst result validation failures into compile errors."""
+    return ChartGenerationError(
+        error_type=error.error_type,
+        message="Sunburst query returned data that cannot render as a Sunburst.",
+        details=error.error,
+        suggestions=[
+            "Use a metric that returns finite numeric values",
+            "Verify saved and SQL metric result aliases",
+            "Ensure every hierarchy column is present in the query result",
+        ],
+        error_code="INVALID_SUNBURST_RESULT",
+    )
+
+
 def validate_and_compile(
     config: Any,
     form_data: Dict[str, Any],
@@ -418,6 +545,17 @@ def validate_and_compile(
                 error_code="CHART_VALIDATION_FAILED",
                 tier="validation",
                 error_obj=filter_error,
+            )
+        temporal_state_error = _validate_sunburst_temporal_state(
+            form_data, dataset_context
+        )
+        if temporal_state_error is not None:
+            return CompileResult(
+                success=False,
+                error=temporal_state_error.details or temporal_state_error.message,
+                error_code="CHART_VALIDATION_FAILED",
+                tier="validation",
+                error_obj=temporal_state_error,
             )
 
     if not run_compile_check:

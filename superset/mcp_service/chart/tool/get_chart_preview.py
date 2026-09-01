@@ -39,6 +39,11 @@ from superset.mcp_service.chart.chart_helpers import (
     find_chart_by_identifier,
 )
 from superset.mcp_service.chart.chart_utils import validate_chart_dataset
+from superset.mcp_service.chart.preview_utils import (
+    _generate_ascii_preview_from_data,
+    _generate_table_preview_from_data,
+)
+from superset.mcp_service.chart.query_result import first_query_data
 from superset.mcp_service.chart.schemas import (
     AccessibilityMetadata,
     ASCIIPreview,
@@ -51,6 +56,7 @@ from superset.mcp_service.chart.schemas import (
     URLPreview,
     VegaLitePreview,
 )
+from superset.mcp_service.chart.sunburst import unsupported_sunburst_preview
 from superset.mcp_service.utils.oauth2_utils import (
     build_oauth2_redirect_message,
     OAUTH2_CONFIG_ERROR_MESSAGE,
@@ -260,10 +266,15 @@ class ASCIIPreviewStrategy(PreviewFormatStrategy):
             command = ChartDataCommand(query_context)
             command.validate()
             result = command.run()
+            data, result_error = first_query_data(
+                result, none_as_empty=self.chart.viz_type != "sunburst_v2"
+            )
+            if result_error is not None:
+                return result_error
+            assert data is not None
 
-            data: list[Any] = []
-            if result and "queries" in result and len(result["queries"]) > 0:
-                data = result["queries"][0].get("data") or []
+            if self.chart.viz_type == "sunburst_v2":
+                return _generate_ascii_preview_from_data(data, form_data)
 
             ascii_chart = generate_ascii_chart(
                 data,
@@ -325,10 +336,15 @@ class TablePreviewStrategy(PreviewFormatStrategy):
             command = ChartDataCommand(query_context)
             command.validate()
             result = command.run()
+            data, result_error = first_query_data(
+                result, none_as_empty=self.chart.viz_type != "sunburst_v2"
+            )
+            if result_error is not None:
+                return result_error
+            assert data is not None
 
-            data: list[Any] = []
-            if result and "queries" in result and len(result["queries"]) > 0:
-                data = result["queries"][0].get("data") or []
+            if self.chart.viz_type == "sunburst_v2":
+                return _generate_table_preview_from_data(data, form_data)
 
             table_data = generate_ascii_table(data, 120)
 
@@ -368,6 +384,8 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
 
     def generate(self) -> VegaLitePreview | ChartError:
         """Generate Vega-Lite JSON specification from chart data."""
+        if self.chart.viz_type == "sunburst_v2":
+            return unsupported_sunburst_preview("Vega-Lite")
         try:
             # Get chart data directly using the same logic as get_chart_data tool
             # but without calling the MCP tool wrapper
@@ -417,11 +435,15 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
             command = ChartDataCommand(query_context)
             command.validate()
             result = command.run()
+            data, result_error = first_query_data(
+                result, none_as_empty=self.chart.viz_type != "sunburst_v2"
+            )
+            if result_error is not None:
+                return result_error
+            assert data is not None
 
             # Extract data from result
-            chart_data = []
-            if result and "queries" in result and len(result["queries"]) > 0:
-                chart_data = result["queries"][0].get("data", [])
+            chart_data = data
 
             if not chart_data or not isinstance(chart_data, list):
                 return ChartError(

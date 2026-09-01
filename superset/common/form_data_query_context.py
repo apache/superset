@@ -210,6 +210,12 @@ def orderby_from_form_data(
     if not metrics:
         return []
 
+    # Sunburst's frontend adds ordering only when sort_by_metric is enabled.
+    # Do not apply the generic aggregate-chart fallback when it is explicitly
+    # false, or compile/preview selects different rows from Explore.
+    if viz_type == "sunburst_v2" and not form_data.get("sort_by_metric"):
+        return []
+
     # The drag-and-drop "sort by" control persists a list; the frontend unwraps it
     # with ``ensureIsArray(...)[0]`` (``plugin-chart-table/src/buildQuery.ts:67``).
     # Read raw, a list would nest inside ``orderby`` and fail the query.

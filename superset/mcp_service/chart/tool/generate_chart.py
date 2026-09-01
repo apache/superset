@@ -701,6 +701,7 @@ async def generate_chart(  # noqa: C901
         # Generate previews if requested
         await ctx.report_progress(3, 5, "Generating chart previews")
         previews = {}
+        preview_errors: dict[str, ChartError] = {}
         if request.generate_preview:
             await ctx.debug(
                 "Generating previews: formats=%s" % (str(request.preview_formats),)
@@ -727,6 +728,7 @@ async def generate_chart(  # noqa: C901
                             )
 
                             if isinstance(preview_result, ChartError):
+                                preview_errors[format_type] = preview_result
                                 await ctx.warning(
                                     "Preview '%s' failed: %s"
                                     % (format_type, preview_result.error)
@@ -766,6 +768,7 @@ async def generate_chart(  # noqa: C901
                                 )
 
                                 if isinstance(preview_result, ChartError):
+                                    preview_errors[format_type] = preview_result
                                     await ctx.warning(
                                         "Preview '%s' failed: %s"
                                         % (format_type, preview_result.error)
@@ -850,6 +853,7 @@ async def generate_chart(  # noqa: C901
             "error": None,
             # Enhanced fields for better LLM integration
             "previews": previews,
+            "preview_errors": preview_errors,
             "capabilities": capabilities.model_dump() if capabilities else None,
             "semantics": semantics.model_dump() if semantics else None,
             "explore_url": explore_url,

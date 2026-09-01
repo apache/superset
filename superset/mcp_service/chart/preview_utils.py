@@ -24,13 +24,20 @@ from form data without requiring a saved chart object.
 
 import logging
 import math
+from copy import deepcopy
 from typing import Any, Dict, List
 
+from superset.mcp_service.chart.query_result import first_query_data
 from superset.mcp_service.chart.schemas import (
     ASCIIPreview,
     ChartError,
     TablePreview,
     VegaLitePreview,
+)
+from superset.mcp_service.chart.sunburst import (
+    resolve_sunburst_result_roles,
+    unsupported_sunburst_preview,
+    validate_sunburst_result_data,
 )
 
 logger = logging.getLogger(__name__)
@@ -63,6 +70,9 @@ def generate_preview_from_form_data(
     Returns:
         Preview object or ChartError
     """
+    if form_data.get("viz_type") == "sunburst_v2" and preview_format == "vega_lite":
+        return unsupported_sunburst_preview("Vega-Lite")
+
     try:
         # Execute query to get data
         from superset.commands.chart.data.get_data_command import ChartDataCommand
@@ -75,25 +85,17 @@ def generate_preview_from_form_data(
                 error=f"Dataset {dataset_id} not found", error_type="DatasetNotFound"
             )
 
-        # Create query context from form data using factory
-        from superset.common.form_data_query_context import (
+        # Use the same chart-aware builder as saved previews and get_chart_data.
+        from superset.mcp_service.chart.chart_helpers import (
             build_query_context_from_form_data,
         )
-        from superset.common.query_context_factory import QueryContextFactory
 
-        query_payload = build_query_context_from_form_data(
-            form_data,
-            {"id": dataset_id, "type": "table"},
-            viz_type=form_data.get("viz_type"),
-        )
-        query = query_payload["queries"][0]
-        query["row_limit"] = form_data.get("row_limit", 100)
-
-        factory = QueryContextFactory()
-        query_context_obj = factory.create(
-            datasource={"id": dataset_id, "type": "table"},
-            queries=[query],
-            form_data=form_data,
+        query_form_data = deepcopy(form_data)
+        query_form_data["datasource"] = f"{dataset_id}__table"
+        query_context_obj = build_query_context_from_form_data(
+            query_form_data,
+            row_limit=form_data.get("row_limit", 100),
+            force=False,
         )
 
         # Execute query
@@ -101,13 +103,10 @@ def generate_preview_from_form_data(
         command.validate()
         result = command.run()
 
-        if not result or not result.get("queries"):
-            return ChartError(
-                error="No data returned from query", error_type="EmptyResult"
-            )
-
-        query_result = result["queries"][0]
-        data = query_result.get("data", [])
+        data, result_error = first_query_data(result)
+        if result_error is not None:
+            return result_error
+        assert data is not None
 
         # Generate preview based on format
         if preview_format == "ascii":
@@ -131,7 +130,7 @@ def generate_preview_from_form_data(
 
 def _generate_ascii_preview_from_data(
     data: List[Dict[str, Any]], form_data: Dict[str, Any]
-) -> ASCIIPreview:
+) -> ASCIIPreview | ChartError:
     """Generate ASCII preview from raw data."""
     viz_type = form_data.get("viz_type", "table")
 
@@ -143,6 +142,9 @@ def _generate_ascii_preview_from_data(
     elif viz_type == "pie":
         content = _generate_safe_ascii_pie_chart(data)
     elif viz_type == "sunburst_v2":
+        _, error = validate_sunburst_result_data(data, form_data)
+        if error is not None:
+            return error
         content = _generate_safe_ascii_sunburst(data, form_data)
     else:
         content = _generate_safe_ascii_table(data)
@@ -206,8 +208,12 @@ def _format_value(val: Any, width: int) -> str:
 
 def _generate_table_preview_from_data(
     data: List[Dict[str, Any]], form_data: Dict[str, Any]
-) -> TablePreview:
+) -> TablePreview | ChartError:
     """Generate table preview from raw data with improved formatting."""
+    if form_data.get("viz_type") == "sunburst_v2":
+        _, error = validate_sunburst_result_data(data, form_data)
+        if error is not None:
+            return error
     if not data:
         return TablePreview(
             table_data="No data available", row_count=0, supports_sorting=False
@@ -424,23 +430,16 @@ def _generate_safe_ascii_sunburst(
     if not data:
         return "No data available for sunburst chart"
 
-    hierarchy = [
-        _sunburst_column_label(column) for column in form_data.get("columns") or []
-    ]
-    primary_label = _sunburst_metric_label(form_data.get("metric"))
-    if primary_label is None:
-        return "Malformed primary metric for sunburst chart"
+    roles, error = resolve_sunburst_result_roles(form_data)
+    if error is not None or roles is None:
+        return "Malformed form data for sunburst chart"
 
-    secondary_label = None
-    if secondary_metric := form_data.get("secondary_metric"):
-        secondary_label = _sunburst_metric_label(secondary_metric)
-        if secondary_label is None:
-            return "Malformed secondary metric for sunburst chart"
-
-    if not hierarchy:
-        return "No hierarchy columns available for sunburst chart"
-
-    lines = _sunburst_preview_lines(data, hierarchy, primary_label, secondary_label)
+    lines = _sunburst_preview_lines(
+        data,
+        list(roles.hierarchy),
+        roles.primary_metric,
+        roles.secondary_metric,
+    )
     rows_rendered = len(lines) - 2
 
     if not rows_rendered:
@@ -470,30 +469,6 @@ def _sunburst_preview_lines(
             values.append(f"{secondary_label}={row.get(secondary_label, 'N/A')}")
         lines.append(f"{path}: {', '.join(values)}")
     return lines
-
-
-def _sunburst_column_label(column: Any) -> str:
-    """Return the query output label for a native Sunburst hierarchy column."""
-    if isinstance(column, str):
-        return column
-    if not isinstance(column, dict):
-        return ""
-    return (
-        column.get("label")
-        or column.get("column_name")
-        or column.get("sqlExpression")
-        or ""
-    )
-
-
-def _sunburst_metric_label(metric: Any) -> str | None:
-    """Return a native metric's query label, or None for malformed input."""
-    from superset.utils.core import get_metric_name
-
-    try:
-        return get_metric_name(metric)
-    except (TypeError, ValueError):
-        return None
 
 
 def _generate_safe_ascii_table(data: List[Dict[str, Any]]) -> str:
@@ -534,9 +509,11 @@ def _is_nan(value: Any) -> bool:
 
 def _generate_vega_lite_preview_from_data(  # noqa: C901
     data: List[Dict[str, Any]], form_data: Dict[str, Any]
-) -> VegaLitePreview:
+) -> VegaLitePreview | ChartError:
     """Generate Vega-Lite preview from raw data and form_data."""
     viz_type = form_data.get("viz_type", "table")
+    if viz_type == "sunburst_v2":
+        return unsupported_sunburst_preview("Vega-Lite")
 
     # Map Superset viz types to Vega-Lite marks
     viz_to_mark = {

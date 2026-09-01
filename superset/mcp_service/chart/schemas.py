@@ -1357,8 +1357,9 @@ class SunburstChartConfig(BaseChartConfig):
                 )
             seen[folded] = role
 
-        if self.time_grain and not self.temporal_column:
-            raise ValueError("time_grain requires temporal_column")
+        # The final mapped form-data state validates the temporal column/grain
+        # pair. This permits update requests that change only the grain while
+        # preserving an existing temporal column.
         return self
 
 
@@ -3250,6 +3251,13 @@ class GenerateChartResponse(BaseModel):
     previews: Dict[str, ChartPreviewContent] = Field(
         default_factory=dict,
         description="Available preview formats keyed by format type",
+    )
+    preview_errors: Dict[str, ChartError] = Field(
+        default_factory=dict,
+        description=(
+            "Structured failures for requested preview formats that could not be "
+            "rendered faithfully"
+        ),
     )
 
     # LLM-friendly capabilities

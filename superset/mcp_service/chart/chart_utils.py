@@ -1075,9 +1075,10 @@ def map_sunburst_config(config: SunburstChartConfig) -> Dict[str, Any]:
         form_data["linear_color_scheme"] = config.linear_color_scheme
     if config.time_range is not None:
         form_data["time_range"] = config.time_range
+    if config.temporal_column is not None:
+        form_data["granularity_sqla"] = config.temporal_column
     if config.time_grain is not None:
         form_data["time_grain_sqla"] = config.time_grain
-        form_data["granularity_sqla"] = config.temporal_column
 
     add_currency_format(form_data, config.currency_format)
     _add_adhoc_filters(form_data, config.filters)
@@ -1109,7 +1110,7 @@ _SUNBURST_UPDATE_FIELD_KEYS: dict[str, str] = {
 }
 
 
-def merge_form_data_for_update(
+def merge_form_data_for_update(  # noqa: C901
     existing_form_data: Dict[str, Any],
     new_form_data: Dict[str, Any],
     config: Any,
@@ -1128,7 +1129,10 @@ def merge_form_data_for_update(
         return merged
 
     fields_set = config.model_fields_set
+    temporal_fields = {"time_grain", "temporal_column"}
     for field_name, form_key in _SUNBURST_UPDATE_FIELD_KEYS.items():
+        if field_name in temporal_fields:
+            continue
         if field_name not in fields_set:
             if form_key in existing_form_data:
                 merged[form_key] = existing_form_data[form_key]
@@ -1140,11 +1144,24 @@ def merge_form_data_for_update(
         if value is None or (field_name == "filters" and value == []):
             merged.pop(form_key, None)
 
-    # time_grain and its temporal subject are one frontend query-control pair.
-    if "time_grain" in fields_set and config.time_grain is None:
+    # Merge the temporal subject and grain as one final-state control pair.
+    temporal_set = "temporal_column" in fields_set
+    grain_set = "time_grain" in fields_set
+    if temporal_set and config.temporal_column is None:
         merged.pop("granularity_sqla", None)
-    if "temporal_column" in fields_set and config.temporal_column is None:
-        merged.pop("granularity_sqla", None)
+        merged.pop("time_grain_sqla", None)
+    elif temporal_set:
+        merged["granularity_sqla"] = config.temporal_column
+
+    if grain_set:
+        if config.time_grain is None:
+            merged.pop("time_grain_sqla", None)
+        else:
+            merged["time_grain_sqla"] = config.time_grain
+
+    # A grain without a subject is never a valid final Sunburst state.
+    if not merged.get("granularity_sqla"):
+        merged.pop("time_grain_sqla", None)
     return merged
 
 
@@ -1797,7 +1814,9 @@ def analyze_chart_capabilities(viz_type: str | None, config: Any) -> ChartCapabi
     # Determine optimal formats
     optimal_formats = ["url"]  # Always include static image
     if supports_interaction:
-        optimal_formats.extend(["interactive", "vega_lite"])
+        optimal_formats.append("interactive")
+        if viz_type != "sunburst_v2":
+            optimal_formats.append("vega_lite")
     optimal_formats.extend(["ascii", "table"])
 
     # Classify data types

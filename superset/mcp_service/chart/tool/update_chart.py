@@ -47,11 +47,15 @@ from superset.mcp_service.chart.chart_utils import (
 from superset.mcp_service.chart.compile import validate_and_compile
 from superset.mcp_service.chart.schemas import (
     AccessibilityMetadata,
+    ChartError,
     ColumnRef,
     GenerateChartResponse,
     PerformanceMetadata,
     TableChartConfig,
     UpdateChartRequest,
+)
+from superset.mcp_service.chart.sunburst import (
+    normalize_sunburst_form_data_references,
 )
 from superset.mcp_service.utils.oauth2_utils import (
     build_oauth2_redirect_message,
@@ -409,6 +413,19 @@ def _validate_update_against_dataset(
             }
         )
 
+    if form_data.get("viz_type") == "sunburst_v2":
+        from superset.mcp_service.chart.validation.dataset_validator import (
+            build_dataset_context_from_orm,
+        )
+
+        dataset_context = build_dataset_context_from_orm(dataset)
+        if dataset_context is not None:
+            normalized_form_data = normalize_sunburst_form_data_references(
+                form_data, dataset_context
+            )
+            form_data.clear()
+            form_data.update(normalized_form_data)
+
     compile_result = validate_and_compile(
         parsed_config, form_data, dataset, run_compile_check=run_compile_check
     )
@@ -727,6 +744,8 @@ async def update_chart(  # noqa: C901
                     )
                 if validation_error is not None:
                     return validation_error
+                # Validation canonicalizes preserved native Sunburst references.
+                payload_or_error["params"] = json.dumps(new_form_data)
             elif request.dataset_id is not None:
                 # Dataset-only rebind: verify the target dataset exists before
                 # writing. Skip compile check — there is no new chart config to
@@ -783,9 +802,14 @@ async def update_chart(  # noqa: C901
                 explore_url, form_data_key, warnings = _create_preview_url(
                     chart, preview_or_error, datasource_id=request.dataset_id
                 )
+            new_form_data = preview_or_error
 
         chart_for_analysis = updated_chart if saved else chart
-        viz_type_for_analysis = getattr(chart_for_analysis, "viz_type", None)
+        viz_type_for_analysis = (
+            getattr(chart_for_analysis, "viz_type", None)
+            if saved
+            else (new_form_data or {}).get("viz_type")
+        )
         capabilities = analyze_chart_capabilities(viz_type_for_analysis, parsed_config)
         semantics = analyze_chart_semantics(viz_type_for_analysis, parsed_config)
 
@@ -822,6 +846,7 @@ async def update_chart(  # noqa: C901
         # Generate previews for saved charts only. Unsaved previews rely on
         # the explore URL for interactive viewing.
         previews: dict[str, Any] = {}
+        preview_errors: dict[str, ChartError] = {}
         if saved and updated_chart and request.preview_formats:
             try:
                 with event_logger.log_context(action="mcp.update_chart.preview"):
@@ -839,7 +864,9 @@ async def update_chart(  # noqa: C901
                             preview_request, ctx
                         )
 
-                        if hasattr(preview_result, "content"):
+                        if isinstance(preview_result, ChartError):
+                            preview_errors[format_type] = preview_result
+                        elif hasattr(preview_result, "content"):
                             previews[format_type] = preview_result.content
 
             except (
@@ -864,7 +891,11 @@ async def update_chart(  # noqa: C901
             if saved and updated_chart and updated_chart.uuid
             else (str(chart.uuid) if chart.uuid else None)
         )
-        viz_type = updated_chart.viz_type if saved and updated_chart else chart.viz_type
+        viz_type = (
+            updated_chart.viz_type
+            if saved and updated_chart
+            else (new_form_data or {}).get("viz_type", chart.viz_type)
+        )
 
         result = {
             "chart": {
@@ -880,6 +911,7 @@ async def update_chart(  # noqa: C901
             "warnings": warnings,
             "form_data": _wrapped_form_data_for_response(new_form_data),
             "previews": previews,
+            "preview_errors": preview_errors,
             "capabilities": capabilities.model_dump() if capabilities else None,
             "semantics": semantics.model_dump() if semantics else None,
             "explore_url": explore_url,

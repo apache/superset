@@ -101,7 +101,10 @@ class SunburstChartPlugin(BaseChartPlugin):
         return "sunburst_v2"
 
     def normalize_column_refs(self, config: Any, dataset_context: Any) -> Any:
-        config_dict = config.model_dump()
+        # Preserve omission semantics for update merges. model_dump() without
+        # exclude_unset would mark every defaulted field as explicitly supplied
+        # when the normalized model is reconstructed.
+        config_dict = config.model_dump(exclude_unset=True)
 
         for dimension in config_dict.get("hierarchy") or []:
             dimension["name"] = DatasetValidator.get_canonical_column_name(
