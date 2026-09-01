@@ -830,15 +830,15 @@ const ResultTable =
 
 // D3's '%' and 'p' types both multiply by 100; parsed via d3-format's own
 // grammar so garbage like "foo%" is rejected rather than matched by suffix.
-// The stored value is validated untrimmed because getNumberFormatter formats
-// it untrimmed at render time; trimming here could flag a format (e.g. one
-// with trailing whitespace) as valid when the renderer's own parse rejects it.
+// The stored value is trimmed before parsing because
+// NumberFormatterRegistry.get() trims it the same way before rendering, so
+// this check agrees with what the renderer actually sees.
 export const isPercentD3Format = (d3format?: string): boolean => {
   if (!d3format) {
     return false;
   }
   try {
-    const { type } = formatSpecifier(d3format);
+    const { type } = formatSpecifier(d3format.trim());
     return type === '%' || type === 'p';
   } catch {
     return false;

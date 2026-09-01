@@ -113,12 +113,11 @@ test('isPercentD3Format accepts only a valid D3 percent/p spec', () => {
   expect(isPercentD3Format(undefined)).toBe(false);
 });
 
-// getNumberFormatter formats the stored value untrimmed at render time, so
-// this must agree rather than accept a format the renderer then rejects.
-// Trailing whitespace is invalid D3 format syntax and must not be trimmed
-// away before validating.
-test('isPercentD3Format does not trim, matching untrimmed render-time parsing', () => {
-  expect(isPercentD3Format('.0% ')).toBe(false);
+// NumberFormatterRegistry.get() trims the stored value before parsing it at
+// render time, so this must trim too rather than reject a format the
+// renderer accepts.
+test('isPercentD3Format trims, matching render-time parsing', () => {
+  expect(isPercentD3Format('.0% ')).toBe(true);
 });
 
 // A '%' format is valid syntax, so it never hits the "Invalid format" fallback.
