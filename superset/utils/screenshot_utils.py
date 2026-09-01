@@ -789,17 +789,31 @@ SCALE_WIDE_TABLES_JS = """
         const effectiveMax = markLandscape ? landscapeMaxWidth : maxWidth;
         const scaleFactor = effectiveMax / tableW;
 
-        // Measure the container's natural height before scaling so we can
-        // compensate the layout footprint.
-        const containerH = container.scrollHeight;
-        const scaledH = Math.ceil(containerH * scaleFactor);
-
         // 1. Widen the container to the table's natural scrollWidth so the
         //    full table is laid out inside it before the scale is applied.
+        //    Do this FIRST so the container reflows to its new width before
+        //    we measure its height (scrollHeight depends on width when cell
+        //    content wraps, and sticky-header positioning resets on reflow).
         container.style.width = tableW + 'px';
         container.style.maxWidth = 'none';
         container.style.overflow = 'visible';
         container.style.overflowX = 'visible';
+
+        // Fix: sticky <thead> uses position:sticky which breaks under a CSS
+        // transform (sticky is relative to the scroll container; under a
+        // transform it collapses to y=0 and hides the header row).  Switch
+        // all thead and header cells to position:relative so they stay in
+        // normal document flow.
+        const theadEls = container.querySelectorAll('thead, thead th');
+        for (const thEl of theadEls) {
+            thEl.style.position = 'relative';
+        }
+
+        // Measure the container's natural height AFTER widening so the
+        // scrollHeight reflects the final post-reflow layout (row heights
+        // can change when width changes due to cell content wrapping).
+        const containerH = container.scrollHeight;
+        const scaledH = Math.ceil(containerH * scaleFactor);
 
         // 2. Apply the scale transform to the container.
         //    transform-origin:top left keeps the table flush with the left edge.

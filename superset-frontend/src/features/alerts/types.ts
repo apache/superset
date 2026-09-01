@@ -96,6 +96,8 @@ export type DashboardState = {
   dataMask?: object;
   anchor?: string;
   nativeFilters?: Array<ExtraNativeFilter>;
+  /** Orientation for browser-print PDF reports (SIP-212). */
+  pdf_orientation?: 'portrait' | 'landscape' | 'auto';
 };
 
 export type ExtraNativeFilter = {

@@ -193,20 +193,18 @@ body.print-mode {
 
   /* Chart titles (~19pt on paper after 0.496x scale).
    *
-   * The title text at 38px / line-height 1.35 ≈ 51px is 1px taller than the
-   * default slice-header box (~50px measured).  The header clipping we see in
-   * the PDF comes from two layers:
+   * The title text at 38px / line-height 1.2 ≈ 46px fits within the default
+   * 50px slice-header box.  Only the slice-header needs height:auto so it can
+   * wrap onto two lines if the title is very long; for the common single-line
+   * case the title stays within the authored header height and the ChartWrapper
+   * does NOT need overflow:visible (which would push the chart canvas down and
+   * misalign the Big Number value).
    *
-   *   1. [data-test="slice-header"] — the flex row; needs height:auto so it
-   *      can grow to the 51px title.
-   *   2. .dashboard-chart (ChartWrapper styled component) — has overflow:hidden
-   *      in the React source.  When the header is taller than React expected at
-   *      render time, the chart content area is pushed down and the top of the
-   *      chart content is clipped by this overflow:hidden.
-   *   3. .slice_container (SliceContainer) — has max-height:100% which
-   *      prevents the flex column from growing past the authored slot height.
-   *
-   * Releasing all three lets the large-font title breathe without clipping. */
+   * Do NOT set overflow:visible on .dashboard-chart or max-height:none on
+   * .slice_container — those changes cause the chart content area (whose height
+   * React computes as totalHeight - headerHeight at render time) to be
+   * positioned incorrectly when the CSS-enlarged header is taller than React
+   * measured. */
   [data-test="slice-header"],
   [data-test="slice-header"] .header-controls-dash,
   [data-test="slice-header"] .slice-header-wrapper {
@@ -218,19 +216,14 @@ body.print-mode {
   [data-test="slice-header"] .header-title a,
   [data-test="slice-header"] .header-title span {
     font-size: 38px !important;
-    line-height: 1.35 !important;
+    line-height: 1.2 !important;
     white-space: normal !important;
     overflow: visible !important;
   }
-  /* Release the chart content wrapper and slice column — both clip the extra
-   * height added when the title is taller than React measured at render time. */
+  /* Add a small top offset so the chart canvas does not visually overlap the
+   * header when the title wraps to two lines and extends below its container. */
   .dashboard-chart {
-    overflow: visible !important;
-    max-height: none !important;
-  }
-  .slice_container {
-    max-height: none !important;
-    overflow: visible !important;
+    padding-top: 4px !important;
   }
 
   /* Table cells and headers (~15pt on paper) */

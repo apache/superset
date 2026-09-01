@@ -640,6 +640,9 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     isFeatureEnabled(FeatureFlag.AlertsAttachReports) || isReport;
   const tabsEnabled = isFeatureEnabled(FeatureFlag.AlertReportTabs);
   const filtersEnabled = isFeatureEnabled(FeatureFlag.AlertReportsFilter);
+  const browserPrintPdfEnabled = isFeatureEnabled(
+    FeatureFlag.DashboardReportsBrowserPrintPdf,
+  );
 
   const [notificationAddState, setNotificationAddState] =
     useState<NotificationAddStatus>('active');
@@ -881,6 +884,22 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
         dashboard: {
           ...dashboardState,
           anchor: value,
+        },
+      };
+      return {
+        ...currentAlertData,
+        extra,
+      };
+    });
+  };
+
+  const updatePdfOrientationState = (landscape: boolean) => {
+    setCurrentAlert(currentAlertData => {
+      const dashboardState = currentAlertData?.extra?.dashboard;
+      const extra = {
+        dashboard: {
+          ...dashboardState,
+          pdf_orientation: landscape ? ('landscape' as const) : ('portrait' as const),
         },
       };
       return {
@@ -2460,6 +2479,23 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                       </>
                     )}
                   </StyledInputContainer>
+                  {browserPrintPdfEnabled &&
+                    reportFormat === 'PDF' &&
+                    contentType === ContentType.Dashboard && (
+                      <div className="inline-container">
+                        <Checkbox
+                          checked={
+                            currentAlert?.extra?.dashboard?.pdf_orientation ===
+                            'landscape'
+                          }
+                          onChange={(e: CheckboxChangeEvent) =>
+                            updatePdfOrientationState(e.target.checked)
+                          }
+                        >
+                          {t('Use landscape orientation')}
+                        </Checkbox>
+                      </div>
+                    )}
                   {tabsEnabled && contentType === ContentType.Dashboard && (
                     <StyledInputContainer>
                       <>

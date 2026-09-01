@@ -941,6 +941,15 @@ class BaseReportState:
         pdf_orientation: str | None = app.config.get(
             "BROWSER_PRINT_PDF_ORIENTATION", None
         )
+        # Per-report orientation stored in extra.dashboard.pdf_orientation
+        # takes precedence over the global config value when set.
+        per_report_orientation: str | None = (
+            self._report_schedule.extra.get("dashboard", {}).get("pdf_orientation")
+            if self._report_schedule.extra
+            else None
+        )
+        if per_report_orientation in ("portrait", "landscape", "auto"):
+            pdf_orientation = per_report_orientation
         dashboard_title: str = self._report_schedule.dashboard.dashboard_title or ""
         screenshot = DashboardPrintScreenshot(
             urls[0],

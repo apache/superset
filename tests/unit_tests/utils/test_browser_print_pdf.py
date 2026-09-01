@@ -418,3 +418,178 @@ class TestResolveSlot:
 
         assert "&amp;" in result
         assert "Q&A" not in result
+
+
+# ---------------------------------------------------------------------------
+# _get_browser_print_pdf — per-report orientation override
+# ---------------------------------------------------------------------------
+
+
+class TestPerReportOrientation:
+    """extra.dashboard.pdf_orientation overrides the global config value."""
+
+    def _make_command(self) -> object:
+        from superset.commands.report.execute import BaseReportState
+
+        cmd = object.__new__(BaseReportState)
+        cmd._report_execution_context = None  # type: ignore[attr-defined]
+        cmd._execution_id = "test-exec-id"  # type: ignore[attr-defined]
+        return cmd
+
+    @patch("superset.commands.report.execute.DashboardPrintScreenshot")
+    @patch("superset.commands.report.execute.resolve_executor_user")
+    @patch("superset.commands.report.execute.app")
+    def test_landscape_extra_overrides_config(
+        self,
+        mock_app: MagicMock,
+        mock_resolver: MagicMock,
+        mock_screenshot_cls: MagicMock,
+    ) -> None:
+        """extra.dashboard.pdf_orientation='landscape' overrides global config."""
+        mock_app.config = {
+            "WEBDRIVER_WINDOW": {"dashboard": (1600, 1200)},
+            "ALERT_REPORTS_MAX_CUSTOM_SCREENSHOT_WIDTH": 3000,
+            "BROWSER_PRINT_PDF_FONT_SIZE": None,
+            "BROWSER_PRINT_PDF_LAYOUT": None,
+            "BROWSER_PRINT_PDF_ORIENTATION": "portrait",  # global default
+        }
+        cmd = self._make_command()
+        schedule = MagicMock()
+        schedule.custom_width = None
+        schedule.custom_height = None
+        schedule.extra = {"dashboard": {"pdf_orientation": "landscape"}}
+        schedule.dashboard.dashboard_title = "My Dashboard"
+        schedule.dashboard.digest = "abc"
+        cmd._report_schedule = schedule  # type: ignore[attr-defined]
+
+        mock_resolver.return_value = (MagicMock(), None)
+        mock_screenshot_instance = MagicMock()
+        mock_screenshot_instance.get_print_pdf.return_value = b"%PDF-landscape"
+        mock_screenshot_cls.return_value = mock_screenshot_instance
+
+        from unittest.mock import PropertyMock
+
+        with (
+            patch.object(
+                type(cmd),
+                "_log_context",
+                new_callable=PropertyMock,
+                return_value="test",
+            ),
+            patch.object(
+                type(cmd),
+                "get_dashboard_urls",
+                return_value=["http://superset:8088/dash/1/"],
+            ),
+        ):
+            result = cmd._get_browser_print_pdf()  # type: ignore[attr-defined]
+
+        assert result == b"%PDF-landscape"
+        # The per-report 'landscape' must be passed to get_print_pdf
+        call_kwargs = mock_screenshot_instance.get_print_pdf.call_args.kwargs
+        assert call_kwargs.get("print_orientation") == "landscape"
+
+    @patch("superset.commands.report.execute.DashboardPrintScreenshot")
+    @patch("superset.commands.report.execute.resolve_executor_user")
+    @patch("superset.commands.report.execute.app")
+    def test_invalid_extra_orientation_falls_back_to_config(
+        self,
+        mock_app: MagicMock,
+        mock_resolver: MagicMock,
+        mock_screenshot_cls: MagicMock,
+    ) -> None:
+        """An invalid pdf_orientation value in extra is ignored; config is used."""
+        mock_app.config = {
+            "WEBDRIVER_WINDOW": {"dashboard": (1600, 1200)},
+            "ALERT_REPORTS_MAX_CUSTOM_SCREENSHOT_WIDTH": 3000,
+            "BROWSER_PRINT_PDF_FONT_SIZE": None,
+            "BROWSER_PRINT_PDF_LAYOUT": None,
+            "BROWSER_PRINT_PDF_ORIENTATION": "portrait",
+        }
+
+        cmd = self._make_command()
+        schedule = MagicMock()
+        schedule.custom_width = None
+        schedule.custom_height = None
+        schedule.extra = {"dashboard": {"pdf_orientation": "INVALID"}}
+        schedule.dashboard.dashboard_title = "My Dashboard"
+        schedule.dashboard.digest = "abc"
+        cmd._report_schedule = schedule  # type: ignore[attr-defined]
+
+        mock_resolver.return_value = (MagicMock(), None)
+        mock_screenshot_instance = MagicMock()
+        mock_screenshot_instance.get_print_pdf.return_value = b"%PDF-portrait"
+        mock_screenshot_cls.return_value = mock_screenshot_instance
+
+        from unittest.mock import PropertyMock
+
+        with (
+            patch.object(
+                type(cmd),
+                "_log_context",
+                new_callable=PropertyMock,
+                return_value="test",
+            ),
+            patch.object(
+                type(cmd),
+                "get_dashboard_urls",
+                return_value=["http://superset:8088/dash/1/"],
+            ),
+        ):
+            cmd._get_browser_print_pdf()  # type: ignore[attr-defined]
+
+        call_kwargs = mock_screenshot_instance.get_print_pdf.call_args.kwargs
+        # Should use the config value since extra value is invalid
+        assert call_kwargs.get("print_orientation") == "portrait"
+
+    @patch("superset.commands.report.execute.DashboardPrintScreenshot")
+    @patch("superset.commands.report.execute.resolve_executor_user")
+    @patch("superset.commands.report.execute.app")
+    def test_no_extra_uses_config(
+        self,
+        mock_app: MagicMock,
+        mock_resolver: MagicMock,
+        mock_screenshot_cls: MagicMock,
+    ) -> None:
+        """When extra is empty, the global config orientation is used."""
+        mock_app.config = {
+            "WEBDRIVER_WINDOW": {"dashboard": (1600, 1200)},
+            "ALERT_REPORTS_MAX_CUSTOM_SCREENSHOT_WIDTH": 3000,
+            "BROWSER_PRINT_PDF_FONT_SIZE": None,
+            "BROWSER_PRINT_PDF_LAYOUT": None,
+            "BROWSER_PRINT_PDF_ORIENTATION": "landscape",
+        }
+
+        cmd = self._make_command()
+        schedule = MagicMock()
+        schedule.custom_width = None
+        schedule.custom_height = None
+        schedule.extra = {}  # no pdf_orientation in extra
+        schedule.dashboard.dashboard_title = "My Dashboard"
+        schedule.dashboard.digest = "abc"
+        cmd._report_schedule = schedule  # type: ignore[attr-defined]
+
+        mock_resolver.return_value = (MagicMock(), None)
+        mock_screenshot_instance = MagicMock()
+        mock_screenshot_instance.get_print_pdf.return_value = b"%PDF"
+        mock_screenshot_cls.return_value = mock_screenshot_instance
+
+        from unittest.mock import PropertyMock
+
+        with (
+            patch.object(
+                type(cmd),
+                "_log_context",
+                new_callable=PropertyMock,
+                return_value="test",
+            ),
+            patch.object(
+                type(cmd),
+                "get_dashboard_urls",
+                return_value=["http://superset:8088/dash/1/"],
+            ),
+        ):
+            cmd._get_browser_print_pdf()  # type: ignore[attr-defined]
+
+        call_kwargs = mock_screenshot_instance.get_print_pdf.call_args.kwargs
+        assert call_kwargs.get("print_orientation") == "landscape"
