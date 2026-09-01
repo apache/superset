@@ -364,23 +364,23 @@ jobs:
           SUPERSET_FEATURE_SOFT_DELETE: "true"
         with:
           run: playwright-run "${{ matrix.app_root }}" recently-archived/
-      - name: Run Playwright (Embedded Tests)
-        # cached-dependencies is a submodule (not a plain directory), and
-        # the $/ self-repository syntax resolves action files directly from
-        # the repository without performing a real (submodule-aware)
-        # checkout, so it can't see into a submodule's link. Keep this one
-        # on the workspace-relative ./ form, consistent with every other
-        # workflow in the repo that references this action.
-        uses: ./.github/actions/cached-dependencies # zizmor: ignore[self-repository] - $/ cannot resolve an action that lives in a submodule; ./ is required here
+      - name: Run Playwright (Global Async Queries Tests)
+        uses: ./.github/actions/cached-dependencies
         env:
           NODE_OPTIONS: "--max-old-space-size=4096"
-          # Scoped to this step for the same reason as Soft-delete above:
-          # embedding is a real, required feature, so its Playwright coverage
-          # now gates merges instead of running only in shadow mode.
-          SUPERSET_FEATURE_EMBEDDED_SUPERSET: "true"
-          INCLUDE_EMBEDDED: "true"
+          # Scoped to this step, same reasoning as the Soft-delete step above:
+          # GLOBAL_ASYNC_QUERIES changes chart-data behaviour for every spec
+          # sharing a server, so it gets its own gunicorn rather than being
+          # switched on for the Required run. Unlike Soft-delete this suite also
+          # needs a Celery worker, which playwright-run-gaq starts -- without one
+          # submissions return 202 and no job ever executes.
+          SUPERSET_FEATURE_GLOBAL_ASYNC_QUERIES: "true"
         with:
-          run: playwright-run "${{ matrix.app_root }}" embedded
+          run: >-
+            playwright-run-gaq "${{ matrix.app_root }}"
+            dashboard/global-async-query.spec.ts
+            dashboard/global-async-query-resilience.spec.ts
+            sqllab/global-async-query-sqllab.spec.ts
       - name: Set safe app root
         if: failure()
         id: set-safe-app-root
