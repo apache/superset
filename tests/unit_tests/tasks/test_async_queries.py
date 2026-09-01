@@ -177,62 +177,85 @@ def test_execute_chart_query_reestablishes_form_data(
     mocker: MockerFixture,
 ) -> None:
     """The worker has no request context, so g.form_data must be re-established
-    from the serialized payload — otherwise templated datasets render empty filter
-    values and the cache key diverges from the submit-time task_key."""
+    from the serialized payload as a *body*-shaped dict (datasource + per-query
+    fields) — otherwise ``get_form_data()``'s fallback can't recover query-level
+    filters/url_params and templated datasets render empty, diverging the cache
+    key from the submit-time task_key."""
     from superset.tasks.async_queries import execute_chart_query
 
     query_context = mocker.MagicMock()
+    query_context.datasource.id = 5
+    query_context.datasource.type = "table"
     query_context.queries = [mocker.MagicMock()]
     query_context.get_df_payload_result.return_value.payload = {}
     mocker.patch(
         "superset.tasks.async_queries._resolve_user", return_value=mocker.MagicMock()
     )
     mocker.patch("superset.tasks.async_queries.override_user")
-    load = mocker.patch(
-        "superset.tasks.async_queries.load_serialized_query",
-        return_value=query_context,
+    manager = mocker.MagicMock()
+    manager.attach_mock(
+        mocker.patch(
+            "superset.tasks.async_queries.load_serialized_query",
+            return_value=query_context,
+        ),
+        "load",
+    )
+    manager.attach_mock(
+        mocker.patch("superset.charts.data.form_data.set_query_context_form_data"),
+        "set_fd",
     )
     mocker.patch(
         "superset.tasks.async_queries.get_context", return_value=mocker.MagicMock()
     )
-    set_form_data = mocker.patch("superset.charts.data.form_data.set_form_data")
 
-    form_data = {"queries": [{"url_params": {"region": "EMEA"}}]}
-    serialized = _serialized_query()
-    serialized["form_data"] = form_data
-    execute_chart_query.func(serialized, user_id=7)
-
-    # form data is re-established from the payload, before the context is rebuilt.
-    set_form_data.assert_called_once_with(form_data)
-    assert set_form_data.call_count == 1
-    load.assert_called_once()
-
-
-def test_execute_chart_query_form_data_defaults_to_empty(
-    mocker: MockerFixture,
-) -> None:
-    from superset.tasks.async_queries import execute_chart_query
-
-    query_context = mocker.MagicMock()
-    query_context.queries = [mocker.MagicMock()]
-    query_context.get_df_payload_result.return_value.payload = {}
-    mocker.patch(
-        "superset.tasks.async_queries._resolve_user", return_value=mocker.MagicMock()
-    )
-    mocker.patch("superset.tasks.async_queries.override_user")
-    mocker.patch(
-        "superset.tasks.async_queries.load_serialized_query",
-        return_value=query_context,
-    )
-    mocker.patch(
-        "superset.tasks.async_queries.get_context", return_value=mocker.MagicMock()
-    )
-    set_form_data = mocker.patch("superset.charts.data.form_data.set_form_data")
-
-    # _serialized_query() carries form_data=None → set to {} (never None).
     execute_chart_query.func(_serialized_query(), user_id=7)
 
-    set_form_data.assert_called_once_with({})
+    # The context is rebuilt first, then the body-shaped form data is set from it
+    # (using the canonical helper, not the flat top-level ``form_data``).
+    assert [call[0] for call in manager.mock_calls[:2]] == ["load", "set_fd"]
+    manager.set_fd.assert_called_once_with(query_context, 5, "table")
+
+
+def test_execute_chart_query_form_data_has_body_shape(
+    mocker: MockerFixture,
+) -> None:
+    """End-to-end of the worker's form-data reconstruction: the resulting
+    ``g.form_data`` is body-shaped and carries query-level fields (filters,
+    url_params) that the Jinja fallback reads from ``form_data['queries'][0]``."""
+    from flask import g
+
+    from superset.tasks.async_queries import execute_chart_query
+
+    query = mocker.MagicMock()
+    query.to_dict.return_value = {"metrics": ["count"], "columns": ["name"]}
+    query.filter = [{"col": "region", "op": "==", "val": "EMEA"}]
+    query.time_range = "No filter"
+
+    query_context = mocker.MagicMock()
+    query_context.datasource.id = 5
+    query_context.datasource.type = "table"
+    query_context.form_data = {"url_params": {"region": "EMEA"}, "slice_id": 9}
+    query_context.queries = [query]
+    query_context.get_df_payload_result.return_value.payload = {}
+    mocker.patch(
+        "superset.tasks.async_queries._resolve_user", return_value=mocker.MagicMock()
+    )
+    mocker.patch("superset.tasks.async_queries.override_user")
+    mocker.patch(
+        "superset.tasks.async_queries.load_serialized_query",
+        return_value=query_context,
+    )
+    mocker.patch(
+        "superset.tasks.async_queries.get_context", return_value=mocker.MagicMock()
+    )
+
+    # set_query_context_form_data is NOT mocked here — assert the real body shape.
+    execute_chart_query.func(_serialized_query(), user_id=7)
+
+    assert g.form_data["datasource"] == {"id": 5, "type": "table"}
+    assert len(g.form_data["queries"]) == 1
+    assert g.form_data["queries"][0]["url_params"] == {"region": "EMEA"}
+    assert g.form_data["queries"][0]["filters"] == query.filter
 
 
 def test_execute_chart_query_reads_totals_key_from_dependency_payload(

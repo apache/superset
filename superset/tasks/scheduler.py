@@ -676,7 +676,7 @@ def _execute_task_body(  # noqa: C901
                 task_uuid=native_uuid,
                 new_status=TaskStatus.FAILURE,
                 expected_status=[TaskStatus.IN_PROGRESS, TaskStatus.ABORTING],
-                properties={"error_message": str(ex)},
+                properties=ctx.error_properties(exception=ex),
                 set_ended_at=True,
             ).run()
 
@@ -706,7 +706,7 @@ def _execute_task_body(  # noqa: C901
                 task_uuid=native_uuid,
                 new_status=TaskStatus.FAILURE,
                 expected_status=[TaskStatus.IN_PROGRESS, TaskStatus.ABORTING],
-                properties={"error_message": SELF_FENCE_ERROR_MESSAGE},
+                properties=ctx.error_properties(error_message=SELF_FENCE_ERROR_MESSAGE),
                 set_ended_at=True,
             ).run()
             logger.warning(
@@ -748,7 +748,9 @@ def _execute_task_body(  # noqa: C901
                     task_uuid=native_uuid,
                     new_status=TaskStatus.FAILURE,
                     expected_status=TaskStatus.ABORTING,
-                    properties={"error_message": "Abort handlers did not complete"},
+                    properties=ctx.error_properties(
+                        error_message="Abort handlers did not complete"
+                    ),
                     set_ended_at=True,
                 ).run()
                 logger.warning(

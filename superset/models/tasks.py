@@ -41,7 +41,7 @@ from superset.tasks.constants import TERMINAL_STATES
 from superset.tasks.utils import (
     error_update,
     get_finished_dedup_key,
-    merge_private_subtree,
+    merge_properties,
     naive_utcnow,
     parse_payload,
     parse_properties,
@@ -190,14 +190,8 @@ class Task(CoreTask, AuditMixinNullable, Model):
             task.update_properties({"is_abortable": True})
             task.update_properties(progress_update((50, 100)))
         """
-        current: dict[str, Any] = dict(self.properties_dict)
-        incoming: dict[str, Any] = dict(updates)
-        if "private" in incoming:
-            current["private"] = merge_private_subtree(
-                current.get("private"), incoming.pop("private")
-            )
-        current.update(incoming)  # shallow-merge the remaining top-level keys
-        self.properties = serialize_properties(cast(TaskProperties, current))
+        current = merge_properties(self.properties_dict, updates)
+        self.properties = serialize_properties(current)
 
     def update_framework_private(self, updates: dict[str, Any]) -> None:
         """Merge keys into ``private["framework"]`` (framework-owned internal state).

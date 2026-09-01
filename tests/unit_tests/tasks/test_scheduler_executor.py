@@ -56,6 +56,11 @@ def _run_body_with_raising_executor(
     ctx.timeout_triggered = timeout_triggered
     ctx.fence_triggered = fence_triggered
     ctx.abort_handlers_completed = True
+    # Echo the error detail back as a real dict (the real error_properties merges
+    # the executor cache with the error message / exception detail).
+    ctx.error_properties.side_effect = lambda exception=None, error_message=None: {
+        "error_message": error_message if error_message else str(exception)
+    }
 
     transition = MagicMock()
     transition.return_value.run.return_value = True  # PENDING->IN_PROGRESS succeeds

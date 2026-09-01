@@ -582,7 +582,7 @@ class TaskWrapper(Generic[P]):
                 task_uuid=task_uuid,
                 new_status=TaskStatus.FAILURE,
                 expected_status=[TaskStatus.IN_PROGRESS, TaskStatus.ABORTING],
-                properties={"error_message": str(ex)},
+                properties=ctx.error_properties(exception=ex),
                 set_ended_at=True,
             ).run()
 

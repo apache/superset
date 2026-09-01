@@ -693,3 +693,87 @@ class TestCleanupHandlers:
         task_context._run_cleanup()
 
         assert call_count == 1  # Still 1, not 2
+
+
+class TestHandlerFailureStatusWrite:
+    """The handler-failure writer must not rewrite a committed terminal status."""
+
+    def test_cleanup_failure_after_terminal_does_not_flip_status(self, task_context):
+        """Cleanup runs in the executor's finally — after a SUCCESS commit. A
+        raising cleanup handler must not flip the committed status: the write is a
+        conditional transition (no-op on a terminal task), and the failure detail
+        is instead recorded via a properties-only update."""
+        task_context._handler_failures = [("cleanup", RuntimeError("boom"), "trace")]
+        with (
+            patch(
+                "superset.commands.tasks.internal_update."
+                "InternalStatusTransitionCommand"
+            ) as transition,
+            patch(
+                "superset.commands.tasks.internal_update.InternalUpdateTaskCommand"
+            ) as update,
+        ):
+            # Simulate the task already being terminal (SUCCESS): the CAS no-ops.
+            transition.return_value.run.return_value = False
+            task_context._write_handler_failures_to_db()
+
+        # FAILURE was attempted only from non-terminal states...
+        assert transition.call_args.kwargs["new_status"] == TaskStatus.FAILURE
+        assert transition.call_args.kwargs["expected_status"] == [
+            TaskStatus.IN_PROGRESS,
+            TaskStatus.ABORTING,
+        ]
+        # ...and since it no-op'd, the detail was recorded without a status change.
+        update.assert_called_once()
+        assert "status" not in update.call_args.kwargs
+
+    def test_cleanup_failure_while_in_progress_marks_failure(self, task_context):
+        """When the task is still running, a handler failure does flip it to
+        FAILURE and does not need the properties-only fallback write."""
+        task_context._handler_failures = [("cleanup", RuntimeError("boom"), "trace")]
+        with (
+            patch(
+                "superset.commands.tasks.internal_update."
+                "InternalStatusTransitionCommand"
+            ) as transition,
+            patch(
+                "superset.commands.tasks.internal_update.InternalUpdateTaskCommand"
+            ) as update,
+        ):
+            transition.return_value.run.return_value = True  # transition succeeded
+            task_context._write_handler_failures_to_db()
+
+        transition.assert_called_once()
+        update.assert_not_called()
+
+
+class TestErrorProperties:
+    """error_properties merges the executor cache with error detail (no wipe)."""
+
+    def test_error_properties_preserves_cache_and_adds_detail(self, task_context):
+        task_context._properties_cache = {
+            "is_abortable": True,
+            "progress_percent": 0.5,
+            "private": {"task": {"cancel_query_id": "q1"}},
+        }
+        try:
+            raise RuntimeError("boom")
+        except RuntimeError as ex:
+            props = task_context.error_properties(exception=ex)
+
+        # Existing runtime fields and the private.task namespace are preserved...
+        assert props["is_abortable"] is True
+        assert props["progress_percent"] == 0.5
+        assert props["private"]["task"] == {"cancel_query_id": "q1"}
+        # ...and the structured error detail is added under the public message and
+        # the debug-only private.framework namespace.
+        assert props["error_message"] == "boom"
+        assert props["private"]["framework"]["exception_type"] == "RuntimeError"
+        assert "boom" in props["private"]["framework"]["stack_trace"]
+
+    def test_error_properties_plain_message_without_exception(self, task_context):
+        task_context._properties_cache = {"progress_percent": 0.5}
+        props = task_context.error_properties(error_message="fenced")
+        assert props["error_message"] == "fenced"
+        assert props["progress_percent"] == 0.5
+        assert "framework" not in props.get("private", {})
