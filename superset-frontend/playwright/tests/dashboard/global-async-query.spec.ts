@@ -42,6 +42,15 @@ import {
   setupDashboardWithSelectFilter,
   trackGaqSignals,
 } from './dashboard-test-helpers';
+import { isFeatureEnabled } from '../../helpers/featureFlags';
+
+testWithAssets.beforeEach(async ({ page }) => {
+  await page.goto('chart/list/');
+  testWithAssets.skip(
+    !(await isFeatureEnabled(page, 'GLOBAL_ASYNC_QUERIES')),
+    'GLOBAL_ASYNC_QUERIES is not enabled on this instance',
+  );
+});
 
 testWithAssets(
   'forced dashboard refresh goes through the GAQ 202 -> poll -> done cycle',

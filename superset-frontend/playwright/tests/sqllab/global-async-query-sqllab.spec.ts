@@ -37,6 +37,7 @@ import { test, expect } from '../../helpers/fixtures/testAssets';
 import { SqlLabPage } from '../../pages/SqlLabPage';
 import { expectStatus } from '../../helpers/api/assertions';
 import { TIMEOUT } from '../../utils/constants';
+import { isFeatureEnabled } from '../../helpers/featureFlags';
 
 let sqlLabPage: SqlLabPage;
 
@@ -44,6 +45,10 @@ test.beforeEach(async ({ page }) => {
   test.setTimeout(TIMEOUT.SLOW_TEST);
   sqlLabPage = new SqlLabPage(page);
   await sqlLabPage.gotoAndReady();
+  test.skip(
+    !(await isFeatureEnabled(page, 'GLOBAL_ASYNC_QUERIES')),
+    'GLOBAL_ASYNC_QUERIES is not enabled on this instance',
+  );
 });
 
 test('runs a simple SELECT normally with GLOBAL_ASYNC_QUERIES enabled, never touching the GAQ polling endpoint', async ({
