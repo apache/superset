@@ -41,6 +41,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from superset.commands.exceptions import CommandException
 from superset.errors import SupersetErrorType
+from superset.mcp_service.chart.query_result import query_result_failure
 from superset.mcp_service.chart.validation.dataset_validator import (
     build_dataset_context_from_orm,
     DatasetValidator,
@@ -136,16 +137,17 @@ def _compile_chart(
 
         warnings: List[str] = []
         row_count = 0
+        if query_failure := query_result_failure(result):
+            error_str = query_failure.error
+            return CompileResult(
+                success=False,
+                error=error_str,
+                error_code="CHART_COMPILE_FAILED",
+                tier="compile",
+                error_obj=_build_compile_error(error_str),
+            )
+
         for query in result.get("queries", []):
-            if query.get("error"):
-                error_str = str(query["error"])
-                return CompileResult(
-                    success=False,
-                    error=error_str,
-                    error_code="CHART_COMPILE_FAILED",
-                    tier="compile",
-                    error_obj=_build_compile_error(error_str),
-                )
             row_count += len(query.get("data", []))
 
         return CompileResult(success=True, warnings=warnings, row_count=row_count)

@@ -28,6 +28,7 @@ from unittest.mock import Mock, patch
 import pytest
 
 from superset.mcp_service.chart.compile import (
+    _compile_chart,
     CompileResult,
     validate_and_compile,
 )
@@ -550,6 +551,90 @@ def test_compile_chart_returns_database_error_on_raw_sqlalchemy_error(
     assert result.error_obj is not None
     assert result.error_obj.error_type == "database_connection_error"
     assert result.error_obj.error_code == "DATABASE_CONNECTION_ERROR"
+
+
+@pytest.mark.parametrize(
+    "query_payload",
+    [
+        {"status": "FAILED", "message": "top-level failure", "queries": []},
+        {"error_message": "top-level failure", "queries": []},
+        {"queries": [{"status": "failed", "message": "boom", "data": []}]},
+        {
+            "queries": [
+                {"status": "success", "data": [{"value": 1}]},
+                {"status": "ERROR", "error_message": "second failed", "data": []},
+            ]
+        },
+    ],
+)
+@patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
+@patch("superset.common.query_context_factory.QueryContextFactory")
+def test_compile_chart_rejects_embedded_query_failures(
+    mock_factory, mock_cmd_cls, query_payload
+):
+    mock_factory.return_value.create.return_value = Mock()
+    mock_cmd_cls.return_value.run.return_value = query_payload
+
+    result = _compile_chart({"viz_type": "table", "columns": ["value"]}, 1)
+
+    assert not result.success
+    assert result.error_code == "CHART_COMPILE_FAILED"
+    assert result.tier == "compile"
+    assert result.error_obj is not None
+    assert result.error_obj.error_type == "compile_error"
+
+
+@patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
+@patch("superset.common.query_context_factory.QueryContextFactory")
+def test_compile_chart_allows_success_message_with_valid_empty_data(
+    mock_factory, mock_cmd_cls
+):
+    mock_factory.return_value.create.return_value = Mock()
+    mock_cmd_cls.return_value.run.return_value = {
+        "status": "success",
+        "message": "served from cache",
+        "queries": [{"status": "SUCCESS", "message": "no rows", "data": []}],
+    }
+
+    result = _compile_chart({"viz_type": "table", "columns": ["value"]}, 1)
+
+    assert result.success
+    assert result.row_count == 0
+
+
+@patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
+@patch("superset.common.query_context_factory.QueryContextFactory")
+def test_compile_chart_big_number_uses_temporal_query_contract(
+    mock_factory, mock_cmd_cls
+):
+    mock_factory.return_value.create.return_value = Mock()
+    mock_cmd_cls.return_value.run.return_value = {"queries": [{"data": []}]}
+    form_data = {
+        "viz_type": "big_number",
+        "granularity_sqla": "event_time",
+        "metric": "count",
+        "aggregation": "LAST_VALUE",
+        "time_range": "Last week",
+        "adhoc_filters": [
+            {
+                "clause": "WHERE",
+                "expressionType": "SIMPLE",
+                "subject": "region",
+                "operator": "==",
+                "comparator": "EMEA",
+            }
+        ],
+    }
+
+    result = _compile_chart(form_data, 1)
+
+    assert result.success
+    query = mock_factory.return_value.create.call_args.kwargs["queries"][0]
+    assert query["columns"] == ["event_time"]
+    assert query["metrics"] == ["count"]
+    assert query["time_range"] == "Last week"
+    assert query["filters"] == [{"col": "region", "op": "==", "val": "EMEA"}]
+    assert query["row_limit"] == 2
 
 
 @pytest.mark.parametrize(

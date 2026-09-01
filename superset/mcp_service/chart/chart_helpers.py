@@ -478,6 +478,37 @@ def resolve_metrics_and_groupby(
     return resolve_metrics(form_data, viz_type), resolve_groupby(form_data)
 
 
+def resolve_big_number_columns(form_data: dict[str, Any]) -> list[Any]:
+    """Resolve the temporal column used by Big Number with Trendline.
+
+    The frontend accepts the temporal binding through either ``x_axis`` or the
+    legacy ``granularity_sqla`` control. MCP preview and compile historically
+    used the physical granularity column when ``x_axis`` was absent; preserve
+    that contract rather than reducing every Big Number query to a total.
+
+    ``big_number_total`` intentionally does not use this helper because its
+    frontend query has no temporal dimension.
+    """
+    x_axis = form_data.get("x_axis")
+    if isinstance(x_axis, str) and x_axis:
+        return [x_axis]
+    if isinstance(x_axis, dict):
+        if (
+            isinstance(x_axis.get("sqlExpression"), str)
+            and x_axis.get("sqlExpression")
+            and isinstance(x_axis.get("label"), str)
+            and x_axis.get("label")
+            and x_axis.get("expressionType") in (None, "SQL")
+        ):
+            return [x_axis]
+        column_name = x_axis.get("column_name")
+        if isinstance(column_name, str) and column_name:
+            return [column_name]
+
+    granularity = form_data.get("granularity_sqla")
+    return [granularity] if isinstance(granularity, str) and granularity else []
+
+
 def resolve_gantt_query_fields(  # noqa: C901
     form_data: dict[str, Any],
 ) -> tuple[list[Any], list[Any], list[list[Any]], list[Any]]:
@@ -595,6 +626,41 @@ def _build_single_query_dict(
     return qd
 
 
+def _build_gantt_or_big_number_query_dicts(
+    form_data: dict[str, Any],
+    viz_type: str,
+    metrics: list[Any],
+    row_limit: int | None,
+    order_desc: bool | None,
+) -> list[dict[str, Any]] | None:
+    """Build query dictionaries for the two specialized MCP chart contracts."""
+    if viz_type == "gantt_chart":
+        columns, gantt_metrics, orderby, series_columns = resolve_gantt_query_fields(
+            form_data
+        )
+        query = _build_single_query_dict(
+            form_data,
+            columns,
+            gantt_metrics,
+            row_limit=row_limit,
+        )
+        query["orderby"] = orderby
+        query["series_columns"] = series_columns
+        return [query]
+
+    if viz_type == "big_number":
+        return [
+            _build_single_query_dict(
+                form_data,
+                resolve_big_number_columns(form_data),
+                metrics,
+                row_limit=row_limit,
+                order_desc=order_desc,
+            )
+        ]
+    return None
+
+
 def _build_mixed_timeseries_secondary(
     form_data: dict[str, Any],
     x_axis_col: str | None,
@@ -671,19 +737,14 @@ def build_query_dicts_from_form_data(
         or ""
     )
 
-    if viz_type == "gantt_chart":
-        columns, gantt_metrics, orderby, series_columns = resolve_gantt_query_fields(
-            form_data
-        )
-        query = _build_single_query_dict(
-            form_data,
-            columns,
-            gantt_metrics,
-            row_limit=row_limit,
-        )
-        query["orderby"] = orderby
-        query["series_columns"] = series_columns
-        return [query]
+    if specialized_queries := _build_gantt_or_big_number_query_dicts(
+        form_data,
+        viz_type,
+        metrics,
+        row_limit,
+        order_desc,
+    ):
+        return specialized_queries
 
     # Deck.gl charts use spatial column configs rather than the standard
     # metrics / groupby fields. Extract columns from the spatial controls.

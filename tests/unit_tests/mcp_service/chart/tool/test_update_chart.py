@@ -1773,6 +1773,62 @@ class TestUpdateChartValidationGate:
             assert error["error_code"] == "CHART_VALIDATION_FAILED"
             mock_update_cmd_cls.assert_not_called()
 
+    @pytest.mark.asyncio
+    async def test_persist_path_status_failure_skips_db_write(self, mcp_server):
+        """A status-only compile failure must block generate_preview=False."""
+        chart = self._mock_chart_with_dataset(chart_id=42)
+        chart.datasource.id = 10
+        access = DatasetValidationResult(
+            is_valid=True, dataset_id=10, dataset_name="ds", warnings=[]
+        )
+
+        with (
+            patch("superset.db.session"),
+            patch("superset.daos.chart.ChartDAO.find_by_id", return_value=chart),
+            patch(
+                "superset.mcp_service.auth.check_chart_data_access",
+                return_value=access,
+            ),
+            patch(
+                "superset.mcp_service.chart.compile.build_dataset_context_from_orm",
+                return_value=None,
+            ),
+            patch(
+                "superset.mcp_service.chart.compile."
+                "DatasetValidator.validate_against_dataset",
+                return_value=(True, None),
+            ),
+            patch(
+                "superset.common.query_context_factory.QueryContextFactory"
+            ) as factory,
+            patch(
+                "superset.commands.chart.data.get_data_command.ChartDataCommand"
+            ) as chart_data_command,
+            patch("superset.commands.chart.update.UpdateChartCommand") as update,
+        ):
+            factory.return_value.create.return_value = Mock()
+            chart_data_command.return_value.run.return_value = {
+                "queries": [{"status": "failed", "message": "boom", "data": []}]
+            }
+            request = {
+                "identifier": 42,
+                "generate_preview": False,
+                "config": {
+                    "chart_type": "table",
+                    "columns": [{"name": "region"}],
+                },
+            }
+
+            async with Client(mcp) as client:
+                result = await client.call_tool("update_chart", {"request": request})
+
+        assert result.structured_content["success"] is False
+        error = result.structured_content["error"]
+        assert error["error_code"] == "CHART_COMPILE_FAILED"
+        assert error["error_type"] == "compile_error"
+        assert "boom" in error["details"]
+        update.assert_not_called()
+
 
 # ---------------------------------------------------------------------------
 # Column normalization in update_chart

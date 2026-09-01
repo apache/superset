@@ -37,8 +37,8 @@ from superset.mcp_service.chart.chart_utils import (
 from superset.mcp_service.chart.preview_utils import (
     _generate_gantt_vega_lite_preview,
     generate_preview_from_form_data,
-    query_result_failure,
 )
+from superset.mcp_service.chart.query_result import query_result_failure
 from superset.mcp_service.chart.schemas import (
     ChartConfig,
     ChartError,
