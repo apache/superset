@@ -18,6 +18,7 @@
  */
 import { useMemo, ReactNode } from 'react';
 
+import { ClassNames } from '@emotion/react';
 import { t } from '@apache-superset/core/translation';
 import {
   ColorScheme,
@@ -303,28 +304,40 @@ const ColorSchemeControl = ({
           />
         }
       />
-      <Select
-        css={css`
-          width: 100%;
-          & .ant-select-item.ant-select-item-group {
-            padding-left: ${theme.sizeUnit}px;
-            font-size: ${theme.fontSize}px;
-          }
-          & .ant-select-item-option-grouped {
-            padding-left: ${theme.sizeUnit * 3}px;
-          }
-        `}
-        aria-label={t('Select color scheme')}
-        allowClear={clearable}
-        disabled={hasDashboardScheme || hasSharedLabelsColor}
-        onChange={handleOnChange}
-        placeholder={t('Select scheme')}
-        value={currentScheme}
-        showSearch
-        getPopupContainer={() => document.body}
-        options={options}
-        optionFilterProps={['label', 'value', 'searchText']}
-      />
+      <ClassNames>
+        {({ css: popupCss }) => (
+          <Select
+            css={css`
+              width: 100%;
+            `}
+            // the popup portals to document.body, out of the css prop's
+            // scope, so the grouped-option styles ride along on its root
+            classNames={{
+              popup: {
+                root: popupCss`
+                  .ant-select-item.ant-select-item-group {
+                    padding-left: ${theme.sizeUnit}px;
+                    font-size: ${theme.fontSize}px;
+                  }
+                  .ant-select-item-option-grouped {
+                    padding-left: ${theme.sizeUnit * 3}px;
+                  }
+                `,
+              },
+            }}
+            aria-label={t('Select color scheme')}
+            allowClear={clearable}
+            disabled={hasDashboardScheme || hasSharedLabelsColor}
+            onChange={handleOnChange}
+            placeholder={t('Select scheme')}
+            value={currentScheme}
+            showSearch
+            getPopupContainer={() => document.body}
+            options={options}
+            optionFilterProps={['label', 'value', 'searchText']}
+          />
+        )}
+      </ClassNames>
     </>
   );
 };

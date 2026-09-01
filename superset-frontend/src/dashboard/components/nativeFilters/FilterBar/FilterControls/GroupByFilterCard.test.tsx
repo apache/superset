@@ -21,7 +21,13 @@ import {
   type ChartCustomization,
 } from '@superset-ui/core';
 import { LabeledValue } from '@superset-ui/core/components';
-import { render, screen } from 'spec/helpers/testing-library';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
+import { cachedSupersetGet } from 'src/utils/cachedSupersetGet';
 import GroupByFilterCard, {
   createLabelSortComparator,
 } from './GroupByFilterCard';
@@ -74,4 +80,38 @@ test('renders the column-loading spinner small and muted', async () => {
   const spinner = await screen.findByTestId('loading-indicator');
   expect(spinner).toHaveClass('inline');
   expect(spinner).toHaveStyle({ opacity: 0.25, width: '40px' });
+});
+
+test('horizontal layout keeps the 200-400px popup width constraints', async () => {
+  // The popup portals to document.body, outside HorizontalFormItem's styled
+  // scope, so the width clamp must arrive as inline popup styles instead.
+  (cachedSupersetGet as jest.Mock).mockResolvedValueOnce({
+    json: {
+      result: {
+        table_name: 'test_table',
+        columns: [{ column_name: 'gender', verbose_name: 'Gender' }],
+      },
+    },
+  });
+  render(
+    <GroupByFilterCard
+      customizationItem={groupByCustomization}
+      orientation="horizontal"
+    />,
+    {
+      useRedux: true,
+      initialState: {
+        dataMask: {},
+        nativeFilters: { filters: {} },
+      },
+    },
+  );
+  await userEvent.click(await screen.findByRole('combobox'));
+  await waitFor(() => {
+    expect(document.querySelector('.ant-select-dropdown')).not.toBeNull();
+  });
+  expect(document.querySelector('.ant-select-dropdown')).toHaveStyle({
+    minWidth: '200px',
+    maxWidth: '400px',
+  });
 });
