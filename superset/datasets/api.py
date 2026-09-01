@@ -86,10 +86,16 @@ from superset.datasets.schemas import (
     GetOrCreateDatasetSchema,
     openapi_spec_methods_override,
 )
+from superset.db_engine_specs.exceptions import (
+    SupersetDBAPIConnectionError,
+    SupersetDBAPIDatabaseError,
+    SupersetDBAPIOperationalError,
+)
 from superset.exceptions import (
     OAuth2RedirectError,
     SupersetSyntaxErrorException,
     SupersetTemplateException,
+    SupersetTimeoutException,
 )
 from superset.jinja_context import BaseTemplateProcessor, get_template_processor
 from superset.subjects.filters import FilterRelatedSubjects, subject_type_filter
@@ -532,6 +538,20 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
                 exc_info=True,
             )
             return self.response_422(message=str(ex))
+        except (
+            SupersetTimeoutException,
+            SupersetDBAPIConnectionError,
+            SupersetDBAPIOperationalError,
+            SupersetDBAPIDatabaseError,
+        ) as ex:
+            # ``CreateDatasetCommand`` deliberately re-raises these infra-level
+            # failures (unreachable database, query timeout) unchanged instead
+            # of coercing them into a 422 "invalid table"/"invalid sql" error;
+            # surface them here with their own status instead of letting the
+            # broad ``except Exception`` below flatten them into an opaque 500
+            # "Fatal error".
+            logger.warning("Error creating dataset: %s", ex, exc_info=True)
+            return self.response(ex.status, message=str(ex))
         except Exception:  # pylint: disable=broad-except
             # ``@safe`` isn't used on this endpoint (it would swallow the
             # ``OAuth2RedirectError`` re-raised above into an opaque 500), so

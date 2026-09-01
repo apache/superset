@@ -321,6 +321,48 @@ def test_post_dataset_oauth2_redirect_propagates_unchanged(
     }
 
 
+def test_post_dataset_timeout_propagates_own_status(
+    session: Session,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """A query timeout while fetching metadata must surface as its own 408,
+    not be flattened into the catch-all 500 "Fatal error" -- the same class
+    of failure ``CreateDatasetCommand`` deliberately re-raises unchanged so
+    it isn't misreported as a 422 "invalid table"/"invalid sql" error.
+    """
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.errors import ErrorLevel, SupersetErrorType
+    from superset.exceptions import SupersetTimeoutException
+    from superset.models.core import Database
+
+    SqlaTable.metadata.create_all(db.session.get_bind())
+
+    database = Database(database_name="timeout_db", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    with patch(
+        "superset.datasets.api.CreateDatasetCommand.run",
+        side_effect=SupersetTimeoutException(
+            error_type=SupersetErrorType.CONNECTION_DATABASE_TIMEOUT,
+            message="Connection timed out",
+            level=ErrorLevel.ERROR,
+        ),
+    ):
+        response = client.post(
+            "/api/v1/dataset/",
+            json={
+                "database": database.id,
+                "schema": "main",
+                "table_name": "timeout_table",
+            },
+        )
+
+    assert response.status_code == 408
+    assert "Connection timed out" in response.json["message"]
+
+
 def test_post_dataset_unexpected_error_returns_sanitized_500(
     session: Session,
     client: Any,
