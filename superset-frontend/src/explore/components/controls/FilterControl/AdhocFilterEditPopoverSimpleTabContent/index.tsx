@@ -90,7 +90,7 @@ const COMPARATOR_PAGE_SIZE = 1_000_000;
 // is not an outage; a 5xx is the server's own failure, and no status at all
 // means the request got no answer (network failure, timeout). Only the last
 // two are "suggestions unavailable".
-const isServerSideFailure = (error: unknown): boolean => {
+const isSuggestionsOutage = (error: unknown): boolean => {
   const status = (error as { status?: unknown } | null)?.status;
   return typeof status !== 'number' || status >= 500;
 };
@@ -397,6 +397,11 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
   const [loadedOptionCount, setLoadedOptionCount] = useState(0);
   const [optionsTruncated, setOptionsTruncated] = useState(false);
   const [suggestionsUnavailable, setSuggestionsUnavailable] = useState(false);
+  // Identity of the newest suggestions request. A slow response that loses
+  // the race -- a failing fetch resolving after a newer search succeeded, or
+  // after the column changed -- must not stamp its outcome over the current
+  // one, so every state write below is guarded on still being the latest.
+  const comparatorRequestRef = useRef(0);
   const [hasFocusedComparator, setHasFocusedComparator] =
     useState<boolean>(false);
 
@@ -596,6 +601,10 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
         return { data: [], totalCount: 0 };
       }
 
+      const requestId = comparatorRequestRef.current + 1;
+      comparatorRequestRef.current = requestId;
+      const isCurrent = () => comparatorRequestRef.current === requestId;
+
       const params = new URLSearchParams();
       if (arrayElements) {
         params.set('array_elements', 'true');
@@ -630,9 +639,13 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
           };
         });
 
-        setLoadedOptionCount(data.length);
-        setOptionsTruncated(isDefined(json.limit) && data.length >= json.limit);
-        setSuggestionsUnavailable(false);
+        if (isCurrent()) {
+          setLoadedOptionCount(data.length);
+          setOptionsTruncated(
+            isDefined(json.limit) && data.length >= json.limit,
+          );
+          setSuggestionsUnavailable(false);
+        }
 
         // The count has to exceed what was returned. AsyncSelect treats
         // `loaded >= totalCount` as "that is every value", sets allValuesLoaded
@@ -641,14 +654,16 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
         // replace. Pagination is held off by COMPARATOR_PAGE_SIZE instead.
         return { data, totalCount: data.length + 1 };
       } catch (error) {
-        setLoadedOptionCount(0);
-        setOptionsTruncated(false);
-        // The empty page keeps the dropdown, and with it the value the user
-        // types, in place; the note says why the page is empty. The count has
-        // to exceed the page here too: an empty page reported as complete
-        // (0 >= 0) makes AsyncSelect serve every later search from it, so the
-        // server would never be asked again for this column.
-        setSuggestionsUnavailable(isServerSideFailure(error));
+        if (isCurrent()) {
+          setLoadedOptionCount(0);
+          setOptionsTruncated(false);
+          // The empty page keeps the dropdown, and with it the value the
+          // user types, in place; the note says why the page is empty.
+          setSuggestionsUnavailable(isSuggestionsOutage(error));
+        }
+        // The count has to exceed the page: an empty page reported as
+        // complete (0 >= 0) makes AsyncSelect serve every later search from
+        // it, so the server would never be asked again for this column.
         return { data: [], totalCount: 1 };
       }
     },
@@ -665,7 +680,13 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
   // or a switch to element-level suggestions invalidates all of them, and a
   // note about the previous column's request with them.
   useEffect(() => {
-    comparatorSelectRef.current?.clearCache();
+    // The ref only carries the AsyncSelect handle while the suggestions
+    // branch is mounted; a column without comparator options renders the
+    // plain input, so the method itself is optional too.
+    comparatorSelectRef.current?.clearCache?.();
+    // Invalidate any in-flight request as well: a slow response for the
+    // previous column must not resurface the note after this reset.
+    comparatorRequestRef.current += 1;
     setSuggestionsUnavailable(false);
   }, [subjectString, arrayElements]);
 

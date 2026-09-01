@@ -989,10 +989,10 @@ const setupWithFilterValuesResponse = (response: unknown) => {
     partitionColumn: 'test',
     validHandler,
   };
-  render(
+  const { rerender } = render(
     <AdhocFilterEditPopoverSimpleTabContent {...(props as unknown as Props)} />,
   );
-  return props;
+  return { ...props, rerender };
 };
 
 const setupWithFilterValues = (result: unknown[], limit = 10000) =>
@@ -1180,6 +1180,63 @@ test('shows a plain empty list when the server has no values', async () => {
   );
   expect(await screen.findByText('Type a value here')).toBeInTheDocument();
   expect(screen.queryByText(SUGGESTIONS_UNAVAILABLE)).not.toBeInTheDocument();
+});
+
+test('ignores a stale failing response that loses the race to a newer success', async () => {
+  // The outage the note exists for is a slow endpoint -- which is exactly
+  // when a failing response can resolve AFTER a newer search already
+  // succeeded. The loser must not stamp its note over the winner.
+  let resolveSlowFailure: (value: unknown) => void = () => {};
+  columnValuesResponse = new Promise(resolve => {
+    resolveSlowFailure = resolve;
+  });
+  setupWithFilterValuesResponse(columnValuesResponse);
+  const comparator = await openComparator();
+
+  // A newer request succeeds while the first is still pending.
+  columnValuesResponse = { result: ['alpha'], limit: 10000 };
+  userEvent.type(comparator, 'al');
+  expect(
+    await screen.findByTitle('alpha', {}, { timeout: 3000 }),
+  ).toBeInTheDocument();
+
+  // Now the original request fails -- too late to matter.
+  resolveSlowFailure({ status: 500, body: { message: 'Fatal error' } });
+  await waitFor(() =>
+    expect(screen.queryByText(SUGGESTIONS_UNAVAILABLE)).not.toBeInTheDocument(),
+  );
+});
+
+test('does not carry the note to a different column', async () => {
+  const props = setupWithFilterValuesResponse({
+    status: 500,
+    body: { message: 'Fatal error' },
+  });
+  await openComparator();
+  expect(await screen.findByText(SUGGESTIONS_UNAVAILABLE)).toBeInTheDocument();
+
+  // The parent applies a subject change by re-rendering with a new filter;
+  // the note must reset with it -- the new column's own request decides what
+  // is shown next.
+  columnValuesResponse = { result: [], limit: 10000 };
+  props.rerender(
+    <AdhocFilterEditPopoverSimpleTabContent
+      {...({
+        ...props,
+        adhocFilter: new AdhocFilter({
+          expressionType: ExpressionTypes.Simple,
+          subject: 'source',
+          operatorId: Operators.In,
+          operator: OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.In].operation,
+          comparator: [],
+          clause: Clauses.Where,
+        }),
+      } as unknown as Props)}
+    />,
+  );
+  await waitFor(() =>
+    expect(screen.queryByText(SUGGESTIONS_UNAVAILABLE)).not.toBeInTheDocument(),
+  );
 });
 
 test('drops the note once suggestions load again', async () => {
