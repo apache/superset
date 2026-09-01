@@ -41,8 +41,14 @@ import {
  * It reuses HYDRATE_DASHBOARD rather than introducing a parallel action, so
  * every dashboard reducer stays untouched: `charts`, `sliceEntities`,
  * `dataMask`, `dashboardInfo` and `dashboardState` all already handle it.
- * `datasources` is the one slice with no hydrate handler, so the caller
+ * `dashboardLayout` and `nativeFilters` handle it too but dereference their
+ * slice unconditionally, so the payload carries an empty stand-in for each.
+ * `datasources` is the one slice with no hydrate handler at all, so the caller
  * dispatches `setDatasources` for it separately.
+ *
+ * Every slice any HYDRATE_DASHBOARD handler reads has to appear here; the
+ * accompanying test asserts that, because a missing one only fails at runtime
+ * and only in the embedded path.
  */
 
 export interface EmbeddedChartData {
@@ -67,6 +73,8 @@ export interface HydrateEmbeddedAction {
     dataMask: Record<number, DataMaskWithId>;
     dashboardInfo: JsonObject;
     dashboardState: JsonObject;
+    dashboardLayout: { present: JsonObject };
+    nativeFilters: { filters: JsonObject };
   };
 }
 
