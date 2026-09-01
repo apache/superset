@@ -6616,6 +6616,11 @@ def test_has_aggregate(expression: str, expected: bool) -> None:
     assert has_aggregate(expression) is expected
 
 
+# There is a merge conflict here: the HEAD branch is testing `folds_unquoted_object_names` parametrize,
+# and the incoming branch is testing `get_niladic_functions`.
+# To resolve, we need to include both working test functions, but not duplicate/conflict.
+# Below is a clean merge of both tests:
+
 @pytest.mark.parametrize(
     "engine,expected",
     [
@@ -6663,3 +6668,38 @@ def test_folds_unquoted_object_names_uninstalled_plugin_dialect(
         assert folds_unquoted_object_names("uninstalled_plugin") is False
     finally:
         folds_unquoted_object_names.cache_clear()
+
+
+@pytest.mark.parametrize(
+    "sql, engine, expected",
+    [
+        # Hive's parser resolves the zero-argument form to CURRENT_TIMESTAMP,
+        # which is what it actually means, so that is the name reported.
+        ("SELECT unix_timestamp()", "hive", {"CURRENT_TIMESTAMP"}),
+        ("SELECT unix_timestamp( )", "hive", {"CURRENT_TIMESTAMP"}),
+        ("SELECT unix_timestamp(ds) - unix_timestamp()", "hive", {"CURRENT_TIMESTAMP"}),
+        # Dialects that do not special-case it report the name as written.
+        ("SELECT unix_timestamp()", "sqlite", {"UNIX_TIMESTAMP"}),
+        ("SELECT unix_timestamp(ds)", "hive", set()),
+        ("SELECT unix_timestamp(ds)", "sqlite", set()),
+        ("SELECT lower(country)", "hive", set()),
+        ("SELECT * FROM some_table", "hive", set()),
+        # A named node whose arguments span all three shapes sqlglot uses: a
+        # scalar (`this`), a list (`expressions`), and unset optional slots
+        # left as `None`. Reading only `this` would count this as niladic.
+        ("SELECT coalesce(a, b)", "hive", set()),
+        # `expressions` is the only argument here, so the list branch is what
+        # decides whether the call looks niladic at all.
+        ("SELECT concat(a, b)", "hive", set()),
+    ],
+)
+def test_get_niladic_functions(sql: str, engine: str, expected: set[str]) -> None:
+    """
+    Check the `get_niladic_functions` method.
+
+    Some functions mean something entirely different with no arguments -- on
+    Hive and Impala `unix_timestamp()` is the current time while
+    `unix_timestamp(x)` is a pure conversion -- so callers that care about
+    determinism need to distinguish the two by arity, not by name.
+    """
+    assert SQLStatement(sql, engine).get_niladic_functions() == expected
