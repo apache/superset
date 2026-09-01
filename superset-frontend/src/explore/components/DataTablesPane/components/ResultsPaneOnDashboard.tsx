@@ -33,10 +33,6 @@ const Wrapper = styled.div`
     display: flex;
     flex-direction: column;
   }
-
-  .table-condensed {
-    overflow: auto;
-  }
 `;
 
 export const ResultsPaneOnDashboard = ({

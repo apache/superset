@@ -132,7 +132,8 @@ describe('ResultsPaneOnDashboard', () => {
     expect(
       await findByText('No results were returned for this query'),
     ).toBeVisible();
-    const [tabsProps] = (Tabs as unknown as jest.Mock).mock.calls[0];
+    const tabsMock = Tabs as unknown as jest.Mock;
+    const [tabsProps] = tabsMock.mock.calls[tabsMock.mock.calls.length - 1];
     expect(tabsProps).toEqual(expect.objectContaining({ fullHeight: true }));
   });
 
