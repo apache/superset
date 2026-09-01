@@ -35,7 +35,11 @@ import {
   OPERATOR_ENUM_TO_OPERATOR_TYPE,
 } from 'src/explore/constants';
 import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';
-import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
+import {
+  FeatureFlag,
+  isFeatureEnabled,
+  SupersetClient,
+} from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import fetchMock from 'fetch-mock';
 
@@ -955,14 +959,13 @@ test('filters the subject select by column verbose_name as well as column_name',
 const COLUMN_VALUES_ENDPOINT =
   'glob:*/api/v1/datasource/*/column/value/values/*';
 
-let columnValues: { result: unknown[]; limit: number } = {
-  result: [],
-  limit: 10000,
-};
-fetchMock.get(COLUMN_VALUES_ENDPOINT, () => columnValues);
+// Either a JSON body ({ result, limit }) or a fetch-mock response config
+// ({ status, body } / { throws }), so a test can make the server fail.
+let columnValuesResponse: unknown = { result: [], limit: 10000 };
+fetchMock.get(COLUMN_VALUES_ENDPOINT, () => columnValuesResponse);
 
-const setupWithFilterValues = (result: unknown[], limit = 10000) => {
-  columnValues = { result, limit };
+const setupWithFilterValuesResponse = (response: unknown) => {
+  columnValuesResponse = response;
   const onChange = jest.fn();
   const validHandler = jest.fn();
   const spy = jest.spyOn(redux, 'useSelector');
@@ -991,6 +994,11 @@ const setupWithFilterValues = (result: unknown[], limit = 10000) => {
   );
   return props;
 };
+
+const setupWithFilterValues = (result: unknown[], limit = 10000) =>
+  setupWithFilterValuesResponse({ result, limit });
+
+const SUGGESTIONS_UNAVAILABLE = /Suggestions could not be loaded/;
 
 const openComparator = async () => {
   const comparator = screen.getByRole('combobox', {
@@ -1065,7 +1073,7 @@ test('stores the picked value, not the option object', async () => {
 test('can remove a value that was saved earlier', async () => {
   // Reopening the popover restores the comparator from the saved filter, and
   // the value is not in the freshly loaded page. Removing it has to still work.
-  columnValues = { result: [], limit: 10000 };
+  columnValuesResponse = { result: [], limit: 10000 };
   const onChange = jest.fn();
   const validHandler = jest.fn();
   jest.spyOn(redux, 'useSelector').mockReturnValue({});
@@ -1114,4 +1122,79 @@ test('does not say the list is partial when it is complete', async () => {
   await openComparator();
   expect(await screen.findByTitle('alpha')).toBeInTheDocument();
   expect(screen.queryByText(/Only the first/)).not.toBeInTheDocument();
+});
+
+test('says suggestions could not be loaded when the server fails', async () => {
+  // A failed request used to render exactly like a column with no values,
+  // which is how a 500 on every semantic view went unreported for months.
+  const props = setupWithFilterValuesResponse({
+    status: 500,
+    body: { message: 'Fatal error' },
+  });
+  await openComparator();
+  expect(await screen.findByText(SUGGESTIONS_UNAVAILABLE)).toBeInTheDocument();
+
+  // The note must not cost the user the way through: typing still works.
+  const comparator = screen.getByRole('combobox', {
+    name: 'Comparator option',
+  });
+  userEvent.type(comparator, 'typed-by-hand');
+  userEvent.click(await screen.findByTitle('typed-by-hand'));
+  await waitFor(() => expect(props.onChange).toHaveBeenCalled());
+  const [filter] = props.onChange.mock.calls.at(-1);
+  expect(filter.comparator).toEqual(['typed-by-hand']);
+});
+
+test('says suggestions could not be loaded when the request gets no answer', async () => {
+  // A network failure rejects with no response at all (the client retries
+  // those itself, so it is stubbed above the transport).
+  jest
+    .spyOn(SupersetClient, 'get')
+    .mockRejectedValueOnce(new TypeError('Failed to fetch'));
+  setupWithFilterValues([]);
+  await openComparator();
+  expect(await screen.findByText(SUGGESTIONS_UNAVAILABLE)).toBeInTheDocument();
+});
+
+test('stays quiet when the server refuses the request', async () => {
+  // A 4xx is the caller's problem, not an outage; the picker behaves as before.
+  fetchMock.clearHistory();
+  setupWithFilterValuesResponse({
+    status: 400,
+    body: { message: 'Column name value does not exist' },
+  });
+  await openComparator();
+  await waitFor(() =>
+    expect(fetchMock.callHistory.calls(COLUMN_VALUES_ENDPOINT)).toHaveLength(1),
+  );
+  expect(await screen.findByText('Type a value here')).toBeInTheDocument();
+  expect(screen.queryByText(SUGGESTIONS_UNAVAILABLE)).not.toBeInTheDocument();
+});
+
+test('shows a plain empty list when the server has no values', async () => {
+  fetchMock.clearHistory();
+  setupWithFilterValues([]);
+  await openComparator();
+  await waitFor(() =>
+    expect(fetchMock.callHistory.calls(COLUMN_VALUES_ENDPOINT)).toHaveLength(1),
+  );
+  expect(await screen.findByText('Type a value here')).toBeInTheDocument();
+  expect(screen.queryByText(SUGGESTIONS_UNAVAILABLE)).not.toBeInTheDocument();
+});
+
+test('drops the note once suggestions load again', async () => {
+  setupWithFilterValuesResponse({
+    status: 500,
+    body: { message: 'Fatal error' },
+  });
+  const comparator = await openComparator();
+  expect(await screen.findByText(SUGGESTIONS_UNAVAILABLE)).toBeInTheDocument();
+
+  // A new search term is a new request; the server is back.
+  columnValuesResponse = { result: ['alpha'], limit: 10000 };
+  userEvent.type(comparator, 'al');
+  expect(
+    await screen.findByTitle('alpha', {}, { timeout: 3000 }),
+  ).toBeInTheDocument();
+  expect(screen.queryByText(SUGGESTIONS_UNAVAILABLE)).not.toBeInTheDocument();
 });
