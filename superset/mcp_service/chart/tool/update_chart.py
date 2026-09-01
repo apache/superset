@@ -41,6 +41,7 @@ from superset.mcp_service.chart.chart_utils import (
     generate_chart_name,
     map_config_to_form_data,
     merge_interactive_pivot_ui_config,
+    merge_same_viz_form_data,
     merge_table_column_config,
     merge_update_form_data,
     validate_merged_bullet_form_data,
@@ -195,21 +196,6 @@ def _append_table_columns(
     return merged
 
 
-def _merge_replacement_config(
-    existing_form_data: dict[str, Any],
-    new_form_data: dict[str, Any],
-) -> dict[str, Any]:
-    """Merge preview-only saved fields after authoritative scoped merges."""
-    return {
-        **{
-            key: value
-            for key, value in existing_form_data.items()
-            if key != "column_config"
-        },
-        **new_form_data,
-    }
-
-
 def _build_update_payload(
     request: UpdateChartRequest,
     chart: Any,
@@ -236,6 +222,7 @@ def _build_update_payload(
         merge_update_form_data(existing_form_data, new_form_data, parsed_config)
         merge_table_column_config(existing_form_data, new_form_data)
         merge_interactive_pivot_ui_config(existing_form_data, new_form_data)
+        merge_same_viz_form_data(existing_form_data, new_form_data)
 
         chart_name = (
             request.chart_name
@@ -319,9 +306,8 @@ def _build_preview_form_data(
         merge_update_form_data(existing_form_data, new_form_data, parsed_config)
         merge_table_column_config(existing_form_data, new_form_data)
         merge_interactive_pivot_ui_config(existing_form_data, new_form_data)
-        # In the preview, an explicit filters list, including [], replaces saved
-        # filters. An omitted filters field preserves them through the shallow merge.
-        merged = _merge_replacement_config(existing_form_data, new_form_data)
+        merge_same_viz_form_data(existing_form_data, new_form_data)
+        merged = new_form_data
     elif request.add_columns is not None:
         patched = _append_table_columns(existing_form_data, request.add_columns)
         if isinstance(patched, GenerateChartResponse):

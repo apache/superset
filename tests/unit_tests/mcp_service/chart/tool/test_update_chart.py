@@ -36,6 +36,7 @@ from superset.mcp_service.chart.schemas import (
     FilterConfig,
     GenerateChartResponse,
     LegendConfig,
+    MixedTimeseriesChartConfig,
     TableChartConfig,
     UpdateChartRequest,
     XYChartConfig,
@@ -738,6 +739,40 @@ class TestBuildUpdatePayload:
         # query_context must be cleared so get_chart_data uses updated params
         assert result["query_context"] is None
 
+    def test_same_viz_save_preserves_unmodeled_mixed_controls(self) -> None:
+        config = MixedTimeseriesChartConfig(
+            x=ColumnRef(name="ds"),
+            y=[ColumnRef(name="sales", aggregate="SUM")],
+            y_secondary=[ColumnRef(name="profit", aggregate="SUM")],
+        )
+        chart = Mock(
+            id=1,
+            datasource_id=7,
+            slice_name="Year over year",
+            params=json.dumps(
+                {
+                    "viz_type": "mixed_timeseries",
+                    "time_compare": ["1 year ago"],
+                    "comparison_type_b": "percentage",
+                    "y_axis_format": ",.2f",
+                    "truncate_metric": True,
+                }
+            ),
+        )
+
+        result = _build_update_payload(
+            UpdateChartRequest(identifier=1, config=config),
+            chart,
+            parsed_config=config,
+        )
+
+        assert isinstance(result, dict)
+        saved = json.loads(result["params"])
+        assert saved["time_compare"] == ["1 year ago"]
+        assert saved["comparison_type_b"] == "percentage"
+        assert saved["y_axis_format"] == ",.2f"
+        assert saved["truncate_metric"] is True
+
     def test_add_columns_preserves_existing_columns_and_metrics(self):
         """An additive update does not require reconstructing the table."""
         request = UpdateChartRequest(
@@ -1256,14 +1291,45 @@ class TestBuildPreviewFormData:
         result = _build_preview_form_data(request, chart, parsed_config=config)
 
         assert isinstance(result, dict)
-        # Existing keys not touched by the new config are preserved
-        assert result["custom_flag"] is True
+        # Generic state does not cross visualization plugin boundaries.
+        assert "custom_flag" not in result
         # New config overrides existing keys
         assert result["viz_type"] == "table"
         # slice_id and datasource are always stamped onto the preview
         assert result["slice_id"] == 42
         assert result["datasource"] == "7__table"
         assert result["slice_name"] == "Existing"
+
+    def test_same_viz_preview_preserves_unmodeled_mixed_controls(self) -> None:
+        config = MixedTimeseriesChartConfig(
+            x=ColumnRef(name="ds"),
+            y=[ColumnRef(name="sales", aggregate="SUM")],
+            y_secondary=[ColumnRef(name="profit", aggregate="SUM")],
+        )
+        chart = Mock(
+            id=42,
+            datasource_id=7,
+            slice_name="Existing",
+            params=json.dumps(
+                {
+                    "viz_type": "mixed_timeseries",
+                    "time_compare": ["1 year ago"],
+                    "comparison_type_b": "percentage",
+                    "y_axis_format": ",.2f",
+                }
+            ),
+        )
+
+        result = _build_preview_form_data(
+            UpdateChartRequest(identifier=42, config=config),
+            chart,
+            parsed_config=config,
+        )
+
+        assert isinstance(result, dict)
+        assert result["time_compare"] == ["1 year ago"]
+        assert result["comparison_type_b"] == "percentage"
+        assert result["y_axis_format"] == ",.2f"
 
     def test_partial_column_config_merges_saved_ui_settings(self) -> None:
         config = TableChartConfig.model_validate(

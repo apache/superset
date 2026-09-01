@@ -51,6 +51,82 @@ from superset.mcp_service.chart.tool.get_chart_preview import (
 from superset.utils import json as utils_json
 
 
+def _query_context_stub(form_data: dict[str, Any] | None = None) -> Any:
+    """Return the minimal real-shaped context needed by Jinja form-data seeding."""
+    return SimpleNamespace(form_data=form_data or {}, queries=[])
+
+
+@pytest.mark.parametrize("strategy_name", ["ascii", "table", "vega_lite"])
+def test_saved_preview_paths_seed_virtual_dataset_jinja_before_run(
+    monkeypatch: pytest.MonkeyPatch,
+    strategy_name: str,
+) -> None:
+    from flask import current_app
+
+    from superset.common.query_object import QueryObject
+    from superset.jinja_context import ExtraCache
+
+    module = importlib.import_module(
+        "superset.mcp_service.chart.tool.get_chart_preview"
+    )
+    command_module = importlib.import_module(
+        "superset.commands.chart.data.get_data_command"
+    )
+    query_context = SimpleNamespace(
+        queries=[
+            QueryObject(
+                columns=["region"],
+                filters=[{"col": "region", "op": "IN", "val": ["North"]}],
+            )
+        ],
+        form_data={"url_params": {"tenant": "acme"}},
+    )
+    observed: dict[str, Any] = {}
+
+    class _Command:
+        def __init__(self, context: Any) -> None:
+            assert context is query_context
+
+        def validate(self) -> None: ...
+
+        def run(self) -> dict[str, Any]:
+            macros = ExtraCache()
+            observed["url_param"] = macros.url_param("tenant")
+            observed["filter_values"] = macros.filter_values("region")
+            observed["get_filters"] = macros.get_filters("region")
+            return {
+                "queries": [{"data": [{"region": "North"}], "colnames": ["region"]}]
+            }
+
+    monkeypatch.setattr(
+        module, "build_query_context_from_form_data", lambda *_a, **_k: query_context
+    )
+    monkeypatch.setattr(command_module, "ChartDataCommand", _Command)
+    chart = SimpleNamespace(
+        id=42,
+        slice_name="Virtual dataset chart",
+        viz_type="table",
+        datasource_id=7,
+        datasource_type="table",
+        params=utils_json.dumps({"viz_type": "table", "groupby": ["region"]}),
+    )
+    request = GetChartPreviewRequest(identifier=42, format=strategy_name)
+    strategy_class = {
+        "ascii": module.ASCIIPreviewStrategy,
+        "table": module.TablePreviewStrategy,
+        "vega_lite": module.VegaLitePreviewStrategy,
+    }[strategy_name]
+
+    with current_app.test_request_context():
+        strategy_class(chart, request).generate()
+
+    assert observed == {
+        "url_param": "acme",
+        "filter_values": ["North"],
+        "get_filters": [{"col": "region", "op": "IN", "val": ["North"]}],
+    }
+
+
 class TestPreviewXAxisInQueryContext:
     """Tests for x_axis inclusion in preview query context columns.
 
@@ -302,7 +378,7 @@ class TestGetChartPreview:
         class QueryContextFactory:
             def create(self, **kwargs: Any) -> object:
                 captured_query_contexts.append(kwargs)
-                return object()
+                return _query_context_stub(kwargs.get("form_data"))
 
         class ChartDataCommand:
             def __init__(self, query_context: object) -> None:
@@ -381,7 +457,7 @@ class TestGetChartPreview:
         class QueryContextFactory:
             def create(self, **kwargs: Any) -> object:
                 captured_query_contexts.append(kwargs)
-                return object()
+                return _query_context_stub(kwargs.get("form_data"))
 
         class ChartDataCommand:
             def __init__(self, query_context: object) -> None:
@@ -452,7 +528,7 @@ class TestGetChartPreview:
         class QueryContextFactory:
             def create(self, **kwargs: Any) -> object:
                 captured_query_contexts.append(kwargs)
-                return object()
+                return _query_context_stub(kwargs.get("form_data"))
 
         class ChartDataCommand:
             def __init__(self, query_context: object) -> None:
@@ -583,7 +659,7 @@ class TestGetChartPreview:
 
         class QueryContextFactory:
             def create(self, **kwargs: Any) -> object:
-                return object()
+                return _query_context_stub(kwargs.get("form_data"))
 
         class ChartDataCommand:
             def __init__(self, query_context: object) -> None:
@@ -670,7 +746,7 @@ class TestGetChartPreview:
         class QueryContextFactory:
             def create(self, **kwargs: Any) -> object:
                 captured_query_contexts.append(kwargs)
-                return object()
+                return _query_context_stub(kwargs.get("form_data"))
 
         class ChartDataCommand:
             def __init__(self, query_context: object) -> None:
