@@ -274,6 +274,23 @@ jobs:
           SUPERSET_FEATURE_SOFT_DELETE: "true"
         with:
           run: playwright-run "${{ matrix.app_root }}" recently-archived/
+      - name: Run Playwright (Global Async Queries Tests)
+        uses: ./.github/actions/cached-dependencies
+        env:
+          NODE_OPTIONS: "--max-old-space-size=4096"
+          # Scoped to this step, same reasoning as the Soft-delete step above:
+          # GLOBAL_ASYNC_QUERIES changes chart-data behaviour for every spec
+          # sharing a server, so it gets its own gunicorn rather than being
+          # switched on for the Required run. Unlike Soft-delete this suite also
+          # needs a Celery worker, which playwright-run-gaq starts -- without one
+          # submissions return 202 and no job ever executes.
+          SUPERSET_FEATURE_GLOBAL_ASYNC_QUERIES: "true"
+        with:
+          run: >-
+            playwright-run-gaq "${{ matrix.app_root }}"
+            dashboard/global-async-query.spec.ts
+            dashboard/global-async-query-resilience.spec.ts
+            sqllab/global-async-query-sqllab.spec.ts
       - name: Set safe app root
         if: failure()
         id: set-safe-app-root
