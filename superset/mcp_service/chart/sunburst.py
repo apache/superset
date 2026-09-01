@@ -37,6 +37,45 @@ class SunburstResultRoles:
     secondary_metric: str | None = None
 
 
+def canonicalize_sunburst_operation_fields(
+    form_data: Mapping[str, Any],
+    *,
+    datasource_id: int | str | None,
+    datasource_type: str = "table",
+    chart_id: int | None = None,
+) -> dict[str, Any]:
+    """Bind native Sunburst identity fields to the active operation.
+
+    Native Explore form data can contain ``slice_id`` and ``datasource`` for
+    round-tripping saved state. Those values are descriptive input, not
+    authority to select the chart or dataset affected by an MCP operation.
+    Callers pass the already resolved dataset and, for chart updates, the
+    already authorized target chart. Creation and standalone preview callers
+    leave ``chart_id`` unset so an input chart identity cannot turn a new chart
+    into an update.
+    """
+    canonical = dict(form_data)
+    if canonical.get("viz_type") != "sunburst_v2":
+        return canonical
+
+    canonical.pop("datasource", None)
+    canonical.pop("datasource_id", None)
+    canonical.pop("datasource_type", None)
+    if datasource_id is not None:
+        resolved_type = (
+            datasource_type
+            if isinstance(datasource_type, str) and datasource_type
+            else "table"
+        )
+        canonical["datasource"] = f"{datasource_id}__{resolved_type}"
+
+    if chart_id is None:
+        canonical.pop("slice_id", None)
+    else:
+        canonical["slice_id"] = chart_id
+    return canonical
+
+
 def _column_result_label(column: Any) -> str | None:
     """Resolve a bounded native column reference to its query output label."""
     if isinstance(column, str) and column:

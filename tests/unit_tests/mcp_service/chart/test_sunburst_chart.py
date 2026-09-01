@@ -24,18 +24,25 @@ from unittest.mock import AsyncMock, MagicMock, Mock, patch
 import pytest
 import yaml
 from pydantic import ValidationError
+from sqlalchemy.exc import SQLAlchemyError
 
 from superset.common.form_data_query_context import (
     build_query_context_from_form_data,
 )
 from superset.mcp_service.chart.chart_helpers import (
     build_query_dicts_from_form_data,
+    resolve_form_data_datasource,
 )
 from superset.mcp_service.chart.chart_utils import (
+    generate_explore_link,
     map_config_to_form_data,
     merge_form_data_for_update,
 )
-from superset.mcp_service.chart.compile import _compile_chart, validate_and_compile
+from superset.mcp_service.chart.compile import (
+    _compile_chart,
+    CompileResult,
+    validate_and_compile,
+)
 from superset.mcp_service.chart.preview_utils import (
     _generate_ascii_preview_from_data,
     _generate_table_preview_from_data,
@@ -54,6 +61,7 @@ from superset.mcp_service.chart.schemas import (
     UpdateChartRequest,
 )
 from superset.mcp_service.chart.sunburst import (
+    canonicalize_sunburst_operation_fields,
     normalize_sunburst_form_data_references,
     validate_sunburst_result_data,
 )
@@ -139,6 +147,87 @@ def test_schema_uses_typed_mcp_and_frontend_tags() -> None:
     assert config.viz_type == "sunburst_v2"
     assert get_registry().get("sunburst") is not None
     assert display_name_for_viz_type("sunburst_v2") == "Sunburst Chart"
+
+
+def test_operation_fields_are_owned_without_weakening_native_round_trip() -> None:
+    """Native envelope values survive parsing but never choose an operation target."""
+    config = _config(datasource="10__table", slice_id=404)
+    native = map_config_to_form_data(config)
+    assert native["datasource"] == "10__table"
+    assert native["slice_id"] == 404
+
+    unsaved = canonicalize_sunburst_operation_fields(native, datasource_id=99)
+    assert unsaved["datasource"] == "99__table"
+    assert "slice_id" not in unsaved
+
+    update = canonicalize_sunburst_operation_fields(
+        native,
+        datasource_id=99,
+        datasource_type="table",
+        chart_id=19,
+    )
+    assert update["datasource"] == "99__table"
+    assert update["slice_id"] == 19
+
+
+def test_compile_uses_resolved_dataset_and_discards_native_chart_identity() -> None:
+    form_data = map_config_to_form_data(_config(datasource="10__table", slice_id=404))
+    query_builder = MagicMock(return_value=object())
+    command = MagicMock()
+    command.run.return_value = {
+        "queries": [
+            {
+                "data": [
+                    {"region": "North", "country": "CA", "Sales": 1},
+                ]
+            }
+        ]
+    }
+
+    with (
+        patch(
+            "superset.mcp_service.chart.chart_helpers."
+            "build_query_context_from_form_data",
+            query_builder,
+        ),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand",
+            return_value=command,
+        ),
+    ):
+        result = _compile_chart(form_data, 99)
+
+    assert result.success is True
+    compiled_form_data = query_builder.call_args.args[0]
+    assert compiled_form_data["datasource"] == "99__table"
+    assert "slice_id" not in compiled_form_data
+
+
+def test_unsaved_explore_cache_cannot_inherit_native_chart_identity() -> None:
+    form_data = map_config_to_form_data(_config(datasource="10__table", slice_id=404))
+    cache_command = MagicMock()
+    cache_command.return_value.run.return_value = "new-chart-key"
+
+    with (
+        patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=Mock(id=99)),
+        patch(
+            "superset.mcp_service.commands.create_form_data.MCPCreateFormDataCommand",
+            cache_command,
+        ),
+        patch(
+            "superset.mcp_service.chart.chart_utils.get_superset_base_url",
+            return_value="http://localhost:8088",
+        ),
+    ):
+        explore_url = generate_explore_link(99, form_data, prefer_permalink=False)
+
+    assert explore_url.endswith("/explore/?form_data_key=new-chart-key")
+    assert "slice_id=" not in explore_url
+    command_params = cache_command.call_args.args[0]
+    cached = json.loads(command_params.form_data)
+    assert command_params.chart_id == 0
+    assert cached["datasource"] == "99__table"
+    assert "slice_id" not in cached
 
 
 def test_registering_sunburst_keeps_all_core_chart_plugins() -> None:
@@ -1490,6 +1579,82 @@ def test_update_tool_preserves_omitted_state_and_honors_explicit_values() -> Non
     assert compiled_query["metrics"] == [preview["metric"]]
 
 
+@pytest.mark.parametrize("generate_preview", [False, True])
+def test_update_rebind_owns_chart_and_datasource_identity(
+    generate_preview: bool,
+) -> None:
+    chart = Mock(
+        id=19,
+        datasource_id=10,
+        datasource_type="table",
+        slice_name="Saved hierarchy",
+        params=json.dumps(
+            {
+                "viz_type": "sunburst_v2",
+                "columns": ["region", "country"],
+                "metric": "SavedSales",
+                "datasource": "10__table",
+                "slice_id": 19,
+            }
+        ),
+    )
+    config = _config(datasource="10__table", slice_id=777)
+    request = UpdateChartRequest(
+        identifier=19,
+        dataset_id=99,
+        config=config,
+        generate_preview=generate_preview,
+    )
+
+    if generate_preview:
+        state = _build_preview_form_data(request, chart, parsed_config=config)
+    else:
+        payload = _build_update_payload(request, chart, parsed_config=config)
+        assert isinstance(payload, dict)
+        assert payload["datasource_id"] == 99
+        assert payload["datasource_type"] == "table"
+        state = json.loads(payload["params"])
+
+    assert isinstance(state, dict)
+    assert state["slice_id"] == 19
+    assert state["datasource"] == "99__table"
+    assert resolve_form_data_datasource(state) == (99, "table")
+
+
+def test_dataset_only_rebind_rewrites_saved_sunburst_params() -> None:
+    chart = Mock(
+        id=19,
+        datasource_id=10,
+        datasource_type="table",
+        slice_name="Saved hierarchy",
+        params=json.dumps(
+            {
+                "viz_type": "sunburst_v2",
+                "columns": ["region", "country"],
+                "metric": "SavedSales",
+                "datasource": "10__table",
+                "slice_id": 777,
+            }
+        ),
+    )
+    request = UpdateChartRequest(
+        identifier=19,
+        dataset_id=99,
+        generate_preview=False,
+    )
+
+    payload = _build_update_payload(request, chart)
+
+    assert isinstance(payload, dict)
+    assert payload["datasource_id"] == 99
+    assert payload["datasource_type"] == "table"
+    assert payload["query_context"] is None
+    persisted = json.loads(payload["params"])
+    assert persisted["slice_id"] == 19
+    assert persisted["datasource"] == "99__table"
+    assert resolve_form_data_datasource(persisted) == (99, "table")
+
+
 def test_update_tool_explicit_empty_filters_clear_saved_filters() -> None:
     chart = Mock(
         id=19,
@@ -1737,6 +1902,82 @@ def test_cached_update_preview_rejects_orphan_grain_before_recaching() -> None:
     assert result["success"] is False
     assert result["error"]["error_code"] == "INVALID_TEMPORAL_STATE"
     generate_link.assert_not_called()
+
+
+def test_cached_update_preview_rebinds_datasource_and_stays_unsaved() -> None:
+    config = _config(datasource="10__table", slice_id=777)
+    request = UpdateChartPreviewRequest(
+        form_data_key="dataset-10-preview",
+        dataset_id=99,
+        config=config,
+        generate_preview=False,
+    )
+    dataset = _dataset()
+    dataset.id = 99
+    compile_calls: list[dict[str, object]] = []
+
+    def validate(
+        _config: object,
+        form_data: dict[str, object],
+        _dataset: object,
+        *,
+        run_compile_check: bool,
+    ) -> Mock:
+        if run_compile_check:
+            compile_calls.append(deepcopy(form_data))
+        return Mock(success=True)
+
+    generate_link = MagicMock(
+        return_value="http://localhost/explore/?form_data_key=dataset-99-preview"
+    )
+    with (
+        patch(
+            "superset.mcp_service.auth.get_user_from_request",
+            return_value=Mock(id=1, username="admin", roles=[], groups=[]),
+        ),
+        patch(
+            "superset.mcp_service.chart.tool.update_chart_preview._find_dataset",
+            return_value=dataset,
+        ),
+        patch(
+            "superset.mcp_service.chart.tool.update_chart_preview."
+            "_get_previous_form_data",
+            return_value={
+                "viz_type": "sunburst_v2",
+                "columns": ["Region", "Country"],
+                "metric": "SavedSales",
+                "datasource": "10__table",
+                "slice_id": 19,
+            },
+        ),
+        patch(
+            "superset.mcp_service.chart.tool.update_chart_preview.has_dataset_access",
+            return_value=True,
+        ),
+        patch.object(DatasetValidator, "normalize_column_names", return_value=config),
+        patch(
+            "superset.mcp_service.chart.tool.update_chart_preview."
+            "normalize_sunburst_form_data_references",
+            side_effect=lambda form_data, _context: form_data,
+        ),
+        patch(
+            "superset.mcp_service.chart.tool.update_chart_preview.validate_and_compile",
+            side_effect=validate,
+        ),
+        patch(
+            "superset.mcp_service.chart.tool.update_chart_preview."
+            "generate_explore_link",
+            generate_link,
+        ),
+    ):
+        result = update_chart_preview(request, ctx=MagicMock())
+
+    assert result["success"] is True
+    assert compile_calls == [generate_link.call_args.args[1]]
+    final_form_data = compile_calls[0]
+    assert final_form_data["datasource"] == "99__table"
+    assert "slice_id" not in final_form_data
+    assert "slice_id=" not in result["explore_url"]
 
 
 @pytest.mark.asyncio
@@ -2049,6 +2290,156 @@ async def test_generate_chart_product_path_returns_sunburst_preview() -> None:
     assert result.form_data["viz_type"] == "sunburst_v2"
     assert result.form_data["columns"] == ["region", "country"]
     assert result.form_data_key == "sunburst-key"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("input_slice_id", [404, 999999])
+async def test_unsaved_generate_ignores_native_chart_and_datasource_identity(
+    input_slice_id: int,
+) -> None:
+    """Missing/deleted/inaccessible native IDs cannot change subsequent Save."""
+    request = GenerateChartRequest(
+        dataset_id=7,
+        config=_config(datasource="10__table", slice_id=input_slice_id),
+        preview_formats=["url"],
+    )
+    context = MagicMock()
+    context.info = AsyncMock()
+    context.debug = AsyncMock()
+    context.warning = AsyncMock()
+    context.error = AsyncMock()
+    context.report_progress = AsyncMock()
+    validation_result = Mock(
+        is_valid=True,
+        request=request,
+        warnings={},
+        error=None,
+    )
+    generate_link = MagicMock(
+        return_value="http://localhost/explore/?form_data_key=new-chart-key"
+    )
+
+    with (
+        patch(
+            "superset.mcp_service.auth.get_user_from_request",
+            return_value=Mock(id=1, username="admin", roles=[], groups=[]),
+        ),
+        patch(
+            "superset.mcp_service.chart.validation.ValidationPipeline."
+            "validate_request_with_warnings",
+            return_value=validation_result,
+        ),
+        patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=_dataset()),
+        patch(
+            "superset.mcp_service.chart.tool.generate_chart.has_dataset_access",
+            return_value=True,
+        ),
+        patch(
+            "superset.mcp_service.chart.tool.generate_chart._compile_chart",
+            return_value=CompileResult(success=True),
+        ),
+        patch(
+            "superset.mcp_service.chart.chart_utils.generate_explore_link",
+            generate_link,
+        ),
+    ):
+        result = await generate_chart(request, ctx=context)
+
+    assert result.success is True
+    assert result.form_data is not None
+    assert result.form_data["datasource"] == "7__table"
+    assert "slice_id" not in result.form_data
+    assert "slice_id=" not in (result.explore_url or "")
+    cached_form_data = generate_link.call_args.args[1]
+    assert cached_form_data["datasource"] == "7__table"
+    assert "slice_id" not in cached_form_data
+
+
+@pytest.mark.asyncio
+async def test_saved_generate_assigns_only_the_new_chart_identity() -> None:
+    request = GenerateChartRequest(
+        dataset_id=7,
+        config=_config(datasource="10__table", slice_id=404),
+        chart_name="New hierarchy",
+        save_chart=True,
+        generate_preview=False,
+    )
+    context = MagicMock()
+    context.info = AsyncMock()
+    context.debug = AsyncMock()
+    context.warning = AsyncMock()
+    context.error = AsyncMock()
+    context.report_progress = AsyncMock()
+    validation_result = Mock(
+        is_valid=True,
+        request=request,
+        warnings={},
+        error=None,
+    )
+    dataset = _dataset()
+    chart = Mock(
+        id=88,
+        slice_name="New hierarchy",
+        viz_type="sunburst_v2",
+        uuid="00000000-0000-4000-8000-000000000088",
+        datasource_id=7,
+    )
+    create_command = MagicMock()
+    create_command.return_value.run.return_value = chart
+    cache_command = MagicMock()
+    cache_command.return_value.run.return_value = "saved-form-data-key"
+
+    with (
+        patch(
+            "superset.mcp_service.auth.get_user_from_request",
+            return_value=Mock(id=1, username="admin", roles=[], groups=[]),
+        ),
+        patch(
+            "superset.mcp_service.chart.validation.ValidationPipeline."
+            "validate_request_with_warnings",
+            return_value=validation_result,
+        ),
+        patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=dataset),
+        patch(
+            "superset.mcp_service.chart.tool.generate_chart.has_dataset_access",
+            return_value=True,
+        ),
+        patch(
+            "superset.mcp_service.chart.tool.generate_chart._compile_chart",
+            return_value=CompileResult(success=True),
+        ),
+        patch("superset.commands.chart.create.CreateChartCommand", create_command),
+        patch(
+            "superset.mcp_service.chart.tool.generate_chart.validate_chart_dataset",
+            return_value=Mock(is_valid=True, warnings=[], error=None),
+        ),
+        patch(
+            "superset.mcp_service.commands.create_form_data.MCPCreateFormDataCommand",
+            cache_command,
+        ),
+        patch("superset.db.session.refresh"),
+        patch(
+            "superset.daos.chart.ChartDAO.find_by_id",
+            side_effect=SQLAlchemyError("detached"),
+        ),
+    ):
+        result = await generate_chart(request, ctx=context)
+
+    assert result.success is True
+    create_payload = create_command.call_args.args[0]
+    persisted = json.loads(create_payload["params"])
+    assert persisted["datasource"] == "7__table"
+    assert "slice_id" not in persisted
+
+    cache_params = cache_command.call_args.args[0]
+    cached = json.loads(cache_params.form_data)
+    assert cache_params.chart_id == 88
+    assert cached["datasource"] == "7__table"
+    assert cached["slice_id"] == 88
+    assert result.form_data is not None
+    assert result.form_data["slice_id"] == 88
+    assert result.explore_url is not None
+    assert result.explore_url.endswith("/explore/?slice_id=88")
 
 
 @pytest.mark.asyncio

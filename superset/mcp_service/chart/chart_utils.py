@@ -235,11 +235,17 @@ def generate_explore_link(
                 f"{base_url}/explore/?datasource_type=table&datasource_id={dataset_id}"
             )
 
-        # Add datasource to form_data
-        form_data_with_datasource = {
-            **form_data,
-            "datasource": f"{numeric_dataset_id}__table",
-        }
+        # Bind native operation-owned fields to this unsaved Explore state.
+        # The local import avoids the chart_utils -> schemas -> sunburst cycle.
+        from superset.mcp_service.chart.sunburst import (
+            canonicalize_sunburst_operation_fields,
+        )
+
+        form_data_with_datasource = canonicalize_sunburst_operation_fields(
+            form_data,
+            datasource_id=numeric_dataset_id,
+        )
+        form_data_with_datasource["datasource"] = f"{numeric_dataset_id}__table"
 
         # Try durable permalink first (DB-backed key-value store, does not expire).
         # CreateExplorePermalinkCommand wraps its internal failures (encode/create/

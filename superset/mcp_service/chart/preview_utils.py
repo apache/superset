@@ -35,6 +35,7 @@ from superset.mcp_service.chart.schemas import (
     VegaLitePreview,
 )
 from superset.mcp_service.chart.sunburst import (
+    canonicalize_sunburst_operation_fields,
     resolve_sunburst_result_roles,
     unsupported_sunburst_preview,
     validate_sunburst_result_data,
@@ -90,7 +91,10 @@ def generate_preview_from_form_data(
             build_query_context_from_form_data,
         )
 
-        query_form_data = deepcopy(form_data)
+        query_form_data = canonicalize_sunburst_operation_fields(
+            deepcopy(form_data),
+            datasource_id=dataset_id,
+        )
         query_form_data["datasource"] = f"{dataset_id}__table"
         query_context_obj = build_query_context_from_form_data(
             query_form_data,

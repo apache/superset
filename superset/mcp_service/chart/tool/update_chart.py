@@ -55,6 +55,7 @@ from superset.mcp_service.chart.schemas import (
     UpdateChartRequest,
 )
 from superset.mcp_service.chart.sunburst import (
+    canonicalize_sunburst_operation_fields,
     normalize_sunburst_form_data_references,
 )
 from superset.mcp_service.utils.oauth2_utils import (
@@ -215,6 +216,29 @@ def _merge_replacement_config(
     return merged
 
 
+def _build_dataset_rebind_payload(
+    request: UpdateChartRequest, chart: Any
+) -> dict[str, Any]:
+    """Rebind a chart and keep native Sunburst params aligned with the target."""
+    assert request.dataset_id is not None
+    payload: dict[str, Any] = {
+        "datasource_id": request.dataset_id,
+        "datasource_type": "table",
+    }
+    existing_form_data = _get_existing_form_data(chart)
+    canonical_form_data = canonicalize_sunburst_operation_fields(
+        existing_form_data,
+        datasource_id=request.dataset_id,
+        chart_id=chart.id,
+    )
+    if canonical_form_data != existing_form_data:
+        payload["params"] = json.dumps(canonical_form_data)
+        payload["query_context"] = None
+    if request.chart_name:
+        payload["slice_name"] = request.chart_name
+    return payload
+
+
 def _build_update_payload(
     request: UpdateChartRequest,
     chart: Any,
@@ -245,6 +269,16 @@ def _build_update_payload(
         # additionally preserve explicitly omitted native presentation state.
         new_form_data = _merge_replacement_config(
             existing_form_data, new_form_data, parsed_config
+        )
+        new_form_data = canonicalize_sunburst_operation_fields(
+            new_form_data,
+            datasource_id=effective_dataset_id,
+            datasource_type=(
+                "table"
+                if request.dataset_id is not None
+                else getattr(chart, "datasource_type", "table")
+            ),
+            chart_id=chart.id,
         )
 
         chart_name = (
@@ -287,13 +321,7 @@ def _build_update_payload(
 
     # Dataset-only update: rebind chart to a different dataset without changing viz
     if request.dataset_id is not None:
-        payload = {
-            "datasource_id": request.dataset_id,
-            "datasource_type": "table",
-        }
-        if request.chart_name:
-            payload["slice_name"] = request.chart_name
-        return payload
+        return _build_dataset_rebind_payload(request, chart)
 
     # Name-only update: keep existing visualization, just rename
     if not request.chart_name:
@@ -352,6 +380,17 @@ def _build_preview_form_data(
     if effective_dataset_id:
         merged["datasource"] = f"{effective_dataset_id}__table"
 
+    merged = canonicalize_sunburst_operation_fields(
+        merged,
+        datasource_id=effective_dataset_id,
+        datasource_type=(
+            "table"
+            if request.dataset_id is not None
+            else getattr(chart, "datasource_type", "table")
+        ),
+        chart_id=chart.id,
+    )
+
     return merged
 
 
@@ -398,6 +437,15 @@ def _validate_update_against_dataset(
                 "api_version": "v1",
             }
         )
+
+    canonical_form_data = canonicalize_sunburst_operation_fields(
+        form_data,
+        datasource_id=dataset.id,
+        datasource_type=getattr(dataset, "type", "table"),
+        chart_id=getattr(chart, "id", None),
+    )
+    form_data.clear()
+    form_data.update(canonical_form_data)
 
     if form_data.get("viz_type") == "sunburst_v2":
         from superset.mcp_service.chart.validation.dataset_validator import (

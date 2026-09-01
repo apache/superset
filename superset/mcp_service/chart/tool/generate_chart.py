@@ -51,6 +51,9 @@ from superset.mcp_service.chart.schemas import (
     GenerateChartResponse,
     PerformanceMetadata,
 )
+from superset.mcp_service.chart.sunburst import (
+    canonicalize_sunburst_operation_fields,
+)
 from superset.mcp_service.utils.oauth2_utils import (
     build_oauth2_redirect_message,
     OAUTH2_CONFIG_ERROR_MESSAGE,
@@ -320,6 +323,10 @@ async def generate_chart(  # noqa: C901
         # Map the simplified config to Superset's form_data format
         # Pass dataset_id to enable column type checking for proper viz_type selection
         form_data = map_config_to_form_data(config, dataset_id=request.dataset_id)
+        form_data = canonicalize_sunburst_operation_fields(
+            form_data,
+            datasource_id=None,
+        )
 
         chart = None
         chart_id = None
@@ -410,6 +417,11 @@ async def generate_chart(  # noqa: C901
                         "api_version": "v1",
                     }
                 )
+
+            form_data = canonicalize_sunburst_operation_fields(
+                form_data,
+                datasource_id=dataset.id,
+            )
 
             # Generate chart name after dataset lookup so we can include dataset name
             dataset_name = getattr(dataset, "datasource_name", None) or getattr(
@@ -507,6 +519,15 @@ async def generate_chart(  # noqa: C901
                     chart_uuid = str(chart.uuid) if chart.uuid else None
                     chart_datasource_id = chart.datasource_id
 
+                    # Chart identity is assigned by creation, never by native
+                    # form-data input. It is safe to expose/cache only after the
+                    # command returned the newly created chart ID.
+                    form_data = canonicalize_sunburst_operation_fields(
+                        form_data,
+                        datasource_id=dataset.id,
+                        chart_id=chart_id,
+                    )
+
                     # Reload server-generated timestamps (created_on,
                     # changed_on) so the serializer sees real values.
                     from superset import db
@@ -569,11 +590,11 @@ async def generate_chart(  # noqa: C901
                     )
                     from superset.utils.core import DatasourceType
 
-                    # Add datasource to form_data for the cache
-                    form_data_with_datasource = {
-                        **form_data,
-                        "datasource": f"{dataset.id}__table",
-                    }
+                    form_data_with_datasource = canonicalize_sunburst_operation_fields(
+                        form_data,
+                        datasource_id=dataset.id,
+                        chart_id=chart_id,
+                    )
 
                     cmd_params = CommandParameters(
                         datasource_type=DatasourceType.TABLE,
@@ -621,6 +642,11 @@ async def generate_chart(  # noqa: C901
                 ds = DatasetDAO.find_by_id(request.dataset_id, id_column="uuid")
                 if ds and has_dataset_access(ds):
                     numeric_dataset_id = ds.id
+
+            form_data = canonicalize_sunburst_operation_fields(
+                form_data,
+                datasource_id=numeric_dataset_id,
+            )
 
             if numeric_dataset_id is not None:
                 with event_logger.log_context(

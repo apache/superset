@@ -54,6 +54,7 @@ from superset.mcp_service.chart.schemas import (
     UpdateChartPreviewRequest,
 )
 from superset.mcp_service.chart.sunburst import (
+    canonicalize_sunburst_operation_fields,
     normalize_sunburst_form_data_references,
 )
 from superset.mcp_service.utils.oauth2_utils import (
@@ -234,6 +235,10 @@ def update_chart_preview(  # noqa: C901
                 config, dataset_id=request.dataset_id
             )
             new_form_data.pop("_mcp_warnings", None)
+            new_form_data = canonicalize_sunburst_operation_fields(
+                new_form_data,
+                datasource_id=dataset.id,
+            )
             warnings: list[str] = []
             previous_form_data: dict[str, Any] | None = None
 
@@ -250,6 +255,14 @@ def update_chart_preview(  # noqa: C901
                 )
                 if getattr(config, "filters", None) == []:
                     new_form_data.pop("adhoc_filters", None)
+
+            # This tool owns an unsaved cache entry, not a chart update target.
+            # Rebind datasource state to the authorized dataset and remove any
+            # native/cached chart identity before compile and recaching.
+            new_form_data = canonicalize_sunburst_operation_fields(
+                new_form_data,
+                datasource_id=dataset.id,
+            )
 
             if (
                 new_form_data.get("viz_type") == "sunburst_v2"

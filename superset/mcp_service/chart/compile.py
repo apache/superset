@@ -46,7 +46,10 @@ from superset.mcp_service.chart.query_result import (
     query_result_failure,
 )
 from superset.mcp_service.chart.schemas import ChartError
-from superset.mcp_service.chart.sunburst import validate_sunburst_result_data
+from superset.mcp_service.chart.sunburst import (
+    canonicalize_sunburst_operation_fields,
+    validate_sunburst_result_data,
+)
 from superset.mcp_service.chart.validation.dataset_validator import (
     build_dataset_context_from_orm,
     DatasetValidator,
@@ -140,7 +143,10 @@ def _compile_chart(  # noqa: C901
     )
 
     try:
-        query_form_data = deepcopy(form_data)
+        query_form_data = canonicalize_sunburst_operation_fields(
+            deepcopy(form_data),
+            datasource_id=dataset_id,
+        )
         query_form_data["datasource"] = f"{dataset_id}__table"
         query_context = build_query_context_from_form_data(
             query_form_data,
