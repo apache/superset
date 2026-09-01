@@ -23,7 +23,6 @@ Create Date: 2026-09-01 10:00:00.000000
 """
 
 import sqlalchemy as sa
-from alembic import op
 from sqlalchemy_utils import UUIDType
 
 from superset.migrations.shared.utils import create_table, drop_table
@@ -44,9 +43,7 @@ def upgrade() -> None:
         sa.Column("allow_domain_list", sa.Text(), nullable=True),
         sa.Column("guest_token_revoked_before", sa.Integer(), nullable=True),
         sa.Column("slice_id", sa.Integer(), nullable=False),
-        sa.ForeignKeyConstraint(
-            ["slice_id"], ["slices.id"], ondelete="CASCADE"
-        ),
+        sa.ForeignKeyConstraint(["slice_id"], ["slices.id"], ondelete="CASCADE"),
         sa.ForeignKeyConstraint(["changed_by_fk"], ["ab_user.id"]),
         sa.ForeignKeyConstraint(["created_by_fk"], ["ab_user.id"]),
     )

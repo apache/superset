@@ -52,13 +52,13 @@ from superset.charts.filters import (
     ChartTagNameFilter,
 )
 from superset.charts.schemas import (
-    EmbeddedChartConfigSchema,
-    EmbeddedChartResponseSchema,
     CHART_SCHEMAS,
     ChartCacheWarmUpRequestSchema,
     ChartGetResponseSchema,
     ChartPostSchema,
     ChartPutSchema,
+    EmbeddedChartConfigSchema,
+    EmbeddedChartResponseSchema,
     get_delete_ids_schema,
     get_export_ids_schema,
     get_fav_star_ids_schema,
