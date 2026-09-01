@@ -62,7 +62,7 @@ const InfoIconWrapper = styled.span`
 `;
 
 interface TaskPayloadPopoverProps {
-  payload: Record<string, any>;
+  payload: Record<string, unknown>;
   // Internal, debug-only state (present only in debug mode). Rendered as a
   // separate section below the results payload; kept distinct because the
   // payload may get custom renderers while `private` stays a raw dump.
