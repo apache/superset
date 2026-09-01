@@ -1872,6 +1872,7 @@ class ImportV1ChartSchema(Schema):
     is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
     external_url = fields.String(allow_none=True, validate=utils.validate_external_url)
     tags = fields.List(fields.String(), allow_none=True)
+    extra = fields.Dict(allow_none=True, load_only=True)
 
 
 class ChartCacheWarmUpRequestSchema(Schema):

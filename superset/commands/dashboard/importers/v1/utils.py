@@ -20,7 +20,10 @@ from typing import Any
 
 from superset import db, security_manager
 from superset.commands.exceptions import ImportFailedError
-from superset.commands.importers.v1.utils import find_existing_for_import
+from superset.commands.importers.v1.utils import (
+    apply_extra_import_fields,
+    find_existing_for_import,
+)
 from superset.daos.dashboard import DashboardDAO
 from superset.models.dashboard import Dashboard
 from superset.subjects.models import Subject
@@ -446,6 +449,7 @@ def import_dashboard(  # noqa: C901
             except TypeError:
                 logger.info("Unable to encode `%s` field: %s", key, value)
 
+    extra = config.pop("extra", None)
     dashboard = Dashboard.import_from_dict(config, recursive=False)
     if dashboard.id is None:
         db.session.flush()
@@ -469,5 +473,7 @@ def import_dashboard(  # noqa: C901
         for viewer in viewers:
             if viewer not in dashboard.viewers:
                 dashboard.viewers.append(viewer)
+
+    apply_extra_import_fields(dashboard, "dashboard", extra)
 
     return dashboard
