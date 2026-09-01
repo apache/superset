@@ -283,19 +283,22 @@ test('printFontSize is large when ?print_font_size=large', () => {
   expect(computePrintFontSize('large')).toBe('large');
 });
 
-test('getPrintFontSizeCSS returns empty string for small tier (no overrides)', () => {
-  expect(getPrintFontSizeCSS(PRINT_FONT_SIZE_SMALL)).toBe('');
-});
-
-test('getPrintFontSizeCSS returns CSS with 20px for medium tier', () => {
-  const css = getPrintFontSizeCSS(PRINT_FONT_SIZE_MEDIUM);
-  expect(css).toContain('20px');
+test('getPrintFontSizeCSS returns non-empty CSS for small tier (readable overrides)', () => {
+  const css = getPrintFontSizeCSS(PRINT_FONT_SIZE_SMALL);
+  expect(css).not.toBe('');
+  expect(css).toContain('16px');
   expect(css).toContain('superset-chart-table');
 });
 
-test('getPrintFontSizeCSS returns CSS with 30px for large tier', () => {
+test('getPrintFontSizeCSS returns CSS with 24px for medium tier', () => {
+  const css = getPrintFontSizeCSS(PRINT_FONT_SIZE_MEDIUM);
+  expect(css).toContain('24px');
+  expect(css).toContain('superset-chart-table');
+});
+
+test('getPrintFontSizeCSS returns CSS with 36px for large tier', () => {
   const css = getPrintFontSizeCSS(PRINT_FONT_SIZE_LARGE);
-  expect(css).toContain('30px');
+  expect(css).toContain('36px');
   expect(css).toContain('superset-chart-table');
 });
 

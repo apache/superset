@@ -129,9 +129,9 @@ export function getPrintFontSizeCSS(fontSize: PrintFontSize): string {
    * 0.496 × 0.375 ≈ 0.186 pt per CSS px in the final PDF.
    *
    * Tier targets (approximate printed point sizes):
-   *   small  — no overrides; React/dashboard defaults (~8pt title, ~6pt table)
-   *   medium — chart title ~13pt, table ~10pt  (presentation-ready)
-   *   large  — chart title ~19pt, table ~15pt  (extra-large / accessibility)
+   *   small  — table ~8pt, chart title ~11pt  (readable default)
+   *   medium — table ~12pt, chart title ~16pt (presentation-ready)
+   *   large  — table ~18pt, chart title ~22pt (extra-large / accessibility)
    *
    * NOTE: .header-line on Big Number charts has an inline style="font-size:Xpx"
    * set by React. CSS !important cannot override inline styles. The big number
@@ -145,27 +145,58 @@ export function getPrintFontSizeCSS(fontSize: PrintFontSize): string {
    *    there is no .dataTable or .table-viz class in the Superset table plugin)
    */
 
-  // small: no overrides — base PRINT_MODE_CSS preserves dashboard defaults
   if (fontSize === 'small') {
-    return '';
+    return `
+body.print-mode {
+  /* ── Small font tier ─────────────────────────────────────────────── */
+  /* Chart titles (~11pt on paper after 0.496x scale) */
+  [data-test="slice-header"] .header-title,
+  [data-test="slice-header"] .header-title a,
+  [data-test="slice-header"] .header-title span {
+    font-size: 22px !important;
+    line-height: 1.4 !important;
+  }
+
+  /* Table cells and headers (~8pt on paper) */
+  .superset-chart-table td,
+  .superset-chart-table th {
+    font-size: 16px !important;
+    line-height: 1.5 !important;
+    padding: 6px 10px !important;
+  }
+
+  /* Markdown / text cards */
+  .dashboard-markdown,
+  .dashboard-markdown p,
+  .dashboard-markdown li,
+  .dashboard-markdown td,
+  .dashboard-markdown th {
+    font-size: 16px !important;
+    line-height: 1.6 !important;
+  }
+  .dashboard-markdown h1 { font-size: 26px !important; }
+  .dashboard-markdown h2 { font-size: 22px !important; }
+  .dashboard-markdown h3 { font-size: 19px !important; }
+}
+`;
   }
 
   if (fontSize === 'medium') {
     return `
 body.print-mode {
   /* ── Medium font tier ────────────────────────────────────────────── */
-  /* Chart titles (~13pt on paper after 0.496x scale) */
+  /* Chart titles (~16pt on paper after 0.496x scale) */
   [data-test="slice-header"] .header-title,
   [data-test="slice-header"] .header-title a,
   [data-test="slice-header"] .header-title span {
-    font-size: 26px !important;
+    font-size: 32px !important;
     line-height: 1.4 !important;
   }
 
-  /* Table cells and headers (~10pt on paper) */
+  /* Table cells and headers (~12pt on paper) */
   .superset-chart-table td,
   .superset-chart-table th {
-    font-size: 20px !important;
+    font-size: 24px !important;
     line-height: 1.5 !important;
     padding: 8px 14px !important;
   }
@@ -176,12 +207,12 @@ body.print-mode {
   .dashboard-markdown li,
   .dashboard-markdown td,
   .dashboard-markdown th {
-    font-size: 20px !important;
+    font-size: 24px !important;
     line-height: 1.6 !important;
   }
-  .dashboard-markdown h1 { font-size: 32px !important; }
-  .dashboard-markdown h2 { font-size: 28px !important; }
-  .dashboard-markdown h3 { font-size: 24px !important; }
+  .dashboard-markdown h1 { font-size: 38px !important; }
+  .dashboard-markdown h2 { font-size: 34px !important; }
+  .dashboard-markdown h3 { font-size: 29px !important; }
 }
 `;
   }
@@ -191,14 +222,10 @@ body.print-mode {
 body.print-mode {
   /* ── Large font tier ─────────────────────────────────────────────── */
 
-  /* Chart titles (~19pt on paper after 0.496x scale).
+  /* Chart titles (~22pt on paper after 0.496x scale).
    *
-   * The title text at 38px / line-height 1.2 ≈ 46px fits within the default
-   * 50px slice-header box.  Only the slice-header needs height:auto so it can
-   * wrap onto two lines if the title is very long; for the common single-line
-   * case the title stays within the authored header height and the ChartWrapper
-   * does NOT need overflow:visible (which would push the chart canvas down and
-   * misalign the Big Number value).
+   * The title text at 44px needs height:auto on the slice-header so it can
+   * wrap onto two lines if needed without clipping.
    *
    * Do NOT set overflow:visible on .dashboard-chart or max-height:none on
    * .slice_container — those changes cause the chart content area (whose height
@@ -215,7 +242,7 @@ body.print-mode {
   [data-test="slice-header"] .header-title,
   [data-test="slice-header"] .header-title a,
   [data-test="slice-header"] .header-title span {
-    font-size: 38px !important;
+    font-size: 44px !important;
     line-height: 1.2 !important;
     white-space: normal !important;
     overflow: visible !important;
@@ -226,10 +253,10 @@ body.print-mode {
     padding-top: 4px !important;
   }
 
-  /* Table cells and headers (~15pt on paper) */
+  /* Table cells and headers (~18pt on paper) */
   .superset-chart-table td,
   .superset-chart-table th {
-    font-size: 30px !important;
+    font-size: 36px !important;
     line-height: 1.5 !important;
     padding: 10px 18px !important;
   }
@@ -240,12 +267,12 @@ body.print-mode {
   .dashboard-markdown li,
   .dashboard-markdown td,
   .dashboard-markdown th {
-    font-size: 30px !important;
+    font-size: 36px !important;
     line-height: 1.6 !important;
   }
-  .dashboard-markdown h1 { font-size: 48px !important; }
-  .dashboard-markdown h2 { font-size: 42px !important; }
-  .dashboard-markdown h3 { font-size: 36px !important; }
+  .dashboard-markdown h1 { font-size: 56px !important; }
+  .dashboard-markdown h2 { font-size: 50px !important; }
+  .dashboard-markdown h3 { font-size: 43px !important; }
 }
 `;
   }
