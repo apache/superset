@@ -1630,12 +1630,26 @@ class ChartDataQueryContextSchema(Schema):
         allow_none=True,
     )
 
+    tab_id = fields.String(
+        metadata={
+            "description": "Opaque per-browser-tab id (see the frontend `getTabId`). "
+            "On an async request it ref-counts this tab as a consumer of the shared "
+            "chart-data task so a cancel/navigate-away from one tab doesn't abort a "
+            "task another tab still awaits. Read by the API as a request-level "
+            "routing hint; not part of the query context."
+        },
+        required=False,
+        allow_none=True,
+    )
+
     # pylint: disable=unused-argument
     @post_load
     def make_query_context(self, data: dict[str, Any], **kwargs: Any) -> QueryContext:
-        # ``async_mode`` is a request-level flag (read by the API to decide sync vs
-        # async), not part of the QueryContext, so drop it before building one.
+        # ``async_mode`` and ``tab_id`` are request-level hints (read by the API to
+        # decide sync vs async and to route the per-tab subscription), not part of
+        # the QueryContext, so drop them before building one.
         data.pop("async_mode", None)
+        data.pop("tab_id", None)
         query_context = self.get_query_context_factory().create(**data)
         return query_context
 
