@@ -2456,9 +2456,14 @@ def test_get_native_annotation_data_requires_annotation_read_access():
 # =============================================================================
 
 
+# A query object with no per-query nonce: the force helpers then fall back to the
+# context-level nonce (the path these tests exercise).
+_QO_NO_NONCE = MagicMock(force_nonce=None)
+
+
 def test_resolve_forced_query_false_when_not_forced(processor, mock_query_context):
     mock_query_context.force = False
-    assert processor._resolve_forced_query("ck") is False
+    assert processor._resolve_forced_query(_QO_NO_NONCE, "ck") is False
 
 
 def test_resolve_forced_query_true_when_forced_without_nonce(
@@ -2467,7 +2472,7 @@ def test_resolve_forced_query_true_when_forced_without_nonce(
     """A forced refresh with no nonce (sync/legacy) forces verbatim."""
     mock_query_context.force = True
     mock_query_context.force_nonce = None
-    assert processor._resolve_forced_query("ck") is True
+    assert processor._resolve_forced_query(_QO_NO_NONCE, "ck") is True
 
 
 def test_resolve_forced_query_true_when_forced_without_cache_key(
@@ -2475,7 +2480,7 @@ def test_resolve_forced_query_true_when_forced_without_cache_key(
 ):
     mock_query_context.force = True
     mock_query_context.force_nonce = "nonce-1"
-    assert processor._resolve_forced_query(None) is True
+    assert processor._resolve_forced_query(_QO_NO_NONCE, None) is True
 
 
 def test_resolve_forced_query_reads_cache_when_marker_present(
@@ -2488,7 +2493,7 @@ def test_resolve_forced_query_reads_cache_when_marker_present(
         "superset.common.query_context_processor.cache_manager"
     ) as cache_manager:
         cache_manager.data_cache.get.return_value = 1  # marker exists
-        assert processor._resolve_forced_query("ck") is False
+        assert processor._resolve_forced_query(_QO_NO_NONCE, "ck") is False
     cache_manager.data_cache.get.assert_called_once_with("gtf-force-nonce:nonce-1:ck")
 
 
@@ -2502,7 +2507,7 @@ def test_resolve_forced_query_forces_when_marker_absent(processor, mock_query_co
         "superset.common.query_context_processor.cache_manager"
     ) as cache_manager:
         cache_manager.data_cache.get.return_value = None  # no marker
-        assert processor._resolve_forced_query("ck") is True
+        assert processor._resolve_forced_query(_QO_NO_NONCE, "ck") is True
 
 
 def test_mark_force_executed_sets_marker_for_nonce_refresh(
@@ -2514,7 +2519,7 @@ def test_mark_force_executed_sets_marker_for_nonce_refresh(
         patch("superset.common.query_context_processor.cache_manager") as cache_manager,
         patch.object(processor, "get_cache_timeout", return_value=123),
     ):
-        processor._mark_force_executed("ck", persisted=True)
+        processor._mark_force_executed(_QO_NO_NONCE, "ck", persisted=True)
     cache_manager.data_cache.set.assert_called_once_with(
         "gtf-force-nonce:nonce-1:ck", 1, timeout=123
     )
@@ -2531,7 +2536,7 @@ def test_mark_force_executed_noop_when_result_not_persisted(
     with patch(
         "superset.common.query_context_processor.cache_manager"
     ) as cache_manager:
-        processor._mark_force_executed("ck", persisted=False)
+        processor._mark_force_executed(_QO_NO_NONCE, "ck", persisted=False)
     cache_manager.data_cache.set.assert_not_called()
 
 
@@ -2541,7 +2546,7 @@ def test_mark_force_executed_noop_without_nonce(processor, mock_query_context):
     with patch(
         "superset.common.query_context_processor.cache_manager"
     ) as cache_manager:
-        processor._mark_force_executed("ck", persisted=True)
+        processor._mark_force_executed(_QO_NO_NONCE, "ck", persisted=True)
     cache_manager.data_cache.set.assert_not_called()
 
 
@@ -2554,7 +2559,9 @@ def test_mark_force_executed_swallows_marker_write_error(processor, mock_query_c
         patch.object(processor, "get_cache_timeout", return_value=123),
     ):
         cache_manager.data_cache.set.side_effect = RuntimeError("backend down")
-        processor._mark_force_executed("ck", persisted=True)  # must not raise
+        processor._mark_force_executed(
+            _QO_NO_NONCE, "ck", persisted=True
+        )  # must not raise
 
 
 def test_resolve_forced_query_forces_when_marker_read_errors(
@@ -2567,4 +2574,33 @@ def test_resolve_forced_query_forces_when_marker_read_errors(
         "superset.common.query_context_processor.cache_manager"
     ) as cache_manager:
         cache_manager.data_cache.get.side_effect = RuntimeError("backend down")
-        assert processor._resolve_forced_query("ck") is True
+        assert processor._resolve_forced_query(_QO_NO_NONCE, "ck") is True
+
+
+def test_resolve_forced_query_prefers_per_query_nonce(processor, mock_query_context):
+    """The per-query nonce (the async task's UUID, set on the read-back) takes
+    precedence over the context-level nonce and keys the marker lookup."""
+    mock_query_context.force = True
+    mock_query_context.force_nonce = "ctx-nonce"
+    query_obj = MagicMock(force_nonce="task-uuid")
+    with patch(
+        "superset.common.query_context_processor.cache_manager"
+    ) as cache_manager:
+        cache_manager.data_cache.get.return_value = 1  # marker exists
+        assert processor._resolve_forced_query(query_obj, "ck") is False
+    cache_manager.data_cache.get.assert_called_once_with("gtf-force-nonce:task-uuid:ck")
+
+
+def test_mark_force_executed_uses_per_query_nonce(processor, mock_query_context):
+    """The marker is written under the per-query nonce when present."""
+    mock_query_context.force = True
+    mock_query_context.force_nonce = "ctx-nonce"
+    query_obj = MagicMock(force_nonce="task-uuid")
+    with (
+        patch("superset.common.query_context_processor.cache_manager") as cache_manager,
+        patch.object(processor, "get_cache_timeout", return_value=123),
+    ):
+        processor._mark_force_executed(query_obj, "ck", persisted=True)
+    cache_manager.data_cache.set.assert_called_once_with(
+        "gtf-force-nonce:task-uuid:ck", 1, timeout=123
+    )

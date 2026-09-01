@@ -45,6 +45,7 @@ import {
   connectRealtime,
   subscribeRealtime,
   subscribeRealtimeOpen,
+  subscribeRealtimeState,
 } from 'src/middleware/realtime';
 
 // The GTF task type chart-data queries run under (see
@@ -237,6 +238,17 @@ const abandonPolling = () => {
   );
 };
 
+// Settle every still-pending waiter when the realtime socket is unhealthy (the
+// sole transport is down with no poll fallback), so charts surface a prompt,
+// bounded error rather than hanging until the give-up timeout.
+const abandonRealtimeWaiters = () => {
+  const stranded = new Set<Waiter>();
+  waitersByTaskId.forEach(waiters => waiters.forEach(w => stranded.add(w)));
+  stranded.forEach(waiter =>
+    settle(waiter, new Error('Realtime connection unavailable')),
+  );
+};
+
 const applyStatus = (taskId: string, status: string) => {
   const waiters = waitersByTaskId.get(taskId);
   if (!waiters || !TERMINAL_STATUSES.has(status)) return;
@@ -388,6 +400,21 @@ const scheduleCatchUp = () => {
 
 subscribeRealtimeOpen(scheduleCatchUp);
 
+// The websocket is the sole completion transport when enabled, so a genuinely-down
+// server must not hang waiters until the long give-up. On each `reconnecting`
+// transition, reconcile via the socket-independent status_changes catch-up (so a
+// task that completed while disconnected is still observed); once the socket is
+// `unhealthy` (enough consecutive failed reconnects), settle the still-pending
+// waiters with a clear error instead of waiting out `pollStaleTimeoutMs`.
+subscribeRealtimeState(state => {
+  if (!wsEnabled || !waitersByTaskId.size) return;
+  if (state === 'reconnecting') {
+    scheduleCatchUp();
+  } else if (state === 'unhealthy') {
+    abandonRealtimeWaiters();
+  }
+});
+
 /**
  * Handle a `task.status` message from the shared realtime client.
  *
@@ -422,7 +449,7 @@ subscribeRealtime(TASK_STATUS_TOPIC, handleTaskStatus);
  */
 export const waitForAsyncData = async <T = unknown[]>(
   asyncJob: AsyncJob,
-  refetch: () => Promise<T>,
+  refetch: (queryForceNonces?: string[]) => Promise<T>,
   signal?: AbortSignal,
 ): Promise<T> => {
   const taskIds = asyncJob.task_ids ?? [];
@@ -502,7 +529,10 @@ export const waitForAsyncData = async <T = unknown[]>(
     if (wsEnabled) scheduleCatchUp();
   });
 
-  return refetch();
+  // Read the warmed results back synchronously. The per-query task ids double as
+  // forced-refresh idempotency nonces (see chartAction.requestChartDataResolved),
+  // so a forced refresh reads the result its task cached instead of recomputing.
+  return refetch(taskIds);
 };
 
 export const init = (appConfig?: AppConfig) => {
@@ -516,7 +546,10 @@ export const init = (appConfig?: AppConfig) => {
   // registration/reconnect. With it disabled, the interval poll below is the only
   // mechanism. (`config` can be undefined when bootstrap carries no conf — e.g.
   // under test — so read it defensively; this runs before the feature gate.)
-  wsEnabled = Boolean(config?.WEBSOCKET_ENABLE);
+  // Require a usable URL too: WEBSOCKET_ENABLE without WEBSOCKET_URL can never open
+  // a socket (openSocket no-ops), so treating it as the transport would disable the
+  // poll AND never deliver completion — keep polling as the safe fallback instead.
+  wsEnabled = Boolean(config?.WEBSOCKET_ENABLE && config?.WEBSOCKET_URL);
 
   // (Re)connect the shared realtime socket whenever the websocket transport is
   // enabled — independent of GLOBAL_ASYNC_QUERIES, since realtime list views

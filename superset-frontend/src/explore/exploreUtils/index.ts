@@ -83,7 +83,9 @@ interface GetExploreUrlParams {
 interface BuildV1ChartDataPayloadParams {
   formData: QueryFormData;
   force?: boolean;
-  forceNonce?: string;
+  // Per-query forced-refresh nonces (the async tasks' UUIDs), assigned to each
+  // built query by index for the synchronous read-back of a forced refresh.
+  queryForceNonces?: string[];
   resultFormat?: string;
   resultType?: string;
   setDataMask?: SetDataMaskHook;
@@ -282,7 +284,7 @@ export const getQuerySettings = (
 export const buildV1ChartDataPayload = async ({
   formData,
   force,
-  forceNonce,
+  queryForceNonces,
   resultFormat,
   resultType,
   setDataMask,
@@ -301,11 +303,10 @@ export const buildV1ChartDataPayload = async ({
     : undefined;
   const buildQuery =
     (registryResult ? await registryResult : undefined) ?? defaultBuildQuery;
-  return buildQuery(
+  const payload = await buildQuery(
     {
       ...formData,
       force,
-      force_nonce: forceNonce,
       result_format: resultFormat,
       result_type: resultType,
     } as QueryFormData,
@@ -317,6 +318,18 @@ export const buildV1ChartDataPayload = async ({
       },
     },
   );
+  // Stamp each query with its forced-refresh nonce (its async task's UUID, from
+  // the 202 `task_ids`, index-aligned to queries) for the synchronous read-back.
+  if (queryForceNonces?.length && Array.isArray(payload.queries)) {
+    payload.queries.forEach((query, index) => {
+      if (queryForceNonces[index]) {
+        // eslint-disable-next-line no-param-reassign
+        (query as { force_nonce?: string }).force_nonce =
+          queryForceNonces[index];
+      }
+    });
+  }
+  return payload;
 };
 
 export const exportChart = async ({

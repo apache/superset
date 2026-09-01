@@ -23,6 +23,7 @@ import {
   resetRealtimeForTests,
   subscribeRealtime,
   subscribeRealtimeOpen,
+  subscribeRealtimeState,
 } from 'src/middleware/realtime';
 
 // Controllable useTabId mock (overrides the global shim for this file) so we can
@@ -254,6 +255,42 @@ test('reconnects after the socket closes', () => {
   jest.advanceTimersByTime(5000);
 
   expect(FakeWebSocket.instances).toHaveLength(2);
+  jest.useRealTimers();
+});
+
+test('reports reconnecting then unhealthy after repeated failures, and open resets it', () => {
+  jest.useFakeTimers();
+  const states: string[] = [];
+  subscribeRealtimeState(s => states.push(s));
+  connectRealtime(ENABLED);
+
+  // Three consecutive closes with no successful OPEN in between.
+  for (let i = 0; i < 3; i += 1) {
+    FakeWebSocket.instances[FakeWebSocket.instances.length - 1].onclose?.();
+    // Advance past the max backoff so the scheduled reconnect fires.
+    jest.advanceTimersByTime(30000);
+  }
+  expect(states).toContain('reconnecting');
+  expect(states).toContain('unhealthy');
+
+  // A successful OPEN clears the failure state back to healthy.
+  FakeWebSocket.instances[FakeWebSocket.instances.length - 1].onopen?.();
+  expect(states[states.length - 1]).toBe('open');
+  jest.useRealTimers();
+});
+
+test('a synchronous WebSocket constructor failure still schedules a reconnect', () => {
+  jest.useFakeTimers();
+  const Broken = jest.fn(() => {
+    throw new Error('construct failed');
+  });
+  global.WebSocket = Broken as unknown as typeof WebSocket;
+
+  connectRealtime(ENABLED);
+  // The throw is caught; a reconnect is scheduled rather than dead-ending, so the
+  // constructor is retried (repeatedly, with backoff) instead of only once.
+  jest.advanceTimersByTime(30000);
+  expect(Broken.mock.calls.length).toBeGreaterThan(1);
   jest.useRealTimers();
 });
 

@@ -120,7 +120,7 @@ export interface Task {
     last_name: string;
   } | null;
   user_id: number | null;
-  payload: Record<string, any>;
+  payload: Record<string, unknown>;
   properties: TaskProperties;
   duration_seconds: number | null;
   subscriber_count: number;

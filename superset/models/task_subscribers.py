@@ -18,6 +18,7 @@
 
 from flask_appbuilder import Model
 from sqlalchemy import (
+    CheckConstraint,
     Column,
     DateTime,
     ForeignKey,
@@ -75,6 +76,11 @@ class TaskSubscriber(CoreTaskSubscriber, AuditMixinNullable, Model):
     __table_args__ = (
         UniqueConstraint("task_id", "user_id", name="uq_task_subscribers_task_user"),
         UniqueConstraint("task_id", "guest_key", name="uq_task_subscribers_task_guest"),
+        # Exactly one of user_id / guest_key is set (see the field comment above).
+        CheckConstraint(
+            "(user_id IS NULL) <> (guest_key IS NULL)",
+            name="ck_task_subscribers_user_xor_guest",
+        ),
     )
 
     def __repr__(self) -> str:

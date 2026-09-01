@@ -388,6 +388,28 @@ def merge_private_subtree(
     return merged
 
 
+def merge_properties(
+    current: TaskProperties | None, updates: TaskProperties
+) -> TaskProperties:
+    """Merge ``updates`` into ``current`` with task-properties semantics.
+
+    Top-level keys are shallow-merged; the ``private`` subtree merges recursively
+    (see :func:`merge_private_subtree`), so writing one namespace never clobbers the
+    other. This is the pure form of :meth:`superset.models.tasks.Task.update_properties`
+    — use it to build a complete properties dict for a zero-read write (e.g. a
+    terminal FAILURE that must preserve the executor's runtime state while adding
+    error detail) without loading the ORM entity.
+    """
+    merged: dict[str, Any] = dict(current or {})
+    incoming: dict[str, Any] = dict(updates)
+    if "private" in incoming:
+        merged["private"] = merge_private_subtree(
+            merged.get("private"), incoming.pop("private")
+        )
+    merged.update(incoming)
+    return cast(TaskProperties, merged)
+
+
 def parse_properties(json_str: str | None) -> TaskProperties:
     """
     Parse JSON string into TaskProperties dict.

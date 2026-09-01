@@ -32,9 +32,11 @@ from superset_core.tasks.types import (
 
 from superset.stats_logger import BaseStatsLogger
 from superset.tasks.constants import ABORT_STATES
-from superset.tasks.utils import progress_update
+from superset.tasks.utils import error_update, merge_properties, progress_update
 
 if TYPE_CHECKING:
+    from uuid import UUID
+
     from superset.coordination.types import SignalListener
     from superset.models.tasks import Task
 
@@ -383,6 +385,37 @@ class TaskContext(CoreTaskContext):
             properties=self._properties_cache,
         ).run()
 
+    def error_properties(
+        self,
+        exception: BaseException | None = None,
+        error_message: str | None = None,
+    ) -> TaskProperties:
+        """Build the full properties dict for a terminal FAILURE write, and keep
+        the cache authoritative.
+
+        Merges the executor's authoritative in-memory property cache (runtime
+        state, private handles written during execution) with error detail, so a
+        zero-read FAILURE transition preserves existing fields instead of replacing
+        the properties column with only an error message. ``exception`` adds the
+        structured debug detail (class + traceback via ``error_update``);
+        ``error_message`` sets a plain message when there is no exception (e.g. a
+        self-fence or incomplete abort).
+
+        The merged result is written back to ``self._properties_cache`` so the cache
+        reflects what the caller commits to the DB (the DAO writes a *complete*
+        properties column and leaves merging to the caller's cache). Without this,
+        a later cleanup-failure write built from the cache would erase the error
+        detail recorded here.
+        """
+        if exception is not None:
+            updates = error_update(exception)
+        elif error_message is not None:
+            updates = cast(TaskProperties, {"error_message": error_message})
+        else:
+            updates = cast(TaskProperties, {})
+        self._properties_cache = merge_properties(self._properties_cache, updates)
+        return self._properties_cache
+
     def set_cancellation(self, database_id: int, cancel_query_id: str) -> None:
         """Record the engine cancel handle for the running warehouse query.
 
@@ -515,7 +548,10 @@ class TaskContext(CoreTaskContext):
         If the task already has an error (e.g., task function threw exception),
         handler failures are APPENDED to preserve the original error context.
         """
-        from superset.commands.tasks.update import UpdateTaskCommand
+        from superset.commands.tasks.internal_update import (
+            InternalStatusTransitionCommand,
+            InternalUpdateTaskCommand,
+        )
 
         if not self._handler_failures:
             return
@@ -549,14 +585,17 @@ class TaskContext(CoreTaskContext):
         if self._app:
             ctx = self._app.app_context() if not has_app_context() else nullcontext()
             with ctx:
-                # Check if task already has an error (preserve original context).
-                # error_message is public (top-level); the exception class and
-                # traceback are internal debug detail under private["framework"].
-                task = self._task
-                private_fw = (task.properties_dict.get("private") or {}).get(
+                # Preserve any error already recorded for this task (e.g. a task-body
+                # exception written via ``error_properties`` before cleanup ran).
+                # Read it from the authoritative in-memory cache — NOT ``self._task``,
+                # which is a stale construction-time snapshot that never saw that
+                # out-of-band write. error_message is public (top-level); the
+                # exception class and traceback are debug detail under
+                # private["framework"].
+                private_fw = (self._properties_cache.get("private") or {}).get(
                     "framework"
                 ) or {}
-                original_error = task.properties_dict.get("error_message")
+                original_error = self._properties_cache.get("error_message")
                 original_type = private_fw.get("exception_type")
                 original_trace = private_fw.get("stack_trace")
 
@@ -582,22 +621,68 @@ class TaskContext(CoreTaskContext):
                     stack_trace = handler_stack_trace
 
                 # Update task with combined error info. error_message is public;
-                # exception_type/stack_trace go under private["framework"] (merged
-                # recursively, so task/other framework handles are preserved).
-                UpdateTaskCommand(
-                    self._task_uuid,
-                    status=TaskStatus.FAILURE.value,
-                    properties={
-                        "error_message": error_msg,
-                        "private": {
-                            "framework": {
-                                "exception_type": exception_type,
-                                "stack_trace": stack_trace,
-                            }
+                # exception_type/stack_trace go under private["framework"]. Merge
+                # onto the executor's property cache so the write preserves runtime
+                # state instead of replacing the whole column.
+                failure_props = merge_properties(
+                    self._properties_cache,
+                    cast(
+                        TaskProperties,
+                        {
+                            "error_message": error_msg,
+                            "private": {
+                                "framework": {
+                                    "exception_type": exception_type,
+                                    "stack_trace": stack_trace,
+                                }
+                            },
                         },
-                    },
-                    skip_security_check=True,
+                    ),
+                )
+                # Conditional transition (like every other executor path): only
+                # flip to FAILURE from a non-terminal state. Cleanup runs in the
+                # executor's ``finally`` — *after* a SUCCESS commit — so an
+                # unconditional write here would rewrite a committed terminal
+                # result and make a waiter discard a valid, successful payload.
+                transitioned = InternalStatusTransitionCommand(
+                    task_uuid=self._task_uuid,
+                    new_status=TaskStatus.FAILURE,
+                    expected_status=[TaskStatus.IN_PROGRESS, TaskStatus.ABORTING],
+                    properties=failure_props,
+                    set_ended_at=True,
                 ).run()
+                if not transitioned:
+                    # Task already reached a terminal state (e.g. SUCCESS committed
+                    # before cleanup ran, or a body FAILURE was already recorded).
+                    # Preserve that status and any existing error; record only the
+                    # handler failure as debug-only detail under distinct keys so it
+                    # isn't lost and doesn't clobber the original error.
+                    logger.warning(
+                        "Handler failure for task %s after it reached a terminal "
+                        "state; recording detail without changing status: %s",
+                        self._task_uuid,
+                        handler_error_msg,
+                    )
+                    InternalUpdateTaskCommand(
+                        task_uuid=self._task_uuid,
+                        properties=merge_properties(
+                            self._properties_cache,
+                            cast(
+                                TaskProperties,
+                                {
+                                    "private": {
+                                        "framework": {
+                                            "cleanup_error_message": handler_error_msg,
+                                            "cleanup_exception_type": (
+                                                handler_exception_type
+                                            ),
+                                            "cleanup_stack_trace": handler_stack_trace,
+                                        }
+                                    }
+                                },
+                            ),
+                        ),
+                    ).run()
 
         # Clear failures after writing
         self._handler_failures = []
@@ -672,6 +757,11 @@ class TaskContext(CoreTaskContext):
             self._timeout_timer = None
 
     @property
+    def task_uuid(self) -> "UUID":
+        """The executing task's UUID (its stable, server-assigned identity)."""
+        return self._task_uuid
+
+    @property
     def timeout_triggered(self) -> bool:
         """Check if the timeout was triggered."""
         return self._timeout_triggered
@@ -720,7 +810,12 @@ class TaskContext(CoreTaskContext):
         with ctx:
             from superset.commands.tasks.update import UpdateTaskCommand
 
-            if not self._task.properties_dict.get("is_abortable", False):
+            # Gate on the authoritative in-execution flag (set by ``_set_abortable``
+            # when an abort handler registers), never the ``self._task`` ORM entity:
+            # this runs on a background timer/fence thread, where the entity is a
+            # stale construction-time snapshot (its targeted UPDATE never refreshes
+            # it) and touching it would risk a cross-thread session reload.
+            if not self._properties_cache.get("is_abortable", False):
                 logger.warning(
                     "Local abort requested for task %s but no abort handler is "
                     "registered. Task will continue running.",

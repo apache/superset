@@ -28,6 +28,7 @@ from superset.commands.distributed_lock.base import BaseDistributedLockCommand
 from superset.coordination.base import CoordinationService
 from superset.daos.key_value import KeyValueDAO
 from superset.exceptions import ReleaseDistributedLockFailedException
+from superset.extensions import db
 from superset.key_value.exceptions import KeyValueDeleteFailedError
 from superset.utils.decorators import on_error, transaction
 
@@ -102,14 +103,21 @@ class ReleaseDistributedLock(BaseDistributedLockCommand):
     def _release_kv(self) -> None:
         """Release the KV lock only if we still own it (ownership-checked).
 
-        The read and the delete are separate statements, so this is not atomic the
-        way the Redis path's compare-and-delete is; the enclosing transaction plus
-        the lock's TTL keep the residual window harmless.
+        Row-locks the entry (``SELECT ... FOR UPDATE``) before the token check so
+        the check and the delete are atomic against a concurrent expire+re-acquire:
+        without the lock, another holder could re-acquire between a plain read and
+        the delete, and this delete would then remove *their* lock. This is the KV
+        equivalent of the Redis path's compare-and-delete.
         """
+        entry = KeyValueDAO.get_entry(self.resource, self.key, for_update=True)
+        if entry is None or entry.is_expired():
+            # Nothing to release (already gone or expired). A later holder that
+            # re-created the row holds its own (locked) entry, untouched here.
+            return
         if self.token is not None:
-            stored = KeyValueDAO.get_value(self.resource, self.key, self.codec)
+            stored = self.codec.decode(entry.value)
             if not isinstance(stored, dict) or stored.get("token") != self.token:
-                # Missing/expired, or re-acquired by another holder — leave it.
+                # Re-acquired by another holder — leave their lock in place.
                 logger.warning(
                     "Not releasing KV lock namespace=%s key=%s: not owned by "
                     "this acquisition",
@@ -117,7 +125,7 @@ class ReleaseDistributedLock(BaseDistributedLockCommand):
                     self.key,
                 )
                 return
-        KeyValueDAO.delete_entry(self.resource, self.key)
+        db.session.delete(entry)
         logger.debug(
             "Released KV lock: namespace=%s key=%s",
             self.namespace,

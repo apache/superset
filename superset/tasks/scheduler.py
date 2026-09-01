@@ -47,6 +47,11 @@ from superset.tasks.ambient_context import use_context
 from superset.tasks.constants import ABORT_STATES, TERMINAL_STATES
 from superset.tasks.context import TaskContext
 from superset.tasks.cron_util import cron_schedule_window
+from superset.tasks.dependencies import (
+    DAG_WAITING,
+    fail_dependent_on_unmet_prerequisite,
+    unmet_prerequisite,
+)
 from superset.tasks.heartbeat import (
     HeartbeatController,
     SELF_FENCE_ERROR_MESSAGE,
@@ -314,7 +319,9 @@ _DAG_DEFER_STEP_SECONDS = 2.0
 _DAG_DEFER_MAX_SECONDS = 30.0
 
 # Sentinel: at least one prerequisite is not yet terminal (defer and re-check).
-_DAG_WAITING = object()
+# The DAG decision and the fail action live in superset.tasks.dependencies so the
+# Celery and inline paths share one implementation; only the wait action (defer via
+# self.retry below vs. block on the coordination signal inline) is path-specific.
 
 
 def _dag_defer_countdown(retries: int) -> float:
@@ -331,46 +338,6 @@ def _dag_defer_countdown(retries: int) -> float:
     )
     # Jitter only spreads wake-ups; it is not security-sensitive.
     return base + random.uniform(0, min(base, 1.0))  # noqa: S311
-
-
-def _unmet_prerequisite(task: "TaskModel") -> "TaskModel | object | None":
-    """Non-blocking ``all_success`` DAG gate for ``task``.
-
-    Returns ``None`` when the task has no prerequisites or all ended in
-    ``SUCCESS`` (ready to run); ``_DAG_WAITING`` when at least one prerequisite is
-    not yet terminal (the caller defers and re-checks); or the first prerequisite
-    that reached a terminal non-``SUCCESS`` state (the caller fails the dependent,
-    which cascades to its own dependents).
-
-    ``task.depends_on`` is ``selectin``-loaded with the task, so a prerequisite
-    already terminal in that snapshot is trusted with no extra read (a terminal
-    status never changes). A prerequisite that is *not* terminal in the snapshot
-    is re-read fresh, since the snapshot may lag its completion. Unlike the old
-    block-and-wait resolver, this never parks the worker: waiting is expressed by
-    deferring the Celery message.
-
-    :param task: the dependent task about to run (with ``depends_on`` loaded)
-    :returns: ``None`` (ready), ``_DAG_WAITING`` (defer), or a failed prerequisite
-    """
-    prerequisites = list(task.depends_on)
-    if not prerequisites:
-        return None
-
-    for prerequisite in prerequisites:
-        current = prerequisite
-        if current.status not in TERMINAL_STATES:
-            current = TaskDAO.find_one_or_none(
-                uuid=prerequisite.uuid, skip_base_filter=True
-            )
-            if current is None:
-                # Prerequisite no longer exists (e.g. pruned) — treat as failed.
-                return prerequisite
-        if current.status not in TERMINAL_STATES:
-            return _DAG_WAITING
-        if current.status != TaskStatus.SUCCESS.value:
-            return current
-
-    return None
 
 
 def _persist_celery_task_id(task: "TaskModel", celery_task_id: str | None) -> None:
@@ -457,8 +424,8 @@ def execute_task(
     # carries no heartbeat and can't be mistaken for abandoned active work by the
     # reaper (which ignores null-heartbeat tasks). all_success semantics: if any
     # prerequisite ended non-success, fail without running (cascades to dependents).
-    unmet = _unmet_prerequisite(task)
-    if unmet is _DAG_WAITING:
+    unmet = unmet_prerequisite(task)
+    if unmet is DAG_WAITING:
         countdown = _dag_defer_countdown(self.request.retries)
         current_app.config["STATS_LOGGER"].incr("gtf.task.dag_deferred")
         logger.info(
@@ -497,39 +464,12 @@ def execute_task(
             return {"status": TaskStatus.FAILURE.value, "task_uuid": task_uuid}
     if unmet is not None:
         # A prerequisite ended non-success (unmet is that Task): fail without
-        # running the body. Its failure then cascades to this task's dependents.
-        # The _DAG_WAITING sentinel was handled above, so this is a Task.
-        unmet = cast("TaskModel", unmet)
-        logger.info(
-            "Task %s (uuid=%s) failing: prerequisite %s did not succeed (status=%s)",
-            task_type,
-            task_uuid,
-            unmet.uuid,
-            unmet.status,
+        # running the body. The DAG_WAITING sentinel was handled above, so this is
+        # a Task. Shared with the inline path via the dependencies helper.
+        status = fail_dependent_on_unmet_prerequisite(
+            native_uuid, cast("TaskModel", unmet)
         )
-        failed_transition = InternalStatusTransitionCommand(
-            task_uuid=native_uuid,
-            new_status=TaskStatus.FAILURE,
-            expected_status=[TaskStatus.PENDING, TaskStatus.ABORTING],
-            set_ended_at=True,
-            properties={
-                "error_message": (
-                    f"Prerequisite task {unmet.uuid} did not "
-                    f"succeed (status={unmet.status})"
-                )
-            },
-        ).run()
-        if failed_transition:
-            TaskManager.publish_completion(native_uuid, TaskStatus.FAILURE.value)
-            return {"status": TaskStatus.FAILURE.value, "task_uuid": task_uuid}
-        # The dependent moved to a terminal state concurrently (e.g. aborted while
-        # deferred), so the FAILURE transition was a no-op — report the committed
-        # status instead of publishing a contradictory FAILURE completion.
-        refreshed = TaskDAO.find_one_or_none(uuid=native_uuid, skip_base_filter=True)
-        return {
-            "status": refreshed.status if refreshed else "unknown",
-            "task_uuid": task_uuid,
-        }
+        return {"status": status, "task_uuid": task_uuid}
 
     # Prerequisites satisfied → claim the task and run it under the heartbeat.
     _persist_celery_task_id(task, self.request.id)
@@ -676,7 +616,7 @@ def _execute_task_body(  # noqa: C901
                 task_uuid=native_uuid,
                 new_status=TaskStatus.FAILURE,
                 expected_status=[TaskStatus.IN_PROGRESS, TaskStatus.ABORTING],
-                properties={"error_message": str(ex)},
+                properties=ctx.error_properties(exception=ex),
                 set_ended_at=True,
             ).run()
 
@@ -706,7 +646,7 @@ def _execute_task_body(  # noqa: C901
                 task_uuid=native_uuid,
                 new_status=TaskStatus.FAILURE,
                 expected_status=[TaskStatus.IN_PROGRESS, TaskStatus.ABORTING],
-                properties={"error_message": SELF_FENCE_ERROR_MESSAGE},
+                properties=ctx.error_properties(error_message=SELF_FENCE_ERROR_MESSAGE),
                 set_ended_at=True,
             ).run()
             logger.warning(
@@ -748,7 +688,9 @@ def _execute_task_body(  # noqa: C901
                     task_uuid=native_uuid,
                     new_status=TaskStatus.FAILURE,
                     expected_status=TaskStatus.ABORTING,
-                    properties={"error_message": "Abort handlers did not complete"},
+                    properties=ctx.error_properties(
+                        error_message="Abort handlers did not complete"
+                    ),
                     set_ended_at=True,
                 ).run()
                 logger.warning(

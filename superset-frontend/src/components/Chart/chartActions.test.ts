@@ -158,9 +158,11 @@ describe('chart actions', () => {
     );
     waitForAsyncDataStub = jest
       .spyOn(asyncEvent, 'waitForAsyncData')
-      // New contract: resolve by invoking the caller-provided refetch thunk.
-      .mockImplementation((_job: unknown, refetch: () => Promise<unknown>) =>
-        refetch(),
+      // New contract: resolve by invoking the caller-provided refetch thunk,
+      // forwarding the job's task_ids as the per-query forced-refresh nonces.
+      .mockImplementation(
+        (job: unknown, refetch: (nonces?: string[]) => Promise<unknown>) =>
+          refetch((job as asyncEvent.AsyncJob)?.task_ids),
       );
   });
 
@@ -649,19 +651,22 @@ describe('chart actions', () => {
         // The submit opts into async; the re-issue is synchronous (no new GTF task).
         expect(String(history[0].options.body)).toContain('async_mode');
         expect(String(history[1].options.body)).not.toContain('async_mode');
-        // One idempotency nonce is minted for the refresh and carried on BOTH the
-        // submit and the re-issue, so the server recomputes exactly once and the
-        // re-issue reads the freshly-warmed cache.
+        // The forced-refresh nonce IS the async task's UUID: the submit carries
+        // none (the worker stamps each query with its own task id and records the
+        // marker), and the synchronous re-issue carries the 202's task_ids as the
+        // per-query force nonces, so the server reads back instead of recomputing.
         const forceCalls = buildV1ChartDataPayloadStub.mock.calls.filter(
           ([arg]) => (arg as { force?: boolean }).force === true,
         );
         expect(forceCalls).toHaveLength(2);
-        const submitNonce = (forceCalls[0][0] as { forceNonce?: string })
-          .forceNonce;
-        const reissueNonce = (forceCalls[1][0] as { forceNonce?: string })
-          .forceNonce;
-        expect(submitNonce).toBeDefined();
-        expect(reissueNonce).toBe(submitNonce);
+        const submitNonces = (
+          forceCalls[0][0] as { queryForceNonces?: string[] }
+        ).queryForceNonces;
+        const reissueNonces = (
+          forceCalls[1][0] as { queryForceNonces?: string[] }
+        ).queryForceNonces;
+        expect(submitNonces).toBeUndefined();
+        expect(reissueNonces).toEqual(['task-1']);
 
         const succeeded = dispatch.mock.calls.find(
           ([action]) => action?.type === actions.CHART_UPDATE_SUCCEEDED,

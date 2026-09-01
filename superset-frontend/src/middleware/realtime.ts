@@ -53,10 +53,16 @@ type RealtimeConfig = {
   WEBSOCKET_JWT_EXPIRATION_SECONDS?: number;
 };
 
-// Backoff before reconnecting after the socket closes (mirrors the Node
-// server's own subscribe retry). The socket is best-effort, so a generous
-// delay is fine — each feature's poll/fetch covers the gap.
-const RECONNECT_DELAY_MS = 5000;
+// Reconnect backoff after the socket closes. The socket is a first-class
+// transport when enabled, so it reconnects indefinitely; the delay grows
+// exponentially (with jitter) up to a cap so a persistently-down server is not
+// hammered every few seconds while a transient blip still recovers fast.
+const RECONNECT_BASE_MS = 1000;
+const RECONNECT_MAX_MS = 30000;
+// After this many consecutive closes with no intervening OPEN, the connection is
+// reported `unhealthy` so waiters can stop waiting on it (bounded, rather than a
+// silent multi-minute hang) instead of assuming a message is merely in flight.
+const UNHEALTHY_AFTER_ATTEMPTS = 3;
 const WS_CONNECTING = 0;
 const WS_OPEN = 1;
 
@@ -98,6 +104,76 @@ type RealtimeOpenListener = (reason: RealtimeOpenReason) => void;
 // Fired every time a socket transitions to OPEN, with the reason (see above), so
 // a feature can reconcile state it may have missed while the socket was down.
 const openListeners = new Set<RealtimeOpenListener>();
+
+// Connection health, surfaced so a feature can reconcile via its authorized REST
+// API on a reconnect and, crucially, stop waiting on a genuinely-down socket
+// (`unhealthy`) instead of hanging until a long give-up timeout.
+export type RealtimeConnectionState =
+  | 'connecting'
+  | 'open'
+  | 'reconnecting'
+  | 'unhealthy';
+
+type RealtimeStateListener = (state: RealtimeConnectionState) => void;
+
+const stateListeners = new Set<RealtimeStateListener>();
+
+// Consecutive socket closes (or connect failures) with no intervening OPEN. Reset
+// to 0 on OPEN. Drives the reconnect backoff and the `unhealthy` transition.
+let reconnectAttempts = 0;
+
+/**
+ * Register a listener fired on every connection-state transition
+ * (`connecting`/`open`/`reconnecting`/`unhealthy`); returns an unsubscribe
+ * function. Use it to reconcile on reconnect and to give up promptly when the
+ * socket is `unhealthy` rather than waiting out a long timeout.
+ */
+export const subscribeRealtimeState = (
+  listener: RealtimeStateListener,
+): (() => void) => {
+  stateListeners.add(listener);
+  return () => {
+    stateListeners.delete(listener);
+  };
+};
+
+const emitState = (state: RealtimeConnectionState): void => {
+  stateListeners.forEach(listener => {
+    try {
+      listener(state);
+    } catch (err) {
+      logging.warn('Realtime state-listener error', err);
+    }
+  });
+};
+
+// Exponential backoff with jitter, capped. `attempts` is the count of consecutive
+// failed connects (>= 1 when scheduling a reconnect).
+const reconnectDelayMs = (attempts: number): number => {
+  const base = Math.min(
+    RECONNECT_BASE_MS * 2 ** Math.max(0, attempts - 1),
+    RECONNECT_MAX_MS,
+  );
+  // Jitter only spreads reconnects; it is not security-sensitive.
+  return base + Math.random() * Math.min(base, RECONNECT_BASE_MS);
+};
+
+// Record a close/connect failure: bump the attempt counter, report `reconnecting`
+// (or `unhealthy` once the socket has failed enough times), and schedule the next
+// reconnect with backoff.
+const scheduleReconnect = (thisGeneration: number): void => {
+  reconnectAttempts += 1;
+  emitState(
+    reconnectAttempts >= UNHEALTHY_AFTER_ATTEMPTS
+      ? 'unhealthy'
+      : 'reconnecting',
+  );
+  reconnectTimeoutId = window.setTimeout(
+    // eslint-disable-next-line no-use-before-define -- mutual reconnect recursion
+    () => openSocket(thisGeneration, 'reconnect'),
+    reconnectDelayMs(reconnectAttempts),
+  );
+};
 
 /**
  * Register a listener fired when the socket (re)connects (transitions to OPEN);
@@ -191,18 +267,23 @@ const teardownSocket = (): void => {
   }
 };
 
-const openSocket = (
-  thisGeneration: number,
-  reason: RealtimeOpenReason,
-): void => {
+// Declared as a hoisted function so scheduleReconnect (above) can reference it
+// for the mutual reconnect recursion without a use-before-define cycle.
+function openSocket(thisGeneration: number, reason: RealtimeOpenReason): void {
   if (thisGeneration !== generation) return;
   if (!enabled || !url || typeof WebSocket === 'undefined') return;
   const connectUrl = buildConnectUrl(url);
+  emitState('connecting');
   let ws: WebSocket;
   try {
     ws = new WebSocket(connectUrl);
   } catch (err) {
     logging.warn('Failed to open realtime WebSocket', err);
+    // A synchronous constructor throw would otherwise dead-end this generation
+    // (no onclose fires). Treat it as a failed attempt and keep retrying with
+    // backoff so a first-class socket recovers and a persistent failure surfaces
+    // as `unhealthy`.
+    scheduleReconnect(thisGeneration);
     return;
   }
   socket = ws;
@@ -250,6 +331,9 @@ const openSocket = (
 
   ws.onopen = () => {
     if (thisGeneration !== generation) return;
+    // Recovered: reset the failure counter and report a healthy connection.
+    reconnectAttempts = 0;
+    emitState('open');
     openListeners.forEach(listener => {
       try {
         listener(reason);
@@ -264,15 +348,12 @@ const openSocket = (
   };
   ws.onclose = () => {
     if (thisGeneration !== generation) return;
-    reconnectTimeoutId = window.setTimeout(
-      () => openSocket(thisGeneration, 'reconnect'),
-      RECONNECT_DELAY_MS,
-    );
+    scheduleReconnect(thisGeneration);
   };
   // Errors surface as a subsequent close; let onclose own the reconnect and
   // avoid logging the (payload-free) error event on every transient blip.
   ws.onerror = () => {};
-};
+}
 
 /**
  * (Re)configure and (re)connect the shared socket. Idempotent and safe to call
@@ -296,6 +377,9 @@ export const connectRealtime = (config?: RealtimeConfig): void => {
 
   teardownSocket();
   generation += 1;
+  // Fresh (re)configuration: start the failure counter clean so a prior outage's
+  // count can't make the first new attempt look unhealthy.
+  reconnectAttempts = 0;
   started = true;
   enabled = nextEnabled;
   url = nextUrl;
@@ -306,6 +390,7 @@ export const connectRealtime = (config?: RealtimeConfig): void => {
 /** Tear down the socket and stop reconnecting. */
 export const disconnectRealtime = (): void => {
   generation += 1;
+  reconnectAttempts = 0;
   teardownSocket();
 };
 
@@ -351,6 +436,8 @@ export const resetRealtimeForTests = (): void => {
   disconnectRealtime();
   handlersByTopic.clear();
   openListeners.clear();
+  stateListeners.clear();
+  reconnectAttempts = 0;
   started = false;
   enabled = false;
   url = undefined;

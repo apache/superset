@@ -18,7 +18,7 @@
 # pylint: disable=invalid-name
 
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 from uuid import UUID
 
 import pytest
@@ -183,6 +183,33 @@ def test_distributed_lock_kv_release_only_deletes_own_lock() -> None:
 
         # B's lock survives.
         assert _get_lock(MAIN_KEY, session) == b_value
+
+
+def test_distributed_lock_kv_release_row_locks_the_entry() -> None:
+    """The KV release reads the entry with ``for_update=True`` so the ownership
+    check and the delete are atomic against a concurrent expire+re-acquire (the KV
+    equivalent of the Redis compare-and-delete). A token mismatch leaves it alone."""
+    from superset.commands.distributed_lock.release import ReleaseDistributedLock
+
+    cmd = ReleaseDistributedLock("ns", {"a": 1, "b": 2}, token="mine")  # noqa: S106
+    other_holder = MagicMock()
+    other_holder.is_expired.return_value = False
+    # A different acquisition now owns the row.
+    with (
+        patch(BACKEND_DEFINED, return_value=False),
+        patch(
+            "superset.commands.distributed_lock.release.KeyValueDAO.get_entry",
+            return_value=other_holder,
+        ) as get_entry,
+        patch.object(cmd.codec, "decode", return_value={"token": "theirs"}),
+        patch("superset.commands.distributed_lock.release.db") as db_mock,
+    ):
+        cmd._release_kv()
+
+    # The entry was row-locked for the ownership-checked delete...
+    assert get_entry.call_args.kwargs.get("for_update") is True
+    # ...and, since the token did not match, another holder's lock was NOT deleted.
+    db_mock.session.delete.assert_not_called()
 
 
 def test_distributed_lock_uses_redis_when_configured() -> None:

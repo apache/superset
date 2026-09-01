@@ -147,6 +147,13 @@ def upgrade():
         batch_op.create_unique_constraint(
             "uq_task_subscribers_task_guest", ["task_id", "guest_key"]
         )
+        # A subscription is identified by exactly one of user_id (authenticated) or
+        # guest_key (embedded guest); enforce that XOR at the DB so the principal
+        # model can't be violated by a stray write.
+        batch_op.create_check_constraint(
+            "ck_task_subscribers_user_xor_guest",
+            "(user_id IS NULL) <> (guest_key IS NULL)",
+        )
 
     # Liveness marker for orphan detection: the executing worker bumps
     # ``tasks.last_heartbeat`` on a background thread, and the reap_orphaned_tasks
@@ -168,6 +175,7 @@ def downgrade():
     # rows first so restoring user_id NOT NULL does not fail on NULL user_id.
     op.execute(sa.text("DELETE FROM task_subscribers WHERE user_id IS NULL"))
     with op.batch_alter_table(TASK_SUBSCRIBERS_TABLE) as batch_op:
+        batch_op.drop_constraint("ck_task_subscribers_user_xor_guest", type_="check")
         batch_op.drop_constraint("uq_task_subscribers_task_guest", type_="unique")
         batch_op.drop_index("ix_task_subscribers_guest_key")
         batch_op.alter_column("user_id", existing_type=sa.Integer(), nullable=False)

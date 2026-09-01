@@ -314,6 +314,57 @@ class TestTimeoutTrigger:
             if ctx._abort_listener:
                 ctx.stop_abort_polling()
 
+    def test_timeout_triggers_abort_after_runtime_set_abortable(
+        self, mock_flask_app, mock_task_not_abortable
+    ):
+        """Regression: the task entity is NOT abortable at construction, but an
+        abort handler registered during execution flips the in-memory cache. The
+        timeout must gate on that authoritative cache, not the stale entity
+        snapshot — otherwise it would skip the abort and let the query run to
+        completion (and strand the task IN_PROGRESS)."""
+        abort_called = False
+
+        with (
+            patch("superset.tasks.context.current_app") as mock_current_app,
+            patch("superset.daos.tasks.TaskDAO") as mock_dao,
+            patch("superset.commands.tasks.internal_update.InternalUpdateTaskCommand"),
+            patch(
+                "superset.commands.tasks.update.UpdateTaskCommand"
+            ) as mock_update_cmd,
+            patch(
+                "superset.coordination.base.CoordinationService.get_backend",
+                return_value=None,
+            ),
+        ):
+            mock_current_app.config = mock_flask_app.config
+            mock_current_app._get_current_object.return_value = mock_flask_app
+            mock_dao.find_one_or_none.return_value = mock_task_not_abortable
+
+            ctx = TaskContext(mock_task_not_abortable)
+            ctx._app = mock_flask_app
+            # Entity reports not-abortable; the cache is empty at construction.
+            assert ctx._task.properties_dict.get("is_abortable") is None
+
+            @ctx.on_abort
+            def handle_abort():
+                nonlocal abort_called
+                abort_called = True
+
+            # on_abort → _set_abortable set the in-memory cache (not the entity).
+            assert ctx._properties_cache.get("is_abortable") is True
+
+            ctx.start_timeout_timer(1)
+            time.sleep(1.5)
+
+            assert abort_called
+            assert ctx._timeout_triggered
+            mock_update_cmd.assert_called()
+            assert mock_update_cmd.call_args[1].get("status") == "aborting"
+
+            ctx.stop_timeout_timer()
+            if ctx._abort_listener:
+                ctx.stop_abort_polling()
+
     def test_timeout_logs_warning_when_not_abortable(
         self, mock_flask_app, mock_task_not_abortable
     ):
