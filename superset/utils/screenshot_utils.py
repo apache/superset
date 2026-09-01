@@ -1116,6 +1116,13 @@ BAND_TABLE_COLUMNS_JS = """
         const bandNodes = bands.map(function(bandCols, bandIdx) {
             const colIndices = keyIndices.concat(bandCols);
             const tbl = buildBandTable(colIndices);
+            // Wrap in .superset-chart-table so the font-tier CSS rules
+            // (.superset-chart-table td/th font-size !important) apply to
+            // the cloned band cells, which sit outside the original viz root.
+            const tableWrapper = document.createElement('div');
+            tableWrapper.className = 'superset-chart-table';
+            tableWrapper.style.cssText = 'overflow:visible;';
+            tableWrapper.appendChild(tbl);
             const wrapper = document.createElement('div');
             wrapper.className = 'print-col-band';
             wrapper.style.cssText = 'width:100%;overflow:visible;';
@@ -1124,7 +1131,7 @@ BAND_TABLE_COLUMNS_JS = """
                 wrapper.style.breakBefore = 'page';
                 wrapper.style.paddingTop = '8px';
             }
-            wrapper.appendChild(tbl);
+            wrapper.appendChild(tableWrapper);
             return wrapper;
         });
 
@@ -1179,6 +1186,13 @@ SCALE_WIDE_TABLES_JS = """
     // In landscape mode A4 is ~297mm wide = ~1122 CSS px at 96dpi × (1600/794)
     // at our print scale.  Using 1.414 (A4 ratio) as the landscape multiplier.
     const landscapeMaxWidth = maxWidth * 1.414;
+    // Allow a 10% tolerance before triggering the scale transform.
+    // A table that is only slightly wider than the usable width (e.g. due to
+    // larger font-size cells expanding column widths by a few percent) should
+    // NOT be scaled back down — that would visually cancel the font enlargement.
+    // Only apply scale when the table genuinely overflows by more than 10%.
+    const scaleTolerance = maxWidth * 1.10;
+    const landscapeScaleTolerance = landscapeMaxWidth * 1.10;
     let scaled = 0;
     let marked = 0;
 
@@ -1192,7 +1206,7 @@ SCALE_WIDE_TABLES_JS = """
         if (!tableEl) continue;
 
         const tableW = tableEl.scrollWidth;
-        if (tableW <= maxWidth) {
+        if (tableW <= scaleTolerance) {
             // Fits in portrait — no action needed.
             continue;
         }
@@ -1204,8 +1218,8 @@ SCALE_WIDE_TABLES_JS = """
         if (markLandscape) {
             root.setAttribute('data-print-landscape', 'true');
             marked++;
-            if (tableW <= landscapeMaxWidth) {
-                // Fits in landscape — don't shrink it further.
+            if (tableW <= landscapeScaleTolerance) {
+                // Fits in landscape (within tolerance) — don't shrink it further.
                 continue;
             }
         }
