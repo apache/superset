@@ -1040,8 +1040,9 @@ SOFT_DELETE_PURGE_DRY_RUN: bool = False
 PURGE_AUDIT_PRUNING_ENABLED: bool = False
 # How long operational audit records (``blocked``, ``failed``) are kept.
 # Duplicate blocked records within a current blockage streak are removed
-# regardless of age (the streak's earliest record always survives); this
-# window governs failed records and blocked records from resolved streaks.
+# regardless of age (the streak's earliest record and the first record after
+# each change of block reason always survive); this window governs failed
+# records and blocked records from resolved streaks.
 # It never applies to completed-destruction evidence — see the evidence key
 # below. Zero or negative values are invalid: the run logs a warning and
 # skips the age-based category rather than widening removal.

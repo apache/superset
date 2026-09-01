@@ -26,7 +26,7 @@ uuid, which a ``LIKE`` on the uuid column would never match.
 from __future__ import annotations
 
 from collections.abc import Callable
-from datetime import timedelta
+from datetime import datetime, timedelta
 from functools import partial
 from typing import Any
 from unittest.mock import patch
@@ -57,6 +57,9 @@ from tests.integration_tests.deletion_retention._base import (
 
 _PREFIX: str = "prune_audit_it_"
 _ENTITY_TYPE: str = f"{_PREFIX}slices"
+# Block reasons are opaque to pruning; any two distinct codes will do.
+_REASON_A: str = "report_schedule"
+_REASON_B: str = "cascade_integrity_failure"
 
 
 class TestPruneAudit(SupersetTestCase):
@@ -89,6 +92,8 @@ class TestPruneAudit(SupersetTestCase):
         entity: str | None = "e1",
         age_days: float = 0,
         trigger: str = audit.TRIGGER_RETENTION,
+        reason: str | None = None,
+        at: datetime | None = None,
     ) -> UUID:
         """Seed one audit row and return its id.
 
@@ -96,7 +101,9 @@ class TestPruneAudit(SupersetTestCase):
         deletes raises ObjectDeletedError on attribute access. ``age_days``
         may be fractional; a strictly increasing microsecond sequence keeps
         every ``created_on`` unique so streak ordering is deterministic.
-        ``entity=None`` seeds a row with no ``entity_uuid``.
+        ``at`` overrides that timestamp verbatim, which is how a test seeds
+        a deliberate tie. ``entity=None`` seeds a row with no
+        ``entity_uuid``.
         """
         self._seq += 1
         row: PurgeAuditLog = PurgeAuditLog(
@@ -106,13 +113,24 @@ class TestPruneAudit(SupersetTestCase):
             actor=audit.ACTOR_SYSTEM,
             entity_type=_ENTITY_TYPE,
             entity_uuid=None if entity is None else f"{_PREFIX}{entity}",
-            created_on=audit.utc_now()
+            reason=reason,
+            created_on=at
+            if at is not None
+            else audit.utc_now()
             - timedelta(days=age_days)
             + timedelta(microseconds=self._seq),
         )
         db.session.add(row)
         db.session.commit()
         return row.id
+
+    def created_on_of(self, row_id: UUID) -> datetime:
+        """The seeded timestamp of a row, for tying another row to it."""
+        return db.session.execute(
+            sa.select(PurgeAuditLog.__table__.c.created_on).where(
+                PurgeAuditLog.__table__.c.id == row_id
+            )
+        ).scalar_one()
 
     def remaining_ids(self, entity: str | None = "__any__") -> list[UUID]:
         """Ids of surviving seeded rows, oldest first."""
@@ -206,6 +224,120 @@ class TestPruneAudit(SupersetTestCase):
         assert result.blocked_duplicates == 2
         assert result.operational_expired == 1
         assert self.remaining_ids("e1") == [blocked_since]
+
+    def test_a_reason_change_retains_the_first_block_of_each_run(self) -> None:
+        """Keep the first block after every change of reason.
+
+        The audit writer retains a new row when the blocking reason changes;
+        pruning must not undo that. Each run's head is a survivor — exempt
+        from age-out like the streak's earliest row — so a live blockage
+        keeps its full reason history, including a return to an earlier
+        reason.
+        """
+        since: UUID = self.add_row(STATUS_BLOCKED, age_days=200, reason=_REASON_A)
+        self.add_row(STATUS_BLOCKED, age_days=150, reason=_REASON_A)  # repeat
+        b_first: UUID = self.add_row(STATUS_BLOCKED, age_days=100, reason=_REASON_B)
+        self.add_row(STATUS_BLOCKED, age_days=60, reason=_REASON_B)  # repeat
+        a_again: UUID = self.add_row(STATUS_BLOCKED, age_days=10, reason=_REASON_A)
+
+        result: prune_audit.PruneRunResult = self.run_prune()
+
+        assert result.blocked_duplicates == 2
+        assert result.operational_expired == 0  # b_first is past 90d but a survivor
+        assert self.remaining_ids("e1") == [since, b_first, a_again]
+
+        second: prune_audit.PruneRunResult = self.run_prune()
+        assert second.total_removed == 0
+
+    def test_a_tied_reason_change_still_breaks_the_run(self) -> None:
+        """A reason-transition block tied with a neighbour is not pruned.
+
+        With `A(X) @ t0`, a tied pair `A(X) @ t1` / `B(Y) @ t1`, and a later
+        `A(X) @ t2`, the last A is the first block after the reason returned
+        to X under the ordering A,A,B,A — a run head that must survive, not a
+        duplicate. The tie between the second A and B must break the run
+        (preserving side), matching the tie policy the other guards use.
+        """
+        since: UUID = self.add_row(
+            STATUS_BLOCKED, entity="tr", age_days=30, reason=_REASON_A
+        )
+        tied_a: UUID = self.add_row(
+            STATUS_BLOCKED, entity="tr", age_days=20, reason=_REASON_A
+        )
+        self.add_row(
+            STATUS_BLOCKED,
+            entity="tr",
+            at=self.created_on_of(tied_a),
+            reason=_REASON_B,
+        )
+        a_again: UUID = self.add_row(
+            STATUS_BLOCKED, entity="tr", age_days=10, reason=_REASON_A
+        )
+
+        result: prune_audit.PruneRunResult = self.run_prune()
+
+        # Nothing is a prunable same-reason repeat: every A is either the
+        # streak's earliest or a reason-return head after the tied B, and B
+        # is the sole Y. a_again is the row the finding would wrongly delete.
+        assert result.blocked_duplicates == 0
+        assert len(self.remaining_ids("tr")) == 4
+        # since (earliest) and a_again (reason-return head) both survive;
+        # a_again is the row the finding would wrongly delete.
+        assert since in self.remaining_ids("tr")
+        assert a_again in self.remaining_ids("tr")
+
+    def test_a_reason_return_after_a_transition_keeps_only_run_heads(self) -> None:
+        """A,A,B,A,A keeps the two A-run heads and the B head, drops repeats."""
+        a_head: UUID = self.add_row(
+            STATUS_BLOCKED, entity="rr", age_days=60, reason=_REASON_A
+        )
+        self.add_row(
+            STATUS_BLOCKED, entity="rr", age_days=55, reason=_REASON_A
+        )  # repeat
+        b_head: UUID = self.add_row(
+            STATUS_BLOCKED, entity="rr", age_days=50, reason=_REASON_B
+        )
+        a_return: UUID = self.add_row(
+            STATUS_BLOCKED, entity="rr", age_days=40, reason=_REASON_A
+        )
+        self.add_row(
+            STATUS_BLOCKED, entity="rr", age_days=30, reason=_REASON_A
+        )  # repeat
+
+        result: prune_audit.PruneRunResult = self.run_prune()
+
+        assert result.blocked_duplicates == 2
+        assert self.remaining_ids("rr") == [a_head, b_head, a_return]
+        assert self.run_prune().total_removed == 0
+
+    def test_a_reason_less_run_ends_at_the_first_coded_block(self) -> None:
+        """Treat pre-feature (NULL-reason) blocks as one run of their own.
+
+        Mirrors the writer: a reason-less predecessor never matches a coded
+        block, so the first post-upgrade block is retained once and anchors
+        the streak's reason history from there.
+        """
+        legacy_since: UUID = self.add_row(STATUS_BLOCKED, age_days=300)
+        self.add_row(STATUS_BLOCKED, age_days=200)  # NULL == NULL: a repeat
+        coded: UUID = self.add_row(STATUS_BLOCKED, age_days=100, reason=_REASON_A)
+        self.add_row(STATUS_BLOCKED, age_days=50, reason=_REASON_A)  # repeat
+
+        result: prune_audit.PruneRunResult = self.run_prune()
+
+        assert result.blocked_duplicates == 2
+        assert self.remaining_ids("e1") == [legacy_since, coded]
+
+    def test_reason_transitions_in_a_resolved_streak_still_age_out(self) -> None:
+        """Exempt only a *current* streak's run heads from age-out."""
+        self.add_row(STATUS_BLOCKED, age_days=300, reason=_REASON_A)
+        self.add_row(STATUS_BLOCKED, age_days=250, reason=_REASON_B)
+        confirmed: UUID = self.add_row(STATUS_CONFIRMED, age_days=200)
+
+        result: prune_audit.PruneRunResult = self.run_prune()
+
+        assert result.blocked_duplicates == 0
+        assert result.operational_expired == 2
+        assert self.remaining_ids("e1") == [confirmed]
 
     # -- US2: evidence survives by default ----------------------------------
 
@@ -482,3 +614,90 @@ class TestPruneAudit(SupersetTestCase):
             attempt,
             later_block,
         }
+
+    # -- Timestamp ties (legacy second-precision rows) ----------------------
+
+    def test_a_block_tied_with_an_unresolved_attempt_is_deferred(self) -> None:
+        """Treat a pending row tied with a block as preceding it.
+
+        Which write landed first is unknowable from the rows, so the block
+        is deferred while the attempt is open. Once the attempt finalizes
+        into a boundary at that same instant, the tied block sits on the
+        boundary's resolved side: it ages out on the operational window
+        rather than seeding a new current streak.
+        """
+        blocked_since: UUID = self.add_row(
+            STATUS_BLOCKED, entity="tp", age_days=100, reason=_REASON_A
+        )
+        attempt: UUID = self.add_row(STATUS_PENDING, entity="tp", age_days=50)
+        tied_block: UUID = self.add_row(
+            STATUS_BLOCKED,
+            entity="tp",
+            at=self.created_on_of(attempt),
+            reason=_REASON_A,
+        )
+
+        result: prune_audit.PruneRunResult = self.run_prune()
+
+        assert result.blocked_duplicates == 0
+        assert set(self.remaining_ids("tp")) == {blocked_since, attempt, tied_block}
+
+        db.session.execute(
+            sa.update(PurgeAuditLog.__table__)
+            .where(PurgeAuditLog.__table__.c.id == attempt)
+            .values(status=STATUS_CONFIRMED)
+        )
+        db.session.commit()
+
+        after: prune_audit.PruneRunResult = self.run_prune(
+            **{OPERATIONAL_RETENTION_KEY: 10}
+        )
+
+        assert after.blocked_duplicates == 0
+        assert after.operational_expired == 2  # both blocks are resolved-streak
+        assert self.remaining_ids("tp") == [attempt]
+
+    def test_evidence_expiry_spares_a_boundary_tied_with_a_blocked_row(
+        self,
+    ) -> None:
+        """Keep a boundary while a block tied with it survives.
+
+        The tied block is on the boundary's resolved side, so the boundary
+        is what resolves it; removing the boundary first would leave the
+        block with no boundary at all — a current-streak survivor, exempt
+        from age-out, for an object that was destroyed.
+        """
+        blocked: UUID = self.add_row(STATUS_BLOCKED, entity="tb", age_days=30)
+        boundary: UUID = self.add_row(
+            STATUS_CONFIRMED, entity="tb", at=self.created_on_of(blocked)
+        )
+
+        first: prune_audit.PruneRunResult = self.run_prune(
+            **{OPERATIONAL_RETENTION_KEY: 90, EVIDENCE_RETENTION_KEY: 1}
+        )
+
+        assert first.total_removed == 0
+        assert set(self.remaining_ids("tb")) == {blocked, boundary}
+
+        second: prune_audit.PruneRunResult = self.run_prune(
+            **{OPERATIONAL_RETENTION_KEY: 10, EVIDENCE_RETENTION_KEY: 1}
+        )
+
+        assert second.operational_expired == 1
+        assert second.evidence_expired == 1
+        assert self.remaining_ids("tb") == []
+
+    def test_tied_same_reason_blocks_are_all_retained(self) -> None:
+        """Neither of two tied blocks is earlier, so both survive."""
+        first: UUID = self.add_row(
+            STATUS_BLOCKED, entity="ts", age_days=20, reason=_REASON_A
+        )
+        twin: UUID = self.add_row(
+            STATUS_BLOCKED, entity="ts", at=self.created_on_of(first), reason=_REASON_A
+        )
+        self.add_row(STATUS_BLOCKED, entity="ts", age_days=5, reason=_REASON_A)
+
+        result: prune_audit.PruneRunResult = self.run_prune()
+
+        assert result.blocked_duplicates == 1
+        assert set(self.remaining_ids("ts")) == {first, twin}
