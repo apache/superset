@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  RefObject,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 import { useDispatch } from 'react-redux';
 import { css, styled } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
@@ -50,37 +56,59 @@ const Fill = styled.div`
  * chart renders without `ChartHolder`, so it has to provide both itself.
  */
 const Holder = styled.div`
-  ${() => css`
+  ${({ theme }) => css`
     position: relative;
     display: flex;
     flex-direction: column;
     flex: 1;
     min-height: 0;
     overflow: hidden;
+    /* Without this the chart title and the header menu sit flush against the
+       iframe edge. On a dashboard the grid gutter supplies this breathing
+       room; an embed has no grid, so the holder supplies it. */
+    padding: ${theme.sizeUnit * 4}px;
   `}
 `;
 
-const useContainerSize = (): { width: number; height: number } => {
+/**
+ * Tracks the holder's content box, which excludes its padding, so the chart is
+ * laid out inside that padding rather than overflowing it. Falls back to the
+ * viewport for the first paint and where ResizeObserver is unavailable.
+ */
+const useContainerSize = (
+  ref: RefObject<HTMLElement>,
+  enabled: boolean,
+): { width: number; height: number } => {
   const [size, setSize] = useState({
     width: window.innerWidth,
     height: window.innerHeight,
   });
+
   useEffect(() => {
-    const onResize = () =>
-      setSize({ width: window.innerWidth, height: window.innerHeight });
-    window.addEventListener('resize', onResize);
-    return () => window.removeEventListener('resize', onResize);
-  }, []);
+    const element = ref.current;
+    if (!enabled || !element || typeof ResizeObserver === 'undefined') {
+      return undefined;
+    }
+    const observer = new ResizeObserver(entries => {
+      const box = entries[0]?.contentRect;
+      if (box?.width && box?.height) {
+        setSize({ width: box.width, height: box.height });
+      }
+    });
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [ref, enabled]);
+
   return size;
 };
 
 export default function EmbeddedChart({ chartId }: { chartId: string }) {
   const dispatch = useDispatch();
   const { data, loading, error } = useExploreData(chartId);
-  const { width, height } = useContainerSize();
   const [hydrated, setHydrated] = useState(false);
   const [isFullSize, setIsFullSize] = useState(false);
   const holderRef = useRef<HTMLDivElement>(null);
+  const { width, height } = useContainerSize(holderRef, hydrated);
 
   const handleToggleFullSize = useCallback(() => {
     setIsFullSize(current => !current);
@@ -104,7 +132,7 @@ export default function EmbeddedChart({ chartId }: { chartId: string }) {
       <ErrorBoundary>
         <Holder
           ref={holderRef}
-          className={`dashboard-chart-id-${data.slice.slice_id}`}
+          className={`dashboard-component-chart-holder dashboard-chart-id-${data.slice.slice_id}`}
         >
           <AntdThemeProvider
             getPopupContainer={(triggerNode?: HTMLElement) => {
