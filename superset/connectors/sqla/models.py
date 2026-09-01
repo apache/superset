@@ -71,6 +71,7 @@ from superset_core.common.models import Dataset as CoreDataset
 
 from superset import db, is_feature_enabled, security_manager
 from superset.common.db_query_status import QueryStatus
+from superset.connectors.sqla.partition_mapping import resolve_partition_mapping
 from superset.connectors.sqla.utils import (
     get_columns_description,
     get_physical_table_metadata,
@@ -2470,6 +2471,27 @@ class SqlaTable(
             )
             # Add each predicate as a separate cache key component
             extra_cache_keys.extend(rls_predicates)
+
+        # An active partition filter mapping changes the SQL a cached result came
+        # from, so it has to participate in the key or a mapping fix leaves stale
+        # pruned results behind. Only appended when the mapping is actually
+        # active, so keys don't churn for the entire installed base over a
+        # feature nobody has enabled.
+        #
+        # Note `PARTITION_FILTER_MAPPING` must be configured as a static boolean.
+        # `FEATURE_FLAGS` also accepts per-request callables, and a flag that
+        # resolves per user or per tenant would let a flag-off user read a cache
+        # entry written from pruned SQL by a flag-on user.
+        if mapping := resolve_partition_mapping(self):
+            extra_cache_keys.append(
+                (
+                    "partition_filter_mapping",
+                    mapping.partition_column,
+                    mapping.mapped_column,
+                    mapping.value_transform,
+                    mapping.is_monotonic,
+                )
+            )
 
         return list(set(extra_cache_keys))
 

@@ -400,6 +400,12 @@ SCHEDULED_QUERIES: dict[str, Any] = {}
 # parameters here: https://flask-limiter.readthedocs.io/en/stable/configuration.html
 RATELIMIT_ENABLED = os.environ.get("SUPERSET_ENV") == "production"
 RATELIMIT_APPLICATION = "50 per second"
+# How long an evaluated partition value transform stays cached. The probe is a
+# synchronous round trip on the chart-query path, so the hit rate is what keeps
+# it off the hot path: day-aligned ranges ("Last month") hit constantly,
+# second-granularity relative ranges ("Last 24 hours") essentially never.
+PARTITION_TRANSFORM_PROBE_CACHE_TIMEOUT = int(timedelta(days=1).total_seconds())
+
 AUTH_RATE_LIMITED = True
 AUTH_RATE_LIMIT = "5 per second"
 
