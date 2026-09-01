@@ -179,18 +179,26 @@ export const DashboardEmbedControls = ({
           <DocsConfigDetails embeddedId={embedded.uuid} />
         ) : (
           <p>
-            {t(
-              'This dashboard is ready to embed. In your application, pass the following id to the SDK:',
-            )}
+            {resourceType === 'chart'
+              ? t(
+                  'This chart is ready to embed. In your application, pass the following id to the SDK:',
+                )
+              : t(
+                  'This dashboard is ready to embed. In your application, pass the following id to the SDK:',
+                )}
             <br />
             <code>{embedded.uuid}</code>
           </p>
         )
       ) : (
         <p>
-          {t(
-            'Configure this dashboard to embed it into an external web application.',
-          )}
+          {resourceType === 'chart'
+            ? t(
+                'Configure this chart to embed it into an external web application.',
+              )
+            : t(
+                'Configure this dashboard to embed it into an external web application.',
+              )}
         </p>
       )}
       <p>
