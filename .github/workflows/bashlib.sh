@@ -438,6 +438,10 @@ playwright-run-gaq() {
   fi
   say "::endgroup::"
 
+  # The GAQ specs are excluded from every other project, so this is what makes
+  # them loadable at all -- see the chromium-gaq project in playwright.config.ts.
+  export INCLUDE_GAQ=true
+
   local report="${GITHUB_WORKSPACE}/superset-frontend/playwright-gaq-report.json"
   rm -f "$report"
   export PLAYWRIGHT_JSON_OUTPUT_NAME="$report"
@@ -448,7 +452,7 @@ playwright-run-gaq() {
   local status=0
   playwright-run "$APP_ROOT" "${TEST_PATHS[@]}" || status=$?
 
-  unset PLAYWRIGHT_EXTRA_ARGS PLAYWRIGHT_JSON_OUTPUT_NAME
+  unset PLAYWRIGHT_EXTRA_ARGS PLAYWRIGHT_JSON_OUTPUT_NAME INCLUDE_GAQ
 
   say "::group::Celery worker log"
   cat "$workerlog" || true
