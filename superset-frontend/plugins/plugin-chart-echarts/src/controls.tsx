@@ -140,6 +140,28 @@ export const showValueControl: ControlSetItem = {
   },
 };
 
+export const labelPositionControl: ControlSetItem = {
+  name: 'label_position',
+  config: {
+    type: 'SelectControl',
+    freeForm: false,
+    label: t('Label Position'),
+    choices: [
+      ['auto', t('Auto')],
+      ['top', t('Top')],
+      ['inside', t('Inside')],
+      ['bottom', t('Bottom')],
+      ['left', t('Left')],
+      ['right', t('Right')],
+    ],
+    default: 'auto',
+    renderTrigger: true,
+    description: t('Position of the data label relative to the data point'),
+    visibility: ({ controls }: ControlPanelsContainerProps) =>
+      Boolean(controls?.show_value?.value),
+  },
+};
+
 export const colorByPrimaryAxisControl: ControlSetItem = {
   name: 'color_by_primary_axis',
   config: {
@@ -219,6 +241,7 @@ export const percentageThresholdControl: ControlSetItem = {
 
 export const showValueSection: ControlSetRow[] = [
   [showValueControl],
+  [labelPositionControl],
   [stackControl],
   [onlyTotalControl],
   [percentageThresholdControl],
@@ -230,11 +253,13 @@ export const colorByPrimaryAxisSection: ControlSetRow[] = [
 
 export const showValueSectionWithoutStack: ControlSetRow[] = [
   [showValueControl],
+  [labelPositionControl],
   [onlyTotalControl],
 ];
 
 export const showValueSectionWithoutStream: ControlSetRow[] = [
   [showValueControl],
+  [labelPositionControl],
   [stackControlWithoutStream],
   [onlyTotalControl],
   [percentageThresholdControl],
@@ -467,6 +492,28 @@ export const minorTicks: ControlSetItem = {
     default: false,
     renderTrigger: true,
     description: t('Show minor ticks on axes.'),
+  },
+};
+
+export const axisTicks: ControlSetItem = {
+  name: 'axisTicks',
+  config: {
+    type: 'CheckboxControl',
+    label: t('Axis ticks'),
+    default: true,
+    renderTrigger: true,
+    description: t('Show the main ticks on axes.'),
+  },
+};
+
+export const gridlines: ControlSetItem = {
+  name: 'gridlines',
+  config: {
+    type: 'CheckboxControl',
+    label: t('Gridlines'),
+    default: true,
+    renderTrigger: true,
+    description: t('Draw split lines for the main value axis ticks.'),
   },
 };
 

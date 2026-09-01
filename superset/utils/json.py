@@ -304,8 +304,12 @@ def reveal_sensitive(
         jsonpath_expr = parse(json_path)
         for match in jsonpath_expr.find(revealed_payload):
             if match.value == PASSWORD_MASK:
-                old_value = match.full_path.find(old_payload)
-                match.context.value[match.path.fields[0]] = old_value[0].value
+                # a masked value can arrive for a path the stored payload never
+                # had, e.g. a payload copied from another connection. There is
+                # nothing to reveal, so the mask is passed through, which is
+                # what engine specs that do not list the path already do.
+                if old_value := match.full_path.find(old_payload):
+                    match.context.value[match.path.fields[0]] = old_value[0].value
 
     return revealed_payload
 

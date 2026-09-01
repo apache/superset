@@ -24,6 +24,12 @@ describe('createSmartNumberFormatter(options)', () => {
     const formatter = createSmartNumberFormatter();
     expect(formatter).toBeInstanceOf(NumberFormatter);
   });
+  test('uses the supplied formatter id regardless of signed option', () => {
+    expect(createSmartNumberFormatter({ id: 'custom' }).id).toBe('custom');
+    expect(
+      createSmartNumberFormatter({ id: 'custom-signed', signed: true }).id,
+    ).toBe('custom-signed');
+  });
   describe('using default options', () => {
     const formatter = createSmartNumberFormatter();
     test('formats 0 correctly', () => {

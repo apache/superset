@@ -21,6 +21,7 @@ import {
   isFeatureEnabled,
   getExtensionsRegistry,
   FeatureFlag,
+  QueryState,
 } from '@superset-ui/core';
 import {
   act,
@@ -332,6 +333,53 @@ describe('SqlEditor', () => {
     const { findByText } = setup(updatedProps, store);
     fireEvent.click(await findByText('Limit'));
     expect(await findByText('10 000')).toBeInTheDocument();
+  });
+
+  const setupWithLatestQuery = (overrides: Partial<typeof latestQuery>) =>
+    setup(
+      mockedProps,
+      createStore({
+        ...mockInitialState,
+        sqlLab: {
+          ...mockInitialState.sqlLab,
+          queries: {
+            [latestQuery.id]: { ...latestQuery, ...overrides },
+          },
+          databases: {
+            1991: {
+              ...mockInitialState.sqlLab.databases[1991],
+              allows_virtual_table_explore: true,
+            },
+          },
+        },
+      }),
+    );
+
+  // findByRole('button', { name }) walks every stylesheet rule via nwsapi to
+  // compute the accessible name, which can crash on an unrelated antd Tabs
+  // "more" button style; findByLabelText matches the same aria-label without
+  // that traversal.
+  test('enables the save dataset button when the latest query succeeded', async () => {
+    const { findByLabelText } = setupWithLatestQuery({
+      state: QueryState.Success,
+    });
+    expect(await findByLabelText('Save dataset')).toBeEnabled();
+  });
+
+  test('disables the save dataset button when the latest query failed', async () => {
+    const { findByLabelText } = setupWithLatestQuery({
+      state: QueryState.Failed,
+      results: undefined,
+    });
+    expect(await findByLabelText('Save dataset')).toBeDisabled();
+  });
+
+  test('disables the save dataset button when the results are not loaded', async () => {
+    const { findByLabelText } = setupWithLatestQuery({
+      state: QueryState.Success,
+      results: undefined,
+    });
+    expect(await findByLabelText('Save dataset')).toBeDisabled();
   });
 
   test('renders an Extension if provided', async () => {

@@ -48,7 +48,7 @@ class Dashboard(Base):
 
 def upgrade():
     bind = op.get_bind()
-    session = db.Session(bind=bind, future=True)
+    session = db.Session(bind=bind)
 
     for dashboard in session.query(Dashboard).all():
         if dashboard.json_metadata:
