@@ -113,8 +113,12 @@ function ThemesList({
     refreshData,
     toggleBulkSelect,
   } = useListViewResource<ThemeObject>('theme', t('Themes'), addDangerToast);
-  const { setTemporaryTheme, hasDevOverride, getAppliedThemeId } =
-    useThemeContext();
+  const {
+    setTemporaryTheme,
+    hasDevOverride,
+    getAppliedThemeId,
+    refreshSystemThemes,
+  } = useThemeContext();
   const [themeModalOpen, setThemeModalOpen] = useState<boolean>(false);
   const [currentTheme, setCurrentTheme] = useState<ThemeObject | null>(null);
   const [preparingExport, setPreparingExport] = useState<boolean>(false);
@@ -294,6 +298,9 @@ function ThemesList({
         onConfirm: async () => {
           try {
             await setSystemDefaultTheme(theme.id!);
+            // Apply the new system theme live so it takes effect without a
+            // page reload. Non-throwing, so it never masks the success toast.
+            await refreshSystemThemes();
             refreshData();
             addSuccessToast(
               t('"%s" is now the system default theme', theme.theme_name),
@@ -306,7 +313,13 @@ function ThemesList({
         },
       });
     },
-    [showConfirm, refreshData, addSuccessToast, addDangerToast],
+    [
+      showConfirm,
+      refreshData,
+      refreshSystemThemes,
+      addSuccessToast,
+      addDangerToast,
+    ],
   );
 
   const handleSetSystemDark = useCallback(
@@ -333,6 +346,9 @@ function ThemesList({
         onConfirm: async () => {
           try {
             await setSystemDarkTheme(theme.id!);
+            // Apply the new system theme live so it takes effect without a
+            // page reload. Non-throwing, so it never masks the success toast.
+            await refreshSystemThemes();
             refreshData();
             addSuccessToast(
               t('"%s" is now the system dark theme', theme.theme_name),
@@ -345,7 +361,13 @@ function ThemesList({
         },
       });
     },
-    [showConfirm, refreshData, addSuccessToast, addDangerToast],
+    [
+      showConfirm,
+      refreshData,
+      refreshSystemThemes,
+      addSuccessToast,
+      addDangerToast,
+    ],
   );
 
   const handleUnsetSystemDefault = useCallback(() => {
@@ -357,6 +379,9 @@ function ThemesList({
       onConfirm: async () => {
         try {
           await unsetSystemDefaultTheme();
+          // Revert to the fallback theme live, without a page reload.
+          // Non-throwing, so it never masks the success toast.
+          await refreshSystemThemes();
           refreshData();
           addSuccessToast(t('System default theme removed'));
         } catch (err: any) {
@@ -366,7 +391,13 @@ function ThemesList({
         }
       },
     });
-  }, [showConfirm, refreshData, addSuccessToast, addDangerToast]);
+  }, [
+    showConfirm,
+    refreshData,
+    refreshSystemThemes,
+    addSuccessToast,
+    addDangerToast,
+  ]);
 
   const handleUnsetSystemDark = useCallback(() => {
     showConfirm({
@@ -377,6 +408,9 @@ function ThemesList({
       onConfirm: async () => {
         try {
           await unsetSystemDarkTheme();
+          // Revert to the fallback theme live, without a page reload.
+          // Non-throwing, so it never masks the success toast.
+          await refreshSystemThemes();
           refreshData();
           addSuccessToast(t('System dark theme removed'));
         } catch (err: any) {
@@ -386,7 +420,13 @@ function ThemesList({
         }
       },
     });
-  }, [showConfirm, refreshData, addSuccessToast, addDangerToast]);
+  }, [
+    showConfirm,
+    refreshData,
+    refreshSystemThemes,
+    addSuccessToast,
+    addDangerToast,
+  ]);
 
   const initialSort = [{ id: 'theme_name', desc: true }];
   const columns = useMemo(
