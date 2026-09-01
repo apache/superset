@@ -1872,7 +1872,7 @@ class TestUpdateChartColumnNormalization:
         ".DatasetValidator.normalize_column_names",
     )
     @pytest.mark.asyncio
-    async def test_normalization_exception_is_caught_gracefully(
+    async def test_ambiguous_normalization_is_rejected_before_update(
         self,
         mock_normalize,
         mock_db_session,
@@ -1882,7 +1882,7 @@ class TestUpdateChartColumnNormalization:
         mock_validate,
         mcp_server,
     ):
-        """A normalization failure must not propagate — chart update continues."""
+        """An ambiguous reference returns a structured error before mutation."""
         from superset.mcp_service.chart.compile import CompileResult
 
         chart = self._mock_chart(datasource_id=10)
@@ -1894,7 +1894,9 @@ class TestUpdateChartColumnNormalization:
             success=True, error=None, error_code=None, tier="validation", error_obj=None
         )
         mock_create_preview.return_value = ("http://example.com/explore", None, [])
-        mock_normalize.side_effect = ValueError("DB connection failed")
+        mock_normalize.side_effect = ValueError(
+            "Ambiguous column reference 'REGION'; candidates: Region, region"
+        )
 
         request = {
             "identifier": 1,
@@ -1907,11 +1909,16 @@ class TestUpdateChartColumnNormalization:
         }
 
         async with Client(mcp) as client:
-            # Should not raise; normalization failure is a warning only
-            await client.call_tool("update_chart", {"request": request})
+            result = await client.call_tool("update_chart", {"request": request})
 
-        # Normalization failed but tool still attempted the update path
         mock_normalize.assert_called_once()
+        assert result.structured_content["success"] is False
+        assert (
+            "could not be canonicalized"
+            in result.structured_content["error"]["message"]
+        )
+        assert "Region, region" in result.structured_content["error"]["details"]
+        mock_create_preview.assert_not_called()
 
     @patch(
         "superset.mcp_service.chart.validation.dataset_validator"
