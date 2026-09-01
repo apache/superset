@@ -18,9 +18,10 @@
  */
 import { useEffect, useState } from 'react';
 import { useDispatch } from 'react-redux';
-import { css, styled, t } from '@superset-ui/core';
+import { css, styled } from '@apache-superset/core/theme';
+import { t } from '@apache-superset/core/translation';
 import { Loading } from '@superset-ui/core/components';
-import ErrorBoundary from 'src/components/ErrorBoundary';
+import { ErrorBoundary } from 'src/components/ErrorBoundary';
 import Chart from 'src/dashboard/components/gridComponents/Chart';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import { setDatasources } from 'src/dashboard/actions/datasources';

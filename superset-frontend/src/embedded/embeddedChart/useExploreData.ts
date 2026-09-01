@@ -17,7 +17,8 @@
  * under the License.
  */
 import { useEffect, useState } from 'react';
-import { SupersetClient, t } from '@superset-ui/core';
+import { SupersetClient } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
 import { EmbeddedChartData } from './hydrateEmbedded';
 
 interface State {
