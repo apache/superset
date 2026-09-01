@@ -62,11 +62,23 @@ def _truncate_utf8(value: str, max_bytes: int) -> str:
 
 
 def _safe_scalar_text(value: Any, max_bytes: int) -> str | None:
-    """Stringify one scalar without triggering Python's integer digit limit."""
+    """Render a bounded scalar without invoking attacker-controlled string code."""
     if value is None or value is False:
         return None
     if isinstance(value, Enum):
         value = value.value
+    if isinstance(value, str):
+        return _truncate_utf8(value, max_bytes) if value else None
+    if isinstance(value, (bytes, bytearray, memoryview)):
+        try:
+            view = memoryview(value).cast("B")
+            sample = view[: max(0, max_bytes)].tobytes()
+            text = sample.decode("utf-8", errors="replace")
+            if len(view) > len(sample):
+                text += "... [truncated]"
+            return _truncate_utf8(text, max_bytes) if text else None
+        except (TypeError, ValueError):
+            return f"<{type(value).__name__} payload could not be read>"
     if isinstance(value, int) and not isinstance(value, bool):
         digits = (
             1 if value == 0 else int((abs(value).bit_length() - 1) * math.log10(2)) + 1
@@ -74,11 +86,10 @@ def _safe_scalar_text(value: Any, max_bytes: int) -> str | None:
         if digits > _MAX_INTEGER_DIGITS:
             sign = "negative " if value < 0 else ""
             return f"<{sign}integer with approximately {digits} decimal digits>"
-    try:
-        text = str(value)
-    except Exception:  # pragma: no cover - defensive custom scalar
-        return f"<{type(value).__name__} could not be stringified>"
-    return _truncate_utf8(text, max_bytes) if text else None
+        return str(value)
+    if isinstance(value, (bool, float)):
+        return str(value)
+    return _truncate_utf8(f"<{type(value).__name__} object>", max_bytes)
 
 
 def _query_error_text(value: Any) -> _ErrorText:  # noqa: C901
@@ -104,7 +115,7 @@ def _query_error_text(value: Any) -> _ErrorText:  # noqa: C901
 
         is_mapping = isinstance(item, Mapping)
         is_sequence = isinstance(item, Sequence) and not isinstance(
-            item, (str, bytes, bytearray)
+            item, (str, bytes, bytearray, memoryview)
         )
         if is_mapping or is_sequence:
             identity = id(item)

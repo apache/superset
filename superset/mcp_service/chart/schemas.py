@@ -2212,18 +2212,22 @@ class BulletChartConfig(BaseChartConfig):
     def _adapt_native_metric(value: Any) -> Any:
         """Translate QueryFormMetric shapes into the shared ColumnRef contract."""
         if isinstance(value, str):
-            legacy = re.fullmatch(
-                r"(sum|avg|min|max|count|count_distinct)__(.+)",
-                value,
-                flags=re.IGNORECASE,
-            )
-            if legacy:
-                return {
-                    "name": legacy.group(2),
-                    "aggregate": legacy.group(1).upper(),
-                }
             return {"name": value, "saved_metric": True}
-        if not isinstance(value, dict) or "expressionType" not in value:
+        if not isinstance(value, dict):
+            return value
+        if "expressionType" not in value:
+            # QueryObject's documented legacy saved-metric representation is a
+            # label-only object. Keep this adapter deliberately narrow: objects
+            # carrying ad-hoc fields must declare expressionType explicitly, and
+            # semantic ColumnRef objects continue through normal validation.
+            if set(value) == {"label"}:
+                label = value["label"]
+                if not isinstance(label, str) or not label or len(label) > 255:
+                    raise ValueError(
+                        "legacy saved metric label must be a non-empty string of "
+                        "at most 255 characters"
+                    )
+                return {"name": label, "saved_metric": True}
             return value
         expression_type = value.get("expressionType")
         if expression_type == "SQL":
@@ -2381,10 +2385,28 @@ class BulletChartConfig(BaseChartConfig):
         ):
             data.pop(key, None)
 
-        marker_key = "_mcp_dashboard_time_filter_subject"
-        if marker := data.pop(marker_key, None):
-            if not isinstance(marker, str):
+        if (marker_key := "_mcp_dashboard_time_filter_subject") in data:
+            marker = data.pop(marker_key)
+            if not isinstance(marker, str) or not marker:
                 raise ValueError(f"{marker_key} must be a physical column name")
+            raw_filters = data.get("adhoc_filters")
+            if not isinstance(raw_filters, list):
+                raise ValueError(
+                    f"{marker_key} requires an adhoc_filters array containing its "
+                    "generated binding"
+                )
+            provenance_matches = [
+                filter_
+                for filter_ in raw_filters
+                if isinstance(filter_, dict)
+                and filter_.get("subject") == marker
+                and filter_.get("operator") == "TEMPORAL_RANGE"
+            ]
+            if len(provenance_matches) != 1:
+                raise ValueError(
+                    f"{marker_key} must match exactly one TEMPORAL_RANGE filter "
+                    f"for subject {marker!r}; found {len(provenance_matches)}"
+                )
             data.setdefault("temporal_column", marker)
 
         if "metric" in data:
@@ -2403,22 +2425,26 @@ class BulletChartConfig(BaseChartConfig):
         cls._adapt_native_filters(data)
         return data
 
-    @field_validator(
-        "ranges",
-        "markers",
-        "marker_lines",
-        "range_labels",
-        "marker_labels",
-        "marker_line_labels",
-        mode="before",
-    )
+    @field_validator("ranges", "markers", "marker_lines", mode="before")
     @classmethod
-    def tokenize_native_lists(cls, value: Any) -> Any:
-        """Parse the frontend's comma-separated presentation controls."""
+    def tokenize_native_numeric_lists(cls, value: Any) -> Any:
+        """Parse numeric controls without creating values for empty tokens."""
         if value is None:
             return []
         if isinstance(value, str):
             return [token.strip() for token in value.split(",") if token.strip()]
+        return value
+
+    @field_validator(
+        "range_labels", "marker_labels", "marker_line_labels", mode="before"
+    )
+    @classmethod
+    def tokenize_native_label_lists(cls, value: Any) -> Any:
+        """Parse label controls while preserving positional empty tokens."""
+        if value is None or value == "":
+            return []
+        if isinstance(value, str):
+            return [token.strip() for token in value.split(",")]
         return value
 
     @field_validator("ranges", "markers", "marker_lines")
@@ -2438,8 +2464,11 @@ class BulletChartConfig(BaseChartConfig):
                     "Bullet labels cannot contain commas because the frontend "
                     "comma-separated controls have no escaping"
                 )
+            if label == "":
+                result.append("")
+                continue
             sanitized = sanitize_user_input(
-                label, "Bullet label", max_length=200, allow_empty=False
+                label, "Bullet label", max_length=200, allow_empty=True
             )
             if sanitized is not None:
                 result.append(sanitized)

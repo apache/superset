@@ -455,14 +455,14 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
             # Extract data from result
             chart_data = queries_data[0] if queries_data else []
 
+            if self.chart.viz_type == "bullet":
+                return _generate_bullet_vega_lite_preview(chart_data, form_data)
+
             if not chart_data or not isinstance(chart_data, list):
                 return ChartError(
                     error="No data available for Vega-Lite visualization",
                     error_type="NoDataError",
                 )
-
-            if self.chart.viz_type == "bullet":
-                return _generate_bullet_vega_lite_preview(chart_data, form_data)
 
             # Convert Superset chart type to Vega-Lite specification
             vega_spec = self._create_vega_lite_spec(chart_data)
@@ -493,9 +493,6 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
 
     def _create_vega_lite_spec(self, data: List[Any]) -> Dict[str, Any]:
         """Create Vega-Lite specification from chart data."""
-        if not data:
-            return {"data": {"values": []}, "mark": "point"}
-
         if getattr(self.chart, "viz_type", None) == "bullet":
             from superset.mcp_service.chart.preview_utils import (
                 _generate_bullet_vega_lite_preview,
@@ -504,6 +501,9 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
             return _generate_bullet_vega_lite_preview(
                 data, self._get_form_data() or {}
             ).specification
+
+        if not data:
+            return {"data": {"values": []}, "mark": "point"}
 
         # Get data fields and analyze types
         first_row = data[0] if data else {}
@@ -755,6 +755,7 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
             _bullet_numeric_tokens,
             _form_column_label,
             _form_metric_label,
+            _unique_bullet_category_field,
             BulletOutputError,
         )
         from superset.utils import json as utils_json
@@ -784,7 +785,7 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
             if (field := result_field(_form_column_label(column)))
         ]
 
-        category_field = "__mcp_bullet_category"
+        category_field = _unique_bullet_category_field([dict.fromkeys(fields)])
         calculate = (
             " + ', ' + ".join(
                 f"toString(datum[{utils_json.dumps(field)}])" for field in dimensions

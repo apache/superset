@@ -98,3 +98,36 @@ def test_query_result_truncates_error_text_deterministically_by_bytes() -> None:
     assert first.error == second.error
     assert "[truncated]" in first.error
     assert len(first.error.encode("utf-8")) <= 2100
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        b"warehouse unavailable" * 100_000,
+        bytearray(b"warehouse unavailable" * 100_000),
+        memoryview(b"warehouse unavailable" * 100_000),
+    ],
+)
+def test_query_result_bounds_binary_scalars_before_conversion(payload: object) -> None:
+    data, failure = query_result_data({"error": payload})
+    assert data is None
+    assert failure is not None
+    assert failure.error_type == "QueryError"
+    assert "warehouse unavailable" in failure.error
+    assert "[truncated]" in failure.error
+    assert len(failure.error.encode("utf-8")) <= 2100
+
+
+def test_query_result_never_calls_custom_object_string_or_repr() -> None:
+    class HostileScalar:
+        def __str__(self) -> str:
+            raise AssertionError("unbounded custom __str__ must not run")
+
+        def __repr__(self) -> str:
+            raise AssertionError("unbounded custom __repr__ must not run")
+
+    data, failure = query_result_data({"error": HostileScalar()})
+    assert data is None
+    assert failure is not None
+    assert failure.error_type == "QueryError"
+    assert "<HostileScalar object>" in failure.error

@@ -814,12 +814,48 @@ def _ensure_generated_temporal_binding(form_data: Dict[str, Any], column: str) -
         form_data[MCP_DASHBOARD_TIME_FILTER_SUBJECT] = column
 
 
-def _bind_dashboard_time_range_filter(
+def _bind_temporal_filter(
+    form_data: Dict[str, Any],
+    column: str,
+    *,
+    range_explicit: bool,
+    time_range: str | None,
+) -> None:
+    """Create a generated binding and apply an explicit active/neutral range."""
+    _ensure_temporal_adhoc_filter(form_data, column)
+    if range_explicit:
+        comparator = time_range or NO_TIME_RANGE
+        for filter_ in form_data.get("adhoc_filters", []):
+            if (
+                isinstance(filter_, dict)
+                and filter_.get("operator") == FilterOperator.TEMPORAL_RANGE.value
+                and filter_.get("subject") == column
+                and filter_.get("comparator") == NO_TIME_RANGE
+            ):
+                filter_["comparator"] = comparator
+                break
+    form_data[MCP_DASHBOARD_TIME_FILTER_SUBJECT] = column
+
+
+def _clears_temporal_subject(config: ChartConfig, explicit_fields: set[str]) -> bool:
+    """Return whether a caller explicitly cleared the generated subject."""
+    return "temporal_column" in explicit_fields and not getattr(
+        config, "temporal_column", None
+    )
+
+
+def _bind_dashboard_time_range_filter(  # noqa: C901
     form_data: Dict[str, Any],
     config: ChartConfig,
     dataset_id: int | str | None,
 ) -> None:
     """Bind charts without time configuration to a temporal filter subject."""
+    explicit_fields = set(getattr(config, "model_fields_set", set()))
+    if _clears_temporal_subject(config, explicit_fields):
+        # An explicit null clears the generated subject; unlike omission it must
+        # not silently fall back to the dataset's main datetime column.
+        return
+
     if temporal_column := getattr(config, "temporal_column", None):
         if _is_temporal_for_dashboard_binding(temporal_column, dataset_id):
             granularity = form_data.get("granularity_sqla")
@@ -827,8 +863,12 @@ def _bind_dashboard_time_range_filter(
                 # QueryContextFactory gives granularity precedence over a temporal
                 # filter, so a different granularity would bind both columns.
                 form_data["granularity_sqla"] = None
-            _ensure_temporal_adhoc_filter(form_data, temporal_column)
-            form_data[MCP_DASHBOARD_TIME_FILTER_SUBJECT] = temporal_column
+            _bind_temporal_filter(
+                form_data,
+                temporal_column,
+                range_explicit="time_range" in explicit_fields,
+                time_range=getattr(config, "time_range", None),
+            )
         return
 
     dataset = None
@@ -858,16 +898,24 @@ def _bind_dashboard_time_range_filter(
     if isinstance(x_axis, str) and _is_temporal_for_dashboard_binding(
         x_axis, dataset_id, dataset
     ):
-        _ensure_temporal_adhoc_filter(form_data, x_axis)
-        form_data[MCP_DASHBOARD_TIME_FILTER_SUBJECT] = x_axis
+        _bind_temporal_filter(
+            form_data,
+            x_axis,
+            range_explicit="time_range" in explicit_fields,
+            time_range=getattr(config, "time_range", None),
+        )
         return
 
     main_dttm_col = getattr(dataset, "main_dttm_col", None)
     if isinstance(main_dttm_col, str) and _is_temporal_for_dashboard_binding(
         main_dttm_col, dataset_id, dataset
     ):
-        _ensure_temporal_adhoc_filter(form_data, main_dttm_col)
-        form_data[MCP_DASHBOARD_TIME_FILTER_SUBJECT] = main_dttm_col
+        _bind_temporal_filter(
+            form_data,
+            main_dttm_col,
+            range_explicit="time_range" in explicit_fields,
+            time_range=getattr(config, "time_range", None),
+        )
 
 
 def _is_temporal_for_dashboard_binding(
@@ -1240,19 +1288,26 @@ def _filter_identity(filter_: Any) -> tuple[Any, ...] | None:
 
 
 def _temporal_binding_filter(filters: list[Any], subject: Any) -> dict[str, Any] | None:
-    """Find the filter owned by a recorded MCP temporal-binding marker."""
-    if not isinstance(subject, str) or not subject:
+    """Find the unique filter owned by a recorded MCP temporal marker."""
+    if subject is None:
         return None
-    return next(
-        (
-            filter_
-            for filter_ in filters
-            if isinstance(filter_, dict)
-            and filter_.get("subject") == subject
-            and filter_.get("operator") == FilterOperator.TEMPORAL_RANGE.value
-        ),
-        None,
-    )
+    if not isinstance(subject, str) or not subject:
+        raise ValueError(
+            "MCP temporal binding provenance subject must be a non-empty string"
+        )
+    matches = [
+        filter_
+        for filter_ in filters
+        if isinstance(filter_, dict)
+        and filter_.get("subject") == subject
+        and filter_.get("operator") == FilterOperator.TEMPORAL_RANGE.value
+    ]
+    if len(matches) != 1:
+        raise ValueError(
+            "MCP temporal binding provenance must match exactly one "
+            f"TEMPORAL_RANGE filter for subject {subject!r}; found {len(matches)}"
+        )
+    return matches[0]
 
 
 def _append_or_replace_filter(filters: list[Any], filter_: Any) -> None:
@@ -1291,9 +1346,9 @@ def merge_update_form_data(  # noqa: C901
     ]
     explicit_fields = set(getattr(config, "model_fields_set", set()))
     filters_explicit = "filters" in explicit_fields
-    temporal_explicit = bool(
-        {"time_range", "temporal_column"}.intersection(explicit_fields)
-    )
+    range_explicit = "time_range" in explicit_fields
+    subject_explicit = "temporal_column" in explicit_fields
+    temporal_explicit = range_explicit or subject_explicit
 
     chosen_binding: dict[str, Any] | None = None
     chosen_subject: Any = None
@@ -1304,34 +1359,72 @@ def merge_update_form_data(  # noqa: C901
         chosen_binding = existing_binding
         chosen_subject = existing_subject
         if temporal_explicit:
-            chosen_binding = incoming_binding
-            chosen_subject = incoming_subject
+            if subject_explicit:
+                chosen_binding = incoming_binding
+                chosen_subject = incoming_subject
+            elif existing_binding is not None:
+                # A range-only update belongs to the saved subject, even when
+                # mapping the partial config proposed the dataset main_dttm.
+                chosen_binding = dict(existing_binding)
+                chosen_subject = existing_subject
+            else:
+                chosen_binding = incoming_binding
+                chosen_subject = incoming_subject
+
+            if chosen_binding is not None:
+                chosen_binding = dict(chosen_binding)
+                if range_explicit:
+                    chosen_binding["comparator"] = (
+                        getattr(config, "time_range", None) or NO_TIME_RANGE
+                    )
+                elif existing_binding is not None:
+                    # Subject-only replacement preserves the saved active or
+                    # neutral range instead of resetting it to No filter.
+                    chosen_binding["comparator"] = existing_binding.get(
+                        "comparator", NO_TIME_RANGE
+                    )
             if existing_binding is not None:
                 binding_index = next(
                     index
                     for index, filter_ in enumerate(merged_filters)
                     if filter_ is existing_binding
                 )
-                if incoming_binding is None:
+                if chosen_binding is None:
                     merged_filters.pop(binding_index)
                 else:
                     # A temporal override changes infrastructure in place instead
                     # of moving it past surrounding native filters.
-                    merged_filters[binding_index] = incoming_binding
-            elif incoming_binding is not None:
-                merged_filters.append(incoming_binding)
+                    merged_filters[binding_index] = chosen_binding
+            elif chosen_binding is not None:
+                merged_filters.append(chosen_binding)
     else:
         # An explicit filter array replaces the saved native sequence. The mapper
         # deliberately emits [] for an explicit clear; otherwise retain its
         # generated temporal binding after the replacement filters.
         merged_filters = list(incoming_user_filters)
         if incoming_user_filters or temporal_explicit:
-            if incoming_binding is not None or temporal_explicit:
+            if subject_explicit:
+                chosen_binding = incoming_binding
+                chosen_subject = incoming_subject
+            elif range_explicit and existing_binding is not None:
+                chosen_binding = dict(existing_binding)
+                chosen_subject = existing_subject
+            elif incoming_binding is not None:
                 chosen_binding = incoming_binding
                 chosen_subject = incoming_subject
             else:
                 chosen_binding = existing_binding
                 chosen_subject = existing_subject
+            if chosen_binding is not None:
+                chosen_binding = dict(chosen_binding)
+                if range_explicit:
+                    chosen_binding["comparator"] = (
+                        getattr(config, "time_range", None) or NO_TIME_RANGE
+                    )
+                elif subject_explicit and existing_binding is not None:
+                    chosen_binding["comparator"] = existing_binding.get(
+                        "comparator", NO_TIME_RANGE
+                    )
             if chosen_binding is not None:
                 _append_or_replace_filter(merged_filters, chosen_binding)
 
@@ -1371,6 +1464,7 @@ def validate_merged_bullet_form_data(
         "filters" not in update_config.model_fields_set
     ):
         validation_data.pop("adhoc_filters", None)
+        validation_data.pop(MCP_DASHBOARD_TIME_FILTER_SUBJECT, None)
     return BulletChartConfig.model_validate(validation_data)
 
 
@@ -1986,7 +2080,7 @@ def analyze_chart_capabilities(viz_type: str | None, config: Any) -> ChartCapabi
         "ag-grid-pivot-table",
     ]
 
-    supports_interaction = viz_type in interactive_types
+    supports_interaction = viz_type == "bullet" or viz_type in interactive_types
     supports_drill_down = viz_type in [
         "table",
         "pivot_table_v2",
@@ -1999,13 +2093,22 @@ def analyze_chart_capabilities(viz_type: str | None, config: Any) -> ChartCapabi
     ]
 
     # Determine optimal formats
-    optimal_formats = ["url"]  # Always include static image
-    if supports_interaction:
-        optimal_formats.extend(["interactive", "vega_lite"])
-    optimal_formats.extend(["ascii", "table"])
+    if viz_type == "bullet":
+        # These are the formats implemented by both saved and transient Bullet
+        # preview paths. Table explicitly rejects Bullet's layered semantics.
+        optimal_formats = ["url", "vega_lite", "ascii"]
+    else:
+        optimal_formats = ["url"]  # Always include static image
+        if supports_interaction:
+            optimal_formats.extend(["interactive", "vega_lite"])
+        optimal_formats.extend(["ascii", "table"])
 
     # Classify data types
     data_types = []
+    if viz_type == "bullet":
+        data_types.append("metric")
+        if getattr(config, "dimensions", None):
+            data_types.append("categorical")
     if hasattr(config, "x") and config.x:
         data_types.append("categorical" if not config.x.is_metric else "metric")
     if hasattr(config, "y") and config.y:
@@ -2019,7 +2122,11 @@ def analyze_chart_capabilities(viz_type: str | None, config: Any) -> ChartCapabi
         supports_drill_down=supports_drill_down,
         supports_export=True,  # All charts can be exported
         optimal_formats=optimal_formats,
-        data_types=list(set(data_types)),
+        data_types=(
+            list(dict.fromkeys(data_types))
+            if viz_type == "bullet"
+            else list(set(data_types))
+        ),
     )
 
 

@@ -24,6 +24,7 @@ from form data without requiring a saved chart object.
 
 import logging
 import math
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation
 from numbers import Real
@@ -448,6 +449,18 @@ def _bullet_string_tokens(value: Any) -> list[str]:
     return [token.strip() for token in value.split(",")]
 
 
+def _unique_bullet_category_field(rows: Sequence[Mapping[Any, Any]]) -> str:
+    """Return an internal category key absent from every query-result row."""
+    occupied = {key for row in rows for key in row if isinstance(key, str)}
+    base = "__mcp_bullet_category"
+    candidate = base
+    suffix = 0
+    while candidate in occupied:
+        suffix += 1
+        candidate = f"{base}_{suffix}"
+    return candidate
+
+
 def _validate_bullet_format(format_: Any, values: list[float]) -> str:
     """Reject a presentation format the backend cannot reproduce."""
     if not isinstance(format_, str) or not format_:
@@ -818,7 +831,7 @@ def _generate_bullet_vega_lite_preview(  # noqa: C901
 
     model = resolve_bullet_render_model(data, form_data)
 
-    category_field = "__mcp_bullet_category"
+    category_field = _unique_bullet_category_field(model.rows)
     values = []
     for row in model.rows:
         copied = dict(row)
@@ -1060,7 +1073,7 @@ def _generate_vega_lite_preview_from_data(  # noqa: C901
 ) -> VegaLitePreview:
     """Generate Vega-Lite preview from raw data and form_data."""
     viz_type = form_data.get("viz_type", "table")
-    if viz_type == "bullet" and data:
+    if viz_type == "bullet":
         return _generate_bullet_vega_lite_preview(data, form_data)
 
     # Map Superset viz types to Vega-Lite marks
