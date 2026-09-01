@@ -27,6 +27,9 @@ from typing import cast
 import pytest
 from freezegun import freeze_time
 from pytest_mock import MockerFixture
+from sqlalchemy import Column, create_engine, DateTime, Integer, String
+from sqlalchemy.orm import declarative_base, sessionmaker
+from sqlalchemy.pool import StaticPool
 
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.exceptions import (
@@ -233,6 +236,78 @@ def test_execute_with_oauth2_retry_forces_refresh_once(
         force=True,
         rejected_access_token="stale-token",  # noqa: S106
     )
+    db.session.expire.assert_called_once_with(token)
+
+
+def test_execute_with_oauth2_retry_expires_token_from_ambient_session(
+    mocker: MockerFixture,
+) -> None:
+    """The retry observes a forced refresh committed by an isolated session."""
+    base = declarative_base()
+
+    class OAuthToken(base):  # type: ignore[valid-type,misc]
+        __tablename__ = "oauth_token"
+
+        id = Column(Integer, primary_key=True)
+        user_id = Column(Integer, nullable=False)
+        database_id = Column(Integer, nullable=False)
+        access_token = Column(String, nullable=True)
+        access_token_expiration = Column(DateTime, nullable=True)
+        refresh_token = Column(String, nullable=True)
+
+    engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    base.metadata.create_all(engine)
+    ambient_session = sessionmaker(bind=engine)()
+    ambient_session.add(
+        OAuthToken(
+            user_id=2,
+            database_id=1,
+            access_token="stale-token",  # noqa: S106
+            access_token_expiration=datetime(2024, 1, 2),
+            refresh_token="refresh-token",  # noqa: S106
+        )
+    )
+    ambient_session.commit()
+
+    db = mocker.patch("superset.utils.oauth2.db")
+    db.session = ambient_session
+    mocker.patch("superset.models.core.DatabaseUserOAuth2Tokens", OAuthToken)
+    mocker.patch("superset.utils.oauth2.DistributedLock")
+    mocker.patch("superset.utils.oauth2.g").user.id = 2
+
+    auth_error = RuntimeError("stale OAuth token")
+    observed_tokens: list[str | None] = []
+
+    def operation() -> str:
+        if not observed_tokens:
+            observed_tokens.append(None)
+            raise auth_error
+        observed_tokens.append(
+            ambient_session.query(OAuthToken)
+            .filter_by(user_id=2, database_id=1)
+            .one()
+            .access_token
+        )
+        return "result"
+
+    database = mocker.MagicMock(id=1)
+    database.is_oauth2_enabled.return_value = True
+    database.db_engine_spec.engine = "snowflake"
+    database.db_engine_spec.needs_oauth2.return_value = True
+    database.db_engine_spec.oauth2_exception = OAuth2TokenRefreshError
+    database.db_engine_spec.get_oauth2_fresh_token.return_value = {
+        "access_token": "new-token",
+        "expires_in": 3600,
+        "refresh_token": "rotated-refresh-token",
+    }
+    database.get_oauth2_config.return_value = DUMMY_OAUTH2_CONFIG
+
+    assert execute_with_oauth2_retry(database, operation) == "result"
+    assert observed_tokens == [None, "new-token"]
 
 
 def test_execute_with_oauth2_retry_does_not_retry_unrelated_error(
@@ -298,6 +373,7 @@ def test_execute_with_oauth2_retry_does_not_replay_after_progress(
 
     operation.assert_called_once_with()
     refresh.assert_not_called()
+    database.start_oauth2_dance.assert_called_once_with()
 
 
 def test_refresh_oauth2_token_deletes_token_on_oauth2_exception(

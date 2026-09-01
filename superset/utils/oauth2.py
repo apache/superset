@@ -268,7 +268,7 @@ def _refresh_oauth2_token_locked(  # noqa: C901
     return token.access_token
 
 
-def execute_with_oauth2_retry(
+def execute_with_oauth2_retry(  # noqa: C901
     database: Database,
     operation: Callable[[], T],
     can_retry: Callable[[], bool] | None = None,
@@ -305,6 +305,7 @@ def execute_with_oauth2_retry(
             app.config["STATS_LOGGER"].incr(
                 "oauth2.forced_refresh.query_retry_skipped_progress"
             )
+            database.start_oauth2_dance()
             raise
 
         config = database.get_oauth2_config()
@@ -340,6 +341,11 @@ def execute_with_oauth2_retry(
         if access_token is None:
             stats_logger.incr("oauth2.forced_refresh.unavailable")
             database.start_oauth2_dance()
+
+        # The forced refresh commits through an isolated session. Expire the token
+        # loaded above so connection creation for the retry observes that commit.
+        if token is not None:
+            db.session.expire(token)
 
         stats_logger.incr("oauth2.forced_refresh.exchange_success")
         try:
