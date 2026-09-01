@@ -36,6 +36,7 @@ _MAX_SEQUENCE_ITEMS = 64
 _MAX_ERROR_PARTS = 3
 _MAX_ERROR_BYTES = 2000
 _MAX_INTEGER_DIGITS = 1000
+_MAX_QUERY_COUNT = 64
 _BUILTIN_SCALAR_TYPES = (str, bytes, bytearray, memoryview, int, float, bool)
 _SCALAR_BASE_TYPES = (*_BUILTIN_SCALAR_TYPES, Enum)
 
@@ -49,13 +50,19 @@ class _ErrorText:
 
 
 def _truncate_utf8(value: str, max_bytes: int) -> str:
-    """Truncate text without encoding an attacker-sized string in full."""
+    """Return bounded, replacement-decoded UTF-8 text.
+
+    Encoding even the non-truncated path is intentional: Python strings may
+    contain unpaired surrogates, while MCP/JSON responses must always be valid
+    UTF-8.  Slicing by characters before encoding also prevents an
+    attacker-sized string from being encoded in full.
+    """
     if max_bytes <= 0:
         return ""
     candidate = value[:max_bytes]
     encoded = candidate.encode("utf-8", errors="replace")
     if len(encoded) <= max_bytes and len(candidate) == len(value):
-        return candidate
+        return encoded.decode("utf-8", errors="replace")
     suffix = "... [truncated]"
     suffix_bytes = suffix.encode()
     if max_bytes <= len(suffix_bytes):
@@ -162,14 +169,21 @@ def _query_error_text(value: Any) -> _ErrorText:  # noqa: C901
         if depth > _MAX_ERROR_DEPTH:
             return _ErrorText(malformed="error payload exceeds the depth limit")
 
+        # ChartDataCommand envelopes cross a JSON boundary. Only exact JSON
+        # containers are trusted here: ABC/isinstance checks can consult a
+        # spoofed ``__class__``, and subclass get/contains/iter/len hooks are
+        # attacker-controlled. Exact dict/list operations below are builtin and
+        # non-overridable.
+        is_mapping = type(item) is dict
+        is_sequence = type(item) is list
         item_mro = _type_mro(type(item))
-        is_mapping = _mro_contains(item_mro, (dict, Mapping))
-        is_sequence = _mro_contains(
-            item_mro, (list, tuple, range, Sequence)
-        ) and not _mro_contains(
-            item_mro,
-            _SCALAR_BASE_TYPES,
-        )
+        if not (is_mapping or is_sequence) and (
+            _mro_contains(item_mro, (dict, list, Mapping, Sequence))
+            and not _mro_contains(item_mro, _SCALAR_BASE_TYPES)
+        ):
+            return _ErrorText(
+                malformed="error payload contains an unsupported container type"
+            )
         if is_mapping or is_sequence:
             identity = id(item)
             if identity in seen:
@@ -180,18 +194,11 @@ def _query_error_text(value: Any) -> _ErrorText:  # noqa: C901
 
         if is_mapping:
             children: list[Any] = []
-            try:
-                for key in _ERROR_KEYS:
-                    if key in item:
-                        children.append(item[key])
-            except Exception:
-                return _ErrorText(malformed="error payload mapping is unreadable")
+            for key in _ERROR_KEYS:
+                if dict.__contains__(item, key):
+                    children.append(dict.__getitem__(item, key))
             if not children:
-                try:
-                    has_items = bool(item)
-                except Exception:
-                    return _ErrorText(malformed="error payload mapping is unreadable")
-                if has_items:
+                if dict.__len__(item):
                     return _ErrorText(
                         malformed=(
                             "error payload object has no recognized message field"
@@ -201,18 +208,10 @@ def _query_error_text(value: Any) -> _ErrorText:  # noqa: C901
             continue
 
         if is_sequence:
-            children = []
-            try:
-                iterator = iter(item)
-                for _index in range(_MAX_SEQUENCE_ITEMS + 1):
-                    try:
-                        children.append(next(iterator))
-                    except StopIteration:
-                        break
-            except Exception:
-                return _ErrorText(malformed="error payload sequence is unreadable")
-            if len(children) > _MAX_SEQUENCE_ITEMS:
+            width = list.__len__(item)
+            if width > _MAX_SEQUENCE_ITEMS:
                 return _ErrorText(malformed="error payload exceeds the width limit")
+            children = [list.__getitem__(item, index) for index in range(width)]
             stack.extend((child, depth + 1) for child in reversed(children))
             continue
 
@@ -220,17 +219,19 @@ def _query_error_text(value: Any) -> _ErrorText:  # noqa: C901
         text = _safe_scalar_text(item, remaining)
         if text:
             parts.append(text)
-            used_bytes += len(text.encode("utf-8")) + (2 if len(parts) > 1 else 0)
+            used_bytes += len(text.encode("utf-8", errors="replace")) + (
+                2 if len(parts) > 1 else 0
+            )
 
     return _ErrorText(text="; ".join(parts) or None)
 
 
 def _failure_for_query_payload(  # noqa: C901
-    payload: Mapping[str, Any], label: str
+    payload: dict[str, Any], label: str
 ) -> ChartError | None:
     """Extract one failure from a top-level or per-query payload."""
     for key in ("error", "errors", "error_message"):
-        extracted = _query_error_text(payload.get(key))
+        extracted = _query_error_text(dict.get(payload, key))
         if extracted.malformed:
             return _malformed_result(extracted.malformed)
         if message := extracted.text:
@@ -238,26 +239,30 @@ def _failure_for_query_payload(  # noqa: C901
                 error=f"{label} failed: {message}", error_type="QueryError"
             )
 
-    raw_status = payload.get("status")
+    raw_status = dict.get(payload, "status")
     status = _safe_scalar_text(raw_status, 200) or ""
     normalized_status = status.strip().casefold().replace("-", "_").replace(" ", "_")
     if normalized_status in FAILED_QUERY_STATUSES:
-        extracted = _query_error_text(payload.get("message"))
+        extracted = _query_error_text(dict.get(payload, "message"))
         if extracted.malformed:
             return _malformed_result(extracted.malformed)
-        fallback = _query_error_text(payload.get("error_message"))
+        fallback = _query_error_text(dict.get(payload, "error_message"))
         if fallback.malformed:
             return _malformed_result(fallback.malformed)
         message = extracted.text or fallback.text or normalized_status
         return ChartError(error=f"{label} failed: {message}", error_type="QueryError")
-    if payload.get("success") is False:
-        extracted = _query_error_text(payload.get("message"))
+    if dict.get(payload, "success") is False:
+        extracted = _query_error_text(dict.get(payload, "message"))
         if extracted.malformed:
             return _malformed_result(extracted.malformed)
         message = extracted.text or "request failed"
         return ChartError(error=f"{label} failed: {message}", error_type="QueryError")
-    if raw_status is None and "data" not in payload and "queries" not in payload:
-        extracted = _query_error_text(payload.get("message"))
+    if (
+        raw_status is None
+        and "data" not in dict.keys(payload)
+        and "queries" not in dict.keys(payload)
+    ):
+        extracted = _query_error_text(dict.get(payload, "message"))
         if extracted.malformed:
             return _malformed_result(extracted.malformed)
         if extracted.text:
@@ -283,33 +288,88 @@ def query_result_data(  # noqa: C901
     Every query is checked before callers use the first one so malformed nested
     entries cannot be hidden behind an otherwise valid leading query.
     """
-    if not isinstance(result, Mapping):
+    if type(result) is not dict:
         return None, _malformed_result("top-level result must be an object")
 
     if failure := _failure_for_query_payload(result, "Chart query"):
         return None, failure
 
-    if "queries" not in result:
+    if not dict.__contains__(result, "queries"):
         return None, _malformed_result("missing queries array")
-    queries = result["queries"]
-    if not isinstance(queries, list):
+    queries = dict.__getitem__(result, "queries")
+    if type(queries) is not list:
         return None, _malformed_result("queries must be an array")
-    if not queries:
+    query_count = list.__len__(queries)
+    if query_count == 0:
         return None, _malformed_result("queries must contain at least one query")
+    if query_count > _MAX_QUERY_COUNT:
+        return None, _malformed_result("queries exceeds the item limit")
 
     data_arrays: list[list[Any]] = []
-    for index, query in enumerate(queries, start=1):
-        if not isinstance(query, Mapping):
+    for offset in range(query_count):
+        index = offset + 1
+        query = list.__getitem__(queries, offset)
+        if type(query) is not dict:
             return None, _malformed_result(f"query {index} must be an object")
         if failure := _failure_for_query_payload(query, f"Chart query {index}"):
             return None, failure
-        if "data" not in query:
+        if not dict.__contains__(query, "data"):
             return None, _malformed_result(f"query {index} is missing data")
-        data = query["data"]
-        if not isinstance(data, list):
+        data = dict.__getitem__(query, "data")
+        if type(data) is not list:
             return None, _malformed_result(f"query {index} data must be an array")
+        for row_offset in range(list.__len__(data)):
+            row = list.__getitem__(data, row_offset)
+            if type(row) is not dict and _mro_contains(
+                _type_mro(type(row)), (dict, Mapping)
+            ):
+                return None, _malformed_result(
+                    f"query {index} data row {row_offset + 1} uses an "
+                    "unsupported object container"
+                )
+        for metadata_key in (
+            "colnames",
+            "coltypes",
+            "rejected_filters",
+            "rejected_filter_columns",
+        ):
+            metadata = dict.get(query, metadata_key)
+            if metadata is not None and type(metadata) is not list:
+                return None, _malformed_result(
+                    f"query {index} {metadata_key} must be an array"
+                )
         data_arrays.append(data)
     return data_arrays, None
+
+
+def safe_exception_message(exception: BaseException, max_bytes: int = 2000) -> str:
+    """Describe an exception without invoking attacker-controlled conversion.
+
+    Query adapters may raise custom exception instances whose ``__str__`` or
+    argument conversions are hostile or unbounded. BaseException stores
+    ``args`` as an exact tuple; reading it through ``object`` and rendering only
+    the bounded scalar subset keeps response and log amplification controlled.
+    """
+    try:
+        args = object.__getattribute__(exception, "args")
+    except Exception:  # pragma: no cover - BaseException always exposes args
+        args = ()
+    if type(args) is tuple:
+        parts: list[str] = []
+        used_bytes = 0
+        for index in range(min(tuple.__len__(args), _MAX_ERROR_PARTS)):
+            remaining = max_bytes - used_bytes - (2 if parts else 0)
+            if remaining <= 0:
+                break
+            text = _safe_scalar_text(tuple.__getitem__(args, index), remaining)
+            if text:
+                parts.append(text)
+                used_bytes += len(text.encode("utf-8", errors="replace")) + (
+                    2 if len(parts) > 1 else 0
+                )
+        if parts:
+            return _truncate_utf8("; ".join(parts), max_bytes)
+    return _type_descriptor(exception, max_bytes) or "<exception>"
 
 
 def query_result_failure(result: Any) -> ChartError | None:

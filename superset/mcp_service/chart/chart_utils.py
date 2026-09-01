@@ -1321,6 +1321,65 @@ def _append_or_replace_filter(filters: list[Any], filter_: Any) -> None:
     filters.append(filter_)
 
 
+_NATIVE_TEMPORAL_ROLE_FIELDS: dict[str, frozenset[str]] = {
+    # Typed ``x`` is persisted as native x_axis/granularity_sqla for XY and
+    # Mixed Timeseries. Waterfall exposes the typed field as ``x_axis``.
+    "x_axis": frozenset({"x", "x_axis"}),
+    "granularity_sqla": frozenset({"x", "x_axis", "temporal_column"}),
+    # Chart plugins may designate a chart-specific query role as the implicit
+    # dashboard-time subject.
+    "start_time": frozenset({"start_time"}),
+}
+
+
+def _native_temporal_subject_changed(
+    existing_form_data: Mapping[str, Any],
+    new_form_data: Mapping[str, Any],
+    explicit_fields: set[str],
+) -> bool:
+    """Return whether an authoritative native temporal role was replaced.
+
+    Mapping a partial update can propose a dataset fallback binding even when
+    the caller only changed filters. That proposal is not authoritative. A
+    changed x/granularity/chart-specific role is authoritative only when its
+    corresponding typed field was actually supplied.
+    """
+    for native_key, typed_fields in _NATIVE_TEMPORAL_ROLE_FIELDS.items():
+        if explicit_fields.isdisjoint(typed_fields):
+            continue
+        existing_value = existing_form_data.get(native_key)
+        incoming_value = new_form_data.get(native_key)
+        if existing_value != incoming_value:
+            return True
+    return False
+
+
+def _native_temporal_binding(
+    form_data: Mapping[str, Any], filters: list[Any]
+) -> tuple[str | None, dict[str, Any] | None]:
+    """Resolve one binding for a trusted native temporal role, if present."""
+    for native_key in _NATIVE_TEMPORAL_ROLE_FIELDS:
+        subject = form_data.get(native_key)
+        if not isinstance(subject, str) or not subject:
+            continue
+        matches = [
+            filter_
+            for filter_ in filters
+            if isinstance(filter_, dict)
+            and filter_.get("subject") == subject
+            and filter_.get("operator") == FilterOperator.TEMPORAL_RANGE.value
+        ]
+        if len(matches) > 1:
+            raise ValueError(
+                "An authoritative native temporal subject must match at most one "
+                f"TEMPORAL_RANGE filter for subject {subject!r}; found "
+                f"{len(matches)}"
+            )
+        if matches:
+            return subject, matches[0]
+    return None, None
+
+
 def merge_update_form_data(  # noqa: C901
     existing_form_data: Mapping[str, Any],
     new_form_data: Dict[str, Any],
@@ -1341,14 +1400,25 @@ def merge_update_form_data(  # noqa: C901
     existing_binding = _temporal_binding_filter(existing_filters, existing_subject)
     incoming_binding = _temporal_binding_filter(incoming_filters, incoming_subject)
 
-    incoming_user_filters = [
-        filter_ for filter_ in incoming_filters if filter_ is not incoming_binding
-    ]
     explicit_fields = set(getattr(config, "model_fields_set", set()))
     filters_explicit = "filters" in explicit_fields
     range_explicit = "time_range" in explicit_fields
     subject_explicit = "temporal_column" in explicit_fields
-    temporal_explicit = range_explicit or subject_explicit
+    native_subject_changed = _native_temporal_subject_changed(
+        existing_form_data, new_form_data, explicit_fields
+    )
+    subject_authoritative = subject_explicit or native_subject_changed
+    if incoming_binding is None:
+        native_subject, native_binding = _native_temporal_binding(
+            new_form_data, incoming_filters
+        )
+        if native_binding is not None:
+            incoming_subject = native_subject
+            incoming_binding = native_binding
+    incoming_user_filters = [
+        filter_ for filter_ in incoming_filters if filter_ is not incoming_binding
+    ]
+    temporal_explicit = range_explicit or subject_authoritative
 
     chosen_binding: dict[str, Any] | None = None
     chosen_subject: Any = None
@@ -1359,7 +1429,7 @@ def merge_update_form_data(  # noqa: C901
         chosen_binding = existing_binding
         chosen_subject = existing_subject
         if temporal_explicit:
-            if subject_explicit:
+            if subject_authoritative:
                 chosen_binding = incoming_binding
                 chosen_subject = incoming_subject
             elif existing_binding is not None:
@@ -1403,16 +1473,16 @@ def merge_update_form_data(  # noqa: C901
         # generated temporal binding after the replacement filters.
         merged_filters = list(incoming_user_filters)
         if incoming_user_filters or temporal_explicit:
-            if subject_explicit:
+            if subject_authoritative:
                 chosen_binding = incoming_binding
                 chosen_subject = incoming_subject
             elif range_explicit and existing_binding is not None:
                 chosen_binding = dict(existing_binding)
                 chosen_subject = existing_subject
-            elif incoming_binding is not None:
-                chosen_binding = incoming_binding
-                chosen_subject = incoming_subject
             else:
+                # A filter-only replacement keeps the saved provenance binding.
+                # The mapper's incoming binding may merely be a dataset fallback
+                # and must not reset the saved subject or active range.
                 chosen_binding = existing_binding
                 chosen_subject = existing_subject
             if chosen_binding is not None:
@@ -1421,7 +1491,7 @@ def merge_update_form_data(  # noqa: C901
                     chosen_binding["comparator"] = (
                         getattr(config, "time_range", None) or NO_TIME_RANGE
                     )
-                elif subject_explicit and existing_binding is not None:
+                elif subject_authoritative and existing_binding is not None:
                     chosen_binding["comparator"] = existing_binding.get(
                         "comparator", NO_TIME_RANGE
                     )

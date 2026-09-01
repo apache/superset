@@ -24,12 +24,12 @@ from form data without requiring a saved chart object.
 
 import logging
 import math
-from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation
-from numbers import Real
+from enum import Enum
 from typing import Any, Dict, List
 
+from superset.mcp_service.chart.query_result import safe_exception_message
 from superset.mcp_service.chart.schemas import (
     ASCIIPreview,
     ChartError,
@@ -40,6 +40,11 @@ from superset.mcp_service.chart.schemas import (
 logger = logging.getLogger(__name__)
 
 SUPPORTED_FORM_DATA_PREVIEW_FORMATS = frozenset({"ascii", "table", "vega_lite"})
+_MAX_BULLET_FIELDS = 256
+_MAX_BULLET_FIELD_BYTES = 1000
+_MAX_BULLET_TEXT_BYTES = 2000
+_MAX_BULLET_TOKENS = 256
+_ENUM_SCALAR_TYPES = (str, int, float, bool, Decimal)
 
 
 class BulletOutputError(ValueError):
@@ -105,6 +110,7 @@ def generate_preview_from_form_data(
             )
 
         # Execute query to get data
+        from superset.charts.data.form_data import set_query_context_form_data
         from superset.commands.chart.data.get_data_command import ChartDataCommand
         from superset.connectors.sqla.models import SqlaTable
         from superset.extensions import db
@@ -126,6 +132,10 @@ def generate_preview_from_form_data(
             row_limit=form_data.get("row_limit", 100),
             force=False,
         )
+
+        # Seed the no-request-context form data used by virtual-dataset Jinja
+        # macros, matching the chart-data and dataset-query MCP paths.
+        set_query_context_form_data(query_context_obj, dataset_id, "table")
 
         # Execute query
         command = ChartDataCommand(query_context_obj)
@@ -157,11 +167,13 @@ def generate_preview_from_form_data(
             )
 
     except BulletOutputError as ex:
-        return ChartError(error=str(ex), error_type=ex.error_type)
+        return ChartError(error=safe_exception_message(ex), error_type=ex.error_type)
     except Exception as e:
-        logger.error("Preview generation from form data failed: %s", e)
+        error_text = safe_exception_message(e)
+        logger.error("Preview generation from form data failed: %s", error_text)
         return ChartError(
-            error=f"Failed to generate preview: {str(e)}", error_type="PreviewError"
+            error=f"Failed to generate preview: {error_text}",
+            error_type="PreviewError",
         )
 
 
@@ -345,28 +357,28 @@ def _generate_safe_ascii_bar_chart(data: List[Dict[str, Any]]) -> str:
 
 def _form_metric_label(metric: Any) -> str | None:
     """Return the result-column label for a native QueryFormMetric."""
-    if isinstance(metric, str):
+    if type(metric) is str:
         return metric
-    if not isinstance(metric, dict):
+    if type(metric) is not dict:
         return None
-    if label := metric.get("label"):
-        return label if isinstance(label, str) else None
-    column = metric.get("column")
-    column_name = column.get("column_name") if isinstance(column, dict) else column
-    aggregate = metric.get("aggregate")
-    if isinstance(column_name, str) and isinstance(aggregate, str):
+    if label := dict.get(metric, "label"):
+        return label if type(label) is str else None
+    column = dict.get(metric, "column")
+    column_name = dict.get(column, "column_name") if type(column) is dict else column
+    aggregate = dict.get(metric, "aggregate")
+    if type(column_name) is str and type(aggregate) is str:
         return f"{aggregate}({column_name})"
     return None
 
 
 def _form_column_label(column: Any) -> str | None:
     """Return the result-column label for a native QueryFormColumn."""
-    if isinstance(column, str):
+    if type(column) is str:
         return column
-    if not isinstance(column, dict):
+    if type(column) is not dict:
         return None
     for key in ("label", "column_name"):
-        if isinstance(value := column.get(key), str) and value:
+        if type(value := dict.get(column, key)) is str and value:
             return value
     return None
 
@@ -375,12 +387,12 @@ def _canonical_result_field(label: str | None, row: Dict[str, Any]) -> str | Non
     """Resolve an exact or one unambiguous casefold result-field match."""
     if label is None:
         return None
-    if label in row:
+    if label in dict.keys(row):
         return label
     matches = [
         field
-        for field in row
-        if isinstance(field, str) and field.casefold() == label.casefold()
+        for field in dict.keys(row)
+        if type(field) is str and field.casefold() == label.casefold()
     ]
     return matches[0] if len(matches) == 1 else None
 
@@ -389,12 +401,12 @@ def _require_result_field(label: str | None, row: dict[str, Any], role: str) -> 
     """Resolve a role without falling back to an unrelated result field."""
     if not label:
         raise BulletOutputError(f"Bullet {role} has no declared result alias")
-    if label in row:
+    if label in dict.keys(row):
         return label
     matches = sorted(
         field
-        for field in row
-        if isinstance(field, str) and field.casefold() == label.casefold()
+        for field in dict.keys(row)
+        if type(field) is str and field.casefold() == label.casefold()
     )
     if len(matches) == 1:
         return matches[0]
@@ -408,24 +420,52 @@ def _require_result_field(label: str | None, row: dict[str, Any], role: str) -> 
     )
 
 
+def _safe_enum_backing(value: Any) -> Any:
+    """Extract Enum's stored value without public descriptors/conversions."""
+    value_type = type(value)
+    try:
+        mro = type.__getattribute__(value_type, "__mro__")
+    except (AttributeError, TypeError):  # pragma: no cover - normal types have MRO
+        return value
+    if type(mro) is not tuple or not any(base is Enum for base in mro):
+        return value
+    try:
+        backing = object.__getattribute__(value, "_value_")
+    except Exception as ex:
+        raise BulletOutputError("Bullet output contains an unreadable enum") from ex
+    if not any(type(backing) is allowed for allowed in _ENUM_SCALAR_TYPES):
+        raise BulletOutputError("Bullet output contains an unsupported enum value")
+    return backing
+
+
 def _bullet_number(value: Any, row_index: int, metric_field: str) -> float:
     """Apply the frontend's useful ``Number(value ?? 0)`` numeric subset."""
+    value = _safe_enum_backing(value)
     if value is None:
         number = 0.0
-    elif isinstance(value, bool):
+    elif type(value) is bool:
         raise BulletOutputError(
             f"Bullet metric {metric_field!r} row {row_index} returned a boolean"
         )
-    elif isinstance(value, (Real, Decimal)):
+    elif type(value) is int or type(value) is float or type(value) is Decimal:
         try:
             number = float(value)
         except (TypeError, ValueError, OverflowError) as ex:
             raise BulletOutputError(
                 f"Bullet metric {metric_field!r} row {row_index} is not numeric"
             ) from ex
-    elif isinstance(value, str) and value.strip():
+    elif type(value) is str:
+        if len(value) > _MAX_BULLET_TEXT_BYTES:
+            raise BulletOutputError(
+                f"Bullet metric {metric_field!r} row {row_index} is not numeric"
+            )
+        stripped = value.strip()
+        if not stripped:
+            raise BulletOutputError(
+                f"Bullet metric {metric_field!r} row {row_index} is not numeric"
+            )
         try:
-            number = float(Decimal(value.strip()))
+            number = float(Decimal(stripped))
         except (InvalidOperation, ValueError, OverflowError) as ex:
             raise BulletOutputError(
                 f"Bullet metric {metric_field!r} row {row_index} returned "
@@ -444,14 +484,24 @@ def _bullet_number(value: Any, row_index: int, metric_field: str) -> float:
 
 def _bullet_string_tokens(value: Any) -> list[str]:
     """Parse labels exactly like the frontend's comma tokenizer."""
-    if not isinstance(value, str) or not value.strip():
+    from superset.mcp_service.chart.query_result import _truncate_utf8
+
+    value = _safe_enum_backing(value)
+    if value is None:
         return []
-    return [token.strip() for token in value.split(",")]
+    if type(value) is not str or len(value) > _MAX_BULLET_TEXT_BYTES:
+        raise BulletOutputError("Bullet labels must be a bounded comma-separated list")
+    if not value.strip():
+        return []
+    tokens = value.split(",")
+    if len(tokens) > _MAX_BULLET_TOKENS:
+        raise BulletOutputError("Bullet labels exceed the item limit")
+    return [_truncate_utf8(token.strip(), _MAX_BULLET_TEXT_BYTES) for token in tokens]
 
 
-def _unique_bullet_category_field(rows: Sequence[Mapping[Any, Any]]) -> str:
+def _unique_bullet_category_field(rows: list[dict[str, Any]]) -> str:
     """Return an internal category key absent from every query-result row."""
-    occupied = {key for row in rows for key in row if isinstance(key, str)}
+    occupied = {key for row in rows for key in dict.keys(row)}
     base = "__mcp_bullet_category"
     candidate = base
     suffix = 0
@@ -463,8 +513,14 @@ def _unique_bullet_category_field(rows: Sequence[Mapping[Any, Any]]) -> str:
 
 def _validate_bullet_format(format_: Any, values: list[float]) -> str:
     """Reject a presentation format the backend cannot reproduce."""
-    if not isinstance(format_, str) or not format_:
+    format_ = _safe_enum_backing(format_)
+    if format_ is None or format_ == "":
         format_ = "SMART_NUMBER"
+    if type(format_) is not str or len(format_) > 50:
+        raise BulletOutputError(
+            "Bullet number format is unsupported by previews",
+            error_type="UnsupportedFormat",
+        )
     try:
         for value in values:
             _format_bullet_number(format_, value)
@@ -495,16 +551,38 @@ def resolve_bullet_render_model(  # noqa: C901
     data: List[Dict[str, Any]], form_data: Dict[str, Any]
 ) -> BulletRenderModel:
     """Resolve and validate every Bullet row and presentation control."""
-    if not data:
-        raise BulletOutputError("Bullet query returned no rows")
-    if not all(isinstance(row, dict) for row in data):
-        raise BulletOutputError("Bullet query output must be an array of objects")
+    from superset.mcp_service.chart.query_result import _truncate_utf8
 
-    first_row = data[0]
-    metric_label = _form_metric_label(form_data.get("metric"))
+    if type(data) is not list:
+        raise BulletOutputError("Bullet query output must be an array of objects")
+    if list.__len__(data) == 0:
+        raise BulletOutputError("Bullet query returned no rows")
+    for row_index in range(list.__len__(data)):
+        row = list.__getitem__(data, row_index)
+        if type(row) is not dict:
+            raise BulletOutputError("Bullet query output must be an array of objects")
+        if dict.__len__(row) > _MAX_BULLET_FIELDS:
+            raise BulletOutputError("Bullet query row exceeds the field limit")
+        for key in dict.keys(row):
+            if type(key) is not str:
+                raise BulletOutputError("Bullet query row keys must be strings")
+            if len(key) > _MAX_BULLET_FIELD_BYTES:
+                raise BulletOutputError("Bullet query row key exceeds the size limit")
+
+    if type(form_data) is not dict:
+        raise BulletOutputError("Bullet form data must be an object")
+
+    first_row = list.__getitem__(data, 0)
+    metric_label = _form_metric_label(dict.get(form_data, "metric"))
     metric_field = _require_result_field(metric_label, first_row, "metric")
+    raw_groupby = dict.get(form_data, "groupby")
+    if raw_groupby is None:
+        raw_groupby = []
+    if type(raw_groupby) is not list:
+        raise BulletOutputError("Bullet dimensions must be an array")
     dimension_labels = [
-        _form_column_label(column) for column in form_data.get("groupby") or []
+        _form_column_label(list.__getitem__(raw_groupby, index))
+        for index in range(list.__len__(raw_groupby))
     ]
     dimensions = [
         _require_result_field(label, first_row, "dimension")
@@ -513,16 +591,59 @@ def resolve_bullet_render_model(  # noqa: C901
 
     measures: list[float] = []
     copied_rows: list[dict[str, Any]] = []
-    for index, row in enumerate(data):
+    for index in range(list.__len__(data)):
+        row = list.__getitem__(data, index)
         row_metric_field = _require_result_field(
             metric_label, row, f"metric row {index}"
         )
-        measure = _bullet_number(row[row_metric_field], index, metric_field)
-        copied = dict(row)
+        measure = _bullet_number(
+            dict.__getitem__(row, row_metric_field), index, metric_field
+        )
+        # Reserve every exact output key so the internal Vega category alias
+        # cannot collide with an unselected result field. Unselected values are
+        # deliberately replaced with None rather than converted or serialized.
+        copied: dict[str, Any] = dict.fromkeys(dict.keys(row))
         copied[metric_field] = measure
         for label, dimension in zip(dimension_labels, dimensions, strict=True):
             row_dimension = _require_result_field(label, row, f"dimension row {index}")
-            copied[dimension] = row[row_dimension]
+            dimension_value = _safe_enum_backing(dict.__getitem__(row, row_dimension))
+            value_type = type(dimension_value)
+            if dimension_value is None:
+                dimension_text = ""
+            elif value_type is str:
+                dimension_text = _truncate_utf8(dimension_value, _MAX_BULLET_TEXT_BYTES)
+            elif value_type is bool:
+                dimension_text = "True" if dimension_value else "False"
+            elif value_type is int:
+                if dimension_value.bit_length() > 4096:
+                    raise BulletOutputError(
+                        f"Bullet dimension {dimension!r} row {index} is too large"
+                    )
+                dimension_text = str(dimension_value)
+            elif value_type is float:
+                if not math.isfinite(dimension_value):
+                    raise BulletOutputError(
+                        f"Bullet dimension {dimension!r} row {index} is not finite"
+                    )
+                dimension_text = str(dimension_value)
+            elif value_type is Decimal:
+                try:
+                    dimension_number = float(dimension_value)
+                except (ValueError, OverflowError) as ex:
+                    raise BulletOutputError(
+                        f"Bullet dimension {dimension!r} row {index} is unsupported"
+                    ) from ex
+                if not math.isfinite(dimension_number):
+                    raise BulletOutputError(
+                        f"Bullet dimension {dimension!r} row {index} is not finite"
+                    )
+                dimension_text = str(dimension_number)
+            else:
+                raise BulletOutputError(
+                    f"Bullet dimension {dimension!r} row {index} has an "
+                    "unsupported value type"
+                )
+            copied[dimension] = dimension_text
         copied_rows.append(copied)
         measures.append(measure)
 
@@ -532,27 +653,29 @@ def resolve_bullet_render_model(  # noqa: C901
         copied_rows = copied_rows[:1]
         measures = measures[:1]
 
-    ranges = _strict_bullet_numeric_tokens(form_data.get("ranges"), "ranges")
+    ranges = _strict_bullet_numeric_tokens(dict.get(form_data, "ranges"), "ranges")
     if not ranges:
         # Match Bullet/transformProps.ts: the largest measure drives one
         # qualitative band whose upper threshold is 110% of that measure.
         ranges = [0.0, max(measures) * 1.1]
-    markers = _strict_bullet_numeric_tokens(form_data.get("markers"), "markers")
+    markers = _strict_bullet_numeric_tokens(dict.get(form_data, "markers"), "markers")
     marker_lines = _strict_bullet_numeric_tokens(
-        form_data.get("marker_lines"), "marker lines"
+        dict.get(form_data, "marker_lines"), "marker lines"
     )
     all_numbers = [*measures, *ranges, *markers, *marker_lines]
     if any(not math.isfinite(value) for value in all_numbers):
         raise BulletOutputError("Bullet presentation values must be finite")
 
-    show_labels = form_data.get("show_labels", False)
-    show_legend = form_data.get("show_legend", False)
-    if not isinstance(show_labels, bool) or not isinstance(show_legend, bool):
+    show_labels = dict.get(form_data, "show_labels", False)
+    show_legend = dict.get(form_data, "show_legend", False)
+    if type(show_labels) is not bool or type(show_legend) is not bool:
         raise BulletOutputError("Bullet label and legend controls must be booleans")
 
-    range_labels = _bullet_string_tokens(form_data.get("range_labels"))
-    marker_labels = _bullet_string_tokens(form_data.get("marker_labels"))
-    marker_line_labels = _bullet_string_tokens(form_data.get("marker_line_labels"))
+    range_labels = _bullet_string_tokens(dict.get(form_data, "range_labels"))
+    marker_labels = _bullet_string_tokens(dict.get(form_data, "marker_labels"))
+    marker_line_labels = _bullet_string_tokens(
+        dict.get(form_data, "marker_line_labels")
+    )
     for role, labels, values in (
         ("range", range_labels, ranges),
         ("marker", marker_labels, markers),
@@ -575,7 +698,7 @@ def resolve_bullet_render_model(  # noqa: C901
         marker_lines=marker_lines,
         marker_line_labels=marker_line_labels,
         y_axis_format=_validate_bullet_format(
-            form_data.get("y_axis_format", "SMART_NUMBER"), all_numbers
+            dict.get(form_data, "y_axis_format", "SMART_NUMBER"), all_numbers
         ),
         show_labels=show_labels,
         show_legend=show_legend,
@@ -596,7 +719,7 @@ def _generate_ascii_bullet_chart(
     )
     lines = [f"ASCII Bullet Chart — {model.metric_field}", "=" * 60]
     for row, value in zip(model.rows[:10], model.measures[:10], strict=True):
-        category = ", ".join(str(row.get(field, "")) for field in model.dimensions)
+        category = ", ".join(dict.get(row, field, "") for field in model.dimensions)
         category = category or "Measure"
         width = round(abs(value) / extent * 32)
         bar = "█" * width
@@ -796,22 +919,37 @@ def _bullet_numeric_tokens(value: Any) -> list[float]:
     return result
 
 
-def _strict_bullet_numeric_tokens(value: Any, role: str) -> list[float]:
+def _strict_bullet_numeric_tokens(value: Any, role: str) -> list[float]:  # noqa: C901
     """Parse all native presentation values or reject the malformed control."""
-    if value is None or value == "":
+    value = _safe_enum_backing(value)
+    if value is None or (type(value) is str and value == ""):
         return []
-    if isinstance(value, str):
+    if type(value) is str:
+        if len(value) > _MAX_BULLET_TEXT_BYTES:
+            raise BulletOutputError(f"Bullet {role} exceeds the size limit")
         tokens: list[Any] = [token.strip() for token in value.split(",")]
-    elif isinstance(value, list):
-        tokens = value
+    elif type(value) is list:
+        tokens = [
+            list.__getitem__(value, index) for index in range(list.__len__(value))
+        ]
     else:
         raise BulletOutputError(f"Bullet {role} must be a comma-separated list")
+    if len(tokens) > _MAX_BULLET_TOKENS:
+        raise BulletOutputError(f"Bullet {role} exceeds the item limit")
 
     numbers: list[float] = []
     for index, token in enumerate(tokens):
-        if token == "":
+        token = _safe_enum_backing(token)
+        if type(token) is str and token == "":
             continue
-        if isinstance(token, bool):
+        if type(token) is bool or not (
+            type(token) is str
+            or type(token) is int
+            or type(token) is float
+            or type(token) is Decimal
+        ):
+            raise BulletOutputError(f"Bullet {role}[{index}] is not numeric")
+        if type(token) is str and len(token) > _MAX_BULLET_TEXT_BYTES:
             raise BulletOutputError(f"Bullet {role}[{index}] is not numeric")
         try:
             number = float(token)
@@ -834,9 +972,9 @@ def _generate_bullet_vega_lite_preview(  # noqa: C901
     category_field = _unique_bullet_category_field(model.rows)
     values = []
     for row in model.rows:
-        copied = dict(row)
+        copied = dict.copy(row)
         copied[category_field] = (
-            ", ".join(str(row.get(field, "")) for field in model.dimensions)
+            ", ".join(dict.get(row, field, "") for field in model.dimensions)
             if model.dimensions
             else ""
         )

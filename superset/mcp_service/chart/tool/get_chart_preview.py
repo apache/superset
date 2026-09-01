@@ -39,6 +39,7 @@ from superset.mcp_service.chart.chart_helpers import (
     find_chart_by_identifier,
 )
 from superset.mcp_service.chart.chart_utils import validate_chart_dataset
+from superset.mcp_service.chart.query_result import safe_exception_message
 from superset.mcp_service.chart.schemas import (
     AccessibilityMetadata,
     ASCIIPreview,
@@ -289,7 +290,9 @@ class ASCIIPreviewStrategy(PreviewFormatStrategy):
             )
 
         except BulletOutputError as ex:
-            return ChartError(error=str(ex), error_type=ex.error_type)
+            return ChartError(
+                error=safe_exception_message(ex), error_type=ex.error_type
+            )
         except (
             CommandException,
             SupersetException,
@@ -297,10 +300,12 @@ class ASCIIPreviewStrategy(PreviewFormatStrategy):
             KeyError,
             AttributeError,
             TypeError,
+            AssertionError,
         ) as e:
-            logger.error("ASCII preview generation failed: %s", e)
+            error_text = safe_exception_message(e)
+            logger.error("ASCII preview generation failed: %s", error_text)
             return ChartError(
-                error=f"Failed to generate ASCII preview: {str(e)}",
+                error=f"Failed to generate ASCII preview: {error_text}",
                 error_type="ASCIIError",
             )
 
@@ -369,10 +374,12 @@ class TablePreviewStrategy(PreviewFormatStrategy):
             KeyError,
             AttributeError,
             TypeError,
+            AssertionError,
         ) as e:
-            logger.error("Table preview generation failed: %s", e)
+            error_text = safe_exception_message(e)
+            logger.error("Table preview generation failed: %s", error_text)
             return ChartError(
-                error=f"Failed to generate table preview: {str(e)}",
+                error=f"Failed to generate table preview: {error_text}",
                 error_type="TableError",
             )
 
@@ -474,7 +481,9 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
             )
 
         except BulletOutputError as ex:
-            return ChartError(error=str(ex), error_type=ex.error_type)
+            return ChartError(
+                error=safe_exception_message(ex), error_type=ex.error_type
+            )
         except (
             CommandException,
             SupersetException,
@@ -482,12 +491,16 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
             KeyError,
             AttributeError,
             TypeError,
+            AssertionError,
         ) as e:
-            logger.exception(
-                "Error generating Vega-Lite preview for chart %s", self.chart.id
+            error_text = safe_exception_message(e)
+            logger.error(
+                "Error generating Vega-Lite preview for chart %s: %s",
+                self.chart.id,
+                error_text,
             )
             return ChartError(
-                error=f"Failed to generate Vega-Lite preview: {str(e)}",
+                error=f"Failed to generate Vega-Lite preview: {error_text}",
                 error_type="VegaLiteGenerationError",
             )
 
@@ -1434,10 +1447,11 @@ async def _get_chart_preview_internal(  # noqa: C901
                             "The cache may have expired. Using saved chart "
                             "configuration."
                         )
-                except (CommandException, ValueError, KeyError) as e:
+                except (CommandException, ValueError, KeyError, AssertionError) as e:
+                    error_text = safe_exception_message(e)
                     await ctx.warning(
                         "Failed to retrieve cached form_data: %s. "
-                        "Using saved chart configuration." % (str(e),)
+                        "Using saved chart configuration." % error_text
                     )
 
         import time
@@ -1519,12 +1533,12 @@ async def _get_chart_preview_internal(  # noqa: C901
     except SQLAlchemyError as e:
         # Catch DetachedInstanceError and other SQLAlchemy errors that can
         # surface when the ORM session expires or commits mid-request.
+        error_text = safe_exception_message(e)
         await ctx.error(
             "Chart preview failed due to database session error: "
-            "identifier=%s, error_type=%s, error=%s"
-            % (request.identifier, type(e).__name__, str(e))
+            "identifier=%s, error=%s" % (request.identifier, error_text)
         )
-        logger.exception("SQLAlchemy error in get_chart_preview: %s", e)
+        logger.error("SQLAlchemy error in get_chart_preview: %s", error_text)
         return ChartError(
             error="Database session error while generating chart preview. "
             "Please retry the request.",
@@ -1537,20 +1551,21 @@ async def _get_chart_preview_internal(  # noqa: C901
         KeyError,
         AttributeError,
         TypeError,
+        AssertionError,
     ) as e:
+        error_text = safe_exception_message(e)
         await ctx.error(
-            "Chart preview generation failed: identifier=%s, format=%s, error=%s, "
-            "error_type=%s"
+            "Chart preview generation failed: identifier=%s, format=%s, error=%s"
             % (
                 request.identifier,
                 request.format,
-                str(e),
-                type(e).__name__,
+                error_text,
             )
         )
-        logger.error("Error in get_chart_preview: %s", e)
+        logger.error("Error in get_chart_preview: %s", error_text)
         return ChartError(
-            error=f"Failed to get chart preview: {str(e)}", error_type="InternalError"
+            error=f"Failed to get chart preview: {error_text}",
+            error_type="InternalError",
         )
 
 
@@ -1639,16 +1654,14 @@ async def get_chart_preview(
         ValueError,
         TypeError,
         AttributeError,
+        AssertionError,
     ) as e:
+        error_text = safe_exception_message(e)
         await ctx.error(
-            "Chart preview generation failed: identifier=%s, error=%s, error_type=%s"
-            % (
-                request.identifier,
-                str(e),
-                type(e).__name__,
-            )
+            "Chart preview generation failed: identifier=%s, error=%s"
+            % (request.identifier, error_text)
         )
         return ChartError(
-            error=f"Failed to generate chart preview: {str(e)}",
+            error=f"Failed to generate chart preview: {error_text}",
             error_type="InternalError",
         )

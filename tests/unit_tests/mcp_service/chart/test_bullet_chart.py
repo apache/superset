@@ -18,7 +18,8 @@
 """Product-path coverage for typed ECharts Bullet MCP support."""
 
 import math
-from enum import Enum
+from decimal import Decimal
+from enum import Enum, IntEnum, StrEnum
 from types import SimpleNamespace
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -54,6 +55,7 @@ from superset.mcp_service.chart.schemas import (
     GetChartPreviewRequest,
     UpdateChartPreviewRequest,
     UpdateChartRequest,
+    XYChartConfig,
 )
 from superset.mcp_service.chart.tool.generate_chart import generate_chart
 from superset.mcp_service.chart.tool.get_chart_data import (
@@ -98,6 +100,40 @@ class _PathHostileEnum(str, Enum):
 
     __getitem__ = _reject_scalar_conversion
     __str__ = _reject_scalar_conversion
+
+
+class _OutputHostileInt(int):
+    __float__ = _reject_scalar_conversion
+    __str__ = _reject_scalar_conversion
+
+
+class _OutputHostileFloat(float):
+    __float__ = _reject_scalar_conversion
+    __str__ = _reject_scalar_conversion
+
+
+class _OutputHostileStr(str):
+    __str__ = _reject_scalar_conversion
+    strip = _reject_scalar_conversion
+
+
+class _OutputHostileDecimal(Decimal):
+    __float__ = _reject_scalar_conversion
+    __str__ = _reject_scalar_conversion
+
+
+class _OutputSafeIntEnum(IntEnum):
+    VALUE = 12
+
+
+class _OutputSafeStrEnum(StrEnum):
+    VALUE = "12.5"
+
+
+_OutputSafeIntEnum.__float__ = _reject_scalar_conversion  # type: ignore[method-assign]
+_OutputSafeIntEnum.__str__ = _reject_scalar_conversion  # type: ignore[method-assign]
+_OutputSafeStrEnum.__float__ = _reject_scalar_conversion  # type: ignore[attr-defined]
+_OutputSafeStrEnum.__str__ = _reject_scalar_conversion  # type: ignore[method-assign]
 
 
 def _simple_metric(name: str = "revenue") -> dict[str, str]:
@@ -1376,6 +1412,23 @@ def test_bullet_compile_and_preview_paths_safely_render_hostile_scalars(
     assert len(saved.error.encode("utf-8")) <= 2100
 
 
+@pytest.mark.parametrize("message", ["short\ud800error", "é\ud800中" * 2000])
+def test_bullet_query_paths_replacement_sanitize_surrogate_errors(
+    message: str,
+) -> None:
+    envelope = {"error": message}
+    compiled = _compile_bullet_with_result(envelope)
+    unsaved = _unsaved_bullet_preview_with_result(envelope)
+    saved = _saved_bullet_preview_with_result(envelope, "ascii")
+
+    assert "\ud800" not in (compiled.error or "")
+    assert "\ud800" not in unsaved.error
+    assert "\ud800" not in saved.error
+    assert len((compiled.error or "").encode("utf-8")) <= 2100
+    assert len(unsaved.error.encode("utf-8")) <= 2100
+    assert len(saved.error.encode("utf-8")) <= 2100
+
+
 @pytest.mark.parametrize("format_", ["ascii", "vega_lite"])
 @pytest.mark.parametrize("envelope", _MALFORMED_QUERY_ENVELOPES)
 def test_bullet_saved_preview_structures_malformed_envelopes(
@@ -1391,6 +1444,68 @@ def test_bullet_saved_preview_structures_oversized_numeric_output(format_: str) 
         {"queries": [{"data": [{"Revenue": 10**10000}]}]}, format_
     )
     assert preview.error_type == "MalformedBulletOutput"
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        _OutputHostileInt(12),
+        _OutputHostileFloat(12.5),
+        _OutputHostileStr("12.5"),
+        _OutputHostileDecimal("12.5"),
+    ],
+    ids=["int-subclass", "float-subclass", "str-subclass", "decimal-subclass"],
+)
+def test_bullet_output_rejects_scalar_subclasses_on_every_query_path(
+    value: object,
+) -> None:
+    envelope = {"queries": [{"data": [{"Revenue": value}]}]}
+    compiled = _compile_bullet_with_result(envelope)
+    unsaved = _unsaved_bullet_preview_with_result(envelope)
+    saved = _saved_bullet_preview_with_result(envelope, "vega_lite")
+
+    assert compiled.success is False
+    assert compiled.error_code == "MALFORMED_BULLET_OUTPUT"
+    assert unsaved.error_type == saved.error_type == "MalformedBulletOutput"
+    assert len((compiled.error or "").encode("utf-8")) <= 2000
+    assert len(unsaved.error.encode("utf-8")) <= 2000
+    assert len(saved.error.encode("utf-8")) <= 2000
+
+
+@pytest.mark.parametrize(
+    "value",
+    [_OutputSafeIntEnum.VALUE, _OutputSafeStrEnum.VALUE],
+    ids=["int-enum", "str-enum"],
+)
+def test_bullet_output_uses_enum_backing_without_conversion(value: object) -> None:
+    model = resolve_bullet_render_model([{"Revenue": value}], {"metric": "Revenue"})
+    assert model.measures == [12.0 if isinstance(value, IntEnum) else 12.5]
+
+
+def test_bullet_dimension_rejects_custom_values_without_string_conversion() -> None:
+    class HostileDimension:
+        __repr__ = _reject_scalar_conversion
+        __str__ = _reject_scalar_conversion
+
+    with pytest.raises(BulletOutputError, match="unsupported value type"):
+        resolve_bullet_render_model(
+            [{"Region": HostileDimension(), "Revenue": 12}],
+            {"metric": "Revenue", "groupby": ["Region"]},
+        )
+
+
+def test_bullet_rejects_dict_subclass_rows_without_invoking_overrides() -> None:
+    class HostileRow(dict[str, object]):
+        __contains__ = _reject_scalar_conversion
+        __getitem__ = _reject_scalar_conversion
+        __iter__ = _reject_scalar_conversion
+        __len__ = _reject_scalar_conversion
+
+    envelope = {"queries": [{"data": [HostileRow(Revenue=12)]}]}
+    assert _compile_bullet_with_result(envelope).error_code == "CHART_COMPILE_FAILED"
+    assert _unsaved_bullet_preview_with_result(envelope).error_type == (
+        "MalformedQueryResult"
+    )
 
 
 def test_bullet_saved_table_preview_is_explicitly_unsupported() -> None:
@@ -1918,6 +2033,88 @@ def test_bullet_temporal_override_replaces_only_provenanced_binding() -> None:
     ]
     assert mapped["adhoc_filters"][1]["comparator"] == "Last 30 days"
     assert mapped[MCP_DASHBOARD_TIME_FILTER_SUBJECT] == "EventDate"
+
+
+@pytest.mark.parametrize("path", ["immediate", "preview_first", "cached"])
+def test_bullet_filter_only_update_ignores_mapper_temporal_fallback(path: str) -> None:
+    existing = _saved_bullet_with_filters()
+    config = BulletChartConfig(
+        metric=_simple_metric(),
+        filters=[{"column": "Status", "op": "=", "value": "Inactive"}],
+    )
+    chart = SimpleNamespace(
+        id=9,
+        datasource_id=7,
+        slice_name="Saved Bullet",
+        params=__import__("json").dumps(existing),
+    )
+    request = UpdateChartRequest(identifier=9, config=config)
+    dataset = _orm_dataset()
+    dataset.main_dttm_col = "EventDate"
+    with (
+        patch(
+            "superset.mcp_service.chart.chart_utils._find_dataset_by_id_or_uuid",
+            return_value=dataset,
+        ),
+        patch(
+            "superset.mcp_service.chart.chart_utils._is_temporal_for_dashboard_binding",
+            return_value=True,
+        ),
+    ):
+        if path == "immediate":
+            payload = _build_update_payload(request, chart, config)
+            assert isinstance(payload, dict)
+            merged = __import__("json").loads(payload["params"])
+        elif path == "preview_first":
+            result = _build_preview_form_data(request, chart, config)
+            assert isinstance(result, dict)
+            merged = result
+        else:
+            merged = map_config_to_form_data(config, dataset_id=7)
+            merge_update_form_data(existing, merged, config)
+
+    assert merged[MCP_DASHBOARD_TIME_FILTER_SUBJECT] == "OrderDate"
+    assert [filter_["subject"] for filter_ in merged["adhoc_filters"]] == [
+        "Status",
+        "OrderDate",
+    ]
+    assert merged["adhoc_filters"][1]["comparator"] == "Last year"
+
+
+def test_xy_native_axis_change_replaces_obsolete_provenanced_binding() -> None:
+    existing = {
+        "viz_type": "echarts_timeseries_line",
+        "x_axis": "OrderDate",
+        "granularity_sqla": "OrderDate",
+        MCP_DASHBOARD_TIME_FILTER_SUBJECT: "OrderDate",
+        "adhoc_filters": [
+            {
+                "clause": "WHERE",
+                "expressionType": "SIMPLE",
+                "subject": "OrderDate",
+                "operator": "TEMPORAL_RANGE",
+                "comparator": "Last year",
+            }
+        ],
+    }
+    config = XYChartConfig(
+        x={"name": "EventDate"},
+        y=[_simple_metric()],
+        filters=[{"column": "Status", "op": "=", "value": "Active"}],
+    )
+    with patch(
+        "superset.mcp_service.chart.chart_utils.is_column_truly_temporal",
+        return_value=True,
+    ):
+        mapped = map_config_to_form_data(config, dataset_id=7)
+    merge_update_form_data(existing, mapped, config)
+
+    assert mapped[MCP_DASHBOARD_TIME_FILTER_SUBJECT] == "EventDate"
+    assert [filter_["subject"] for filter_ in mapped["adhoc_filters"]] == [
+        "Status",
+        "EventDate",
+    ]
+    assert mapped["adhoc_filters"][1]["comparator"] == "Last year"
 
 
 def test_bullet_presentation_updates_are_atomic_and_comma_safe() -> None:
