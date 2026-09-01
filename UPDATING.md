@@ -67,7 +67,9 @@ unknown impact as zero. Chart and dashboard purge endpoints are unchanged.
   `deletion_retention.prune_purge_audit` Celery beat task (daily, 03:30, in the
   default `CeleryConfig.beat_schedule`) removes duplicate `blocked` records
   within an entity's current blockage streak (the earliest — "blocked since" —
-  record always survives) and ages out operational records (`blocked` from
+  record and the first record after each change of block `reason` always
+  survive, mirroring the audit writer's own suppression rule) and ages out
+  operational records (`blocked` from
   resolved streaks, `failed`) older than
   `PURGE_AUDIT_OPERATIONAL_RETENTION_DAYS` (default 90). A streak is ended
   only by proof the object is gone (`confirmed`/`target_absent`); a `failed`

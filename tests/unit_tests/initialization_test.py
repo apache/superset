@@ -19,6 +19,7 @@ import os
 from typing import Any
 from unittest.mock import MagicMock, patch, PropertyMock
 
+import pytest
 from sqlalchemy.exc import OperationalError
 from werkzeug.test import Client
 from werkzeug.wrappers import Response
@@ -842,6 +843,44 @@ class TestRetentionBeatWarning:
             "Expected a WARNING naming the missing audit-prune entry; "
             f"got {mock_logger.warning.call_args_list}"
         )
+
+    @pytest.mark.parametrize("value", ["true", 1, "False", 0])
+    @patch("superset.initialization.logger")
+    def test_non_boolean_audit_pruning_switch_warns_and_stays_disabled(
+        self, mock_logger: MagicMock, value: Any
+    ) -> None:
+        """Name a non-boolean master switch at startup instead of hiding it.
+
+        The prune task fails closed on anything but the literal ``True``,
+        so a typo would otherwise disable pruning silently. The switch is
+        not treated as enabled either: no schedule diagnostic fires for it.
+        """
+
+        class _NoAuditPruningCeleryConfig:
+            imports: tuple[str, ...] = ("superset.tasks.version_history_retention",)
+            beat_schedule: dict[str, dict[str, str]] = {
+                "version_history.prune_old_versions": {
+                    "task": "version_history.prune_old_versions",
+                },
+            }
+
+        initializer: SupersetAppInitializer = self._initializer(
+            {
+                "CELERY_CONFIG": _NoAuditPruningCeleryConfig,
+                "FEATURE_FLAGS": {"SOFT_DELETE": False},
+                "PURGE_AUDIT_PRUNING_ENABLED": value,
+            }
+        )
+        initializer._warn_if_retention_beat_missing()
+
+        warnings: list[str] = [str(call) for call in mock_logger.warning.call_args_list]
+        assert any(
+            "PURGE_AUDIT_PRUNING_ENABLED" in text and repr(value) in text
+            for text in warnings
+        ), f"Expected a WARNING naming the non-boolean switch; got {warnings}"
+        assert not any(
+            "deletion_retention.prune_purge_audit" in text for text in warnings
+        ), "A non-boolean switch must not be diagnosed as enabled-but-unscheduled"
 
     @patch("superset.initialization.logger")
     def test_warn_for_enabled_audit_pruning_when_soft_delete_is_off(

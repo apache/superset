@@ -22,9 +22,14 @@ per-run batch budget:
 
 1. **Blocked duplicates** — within an entity's *current* blockage streak
    (its ``blocked`` rows newer than the entity's newest streak-breaking
-   row), only the streak's earliest row survives: later duplicates are
-   removed regardless of age. The survivor carries the "blocked since"
-   fact and is never deleted while the streak is current.
+   row), only the first row of each run of consecutive same-reason rows
+   survives: the streak's earliest row and the first row after every
+   change of block reason. Later same-reason repeats are removed
+   regardless of age. The survivors carry the "blocked since" fact and
+   the reason history — for coded reasons, the same rows the audit writer's
+   own suppression rule retains (reason-less legacy runs are additionally
+   collapsed to their earliest here) — and are never deleted while the
+   streak is current.
 2. **Operational expiry** — ``blocked`` rows of *resolved* streaks and
    ``failed`` rows older than ``PURGE_AUDIT_OPERATIONAL_RETENTION_DAYS``
    age out.
@@ -65,6 +70,14 @@ Boundaries moving forward past *all* of an entity's blocked rows leave no
 survivor to promote, so a selected duplicate may be removed slightly ahead
 of its retention window in that case. It was redundant either way and the
 streak's earliest row is untouched.
+
+Timestamps order rows. Ties are possible — legacy second-precision rows,
+two writers within one clock tick — and are resolved on the preserving
+side: a ``pending`` row tied with a blocked row counts as preceding it (the
+block is deferred until the attempt resolves); a blocked row tied with a
+boundary sits on the boundary's *resolved* side (it ages out instead of
+seeding a new current streak, and the boundary is not removed before it);
+and tied same-reason blocked rows are all retained.
 
 Candidate selection is embedded in each ``DELETE`` statement. The derived-table
 wrapper keeps that shape legal on MySQL while ensuring that a pending or
@@ -247,43 +260,90 @@ def _streak_boundary_subquery(now: datetime) -> sa.Subquery:
     )
 
 
-def _survivor_subquery(now: datetime) -> sa.Subquery:
-    """Per entity, the ``created_on`` of its current streak's earliest row.
+def _with_boundary(table: sa.Table, boundary: sa.Subquery) -> sa.Join:
+    """Outer-join each row to its entity's streak boundary (NULL if none)."""
+    return table.outerjoin(
+        boundary,
+        sa.and_(
+            table.c.entity_type == boundary.c.entity_type,
+            table.c.entity_uuid == boundary.c.entity_uuid,
+        ),
+    )
 
-    The survivor is the earliest ``blocked`` row strictly newer than the
-    entity's boundary (or its earliest blocked row outright when no boundary
-    exists). Rows sharing that exact timestamp are all treated as survivors —
-    with microsecond precision ties are pathological, and keeping an extra
-    row errs on the preserving side.
+
+def _in_current_streak(
+    row: sa.FromClause, boundary: sa.Subquery
+) -> sa.ColumnElement[bool]:
+    """Whether ``row`` is newer than its entity's boundary (or there is none).
+
+    Strictly newer: a row tied with the boundary sits on its resolved side.
+    A boundary proves the object was gone at that instant, and a block that
+    cannot be ordered after the destruction must not seed a new "current"
+    streak — that would mint a survivor exempt from age-out forever for an
+    object that no longer exists.
     """
-    table: sa.Table = PurgeAuditLog.__table__
-    boundary: sa.Subquery = _streak_boundary_subquery(now)
-    return (
-        sa.select(
-            table.c.entity_type.label("entity_type"),
-            table.c.entity_uuid.label("entity_uuid"),
-            sa.func.min(table.c.created_on).label("survivor_created_on"),
-        )
-        .select_from(
-            table.outerjoin(
-                boundary,
-                sa.and_(
-                    table.c.entity_type == boundary.c.entity_type,
-                    table.c.entity_uuid == boundary.c.entity_uuid,
-                ),
-            )
-        )
-        .where(table.c.status == STATUS_BLOCKED)
-        .where(table.c.entity_uuid.is_not(None))
-        .where(table.c.created_on <= now)
+    return sa.or_(boundary.c.boundary.is_(None), row.c.created_on > boundary.c.boundary)
+
+
+def _repeats_an_earlier_block(
+    table: sa.Table, boundary: sa.Subquery
+) -> sa.ColumnElement[bool]:
+    """Whether a same-reason current-streak block precedes this row with no
+    change of reason in between.
+
+    This is the audit writer's suppression rule
+    (:func:`audit.finalize_retention_blocked`) applied retroactively: a
+    block repeating the reason of the block just before it adds nothing,
+    while the first block after a reason change is the only durable record
+    of the new cause and is retained. The comparison is NULL-safe, so
+    consecutive reason-less (pre-feature) rows count as one run, deduped to
+    the run's earliest, and the first coded block ends that run. Note this
+    is *stricter* than the writer for reason-less rows: the writer never
+    suppresses a reason-less block (``_suppress_redundant_block`` bails on a
+    missing code), so here the pruner additionally collapses legacy
+    pre-feature duplicates — the streak's earliest "blocked since" row is
+    still always kept. Tied same-reason rows are not "earlier" than each
+    other, so all of them are kept.
+    """
+    earlier: sa.FromClause = table.alias("earlier_block")
+    between: sa.FromClause = table.alias("reason_change")
+    reason_changed_between: sa.ColumnElement[bool] = sa.exists(
+        sa.select(sa.literal(1))
+        .select_from(between)
         .where(
-            sa.or_(
-                boundary.c.boundary.is_(None),
-                table.c.created_on > boundary.c.boundary,
+            sa.and_(
+                between.c.status == STATUS_BLOCKED,
+                between.c.entity_type == table.c.entity_type,
+                between.c.entity_uuid == table.c.entity_uuid,
+                # Inclusive bounds: a differing-reason block sharing an
+                # exact timestamp with either endpoint still breaks the run,
+                # so a reason-transition row tied with a neighbour is
+                # preserved as a run head rather than pruned as a repeat
+                # (the same preserving-side tie rule the pending and evidence
+                # guards use). Inclusive bounds only ever add boundaries —
+                # i.e. only ever preserve more, never delete more.
+                between.c.created_on >= earlier.c.created_on,
+                between.c.created_on <= table.c.created_on,
+                between.c.reason.is_distinct_from(table.c.reason),
             )
         )
-        .group_by(table.c.entity_type, table.c.entity_uuid)
-        .subquery("streak_survivor")
+        .correlate(table, earlier)
+    )
+    return sa.exists(
+        sa.select(sa.literal(1))
+        .select_from(earlier)
+        .where(
+            sa.and_(
+                earlier.c.status == STATUS_BLOCKED,
+                earlier.c.entity_type == table.c.entity_type,
+                earlier.c.entity_uuid == table.c.entity_uuid,
+                _in_current_streak(earlier, boundary),
+                earlier.c.created_on < table.c.created_on,
+                earlier.c.reason.is_not_distinct_from(table.c.reason),
+                sa.not_(reason_changed_between),
+            )
+        )
+        .correlate(table, boundary)
     )
 
 
@@ -297,8 +357,13 @@ def _preceded_by_unresolved_attempt(table: sa.Table) -> sa.ColumnElement[bool]:
     pending row sitting between two blocked rows is a boundary that may
     appear at any moment, and the blocked row after it would become the new
     streak's survivor — the very row pruning must never delete.
+
+    A tied timestamp counts as preceding. Which of the two writes landed
+    first is unknowable from the row, the block's classification (current
+    duplicate, or resolved-streak row on an age window) changes with the
+    attempt's outcome, and deferring it until then costs nothing.
     """
-    pending: sa.Table = table.alias("unresolved_attempt")
+    pending: sa.FromClause = table.alias("unresolved_attempt")
     return sa.exists(
         sa.select(sa.literal(1))
         .select_from(pending)
@@ -307,18 +372,21 @@ def _preceded_by_unresolved_attempt(table: sa.Table) -> sa.ColumnElement[bool]:
                 pending.c.status == STATUS_PENDING,
                 pending.c.entity_type == table.c.entity_type,
                 pending.c.entity_uuid == table.c.entity_uuid,
-                pending.c.created_on < table.c.created_on,
+                pending.c.created_on <= table.c.created_on,
             )
         )
     )
 
 
 def _duplicate_candidates(now: datetime, limit: int) -> sa.sql.Select:
-    """Select current-streak blocked rows that are not the streak survivor.
+    """Select current-streak blocked rows that repeat the block before them.
 
-    Age-independent by design (FR-003): a duplicate is prunable the moment a
-    streak has a survivor, regardless of the retention window. Trigger is not
-    a discriminator — ``scheduled`` and ``force`` blocked rows share streaks.
+    Age-independent by design (FR-003): a repeat is prunable the moment the
+    streak holds an earlier same-reason block, regardless of the retention
+    window. Trigger is not a discriminator — ``scheduled`` and ``force``
+    blocked rows share streaks. Reason *is*: the first block after a reason
+    change survives alongside the streak's earliest row (see
+    :func:`_repeats_an_earlier_block`).
 
     Rows preceded by an unresolved attempt are skipped: their classification
     is not stable, because that attempt can finalize into a boundary and
@@ -329,21 +397,15 @@ def _duplicate_candidates(now: datetime, limit: int) -> sa.sql.Select:
     pending row defers its successors indefinitely rather than risking them.
     """
     table: sa.Table = PurgeAuditLog.__table__
-    survivor: sa.Subquery = _survivor_subquery(now)
+    boundary: sa.Subquery = _streak_boundary_subquery(now)
     return (
         sa.select(table.c.id)
-        .select_from(
-            table.join(
-                survivor,
-                sa.and_(
-                    table.c.entity_type == survivor.c.entity_type,
-                    table.c.entity_uuid == survivor.c.entity_uuid,
-                ),
-            )
-        )
+        .select_from(_with_boundary(table, boundary))
         .where(table.c.status == STATUS_BLOCKED)
-        .where(table.c.created_on > survivor.c.survivor_created_on)
+        .where(table.c.entity_uuid.is_not(None))
         .where(table.c.created_on <= now)
+        .where(_in_current_streak(table, boundary))
+        .where(_repeats_an_earlier_block(table, boundary))
         .where(sa.not_(_preceded_by_unresolved_attempt(table)))
         .order_by(table.c.created_on)
         .limit(limit)
@@ -356,9 +418,13 @@ def _operational_candidates(
     """Select aged-out operational rows, excluding current-streak survivors.
 
     Covers ``failed`` rows and resolved-streak ``blocked`` rows older than
-    the cutoff. A current streak's survivor is exempt regardless of age
+    the cutoff. A current streak's survivors — its earliest row and the first
+    row after each reason change — are exempt regardless of age
     (FR-005/FR-009): a blockage that has persisted for years must still show
-    when it began. A ``blocked`` row with no ``entity_uuid`` has no streak to
+    when it began and what has blocked it. Survivors of *resolved* streaks
+    are not exempt: the boundary is the evidence there, and the blocked
+    rows behind it are operational history on the normal window. A
+    ``blocked`` row with no ``entity_uuid`` has no streak to
     belong to and so can never be *proven* redundant — it is kept rather
     than aged out, matching the fail-closed posture everywhere else here.
 
@@ -371,17 +437,10 @@ def _operational_candidates(
     ``failed`` rows neither join nor break streaks, so they are unaffected.
     """
     table: sa.Table = PurgeAuditLog.__table__
-    survivor: sa.Subquery = _survivor_subquery(now)
-    is_survivor: sa.ColumnElement[bool] = sa.exists(
-        sa.select(sa.literal(1))
-        .select_from(survivor)
-        .where(
-            sa.and_(
-                survivor.c.entity_type == table.c.entity_type,
-                survivor.c.entity_uuid == table.c.entity_uuid,
-                survivor.c.survivor_created_on == table.c.created_on,
-            )
-        )
+    boundary: sa.Subquery = _streak_boundary_subquery(now)
+    is_survivor: sa.ColumnElement[bool] = sa.and_(
+        _in_current_streak(table, boundary),
+        sa.not_(_repeats_an_earlier_block(table, boundary)),
     )
     unstable_block: sa.ColumnElement[bool] = sa.and_(
         table.c.status == STATUS_BLOCKED,
@@ -395,6 +454,7 @@ def _operational_candidates(
     )
     return (
         sa.select(table.c.id)
+        .select_from(_with_boundary(table, boundary))
         .where(table.c.status.in_(OPERATIONAL_STATUSES))
         .where(table.c.created_on < cutoff)
         .where(table.c.created_on <= now)
@@ -421,10 +481,12 @@ def _evidence_candidates(now: datetime, cutoff: datetime, limit: int) -> sa.sql.
     than the operational window safe rather than corrupting.
     """
     table: sa.Table = PurgeAuditLog.__table__
-    older: sa.Table = table.alias("older_blocked")
+    older: sa.FromClause = table.alias("older_blocked")
     # ``pending`` counts alongside ``blocked``: the purge path finalizes a
     # pending row in place to ``blocked``, so an older pending row is a
-    # blocked row that has not announced itself yet.
+    # blocked row that has not announced itself yet. A *tied* row counts
+    # too: it sits on this boundary's resolved side (``_in_current_streak``
+    # is strict), so this boundary is what resolves it and must outlive it.
     bounds_surviving_blocks: sa.ColumnElement[bool] = sa.exists(
         sa.select(sa.literal(1))
         .select_from(older)
@@ -433,7 +495,7 @@ def _evidence_candidates(now: datetime, cutoff: datetime, limit: int) -> sa.sql.
                 older.c.status.in_((STATUS_BLOCKED, STATUS_PENDING)),
                 older.c.entity_type == table.c.entity_type,
                 older.c.entity_uuid == table.c.entity_uuid,
-                older.c.created_on < table.c.created_on,
+                older.c.created_on <= table.c.created_on,
             )
         )
     )

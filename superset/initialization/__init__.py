@@ -1010,9 +1010,21 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         soft_delete_enabled: bool = bool(
             configured_flags.get("SOFT_DELETE", default_flags.get("SOFT_DELETE", False))
         )
-        audit_pruning_enabled: bool = (
-            self.config.get("PURGE_AUDIT_PRUNING_ENABLED", False) is True
+        audit_pruning_switch: Any = self.config.get(
+            "PURGE_AUDIT_PRUNING_ENABLED", False
         )
+        if not isinstance(audit_pruning_switch, bool):
+            # The task fails closed on anything but the literal True, so a
+            # typo such as "true" or 1 silently leaves the audit log
+            # growing. Surface it here, where the operator is looking.
+            logger.warning(
+                "soft-delete: PURGE_AUDIT_PRUNING_ENABLED=%r is not a boolean — "
+                "audit pruning stays disabled (the prune task removes nothing "
+                "unless the value is exactly True) and the purge audit log "
+                "will grow without bound. Set it to True or False.",
+                audit_pruning_switch,
+            )
+        audit_pruning_enabled: bool = audit_pruning_switch is True
         if soft_delete_enabled and (
             not beat_schedule or self._PURGE_TASK_NAME not in registered_tasks
         ):

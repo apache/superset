@@ -25,13 +25,14 @@ from __future__ import annotations
 
 from contextlib import contextmanager
 from datetime import datetime
+from functools import partial
 from typing import Any, Iterator
 from unittest.mock import patch
 
 import pytest
 import sqlalchemy as sa
 from flask import current_app
-from sqlalchemy.dialects import mysql
+from sqlalchemy.dialects import mysql, postgresql, sqlite
 
 from superset.commands.deletion_retention import prune_audit
 from superset.commands.deletion_retention.prune_audit import (
@@ -285,6 +286,33 @@ def test_atomic_delete_uses_a_mysql_compatible_derived_table() -> None:
     assert "DELETE FROM purge_audit_log" in sql
     assert "prune_candidates" in sql
     assert "SELECT" in sql
+
+
+@pytest.mark.parametrize(
+    ("dialect", "same_reason_operator"),
+    [
+        (postgresql.dialect(), "IS NOT DISTINCT FROM"),
+        (mysql.dialect(), "<=>"),
+        (sqlite.dialect(), " IS "),
+    ],
+)
+def test_reason_comparison_is_null_safe_on_every_supported_dialect(
+    dialect: Any, same_reason_operator: str
+) -> None:
+    """Compare block reasons NULL-safely so pre-feature rows form a run.
+
+    A plain ``=`` would never match two reason-less rows, so every legacy
+    block would be its own survivor and the streak would never dedupe.
+    """
+    now: datetime = datetime(2026, 1, 1)
+    for select_candidates in (
+        partial(prune_audit._duplicate_candidates, now),
+        partial(prune_audit._operational_candidates, now, now),
+    ):
+        sql: str = str(
+            prune_audit._delete_statement(select_candidates).compile(dialect=dialect)
+        )
+        assert same_reason_operator in sql
 
 
 def test_pruning_shares_the_audit_writers_clock() -> None:
