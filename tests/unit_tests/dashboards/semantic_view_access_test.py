@@ -58,6 +58,7 @@ def access_fixtures(session: Session) -> SimpleNamespace:
     from superset.models.core import Database
     from superset.models.dashboard import Dashboard
     from superset.models.slice import Slice
+    from superset.models.sql_lab import Query, SavedQuery
     from superset.semantic_layers.models import SemanticLayer, SemanticView
 
     engine = session.get_bind()
@@ -91,6 +92,16 @@ def access_fixtures(session: Session) -> SimpleNamespace:
         perm=TABLE_PERM,
     )
     session.add(table)
+    session.flush()
+
+    saved_query = SavedQuery(id=77, sql="select 1", label="a saved query")
+    query = Query(
+        id=78,
+        client_id="abc1234567",
+        database_id=database.id,
+        sql="select 1",
+    )
+    session.add_all([saved_query, query])
     session.flush()
 
     semantic_slice = Slice(
@@ -167,11 +178,13 @@ def access_fixtures(session: Session) -> SimpleNamespace:
 
 def test_resolved_datasource_semantic_view(access_fixtures: SimpleNamespace) -> None:
     """A semantic-view chart resolves to its SemanticView row."""
+    # pylint: disable=import-outside-toplevel
+    from superset.semantic_layers.models import SemanticView
+
     resolved = access_fixtures.semantic_slice.resolved_datasource
-    assert resolved is not None
+    assert isinstance(resolved, SemanticView)
     assert resolved.id == access_fixtures.view.id
     assert resolved.name == "test_view"
-    assert type(resolved).__name__ == "SemanticView"
 
 
 def test_resolved_datasource_table(access_fixtures: SimpleNamespace) -> None:
@@ -193,6 +206,41 @@ def test_resolved_datasource_unknown_type_is_none(app_context: None) -> None:
 
     slc = Slice(datasource_id=3, datasource_type="druid")
     assert slc.resolved_datasource is None
+
+
+def test_resolved_datasource_without_id_is_none(app_context: None) -> None:
+    """A chart with no datasource_id resolves to None (inaccessible)."""
+    # pylint: disable=import-outside-toplevel
+    from superset.models.slice import Slice
+
+    slc = Slice(datasource_id=None, datasource_type="table")
+    assert slc.resolved_datasource is None
+
+
+def test_resolved_datasource_saved_query_is_none(
+    access_fixtures: SimpleNamespace,
+) -> None:
+    """SavedQuery carries no perm, so it cannot participate in access checks:
+    resolve to None (inaccessible) instead of crashing the gate."""
+    # pylint: disable=import-outside-toplevel
+    from superset.models.slice import Slice
+
+    slc = Slice(datasource_id=77, datasource_type="saved_query")
+    assert slc.resolved_datasource is None
+
+
+def test_resolved_datasource_query_resolves(
+    access_fixtures: SimpleNamespace,
+) -> None:
+    """Query exposes a perm property, so it resolves and can be authorized."""
+    # pylint: disable=import-outside-toplevel
+    from superset.models.slice import Slice
+    from superset.models.sql_lab import Query
+
+    slc = Slice(datasource_id=78, datasource_type="query")
+    resolved = slc.resolved_datasource
+    assert isinstance(resolved, Query)
+    assert resolved.perm
 
 
 # ---------------------------------------------------------------------------
@@ -295,6 +343,43 @@ def test_gate_still_allows_empty_dashboard(
     sm = _gate_sm()
     with _gate_patches(sm, granted_perms=set()):
         sm.raise_for_access(dashboard=access_fixtures.empty_dashboard)
+
+
+def test_gate_denies_dashboard_with_datasource_less_chart(
+    access_fixtures: SimpleNamespace, app_context: None
+) -> None:
+    """Pinned decision: a chart with no datasource reference at all counts as
+    inaccessible in the fallback (fail closed), unlike a chart-less dashboard."""
+    # pylint: disable=import-outside-toplevel
+    from superset.exceptions import SupersetSecurityException
+    from superset.models.slice import Slice
+
+    session = access_fixtures.session
+    orphan_slice = Slice(
+        slice_name="no datasource",
+        datasource_id=None,
+        datasource_type="table",
+        viz_type="table",
+    )
+    session.add(orphan_slice)
+    session.flush()
+    from superset.models.dashboard import Dashboard
+
+    dashboard = Dashboard(
+        dashboard_title="orphan",
+        slug="orphan",
+        published=True,
+        slices=[orphan_slice],
+    )
+    session.add(dashboard)
+    session.flush()
+
+    sm = _gate_sm()
+    with (
+        _gate_patches(sm, granted_perms={VIEW_PERM, TABLE_PERM}),
+        pytest.raises(SupersetSecurityException),
+    ):
+        sm.raise_for_access(dashboard=dashboard)
 
 
 def test_gate_allows_semantic_chart_for_entitled_user(

@@ -167,6 +167,9 @@ class DashboardAccessFilter(BaseFilter):  # pylint: disable=too-few-public-metho
             filters.append(Dashboard.id.in_(viewer_query))
 
         # (C) No-viewer fallback: dashboards with no viewers → dataset-based access
+        # Note: a dashboard with no charts is never yielded here (every access
+        # predicate is NULL-false after the outer joins) even though the object
+        # gate allows opening it — a deliberate, pre-existing asymmetry.
         dashboard_has_viewers = Dashboard.viewers.any()
         no_viewer_query = (
             db.session.query(Dashboard.id)

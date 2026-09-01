@@ -4795,15 +4795,26 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 # user access to a dashboard composed solely of, e.g.,
                 # semantic-view charts. A dashboard with no charts remains
                 # accessible; a chart whose datasource cannot be resolved
-                # counts as inaccessible, never as absent.
-                resolved_datasources = {
-                    (slc.datasource_type, slc.datasource_id): slc.resolved_datasource
-                    for slc in dashboard.slices
-                }
-                if not resolved_datasources or any(
-                    resolved is not None and self.can_access_datasource(resolved)
-                    for resolved in resolved_datasources.values()
-                ):
+                # counts as inaccessible, never as absent. Resolution is
+                # lazy and deduplicated per (type, id) so the first
+                # accessible datasource short-circuits the remaining lookups.
+                member_slices = dashboard.slices
+
+                def member_datasource_accessible() -> bool:
+                    seen: set[tuple[str | None, int | None]] = set()
+                    for slc in member_slices:
+                        key = (slc.datasource_type, slc.datasource_id)
+                        if key in seen:
+                            continue
+                        seen.add(key)
+                        resolved = slc.resolved_datasource
+                        if resolved is not None and self.can_access_datasource(
+                            resolved
+                        ):
+                            return True
+                    return False
+
+                if not member_slices or member_datasource_accessible():
                     return
 
             raise SupersetSecurityException(
@@ -4838,6 +4849,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 and any(
                     self.has_guest_access(dashboard_) for dashboard_ in chart.dashboards
                 )
+                # Deliberately table-pinned: the guest token ``datasets``
+                # allowlist is dataset-id space, so resolving other
+                # datasource types here would reintroduce id-collision
+                # ambiguity — a semantic-view member chart under an
+                # allowlist therefore fails closed.
                 and self._guest_token_allows_dataset(
                     chart.datasource.id if chart.datasource else None
                 )

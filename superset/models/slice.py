@@ -232,7 +232,6 @@ class Slice(  # pylint: disable=too-many-public-methods
         return self.table
 
     @property
-    @property
     def resolved_datasource(self) -> Datasource | None:
         """The chart's datasource, resolved across datasource types.
 
@@ -241,27 +240,43 @@ class Slice(  # pylint: disable=too-many-public-methods
         charts on other datasource types — semantic views in particular —
         resolve to ``None`` there. Authorization call sites must use this
         resolver instead, so those charts participate in access checks
-        rather than silently vanishing from them. Returns ``None`` when the
-        datasource row does not exist or the type is unknown; callers must
-        treat that as inaccessible, never as absent.
+        rather than silently vanishing from them.
+
+        Returns ``None`` when the datasource row does not exist, the type is
+        unknown, or the resolved model does not participate in access
+        control (no ``perm``, e.g. ``SavedQuery``); callers must treat
+        ``None`` as inaccessible, never as absent. Non-table lookups issue a
+        database query on every access — deduplicate before calling this in
+        a loop.
         """
         if not self.datasource_id:
             return None
-        if self.datasource_type in (None, "", utils.DatasourceType.TABLE):
+        if self.datasource_type == utils.DatasourceType.TABLE:
             return self.table
         # pylint: disable=import-outside-toplevel
+        # Deferred to avoid a circular import: superset.daos.datasource
+        # imports connectors and sql_lab models at module top.
         from superset.daos.datasource import DatasourceDAO
         from superset.daos.exceptions import (
             DatasourceNotFound,
             DatasourceTypeNotSupportedError,
+            DatasourceValueIsIncorrect,
         )
 
         try:
-            return DatasourceDAO.get_datasource(
+            resolved = DatasourceDAO.get_datasource(
                 self.datasource_type, self.datasource_id
             )
-        except (DatasourceNotFound, DatasourceTypeNotSupportedError):
+        except (
+            DatasourceNotFound,
+            DatasourceTypeNotSupportedError,
+            DatasourceValueIsIncorrect,
+        ):
             return None
+        # A model without a ``perm`` cannot be authorized by
+        # ``can_access_datasource`` — treat it as inaccessible rather than
+        # letting the access check crash on it.
+        return resolved if hasattr(resolved, "perm") else None
 
     def clone(self) -> Slice:
         return Slice(
