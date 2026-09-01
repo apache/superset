@@ -42,6 +42,7 @@ from superset.mcp_service.chart.chart_utils import (
     merge_gantt_ui_config,
     merge_interactive_pivot_ui_config,
     merge_table_column_config,
+    validate_gantt_form_data,
 )
 from superset.mcp_service.chart.compile import validate_and_compile
 from superset.mcp_service.chart.preview_utils import (
@@ -262,6 +263,16 @@ def update_chart_preview(  # noqa: C901
                 merge_table_column_config(previous_form_data, new_form_data)
                 merge_interactive_pivot_ui_config(previous_form_data, new_form_data)
                 merge_gantt_ui_config(previous_form_data, new_form_data)
+
+            merged_gantt_config = validate_gantt_form_data(
+                new_form_data,
+                request.dataset_id,
+                dataset_context=build_dataset_context_from_orm(dataset),
+            )
+            if merged_gantt_config is not None:
+                # Compile the final cached state rather than the pre-merge
+                # request, so preserved native fields cannot bypass semantics.
+                config = merged_gantt_config
 
             # Tier-1 schema validation against the dataset (no DB roundtrip).
             # Runs AFTER the filter merge so filter columns are also validated.

@@ -28,6 +28,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any, Dict, TYPE_CHECKING
 
+from pydantic import ValidationError
 from sqlalchemy.exc import SQLAlchemyError
 
 if TYPE_CHECKING:
@@ -57,6 +58,7 @@ from superset.mcp_service.chart.schemas import (
 from superset.mcp_service.chart.validation.dataset_validator import (
     is_dataset_column_temporal,
 )
+from superset.mcp_service.common.error_schemas import DatasetContext
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.utils import json
 from superset.utils.core import FilterOperator
@@ -622,9 +624,47 @@ _GANTT_PRESENTATION_KEYS = frozenset(
 )
 
 
+def validate_gantt_form_data(
+    form_data: Mapping[str, Any],
+    dataset_id: int | str | None = None,
+    dataset_context: DatasetContext | None = None,
+) -> GanttChartConfig | None:
+    """Adapt and validate final native Gantt state after presentation merging.
+
+    Update requests are typed before native UI state is preserved, so validating
+    only the request can miss conflicts introduced by the merge. When dataset
+    metadata is available, run the adapted final state through canonical column
+    resolution as well; this catches aliases that resolve to the same physical
+    column rather than comparing native strings in isolation.
+    """
+    if form_data.get("viz_type") != "gantt_chart":
+        return None
+
+    from superset.mcp_service.chart.validation.dataset_validator import (
+        DatasetValidator,
+        GanttSemanticNormalizationError,
+    )
+
+    try:
+        config = GanttChartConfig.model_validate(dict(form_data))
+    except ValidationError as ex:
+        reasons = "; ".join(error["msg"] for error in ex.errors()[:3])
+        raise GanttSemanticNormalizationError(
+            f"Merged Gantt form data is invalid: {reasons}"
+        ) from ex
+
+    if dataset_id is None:
+        return config
+    return DatasetValidator.normalize_column_names(
+        config,
+        dataset_id,
+        dataset_context=dataset_context,
+    )
+
+
 def merge_gantt_ui_config(
     previous_form_data: Mapping[str, Any], new_form_data: Dict[str, Any]
-) -> None:
+) -> GanttChartConfig | None:
     """Preserve omitted native Gantt presentation and dependent series state.
 
     ``subcategories`` is only meaningful with ``series``. An omitted pair is
@@ -635,7 +675,7 @@ def merge_gantt_ui_config(
         previous_form_data.get("viz_type") != "gantt_chart"
         or new_form_data.get("viz_type") != "gantt_chart"
     ):
-        return
+        return None
     series_was_supplied = "series" in new_form_data
     subcategories_was_supplied = "subcategories" in new_form_data
 
@@ -658,6 +698,11 @@ def merge_gantt_ui_config(
     ):
         # Do not carry forward an already-inconsistent native payload.
         new_form_data.pop("subcategories", None)
+
+    # Every caller gets the same post-merge semantic gate. Product paths run
+    # this helper again with dataset metadata before query, cache, or persistence
+    # so physical aliases are resolved canonically as well.
+    return validate_gantt_form_data(new_form_data)
 
 
 def create_metric_object(col: ColumnRef) -> Dict[str, Any] | str:

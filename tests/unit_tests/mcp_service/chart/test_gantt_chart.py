@@ -2015,6 +2015,141 @@ def test_merge_repairs_stale_subcategories_without_series() -> None:
     GanttChartConfig.model_validate(replacement)
 
 
+@pytest.mark.parametrize("generate_preview", [True, False], ids=["preview", "save"])
+@pytest.mark.parametrize(
+    "category",
+    ["Owner", "owner", "OwNeR"],
+    ids=["exact", "casefold", "canonical_alias"],
+)
+@pytest.mark.asyncio
+async def test_update_chart_rejects_preserved_series_colliding_with_new_category(
+    generate_preview: bool,
+    category: str,
+) -> None:
+    """Preview and save reject conflicts introduced by native-state merging."""
+    existing = {
+        **_native_example(),
+        "y_axis": "Task",
+        "series": "Owner",
+        "subcategories": True,
+    }
+    chart = SimpleNamespace(
+        id=1495,
+        datasource_id=1,
+        datasource=object(),
+        slice_name="Gantt",
+        params=__import__("json").dumps(existing),
+        uuid="chart-uuid",
+        viz_type="gantt_chart",
+    )
+    request = UpdateChartRequest(
+        identifier=1495,
+        config=_config(category={"name": category}),
+        generate_preview=generate_preview,
+        preview_formats=[],
+    )
+
+    with (
+        patch(
+            "superset.mcp_service.auth.get_user_from_request",
+            return_value=Mock(id=1),
+        ),
+        patch.object(
+            update_chart_module, "find_chart_by_identifier", return_value=chart
+        ),
+        patch(
+            "superset.mcp_service.auth.check_chart_data_access",
+            return_value=SimpleNamespace(is_valid=True, error=None),
+        ),
+        patch.object(
+            DatasetValidator,
+            "_get_dataset_context",
+            return_value=_dataset_context(),
+        ),
+        patch("superset.commands.chart.update.UpdateChartCommand") as command,
+        patch.object(update_chart_module, "_create_preview_url") as create_preview,
+    ):
+        result = await update_chart_module.update_chart(request=request, ctx=Mock())
+
+    assert result.success is False
+    assert result.error is not None
+    assert result.error.error_type == "ValidationError"
+    assert (
+        "series and category must reference different columns" in result.error.details
+    )
+    command.assert_not_called()
+    create_preview.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "category",
+    ["Owner", "owner", "OwNeR"],
+    ids=["exact", "casefold", "canonical_alias"],
+)
+def test_update_chart_preview_rejects_cached_series_colliding_with_new_category(
+    category: str,
+) -> None:
+    """Standalone cached previews apply the same final-state semantic gate."""
+    context = _dataset_context()
+    columns = [
+        SimpleNamespace(
+            column_name=column["name"],
+            type=column["type"],
+            is_temporal=column["is_temporal"],
+            is_numeric=False,
+        )
+        for column in context.available_columns
+    ]
+    dataset = SimpleNamespace(
+        id=1,
+        table_name=context.table_name,
+        schema=None,
+        columns=columns,
+        metrics=[],
+        database=SimpleNamespace(database_name="main", db_engine_spec=None),
+    )
+    request = UpdateChartPreviewRequest(
+        form_data_key="previous",
+        dataset_id=1,
+        config=_config(category={"name": category}),
+        generate_preview=False,
+        preview_formats=[],
+    )
+    previous = {
+        "viz_type": "gantt_chart",
+        "start_time": "Start_Time",
+        "end_time": "End_Time",
+        "y_axis": "Task",
+        "series": "Owner",
+        "subcategories": True,
+    }
+
+    with (
+        patch(
+            "superset.mcp_service.auth.get_user_from_request",
+            return_value=Mock(id=1),
+        ),
+        patch.object(
+            update_chart_preview_module, "_find_dataset", return_value=dataset
+        ),
+        patch.object(
+            update_chart_preview_module,
+            "_get_previous_form_data",
+            return_value=previous,
+        ),
+        patch.object(update_chart_preview_module, "generate_explore_link") as link,
+    ):
+        result = update_chart_preview_module.update_chart_preview(request, ctx=Mock())
+
+    assert result["success"] is False
+    assert result["error"]["error_type"] == "gantt_semantic_validation_error"
+    assert (
+        "series and category must reference different columns"
+        in result["error"]["details"]
+    )
+    link.assert_not_called()
+
+
 @pytest.mark.asyncio
 async def test_real_update_preserves_omitted_and_overrides_explicit_defaults() -> None:
     saved_presentation = {
