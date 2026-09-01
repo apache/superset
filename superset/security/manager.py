@@ -4799,8 +4799,12 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             if (
                 is_feature_enabled("EMBEDDED_SUPERSET")
                 and self.is_guest_user()
-                and any(
-                    self.has_guest_access(dashboard_) for dashboard_ in chart.dashboards
+                and (
+                    self.has_guest_access_to_chart(chart)
+                    or any(
+                        self.has_guest_access(dashboard_)
+                        for dashboard_ in chart.dashboards
+                    )
                 )
                 and self._guest_token_allows_dataset(
                     chart.datasource.id if chart.datasource else None
@@ -5133,6 +5137,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         from superset.commands.dashboard.embedded.exceptions import (
             EmbeddedDashboardNotFoundError,
         )
+        from superset.daos.chart import EmbeddedChartDAO
         from superset.daos.dashboard import EmbeddedDashboardDAO
         from superset.models.dashboard import Dashboard
 
@@ -5147,6 +5152,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 elif not dashboard.embedded:
                     # A raw dashboard id must still reference an embedded dashboard;
                     # otherwise a guest token could be scoped to a non-embedded one.
+                    raise EmbeddedDashboardNotFoundError()
+            elif resource["type"] == GuestTokenResourceType.CHART.value:
+                # Charts are only ever addressed by the embedded uuid; there is
+                # no legacy raw-id path to support.
+                if not EmbeddedChartDAO.find_by_id(str(resource["id"])):
                     raise EmbeddedDashboardNotFoundError()
 
     def create_guest_access_token(
@@ -5500,6 +5510,22 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             isinstance(allowed_datasets, list)
             and all(isinstance(d, int) for d in allowed_datasets)
             and datasource_id in allowed_datasets
+        )
+
+    def has_guest_access_to_chart(self, chart: "Slice") -> bool:
+        """
+        Whether the current guest token grants this chart directly, i.e. the
+        chart is embedded on its own rather than through a dashboard.
+        """
+        user = self.get_current_guest_user_if_guest()
+        if not user or not chart.embedded:
+            return False
+
+        embedded_uuid = str(chart.embedded[0].uuid)
+        return any(
+            r["type"] == GuestTokenResourceType.CHART
+            and str(r["id"]) == embedded_uuid
+            for r in user.resources
         )
 
     def has_guest_access(self, dashboard: "Dashboard") -> bool:
