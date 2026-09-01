@@ -1853,6 +1853,64 @@ def test_data_for_slices_falls_back_for_invalid_query_context(
     mock_slice.get_query_context.assert_not_called()
 
 
+@pytest.mark.parametrize(
+    "order_by_cols,expected",
+    [
+        # Canonical encoding: a list of JSON strings.
+        (['["price_per_sqm", false]'], ["price_per_sqm", "state"]),
+        # Persisted by older writers as a real list -- used to raise
+        # ``TypeError: unhashable type: 'list'`` and 500 the dashboard
+        # datasets endpoint, leaving every widget without metadata.
+        ([["price_per_sqm", False]], ["price_per_sqm", "state"]),
+        # Non-ASCII column names must survive both encodings.
+        ([["Δ медиана %", True]], ["state", "Δ медиана %"]),
+        # The column half may itself be an adhoc column.
+        (
+            [[{"label": "price_per_sqm", "sqlExpression": "price_per_sqm"}, True]],
+            ["price_per_sqm", "state"],
+        ),
+        # Junk entries are skipped rather than crashing the request.
+        ([[123, False]], ["state"]),
+        ([[]], ["state"]),
+        (['["unclosed'], ["state"]),
+    ],
+)
+def test_data_for_slices_handles_order_by_cols_encodings(
+    mocker: MockerFixture,
+    order_by_cols: list[object],
+    expected: list[str],
+) -> None:
+    """Test ``order_by_cols`` pairs are accepted as JSON strings or raw lists.
+
+    ``order_by_cols`` holds ``[column, ascending]`` pairs. They are canonically
+    stored as JSON strings, but real deployments contain raw lists. A raw list
+    reaching ``set.update()`` raises ``TypeError: unhashable type: 'list'``.
+    """
+    database = mocker.MagicMock()
+    database.id = 1
+
+    table = SqlaTable(
+        table_name="test_table",
+        database=database,
+        columns=[
+            TableColumn(column_name="state"),
+            TableColumn(column_name="price_per_sqm"),
+            TableColumn(column_name="Δ медиана %"),
+        ],
+        metrics=[],
+    )
+
+    mock_slice = mocker.MagicMock()
+    mock_slice.form_data = {"groupby": ["state"], "order_by_cols": order_by_cols}
+    mock_slice.query_context = None
+
+    result = table.data_for_slices([mock_slice])
+
+    assert sorted(column["column_name"] for column in result["columns"]) == sorted(
+        expected
+    )
+
+
 def test_data_for_slices_skips_invalid_query_context_entries(
     mocker: MockerFixture,
 ) -> None:
