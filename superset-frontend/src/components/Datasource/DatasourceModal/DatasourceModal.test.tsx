@@ -23,10 +23,12 @@ import {
   fireEvent,
   cleanup,
   userEvent,
+  act,
   defaultStore as store,
 } from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
 import { SupersetClient } from '@superset-ui/core';
+import { Constants } from '@superset-ui/core/components';
 import mockDatasource from 'spec/fixtures/mockDatasource';
 import React from 'react';
 import DatasourceModalComponent, { buildExtraJsonObject } from '.';
@@ -76,6 +78,10 @@ beforeEach(() => {
   fetchMock.put(SAVE_DATASOURCE_ENDPOINT, {});
   fetchMock.get(GET_DATASOURCE_ENDPOINT, { result: {} });
   fetchMock.get(GET_DATABASE_ENDPOINT, { result: [] });
+});
+
+afterEach(() => {
+  jest.useRealTimers();
 });
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
@@ -151,15 +157,26 @@ describe('DatasourceModal', () => {
 
     await userEvent.click(await screen.findByRole('tab', { name: 'Settings' }));
 
+    const defaultUrlLabel = await screen.findByText('Default URL');
+    const defaultUrl = defaultUrlLabel
+      .closest('.ant-form-item')
+      ?.querySelector('input');
+    expect(defaultUrl).not.toBeNull();
     const certifiedBy = await screen.findByPlaceholderText('Certified by');
-    fireEvent.change(certifiedBy, { target: { value: 'E2E Team' } });
-    await new Promise(resolve => setTimeout(resolve, 500));
-
     const details = screen.getByPlaceholderText('Certification details');
+
+    jest.useFakeTimers();
+    fireEvent.change(defaultUrl as HTMLInputElement, {
+      target: { value: '/dashboard/7/' },
+    });
+    fireEvent.change(certifiedBy, { target: { value: 'E2E Team' } });
     fireEvent.change(details, {
       target: { value: 'Reviewed for production' },
     });
-    await new Promise(resolve => setTimeout(resolve, 500));
+    act(() => {
+      jest.advanceTimersByTime(Constants.FAST_DEBOUNCE);
+    });
+    jest.useRealTimers();
 
     fireEvent.click(screen.getByTestId('datasource-modal-save'));
     fireEvent.click(await screen.findByRole('button', { name: 'Confirm' }));
@@ -175,6 +192,7 @@ describe('DatasourceModal', () => {
       expect(putCall).toBeDefined();
 
       const payload = JSON.parse(putCall?.options?.body as string);
+      expect(payload.default_endpoint).toBe('/dashboard/7/');
       expect(JSON.parse(payload.extra)).toEqual({
         custom_key: { enabled: true },
         warning_markdown: 'Use only finalized records',

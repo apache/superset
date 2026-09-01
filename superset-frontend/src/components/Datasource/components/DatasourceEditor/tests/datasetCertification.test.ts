@@ -19,6 +19,7 @@
 
 import {
   getDatasetCertification,
+  isDatasetExtraValid,
   setDatasetCertification,
 } from '../datasetCertification';
 
@@ -50,12 +51,46 @@ test('writes dataset certification without discarding other Extra metadata', () 
     },
   );
 
-  expect(JSON.parse(result)).toEqual({
+  expect(JSON.parse(result ?? '')).toEqual({
     custom_key: { enabled: true },
     warning_markdown: 'Use only finalized records',
     certification: {
       certified_by: 'E2E Team',
       details: 'Reviewed for production',
+    },
+  });
+});
+
+test('writes certification details without requiring a certifier', () => {
+  const result = setDatasetCertification('{}', {
+    certification_details: 'Reviewed for production',
+  });
+
+  expect(JSON.parse(result ?? '')).toEqual({
+    certification: { details: 'Reviewed for production' },
+  });
+});
+
+test('editing certification preserves unknown certification metadata', () => {
+  const result = setDatasetCertification(
+    JSON.stringify({
+      certification: {
+        certified_by: 'Data Platform Team',
+        details: 'Source of truth',
+        expires_at: '2030-01-01',
+      },
+    }),
+    {
+      certified_by: 'E2E Team',
+      certification_details: 'Reviewed for production',
+    },
+  );
+
+  expect(JSON.parse(result ?? '')).toEqual({
+    certification: {
+      certified_by: 'E2E Team',
+      details: 'Reviewed for production',
+      expires_at: '2030-01-01',
     },
   });
 });
@@ -69,12 +104,60 @@ test('clearing dataset certification preserves other Extra metadata', () => {
       },
       warning_markdown: 'Use only finalized records',
     }),
-    {},
+    { certified_by: '', certification_details: '' },
   );
 
-  expect(JSON.parse(result)).toEqual({
+  expect(JSON.parse(result ?? '')).toEqual({
     warning_markdown: 'Use only finalized records',
   });
+});
+
+test('clearing certification preserves unknown certification metadata', () => {
+  const result = setDatasetCertification(
+    JSON.stringify({
+      certification: {
+        certified_by: 'Data Platform Team',
+        details: 'Source of truth',
+        expires_at: '2030-01-01',
+      },
+    }),
+    { certified_by: '', certification_details: '' },
+  );
+
+  expect(JSON.parse(result ?? '')).toEqual({
+    certification: { expires_at: '2030-01-01' },
+  });
+});
+
+test('an unchanged certification leaves Extra formatting untouched', () => {
+  const extra = '{\n    "certification": { "certified_by": "Data Team" }\n}';
+
+  expect(setDatasetCertification(extra, { certified_by: 'Data Team' })).toBe(
+    extra,
+  );
+  expect(
+    setDatasetCertification(undefined, {
+      certified_by: '',
+      certification_details: '',
+    }),
+  ).toBeUndefined();
+});
+
+test('handles non-object Extra and certification values', () => {
+  expect(getDatasetCertification('[]')).toEqual({});
+  expect(getDatasetCertification('{"certification":true}')).toEqual({});
+  expect(
+    setDatasetCertification('{"certification":true}', {
+      certified_by: 'Data Team',
+    }),
+  ).toBe('{"certification":{"certified_by":"Data Team"}}');
+});
+
+test('identifies malformed and non-object Extra JSON', () => {
+  expect(isDatasetExtraValid()).toBe(true);
+  expect(isDatasetExtraValid('{}')).toBe(true);
+  expect(isDatasetExtraValid('{"custom_key":')).toBe(false);
+  expect(isDatasetExtraValid('[]')).toBe(false);
 });
 
 test('editing certification does not overwrite malformed Extra JSON', () => {

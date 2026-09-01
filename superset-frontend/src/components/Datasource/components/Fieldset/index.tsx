@@ -51,10 +51,15 @@ export default function Fieldset({
 
   const handleChange = useCallback(
     (fieldKey: fieldKeyType, val: any) => {
-      onChange?.({
+      const updatedItem = {
         ...itemRef.current,
         [fieldKey]: val,
-      });
+      };
+      // Multiple debounced controls can commit in the same React batch, before
+      // the effect above has synchronized the item passed back by the parent.
+      // Advance the ref synchronously so the later commit includes its sibling.
+      itemRef.current = updatedItem;
+      onChange?.(updatedItem);
     },
     [onChange],
   );
