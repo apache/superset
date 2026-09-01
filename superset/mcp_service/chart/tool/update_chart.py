@@ -389,7 +389,7 @@ def _validate_update_against_dataset(
         )
 
     try:
-        if merged_config := validate_merged_bullet_form_data(form_data):
+        if merged_config := validate_merged_bullet_form_data(form_data, parsed_config):
             parsed_config = merged_config
     except (TypeError, ValueError) as ex:
         return _validation_error_response(

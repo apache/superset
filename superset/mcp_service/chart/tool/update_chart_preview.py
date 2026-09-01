@@ -255,7 +255,9 @@ def update_chart_preview(  # noqa: C901
 
             validation_config = config
             try:
-                if merged_config := validate_merged_bullet_form_data(new_form_data):
+                if merged_config := validate_merged_bullet_form_data(
+                    new_form_data, config
+                ):
                     validation_config = DatasetValidator.normalize_column_names(
                         merged_config,
                         request.dataset_id,

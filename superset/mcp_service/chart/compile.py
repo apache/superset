@@ -44,6 +44,7 @@ from superset.errors import SupersetErrorType
 from superset.mcp_service.chart.validation.dataset_validator import (
     build_dataset_context_from_orm,
     DatasetValidator,
+    resolve_dataset_column,
 )
 from superset.mcp_service.common.error_schemas import (
     ChartGenerationError,
@@ -124,7 +125,7 @@ def _compile_chart(
         BulletOutputError,
         resolve_bullet_render_model,
     )
-    from superset.mcp_service.chart.query_result import query_result_failure
+    from superset.mcp_service.chart.query_result import query_result_data
 
     try:
         query_form_data = deepcopy(form_data)
@@ -141,7 +142,8 @@ def _compile_chart(
 
         warnings: List[str] = []
         row_count = 0
-        if query_failure := query_result_failure(result):
+        query_data, query_failure = query_result_data(result)
+        if query_failure is not None:
             error_str = query_failure.error
             return CompileResult(
                 success=False,
@@ -151,12 +153,12 @@ def _compile_chart(
                 error_obj=_build_compile_error(error_str),
             )
 
-        for query in result.get("queries", []):
-            row_count += len(query.get("data", []))
+        if query_data is None:  # Defensive: failures return above.
+            query_data = []
+        row_count = sum(len(data) for data in query_data)
 
         if form_data.get("viz_type") == "bullet":
-            queries = result.get("queries") or []
-            data = queries[0].get("data", []) if queries else []
+            data = query_data[0] if query_data else []
             try:
                 resolve_bullet_render_model(data, form_data)
             except BulletOutputError as ex:
@@ -190,7 +192,7 @@ def _compile_chart(
             tier="compile",
             error_obj=_build_compile_error(str(exc)),
         )
-    except (CommandException, ValueError, KeyError) as exc:
+    except (CommandException, ValueError, KeyError, OverflowError) as exc:
         return CompileResult(
             success=False,
             error=str(exc),
@@ -221,12 +223,21 @@ def _adhoc_filter_column_valid(
     WHERE filters must reference a physical column; HAVING filters may also
     reference a saved metric because Superset resolves metric names there.
     """
-    if clause == "HAVING":
-        return DatasetValidator._column_exists(column, dataset_context)
-    return any(
-        col["name"].lower() == column.lower()
-        for col in dataset_context.available_columns
-    )
+    column_names = [item["name"] for item in dataset_context.available_columns]
+    metric_names = [metric["name"] for metric in dataset_context.available_metrics]
+    if column in column_names or (clause == "HAVING" and column in metric_names):
+        return True
+    try:
+        if resolve_dataset_column(column, dataset_context) is not None:
+            return True
+    except ValueError:
+        return False
+    if clause != "HAVING":
+        return False
+    metric_matches = [
+        name for name in metric_names if name.casefold() == column.casefold()
+    ]
+    return len(metric_matches) == 1
 
 
 def _validate_adhoc_filter_columns(
