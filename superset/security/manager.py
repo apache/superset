@@ -5549,8 +5549,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         embedded_uuid = str(chart.embedded[0].uuid)
         return any(
-            r["type"] == GuestTokenResourceType.CHART
-            and str(r["id"]) == embedded_uuid
+            r["type"] == GuestTokenResourceType.CHART and str(r["id"]) == embedded_uuid
             for r in user.resources
         )
 
