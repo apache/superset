@@ -1172,6 +1172,24 @@ class DatabaseSchemaAccessForFileUploadResponse(Schema):
     )
 
 
+class IdentifierQuoteSchema(Schema):
+    start = fields.String(
+        metadata={"description": "Character that opens a quoted identifier"}
+    )
+    end = fields.String(
+        metadata={"description": "Character that closes a quoted identifier"}
+    )
+    escape_by_doubling = fields.Boolean(
+        metadata={
+            "description": (
+                "Whether an embedded closing-quote character is escaped by "
+                "doubling it (True) or with a backslash escape (False, e.g. "
+                "BigQuery's GoogleSQL backtick identifiers)"
+            )
+        }
+    )
+
+
 class EngineInformationSchema(Schema):
     supports_file_upload = fields.Boolean(
         metadata={"description": "Users can upload files to the database"}
@@ -1197,6 +1215,12 @@ class EngineInformationSchema(Schema):
                 "Engines like Elasticsearch SQL return False."
             )
         }
+    )
+    identifier_quote = fields.Nested(
+        IdentifierQuoteSchema,
+        metadata={
+            "description": "Characters used to quote identifiers for this dialect"
+        },
     )
 
 
@@ -1453,6 +1477,24 @@ class UploadPostSchema(BaseUploadFilePostSchemaMixin):
                 raise ValidationError(
                     "Invalid JSON format for column_data_types"
                 ) from ex
+        return data
+
+    @post_load
+    def normalize_schema(self, data: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
+        """
+        Treat empty and stringified-unset schema values as no schema.
+
+        Broken clients stringify an unset schema into the multipart body as
+        the exact strings ``undefined``/``null`` (JS ``String()`` semantics),
+        so only those artifacts and empty/whitespace-only values are dropped,
+        letting the upload command resolve the database's default schema
+        instead (see #36305). Any other value — including a quoted schema
+        actually named ``NULL``/``Undefined`` or an identifier with
+        surrounding whitespace — reaches the upload command verbatim.
+        """
+        if (schema := data.get("schema")) is not None:
+            if not schema.strip() or schema in ("undefined", "null"):
+                data.pop("schema", None)
         return data
 
 

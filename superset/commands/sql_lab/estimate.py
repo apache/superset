@@ -23,8 +23,9 @@ from flask import current_app as app
 from flask_babel import gettext as __
 from jinja2.exceptions import TemplateError
 
-from superset import db, is_feature_enabled, security_manager
+from superset import is_feature_enabled, security_manager
 from superset.commands.base import BaseCommand
+from superset.daos.database import DatabaseDAO
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     SupersetDisallowedSQLFunctionException,
@@ -66,8 +67,10 @@ class QueryEstimationCommand(BaseCommand):
         self._catalog = params.get("catalog")
 
     def validate(self) -> None:
-        self._database = db.session.query(Database).get(self._database_id)
-        if not self._database:
+        # Load the database through the DAO so ``DatabaseFilter`` scopes
+        # visibility the same way it does on the SQL Lab execution path.
+        database = DatabaseDAO.find_by_id(self._database_id)
+        if not database:
             raise SupersetErrorException(
                 SupersetError(
                     message=__("The database could not be found"),
@@ -76,7 +79,17 @@ class QueryEstimationCommand(BaseCommand):
                 ),
                 status=404,
             )
-        security_manager.raise_for_access(database=self._database)
+        self._database = database
+        # Pass the SQL so table-level authorization runs, mirroring the SQL
+        # Lab execution path. Runs before Jinja templating in ``run()``.
+        security_manager.raise_for_access(
+            database=self._database,
+            sql=self._sql,
+            catalog=self._catalog,
+            schema=self._schema or None,
+            template_params=self._template_params,
+            force_dataset_match=True,
+        )
 
     def _apply_sql_security(self, sql: str) -> str:
         """Run the disallowed-function/table, DML and RLS controls against the
@@ -150,6 +163,7 @@ class QueryEstimationCommand(BaseCommand):
 
         sql = self._sql
         if self._template_params:
+            # Access is already checked in validate() before any rendering.
             template_processor = get_template_processor(self._database)
             try:
                 sql = template_processor.process_template(sql, **self._template_params)

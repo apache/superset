@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ReactNode, isValidElement } from 'react';
+import { ReactNode } from 'react';
 import {
   ascending as d3ascending,
   quantile as d3quantile,
@@ -70,19 +70,16 @@ export function commonLayerProps({
   if (setTooltipContent) {
     let currentTooltipContent: ReactNode = null;
 
-    const isCustomTooltip = (content: ReactNode): boolean =>
-      isValidElement(content) &&
-      content.props?.['data-tooltip-type'] === 'custom';
-
     onHover = (o: JsonObject) => {
       if (o.picked) {
         currentTooltipContent = setTooltipContent(o);
       }
 
-      if (
-        currentTooltipContent &&
-        (o.picked || isCustomTooltip(currentTooltipContent))
-      ) {
+      // Only show the tooltip while a feature is actually hovered. Custom
+      // (Handlebars) tooltips used to stay visible and follow the cursor
+      // after hover-out because their content was kept on screen even when
+      // nothing was picked.
+      if (o.picked && currentTooltipContent) {
         setTooltip({
           content: currentTooltipContent,
           x: o.x,

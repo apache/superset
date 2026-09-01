@@ -24,6 +24,8 @@ from typing import Any, Optional
 from unittest.mock import MagicMock
 
 import pytest
+from flask import current_app
+from flask_appbuilder.const import AUTH_DB, AUTH_REMOTE_USER
 from flask_appbuilder.security.sqla.models import Role, User
 from pytest_mock import MockerFixture
 
@@ -49,6 +51,88 @@ def test_security_manager(app_context: None) -> None:
     """
     sm = SupersetSecurityManager(appbuilder)
     assert sm
+
+
+def _register_views_with_mock_appbuilder(
+    mocker: MockerFixture, auth_type: int
+) -> MagicMock:
+    """
+    Build a SupersetSecurityManager bound to a fresh mock appbuilder and call
+    register_views() on it, with FlaskAppBuilder's own register_views (the
+    super() call, which does its own large auth_type dispatch and permission
+    registration) stubbed out so the test stays scoped to just the override.
+    Returns the mock appbuilder so the caller can inspect what got registered.
+    """
+    from flask import current_app
+
+    # patch.dict restores the previous config values on teardown, so these
+    # overrides don't leak into other tests sharing the module-scoped app.
+    mocker.patch.dict(
+        current_app.config,
+        {
+            "AUTH_TYPE": auth_type,
+            "AUTH_USER_REGISTRATION": False,
+            "AUTH_RATE_LIMITED": False,
+        },
+    )
+
+    mock_appbuilder = mocker.MagicMock()
+    mock_appbuilder.baseviews = []
+    mock_appbuilder.menu.get_list.return_value = []
+
+    sm = SupersetSecurityManager.__new__(SupersetSecurityManager)
+    sm.appbuilder = mock_appbuilder
+    sm.register_superset_auth_view = True
+    sm.register_superset_registeruser_view = False
+    sm.userstatschartview = None
+
+    mocker.patch(
+        "flask_appbuilder.security.sqla.manager.SecurityManager.register_views",
+        autospec=True,
+    )
+
+    sm.register_views()
+    return mock_appbuilder
+
+
+def test_register_views_does_not_shadow_auth_remote_user(
+    app_context: None, mocker: MockerFixture
+) -> None:
+    """
+    AUTH_REMOTE_USER must not register SupersetAuthView at "/login/".
+
+    AuthRemoteUserView performs a silent, header-driven login with no
+    interactive UI. SupersetAuthView (the SPA login shell) previously
+    registered at the same route unconditionally and always won the routing
+    dispatch, so the remote-user header was never even checked -- reported in
+    apache/superset#36117 as a regression from the frontend login migration
+    (#31590). See also the related opt-out added in #39098.
+    """
+    from superset.views.auth import SupersetAuthView
+
+    mock_appbuilder = _register_views_with_mock_appbuilder(mocker, AUTH_REMOTE_USER)
+
+    registered = [
+        call.args[0] for call in mock_appbuilder.add_view_no_menu.call_args_list
+    ]
+    assert SupersetAuthView not in registered
+
+
+def test_register_views_still_registers_superset_auth_view_for_db_auth(
+    app_context: None, mocker: MockerFixture
+) -> None:
+    """
+    Control case: AUTH_DB (the common, interactive case) is unaffected --
+    SupersetAuthView still registers at "/login/" as before.
+    """
+    from superset.views.auth import SupersetAuthView
+
+    mock_appbuilder = _register_views_with_mock_appbuilder(mocker, AUTH_DB)
+
+    registered = [
+        call.args[0] for call in mock_appbuilder.add_view_no_menu.call_args_list
+    ]
+    assert SupersetAuthView in registered
 
 
 @pytest.fixture
@@ -138,6 +222,69 @@ def test_raise_for_access_guest_user_ok_subset(
     }
     query_context.queries = [QueryObject(metrics=stored_metrics)]  # type: ignore
     sm.raise_for_access(query_context=query_context)
+
+
+def test_raise_for_access_guest_user_deck_multi_child_requires_child_datasource(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    The deck.gl multi-layer child leg must bind the requested datasource to
+    the child chart: a valid parent/child pair does not authorize querying
+    an arbitrary dataset.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "is_guest_user", return_value=True)
+    mocker.patch.object(sm, "can_access", return_value=False)
+    mocker.patch.object(sm, "can_access_schema", return_value=False)
+    mocker.patch.object(sm, "is_editor", return_value=False)
+    mocker.patch.object(sm, "can_access_dashboard", return_value=True)
+    mocker.patch.object(sm, "get_current_guest_user_if_guest", return_value=None)
+    mocker.patch(
+        "superset.is_feature_enabled",
+        side_effect=lambda feature: feature == "EMBEDDED_SUPERSET",
+    )
+    mocker.patch(
+        "superset.security.manager.query_context_modified",
+        return_value=False,
+    )
+
+    child_datasource = mocker.MagicMock()
+    other_datasource = mocker.MagicMock()
+
+    parent_slc = mocker.MagicMock()
+    parent_slc.params = json.dumps({"viz_type": "deck_multi", "deck_slices": [42]})
+    child_slc = mocker.MagicMock()
+    child_slc.datasource = child_datasource
+
+    dashboard = mocker.MagicMock()
+    dashboard.slices = [parent_slc]
+
+    query_mock = mocker.patch.object(sm.session, "query")
+    query_mock.return_value.filter.return_value.one_or_none.side_effect = [
+        dashboard,
+        parent_slc,
+        child_slc,
+        dashboard,
+        parent_slc,
+        child_slc,
+    ]
+
+    query_context = mocker.MagicMock()
+    query_context.form_data = {
+        "dashboardId": 10,
+        "slice_id": 42,
+        "parent_slice_id": 41,
+    }
+
+    # Requesting the child's own datasource is allowed.
+    query_context.datasource = child_datasource
+    sm.raise_for_access(query_context=query_context)
+
+    # The same chart context with any other datasource is rejected.
+    query_context.datasource = other_datasource
+    with pytest.raises(SupersetSecurityException):
+        sm.raise_for_access(query_context=query_context)
 
 
 def test_raise_for_access_guest_user_tampered_id(
@@ -1455,6 +1602,32 @@ def test_query_context_modified_native_filter_arbitrary_saved_metric_blocked(
     """A saved metric other than the filter's configured sort metric is modified."""
     query = SimpleNamespace(columns=["region"], metrics=["salary_total"], groupby=[])
     qc = _native_filter_ctx(mocker, [query], control_values={"sortMetric": "total"})
+    assert query_context_modified(qc)
+
+
+def test_query_context_modified_native_filter_series_limit_terms_blocked(
+    mocker: MockerFixture,
+) -> None:
+    """A series-limit metric or series column beyond the target is modified."""
+    query = SimpleNamespace(
+        columns=["region"],
+        metrics=[],
+        groupby=[],
+        series_columns=["region"],
+        series_limit=5,
+        series_limit_metric={
+            "expressionType": "SIMPLE",
+            "column": {"column_name": "salary"},
+            "aggregate": "MAX",
+        },
+    )
+    qc = _native_filter_ctx(mocker, [query])
+    assert query_context_modified(qc)
+
+    query = SimpleNamespace(
+        columns=["region"], metrics=[], groupby=[], series_columns=["ssn"]
+    )
+    qc = _native_filter_ctx(mocker, [query])
     assert query_context_modified(qc)
 
 
@@ -3283,6 +3456,32 @@ def test_user_view_menu_names_for_guest_user_no_roles(
     mock_get_user_id.assert_not_called()
 
 
+def test_request_loader_rejects_invalid_guest_token_before_bearer(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    Invalid guest tokens must not fall through to Bearer JWT auth.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    header_name = current_app.config["GUEST_TOKEN_HEADER_NAME"]
+    request = SimpleNamespace(
+        headers={header_name: "invalid-guest-token", "Authorization": "Bearer valid"},
+        form={},
+    )
+
+    mocker.patch(
+        "superset.extensions.feature_flag_manager.is_feature_enabled",
+        return_value=True,
+    )
+    mocker.patch.object(sm, "get_guest_user_from_request", return_value=None)
+    verify_jwt = mocker.patch("superset.security.manager.verify_jwt_in_request")
+
+    assert sm.request_loader(request) is None
+
+    verify_jwt.assert_not_called()
+
+
 def test_reset_password_self_service_clears_flag(
     mocker: MockerFixture,
     app_context: None,
@@ -3592,3 +3791,123 @@ def test_validate_guest_token_resources_accepts_embedded_int_id(
     sm.validate_guest_token_resources(
         [{"type": GuestTokenResourceType.DASHBOARD, "id": 5}]
     )
+
+
+def test_is_editor_query_owner(mocker: MockerFixture, app_context: None) -> None:
+    """
+    Test that a Query owner is considered an editor via Subject resolution.
+    """
+    from superset.models.sql_lab import Query
+
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "is_admin", return_value=False)
+    mocker.patch(
+        "superset.security.manager.get_user_id",
+        return_value=100,
+    )
+    mocker.patch(
+        "superset.subjects.utils.get_user_subject_ids",
+        return_value={1000},
+    )
+    mocker.patch(
+        "superset.security.manager.get_extra_editor_subject_ids",
+        return_value=set(),
+    )
+
+    subject_user_100 = mocker.MagicMock(id=1000)
+    subject_user_200 = mocker.MagicMock(id=2000)
+
+    def mock_get_user_subject(uid: int):
+        if uid == 100:
+            return subject_user_100
+        if uid == 200:
+            return subject_user_200
+        return None
+
+    mocker.patch(
+        "superset.subjects.utils.get_user_subject",
+        side_effect=mock_get_user_subject,
+    )
+
+    query = Query(user_id=100)
+    assert sm.is_editor(query) is True
+
+    other_query = Query(user_id=200)
+    assert sm.is_editor(other_query) is False
+
+
+def test_is_editor_saved_query_owner(mocker: MockerFixture, app_context: None) -> None:
+    """
+    Test that a SavedQuery owner is considered an editor via Subject resolution.
+    """
+    from superset.models.sql_lab import SavedQuery
+
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "is_admin", return_value=False)
+    mocker.patch(
+        "superset.security.manager.get_user_id",
+        return_value=100,
+    )
+    mocker.patch(
+        "superset.subjects.utils.get_user_subject_ids",
+        return_value={1000},
+    )
+    mocker.patch(
+        "superset.security.manager.get_extra_editor_subject_ids",
+        return_value=set(),
+    )
+
+    subject_user_100 = mocker.MagicMock(id=1000)
+    subject_user_200 = mocker.MagicMock(id=2000)
+
+    def mock_get_user_subject(uid: int):
+        if uid == 100:
+            return subject_user_100
+        if uid == 200:
+            return subject_user_200
+        return None
+
+    mocker.patch(
+        "superset.subjects.utils.get_user_subject",
+        side_effect=mock_get_user_subject,
+    )
+
+    saved_query = SavedQuery(user_id=100)
+    assert sm.is_editor(saved_query) is True
+
+    other_saved_query = SavedQuery(user_id=200)
+    assert sm.is_editor(other_saved_query) is False
+
+
+def test_is_editor_other_model_with_user_id_not_editor(
+    mocker: MockerFixture, app_context: None
+) -> None:
+    """
+    Test that a model with user_id that is NOT Query or SavedQuery
+    does NOT receive the fallback and is not considered an editor.
+    """
+    from superset.models.sql_lab import TabState
+
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "is_admin", return_value=False)
+    mocker.patch(
+        "superset.security.manager.get_user_id",
+        return_value=100,
+    )
+    mocker.patch(
+        "superset.subjects.utils.get_user_subject_ids",
+        return_value={1000},
+    )
+    mocker.patch(
+        "superset.security.manager.get_extra_editor_subject_ids",
+        return_value=set(),
+    )
+
+    subject_user_100 = mocker.MagicMock(id=1000)
+    mocker.patch(
+        "superset.subjects.utils.get_user_subject",
+        return_value=subject_user_100,
+    )
+
+    tab_state = TabState(user_id=100)
+    assert sm.is_editor(tab_state) is False

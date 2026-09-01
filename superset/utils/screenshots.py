@@ -25,7 +25,7 @@ from typing import cast, TYPE_CHECKING, TypedDict
 
 from flask import current_app as app
 
-from superset import feature_flag_manager, thumbnail_cache
+from superset import thumbnail_cache
 from superset.distributed_lock import DistributedLock
 from superset.exceptions import (
     LockAlreadyHeldException,
@@ -40,21 +40,10 @@ from superset.utils.webdriver import (
     DashboardStandaloneMode,
     WebDriverPlaywright,
     WebDriverProxy,
-    WebDriverSelenium,
     WindowSize,
 )
 
 logger = logging.getLogger(__name__)
-
-# Import Playwright availability and install message
-try:
-    from superset.utils.webdriver import (
-        PLAYWRIGHT_AVAILABLE,
-        PLAYWRIGHT_INSTALL_MESSAGE,
-    )
-except ImportError:
-    PLAYWRIGHT_AVAILABLE = False
-    PLAYWRIGHT_INSTALL_MESSAGE = "Playwright module not found"
 
 
 DEFAULT_SCREENSHOT_WINDOW_SIZE = 800, 600
@@ -84,6 +73,13 @@ class ScreenshotCachePayloadType(TypedDict):
     image: str | None
     timestamp: str
     status: str
+    # Identifies which object (e.g. "dashboard:<id>" or "chart:<id>") this
+    # entry was rendered for. Cache entries written before this field existed
+    # (or by a not-yet-upgraded worker during a rolling deploy) have no scope
+    # and are treated as belonging to no object -- read access is fail-closed
+    # until the entry is recomputed. Optional at the type level via `.get()`
+    # in `from_dict` for that reason.
+    scope: str | None
 
 
 # Magic bytes for a cheap image sanity check. This is intentionally not a full
@@ -112,10 +108,12 @@ class ScreenshotCachePayload:
         image: bytes | None = None,
         status: StatusValues = StatusValues.PENDING,
         timestamp: str = "",
+        scope: str | None = None,
     ):
         self._image = image
         self._timestamp = timestamp or datetime.now().isoformat()
         self.status = StatusValues.UPDATED if image else status
+        self._scope = scope
 
     @classmethod
     def from_dict(cls, payload: ScreenshotCachePayloadType) -> ScreenshotCachePayload:
@@ -123,6 +121,9 @@ class ScreenshotCachePayload:
             image=base64.b64decode(payload["image"]) if payload["image"] else None,
             status=StatusValues(payload["status"]),
             timestamp=payload["timestamp"],
+            # `.get` rather than `payload["scope"]`: entries cached before this
+            # field existed won't have the key.
+            scope=payload.get("scope"),
         )
 
     def to_dict(self) -> ScreenshotCachePayloadType:
@@ -132,7 +133,14 @@ class ScreenshotCachePayload:
             else None,
             "timestamp": self._timestamp,
             "status": self.status.value,
+            "scope": self._scope,
         }
+
+    def get_scope(self) -> str | None:
+        return self._scope
+
+    def set_scope(self, scope: str | None) -> None:
+        self._scope = scope
 
     def update_timestamp(self) -> None:
         self._timestamp = datetime.now().isoformat()
@@ -188,21 +196,35 @@ class ScreenshotCachePayload:
             datetime.now() - datetime.fromisoformat(self.get_timestamp())
         ).total_seconds() >= computing_ttl
 
-    def should_trigger_task(self, force: bool = False) -> bool:
+    def should_trigger_task(
+        self, force: bool = False, expected_scope: str | None = None
+    ) -> bool:
+        """
+        :param expected_scope: The scope (e.g. "dashboard:<id>") the caller
+            requires this entry to carry. Entries written before scope
+            tracking existed -- or by a stale/mismatched caller -- deserialize
+            with no scope (or a different one) and are otherwise
+            indistinguishable from a fresh, valid ``UPDATED`` entry, which
+            would leave them permanently un-refreshed: the scope check at
+            read time rejects them, but nothing ever re-triggers computation.
+            Treat a scope mismatch on an ``UPDATED`` entry as a cache miss so
+            it gets recomputed and re-scoped.
+        """
         return (
             force
             or self.status == StatusValues.PENDING
             or (self.status == StatusValues.ERROR and self.is_error_cache_ttl_expired())
             or (self.status == StatusValues.COMPUTING and self.is_computing_stale())
             or (self.status == StatusValues.UPDATED and self._image is None)
+            or (
+                self.status == StatusValues.UPDATED
+                and expected_scope is not None
+                and self._scope != expected_scope
+            )
         )
 
 
 class BaseScreenshot:
-    @property
-    def driver_type(self) -> str:
-        return app.config["WEBDRIVER_TYPE"]
-
     url: str
     digest: str | None
     screenshot: bytes | None
@@ -211,6 +233,13 @@ class BaseScreenshot:
     window_size: WindowSize = DEFAULT_SCREENSHOT_WINDOW_SIZE
     thumb_size: WindowSize = DEFAULT_SCREENSHOT_THUMBNAIL_SIZE
     cache: Cache = thumbnail_cache
+    # Set by the caller (e.g. "dashboard:<id>" or "chart:<id>") before
+    # compute_and_cache() so the resulting cache entry records which object it
+    # was rendered for -- callers that later serve a cache entry by a
+    # caller-supplied digest/cache_key must check this against the object
+    # they're authorizing, since the same cache backend is shared across
+    # every dashboard and chart.
+    cache_scope: str | None = None
 
     def __init__(self, url: str, digest: str | None):
         self.digest = digest
@@ -220,27 +249,10 @@ class BaseScreenshot:
     def driver(
         self,
         window_size: WindowSize | None = None,
-        user: User | None = None,
-        log_context: str | None = None,
     ) -> WebDriverProxy:
         window_size = window_size or self.window_size
-        if feature_flag_manager.is_feature_enabled("PLAYWRIGHT_REPORTS_AND_THUMBNAILS"):
-            # Try to use Playwright if available (supports WebGL/DeckGL, unlike Cypress)
-            if PLAYWRIGHT_AVAILABLE:
-                return WebDriverPlaywright(self.driver_type, window_size)
-
-            # Playwright not available, falling back to Selenium
-            context_suffix = f" [{log_context}]" if log_context else ""
-            logger.info(
-                "PLAYWRIGHT_REPORTS_AND_THUMBNAILS enabled but Playwright not "
-                "installed. Falling back to Selenium (WebGL/Canvas charts may "
-                "not render correctly). %s%s",
-                PLAYWRIGHT_INSTALL_MESSAGE,
-                context_suffix,
-            )
-
-        # Use Selenium as default/fallback
-        return WebDriverSelenium(self.driver_type, window_size, user)
+        # Empty string for driver_type — unused by WebDriverPlaywright internals
+        return WebDriverPlaywright("", window_size)
 
     def get_screenshot(
         self,
@@ -249,18 +261,14 @@ class BaseScreenshot:
         log_context: str | None = None,
         report_execution_context: ReportExecutionContext | None = None,
     ) -> bytes | None:
-        driver = self.driver(window_size, user, log_context=log_context)
-        try:
-            self.screenshot = driver.get_screenshot(
-                self.url,
-                self.element,
-                user,
-                log_context=log_context,
-                report_execution_context=report_execution_context,
-            )
-        finally:
-            if isinstance(driver, WebDriverSelenium):
-                driver.destroy()
+        driver = self.driver(window_size)
+        self.screenshot = driver.get_screenshot(
+            self.url,
+            self.element,
+            user,
+            log_context=log_context,
+            report_execution_context=report_execution_context,
+        )
         return self.screenshot
 
     def get_cache_key(
@@ -325,7 +333,7 @@ class BaseScreenshot:
         Computes the thumbnail and caches the result
 
         :param user: If no user is given will use the current context
-        :param cache: The cache to keep the thumbnail payload
+        :param cache_key: The cache key to store the thumbnail payload under
         :param window_size: The window size from which will process the thumb
         :param thumb_size: The final thumbnail size
         :param force: Will force the computation even if it's already cached
@@ -341,7 +349,9 @@ class BaseScreenshot:
                 cache_payload = (
                     self.get_from_cache_key(cache_key) or ScreenshotCachePayload()
                 )
-                if not cache_payload.should_trigger_task(force=force):
+                if not cache_payload.should_trigger_task(
+                    force=force, expected_scope=self.cache_scope
+                ):
                     logger.info(
                         "Skipping compute - already processed for thumbnail: %s",
                         cache_key,
@@ -351,6 +361,7 @@ class BaseScreenshot:
                 window_size = window_size or self.window_size
                 thumb_size = thumb_size or self.thumb_size
                 logger.info("Processing url for thumbnail: %s", cache_key)
+                cache_payload.set_scope(self.cache_scope)
                 cache_payload.computing()
                 self.cache.set(cache_key, cache_payload.to_dict())
                 image = None

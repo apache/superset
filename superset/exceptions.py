@@ -383,18 +383,23 @@ class OAuth2TokenRefreshError(OAuth2RedirectError):
     Raised when an OAuth2 refresh token request fails with a 400/401/403 error.
     The stored token is no longer valid and the user must re-authenticate.
 
-    Subclasses OAuth2RedirectError so that existing oauth2_exception checks
-    match it automatically, triggering start_oauth2_dance() via check_for_oauth2.
+    Subclasses OAuth2RedirectError as a sanitized re-authentication marker.
+    ``check_for_oauth2`` recognizes it independently of vendor-specific exception
+    classifiers and calls ``start_oauth2_dance`` to attach the authorization metadata.
+    The optional provider response is accepted for compatibility but discarded so
+    provider payloads cannot reach logs or API responses through the exception.
     """
 
-    def __init__(self, response_text: str) -> None:
+    def __init__(  # pylint: disable=unused-argument
+        self,
+        response_text: str | None = None,
+    ) -> None:
         SupersetErrorException.__init__(
             self,
             SupersetError(
                 message="OAuth2 token refresh failed, re-authentication required.",
                 error_type=SupersetErrorType.OAUTH2_REDIRECT,
                 level=ErrorLevel.WARNING,
-                extra={"error": response_text},
             ),
         )
 

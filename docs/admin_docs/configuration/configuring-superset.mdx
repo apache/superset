@@ -97,6 +97,54 @@ for more information on how to configure it.
 
 At the very least, you'll want to change `SECRET_KEY` and `SQLALCHEMY_DATABASE_URI`. Continue reading for more about each of these.
 
+## Localizing D3 date and time labels
+
+`BABEL_DEFAULT_LOCALE` controls Superset's application translations, while
+`D3_TIME_FORMAT` provides localized date and time names to visualizations that
+use the D3 formatter registry, including Calendar Heatmap. Configure both when
+you want the application and chart labels to use the same locale.
+
+`D3_TIME_FORMAT` accepts partial overrides. For example, Russian month names
+can be configured in `superset_config.py` as follows:
+
+```python
+BABEL_DEFAULT_LOCALE = "ru"
+
+D3_TIME_FORMAT = {
+    "months": [
+        "Январь",
+        "Февраль",
+        "Март",
+        "Апрель",
+        "Май",
+        "Июнь",
+        "Июль",
+        "Август",
+        "Сентябрь",
+        "Октябрь",
+        "Ноябрь",
+        "Декабрь",
+    ],
+    "shortMonths": [
+        "Янв",
+        "Фев",
+        "Мар",
+        "Апр",
+        "Май",
+        "Июн",
+        "Июл",
+        "Авг",
+        "Сен",
+        "Окт",
+        "Ноя",
+        "Дек",
+    ],
+}
+```
+
+Restart Superset after changing `superset_config.py` so the frontend receives
+the updated formatter configuration.
+
 ## Chart-data query timing
 
 Set `CHART_DATA_INCLUDE_TIMING = True` to add an optional versioned timing object
@@ -306,6 +354,22 @@ to simplify the process of setting up a non-default root path across the service
 
 In `docker/.env-local` set `SUPERSET_APP_ROOT` to the desired prefix and then bring the
 services up with `docker compose up --detach`.
+
+### Swagger UI
+
+By default, Superset's Swagger UI and OpenAPI spec (enabled via `FAB_API_SWAGGER_UI`) are
+served by Flask-AppBuilder and don't account for a non-root `APPLICATION_ROOT` prefix. If
+you're running Superset behind a URL prefix and want the Swagger UI and OpenAPI spec to
+resolve correctly, set:
+
+```python
+FAB_API_SWAGGER_UI_SUPERSET_APP_ROOT = True
+```
+
+in your `superset_config.py` file. This serves an `APPLICATION_ROOT`-aware Swagger UI and
+OpenAPI spec at `/swagger/<version>` and `/api/<version>/_openapi` respectively, resolved
+through the configured prefix. This flag only takes effect when `FAB_API_SWAGGER_UI` is
+also enabled, and defaults to `False`.
 
 ## Custom OAuth2 Configuration
 

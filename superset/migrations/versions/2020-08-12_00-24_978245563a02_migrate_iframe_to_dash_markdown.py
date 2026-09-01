@@ -89,7 +89,7 @@ def create_new_markdown_component(chart_position, url):
 
 def upgrade():
     bind = op.get_bind()
-    session = db.Session(bind=bind, future=True)
+    session = db.Session(bind=bind)
 
     dash_to_migrate = defaultdict(list)
     iframe_urls = defaultdict(list)

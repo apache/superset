@@ -22,7 +22,7 @@ import re
 from datetime import datetime
 from typing import Any, Callable, TYPE_CHECKING
 
-from flask import current_app as app, g, make_response, request, Response
+from flask import current_app as app, make_response, request, Response
 from flask_appbuilder.api import expose, protect
 from flask_babel import gettext as _
 from marshmallow import ValidationError
@@ -37,6 +37,7 @@ from superset.charts.data.dashboard_filter_context import (
     DashboardFilterContext,
     get_dashboard_filter_context,
 )
+from superset.charts.data.form_data import set_form_data
 from superset.charts.data.query_context_cache_loader import QueryContextCacheLoader
 from superset.charts.schemas import ChartDataQueryContextSchema
 from superset.commands.chart.data.create_async_job_command import (
@@ -65,11 +66,13 @@ from superset.utils.core import (
     get_user_id,
 )
 from superset.utils.decorators import logs_context
+from superset.utils.error_sanitization import sanitize_error_message
 from superset.views.base import CsvResponse, generate_download_headers, XlsxResponse
 from superset.views.base_api import statsd_metrics
 
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
+    from superset.models.slice import Slice
 
 logger = logging.getLogger(__name__)
 
@@ -213,7 +216,7 @@ class ChartDataRestApi(ChartRestApi):
         # templating pulls form data from the request globally, so this
         # fallback ensures it has the filters and extra_form_data applied
         # when used in get_sqla_query which constructs the final query.
-        g.form_data = json_body
+        set_form_data(json_body)
 
         try:
             query_context = self._create_query_context_from_form(json_body)
@@ -256,6 +259,7 @@ class ChartDataRestApi(ChartRestApi):
             datasource=query_context.datasource,
             add_extra_log_payload=add_extra_log_payload,
             dashboard_filter_context=dashboard_filter_context,
+            slice_=chart,
         )
 
     @expose("/data", methods=("POST",))
@@ -409,8 +413,14 @@ class ChartDataRestApi(ChartRestApi):
             cached_data = self._load_query_context_form_from_cache(cache_key)
             # Set form_data in Flask Global as it is used as a fallback
             # for async queries with jinja context
-            g.form_data = cached_data
+            set_form_data(cached_data)
             query_context = self._create_query_context_from_form(cached_data)
+            # Mark as a cache replay so _sql_filters_modified skips the
+            # SQL-extras check.  The original request already passed the
+            # full security check, cache keys are opaque SHA-256 hashes
+            # (unguessable), and force_cached only serves pre-computed
+            # data — no new SQL is executed.
+            query_context._from_cache_replay = True
             command = ChartDataCommand(query_context)
             command.validate()
         except ChartDataCacheLoadError:
@@ -467,6 +477,7 @@ class ChartDataRestApi(ChartRestApi):
         filename: str | None = None,
         expected_rows: int | None = None,
         dashboard_filter_context: DashboardFilterContext | None = None,
+        slice_: Slice | None = None,
     ) -> Response:
         if isinstance(result, ChartDataExecutionResult):
             execution_result: ChartDataExecutionResult | None = result
@@ -504,6 +515,12 @@ class ChartDataRestApi(ChartRestApi):
 
             is_csv_format = result_format == ChartDataResultFormat.CSV
 
+            # A chart's saved query context rarely carries a slice_id in its
+            # form data, so the query context factory can't resolve the slice
+            # for it; routes that already hold the chart pass it explicitly
+            # and the factory-resolved slice covers the rest.
+            slice_ = slice_ or materialized_result["query_context"].slice_
+
             # Check if we should use streaming for large datasets
             if is_csv_format and self._should_use_streaming(
                 materialized_result,
@@ -514,9 +531,12 @@ class ChartDataRestApi(ChartRestApi):
                     form_data,
                     filename=filename,
                     expected_rows=expected_rows,
+                    slice_=slice_,
                 )
 
-            export_filename = filename or self._get_default_export_filename(form_data)
+            export_filename = filename or self._get_default_export_filename(
+                form_data, slice_
+            )
             # `generate_download_headers` always appends the format extension,
             # so strip a matching one here to avoid doubled extensions (e.g.
             # "chart.csv.csv") if the caller already included it.
@@ -565,8 +585,20 @@ class ChartDataRestApi(ChartRestApi):
                     query["timing"] = query_result.timing.as_public_dict()
 
             if security_manager.is_guest_user():
+                # Guests may see the generated SQL only when the role attached to
+                # their guest token has been granted "can view query on Dashboard",
+                # mirroring the permission the frontend uses to expose the
+                # "View query" action. Stacktraces and driver errors stay redacted
+                # regardless, as those leak details of the deployment itself.
+                can_view_query = security_manager.can_access(
+                    "can_view_query", "Dashboard"
+                )
                 for query in queries:
-                    query.pop("query", None)
+                    if not can_view_query:
+                        query.pop("query", None)
+                    query.pop("stacktrace", None)
+                    if query.get("error"):
+                        query["error"] = sanitize_error_message(query["error"])
 
             payload: dict[str, Any] = {"result": queries}
             if dashboard_filter_context is not None:
@@ -585,22 +617,45 @@ class ChartDataRestApi(ChartRestApi):
         return self.response_400(message=f"Unsupported result_format: {result_format}")
 
     @staticmethod
-    def _get_default_export_filename(form_data: dict[str, Any] | None) -> str:
+    def _get_default_export_filename(
+        form_data: dict[str, Any] | None,
+        slice_: Slice | None = None,
+    ) -> str:
         """
         Build a fallback export filename (without extension) from the chart's
         name so downloaded files are easy to identify, instead of the
         generic timestamp-only default used by ``generate_download_headers``.
 
+        The name comes from the first usable candidate: an explicit
+        ``slice_name`` in the form data, the name of the chart the export
+        was requested for, the ``viz_type``, and finally a generic "export".
+
         Used whenever the client hasn't supplied an explicit filename, by
         both the streaming and non-streaming chart data export responses.
         """
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        chart_name = "export"
+        candidates = (
+            form_data.get("slice_name") if form_data else None,
+            slice_.slice_name if slice_ is not None else None,
+            form_data.get("viz_type") if form_data else None,
+        )
 
-        if form_data and form_data.get("slice_name"):
-            chart_name = form_data["slice_name"]
-        elif form_data and form_data.get("viz_type"):
-            chart_name = form_data["viz_type"]
+        chart_name = "export"
+        for candidate in candidates:
+            if not isinstance(candidate, str):
+                continue
+            # secure_filename strips a name written entirely in a non-latin
+            # alphabet down to an empty string; skip such candidates so the
+            # filename keeps a meaningful segment.
+            if safe_candidate := secure_filename(candidate):
+                chart_name = safe_candidate
+                break
+
+        # Chart names can be up to 250 characters; cap the name segment so
+        # the whole filename (prefix, timestamp and extension included)
+        # stays within the 255-character single-component limit common to
+        # NTFS, ext4 and APFS.
+        chart_name = chart_name[:150]
 
         return secure_filename(f"superset_{chart_name}_{timestamp}")
 
@@ -634,14 +689,15 @@ class ChartDataRestApi(ChartRestApi):
         expected_rows: int | None = None,
         add_extra_log_payload: Callable[..., None] | None = None,
         dashboard_filter_context: DashboardFilterContext | None = None,
+        slice_: Slice | None = None,
     ) -> Response:
         """Get data response and optionally log is_cached information."""
         try:
             result = command.execute(force_cached=force_cached)
         except ChartDataCacheLoadError as exc:
-            return self.response_422(message=exc.message)
+            return self.response_422(message=sanitize_error_message(exc.message))
         except ChartDataQueryFailedError as exc:
-            return self.response_400(message=exc.message)
+            return self.response_400(message=sanitize_error_message(exc.message))
 
             # Log is_cached if extra payload callback is provided
         materialized_result = result.materialize()
@@ -658,6 +714,7 @@ class ChartDataRestApi(ChartRestApi):
             filename,
             expected_rows,
             dashboard_filter_context=dashboard_filter_context,
+            slice_=slice_,
         )
 
     def _extract_export_params_from_request(self) -> tuple[str | None, int | None]:
@@ -765,13 +822,14 @@ class ChartDataRestApi(ChartRestApi):
         form_data: dict[str, Any] | None = None,
         filename: str | None = None,
         expected_rows: int | None = None,
+        slice_: Slice | None = None,
     ) -> Response:
         """Create a streaming CSV response for large datasets."""
         query_context = result["query_context"]
 
         # Use filename from frontend if provided, otherwise generate one
         if not filename:
-            filename = f"{self._get_default_export_filename(form_data)}.csv"
+            filename = f"{self._get_default_export_filename(form_data, slice_)}.csv"
         else:
             # Sanitize the client-provided filename before placing it in the
             # Content-Disposition header to avoid header/path injection.

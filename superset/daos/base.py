@@ -38,7 +38,7 @@ from flask_appbuilder.models.filters import BaseFilter
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from pydantic import BaseModel, Field
 from sqlalchemy import asc, cast, desc, false, or_, Text
-from sqlalchemy.exc import SQLAlchemyError, StatementError
+from sqlalchemy.exc import OperationalError, SQLAlchemyError, StatementError
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.inspection import inspect
 from sqlalchemy.orm import ColumnProperty, joinedload, Query, RelationshipProperty
@@ -255,6 +255,11 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
             filter = uuid_column == model_id_or_uuid
         try:
             return query.filter(filter).one_or_none()
+        except OperationalError:
+            # A transient connection-level failure (e.g. the server dropping the
+            # connection mid-query) surfaces as OperationalError, a StatementError
+            # subclass. Let it propagate instead of masking it as a "not found".
+            raise
         except StatementError:
             # can happen if neither uuid nor int is passed
             return None
@@ -341,6 +346,11 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
 
         try:
             return query.filter(column == converted_value).one_or_none()
+        except OperationalError:
+            # A transient connection-level failure (e.g. the server dropping the
+            # connection mid-query) surfaces as OperationalError, a StatementError
+            # subclass. Let it propagate instead of masking it as a "not found".
+            raise
         except StatementError:
             # can happen if int is passed instead of a string or similar
             return None
@@ -433,6 +443,11 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
 
         try:
             results = query.all()
+        except OperationalError:
+            # A transient connection-level failure (e.g. the server dropping the
+            # connection mid-query) surfaces as OperationalError. Let it propagate
+            # as a 5xx instead of masking it as a 400 "record doesn't exist".
+            raise
         except SQLAlchemyError as ex:
             model_name = cls.model_cls.__name__ if cls.model_cls else "Unknown"
             raise DAOFindFailedError(
@@ -670,10 +685,21 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
                 f"found {len(pk_cols)} columns."
             )
         related_pk = pk_cols[0]
-        if operator_enum == ColumnOperatorEnum.eq:
-            return query.filter(column.any(related_pk == value))
-        if operator_enum == ColumnOperatorEnum.ne:
-            # "no related row has id == value"
+        if operator_enum in (ColumnOperatorEnum.eq, ColumnOperatorEnum.ne):
+            # `value` must be scalar for both eq and ne: a list/tuple would
+            # silently compile to `related_pk == [...]` (or `!= [...]`),
+            # which behaves unpredictably across backends instead of
+            # failing fast. Use `in`/`nin` to match multiple related ids.
+            if isinstance(value, (list, tuple)):
+                counterpart = "in" if operator_enum == ColumnOperatorEnum.eq else "nin"
+                raise ValueError(
+                    f"Operator '{operator_enum.value}' on relationship "
+                    f"column '{col_name}' requires a scalar value, got "
+                    f"{type(value).__name__}. Use '{counterpart}' to match "
+                    f"multiple related ids."
+                )
+            if operator_enum == ColumnOperatorEnum.eq:
+                return query.filter(column.any(related_pk == value))
             return query.filter(~column.any(related_pk == value))
         if operator_enum == ColumnOperatorEnum.in_:
             values = value if isinstance(value, (list, tuple)) else [value]

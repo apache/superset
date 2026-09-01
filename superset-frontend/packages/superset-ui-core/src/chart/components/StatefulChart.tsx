@@ -18,7 +18,7 @@
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { isEqual } from 'lodash';
+import { isEqual } from 'lodash-es';
 import { ParentSize } from '@visx/responsive';
 import { t } from '@apache-superset/core/translation';
 import {

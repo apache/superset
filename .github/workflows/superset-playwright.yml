@@ -22,6 +22,9 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   changes:
     runs-on: ubuntu-26.04
@@ -155,6 +158,17 @@ jobs:
           INCLUDE_EMBEDDED: "true"
         with:
           run: playwright-run "${{ matrix.app_root }}" embedded
+      - name: Run Playwright (Mobile Tests)
+        uses: ./.github/actions/cached-dependencies
+        env:
+          NODE_OPTIONS: "--max-old-space-size=4096"
+          # Scoped to this step for the same reason as the embedded flags
+          # above: the mobile consumption mode should not alter Flask's
+          # configuration for the required desktop test steps.
+          SUPERSET_FEATURE_MOBILE_CONSUMPTION_MODE: "true"
+          INCLUDE_MOBILE: "true"
+        with:
+          run: playwright-run "${{ matrix.app_root }}" mobile/
       - name: Set safe app root
         if: failure()
         id: set-safe-app-root
@@ -178,6 +192,6 @@ jobs:
     permissions:
       actions: read
     steps:
-      - uses: Kesin11/actions-timeline@7bf79990b7c09f5dfb570ac30b814ca597bd538e # v3.1.1
+      - uses: Kesin11/actions-timeline@57fc93f20c6da7fbc14063c6d24a2a5627c799ad # v3.2.0
         with:
           expand-composite-actions: true

@@ -83,12 +83,32 @@ class Datasource(BaseSupersetView):
         orm_datasource = DatasourceDAO.get_datasource(
             DatasourceType(datasource_type), datasource_id
         )
-        orm_datasource.database_id = database_id
 
         try:
             security_manager.raise_for_editorship(orm_datasource)
         except SupersetSecurityException as ex:
             raise DatasetForbiddenError() from ex
+
+        if database_id != orm_datasource.database_id:
+            new_database = DatasetDAO.get_database_by_id(database_id)
+            if new_database is None:
+                return json_error_response(_("Database not found."), status=422)
+            try:
+                security_manager.raise_for_access(
+                    database=new_database,
+                    # Check access against the table/schema/catalog the
+                    # request is repointing to, not the dataset's current
+                    # values -- update_from_object (below) applies whatever
+                    # table_name/schema/catalog the request supplies.
+                    table=Table(
+                        datasource_dict.get("table_name", orm_datasource.table_name),
+                        datasource_dict.get("schema", orm_datasource.schema),
+                        datasource_dict.get("catalog", orm_datasource.catalog),
+                    ),
+                )
+            except SupersetSecurityException as ex:
+                raise DatasetForbiddenError() from ex
+            orm_datasource.database_id = database_id
 
         duplicates = [
             name

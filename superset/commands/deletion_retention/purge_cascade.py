@@ -52,6 +52,14 @@ import sqlalchemy as sa
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from superset.commands.deletion_retention.purge_policy import (
+    BlockerReason,
+    get_purge_policy,
+    PurgeBlockedError,
+    PurgeEntityPolicy,
+    REASON_CASCADE_INTEGRITY_FAILURE,
+)
+
 logger: logging.Logger = logging.getLogger(__name__)
 
 
@@ -138,11 +146,17 @@ class CascadeResult:
     dangling_chart_uuids: list[str] = field(default_factory=list)
     removed_dashboard_slices: int = 0
     version_rows_removed: int = 0
-    blocked_reason: str | None = None
+    blocker: BlockerReason | None = None
 
+    @property
+    def blocked_reason(self) -> str | None:
+        """Return the operator-facing blocker phrase, if the purge was blocked."""
+        return self.blocker.phrase if self.blocker else None
 
-class PurgeBlockedError(Exception):
-    """Raised when ordinary deletion policy forbids purging an entity."""
+    @property
+    def blocked_reason_code(self) -> str | None:
+        """Return the stable audit code, if the purge was blocked."""
+        return self.blocker.code if self.blocker else None
 
 
 class PurgeRaceLostError(Exception):
@@ -196,10 +210,6 @@ def cascade_hard_delete(
     window) requires only that it is still soft-deleted, so a restore
     committed after the caller resolved the entity cannot be destroyed.
     """
-    # pylint: disable=import-outside-toplevel
-    from superset.connectors.sqla.models import SqlaTable
-    from superset.models.slice import Slice
-
     if enforce_window and cutoff is None:
         raise ValueError("cutoff is required when enforce_window=True")
 
@@ -207,12 +217,13 @@ def cascade_hard_delete(
     table = model.__table__
     entity_id = entity.id
     uuid = entity_uuid(entity)
-    entity_type = _USER_FACING_TYPE.get(table.name, table.name)
+    policy: PurgeEntityPolicy = get_purge_policy(model)
+    entity_type: str = policy.entity_type
 
     dangling_chart_uuids: list[str] = []
     removed_dashboard_slices = 0
     version_rows = 0
-    permission_name = _dataset_permission_name(entity) if model is SqlaTable else None
+    permission_name: str | None = None
 
     try:
         with session.begin_nested():
@@ -230,22 +241,19 @@ def cascade_hard_delete(
             if session.execute(claim.with_for_update()).scalar_one_or_none() is None:
                 raise PurgeRaceLostError
 
-            _validate_deletion_allowed(session, model, entity_id)
-            removed_dashboard_slices = _count_dashboard_slices(
-                session, model, entity_id
+            policy.validate(session, policy, entity_id)
+            # Captured under the lock: the row is claimed, so the identity
+            # the permission name is built from can no longer change.
+            permission_name = policy.capture_permission_name(session, policy, entity_id)
+            removed_dashboard_slices = policy.count_dashboard_slices(
+                session, policy, entity_id
             )
-            if model is SqlaTable:
-                dangling_chart_uuids = [
-                    str(chart_uuid)
-                    for (chart_uuid,) in session.execute(
-                        sa.select(Slice.uuid)
-                        .where(Slice.datasource_id == entity_id)
-                        .where(Slice.datasource_type == "table")
-                    )
-                ]
+            dangling_chart_uuids = policy.collect_dangling_chart_uuids(
+                session, policy, entity_id
+            )
 
-            _delete_m2m_joins(session, model, entity_id)
-            _delete_owned_children(session, model, entity_id)
+            policy.delete_associations(session, policy, entity_id)
+            policy.delete_owned_children(session, policy, entity_id)
             version_rows = _delete_version_history(session, entity, entity_id)
 
             delete_entity = sa.delete(table).where(*identity).where(*eligibility)
@@ -253,7 +261,7 @@ def cascade_hard_delete(
                 raise PurgeRaceLostError
 
             if permission_name is not None:
-                _cleanup_dataset_permission(session, permission_name, entity_id)
+                policy.cleanup_permission(session, policy, permission_name, entity_id)
     except PurgeRaceLostError:
         logger.info(
             "deletion_retention: %s id=%s not purged (restored or already gone)",
@@ -271,20 +279,21 @@ def cascade_hard_delete(
             purged=False,
             entity_type=entity_type,
             entity_uuid=uuid,
-            blocked_reason=str(ex),
+            blocker=ex.reason,
         )
     except IntegrityError as ex:
-        # Not a policy decision: a restrictive FK the cascade did not handle.
+        # Not a policy decision: a database integrity constraint failed.
         # Two audiences, two messages. The curated reason goes to the caller
         # (and from there into a user toast), because raw driver text carries
         # the failing SQL and bind parameters. The constraint detail goes to
-        # the log at WARNING, because an entity permanently unpurgeable via an
-        # unknown FK is a cascade-coverage bug someone has to be able to
-        # diagnose -- reported at INFO as a policy block, it read as intended
-        # behaviour.
+        # the log at WARNING, because an entity permanently unpurgeable after
+        # an integrity failure represents a cascade defect someone has to be
+        # able to diagnose. The stable audit code identifies this as an unexpected
+        # cascade failure rather than intended policy behavior without
+        # claiming which kind of constraint the database reported.
         logger.warning(
-            "deletion_retention: %s id=%s purge failed on a restrictive "
-            "foreign key the cascade does not handle: %s",
+            "deletion_retention: %s id=%s purge failed on a database "
+            "integrity constraint: %s",
             entity_type,
             entity_id,
             ex,
@@ -293,7 +302,10 @@ def cascade_hard_delete(
             purged=False,
             entity_type=entity_type,
             entity_uuid=uuid,
-            blocked_reason="blocked by database references",
+            blocker=BlockerReason(
+                REASON_CASCADE_INTEGRITY_FAILURE,
+                "cascade blocked by a database integrity constraint",
+            ),
         )
 
     return CascadeResult(
@@ -306,207 +318,10 @@ def cascade_hard_delete(
     )
 
 
-_USER_FACING_TYPE: dict[str, str] = {
-    "slices": "chart",
-    "dashboards": "dashboard",
-    "tables": "dataset",
-}
-
-
-def _validate_deletion_allowed(
-    session: Session, model: type[Any], entity_id: int
-) -> None:
-    """Apply the dependency guards used by ordinary delete commands."""
-    # pylint: disable=import-outside-toplevel
-    from superset.models.dashboard import Dashboard
-    from superset.models.slice import Slice
-    from superset.models.user_attributes import UserAttribute
-    from superset.reports.models import ReportSchedule
-
-    column: Any | None = None
-    if model is Slice:
-        column = ReportSchedule.chart_id
-    elif model is Dashboard:
-        column = ReportSchedule.dashboard_id
-    if (
-        column is not None
-        and session.execute(
-            sa.select(ReportSchedule.id).where(column == entity_id).limit(1)
-        ).first()
-    ):
-        raise PurgeBlockedError("associated alerts or reports exist")
-
-    # The welcome-dashboard reference must be an explicit guard, not a hope
-    # that the database enforces it: user_attributes.welcome_dashboard_id has
-    # no ondelete, so on FK-enforcing backends the delete fails with an
-    # IntegrityError misreported as a policy block -- while on SQLite with
-    # FKs off the dashboard purges "successfully", strands a dangling pointer
-    # (a broken user homepage), and the audit row says confirmed. One check,
-    # both dialect families, and a reason the blocked entity can be named by.
-    if (
-        model is Dashboard
-        and session.execute(
-            sa.select(UserAttribute.id)
-            .where(UserAttribute.welcome_dashboard_id == entity_id)
-            .limit(1)
-        ).first()
-    ):
-        raise PurgeBlockedError("a user has this dashboard set as their welcome page")
-
-
-def _count_dashboard_slices(session: Session, model: type[Any], entity_id: int) -> int:
-    """Snapshot relationship counts before DB cascades can remove rows."""
-    # pylint: disable=import-outside-toplevel
-    from superset.models.dashboard import Dashboard, dashboard_slices
-    from superset.models.slice import Slice
-
-    predicate: Any | None = None
-    if model is Dashboard:
-        predicate = dashboard_slices.c.dashboard_id == entity_id
-    elif model is Slice:
-        predicate = dashboard_slices.c.slice_id == entity_id
-    if predicate is None:
-        return 0
-    return int(
-        session.execute(
-            sa.select(sa.func.count()).select_from(dashboard_slices).where(predicate)
-        ).scalar_one()
-    )
-
-
 def dashboard_slice_count(session: Session, entity: Any) -> int:
     """Return the current dashboard relationship count for audit write-ahead."""
-    return _count_dashboard_slices(session, type(entity), entity.id)
-
-
-def _delete_m2m_joins(session: Session, model: type[Any], entity_id: int) -> None:
-    """Hard-delete every M:N join / association row the entity owns.
-
-    Relationship counts are captured before this function runs so database
-    cascades cannot make the reported values dialect-dependent.
-    """
-    # pylint: disable=import-outside-toplevel
-    from superset.connectors.sqla.models import SqlaTable
-    from superset.models.dashboard import Dashboard, dashboard_slices
-    from superset.models.slice import Slice
-    from superset.subjects.models import (
-        chart_editors,
-        chart_viewers,
-        dashboard_editors,
-        dashboard_viewers,
-        sqlatable_editors,
-    )
-    from superset.tags.models import ObjectType, TaggedObject
-
-    if model is Dashboard:
-        session.execute(
-            sa.delete(dashboard_slices).where(
-                dashboard_slices.c.dashboard_id == entity_id
-            )
-        )
-        for association in (dashboard_editors, dashboard_viewers):
-            session.execute(
-                sa.delete(association).where(association.c.dashboard_id == entity_id)
-            )
-        _delete_tags(session, TaggedObject, ObjectType.dashboard, entity_id)
-    elif model is Slice:
-        # Every dashboard_slices row pointing at this chart, including those
-        # owned by live dashboards (the live dashboard survives, minus this
-        # chart from its layout).
-        session.execute(
-            sa.delete(dashboard_slices).where(dashboard_slices.c.slice_id == entity_id)
-        )
-        for association in (chart_editors, chart_viewers):
-            session.execute(
-                sa.delete(association).where(association.c.chart_id == entity_id)
-            )
-        _delete_tags(session, TaggedObject, ObjectType.chart, entity_id)
-    elif model is SqlaTable:
-        from superset.connectors.sqla.models import RLSFilterTables
-
-        session.execute(
-            sa.delete(sqlatable_editors).where(
-                sqlatable_editors.c.table_id == entity_id
-            )
-        )
-        session.execute(
-            sa.delete(RLSFilterTables).where(RLSFilterTables.c.table_id == entity_id)
-        )
-        _delete_tags(session, TaggedObject, ObjectType.dataset, entity_id)
-
-
-def _delete_tags(
-    session: Session, tagged_object: type[Any], object_type: Any, entity_id: int
-) -> None:
-    """Remove ``tagged_object`` rows skipped by the Core bulk delete."""
-    session.execute(
-        sa.delete(tagged_object.__table__).where(
-            tagged_object.object_id == entity_id,
-            tagged_object.object_type == object_type,
-        )
-    )
-
-
-def _delete_owned_children(session: Session, model: type[Any], entity_id: int) -> None:
-    """Hard-delete the entity's owned children — rows with no independent
-    existence: a dataset's columns and metrics, a dashboard's embedded
-    configs. Charts have no such owned child tables today.
-    """
-    # pylint: disable=import-outside-toplevel
-    from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
-    from superset.models.dashboard import Dashboard
-    from superset.models.embedded_dashboard import EmbeddedDashboard
-
-    if model is SqlaTable:
-        session.execute(
-            sa.delete(TableColumn.__table__).where(
-                TableColumn.__table__.c.table_id == entity_id
-            )
-        )
-        session.execute(
-            sa.delete(SqlMetric.__table__).where(
-                SqlMetric.__table__.c.table_id == entity_id
-            )
-        )
-    elif model is Dashboard:
-        # Embedded configs (delete-orphan children carrying the public
-        # embed UUID and allowed_domains) — the ORM cascade does not fire
-        # for Core deletes and the DB cascade is a backstop only.
-        session.execute(
-            sa.delete(EmbeddedDashboard.__table__).where(
-                EmbeddedDashboard.__table__.c.dashboard_id == entity_id
-            )
-        )
-
-
-def _dataset_permission_name(entity: Any) -> str:
-    """Capture the permission identifier while dataset attributes are readable."""
-    # pylint: disable=import-outside-toplevel
-    from superset import security_manager
-
-    return str(
-        security_manager.get_dataset_perm(
-            entity.id, entity.table_name, entity.database.database_name
-        )
-    )
-
-
-def _cleanup_dataset_permission(
-    session: Session, permission_name: str, entity_id: int
-) -> None:
-    """Replicate ``SqlaTable.after_delete`` permission cleanup.
-
-    Core ``sa.delete`` does not fire the ORM ``after_delete`` listener that
-    normally removes the dataset's ``datasource access`` view-menu /
-    permission-view, so it is done explicitly here or the PVM is orphaned.
-    """
-    # pylint: disable=import-outside-toplevel
-    from superset import security_manager
-
-    security_manager._delete_pvm_on_sqla_event(  # pylint: disable=protected-access
-        None, session.connection(), "datasource_access", permission_name
-    )
-    logger.debug("deletion_retention: removed dataset permission for id=%s", entity_id)
+    policy: PurgeEntityPolicy = get_purge_policy(type(entity))
+    return policy.count_dashboard_slices(session, policy, entity.id)
 
 
 def _entity_version_targets(
@@ -520,24 +335,19 @@ def _entity_version_targets(
     the dashboard/chart M2M shadow (``dashboard_slices_version``) and a
     dataset's child shadows (``table_columns_version`` / ``sql_metrics_version``
     keyed by ``table_id``). It never touches another entity's rows."""
-    # pylint: disable=import-outside-toplevel
-    from superset.connectors.sqla.models import SqlaTable
-    from superset.models.dashboard import Dashboard
-    from superset.models.slice import Slice
-
-    targets: list[tuple[sa.Table, Any]] = [
-        (parent_shadow, parent_shadow.c.id == entity_id)
-    ]
-    m2m = metadata.tables.get("dashboard_slices_version")
-    if m2m is not None and model is Dashboard:
-        targets.append((m2m, m2m.c.dashboard_id == entity_id))
-    elif m2m is not None and model is Slice:
-        targets.append((m2m, m2m.c.slice_id == entity_id))
-    elif model is SqlaTable:
-        for child_name in ("table_columns_version", "sql_metrics_version"):
-            child = metadata.tables.get(child_name)
-            if child is not None and "table_id" in child.c:
-                targets.append((child, child.c.table_id == entity_id))
+    targets: list[tuple[sa.Table, Any]] = []
+    for table_name, column_name in get_purge_policy(model).version_shadow_names:
+        shadow: sa.Table | None = (
+            parent_shadow
+            if table_name == parent_shadow.name
+            else metadata.tables.get(table_name)
+        )
+        if shadow is None or column_name not in shadow.c:
+            raise RuntimeError(
+                f"Invalid version shadow declaration for {model.__name__}: "
+                f"{table_name}.{column_name}"
+            )
+        targets.append((shadow, shadow.c[column_name] == entity_id))
     return targets
 
 

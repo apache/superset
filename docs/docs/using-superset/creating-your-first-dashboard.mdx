@@ -165,6 +165,31 @@ You can also certify metrics if you'd like for your team in this view.
 - [Blog: Unlocking the Power of Virtual Datasets](https://preset.io/blog/unlocking-the-power-of-virtual-datasets-in-apache-superset/)
   :::
 
+### Native filters on semantic views
+
+When the `SEMANTIC_LAYERS` feature flag is enabled, Superset can connect to external semantic layers
+(such as dbt Semantic Layer or Cube) and expose their semantic views as data sources alongside your
+regular Datasets. Semantic views can be used as filter targets when adding a native (dashboard) filter,
+the same way a Dataset can.
+
+To add a filter on a semantic view:
+
+1. Open the dashboard, click the **⋮** (more options) menu, and select **Edit dashboard**.
+2. Open the Filter Bar and click **+ Add/Edit Filters**.
+3. Add a new filter and, in the datasource dropdown, select a semantic view. Semantic views are listed
+   alongside datasets and can be identified by their type.
+4. Select one of the semantic view's dimensions in the **Column** field, the same way you'd select a
+   column on a dataset.
+5. Configure the remaining filter options (filter type, default value, scope, etc.) and click **Save**.
+
+Any chart on the dashboard that's powered by the same semantic view is filtered by the selected
+dimension when the filter is applied.
+
+:::note
+Semantic views and native filter support for them are part of the experimental Semantic Layers
+feature and require the `SEMANTIC_LAYERS` feature flag to be enabled.
+:::
+
 ### Creating charts in Explore view
 
 Superset has 2 main interfaces for exploring data:
@@ -303,6 +328,10 @@ Conditional formatting rules highlight cells based on their values. Rules can be
 
 Each rule has a **"Use gradient"** toggle: enabled applies a varying opacity (lighter = further from threshold), disabled applies a solid fill at full opacity regardless of value.
 
+Each rule's color is set with a full color picker rather than a fixed dropdown of presets. Pick any custom color, or use the **Colors** preset swatches, which reference theme tokens (success, warning, error, and their background variants) so a rule's color updates automatically if the active theme changes, including switching between light and dark mode.
+
+When a rule targets a column with an active time comparison, a **Trend colors** preset also appears, letting you color cells green for an increase and red for a decrease (or the reverse).
+
 #### HTML Rendering in Table Cells
 
 Table chart cells can render raw HTML, enabling rich formatting such as hyperlinks, colored badges, and icons directly in the data. Enable this per-column in the chart's **Column Configuration** panel by toggling **Render HTML**.
@@ -376,6 +405,18 @@ ECharts option overrides bypass Superset's validation layer. Invalid option keys
 ### Table Chart: Exporting Filtered Data
 
 When the **Search Box** is visible in a Table chart, the **Download** action exports only the rows currently visible after the search filter is applied — not the full underlying dataset. This matches the visual output and is intentional. To export the full dataset regardless of search state, use the **Download as CSV** option from the chart's three-dot menu in the dashboard or from the Explore chart toolbar before applying a search filter.
+
+### Exporting a Chart as an Image or PDF
+
+Alongside the raw-data export options (CSV, JSON, Excel), a chart's three-dot menu — in a dashboard or from the Explore chart toolbar — offers a few ways to export a visual snapshot of the chart:
+
+- **Export screenshot (jpeg)** — a single-click JPEG screenshot of the chart.
+- **Export screenshot (png)** — opens a submenu with **Transparent background** and **Solid background** options. The solid option uses the current theme's background color. PNG produces a higher-quality image than the JPEG export.
+- **Export as PDF** — downloads the chart as a PDF file.
+
+The dropdown menu is briefly hidden while the screenshot or PDF is being captured so it doesn't appear in the exported file. In Explore, these image and PDF options are available from the **Export All Data** submenu, and also from the **Export current view** submenu when the chart type supports current-view export.
+
+These menu items respect your permissions: the dashboard export menu only appears if you can download, and the image/PDF options are disabled if you lack image-export permission.
 
 ### Sharing a Specific Tab
 

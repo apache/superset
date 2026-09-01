@@ -26,7 +26,16 @@ from typing import Any, Callable, TYPE_CHECKING
 import wtforms_json
 from colorama import Fore, Style
 from deprecation import deprecated
-from flask import abort, current_app, Flask, redirect, request, session, url_for
+from flask import (
+    abort,
+    current_app,
+    Flask,
+    has_app_context,
+    redirect,
+    request,
+    session,
+    url_for,
+)
 from flask_appbuilder import expose, IndexView
 from flask_appbuilder.api import safe
 from flask_appbuilder.utils.base import get_safe_redirect
@@ -147,8 +156,16 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             # pylint: disable=too-few-public-methods
             abstract = True
 
-            # Grab each call into the task and set up an app context
+            # Grab each call into the task and set up an app context, unless
+            # one is already active on this thread (e.g. Celery eager mode
+            # invoked from within an existing request/test context) - Flask-
+            # SQLAlchemy 3.x scopes db.session by the active app context's
+            # object identity rather than by thread, so pushing a redundant
+            # nested context here would silently hand the task a second,
+            # blind session unable to see the caller's uncommitted work.
             def __call__(self, *args: Any, **kwargs: Any) -> Any:
+                if has_app_context():
+                    return task_base.__call__(self, *args, **kwargs)
                 with superset_app.app_context():
                     return task_base.__call__(self, *args, **kwargs)
 
@@ -774,16 +791,9 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         Must be called after all versioned model classes have been imported so
         that VERSIONED_MODELS can be populated and configure_mappers() has run.
 
-        ``ENABLE_VERSIONING_CAPTURE`` (ships default ``False``) gates the two
-        before-flush listener registrations. The flag is operational, not
-        feature: with it off the infrastructure is inert (no save writes
-        shadow rows); flipping it on activates capture. The switch also lets
-        an operator who observes a versioning-induced regression (e.g. a
-        save-path slowdown attributable to the change-record listener)
-        disable capture in ``superset_config.py`` and restart workers — a
-        30-second recovery instead of revert-and-redeploy. Shadow tables
-        already created by the migration stay; they just stop accumulating
-        new rows.
+        ``ENABLE_VERSIONING_CAPTURE`` gates the baseline and change-record
+        listener registrations. When disabled, initialization also detaches
+        SQLAlchemy-Continuum's write listeners.
 
         The fallback here is ``False`` so that any app-factory path that
         does not load ``superset.config`` (some test factories, embedded
@@ -1147,6 +1157,65 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         )
         sys.exit(1)
 
+    def check_encryption_engine(self) -> None:
+        """Warn when app-encrypted fields use the legacy AES-CBC engine.
+
+        ``SQLALCHEMY_ENCRYPTED_FIELD_ENGINE`` defaults to ``"aes"`` for backward
+        compatibility: every secret an existing install has ever written through
+        this mechanism (database passwords, SSH tunnel credentials, OAuth2
+        tokens, and similar) is stored in that engine's ciphertext format, and
+        there is no per-value marker recording which engine produced it — the
+        engine is a single, global setting shared by every encrypted column.
+
+        Unlike ``check_secret_key`` and its siblings, this never refuses to
+        start. ``"aes"`` is a working, still-supported configuration, not a
+        known-bad placeholder value: blocking startup on it would turn an
+        opt-in hardening step into a forced-migration outage for every
+        deployment that has not yet run the engine migration. It only warns,
+        on every boot, so operators have a documented path to the
+        authenticated ``"aes-gcm"`` engine (see ``superset re-encrypt-secrets``
+        and ``docs/sip/authenticated-encryption-at-rest.md``).
+        """
+        # pylint: disable=import-outside-toplevel
+        from superset.utils.encrypt import (
+            BackwardCompatibleAesEngine,
+            DEFAULT_ENCRYPTION_ENGINE_NAME,
+            resolve_encryption_engine,
+        )
+
+        engine_name = self.config.get(
+            "SQLALCHEMY_ENCRYPTED_FIELD_ENGINE", DEFAULT_ENCRYPTION_ENGINE_NAME
+        )
+        try:
+            engine_cls = resolve_encryption_engine(engine_name)
+        except ValueError:
+            # An unrecognized value already fails closed at field construction
+            # (see ``resolve_encryption_engine``); nothing more to warn about.
+            return
+        # "aes" resolves to BackwardCompatibleAesEngine (see superset.utils.encrypt),
+        # not the raw sqlalchemy_utils AesEngine, so check against that subclass.
+        if engine_cls is not BackwardCompatibleAesEngine:
+            return
+        self._log_config_warning(
+            "SQLALCHEMY_ENCRYPTED_FIELD_ENGINE is set to the legacy 'aes' "
+            "engine (AES-CBC, unauthenticated). App-encrypted fields — "
+            "database passwords, SSH tunnel credentials, OAuth2 tokens, and "
+            "similar — would benefit from the authenticated 'aes-gcm' engine "
+            "instead.\n"
+            "Switching engines on a populated database requires "
+            "re-encrypting existing values first, since the two ciphertext "
+            "formats are not interchangeable:\n"
+            "  1. Back up the metadata database.\n"
+            "  2. superset re-encrypt-secrets --engine aes-gcm\n"
+            "  3. Set SQLALCHEMY_ENCRYPTED_FIELD_ENGINE = 'aes-gcm' in "
+            "superset_config.py.\n"
+            "  4. Restart Superset, then re-run the command above once more "
+            "to sweep up any values written during the cutover.\n"
+            "See UPDATING.md and "
+            "docs/sip/authenticated-encryption-at-rest.md for the full "
+            "runbook."
+        )
+
     def configure_session(self) -> None:
         if self.config["SESSION_SERVER_SIDE"]:
             Session(self.superset_app)
@@ -1227,7 +1296,10 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
                     default=json.pessimistic_json_iso_dttm_ser,
                 )
 
-            return {"bootstrap_data": serialize_bootstrap_data}
+            return {
+                "bootstrap_data": serialize_bootstrap_data,
+                "is_feature_enabled": feature_flag_manager.is_feature_enabled,
+            }
 
     def check_and_warn_database_connection(self) -> None:
         """Check database connection and warn if unavailable"""
@@ -1269,6 +1341,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         self.configure_feature_flags()
         self.check_guest_token_secret()
         self.check_async_query_secret()
+        self.check_encryption_engine()
         self.configure_db_encrypt()
         self.setup_db()
 
@@ -1285,6 +1358,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         self.configure_cache()
         self.set_db_default_isolation()
         self.configure_sqlglot_dialects()
+        self.configure_extra_post_processing_ops()
 
         with self.superset_app.app_context():
             self.init_app_in_ctx()
@@ -1357,6 +1431,22 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             extensions = extensions()
 
         SQLGLOT_DIALECTS.update(extensions)
+
+    def configure_extra_post_processing_ops(self) -> None:
+        from superset.utils.pandas_postprocessing import (
+            __all__ as builtin_ops,
+            build_extra_ops_map,
+        )
+
+        extra = self.config.get("EXTRA_PANDAS_POSTPROCESSING_OPS", [])
+        for name in build_extra_ops_map(extra):
+            if name in builtin_ops:
+                logger.warning(
+                    "EXTRA_PANDAS_POSTPROCESSING_OPS: '%s' conflicts with a "
+                    "built-in post-processing operation and will never fire. "
+                    "Rename the custom function to avoid the conflict.",
+                    name,
+                )
 
     @transaction()
     def configure_fab(self) -> None:

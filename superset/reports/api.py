@@ -27,7 +27,7 @@ from flask_appbuilder.api import (
 )
 from flask_appbuilder.hooks import before_request
 from flask_appbuilder.models.sqla.interface import SQLAInterface
-from flask_babel import ngettext
+from flask_babel import gettext, ngettext
 from marshmallow import ValidationError
 
 from superset import is_feature_enabled
@@ -773,7 +773,9 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
                 **response_schema.dump(
                     {
                         "execution_id": execution_id,
-                        "message": "Report schedule execution started successfully",
+                        "message": gettext(
+                            "Report schedule execution started successfully"
+                        ),
                     }
                 ),
             )

@@ -93,12 +93,14 @@ const deselectAllButtonText = (length: number) =>
 
 const findSelectOption = (text: string) =>
   waitFor(() =>
-    within(getElementByClassName('.rc-virtual-list')).getByText(text),
+    within(getElementByClassName('.ant-select-dropdown-list')).getByText(text),
   );
 
 const querySelectOption = (text: string) =>
   waitFor(() =>
-    within(getElementByClassName('.rc-virtual-list')).queryByText(text),
+    within(getElementByClassName('.ant-select-dropdown-list')).queryByText(
+      text,
+    ),
   );
 
 const getAllSelectOptions = () =>

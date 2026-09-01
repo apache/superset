@@ -36,6 +36,7 @@ import {
   SupersetClient,
   getClientErrorObject,
   getExtensionsRegistry,
+  formatSpecifier,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import { t } from '@apache-superset/core/translation';
@@ -194,6 +195,54 @@ interface DatasourceObject {
   spatials?: SpatialConfig[];
   all_cols?: string[];
   folders?: DatasourceFolder[];
+}
+
+/**
+ * Lift the certification and warning fields a metric keeps inside its `extra`
+ * JSON blob onto the metric itself, which is the shape the editor's fields bind
+ * to.
+ *
+ * Two entry points feed the editor two different metric shapes: the dataset
+ * list hands over the API payload, where `extra` is still a JSON string, while
+ * Explore hands over its bootstrap payload, where `SqlMetric.data` has already
+ * flattened `extra` into `warning_markdown` and dropped the raw string. The
+ * parsed blob is therefore only authoritative when `extra` is actually present;
+ * otherwise the already-flattened value stands, instead of being reset to an
+ * empty field.
+ *
+ * A malformed `extra` string is treated the same as an absent one (falls
+ * through to the already-flattened value) rather than throwing, mirroring
+ * the backend's own tolerance for bad `extra` JSON in
+ * `CertificationMixin.get_extra_dict()`.
+ */
+export function hydrateMetricExtra(metric: Metric): Metric {
+  const {
+    certified_by: certifiedByMetric,
+    certification_details: certificationDetails,
+  } = metric;
+  let parsedExtra;
+  if (metric.extra) {
+    try {
+      parsedExtra = JSON.parse(metric.extra) || {};
+    } catch {
+      parsedExtra = undefined;
+    }
+  }
+  const {
+    certification: {
+      details = undefined,
+      certified_by: certifiedBy = undefined,
+    } = {},
+  } = parsedExtra || {};
+  const warningMarkdown = parsedExtra
+    ? parsedExtra.warning_markdown
+    : metric.warning_markdown;
+  return {
+    ...metric,
+    certification_details: certificationDetails || details,
+    warning_markdown: warningMarkdown || '',
+    certified_by: certifiedBy || certifiedByMetric,
+  };
 }
 
 interface DatasourceEditorOwnProps {
@@ -779,6 +828,78 @@ function EditorsSelector({
 const ResultTable =
   extensionsRegistry.get('sqleditor.extension.resultTable') ?? FilterableTable;
 
+// D3's '%' and 'p' types both multiply by 100; parsed via d3-format's own
+// grammar so garbage like "foo%" is rejected rather than matched by suffix.
+// The stored value is trimmed before parsing because
+// NumberFormatterRegistry.get() trims it the same way before rendering, so
+// this check agrees with what the renderer actually sees.
+export const isPercentD3Format = (d3format?: string): boolean => {
+  if (!d3format) {
+    return false;
+  }
+  try {
+    const { type } = formatSpecifier(d3format.trim());
+    return type === '%' || type === 'p';
+  } catch {
+    return false;
+  }
+};
+
+// Matches the outermost COUNT(...) call's parens by depth, so a ratio like
+// `COUNT(*) / COUNT(*)` isn't misclassified but a nested call like
+// `COUNT(DISTINCT COALESCE(a, b))` is still recognized. Parens inside a
+// quoted string literal (single- or double-quoted, with a doubled quote as
+// an escaped quote) are ignored so they don't desync the depth count.
+export const isCountExpression = (expression?: string): boolean => {
+  const trimmed = expression?.trim();
+  if (!trimmed || !/^count\s*\(/i.test(trimmed) || !trimmed.endsWith(')')) {
+    return false;
+  }
+  let depth = 0;
+  let stringDelimiter: string | null = null;
+  for (let i = trimmed.indexOf('('); i < trimmed.length; i += 1) {
+    const char = trimmed[i];
+    if (stringDelimiter) {
+      if (char === stringDelimiter && trimmed[i + 1] === stringDelimiter) {
+        i += 1;
+      } else if (char === stringDelimiter) {
+        stringDelimiter = null;
+      }
+    } else if (char === "'" || char === '"') {
+      stringDelimiter = char;
+    } else if (char === '(') {
+      depth += 1;
+    } else if (char === ')') {
+      depth -= 1;
+      if (depth === 0) {
+        return i === trimmed.length - 1;
+      }
+    }
+  }
+  return false;
+};
+
+function renderMetricFormatWarning(item: Record<string, any>): ReactNode {
+  if (
+    !isCountExpression(item.expression) ||
+    !isPercentD3Format(item.d3format)
+  ) {
+    return null;
+  }
+  return (
+    <Alert
+      css={themeParam => ({ marginBottom: themeParam.sizeUnit * 4 })}
+      type="warning"
+      showIcon
+      message={t(
+        'This metric is a count, but its D3 format is a percentage. ' +
+          'Percent formats multiply the value by 100, which will make a ' +
+          'raw count render as a misleadingly large number.',
+      )}
+    />
+  );
+}
+
 // Redux connector types
 interface QueryPayload {
   client_id?: string;
@@ -852,25 +973,7 @@ function DatasourceEditor({
   const [datasource, setDatasource] = useState<DatasourceObject>(() => ({
     ...propsDatasource,
     editors: normalizeSubjectsToPickerValues(propsDatasource.editors || []),
-    metrics: propsDatasource.metrics?.map(metric => {
-      const {
-        certified_by: certifiedByMetric,
-        certification_details: certificationDetails,
-      } = metric;
-      const {
-        certification: {
-          details = undefined,
-          certified_by: certifiedBy = undefined,
-        } = {},
-        warning_markdown: warningMarkdown,
-      } = JSON.parse(metric.extra || '{}') || {};
-      return {
-        ...metric,
-        certification_details: certificationDetails || details,
-        warning_markdown: warningMarkdown || '',
-        certified_by: certifiedBy || certifiedByMetric,
-      };
-    }),
+    metrics: propsDatasource.metrics?.map(hydrateMetricExtra),
   }));
 
   const [errors, setErrors] = useState<string[]>([]);
@@ -1627,9 +1730,7 @@ function DatasourceEditor({
               {t(
                 'Default URL to redirect to when accessing from the dataset list page. Accepts relative URLs such as',
               )}{' '}
-              <Typography.Text code>
-                /superset/dashboard/{'{id}'}/
-              </Typography.Text>
+              <Typography.Text code>/dashboard/{'{id}'}/</Typography.Text>
             </>
           }
           control={<TextControl controlId="default_endpoint" />}
@@ -1995,7 +2096,6 @@ function DatasourceEditor({
                           col => col.column_name,
                         )}
                         height={300}
-                        allowHTML
                       />
                     </>
                   )}
@@ -2143,7 +2243,7 @@ function DatasourceEditor({
           }}
           expandFieldset={
             <FormContainer>
-              <Fieldset compact>
+              <Fieldset compact renderWarning={renderMetricFormatWarning}>
                 <Field
                   fieldKey="expression"
                   label={t('SQL expression')}

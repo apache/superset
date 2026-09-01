@@ -20,6 +20,7 @@ import copy
 import unittest
 from datetime import timedelta
 from io import BytesIO
+from typing import Any
 from unittest.mock import ANY, patch
 from zipfile import is_zipfile, ZipFile
 
@@ -41,7 +42,7 @@ from superset.models.slice import Slice
 from superset.subjects.models import Subject
 from superset.subjects.types import SubjectType
 from superset.utils import json
-from superset.utils.core import backend, get_example_default_schema
+from superset.utils.core import backend, get_example_default_schema, shortid
 from superset.utils.database import get_example_database, get_main_database
 from superset.utils.dict_import_export import export_to_dict
 from tests.integration_tests.base_tests import (
@@ -71,6 +72,27 @@ from tests.integration_tests.fixtures.importexport import (
     dataset_config,
     dataset_ui_export,
 )
+
+# Fields the dataset ``show`` payload exposes but the ``PUT`` schema doesn't
+# accept: audit timestamps plus attributes derived from the model (type
+# affinity and the certification/warning metadata stored in ``extra``).
+DATASET_READ_ONLY_ITEM_FIELDS = (
+    "changed_on",
+    "created_on",
+    "type_generic",
+    "certification_details",
+    "certified_by",
+    "is_certified",
+    "warning_markdown",
+)
+
+
+def strip_read_only_fields(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Drop read-only fields so a ``show`` payload can be fed back to ``PUT``."""
+    for item in items:
+        for field in DATASET_READ_ONLY_ITEM_FIELDS:
+            item.pop(field, None)
+    return items
 
 
 class TestDatasetApi(SupersetTestCase):
@@ -329,6 +351,44 @@ class TestDatasetApi(SupersetTestCase):
             "uuid",
         ]
         assert sorted(response["result"][0]) == expected_columns
+
+    def test_get_dataset_list_with_jwt_auth(self):
+        """
+        Dataset API: Test get dataset list with JWT authentication
+        """
+        database = self.insert_database(f"jwt_dataset_db_{shortid()}")
+        dataset = self.insert_dataset(
+            f"jwt_dataset_{shortid()}",
+            [self.get_user("admin").id],
+            database,
+            fetch_metadata=False,
+        )
+        headers = self.get_bearer_auth_header()
+
+        try:
+            client = self.create_app().test_client()
+            arguments = {"filters": [{"col": "id", "opr": "eq", "value": dataset.id}]}
+            uri = f"api/v1/dataset/?q={rison.dumps(arguments)}"
+            rv = client.get(uri, headers=headers)
+            assert rv.status_code == 200
+            response = json.loads(rv.data.decode("utf-8"))
+            assert response["count"] == 1
+            assert response["result"][0]["id"] == dataset.id
+        finally:
+            db.session.delete(dataset)
+            db.session.delete(database)
+            db.session.commit()
+
+    def test_get_dataset_list_with_invalid_jwt_auth(self):
+        """
+        Dataset API: Test get dataset list with invalid JWT authentication
+        """
+        client = self.create_app().test_client()
+        rv = client.get(
+            "api/v1/dataset/",
+            headers={"Authorization": "Bearer not-a-token"},
+        )
+        assert rv.status_code == 422
 
     def test_get_dataset_list_gamma(self):
         """
@@ -1278,17 +1338,10 @@ class TestDatasetApi(SupersetTestCase):
         rv = self.get_assert_metric(uri, "get")
         data = json.loads(rv.data.decode("utf-8"))
 
-        for column in data["result"]["columns"]:
-            column.pop("changed_on", None)
-            column.pop("created_on", None)
-            column.pop("type_generic", None)
+        strip_read_only_fields(data["result"]["columns"])
         data["result"]["columns"].append(new_column_data)
 
-        for metric in data["result"]["metrics"]:
-            metric.pop("changed_on", None)
-            metric.pop("created_on", None)
-            metric.pop("type_generic", None)
-
+        strip_read_only_fields(data["result"]["metrics"])
         data["result"]["metrics"].append(new_metric_data)
 
         with freeze_time() as frozen:
@@ -1366,11 +1419,7 @@ class TestDatasetApi(SupersetTestCase):
         rv = self.get_assert_metric(uri, "get")
         data = json.loads(rv.data.decode("utf-8"))
 
-        for column in data["result"]["columns"]:
-            column.pop("changed_on", None)
-            column.pop("created_on", None)
-            column.pop("type_generic", None)
-
+        strip_read_only_fields(data["result"]["columns"])
         data["result"]["columns"].append(new_column_data)
         rv = self.client.put(uri, json={"columns": data["result"]["columns"]})
 
@@ -1405,10 +1454,7 @@ class TestDatasetApi(SupersetTestCase):
         # Get current cols and alter one
         rv = self.get_assert_metric(uri, "get")
         resp_columns = json.loads(rv.data.decode("utf-8"))["result"]["columns"]
-        for column in resp_columns:
-            column.pop("changed_on", None)
-            column.pop("created_on", None)
-            column.pop("type_generic", None)
+        strip_read_only_fields(resp_columns)
 
         resp_columns[0]["groupby"] = False
         resp_columns[0]["filterable"] = False
@@ -2638,6 +2684,14 @@ class TestDatasetApi(SupersetTestCase):
         self.items_to_delete = [dataset, database]
 
     def test_import_dataset_v0_export(self):
+        """
+        Dataset API: legacy v0-format exports are rejected by the HTTP
+        import endpoint. The v0 command is not registered in the import
+        dispatcher (see superset/commands/dataset/importers/dispatcher.py)
+        because it overrides datasets matched by (table_name, schema,
+        database) with no per-object ownership check. Legacy v0 exports are
+        still importable via the `legacy_import_datasources` CLI command.
+        """
         num_datasets = db.session.query(SqlaTable).count()
 
         self.login(ADMIN_USERNAME)
@@ -2654,14 +2708,25 @@ class TestDatasetApi(SupersetTestCase):
         rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
         response = json.loads(rv.data.decode("utf-8"))
 
-        assert rv.status_code == 200
-        assert response == {"message": "OK"}
-        assert db.session.query(SqlaTable).count() == num_datasets + 1
-
-        dataset = (
-            db.session.query(SqlaTable).filter_by(table_name="birth_names_2").one()
-        )
-        self.items_to_delete = [dataset]
+        assert rv.status_code == 422
+        assert response == {
+            "errors": [
+                {
+                    "message": "Could not find a valid command to import file",
+                    "error_type": "GENERIC_COMMAND_ERROR",
+                    "level": "warning",
+                    "extra": {
+                        "issue_codes": [
+                            {
+                                "code": 1010,
+                                "message": "Issue 1010 - Superset encountered an error while running a command.",  # noqa: E501
+                            }
+                        ]
+                    },
+                }
+            ]
+        }
+        assert db.session.query(SqlaTable).count() == num_datasets
 
     @patch("superset.commands.database.importers.v1.utils.add_permissions")
     def test_import_dataset_overwrite(self, mock_add_permissions):
@@ -3361,6 +3426,73 @@ class TestDatasetApi(SupersetTestCase):
             {"column_name": "category", "verbose_name": "Category Column"},
             {"column_name": "region", "verbose_name": None},
         ]
+
+        self.items_to_delete = [dataset]
+
+    def test_get_drill_info_does_not_expose_user_emails(self):
+        """
+        Dataset API: drill_info must not leak creator/modifier email addresses.
+
+        The nested user schema exposes first/last name only; email is PII and
+        is not part of the endpoint's select_columns contract.
+        """
+        self.login(ADMIN_USERNAME)
+        dataset = self.insert_dataset(
+            table_name="test_drill_dataset_no_email",
+            editor_user_ids=[],
+            columns=[
+                TableColumn(
+                    column_name="category",
+                    type="VARCHAR(255)",
+                    groupby=True,
+                ),
+            ],
+            fetch_metadata=False,
+        )
+
+        uri = f"api/v1/dataset/{dataset.id}/drill_info/"
+        rv = self.get_assert_metric(uri, "get_drill_info")
+        assert rv.status_code == 200
+
+        result = json.loads(rv.data.decode("utf-8"))["result"]
+        for user_field in ("created_by", "changed_by"):
+            assert "email" not in (result.get(user_field) or {})
+
+        self.items_to_delete = [dataset]
+
+    def test_get_drill_info_does_not_expose_editor_emails(self):
+        """
+        Dataset API: drill_info must not leak an editor's email address
+        through the ``editors`` list.
+
+        User-subject synchronization stores a user's email in the Subject's
+        ``secondary_label`` field, and ``editors`` nests Subjects directly,
+        so email must be excluded the same way it is for created_by/changed_by.
+        """
+        self.login(ADMIN_USERNAME)
+        gamma_user = self.get_user(GAMMA_USERNAME)
+        dataset = self.insert_dataset(
+            table_name="test_drill_dataset_no_editor_email",
+            editor_user_ids=[gamma_user.id],
+            columns=[
+                TableColumn(
+                    column_name="category",
+                    type="VARCHAR(255)",
+                    groupby=True,
+                ),
+            ],
+            fetch_metadata=False,
+        )
+
+        uri = f"api/v1/dataset/{dataset.id}/drill_info/"
+        rv = self.get_assert_metric(uri, "get_drill_info")
+        assert rv.status_code == 200
+
+        result = json.loads(rv.data.decode("utf-8"))["result"]
+        editors = result.get("editors") or []
+        assert len(editors) == 1
+        assert "secondary_label" not in editors[0]
+        assert gamma_user.email not in json.dumps(editors)
 
         self.items_to_delete = [dataset]
 

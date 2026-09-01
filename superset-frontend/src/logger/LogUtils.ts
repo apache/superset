@@ -65,6 +65,8 @@ export const LOG_ACTIONS_SQLLAB_WARN_LOCAL_STORAGE_USAGE =
   'sqllab_warn_local_storage_usage';
 export const LOG_ACTIONS_SQLLAB_FETCH_FAILED_QUERY =
   'sqllab_fetch_failed_query';
+export const LOG_ACTIONS_DRILL_TO_DETAIL_MODAL_OPENED =
+  'drill_to_detail_modal_opened';
 export const LOG_ACTIONS_DRILL_BY_MODAL_OPENED = 'drill_by_modal_opened';
 export const LOG_ACTIONS_FURTHER_DRILL_BY = 'further_drill_by';
 export const LOG_ACTIONS_DRILL_BY_EDIT_CHART = 'drill_by_edit_chart';

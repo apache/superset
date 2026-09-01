@@ -69,7 +69,7 @@ def transpile_virtual_dataset_sql(config: dict[str, Any], database_id: int) -> N
     if not sql:
         return
 
-    database = db.session.query(Database).get(database_id)
+    database = db.session.get(Database, database_id)
     if not database:
         logger.warning("Database %s not found, skipping SQL transpilation", database_id)
         return

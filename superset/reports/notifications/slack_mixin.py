@@ -18,7 +18,14 @@
 import pandas as pd
 from flask_babel import gettext as __
 
+from superset.reports.models import ReportRecipients
 from superset.reports.notifications.base import NotificationContent
+from superset.reports.notifications.exceptions import NotificationParamException
+from superset.utils import json
+from superset.utils.slack import (
+    NO_SLACK_RECIPIENTS_MESSAGE,
+    parse_slack_recipient_targets,
+)
 
 # Slack only allows Markdown messages up to 4k chars
 MAXIMUM_MESSAGE_SIZE = 4000
@@ -26,6 +33,20 @@ MAXIMUM_MESSAGE_SIZE = 4000
 
 # pylint: disable=too-few-public-methods
 class SlackMixin:
+    _recipient: ReportRecipients
+
+    def _get_channels(self) -> list[str]:
+        """Return normalized Slack targets without duplicates."""
+        try:
+            recipient_str = json.loads(self._recipient.recipient_config_json)["target"]
+        except (KeyError, TypeError, ValueError) as ex:
+            raise NotificationParamException(NO_SLACK_RECIPIENTS_MESSAGE) from ex
+
+        if not isinstance(recipient_str, str):
+            raise NotificationParamException(NO_SLACK_RECIPIENTS_MESSAGE)
+
+        return parse_slack_recipient_targets(recipient_str)
+
     def _message_template(
         self,
         content: NotificationContent,

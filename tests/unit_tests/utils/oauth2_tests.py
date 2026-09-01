@@ -19,6 +19,8 @@
 
 import base64
 import hashlib
+import logging
+import traceback
 from datetime import datetime
 from typing import cast
 
@@ -26,8 +28,15 @@ import pytest
 from freezegun import freeze_time
 from pytest_mock import MockerFixture
 
+from superset.db_engine_specs.base import BaseEngineSpec
+from superset.exceptions import (
+    OAuth2Error,
+    OAuth2RedirectError,
+    OAuth2TokenRefreshError,
+)
 from superset.superset_typing import OAuth2ClientConfig
 from superset.utils.oauth2 import (
+    check_for_oauth2,
     decode_oauth2_state,
     encode_oauth2_state,
     generate_code_challenge,
@@ -112,6 +121,7 @@ def test_get_oauth2_access_token_base_no_refresh(mocker: MockerFixture) -> None:
 
 def test_refresh_oauth2_token_deletes_token_on_oauth2_exception(
     mocker: MockerFixture,
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
     """
     Test that refresh_oauth2_token deletes the token on OAuth2-specific exception.
@@ -126,24 +136,91 @@ def test_refresh_oauth2_token_deletes_token_on_oauth2_exception(
         pass
 
     db_engine_spec = mocker.MagicMock()
+    db_engine_spec.engine = "postgresql"
     db_engine_spec.oauth2_exception = OAuth2ExceptionError
     db_engine_spec.get_oauth2_fresh_token.side_effect = OAuth2ExceptionError(
-        "Token revoked"
+        "provider-error-sentinel"
     )
     token = mocker.MagicMock()
     token.access_token = None
-    token.refresh_token = "refresh-token"  # noqa: S105
+    token.refresh_token = "refresh-token-sentinel"  # noqa: S105
     db.session.query().filter_by().one_or_none.return_value = token
 
-    with pytest.raises(OAuth2ExceptionError):
+    with (
+        caplog.at_level(logging.WARNING, logger="superset.utils.oauth2"),
+        pytest.raises(OAuth2TokenRefreshError) as exc_info,
+    ):
         refresh_oauth2_token(DUMMY_OAUTH2_CONFIG, 1, 1, db_engine_spec)
 
     db.session.delete.assert_called_with(token)
     db.session.flush.assert_called_once()
+    assert (
+        "OAuth2 token refresh failed: database_id=1 engine=postgresql "
+        "error_type=OAuth2ExceptionError; deleting token"
+    ) in caplog.messages
+    assert "refresh-token-sentinel" not in caplog.text
+    assert "provider-error-sentinel" not in caplog.text
+    assert "provider-error-sentinel" not in "".join(
+        traceback.format_exception(exc_info.value)
+    )
+
+
+def test_refresh_oauth2_token_starts_dance_for_vendor_exception(
+    mocker: MockerFixture,
+) -> None:
+    """A sanitized vendor refresh failure must still start re-authentication."""
+    db = mocker.patch("superset.utils.oauth2.db")
+    mocker.patch("superset.utils.oauth2.DistributedLock")
+
+    class VendorOAuthError(Exception):
+        pass
+
+    class VendorEngineSpec(BaseEngineSpec):
+        engine = "vendor"
+        oauth2_exception = VendorOAuthError
+
+    mocker.patch.object(
+        VendorEngineSpec,
+        "get_oauth2_fresh_token",
+        side_effect=VendorOAuthError("provider-payload-sentinel"),
+    )
+    needs_oauth2 = mocker.patch.object(
+        VendorEngineSpec,
+        "needs_oauth2",
+        return_value=False,
+    )
+    redirect = OAuth2RedirectError(
+        "https://provider.example/authorize",
+        "tab-id",
+        "https://superset.example/oauth2/",
+    )
+    start_oauth2_dance = mocker.patch.object(
+        VendorEngineSpec,
+        "start_oauth2_dance",
+        side_effect=redirect,
+    )
+    database = mocker.MagicMock()
+    database.is_oauth2_enabled.return_value = True
+    database.db_engine_spec = VendorEngineSpec
+    token = mocker.MagicMock()
+    token.access_token = None
+    token.refresh_token = "refresh-token-sentinel"  # noqa: S105
+    db.session.query().filter_by().one_or_none.return_value = token
+
+    with pytest.raises(OAuth2RedirectError) as exc_info:
+        with check_for_oauth2(database):
+            refresh_oauth2_token(DUMMY_OAUTH2_CONFIG, 1, 1, VendorEngineSpec)
+
+    assert exc_info.value is redirect
+    db.session.delete.assert_called_once_with(token)
+    db.session.flush.assert_called_once()
+    start_oauth2_dance.assert_called_once_with(database)
+    needs_oauth2.assert_not_called()
 
 
 def test_refresh_oauth2_token_keeps_token_on_other_exception(
     mocker: MockerFixture,
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
     """
     Test that refresh_oauth2_token keeps the token on non-OAuth2 exceptions.
@@ -159,17 +236,32 @@ def test_refresh_oauth2_token_keeps_token_on_other_exception(
         pass
 
     db_engine_spec = mocker.MagicMock()
+    db_engine_spec.engine = "postgresql"
     db_engine_spec.oauth2_exception = OAuth2ExceptionError
-    db_engine_spec.get_oauth2_fresh_token.side_effect = Exception("Network error")
+    db_engine_spec.get_oauth2_fresh_token.side_effect = Exception(
+        "Network error: provider-payload-sentinel"
+    )
     token = mocker.MagicMock()
     token.access_token = None
-    token.refresh_token = "refresh-token"  # noqa: S105
+    token.refresh_token = "refresh-token-sentinel"  # noqa: S105
     db.session.query().filter_by().one_or_none.return_value = token
 
-    with pytest.raises(Exception, match="Network error"):
+    with (
+        caplog.at_level(logging.ERROR, logger="superset.utils.oauth2"),
+        pytest.raises(OAuth2Error) as exc_info,
+    ):
         refresh_oauth2_token(DUMMY_OAUTH2_CONFIG, 1, 1, db_engine_spec)
 
     db.session.delete.assert_not_called()
+    assert (
+        "OAuth2 token refresh failed: database_id=1 engine=postgresql "
+        "error_type=Exception"
+    ) in caplog.messages
+    assert "refresh-token-sentinel" not in caplog.text
+    assert "provider-payload-sentinel" not in caplog.text
+    assert "provider-payload-sentinel" not in "".join(
+        traceback.format_exception(exc_info.value)
+    )
 
 
 def test_refresh_oauth2_token_no_access_token_in_response(

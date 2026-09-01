@@ -82,6 +82,13 @@ MCP_REQUIRED_SCOPES = ["superset:read"]
 MCP_DEV_USERNAME = None
 ```
 
+**Trusting Multiple Issuers**: `MCP_JWT_ISSUER` can be set to a list of
+issuers instead of a single string. Because the default user resolver maps
+token claims to Superset users by username/email without binding the
+token's `iss` claim, trusting more than one issuer requires configuring a
+custom, issuer-aware `MCP_USER_RESOLVER` (e.g. deriving a compound
+`iss`+`sub` identity). Without one, the service refuses to start.
+
 **JWT Issuer Setup Examples**:
 
 **Auth0**:

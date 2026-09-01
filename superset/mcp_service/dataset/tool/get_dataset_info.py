@@ -54,6 +54,7 @@ logger = logging.getLogger(__name__)
         title="Get dataset info",
         readOnlyHint=True,
         destructiveHint=False,
+        openWorldHint=False,
     ),
 )
 @requires_data_model_metadata_access
