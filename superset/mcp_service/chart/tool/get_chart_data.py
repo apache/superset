@@ -114,11 +114,13 @@ def _rejected_requested_filter_columns(
     """Find request filters rejected by datasource query construction."""
     if not isinstance(result, dict):
         return []
+    queries = result.get("queries")
+    if not isinstance(queries, list):
+        # The strict shared envelope validator owns the actionable shape error.
+        return []
     requested = _requested_filter_columns(extra_form_data)
     rejected = {
-        column
-        for query in result.get("queries", [])
-        for column in _rejected_columns_in_query(query)
+        column for query in queries for column in _rejected_columns_in_query(query)
     }
     return sorted(requested & rejected)
 

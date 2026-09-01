@@ -1335,10 +1335,13 @@ def merge_update_form_data(  # noqa: C901
             if chosen_binding is not None:
                 _append_or_replace_filter(merged_filters, chosen_binding)
 
-    # Always materialize the authoritative filter list when filters were
-    # explicit or either side carried filters. This lets [] clear saved state.
-    if filters_explicit or existing_filters or incoming_filters:
+    # Materialize exactly when saved state had the key or the caller made the
+    # controls authoritative. An omitted update must not turn a missing native
+    # filter key into [] merely because its mapper proposed a neutral binding.
+    if filters_explicit or "adhoc_filters" in existing_form_data or temporal_explicit:
         new_form_data["adhoc_filters"] = merged_filters
+    else:
+        new_form_data.pop("adhoc_filters", None)
     if chosen_binding is not None and isinstance(chosen_subject, str):
         new_form_data[MCP_DASHBOARD_TIME_FILTER_SUBJECT] = chosen_subject
     else:

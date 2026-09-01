@@ -2145,6 +2145,7 @@ async def test_unsaved_mixed_timeseries_returns_nonempty_secondary_query(
 @pytest.mark.parametrize(
     "payload",
     [
+        {"queries": None},
         {"queries": []},
         {"queries": [{}]},
         {"queries": [{"data": None}]},
