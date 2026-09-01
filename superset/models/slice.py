@@ -142,6 +142,11 @@ class Slice(  # pylint: disable=too-many-public-methods
         secondary=chart_viewers,
         passive_deletes=True,
     )
+    embedded = relationship(
+        "EmbeddedChart",
+        back_populates="slice",
+        cascade="all, delete-orphan",
+    )
 
     tags = relationship(
         "Tag",
