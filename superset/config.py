@@ -1342,6 +1342,19 @@ SCREENSHOT_TILED_HEIGHT_THRESHOLD = (
 )
 SCREENSHOT_TILED_VIEWPORT_HEIGHT = 2000  # Height of each tile in pixels
 
+# Browser-print PDF page orientation.
+# Controls the orientation of generated PDF pages.
+#   'portrait'  — A4 portrait (210×297mm) throughout. Default.
+#   'landscape' — A4 landscape (297×210mm) throughout. Best for dashboards
+#                 that are primarily wide tables or charts with many columns.
+#   'auto'      — Mixed-orientation: portrait by default, landscape only for
+#                 pages containing a table wider than the portrait page width.
+#                 Uses CSS @page named pages with prefer_css_page_size=True.
+#                 No effect on dashboards with no wide tables.
+# This value is read by _get_browser_print_pdf() in the report execute pipeline
+# and can be overridden per-render by passing print_orientation directly.
+BROWSER_PRINT_PDF_ORIENTATION: str | None = None  # None = 'portrait'
+
 # Browser-print PDF header/footer content customization.
 # Controls the text shown in the three slots of the header and footer on every
 # PDF page.  Positioning is fixed (left / center / right flex layout); only the

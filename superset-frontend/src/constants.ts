@@ -127,6 +127,10 @@ export const URL_PARAMS = {
     name: 'print_layout',
     type: 'string',
   },
+  printOrientation: {
+    name: 'print_orientation',
+    type: 'string',
+  },
 } as const;
 
 export const RESERVED_CHART_URL_PARAMS: string[] = [

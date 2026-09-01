@@ -506,6 +506,13 @@ class DashboardPrintScreenshot(DashboardScreenshot):
     Optionally accepts a print_layout ('2col') that is forwarded to the
     frontend via ?print_layout=<value>.  When omitted or '1col', no param is
     appended (single-column is the default).
+
+    Optionally accepts a print_orientation ('portrait' | 'landscape' | 'auto')
+    that is forwarded to the frontend via ?print_orientation=<value>.
+    'portrait' (default / None) appends no param.
+    'landscape' → page.pdf(landscape=True) full-document landscape.
+    'auto' → CSS @page named pages with prefer_css_page_size=True so wide
+    tables automatically render in landscape while other pages stay portrait.
     """
 
     def __init__(
@@ -516,6 +523,7 @@ class DashboardPrintScreenshot(DashboardScreenshot):
         thumb_size: WindowSize | None = None,
         font_size: str | None = None,
         print_layout: str | None = None,
+        print_orientation: str | None = None,
     ):
         # DashboardScreenshot.__init__ already adds standalone=3
         super().__init__(url, digest, window_size, thumb_size)
@@ -531,6 +539,10 @@ class DashboardPrintScreenshot(DashboardScreenshot):
         # '2col' triggers two-column adaptive layout; '1col'/None is default.
         if print_layout == "2col":
             self.url = modify_url_query(self.url, print_layout=print_layout)
+        # Forward the orientation to the frontend.
+        # 'portrait' (default/None) needs no URL param.
+        if print_orientation in ("landscape", "auto"):
+            self.url = modify_url_query(self.url, print_orientation=print_orientation)
 
     def get_print_pdf(
         self,
@@ -541,6 +553,7 @@ class DashboardPrintScreenshot(DashboardScreenshot):
         header_title: str | None = None,
         font_size: str | None = None,
         print_layout: str | None = None,
+        print_orientation: str | None = None,
         tab_ids: list[str] | None = None,
     ) -> bytes | None:
         """
@@ -552,6 +565,7 @@ class DashboardPrintScreenshot(DashboardScreenshot):
         print_layout ('2col') enables two-column adaptive layout; the URL param
         injects the CSS and the webdriver runs ANNOTATE_PRINT_COLUMNS_JS before
         page.pdf() to set data-print-col-span attributes on grid columns.
+        print_orientation ('portrait'|'landscape'|'auto') controls page rotation.
         tab_ids, when provided (list of Superset TAB-xxx component IDs), causes
         the webdriver to render each tab separately using a URL hash fragment
         and merge the resulting PDFs via pypdf.
@@ -571,5 +585,6 @@ class DashboardPrintScreenshot(DashboardScreenshot):
             header_title=header_title,
             font_size=font_size,
             print_layout=print_layout,
+            print_orientation=print_orientation,
             tab_ids=tab_ids,
         )

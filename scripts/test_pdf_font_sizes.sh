@@ -94,17 +94,20 @@ with flask_app.app_context():
                     break  # only process the first TABS component
         return tab_ids
 
-    def gen_pdf(label, base_url, digest, font_size=None, print_layout=None, tab_ids=None):
+    def gen_pdf(label, base_url, digest, font_size=None, print_layout=None,
+                print_orientation=None, tab_ids=None):
         t0 = time.monotonic()
         shot = DashboardPrintScreenshot(
             base_url, digest, window_size=window_size,
             font_size=font_size, print_layout=print_layout,
+            print_orientation=print_orientation,
         )
         print(f"[{label}] URL: {shot.url} tab_ids={tab_ids}", flush=True)
         pdf = shot.get_print_pdf(
             user=user, log_context=f"test-{label}",
             header_title=label, font_size=font_size,
-            print_layout=print_layout, tab_ids=tab_ids,
+            print_layout=print_layout, print_orientation=print_orientation,
+            tab_ids=tab_ids,
         )
         elapsed = time.monotonic() - t0
         out = f"/tmp/test_pdf_{label}.pdf"
@@ -298,13 +301,19 @@ with flask_app.app_context():
     d11 = _get_or_create_wide_table_dashboard()
     u11 = get_url(d11)
     t11 = get_tab_ids(d11)
-    # EC10: small (default) — SCALE_WIDE_TABLES_JS handles the column overflow
-    gen_pdf("dash11_wide_small", u11, d11.digest, tab_ids=t11 or None)
-    # EC10: large font — verify titles not clipped AND wide table scaled
+    # EC10a: portrait (default) — SCALE_WIDE_TABLES_JS shrinks table to fit
+    gen_pdf("dash11_wide_portrait", u11, d11.digest, tab_ids=t11 or None)
+    # EC10b: landscape — full-document landscape, all 44 columns readable
+    gen_pdf("dash11_wide_landscape", u11, d11.digest,
+            print_orientation="landscape", tab_ids=t11 or None)
+    # EC10c: auto — portrait for normal charts, landscape page just for wide table
+    gen_pdf("dash11_wide_auto", u11, d11.digest,
+            print_orientation="auto", tab_ids=t11 or None)
+    # EC10d: large font + landscape — verify no title clipping
     gen_pdf("dash11_wide_large", u11, d11.digest, font_size="large",
-            tab_ids=t11 or None)
+            print_orientation="landscape", tab_ids=t11 or None)
 
-print("All 14 PDFs generated.", flush=True)
+print("All 16 PDFs generated.", flush=True)
 PYEOF
 
 # ── copy script into container and run it ────────────────────────────────────
@@ -329,7 +338,7 @@ PDFS=(
   dash5_paginated
   dash6_small dash6_2col
   dash8_small dash8_2col
-  dash11_wide_small dash11_wide_large
+  dash11_wide_portrait dash11_wide_landscape dash11_wide_auto dash11_wide_large
 )
 for NAME in "${PDFS[@]}"; do
   docker cp "$CONTAINER:/tmp/test_pdf_${NAME}.pdf" \
@@ -344,7 +353,7 @@ for NAME in "${PDFS[@]}"; do
 done
 
 echo ""
-echo "Done. 14 PDFs open on your Desktop:"
+echo "Done. 16 PDFs open on your Desktop:"
 echo ""
 echo "  Dashboard 10 — Large Table PDF Test"
 echo "    test_pdf_dash10_small.pdf    — EC3: 1000-row table, page_length=0 (all rows)"
@@ -369,8 +378,10 @@ echo "    test_pdf_dash8_small.pdf     — EC7: mixed chart types"
 echo "    test_pdf_dash8_2col.pdf      — EC7 + 2-column adaptive layout"
 echo ""
 echo "  Dashboard 11 — Wide Table PDF Test  [NEW]"
-echo "    test_pdf_dash11_wide_small.pdf — EC10: flights(44 cols), SCALE_WIDE_TABLES_JS applied"
-echo "    test_pdf_dash11_wide_large.pdf — EC10 + large font tier (title clipping fix verified)"
+echo "    test_pdf_dash11_wide_portrait.pdf — EC10a: 44 cols, portrait, CSS scale shrink-to-fit"
+echo "    test_pdf_dash11_wide_landscape.pdf— EC10b: 44 cols, full-document landscape"
+echo "    test_pdf_dash11_wide_auto.pdf    — EC10c: 44 cols, auto mixed-orientation"
+echo "    test_pdf_dash11_wide_large.pdf   — EC10d: landscape + large font, no title clipping"
 echo ""
 echo "  What to verify:"
 echo "    dash5_paginated     : Games table shows ALL rows (not just 15)"
@@ -378,5 +389,7 @@ echo "    dash10_*            : 1000-row table fully visible, no overflow"
 echo "    dash10_large        : chart titles fully visible — no bottom clipping"
 echo "    dash2_*             : % Rural map visible, table rows not interleaved"
 echo "    dash6_small/2col    : Both sales tabs present in merged PDF"
-echo "    dash11_wide_*       : ALL columns visible — no right-edge clipping"
-echo "                          (wide tables scaled down to fit A4 width)"
+echo "    dash11_wide_portrait: all 44 cols visible, shrunk to fit portrait width"
+echo "    dash11_wide_landscape: all 44 cols readable at full landscape width"
+echo "    dash11_wide_auto    : wide table on landscape page, other content portrait"
+echo "    dash11_wide_large   : titles NOT clipped (overflow:visible fix applied)"

@@ -93,11 +93,14 @@ import DashboardWrapper from './DashboardWrapper';
 import {
   getPrintFontSizeCSS,
   getPrintLayoutCSS,
+  getPrintOrientationCSS,
   PRINT_FONT_SIZE_MEDIUM,
   PRINT_LAYOUT_1COL,
+  PRINT_ORIENTATION_PORTRAIT,
   PRINT_MODE_CSS,
   PrintFontSize,
   PrintLayout,
+  PrintOrientation,
 } from 'src/dashboard/styles/printMode';
 
 // Lazy-loaded so deployments with the VersionHistory flag off never pay
@@ -526,6 +529,13 @@ const DashboardBuilder = () => {
   const rawLayout = getUrlParam(URL_PARAMS.printLayout);
   const printLayout: PrintLayout =
     rawLayout === '1col' || rawLayout === '2col' ? rawLayout : PRINT_LAYOUT_1COL;
+  const rawOrientation = getUrlParam(URL_PARAMS.printOrientation);
+  const printOrientation: PrintOrientation =
+    rawOrientation === 'landscape' ||
+    rawOrientation === 'auto' ||
+    rawOrientation === 'portrait'
+      ? rawOrientation
+      : PRINT_ORIENTATION_PORTRAIT;
 
   useEffect(() => {
     if (isPrintMode) {
@@ -538,7 +548,8 @@ const DashboardBuilder = () => {
       styleEl.textContent =
         PRINT_MODE_CSS +
         getPrintFontSizeCSS(printFontSize) +
-        getPrintLayoutCSS(printLayout);
+        getPrintLayoutCSS(printLayout) +
+        getPrintOrientationCSS(printOrientation);
       document.head.appendChild(styleEl);
       return () => {
         document.body.classList.remove('print-mode');
@@ -547,7 +558,7 @@ const DashboardBuilder = () => {
       };
     }
     return undefined;
-  }, [isPrintMode, printFontSize, printLayout]);
+  }, [isPrintMode, printFontSize, printLayout, printOrientation]);
   // Report mode (standalone=3) hides the filter bar by default, since it's used
   // for one-shot screenshot renders (email reports, thumbnails). Embedded SDK
   // consumers also use standalone=3 to hide the title/tabs/nav, but may still

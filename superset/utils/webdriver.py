@@ -1167,6 +1167,7 @@ class WebDriverPlaywright(WebDriverProxy):
         header_title: str | None = None,
         font_size: str | None = None,
         print_layout: str | None = None,
+        print_orientation: str | None = None,
         tab_ids: list[str] | None = None,
     ) -> bytes | None:
         """
@@ -1205,6 +1206,14 @@ class WebDriverPlaywright(WebDriverProxy):
         ?print_layout=2col in the URL then uses those attributes to lay out
         small charts side-by-side.  Table charts are always forced full-width
         by the JS annotation regardless of their original size.
+
+        print_orientation controls page rotation:
+          'portrait'  (default/None) — A4 portrait throughout.
+          'landscape' — page.pdf(landscape=True) entire document landscape.
+          'auto'      — CSS @page named pages + prefer_css_page_size=True.
+                        Wide tables get data-print-landscape="true" set by
+                        SCALE_WIDE_TABLES_JS and render in landscape; all
+                        other pages stay portrait.
 
         Returns None (never raises) so the caller can fall back to
         the existing screenshot path.
@@ -1261,6 +1270,15 @@ class WebDriverPlaywright(WebDriverProxy):
                 "right": "10mm",
             },
         }
+        # Landscape orientation:
+        #   'landscape' — page.pdf(landscape=True) entire document.
+        #   'auto'      — per-element CSS @page named pages via
+        #                 prefer_css_page_size=True; the frontend injects the
+        #                 @page rules when ?print_orientation=auto is set.
+        if print_orientation == "landscape":
+            pdf_kwargs["landscape"] = True
+        elif print_orientation == "auto":
+            pdf_kwargs["prefer_css_page_size"] = True
         if use_header_footer:
             header_content: dict[str, str] | None = app.config.get(
                 "BROWSER_PRINT_PDF_HEADER_CONTENT"
@@ -1341,17 +1359,21 @@ class WebDriverPlaywright(WebDriverProxy):
                 )
 
             # After expanding table height/overflow constraints, detect tables
-            # whose natural rendered width exceeds the viewport width and apply
-            # a CSS scale transform so they fit the page without horizontal
-            # clipping.  Must run after EXPAND_TABLE_CONTAINERS_JS (so the
-            # table has its final rendered width) and before page.pdf().
-            scale_result = page.evaluate(SCALE_WIDE_TABLES_JS)
-            if scale_result.get("scaled", 0):
+            # whose natural rendered width exceeds the viewport width.
+            # In 'auto' orientation mode, mark wide-table elements with
+            # data-print-landscape="true" so the CSS @page named page rule
+            # rotates that page to landscape.  For portrait and landscape
+            # modes (whole-document rotation), apply a CSS scale transform
+            # so all columns fit without horizontal clipping.
+            mark_landscape = print_orientation == "auto"
+            scale_result = page.evaluate(SCALE_WIDE_TABLES_JS, mark_landscape)
+            if scale_result.get("scaled", 0) or scale_result.get("marked", 0):
                 logger.info(
-                    "browser_print_pdf_scale_wide_tables url=%s "
-                    "wide_tables_scaled=%d viewport=%d log_context=%s",
+                    "browser_print_pdf_wide_tables url=%s "
+                    "scaled=%d landscape_marked=%d viewport=%d log_context=%s",
                     render_url,
-                    scale_result["scaled"],
+                    scale_result.get("scaled", 0),
+                    scale_result.get("marked", 0),
                     scale_result.get("viewport", 0),
                     log_context or "",
                 )

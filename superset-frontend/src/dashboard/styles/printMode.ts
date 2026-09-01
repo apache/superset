@@ -64,12 +64,55 @@ export type PrintFontSize = 'small' | 'medium' | 'large';
  */
 export type PrintLayout = '1col' | '2col';
 
+/**
+ * Valid values for the ?print_orientation URL param.
+ *
+ * - portrait:  (default) A4 portrait throughout — all pages 210×297mm.
+ * - landscape: A4 landscape throughout — all pages 297×210mm.  Best for
+ *              dashboards that are primarily wide tables or charts.
+ * - auto:      Mixed-orientation via CSS @page named pages.  Wide-table
+ *              containers receive a data-print-landscape attribute (set by
+ *              SCALE_WIDE_TABLES_JS) which triggers a named @page landscape
+ *              rule via prefer_css_page_size=True in page.pdf().  Normal
+ *              charts remain portrait; only pages containing a wide table
+ *              switch to landscape.
+ */
+export type PrintOrientation = 'portrait' | 'landscape' | 'auto';
+
 export const PRINT_LAYOUT_1COL = '1col' as const;
 export const PRINT_LAYOUT_2COL = '2col' as const;
+export const PRINT_ORIENTATION_PORTRAIT = 'portrait' as const;
+export const PRINT_ORIENTATION_LANDSCAPE = 'landscape' as const;
+export const PRINT_ORIENTATION_AUTO = 'auto' as const;
 
 export const PRINT_FONT_SIZE_SMALL = 'small' as const;
 export const PRINT_FONT_SIZE_MEDIUM = 'medium' as const;
 export const PRINT_FONT_SIZE_LARGE = 'large' as const;
+
+/**
+ * Returns CSS for the auto-landscape mode: @page named rules that let
+ * Chromium switch individual pages to landscape when an element carries
+ * data-print-landscape="true".  Requires page.pdf(prefer_css_page_size=True).
+ *
+ * landscape mode (full-document) uses page.pdf(landscape=True) instead and
+ * does not need any extra CSS.
+ */
+export function getPrintOrientationCSS(
+  orientation: PrintOrientation,
+): string {
+  if (orientation !== 'auto') {
+    return '';
+  }
+  return `
+@page { size: A4 portrait; }
+@page print-landscape { size: A4 landscape; }
+
+body.print-mode [data-print-landscape="true"] {
+  page: print-landscape;
+  page-break-before: always;
+}
+`;
+}
 
 /**
  * Returns additional CSS to inject alongside PRINT_MODE_CSS that scales
@@ -149,9 +192,21 @@ body.print-mode {
   /* ── Large font tier ─────────────────────────────────────────────── */
 
   /* Chart titles (~19pt on paper after 0.496x scale).
-   * At 38px the title text is taller than the default slice-header height
-   * (~40px authored). Release the header container so the full title line
-   * is visible instead of being clipped at the bottom. */
+   *
+   * The title text at 38px / line-height 1.35 ≈ 51px is 1px taller than the
+   * default slice-header box (~50px measured).  The header clipping we see in
+   * the PDF comes from two layers:
+   *
+   *   1. [data-test="slice-header"] — the flex row; needs height:auto so it
+   *      can grow to the 51px title.
+   *   2. .dashboard-chart (ChartWrapper styled component) — has overflow:hidden
+   *      in the React source.  When the header is taller than React expected at
+   *      render time, the chart content area is pushed down and the top of the
+   *      chart content is clipped by this overflow:hidden.
+   *   3. .slice_container (SliceContainer) — has max-height:100% which
+   *      prevents the flex column from growing past the authored slot height.
+   *
+   * Releasing all three lets the large-font title breathe without clipping. */
   [data-test="slice-header"],
   [data-test="slice-header"] .header-controls-dash,
   [data-test="slice-header"] .slice-header-wrapper {
@@ -165,6 +220,16 @@ body.print-mode {
     font-size: 38px !important;
     line-height: 1.35 !important;
     white-space: normal !important;
+    overflow: visible !important;
+  }
+  /* Release the chart content wrapper and slice column — both clip the extra
+   * height added when the title is taller than React measured at render time. */
+  .dashboard-chart {
+    overflow: visible !important;
+    max-height: none !important;
+  }
+  .slice_container {
+    max-height: none !important;
     overflow: visible !important;
   }
 

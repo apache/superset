@@ -716,64 +716,120 @@ SET_PRINT_FONT_SIZE_JS = """
 # For tables with many columns the natural <table> scrollWidth can exceed the
 # 1600 px print viewport width and overflow the right edge of the A4 PDF.
 #
-# Industry approach (used by Tableau / Power BI PDF export): apply a CSS
-# transform: scale() to shrink the table to fit the page width.  A scale
-# transform is purely cosmetic — it does not change the element's layout
-# footprint in the document flow, so the scaled table would still occupy its
-# original (pre-scale) pixel height and potentially overlap the next row.
-# To compensate, we wrap each wide table in a new <div> whose height is set
-# to tableHeight * scaleFactor so the document flow sees the correct (smaller)
-# height after scaling.
+# Root-cause: The Superset table plugin wraps <table> in a div with an inline
+# style="overflow:hidden; width:1496px; box-sizing:border-box".  That container
+# clips the table to 1496px.  Applying a CSS transform to the inner <table>
+# alone does nothing visible — the parent's overflow:hidden clips the result
+# before the PDF engine sees it.
 #
-# Must be called AFTER EXPAND_TABLE_CONTAINERS_JS (so the table has rendered
-# to its natural width and height) and BEFORE page.pdf() (so the scale
-# transform is in place when the PDF engine lays out the page).
+# Fix: identify that scroll-container div (direct parent of <table>) and apply
+# the scale transform to IT after widening it to the table's natural scrollWidth
+# so the full table is visible before scaling.  Then set the scroll-container's
+# height to tableH * scaleFactor so subsequent rows start at the correct
+# position, and clear overflow from ALL ancestors up to .superset-chart-table
+# so nothing clips the down-scaled element.
 #
-# Only tables whose scrollWidth > viewportWidth are touched.  Tables that fit
-# naturally are left completely unmodified.
+# When `markLandscape` is true (auto-orientation mode), each wide-table root
+# element also receives data-print-landscape="true" so the CSS @page
+# print-landscape rule (injected by getPrintOrientationCSS) fires for that
+# element's page break, rotating that page to landscape instead of shrinking.
+# In this mode the scale transform is still applied as a fallback for tables
+# that remain too wide even in landscape.
+#
+# Must be called AFTER EXPAND_TABLE_CONTAINERS_JS (table has final dimensions)
+# and BEFORE page.pdf().  Tables that fit naturally are left unmodified.
 SCALE_WIDE_TABLES_JS = """
-() => {
+(markLandscape) => {
     const viewport = window.innerWidth || 1600;
-    // Leave a small gutter so the table doesn't butt up against the right margin.
+    // Leave a small gutter so the table doesn't butt against the right margin.
     const maxWidth = viewport - 24;
+    // In landscape mode A4 is ~297mm wide = ~1122 CSS px at 96dpi × (1600/794)
+    // at our print scale.  Using 1.414 (A4 ratio) as the landscape multiplier.
+    const landscapeMaxWidth = maxWidth * 1.414;
     let scaled = 0;
+    let marked = 0;
 
     const sel = '.superset-chart-table,'
         + ' [data-test-viz-type="table"],'
         + ' [data-test-viz-type="TableChartTransformed"]';
 
     for (const root of document.querySelectorAll(sel)) {
-        // The inner <table> element carries the natural column widths.
+        // The inner <table> carries the natural column widths.
         const tableEl = root.querySelector('table');
         if (!tableEl) continue;
 
         const tableW = tableEl.scrollWidth;
-        if (tableW <= maxWidth) continue;  // fits — no scaling needed
+        if (tableW <= maxWidth) {
+            // Fits in portrait — no action needed.
+            continue;
+        }
 
-        const scaleFactor = maxWidth / tableW;
+        // Table is too wide for portrait.
+        // In auto-landscape mode, mark this element for a landscape page break
+        // and only apply the scale transform if the table is still wider than
+        // the landscape width (very extreme: > ~1.41× the viewport width).
+        if (markLandscape) {
+            root.setAttribute('data-print-landscape', 'true');
+            marked++;
+            if (tableW <= landscapeMaxWidth) {
+                // Fits in landscape — don't shrink it further.
+                continue;
+            }
+        }
 
-        // Measure the table's natural height BEFORE applying the scale so we
-        // can set the wrapper height to compensate for the layout footprint.
-        const tableH = tableEl.scrollHeight;
-        const scaledH = Math.ceil(tableH * scaleFactor);
+        // The direct parent of <table> is the scroll container the Superset
+        // table plugin sets with style="overflow:hidden; width:Xpx".
+        // We must scale THIS container, not the <table> inside it, because
+        // the container's overflow:hidden clips the table's rendered output
+        // before Chromium's PDF engine can see the full width.
+        const container = tableEl.parentElement;
+        if (!container) continue;
 
-        // Apply the CSS scale transform directly to the <table> element.
-        // transform-origin: top left ensures the scaled table aligns flush with
-        // the left edge of the page rather than centering or shifting right.
-        tableEl.style.transform = 'scale(' + scaleFactor + ')';
-        tableEl.style.transformOrigin = 'top left';
-        // The scaled element still occupies its original layout footprint.
-        // Force the immediate parent (scroll container cleared by EXPAND_JS)
-        // to exactly the post-scale height so subsequent rows start correctly.
-        const parent = tableEl.parentElement;
-        if (parent) {
-            parent.style.height = scaledH + 'px';
-            parent.style.overflow = 'hidden';
+        // In landscape mode use the wider maxWidth for scale calculation.
+        const effectiveMax = markLandscape ? landscapeMaxWidth : maxWidth;
+        const scaleFactor = effectiveMax / tableW;
+
+        // Measure the container's natural height before scaling so we can
+        // compensate the layout footprint.
+        const containerH = container.scrollHeight;
+        const scaledH = Math.ceil(containerH * scaleFactor);
+
+        // 1. Widen the container to the table's natural scrollWidth so the
+        //    full table is laid out inside it before the scale is applied.
+        container.style.width = tableW + 'px';
+        container.style.maxWidth = 'none';
+        container.style.overflow = 'visible';
+        container.style.overflowX = 'visible';
+
+        // 2. Apply the scale transform to the container.
+        //    transform-origin:top left keeps the table flush with the left edge.
+        container.style.transform = 'scale(' + scaleFactor + ')';
+        container.style.transformOrigin = 'top left';
+
+        // 3. A CSS transform does NOT change the element's layout footprint —
+        //    the container still occupies containerH of vertical space.  Force
+        //    the height to the post-scale value so subsequent rows follow
+        //    immediately below.
+        container.style.height = scaledH + 'px';
+
+        // 4. Clear overflow:hidden from every ancestor up to the root selector
+        //    (.superset-chart-table / viz wrapper) so nothing clips the
+        //    scaled-down container from outside.
+        let ancestor = container.parentElement;
+        while (ancestor && ancestor !== root.parentElement) {
+            const cs = getComputedStyle(ancestor);
+            if (cs.overflow !== 'visible') {
+                ancestor.style.overflow = 'visible';
+            }
+            if (cs.overflowX !== 'visible') {
+                ancestor.style.overflowX = 'visible';
+            }
+            ancestor = ancestor.parentElement;
         }
 
         scaled++;
     }
-    return { scaled: scaled, viewport: viewport };
+    return { scaled: scaled, marked: marked, viewport: viewport };
 }
 """
 
