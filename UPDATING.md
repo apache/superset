@@ -24,6 +24,29 @@ assists people when migrating to a new version.
 
 ## Next
 
+### New feature flag: `DASHBOARD_REPORTS_BROWSER_PRINT_PDF`
+
+A new opt-in feature flag `DASHBOARD_REPORTS_BROWSER_PRINT_PDF` has been added
+(default: `False`).
+
+When enabled alongside the existing `PLAYWRIGHT_REPORTS_AND_THUMBNAILS` flag,
+dashboard PDF reports are generated using Playwright's native `page.pdf()` call
+instead of stitching together raster screenshots. The result is a true vector
+PDF with selectable text and sharper chart graphics.
+
+To opt in, add to your Superset config:
+
+```python
+FEATURE_FLAGS = {
+    "DASHBOARD_REPORTS_BROWSER_PRINT_PDF": True,
+    "PLAYWRIGHT_REPORTS_AND_THUMBNAILS": True,  # required
+}
+```
+
+Note: reports targeting dashboards spread across multiple permalink URLs
+(via `ALERT_REPORT_TABS` with multiple tabs selected) fall back to the
+existing screenshot path when this flag is enabled.
+
 - `SAMPLES_ROW_LIMIT` is now the default for `/datasource/samples` requests without a valid explicit `per_page`, rather than a hard per-request ceiling; explicit limits are honored up to the existing global row-limit ceiling, matching `/chart/data` SAMPLES requests.
 - The `cockroachdb` extra (`pip install apache-superset[cockroachdb]`) now installs `sqlalchemy-cockroachdb` instead of the abandoned `cockroachdb` package, whose SQLAlchemy dialect could not be imported under SQLAlchemy 2.0. Existing environments with the old package installed should `pip uninstall cockroachdb && pip install sqlalchemy-cockroachdb` (or simply reinstall the extra) to restore CockroachDB connectivity.
 
