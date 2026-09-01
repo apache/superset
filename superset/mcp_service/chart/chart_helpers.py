@@ -582,6 +582,8 @@ def _build_single_query_dict(
     # an unordered result (dropping the heaviest rows rather than the top-N).
     if form_data.get("sort_by_metric") and metrics:
         qd["orderby"] = [(metrics[0], False)]
+    if orderby := form_data.get("orderby"):
+        qd["orderby"] = orderby
     apply_form_data_filters_to_query(qd, form_data)
     return qd
 

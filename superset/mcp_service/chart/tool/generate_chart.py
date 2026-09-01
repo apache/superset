@@ -85,10 +85,10 @@ async def generate_chart(  # noqa: C901
     - Set save_chart=True to permanently save the chart
     - LLM clients MUST display returned chart URL to users
     - Use numeric dataset ID or UUID (NOT schema.table_name format)
-    - MUST include chart_type in config (one of: 'xy', 'table', 'pie',
-      'gauge_chart', 'pivot_table', 'mixed_timeseries', 'handlebars',
-      'big_number', 'histogram', 'box_plot', 'waterfall', plus host-gated
-      types returned by get_chart_type_schema such as 'interactive_pivot')
+    - MUST include chart_type in config (one of: 'xy', 'table', 'pie', 'bullet',
+      'gauge_chart', 'pivot_table', 'mixed_timeseries', 'handlebars', 'big_number',
+      'histogram', 'box_plot', 'waterfall', plus host-gated types returned by
+      get_chart_type_schema such as 'interactive_pivot')
 
     IMPORTANT: The 'chart_type' field in the config is a DISCRIMINATOR that determines
     which chart configuration schema to use. It MUST be included and MUST match the
@@ -106,6 +106,10 @@ async def generate_chart(  # noqa: C901
 
     - chart_type='pie' for pie/donut charts.
       Required fields: dimension, metric
+
+    - chart_type='bullet' for progress/attainment against qualitative ranges
+      and targets. Required field: metric. Optional dimensions create one row
+      per category; ranges, markers, and marker_lines add comparison thresholds.
 
     - chart_type='pivot_table' for pivot table visualizations.
       Required fields: rows, metrics (columns is optional, for cross-tabs)
@@ -144,6 +148,7 @@ async def generate_chart(  # noqa: C901
     - "bar chart" / "line chart" / "area chart" / "scatter plot"
       -> chart_type='xy', kind='bar'/'line'/'area'/'scatter'
     - "pie chart" / "donut chart" -> chart_type='pie'
+    - "bullet chart" / "progress against target" -> chart_type='bullet'
     - "table" / "data grid" -> chart_type='table'
     - "pivot table" / "cross-tab" -> chart_type='pivot_table'
     - "interactive pivot" / "AG Grid pivot" -> chart_type='interactive_pivot'

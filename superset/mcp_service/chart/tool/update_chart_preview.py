@@ -39,6 +39,7 @@ from superset.mcp_service.chart.chart_utils import (
     generate_explore_link,
     map_config_to_form_data,
     MCP_DASHBOARD_TIME_FILTER_SUBJECT,
+    merge_bullet_form_data,
     merge_interactive_pivot_ui_config,
     merge_table_column_config,
     NO_TIME_RANGE,
@@ -238,6 +239,7 @@ def update_chart_preview(  # noqa: C901
                     previous_form_data,
                 )
             if previous_form_data:
+                merge_bullet_form_data(previous_form_data, new_form_data)
                 merge_table_column_config(previous_form_data, new_form_data)
                 merge_interactive_pivot_ui_config(previous_form_data, new_form_data)
 
