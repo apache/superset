@@ -1513,6 +1513,30 @@ def test_bullet_temporal_binding_override_replaces_in_place() -> None:
     assert mapped["adhoc_filters"][1]["comparator"] == "Last 30 days"
 
 
+def test_bullet_omitted_filters_preserve_missing_native_filter_key() -> None:
+    existing = {"viz_type": "bullet", "metric": "SavedRevenue"}
+    config = BulletChartConfig(metric=_simple_metric())
+    mapped = {
+        "viz_type": "bullet",
+        "metric": "new",
+        MCP_DASHBOARD_TIME_FILTER_SUBJECT: "OrderDate",
+        "adhoc_filters": [
+            {
+                "clause": "WHERE",
+                "expressionType": "SIMPLE",
+                "subject": "OrderDate",
+                "operator": "TEMPORAL_RANGE",
+                "comparator": "No filter",
+            }
+        ],
+    }
+
+    merge_update_form_data(existing, mapped, config)
+
+    assert "adhoc_filters" not in mapped
+    assert MCP_DASHBOARD_TIME_FILTER_SUBJECT not in mapped
+
+
 @pytest.mark.parametrize("preview_first", [False, True])
 def test_bullet_update_paths_preserve_opaque_filters_byte_for_byte(
     preview_first: bool,
