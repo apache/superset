@@ -661,6 +661,7 @@ async def update_chart(  # noqa: C901
         if validation_config is not None and effective_norm_dataset_id is not None:
             from superset.mcp_service.chart.validation.dataset_validator import (
                 DatasetValidator,
+                GanttSemanticNormalizationError,
                 NORMALIZATION_EXCEPTIONS,
             )
 
@@ -674,6 +675,11 @@ async def update_chart(  # noqa: C901
                     request = request.model_copy(
                         update={"add_columns": validation_config.columns}
                     )
+            except GanttSemanticNormalizationError as ex:
+                return _validation_error_response(
+                    message="Gantt chart column roles are invalid",
+                    details=str(ex),
+                )
             except NORMALIZATION_EXCEPTIONS as e:
                 logger.warning(
                     "Column normalization failed for chart %s: %s", chart.id, e

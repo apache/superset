@@ -46,6 +46,10 @@ _NUMERIC_TYPE_PATTERN = re.compile(
 )
 
 
+class GanttSemanticNormalizationError(ValueError):
+    """A Gantt canonicalization result violates its typed semantic contract."""
+
+
 def is_numeric_column(column: Mapping[str, Any]) -> bool:
     """Return whether dataset metadata identifies a numeric SQL column."""
     if column.get("is_numeric", False):

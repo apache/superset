@@ -133,9 +133,30 @@ class ValidationPipeline:
             # Runtime validation always returns True now, warnings are informational
 
             # Layer 4: Column name normalization (reuses context)
-            normalized_request = ValidationPipeline._normalize_column_names(
-                request, dataset_context, typed_config=typed_config
-            )
+            from .dataset_validator import GanttSemanticNormalizationError
+
+            try:
+                normalized_request = ValidationPipeline._normalize_column_names(
+                    request, dataset_context, typed_config=typed_config
+                )
+            except GanttSemanticNormalizationError as ex:
+                return ValidationResult(
+                    is_valid=False,
+                    request=request,
+                    error=ChartGenerationError(
+                        error_type="gantt_semantic_validation_error",
+                        message="Gantt chart column roles are invalid",
+                        details=str(ex),
+                        suggestions=[
+                            "Use different physical columns for start_time and "
+                            "end_time",
+                            "Use different physical columns for category and series",
+                            "Use exact dataset column casing when names differ only "
+                            "by case",
+                        ],
+                        error_code="GANTT_SEMANTIC_VALIDATION_ERROR",
+                    ),
+                )
 
             return ValidationResult(
                 is_valid=True,
@@ -250,7 +271,10 @@ class ValidationPipeline:
             A new request with normalized column names
         """
         try:
-            from .dataset_validator import DatasetValidator
+            from .dataset_validator import (
+                DatasetValidator,
+                GanttSemanticNormalizationError,
+            )
 
             config = typed_config or request.config
             normalized_config = DatasetValidator.normalize_column_names(
@@ -265,6 +289,8 @@ class ValidationPipeline:
 
             return GenerateChartRequest.model_validate(request_dict)
 
+        except GanttSemanticNormalizationError:
+            raise
         except (ImportError, AttributeError, KeyError, ValueError, TypeError) as e:
             # If normalization fails, return the original request
             # Validation has already passed, so this is a non-critical failure

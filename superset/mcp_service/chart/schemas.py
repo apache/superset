@@ -2571,21 +2571,98 @@ class GanttChartConfig(BaseChartConfig):
                     )
                 subject = native_filter.get("subject")
                 operator = native_filter.get("operator")
+                operator_id = native_filter.get("operatorId")
                 comparator = native_filter.get("comparator")
+                operator_id_map: dict[str, str | None] = {
+                    "EQUALS": "==",
+                    "NOT_EQUALS": "!=",
+                    "LESS_THAN": "<",
+                    "LESS_THAN_OR_EQUAL": "<=",
+                    "GREATER_THAN": ">",
+                    "GREATER_THAN_OR_EQUAL": ">=",
+                    "IN": "IN",
+                    "NOT_IN": "NOT IN",
+                    "LIKE": "LIKE",
+                    "ILIKE": "ILIKE",
+                    "IS_NOT_NULL": "IS NOT NULL",
+                    "IS_NULL": "IS NULL",
+                    "TEMPORAL_RANGE": "TEMPORAL_RANGE",
+                    # These are real Explore operator IDs, but FilterConfig and
+                    # the shared query-filter contract cannot represent them
+                    # without changing their meaning. Reject them explicitly.
+                    "LATEST_PARTITION": None,
+                    "IS_TRUE": None,
+                    "IS_FALSE": None,
+                    "CONTAINS_ANY": None,
+                    "CONTAINS_ALL": None,
+                    "IS_EMPTY": None,
+                    "IS_NOT_EMPTY": None,
+                    "LENGTH_EQUALS": None,
+                    "LENGTH_GREATER_THAN": None,
+                    "LENGTH_LESS_THAN": None,
+                    "LENGTH_GREATER_THAN_OR_EQUALS": None,
+                    "LENGTH_LESS_THAN_OR_EQUALS": None,
+                }
+                if operator_id is not None:
+                    if operator_id not in operator_id_map:
+                        raise ValueError(
+                            f"adhoc_filters[{index}].operatorId {operator_id!r} "
+                            "is not a recognized Explore operator ID"
+                        )
+                    expected_operator = operator_id_map[operator_id]
+                    if expected_operator is None:
+                        raise ValueError(
+                            f"adhoc_filters[{index}].operatorId {operator_id!r} "
+                            "is not supported by typed Gantt filters"
+                        )
+                    if operator != expected_operator:
+                        raise ValueError(
+                            f"adhoc_filters[{index}] has contradictory operator "
+                            f"{operator!r} for operatorId {operator_id!r}; expected "
+                            f"{expected_operator!r}"
+                        )
+
+                supported_operators = {
+                    expected
+                    for expected in operator_id_map.values()
+                    if expected is not None
+                } | {"NOT LIKE"}
+                if operator not in supported_operators:
+                    raise ValueError(
+                        f"adhoc_filters[{index}].operator {operator!r} is not "
+                        "supported by typed Gantt filters"
+                    )
                 if operator == "TEMPORAL_RANGE":
                     if not isinstance(subject, str) or not subject:
                         raise ValueError(
                             f"adhoc_filters[{index}] temporal filter needs subject"
                         )
-                    if comparator is not None and not isinstance(comparator, str):
+                    if not isinstance(comparator, str) or not comparator:
                         raise ValueError(
                             f"adhoc_filters[{index}] temporal comparator must "
-                            "be a string"
+                            "be a non-empty string"
                         )
                     temporal_filters.append((index, subject, comparator))
                     continue
                 if not isinstance(subject, str) or not subject:
                     raise ValueError(f"adhoc_filters[{index}] needs subject")
+                if operator in {"IS NULL", "IS NOT NULL"}:
+                    if comparator is not None:
+                        raise ValueError(
+                            f"adhoc_filters[{index}] operator {operator!r} must not "
+                            "define comparator"
+                        )
+                elif operator in {"IN", "NOT IN"}:
+                    if not isinstance(comparator, list) or not comparator:
+                        raise ValueError(
+                            f"adhoc_filters[{index}] operator {operator!r} requires "
+                            "a non-empty comparator array"
+                        )
+                elif comparator is None or isinstance(comparator, (dict, list)):
+                    raise ValueError(
+                        f"adhoc_filters[{index}] operator {operator!r} requires "
+                        "a scalar comparator"
+                    )
                 filters.append(
                     {
                         "column": subject,
@@ -2698,8 +2775,8 @@ class GanttChartConfig(BaseChartConfig):
             if not isinstance(column, dict):
                 raise ValueError(f"tooltip_metrics[{index}] SIMPLE metric needs column")
             # QueryFormMetric embeds the selected frontend Column metadata.
-            # Accept only the documented fields plus certification fields found
-            # in saved chart YAML; none affect the typed metric reference.
+            # Keep this allowlist aligned with the frontend Column contract and
+            # the additional fields emitted by TableColumn.data.
             allowed_column_keys = {
                 "advanced_data_type",
                 "certification_details",
@@ -2719,6 +2796,7 @@ class GanttChartConfig(BaseChartConfig):
                 "python_date_format",
                 "type",
                 "type_generic",
+                "uuid",
                 "value",
                 "verbose_name",
                 "warning_markdown",
@@ -2729,13 +2807,73 @@ class GanttChartConfig(BaseChartConfig):
                     f"tooltip_metrics[{index}].column has unsupported fields: "
                     f"{', '.join(sorted(unknown_column_keys))}"
                 )
-            for metadata_key, metadata_value in column.items():
-                if isinstance(metadata_value, (dict, list, tuple, set)) or (
-                    isinstance(metadata_value, str) and len(metadata_value) > 2000
-                ):
+            boolean_fields = {"filterable", "groupby", "is_certified", "is_dttm"}
+            for metadata_key in boolean_fields & column.keys():
+                if not isinstance(column[metadata_key], bool):
                     raise ValueError(
                         f"tooltip_metrics[{index}].column.{metadata_key} "
-                        "has an unsupported value"
+                        "must be boolean"
+                    )
+            if "id" in column and (
+                isinstance(column["id"], bool)
+                or not isinstance(column["id"], int)
+                or column["id"] < 0
+            ):
+                raise ValueError(
+                    f"tooltip_metrics[{index}].column.id must be a non-negative integer"
+                )
+            if "type_generic" in column:
+                type_generic = column["type_generic"]
+                if type_generic is not None and (
+                    isinstance(type_generic, bool)
+                    or not isinstance(type_generic, int)
+                    or type_generic not in range(5)
+                ):
+                    raise ValueError(
+                        f"tooltip_metrics[{index}].column.type_generic must be "
+                        "null or a GenericDataType value from 0 through 4"
+                    )
+
+            nullable_string_fields = {
+                "advanced_data_type",
+                "certification_details",
+                "certified_by",
+                "database_expression",
+                "description",
+                "expression",
+                "python_date_format",
+                "type",
+                "uuid",
+                "verbose_name",
+                "warning_markdown",
+            }
+            for metadata_key in nullable_string_fields & column.keys():
+                metadata_value = column[metadata_key]
+                if metadata_value is not None and (
+                    not isinstance(metadata_value, str) or len(metadata_value) > 2000
+                ):
+                    raise ValueError(
+                        f"tooltip_metrics[{index}].column.{metadata_key} must be "
+                        "null or a string of at most 2000 characters"
+                    )
+
+            string_fields = {
+                "columnName",
+                "column_name",
+                "filterBy",
+                "optionName",
+                "value",
+            }
+            for metadata_key in string_fields & column.keys():
+                metadata_value = column[metadata_key]
+                if (
+                    not isinstance(metadata_value, str)
+                    or not metadata_value
+                    or len(metadata_value) > 2000
+                ):
+                    raise ValueError(
+                        f"tooltip_metrics[{index}].column.{metadata_key} must be "
+                        "a non-empty string of at most 2000 characters"
                     )
             column_name = column.get("column_name") or column.get("columnName")
             if not isinstance(column_name, str) or not column_name:
@@ -2749,11 +2887,10 @@ class GanttChartConfig(BaseChartConfig):
                     f"tooltip_metrics[{index}].column has conflicting column names"
                 )
             column_type = column.get("type")
-            if column_type is not None and (
-                not isinstance(column_type, str) or len(column_type) > 255
-            ):
+            if isinstance(column_type, str) and len(column_type) > 255:
                 raise ValueError(
-                    f"tooltip_metrics[{index}].column.type must be a string"
+                    f"tooltip_metrics[{index}].column.type must be at most 255 "
+                    "characters"
                 )
             if metric.get("sqlExpression") is not None:
                 raise ValueError(
@@ -2896,9 +3033,21 @@ class GanttChartConfig(BaseChartConfig):
                     "saved_metric=True, or sql_expression"
                 )
 
-        if self.start_time.name == self.end_time.name:
+        start_name = self.start_time.name
+        end_name = self.end_time.name
+        if (
+            start_name is not None
+            and end_name is not None
+            and start_name.casefold() == end_name.casefold()
+        ):
             raise ValueError("start_time and end_time must reference different columns")
-        if self.series and self.series.name == self.category.name:
+        category_name = self.category.name
+        if (
+            self.series
+            and self.series.name is not None
+            and category_name is not None
+            and self.series.name.casefold() == category_name.casefold()
+        ):
             raise ValueError("series and category must reference different columns")
         if self.subcategories and self.series is None:
             raise ValueError("subcategories=True requires series")

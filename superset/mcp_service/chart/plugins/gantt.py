@@ -22,11 +22,33 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any, ClassVar
 
+from pydantic import ValidationError
+
 from superset.mcp_service.chart.chart_utils import _summarize_filters, map_gantt_config
 from superset.mcp_service.chart.plugin import BaseChartPlugin
 from superset.mcp_service.chart.schemas import ColumnRef, GanttChartConfig
-from superset.mcp_service.chart.validation.dataset_validator import DatasetValidator
+from superset.mcp_service.chart.validation.dataset_validator import (
+    DatasetValidator,
+    GanttSemanticNormalizationError,
+)
 from superset.mcp_service.common.error_schemas import ChartGenerationError
+
+
+def _canonical_gantt_reference(name: str, names: list[str], reference_kind: str) -> str:
+    """Resolve one case-insensitive reference without guessing on ambiguity."""
+    matches = [
+        candidate for candidate in names if candidate.casefold() == name.casefold()
+    ]
+    if name in matches:
+        return name
+    if len(matches) > 1:
+        choices = ", ".join(repr(match) for match in matches)
+        raise GanttSemanticNormalizationError(
+            f"Gantt {reference_kind} reference {name!r} is ambiguous because the "
+            f"dataset contains {reference_kind}s that differ only by case: {choices}. "
+            f"Use the exact {reference_kind} name."
+        )
+    return matches[0] if matches else name
 
 
 class GanttChartPlugin(BaseChartPlugin):
@@ -135,11 +157,19 @@ class GanttChartPlugin(BaseChartPlugin):
             error_code="NON_TEMPORAL_GANTT_TIME_COLUMN",
         )
 
-    def normalize_column_refs(self, config: Any, dataset_context: Any) -> Any:
+    def normalize_column_refs(  # noqa: C901
+        self, config: Any, dataset_context: Any
+    ) -> Any:
         explicit_fields = set(config.model_fields_set)
         config_dict = config.model_dump()
-        canonical_column = DatasetValidator.get_canonical_column_name
-        canonical_metric = DatasetValidator.get_canonical_metric_name
+        column_names = [column["name"] for column in dataset_context.available_columns]
+        metric_names = [metric["name"] for metric in dataset_context.available_metrics]
+
+        def canonical_column(name: str, _context: Any) -> str:
+            return _canonical_gantt_reference(name, column_names, "physical column")
+
+        def canonical_metric(name: str, _context: Any) -> str:
+            return _canonical_gantt_reference(name, metric_names, "saved metric")
 
         if temporal_column := config_dict.get("temporal_column"):
             config_dict["temporal_column"] = canonical_column(
@@ -158,7 +188,14 @@ class GanttChartPlugin(BaseChartPlugin):
         for order in config_dict.get("order_by") or []:
             order["column"] = canonical_column(order["column"], dataset_context)
         DatasetValidator.normalize_filters(config_dict, dataset_context)
-        normalized = GanttChartConfig.model_validate(config_dict)
+        try:
+            normalized = GanttChartConfig.model_validate(config_dict)
+        except ValidationError as ex:
+            reasons = "; ".join(error["msg"] for error in ex.errors()[:3])
+            raise GanttSemanticNormalizationError(
+                "Gantt column normalization produced an invalid semantic "
+                f"configuration: {reasons}"
+            ) from ex
         # ``model_dump()`` necessarily contains defaults, but mapping relies on
         # ``model_fields_set`` to distinguish omitted presentation controls from
         # explicitly supplied default values. Keep that request-level intent

@@ -20,7 +20,7 @@
 import importlib
 from pathlib import Path
 from types import SimpleNamespace
-from unittest.mock import Mock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 import yaml
@@ -58,12 +58,19 @@ from superset.mcp_service.chart.tool.update_chart import (
     _build_preview_form_data,
     _build_update_payload,
 )
-from superset.mcp_service.chart.validation.dataset_validator import DatasetValidator
+from superset.mcp_service.chart.validation.dataset_validator import (
+    DatasetValidator,
+    GanttSemanticNormalizationError,
+)
+from superset.mcp_service.chart.validation.pipeline import ValidationPipeline
 from superset.mcp_service.chart.validation.schema_validator import SchemaValidator
 from superset.mcp_service.common.error_schemas import DatasetContext
 
 update_chart_module = importlib.import_module(
     "superset.mcp_service.chart.tool.update_chart"
+)
+generate_chart_module = importlib.import_module(
+    "superset.mcp_service.chart.tool.generate_chart"
 )
 update_chart_preview_module = importlib.import_module(
     "superset.mcp_service.chart.tool.update_chart_preview"
@@ -104,6 +111,21 @@ def _dataset_context() -> DatasetContext:
         available_metrics=[
             {"name": "Completion", "expression": "AVG(progress)"},
         ],
+    )
+
+
+def _ambiguous_dataset_context() -> DatasetContext:
+    return DatasetContext(
+        id=1,
+        table_name="ambiguous_tasks",
+        database_name="main",
+        available_columns=[
+            {"name": "StartedAt", "type": "TIMESTAMP", "is_temporal": True},
+            {"name": "startedat", "type": "TIMESTAMP", "is_temporal": True},
+            {"name": "EndedAt", "type": "TIMESTAMP", "is_temporal": True},
+            {"name": "Task", "type": "VARCHAR", "is_temporal": False},
+        ],
+        available_metrics=[],
     )
 
 
@@ -164,6 +186,28 @@ def test_role_and_cross_field_validation_is_conservative() -> None:
         _config(subcategories=True)
     with pytest.raises(ValidationError, match="different columns"):
         _config(end_time={"name": "start_time"})
+
+    # These roles resolve labels case-insensitively in dataset canonicalization.
+    with pytest.raises(ValidationError, match="start_time and end_time"):
+        _config(end_time={"name": "START_TIME"})
+    with pytest.raises(ValidationError, match="series and category"):
+        _config(series={"name": "task"})
+    with pytest.raises(ValidationError, match="series and category"):
+        _config(series={"name": "TASK"}, subcategories=True)
+
+    with pytest.raises(ValidationError, match=r"tooltip_columns\[0\].*dimension"):
+        _config(tooltip_columns=[{"name": "Task", "aggregate": "MAX"}])
+    with pytest.raises(ValidationError, match=r"tooltip_metrics\[0\]"):
+        _config(tooltip_metrics=[{"name": "TASK"}])
+
+    # The frontend permits a physical column in a tooltip as either a repeated
+    # dimension or an aggregated metric; only the role shape must stay distinct.
+    config = _config(
+        tooltip_columns=[{"name": "TASK"}],
+        tooltip_metrics=[{"name": "task", "aggregate": "COUNT"}],
+    )
+    assert config.tooltip_columns[0].name == "TASK"
+    assert config.tooltip_metrics[0].aggregate == "COUNT"
 
 
 def test_native_input_rejects_malformed_filters_order_and_bounds() -> None:
@@ -315,23 +359,200 @@ def test_native_adapter_accepts_bounded_standard_explore_metadata() -> None:
     native["tooltip_metrics"] = [
         {
             "aggregate": "SUM",
-            "column": {"column_name": "cost"},
+            "column": {
+                "advanced_data_type": None,
+                "certification_details": None,
+                "certified_by": "Data team",
+                "column_name": "cost",
+                "database_expression": None,
+                "description": "Task cost",
+                "expression": None,
+                "filterBy": "cost",
+                "filterable": True,
+                "groupby": False,
+                "id": 734,
+                "is_certified": True,
+                "is_dttm": False,
+                "optionName": "cost",
+                "python_date_format": None,
+                "type": "DOUBLE PRECISION",
+                "type_generic": 0,
+                "uuid": None,
+                "value": "cost",
+                "verbose_name": None,
+                "warning_markdown": "Certified source",
+            },
             "datasourceWarning": False,
             "expressionType": "SIMPLE",
             "hasCustomLabel": False,
-            "isNew": False,
             "label": "SUM(cost)",
             "optionName": "metric_cost",
             "sqlExpression": None,
         }
     ]
 
-    adapted = GanttChartConfig.model_validate(native)
+    request = UpdateChartRequest(identifier=1495, config=native)
+    assert isinstance(request.config, GanttChartConfig)
+    adapted = request.config
 
     assert adapted.filters is not None
     assert adapted.filters[0].column == "task"
     assert adapted.time_range == "Last 30 days"
     assert adapted.tooltip_metrics[0].name == "cost"
+    remapped = map_gantt_config(adapted)
+    assert remapped["tooltip_metrics"] == [
+        {
+            "aggregate": "SUM",
+            "column": {"column_name": "cost"},
+            "datasourceWarning": False,
+            "expressionType": "SIMPLE",
+            "hasCustomLabel": False,
+            "label": "SUM(cost)",
+            "optionName": "metric_cost",
+            "sqlExpression": None,
+        }
+    ]
+
+
+@pytest.mark.parametrize(
+    ("operator_id", "operator", "comparator", "expected_op"),
+    [
+        ("EQUALS", "==", "Build", "="),
+        ("NOT_EQUALS", "!=", "Build", "!="),
+        ("LESS_THAN", "<", 5, "<"),
+        ("LESS_THAN_OR_EQUAL", "<=", 5, "<="),
+        ("GREATER_THAN", ">", 5, ">"),
+        ("GREATER_THAN_OR_EQUAL", ">=", 5, ">="),
+        ("IN", "IN", ["Build", "Review"], "IN"),
+        ("NOT_IN", "NOT IN", ["Deferred"], "NOT IN"),
+        ("LIKE", "LIKE", "Build%", "LIKE"),
+        ("ILIKE", "ILIKE", "build%", "ILIKE"),
+        ("IS_NULL", "IS NULL", None, "IS NULL"),
+        ("IS_NOT_NULL", "IS NOT NULL", None, "IS NOT NULL"),
+    ],
+)
+def test_native_adapter_maps_supported_frontend_filter_operators(
+    operator_id: str,
+    operator: str,
+    comparator: object,
+    expected_op: str,
+) -> None:
+    native = map_gantt_config(_config())
+    native.pop("_mcp_dashboard_time_filter_subject")
+    native["adhoc_filters"] = [
+        {
+            "clause": "WHERE",
+            "comparator": comparator,
+            "expressionType": "SIMPLE",
+            "operator": operator,
+            "operatorId": operator_id,
+            "sqlExpression": None,
+            "subject": "task",
+        }
+    ]
+
+    request = UpdateChartRequest(identifier=1495, config=native)
+
+    assert isinstance(request.config, GanttChartConfig)
+    assert request.config.filters is not None
+    assert request.config.filters[0].op == expected_op
+    assert request.config.filters[0].value == comparator
+
+
+def test_native_adapter_maps_valid_temporal_operator_id() -> None:
+    native = map_gantt_config(_config())
+    native["adhoc_filters"] = [
+        {
+            "clause": "WHERE",
+            "comparator": "Last 30 days",
+            "expressionType": "SIMPLE",
+            "operator": "TEMPORAL_RANGE",
+            "operatorId": "TEMPORAL_RANGE",
+            "sqlExpression": None,
+            "subject": "start_time",
+        }
+    ]
+
+    request = UpdateChartRequest(identifier=1495, config=native)
+
+    assert isinstance(request.config, GanttChartConfig)
+    assert request.config.filters is None
+    assert request.config.temporal_column == "start_time"
+    assert request.config.time_range == "Last 30 days"
+
+
+@pytest.mark.parametrize(
+    ("operator_id", "operator", "comparator", "message"),
+    [
+        ("EQAULS", "==", "Build", "not a recognized Explore operator ID"),
+        ("EQUALS", "!=", "Build", "contradictory operator"),
+        ("IS_NULL", "==", "Build", "contradictory operator"),
+        ("IS_NULL", "IS NULL", "Build", "must not define comparator"),
+        ("LATEST_PARTITION", "LATEST PARTITION", None, "not supported"),
+        ("IN", "IN", "Build", "non-empty comparator array"),
+    ],
+)
+def test_native_adapter_rejects_malformed_or_unsupported_operator_shapes(
+    operator_id: str,
+    operator: str,
+    comparator: object,
+    message: str,
+) -> None:
+    native = map_gantt_config(_config())
+    native.pop("_mcp_dashboard_time_filter_subject")
+    native["adhoc_filters"] = [
+        {
+            "clause": "WHERE",
+            "comparator": comparator,
+            "expressionType": "SIMPLE",
+            "operator": operator,
+            "operatorId": operator_id,
+            "sqlExpression": None,
+            "subject": "task",
+        }
+    ]
+
+    with pytest.raises(ValidationError, match=message):
+        UpdateChartRequest(identifier=1495, config=native)
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("advanced_data_type", []),
+        ("certification_details", {}),
+        ("certified_by", 3),
+        ("description", []),
+        ("filterable", "true"),
+        ("groupby", "definitely-not-bool"),
+        ("id", True),
+        ("is_certified", None),
+        ("is_dttm", 0),
+        ("python_date_format", False),
+        ("type", 3),
+        ("type_generic", "0"),
+        ("type_generic", 5),
+        ("uuid", 123),
+        ("verbose_name", []),
+        ("warning_markdown", {}),
+    ],
+)
+def test_update_request_rejects_wrongly_typed_native_column_metadata(
+    field: str, value: object
+) -> None:
+    native = map_gantt_config(_config())
+    native["tooltip_metrics"] = [
+        {
+            "aggregate": "SUM",
+            "column": {"column_name": "cost", field: value},
+            "expressionType": "SIMPLE",
+            "label": "SUM(cost)",
+            "sqlExpression": None,
+        }
+    ]
+
+    with pytest.raises(ValidationError, match=field):
+        UpdateChartRequest(identifier=1495, config=native)
 
 
 def test_native_adapter_uses_frontend_fallback_for_unlabeled_sql_metric() -> None:
@@ -547,6 +768,211 @@ def test_dataset_validation_and_case_normalization() -> None:
     assert valid is False
     assert error is not None
     assert any("Task" in suggestion for suggestion in error.suggestions)
+
+
+def test_gantt_normalization_rejects_ambiguous_case_insensitive_dataset_names() -> None:
+    config = _config(
+        start_time={"name": "STARTEDAT"},
+        end_time={"name": "endedat"},
+        category={"name": "task"},
+    )
+
+    with pytest.raises(
+        GanttSemanticNormalizationError,
+        match="ambiguous.*StartedAt.*startedat.*exact physical column name",
+    ):
+        DatasetValidator.normalize_column_names(
+            config, 1, dataset_context=_ambiguous_dataset_context()
+        )
+
+
+def test_validation_pipeline_fails_closed_on_gantt_semantic_normalization() -> None:
+    request_data = {
+        "dataset_id": 1,
+        "config": {
+            "chart_type": "gantt",
+            "start_time": {"name": "STARTEDAT"},
+            "end_time": {"name": "endedat"},
+            "category": {"name": "task"},
+        },
+    }
+    with (
+        patch.object(
+            ValidationPipeline,
+            "_get_dataset_context",
+            return_value=_ambiguous_dataset_context(),
+        ),
+        patch.object(
+            ValidationPipeline, "_validate_runtime", return_value=(True, None)
+        ),
+    ):
+        result = ValidationPipeline.validate_request_with_warnings(request_data)
+
+    assert result.is_valid is False
+    assert result.request is not None
+    assert result.error is not None
+    assert result.error.error_type == "gantt_semantic_validation_error"
+    assert result.error.error_code == "GANTT_SEMANTIC_VALIDATION_ERROR"
+    assert "ambiguous" in result.error.details
+    assert result.error.suggestions
+
+
+def test_nonsemantic_normalization_error_remains_a_warning_for_other_charts(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    request = GenerateChartRequest(
+        dataset_id=1,
+        config={"chart_type": "table", "columns": [{"name": "Task"}]},
+    )
+    with patch.object(
+        DatasetValidator,
+        "normalize_column_names",
+        side_effect=ValueError("temporary canonicalization issue"),
+    ):
+        normalized = ValidationPipeline._normalize_column_names(request)
+
+    assert normalized is request
+    assert "Column name normalization failed" in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_generate_chart_maps_gantt_semantic_normalization_to_error() -> None:
+    request = GenerateChartRequest(
+        dataset_id=1,
+        config={
+            "chart_type": "gantt",
+            "start_time": {"name": "STARTEDAT"},
+            "end_time": {"name": "endedat"},
+            "category": {"name": "task"},
+        },
+        preview_formats=[],
+    )
+    ctx = Mock(
+        info=AsyncMock(),
+        debug=AsyncMock(),
+        warning=AsyncMock(),
+        error=AsyncMock(),
+        report_progress=AsyncMock(),
+    )
+    with (
+        patch(
+            "superset.mcp_service.auth.get_user_from_request",
+            return_value=Mock(id=1),
+        ),
+        patch.object(
+            ValidationPipeline,
+            "_get_dataset_context",
+            return_value=_ambiguous_dataset_context(),
+        ),
+        patch.object(
+            ValidationPipeline, "_validate_runtime", return_value=(True, None)
+        ),
+        patch.object(generate_chart_module, "map_config_to_form_data") as mapper,
+    ):
+        result = await generate_chart_module.generate_chart(request=request, ctx=ctx)
+
+    assert result.success is False
+    assert result.error is not None
+    assert result.error.error_type == "gantt_semantic_validation_error"
+    assert "ambiguous" in result.error.details
+    mapper.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_update_chart_maps_gantt_semantic_normalization_to_error() -> None:
+    request = UpdateChartRequest(
+        identifier=1495,
+        config={
+            "chart_type": "gantt",
+            "start_time": {"name": "STARTEDAT"},
+            "end_time": {"name": "endedat"},
+            "category": {"name": "task"},
+        },
+        generate_preview=False,
+        preview_formats=[],
+    )
+    chart = SimpleNamespace(
+        id=1495,
+        datasource_id=1,
+        datasource=object(),
+        params=__import__("json").dumps(_native_example()),
+        slice_name="Gantt",
+        uuid="chart-uuid",
+        viz_type="gantt_chart",
+    )
+    with (
+        patch(
+            "superset.mcp_service.auth.get_user_from_request",
+            return_value=Mock(id=1),
+        ),
+        patch.object(
+            update_chart_module, "find_chart_by_identifier", return_value=chart
+        ),
+        patch(
+            "superset.mcp_service.auth.check_chart_data_access",
+            return_value=SimpleNamespace(is_valid=True, error=None),
+        ),
+        patch.object(
+            DatasetValidator,
+            "_get_dataset_context",
+            return_value=_ambiguous_dataset_context(),
+        ),
+        patch("superset.commands.chart.update.UpdateChartCommand") as command,
+    ):
+        result = await update_chart_module.update_chart(request=request, ctx=Mock())
+
+    assert result.success is False
+    assert result.error is not None
+    assert result.error.error_type == "ValidationError"
+    assert "ambiguous" in result.error.details
+    command.assert_not_called()
+
+
+def test_update_chart_preview_maps_gantt_semantic_normalization_to_error() -> None:
+    context = _ambiguous_dataset_context()
+    columns = [
+        SimpleNamespace(
+            column_name=column["name"],
+            type=column["type"],
+            is_temporal=column["is_temporal"],
+            is_numeric=False,
+        )
+        for column in context.available_columns
+    ]
+    dataset = SimpleNamespace(
+        id=1,
+        table_name=context.table_name,
+        schema=None,
+        columns=columns,
+        metrics=[],
+        database=SimpleNamespace(database_name="main", db_engine_spec=None),
+    )
+    request = UpdateChartPreviewRequest(
+        dataset_id=1,
+        config={
+            "chart_type": "gantt",
+            "start_time": {"name": "STARTEDAT"},
+            "end_time": {"name": "endedat"},
+            "category": {"name": "task"},
+        },
+        preview_formats=[],
+    )
+    with (
+        patch(
+            "superset.mcp_service.auth.get_user_from_request",
+            return_value=Mock(id=1),
+        ),
+        patch.object(
+            update_chart_preview_module, "_find_dataset", return_value=dataset
+        ),
+        patch.object(update_chart_preview_module, "generate_explore_link") as link,
+    ):
+        result = update_chart_preview_module.update_chart_preview(request, ctx=Mock())
+
+    assert result["success"] is False
+    assert result["error"]["error_type"] == "gantt_semantic_validation_error"
+    assert "ambiguous" in result["error"]["details"]
+    link.assert_not_called()
 
 
 @pytest.mark.parametrize("generate_query_preview", [False, True])
