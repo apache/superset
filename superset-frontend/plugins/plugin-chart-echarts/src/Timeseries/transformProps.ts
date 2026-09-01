@@ -88,6 +88,8 @@ import {
   getHorizontalLegendAvailableWidth,
   getLegendProps,
   getMinAndMaxFromBounds,
+  getTemporalAxisTickConfig,
+  resolveTemporalTickValues,
 } from '../utils/series';
 import { resolveLegendLayout } from '../utils/legendLayout';
 import {
@@ -1247,6 +1249,25 @@ export default function transformProps(
       })()
     : xAxisFormatter;
 
+  const temporalTickValues = resolveTemporalTickValues(
+    rebasedData,
+    xAxisLabel,
+    xAxisType,
+    resolvedTimeGrain,
+    annotationLayers,
+  );
+
+  const temporalAxisTickConfig = getTemporalAxisTickConfig(
+    temporalTickValues,
+    showMaxLabel,
+    xAxisType,
+    xAxisLabelRotation,
+    xAxisLabelInterval,
+    deduplicatedFormatter,
+    isHorizontal,
+    zoomable,
+  );
+
   let xAxis: any = {
     type: xAxisType,
     name: xAxisTitle,
@@ -1256,38 +1277,12 @@ export default function transformProps(
       groupBy.length === 0 && {
         triggerEvent: true,
       }),
-    axisLabel: {
-      // When rotation is applied on time axes, hideOverlap can
-      // aggressively hide the last label. Rotated labels already
-      // have less overlap, so disabling hideOverlap is safe.
-      // At 0° rotation, also disable hideOverlap when showMaxLabel
-      // is active so the forced boundary label is never suppressed
-      // by ECharts' overlap detection (#39899).
-      hideOverlap: showMaxLabel
-        ? false
-        : !(xAxisType === AxisType.Time && xAxisLabelRotation !== 0),
-      formatter: deduplicatedFormatter,
-      rotate: xAxisLabelRotation,
-      interval: xAxisLabelInterval,
-      // Force the boundary labels on non-rotated time axes so the first
-      // and last dates stay visible: hideOverlap can hide the last label,
-      // and a min date that falls between "nice" ticks otherwise renders
-      // no beginning label. Skipped when rotated to avoid phantom labels
-      // at the axis boundary.
-      ...(showMaxLabel && {
-        showMaxLabel: true,
-        showMinLabel: true,
-      }),
-      // The alignments assume the axis runs along the bottom; a horizontal
-      // chart puts this axis on the side, where they misplace the labels.
-      ...(showMaxLabel &&
-        !isHorizontal && {
-          alignMaxLabel: 'right',
-          alignMinLabel: 'left',
-        }),
-    },
+    ...temporalAxisTickConfig,
     minorTick: { show: minorTicks },
-    axisTick: { show: axisTicks ? 'auto' : false },
+    axisTick: {
+      ...temporalAxisTickConfig.axisTick,
+      show: axisTicks ? 'auto' : false,
+    },
     ...(gridlines ? {} : { splitLine: { show: false } }),
     minInterval:
       xAxisType === AxisType.Time && resolvedTimeGrain && !forceMaxInterval
