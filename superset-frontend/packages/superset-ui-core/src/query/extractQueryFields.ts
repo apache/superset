@@ -47,6 +47,8 @@ export default function extractQueryFields(
     metric: 'metrics',
     metric_2: 'metrics',
     secondary_metric: 'metrics',
+    left_metric: 'metrics',
+    right_metric: 'metrics',
     x: 'metrics',
     y: 'metrics',
     size: 'metrics',

@@ -271,7 +271,10 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
             type: 'ownState',
             ownState: {
               coltypeMap: initialColtypeMap,
-              search,
+              // The dropdown offers `stripSurroundingQuotes(search)` as the
+              // creatable option, so the server has to be asked for the same
+              // string or the two disagree about what was searched for.
+              search: stripSurroundingQuotes(search).trim(),
             },
           });
         }
@@ -281,8 +284,10 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
 
   const handleBlur = useCallback(() => {
     unsetFocusedFilter();
-    onSearch('');
-  }, [onSearch, unsetFocusedFilter]);
+    if (search) {
+      onSearch('');
+    }
+  }, [onSearch, search, unsetFocusedFilter]);
 
   const handleChange = useCallback(
     (value?: SelectValue | number | string) => {
@@ -303,6 +308,25 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     data.length === 0
       ? t('No data')
       : tn('%s option', '%s options', data.length, data.length);
+
+  // A capped list reads as the whole set, so a value sitting past the row
+  // limit looks like a value that does not exist. Each sentence is only added
+  // when it is actually true of this filter's configuration.
+  const rowLimit = Number(formData.rowLimit) || 0;
+  const helperText = useMemo(() => {
+    if (!rowLimit || data.length < rowLimit) {
+      return undefined;
+    }
+    return [
+      t('Only the first %s values are listed.', data.length),
+      searchAllOptions ? t('Type to search all of them.') : undefined,
+      creatable !== false
+        ? t('You can enter a value that is not listed.')
+        : undefined,
+    ]
+      .filter(Boolean)
+      .join(' ');
+  }, [creatable, data.length, rowLimit, searchAllOptions]);
 
   const formItemExtra = useMemo(() => {
     if (filterState.validateMessage) {
@@ -336,7 +360,6 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     const unquotedSearch = stripSurroundingQuotes(search);
     if (
       unquotedSearch &&
-      !searchAllOptions &&
       creatable !== false &&
       !hasOption(unquotedSearch, uniqueOptions, true)
     ) {
@@ -346,7 +369,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
       ];
     }
     return uniqueOptions;
-  }, [search, uniqueOptions, creatable, searchAllOptions]);
+  }, [search, uniqueOptions, creatable]);
 
   const sortComparator = useCallback(
     (a: LabeledValue, b: LabeledValue) => {
@@ -617,7 +640,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
               name={formData.nativeFilterId}
               allowClear
               autoClearSearchValue
-              allowNewOptions={!searchAllOptions && creatable !== false}
+              allowNewOptions={creatable !== false}
               allowNewOptionsOnPaste={multiSelect && searchAllOptions}
               allowSelectAll={!searchAllOptions}
               value={multiSelect ? filterState.value || [] : filterState.value}
@@ -626,6 +649,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
               showSearch={showSearch}
               mode={multiSelect ? 'multiple' : 'single'}
               placeholder={placeholderText}
+              helperText={helperText}
               onClear={() => onSearch('')}
               onSearch={onSearch}
               onBlur={handleBlur}
