@@ -29,7 +29,7 @@ export const FormattingPopover = ({
   children,
   extraColorChoices,
   allColumns,
-  columnMetricFlag,
+  metricOnly,
   ...props
 }: FormattingPopoverProps) => {
   const [visible, setVisible] = useState(false);
@@ -52,7 +52,7 @@ export const FormattingPopover = ({
           columns={columns}
           extraColorChoices={extraColorChoices}
           allColumns={allColumns}
-          columnMetricFlag={columnMetricFlag}
+          metricOnly={metricOnly}
         />
       }
       open={visible}

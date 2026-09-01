@@ -123,24 +123,27 @@ function CountryMap(element: HTMLElement, props: CountryMapProps) {
   const colorScale = CategoricalColorNamespace.getScale(colorScheme);
 
   const colorMap: Record<string, string> = {};
+  const conditionalColorByIso: Record<string, string> = {};
   data.forEach(d => {
     colorMap[d.country_id] = colorScheme
       ? colorScale(d.country_id, sliceId)
       : (linearColorScale(d.metric) ?? '');
+
+    if (formatters?.length) {
+      for (const colorFormatter of formatters) {
+        const cfColor = colorFormatter.getColorFromValue(d.metric);
+        if (cfColor) {
+          conditionalColorByIso[d.country_id] = cfColor;
+          break;
+        }
+      }
+    }
   });
-  const regionMap = new Map(data.map(region => [region.country_id, region]));
 
   const colorFn = (feature: GeoFeature): string => {
     if (!feature?.properties) return '#d9d9d9';
-    const regionData = regionMap.get(feature.properties.ISO);
-
-    if (regionData && formatters?.length > 0) {
-      for (const colorFormatter of formatters) {
-        const cfColor = colorFormatter.getColorFromValue(regionData.metric);
-        if (cfColor) return cfColor;
-      }
-    }
-    return colorMap[feature.properties.ISO] || '#d9d9d9';
+    const iso = feature.properties.ISO;
+    return conditionalColorByIso[iso] || colorMap[iso] || '#d9d9d9';
   };
 
   // Check if dashboard is in edit mode

@@ -83,17 +83,21 @@ const config: ControlPanelConfig = {
               description: t(
                 'Apply conditional color formatting to numeric columns',
               ),
-              columnMetricFlag: true,
+              metricOnly: true,
               shouldMapStateToProps() {
                 return true;
               },
               mapStateToProps(explore, _, chart) {
                 const chartStatus = chart?.chartStatus;
-                const verboseMap = explore?.datasource?.hasOwnProperty(
-                  'verbose_map',
-                )
-                  ? (explore?.datasource as Dataset)?.verbose_map
-                  : (explore?.datasource?.columns ?? {});
+                const datasource = explore?.datasource;
+                const verboseMap =
+                  datasource &&
+                  Object.prototype.hasOwnProperty.call(
+                    datasource,
+                    'verbose_map',
+                  )
+                    ? ((datasource as Dataset).verbose_map ?? {})
+                    : {};
                 const columnOptions = [
                   {
                     value: 'metric',

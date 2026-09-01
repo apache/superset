@@ -23,7 +23,11 @@ import {
   waitFor,
   userEvent,
 } from 'spec/helpers/testing-library';
-import { Comparator, ColorSchemeEnum } from '@superset-ui/chart-controls';
+import {
+  Comparator,
+  ColorSchemeEnum,
+  ObjectFormattingEnum,
+} from '@superset-ui/chart-controls';
 import { GenericDataType } from '@apache-superset/core/common';
 import { FormattingPopoverContent } from './FormattingPopoverContent';
 
@@ -374,7 +378,7 @@ test('should not display tooltip icon when extraColorChoices is empty', () => {
   expect(tooltipIcon).not.toBeInTheDocument();
 });
 
-test('hides formatting column and formatting object when columnMetricFlag is true', () => {
+test('hides formatting column and formatting object when metricOnly is true', () => {
   const mockColumns = [
     { label: 'Sales', value: 'sales', dataType: GenericDataType.Numeric },
   ];
@@ -384,7 +388,7 @@ test('hides formatting column and formatting object when columnMetricFlag is tru
       onChange={mockOnChange}
       columns={mockColumns}
       allColumns={mockColumns}
-      columnMetricFlag
+      metricOnly
     />,
   );
 
@@ -396,7 +400,7 @@ test('hides formatting column and formatting object when columnMetricFlag is tru
   expect(screen.queryByText('Formatting object')).not.toBeInTheDocument();
 });
 
-test('shows formatting column and formatting object when columnMetricFlag is false', () => {
+test('shows formatting column and formatting object when metricOnly is false', () => {
   const mockColumns = [
     { label: 'Sales', value: 'sales', dataType: GenericDataType.Numeric },
   ];
@@ -406,7 +410,7 @@ test('shows formatting column and formatting object when columnMetricFlag is fal
       onChange={mockOnChange}
       columns={mockColumns}
       allColumns={mockColumns}
-      columnMetricFlag={false}
+      metricOnly={false}
     />,
   );
 
@@ -416,4 +420,35 @@ test('shows formatting column and formatting object when columnMetricFlag is fal
   expect(screen.queryByText('Use gradient')).toBeInTheDocument();
   expect(screen.queryByText('Formatting column')).toBeInTheDocument();
   expect(screen.queryByText('Formatting object')).toBeInTheDocument();
+});
+
+test('omits stale formatting targets on submit when metricOnly is true', async () => {
+  mockOnChange.mockClear();
+  const mockColumns = [
+    { label: 'Sales', value: 'sales', dataType: GenericDataType.Numeric },
+  ];
+
+  render(
+    <FormattingPopoverContent
+      onChange={mockOnChange}
+      columns={mockColumns}
+      allColumns={mockColumns}
+      metricOnly
+      config={{
+        column: 'sales',
+        columnFormatting: 'stale_column',
+        objectFormatting: ObjectFormattingEnum.BACKGROUND_COLOR,
+      }}
+    />,
+  );
+
+  fireEvent.click(screen.getByText('Apply'));
+
+  await waitFor(() => {
+    expect(mockOnChange).toHaveBeenCalled();
+  });
+
+  const submitted = mockOnChange.mock.calls[0][0];
+  expect(submitted).not.toHaveProperty('columnFormatting');
+  expect(submitted).not.toHaveProperty('objectFormatting');
 });

@@ -20,6 +20,8 @@
 import '@testing-library/jest-dom';
 import { render, fireEvent } from '@testing-library/react';
 import d3 from 'd3';
+import { extent as d3Extent } from 'd3-array';
+import { getSequentialSchemeRegistry } from '@superset-ui/core';
 import ReactCountryMap from '../src/ReactCountryMap';
 
 // d3 v3 APIs have loose types; cast to allow jest mock operations
@@ -73,6 +75,35 @@ const mockMapData = {
 };
 
 type D3JsonCallback = (error: Error | null, data: unknown) => void;
+
+function expectedLinearFill(
+  data: { metric: number }[],
+  linearColorScheme: string,
+): string {
+  const rawExtents = d3Extent(data, v => v.metric);
+  const extents: [number, number] =
+    rawExtents[0] != null && rawExtents[1] != null
+      ? [rawExtents[0], rawExtents[1]]
+      : [0, 1];
+  const colorSchemeObj = getSequentialSchemeRegistry().get(linearColorScheme);
+  const linearColorScale = colorSchemeObj
+    ? colorSchemeObj.createLinearScale(extents)
+    : () => '#ccc';
+  return linearColorScale(data[0].metric) ?? '#ccc';
+}
+
+function expectFillToMatchLinearScheme(
+  region: Element | null,
+  data: { metric: number }[],
+  linearColorScheme: string,
+): void {
+  expect(region).not.toBeNull();
+  const fill = (region as HTMLElement).style.fill;
+  expect(fill).toBeTruthy();
+  expect(d3Any.rgb(fill).toString()).toBe(
+    d3Any.rgb(expectedLinearFill(data, linearColorScheme)).toString(),
+  );
+}
 
 describe('CountryMap (legacy d3)', () => {
   beforeEach(() => {
@@ -309,9 +340,12 @@ describe('CountryMap conditional formatting', () => {
     );
 
     const region = document.querySelector('path.region');
-    expect(region).not.toBeNull();
     expect(region).not.toHaveStyle({ fill: '#FF0000' });
-    expect(region).toHaveStyle({ fill: 'rgb(21, 74, 134)' });
+    expectFillToMatchLinearScheme(
+      region,
+      [{ country_id: 'CAN', metric: 100 }],
+      'bnbColors',
+    );
   });
 
   test('evaluates multiple formatters in order and applies the first match', async () => {
@@ -368,7 +402,10 @@ describe('CountryMap conditional formatting', () => {
     );
 
     const region = document.querySelector('path.region');
-    expect(region).not.toBeNull();
-    expect(region).toHaveStyle({ fill: 'rgb(21, 74, 134)' });
+    expectFillToMatchLinearScheme(
+      region,
+      [{ country_id: 'CAN', metric: 100 }],
+      'bnbColors',
+    );
   });
 });
