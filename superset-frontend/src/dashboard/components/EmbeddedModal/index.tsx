@@ -44,6 +44,9 @@ const extensionsRegistry = getExtensionsRegistry();
 
 type Props = {
   dashboardId: string;
+  // Which resource the id refers to. Defaults to 'dashboard' so existing
+  // call sites are unaffected; charts reuse the same controls.
+  resourceType?: 'dashboard' | 'chart';
   show: boolean;
   onHide: () => void;
 };
@@ -59,7 +62,11 @@ const ButtonRow = styled.div`
   justify-content: flex-end;
 `;
 
-export const DashboardEmbedControls = ({ dashboardId, onHide }: Props) => {
+export const DashboardEmbedControls = ({
+  dashboardId,
+  resourceType = 'dashboard',
+  onHide,
+}: Props) => {
   const { addInfoToast, addDangerToast } = useToasts();
   const [ready, setReady] = useState(true); // whether we have initialized yet
   const [loading, setLoading] = useState(false); // whether we are currently doing an async thing
@@ -67,7 +74,7 @@ export const DashboardEmbedControls = ({ dashboardId, onHide }: Props) => {
   const [allowedDomains, setAllowedDomains] = useState<string>('');
   const [showDeactivateConfirm, setShowDeactivateConfirm] = useState(false);
 
-  const endpoint = `/api/v1/dashboard/${dashboardId}/embedded`;
+  const endpoint = `/api/v1/${resourceType}/${dashboardId}/embedded`;
   // whether saveable changes have been made to the config
   const isDirty =
     !embedded ||

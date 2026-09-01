@@ -64,6 +64,8 @@ import {
   LOG_ACTIONS_CHART_DOWNLOAD_AS_PDF,
 } from 'src/logger/LogUtils';
 import { MenuKeys, RootState } from 'src/dashboard/types';
+import { findPermission } from 'src/utils/findPermission';
+import DashboardEmbedModal from 'src/dashboard/components/EmbeddedModal';
 import DrillDetailModal from 'src/components/Chart/DrillDetail/DrillDetailModal';
 import { openInNewTab } from 'src/utils/navigationUtils';
 import { usePermissions } from 'src/hooks/usePermissions';
@@ -173,6 +175,13 @@ const SliceHeaderControls = (
   props: SliceHeaderControlsPropsWithRouter | SliceHeaderControlsProps,
 ) => {
   const [drillModalIsOpen, setDrillModalIsOpen] = useState(false);
+  const [embedModalIsOpen, setEmbedModalIsOpen] = useState(false);
+  const user = useSelector((state: RootState) => state.user);
+  // Mirrors the dashboard's `userCanCurate`: embedding must be enabled and the
+  // user must hold the chart-level set_embedded permission.
+  const canEmbed =
+    isFeatureEnabled(FeatureFlag.EmbeddedSuperset) &&
+    findPermission('can_set_embedded', 'Chart', user?.roles);
   // setting openKeys undefined falls back to uncontrolled behaviour
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
   const [openScopingModal, scopingModal] = useCrossFiltersScopingModal(
@@ -262,6 +271,9 @@ const SliceHeaderControls = (
       case MenuKeys.ForceRefresh:
         refreshChart();
         props.addSuccessToast(t('Data refreshed'));
+        break;
+      case MenuKeys.ManageEmbedded:
+        setEmbedModalIsOpen(true);
         break;
       case MenuKeys.ToggleChartDescription:
         // eslint-disable-next-line no-unused-expressions
@@ -513,6 +525,14 @@ const SliceHeaderControls = (
       key: MenuKeys.Fullscreen,
       label: fullscreenLabel,
     },
+    ...(canEmbed
+      ? [
+          {
+            key: MenuKeys.ManageEmbedded,
+            label: t('Embed chart'),
+          },
+        ]
+      : []),
     {
       type: 'divider',
     },
@@ -806,6 +826,14 @@ const SliceHeaderControls = (
         dataset={datasetWithVerboseMap}
       />
       {canEditCrossFilters && scopingModal}
+      {canEmbed && (
+        <DashboardEmbedModal
+          show={embedModalIsOpen}
+          onHide={() => setEmbedModalIsOpen(false)}
+          dashboardId={String(slice.slice_id)}
+          resourceType="chart"
+        />
+      )}
       {isFullSize && <Global styles={fullscreenStyles(theme)} />}
     </>
   );
