@@ -2981,10 +2981,10 @@ GLOBAL_ASYNC_QUERIES_DEFAULT = True
 # reconciles anything missed (the interval poll is used only when the websocket is
 # disabled). Requires the superset-websocket server, a Redis coordination
 # backend (DISTRIBUTED_COORDINATION_CONFIG), and `can_read` on `Realtime`.
-# Two delivery scopes, carried on one lossy `realtime` pub/sub channel as a
+# Two delivery scopes, carried on one best-effort `realtime` pub/sub channel as a
 # self-describing `{topic, scope, routes, payload}` envelope:
 #   - `authenticated_global` — a broadcast nudge (e.g. topic `entity.changed`,
-#     opaque entity ids only) delivered to every authenticated socket for lossy
+#     opaque entity ids only) delivered to every authenticated socket for best-effort
 #     list-view activity, and
 #   - `principal`/`tab` — targeted messages (e.g. topic `task.status` for the
 #     dashboard chart-data path), fanned out by the websocket server to the

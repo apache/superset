@@ -96,7 +96,7 @@ class TaskManager:
 
         cls._initialized = True
 
-    # Single lossy Pub/Sub channel carrying every browser-bound realtime message
+    # Single best-effort Pub/Sub channel carrying every browser-bound realtime message
     # (superset-websocket subscribes to just this one). Each message is a
     # self-describing envelope ``{topic, scope, routes, payload}``:
     #   - ``topic``   - the semantic stream (``task.status``, ``entity.changed``,
@@ -112,7 +112,7 @@ class TaskManager:
     # This separates the semantic topic (what a message is) from the route (who
     # receives it): a new surface adds a topic without inventing channel names or
     # overloading payload shapes. The channel name and envelope shape are a
-    # wire-protocol contract with the Node server. Pub/Sub is lossy, so no message
+    # wire-protocol contract with the Node server. Pub/Sub is best-effort, so no message
     # here may carry a signal a receiver must not miss — each feature's authorized
     # REST poll/fetch is the correctness backstop.
     REALTIME_CHANNEL = "realtime"
@@ -177,7 +177,7 @@ class TaskManager:
 
     @classmethod
     def publish_entity_change(cls, task_uuid: UUID) -> bool:
-        """Publish a lossy, opaque "entity changed" nudge for realtime UIs.
+        """Publish a best-effort, opaque "entity changed" nudge for realtime UIs.
 
         Best-effort broadcast (may be dropped) carrying only ``{entity_type, id}``
         (the integer primary key, which a realtime list view matches and refetches

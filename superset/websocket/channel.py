@@ -25,7 +25,7 @@ routing key.
 
 Targeted messages (``scope=principal``/``tab``) are delivered only to sockets
 bound to the intended routing key. Broadcast messages (``scope=authenticated_global``,
-e.g. the lossy ``entity.changed`` list-view nudge) go to all authenticated
+e.g. the best-effort ``entity.changed`` list-view nudge) go to all authenticated
 realtime sockets but carry only opaque entity nudges - see
 ``TaskManager.publish_entity_change``.
 """

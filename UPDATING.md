@@ -84,9 +84,12 @@ completion transport for async chart-data — see the note on the interval poll)
 > When it is **enabled**, completion is delivered over the socket and the
 > recurring interval poll does not run; a one-shot `status_changes` catch-up on
 > waiter registration and on socket reconnect reconciles anything missed while
-> disconnected. Redis Pub/Sub is lossy, so a `task.status` lost while the socket
-> stays open is only recovered on the next reconnect/registration or, failing
-> that, a per-request give-up timeout (a page reload re-establishes state).
+> disconnected. The socket accelerates delivery over the authoritative
+> `status_changes` API rather than replacing it: Redis Pub/Sub is best-effort
+> (at-most-once, no replay), so a disconnect is reconciled by the catch-up on
+> reconnect/registration; in the rare case a `task.status` is missed while the
+> socket stays open, completion still resolves on the next reconnect/registration
+> or the per-request give-up (and a page reload re-establishes state).
 
 ```python
 WEBSOCKET_ENABLE = True
