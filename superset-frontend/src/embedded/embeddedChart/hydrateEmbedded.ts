@@ -22,6 +22,7 @@ import { getInitialDataMask } from 'src/dataMask/reducer';
 import { applyDefaultFormData } from 'src/explore/store';
 import { CommonBootstrapData } from 'src/types/bootstrapTypes';
 import { HYDRATE_DASHBOARD } from 'src/dashboard/actions/hydrate';
+import { Datasource } from 'src/dashboard/types';
 import {
   DASHBOARD_ROOT_ID,
   DASHBOARD_GRID_ID,
@@ -62,7 +63,9 @@ export interface EmbeddedChartData {
     modified?: string | null;
     changed_on?: string | number | null;
   };
-  dataset: JsonObject & { uid: string };
+  // The explore endpoint returns the full datasource, and `setDatasources`
+  // stores it as one, so it is typed as such rather than loosely.
+  dataset: Datasource;
 }
 
 export interface HydrateEmbeddedAction {
