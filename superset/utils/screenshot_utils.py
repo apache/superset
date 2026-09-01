@@ -723,9 +723,15 @@ SET_PRINT_FONT_SIZE_JS = """
 # Uses th.getBoundingClientRect().width (same as Superset's useSticky hook)
 # with a fallback to th.clientWidth for degenerate cases.  Returns an array
 # of per-table objects:
-#   { tableIndex, selector, totalWidth, colWidths: number[] }
-# where `selector` is the root viz selector that matched and `tableIndex`
-# is its ordinal position among all matching roots on the page.
+#   { tableIndex, totalWidth, colWidths: number[] }
+# where tableIndex is the ordinal position of the viz root among all matching
+# roots on the page (one entry per viz root, not per <table> element).
+#
+# IMPORTANT — Superset's useSticky hook renders TWO <table> elements per viz:
+#   table[0]: sticky header sizer — has <thead> with all column <th>s, NO <tbody>
+#   table[1]: scrollable body — has <tbody> with all data rows, NO <thead>
+# Column widths must be read from table[0]'s <thead>, but row count comes from
+# table[1]'s <tbody>.  root.querySelector('table') always returns table[0].
 #
 # This measurement array is passed unchanged to BAND_TABLE_COLUMNS_JS so
 # the two operations share one DOM-measurement pass.
@@ -739,17 +745,25 @@ MEASURE_TABLE_COLUMNS_JS = """
     let tableIndex = 0;
 
     for (const root of document.querySelectorAll(sel)) {
-        const tableEl = root.querySelector('table');
-        if (!tableEl) { tableIndex++; continue; }
+        // Find the sticky header table (first <table> with a <thead>).
+        // useSticky renders table[0]=header-sizer (thead, no tbody) and
+        // table[1]=body-scroll (tbody, no thead).  querySelector('table')
+        // always returns table[0] — the correct source for column widths.
+        const headerTable = root.querySelector('table');
+        if (!headerTable) { tableIndex++; continue; }
+
+        const thead = headerTable.querySelector('thead');
+        if (!thead) { tableIndex++; continue; }
 
         // Use the last header row — Superset supports multi-level headers
         // and the last row has the leaf (most detailed) column set.
-        const thead = tableEl.querySelector('thead');
-        const headerRows = thead ? Array.from(thead.querySelectorAll('tr')) : [];
+        const headerRows = Array.from(thead.querySelectorAll('tr'));
         const headerRow = headerRows[headerRows.length - 1] || null;
         if (!headerRow) { tableIndex++; continue; }
 
         const ths = Array.from(headerRow.querySelectorAll('th'));
+        if (ths.length === 0) { tableIndex++; continue; }
+
         const colWidths = ths.map(th => {
             const r = th.getBoundingClientRect();
             return (r && r.width > 0) ? r.width : (th.clientWidth || 0);
@@ -780,29 +794,22 @@ MEASURE_TABLE_COLUMNS_JS = """
 #     measurements: array,    // result of MEASURE_TABLE_COLUMNS_JS
 #   }
 #
-# For each table whose totalWidth > usableWidth:
-#   1. Applies Situation B fallbacks to any single column wider than
-#      (usableWidth − keyColsTotalWidth):
-#        a. Text-wrap: white-space:normal; overflow-wrap:break-word on <td> cells.
-#           Re-measures the column; if it now fits, mark as resolved.
-#        b. Header rotation: if the <th> label is long and data cells are short,
-#           apply writing-mode:vertical-lr; transform:rotate(180deg) to the <th>.
-#           Re-measures; if it now fits, mark as resolved.
-#        c. Truncate: max-width, overflow:hidden, text-overflow:ellipsis on cells.
-#           Appends a visible truncation note below the table.
-#        d. Pull-out section: if still > usableWidth/2 after (a)–(c), remove the
-#           column from the main table and render it as a <dl> block after the
-#           table with one <dt>/<dd> pair per row.
-#   2. Applies the greedy column-banding algorithm:
-#        - Packs non-key columns into bands that each fit within
-#          (usableWidth − keyColsTotalWidth).
-#        - For each band, clones the <table> subtree keeping only key columns +
-#          band columns (by index), wraps it in a <div class="print-col-band">,
-#          and inserts it after the original scroll container.
-#        - Band 2+ receives page-break-before:always via inline style.
-#        - The original <table> is removed after all band nodes are inserted.
-#   3. Tables that fit within usableWidth (after Situation B adjustments) are
-#      left unmodified.
+# IMPORTANT — Superset's useSticky hook renders TWO <table> elements per viz
+# root (confirmed via live DOM inspection):
+#   table[0]: sticky-header sizer — has <thead> with all column <th>s, NO <tbody>
+#   table[1]: scrollable body     — has <tbody> with all data rows,   NO <thead>
+# The banding algorithm must:
+#   - Read column widths from table[0]'s <thead> (MEASURE_TABLE_COLUMNS_JS does this)
+#   - Read and clone body rows from table[1]'s <tbody>
+#   - Reconstruct each band as a standalone <table> that has BOTH a <thead>
+#     (key + band column headers from table[0]) and a <tbody> (data rows from
+#     table[1]) so the output is a complete, readable table, not just a header row.
+#   - Leave table[0] and table[1] in place if ≤ 1 band results (table fits or
+#     only slightly overflows — leave SCALE_WIDE_TABLES_JS to handle it).
+#
+# Only fires when the greedy pack produces ≥ 2 bands (i.e. the table is
+# genuinely too wide to fit on one page).  Tables that are slightly wider
+# than usableWidth but fit in 1 band are left unmodified for SCALE_WIDE_TABLES_JS.
 #
 # Returns:
 #   { banded, situation_b_wrap, situation_b_rotate, situation_b_truncate,
@@ -830,82 +837,91 @@ BAND_TABLE_COLUMNS_JS = """
         const root = allRoots[m.tableIndex];
         if (!root) return;
 
-        const tableEl = root.querySelector('table');
-        if (!tableEl) return;
+        // useSticky renders two <table> elements per viz root:
+        //   headerTable (index 0): <thead> with all <th>s, no <tbody>
+        //   bodyTable   (index 1): <tbody> with all data rows, no <thead>
+        // We need both: headers from headerTable, body rows from bodyTable.
+        const allTables = Array.from(root.querySelectorAll('table'));
+        const headerTable = allTables.find(function(t) {
+            return t.querySelector('thead') !== null;
+        });
+        const bodyTable = allTables.find(function(t) {
+            return t.querySelector('tbody') !== null
+                && t.querySelector('thead') === null;
+        }) || allTables.find(function(t) {
+            return t.querySelector('tbody') !== null;
+        });
+        if (!headerTable || !bodyTable) return;
+
+        const thead = headerTable.querySelector('thead');
+        if (!thead) return;
 
         // -----------------------------------------------------------------
         // Build a live column-widths array (re-measure after any mutations).
+        // Reads from the header table's <thead>.
         // -----------------------------------------------------------------
         function getColWidths() {
-            const thead2 = tableEl.querySelector('thead');
-            const rows2 = thead2 ? Array.from(thead2.querySelectorAll('tr')) : [];
-            const hr2 = rows2[rows2.length - 1];
-            if (!hr2) return [];
-            return Array.from(hr2.querySelectorAll('th')).map(function(th) {
+            const rows = Array.from(thead.querySelectorAll('tr'));
+            const hr = rows[rows.length - 1];
+            if (!hr) return [];
+            return Array.from(hr.querySelectorAll('th')).map(function(th) {
                 const r = th.getBoundingClientRect();
                 return (r && r.width > 0) ? r.width : (th.clientWidth || 0);
             });
         }
 
-        // Collect all <tbody> rows for per-column cell access.
+        // Collect all <tbody> data rows from the body table.
         function getBodyRows() {
-            const tbody = tableEl.querySelector('tbody');
+            const tbody = bodyTable.querySelector('tbody');
             return tbody ? Array.from(tbody.querySelectorAll('tr')) : [];
         }
 
         // -----------------------------------------------------------------
         // Situation B: handle columns too wide to fit alone on a page.
         // Applied before banding so the banding algorithm sees corrected widths.
+        // Mutations to <td> cells target the body table rows.
+        // Mutations to <th> headers target the header table.
         // -----------------------------------------------------------------
         const keyW = getColWidths().slice(0, keyColCount)
             .reduce(function(s, w) { return s + w; }, 0);
         const slotW = usableWidth - keyW;
         const bodyRows = getBodyRows();
 
-        // We may mutate colWidths[i] for situation B; use a copy.
         let colWidths = getColWidths();
         const nCols = colWidths.length;
 
-        // Track columns pulled out so we can skip them during banding.
         const pulledOutIndices = new Set();
 
         for (let ci = keyColCount; ci < nCols; ci++) {
-            if (colWidths[ci] <= slotW) continue; // fits — skip
+            if (colWidths[ci] <= slotW) continue;
 
-            // --- Step a: text-wrap ---
+            // --- Step a: text-wrap on body rows ---
             for (const row of bodyRows) {
-                const cells = row.querySelectorAll('td');
-                const cell = cells[ci];
+                const cell = row.querySelectorAll('td')[ci];
                 if (cell) {
                     cell.style.whiteSpace = 'normal';
                     cell.style.overflowWrap = 'break-word';
                 }
             }
             counts.situation_b_wrap++;
-            colWidths = getColWidths(); // re-measure
+            colWidths = getColWidths();
             if (colWidths[ci] <= slotW) continue;
 
-            // --- Step b: header rotation ---
-            const thead3 = tableEl.querySelector('thead');
-            const headerRows3 = thead3
-                ? Array.from(thead3.querySelectorAll('tr')) : [];
+            // --- Step b: header rotation on header table <th> ---
+            const headerRows3 = Array.from(thead.querySelectorAll('tr'));
             const hr3 = headerRows3[headerRows3.length - 1];
             const th3 = hr3 ? hr3.querySelectorAll('th')[ci] : null;
             if (th3) {
                 const headerText = (th3.textContent || '').trim();
-                // Compute average data-cell text length for this column.
-                let totalCellLen = 0;
-                let sampleCount = 0;
+                let totalCellLen = 0, sampleCount = 0;
                 for (let ri = 0; ri < Math.min(bodyRows.length, 20); ri++) {
-                    const cells = bodyRows[ri].querySelectorAll('td');
-                    if (cells[ci]) {
-                        totalCellLen += (cells[ci].textContent || '').trim().length;
+                    const cell = bodyRows[ri].querySelectorAll('td')[ci];
+                    if (cell) {
+                        totalCellLen += (cell.textContent || '').trim().length;
                         sampleCount++;
                     }
                 }
-                const avgCellLen = sampleCount > 0
-                    ? totalCellLen / sampleCount : 0;
-                // Rotate if header label is >2× the average data-cell length.
+                const avgCellLen = sampleCount > 0 ? totalCellLen / sampleCount : 0;
                 if (headerText.length > avgCellLen * 2) {
                     th3.style.writingMode = 'vertical-lr';
                     th3.style.transform = 'rotate(180deg)';
@@ -920,8 +936,7 @@ BAND_TABLE_COLUMNS_JS = """
             // --- Step c: truncate with visible marker ---
             const truncW = Math.floor(slotW);
             for (const row of bodyRows) {
-                const cells = row.querySelectorAll('td');
-                const cell = cells[ci];
+                const cell = row.querySelectorAll('td')[ci];
                 if (cell) {
                     cell.style.maxWidth = truncW + 'px';
                     cell.style.overflow = 'hidden';
@@ -931,10 +946,9 @@ BAND_TABLE_COLUMNS_JS = """
             }
             counts.situation_b_truncate++;
 
-            // Append a truncation note below the table.
-            const thead4 = tableEl.querySelector('thead');
-            const hr4 = thead4 ? thead4.querySelectorAll('tr')[
-                (thead4.querySelectorAll('tr').length || 1) - 1] : null;
+            // Append a truncation note below both tables.
+            const headerRows4 = Array.from(thead.querySelectorAll('tr'));
+            const hr4 = headerRows4[headerRows4.length - 1];
             const th4 = hr4 ? hr4.querySelectorAll('th')[ci] : null;
             const colName = th4 ? (th4.textContent || '').trim() : ('column ' + ci);
             const noteEl = document.createElement('div');
@@ -943,10 +957,11 @@ BAND_TABLE_COLUMNS_JS = """
                 + 'font-style:italic;';
             noteEl.textContent = 'Some fields in column \u201c'
                 + colName + '\u201d were abbreviated due to page width constraints.';
-            const scrollContainer = tableEl.parentElement;
-            if (scrollContainer && scrollContainer.parentNode) {
-                scrollContainer.parentNode.insertBefore(
-                    noteEl, scrollContainer.nextSibling);
+            // Insert after the body table's scroll container.
+            const bodyContainer = bodyTable.parentElement;
+            if (bodyContainer && bodyContainer.parentNode) {
+                bodyContainer.parentNode.insertBefore(
+                    noteEl, bodyContainer.nextSibling);
             }
 
             colWidths = getColWidths();
@@ -954,83 +969,62 @@ BAND_TABLE_COLUMNS_JS = """
 
             // --- Step d: pull out as a labeled section ---
             if (colWidths[ci] > usableWidth / 2) {
-                // Build <dl> block with one <dt>/<dd> per row.
                 const dl = document.createElement('dl');
                 dl.className = 'print-col-pullout';
                 dl.style.cssText = 'margin:8px 0 16px;padding:0;font-size:13px;'
                     + 'border-top:1px solid #e5e7eb;';
-
-                // Header label.
                 const labelEl = document.createElement('div');
                 labelEl.style.cssText = 'font-weight:700;margin:4px 0;font-size:12px;'
                     + 'color:#57606a;';
-                const thead5 = tableEl.querySelector('thead');
-                const hr5 = thead5 ? thead5.querySelectorAll('tr')[
-                    (thead5.querySelectorAll('tr').length || 1) - 1] : null;
+                const hr5 = Array.from(thead.querySelectorAll('tr')).pop();
                 const th5 = hr5 ? hr5.querySelectorAll('th')[ci] : null;
                 labelEl.textContent = (th5 ? (th5.textContent || '').trim()
                     : ('Column ' + ci)) + ':';
                 dl.appendChild(labelEl);
-
                 for (let ri = 0; ri < bodyRows.length; ri++) {
-                    const cells = bodyRows[ri].querySelectorAll('td');
-                    const cell = cells[ci];
+                    const cell = bodyRows[ri].querySelectorAll('td')[ci];
                     if (!cell) continue;
-                    // Get a key-column label (first key column's text).
-                    const keyCells = bodyRows[ri].querySelectorAll('td');
-                    const keyText = keyCells[0]
-                        ? ('[' + (keyCells[0].textContent || '').trim() + '] ')
-                        : '';
+                    const keyCell = bodyRows[ri].querySelectorAll('td')[0];
+                    const keyText = keyCell
+                        ? ('[' + (keyCell.textContent || '').trim() + '] ') : '';
                     const dd = document.createElement('dd');
                     dd.style.cssText = 'margin:0 0 4px 12px;padding:2px 0;'
                         + 'border-bottom:1px solid #f0f0f0;word-break:break-word;';
                     dd.textContent = keyText + (cell.textContent || '').trim();
                     dl.appendChild(dd);
-
-                    // Hide the original cell so it takes no space in the table.
                     cell.style.display = 'none';
                 }
-
-                // Also hide the header cell.
                 if (th5) th5.style.display = 'none';
-
-                // Insert the <dl> after the truncation note (or after the
-                // scroll container if no note was inserted).
-                const insertAfter = noteEl.parentNode ? noteEl : scrollContainer;
+                const insertAfter = noteEl.parentNode ? noteEl : bodyContainer;
                 if (insertAfter && insertAfter.parentNode) {
-                    insertAfter.parentNode.insertBefore(dl,
-                        insertAfter.nextSibling);
+                    insertAfter.parentNode.insertBefore(dl, insertAfter.nextSibling);
                 }
                 pulledOutIndices.add(ci);
                 counts.situation_b_pullout++;
             }
-        } // end Situation B loop
+        } // end Situation B
 
         // -----------------------------------------------------------------
-        // Column banding: only if the table is still wider than usableWidth
-        // after Situation B adjustments.
+        // Column banding: greedy pack into page-width bands.
+        // Only fires when ≥ 2 bands result (table genuinely too wide for 1 page).
+        // Tables that are slightly wider than usableWidth (1 band) are left
+        // alone — SCALE_WIDE_TABLES_JS handles those with a scale transform.
         // -----------------------------------------------------------------
         colWidths = getColWidths();
         const totalW = colWidths.reduce(function(s, w) { return s + w; }, 0);
-        if (totalW <= usableWidth) return; // fits now — done
+        if (totalW <= usableWidth) return; // fits — done
 
-        // Build bands (greedy pack).
-        // Each band entry is an array of column indices (includes key cols).
         const keyIndices = [];
-        for (let i = 0; i < Math.min(keyColCount, nCols); i++) {
-            keyIndices.push(i);
-        }
+        for (let i = 0; i < Math.min(keyColCount, nCols); i++) keyIndices.push(i);
         const keyTotalW = keyIndices.reduce(function(s, i) {
             return s + (colWidths[i] || 0);
         }, 0);
         const bandSlotW = usableWidth - keyTotalW;
 
-        const bands = []; // array of number[] (non-key col indices per band)
-        let currentBand = [];
-        let currentW = 0;
-
+        const bands = [];
+        let currentBand = [], currentW = 0;
         for (let ci2 = keyColCount; ci2 < nCols; ci2++) {
-            if (pulledOutIndices.has(ci2)) continue; // already extracted
+            if (pulledOutIndices.has(ci2)) continue;
             const w = colWidths[ci2] || 0;
             if (currentBand.length > 0 && currentW + w > bandSlotW) {
                 bands.push(currentBand);
@@ -1042,64 +1036,107 @@ BAND_TABLE_COLUMNS_JS = """
         }
         if (currentBand.length > 0) bands.push(currentBand);
 
-        // Single band = all non-key columns fit in one band → no DOM changes.
+        // Only band if ≥ 2 bands result.  A single band means all remaining
+        // columns fit in one page after key cols — leave SCALE_WIDE_TABLES_JS
+        // to shrink the slight overflow with a CSS transform.
         if (bands.length <= 1) return;
 
-        // Clone the table for each band and insert band nodes.
-        const scrollContainer2 = tableEl.parentElement;
-        if (!scrollContainer2) return;
+        // Build one complete standalone <table> per band.
+        // Each band table has a <thead> (from headerTable) + a <tbody>
+        // (from bodyTable) with only key + band column indices.
+        function buildBandTable(colIndices) {
+            const tbl = document.createElement('table');
+            // Copy table classes for styling.
+            tbl.className = headerTable.className;
 
-        const allBodyRows2 = getBodyRows();
-
-        // Helper: clone the table keeping only the specified column indices.
-        function cloneTableForIndices(colIndices) {
-            const clone = tableEl.cloneNode(true);
-            const allColsInClone = colIndices; // convenience alias
-
-            // Remove <col> elements not in colIndices.
-            const colgroup = clone.querySelector('colgroup');
-            if (colgroup) {
-                const colEls = Array.from(colgroup.querySelectorAll('col'));
-                colEls.forEach(function(el, idx) {
-                    if (!allColsInClone.includes(idx)) el.remove();
+            // --- <colgroup> ---
+            const origColgroup = headerTable.querySelector('colgroup');
+            if (origColgroup) {
+                const cg = origColgroup.cloneNode(false);
+                const origCols = Array.from(origColgroup.querySelectorAll('col'));
+                colIndices.forEach(function(ci3) {
+                    if (origCols[ci3]) cg.appendChild(origCols[ci3].cloneNode(true));
                 });
+                tbl.appendChild(cg);
             }
 
-            // Remove <th>/<td> not in colIndices from all rows.
-            for (const row of clone.querySelectorAll('tr')) {
-                const cells = Array.from(row.querySelectorAll('th, td'));
-                cells.forEach(function(cell, idx) {
-                    if (!allColsInClone.includes(idx)) cell.remove();
+            // --- <thead> (key + band column headers) ---
+            const newThead = document.createElement('thead');
+            const origHeaderRows = Array.from(thead.querySelectorAll('tr'));
+            origHeaderRows.forEach(function(origTr) {
+                const newTr = document.createElement('tr');
+                const origThs = Array.from(origTr.querySelectorAll('th'));
+                colIndices.forEach(function(ci3) {
+                    if (origThs[ci3]) {
+                        newTr.appendChild(origThs[ci3].cloneNode(true));
+                    }
                 });
-            }
-            return clone;
+                newThead.appendChild(newTr);
+            });
+            tbl.appendChild(newThead);
+
+            // --- <tbody> (data rows with only key + band column cells) ---
+            const newTbody = document.createElement('tbody');
+            const allBodyTrs = getBodyRows();
+            allBodyTrs.forEach(function(origTr) {
+                const newTr = document.createElement('tr');
+                // Copy row-level classes (e.g. stripe).
+                newTr.className = origTr.className;
+                const origTds = Array.from(origTr.querySelectorAll('td'));
+                colIndices.forEach(function(ci3) {
+                    if (origTds[ci3]) {
+                        newTr.appendChild(origTds[ci3].cloneNode(true));
+                    } else {
+                        newTr.appendChild(document.createElement('td'));
+                    }
+                });
+                newTbody.appendChild(newTr);
+            });
+            tbl.appendChild(newTbody);
+
+            return tbl;
+        }
+
+        // Find the outermost scroll-wrapper that encloses BOTH tables.
+        // useSticky wraps headerTable and bodyTable inside sibling divs that
+        // are both children of a common container.  Walk up from bodyTable
+        // until we reach a node whose parent is outside the viz root.
+        let outerContainer = bodyTable.parentElement;
+        while (outerContainer && outerContainer !== root
+               && outerContainer.parentElement
+               && outerContainer.parentElement !== root
+               && !outerContainer.parentElement.classList.contains('grid-content')) {
+            outerContainer = outerContainer.parentElement;
+        }
+        if (!outerContainer || outerContainer === root) {
+            // Safety fallback: use the body table's direct parent.
+            outerContainer = bodyTable.parentElement;
         }
 
         const bandNodes = bands.map(function(bandCols, bandIdx) {
             const colIndices = keyIndices.concat(bandCols);
-            const clonedTable = cloneTableForIndices(colIndices);
-
+            const tbl = buildBandTable(colIndices);
             const wrapper = document.createElement('div');
             wrapper.className = 'print-col-band';
+            wrapper.style.cssText = 'width:100%;overflow:visible;';
             if (bandIdx > 0) {
                 wrapper.style.pageBreakBefore = 'always';
                 wrapper.style.breakBefore = 'page';
                 wrapper.style.paddingTop = '8px';
             }
-            wrapper.appendChild(clonedTable);
+            wrapper.appendChild(tbl);
             return wrapper;
         });
 
-        // Insert band nodes after the scroll container, then remove the original.
-        let insertRef = scrollContainer2;
+        // Insert band nodes after outerContainer, then remove the original.
+        let insertRef = outerContainer;
+        const parentOfOuter = outerContainer.parentNode;
+        if (!parentOfOuter) return;
         for (const bandNode of bandNodes) {
-            if (insertRef.parentNode) {
-                insertRef.parentNode.insertBefore(bandNode, insertRef.nextSibling);
-                insertRef = bandNode;
-            }
+            parentOfOuter.insertBefore(bandNode, insertRef.nextSibling);
+            insertRef = bandNode;
         }
-        // Remove the original scroll container (which holds the un-banded table).
-        scrollContainer2.remove();
+        outerContainer.remove();
 
         counts.banded++;
     }); // end forEach measurement
