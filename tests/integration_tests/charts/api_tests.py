@@ -320,6 +320,7 @@ class TestChartApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCase):
             "can_write",
             "can_export",
             "can_warm_up_cache",
+            "can_set_embedded",
         }
 
     def test_delete_chart(self):
