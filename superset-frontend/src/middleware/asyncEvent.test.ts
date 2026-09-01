@@ -42,6 +42,7 @@ jest.mock('src/hooks/useTabId', () => {
 // the "socket (re)connected" event that triggers the WS-mode catch-up.
 /* eslint-disable no-var, vars-on-top */
 var mockRealtimeOpenListener: (() => void) | undefined;
+var mockRealtimeStateListener: ((state: string) => void) | undefined;
 /* eslint-enable no-var, vars-on-top */
 jest.mock('src/middleware/realtime', () => ({
   connectRealtime: jest.fn(),
@@ -50,6 +51,12 @@ jest.mock('src/middleware/realtime', () => ({
     mockRealtimeOpenListener = listener;
     return () => {
       mockRealtimeOpenListener = undefined;
+    };
+  },
+  subscribeRealtimeState: (listener: (state: string) => void) => {
+    mockRealtimeStateListener = listener;
+    return () => {
+      mockRealtimeStateListener = undefined;
     };
   },
 }));
@@ -623,6 +630,51 @@ test('WS mode: a reconnect runs one catch-up that reconciles the gap', async () 
 
   expect(await promise).toEqual([{ rows: 3 }]);
   expect(refetch).toHaveBeenCalledTimes(1);
+});
+
+test('WS mode: a reconnecting transition runs a catch-up that reconciles the gap', async () => {
+  queueStatuses({ 'task-1': { status: 'success' } });
+  asyncEvent.init(wsConfig);
+
+  const refetch = jest.fn().mockResolvedValue([{ rows: 4 }]);
+  const promise = asyncEvent.waitForAsyncData(
+    { task_ids: ['task-1'] },
+    refetch,
+  );
+
+  // Let the registration catch-up consume the empty baseline first.
+  await new Promise(resolve => {
+    setTimeout(resolve, 0);
+  });
+
+  // The socket dropped: reconcile via the socket-independent status_changes fetch.
+  mockRealtimeStateListener?.('reconnecting');
+
+  expect(await promise).toEqual([{ rows: 4 }]);
+  expect(refetch).toHaveBeenCalledTimes(1);
+});
+
+test('WS mode: an unhealthy socket settles pending waiters with a bounded error', async () => {
+  queueStatuses(); // no completion is ever delivered
+  asyncEvent.init(wsConfig);
+
+  const refetch = jest.fn();
+  const promise = asyncEvent.waitForAsyncData(
+    { task_ids: ['task-1'] },
+    refetch,
+  );
+
+  // Let the registration catch-up run (finding nothing) so the waiter is pending.
+  await new Promise(resolve => {
+    setTimeout(resolve, 0);
+  });
+
+  // The socket has failed to reconnect enough times to be considered down: rather
+  // than hang until the long give-up, the waiter is settled with a clear error.
+  mockRealtimeStateListener?.('unhealthy');
+
+  await expect(promise).rejects.toThrow('Realtime connection unavailable');
+  expect(refetch).not.toHaveBeenCalled();
 });
 
 test('WS mode: coalesces many same-tick registrations into one catch-up', async () => {

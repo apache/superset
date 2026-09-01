@@ -45,6 +45,7 @@ import {
   connectRealtime,
   subscribeRealtime,
   subscribeRealtimeOpen,
+  subscribeRealtimeState,
 } from 'src/middleware/realtime';
 
 // The GTF task type chart-data queries run under (see
@@ -237,6 +238,17 @@ const abandonPolling = () => {
   );
 };
 
+// Settle every still-pending waiter when the realtime socket is unhealthy (the
+// sole transport is down with no poll fallback), so charts surface a prompt,
+// bounded error rather than hanging until the give-up timeout.
+const abandonRealtimeWaiters = () => {
+  const stranded = new Set<Waiter>();
+  waitersByTaskId.forEach(waiters => waiters.forEach(w => stranded.add(w)));
+  stranded.forEach(waiter =>
+    settle(waiter, new Error('Realtime connection unavailable')),
+  );
+};
+
 const applyStatus = (taskId: string, status: string) => {
   const waiters = waitersByTaskId.get(taskId);
   if (!waiters || !TERMINAL_STATUSES.has(status)) return;
@@ -387,6 +399,21 @@ const scheduleCatchUp = () => {
 };
 
 subscribeRealtimeOpen(scheduleCatchUp);
+
+// The websocket is the sole completion transport when enabled, so a genuinely-down
+// server must not hang waiters until the long give-up. On each `reconnecting`
+// transition, reconcile via the socket-independent status_changes catch-up (so a
+// task that completed while disconnected is still observed); once the socket is
+// `unhealthy` (enough consecutive failed reconnects), settle the still-pending
+// waiters with a clear error instead of waiting out `pollStaleTimeoutMs`.
+subscribeRealtimeState(state => {
+  if (!wsEnabled || !waitersByTaskId.size) return;
+  if (state === 'reconnecting') {
+    scheduleCatchUp();
+  } else if (state === 'unhealthy') {
+    abandonRealtimeWaiters();
+  }
+});
 
 /**
  * Handle a `task.status` message from the shared realtime client.
