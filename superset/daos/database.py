@@ -42,6 +42,7 @@ from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.extensions import db
 from superset.models.core import Database, DatabaseUserOAuth2Tokens
 from superset.models.dashboard import Dashboard
+from superset.models.helpers import skip_visibility_filter
 from superset.models.slice import Slice
 from superset.models.sql_lab import TabState
 from superset.utils.core import DatasourceType
@@ -240,10 +241,25 @@ class DatabaseDAO(BaseDAO[Database]):
             db.session.query(TabState).filter(TabState.database_id == database_id).all()
         )
 
+        # Datasets are dependents in their own right: ``DeleteDatabaseCommand``
+        # refuses to delete a database while any ``SqlaTable`` row references it,
+        # so the delete confirmation has to be able to name them. Count with the
+        # soft-delete visibility filter bypassed, exactly as that validation
+        # does -- ``database.tables`` above hides soft-deleted datasets, which
+        # would let the preview report zero dependents for a database the delete
+        # will still refuse.
+        with skip_visibility_filter(db.session, SqlaTable):
+            related_datasets = (
+                db.session.query(SqlaTable)
+                .filter(SqlaTable.database_id == database_id)
+                .all()
+            )
+
         return {
             "charts": charts,
             "dashboards": dashboards,
             "sqllab_tab_states": sqllab_tab_states,
+            "datasets": related_datasets,
         }
 
     @classmethod

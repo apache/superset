@@ -1387,6 +1387,18 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             {"id": tab_state.id, "label": tab_state.label, "active": tab_state.active}
             for tab_state in data["sqllab_tab_states"]
         ]
+        # Not access-filtered, unlike charts and dashboards above: this count is
+        # what blocks the delete, so hiding a dataset here would put the caller
+        # back in front of a confirmation reporting no dataset dependents for a
+        # database the delete then refuses.
+        datasets = [
+            {
+                "id": dataset.id,
+                "table_name": dataset.table_name,
+                "schema": dataset.schema,
+            }
+            for dataset in data["datasets"]
+        ]
         return self.response(
             200,
             charts={"count": len(charts), "result": charts},
@@ -1395,6 +1407,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                 "count": len(sqllab_tab_states),
                 "result": sqllab_tab_states,
             },
+            datasets={"count": len(datasets), "result": datasets},
         )
 
     @expose("/<int:pk>/validate_sql/", methods=("POST",))

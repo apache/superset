@@ -2670,3 +2670,35 @@ def test_import_includes_configuration_method(
         f"'configuration_method' not found in database list response: {db_obj_api}"
     )
     assert db_obj_api["configuration_method"] == "dynamic_form"
+
+
+def test_related_objects_includes_datasets(
+    session: Session,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """The delete confirmation reads its dependents from this endpoint.
+
+    ``DeleteDatabaseCommand`` refuses to delete a database while any dataset
+    references it, so a response without a datasets block leaves the modal
+    reporting no dependents for a database that cannot be deleted.
+    """
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.databases.api import DatabaseRestApi
+    from superset.models.core import Database
+
+    DatabaseRestApi.datamodel._session = session
+
+    SqlaTable.metadata.create_all(session.get_bind())  # pylint: disable=no-member
+
+    database = Database(database_name="related_db", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.add(SqlaTable(table_name="qa_orders", database=database))
+    db.session.commit()
+
+    response = client.get(f"/api/v1/database/{database.id}/related_objects/")
+    assert response.status_code == 200
+
+    payload = response.json
+    assert payload["datasets"]["count"] == 1
+    assert payload["datasets"]["result"][0]["table_name"] == "qa_orders"
