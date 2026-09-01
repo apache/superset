@@ -425,18 +425,24 @@ EXPAND_TABLE_CONTAINERS_JS = """
     const roots = document.querySelectorAll(sel);
     for (const root of roots) {
         // 1. Expand every height/overflow/width-constrained div inside the
-        //    table viz.  The table plugin wraps rows in:
+        //    table viz.  The table plugin wraps rows in inline styles such as:
         //      style="height:Xpx; overflow:auto; width:Ypx"
-        //    Clearing both height AND width ensures tall AND wide tables are
-        //    fully visible in the PDF without clipping.
+        //    Clearing height, overflow AND width is necessary because:
+        //    - The body-scroll div clips rows via height+overflow.
+        //    - The header-sizer div (parent of the sticky <thead> table) carries
+        //      a fixed pixel width (e.g. width:308px) that collapses the visible
+        //      column count. It may have overflow:hidden, overflow:auto, OR no
+        //      overflow set at all — so the fix must not require an overflow
+        //      precondition; any inline pixel width inside the table root is
+        //      freed unconditionally.
         for (const el of root.querySelectorAll('div[style]')) {
             const s = el.style;
             const hasHeight = s.height && s.height !== '' && s.height !== 'auto';
-            // Also release width constraints on scroll containers that would
-            // clip a wide table (many columns) at the authored pixel width.
-            const hasWidthClip = (s.overflow === 'auto' || s.overflow === 'scroll'
-                || s.overflowX === 'auto' || s.overflowX === 'scroll')
-                && s.width && s.width !== '' && s.width !== '100%';
+            // Any explicit pixel width on a div inside the table root must be
+            // released — the header-sizer chain (depth 0-2 of the useSticky
+            // structure) carries width:Xpx inline with no overflow constraint.
+            const hasInlineWidth = s.width && s.width !== '' && s.width !== '100%'
+                && s.width !== 'auto' && /px$/.test(s.width);
             if (hasHeight) {
                 s.height = 'auto';
                 s.maxHeight = 'none';
@@ -445,9 +451,10 @@ EXPAND_TABLE_CONTAINERS_JS = """
                 s.overflowX = 'visible';
                 count++;
             }
-            if (hasWidthClip) {
+            if (hasInlineWidth) {
                 s.width = '100%';
                 s.maxWidth = 'none';
+                s.overflow = 'visible';
                 s.overflowX = 'visible';
             }
         }
@@ -698,9 +705,9 @@ ANNOTATE_PRINT_COLUMNS_JS = """
 #
 # big_number_px reference values (CSS px, rendered at 1600px viewport,
 # then scaled × 0.496 to A4 paper width):
-#   small  → no JS call; React default (32px) is the no-override baseline
-#   medium → 64px CSS  ≈ ~12pt on paper
-#   large  → 96px CSS  ≈ ~18pt on paper
+#   small  → 48px CSS  ≈ ~9pt on paper
+#   medium → 72px CSS  ≈ ~14pt on paper
+#   large  → 108px CSS ≈ ~21pt on paper
 SET_PRINT_FONT_SIZE_JS = """
 (px) => {
     let count = 0;
