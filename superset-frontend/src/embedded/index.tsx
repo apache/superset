@@ -47,6 +47,7 @@ import {
   getThemeController,
 } from './EmbeddedContextProviders';
 import { embeddedApi } from './api';
+import EmbeddedChart from './embeddedChart';
 import { getDataMaskChangeTrigger } from './utils';
 import { validateMessageEvent } from './originValidation';
 import {
@@ -136,6 +137,16 @@ const EmbeddedLazyDashboardPage = () => {
   return <LazyDashboardPage idOrSlug={bootstrapData.embedded!.dashboard_id} />;
 };
 
+// A uuid resolves to either a dashboard or a single chart. Payloads written
+// before charts were embeddable omit `resource_type`, so anything other than
+// an explicit 'chart' keeps the original dashboard behaviour.
+const EmbeddedResource = () =>
+  bootstrapData.embedded?.resource_type === 'chart' ? (
+    <EmbeddedChart chartId={bootstrapData.embedded.chart_id!} />
+  ) : (
+    <EmbeddedLazyDashboardPage />
+  );
+
 const EmbeddedRoute = () => (
   <EmbeddedContextProviders>
     <Global
@@ -150,7 +161,7 @@ const EmbeddedRoute = () => (
     />
     <Suspense fallback={<Loading />}>
       <ErrorBoundary>
-        <EmbeddedLazyDashboardPage />
+        <EmbeddedResource />
       </ErrorBoundary>
       <ToastContainer position="top" />
     </Suspense>
