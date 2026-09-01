@@ -53,6 +53,7 @@
     "@apache-superset/core": "*",
     "@babel/runtime": "^7.29.7",
     "@braintree/sanitize-url": "^7.1.2",
+    "@types/d3-format": "^3.0.4",
     "@types/json-bigint": "^1.0.4",
     "@visx/responsive": "^4.0.0",
     "ace-builds": "^1.44.0",
@@ -96,7 +97,6 @@
   },
   "devDependencies": {
     "@emotion/styled": "^11.14.1",
-    "@types/d3-format": "^3.0.4",
     "@types/d3-interpolate": "^3.0.4",
     "@types/d3-scale": "^4.0.9",
     "@types/d3-time": "^3.0.4",
