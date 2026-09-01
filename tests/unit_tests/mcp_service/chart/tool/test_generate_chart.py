@@ -378,6 +378,29 @@ class TestCompileChart:
         assert result.error is None
         assert result.row_count == 2
 
+    @pytest.mark.parametrize(
+        "payload",
+        [
+            {"queries": []},
+            {"queries": [{}]},
+            {"queries": [{"data": None}]},
+            {"queries": [{"data": []}, {}]},
+        ],
+    )
+    @patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
+    @patch("superset.common.query_context_factory.QueryContextFactory")
+    def test_compile_chart_rejects_malformed_result_envelopes(
+        self, mock_factory_cls, mock_cmd_cls, payload
+    ):
+        mock_factory_cls.return_value.create.return_value = MagicMock()
+        mock_cmd_cls.return_value.run.return_value = payload
+
+        result = _compile_chart({"metrics": ["count"]}, dataset_id=1)
+
+        assert result.success is False
+        assert result.error_obj is not None
+        assert result.error_obj.error_type == "compile_error"
+
     @patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
     @patch("superset.common.query_context_factory.QueryContextFactory")
     def test_compile_chart_query_error_in_payload(self, mock_factory_cls, mock_cmd_cls):

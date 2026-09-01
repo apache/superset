@@ -851,7 +851,7 @@ class TestUpdateChartPreview:
             },
         )
 
-        assert new_form_data["adhoc_filters"] == [unrelated_filter, new_binding]
+        assert new_form_data["adhoc_filters"] == [new_binding, unrelated_filter]
 
     @patch.object(update_chart_preview_module, "validate_and_compile")
     @patch.object(update_chart_preview_module, "has_dataset_access", return_value=True)

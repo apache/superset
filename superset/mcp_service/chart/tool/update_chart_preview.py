@@ -126,11 +126,23 @@ def _preserve_previous_adhoc_filters(
             new_subject = neutral_bindings[0]["subject"]
             new_form_data["_mcp_dashboard_time_filter_subject"] = new_subject
 
+    previous_has_new_subject_filter = any(
+        isinstance(filter_, dict)
+        and filter_.get("operator") == "TEMPORAL_RANGE"
+        and filter_.get("subject") == new_subject
+        for filter_ in previous.get("adhoc_filters", [])
+    )
+    temporal_binding_changed = (
+        previous_subject is not None and previous_subject != new_subject
+    ) or (
+        previous_subject is None
+        and new_subject is not None
+        and not previous_has_new_subject_filter
+    )
+
     class _OmittedFilterConfig:
         model_fields_set: set[str] = (
-            {"temporal_column"}
-            if previous_subject is not None and previous_subject != new_subject
-            else set()
+            {"temporal_column"} if temporal_binding_changed else set()
         )
 
     merge_update_form_data(
