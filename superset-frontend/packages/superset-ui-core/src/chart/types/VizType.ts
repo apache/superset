@@ -25,6 +25,7 @@ export enum VizType {
   BoxPlot = 'box_plot',
   Bubble = 'bubble_v2',
   Bullet = 'bullet',
+  Butterfly = 'butterfly',
   Calendar = 'cal_heatmap',
   Cartodiagram = 'cartodiagram',
   Chord = 'chord',

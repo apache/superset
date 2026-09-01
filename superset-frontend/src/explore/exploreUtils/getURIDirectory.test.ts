@@ -18,13 +18,9 @@
  */
 import { getURIDirectory } from '.';
 
-test('Cases in which the "explore_json" will be returned', () => {
-  ['full', 'json', 'csv', 'query', 'results', 'samples'].forEach(name => {
-    expect(getURIDirectory(name)).toBe('/superset/explore_json/');
+test('always returns the explore directory', () => {
+  ['full', 'json', 'any-string'].forEach(name => {
+    expect(getURIDirectory(name)).toBe('/explore/');
   });
-});
-
-test('Cases in which the "explore" will be returned', () => {
-  expect(getURIDirectory('any-string')).toBe('/explore/');
   expect(getURIDirectory()).toBe('/explore/');
 });

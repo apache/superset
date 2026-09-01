@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useRef, useState } from 'react';
-import { FeatureFlag, VizType } from '@superset-ui/core';
+import { ContextMenuFilters, FeatureFlag, VizType } from '@superset-ui/core';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import mockState from 'spec/fixtures/mockState';
@@ -30,6 +30,35 @@ import ChartContextMenu, {
 
 jest.mock('src/utils/cachedSupersetGet');
 
+// The scope-selector behavior within the submenu (which filters get built
+// for x-axis/series/both) is covered by DrillBySubmenu.test.tsx. Here we
+// only need a stand-in that lets us trigger onDrillBy with a distinguishable
+// config, so we can assert ChartContextMenu wires it into the modal.
+jest.mock('../DrillBy/DrillBySubmenu', () => ({
+  DrillBySubmenu: ({ onDrillBy }: any) => (
+    <button
+      type="button"
+      data-test="fake-drill-by-submenu"
+      onClick={() =>
+        onDrillBy(
+          { column_name: 'city', groupby: true },
+          { id: 1, columns: [], metrics: [] },
+          { filters: [{ col: 'selected_scope' }], groupbyFieldName: 'groupby' },
+        )
+      }
+    >
+      Fake Drill By
+    </button>
+  ),
+}));
+
+jest.mock('src/components/Chart/DrillBy/DrillByModal', () => ({
+  __esModule: true,
+  default: ({ drillByConfig }: any) => (
+    <div data-test="drill-by-modal">{JSON.stringify(drillByConfig)}</div>
+  ),
+}));
+
 const mockCachedSupersetGet = cachedSupersetGet as jest.MockedFunction<
   typeof cachedSupersetGet
 >;
@@ -39,7 +68,11 @@ const defaultFormData = {
   viz_type: VizType.Pie,
 };
 
-const TestWrapper = () => {
+const TestWrapper = ({
+  openFilters = {},
+}: {
+  openFilters?: ContextMenuFilters;
+}) => {
   const contextMenuRef = useRef<ChartContextMenuRef>(null);
   const [isTooltipVisible, setIsTooltipVisible] = useState(true);
 
@@ -51,7 +84,7 @@ const TestWrapper = () => {
     <>
       <button
         type="button"
-        onClick={() => contextMenuRef.current?.open(100, 100, {})}
+        onClick={() => contextMenuRef.current?.open(100, 100, openFilters)}
         data-test="open-context-menu"
       >
         Open Context Menu
@@ -71,8 +104,8 @@ const TestWrapper = () => {
   );
 };
 
-const setup = () =>
-  render(<TestWrapper />, {
+const setup = (openFilters?: ContextMenuFilters) =>
+  render(<TestWrapper openFilters={openFilters} />, {
     useRedux: true,
     initialState: {
       ...mockState,
@@ -149,4 +182,31 @@ test('tooltip is restored when user selects a menu item', async () => {
   await waitFor(() => {
     expect(screen.getByTestId('tooltip-visible')).toBeInTheDocument();
   });
+});
+
+test('drill by modal uses the scope selected in the submenu over the raw context filters', async () => {
+  setup({
+    drillBy: {
+      filters: [{ col: 'raw_scope', op: '==', val: 'raw' }],
+      groupbyFieldName: 'groupby',
+    },
+  });
+
+  userEvent.click(screen.getByTestId('open-context-menu'));
+
+  await waitFor(() => {
+    expect(screen.getByTestId('chart-context-menu')).toBeInTheDocument();
+  });
+
+  const submenuButton = await screen.findByTestId('fake-drill-by-submenu');
+  userEvent.click(submenuButton);
+
+  await waitFor(() => {
+    expect(screen.getByTestId('drill-by-modal')).toBeInTheDocument();
+  });
+
+  const modalConfig = JSON.parse(
+    screen.getByTestId('drill-by-modal').textContent || '{}',
+  );
+  expect(modalConfig.filters).toEqual([{ col: 'selected_scope' }]);
 });

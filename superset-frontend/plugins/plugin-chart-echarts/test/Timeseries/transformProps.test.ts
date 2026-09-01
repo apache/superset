@@ -20,7 +20,10 @@ import {
   AnnotationSourceType,
   AnnotationStyle,
   AnnotationType,
+  AxisType,
+  ChartProps,
   ComparisonType,
+  ContributionType,
   DataRecord,
   EventAnnotationLayer,
   FormulaAnnotationLayer,
@@ -29,9 +32,10 @@ import {
   TimeseriesAnnotationLayer,
   ChartDataResponseResult,
   TimeGranularity,
+  TooltipTruncationMode,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
-import { EchartsTimeseriesChartProps } from '../../src/types';
+import { supersetTheme } from '@apache-superset/core/theme';
 import type { SeriesOption } from 'echarts';
 import transformProps from '../../src/Timeseries/transformProps';
 import {
@@ -40,7 +44,12 @@ import {
   EchartsTimeseriesFormData,
 } from '../../src/Timeseries/types';
 import { StackControlsValue, TIMESERIES_CONSTANTS } from '../../src/constants';
-import { LegendOrientation, LegendType } from '../../src/types';
+import {
+  LegendOrientation,
+  LegendType,
+  EchartsTimeseriesChartProps,
+  LabelPositionEnum,
+} from '../../src/types';
 import { DEFAULT_FORM_DATA } from '../../src/Timeseries/constants';
 import { createEchartsTimeseriesTestChartProps } from '../helpers';
 import { BASE_TIMESTAMP, createTestData } from './helpers';
@@ -79,6 +88,12 @@ function createTestQueryData(
 }
 
 type YAxisFormatter = (value: number, index: number) => string;
+
+type TooltipFormatterOptions = {
+  tooltip: {
+    formatter: (params: unknown) => string;
+  };
+};
 
 function getYAxisFormatter(
   transformed: ReturnType<typeof transformProps>,
@@ -309,8 +324,11 @@ describe('EchartsTimeseries transformProps', () => {
     expect(formulaSeries).toBeDefined();
     expect(formulaSeries?.data).toBeDefined();
     expect(Array.isArray(formulaSeries?.data)).toBe(true);
-    expect((formulaSeries!.data as unknown[]).length).toBeGreaterThan(0);
-    const firstDataPoint = (formulaSeries!.data as [number, number][])[0];
+    const series = formulaSeries as SeriesOption;
+    const data = series.data as [number, number][];
+    expect(Array.isArray(data)).toBe(true);
+    expect(data.length).toBeGreaterThan(0);
+    const firstDataPoint = data[0];
     expect(firstDataPoint).toBeDefined();
     expect(firstDataPoint[1]).toBe(firstDataPoint[0] * 2);
   });
@@ -389,7 +407,9 @@ describe('EchartsTimeseries transformProps', () => {
       result.echartOptions.series as SeriesOption[] | undefined
     )?.find((s: SeriesOption) => s.name === 'My Formula');
     expect(formulaSeries).toBeDefined();
-    const firstDataPoint = (formulaSeries!.data as [number, number][])[0];
+    const series = formulaSeries as SeriesOption;
+    const data = series.data as [number, number][];
+    const firstDataPoint = data[0];
     expect(firstDataPoint).toBeDefined();
     expect(firstDataPoint[0]).toBe(firstDataPoint[1] * 2);
   });
@@ -601,6 +621,38 @@ describe('EchartsTimeseries transformProps', () => {
       ],
     });
   });
+
+  // Regression for #36401: query results containing integers beyond
+  // Number.MAX_SAFE_INTEGER are parsed as native BigInt (see
+  // packages/superset-ui-core/src/connection/callApi/parseResponse.ts).
+  // In Stream mode, per-datum values are not routed through the Expand
+  // normalization, so a raw BigInt reaching getBaselineSeriesForStream's
+  // `0.5 * delta` weighting throws before the baseline series can render.
+  test('does not throw computing a stream baseline series with a BigInt metric value', () => {
+    const streamQueriesDataTyped: ChartDataResponseResult[] = [
+      createTestQueryData([
+        {
+          __timestamp: BASE_TIMESTAMP,
+          'San Francisco': BigInt('9007199254740993'),
+          'New York': 220,
+        },
+        {
+          __timestamp: BASE_TIMESTAMP + 1,
+          'San Francisco': 150,
+          'New York': 190,
+        },
+      ]),
+    ];
+    const streamFormData: Partial<EchartsTimeseriesFormData> = {
+      ...formData,
+      stack: StackControlsValue.Stream,
+    };
+    const chartProps = createTestChartProps({
+      formData: streamFormData,
+      queriesData: streamQueriesDataTyped,
+    });
+    expect(() => transformProps(chartProps)).not.toThrow();
+  });
 });
 
 describe('Does transformProps transform series correctly', () => {
@@ -696,6 +748,146 @@ describe('Does transformProps transform series correctly', () => {
     });
   });
 
+  test('should respect labelPosition configuration', () => {
+    const chartProps = createTestChartProps({
+      formData: {
+        ...formData,
+        labelPosition: LabelPositionEnum.InsideBottom,
+      },
+      queriesData,
+    });
+
+    const transformedSeries = transformProps(chartProps).echartOptions
+      .series as any[];
+
+    transformedSeries.forEach(series => {
+      expect(series.label.position).toBe('insideBottom');
+      expect(series.label.overflow).toBeUndefined();
+    });
+  });
+
+  test('should default to top when labelPosition is auto and orientation is vertical', () => {
+    const chartProps = createTestChartProps({
+      formData: {
+        ...formData,
+        labelPosition: 'auto',
+        orientation: OrientationType.Vertical,
+      },
+      queriesData,
+    });
+
+    const transformedSeries = transformProps(chartProps).echartOptions
+      .series as any[];
+
+    transformedSeries.forEach(series => {
+      expect(series.label.position).toBe('top');
+      expect(series.label.overflow).toBeUndefined();
+    });
+  });
+
+  test('should default to right when labelPosition is auto and orientation is horizontal', () => {
+    const chartProps = createTestChartProps({
+      formData: {
+        ...formData,
+        labelPosition: 'auto',
+        orientation: OrientationType.Horizontal,
+      },
+      queriesData,
+    });
+
+    const transformedSeries = transformProps(chartProps).echartOptions
+      .series as any[];
+
+    transformedSeries.forEach(series => {
+      expect(series.label.position).toBe('right');
+      expect(series.label.overflow).toBeUndefined();
+    });
+  });
+
+  test('should default to right when labelPosition is unset and orientation is horizontal', () => {
+    const chartProps = createTestChartProps({
+      formData: {
+        ...formData,
+        labelPosition: undefined,
+        orientation: OrientationType.Horizontal,
+      },
+      queriesData,
+    });
+
+    const transformedSeries = transformProps(chartProps).echartOptions
+      .series as any[];
+
+    transformedSeries.forEach(series => {
+      expect(series.label.position).toBe('right');
+      expect(series.label.overflow).toBeUndefined();
+    });
+  });
+
+  test('should set overflow: truncate only for bar series', () => {
+    const barChartProps = createTestChartProps({
+      formData: {
+        ...formData,
+        seriesType: EchartsTimeseriesSeriesType.Bar,
+      },
+      queriesData,
+    });
+    const lineChartProps = createTestChartProps({
+      formData: {
+        ...formData,
+        seriesType: EchartsTimeseriesSeriesType.Line,
+      },
+      queriesData,
+    });
+
+    const barSeries = transformProps(barChartProps).echartOptions
+      .series as any[];
+    const lineSeries = transformProps(lineChartProps).echartOptions
+      .series as any[];
+
+    barSeries.forEach(series => {
+      expect(series.label.overflow).toBe('truncate');
+    });
+    lineSeries.forEach(series => {
+      expect(series.label.overflow).toBeUndefined();
+    });
+  });
+
+  test('should respect labelPosition for negative values in unstacked bar charts', () => {
+    const negativeQueriesData = [
+      createTestQueryData(
+        createTestData(
+          [
+            {
+              'San Francisco': -1,
+              'New York': 2,
+            },
+          ],
+          { intervalMs: 300000000 },
+        ),
+      ),
+    ];
+
+    const chartProps = createTestChartProps({
+      formData: {
+        ...formData,
+        seriesType: EchartsTimeseriesSeriesType.Bar,
+        stack: false,
+        labelPosition: LabelPositionEnum.Inside,
+      },
+      queriesData: negativeQueriesData,
+    });
+
+    const transformedSeries = transformProps(chartProps).echartOptions
+      .series as any[];
+
+    expect(transformedSeries[0].data[0]).toEqual({
+      value: [expect.any(Number), -1],
+      label: {
+        position: 'inside',
+      },
+    });
+  });
+
   test('should show only totals when onlyTotal is true', () => {
     const chartProps = createTestChartProps({
       formData: { ...formData, onlyTotal: true },
@@ -736,6 +928,55 @@ describe('Does transformProps transform series correctly', () => {
         expect(series.label.formatter(params)).toBe(expectedLabel);
       });
     });
+  });
+
+  test('should exclude a verbose-named sort-only metric from the stacked total (#42881)', () => {
+    // rebaseForecastDatum renames a data column to its verboseMap entry when
+    // one is configured, so extraMetricLabels (derived from raw metric
+    // labels) must be resolved through the same verboseMap to still match —
+    // otherwise the sort-only metric's value leaks back into the total.
+    const sortMetricVerboseMap = { sort_metric: 'Sort By Metric' };
+    const sortFormData: SqlaFormData = {
+      ...formData,
+      onlyTotal: true,
+      groupby: [],
+      metrics: ['San Francisco', 'New York', 'Boston'],
+      timeseries_limit_metric: 'sort_metric',
+      x_axis_sort: 'sort_metric',
+    };
+    const sortQueriesData: ChartDataResponseResult[] = [
+      createTestQueryData(
+        createTestData(
+          [
+            {
+              'San Francisco': 32,
+              'New York': 0,
+              Boston: 0,
+              'Sort By Metric': 2,
+            },
+          ],
+          { intervalMs: 300000000 },
+        ),
+      ),
+    ];
+    const chartProps = createTestChartProps({
+      formData: sortFormData,
+      queriesData: sortQueriesData,
+      datasource: { verboseMap: sortMetricVerboseMap },
+    });
+
+    const transformedSeries = transformProps(chartProps).echartOptions
+      .series as seriesType[];
+
+    const totalLabels = transformedSeries
+      .flatMap((series, seriesIndex) =>
+        series.data.map((value, dataIndex) =>
+          series.label.formatter({ value, dataIndex, seriesIndex }),
+        ),
+      )
+      .filter(label => label !== '');
+
+    expect(totalLabels).toEqual(['32']);
   });
 
   test('should show labels on values >= percentageThreshold if onlyTotal is false', () => {
@@ -901,40 +1142,78 @@ describe('legend sorting', () => {
       'Boston',
     ]);
   });
+});
 
-  test('falls back to scroll for zoomable top legends when toolbox space reduces available width', () => {
-    const narrowLegendData = [
-      createTestQueryData(
-        createTestData(
-          [
-            {
-              Alpha: 1,
-              Beta: 2,
-              Gamma: 3,
-            },
-          ],
-          { intervalMs: 300000000 },
-        ),
+test('honors an explicit List selection for zoomable top legends even when toolbox space reduces available width', () => {
+  const narrowLegendData = [
+    createTestQueryData(
+      createTestData(
+        [
+          {
+            Alpha: 1,
+            Beta: 2,
+            Gamma: 3,
+          },
+        ],
+        { intervalMs: 300000000 },
       ),
-    ];
-    const chartProps = createTestChartProps({
-      width: 190 + TIMESERIES_CONSTANTS.legendTopRightOffset,
-      formData: {
-        ...formData,
-        legendType: LegendType.Plain,
-        legendOrientation: LegendOrientation.Top,
-        showLegend: true,
-        zoomable: true,
-      },
-      queriesData: narrowLegendData,
-    });
-
-    const transformed = transformProps(chartProps);
-
-    expect((transformed.echartOptions.legend as any).type).toBe(
-      LegendType.Scroll,
-    );
+    ),
+  ];
+  const chartProps = createTestChartProps({
+    width: 190 + TIMESERIES_CONSTANTS.legendTopRightOffset,
+    formData: {
+      ...formData,
+      legendType: LegendType.Plain,
+      legendOrientation: LegendOrientation.Top,
+      showLegend: true,
+      zoomable: true,
+    },
+    queriesData: narrowLegendData,
   });
+
+  const transformed = transformProps(chartProps);
+
+  expect((transformed.echartOptions.legend as any).type).toBe(LegendType.Plain);
+});
+
+test('honors user-selected plain legend type for top orientation when space allows (#39540)', () => {
+  // Regression test for issue #39540: switching the legend type control from
+  // scroll to plain must reach the rendered ECharts config. Horizontal legends
+  // were once unconditionally forced to scroll; scroll should be a fallback
+  // reserved for legends that do not fit the available space.
+  const chartProps = createTestChartProps({
+    formData: {
+      ...formData,
+      legendType: LegendType.Plain,
+      legendOrientation: LegendOrientation.Top,
+      showLegend: true,
+    },
+  });
+
+  const { legend } = transformProps(chartProps).echartOptions as {
+    legend: { show?: boolean; type?: LegendType };
+  };
+
+  expect(legend.show).toBe(true);
+  expect(legend.type).toBe(LegendType.Plain);
+});
+
+test('honors user-selected plain legend type for bottom orientation when space allows (#39540)', () => {
+  const chartProps = createTestChartProps({
+    formData: {
+      ...formData,
+      legendType: LegendType.Plain,
+      legendOrientation: LegendOrientation.Bottom,
+      showLegend: true,
+    },
+  });
+
+  const { legend } = transformProps(chartProps).echartOptions as {
+    legend: { show?: boolean; type?: LegendType };
+  };
+
+  expect(legend.show).toBe(true);
+  expect(legend.type).toBe(LegendType.Plain);
 });
 
 const timeCompareFormData: SqlaFormData = {
@@ -1338,6 +1617,310 @@ test('should not apply axis bounds calculation when seriesType is not Bar for ho
   expect(xAxisRaw.max).toBeUndefined();
 });
 
+test('should not clip small segments when row-contribution percentages float above 1 in horizontal stacked bar charts', () => {
+  // These three shares are individually normalized (each column sums to 1),
+  // but due to floating point rounding their sum can land fractionally
+  // over 1. See https://github.com/apache/superset/issues/30914
+  //
+  // The margin above 1 is chosen large enough (~1e-7) that the sum stays
+  // above 1 no matter which order the underlying series get summed in
+  // (series are sorted by name for stacking, not in the order declared
+  // here), unlike a single-ULP overflow which can round differently
+  // depending on summation order and make this assertion order-dependent.
+  const shareA = 0.42;
+  const shareB = 0.38;
+  const shareC = 0.2000001;
+  expect(shareA + shareB + shareC).toBeGreaterThan(1);
+
+  const queriesData: ChartDataResponseResult[] = [
+    createTestQueryData(
+      createTestData(
+        [{ 'Series A': shareA, 'Series B': shareB, 'Series C': shareC }],
+        { intervalMs: 300000000 },
+      ),
+    ),
+  ];
+
+  const chartProps = createTestChartProps({
+    formData: {
+      ...baseFormDataHorizontalBar,
+      contributionMode: ContributionType.Row,
+      stack: StackControlsValue.Stack,
+    },
+    queriesData,
+  });
+
+  const transformedProps = transformProps(chartProps);
+
+  // In horizontal orientation, axes are swapped, so yAxis becomes xAxis.
+  // The axis max must not be hard-capped at exactly 1, otherwise echarts
+  // clips the topmost stacked segment entirely instead of just rendering
+  // a negligible sub-pixel overflow.
+  const xAxisRaw = transformedProps.echartOptions.xAxis as any;
+  expect(xAxisRaw.max).toBeGreaterThanOrEqual(shareA + shareB + shareC);
+});
+
+test('keeps the 0-1 axis range for Expand (100% stacked) charts instead of padding to the raw row total', () => {
+  // Unlike row-contribution mode, an Expand stack is not pre-normalized in
+  // the query result -- these are raw values (summing to 100, not 1) that
+  // get divided down to a 0-1 range internally. The un-normalized row total
+  // must not be used to pad the axis max, or the chart would only occupy a
+  // sliver of the plot.
+  const queriesData: ChartDataResponseResult[] = [
+    createTestQueryData(
+      createTestData([{ 'Series A': 42, 'Series B': 38, 'Series C': 20 }], {
+        intervalMs: 300000000,
+      }),
+    ),
+  ];
+
+  const chartProps = createTestChartProps({
+    formData: {
+      ...baseFormDataHorizontalBar,
+      stack: StackControlsValue.Expand,
+    },
+    queriesData,
+  });
+
+  const transformedProps = transformProps(chartProps);
+
+  const xAxisRaw = transformedProps.echartOptions.xAxis as any;
+  expect(xAxisRaw.max).toBe(1);
+});
+
+test('computes row-contribution axis padding per stack when time_compare splits a row into multiple normalized stacks', () => {
+  // With time_compare, each comparison period is normalized and stacked
+  // independently (see getTimeCompareStackId), so the current-period
+  // columns sum to ~1 in their own stack and the comparison-period columns
+  // (suffixed with the offset) sum to ~1 in a separate stack. The combined
+  // row total across both stacks is therefore ~2, but the axis max must be
+  // computed per stack, not from that combined total, or a 100% bar would
+  // only occupy about half the plot.
+  const queriesData: ChartDataResponseResult[] = [
+    createTestQueryData(
+      createTestData(
+        [
+          {
+            'Series A': 0.6,
+            'Series B': 0.4,
+            'Series A__1 year ago': 0.55,
+            'Series B__1 year ago': 0.45,
+          },
+        ],
+        { intervalMs: 300000000 },
+      ),
+    ),
+  ];
+
+  const chartProps = createTestChartProps({
+    formData: {
+      ...baseFormDataHorizontalBar,
+      contributionMode: ContributionType.Row,
+      stack: StackControlsValue.Stack,
+      time_compare: ['1 year ago'],
+    },
+    queriesData,
+  });
+
+  const transformedProps = transformProps(chartProps);
+
+  const xAxisRaw = transformedProps.echartOptions.xAxis as any;
+  expect(xAxisRaw.max).toBeGreaterThanOrEqual(1);
+  expect(xAxisRaw.max).toBeLessThan(1.5);
+});
+
+test('clamps series values to the yAxis max instead of dropping out-of-range points (#27449)', () => {
+  const queriesData: ChartDataResponseResult[] = [
+    createTestQueryData(
+      createTestData(
+        [
+          { 'Series A': 1 },
+          { 'Series A': 2 },
+          { 'Series A': 3 },
+          { 'Series A': 4 },
+          { 'Series A': 1000 },
+          { 'Series A': 4 },
+          { 'Series A': 2 },
+        ],
+        { intervalMs: 300000000 },
+      ),
+    ),
+  ];
+
+  const chartProps = createTestChartProps({
+    formData: {
+      ...formData,
+      groupby: [],
+      seriesType: EchartsTimeseriesSeriesType.Line,
+      truncateYAxis: true,
+      yAxisBounds: [0, 10],
+    },
+    queriesData,
+  });
+
+  const transformedProps = transformProps(chartProps);
+  const series = transformedProps.echartOptions.series as SeriesOption[];
+  const seriesA = series.find(s => s.name === 'Series A');
+  expect(seriesA).toBeDefined();
+  const data = seriesA!.data as [number, number][];
+
+  // The point that was 1000 should be present (not dropped) and clamped to
+  // the configured yAxis max of 10, rather than disappearing entirely.
+  expect(data).toHaveLength(7);
+  expect(data[4][1]).toBe(10);
+});
+
+test('clamps series values to the yAxis min when a value falls below it', () => {
+  const queriesData: ChartDataResponseResult[] = [
+    createTestQueryData(
+      createTestData(
+        [{ 'Series A': -1000 }, { 'Series A': 2 }, { 'Series A': 3 }],
+        { intervalMs: 300000000 },
+      ),
+    ),
+  ];
+
+  const chartProps = createTestChartProps({
+    formData: {
+      ...formData,
+      groupby: [],
+      seriesType: EchartsTimeseriesSeriesType.Line,
+      truncateYAxis: true,
+      yAxisBounds: [0, 10],
+    },
+    queriesData,
+  });
+
+  const transformedProps = transformProps(chartProps);
+  const series = transformedProps.echartOptions.series as SeriesOption[];
+  const seriesA = series.find(s => s.name === 'Series A');
+  expect(seriesA).toBeDefined();
+  const data = seriesA!.data as [number, number][];
+
+  expect(data).toHaveLength(3);
+  expect(data[0][1]).toBe(0);
+});
+
+test('clamps series values to the yAxis bounds when colorByPrimaryAxis wraps points in objects (#27449)', () => {
+  const queriesData: ChartDataResponseResult[] = [
+    createTestQueryData(
+      createTestData(
+        [{ 'Series A': 1 }, { 'Series A': 1000 }, { 'Series A': 2 }],
+        { intervalMs: 300000000 },
+      ),
+    ),
+  ];
+
+  const chartProps = createTestChartProps({
+    formData: {
+      ...formData,
+      groupby: [],
+      seriesType: EchartsTimeseriesSeriesType.Line,
+      truncateYAxis: true,
+      yAxisBounds: [0, 10],
+      colorByPrimaryAxis: true,
+    },
+    queriesData,
+  });
+
+  const transformedProps = transformProps(chartProps);
+  const series = transformedProps.echartOptions.series as SeriesOption[];
+  const seriesA = series.find(s => s.name === 'Series A');
+  expect(seriesA).toBeDefined();
+  const data = seriesA!.data as { value: [number, number] }[];
+
+  // colorByPrimaryAxis wraps each point as `{ value: [x, y], itemStyle }`
+  // rather than a bare tuple; the wrapped value must still be clamped
+  // instead of being skipped and left for ECharts to drop.
+  expect(data).toHaveLength(3);
+  expect(data[1].value[1]).toBe(10);
+});
+
+test('does not clamp a timeseries annotation series to the Y axis bounds (#27449)', () => {
+  const timeseries: TimeseriesAnnotationLayer = {
+    annotationType: AnnotationType.Timeseries,
+    name: 'My Timeseries',
+    show: true,
+    showLabel: true,
+    sourceType: AnnotationSourceType.Line,
+    style: AnnotationStyle.Solid,
+    titleColumn: '',
+    value: 3,
+  };
+  const annotationData = {
+    'My Timeseries': {
+      records: [
+        { x: 0, y: 11000 },
+        { x: 300000000, y: 21000 },
+      ],
+    },
+  };
+  const queriesData: ChartDataResponseResult[] = [
+    createTestQueryData(
+      createTestData([{ 'Series A': 1 }, { 'Series A': 2 }], {
+        intervalMs: 300000000,
+      }),
+      { annotation_data: annotationData },
+    ),
+  ];
+
+  const chartProps = createTestChartProps({
+    formData: {
+      ...formData,
+      groupby: [],
+      seriesType: EchartsTimeseriesSeriesType.Line,
+      truncateYAxis: true,
+      yAxisBounds: [0, 10],
+      annotationLayers: [timeseries],
+    },
+    annotationData,
+    queriesData,
+  });
+
+  const transformedProps = transformProps(chartProps);
+  const series = transformedProps.echartOptions.series as SeriesOption[];
+  const annotationSeries = series.find(s => s.id === 'My Timeseries');
+  expect(annotationSeries).toBeDefined();
+  const data = annotationSeries!.data as [number, number][];
+
+  // The annotation carries its own configured values (11000, 21000), which
+  // are unrelated to the chart's own out-of-range-data problem this PR
+  // fixes. They must be left untouched by the Y axis clamp rather than
+  // rewritten to the yAxisBounds max of 10.
+  expect(data[0][1]).toBe(11000);
+  expect(data[1][1]).toBe(21000);
+});
+
+test('clamps series values at the correct tuple index for horizontal bar charts (#27449)', () => {
+  const queriesData: ChartDataResponseResult[] = [
+    createTestQueryData(
+      createTestData(
+        [{ 'Series A': 15000 }, { 'Series A': 20000 }, { 'Series A': 18000 }],
+        { intervalMs: 300000000 },
+      ),
+    ),
+  ];
+
+  const chartProps = createTestChartProps({
+    formData: {
+      ...baseFormDataHorizontalBar,
+      yAxisBounds: [0, 16000],
+    },
+    queriesData,
+  });
+
+  const transformedProps = transformProps(chartProps);
+  const series = transformedProps.echartOptions.series as SeriesOption[];
+  const seriesA = series.find(s => s.name === 'Series A');
+  expect(seriesA).toBeDefined();
+  const data = seriesA!.data as [number, number][];
+
+  // In horizontal orientation the value sits at tuple index 0 (the axes are
+  // swapped), so the clamp must target that index rather than index 1.
+  expect(data).toHaveLength(3);
+  expect(data[1][0]).toBe(16000);
+});
+
 test('legend is visible on tall charts when enabled by the user', () => {
   const chartProps = createTestChartProps({
     height: 400,
@@ -1443,7 +2026,7 @@ test('x-axis formatter deduplicates consecutive identical labels for coarse time
   const chartProps = createTestChartProps({
     formData: {
       granularity_sqla: 'ds',
-      time_grain_sqla: TimeGranularity.YEAR,
+      timeGrainSqla: TimeGranularity.YEAR,
       xAxisTimeFormat: '%Y',
     },
     queriesData: [
@@ -1470,6 +2053,289 @@ test('x-axis formatter deduplicates consecutive identical labels for coarse time
   expect(label2).toBe('2004');
   expect(label3).toBe('2005');
   expect(label4).toBe('');
+});
+
+test('x-axis dedup keeps the forced min label when the endpoints format identically', () => {
+  // A May→May range renders "May" at both boundaries. ECharts formats labels in
+  // repeated ascending passes; the dedup must reset per pass so the forced min
+  // label isn't blanked by the previous pass's (identical) max label.
+  const data = [
+    { __timestamp: Date.UTC(2003, 4, 1), sales: 100 },
+    { __timestamp: Date.UTC(2004, 0, 1), sales: 200 },
+    { __timestamp: Date.UTC(2005, 4, 1), sales: 300 },
+  ];
+
+  const chartProps = createTestChartProps({
+    formData: {
+      granularity_sqla: 'ds',
+      timeGrainSqla: TimeGranularity.MONTH,
+      xAxisTimeFormat: '%b',
+    },
+    queriesData: [
+      createTestQueryData(data, {
+        colnames: ['__timestamp', 'sales'],
+        coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+      }),
+    ],
+  });
+
+  const { formatter } = (transformProps(chartProps).echartOptions.xAxis as any)
+    .axisLabel;
+  const min = Date.UTC(2003, 4, 1);
+  const mid = Date.UTC(2004, 0, 1);
+  const max = Date.UTC(2005, 4, 1);
+
+  // First pass fills the dedup state, ending on the max label ("May").
+  formatter(min);
+  formatter(mid);
+  formatter(max);
+
+  // Second pass restarts at the min; it must not be blanked by the prior "May".
+  expect(formatter(min)).toBe('May');
+});
+
+test('x-axis does not force showMaxLabel when no time grain is set', () => {
+  const data = [
+    { __timestamp: Date.UTC(2003, 0, 6), sales: 100 },
+    { __timestamp: Date.UTC(2004, 5, 15), sales: 200 },
+    { __timestamp: Date.UTC(2005, 4, 31), sales: 300 },
+  ];
+
+  const chartProps = createTestChartProps({
+    formData: {
+      granularity_sqla: 'ds',
+      timeGrainSqla: undefined,
+    },
+    queriesData: [
+      createTestQueryData(data, {
+        colnames: ['__timestamp', 'sales'],
+        coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+      }),
+    ],
+  });
+
+  const xAxisResult = transformProps(chartProps).echartOptions.xAxis as any;
+  expect(xAxisResult.axisLabel.showMaxLabel).not.toBe(true);
+  expect(xAxisResult.axisLabel.showMinLabel).not.toBe(true);
+});
+
+test('x-axis forces showMinLabel for time grains so the beginning date stays visible', () => {
+  // When the first data point is not on a coarse boundary (e.g. a mid-year
+  // month), ECharts places its first label on the next "nice" tick and leaves
+  // the axis-min date unlabeled. showMinLabel forces the beginning date to
+  // render, symmetric to showMaxLabel on the trailing edge.
+  const monthData = [
+    { __timestamp: Date.UTC(2003, 4, 1), sales: 100 },
+    { __timestamp: Date.UTC(2003, 5, 1), sales: 200 },
+    { __timestamp: Date.UTC(2003, 6, 1), sales: 300 },
+  ];
+
+  const chartProps = createTestChartProps({
+    formData: {
+      granularity_sqla: 'ds',
+      timeGrainSqla: TimeGranularity.MONTH,
+      xAxisTimeFormat: 'smart_date',
+    },
+    queriesData: [
+      createTestQueryData(monthData, {
+        colnames: ['__timestamp', 'sales'],
+        coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+      }),
+    ],
+  });
+
+  const xAxisResult = transformProps(chartProps).echartOptions.xAxis as any;
+  expect(xAxisResult.axisLabel.showMinLabel).toBe(true);
+});
+
+test('numeric x coltype routes through the number formatter (not the time formatter)', () => {
+  // Regression guard for echarts-timeseries-epoch-x-axis-labels investigation.
+  // When the query reports a Numeric x-axis coltype (including epoch-ms-like
+  // values), Timeseries transformProps must pick the Value axis and run the
+  // label through getNumberFormatter, not the time formatter. If this ever
+  // changes, epoch-ms values that arrive as Numeric would suddenly be treated
+  // as Date instances and could render "NaN" — the symptom that prompted this
+  // investigation.
+  const ts1 = 1745784000000;
+  const ts2 = 1745870400000;
+  const chartProps = createTestChartProps({
+    formData: {
+      metrics: ['metric'],
+      granularity_sqla: 'ds',
+      x_axis: '__timestamp',
+    },
+    queriesData: [
+      createTestQueryData(
+        [
+          { __timestamp: ts1, metric: 10 },
+          { __timestamp: ts2, metric: 20 },
+        ],
+        {
+          colnames: ['__timestamp', 'metric'],
+          coltypes: [GenericDataType.Numeric, GenericDataType.Numeric],
+        },
+      ),
+    ],
+  });
+
+  const { echartOptions } = transformProps(chartProps);
+  const xAxis = echartOptions.xAxis as {
+    type: string;
+    axisLabel: { formatter: (v: number) => string };
+  };
+
+  expect(xAxis.type).toBe(AxisType.Value);
+  const label = xAxis.axisLabel.formatter(ts1);
+  expect(typeof label).toBe('string');
+  expect(label).not.toMatch(/NaN/);
+});
+
+test('xAxisForceCategorical forces Category axis regardless of Numeric coltype', () => {
+  const ts1 = 1745784000000;
+  const ts2 = 1745870400000;
+  const chartProps = createTestChartProps({
+    formData: {
+      metrics: ['metric'],
+      granularity_sqla: 'ds',
+      x_axis: '__timestamp',
+      xAxisForceCategorical: true,
+    },
+    queriesData: [
+      createTestQueryData(
+        [
+          { __timestamp: ts1, metric: 10 },
+          { __timestamp: ts2, metric: 20 },
+        ],
+        {
+          colnames: ['__timestamp', 'metric'],
+          coltypes: [GenericDataType.Numeric, GenericDataType.Numeric],
+        },
+      ),
+    ],
+  });
+
+  const { echartOptions } = transformProps(chartProps);
+  const xAxis = echartOptions.xAxis as {
+    triggerEvent?: boolean;
+    type: string;
+  };
+
+  expect(xAxis.type).toBe(AxisType.Category);
+  expect(xAxis.triggerEvent).toBe(true);
+});
+
+test('temporal x-axis enables trigger events when no dimensions are set', () => {
+  const ts1 = 1745784000000;
+  const ts2 = 1745870400000;
+  const chartProps = createTestChartProps({
+    formData: {
+      metrics: ['metric'],
+      granularity_sqla: 'ds',
+      x_axis: '__timestamp',
+    },
+    queriesData: [
+      createTestQueryData(
+        [
+          { __timestamp: ts1, metric: 10 },
+          { __timestamp: ts2, metric: 20 },
+        ],
+        {
+          colnames: ['__timestamp', 'metric'],
+          coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+        },
+      ),
+    ],
+  });
+
+  const { echartOptions } = transformProps(chartProps);
+  const xAxis = echartOptions.xAxis as {
+    triggerEvent?: boolean;
+    type: string;
+  };
+
+  expect(xAxis.type).toBe(AxisType.Time);
+  expect(xAxis.triggerEvent).toBe(true);
+});
+
+test('temporal x coltype forced categorical yields a Category axis with date labels', () => {
+  // Issue #28204: with a temporal x-axis (e.g. weekly grain) the default Time
+  // scale places ticks at "nice" intervals that don't line up with the buckets.
+  // Forcing categorical maps each bucket to a discrete, tick-aligned category
+  // while still formatting the labels as dates rather than raw timestamps.
+  const ts1 = 1745784000000;
+  const ts2 = 1745870400000;
+  const chartProps = createTestChartProps({
+    formData: {
+      metrics: ['metric'],
+      granularity_sqla: 'ds',
+      x_axis: '__timestamp',
+      xAxisForceCategorical: true,
+    },
+    queriesData: [
+      createTestQueryData(
+        [
+          { __timestamp: ts1, metric: 10 },
+          { __timestamp: ts2, metric: 20 },
+        ],
+        {
+          colnames: ['__timestamp', 'metric'],
+          coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+        },
+      ),
+    ],
+  });
+
+  const { echartOptions } = transformProps(chartProps);
+  const xAxis = echartOptions.xAxis as {
+    type: string;
+    axisLabel: { formatter: (v: Date) => string };
+  };
+
+  expect(xAxis.type).toBe(AxisType.Category);
+  const label = xAxis.axisLabel.formatter(new Date(ts1));
+  expect(typeof label).toBe('string');
+  expect(label).not.toMatch(/NaN/);
+  expect(label).not.toBe(String(ts1));
+});
+
+test('temporal x coltype wires the time formatter and Time axis', () => {
+  // Regression guard: the happy path for time-series charts. Ensures that
+  // Temporal coltype keeps routing through the TimeFormatter so a refactor
+  // does not accidentally drop Date handling (the feared regression that
+  // sparked this investigation).
+  const ts1 = 1745784000000;
+  const ts2 = 1745870400000;
+  const chartProps = createTestChartProps({
+    formData: {
+      metrics: ['metric'],
+      granularity_sqla: 'ds',
+      x_axis: '__timestamp',
+    },
+    queriesData: [
+      createTestQueryData(
+        [
+          { __timestamp: ts1, metric: 10 },
+          { __timestamp: ts2, metric: 20 },
+        ],
+        {
+          colnames: ['__timestamp', 'metric'],
+          coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+        },
+      ),
+    ],
+  });
+
+  const { echartOptions } = transformProps(chartProps);
+  const xAxis = echartOptions.xAxis as {
+    type: string;
+    axisLabel: { formatter: (v: Date) => string };
+  };
+
+  expect(xAxis.type).toBe(AxisType.Time);
+  const label = xAxis.axisLabel.formatter(new Date(ts1));
+  expect(typeof label).toBe('string');
+  expect(label).not.toMatch(/NaN/);
+  expect(label).not.toBe(String(ts1));
 });
 
 test('should assign distinct dash patterns for multiple time offsets consistently', () => {
@@ -1519,4 +2385,500 @@ test('should assign distinct dash patterns for multiple time offsets consistentl
 
   // must be different patterns
   expect(symbol1).not.toEqual(symbol2);
+});
+
+describe('Tooltip with long labels', () => {
+  test('should use axisValue for tooltip when available (richTooltip)', () => {
+    const longLabelData: ChartDataResponseResult[] = [
+      createTestQueryData([
+        {
+          'This is a very long category name that would normally be truncated': 100,
+          __timestamp: 599616000000,
+        },
+        {
+          'Another extremely long category name for testing purposes': 200,
+          __timestamp: 599916000000,
+        },
+      ]),
+    ];
+
+    const chartProps = createTestChartProps({
+      formData: {
+        richTooltip: true,
+      },
+      queriesData: longLabelData,
+    });
+
+    const transformedProps = transformProps(chartProps);
+
+    // Get the tooltip formatter function
+    const tooltipFormatter = (transformedProps.echartOptions as any).tooltip
+      .formatter;
+
+    // Simulate params from ECharts with axisValue containing full label
+    // Use distinct values for axisValue and seriesName to verify axisValue is used
+    const mockParams = [
+      {
+        axisValue:
+          'This is a very long category name that would normally be truncated',
+        value: [599616000000, 100],
+        seriesName: 'Some Series Name',
+      },
+    ];
+
+    // Call the formatter and check it uses the full label from axisValue
+    const result = tooltipFormatter(mockParams);
+    expect(result).toContain(
+      'This is a very long category name that would normally be truncated',
+    );
+  });
+
+  test('should fallback to value when axisValue is not available', () => {
+    const chartProps = createTestChartProps({
+      formData: {
+        richTooltip: true,
+      },
+    });
+
+    const transformedProps = transformProps(chartProps);
+
+    const tooltipFormatter = (transformedProps.echartOptions as any).tooltip
+      .formatter;
+
+    // Simulate params without axisValue
+    const mockParams = [
+      {
+        value: [599616000000, 1],
+        seriesName: 'San Francisco',
+      },
+    ];
+
+    // Should fall back to the x-value (value[xIndex]) and render it in the title
+    const result = tooltipFormatter(mockParams);
+    expect(typeof result).toBe('string');
+    expect(result).toContain('599616000000');
+  });
+
+  test('should handle item tooltips correctly', () => {
+    const chartProps = createTestChartProps({
+      formData: {
+        richTooltip: false,
+      },
+    });
+
+    const transformedProps = transformProps(chartProps);
+
+    const tooltipFormatter = (transformedProps.echartOptions as any).tooltip
+      .formatter;
+
+    // For item tooltips, params is a single object
+    const mockParams = {
+      value: [599616000000, 1],
+      seriesName: 'San Francisco',
+    };
+
+    // The item-tooltip x-value (value[xIndex]) should appear in the title
+    const result = tooltipFormatter(mockParams);
+    expect(typeof result).toBe('string');
+    expect(result).toContain('599616000000');
+  });
+});
+
+test('tooltip time grain wiring: dashboard-level extraFormData time grain overrides the chart-level grain in the tooltip', () => {
+  const ts = Date.UTC(2021, 0, 7);
+  const chartProps = createTestChartProps({
+    formData: {
+      granularity_sqla: 'ds',
+      richTooltip: false,
+      // The chart itself is configured with a Day grain...
+      timeGrainSqla: TimeGranularity.DAY,
+      // ...but a dashboard-level filter/override resolves to Month.
+      extraFormData: { time_grain_sqla: TimeGranularity.MONTH },
+    },
+    queriesData: [
+      createTestQueryData([{ __timestamp: ts, sales: 100 }], {
+        colnames: ['__timestamp', 'sales'],
+        coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+      }),
+    ],
+  });
+
+  const transformedProps = transformProps(chartProps);
+  expect(transformedProps.resolvedTimeGrain).toBe(TimeGranularity.MONTH);
+  const tooltipFormatter = (
+    transformedProps.echartOptions as unknown as TooltipFormatterOptions
+  ).tooltip.formatter;
+
+  const result = tooltipFormatter({
+    value: [ts, 100],
+    seriesName: 'sales',
+  });
+
+  // Month grain (the dashboard override) should win, so the tooltip title
+  // reads "Jan 2021" rather than the Day-grain "2021-01-07".
+  expect(result).toContain('Jan');
+  expect(result).toContain('2021');
+  expect(result).not.toContain('2021-01-07');
+});
+
+test('tooltip time grain wiring: chart-level time grain drives the tooltip when there is no dashboard override', () => {
+  const ts = Date.UTC(2021, 0, 7);
+  const chartProps = createTestChartProps({
+    formData: {
+      granularity_sqla: 'ds',
+      richTooltip: false,
+      timeGrainSqla: TimeGranularity.YEAR,
+    },
+    queriesData: [
+      createTestQueryData([{ __timestamp: ts, sales: 100 }], {
+        colnames: ['__timestamp', 'sales'],
+        coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+      }),
+    ],
+  });
+
+  const transformedProps = transformProps(chartProps);
+  expect(transformedProps.resolvedTimeGrain).toBe(TimeGranularity.YEAR);
+  const tooltipFormatter = (
+    transformedProps.echartOptions as unknown as TooltipFormatterOptions
+  ).tooltip.formatter;
+
+  const result = tooltipFormatter({
+    value: [ts, 100],
+    seriesName: 'sales',
+  });
+
+  expect(result).toContain('2021');
+  expect(result).not.toContain('2021-01-07');
+});
+
+test('rebases each series to its percent change when the flag is enabled', () => {
+  const chartProps = createTestChartProps({
+    formData: {
+      ...formData,
+      rebasePercentChange: true,
+    } as unknown as Partial<EchartsTimeseriesFormData>,
+  });
+  const transformed = transformProps(chartProps);
+
+  // SF: 1 -> 3 rebases to 0 -> 2; NY: 2 -> 4 rebases to 0 -> 1
+  expect(transformed.echartOptions).toEqual(
+    expect.objectContaining({
+      series: expect.arrayContaining([
+        expect.objectContaining({
+          name: 'San Francisco',
+          data: [
+            [BASE_TIMESTAMP, 0],
+            [BASE_TIMESTAMP + 300000000, 2],
+          ],
+        }),
+        expect.objectContaining({
+          name: 'New York',
+          data: [
+            [BASE_TIMESTAMP, 0],
+            [BASE_TIMESTAMP + 300000000, 1],
+          ],
+        }),
+      ]),
+    }),
+  );
+
+  // percent-change view forces a percent axis format
+  expect(getYAxisFormatter(transformed)(1, 0)).toContain('%');
+});
+
+test('honors the snake_case flag the compare-chart migration stores in params', () => {
+  // MigrateCompareChart writes `rebase_percent_change` into slice params;
+  // ChartProps camelizes stored form data before transformProps reads it, so
+  // this exercises the full migrated-chart path rather than the camelized
+  // key the test helper injects directly.
+  const chartProps = new ChartProps({
+    formData: {
+      datasource: '3__table',
+      viz_type: 'echarts_timeseries_line',
+      granularity_sqla: 'ds',
+      rebase_percent_change: true,
+    },
+    width: 800,
+    height: 600,
+    queriesData,
+    theme: supersetTheme,
+    datasource: {},
+  }) as unknown as EchartsTimeseriesChartProps;
+  const { echartOptions } = transformProps(chartProps);
+
+  const { series } = echartOptions as unknown as { series: SeriesOption[] };
+  const sanFrancisco = series.find(s => s.name === 'San Francisco');
+  expect(sanFrancisco?.data).toEqual([
+    [BASE_TIMESTAMP, 0],
+    [BASE_TIMESTAMP + 300000000, 2],
+  ]);
+});
+describe('EchartsTimeseries tooltip truncation', () => {
+  const longSeriesName = 'prod-us-east-1-service-checkout-latency-p99';
+  const marker = '<span style="background-color:#1f77b4;"></span>';
+
+  const buildTooltip = (
+    tooltipTruncation?: TooltipTruncationMode,
+    xValue: string | number = 599616000000,
+  ) => {
+    const chartProps = new ChartProps({
+      formData: {
+        colorScheme: 'bnbColors',
+        datasource: '3__table',
+        granularity_sqla: 'ds',
+        metric: 'sum__num',
+        groupby: ['foo'],
+        viz_type: 'my_viz',
+        ...(tooltipTruncation ? { tooltipTruncation } : {}),
+      } as SqlaFormData,
+      width: 800,
+      height: 600,
+      queriesData: [
+        {
+          data: [
+            { [longSeriesName]: 1, __timestamp: 599616000000 },
+            { [longSeriesName]: 3, __timestamp: 599916000000 },
+          ],
+        },
+      ],
+      theme: supersetTheme,
+    });
+    const { echartOptions } = transformProps(
+      chartProps as EchartsTimeseriesChartProps,
+    );
+    const { formatter } = echartOptions.tooltip as {
+      formatter: (params: unknown) => string;
+    };
+    return formatter([
+      {
+        seriesId: longSeriesName,
+        seriesName: longSeriesName,
+        value: [xValue, 1],
+        marker,
+      },
+    ]);
+  };
+
+  test('applies the CSS cap and keeps full text by default', () => {
+    const html = buildTooltip();
+    expect(html).toContain(longSeriesName);
+    // sanitizeHtml normalizes spacing inside style attributes, so compare with
+    // whitespace stripped rather than hard-coding one version's formatting.
+    expect(html.replace(/\s/g, '')).toContain('max-width:300px');
+  });
+
+  test('removes the cap and keeps full text when off', () => {
+    const html = buildTooltip('off');
+    expect(html).not.toContain('max-width');
+    expect(html).toContain(longSeriesName);
+  });
+
+  test('drops the shared prefix when truncating from the start', () => {
+    const html = buildTooltip('start');
+    expect(html).not.toContain('prod-us-east');
+    expect(html).toContain('latency-p99');
+    expect(html.replace(/\s/g, '')).toContain('white-space:nowrap');
+  });
+
+  test('keeps both ends when truncating the middle', () => {
+    const html = buildTooltip('middle');
+    expect(html).toContain('prod-us-east-1-servi…heckout-latency-p99');
+    expect(html).not.toContain(longSeriesName);
+  });
+
+  test('preserves the echarts marker in every mode', () => {
+    (['off', 'end', 'start', 'middle'] as const).forEach(mode => {
+      expect(buildTooltip(mode)).toContain('background-color:#1f77b4');
+    });
+  });
+
+  test('truncates a long non-temporal x-axis title', () => {
+    const longCategory = 'prod-us-east-1-service-checkout-cohort-2026';
+    const html = buildTooltip('start', longCategory);
+    expect(html).not.toContain(longCategory);
+    expect(html).toContain('cohort-2026');
+  });
+
+  test('leaves a long title alone in the default mode', () => {
+    const longCategory = 'prod-us-east-1-service-checkout-cohort-2026';
+    expect(buildTooltip(undefined, longCategory)).toContain(longCategory);
+  });
+});
+
+describe('tooltip for metrics whose labels end in forecast suffixes', () => {
+  const marker = '<span style="background-color:#1f77b4;"></span>';
+  const seriesIds = ['ci__yhat', 'ci__yhat_lower', 'ci__yhat_upper'];
+  const values = [1.5, 0.5, 2.0];
+
+  // Metrics can be labelled `ci__yhat*` with no forecast enabled and no plain
+  // observation series. Every series then collapses onto the same
+  // forecast-stripped tooltip key, so no raw series id matches itself.
+  const buildTooltip = (tooltipSortByMetric = false) => {
+    const chartProps = createTestChartProps({
+      formData: {
+        x_axis: 'dt',
+        metrics: seriesIds,
+        groupby: [],
+        richTooltip: true,
+        tooltipSortByMetric,
+      } as Partial<EchartsTimeseriesFormData>,
+      queriesData: [
+        createTestQueryData([
+          {
+            dt: 599616000000,
+            ci__yhat: 1.5,
+            ci__yhat_lower: 0.5,
+            ci__yhat_upper: 2.5,
+          },
+        ]),
+      ],
+    });
+    const tooltipFormatter = (transformProps(chartProps).echartOptions as any)
+      .tooltip.formatter;
+    return tooltipFormatter(
+      seriesIds.map((id, i) => ({
+        seriesId: id,
+        seriesName: id,
+        value: [599616000000, values[i]],
+        data: [599616000000, values[i]],
+        marker,
+      })),
+    );
+  };
+
+  test('renders the collapsed series rather than falling back to "No data"', () => {
+    const html = buildTooltip();
+    expect(html).not.toContain('No data');
+    expect(html).toContain('>ci<');
+    expect(html).toContain('ŷ = 1.5 (0.5, 2.5)');
+  });
+
+  test('renders a single row rather than one per forecast suffix', () => {
+    const html = buildTooltip();
+    expect(html.match(/<tr/g)).toHaveLength(1);
+    expect(html).toContain('>ci<');
+  });
+
+  test('still renders the row when the tooltip is sorted by metric', () => {
+    const html = buildTooltip(true);
+    expect(html).not.toContain('No data');
+    expect(html).toContain('>ci<');
+  });
+});
+
+test('shows gridlines and axis ticks by default', () => {
+  const { echartOptions } = transformProps(createTestChartProps({}));
+  const xAxis = echartOptions.xAxis as any;
+  const yAxis = echartOptions.yAxis as any;
+
+  expect(yAxis.splitLine.show).toBe(true);
+  expect(yAxis.axisTick.show).toBe(true);
+  // Left to ECharts, which draws no ticks on a banded category axis. Forcing
+  // true would add ticks the chart does not have today.
+  expect(xAxis.axisTick.show).toBe('auto');
+});
+
+test('hides gridlines without touching the minor split lines', () => {
+  const { echartOptions } = transformProps(
+    createTestChartProps({ formData: { gridlines: false } }),
+  );
+  const yAxis = echartOptions.yAxis as any;
+
+  expect(yAxis.splitLine.show).toBe(false);
+  expect(yAxis.minorSplitLine.show).toBe(DEFAULT_FORM_DATA.minorSplitLine);
+  expect(yAxis.axisTick.show).toBe(true);
+});
+
+test('leaves the category axis split lines alone until gridlines are turned off', () => {
+  const shown = transformProps(createTestChartProps({}));
+  // Writing show:true here would draw gridlines on axis types that default to
+  // none, so the key is only ever added to hide them.
+  expect((shown.echartOptions.xAxis as any).splitLine).toBeUndefined();
+
+  const hidden = transformProps(
+    createTestChartProps({ formData: { gridlines: false } }),
+  );
+  expect((hidden.echartOptions.xAxis as any).splitLine.show).toBe(false);
+});
+
+test('hides the ticks on both axes', () => {
+  const { echartOptions } = transformProps(
+    createTestChartProps({ formData: { axisTicks: false } }),
+  );
+
+  expect((echartOptions.yAxis as any).axisTick.show).toBe(false);
+  expect((echartOptions.xAxis as any).axisTick.show).toBe(false);
+  expect((echartOptions.yAxis as any).splitLine.show).toBe(true);
+});
+
+test('keeps gridlines and ticks off on a compact chart even when both are enabled', () => {
+  const { echartOptions } = transformProps(
+    createTestChartProps({
+      height: TIMESERIES_CONSTANTS.compactChartHeight - 1,
+      formData: { gridlines: true, axisTicks: true },
+    }),
+  );
+  const yAxis = echartOptions.yAxis as any;
+
+  expect(yAxis.splitLine.show).toBe(false);
+  expect(yAxis.axisTick.show).toBe(false);
+});
+
+test('applies gridlines to the value axis after a horizontal orientation swaps it', () => {
+  const { echartOptions } = transformProps(
+    createTestChartProps({
+      formData: {
+        orientation: OrientationType.Horizontal,
+        gridlines: false,
+      },
+    }),
+  );
+
+  // The transform swaps the axes for a horizontal chart, so the value axis —
+  // and the gridlines belonging to it — end up on xAxis.
+  expect((echartOptions.xAxis as any).splitLine.show).toBe(false);
+});
+
+test('boundary label alignment is dropped when the orientation moves the time axis to the side', () => {
+  // The alignments position labels against the left and right edges of a
+  // bottom axis. A horizontal chart swaps the axes, so applying them there
+  // shifts the first label out of line with the rest (#43428 follow-up).
+  const monthData = [
+    { __timestamp: Date.UTC(2003, 4, 1), sales: 100 },
+    { __timestamp: Date.UTC(2003, 5, 1), sales: 200 },
+  ];
+  const build = (orientation: OrientationType) =>
+    transformProps(
+      createTestChartProps({
+        formData: {
+          granularity_sqla: 'ds',
+          timeGrainSqla: TimeGranularity.MONTH,
+          xAxisTimeFormat: 'smart_date',
+          seriesType: EchartsTimeseriesSeriesType.Bar,
+          orientation,
+        },
+        queriesData: [
+          createTestQueryData(monthData, {
+            colnames: ['__timestamp', 'sales'],
+            coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+          }),
+        ],
+      }),
+    ).echartOptions;
+
+  const vertical = build(OrientationType.Vertical).xAxis as any;
+  expect(vertical.axisLabel.alignMinLabel).toBe('left');
+  expect(vertical.axisLabel.alignMaxLabel).toBe('right');
+
+  // Horizontal swaps the axes, so the time axis is now yAxis.
+  const horizontal = build(OrientationType.Horizontal).yAxis as any;
+  expect(horizontal.axisLabel.alignMinLabel).toBeUndefined();
+  expect(horizontal.axisLabel.alignMaxLabel).toBeUndefined();
+
+  // The boundary labels themselves stay forced in both orientations.
+  expect(vertical.axisLabel.showMinLabel).toBe(true);
+  expect(vertical.axisLabel.showMaxLabel).toBe(true);
+  expect(horizontal.axisLabel.showMinLabel).toBe(true);
+  expect(horizontal.axisLabel.showMaxLabel).toBe(true);
 });

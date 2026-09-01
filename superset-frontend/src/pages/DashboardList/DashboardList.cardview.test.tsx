@@ -82,7 +82,7 @@ describe('DashboardList Card View Tests', () => {
 
     // Verify card view toggle is active
     const cardViewToggle = screen.getByRole('img', { name: 'appstore' });
-    const cardViewButton = cardViewToggle.closest('[role="button"]');
+    const cardViewButton = cardViewToggle.closest('button');
     expect(cardViewButton).toHaveClass('active');
   });
 
@@ -96,7 +96,7 @@ describe('DashboardList Card View Tests', () => {
     const listViewToggle = screen.getByRole('img', {
       name: 'unordered-list',
     });
-    const listViewButton = listViewToggle.closest('[role="button"]');
+    const listViewButton = listViewToggle.closest('button');
     expect(listViewButton).not.toBeNull();
     fireEvent.click(listViewButton!);
 
@@ -156,18 +156,16 @@ describe('DashboardList Card View Tests', () => {
       ).toBeInTheDocument();
     });
 
-    // Find the sort select by its testId, then the combobox within it
+    // Find the sort select by its testId, then the pill button within it
     const sortContainer = screen.getByTestId('card-sort-select');
-    const sortCombobox = within(sortContainer).getByRole('combobox');
-    await userEvent.click(sortCombobox);
+    // eslint-disable-next-line testing-library/no-node-access
+    const sortPill = sortContainer.querySelector(
+      '[data-test="compact-filter-pill"]',
+    ) as HTMLElement;
+    await userEvent.click(sortPill);
 
     // Select "Alphabetical" from the dropdown
-    const alphabeticalOption = await waitFor(() =>
-      within(
-        // eslint-disable-next-line testing-library/no-node-access
-        document.querySelector('.rc-virtual-list')!,
-      ).getByText('Alphabetical'),
-    );
+    const alphabeticalOption = await screen.findByText('Alphabetical');
     await userEvent.click(alphabeticalOption);
 
     await waitFor(() => {

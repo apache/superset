@@ -214,7 +214,9 @@ test('Should filter simple columns by column_name and verbose_name', async () =>
 
   await userEvent.type(combobox, 'revenue');
 
-  let dropdown = document.querySelector('.rc-virtual-list') as HTMLElement;
+  let dropdown = document.querySelector(
+    '.ant-select-dropdown-list',
+  ) as HTMLElement;
   expect(within(dropdown).getByText('Total Sales')).toBeInTheDocument();
   expect(
     within(dropdown).queryByText('User Identifier'),
@@ -226,7 +228,7 @@ test('Should filter simple columns by column_name and verbose_name', async () =>
   await userEvent.clear(combobox);
   await userEvent.type(combobox, 'Identifier');
 
-  dropdown = document.querySelector('.rc-virtual-list') as HTMLElement;
+  dropdown = document.querySelector('.ant-select-dropdown-list') as HTMLElement;
   expect(within(dropdown).getByText('User Identifier')).toBeInTheDocument();
   expect(within(dropdown).queryByText('Total Sales')).not.toBeInTheDocument();
   expect(within(dropdown).queryByText('Creation Date')).not.toBeInTheDocument();
@@ -234,7 +236,7 @@ test('Should filter simple columns by column_name and verbose_name', async () =>
   await userEvent.clear(combobox);
   await userEvent.type(combobox, '_at');
 
-  dropdown = document.querySelector('.rc-virtual-list') as HTMLElement;
+  dropdown = document.querySelector('.ant-select-dropdown-list') as HTMLElement;
   expect(within(dropdown).getByText('Creation Date')).toBeInTheDocument();
   expect(within(dropdown).getByText('Last Update')).toBeInTheDocument();
   expect(within(dropdown).queryByText('Total Sales')).not.toBeInTheDocument();
@@ -288,7 +290,9 @@ test('Should filter saved expressions by column_name and verbose_name', async ()
 
   await userEvent.type(combobox, 'revenue');
 
-  let dropdown = document.querySelector('.rc-virtual-list') as HTMLElement;
+  let dropdown = document.querySelector(
+    '.ant-select-dropdown-list',
+  ) as HTMLElement;
   expect(within(dropdown).getByText('Total Sales')).toBeInTheDocument();
   expect(within(dropdown).queryByText('Tax Amount')).not.toBeInTheDocument();
   expect(within(dropdown).queryByText('Net Profit')).not.toBeInTheDocument();
@@ -298,7 +302,7 @@ test('Should filter saved expressions by column_name and verbose_name', async ()
   await userEvent.clear(combobox);
   await userEvent.type(combobox, 'Rate');
 
-  dropdown = document.querySelector('.rc-virtual-list') as HTMLElement;
+  dropdown = document.querySelector('.ant-select-dropdown-list') as HTMLElement;
   expect(within(dropdown).getByText('Discount Rate')).toBeInTheDocument();
   expect(within(dropdown).queryByText('Total Sales')).not.toBeInTheDocument();
   expect(within(dropdown).queryByText('Tax Amount')).not.toBeInTheDocument();
@@ -306,7 +310,7 @@ test('Should filter saved expressions by column_name and verbose_name', async ()
   await userEvent.clear(combobox);
   await userEvent.type(combobox, 'profit');
 
-  dropdown = document.querySelector('.rc-virtual-list') as HTMLElement;
+  dropdown = document.querySelector('.ant-select-dropdown-list') as HTMLElement;
   expect(within(dropdown).getByText('Net Profit')).toBeInTheDocument();
   expect(within(dropdown).getByText('Profit Margin')).toBeInTheDocument();
   expect(within(dropdown).queryByText('Total Sales')).not.toBeInTheDocument();

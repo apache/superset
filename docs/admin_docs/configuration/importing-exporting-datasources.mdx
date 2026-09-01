@@ -30,6 +30,10 @@ Superset's ZIP-based import/export also covers **dashboards**, **charts**, and *
 |  └── ... (more databases)
 ```
 
+:::note
+When you export a database connection, the `masked_encrypted_extra` field (used for sensitive connection parameters such as service account JSON, OAuth tokens, and other encrypted credentials) is included in the export. When importing on another instance, these values are decrypted and re-encrypted using the destination instance's `SECRET_KEY`. Ensure the receiving instance has a valid `SECRET_KEY` configured before importing.
+:::
+
 ## Exporting Datasources to YAML
 
 You can print your current datasources to stdout by running:
@@ -78,6 +82,26 @@ The optional username flag **-u** sets the user used for the datasource import. 
 ```bash
 superset import_datasources -p <path / filename> -u 'admin'
 ```
+
+## Importing a Directory of Assets
+
+The `import_directory` command imports a directory of exported assets (databases, datasets,
+dashboards, charts) in the same layout produced by the ZIP-based export. Saved queries and tags
+included in a full export are not imported by this command:
+
+```bash
+superset import_directory <path / directory>
+```
+
+As with `import_datasources`, the optional username flag **-u** sets the user assigned as the
+owner of the imported assets. The default is 'admin'. Example:
+
+```bash
+superset import_directory <path / directory> -u 'admin'
+```
+
+If the specified user does not exist, the command fails immediately with an error rather than
+importing the assets without an owner.
 
 ## Dashboard Import Overwrite Behavior
 
@@ -144,10 +168,10 @@ datasets by saving the following YAML to file and then running the **import_data
 
 ```yaml
 databases:
-- database_name: main
-  tables:
-  - table_name: random_time_series
-    columns:
-    - column_name: ds
-      verbose_name: datetime
+  - database_name: main
+    tables:
+      - table_name: random_time_series
+        columns:
+          - column_name: ds
+            verbose_name: datetime
 ```

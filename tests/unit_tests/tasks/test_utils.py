@@ -16,9 +16,10 @@
 # under the License.
 
 from contextlib import nullcontext
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Optional, Union
+from unittest.mock import MagicMock, patch
 
 import pytest
 from flask_appbuilder.security.sqla.models import User
@@ -29,6 +30,7 @@ from superset.tasks.types import Executor, ExecutorType, FixedExecutor
 from superset.tasks.utils import (
     error_update,
     get_active_dedup_key,
+    get_current_user,
     get_finished_dedup_key,
     parse_properties,
     progress_update,
@@ -40,21 +42,89 @@ FIXED_USER_ID = 1234
 FIXED_USERNAME = "admin"
 
 
+def _make_user_subject(user_id: int, active: bool = True) -> MagicMock:
+    """Create a mock user-type Subject with an underlying User."""
+    from superset.subjects.types import SubjectType
+
+    user = User(id=user_id, username=str(user_id), active=active)
+    subject = MagicMock()
+    subject.id = user_id  # deterministic subject ID
+    subject.type = SubjectType.USER
+    subject.user = user
+    subject.user_id = user_id
+    return subject
+
+
+def _make_role_subject(role_id: int) -> MagicMock:
+    """Create a mock role-type Subject (no underlying User)."""
+    from superset.subjects.types import SubjectType
+
+    subject = MagicMock()
+    subject.id = 10000 + role_id  # deterministic subject ID
+    subject.type = SubjectType.ROLE
+    subject.user = None
+    subject.user_id = None
+    subject.role_id = role_id
+    return subject
+
+
+def _make_group_subject(group_id: int) -> MagicMock:
+    """Create a mock group-type Subject (no underlying User)."""
+    from superset.subjects.types import SubjectType
+
+    subject = MagicMock()
+    subject.id = 20000 + group_id  # deterministic subject ID
+    subject.type = SubjectType.GROUP
+    subject.user = None
+    subject.user_id = None
+    subject.group_id = group_id
+    return subject
+
+
 def _get_users(
     params: Optional[Union[int, list[int]]],
+    active: bool = True,
 ) -> Optional[Union[User, list[User]]]:
     if params is None:
         return None
     if isinstance(params, int):
-        return User(id=params, username=str(params))
-    return [User(id=user, username=str(user)) for user in params]
+        return User(id=params, username=str(params), active=active)
+    return [User(id=user, username=str(user), active=active) for user in params]
+
+
+@dataclass
+class EditorSpec:
+    """Specification for building a list of mixed-type editor subjects."""
+
+    user_ids: list[int]
+    role_ids: list[int] | None = None
+    group_ids: list[int] | None = None
+    # Direct user-type editors that should be built as inactive users
+    inactive_user_ids: list[int] | None = None
+
+    def build(self) -> list[MagicMock]:
+        editors: list[MagicMock] = []
+        editors.extend(_make_user_subject(uid) for uid in self.user_ids)
+        for uid in self.inactive_user_ids or []:
+            editors.append(_make_user_subject(uid, active=False))
+        for rid in self.role_ids or []:
+            editors.append(_make_role_subject(rid))
+        for gid in self.group_ids or []:
+            editors.append(_make_group_subject(gid))
+        return editors
 
 
 @dataclass
 class ModelConfig:
-    owners: list[int]
+    editors: EditorSpec
     creator: Optional[int] = None
     modifier: Optional[int] = None
+    creator_active: bool = True
+    modifier_active: bool = True
+    # Maps user_id → role_ids the user belongs to (for indirect editor resolution)
+    user_roles: dict[int, list[int]] = field(default_factory=dict)
+    # Maps user_id → group_ids the user belongs to (for indirect editor resolution)
+    user_groups: dict[int, list[int]] = field(default_factory=dict)
 
 
 class ModelType(int, Enum):
@@ -70,7 +140,7 @@ class ModelType(int, Enum):
             ModelType.REPORT_SCHEDULE,
             [FixedExecutor(FIXED_USERNAME)],
             ModelConfig(
-                owners=[1, 2],
+                editors=EditorSpec(user_ids=[1, 2]),
                 creator=3,
                 modifier=4,
             ),
@@ -81,13 +151,13 @@ class ModelType(int, Enum):
             ModelType.REPORT_SCHEDULE,
             [
                 ExecutorType.CREATOR,
-                ExecutorType.CREATOR_OWNER,
-                ExecutorType.OWNER,
+                ExecutorType.CREATOR_EDITOR,
+                ExecutorType.EDITOR,
                 ExecutorType.MODIFIER,
-                ExecutorType.MODIFIER_OWNER,
+                ExecutorType.MODIFIER_EDITOR,
                 FixedExecutor(FIXED_USERNAME),
             ],
-            ModelConfig(owners=[]),
+            ModelConfig(editors=EditorSpec(user_ids=[])),
             None,
             (ExecutorType.FIXED_USER, FIXED_USER_ID),
         ),
@@ -95,13 +165,13 @@ class ModelType(int, Enum):
             ModelType.REPORT_SCHEDULE,
             [
                 ExecutorType.CREATOR,
-                ExecutorType.CREATOR_OWNER,
-                ExecutorType.OWNER,
+                ExecutorType.CREATOR_EDITOR,
+                ExecutorType.EDITOR,
                 ExecutorType.MODIFIER,
-                ExecutorType.MODIFIER_OWNER,
+                ExecutorType.MODIFIER_EDITOR,
                 FixedExecutor(FIXED_USERNAME),
             ],
-            ModelConfig(owners=[], modifier=1),
+            ModelConfig(editors=EditorSpec(user_ids=[]), modifier=1),
             None,
             (ExecutorType.MODIFIER, 1),
         ),
@@ -109,90 +179,121 @@ class ModelType(int, Enum):
             ModelType.REPORT_SCHEDULE,
             [
                 ExecutorType.CREATOR,
-                ExecutorType.CREATOR_OWNER,
-                ExecutorType.OWNER,
+                ExecutorType.CREATOR_EDITOR,
+                ExecutorType.EDITOR,
                 ExecutorType.MODIFIER,
-                ExecutorType.MODIFIER_OWNER,
+                ExecutorType.MODIFIER_EDITOR,
                 FixedExecutor(FIXED_USERNAME),
             ],
-            ModelConfig(owners=[2], modifier=1),
+            ModelConfig(editors=EditorSpec(user_ids=[2]), modifier=1),
             None,
-            (ExecutorType.OWNER, 2),
+            # Modifier (1) is not an editor and there is no creator, so EDITOR
+            # no longer falls through to the unrelated attached editor (2) --
+            # it falls through to the next executor in the chain instead.
+            (ExecutorType.MODIFIER, 1),
         ),
         (
             ModelType.REPORT_SCHEDULE,
             [
                 ExecutorType.CREATOR,
-                ExecutorType.CREATOR_OWNER,
-                ExecutorType.OWNER,
+                ExecutorType.CREATOR_EDITOR,
+                ExecutorType.EDITOR,
                 ExecutorType.MODIFIER,
-                ExecutorType.MODIFIER_OWNER,
+                ExecutorType.MODIFIER_EDITOR,
                 FixedExecutor(FIXED_USERNAME),
             ],
-            ModelConfig(owners=[2], creator=3, modifier=1),
+            ModelConfig(editors=EditorSpec(user_ids=[2]), creator=3, modifier=1),
             None,
             (ExecutorType.CREATOR, 3),
         ),
         (
             ModelType.REPORT_SCHEDULE,
             [
-                ExecutorType.OWNER,
+                ExecutorType.EDITOR,
             ],
-            ModelConfig(owners=[1, 2, 3, 4, 5, 6, 7], creator=3, modifier=4),
+            ModelConfig(
+                editors=EditorSpec(user_ids=[1, 2, 3, 4, 5, 6, 7]),
+                creator=3,
+                modifier=4,
+            ),
             None,
-            (ExecutorType.OWNER, 4),
+            (ExecutorType.EDITOR, 4),
         ),
         (
             ModelType.REPORT_SCHEDULE,
             [
-                ExecutorType.OWNER,
+                ExecutorType.EDITOR,
             ],
-            ModelConfig(owners=[1, 2, 3, 4, 5, 6, 7], creator=3, modifier=8),
+            ModelConfig(
+                editors=EditorSpec(user_ids=[1, 2, 3, 4, 5, 6, 7]),
+                creator=3,
+                modifier=8,
+            ),
             None,
-            (ExecutorType.OWNER, 3),
+            (ExecutorType.EDITOR, 3),
         ),
         (
             ModelType.REPORT_SCHEDULE,
             [
-                ExecutorType.MODIFIER_OWNER,
+                ExecutorType.MODIFIER_EDITOR,
             ],
-            ModelConfig(owners=[1, 2, 3, 4, 5, 6, 7], creator=8, modifier=9),
+            ModelConfig(
+                editors=EditorSpec(user_ids=[1, 2, 3, 4, 5, 6, 7]),
+                creator=8,
+                modifier=9,
+            ),
             None,
             ExecutorNotFoundError(),
         ),
         (
             ModelType.REPORT_SCHEDULE,
             [
-                ExecutorType.MODIFIER_OWNER,
+                ExecutorType.MODIFIER_EDITOR,
             ],
-            ModelConfig(owners=[1, 2, 3, 4, 5, 6, 7], creator=8, modifier=4),
+            ModelConfig(
+                editors=EditorSpec(user_ids=[1, 2, 3, 4, 5, 6, 7]),
+                creator=8,
+                modifier=4,
+            ),
             None,
-            (ExecutorType.MODIFIER_OWNER, 4),
+            (ExecutorType.MODIFIER_EDITOR, 4),
         ),
         (
             ModelType.REPORT_SCHEDULE,
             [
-                ExecutorType.CREATOR_OWNER,
+                ExecutorType.CREATOR_EDITOR,
             ],
-            ModelConfig(owners=[1, 2, 3, 4, 5, 6, 7], creator=8, modifier=9),
+            ModelConfig(
+                editors=EditorSpec(user_ids=[1, 2, 3, 4, 5, 6, 7]),
+                creator=8,
+                modifier=9,
+            ),
             None,
             ExecutorNotFoundError(),
         ),
         (
             ModelType.REPORT_SCHEDULE,
             [
-                ExecutorType.CREATOR_OWNER,
+                ExecutorType.CREATOR_EDITOR,
             ],
-            ModelConfig(owners=[1, 2, 3, 4, 5, 6, 7], creator=4, modifier=8),
+            ModelConfig(
+                editors=EditorSpec(user_ids=[1, 2, 3, 4, 5, 6, 7]),
+                creator=4,
+                modifier=8,
+            ),
             None,
-            (ExecutorType.CREATOR_OWNER, 4),
+            (ExecutorType.CREATOR_EDITOR, 4),
         ),
         (
             ModelType.REPORT_SCHEDULE,
             [
                 ExecutorType.CURRENT_USER,
             ],
-            ModelConfig(owners=[1, 2, 3, 4, 5, 6, 7], creator=4, modifier=8),
+            ModelConfig(
+                editors=EditorSpec(user_ids=[1, 2, 3, 4, 5, 6, 7]),
+                creator=4,
+                modifier=8,
+            ),
             None,
             ExecutorNotFoundError(),
         ),
@@ -201,7 +302,7 @@ class ModelType(int, Enum):
             [
                 ExecutorType.CURRENT_USER,
             ],
-            ModelConfig(owners=[1], creator=2, modifier=3),
+            ModelConfig(editors=EditorSpec(user_ids=[1]), creator=2, modifier=3),
             4,
             (ExecutorType.CURRENT_USER, 4),
         ),
@@ -210,7 +311,7 @@ class ModelType(int, Enum):
             [
                 FixedExecutor(FIXED_USERNAME),
             ],
-            ModelConfig(owners=[1], creator=2, modifier=3),
+            ModelConfig(editors=EditorSpec(user_ids=[1]), creator=2, modifier=3),
             4,
             (ExecutorType.FIXED_USER, FIXED_USER_ID),
         ),
@@ -219,19 +320,19 @@ class ModelType(int, Enum):
             [
                 ExecutorType.CURRENT_USER,
             ],
-            ModelConfig(owners=[1], creator=2, modifier=3),
+            ModelConfig(editors=EditorSpec(user_ids=[1]), creator=2, modifier=3),
             None,
             ExecutorNotFoundError(),
         ),
         (
             ModelType.DASHBOARD,
             [
-                ExecutorType.CREATOR_OWNER,
-                ExecutorType.MODIFIER_OWNER,
+                ExecutorType.CREATOR_EDITOR,
+                ExecutorType.MODIFIER_EDITOR,
                 ExecutorType.CURRENT_USER,
                 FixedExecutor(FIXED_USERNAME),
             ],
-            ModelConfig(owners=[1], creator=2, modifier=3),
+            ModelConfig(editors=EditorSpec(user_ids=[1]), creator=2, modifier=3),
             None,
             (ExecutorType.FIXED_USER, FIXED_USER_ID),
         ),
@@ -240,7 +341,7 @@ class ModelType(int, Enum):
             [
                 ExecutorType.CURRENT_USER,
             ],
-            ModelConfig(owners=[1], creator=2, modifier=3),
+            ModelConfig(editors=EditorSpec(user_ids=[1]), creator=2, modifier=3),
             4,
             (ExecutorType.CURRENT_USER, 4),
         ),
@@ -249,7 +350,7 @@ class ModelType(int, Enum):
             [
                 FixedExecutor(FIXED_USERNAME),
             ],
-            ModelConfig(owners=[1], creator=2, modifier=3),
+            ModelConfig(editors=EditorSpec(user_ids=[1]), creator=2, modifier=3),
             4,
             (ExecutorType.FIXED_USER, FIXED_USER_ID),
         ),
@@ -258,7 +359,7 @@ class ModelType(int, Enum):
             [
                 ExecutorType.CURRENT_USER,
             ],
-            ModelConfig(owners=[1], creator=2, modifier=3),
+            ModelConfig(editors=EditorSpec(user_ids=[1]), creator=2, modifier=3),
             None,
             ExecutorNotFoundError(),
         ),
@@ -267,21 +368,278 @@ class ModelType(int, Enum):
             [
                 ExecutorType.FIXED_USER,
             ],
-            ModelConfig(owners=[]),
+            ModelConfig(editors=EditorSpec(user_ids=[])),
             None,
             InvalidExecutorError(),
         ),
         (
             ModelType.CHART,
             [
-                ExecutorType.CREATOR_OWNER,
-                ExecutorType.MODIFIER_OWNER,
+                ExecutorType.CREATOR_EDITOR,
+                ExecutorType.MODIFIER_EDITOR,
                 ExecutorType.CURRENT_USER,
                 FixedExecutor(FIXED_USERNAME),
             ],
-            ModelConfig(owners=[1], creator=2, modifier=3),
+            ModelConfig(editors=EditorSpec(user_ids=[1]), creator=2, modifier=3),
             None,
             (ExecutorType.FIXED_USER, FIXED_USER_ID),
+        ),
+        # Mixed editors: user-type editor resolved directly
+        (
+            ModelType.REPORT_SCHEDULE,
+            [ExecutorType.EDITOR],
+            ModelConfig(
+                editors=EditorSpec(user_ids=[5], role_ids=[10], group_ids=[20]),
+                creator=5,
+            ),
+            None,
+            (ExecutorType.EDITOR, 5),
+        ),
+        # Role/group editors without matching users still fall through.
+        (
+            ModelType.REPORT_SCHEDULE,
+            [ExecutorType.EDITOR, FixedExecutor(FIXED_USERNAME)],
+            ModelConfig(
+                editors=EditorSpec(user_ids=[], role_ids=[10], group_ids=[20]),
+            ),
+            None,
+            (ExecutorType.FIXED_USER, FIXED_USER_ID),
+        ),
+        # No modifier/creator set: EDITOR no longer falls through to an
+        # arbitrary user reachable via a role editor subject.
+        (
+            ModelType.REPORT_SCHEDULE,
+            [ExecutorType.EDITOR],
+            ModelConfig(
+                editors=EditorSpec(user_ids=[], role_ids=[10]),
+                user_roles={8: [10], 6: [10]},
+            ),
+            None,
+            ExecutorNotFoundError(),
+        ),
+        # No modifier/creator set: EDITOR no longer falls through to an
+        # arbitrary user reachable via a group editor subject.
+        (
+            ModelType.REPORT_SCHEDULE,
+            [ExecutorType.EDITOR],
+            ModelConfig(
+                editors=EditorSpec(user_ids=[], group_ids=[20]),
+                user_groups={9: [20], 7: [20]},
+            ),
+            None,
+            ExecutorNotFoundError(),
+        ),
+        # No modifier/creator set: EDITOR no longer falls through to an
+        # unrelated directly-attached user editor either -- resolution is
+        # limited to whoever authored the model (modifier/creator).
+        (
+            ModelType.REPORT_SCHEDULE,
+            [ExecutorType.EDITOR],
+            ModelConfig(
+                editors=EditorSpec(user_ids=[5], role_ids=[10]),
+                user_roles={4: [10]},
+            ),
+            None,
+            ExecutorNotFoundError(),
+        ),
+        # Attacker scenario: a low-privileged creator/modifier (99) attaches a
+        # victim (5) as an editor with no consent. EDITOR must not resolve to
+        # the victim -- 99 is not itself an editor, so scheduling fails
+        # instead of silently executing as user 5.
+        (
+            ModelType.REPORT_SCHEDULE,
+            [ExecutorType.EDITOR],
+            ModelConfig(
+                editors=EditorSpec(user_ids=[5]),
+                creator=99,
+                modifier=99,
+            ),
+            None,
+            ExecutorNotFoundError(),
+        ),
+        # Mixed editors with MODIFIER_EDITOR: modifier is a user-type editor
+        (
+            ModelType.REPORT_SCHEDULE,
+            [ExecutorType.MODIFIER_EDITOR],
+            ModelConfig(
+                editors=EditorSpec(user_ids=[1, 2], role_ids=[10]),
+                modifier=2,
+            ),
+            None,
+            (ExecutorType.MODIFIER_EDITOR, 2),
+        ),
+        # Mixed editors with MODIFIER_EDITOR: modifier is NOT a user-type editor
+        (
+            ModelType.REPORT_SCHEDULE,
+            [ExecutorType.MODIFIER_EDITOR],
+            ModelConfig(
+                editors=EditorSpec(user_ids=[1], role_ids=[10]),
+                modifier=99,
+            ),
+            None,
+            ExecutorNotFoundError(),
+        ),
+        # CREATOR_EDITOR resolved through role membership (indirect)
+        (
+            ModelType.REPORT_SCHEDULE,
+            [ExecutorType.CREATOR_EDITOR],
+            ModelConfig(
+                editors=EditorSpec(user_ids=[], role_ids=[10]),
+                creator=5,
+                user_roles={5: [10]},  # user 5 has role 10
+            ),
+            None,
+            (ExecutorType.CREATOR_EDITOR, 5),
+        ),
+        # MODIFIER_EDITOR resolved through group membership (indirect)
+        (
+            ModelType.REPORT_SCHEDULE,
+            [ExecutorType.MODIFIER_EDITOR],
+            ModelConfig(
+                editors=EditorSpec(user_ids=[], group_ids=[20]),
+                modifier=7,
+                user_groups={7: [20]},  # user 7 in group 20
+            ),
+            None,
+            (ExecutorType.MODIFIER_EDITOR, 7),
+        ),
+        # EDITOR resolves modifier through role membership
+        (
+            ModelType.REPORT_SCHEDULE,
+            [ExecutorType.EDITOR],
+            ModelConfig(
+                editors=EditorSpec(user_ids=[], role_ids=[10]),
+                modifier=7,
+                creator=8,
+                user_roles={7: [10]},  # modifier has the role
+            ),
+            None,
+            (ExecutorType.EDITOR, 7),
+        ),
+        # EDITOR resolves creator through group when modifier doesn't match
+        (
+            ModelType.REPORT_SCHEDULE,
+            [ExecutorType.EDITOR],
+            ModelConfig(
+                editors=EditorSpec(user_ids=[], group_ids=[20]),
+                modifier=7,
+                creator=8,
+                user_groups={8: [20]},  # only creator has the group
+            ),
+            None,
+            (ExecutorType.EDITOR, 8),
+        ),
+        # Indirect resolution: user has role but role is NOT an editor → not resolved
+        (
+            ModelType.REPORT_SCHEDULE,
+            [ExecutorType.CREATOR_EDITOR],
+            ModelConfig(
+                editors=EditorSpec(user_ids=[], role_ids=[10]),
+                creator=5,
+                user_roles={5: [99]},  # user 5 has role 99, not role 10
+            ),
+            None,
+            ExecutorNotFoundError(),
+        ),
+        # CREATOR: an inactive creator is skipped (no other executor configured)
+        (
+            ModelType.REPORT_SCHEDULE,
+            [ExecutorType.CREATOR],
+            ModelConfig(
+                editors=EditorSpec(user_ids=[]),
+                creator=3,
+                creator_active=False,
+            ),
+            None,
+            ExecutorNotFoundError(),
+        ),
+        # CREATOR: an inactive creator is skipped, falling through to an active
+        # MODIFIER later in the executor chain.
+        (
+            ModelType.REPORT_SCHEDULE,
+            [ExecutorType.CREATOR, ExecutorType.MODIFIER],
+            ModelConfig(
+                editors=EditorSpec(user_ids=[]),
+                creator=3,
+                creator_active=False,
+                modifier=4,
+            ),
+            None,
+            (ExecutorType.MODIFIER, 4),
+        ),
+        # CREATOR_EDITOR: creator is an editor but inactive → not resolved
+        (
+            ModelType.REPORT_SCHEDULE,
+            [ExecutorType.CREATOR_EDITOR],
+            ModelConfig(
+                editors=EditorSpec(user_ids=[4]),
+                creator=4,
+                creator_active=False,
+            ),
+            None,
+            ExecutorNotFoundError(),
+        ),
+        # MODIFIER_EDITOR: modifier is an editor but inactive → not resolved
+        (
+            ModelType.REPORT_SCHEDULE,
+            [ExecutorType.MODIFIER_EDITOR],
+            ModelConfig(
+                editors=EditorSpec(user_ids=[4]),
+                modifier=4,
+                modifier_active=False,
+            ),
+            None,
+            ExecutorNotFoundError(),
+        ),
+        # EDITOR: creator (the only author) is inactive, so scheduling fails
+        # rather than falling through to an unrelated attached editor. This is
+        # a deliberate behavior break from the prior #33584 fallback: EDITOR
+        # only ever resolves to whoever authored the model's state, so an
+        # inactive author is no longer patched over by scheduling the task
+        # under a different, merely-attached editor's credentials.
+        (
+            ModelType.REPORT_SCHEDULE,
+            [ExecutorType.EDITOR],
+            ModelConfig(
+                editors=EditorSpec(user_ids=[2], inactive_user_ids=[3]),
+                creator=3,
+                creator_active=False,
+            ),
+            None,
+            ExecutorNotFoundError(),
+        ),
+        # EDITOR: both modifier and creator are inactive, so scheduling fails
+        # rather than falling through to an indirect (role/group) editor that
+        # never authored the model.
+        (
+            ModelType.REPORT_SCHEDULE,
+            [ExecutorType.EDITOR],
+            ModelConfig(
+                editors=EditorSpec(
+                    user_ids=[], inactive_user_ids=[3, 4], role_ids=[10]
+                ),
+                creator=3,
+                creator_active=False,
+                modifier=4,
+                modifier_active=False,
+                user_roles={6: [10]},
+            ),
+            None,
+            ExecutorNotFoundError(),
+        ),
+        # EDITOR: modifier is an inactive editor, creator is an active editor →
+        # resolves to the creator instead of failing outright.
+        (
+            ModelType.REPORT_SCHEDULE,
+            [ExecutorType.EDITOR],
+            ModelConfig(
+                editors=EditorSpec(user_ids=[3], inactive_user_ids=[4]),
+                creator=3,
+                modifier=4,
+                modifier_active=False,
+            ),
+            None,
+            (ExecutorType.EDITOR, 3),
         ),
     ],
 )
@@ -314,11 +672,23 @@ def test_get_executor(
 
     obj = model(
         id=1,
-        owners=_get_users(model_config.owners),
-        created_by=_get_users(model_config.creator),
-        changed_by=_get_users(model_config.modifier),
+        created_by=_get_users(model_config.creator, active=model_config.creator_active),
+        changed_by=_get_users(
+            model_config.modifier, active=model_config.modifier_active
+        ),
         **model_kwargs,
     )
+    obj.editors = model_config.editors.build()
+
+    # Build get_user_subject_ids mock: user_id → [subject_ids]
+    def mock_get_user_subject_ids(user_id: int) -> list[int]:
+        subject_ids = [user_id]  # user's own subject ID
+        for rid in model_config.user_roles.get(user_id, []):
+            subject_ids.append(10000 + rid)  # role subject IDs
+        for gid in model_config.user_groups.get(user_id, []):
+            subject_ids.append(20000 + gid)  # group subject IDs
+        return subject_ids
+
     if isinstance(expected_result, Exception):
         cm = pytest.raises(type(expected_result))
         expected_executor_type = None
@@ -332,14 +702,18 @@ def test_get_executor(
             else str(expected_result[1])
         )
 
-    with cm:
-        executor_type, executor = get_executor(
-            executors=executors,
-            model=obj,
-            current_user=str(current_user) if current_user else None,
-        )
-        assert executor_type == expected_executor_type
-        assert executor == expected_executor
+    with patch(
+        "superset.subjects.utils.get_user_subject_ids",
+        side_effect=mock_get_user_subject_ids,
+    ):
+        with cm:
+            executor_type, executor = get_executor(
+                executors=executors,
+                model=obj,
+                current_user=str(current_user) if current_user else None,
+            )
+            assert executor_type == expected_executor_type
+            assert executor == expected_executor
 
 
 @pytest.mark.parametrize(
@@ -579,3 +953,37 @@ def test_properties_roundtrip():
     serialized = serialize_properties(original)
     parsed = parse_properties(serialized)
     assert parsed == original
+
+
+class TestGetCurrentUser:
+    """Tests for get_current_user."""
+
+    def test_returns_none_when_g_has_no_user_attribute(self) -> None:
+        """Return None when g has no 'user' attribute."""
+        with patch("superset.tasks.utils.g", MagicMock(spec=[])):
+            assert get_current_user() is None
+
+    @patch("superset.tasks.utils.g")
+    def test_returns_none_when_g_user_is_none(self, mock_g: MagicMock) -> None:
+        """Return None when g.user is None."""
+        mock_g.user = None
+        assert get_current_user() is None
+
+    @patch("superset.tasks.utils.g")
+    def test_returns_none_when_user_is_anonymous(self, mock_g: MagicMock) -> None:
+        """Return None when g.user is anonymous."""
+        mock_user = MagicMock()
+        mock_user.is_anonymous = True
+        mock_g.user = mock_user
+        assert get_current_user() is None
+
+    @patch("superset.tasks.utils.g")
+    def test_returns_username_when_user_is_authenticated(
+        self, mock_g: MagicMock
+    ) -> None:
+        """Return the username when g.user is authenticated."""
+        mock_user = MagicMock()
+        mock_user.is_anonymous = False
+        mock_user.username = "admin"
+        mock_g.user = mock_user
+        assert get_current_user() == "admin"

@@ -56,29 +56,88 @@ test('isAllowedScheme allows relative URLs (unparseable as absolute)', () => {
   expect(isAllowedScheme('/dashboard/1')).toBe(true);
 });
 
+test('isAllowedScheme blocks protocol-relative URLs', () => {
+  // `new URL('//evil.example.com')` throws standalone, so without the
+  // explicit guard the catch branch would let cross-origin protocol-
+  // relative URLs through as "relative".
+  expect(isAllowedScheme('//evil.example.com')).toBe(false);
+  expect(isAllowedScheme('//evil.example.com/phish?token=abc')).toBe(false);
+});
+
+test('isAllowedScheme does not block single-leading-slash absolute paths', () => {
+  // Guard against an over-broad fix that strips both `//` and `/foo`.
+  expect(isAllowedScheme('/dashboard/list/')).toBe(true);
+});
+
+// The up-front
+// `startsWith('//')` check missed backslash variants. `new URL('/\\evil.com')`
+// throws → the catch returns `true` (allow) → the interstitial UI shows
+// `/\evil.com` inside an "External link warning" Card with a Continue
+// button. Browsers normalise `/\` → `//` in the special-scheme authority,
+// so the consented click became `https://evil.com`. The fix must reject
+// **before** the `new URL` attempt so the throw cannot route through the
+// allow branch.
+
+test('isAllowedScheme blocks /\\evil.com (backslash variant)', () => {
+  expect(isAllowedScheme('/\\evil.example.com')).toBe(false);
+});
+
+test('isAllowedScheme blocks \\/evil.com (backslash variant)', () => {
+  expect(isAllowedScheme('\\/evil.example.com')).toBe(false);
+});
+
+test('isAllowedScheme blocks \\\\evil.com (backslash variant)', () => {
+  expect(isAllowedScheme('\\\\evil.example.com')).toBe(false);
+});
+
+test('isAllowedScheme blocks /\\evil.com BEFORE the new URL attempt (not via the catch)', () => {
+  // Stub `URL` to throw — the result must still be `false`, proving the
+  // backslash rejection happens up-front and not via the catch's
+  // "relative URLs — allow" branch. (If the rejection were inside the
+  // try-block, a URL-constructor throw would route through `catch { return
+  // true }` and we'd see `true` here.)
+  const originalURL = global.URL;
+  global.URL = class {
+    constructor() {
+      throw new Error('stubbed URL constructor');
+    }
+  } as unknown as typeof URL;
+  try {
+    expect(isAllowedScheme('/\\evil.example.com')).toBe(false);
+  } finally {
+    global.URL = originalURL;
+  }
+});
+
+test('isAllowedScheme still blocks the catch-branch protocol-relative case after backslash rejection', () => {
+  // Regression: hardening must not accidentally drop the existing `//host`
+  // protection.
+  expect(isAllowedScheme('//evil.example.com')).toBe(false);
+});
+
 test('getTargetUrl reads the url query parameter', () => {
-  Object.defineProperty(window, 'location', {
-    value: { search: '?url=https%3A%2F%2Fexample.com%2Fpage' },
-    writable: true,
-  });
+  const locationSpy = jest.spyOn(window, 'location', 'get').mockReturnValue({
+    search: '?url=https%3A%2F%2Fexample.com%2Fpage',
+  } as Location);
   expect(getTargetUrl()).toBe('https://example.com/page');
+  locationSpy.mockRestore();
 });
 
 test('getTargetUrl returns empty string when url param is missing', () => {
-  Object.defineProperty(window, 'location', {
-    value: { search: '' },
-    writable: true,
-  });
+  const locationSpy = jest
+    .spyOn(window, 'location', 'get')
+    .mockReturnValue({ search: '' } as Location);
   expect(getTargetUrl()).toBe('');
+  locationSpy.mockRestore();
 });
 
 test('getTargetUrl does not double-decode percent-encoded values', () => {
   // %253A is the double-encoding of ":" — after one decode it should remain %3A
-  Object.defineProperty(window, 'location', {
-    value: { search: '?url=javascript%253Aalert(1)' },
-    writable: true,
-  });
+  const locationSpy = jest
+    .spyOn(window, 'location', 'get')
+    .mockReturnValue({ search: '?url=javascript%253Aalert(1)' } as Location);
   expect(getTargetUrl()).toBe('javascript%3Aalert(1)');
+  locationSpy.mockRestore();
 });
 
 test('trustUrl stores and isUrlTrusted retrieves a URL', () => {

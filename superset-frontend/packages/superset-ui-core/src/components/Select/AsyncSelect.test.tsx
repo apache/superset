@@ -107,22 +107,36 @@ const getAllSelectOptions = () =>
 
 const findSelectOption = (text: string) =>
   waitFor(() =>
-    within(getElementByClassName('.rc-virtual-list')).getByText(text),
+    within(getElementByClassName('.ant-select-dropdown-list')).getByText(text),
   );
 
 const querySelectOption = (text: string) =>
   waitFor(() =>
-    within(getElementByClassName('.rc-virtual-list')).queryByText(text),
+    within(getElementByClassName('.ant-select-dropdown-list')).queryByText(
+      text,
+    ),
   );
 
 const findAllSelectOptions = () =>
   waitFor(() => getElementsByClassName('.ant-select-item-option-content'));
 
 const findSelectValue = () =>
-  waitFor(() => getElementByClassName('.ant-select-selection-item'));
+  // antd v6: single-mode value is `.ant-select-content-has-value`, multiple-mode
+  // tags remain `.ant-select-selection-item`.
+  waitFor(() =>
+    getElementByClassName(
+      '.ant-select-content-has-value, .ant-select-selection-item',
+    ),
+  );
 
 const findAllSelectValues = () =>
-  waitFor(() => getElementsByClassName('.ant-select-selection-item'));
+  // antd v6: multiple-mode tags keep `.ant-select-selection-item`, single-mode
+  // value is `.ant-select-content-has-value`.
+  waitFor(() =>
+    getElementsByClassName(
+      '.ant-select-selection-item, .ant-select-content-has-value',
+    ),
+  );
 
 const clearAll = () => userEvent.click(screen.getByLabelText('close-circle'));
 
@@ -381,10 +395,29 @@ test('searches for custom fields', async () => {
 
 test('removes duplicated values', async () => {
   render(<AsyncSelect {...defaultProps} mode="multiple" allowNewOptions />);
-  const input = getElementByClassName('.ant-select-selection-search-input');
+  const input = getElementByClassName('.ant-select-input');
   const paste = createEvent.paste(input, {
     clipboardData: {
       getData: () => 'a,b,b,b,c,d,d',
+    },
+  });
+  fireEvent(input, paste);
+  await waitFor(async () => {
+    const values = await findAllSelectValues();
+    expect(values.length).toBe(4);
+    expect(values[0]).toHaveTextContent('a');
+    expect(values[1]).toHaveTextContent('b');
+    expect(values[2]).toHaveTextContent('c');
+    expect(values[3]).toHaveTextContent('d');
+  });
+});
+
+test('trims whitespace from pasted comma-separated values', async () => {
+  render(<AsyncSelect {...defaultProps} mode="multiple" allowNewOptions />);
+  const input = getElementByClassName('.ant-select-input');
+  const paste = createEvent.paste(input, {
+    clipboardData: {
+      getData: () => 'a, b,  c , d',
     },
   });
   fireEvent(input, paste);
@@ -613,7 +646,7 @@ test('does not add a new option if the option already exists', async () => {
   await type(option);
   await waitFor(() => {
     const array = within(
-      getElementByClassName('.rc-virtual-list'),
+      getElementByClassName('.ant-select-dropdown-list'),
     ).getAllByText(option);
     expect(array.length).toBe(1);
   });
@@ -814,7 +847,7 @@ test('Renders only an overflow tag if dropdown is open in oneLine mode', async (
   );
   await open();
 
-  const withinSelector = within(getElementByClassName('.ant-select-selector'));
+  const withinSelector = within(getElementByClassName('.ant-select-content'));
   await waitFor(() => {
     expect(
       withinSelector.queryByText(OPTIONS[0].label),
@@ -839,14 +872,14 @@ test('Renders only an overflow tag if dropdown is open in oneLine mode', async (
 test('does not fire onChange when searching but no selection', async () => {
   const onChange = jest.fn();
   render(
-    <div role="main">
+    <main>
       <AsyncSelect
         {...defaultProps}
         onChange={onChange}
         mode="multiple"
         allowNewOptions
       />
-    </div>,
+    </main>,
   );
   await open();
   await type('Joh');
@@ -887,7 +920,7 @@ test('fires onChange when pasting a selection', async () => {
   const onChange = jest.fn();
   render(<AsyncSelect {...defaultProps} onChange={onChange} />);
   await open();
-  const input = getElementByClassName('.ant-select-selection-search-input');
+  const input = getElementByClassName('.ant-select-input');
   const paste = createEvent.paste(input, {
     clipboardData: {
       getData: () => OPTIONS[0].label,
@@ -895,6 +928,522 @@ test('fires onChange when pasting a selection', async () => {
   });
   fireEvent(input, paste);
   await waitFor(() => expect(onChange).toHaveBeenCalledTimes(1));
+});
+
+test('replaces cached options with search results instead of merging', async () => {
+  const page0Data = Array.from({ length: 10 }, (_, i) => ({
+    label: `Option ${i}`,
+    value: i,
+  }));
+  const searchData = [{ label: 'Search Match', value: 100 }];
+  const loadOptions = jest.fn(async (search: string) => {
+    if (search === '') {
+      return { data: page0Data, totalCount: 100 };
+    }
+    return { data: searchData, totalCount: 1 };
+  });
+
+  render(<AsyncSelect {...defaultProps} options={loadOptions} />);
+  await open();
+  await waitFor(() => expect(loadOptions).toHaveBeenCalledTimes(1));
+
+  let options = await findAllSelectOptions();
+  expect(options).toHaveLength(10);
+
+  await type('search');
+  await waitFor(() => expect(loadOptions).toHaveBeenCalledTimes(2));
+
+  options = await findAllSelectOptions();
+  expect(options).toHaveLength(1);
+  expect(options[0]).toHaveTextContent('Search Match');
+});
+
+test('shows all options when filterOption is false', async () => {
+  const page0Data = Array.from({ length: 10 }, (_, i) => ({
+    label: `Base ${i}`,
+    value: i,
+  }));
+  const searchData = Array.from({ length: 5 }, (_, i) => ({
+    label: `Server ${i}`,
+    value: 100 + i,
+  }));
+  const loadOptions = jest.fn(async (search: string) =>
+    search === ''
+      ? { data: page0Data, totalCount: 100 }
+      : { data: searchData, totalCount: 5 },
+  );
+
+  render(
+    <AsyncSelect
+      {...defaultProps}
+      options={loadOptions}
+      filterOption={false}
+    />,
+  );
+  await open();
+  await waitFor(() => expect(loadOptions).toHaveBeenCalledTimes(1));
+
+  await type('zzz_no_match');
+  await waitFor(() => expect(loadOptions).toHaveBeenCalledTimes(2));
+
+  const options = await findAllSelectOptions();
+  expect(options).toHaveLength(5);
+  expect(options[0]).toHaveTextContent('Server 0');
+});
+
+test('renders a server-matched option whose label diverges from the search term when filterOption is false (regression for #42041)', async () => {
+  // Mirrors the real permissions-search bug: the remote fetch legitimately
+  // matches the raw, underscore-containing value (e.g. a schema name like
+  // "stg_silver"), but the returned option's displayed label has had
+  // underscores replaced with spaces (see formatPermissionLabel in
+  // features/roles/utils.ts). filterOption defaults to true, which
+  // re-filters already-matched options against that same relabeled text
+  // client-side, so the underscore search term never matches and the
+  // legitimately fetched option gets hidden -- this is why
+  // PermissionsField (features/roles/RoleFormItems.tsx) sets
+  // filterOption={false}: the loader is already the authoritative filter,
+  // and its match doesn't depend on the label used to render the option.
+  const searchData = [{ label: 'stg silver', value: 100 }];
+  const loadOptions = jest.fn(async (search: string) =>
+    // totalCount must exceed the empty initial page here, otherwise
+    // AsyncSelect marks allValuesLoaded and short-circuits every later
+    // fetch, including the search request this test depends on.
+    search === ''
+      ? { data: [], totalCount: 1 }
+      : { data: searchData, totalCount: 1 },
+  );
+
+  render(
+    <AsyncSelect
+      {...defaultProps}
+      options={loadOptions}
+      filterOption={false}
+    />,
+  );
+  await open();
+
+  await type('stg_silver');
+  await waitFor(() =>
+    expect(loadOptions).toHaveBeenCalledWith(
+      'stg_silver',
+      expect.anything(),
+      expect.anything(),
+    ),
+  );
+
+  // The backend legitimately matched and returned this option (asserted
+  // above); it should render in the dropdown despite the search term using
+  // underscores while the label uses spaces.
+  expect(await findSelectOption('stg silver')).toBeInTheDocument();
+});
+
+test('preserves new option entry across search fetch when allowNewOptions is on', async () => {
+  const page0Data = Array.from({ length: 10 }, (_, i) => ({
+    label: `Option ${i}`,
+    value: i,
+  }));
+  const loadOptions = jest.fn(async (search: string) => {
+    if (search === '') {
+      return { data: page0Data, totalCount: 100 };
+    }
+    return { data: [], totalCount: 0 };
+  });
+
+  render(
+    <AsyncSelect {...defaultProps} options={loadOptions} allowNewOptions />,
+  );
+  await open();
+  await waitFor(() => expect(loadOptions).toHaveBeenCalledTimes(1));
+
+  await type('newval');
+  await waitFor(() => expect(loadOptions).toHaveBeenCalledTimes(2));
+
+  const options = await findAllSelectOptions();
+  expect(options).toHaveLength(1);
+  expect(options[0]).toHaveTextContent('newval');
+  // Stale page-0 options must not bleed through.
+  expect(screen.queryByText('Option 0')).not.toBeInTheDocument();
+});
+
+test('restores base options when search is cleared', async () => {
+  const page0Data = Array.from({ length: 10 }, (_, i) => ({
+    label: `Option ${i}`,
+    value: i,
+  }));
+  const searchData = [{ label: 'Search Match', value: 100 }];
+  const loadOptions = jest.fn(async (search: string) => {
+    if (search === '') {
+      return { data: page0Data, totalCount: 100 };
+    }
+    return { data: searchData, totalCount: 1 };
+  });
+
+  render(<AsyncSelect {...defaultProps} options={loadOptions} />);
+  await open();
+  await waitFor(() => expect(loadOptions).toHaveBeenCalledTimes(1));
+
+  await type('search');
+  await waitFor(() => expect(loadOptions).toHaveBeenCalledTimes(2));
+  let options = await findAllSelectOptions();
+  expect(options).toHaveLength(1);
+  expect(options[0]).toHaveTextContent('Search Match');
+
+  // type() clears the input before typing, so passing '' clears the search.
+  await type('');
+  await waitFor(async () => {
+    options = await findAllSelectOptions();
+    expect(options).toHaveLength(10);
+  });
+  expect(options[0]).toHaveTextContent('Option 0');
+  expect(screen.queryByText('Search Match')).not.toBeInTheDocument();
+});
+
+test('replaces results when switching between two searches', async () => {
+  const page0Data = Array.from({ length: 10 }, (_, i) => ({
+    label: `Option ${i}`,
+    value: i,
+  }));
+  const loadOptions = jest.fn(async (search: string) => {
+    if (search === '') {
+      return { data: page0Data, totalCount: 100 };
+    }
+    return {
+      data: [{ label: `Match-${search}`, value: `v-${search}` }],
+      totalCount: 1,
+    };
+  });
+
+  render(<AsyncSelect {...defaultProps} options={loadOptions} />);
+  await open();
+  await waitFor(() => expect(loadOptions).toHaveBeenCalledTimes(1));
+
+  await type('alpha');
+  await waitFor(async () => {
+    const options = await findAllSelectOptions();
+    expect(options).toHaveLength(1);
+    expect(options[0]).toHaveTextContent('Match-alpha');
+  });
+
+  await type('beta');
+  await waitFor(async () => {
+    const options = await findAllSelectOptions();
+    expect(options).toHaveLength(1);
+    expect(options[0]).toHaveTextContent('Match-beta');
+  });
+  expect(screen.queryByText('Match-alpha')).not.toBeInTheDocument();
+});
+
+test('refetches a dropped search response when the same search is repeated', async () => {
+  type OptionRow = { label: string; value: string | number };
+  type PageResponse = { data: OptionRow[]; totalCount: number };
+  // Resolves the in-flight loadOptions promise of the calling test.
+  let resolveAlpha: ((value: PageResponse) => void) | null = null;
+  const page0Data: OptionRow[] = Array.from({ length: 10 }, (_, i) => ({
+    label: `Option ${i}`,
+    value: i,
+  }));
+  const alphaData: OptionRow[] = [{ label: 'Match-alpha', value: 'va' }];
+  const betaData: OptionRow[] = [{ label: 'Match-beta', value: 'vb' }];
+
+  const loadOptions = jest.fn((search: string) => {
+    if (search === '') {
+      return Promise.resolve<PageResponse>({
+        data: page0Data,
+        totalCount: 100,
+      });
+    }
+    if (search === 'alpha') {
+      // First call: hold the promise so it resolves only after beta returns.
+      // Second call (after beta): resolve immediately so the cache MUST allow
+      // a refetch.
+      if (!resolveAlpha) {
+        return new Promise<PageResponse>(resolve => {
+          resolveAlpha = resolve;
+        });
+      }
+      return Promise.resolve<PageResponse>({ data: alphaData, totalCount: 1 });
+    }
+    return Promise.resolve<PageResponse>({ data: betaData, totalCount: 1 });
+  });
+
+  render(<AsyncSelect {...defaultProps} options={loadOptions} />);
+  await open();
+  await waitFor(() => expect(loadOptions).toHaveBeenCalledWith('', 0, 10));
+
+  await type('alpha');
+  await waitFor(() => expect(loadOptions).toHaveBeenCalledWith('alpha', 0, 10));
+  // alpha's promise is held; switch to beta which resolves first.
+  await type('beta');
+  await waitFor(async () => {
+    const options = await findAllSelectOptions();
+    expect(options).toHaveLength(1);
+    expect(options[0]).toHaveTextContent('Match-beta');
+  });
+
+  // Release the stale alpha response. It must be dropped — its key must not
+  // be cached, or returning to "alpha" later would short-circuit the fetch.
+  resolveAlpha!({ data: alphaData, totalCount: 1 });
+  await waitFor(async () => {
+    // Beta is still showing because alpha's response was dropped.
+    const options = await findAllSelectOptions();
+    expect(options[0]).toHaveTextContent('Match-beta');
+  });
+
+  // Returning to "alpha" must re-trigger the fetch (cache wasn't poisoned).
+  const callsBeforeAlphaReturn = loadOptions.mock.calls.filter(
+    args => args[0] === 'alpha',
+  ).length;
+  await type('alpha');
+  await waitFor(() => {
+    const callsAfter = loadOptions.mock.calls.filter(
+      args => args[0] === 'alpha',
+    ).length;
+    expect(callsAfter).toBeGreaterThan(callsBeforeAlphaReturn);
+  });
+  await waitFor(async () => {
+    const options = await findAllSelectOptions();
+    expect(options[0]).toHaveTextContent('Match-alpha');
+  });
+});
+
+test('keeps loading indicator while a newer request is in flight after a stale response is dropped', async () => {
+  // Regression for the P2 race: the `.finally` block that clears isLoading
+  // must not fire when a stale (dropped) response resolves while a newer
+  // request is still in flight. Otherwise the spinner disappears mid-search
+  // and the undebounced scroll-pagination handler can fire against stale
+  // totalCount before page 0 of the active search lands.
+  type OptionRow = { label: string; value: string | number };
+  type PageResponse = { data: OptionRow[]; totalCount: number };
+  // Initialized to no-op so the finally block can always call them, even if
+  // an assertion in the try throws before the corresponding mock ran.
+  let resolveAlpha: (value: PageResponse) => void = () => {};
+  let resolveBeta: (value: PageResponse) => void = () => {};
+  const page0Data: OptionRow[] = Array.from({ length: 10 }, (_, i) => ({
+    label: `Option ${i}`,
+    value: i,
+  }));
+  const alphaData: OptionRow[] = [{ label: 'Match-alpha', value: 'va' }];
+  const betaData: OptionRow[] = [{ label: 'Match-beta', value: 'vb' }];
+
+  const loadOptions = jest.fn((search: string) => {
+    if (search === '') {
+      return Promise.resolve<PageResponse>({
+        data: page0Data,
+        totalCount: 100,
+      });
+    }
+    if (search === 'alpha') {
+      return new Promise<PageResponse>(resolve => {
+        resolveAlpha = resolve;
+      });
+    }
+    return new Promise<PageResponse>(resolve => {
+      resolveBeta = resolve;
+    });
+  });
+
+  const isSpinnerVisible = (): boolean =>
+    Boolean(document.querySelector('.ant-select-suffix .ant-spin'));
+
+  try {
+    render(<AsyncSelect {...defaultProps} options={loadOptions} />);
+    await open();
+    await waitFor(() => expect(loadOptions).toHaveBeenCalledWith('', 0, 10));
+
+    // Type 'alpha' — alpha fetch is held, loading should be true.
+    await type('alpha');
+    await waitFor(() =>
+      expect(loadOptions).toHaveBeenCalledWith('alpha', 0, 10),
+    );
+    await waitFor(() => expect(isSpinnerVisible()).toBe(true));
+
+    // Type 'beta' — beta fetch is also held; both are in flight.
+    await type('beta');
+    await waitFor(() =>
+      expect(loadOptions).toHaveBeenCalledWith('beta', 0, 10),
+    );
+    expect(isSpinnerVisible()).toBe(true);
+
+    // Release the stale alpha response. It is dropped at the early-return
+    // (search !== inputValueRef.current), but the in-flight counter is still
+    // non-zero because beta is pending — spinner must stay visible.
+    resolveAlpha({ data: alphaData, totalCount: 1 });
+    // Yield a microtask so alpha's .then/.finally runs, then re-assert.
+    await Promise.resolve();
+    expect(isSpinnerVisible()).toBe(true);
+
+    // Release beta. Now the in-flight counter drops to 0 and the spinner
+    // clears.
+    resolveBeta({ data: betaData, totalCount: 1 });
+    await waitFor(() => expect(isSpinnerVisible()).toBe(false));
+    const options = await findAllSelectOptions();
+    expect(options).toHaveLength(1);
+    expect(options[0]).toHaveTextContent('Match-beta');
+  } finally {
+    // Defensive: never leave a held promise that could hang a parallel worker
+    // if an assertion above threw. Promise resolve is idempotent.
+    resolveAlpha({ data: alphaData, totalCount: 1 });
+    resolveBeta({ data: betaData, totalCount: 1 });
+  }
+});
+
+test('re-shows search results when the same search term is repeated after a clear', async () => {
+  // Regression: a prior fix cached search responses' totalCount in
+  // fetchedQueries. After restore-on-clear had replaced selectOptions with
+  // the base list, re-typing a previously-resolved term would hit the cache
+  // short-circuit and leave selectOptions stale (empty / base-only).
+  const page0Data = Array.from({ length: 10 }, (_, i) => ({
+    label: `Option ${i}`,
+    value: i,
+  }));
+  const alphaData = [{ label: 'Match-alpha', value: 'va' }];
+  const loadOptions = jest.fn(async (search: string) => {
+    if (search === '') {
+      // totalCount > data.length so allValuesLoaded stays false and the
+      // search path is not bypassed by the "all loaded" short-circuit.
+      return { data: page0Data, totalCount: 100 };
+    }
+    return { data: alphaData, totalCount: 1 };
+  });
+
+  render(<AsyncSelect {...defaultProps} options={loadOptions} />);
+  await open();
+  await waitFor(() => expect(loadOptions).toHaveBeenCalledWith('', 0, 10));
+
+  await type('alpha');
+  await waitFor(async () => {
+    const options = await findAllSelectOptions();
+    expect(options).toHaveLength(1);
+    expect(options[0]).toHaveTextContent('Match-alpha');
+  });
+
+  await type('');
+  await waitFor(() =>
+    expect(screen.queryByText('Match-alpha')).not.toBeInTheDocument(),
+  );
+
+  const callsBefore = loadOptions.mock.calls.filter(
+    args => args[0] === 'alpha',
+  ).length;
+  await type('alpha');
+  await waitFor(() => {
+    const callsAfter = loadOptions.mock.calls.filter(
+      args => args[0] === 'alpha',
+    ).length;
+    expect(callsAfter).toBeGreaterThan(callsBefore);
+  });
+  await waitFor(async () => {
+    const options = await findAllSelectOptions();
+    expect(options).toHaveLength(1);
+    expect(options[0]).toHaveTextContent('Match-alpha');
+  });
+});
+
+test('appends page>1 results during an active search and discards them when search changes', async () => {
+  // Covers the production branch `else { mergeData(data) }` in fetchPage that
+  // fires when search is non-empty AND page > 0 — i.e. user scrolled within
+  // a multi-page search result. Switching to a new search must replace, not
+  // retain, the prior search's accumulated pages.
+  type OptionRow = { label: string; value: string | number };
+  const pageSize = 5;
+  const aliceData: OptionRow[] = Array.from({ length: 5 }, (_, i) => ({
+    label: `Alice-${i}`,
+    value: `a${i}`,
+  }));
+  const alicePage1: OptionRow[] = Array.from({ length: 3 }, (_, i) => ({
+    label: `Alice-${i + 5}`,
+    value: `a${i + 5}`,
+  }));
+  const bobData: OptionRow[] = [{ label: 'Bob-0', value: 'b0' }];
+
+  const loadOptions = jest.fn(
+    async (
+      search: string,
+      page: number,
+    ): Promise<{
+      data: OptionRow[];
+      totalCount: number;
+    }> => {
+      if (search === '') {
+        return { data: [], totalCount: 100 };
+      }
+      if (search === 'alice') {
+        if (page === 0) return { data: aliceData, totalCount: 8 };
+        return { data: alicePage1, totalCount: 8 };
+      }
+      return { data: bobData, totalCount: 1 };
+    },
+  );
+
+  render(
+    <AsyncSelect {...defaultProps} pageSize={pageSize} options={loadOptions} />,
+  );
+  await open();
+
+  await type('alice');
+  await waitFor(() =>
+    expect(loadOptions).toHaveBeenCalledWith('alice', 0, pageSize),
+  );
+  await waitFor(async () => {
+    const options = await findAllSelectOptions();
+    expect(options).toHaveLength(5);
+  });
+  // Wait for loading to finish so handlePagination's `!isLoading` gate is
+  // open before we fire scroll.
+  await waitFor(() =>
+    expect(document.querySelector('.ant-select-suffix .ant-spin')).toBeNull(),
+  );
+
+  // Trigger pagination by dispatching a scroll event on the virtual-list
+  // scroll container. jsdom returns 0 for layout properties by default, so
+  // override the relevant ones before firing scroll. rc-virtual-list reads
+  // scrollTop via e.currentTarget in its onFallbackScroll handler, which
+  // then forwards to onPopupScroll (handlePagination here).
+  const holder = document.querySelector(
+    '.ant-select-dropdown-list-holder',
+  ) as HTMLElement | null;
+  if (!holder) throw new Error('virtual-list holder not rendered');
+  Object.defineProperty(holder, 'scrollHeight', {
+    configurable: true,
+    get: () => 1000,
+  });
+  Object.defineProperty(holder, 'offsetHeight', {
+    configurable: true,
+    get: () => 200,
+  });
+  Object.defineProperty(holder, 'clientHeight', {
+    configurable: true,
+    get: () => 200,
+  });
+  Object.defineProperty(holder, 'scrollTop', {
+    configurable: true,
+    get: () => 900,
+    set: () => {},
+  });
+  fireEvent.scroll(holder);
+
+  await waitFor(() =>
+    expect(loadOptions).toHaveBeenCalledWith('alice', 1, pageSize),
+  );
+  await waitFor(async () => {
+    const options = await findAllSelectOptions();
+    // Page 0 (5) + page 1 (3) merged
+    expect(options).toHaveLength(8);
+  });
+
+  // Switching to a new search must replace the accumulated pages, not retain
+  // them.
+  await type('bob');
+  await waitFor(() =>
+    expect(loadOptions).toHaveBeenCalledWith('bob', 0, pageSize),
+  );
+  await waitFor(async () => {
+    const options = await findAllSelectOptions();
+    expect(options).toHaveLength(1);
+    expect(options[0]).toHaveTextContent('Bob-0');
+  });
+  expect(screen.queryByText('Alice-0')).not.toBeInTheDocument();
+  expect(screen.queryByText('Alice-7')).not.toBeInTheDocument();
 });
 
 test('does not duplicate options when using numeric values', async () => {
@@ -922,7 +1471,7 @@ test('pasting an existing option does not duplicate it', async () => {
   }));
   render(<AsyncSelect {...defaultProps} options={options} />);
   await open();
-  const input = getElementByClassName('.ant-select-selection-search-input');
+  const input = getElementByClassName('.ant-select-input');
   const paste = createEvent.paste(input, {
     clipboardData: {
       getData: () => OPTIONS[0].label,
@@ -950,7 +1499,7 @@ test('pasting an existing option does not duplicate it in multiple mode', async 
     />,
   );
   await open();
-  const input = getElementByClassName('.ant-select-selection-search-input');
+  const input = getElementByClassName('.ant-select-input');
   const paste = createEvent.paste(input, {
     clipboardData: {
       getData: () => 'John,Liam,Peter',
@@ -972,7 +1521,7 @@ test('pasting an non-existent option should not add it if allowNewOptions is fal
     />,
   );
   await open();
-  const input = getElementByClassName('.ant-select-selection-search-input');
+  const input = getElementByClassName('.ant-select-input');
   const paste = createEvent.paste(input, {
     clipboardData: {
       getData: () => 'John',
@@ -986,7 +1535,7 @@ test('onChange is called with the value property when pasting an option that was
   const onChange = jest.fn();
   render(<AsyncSelect {...defaultProps} onChange={onChange} />);
   await open();
-  const input = getElementByClassName('.ant-select-selection-search-input');
+  const input = getElementByClassName('.ant-select-input');
   const lastOption = OPTIONS[OPTIONS.length - 1];
   const paste = createEvent.paste(input, {
     clipboardData: {
@@ -1012,6 +1561,28 @@ test('does not fire onChange if the same value is selected in single mode', asyn
   expect(onChange).toHaveBeenCalledTimes(1);
   await userEvent.click(await findSelectOption(optionText));
   expect(onChange).toHaveBeenCalledTimes(1);
+});
+
+test('cancels pending debounce on unmount', async () => {
+  const mockOnSearch = jest.fn();
+
+  const { unmount } = render(
+    <AsyncSelect
+      {...defaultProps}
+      allowNewOptions
+      mode="multiple"
+      onSearch={mockOnSearch}
+    />,
+  );
+
+  await type('test');
+  await new Promise(resolve => setTimeout(resolve, 300));
+  expect(mockOnSearch).toHaveBeenCalledWith('test');
+  mockOnSearch.mockClear();
+  await type('unmounted');
+  unmount();
+  await new Promise(resolve => setTimeout(resolve, 300));
+  expect(mockOnSearch).not.toHaveBeenCalled();
 });
 
 /*

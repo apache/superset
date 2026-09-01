@@ -16,7 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartProps, DataRecord, Metric } from '@superset-ui/core';
+import {
+  ChartProps,
+  DataRecord,
+  ensureIsArray,
+  getColumnLabel,
+  getMetricLabel,
+  Metric,
+  QueryFormMetric,
+} from '@superset-ui/core';
+import transformData from './transformData';
 
 interface FormData {
   groupby: string[];
@@ -44,7 +53,16 @@ interface ColumnData {
 export function transformProps(chartProps: TableChartProps) {
   const { height, datasource, formData, queriesData } = chartProps;
   const { columnCollection = [], groupby, metrics, url } = formData;
-  const { records, columns } = queriesData[0].data;
+  // v1 chart data responses arrive as flat records; the legacy explore_json
+  // endpoint delivered a pre-pivoted {records, columns} payload.
+  const rawData = queriesData[0].data;
+  const { records, columns } = Array.isArray(rawData)
+    ? transformData(
+        rawData as DataRecord[],
+        ensureIsArray(groupby).map(getColumnLabel),
+        ensureIsArray(metrics as QueryFormMetric[]).map(getMetricLabel),
+      )
+    : rawData;
   const isGroupBy = groupby?.length > 0;
 
   let rows;

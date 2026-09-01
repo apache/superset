@@ -27,13 +27,18 @@ from typing import Any, Dict
 from pydantic import TypeAdapter
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
+from superset.extensions import event_logger
 from superset.mcp_service.chart.schemas import (
     BigNumberChartConfig,
+    BoxPlotChartConfig,
     HandlebarsChartConfig,
+    HistogramChartConfig,
+    InteractivePivotChartConfig,
     MixedTimeseriesChartConfig,
     PieChartConfig,
     PivotTableChartConfig,
     TableChartConfig,
+    WaterfallChartConfig,
     XYChartConfig,
 )
 
@@ -45,9 +50,13 @@ _CHART_TYPE_ADAPTERS: Dict[str, TypeAdapter[Any]] = {
     "table": TypeAdapter(TableChartConfig),
     "pie": TypeAdapter(PieChartConfig),
     "pivot_table": TypeAdapter(PivotTableChartConfig),
+    "interactive_pivot": TypeAdapter(InteractivePivotChartConfig),
     "mixed_timeseries": TypeAdapter(MixedTimeseriesChartConfig),
     "handlebars": TypeAdapter(HandlebarsChartConfig),
     "big_number": TypeAdapter(BigNumberChartConfig),
+    "histogram": TypeAdapter(HistogramChartConfig),
+    "box_plot": TypeAdapter(BoxPlotChartConfig),
+    "waterfall": TypeAdapter(WaterfallChartConfig),
 }
 
 VALID_CHART_TYPES = sorted(_CHART_TYPE_ADAPTERS.keys())
@@ -75,6 +84,7 @@ _CHART_EXAMPLES: Dict[str, list[Dict[str, Any]]] = {
             "columns": [
                 {"name": "customer_name"},
                 {"name": "revenue", "aggregate": "SUM"},
+                {"sql_expression": "SUM(revenue) / COUNT(*)", "label": "Avg per Order"},
             ],
         },
     ],
@@ -91,6 +101,32 @@ _CHART_EXAMPLES: Dict[str, list[Dict[str, Any]]] = {
             "rows": [{"name": "region"}],
             "metrics": [{"name": "revenue", "aggregate": "SUM"}],
             "columns": [{"name": "quarter"}],
+        },
+    ],
+    "interactive_pivot": [
+        {
+            "chart_type": "interactive_pivot",
+            "rows": [{"name": "region"}],
+            "columns": [{"name": "quarter"}],
+            "metrics": [{"name": "revenue", "aggregate": "SUM"}],
+            "show_row_totals": True,
+            "show_column_totals": True,
+        },
+        {
+            "chart_type": "interactive_pivot",
+            "rows": [{"name": "region"}, {"name": "country"}],
+            "columns": [{"name": "order_date"}],
+            "metrics": [
+                {"name": "revenue", "aggregate": "SUM"},
+                {"name": "margin", "aggregate": "AVG"},
+            ],
+            "temporal_column": "order_date",
+            "time_grain": "P1M",
+            "comparison_period": "1 year ago",
+            "comparison_type": "percentage",
+            "show_row_totals": True,
+            "show_column_totals": True,
+            "show_column_subtotals": True,
         },
     ],
     "mixed_timeseries": [
@@ -115,6 +151,58 @@ _CHART_EXAMPLES: Dict[str, list[Dict[str, Any]]] = {
             "chart_type": "big_number",
             "metric": {"name": "revenue", "aggregate": "SUM"},
         },
+        {
+            "chart_type": "big_number",
+            "metric": {"name": "revenue", "aggregate": "SUM"},
+            "temporal_column": "order_date",
+            "show_trendline": True,
+            "aggregation": "sum",
+            "time_grain": "P1D",
+        },
+    ],
+    "histogram": [
+        {
+            "chart_type": "histogram",
+            "column": {"name": "trip_duration"},
+            "bins": 20,
+        },
+        {
+            "chart_type": "histogram",
+            "column": {"name": "fare_amount"},
+            "groupby": [{"name": "payment_type"}],
+            "normalize": True,
+        },
+    ],
+    "box_plot": [
+        {
+            "chart_type": "box_plot",
+            "metrics": [{"name": "fare_amount", "aggregate": "AVG"}],
+            "distribute_across": [{"name": "month"}],
+            "dimensions": [{"name": "day_of_week"}],
+        },
+        {
+            "chart_type": "box_plot",
+            "metrics": [{"name": "duration", "aggregate": "AVG"}],
+            "distribute_across": [{"name": "month"}],
+            "dimensions": [{"name": "vendor"}],
+            "whisker_type": "percentile",
+            "percentile_low": 10,
+            "percentile_high": 90,
+        },
+    ],
+    "waterfall": [
+        {
+            "chart_type": "waterfall",
+            "x_axis": {"name": "month"},
+            "metric": {"name": "revenue_delta", "aggregate": "SUM"},
+        },
+        {
+            "chart_type": "waterfall",
+            "x_axis": {"name": "quarter"},
+            "metric": {"name": "profit", "aggregate": "SUM"},
+            "breakdown": {"name": "region"},
+            "show_total": True,
+        },
     ],
 }
 
@@ -124,16 +212,51 @@ def _get_chart_type_schema_impl(
     include_examples: bool = True,
 ) -> Dict[str, Any]:
     """Pure logic for chart type schema lookup — no auth, no decorators."""
+    from superset.mcp_service.chart.registry import get_registry
+
+    enabled_types = sorted(get_registry().all_types())
     adapter = _CHART_TYPE_ADAPTERS.get(chart_type)
     if adapter is None:
+        # Return a structured error matching ChartGenerationError's shape so
+        # MCP clients consuming the response see a populated error_type,
+        # message, details, and suggestions rather than a bare dict.
+        valid_types_str = ", ".join(enabled_types)
         return {
-            "error": f"Unknown chart_type: {chart_type!r}",
-            "valid_chart_types": VALID_CHART_TYPES,
-            "hint": (
-                "Use one of the valid chart_type values listed above. "
-                "Call this tool again with a valid chart_type to see "
-                "its schema and examples."
-            ),
+            "error": {
+                "error_type": "invalid_chart_type",
+                "message": f"Unknown chart_type: {chart_type!r}",
+                "details": (
+                    f"Chart type {chart_type!r} is not supported. "
+                    f"Must be one of: {valid_types_str}."
+                ),
+                "suggestions": [
+                    f"Use one of: {valid_types_str}",
+                    "Check spelling and ensure lowercase",
+                    "Call this tool again with a valid chart_type to see "
+                    "its schema and examples",
+                ],
+                "error_code": "INVALID_CHART_TYPE",
+            },
+            "valid_chart_types": enabled_types,
+        }
+
+    if get_registry().get(chart_type) is None:
+        valid_types_str = ", ".join(enabled_types)
+        return {
+            "error": {
+                "error_type": "disabled_chart_type",
+                "message": f"Chart type {chart_type!r} is not available",
+                "details": (
+                    f"The host deployment does not provide {chart_type!r}. "
+                    f"Enabled chart types: {valid_types_str}."
+                ),
+                "suggestions": [
+                    f"Use one of: {valid_types_str}",
+                    "Contact the instance administrator to enable this chart type",
+                ],
+                "error_code": "DISABLED_CHART_TYPE",
+            },
+            "valid_chart_types": enabled_types,
         }
 
     schema = adapter.json_schema()
@@ -150,10 +273,12 @@ def _get_chart_type_schema_impl(
 
 @tool(
     tags=["discovery"],
+    class_permission_name="Chart",
     annotations=ToolAnnotations(
         title="Get chart type schema",
         readOnlyHint=True,
         destructiveHint=False,
+        openWorldHint=False,
     ),
 )
 def get_chart_type_schema(
@@ -165,10 +290,13 @@ def get_chart_type_schema(
     Use this tool to discover the exact fields, types, and constraints
     for a chart configuration before calling generate_chart or update_chart.
 
-    Valid chart_type values: xy, table, pie, pivot_table,
-    mixed_timeseries, handlebars, big_number.
+    Valid chart_type values depend on the host deployment. Core types are xy,
+    table, pie, pivot_table, mixed_timeseries, handlebars, big_number,
+    histogram, box_plot, and waterfall. Deployments that enable an AG Grid
+    pivot extension also expose interactive_pivot.
 
     Returns the JSON Schema for the requested chart type, optionally
     with working examples.
     """
-    return _get_chart_type_schema_impl(chart_type, include_examples)
+    with event_logger.log_context(action="mcp.get_chart_type_schema.lookup"):
+        return _get_chart_type_schema_impl(chart_type, include_examples)

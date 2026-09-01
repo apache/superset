@@ -16,34 +16,49 @@
 # under the License.
 
 import json  # noqa: TID251
+import time
 from datetime import datetime, timedelta
-from unittest.mock import patch
+from typing import Any
+from unittest import mock
+from unittest.mock import MagicMock, Mock, patch
+from urllib.error import URLError
 from uuid import UUID, uuid4
 
 import pytest
+from celery.exceptions import SoftTimeLimitExceeded
 from pytest_mock import MockerFixture
 
 from superset.app import SupersetApp
 from superset.commands.exceptions import UpdateFailedError
 from superset.commands.report.exceptions import (
     ReportScheduleAlertGracePeriodError,
+    ReportScheduleClientErrorsException,
     ReportScheduleCsvFailedError,
+    ReportScheduleExecuteUnexpectedError,
+    ReportScheduleExecutorNotFoundError,
     ReportSchedulePreviousWorkingError,
     ReportScheduleScreenshotFailedError,
     ReportScheduleScreenshotTimeout,
     ReportScheduleStateNotFoundError,
+    ReportScheduleSystemErrorsException,
     ReportScheduleUnexpectedError,
     ReportScheduleWorkingTimeoutError,
+    ReportScheduleXlsxFailedError,
 )
 from superset.commands.report.execute import (
+    _should_build_execution_context,
     BaseReportState,
+    log_report_delivery_phase,
+    persist_owned_report_execution_terminal_error,
     ReportNotTriggeredErrorState,
     ReportScheduleStateMachine,
     ReportSuccessState,
     ReportWorkingState,
 )
+from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.daos.report import REPORT_SCHEDULE_ERROR_NOTIFICATION_MARKER
 from superset.dashboards.permalink.types import DashboardPermalinkState
+from superset.exceptions import SupersetException
 from superset.reports.models import (
     ReportDataFormat,
     ReportRecipients,
@@ -53,9 +68,66 @@ from superset.reports.models import (
     ReportSourceFormat,
     ReportState,
 )
+from superset.reports.notifications.base import BaseNotification, NotificationContent
+from superset.reports.notifications.exceptions import (
+    NotificationParamException,
+    SlackV1NotificationError,
+)
+from superset.reports.notifications.slack import SlackNotification
+from superset.reports.notifications.slack_channel_resolver import _match_slack_channel
+from superset.subjects.types import SubjectType
 from superset.utils.core import HeaderDataType
+from superset.utils.report_execution import (
+    ReportExecutionBudgetExceededError,
+    ReportExecutionContext,
+    ReportExecutionDeadline,
+)
 from superset.utils.screenshots import ChartScreenshot
+from superset.utils.slack import (
+    SlackChannel,
+    SlackChannelListingClientError,
+    SlackV2ProbeClientError,
+    SlackV2ProbeError,
+)
 from tests.integration_tests.conftest import with_feature_flags
+
+
+def test_match_slack_channel_rejects_ambiguous_casefolded_names() -> None:
+    channels: list[SlackChannel] = [
+        {"id": "C1", "name": "Private-Channel", "is_private": True},
+        {"id": "C2", "name": "private-channel", "is_private": True},
+    ]
+
+    with pytest.raises(NotificationParamException, match="ambiguous"):
+        _match_slack_channel("PRIVATE-CHANNEL", channels)
+
+
+def _make_mock_editors(mocker: MockerFixture, user_ids: list[int]) -> list[Mock]:
+    """Create mock editor subjects with user-type attributes."""
+    editors = []
+    for uid in user_ids:
+        editor = mocker.Mock()
+        editor.type = SubjectType.USER
+        mock_user = mocker.Mock()
+        mock_user.id = uid
+        mock_user.email = f"user{uid}@example.com"
+        editor.user = mock_user
+        editors.append(editor)
+    return editors
+
+
+def _make_notification_header() -> HeaderDataType:
+    """Build the minimum complete report header used by notification tests."""
+    return {
+        "notification_format": "TEXT",
+        "notification_type": "Report",
+        "editors": [],
+        "notification_source": None,
+        "chart_id": None,
+        "dashboard_id": None,
+        "slack_channels": None,
+        "execution_id": "execution_id_example",
+    }
 
 
 def test_log_data_with_chart(mocker: MockerFixture) -> None:
@@ -65,7 +137,7 @@ def test_log_data_with_chart(mocker: MockerFixture) -> None:
     mock_report_schedule.dashboard_id = None
     mock_report_schedule.type = "report_type"
     mock_report_schedule.report_format = "report_format"
-    mock_report_schedule.owners = [1, 2]
+    mock_report_schedule.editors = _make_mock_editors(mocker, [1, 2])
     mock_report_schedule.recipients = []
 
     class_instance: BaseReportState = BaseReportState(
@@ -81,7 +153,7 @@ def test_log_data_with_chart(mocker: MockerFixture) -> None:
         "notification_format": "report_format",
         "chart_id": 123,
         "dashboard_id": None,
-        "owners": [1, 2],
+        "editors": [1, 2],
         "slack_channels": None,
         "execution_id": "execution_id_example",
     }
@@ -96,7 +168,7 @@ def test_log_data_with_dashboard(mocker: MockerFixture) -> None:
     mock_report_schedule.dashboard_id = 123
     mock_report_schedule.type = "report_type"
     mock_report_schedule.report_format = "report_format"
-    mock_report_schedule.owners = [1, 2]
+    mock_report_schedule.editors = _make_mock_editors(mocker, [1, 2])
     mock_report_schedule.recipients = []
 
     class_instance: BaseReportState = BaseReportState(
@@ -112,7 +184,7 @@ def test_log_data_with_dashboard(mocker: MockerFixture) -> None:
         "notification_format": "report_format",
         "chart_id": None,
         "dashboard_id": 123,
-        "owners": [1, 2],
+        "editors": [1, 2],
         "slack_channels": None,
         "execution_id": "execution_id_example",
     }
@@ -127,7 +199,7 @@ def test_log_data_with_email_recipients(mocker: MockerFixture) -> None:
     mock_report_schedule.dashboard_id = 123
     mock_report_schedule.type = "report_type"
     mock_report_schedule.report_format = "report_format"
-    mock_report_schedule.owners = [1, 2]
+    mock_report_schedule.editors = _make_mock_editors(mocker, [1, 2])
     mock_report_schedule.recipients = []
     mock_report_schedule.recipients = [
         mocker.Mock(type=ReportRecipientType.EMAIL, recipient_config_json="email_1"),
@@ -147,7 +219,7 @@ def test_log_data_with_email_recipients(mocker: MockerFixture) -> None:
         "notification_format": "report_format",
         "chart_id": None,
         "dashboard_id": 123,
-        "owners": [1, 2],
+        "editors": [1, 2],
         "slack_channels": [],
         "execution_id": "execution_id_example",
     }
@@ -162,7 +234,7 @@ def test_log_data_with_slack_recipients(mocker: MockerFixture) -> None:
     mock_report_schedule.dashboard_id = 123
     mock_report_schedule.type = "report_type"
     mock_report_schedule.report_format = "report_format"
-    mock_report_schedule.owners = [1, 2]
+    mock_report_schedule.editors = _make_mock_editors(mocker, [1, 2])
     mock_report_schedule.recipients = []
     mock_report_schedule.recipients = [
         mocker.Mock(type=ReportRecipientType.SLACK, recipient_config_json="channel_1"),
@@ -182,7 +254,7 @@ def test_log_data_with_slack_recipients(mocker: MockerFixture) -> None:
         "notification_format": "report_format",
         "chart_id": None,
         "dashboard_id": 123,
-        "owners": [1, 2],
+        "editors": [1, 2],
         "slack_channels": ["channel_1", "channel_2"],
         "execution_id": "execution_id_example",
     }
@@ -190,14 +262,14 @@ def test_log_data_with_slack_recipients(mocker: MockerFixture) -> None:
     assert result == expected_result
 
 
-def test_log_data_no_owners(mocker: MockerFixture) -> None:
+def test_log_data_no_editors(mocker: MockerFixture) -> None:
     mock_report_schedule: ReportSchedule = mocker.Mock(spec=ReportSchedule)
     mock_report_schedule.chart = False
     mock_report_schedule.chart_id = None
     mock_report_schedule.dashboard_id = 123
     mock_report_schedule.type = "report_type"
     mock_report_schedule.report_format = "report_format"
-    mock_report_schedule.owners = []
+    mock_report_schedule.editors = []
     mock_report_schedule.recipients = [
         mocker.Mock(type=ReportRecipientType.SLACK, recipient_config_json="channel_1"),
         mocker.Mock(type=ReportRecipientType.SLACK, recipient_config_json="channel_2"),
@@ -216,7 +288,7 @@ def test_log_data_no_owners(mocker: MockerFixture) -> None:
         "notification_format": "report_format",
         "chart_id": None,
         "dashboard_id": 123,
-        "owners": [],
+        "editors": [],
         "slack_channels": ["channel_1", "channel_2"],
         "execution_id": "execution_id_example",
     }
@@ -231,7 +303,7 @@ def test_log_data_with_missing_values(mocker: MockerFixture) -> None:
     mock_report_schedule.dashboard_id = None
     mock_report_schedule.type = "report_type"
     mock_report_schedule.report_format = "report_format"
-    mock_report_schedule.owners = [1, 2]
+    mock_report_schedule.editors = _make_mock_editors(mocker, [1, 2])
     mock_report_schedule.recipients = [
         mocker.Mock(type=ReportRecipientType.SLACK, recipient_config_json="channel_1"),
         mocker.Mock(
@@ -252,7 +324,7 @@ def test_log_data_with_missing_values(mocker: MockerFixture) -> None:
         "notification_format": "report_format",
         "chart_id": None,
         "dashboard_id": None,
-        "owners": [1, 2],
+        "editors": [1, 2],
         "slack_channels": ["channel_1", "channel_2"],
         "execution_id": "execution_id_example",
     }
@@ -268,21 +340,21 @@ def test_log_data_with_missing_values(mocker: MockerFixture) -> None:
             ["mock_tab_anchor_1", "mock_tab_anchor_2"],
             ["url1", "url2"],
             [
-                "superset/dashboard/p/url1/",
-                "superset/dashboard/p/url2/",
+                "dashboard/p/url1/",
+                "dashboard/p/url2/",
             ],
         ),
         # Test user select one tab to export in a dashboard report
         (
             "mock_tab_anchor_1",
             ["url1"],
-            ["superset/dashboard/p/url1/"],
+            ["dashboard/p/url1/"],
         ),
         # Test JSON scalar string anchor falls back to single tab
         (
             json.dumps("mock_tab_anchor_1"),
             ["url1"],
-            ["superset/dashboard/p/url1/"],
+            ["dashboard/p/url1/"],
         ),
     ],
 )
@@ -299,7 +371,7 @@ def test_get_dashboard_urls_with_multiple_tabs(
     mock_report_schedule.dashboard_id = 123
     mock_report_schedule.type = "report_type"
     mock_report_schedule.report_format = "report_format"
-    mock_report_schedule.owners = [1, 2]
+    mock_report_schedule.editors = _make_mock_editors(mocker, [1, 2])
     mock_report_schedule.recipients = []
     mock_report_schedule.extra = {
         "dashboard": {
@@ -331,22 +403,18 @@ def test_get_dashboard_urls_with_multiple_tabs(
     assert result == expected_uris
 
 
-@patch(
-    "superset.commands.dashboard.permalink.create.CreateDashboardPermalinkCommand.run"
-)
 @with_feature_flags(ALERT_REPORT_TABS=True)
 def test_get_dashboard_urls_with_exporting_dashboard_only(
-    mock_run,
     mocker: MockerFixture,
-    app,
 ) -> None:
     mock_report_schedule: ReportSchedule = mocker.Mock(spec=ReportSchedule)
     mock_report_schedule.chart = False
     mock_report_schedule.chart_id = None
     mock_report_schedule.dashboard_id = 123
+    mock_report_schedule.force_screenshot = False
     mock_report_schedule.type = "report_type"
     mock_report_schedule.report_format = "report_format"
-    mock_report_schedule.owners = [1, 2]
+    mock_report_schedule.editors = _make_mock_editors(mocker, [1, 2])
     mock_report_schedule.recipients = []
     mock_report_schedule.extra = {
         "dashboard": {
@@ -360,7 +428,9 @@ def test_get_dashboard_urls_with_exporting_dashboard_only(
         "()",
         [],
     )
-    mock_run.return_value = "url1"
+    mock_dashboard = mocker.MagicMock()
+    mock_dashboard.uuid = UUID("12345678-1234-1234-1234-123456789abc")
+    mock_report_schedule.dashboard = mock_dashboard
 
     class_instance: BaseReportState = BaseReportState(
         mock_report_schedule, "January 1, 2021", "execution_id_example"
@@ -369,11 +439,85 @@ def test_get_dashboard_urls_with_exporting_dashboard_only(
 
     result: list[str] = class_instance.get_dashboard_urls()
 
-    import urllib.parse
+    assert len(result) == 1
+    assert "/dashboard/p/" not in result[0]
+    assert "12345678-1234-1234-1234-123456789abc" in result[0]
 
-    base_url = app.config.get("WEBDRIVER_BASEURL", "http://0.0.0.0:8080/")
-    expected_url = urllib.parse.urljoin(base_url, "superset/dashboard/p/url1/")
-    assert expected_url == result[0]
+
+@patch("superset.commands.report.execute.CreateDashboardPermalinkCommand")
+@with_feature_flags(ALERT_REPORT_TABS=True)
+def test_get_dashboard_urls_empty_dashboard_state_skips_permalink(
+    mock_permalink_cls,
+    mocker: MockerFixture,
+) -> None:
+    """When both ALERT_REPORT_TABS and ALERT_REPORTS_FILTER are enabled but the
+    report has no tab or filter configured, get_dashboard_urls() must return
+    a plain dashboard URL and must not create a permalink.  A permalink with
+    nothing to encode causes a server-side redirect that fails the Playwright
+    screenshot (domcontentloaded timeout)."""
+    mock_report_schedule: ReportSchedule = mocker.Mock(spec=ReportSchedule)
+    mock_report_schedule.chart = False
+    mock_report_schedule.force_screenshot = False
+    mock_report_schedule.extra = {"dashboard": {}}
+    mock_report_schedule.get_native_filters_params.return_value = ("()", [])  # type: ignore
+
+    mock_dashboard = mocker.MagicMock()
+    mock_dashboard.uuid = UUID("12345678-1234-1234-1234-123456789abc")
+    mock_report_schedule.dashboard = mock_dashboard
+
+    class_instance: BaseReportState = BaseReportState(
+        mock_report_schedule, "January 1, 2021", "execution_id_example"
+    )
+    class_instance._report_schedule = mock_report_schedule
+
+    result: list[str] = class_instance.get_dashboard_urls()
+
+    mock_permalink_cls.assert_not_called()
+    assert len(result) == 1
+    assert "/dashboard/p/" not in result[0]
+    assert "12345678-1234-1234-1234-123456789abc" in result[0]
+
+
+@patch("superset.commands.report.execute.CreateDashboardPermalinkCommand")
+@with_feature_flags(ALERT_REPORT_TABS=True)
+def test_get_dashboard_urls_url_params_only_creates_permalink(
+    mock_permalink_cls,
+    mocker: MockerFixture,
+) -> None:
+    """When the dashboard state carries no anchor and no native filters but
+    does carry meaningful urlParams (e.g. standalone=true), get_dashboard_urls()
+    must still build a permalink so that state survives in the screenshot,
+    rather than falling through to the plain dashboard URL."""
+    mock_permalink_cls.return_value.run.return_value = "key1"
+    mock_report_schedule: ReportSchedule = mocker.Mock(spec=ReportSchedule)
+    mock_report_schedule.chart = False
+    mock_report_schedule.force_screenshot = False
+    mock_report_schedule.extra = {
+        "dashboard": {
+            "anchor": "",
+            "dataMask": None,
+            "activeTabs": None,
+            "urlParams": [["standalone", "true"]],
+        }
+    }
+    mock_report_schedule.get_native_filters_params.return_value = ("()", [])  # type: ignore
+
+    mock_dashboard = mocker.MagicMock()
+    mock_dashboard.uuid = UUID("12345678-1234-1234-1234-123456789abc")
+    mock_report_schedule.dashboard = mock_dashboard
+
+    class_instance: BaseReportState = BaseReportState(
+        mock_report_schedule, "January 1, 2021", "execution_id_example"
+    )
+    class_instance._report_schedule = mock_report_schedule
+
+    result: list[str] = class_instance.get_dashboard_urls()
+
+    mock_permalink_cls.assert_called_once()
+    state = mock_permalink_cls.call_args.kwargs["state"]
+    assert ["standalone", "true"] in state["urlParams"]
+    assert len(result) == 1
+    assert "/dashboard/p/" in result[0]
 
 
 @patch("superset.commands.report.execute.CreateDashboardPermalinkCommand")
@@ -389,7 +533,7 @@ def test_get_dashboard_urls_with_filters_and_tabs(
     mock_report_schedule.dashboard_id = 123
     mock_report_schedule.type = "report_type"
     mock_report_schedule.report_format = "report_format"
-    mock_report_schedule.owners = [1, 2]
+    mock_report_schedule.editors = _make_mock_editors(mocker, [1, 2])
     mock_report_schedule.recipients = []
     native_filter_rison = "(NATIVE_FILTER-1:(filterType:filter_select))"
     mock_report_schedule.extra = {
@@ -425,8 +569,8 @@ def test_get_dashboard_urls_with_filters_and_tabs(
 
     base_url = app.config.get("WEBDRIVER_BASEURL", "http://0.0.0.0:8080/")
     assert result == [
-        urllib.parse.urljoin(base_url, "superset/dashboard/p/key1/"),
-        urllib.parse.urljoin(base_url, "superset/dashboard/p/key2/"),
+        urllib.parse.urljoin(base_url, "dashboard/p/key1/"),
+        urllib.parse.urljoin(base_url, "dashboard/p/key2/"),
     ]
     mock_report_schedule.get_native_filters_params.assert_called_once()  # type: ignore[attr-defined]
     assert mock_permalink_cls.call_count == 2
@@ -435,6 +579,107 @@ def test_get_dashboard_urls_with_filters_and_tabs(
         assert state["urlParams"] == [["native_filters", native_filter_rison]]
     assert mock_permalink_cls.call_args_list[0].kwargs["state"]["anchor"] == "TAB-1"
     assert mock_permalink_cls.call_args_list[1].kwargs["state"]["anchor"] == "TAB-2"
+
+
+@patch("superset.commands.report.execute.CreateDashboardPermalinkCommand")
+@with_feature_flags(ALERT_REPORT_TABS=True)
+def test_get_dashboard_urls_with_filters_and_tabs_preserves_existing_url_params(
+    mock_permalink_cls,
+    mocker: MockerFixture,
+) -> None:
+    mock_report_schedule: ReportSchedule = mocker.Mock(spec=ReportSchedule)
+    mock_report_schedule.chart = False
+    mock_report_schedule.chart_id = None
+    mock_report_schedule.dashboard_id = 123
+    mock_report_schedule.type = "report_type"
+    mock_report_schedule.report_format = "report_format"
+    mock_report_schedule.editors = _make_mock_editors(mocker, [1, 2])
+    mock_report_schedule.recipients = []
+    native_filter_rison = "(NATIVE_FILTER-1:(filterType:filter_select))"
+    mock_report_schedule.extra = {
+        "dashboard": {
+            "anchor": json.dumps(["TAB-1", "TAB-2"]),
+            "dataMask": {"NATIVE_FILTER-1": {"filterState": {"value": ["Sales"]}}},
+            "activeTabs": ["TAB-1", "TAB-2"],
+            "urlParams": [("standalone", "true"), ("show_filters", "0")],
+            "nativeFilters": [  # type: ignore[typeddict-unknown-key]
+                {
+                    "nativeFilterId": "NATIVE_FILTER-1",
+                    "filterType": "filter_select",
+                    "columnName": "department",
+                    "filterValues": ["Sales"],
+                }
+            ],
+        }
+    }
+    mock_report_schedule.get_native_filters_params.return_value = (  # type: ignore[attr-defined]
+        native_filter_rison,
+        [],
+    )
+    mock_permalink_cls.return_value.run.side_effect = ["key1", "key2"]
+
+    class_instance: BaseReportState = BaseReportState(
+        mock_report_schedule, "January 1, 2021", "execution_id_example"
+    )
+    class_instance._report_schedule = mock_report_schedule
+
+    class_instance.get_dashboard_urls()
+
+    for call in mock_permalink_cls.call_args_list:
+        state = call.kwargs["state"]
+        assert state["urlParams"] == [
+            ["standalone", "true"],
+            ["show_filters", "0"],
+            ["native_filters", native_filter_rison],
+        ]
+
+
+@patch("superset.commands.report.execute.CreateDashboardPermalinkCommand")
+@with_feature_flags(ALERT_REPORT_TABS=True)
+def test_get_dashboard_urls_with_filters_and_tabs_deduplicates_stale_native_filters(
+    mock_permalink_cls,
+    mocker: MockerFixture,
+) -> None:
+    mock_report_schedule: ReportSchedule = mocker.Mock(spec=ReportSchedule)
+    mock_report_schedule.chart = False
+    mock_report_schedule.chart_id = None
+    mock_report_schedule.dashboard_id = 123
+    mock_report_schedule.type = "report_type"
+    mock_report_schedule.report_format = "report_format"
+    mock_report_schedule.editors = _make_mock_editors(mocker, [1, 2])
+    mock_report_schedule.recipients = []
+    native_filter_rison = "(NATIVE_FILTER-1:(new:value))"
+    mock_report_schedule.extra = {
+        "dashboard": {
+            "anchor": json.dumps(["TAB-1", "TAB-2"]),
+            "dataMask": {},
+            "activeTabs": ["TAB-1", "TAB-2"],
+            "urlParams": [
+                ("standalone", "true"),
+                ("native_filters", "(old:stale_value)"),
+            ],
+            "nativeFilters": [],  # type: ignore[typeddict-unknown-key]
+        }
+    }
+    mock_report_schedule.get_native_filters_params.return_value = (  # type: ignore[attr-defined]
+        native_filter_rison,
+        [],
+    )
+    mock_permalink_cls.return_value.run.side_effect = ["key1", "key2"]
+
+    class_instance: BaseReportState = BaseReportState(
+        mock_report_schedule, "January 1, 2021", "execution_id_example"
+    )
+    class_instance._report_schedule = mock_report_schedule
+
+    class_instance.get_dashboard_urls()
+
+    for call in mock_permalink_cls.call_args_list:
+        state = call.kwargs["state"]
+        assert state["urlParams"] == [
+            ["standalone", "true"],
+            ["native_filters", native_filter_rison],
+        ]
 
 
 @patch("superset.commands.report.execute.CreateDashboardPermalinkCommand")
@@ -450,7 +695,7 @@ def test_get_dashboard_urls_with_filters_no_tabs(
     mock_report_schedule.dashboard_id = 123
     mock_report_schedule.type = "report_type"
     mock_report_schedule.report_format = "report_format"
-    mock_report_schedule.owners = [1, 2]
+    mock_report_schedule.editors = _make_mock_editors(mocker, [1, 2])
     mock_report_schedule.recipients = []
     native_filter_rison = "(NATIVE_FILTER-1:(filterType:filter_select))"
     mock_report_schedule.extra = {
@@ -486,7 +731,7 @@ def test_get_dashboard_urls_with_filters_no_tabs(
 
     base_url = app.config.get("WEBDRIVER_BASEURL", "http://0.0.0.0:8080/")
     assert result == [
-        urllib.parse.urljoin(base_url, "superset/dashboard/p/key1/"),
+        urllib.parse.urljoin(base_url, "dashboard/p/key1/"),
     ]
     mock_report_schedule.get_native_filters_params.assert_called_once()  # type: ignore[attr-defined]
     assert mock_permalink_cls.call_count == 1
@@ -508,7 +753,7 @@ def test_get_dashboard_urls_preserves_existing_url_params(
     mock_report_schedule.dashboard_id = 123
     mock_report_schedule.type = "report_type"
     mock_report_schedule.report_format = "report_format"
-    mock_report_schedule.owners = [1, 2]
+    mock_report_schedule.editors = _make_mock_editors(mocker, [1, 2])
     mock_report_schedule.recipients = []
     native_filter_rison = "(NATIVE_FILTER-1:(filterType:filter_select))"
     mock_report_schedule.extra = {
@@ -562,7 +807,7 @@ def test_get_dashboard_urls_deduplicates_stale_native_filters(
     mock_report_schedule.dashboard_id = 123
     mock_report_schedule.type = "report_type"
     mock_report_schedule.report_format = "report_format"
-    mock_report_schedule.owners = [1, 2]
+    mock_report_schedule.editors = _make_mock_editors(mocker, [1, 2])
     mock_report_schedule.recipients = []
     native_filter_rison = "(NATIVE_FILTER-1:(new:value))"
     mock_report_schedule.extra = {
@@ -619,9 +864,68 @@ def test_get_tab_urls(
 
     base_url = app.config.get("WEBDRIVER_BASEURL", "http://0.0.0.0:8080/")
     assert result == [
-        urllib.parse.urljoin(base_url, "superset/dashboard/p/uri1/"),
-        urllib.parse.urljoin(base_url, "superset/dashboard/p/uri2/"),
+        urllib.parse.urljoin(base_url, "dashboard/p/uri1/"),
+        urllib.parse.urljoin(base_url, "dashboard/p/uri2/"),
     ]
+
+
+@patch("superset.commands.report.execute.CreateDashboardPermalinkCommand")
+@with_feature_flags(ALERT_REPORT_TABS=True)
+def test_get_dashboard_urls_multitab_preserves_url_params(
+    mock_permalink_cls,
+    mocker: MockerFixture,
+    app,
+) -> None:
+    """Multi-tab fan-out must preserve dashboard_state.urlParams (e.g. standalone)
+    and replace any pre-existing native_filters entry with the report's value —
+    matching the single-tab branch's merge semantics."""
+    mock_report_schedule: ReportSchedule = mocker.Mock(spec=ReportSchedule)
+    mock_report_schedule.chart = False
+    mock_report_schedule.chart_id = None
+    mock_report_schedule.dashboard_id = 123
+    mock_report_schedule.type = "report_type"
+    mock_report_schedule.report_format = "report_format"
+    mock_report_schedule.editors = _make_mock_editors(mocker, [1, 2])
+    mock_report_schedule.recipients = []
+    native_filter_rison = "(NATIVE_FILTER-1:(filterType:filter_select))"
+    # Use list-of-lists (not tuples) — extra_json deserializes urlParams from
+    # JSON arrays. Includes a stale native_filters entry to exercise the
+    # dedup-then-append step in the merge.
+    mock_report_schedule.extra = {
+        "dashboard": {
+            "anchor": json.dumps(["TAB-1", "TAB-2"]),
+            "urlParams": [
+                ["standalone", "true"],
+                ["native_filters", "(STALE_FILTER:(filterType:filter_select))"],
+                ["show_filters", "0"],
+            ],
+        }
+    }
+    mock_report_schedule.get_native_filters_params.return_value = (  # type: ignore[attr-defined]
+        native_filter_rison,
+        [],
+    )
+    mock_permalink_cls.return_value.run.side_effect = ["key1", "key2"]
+
+    class_instance: BaseReportState = BaseReportState(
+        mock_report_schedule, "January 1, 2021", "execution_id_example"
+    )
+    class_instance._report_schedule = mock_report_schedule
+
+    class_instance.get_dashboard_urls()
+
+    assert mock_permalink_cls.call_count == 2
+    for idx, expected_anchor in enumerate(["TAB-1", "TAB-2"]):
+        state = mock_permalink_cls.call_args_list[idx].kwargs["state"]
+        # Stale native_filters is replaced (not duplicated); other params
+        # survive in their original order; report's native_filters appended.
+        assert state["urlParams"] == [
+            ["standalone", "true"],
+            ["show_filters", "0"],
+            ["native_filters", native_filter_rison],
+        ]
+        # Each per-tab permalink targets exactly that tab.
+        assert state["anchor"] == expected_anchor
 
 
 @patch(
@@ -650,7 +954,47 @@ def test_get_tab_url(
     import urllib.parse
 
     base_url = app.config.get("WEBDRIVER_BASEURL", "http://0.0.0.0:8080/")
-    assert result == urllib.parse.urljoin(base_url, "superset/dashboard/p/uri/")
+    assert result == urllib.parse.urljoin(base_url, "dashboard/p/uri/")
+
+
+@patch("superset.commands.report.execute.db.session")
+@patch(
+    "superset.commands.dashboard.permalink.create.CreateDashboardPermalinkCommand.run"
+)
+def test_get_tab_url_commits_permalink_before_returning(
+    mock_run,
+    mock_session,
+    mocker: MockerFixture,
+    app,
+) -> None:
+    """Regression test for #40996.
+
+    The report-generation flow runs inside an outer ``@transaction`` block,
+    so ``CreateDashboardPermalinkCommand``'s inner ``@transaction`` decorator
+    skips its own commit and leaves the permalink row flushed but uncommitted.
+    Playwright then opens the permalink on a separate database connection and
+    404s. ``_get_tab_url`` must therefore commit explicitly **after** the
+    permalink command returns so the row is visible across connections.
+    """
+    mock_report_schedule: ReportSchedule = mocker.Mock(spec=ReportSchedule)
+    mock_report_schedule.dashboard_id = 123
+
+    class_instance: BaseReportState = BaseReportState(
+        mock_report_schedule, "January 1, 2021", "execution_id_example"
+    )
+    class_instance._report_schedule = mock_report_schedule
+    mock_run.return_value = "uri"
+    dashboard_state = DashboardPermalinkState(
+        anchor="1",
+        dataMask=None,
+        activeTabs=None,
+        urlParams=None,
+    )
+
+    class_instance._get_tab_url(dashboard_state)
+
+    mock_run.assert_called_once()
+    mock_session.commit.assert_called_once()
 
 
 @patch(
@@ -702,6 +1046,58 @@ def test_get_dashboard_urls_native_filters_without_tabs(
     assert "permalink_key" in result[0]
 
 
+@patch("superset.commands.report.execute.CreateDashboardPermalinkCommand")
+@with_feature_flags(ALERT_REPORT_TABS=False)
+def test_get_dashboard_urls_flag_off_preserves_url_params(
+    mock_permalink_cls,
+    mocker: MockerFixture,
+    app,
+) -> None:
+    """The post-``if``-block fall-through in ``get_dashboard_urls`` must
+    honor any urlParams set in ``extra.dashboard`` (e.g. via API) — same
+    merge semantics as the protected branch.
+
+    Reachability: only when ``dashboard_state`` is falsy OR
+    ``ALERT_REPORT_TABS=False``. The flag-on / no-anchor case lands in
+    the single-tab merge at L290-306, not here.
+    """
+    mock_report_schedule: ReportSchedule = mocker.Mock(spec=ReportSchedule)
+    mock_report_schedule.chart = False
+    mock_report_schedule.chart_id = None
+    mock_report_schedule.dashboard_id = 123
+    native_filter_rison = "(NATIVE_FILTER-abc:!(val1))"
+    mock_report_schedule.extra = {
+        "dashboard": {
+            "urlParams": [
+                ["standalone", "true"],
+                ["native_filters", "(STALE_FILTER:!(stale))"],
+                ["show_filters", "0"],
+            ],
+        }
+    }
+    mock_report_schedule.get_native_filters_params.return_value = (  # type: ignore[attr-defined]
+        native_filter_rison,
+        [],
+    )
+
+    class_instance: BaseReportState = BaseReportState(
+        mock_report_schedule, "January 1, 2021", "execution_id_example"
+    )
+    class_instance._report_schedule = mock_report_schedule
+    mock_permalink_cls.return_value.run.return_value = "permalink_key"
+
+    class_instance.get_dashboard_urls()
+
+    state = mock_permalink_cls.call_args_list[0].kwargs["state"]
+    # Stale native_filters replaced; existing params survive in order;
+    # report's native_filters appended.
+    assert state["urlParams"] == [
+        ["standalone", "true"],
+        ["show_filters", "0"],
+        ["native_filters", native_filter_rison],
+    ]
+
+
 def create_report_schedule(
     mocker: MockerFixture,
     custom_width: int | None = None,
@@ -719,6 +1115,451 @@ def create_report_schedule(
     schedule.custom_width = custom_width
     schedule.custom_height = custom_height
     return schedule
+
+
+def test_get_chart_data_request_payload_prepares_server_paginated_export(
+    mocker: MockerFixture,
+) -> None:
+    """Server-paginated exports should use the configured row limit."""
+    report_state = BaseReportState(
+        create_report_schedule(mocker),
+        "January 1, 2021",
+        "execution_id_example",
+    )
+    report_state._report_schedule.force_screenshot = True
+    report_state._report_schedule.chart.query_context = json.dumps(
+        {
+            "queries": [
+                {"row_limit": 25, "row_offset": 25},
+                {"is_rowcount": True, "row_limit": 1000, "row_offset": 0},
+                {"row_limit": 0, "row_offset": 0, "metrics": ["count"]},
+            ],
+            "form_data": {
+                "server_pagination": True,
+                "server_page_length": 25,
+                "row_limit": 1000,
+            },
+            "result_format": "json",
+            "result_type": "full",
+        }
+    )
+
+    payload = report_state._get_chart_data_request_payload(ChartDataResultFormat.CSV)
+
+    assert payload["result_format"] == ChartDataResultFormat.CSV.value
+    assert payload["result_type"] == ChartDataResultType.POST_PROCESSED.value
+    assert payload["force"] is True
+    assert payload["queries"][0]["row_limit"] == 1000
+    assert payload["queries"][0]["row_offset"] == 0
+    assert len(payload["queries"]) == 2
+    assert all(not query.get("is_rowcount") for query in payload["queries"])
+    assert payload["queries"][1]["metrics"] == ["count"]
+    assert payload["form_data"]["result_format"] == ChartDataResultFormat.CSV.value
+    assert (
+        payload["form_data"]["result_type"] == ChartDataResultType.POST_PROCESSED.value
+    )
+    assert payload["form_data"]["force"] is True
+
+
+def test_get_chart_data_request_payload_preserves_non_paginated_queries(
+    mocker: MockerFixture,
+) -> None:
+    """Non-server-paginated exports should keep saved query limits intact."""
+    report_state = BaseReportState(
+        create_report_schedule(mocker),
+        "January 1, 2021",
+        "execution_id_example",
+    )
+    report_state._report_schedule.force_screenshot = False
+    report_state._report_schedule.chart.query_context = json.dumps(
+        {
+            "queries": [{"row_limit": 500, "row_offset": 50}],
+            "form_data": {
+                "server_pagination": False,
+                "row_limit": 1000,
+            },
+            "result_format": "json",
+            "result_type": "full",
+        }
+    )
+
+    payload = report_state._get_chart_data_request_payload(ChartDataResultFormat.CSV)
+
+    assert payload["queries"] == [{"row_limit": 500, "row_offset": 50}]
+    assert payload["result_format"] == ChartDataResultFormat.CSV.value
+    assert payload["result_type"] == ChartDataResultType.POST_PROCESSED.value
+    assert payload["form_data"]["result_format"] == ChartDataResultFormat.CSV.value
+    assert (
+        payload["form_data"]["result_type"] == ChartDataResultType.POST_PROCESSED.value
+    )
+    assert payload["form_data"]["force"] is False
+
+
+@pytest.mark.parametrize(
+    "query_context",
+    [
+        None,
+        "{invalid-json",
+        json.dumps(["not", "a", "dict"]),
+    ],
+)
+def test_get_chart_data_request_payload_rejects_invalid_query_context(
+    mocker: MockerFixture,
+    query_context: str | None,
+) -> None:
+    """Invalid saved query contexts should fail before sending the request."""
+    report_state = BaseReportState(
+        create_report_schedule(mocker),
+        "January 1, 2021",
+        "execution_id_example",
+    )
+    report_state._report_schedule.chart.query_context = query_context
+
+    with pytest.raises(
+        ReportScheduleExecuteUnexpectedError,
+        match="Chart has no valid query context saved.",
+    ):
+        report_state._get_chart_data_request_payload(ChartDataResultFormat.CSV)
+
+
+@pytest.mark.parametrize("auth_cookies", [None, {}])
+def test_post_chart_data_rejects_missing_auth_cookies(
+    auth_cookies: dict[str, str] | None,
+) -> None:
+    """Missing report executor auth should fail with an explicit error."""
+    with pytest.raises(
+        URLError,
+        match="Missing authentication cookies for chart data request",
+    ):
+        BaseReportState._post_chart_data(
+            chart_url="http://superset.example/api/v1/chart/data",
+            auth_cookies=auth_cookies,
+            request_payload={},
+        )
+
+
+def test_get_csv_data_posts_prepared_chart_data_payload(
+    app: SupersetApp,
+    mocker: MockerFixture,
+) -> None:
+    """CSV report data should POST the prepared export query context."""
+    report_state = BaseReportState(
+        create_report_schedule(mocker),
+        "January 1, 2021",
+        "execution_id_example",
+    )
+    report_state._report_schedule.force_screenshot = False
+    report_state._report_schedule.chart.query_context = json.dumps(
+        {
+            "datasource": {"id": 1, "type": "table"},
+            "queries": [
+                {
+                    "row_limit": 25,
+                    "row_offset": 25,
+                },
+                {
+                    "is_rowcount": True,
+                    "row_limit": 1000,
+                    "row_offset": 0,
+                },
+                {
+                    "row_limit": 0,
+                    "row_offset": 0,
+                    "metrics": ["count"],
+                },
+            ],
+            "form_data": {
+                "server_pagination": True,
+                "server_page_length": 25,
+                "row_limit": 1000,
+            },
+            "result_format": "json",
+            "result_type": "full",
+        }
+    )
+    get_url_path = mocker.patch(
+        "superset.commands.report.execute.get_url_path",
+        return_value="/api/v1/chart/data",
+    )
+    mocker.patch(
+        "superset.commands.report.execute.get_executor",
+        return_value=(None, "report_executor"),
+    )
+    user = mocker.MagicMock(username="report_executor")
+    mocker.patch(
+        "superset.commands.report.execute.security_manager.find_user",
+        return_value=user,
+    )
+    auth_cookies = {"session": "cookie"}
+    auth_provider = mocker.patch(
+        "superset.commands.report.execute.machine_auth_provider_factory"
+    )
+    auth_provider.instance.get_auth_cookies.return_value = auth_cookies
+    post_chart_data = mocker.patch.object(
+        report_state,
+        "_post_chart_data",
+        return_value=b"csv-data",
+    )
+
+    assert report_state._get_data(ChartDataResultFormat.CSV) == b"csv-data"
+
+    get_url_path.assert_called_once_with("ChartDataRestApi.data")
+    post_chart_data.assert_called_once()
+    assert post_chart_data.call_args.kwargs["chart_url"] == "/api/v1/chart/data"
+    assert post_chart_data.call_args.kwargs["auth_cookies"] == auth_cookies
+    assert (
+        post_chart_data.call_args.kwargs["timeout"]
+        == app.config["ALERT_REPORTS_CSV_REQUEST_TIMEOUT"]
+    )
+    request_payload = post_chart_data.call_args.kwargs["request_payload"]
+    assert request_payload["result_format"] == ChartDataResultFormat.CSV.value
+    assert request_payload["result_type"] == ChartDataResultType.POST_PROCESSED.value
+    assert request_payload["queries"][0]["row_limit"] == 1000
+    assert request_payload["queries"][0]["row_offset"] == 0
+    assert len(request_payload["queries"]) == 2
+    assert all(not query.get("is_rowcount") for query in request_payload["queries"])
+    assert request_payload["queries"][1]["metrics"] == ["count"]
+    assert (
+        request_payload["form_data"]["result_type"]
+        == ChartDataResultType.POST_PROCESSED.value
+    )
+
+
+def test_get_csv_data_keeps_screenshot_fallback_without_query_context(
+    app: SupersetApp,
+    mocker: MockerFixture,
+) -> None:
+    """Missing query context should keep the screenshot fallback path."""
+    report_state = BaseReportState(
+        create_report_schedule(mocker),
+        "January 1, 2021",
+        "execution_id_example",
+    )
+    report_state._report_schedule.chart.query_context = None
+    mocker.patch(
+        "superset.commands.report.execute.get_executor",
+        return_value=(None, "report_executor"),
+    )
+    user = mocker.MagicMock(username="report_executor")
+    mocker.patch(
+        "superset.commands.report.execute.security_manager.find_user",
+        return_value=user,
+    )
+    auth_cookies = {"session": "cookie"}
+    auth_provider = mocker.patch(
+        "superset.commands.report.execute.machine_auth_provider_factory"
+    )
+    auth_provider.instance.get_auth_cookies.return_value = auth_cookies
+    update_query_context = mocker.patch.object(report_state, "_update_query_context")
+    refresh = mocker.patch("superset.commands.report.execute.db.session.refresh")
+    get_url = mocker.patch.object(
+        report_state,
+        "_get_url",
+        return_value="http://superset.example/api/v1/chart/1/data/",
+    )
+    get_chart_csv_data = mocker.patch(
+        "superset.commands.report.execute.get_chart_csv_data",
+        return_value=b"csv-data",
+    )
+    post_chart_data = mocker.patch.object(report_state, "_post_chart_data")
+
+    assert report_state._get_data(ChartDataResultFormat.CSV) == b"csv-data"
+
+    update_query_context.assert_called_once()
+    refresh.assert_called_once_with(report_state._report_schedule.chart)
+    get_url.assert_called_once_with(result_format=ChartDataResultFormat.CSV)
+    get_chart_csv_data.assert_called_once_with(
+        chart_url="http://superset.example/api/v1/chart/1/data/",
+        auth_cookies=auth_cookies,
+        timeout=app.config["ALERT_REPORTS_CSV_REQUEST_TIMEOUT"],
+    )
+    post_chart_data.assert_not_called()
+
+
+def test_get_url_for_xlsx_report(mocker: MockerFixture) -> None:
+    """XLSX reports should request post-processed chart data."""
+    report_schedule = create_report_schedule(mocker)
+    report_schedule.chart_id = 1
+    report_schedule.force_screenshot = False
+    report_state = BaseReportState(
+        report_schedule, "January 1, 2021", "execution_id_example"
+    )
+    get_url_path = mocker.patch(
+        "superset.commands.report.execute.get_url_path",
+        return_value="/api/v1/chart/1/data/xlsx",
+    )
+
+    url = report_state._get_url(result_format=ChartDataResultFormat.XLSX)
+
+    assert url == "/api/v1/chart/1/data/xlsx"
+    get_url_path.assert_called_once_with(
+        "ChartDataRestApi.get_data",
+        pk=1,
+        format=ChartDataResultFormat.XLSX.value,
+        type=ChartDataResultType.POST_PROCESSED.value,
+        force="false",
+    )
+
+
+def test_get_chart_data_rejects_non_table_format(mocker: MockerFixture) -> None:
+    """Chart data retrieval should reject formats it cannot download."""
+    report_state = BaseReportState(
+        create_report_schedule(mocker),
+        "January 1, 2021",
+        "execution_id_example",
+    )
+    get_url = mocker.patch.object(report_state, "_get_url")
+
+    with pytest.raises(
+        ReportScheduleExecuteUnexpectedError,
+        match="Unsupported chart data result format: json",
+    ):
+        report_state._get_data(ChartDataResultFormat.JSON)
+
+    get_url.assert_not_called()
+
+
+def _mock_xlsx_chart_data_dependencies(
+    mocker: MockerFixture,
+    report_state: BaseReportState,
+) -> tuple[MagicMock, dict[str, str]]:
+    """Mock external services used by the chart data download path."""
+    report_state._report_schedule.chart.query_context = None
+    mocker.patch.object(report_state, "_update_query_context")
+    mocker.patch("superset.commands.report.execute.db.session.refresh")
+    get_url = mocker.patch.object(
+        report_state,
+        "_get_url",
+        return_value="/api/v1/chart/1/data/xlsx",
+    )
+    mocker.patch(
+        "superset.commands.report.execute.get_executor",
+        return_value=(None, "report_executor"),
+    )
+    user = mocker.MagicMock(username="report_executor")
+    mocker.patch(
+        "superset.commands.report.execute.security_manager.find_user",
+        return_value=user,
+    )
+    auth_cookies = {"session": "cookie"}
+    auth_provider = mocker.patch(
+        "superset.commands.report.execute.machine_auth_provider_factory"
+    )
+    auth_provider.instance.get_auth_cookies.return_value = auth_cookies
+    return get_url, auth_cookies
+
+
+def test_get_data_xlsx_fetches_chart_data(
+    app: SupersetApp,
+    mocker: MockerFixture,
+) -> None:
+    """XLSX report data should be fetched through the chart data endpoint."""
+    report_state = BaseReportState(
+        create_report_schedule(mocker),
+        "January 1, 2021",
+        "execution_id_example",
+    )
+    get_url, auth_cookies = _mock_xlsx_chart_data_dependencies(mocker, report_state)
+    get_chart_csv_data = mocker.patch(
+        "superset.commands.report.execute.get_chart_csv_data",
+        return_value=b"xlsx-data",
+    )
+
+    assert report_state._get_data(ChartDataResultFormat.XLSX) == b"xlsx-data"
+    get_url.assert_called_once_with(result_format=ChartDataResultFormat.XLSX)
+    get_chart_csv_data.assert_called_once_with(
+        chart_url="/api/v1/chart/1/data/xlsx",
+        auth_cookies=auth_cookies,
+        timeout=app.config["ALERT_REPORTS_CSV_REQUEST_TIMEOUT"],
+    )
+
+
+@pytest.mark.parametrize(
+    ("side_effect", "expected_exception", "expected_message"),
+    [
+        (
+            RuntimeError("export failed"),
+            ReportScheduleXlsxFailedError,
+            "Failed generating excel export failed",
+        ),
+    ],
+)
+def test_get_data_xlsx_maps_errors(
+    app: SupersetApp,
+    mocker: MockerFixture,
+    side_effect: Exception,
+    expected_exception: type[Exception],
+    expected_message: str,
+) -> None:
+    """XLSX generation errors should use XLSX-specific report exceptions."""
+    report_state = BaseReportState(
+        create_report_schedule(mocker),
+        "January 1, 2021",
+        "execution_id_example",
+    )
+    _mock_xlsx_chart_data_dependencies(mocker, report_state)
+    mocker.patch(
+        "superset.commands.report.execute.get_chart_csv_data",
+        side_effect=side_effect,
+    )
+
+    with pytest.raises(expected_exception, match=expected_message) as exc_info:
+        report_state._get_data(ChartDataResultFormat.XLSX)
+
+    assert exc_info.value.__cause__ is side_effect
+
+
+def test_get_data_xlsx_rejects_empty_result(
+    app: SupersetApp,
+    mocker: MockerFixture,
+) -> None:
+    """An empty XLSX response should fail report generation."""
+    report_state = BaseReportState(
+        create_report_schedule(mocker),
+        "January 1, 2021",
+        "execution_id_example",
+    )
+    _mock_xlsx_chart_data_dependencies(mocker, report_state)
+    mocker.patch(
+        "superset.commands.report.execute.get_chart_csv_data",
+        return_value=None,
+    )
+
+    with pytest.raises(
+        ReportScheduleXlsxFailedError,
+        match="Report Schedule execution failed when generating an Excel file",
+    ) as exc_info:
+        report_state._get_data(ChartDataResultFormat.XLSX)
+
+    assert exc_info.value.__cause__ is None
+
+
+def test_notification_content_contains_xlsx(mocker: MockerFixture) -> None:
+    """XLSX chart reports should populate the XLSX notification field."""
+    report_schedule = create_report_schedule(mocker)
+    report_schedule.report_format = ReportDataFormat.XLSX
+    report_schedule.force_screenshot = False
+    report_schedule.email_subject = None
+    report_schedule.owners = []
+    report_schedule.recipients = []
+    report_state = BaseReportState(
+        report_schedule,
+        "January 1, 2021",
+        "execution_id_example",
+    )
+    mocker.patch.object(report_state, "_get_url", return_value="/chart/1")
+    mocker.patch.object(report_state, "_get_log_data", return_value={})
+    get_data = mocker.patch.object(
+        report_state,
+        "_get_data",
+        return_value=b"xlsx-data",
+    )
+
+    content = report_state._get_notification_content()
+
+    assert content.xlsx == b"xlsx-data"
+    assert content.csv is None
+    get_data.assert_called_once_with(ChartDataResultFormat.XLSX)
 
 
 @pytest.mark.parametrize(
@@ -812,32 +1653,204 @@ def test_screenshot_width_calculation(
                 )
 
 
+def _executor_report_state(mocker: MockerFixture) -> BaseReportState:
+    report_schedule = create_report_schedule(mocker)
+    # _get_data/_get_embedded_data build a chart-data URL from chart_id
+    # before resolving the executor; give it a concrete value so URL building
+    # succeeds and the executor resolution is actually reached.
+    report_schedule.chart_id = 1
+    report_schedule.force_screenshot = False
+    return BaseReportState(
+        report_schedule=report_schedule,
+        scheduled_dttm=datetime.now(),
+        execution_id=UUID("084e7ee6-5557-4ecd-9632-b7f39c9ec524"),
+    )
+
+
+@pytest.mark.parametrize(
+    ("method_name", "method_args"),
+    [
+        ("_get_screenshots", ()),
+        ("_get_data", (ChartDataResultFormat.CSV,)),
+        ("_get_embedded_data", ()),
+    ],
+)
+def test_get_content_raises_when_executor_user_missing(
+    app: SupersetApp,
+    mocker: MockerFixture,
+    method_name: str,
+    method_args: tuple[Any, ...],
+) -> None:
+    """
+    When the configured executor user cannot be resolved
+    (``security_manager.find_user`` returns ``None``), each content path raises a
+    dedicated ``ReportScheduleExecutorNotFoundError`` naming the username at the
+    resolution boundary, rather than passing ``None`` further into the
+    webdriver/auth flow.
+    """
+    app.config.update(
+        {
+            "ALERT_REPORTS_MAX_CUSTOM_SCREENSHOT_WIDTH": 1600,
+            "WEBDRIVER_WINDOW": {"slice": (800, 600), "dashboard": (800, 600)},
+            "ALERT_REPORTS_EXECUTORS": {},
+        }
+    )
+    report_state = _executor_report_state(mocker)
+
+    with (
+        patch("superset.commands.report.execute.security_manager") as mock_sm,
+        patch("superset.commands.report.execute.get_executor") as mock_get_executor,
+        patch("superset.commands.report.execute.machine_auth_provider_factory"),
+    ):
+        mock_get_executor.return_value = ("executor", "ghost_user")
+        mock_sm.find_user = mocker.MagicMock(return_value=None)
+
+        with pytest.raises(ReportScheduleExecutorNotFoundError, match="ghost_user"):
+            getattr(report_state, method_name)(*method_args)
+
+
+def test_get_data_xlsx_propagates_celery_soft_time_limit(
+    app: SupersetApp, mocker: MockerFixture
+) -> None:
+    """Celery soft timeout must reach the state cleanup handler unchanged."""
+    from celery.exceptions import SoftTimeLimitExceeded
+
+    app.config.update({"ALERT_REPORTS_CSV_REQUEST_TIMEOUT": 60})
+    report_state = _executor_report_state(mocker)
+    # Non-None query context so _get_data skips the screenshot fallback and
+    # reaches the _post_chart_data call this test drives to time out.
+    report_state._report_schedule.chart.query_context = '{"mock": "qc"}'
+
+    mocker.patch(
+        "superset.commands.report.execute.resolve_executor_user",
+        return_value=(mocker.MagicMock(), "executor"),
+    )
+    mocker.patch("superset.commands.report.execute.machine_auth_provider_factory")
+    mocker.patch.object(
+        report_state,
+        "_post_chart_data",
+        side_effect=SoftTimeLimitExceeded(),
+    )
+
+    with pytest.raises(SoftTimeLimitExceeded):
+        report_state._get_data(ChartDataResultFormat.XLSX)
+
+
+@pytest.mark.parametrize(
+    ("schedule_type", "expected_exception"),
+    [
+        (ReportScheduleType.REPORT, SoftTimeLimitExceeded),
+        (ReportScheduleType.ALERT, ReportScheduleScreenshotTimeout),
+    ],
+)
+def test_screenshot_soft_timeout_distinguishes_reports_from_alert_attachments(
+    app: SupersetApp,
+    mocker: MockerFixture,
+    schedule_type: ReportScheduleType,
+    expected_exception: type[Exception],
+) -> None:
+    """Only reports reserve hard-limit grace for terminal cleanup."""
+    app.config.update(
+        {
+            "ALERT_REPORTS_MAX_CUSTOM_SCREENSHOT_WIDTH": 1600,
+            "WEBDRIVER_WINDOW": {"slice": (800, 600), "dashboard": (800, 600)},
+        }
+    )
+    schedule = create_report_schedule(mocker)
+    schedule.type = schedule_type
+    schedule.chart.digest = "chart-digest"
+    state = BaseReportState(schedule, datetime.now(), uuid4())
+    mocker.patch(
+        "superset.commands.report.execute.resolve_executor_user",
+        return_value=(mocker.MagicMock(), "executor"),
+    )
+    mocker.patch.object(state, "_get_url", return_value="/chart/1")
+    screenshot = mocker.patch(
+        "superset.commands.report.execute.ChartScreenshot"
+    ).return_value
+    screenshot.get_screenshot.side_effect = SoftTimeLimitExceeded()
+
+    with pytest.raises(expected_exception):
+        state._get_screenshots()
+
+
+def test_executor_not_found_error_message_without_username() -> None:
+    """
+    When no username is available, the message falls back to ``(unknown)``
+    rather than leaving a double space ("...executor user  was not found.").
+    """
+    message = str(ReportScheduleExecutorNotFoundError().message)
+
+    assert "(unknown)" in message
+    assert "user  was" not in message
+
+
+def test_executor_not_found_error_status_is_server_error() -> None:
+    """
+    The executor-not-found error is a 5xx so ``get_logger_from_status`` marks the
+    Celery task ``FAILURE`` (a missing executor is a server-side misconfiguration
+    that ops task-state alerting must still see), not a 4xx that would log a
+    ``WARNING`` and leave the task non-``FAILURE``.
+    """
+    assert ReportScheduleExecutorNotFoundError().status == 500
+
+
+def test_resolve_executor_user_returns_user_and_username(
+    app: SupersetApp, mocker: MockerFixture
+) -> None:
+    """
+    Happy path: when the executor user exists, the helper returns the
+    ``(user, username)`` tuple unchanged — locking the no-behavior-change exit
+    criterion for the three call sites.
+    """
+    from superset.commands.report.execute import resolve_executor_user
+
+    app.config.update({"ALERT_REPORTS_EXECUTORS": {}})
+    report_schedule = create_report_schedule(mocker)
+    mock_user = mocker.MagicMock()
+
+    with (
+        patch("superset.commands.report.execute.security_manager") as mock_sm,
+        patch("superset.commands.report.execute.get_executor") as mock_get_executor,
+    ):
+        mock_get_executor.return_value = ("executor", "real_user")
+        mock_sm.find_user = mocker.MagicMock(return_value=mock_user)
+
+        user, username = resolve_executor_user(report_schedule)
+
+    assert user is mock_user
+    assert username == "real_user"
+
+
 def test_update_recipient_to_slack_v2(mocker: MockerFixture):
     """
     Test converting a Slack recipient to Slack v2 format.
     """
     mocker.patch(
-        "superset.commands.report.execute.get_channels_with_search",
-        return_value=[
-            {
-                "id": "abc124f",
-                "name": "channel-1",
-                "is_member": True,
-                "is_private": False,
-            },
-            {
-                "id": "blah_!channel_2",
-                "name": "Channel_2",
-                "is_member": True,
-                "is_private": False,
-            },
-        ],
+        "superset.reports.notifications.slack_channel_resolver.get_channels_with_search_and_cache_status",
+        return_value=(
+            [
+                {
+                    "id": "abc124f",
+                    "name": "channel-1",
+                    "is_member": True,
+                    "is_private": False,
+                },
+                {
+                    "id": "blah_!channel_2",
+                    "name": "Straße",
+                    "is_member": True,
+                    "is_private": False,
+                },
+            ],
+            False,
+        ),
     )
     mock_report_schedule = ReportSchedule(
         recipients=[
             ReportRecipients(
                 type=ReportRecipientType.SLACK,
-                recipient_config_json=json.dumps({"target": "Channel-1, Channel_2"}),
+                recipient_config_json=json.dumps({"target": "Channel-1, STRASSE"}),
             ),
         ],
     )
@@ -860,15 +1873,18 @@ def test_update_recipient_to_slack_v2_missing_channels(mocker: MockerFixture):
     in case it can't find all channels.
     """
     mocker.patch(
-        "superset.commands.report.execute.get_channels_with_search",
-        return_value=[
-            {
-                "id": "blah_!channel_2",
-                "name": "Channel 2",
-                "is_member": True,
-                "is_private": False,
-            },
-        ],
+        "superset.reports.notifications.slack_channel_resolver.get_channels_with_search_and_cache_status",
+        return_value=(
+            [
+                {
+                    "id": "blah_!channel_2",
+                    "name": "Channel 2",
+                    "is_member": True,
+                    "is_private": False,
+                },
+            ],
+            False,
+        ),
     )
     mock_report_schedule = ReportSchedule(
         name="Test Report",
@@ -883,8 +1899,1199 @@ def test_update_recipient_to_slack_v2_missing_channels(mocker: MockerFixture):
     mock_cmmd: BaseReportState = BaseReportState(
         mock_report_schedule, "January 1, 2021", "execution_id_example"
     )
+    with pytest.raises(NotificationParamException):
+        mock_cmmd.update_report_schedule_slack_v2()
+
+
+def test_update_recipient_to_slack_v2_preserves_permanent_listing_failure(
+    mocker: MockerFixture,
+) -> None:
+    """Permanent listing failures remain client errors during migration."""
+    mocker.patch(
+        "superset.reports.notifications.slack_channel_resolver.get_channels_with_search_and_cache_status",
+        side_effect=SlackChannelListingClientError("invalid_auth"),
+    )
+    state = BaseReportState(
+        ReportSchedule(
+            recipients=[
+                ReportRecipients(
+                    type=ReportRecipientType.SLACK,
+                    recipient_config_json=json.dumps({"target": "private-channel"}),
+                )
+            ]
+        ),
+        "January 1, 2021",
+        "execution_id_example",
+    )
+
+    with pytest.raises(NotificationParamException, match="invalid_auth"):
+        state.update_report_schedule_slack_v2()
+
+
+def test_update_recipient_to_slack_v2_refreshes_stale_channel_cache(
+    mocker: MockerFixture,
+) -> None:
+    """A cache miss gets one fresh lookup before the upgrade falls back."""
+    channel_search = mocker.patch(
+        "superset.reports.notifications.slack_channel_resolver.get_channels_with_search_and_cache_status",
+        return_value=([], True),
+    )
+    refreshed_channel_search = mocker.patch(
+        "superset.reports.notifications.slack_channel_resolver.refresh_cached_slack_channels_with_search",
+        return_value=[
+            {"id": "C2", "name": "second", "is_private": True},
+            {"id": "C1", "name": "channel-1", "is_private": False},
+        ],
+    )
+    recipient = ReportRecipients(
+        type=ReportRecipientType.SLACK,
+        recipient_config_json=json.dumps({"target": "Channel-1,C2"}),
+    )
+    state = BaseReportState(
+        ReportSchedule(recipients=[recipient]),
+        "January 1, 2021",
+        "execution_id_example",
+    )
+
+    state.update_report_schedule_slack_v2()
+
+    channel_search.assert_called_once_with(
+        search_string="Channel-1,C2",
+        types=mocker.ANY,
+        exact_match=True,
+    )
+    refreshed_channel_search.assert_called_once_with(
+        search_string="Channel-1,C2",
+        types=mocker.ANY,
+        exact_match=True,
+    )
+    assert recipient.type == ReportRecipientType.SLACKV2
+    assert recipient.recipient_config_json == '{"target": "C1,C2"}'
+
+
+def test_update_recipient_to_slack_v2_skips_refresh_after_live_cache_miss(
+    mocker: MockerFixture,
+) -> None:
+    """A live lookup is not repeated when no cached channel list existed."""
+    channel_search = mocker.patch(
+        "superset.reports.notifications.slack_channel_resolver.get_channels_with_search_and_cache_status",
+        return_value=([], False),
+    )
+    recipient = ReportRecipients(
+        type=ReportRecipientType.SLACK,
+        recipient_config_json=json.dumps({"target": "private-channel"}),
+    )
+    state = BaseReportState(
+        ReportSchedule(recipients=[recipient]),
+        "January 1, 2021",
+        "execution_id_example",
+    )
+
+    with pytest.raises(NotificationParamException, match="private-channel"):
+        state.update_report_schedule_slack_v2()
+
+    channel_search.assert_called_once_with(
+        search_string="private-channel",
+        types=mocker.ANY,
+        exact_match=True,
+    )
+
+
+def test_update_recipient_to_slack_v2_prefers_exact_id_over_name_collision(
+    mocker: MockerFixture,
+) -> None:
+    """A canonical Slack ID cannot be shadowed by another channel's name."""
+    mocker.patch(
+        "superset.reports.notifications.slack_channel_resolver.get_channels_with_search_and_cache_status",
+        return_value=(
+            [
+                {"id": "C012AB3CD", "name": "reports", "is_private": True},
+                {"id": "C999ZZ9ZZ", "name": "c012ab3cd", "is_private": False},
+            ],
+            False,
+        ),
+    )
+    id_recipient = ReportRecipients(
+        type=ReportRecipientType.SLACK,
+        recipient_config_json=json.dumps({"target": "C012AB3CD"}),
+    )
+    name_recipient = ReportRecipients(
+        type=ReportRecipientType.SLACK,
+        recipient_config_json=json.dumps({"target": "c012ab3cd"}),
+    )
+    state = BaseReportState(
+        ReportSchedule(recipients=[id_recipient, name_recipient]),
+        "January 1, 2021",
+        "execution_id_example",
+    )
+
+    state.update_report_schedule_slack_v2()
+
+    assert id_recipient.recipient_config_json == '{"target": "C012AB3CD"}'
+    assert name_recipient.recipient_config_json == '{"target": "C999ZZ9ZZ"}'
+
+
+def test_update_recipient_to_slack_v2_reports_only_unresolved_channels(
+    mocker: MockerFixture,
+) -> None:
+    """Diagnostics use the same case-insensitive name-or-id match as resolution."""
+    mocker.patch(
+        "superset.reports.notifications.slack_channel_resolver.get_channels_with_search_and_cache_status",
+        return_value=(
+            [
+                {"id": "C123", "name": "private-channel", "is_private": True},
+                {"id": "C999", "name": "other", "is_private": False},
+            ],
+            False,
+        ),
+    )
+    recipient = ReportRecipients(
+        type=ReportRecipientType.SLACK,
+        recipient_config_json=json.dumps(
+            {"target": "PRIVATE-CHANNEL,c999,missing-channel"}
+        ),
+    )
+    state = BaseReportState(
+        ReportSchedule(recipients=[recipient]),
+        "January 1, 2021",
+        "execution_id_example",
+    )
+
+    with pytest.raises(NotificationParamException) as exc_info:
+        state.update_report_schedule_slack_v2()
+
+    assert "missing-channel" in str(exc_info.value)
+    assert "PRIVATE-CHANNEL" not in str(exc_info.value)
+    assert "c999" not in str(exc_info.value)
+
+
+def test_update_recipient_to_slack_v2_multiple_recipients(
+    mocker: MockerFixture,
+) -> None:
+    """All recipients share one live listing, including metastore cache misses."""
+
+    channel_search = mocker.patch(
+        "superset.reports.notifications.slack_channel_resolver.get_channels_with_search_and_cache_status",
+        return_value=(
+            [
+                {"id": "C1", "name": "channel-1", "is_private": False},
+                {"id": "C2", "name": "channel-2", "is_private": False},
+            ],
+            False,
+        ),
+    )
+    mock_report_schedule = ReportSchedule(
+        recipients=[
+            ReportRecipients(
+                type=ReportRecipientType.SLACK,
+                recipient_config_json=json.dumps({"target": "channel-1"}),
+            ),
+            ReportRecipients(
+                type=ReportRecipientType.SLACK,
+                recipient_config_json=json.dumps({"target": "channel-2"}),
+            ),
+        ],
+    )
+
+    mock_cmmd: BaseReportState = BaseReportState(
+        mock_report_schedule, "January 1, 2021", "execution_id_example"
+    )
+    mock_cmmd.update_report_schedule_slack_v2()
+
+    recipients = mock_cmmd._report_schedule.recipients
+    assert [r.type for r in recipients] == [
+        ReportRecipientType.SLACKV2,
+        ReportRecipientType.SLACKV2,
+    ]
+    assert recipients[0].recipient_config_json == '{"target": "C1"}'
+    assert recipients[1].recipient_config_json == '{"target": "C2"}'
+    channel_search.assert_called_once_with(
+        search_string="channel-1,channel-2",
+        types=mocker.ANY,
+        exact_match=True,
+    )
+
+
+def test_update_recipient_to_slack_v2_multiple_recipients_share_stale_refresh(
+    mocker: MockerFixture,
+) -> None:
+    """All recipients share one initial cache read and one stale-cache refresh."""
+    channel_search = mocker.patch(
+        "superset.reports.notifications.slack_channel_resolver.get_channels_with_search_and_cache_status",
+        return_value=([], True),
+    )
+    refreshed_channel_search = mocker.patch(
+        "superset.reports.notifications.slack_channel_resolver.refresh_cached_slack_channels_with_search",
+        return_value=[
+            {"id": "C1", "name": "channel-1", "is_private": False},
+            {"id": "C2", "name": "channel-2", "is_private": True},
+        ],
+    )
+    recipients = [
+        ReportRecipients(
+            type=ReportRecipientType.SLACK,
+            recipient_config_json=json.dumps({"target": channel}),
+        )
+        for channel in ("channel-1", "channel-2")
+    ]
+    state = BaseReportState(
+        ReportSchedule(recipients=recipients),
+        "January 1, 2021",
+        "execution_id_example",
+    )
+
+    state.update_report_schedule_slack_v2()
+
+    channel_search.assert_called_once_with(
+        search_string="channel-1,channel-2",
+        types=mocker.ANY,
+        exact_match=True,
+    )
+    refreshed_channel_search.assert_called_once_with(
+        search_string="channel-1,channel-2",
+        types=mocker.ANY,
+        exact_match=True,
+    )
+    assert [recipient.recipient_config_json for recipient in recipients] == [
+        '{"target": "C1"}',
+        '{"target": "C2"}',
+    ]
+
+
+def test_update_recipient_to_slack_v2_partial_failure_is_atomic(
+    mocker: MockerFixture,
+) -> None:
+    """Regression: when one of several Slack recipients fails to resolve, no
+    recipient may be left partially upgraded.
+
+    The first recipient resolves cleanly and the second references a missing
+    channel. The upgrade must raise and leave *both* recipients untouched:
+    previously the already-resolved first recipient kept its mutated
+    ``type``/``recipient_config_json``, which a later error-log commit could
+    persist as a half-upgraded schedule.
+    """
+
+    channel_search = mocker.patch(
+        "superset.reports.notifications.slack_channel_resolver.get_channels_with_search_and_cache_status",
+        return_value=(
+            [{"id": "C1", "name": "channel-1", "is_private": False}],
+            False,
+        ),
+    )
+    first_config = json.dumps({"target": "channel-1"})
+    second_config = json.dumps({"target": "missing-channel"})
+    mock_report_schedule = ReportSchedule(
+        recipients=[
+            ReportRecipients(
+                type=ReportRecipientType.SLACK,
+                recipient_config_json=first_config,
+            ),
+            ReportRecipients(
+                type=ReportRecipientType.SLACK,
+                recipient_config_json=second_config,
+            ),
+        ],
+    )
+
+    mock_cmmd: BaseReportState = BaseReportState(
+        mock_report_schedule, "January 1, 2021", "execution_id_example"
+    )
+    with pytest.raises(NotificationParamException):
+        mock_cmmd.update_report_schedule_slack_v2()
+
+    recipients = mock_cmmd._report_schedule.recipients
+    # Neither recipient may be mutated: types stay SLACK and configs stay as the
+    # original channel-name targets (not resolved ids).
+    assert [r.type for r in recipients] == [
+        ReportRecipientType.SLACK,
+        ReportRecipientType.SLACK,
+    ]
+    assert recipients[0].recipient_config_json == first_config
+    assert recipients[1].recipient_config_json == second_config
+    channel_search.assert_called_once_with(
+        search_string="channel-1,missing-channel",
+        types=mocker.ANY,
+        exact_match=True,
+    )
+
+
+def test_update_recipient_to_slack_v2_pre_iteration_failure(
+    mocker: MockerFixture,
+) -> None:
+    """
+    A failure raised while accessing/iterating the recipients surfaces as
+    ``UpdateFailedError``, not a ``NameError`` that masks the real error.
+    """
+
+    class _ExplodingRecipients:
+        def __iter__(self):
+            raise RuntimeError("recipients exploded")
+
+    mock_report_schedule = mocker.MagicMock()
+    mock_report_schedule.recipients = _ExplodingRecipients()
+
+    mock_cmmd = BaseReportState(
+        mock_report_schedule, "January 1, 2021", "execution_id_example"
+    )
+
     with pytest.raises(UpdateFailedError):
         mock_cmmd.update_report_schedule_slack_v2()
+
+
+def test_update_recipient_to_slack_v2_no_slack_recipients_is_noop(
+    mocker: MockerFixture,
+) -> None:
+    """
+    With no SLACK recipients there is nothing to migrate: the method returns
+    without raising and leaves the non-Slack recipients untouched.
+    """
+    mock_search = mocker.patch(
+        "superset.reports.notifications.slack_channel_resolver.get_channels_with_search_and_cache_status",
+    )
+    mock_report_schedule = ReportSchedule(
+        recipients=[
+            ReportRecipients(
+                type=ReportRecipientType.EMAIL,
+                recipient_config_json=json.dumps({"target": "user@example.com"}),
+            ),
+        ],
+    )
+
+    mock_cmmd: BaseReportState = BaseReportState(
+        mock_report_schedule, "January 1, 2021", "execution_id_example"
+    )
+    mock_cmmd.update_report_schedule_slack_v2()
+
+    assert mock_cmmd._report_schedule.recipients[0].type == ReportRecipientType.EMAIL
+    assert (
+        mock_cmmd._report_schedule.recipients[0].recipient_config_json
+        == '{"target": "user@example.com"}'
+    )
+    mock_search.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "recipient_config_json",
+    [
+        "{not-json",
+        json.dumps({"target": ["private-channel"]}),
+    ],
+    ids=["malformed-json", "non-string-target"],
+)
+def test_update_recipient_to_slack_v2_rejects_invalid_config_without_traceback(
+    mocker: MockerFixture,
+    recipient_config_json: str,
+) -> None:
+    """Operator-fixable recipient configuration logs no exception traceback."""
+    recipient = ReportRecipients(
+        type=ReportRecipientType.SLACK,
+        recipient_config_json=recipient_config_json,
+    )
+    state = BaseReportState(
+        ReportSchedule(recipients=[recipient]),
+        "January 1, 2021",
+        "execution_id_example",
+    )
+    logger = mocker.patch("superset.commands.report.slack_upgrade.logger")
+
+    with pytest.raises(NotificationParamException):
+        state.update_report_schedule_slack_v2()
+
+    logger.warning.assert_called_once()
+    logger.exception.assert_not_called()
+    assert recipient.type == ReportRecipientType.SLACK
+    assert recipient.recipient_config_json == recipient_config_json
+
+
+def test_update_recipient_to_slack_v2_deduplicates_channels(
+    mocker: MockerFixture,
+) -> None:
+    """Repeated channel names resolve once and persist one channel id."""
+    channel_search = mocker.patch(
+        "superset.reports.notifications.slack_channel_resolver.get_channels_with_search_and_cache_status",
+        return_value=(
+            [
+                {
+                    "id": "C1",
+                    "name": "private-channel",
+                    "is_private": True,
+                }
+            ],
+            False,
+        ),
+    )
+    recipient = ReportRecipients(
+        type=ReportRecipientType.SLACK,
+        recipient_config_json=json.dumps(
+            {"target": "private-channel, private-channel"}
+        ),
+    )
+    state = BaseReportState(
+        ReportSchedule(recipients=[recipient]),
+        "January 1, 2021",
+        "execution_id_example",
+    )
+
+    state.update_report_schedule_slack_v2()
+
+    channel_search.assert_called_once_with(
+        search_string="private-channel",
+        types=mocker.ANY,
+        exact_match=True,
+    )
+    assert recipient.type == ReportRecipientType.SLACKV2
+    assert recipient.recipient_config_json == '{"target": "C1"}'
+
+
+@pytest.mark.parametrize("probe_result", [True, False])
+def test_send_falls_back_to_slack_v1_when_private_channels_upgrade_fails(
+    app: SupersetApp,
+    mocker: MockerFixture,
+    probe_result: bool,
+) -> None:
+    """A failed probe or migration must record fallback for every recipient row."""
+    app.config["ALERT_REPORTS_NOTIFICATION_DRY_RUN"] = False
+    original_configs = [
+        json.dumps({"target": "private-a"}),
+        json.dumps({"target": "private-b"}),
+    ]
+    recipients = [
+        ReportRecipients(
+            type=ReportRecipientType.SLACK,
+            recipient_config_json=config,
+        )
+        for config in original_configs
+    ]
+    report_schedule = ReportSchedule(
+        name="Private channel report",
+        recipients=recipients,
+    )
+    report_state = BaseReportState(
+        report_schedule,
+        "January 1, 2021",
+        "execution_id_example",
+    )
+    notification_content = NotificationContent(
+        name="Private channel report",
+        header_data={
+            "notification_format": "TEXT",
+            "notification_type": "Report",
+            "editors": [],
+            "notification_source": None,
+            "chart_id": None,
+            "dashboard_id": None,
+            "slack_channels": ["private-a", "private-b"],
+            "execution_id": "execution_id_example",
+        },
+        description="Text-only report",
+        url="https://superset.example/report",
+    )
+    v2_probe = mocker.patch(
+        "superset.reports.notifications.slack.should_use_v2_api",
+        return_value=probe_result,
+    )
+    mocker.patch(
+        "superset.reports.notifications.slack.feature_flag_manager.is_feature_enabled",
+        return_value=True,
+    )
+    channel_search = mocker.patch(
+        "superset.reports.notifications.slack_channel_resolver.get_channels_with_search_and_cache_status",
+        return_value=([], False),
+    )
+    slack_client = mocker.patch("superset.reports.notifications.slack.get_slack_client")
+    stats_logger = mocker.Mock()
+    mocker.patch.dict(app.config, {"STATS_LOGGER": stats_logger})
+    mocker.patch("superset.reports.notifications.slack.g", logs_context={})
+
+    report_state._send(notification_content, report_schedule.recipients)
+
+    assert v2_probe.call_count == 1
+    channel_search.assert_called_once_with(
+        search_string="private-a,private-b",
+        types=mocker.ANY,
+        exact_match=True,
+    )
+    stats_logger.incr.assert_called_once_with("reports.slack.v1_fallback")
+    assert len(report_state._execution_warnings) == 1
+    assert "deprecated Slack v1" in report_state._execution_warnings[0]
+    assert "private-a" in report_state._execution_warnings[0]
+    assert slack_client.return_value.chat_postMessage.call_count == 2
+    assert [
+        call.kwargs["channel"]
+        for call in slack_client.return_value.chat_postMessage.call_args_list
+    ] == ["private-a", "private-b"]
+    assert [recipient.type for recipient in recipients] == [
+        ReportRecipientType.SLACK,
+        ReportRecipientType.SLACK,
+    ]
+    assert [recipient.recipient_config_json for recipient in recipients] == (
+        original_configs
+    )
+
+
+def test_failed_upgraded_delivery_restores_slack_v1_recipients(
+    app: SupersetApp,
+    mocker: MockerFixture,
+) -> None:
+    """A failed v2 delivery must not persist the execution's recipient upgrade."""
+    app.config["ALERT_REPORTS_NOTIFICATION_DRY_RUN"] = False
+    original_configs = [
+        json.dumps({"target": "private-a"}),
+        json.dumps({"target": "private-b"}),
+    ]
+    recipients = [
+        ReportRecipients(
+            type=ReportRecipientType.SLACK,
+            recipient_config_json=config,
+        )
+        for config in original_configs
+    ]
+    state = BaseReportState(
+        ReportSchedule(name="Private channel report", recipients=recipients),
+        "January 1, 2021",
+        "execution_id_example",
+    )
+    content = NotificationContent(
+        name="Private channel report",
+        header_data=_make_notification_header(),
+    )
+    channel_search = mocker.patch(
+        "superset.reports.notifications.slack_channel_resolver.get_channels_with_search_and_cache_status",
+        return_value=(
+            [
+                {"id": "C1", "name": "private-a", "is_private": True},
+                {"id": "C2", "name": "private-b", "is_private": True},
+            ],
+            False,
+        ),
+    )
+    legacy = mocker.Mock(spec=SlackNotification)
+    legacy.send.side_effect = SlackV1NotificationError
+    failed_upgrade = mocker.Mock(spec=BaseNotification)
+    failed_upgrade.send.side_effect = NotificationParamException("v2 send failed")
+    later_upgrade = mocker.Mock(spec=BaseNotification)
+    create_notification_mock = mocker.patch(
+        "superset.commands.report.execute.create_notification",
+        side_effect=[legacy, failed_upgrade, later_upgrade],
+    )
+
+    with pytest.raises(ReportScheduleClientErrorsException, match="v2 send failed"):
+        state._send(content, recipients)
+
+    assert create_notification_mock.call_count == 3
+    channel_search.assert_called_once()
+    later_upgrade.send.assert_called_once_with()
+    assert [recipient.type for recipient in recipients] == [
+        ReportRecipientType.SLACK,
+        ReportRecipientType.SLACK,
+    ]
+    assert [recipient.recipient_config_json for recipient in recipients] == (
+        original_configs
+    )
+
+
+def test_unexpected_upgraded_delivery_failure_restores_slack_v1_recipient(
+    app: SupersetApp,
+    mocker: MockerFixture,
+) -> None:
+    """Unexpected transport failures must not leak a pending recipient upgrade."""
+    app.config["ALERT_REPORTS_NOTIFICATION_DRY_RUN"] = False
+    original_config = json.dumps({"target": "private-channel"})
+    recipient = ReportRecipients(
+        type=ReportRecipientType.SLACK,
+        recipient_config_json=original_config,
+    )
+    state = BaseReportState(
+        ReportSchedule(name="Private channel report", recipients=[recipient]),
+        "January 1, 2021",
+        "execution_id_example",
+    )
+    mocker.patch(
+        "superset.reports.notifications.slack_channel_resolver.get_channels_with_search_and_cache_status",
+        return_value=(
+            [{"id": "C1", "name": "private-channel", "is_private": True}],
+            False,
+        ),
+    )
+    legacy = mocker.Mock(spec=SlackNotification)
+    legacy.send.side_effect = SlackV1NotificationError
+    failed_upgrade = mocker.Mock(spec=BaseNotification)
+    failed_upgrade.send.side_effect = RuntimeError("unexpected v2 failure")
+    mocker.patch(
+        "superset.commands.report.execute.create_notification",
+        side_effect=[legacy, failed_upgrade],
+    )
+
+    with pytest.raises(RuntimeError, match="unexpected v2 failure"):
+        state._send(
+            NotificationContent(
+                name="Private channel report",
+                header_data=_make_notification_header(),
+            ),
+            [recipient],
+        )
+
+    assert recipient.type == ReportRecipientType.SLACK
+    assert recipient.recipient_config_json == original_config
+
+
+def test_send_records_system_upgrade_failure_when_text_fallback_succeeds(
+    app: SupersetApp,
+    mocker: MockerFixture,
+) -> None:
+    """Delivery continuity retains an observable system-failure signal."""
+    app.config["ALERT_REPORTS_NOTIFICATION_DRY_RUN"] = False
+    stats_logger = mocker.Mock()
+    mocker.patch.dict(app.config, {"STATS_LOGGER": stats_logger})
+    recipients = [
+        ReportRecipients(
+            type=ReportRecipientType.SLACK,
+            recipient_config_json=json.dumps({"target": channel}),
+        )
+        for channel in ("private-a", "private-b")
+    ]
+    report_schedule = ReportSchedule(
+        id=42,
+        name="Private channel report",
+        recipients=recipients,
+    )
+    report_state = BaseReportState(
+        report_schedule,
+        "January 1, 2021",
+        "execution_id_example",
+    )
+    notification_content = NotificationContent(
+        name="Private channel report",
+        header_data={
+            "notification_format": "TEXT",
+            "notification_type": "Report",
+            "editors": [],
+            "notification_source": None,
+            "chart_id": None,
+            "dashboard_id": None,
+            "slack_channels": ["private-channel"],
+            "execution_id": "execution_id_example",
+        },
+        description="Text-only report",
+        url="https://superset.example/report",
+    )
+    mocker.patch(
+        "superset.reports.notifications.slack.should_use_v2_api",
+        return_value=True,
+    )
+    mocker.patch(
+        "superset.reports.notifications.slack_channel_resolver.get_channels_with_search_and_cache_status",
+        side_effect=SupersetException("Slack channel listing unavailable"),
+    )
+    slack_client = mocker.patch("superset.reports.notifications.slack.get_slack_client")
+    logger = mocker.patch("superset.commands.report.slack_upgrade.logger")
+    mocker.patch("superset.reports.notifications.slack.g", logs_context={})
+
+    report_state._send(notification_content, recipients)
+
+    assert [
+        slack_call.kwargs["channel"]
+        for slack_call in slack_client.return_value.chat_postMessage.call_args_list
+    ] == ["private-a", "private-b"]
+    assert stats_logger.incr.call_args_list == [
+        mock.call("reports.slack.v1_fallback"),
+        mock.call("reports.slack.v1_fallback.system_error"),
+    ]
+    logger.error.assert_called_once()
+    assert logger.error.call_args.kwargs["extra"] == {
+        "execution_id": "execution_id_example",
+        "report_schedule_id": 42,
+    }
+
+
+def test_failed_slack_v1_fallback_does_not_record_delivery(
+    app: SupersetApp,
+    mocker: MockerFixture,
+) -> None:
+    stats_logger = mocker.Mock()
+    mocker.patch.dict(app.config, {"STATS_LOGGER": stats_logger})
+    report_schedule = ReportSchedule(id=42, name="Private channel report")
+    report_state = BaseReportState(
+        report_schedule,
+        "January 1, 2021",
+        "execution_id_example",
+    )
+    notification = mocker.Mock()
+    notification.send_legacy_text.side_effect = NotificationParamException(
+        "Slack delivery failed"
+    )
+    content = mocker.Mock()
+    content.has_attachments = False
+
+    with pytest.raises(NotificationParamException, match="Slack delivery failed"):
+        report_state._slack_v1_upgrade.send_fallback(
+            notification,
+            content,
+            UpdateFailedError("Slack upgrade failed"),
+        )
+
+    assert report_state._execution_warnings == []
+    stats_logger.incr.assert_not_called()
+
+
+def test_later_successful_fallback_records_delivery_after_first_failure(
+    app: SupersetApp,
+    mocker: MockerFixture,
+) -> None:
+    """Observability is recorded after the first successful fallback recipient."""
+    app.config["ALERT_REPORTS_NOTIFICATION_DRY_RUN"] = False
+    stats_logger = mocker.Mock()
+    mocker.patch.dict(app.config, {"STATS_LOGGER": stats_logger})
+    recipients = [
+        ReportRecipients(
+            type=ReportRecipientType.SLACK,
+            recipient_config_json=json.dumps({"target": channel}),
+        )
+        for channel in ("private-a", "private-b")
+    ]
+    state = BaseReportState(
+        ReportSchedule(id=42, name="Private channel report", recipients=recipients),
+        "January 1, 2021",
+        "execution_id_example",
+    )
+    content = NotificationContent(
+        name="Private channel report",
+        header_data={
+            "notification_format": "TEXT",
+            "notification_type": "Report",
+            "editors": [],
+            "notification_source": None,
+            "chart_id": None,
+            "dashboard_id": None,
+            "slack_channels": ["private-a", "private-b"],
+            "execution_id": "execution_id_example",
+        },
+        description="Text-only report",
+        url="https://superset.example/report",
+    )
+    notifications = [mocker.Mock(spec=SlackNotification) for _ in recipients]
+    notifications[0].send.side_effect = SlackV1NotificationError
+    notifications[0].send_legacy_text.side_effect = NotificationParamException(
+        "first delivery failed"
+    )
+    mocker.patch(
+        "superset.commands.report.execute.create_notification",
+        side_effect=notifications,
+    )
+    mocker.patch.object(
+        state._slack_v1_upgrade,
+        "update_recipients",
+        side_effect=UpdateFailedError("Slack upgrade failed"),
+    )
+
+    with pytest.raises(ReportScheduleClientErrorsException):
+        state._send(content, recipients)
+
+    notifications[1].send_legacy_text.assert_called_once_with()
+    stats_logger.incr.assert_has_calls(
+        [
+            mock.call("reports.slack.v1_fallback"),
+            mock.call("reports.slack.v1_fallback.system_error"),
+        ]
+    )
+    assert len(state._execution_warnings) == 1
+
+
+def test_failed_slack_upgrade_fallback_does_not_affect_other_recipient_types(
+    app: SupersetApp,
+    mocker: MockerFixture,
+) -> None:
+    """Only the legacy Slack recipient uses fallback in a mixed schedule."""
+    from superset.reports.notifications.slack import SlackNotification
+
+    app.config["ALERT_REPORTS_NOTIFICATION_DRY_RUN"] = False
+    stats_logger = mocker.Mock()
+    mocker.patch.dict(app.config, {"STATS_LOGGER": stats_logger})
+    recipients = [
+        ReportRecipients(
+            type=ReportRecipientType.SLACK,
+            recipient_config_json=json.dumps({"target": "private-channel"}),
+        ),
+        ReportRecipients(
+            type=ReportRecipientType.SLACKV2,
+            recipient_config_json=json.dumps({"target": "C123"}),
+        ),
+        ReportRecipients(
+            type=ReportRecipientType.EMAIL,
+            recipient_config_json=json.dumps({"target": "user@example.com"}),
+        ),
+    ]
+    report_schedule = ReportSchedule(
+        name="Mixed recipient report",
+        recipients=recipients,
+    )
+    state = BaseReportState(
+        report_schedule,
+        "January 1, 2021",
+        "execution_id_example",
+    )
+    content = NotificationContent(
+        name="Mixed recipient report",
+        header_data={
+            "notification_format": "TEXT",
+            "notification_type": "Report",
+            "editors": [],
+            "notification_source": None,
+            "chart_id": None,
+            "dashboard_id": None,
+            "slack_channels": ["private-channel"],
+            "execution_id": "execution_id_example",
+        },
+        description="Text-only report",
+        url="https://superset.example/report",
+    )
+    legacy_notification = SlackNotification(recipients[0], content)
+    v2_notification = mocker.Mock()
+    email_notification = mocker.Mock()
+    mocker.patch(
+        "superset.commands.report.execute.create_notification",
+        side_effect=[legacy_notification, v2_notification, email_notification],
+    )
+    mocker.patch(
+        "superset.reports.notifications.slack.should_use_v2_api",
+        return_value=True,
+    )
+    channel_search = mocker.patch(
+        "superset.reports.notifications.slack_channel_resolver.get_channels_with_search_and_cache_status",
+        return_value=([], False),
+    )
+    slack_client = mocker.patch("superset.reports.notifications.slack.get_slack_client")
+    mocker.patch("superset.reports.notifications.slack.g", logs_context={})
+
+    state._send(content, recipients)
+
+    assert channel_search.call_count == 1
+    slack_client.return_value.chat_postMessage.assert_called_once_with(
+        channel="private-channel",
+        text=mocker.ANY,
+    )
+    v2_notification.send.assert_called_once_with()
+    email_notification.send.assert_called_once_with()
+    stats_logger.incr.assert_called_once_with("reports.slack.v1_fallback")
+
+
+def test_send_malformed_slack_recipient_does_not_suppress_later_recipient(
+    app: SupersetApp,
+    mocker: MockerFixture,
+) -> None:
+    """A malformed recipient is aggregated while later recipients still send."""
+    app.config["ALERT_REPORTS_NOTIFICATION_DRY_RUN"] = False
+    recipients = [
+        ReportRecipients(
+            type=ReportRecipientType.SLACK,
+            recipient_config_json=json.dumps({}),
+        ),
+        ReportRecipients(
+            type=ReportRecipientType.SLACK,
+            recipient_config_json=json.dumps({"target": "private-b"}),
+        ),
+    ]
+    report_schedule = ReportSchedule(
+        name="Private channel report",
+        recipients=recipients,
+    )
+    report_state = BaseReportState(
+        report_schedule,
+        "January 1, 2021",
+        "execution_id_example",
+    )
+    notification_content = NotificationContent(
+        name="Private channel report",
+        header_data={
+            "notification_format": "TEXT",
+            "notification_type": "Report",
+            "editors": [],
+            "notification_source": None,
+            "chart_id": None,
+            "dashboard_id": None,
+            "slack_channels": ["private-b"],
+            "execution_id": "execution_id_example",
+        },
+        description="Text-only report",
+        url="https://superset.example/report",
+    )
+    v2_probe = mocker.patch(
+        "superset.reports.notifications.slack.should_use_v2_api",
+        return_value=True,
+    )
+    channel_search = mocker.patch(
+        "superset.reports.notifications.slack_channel_resolver.get_channels_with_search_and_cache_status",
+    )
+    slack_client = mocker.patch("superset.reports.notifications.slack.get_slack_client")
+    mocker.patch("superset.reports.notifications.slack.g", logs_context={})
+
+    with pytest.raises(ReportScheduleClientErrorsException) as exc_info:
+        report_state._send(notification_content, recipients)
+
+    assert exc_info.value.errors[0].message == "No recipients saved in the report"
+    slack_client.return_value.chat_postMessage.assert_called_once_with(
+        channel="private-b",
+        text=mocker.ANY,
+    )
+    assert v2_probe.call_count == 1
+    channel_search.assert_not_called()
+    assert [recipient.type for recipient in recipients] == [
+        ReportRecipientType.SLACK,
+        ReportRecipientType.SLACK,
+    ]
+
+
+@pytest.mark.parametrize(
+    "attachment",
+    [
+        {"screenshots": [b"screenshot"]},
+        {"xlsx": b"xlsx_content"},
+    ],
+    ids=["screenshot", "xlsx"],
+)
+def test_send_preserves_transient_upgrade_failure_for_file_reports(
+    app: SupersetApp,
+    mocker: MockerFixture,
+    attachment: dict[str, Any],
+) -> None:
+    """A transient v2 migration failure remains a system error for files."""
+    app.config["ALERT_REPORTS_NOTIFICATION_DRY_RUN"] = False
+    recipient = ReportRecipients(
+        type=ReportRecipientType.SLACK,
+        recipient_config_json=json.dumps({"target": "private-channel"}),
+    )
+    report_schedule = ReportSchedule(
+        name="Private channel report",
+        recipients=[recipient],
+    )
+    report_state = BaseReportState(
+        report_schedule,
+        "January 1, 2021",
+        "execution_id_example",
+    )
+    notification_content = NotificationContent(
+        name="Private channel report",
+        header_data={
+            "notification_format": "PNG",
+            "notification_type": "Report",
+            "editors": [],
+            "notification_source": None,
+            "chart_id": None,
+            "dashboard_id": None,
+            "slack_channels": ["private-channel"],
+            "execution_id": "execution_id_example",
+        },
+        description="File-bearing report",
+        url="https://superset.example/report",
+        **attachment,
+    )
+    mocker.patch(
+        "superset.reports.notifications.slack.should_use_v2_api",
+        return_value=True,
+    )
+    mocker.patch(
+        "superset.reports.notifications.slack_channel_resolver.get_channels_with_search_and_cache_status",
+        side_effect=SupersetException("Slack channel listing unavailable"),
+    )
+    slack_client = mocker.patch("superset.reports.notifications.slack.get_slack_client")
+    mocker.patch("superset.reports.notifications.slack.g", logs_context={})
+    statsd_mock = mocker.patch(
+        "superset.extensions.stats_logger_manager.instance.gauge"
+    )
+
+    with pytest.raises(ReportScheduleSystemErrorsException) as exc_info:
+        report_state._send(notification_content, [recipient])
+
+    error_message = exc_info.value.errors[0].message
+    assert "Slack v1 file uploads are no longer supported" in error_message
+    assert "channels:read" in error_message
+    assert "groups:read" in error_message
+    assert "Slack channel listing unavailable" in error_message
+    slack_client.assert_not_called()
+    statsd_mock.assert_called_once_with("reports.slack.send.error", 1)
+    assert recipient.type == ReportRecipientType.SLACK
+    assert recipient.recipient_config_json == '{"target": "private-channel"}'
+
+
+@pytest.mark.parametrize(
+    "probe_error,expected_exception",
+    [
+        (
+            SlackV2ProbeError(
+                "Slack v2 availability probe failed: service_unavailable"
+            ),
+            ReportScheduleSystemErrorsException,
+        ),
+        (
+            SlackV2ProbeClientError("Slack v2 availability probe failed: invalid_auth"),
+            ReportScheduleClientErrorsException,
+        ),
+    ],
+    ids=["system", "client"],
+)
+def test_send_classifies_probe_failure_for_file_reports(
+    app: SupersetApp,
+    mocker: MockerFixture,
+    probe_error: SlackV2ProbeError,
+    expected_exception: type[Exception],
+) -> None:
+    """Slack capability probe failures retain system/client classification."""
+    app.config["ALERT_REPORTS_NOTIFICATION_DRY_RUN"] = False
+    recipient = ReportRecipients(
+        type=ReportRecipientType.SLACK,
+        recipient_config_json=json.dumps({"target": "private-channel"}),
+    )
+    report_schedule = ReportSchedule(
+        name="Private channel report",
+        recipients=[recipient],
+    )
+    report_state = BaseReportState(
+        report_schedule,
+        "January 1, 2021",
+        "execution_id_example",
+    )
+    notification_content = NotificationContent(
+        name="Private channel report",
+        header_data={
+            "notification_format": "PNG",
+            "notification_type": "Report",
+            "editors": [],
+            "notification_source": None,
+            "chart_id": None,
+            "dashboard_id": None,
+            "slack_channels": ["private-channel"],
+            "execution_id": "execution_id_example",
+        },
+        screenshots=[b"screenshot"],
+        description="File-bearing report",
+        url="https://superset.example/report",
+    )
+    mocker.patch(
+        "superset.reports.notifications.slack.should_use_v2_api",
+        side_effect=probe_error,
+    )
+    slack_client = mocker.patch("superset.reports.notifications.slack.get_slack_client")
+    mocker.patch("superset.reports.notifications.slack.g", logs_context={})
+
+    with pytest.raises(expected_exception) as exc_info:
+        report_state._send(notification_content, [recipient])
+
+    assert str(probe_error) in exc_info.value.errors[0].message
+    slack_client.assert_not_called()
+
+
+def test_send_classifies_malformed_file_recipient_as_client_error(
+    app: SupersetApp,
+    mocker: MockerFixture,
+) -> None:
+    """Malformed file recipients retain actionable client classification."""
+    app.config["ALERT_REPORTS_NOTIFICATION_DRY_RUN"] = False
+    recipient = ReportRecipients(
+        type=ReportRecipientType.SLACK,
+        recipient_config_json=json.dumps({}),
+    )
+    report_schedule = ReportSchedule(
+        name="Private channel report",
+        recipients=[recipient],
+    )
+    report_state = BaseReportState(
+        report_schedule,
+        "January 1, 2021",
+        "execution_id_example",
+    )
+    notification_content = NotificationContent(
+        name="Private channel report",
+        header_data={
+            "notification_format": "PNG",
+            "notification_type": "Report",
+            "editors": [],
+            "notification_source": None,
+            "chart_id": None,
+            "dashboard_id": None,
+            "slack_channels": [],
+            "execution_id": "execution_id_example",
+        },
+        screenshots=[b"screenshot"],
+        description="File-bearing report",
+        url="https://superset.example/report",
+    )
+    mocker.patch(
+        "superset.reports.notifications.slack.should_use_v2_api",
+        return_value=True,
+    )
+    channel_search = mocker.patch(
+        "superset.reports.notifications.slack_channel_resolver.get_channels_with_search_and_cache_status",
+    )
+    slack_client = mocker.patch("superset.reports.notifications.slack.get_slack_client")
+    mocker.patch("superset.reports.notifications.slack.g", logs_context={})
+
+    with pytest.raises(ReportScheduleClientErrorsException) as exc_info:
+        report_state._send(notification_content, [recipient])
+
+    assert "No recipients saved in the report" in exc_info.value.errors[0].message
+    slack_client.assert_not_called()
+    channel_search.assert_not_called()
+    assert recipient.type == ReportRecipientType.SLACK
+    assert recipient.recipient_config_json == "{}"
+
+
+def test_send_does_not_fall_back_to_slack_v1_for_file_uploads(
+    app: SupersetApp,
+    mocker: MockerFixture,
+) -> None:
+    """A failed v2 migration must not retry a retired v1 file upload."""
+    app.config["ALERT_REPORTS_NOTIFICATION_DRY_RUN"] = False
+    recipient = ReportRecipients(
+        type=ReportRecipientType.SLACK,
+        recipient_config_json=json.dumps({"target": "private-channel"}),
+    )
+    report_schedule = ReportSchedule(
+        name="Private channel report",
+        recipients=[recipient],
+    )
+    report_state = BaseReportState(
+        report_schedule,
+        "January 1, 2021",
+        "execution_id_example",
+    )
+    notification_content = NotificationContent(
+        name="Private channel report",
+        header_data={
+            "notification_format": "PNG",
+            "notification_type": "Report",
+            "editors": [],
+            "notification_source": None,
+            "chart_id": None,
+            "dashboard_id": None,
+            "slack_channels": ["private-channel"],
+            "execution_id": "execution_id_example",
+        },
+        screenshots=[b"screenshot"],
+        description="File-bearing report",
+        url="https://superset.example/report",
+    )
+    mocker.patch(
+        "superset.reports.notifications.slack.should_use_v2_api",
+        return_value=True,
+    )
+    mocker.patch(
+        "superset.reports.notifications.slack_channel_resolver.get_channels_with_search_and_cache_status",
+        return_value=([], False),
+    )
+    slack_client = mocker.patch("superset.reports.notifications.slack.get_slack_client")
+    mocker.patch("superset.reports.notifications.slack.g", logs_context={})
+
+    with pytest.raises(ReportScheduleClientErrorsException) as exc_info:
+        report_state._send(notification_content, report_schedule.recipients)
+
+    error_message = str(exc_info.value.errors[0].message)
+    assert "Slack v1 file uploads are no longer supported" in error_message
+    assert "`channels:read` and `groups:read`" in error_message
+    assert "Could not find the following channels: private-channel" in error_message
+    slack_client.return_value.files_upload.assert_not_called()
+    slack_client.return_value.chat_postMessage.assert_not_called()
+    assert recipient.type == ReportRecipientType.SLACK
+    assert recipient.recipient_config_json == '{"target": "private-channel"}'
 
 
 # ---------------------------------------------------------------------------
@@ -904,6 +3111,22 @@ def test_update_query_context_wraps_screenshot_failure(mocker: MockerFixture) ->
     )
     with pytest.raises(ReportScheduleCsvFailedError, match="query context"):
         state._update_query_context()
+
+
+def test_update_query_context_wraps_screenshot_failure_xlsx(
+    mocker: MockerFixture,
+) -> None:
+    """_update_query_context surfaces the caller's error class (XLSX, not CSV)."""
+    schedule = mocker.Mock(spec=ReportSchedule)
+    state = BaseReportState(schedule, datetime.utcnow(), uuid4())
+    state._report_schedule = schedule
+    mocker.patch.object(
+        state,
+        "_get_screenshots",
+        side_effect=ReportScheduleScreenshotFailedError("boom"),
+    )
+    with pytest.raises(ReportScheduleXlsxFailedError, match="query context"):
+        state._update_query_context(ReportScheduleXlsxFailedError)
 
 
 def test_update_query_context_wraps_screenshot_timeout(mocker: MockerFixture) -> None:
@@ -968,8 +3191,9 @@ def _make_notification_state(
     schedule.description = "desc"
     schedule.email_subject = email_subject
     schedule.force_screenshot = False
+    schedule.working_timeout = None
     schedule.recipients = []
-    schedule.owners = []
+    schedule.editors = []
 
     if has_chart:
         schedule.chart = mocker.Mock()
@@ -1007,6 +3231,52 @@ def test_get_notification_content_png_screenshot(
     assert content.text is None
 
 
+def test_slack_retry_deadline_flows_from_report_state_to_transport(
+    app: SupersetApp,
+    mocker: MockerFixture,
+) -> None:
+    """One absolute execution deadline reaches every Slack v2 destination."""
+    app.config["ALERT_REPORTS_NOTIFICATION_DRY_RUN"] = False
+    state = _make_notification_state(mocker, report_format=ReportDataFormat.PNG)
+    mocker.patch.object(state, "_get_screenshots", return_value=[b"img"])
+    deadline_factory = mocker.patch(
+        "superset.commands.report.execute.get_slack_send_retry_deadline",
+        return_value=123.0,
+    )
+    mocker.patch("superset.reports.notifications.slackv2.get_slack_client")
+    send_to_channels = mocker.patch(
+        "superset.reports.notifications.slackv2.send_to_slack_channels"
+    )
+    recipient = ReportRecipients(
+        type=ReportRecipientType.SLACKV2,
+        recipient_config_json='{"target": "C1"}',
+    )
+
+    content = state._get_notification_content()
+    state._send_notification(content, recipient)
+
+    assert content.slack_retry_deadline == 123.0
+    deadline_factory.assert_called_once_with(None)
+    assert send_to_channels.call_args.kwargs["retry_deadline"] == 123.0
+
+
+def test_slack_retry_deadline_clamps_elapsed_working_timeout(
+    mocker: MockerFixture,
+) -> None:
+    """An exhausted report timeout produces an already-expired Slack deadline."""
+    state = _make_notification_state(mocker)
+    state._report_schedule.working_timeout = 10
+    state._start_dttm = datetime.utcnow() - timedelta(seconds=11)
+    mocker.patch("superset.commands.report.execute.time.monotonic", return_value=50.0)
+    deadline_factory = mocker.patch(
+        "superset.commands.report.execute.get_slack_send_retry_deadline",
+        side_effect=lambda deadline: deadline,
+    )
+
+    assert state._get_slack_retry_deadline() == 50.0
+    deadline_factory.assert_called_once_with(50.0)
+
+
 @patch("superset.commands.report.execute.feature_flag_manager")
 def test_get_notification_content_png_empty_returns_error(
     mock_ff, mocker: MockerFixture
@@ -1025,10 +3295,43 @@ def test_get_notification_content_csv_format(mock_ff, mocker: MockerFixture) -> 
     state = _make_notification_state(
         mocker, report_format=ReportDataFormat.CSV, has_chart=True
     )
-    mocker.patch.object(state, "_get_csv_data", return_value=b"col1,col2\n1,2")
+    mocker.patch.object(state, "_get_data", return_value=b"col1,col2\n1,2")
 
     content = state._get_notification_content()
     assert content.csv == b"col1,col2\n1,2"
+    assert content.xlsx is None
+
+
+@patch("superset.commands.report.execute.feature_flag_manager")
+def test_get_notification_content_xlsx_format(
+    mock_ff: MagicMock, mocker: MockerFixture
+) -> None:
+    """XLSX-format reports populate ``NotificationContent.xlsx`` (not ``csv``)."""
+    mock_ff.is_feature_enabled.return_value = False
+    state = _make_notification_state(
+        mocker, report_format=ReportDataFormat.XLSX, has_chart=True
+    )
+    mocker.patch.object(state, "_get_data", return_value=b"xlsx_bytes")
+
+    content = state._get_notification_content()
+    assert content.xlsx == b"xlsx_bytes"
+    assert content.csv is None
+
+
+@patch("superset.commands.report.execute.feature_flag_manager")
+def test_get_notification_content_xlsx_rejects_dashboard(
+    mock_ff, mocker: MockerFixture
+) -> None:
+    mock_ff.is_feature_enabled.return_value = False
+    state = _make_notification_state(
+        mocker, report_format=ReportDataFormat.XLSX, has_chart=False
+    )
+
+    with pytest.raises(
+        ReportScheduleXlsxFailedError,
+        match="XLSX reports are only supported for chart schedules",
+    ):
+        state._get_notification_content()
 
 
 @patch("superset.commands.report.execute.feature_flag_manager")
@@ -1100,10 +3403,17 @@ def _make_state_instance(
     schedule.working_timeout = working_timeout
     schedule.last_eval_dttm = datetime.utcnow()
     schedule.name = "Test"
-    schedule.owners = []
+    schedule.editors = []
     schedule.recipients = []
     schedule.force_screenshot = False
     schedule.extra = {}
+    schedule.retry_on_failure = False
+    schedule.retry_max_attempts = 3
+    schedule.retry_attempt = 0
+    schedule.retry_scheduled_dttm = None
+    schedule.send_failed_reports = False
+    schedule.retry_notify_owners = True
+    schedule.retry_notify_recipients = False
 
     instance = cls(schedule, datetime.utcnow(), uuid4())
     instance._report_schedule = schedule
@@ -1117,6 +3427,7 @@ def test_working_state_timeout_raises_timeout_error(mocker: MockerFixture) -> No
 
     mock_log = mocker.Mock()
     mock_log.end_dttm = datetime.utcnow() - timedelta(hours=2)
+    mock_log.uuid = uuid4()
     mocker.patch(
         "superset.commands.report.execute.ReportScheduleDAO.find_last_entered_working_log",
         return_value=mock_log,
@@ -1138,15 +3449,165 @@ def test_working_state_still_working_raises_previous_working(
     """Working state not yet timed out should raise PreviousWorkingError."""
     state = _make_state_instance(mocker, ReportWorkingState)
     mocker.patch.object(state, "is_on_working_timeout", return_value=False)
-    mocker.patch.object(state, "update_report_schedule_and_log")
+    mocker.patch.object(state, "create_log")
 
     with pytest.raises(ReportSchedulePreviousWorkingError):
         state.next()
 
-    state.update_report_schedule_and_log.assert_called_once_with(  # type: ignore[attr-defined]
-        ReportState.WORKING,
+    state.create_log.assert_called_once_with(  # type: ignore[attr-defined]
         error_message=str(ReportSchedulePreviousWorkingError()),
+        log_state=ReportState.ERROR,
+        reuse_working_log=False,
     )
+
+
+def test_working_timeout_replay_delegates_single_terminal_update(
+    mocker: MockerFixture,
+) -> None:
+    state = _make_state_instance(
+        mocker,
+        ReportWorkingState,
+        schedule_type=ReportScheduleType.REPORT,
+        last_state=ReportState.WORKING,
+    )
+    mocker.patch.object(state, "is_on_working_timeout", return_value=True)
+    working_log = mocker.Mock()
+    working_log.uuid = state._execution_id
+    working_log.state = ReportState.WORKING
+    working_log.end_dttm = datetime.utcnow() - timedelta(minutes=20)
+    mocker.patch(
+        "superset.commands.report.execute.ReportScheduleDAO.find_last_entered_working_log",
+        return_value=working_log,
+    )
+    update = mocker.patch.object(state, "update_report_schedule_and_log")
+
+    with pytest.raises(ReportScheduleWorkingTimeoutError):
+        state.next()
+
+    update.assert_called_once_with(
+        ReportState.ERROR,
+        error_message=str(ReportScheduleWorkingTimeoutError()),
+    )
+    assert working_log.state == ReportState.WORKING
+
+
+def test_stale_recovery_delegates_terminal_update_without_delivery(
+    mocker: MockerFixture,
+) -> None:
+    """Recovery unblocks the schedule without racing the old worker's audit row."""
+    state = _make_state_instance(
+        mocker,
+        ReportWorkingState,
+        schedule_type=ReportScheduleType.REPORT,
+        last_state=ReportState.WORKING,
+    )
+    mocker.patch.object(state, "is_on_working_timeout", return_value=True)
+    working_log = mocker.Mock()
+    working_log.uuid = uuid4()
+    working_log.state = ReportState.WORKING
+    working_log.error_message = None
+    working_log.end_dttm = datetime.utcnow() - timedelta(minutes=20)
+    mocker.patch(
+        "superset.commands.report.execute.ReportScheduleDAO.find_last_entered_working_log",
+        return_value=working_log,
+    )
+    recovered_next = mocker.patch.object(ReportNotTriggeredErrorState, "next")
+    update = mocker.patch.object(state, "update_report_schedule_and_log")
+
+    with pytest.raises(ReportScheduleWorkingTimeoutError):
+        state.next()
+
+    update.assert_called_once_with(
+        ReportState.ERROR,
+        error_message=str(ReportScheduleWorkingTimeoutError()),
+    )
+    assert working_log.state == ReportState.WORKING
+    assert working_log.error_message is None
+    recovered_next.assert_not_called()
+
+
+def test_report_working_state_recovery_is_bounded_by_execution_budget(
+    app: SupersetApp,
+    mocker: MockerFixture,
+) -> None:
+    """A lost report worker is unblocked once the effective budget elapses.
+
+    The effective budget is min(global budget, working_timeout); with a
+    deployment-tightened 900s budget, a schedule whose working_timeout is
+    still the one-hour default stops blocking after 15 minutes, not 60.
+    """
+    state = _make_state_instance(
+        mocker,
+        ReportWorkingState,
+        schedule_type=ReportScheduleType.REPORT,
+        last_state=ReportState.WORKING,
+        working_timeout=3600,
+    )
+    working_log = mocker.Mock()
+    working_log.end_dttm = datetime.utcnow() - timedelta(minutes=20)
+    mocker.patch(
+        "superset.commands.report.execute.ReportScheduleDAO.find_last_entered_working_log",
+        return_value=working_log,
+    )
+
+    app.config["ALERT_REPORTS_EXECUTION_BUDGET_SECONDS"] = 900
+    try:
+        assert state.is_on_working_timeout()
+    finally:
+        app.config["ALERT_REPORTS_EXECUTION_BUDGET_SECONDS"] = 3600
+
+
+def test_soft_timeout_transitions_report_out_of_working(
+    mocker: MockerFixture,
+) -> None:
+    state = _make_state_instance(
+        mocker,
+        ReportNotTriggeredErrorState,
+        schedule_type=ReportScheduleType.REPORT,
+    )
+    mocker.patch.object(state, "send", side_effect=SoftTimeLimitExceeded())
+    mock_update = mocker.patch.object(state, "update_report_schedule_and_log")
+    send_error = mocker.patch.object(state, "send_error")
+
+    with pytest.raises(SoftTimeLimitExceeded):
+        state.next()
+
+    assert mock_update.call_args_list[0] == mocker.call(ReportState.WORKING)
+    assert mock_update.call_args_list[1] == mocker.call(
+        ReportState.ERROR,
+        error_message="celery_soft_timeout",
+    )
+    send_error.assert_not_called()
+
+
+def test_budget_timeout_transitions_report_without_error_delivery(
+    mocker: MockerFixture,
+) -> None:
+    state = _make_state_instance(
+        mocker,
+        ReportNotTriggeredErrorState,
+        schedule_type=ReportScheduleType.REPORT,
+    )
+    timeout = ReportExecutionBudgetExceededError(
+        "chart_readiness",
+        elapsed_seconds=690,
+        remaining_seconds=210,
+    )
+    mocker.patch.object(state, "send", side_effect=timeout)
+    mock_update = mocker.patch.object(state, "update_report_schedule_and_log")
+    send_error = mocker.patch.object(state, "send_error")
+
+    with pytest.raises(ReportExecutionBudgetExceededError):
+        state.next()
+
+    assert mock_update.call_args_list == [
+        mocker.call(ReportState.WORKING),
+        mocker.call(
+            ReportState.ERROR,
+            error_message="report_execution_budget_exhausted:chart_readiness",
+        ),
+    ]
+    send_error.assert_not_called()
 
 
 def test_success_state_grace_period_returns_without_sending(
@@ -1198,6 +3659,30 @@ def test_not_triggered_error_state_send_failure_logs_error_and_reraises(
     assert "send failed" in error_msg
 
 
+def test_not_triggered_error_state_success_clears_retry_state(
+    mocker: MockerFixture,
+) -> None:
+    """A successful retry clears its persisted retry-window state."""
+    state = _make_state_instance(
+        mocker,
+        ReportNotTriggeredErrorState,
+        schedule_type=ReportScheduleType.REPORT,
+    )
+    state._report_schedule.retry_attempt = 2
+    state._report_schedule.retry_scheduled_dttm = datetime.utcnow()
+    mocker.patch.object(state, "send")
+    mock_update = mocker.patch.object(state, "update_report_schedule_and_log")
+
+    state.next()
+
+    assert state._report_schedule.retry_attempt == 0
+    assert state._report_schedule.retry_scheduled_dttm is None
+    assert mock_update.call_args_list == [
+        mocker.call(ReportState.WORKING),
+        mocker.call(ReportState.SUCCESS, error_message=None),
+    ]
+
+
 # ---------------------------------------------------------------------------
 # Phase 1 remaining gaps
 # ---------------------------------------------------------------------------
@@ -1223,7 +3708,7 @@ def test_get_dashboard_urls_no_state_fallback(
     result = state.get_dashboard_urls()
 
     assert len(result) == 1
-    assert "superset/dashboard/" in result[0]
+    assert "dashboard/" in result[0]
     assert "dashboard/p/" not in result[0]  # not a permalink
 
 
@@ -1263,6 +3748,8 @@ def test_success_state_send_error_logs_and_reraises(
         mocker, ReportSuccessState, schedule_type=ReportScheduleType.REPORT
     )
     mocker.patch.object(state, "send", side_effect=RuntimeError("send boom"))
+    mocker.patch.object(state, "is_in_error_grace_period", return_value=False)
+    mocker.patch.object(state, "send_error")
     mocker.patch.object(state, "update_report_schedule_and_log")
 
     with pytest.raises(RuntimeError, match="send boom"):
@@ -1324,6 +3811,46 @@ def test_get_notification_content_alert_no_flag_skips_attachment(
     assert content.text is None
 
 
+@pytest.mark.parametrize(
+    ("schedule_type", "report_format", "attach_flag", "expected"),
+    [
+        # Reports always run under an execution context, regardless of format.
+        (ReportScheduleType.REPORT, ReportDataFormat.PNG, False, True),
+        (ReportScheduleType.REPORT, ReportDataFormat.PDF, False, True),
+        (ReportScheduleType.REPORT, ReportDataFormat.CSV, False, True),
+        (ReportScheduleType.REPORT, ReportDataFormat.TEXT, False, True),
+        # Alerts that deliver a rendered screenshot fail closed only when the
+        # ALERTS_ATTACH_REPORTS flag is on (otherwise no artifact is attached).
+        (ReportScheduleType.ALERT, ReportDataFormat.PNG, True, True),
+        (ReportScheduleType.ALERT, ReportDataFormat.PDF, True, True),
+        (ReportScheduleType.ALERT, ReportDataFormat.PNG, False, False),
+        (ReportScheduleType.ALERT, ReportDataFormat.PDF, False, False),
+        # CSV/text/xlsx alerts never deliver a rendered screenshot; they stay
+        # lenient even with the attach flag on.
+        (ReportScheduleType.ALERT, ReportDataFormat.CSV, True, False),
+        (ReportScheduleType.ALERT, ReportDataFormat.TEXT, True, False),
+        (ReportScheduleType.ALERT, ReportDataFormat.XLSX, True, False),
+    ],
+)
+@patch("superset.commands.report.execute.feature_flag_manager")
+def test_should_build_execution_context(
+    mock_ff: MagicMock,
+    mocker: MockerFixture,
+    schedule_type: ReportScheduleType,
+    report_format: ReportDataFormat,
+    attach_flag: bool,
+    expected: bool,
+) -> None:
+    """Only reports and rendered-screenshot alerts run fail closed under a
+    ReportExecutionContext; CSV/text alerts and flag-off alerts stay lenient."""
+    mock_ff.is_feature_enabled.return_value = attach_flag
+    model = mocker.Mock(spec=ReportSchedule)
+    model.type = schedule_type
+    model.report_format = report_format
+
+    assert _should_build_execution_context(model) is expected
+
+
 def test_create_log_success_commits(mocker: MockerFixture) -> None:
     """Successful create_log creates a log entry and commits."""
     schedule = mocker.Mock(spec=ReportSchedule)
@@ -1335,6 +3862,9 @@ def test_create_log_success_commits(mocker: MockerFixture) -> None:
     state._report_schedule = schedule
 
     mock_db = mocker.patch("superset.commands.report.execute.db")
+    # No in-flight WORKING "trigger" row exists for this execution, so create_log
+    # inserts a fresh row rather than promoting an existing one.
+    mock_db.session.query.return_value.filter.return_value.first.return_value = None
     mock_log_cls = mocker.patch(
         "superset.commands.report.execute.ReportExecutionLog",
         return_value=mocker.Mock(),
@@ -1348,6 +3878,284 @@ def test_create_log_success_commits(mocker: MockerFixture) -> None:
     mock_db.session.rollback.assert_not_called()
 
 
+def test_create_log_includes_execution_warnings_with_error(
+    mocker: MockerFixture,
+) -> None:
+    """A recipient failure does not hide warnings from successful recipients."""
+    schedule = mocker.Mock(spec=ReportSchedule)
+    schedule.last_value = None
+    schedule.last_value_row_json = None
+    schedule.last_state = ReportState.ERROR
+
+    state = BaseReportState(schedule, datetime.utcnow(), uuid4())
+    state._execution_warnings.append("Slack v1 fallback is deprecated")
+
+    mock_db = mocker.patch("superset.commands.report.execute.db")
+    working_log = mocker.Mock()
+    mock_db.session.query.return_value.filter.return_value.first.return_value = (
+        working_log
+    )
+
+    state.create_log(error_message="Email delivery failed")
+
+    assert working_log.error_message == (
+        "Slack v1 fallback is deprecated;Email delivery failed"
+    )
+
+
+def test_create_log_preserves_error_notification_marker(
+    mocker: MockerFixture,
+) -> None:
+    """Execution warnings do not alter the grace-period lookup marker."""
+    schedule = mocker.Mock(spec=ReportSchedule)
+    schedule.last_value = None
+    schedule.last_value_row_json = None
+    schedule.last_state = ReportState.ERROR
+
+    state = BaseReportState(schedule, datetime.utcnow(), uuid4())
+    state._execution_warnings.append("Slack v1 fallback is deprecated")
+
+    mock_db = mocker.patch("superset.commands.report.execute.db")
+    mock_db.session.query.return_value.filter.return_value.first.return_value = None
+    marker_log = mocker.Mock()
+    mocker.patch(
+        "superset.commands.report.execute.ReportExecutionLog",
+        return_value=marker_log,
+    )
+
+    state.create_log(error_message=REPORT_SCHEDULE_ERROR_NOTIFICATION_MARKER)
+
+    assert marker_log.error_message == REPORT_SCHEDULE_ERROR_NOTIFICATION_MARKER
+    mock_db.session.add.assert_called_once_with(marker_log)
+
+
+def test_create_log_excludes_warnings_from_secondary_error(
+    mocker: MockerFixture,
+) -> None:
+    """A failed error notification does not duplicate the primary warning."""
+    schedule = mocker.Mock(spec=ReportSchedule)
+    schedule.last_value = None
+    schedule.last_value_row_json = None
+    schedule.last_state = ReportState.ERROR
+
+    state = BaseReportState(schedule, datetime.utcnow(), uuid4())
+    state._execution_warnings.append("Slack v1 fallback is deprecated")
+
+    mock_db = mocker.patch("superset.commands.report.execute.db")
+    mock_db.session.query.return_value.filter.return_value.first.return_value = None
+    notification_failure_log = mocker.Mock()
+    mocker.patch(
+        "superset.commands.report.execute.ReportExecutionLog",
+        return_value=notification_failure_log,
+    )
+
+    state.create_log(
+        error_message="Error notification failed",
+        include_execution_warnings=False,
+    )
+
+    assert notification_failure_log.error_message == "Error notification failed"
+    mock_db.session.add.assert_called_once_with(notification_failure_log)
+
+
+def test_create_log_promotes_same_execution_working_row_without_duplicate(
+    mocker: MockerFixture,
+) -> None:
+    execution_id = UUID("084e7ee6-5557-4ecd-9632-b7f39c9ec524")
+    schedule = mocker.Mock(spec=ReportSchedule)
+    schedule.last_state = ReportState.ERROR
+    schedule.last_value = None
+    schedule.last_value_row_json = None
+    working_log = mocker.Mock()
+
+    mock_db = mocker.patch("superset.commands.report.execute.db")
+    mock_db.session.query.return_value.filter.return_value.first.return_value = (
+        working_log
+    )
+    log_cls = mocker.patch("superset.commands.report.execute.ReportExecutionLog")
+    state = BaseReportState(
+        schedule,
+        datetime.utcnow(),
+        execution_id,
+    )
+
+    state.create_log(error_message="working timeout")
+
+    assert working_log.state == ReportState.ERROR
+    assert working_log.error_message == "working timeout"
+    log_cls.assert_not_called()
+    mock_db.session.add.assert_not_called()
+    mock_db.session.commit.assert_called_once()
+
+
+def test_terminal_persistence_retry_promotes_owned_working_execution(
+    mocker: MockerFixture,
+) -> None:
+    execution_id = UUID("084e7ee6-5557-4ecd-9632-b7f39c9ec524")
+    schedule = mocker.Mock(spec=ReportSchedule)
+    schedule.last_state = ReportState.WORKING
+    schedule.dashboard_id = 805
+    schedule.chart_id = None
+    working_log = mocker.Mock()
+    working_log.uuid = execution_id
+    working_log.report_schedule = schedule
+
+    mock_db = mocker.patch("superset.commands.report.execute.db")
+    filtered_query = mock_db.session.query.return_value.filter.return_value
+    filtered_query.first.return_value = working_log
+    filtered_query.order_by.return_value.first.return_value = working_log
+
+    assert persist_owned_report_execution_terminal_error(
+        11,
+        execution_id,
+        "Failed taking a screenshot readiness allocation expired",
+        "ReportScheduleScreenshotFailedError",
+    )
+
+    assert working_log.state == ReportState.ERROR
+    assert (
+        working_log.error_message
+        == "Failed taking a screenshot readiness allocation expired"
+    )
+    assert schedule.last_state == ReportState.ERROR
+    mock_db.session.commit.assert_called_once()
+
+
+def test_alert_log_context_fallback_is_self_identifying(
+    mocker: MockerFixture,
+) -> None:
+    """Alerts run without a ReportExecutionContext by design; their fallback
+    log context must still identify the capture kind and schedule so alert
+    log lines are distinguishable from report captures."""
+    execution_id = UUID("a92a71bd-91ed-41f4-a297-cb9c8da52450")
+    schedule = mocker.Mock(spec=ReportSchedule)
+    schedule.type = ReportScheduleType.ALERT
+    schedule.id = 11
+    schedule.dashboard_id = None
+    schedule.chart_id = 19495
+
+    state = BaseReportState(schedule, datetime.utcnow(), execution_id)
+
+    context = state._log_context
+    assert "capture_kind=alert" in context
+    assert f"execution_id={execution_id}" in context
+    assert "report_schedule_id=11" in context
+    assert "chart_id=19495" in context
+
+
+def test_terminal_persistence_retry_survives_database_failure(
+    mocker: MockerFixture,
+) -> None:
+    """The last-resort retry must swallow its own DB failure: roll back, log,
+    and return False so the report's original exception is never masked."""
+    execution_id = UUID("084e7ee6-5557-4ecd-9632-b7f39c9ec524")
+    mock_db = mocker.patch("superset.commands.report.execute.db")
+    mock_logger = mocker.patch("superset.commands.report.execute.logger")
+    mock_db.session.query.side_effect = Exception("database connection lost")
+
+    assert not persist_owned_report_execution_terminal_error(
+        11,
+        execution_id,
+        "boom",
+        "ReportScheduleWorkingTimeoutError",
+    )
+
+    # One pre-emptive rollback on entry, one in the exception handler.
+    assert mock_db.session.rollback.call_count == 2
+    mock_db.session.commit.assert_not_called()
+    assert any(
+        "terminal_persistence_retry_failed" in call.args[0]
+        for call in mock_logger.exception.call_args_list
+    )
+
+
+def _exhausted_report_context(execution_id: UUID) -> ReportExecutionContext:
+    return ReportExecutionContext(
+        execution_id=execution_id,
+        report_schedule_id=11,
+        deadline=ReportExecutionDeadline(
+            total_seconds=0.01,
+            started_at=time.monotonic() - 10,
+        ),
+    )
+
+
+def test_delivery_phase_gate_noops_without_report_context(
+    mocker: MockerFixture,
+) -> None:
+    mock_logger = mocker.patch("superset.commands.report.execute.logger")
+
+    log_report_delivery_phase(None, None, "start", enforce_budget=True)
+
+    mock_logger.info.assert_not_called()
+
+
+def test_delivery_phase_gate_raises_when_budget_exhausted(
+    mocker: MockerFixture,
+) -> None:
+    execution_id = UUID("084e7ee6-5557-4ecd-9632-b7f39c9ec524")
+
+    with pytest.raises(ReportExecutionBudgetExceededError):
+        log_report_delivery_phase(
+            _exhausted_report_context(execution_id),
+            None,
+            "start",
+            enforce_budget=True,
+        )
+
+
+def test_delivery_phase_logging_without_enforcement_does_not_raise(
+    mocker: MockerFixture,
+) -> None:
+    """enforce_budget=False is the post-send log call: it must record the
+    phase even when the budget is exhausted, not raise mid-notification."""
+    execution_id = UUID("084e7ee6-5557-4ecd-9632-b7f39c9ec524")
+    mock_logger = mocker.patch("superset.commands.report.execute.logger")
+
+    log_report_delivery_phase(
+        _exhausted_report_context(execution_id),
+        None,
+        "sent",
+        enforce_budget=False,
+    )
+
+    assert any(
+        call.args and call.args[0].startswith("report_delivery_")
+        for call in mock_logger.info.call_args_list
+    )
+
+
+def test_terminal_persistence_retry_does_not_overwrite_newer_execution(
+    mocker: MockerFixture,
+) -> None:
+    execution_id = UUID("084e7ee6-5557-4ecd-9632-b7f39c9ec524")
+    schedule = mocker.Mock(spec=ReportSchedule)
+    schedule.last_state = ReportState.WORKING
+    schedule.dashboard_id = 805
+    schedule.chart_id = None
+    working_log = mocker.Mock()
+    working_log.uuid = execution_id
+    working_log.report_schedule = schedule
+    newer_working_log = mocker.Mock()
+    newer_working_log.uuid = uuid4()
+
+    mock_db = mocker.patch("superset.commands.report.execute.db")
+    filtered_query = mock_db.session.query.return_value.filter.return_value
+    filtered_query.first.return_value = working_log
+    filtered_query.order_by.return_value.first.return_value = newer_working_log
+
+    assert persist_owned_report_execution_terminal_error(
+        11,
+        execution_id,
+        "Failed taking a screenshot readiness allocation expired",
+        "ReportScheduleScreenshotFailedError",
+    )
+
+    assert working_log.state == ReportState.ERROR
+    assert schedule.last_state == ReportState.WORKING
+    mock_db.session.commit.assert_called_once()
+
+
 def test_success_state_report_sends_and_logs_success(
     mocker: MockerFixture,
 ) -> None:
@@ -1357,13 +4165,400 @@ def test_success_state_report_sends_and_logs_success(
         ReportSuccessState,
         schedule_type=ReportScheduleType.REPORT,
     )
+    state._report_schedule.retry_attempt = 2
+    state._report_schedule.retry_scheduled_dttm = datetime.utcnow()
     mock_send = mocker.patch.object(state, "send")
-    mocker.patch.object(state, "update_report_schedule_and_log")
+    mock_update = mocker.patch.object(state, "update_report_schedule_and_log")
 
     state.next()
 
     mock_send.assert_called_once()
-    state.update_report_schedule_and_log.assert_called_once_with(  # type: ignore[attr-defined]
-        ReportState.SUCCESS,
-        error_message=None,
+    assert state._report_schedule.retry_attempt == 0
+    assert state._report_schedule.retry_scheduled_dttm is None
+    # WORKING is set before send() (concurrency guard against duplicate sends),
+    # then SUCCESS after.
+    assert mock_update.call_args_list == [
+        mocker.call(ReportState.WORKING),
+        mocker.call(ReportState.SUCCESS, error_message=None),
+    ]
+
+
+def test_delivery_budget_exhaustion_does_not_send_notification(
+    mocker: MockerFixture,
+) -> None:
+    state = _make_state_instance(
+        mocker,
+        BaseReportState,
+        schedule_type=ReportScheduleType.REPORT,
     )
+    deadline = ReportExecutionDeadline(
+        total_seconds=900,
+        started_at=0,
+        _clock=lambda: 880,
+    )
+    state._report_execution_context = ReportExecutionContext(
+        execution_id=state._execution_id,
+        report_schedule_id=11,
+        dashboard_id=805,
+        expected_chart_count=52,
+        deadline=deadline,
+        cleanup_reserve_seconds=30,
+    )
+    recipient = mocker.Mock(spec=ReportRecipients)
+    notification = mocker.patch(
+        "superset.commands.report.execute.create_notification"
+    ).return_value
+
+    with pytest.raises(ReportExecutionBudgetExceededError):
+        state._send(mocker.Mock(), [recipient])
+
+    notification.send.assert_not_called()
+
+
+def test_incomplete_capture_never_reaches_delivery(mocker: MockerFixture) -> None:
+    state = _make_state_instance(
+        mocker,
+        BaseReportState,
+        schedule_type=ReportScheduleType.REPORT,
+    )
+    mocker.patch.object(
+        state,
+        "_get_notification_content",
+        side_effect=ReportScheduleScreenshotFailedError("not ready"),
+    )
+    send_notification = mocker.patch.object(state, "_send")
+
+    with pytest.raises(ReportScheduleScreenshotFailedError):
+        state.send()
+
+    send_notification.assert_not_called()
+
+
+def test_success_state_error_logged_when_send_error_raises(
+    mocker: MockerFixture,
+) -> None:
+    """If send_error() itself raises, the schedule must still transition to
+    ERROR (not stay stuck in WORKING)."""
+    state = _make_state_instance(
+        mocker, ReportSuccessState, schedule_type=ReportScheduleType.ALERT
+    )
+    mocker.patch.object(state, "is_in_grace_period", return_value=False)
+    mock_update = mocker.patch.object(state, "update_report_schedule_and_log")
+    mocker.patch.object(
+        state, "send_error", side_effect=RuntimeError("notification boom")
+    )
+    mocker.patch(
+        "superset.commands.report.execute.AlertCommand"
+    ).return_value.run.side_effect = RuntimeError("alert boom")
+
+    # The original alert error propagates...
+    with pytest.raises(RuntimeError, match="alert boom"):
+        state.next()
+
+    # ...but ERROR was still logged despite send_error() failing.
+    states = [call.args[0] for call in mock_update.call_args_list]
+    assert ReportState.ERROR in states
+
+
+@pytest.mark.parametrize(
+    "schedule_type",
+    [ReportScheduleType.REPORT, ReportScheduleType.ALERT],
+)
+def test_success_state_send_failure_notifies_owner(
+    mocker: MockerFixture,
+    schedule_type: ReportScheduleType,
+) -> None:
+    """A delivery failure from the Success/Grace path must notify the owner,
+    mirroring the first-run (ReportNotTriggeredErrorState) path — otherwise a
+    previously-successful schedule fails silently (e.g. once a screenshot
+    capture starts failing closed)."""
+    state = _make_state_instance(
+        mocker, ReportSuccessState, schedule_type=schedule_type
+    )
+    # No retries configured (the default), so _handle_retry_or_error returns
+    # False immediately without sending anything.
+    mocker.patch.object(state, "is_in_grace_period", return_value=False)
+    mocker.patch.object(state, "is_in_error_grace_period", return_value=False)
+    mock_update = mocker.patch.object(state, "update_report_schedule_and_log")
+    mock_send_error = mocker.patch.object(state, "send_error")
+    if schedule_type == ReportScheduleType.ALERT:
+        mocker.patch(
+            "superset.commands.report.execute.AlertCommand"
+        ).return_value.run.return_value = (True, "triggered")
+    mocker.patch.object(
+        state,
+        "send",
+        side_effect=ReportScheduleScreenshotFailedError("blank screenshot"),
+    )
+
+    with pytest.raises(ReportScheduleScreenshotFailedError, match="blank screenshot"):
+        state.next()
+
+    mock_send_error.assert_called_once()
+    # The owner-notification path must also persist a terminal ERROR state,
+    # not leave the schedule stuck in WORKING (mirrors how the grace-period
+    # sibling test asserts the recorded terminal state).
+    assert mock_update.call_args_list[-1].args[0] == ReportState.ERROR
+
+
+def test_success_state_send_failure_skips_notification_in_error_grace(
+    mocker: MockerFixture,
+) -> None:
+    """When inside the error grace period, the Success/Grace path logs ERROR
+    but suppresses the (throttled) error notification."""
+    state = _make_state_instance(
+        mocker, ReportSuccessState, schedule_type=ReportScheduleType.REPORT
+    )
+    mocker.patch.object(state, "is_in_error_grace_period", return_value=True)
+    mock_update = mocker.patch.object(state, "update_report_schedule_and_log")
+    mock_send_error = mocker.patch.object(state, "send_error")
+    mocker.patch.object(
+        state,
+        "send",
+        side_effect=ReportScheduleScreenshotFailedError("blank screenshot"),
+    )
+
+    with pytest.raises(ReportScheduleScreenshotFailedError):
+        state.next()
+
+    mock_send_error.assert_not_called()
+    states = [call.args[0] for call in mock_update.call_args_list]
+    assert ReportState.ERROR in states
+
+
+@pytest.mark.parametrize(
+    ("failure_kind", "expected_message"),
+    [
+        ("superset_errors", "smtp down;retry failed"),
+        ("generic", "smtp down"),
+    ],
+)
+def test_success_state_send_error_failure_overwrites_marker(
+    mocker: MockerFixture,
+    failure_kind: str,
+    expected_message: str,
+) -> None:
+    """When the Success/Grace path's own error notification fails, the
+    placeholder marker is overwritten with the real failure message before
+    ERROR is logged -- mirroring the first-run (ReportNotTriggeredErrorState)
+    path. A SupersetErrorsException contributes its joined error messages; any
+    other exception contributes its ``str()``."""
+    from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+    from superset.exceptions import SupersetErrorsException
+
+    if failure_kind == "superset_errors":
+        send_error_exc: Exception = SupersetErrorsException(
+            [
+                SupersetError(
+                    message="smtp down",
+                    error_type=SupersetErrorType.REPORT_NOTIFICATION_ERROR,
+                    level=ErrorLevel.ERROR,
+                ),
+                SupersetError(
+                    message="retry failed",
+                    error_type=SupersetErrorType.REPORT_NOTIFICATION_ERROR,
+                    level=ErrorLevel.ERROR,
+                ),
+            ]
+        )
+    else:
+        send_error_exc = RuntimeError("smtp down")
+
+    state = _make_state_instance(
+        mocker, ReportSuccessState, schedule_type=ReportScheduleType.REPORT
+    )
+    mocker.patch.object(state, "is_in_error_grace_period", return_value=False)
+    mock_update = mocker.patch.object(state, "update_report_schedule_and_log")
+    mock_send_error = mocker.patch.object(
+        state, "send_error", side_effect=send_error_exc
+    )
+    mocker.patch.object(
+        state,
+        "send",
+        side_effect=ReportScheduleScreenshotFailedError("blank screenshot"),
+    )
+
+    with pytest.raises(ReportScheduleScreenshotFailedError, match="blank screenshot"):
+        state.next()
+
+    mock_send_error.assert_called_once()
+    # The placeholder marker must be replaced by the real notification failure
+    # before the terminal ERROR row is written.
+    final_call = mock_update.call_args_list[-1]
+    assert final_call.args[0] == ReportState.ERROR
+    assert final_call.kwargs.get("error_message") == expected_message
+    assert (
+        final_call.kwargs.get("error_message")
+        != REPORT_SCHEDULE_ERROR_NOTIFICATION_MARKER
+    )
+
+
+def test_get_url_for_csv_uses_post_processed_type(
+    app: SupersetApp,
+    mocker: MockerFixture,
+) -> None:
+    """Regression for #25538: when an alert/report generates a CSV for a
+    chart, the URL must request type=POST_PROCESSED so the chart's saved
+    filters (including time-range filters) are applied. The original report
+    described a chart with a "last 30 days" filter that returned only 14
+    rows in the UI, but the alert CSV came back with 219 rows (the entire
+    unfiltered table).
+
+    POST_PROCESSED is the marker that propagates the chart's query_context
+    -- including its time filter -- through to the CSV renderer. A
+    regression that switched to FULL or RAW would replicate the original
+    bug.
+    """
+    from datetime import datetime
+    from uuid import UUID
+
+    from superset.commands.report.execute import BaseReportState
+    from superset.common.chart_data import ChartDataResultFormat
+
+    app.config.update({"ALERT_REPORTS_EXECUTORS": {}})
+
+    report_schedule = create_report_schedule(mocker)
+    report_schedule.force_screenshot = False
+    report_schedule.chart_id = report_schedule.chart.id
+
+    state = BaseReportState(
+        report_schedule=report_schedule,
+        scheduled_dttm=datetime.now(),
+        execution_id=UUID("084e7ee6-5557-4ecd-9632-b7f39c9ec524"),
+    )
+
+    url = state._get_url(result_format=ChartDataResultFormat.CSV)
+
+    assert "format=csv" in url.lower(), f"expected csv format in URL: {url}"
+    assert "type=post_processed" in url.lower(), (
+        f"CSV report URL must use type=post_processed so chart filters "
+        f"(incl. time filters) are applied; got: {url}; see issue #25538"
+    )
+
+
+def test_get_url_raises_when_target_chart_soft_deleted(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """A dangling chart reference must fail loudly, not fall through.
+
+    Soft delete removed the FK-level guarantee that a report's target chart
+    exists: ``ReportSchedule.chart`` is a visibility-filtered relationship,
+    so a chart soft-deleted after the report was created loads as ``None``
+    while ``chart_id`` is still set. Pre-guard, ``_get_url`` silently fell
+    through to the dashboard branch (``dashboard`` also ``None``) and failed
+    opaquely; it must instead raise the dedicated, actionable error inside
+    the state-machine envelope.
+    """
+    from superset.commands.report.exceptions import (
+        ReportScheduleTargetChartDeletedError,
+    )
+
+    report_schedule = mocker.MagicMock()
+    report_schedule.chart_id = 42
+    report_schedule.chart = None
+    report_schedule.dashboard_id = None
+    report_schedule.dashboard = None
+
+    state = BaseReportState(report_schedule, datetime.utcnow(), uuid4())
+    with pytest.raises(ReportScheduleTargetChartDeletedError):
+        state._get_url()
+
+
+def test_get_url_raises_when_target_dashboard_soft_deleted(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """Symmetric twin of the chart-target guard: a dashboard report whose
+    visibility-filtered ``dashboard`` relationship loads ``None`` while
+    ``dashboard_id`` is set must raise the dedicated error, not fall into
+    ``dashboard.id`` on ``None`` (an opaque ``AttributeError``)."""
+    from superset.commands.report.exceptions import (
+        ReportScheduleTargetDashboardDeletedError,
+    )
+
+    report_schedule = mocker.MagicMock()
+    report_schedule.chart_id = None
+    report_schedule.chart = None
+    report_schedule.dashboard_id = 7
+    report_schedule.dashboard = None
+
+    state = BaseReportState(report_schedule, datetime.utcnow(), uuid4())
+    with pytest.raises(ReportScheduleTargetDashboardDeletedError):
+        state._get_url()
+
+
+def test_get_url_uses_valid_chart_with_stale_dashboard_reference(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """A stale non-target dashboard must not block a valid chart report."""
+    report_schedule: ReportSchedule = mocker.Mock(spec=ReportSchedule)
+    report_schedule.chart_id = 42
+    report_schedule.chart = mocker.sentinel.chart
+    report_schedule.dashboard_id = 7
+    report_schedule.dashboard = None
+    report_schedule.force_screenshot = False
+    get_url_path = mocker.patch(
+        "superset.commands.report.execute.get_url_path",
+        return_value="/chart",
+    )
+
+    state = BaseReportState(report_schedule, datetime.utcnow(), uuid4())
+
+    assert state._get_url() == "/chart"
+    get_url_path.assert_called_once_with(
+        "ExploreView.root",
+        user_friendly=False,
+        form_data=json.dumps({"slice_id": 42}),
+        force="false",
+    )
+
+
+def test_get_dashboard_urls_raises_when_target_dashboard_soft_deleted(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """``get_dashboard_urls`` is entered directly from the async command's
+    permalink pre-commit (bypassing ``_get_url``), so it needs — and has —
+    the same deleted-target guard."""
+    from superset.commands.report.exceptions import (
+        ReportScheduleTargetDashboardDeletedError,
+    )
+
+    report_schedule = mocker.MagicMock()
+    report_schedule.dashboard_id = 7
+    report_schedule.dashboard = None
+
+    state = BaseReportState(report_schedule, datetime.utcnow(), uuid4())
+    with pytest.raises(ReportScheduleTargetDashboardDeletedError):
+        state.get_dashboard_urls()
+
+
+def test_get_url_raises_unexpected_error_when_target_is_missing(
+    mocker: MockerFixture,
+    app: SupersetApp,
+) -> None:
+    """A malformed schedule without either target raises a useful error."""
+    mock_report_schedule: ReportSchedule = mocker.Mock(spec=ReportSchedule)
+    mock_report_schedule.id = 42
+    mock_report_schedule.name = "orphan_report"
+    mock_report_schedule.chart = None
+    mock_report_schedule.chart_id = None
+    mock_report_schedule.dashboard = None
+    mock_report_schedule.dashboard_id = None
+    mock_report_schedule.force_screenshot = False
+
+    class_instance: BaseReportState = BaseReportState(
+        mock_report_schedule, "January 1, 2021", "execution_id_example"
+    )
+    class_instance._report_schedule = mock_report_schedule
+
+    with pytest.raises(ReportScheduleUnexpectedError) as excinfo:
+        class_instance._get_url()
+
+    message: str = str(excinfo.value)
+    assert "Report schedule 42" in message
+    assert "orphan_report" in message
+    assert "chart_id=None" in message
+    assert "dashboard_id=None" in message

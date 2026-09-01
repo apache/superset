@@ -18,8 +18,8 @@
  */
 
 import type { ReactNode } from 'react';
-import Owner from 'src/types/Owner';
 import { NotificationFormats } from 'src/features/reports/types';
+import type Subject from 'src/types/Subject';
 
 type user = {
   id: number;
@@ -135,11 +135,18 @@ export type AlertObject = {
   force_screenshot: boolean;
   grace_period?: number;
   id: number;
+  include_cta?: boolean;
   last_eval_dttm?: number;
-  last_state?: 'Success' | 'Working' | 'Error' | 'Not triggered' | 'On Grace';
+  last_state?:
+    | 'Success'
+    | 'Working'
+    | 'Error'
+    | 'Not triggered'
+    | 'On Grace'
+    | 'Retrying';
   log_retention?: number;
   name?: string;
-  owners?: Array<Owner | MetaObject>;
+  editors?: Subject[];
   sql?: string;
   timezone?: string;
   recipients?: Array<Recipient>;
@@ -151,6 +158,11 @@ export type AlertObject = {
   };
   validator_type?: string;
   working_timeout?: number;
+  retry_on_failure?: boolean;
+  retry_max_attempts?: number;
+  send_failed_reports?: boolean;
+  retry_notify_owners?: boolean;
+  retry_notify_recipients?: boolean;
 };
 
 export type LogObject = {
@@ -170,6 +182,7 @@ export enum AlertState {
   Error = 'Error',
   Noop = 'Not triggered',
   Grace = 'On Grace',
+  Retrying = 'Retrying',
 }
 
 export enum RecipientIconName {

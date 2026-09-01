@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 from flask_appbuilder.security.sqla.models import User
+from jinja2.exceptions import TemplateSyntaxError
 from pytest import raises  # noqa: PT013
 from pytest_mock import MockerFixture
 
@@ -30,14 +31,14 @@ from superset.commands.exceptions import (
     DatasourceNotFoundValidationError,
     QueryNotFoundValidationError,
 )
-from superset.exceptions import SupersetSecurityException
+from superset.exceptions import SupersetSecurityException, SupersetTemplateException
 from superset.utils.core import DatasourceType, override_user
 
 dataset_find_by_id = "superset.daos.dataset.DatasetDAO.find_by_id"
 query_find_by_id = "superset.daos.query.QueryDAO.find_by_id"
 chart_find_by_id = "superset.daos.chart.ChartDAO.find_by_id"
 is_admin = "superset.security.SupersetSecurityManager.is_admin"
-is_owner = "superset.security.SupersetSecurityManager.is_owner"
+is_editor = "superset.security.SupersetSecurityManager.is_editor"
 can_access_datasource = (
     "superset.security.SupersetSecurityManager.can_access_datasource"
 )
@@ -170,7 +171,7 @@ def test_saved_chart_is_admin(mocker: MockerFixture) -> None:
         )
 
 
-def test_saved_chart_is_owner(mocker: MockerFixture) -> None:
+def test_saved_chart_is_editor(mocker: MockerFixture) -> None:
     from superset.connectors.sqla.models import SqlaTable
     from superset.explore.utils import check_access as check_chart_access
     from superset.models.slice import Slice
@@ -178,7 +179,7 @@ def test_saved_chart_is_owner(mocker: MockerFixture) -> None:
     mocker.patch(dataset_find_by_id, return_value=SqlaTable())
     mocker.patch(can_access_datasource, return_value=True)
     mocker.patch(is_admin, return_value=False)
-    mocker.patch(is_owner, return_value=True)
+    mocker.patch(is_editor, return_value=True)
     mocker.patch(chart_find_by_id, return_value=Slice())
 
     with override_user(User()):
@@ -197,7 +198,7 @@ def test_saved_chart_has_access(mocker: MockerFixture) -> None:
     mocker.patch(dataset_find_by_id, return_value=SqlaTable())
     mocker.patch(can_access_datasource, return_value=True)
     mocker.patch(is_admin, return_value=False)
-    mocker.patch(is_owner, return_value=False)
+    mocker.patch(is_editor, return_value=False)
     mocker.patch(can_access, return_value=True)
     mocker.patch(chart_find_by_id, return_value=Slice())
 
@@ -218,10 +219,84 @@ def test_saved_chart_no_access(mocker: MockerFixture) -> None:
         mocker.patch(dataset_find_by_id, return_value=SqlaTable())
         mocker.patch(can_access_datasource, return_value=True)
         mocker.patch(is_admin, return_value=False)
-        mocker.patch(is_owner, return_value=False)
+        mocker.patch(is_editor, return_value=False)
         mocker.patch(can_access, return_value=False)
         mocker.patch(chart_find_by_id, return_value=Slice())
 
+        with override_user(User()):
+            check_chart_access(
+                datasource_id=1,
+                chart_id=1,
+                datasource_type=DatasourceType.TABLE,
+            )
+
+
+def test_drill_by_access_without_can_explore(mocker: MockerFixture) -> None:
+    """
+    Regression for #27900: performing Drill By (and Drill to Detail) must not
+    require the broad ``can explore on Superset`` permission.
+
+    ``check_access`` is the backend access gate for the Drill By flow: it is
+    invoked by ``CreateFormDataCommand`` when the client stores the drill
+    ``form_data`` via ``ExploreFormDataRestApi`` (the endpoint commenters on the
+    issue identified as drill-by-specific). This test grants the granular
+    ``can read on Chart`` permission while *explicitly denying*
+    ``can explore on Superset`` and asserts that access is still granted.
+    """
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.explore.utils import check_access as check_chart_access
+    from superset.models.slice import Slice
+
+    def can_access_side_effect(permission: str, view_menu: str) -> bool:
+        # The broad explore permission is denied; only the granular chart-read
+        # permission is granted.
+        if (permission, view_menu) == ("can_explore", "Superset"):
+            return False
+        return (permission, view_menu) == ("can_read", "Chart")
+
+    mocker.patch(dataset_find_by_id, return_value=SqlaTable())
+    mocker.patch(can_access_datasource, return_value=True)
+    mocker.patch(is_admin, return_value=False)
+    mocker.patch(is_editor, return_value=False)
+    mocker.patch(can_access, side_effect=can_access_side_effect)
+    mocker.patch(chart_find_by_id, return_value=Slice())
+
+    with override_user(User()):
+        assert (
+            check_chart_access(  # noqa: E712
+                datasource_id=1,
+                chart_id=1,
+                datasource_type=DatasourceType.TABLE,
+            )
+            is True
+        )
+
+
+def test_drill_by_access_can_explore_is_not_the_gate(mocker: MockerFixture) -> None:
+    """
+    Regression for #27900: ``can explore on Superset`` is neither necessary nor
+    sufficient for Drill By access. Here the user holds *only*
+    ``can explore on Superset`` (the granular ``can read on Chart`` is denied and
+    the user is not an owner/admin) and access must be refused, proving the gate
+    is governed by the granular chart permission rather than ``can explore``.
+    """
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.explore.utils import check_access as check_chart_access
+    from superset.models.slice import Slice
+
+    def can_access_side_effect(permission: str, view_menu: str) -> bool:
+        # Only the broad explore permission is granted; the granular chart-read
+        # permission is denied.
+        return (permission, view_menu) == ("can_explore", "Superset")
+
+    mocker.patch(dataset_find_by_id, return_value=SqlaTable())
+    mocker.patch(can_access_datasource, return_value=True)
+    mocker.patch(is_admin, return_value=False)
+    mocker.patch(is_editor, return_value=False)
+    mocker.patch(can_access, side_effect=can_access_side_effect)
+    mocker.patch(chart_find_by_id, return_value=Slice())
+
+    with raises(ChartAccessDeniedError):  # noqa: PT012
         with override_user(User()):
             check_chart_access(
                 datasource_id=1,
@@ -237,7 +312,7 @@ def test_dataset_has_access(mocker: MockerFixture) -> None:
     mocker.patch(dataset_find_by_id, return_value=SqlaTable())
     mocker.patch(can_access_datasource, return_value=True)
     mocker.patch(is_admin, return_value=False)
-    mocker.patch(is_owner, return_value=False)
+    mocker.patch(is_editor, return_value=False)
     mocker.patch(can_access, return_value=True)
     assert (
         check_datasource_access(  # noqa: E712
@@ -255,7 +330,7 @@ def test_query_has_access(mocker: MockerFixture) -> None:
     mocker.patch(query_find_by_id, return_value=Query())
     mocker.patch(raise_for_access, return_value=True)
     mocker.patch(is_admin, return_value=False)
-    mocker.patch(is_owner, return_value=False)
+    mocker.patch(is_editor, return_value=False)
     mocker.patch(can_access, return_value=True)
     assert (
         check_datasource_access(  # noqa: E712
@@ -264,6 +339,28 @@ def test_query_has_access(mocker: MockerFixture) -> None:
         )
         is True
     )
+
+
+def test_query_malformed_jinja_template(mocker: MockerFixture) -> None:
+    """
+    ``raise_for_access(query=...)`` Jinja-renders the query's SQL to resolve
+    the tables it touches. A malformed template must surface as a
+    ``SupersetTemplateException``, not the raw ``jinja2`` exception.
+    """
+    from superset.explore.utils import check_datasource_access
+    from superset.models.sql_lab import Query
+
+    mocker.patch(query_find_by_id, return_value=Query())
+    mocker.patch(
+        raise_for_access,
+        side_effect=TemplateSyntaxError("unexpected end of template", lineno=1),
+    )
+
+    with raises(SupersetTemplateException):  # noqa: PT012
+        check_datasource_access(
+            datasource_id=1,
+            datasource_type=DatasourceType.QUERY,
+        )
 
 
 def test_query_no_access(mocker: MockerFixture, client) -> None:
@@ -280,7 +377,7 @@ def test_query_no_access(mocker: MockerFixture, client) -> None:
     )
     mocker.patch(query_datasources_by_name, return_value=[SqlaTable()])
     mocker.patch(is_admin, return_value=False)
-    mocker.patch(is_owner, return_value=False)
+    mocker.patch(is_editor, return_value=False)
     mocker.patch(can_access, return_value=False)
 
     with raises(SupersetSecurityException):

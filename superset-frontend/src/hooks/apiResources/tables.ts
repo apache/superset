@@ -96,7 +96,9 @@ type TableMetadataResponse = {
 
 export type TableExtendedMetadata = Record<string, string>;
 
-type Params = Omit<FetchTablesQueryParams, 'forceRefresh'>;
+type Params = Omit<FetchTablesQueryParams, 'forceRefresh'> & {
+  supportsSchemas?: boolean;
+};
 
 const tableApi = api.injectEndpoints({
   endpoints: builder => ({
@@ -166,8 +168,16 @@ export const {
 } = tableApi;
 
 export function useTables(options: Params) {
-  const { dbId, catalog, schema, onSuccess, onError } = options || {};
+  const {
+    dbId,
+    catalog,
+    schema,
+    supportsSchemas = true,
+    onSuccess,
+    onError,
+  } = options || {};
   const isMountedRef = useRef(false);
+  const isRefreshingRef = useRef(false);
   const { currentData: schemaOptions, isFetching } = useSchemas({
     dbId,
     catalog: catalog || undefined,
@@ -177,9 +187,9 @@ export function useTables(options: Params) {
     [schemaOptions],
   );
 
-  const enabled = Boolean(
-    dbId && schema && !isFetching && schemaOptionsMap.has(schema),
-  );
+  const enabled = supportsSchemas
+    ? Boolean(dbId && schema && !isFetching && schemaOptionsMap.has(schema))
+    : Boolean(dbId);
 
   const result = useTablesQuery(
     { dbId, catalog, schema, forceRefresh: false },
@@ -199,37 +209,33 @@ export function useTables(options: Params) {
 
   const refetch = useCallback(() => {
     if (enabled) {
-      trigger({ dbId, catalog, schema, forceRefresh: true }).then(
-        ({ isSuccess, isError, data, error }) => {
-          if (isSuccess && data) {
-            handleOnSuccess(data, true);
-          }
-          if (isError) {
-            handleOnError(error as ClientErrorObject);
-          }
-        },
-      );
+      // Force a real server refresh. The success/error callbacks are fired by
+      // the subscribed effect below (the single source of truth), which observes
+      // the shared cache entry's completion. isRefreshingRef flags that
+      // completion as a user-requested refresh (isRefetched=true).
+      isRefreshingRef.current = true;
+      trigger({ dbId, catalog, schema, forceRefresh: true });
     }
-  }, [dbId, catalog, schema, enabled, handleOnSuccess, handleOnError, trigger]);
+  }, [dbId, catalog, schema, enabled, trigger]);
 
   useEffect(() => {
     if (isMountedRef.current) {
-      const {
-        requestId,
-        isSuccess,
-        isError,
-        isFetching,
-        currentData,
-        error,
-        originalArgs,
-      } = result;
-      if (!originalArgs?.forceRefresh && requestId && !isFetching) {
+      const { requestId, isSuccess, isError, isFetching, currentData, error } =
+        result;
+      // Fire once per completed fetch. isRefreshingRef (not the sticky
+      // originalArgs.forceRefresh, which the shared cache entry never resets)
+      // distinguishes a user-requested refresh from other fetches, so a failed
+      // force refresh no longer suppresses the callback on a later
+      // invalidation-driven refetch (e.g. after an OAuth2 redirect).
+      if (requestId && !isFetching) {
+        const isRefetched = isRefreshingRef.current;
         if (isSuccess && currentData) {
-          handleOnSuccess(currentData, false);
+          handleOnSuccess(currentData, isRefetched);
         }
         if (isError) {
           handleOnError(error as ClientErrorObject);
         }
+        isRefreshingRef.current = false;
       }
     } else {
       isMountedRef.current = true;

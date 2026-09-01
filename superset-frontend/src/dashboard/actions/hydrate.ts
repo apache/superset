@@ -27,7 +27,7 @@ import { initSliceEntities } from 'src/dashboard/reducers/sliceEntities';
 import { getInitialState as getInitialNativeFilterState } from 'src/dashboard/reducers/nativeFilters';
 import { applyDefaultFormData } from 'src/explore/store';
 import { buildActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
-import { findPermission } from 'src/utils/findPermission';
+import { canDownloadData, findPermission } from 'src/utils/findPermission';
 import {
   canUserEditDashboard,
   canUserSaveAsDashboard,
@@ -49,6 +49,7 @@ import {
   ROW_TYPE,
 } from 'src/dashboard/util/componentTypes';
 import findFirstParentContainerId from 'src/dashboard/util/findFirstParentContainer';
+import getDefaultActiveTabs from 'src/dashboard/util/getDefaultActiveTabs';
 import getEmptyLayout from 'src/dashboard/util/getEmptyLayout';
 import getLocationHash from 'src/dashboard/util/getLocationHash';
 import newComponentFactory, {
@@ -73,19 +74,19 @@ import {
 export const HYDRATE_DASHBOARD = 'HYDRATE_DASHBOARD';
 type AppDispatch = ThunkDispatch<RootState, undefined, AnyAction>;
 
-interface HydrateChartData {
+export interface HydrateChartData {
   slice_id: number;
   slice_url: string;
   slice_name: string;
   form_data: JsonObject;
   description: string;
   description_markeddown: string;
-  owners: { id: number }[];
+  editors: { id: number }[];
   modified: string;
   changed_on: string;
 }
 
-interface HydrateDashboardData extends Dashboard {
+export interface HydrateDashboardData extends Dashboard {
   metadata: JsonObject;
   position_data: Record<string, LayoutItem> | null;
   [key: string]: unknown;
@@ -98,6 +99,13 @@ interface HydrateDashboardParams {
   dataMask: DataMaskStateWithId;
   activeTabs: string[] | null;
   chartStates: DashboardChartStates | null;
+  /**
+   * Forces edit mode rather than deriving it from the `edit` URL param.
+   * Version preview passes `false`: the param outlives the navigation that
+   * set it, so a dashboard opened with `?edit=true` would otherwise keep an
+   * live Save toolbar over a historical snapshot.
+   */
+  editMode?: boolean;
 }
 
 export const hydrateDashboard =
@@ -108,6 +116,7 @@ export const hydrateDashboard =
     dataMask,
     activeTabs,
     chartStates,
+    editMode: editModeOverride,
   }: HydrateDashboardParams) =>
   (dispatch: AppDispatch, getState: GetState): AnyAction => {
     const { user, common, dashboardState } = getState();
@@ -178,8 +187,8 @@ export const hydrateDashboard =
         viz_type: slice.form_data.viz_type,
         datasource: slice.form_data.datasource,
         description: slice.description,
-        description_markeddown: slice.description_markeddown,
-        owners: slice.owners,
+        description_markdown: slice.description_markeddown,
+        editors: slice.editors,
         modified: slice.modified,
         changed_on: new Date(slice.changed_on).getTime(),
       };
@@ -327,6 +336,19 @@ export const hydrateDashboard =
       metadata.cross_filters_enabled as boolean | undefined,
     );
 
+    // precedence: permalink param > stored redux value > layout default.
+    // The layout default only applies to a genuinely fresh load: no permalink
+    // activeTabs, no stored activeTabs, and no deep-link (directPathToChild),
+    // which the live Tabs component resolves on its own.
+    const seededActiveTabs =
+      activeTabs ||
+      (dashboardState?.activeTabs?.length
+        ? dashboardState.activeTabs
+        : undefined) ||
+      (directPathToChild.length
+        ? []
+        : getDefaultActiveTabs(dashboardLayout.present as DashboardLayout));
+
     return dispatch({
       type: HYDRATE_DASHBOARD,
       data: {
@@ -355,7 +377,7 @@ export const hydrateDashboard =
             'Superset',
             roles,
           ),
-          superset_can_csv: findPermission('can_csv', 'Superset', roles),
+          superset_can_download: canDownloadData(roles),
           common: {
             // legacy, please use state.common instead
             conf: common?.conf,
@@ -375,6 +397,7 @@ export const hydrateDashboard =
           directPathLastUpdated: Date.now(),
           focusedFilterField: null,
           expandedSlices: metadata?.expanded_slices || {},
+          expandAllSlices: metadata?.expand_all_slices || false,
           refreshFrequency: metadata?.refresh_frequency || 0,
           // dashboard viewers can set refresh frequency for the current visit,
           // only persistent refreshFrequency will be saved to backend
@@ -382,7 +405,7 @@ export const hydrateDashboard =
           css: dashboard.css || '',
           colorNamespace: metadata?.color_namespace || null,
           colorScheme: metadata?.color_scheme || null,
-          editMode: canEdit && editMode,
+          editMode: editModeOverride ?? (canEdit && editMode),
           isPublished: dashboard.published,
           hasUnsavedChanges: false,
           dashboardIsSaving: false,
@@ -390,7 +413,7 @@ export const hydrateDashboard =
           lastModifiedTime: dashboard.changed_on,
           isRefreshing: false,
           isFiltersRefreshing: false,
-          activeTabs: activeTabs || dashboardState?.activeTabs || [],
+          activeTabs: seededActiveTabs,
           datasetsStatus:
             dashboardState?.datasetsStatus || ResourceStatus.Loading,
           chartStates: chartStates || dashboardState?.chartStates || {},

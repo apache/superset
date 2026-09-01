@@ -30,6 +30,7 @@ import type {
   QueryFormData,
 } from '../query';
 import type { JsonResponse } from '../connection';
+import type { MenuItem } from '../components/Menu';
 
 /**
  * A function which returns text (or marked-up text)
@@ -165,6 +166,13 @@ export interface SliceHeaderExtension {
 }
 
 /**
+ * Interface for extensions to the Slice Header more-options menu
+ */
+export interface SliceHeaderMenuExtension extends SliceHeaderExtension {
+  sliceName: string;
+}
+
+/**
  * Interface for extensions to Embed Modal
  */
 export interface DashboardEmbedModalExtensions {
@@ -249,7 +257,8 @@ export type Extensions = Partial<{
   'navbar.right-menu.item.icon': ComponentType<RightMenuItemIconProps>;
   'navbar.right': ComponentType;
   'report-modal.dropdown.item.icon': ComponentType;
-  'root.context.provider': ComponentType;
+  'root.context.provider': ComponentType<{ children?: ReactNode }>;
+
   'welcome.message': ComponentType;
   'welcome.banner': ComponentType;
   'welcome.main.replacement': ComponentType;
@@ -261,6 +270,9 @@ export type Extensions = Partial<{
   'sqleditor.extension.form': ComponentType<SQLFormExtensionProps>;
   'sqleditor.extension.resultTable': ComponentType<SQLResultTableExtensionProps>;
   'dashboard.slice.header': ComponentType<SliceHeaderExtension>;
+  'dashboard.slice.header.menu': (
+    context: SliceHeaderMenuExtension,
+  ) => MenuItem[];
   'sqleditor.extension.customAutocomplete': (
     args: CustomAutoCompleteArgs,
   ) => CustomAutocomplete[] | undefined;

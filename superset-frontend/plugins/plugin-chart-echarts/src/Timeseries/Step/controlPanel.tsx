@@ -35,6 +35,8 @@ import { DEFAULT_FORM_DATA, TIME_SERIES_DESCRIPTION_TEXT } from '../constants';
 import {
   legendSection,
   minorTicks,
+  axisTicks,
+  gridlines,
   richTooltipSection,
   seriesOrderSection,
   showValueSection,
@@ -157,6 +159,8 @@ const config: ControlPanelConfig = {
         ],
         ['zoomable'],
         [minorTicks],
+        [axisTicks],
+        [gridlines],
         ...legendSection,
         [<ControlSubSectionHeader>{t('X Axis')}</ControlSubSectionHeader>],
         [
@@ -164,7 +168,6 @@ const config: ControlPanelConfig = {
             name: 'x_axis_time_format',
             config: {
               ...sharedControls.x_axis_time_format,
-              default: 'smart_date',
               description: `${D3_TIME_FORMAT_DOCS}. ${TIME_SERIES_DESCRIPTION_TEXT}`,
               visibility: ({ controls }: ControlPanelsContainerProps) =>
                 checkColumnType(

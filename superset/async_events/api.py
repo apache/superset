@@ -15,14 +15,19 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+import uuid
 
 from flask import request, Response
 from flask_appbuilder import expose
 from flask_appbuilder.api import safe
 from flask_appbuilder.security.decorators import permission_name, protect
 
-from superset.async_events.async_query_manager import AsyncQueryTokenException
+from superset.async_events.async_query_manager import (
+    AsyncQueryJobException,
+    AsyncQueryTokenException,
+)
 from superset.extensions import async_query_manager, event_logger
+from superset.utils.core import get_user_id
 from superset.views.base_api import BaseSupersetApi, statsd_metrics
 
 logger = logging.getLogger(__name__)
@@ -99,3 +104,76 @@ class AsyncEventsRestApi(BaseSupersetApi):
             return self.response_401()
 
         return self.response(200, result=events)
+
+    @expose("/<job_id>/cancel", methods=("POST",))
+    @event_logger.log_this
+    @protect()
+    @safe
+    @statsd_metrics
+    @permission_name("cancel")
+    def cancel(self, job_id: str) -> Response:
+        """Cancel a running async query job.
+        ---
+        post:
+          summary: Cancel a running async query job
+          description: >-
+            Revokes the Celery task backing an in-flight async query. The
+            caller is authorized against the job's original owner (channel and
+            user), both resolved server-side from the request, so a client
+            cannot cancel a job it did not submit.
+          parameters:
+          - in: path
+            name: job_id
+            required: true
+            description: The job ID returned when the async query was submitted
+            schema:
+              type: string
+          responses:
+            200:
+              description: Job cancelled
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        type: object
+                        properties:
+                          job_id:
+                            type: string
+                          status:
+                            type: string
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        try:
+            uuid.UUID(job_id)
+        except ValueError:
+            return self.response_400(message="Invalid job ID")
+
+        try:
+            async_channel_id = async_query_manager.parse_channel_id_from_request(
+                request
+            )
+        except AsyncQueryTokenException:
+            return self.response_401()
+
+        try:
+            async_query_manager.cancel_job(job_id, async_channel_id, get_user_id())
+        except AsyncQueryTokenException:
+            return self.response_403()
+        except AsyncQueryJobException:
+            return self.response_404()
+
+        return self.response(
+            200,
+            result={"job_id": job_id, "status": async_query_manager.STATUS_CANCELLED},
+        )

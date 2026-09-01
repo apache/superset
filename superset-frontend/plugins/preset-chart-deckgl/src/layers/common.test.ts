@@ -17,6 +17,7 @@
  * under the License.
  */
 
+import { createElement } from 'react';
 import { PickingInfo } from '@deck.gl/core';
 import { JsonObject, QueryFormData } from '@superset-ui/core';
 import {
@@ -97,17 +98,14 @@ describe('getAggFunc', () => {
 });
 
 describe('commonLayerProps', () => {
-  const mockSetTooltip = jest.fn();
+  const mockSetTooltip = jest.fn() as any;
   const mockSetTooltipContent = jest.fn(
     () => (o: JsonObject) => `Tooltip for ${o}`,
-  );
+  ) as any;
   const mockOnSelect = jest.fn();
 
-  test('returns correct props when js_tooltip is provided', () => {
-    const formData = {
-      ...partialformData,
-      js_tooltip: 'tooltip => tooltip.content',
-    } as QueryFormData;
+  test('returns correct props with a tooltip content generator', () => {
+    const formData = { ...partialformData } as QueryFormData;
     const props = commonLayerProps({
       formData,
       setTooltip: mockSetTooltip,
@@ -118,7 +116,7 @@ describe('commonLayerProps', () => {
   });
 
   test('calls onHover and sets tooltip', () => {
-    const formData = { ...partialformData, js_tooltip: null } as QueryFormData;
+    const formData = { ...partialformData } as QueryFormData;
     const props = commonLayerProps({
       formData,
       setTooltip: mockSetTooltip,
@@ -132,6 +130,32 @@ describe('commonLayerProps', () => {
       x: 10,
       y: 20,
     });
+  });
+
+  test('clears a custom tooltip on hover-out instead of trailing the cursor', () => {
+    // Regression test for a custom (Handlebars) deck.gl tooltip that stayed
+    // visible and followed the mouse after leaving a feature.
+    const setTooltip = jest.fn();
+    const customContent = createElement('div', {
+      'data-tooltip-type': 'custom',
+    });
+    const props = commonLayerProps({
+      formData: { ...partialformData } as QueryFormData,
+      setTooltip: setTooltip as any,
+      setTooltipContent: (() => customContent) as any,
+    });
+
+    // Hovering a feature shows the custom tooltip.
+    props.onHover?.({ picked: true, x: 10, y: 20 } as any);
+    expect(setTooltip).toHaveBeenLastCalledWith({
+      content: customContent,
+      x: 10,
+      y: 20,
+    });
+
+    // Moving off the feature must dismiss it, not keep repositioning it.
+    props.onHover?.({ picked: false, x: 30, y: 40 } as any);
+    expect(setTooltip).toHaveBeenLastCalledWith(null);
   });
 
   test('calls onSelect when table_filter is enabled', () => {
@@ -165,6 +189,125 @@ describe('commonLayerProps', () => {
 
     props.onClick?.(pickingData, {});
     expect(mockOnSelect).toHaveBeenCalledWith('John Doe');
+  });
+
+  describe('cross-filter onClick (deck.gl v9 event shape)', () => {
+    const crossFilterFormData = {
+      ...partialformData,
+      viz_type: 'deck_polygon',
+      line_column: 'geojson',
+      cross_filter_column: 'sa3_name',
+    } as unknown as QueryFormData;
+
+    const pickedPolygon = {
+      picked: true,
+      object: {
+        polygon: [
+          [-122.42, 37.8],
+          [-122.42, 37.81],
+        ],
+        sa3_name: 'Christchurch West',
+        extraProps: {},
+      },
+    } as unknown as PickingInfo;
+
+    test('left click dispatches setDataMask via event.type and srcEvent.button', () => {
+      const mockSetDataMask = jest.fn();
+      const mockOnContextMenu = jest.fn();
+      const props = commonLayerProps({
+        formData: crossFilterFormData,
+        setTooltip: mockSetTooltip,
+        setTooltipContent: mockSetTooltipContent,
+        setDataMask: mockSetDataMask,
+        onContextMenu: mockOnContextMenu,
+        emitCrossFilters: true,
+      });
+
+      props.onClick?.(pickedPolygon, {
+        type: 'click',
+        srcEvent: { button: 0 },
+        offsetCenter: { x: 10, y: 20 },
+      });
+
+      expect(mockSetDataMask).toHaveBeenCalledTimes(1);
+      expect(mockOnContextMenu).not.toHaveBeenCalled();
+      const arg = mockSetDataMask.mock.calls[0][0];
+      expect(arg.extraFormData.filters[0]).toEqual({
+        col: 'sa3_name',
+        op: '==',
+        val: 'Christchurch West',
+      });
+    });
+
+    test('right click dispatches onContextMenu via event.type "contextmenu"', () => {
+      const mockSetDataMask = jest.fn();
+      const mockOnContextMenu = jest.fn();
+      const props = commonLayerProps({
+        formData: crossFilterFormData,
+        setTooltip: mockSetTooltip,
+        setTooltipContent: mockSetTooltipContent,
+        setDataMask: mockSetDataMask,
+        onContextMenu: mockOnContextMenu,
+        emitCrossFilters: true,
+      });
+
+      props.onClick?.(pickedPolygon, {
+        type: 'contextmenu',
+        srcEvent: { button: 2 },
+        offsetCenter: { x: 100, y: 200 },
+      });
+
+      expect(mockOnContextMenu).toHaveBeenCalledTimes(1);
+      expect(mockSetDataMask).not.toHaveBeenCalled();
+      expect(mockOnContextMenu.mock.calls[0][0]).toBe(100);
+      expect(mockOnContextMenu.mock.calls[0][1]).toBe(200);
+    });
+
+    test('right click via srcEvent.button=2 (no contextmenu type) still dispatches onContextMenu', () => {
+      // deck.gl can deliver a right-click as event.type='click' with button=2.
+      const mockSetDataMask = jest.fn();
+      const mockOnContextMenu = jest.fn();
+      const props = commonLayerProps({
+        formData: crossFilterFormData,
+        setTooltip: mockSetTooltip,
+        setTooltipContent: mockSetTooltipContent,
+        setDataMask: mockSetDataMask,
+        onContextMenu: mockOnContextMenu,
+        emitCrossFilters: true,
+      });
+
+      props.onClick?.(pickedPolygon, {
+        type: 'click',
+        srcEvent: { button: 2 },
+        offsetCenter: { x: 50, y: 60 },
+      });
+
+      expect(mockOnContextMenu).toHaveBeenCalledTimes(1);
+      expect(mockSetDataMask).not.toHaveBeenCalled();
+    });
+
+    test('does not gate off when event has no leftButton/rightButton fields', () => {
+      // Regression guard: pre-v9 code checked event.leftButton/rightButton,
+      // which are undefined in current deck.gl. An event with only type+srcEvent
+      // must still dispatch.
+      const mockSetDataMask = jest.fn();
+      const props = commonLayerProps({
+        formData: crossFilterFormData,
+        setTooltip: mockSetTooltip,
+        setTooltipContent: mockSetTooltipContent,
+        setDataMask: mockSetDataMask,
+        emitCrossFilters: true,
+      });
+
+      props.onClick?.(pickedPolygon, {
+        type: 'click',
+        srcEvent: { button: 0 },
+        offsetCenter: { x: 0, y: 0 },
+        // leftButton/rightButton intentionally absent
+      });
+
+      expect(mockSetDataMask).toHaveBeenCalledTimes(1);
+    });
   });
 });
 

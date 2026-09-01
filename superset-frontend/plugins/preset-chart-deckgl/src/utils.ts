@@ -200,8 +200,15 @@ export function getBuckets(
     string,
     { color: Color | undefined; enabled: boolean }
   > = {};
+  const lastBucketIndex = breakPoints.length - 2;
   breakPoints.slice(1).forEach((_, i) => {
-    const range = `${breakPoints[i]} - ${breakPoints[i + 1]}`;
+    // Use half-open interval notation so adjacent buckets don't share an
+    // ambiguous endpoint. This mirrors the d3 `scaleThreshold` binning used
+    // for coloring, where each breakpoint is a half-open cut point. The final
+    // bucket is closed on the right so the maximum value is included.
+    const isLastBucket = i === lastBucketIndex;
+    const closingBracket = isLastBucket ? ']' : ')';
+    const range = `[${breakPoints[i]}, ${breakPoints[i + 1]}${closingBracket}`;
     const mid =
       0.5 * (parseFloat(breakPoints[i]) + parseFloat(breakPoints[i + 1]));
     // fix polygon doesn't show

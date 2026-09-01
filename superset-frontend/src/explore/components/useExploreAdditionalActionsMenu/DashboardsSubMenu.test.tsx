@@ -39,7 +39,7 @@ const TestDashboardsMenuItems = ({
     <div data-test="menu-items">
       {menuItems.map(item => (
         <div key={item.key} data-test={`menu-item-${item!.key}`}>
-          {typeof item.label === 'string' ? item!.label : 'Complex Label'}
+          {item!.label}
           {item!.disabled && <span data-test="disabled">disabled</span>}
         </div>
       ))}
@@ -171,6 +171,35 @@ describe('DashboardsSubMenu', () => {
     expect(screen.getByTestId('menu-item-3')).toBeInTheDocument();
     expect(screen.getByTestId('menu-item-4')).toBeInTheDocument();
     expect(screen.getByTestId('menu-item-5')).toBeInTheDocument();
+  });
+
+  test('renders SPA-relative dashboard links without the /superset/ prefix', () => {
+    // Regression: prior to the route_base="" alignment, this menu emitted
+    // `to="/superset/dashboard/<id>"` which, combined with the React Router
+    // `basename={applicationRoot()}`, produced a doubled `/superset/superset/`
+    // path on subdirectory deployments and a backend 404.
+    const dashboards = [{ id: 9, dashboard_title: 'Sales Dashboard' }];
+    render(
+      <TestDashboardsMenuItems
+        chartId={102}
+        dashboards={dashboards}
+        searchTerm=""
+      />,
+      { useRouter: true },
+    );
+
+    const link = screen.getByRole('link', { name: /Sales Dashboard/ });
+    expect(link).toHaveAttribute('href', '/dashboard/9?focused_chart=102');
+  });
+
+  test('omits the focused_chart query when chartId is undefined', () => {
+    const dashboards = [{ id: 9, dashboard_title: 'Sales Dashboard' }];
+    render(<TestDashboardsMenuItems dashboards={dashboards} searchTerm="" />, {
+      useRouter: true,
+    });
+
+    const link = screen.getByRole('link', { name: /Sales Dashboard/ });
+    expect(link).toHaveAttribute('href', '/dashboard/9');
   });
 
   test('partial string search works correctly', () => {

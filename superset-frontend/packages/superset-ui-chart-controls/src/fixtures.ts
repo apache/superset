@@ -138,7 +138,7 @@ export const TestDataset: Dataset = {
   ],
   name: 'public.birth_names',
   order_by_choices: [],
-  owners: [
+  editors: [
     {
       first_name: 'admin',
       id: 1,

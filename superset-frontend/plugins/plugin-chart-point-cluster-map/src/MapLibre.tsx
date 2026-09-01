@@ -20,6 +20,10 @@ import { memo, useCallback, useEffect, useState } from 'react';
 import { Map as MapLibreMap } from 'react-map-gl/maplibre';
 import { Map as MapboxMap } from 'react-map-gl/mapbox';
 import { WebMercatorViewport } from '@math.gl/web-mercator';
+import {
+  resolveMapStyle,
+  type ResolvedMapStyle,
+} from '@superset-ui/core/utils/mapStyles';
 import { useTheme } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
 import ScatterPlotOverlay from './components/ScatterPlotOverlay';
@@ -160,7 +164,10 @@ function MapLibre({
   const clusters = clusterer.getClusters(bbox, Math.round(viewport.zoom));
 
   const theme = useTheme();
-  const resolvedMapStyle = mapStyle || DEFAULT_MAP_STYLE;
+  const resolvedMapStyle: ResolvedMapStyle =
+    mapProvider === 'mapbox'
+      ? mapStyle || DEFAULT_MAP_STYLE
+      : resolveMapStyle(mapStyle, DEFAULT_MAP_STYLE);
   const mapboxApiKey = mapProvider === 'mapbox' ? getMapboxApiKey() : '';
 
   if (mapProvider === 'mapbox' && !mapboxApiKey) {

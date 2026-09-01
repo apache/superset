@@ -20,12 +20,22 @@ import contextlib
 import logging
 import os
 import sys
+import warnings
 from typing import Any, Callable, TYPE_CHECKING
 
 import wtforms_json
 from colorama import Fore, Style
 from deprecation import deprecated
-from flask import abort, current_app, Flask, redirect, request, session, url_for
+from flask import (
+    abort,
+    current_app,
+    Flask,
+    has_app_context,
+    redirect,
+    request,
+    session,
+    url_for,
+)
 from flask_appbuilder import expose, IndexView
 from flask_appbuilder.api import safe
 from flask_appbuilder.utils.base import get_safe_redirect
@@ -35,9 +45,15 @@ from flask_appbuilder.utils.base import get_safe_redirect
 from flask_babel import lazy_gettext as _, refresh
 from flask_compress import Compress
 from flask_session import Session
+from sqlalchemy import text
 from werkzeug.middleware.proxy_fix import ProxyFix
 
-from superset.constants import CHANGE_ME_SECRET_KEY
+from superset.commands.database.exceptions import DatabaseInvalidError
+from superset.constants import (
+    CHANGE_ME_GLOBAL_ASYNC_QUERIES_JWT_SECRET,
+    CHANGE_ME_GUEST_TOKEN_JWT_SECRET,
+    CHANGE_ME_SECRET_KEY,
+)
 from superset.databases.utils import make_url_safe
 from superset.extensions import (
     _event_logger,
@@ -60,12 +76,15 @@ from superset.extensions import (
     talisman,
 )
 from superset.extensions.context import extension_context
+from superset.openapi import SupersetOpenApi, SupersetSwaggerView
 from superset.security import SupersetSecurityManager
+from superset.semantic_layers.labels import database_connections_menu_label
 from superset.sql.parse import SQLGLOT_DIALECTS
 from superset.superset_typing import FlaskResponse
 from superset.utils.core import is_test, pessimistic_connection_handling
 from superset.utils.decorators import transaction
 from superset.utils.log import DBEventLogger, get_event_logger_from_cfg_value
+from superset.utils.report_execution import validate_report_execution_config
 
 if TYPE_CHECKING:
     from superset.app import SupersetApp
@@ -114,6 +133,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         """
         Called before all other init tasks are complete
         """
+        validate_report_execution_config(self.config)
         wtforms_json.init()
 
         os.makedirs(self.config["DATA_DIR"], exist_ok=True)
@@ -136,8 +156,16 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             # pylint: disable=too-few-public-methods
             abstract = True
 
-            # Grab each call into the task and set up an app context
+            # Grab each call into the task and set up an app context, unless
+            # one is already active on this thread (e.g. Celery eager mode
+            # invoked from within an existing request/test context) - Flask-
+            # SQLAlchemy 3.x scopes db.session by the active app context's
+            # object identity rather than by thread, so pushing a redundant
+            # nested context here would silently hand the task a second,
+            # blind session unable to see the caller's uncommitted work.
             def __call__(self, *args: Any, **kwargs: Any) -> Any:
+                if has_app_context():
+                    return task_base.__call__(self, *args, **kwargs)
                 with superset_app.app_context():
                     return task_base.__call__(self, *args, **kwargs)
 
@@ -186,12 +214,14 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         )
         from superset.sqllab.api import SqlLabRestApi
         from superset.sqllab.permalink.api import SqlLabPermalinkRestApi
+        from superset.subjects.api import SubjectRestApi
         from superset.tags.api import TagRestApi
         from superset.themes.api import ThemeRestApi
         from superset.views.alerts import AlertView, ReportView
         from superset.views.all_entities import TaggedObjectsModelView
         from superset.views.annotations import AnnotationLayerView
         from superset.views.api import Api
+        from superset.views.archived_assets import ArchivedAssetsView
         from superset.views.chart.views import SliceModelView
         from superset.views.core import Superset
         from superset.views.css_templates import CssTemplateModelView
@@ -207,6 +237,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.views.groups import GroupsListView
         from superset.views.log.api import LogRestApi
         from superset.views.logs import ActionLogView
+        from superset.views.pwa_manifest import PwaManifestView
         from superset.views.redirect import RedirectView
         from superset.views.roles import RolesListView
         from superset.views.sql_lab.views import (
@@ -268,15 +299,26 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_api(ReportExecutionLogRestApi)
         appbuilder.add_api(RLSRestApi)
         appbuilder.add_api(SavedQueryRestApi)
+        if feature_flag_manager.is_feature_enabled("SEMANTIC_LAYERS"):
+            from superset.semantic_layers.api import (
+                SemanticLayerRestApi,
+                SemanticViewRestApi,
+            )
+
+            appbuilder.add_api(SemanticLayerRestApi)
+            appbuilder.add_api(SemanticViewRestApi)
         appbuilder.add_api(TagRestApi)
         appbuilder.add_api(SqlLabRestApi)
         appbuilder.add_api(SqlLabPermalinkRestApi)
+        appbuilder.add_api(SubjectRestApi)
         appbuilder.add_api(LogRestApi)
 
         if feature_flag_manager.is_feature_enabled("ENABLE_EXTENSIONS"):
             from superset.extensions.api import ExtensionsRestApi
+            from superset.extensions.storage.api import ExtensionStorageRestApi
 
             appbuilder.add_api(ExtensionsRestApi)
+            appbuilder.add_api(ExtensionStorageRestApi)
 
         if feature_flag_manager.is_feature_enabled("GLOBAL_TASK_FRAMEWORK"):
             from superset.tasks.api import TaskRestApi
@@ -286,21 +328,26 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         #
         # Setup regular views
         #
-        app_root = appbuilder.app.config["APPLICATION_ROOT"]
+        app_root = current_app.config["APPLICATION_ROOT"]
         if app_root.endswith("/"):
             app_root = app_root.rstrip("/")
 
+        # FAB renders this href verbatim in menus and does not apply
+        # SCRIPT_NAME at render time, so the application_root has to be baked
+        # in at registration. The previous hardcoded `/superset/welcome/`
+        # collided with non-`/superset/` deployments AND with the new
+        # `Superset.route_base = ""`. `app_root` is normalized above.
         appbuilder.add_link(
             "Home",
             label=_("Home"),
-            href="/superset/welcome/",
+            href=f"{app_root}/welcome/",
             cond=lambda: bool(current_app.config["LOGO_TARGET_PATH"]),
         )
 
         appbuilder.add_view(
             DatabaseView,
             "Databases",
-            label=_("Database Connections"),
+            label=database_connections_menu_label(),
             icon="fa-database",
             category="Data",
             category_label=_("Data"),
@@ -338,7 +385,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             category="Security",
             category_label=_("Security"),
             menu_cond=lambda: bool(
-                appbuilder.app.config.get("SUPERSET_SECURITY_VIEW_MENU", True)
+                current_app.config.get("SUPERSET_SECURITY_VIEW_MENU", True)
             ),
         )
 
@@ -348,7 +395,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             label=_("User Registrations"),
             category="Security",
             category_label=_("Security"),
-            menu_cond=lambda: bool(appbuilder.app.config["AUTH_USER_REGISTRATION"]),
+            menu_cond=lambda: bool(current_app.config["AUTH_USER_REGISTRATION"]),
         )
 
         appbuilder.add_view(
@@ -358,7 +405,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             category="Security",
             category_label=_("Security"),
             menu_cond=lambda: bool(
-                appbuilder.app.config.get("SUPERSET_SECURITY_VIEW_MENU", True)
+                current_app.config.get("SUPERSET_SECURITY_VIEW_MENU", True)
             ),
         )
 
@@ -369,7 +416,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             category="Security",
             category_label=_("Security"),
             menu_cond=lambda: bool(
-                appbuilder.app.config.get("SUPERSET_SECURITY_VIEW_MENU", True)
+                current_app.config.get("SUPERSET_SECURITY_VIEW_MENU", True)
             ),
         )
 
@@ -447,9 +494,19 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_view_no_menu(TaggedObjectsModelView)
         appbuilder.add_view_no_menu(TagView)
         appbuilder.add_view_no_menu(ReportView)
+        appbuilder.add_view_no_menu(PwaManifestView)
         appbuilder.add_view_no_menu(RedirectView)
         appbuilder.add_view_no_menu(RoleRestAPI)
         appbuilder.add_view_no_menu(UserInfoView)
+        # Only register the APPLICATION_ROOT-aware Swagger UI / OpenAPI spec when
+        # Swagger is enabled globally (``FAB_API_SWAGGER_UI``). This preserves the
+        # global disable contract so operators who turn Swagger off don't get the
+        # API documentation re-exposed by the prefix-aware variant.
+        if self.config.get("FAB_API_SWAGGER_UI") and self.config.get(
+            "FAB_API_SWAGGER_UI_SUPERSET_APP_ROOT", False
+        ):
+            appbuilder.add_api(SupersetOpenApi)
+            appbuilder.add_view_no_menu(SupersetSwaggerView)
 
         #
         # Add links
@@ -488,6 +545,16 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             category_icon="",
             category="Manage",
             menu_cond=lambda: feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"),
+        )
+        appbuilder.add_view(
+            ArchivedAssetsView,
+            "Recently Archived",
+            label=_("Recently Archived"),
+            icon="fa-archive",
+            category_icon="",
+            category="Manage",
+            category_label=_("Manage"),
+            menu_cond=lambda: feature_flag_manager.is_feature_enabled("SOFT_DELETE"),
         )
         appbuilder.add_api(LogRestApi)
         appbuilder.add_api(UserRegistrationsRestAPI)
@@ -595,15 +662,381 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
                     with extension_context(extension.manifest):
                         eager_import(backend.entrypoint)
 
-                except Exception as ex:  # pylint: disable=broad-except  # noqa: S110
-                    # Surface exceptions during initialization of extensions
-                    print(ex)
+                except Exception:  # pylint: disable=broad-except
+                    # Surface extension-initialization failures through the
+                    # configured logger (with traceback) so they reach log
+                    # aggregation, rather than being written to stdout.
+                    logger.exception(
+                        "Failed to initialize extension '%s'",
+                        extension.manifest.id,
+                    )
+
+    @staticmethod
+    def _remove_continuum_write_listeners() -> None:
+        """Detach SQLAlchemy-Continuum's own write listeners.
+
+        ``make_versioned()`` runs unconditionally at import of
+        ``superset.extensions`` and registers Continuum's mapper, session,
+        and engine listeners — the ones that write shadow rows and
+        ``version_transaction`` rows on every flush. Skipping only the
+        custom baseline/change-record listeners would leave those running,
+        so with the kill-switch off the shadow tables would silently keep
+        accumulating, contradicting the documented contract.
+
+        This is deliberately a *targeted subset* of
+        ``sqlalchemy_continuum.remove_versioning()``: that helper also
+        calls ``manager.reset()``, which clears ``version_class_map`` —
+        and ``version_class()`` would then silently return the live model
+        class, breaking the read-only ``/versions/`` endpoints this flag
+        promises to keep working.
+
+        Idempotent: guarded on a representative listener so repeated app
+        initializations in one process (test fixtures) don't raise on
+        double-removal.
+        """
+        # pylint: disable=import-outside-toplevel
+        import sqlalchemy as sa
+        from sqlalchemy_continuum import versioning_manager
+
+        # Enforce the master kill-switch first, unconditionally — before the
+        # early return below. Every Continuum write listener checks
+        # ``manager.options['versioning']`` before doing work (manager.py /
+        # unit_of_work.py), so OFF must guarantee this is False even when the
+        # core listeners are already detached (so any still-registered custom
+        # listener, or a future Continuum listener this detach doesn't know to
+        # remove, no-ops). ``version_class()`` reads ``version_class_map`` and
+        # ignores this option, so the read-only ``/versions/`` endpoints are
+        # unaffected.
+        versioning_manager.options["versioning"] = False
+
+        if not sa.event.contains(
+            sa.orm.Mapper, "after_insert", versioning_manager.track_inserts
+        ):
+            return  # listeners already detached by a prior init
+        versioning_manager.remove_operations_tracking(sa.orm.Mapper)
+        versioning_manager.remove_session_tracking(sa.orm.session.Session)
+        sa.event.remove(
+            sa.engine.Engine,
+            "before_execute",
+            versioning_manager.track_association_operations,
+        )
+        sa.event.remove(
+            sa.engine.Engine, "rollback", versioning_manager.clear_connection
+        )
+        sa.event.remove(
+            sa.engine.Engine,
+            "set_connection_execution_options",
+            versioning_manager.track_cloned_connections,
+        )
+
+        # Verify the known write listeners are actually gone. A Continuum
+        # upgrade that renamed a handler would make the removals above silently
+        # miss, leaving capture half-on while we report "disabled"; surface
+        # that rather than booting in a contradictory state.
+        if sa.event.contains(
+            sa.orm.Mapper, "after_insert", versioning_manager.track_inserts
+        ):
+            logger.warning(
+                "versioning: Continuum write listeners still attached after "
+                "detach; capture may not be fully disabled. This usually means "
+                "the pinned sqlalchemy-continuum version changed how it "
+                "registers listeners."
+            )
+
+    @staticmethod
+    def _add_continuum_write_listeners() -> None:
+        """Re-attach Continuum's own write listeners — inverse of
+        ``_remove_continuum_write_listeners``.
+
+        ``make_versioned()`` attaches these at import, so on a normal boot they
+        are already present and this is a no-op. It matters only when capture is
+        toggled off->on within one process (multi-app / test reentrancy): an
+        earlier OFF init detached Continuum's core shadow/transaction writers,
+        and the ON path re-registering the custom baseline/change-record
+        listeners + flipping ``options['versioning']`` back on is NOT enough on
+        its own — without re-attaching these, no shadow rows would be written
+        despite capture being reported "enabled". Mirrors ``make_versioned``'s
+        registration exactly.
+
+        Idempotent: guarded on a representative listener so a normal boot (or a
+        repeat ON init) doesn't double-register.
+        """
+        # pylint: disable=import-outside-toplevel
+        import sqlalchemy as sa
+        from sqlalchemy_continuum import versioning_manager
+
+        if sa.event.contains(
+            sa.orm.Mapper, "after_insert", versioning_manager.track_inserts
+        ):
+            return  # already attached (normal boot, or already on)
+        versioning_manager.track_operations(sa.orm.Mapper)
+        versioning_manager.track_session(sa.orm.session.Session)
+        sa.event.listen(
+            sa.engine.Engine,
+            "before_execute",
+            versioning_manager.track_association_operations,
+        )
+        sa.event.listen(
+            sa.engine.Engine, "rollback", versioning_manager.clear_connection
+        )
+        sa.event.listen(
+            sa.engine.Engine,
+            "set_connection_execution_options",
+            versioning_manager.track_cloned_connections,
+        )
+
+    def init_versioning(self) -> None:
+        """Register SQLAlchemy-Continuum baseline and change-record listeners.
+
+        Must be called after all versioned model classes have been imported so
+        that VERSIONED_MODELS can be populated and configure_mappers() has run.
+
+        ``ENABLE_VERSIONING_CAPTURE`` gates the baseline and change-record
+        listener registrations. When disabled, initialization also detaches
+        SQLAlchemy-Continuum's write listeners.
+
+        The fallback here is ``False`` so that any app-factory path that
+        does not load ``superset.config`` (some test factories, embedded
+        use) stays inert by default rather than silently enabling capture.
+        """
+        # Beat-schedule check first: the retention task is independent of
+        # save-path capture and remains useful for ageing-out rows already
+        # written by prior deploys. An operator hitting the kill-switch in
+        # anger may also be running a hand-rolled ``CeleryConfig`` that
+        # silently dropped the prune entry; surfacing both misconfigurations
+        # at the same restart is the cheap, observability-positive shape.
+        self._warn_if_retention_beat_missing()
+
+        if not self.config.get("ENABLE_VERSIONING_CAPTURE", False):
+            logger.warning(
+                "versioning: ENABLE_VERSIONING_CAPTURE is False; "
+                "skipping baseline + change-record listener registration "
+                "and detaching Continuum's write listeners. Save-path "
+                "capture is disabled; existing shadow tables and the "
+                "read-side /versions/ endpoints continue to work "
+                "read-only, and the version-restore endpoints refuse "
+                "with 404 (a restore without capture would be a "
+                "destructive, untracked write)."
+            )
+            self._remove_continuum_write_listeners()
+            return
+
+        # Symmetric with the OFF branch's ``options['versioning'] = False``:
+        # re-assert it on here so capture is restored even if a prior app
+        # init in the same process (multi-app / test reentrancy) flipped the
+        # process-global Continuum option off. Without this, an OFF app
+        # initialized before an ON app would leave the option False and the
+        # baseline listener — which gates on it — would silently write no
+        # baselines despite capture being "enabled".
+        from sqlalchemy_continuum import versioning_manager
+
+        versioning_manager.options["versioning"] = True
+
+        # Re-attach Continuum's core write listeners in case a prior OFF init
+        # in this process detached them. No-op on a normal boot, where
+        # make_versioned() already attached them at import. Without this, an
+        # off->on toggle in one process would leave the shadow/transaction
+        # writers detached and capture silently dead despite the flag.
+        self._add_continuum_write_listeners()
+
+        from sqlalchemy.orm import Session  # noqa: F401
+        from sqlalchemy_continuum import version_class
+
+        from superset.connectors.sqla.models import SqlaTable
+        from superset.models.dashboard import Dashboard
+        from superset.models.slice import Slice
+        from superset.versioning.baseline import (
+            register_baseline_listener,
+            VERSIONED_MODELS,
+        )
+
+        # Note: previously this block called ``configure_mappers()`` before
+        # importing the snapshot modules, believing their Table declarations
+        # needed ``version_transaction`` to exist. That's not actually the
+        # case — the snapshot tables reference ``version_transaction.id``
+        # only at the DB level (via the migration); the SQLAlchemy Table
+        # objects here intentionally declare ``transaction_id`` as a plain
+        # ``BigInteger`` without a FK to avoid the resolution dependency.
+        # Removing the global ``configure_mappers()`` avoids eagerly
+        # resolving relationships in other unrelated models (notably
+        # Flask-AppBuilder's AuditMixin on classes like Tag, whose
+        # ``created_by`` primaryjoin only resolves under specific class
+        # registry states in SQLAlchemy 1.4).
+        from superset.versioning.changes import (  # noqa: E402
+            register_change_record_listener,
+        )
+
+        # All versioned models — Dashboard / Slice / SqlaTable plus their
+        # children (TableColumn / SqlMetric) and the dashboard_slices
+        # M2M — go through Continuum's shadow tables. The JSON-snapshot
+        # path that previously backed dataset / dashboard child diffs
+        # has been removed (full-Continuum spike).
+        for model_cls in (Dashboard, Slice, SqlaTable):
+            try:
+                version_class(model_cls)  # ensure Continuum wired this model
+                # Dedup guard: VERSIONED_MODELS is module-level state, and
+                # test fixtures initialize multiple Superset apps per
+                # process — without the check each re-init appends
+                # duplicate entries.
+                if model_cls not in VERSIONED_MODELS:
+                    VERSIONED_MODELS.append(model_cls)
+            except Exception:  # pylint: disable=broad-except
+                # Continuum failed to wire versioning for this model. We
+                # boot in degraded mode rather than failing startup, but a
+                # silent skip would hide that change capture has stopped for
+                # the model — so surface it at WARNING with the traceback.
+                logger.warning(
+                    "Versioning is not wired for %s; change capture will be "
+                    "skipped for it. This usually means Continuum did not "
+                    "register a version class for the model.",
+                    model_cls.__name__,
+                    exc_info=True,
+                )
+
+        register_baseline_listener()
+        register_change_record_listener()
+
+        # Retention is time-based and runs out-of-band as a Celery beat
+        # task — see ``superset/tasks/version_history_retention.py``
+        # and the ``version_history.prune_old_versions`` entry in
+        # ``CeleryConfig.beat_schedule`` (``superset/config.py``). The
+        # previous synchronous after_commit listener was retired so
+        # retention work doesn't add latency to user saves.
+
+    _RETENTION_TASK_NAME: str = "version_history.prune_old_versions"
+    _PURGE_TASK_NAME: str = "deletion_retention.purge_soft_deleted"
+    #: Module each task lives in. A beat entry alone is not enough — a worker
+    #: that never imported the module answers ``NotRegistered`` when the task
+    #: fires, which is the same silent non-execution one layer down.
+    _RETENTION_TASK_MODULE: str = "superset.tasks.version_history_retention"
+    _PURGE_TASK_MODULE: str = "superset.tasks.deletion_retention"
+
+    def _warn_if_retention_beat_missing(self) -> None:
+        """WARN at startup when the resolved Celery beat schedule is
+        missing a time-based retention task:
+
+        * ``version_history.prune_old_versions`` — checked always, since
+          shadow rows written by prior deploys keep ageing even when
+          capture is off;
+        Each task needs an entry in ``beat_schedule``. When ``imports`` is
+        explicitly configured, its module is checked there as well. An absent
+        ``imports`` setting is not diagnosed because Celery may register tasks
+        through ``include``, autodiscovery, or worker startup imports.
+
+        * ``deletion_retention.purge_soft_deleted`` — checked only when
+          ``SOFT_DELETE`` is enabled, because the purge task itself
+          no-ops while the flag is off, so a missing entry is only
+          actionable once soft delete is statically configured. Dynamic
+          request-time feature resolvers are intentionally excluded from this
+          startup diagnostic.
+
+        Operators who redefine ``CeleryConfig`` in ``superset_config.py``
+        — instead of subclassing or merging the default — silently lose
+        these tasks. Capture continues writing rows; the prune
+        never runs; disk grows until paged. Archived objects likewise
+        accumulate forever instead of purging after the retention window.
+        The default config carries both entries; this check makes the
+        misconfiguration visible in the deploy log before disk pressure
+        makes it visible at 03:00.
+
+        Handles four shapes of ``CELERY_CONFIG``:
+        * ``None`` — Celery deliberately disabled, no retention either
+          way; return without warning.
+        * a class or module with a ``beat_schedule`` attribute — the
+          default ``CeleryConfig`` shape.
+        * a dict — Celery's documented "config as dict" shape, supported
+          by ``celery_app.config_from_object``.
+        * a dotted import string — also accepted by Celery, but deliberately
+          skipped here because resolving operator code solely for this warning
+          would duplicate Celery loader behavior and could add startup side
+          effects.
+        """
+        celery_config: Any = self.config.get("CELERY_CONFIG")
+        if celery_config is None:
+            return  # Celery disabled entirely; no retention task to warn about.
+        if isinstance(celery_config, str):
+            return  # Celery resolves dotted config references in its loader.
+        beat_schedule = (
+            celery_config.get("beat_schedule")
+            if isinstance(celery_config, dict)
+            else getattr(celery_config, "beat_schedule", None)
+        )
+        celery_imports: Any = (
+            celery_config.get("imports")
+            if isinstance(celery_config, dict)
+            else getattr(celery_config, "imports", None)
+        )
+        # A str is iterable, so guard it explicitly: ``imports = "superset.foo"``
+        # would otherwise be treated as a sequence of characters and every
+        # module would read as absent.
+        imported_modules: frozenset[str] = frozenset(
+            celery_imports
+            if isinstance(celery_imports, (list, tuple, set, frozenset))
+            else ()
+        )
+        imports_configured = celery_imports is not None
+        # Match on the ``task`` each entry runs, not the schedule entry key:
+        # an operator may register the retention task under any key (e.g.
+        # ``{"prune_versions": {"task": "version_history.prune_old_versions"}}``),
+        # which is still correctly scheduled and must not warn. The default
+        # config happens to use the task name as the key, but that's incidental.
+        registered_tasks: set[Any] = {
+            entry.get("task")
+            for entry in (beat_schedule or {}).values()
+            if isinstance(entry, dict)
+        }
+        registered_tasks.update(beat_schedule or {})  # tolerate key == task name
+        if not beat_schedule or self._RETENTION_TASK_NAME not in registered_tasks:
+            logger.warning(
+                "versioning: CELERY_CONFIG.beat_schedule is missing the "
+                "%r entry — the retention task will not fire and shadow "
+                "tables will grow unbounded. Either inherit from the "
+                "default CeleryConfig or add the entry to your override.",
+                self._RETENTION_TASK_NAME,
+            )
+        if imports_configured and self._RETENTION_TASK_MODULE not in imported_modules:
+            logger.warning(
+                "versioning: CELERY_CONFIG.imports is missing %r — workers "
+                "will not register the retention task, so a scheduled run "
+                "fails with NotRegistered. Either inherit from the default "
+                "CeleryConfig or add the module to your override.",
+                self._RETENTION_TASK_MODULE,
+            )
+        default_flags = self.config.get("DEFAULT_FEATURE_FLAGS", {})
+        configured_flags = self.config.get("FEATURE_FLAGS", {})
+        soft_delete_enabled = bool(
+            configured_flags.get("SOFT_DELETE", default_flags.get("SOFT_DELETE", False))
+        )
+        if soft_delete_enabled and (
+            not beat_schedule or self._PURGE_TASK_NAME not in registered_tasks
+        ):
+            logger.warning(
+                "soft-delete: CELERY_CONFIG.beat_schedule is missing the "
+                "%r entry — archived objects will never be purged and "
+                "will accumulate indefinitely. Either inherit from the "
+                "default CeleryConfig or add the entry to your override.",
+                self._PURGE_TASK_NAME,
+            )
+        if (
+            soft_delete_enabled
+            and imports_configured
+            and self._PURGE_TASK_MODULE not in imported_modules
+        ):
+            logger.warning(
+                "soft-delete: CELERY_CONFIG.imports is missing %r — workers "
+                "will not register the purge task, so a scheduled run fails "
+                "with NotRegistered and archived objects are never purged. "
+                "Either inherit from the default CeleryConfig or add the "
+                "module to your override.",
+                self._PURGE_TASK_MODULE,
+            )
 
     def init_app_in_ctx(self) -> None:
         """
         Runs init logic in the context of the app
         """
         self.configure_fab()
+        self.configure_subjects()
         self.configure_url_map_converters()
         self.configure_data_sources()
         self.configure_auth_provider()
@@ -625,12 +1058,37 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
         self.init_all_dependencies_and_extensions()
 
+        # Must run after all versioned models are imported and mappers configured.
+        self.init_versioning()
+
+    @staticmethod
+    def _log_config_warning(message: str) -> None:
+        top_banner = 80 * "-" + "\n" + 36 * " " + "WARNING\n" + 80 * "-"
+        bottom_banner = 80 * "-" + "\n" + 80 * "-"
+        logger.warning(top_banner)
+        logger.warning(message)
+        logger.warning(bottom_banner)
+
     def check_secret_key(self) -> None:
-        def log_default_secret_key_warning() -> None:
-            top_banner = 80 * "-" + "\n" + 36 * " " + "WARNING\n" + 80 * "-"
-            bottom_banner = 80 * "-" + "\n" + 80 * "-"
-            logger.warning(top_banner)
-            logger.warning(
+        secret_key = self.config["SECRET_KEY"]
+        # A missing/empty SECRET_KEY is as insecure as the well-known default
+        # placeholder: both are treated as insecure and handled identically. An
+        # empty key is reachable when a deployment explicitly sets SECRET_KEY to
+        # an empty value (the env fallback only substitutes the placeholder).
+        if secret_key and secret_key != CHANGE_ME_SECRET_KEY:
+            return
+        if not secret_key:
+            warning = (
+                "An empty SECRET_KEY was detected, please use superset_config.py "
+                "to set a non-empty value.\n"
+                "Use a strong complex alphanumeric string and use a tool to help"
+                " you generate \n"
+                "a sufficiently random sequence, ex: openssl rand -base64 42 \n"
+                "For more info, see: https://superset.apache.org/docs/"
+                "configuration/configuring-superset#specifying-a-secret_key"
+            )
+        else:
+            warning = (
                 "A Default SECRET_KEY was detected, please use superset_config.py "
                 "to override it.\n"
                 "Use a strong complex alphanumeric string and use a tool to help"
@@ -639,20 +1097,124 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
                 "For more info, see: https://superset.apache.org/docs/"
                 "configuration/configuring-superset#specifying-a-secret_key"
             )
-            logger.warning(bottom_banner)
+        if self.superset_app.debug or self.superset_app.config["TESTING"] or is_test():
+            logger.warning("Debug mode identified with insecure secret key")
+            self._log_config_warning(warning)
+            return
+        self._log_config_warning(warning)
+        logger.error("Refusing to start due to insecure SECRET_KEY")
+        sys.exit(1)
 
-        if self.config["SECRET_KEY"] == CHANGE_ME_SECRET_KEY:
-            if (
-                self.superset_app.debug
-                or self.superset_app.config["TESTING"]
-                or is_test()
-            ):
-                logger.warning("Debug mode identified with default secret key")
-                log_default_secret_key_warning()
-                return
-            log_default_secret_key_warning()
-            logger.error("Refusing to start due to insecure SECRET_KEY")
-            sys.exit(1)
+    def check_guest_token_secret(self) -> None:
+        """Refuse to start with default guest JWT secret when embedding is enabled."""
+        if not feature_flag_manager.is_feature_enabled("EMBEDDED_SUPERSET"):
+            return
+        if (
+            self.config.get("GUEST_TOKEN_JWT_SECRET")
+            != CHANGE_ME_GUEST_TOKEN_JWT_SECRET
+        ):
+            return
+        self._log_config_warning(
+            "EMBEDDED_SUPERSET is enabled but GUEST_TOKEN_JWT_SECRET has not "
+            "been changed from its default value.\n"
+            "The default value is publicly known and must be replaced before "
+            "running in production.\n"
+            "Set a strong random value in superset_config.py:\n"
+            "  GUEST_TOKEN_JWT_SECRET = "
+            "'<output of: openssl rand -base64 42>'"
+        )
+        if self.superset_app.debug or self.superset_app.config["TESTING"] or is_test():
+            return
+        logger.error(
+            "Refusing to start: insecure GUEST_TOKEN_JWT_SECRET "
+            "with EMBEDDED_SUPERSET enabled"
+        )
+        sys.exit(1)
+
+    def check_async_query_secret(self) -> None:
+        """Refuse to start with the default async JWT secret when GAQ is enabled."""
+        if not feature_flag_manager.is_feature_enabled("GLOBAL_ASYNC_QUERIES"):
+            return
+        if (
+            self.config.get("GLOBAL_ASYNC_QUERIES_JWT_SECRET")
+            != CHANGE_ME_GLOBAL_ASYNC_QUERIES_JWT_SECRET
+        ):
+            return
+        self._log_config_warning(
+            "GLOBAL_ASYNC_QUERIES is enabled but GLOBAL_ASYNC_QUERIES_JWT_SECRET "
+            "has not been changed from its default value.\n"
+            "The default value is publicly known and must be replaced before "
+            "running in production.\n"
+            "Set a strong random value (at least 32 bytes) in superset_config.py:\n"
+            "  GLOBAL_ASYNC_QUERIES_JWT_SECRET = "
+            "'<output of: openssl rand -base64 42>'"
+        )
+        if self.superset_app.debug or self.superset_app.config["TESTING"] or is_test():
+            return
+        logger.error(
+            "Refusing to start: insecure GLOBAL_ASYNC_QUERIES_JWT_SECRET "
+            "with GLOBAL_ASYNC_QUERIES enabled"
+        )
+        sys.exit(1)
+
+    def check_encryption_engine(self) -> None:
+        """Warn when app-encrypted fields use the legacy AES-CBC engine.
+
+        ``SQLALCHEMY_ENCRYPTED_FIELD_ENGINE`` defaults to ``"aes"`` for backward
+        compatibility: every secret an existing install has ever written through
+        this mechanism (database passwords, SSH tunnel credentials, OAuth2
+        tokens, and similar) is stored in that engine's ciphertext format, and
+        there is no per-value marker recording which engine produced it — the
+        engine is a single, global setting shared by every encrypted column.
+
+        Unlike ``check_secret_key`` and its siblings, this never refuses to
+        start. ``"aes"`` is a working, still-supported configuration, not a
+        known-bad placeholder value: blocking startup on it would turn an
+        opt-in hardening step into a forced-migration outage for every
+        deployment that has not yet run the engine migration. It only warns,
+        on every boot, so operators have a documented path to the
+        authenticated ``"aes-gcm"`` engine (see ``superset re-encrypt-secrets``
+        and ``docs/sip/authenticated-encryption-at-rest.md``).
+        """
+        # pylint: disable=import-outside-toplevel
+        from superset.utils.encrypt import (
+            BackwardCompatibleAesEngine,
+            DEFAULT_ENCRYPTION_ENGINE_NAME,
+            resolve_encryption_engine,
+        )
+
+        engine_name = self.config.get(
+            "SQLALCHEMY_ENCRYPTED_FIELD_ENGINE", DEFAULT_ENCRYPTION_ENGINE_NAME
+        )
+        try:
+            engine_cls = resolve_encryption_engine(engine_name)
+        except ValueError:
+            # An unrecognized value already fails closed at field construction
+            # (see ``resolve_encryption_engine``); nothing more to warn about.
+            return
+        # "aes" resolves to BackwardCompatibleAesEngine (see superset.utils.encrypt),
+        # not the raw sqlalchemy_utils AesEngine, so check against that subclass.
+        if engine_cls is not BackwardCompatibleAesEngine:
+            return
+        self._log_config_warning(
+            "SQLALCHEMY_ENCRYPTED_FIELD_ENGINE is set to the legacy 'aes' "
+            "engine (AES-CBC, unauthenticated). App-encrypted fields — "
+            "database passwords, SSH tunnel credentials, OAuth2 tokens, and "
+            "similar — would benefit from the authenticated 'aes-gcm' engine "
+            "instead.\n"
+            "Switching engines on a populated database requires "
+            "re-encrypting existing values first, since the two ciphertext "
+            "formats are not interchangeable:\n"
+            "  1. Back up the metadata database.\n"
+            "  2. superset re-encrypt-secrets --engine aes-gcm\n"
+            "  3. Set SQLALCHEMY_ENCRYPTED_FIELD_ENGINE = 'aes-gcm' in "
+            "superset_config.py.\n"
+            "  4. Restart Superset, then re-run the command above once more "
+            "to sweep up any values written during the cutover.\n"
+            "See UPDATING.md and "
+            "docs/sip/authenticated-encryption-at-rest.md for the full "
+            "runbook."
+        )
 
     def configure_session(self) -> None:
         if self.config["SESSION_SERVER_SIDE"]:
@@ -661,6 +1223,14 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
     def register_request_handlers(self) -> None:
         """Register app-level request handlers"""
         from flask import request, Response
+
+        from superset.security.password_change import (
+            register_password_change_enforcement,
+        )
+
+        # Redirect users with a pending forced password change to the reset
+        # page (no-op unless ENABLE_FORCE_PASSWORD_CHANGE is enabled).
+        register_password_change_enforcement(self.superset_app)
 
         @self.superset_app.after_request
         def apply_http_headers(response: Response) -> Response:
@@ -697,6 +1267,23 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
                 gc.collect()
             return response
 
+        @self.superset_app.before_request
+        def enforce_session_validity() -> Any:
+            """Force logout of sessions invalidated by a per-user epoch."""
+            from superset.security.session_invalidation import (
+                enforce_session_validity as _enforce,
+            )
+
+            return _enforce()
+
+        # Stamp the per-user invalidation epoch when an account is disabled,
+        # so outstanding sessions are terminated on their next request.
+        from superset.security.session_invalidation import (
+            register_session_invalidation_events,
+        )
+
+        register_session_invalidation_events(appbuilder.sm.user_model)
+
         @self.superset_app.context_processor
         def get_common_bootstrap_data() -> dict[str, Any]:
             # Import here to avoid circular imports
@@ -709,17 +1296,31 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
                     default=json.pessimistic_json_iso_dttm_ser,
                 )
 
-            return {"bootstrap_data": serialize_bootstrap_data}
+            return {
+                "bootstrap_data": serialize_bootstrap_data,
+                "is_feature_enabled": feature_flag_manager.is_feature_enabled,
+            }
 
     def check_and_warn_database_connection(self) -> None:
         """Check database connection and warn if unavailable"""
         try:
             with self.superset_app.app_context():
                 # Simple connection test
-                db.engine.execute("SELECT 1")
+                with db.engine.connect() as connection:
+                    connection.execute(text("SELECT 1"))
         except Exception:
             db_uri = self.database_uri
-            safe_uri = make_url_safe(db_uri) if db_uri else "Not configured"
+
+            if db_uri:
+                try:
+                    safe_uri = make_url_safe(db_uri).render_as_string(
+                        hide_password=True
+                    )
+                except DatabaseInvalidError:
+                    safe_uri = "<invalid database URI>"
+            else:
+                safe_uri = "Not configured"
+
             print(
                 f"{Fore.RED}ERROR: Cannot connect to database {safe_uri}\n"
                 f"NOTE: Most CLI commands require a database{Style.RESET_ALL}"
@@ -738,6 +1339,9 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         # Configuration of feature_flags must be done first to allow init features
         # conditionally
         self.configure_feature_flags()
+        self.check_guest_token_secret()
+        self.check_async_query_secret()
+        self.check_encryption_engine()
         self.configure_db_encrypt()
         self.setup_db()
 
@@ -754,10 +1358,18 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         self.configure_cache()
         self.set_db_default_isolation()
         self.configure_sqlglot_dialects()
+        self.configure_extra_post_processing_ops()
 
         with self.superset_app.app_context():
             self.init_app_in_ctx()
 
+        # Registered outside ``init_app_in_ctx`` because the SQLAlchemy
+        # event hook attaches to the ``Session`` *class* (a process-wide
+        # global), not to a Session instance — it has no dependency on
+        # the Flask app context. ``setup_db()`` ran earlier in
+        # ``init_app``, so the ``Session`` import has already been
+        # initialised by the time we get here.
+        self.setup_soft_delete_listener()
         self.post_init()
 
     def set_db_default_isolation(self) -> None:
@@ -820,6 +1432,22 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
         SQLGLOT_DIALECTS.update(extensions)
 
+    def configure_extra_post_processing_ops(self) -> None:
+        from superset.utils.pandas_postprocessing import (
+            __all__ as builtin_ops,
+            build_extra_ops_map,
+        )
+
+        extra = self.config.get("EXTRA_PANDAS_POSTPROCESSING_OPS", [])
+        for name in build_extra_ops_map(extra):
+            if name in builtin_ops:
+                logger.warning(
+                    "EXTRA_PANDAS_POSTPROCESSING_OPS: '%s' conflicts with a "
+                    "built-in post-processing operation and will never fire. "
+                    "Rename the custom function to avoid the conflict.",
+                    name,
+                )
+
     @transaction()
     def configure_fab(self) -> None:
         if self.config["SILENCE_FAB"]:
@@ -835,7 +1463,23 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
         appbuilder.indexview = SupersetIndexView
         appbuilder.security_manager_class = custom_sm
+
+        # The APPLICATION_ROOT-aware Swagger UI and OpenAPI spec replace FAB's
+        # default views at the same routes (``/api/<version>/_openapi`` and
+        # ``/swagger/<version>``). Suppress FAB's default registration so the two
+        # implementations don't create duplicate URL rules for the same path,
+        # which would otherwise leave FAB's (non-prefix-aware) handler in charge.
+        if self.config.get("FAB_API_SWAGGER_UI") and self.config.get(
+            "FAB_API_SWAGGER_UI_SUPERSET_APP_ROOT", False
+        ):
+            self.superset_app.config["FAB_ADD_OPENAPI_VIEWS"] = False
+
         appbuilder.init_app(self.superset_app, db.session)
+
+    def configure_subjects(self) -> None:
+        from superset.subjects.hooks import register_subject_hooks
+
+        register_subject_hooks()
 
     def configure_url_map_converters(self) -> None:
         #
@@ -925,6 +1569,20 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             )
 
     def configure_logging(self) -> None:
+        # sqlalchemy-redshift's own __init__ still imports pkg_resources (see
+        # superset/db_engine_specs/redshift.py for the full rationale). This
+        # filter used to live in DefaultLoggingConfigurator.configure_logging(),
+        # but LOGGING_CONFIGURATOR is a deployment-replaceable hook -- any
+        # custom configurator skipped it entirely and still hit the warning.
+        # Registering it here, before LOGGING_CONFIGURATOR runs, guarantees
+        # it's installed regardless of which configurator is configured.
+        warnings.filterwarnings(
+            "ignore",
+            message=r"pkg_resources is deprecated as an API",
+            category=UserWarning,
+            module=r"sqlalchemy_redshift(?:\..*)?",
+        )
+
         self.config["LOGGING_CONFIGURATOR"].configure_logging(
             self.config, self.superset_app.debug
         )
@@ -940,6 +1598,23 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
         migrate.init_app(self.superset_app, db=db, directory=APP_DIR + "/migrations")
 
+    def setup_soft_delete_listener(self) -> None:
+        """Register the global soft-delete filter on the SQLAlchemy Session.
+
+        Must be called after ``setup_db()`` so the Session class is
+        available. Uses the ``do_orm_execute`` + ``with_loader_criteria``
+        pattern recommended by SQLAlchemy maintainer Mike Bayer for
+        soft deletion in SQLAlchemy 1.4+:
+        https://github.com/sqlalchemy/sqlalchemy/issues/7973#issuecomment-1112561295
+        """
+        from sqlalchemy import event
+        from sqlalchemy.orm import Session
+
+        from superset.models.helpers import _add_soft_delete_filter
+
+        if not event.contains(Session, "do_orm_execute", _add_soft_delete_filter):
+            event.listen(Session, "do_orm_execute", _add_soft_delete_filter)
+
     def configure_wtf(self) -> None:
         if self.config["WTF_CSRF_ENABLED"]:
             csrf.init_app(self.superset_app)
@@ -949,6 +1624,16 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
     def configure_async_queries(self) -> None:
         if feature_flag_manager.is_feature_enabled("GLOBAL_ASYNC_QUERIES"):
+            # In production, check_async_query_secret() already aborts startup when
+            # the default secret is present, so this branch is never reached with it.
+            # In debug/testing the check only warns, so skip async-query init here to
+            # avoid AsyncQueryManager.init_app() hard-failing on the too-short default
+            # secret and crashing startup despite the warn-only intent.
+            if (
+                self.config.get("GLOBAL_ASYNC_QUERIES_JWT_SECRET")
+                == CHANGE_ME_GLOBAL_ASYNC_QUERIES_JWT_SECRET
+            ):
+                return
             async_query_manager_factory.init_app(self.superset_app)
 
     def configure_task_manager(self) -> None:

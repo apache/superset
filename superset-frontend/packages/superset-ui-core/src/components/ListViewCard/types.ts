@@ -21,6 +21,7 @@ import type { BackgroundPosition } from './ImageLoader';
 
 export interface LinkProps {
   to: string;
+  children?: ReactNode;
 }
 
 export interface ListViewCardProps {

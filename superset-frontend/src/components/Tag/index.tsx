@@ -82,7 +82,7 @@ const SupersetTag = ({
             {' '}
             {id ? (
               <Link
-                to={`/superset/all_entities/?id=${id}`}
+                to={`/all_entities/?id=${id}`}
                 target="_blank"
                 rel="noreferrer"
               >

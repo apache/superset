@@ -17,9 +17,23 @@
  * under the License.
  */
 
-import { VizType } from '@superset-ui/core';
+import { isFeatureEnabled, VizType } from '@superset-ui/core';
+import { HYDRATE_CHART_NORMALIZATION } from 'src/features/versionHistory/reducer';
 import { hydrateExplore, HYDRATE_EXPLORE } from './hydrateExplore';
 import { exploreInitialData } from '../fixtures';
+
+jest.mock('@superset-ui/core', () => ({
+  ...jest.requireActual('@superset-ui/core'),
+  isFeatureEnabled: jest.fn(),
+}));
+
+const mockedIsFeatureEnabled = isFeatureEnabled as jest.Mock;
+
+beforeEach(() => mockedIsFeatureEnabled.mockReturnValue(false));
+
+afterEach(() => {
+  window.history.pushState({}, '', '/');
+});
 
 test('creates hydrate action from initial data', () => {
   const dispatch = jest.fn();
@@ -168,6 +182,84 @@ test('creates hydrate action with existing state', () => {
   );
 });
 
+test('hydrates sliceName from preview form data before saved slice name', () => {
+  window.history.pushState({}, '', '/explore/?form_data_key=preview-key');
+
+  const dispatch = jest.fn();
+  const getState = jest.fn(() => ({
+    user: {},
+    charts: {},
+    datasources: {},
+    common: {},
+    explore: {},
+  }));
+  const previewSliceName = 'RENAMED - Bug Evidence';
+  const savedSliceName = 'Most Populated Countries';
+  const previewInitialData = {
+    ...exploreInitialData,
+    form_data: {
+      ...exploreInitialData.form_data,
+      slice_name: previewSliceName,
+    },
+    slice: {
+      ...exploreInitialData.slice!,
+      slice_name: savedSliceName,
+    },
+  };
+
+  // @ts-expect-error we only need the fields consumed by hydrateExplore
+  hydrateExplore(previewInitialData)(dispatch, getState);
+
+  expect(dispatch).toHaveBeenCalledWith(
+    expect.objectContaining({
+      type: HYDRATE_EXPLORE,
+      data: expect.objectContaining({
+        explore: expect.objectContaining({
+          sliceName: previewSliceName,
+        }),
+      }),
+    }),
+  );
+});
+
+test('hydrates sliceName from saved slice when regular form data has stale name', () => {
+  const dispatch = jest.fn();
+  const getState = jest.fn(() => ({
+    user: {},
+    charts: {},
+    datasources: {},
+    common: {},
+    explore: {},
+  }));
+  const staleFormDataSliceName = 'Stale Params Name';
+  const savedSliceName = 'Current Saved Name';
+  const savedChartInitialData = {
+    ...exploreInitialData,
+    form_data: {
+      ...exploreInitialData.form_data,
+      slice_name: staleFormDataSliceName,
+    },
+    slice: {
+      ...exploreInitialData.slice!,
+      slice_name: savedSliceName,
+    },
+  };
+
+  // @ts-expect-error we only need the fields consumed by hydrateExplore
+  hydrateExplore(savedChartInitialData)(dispatch, getState);
+
+  expect(dispatch).toHaveBeenCalledWith(
+    expect.objectContaining({
+      type: HYDRATE_EXPLORE,
+      data: expect.objectContaining({
+        explore: expect.objectContaining({
+          sliceName: savedSliceName,
+        }),
+      }),
+    }),
+  );
+});
+
 test('uses configured default time range if not set', () => {
   const dispatch = jest.fn();
   const getState = jest.fn(() => ({
@@ -259,5 +351,69 @@ test('extracts currency formats from metrics in dataset', () => {
         }),
       }),
     }),
+  );
+});
+
+test('seeds only guarded matching-input hydration transitions', () => {
+  mockedIsFeatureEnabled.mockReturnValue(true);
+  const dispatch = jest.fn();
+  const getState = jest.fn(() => ({
+    user: {},
+    charts: {},
+    datasources: {},
+    common: { conf: { DEFAULT_TIME_FILTER: 'Last year' } },
+    explore: {},
+  }));
+  const persisted = {
+    ...exploreInitialData.form_data,
+  };
+  delete persisted.time_range;
+  const initialData = {
+    ...exploreInitialData,
+    form_data: { ...persisted },
+    slice: {
+      ...exploreInitialData.slice!,
+      form_data: { ...persisted },
+    },
+  };
+
+  // @ts-expect-error focused hydration fixture
+  hydrateExplore(initialData)(dispatch, getState);
+
+  expect(dispatch).toHaveBeenCalledWith(
+    expect.objectContaining({
+      type: HYDRATE_CHART_NORMALIZATION,
+      tracking: expect.objectContaining({
+        chartId: 371,
+        transitions: expect.objectContaining({
+          time_range: {
+            control: 'time_range',
+            from_present: false,
+            to_present: true,
+            to_value: 'Last year',
+          },
+        }),
+      }),
+    }),
+  );
+});
+
+test('does not seed normalization metadata for dashboard overrides', () => {
+  mockedIsFeatureEnabled.mockReturnValue(true);
+  window.history.pushState({}, '', '/explore/?dashboard_id=12');
+  const dispatch = jest.fn();
+  const getState = jest.fn(() => ({
+    user: {},
+    charts: {},
+    datasources: {},
+    common: {},
+    explore: {},
+  }));
+
+  // @ts-expect-error focused hydration fixture
+  hydrateExplore(exploreInitialData)(dispatch, getState);
+
+  expect(dispatch).not.toHaveBeenCalledWith(
+    expect.objectContaining({ type: HYDRATE_CHART_NORMALIZATION }),
   );
 });

@@ -24,6 +24,7 @@ import {
 } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
+import { SubjectType } from 'src/types/Subject';
 import DatasetUsageTab from '.';
 
 const mockChartsResponse = {
@@ -35,11 +36,11 @@ const mockChartsResponse = {
       certified_by: 'John Doe',
       certification_details: 'Certified for production use',
       description: 'A test chart',
-      owners: [
+      editors: [
         {
-          first_name: 'Jane',
-          last_name: 'Smith',
           id: 1,
+          label: 'Jane Smith',
+          type: SubjectType.User,
         },
       ],
       changed_on_delta_humanized: '2 days ago',
@@ -62,11 +63,11 @@ const mockChartsResponse = {
       id: 2,
       slice_name: 'Test Chart 2',
       url: '/explore/2/',
-      owners: [
+      editors: [
         {
-          first_name: 'Bob',
-          last_name: 'Johnson',
           id: 2,
+          label: 'Bob Johnson',
+          type: SubjectType.User,
         },
       ],
       changed_on_delta_humanized: '1 day ago',
@@ -190,8 +191,8 @@ test('renders correct column headers', async () => {
     const chartHeader = screen
       .getAllByText('Chart')
       .find(el => el.closest('th'));
-    const ownersHeader = screen
-      .getAllByText('Chart owners')
+    const editorsHeader = screen
+      .getAllByText('Chart editors')
       .find(el => el.closest('th'));
     const lastModifiedHeader = screen
       .getAllByText('Last modified')
@@ -201,7 +202,7 @@ test('renders correct column headers', async () => {
       .find(el => el.closest('th'));
 
     expect(chartHeader).toBeInTheDocument();
-    expect(ownersHeader).toBeInTheDocument();
+    expect(editorsHeader).toBeInTheDocument();
     expect(lastModifiedHeader).toBeInTheDocument();
     expect(dashboardHeader).toBeInTheDocument();
   });
@@ -239,8 +240,8 @@ test('enables sorting for Chart and Last modified columns', async () => {
       .find(el => el.closest('th'))
       ?.closest('th');
 
-    const ownersHeader = screen
-      .getAllByText('Chart owners')
+    const editorsHeader = screen
+      .getAllByText('Chart editors')
       .find(el => el.closest('th'))
       ?.closest('th');
 
@@ -251,7 +252,7 @@ test('enables sorting for Chart and Last modified columns', async () => {
 
     expect(chartHeader).toHaveClass('ant-table-column-has-sorters');
     expect(lastModifiedHeader).toHaveClass('ant-table-column-has-sorters');
-    expect(ownersHeader).not.toHaveClass('ant-table-column-has-sorters');
+    expect(editorsHeader).not.toHaveClass('ant-table-column-has-sorters');
     expect(dashboardHeader).not.toHaveClass('ant-table-column-has-sorters');
   });
 });
@@ -557,7 +558,7 @@ test('can search charts by chart name', async () => {
   });
 
   const searchInput = screen.getByPlaceholderText(
-    'Search charts by name, owner, or dashboard',
+    'Search charts by name, editor, or dashboard',
   );
   expect(searchInput).toBeInTheDocument();
 
@@ -576,7 +577,7 @@ test('can search charts by chart name', async () => {
   });
 });
 
-test('can search charts by owner name', async () => {
+test('can search charts by editor name', async () => {
   setupTest();
 
   await waitFor(() => {
@@ -584,7 +585,7 @@ test('can search charts by owner name', async () => {
   });
 
   const searchInput = screen.getByPlaceholderText(
-    'Search charts by name, owner, or dashboard',
+    'Search charts by name, editor, or dashboard',
   );
 
   await userEvent.type(searchInput, 'Bob');
@@ -603,7 +604,7 @@ test('can search charts by dashboard title', async () => {
   });
 
   const searchInput = screen.getByPlaceholderText(
-    'Search charts by name, owner, or dashboard',
+    'Search charts by name, editor, or dashboard',
   );
 
   await userEvent.type(searchInput, 'Test Dashboard');
@@ -622,7 +623,7 @@ test('chart search is case-insensitive', async () => {
   });
 
   const searchInput = screen.getByPlaceholderText(
-    'Search charts by name, owner, or dashboard',
+    'Search charts by name, editor, or dashboard',
   );
 
   await userEvent.type(searchInput, 'CHART 1');
@@ -641,7 +642,7 @@ test('shows No items when search has no results', async () => {
   });
 
   const searchInput = screen.getByPlaceholderText(
-    'Search charts by name, owner, or dashboard',
+    'Search charts by name, editor, or dashboard',
   );
 
   await userEvent.type(searchInput, 'nonexistent chart');
@@ -665,7 +666,7 @@ test('hides pagination when searching and restores it when cleared', async () =>
   expect(screen.getByTitle('1')).toBeInTheDocument();
 
   const searchInput = screen.getByPlaceholderText(
-    'Search charts by name, owner, or dashboard',
+    'Search charts by name, editor, or dashboard',
   );
 
   await userEvent.type(searchInput, 'Chart 1');

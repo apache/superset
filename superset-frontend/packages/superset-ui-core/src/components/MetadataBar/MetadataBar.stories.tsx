@@ -27,7 +27,7 @@ export default {
     docs: {
       description: {
         component:
-          'MetadataBar displays a row of metadata items (SQL info, owners, last modified, tags, dashboards, etc.) that collapse responsively based on available width.',
+          'MetadataBar displays a row of metadata items (SQL info, editors, last modified, tags, dashboards, etc.) that collapse responsively based on available width.',
       },
     },
   },
@@ -75,9 +75,9 @@ Basic.args = {
       title: 'Click to view query',
     },
     {
-      type: MetadataType.Owner,
+      type: MetadataType.Editor,
       createdBy: 'Jane Smith',
-      owners: ['John Doe', 'Mary Wilson'],
+      editors: ['John Doe', 'Mary Wilson'],
       createdOn: A_WEEK_AGO,
     },
     {
@@ -119,9 +119,9 @@ InteractiveMetadataBar.args = {
       title: 'Click to view query',
     },
     {
-      type: MetadataType.Owner,
+      type: MetadataType.Editor,
       createdBy: 'Jane Smith',
-      owners: ['John Doe', 'Mary Wilson'],
+      editors: ['John Doe', 'Mary Wilson'],
       createdOn: A_WEEK_AGO,
     },
     {
@@ -149,9 +149,9 @@ InteractiveMetadataBar.parameters = {
       items: [
         { type: 'sql', title: 'Click to view query' },
         {
-          type: 'owner',
+          type: 'editor',
           createdBy: 'Jane Smith',
-          owners: ['John Doe', 'Mary Wilson'],
+          editors: ['John Doe', 'Mary Wilson'],
           createdOn: 'a week ago',
         },
         {
@@ -171,9 +171,9 @@ InteractiveMetadataBar.parameters = {
   const items = [
     { type: 'sql', title: 'Click to view query' },
     {
-      type: 'owner',
+      type: 'editor',
       createdBy: 'Jane Smith',
-      owners: ['John Doe', 'Mary Wilson'],
+      editors: ['John Doe', 'Mary Wilson'],
       createdOn: 'a week ago',
     },
     {
@@ -190,7 +190,7 @@ InteractiveMetadataBar.parameters = {
         title: 'Minimal Metadata',
         code: `function MinimalMetadata() {
   const items = [
-    { type: 'owner', createdBy: 'Admin', owners: ['Admin'], createdOn: 'yesterday' },
+    { type: 'editor', createdBy: 'Admin', editors: ['Admin'], createdOn: 'yesterday' },
     { type: 'lastModified', value: '2 hours ago', modifiedBy: 'Admin' },
   ];
   return <MetadataBar items={items} />;
@@ -201,7 +201,7 @@ InteractiveMetadataBar.parameters = {
         code: `function FullMetadata() {
   const items = [
     { type: 'sql', title: 'SELECT * FROM ...' },
-    { type: 'owner', createdBy: 'Jane Smith', owners: ['Jane Smith', 'John Doe', 'Bob Wilson'], createdOn: '2 weeks ago' },
+    { type: 'editor', createdBy: 'Jane Smith', editors: ['Jane Smith', 'John Doe', 'Bob Wilson'], createdOn: '2 weeks ago' },
     { type: 'lastModified', value: '3 days ago', modifiedBy: 'John Doe' },
     { type: 'tags', values: ['production', 'finance', 'quarterly'] },
     { type: 'dashboards', title: 'Used in 12 dashboards' },

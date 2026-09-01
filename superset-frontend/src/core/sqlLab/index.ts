@@ -48,7 +48,7 @@ import { AnyListenerPredicate } from '@reduxjs/toolkit';
 import type { QueryEditor, SqlLabRootState } from 'src/SqlLab/types';
 import { newQueryTabName } from 'src/SqlLab/utils/newQueryTabName';
 import { Database, Disposable } from '../models';
-import { createActionListener } from '../utils';
+import { createActionListener } from '../storeUtils';
 import {
   Panel,
   Tab,

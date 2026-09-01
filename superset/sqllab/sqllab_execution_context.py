@@ -22,9 +22,12 @@ from dataclasses import dataclass
 from typing import Any, cast, TYPE_CHECKING
 
 from flask import g
+from flask_babel import gettext as __
 from sqlalchemy.orm.exc import DetachedInstanceError
 
 from superset import is_feature_enabled
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.exceptions import SupersetErrorException
 from superset.models.sql_lab import Query
 from superset.sql.parse import CTASMethod
 from superset.utils import core as utils, json
@@ -128,8 +131,44 @@ class SqlJsonExecutionContext:  # pylint: disable=too-many-instance-attributes
         if self.catalog is None:
             self.catalog = database.get_default_catalog()
         if self.select_as_cta:
+            self._validate_ctas_is_allowed(database)
             schema_name = self._get_ctas_target_schema_name(database)
             self.create_table_as_select.target_schema_name = schema_name  # type: ignore
+
+    def _validate_ctas_is_allowed(self, database: Database) -> None:
+        """
+        Enforce the per-database CTAS/CVAS grants server-side.
+
+        The database's ``allow_ctas``/``allow_cvas`` flags are checked at
+        submission, mirroring the ``allow_dml`` gate on the execution path.
+        """
+        ctas = cast(CreateTableAsSelect, self.create_table_as_select)
+        if ctas.ctas_method == CTASMethod.TABLE and not database.allow_ctas:
+            raise SupersetErrorException(
+                SupersetError(
+                    message=__(
+                        "This database does not allow creating tables from "
+                        "queries (CTAS). Please contact your administrator "
+                        "for more assistance."
+                    ),
+                    error_type=SupersetErrorType.QUERY_SECURITY_ACCESS_ERROR,
+                    level=ErrorLevel.ERROR,
+                ),
+                status=403,
+            )
+        if ctas.ctas_method == CTASMethod.VIEW and not database.allow_cvas:
+            raise SupersetErrorException(
+                SupersetError(
+                    message=__(
+                        "This database does not allow creating views from "
+                        "queries (CVAS). Please contact your administrator "
+                        "for more assistance."
+                    ),
+                    error_type=SupersetErrorType.QUERY_SECURITY_ACCESS_ERROR,
+                    level=ErrorLevel.ERROR,
+                ),
+                status=403,
+            )
 
     def _get_ctas_target_schema_name(self, database: Database) -> str | None:
         if database.force_ctas_schema:

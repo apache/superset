@@ -54,7 +54,9 @@ def test_load_parquet_table_sets_uuid_on_new_table(mock_db, mock_get_db):
             uuid=test_uuid,
         )
 
-    assert tbl.uuid == test_uuid
+    # ``uuid`` is coerced to a ``UUID`` object on assignment (UUIDMixin
+    # validator); compare by string form.
+    assert str(tbl.uuid) == test_uuid
 
 
 @patch("superset.examples.generic_loader.get_example_database")
