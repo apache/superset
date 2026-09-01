@@ -19,6 +19,7 @@
 import { useEffect, useState } from 'react';
 import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import { useTheme } from '@apache-superset/core/theme';
+import { isEmbedded } from 'src/dashboard/util/isEmbedded';
 
 // Matches antd's screenSMMax token; used only when no theme is in scope.
 const FALLBACK_MOBILE_MAX_WIDTH = 767;
@@ -29,7 +30,12 @@ const FALLBACK_MOBILE_MAX_WIDTH = 767;
  * interpolations; prefer `useIsMobile` in components.
  */
 export function isMobileConsumptionEnabled(): boolean {
-  return isFeatureEnabled(FeatureFlag.MobileConsumptionMode);
+  // Inside an iframe the viewport is the size the host chose for the embed,
+  // not the size of the device, so a narrow embed on a desktop would
+  // otherwise be served the phone experience and lose its chart controls.
+  // Mobile consumption mode is a whole-app experience (route guarding,
+  // drawer navigation) that an embed does not have in the first place.
+  return isFeatureEnabled(FeatureFlag.MobileConsumptionMode) && !isEmbedded();
 }
 
 /**
