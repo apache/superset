@@ -37,7 +37,22 @@ export default function Handlebars(props: HandlebarsProps) {
   const handlebarTemplateSource = formData.handlebarsTemplate
     ? formData.handlebarsTemplate
     : '{{data}}';
-  const templateSource = `${handlebarTemplateSource}\n${styleTemplateSource} `;
+  // Markdown only treats `<style>` as a raw-text block that may contain blank
+  // lines when the tag starts a block of its own. Joined to the template by a
+  // single newline, a template opening with an HTML tag absorbed the tag into
+  // its own block instead, so the first blank line in the CSS closed that
+  // block and every rule after it was parsed as Markdown and rendered as
+  // visible chart content. A blank line ends the template's block first, so
+  // the style block starts one of its own.
+  //
+  // The separator is added only when there is CSS to append: a blank line at
+  // the end of the template is not always inert, and appending one when the
+  // chart has no CSS at all would be a change to every existing template for
+  // no reason. Keep the style block last so the template stays first in the
+  // DOM, where positional selectors and cascade order expect it.
+  const templateSource = styleTemplateSource
+    ? `${handlebarTemplateSource}\n\n${styleTemplateSource} `
+    : `${handlebarTemplateSource}\n `;
 
   const rootElem = createRef<HTMLDivElement>();
 
