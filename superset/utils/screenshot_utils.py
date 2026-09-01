@@ -713,6 +713,70 @@ SET_PRINT_FONT_SIZE_JS = """
 }
 """
 
+# For tables with many columns the natural <table> scrollWidth can exceed the
+# 1600 px print viewport width and overflow the right edge of the A4 PDF.
+#
+# Industry approach (used by Tableau / Power BI PDF export): apply a CSS
+# transform: scale() to shrink the table to fit the page width.  A scale
+# transform is purely cosmetic — it does not change the element's layout
+# footprint in the document flow, so the scaled table would still occupy its
+# original (pre-scale) pixel height and potentially overlap the next row.
+# To compensate, we wrap each wide table in a new <div> whose height is set
+# to tableHeight * scaleFactor so the document flow sees the correct (smaller)
+# height after scaling.
+#
+# Must be called AFTER EXPAND_TABLE_CONTAINERS_JS (so the table has rendered
+# to its natural width and height) and BEFORE page.pdf() (so the scale
+# transform is in place when the PDF engine lays out the page).
+#
+# Only tables whose scrollWidth > viewportWidth are touched.  Tables that fit
+# naturally are left completely unmodified.
+SCALE_WIDE_TABLES_JS = """
+() => {
+    const viewport = window.innerWidth || 1600;
+    // Leave a small gutter so the table doesn't butt up against the right margin.
+    const maxWidth = viewport - 24;
+    let scaled = 0;
+
+    const sel = '.superset-chart-table,'
+        + ' [data-test-viz-type="table"],'
+        + ' [data-test-viz-type="TableChartTransformed"]';
+
+    for (const root of document.querySelectorAll(sel)) {
+        // The inner <table> element carries the natural column widths.
+        const tableEl = root.querySelector('table');
+        if (!tableEl) continue;
+
+        const tableW = tableEl.scrollWidth;
+        if (tableW <= maxWidth) continue;  // fits — no scaling needed
+
+        const scaleFactor = maxWidth / tableW;
+
+        // Measure the table's natural height BEFORE applying the scale so we
+        // can set the wrapper height to compensate for the layout footprint.
+        const tableH = tableEl.scrollHeight;
+        const scaledH = Math.ceil(tableH * scaleFactor);
+
+        // Apply the CSS scale transform directly to the <table> element.
+        // transform-origin: top left ensures the scaled table aligns flush with
+        // the left edge of the page rather than centering or shifting right.
+        tableEl.style.transform = 'scale(' + scaleFactor + ')';
+        tableEl.style.transformOrigin = 'top left';
+        // The scaled element still occupies its original layout footprint.
+        // Force the immediate parent (scroll container cleared by EXPAND_JS)
+        // to exactly the post-scale height so subsequent rows start correctly.
+        const parent = tableEl.parentElement;
+        if (parent) {
+            parent.style.height = scaledH + 'px';
+            parent.style.overflow = 'hidden';
+        }
+
+        scaled++;
+    }
+    return { scaled: scaled, viewport: viewport };
+}
+"""
+
 CHART_HOLDERS_MOUNTED_JS = (
     f"() => document.querySelectorAll('{CHART_HOLDER_SELECTOR}').length > 0"
 )

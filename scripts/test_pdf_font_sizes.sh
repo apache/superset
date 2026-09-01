@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # test_pdf_font_sizes.sh
 #
-# Generates PDFs from five dashboards, covering all SIP-212 edge cases:
+# Generates PDFs from six dashboards, covering all SIP-212 edge cases:
 #
 #   - dashboard 10 (Large Table PDF Test)  — 5 variants: small/medium/large/2col/custom
 #       EC3 : table with page_length=0 ("All" — 1000 rows, no pagination)
@@ -20,6 +20,10 @@
 #
 #   - dashboard 8  (Misc Charts)           — 2 variants: small/2col
 #       EC7 : mixed chart types including empty/error states
+#
+#   - dashboard 11 (Wide Table PDF Test)   — 2 variants: small/large  [NEW]
+#       EC10: table with 44 columns (flights dataset)
+#             SCALE_WIDE_TABLES_JS must CSS-scale it to fit A4 width
 #
 # Copies everything to ~/Desktop and opens it for visual inspection.
 #
@@ -170,7 +174,137 @@ with flask_app.app_context():
     gen_pdf("dash8_2col",  u8, d8.digest, print_layout="2col",
             tab_ids=t8 or None)
 
-print("All 12 PDFs generated.", flush=True)
+    # ── Dashboard 11: Wide Table PDF Test — EC10 (wide columns) ─────────────
+    # Create or reuse dashboard 11 with the flights table (44 columns).
+    # SCALE_WIDE_TABLES_JS must detect tableScrollWidth > viewport and apply
+    # transform:scale() to fit all columns on the A4 page without clipping.
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.models.slice import Slice
+    import uuid, json
+
+    def _get_or_create_wide_table_dashboard():
+        """
+        Find or build a dashboard containing a table chart from the flights
+        dataset (44 columns) — enough to demonstrate SCALE_WIDE_TABLES_JS.
+        Falls back gracefully to any wide table that is available.
+        Returns the Dashboard object.
+        """
+        existing = db.session.query(Dashboard).filter_by(
+            dashboard_title="Wide Table PDF Test").first()
+        if existing:
+            print(f"  [wide] reusing existing dashboard id={existing.id}", flush=True)
+            return existing
+
+        # Use flights (44 columns) as the primary wide-table test case.
+        # wb_health_population (328 cols) is too slow for a live test run.
+        flights_ds = db.session.query(SqlaTable).filter_by(
+            table_name="flights").first()
+
+        if flights_ds is not None:
+            datasource = flights_ds
+        else:
+            # Fall back to the widest available dataset
+            all_ds = db.session.query(SqlaTable).all()
+            if not all_ds:
+                raise RuntimeError("No SqlaTable datasets found — load sample data first")
+            datasource = max(all_ds, key=lambda t: len(t.columns))
+            print(f"  [wide] no flights dataset; using '{datasource.table_name}' "
+                  f"({len(datasource.columns)} cols)", flush=True)
+
+        col_count = len(datasource.columns)
+        # all_columns: list of column names for the table viz.  The table
+        # plugin uses 'all_columns' (not 'columns') to specify which columns
+        # to display.  We pass all column names so the table is maximally
+        # wide and triggers SCALE_WIDE_TABLES_JS.
+        all_columns = [c.column_name for c in datasource.columns]
+        # Row limit is small (20 rows) — the test is about column overflow,
+        # not row count.  page_length=0 = no client-side pagination.
+        params = json.dumps({
+            "viz_type": "table",
+            "datasource": f"{datasource.id}__table",
+            "row_limit": 20,
+            "page_length": 0,
+            "include_time": False,
+            "metrics": [],
+            "groupby": [],
+            "all_columns": all_columns,
+            "order_by_cols": [],
+            "adhoc_filters": [],
+            "table_timestamp_format": "smart_date",
+            "show_cell_bars": False,
+            "color_pn": False,
+            "url_params": {},
+        })
+        slc = Slice(
+            slice_name=f"{datasource.table_name} ({col_count} columns — wide table test)",
+            viz_type="table",
+            datasource_id=datasource.id,
+            datasource_type="table",
+            params=params,
+        )
+        db.session.add(slc)
+        db.session.flush()
+        slices = [slc]
+        print(f"  [wide] created chart '{slc.slice_name}' id={slc.id}", flush=True)
+
+        # Build a single-column layout using the v2 schema that Superset's
+        # dashboard renderer expects.  CHART nodes live directly inside ROW
+        # nodes (no COLUMN wrapper).  ROOT_ID and GRID_ID are literal keys.
+        row_id   = "ROW-"  + uuid.uuid4().hex[:8]
+        chart_id = "CHART-" + uuid.uuid4().hex[:8]
+        slc = slices[0]  # only one chart
+
+        layout = {
+            "DASHBOARD_VERSION_KEY": "v2",
+            "ROOT_ID": {
+                "type": "ROOT", "id": "ROOT_ID",
+                "children": ["GRID_ID"],
+            },
+            "GRID_ID": {
+                "type": "GRID", "id": "GRID_ID",
+                "children": [row_id],
+                "parents": ["ROOT_ID"],
+            },
+            row_id: {
+                "type": "ROW", "id": row_id,
+                "children": [chart_id],
+                "parents": ["ROOT_ID", "GRID_ID"],
+                "meta": {"background": "BACKGROUND_TRANSPARENT"},
+            },
+            chart_id: {
+                "type": "CHART", "id": chart_id,
+                "children": [],
+                "parents": ["ROOT_ID", "GRID_ID", row_id],
+                "meta": {
+                    "chartId": slc.id,
+                    "width": 12,
+                    "height": 50,
+                    "sliceName": slc.slice_name,
+                },
+            },
+        }
+
+        dash = Dashboard(
+            dashboard_title="Wide Table PDF Test",
+            position_json=json.dumps(layout),
+            published=True,
+        )
+        dash.slices = slices
+        db.session.add(dash)
+        db.session.commit()
+        print(f"  [wide] created dashboard id={dash.id}", flush=True)
+        return dash
+
+    d11 = _get_or_create_wide_table_dashboard()
+    u11 = get_url(d11)
+    t11 = get_tab_ids(d11)
+    # EC10: small (default) — SCALE_WIDE_TABLES_JS handles the column overflow
+    gen_pdf("dash11_wide_small", u11, d11.digest, tab_ids=t11 or None)
+    # EC10: large font — verify titles not clipped AND wide table scaled
+    gen_pdf("dash11_wide_large", u11, d11.digest, font_size="large",
+            tab_ids=t11 or None)
+
+print("All 14 PDFs generated.", flush=True)
 PYEOF
 
 # ── copy script into container and run it ────────────────────────────────────
@@ -184,7 +318,7 @@ PYTHON_OUTPUT=$(docker exec "$CONTAINER" python3 /tmp/_sip212_test.py 2>&1) || {
   exit 1
 }
 
-echo "$PYTHON_OUTPUT" | grep -E "^\[|^All" || true
+echo "$PYTHON_OUTPUT" | grep -E "^\[|^\s+\[|^All" || true
 echo "$PYTHON_OUTPUT" | grep "ERROR:superset" || true
 
 # ── copy PDFs to Desktop ──────────────────────────────────────────────────────
@@ -195,6 +329,7 @@ PDFS=(
   dash5_paginated
   dash6_small dash6_2col
   dash8_small dash8_2col
+  dash11_wide_small dash11_wide_large
 )
 for NAME in "${PDFS[@]}"; do
   docker cp "$CONTAINER:/tmp/test_pdf_${NAME}.pdf" \
@@ -209,12 +344,12 @@ for NAME in "${PDFS[@]}"; do
 done
 
 echo ""
-echo "Done. 12 PDFs open on your Desktop:"
+echo "Done. 14 PDFs open on your Desktop:"
 echo ""
 echo "  Dashboard 10 — Large Table PDF Test"
 echo "    test_pdf_dash10_small.pdf    — EC3: 1000-row table, page_length=0 (all rows)"
 echo "    test_pdf_dash10_medium.pdf   — medium font tier"
-echo "    test_pdf_dash10_large.pdf    — large font tier"
+echo "    test_pdf_dash10_large.pdf    — large font tier (title clipping FIXED)"
 echo "    test_pdf_dash10_2col.pdf     — EC9: wide table + 2-column adaptive layout"
 echo "    test_pdf_dash10_custom.pdf   — custom ACME Corp header/footer"
 echo ""
@@ -233,8 +368,15 @@ echo "  Dashboard 8 — Misc Charts"
 echo "    test_pdf_dash8_small.pdf     — EC7: mixed chart types"
 echo "    test_pdf_dash8_2col.pdf      — EC7 + 2-column adaptive layout"
 echo ""
+echo "  Dashboard 11 — Wide Table PDF Test  [NEW]"
+echo "    test_pdf_dash11_wide_small.pdf — EC10: flights(44 cols), SCALE_WIDE_TABLES_JS applied"
+echo "    test_pdf_dash11_wide_large.pdf — EC10 + large font tier (title clipping fix verified)"
+echo ""
 echo "  What to verify:"
-echo "    dash5_paginated : Games table shows ALL rows (not just 15)"
-echo "    dash10_*        : 1000-row table fully visible, no overflow"
-echo "    dash2_*         : % Rural map visible, table rows not interleaved"
-echo "    dash6_small/2col: Both sales tabs present in merged PDF"
+echo "    dash5_paginated     : Games table shows ALL rows (not just 15)"
+echo "    dash10_*            : 1000-row table fully visible, no overflow"
+echo "    dash10_large        : chart titles fully visible — no bottom clipping"
+echo "    dash2_*             : % Rural map visible, table rows not interleaved"
+echo "    dash6_small/2col    : Both sales tabs present in merged PDF"
+echo "    dash11_wide_*       : ALL columns visible — no right-edge clipping"
+echo "                          (wide tables scaled down to fit A4 width)"

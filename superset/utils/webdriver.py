@@ -55,6 +55,7 @@ from superset.utils.screenshot_utils import (
     PRINT_ALL_CHART_HOLDERS_READY_JS,
     REPORT_CHART_HOLDERS_READY_JS,
     resolve_screenshot_task_budget_seconds,
+    SCALE_WIDE_TABLES_JS,
     ScreenshotTaskBudgetExceededError,
     SET_PRINT_FONT_SIZE_JS,
     SHOW_ALL_TABLE_ROWS_JS,
@@ -1336,6 +1337,22 @@ class WebDriverPlaywright(WebDriverProxy):
                     "log_context=%s",
                     render_url,
                     expanded,
+                    log_context or "",
+                )
+
+            # After expanding table height/overflow constraints, detect tables
+            # whose natural rendered width exceeds the viewport width and apply
+            # a CSS scale transform so they fit the page without horizontal
+            # clipping.  Must run after EXPAND_TABLE_CONTAINERS_JS (so the
+            # table has its final rendered width) and before page.pdf().
+            scale_result = page.evaluate(SCALE_WIDE_TABLES_JS)
+            if scale_result.get("scaled", 0):
+                logger.info(
+                    "browser_print_pdf_scale_wide_tables url=%s "
+                    "wide_tables_scaled=%d viewport=%d log_context=%s",
+                    render_url,
+                    scale_result["scaled"],
+                    scale_result.get("viewport", 0),
                     log_context or "",
                 )
 

@@ -147,12 +147,25 @@ body.print-mode {
     return `
 body.print-mode {
   /* ── Large font tier ─────────────────────────────────────────────── */
-  /* Chart titles (~19pt on paper after 0.496x scale) */
+
+  /* Chart titles (~19pt on paper after 0.496x scale).
+   * At 38px the title text is taller than the default slice-header height
+   * (~40px authored). Release the header container so the full title line
+   * is visible instead of being clipped at the bottom. */
+  [data-test="slice-header"],
+  [data-test="slice-header"] .header-controls-dash,
+  [data-test="slice-header"] .slice-header-wrapper {
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+  }
   [data-test="slice-header"] .header-title,
   [data-test="slice-header"] .header-title a,
   [data-test="slice-header"] .header-title span {
     font-size: 38px !important;
-    line-height: 1.4 !important;
+    line-height: 1.35 !important;
+    white-space: normal !important;
+    overflow: visible !important;
   }
 
   /* Table cells and headers (~15pt on paper) */
