@@ -113,8 +113,11 @@ def df_to_excel(
 
         if number_format and writer.sheets:
             worksheet = next(iter(writer.sheets.values()))
-            # The index occupies the leading columns when it is written out.
-            first_data_column = df.index.nlevels if kwargs.get("index", True) else 0
+            # The sheet may start past column A, and the index occupies the
+            # leading columns when it is written out.
+            first_data_column = kwargs.get("startcol", 0) + (
+                df.index.nlevels if kwargs.get("index", True) else 0
+            )
             worksheet.set_column(
                 first_data_column,
                 first_data_column + len(df.columns) - 1,

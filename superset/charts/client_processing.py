@@ -1444,7 +1444,8 @@ def apply_client_processing(  # noqa: C901
                 # workbook reads like the chart and still calculates.
                 number_format=(
                     EXCEL_PERCENT_FORMAT
-                    if form_data.get("showValuesAs") in SHOW_VALUES_AS_PERCENT_MODES
+                    if viz_type == "pivot_table_v2"
+                    and form_data.get("showValuesAs") in SHOW_VALUES_AS_PERCENT_MODES
                     else None
                 ),
                 **{
