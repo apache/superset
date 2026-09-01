@@ -16,11 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { css, styled } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
-import { Loading } from '@superset-ui/core/components';
+import { AntdThemeProvider, Loading } from '@superset-ui/core/components';
 import { ErrorBoundary } from 'src/components/ErrorBoundary';
 import Chart from 'src/dashboard/components/gridComponents/Chart';
 import getBootstrapData from 'src/utils/getBootstrapData';
@@ -39,6 +39,23 @@ const Fill = styled.div`
     inset: 0;
     display: flex;
     flex-direction: column;
+    overflow: hidden;
+  `}
+`;
+
+/**
+ * The dashboard gives each chart a holder element that owns two things the
+ * header controls reach for: the node passed to `requestFullscreen`, and the
+ * `dashboard-chart-id-<id>` class the screenshot exports select on. An embedded
+ * chart renders without `ChartHolder`, so it has to provide both itself.
+ */
+const Holder = styled.div`
+  ${() => css`
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
     overflow: hidden;
   `}
 `;
@@ -62,6 +79,12 @@ export default function EmbeddedChart({ chartId }: { chartId: string }) {
   const { data, loading, error } = useExploreData(chartId);
   const { width, height } = useContainerSize();
   const [hydrated, setHydrated] = useState(false);
+  const [isFullSize, setIsFullSize] = useState(false);
+  const holderRef = useRef<HTMLDivElement>(null);
+
+  const handleToggleFullSize = useCallback(() => {
+    setIsFullSize(current => !current);
+  }, []);
 
   useEffect(() => {
     if (!data) return;
@@ -79,22 +102,41 @@ export default function EmbeddedChart({ chartId }: { chartId: string }) {
   return (
     <Fill>
       <ErrorBoundary>
-        <Chart
-          id={data.slice.slice_id}
-          componentId={`EMBEDDED_CHART-${data.slice.slice_id}`}
-          // There is no dashboard behind an embedded chart; the fabricated
-          // state is keyed by slice id and nothing reads this as a lookup.
-          dashboardId={0}
-          width={width}
-          height={height}
-          sliceName={data.slice.slice_name}
-          isComponentVisible
-          isInView
-          // Renaming and full-size are dashboard-owner actions with no
-          // meaning inside an iframe.
-          updateSliceName={() => {}}
-          handleToggleFullSize={() => {}}
-        />
+        <Holder
+          ref={holderRef}
+          className={`dashboard-chart-id-${data.slice.slice_id}`}
+        >
+          <AntdThemeProvider
+            getPopupContainer={(triggerNode?: HTMLElement) => {
+              // Only the fullscreen element's subtree is painted, so popups
+              // have to be portaled into it rather than to document.body,
+              // otherwise the header menu is unreachable while fullscreen.
+              const fullscreenElement =
+                document.fullscreenElement as HTMLElement | null;
+              return triggerNode && fullscreenElement?.contains(triggerNode)
+                ? fullscreenElement
+                : document.body;
+            }}
+          >
+            <Chart
+              id={data.slice.slice_id}
+              componentId={`EMBEDDED_CHART-${data.slice.slice_id}`}
+              // There is no dashboard behind an embedded chart; the fabricated
+              // state is keyed by slice id and nothing reads this as a lookup.
+              dashboardId={0}
+              width={width}
+              height={height}
+              sliceName={data.slice.slice_name}
+              isComponentVisible
+              isInView
+              chartHolderRef={holderRef}
+              isFullSize={isFullSize}
+              handleToggleFullSize={handleToggleFullSize}
+              // Renaming is a dashboard-owner action with no meaning here.
+              updateSliceName={() => {}}
+            />
+          </AntdThemeProvider>
+        </Holder>
       </ErrorBoundary>
     </Fill>
   );
