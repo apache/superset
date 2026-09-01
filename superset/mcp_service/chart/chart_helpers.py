@@ -505,6 +505,8 @@ def _build_single_query_dict(
         qd["row_limit"] = effective_row_limit
     if order_desc is not None:
         qd["order_desc"] = order_desc
+    if orderby := form_data.get("orderby"):
+        qd["orderby"] = orderby
     apply_form_data_filters_to_query(qd, form_data)
     return qd
 

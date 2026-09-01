@@ -40,6 +40,7 @@ from superset.mcp_service.chart.chart_utils import (
     analyze_chart_semantics,
     generate_chart_name,
     map_config_to_form_data,
+    merge_bullet_form_data,
     merge_interactive_pivot_ui_config,
     merge_table_column_config,
 )
@@ -234,6 +235,7 @@ def _build_update_payload(
             parsed_config, dataset_id=effective_dataset_id
         )
         new_form_data.pop("_mcp_warnings", None)
+        merge_bullet_form_data(_get_existing_form_data(chart), new_form_data)
         merge_table_column_config(_get_existing_form_data(chart), new_form_data)
         merge_interactive_pivot_ui_config(_get_existing_form_data(chart), new_form_data)
 
@@ -316,6 +318,7 @@ def _build_preview_form_data(
             parsed_config, dataset_id=effective_dataset_id
         )
         new_form_data.pop("_mcp_warnings", None)
+        merge_bullet_form_data(existing_form_data, new_form_data)
         merge_table_column_config(existing_form_data, new_form_data)
         merge_interactive_pivot_ui_config(existing_form_data, new_form_data)
         # In the preview, an explicit filters list, including [], replaces saved

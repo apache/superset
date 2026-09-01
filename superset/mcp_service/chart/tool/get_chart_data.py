@@ -150,6 +150,7 @@ _VIZ_CATEGORY: dict[str, str] = {
     "area": "area",
     "scatter": "scatter",
     "bubble": "bubble",
+    "bullet": "bullet",
     "treemap_v2": "treemap",
     "sunburst_v2": "treemap",
     "heatmap_v2": "heatmap",
@@ -255,7 +256,7 @@ def _candidates_categorical_numeric(
 
 
 def _candidates_single_numeric(col: DataColumn, row_count: int) -> list[str]:
-    candidates = ["big number / KPI", "gauge chart"]
+    candidates = ["big number / KPI", "bullet chart", "gauge chart"]
     if row_count > 20 and col.unique_count > 10:
         candidates.insert(0, "histogram")
     return candidates
@@ -282,6 +283,7 @@ _CANDIDATE_CATEGORY: dict[str, str] = {
     "bar chart": "bar",
     "scatter plot": "scatter",
     "bubble chart": "bubble",
+    "bullet chart": "bullet",
     "pie chart": "pie",
     "treemap": "treemap",
     "heatmap": "heatmap",

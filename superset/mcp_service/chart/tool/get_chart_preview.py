@@ -506,6 +506,7 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
                 # closest faithful approximation.
                 "waterfall",
             ],
+            "bullet": ["bullet"],
             "area": ["echarts_area", "area"],
             "scatter": ["echarts_timeseries_scatter", "scatter"],
             "pie": ["pie"],
@@ -698,6 +699,126 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
                     for f in fields[:5]
                 ],
             },
+        }
+
+    def _bullet_chart_spec(
+        self, fields: List[str], field_types: Dict[str, str] | None = None
+    ) -> Dict[str, Any]:
+        """Create a horizontal Bullet spec from saved native form_data."""
+        from superset.mcp_service.chart.preview_utils import (
+            _bullet_numeric_tokens,
+            _form_column_label,
+            _form_metric_label,
+        )
+        from superset.utils import json as utils_json
+
+        field_types = field_types or {}
+        form_data = self._get_form_data() or {}
+
+        def result_field(label: str | None) -> str | None:
+            if label in fields:
+                return label
+            if label:
+                matches = [
+                    field for field in fields if field.casefold() == label.casefold()
+                ]
+                if len(matches) == 1:
+                    return matches[0]
+            return None
+
+        metric_field = result_field(_form_metric_label(form_data.get("metric")))
+        if metric_field is None:
+            metric_field = next(
+                (
+                    field
+                    for field in reversed(fields)
+                    if field_types.get(field) == "quantitative"
+                ),
+                fields[-1] if fields else "metric",
+            )
+        dimensions = [
+            field
+            for column in form_data.get("groupby") or []
+            if (field := result_field(_form_column_label(column)))
+        ]
+        if not dimensions:
+            dimensions = [field for field in fields if field != metric_field]
+
+        category_field = "__mcp_bullet_category"
+        calculate = (
+            " + ', ' + ".join(
+                f"toString(datum[{utils_json.dumps(field)}])" for field in dimensions
+            )
+            if dimensions
+            else "'Measure'"
+        )
+        y_encoding = {
+            "field": category_field,
+            "type": "nominal",
+            "title": ", ".join(dimensions) if dimensions else None,
+            "sort": None,
+        }
+        layers: list[dict[str, Any]] = []
+        for index, threshold in enumerate(
+            sorted(_bullet_numeric_tokens(form_data.get("ranges")), reverse=True)
+        ):
+            layers.append(
+                {
+                    "mark": {
+                        "type": "rect",
+                        "opacity": max(0.08, 0.28 - index * 0.04),
+                    },
+                    "encoding": {
+                        "x": {"datum": 0, "type": "quantitative"},
+                        "x2": {"datum": threshold},
+                    },
+                }
+            )
+        layers.append(
+            {
+                "mark": {"type": "bar", "tooltip": True, "size": 16},
+                "encoding": {
+                    "x": {
+                        "field": metric_field,
+                        "type": "quantitative",
+                        "title": metric_field,
+                    },
+                    "y": y_encoding,
+                    "tooltip": [
+                        *(
+                            {"field": field, "type": field_types.get(field, "nominal")}
+                            for field in dimensions
+                        ),
+                        {"field": metric_field, "type": "quantitative"},
+                    ],
+                },
+            }
+        )
+        for marker in _bullet_numeric_tokens(form_data.get("markers")):
+            layers.append(
+                {
+                    "mark": {
+                        "type": "point",
+                        "shape": "triangle-up",
+                        "filled": True,
+                        "size": 80,
+                    },
+                    "encoding": {
+                        "x": {"datum": marker, "type": "quantitative"},
+                        "y": y_encoding,
+                    },
+                }
+            )
+        for marker_line in _bullet_numeric_tokens(form_data.get("marker_lines")):
+            layers.append(
+                {
+                    "mark": {"type": "rule", "strokeWidth": 2},
+                    "encoding": {"x": {"datum": marker_line, "type": "quantitative"}},
+                }
+            )
+        return {
+            "transform": [{"calculate": calculate, "as": category_field}],
+            "layer": layers,
         }
 
     def _area_chart_spec(

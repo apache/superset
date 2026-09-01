@@ -154,7 +154,9 @@ def _generate_ascii_preview_from_data(
     viz_type = form_data.get("viz_type", "table")
 
     # Handle different chart types
-    if viz_type in ["bar", "dist_bar", "column"]:
+    if viz_type == "bullet":
+        content = _generate_ascii_bullet_chart(data, form_data)
+    elif viz_type in ["bar", "dist_bar", "column"]:
         content = _generate_safe_ascii_bar_chart(data)
     elif viz_type in ["line", "area"]:
         content = _generate_safe_ascii_line_chart(data)
@@ -323,6 +325,102 @@ def _generate_safe_ascii_bar_chart(data: List[Dict[str, Any]]) -> str:
     return "\n".join(lines)
 
 
+def _form_metric_label(metric: Any) -> str | None:
+    """Return the result-column label for a native QueryFormMetric."""
+    if isinstance(metric, str):
+        return metric
+    if not isinstance(metric, dict):
+        return None
+    if label := metric.get("label"):
+        return label if isinstance(label, str) else None
+    column = metric.get("column")
+    column_name = column.get("column_name") if isinstance(column, dict) else column
+    aggregate = metric.get("aggregate")
+    if isinstance(column_name, str) and isinstance(aggregate, str):
+        return f"{aggregate}({column_name})"
+    return None
+
+
+def _form_column_label(column: Any) -> str | None:
+    """Return the result-column label for a native QueryFormColumn."""
+    if isinstance(column, str):
+        return column
+    if not isinstance(column, dict):
+        return None
+    for key in ("label", "column_name"):
+        if isinstance(value := column.get(key), str) and value:
+            return value
+    return None
+
+
+def _canonical_result_field(label: str | None, row: Dict[str, Any]) -> str | None:
+    """Resolve a query result field by exact match, then unambiguous casefold."""
+    if label is None:
+        return None
+    if label in row:
+        return label
+    matches = [field for field in row if field.casefold() == label.casefold()]
+    return matches[0] if len(matches) == 1 else None
+
+
+def _bullet_result_roles(
+    data: List[Dict[str, Any]], form_data: Dict[str, Any]
+) -> tuple[str | None, list[str]]:
+    """Resolve Bullet metric and full category hierarchy in query output."""
+    if not data:
+        return None, []
+    first_row = data[0]
+    metric_field = _canonical_result_field(
+        _form_metric_label(form_data.get("metric")), first_row
+    )
+    if metric_field is None:
+        metric_field = next(
+            (
+                field
+                for field, value in first_row.items()
+                if isinstance(value, (int, float)) and not _is_nan(value)
+            ),
+            None,
+        )
+    dimensions = [
+        field
+        for column in form_data.get("groupby") or []
+        if (field := _canonical_result_field(_form_column_label(column), first_row))
+    ]
+    return metric_field, dimensions
+
+
+def _generate_ascii_bullet_chart(
+    data: List[Dict[str, Any]], form_data: Dict[str, Any]
+) -> str:
+    """Generate a horizontal Bullet preview using its exact result roles."""
+    if not data:
+        return "No data available for Bullet chart"
+    metric_field, dimensions = _bullet_result_roles(data, form_data)
+    if metric_field is None:
+        return "No numeric metric data found for Bullet chart"
+    values = [
+        value
+        for row in data[:10]
+        if isinstance(value := row.get(metric_field), (int, float))
+        and not _is_nan(value)
+    ]
+    if not values:
+        return "No numeric metric data found for Bullet chart"
+    scale = max((abs(float(value)) for value in values), default=0) or 1
+    lines = [f"ASCII Bullet Chart — {metric_field}", "=" * 50]
+    for index, row in enumerate(data[:10]):
+        value = row.get(metric_field)
+        if not isinstance(value, (int, float)) or _is_nan(value):
+            continue
+        category = ", ".join(str(row.get(field, "")) for field in dimensions)
+        category = category or f"Item {index + 1}"
+        bar = "█" * round(abs(float(value)) / scale * 30)
+        sign = "-" if value < 0 else ""
+        lines.append(f"{category[:20]:>20} |{sign}{bar:<30} {value:g}")
+    return "\n".join(lines)
+
+
 def _generate_safe_ascii_line_chart(data: List[Dict[str, Any]]) -> str:
     """Generate ASCII line chart with proper NaN handling."""
     if not data:
@@ -469,11 +567,126 @@ def _is_nan(value: Any) -> bool:
         return False
 
 
+def _bullet_numeric_tokens(value: Any) -> list[float]:
+    """Parse native comma-separated Bullet threshold controls."""
+    if isinstance(value, str):
+        tokens: list[Any] = [token.strip() for token in value.split(",")]
+    elif isinstance(value, list):
+        tokens = value
+    else:
+        return []
+    result: list[float] = []
+    for token in tokens:
+        try:
+            number = float(token)
+        except (TypeError, ValueError):
+            continue
+        if not _is_nan(number) and math.isfinite(number):
+            result.append(number)
+    return result
+
+
+def _generate_bullet_vega_lite_preview(
+    data: List[Dict[str, Any]], form_data: Dict[str, Any]
+) -> VegaLitePreview | None:
+    """Build a horizontal layered preview faithful to Bullet result roles."""
+    metric_field, dimensions = _bullet_result_roles(data, form_data)
+    if metric_field is None:
+        return None
+
+    category_field = "__mcp_bullet_category"
+    values = []
+    for index, row in enumerate(data):
+        copied = dict(row)
+        copied[category_field] = (
+            ", ".join(str(row.get(field, "")) for field in dimensions)
+            if dimensions
+            else str(index + 1)
+        )
+        values.append(copied)
+
+    y_encoding = {
+        "field": category_field,
+        "type": "nominal",
+        "title": ", ".join(dimensions) if dimensions else None,
+        "sort": None,
+    }
+    tooltip = [
+        *({"field": field, "type": "nominal"} for field in dimensions),
+        {"field": metric_field, "type": "quantitative"},
+    ]
+    layers: list[dict[str, Any]] = []
+    for index, threshold in enumerate(
+        sorted(_bullet_numeric_tokens(form_data.get("ranges")), reverse=True)
+    ):
+        layers.append(
+            {
+                "mark": {
+                    "type": "rect",
+                    "opacity": max(0.08, 0.28 - index * 0.04),
+                },
+                "encoding": {
+                    "x": {"datum": 0, "type": "quantitative"},
+                    "x2": {"datum": threshold},
+                },
+            }
+        )
+    layers.append(
+        {
+            "mark": {"type": "bar", "tooltip": True, "size": 16},
+            "encoding": {
+                "x": {
+                    "field": metric_field,
+                    "type": "quantitative",
+                    "title": metric_field,
+                },
+                "y": y_encoding,
+                "tooltip": tooltip,
+            },
+        }
+    )
+    for marker in _bullet_numeric_tokens(form_data.get("markers")):
+        layers.append(
+            {
+                "mark": {
+                    "type": "point",
+                    "shape": "triangle-up",
+                    "filled": True,
+                    "size": 80,
+                },
+                "encoding": {
+                    "x": {"datum": marker, "type": "quantitative"},
+                    "y": y_encoding,
+                },
+            }
+        )
+    for marker_line in _bullet_numeric_tokens(form_data.get("marker_lines")):
+        layers.append(
+            {
+                "mark": {"type": "rule", "strokeWidth": 2},
+                "encoding": {"x": {"datum": marker_line, "type": "quantitative"}},
+            }
+        )
+
+    return VegaLitePreview(
+        type="vega_lite",
+        specification={
+            "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+            "data": {"values": values},
+            "layer": layers,
+        },
+        supports_streaming=False,
+    )
+
+
 def _generate_vega_lite_preview_from_data(  # noqa: C901
     data: List[Dict[str, Any]], form_data: Dict[str, Any]
 ) -> VegaLitePreview:
     """Generate Vega-Lite preview from raw data and form_data."""
     viz_type = form_data.get("viz_type", "table")
+    if viz_type == "bullet" and data:
+        if bullet_preview := _generate_bullet_vega_lite_preview(data, form_data):
+            return bullet_preview
 
     # Map Superset viz types to Vega-Lite marks
     viz_to_mark = {
@@ -486,6 +699,7 @@ def _generate_vega_lite_preview_from_data(  # noqa: C901
         "area": "area",
         "scatter": "point",
         "pie": "arc",
+        "bullet": "bar",
         "table": "text",
     }
 
@@ -501,6 +715,8 @@ def _generate_vega_lite_preview_from_data(  # noqa: C901
     # Get x_axis and metrics from form_data
     x_axis = form_data.get("x_axis")
     metrics = form_data.get("metrics", [])
+    if not metrics and form_data.get("metric"):
+        metrics = [form_data["metric"]]
     groupby = form_data.get("groupby", [])
 
     # Build encoding based on available fields

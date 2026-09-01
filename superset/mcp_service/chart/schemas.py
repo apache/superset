@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import difflib
 import logging
+import math
 import re
 from datetime import datetime
 from typing import Annotated, Any, Dict, List, Literal, Protocol
@@ -72,6 +73,7 @@ from superset.mcp_service.utils.sanitization import (
     sanitize_user_input,
     sanitize_user_input_with_changes,
 )
+from superset.utils import json
 
 logger = logging.getLogger(__name__)
 
@@ -2014,6 +2016,385 @@ class XYChartConfig(BaseChartConfig):
         return self
 
 
+class BulletChartConfig(BaseChartConfig):
+    """Typed contract for the ECharts Bullet visualization (viz_type ``bullet``).
+
+    Semantic field names are exposed to MCP clients while validation aliases and
+    the native adapter accept saved Explore ``form_data`` without weakening the
+    unknown-field checks that catch misspelled controls.
+    """
+
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    chart_type: Literal["bullet"] = "bullet"
+    metric: ColumnRef = Field(
+        ...,
+        description=(
+            "Numeric measure shown by each bullet bar. Use aggregate for a SIMPLE "
+            "metric, saved_metric=True for a dataset metric, or sql_expression "
+            "with a unique label."
+        ),
+    )
+    dimensions: List[ColumnRef] | None = Field(
+        None,
+        validation_alias=AliasChoices("dimensions", "groupby"),
+        description=(
+            "Optional category hierarchy; the frontend renders one bullet row per "
+            "unique combination (native form_data: groupby). Omit to preserve a "
+            "saved hierarchy on update; pass [] to clear it."
+        ),
+        max_length=20,
+    )
+    filters: List[FilterConfig] | None = Field(
+        None,
+        description=(
+            "Structured WHERE filters. Native SIMPLE adhoc_filters are accepted; "
+            "free-form SQL filters are rejected."
+        ),
+        max_length=100,
+    )
+    time_range: str | None = Field(
+        None,
+        min_length=1,
+        max_length=1000,
+        description=(
+            "Optional Superset time range such as 'Last 30 days' or "
+            "'2025-01-01 : 2025-12-31'. Set temporal_column to choose its column."
+        ),
+    )
+    row_limit: int = Field(
+        10000,
+        ge=1,
+        le=50000,
+        description="Maximum grouped bullet rows returned by the query",
+    )
+    order_by: List[SortByConfig] = Field(
+        default_factory=list,
+        validation_alias=AliasChoices("order_by", "orderby", "order_by_cols"),
+        max_length=20,
+        description=(
+            "Stable row ordering by a dimension name or by the metric's output "
+            "label/name. Native orderby pairs and order_by_cols JSON pairs are "
+            "accepted for saved-form-data round trips."
+        ),
+    )
+
+    # Presentation fields map one-for-one onto Bullet/transformProps.ts controls.
+    ranges: List[float] = Field(
+        default_factory=list,
+        max_length=100,
+        description="Qualitative range thresholds shaded behind the measure",
+    )
+    range_labels: List[str] = Field(
+        default_factory=list,
+        validation_alias=AliasChoices("range_labels", "rangeLabels"),
+        max_length=100,
+    )
+    markers: List[float] = Field(
+        default_factory=list,
+        max_length=100,
+        description="Target values drawn as point markers",
+    )
+    marker_labels: List[str] = Field(
+        default_factory=list,
+        validation_alias=AliasChoices("marker_labels", "markerLabels"),
+        max_length=100,
+    )
+    marker_lines: List[float] = Field(
+        default_factory=list,
+        validation_alias=AliasChoices("marker_lines", "markerLines"),
+        max_length=100,
+        description="Reference values drawn as vertical lines",
+    )
+    marker_line_labels: List[str] = Field(
+        default_factory=list,
+        validation_alias=AliasChoices("marker_line_labels", "markerLineLabels"),
+        max_length=100,
+    )
+    y_axis_format: str = Field(
+        "SMART_NUMBER",
+        validation_alias=AliasChoices("y_axis_format", "yAxisFormat"),
+        max_length=100,
+    )
+    show_labels: bool = Field(
+        False,
+        validation_alias=AliasChoices("show_labels", "showLabels"),
+    )
+    show_legend: bool = Field(
+        False,
+        validation_alias=AliasChoices("show_legend", "showLegend"),
+    )
+
+    @staticmethod
+    def _adapt_native_metric(value: Any) -> Any:
+        """Translate QueryFormMetric shapes into the shared ColumnRef contract."""
+        if isinstance(value, str):
+            legacy = re.fullmatch(
+                r"(sum|avg|min|max|count|count_distinct)__(.+)",
+                value,
+                flags=re.IGNORECASE,
+            )
+            if legacy:
+                return {
+                    "name": legacy.group(2),
+                    "aggregate": legacy.group(1).upper(),
+                }
+            return {"name": value, "saved_metric": True}
+        if not isinstance(value, dict) or "expressionType" not in value:
+            return value
+        expression_type = value.get("expressionType")
+        if expression_type == "SQL":
+            return {
+                "sql_expression": value.get("sqlExpression"),
+                "label": value.get("label"),
+            }
+        if expression_type != "SIMPLE":
+            raise ValueError("metric.expressionType must be 'SIMPLE' or 'SQL'")
+        column = value.get("column")
+        if isinstance(column, dict):
+            name = column.get("column_name")
+        else:
+            name = column
+        return {
+            "name": name,
+            "aggregate": value.get("aggregate"),
+            "label": value.get("label"),
+        }
+
+    @staticmethod
+    def _adapt_native_order_by(value: Any) -> Any:  # noqa: C901
+        if value is None:
+            return []
+        if not isinstance(value, list):
+            raise ValueError("order_by must be an array")
+        result: list[Any] = []
+        for index, entry in enumerate(value):
+            if isinstance(entry, str):
+                if len(entry) > 2000:
+                    raise ValueError(f"order_by[{index}] is too long")
+                try:
+                    entry = json.loads(entry)
+                except json.JSONDecodeError:
+                    # A bare output/column name is the ergonomic typed form.
+                    result.append({"column": entry, "ascending": False})
+                    continue
+            if isinstance(entry, dict):
+                result.append(entry)
+                continue
+            if not isinstance(entry, (list, tuple)) or len(entry) != 2:
+                raise ValueError(
+                    f"order_by[{index}] must be [column, ascending_boolean]"
+                )
+            target, ascending = entry
+            if isinstance(target, dict):
+                target = target.get("label") or target.get("metric_name")
+            if not isinstance(target, str) or not target:
+                raise ValueError(f"order_by[{index}] needs a column or metric label")
+            if not isinstance(ascending, bool):
+                raise ValueError(f"order_by[{index}] ascending value must be boolean")
+            result.append({"column": target, "ascending": ascending})
+        return result
+
+    @staticmethod
+    def _adapt_native_filters(data: dict[str, Any]) -> None:  # noqa: C901
+        if "adhoc_filters" not in data:
+            return
+        if "filters" in data:
+            raise ValueError("Use either filters or native adhoc_filters, not both")
+        raw_filters = data.pop("adhoc_filters")
+        if not isinstance(raw_filters, list):
+            raise ValueError("adhoc_filters must be an array")
+        filters: list[dict[str, Any]] = []
+        for index, raw_filter in enumerate(raw_filters):
+            if not isinstance(raw_filter, dict):
+                raise ValueError(f"adhoc_filters[{index}] must be an object")
+            if raw_filter.get("expressionType") != "SIMPLE":
+                raise ValueError(
+                    f"adhoc_filters[{index}] must use expressionType='SIMPLE'"
+                )
+            if raw_filter.get("clause") not in (None, "WHERE"):
+                raise ValueError(f"adhoc_filters[{index}] must use clause='WHERE'")
+            subject = raw_filter.get("subject")
+            operator = raw_filter.get("operator")
+            comparator = raw_filter.get("comparator")
+            if operator == "TEMPORAL_RANGE":
+                if not isinstance(subject, str) or not subject:
+                    raise ValueError(
+                        f"adhoc_filters[{index}] temporal filter needs subject"
+                    )
+                data.setdefault("temporal_column", subject)
+                if isinstance(comparator, str) and comparator.casefold() != "no filter":
+                    data.setdefault("time_range", comparator)
+                continue
+            if not isinstance(operator, str):
+                raise ValueError(f"adhoc_filters[{index}] needs an operator")
+            operator_map = {"==": "=", "IS_NOT_NULL": "IS NOT NULL"}
+            operator = operator_map.get(operator, operator)
+            filters.append({"column": subject, "op": operator, "value": comparator})
+        data["filters"] = filters
+
+    @model_validator(mode="before")
+    @classmethod
+    def adapt_native_form_data(cls, raw: Any) -> Any:  # noqa: C901
+        """Accept recognized saved Bullet form_data and reject ambiguous state."""
+        if not isinstance(raw, dict):
+            return raw
+        data = dict(raw)
+        if data.get("viz_type") == "bullet":
+            data.setdefault("chart_type", "bullet")
+            data.pop("viz_type", None)
+        for key in (
+            "annotation_layers",
+            "dashboards",
+            "datasource",
+            "datasource_id",
+            "datasource_type",
+            "extra_form_data",
+            "slice_id",
+        ):
+            data.pop(key, None)
+
+        marker_key = "_mcp_dashboard_time_filter_subject"
+        if marker := data.pop(marker_key, None):
+            if not isinstance(marker, str):
+                raise ValueError(f"{marker_key} must be a physical column name")
+            data.setdefault("temporal_column", marker)
+
+        if "metric" in data:
+            data["metric"] = cls._adapt_native_metric(data["metric"])
+        for key in ("groupby", "dimensions"):
+            if key in data:
+                if not isinstance(data[key], list):
+                    raise ValueError(f"{key} must be an array")
+                data[key] = [
+                    {"name": item} if isinstance(item, str) else item
+                    for item in data[key]
+                ]
+        for key in ("order_by", "orderby", "order_by_cols"):
+            if key in data:
+                data[key] = cls._adapt_native_order_by(data[key])
+        cls._adapt_native_filters(data)
+        return data
+
+    @field_validator(
+        "ranges",
+        "markers",
+        "marker_lines",
+        "range_labels",
+        "marker_labels",
+        "marker_line_labels",
+        mode="before",
+    )
+    @classmethod
+    def tokenize_native_lists(cls, value: Any) -> Any:
+        """Parse the frontend's comma-separated presentation controls."""
+        if value is None:
+            return []
+        if isinstance(value, str):
+            return [token.strip() for token in value.split(",") if token.strip()]
+        return value
+
+    @field_validator("ranges", "markers", "marker_lines")
+    @classmethod
+    def reject_non_finite_values(cls, values: List[float]) -> List[float]:
+        if any(not math.isfinite(value) for value in values):
+            raise ValueError("Bullet thresholds and markers must be finite numbers")
+        return values
+
+    @field_validator("range_labels", "marker_labels", "marker_line_labels")
+    @classmethod
+    def validate_presentation_labels(cls, labels: List[str]) -> List[str]:
+        result: list[str] = []
+        for label in labels:
+            sanitized = sanitize_user_input(
+                label, "Bullet label", max_length=200, allow_empty=False
+            )
+            if sanitized is not None:
+                result.append(sanitized)
+        return result
+
+    @field_validator("time_range")
+    @classmethod
+    def sanitize_time_range(cls, value: str | None) -> str | None:
+        return sanitize_user_input(
+            value, "Time range", max_length=1000, allow_empty=True
+        )
+
+    @model_validator(mode="after")
+    def validate_roles_and_outputs(self) -> "BulletChartConfig":  # noqa: C901
+        dimensions = self.dimensions or []
+        seen_names: set[str] = set()
+        seen_outputs: set[str] = set()
+        for index, dimension in enumerate(dimensions):
+            _reject_sql_expression_on_dimension(dimension, f"dimensions[{index}]")
+            if dimension.saved_metric or dimension.aggregate:
+                raise ValueError(
+                    f"dimensions[{index}] must be a physical dimension, not a metric"
+                )
+            name = dimension.name or ""
+            if name.casefold() in seen_names:
+                raise ValueError(f"Duplicate Bullet dimension: {name!r}")
+            seen_names.add(name.casefold())
+            output = dimension.label or name
+            if output.casefold() in seen_outputs:
+                raise ValueError(f"Duplicate Bullet output label: {output!r}")
+            seen_outputs.add(output.casefold())
+
+        metric_output = _metric_display_label(self.metric)
+        if metric_output.casefold() in seen_outputs:
+            raise ValueError(
+                f"Bullet metric output label {metric_output!r} conflicts with a "
+                "dimension; provide a unique metric label"
+            )
+
+        pairs = (
+            ("range_labels", self.range_labels, "ranges", self.ranges),
+            ("marker_labels", self.marker_labels, "markers", self.markers),
+            (
+                "marker_line_labels",
+                self.marker_line_labels,
+                "marker_lines",
+                self.marker_lines,
+            ),
+        )
+        for label_field, labels, value_field, values in pairs:
+            if (
+                label_field in self.model_fields_set
+                and value_field in self.model_fields_set
+                and labels
+                and len(labels) != len(values)
+            ):
+                raise ValueError(
+                    f"{label_field} must contain one label per {value_field} value"
+                )
+
+        valid_order_targets = {
+            *(dimension.name.casefold() for dimension in dimensions if dimension.name),
+            *(
+                (dimension.label or "").casefold()
+                for dimension in dimensions
+                if dimension.label
+            ),
+            metric_output.casefold(),
+        }
+        if self.metric.name:
+            valid_order_targets.add(self.metric.name.casefold())
+        ordered = [item.column.casefold() for item in self.order_by]
+        if len(ordered) != len(set(ordered)):
+            raise ValueError("order_by cannot contain duplicate outputs")
+        invalid_order = [
+            item.column
+            for item in self.order_by
+            if item.column.casefold() not in valid_order_targets
+        ]
+        if invalid_order:
+            raise ValueError(
+                "order_by must reference a Bullet dimension or metric output; "
+                f"unknown: {', '.join(invalid_order)}"
+            )
+        return self
+
+
 class HistogramChartConfig(BaseChartConfig):
     """Config for histogram charts (viz_type ``histogram_v2``)."""
 
@@ -2285,6 +2666,7 @@ class WaterfallChartConfig(BaseChartConfig):
 # Discriminated union for runtime validation (not exposed in JSON Schema)
 ChartConfig = Annotated[
     XYChartConfig
+    | BulletChartConfig
     | TableChartConfig
     | PieChartConfig
     | PivotTableChartConfig
@@ -2298,7 +2680,7 @@ ChartConfig = Annotated[
     Field(
         discriminator="chart_type",
         description=(
-            "Chart configuration - specify chart_type as 'xy', 'table', "
+            "Chart configuration - specify chart_type as 'xy', 'bullet', 'table', "
             "'pie', 'pivot_table', 'interactive_pivot', 'mixed_timeseries', "
             "'handlebars', "
             "'big_number', 'histogram', 'box_plot', or 'waterfall'"
@@ -2326,6 +2708,7 @@ _VIZ_TYPE_TO_CHART_TYPE: dict[str, tuple[str, str | None]] = {
     "echarts_area": ("xy", "area"),
     "scatter": ("xy", "scatter"),
     "echarts_timeseries_scatter": ("xy", "scatter"),
+    "bullet": ("bullet", None),
     "ag-grid-table": ("table", None),
     "big_number_total": ("big_number", None),
     "pivot_table_v2": ("pivot_table", None),

@@ -24,7 +24,7 @@ generation that can be used by both generate_chart and generate_explore_link too
 
 import hashlib
 import logging
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any, Dict, TYPE_CHECKING
 
@@ -37,6 +37,7 @@ from superset.constants import NO_TIME_RANGE
 from superset.mcp_service.chart.schemas import (
     BigNumberChartConfig,
     BoxPlotChartConfig,
+    BulletChartConfig,
     ChartCapabilities,
     ChartConfig,
     ChartSemantics,
@@ -1063,6 +1064,155 @@ def map_histogram_config(config: "HistogramChartConfig") -> Dict[str, Any]:
     }
     _add_adhoc_filters(form_data, config.filters)
     return form_data
+
+
+def _bullet_token_list(values: Sequence[str | float]) -> str:
+    """Serialize typed Bullet controls to the frontend's comma-separated form."""
+    return ",".join(
+        format(value, "g") if isinstance(value, float) else value for value in values
+    )
+
+
+def map_bullet_config(config: BulletChartConfig) -> Dict[str, Any]:  # noqa: C901
+    """Map typed Bullet config to ``Bullet/buildQuery`` and transformProps.
+
+    The frontend buildQuery replaces the generic query fields with exactly one
+    metric and the groupby hierarchy. Presentation controls stay in native
+    snake_case form_data; the chart plugin camelizes them for transformProps.
+    """
+    metric = create_metric_object(config.metric)
+    form_data: Dict[str, Any] = {
+        "viz_type": "bullet",
+        "metric": metric,
+    }
+
+    # Optional semantic/query fields are emitted only when explicitly supplied.
+    # This lets update_chart and update_chart_preview preserve native saved state,
+    # while an explicit empty value still clears it through the generic merge path.
+    if "dimensions" in config.model_fields_set:
+        form_data["groupby"] = [dimension.name for dimension in config.dimensions or []]
+    if "row_limit" in config.model_fields_set:
+        form_data["row_limit"] = config.row_limit
+    if "time_range" in config.model_fields_set:
+        form_data["time_range"] = config.time_range
+
+    if config.order_by:
+        metric_output = metric if isinstance(metric, str) else metric.get("label")
+        metric_targets = {
+            candidate.casefold()
+            for candidate in (
+                config.metric.name,
+                config.metric.label,
+                metric_output,
+            )
+            if candidate
+        }
+        dimensions = config.dimensions or []
+        dimension_targets = {
+            candidate.casefold(): dimension.name
+            for dimension in dimensions
+            for candidate in (dimension.name, dimension.label)
+            if candidate and dimension.name
+        }
+        form_data["orderby"] = [
+            [
+                (
+                    metric
+                    if order.column.casefold() in metric_targets
+                    else dimension_targets[order.column.casefold()]
+                ),
+                order.ascending,
+            ]
+            for order in config.order_by
+        ]
+    elif "order_by" in config.model_fields_set:
+        form_data["orderby"] = []
+
+    presentation_fields: dict[str, tuple[str, Any]] = {
+        "ranges": ("ranges", _bullet_token_list(config.ranges)),
+        "range_labels": (
+            "range_labels",
+            _bullet_token_list(config.range_labels),
+        ),
+        "markers": ("markers", _bullet_token_list(config.markers)),
+        "marker_labels": (
+            "marker_labels",
+            _bullet_token_list(config.marker_labels),
+        ),
+        "marker_lines": (
+            "marker_lines",
+            _bullet_token_list(config.marker_lines),
+        ),
+        "marker_line_labels": (
+            "marker_line_labels",
+            _bullet_token_list(config.marker_line_labels),
+        ),
+        "y_axis_format": ("y_axis_format", config.y_axis_format),
+        "show_labels": ("show_labels", config.show_labels),
+        "show_legend": ("show_legend", config.show_legend),
+    }
+    for field_name, (form_key, value) in presentation_fields.items():
+        if field_name in config.model_fields_set:
+            form_data[form_key] = value
+
+    _add_adhoc_filters(form_data, config.filters)
+    if config.filters == [] and "filters" in config.model_fields_set:
+        form_data["adhoc_filters"] = []
+    if config.time_range and config.temporal_column:
+        _ensure_temporal_adhoc_filter(form_data, config.temporal_column)
+        for filter_ in form_data.get("adhoc_filters", []):
+            if (
+                isinstance(filter_, dict)
+                and filter_.get("operator") == FilterOperator.TEMPORAL_RANGE.value
+                and filter_.get("subject") == config.temporal_column
+                and filter_.get("comparator") == NO_TIME_RANGE
+            ):
+                filter_["comparator"] = config.time_range
+    return form_data
+
+
+def merge_bullet_form_data(
+    existing_form_data: Mapping[str, Any], new_form_data: Dict[str, Any]
+) -> None:
+    """Preserve omitted native Bullet controls across update tool paths.
+
+    Query roles and every UI control have an explicit typed representation.
+    Mappers emit optional fields only when the caller supplied them, so copying
+    the bounded native keys below preserves omitted state while explicit empty,
+    false, null, and zero-like values remain authoritative.
+    """
+    if (
+        existing_form_data.get("viz_type") != "bullet"
+        or new_form_data.get("viz_type") != "bullet"
+    ):
+        return
+    preserved_keys = {
+        "groupby",
+        "adhoc_filters",
+        "time_range",
+        "row_limit",
+        "orderby",
+        "ranges",
+        "range_labels",
+        "markers",
+        "marker_labels",
+        "marker_lines",
+        "marker_line_labels",
+        "y_axis_format",
+        "show_labels",
+        "show_legend",
+        MCP_DASHBOARD_TIME_FILTER_SUBJECT,
+    }
+    for key in preserved_keys:
+        if (
+            key == MCP_DASHBOARD_TIME_FILTER_SUBJECT
+            and "adhoc_filters" in new_form_data
+        ):
+            # The marker describes a mapper-generated temporal filter. Do not
+            # retain stale provenance when an explicit filter update removed it.
+            continue
+        if key in existing_form_data and key not in new_form_data:
+            new_form_data[key] = existing_form_data[key]
 
 
 # The exact strings the frontend boxplotOperator understands; the percentile
