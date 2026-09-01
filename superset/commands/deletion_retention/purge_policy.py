@@ -415,6 +415,7 @@ def purge_policy_registry() -> Mapping[type[Any], PurgeEntityPolicy]:
     # avoid circular import: model listener registration imports neutral event helpers
     from superset.connectors.sqla.models import SqlaTable
     from superset.models.dashboard import Dashboard
+    from superset.models.embedded_chart import EmbeddedChart  # noqa: F401
     from superset.models.embedded_dashboard import EmbeddedDashboard  # noqa: F401
     from superset.models.slice import Slice
     from superset.models.user_attributes import UserAttribute  # noqa: F401
@@ -550,6 +551,13 @@ def purge_policy_registry() -> Mapping[type[Any], PurgeEntityPolicy]:
                     fk("slices", "chart_editors", "id", "chart_id", "inbound"),
                     fk("slices", "chart_viewers", "id", "chart_id", "inbound"),
                     fk("slices", "dashboard_slices", "id", "slice_id", "inbound"),
+                    fk(
+                        "slices",
+                        "embedded_charts",
+                        "id",
+                        "slice_id",
+                        "inbound",
+                    ),
                     fk("slices", "report_schedule", "id", "chart_id", "inbound"),
                     version("slices", "slices_version"),
                     relationship("slices", "tables", "manytoone", "table"),
@@ -574,6 +582,27 @@ def purge_policy_registry() -> Mapping[type[Any], PurgeEntityPolicy]:
                         "id",
                         "outbound",
                     ),
+                    fk(
+                        "embedded_charts",
+                        "ab_user",
+                        "changed_by_fk",
+                        "id",
+                        "outbound",
+                    ),
+                    fk(
+                        "embedded_charts",
+                        "ab_user",
+                        "created_by_fk",
+                        "id",
+                        "outbound",
+                    ),
+                    fk(
+                        "embedded_charts",
+                        "slices",
+                        "slice_id",
+                        "id",
+                        "outbound",
+                    ),
                 ),
                 (
                     DependencyClassification.PRESERVE,
@@ -582,8 +611,12 @@ def purge_policy_registry() -> Mapping[type[Any], PurgeEntityPolicy]:
                     DependencyClassification.ASSOCIATION,
                     DependencyClassification.ASSOCIATION,
                     DependencyClassification.ASSOCIATION,
+                    DependencyClassification.OWNED,
                     DependencyClassification.BLOCK,
                     DependencyClassification.VERSION_OWNED,
+                    DependencyClassification.PRESERVE,
+                    DependencyClassification.PRESERVE,
+                    DependencyClassification.PRESERVE,
                     DependencyClassification.PRESERVE,
                     DependencyClassification.PRESERVE,
                     DependencyClassification.PRESERVE,
