@@ -55,6 +55,7 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
         result_type: ChartDataResultType | None = None,
         result_format: ChartDataResultFormat | None = None,
         force: bool = False,
+        force_nonce: str | None = None,
         custom_cache_timeout: int | None = None,
         preserve_null_row_limit: bool = False,
     ) -> QueryContext:
@@ -109,6 +110,7 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
             result_type=result_type,
             result_format=result_format,
             force=force,
+            force_nonce=force_nonce,
             custom_cache_timeout=custom_cache_timeout,
             cache_values=cache_values,
         )

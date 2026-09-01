@@ -57,6 +57,7 @@ class SerializedQuery(TypedDict):
     result_type: str
     result_format: str
     force: bool
+    force_nonce: NotRequired[str | None]
     custom_cache_timeout: int | None
     preserve_null_row_limit: NotRequired[bool]
 
@@ -79,7 +80,9 @@ def serialize_query(query_context: "QueryContext", query_index: int) -> Serializ
     Reads the *raw* query dict from ``cache_values`` (not the processed
     ``QueryObject``) so the payload rebuilds to an identical ``query_cache_key``.
     ``force`` and ``custom_cache_timeout`` are carried explicitly — they live on
-    the context, not the query, and would otherwise be lost per query.
+    the context, not the query, and would otherwise be lost per query. So is
+    ``force_nonce``, so the async task and the follow-up read-back share one
+    forced-refresh idempotency token.
 
     :param query_context: the source query context
     :param query_index: index of the query within ``query_context.queries``
@@ -93,6 +96,7 @@ def serialize_query(query_context: "QueryContext", query_index: int) -> Serializ
         result_type=ChartDataResultType(query_context.result_type).value,
         result_format=ChartDataResultFormat(query_context.result_format).value,
         force=query_context.force,
+        force_nonce=query_context.force_nonce,
         custom_cache_timeout=query_context.custom_cache_timeout,
     )
     if _preserve_null_row_limit(query_context, query_index):
@@ -121,6 +125,7 @@ def load_serialized_query(payload: SerializedQuery) -> "QueryContext":
         result_type=ChartDataResultType(payload["result_type"]),
         result_format=ChartDataResultFormat(payload["result_format"]),
         force=payload["force"],
+        force_nonce=payload.get("force_nonce"),
         custom_cache_timeout=payload["custom_cache_timeout"],
         preserve_null_row_limit=bool(payload.get("preserve_null_row_limit")),
     )

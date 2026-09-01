@@ -628,6 +628,22 @@ class TaskContext(CoreTaskContext):
             with self._abort_lock:
                 if self._execution_completed or self._abort_detected:
                     return
+                # A non-abortable task (no cancel handler registered — e.g. an
+                # engine that can't expose a cancel id) can't be stopped, so the
+                # timeout is a no-op: setting _timeout_triggered here would block
+                # the executor's SUCCESS transition (aborting_in_flight) while the
+                # finalize only transitions TIMED_OUT from ABORTING — which never
+                # happens — stranding the task IN_PROGRESS. Let it run to natural
+                # completion instead.
+                if not self._abort_handlers:
+                    logger.warning(
+                        "Timeout reached for non-abortable task %s after %d "
+                        "seconds; it cannot be cancelled and will run to "
+                        "completion",
+                        self._task_uuid,
+                        timeout_seconds,
+                    )
+                    return
                 self._timeout_triggered = True
             logger.info(
                 "Timeout reached for task %s after %d seconds",

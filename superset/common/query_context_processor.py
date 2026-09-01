@@ -134,6 +134,83 @@ class QueryContextProcessor:
         """Return the historical dataframe payload without timing metadata."""
         return self.get_df_payload_result(query_obj, force_cached).payload
 
+    @staticmethod
+    def _force_marker_key(nonce: str, cache_key: str) -> str:
+        """Cache key for the per-(nonce, cache_key) forced-refresh marker.
+
+        Deliberately distinct from the result cache key so the fresh result still
+        lands under the normal ``cache_key`` and non-forced loads stay warm.
+        """
+        return f"gtf-force-nonce:{nonce}:{cache_key}"
+
+    def _resolve_forced_query(self, cache_key: str | None) -> bool:
+        """Resolve ``QueryContext.force`` through an optional idempotency nonce.
+
+        A forced chart-data request in the async (GTF) flow is issued twice: the
+        async submit schedules the recompute, then a follow-up request reads the
+        warmed result. Re-running the force on that second request would recompute
+        the identical query (double execution). When the client supplies
+        ``force_nonce``, the first execution records a marker (keyed by nonce +
+        cache_key) once its result is cached; any later request carrying the same
+        nonce sees the marker and reads the cache instead of recomputing. A brand
+        new force refresh mints a new nonce, so it genuinely recomputes.
+
+        Without a nonce (synchronous forced refresh, legacy callers) force is
+        honored verbatim.
+
+        :returns: whether the source query should be forced (cache bypassed)
+        """
+        if not self._query_context.force:
+            return False
+        nonce = self._query_context.force_nonce
+        if not nonce or not cache_key:
+            return True
+        # Marker present => this forced refresh already computed and cached its
+        # result; read it rather than recomputing. Best-effort like the query
+        # cache itself: a marker read failure degrades to "absent" (force), never
+        # an error.
+        try:
+            marker = cache_manager.data_cache.get(
+                self._force_marker_key(nonce, cache_key)
+            )
+        except Exception:  # noqa: BLE001  pylint: disable=broad-except
+            logger.warning("Force-nonce marker read failed; forcing recompute")
+            return True
+        return marker is None
+
+    def _mark_force_executed(self, cache_key: str | None, persisted: bool) -> None:
+        """Record that this ``force_nonce``'s recompute has been cached.
+
+        No-op unless this is a nonce-bearing forced refresh whose fresh result was
+        actually persisted (``persisted``). Gating on persistence is essential: if
+        the result was silently skipped (oversized value) or the backend write
+        failed, an old value may still sit under the normal cache key — writing the
+        marker anyway would let a follow-up read stop forcing and serve that stale
+        value. Best-effort: a marker write failure is logged and swallowed, costing
+        at worst one extra recompute. The marker shares the result's TTL, so the
+        two expire together.
+        """
+        nonce = self._query_context.force_nonce
+        if not (persisted and self._query_context.force and nonce and cache_key):
+            return
+        try:
+            # A False return (backend reported a failed write) or an exception are
+            # both benign here — the result is cached, so a missing marker only
+            # costs one extra recompute on the follow-up read, never stale data.
+            if (
+                cache_manager.data_cache.set(
+                    self._force_marker_key(nonce, cache_key),
+                    1,
+                    timeout=self.get_cache_timeout(),
+                )
+                is False
+            ):
+                logger.warning(
+                    "Force-nonce marker write reported failure; may recompute once more"
+                )
+        except Exception:  # noqa: BLE001  pylint: disable=broad-except
+            logger.warning("Force-nonce marker write failed; may recompute once more")
+
     def get_df_payload_result(
         self, query_obj: QueryObject, force_cached: bool | None = False
     ) -> QueryAcquisitionResult:
@@ -146,7 +223,9 @@ class QueryContextProcessor:
 
         cache_key = self.query_cache_key(query_obj)
         timeout = self.get_cache_timeout()
-        force_query = self._query_context.force or timeout == CACHE_DISABLED_TIMEOUT
+        force_query = (
+            self._resolve_forced_query(cache_key) or timeout == CACHE_DISABLED_TIMEOUT
+        )
         query_planning_ns = max(0, time.perf_counter_ns() - query_planning_start_ns)
 
         cache_resolution_start_ns = time.perf_counter_ns()
@@ -211,6 +290,10 @@ class QueryContextProcessor:
                     datasource_uid=self._qc_datasource.uid,
                     region=CacheRegion.DATA,
                 )
+                # Record — only if the fresh result was actually persisted — that
+                # this forced refresh ran, so a follow-up request carrying the same
+                # nonce reads the freshly-cached result instead of recomputing it.
+                self._mark_force_executed(cache_key, cache.result_persisted)
 
         payload_assembly_start_ns = time.perf_counter_ns()
         # the N-dimensional DataFrame has converted into flat DataFrame

@@ -73,9 +73,6 @@ def _run_body_with_raising_executor(
         patch(
             "superset.tasks.scheduler.TaskDAO.find_one_or_none", return_value=refreshed
         ),
-        patch(
-            "superset.tasks.scheduler._resolve_failed_prerequisite", return_value=None
-        ),
         patch("superset.tasks.scheduler.TaskContext", return_value=ctx),
         patch(
             "superset.tasks.scheduler.TaskRegistry.get_executor", return_value=_raise

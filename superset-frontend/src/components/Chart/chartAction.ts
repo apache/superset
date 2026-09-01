@@ -32,6 +32,7 @@ import {
   LatestQueryFormData,
 } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
+import { nanoid } from 'nanoid';
 import type { ControlStateMapping } from '@superset-ui/chart-controls';
 import { getControlsState } from 'src/explore/store';
 import {
@@ -288,6 +289,10 @@ export interface GetChartDataRequestParams {
   resultFormat?: string;
   resultType?: string;
   force?: boolean;
+  // Idempotency token for a forced refresh, minted once per refresh and sent on
+  // both the async submit and the follow-up read-back so the server recomputes
+  // exactly once (see requestChartDataResolved). Only meaningful with `force`.
+  forceNonce?: string;
   requestParams?: RequestParams;
   ownState?: JsonObject;
   // Opt into asynchronous execution. Only set by callers that handle an HTTP 202
@@ -432,12 +437,14 @@ const v1ChartDataRequest = async (
   ownState: JsonObject,
   parseMethod: string | undefined,
   asyncMode: boolean,
+  forceNonce?: string,
 ): Promise<ChartDataRequestResponse> => {
   const payload = await buildV1ChartDataPayload({
     formData: formData as QueryFormData,
     resultType,
     resultFormat,
     force,
+    forceNonce,
     setDataMask,
     ownState,
   });
@@ -488,6 +495,7 @@ export async function getChartDataRequest({
   resultFormat = 'json',
   resultType = 'full',
   force = false,
+  forceNonce,
   requestParams = {},
   ownState = {},
   enableAsyncMode = false,
@@ -527,6 +535,7 @@ export async function getChartDataRequest({
     ownState,
     parseMethod,
     asyncMode,
+    forceNonce,
   );
 }
 
@@ -718,11 +727,19 @@ export function handleChartDataResponse(
  *
  * On a 202 the body is the async job rather than data: every query task is
  * awaited, then the same request is re-issued *synchronously* so the server
- * serves it inline — from the warm per-query DATA cache, or by computing it once
- * if the result wasn't cached (oversized value / per-query disabled timeout;
- * NullCache is refused server-side). The re-issue therefore never schedules a
- * second background task and never returns another 202. `force` stays the
- * caller's own on both attempts, so a forced refresh can't read a stale entry.
+ * serves it inline. Double execution (the async task computing, then the
+ * re-issue recomputing the identical query) is prevented by a per-refresh
+ * idempotency nonce: a nonce is minted once here when `force` is set and carried
+ * on both the submit and the re-issue. The async task recomputes and records a
+ * server-side marker keyed by (nonce, cache_key); the re-issue reuses the same
+ * nonce, sees the marker, and reads the freshly-warmed cache instead of
+ * recomputing. A new force refresh mints a new nonce, so it genuinely recomputes.
+ * Non-forced requests carry no nonce and keep the plain flow.
+ *
+ * Scope: this dedups one refresh's own submit/read-back pair. It does NOT make
+ * concurrent force refreshes idempotent — a second refresh (new nonce) that
+ * joins the first's shared task (deduped by query cache key) will still force its
+ * own read-back, since the first task only recorded its own nonce.
  *
  * `signal` aborts the wait (Stop pressed, chart superseded or unmounted) and
  * cancels the outstanding tasks.
@@ -731,9 +748,13 @@ export async function requestChartDataResolved(
   params: Omit<GetChartDataRequestParams, 'enableAsyncMode'>,
   signal?: AbortSignal,
 ): Promise<QueryData[]> {
+  const paramsWithNonce = params.force
+    ? { ...params, forceNonce: nanoid() }
+    : params;
+
   const reissueSynchronously = async (): Promise<QueryData[]> => {
     const { response, json } = await getChartDataRequest({
-      ...params,
+      ...paramsWithNonce,
       enableAsyncMode: false,
     });
     if (response.status !== 200) {
@@ -745,7 +766,7 @@ export async function requestChartDataResolved(
   };
 
   const { response, json } = await getChartDataRequest({
-    ...params,
+    ...paramsWithNonce,
     enableAsyncMode: true,
   });
   return handleChartDataResponse(response, json, reissueSynchronously, signal);

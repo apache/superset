@@ -24,7 +24,7 @@ from uuid import UUID
 
 import redis
 from flask import has_app_context
-from superset_core.tasks.types import TaskProperties, TaskScope
+from superset_core.tasks.types import TaskProperties, TaskScope, TaskStatus
 
 from superset.tasks.constants import ABORT_STATES, TERMINAL_STATES
 from superset.tasks.utils import generate_random_task_key
@@ -527,9 +527,9 @@ class TaskManager:
         :param args: Positional arguments for the task function
         :param kwargs: Keyword arguments for the task function
         :param depends_on: Optional prerequisite tasks (as Task entities, UUIDs,
-            or UUID strings). The task is still enqueued immediately
-            (block-and-wait model); ordering is enforced in the scheduler, which
-            waits for prerequisites before running the body.
+            or UUID strings). The task is still enqueued immediately; ordering is
+            enforced in the scheduler, which defers execution (via Celery retry,
+            without holding a worker) until prerequisites are terminal.
         :returns: Task model representing the scheduled task
         """
         from superset.commands.tasks.submit import SubmitTaskCommand
@@ -560,12 +560,22 @@ class TaskManager:
             # Import here to avoid circular dependency
             from superset.tasks.scheduler import execute_task
 
-            execute_task.delay(
-                task_uuid=str(task.uuid),
-                task_type=task_type,
-                args=args,
-                kwargs=kwargs,
-            )
+            try:
+                execute_task.delay(
+                    task_uuid=str(task.uuid),
+                    task_type=task_type,
+                    args=args,
+                    kwargs=kwargs,
+                )
+            except Exception:
+                # The task row is committed but the broker rejected the enqueue
+                # (e.g. broker down). Leaving it PENDING would poison the dedup
+                # key — future identical submits would join a task that never
+                # runs. Fail it so the key frees up and any waiter/client sees a
+                # terminal state, then re-raise so the caller learns the submit
+                # failed.
+                TaskManager._fail_unenqueued_task(task.uuid, task_type)
+                raise
 
             logger.debug(
                 "Scheduled task %s (uuid=%s) for async execution",
@@ -580,3 +590,40 @@ class TaskManager:
             )
 
         return task
+
+    @classmethod
+    def _fail_unenqueued_task(cls, task_uuid: UUID, task_type: str) -> None:
+        """Mark a just-created task FAILURE after its Celery enqueue failed.
+
+        Best-effort: any exception here is swallowed and logged so it never masks
+        the original enqueue error the caller is about to re-raise.
+        """
+        from superset.commands.tasks.internal_update import (
+            InternalStatusTransitionCommand,
+        )
+
+        logger.exception(
+            "Failed to enqueue task %s (uuid=%s); marking it FAILURE to free the "
+            "dedup key",
+            task_type,
+            task_uuid,
+        )
+        try:
+            transitioned = InternalStatusTransitionCommand(
+                task_uuid=task_uuid,
+                new_status=TaskStatus.FAILURE,
+                expected_status=TaskStatus.PENDING,
+                set_ended_at=True,
+                properties={"error_message": "Failed to enqueue task for execution"},
+            ).run()
+            if transitioned:
+                cls.publish_completion(task_uuid, TaskStatus.FAILURE.value)
+        except Exception:  # noqa: BLE001
+            logger.exception(
+                "Cleanup after failed enqueue of task %s (uuid=%s) also failed; it "
+                "is left PENDING with no heartbeat and will NOT be auto-reaped "
+                "(the reaper only reclaims tasks that have started). Its dedup key "
+                "stays occupied until it is manually cleared or its row is pruned",
+                task_type,
+                task_uuid,
+            )

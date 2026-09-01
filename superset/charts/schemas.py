@@ -1587,6 +1587,19 @@ class ChartDataQueryContextSchema(Schema):
         allow_none=True,
     )
 
+    force_nonce = fields.String(
+        metadata={
+            "description": "Idempotency token for a forced refresh. Set once per "
+            "user-initiated force refresh and sent on every request of that "
+            "refresh (the async submit and the follow-up read-back). The first "
+            "execution recomputes and records a marker; later requests carrying "
+            "the same nonce read the freshly-cached result instead of recomputing "
+            "it. Ignored when `force` is false."
+        },
+        required=False,
+        allow_none=True,
+    )
+
     result_type = fields.Enum(ChartDataResultType, by_value=True)
     result_format = fields.Enum(ChartDataResultFormat, by_value=True)
 

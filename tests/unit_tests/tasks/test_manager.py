@@ -531,3 +531,115 @@ class TestTaskManagerWaitForCompletion:
         assert result.status == "success"
         backend.stream_last_id.assert_called_once_with("gtf:complete:test-uuid")
         backend.xread.assert_called_once()
+
+
+class TestSubmitTaskEnqueueFailure:
+    """submit_task must not leave a task PENDING if the Celery enqueue fails.
+
+    A committed-but-unenqueued PENDING task would poison the dedup key: future
+    identical submits would join a task that never runs. So an enqueue failure
+    fails the task (freeing the key) and re-raises to the caller.
+    """
+
+    SUBMIT = "superset.commands.tasks.submit.SubmitTaskCommand"
+    EXECUTE = "superset.tasks.scheduler.execute_task"
+    TRANSITION = (
+        "superset.commands.tasks.internal_update.InternalStatusTransitionCommand"
+    )
+    PUBLISH = "superset.tasks.manager.TaskManager.publish_completion"
+
+    def test_enqueue_failure_fails_task_and_reraises(self):
+        from superset_core.tasks.types import TaskScope, TaskStatus
+
+        task = MagicMock()
+        task.uuid = uuid.uuid4()
+
+        transition = MagicMock()
+        transition.return_value.run.return_value = True
+
+        with (
+            patch(self.SUBMIT) as submit_cmd,
+            patch(self.EXECUTE) as execute_task,
+            patch(self.TRANSITION, transition),
+            patch(self.PUBLISH) as publish_completion,
+        ):
+            submit_cmd.return_value.run_with_info.return_value = (task, True)
+            execute_task.delay.side_effect = redis.exceptions.ConnectionError("down")
+
+            with pytest.raises(redis.exceptions.ConnectionError):
+                TaskManager.submit_task(
+                    task_type="test.task",
+                    task_key="k",
+                    task_name="n",
+                    scope=TaskScope.SHARED,
+                    timeout=None,
+                    args=(),
+                    kwargs={},
+                )
+
+        # Failed PENDING→FAILURE to free the dedup key, and told waiters/clients.
+        _, kwargs = transition.call_args
+        assert kwargs["new_status"] == TaskStatus.FAILURE
+        assert kwargs["expected_status"] == TaskStatus.PENDING
+        publish_completion.assert_called_once_with(task.uuid, TaskStatus.FAILURE.value)
+
+    def test_cleanup_failure_is_swallowed_and_original_error_reraised(self):
+        """If the FAILURE cleanup itself throws, the original enqueue error still
+        surfaces. The task is left PENDING with no heartbeat and is NOT auto-reaped
+        (the reaper only reclaims started tasks); its dedup key stays occupied
+        until manually cleared or pruned."""
+        from superset_core.tasks.types import TaskScope
+
+        task = MagicMock()
+        task.uuid = uuid.uuid4()
+
+        transition = MagicMock()
+        transition.return_value.run.side_effect = RuntimeError("metastore down")
+
+        with (
+            patch(self.SUBMIT) as submit_cmd,
+            patch(self.EXECUTE) as execute_task,
+            patch(self.TRANSITION, transition),
+            patch(self.PUBLISH) as publish_completion,
+        ):
+            submit_cmd.return_value.run_with_info.return_value = (task, True)
+            execute_task.delay.side_effect = redis.exceptions.ConnectionError("down")
+
+            with pytest.raises(redis.exceptions.ConnectionError):
+                TaskManager.submit_task(
+                    task_type="test.task",
+                    task_key="k",
+                    task_name="n",
+                    scope=TaskScope.SHARED,
+                    timeout=None,
+                    args=(),
+                    kwargs={},
+                )
+
+        publish_completion.assert_not_called()
+
+    def test_joined_task_is_not_enqueued(self):
+        """A deduped (joined) task must not be enqueued a second time."""
+        from superset_core.tasks.types import TaskScope
+
+        task = MagicMock()
+        task.uuid = uuid.uuid4()
+
+        with (
+            patch(self.SUBMIT) as submit_cmd,
+            patch(self.EXECUTE) as execute_task,
+        ):
+            submit_cmd.return_value.run_with_info.return_value = (task, False)
+
+            result = TaskManager.submit_task(
+                task_type="test.task",
+                task_key="k",
+                task_name="n",
+                scope=TaskScope.SHARED,
+                timeout=None,
+                args=(),
+                kwargs={},
+            )
+
+        assert result is task
+        execute_task.delay.assert_not_called()
