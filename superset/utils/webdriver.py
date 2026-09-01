@@ -31,16 +31,25 @@ from superset.utils.report_execution import (
     ReportExecutionContext,
 )
 from superset.utils.screenshot_utils import (
+    ANNOTATE_PRINT_COLUMNS_JS,
+    BAND_TABLE_COLUMNS_JS,
     CHART_CONTAINER_READY_JS,
     CHART_CONTAINER_STATE_JS,
     CHART_HOLDERS_READY_JS,
+    EXPAND_TABLE_CONTAINERS_JS,
     FIND_ALL_UNREADY_CHART_HOLDERS_JS,
     FIND_CHART_HOLDER_STATES_JS,
     FORCE_ALL_CHART_HOLDERS_IN_VIEW_JS,
+    MEASURE_TABLE_COLUMNS_JS,
+    PRINT_ALL_CHART_HOLDERS_READY_JS,
     REPORT_ALL_CHART_HOLDERS_READY_JS,
     resolve_screenshot_task_budget_seconds,
+    SCALE_WIDE_TABLES_JS,
     ScreenshotTaskBudgetExceededError,
+    SET_PRINT_FONT_SIZE_JS,
+    SHOW_ALL_TABLE_ROWS_JS,
     take_tiled_screenshot,
+    UNHIDE_TAB_PANELS_JS,
 )
 
 WindowSize = tuple[int, int]
@@ -986,3 +995,552 @@ class WebDriverPlaywright(WebDriverProxy):
         finally:
             context.close()
         return img
+
+    @staticmethod
+    def _escape_html(text: str) -> str:
+        """HTML-escape a plain-text string for safe inline HTML embedding."""
+        return (
+            text.replace("&", "&amp;")
+            .replace("<", "&lt;")
+            .replace(">", "&gt;")
+            .replace('"', "&quot;")
+        )
+
+    @staticmethod
+    def _resolve_slot(
+        raw: str,
+        title: str,
+    ) -> str:
+        """
+        Expand user-defined token placeholders in a header/footer slot string.
+
+        Supported tokens:
+          {title} — the dashboard title (HTML-escaped)
+          {date}  — replaced with a <span class="date"></span> element so
+                    Chromium injects the actual print date at render time.
+
+        The returned string is safe for direct insertion into an inline-HTML
+        Playwright template (all literal text is HTML-escaped; only the
+        Chromium-class <span> elements are allowed through unescaped).
+        """
+        # Split on {date} first so we can handle it as a Chromium span.
+        # Everything else: substitute {title} then HTML-escape the result,
+        # so a dashboard title containing "<", ">" or "&" cannot inject markup.
+        parts = raw.split("{date}")
+        resolved_parts = []
+        for i, part in enumerate(parts):
+            safe_part = WebDriverPlaywright._escape_html(part.replace("{title}", title))
+            resolved_parts.append(safe_part)
+            if i < len(parts) - 1:
+                resolved_parts.append('<span class="date"></span>')
+        return "".join(resolved_parts)
+
+    @staticmethod
+    def _slot_span(content: str, extra_style: str = "") -> str:
+        """
+        Wrap resolved slot content in a flex-child <span> with overflow
+        protection so long strings are truncated with an ellipsis rather
+        than spilling into adjacent slots or off the page band.
+
+        Each slot is capped at 200px (paper pixels — templates are rendered
+        at full paper width, not scaled by page.pdf(scale)).
+        """
+        base = (
+            "display:inline-block;"
+            "max-width:200px;"
+            "overflow:hidden;"
+            "text-overflow:ellipsis;"
+            "white-space:nowrap;"
+            "vertical-align:bottom;"
+        )
+        style = base + extra_style
+        return f'<span style="{style}">{content}</span>'
+
+    @staticmethod
+    def _build_pdf_header_template(
+        title: str,
+        content: dict[str, str] | None = None,
+    ) -> str:
+        """
+        Build the Playwright header_template HTML string.
+
+        Rules for Playwright/Chromium header templates:
+        - Must be a single root element.
+        - All styles must be inline — no <style> tags.
+        - font-size defaults to 0px; must be set explicitly or text is invisible.
+        - Special classes injected by Chromium: date, title, url,
+          pageNumber, totalPages.
+        - Template is rendered at full paper width, independent of page.pdf(scale).
+        - Lives entirely inside the top margin space.
+
+        ``content`` is a dict with optional keys "left", "center", "right"
+        whose values are plain-text strings supporting {title} and {date}
+        tokens (see _resolve_slot).  Defaults to the built-in layout when
+        None or when a key is absent.
+        """
+        _c = content or {}
+        raw_left = _c.get("left", "{title}")
+        raw_center = _c.get("center", "")
+        raw_right = _c.get("right", "Apache Superset | {date}")
+
+        left_html = WebDriverPlaywright._slot_span(
+            WebDriverPlaywright._resolve_slot(raw_left, title),
+            "font-weight:700;font-size:11px;letter-spacing:0.2px;",
+        )
+        center_html = WebDriverPlaywright._slot_span(
+            WebDriverPlaywright._resolve_slot(raw_center, title),
+            "font-size:8px;color:#57606a;",
+        )
+        right_html = WebDriverPlaywright._slot_span(
+            WebDriverPlaywright._resolve_slot(raw_right, title),
+            "font-size:8px;color:#57606a;text-align:right;",
+        )
+
+        return (
+            '<div style="'
+            "width:100%;"
+            "font-family:Arial,Helvetica,sans-serif;"
+            "font-size:9px;"
+            "color:#1f2328;"
+            "display:flex;"
+            "justify-content:space-between;"
+            "align-items:flex-end;"
+            "padding:0 10mm 4px 10mm;"
+            "box-sizing:border-box;"
+            "border-bottom:1.5px solid #3b82d4;"
+            '">'
+            f"{left_html}"
+            f"{center_html}"
+            f"{right_html}"
+            "</div>"
+        )
+
+    @staticmethod
+    def _build_pdf_footer_template(
+        content: dict[str, str] | None = None,
+    ) -> str:
+        """
+        Build the Playwright footer_template HTML string.
+
+        The right slot is always "Page N of M" using Chromium's special
+        pageNumber / totalPages classes substituted at render time.  It
+        cannot be overridden via ``content``.
+
+        ``content`` is a dict with optional keys "left" and "center" whose
+        values are plain-text strings supporting {title} and {date} tokens.
+        Defaults to the built-in layout when None or when a key is absent.
+        """
+        _c = content or {}
+        raw_left = _c.get("left", "Confidential")
+        raw_center = _c.get("center", "Generated by Apache Superset")
+
+        left_html = WebDriverPlaywright._slot_span(
+            WebDriverPlaywright._resolve_slot(raw_left, ""),
+        )
+        center_html = WebDriverPlaywright._slot_span(
+            WebDriverPlaywright._resolve_slot(raw_center, ""),
+            "text-align:center;",
+        )
+        # Right slot: fixed page numbering — not user-overridable.
+        page_html = (
+            '<span style="white-space:nowrap;">'
+            'Page <span class="pageNumber"></span>'
+            ' of <span class="totalPages"></span>'
+            "</span>"
+        )
+
+        return (
+            '<div style="'
+            "width:100%;"
+            "font-family:Arial,Helvetica,sans-serif;"
+            "font-size:8px;"
+            "color:#57606a;"
+            "display:flex;"
+            "justify-content:space-between;"
+            "align-items:flex-start;"
+            "padding:4px 10mm 0 10mm;"
+            "box-sizing:border-box;"
+            "border-top:1px solid #e5e7eb;"
+            '">'
+            f"{left_html}"
+            f"{center_html}"
+            f"{page_html}"
+            "</div>"
+        )
+
+    def get_print_pdf(  # noqa: C901
+        self,
+        url: str,
+        user: "User | None" = None,
+        log_context: str | None = None,
+        report_execution_context: ReportExecutionContext | None = None,
+        header_title: str | None = None,
+        font_size: str | None = None,
+        print_layout: str | None = None,
+        print_orientation: str | None = None,
+        tab_ids: list[str] | None = None,
+        header_content: dict[str, str] | None = None,
+        footer_content: dict[str, str] | None = None,
+    ) -> bytes | None:
+        """
+        Render the dashboard in print-ready mode and call page.pdf().
+
+        When tab_ids is provided (list of Superset TAB-xxx component IDs),
+        the dashboard is rendered once per tab by appending #TAB-xxx to the
+        URL — each navigation activates that tab so its charts mount and render.
+        The resulting per-tab PDFs are merged into a single document via pypdf.
+        Falls back to single-URL rendering if pypdf is not available.
+
+        Uses PRINT_ALL_CHART_HOLDERS_READY_JS (all holders, not just
+        viewport-visible) to detect readiness, then calls Playwright's
+        native page.pdf() instead of page.screenshot().
+
+        The viewport width is set to the authored dashboard width (default
+        1600 px) so ECharts/canvas elements measure and draw at their design
+        resolution. page.pdf(scale=794/1600) maps the content onto A4 paper
+        width without blank guttering.
+
+        When header_title is provided (and BROWSER_PRINT_PDF_HEADER_FOOTER is
+        True in app config), Playwright's display_header_footer API is used to
+        stamp a title+date header and a confidential/page-count footer on every
+        page.  The header/footer template is rendered at full paper width by the
+        Chromium print engine and is NOT affected by page.pdf(scale).
+
+        font_size ('small' | 'medium' | None) controls DOM-rendered text sizes.
+        Big Number charts use an inline style for font-size which CSS !important
+        cannot override; SET_PRINT_FONT_SIZE_JS patches those inline styles
+        directly before page.pdf() is called.
+
+        print_layout ('2col' | None) enables two-column adaptive layout:
+        ANNOTATE_PRINT_COLUMNS_JS is called before page.pdf() to tag each
+        .dragdroppable-column with data-print-col-span="half"|"full" based on
+        its original pixel width relative to its row.  The CSS injected via
+        ?print_layout=2col in the URL then uses those attributes to lay out
+        small charts side-by-side.  Table charts are always forced full-width
+        by the JS annotation regardless of their original size.
+
+        print_orientation controls page rotation:
+          'portrait'  (default/None) — A4 portrait throughout.
+          'landscape' — page.pdf(landscape=True) entire document landscape.
+          'auto'      — CSS @page named pages + prefer_css_page_size=True.
+                        Wide tables get data-print-landscape="true" set by
+                        SCALE_WIDE_TABLES_JS and render in landscape; all
+                        other pages stay portrait.
+
+        Returns None (never raises) so the caller can fall back to
+        the existing screenshot path.
+        """
+        if not PLAYWRIGHT_AVAILABLE:
+            return None
+        browser_args = app.config["WEBDRIVER_OPTION_ARGS"]
+        browser = _browser_manager.get_browser(browser_args)
+        pixel_density = app.config["WEBDRIVER_WINDOW"].get("pixel_density", 1)
+        # Render at the authored dashboard width (default 1600 px) so
+        # ECharts/canvas elements measure and draw at their design resolution.
+        # page.pdf(scale=...) then scales the rendered content down to fit
+        # A4 paper width (794 px at 96 dpi), giving full-resolution charts
+        # with no blank guttering — equivalent to browser print-to-PDF with
+        # a custom scale factor.
+        pdf_viewport_width = app.config.get(
+            "BROWSER_PRINT_PDF_VIEWPORT_WIDTH", self._window[0]
+        )
+        context = None
+        try:
+            context = browser.new_context(
+                bypass_csp=True,
+                viewport={"height": self._window[1], "width": pdf_viewport_width},
+                device_scale_factor=pixel_density,
+            )
+            context.set_default_timeout(
+                app.config["SCREENSHOT_PLAYWRIGHT_DEFAULT_TIMEOUT"]
+            )
+            if user:
+                self.auth(user, context)
+            page = context.new_page()
+        except Exception:  # noqa: BLE001
+            logger.exception(
+                "browser_print_pdf_context_setup_failed url=%s log_context=%s",
+                url,
+                log_context or "",
+            )
+            if context is not None:
+                context.close()
+            return None
+        pdf_bytes: bytes | None = None
+
+        # Determine readiness timeout once (reused for all tabs)
+        load_wait = app.config["SCREENSHOT_LOAD_WAIT"]
+        if report_execution_context:
+            effective_wait = report_execution_context.deadline.timeout_seconds(
+                "chart_readiness",
+                reserve_seconds=report_execution_context.readiness_reserve_seconds,
+            )
+        else:
+            effective_wait = float(load_wait)
+
+        _a4_px = 794  # A4 width in CSS pixels at 96 dpi
+        _pdf_scale = min(1.0, _a4_px / pdf_viewport_width)
+
+        use_header_footer = bool(
+            header_title and app.config.get("BROWSER_PRINT_PDF_HEADER_FOOTER", True)
+        )
+        pdf_kwargs: dict[str, Any] = {
+            "format": "A4",
+            "print_background": True,
+            "scale": _pdf_scale,
+            "margin": {
+                "top": "18mm" if use_header_footer else "10mm",
+                "bottom": "15mm" if use_header_footer else "10mm",
+                "left": "10mm",
+                "right": "10mm",
+            },
+        }
+        # Landscape orientation:
+        #   'landscape' — page.pdf(landscape=True) entire document.
+        #   'auto'      — per-element CSS @page named pages via
+        #                 prefer_css_page_size=True; the frontend injects the
+        #                 @page rules when ?print_orientation=auto is set.
+        if print_orientation == "landscape":
+            pdf_kwargs["landscape"] = True
+        elif print_orientation == "auto":
+            pdf_kwargs["prefer_css_page_size"] = True
+        if use_header_footer:
+            # Per-report values (from extra.dashboard) take precedence over
+            # the global operator config when explicitly provided.
+            resolved_header_content: dict[str, str] | None = (
+                header_content
+                if header_content is not None
+                else app.config.get("BROWSER_PRINT_PDF_HEADER_CONTENT")
+            )
+            resolved_footer_content: dict[str, str] | None = (
+                footer_content
+                if footer_content is not None
+                else app.config.get("BROWSER_PRINT_PDF_FOOTER_CONTENT")
+            )
+            pdf_kwargs["display_header_footer"] = True
+            pdf_kwargs["header_template"] = self._build_pdf_header_template(
+                header_title,  # type: ignore[arg-type]
+                content=resolved_header_content,
+            )
+            pdf_kwargs["footer_template"] = self._build_pdf_footer_template(
+                content=resolved_footer_content,
+            )
+
+        def _render_page(render_url: str) -> bytes:  # noqa: C901
+            """Navigate, wait for charts, apply JS patches, return PDF bytes."""
+            page.goto(
+                render_url,
+                wait_until=app.config["SCREENSHOT_PLAYWRIGHT_WAIT_EVENT"],
+                timeout=effective_wait * 1000,
+            )
+            page.wait_for_timeout(app.config["SCREENSHOT_SELENIUM_HEADSTART"] * 1000)
+            page.locator(".standalone").wait_for(timeout=effective_wait * 1000)
+
+            # Safety net: remove any residual display:none from CSSMotion
+            unhidden = page.evaluate(UNHIDE_TAB_PANELS_JS)
+            if unhidden:
+                logger.debug(
+                    "browser_print_pdf_unhide url=%s panels_unhidden=%d",
+                    render_url,
+                    unhidden,
+                )
+
+            page.wait_for_function(
+                PRINT_ALL_CHART_HOLDERS_READY_JS,
+                timeout=effective_wait * 1000,
+            )
+
+            # Show all rows on client-side paginated tables before expanding
+            # containers.  react-table's usePagination only renders the current
+            # page's rows; calling onChange(0) on the page-size selector forces
+            # it to re-render with pageSize=0 (all rows).  Server-side paginated
+            # tables cannot be expanded this way — only the fetched page is
+            # available in memory — so those are logged as warnings.
+            page_size_result = page.evaluate(SHOW_ALL_TABLE_ROWS_JS)
+            if page_size_result.get("clientExpanded", 0):
+                logger.info(
+                    "browser_print_pdf_show_all_rows url=%s "
+                    "client_tables_expanded=%d server_warning=%d log_context=%s",
+                    render_url,
+                    page_size_result["clientExpanded"],
+                    page_size_result.get("serverWarning", 0),
+                    log_context or "",
+                )
+                # Wait for React to re-render with all rows before expanding.
+                page.wait_for_timeout(600)
+            if page_size_result.get("serverWarning", 0):
+                logger.warning(
+                    "browser_print_pdf_server_pagination url=%s "
+                    "server_paginated_tables=%d — only the current page is "
+                    "included in the PDF; configure a larger page_length for "
+                    "dashboards intended for PDF export log_context=%s",
+                    render_url,
+                    page_size_result["serverWarning"],
+                    log_context or "",
+                )
+
+            expanded = page.evaluate(EXPAND_TABLE_CONTAINERS_JS)
+            if expanded:
+                logger.info(
+                    "browser_print_pdf_expand_tables url=%s tables_expanded=%d "
+                    "log_context=%s",
+                    render_url,
+                    expanded,
+                    log_context or "",
+                )
+
+            # Column banding: measure actual rendered column widths then split
+            # tables that exceed the usable page width into per-band clones, each
+            # fitting within one page, with the leftmost key column(s) repeated
+            # in every band.  Must run AFTER EXPAND_TABLE_CONTAINERS_JS (final
+            # widths) and BEFORE SCALE_WIDE_TABLES_JS (so already-banded tables
+            # are not unnecessarily scaled — each band ≤ usableWidth).
+            _landscape_factor = 1.414 if print_orientation == "landscape" else 1.0
+            _usable_width = int((pdf_viewport_width - 24) * _landscape_factor)
+            col_measurements = page.evaluate(MEASURE_TABLE_COLUMNS_JS)
+            band_opts = {
+                "usableWidth": _usable_width,
+                "keyColCount": 1,
+                "measurements": col_measurements,
+            }
+            band_result = page.evaluate(BAND_TABLE_COLUMNS_JS, band_opts)
+            if band_result.get("banded", 0) or any(
+                band_result.get(k, 0)
+                for k in (
+                    "situation_b_wrap",
+                    "situation_b_rotate",
+                    "situation_b_truncate",
+                    "situation_b_pullout",
+                )
+            ):
+                logger.info(
+                    "browser_print_pdf_col_banding url=%s banded=%d "
+                    "sit_b_wrap=%d sit_b_rotate=%d sit_b_truncate=%d "
+                    "sit_b_pullout=%d log_context=%s",
+                    render_url,
+                    band_result.get("banded", 0),
+                    band_result.get("situation_b_wrap", 0),
+                    band_result.get("situation_b_rotate", 0),
+                    band_result.get("situation_b_truncate", 0),
+                    band_result.get("situation_b_pullout", 0),
+                    log_context or "",
+                )
+
+            # After column banding, detect tables whose natural rendered width
+            # still exceeds the viewport width (tables that needed only modest
+            # column overflow, where banding produced a single band and was
+            # skipped).  In 'auto' orientation mode, mark wide-table elements
+            # with data-print-landscape="true" so the CSS @page named page rule
+            # rotates that page to landscape.  For portrait and landscape
+            # modes (whole-document rotation), apply a CSS scale transform
+            # so all columns fit without horizontal clipping.
+            mark_landscape = print_orientation == "auto"
+            scale_result = page.evaluate(SCALE_WIDE_TABLES_JS, mark_landscape)
+            if scale_result.get("scaled", 0) or scale_result.get("marked", 0):
+                logger.info(
+                    "browser_print_pdf_wide_tables url=%s "
+                    "scaled=%d landscape_marked=%d viewport=%d log_context=%s",
+                    render_url,
+                    scale_result.get("scaled", 0),
+                    scale_result.get("marked", 0),
+                    scale_result.get("viewport", 0),
+                    log_context or "",
+                )
+
+            # Big Number font-size patched via JS (CSS !important cannot override
+            # React inline styles).  Values in CSS px at 1600px viewport; after
+            # 0.496x scale: small≈9pt, medium≈14pt, large≈21pt on paper.
+            _big_number_px: int | None = None
+            if font_size == "small":
+                _big_number_px = 48
+            elif font_size == "medium":
+                _big_number_px = 72
+            elif font_size == "large":
+                _big_number_px = 108
+            if _big_number_px is not None:
+                page.evaluate(SET_PRINT_FONT_SIZE_JS, _big_number_px)
+
+            if print_layout == "2col":
+                col_annotated = page.evaluate(ANNOTATE_PRINT_COLUMNS_JS)
+                logger.info(
+                    "browser_print_pdf_2col url=%s columns_annotated=%d log_context=%s",
+                    render_url,
+                    col_annotated,
+                    log_context or "",
+                )
+
+            return page.pdf(**pdf_kwargs)
+
+        try:
+            if tab_ids and len(tab_ids) > 1:
+                # Multi-tab dashboard: render each tab separately using a URL
+                # hash fragment (#TAB-ID) so the inactive tab's charts mount.
+                # antd v6 with tabPane animation disabled does not mount
+                # inactive content even with forceRender:true in the items
+                # array, so per-tab navigation is the only reliable approach.
+                # Merge the per-tab PDFs into a single document with pypdf.
+                try:
+                    import pypdf  # noqa: PLC0415
+
+                    writer = pypdf.PdfWriter()
+                    for tab_id in tab_ids:
+                        tab_url = f"{url}#{tab_id}"
+                        logger.info(
+                            "browser_print_pdf_tab url=%s tab_id=%s log_context=%s",
+                            tab_url,
+                            tab_id,
+                            log_context or "",
+                        )
+                        tab_pdf_bytes = _render_page(tab_url)
+                        reader = pypdf.PdfReader(
+                            __import__("io").BytesIO(tab_pdf_bytes)
+                        )
+                        for pdf_page in reader.pages:
+                            writer.add_page(pdf_page)
+                    import io as _io
+
+                    buf = _io.BytesIO()
+                    writer.write(buf)
+                    pdf_bytes = buf.getvalue()
+                    logger.info(
+                        "browser_print_pdf_success url=%s tabs=%d bytes=%d "
+                        "log_context=%s",
+                        url,
+                        len(tab_ids),
+                        len(pdf_bytes),
+                        log_context or "",
+                    )
+                except ImportError:
+                    # pypdf not installed: fall back to single-URL render
+                    logger.warning(
+                        "browser_print_pdf_no_pypdf url=%s; rendering default "
+                        "tab only — install pypdf for multi-tab PDF merge",
+                        url,
+                    )
+                    pdf_bytes = _render_page(url)
+                    logger.info(
+                        "browser_print_pdf_success url=%s bytes=%d log_context=%s",
+                        url,
+                        len(pdf_bytes) if pdf_bytes else 0,
+                        log_context or "",
+                    )
+            else:
+                # Single URL (no tabs or tab IDs not provided)
+                pdf_bytes = _render_page(url)
+                logger.info(
+                    "browser_print_pdf_success url=%s bytes=%d log_context=%s",
+                    url,
+                    len(pdf_bytes) if pdf_bytes else 0,
+                    log_context or "",
+                )
+        except (PlaywrightTimeout, PlaywrightError, Exception):  # noqa: BLE001
+            logger.exception(
+                "browser_print_pdf_failed url=%s log_context=%s; "
+                "caller should fall back to screenshot path",
+                url,
+                log_context or "",
+            )
+            return None
+        finally:
+            context.close()
+        return pdf_bytes

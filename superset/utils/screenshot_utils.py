@@ -437,6 +437,1069 @@ CHART_CONTAINER_STATE_JS = f"""
 }}
 """
 
+# Like REPORT_ALL_CHART_HOLDERS_READY_JS, but returns True immediately when
+# there are no chart holders (markdown-only dashboards). REPORT_*_READY_JS
+# requires holders.length > 0 to distinguish "still loading" from "no charts";
+# the print path must never block on an empty dashboard, so the gate is omitted.
+# Reuses UNREADY_ALL_CHART_HOLDERS_JS_BODY which already excludes ECharts hosts
+# that have not yet fired their ``finished`` event, preventing blank-canvas
+# captures on dashboards with ECharts vizzes.
+PRINT_ALL_CHART_HOLDERS_READY_JS = (
+    f"() => {{ {UNREADY_ALL_CHART_HOLDERS_JS_BODY} return unready.length === 0; }}"
+)
+
+# When forceRender=true is set on antd/rc-tabs tab items, CSSMotion renders
+# inactive panels into the DOM but applies inline style="display:none" on each
+# hidden panel node. React inline styles override CSS rules (including
+# !important), so a stylesheet fix cannot unhide them. This snippet removes
+# the inline display:none from every rc-tabs / ant-tabs content panel so that
+# Playwright's page.pdf() — which lays out the full DOM, ignoring the browser
+# viewport — captures all tab content. Must be evaluated before the readiness
+# wait so that inactive-tab chart holders can mount and reach a terminal state.
+UNHIDE_TAB_PANELS_JS = """
+() => {
+    const selectors = [
+        '.rc-tabs-tabpane',
+        '.ant-tabs-tabpane',
+        '[role="tabpanel"]',
+    ];
+    let count = 0;
+    for (const sel of selectors) {
+        for (const el of document.querySelectorAll(sel)) {
+            if (el.style.display === 'none') {
+                el.style.display = '';
+                count++;
+            }
+        }
+    }
+    return count;
+}
+"""
+
+# When a Superset table chart has page_length > 0 (client-side pagination),
+# react-table's usePagination hook only renders the current page's rows into
+# the DOM — rows on other pages are simply absent.  Expanding the scroll
+# container reveals only the rows already present (the current page), so a
+# 100-row table with page_length=10 would still show only 10 rows in the PDF.
+#
+# Fix: before expanding containers, find every paginated table and trigger a
+# page-size change to 0 (= "All rows") via React's internal fiber, which
+# causes react-table to re-render with every row visible.
+#
+# Server-side paginated tables (serverPagination=true) cannot be expanded
+# this way — only the rows fetched for the current page exist in memory.
+# Those are logged as a warning; operators should configure server-paginated
+# tables with a large page size for dashboards intended for PDF export.
+#
+# This snippet must be evaluated AFTER chart holders are ready (so the
+# react-table instance exists) and BEFORE EXPAND_TABLE_CONTAINERS_JS (so
+# the newly rendered rows are present when container heights are released).
+# After calling it, wait ~500 ms for React to complete the re-render before
+# calling EXPAND_TABLE_CONTAINERS_JS.
+SHOW_ALL_TABLE_ROWS_JS = """
+() => {
+    // Resolve an antd Select component's onChange handler from its React fiber.
+    // antd v5/v6 stores the fiber on the DOM node as __reactFiber$<hash>.
+    function getReactFiber(el) {
+        const key = Object.keys(el).find(
+            k => k.startsWith('__reactFiber') || k.startsWith('__reactInternalInstance')
+        );
+        return key ? el[key] : null;
+    }
+
+    // Walk up a React fiber tree to find a fiber with a given prop key.
+    function findFiberWithProp(fiber, propName) {
+        let f = fiber;
+        let depth = 0;
+        while (f && depth < 40) {
+            if (f.memoizedProps && propName in f.memoizedProps) return f;
+            f = f.return;
+            depth++;
+        }
+        return null;
+    }
+
+    const results = { clientExpanded: 0, serverWarning: 0, alreadyAll: 0 };
+
+    // Each .superset-chart-table is a client-side table.
+    // Each [data-test-viz-type="table"] wraps the whole TableChart component.
+    const vizSel = '[data-test-viz-type="table"],'
+        + ' [data-test-viz-type="TableChartTransformed"]';
+    for (const vizRoot of document.querySelectorAll(vizSel)) {
+
+        // Detect server-side pagination: a server-paginated table has no
+        // .dt-select-page-size (it uses a different UI) and its wrapper has a
+        // data attribute indicating server mode.
+        const isServerPaginated = vizRoot.querySelector(
+            '[data-test="dt-select-page-size-wrapper"] .ant-select') === null
+            && vizRoot.querySelector('.dt-pagination') !== null;
+        // More reliable: check the pageSizeSelect antd dropdown
+        const pageSizeSelect = vizRoot.querySelector(
+            '.dt-select-page-size .ant-select');
+
+        if (!pageSizeSelect) {
+            // No page-size selector: either already showing all rows (pageSize=0
+            // means no pagination — hasPagination is false) or server-paginated.
+            const hasPaginationEl = vizRoot.querySelector('.dt-pagination');
+            if (hasPaginationEl && isServerPaginated) {
+                results.serverWarning++;
+            } else {
+                results.alreadyAll++;
+            }
+            continue;
+        }
+
+        // Get the current selected value from the antd Select.
+        const selectValueEl = pageSizeSelect.querySelector(
+            '.ant-select-selection-item');
+        const currentText = selectValueEl ? selectValueEl.textContent.trim() : '';
+        // "All" / "all" means pageSize=0 (already showing everything).
+        if (currentText.toLowerCase() === 'all'
+                || currentText === '0'
+                || currentText === '') {
+            results.alreadyAll++;
+            continue;
+        }
+
+        // Find the antd Select's React onChange handler by walking the fiber.
+        const fiber = getReactFiber(pageSizeSelect);
+        if (!fiber) { results.alreadyAll++; continue; }
+
+        // antd Select renders a div.ant-select; the onChange prop is on an
+        // ancestor InternalSelect fiber.
+        const selectorFiber = findFiberWithProp(fiber, 'onChange');
+        if (!selectorFiber) { results.alreadyAll++; continue; }
+
+        const onChange = selectorFiber.memoizedProps.onChange;
+        if (typeof onChange !== 'function') { results.alreadyAll++; continue; }
+
+        // Trigger pageSize = 0 (the "All rows" option value in PAGE_SIZE_OPTIONS).
+        try {
+            onChange(0);
+            results.clientExpanded++;
+        } catch (e) {
+            // Ignore errors — fall through to container expansion with
+            // whatever rows are currently visible.
+        }
+    }
+
+    return results;
+}
+"""
+
+# The Superset table viz renders all rows into the DOM but wraps them in a
+# fixed-height scroll container with an inline style such as:
+#   style="height: 828px; overflow: auto; width: 1496px; ..."
+# page.pdf() lays out the full DOM but the scroll container clips content to
+# its inline height before the print engine sees it.  This snippet removes
+# the height and overflow constraints from those inline-styled scroll divs
+# so all rows flow into the print output.  It must be evaluated after the
+# readiness wait (so the chart has finished rendering and populated the DOM)
+# and immediately before page.pdf().
+#
+# Also clears inline width constraints on scroll containers so wide tables
+# (with many columns) are not clipped horizontally in the PDF.
+EXPAND_TABLE_CONTAINERS_JS = """
+() => {
+    let count = 0;
+    const sel = '.superset-chart-table,'
+        + ' [data-test-viz-type="table"],'
+        + ' [data-test-viz-type="TableChartTransformed"]';
+
+    // Fully unconstrain an element: clear inline height/overflow, set min-height:0.
+    // Setting height:'auto' + min-height:'0' on a flex child is not enough to make
+    // it grow past an explicit height in the Chromium PDF layout engine.  The safe
+    // approach is to also force display:'block' on flex containers in the chain so
+    // their children are in normal block flow (which DOES grow with content).
+    function releaseEl(el) {
+        if (!el || !el.style) return;
+        el.style.height = 'auto';
+        el.style.maxHeight = 'none';
+        el.style.minHeight = '0';
+        el.style.overflow = 'visible';
+        el.style.overflowY = 'visible';
+        el.style.overflowX = 'visible';
+    }
+
+    const roots = document.querySelectorAll(sel);
+    for (const root of roots) {
+        // 1. Expand every height/overflow/width-constrained div inside the
+        //    table viz.  The table plugin wraps rows in inline styles such as:
+        //      style="height:Xpx; overflow:auto; width:Ypx"
+        //    Clearing height, overflow AND width is necessary because:
+        //    - The body-scroll div clips rows via height+overflow.
+        //    - The header-sizer div (parent of the sticky <thead> table) carries
+        //      a fixed pixel width (e.g. width:308px) that collapses the visible
+        //      column count. It may have overflow:hidden, overflow:auto, OR no
+        //      overflow set at all — so the fix must not require an overflow
+        //      precondition; any inline pixel width inside the table root is
+        //      freed unconditionally.
+        for (const el of root.querySelectorAll('div[style]')) {
+            const s = el.style;
+            const hasHeight = s.height && s.height !== '' && s.height !== 'auto';
+            // Any explicit pixel width on a div inside the table root must be
+            // released — the header-sizer chain (depth 0-2 of the useSticky
+            // structure) carries width:Xpx inline with no overflow constraint.
+            const hasInlineWidth = s.width && s.width !== '' && s.width !== '100%'
+                && s.width !== 'auto' && /px$/.test(s.width);
+            if (hasHeight) {
+                s.height = 'auto';
+                s.maxHeight = 'none';
+                s.overflow = 'visible';
+                s.overflowY = 'visible';
+                s.overflowX = 'visible';
+                count++;
+            }
+            if (hasInlineWidth) {
+                s.width = '100%';
+                s.maxWidth = 'none';
+                s.overflow = 'visible';
+                s.overflowX = 'visible';
+            }
+        }
+
+        // 2. Walk the ancestor chain up to .grid-content, unconditionally
+        //    release every element, and switch flex containers to block layout.
+        //
+        //    Why block? In a flex container the children's heights ARE constrained
+        //    by the flex algorithm even after clearing inline style.height — the
+        //    flex engine re-computes from the stretch alignment default.  Converting
+        //    to display:block makes every child a normal block box whose height is
+        //    determined purely by its content, which is what we need for tables that
+        //    have more rows than the authored grid height.
+        //
+        //    The conversion is limited to flex ancestors that are INSIDE the table's
+        //    own column — we track .grid-row and .dragdroppable-row for step 3.
+        let gridRow = null;
+        let dragRow = null;
+        let el = root.parentElement;
+        while (el) {
+            if (el.classList.contains('dashboard-grid') ||
+                el.classList.contains('grid-content')) {
+                break;
+            }
+            if (el.classList.contains('grid-row')) {
+                gridRow = el;
+            }
+            if (el.classList.contains('dragdroppable-row')) {
+                dragRow = el;
+            }
+            releaseEl(el);
+            // Switch any flex container to block so children are in normal flow.
+            const disp = getComputedStyle(el).display;
+            if (disp === 'flex' || disp === 'inline-flex') {
+                el.style.display = 'block';
+            }
+            el = el.parentElement;
+        }
+
+        // 3. Release height on ALL sibling .dragdroppable-column wrappers in
+        //    the same .grid-row (now a block container).  Each column is a
+        //    block-level box; any inline height left on the column div itself
+        //    would clip it.
+        //
+        //    IMPORTANT: do NOT release the .resizable-container height inside
+        //    non-table columns.  Canvas/SVG charts (maps, ECharts) measure their
+        //    container height at render time; setting height:auto collapses the
+        //    container to 0px and the chart renders blank.  Only the column
+        //    wrapper needs height:auto — the resizable-container inside each
+        //    non-table column keeps its authored pixel height so charts draw at
+        //    full resolution.  The table column's resizable-container is already
+        //    handled by the ancestor walk-up in step 2.
+        if (gridRow) {
+            for (const col of gridRow.querySelectorAll(
+                    ':scope > .dragdroppable-column')) {
+                const colHasTable = !!col.querySelector(
+                    '.superset-chart-table, [data-test-viz-type="table"]');
+                // Always release the column wrapper itself.
+                releaseEl(col);
+                if (colHasTable) {
+                    // Table column: also release the resizable-container and
+                    // every inner scroll div so all rows are visible.
+                    const rc = col.querySelector(':scope > .resizable-container');
+                    if (rc) releaseEl(rc);
+                }
+                // Non-table columns: leave .resizable-container height intact
+                // so canvas/SVG charts render at their authored size.
+            }
+        }
+
+        // 4. Also release the .dragdroppable-row wrapper and switch it to block.
+        //    re-resizable sets an inline style.height on this element; without
+        //    clearing it the row clips at the authored height and the next row
+        //    starts at the wrong position.
+        if (dragRow) {
+            releaseEl(dragRow);
+            const disp = getComputedStyle(dragRow).display;
+            if (disp === 'flex' || disp === 'inline-flex') {
+                dragRow.style.display = 'block';
+            }
+        }
+    }
+    return count;
+}
+"""
+
+# In print mode, antd v6 with tabPane animation disabled (tabPane:false in
+# animated prop) does not mount inactive tab content even with forceRender:true
+# in the items array.  The only reliable fix is to navigate to each tab's
+# content using a URL hash fragment (Superset resolves #TAB-ID to that tab),
+# wait for its charts to render, capture a sub-PDF, and merge all sub-PDFs.
+#
+# This JS returns the IDs of all tab content nodes from .dashboard-component-tabs
+# elements, extracted from the React component's data attributes or from the
+# tab label data-node-key attributes.  Returns [] if no tabs are present.
+EXTRACT_TAB_HASH_IDS_JS = """
+() => {
+    // antd nav tabs: each nav item has a data-node-key attribute set by
+    // the rc-tabs DraggableTabNode wrapper.  In standalone mode the tab
+    // nav bar is NOT rendered, so we fall back to reading the tab IDs from
+    // the aria-controls attributes on any rendered tab buttons, or from
+    // Superset's own data attributes on the tabs wrapper.
+    //
+    // Primary: .ant-tabs-tab[data-node-key] (present when tab bar renders)
+    const navItems = document.querySelectorAll('.ant-tabs-tab[data-node-key]');
+    if (navItems.length > 0) {
+        return Array.from(navItems).map(n => n.getAttribute('data-node-key'));
+    }
+    // Fallback: .dashboard-component-tabs stores the superset component ID
+    // on the wrapper.  The children of the antd Tabs are the DashboardComponent
+    // items for each tab — look for their data-test or id attributes.
+    const tabsWrapper = document.querySelector(
+        '[data-test="dashboard-component-tabs"]');
+    if (!tabsWrapper) return [];
+    // The active tab's key is set as the activeKey on the antd Tabs element,
+    // exposed via aria-selected on the active nav button — but nav is hidden.
+    // Return empty to signal "no clickable tabs; use per-hash navigation".
+    return [];
+}
+"""
+
+# Returns the number of navigable tab buttons (when nav bar is visible).
+# In standalone/report mode this is always 0 because antd hides the nav bar.
+COUNT_TAB_BUTTONS_JS = """
+() => {
+    return document.querySelectorAll('.ant-tabs-tab').length;
+}
+"""
+
+# Reveal all tab panels at once after per-tab navigation has mounted every
+# tab's charts.  antd v6 hides non-active pane content via display:none on
+# the pane wrapper (.ant-tabs-tabpane) or inline style on .ant-tabs-content
+# children.
+SHOW_ALL_TAB_PANELS_JS = """
+() => {
+    let shown = 0;
+    const content = document.querySelector('.ant-tabs-content');
+    if (content) {
+        for (const child of content.children) {
+            if (child.style.display === 'none') {
+                child.style.removeProperty('display');
+                shown++;
+            }
+        }
+    }
+    for (const el of document.querySelectorAll(
+        '[role="tabpanel"], .ant-tabs-tabpane'
+    )) {
+        if (el.style.display === 'none') {
+            el.style.removeProperty('display');
+            shown++;
+        }
+    }
+    return shown;
+}
+"""
+
+# In 2-column print layout (?print_layout=2col), charts that were originally
+# side-by-side in the dashboard should be restored to that layout instead of
+# being stacked single-column.
+#
+# Confirmed DOM structure (live inspection):
+#   .grid-content
+#     .dragdroppable-row           ← one row per original dashboard row
+#       .with-popover-menu
+#         .grid-row                ← flex row containing sibling columns
+#           .dragdroppable-column  ← one per chart in the row
+#             .resizable-container ← inline style.width holds authored px width
+#
+# Each .grid-row may contain multiple .dragdroppable-column siblings.
+# Rows with 2 or 3 columns where no single column dominates the full row
+# (ratio < 0.90 of viewport) are candidates for the multi-column layout.
+# Table charts are always forced full-width (kept single-column).
+#
+# Width normalisation: the authored px widths are used as flex-grow weights
+# so they always fill the full row width regardless of whether the authored
+# widths sum to exactly 100% of the viewport.
+#
+# Width source: .resizable-container ':scope > .resizable-container' inline
+# style.width — re-resizable writes it at mount time, preserved even when
+# CSS forces width: 100% !important on the rendered element.
+# Denominator: viewport width (window.innerWidth = 1600px at print time).
+#   4/12-col: ~380px / 1600px = 23.7%
+#   6/12-col: ~776px / 1600px = 48.5%
+#   full:    ~1568px / 1600px = 98%  ← blocked by >= 0.90 gate
+ANNOTATE_PRINT_COLUMNS_JS = """
+() => {
+    let annotated = 0;
+    const viewportWidth = window.innerWidth || 1600;
+
+    for (const gridRow of document.querySelectorAll('.grid-row')) {
+        const cols = Array.from(
+            gridRow.querySelectorAll(':scope > .dragdroppable-column'));
+        // Support 2 or 3-column rows.  1-column rows are already full-width.
+        // 4+ column rows are rare and have very narrow charts — skip them.
+        if (cols.length < 2 || cols.length > 3) continue;
+
+        // Gather column data and apply eligibility checks:
+        //   - no table chart (tables stay full-width for readability)
+        //   - rcW measurable (markdown / dividers have no .resizable-container)
+        //   - no single column is >= 90% of viewport (genuinely full-width chart)
+        let eligible = true;
+        const colData = cols.map(col => {
+            const rc = col.querySelector(':scope > .resizable-container');
+            const rcW = rc ? parseFloat(rc.style.width) : 0;
+            const ratio = rcW / viewportWidth;
+            const hasTable = col.querySelector(
+                '.superset-chart-table, [data-test-viz-type="table"]'
+            ) !== null;
+            // A column with no measured width (markdown, divider) or a
+            // single chart that nearly fills the full viewport width on its
+            // own should keep the row in single-column mode.
+            if (hasTable || rcW <= 0 || ratio >= 0.90) eligible = false;
+            return { col, rcW, ratio };
+        });
+
+        if (!eligible) continue;
+
+        // Mark the .grid-row so the CSS knows to restore flex-direction: row.
+        gridRow.setAttribute('data-print-2col', 'true');
+
+        // Compute the total authored width across all columns so we can
+        // assign each column a flex-grow weight proportional to its original
+        // size.  This normalises the columns to fill 100% of the row even
+        // when the authored widths don't exactly sum to the viewport width
+        // (e.g. 776+380 = 1156px, not 1568px).
+        const totalW = colData.reduce((s, d) => s + d.rcW, 0);
+
+        for (const { col, rcW } of colData) {
+            // flex-grow weight: proportional share of the total row width.
+            const weight = (rcW / totalW * 100).toFixed(3);
+            col.setAttribute('data-print-col-weight', weight);
+            col.style.setProperty('--print-col-weight', weight);
+            annotated++;
+        }
+    }
+    return annotated;
+}
+"""
+
+# Big Number charts set font-size directly as an inline style attribute
+# (e.g. style="font-size: 32px; ...") via React.  CSS !important cannot
+# override inline styles, so the font-size tier for big numbers must be
+# applied by directly mutating the inline style before page.pdf() is called.
+#
+# This JS function accepts a target font-size in pixels (as a number) and
+# patches every .header-line element's inline style to use that value.
+#
+# big_number_px reference values (CSS px, rendered at 1600px viewport,
+# then scaled × 0.496 to A4 paper width):
+#   small  → 48px CSS  ≈ ~9pt on paper
+#   medium → 72px CSS  ≈ ~14pt on paper
+#   large  → 108px CSS ≈ ~21pt on paper
+SET_PRINT_FONT_SIZE_JS = """
+(px) => {
+    let count = 0;
+    for (const el of document.querySelectorAll('.header-line')) {
+        // Preserve all other inline properties; only override font-size.
+        el.style.fontSize = px + 'px';
+        count++;
+    }
+    return count;
+}
+"""
+
+
+# Measures the actual rendered width of every column in every Superset table
+# chart on the page.  Must be called AFTER all chart holders have reached a
+# terminal state (so the table component has mounted and useSticky's
+# useLayoutEffect has already fired) and AFTER EXPAND_TABLE_CONTAINERS_JS
+# (so inline width constraints on the scroll container have been released).
+#
+# Uses th.getBoundingClientRect().width (same as Superset's useSticky hook)
+# with a fallback to th.clientWidth for degenerate cases.  Returns an array
+# of per-table objects:
+#   { tableIndex, totalWidth, colWidths: number[] }
+# where tableIndex is the ordinal position of the viz root among all matching
+# roots on the page (one entry per viz root, not per <table> element).
+#
+# IMPORTANT — Superset's useSticky hook renders TWO <table> elements per viz:
+#   table[0]: sticky header sizer — has <thead> with all column <th>s, NO <tbody>
+#   table[1]: scrollable body — has <tbody> with all data rows, NO <thead>
+# Column widths must be read from table[0]'s <thead>, but row count comes from
+# table[1]'s <tbody>.  root.querySelector('table') always returns table[0].
+#
+# This measurement array is passed unchanged to BAND_TABLE_COLUMNS_JS so
+# the two operations share one DOM-measurement pass.
+MEASURE_TABLE_COLUMNS_JS = """
+() => {
+    const sel = '.superset-chart-table,'
+        + ' [data-test-viz-type="table"],'
+        + ' [data-test-viz-type="TableChartTransformed"]';
+
+    const results = [];
+    let tableIndex = 0;
+
+    for (const root of document.querySelectorAll(sel)) {
+        // Find the sticky header table (first <table> with a <thead>).
+        // useSticky renders table[0]=header-sizer (thead, no tbody) and
+        // table[1]=body-scroll (tbody, no thead).  querySelector('table')
+        // always returns table[0] — the correct source for column widths.
+        const headerTable = root.querySelector('table');
+        if (!headerTable) { tableIndex++; continue; }
+
+        const thead = headerTable.querySelector('thead');
+        if (!thead) { tableIndex++; continue; }
+
+        // Use the last header row — Superset supports multi-level headers
+        // and the last row has the leaf (most detailed) column set.
+        const headerRows = Array.from(thead.querySelectorAll('tr'));
+        const headerRow = headerRows[headerRows.length - 1] || null;
+        if (!headerRow) { tableIndex++; continue; }
+
+        const ths = Array.from(headerRow.querySelectorAll('th'));
+        if (ths.length === 0) { tableIndex++; continue; }
+
+        const colWidths = ths.map(th => {
+            const r = th.getBoundingClientRect();
+            return (r && r.width > 0) ? r.width : (th.clientWidth || 0);
+        });
+        const totalWidth = colWidths.reduce((s, w) => s + w, 0);
+
+        results.push({
+            tableIndex,
+            totalWidth,
+            colWidths,
+        });
+        tableIndex++;
+    }
+    return results;
+}
+"""
+
+# Column-banding for tables with many columns that exceed the usable page width.
+#
+# Called AFTER MEASURE_TABLE_COLUMNS_JS (measurement pass) and AFTER
+# EXPAND_TABLE_CONTAINERS_JS, and BEFORE SCALE_WIDE_TABLES_JS so that
+# already-banded tables (each band ≤ usableWidth) are not unnecessarily scaled.
+#
+# Accepts an options object:
+#   {
+#     usableWidth:  number,   // CSS px available for table content on one page
+#     keyColCount:  number,   // leftmost N columns repeated in every band (default 1)
+#     measurements: array,    // result of MEASURE_TABLE_COLUMNS_JS
+#   }
+#
+# IMPORTANT — Superset's useSticky hook renders TWO <table> elements per viz
+# root (confirmed via live DOM inspection):
+#   table[0]: sticky-header sizer — has <thead> with all column <th>s, NO <tbody>
+#   table[1]: scrollable body     — has <tbody> with all data rows,   NO <thead>
+# The banding algorithm must:
+#   - Read column widths from table[0]'s <thead> (MEASURE_TABLE_COLUMNS_JS does this)
+#   - Read and clone body rows from table[1]'s <tbody>
+#   - Reconstruct each band as a standalone <table> that has BOTH a <thead>
+#     (key + band column headers from table[0]) and a <tbody> (data rows from
+#     table[1]) so the output is a complete, readable table, not just a header row.
+#   - Leave table[0] and table[1] in place if ≤ 1 band results (table fits or
+#     only slightly overflows — leave SCALE_WIDE_TABLES_JS to handle it).
+#
+# Only fires when the greedy pack produces ≥ 2 bands (i.e. the table is
+# genuinely too wide to fit on one page).  Tables that are slightly wider
+# than usableWidth but fit in 1 band are left unmodified for SCALE_WIDE_TABLES_JS.
+#
+# Returns:
+#   { banded, situation_b_wrap, situation_b_rotate, situation_b_truncate,
+#     situation_b_pullout }
+BAND_TABLE_COLUMNS_JS = """
+(opts) => {
+    const usableWidth   = opts.usableWidth   || (window.innerWidth - 24);
+    const keyColCount   = opts.keyColCount   || 1;
+    const measurements  = opts.measurements  || [];
+
+    const counts = {
+        banded: 0,
+        situation_b_wrap: 0,
+        situation_b_rotate: 0,
+        situation_b_truncate: 0,
+        situation_b_pullout: 0,
+    };
+
+    const sel = '.superset-chart-table,'
+        + ' [data-test-viz-type="table"],'
+        + ' [data-test-viz-type="TableChartTransformed"]';
+    const allRoots = Array.from(document.querySelectorAll(sel));
+
+    measurements.forEach(function(m) {
+        const root = allRoots[m.tableIndex];
+        if (!root) return;
+
+        // useSticky renders two <table> elements per viz root:
+        //   headerTable (index 0): <thead> with all <th>s, no <tbody>
+        //   bodyTable   (index 1): <tbody> with all data rows, no <thead>
+        // We need both: headers from headerTable, body rows from bodyTable.
+        const allTables = Array.from(root.querySelectorAll('table'));
+        const headerTable = allTables.find(function(t) {
+            return t.querySelector('thead') !== null;
+        });
+        const bodyTable = allTables.find(function(t) {
+            return t.querySelector('tbody') !== null
+                && t.querySelector('thead') === null;
+        }) || allTables.find(function(t) {
+            return t.querySelector('tbody') !== null;
+        });
+        if (!headerTable || !bodyTable) return;
+
+        const thead = headerTable.querySelector('thead');
+        if (!thead) return;
+
+        // -----------------------------------------------------------------
+        // Build a live column-widths array (re-measure after any mutations).
+        // Reads from the header table's <thead>.
+        // -----------------------------------------------------------------
+        function getColWidths() {
+            const rows = Array.from(thead.querySelectorAll('tr'));
+            const hr = rows[rows.length - 1];
+            if (!hr) return [];
+            return Array.from(hr.querySelectorAll('th')).map(function(th) {
+                const r = th.getBoundingClientRect();
+                return (r && r.width > 0) ? r.width : (th.clientWidth || 0);
+            });
+        }
+
+        // Collect all <tbody> data rows from the body table.
+        function getBodyRows() {
+            const tbody = bodyTable.querySelector('tbody');
+            return tbody ? Array.from(tbody.querySelectorAll('tr')) : [];
+        }
+
+        // -----------------------------------------------------------------
+        // Situation B: handle columns too wide to fit alone on a page.
+        // Applied before banding so the banding algorithm sees corrected widths.
+        // Mutations to <td> cells target the body table rows.
+        // Mutations to <th> headers target the header table.
+        // -----------------------------------------------------------------
+        const keyW = getColWidths().slice(0, keyColCount)
+            .reduce(function(s, w) { return s + w; }, 0);
+        const slotW = usableWidth - keyW;
+        const bodyRows = getBodyRows();
+
+        let colWidths = getColWidths();
+        const nCols = colWidths.length;
+
+        const pulledOutIndices = new Set();
+
+        for (let ci = keyColCount; ci < nCols; ci++) {
+            if (colWidths[ci] <= slotW) continue;
+
+            // --- Step a: text-wrap on body rows ---
+            for (const row of bodyRows) {
+                const cell = row.querySelectorAll('td')[ci];
+                if (cell) {
+                    cell.style.whiteSpace = 'normal';
+                    cell.style.overflowWrap = 'break-word';
+                }
+            }
+            counts.situation_b_wrap++;
+            colWidths = getColWidths();
+            if (colWidths[ci] <= slotW) continue;
+
+            // --- Step b: header rotation on header table <th> ---
+            const headerRows3 = Array.from(thead.querySelectorAll('tr'));
+            const hr3 = headerRows3[headerRows3.length - 1];
+            const th3 = hr3 ? hr3.querySelectorAll('th')[ci] : null;
+            if (th3) {
+                const headerText = (th3.textContent || '').trim();
+                let totalCellLen = 0, sampleCount = 0;
+                for (let ri = 0; ri < Math.min(bodyRows.length, 20); ri++) {
+                    const cell = bodyRows[ri].querySelectorAll('td')[ci];
+                    if (cell) {
+                        totalCellLen += (cell.textContent || '').trim().length;
+                        sampleCount++;
+                    }
+                }
+                const avgCellLen = sampleCount > 0 ? totalCellLen / sampleCount : 0;
+                if (headerText.length > avgCellLen * 2) {
+                    th3.style.writingMode = 'vertical-lr';
+                    th3.style.transform = 'rotate(180deg)';
+                    th3.style.maxHeight = '80px';
+                    th3.style.whiteSpace = 'nowrap';
+                    counts.situation_b_rotate++;
+                    colWidths = getColWidths();
+                    if (colWidths[ci] <= slotW) continue;
+                }
+            }
+
+            // --- Step c: truncate with visible marker ---
+            const truncW = Math.floor(slotW);
+            for (const row of bodyRows) {
+                const cell = row.querySelectorAll('td')[ci];
+                if (cell) {
+                    cell.style.maxWidth = truncW + 'px';
+                    cell.style.overflow = 'hidden';
+                    cell.style.textOverflow = 'ellipsis';
+                    cell.style.whiteSpace = 'nowrap';
+                }
+            }
+            counts.situation_b_truncate++;
+
+            // Append a truncation note below both tables.
+            const headerRows4 = Array.from(thead.querySelectorAll('tr'));
+            const hr4 = headerRows4[headerRows4.length - 1];
+            const th4 = hr4 ? hr4.querySelectorAll('th')[ci] : null;
+            const colName = th4 ? (th4.textContent || '').trim() : ('column ' + ci);
+            const noteEl = document.createElement('div');
+            noteEl.className = 'print-truncation-note';
+            noteEl.style.cssText = 'font-size:11px;color:#57606a;margin:4px 0 8px;'
+                + 'font-style:italic;';
+            noteEl.textContent = 'Some fields in column \u201c'
+                + colName + '\u201d were abbreviated due to page width constraints.';
+            // Insert after the body table's scroll container.
+            const bodyContainer = bodyTable.parentElement;
+            if (bodyContainer && bodyContainer.parentNode) {
+                bodyContainer.parentNode.insertBefore(
+                    noteEl, bodyContainer.nextSibling);
+            }
+
+            colWidths = getColWidths();
+            if (colWidths[ci] <= slotW) continue;
+
+            // --- Step d: pull out as a labeled section ---
+            if (colWidths[ci] > usableWidth / 2) {
+                const dl = document.createElement('dl');
+                dl.className = 'print-col-pullout';
+                dl.style.cssText = 'margin:8px 0 16px;padding:0;font-size:13px;'
+                    + 'border-top:1px solid #e5e7eb;';
+                const labelEl = document.createElement('div');
+                labelEl.style.cssText = 'font-weight:700;margin:4px 0;font-size:12px;'
+                    + 'color:#57606a;';
+                const hr5 = Array.from(thead.querySelectorAll('tr')).pop();
+                const th5 = hr5 ? hr5.querySelectorAll('th')[ci] : null;
+                labelEl.textContent = (th5 ? (th5.textContent || '').trim()
+                    : ('Column ' + ci)) + ':';
+                dl.appendChild(labelEl);
+                for (let ri = 0; ri < bodyRows.length; ri++) {
+                    const cell = bodyRows[ri].querySelectorAll('td')[ci];
+                    if (!cell) continue;
+                    const keyCell = bodyRows[ri].querySelectorAll('td')[0];
+                    const keyText = keyCell
+                        ? ('[' + (keyCell.textContent || '').trim() + '] ') : '';
+                    const dd = document.createElement('dd');
+                    dd.style.cssText = 'margin:0 0 4px 12px;padding:2px 0;'
+                        + 'border-bottom:1px solid #f0f0f0;word-break:break-word;';
+                    dd.textContent = keyText + (cell.textContent || '').trim();
+                    dl.appendChild(dd);
+                    cell.style.display = 'none';
+                }
+                if (th5) th5.style.display = 'none';
+                const insertAfter = noteEl.parentNode ? noteEl : bodyContainer;
+                if (insertAfter && insertAfter.parentNode) {
+                    insertAfter.parentNode.insertBefore(dl, insertAfter.nextSibling);
+                }
+                pulledOutIndices.add(ci);
+                counts.situation_b_pullout++;
+            }
+        } // end Situation B
+
+        // -----------------------------------------------------------------
+        // Column banding: greedy pack into page-width bands.
+        // Only fires when ≥ 2 bands result (table genuinely too wide for 1 page).
+        // Tables that are slightly wider than usableWidth (1 band) are left
+        // alone — SCALE_WIDE_TABLES_JS handles those with a scale transform.
+        // -----------------------------------------------------------------
+        colWidths = getColWidths();
+        const totalW = colWidths.reduce(function(s, w) { return s + w; }, 0);
+        if (totalW <= usableWidth) return; // fits — done
+
+        const keyIndices = [];
+        for (let i = 0; i < Math.min(keyColCount, nCols); i++) keyIndices.push(i);
+        const keyTotalW = keyIndices.reduce(function(s, i) {
+            return s + (colWidths[i] || 0);
+        }, 0);
+        const bandSlotW = usableWidth - keyTotalW;
+
+        const bands = [];
+        let currentBand = [], currentW = 0;
+        for (let ci2 = keyColCount; ci2 < nCols; ci2++) {
+            if (pulledOutIndices.has(ci2)) continue;
+            const w = colWidths[ci2] || 0;
+            if (currentBand.length > 0 && currentW + w > bandSlotW) {
+                bands.push(currentBand);
+                currentBand = [];
+                currentW = 0;
+            }
+            currentBand.push(ci2);
+            currentW += w;
+        }
+        if (currentBand.length > 0) bands.push(currentBand);
+
+        // Only band if ≥ 2 bands result.  A single band means all remaining
+        // columns fit in one page after key cols — leave SCALE_WIDE_TABLES_JS
+        // to shrink the slight overflow with a CSS transform.
+        if (bands.length <= 1) return;
+
+        // Build one complete standalone <table> per band.
+        // Each band table has a <thead> (from headerTable) + a <tbody>
+        // (from bodyTable) with only key + band column indices.
+        function buildBandTable(colIndices) {
+            const tbl = document.createElement('table');
+            // Copy table classes for styling.
+            tbl.className = headerTable.className;
+
+            // --- <colgroup> ---
+            const origColgroup = headerTable.querySelector('colgroup');
+            if (origColgroup) {
+                const cg = origColgroup.cloneNode(false);
+                const origCols = Array.from(origColgroup.querySelectorAll('col'));
+                colIndices.forEach(function(ci3) {
+                    if (origCols[ci3]) cg.appendChild(origCols[ci3].cloneNode(true));
+                });
+                tbl.appendChild(cg);
+            }
+
+            // --- <thead> (key + band column headers) ---
+            const newThead = document.createElement('thead');
+            const origHeaderRows = Array.from(thead.querySelectorAll('tr'));
+            origHeaderRows.forEach(function(origTr) {
+                const newTr = document.createElement('tr');
+                const origThs = Array.from(origTr.querySelectorAll('th'));
+                colIndices.forEach(function(ci3) {
+                    if (origThs[ci3]) {
+                        newTr.appendChild(origThs[ci3].cloneNode(true));
+                    }
+                });
+                newThead.appendChild(newTr);
+            });
+            tbl.appendChild(newThead);
+
+            // --- <tbody> (data rows with only key + band column cells) ---
+            const newTbody = document.createElement('tbody');
+            const allBodyTrs = getBodyRows();
+            allBodyTrs.forEach(function(origTr) {
+                const newTr = document.createElement('tr');
+                // Copy row-level classes (e.g. stripe).
+                newTr.className = origTr.className;
+                const origTds = Array.from(origTr.querySelectorAll('td'));
+                colIndices.forEach(function(ci3) {
+                    if (origTds[ci3]) {
+                        newTr.appendChild(origTds[ci3].cloneNode(true));
+                    } else {
+                        newTr.appendChild(document.createElement('td'));
+                    }
+                });
+                newTbody.appendChild(newTr);
+            });
+            tbl.appendChild(newTbody);
+
+            return tbl;
+        }
+
+        // Find the outermost scroll-wrapper that encloses BOTH tables.
+        // useSticky wraps headerTable and bodyTable inside sibling divs that
+        // are both children of a common container.  Walk up from bodyTable
+        // until we reach a node whose parent is outside the viz root.
+        let outerContainer = bodyTable.parentElement;
+        while (outerContainer && outerContainer !== root
+               && outerContainer.parentElement
+               && outerContainer.parentElement !== root
+               && !outerContainer.parentElement.classList.contains('grid-content')) {
+            outerContainer = outerContainer.parentElement;
+        }
+        if (!outerContainer || outerContainer === root) {
+            // Safety fallback: use the body table's direct parent.
+            outerContainer = bodyTable.parentElement;
+        }
+
+        const bandNodes = bands.map(function(bandCols, bandIdx) {
+            const colIndices = keyIndices.concat(bandCols);
+            const tbl = buildBandTable(colIndices);
+            // Wrap in .superset-chart-table so the font-tier CSS rules
+            // (.superset-chart-table td/th font-size !important) apply to
+            // the cloned band cells, which sit outside the original viz root.
+            const tableWrapper = document.createElement('div');
+            tableWrapper.className = 'superset-chart-table';
+            tableWrapper.style.cssText = 'overflow:visible;';
+            tableWrapper.appendChild(tbl);
+            const wrapper = document.createElement('div');
+            wrapper.className = 'print-col-band';
+            wrapper.style.cssText = 'width:100%;overflow:visible;';
+            if (bandIdx > 0) {
+                wrapper.style.pageBreakBefore = 'always';
+                wrapper.style.breakBefore = 'page';
+                wrapper.style.paddingTop = '8px';
+            }
+            wrapper.appendChild(tableWrapper);
+            return wrapper;
+        });
+
+        // Insert band nodes after outerContainer, then remove the original.
+        let insertRef = outerContainer;
+        const parentOfOuter = outerContainer.parentNode;
+        if (!parentOfOuter) return;
+        for (const bandNode of bandNodes) {
+            parentOfOuter.insertBefore(bandNode, insertRef.nextSibling);
+            insertRef = bandNode;
+        }
+        outerContainer.remove();
+
+        counts.banded++;
+    }); // end forEach measurement
+
+    return counts;
+}
+"""
+
+
+# For tables with many columns the natural <table> scrollWidth can exceed the
+# 1600 px print viewport width and overflow the right edge of the A4 PDF.
+#
+# Root-cause: The Superset table plugin wraps <table> in a div with an inline
+# style="overflow:hidden; width:1496px; box-sizing:border-box".  That container
+# clips the table to 1496px.  Applying a CSS transform to the inner <table>
+# alone does nothing visible — the parent's overflow:hidden clips the result
+# before the PDF engine sees it.
+#
+# Fix: identify that scroll-container div (direct parent of <table>) and apply
+# the scale transform to IT after widening it to the table's natural scrollWidth
+# so the full table is visible before scaling.  Then set the scroll-container's
+# height to tableH * scaleFactor so subsequent rows start at the correct
+# position, and clear overflow from ALL ancestors up to .superset-chart-table
+# so nothing clips the down-scaled element.
+#
+# When `markLandscape` is true (auto-orientation mode), each wide-table root
+# element also receives data-print-landscape="true" so the CSS @page
+# print-landscape rule (injected by getPrintOrientationCSS) fires for that
+# element's page break, rotating that page to landscape instead of shrinking.
+# In this mode the scale transform is still applied as a fallback for tables
+# that remain too wide even in landscape.
+#
+# Must be called AFTER EXPAND_TABLE_CONTAINERS_JS (table has final dimensions)
+# and BEFORE page.pdf().  Tables that fit naturally are left unmodified.
+SCALE_WIDE_TABLES_JS = """
+(markLandscape) => {
+    const viewport = window.innerWidth || 1600;
+    // Leave a small gutter so the table doesn't butt against the right margin.
+    const maxWidth = viewport - 24;
+    // In landscape mode A4 is ~297mm wide = ~1122 CSS px at 96dpi × (1600/794)
+    // at our print scale.  Using 1.414 (A4 ratio) as the landscape multiplier.
+    const landscapeMaxWidth = maxWidth * 1.414;
+    // Allow a 10% tolerance before triggering the scale transform.
+    // A table that is only slightly wider than the usable width (e.g. due to
+    // larger font-size cells expanding column widths by a few percent) should
+    // NOT be scaled back down — that would visually cancel the font enlargement.
+    // Only apply scale when the table genuinely overflows by more than 10%.
+    const scaleTolerance = maxWidth * 1.10;
+    const landscapeScaleTolerance = landscapeMaxWidth * 1.10;
+    let scaled = 0;
+    let marked = 0;
+
+    const sel = '.superset-chart-table,'
+        + ' [data-test-viz-type="table"],'
+        + ' [data-test-viz-type="TableChartTransformed"]';
+
+    for (const root of document.querySelectorAll(sel)) {
+        // The inner <table> carries the natural column widths.
+        const tableEl = root.querySelector('table');
+        if (!tableEl) continue;
+
+        const tableW = tableEl.scrollWidth;
+        if (tableW <= scaleTolerance) {
+            // Fits in portrait — no action needed.
+            continue;
+        }
+
+        // Table is too wide for portrait.
+        // In auto-landscape mode, mark this element for a landscape page break
+        // and only apply the scale transform if the table is still wider than
+        // the landscape width (very extreme: > ~1.41× the viewport width).
+        if (markLandscape) {
+            root.setAttribute('data-print-landscape', 'true');
+            marked++;
+            if (tableW <= landscapeScaleTolerance) {
+                // Fits in landscape (within tolerance) — don't shrink it further.
+                continue;
+            }
+        }
+
+        // The direct parent of <table> is the scroll container the Superset
+        // table plugin sets with style="overflow:hidden; width:Xpx".
+        // We must scale THIS container, not the <table> inside it, because
+        // the container's overflow:hidden clips the table's rendered output
+        // before Chromium's PDF engine can see the full width.
+        const container = tableEl.parentElement;
+        if (!container) continue;
+
+        // In landscape mode use the wider maxWidth for scale calculation.
+        const effectiveMax = markLandscape ? landscapeMaxWidth : maxWidth;
+        const scaleFactor = effectiveMax / tableW;
+
+        // 1. Widen the container to the table's natural scrollWidth so the
+        //    full table is laid out inside it before the scale is applied.
+        //    Do this FIRST so the container reflows to its new width before
+        //    we measure its height (scrollHeight depends on width when cell
+        //    content wraps, and sticky-header positioning resets on reflow).
+        container.style.width = tableW + 'px';
+        container.style.maxWidth = 'none';
+        container.style.overflow = 'visible';
+        container.style.overflowX = 'visible';
+
+        // Fix: sticky <thead> uses position:sticky which breaks under a CSS
+        // transform (sticky is relative to the scroll container; under a
+        // transform it collapses to y=0 and hides the header row).  Switch
+        // all thead and header cells to position:relative so they stay in
+        // normal document flow.
+        const theadEls = container.querySelectorAll('thead, thead th');
+        for (const thEl of theadEls) {
+            thEl.style.position = 'relative';
+        }
+
+        // Measure the container's natural height AFTER widening so the
+        // scrollHeight reflects the final post-reflow layout (row heights
+        // can change when width changes due to cell content wrapping).
+        const containerH = container.scrollHeight;
+        const scaledH = Math.ceil(containerH * scaleFactor);
+
+        // 2. Apply the scale transform to the container.
+        //    transform-origin:top left keeps the table flush with the left edge.
+        container.style.transform = 'scale(' + scaleFactor + ')';
+        container.style.transformOrigin = 'top left';
+
+        // 3. A CSS transform does NOT change the element's layout footprint —
+        //    the container still occupies containerH of vertical space.  Force
+        //    the height to the post-scale value so subsequent rows follow
+        //    immediately below.
+        container.style.height = scaledH + 'px';
+
+        // 4. Clear overflow:hidden from every ancestor up to the root selector
+        //    (.superset-chart-table / viz wrapper) so nothing clips the
+        //    scaled-down container from outside.
+        let ancestor = container.parentElement;
+        while (ancestor && ancestor !== root.parentElement) {
+            const cs = getComputedStyle(ancestor);
+            if (cs.overflow !== 'visible') {
+                ancestor.style.overflow = 'visible';
+            }
+            if (cs.overflowX !== 'visible') {
+                ancestor.style.overflowX = 'visible';
+            }
+            ancestor = ancestor.parentElement;
+        }
+
+        scaled++;
+    }
+    return { scaled: scaled, marked: marked, viewport: viewport };
+}
+"""
+
 
 def combine_screenshot_tiles(
     screenshot_tiles: list[bytes],

@@ -24,6 +24,29 @@ assists people when migrating to a new version.
 
 ## Next
 
+### New feature flag: `DASHBOARD_REPORTS_BROWSER_PRINT_PDF`
+
+A new opt-in feature flag `DASHBOARD_REPORTS_BROWSER_PRINT_PDF` has been added
+(default: `False`).
+
+When enabled alongside the existing `PLAYWRIGHT_REPORTS_AND_THUMBNAILS` flag,
+dashboard PDF reports are generated using Playwright's native `page.pdf()` call
+instead of stitching together raster screenshots. The result is a true vector
+PDF with selectable text and sharper chart graphics.
+
+To opt in, add to your Superset config:
+
+```python
+FEATURE_FLAGS = {
+    "DASHBOARD_REPORTS_BROWSER_PRINT_PDF": True,
+    "PLAYWRIGHT_REPORTS_AND_THUMBNAILS": True,  # required
+}
+```
+
+Note: reports targeting dashboards spread across multiple permalink URLs
+(via `ALERT_REPORT_TABS` with multiple tabs selected) fall back to the
+existing screenshot path when this flag is enabled.
+
 ### Archived dataset purge requires impact confirmation
 
 `GET /api/v1/dataset/<uuid>/purge-impact` returns the charts and distinct

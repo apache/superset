@@ -104,7 +104,11 @@ from superset.utils.report_execution import (
     ReportExecutionDeadline,
     resolve_report_execution_budget_seconds,
 )
-from superset.utils.screenshots import ChartScreenshot, DashboardScreenshot
+from superset.utils.screenshots import (
+    ChartScreenshot,
+    DashboardPrintScreenshot,
+    DashboardScreenshot,
+)
 from superset.utils.urls import get_url_path
 
 if TYPE_CHECKING:
@@ -874,9 +878,36 @@ class BaseReportState:
 
     def _get_pdf(self) -> bytes:
         """
-        Get chart or dashboard pdf
+        Get chart or dashboard PDF.
+
+        When DASHBOARD_REPORTS_BROWSER_PRINT_PDF is enabled and the report
+        targets a dashboard, attempt the native browser-print path first.
+        Any failure (or flag disabled, or chart report) falls back to the
+        existing screenshot-based path.
+
         :raises: ReportSchedulePdfFailedError
         """
+        if (
+            feature_flag_manager.is_feature_enabled(
+                "DASHBOARD_REPORTS_BROWSER_PRINT_PDF"
+            )
+            and self._report_schedule.dashboard  # dashboard reports only (not charts)
+        ):
+            try:
+                pdf_bytes = self._get_browser_print_pdf()
+                if pdf_bytes:
+                    logger.info("browser_print_pdf_used %s", self._log_context)
+                    return pdf_bytes
+                logger.warning(
+                    "browser_print_pdf_none %s; falling back to screenshot path",
+                    self._log_context,
+                )
+            except Exception:  # noqa: BLE001
+                logger.exception(
+                    "browser_print_pdf_exception %s; falling back to screenshot path",
+                    self._log_context,
+                )
+
         screenshots = self._get_screenshots()
         reserve_seconds = (
             self._report_execution_context.post_capture_reserve_seconds
@@ -894,6 +925,81 @@ class BaseReportState:
         )
 
         return pdf
+
+    def _get_browser_print_pdf(self) -> bytes | None:
+        """
+        Attempt browser-native PDF generation for a dashboard report.
+        Returns None (does not raise) on any failure so the caller
+        falls back to the screenshot path.
+        """
+        urls = self.get_dashboard_urls()
+        user, _ = resolve_executor_user(self._report_schedule)
+        window_width, window_height = app.config["WEBDRIVER_WINDOW"]["dashboard"]
+        max_width = app.config["ALERT_REPORTS_MAX_CUSTOM_SCREENSHOT_WIDTH"]
+        width = min(max_width, self._report_schedule.custom_width or window_width)
+        height = self._report_schedule.custom_height or window_height
+        window_size = (width, height)
+
+        # When ALERT_REPORT_TABS is enabled and multiple tabs are selected,
+        # get_dashboard_urls() returns one permalink URL per tab.  The
+        # browser-print path only handles a single base URL (with optional
+        # hash-fragment tab navigation for tab_ids).  Multi-permalink reports
+        # fall back to the screenshot-based path.
+        if len(urls) != 1:
+            logger.info(
+                "browser_print_pdf_skipped_multi_url %s url_count=%d; "
+                "falling back to screenshot path",
+                self._log_context,
+                len(urls),
+            )
+            return None
+
+        pdf_font_size: str | None = app.config.get("BROWSER_PRINT_PDF_FONT_SIZE", None)
+        pdf_layout: str | None = app.config.get("BROWSER_PRINT_PDF_LAYOUT", None)
+        pdf_orientation: str | None = app.config.get(
+            "BROWSER_PRINT_PDF_ORIENTATION", None
+        )
+        # Per-report values stored in extra.dashboard take precedence over
+        # the global config when set by the user in the Alerts & Reports modal.
+        dashboard_extra: dict = (
+            self._report_schedule.extra.get("dashboard", {})
+            if self._report_schedule.extra
+            else {}
+        )
+        per_report_orientation: str | None = dashboard_extra.get("pdf_orientation")
+        if per_report_orientation in ("portrait", "landscape", "auto"):
+            pdf_orientation = per_report_orientation
+        per_report_font_size: str | None = dashboard_extra.get("pdf_font_size")
+        if per_report_font_size in ("small", "medium", "large"):
+            pdf_font_size = per_report_font_size
+        per_report_layout: str | None = dashboard_extra.get("pdf_layout")
+        if per_report_layout in ("1col", "2col"):
+            pdf_layout = per_report_layout
+        # Per-report header/footer slot overrides set in the Alerts & Reports modal.
+        # None means fall back to the global config / built-in defaults.
+        per_report_header: dict[str, str] | None = dashboard_extra.get("pdf_header")
+        per_report_footer: dict[str, str] | None = dashboard_extra.get("pdf_footer")
+        dashboard_title: str = self._report_schedule.dashboard.dashboard_title or ""
+        screenshot = DashboardPrintScreenshot(
+            urls[0],
+            self._report_schedule.dashboard.digest,
+            window_size=window_size,
+            thumb_size=app.config["WEBDRIVER_WINDOW"]["dashboard"],
+            font_size=pdf_font_size,
+            print_layout=pdf_layout,
+            print_orientation=pdf_orientation,
+        )
+        return screenshot.get_print_pdf(
+            user=user,
+            log_context=self._log_context,
+            report_execution_context=self._report_execution_context,
+            header_title=dashboard_title or None,
+            font_size=pdf_font_size,
+            print_layout=pdf_layout,
+            print_orientation=pdf_orientation,
+            header_content=per_report_header or None,
+            footer_content=per_report_footer or None,
+        )
 
     def _get_chart_data_request_payload(
         self,

@@ -789,6 +789,10 @@ pyparsing==3.3.2
     #   -c requirements/base-constraint.txt
     #   apache-superset
     #   matplotlib
+pypdf==6.16.2
+    # via
+    #   -c requirements/base-constraint.txt
+    #   apache-superset
 pyperclip==1.10.0
     # via fastmcp-slim
 pytest==7.4.4
