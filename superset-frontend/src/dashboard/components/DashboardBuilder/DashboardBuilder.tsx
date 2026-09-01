@@ -94,7 +94,7 @@ import {
   getPrintFontSizeCSS,
   getPrintLayoutCSS,
   getPrintOrientationCSS,
-  PRINT_FONT_SIZE_MEDIUM,
+  PRINT_FONT_SIZE_SMALL,
   PRINT_LAYOUT_1COL,
   PRINT_ORIENTATION_PORTRAIT,
   PRINT_MODE_CSS,
@@ -525,7 +525,7 @@ const DashboardBuilder = () => {
   const printFontSize: PrintFontSize =
     rawFontSize === 'small' || rawFontSize === 'medium' || rawFontSize === 'large'
       ? rawFontSize
-      : PRINT_FONT_SIZE_MEDIUM;
+      : PRINT_FONT_SIZE_SMALL;
   const rawLayout = getUrlParam(URL_PARAMS.printLayout);
   const printLayout: PrintLayout =
     rawLayout === '1col' || rawLayout === '2col' ? rawLayout : PRINT_LAYOUT_1COL;

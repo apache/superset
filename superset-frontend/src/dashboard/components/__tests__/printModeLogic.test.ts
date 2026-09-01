@@ -28,6 +28,12 @@
 
 import { getUrlParam } from 'src/utils/urlUtils';
 import { URL_PARAMS } from 'src/constants';
+import {
+  getPrintFontSizeCSS,
+  PRINT_FONT_SIZE_SMALL,
+  PRINT_FONT_SIZE_MEDIUM,
+  PRINT_FONT_SIZE_LARGE,
+} from 'src/dashboard/styles/printMode';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -239,6 +245,58 @@ test('SliceHeader: canExplore is false when supersetCanExplore=false regardless 
   expect(computeCanExplore(false, false)).toBe(false);
 
   spy.mockRestore();
+});
+
+// ---------------------------------------------------------------------------
+// Tests — print font-size tier defaults (DashboardBuilder fallback)
+// ---------------------------------------------------------------------------
+
+/**
+ * Simulate the DashboardBuilder fallback logic:
+ *   rawFontSize === 'small' || rawFontSize === 'medium' || rawFontSize === 'large'
+ *     ? rawFontSize
+ *     : PRINT_FONT_SIZE_SMALL
+ */
+function computePrintFontSize(
+  rawFontSize: string | null,
+): 'small' | 'medium' | 'large' {
+  return rawFontSize === 'small' ||
+    rawFontSize === 'medium' ||
+    rawFontSize === 'large'
+    ? rawFontSize
+    : PRINT_FONT_SIZE_SMALL;
+}
+
+test('printFontSize defaults to small when ?print_font_size param is absent', () => {
+  expect(computePrintFontSize(null)).toBe('small');
+});
+
+test('printFontSize defaults to small when ?print_font_size param is unknown', () => {
+  expect(computePrintFontSize('invalid')).toBe('small');
+});
+
+test('printFontSize is medium when ?print_font_size=medium', () => {
+  expect(computePrintFontSize('medium')).toBe('medium');
+});
+
+test('printFontSize is large when ?print_font_size=large', () => {
+  expect(computePrintFontSize('large')).toBe('large');
+});
+
+test('getPrintFontSizeCSS returns empty string for small tier (no overrides)', () => {
+  expect(getPrintFontSizeCSS(PRINT_FONT_SIZE_SMALL)).toBe('');
+});
+
+test('getPrintFontSizeCSS returns CSS with 20px for medium tier', () => {
+  const css = getPrintFontSizeCSS(PRINT_FONT_SIZE_MEDIUM);
+  expect(css).toContain('20px');
+  expect(css).toContain('superset-chart-table');
+});
+
+test('getPrintFontSizeCSS returns CSS with 30px for large tier', () => {
+  const css = getPrintFontSizeCSS(PRINT_FONT_SIZE_LARGE);
+  expect(css).toContain('30px');
+  expect(css).toContain('superset-chart-table');
 });
 
 // ---------------------------------------------------------------------------
