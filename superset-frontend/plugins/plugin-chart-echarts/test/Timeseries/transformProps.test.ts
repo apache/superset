@@ -17,6 +17,7 @@
  * under the License.
  */
 import {
+  AnnotationData,
   AnnotationSourceType,
   AnnotationStyle,
   AnnotationType,
@@ -2703,6 +2704,297 @@ describe('EchartsTimeseries tooltip truncation', () => {
   test('leaves a long title alone in the default mode', () => {
     const longCategory = 'prod-us-east-1-service-checkout-cohort-2026';
     expect(buildTooltip(undefined, longCategory)).toContain(longCategory);
+  });
+});
+
+describe('weekly x-axis tick alignment', () => {
+  // 13 Monday-aligned weekly buckets, the shape produced by a dataset that is
+  // pre-aggregated to weeks.
+  const WEEK_MS = 7 * 24 * 3600 * 1000;
+  const MONDAYS = Array.from(
+    { length: 13 },
+    (_, i) => Date.UTC(2026, 3, 6) + i * WEEK_MS,
+  );
+
+  const weeklyChartProps = (
+    formDataOverrides: Partial<EchartsTimeseriesFormData> = {},
+    annotationData?: AnnotationData,
+  ) =>
+    createTestChartProps({
+      annotationData,
+      formData: {
+        granularity_sqla: 'ds',
+        timeGrainSqla: TimeGranularity.WEEK_STARTING_MONDAY,
+        xAxisTimeFormat: '%m-%d',
+        ...formDataOverrides,
+      },
+      queriesData: [
+        createTestQueryData(
+          MONDAYS.map((__timestamp, i) => ({ __timestamp, sales: 100 + i })),
+          {
+            colnames: ['__timestamp', 'sales'],
+            coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+            // transformProps reads annotations off the query, not chartProps.
+            ...(annotationData && { annotation_data: annotationData }),
+          },
+        ),
+      ],
+    });
+
+  test('pins ticks, labels and gridlines to the weekly buckets', () => {
+    const { xAxis } = transformProps(weeklyChartProps()).echartOptions as any;
+
+    expect(xAxis.type).toBe(AxisType.Time);
+    expect(xAxis.axisLabel.customValues).toEqual(MONDAYS);
+    // Gridlines follow axisTick.customValues, so splitLine needs no own copy.
+    expect(xAxis.axisTick.customValues).toEqual(MONDAYS);
+    expect(xAxis.splitLine).toBeUndefined();
+  });
+
+  const manyMondaysChartProps = (overrides: Record<string, unknown> = {}) => {
+    const manyMondays = Array.from(
+      { length: 261 },
+      (_, i) => Date.UTC(2021, 0, 4) + i * WEEK_MS,
+    );
+    return {
+      manyMondays,
+      chartProps: createTestChartProps({
+        formData: {
+          granularity_sqla: 'ds',
+          timeGrainSqla: TimeGranularity.WEEK_STARTING_MONDAY,
+          xAxisTimeFormat: '%m-%d',
+          ...overrides,
+        },
+        queriesData: [
+          createTestQueryData(
+            manyMondays.map((__timestamp, i) => ({
+              __timestamp,
+              sales: 100 + i,
+            })),
+            {
+              colnames: ['__timestamp', 'sales'],
+              coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+            },
+          ),
+        ],
+      }),
+    };
+  };
+
+  test('caps both axisTick and axisLabel customValues on a non-zoomable axis', () => {
+    // customValues never recomputes, so on a non-zoomable axis (no dataZoom
+    // to reach hidden buckets) axisLabel is capped to the same subset as
+    // axisTick: a label surviving hideOverlap thinning then always lands on
+    // a real tick and gridline rather than a capped-away bucket.
+    const { manyMondays, chartProps } = manyMondaysChartProps();
+    const { xAxis } = transformProps(chartProps).echartOptions as any;
+
+    expect(xAxis.axisTick.customValues.length).toBeLessThan(manyMondays.length);
+    expect(xAxis.axisLabel.customValues).toEqual(xAxis.axisTick.customValues);
+  });
+
+  test('keeps the full bucket set for axisLabel on a zoomable axis', () => {
+    // A capped, uncapped label set would freeze the visible labels to the
+    // pre-zoom subset since customValues never recomputes on dataZoom, so a
+    // zoomable axis keeps the full set for axisLabel and lets hideOverlap
+    // thin it dynamically; only axisTick (no such thinning) stays capped.
+    const { manyMondays, chartProps } = manyMondaysChartProps({
+      zoomable: true,
+    });
+    const { xAxis } = transformProps(chartProps).echartOptions as any;
+
+    expect(xAxis.axisTick.customValues.length).toBeLessThan(manyMondays.length);
+    expect(xAxis.axisLabel.customValues).toEqual(manyMondays);
+  });
+
+  test('keeps the showMaxLabel override at 0° rotation on pinned axes', () => {
+    // hideOverlap stays on for pinned ticks (they label every bucket), but
+    // showMaxLabel still shields the boundary label's immediate neighbour
+    // so the last bucket isn't silently dropped (#39899).
+    const { xAxis } = transformProps(weeklyChartProps()).echartOptions as any;
+
+    expect(xAxis.axisLabel.showMaxLabel).toBe(true);
+    expect(xAxis.axisLabel.hideOverlap).toBe(true);
+  });
+
+  test('pins ticks when the bucket column holds ISO date strings', () => {
+    // A dataset can arrive with __timestamp serialized as an ISO string
+    // rather than a Date/epoch-ms value.
+    const chartProps = createTestChartProps({
+      formData: {
+        granularity_sqla: 'ds',
+        timeGrainSqla: TimeGranularity.WEEK_STARTING_MONDAY,
+      },
+      queriesData: [
+        createTestQueryData(
+          MONDAYS.map((__timestamp, i) => ({
+            __timestamp: new Date(__timestamp).toISOString(),
+            sales: 100 + i,
+          })),
+          {
+            colnames: ['__timestamp', 'sales'],
+            coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+          },
+        ),
+      ],
+    });
+    const { xAxis } = transformProps(chartProps).echartOptions as any;
+
+    expect(xAxis.axisLabel.customValues).toEqual(MONDAYS);
+  });
+
+  test('keeps label thinning on when the labels are rotated', () => {
+    // Rotation normally turns hideOverlap off, but pinned ticks put a label on
+    // every bucket, so without thinning a multi-year range draws hundreds.
+    const { xAxis } = transformProps(
+      weeklyChartProps({ xAxisLabelRotation: 45 }),
+    ).echartOptions as any;
+
+    expect(xAxis.axisLabel.customValues).toEqual(MONDAYS);
+    expect(xAxis.axisLabel.hideOverlap).toBe(true);
+  });
+
+  test('leaves rotation thinning alone when the ticks are not pinned', () => {
+    const { xAxis } = transformProps(
+      weeklyChartProps({
+        timeGrainSqla: TimeGranularity.MONTH,
+        xAxisLabelRotation: 45,
+      }),
+    ).echartOptions as any;
+
+    expect(xAxis.axisLabel.customValues).toBeUndefined();
+    expect(xAxis.axisLabel.hideOverlap).toBe(false);
+  });
+
+  const timeseriesLayer = (show: boolean) =>
+    ({
+      name: 'my annotation',
+      annotationType: AnnotationType.Timeseries,
+      sourceType: AnnotationSourceType.Line,
+      style: AnnotationStyle.Solid,
+      show,
+      value: 1,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    }) as any;
+
+  // The annotation's own timestamps run a year past the last bucket.
+  const annotationRecords = {
+    'my annotation': {
+      records: [
+        { ds: MONDAYS[0], y: 1 },
+        { ds: MONDAYS[12] + 52 * WEEK_MS, y: 2 },
+      ],
+    },
+  };
+
+  test('does not pin ticks when a timeseries annotation widens the axis', () => {
+    // A Time axis takes no min/max, so it stretches to cover the annotation
+    // while ECharts clips pinned ticks to the extent — that span would be bare.
+    const { xAxis } = transformProps(
+      weeklyChartProps(
+        { annotationLayers: [timeseriesLayer(true)] },
+        annotationRecords,
+      ),
+    ).echartOptions as any;
+
+    expect(xAxis.axisLabel.customValues).toBeUndefined();
+    expect(xAxis.axisTick?.customValues).toBeUndefined();
+  });
+
+  test('still pins ticks for a hidden timeseries annotation', () => {
+    const { xAxis } = transformProps(
+      weeklyChartProps(
+        { annotationLayers: [timeseriesLayer(false)] },
+        annotationRecords,
+      ),
+    ).echartOptions as any;
+
+    expect(xAxis.axisLabel.customValues).toEqual(MONDAYS);
+  });
+
+  test.each([
+    TimeGranularity.WEEK,
+    TimeGranularity.WEEK_STARTING_SUNDAY,
+    TimeGranularity.WEEK_STARTING_MONDAY,
+    TimeGranularity.WEEK_ENDING_SATURDAY,
+    TimeGranularity.WEEK_ENDING_SUNDAY,
+  ])('applies to the %s grain', grain => {
+    const { xAxis } = transformProps(weeklyChartProps({ timeGrainSqla: grain }))
+      .echartOptions as any;
+
+    expect(xAxis.axisLabel.customValues).toEqual(MONDAYS);
+  });
+
+  test('a dashboard time-grain override drives the alignment', () => {
+    const { xAxis } = transformProps(
+      weeklyChartProps({
+        timeGrainSqla: TimeGranularity.DAY,
+        extraFormData: { time_grain_sqla: TimeGranularity.WEEK },
+      }),
+    ).echartOptions as any;
+
+    expect(xAxis.axisLabel.customValues).toEqual(MONDAYS);
+  });
+
+  test('deduplicates and sorts the bucket timestamps', () => {
+    // A grouped query repeats each bucket once per series, and the rows are
+    // not necessarily ordered.
+    const chartProps = createTestChartProps({
+      formData: {
+        granularity_sqla: 'ds',
+        timeGrainSqla: TimeGranularity.WEEK,
+        groupby: ['region'],
+      },
+      queriesData: [
+        createTestQueryData(
+          [
+            { __timestamp: MONDAYS[1], region: 'b', sales: 2 },
+            { __timestamp: MONDAYS[0], region: 'a', sales: 1 },
+            { __timestamp: MONDAYS[1], region: 'a', sales: 3 },
+            { __timestamp: MONDAYS[0], region: 'b', sales: 4 },
+          ],
+          {
+            colnames: ['__timestamp', 'region', 'sales'],
+            coltypes: [
+              GenericDataType.Temporal,
+              GenericDataType.String,
+              GenericDataType.Numeric,
+            ],
+          },
+        ),
+      ],
+    });
+    const { xAxis } = transformProps(chartProps).echartOptions as any;
+
+    expect(xAxis.axisLabel.customValues).toEqual([MONDAYS[0], MONDAYS[1]]);
+  });
+
+  test('leaves grains ECharts places correctly untouched', () => {
+    (
+      [
+        TimeGranularity.DAY,
+        TimeGranularity.MONTH,
+        TimeGranularity.QUARTER,
+        TimeGranularity.YEAR,
+        undefined,
+      ] as const
+    ).forEach(grain => {
+      const { xAxis } = transformProps(
+        weeklyChartProps({ timeGrainSqla: grain }),
+      ).echartOptions as any;
+
+      expect(xAxis.axisLabel.customValues).toBeUndefined();
+      expect(xAxis.axisTick?.customValues).toBeUndefined();
+    });
+  });
+
+  test('leaves a categorical x-axis untouched', () => {
+    const { xAxis } = transformProps(
+      weeklyChartProps({ xAxisForceCategorical: true }),
+    ).echartOptions as any;
+
+    expect(xAxis.type).toBe(AxisType.Category);
+    expect(xAxis.axisLabel.customValues).toBeUndefined();
   });
 });
 
