@@ -625,15 +625,39 @@ _GANTT_PRESENTATION_KEYS = frozenset(
 def merge_gantt_ui_config(
     previous_form_data: Mapping[str, Any], new_form_data: Dict[str, Any]
 ) -> None:
-    """Preserve native Gantt presentation controls omitted by a typed update."""
+    """Preserve omitted native Gantt presentation and dependent series state.
+
+    ``subcategories`` is only meaningful with ``series``. An omitted pair is
+    preserved together, an explicit series replacement keeps an omitted valid
+    subcategory setting, and explicit series removal disables subcategories.
+    """
     if (
         previous_form_data.get("viz_type") != "gantt_chart"
         or new_form_data.get("viz_type") != "gantt_chart"
     ):
         return
+    series_was_supplied = "series" in new_form_data
+    subcategories_was_supplied = "subcategories" in new_form_data
+
+    if not series_was_supplied and "series" in previous_form_data:
+        new_form_data["series"] = previous_form_data["series"]
+
     for key in _GANTT_PRESENTATION_KEYS:
         if key not in new_form_data and key in previous_form_data:
             new_form_data[key] = previous_form_data[key]
+
+    if not new_form_data.get("series") and new_form_data.get("subcategories"):
+        # Explicit series removal wins over an omitted or stale presentation
+        # value. Persisting subcategories=True without series cannot be rendered
+        # coherently by the frontend.
+        new_form_data["subcategories"] = False
+    elif (
+        not series_was_supplied
+        and not subcategories_was_supplied
+        and not new_form_data.get("series")
+    ):
+        # Do not carry forward an already-inconsistent native payload.
+        new_form_data.pop("subcategories", None)
 
 
 def create_metric_object(col: ColumnRef) -> Dict[str, Any] | str:
@@ -1214,6 +1238,10 @@ def map_gantt_config(config: GanttChartConfig) -> Dict[str, Any]:
     }
     if config.series is not None:
         form_data["series"] = config.series.name
+    elif "series" in config.model_fields_set:
+        # Preserve explicit removal intent for update merges. Native Gantt treats
+        # null the same as an absent series control.
+        form_data["series"] = None
     if config.time_range is not None:
         form_data["time_range"] = config.time_range
 

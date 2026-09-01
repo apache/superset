@@ -24,6 +24,7 @@ from form data without requiring a saved chart object.
 
 import logging
 import math
+from collections.abc import Mapping
 from copy import deepcopy
 from datetime import date, datetime, time, timezone
 from typing import Any, Dict, List
@@ -38,6 +39,63 @@ from superset.mcp_service.chart.schemas import (
 logger = logging.getLogger(__name__)
 
 SUPPORTED_FORM_DATA_PREVIEW_FORMATS = frozenset({"ascii", "table", "vega_lite"})
+
+_FAILED_QUERY_STATUSES = frozenset(
+    {"error", "failed", "stopped", "timed_out", "cancelled", "canceled"}
+)
+
+
+def _query_error_text(value: Any) -> str | None:
+    """Convert a bounded query error payload into a useful message."""
+    if value is None or value is False:
+        return None
+    if isinstance(value, Mapping):
+        for key in ("error", "message", "detail"):
+            if text := _query_error_text(value.get(key)):
+                return text
+        return None
+    if isinstance(value, (list, tuple)):
+        parts = [text for item in value if (text := _query_error_text(item))]
+        return "; ".join(parts[:3]) or None
+    text = str(value)
+    return text[:2000] if text else None
+
+
+def query_result_failure(result: Any) -> ChartError | None:
+    """Return a structured failure embedded in a ChartDataCommand payload.
+
+    ChartDataCommand can return HTTP-successful payloads whose top level or any
+    query entry reports a failure. Preview callers must inspect every query
+    before accepting even non-empty data from another query.
+    """
+    if not isinstance(result, Mapping):
+        return None
+
+    def failure_for(payload: Mapping[str, Any], label: str) -> ChartError | None:
+        for key in ("error", "errors"):
+            if message := _query_error_text(payload.get(key)):
+                return ChartError(
+                    error=f"{label} failed: {message}", error_type="QueryError"
+                )
+        raw_status = payload.get("status")
+        status = str(getattr(raw_status, "value", raw_status) or "").casefold()
+        if status in _FAILED_QUERY_STATUSES:
+            message = _query_error_text(payload.get("message")) or status
+            return ChartError(
+                error=f"{label} failed: {message}", error_type="QueryError"
+            )
+        return None
+
+    if failure := failure_for(result, "Chart query"):
+        return failure
+    queries = result.get("queries")
+    if isinstance(queries, list):
+        for index, query in enumerate(queries, start=1):
+            if isinstance(query, Mapping) and (
+                failure := failure_for(query, f"Chart query {index}")
+            ):
+                return failure
+    return None
 
 
 def _build_query_columns(form_data: Dict[str, Any]) -> list[str]:
@@ -95,6 +153,9 @@ def generate_preview_from_form_data(
         command = ChartDataCommand(query_context_obj)
         command.validate()
         result = command.run()
+
+        if query_failure := query_result_failure(result):
+            return query_failure
 
         if not result or not result.get("queries"):
             return ChartError(
@@ -565,7 +626,7 @@ def _generate_gantt_vega_lite_preview(  # noqa: C901
     assert isinstance(start, str)
     assert isinstance(end, str)
     assert isinstance(category, str)
-    if len({start, end, category}) != 3:
+    if len({start.casefold(), end.casefold(), category.casefold()}) != 3:
         return ChartError(
             error=(
                 "Gantt start_time, end_time, and y_axis must resolve to distinct "

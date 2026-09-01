@@ -41,6 +41,7 @@ from superset.mcp_service.chart.chart_helpers import (
 from superset.mcp_service.chart.chart_utils import validate_chart_dataset
 from superset.mcp_service.chart.preview_utils import (
     _generate_gantt_vega_lite_preview,
+    query_result_failure,
 )
 from superset.mcp_service.chart.schemas import (
     AccessibilityMetadata,
@@ -264,6 +265,9 @@ class ASCIIPreviewStrategy(PreviewFormatStrategy):
             command.validate()
             result = command.run()
 
+            if query_failure := query_result_failure(result):
+                return query_failure
+
             data: list[Any] = []
             if result and "queries" in result and len(result["queries"]) > 0:
                 data = result["queries"][0].get("data") or []
@@ -328,6 +332,9 @@ class TablePreviewStrategy(PreviewFormatStrategy):
             command = ChartDataCommand(query_context)
             command.validate()
             result = command.run()
+
+            if query_failure := query_result_failure(result):
+                return query_failure
 
             data: list[Any] = []
             if result and "queries" in result and len(result["queries"]) > 0:
@@ -439,6 +446,9 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
             command = ChartDataCommand(query_context)
             command.validate()
             result = command.run()
+
+            if query_failure := query_result_failure(result):
+                return query_failure
 
             # Extract data from result
             chart_data = []

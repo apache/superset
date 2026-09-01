@@ -28,27 +28,12 @@ from superset.mcp_service.chart.chart_utils import _summarize_filters, map_gantt
 from superset.mcp_service.chart.plugin import BaseChartPlugin
 from superset.mcp_service.chart.schemas import ColumnRef, GanttChartConfig
 from superset.mcp_service.chart.validation.dataset_validator import (
+    AmbiguousDatasetReferenceError,
     DatasetValidator,
     GanttSemanticNormalizationError,
+    resolve_dataset_reference,
 )
 from superset.mcp_service.common.error_schemas import ChartGenerationError
-
-
-def _canonical_gantt_reference(name: str, names: list[str], reference_kind: str) -> str:
-    """Resolve one case-insensitive reference without guessing on ambiguity."""
-    matches = [
-        candidate for candidate in names if candidate.casefold() == name.casefold()
-    ]
-    if name in matches:
-        return name
-    if len(matches) > 1:
-        choices = ", ".join(repr(match) for match in matches)
-        raise GanttSemanticNormalizationError(
-            f"Gantt {reference_kind} reference {name!r} is ambiguous because the "
-            f"dataset contains {reference_kind}s that differ only by case: {choices}. "
-            f"Use the exact {reference_kind} name."
-        )
-    return matches[0] if matches else name
 
 
 class GanttChartPlugin(BaseChartPlugin):
@@ -120,11 +105,19 @@ class GanttChartPlugin(BaseChartPlugin):
 
         non_temporal: list[str] = []
         for ref in (config.start_time, config.end_time):
+            try:
+                resolved_name = resolve_dataset_reference(
+                    ref.name or "",
+                    (column["name"] for column in dataset_context.available_columns),
+                    "physical column",
+                )
+            except AmbiguousDatasetReferenceError as ex:
+                return DatasetValidator._build_ambiguous_reference_error(ex)
             column = next(
                 (
                     column
                     for column in dataset_context.available_columns
-                    if column["name"].casefold() == (ref.name or "").casefold()
+                    if column["name"] == resolved_name
                 ),
                 None,
             )
@@ -166,10 +159,22 @@ class GanttChartPlugin(BaseChartPlugin):
         metric_names = [metric["name"] for metric in dataset_context.available_metrics]
 
         def canonical_column(name: str, _context: Any) -> str:
-            return _canonical_gantt_reference(name, column_names, "physical column")
+            try:
+                return (
+                    resolve_dataset_reference(name, column_names, "physical column")
+                    or name
+                )
+            except AmbiguousDatasetReferenceError as ex:
+                raise GanttSemanticNormalizationError(f"Gantt {ex}") from ex
 
         def canonical_metric(name: str, _context: Any) -> str:
-            return _canonical_gantt_reference(name, metric_names, "saved metric")
+            try:
+                return (
+                    resolve_dataset_reference(name, metric_names, "saved metric")
+                    or name
+                )
+            except AmbiguousDatasetReferenceError as ex:
+                raise GanttSemanticNormalizationError(f"Gantt {ex}") from ex
 
         if temporal_column := config_dict.get("temporal_column"):
             config_dict["temporal_column"] = canonical_column(

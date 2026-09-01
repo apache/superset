@@ -36,6 +36,8 @@ from superset.mcp_service.chart.chart_utils import (
 )
 from superset.mcp_service.chart.preview_utils import (
     _generate_gantt_vega_lite_preview,
+    generate_preview_from_form_data,
+    query_result_failure,
 )
 from superset.mcp_service.chart.schemas import (
     ChartConfig,
@@ -44,6 +46,7 @@ from superset.mcp_service.chart.schemas import (
     GenerateChartRequest,
     GetChartPreviewRequest,
     TableChartConfig,
+    TablePreview,
     UpdateChartPreviewRequest,
     UpdateChartRequest,
     VegaLitePreview,
@@ -120,7 +123,7 @@ def _ambiguous_dataset_context() -> DatasetContext:
         table_name="ambiguous_tasks",
         database_name="main",
         available_columns=[
-            {"name": "StartedAt", "type": "TIMESTAMP", "is_temporal": True},
+            {"name": "StartedAt", "type": "VARCHAR", "is_temporal": False},
             {"name": "startedat", "type": "TIMESTAMP", "is_temporal": True},
             {"name": "EndedAt", "type": "TIMESTAMP", "is_temporal": True},
             {"name": "Task", "type": "VARCHAR", "is_temporal": False},
@@ -190,6 +193,10 @@ def test_role_and_cross_field_validation_is_conservative() -> None:
     # These roles resolve labels case-insensitively in dataset canonicalization.
     with pytest.raises(ValidationError, match="start_time and end_time"):
         _config(end_time={"name": "START_TIME"})
+    with pytest.raises(ValidationError, match="start_time and category"):
+        _config(category={"name": "START_TIME"})
+    with pytest.raises(ValidationError, match="end_time and category"):
+        _config(category={"name": "END_TIME"})
     with pytest.raises(ValidationError, match="series and category"):
         _config(series={"name": "task"})
     with pytest.raises(ValidationError, match="series and category"):
@@ -208,6 +215,63 @@ def test_role_and_cross_field_validation_is_conservative() -> None:
     )
     assert config.tooltip_columns[0].name == "TASK"
     assert config.tooltip_metrics[0].aggregate == "COUNT"
+
+
+@pytest.mark.parametrize("request_model", [GenerateChartRequest, UpdateChartRequest])
+@pytest.mark.parametrize("generate_preview", [False, True])
+def test_product_request_models_reject_case_insensitive_required_role_collisions(
+    request_model: type[GenerateChartRequest] | type[UpdateChartRequest],
+    generate_preview: bool,
+) -> None:
+    config = {
+        "chart_type": "gantt",
+        "start_time": {"name": "StartedAt"},
+        "end_time": {"name": "EndedAt"},
+        "category": {"name": "STARTEDAT"},
+    }
+    kwargs: dict[str, object] = {
+        "config": config,
+        "generate_preview": generate_preview,
+    }
+    if request_model is GenerateChartRequest:
+        kwargs["dataset_id"] = 1
+    else:
+        kwargs["identifier"] = 1495
+
+    with pytest.raises(ValidationError, match="start_time and category"):
+        request_model(**kwargs)
+
+
+@pytest.mark.parametrize("generate_preview", [False, True])
+def test_update_preview_request_rejects_case_insensitive_role_collisions(
+    generate_preview: bool,
+) -> None:
+    with pytest.raises(ValidationError, match="end_time and category"):
+        UpdateChartPreviewRequest(
+            dataset_id=1,
+            generate_preview=generate_preview,
+            config={
+                "chart_type": "gantt",
+                "start_time": {"name": "StartedAt"},
+                "end_time": {"name": "EndedAt"},
+                "category": {"name": "ENDEDAT"},
+            },
+        )
+
+
+def test_preview_required_role_uniqueness_is_case_insensitive() -> None:
+    result = _generate_gantt_vega_lite_preview(
+        [],
+        {
+            "viz_type": "gantt_chart",
+            "start_time": "StartedAt",
+            "end_time": "EndedAt",
+            "y_axis": "STARTEDAT",
+        },
+    )
+    assert isinstance(result, ChartError)
+    assert result.error_type == "InvalidGanttFormData"
+    assert "distinct" in result.error
 
 
 def test_native_input_rejects_malformed_filters_order_and_bounds() -> None:
@@ -517,6 +581,49 @@ def test_native_adapter_rejects_malformed_or_unsupported_operator_shapes(
 
 
 @pytest.mark.parametrize(
+    ("field", "value", "message"),
+    [
+        ("operator", {}, "operator must be a non-empty string"),
+        ("operator", [], "operator must be a non-empty string"),
+        ("operator", 7, "operator must be a non-empty string"),
+        ("operator", None, "operator must be a non-empty string"),
+        ("operatorId", {}, "operatorId must be a non-empty string"),
+        ("operatorId", [], "operatorId must be a non-empty string"),
+        ("operatorId", 7, "operatorId must be a non-empty string"),
+        ("comparator", {}, "requires a scalar comparator"),
+        ("comparator", [], "requires a scalar comparator"),
+        ("comparator", None, "requires a scalar comparator"),
+    ],
+)
+def test_native_filter_unhashable_values_are_structured_validation_errors(
+    field: str, value: object, message: str
+) -> None:
+    native = map_gantt_config(_config())
+    native["chart_type"] = "gantt"
+    native.pop("_mcp_dashboard_time_filter_subject")
+    native_filter: dict[str, object] = {
+        "clause": "WHERE",
+        "comparator": "Build",
+        "expressionType": "SIMPLE",
+        "operator": "==",
+        "operatorId": "EQUALS",
+        "sqlExpression": None,
+        "subject": "task",
+    }
+    native_filter[field] = value
+    native["adhoc_filters"] = [native_filter]
+
+    valid, _request, error = SchemaValidator.validate_request(
+        {"dataset_id": 1, "config": native}
+    )
+
+    assert valid is False
+    assert error is not None
+    assert error.error_type != "validation_system_error"
+    assert message in f"{error.message} {error.details}"
+
+
+@pytest.mark.parametrize(
     ("field", "value"),
     [
         ("advanced_data_type", []),
@@ -786,7 +893,83 @@ def test_gantt_normalization_rejects_ambiguous_case_insensitive_dataset_names() 
         )
 
 
-def test_validation_pipeline_fails_closed_on_gantt_semantic_normalization() -> None:
+@pytest.mark.parametrize("reverse_metadata", [False, True])
+def test_exact_case_wins_for_every_gantt_reference_and_temporal_check(
+    reverse_metadata: bool,
+) -> None:
+    """Metadata order cannot redirect exact refs to a case-colliding column."""
+    context = _ambiguous_dataset_context()
+    if reverse_metadata:
+        context.available_columns[0:2] = reversed(context.available_columns[0:2])
+    context.available_metrics = [
+        {"name": "Budget", "expression": "SUM(cost)"},
+        {"name": "budget", "expression": "AVG(cost)"},
+    ]
+    config = _config(
+        start_time={"name": "startedat"},
+        end_time={"name": "EndedAt"},
+        category={"name": "Task"},
+        series={"name": "StartedAt"},
+        tooltip_columns=[{"name": "startedat"}],
+        tooltip_metrics=[{"name": "budget", "saved_metric": True}],
+        temporal_column="startedat",
+        filters=[{"column": "startedat", "op": ">=", "value": "2026-01-01"}],
+        order_by=[{"column": "startedat", "ascending": True}],
+    )
+
+    valid, error = DatasetValidator.validate_against_dataset(
+        config, 1, dataset_context=context
+    )
+    assert valid is True
+    assert error is None
+    normalized = DatasetValidator.normalize_column_names(
+        config, 1, dataset_context=context
+    )
+    assert normalized.start_time.name == "startedat"
+    assert normalized.series is not None
+    assert normalized.series.name == "StartedAt"
+    assert normalized.tooltip_columns[0].name == "startedat"
+    assert normalized.tooltip_metrics[0].name == "budget"
+    assert normalized.temporal_column == "startedat"
+    assert normalized.filters is not None
+    assert normalized.filters[0].column == "startedat"
+    assert normalized.order_by[0].column == "startedat"
+
+    plugin = __import__("superset.mcp_service.chart.registry", fromlist=["get"]).get(
+        "gantt"
+    )
+    assert plugin is not None
+    with patch.object(DatasetValidator, "_get_dataset_context", return_value=context):
+        assert plugin.post_map_validate(normalized, {}, dataset_id=1) is None
+        wrong_case_error = plugin.post_map_validate(
+            _config(start_time={"name": "StartedAt"}), {}, dataset_id=1
+        )
+    assert wrong_case_error is not None
+    assert wrong_case_error.error_code == "NON_TEMPORAL_GANTT_TIME_COLUMN"
+
+
+@pytest.mark.parametrize("reverse_metadata", [False, True])
+def test_ambiguous_nonexact_reference_fails_validation_actionably(
+    reverse_metadata: bool,
+) -> None:
+    context = _ambiguous_dataset_context()
+    if reverse_metadata:
+        context.available_columns[0:2] = reversed(context.available_columns[0:2])
+    config = _config(start_time={"name": "STARTEDAT"})
+
+    valid, error = DatasetValidator.validate_against_dataset(
+        config, 1, dataset_context=context
+    )
+
+    assert valid is False
+    assert error is not None
+    assert error.error_code == "AMBIGUOUS_DATASET_REFERENCE"
+    assert "StartedAt" in error.details
+    assert "startedat" in error.details
+    assert "exact physical column name" in error.details
+
+
+def test_validation_pipeline_fails_closed_on_ambiguous_gantt_reference() -> None:
     request_data = {
         "dataset_id": 1,
         "config": {
@@ -811,8 +994,8 @@ def test_validation_pipeline_fails_closed_on_gantt_semantic_normalization() -> N
     assert result.is_valid is False
     assert result.request is not None
     assert result.error is not None
-    assert result.error.error_type == "gantt_semantic_validation_error"
-    assert result.error.error_code == "GANTT_SEMANTIC_VALIDATION_ERROR"
+    assert result.error.error_type == "ambiguous_dataset_reference"
+    assert result.error.error_code == "AMBIGUOUS_DATASET_REFERENCE"
     assert "ambiguous" in result.error.details
     assert result.error.suggestions
 
@@ -836,7 +1019,7 @@ def test_nonsemantic_normalization_error_remains_a_warning_for_other_charts(
 
 
 @pytest.mark.asyncio
-async def test_generate_chart_maps_gantt_semantic_normalization_to_error() -> None:
+async def test_generate_chart_maps_ambiguous_gantt_reference_to_error() -> None:
     request = GenerateChartRequest(
         dataset_id=1,
         config={
@@ -873,7 +1056,7 @@ async def test_generate_chart_maps_gantt_semantic_normalization_to_error() -> No
 
     assert result.success is False
     assert result.error is not None
-    assert result.error.error_type == "gantt_semantic_validation_error"
+    assert result.error.error_type == "ambiguous_dataset_reference"
     assert "ambiguous" in result.error.details
     mapper.assert_not_called()
 
@@ -1091,12 +1274,21 @@ def test_update_chart_preview_normalizes_all_gantt_refs_before_url_and_query_pre
 
 
 @pytest.mark.parametrize(
-    ("overrides", "expected_subject", "expected_range", "keeps_unrelated"),
+    (
+        "overrides",
+        "expected_subject",
+        "expected_range",
+        "keeps_unrelated",
+        "expected_series",
+        "expected_subcategories",
+    ),
     [
         (
             {"temporal_column": "end_time", "time_range": "Last 7 days"},
             "End_Time",
             "Last 7 days",
+            True,
+            "Owner",
             True,
         ),
         (
@@ -1104,9 +1296,20 @@ def test_update_chart_preview_normalizes_all_gantt_refs_before_url_and_query_pre
             "Start_Time",
             "Last 7 days",
             True,
+            "Owner",
+            True,
         ),
-        ({}, "Start_Time", "No filter", True),
-        ({"filters": []}, "Start_Time", "No filter", False),
+        ({}, "Start_Time", "No filter", True, "Owner", True),
+        ({"filters": []}, "Start_Time", "No filter", False, "Owner", True),
+        (
+            {"subcategories": False},
+            "Start_Time",
+            "No filter",
+            True,
+            "Owner",
+            False,
+        ),
+        ({"series": None}, "Start_Time", "No filter", True, None, False),
     ],
 )
 def test_cached_update_chart_preview_replaces_generated_temporal_binding(
@@ -1114,6 +1317,8 @@ def test_cached_update_chart_preview_replaces_generated_temporal_binding(
     expected_subject: str,
     expected_range: str,
     keeps_unrelated: bool,
+    expected_series: str | None,
+    expected_subcategories: bool,
 ) -> None:
     columns = [
         SimpleNamespace(
@@ -1150,6 +1355,8 @@ def test_cached_update_chart_preview_replaces_generated_temporal_binding(
         "viz_type": "gantt_chart",
         "adhoc_filters": [old_binding, unrelated],
         "_mcp_dashboard_time_filter_subject": "Start_Time",
+        "series": "Owner",
+        "subcategories": True,
     }
     request = UpdateChartPreviewRequest(
         form_data_key="previous",
@@ -1205,6 +1412,10 @@ def test_cached_update_chart_preview_replaces_generated_temporal_binding(
     assert temporal[0]["comparator"] == expected_range
     assert form_data["_mcp_dashboard_time_filter_subject"] == expected_subject
     assert (unrelated in form_data["adhoc_filters"]) is keeps_unrelated
+    assert form_data.get("series") == expected_series
+    assert form_data.get("subcategories", False) is expected_subcategories
+    assert not form_data.get("subcategories") or form_data.get("series")
+    GanttChartConfig.model_validate(form_data)
 
 
 def test_temporal_dataset_semantics() -> None:
@@ -1557,6 +1768,170 @@ def test_saved_and_unsaved_gantt_preview_return_the_same_structured_error() -> N
     assert saved.error == unsaved.error
 
 
+@pytest.mark.parametrize(
+    "query_payload",
+    [
+        {"queries": [{"error": "empty query failure", "data": []}]},
+        {
+            "queries": [
+                {
+                    "error": "nonempty query failure",
+                    "data": [
+                        {
+                            "start_time": "2026-01-01",
+                            "end_time": "2026-01-02",
+                            "task": "Build",
+                        }
+                    ],
+                }
+            ]
+        },
+        {"error": "top-level failure", "queries": [{"data": []}]},
+        {"errors": ["top-level failure"], "queries": [{"data": []}]},
+        {
+            "queries": [
+                {"data": []},
+                {"status": "failed", "message": "second query failure", "data": []},
+            ]
+        },
+    ],
+)
+def test_saved_and_unsaved_gantt_previews_fail_on_embedded_query_errors(
+    query_payload: dict[str, object],
+) -> None:
+    form_data = {
+        "viz_type": "gantt_chart",
+        "start_time": "start_time",
+        "end_time": "end_time",
+        "y_axis": "task",
+    }
+    chart = SimpleNamespace(
+        id=1,
+        slice_name="Schedule",
+        viz_type="gantt_chart",
+        datasource_id=1,
+        datasource_type="table",
+        params=__import__("json").dumps(form_data),
+    )
+    strategy = VegaLitePreviewStrategy(
+        chart,
+        GetChartPreviewRequest(identifier=1, format="vega_lite"),
+    )
+    with (
+        patch(
+            "superset.mcp_service.chart.tool.get_chart_preview."
+            "build_query_context_from_form_data",
+            return_value=object(),
+        ),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand"
+        ) as command,
+        patch.object(strategy, "_authorize_guest_query"),
+    ):
+        command.return_value.run.return_value = query_payload
+        saved = strategy.generate()
+
+    with (
+        patch("superset.extensions.db.session.get", return_value=object()),
+        patch(
+            "superset.mcp_service.chart.chart_helpers."
+            "build_query_context_from_form_data",
+            return_value=object(),
+        ),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand"
+        ) as command,
+    ):
+        command.return_value.run.return_value = query_payload
+        unsaved = generate_preview_from_form_data(form_data, 1, "vega_lite")
+
+    assert isinstance(saved, ChartError)
+    assert saved.error_type == "QueryError"
+    assert isinstance(unsaved, ChartError)
+    assert unsaved.error_type == "QueryError"
+
+
+def test_valid_empty_query_result_stays_a_successful_empty_gantt_preview() -> None:
+    payload = {"queries": [{"status": "success", "data": []}]}
+    assert query_result_failure(payload) is None
+    form_data = {
+        "viz_type": "gantt_chart",
+        "start_time": "start_time",
+        "end_time": "end_time",
+        "y_axis": "task",
+    }
+    with (
+        patch("superset.extensions.db.session.get", return_value=object()),
+        patch(
+            "superset.mcp_service.chart.chart_helpers."
+            "build_query_context_from_form_data",
+            return_value=object(),
+        ),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand"
+        ) as command,
+    ):
+        command.return_value.run.return_value = payload
+        preview = generate_preview_from_form_data(form_data, 1, "vega_lite")
+
+    assert isinstance(preview, VegaLitePreview)
+    assert preview.specification["data"]["values"] == []
+
+    chart = SimpleNamespace(
+        id=1,
+        slice_name="Schedule",
+        viz_type="gantt_chart",
+        datasource_id=1,
+        datasource_type="table",
+        params=__import__("json").dumps(form_data),
+    )
+    strategy = VegaLitePreviewStrategy(
+        chart, GetChartPreviewRequest(identifier=1, format="vega_lite")
+    )
+    with (
+        patch(
+            "superset.mcp_service.chart.tool.get_chart_preview."
+            "build_query_context_from_form_data",
+            return_value=object(),
+        ),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand"
+        ) as command,
+        patch.object(strategy, "_authorize_guest_query"),
+    ):
+        command.return_value.run.return_value = payload
+        saved_preview = strategy.generate()
+
+    assert isinstance(saved_preview, VegaLitePreview)
+    assert saved_preview.specification["data"]["values"] == []
+
+
+def test_query_failure_detection_applies_without_changing_valid_table_preview() -> None:
+    failure = query_result_failure(
+        {"queries": [{"status": "timed_out", "message": "timeout", "data": []}]}
+    )
+    assert isinstance(failure, ChartError)
+    assert failure.error_type == "QueryError"
+
+    with (
+        patch("superset.extensions.db.session.get", return_value=object()),
+        patch(
+            "superset.mcp_service.chart.chart_helpers."
+            "build_query_context_from_form_data",
+            return_value=object(),
+        ),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand"
+        ) as command,
+    ):
+        command.return_value.run.return_value = {"queries": [{"data": []}]}
+        preview = generate_preview_from_form_data(
+            {"viz_type": "table", "all_columns": ["task"]}, 1, "table"
+        )
+
+    assert isinstance(preview, TablePreview)
+
+
 def test_saved_update_and_preview_first_paths_preserve_native_gantt_state() -> None:
     existing = _native_example()
     chart = SimpleNamespace(
@@ -1582,6 +1957,62 @@ def test_saved_update_and_preview_first_paths_preserve_native_gantt_state() -> N
     assert preview_form_data["legendOrientation"] == "right"
     assert preview_form_data["zoomable"] is False
     assert preview_form_data["slice_id"] == 1495
+
+
+@pytest.mark.parametrize(
+    ("overrides", "expected_series", "expected_subcategories"),
+    [
+        ({}, "owner", True),
+        ({"subcategories": False}, "owner", False),
+        ({"series": {"name": "project"}}, "project", True),
+        ({"series": None}, None, False),
+        ({"series": None, "subcategories": False}, None, False),
+    ],
+)
+def test_saved_and_cached_update_merges_keep_gantt_series_dependency_coherent(
+    overrides: dict[str, object],
+    expected_series: str | None,
+    expected_subcategories: bool,
+) -> None:
+    existing = {
+        **_native_example(),
+        "series": "owner",
+        "subcategories": True,
+    }
+    chart = SimpleNamespace(
+        id=1495,
+        datasource_id=None,
+        slice_name="Gantt",
+        params=__import__("json").dumps(existing),
+    )
+    config = _config(**overrides)
+    request = UpdateChartRequest(identifier=1495, config=config)
+
+    payload = _build_update_payload(request, chart, parsed_config=config)
+    cached_preview = _build_preview_form_data(request, chart, parsed_config=config)
+
+    assert isinstance(payload, dict)
+    assert isinstance(cached_preview, dict)
+    persisted = __import__("json").loads(payload["params"])
+    assert persisted.get("series") == expected_series
+    assert persisted.get("subcategories", False) is expected_subcategories
+    assert cached_preview.get("series") == expected_series
+    assert cached_preview.get("subcategories", False) is expected_subcategories
+    assert not persisted.get("subcategories") or persisted.get("series")
+    round_trip = GanttChartConfig.model_validate(persisted)
+    assert round_trip.subcategories is expected_subcategories
+    assert (round_trip.series.name if round_trip.series else None) == expected_series
+
+
+def test_merge_repairs_stale_subcategories_without_series() -> None:
+    replacement = map_gantt_config(_config())
+    merge_gantt_ui_config(
+        {"viz_type": "gantt_chart", "subcategories": True}, replacement
+    )
+
+    assert replacement.get("subcategories", False) is False
+    assert not replacement.get("series")
+    GanttChartConfig.model_validate(replacement)
 
 
 @pytest.mark.asyncio
@@ -1737,6 +2168,16 @@ async def test_real_update_preserves_omitted_and_overrides_explicit_defaults() -
     assert {
         key: overridden[key] for key in expected_native_defaults
     } == expected_native_defaults
+
+    omitted_dependency = await run_update(_config())
+    assert omitted_dependency["series"] == "priority"
+    assert omitted_dependency["subcategories"] is True
+    GanttChartConfig.model_validate(omitted_dependency)
+
+    removed_dependency = await run_update(_config(series=None))
+    assert removed_dependency.get("series") is None
+    assert removed_dependency["subcategories"] is False
+    GanttChartConfig.model_validate(removed_dependency)
 
 
 def test_gantt_rejects_false_success_y_axis_title_position() -> None:

@@ -24,6 +24,7 @@ from __future__ import annotations
 import difflib
 import logging
 import re
+from collections.abc import Mapping
 from datetime import datetime, time
 from typing import Annotated, Any, Dict, List, Literal, Protocol
 
@@ -1858,6 +1859,20 @@ def _reject_sql_expression_on_dimension(col: ColumnRef | None, position: str) ->
         )
 
 
+def _validate_distinct_gantt_roles(roles: Mapping[str, str | None]) -> None:
+    """Require Gantt query-result roles to have distinct canonical labels."""
+    seen: dict[str, str] = {}
+    for role, name in roles.items():
+        if name is None:
+            continue
+        canonical_name = name.casefold()
+        if previous_role := seen.get(canonical_name):
+            raise ValueError(
+                f"{previous_role} and {role} must reference different columns"
+            )
+        seen[canonical_name] = role
+
+
 def _metric_display_label(col: ColumnRef) -> str:
     """Return the display label for a metric column reference."""
     if col.sql_expression:
@@ -2573,6 +2588,10 @@ class GanttChartConfig(BaseChartConfig):
                 operator = native_filter.get("operator")
                 operator_id = native_filter.get("operatorId")
                 comparator = native_filter.get("comparator")
+                if not isinstance(operator, str) or not operator:
+                    raise ValueError(
+                        f"adhoc_filters[{index}].operator must be a non-empty string"
+                    )
                 operator_id_map: dict[str, str | None] = {
                     "EQUALS": "==",
                     "NOT_EQUALS": "!=",
@@ -3033,24 +3052,23 @@ class GanttChartConfig(BaseChartConfig):
                     "saved_metric=True, or sql_expression"
                 )
 
-        start_name = self.start_time.name
-        end_name = self.end_time.name
-        if (
-            start_name is not None
-            and end_name is not None
-            and start_name.casefold() == end_name.casefold()
-        ):
-            raise ValueError("start_time and end_time must reference different columns")
-        category_name = self.category.name
-        if (
-            self.series
-            and self.series.name is not None
-            and category_name is not None
-            and self.series.name.casefold() == category_name.casefold()
-        ):
-            raise ValueError("series and category must reference different columns")
+        _validate_distinct_gantt_roles(
+            {
+                "start_time": self.start_time.name,
+                "end_time": self.end_time.name,
+                "category": self.category.name,
+            }
+        )
+
         if self.subcategories and self.series is None:
             raise ValueError("subcategories=True requires series")
+        if (
+            self.series is not None
+            and self.series.name is not None
+            and self.category.name is not None
+            and self.series.name.casefold() == self.category.name.casefold()
+        ):
+            raise ValueError("series and category must reference different columns")
 
         order_names = [item.column.casefold() for item in self.order_by]
         if len(order_names) != len(set(order_names)):
