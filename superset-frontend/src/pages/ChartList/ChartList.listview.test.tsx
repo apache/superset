@@ -284,22 +284,46 @@ test('sorts table when clicking column headers', async () => {
   });
 });
 
-test('sends friendly chart type names for server-side sorting', async () => {
+test('sends display-ordered chart type slugs only for Type sorting', async () => {
   const registry = getChartMetadataRegistry();
+  const customVizTypes = Array.from(
+    { length: 260 },
+    (_, index) => `custom_display_order_${index}`,
+  );
   registry
     .registerValue(
       'slug_a',
-      new ChartMetadata({ name: 'Zulu', thumbnail: '', behaviors: [] }),
+      new ChartMetadata({ name: '001 Zulu', thumbnail: '', behaviors: [] }),
     )
     .registerValue(
       'slug_z',
-      new ChartMetadata({ name: 'Alpha', thumbnail: '', behaviors: [] }),
+      new ChartMetadata({ name: '000 Alpha', thumbnail: '', behaviors: [] }),
     );
+  customVizTypes.forEach((vizType, index) =>
+    registry.registerValue(
+      vizType,
+      new ChartMetadata({
+        name: `Plugin ${index}`,
+        thumbnail: '',
+        behaviors: [],
+      }),
+    ),
+  );
 
   try {
     renderChartList(mockUser);
 
     const table = await screen.findByTestId('listview-table');
+    const initialCall = fetchMock.callHistory
+      .calls(/chart\/\?q/)
+      .find(call => !call.url.includes('order_column:viz_type'));
+    expect(initialCall).toBeDefined();
+    const initialQuery = new URL(
+      initialCall!.url,
+      'http://localhost',
+    ).searchParams.get('q');
+    expect(rison.decode(initialQuery!)).not.toHaveProperty('viz_type_order');
+
     await userEvent.click(within(table).getByTitle('Type'));
 
     await waitFor(() => {
@@ -312,14 +336,20 @@ test('sends friendly chart type names for server-side sorting', async () => {
         typeSortCall!.url,
         'http://localhost',
       ).searchParams.get('q');
-      expect(rison.decode(query!)).toMatchObject({
-        order_column: 'viz_type',
-        viz_type_names: { slug_a: 'Zulu', slug_z: 'Alpha' },
-      });
+      const decoded = rison.decode(query!) as {
+        order_column: string;
+        viz_type_order: string[];
+      };
+      expect(decoded.order_column).toBe('viz_type');
+      expect(decoded.viz_type_order).toHaveLength(256);
+      expect(decoded.viz_type_order.indexOf('slug_z')).toBeLessThan(
+        decoded.viz_type_order.indexOf('slug_a'),
+      );
     });
   } finally {
     registry.remove('slug_a');
     registry.remove('slug_z');
+    customVizTypes.forEach(vizType => registry.remove(vizType));
   }
 });
 

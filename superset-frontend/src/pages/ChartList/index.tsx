@@ -199,6 +199,7 @@ const CONFIRM_OVERWRITE_MESSAGE = t(
 );
 
 const registry = getChartMetadataRegistry();
+const MAX_VIZ_TYPE_ORDER_LENGTH = 256;
 
 const createFetchDatasets = async (
   filterValue = '',
@@ -273,14 +274,16 @@ function ChartList(props: ChartListProps) {
         ...(config.sortBy[0]?.id === 'viz_type'
           ? {
               extraQueryParams: {
-                viz_type_names: Object.fromEntries(
-                  registry
-                    .keys()
-                    .map(vizType => [
-                      vizType,
-                      registry.get(vizType)?.name || vizType,
-                    ]),
-                ),
+                ...config.extraQueryParams,
+                viz_type_order: registry
+                  .keys()
+                  .sort((left, right) => {
+                    const nameComparison = (
+                      registry.get(left)?.name || left
+                    ).localeCompare(registry.get(right)?.name || right);
+                    return nameComparison || left.localeCompare(right);
+                  })
+                  .slice(0, MAX_VIZ_TYPE_ORDER_LENGTH),
               },
             }
           : {}),

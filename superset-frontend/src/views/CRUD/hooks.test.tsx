@@ -568,7 +568,7 @@ test('useListViewResource: includes extra list query parameters', async () => {
       sortBy: [{ id: 'viz_type' }],
       filters: [],
       extraQueryParams: {
-        viz_type_names: { slug_a: 'Zulu', slug_z: 'Alpha' },
+        viz_type_order: ['slug_z', 'slug_a'],
       },
     });
   });
@@ -577,7 +577,79 @@ test('useListViewResource: includes extra list query parameters', async () => {
   const query = new URL(endpoint, 'http://localhost').searchParams.get('q');
   expect(rison.decode(query!)).toMatchObject({
     order_column: 'viz_type',
-    viz_type_names: { slug_a: 'Zulu', slug_z: 'Alpha' },
+    viz_type_order: ['slug_z', 'slug_a'],
+  });
+});
+
+test('useListViewResource: refresh reuses extra list query parameters', async () => {
+  const getSpy = jest.spyOn(SupersetClient, 'get').mockResolvedValue({
+    json: { result: [], count: 0 },
+  } as unknown as JsonResponse);
+
+  const { result } = renderHook(() =>
+    useListViewResource('chart', 'Charts', jest.fn()),
+  );
+
+  await act(async () => {
+    await result.current.fetchData({
+      pageIndex: 0,
+      pageSize: 25,
+      sortBy: [{ id: 'viz_type' }],
+      filters: [],
+      extraQueryParams: { viz_type_order: ['slug_z', 'slug_a'] },
+    });
+    await result.current.refreshData();
+  });
+
+  const listQueries = getSpy.mock.calls
+    .map(call => (call[0] as { endpoint: string }).endpoint)
+    .filter(endpoint => endpoint.includes('/api/v1/chart/?q='))
+    .map(endpoint => {
+      const query = new URL(endpoint, 'http://localhost').searchParams.get('q');
+      return rison.decode(query!);
+    });
+  expect(listQueries).toHaveLength(2);
+  expect(listQueries).toEqual([
+    expect.objectContaining({ viz_type_order: ['slug_z', 'slug_a'] }),
+    expect.objectContaining({ viz_type_order: ['slug_z', 'slug_a'] }),
+  ]);
+});
+
+test('useListViewResource: extra parameters cannot replace list controls', async () => {
+  const getSpy = jest.spyOn(SupersetClient, 'get').mockResolvedValue({
+    json: { result: [], count: 0 },
+  } as unknown as JsonResponse);
+
+  const { result } = renderHook(() =>
+    useListViewResource('chart', 'Charts', jest.fn()),
+  );
+
+  await act(async () => {
+    await result.current.fetchData({
+      pageIndex: 0,
+      pageSize: 25,
+      sortBy: [{ id: 'viz_type' }],
+      filters: [],
+      extraQueryParams: {
+        custom_param: 'preserved',
+        filters: [{ col: 'slice_name', opr: 'eq', value: 'injected' }],
+        order_column: 'slice_name',
+        order_direction: 'desc',
+        page: 99,
+        page_size: 1,
+        select_columns: ['slice_name'],
+      },
+    });
+  });
+
+  const endpoint = findEndpoint(getSpy, '/api/v1/chart/?q=');
+  const query = new URL(endpoint, 'http://localhost').searchParams.get('q');
+  expect(rison.decode(query!)).toEqual({
+    custom_param: 'preserved',
+    order_column: 'viz_type',
+    order_direction: 'asc',
+    page: 0,
+    page_size: 25,
   });
 });
 

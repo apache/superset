@@ -61,6 +61,15 @@ interface ListViewResourceState<D extends object = any> {
   lastFetched?: string;
 }
 
+const reservedListQueryParams = new Set([
+  'filters',
+  'order_column',
+  'order_direction',
+  'page',
+  'page_size',
+  'select_columns',
+]);
+
 const parsedErrorMessage = (
   errorMessage: Record<string, string[] | string> | string,
 ) => {
@@ -188,8 +197,13 @@ export function useListViewResource<D extends object = any>(
               : value,
         }));
 
+      const safeExtraQueryParams = Object.fromEntries(
+        Object.entries(extraQueryParams ?? {}).filter(
+          ([key]) => !reservedListQueryParams.has(key),
+        ),
+      );
       const queryParams = rison.encode_uri({
-        ...extraQueryParams,
+        ...safeExtraQueryParams,
         order_column: sortBy[0].id,
         order_direction: sortBy[0].desc ? 'desc' : 'asc',
         page: pageIndex,
