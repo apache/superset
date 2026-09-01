@@ -76,8 +76,13 @@ const mockMapData = {
 
 type D3JsonCallback = (error: Error | null, data: unknown) => void;
 
+type CountryMapDatum = {
+  country_id: string;
+  metric: number;
+};
+
 function expectedLinearFill(
-  data: { metric: number }[],
+  data: CountryMapDatum[],
   linearColorScheme: string,
 ): string {
   const rawExtents = d3Extent(data, v => v.metric);
@@ -94,11 +99,11 @@ function expectedLinearFill(
 
 function expectFillToMatchLinearScheme(
   region: Element | null,
-  data: { metric: number }[],
+  data: CountryMapDatum[],
   linearColorScheme: string,
 ): void {
   expect(region).not.toBeNull();
-  const fill = (region as HTMLElement).style.fill;
+  const {fill} = (region as HTMLElement).style;
   expect(fill).toBeTruthy();
   expect(d3Any.rgb(fill).toString()).toBe(
     d3Any.rgb(expectedLinearFill(data, linearColorScheme)).toString(),
