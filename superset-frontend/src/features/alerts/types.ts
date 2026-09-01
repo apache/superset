@@ -98,6 +98,20 @@ export type DashboardState = {
   nativeFilters?: Array<ExtraNativeFilter>;
   /** Orientation for browser-print PDF reports (SIP-212). */
   pdf_orientation?: 'portrait' | 'landscape' | 'auto';
+  /** Font size tier for browser-print PDF reports (SIP-212). */
+  pdf_font_size?: 'small' | 'medium' | 'large';
+  /** Column layout for browser-print PDF reports (SIP-212). */
+  pdf_layout?: '1col' | '2col';
+  /**
+   * Per-report PDF header slot overrides (SIP-212).
+   * Keys: left, center, right. Supports {title} and {date} tokens.
+   */
+  pdf_header?: { left?: string; center?: string; right?: string };
+  /**
+   * Per-report PDF footer slot overrides (SIP-212).
+   * Keys: left, center. Right ("Page N of M") is always fixed.
+   */
+  pdf_footer?: { left?: string; center?: string };
 };
 
 export type ExtraNativeFilter = {

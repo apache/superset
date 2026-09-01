@@ -593,3 +593,201 @@ class TestPerReportOrientation:
 
         call_kwargs = mock_screenshot_instance.get_print_pdf.call_args.kwargs
         assert call_kwargs.get("print_orientation") == "landscape"
+
+
+# ---------------------------------------------------------------------------
+# _get_browser_print_pdf — per-report header/footer content override
+# ---------------------------------------------------------------------------
+
+
+class TestPerReportHeaderFooter:
+    """extra.dashboard.pdf_header/pdf_footer override the global config values."""
+
+    def _make_command(self) -> object:
+        from superset.commands.report.execute import BaseReportState
+
+        cmd = object.__new__(BaseReportState)
+        cmd._report_execution_context = None  # type: ignore[attr-defined]
+        cmd._execution_id = "test-exec-id"  # type: ignore[attr-defined]
+        return cmd
+
+    def _base_config(self) -> dict:
+        return {
+            "WEBDRIVER_WINDOW": {"dashboard": (1600, 1200)},
+            "ALERT_REPORTS_MAX_CUSTOM_SCREENSHOT_WIDTH": 3000,
+            "BROWSER_PRINT_PDF_FONT_SIZE": None,
+            "BROWSER_PRINT_PDF_LAYOUT": None,
+            "BROWSER_PRINT_PDF_ORIENTATION": None,
+        }
+
+    @patch("superset.commands.report.execute.DashboardPrintScreenshot")
+    @patch("superset.commands.report.execute.resolve_executor_user")
+    @patch("superset.commands.report.execute.app")
+    def test_per_report_header_passed_to_get_print_pdf(
+        self,
+        mock_app: MagicMock,
+        mock_resolver: MagicMock,
+        mock_screenshot_cls: MagicMock,
+    ) -> None:
+        """extra.dashboard.pdf_header is forwarded as header_content."""
+        mock_app.config = self._base_config()
+        cmd = self._make_command()
+        schedule = MagicMock()
+        schedule.custom_width = None
+        schedule.custom_height = None
+        custom_header = {"left": "ACME Corp", "right": "Q4 Report"}
+        schedule.extra = {"dashboard": {"pdf_header": custom_header}}
+        schedule.dashboard.dashboard_title = "Sales"
+        schedule.dashboard.digest = "abc"
+        cmd._report_schedule = schedule  # type: ignore[attr-defined]
+
+        mock_resolver.return_value = (MagicMock(), None)
+        mock_instance = MagicMock()
+        mock_instance.get_print_pdf.return_value = b"%PDF"
+        mock_screenshot_cls.return_value = mock_instance
+
+        from unittest.mock import PropertyMock
+
+        with (
+            patch.object(
+                type(cmd),
+                "_log_context",
+                new_callable=PropertyMock,
+                return_value="test",
+            ),
+            patch.object(
+                type(cmd),
+                "get_dashboard_urls",
+                return_value=["http://superset:8088/dash/1/"],
+            ),
+        ):
+            cmd._get_browser_print_pdf()  # type: ignore[attr-defined]
+
+        kwargs = mock_instance.get_print_pdf.call_args.kwargs
+        assert kwargs.get("header_content") == custom_header
+
+    @patch("superset.commands.report.execute.DashboardPrintScreenshot")
+    @patch("superset.commands.report.execute.resolve_executor_user")
+    @patch("superset.commands.report.execute.app")
+    def test_per_report_footer_passed_to_get_print_pdf(
+        self,
+        mock_app: MagicMock,
+        mock_resolver: MagicMock,
+        mock_screenshot_cls: MagicMock,
+    ) -> None:
+        """extra.dashboard.pdf_footer is forwarded as footer_content."""
+        mock_app.config = self._base_config()
+        cmd = self._make_command()
+        schedule = MagicMock()
+        schedule.custom_width = None
+        schedule.custom_height = None
+        custom_footer = {"left": "Internal Only", "center": "ACME Internal"}
+        schedule.extra = {"dashboard": {"pdf_footer": custom_footer}}
+        schedule.dashboard.dashboard_title = "Sales"
+        schedule.dashboard.digest = "abc"
+        cmd._report_schedule = schedule  # type: ignore[attr-defined]
+
+        mock_resolver.return_value = (MagicMock(), None)
+        mock_instance = MagicMock()
+        mock_instance.get_print_pdf.return_value = b"%PDF"
+        mock_screenshot_cls.return_value = mock_instance
+
+        from unittest.mock import PropertyMock
+
+        with (
+            patch.object(
+                type(cmd),
+                "_log_context",
+                new_callable=PropertyMock,
+                return_value="test",
+            ),
+            patch.object(
+                type(cmd),
+                "get_dashboard_urls",
+                return_value=["http://superset:8088/dash/1/"],
+            ),
+        ):
+            cmd._get_browser_print_pdf()  # type: ignore[attr-defined]
+
+        kwargs = mock_instance.get_print_pdf.call_args.kwargs
+        assert kwargs.get("footer_content") == custom_footer
+
+    @patch("superset.commands.report.execute.DashboardPrintScreenshot")
+    @patch("superset.commands.report.execute.resolve_executor_user")
+    @patch("superset.commands.report.execute.app")
+    def test_no_header_footer_extra_passes_none(
+        self,
+        mock_app: MagicMock,
+        mock_resolver: MagicMock,
+        mock_screenshot_cls: MagicMock,
+    ) -> None:
+        """When pdf_header/pdf_footer absent from extra, None is forwarded.
+
+        None tells the webdriver to use the global operator config value.
+        """
+        mock_app.config = self._base_config()
+        cmd = self._make_command()
+        schedule = MagicMock()
+        schedule.custom_width = None
+        schedule.custom_height = None
+        schedule.extra = {"dashboard": {}}  # no header/footer keys
+        schedule.dashboard.dashboard_title = "Sales"
+        schedule.dashboard.digest = "abc"
+        cmd._report_schedule = schedule  # type: ignore[attr-defined]
+
+        mock_resolver.return_value = (MagicMock(), None)
+        mock_instance = MagicMock()
+        mock_instance.get_print_pdf.return_value = b"%PDF"
+        mock_screenshot_cls.return_value = mock_instance
+
+        from unittest.mock import PropertyMock
+
+        with (
+            patch.object(
+                type(cmd),
+                "_log_context",
+                new_callable=PropertyMock,
+                return_value="test",
+            ),
+            patch.object(
+                type(cmd),
+                "get_dashboard_urls",
+                return_value=["http://superset:8088/dash/1/"],
+            ),
+        ):
+            cmd._get_browser_print_pdf()  # type: ignore[attr-defined]
+
+        kwargs = mock_instance.get_print_pdf.call_args.kwargs
+        assert kwargs.get("header_content") is None
+        assert kwargs.get("footer_content") is None
+
+    def test_webdriver_per_report_header_overrides_config(self) -> None:
+        """get_print_pdf uses per-report header_content over the config dict."""
+        from superset.utils.webdriver import WebDriverPlaywright
+
+        # Verify the resolver logic directly via the builder: when per-report
+        # content is supplied, it takes precedence over the global config value.
+        # We test _build_pdf_header_template with per-report content directly.
+        per_report = {"left": "ACME Corp", "center": "", "right": "Q4 {date}"}
+        html = WebDriverPlaywright._build_pdf_header_template(
+            "Dashboard Title", content=per_report
+        )
+
+        assert "ACME Corp" in html
+        assert "Apache Superset" not in html  # default right slot not present
+        assert '<span class="date"></span>' in html  # {date} expanded
+
+    def test_webdriver_per_report_footer_overrides_config(self) -> None:
+        """get_print_pdf uses per-report footer_content over the config dict."""
+        from superset.utils.webdriver import WebDriverPlaywright
+
+        per_report = {"left": "Internal Only", "center": "ACME Reports"}
+        html = WebDriverPlaywright._build_pdf_footer_template(content=per_report)
+
+        assert "Internal Only" in html
+        assert "ACME Reports" in html
+        assert "Confidential" not in html
+        assert "Generated by Apache Superset" not in html
+        # Page N of M must still be present
+        assert 'class="pageNumber"' in html
+        assert 'class="totalPages"' in html

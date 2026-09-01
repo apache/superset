@@ -865,13 +865,15 @@ class BaseReportState:
 
     def _get_pdf(self) -> bytes:
         """
-        Get chart or dashboard pdf.
-        When DASHBOARD_REPORTS_BROWSER_PRINT_PDF is enabled, attempt
-        the native browser-print path first; fall back to the existing
-        screenshot-based path on any failure or if the flag is off.
+        Get chart or dashboard PDF.
+
+        When DASHBOARD_REPORTS_BROWSER_PRINT_PDF is enabled and the report
+        targets a dashboard, attempt the native browser-print path first.
+        Any failure (or flag disabled, or chart report) falls back to the
+        existing screenshot-based path.
+
         :raises: ReportSchedulePdfFailedError
         """
-        # NEW: attempt browser-print path when flag is on
         if (
             feature_flag_manager.is_feature_enabled(
                 "DASHBOARD_REPORTS_BROWSER_PRINT_PDF"
@@ -893,7 +895,6 @@ class BaseReportState:
                     self._log_context,
                 )
 
-        # EXISTING PATH — unmodified
         screenshots = self._get_screenshots()
         reserve_seconds = (
             self._report_execution_context.post_capture_reserve_seconds
@@ -926,10 +927,14 @@ class BaseReportState:
         height = self._report_schedule.custom_height or window_height
         window_size = (width, height)
 
-        # Multi-tab dashboards deferred — fall back to screenshot path
+        # When ALERT_REPORT_TABS is enabled and multiple tabs are selected,
+        # get_dashboard_urls() returns one permalink URL per tab.  The
+        # browser-print path only handles a single base URL (with optional
+        # hash-fragment tab navigation for tab_ids).  Multi-permalink reports
+        # fall back to the screenshot-based path.
         if len(urls) != 1:
             logger.info(
-                "browser_print_pdf_skipped_multi_tab %s url_count=%d; "
+                "browser_print_pdf_skipped_multi_url %s url_count=%d; "
                 "falling back to screenshot path",
                 self._log_context,
                 len(urls),
@@ -941,15 +946,26 @@ class BaseReportState:
         pdf_orientation: str | None = app.config.get(
             "BROWSER_PRINT_PDF_ORIENTATION", None
         )
-        # Per-report orientation stored in extra.dashboard.pdf_orientation
-        # takes precedence over the global config value when set.
-        per_report_orientation: str | None = (
-            self._report_schedule.extra.get("dashboard", {}).get("pdf_orientation")
+        # Per-report values stored in extra.dashboard take precedence over
+        # the global config when set by the user in the Alerts & Reports modal.
+        dashboard_extra: dict = (
+            self._report_schedule.extra.get("dashboard", {})
             if self._report_schedule.extra
-            else None
+            else {}
         )
+        per_report_orientation: str | None = dashboard_extra.get("pdf_orientation")
         if per_report_orientation in ("portrait", "landscape", "auto"):
             pdf_orientation = per_report_orientation
+        per_report_font_size: str | None = dashboard_extra.get("pdf_font_size")
+        if per_report_font_size in ("small", "medium", "large"):
+            pdf_font_size = per_report_font_size
+        per_report_layout: str | None = dashboard_extra.get("pdf_layout")
+        if per_report_layout in ("1col", "2col"):
+            pdf_layout = per_report_layout
+        # Per-report header/footer slot overrides set in the Alerts & Reports modal.
+        # None means fall back to the global config / built-in defaults.
+        per_report_header: dict[str, str] | None = dashboard_extra.get("pdf_header")
+        per_report_footer: dict[str, str] | None = dashboard_extra.get("pdf_footer")
         dashboard_title: str = self._report_schedule.dashboard.dashboard_title or ""
         screenshot = DashboardPrintScreenshot(
             urls[0],
@@ -968,6 +984,8 @@ class BaseReportState:
             font_size=pdf_font_size,
             print_layout=pdf_layout,
             print_orientation=pdf_orientation,
+            header_content=per_report_header or None,
+            footer_content=per_report_footer or None,
         )
 
     def _get_chart_data_request_payload(

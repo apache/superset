@@ -1171,6 +1171,8 @@ class WebDriverPlaywright(WebDriverProxy):
         print_layout: str | None = None,
         print_orientation: str | None = None,
         tab_ids: list[str] | None = None,
+        header_content: dict[str, str] | None = None,
+        footer_content: dict[str, str] | None = None,
     ) -> bytes | None:
         """
         Render the dashboard in print-ready mode and call page.pdf().
@@ -1282,19 +1284,25 @@ class WebDriverPlaywright(WebDriverProxy):
         elif print_orientation == "auto":
             pdf_kwargs["prefer_css_page_size"] = True
         if use_header_footer:
-            header_content: dict[str, str] | None = app.config.get(
-                "BROWSER_PRINT_PDF_HEADER_CONTENT"
+            # Per-report values (from extra.dashboard) take precedence over
+            # the global operator config when explicitly provided.
+            resolved_header_content: dict[str, str] | None = (
+                header_content
+                if header_content is not None
+                else app.config.get("BROWSER_PRINT_PDF_HEADER_CONTENT")
             )
-            footer_content: dict[str, str] | None = app.config.get(
-                "BROWSER_PRINT_PDF_FOOTER_CONTENT"
+            resolved_footer_content: dict[str, str] | None = (
+                footer_content
+                if footer_content is not None
+                else app.config.get("BROWSER_PRINT_PDF_FOOTER_CONTENT")
             )
             pdf_kwargs["display_header_footer"] = True
             pdf_kwargs["header_template"] = self._build_pdf_header_template(
                 header_title,  # type: ignore[arg-type]
-                content=header_content,
+                content=resolved_header_content,
             )
             pdf_kwargs["footer_template"] = self._build_pdf_footer_template(
-                content=footer_content,
+                content=resolved_footer_content,
             )
 
         def _render_page(render_url: str) -> bytes:  # noqa: C901
@@ -1418,11 +1426,16 @@ class WebDriverPlaywright(WebDriverProxy):
                     log_context or "",
                 )
 
+            # Big Number font-size patched via JS (CSS !important cannot override
+            # React inline styles).  Values in CSS px at 1600px viewport; after
+            # 0.496x scale: small≈9pt, medium≈14pt, large≈21pt on paper.
             _big_number_px: int | None = None
-            if font_size == "medium":
-                _big_number_px = 64
+            if font_size == "small":
+                _big_number_px = 48
+            elif font_size == "medium":
+                _big_number_px = 72
             elif font_size == "large":
-                _big_number_px = 96
+                _big_number_px = 108
             if _big_number_px is not None:
                 page.evaluate(SET_PRINT_FONT_SIZE_JS, _big_number_px)
 

@@ -893,19 +893,88 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     });
   };
 
-  const updatePdfOrientationState = (landscape: boolean) => {
+  const updatePdfOrientationState = (
+    value: 'portrait' | 'landscape' | 'auto',
+  ) => {
     setCurrentAlert(currentAlertData => {
       const dashboardState = currentAlertData?.extra?.dashboard;
       const extra = {
         dashboard: {
           ...dashboardState,
-          pdf_orientation: landscape ? ('landscape' as const) : ('portrait' as const),
+          pdf_orientation: value,
         },
       };
       return {
         ...currentAlertData,
         extra,
       };
+    });
+  };
+
+  const updatePdfFontSizeState = (value: 'small' | 'medium' | 'large') => {
+    setCurrentAlert(currentAlertData => {
+      const dashboardState = currentAlertData?.extra?.dashboard;
+      const extra = {
+        dashboard: {
+          ...dashboardState,
+          pdf_font_size: value,
+        },
+      };
+      return {
+        ...currentAlertData,
+        extra,
+      };
+    });
+  };
+
+  const updatePdfLayoutState = (twoCol: boolean) => {
+    setCurrentAlert(currentAlertData => {
+      const dashboardState = currentAlertData?.extra?.dashboard;
+      const extra = {
+        dashboard: {
+          ...dashboardState,
+          pdf_layout: twoCol ? ('2col' as const) : ('1col' as const),
+        },
+      };
+      return {
+        ...currentAlertData,
+        extra,
+      };
+    });
+  };
+
+  const updatePdfHeaderState = (
+    slot: 'left' | 'center' | 'right',
+    value: string,
+  ) => {
+    setCurrentAlert(currentAlertData => {
+      const dashboardState = currentAlertData?.extra?.dashboard;
+      const extra = {
+        dashboard: {
+          ...dashboardState,
+          pdf_header: {
+            ...dashboardState?.pdf_header,
+            [slot]: value,
+          },
+        },
+      };
+      return { ...currentAlertData, extra };
+    });
+  };
+
+  const updatePdfFooterState = (slot: 'left' | 'center', value: string) => {
+    setCurrentAlert(currentAlertData => {
+      const dashboardState = currentAlertData?.extra?.dashboard;
+      const extra = {
+        dashboard: {
+          ...dashboardState,
+          pdf_footer: {
+            ...dashboardState?.pdf_footer,
+            [slot]: value,
+          },
+        },
+      };
+      return { ...currentAlertData, extra };
     });
   };
 
@@ -2482,19 +2551,146 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                   {browserPrintPdfEnabled &&
                     reportFormat === 'PDF' &&
                     contentType === ContentType.Dashboard && (
-                      <div className="inline-container">
-                        <Checkbox
-                          checked={
-                            currentAlert?.extra?.dashboard?.pdf_orientation ===
-                            'landscape'
-                          }
-                          onChange={(e: CheckboxChangeEvent) =>
-                            updatePdfOrientationState(e.target.checked)
-                          }
-                        >
-                          {t('Use landscape orientation')}
-                        </Checkbox>
-                      </div>
+                      <>
+                        <StyledInputContainer>
+                          <div className="control-label">
+                            {t('PDF font size')}
+                          </div>
+                          <Select
+                            ariaLabel={t('Select PDF font size')}
+                            value={
+                              currentAlert?.extra?.dashboard?.pdf_font_size ||
+                              'small'
+                            }
+                            onChange={(value: string) =>
+                              updatePdfFontSizeState(
+                                value as 'small' | 'medium' | 'large',
+                              )
+                            }
+                            options={[
+                              { label: t('Small (default)'), value: 'small' },
+                              { label: t('Medium'), value: 'medium' },
+                              { label: t('Large'), value: 'large' },
+                            ]}
+                          />
+                        </StyledInputContainer>
+                        <StyledInputContainer>
+                          <div className="control-label">
+                            {t('PDF orientation')}
+                          </div>
+                          <Select
+                            ariaLabel={t('Select PDF orientation')}
+                            value={
+                              currentAlert?.extra?.dashboard?.pdf_orientation ||
+                              'portrait'
+                            }
+                            onChange={(value: string) =>
+                              updatePdfOrientationState(
+                                value as 'portrait' | 'landscape' | 'auto',
+                              )
+                            }
+                            options={[
+                              { label: t('Portrait'), value: 'portrait' },
+                              { label: t('Landscape'), value: 'landscape' },
+                              {
+                                label: t('Auto (wide tables use landscape)'),
+                                value: 'auto',
+                              },
+                            ]}
+                          />
+                        </StyledInputContainer>
+                        <div className="inline-container">
+                          <Checkbox
+                            checked={
+                              currentAlert?.extra?.dashboard?.pdf_layout ===
+                              '2col'
+                            }
+                            onChange={(e: CheckboxChangeEvent) =>
+                              updatePdfLayoutState(e.target.checked)
+                            }
+                          >
+                            {t('Use 2-column adaptive layout')}
+                          </Checkbox>
+                        </div>
+                        <StyledInputContainer>
+                          <div className="control-label">
+                            {t('PDF header (left slot)')}
+                          </div>
+                          <div className="input-container">
+                            <Input
+                              placeholder={t(
+                                'e.g. {title} or ACME Corp',
+                              )}
+                              value={
+                                currentAlert?.extra?.dashboard?.pdf_header
+                                  ?.left ?? ''
+                              }
+                              onChange={(
+                                e: ChangeEvent<HTMLInputElement>,
+                              ) => updatePdfHeaderState('left', e.target.value)}
+                            />
+                          </div>
+                        </StyledInputContainer>
+                        <StyledInputContainer>
+                          <div className="control-label">
+                            {t('PDF header (right slot)')}
+                          </div>
+                          <div className="input-container">
+                            <Input
+                              placeholder={t(
+                                'e.g. Apache Superset | {date}',
+                              )}
+                              value={
+                                currentAlert?.extra?.dashboard?.pdf_header
+                                  ?.right ?? ''
+                              }
+                              onChange={(
+                                e: ChangeEvent<HTMLInputElement>,
+                              ) =>
+                                updatePdfHeaderState('right', e.target.value)
+                              }
+                            />
+                          </div>
+                        </StyledInputContainer>
+                        <StyledInputContainer>
+                          <div className="control-label">
+                            {t('PDF footer (left slot)')}
+                          </div>
+                          <div className="input-container">
+                            <Input
+                              placeholder={t('e.g. Confidential')}
+                              value={
+                                currentAlert?.extra?.dashboard?.pdf_footer
+                                  ?.left ?? ''
+                              }
+                              onChange={(
+                                e: ChangeEvent<HTMLInputElement>,
+                              ) => updatePdfFooterState('left', e.target.value)}
+                            />
+                          </div>
+                        </StyledInputContainer>
+                        <StyledInputContainer>
+                          <div className="control-label">
+                            {t('PDF footer (center slot)')}
+                          </div>
+                          <div className="input-container">
+                            <Input
+                              placeholder={t(
+                                'e.g. Generated by Apache Superset',
+                              )}
+                              value={
+                                currentAlert?.extra?.dashboard?.pdf_footer
+                                  ?.center ?? ''
+                              }
+                              onChange={(
+                                e: ChangeEvent<HTMLInputElement>,
+                              ) =>
+                                updatePdfFooterState('center', e.target.value)
+                              }
+                            />
+                          </div>
+                        </StyledInputContainer>
+                      </>
                     )}
                   {tabsEnabled && contentType === ContentType.Dashboard && (
                     <StyledInputContainer>

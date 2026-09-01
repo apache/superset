@@ -555,6 +555,8 @@ class DashboardPrintScreenshot(DashboardScreenshot):
         print_layout: str | None = None,
         print_orientation: str | None = None,
         tab_ids: list[str] | None = None,
+        header_content: dict[str, str] | None = None,
+        footer_content: dict[str, str] | None = None,
     ) -> bytes | None:
         """
         Use Playwright's page.pdf() for native print output.
@@ -569,6 +571,9 @@ class DashboardPrintScreenshot(DashboardScreenshot):
         tab_ids, when provided (list of Superset TAB-xxx component IDs), causes
         the webdriver to render each tab separately using a URL hash fragment
         and merge the resulting PDFs via pypdf.
+        header_content / footer_content, when provided, override the global
+        BROWSER_PRINT_PDF_HEADER_CONTENT / BROWSER_PRINT_PDF_FOOTER_CONTENT
+        config for this specific report.
         """
         if not feature_flag_manager.is_feature_enabled(
             "PLAYWRIGHT_REPORTS_AND_THUMBNAILS"
@@ -587,4 +592,6 @@ class DashboardPrintScreenshot(DashboardScreenshot):
             print_layout=print_layout,
             print_orientation=print_orientation,
             tab_ids=tab_ids,
+            header_content=header_content,
+            footer_content=footer_content,
         )
