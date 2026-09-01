@@ -1983,3 +1983,15 @@ CHART_SCHEMAS = (
     ChartCacheScreenshotResponseSchema,
     GetFavStarIdsSchema,
 )
+
+
+class EmbeddedChartConfigSchema(Schema):
+    allowed_domains = fields.List(fields.String(), required=True)
+
+
+class EmbeddedChartResponseSchema(Schema):
+    uuid = fields.String()
+    allowed_domains = fields.List(fields.String())
+    chart_id = fields.String()
+    changed_on = fields.DateTime()
+    changed_by = fields.Nested(UserSchema)
