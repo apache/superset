@@ -31,8 +31,11 @@ from superset.common.form_data_query_context import (
 from superset.mcp_service.chart.chart_helpers import (
     build_query_dicts_from_form_data,
 )
-from superset.mcp_service.chart.chart_utils import map_config_to_form_data
-from superset.mcp_service.chart.compile import _compile_chart
+from superset.mcp_service.chart.chart_utils import (
+    map_config_to_form_data,
+    merge_form_data_for_update,
+)
+from superset.mcp_service.chart.compile import _compile_chart, validate_and_compile
 from superset.mcp_service.chart.preview_utils import (
     _generate_ascii_preview_from_data,
     _generate_table_preview_from_data,
@@ -50,7 +53,10 @@ from superset.mcp_service.chart.schemas import (
     UpdateChartPreviewRequest,
     UpdateChartRequest,
 )
-from superset.mcp_service.chart.sunburst import validate_sunburst_result_data
+from superset.mcp_service.chart.sunburst import (
+    normalize_sunburst_form_data_references,
+    validate_sunburst_result_data,
+)
 from superset.mcp_service.chart.tool.generate_chart import generate_chart
 from superset.mcp_service.chart.tool.get_chart_preview import (
     ASCIIPreviewStrategy,
@@ -1159,6 +1165,136 @@ def test_dataset_validation_and_casefold_canonicalization() -> None:
     ) == (True, None)
 
 
+def test_cross_namespace_references_resolve_with_role_specific_precedence() -> None:
+    """Exact metric spellings cannot steal physical Sunburst roles."""
+    context = DatasetContext(
+        id=7,
+        table_name="sales",
+        schema="analytics",
+        database_name="main",
+        available_columns=[
+            {"name": "Region", "type": "VARCHAR", "is_temporal": False},
+            {
+                "name": "Sales",
+                "type": "DOUBLE",
+                "is_temporal": False,
+                "is_numeric": True,
+            },
+            {"name": "Status", "type": "VARCHAR", "is_temporal": False},
+            {"name": "EventTime", "type": "TIMESTAMP", "is_temporal": True},
+            {"name": "savedprofit", "type": "DOUBLE", "is_numeric": True},
+        ],
+        available_metrics=[
+            {"name": "region", "expression": "COUNT(*)"},
+            {"name": "sales", "expression": "SUM(sales)"},
+            {"name": "status", "expression": "COUNT(*)"},
+            {"name": "eventtime", "expression": "MAX(event_time)"},
+            {"name": "SavedProfit", "expression": "SUM(profit)"},
+        ],
+    )
+    config = _config(
+        hierarchy=[{"name": "region"}],
+        metric={"name": "sales", "aggregate": "SUM", "label": "Revenue"},
+        secondary_metric={"name": "savedprofit", "saved_metric": True},
+        filters=[{"column": "status", "op": "=", "value": "active"}],
+        temporal_column="eventtime",
+        time_grain="P1D",
+        sort_by_metric=True,
+    )
+
+    assert DatasetValidator.validate_against_dataset(
+        config, 7, dataset_context=context
+    ) == (True, None)
+    normalized = DatasetValidator.normalize_column_names(
+        config, 7, dataset_context=context
+    )
+    assert [column.name for column in normalized.hierarchy] == ["Region"]
+    assert normalized.metric.name == "Sales"
+    assert normalized.secondary_metric is not None
+    # saved_metric=True stays in the saved-metric namespace even though an
+    # exactly spelled physical column exists.
+    assert normalized.secondary_metric.name == "SavedProfit"
+    assert normalized.filters is not None
+    assert normalized.filters[0].column == "Status"
+    assert normalized.temporal_column == "EventTime"
+
+    form_data = map_config_to_form_data(normalized)
+    query = build_query_context_from_form_data(
+        form_data,
+        {"id": 7, "type": "table"},
+        viz_type="sunburst_v2",
+    )["queries"][0]
+    assert query["columns"] == ["Region"]
+    assert form_data["metric"]["column"] == {"column_name": "Sales"}
+    assert form_data["secondary_metric"] == "SavedProfit"
+    assert query["orderby"] == [[form_data["metric"], False]]
+    assert query["granularity"] == "EventTime"
+    assert query["extras"]["time_grain_sqla"] == "P1D"
+    assert form_data["adhoc_filters"][0]["subject"] == "Status"
+
+
+def test_native_cross_namespace_references_use_the_same_role_precedence() -> None:
+    """Saved/native form data canonicalizes physical and metric roles apart."""
+    context = DatasetContext(
+        id=7,
+        table_name="sales",
+        schema=None,
+        database_name="main",
+        available_columns=[
+            {"name": "Region", "type": "VARCHAR"},
+            {"name": "Sales", "type": "DOUBLE", "is_numeric": True},
+            {"name": "Status", "type": "VARCHAR"},
+            {"name": "EventTime", "type": "TIMESTAMP", "is_temporal": True},
+            {"name": "savedprofit", "type": "DOUBLE", "is_numeric": True},
+        ],
+        available_metrics=[
+            {"name": "region", "expression": "COUNT(*)"},
+            {"name": "sales", "expression": "SUM(sales)"},
+            {"name": "status", "expression": "COUNT(*)"},
+            {"name": "eventtime", "expression": "MAX(event_time)"},
+            {"name": "SavedProfit", "expression": "SUM(profit)"},
+        ],
+    )
+    form_data = {
+        "viz_type": "sunburst_v2",
+        "columns": ["region"],
+        "metric": {
+            "expressionType": "SIMPLE",
+            "aggregate": "SUM",
+            "column": {"column_name": "sales"},
+            "label": "Revenue",
+        },
+        "secondary_metric": "savedprofit",
+        "adhoc_filters": [
+            {
+                "clause": "WHERE",
+                "expressionType": "SIMPLE",
+                "subject": "status",
+                "operator": "==",
+                "comparator": "active",
+            }
+        ],
+        "granularity_sqla": "eventtime",
+        "time_grain_sqla": "P1D",
+        "sort_by_metric": True,
+    }
+
+    normalized = normalize_sunburst_form_data_references(form_data, context)
+    assert normalized["columns"] == ["Region"]
+    assert normalized["metric"]["column"]["column_name"] == "Sales"
+    assert normalized["secondary_metric"] == "SavedProfit"
+    assert normalized["adhoc_filters"][0]["subject"] == "Status"
+    assert normalized["granularity_sqla"] == "EventTime"
+
+    query = build_query_context_from_form_data(
+        normalized,
+        {"id": 7, "type": "table"},
+        viz_type="sunburst_v2",
+    )["queries"][0]
+    assert query["orderby"] == [[normalized["metric"], False]]
+    assert query["granularity"] == "EventTime"
+
+
 def test_exact_dataset_reference_wins_and_ambiguous_casefold_is_rejected() -> None:
     context = DatasetContext(
         id=7,
@@ -1470,6 +1606,207 @@ def test_temporal_pair_merges_atomically_for_cached_and_immediate_paths(
         assert state.get("time_grain_sqla") == expected_grain
 
 
+def test_orphan_grain_and_temporal_hierarchy_are_preserved_then_rejected() -> None:
+    """A temporal hierarchy is not the frontend's granularity subject."""
+    config = _config(
+        hierarchy=[{"name": "OrderDate"}],
+        metric={"name": "Sales", "aggregate": "SUM", "label": "Sales"},
+        time_grain="P1M",
+    )
+    form_data = map_config_to_form_data(config)
+    assert form_data["columns"] == ["OrderDate"]
+    assert form_data["time_grain_sqla"] == "P1M"
+    assert "granularity_sqla" not in form_data
+
+    tier_one = validate_and_compile(
+        config, form_data, _dataset(), run_compile_check=False
+    )
+    assert tier_one.success is False
+    assert tier_one.error_obj is not None
+    assert tier_one.error_obj.error_code == "INVALID_TEMPORAL_STATE"
+
+    # generate_chart calls _compile_chart directly after its request pipeline;
+    # the same final-form guard must run before a query command is constructed.
+    compiled = _compile_chart(form_data, 7)
+    assert compiled.success is False
+    assert compiled.tier == "validation"
+    assert compiled.error_obj is not None
+    assert compiled.error_obj.error_code == "INVALID_TEMPORAL_STATE"
+
+
+@pytest.mark.parametrize("source_viz", ["sunburst_v2", "pie"])
+def test_orphan_grain_survives_same_and_cross_viz_merge_for_validation(
+    source_viz: str,
+) -> None:
+    """Merge code must not erase an invalid final state before validation."""
+    existing = {
+        "viz_type": source_viz,
+        "time_grain_sqla": "P1M",
+    }
+    config = _config()
+    merged = merge_form_data_for_update(
+        existing, map_config_to_form_data(config), config
+    )
+    assert merged["time_grain_sqla"] == "P1M"
+    assert "granularity_sqla" not in merged
+
+    result = validate_and_compile(config, merged, _dataset(), run_compile_check=False)
+    assert result.success is False
+    assert result.error_obj is not None
+    assert result.error_obj.error_code == "INVALID_TEMPORAL_STATE"
+
+
+def test_setting_grain_while_clearing_subject_is_rejected_in_both_update_forms() -> (
+    None
+):
+    chart = Mock(
+        id=19,
+        datasource_id=7,
+        slice_name="Saved hierarchy",
+        params=json.dumps(
+            {
+                "viz_type": "sunburst_v2",
+                "columns": ["Region", "Country"],
+                "metric": "SavedSales",
+                "granularity_sqla": "OrderDate",
+                "time_grain_sqla": "P1M",
+            }
+        ),
+    )
+    config = _config(temporal_column=None, time_grain="P1W")
+    request = UpdateChartRequest(identifier=19, config=config)
+    payload = _build_update_payload(request, chart, parsed_config=config)
+    preview = _build_preview_form_data(request, chart, parsed_config=config)
+    assert isinstance(payload, dict)
+    assert isinstance(preview, dict)
+
+    for state in (json.loads(payload["params"]), preview):
+        assert state["time_grain_sqla"] == "P1W"
+        assert "granularity_sqla" not in state
+        result = validate_and_compile(
+            config, state, _dataset(), run_compile_check=False
+        )
+        assert result.success is False
+        assert result.error_obj is not None
+        assert result.error_obj.error_code == "INVALID_TEMPORAL_STATE"
+
+
+def test_cached_update_preview_rejects_orphan_grain_before_recaching() -> None:
+    config = _config(time_grain="P1Y")
+    request = UpdateChartPreviewRequest(
+        form_data_key="orphan-grain-key",
+        dataset_id=7,
+        config=config,
+        generate_preview=False,
+    )
+    dataset = _dataset()
+    generate_link = MagicMock(
+        return_value="http://localhost/explore/?form_data_key=unexpected"
+    )
+
+    with (
+        patch(
+            "superset.mcp_service.auth.get_user_from_request",
+            return_value=Mock(id=1, username="admin", roles=[], groups=[]),
+        ),
+        patch(
+            "superset.mcp_service.chart.tool.update_chart_preview._find_dataset",
+            return_value=dataset,
+        ),
+        patch(
+            "superset.mcp_service.chart.tool.update_chart_preview."
+            "_get_previous_form_data",
+            return_value={
+                "viz_type": "sunburst_v2",
+                "columns": ["Region", "Country"],
+                "metric": "SavedSales",
+            },
+        ),
+        patch(
+            "superset.mcp_service.chart.tool.update_chart_preview.has_dataset_access",
+            return_value=True,
+        ),
+        patch(
+            "superset.mcp_service.chart.tool.update_chart_preview."
+            "generate_explore_link",
+            generate_link,
+        ),
+    ):
+        result = update_chart_preview(request, ctx=MagicMock())
+
+    assert result["success"] is False
+    assert result["error"]["error_code"] == "INVALID_TEMPORAL_STATE"
+    generate_link.assert_not_called()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("generate_preview", [False, True])
+@pytest.mark.parametrize("source_viz", ["sunburst_v2", "pie"])
+async def test_saved_update_product_paths_reject_same_and_cross_viz_orphan_grain(
+    generate_preview: bool, source_viz: str
+) -> None:
+    dataset = _dataset()
+    source_params: dict[str, object] = {
+        "viz_type": source_viz,
+        "time_grain_sqla": "P1M",
+    }
+    if source_viz == "sunburst_v2":
+        source_params.update({"columns": ["Region", "Country"], "metric": "SavedSales"})
+    else:
+        source_params.update({"groupby": ["Region"], "metric": "SavedSales"})
+    chart = Mock(
+        id=19,
+        datasource_id=7,
+        datasource_type="table",
+        datasource=dataset,
+        slice_name="Saved chart",
+        viz_type=source_viz,
+        uuid="chart-uuid",
+        params=json.dumps(source_params),
+    )
+    request = UpdateChartRequest(
+        identifier=19,
+        config=_config(),
+        generate_preview=generate_preview,
+    )
+    context = MagicMock()
+    context.info = AsyncMock()
+    context.debug = AsyncMock()
+    context.warning = AsyncMock()
+    context.error = AsyncMock()
+    context.report_progress = AsyncMock()
+    update_command = MagicMock()
+    create_preview = MagicMock()
+
+    with (
+        patch(
+            "superset.mcp_service.auth.get_user_from_request",
+            return_value=Mock(id=1, username="admin", roles=[], groups=[]),
+        ),
+        patch(
+            "superset.mcp_service.chart.tool.update_chart.find_chart_by_identifier",
+            return_value=chart,
+        ),
+        patch(
+            "superset.mcp_service.auth.check_chart_data_access",
+            return_value=Mock(is_valid=True, error=None),
+        ),
+        patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=dataset),
+        patch("superset.commands.chart.update.UpdateChartCommand", update_command),
+        patch(
+            "superset.mcp_service.chart.tool.update_chart._create_preview_url",
+            create_preview,
+        ),
+    ):
+        result = await update_chart(request=request, ctx=context)
+
+    assert result.success is False
+    assert result.error is not None
+    assert result.error.error_code == "INVALID_TEMPORAL_STATE"
+    update_command.assert_not_called()
+    create_preview.assert_not_called()
+
+
 def test_update_chart_preview_product_path_preserves_cached_sunburst_state() -> None:
     config = _config(show_labels=False)
     request = UpdateChartPreviewRequest(
@@ -1712,6 +2049,57 @@ async def test_generate_chart_product_path_returns_sunburst_preview() -> None:
     assert result.form_data["viz_type"] == "sunburst_v2"
     assert result.form_data["columns"] == ["region", "country"]
     assert result.form_data_key == "sunburst-key"
+
+
+@pytest.mark.asyncio
+async def test_generate_chart_rejects_orphan_grain_before_caching_preview() -> None:
+    request = GenerateChartRequest(
+        dataset_id=7,
+        config=_config(time_grain="P1M"),
+        preview_formats=["url"],
+    )
+    context = MagicMock()
+    context.info = AsyncMock()
+    context.debug = AsyncMock()
+    context.warning = AsyncMock()
+    context.error = AsyncMock()
+    context.report_progress = AsyncMock()
+    validation_result = Mock(
+        is_valid=True,
+        request=request,
+        warnings={},
+        error=None,
+    )
+    generate_link = MagicMock(
+        return_value="http://localhost/explore/?form_data_key=unexpected"
+    )
+
+    with (
+        patch(
+            "superset.mcp_service.auth.get_user_from_request",
+            return_value=Mock(id=1, username="admin", roles=[], groups=[]),
+        ),
+        patch(
+            "superset.mcp_service.chart.validation.ValidationPipeline."
+            "validate_request_with_warnings",
+            return_value=validation_result,
+        ),
+        patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=_dataset()),
+        patch(
+            "superset.mcp_service.chart.tool.generate_chart.has_dataset_access",
+            return_value=True,
+        ),
+        patch(
+            "superset.mcp_service.chart.chart_utils.generate_explore_link",
+            generate_link,
+        ),
+    ):
+        result = await generate_chart(request, ctx=context)
+
+    assert result.success is False
+    assert result.error is not None
+    assert result.error.error_code == "INVALID_TEMPORAL_STATE"
+    generate_link.assert_not_called()
 
 
 @pytest.mark.asyncio

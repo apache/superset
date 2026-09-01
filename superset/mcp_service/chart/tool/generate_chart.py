@@ -598,19 +598,10 @@ async def generate_chart(  # noqa: C901
                 # form_data_key remains None but chart is still valid
         else:
             await ctx.report_progress(2, 5, "Generating temporary chart preview")
-            # Generate explore link with cached form_data for preview-only mode
-            from superset.mcp_service.chart.chart_utils import generate_explore_link
-
-            explore_url = generate_explore_link(
-                request.dataset_id, form_data, prefer_permalink=False
-            )
-            await ctx.debug("Generated explore link: explore_url=%s" % (explore_url,))
-
-            # Extract form_data_key from the explore URL
-            form_data_key = extract_form_data_key_from_url(explore_url)
-
-            # Compile check for preview-only mode
-            # Validate dataset existence and user access before running queries
+            # Validate the final form data before caching it. In particular, an
+            # orphan Sunburst time grain must remain visible to _compile_chart's
+            # final-state guard instead of being cached and silently ignored by
+            # the query builder.
             await ctx.report_progress(3, 5, "Running compile check (test query)")
             numeric_dataset_id: int | None = None
             from superset.daos.dataset import DatasetDAO
@@ -677,6 +668,19 @@ async def generate_chart(  # noqa: C901
                         }
                     )
                 response_warnings.extend(compile_result.warnings)
+
+            # Cache only a chart state that passed its compile/final-form-data
+            # checks. This ordering matches the saved-chart path, which also
+            # compiles before persisting anything.
+            from superset.mcp_service.chart.chart_utils import generate_explore_link
+
+            explore_url = generate_explore_link(
+                request.dataset_id, form_data, prefer_permalink=False
+            )
+            await ctx.debug("Generated explore link: explore_url=%s" % (explore_url,))
+
+            # Extract form_data_key from the explore URL
+            form_data_key = extract_form_data_key_from_url(explore_url)
 
         # Generate semantic analysis
         capabilities = analyze_chart_capabilities(chart_viz_type, config)

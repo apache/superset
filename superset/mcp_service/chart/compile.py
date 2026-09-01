@@ -120,6 +120,16 @@ def _compile_chart(  # noqa: C901
     Returns a :class:`CompileResult` with ``success=True`` when the
     query executes cleanly.
     """
+    temporal_state_error = _validate_sunburst_temporal_subject(form_data)
+    if temporal_state_error is not None:
+        return CompileResult(
+            success=False,
+            error=temporal_state_error.details or temporal_state_error.message,
+            error_code="CHART_VALIDATION_FAILED",
+            tier="validation",
+            error_obj=temporal_state_error,
+        )
+
     from superset.commands.chart.data.get_data_command import ChartDataCommand
     from superset.commands.chart.exceptions import (
         ChartDataCacheLoadError,
@@ -332,15 +342,15 @@ def _validate_adhoc_filter_columns(  # noqa: C901
     )
 
 
-def _validate_sunburst_temporal_state(
-    form_data: Dict[str, Any], dataset_context: DatasetContext
+def _validate_sunburst_temporal_subject(
+    form_data: Dict[str, Any],
 ) -> ChartGenerationError | None:
-    """Validate the final native temporal column/grain pair for Sunburst."""
+    """Reject a final Sunburst grain that has no explicit temporal subject."""
     if form_data.get("viz_type") != "sunburst_v2":
         return None
     grain = form_data.get("time_grain_sqla")
     temporal_column = form_data.get("granularity_sqla")
-    if grain and not temporal_column:
+    if grain is not None and not temporal_column:
         return ChartGenerationError(
             error_type="invalid_temporal_state",
             message="Sunburst time grain requires a temporal column",
@@ -354,6 +364,18 @@ def _validate_sunburst_temporal_state(
             ],
             error_code="INVALID_TEMPORAL_STATE",
         )
+    return None
+
+
+def _validate_sunburst_temporal_state(
+    form_data: Dict[str, Any], dataset_context: DatasetContext
+) -> ChartGenerationError | None:
+    """Validate the final native temporal column/grain pair for Sunburst."""
+    if error := _validate_sunburst_temporal_subject(form_data):
+        return error
+    if form_data.get("viz_type") != "sunburst_v2":
+        return None
+    temporal_column = form_data.get("granularity_sqla")
     if not temporal_column:
         return None
     if not isinstance(temporal_column, str):

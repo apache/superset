@@ -1349,9 +1349,10 @@ def merge_form_data_for_update(  # noqa: C901
         else:
             merged["time_grain_sqla"] = config.time_grain
 
-    # A grain without a subject is never a valid final Sunburst state.
-    if not merged.get("granularity_sqla"):
-        merged.pop("time_grain_sqla", None)
+    # Do not discard an orphan grain here. The final-form-data validator must
+    # see and reject it consistently across immediate, preview-first, and
+    # cached update paths instead of letting the query builder silently ignore
+    # a request that cannot be represented by the frontend contract.
     return merged
 
 

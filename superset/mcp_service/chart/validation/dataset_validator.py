@@ -556,23 +556,35 @@ class DatasetValidator:
             The canonical column name from the dataset, or the original name
             if no match is found.
         """
-        # This legacy helper is also used by chart plugins for metric-bearing
-        # fields, so retain its column-then-metric lookup contract. Callers that
-        # know a reference is a saved metric should use
-        # ``get_canonical_metric_name`` instead.
-        candidates = [
-            *dataset_context.available_columns,
-            *dataset_context.available_metrics,
-        ]
-        entry, folded_matches = resolve_exact_first_casefold(
-            column_name, candidates, metadata_entry_name
+        # Resolve each namespace independently. Combining columns and metrics
+        # into one exact-first pass lets an exact saved-metric spelling steal a
+        # physical role from a unique casefold column (for example physical
+        # ``Sales`` plus saved metric ``sales``). Physical roles must finish
+        # column resolution before the compatibility metric fallback begins.
+        column, folded_matches = DatasetValidator._resolve_metadata_entry(
+            column_name, dataset_context.available_columns
         )
-        if entry is not None:
-            return str(entry["name"])
+        if column is not None:
+            return str(column["name"])
         if folded_matches:
             raise ValueError(
                 f"Ambiguous column reference {column_name!r}; exact candidates: "
                 f"{', '.join(repr(name) for name in folded_matches)}"
+            )
+
+        # This helper predates explicit saved-metric roles, so retain its
+        # column-then-metric compatibility fallback only when no physical
+        # candidate exists. Callers with saved_metric=True must use the
+        # metric-only helper below.
+        metric, folded_matches = DatasetValidator._resolve_metadata_entry(
+            column_name, dataset_context.available_metrics
+        )
+        if metric is not None:
+            return str(metric["name"])
+        if folded_matches:
+            raise ValueError(
+                f"Ambiguous saved metric reference {column_name!r}; exact "
+                f"candidates: {', '.join(repr(name) for name in folded_matches)}"
             )
 
         # Return original if not found (validation should catch this case)
