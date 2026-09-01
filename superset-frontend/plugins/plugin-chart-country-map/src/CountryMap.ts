@@ -82,7 +82,7 @@ interface CountryMapProps {
     };
   };
   entity?: string;
-  formatters?: ColorFormatters[];
+  formatters?: ColorFormatters;
 }
 
 const maps: Record<string, GeoData> = {};
