@@ -1715,7 +1715,7 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         response["id"] = table.id
         response[API_RESULT_RES_KEY] = show_model_schema.dump(table, many=False)
 
-        # remove folders from resposne if `DATASET_FOLDERS` is disabled, so that it's
+        # remove folders from response if `DATASET_FOLDERS` is disabled, so that it's
         # possible to inspect if the feature is supported or not
         if (
             not is_feature_enabled("DATASET_FOLDERS")
