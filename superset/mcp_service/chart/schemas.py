@@ -2245,6 +2245,36 @@ class BulletChartConfig(BaseChartConfig):
         }
 
     @staticmethod
+    def _canonical_dimension_alias(value: Any, field_name: str) -> list[str]:
+        """Canonicalize semantic/native dimension aliases for conflict checks."""
+        if not isinstance(value, list):
+            raise ValueError(f"{field_name} must be an array")
+        canonical: list[str] = []
+        for index, item in enumerate(value):
+            name: str | None
+            if isinstance(item, str):
+                name = item
+            elif isinstance(item, ColumnRef):
+                name = item.name
+            elif isinstance(item, dict):
+                name = next(
+                    (
+                        item[key]
+                        for key in ("name", "column_name", "column")
+                        if isinstance(item.get(key), str)
+                    ),
+                    None,
+                )
+            else:
+                name = None
+            if not name:
+                raise ValueError(
+                    f"{field_name}[{index}] must identify a physical column"
+                )
+            canonical.append(name)
+        return canonical
+
+    @staticmethod
     def _adapt_native_order_by(value: Any) -> Any:  # noqa: C901
         if value is None:
             return []
@@ -2323,6 +2353,19 @@ class BulletChartConfig(BaseChartConfig):
         if not isinstance(raw, dict):
             return raw
         data = dict(raw)
+        if "dimensions" in data and "groupby" in data:
+            dimensions = cls._canonical_dimension_alias(
+                data["dimensions"], "dimensions"
+            )
+            groupby = cls._canonical_dimension_alias(data["groupby"], "groupby")
+            if dimensions != groupby:
+                raise ValueError(
+                    "Conflicting Bullet dimension aliases: 'dimensions' and "
+                    "native 'groupby' must identify the same physical columns in "
+                    "the same order; provide only one or make them equivalent"
+                )
+            # Avoid relying on AliasChoices precedence or JSON key order.
+            data.pop("groupby")
         if data.get("viz_type") == "bullet":
             data.setdefault("chart_type", "bullet")
             data.pop("viz_type", None)

@@ -2141,6 +2141,100 @@ async def test_unsaved_mixed_timeseries_returns_nonempty_secondary_query(
     ]
 
 
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "payload",
+    [
+        {"queries": []},
+        {"queries": [{}]},
+        {"queries": [{"data": None}]},
+        {"queries": [{"data": []}, {}]},
+    ],
+)
+async def test_unsaved_chart_data_rejects_malformed_query_envelopes(
+    monkeypatch: pytest.MonkeyPatch, payload: dict[str, Any]
+) -> None:
+    from unittest.mock import AsyncMock
+
+    chart_data_module = importlib.import_module(
+        "superset.mcp_service.chart.tool.get_chart_data"
+    )
+    get_data_command_module = importlib.import_module(
+        "superset.commands.chart.data.get_data_command"
+    )
+
+    class MalformedChartDataCommand:
+        def __init__(self, query_context: object) -> None:
+            self.query_context = query_context
+
+        def validate(self) -> None:
+            pass
+
+        def run(self) -> dict[str, Any]:
+            return payload
+
+    monkeypatch.setattr(
+        chart_data_module,
+        "build_query_context_from_form_data",
+        lambda *_args, **_kwargs: object(),
+    )
+    monkeypatch.setattr(
+        chart_data_module,
+        "event_logger",
+        SimpleNamespace(log_context=lambda **_kwargs: nullcontext()),
+    )
+    monkeypatch.setattr(
+        get_data_command_module, "ChartDataCommand", MalformedChartDataCommand
+    )
+
+    response = await _query_from_form_data(
+        {"datasource_id": 1, "datasource_type": "table"},
+        GetChartDataRequest(form_data_key="malformed"),
+        AsyncMock(),
+    )
+
+    assert isinstance(response, ChartError)
+    assert response.error_type == "MalformedQueryResult"
+
+
+@pytest.mark.asyncio
+async def test_unsaved_chart_data_accepts_valid_empty_dataset(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from unittest.mock import AsyncMock
+
+    chart_data_module = importlib.import_module(
+        "superset.mcp_service.chart.tool.get_chart_data"
+    )
+    get_data_command_module = importlib.import_module(
+        "superset.commands.chart.data.get_data_command"
+    )
+    command = MagicMock()
+    command.run.return_value = {"queries": [{"data": [], "colnames": []}]}
+    monkeypatch.setattr(
+        chart_data_module,
+        "build_query_context_from_form_data",
+        lambda *_args, **_kwargs: object(),
+    )
+    monkeypatch.setattr(
+        chart_data_module,
+        "event_logger",
+        SimpleNamespace(log_context=lambda **_kwargs: nullcontext()),
+    )
+    monkeypatch.setattr(
+        get_data_command_module, "ChartDataCommand", lambda _context: command
+    )
+
+    response = await _query_from_form_data(
+        {"datasource_id": 1, "datasource_type": "table"},
+        GetChartDataRequest(form_data_key="empty"),
+        AsyncMock(),
+    )
+
+    assert isinstance(response, ChartError)
+    assert response.error_type == "NoData"
+
+
 def _make_chart_data(**overrides: Any) -> ChartData:
     """Build a minimal valid ChartData for testing."""
     from superset.mcp_service.common.cache_schemas import CacheStatus

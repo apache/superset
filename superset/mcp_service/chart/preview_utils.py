@@ -450,19 +450,32 @@ def _bullet_string_tokens(value: Any) -> list[str]:
 
 def _validate_bullet_format(format_: Any, values: list[float]) -> str:
     """Reject a presentation format the backend cannot reproduce."""
-    from superset.utils.number_format import format_numeric
-
     if not isinstance(format_, str) or not format_:
         format_ = "SMART_NUMBER"
     try:
         for value in values:
-            format_numeric(format_, value)
+            _format_bullet_number(format_, value)
     except (TypeError, ValueError, OverflowError) as ex:
         raise BulletOutputError(
             f"Bullet number format {format_!r} is unsupported by previews",
             error_type="UnsupportedFormat",
         ) from ex
     return format_
+
+
+def _format_bullet_number(format_: str, value: float) -> str:
+    """Format finite Bullet values, including the full binary-float range."""
+    from superset.utils.number_format import format_numeric
+
+    try:
+        return format_numeric(format_, value)
+    except OverflowError:
+        # SMART_NUMBER's significant-digit rounding can overflow a finite float
+        # near DBL_MAX. Scientific repr remains deterministic and informative.
+        if format_ in {"SMART_NUMBER", "SMART_NUMBER_SIGNED"} and math.isfinite(value):
+            prefix = "+" if format_ == "SMART_NUMBER_SIGNED" and value > 0 else ""
+            return prefix + repr(value)
+        raise
 
 
 def resolve_bullet_render_model(  # noqa: C901
@@ -560,8 +573,6 @@ def _generate_ascii_bullet_chart(
     data: List[Dict[str, Any]], form_data: Dict[str, Any]
 ) -> str:
     """Generate a horizontal Bullet preview from the shared strict model."""
-    from superset.utils.number_format import format_numeric
-
     model = resolve_bullet_render_model(data, form_data)
     extent = (
         max(
@@ -576,13 +587,13 @@ def _generate_ascii_bullet_chart(
         category = category or "Measure"
         width = round(abs(value) / extent * 32)
         bar = "█" * width
-        formatted = format_numeric(model.y_axis_format, value)
+        formatted = _format_bullet_number(model.y_axis_format, value)
         lines.append(f"{category[:20]:>20} |{bar:<32} {formatted}")
 
     def labeled(values: list[float], labels: list[str], prefix: str) -> list[str]:
         return [
             f"{labels[index] if index < len(labels) and labels[index] else prefix}: "
-            f"{format_numeric(model.y_axis_format, value)}"
+            f"{_format_bullet_number(model.y_axis_format, value)}"
             for index, value in enumerate(values)
         ]
 
@@ -804,7 +815,6 @@ def _generate_bullet_vega_lite_preview(  # noqa: C901
 ) -> VegaLitePreview:
     """Build a horizontal layered preview from the shared strict model."""
     from superset.utils import json as utils_json
-    from superset.utils.number_format import format_numeric
 
     model = resolve_bullet_render_model(data, form_data)
 
@@ -855,7 +865,7 @@ def _generate_bullet_vega_lite_preview(  # noqa: C901
     def label_at(labels: list[str], index: int, value: float, prefix: str) -> str:
         if index < len(labels) and labels[index]:
             return labels[index]
-        return f"{prefix} {format_numeric(model.y_axis_format, value)}"
+        return f"{prefix} {_format_bullet_number(model.y_axis_format, value)}"
 
     def legend_color(name: str) -> dict[str, Any]:
         return {
@@ -888,12 +898,15 @@ def _generate_bullet_vega_lite_preview(  # noqa: C901
                     "x2": {"datum": threshold},
                     "y": y_encoding,
                     "color": legend_color(
-                        f"{label}: ≤ {format_numeric(model.y_axis_format, threshold)}"
+                        f"{label}: ≤ "
+                        f"{_format_bullet_number(model.y_axis_format, threshold)}"
                     ),
                     "tooltip": [
                         {"value": label, "title": "Range"},
                         {
-                            "value": format_numeric(model.y_axis_format, threshold),
+                            "value": _format_bullet_number(
+                                model.y_axis_format, threshold
+                            ),
                             "title": "Threshold",
                         },
                     ],
@@ -942,12 +955,12 @@ def _generate_bullet_vega_lite_preview(  # noqa: C901
                     "x": {"datum": marker, "type": "quantitative"},
                     "y": y_encoding,
                     "color": legend_color(
-                        f"{label}: {format_numeric(model.y_axis_format, marker)}"
+                        f"{label}: {_format_bullet_number(model.y_axis_format, marker)}"
                     ),
                     "tooltip": [
                         {"value": label, "title": "Marker"},
                         {
-                            "value": format_numeric(model.y_axis_format, marker),
+                            "value": _format_bullet_number(model.y_axis_format, marker),
                             "title": "Value",
                         },
                     ],
@@ -973,12 +986,15 @@ def _generate_bullet_vega_lite_preview(  # noqa: C901
                 "encoding": {
                     "x": {"datum": marker_line, "type": "quantitative"},
                     "color": legend_color(
-                        f"{label}: {format_numeric(model.y_axis_format, marker_line)}"
+                        f"{label}: "
+                        f"{_format_bullet_number(model.y_axis_format, marker_line)}"
                     ),
                     "tooltip": [
                         {"value": label, "title": "Marker line"},
                         {
-                            "value": format_numeric(model.y_axis_format, marker_line),
+                            "value": _format_bullet_number(
+                                model.y_axis_format, marker_line
+                            ),
                             "title": "Value",
                         },
                     ],

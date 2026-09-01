@@ -45,6 +45,7 @@ from superset.mcp_service.chart.chart_helpers import (
     merge_extra_form_data_filters_into_query,
 )
 from superset.mcp_service.chart.chart_utils import validate_chart_dataset
+from superset.mcp_service.chart.query_result import query_result_data
 from superset.mcp_service.chart.schemas import (
     ChartData,
     ChartError,
@@ -762,27 +763,15 @@ async def get_chart_data(  # noqa: C901
                     error_type="ValidationError",
                 )
 
-            # Handle empty query results for certain chart types
-            if not result or ("queries" not in result) or len(result["queries"]) == 0:
-                await ctx.warning(
-                    "Empty query results: chart_id=%s, chart_type=%s"
-                    % (chart.id, chart.viz_type)
-                )
-                logger.warning(
-                    "get_chart_data: empty query results for chart_id=%s, "
-                    "chart_type=%s",
-                    chart.id,
-                    chart.viz_type,
-                )
-                return ChartError(
-                    error=f"No query results returned for chart {chart.id}. "
-                    f"This may occur with chart types like big_number.",
-                    error_type="EmptyQuery",
-                )
+            queries_data, query_failure = query_result_data(result)
+            if query_failure is not None:
+                return query_failure
 
-            # Extract data from result (we've already validated it exists above)
-            query_result = result["queries"][0]
-            data = query_result.get("data", [])
+            # The shared validator guarantees a nonempty query list and a data
+            # array on every query before any consumer reads query metadata.
+            query_results = result["queries"]
+            query_result = query_results[0]
+            data = queries_data[0] if queries_data is not None else []
             raw_columns = query_result.get("colnames", [])
 
             await ctx.debug(
@@ -796,7 +785,7 @@ async def get_chart_data(  # noqa: C901
             )
 
             # Check if we have data to work with
-            if not any(query.get("data") for query in result["queries"]):
+            if not any(queries_data or []):
                 await ctx.warning("No data in query results: chart_id=%s" % (chart.id,))
                 logger.warning(
                     "get_chart_data: no data in query results for chart_id=%s",
@@ -975,7 +964,7 @@ async def get_chart_data(  # noqa: C901
                 chart_type=chart.viz_type or "unknown",
                 columns=columns,
                 data=data[: request.limit] if request.limit else data,
-                query_results=_build_query_results(result["queries"], request.limit),
+                query_results=_build_query_results(query_results, request.limit),
                 row_count=len(data),
                 total_rows=query_result.get("rowcount"),
                 summary=summary,
@@ -1124,22 +1113,16 @@ async def _query_from_form_data(  # noqa: C901
                 error_type="ValidationError",
             )
 
-        if not result or "queries" not in result or len(result["queries"]) == 0:
-            logger.warning(
-                "get_chart_data: empty query results for unsaved chart "
-                "(form_data_key=%s)",
-                request.form_data_key,
-            )
-            return ChartError(
-                error="No query results returned for unsaved chart.",
-                error_type="EmptyQuery",
-            )
+        queries_data, query_failure = query_result_data(result)
+        if query_failure is not None:
+            return query_failure
 
-        query_result = result["queries"][0]
-        data = query_result.get("data", [])
+        query_results = result["queries"]
+        query_result = query_results[0]
+        data = queries_data[0] if queries_data is not None else []
         raw_columns = query_result.get("colnames", [])
 
-        if not any(query.get("data") for query in result["queries"]):
+        if not any(queries_data or []):
             logger.warning(
                 "get_chart_data: no data for unsaved chart (form_data_key=%s)",
                 request.form_data_key,
@@ -1187,7 +1170,7 @@ async def _query_from_form_data(  # noqa: C901
             chart_type=viz_type,
             columns=columns,
             data=data[: request.limit] if request.limit else data,
-            query_results=_build_query_results(result["queries"], request.limit),
+            query_results=_build_query_results(query_results, request.limit),
             row_count=len(data),
             total_rows=query_result.get("rowcount"),
             summary=summary,

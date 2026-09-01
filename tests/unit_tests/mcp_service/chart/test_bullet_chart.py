@@ -133,6 +133,66 @@ def test_bullet_discriminated_union_uses_exact_tag() -> None:
         )
 
 
+def test_bullet_equal_dimension_aliases_are_order_independent_and_round_trip() -> None:
+    for payload in (
+        {
+            "dimensions": [{"name": "Region", "label": "Market"}, "Team"],
+            "groupby": ["Region", {"column_name": "Team"}],
+        },
+        {
+            "groupby": ["Region", {"column": "Team"}],
+            "dimensions": [{"name": "Region", "label": "Market"}, "Team"],
+        },
+    ):
+        config = BulletChartConfig.model_validate(
+            {"metric": _simple_metric(), **payload}
+        )
+        assert [dimension.name for dimension in config.dimensions or []] == [
+            "Region",
+            "Team",
+        ]
+        mapped = map_bullet_config(config)
+        assert mapped["groupby"] == ["Region", "Team"]
+        round_trip = BulletChartConfig.model_validate(mapped)
+        assert [dimension.name for dimension in round_trip.dimensions or []] == [
+            "Region",
+            "Team",
+        ]
+
+
+@pytest.mark.parametrize(
+    "request_payload",
+    [
+        {"dataset_id": 7},
+        {"identifier": 9},
+        {"dataset_id": 7, "form_data_key": "preview"},
+    ],
+)
+@pytest.mark.parametrize("reverse", [False, True])
+def test_bullet_request_models_reject_conflicting_dimension_aliases(
+    request_payload: dict[str, object], reverse: bool
+) -> None:
+    aliases = [
+        ("dimensions", [{"name": "Region"}, {"name": "Team"}]),
+        ("groupby", ["Team", "Region"]),
+    ]
+    if reverse:
+        aliases.reverse()
+    config = {"chart_type": "bullet", "metric": _simple_metric(), **dict(aliases)}
+    payload = {**request_payload, "config": config}
+    request_type = (
+        UpdateChartRequest
+        if "identifier" in request_payload
+        else (
+            UpdateChartPreviewRequest
+            if "form_data_key" in request_payload
+            else GenerateChartRequest
+        )
+    )
+    with pytest.raises(ValidationError, match="Conflicting Bullet dimension aliases"):
+        request_type.model_validate(payload)
+
+
 @pytest.mark.parametrize(
     "metric",
     [
@@ -194,6 +254,53 @@ def test_bullet_native_form_data_round_trip_is_semantically_stable() -> None:
     assert mapped["orderby"][0] == ["Region", True]
     assert mapped["orderby"][1][0]["label"] == "Total Revenue"
     assert mapped["adhoc_filters"][0]["subject"] == "Status"
+
+
+def test_bullet_presentation_numbers_use_shortest_round_trip_safe_tokens() -> None:
+    ranges = [1.2345678901234567, 1.7976931348623157e308]
+    markers = [5e-324, -0.0]
+    marker_lines = [9.876543210987654e-200]
+    config = BulletChartConfig(
+        metric=_simple_metric(),
+        ranges=ranges,
+        markers=markers,
+        marker_lines=marker_lines,
+        show_legend=True,
+    )
+    mapped = map_bullet_config(config)
+
+    for key, expected in (
+        ("ranges", ranges),
+        ("markers", markers),
+        ("marker_lines", marker_lines),
+    ):
+        tokens = mapped[key].split(",")
+        assert [float(token) for token in tokens] == expected
+        assert all(
+            float(token).hex() == value.hex()
+            for token, value in zip(tokens, expected, strict=True)
+        )
+
+    round_trip = BulletChartConfig.model_validate(mapped)
+    assert round_trip.ranges == ranges
+    assert round_trip.markers == markers
+    assert round_trip.marker_lines == marker_lines
+
+    model = resolve_bullet_render_model(
+        [{"SUM(revenue)": 1.0}],
+        mapped,
+    )
+    assert model.ranges == ranges
+    assert model.markers == markers
+    assert model.marker_lines == marker_lines
+    assert (
+        "1.7976931348623157e+308"
+        in _generate_ascii_preview_from_data(
+            [{"SUM(revenue)": 1.0}], mapped
+        ).ascii_content
+    )
+    vega = _generate_vega_lite_preview_from_data([{"SUM(revenue)": 1.0}], mapped)
+    assert vega.specification["layer"]
 
 
 def test_bullet_native_saved_metric_and_legacy_metric_aliases() -> None:
@@ -747,7 +854,9 @@ _MALFORMED_QUERY_ENVELOPES: list[object] = [
     [],
     {},
     {"queries": None},
+    {"queries": []},
     {"queries": [None]},
+    {"queries": [{}]},
     {"queries": [{"data": None}]},
     {"queries": [{"data": []}, {"data": "not-an-array"}]},
 ]
@@ -1336,6 +1445,74 @@ def _saved_bullet_with_opaque_filters() -> dict[str, object]:
     }
 
 
+@pytest.mark.parametrize("binding_index", [0, 1, 2, None])
+@pytest.mark.parametrize("preview_first", [False, True])
+def test_bullet_omitted_filters_preserve_exact_native_sequence_at_every_position(
+    binding_index: int | None, preview_first: bool
+) -> None:
+    opaque = _saved_bullet_with_opaque_filters()
+    raw_filters = opaque["adhoc_filters"]
+    assert isinstance(raw_filters, list)
+    filters = list(raw_filters)
+    binding = filters.pop()
+    if binding_index is not None:
+        filters.insert(binding_index, binding)
+    existing = {**opaque, "adhoc_filters": filters}
+    if binding_index is None:
+        existing.pop(MCP_DASHBOARD_TIME_FILTER_SUBJECT)
+    chart = SimpleNamespace(
+        id=9,
+        datasource_id=7,
+        slice_name="Saved Bullet",
+        params=__import__("json").dumps(existing),
+    )
+    config = BulletChartConfig(metric=_simple_metric("Revenue"))
+    request = UpdateChartRequest(identifier=9, config=config)
+    with patch(
+        "superset.mcp_service.chart.chart_utils._find_dataset_by_id_or_uuid",
+        return_value=_orm_dataset(),
+    ):
+        if preview_first:
+            merged = _build_preview_form_data(request, chart, config)
+            assert isinstance(merged, dict)
+        else:
+            payload = _build_update_payload(request, chart, config)
+            assert isinstance(payload, dict)
+            merged = __import__("json").loads(payload["params"])
+
+    assert merged["adhoc_filters"] == filters
+
+    cached = map_config_to_form_data(config, dataset_id=7)
+    merge_update_form_data(existing, cached, config)
+    assert cached["adhoc_filters"] == filters
+
+
+def test_bullet_temporal_binding_override_replaces_in_place() -> None:
+    existing = _saved_bullet_with_opaque_filters()
+    raw_filters = existing["adhoc_filters"]
+    assert isinstance(raw_filters, list)
+    filters = list(raw_filters)
+    binding = filters.pop()
+    filters.insert(1, binding)
+    existing["adhoc_filters"] = filters
+    config = BulletChartConfig(
+        metric=_simple_metric(),
+        temporal_column="EventDate",
+        time_range="Last 30 days",
+    )
+    with patch(
+        "superset.mcp_service.chart.chart_utils._is_temporal_for_dashboard_binding",
+        return_value=True,
+    ):
+        mapped = map_config_to_form_data(config, dataset_id=7)
+    merge_update_form_data(existing, mapped, config)
+
+    assert mapped["adhoc_filters"][0] == filters[0]
+    assert mapped["adhoc_filters"][2] == filters[2]
+    assert mapped["adhoc_filters"][1]["subject"] == "EventDate"
+    assert mapped["adhoc_filters"][1]["comparator"] == "Last 30 days"
+
+
 @pytest.mark.parametrize("preview_first", [False, True])
 def test_bullet_update_paths_preserve_opaque_filters_byte_for_byte(
     preview_first: bool,
@@ -1376,16 +1553,13 @@ def test_bullet_filter_provenance_keeps_strict_replacement_validation() -> None:
     config = BulletChartConfig(metric=_simple_metric(), filters=[])
     mapped = map_bullet_config(config)
     merge_update_form_data(existing, mapped, config)
-    assert mapped["adhoc_filters"][-1]["subject"] == "OrderDate"
-    assert all(
-        filter_.get("expressionType") != "SQL" for filter_ in mapped["adhoc_filters"]
-    )
+    assert mapped["adhoc_filters"] == []
 
     # A native SQL filter cannot masquerade as an explicitly supplied typed
     # replacement: only omitted, provenance-preserved filters get that path.
     existing_filters = existing["adhoc_filters"]
     assert isinstance(existing_filters, list)
-    mapped["adhoc_filters"].append(existing_filters[0])
+    mapped["adhoc_filters"] = [existing_filters[0]]
     with pytest.raises(ValidationError, match="expressionType='SIMPLE'"):
         validate_merged_bullet_form_data(mapped, config)
 
@@ -1428,7 +1602,7 @@ def test_bullet_saved_update_paths_preserve_omitted_user_filters_with_binding(
 @pytest.mark.parametrize(
     ("filters", "expected_subjects"),
     [
-        ([], ["OrderDate"]),
+        ([], []),
         (
             [{"column": "Status", "op": "=", "value": "Inactive"}],
             ["Status", "OrderDate"],

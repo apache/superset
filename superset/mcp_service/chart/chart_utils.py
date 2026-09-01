@@ -24,6 +24,7 @@ generation that can be used by both generate_chart and generate_explore_link too
 
 import hashlib
 import logging
+import math
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any, Dict, TYPE_CHECKING
@@ -1067,11 +1068,22 @@ def map_histogram_config(config: "HistogramChartConfig") -> Dict[str, Any]:
     return form_data
 
 
-def _bullet_token_list(values: Sequence[str | float]) -> str:
+def _bullet_token_list(values: Sequence[str | int | float]) -> str:
     """Serialize typed Bullet controls to the frontend's comma-separated form."""
-    return ",".join(
-        format(value, "g") if isinstance(value, float) else value for value in values
-    )
+    tokens: list[str] = []
+    for value in values:
+        if isinstance(value, float):
+            token = repr(value)
+            # ``100`` parses back to the same binary float as ``100.0`` and
+            # preserves the frontend's established compact integer spelling.
+            if token.endswith(".0") and not (
+                value == 0.0 and math.copysign(1.0, value) < 0
+            ):
+                token = token[:-2]
+            tokens.append(token)
+        else:
+            tokens.append(str(value))
+    return ",".join(tokens)
 
 
 def map_bullet_config(config: BulletChartConfig) -> Dict[str, Any]:  # noqa: C901
@@ -1254,7 +1266,7 @@ def _append_or_replace_filter(filters: list[Any], filter_: Any) -> None:
     filters.append(filter_)
 
 
-def merge_update_form_data(
+def merge_update_form_data(  # noqa: C901
     existing_form_data: Mapping[str, Any],
     new_form_data: Dict[str, Any],
     config: ChartConfig,
@@ -1274,9 +1286,6 @@ def merge_update_form_data(
     existing_binding = _temporal_binding_filter(existing_filters, existing_subject)
     incoming_binding = _temporal_binding_filter(incoming_filters, incoming_subject)
 
-    existing_user_filters = [
-        filter_ for filter_ in existing_filters if filter_ is not existing_binding
-    ]
     incoming_user_filters = [
         filter_ for filter_ in incoming_filters if filter_ is not incoming_binding
     ]
@@ -1286,36 +1295,45 @@ def merge_update_form_data(
         {"time_range", "temporal_column"}.intersection(explicit_fields)
     )
 
-    merged_filters: list[Any] = []
+    chosen_binding: dict[str, Any] | None = None
+    chosen_subject: Any = None
     if not filters_explicit:
-        merged_filters.extend(existing_user_filters)
-    for filter_ in incoming_user_filters:
-        _append_or_replace_filter(merged_filters, filter_)
-
-    chosen_binding: dict[str, Any] | None
-    chosen_subject: Any
-    if existing_binding is not None and not temporal_explicit:
+        # Omission is byte-faithful: keep the native sequence in its exact order,
+        # including SQL/HAVING objects and a provenance-owned binding at any index.
+        merged_filters = list(existing_filters)
         chosen_binding = existing_binding
         chosen_subject = existing_subject
+        if temporal_explicit:
+            chosen_binding = incoming_binding
+            chosen_subject = incoming_subject
+            if existing_binding is not None:
+                binding_index = next(
+                    index
+                    for index, filter_ in enumerate(merged_filters)
+                    if filter_ is existing_binding
+                )
+                if incoming_binding is None:
+                    merged_filters.pop(binding_index)
+                else:
+                    # A temporal override changes infrastructure in place instead
+                    # of moving it past surrounding native filters.
+                    merged_filters[binding_index] = incoming_binding
+            elif incoming_binding is not None:
+                merged_filters.append(incoming_binding)
     else:
-        chosen_binding = incoming_binding
-        chosen_subject = incoming_subject
-    if (
-        chosen_binding is not None
-        and not temporal_explicit
-        and not filters_explicit
-        and _filter_identity(chosen_binding) is not None
-        and any(
-            _filter_identity(filter_) == _filter_identity(chosen_binding)
-            for filter_ in existing_user_filters
-        )
-    ):
-        # Without an existing provenance marker, the saved temporal filter is
-        # user-authored. Keep it instead of replacing it with a neutral binding.
-        chosen_binding = None
-        chosen_subject = None
-    if chosen_binding is not None:
-        _append_or_replace_filter(merged_filters, chosen_binding)
+        # An explicit filter array replaces the saved native sequence. The mapper
+        # deliberately emits [] for an explicit clear; otherwise retain its
+        # generated temporal binding after the replacement filters.
+        merged_filters = list(incoming_user_filters)
+        if incoming_user_filters or temporal_explicit:
+            if incoming_binding is not None or temporal_explicit:
+                chosen_binding = incoming_binding
+                chosen_subject = incoming_subject
+            else:
+                chosen_binding = existing_binding
+                chosen_subject = existing_subject
+            if chosen_binding is not None:
+                _append_or_replace_filter(merged_filters, chosen_binding)
 
     # Always materialize the authoritative filter list when filters were
     # explicit or either side carried filters. This lets [] clear saved state.
