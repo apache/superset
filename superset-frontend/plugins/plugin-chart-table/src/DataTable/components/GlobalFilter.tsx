@@ -20,6 +20,7 @@ import {
   memo,
   ComponentType,
   ChangeEventHandler,
+  CompositionEventHandler,
   useRef,
   useEffect,
   Ref,
@@ -34,6 +35,8 @@ export interface SearchInputProps {
   value: string;
   onChange: ChangeEventHandler<HTMLInputElement>;
   onBlur?: () => void;
+  onCompositionStart?: CompositionEventHandler<HTMLInputElement>;
+  onCompositionEnd?: CompositionEventHandler<HTMLInputElement>;
   inputRef?: Ref<InputRef>;
 }
 
@@ -56,6 +59,8 @@ function DefaultSearchInput({
   value,
   onChange,
   onBlur,
+  onCompositionStart,
+  onCompositionEnd,
   inputRef,
 }: SearchInputProps) {
   return (
@@ -68,6 +73,8 @@ function DefaultSearchInput({
         value={value}
         onChange={onChange}
         onBlur={onBlur}
+        onCompositionStart={onCompositionStart}
+        onCompositionEnd={onCompositionEnd}
         className="form-control input-sm"
       />
     </Space>
@@ -87,10 +94,14 @@ export default (memo as <T>(fn: T) => T)(function GlobalFilter<
 }: GlobalFilterProps<D>) {
   const count = serverPagination ? rowCount : preGlobalFilteredRows.length;
   const inputRef = useRef<InputRef>(null);
+  const isComposingRef = useRef(false);
 
   const [value, setValue] = useAsyncState(
     filterValue,
     (newValue: string) => {
+      if (isComposingRef.current) {
+        return;
+      }
       setGlobalFilter(newValue || undefined);
     },
     200,
@@ -118,6 +129,17 @@ export default (memo as <T>(fn: T) => T)(function GlobalFilter<
     isSearchFocused.set(id, false);
   };
 
+  const handleCompositionStart = () => {
+    isComposingRef.current = true;
+  };
+
+  const handleCompositionEnd = (
+    e: React.CompositionEvent<HTMLInputElement>,
+  ) => {
+    isComposingRef.current = false;
+    setValue(e.currentTarget.value);
+  };
+
   const SearchInput = searchInput || DefaultSearchInput;
 
   return (
@@ -127,6 +149,8 @@ export default (memo as <T>(fn: T) => T)(function GlobalFilter<
       inputRef={inputRef}
       onChange={handleChange}
       onBlur={handleBlur}
+      onCompositionStart={handleCompositionStart}
+      onCompositionEnd={handleCompositionEnd}
     />
   );
 });
