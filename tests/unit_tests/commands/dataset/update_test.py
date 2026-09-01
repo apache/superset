@@ -95,6 +95,7 @@ def test_update_dataset_sql_authorized_schema(mocker: MockerFixture) -> None:
     mock_dataset.schema = "public"
     mock_dataset.table_name = "test_table"
     mock_dataset.editors = []  # No editors to avoid computation issues
+    mock_dataset.partition_column = None  # No partition filter mapping
 
     mock_dataset_dao.find_by_id.return_value = mock_dataset
     mock_dataset_dao.get_database_by_id.return_value = mock_database
@@ -140,6 +141,7 @@ def test_update_dataset_sql_unauthorized_schema(mocker: MockerFixture) -> None:
     mock_dataset.schema = "public"
     mock_dataset.table_name = "test_table"
     mock_dataset.editors = []  # No editors to avoid computation issues
+    mock_dataset.partition_column = None  # No partition filter mapping
 
     mock_dataset_dao.find_by_id.return_value = mock_dataset
     mock_dataset_dao.get_database_by_id.return_value = mock_database
@@ -203,6 +205,7 @@ def test_update_dataset_database_id_change_checks_new_database_access(
     mock_dataset.schema = "public"
     mock_dataset.table_name = "test_table"
     mock_dataset.editors = []  # No editors to avoid computation issues
+    mock_dataset.partition_column = None  # No partition filter mapping
 
     mock_dataset_dao.find_by_id.return_value = mock_dataset
     mock_dataset_dao.get_database_by_id.return_value = mock_new_database
@@ -259,6 +262,7 @@ def test_update_dataset_database_id_change_allowed_with_access(
     mock_dataset.schema = "public"
     mock_dataset.table_name = "test_table"
     mock_dataset.editors = []  # No editors to avoid computation issues
+    mock_dataset.partition_column = None  # No partition filter mapping
 
     mock_dataset_dao.find_by_id.return_value = mock_dataset
     mock_dataset_dao.get_database_by_id.return_value = mock_new_database
@@ -308,6 +312,7 @@ def test_update_dataset_physical_repoint_requires_table_access(
     mock_dataset.table_name = "allowed_table"
     mock_dataset.sql = None  # physical dataset
     mock_dataset.editors = []
+    mock_dataset.partition_column = None
 
     mock_dataset_dao.find_by_id.return_value = mock_dataset
     mock_dataset_dao.validate_update_uniqueness.return_value = True
@@ -501,6 +506,7 @@ def test_update_dataset_rejects_malicious_expression(
     mock_dataset.database = mock_database
     mock_dataset.catalog = "catalog"
     mock_dataset.schema = None
+    mock_dataset.partition_column = None  # No partition filter mapping
     mock_dataset_dao.find_by_id.return_value = mock_dataset
     mock_dataset_dao.get_database_by_id.return_value = mock_database
     mock_dataset_dao.validate_update_uniqueness.return_value = True
@@ -550,6 +556,7 @@ def test_update_dataset_accepts_benign_expression(mocker: MockerFixture) -> None
     mock_dataset.database = mock_database
     mock_dataset.catalog = "catalog"
     mock_dataset.schema = None
+    mock_dataset.partition_column = None  # No partition filter mapping
     mock_dataset_dao.find_by_id.return_value = mock_dataset
     mock_dataset_dao.get_database_by_id.return_value = mock_database
     mock_dataset_dao.validate_update_uniqueness.return_value = True
@@ -591,6 +598,7 @@ def test_update_dataset_accepts_jinja_expression(mocker: MockerFixture) -> None:
     mock_dataset.database = mock_database
     mock_dataset.catalog = "catalog"
     mock_dataset.schema = None
+    mock_dataset.partition_column = None  # No partition filter mapping
     mock_dataset_dao.find_by_id.return_value = mock_dataset
     mock_dataset_dao.get_database_by_id.return_value = mock_database
     mock_dataset_dao.validate_update_uniqueness.return_value = True
@@ -1352,6 +1360,7 @@ def test_update_dataset_rejects_malicious_fetch_values_predicate(
     mock_dataset.database = mock_database
     mock_dataset.catalog = "catalog"
     mock_dataset.schema = None
+    mock_dataset.partition_column = None  # No partition filter mapping
     mock_dataset_dao.find_by_id.return_value = mock_dataset
     mock_dataset_dao.get_database_by_id.return_value = mock_database
     mock_dataset_dao.validate_update_uniqueness.return_value = True
