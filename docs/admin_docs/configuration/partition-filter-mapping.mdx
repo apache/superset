@@ -1,0 +1,161 @@
+---
+title: Partition Filter Mapping
+hide_title: true
+sidebar_position: 15
+version: 1
+---
+
+<!--
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+-->
+
+# Partition Filter Mapping
+
+Tables on Hadoop-family engines are often partitioned on a *technical* column — an epoch
+integer, a lowercased region key — that no analyst would ever filter on. Unless a query
+carries a predicate on that column, the engine scans every partition.
+
+Partition filter mapping makes this a dataset setting instead of a per-chart chore. A
+dataset owner names the partition column, the business column whose filters should be
+mirrored onto it, and a value transform. Superset then appends an equivalent predicate on
+the partition column to every query. Chart authors change nothing; queries prune.
+
+:::caution Experimental
+This feature is behind the `PARTITION_FILTER_MAPPING` feature flag and is off by default.
+:::
+
+## Enabling it
+
+```python
+FEATURE_FLAGS = {
+    "PARTITION_FILTER_MAPPING": True,
+}
+```
+
+Configure it as a **static boolean**. `FEATURE_FLAGS` also accepts per-request callables,
+but a flag that resolves differently per user or tenant would let a user with the feature
+off read a cached chart result that was produced from pruned SQL by a user with it on.
+
+## Configuring a mapping
+
+In the dataset editor's **Settings** tab, pick a **Partition column**. By default the
+mapping follows the dataset's default datetime column, so re-pointing that column moves the
+mapping with it; set an explicit override if you want it pinned to a different column.
+
+On the mapped column's row, set the **value transform**: a SQL expression containing a
+`:value` placeholder, which stands for the filter value being mirrored.
+
+| Mapped column | Partition column | Transform |
+|---|---|---|
+| `event_time` (`TIMESTAMP`) | `dt_epoch` (`BIGINT`) | `unix_timestamp(:value)` |
+| `country` (`VARCHAR`) | `region_key` (`VARCHAR`) | `lower(:value)` |
+
+A filter of `event_time >= '2026-01-01'` then adds `dt_epoch >= 1767225600` to the query.
+The added predicate is an ordinary `WHERE` clause and shows up in **View query**.
+
+### Transform preserves ordering
+
+Range filters — including the Explore time range, the most important case — are only
+mirrored when you check **Transform preserves ordering**.
+
+Monotonicity is a property of the *transform*, not of the column's data type.
+`unix_timestamp(:value)` preserves ordering. `hour(:value)`,
+`date_format(:value, 'dd')` and `dayofweek(:value)` are all perfectly reasonable
+partition transforms on a `TIMESTAMP` column and none of them do: `hour('2026-01-01 23:00')`
+is greater than `hour('2026-01-02 01:00')` even though the first instant is earlier. Mirroring
+a range through one of those would silently return wrong numbers, so Superset asks you to
+declare it rather than guessing.
+
+When the box is unchecked, `=` and `IN` filters still mirror; ranges do not.
+
+## What is and isn't mirrored
+
+| Filter | Mirrored |
+|---|---|
+| `=`, `IN` | Always |
+| `>`, `>=`, `<`, `<=`, time ranges | Only when the transform preserves ordering |
+| `!=`, `NOT IN`, `LIKE`, `ILIKE`, `IS NULL`, `IS TRUE` | Never |
+
+Negations are never safe. A transform need not be injective: `lower(:value)` with
+`country != 'US'` would mirror to `region_key != 'us'`, which excludes rows whose `country`
+is already lowercase `'us'` — rows the original filter *keeps*.
+
+Known gaps, all of which are out of scope rather than bugs:
+
+- **Filter-value dropdowns do not prune.** Populating a filter's value list runs its own
+  `SELECT DISTINCT`, which never goes through the chart query path. There is no filter to
+  mirror from.
+- **Row-level security predicates do not mirror.** They are stored as raw SQL and appended
+  downstream of the structured filters.
+- **Custom SQL `WHERE` clauses do not mirror**, for the same reason.
+- **Columns with an active advanced data type do not mirror.** Those build their own
+  predicate shape from translated values, so there is no operator/value pair to mirror.
+- Dashboard native filters and cross-filters *do* mirror — they arrive as ordinary filters —
+  they just carry no visual indicator in the filter bar.
+
+## The assumption this rests on
+
+Superset emits a predicate on the partition column that stands in for one on the mapped
+column. That substitution is only valid if, for every row in the table:
+
+```
+partition_column = <transform>(mapped_column)
+```
+
+**Superset cannot verify this.** It is a property of whatever ETL populates the partition
+column. If that job lags, backfills with different logic, or writes the partition key in a
+different timezone than the transform resolves, mirrored predicates silently drop real rows
+and charts show quietly wrong numbers. Confirm the invariant with whoever owns the pipeline
+before enabling a mapping on a production dataset.
+
+Related: a predicate like `dt_epoch >= X` also drops rows where `dt_epoch` is `NULL`.
+Partition keys in Hive and Impala are non-null by construction, so this is accepted rather
+than defended against.
+
+## How the transform is evaluated
+
+The transform is evaluated against the engine — pinned to the dataset's database, catalog
+and schema — and the result is emitted as a literal constant. Results are cached
+(`PARTITION_TRANSFORM_PROBE_CACHE_TIMEOUT`, 24 hours by default), which matters because this
+adds a round trip to the chart query path. Day-aligned ranges like "Last month" hit the cache
+constantly; second-granularity relative ranges like "Last 24 hours" essentially never do.
+
+If the evaluation fails for any reason, no predicate is added: the query still runs and is
+still correct, it just scans more partitions.
+
+Because the evaluation happens in a **different session** from the chart query, transforms
+that call non-deterministic functions are rejected when you save. That includes `now()`,
+`current_date`, `current_timestamp`, `rand()` and the zero-argument `unix_timestamp()`, which
+means "now" on Hive and Impala. The one-argument `unix_timestamp(:value)` is fine.
+
+Session-dependent behaviour that Superset cannot detect is still your responsibility:
+`unix_timestamp()` is timezone-dependent on Hive and Impala, so if the evaluating session and
+the query session resolve different timezones the emitted bounds will disagree with the
+timestamp bounds they mirror. Prefer explicitly-anchored transforms.
+
+Jinja templating is not supported in a transform. The template would render in a different
+context and at a different time from the chart query.
+
+## Related configuration
+
+| Setting | Default | Purpose |
+|---|---|---|
+| `PARTITION_TRANSFORM_PROBE_CACHE_TIMEOUT` | 24 hours | How long an evaluated transform stays cached |
+| `PARTITION_TRANSFORM_PREVIEW_RATE_LIMIT` | 30 | Per-user, per-dataset preview requests per minute; the editor's preview panel runs a real query |
+
+Mappings travel with the dataset in import/export.
