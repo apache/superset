@@ -29,6 +29,14 @@ const Wrapper = styled.div`
   flex-direction: column;
   height: 100%;
 
+  .ant-tabs {
+    height: 100%;
+  }
+
+  .ant-tabs-body {
+    height: 100%;
+  }
+
   .ant-tabs-content {
     display: flex;
     flex-direction: column;
