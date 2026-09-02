@@ -52,10 +52,28 @@ const DND_ACCEPTED_TYPES = [
   DndItemType.Folder,
 ];
 
+// Types that get a sensible default aggregation. MultiValue and unknown/
+// untyped columns are deliberately excluded.
+const COUNT_DISTINCT_ELIGIBLE_TYPES = [
+  GenericDataType.String,
+  GenericDataType.Boolean,
+  GenericDataType.Temporal,
+];
+
+export const isColumnSupportedForMetricAggregation = (
+  column: ColumnMeta,
+): boolean =>
+  column.type_generic === GenericDataType.Numeric ||
+  COUNT_DISTINCT_ELIGIBLE_TYPES.includes(
+    column.type_generic as GenericDataType,
+  );
+
 /**
  * Build an adhoc metric from a dropped column, picking a sensible default
  * aggregation from the column's data type: SUM for numeric columns,
- * COUNT_DISTINCT for string/boolean/temporal ones.
+ * COUNT_DISTINCT for string/boolean/temporal ones. Columns outside these
+ * explicit supported types (e.g. MultiValue, untyped) are left without a
+ * default aggregate.
  */
 export const createAdhocMetricFromColumn = (
   column: ColumnMeta,
@@ -66,7 +84,11 @@ export const createAdhocMetricFromColumn = (
   } as Partial<AdhocMetric>;
   if (column.type_generic === GenericDataType.Numeric) {
     config.aggregate = AGGREGATES.SUM;
-  } else {
+  } else if (
+    COUNT_DISTINCT_ELIGIBLE_TYPES.includes(
+      column.type_generic as GenericDataType,
+    )
+  ) {
     config.aggregate = AGGREGATES.COUNT_DISTINCT;
   }
   return new AdhocMetric(config);
@@ -424,12 +446,20 @@ const DndMetricSelect = (props: any) => {
     (items: DatasourcePanelDndItem[]) => {
       // Items already passed `canDrop`. Saved metrics are added as-is; columns
       // become adhoc metrics with a default aggregation (no popover, since a
-      // folder can drop many at once).
-      const additions = items.map(item =>
-        item.type === DndItemType.Metric
-          ? (item.value as Metric)
-          : createAdhocMetricFromColumn(item.value as ColumnMeta),
-      );
+      // folder can drop many at once). Columns without an explicit supported
+      // type (e.g. MultiValue, untyped) are skipped instead of silently
+      // committing an unsupported COUNT_DISTINCT.
+      const additions = items
+        .filter(
+          item =>
+            item.type === DndItemType.Metric ||
+            isColumnSupportedForMetricAggregation(item.value as ColumnMeta),
+        )
+        .map(item =>
+          item.type === DndItemType.Metric
+            ? (item.value as Metric)
+            : createAdhocMetricFromColumn(item.value as ColumnMeta),
+        );
       if (additions.length === 0) {
         return;
       }

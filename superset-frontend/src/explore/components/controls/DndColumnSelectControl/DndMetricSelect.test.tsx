@@ -608,6 +608,10 @@ const unknowTypeColumn = {
   column_name: 'unknown_type_col',
   type_generic: 'not_a_real_type',
 };
+const multiValueColumn = {
+  column_name: 'multi_value_col',
+  type_generic: GenericDataType.MultiValue,
+};
 
 test('folder drop appends a saved metric as-is and columns as adhoc metrics with default aggregation', () => {
   const onChange = jest.fn();
@@ -641,10 +645,55 @@ test('folder drop appends a saved metric as-is and columns as adhoc metrics with
   expect(committed[3]).toBeInstanceOf(AdhocMetric);
   expect(committed[3].column.column_name).toBe('string_col');
   expect(committed[3].aggregate).toBe(AGGREGATES.COUNT_DISTINCT);
-  // Other columns default to COUNT_DISTINCT as well.
-  expect(committed[4]).toBeInstanceOf(AdhocMetric);
-  expect(committed[4].column.column_name).toBe('unknown_type_col');
-  expect(committed[4].aggregate).toBe(AGGREGATES.COUNT_DISTINCT);
+  // Untyped columns have no explicit supported aggregation and are skipped
+  // entirely rather than defaulting to an unsupported COUNT_DISTINCT.
+  expect(committed).toHaveLength(4);
+});
+
+test('folder drop skips MultiValue columns, which have no supported default aggregation', () => {
+  const onChange = jest.fn();
+  render(
+    <DndMetricSelect
+      {...defaultProps}
+      columns={[numericColumn, multiValueColumn]}
+      value={[]}
+      onChange={onChange}
+      multi
+    />,
+    { useDndKit: true, useRedux: true },
+  );
+
+  simulateFolderDrop(captured, [
+    { type: DndItemType.Column, value: multiValueColumn as any },
+    { type: DndItemType.Column, value: numericColumn as any },
+  ]);
+
+  expect(onChange).toHaveBeenCalledTimes(1);
+  const committed = onChange.mock.calls[0][0];
+  expect(committed).toHaveLength(1);
+  expect(committed[0]).toBeInstanceOf(AdhocMetric);
+  expect(committed[0].column.column_name).toBe('numeric_col');
+});
+
+test('folder drop is a no-op when only MultiValue/untyped columns are dropped', () => {
+  const onChange = jest.fn();
+  render(
+    <DndMetricSelect
+      {...defaultProps}
+      columns={[multiValueColumn, unknowTypeColumn]}
+      value={['metric_a']}
+      onChange={onChange}
+      multi
+    />,
+    { useDndKit: true, useRedux: true },
+  );
+
+  simulateFolderDrop(captured, [
+    { type: DndItemType.Column, value: multiValueColumn as any },
+    { type: DndItemType.Column, value: unknowTypeColumn as any },
+  ]);
+
+  expect(onChange).not.toHaveBeenCalled();
 });
 
 test('folder drop replaces (not appends) the existing value for a single-value control', () => {
