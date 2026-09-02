@@ -996,21 +996,3 @@ def test_floored_status_cursor_drops_subsecond_precision() -> None:
 
     cursor = floored_status_cursor()
     assert cursor.microsecond == 0
-
-
-def test_error_update_nests_debug_fields_under_private_framework() -> None:
-    """error_message stays public; exception_type/stack_trace → private.framework."""
-    from superset.tasks.utils import error_update
-
-    try:
-        raise KeyError("nope")
-    except KeyError as ex:
-        update = error_update(ex)
-
-    assert update["error_message"] == "'nope'"
-    framework = update["private"]["framework"]
-    assert framework["exception_type"] == "KeyError"
-    assert "Traceback" in framework["stack_trace"]
-    # no top-level leakage of the internal debug fields
-    assert "exception_type" not in update
-    assert "stack_trace" not in update

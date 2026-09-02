@@ -231,6 +231,14 @@ test('displays task data including types, scope labels, and duration', async () 
 
   // Duration (299s = 4m 59s via prettyMs)
   expect(screen.getByText('4m 59s')).toBeInTheDocument();
+
+  // Dependencies and dedupe counts render as icons in the Details column: the
+  // partition icon for a task with prerequisites (depends_on) and the plus icon
+  // + count for a reused task (dedupe_count). (antd PartitionOutlined/PlusOutlined
+  // map to role "img" names "partition"/"plus".) The "waiting on N" state is
+  // covered by TaskDependenciesPopover.test.tsx.
+  expect(screen.getByRole('img', { name: 'partition' })).toBeInTheDocument();
+  expect(screen.getByRole('img', { name: 'plus' })).toBeInTheDocument();
 });
 
 test('shows cancel button and modal for cancellable tasks', async () => {
@@ -323,24 +331,4 @@ test('displays empty state when no tasks', async () => {
   fetchMock.modifyRoute(tasksEndpoint, {
     response: { result: mockTasks, count: 3 },
   });
-});
-
-test('renders the dependency icon in Details for tasks with prerequisites', async () => {
-  renderTaskList();
-  await screen.findByText('Shared Bulk Task');
-
-  // Dependencies live behind the branching icon in the Details column (antd
-  // PartitionOutlined -> role "img" name "partition"), no longer a standalone
-  // column. The "waiting on N" state is folded into that icon's warning color +
-  // popover title — covered by TaskDependenciesPopover.test.tsx.
-  expect(screen.getByRole('img', { name: 'partition' })).toBeInTheDocument();
-});
-
-test('surfaces the dedupe count in Details for a reused task', async () => {
-  renderTaskList();
-  await screen.findByText('Export Data Task');
-
-  // The reused task (dedupe_count: 2) renders the plus icon + count in Details;
-  // unique tasks show nothing. (antd PlusOutlined -> role "img" name "plus".)
-  expect(screen.getByRole('img', { name: 'plus' })).toBeInTheDocument();
 });

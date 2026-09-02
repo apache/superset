@@ -16,7 +16,7 @@
 # under the License.
 """Unit tests for the GTF chart-data fan-out orchestrator."""
 
-from typing import Any
+from typing import TYPE_CHECKING
 from unittest import mock
 from uuid import uuid4
 
@@ -24,6 +24,9 @@ import pytest
 from pytest_mock import MockerFixture
 
 from superset.common.query_serialization import SerializedQuery
+
+if TYPE_CHECKING:
+    from superset_core.tasks.types import TaskProperties
 
 
 def _fake_query_context(
@@ -367,7 +370,7 @@ def test_task_name_disambiguates_multiple_queries(mocker: MockerFixture) -> None
     assert names == ["births (1)", "births (2)"]
 
 
-def _make_task(properties: dict[str, Any] | None = None):
+def _make_task(properties: "TaskProperties | None" = None):
     """A real ``Task`` seeded with ``properties`` (no DB — property JSON only)."""
     from superset.models.tasks import Task
     from superset.tasks.utils import serialize_properties
