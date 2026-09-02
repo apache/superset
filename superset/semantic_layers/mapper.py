@@ -68,6 +68,30 @@ from superset.utils.core import (
 )
 from superset.utils.date_parser import get_past_or_future
 
+OPERATOR_MAP = {
+    FilterOperator.EQUALS.value: Operator.EQUALS,
+    FilterOperator.NOT_EQUALS.value: Operator.NOT_EQUALS,
+    FilterOperator.GREATER_THAN.value: Operator.GREATER_THAN,
+    FilterOperator.LESS_THAN.value: Operator.LESS_THAN,
+    FilterOperator.GREATER_THAN_OR_EQUALS.value: Operator.GREATER_THAN_OR_EQUAL,
+    FilterOperator.LESS_THAN_OR_EQUALS.value: Operator.LESS_THAN_OR_EQUAL,
+    FilterOperator.IN.value: Operator.IN,
+    FilterOperator.NOT_IN.value: Operator.NOT_IN,
+    FilterOperator.LIKE.value: Operator.LIKE,
+    FilterOperator.NOT_LIKE.value: Operator.NOT_LIKE,
+    # Case-insensitive matching is passed through to the provider, which
+    # resolves it per its own collation rules. Providers that cannot
+    # express ILIKE should advertise that via a SemanticViewFeature.
+    FilterOperator.ILIKE.value: Operator.ILIKE,
+    FilterOperator.NOT_ILIKE.value: Operator.NOT_ILIKE,
+    FilterOperator.IS_NULL.value: Operator.IS_NULL,
+    FilterOperator.IS_NOT_NULL.value: Operator.IS_NOT_NULL,
+}
+
+SUPPORTED_FILTER_OPERATORS = frozenset(OPERATOR_MAP) | {
+    FilterOperator.TEMPORAL_RANGE.value
+}
+
 
 class ValidatedQueryObjectFilterClause(QueryObjectFilterClause):
     """
@@ -699,27 +723,7 @@ def _convert_query_object_filter(
 
     value = _coerce_filter_value(value, dimension)
 
-    operator_mapping = {
-        FilterOperator.EQUALS.value: Operator.EQUALS,
-        FilterOperator.NOT_EQUALS.value: Operator.NOT_EQUALS,
-        FilterOperator.GREATER_THAN.value: Operator.GREATER_THAN,
-        FilterOperator.LESS_THAN.value: Operator.LESS_THAN,
-        FilterOperator.GREATER_THAN_OR_EQUALS.value: Operator.GREATER_THAN_OR_EQUAL,
-        FilterOperator.LESS_THAN_OR_EQUALS.value: Operator.LESS_THAN_OR_EQUAL,
-        FilterOperator.IN.value: Operator.IN,
-        FilterOperator.NOT_IN.value: Operator.NOT_IN,
-        FilterOperator.LIKE.value: Operator.LIKE,
-        FilterOperator.NOT_LIKE.value: Operator.NOT_LIKE,
-        # Case-insensitive matching is passed through to the provider, which
-        # resolves it per its own collation rules. Providers that cannot
-        # express ILIKE should advertise that via a SemanticViewFeature.
-        FilterOperator.ILIKE.value: Operator.ILIKE,
-        FilterOperator.NOT_ILIKE.value: Operator.NOT_ILIKE,
-        FilterOperator.IS_NULL.value: Operator.IS_NULL,
-        FilterOperator.IS_NOT_NULL.value: Operator.IS_NOT_NULL,
-    }
-
-    operator = operator_mapping.get(operator_str)
+    operator = OPERATOR_MAP.get(operator_str)
     if not operator:
         # Unknown operator - raise error to prevent unauthorized access
         raise ValueError(f"Unsupported filter operator: {operator_str}")

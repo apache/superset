@@ -18,7 +18,7 @@ import hashlib
 import logging
 from typing import Any
 
-from flask import current_app as app, request, Response
+from flask import current_app as app, make_response, request, Response
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.api.schemas import get_list_schema
 from marshmallow import ValidationError
@@ -44,6 +44,7 @@ from superset.exceptions import (
     SupersetSecurityException,
 )
 from superset.extensions import cache_manager
+from superset.semantic_layers.mapper import SUPPORTED_FILTER_OPERATORS
 from superset.superset_typing import FlaskResponse
 from superset.utils import json
 from superset.utils.core import (
@@ -678,6 +679,9 @@ class DatasourceRestApi(BaseSupersetApi):
             dimensions=payload["dimensions"],
             filters=payload["filters"],
             order_names=[term["column"] for term in payload["order"]],
+            metrics_full_list_hint=(
+                f"GET /api/v1/datasource/{datasource_type}/{datasource_id}"
+            ),
         ):
             return self.response_400(message="; ".join(errors))
 
@@ -745,7 +749,16 @@ class DatasourceRestApi(BaseSupersetApi):
                 queries[0]["data"],
                 mimetype="application/vnd.apache.arrow.stream",
             )
-        return self.response(200, result=queries)
+        response = make_response(
+            json.dumps(
+                {"result": queries},
+                default=json.json_int_dttm_ser,
+                ignore_nan=True,
+            ),
+            200,
+        )
+        response.headers["Content-Type"] = "application/json; charset=utf-8"
+        return response
 
     @expose("/<datasource_type>/<int:datasource_id>", methods=("GET",))
     @protect()
@@ -802,6 +815,14 @@ class DatasourceRestApi(BaseSupersetApi):
             )
 
         datasource = resolved.explorable
+        is_semantic_view = (
+            DatasourceType(datasource_type) == DatasourceType.SEMANTIC_VIEW
+        )
+        supported_operators = (
+            SUPPORTED_FILTER_OPERATORS
+            if is_semantic_view
+            else {op.value for op in FilterOperator}
+        )
         features = sorted(
             feature.value
             for feature in getattr(
@@ -818,10 +839,9 @@ class DatasourceRestApi(BaseSupersetApi):
             ),
             # Datasets accept ad-hoc metrics; semantic views reject them in the
             # mapper, since the provider owns metric definitions.
-            "supports_adhoc_metrics": DatasourceType(datasource_type)
-            != DatasourceType.SEMANTIC_VIEW,
+            "supports_adhoc_metrics": not is_semantic_view,
             "time_grains": datasource.get_time_grains(),
-            "supported_operators": [op.value for op in FilterOperator],
+            "supported_operators": sorted(supported_operators),
             "features": features,
         }
         return self.response(200, result=result)

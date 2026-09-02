@@ -355,3 +355,16 @@ def test_validation_error_is_a_value_error() -> None:
     ValueError validation failures do not escape as 500s; this subclassing is
     what keeps TabularQueryValidationError covered by that handler."""
     assert issubclass(TabularQueryValidationError, ValueError)
+
+
+def test_metrics_hint_can_name_an_http_endpoint() -> None:
+    many = {f"metric_{i:02d}" for i in range(15)}
+
+    (error,) = validate_query_names(
+        many,
+        set(),
+        metrics=["zzz"],
+        metrics_full_list_hint="GET /api/v1/datasource/table/1",
+    )
+    assert "GET /api/v1/datasource/table/1" in error
+    assert "get_dataset_info" not in error

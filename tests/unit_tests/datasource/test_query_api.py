@@ -217,3 +217,12 @@ def test_rejects_unsupported_result_formats(schema) -> None:
     for fmt in ("csv", "xlsx"):
         with pytest.raises(ValidationError):
             schema.load({"metrics": ["count"], "result_format": fmt})
+
+
+def test_semantic_views_advertise_only_mapper_supported_operators() -> None:
+    from superset.semantic_layers.mapper import SUPPORTED_FILTER_OPERATORS
+    from superset.utils.core import FilterOperator
+
+    assert SUPPORTED_FILTER_OPERATORS < {op.value for op in FilterOperator}
+    assert FilterOperator.TEMPORAL_RANGE.value in SUPPORTED_FILTER_OPERATORS
+    assert FilterOperator.CONTAINS_ANY.value not in SUPPORTED_FILTER_OPERATORS
