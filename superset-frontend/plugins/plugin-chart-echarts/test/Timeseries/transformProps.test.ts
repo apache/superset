@@ -3652,7 +3652,6 @@ describe('xAxisLabelInterval string "0" is converted to number 0', () => {
     expect(xAxisRaw.interval).toBe(3);
   });
 });
-});
 
 test('tooltip formats each series with its own metric format instead of the default formatter', () => {
   // Two saved metrics with different formats: `pct_change` carries a percentage
