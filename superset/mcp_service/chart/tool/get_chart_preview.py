@@ -285,9 +285,9 @@ class ASCIIPreviewStrategy(PreviewFormatStrategy):
                 return _no_query_fields_error(self.chart)
 
             self._authorize_guest_query(query_context)
+            self._seed_query_context_form_data(query_context)
             command = ChartDataCommand(query_context)
             command.validate()
-            self._seed_query_context_form_data(query_context)
             result = command.run()
             data, result_error = first_query_data(
                 result, none_as_empty=self.chart.viz_type != "sunburst_v2"
@@ -358,9 +358,9 @@ class TablePreviewStrategy(PreviewFormatStrategy):
                 return _no_query_fields_error(self.chart)
 
             self._authorize_guest_query(query_context)
+            self._seed_query_context_form_data(query_context)
             command = ChartDataCommand(query_context)
             command.validate()
-            self._seed_query_context_form_data(query_context)
             result = command.run()
             data, result_error = first_query_data(
                 result, none_as_empty=self.chart.viz_type != "sunburst_v2"
@@ -458,9 +458,9 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
 
             # Execute the query
             self._authorize_guest_query(query_context)
+            self._seed_query_context_form_data(query_context)
             command = ChartDataCommand(query_context)
             command.validate()
-            self._seed_query_context_form_data(query_context)
             result = command.run()
             data, result_error = first_query_data(
                 result, none_as_empty=self.chart.viz_type != "sunburst_v2"

@@ -563,13 +563,31 @@ def test_resolve_deck_gl_columns_ignores_tooltip_contents():
     assert "category" not in cols
 
 
-def test_resolve_deck_gl_columns_ignores_cross_filter_column():
+def test_resolve_deck_gl_columns_includes_geojson_cross_filter_column():
     form_data = {
+        "viz_type": "deck_geojson",
+        "geojson": "geometry",
+        "cross_filter_column": "region",
+    }
+    assert resolve_deck_gl_columns(form_data) == ["geometry", "region"]
+
+
+def test_resolve_deck_gl_columns_includes_polygon_cross_filter_once():
+    form_data = {
+        "viz_type": "deck_polygon",
+        "line_column": "geometry",
+        "cross_filter_column": "geometry",
+    }
+    assert resolve_deck_gl_columns(form_data) == ["geometry"]
+
+
+def test_resolve_deck_gl_columns_ignores_other_layers_cross_filter_column():
+    form_data = {
+        "viz_type": "deck_scatter",
         "spatial": {"type": "latlong", "lonCol": "lon", "latCol": "lat"},
         "cross_filter_column": "region",
     }
-    cols = resolve_deck_gl_columns(form_data)
-    assert "region" not in cols
+    assert resolve_deck_gl_columns(form_data) == ["lon", "lat"]
 
 
 # ---------------------------------------------------------------------------

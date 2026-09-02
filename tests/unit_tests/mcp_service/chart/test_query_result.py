@@ -23,6 +23,7 @@ from superset.common.db_query_status import QueryStatus
 from superset.mcp_service.chart.query_result import (
     first_query_data,
     query_result_failure,
+    validate_query_result_envelope,
 )
 
 
@@ -84,3 +85,70 @@ def test_first_query_data_allows_legitimate_empty_result():
 
     assert data == []
     assert error is None
+
+
+class HostileList(list[object]):
+    def __iter__(self):
+        raise AssertionError("hostile list hook executed")
+
+    def __getitem__(self, key):
+        raise AssertionError("hostile list slicing hook executed")
+
+
+class HostileDict(dict[str, object]):
+    def get(self, key, default=None):
+        raise AssertionError("hostile mapping hook executed")
+
+    def items(self):
+        raise AssertionError("hostile mapping iteration executed")
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        {"queries": [HostileDict(data=[])]},
+        {"queries": [{"data": HostileList()}]},
+        {"queries": [{"data": [HostileDict(value=1)]}]},
+        {"queries": [{"data": [{"value": 1}], "colnames": HostileList(["value"])}]},
+        {"queries": [{"data": [{"value": object()}], "colnames": ["value"]}]},
+    ],
+)
+def test_strict_result_validation_rejects_hostile_containers_without_hooks(
+    payload,
+):
+    error = validate_query_result_envelope(payload)
+
+    assert error is not None
+    assert error.error_type == "InvalidQueryResult"
+
+
+def test_strict_result_validation_rejects_oversized_multi_query_data(monkeypatch):
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.query_result.MAX_QUERY_RESULT_ROWS", 1
+    )
+    error = validate_query_result_envelope(
+        {
+            "queries": [
+                {"data": [{"value": 1}], "colnames": ["value"]},
+                {"data": [{"value": 2}, {"value": 3}], "colnames": ["value"]},
+            ]
+        }
+    )
+
+    assert error is not None
+    assert error.error_type == "InvalidQueryResult"
+    assert "too many rows" in error.error
+
+
+def test_strict_result_validation_accepts_bounded_multi_query_data():
+    assert (
+        validate_query_result_envelope(
+            {
+                "queries": [
+                    {"data": [{"value": 1}], "colnames": ["value"]},
+                    {"data": [{"total": 1}], "colnames": ["total"]},
+                ]
+            }
+        )
+        is None
+    )

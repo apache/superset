@@ -453,9 +453,15 @@ def resolve_deck_gl_columns(form_data: dict[str, Any]) -> list[str]:
         for col in _deck_gl_spatial_cols(form_data.get(key)):
             _add(col)
 
-    # deck_path / deck_polygon use a line column; deck_geojson uses geojson
+    # deck_path / deck_polygon use a line column; deck_geojson uses geojson.
     for field in ("line_column", "geojson", "dimension"):
         _add(form_data.get(field))
+
+    # GeoJSON and Polygon surface this value from each result row when emitting
+    # cross-filters. Their frontend builders therefore SELECT it alongside the
+    # geometry column. Other Deck layers do not consume it in their builders.
+    if form_data.get("viz_type") in {"deck_geojson", "deck_polygon"}:
+        _add(form_data.get("cross_filter_column"))
 
     return columns
 

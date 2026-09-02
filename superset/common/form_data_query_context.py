@@ -43,7 +43,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from superset.utils import json
-from superset.utils.core import as_list, get_column_name, get_metric_name
+from superset.utils.core import as_list, DTTM_ALIAS, get_column_name, get_metric_name
 
 # Keep this mapping identical to ``queryFieldAliases`` in
 # ``superset-ui-core/src/query/extractQueryFields.ts``.  It is the shared
@@ -632,6 +632,40 @@ def _temporalized_columns(form_data: dict[str, Any], columns: list[Any]) -> list
     return result
 
 
+def _table_temporalized_columns(
+    form_data: dict[str, Any], columns: list[Any]
+) -> list[Any]:
+    """Promote the first temporal table group-by to the frontend BASE_AXIS.
+
+    Table's builder treats only physical columns named in
+    ``temporal_columns_lookup`` as temporal and moves the first match to the
+    front.  Later temporal dimensions remain ordinary group-bys.
+    """
+    time_grain = form_data.get("time_grain_sqla")
+    temporal_lookup = form_data.get("temporal_columns_lookup") or {}
+    if not time_grain or not isinstance(temporal_lookup, Mapping):
+        return columns
+
+    temporal_column: dict[str, Any] | None = None
+    remaining: list[Any] = []
+    for column in columns:
+        if (
+            temporal_column is None
+            and isinstance(column, str)
+            and temporal_lookup.get(column)
+        ):
+            temporal_column = {
+                "timeGrain": time_grain,
+                "columnType": "BASE_AXIS",
+                "sqlExpression": column,
+                "label": column,
+                "expressionType": "SQL",
+            }
+        else:
+            remaining.append(column)
+    return [temporal_column, *remaining] if temporal_column else columns
+
+
 def _histogram_query(form_data: dict[str, Any], query: dict[str, Any]) -> None:
     groupby = _as_list(form_data.get("groupby"))
     column = form_data.get("column")
@@ -853,11 +887,127 @@ def _metric_offset_map(
     }
 
 
+def _x_axis_column(form_data: Mapping[str, Any]) -> Any | None:
+    """Return a supported x-axis column, excluding legacy granularity.
+
+    ``column_name`` mappings are retained for old server/native payloads. Big
+    Number uses the stricter frontend predicate below.
+    """
+    x_axis = form_data.get("x_axis")
+    if isinstance(x_axis, str):
+        return x_axis if x_axis else None
+    if isinstance(x_axis, Mapping):
+        if isinstance(column_name := x_axis.get("column_name"), str) and column_name:
+            return column_name
+        # Frontend SQL adhoc columns remain objects in the QueryObject.
+        return x_axis if x_axis else None
+    return None
+
+
+def _frontend_x_axis_column(form_data: Mapping[str, Any]) -> Any | None:
+    """Mirror ``isQueryFormColumn`` for physical and SQL adhoc columns."""
+    x_axis = form_data.get("x_axis")
+    if isinstance(x_axis, str):
+        return x_axis if x_axis else None
+    if (
+        isinstance(x_axis, Mapping)
+        and "sqlExpression" in x_axis
+        and "label" in x_axis
+        and x_axis.get("expressionType") in {None, "SQL"}
+    ):
+        return x_axis
+    return None
+
+
+def _x_axis_label(
+    form_data: Mapping[str, Any], *, frontend_strict: bool = False
+) -> str | None:
+    """Mirror getXAxisColumn/getXAxisLabel for explicit and legacy axes."""
+    explicit = (
+        _frontend_x_axis_column(form_data)
+        if frontend_strict
+        else _x_axis_column(form_data)
+    )
+    if explicit:
+        return _label(explicit)
+    if form_data.get("granularity_sqla"):
+        return DTTM_ALIAS
+    return None
+
+
+def _rename_operator(
+    form_data: dict[str, Any],
+    query: dict[str, Any],
+    *,
+    x_axis_label: str | None,
+) -> dict[str, Any] | None:
+    """Mirror the ECharts ``renameOperator`` for Timeseries and Mixed charts."""
+    metrics = list(query.get("metrics") or [])
+    metric_labels = [_label(metric, metric=True) for metric in metrics]
+    series_columns = query.get("series_columns")
+    columns = _as_list(
+        series_columns if series_columns is not None else query.get("columns")
+    )
+    time_offsets = _as_list(form_data.get("time_compare"))
+    offset_map = _metric_offset_map(form_data, metric_labels)
+    is_time_comparison = bool(offset_map)
+    truncate_metric = form_data.get("truncate_metric")
+
+    should_rename = (
+        bool(metrics)
+        and bool(x_axis_label)
+        and (
+            is_time_comparison
+            or (
+                (bool(columns) or len(time_offsets) > 1)
+                and "truncate_metric" in form_data
+                and bool(truncate_metric)
+            )
+        )
+    )
+    if not should_rename:
+        return None
+
+    renamed: dict[str, str | None] = {}
+    comparison_type = form_data.get("comparison_type")
+    if is_time_comparison:
+        for metric_with_offset, metric_only in offset_map.items():
+            offset_label = next(
+                (
+                    str(offset)
+                    for offset in time_offsets
+                    if metric_with_offset.endswith(f"__{offset}")
+                ),
+                None,
+            )
+            source = (
+                metric_with_offset
+                if comparison_type == "values"
+                else f"{comparison_type}__{metric_only}__{metric_with_offset}"
+            )
+            renamed[source] = (
+                f"{metric_only}, {offset_label}" if len(metrics) > 1 else offset_label
+            )
+
+    if (
+        comparison_type not in {"difference", "percentage", "ratio"}
+        and len(metrics) == 1
+        and not renamed
+    ):
+        renamed[metric_labels[0]] = None
+    if not renamed:
+        return None
+    return {
+        "operation": "rename",
+        "options": {"columns": renamed, "level": 0, "inplace": True},
+    }
+
+
 def _timeseries_post_processing(  # noqa: C901
     form_data: dict[str, Any],
     query: dict[str, Any],
     *,
-    x_axis: Any,
+    x_axis_label: str | None,
     groupby: list[Any],
     mixed: bool,
 ) -> tuple[list[dict[str, Any]], list[Any]]:
@@ -867,7 +1017,7 @@ def _timeseries_post_processing(  # noqa: C901
     time_offsets = _as_list(form_data.get("time_compare")) if offset_map else []
     post_processing: list[dict[str, Any]] = []
 
-    if x_axis and metric_labels:
+    if x_axis_label and metric_labels:
         aggregate_labels = (
             [*offset_map.values(), *offset_map] if offset_map else metric_labels
         )
@@ -875,7 +1025,7 @@ def _timeseries_post_processing(  # noqa: C901
             {
                 "operation": "pivot",
                 "options": {
-                    "index": [_label(x_axis)],
+                    "index": [x_axis_label],
                     "columns": [_label(value) for value in groupby],
                     "aggregates": {
                         label: {"operator": "mean"} for label in aggregate_labels
@@ -950,33 +1100,12 @@ def _timeseries_post_processing(  # noqa: C901
             }
         )
 
-    if (
-        len(metric_labels) == 1
-        and groupby
-        and x_axis
-        and form_data.get("truncate_metric")
-        and not (
-            offset_map and comparison_type in {"difference", "ratio", "percentage"}
-        )
-    ):
-        renamed: dict[str, Any] = {}
-        if offset_map and comparison_type == "values":
-            for offset_metric in offset_map:
-                renamed[offset_metric] = next(
-                    (offset for offset in time_offsets if str(offset) in offset_metric),
-                    None,
-                )
-        renamed[metric_labels[0]] = None
-        post_processing.append(
-            {
-                "operation": "rename",
-                "options": {"columns": renamed, "level": 0, "inplace": True},
-            }
-        )
+    if rename := _rename_operator(form_data, query, x_axis_label=x_axis_label):
+        post_processing.append(rename)
 
     if not mixed:
         sortable = {
-            _label(x_axis) if x_axis else "",
+            x_axis_label or "",
             *metric_labels,
         }
         if (
@@ -986,14 +1115,14 @@ def _timeseries_post_processing(  # noqa: C901
             and not groupby
         ):
             options: dict[str, Any] = {"ascending": form_data.get("x_axis_sort_asc")}
-            if form_data.get("x_axis_sort") == _label(x_axis):
+            if form_data.get("x_axis_sort") == x_axis_label:
                 options["is_sort_index"] = True
             else:
                 options["by"] = form_data.get("x_axis_sort")
             post_processing.append({"operation": "sort", "options": options})
 
     post_processing.append({"operation": "flatten"})
-    if not mixed and form_data.get("forecastEnabled") and x_axis:
+    if not mixed and form_data.get("forecastEnabled") and x_axis_label:
         post_processing.append(
             {
                 "operation": "prophet",
@@ -1006,7 +1135,7 @@ def _timeseries_post_processing(  # noqa: C901
                     "yearly_seasonality": form_data.get("forecastSeasonalityYearly"),
                     "weekly_seasonality": form_data.get("forecastSeasonalityWeekly"),
                     "daily_seasonality": form_data.get("forecastSeasonalityDaily"),
-                    "index": _label(x_axis),
+                    "index": x_axis_label,
                 },
             }
         )
@@ -1015,9 +1144,8 @@ def _timeseries_post_processing(  # noqa: C901
 
 def _timeseries_query(form_data: dict[str, Any], query: dict[str, Any]) -> None:
     groupby = _as_list(form_data.get("groupby"))
-    x_axis = form_data.get("x_axis")
-    if isinstance(x_axis, Mapping) and x_axis.get("column_name"):
-        x_axis = x_axis["column_name"]
+    x_axis = _x_axis_column(form_data)
+    x_axis_label = _x_axis_label(form_data)
     query["columns"] = _deduplicate_fields([*_as_list(x_axis), *groupby])
     query["series_columns"] = groupby
     if not x_axis:
@@ -1041,7 +1169,7 @@ def _timeseries_query(form_data: dict[str, Any], query: dict[str, Any]) -> None:
     post_processing, time_offsets = _timeseries_post_processing(
         form_data,
         query,
-        x_axis=x_axis,
+        x_axis_label=x_axis_label,
         groupby=groupby,
         mixed=form_data.get("viz_type") == "mixed_timeseries",
     )
@@ -1057,18 +1185,20 @@ def _big_number_queries(
     form_data: dict[str, Any], query: dict[str, Any]
 ) -> list[dict[str, Any]]:
     """Mirror Big Number with Trendline's one/two-query contract."""
-    time_column = _as_list(form_data.get("x_axis") or form_data.get("granularity_sqla"))
+    explicit_x_axis = _frontend_x_axis_column(form_data)
+    time_column = _as_list(explicit_x_axis)
+    x_axis_label = _x_axis_label(form_data, frontend_strict=True)
     query["columns"] = time_column
     if not time_column:
         query["is_timeseries"] = True
     metric_labels = [_label(value, metric=True) for value in query.get("metrics") or []]
     post_processing: list[dict[str, Any]] = []
-    if time_column and metric_labels:
+    if x_axis_label and metric_labels:
         post_processing.append(
             {
                 "operation": "pivot",
                 "options": {
-                    "index": [_label(time_column[0])],
+                    "index": [x_axis_label],
                     "columns": [],
                     "aggregates": {
                         label: {"operator": "mean"} for label in metric_labels
@@ -1117,7 +1247,7 @@ def _big_number_queries(
         overall.update(
             {
                 "columns": [],
-                "is_timeseries": True,
+                "is_timeseries": False,
                 "post_processing": [],
             }
         )
@@ -1142,6 +1272,9 @@ def _table_queries(  # noqa: C901
         return [query]
 
     metrics = list(query.get("metrics") or [])
+    query["columns"] = _table_temporalized_columns(
+        form_data, list(query.get("columns") or [])
+    )
     percent_metrics = _as_list(form_data.get("percent_metrics"))
     for metric in percent_metrics:
         if _label(metric, metric=True) not in {
@@ -1216,17 +1349,32 @@ def _table_queries(  # noqa: C901
         )
         queries.append(all_records)
     if form_data.get("show_totals") and metrics:
+        totals_aggregate = form_data.get("totals_aggregate")
+        if totals_aggregate not in {"SUM", "AVG"}:
+            totals_aggregate = None
+        totals_metrics = [
+            {
+                **metric,
+                "aggregate": totals_aggregate,
+            }
+            if totals_aggregate
+            and isinstance(metric, dict)
+            and metric.get("expressionType") == "SIMPLE"
+            else metric
+            for metric in metrics
+        ]
         totals = dict(query)
         totals.update(
             {
                 "columns": [],
-                "metrics": metrics,
+                "metrics": totals_metrics,
                 "row_limit": 0,
                 "row_offset": 0,
-                "orderby": [],
                 "post_processing": [contribution] if contribution else [],
             }
         )
+        totals.pop("order_desc", None)
+        totals.pop("orderby", None)
         queries.append(totals)
     if form_data.get("server_pagination") and not is_download:
         rowcount = dict(query)

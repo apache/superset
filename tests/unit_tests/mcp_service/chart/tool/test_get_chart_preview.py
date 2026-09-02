@@ -84,15 +84,10 @@ def test_saved_virtual_dataset_previews_seed_all_jinja_form_data_macros(
 
     class ChartDataCommand:
         def __init__(self, built_query_context: object) -> None:
+            events.append("construct")
             assert built_query_context is query_context
-
-        def validate(self) -> None:
-            events.append("validate")
-
-        def run(self) -> dict[str, Any]:
-            events.append("run")
-            # These are the three virtual-dataset Jinja lookups whose saved
-            # preview path must match chart-data/compile execution.
+            # Construction may initialize datasource/query processors, so all
+            # three virtual-dataset Jinja inputs must already be available.
             assert g.form_data["queries"][0]["url_params"] == {"tenant": "acme"}
             cache = ExtraCache(
                 query_context_filters=g.form_data["queries"][0]["filters"]
@@ -102,6 +97,12 @@ def test_saved_virtual_dataset_previews_seed_all_jinja_form_data_macros(
             assert cache.get_filters("region") == [
                 {"col": "region", "op": "IN", "val": ["North"]}
             ]
+
+        def validate(self) -> None:
+            events.append("validate")
+
+        def run(self) -> dict[str, Any]:
+            events.append("run")
             return {"queries": [{"data": [{"region": "North", "count": 1}]}]}
 
     chart = SimpleNamespace(
@@ -138,7 +139,7 @@ def test_saved_virtual_dataset_previews_seed_all_jinja_form_data_macros(
         ).generate()
 
     assert not isinstance(result, ChartError)
-    assert events == ["validate", "run"]
+    assert events == ["construct", "validate", "run"]
 
 
 @pytest.mark.parametrize(

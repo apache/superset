@@ -185,17 +185,19 @@ def test_build_context_merges_legacy_and_adhoc_filters() -> None:
     ]
 
 
-def test_big_number_trendline_promotes_granularity_sqla_column() -> None:
-    # A Big Number *with a trendline* (viz_type "big_number") has no
-    # groupby/columns; its time column (granularity_sqla) becomes the sole column.
+def test_big_number_legacy_trendline_uses_timestamp_axis_without_columns() -> None:
+    # Legacy Big Number form data carries granularity_sqla without an explicit
+    # x_axis. The frontend uses the implicit __timestamp axis in that mode.
     form_data = {"metric": "count", "granularity_sqla": "order_date"}
 
     query = build_query_context_from_form_data(
         form_data, DATASOURCE, viz_type="big_number"
     )["queries"][0]
 
-    assert query["columns"] == ["order_date"]
+    assert query["columns"] == []
     assert query["metrics"] == ["count"]
+    assert query["is_timeseries"] is True
+    assert query["post_processing"][0]["options"]["index"] == ["__timestamp"]
 
 
 def test_big_number_total_does_not_promote_granularity_sqla_column() -> None:
@@ -433,8 +435,8 @@ def test_build_context_ignores_simple_having_filter() -> None:
 
 
 def test_big_number_trendline_sets_granularity_without_time_range() -> None:
-    # A Big Number trendline groups by its time column; granularity must be set so
-    # time_grain_sqla buckets it even when there's no active time range.
+    # Legacy Big Number relies on is_timeseries + __timestamp rather than
+    # materializing granularity_sqla as an explicit query column.
     form_data = {
         "metric": "count",
         "granularity_sqla": "ds",
@@ -443,9 +445,11 @@ def test_big_number_trendline_sets_granularity_without_time_range() -> None:
     query = build_query_context_from_form_data(
         form_data, DATASOURCE, viz_type="big_number"
     )["queries"][0]
-    assert query["columns"] == ["ds"]
+    assert query["columns"] == []
+    assert query["is_timeseries"] is True
     assert query["granularity"] == "ds"
     assert query["extras"]["time_grain_sqla"] == "P1M"
+    assert query["post_processing"][0]["options"]["index"] == ["__timestamp"]
 
 
 def test_time_range_falls_back_to_since_until() -> None:

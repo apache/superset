@@ -18,13 +18,53 @@
 """Helpers for interpreting ChartDataCommand result envelopes."""
 
 from collections.abc import Mapping
+from datetime import date, datetime, time
+from decimal import Decimal
+from enum import Enum
 from typing import Any
+from uuid import UUID
 
 from superset.mcp_service.chart.schemas import ChartError
 
 FAILED_QUERY_STATUSES = frozenset(
     {"error", "failed", "stopped", "timed_out", "cancelled", "canceled"}
 )
+
+# ChartDataCommand results cross a trust boundary before MCP response shaping.
+# Keep every container and traversal bounded so a malformed command result
+# cannot trigger user-defined sequence/mapping hooks or unbounded work.
+MAX_QUERY_RESULTS = 32
+MAX_QUERY_RESULT_ROWS = 500_000
+MAX_QUERY_RESULT_COLUMNS = 10_000
+MAX_RESULT_VALUE_ITEMS = 10_000
+MAX_RESULT_VALUE_DEPTH = 6
+MAX_RESULT_STRING_LENGTH = 1_000_000
+
+
+def _is_bounded_result_value(value: Any, *, depth: int = 0) -> bool:
+    """Accept safe result scalars and exact, bounded builtin containers."""
+    if depth > MAX_RESULT_VALUE_DEPTH:
+        return False
+    if type(value) in {type(None), bool, int, float, str, bytes}:  # noqa: E721
+        return not isinstance(value, (str, bytes)) or len(value) <= (
+            MAX_RESULT_STRING_LENGTH
+        )
+    if type(value) in {date, datetime, time, Decimal, UUID}:  # noqa: E721
+        return True
+    if isinstance(value, Enum):
+        return _is_bounded_result_value(value.value, depth=depth + 1)
+    if type(value) is list:
+        return len(value) <= MAX_RESULT_VALUE_ITEMS and all(
+            _is_bounded_result_value(item, depth=depth + 1) for item in value
+        )
+    if type(value) is dict:
+        return len(value) <= MAX_RESULT_VALUE_ITEMS and all(
+            type(key) is str
+            and len(key) <= MAX_RESULT_STRING_LENGTH
+            and _is_bounded_result_value(item, depth=depth + 1)
+            for key, item in value.items()
+        )
+    return False
 
 
 def _query_error_text(value: Any) -> str | None:
@@ -96,6 +136,136 @@ def query_result_failure(result: Any) -> ChartError | None:
                 )
             if failure := _failure_for_query_payload(query, f"Chart query {index}"):
                 return failure
+    return None
+
+
+def validate_query_result_envelope(result: Any) -> ChartError | None:  # noqa: C901
+    """Strictly validate a ChartDataCommand result before consuming it.
+
+    Exact builtin containers prevent overridden ``get``/iteration/slicing
+    hooks, while the size and value checks bound every later row and metadata
+    operation performed by the multi-query get-data response builder.
+    """
+    if type(result) is not dict:
+        return ChartError(
+            error="Chart query returned a malformed result envelope.",
+            error_type="InvalidQueryResult",
+        )
+
+    for key in ("error", "errors", "error_message", "message", "status"):
+        if key in result and not _is_bounded_result_value(result[key]):
+            return ChartError(
+                error="Chart query returned hostile or oversized metadata.",
+                error_type="InvalidQueryResult",
+            )
+    if "success" in result and type(result["success"]) is not bool:
+        return ChartError(
+            error="Chart query returned malformed success metadata.",
+            error_type="InvalidQueryResult",
+        )
+
+    queries = result.get("queries")
+    if type(queries) is not list or not queries:
+        if failure := query_result_failure(result):
+            return failure
+        return ChartError(
+            error="Chart query returned no query result envelope.",
+            error_type="InvalidQueryResult",
+        )
+    if len(queries) > MAX_QUERY_RESULTS:
+        return ChartError(
+            error="Chart query returned too many query result envelopes.",
+            error_type="InvalidQueryResult",
+        )
+
+    for index, query in enumerate(queries, start=1):
+        if type(query) is not dict:
+            return ChartError(
+                error=f"Chart query {index} returned a malformed result envelope.",
+                error_type="InvalidQueryResult",
+            )
+        for key in ("error", "errors", "error_message", "message", "status"):
+            if key in query and not _is_bounded_result_value(query[key]):
+                return ChartError(
+                    error=f"Chart query {index} returned hostile metadata.",
+                    error_type="InvalidQueryResult",
+                )
+        if "success" in query and type(query["success"]) is not bool:
+            return ChartError(
+                error=f"Chart query {index} returned malformed success metadata.",
+                error_type="InvalidQueryResult",
+            )
+
+    if failure := query_result_failure(result):
+        return failure
+
+    for index, query in enumerate(queries, start=1):
+        data = query.get("data")
+        if type(data) is not list:
+            return ChartError(
+                error=f"Chart query {index} result data is not an array of rows.",
+                error_type="InvalidQueryResult",
+            )
+        if len(data) > MAX_QUERY_RESULT_ROWS:
+            return ChartError(
+                error=f"Chart query {index} returned too many rows.",
+                error_type="InvalidQueryResult",
+            )
+        for row in data:
+            if type(row) is not dict or len(row) > MAX_QUERY_RESULT_COLUMNS:
+                return ChartError(
+                    error=f"Chart query {index} returned a malformed data row.",
+                    error_type="InvalidQueryResult",
+                )
+            if not all(
+                type(column) is str
+                and len(column) <= MAX_RESULT_STRING_LENGTH
+                and _is_bounded_result_value(value)
+                for column, value in row.items()
+            ):
+                return ChartError(
+                    error=(
+                        f"Chart query {index} returned hostile or oversized row data."
+                    ),
+                    error_type="InvalidQueryResult",
+                )
+
+        colnames = query.get("colnames", [])
+        if (
+            type(colnames) is not list
+            or len(colnames) > MAX_QUERY_RESULT_COLUMNS
+            or not all(
+                type(column) is str and len(column) <= MAX_RESULT_STRING_LENGTH
+                for column in colnames
+            )
+        ):
+            return ChartError(
+                error=f"Chart query {index} returned malformed column metadata.",
+                error_type="InvalidQueryResult",
+            )
+        coltypes = query.get("coltypes", [])
+        if (
+            type(coltypes) is not list
+            or len(coltypes) > MAX_QUERY_RESULT_COLUMNS
+            or not all(_is_bounded_result_value(value) for value in coltypes)
+        ):
+            return ChartError(
+                error=f"Chart query {index} returned malformed column type metadata.",
+                error_type="InvalidQueryResult",
+            )
+        for key in (
+            "cache_key",
+            "cache_dttm",
+            "is_cached",
+            "rowcount",
+            "rejected_filters",
+            "rejected_filter_columns",
+        ):
+            if key in query and not _is_bounded_result_value(query[key]):
+                return ChartError(
+                    error=f"Chart query {index} returned hostile result metadata.",
+                    error_type="InvalidQueryResult",
+                )
     return None
 
 

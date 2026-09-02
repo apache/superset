@@ -507,7 +507,7 @@ class TestUnsavedChartDataQueryConstruction:
         class QueryContextFactory:
             def create(self, **kwargs: Any) -> object:
                 captured_query_contexts.append(kwargs)
-                return object()
+                return SimpleNamespace(queries=[], form_data={})
 
         class ChartDataCommand:
             def __init__(self, query_context: object) -> None:
@@ -588,7 +588,7 @@ class TestUnsavedChartDataQueryConstruction:
         class QueryContextFactory:
             def create(self, **kwargs: Any) -> object:
                 captured_query_contexts.append(kwargs)
-                return object()
+                return SimpleNamespace(queries=[], form_data={})
 
         class ChartDataCommand:
             def __init__(self, query_context: object) -> None:
@@ -1842,7 +1842,7 @@ class TestOAuthErrorRouting:
         monkeypatch.setattr(
             chart_data_module,
             "build_query_context_from_form_data",
-            lambda *args, **kwargs: object(),
+            lambda *args, **kwargs: SimpleNamespace(queries=[], form_data={}),
         )
         monkeypatch.setattr(
             get_data_command_module,
@@ -2115,7 +2115,7 @@ async def test_unsaved_mixed_timeseries_returns_nonempty_secondary_query(
     monkeypatch.setattr(
         chart_data_module,
         "build_query_context_from_form_data",
-        lambda *_args, **_kwargs: object(),
+        lambda *_args, **_kwargs: SimpleNamespace(queries=[], form_data={}),
     )
     monkeypatch.setattr(
         get_data_command_module, "ChartDataCommand", MultiQueryChartDataCommand
@@ -2405,7 +2405,7 @@ async def test_query_from_form_data_zero_row_limit_falls_back_to_default(
 
     def fake_build(form_data: Any, **kwargs: Any) -> Any:
         captured["row_limit"] = kwargs.get("row_limit")
-        return object()
+        return SimpleNamespace(queries=[], form_data={})
 
     class _Command:
         def __init__(self, query_context: Any) -> None: ...
@@ -2435,6 +2435,87 @@ async def test_query_from_form_data_zero_row_limit_falls_back_to_default(
 
 
 @pytest.mark.asyncio
+async def test_unsaved_form_data_query_seeds_jinja_before_command_construction(
+    app: Any,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Cached unsaved charts match API ordering for virtual-dataset Jinja."""
+    from flask import g
+
+    from superset.common.query_object import QueryObject
+    from superset.jinja_context import ExtraCache
+
+    module = importlib.import_module("superset.mcp_service.chart.tool.get_chart_data")
+    query = QueryObject(
+        columns=["region"],
+        metrics=["count"],
+        filters=[{"col": "region", "op": "IN", "val": ["North"]}],
+    )
+    query_context = SimpleNamespace(
+        queries=[query], form_data={"url_params": {"tenant": "acme"}}
+    )
+    events: list[str] = []
+
+    class _Command:
+        def __init__(self, built_query_context: Any) -> None:
+            events.append("construct")
+            assert built_query_context is query_context
+            assert g.form_data["queries"][0]["url_params"] == {"tenant": "acme"}
+            cache = ExtraCache(
+                query_context_filters=g.form_data["queries"][0]["filters"]
+            )
+            assert cache.url_param("tenant", escape_result=False) == "acme"
+            assert cache.filter_values("region") == ["North"]
+            assert cache.get_filters("region") == [
+                {"col": "region", "op": "IN", "val": ["North"]}
+            ]
+
+        def validate(self) -> None:
+            events.append("validate")
+
+        def run(self) -> dict[str, Any]:
+            events.append("run")
+            return {
+                "queries": [
+                    {
+                        "data": [{"region": "North", "count": 1}],
+                        "colnames": ["region", "count"],
+                        "rowcount": 1,
+                    }
+                ]
+            }
+
+    monkeypatch.setattr(
+        module,
+        "build_query_context_from_form_data",
+        lambda *args, **kwargs: query_context,
+    )
+    monkeypatch.setattr(
+        module,
+        "event_logger",
+        SimpleNamespace(log_context=lambda **kwargs: nullcontext()),
+    )
+    command_module = importlib.import_module(
+        "superset.commands.chart.data.get_data_command"
+    )
+    monkeypatch.setattr(command_module, "ChartDataCommand", _Command)
+
+    with app.test_request_context():
+        result = await _query_from_form_data(
+            {
+                "datasource_id": 7,
+                "datasource_type": "table",
+                "url_params": {"tenant": "acme"},
+            },
+            GetChartDataRequest(form_data_key="cached-key"),
+            _AsyncContext(),
+        )
+
+    assert isinstance(result, ChartData)
+    assert events == ["construct", "validate", "run"]
+
+
+@pytest.mark.asyncio
 async def test_query_from_form_data_string_row_limit_is_coerced(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -2446,7 +2527,7 @@ async def test_query_from_form_data_string_row_limit_is_coerced(
 
     def fake_build(form_data: Any, **kwargs: Any) -> Any:
         captured["row_limit"] = kwargs.get("row_limit")
-        return object()
+        return SimpleNamespace(queries=[], form_data={})
 
     class _Command:
         def __init__(self, query_context: Any) -> None: ...
@@ -2500,7 +2581,7 @@ async def test_query_from_form_data_use_cache_false_bypasses_cache(
     def fake_build(form_data: Any, **kwargs: Any) -> Any:
         captured["force"] = kwargs.get("force")
         captured["custom_cache_timeout"] = kwargs.get("custom_cache_timeout")
-        return object()
+        return SimpleNamespace(queries=[], form_data={})
 
     class _Command:
         def __init__(self, query_context: Any) -> None: ...
@@ -2557,7 +2638,7 @@ async def test_query_from_form_data_refreshed_reflects_force_refresh_only(
     module = importlib.import_module("superset.mcp_service.chart.tool.get_chart_data")
 
     def fake_build(form_data: Any, **kwargs: Any) -> Any:
-        return object()
+        return SimpleNamespace(queries=[], form_data={})
 
     class _Command:
         def __init__(self, query_context: Any) -> None: ...

@@ -552,11 +552,13 @@ def test_big_number_raw_aggregation_preserves_two_query_contract() -> None:
             7,
             "table",
         )
-    assert trend["columns"] == ["ds"]
+    assert trend["columns"] == []
+    assert trend["is_timeseries"] is True
+    assert trend["post_processing"][0]["options"]["index"] == ["__timestamp"]
     assert [rule["operation"] for rule in trend["post_processing"]] == [
         "pivot",
         "flatten",
     ]
     assert overall["columns"] == []
-    assert overall["is_timeseries"] is True
+    assert overall["is_timeseries"] is False
     assert overall["post_processing"] == []

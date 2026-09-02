@@ -47,6 +47,7 @@ from superset.mcp_service.chart.chart_helpers import (
     resolve_form_data_datasource,
 )
 from superset.mcp_service.chart.chart_utils import validate_chart_dataset
+from superset.mcp_service.chart.query_result import validate_query_result_envelope
 from superset.mcp_service.chart.schemas import (
     ChartData,
     ChartError,
@@ -785,6 +786,9 @@ async def get_chart_data(  # noqa: C901
                 command.validate()
                 result = command.run()
 
+            if result_error := validate_query_result_envelope(result):
+                return result_error
+
             if rejected := _rejected_requested_filter_columns(
                 result, request.extra_form_data
             ):
@@ -1142,10 +1146,14 @@ async def _query_from_form_data(  # noqa: C901
         )
 
         await ctx.report_progress(3, 4, "Executing data query")
+        set_query_context_form_data(query_context, datasource_id, datasource_type)
         with event_logger.log_context(action="mcp.get_chart_data.query_execution"):
             command = ChartDataCommand(query_context)
             command.validate()
             result = command.run()
+
+        if result_error := validate_query_result_envelope(result):
+            return result_error
 
         if rejected := _rejected_requested_filter_columns(
             result, request.extra_form_data
