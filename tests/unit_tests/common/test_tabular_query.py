@@ -382,26 +382,45 @@ def test_two_sided_range_stays_a_temporal_range_filter() -> None:
 
 
 def test_one_sided_range_becomes_an_explicit_comparison() -> None:
-    """A TEMPORAL_RANGE filter is deleted by ``_apply_granularity`` once
-    ``granularity`` is set, and the mapper emits no filter unless both bounds
-    resolve — so a one-sided range would scan the whole datasource.
+    """Semantic views only. ``_apply_granularity`` deletes the TEMPORAL_RANGE
+    filter once ``granularity`` is set, and the mapper emits nothing unless both
+    bounds resolve, so the range would vanish.
     """
     for time_range, op, value in [
         ("1966-01-01 : ", ">=", "1966-01-01 00:00:00"),
         (" : 1966-01-01", "<", "1966-01-01 00:00:00"),
     ]:
         (clause,) = build_query_dict(
-            time_column="ds", metrics=["count"], time_range=time_range
+            time_column="ds",
+            metrics=["count"],
+            time_range=time_range,
+            rewrite_one_sided_time_range=True,
         )["filters"]
 
         assert clause == {"col": "ds", "op": op, "val": value}
+
+
+def test_datasets_keep_temporal_range_for_one_sided_ranges() -> None:
+    """``SqlaTable.get_time_filter`` takes either bound alone and is the only
+    path applying the dataset timezone, hour offset and grain truncation, so
+    rewriting would shift one-sided results relative to two-sided ones.
+    """
+    (clause,) = build_query_dict(
+        time_column="ds", metrics=["count"], time_range="1966-01-01 : "
+    )["filters"]
+
+    assert clause["op"] == "TEMPORAL_RANGE"
+    assert clause["val"] == "1966-01-01 : "
 
 
 def test_one_sided_bound_uses_a_space_separator() -> None:
     """``isoformat()`` would emit ``1966-01-01T00:00:00``, which sorts after
     stored ``1966-01-01 00:00:00`` values and moves the boundary."""
     (clause,) = build_query_dict(
-        time_column="ds", metrics=["count"], time_range="1966-01-01 : "
+        time_column="ds",
+        metrics=["count"],
+        time_range="1966-01-01 : ",
+        rewrite_one_sided_time_range=True,
     )["filters"]
 
     assert "T" not in clause["val"]

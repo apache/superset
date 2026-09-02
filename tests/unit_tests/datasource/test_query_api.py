@@ -242,3 +242,28 @@ def test_offset_rejected_when_engine_cannot_paginate(app) -> None:
         with pytest.raises(AssertionError):
             api._execute_and_respond(resolved, payload)
     assert "offset" in m.call_args.kwargs["message"]
+
+
+def test_rejects_unsupported_time_grain(app) -> None:
+    """A grain the engine cannot express reaches get_timestamp_expr, which
+    raises NotImplementedError rather than a validation error."""
+    from unittest.mock import MagicMock, patch
+
+    from superset.datasource.api import DatasourceRestApi
+
+    resolved = MagicMock()
+    resolved.explorable.database.db_engine_spec.supports_offset = True
+    resolved.explorable.get_time_grains.return_value = [{"duration": "P1D"}]
+    resolved.resolve_grain_column.return_value = "ds"
+    payload: dict[str, Any] = {
+        "offset": 0,
+        "time_grain": "P1DD",
+        "time_column": "ds",
+        "dimensions": [],
+    }
+
+    api = DatasourceRestApi()
+    with patch.object(api, "response_400", side_effect=AssertionError) as m:
+        with pytest.raises(AssertionError):
+            api._execute_and_respond(resolved, payload)
+    assert "Unsupported time_grain" in m.call_args.kwargs["message"]

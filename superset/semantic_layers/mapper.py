@@ -80,8 +80,8 @@ OPERATOR_MAP = {
     FilterOperator.LIKE.value: Operator.LIKE,
     FilterOperator.NOT_LIKE.value: Operator.NOT_LIKE,
     # Case-insensitive matching is passed through to the provider, which
-    # resolves it per its own collation rules. Providers that cannot
-    # express ILIKE should advertise that via a SemanticViewFeature.
+    # resolves it per its own collation rules. There is no capability flag for
+    # this yet, so a provider that cannot express it will surface an error.
     FilterOperator.ILIKE.value: Operator.ILIKE,
     FilterOperator.NOT_ILIKE.value: Operator.NOT_ILIKE,
     FilterOperator.IS_NULL.value: Operator.IS_NULL,

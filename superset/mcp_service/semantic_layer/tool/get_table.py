@@ -223,6 +223,7 @@ def _build_query_dict(
         limit=request.row_limit,
         order=[(name, request.order_desc) for name in request.order_by],
         order_desc=request.order_desc,
+        rewrite_one_sided_time_range=request.view_id is not None,
     )
 
 

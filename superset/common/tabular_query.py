@@ -162,14 +162,16 @@ def _resolve_time_column(
             )
 
     if resolved is not None and resolved not in set(dttm_columns):
+        subject = (
+            f"time_column '{resolved}'"
+            if time_column
+            else f"the configured temporal column '{resolved}'"
+        )
         if resolved in valid_columns:
             raise TabularQueryValidationError(
-                f"time_column '{resolved}' on '{display_name}' is not marked "
-                "as a datetime column."
+                f"{subject} on '{display_name}' is not marked as a datetime column."
             )
-        raise TabularQueryValidationError(
-            f"Unknown time_column: '{resolved}' on '{display_name}'."
-        )
+        raise TabularQueryValidationError(f"Unknown {subject} on '{display_name}'.")
     return resolved
 
 
@@ -278,26 +280,36 @@ def validate_query_names(
     return errors
 
 
-def _time_range_filters(time_column: str, time_range: str) -> list[dict[str, Any]]:
-    """Express *time_range* as filters the semantic-layer mapper can consume.
+def _time_range_filters(
+    time_column: str, time_range: str, rewrite_one_sided: bool
+) -> list[dict[str, Any]]:
+    """Express *time_range* as query filters.
 
-    A one-sided range becomes an explicit comparison rather than
-    ``TEMPORAL_RANGE``, for two reasons. ``_apply_granularity`` deletes every
-    filter on the granularity column once any ``TEMPORAL_RANGE`` filter is
-    present, and the mapper's ``_get_time_filter`` emits nothing unless both
-    bounds resolve — so the range would vanish and the query would scan the
-    whole view. Two-sided ranges keep ``TEMPORAL_RANGE``, which also resolves
-    relative strings and carries time-offset shifting that fixed bounds cannot.
+    Semantic views need a one-sided range rewritten as an explicit comparison:
+    ``_apply_granularity`` deletes every filter on the granularity column once a
+    ``TEMPORAL_RANGE`` filter is present, and the mapper's ``_get_time_filter``
+    emits nothing unless both bounds resolve, so the range would vanish and the
+    query would scan the whole view.
+
+    Datasets must keep ``TEMPORAL_RANGE``. ``SqlaTable.get_time_filter`` accepts
+    either bound alone and is the only path that applies the dataset's timezone,
+    the legacy hour offset and grain-aware truncation, so rewriting would shift
+    one-sided results relative to two-sided ones and leave ``from_dttm`` /
+    ``to_dttm`` unset for Jinja.
     """
+    temporal_range = [
+        {
+            "col": time_column,
+            "op": FilterOperator.TEMPORAL_RANGE.value,
+            "val": time_range,
+        }
+    ]
+    if not rewrite_one_sided:
+        return temporal_range
+
     since, until = get_since_until_from_time_range(time_range=time_range)
     if since and until:
-        return [
-            {
-                "col": time_column,
-                "op": FilterOperator.TEMPORAL_RANGE.value,
-                "val": time_range,
-            }
-        ]
+        return temporal_range
 
     bounds = (
         (FilterOperator.GREATER_THAN_OR_EQUALS, since),
@@ -323,6 +335,7 @@ def build_query_dict(
     offset: int = 0,
     order: Sequence[OrderSpec] | None = None,
     order_desc: bool = True,
+    rewrite_one_sided_time_range: bool = False,
 ) -> dict[str, Any]:
     """Assemble a QueryObject-shaped dict from a name-based request.
 
@@ -333,7 +346,9 @@ def build_query_dict(
     """
     query_filters: list[dict[str, Any]] = list(filters or [])
     if time_range and time_column:
-        query_filters.extend(_time_range_filters(time_column, time_range))
+        query_filters.extend(
+            _time_range_filters(time_column, time_range, rewrite_one_sided_time_range)
+        )
 
     query_columns: list[Column] = list(dimensions or [])
     if time_grain and grain_column:

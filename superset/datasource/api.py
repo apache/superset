@@ -41,6 +41,7 @@ from superset.daos.exceptions import DatasourceNotFound, DatasourceTypeNotSuppor
 from superset.datasource.schemas import DatasourceQuerySchema
 from superset.exceptions import (
     QueryObjectValidationError,
+    SupersetException,
     SupersetSecurityException,
 )
 from superset.extensions import cache_manager
@@ -706,17 +707,43 @@ class DatasourceRestApi(BaseSupersetApi):
         grain_column = resolved.resolve_grain_column(
             payload["time_column"], payload["dimensions"]
         )
-        if payload["time_grain"] and not grain_column:
-            # Silently dropping the grain would return unbucketed rows that look
-            # correct, so refuse instead.
-            return self.response_400(
-                message=(
-                    "time_grain requires a temporal column. Set time_column, "
-                    "include a datetime dimension, or provide time_range."
+        if payload["time_grain"]:
+            if not grain_column:
+                # Silently dropping the grain would return unbucketed rows that
+                # look correct, so refuse instead.
+                return self.response_400(
+                    message=(
+                        "time_grain requires a temporal column. Set time_column, "
+                        "include a datetime dimension, or provide time_range."
+                    )
                 )
-            )
+            supported = {
+                grain["duration"] for grain in resolved.explorable.get_time_grains()
+            }
+            if payload["time_grain"] not in supported:
+                # Unsupported grains reach get_timestamp_expr, which raises
+                # NotImplementedError rather than a validation error.
+                return self.response_400(
+                    message=(
+                        f"Unsupported time_grain: '{payload['time_grain']}'. "
+                        f"Supported: {', '.join(sorted(g for g in supported if g))}."
+                    )
+                )
 
-        query_dict = build_query_dict(
+        try:
+            query_dict = self._build_query_dict(resolved, payload, grain_column)
+        except ValidationError as ex:
+            return self.response_400(message=ex.messages)
+        except ValueError as ex:
+            return self.response_400(message=str(ex))
+
+        return self._run(resolved, payload, query_dict)
+
+    @staticmethod
+    def _build_query_dict(
+        resolved: ResolvedExplorable, payload: dict[str, Any], grain_column: str | None
+    ) -> dict[str, Any]:
+        return build_query_dict(
             time_column=resolved.time_column,
             metrics=payload["metrics"],
             dimensions=payload["dimensions"],
@@ -724,6 +751,9 @@ class DatasourceRestApi(BaseSupersetApi):
             time_range=payload["time_range"],
             time_grain=payload["time_grain"],
             grain_column=grain_column,
+            rewrite_one_sided_time_range=(
+                resolved.explorable.type == DatasourceType.SEMANTIC_VIEW.value
+            ),
             limit=payload["limit"],
             offset=payload["offset"],
             order=[(term["column"], term["descending"]) for term in payload["order"]],
@@ -732,6 +762,13 @@ class DatasourceRestApi(BaseSupersetApi):
                 payload["order"][0]["descending"] if payload["order"] else True
             ),
         )
+
+    def _run(
+        self,
+        resolved: ResolvedExplorable,
+        payload: dict[str, Any],
+        query_dict: dict[str, Any],
+    ) -> FlaskResponse:
         result_format = payload["result_format"]
 
         try:
@@ -826,37 +863,42 @@ class DatasourceRestApi(BaseSupersetApi):
                 400, message=f"Invalid datasource type: {datasource_type}"
             )
 
-        datasource = resolved.explorable
-        is_semantic_view = (
-            DatasourceType(datasource_type) == DatasourceType.SEMANTIC_VIEW
-        )
-        supported_operators = (
-            SUPPORTED_FILTER_OPERATORS
-            if is_semantic_view
-            else {op.value for op in FilterOperator}
-        )
-        features = sorted(
-            feature.value
-            for feature in getattr(
-                getattr(datasource, "implementation", None), "features", set()
+        try:
+            datasource = resolved.explorable
+            is_semantic_view = (
+                DatasourceType(datasource_type) == DatasourceType.SEMANTIC_VIEW
             )
-        )
-        result = dict(datasource.data)
-        result["capabilities"] = {
-            "is_rls_supported": datasource.is_rls_supported,
-            "query_language": datasource.query_language,
-            "supports_samples": getattr(datasource, "supports_samples", True),
-            "supports_drill_to_detail": getattr(
-                datasource, "supports_drill_to_detail", True
-            ),
-            # Datasets accept ad-hoc metrics; semantic views reject them in the
-            # mapper, since the provider owns metric definitions.
-            "supports_adhoc_metrics": not is_semantic_view,
-            "time_grains": datasource.get_time_grains(),
-            "supported_operators": sorted(supported_operators),
-            "features": features,
-        }
-        return self.response(200, result=result)
+            supported_operators = (
+                SUPPORTED_FILTER_OPERATORS
+                if is_semantic_view
+                else {op.value for op in FilterOperator}
+            )
+            features = sorted(
+                feature.value
+                for feature in getattr(
+                    getattr(datasource, "implementation", None), "features", set()
+                )
+            )
+            result = dict(datasource.data)
+            result["capabilities"] = {
+                "is_rls_supported": datasource.is_rls_supported,
+                "query_language": datasource.query_language,
+                "supports_samples": getattr(datasource, "supports_samples", True),
+                "supports_drill_to_detail": getattr(
+                    datasource, "supports_drill_to_detail", True
+                ),
+                # Datasets accept ad-hoc metrics; semantic views reject them in the
+                # mapper, since the provider owns metric definitions.
+                "supports_adhoc_metrics": not is_semantic_view,
+                "time_grains": datasource.get_time_grains(),
+                "supported_operators": sorted(supported_operators),
+                "features": features,
+            }
+            return self.response(200, result=result)
+        except SupersetSecurityException as ex:
+            return self.response(403, message=ex.message)
+        except (ValueError, SupersetException) as ex:
+            return self.response_400(message=str(ex))
 
     @expose("/", methods=("GET",))
     @protect()
