@@ -22,6 +22,7 @@ MCP tool: get_chart_data
 import logging
 import time
 from typing import Any, Dict, List, TYPE_CHECKING
+from uuid import UUID
 
 from fastmcp import Context
 from flask import current_app
@@ -1321,16 +1322,26 @@ def _write_excel_headers(ws: Any, columns: List[str]) -> None:
         ws.cell(row=1, column=idx, value=col)
 
 
+def _excel_scalar(value: Any) -> Any:
+    """Project a validated result scalar to values supported by Excel writers."""
+    if value is None:
+        return ""
+    if type(value) is UUID:
+        return UUID.__str__(value)
+    if type(value) is list or type(value) is dict:
+        return str(value)
+    return value
+
+
 def _write_excel_data(ws: Any, data: List[Dict[str, Any]], columns: List[str]) -> None:
     """Write data to Excel worksheet."""
     for row_idx, row in enumerate(data, 2):
         for col_idx, col in enumerate(columns, 1):
-            value = row.get(col, "")
-            if value is None:
-                value = ""
-            elif isinstance(value, (list, dict)):
-                value = str(value)
-            ws.cell(row=row_idx, column=col_idx, value=value)
+            ws.cell(
+                row=row_idx,
+                column=col_idx,
+                value=_excel_scalar(row.get(col, "")),
+            )
 
 
 def _try_xlsxwriter_fallback(
@@ -1393,12 +1404,7 @@ def _write_xlsxwriter_data(
     # Write data
     for row_idx, row in enumerate(data):
         for col_idx, col in enumerate(columns):
-            value = row.get(col, "")
-            if value is None:
-                value = ""
-            elif isinstance(value, (list, dict)):
-                value = str(value)
-            worksheet.write(row_idx + 1, col_idx, value)
+            worksheet.write(row_idx + 1, col_idx, _excel_scalar(row.get(col, "")))
 
 
 def _create_excel_chart_data(

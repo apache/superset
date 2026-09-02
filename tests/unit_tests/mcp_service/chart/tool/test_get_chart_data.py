@@ -26,6 +26,7 @@ from decimal import Decimal
 from types import SimpleNamespace
 from typing import Any, cast
 from unittest.mock import MagicMock
+from uuid import UUID
 from zoneinfo import ZoneInfo
 
 import numpy as np
@@ -551,6 +552,68 @@ class TestChartDataValuePreservation:
         assert result.excel_data is not None
         assert len(result.excel_data.encode()) > 64 * 1024
         assert len(result.model_dump_json().encode()) < MAX_QUERY_RESULT_VALUE_BYTES
+
+    def test_excel_export_maps_missing_engines_to_export_error(self) -> None:
+        from unittest.mock import patch
+
+        module = importlib.import_module(
+            "superset.mcp_service.chart.tool.get_chart_data"
+        )
+        chart = cast(
+            Any, SimpleNamespace(id=9, slice_name="UUID export", viz_type="table")
+        )
+
+        with (
+            patch.object(
+                module, "_create_excel_with_openpyxl", side_effect=ImportError
+            ),
+            patch.object(
+                module, "_create_excel_with_xlsxwriter", side_effect=ImportError
+            ),
+        ):
+            result = _export_data_as_excel(
+                chart,
+                [{"id": UUID("12345678-1234-5678-1234-567812345678")}],
+                ["id"],
+                None,
+                PerformanceMetadata(query_duration_ms=1, cache_status="fresh"),
+            )
+
+        assert isinstance(result, ChartError)
+        assert result.error_type == "ExportError"
+
+    def test_uuid_csv_and_json_projection_remains_stable(self) -> None:
+        chart = cast(
+            Any, SimpleNamespace(id=10, slice_name="UUID export", viz_type="table")
+        )
+        identifier = UUID("12345678-1234-5678-1234-567812345678")
+        performance = PerformanceMetadata(query_duration_ms=1, cache_status="fresh")
+
+        csv_result = _export_data_as_csv(
+            chart, [{"id": identifier}], ["id"], None, performance
+        )
+        assert isinstance(csv_result, ChartData)
+        assert csv_result.csv_data == f"id\r\n{identifier}\r\n"
+
+        json_result = ChartData(
+            chart_id=chart.id,
+            chart_name=chart.slice_name,
+            chart_type=chart.viz_type,
+            columns=[],
+            data=[{"id": identifier}],
+            row_count=1,
+            total_rows=1,
+            summary="UUID JSON",
+            insights=[],
+            data_quality={},
+            recommended_visualizations=[],
+            data_freshness=None,
+            performance=performance,
+        )
+        assert json.loads(json_result.model_dump_json())["data"] == [
+            {"id": str(identifier)}
+        ]
+        assert response_json_failure(json_result) is None
 
     def test_chart_data_preserves_column_sample_values(self) -> None:
         """Column sample values remain exact even when they look operational."""
@@ -3145,6 +3208,140 @@ async def test_unsaved_multi_query_consumes_canonical_cached_dttm(
     assert response.cache_status.cache_age_seconds >= 5_399
     assert response.query_results is not None
     assert len(response.query_results) == 2
+
+
+@pytest.mark.asyncio
+async def test_saved_get_data_accepts_real_postprocessing_null_and_large_full_sql(
+    mcp_server: Any, mock_auth: Any, app_context: None
+) -> None:
+    from unittest.mock import patch
+
+    from fastmcp import Client
+
+    from tests.unit_tests.mcp_service.chart.query_result_test_utils import (
+        real_compare_command_result,
+    )
+
+    module = importlib.import_module("superset.mcp_service.chart.tool.get_chart_data")
+    command_module = importlib.import_module(
+        "superset.commands.chart.data.get_data_command"
+    )
+    chart = SimpleNamespace(
+        id=13,
+        slice_name="Comparison",
+        viz_type="table",
+        datasource_id=1,
+        datasource_type="table",
+        query_context='{"queries": []}',
+        params='{"viz_type": "table"}',
+    )
+    sql = 'SELECT "chart café"\\n' + "x" * (70 * 1024)
+
+    class _Command:
+        def __init__(self, _query_context: Any) -> None: ...
+        def validate(self) -> None: ...
+        def run(self) -> dict[str, Any]:
+            return real_compare_command_result(sql)
+
+    with (
+        patch.object(module, "find_chart_by_identifier", return_value=chart),
+        patch.object(
+            module,
+            "validate_chart_dataset",
+            return_value=SimpleNamespace(is_valid=True, warnings=[], error=None),
+        ),
+        patch(
+            "superset.charts.schemas.ChartDataQueryContextSchema.load",
+            return_value=_query_context_stub(),
+        ),
+        patch.object(command_module, "ChartDataCommand", _Command),
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_chart_data", {"request": {"identifier": 13}}
+            )
+
+    payload = json.loads(result.content[0].text)
+    assert payload["data"][0]["finite"] == 2.5
+    assert any(value is None for value in payload["data"][0].values())
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("engine", ["openpyxl", "xlsxwriter"])
+async def test_real_get_chart_data_excel_stringifies_uuid_with_both_engines(
+    engine: str, mcp_server: Any, mock_auth: Any
+) -> None:
+    import base64
+    import io
+    from contextlib import ExitStack
+    from unittest.mock import patch
+
+    from fastmcp import Client
+    from openpyxl import load_workbook
+
+    module = importlib.import_module("superset.mcp_service.chart.tool.get_chart_data")
+    command_module = importlib.import_module(
+        "superset.commands.chart.data.get_data_command"
+    )
+    identifier = UUID("12345678-1234-5678-1234-567812345678")
+    chart = SimpleNamespace(
+        id=15,
+        slice_name="UUID export",
+        viz_type="table",
+        datasource_id=1,
+        datasource_type="table",
+        query_context='{"queries": []}',
+        params='{"viz_type": "table"}',
+    )
+
+    class _Command:
+        def __init__(self, _query_context: Any) -> None: ...
+        def validate(self) -> None: ...
+        def run(self) -> dict[str, Any]:
+            return {
+                "queries": [
+                    {
+                        "data": [{"id": identifier}],
+                        "colnames": ["id"],
+                        "rowcount": 1,
+                    }
+                ]
+            }
+
+    with ExitStack() as stack:
+        stack.enter_context(
+            patch.object(module, "find_chart_by_identifier", return_value=chart)
+        )
+        stack.enter_context(
+            patch.object(
+                module,
+                "validate_chart_dataset",
+                return_value=SimpleNamespace(is_valid=True, warnings=[], error=None),
+            )
+        )
+        stack.enter_context(
+            patch(
+                "superset.charts.schemas.ChartDataQueryContextSchema.load",
+                return_value=_query_context_stub(),
+            )
+        )
+        stack.enter_context(patch.object(command_module, "ChartDataCommand", _Command))
+        if engine == "xlsxwriter":
+            stack.enter_context(
+                patch.object(
+                    module, "_create_excel_with_openpyxl", side_effect=ImportError
+                )
+            )
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_chart_data",
+                {"request": {"identifier": 15, "format": "excel"}},
+            )
+
+    payload = json.loads(result.content[0].text)
+    assert payload["format"] == "excel"
+    workbook = load_workbook(io.BytesIO(base64.b64decode(payload["excel_data"])))
+    assert workbook.active["A2"].value == str(identifier)
 
 
 @pytest.mark.asyncio

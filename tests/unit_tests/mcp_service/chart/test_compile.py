@@ -1112,6 +1112,48 @@ def test_compile_accepts_timestamped_dataframe_result_shapes(
     )
 
 
+def test_compile_accepts_real_postprocessing_null_and_large_full_sql(
+    monkeypatch: pytest.MonkeyPatch, app_context: None
+) -> None:
+    """Compile accepts the producer contract and SQL metadata above 64 KiB."""
+    from types import SimpleNamespace
+
+    from superset.mcp_service.chart.compile import _compile_chart
+    from tests.unit_tests.mcp_service.chart.query_result_test_utils import (
+        real_compare_command_result,
+    )
+
+    chart_helpers_module = importlib.import_module(
+        "superset.mcp_service.chart.chart_helpers"
+    )
+    command_module = importlib.import_module(
+        "superset.commands.chart.data.get_data_command"
+    )
+    sql = 'SELECT "café"\\n' + "x" * (70 * 1024)
+
+    class _Command:
+        def __init__(self, _query_context: Any) -> None: ...
+        def validate(self) -> None: ...
+        def run(self) -> dict[str, Any]:
+            return real_compare_command_result(sql)
+
+    monkeypatch.setattr(
+        chart_helpers_module,
+        "build_query_context_from_form_data",
+        lambda *_args, **_kwargs: SimpleNamespace(),
+    )
+    monkeypatch.setattr(command_module, "ChartDataCommand", _Command)
+    monkeypatch.setattr(
+        "superset.charts.data.form_data.set_query_context_form_data",
+        lambda *_args, **_kwargs: None,
+    )
+
+    result = _compile_chart({"viz_type": "table", "metrics": ["count"]}, 3)
+
+    assert result.success
+    assert result.row_count == 1
+
+
 @patch("superset.charts.data.form_data.set_query_context_form_data")
 @patch("superset.daos.dataset.DatasetDAO")
 @patch("superset.commands.chart.data.get_data_command.ChartDataCommand")

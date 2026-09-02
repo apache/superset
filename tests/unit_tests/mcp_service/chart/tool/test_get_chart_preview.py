@@ -59,6 +59,59 @@ def _query_context_stub(form_data: dict[str, Any] | None = None) -> Any:
     return SimpleNamespace(form_data=form_data or {}, queries=[])
 
 
+def test_ascii_preview_accepts_real_postprocessing_null_and_large_full_sql(
+    monkeypatch: pytest.MonkeyPatch, app_context: None
+) -> None:
+    """Preview consumes a real producer envelope whose SQL exceeds 64 KiB."""
+    from tests.unit_tests.mcp_service.chart.query_result_test_utils import (
+        real_compare_command_result,
+    )
+
+    preview_module = importlib.import_module(
+        "superset.mcp_service.chart.tool.get_chart_preview"
+    )
+    command_module = importlib.import_module(
+        "superset.commands.chart.data.get_data_command"
+    )
+    sql = "SELECT 'café' -- " + "x" * (70 * 1024)
+
+    class _Command:
+        def __init__(self, _query_context: Any) -> None: ...
+        def validate(self) -> None: ...
+        def run(self) -> dict[str, Any]:
+            return real_compare_command_result(sql)
+
+    monkeypatch.setattr(
+        preview_module,
+        "build_query_context_from_form_data",
+        lambda *_args, **_kwargs: SimpleNamespace(
+            queries=[SimpleNamespace(metrics=["source"], columns=[])]
+        ),
+    )
+    monkeypatch.setattr(command_module, "ChartDataCommand", _Command)
+    monkeypatch.setattr(
+        preview_module,
+        "set_query_context_form_data",
+        lambda *_args, **_kwargs: None,
+    )
+    chart = SimpleNamespace(
+        id=104,
+        slice_name="Comparison",
+        viz_type="table",
+        datasource_id=1,
+        datasource_type="table",
+        params=utils_json.dumps({"viz_type": "table", "metrics": ["source"]}),
+    )
+
+    preview = ASCIIPreviewStrategy(
+        chart, GetChartPreviewRequest(identifier=104, format="ascii")
+    ).generate()
+
+    assert isinstance(preview, ASCIIPreview)
+    assert "2.5" in preview.ascii_content
+    assert "None" in preview.ascii_content
+
+
 def test_saved_timeseries_preview_executes_final_frontend_query_contract(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

@@ -686,6 +686,96 @@ def test_real_dataframe_and_chart_command_canonicalize_numeric_missing_values() 
     ]
 
 
+@pytest.mark.parametrize(
+    ("compare_type", "source", "comparison"),
+    [
+        ("ratio", 1.0, 0.0),
+        ("percentage", -1.0, 0.0),
+        ("difference", np.finfo(float).max, -np.finfo(float).max),
+    ],
+)
+def test_real_postprocessing_nonfinite_is_canonicalized_at_materialization(
+    app_context: None,
+    compare_type: str,
+    source: float,
+    comparison: float,
+) -> None:
+    """Built-in comparison overflow becomes null before ChartDataCommand output."""
+    from superset.commands.chart.data.get_data_command import ChartDataCommand
+    from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
+    from superset.common.query_context import QueryContext
+    from superset.common.query_context_processor import QueryContextProcessor
+    from superset.common.query_object import QueryObject
+
+    query = QueryObject(
+        post_processing=[
+            {
+                "operation": "compare",
+                "options": {
+                    "source_columns": ["source"],
+                    "compare_columns": ["comparison"],
+                    "compare_type": compare_type,
+                },
+            }
+        ]
+    )
+    processed = query.exec_post_processing(
+        pd.DataFrame(
+            {
+                "source": [source],
+                "comparison": [comparison],
+                "finite": [3.5],
+                "finite_integer": [2**53 + 1],
+            }
+        )
+    )
+    derived_column = next(
+        column
+        for column in processed.columns
+        if column not in {"source", "comparison", "finite", "finite_integer"}
+    )
+    assert np.isinf(processed[derived_column].iloc[0])
+    dtypes = processed.dtypes.copy()
+
+    processor_context = SimpleNamespace(
+        datasource=object(), result_format=ChartDataResultFormat.JSON
+    )
+    records = QueryContextProcessor(cast(QueryContext, processor_context)).get_data(
+        processed, [GenericDataType.NUMERIC] * len(processed.columns)
+    )
+    assert type(records) is list
+    assert records[0][derived_column] is None
+    assert records[0]["finite"] == 3.5
+    assert records[0]["finite_integer"] == 2**53 + 1
+    assert type(records[0]["finite_integer"]) is int
+    pd.testing.assert_series_equal(processed.dtypes, dtypes)
+    assert np.isinf(processed[derived_column].iloc[0])
+
+    class _Context:
+        result_type = ChartDataResultType.FULL
+
+        def get_payload(self, **_kwargs: Any) -> dict[str, Any]:
+            return {
+                "queries": [
+                    {
+                        "data": records,
+                        "colnames": list(processed.columns),
+                        "coltypes": [GenericDataType.NUMERIC] * len(processed.columns),
+                        "rowcount": 1,
+                    }
+                ]
+            }
+
+    result = ChartDataCommand(_Context()).run()  # type: ignore[arg-type]
+    data, failure = query_result_data(result)
+
+    assert failure is None
+    assert data is not None
+    assert data[0][0][derived_column] is None
+    assert data[0][0]["finite"] == 3.5
+    assert data[0][0]["finite_integer"] == 2**53 + 1
+
+
 def test_query_result_rejects_infinity_outside_the_producer_boundary() -> None:
     """Superset replaces infinities with NaN; an injected infinity is malformed."""
     data, failure = query_result_data(
@@ -739,6 +829,23 @@ def test_query_result_accepts_documented_row_and_scalar_boundaries() -> None:
     data, failure = query_result_data({"queries": [{"data": [row], "rowcount": 1}]})
     assert failure is None
     assert data == [[row]]
+
+
+def test_query_result_keeps_source_cell_string_cap_at_64_kib() -> None:
+    data, failure = query_result_data(
+        {
+            "queries": [
+                {
+                    "data": [{"value": "x" * (MAX_QUERY_RESULT_STRING_BYTES + 1)}],
+                    "rowcount": 1,
+                }
+            ]
+        }
+    )
+
+    assert data is None
+    assert failure is not None
+    assert "oversized string" in failure.error
 
 
 @pytest.mark.parametrize("chart_shape", ["big_number_raw_trend", "mixed_timeseries"])
@@ -935,10 +1042,88 @@ def test_query_result_enforces_total_metadata_byte_boundary() -> None:
     assert "metadata exceeds the total JSON-encoded byte limit" in failure.error
 
 
+@pytest.mark.parametrize("metadata_key", ["query", "sql"])
+@pytest.mark.parametrize("sql_bytes", [MAX_QUERY_RESULT_STRING_BYTES + 1, 70 * 1024])
+def test_query_result_accepts_full_sql_above_source_cell_string_limit(
+    metadata_key: str, sql_bytes: int
+) -> None:
+    from superset.commands.chart.data.get_data_command import ChartDataCommand
+    from superset.common.chart_data import ChartDataResultType
+
+    prefix = 'SELECT "café"\\n'
+    sql = prefix + "x" * (sql_bytes - len(prefix.encode()))
+    assert len(sql.encode()) == sql_bytes
+
+    class _Context:
+        result_type = ChartDataResultType.FULL
+
+        def get_payload(self, **_kwargs: Any) -> dict[str, Any]:
+            return {"queries": [{"data": [], metadata_key: sql, "rowcount": 0}]}
+
+    result = ChartDataCommand(_Context()).run()  # type: ignore[arg-type]
+
+    data, failure = query_result_data(result)
+
+    assert failure is None
+    assert data == [[]]
+
+
+def test_query_result_enforces_exact_single_metadata_scalar_boundary() -> None:
+    prefix = 'SELECT "café"\\n'
+    # The query-only envelope charges 30 metadata bytes outside the SQL value:
+    # top/query object syntax and the compact JSON keys. Escaping/non-ASCII in
+    # the prefix is measured exactly by the shared JSON-string meter.
+    fixed_metadata_bytes = 30
+    prefix_bytes = _json_string_size(prefix, MAX_QUERY_RESULT_METADATA_BYTES)
+    assert prefix_bytes is not None
+    filler = MAX_QUERY_RESULT_METADATA_BYTES - fixed_metadata_bytes - prefix_bytes
+    sql = prefix + "x" * filler
+
+    data, failure = query_result_data({"queries": [{"data": [], "query": sql}]})
+    assert failure is None
+    assert data == [[]]
+
+    data, failure = query_result_data({"queries": [{"data": [], "query": sql + "x"}]})
+    assert data is None
+    assert failure is not None
+    assert "metadata exceeds the total JSON-encoded byte limit" in failure.error
+
+
+def test_metadata_scalar_is_also_charged_to_aggregate_json_budget() -> None:
+    sql = "SELECT 'café' -- " + "m" * (70 * 1024)
+    values: list[str] = []
+    result = {"queries": [{"data": [{"values": values}], "query": sql}]}
+    while True:
+        encoded_size = len(
+            json.dumps(result, ensure_ascii=False, separators=(",", ":")).encode()
+        )
+        remaining = MAX_QUERY_RESULT_VALUE_BYTES - encoded_size
+        if remaining <= MAX_QUERY_RESULT_STRING_BYTES + 3:
+            break
+        values.append("x" * MAX_QUERY_RESULT_STRING_BYTES)
+    # Appending the final array item costs its quotes and, because the array is
+    # nonempty, one comma in addition to its raw bytes.
+    values.append("x" * (remaining - 3))
+    assert (
+        len(json.dumps(result, ensure_ascii=False, separators=(",", ":")).encode())
+        == MAX_QUERY_RESULT_VALUE_BYTES
+    )
+
+    data, failure = query_result_data(result)
+    assert failure is None
+    assert data == [[{"values": values}]]
+
+    values[-1] += "x"
+    data, failure = query_result_data(result)
+    assert data is None
+    assert failure is not None
+    assert "total JSON-encoded byte limit" in failure.error
+
+
 def test_query_result_bounds_arbitrary_top_level_metadata() -> None:
     data, failure = query_result_data(
         {
-            "producer_metadata": "x" * (MAX_QUERY_RESULT_STRING_BYTES + 1),
+            "producer_metadata": "x" * (MAX_QUERY_RESULT_METADATA_BYTES + 1),
             "queries": [{"data": []}],
         }
     )
