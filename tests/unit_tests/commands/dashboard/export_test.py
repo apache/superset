@@ -247,6 +247,118 @@ def test_export_batches_dataset_export_across_targets():
     assert set(called_ids) == {1, 2}
 
 
+def test_file_content_resolves_string_and_int_dataset_ids_to_same_dataset():
+    """
+    Regression test: datasetId may be stored as either an int or a numeric
+    string (native_filter_cache.py types it int | str). A target with a
+    string datasetId must still resolve against the (int-keyed) dataset
+    lookup instead of silently missing datasetUuid.
+    """
+    from superset.commands.dashboard.export import ExportDashboardsCommand
+
+    dataset_uuid = str(uuid.uuid4())
+
+    mock_dashboard = _make_mock_dashboard(
+        {
+            "native_filter_configuration": [
+                {
+                    "id": "FILTER-1",
+                    "targets": [{"datasetId": "5"}, {"datasetId": 5}],
+                },
+            ],
+            "chart_customization_config": [],
+        }
+    )
+
+    mock_dataset = MagicMock()
+    mock_dataset.id = 5
+    mock_dataset.uuid = dataset_uuid
+
+    with (
+        patch(
+            "superset.commands.dashboard.export.DatasetDAO.find_by_ids",
+            return_value=[mock_dataset],
+        ) as mock_find_by_ids,
+        patch(
+            "superset.commands.dashboard.export.feature_flag_manager.is_feature_enabled",
+            return_value=False,
+        ),
+    ):
+        content = ExportDashboardsCommand._file_content(mock_dashboard)
+
+    # both the string and int forms of the same id are batched together
+    (called_ids,), _ = mock_find_by_ids.call_args
+    assert set(called_ids) == {5}
+
+    native_filters = yaml.safe_load(content)["metadata"]["native_filter_configuration"]
+    assert native_filters[0]["targets"][0]["datasetUuid"] == dataset_uuid
+    assert native_filters[0]["targets"][1]["datasetUuid"] == dataset_uuid
+
+
+def test_export_skips_dangling_dataset_references_without_raising():
+    """
+    Regression test: the find_by_ids pre-filter in _export must only pass
+    ids that actually resolved to ExportDatasetsCommand. Passing every
+    referenced id straight through — including one for a dataset that no
+    longer exists — would make ExportModelsCommand.validate() raise
+    DatasetNotFoundError and abort the entire dashboard export over a
+    single dangling filter/customization reference.
+    """
+    from superset.commands.dashboard.export import ExportDashboardsCommand
+
+    mock_dashboard = _make_mock_dashboard(
+        {
+            "native_filter_configuration": [
+                {
+                    "id": "FILTER-1",
+                    "targets": [{"datasetId": 1}, {"datasetId": 2}],
+                },
+            ],
+            "chart_customization_config": [
+                {
+                    "id": "CUSTOMIZATION-1",
+                    "type": "CHART_CUSTOMIZATION",
+                    # dataset 3 no longer exists (deleted dataset)
+                    "targets": [{"datasetId": 3}],
+                },
+            ],
+        }
+    )
+
+    mock_dataset_1 = MagicMock()
+    mock_dataset_1.id = 1
+    mock_dataset_2 = MagicMock()
+    mock_dataset_2.id = 2
+    mock_datasets_cmd = MagicMock()
+    mock_datasets_cmd.run.return_value = iter([])
+
+    with (
+        # dataset 3 is deliberately absent from the resolved list
+        patch(
+            "superset.commands.dashboard.export.DatasetDAO.find_by_ids",
+            return_value=[mock_dataset_1, mock_dataset_2],
+        ),
+        patch(
+            "superset.commands.dashboard.export.ExportDatasetsCommand",
+            return_value=mock_datasets_cmd,
+        ) as mock_datasets_cls,
+        patch(
+            "superset.commands.dashboard.export.ExportChartsCommand"
+        ) as mock_charts_cls,
+        patch(
+            "superset.commands.dashboard.export.feature_flag_manager.is_feature_enabled",
+            return_value=False,
+        ),
+    ):
+        mock_charts_cls.return_value.run.return_value = iter([])
+        # must not raise DatasetNotFoundError
+        list(ExportDashboardsCommand._export(mock_dashboard))
+
+    mock_datasets_cls.assert_called_once()
+    (called_ids,), _ = mock_datasets_cls.call_args
+    assert set(called_ids) == {1, 2}
+
+
 def test_export_yields_dataset_files_for_display_controls():
     """
     _export must yield dataset files for datasets referenced by display controls.

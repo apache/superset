@@ -48,6 +48,13 @@ DEFAULT_CHART_HEIGHT = 50
 DEFAULT_CHART_WIDTH = 4
 
 
+def _coerce_dataset_id(raw_dataset_id: Any) -> Optional[int]:
+    try:
+        return int(raw_dataset_id)
+    except (TypeError, ValueError):
+        return None
+
+
 def get_default_position(title: str) -> dict[str, Any]:
     return {
         "DASHBOARD_VERSION_KEY": "v2",
@@ -314,20 +321,18 @@ class ExportDashboardsCommand(ExportModelsCommand):
                     logger.info("Unable to decode `%s` field: %s", key, value)
                     payload[new_name] = {}
 
+        metadata = payload.get("metadata") or {}
+
         referenced_dataset_ids = {
-            target["datasetId"]
-            for native_filter in payload.get("metadata", {}).get(
-                "native_filter_configuration", []
-            )
+            dataset_id
+            for native_filter in metadata.get("native_filter_configuration", [])
             for target in native_filter.get("targets", [])
-            if target.get("datasetId") is not None
+            if (dataset_id := _coerce_dataset_id(target.get("datasetId"))) is not None
         } | {
-            target["datasetId"]
-            for customization in (
-                payload.get("metadata", {}).get("chart_customization_config") or []
-            )
+            dataset_id
+            for customization in metadata.get("chart_customization_config") or []
             for target in customization.get("targets") or []
-            if target.get("datasetId") is not None
+            if (dataset_id := _coerce_dataset_id(target.get("datasetId"))) is not None
         }
         datasets_by_id = {
             dataset.id: dataset
@@ -336,11 +341,9 @@ class ExportDashboardsCommand(ExportModelsCommand):
 
         # Extract all native filter datasets and replace native
         # filter dataset references with uuid
-        for native_filter in payload.get("metadata", {}).get(
-            "native_filter_configuration", []
-        ):
+        for native_filter in metadata.get("native_filter_configuration", []):
             for target in native_filter.get("targets", []):
-                dataset_id = target.pop("datasetId", None)
+                dataset_id = _coerce_dataset_id(target.pop("datasetId", None))
                 if dataset_id is not None and (
                     dataset := datasets_by_id.get(dataset_id)
                 ):
@@ -350,20 +353,21 @@ class ExportDashboardsCommand(ExportModelsCommand):
         # datasetId is intentionally preserved alongside datasetUuid so that
         # bundles remain importable by older versions that do not yet understand
         # datasetUuid for display-control targets.
-        for customization in (
-            payload.get("metadata", {}).get("chart_customization_config") or []
-        ):
+        for customization in metadata.get("chart_customization_config") or []:
             for target in customization.get("targets") or []:
-                dataset_id = target.get("datasetId")
-                if dataset_id is not None:
-                    if dataset := datasets_by_id.get(dataset_id):
+                raw_dataset_id = target.get("datasetId")
+                if raw_dataset_id is not None:
+                    dataset_id = _coerce_dataset_id(raw_dataset_id)
+                    if dataset_id is not None and (
+                        dataset := datasets_by_id.get(dataset_id)
+                    ):
                         target["datasetUuid"] = str(dataset.uuid)
                     else:
                         logger.warning(
                             "Dashboard '%s': display control target references "
                             "missing dataset %s; datasetUuid will not be set",
                             model.dashboard_title,
-                            dataset_id,
+                            raw_dataset_id,
                         )
 
         # the mapping between dashboard -> charts is inferred from the position
@@ -453,22 +457,20 @@ class ExportDashboardsCommand(ExportModelsCommand):
                     payload[new_name] = {}
 
         if export_related:
+            metadata = payload.get("metadata") or {}
+
             # Extract all native filter datasets and export referenced datasets
             referenced_dataset_ids: set[int] = set()
-            for native_filter in payload.get("metadata", {}).get(
-                "native_filter_configuration", []
-            ):
+            for native_filter in metadata.get("native_filter_configuration", []):
                 for target in native_filter.get("targets", []):
-                    dataset_id = target.pop("datasetId", None)
+                    dataset_id = _coerce_dataset_id(target.pop("datasetId", None))
                     if dataset_id is not None:
                         referenced_dataset_ids.add(dataset_id)
 
             # Export datasets referenced by display controls
-            for customization in (
-                payload.get("metadata", {}).get("chart_customization_config") or []
-            ):
+            for customization in metadata.get("chart_customization_config") or []:
                 for target in customization.get("targets") or []:
-                    dataset_id = target.get("datasetId")
+                    dataset_id = _coerce_dataset_id(target.get("datasetId"))
                     if dataset_id is not None:
                         referenced_dataset_ids.add(dataset_id)
 
