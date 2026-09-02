@@ -36,6 +36,7 @@ import {
   SupersetClient,
   getClientErrorObject,
   getExtensionsRegistry,
+  formatSpecifier,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import { t } from '@apache-superset/core/translation';
@@ -826,6 +827,78 @@ function EditorsSelector({
 }
 const ResultTable =
   extensionsRegistry.get('sqleditor.extension.resultTable') ?? FilterableTable;
+
+// D3's '%' and 'p' types both multiply by 100; parsed via d3-format's own
+// grammar so garbage like "foo%" is rejected rather than matched by suffix.
+// The stored value is trimmed before parsing because
+// NumberFormatterRegistry.get() trims it the same way before rendering, so
+// this check agrees with what the renderer actually sees.
+export const isPercentD3Format = (d3format?: string): boolean => {
+  if (!d3format) {
+    return false;
+  }
+  try {
+    const { type } = formatSpecifier(d3format.trim());
+    return type === '%' || type === 'p';
+  } catch {
+    return false;
+  }
+};
+
+// Matches the outermost COUNT(...) call's parens by depth, so a ratio like
+// `COUNT(*) / COUNT(*)` isn't misclassified but a nested call like
+// `COUNT(DISTINCT COALESCE(a, b))` is still recognized. Parens inside a
+// quoted string literal (single- or double-quoted, with a doubled quote as
+// an escaped quote) are ignored so they don't desync the depth count.
+export const isCountExpression = (expression?: string): boolean => {
+  const trimmed = expression?.trim();
+  if (!trimmed || !/^count\s*\(/i.test(trimmed) || !trimmed.endsWith(')')) {
+    return false;
+  }
+  let depth = 0;
+  let stringDelimiter: string | null = null;
+  for (let i = trimmed.indexOf('('); i < trimmed.length; i += 1) {
+    const char = trimmed[i];
+    if (stringDelimiter) {
+      if (char === stringDelimiter && trimmed[i + 1] === stringDelimiter) {
+        i += 1;
+      } else if (char === stringDelimiter) {
+        stringDelimiter = null;
+      }
+    } else if (char === "'" || char === '"') {
+      stringDelimiter = char;
+    } else if (char === '(') {
+      depth += 1;
+    } else if (char === ')') {
+      depth -= 1;
+      if (depth === 0) {
+        return i === trimmed.length - 1;
+      }
+    }
+  }
+  return false;
+};
+
+function renderMetricFormatWarning(item: Record<string, any>): ReactNode {
+  if (
+    !isCountExpression(item.expression) ||
+    !isPercentD3Format(item.d3format)
+  ) {
+    return null;
+  }
+  return (
+    <Alert
+      css={themeParam => ({ marginBottom: themeParam.sizeUnit * 4 })}
+      type="warning"
+      showIcon
+      message={t(
+        'This metric is a count, but its D3 format is a percentage. ' +
+          'Percent formats multiply the value by 100, which will make a ' +
+          'raw count render as a misleadingly large number.',
+      )}
+    />
+  );
+}
 
 // Redux connector types
 interface QueryPayload {
@@ -2170,7 +2243,7 @@ function DatasourceEditor({
           }}
           expandFieldset={
             <FormContainer>
-              <Fieldset compact>
+              <Fieldset compact renderWarning={renderMetricFormatWarning}>
                 <Field
                   fieldKey="expression"
                   label={t('SQL expression')}

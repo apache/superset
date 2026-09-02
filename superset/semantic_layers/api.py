@@ -197,7 +197,11 @@ class SemanticViewRestApi(BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     def structure(self, pk: int) -> Response:
-        """Get the structure (dimensions and metrics) of a semantic view.
+        """Get a semantic view's editable fields and its structure.
+
+        The editable fields (``description``, ``cache_timeout``) are served here
+        because ``SemanticViewRestApi`` exposes no detail route: this is the only
+        read endpoint an editor can hydrate from after a write.
         ---
         get:
           summary: Get semantic view structure
@@ -267,6 +271,8 @@ class SemanticViewRestApi(BaseSupersetModelRestApi):
             200,
             result={
                 "name": view.name,
+                "description": view.description,
+                "cache_timeout": view.cache_timeout,
                 "dimensions": dimensions,
                 "metrics": metrics,
             },
