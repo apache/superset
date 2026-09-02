@@ -20,7 +20,7 @@
 from __future__ import annotations
 
 import importlib
-from collections.abc import Generator
+from collections.abc import Callable, Generator
 from types import SimpleNamespace
 from typing import Any
 from unittest.mock import MagicMock, Mock, patch
@@ -138,6 +138,46 @@ def _mock_command_result(
     }
 
 
+class _HostileResultScalar:
+    """A result scalar whose public conversion hook must never execute."""
+
+    def __str__(self) -> str:
+        raise AssertionError("hostile result scalar string hook executed")
+
+
+async def _call_query_dataset_with_result(
+    mcp_server: FastMCP, result_data: dict[str, Any]
+) -> dict[str, Any]:
+    """Call query_dataset with a concrete ChartDataCommand envelope."""
+    dataset = _make_dataset()
+    with (
+        patch.object(query_dataset_module, "resolve_dataset", return_value=dataset),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand.validate"
+        ),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand.run",
+            return_value=result_data,
+        ),
+        patch(
+            "superset.common.query_context_factory.QueryContextFactory.create",
+            return_value=MagicMock(),
+        ),
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "query_dataset",
+                {
+                    "request": {
+                        "dataset_id": 1,
+                        "metrics": ["count"],
+                        "columns": ["category"],
+                    }
+                },
+            )
+    return json.loads(result.content[0].text)
+
+
 @pytest.mark.asyncio
 async def test_query_dataset_success(mcp_server: FastMCP) -> None:
     """Happy path: metrics + columns returns data."""
@@ -180,6 +220,82 @@ async def test_query_dataset_success(mcp_server: FastMCP) -> None:
     assert data["row_count"] == 2
     assert len(data["data"]) == 2
     assert data["data"][0]["category"] == "Electronics"
+
+
+@pytest.mark.asyncio
+async def test_query_dataset_normalizes_pandas_numpy_result_once(
+    mcp_server: FastMCP, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import numpy as np
+    import pandas as pd
+
+    real_normalizer = query_dataset_module.query_result_data
+    calls = 0
+
+    def count_normalization(result: Any) -> Any:
+        nonlocal calls
+        calls += 1
+        return real_normalizer(result)
+
+    monkeypatch.setattr(query_dataset_module, "query_result_data", count_normalization)
+    data = await _call_query_dataset_with_result(
+        mcp_server,
+        _mock_command_result(
+            data=[
+                {
+                    "category": pd.Timestamp("2024-01-02T03:04:05Z"),
+                    "count": np.int64(7),
+                    "missing": pd.NaT,
+                }
+            ],
+            colnames=["category", "count", "missing"],
+        ),
+    )
+
+    assert calls == 1
+    assert data["dataset_id"] == 1
+    assert data["data"] == [
+        {
+            "category": "2024-01-02T03:04:05+00:00",
+            "count": 7,
+            "missing": None,
+        }
+    ]
+
+
+@pytest.mark.parametrize(
+    "result_factory",
+    [
+        lambda: {"queries": [{"data": {}}]},
+        lambda: {"queries": [{"data": [{"category": "x" * (1024 * 1024)}]}]},
+        lambda: {"queries": [{"data": [{"category": _HostileResultScalar()}]}]},
+    ],
+)
+@pytest.mark.asyncio
+async def test_query_dataset_maps_invalid_result_without_formatting_hooks(
+    mcp_server: FastMCP,
+    monkeypatch: pytest.MonkeyPatch,
+    result_factory: Callable[[], dict[str, Any]],
+) -> None:
+    real_normalizer = query_dataset_module.query_result_data
+    calls = 0
+
+    def count_normalization(result: Any) -> Any:
+        nonlocal calls
+        calls += 1
+        return real_normalizer(result)
+
+    monkeypatch.setattr(query_dataset_module, "query_result_data", count_normalization)
+    monkeypatch.setattr(
+        query_dataset_module,
+        "format_data_columns",
+        lambda *_args: pytest.fail("invalid data must not reach formatting"),
+    )
+
+    data = await _call_query_dataset_with_result(mcp_server, result_factory())
+
+    assert calls == 1
+    assert data["error_type"] == "MalformedQueryResult"
 
 
 @pytest.mark.asyncio

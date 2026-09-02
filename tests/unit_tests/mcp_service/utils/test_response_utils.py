@@ -22,8 +22,11 @@ Unit tests for MCP service response utilities.
 from typing import Any
 
 from superset.mcp_service.utils.response_utils import (
+    data_column_stats_row_limit,
     format_data_columns,
     STATS_ROW_CAP,
+    STATS_SAMPLE_VALUE_ROWS,
+    STATS_TOTAL_WORK_CAP,
 )
 
 
@@ -107,3 +110,20 @@ class TestFormatDataColumns:
         columns = format_data_columns(data, ["region", "revenue"])
 
         assert [c.name for c in columns] == ["region", "revenue"]
+
+    def test_wide_sparse_metadata_uses_shared_row_column_work_budget(self) -> None:
+        """50k sparse rows and 4096 columns must not trigger 204.8m scans."""
+        row_count = 50_000
+        column_count = 4096
+        rows: list[dict[str, Any]] = [{} for _ in range(row_count)]
+        raw_columns = [f"column_{index}" for index in range(column_count)]
+
+        columns = format_data_columns(rows, raw_columns)
+
+        sampled_rows = data_column_stats_row_limit(row_count, column_count)
+        assert sampled_rows == (
+            STATS_TOTAL_WORK_CAP // column_count - STATS_SAMPLE_VALUE_ROWS
+        )
+        assert len(columns) == column_count
+        assert columns[0].statistics == {"sampled_rows": sampled_rows}
+        assert columns[-1].statistics == {"sampled_rows": sampled_rows}

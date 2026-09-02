@@ -23,12 +23,15 @@ from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta, timezone
 from decimal import Decimal
 from enum import Enum
+from types import MappingProxyType
 from typing import Any
 from uuid import UUID
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import numpy as np
 import pandas as pd
+import pytz
+from dateutil import tz as dateutil_tz
 
 from superset.mcp_service.chart.schemas import ChartError
 from superset.utils.core import GenericDataType
@@ -54,14 +57,19 @@ _MAX_RESULT_ROW_COUNT = (1 << 63) - 1
 
 # Chart results are routinely much larger than an MCP response should return, but
 # legitimate exports and high-cardinality chart queries still need useful room.
-# These limits allow up to 50k rows, 1m scalar/container values, and 16 MiB of
-# textual row data while bounding validation work before response construction.
+# Each query may return Superset's configured 50k ROW_LIMIT. The aggregate row
+# budget admits both legs of Big Number raw/trend and Mixed Timeseries results
+# at that limit, while the value budget admits twenty scalar columns on both
+# legs (plus their row containers). Text remains capped at 16 MiB. Metadata
+# profiling has a separate row-by-column work budget in ``response_utils`` so
+# wide sparse results cannot turn bounded validation into an unbounded scan.
 # Individual cell strings are capped at 64 KiB and object keys at 4 KiB. Query
 # metadata has its own 1 MiB aggregate budget so SQL and cache metadata cannot
 # consume the row-data allowance. Integer/Decimal bounds also prevent later
 # hashing, uniqueness, and JSON conversion from allocating by numeric magnitude.
 MAX_QUERY_RESULT_ROWS = 50_000
-MAX_QUERY_RESULT_VALUES = 1_000_000
+MAX_QUERY_RESULT_TOTAL_ROWS = 2 * MAX_QUERY_RESULT_ROWS
+MAX_QUERY_RESULT_VALUES = 2_500_000
 MAX_QUERY_RESULT_VALUE_BYTES = 16 * 1024 * 1024
 MAX_QUERY_RESULT_METADATA_BYTES = 1024 * 1024
 MAX_QUERY_RESULT_METADATA_ITEMS = 32_768
@@ -77,6 +85,12 @@ _BUILTIN_SCALAR_TYPES = (str, bytes, bytearray, memoryview, int, float, bool)
 _SCALAR_BASE_TYPES = (*_BUILTIN_SCALAR_TYPES, Enum)
 _SUPPORTED_COLTYPES = frozenset(GenericDataType)
 _TRUSTED_TZINFO_TYPES = (timezone, ZoneInfo)
+_DATEUTIL_TZFILE_TYPE = dateutil_tz.tzfile
+_DATEUTIL_TZOFFSET_TYPE = type(dateutil_tz.tzoffset(None, 0))
+_DATEUTIL_TZUTC_TYPE = type(dateutil_tz.UTC)
+_PYTZ_FIXED_OFFSET_TYPE = type(pytz.FixedOffset(1))
+_PYTZ_UTC_TYPE = type(pytz.UTC)
+_PYTZ_NAMED_BASE_TYPES = (pytz.tzinfo.DstTzInfo, pytz.tzinfo.StaticTzInfo)
 _NUMPY_INTEGER_TYPES = frozenset(
     type(value)
     for value in (
@@ -405,27 +419,22 @@ def _decimal_failure(value: Decimal) -> str | None:
     return None
 
 
-def _timezone_name_without_hooks(tzinfo: Any) -> str | None:
-    """Read an IANA name from pytz/dateutil state without calling tz hooks."""
-    value_type = type(tzinfo)
-    for base in _type_mro(value_type):
-        try:
-            namespace = type.__getattribute__(base, "__dict__")
-        except (AttributeError, TypeError):  # pragma: no cover - normal type MRO
-            continue
-        zone = namespace.get("zone")
-        if type(zone) is str and _bounded_utf8_length(zone, 256) is not None:
-            return zone
-
+def _exact_object_namespace(value: Any) -> dict[str, Any] | None:
+    """Read an object's concrete storage without descriptor dispatch."""
     try:
-        namespace = object.__getattribute__(tzinfo, "__dict__")
+        namespace = object.__getattribute__(value, "__dict__")
     except (AttributeError, TypeError):
         return None
-    if type(namespace) is not dict:
+    return namespace if type(namespace) is dict else None
+
+
+def _dateutil_timezone_name_without_hooks(tzinfo: Any) -> str | None:
+    """Read a dateutil tzfile's IANA name from exact internal storage."""
+    if type(tzinfo) is not _DATEUTIL_TZFILE_TYPE:
         return None
-    zone = dict.get(namespace, "zone")
-    if type(zone) is str and _bounded_utf8_length(zone, 256) is not None:
-        return zone
+    namespace = _exact_object_namespace(tzinfo)
+    if namespace is None:
+        return None
     filename = dict.get(namespace, "_filename")
     if type(filename) is not str or _bounded_utf8_length(filename, 4096) is None:
         return None
@@ -437,11 +446,57 @@ def _timezone_name_without_hooks(tzinfo: Any) -> str | None:
     return name if _bounded_utf8_length(name, 256) is not None else None
 
 
+def _pytz_timezone_name_without_hooks(tzinfo: Any) -> str | None:
+    """Read and verify one generated pytz named-zone implementation."""
+    value_type = type(tzinfo)
+    if not _mro_contains(_type_mro(value_type), _PYTZ_NAMED_BASE_TYPES):
+        return None
+    try:
+        namespace = type.__getattribute__(value_type, "__dict__")
+    except (AttributeError, TypeError):
+        return None
+    if type(namespace) is not MappingProxyType:
+        return None
+    zone = namespace.get("zone")
+    if type(zone) is not str or _bounded_utf8_length(zone, 256) is None:
+        return None
+    try:
+        canonical = pytz.timezone(zone)
+    except (KeyError, ValueError):
+        return None
+    # A user subclass can inherit pytz's base and spoof ``zone``. Only the
+    # concrete class generated and cached by pytz for that name is trusted.
+    return zone if type(canonical) is value_type else None
+
+
+def _fixed_offset_without_hooks(tzinfo: Any) -> timezone | None:
+    """Reconstruct trusted dateutil/pytz fixed offsets from exact storage."""
+    if type(tzinfo) not in {_DATEUTIL_TZOFFSET_TYPE, _PYTZ_FIXED_OFFSET_TYPE}:
+        return None
+    namespace = _exact_object_namespace(tzinfo)
+    if namespace is None:
+        return None
+    offset = dict.get(namespace, "_offset")
+    if type(offset) is not timedelta:
+        return None
+    try:
+        return timezone(offset)
+    except ValueError:
+        return None
+
+
 def _canonical_timezone(tzinfo: Any) -> timezone | ZoneInfo | None:
     """Return an exact trusted timezone without invoking the source's methods."""
     if any(type(tzinfo) is type_ for type_ in _TRUSTED_TZINFO_TYPES):
         return tzinfo
-    if zone_name := _timezone_name_without_hooks(tzinfo):
+    if type(tzinfo) in {_DATEUTIL_TZUTC_TYPE, _PYTZ_UTC_TYPE}:
+        return timezone.utc
+    if fixed_offset := _fixed_offset_without_hooks(tzinfo):
+        return fixed_offset
+    zone_name = _dateutil_timezone_name_without_hooks(
+        tzinfo
+    ) or _pytz_timezone_name_without_hooks(tzinfo)
+    if zone_name:
         try:
             return ZoneInfo(zone_name)
         except (KeyError, ValueError, ZoneInfoNotFoundError):
@@ -811,21 +866,14 @@ def query_result_data(  # noqa: C901
     if budget.metadata_bytes > MAX_QUERY_RESULT_METADATA_BYTES:
         return None, _malformed_result("top-level metadata exceeds the byte limit")
 
-    for metadata_key in (
-        "cache_key",
-        "cached_dttm",
-        "cache_dttm",
-        "queried_dttm",
-        "cache_timeout",
-        "is_cached",
-        "rowcount",
-        "total_rows",
-    ):
-        if dict.__contains__(result, metadata_key):
-            if reason := _metadata_failure_for_value(
-                dict.__getitem__(result, metadata_key), budget
-            ):
-                return None, _malformed_result(f"top-level result {reason}")
+    for metadata_key, metadata_value in dict.items(result):
+        # ChartDataCommand.run attaches the trusted QueryContext object as a
+        # producer sidecar. MCP consumers never inspect or serialize it. Error
+        # fields have their own width/depth-bounded extraction below.
+        if metadata_key in {"queries", "query_context", *_ERROR_KEYS, "errors"}:
+            continue
+        if reason := _metadata_failure_for_value(metadata_value, budget):
+            return None, _malformed_result(f"top-level result {reason}")
 
     if metadata_failure := _metadata_failure(result, "top-level result"):
         return None, metadata_failure
@@ -885,7 +933,7 @@ def query_result_data(  # noqa: C901
         if data_length > MAX_QUERY_RESULT_ROWS:
             return None, _malformed_result(f"query {index} data exceeds the row limit")
         budget.rows += data_length
-        if budget.rows > MAX_QUERY_RESULT_ROWS:
+        if budget.rows > MAX_QUERY_RESULT_TOTAL_ROWS:
             return None, _malformed_result("queries exceed the total row limit")
         for count_key in ("rowcount", "total_rows"):
             if dict.__contains__(query, count_key):

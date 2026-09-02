@@ -26,6 +26,7 @@ from unittest.mock import MagicMock, patch
 
 import pandas as pd
 import pytest
+from dateutil import tz as dateutil_tz
 
 from superset.mcp_service.chart.schemas import (
     AccessibilityMetadata,
@@ -650,7 +651,11 @@ class TestGetChartPreview:
                         {
                             "data": [
                                 {
-                                    "event_time": pd.Timestamp("2024-01-01T00:00:00Z"),
+                                    "event_time": pd.Timestamp(
+                                        "2024-01-01T00:00:00"
+                                    ).tz_localize(
+                                        dateutil_tz.tzoffset("east", 5 * 3600 + 30 * 60)
+                                    ),
                                     "gender": "boy",
                                     "count": 1,
                                 }
@@ -1024,7 +1029,11 @@ class TestGetChartPreview:
                         {
                             "data": [
                                 {
-                                    "event_time": pd.Timestamp("2024-01-01T00:00:00Z"),
+                                    "event_time": pd.Timestamp(
+                                        "2024-01-01T00:00:00"
+                                    ).tz_localize(
+                                        dateutil_tz.tzoffset("east", 5 * 3600 + 30 * 60)
+                                    ),
                                     "gender": "boy",
                                     "count": 1,
                                 }
@@ -1128,7 +1137,7 @@ class TestGetChartPreview:
 
         assert isinstance(result, ChartPreview)
         assert isinstance(result.content, TablePreview)
-        assert "2024-01-01T00:00:00+00:00" in result.content.table_data
+        assert "2024-01-01T00:00:00+05:30" in result.content.table_data
         query = captured_query_contexts[0]["queries"][0]
         assert query["filters"] == [{"col": "gender", "op": "==", "val": "boy"}]
 

@@ -28,6 +28,8 @@ from zoneinfo import ZoneInfo
 import numpy as np
 import pandas as pd
 import pytest
+import pytz
+from dateutil import tz as dateutil_tz
 
 from superset.mcp_service.chart.query_result import (
     _truncate_utf8,
@@ -38,6 +40,7 @@ from superset.mcp_service.chart.query_result import (
     MAX_QUERY_RESULT_METADATA_BYTES,
     MAX_QUERY_RESULT_ROWS,
     MAX_QUERY_RESULT_STRING_BYTES,
+    MAX_QUERY_RESULT_TOTAL_ROWS,
     MAX_QUERY_RESULT_VALUES,
     query_result_data,
     safe_exception_message,
@@ -190,6 +193,18 @@ def test_real_dataframe_chart_data_normalizes_trusted_temporal_scalars(
     frame = pd.DataFrame(
         {
             "event_time": [folded, pd.NaT],
+            "fixed_time": [
+                pd.Timestamp(
+                    datetime(
+                        2024,
+                        1,
+                        1,
+                        12,
+                        tzinfo=dateutil_tz.tzoffset("east", 5 * 3600 + 30 * 60),
+                    )
+                ),
+                pd.Timestamp(datetime(2024, 1, 1, 12, tzinfo=pytz.FixedOffset(-450))),
+            ],
             "duration": [np.timedelta64(5, "s"), np.timedelta64("NaT")],
             "metric": [np.float64(1.25), np.float64(2.5)],
             "enabled": [np.bool_(True), np.bool_(False)],
@@ -201,6 +216,7 @@ def test_real_dataframe_chart_data_normalizes_trusted_temporal_scalars(
     records = QueryContextProcessor(cast(QueryContext, processor_context)).get_data(
         frame,
         [
+            GenericDataType.TEMPORAL,
             GenericDataType.TEMPORAL,
             GenericDataType.TEMPORAL,
             GenericDataType.NUMERIC,
@@ -222,6 +238,7 @@ def test_real_dataframe_chart_data_normalizes_trusted_temporal_scalars(
                         "coltypes": [
                             GenericDataType.TEMPORAL,
                             GenericDataType.TEMPORAL,
+                            GenericDataType.TEMPORAL,
                             GenericDataType.NUMERIC,
                             GenericDataType.BOOLEAN,
                         ],
@@ -239,6 +256,8 @@ def test_real_dataframe_chart_data_normalizes_trusted_temporal_scalars(
     assert data is not None
     assert data[0][0]["event_time"] == "2024-11-03T01:30:00-05:00"
     assert data[0][1]["event_time"] is None
+    assert data[0][0]["fixed_time"] == "2024-01-01T12:00:00+05:30"
+    assert data[0][1]["fixed_time"] == "2024-01-01T12:00:00-07:30"
     assert data[0][0]["duration"] == "P0DT0H0M5S"
     assert data[0][1]["duration"] is None
     assert type(data[0][0]["metric"]) is float
@@ -285,6 +304,64 @@ def test_query_result_canonicalizes_common_pandas_timezones_without_tz_hooks(
 
     assert failure is None
     assert data == [[{"value": "2024-11-03T01:30:00-08:00"}]]
+
+
+@pytest.mark.parametrize(
+    ("tzinfo_value", "expected_offset"),
+    [
+        (dateutil_tz.tzoffset("east", 5 * 3600 + 30 * 60), "+05:30"),
+        (dateutil_tz.tzoffset("west", -(7 * 3600 + 30 * 60)), "-07:30"),
+        (pytz.FixedOffset(330), "+05:30"),
+        (pytz.FixedOffset(-450), "-07:30"),
+        (dateutil_tz.UTC, "+00:00"),
+        (pytz.UTC, "+00:00"),
+    ],
+)
+def test_query_result_canonicalizes_fixed_offset_dataframe_timestamps(
+    tzinfo_value: tzinfo, expected_offset: str
+) -> None:
+    timestamp = pd.Timestamp(datetime(2024, 2, 3, 4, 5, tzinfo=tzinfo_value))
+    records = pd.DataFrame({"event_time": [timestamp]}).to_dict("records")
+
+    data, failure = query_result_data({"queries": [{"data": records, "rowcount": 1}]})
+
+    assert failure is None
+    assert data == [[{"event_time": f"2024-02-03T04:05:00{expected_offset}"}]]
+
+
+@pytest.mark.parametrize("timezone_name", ["US/Pacific", "dateutil/US/Pacific"])
+def test_query_result_preserves_named_zone_fold_after_dataframe_materialization(
+    timezone_name: str,
+) -> None:
+    folded = pd.Timestamp("2024-11-03 01:30").tz_localize(
+        timezone_name, ambiguous=False
+    )
+    records = pd.DataFrame({"event_time": [folded]}).to_dict("records")
+
+    data, failure = query_result_data({"queries": [{"data": records, "rowcount": 1}]})
+
+    assert failure is None
+    assert data == [[{"event_time": "2024-11-03T01:30:00-08:00"}]]
+
+
+@pytest.mark.parametrize(
+    "tzinfo_value",
+    [dateutil_tz.tzoffset("east", 3600), pytz.FixedOffset(60)],
+)
+def test_fixed_offset_canonicalization_never_calls_source_timezone_hooks(
+    monkeypatch: pytest.MonkeyPatch, tzinfo_value: tzinfo
+) -> None:
+    timestamp = pd.Timestamp(datetime(2024, 1, 1, tzinfo=tzinfo_value))
+    source_type = type(tzinfo_value)
+    for method_name in ("utcoffset", "dst", "tzname"):
+        monkeypatch.setattr(source_type, method_name, _hostile_call, raising=False)
+
+    data, failure = query_result_data(
+        {"queries": [{"data": [{"value": timestamp}], "rowcount": 1}]}
+    )
+
+    assert failure is None
+    assert data == [[{"value": "2024-01-01T00:00:00+01:00"}]]
 
 
 @pytest.mark.parametrize(
@@ -337,15 +414,60 @@ def test_query_result_accepts_documented_row_and_scalar_boundaries() -> None:
         }
     )
 
-    # The aggregate row budget applies across queries, even though each query is
-    # independently at or below its per-query boundary.
-    assert data is None
-    assert failure is not None
-    assert "total row limit" in failure.error
+    assert failure is None
+    assert data == [rows, [row]]
 
     data, failure = query_result_data({"queries": [{"data": [row], "rowcount": 1}]})
     assert failure is None
     assert data == [[row]]
+
+
+@pytest.mark.parametrize("chart_shape", ["big_number_raw_trend", "mixed_timeseries"])
+def test_query_result_accepts_two_max_row_query_legs(chart_shape: str) -> None:
+    rows: list[dict[str, Any]] = [{} for _ in range(MAX_QUERY_RESULT_ROWS)]
+    result = {
+        "chart_shape": chart_shape,
+        "queries": [
+            {"data": rows, "rowcount": MAX_QUERY_RESULT_ROWS},
+            {"data": rows, "rowcount": MAX_QUERY_RESULT_ROWS},
+        ],
+    }
+
+    data, failure = query_result_data(result)
+
+    assert failure is None
+    assert data is not None
+    assert sum(len(query_rows) for query_rows in data) == MAX_QUERY_RESULT_TOTAL_ROWS
+
+
+def test_query_result_rejects_one_row_beyond_aggregate_multi_query_budget() -> None:
+    rows: list[dict[str, Any]] = [{} for _ in range(MAX_QUERY_RESULT_ROWS)]
+
+    data, failure = query_result_data(
+        {
+            "queries": [
+                {"data": rows, "rowcount": MAX_QUERY_RESULT_ROWS},
+                {"data": rows, "rowcount": MAX_QUERY_RESULT_ROWS},
+                {"data": [{}], "rowcount": 1},
+            ]
+        }
+    )
+
+    assert data is None
+    assert failure is not None
+    assert "total row limit" in failure.error
+
+
+def test_query_result_accepts_fifty_thousand_rows_with_twenty_columns() -> None:
+    row = {f"column_{index}": index for index in range(20)}
+    rows = [row] * MAX_QUERY_RESULT_ROWS
+
+    data, failure = query_result_data(
+        {"queries": [{"data": rows, "rowcount": MAX_QUERY_RESULT_ROWS}]}
+    )
+
+    assert failure is None
+    assert data == [rows]
 
 
 def test_query_result_rejects_one_row_beyond_documented_boundary() -> None:
@@ -413,6 +535,19 @@ def test_query_result_enforces_total_metadata_byte_boundary() -> None:
     assert data is None
     assert failure is not None
     assert "metadata exceeds the total byte limit" in failure.error
+
+
+def test_query_result_bounds_arbitrary_top_level_metadata() -> None:
+    data, failure = query_result_data(
+        {
+            "producer_metadata": "x" * (MAX_QUERY_RESULT_STRING_BYTES + 1),
+            "queries": [{"data": []}],
+        }
+    )
+
+    assert data is None
+    assert failure is not None
+    assert "top-level result metadata" in failure.error
 
 
 def test_query_result_enforces_decimal_digit_and_exponent_boundaries() -> None:
