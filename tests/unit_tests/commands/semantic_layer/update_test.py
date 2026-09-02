@@ -28,10 +28,13 @@ from superset.commands.semantic_layer.exceptions import (
     SemanticViewNotFoundError,
 )
 from superset.commands.semantic_layer.update import (
+    _unmask_configuration,
     UpdateSemanticLayerCommand,
     UpdateSemanticViewCommand,
 )
+from superset.constants import PASSWORD_MASK
 from superset.exceptions import SupersetSecurityException
+from superset.utils import json
 
 
 def test_update_semantic_view_success(mocker: MockerFixture) -> None:
@@ -462,4 +465,111 @@ def test_update_uniqueness_same_config_same_name_fails(
         name="my_view",
         layer_uuid="layer-uuid-1",
         configuration={"schema": "prod"},
+    )
+
+
+# =============================================================================
+# _unmask_configuration tests
+# =============================================================================
+
+
+def test_unmask_configuration_restores_masked_secret() -> None:
+    """A masked write-only field in the payload is replaced by the stored
+    value rather than overwriting the real credential with the mask."""
+    result = _unmask_configuration(
+        '{"account": "test", "password": "hunter2"}',
+        {"account": "test", "password": PASSWORD_MASK},
+    )
+
+    assert result == {"account": "test", "password": "hunter2"}
+
+
+def test_unmask_configuration_keeps_fresh_secret() -> None:
+    """A genuinely new secret value (not the mask sentinel) passes through
+    unchanged."""
+    result = _unmask_configuration(
+        '{"account": "test", "password": "old-secret"}',
+        {"account": "test", "password": "new-secret"},
+    )
+
+    assert result == {"account": "test", "password": "new-secret"}
+
+
+def test_unmask_configuration_restores_fail_closed_masked_fields() -> None:
+    """When the read path fell back to masking every value (schema
+    unavailable at GET time), the update path must restore all of them on
+    round-trip, not just write-only ones -- otherwise a name-only save
+    persists the literal mask into non-secret fields like ``account`` once
+    the schema becomes available again."""
+    result = _unmask_configuration(
+        '{"account": "test", "database": "prod", "password": "hunter2"}',
+        {
+            "account": PASSWORD_MASK,
+            "database": PASSWORD_MASK,
+            "password": PASSWORD_MASK,
+        },
+    )
+
+    assert result == {
+        "account": "test",
+        "database": "prod",
+        "password": "hunter2",
+    }
+
+
+def test_unmask_configuration_missing_existing_key() -> None:
+    """A masked field with no corresponding stored value passes through
+    unchanged rather than raising."""
+    result = _unmask_configuration(
+        '{"account": "test"}',
+        {"account": "test", "password": PASSWORD_MASK},
+    )
+
+    assert result == {"account": "test", "password": PASSWORD_MASK}
+
+
+def test_update_semantic_layer_preserves_masked_secret_end_to_end(
+    mocker: MockerFixture,
+) -> None:
+    """A name-only PUT that round-trips the masked GET response does not
+    overwrite the stored credential with the literal mask."""
+    mock_model = MagicMock()
+    mock_model.type = "snowflake"
+    mock_model.configuration = '{"account": "test", "password": "hunter2"}'
+
+    dao = mocker.patch(
+        "superset.commands.semantic_layer.update.SemanticLayerDAO",
+    )
+    dao.find_by_uuid.return_value = mock_model
+    dao.update.return_value = mock_model
+
+    mocker.patch(
+        "superset.commands.semantic_layer.update.current_user_can_modify_object",
+    )
+
+    mock_cls = MagicMock()
+    mock_cls.get_configuration_schema.return_value = {
+        "properties": {"password": {"type": "string", "writeOnly": True}}
+    }
+    mocker.patch.dict(
+        "superset.commands.semantic_layer.update.registry",
+        {"snowflake": mock_cls},
+        clear=True,
+    )
+
+    data = {
+        "name": "Renamed",
+        "configuration": {"account": "test", "password": PASSWORD_MASK},
+    }
+    UpdateSemanticLayerCommand("some-uuid", data).run()
+
+    mock_cls.from_configuration.assert_called_once_with(
+        {"account": "test", "password": "hunter2"}
+    )
+    dao.update.assert_called_once_with(
+        mock_model,
+        attributes={
+            "name": "Renamed",
+            "configuration": json.dumps({"account": "test", "password": "hunter2"}),
+        },
     )
