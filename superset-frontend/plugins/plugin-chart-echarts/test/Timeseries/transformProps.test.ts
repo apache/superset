@@ -3288,4 +3288,3 @@ describe('xAxisLabelInterval string "0" is converted to number 0', () => {
     expect(xAxisRaw.interval).toBe(3);
   });
 });
-});
