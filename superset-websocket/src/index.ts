@@ -222,6 +222,51 @@ export let sockets: Record<string, SocketInstance> = {};
 // connection limit has been reached (1013 = "Try Again Later").
 const CONNECTION_LIMIT_CLOSE_CODE = 1013;
 
+// The Redis Pub/Sub subscriber is the server's only source of realtime messages.
+// If it drops, a browser socket can stay open while the server silently misses
+// messages, so subscriber health gates the transport: while unhealthy, new
+// upgrades are refused and existing sockets are closed with a retryable code
+// (1012 = "Service Restart") so clients reconnect and run their status_changes
+// catch-up once the subscriber is healthy again. (Left off /health, which is a
+// liveness probe — coupling it to a transient Redis blip would churn pods.)
+const SUBSCRIBER_UNHEALTHY_CLOSE_CODE = 1012;
+export let subscriberHealthy = false;
+
+export const markSubscriberHealthy = (): void => {
+  if (subscriberHealthy) return;
+  subscriberHealthy = true;
+  logger.info('Redis subscriber healthy; realtime transport available');
+};
+
+export const markSubscriberUnhealthy = (reason: string): void => {
+  if (!subscriberHealthy) return; // act only on the healthy -> unhealthy edge
+  subscriberHealthy = false;
+  logger.warn(
+    `Redis subscriber unhealthy (${reason}); refusing upgrades and closing ` +
+      `sockets so clients reconnect and catch up`,
+  );
+  // Snapshot ids first: ws.close triggers the 'close' handler, which deletes from
+  // `sockets` — mutating the object mid-iteration.
+  Object.keys(sockets).forEach(socketId => {
+    try {
+      sockets[socketId]?.ws.close(
+        SUBSCRIBER_UNHEALTHY_CLOSE_CODE,
+        'realtime backend unavailable',
+      );
+    } catch (err) {
+      logger.error(
+        `Failed to close socket ${socketId} on subscriber loss: ${err}`,
+      );
+    }
+  });
+};
+
+// A dropped/ended subscriber connection means missed messages; ioredis
+// auto-reconnects (and re-subscribes), and the 'ready' handler below reconfirms
+// the subscription and flips back to healthy.
+redisSubscriber.on('close', () => markSubscriberUnhealthy('connection closed'));
+redisSubscriber.on('end', () => markSubscriberUnhealthy('connection ended'));
+
 /**
  * Returns whether the socket with the given id is currently active, i.e. it is
  * still registered and its underlying connection is in an active readyState.
@@ -520,6 +565,7 @@ export const subscribeToChannels = async (): Promise<void> => {
   }
   try {
     await redisSubscriber.subscribe(REALTIME_CHANNEL);
+    markSubscriberHealthy();
     logger.info(`Subscribed to Redis channel: ${REALTIME_CHANNEL}`);
   } catch (err) {
     logger.error(
@@ -529,6 +575,13 @@ export const subscribeToChannels = async (): Promise<void> => {
     setTimeout(subscribeToChannels, SUBSCRIBE_RETRY_MS);
   }
 };
+
+// After a reconnect ioredis re-subscribes automatically; reconfirm the
+// subscription (idempotent) so the healthy flag flips back on. Wired here, after
+// subscribeToChannels is defined, to avoid a use-before-define reference.
+redisSubscriber.on('ready', () => {
+  subscribeToChannels();
+});
 
 /**
  * Verify and parse a realtime JWT cookie from an HTTP request.
@@ -683,8 +736,21 @@ export const httpRequest = (
   const headers = request.headers || {};
   const url = new URL(rawUrl as string, `http://${headers.host}`);
   if (url.pathname === '/health' && ['GET', 'HEAD'].includes(method)) {
+    // Liveness: the process is up. Deliberately independent of subscriber health
+    // (see /ready) so a transient Redis blip doesn't get the pod restarted.
     response.writeHead(200);
     response.end('OK');
+  } else if (url.pathname === '/ready' && ['GET', 'HEAD'].includes(method)) {
+    // Readiness: healthy only while the Redis subscriber is connected+subscribed,
+    // so a load balancer can drain a pod whose transport is degraded (upgrade
+    // refusal + socket close still cover correctness on their own).
+    if (subscriberHealthy) {
+      response.writeHead(200);
+      response.end('OK');
+    } else {
+      response.writeHead(503);
+      response.end('SUBSCRIBER_UNAVAILABLE');
+    }
   } else {
     logger.info(`Received unexpected request: ${method} ${rawUrl}`);
     response.writeHead(404);
@@ -733,6 +799,18 @@ export const httpUpgrade = (
         request.headers.origin || '(none)'
       }`,
     );
+    socket.destroy();
+    return;
+  }
+
+  // Refuse upgrades while the Redis subscriber is unhealthy: a socket accepted now
+  // would silently miss messages until the subscription recovers. Reply 503 so the
+  // client backs off and retries (its reconnect then runs the status_changes
+  // catch-up against a healthy server).
+  if (!subscriberHealthy) {
+    statsd.increment('ws_upgrade_rejected');
+    logger.warn('Rejecting WebSocket upgrade: Redis subscriber unhealthy');
+    socket.write('HTTP/1.1 503 Service Unavailable\r\n\r\n');
     socket.destroy();
     return;
   }
@@ -879,4 +957,7 @@ export const resetState = () => {
   channels = {};
   sockets = {};
   messageBound = false;
+  // A reset server is a clean, running (subscribed) server, so tests start from a
+  // healthy transport; a test drives the unhealthy edge with markSubscriberUnhealthy.
+  subscriberHealthy = true;
 };

@@ -194,6 +194,36 @@ describe('server', () => {
       expect(endMock).toHaveBeenCalledTimes(1);
       expect(endMock).toHaveBeenLastCalledWith('Not Found');
     });
+
+    const readyResponse = () => {
+      const endMock = vi.fn();
+      const writeHeadMock = vi.fn();
+      server.httpRequest(
+        {
+          url: '/ready',
+          method: 'GET',
+          headers: { host: 'example.com' },
+        } as unknown as http.IncomingMessage,
+        {
+          writeHead: writeHeadMock,
+          end: endMock,
+        } as unknown as http.ServerResponse<http.IncomingMessage>,
+      );
+      return { writeHeadMock, endMock };
+    };
+
+    test('readiness is 200 while the subscriber is healthy', () => {
+      // resetState() (beforeEach) leaves the server healthy.
+      const { writeHeadMock } = readyResponse();
+      expect(writeHeadMock).toHaveBeenLastCalledWith(200);
+    });
+
+    test('readiness is 503 while the subscriber is unhealthy', () => {
+      server.markSubscriberUnhealthy('test drop');
+      const { writeHeadMock, endMock } = readyResponse();
+      expect(writeHeadMock).toHaveBeenLastCalledWith(503);
+      expect(endMock).toHaveBeenLastCalledWith('SUBSCRIBER_UNAVAILABLE');
+    });
   });
 
   describe('redisUrlFromConfig', () => {
@@ -1036,6 +1066,71 @@ describe('server', () => {
         expect(socketDestroySpy).not.toHaveBeenCalled();
         expect(wssUpgradeSpy).toHaveBeenCalled();
       });
+    });
+  });
+
+  describe('subscriber health', () => {
+    test('markSubscriberUnhealthy closes open sockets with a retryable code', () => {
+      // resetState() leaves the server healthy; open a socket, then drop the
+      // subscriber and assert the socket is closed so the client reconnects.
+      const ws = new wsMock('localhost');
+      const closeSpy = vi.spyOn(ws, 'close');
+      trackSocket(channelId, ws);
+
+      server.markSubscriberUnhealthy('test drop');
+
+      expect(server.subscriberHealthy).toBe(false);
+      expect(closeSpy).toHaveBeenCalledWith(1012, expect.any(String));
+    });
+
+    test('markSubscriberUnhealthy is a no-op when already unhealthy (edge only)', () => {
+      server.markSubscriberUnhealthy('first');
+      const ws = new wsMock('localhost');
+      const closeSpy = vi.spyOn(ws, 'close');
+      trackSocket(channelId, ws);
+
+      server.markSubscriberUnhealthy('second'); // already unhealthy
+
+      expect(closeSpy).not.toHaveBeenCalled();
+    });
+
+    test('httpUpgrade is refused with 503 while the subscriber is unhealthy', () => {
+      server.markSubscriberUnhealthy('test drop');
+      const socket = new net.Socket();
+      const destroySpy = vi.spyOn(socket, 'destroy');
+      const writeSpy = vi.spyOn(socket, 'write');
+      const upgradeSpy = vi.spyOn(server.wss, 'handleUpgrade');
+
+      server.httpUpgrade(
+        makeRequest({ token: signRealtimeToken() }),
+        socket,
+        Buffer.alloc(5),
+      );
+
+      expect(writeSpy).toHaveBeenCalledWith(expect.stringContaining('503'));
+      expect(destroySpy).toHaveBeenCalled();
+      expect(upgradeSpy).not.toHaveBeenCalled();
+      expect(statsdIncrementMock).toHaveBeenCalledWith('ws_upgrade_rejected');
+      upgradeSpy.mockRestore();
+    });
+
+    test('markSubscriberHealthy restores the transport so upgrades proceed', () => {
+      server.markSubscriberUnhealthy('test drop');
+      server.markSubscriberHealthy();
+
+      const socket = new net.Socket();
+      const destroySpy = vi.spyOn(socket, 'destroy');
+      const upgradeSpy = vi.spyOn(server.wss, 'handleUpgrade');
+
+      server.httpUpgrade(
+        makeRequest({ token: signRealtimeToken() }),
+        socket,
+        Buffer.alloc(5),
+      );
+
+      expect(destroySpy).not.toHaveBeenCalled();
+      expect(upgradeSpy).toHaveBeenCalled();
+      upgradeSpy.mockRestore();
     });
   });
 
