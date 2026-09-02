@@ -1877,25 +1877,32 @@ class ChartDataResponseSchema(Schema):
 
 
 class ChartDataAsyncResponseSchema(Schema):
-    channel_id = fields.String(
-        metadata={"description": "Unique session async channel ID"},
+    task_ids = fields.List(
+        fields.String(),
+        metadata={
+            "description": "UUIDs of the scheduled GTF tasks (one per QueryObject "
+            "that missed the cache), in query order. The client polls "
+            "`/api/v1/task/status_changes`, aggregates these tasks' statuses, and "
+            "re-issues this request once they all succeed."
+        },
         allow_none=False,
     )
-    job_id = fields.String(
-        metadata={"description": "Unique async job ID"},
+    cursor = fields.String(
+        metadata={
+            "description": "Status-changes recovery cursor captured before any task "
+            "was created. The client polls `/api/v1/task/status_changes` from it and "
+            "is guaranteed to observe each task's completion."
+        },
         allow_none=False,
     )
-    user_id = fields.String(
-        metadata={"description": "Requesting user ID"},
+    tab_id = fields.String(
+        metadata={
+            "description": "The per-client (e.g. browser-tab) id echoed back when the "
+            "caller advertised one, so a later cancel detaches exactly that client. "
+            "Absent when the caller supplied none."
+        },
+        required=False,
         allow_none=True,
-    )
-    status = fields.String(
-        metadata={"description": "Status value for async job"},
-        allow_none=False,
-    )
-    result_url = fields.String(
-        metadata={"description": "Unique result URL for fetching async query data"},
-        allow_none=False,
     )
 
 
