@@ -19,6 +19,7 @@
 import logging
 from typing import Any
 
+import numpy as np
 import pandas as pd
 
 from superset.utils.core import JS_MAX_INTEGER
@@ -53,26 +54,37 @@ def _is_na(val: Any) -> bool:
         return False
 
 
-def df_to_records(dframe: pd.DataFrame) -> list[dict[str, Any]]:
+def df_to_records(
+    dframe: pd.DataFrame, *, convert_big_integers: bool = True
+) -> list[dict[str, Any]]:
     """
     Convert a DataFrame to a set of records.
 
-    NaN values are converted to None for JSON compatibility.
-    This handles division by zero and other operations that produce NaN.
+    Missing and non-finite values are converted to None for JSON compatibility.
+    This includes infinities produced by trusted pandas post-processing.
 
     :param dframe: the DataFrame to convert
+    :param convert_big_integers: whether integers outside JavaScript's safe range
+        should be represented as strings
     :returns: a list of dictionaries reflecting each single row of the DataFrame
     """
     if not dframe.columns.is_unique:
         logger.warning(
             "DataFrame columns are not unique, some columns will be omitted."
         )
-    records = dframe.to_dict(orient="records")
+    # Work on a projection so cached/query DataFrames retain their dtypes and
+    # values. Post-processing can introduce infinities after datasource
+    # normalization has already run; turn them into pandas-missing values
+    # before materializing the producer's records.
+    records = dframe.replace([np.inf, -np.inf], np.nan).to_dict(orient="records")
 
     for record in records:
         for key in record:
+            value = record[key]
             record[key] = (
-                None if _is_na(record[key]) else _convert_big_integers(record[key])
+                None
+                if _is_na(value)
+                else (_convert_big_integers(value) if convert_big_integers else value)
             )
 
     return records

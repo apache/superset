@@ -438,7 +438,9 @@ def _container_json_syntax_size(item_count: int, *, mapping: bool) -> int:
     return 2 + item_count - 1 + (item_count if mapping else 0)
 
 
-def _normalized_scalar_json_size(value: Any) -> int:  # noqa: C901
+def _normalized_scalar_json_size(  # noqa: C901
+    value: Any, *, max_string_bytes: int = MAX_QUERY_RESULT_STRING_BYTES
+) -> int:
     """Return a conservative encoded size for one normalized exact scalar."""
     value_type = type(value)
     if value is None:
@@ -446,7 +448,7 @@ def _normalized_scalar_json_size(value: Any) -> int:  # noqa: C901
     if value_type is bool:
         return 4 if value else 5
     if value_type is str:
-        size = _json_string_size(value, MAX_QUERY_RESULT_STRING_BYTES)
+        size = _json_string_size(value, max_string_bytes)
         assert size is not None  # scalar normalization already bounded the string
         return size
     if value_type is int:
@@ -813,7 +815,9 @@ def _trusted_timestamp_text(value: pd.Timestamp) -> tuple[str | None, str | None
     return text, None
 
 
-def _normalize_trusted_scalar(value: Any) -> tuple[Any, str | None]:  # noqa: C901
+def _normalize_trusted_scalar(  # noqa: C901
+    value: Any, *, max_string_bytes: int = MAX_QUERY_RESULT_STRING_BYTES
+) -> tuple[Any, str | None]:
     """Normalize one exact trusted pandas/NumPy scalar or validate a builtin.
 
     Type identity is checked before every conversion. This deliberately does not
@@ -836,7 +840,7 @@ def _normalize_trusted_scalar(value: Any) -> tuple[Any, str | None]:  # noqa: C9
     if value is None or value_type is bool:
         return value, None
     if value_type is str:
-        size = _bounded_utf8_length(value, MAX_QUERY_RESULT_STRING_BYTES)
+        size = _bounded_utf8_length(value, max_string_bytes)
         return (
             (value, None)
             if size is not None
@@ -1001,12 +1005,16 @@ def _metadata_failure_for_value(  # noqa: C901
             )
             continue
 
-        normalized, reason = _normalize_trusted_scalar(item)
+        normalized, reason = _normalize_trusted_scalar(
+            item, max_string_bytes=MAX_QUERY_RESULT_METADATA_BYTES
+        )
         if reason is not None:
             return f"metadata {reason}"
         if reason := _charge_json_bytes(
             budget,
-            _normalized_scalar_json_size(normalized),
+            _normalized_scalar_json_size(
+                normalized, max_string_bytes=MAX_QUERY_RESULT_METADATA_BYTES
+            ),
             metadata=True,
         ):
             return reason

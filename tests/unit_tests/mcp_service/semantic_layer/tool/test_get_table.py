@@ -166,6 +166,26 @@ async def _run_with_command_result(
 
 
 @pytest.mark.asyncio
+async def test_get_table_accepts_real_postprocessing_null_and_large_full_sql(
+    monkeypatch: pytest.MonkeyPatch, app_context: None
+) -> None:
+    """Semantic data consumes trusted nulls and SQL metadata above 64 KiB."""
+    from tests.unit_tests.mcp_service.chart.query_result_test_utils import (
+        real_compare_command_result,
+    )
+
+    result = real_compare_command_result(
+        'SELECT "semantic café"\\n' + "x" * (70 * 1024)
+    )
+
+    response = await _run_with_command_result(monkeypatch, result)
+
+    assert response.success is True
+    assert response.data[0]["finite"] == 2.5
+    assert any(value is None for value in response.data[0].values())
+
+
+@pytest.mark.asyncio
 async def test_get_table_seeds_virtual_dataset_jinja_before_command_construction(
     app_context: None, monkeypatch: pytest.MonkeyPatch
 ) -> None:

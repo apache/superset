@@ -184,6 +184,25 @@ async def _call_query_dataset_with_result(
 
 
 @pytest.mark.asyncio
+async def test_query_dataset_accepts_real_postprocessing_null_and_large_full_sql(
+    mcp_server: FastMCP, app_context: None
+) -> None:
+    """Dataset query consumes trusted nulls and SQL metadata above 64 KiB."""
+    from tests.unit_tests.mcp_service.chart.query_result_test_utils import (
+        real_compare_command_result,
+    )
+
+    result = real_compare_command_result(
+        "SELECT 'dataset café' -- " + "x" * (70 * 1024)
+    )
+
+    response = await _call_query_dataset_with_result(mcp_server, result)
+
+    assert response["data"][0]["finite"] == 2.5
+    assert any(value is None for value in response["data"][0].values())
+
+
+@pytest.mark.asyncio
 async def test_query_dataset_success(mcp_server: FastMCP) -> None:
     """Happy path: metrics + columns returns data."""
     dataset = _make_dataset()
