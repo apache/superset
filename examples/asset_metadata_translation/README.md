@@ -22,7 +22,7 @@ under the License.
 This is a **self-contained reference**, not part of Superset core. It shows one
 concrete way to implement end-to-end authoring on top of the
 `TRANSLATION_HOOK` read path documented at
-[Asset Metadata Translation](https://superset.apache.org/docs/configuration/asset-metadata-translation).
+[Asset Metadata Translation](https://superset.apache.org/admin-docs/configuration/asset-metadata-translation).
 
 Superset core intentionally ships only the read path (the hook + the Jinja
 `i18n` macro). It does **not** provide storage or an authoring UI — those are

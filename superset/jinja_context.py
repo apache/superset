@@ -199,7 +199,8 @@ class ExtraCache:
         r"current_user_roles\([^)]*\)|"
         r"cache_key_wrapper\([^)]*\)|"
         r"url_param\([^)]*\)|"
-        r"get_guest_user_attribute\([^)]*\)"
+        r"get_guest_user_attribute\([^)]*\)|"
+        r"i18n\([^)]*\)"
         r")"
         r"[^{}]*?(\}\}|\%\})"
     )
@@ -1105,9 +1106,22 @@ class JinjaTemplateProcessor(BaseTemplateProcessor):
                 "get_guest_user_attribute": partial(
                     safe_proxy, extra_cache.get_guest_user_attribute
                 ),
-                "i18n": partial(safe_proxy, i18n_macro),
             }
         )
+
+        def i18n_with_cache_key(default_text: str) -> str:
+            # The rendered value varies by locale, so it has to vary the query
+            # cache key too -- otherwise one viewer's translated SQL result is
+            # served to a viewer in another locale within the cache timeout.
+            # Keyed on the resolved text rather than the locale so locales that
+            # resolve alike still share a cache entry.
+            return extra_cache.cache_key_wrapper(i18n_macro(default_text))
+
+        # Registered only when a deployment has not already bound this name
+        # through JINJA_CONTEXT_ADDONS: the macro is new, so an existing addon
+        # called ``i18n`` has to keep working across the upgrade.
+        if "i18n" not in self._context:
+            self._context["i18n"] = partial(safe_proxy, i18n_with_cache_key)
 
         # The `metric` filter needs the env and full context to expand other
         # filters. Bind them through a closure rather than positional args so the
