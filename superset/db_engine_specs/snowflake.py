@@ -94,8 +94,9 @@ class CustomSnowflakeAuthErrorMeta(type):
         if isinstance(instance, SqlalchemyDatabaseError):
             orig = cast(SqlalchemyDatabaseError, instance).orig
 
-        return isinstance(orig, DatabaseError) and "Invalid OAuth access token" in str(
-            orig
+        return isinstance(orig, DatabaseError) and (
+            getattr(orig, "errno", None) == 390303
+            or "Invalid OAuth access token" in str(orig)
         )
 
 
