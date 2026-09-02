@@ -463,8 +463,6 @@ class Dashboard(CoreDashboard, SoftDeleteMixin, AuditMixinNullable, ImportExport
                     # left in the tree with no ``value`` and no ``title``. It is
                     # still walked, so tabs stored below it are not lost.
                     if child.get("type") == "TAB" and isinstance(child.get("id"), str):
-                        # if TABS add create a new list and append children to it
-                        # new_children.append(child)
                         children.append(child)
                     else:
                         logger.warning(
