@@ -19,14 +19,15 @@
 MCP tool: get_chart_data
 """
 
-import hashlib
 import logging
+import math
 import struct
 import time
-from datetime import date, datetime, time as datetime_time, timedelta
+from datetime import date, datetime, time as datetime_time, timedelta, timezone
 from decimal import Decimal
-from typing import Any, Dict, List, TYPE_CHECKING
+from typing import Any, cast, Dict, List, TYPE_CHECKING
 from uuid import UUID
+from zoneinfo import ZoneInfo
 
 from fastmcp import Context
 from flask import current_app
@@ -345,42 +346,133 @@ def _build_query_results(
     return results
 
 
-def _update_integer_digest(digest: Any, value: int) -> None:
-    """Add an exact integer to a digest without decimal-string conversion."""
-    magnitude = abs(value)
-    encoded = magnitude.to_bytes(max(1, (magnitude.bit_length() + 7) // 8), "big")
-    digest.update(b"-" if value < 0 else b"+")
-    digest.update(len(encoded).to_bytes(8, "big"))
-    digest.update(encoded)
+_MAX_NUMERIC_IDENTITY_BITS = 4096
+_MAX_DECIMAL_IDENTITY_DIGITS = 1024
+_MAX_DECIMAL_IDENTITY_STORAGE = 1024
+_TRUSTED_TZINFO_TYPES = (timezone, ZoneInfo)
 
 
-def _decimal_identity(value: Decimal) -> bytes:
-    """Return a fixed-size identity for every exact Decimal representation.
+def _bounded_integer_identity(value: int) -> tuple[Any, ...]:
+    """Return a value identity without hashing attacker-sized magnitudes."""
+    if (bit_count := int.bit_length(value)) > _MAX_NUMERIC_IDENTITY_BITS:
+        return ("oversized_numeric", "integer", value < 0, bit_count)
+    return ("finite_numeric", value, 1)
 
-    ``hash(Decimal("sNaN"))`` raises and quiet NaN hashes are identity-based.
-    Digesting the exact C-level tuple handles finite values, signed zeros,
-    NaNs, signaling NaNs, and infinities without string/float conversion or
-    attacker-controlled hooks.
+
+def _decimal_identity(value: Decimal) -> tuple[Any, ...]:  # noqa: C901
+    """Return bounded value-semantic identity for an exact ``Decimal``.
+
+    Finite values share rational identities with exact ints and floats, so
+    scale variants and signed zero collapse just as Python numeric equality
+    does. Decimal tuple materialization and rational conversion are guarded by
+    storage, digit, exponent, and bit limits. Values outside those limits are
+    safely classified rather than fully converted.
     """
+    is_signed = Decimal.is_signed(value)
+    if Decimal.is_infinite(value):
+        return ("numeric_infinity", is_signed)
+
+    is_snan = Decimal.is_snan(value)
+    if is_snan or Decimal.is_qnan(value):
+        nan_kind = "signaling" if is_snan else "quiet"
+        storage = Decimal.__sizeof__(value)
+        if storage > _MAX_DECIMAL_IDENTITY_STORAGE:
+            return ("decimal_nan", nan_kind, is_signed, "oversized", storage)
+        parts = Decimal.as_tuple(value)
+        if len(parts.digits) > _MAX_DECIMAL_IDENTITY_DIGITS:
+            return (
+                "decimal_nan",
+                nan_kind,
+                is_signed,
+                "oversized",
+                len(parts.digits),
+            )
+        return ("decimal_nan", nan_kind, is_signed, parts.digits)
+
+    if Decimal.is_zero(value):
+        return ("finite_numeric", 0, 1)
+
+    storage = Decimal.__sizeof__(value)
+    if storage > _MAX_DECIMAL_IDENTITY_STORAGE:
+        # ``adjusted`` returns the already-stored magnitude exponent without
+        # allocating a digit tuple or coefficient.
+        return (
+            "oversized_numeric",
+            "decimal",
+            is_signed,
+            Decimal.adjusted(value),
+            storage,
+        )
+
     parts = Decimal.as_tuple(value)
-    digest = hashlib.blake2b(digest_size=32, person=b"mcp-decimal-id")
-    digest.update(b"1" if parts.sign else b"0")
+    digit_count = len(parts.digits)
     exponent = parts.exponent
-    if isinstance(exponent, int):
-        digest.update(b"i")
-        _update_integer_digest(digest, exponent)
-    else:
-        # DecimalTuple uses one-character exact strings for specials: F/n/N.
-        digest.update(b"s")
-        digest.update(exponent.encode("ascii"))
-    digit_buffer = bytearray()
-    for digit in parts.digits:
-        digit_buffer.append(digit)
-        if len(digit_buffer) == 1024:
-            digest.update(digit_buffer)
-            digit_buffer.clear()
-    digest.update(digit_buffer)
-    return digest.digest()
+    if type(exponent) is not int:  # specials were handled above
+        return ("decimal_special", exponent, is_signed)
+    if digit_count > _MAX_DECIMAL_IDENTITY_DIGITS:
+        return (
+            "oversized_numeric",
+            "decimal",
+            is_signed,
+            exponent + digit_count - 1,
+            digit_count,
+        )
+
+    projected_bits = (digit_count + abs(exponent)) * 4
+    if projected_bits > _MAX_NUMERIC_IDENTITY_BITS:
+        # Preserve a bounded, scale-normalized Decimal classification without
+        # constructing 10**abs(exponent). This intentionally declines exact
+        # cross-type comparison for values too large for bounded rational work.
+        digits = parts.digits
+        trailing_zeros = 0
+        while trailing_zeros < digit_count and digits[-trailing_zeros - 1] == 0:
+            trailing_zeros += 1
+        significant = digits[: digit_count - trailing_zeros]
+        coefficient = 0
+        for digit in significant:
+            coefficient = coefficient * 10 + digit
+        if is_signed:
+            coefficient = -coefficient
+        return (
+            "oversized_numeric",
+            "decimal",
+            coefficient,
+            exponent + trailing_zeros,
+        )
+
+    numerator, denominator = Decimal.as_integer_ratio(value)
+    if (
+        int.bit_length(numerator) > _MAX_NUMERIC_IDENTITY_BITS
+        or int.bit_length(denominator) > _MAX_NUMERIC_IDENTITY_BITS
+    ):
+        return (
+            "oversized_numeric",
+            "decimal_ratio",
+            is_signed,
+            int.bit_length(numerator),
+            int.bit_length(denominator),
+        )
+    return ("finite_numeric", numerator, denominator)
+
+
+def _trusted_utc_offset(value: datetime | datetime_time) -> timedelta | None:
+    """Read an offset only from exact, non-overridable timezone types."""
+    tzinfo = value.tzinfo
+    if tzinfo is None or not any(
+        type(tzinfo) is type_ for type_ in _TRUSTED_TZINFO_TYPES
+    ):
+        return None
+    offset = (
+        datetime.utcoffset(cast(datetime, value))
+        if type(value) is datetime
+        else datetime_time.utcoffset(cast(datetime_time, value))
+    )
+    return offset if type(offset) is timedelta else None
+
+
+def _timedelta_microseconds(value: timedelta) -> int:
+    """Convert an exact bounded timedelta to integer microseconds."""
+    return value.days * 86_400_000_000 + value.seconds * 1_000_000 + value.microseconds
 
 
 def _safe_value_identity(value: Any) -> tuple[Any, ...]:  # noqa: C901
@@ -402,53 +494,70 @@ def _safe_value_identity(value: Any) -> tuple[Any, ...]:  # noqa: C901
             ),
         )
     value_type = type(value)
-    if value is None or value_type in (str, int, bool):
+    if value is None or value_type is str:
         return (value_type, value)
+    if value_type is bool:
+        return ("finite_numeric", int(value), 1)
+    if value_type is int:
+        return _bounded_integer_identity(value)
     if value_type is float:
-        # Exact IEEE bytes avoid NaN's non-reflexive equality and object-based
-        # hash while retaining infinities and signed values deterministically.
-        return (float, struct.pack(">d", value))
+        if math.isnan(value):
+            # IEEE bytes retain NaN sign/payload while avoiding its
+            # non-reflexive equality and identity-based hashing behavior.
+            return ("float_nan", struct.pack(">d", value))
+        if math.isinf(value):
+            return ("numeric_infinity", value < 0)
+        numerator, denominator = float.as_integer_ratio(value)
+        return ("finite_numeric", numerator, denominator)
     if value_type is Decimal:
-        return (Decimal, _decimal_identity(value))
+        return _decimal_identity(value)
     if value_type is datetime:
-        # Hashing an aware datetime calls tzinfo.utcoffset(), which may be an
-        # arbitrary user object even when the datetime itself is exact. Civil
-        # components plus a bounded type descriptor are safe metadata identity.
-        timezone = value.tzinfo
-        timezone_name = (
-            ""
-            if timezone is None
-            else type.__getattribute__(type(timezone), "__name__")[:200]
+        civil_microseconds = (
+            date.toordinal(value) * 86_400_000_000
+            + value.hour * 3_600_000_000
+            + value.minute * 60_000_000
+            + value.second * 1_000_000
+            + value.microsecond
         )
+        offset = _trusted_utc_offset(value)
+        if offset is not None:
+            return (
+                "aware_datetime",
+                civil_microseconds - _timedelta_microseconds(offset),
+            )
+        if value.tzinfo is None:
+            return ("naive_datetime", civil_microseconds)
+        # A custom tzinfo may execute arbitrary code. Keep its values distinct
+        # without calling it; repeated values using the same timezone object
+        # still receive a stable identity within the metadata computation.
         return (
-            datetime,
-            value.year,
-            value.month,
-            value.day,
-            value.hour,
-            value.minute,
-            value.second,
-            value.microsecond,
+            "opaque_datetime",
+            civil_microseconds,
             value.fold,
-            timezone_name,
+            id(value.tzinfo),
         )
     if value_type is date:
         return (date, date.toordinal(value))
     if value_type is datetime_time:
-        timezone = value.tzinfo
-        timezone_name = (
-            ""
-            if timezone is None
-            else type.__getattribute__(type(timezone), "__name__")[:200]
+        civil_microseconds = (
+            value.hour * 3_600_000_000
+            + value.minute * 60_000_000
+            + value.second * 1_000_000
+            + value.microsecond
         )
+        offset = _trusted_utc_offset(value)
+        if offset is not None:
+            return (
+                "aware_time",
+                civil_microseconds - _timedelta_microseconds(offset),
+            )
+        if value.tzinfo is None:
+            return ("naive_time", civil_microseconds)
         return (
-            datetime_time,
-            value.hour,
-            value.minute,
-            value.second,
-            value.microsecond,
+            "opaque_time",
+            civil_microseconds,
             value.fold,
-            timezone_name,
+            id(value.tzinfo),
         )
     if value_type is timedelta:
         return (timedelta, value.days, value.seconds, value.microseconds)

@@ -21,6 +21,7 @@ Tests for the get_chart_data request schema and chart type fallback handling.
 
 import importlib
 from contextlib import nullcontext
+from datetime import datetime, time as datetime_time, timedelta, timezone, tzinfo
 from decimal import Decimal
 from types import SimpleNamespace
 from typing import Any
@@ -2234,6 +2235,7 @@ async def test_unsaved_mixed_timeseries_returns_nonempty_secondary_query(
         {"queries": [{}]},
         {"queries": [{"data": None}]},
         {"queries": [{"data": []}, {}]},
+        {"queries": [{"data": [{"value": 1}], "colnames": ["value"], "coltypes": []}]},
     ],
 )
 async def test_unsaved_chart_data_rejects_malformed_query_envelopes(
@@ -2361,24 +2363,102 @@ async def test_unsaved_get_data_rejects_hostile_rows_and_scalars(
     assert response.error_type == "MalformedQueryResult"
 
 
-def test_exact_decimal_metadata_identity_is_bounded_and_total() -> None:
-    values = [
-        Decimal("0"),
-        Decimal("-0"),
-        Decimal("1.25"),
+def test_numeric_metadata_identity_matches_bounded_value_semantics() -> None:
+    equivalent_groups = [
+        [0, -0.0, 0.0, Decimal("0"), Decimal("-0.000")],
+        [1, 1.0, Decimal("1"), Decimal("1.0"), Decimal("1.00")],
+        [0.5, Decimal("0.5"), Decimal("0.50")],
+        [float("inf"), Decimal("Infinity")],
+        [float("-inf"), Decimal("-Infinity")],
+    ]
+
+    for group in equivalent_groups:
+        identities = [_safe_value_identity(value) for value in group]
+        assert len(set(identities)) == 1
+
+    specials = [
         Decimal("NaN"),
         Decimal("-NaN42"),
         Decimal("sNaN"),
         Decimal("-sNaN7"),
+        float("nan"),
+    ]
+    identities = [_safe_value_identity(value) for value in specials]
+    assert len(set(identities)) == len(specials)
+    assert identities == [_safe_value_identity(value) for value in specials]
+
+
+def test_aware_datetime_and_time_identity_preserves_instant_semantics() -> None:
+    plus_one = timezone(timedelta(hours=1))
+    same_datetimes = [
+        datetime(2024, 1, 1, 12, tzinfo=timezone.utc),
+        datetime(2024, 1, 1, 13, tzinfo=plus_one),
+    ]
+    distinct_datetime = datetime(2024, 1, 1, 12, tzinfo=plus_one)
+    same_times = [
+        datetime_time(12, tzinfo=timezone.utc),
+        datetime_time(13, tzinfo=plus_one),
+    ]
+    distinct_time = datetime_time(12, tzinfo=plus_one)
+
+    assert len({_safe_value_identity(value) for value in same_datetimes}) == 1
+    assert _safe_value_identity(distinct_datetime) != _safe_value_identity(
+        same_datetimes[0]
+    )
+    assert len({_safe_value_identity(value) for value in same_times}) == 1
+    assert _safe_value_identity(distinct_time) != _safe_value_identity(same_times[0])
+
+
+def test_opaque_timezone_identity_does_not_execute_custom_offset() -> None:
+    class _HostileTimezone(tzinfo):
+        def utcoffset(self, _value: datetime | None) -> timedelta | None:
+            raise AssertionError("custom timezone hook must not execute")
+
+        def dst(self, _value: datetime | None) -> timedelta | None:
+            raise AssertionError("custom timezone hook must not execute")
+
+        def tzname(self, _value: datetime | None) -> str | None:
+            raise AssertionError("custom timezone hook must not execute")
+
+    value = datetime(2024, 1, 1, 12, tzinfo=_HostileTimezone())
+
+    assert _safe_value_identity(value) == _safe_value_identity(value)
+
+
+def test_oversized_numeric_identity_declines_unbounded_conversion() -> None:
+    huge_int = 1 << 100_000
+    scale_variant_a = Decimal("1e1000000")
+    scale_variant_b = Decimal("10e999999")
+    huge_decimal = Decimal("1" * 100_000)
+
+    int_identity = _safe_value_identity(huge_int)
+    decimal_identity = _safe_value_identity(huge_decimal)
+
+    assert int_identity[:2] == ("oversized_numeric", "integer")
+    assert decimal_identity[:2] == ("oversized_numeric", "decimal")
+    assert _safe_value_identity(scale_variant_a) == _safe_value_identity(
+        scale_variant_b
+    )
+    assert len(repr(int_identity)) < 200
+    assert len(repr(decimal_identity)) < 200
+
+
+def test_mixed_numeric_unique_count_uses_value_semantics() -> None:
+    values = [
+        0,
+        -0.0,
+        Decimal("-0.00"),
+        1,
+        1.0,
+        Decimal("1.000"),
+        Decimal("sNaN"),
+        Decimal("sNaN"),
+        Decimal("NaN"),
+        float("inf"),
         Decimal("Infinity"),
-        Decimal("-Infinity"),
     ]
 
-    identities = [_safe_value_identity(value) for value in values]
-
-    assert len(set(identities)) == len(values)
-    assert all(len(identity[1]) == 32 for identity in identities)
-    assert identities == [_safe_value_identity(value) for value in values]
+    assert len({_safe_value_identity(value) for value in values}) == 5
 
 
 @pytest.mark.asyncio
@@ -2395,6 +2475,11 @@ async def test_unsaved_generic_get_data_returns_decimal_metadata(
         Decimal("Infinity"),
         Decimal("-Infinity"),
         Decimal("1.25"),
+        Decimal("1.250"),
+        1.25,
+        0,
+        -0.0,
+        Decimal("-0.00"),
     ]
 
     class _Command:
@@ -2426,7 +2511,7 @@ async def test_unsaved_generic_get_data_returns_decimal_metadata(
 
     assert isinstance(response, ChartData)
     assert response.columns[0].data_type == "numeric"
-    assert response.columns[0].unique_count == len(values)
+    assert response.columns[0].unique_count == 6
     assert response.columns[0].sample_values == values[:3]
 
 
@@ -2567,6 +2652,65 @@ async def test_saved_get_data_rejects_hostile_rows_and_scalars(
 
 
 @pytest.mark.asyncio
+async def test_saved_generic_get_data_rejects_misaligned_coltypes(
+    mcp_server: Any,
+    mock_auth: Any,
+) -> None:
+    from unittest.mock import patch
+
+    from fastmcp import Client
+
+    module = importlib.import_module("superset.mcp_service.chart.tool.get_chart_data")
+    command_module = importlib.import_module(
+        "superset.commands.chart.data.get_data_command"
+    )
+    chart = SimpleNamespace(
+        id=12,
+        slice_name="Malformed metadata",
+        viz_type="table",
+        datasource_id=1,
+        datasource_type="table",
+        query_context='{"queries": []}',
+        params='{"viz_type": "table"}',
+    )
+
+    class _Command:
+        def __init__(self, query_context: Any) -> None: ...
+        def validate(self) -> None: ...
+        def run(self) -> dict[str, Any]:
+            return {
+                "queries": [
+                    {
+                        "data": [{"value": 1}],
+                        "colnames": ["value"],
+                        "coltypes": [],
+                    }
+                ]
+            }
+
+    with (
+        patch.object(module, "find_chart_by_identifier", return_value=chart),
+        patch.object(
+            module,
+            "validate_chart_dataset",
+            return_value=SimpleNamespace(is_valid=True, warnings=[], error=None),
+        ),
+        patch(
+            "superset.charts.schemas.ChartDataQueryContextSchema.load",
+            return_value=_query_context_stub(),
+        ),
+        patch.object(command_module, "ChartDataCommand", _Command),
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_chart_data", {"request": {"identifier": 12}}
+            )
+
+    payload = json.loads(result.content[0].text)
+    assert payload["error_type"] == "MalformedQueryResult"
+
+
+@pytest.mark.asyncio
 async def test_saved_generic_get_data_returns_decimal_metadata(
     mcp_server: Any,
     mock_auth: Any,
@@ -2594,6 +2738,11 @@ async def test_saved_generic_get_data_returns_decimal_metadata(
         Decimal("Infinity"),
         Decimal("-Infinity"),
         Decimal("1.25"),
+        Decimal("1.250"),
+        1.25,
+        0,
+        -0.0,
+        Decimal("-0.00"),
     ]
 
     class _Command:
@@ -2630,7 +2779,7 @@ async def test_saved_generic_get_data_returns_decimal_metadata(
 
     payload = json.loads(result.content[0].text)
     assert payload["columns"][0]["data_type"] == "numeric"
-    assert payload["columns"][0]["unique_count"] == len(values)
+    assert payload["columns"][0]["unique_count"] == 6
     assert payload["columns"][0]["sample_values"] == ["sNaN", "NaN", "Infinity"]
 
 

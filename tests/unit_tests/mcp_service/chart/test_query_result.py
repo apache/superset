@@ -18,6 +18,7 @@
 """Adversarial tests for the shared chart query-result envelope contract."""
 
 from collections.abc import Callable
+from datetime import datetime, timedelta, tzinfo
 from enum import Enum
 from typing import Any
 
@@ -28,6 +29,7 @@ from superset.mcp_service.chart.query_result import (
     query_result_data,
     safe_exception_message,
 )
+from superset.utils.core import GenericDataType
 
 
 def _hostile_call(*_args: object, **_kwargs: object) -> Any:
@@ -146,6 +148,98 @@ def test_query_result_accepts_one_legitimate_empty_dataset() -> None:
     data, failure = query_result_data({"queries": [{"data": []}]})
     assert data == [[]]
     assert failure is None
+
+
+@pytest.mark.parametrize(
+    "query",
+    [
+        {"data": [{"a": 1}], "colnames": ["a"], "coltypes": []},
+        {
+            "data": [{"a": 1}],
+            "colnames": ["a"],
+            "coltypes": [0, 1],
+        },
+        {"data": [{"a": 1}], "colnames": ["a"], "coltypes": "numeric"},
+        {"data": [{"a": 1}], "colnames": ["a"], "coltypes": [None]},
+        {"data": [{"a": 1}], "colnames": ["a"], "coltypes": [[0]]},
+        {"data": [{"a": 1}], "colnames": ["a"], "coltypes": [True]},
+        {"data": [{"a": 1}], "colnames": ["a"], "coltypes": [1.0]},
+        {"data": [{"a": 1}], "colnames": ["a"], "coltypes": [5]},
+        {"data": [{"a": 1}], "coltypes": [0]},
+    ],
+)
+def test_query_result_rejects_malformed_or_misaligned_coltypes(
+    query: dict[str, Any],
+) -> None:
+    data, failure = query_result_data({"queries": [query]})
+
+    assert data is None
+    assert failure is not None
+    assert failure.error_type == "MalformedQueryResult"
+
+
+@pytest.mark.parametrize(
+    "colnames",
+    [
+        ["a", "a"],
+        [""],
+        [1],
+        [_HostileStr("a")],
+        ["a" * 5000],
+    ],
+)
+def test_query_result_rejects_duplicate_or_malformed_colnames(
+    colnames: list[Any],
+) -> None:
+    data, failure = query_result_data(
+        {"queries": [{"data": [{"a": 1}], "colnames": colnames}]}
+    )
+
+    assert data is None
+    assert failure is not None
+    assert failure.error_type == "MalformedQueryResult"
+
+
+@pytest.mark.parametrize(
+    "query",
+    [
+        {"data": [{"a": 1}]},
+        {"data": [{"a": 1}], "colnames": ["a"]},
+        {"data": [], "coltypes": []},
+        {
+            "data": [{"a": 1, "b": "x", "c": [1]}],
+            "colnames": ["a", "b", "c"],
+            "coltypes": [
+                GenericDataType.NUMERIC,
+                1,
+                GenericDataType.MULTI_VALUE,
+            ],
+        },
+    ],
+)
+def test_query_result_accepts_legitimate_optional_column_metadata(
+    query: dict[str, Any],
+) -> None:
+    data, failure = query_result_data({"queries": [query]})
+
+    assert data == [query["data"]]
+    assert failure is None
+
+
+def test_query_result_validates_column_metadata_on_every_query() -> None:
+    data, failure = query_result_data(
+        {
+            "queries": [
+                {"data": [{"a": 1}], "colnames": ["a"], "coltypes": [0]},
+                {"data": [{"b": 2}], "colnames": ["b"], "coltypes": []},
+            ]
+        }
+    )
+
+    assert data is None
+    assert failure is not None
+    assert failure.error_type == "MalformedQueryResult"
+    assert "query 2" in failure.error
 
 
 def test_query_result_extracts_normal_nested_errors() -> None:
@@ -386,6 +480,30 @@ def test_query_result_requires_exact_dict_rows_without_conversion(
 def test_query_result_rejects_scalar_subclasses_inside_exact_rows() -> None:
     data, failure = query_result_data(
         {"queries": [{"data": [{"value": _HostileRowScalar("unsafe")}]}]}
+    )
+
+    assert data is None
+    assert failure is not None
+    assert failure.error_type == "MalformedQueryResult"
+
+
+def test_query_result_rejects_custom_timezone_without_invoking_it() -> None:
+    class _HostileTimezone(tzinfo):
+        def utcoffset(self, _value: datetime | None) -> timedelta | None:
+            raise AssertionError("custom timezone hook must not run")
+
+        def dst(self, _value: datetime | None) -> timedelta | None:
+            raise AssertionError("custom timezone hook must not run")
+
+        def tzname(self, _value: datetime | None) -> str | None:
+            raise AssertionError("custom timezone hook must not run")
+
+    data, failure = query_result_data(
+        {
+            "queries": [
+                {"data": [{"value": datetime(2024, 1, 1, tzinfo=_HostileTimezone())}]}
+            ]
+        }
     )
 
     assert data is None

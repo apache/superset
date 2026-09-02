@@ -496,6 +496,7 @@ def _build_single_query_dict(
     row_limit: int | None = None,
     order_desc: bool | None = None,
     orderby: list[Any] | None = None,
+    include_common_temporal: bool = True,
 ) -> dict[str, Any]:
     """Build one query entry with explicitly scoped ordering.
 
@@ -514,6 +515,26 @@ def _build_single_query_dict(
     if orderby:
         qd["orderby"] = orderby
     apply_form_data_filters_to_query(qd, form_data)
+    # Mirror the common ``buildQueryObject``/``extractExtras`` translation used
+    # by native frontend plugins. ``granularity_sqla`` is a form-data control,
+    # while QueryObject calls the field ``granularity``; the SQL time grain is
+    # carried inside ``extras`` rather than as a top-level query field.
+    if include_common_temporal:
+        granularity = form_data.get("granularity") or form_data.get("granularity_sqla")
+        if granularity:
+            qd["granularity"] = granularity
+        if time_grain := form_data.get("time_grain_sqla"):
+            qd["extras"] = {
+                **(qd.get("extras") or {}),
+                "time_grain_sqla": time_grain,
+            }
+        elif extras := qd.get("extras"):
+            # A cleared common control must not be resurrected by stale
+            # form-data extras. ``extractExtras`` constructs this value from
+            # the common control rather than accepting an extras copy.
+            extras.pop("time_grain_sqla", None)
+            if not extras:
+                qd.pop("extras")
     return qd
 
 
@@ -606,6 +627,7 @@ def build_query_dicts_from_form_data(
             row_limit=row_limit,
             order_desc=order_desc,
             orderby=form_data.get("orderby"),
+            include_common_temporal=False,
         )
         if deck_metrics:
             # Mirror BaseDeckGLViz.query_obj(): order by first metric descending
@@ -621,6 +643,25 @@ def build_query_dicts_from_form_data(
             if null_filters:
                 qd["filters"] = [*(qd.get("filters") or []), *null_filters]
         return [qd]
+
+    if viz_type == "waterfall":
+        # Waterfall's frontend buildQuery replaces the generic columns and
+        # ordering with the x/granularity subject followed by breakdown
+        # columns, ordered ascending in that same deterministic sequence.
+        # Keep the raw x-axis value: QueryObject accepts both simple strings
+        # and adhoc column objects.
+        x_axis = form_data.get("x_axis") or form_data.get("granularity_sqla")
+        waterfall_columns = ([x_axis] if x_axis else []) + groupby
+        query = _build_single_query_dict(
+            form_data,
+            waterfall_columns,
+            metrics,
+            row_limit=row_limit,
+            order_desc=order_desc,
+            orderby=None,
+        )
+        query["orderby"] = [[column, True] for column in waterfall_columns]
+        return [query]
 
     is_timeseries = (
         viz_type.startswith("echarts_timeseries") or viz_type == "mixed_timeseries"

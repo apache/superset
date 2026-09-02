@@ -20,13 +20,15 @@
 import math
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from datetime import date, datetime, time, timedelta
+from datetime import date, datetime, time, timedelta, timezone
 from decimal import Decimal
 from enum import Enum
 from typing import Any
 from uuid import UUID
+from zoneinfo import ZoneInfo
 
 from superset.mcp_service.chart.schemas import ChartError
+from superset.utils.core import GenericDataType
 
 FAILED_QUERY_STATUSES = frozenset(
     {"error", "failed", "stopped", "timed_out", "cancelled", "canceled"}
@@ -40,6 +42,8 @@ _MAX_ERROR_PARTS = 3
 _MAX_ERROR_BYTES = 2000
 _MAX_INTEGER_DIGITS = 1000
 _MAX_QUERY_COUNT = 64
+_MAX_QUERY_COLUMNS = 4096
+_MAX_COLUMN_NAME_LENGTH = 4096
 _MAX_ROW_CONTAINER_DEPTH = 32
 _MAX_ROW_CONTAINER_ITEMS = 4096
 _BUILTIN_SCALAR_TYPES = (str, bytes, bytearray, memoryview, int, float, bool)
@@ -56,6 +60,8 @@ _SAFE_ROW_SCALAR_TYPES = (
     timedelta,
     UUID,
 )
+_SUPPORTED_COLTYPES = frozenset(GenericDataType)
+_TRUSTED_TZINFO_TYPES = (timezone, ZoneInfo)
 
 
 @dataclass(frozen=True)
@@ -318,6 +324,14 @@ def _unsafe_row_value(value: Any) -> str | None:  # noqa: C901
         if depth > _MAX_ROW_CONTAINER_DEPTH:
             return "exceeds the nesting depth limit"
 
+        if type(item) is datetime or type(item) is time:
+            tzinfo = item.tzinfo
+            if tzinfo is not None and not any(
+                type(tzinfo) is type_ for type_ in _TRUSTED_TZINFO_TYPES
+            ):
+                return "contains a temporal value with an unsupported timezone"
+            continue
+
         if item is None or any(type(item) is type_ for type_ in _SAFE_ROW_SCALAR_TYPES):
             continue
 
@@ -412,13 +426,54 @@ def query_result_data(  # noqa: C901
                     f"query {index} {metadata_key} must be an array"
                 )
         colnames = dict.get(query, "colnames")
-        if type(colnames) is list and any(
-            type(list.__getitem__(colnames, offset)) is not str
-            for offset in range(list.__len__(colnames))
-        ):
-            return None, _malformed_result(
-                f"query {index} colnames must contain exact strings"
-            )
+        coltypes = dict.get(query, "coltypes")
+        if type(colnames) is list:
+            column_count = list.__len__(colnames)
+            if column_count > _MAX_QUERY_COLUMNS:
+                return None, _malformed_result(
+                    f"query {index} colnames exceeds the item limit"
+                )
+            seen_colnames: set[str] = set()
+            for column_offset in range(column_count):
+                colname = list.__getitem__(colnames, column_offset)
+                if (
+                    type(colname) is not str
+                    or not colname
+                    or len(colname) > _MAX_COLUMN_NAME_LENGTH
+                ):
+                    return None, _malformed_result(
+                        f"query {index} colnames must contain bounded, nonempty "
+                        "exact strings"
+                    )
+                if colname in seen_colnames:
+                    return None, _malformed_result(
+                        f"query {index} colnames must not contain duplicates"
+                    )
+                seen_colnames.add(colname)
+
+        if type(coltypes) is list:
+            coltype_count = list.__len__(coltypes)
+            if coltype_count > _MAX_QUERY_COLUMNS:
+                return None, _malformed_result(
+                    f"query {index} coltypes exceeds the item limit"
+                )
+            if type(colnames) is not list and coltype_count:
+                return None, _malformed_result(
+                    f"query {index} coltypes requires colnames"
+                )
+            if type(colnames) is list and coltype_count != list.__len__(colnames):
+                return None, _malformed_result(
+                    f"query {index} coltypes must align with colnames"
+                )
+            for coltype_offset in range(coltype_count):
+                coltype = list.__getitem__(coltypes, coltype_offset)
+                if not (
+                    (type(coltype) is int or type(coltype) is GenericDataType)
+                    and coltype in _SUPPORTED_COLTYPES
+                ):
+                    return None, _malformed_result(
+                        f"query {index} coltypes contains an unsupported value"
+                    )
         for metadata_key, allowed_types in (
             ("rowcount", (int, float)),
             ("is_cached", (bool,)),
