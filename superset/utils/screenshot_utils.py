@@ -213,9 +213,16 @@ def _unready_chart_holders_js_body(*, viewport_only: bool) -> str:
         const hasUnpaintedEchart = holder.querySelector(
             '{ECHARTS_UNPAINTED_HOST_SELECTOR}'
         ) !== null;
-        const hasUnpaintedAgGrid = Array.from(holder.querySelectorAll(
+        const agGrids = Array.from(holder.querySelectorAll(
             '{AG_GRID_HOST_SELECTOR}'
-        )).some(grid => grid._agGridFirstDataRendered !== true);
+        ));
+        const unpaintedAgGrids = agGrids.filter(
+            grid => grid._agGridFirstDataRendered !== true
+        );
+        unpaintedAgGrids.forEach(grid => {{
+            grid._supersetAgGridWaitObserved = true;
+        }});
+        const hasUnpaintedAgGrid = unpaintedAgGrids.length > 0;
         // Ready = a settled error/empty/missing state, or a slice container
         // whose renderer has painted. ECharts and AG Grid expose explicit
         // completion signals; keep either host unready until its signal fires.
@@ -262,9 +269,12 @@ FIND_CHART_HOLDER_STATES_JS = f"""
     return Array.from(holders).map(holder => {{
         const chartIdMatch = holder.className.match(/{CHART_ID_CLASS_PATTERN}/);
         const chartId = chartIdMatch ? chartIdMatch[1] : null;
+        const agGridWaitObserved = Array.from(holder.querySelectorAll(
+            '{AG_GRID_HOST_SELECTOR}'
+        )).some(grid => grid._supersetAgGridWaitObserved === true);
         const r = holder.getBoundingClientRect();
         if (!(r.top < window.innerHeight && r.bottom > 0)) {{
-            return {{ chartId, state: 'virtualized' }};
+            return {{ chartId, state: 'virtualized', agGridWaitObserved }};
         }}
         const hasSliceContainer = holder.querySelector(
             '{SLICE_CONTAINER_SELECTOR}'
@@ -274,31 +284,31 @@ FIND_CHART_HOLDER_STATES_JS = f"""
             '{AG_GRID_HOST_SELECTOR}'
         )).some(grid => grid._agGridFirstDataRendered !== true);
         if (stillLoading && hasSliceContainer) {{
-            return {{ chartId, state: 'spinner_mounted' }};
+            return {{ chartId, state: 'spinner_mounted', agGridWaitObserved }};
         }}
         if (stillLoading) {{
-            return {{ chartId, state: 'waiting_on_database' }};
+            return {{ chartId, state: 'waiting_on_database', agGridWaitObserved }};
         }}
         if (holder.querySelector('{ALERT_SELECTOR}') !== null) {{
-            return {{ chartId, state: 'error' }};
+            return {{ chartId, state: 'error', agGridWaitObserved }};
         }}
         if (holder.querySelector(
             '{EMPTY_SELECTOR}, {MISSING_CHART_SELECTOR}'
         ) !== null) {{
-            return {{ chartId, state: 'empty' }};
+            return {{ chartId, state: 'empty', agGridWaitObserved }};
         }}
         if (hasSliceContainer && holder.querySelector(
             '{ECHARTS_UNPAINTED_HOST_SELECTOR}'
         ) !== null) {{
-            return {{ chartId, state: 'mounted_unpainted' }};
+            return {{ chartId, state: 'mounted_unpainted', agGridWaitObserved }};
         }}
         if (hasSliceContainer && hasUnpaintedAgGrid) {{
-            return {{ chartId, state: 'ag_grid_unpainted' }};
+            return {{ chartId, state: 'ag_grid_unpainted', agGridWaitObserved }};
         }}
         if (hasSliceContainer) {{
-            return {{ chartId, state: 'rendered' }};
+            return {{ chartId, state: 'rendered', agGridWaitObserved }};
         }}
-        return {{ chartId, state: 'nothing_mounted' }};
+        return {{ chartId, state: 'nothing_mounted', agGridWaitObserved }};
     }});
 }}
 """
@@ -875,7 +885,8 @@ def take_tiled_screenshot(  # noqa: C901
         elapsed, remaining = _deadline_values()
         logger.info(
             "report_readiness_ready url=%s expected_holders=%s mounted_holders=%s "
-            "ready_holders=%s elapsed_seconds=%.2f remaining_seconds=%s%s",
+            "ready_holders=%s ag_grid_waited_holders=%s elapsed_seconds=%.2f "
+            "remaining_seconds=%s%s",
             url,
             (
                 report_execution_context.expected_chart_count
@@ -884,6 +895,7 @@ def take_tiled_screenshot(  # noqa: C901
             ),
             len(holder_states),
             sum(holder.get("state") in ready_states for holder in holder_states),
+            sum(holder.get("agGridWaitObserved") is True for holder in holder_states),
             elapsed,
             f"{remaining:.2f}" if remaining is not None else None,
             context_suffix,

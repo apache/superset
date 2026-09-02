@@ -1190,5 +1190,13 @@ def test_readiness_predicates_gate_on_unpainted_ag_grid_hosts() -> None:
     ):
         assert AG_GRID_HOST_SELECTOR in predicate
         assert "_agGridFirstDataRendered !== true" in predicate
+    for predicate in (
+        CHART_HOLDERS_READY_JS,
+        REPORT_CHART_HOLDERS_READY_JS,
+        REPORT_ALL_CHART_HOLDERS_READY_JS,
+    ):
+        assert "grid._supersetAgGridWaitObserved = true" in predicate
     assert "ag_grid_unpainted" in FIND_CHART_HOLDER_STATES_JS
+    assert "grid._supersetAgGridWaitObserved === true" in (FIND_CHART_HOLDER_STATES_JS)
+    assert "agGridWaitObserved" in FIND_CHART_HOLDER_STATES_JS
     assert "ag_grid_unpainted" in CHART_CONTAINER_STATE_JS
