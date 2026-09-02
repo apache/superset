@@ -49,10 +49,16 @@ DEFAULT_CHART_WIDTH = 4
 
 
 def _coerce_dataset_id(raw_dataset_id: Any) -> Optional[int]:
-    try:
-        return int(raw_dataset_id)
-    except (TypeError, ValueError):
+    if isinstance(raw_dataset_id, bool):
         return None
+    if isinstance(raw_dataset_id, int):
+        return raw_dataset_id
+    if isinstance(raw_dataset_id, str) and raw_dataset_id.isdigit():
+        try:
+            return int(raw_dataset_id)
+        except ValueError:
+            return None
+    return None
 
 
 def get_default_position(title: str) -> dict[str, Any]:

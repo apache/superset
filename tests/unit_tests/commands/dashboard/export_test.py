@@ -295,6 +295,22 @@ def test_file_content_resolves_string_and_int_dataset_ids_to_same_dataset():
     assert native_filters[0]["targets"][1]["datasetUuid"] == dataset_uuid
 
 
+def test_coerce_dataset_id_rejects_non_integral_values():
+    """Regression test: bare int() silently truncates 1.9 to 1, parses "1_0" as 10."""
+    from superset.commands.dashboard.export import _coerce_dataset_id
+
+    assert _coerce_dataset_id(5) == 5
+    assert _coerce_dataset_id("5") == 5
+    assert _coerce_dataset_id(1.9) is None
+    assert _coerce_dataset_id("1.9") is None
+    assert _coerce_dataset_id("1_0") is None
+    assert _coerce_dataset_id("abc") is None
+    assert _coerce_dataset_id(None) is None
+    assert _coerce_dataset_id(True) is None
+    assert _coerce_dataset_id(-5) == -5
+    assert _coerce_dataset_id("-5") is None
+
+
 def test_export_skips_dangling_dataset_references_without_raising():
     """
     Regression test: the find_by_ids pre-filter in _export must only pass
