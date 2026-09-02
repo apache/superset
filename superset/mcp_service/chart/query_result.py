@@ -32,6 +32,8 @@ import numpy as np
 import pandas as pd
 import pytz
 from dateutil import tz as dateutil_tz
+from dateutil.zoneinfo import tzfile as dateutil_zoneinfo_tzfile
+from pydantic import BaseModel
 
 from superset.mcp_service.chart.schemas import ChartError
 from superset.utils.core import GenericDataType
@@ -60,7 +62,8 @@ _MAX_RESULT_ROW_COUNT = (1 << 63) - 1
 # Each query may return Superset's configured 50k ROW_LIMIT. The aggregate row
 # budget admits both legs of Big Number raw/trend and Mixed Timeseries results
 # at that limit, while the value budget admits twenty scalar columns on both
-# legs (plus their row containers). Text remains capped at 16 MiB. Metadata
+# legs (plus their row containers). The complete compact JSON projection is
+# capped at 16 MiB, including scalar tokens, escaping, keys, and syntax. Metadata
 # profiling has a separate row-by-column work budget in ``response_utils`` so
 # wide sparse results cannot turn bounded validation into an unbounded scan.
 # Individual cell strings are capped at 64 KiB and object keys at 4 KiB. Query
@@ -128,7 +131,7 @@ class _ResultBudget:
 
     rows: int = 0
     values: int = 0
-    value_bytes: int = 0
+    json_bytes: int = 0
     metadata_items: int = 0
     metadata_bytes: int = 0
 
@@ -393,6 +396,97 @@ def _bounded_utf8_length(value: str, max_bytes: int) -> int | None:
     return size if size <= max_bytes else None
 
 
+def _json_string_size(value: str, max_bytes: int) -> int | None:
+    """Return the exact UTF-8 size of a JSON string without serializing it."""
+    raw_size = _bounded_utf8_length(value, max_bytes)
+    if raw_size is None:
+        return None
+    escaped_size = raw_size + 2  # surrounding quotes
+    for character in value:
+        codepoint = ord(character)
+        if character in {'"', "\\"} or character in {"\b", "\t", "\n", "\f", "\r"}:
+            escaped_size += 1
+        elif codepoint < 0x20:
+            # Other JSON control characters use a six-byte ``\\u00xx`` escape.
+            escaped_size += 5
+    return escaped_size
+
+
+def _integer_json_size(value: int) -> int:
+    """Return an exact integer JSON size without creating its decimal string."""
+    magnitude = -value if value < 0 else value
+    if magnitude == 0:
+        digits = 1
+    else:
+        bits = int.bit_length(magnitude)
+        # This fixed-point log10(2) estimate is at most one digit low. Refine it
+        # with one bounded integer comparison rather than rendering the value.
+        digits = ((bits - 1) * 30103) // 100000 + 1
+        if magnitude >= 10**digits:
+            digits += 1
+    return digits + (value < 0)
+
+
+def _container_json_syntax_size(item_count: int, *, mapping: bool) -> int:
+    """Return braces/brackets, separators, and mapping-colon byte cost."""
+    if item_count == 0:
+        return 2
+    return 2 + item_count - 1 + (item_count if mapping else 0)
+
+
+def _normalized_scalar_json_size(value: Any) -> int:  # noqa: C901
+    """Return a conservative encoded size for one normalized exact scalar."""
+    value_type = type(value)
+    if value is None:
+        return 4
+    if value_type is bool:
+        return 4 if value else 5
+    if value_type is str:
+        size = _json_string_size(value, MAX_QUERY_RESULT_STRING_BYTES)
+        assert size is not None  # scalar normalization already bounded the string
+        return size
+    if value_type is int:
+        return _integer_json_size(value)
+    if value_type is float:
+        # Exact builtin repr is hook-free, bounded to a shortest-round-trip
+        # spelling, and avoids pessimistically charging 24 bytes for values
+        # such as 0.0 across ordinary large numeric datasets.
+        return len(float.__repr__(value))
+    if value_type is Decimal:
+        # Decimal storage, coefficient digits, and exponent are bounded before
+        # this point. Its canonical spelling is therefore itself bounded, and
+        # Pydantic serializes Decimal values as JSON strings.
+        text = Decimal.__str__(value)
+        size = _json_string_size(text, MAX_QUERY_RESULT_STRING_BYTES)
+        assert size is not None
+        return size
+    if value_type is datetime:
+        return 40
+    if value_type is date:
+        return 12
+    if value_type is time:
+        return 32
+    if value_type is timedelta:
+        return 40
+    if value_type is UUID:
+        return 38
+    raise AssertionError(f"unaccounted normalized scalar: {value_type!r}")
+
+
+def _charge_json_bytes(
+    budget: _ResultBudget, size: int, *, metadata: bool = False
+) -> str | None:
+    """Charge aggregate response bytes and the independent metadata allowance."""
+    budget.json_bytes += size
+    if budget.json_bytes > MAX_QUERY_RESULT_VALUE_BYTES:
+        return "exceeds the total JSON-encoded byte limit"
+    if metadata:
+        budget.metadata_bytes += size
+        if budget.metadata_bytes > MAX_QUERY_RESULT_METADATA_BYTES:
+            return "metadata exceeds the total JSON-encoded byte limit"
+    return None
+
+
 def _integer_failure(value: int) -> str | None:
     """Validate exact integer magnitude before decimal rendering or hashing."""
     bits = int.bit_length(value)
@@ -430,7 +524,8 @@ def _exact_object_namespace(value: Any) -> dict[str, Any] | None:
 
 def _dateutil_timezone_name_without_hooks(tzinfo: Any) -> str | None:
     """Read a dateutil tzfile's IANA name from exact internal storage."""
-    if type(tzinfo) is not _DATEUTIL_TZFILE_TYPE:
+    tzinfo_type = type(tzinfo)
+    if tzinfo_type not in {_DATEUTIL_TZFILE_TYPE, dateutil_zoneinfo_tzfile}:
         return None
     namespace = _exact_object_namespace(tzinfo)
     if namespace is None:
@@ -438,6 +533,8 @@ def _dateutil_timezone_name_without_hooks(tzinfo: Any) -> str | None:
     filename = dict.get(namespace, "_filename")
     if type(filename) is not str or _bounded_utf8_length(filename, 4096) is None:
         return None
+    if tzinfo_type is dateutil_zoneinfo_tzfile:
+        return filename if _bounded_utf8_length(filename, 256) is not None else None
     marker = "/zoneinfo/"
     marker_offset = str.find(filename, marker)
     if marker_offset < 0:
@@ -540,6 +637,17 @@ def _normalize_trusted_scalar(value: Any) -> tuple[Any, str | None]:  # noqa: C9
     conversion hooks are outside the trusted ChartData materialization contract.
     """
     value_type = type(value)
+    enum_seen: set[int] = set()
+    while _mro_contains(_type_mro(value_type), (Enum,)):
+        identity = id(value)
+        if identity in enum_seen or len(enum_seen) >= _MAX_ROW_CONTAINER_DEPTH:
+            return None, "contains a recursive enum"
+        enum_seen.add(identity)
+        try:
+            value = object.__getattribute__(value, "_value_")
+        except Exception:
+            return None, "contains an unsupported enum"
+        value_type = type(value)
 
     if value is None or value_type is bool:
         return value, None
@@ -630,19 +738,15 @@ def _normalize_trusted_scalar(value: Any) -> tuple[Any, str | None]:  # noqa: C9
 
 
 def _add_result_value_to_budget(value: Any, budget: _ResultBudget) -> str | None:
-    """Account for one normalized row value and its bounded text size."""
+    """Account for one normalized row value and its JSON scalar size."""
     budget.values += 1
     if budget.values > MAX_QUERY_RESULT_VALUES:
         return "contains too many total values"
     if budget.values + budget.metadata_items > MAX_QUERY_RESULT_WORK:
         return "exceeds the total work limit"
-    if type(value) is str:
-        size = _bounded_utf8_length(value, MAX_QUERY_RESULT_STRING_BYTES)
-        if size is None:  # already checked by scalar normalization
-            return "contains an invalid or oversized string"
-        budget.value_bytes += size
-        if budget.value_bytes > MAX_QUERY_RESULT_VALUE_BYTES:
-            return "exceeds the total string-byte limit"
+    if type(value) is not list and type(value) is not dict:
+        if reason := _charge_json_bytes(budget, _normalized_scalar_json_size(value)):
+            return reason
     return None
 
 
@@ -667,15 +771,23 @@ def _metadata_failure_for_value(  # noqa: C901
             if identity in seen:
                 return "metadata contains repeated or cyclic containers"
             seen.add(identity)
-            if dict.__len__(item) > _MAX_ROW_CONTAINER_ITEMS:
+            item_count = dict.__len__(item)
+            if item_count > _MAX_ROW_CONTAINER_ITEMS:
                 return "metadata contains an oversized object"
+            if reason := _charge_json_bytes(
+                budget,
+                _container_json_syntax_size(item_count, mapping=True),
+                metadata=True,
+            ):
+                return reason
             for key, child in dict.items(item):
                 if type(key) is not str:
                     return "metadata contains a non-string object key"
-                key_size = _bounded_utf8_length(key, MAX_QUERY_RESULT_KEY_BYTES)
+                key_size = _json_string_size(key, MAX_QUERY_RESULT_KEY_BYTES)
                 if key_size is None:
                     return "metadata contains an invalid or oversized object key"
-                budget.metadata_bytes += key_size
+                if reason := _charge_json_bytes(budget, key_size, metadata=True):
+                    return reason
                 stack.append((child, depth + 1))
             continue
 
@@ -687,26 +799,26 @@ def _metadata_failure_for_value(  # noqa: C901
             width = list.__len__(item)
             if width > _MAX_ROW_CONTAINER_ITEMS:
                 return "metadata contains an oversized array"
+            if reason := _charge_json_bytes(
+                budget,
+                _container_json_syntax_size(width, mapping=False),
+                metadata=True,
+            ):
+                return reason
             stack.extend(
                 (list.__getitem__(item, index), depth + 1) for index in range(width)
             )
             continue
 
-        if _mro_contains(_type_mro(type(item)), (Enum,)):
-            try:
-                item = object.__getattribute__(item, "_value_")
-            except Exception:
-                return "metadata contains an unsupported enum"
         normalized, reason = _normalize_trusted_scalar(item)
         if reason is not None:
             return f"metadata {reason}"
-        if type(normalized) is str:
-            size = _bounded_utf8_length(normalized, MAX_QUERY_RESULT_STRING_BYTES)
-            if size is None:
-                return "metadata contains an invalid or oversized string"
-            budget.metadata_bytes += size
-        if budget.metadata_bytes > MAX_QUERY_RESULT_METADATA_BYTES:
-            return "metadata exceeds the total byte limit"
+        if reason := _charge_json_bytes(
+            budget,
+            _normalized_scalar_json_size(normalized),
+            metadata=True,
+        ):
+            return reason
     return None
 
 
@@ -793,6 +905,10 @@ def _normalize_row_value(  # noqa: C901
             width = list.__len__(item)
             if width > _MAX_ROW_CONTAINER_ITEMS:
                 return "contains an oversized array"
+            if reason := _charge_json_bytes(
+                budget, _container_json_syntax_size(width, mapping=False)
+            ):
+                return reason
             stack.extend(
                 (list.__getitem__(item, index), item, index, depth + 1)
                 for index in range(width)
@@ -806,17 +922,21 @@ def _normalize_row_value(  # noqa: C901
             if identity in seen:
                 return "contains repeated or cyclic containers"
             seen.add(identity)
-            if dict.__len__(item) > _MAX_ROW_CONTAINER_ITEMS:
+            item_count = dict.__len__(item)
+            if item_count > _MAX_ROW_CONTAINER_ITEMS:
                 return "contains an oversized object"
+            if reason := _charge_json_bytes(
+                budget, _container_json_syntax_size(item_count, mapping=True)
+            ):
+                return reason
             for key, child in dict.items(item):
                 if type(key) is not str:
                     return "contains a non-string object key"
-                key_size = _bounded_utf8_length(key, MAX_QUERY_RESULT_KEY_BYTES)
+                key_size = _json_string_size(key, MAX_QUERY_RESULT_KEY_BYTES)
                 if key_size is None:
                     return "contains an invalid or oversized object key"
-                budget.value_bytes += key_size
-                if budget.value_bytes > MAX_QUERY_RESULT_VALUE_BYTES:
-                    return "exceeds the total string-byte limit"
+                if reason := _charge_json_bytes(budget, key_size):
+                    return reason
                 stack.append((child, item, key, depth + 1))
             continue
 
@@ -849,18 +969,26 @@ def query_result_data(  # noqa: C901
         return None, _malformed_result("top-level result must be an object")
 
     budget = _ResultBudget()
+    result_item_count = dict.__len__(result)
+    if reason := _charge_json_bytes(
+        budget,
+        _container_json_syntax_size(result_item_count, mapping=True),
+        metadata=True,
+    ):
+        return None, _malformed_result(f"top-level result {reason}")
     for result_key in dict.keys(result):
         if type(result_key) is not str:
             return None, _malformed_result(
                 "top-level result contains a non-string object key"
             )
-        key_size = _bounded_utf8_length(result_key, MAX_QUERY_RESULT_KEY_BYTES)
+        key_size = _json_string_size(result_key, MAX_QUERY_RESULT_KEY_BYTES)
         if key_size is None:
             return None, _malformed_result(
                 "top-level result contains an invalid or oversized object key"
             )
         budget.metadata_items += 1
-        budget.metadata_bytes += key_size
+        if reason := _charge_json_bytes(budget, key_size, metadata=True):
+            return None, _malformed_result(f"top-level result {reason}")
     if budget.metadata_items > MAX_QUERY_RESULT_METADATA_ITEMS:
         return None, _malformed_result("top-level metadata exceeds the item limit")
     if budget.metadata_bytes > MAX_QUERY_RESULT_METADATA_BYTES:
@@ -891,6 +1019,10 @@ def query_result_data(  # noqa: C901
         return None, _malformed_result("queries must contain at least one query")
     if query_count > _MAX_QUERY_COUNT:
         return None, _malformed_result("queries exceeds the item limit")
+    if reason := _charge_json_bytes(
+        budget, _container_json_syntax_size(query_count, mapping=False)
+    ):
+        return None, _malformed_result(f"queries {reason}")
 
     data_arrays: list[list[dict[str, Any]]] = []
     for offset in range(query_count):
@@ -898,18 +1030,26 @@ def query_result_data(  # noqa: C901
         query = list.__getitem__(queries, offset)
         if type(query) is not dict:
             return None, _malformed_result(f"query {index} must be an object")
+        query_item_count = dict.__len__(query)
+        if reason := _charge_json_bytes(
+            budget,
+            _container_json_syntax_size(query_item_count, mapping=True),
+            metadata=True,
+        ):
+            return None, _malformed_result(f"query {index} {reason}")
         for query_key in dict.keys(query):
             if type(query_key) is not str:
                 return None, _malformed_result(
                     f"query {index} contains a non-string object key"
                 )
-            key_size = _bounded_utf8_length(query_key, MAX_QUERY_RESULT_KEY_BYTES)
+            key_size = _json_string_size(query_key, MAX_QUERY_RESULT_KEY_BYTES)
             if key_size is None:
                 return None, _malformed_result(
                     f"query {index} contains an invalid or oversized object key"
                 )
             budget.metadata_items += 1
-            budget.metadata_bytes += key_size
+            if reason := _charge_json_bytes(budget, key_size, metadata=True):
+                return None, _malformed_result(f"query {index} {reason}")
         if budget.metadata_items > MAX_QUERY_RESULT_METADATA_ITEMS:
             return None, _malformed_result("query metadata exceeds the item limit")
         if budget.metadata_bytes > MAX_QUERY_RESULT_METADATA_BYTES:
@@ -935,6 +1075,10 @@ def query_result_data(  # noqa: C901
         budget.rows += data_length
         if budget.rows > MAX_QUERY_RESULT_TOTAL_ROWS:
             return None, _malformed_result("queries exceed the total row limit")
+        if reason := _charge_json_bytes(
+            budget, _container_json_syntax_size(data_length, mapping=False)
+        ):
+            return None, _malformed_result(f"query {index} data {reason}")
         for count_key in ("rowcount", "total_rows"):
             if dict.__contains__(query, count_key):
                 count = dict.__getitem__(query, count_key)
@@ -1019,6 +1163,72 @@ def query_result_data(  # noqa: C901
                     )
         data_arrays.append(data)
     return data_arrays, None
+
+
+def response_json_failure(response: BaseModel) -> ChartError | None:  # noqa: C901
+    """Preflight the complete Pydantic response projection before serialization.
+
+    Source results and returned models are not isomorphic: multi-query ChartData
+    repeats the first query through its compatibility alias, and column samples
+    repeat selected values. Walking the Python-mode projection counts every
+    actual occurrence, derived metadata, key, escape, and delimiter without
+    materializing a potentially oversized JSON document.
+    """
+    try:
+        payload = BaseModel.model_dump(response, mode="python", by_alias=True)
+    except Exception:
+        return _malformed_result("response projection could not be inspected")
+
+    stack: list[Any] = [payload]
+    encoded_bytes = 0
+    inspected_items = 0
+    max_items = 3 * MAX_QUERY_RESULT_WORK
+    while stack:
+        item = stack.pop()
+        inspected_items += 1
+        if inspected_items > max_items:
+            return _malformed_result("response projection exceeds the work limit")
+
+        if type(item) is dict:
+            item_count = dict.__len__(item)
+            encoded_bytes += _container_json_syntax_size(item_count, mapping=True)
+            for key, child in dict.items(item):
+                if type(key) is not str:
+                    return _malformed_result(
+                        "response projection contains a non-string object key"
+                    )
+                key_size = _json_string_size(key, MAX_QUERY_RESULT_KEY_BYTES)
+                if key_size is None:
+                    return _malformed_result(
+                        "response projection contains an invalid or oversized key"
+                    )
+                encoded_bytes += key_size
+                stack.append(child)
+        elif type(item) is list:
+            item_count = list.__len__(item)
+            encoded_bytes += _container_json_syntax_size(item_count, mapping=False)
+            stack.extend(list.__getitem__(item, index) for index in range(item_count))
+        else:
+            normalized, reason = _normalize_trusted_scalar(item)
+            if reason is not None:
+                return _malformed_result(f"response projection {reason}")
+            if type(normalized) is str:
+                scalar_size = _json_string_size(
+                    normalized, MAX_QUERY_RESULT_VALUE_BYTES
+                )
+                if scalar_size is None:
+                    return _malformed_result(
+                        "response projection contains an oversized string"
+                    )
+            else:
+                scalar_size = _normalized_scalar_json_size(normalized)
+            encoded_bytes += scalar_size
+
+        if encoded_bytes > MAX_QUERY_RESULT_VALUE_BYTES:
+            return _malformed_result(
+                "response exceeds the total JSON-encoded byte limit"
+            )
+    return None
 
 
 def safe_exception_message(exception: BaseException, max_bytes: int = 2000) -> str:

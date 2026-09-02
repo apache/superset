@@ -30,8 +30,10 @@ import pandas as pd
 import pytest
 import pytz
 from dateutil import tz as dateutil_tz
+from dateutil.zoneinfo import get_zonefile_instance
 
 from superset.mcp_service.chart.query_result import (
+    _json_string_size,
     _truncate_utf8,
     MAX_QUERY_RESULT_DECIMAL_DIGITS,
     MAX_QUERY_RESULT_DECIMAL_EXPONENT,
@@ -41,10 +43,12 @@ from superset.mcp_service.chart.query_result import (
     MAX_QUERY_RESULT_ROWS,
     MAX_QUERY_RESULT_STRING_BYTES,
     MAX_QUERY_RESULT_TOTAL_ROWS,
+    MAX_QUERY_RESULT_VALUE_BYTES,
     MAX_QUERY_RESULT_VALUES,
     query_result_data,
     safe_exception_message,
 )
+from superset.utils import json
 from superset.utils.core import GenericDataType
 
 
@@ -141,6 +145,11 @@ class _UnsupportedEnum(Enum):
     VALUE = _HostileEnumValue()
 
 
+class _ResultEnum(Enum):
+    TEXT = "value"
+    NUMBER = 7
+
+
 @pytest.mark.parametrize(
     "result",
     [
@@ -164,6 +173,15 @@ def test_query_result_accepts_one_legitimate_empty_dataset() -> None:
     data, failure = query_result_data({"queries": [{"data": []}]})
     assert data == [[]]
     assert failure is None
+
+
+def test_query_result_normalizes_enum_row_values_without_public_hooks() -> None:
+    row = {"text": _ResultEnum.TEXT, "number": _ResultEnum.NUMBER}
+
+    data, failure = query_result_data({"queries": [{"data": [row]}]})
+
+    assert failure is None
+    assert data == [[{"text": "value", "number": 7}]]
 
 
 @pytest.mark.parametrize(
@@ -344,6 +362,19 @@ def test_query_result_preserves_named_zone_fold_after_dataframe_materialization(
     assert data == [[{"event_time": "2024-11-03T01:30:00-08:00"}]]
 
 
+def test_query_result_accepts_dateutil_packaged_zoneinfo_type() -> None:
+    tzinfo_value = get_zonefile_instance().get("America/Los_Angeles")
+    assert tzinfo_value is not None
+    timestamp = pd.Timestamp(datetime(2024, 1, 1, 12, tzinfo=tzinfo_value))
+
+    data, failure = query_result_data(
+        {"queries": [{"data": [{"value": timestamp}], "rowcount": 1}]}
+    )
+
+    assert failure is None
+    assert data == [[{"value": "2024-01-01T12:00:00-08:00"}]]
+
+
 @pytest.mark.parametrize(
     "tzinfo_value",
     [dateutil_tz.tzoffset("east", 3600), pytz.FixedOffset(60)],
@@ -502,14 +533,75 @@ def test_query_result_enforces_total_value_work_boundary() -> None:
     assert "total values" in failure.error or "total work" in failure.error
 
 
+def test_query_result_enforces_exact_json_encoded_data_byte_boundary() -> None:
+    full_chunks = 255
+    # Exact compact envelope syntax/keys plus the final string's quotes.
+    fixed_json_bytes = 306
+    remainder = (
+        MAX_QUERY_RESULT_VALUE_BYTES
+        - fixed_json_bytes
+        - full_chunks * (MAX_QUERY_RESULT_STRING_BYTES + 2)
+        - 2
+    )
+    values = ["x" * MAX_QUERY_RESULT_STRING_BYTES for _ in range(full_chunks)]
+    values.append("x" * remainder)
+    result = {"queries": [{"data": [{"values": values}], "rowcount": 1}]}
+
+    data, failure = query_result_data(result)
+    assert failure is None
+    assert data == [[{"values": values}]]
+
+    values[-1] += "x"
+    data, failure = query_result_data(result)
+    assert data is None
+    assert failure is not None
+    assert "total JSON-encoded byte limit" in failure.error
+
+
+def test_query_result_rejects_aggregate_huge_numeric_json_before_serialization() -> (
+    None
+):
+    huge_value = 10**999
+    rows = [{"value": huge_value}] * 17_000
+
+    data, failure = query_result_data(
+        {"queries": [{"data": rows, "rowcount": len(rows)}]}
+    )
+
+    assert data is None
+    assert failure is not None
+    assert "total JSON-encoded byte limit" in failure.error
+
+
+@pytest.mark.parametrize(
+    "value",
+    ['quote"slash\\control\n', "café 💥", "\x00\x1f"],
+)
+def test_json_string_meter_matches_real_utf8_serialization(value: str) -> None:
+    encoded = json.dumps(value, ensure_ascii=False, separators=(",", ":")).encode()
+
+    assert _json_string_size(value, MAX_QUERY_RESULT_STRING_BYTES) == len(encoded)
+
+
+def test_query_result_charges_escaped_non_ascii_keys_and_nested_syntax() -> None:
+    row = {'quoted"\\\n💥': {"nested": [None, True, 123, "café"]}}
+    result = {"queries": [{"data": [row], "rowcount": 1}]}
+
+    data, failure = query_result_data(result)
+
+    assert failure is None
+    assert data == [[row]]
+
+
 def test_query_result_enforces_total_metadata_byte_boundary() -> None:
-    # Account for the exact top-level/query keys charged to the metadata budget.
-    fixed_key_bytes = len("queries") + len("data") + len("metadata") + len("rowcount")
+    # Compact JSON syntax/keys plus the final string's quotes are all charged.
+    fixed_json_bytes = 63
     full_chunks = 15
     remainder = (
         MAX_QUERY_RESULT_METADATA_BYTES
-        - fixed_key_bytes
-        - full_chunks * MAX_QUERY_RESULT_STRING_BYTES
+        - fixed_json_bytes
+        - full_chunks * (MAX_QUERY_RESULT_STRING_BYTES + 2)
+        - 2
     )
     at_limit = ["x" * MAX_QUERY_RESULT_STRING_BYTES for _ in range(full_chunks)]
     at_limit.append("x" * remainder)
@@ -534,7 +626,7 @@ def test_query_result_enforces_total_metadata_byte_boundary() -> None:
     )
     assert data is None
     assert failure is not None
-    assert "metadata exceeds the total byte limit" in failure.error
+    assert "metadata exceeds the total JSON-encoded byte limit" in failure.error
 
 
 def test_query_result_bounds_arbitrary_top_level_metadata() -> None:

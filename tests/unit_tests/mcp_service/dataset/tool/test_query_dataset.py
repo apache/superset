@@ -32,6 +32,7 @@ from superset.mcp_service.app import mcp
 from superset.mcp_service.auth import is_tool_visible_to_current_user
 from superset.mcp_service.privacy import tool_requires_data_model_metadata_access
 from superset.utils import json
+from superset.utils.core import GenericDataType
 from superset.utils.date_parser import get_since_until
 
 query_dataset_module = importlib.import_module(
@@ -116,18 +117,22 @@ def _make_dataset(
 def _mock_command_result(
     data: list[dict[str, Any]] | None = None,
     colnames: list[str] | None = None,
+    coltypes: list[int] | None = None,
 ) -> dict[str, Any]:
     """Build the result dict that ChartDataCommand.run() returns."""
-    data = data or [
-        {"category": "Electronics", "count": 42},
-        {"category": "Clothing", "count": 17},
-    ]
-    colnames = colnames or ["category", "count"]
+    if data is None:
+        data = [
+            {"category": "Electronics", "count": 42},
+            {"category": "Clothing", "count": 17},
+        ]
+    if colnames is None:
+        colnames = ["category", "count"]
     return {
         "queries": [
             {
                 "data": data,
                 "colnames": colnames,
+                **({"coltypes": coltypes} if coltypes is not None else {}),
                 "rowcount": len(data),
                 "cache_key": "abc123",
                 "is_cached": False,
@@ -260,6 +265,69 @@ async def test_query_dataset_normalizes_pandas_numpy_result_once(
             "count": 7,
             "missing": None,
         }
+    ]
+
+
+@pytest.mark.asyncio
+async def test_query_dataset_uses_authoritative_coltypes_and_late_samples(
+    mcp_server: FastMCP,
+) -> None:
+    import pandas as pd
+
+    rows: list[dict[str, Any]] = [
+        {"event_time": None, "enabled": None, "amount": None} for _ in range(5)
+    ]
+    rows.extend(
+        [
+            {
+                "event_time": pd.Timestamp("2024-01-02T03:04:05Z"),
+                "enabled": True,
+                "amount": 1,
+            },
+            {"event_time": None, "enabled": False, "amount": 1.0},
+            {"event_time": None, "enabled": True, "amount": "1"},
+        ]
+    )
+    payload = await _call_query_dataset_with_result(
+        mcp_server,
+        _mock_command_result(
+            data=rows,
+            colnames=["event_time", "enabled", "amount"],
+            coltypes=[
+                GenericDataType.TEMPORAL,
+                GenericDataType.BOOLEAN,
+                GenericDataType.NUMERIC,
+            ],
+        ),
+    )
+
+    assert [column["data_type"] for column in payload["columns"]] == [
+        "temporal",
+        "boolean",
+        "numeric",
+    ]
+    assert payload["columns"][0]["sample_values"] == ["2024-01-02T03:04:05+00:00"]
+    assert payload["columns"][1]["sample_values"] == [True, False, True]
+    assert payload["columns"][2]["unique_count"] == 2
+
+
+@pytest.mark.asyncio
+async def test_query_dataset_preserves_typed_columns_for_empty_data(
+    mcp_server: FastMCP,
+) -> None:
+    payload = await _call_query_dataset_with_result(
+        mcp_server,
+        _mock_command_result(
+            data=[],
+            colnames=["event_time", "enabled"],
+            coltypes=[GenericDataType.TEMPORAL, GenericDataType.BOOLEAN],
+        ),
+    )
+
+    assert payload["data"] == []
+    assert [column["data_type"] for column in payload["columns"]] == [
+        "temporal",
+        "boolean",
     ]
 
 

@@ -33,6 +33,11 @@ import pytest
 import pytz
 from dateutil import tz as dateutil_tz
 
+from superset.mcp_service.chart.query_result import (
+    MAX_QUERY_RESULT_VALUE_BYTES,
+    query_result_data,
+    response_json_failure,
+)
 from superset.mcp_service.chart.schemas import (
     ChartData,
     ChartError,
@@ -2418,6 +2423,62 @@ def test_multi_query_row_count_reflects_limit() -> None:
         [{"metric": 1}],
         [{"metric": 3}],
     ]
+
+
+def _multi_query_chart_data(
+    query_results: list[dict[str, Any]],
+) -> ChartData:
+    nested_results = _build_query_results(query_results, None)
+    assert nested_results is not None
+    first_data = query_results[0]["data"]
+    return ChartData(
+        chart_id=1,
+        chart_name="Multi-query",
+        chart_type="mixed_timeseries",
+        columns=[],
+        data=first_data,
+        query_results=nested_results,
+        row_count=len(first_data),
+        total_rows=len(first_data),
+        summary="Multi-query result",
+        insights=[],
+        data_quality={},
+        recommended_visualizations=[],
+        data_freshness=None,
+        performance=PerformanceMetadata(query_duration_ms=1, cache_status="fresh"),
+    )
+
+
+def test_complete_response_budget_charges_multi_query_first_leg_alias() -> None:
+    row = {f"c{index}": 0 for index in range(20)}
+    rows = [row] * 50_000
+    query_results = [
+        {"colnames": list(row), "data": rows, "rowcount": len(rows)},
+        {"colnames": list(row), "data": rows, "rowcount": len(rows)},
+    ]
+
+    data, source_failure = query_result_data({"queries": query_results})
+    assert source_failure is None
+    assert data == [rows, rows]
+
+    response_failure = response_json_failure(_multi_query_chart_data(query_results))
+
+    assert response_failure is not None
+    assert "response exceeds the total JSON-encoded byte limit" in (
+        response_failure.error
+    )
+
+
+def test_complete_response_preflight_matches_real_pydantic_serialization() -> None:
+    rows = [{"label": 'café "\n', "value": index} for index in range(100)]
+    query_results = [
+        {"colnames": ["label", "value"], "data": rows, "rowcount": len(rows)},
+        {"colnames": ["label", "value"], "data": rows, "rowcount": len(rows)},
+    ]
+    response = _multi_query_chart_data(query_results)
+
+    assert response_json_failure(response) is None
+    assert len(response.model_dump_json().encode()) <= MAX_QUERY_RESULT_VALUE_BYTES
 
 
 @pytest.mark.asyncio

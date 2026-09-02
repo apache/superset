@@ -33,6 +33,7 @@ from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
 from superset.mcp_service.app import mcp
 from superset.utils import json
+from superset.utils.core import GenericDataType
 
 get_table_module: ModuleType = importlib.import_module(
     "superset.mcp_service.semantic_layer.tool.get_table"
@@ -292,6 +293,82 @@ async def test_get_table_normalizes_pandas_numpy_result_once(
             "count": 7,
             "missing": None,
         }
+    ]
+
+
+@pytest.mark.asyncio
+async def test_get_table_uses_authoritative_coltypes_and_late_samples(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import pandas as pd
+
+    rows: list[dict[str, Any]] = [
+        {"event_time": None, "enabled": None, "amount": None} for _ in range(5)
+    ]
+    rows.extend(
+        [
+            {
+                "event_time": pd.Timestamp("2024-01-02T03:04:05Z"),
+                "enabled": True,
+                "amount": 1,
+            },
+            {"event_time": None, "enabled": False, "amount": 1.0},
+            {"event_time": None, "enabled": True, "amount": "1"},
+        ]
+    )
+    response = await _run_with_command_result(
+        monkeypatch,
+        {
+            "queries": [
+                {
+                    "data": rows,
+                    "colnames": ["event_time", "enabled", "amount"],
+                    "coltypes": [
+                        GenericDataType.TEMPORAL,
+                        GenericDataType.BOOLEAN,
+                        GenericDataType.NUMERIC,
+                    ],
+                    "rowcount": len(rows),
+                }
+            ]
+        },
+    )
+
+    assert [column.data_type for column in response.columns] == [
+        "temporal",
+        "boolean",
+        "numeric",
+    ]
+    assert response.columns[0].sample_values == ["2024-01-02T03:04:05+00:00"]
+    assert response.columns[1].sample_values == [True, False, True]
+    assert response.columns[2].unique_count == 2
+
+
+@pytest.mark.asyncio
+async def test_get_table_preserves_typed_columns_for_empty_data(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    response = await _run_with_command_result(
+        monkeypatch,
+        {
+            "queries": [
+                {
+                    "data": [],
+                    "colnames": ["event_time", "enabled"],
+                    "coltypes": [
+                        GenericDataType.TEMPORAL,
+                        GenericDataType.BOOLEAN,
+                    ],
+                    "rowcount": 0,
+                }
+            ]
+        },
+    )
+
+    assert response.data == []
+    assert [column.data_type for column in response.columns] == [
+        "temporal",
+        "boolean",
     ]
 
 

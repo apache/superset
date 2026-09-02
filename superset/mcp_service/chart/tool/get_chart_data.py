@@ -20,14 +20,8 @@ MCP tool: get_chart_data
 """
 
 import logging
-import math
-import struct
 import time
-from datetime import date, datetime, time as datetime_time, timedelta, timezone
-from decimal import Decimal
 from typing import Any, Dict, List, TYPE_CHECKING
-from uuid import UUID
-from zoneinfo import ZoneInfo
 
 from fastmcp import Context
 from flask import current_app
@@ -53,6 +47,7 @@ from superset.mcp_service.chart.chart_helpers import (
 from superset.mcp_service.chart.chart_utils import validate_chart_dataset
 from superset.mcp_service.chart.query_result import (
     query_result_data,
+    response_json_failure,
     safe_exception_message,
 )
 from superset.mcp_service.chart.schemas import (
@@ -69,10 +64,10 @@ from superset.mcp_service.utils.oauth2_utils import (
     OAUTH2_CONFIG_ERROR_MESSAGE,
 )
 from superset.mcp_service.utils.response_utils import (
-    data_column_stats_row_limit,
-    STATS_SAMPLE_VALUE_ROWS,
+    _safe_value_identity as safe_value_identity,
+    format_data_columns,
+    GENERIC_DATA_TYPE_NAMES,
 )
-from superset.utils.core import GenericDataType
 
 logger = logging.getLogger(__name__)
 
@@ -136,12 +131,8 @@ def _rejected_requested_filter_columns(
     return sorted(requested & rejected)
 
 
-_GENERIC_TYPE_MAP: dict[int, str] = {
-    GenericDataType.NUMERIC: "numeric",
-    GenericDataType.STRING: "string",
-    GenericDataType.TEMPORAL: "temporal",
-    GenericDataType.BOOLEAN: "boolean",
-}
+_GENERIC_TYPE_MAP = GENERIC_DATA_TYPE_NAMES
+_safe_value_identity = safe_value_identity
 
 # Maps Superset viz_type strings to canonical categories so we can
 # avoid recommending a chart type the user already has.
@@ -350,246 +341,9 @@ def _build_query_results(
     return results
 
 
-_MAX_NUMERIC_IDENTITY_BITS = 4096
-_MAX_DECIMAL_IDENTITY_DIGITS = 1024
-_MAX_DECIMAL_IDENTITY_STORAGE = 1024
-_TRUSTED_TZINFO_TYPES = (timezone, ZoneInfo)
-
-
-def _bounded_integer_identity(value: int) -> tuple[Any, ...]:
-    """Return a value identity without hashing attacker-sized magnitudes."""
-    if (bit_count := int.bit_length(value)) > _MAX_NUMERIC_IDENTITY_BITS:
-        return ("oversized_numeric", "integer", value < 0, bit_count)
-    return ("finite_numeric", value, 1)
-
-
-def _decimal_identity(value: Decimal) -> tuple[Any, ...]:  # noqa: C901
-    """Return bounded value-semantic identity for an exact ``Decimal``.
-
-    Finite values share rational identities with exact ints and floats, so
-    scale variants and signed zero collapse just as Python numeric equality
-    does. Decimal tuple materialization and rational conversion are guarded by
-    storage, digit, exponent, and bit limits. Values outside those limits are
-    safely classified rather than fully converted.
-    """
-    is_signed = Decimal.is_signed(value)
-    if Decimal.is_infinite(value):
-        return ("numeric_infinity", is_signed)
-
-    is_snan = Decimal.is_snan(value)
-    if is_snan or Decimal.is_qnan(value):
-        nan_kind = "signaling" if is_snan else "quiet"
-        storage = Decimal.__sizeof__(value)
-        if storage > _MAX_DECIMAL_IDENTITY_STORAGE:
-            return ("decimal_nan", nan_kind, is_signed, "oversized", storage)
-        parts = Decimal.as_tuple(value)
-        if len(parts.digits) > _MAX_DECIMAL_IDENTITY_DIGITS:
-            return (
-                "decimal_nan",
-                nan_kind,
-                is_signed,
-                "oversized",
-                len(parts.digits),
-            )
-        return ("decimal_nan", nan_kind, is_signed, parts.digits)
-
-    if Decimal.is_zero(value):
-        return ("finite_numeric", 0, 1)
-
-    storage = Decimal.__sizeof__(value)
-    if storage > _MAX_DECIMAL_IDENTITY_STORAGE:
-        # ``adjusted`` returns the already-stored magnitude exponent without
-        # allocating a digit tuple or coefficient.
-        return (
-            "oversized_numeric",
-            "decimal",
-            is_signed,
-            Decimal.adjusted(value),
-            storage,
-        )
-
-    parts = Decimal.as_tuple(value)
-    digit_count = len(parts.digits)
-    exponent = parts.exponent
-    if type(exponent) is not int:  # specials were handled above
-        return ("decimal_special", exponent, is_signed)
-    if digit_count > _MAX_DECIMAL_IDENTITY_DIGITS:
-        return (
-            "oversized_numeric",
-            "decimal",
-            is_signed,
-            exponent + digit_count - 1,
-            digit_count,
-        )
-
-    projected_bits = (digit_count + abs(exponent)) * 4
-    if projected_bits > _MAX_NUMERIC_IDENTITY_BITS:
-        # Preserve a bounded, scale-normalized Decimal classification without
-        # constructing 10**abs(exponent). This intentionally declines exact
-        # cross-type comparison for values too large for bounded rational work.
-        digits = parts.digits
-        trailing_zeros = 0
-        while trailing_zeros < digit_count and digits[-trailing_zeros - 1] == 0:
-            trailing_zeros += 1
-        significant = digits[: digit_count - trailing_zeros]
-        coefficient = 0
-        for digit in significant:
-            coefficient = coefficient * 10 + digit
-        if is_signed:
-            coefficient = -coefficient
-        return (
-            "oversized_numeric",
-            "decimal",
-            coefficient,
-            exponent + trailing_zeros,
-        )
-
-    numerator, denominator = Decimal.as_integer_ratio(value)
-    if (
-        int.bit_length(numerator) > _MAX_NUMERIC_IDENTITY_BITS
-        or int.bit_length(denominator) > _MAX_NUMERIC_IDENTITY_BITS
-    ):
-        return (
-            "oversized_numeric",
-            "decimal_ratio",
-            is_signed,
-            int.bit_length(numerator),
-            int.bit_length(denominator),
-        )
-    return ("finite_numeric", numerator, denominator)
-
-
-def _has_trusted_timezone(value: datetime | datetime_time) -> bool:
-    """Check timezone trust by exact type without invoking timezone hooks."""
-    tzinfo = value.tzinfo
-    return tzinfo is not None and any(
-        type(tzinfo) is type_ for type_ in _TRUSTED_TZINFO_TYPES
-    )
-
-
-def _safe_value_identity(value: Any) -> tuple[Any, ...]:  # noqa: C901
-    """Build a bounded hashable identity from a validated exact result value."""
-    if type(value) is list:
-        return (
-            list,
-            tuple(
-                _safe_value_identity(list.__getitem__(value, index))
-                for index in range(list.__len__(value))
-            ),
-        )
-    if type(value) is dict:
-        return (
-            dict,
-            tuple(
-                (key, _safe_value_identity(child))
-                for key, child in sorted(dict.items(value))
-            ),
-        )
-    value_type = type(value)
-    if value is None or value_type is str:
-        return (value_type, value)
-    if value_type is bool:
-        return ("finite_numeric", int(value), 1)
-    if value_type is int:
-        return _bounded_integer_identity(value)
-    if value_type is float:
-        if math.isnan(value):
-            # IEEE bytes retain NaN sign/payload while avoiding its
-            # non-reflexive equality and identity-based hashing behavior.
-            return ("float_nan", struct.pack(">d", value))
-        if math.isinf(value):
-            return ("numeric_infinity", value < 0)
-        numerator, denominator = float.as_integer_ratio(value)
-        return ("finite_numeric", numerator, denominator)
-    if value_type is Decimal:
-        return _decimal_identity(value)
-    if value_type is datetime:
-        if value.tzinfo is None or _has_trusted_timezone(value):
-            # Exact datetime plus exact builtin/ZoneInfo timezone objects can
-            # safely delegate to CPython's equality/hash implementation. This
-            # retains its subtle same-zone fold and inter-zone ambiguity rules
-            # instead of reducing every aware value to a UTC instant.
-            return ("trusted_datetime", value)
-        # A custom tzinfo may execute arbitrary code. Keep its values distinct
-        # without calling it; repeated values using the same timezone object
-        # still receive a stable identity within the metadata computation.
-        return (
-            "opaque_datetime",
-            date.toordinal(value),
-            value.hour,
-            value.minute,
-            value.second,
-            value.microsecond,
-            value.fold,
-            id(value.tzinfo),
-        )
-    if value_type is date:
-        return (date, date.toordinal(value))
-    if value_type is datetime_time:
-        if value.tzinfo is None or _has_trusted_timezone(value):
-            return ("trusted_time", value)
-        return (
-            "opaque_time",
-            value.hour,
-            value.minute,
-            value.second,
-            value.microsecond,
-            value.fold,
-            id(value.tzinfo),
-        )
-    if value_type is timedelta:
-        return (timedelta, value.days, value.seconds, value.microseconds)
-    if value_type is UUID:
-        return (UUID, value.int)
-    # query_result_data rejects this branch before callers inspect rows.
-    return (object,)
-
-
-def _build_data_columns(
-    data: list[dict[str, Any]],
-    raw_columns: list[str],
-    coltypes: list[int | GenericDataType],
-) -> list[DataColumn]:
-    """Build identical coltype-aware metadata for saved and unsaved results."""
-    stats_row_limit = data_column_stats_row_limit(len(data), len(raw_columns))
-    stats_rows = data[:stats_row_limit]
-    is_sampled = len(data) > stats_row_limit
-    columns: list[DataColumn] = []
-    for index, col_name in enumerate(raw_columns):
-        sample_values: list[Any] = []
-        for row in data[:STATS_SAMPLE_VALUE_ROWS]:
-            value = dict.get(row, col_name)
-            if value is not None:
-                sample_values.append(value)
-        data_type = "string"
-        if coltypes:
-            data_type = _GENERIC_TYPE_MAP.get(coltypes[index], "string")
-        elif sample_values:
-            if all(type(value) is bool for value in sample_values):
-                data_type = "boolean"
-            elif all(type(value) in (int, float, Decimal) for value in sample_values):
-                data_type = "numeric"
-
-        null_count = 0
-        unique_values: set[tuple[Any, ...]] = set()
-        for row in stats_rows:
-            value = dict.get(row, col_name)
-            if value is None:
-                null_count += 1
-            unique_values.add(_safe_value_identity(value))
-
-        columns.append(
-            DataColumn(
-                name=col_name,
-                display_name=col_name.replace("_", " ").title(),
-                data_type=data_type,
-                sample_values=sample_values[:3],
-                null_count=null_count,
-                unique_count=len(unique_values),
-                statistics={"sampled_rows": len(stats_rows)} if is_sampled else None,
-            )
-        )
-    return columns
+# Compatibility aliases keep the established private helper imports stable while all
+# result consumers use the single shared profiling contract.
+_build_data_columns = format_data_columns
 
 
 def _strict_bullet_result_data(
@@ -1223,7 +977,7 @@ async def get_chart_data(  # noqa: C901
             )
 
             # Default JSON format
-            return ChartData(
+            response = ChartData(
                 chart_id=chart.id,
                 chart_name=chart.slice_name or f"Chart {chart.id}",
                 chart_type=chart.viz_type or "unknown",
@@ -1240,6 +994,7 @@ async def get_chart_data(  # noqa: C901
                 performance=performance,
                 cache_status=cache_status,
             )
+            return response_json_failure(response) or response
 
         except (OAuth2RedirectError, OAuth2Error):
             # OAuth errors subclass SupersetException and would otherwise be
@@ -1420,7 +1175,7 @@ async def _query_from_form_data(  # noqa: C901
         )
 
         await ctx.report_progress(4, 4, "Building response")
-        return ChartData(
+        response = ChartData(
             chart_id=0,
             chart_name=chart_name,
             chart_type=viz_type,
@@ -1446,6 +1201,7 @@ async def _query_from_form_data(  # noqa: C901
             ),
             cache_status=cache_status,
         )
+        return response_json_failure(response) or response
 
     except (OAuth2RedirectError, OAuth2Error):
         # OAuth errors subclass SupersetException; re-raise so the caller's
@@ -1472,7 +1228,7 @@ def _export_data_as_csv(
     columns: List[str],
     cache_status: Any,
     performance: Any,
-) -> "ChartData":
+) -> "ChartData | ChartError":
     """Export chart data as CSV format."""
     import csv
     import io
@@ -1504,7 +1260,7 @@ def _export_data_as_csv(
     # Return as ChartData with CSV content in a special field
     from superset.mcp_service.chart.schemas import ChartData
 
-    return ChartData(
+    response = ChartData(
         chart_id=chart.id,
         chart_name=chart.slice_name or f"Chart {chart.id}",
         chart_type=chart.viz_type or "unknown",
@@ -1523,6 +1279,7 @@ def _export_data_as_csv(
         csv_data=csv_content,
         format="csv",
     )
+    return response_json_failure(response) or response
 
 
 def _export_data_as_excel(
@@ -1657,14 +1414,14 @@ def _create_excel_chart_data(
     excel_b64: str,
     performance: Any,
     cache_status: Any,
-) -> "ChartData":
+) -> "ChartData | ChartError":
     """Create ChartData response for Excel export (openpyxl)."""
     from superset.mcp_service.chart.schemas import ChartData
 
     chart_name = chart.slice_name or f"Chart {chart.id}"
     summary = f"Excel export of chart '{chart.slice_name}' with {len(data)} rows"
 
-    return ChartData(
+    response = ChartData(
         chart_id=chart.id,
         chart_name=chart_name,
         chart_type=chart.viz_type or "unknown",
@@ -1682,6 +1439,7 @@ def _create_excel_chart_data(
         excel_data=excel_b64,
         format="excel",
     )
+    return response_json_failure(response) or response
 
 
 def _create_excel_chart_data_xlsxwriter(
@@ -1690,14 +1448,14 @@ def _create_excel_chart_data_xlsxwriter(
     excel_b64: str,
     performance: Any,
     cache_status: Any,
-) -> "ChartData":
+) -> "ChartData | ChartError":
     """Create ChartData response for Excel export (xlsxwriter)."""
     from superset.mcp_service.chart.schemas import ChartData
 
     chart_name = chart.slice_name or f"Chart {chart.id}"
     summary = f"Excel export of chart '{chart.slice_name}' with {len(data)} rows"
 
-    return ChartData(
+    response = ChartData(
         chart_id=chart.id,
         chart_name=chart_name,
         chart_type=chart.viz_type or "unknown",
@@ -1715,3 +1473,4 @@ def _create_excel_chart_data_xlsxwriter(
         excel_data=excel_b64,
         format="excel",
     )
+    return response_json_failure(response) or response

@@ -35,7 +35,11 @@ from superset.charts.data.form_data import set_query_context_form_data
 from superset.commands.exceptions import CommandException
 from superset.exceptions import OAuth2Error, OAuth2RedirectError, SupersetException
 from superset.extensions import event_logger
-from superset.mcp_service.chart.query_result import query_result_data
+from superset.mcp_service.chart.query_result import (
+    query_result_data,
+    response_json_failure,
+    safe_exception_message,
+)
 from superset.mcp_service.chart.schemas import DataColumn, PerformanceMetadata
 from superset.mcp_service.dataset.dataset_utils import resolve_dataset
 from superset.mcp_service.dataset.schemas import (
@@ -62,6 +66,18 @@ _NO_SAVED_METRICS_HINT = (
     "metric names only (not ad-hoc expressions). Use execute_sql for "
     "ad-hoc aggregates, or add a saved metric to the dataset."
 )
+
+
+def _bounded_response(
+    response: QueryDatasetResponse,
+) -> QueryDatasetResponse | DatasetError:
+    """Reject an oversized complete response projection before serialization."""
+    if failure := response_json_failure(response):
+        return DatasetError.create(
+            error=failure.error,
+            error_type=failure.error_type,
+        )
+    return response
 
 
 @tool(
@@ -333,6 +349,8 @@ async def query_dataset(  # noqa: C901
         data = list.__getitem__(queries_data, 0)
         raw_columns = dict.get(query_result, "colnames", [])
         assert type(raw_columns) is list
+        coltypes = dict.get(query_result, "coltypes", [])
+        assert type(coltypes) is list
 
         query_duration_ms = int((time.time() - start_time) * 1000)
 
@@ -340,27 +358,30 @@ async def query_dataset(  # noqa: C901
         # Step 6: Format response
         # ------------------------------------------------------------------
         await ctx.report_progress(5, 5, "Formatting results")
+        columns_meta: list[DataColumn] = format_data_columns(
+            data, raw_columns, coltypes
+        )
         if not data:
-            return QueryDatasetResponse(
-                dataset_id=dataset.id,
-                dataset_name=dataset_name,
-                columns=[],
-                data=[],
-                row_count=0,
-                total_rows=0,
-                summary=f"Query on '{dataset_name}' returned no data.",
-                performance=PerformanceMetadata(
-                    query_duration_ms=query_duration_ms,
-                    cache_status="no_data",
-                ),
-                cache_status=get_cache_status_from_result(
-                    query_result, force_refresh=request.force_refresh
-                ),
-                applied_filters=effective_filters,
-                warnings=warnings,
+            return _bounded_response(
+                QueryDatasetResponse(
+                    dataset_id=dataset.id,
+                    dataset_name=dataset_name,
+                    columns=columns_meta,
+                    data=[],
+                    row_count=0,
+                    total_rows=0,
+                    summary=f"Query on '{dataset_name}' returned no data.",
+                    performance=PerformanceMetadata(
+                        query_duration_ms=query_duration_ms,
+                        cache_status="no_data",
+                    ),
+                    cache_status=get_cache_status_from_result(
+                        query_result, force_refresh=request.force_refresh
+                    ),
+                    applied_filters=effective_filters,
+                    warnings=warnings,
+                )
             )
-
-        columns_meta: list[DataColumn] = format_data_columns(data, raw_columns)
 
         cache_status = get_cache_status_from_result(
             query_result, force_refresh=request.force_refresh
@@ -377,21 +398,23 @@ async def query_dataset(  # noqa: C901
             % (len(data), len(raw_columns), query_duration_ms)
         )
 
-        return QueryDatasetResponse(
-            dataset_id=dataset.id,
-            dataset_name=dataset_name,
-            columns=columns_meta,
-            data=data,
-            row_count=len(data),
-            total_rows=query_result.get("rowcount"),
-            summary=summary,
-            performance=PerformanceMetadata(
-                query_duration_ms=query_duration_ms,
-                cache_status=cache_label,
-            ),
-            cache_status=cache_status,
-            applied_filters=effective_filters,
-            warnings=warnings,
+        return _bounded_response(
+            QueryDatasetResponse(
+                dataset_id=dataset.id,
+                dataset_name=dataset_name,
+                columns=columns_meta,
+                data=data,
+                row_count=len(data),
+                total_rows=query_result.get("rowcount"),
+                summary=summary,
+                performance=PerformanceMetadata(
+                    query_duration_ms=query_duration_ms,
+                    cache_status=cache_label,
+                ),
+                cache_status=cache_status,
+                applied_filters=effective_filters,
+                warnings=warnings,
+            )
         )
 
     except OAuth2RedirectError as exc:
@@ -403,34 +426,38 @@ async def query_dataset(  # noqa: C901
         )
 
     except OAuth2Error as exc:
-        await ctx.error("OAuth2 error: %s" % (str(exc),))
+        error_text = safe_exception_message(exc)
+        await ctx.error("OAuth2 error: %s" % (error_text,))
         return DatasetError.create(
-            error=f"OAuth2 authentication error: {exc}",
+            error=f"OAuth2 authentication error: {error_text}",
             error_type="OAuth2Error",
         )
 
     except (CommandException, SupersetException) as exc:
-        await ctx.error("Query failed: %s" % (str(exc),))
+        error_text = safe_exception_message(exc)
+        await ctx.error("Query failed: %s" % (error_text,))
         return DatasetError.create(
-            error=f"Query execution failed: {exc}",
+            error=f"Query execution failed: {error_text}",
             error_type="QueryError",
         )
 
     except SQLAlchemyError as exc:
+        error_text = safe_exception_message(exc)
         logger.exception("Database error while querying dataset")
-        await ctx.error("Database error: %s" % (str(exc),))
+        await ctx.error("Database error: %s" % (error_text,))
         return DatasetError.create(
-            error=f"Database error: {exc}",
+            error=f"Database error: {error_text}",
             error_type="DatabaseError",
         )
 
     except Exception as exc:
+        error_text = safe_exception_message(exc)
         logger.exception(
             "Unexpected error while querying dataset: %s: %s",
             type(exc).__name__,
-            str(exc),
+            error_text,
         )
-        await ctx.error("Unexpected error: %s: %s" % (type(exc).__name__, str(exc)))
+        await ctx.error("Unexpected error: %s: %s" % (type(exc).__name__, error_text))
         return DatasetError.create(
             error="An unexpected error occurred while querying the dataset.",
             error_type="UnexpectedError",

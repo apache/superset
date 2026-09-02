@@ -20,6 +20,7 @@ Unit tests for get_chart_sql MCP tool
 """
 
 import importlib
+from typing import Any
 from unittest.mock import Mock, patch
 
 import pytest
@@ -174,6 +175,35 @@ class TestExtractSqlFromResult:
         )
         assert isinstance(output, ChartError)
         assert output.error_type == "EmptyQuery"
+
+    @pytest.mark.parametrize(
+        "result",
+        [
+            {"queries": {}},
+            {"queries": [object()]},
+            {"queries": [{"query": object()}]},
+            {"queries": [{"error": object()}]},
+            {"queries": [{"language": object(), "query": "SELECT 1"}]},
+        ],
+    )
+    def test_malformed_query_results_are_bounded(self, result: Any) -> None:
+        output = _extract_sql_from_result(
+            result, chart_id=1, chart_name="Test", datasource_name="ds"
+        )
+
+        assert isinstance(output, ChartError)
+        assert output.error_type == "MalformedQueryResult"
+
+    def test_query_count_and_aggregate_sql_bytes_are_bounded(self) -> None:
+        too_many = {"queries": [{"query": "SELECT 1"}] * 65}
+        oversized = {"queries": [{"query": "x" * (16 * 1024 * 1024 + 1)}]}
+
+        for result in (too_many, oversized):
+            output = _extract_sql_from_result(
+                result, chart_id=1, chart_name="Test", datasource_name="ds"
+            )
+            assert isinstance(output, ChartError)
+            assert output.error_type == "MalformedQueryResult"
 
     def test_no_sql_with_error_returns_chart_error(self):
         """Test that empty sql with an error message returns ChartError."""
