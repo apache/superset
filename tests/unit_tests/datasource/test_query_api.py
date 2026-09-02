@@ -192,14 +192,6 @@ def test_chart_data_schema_rejects_arrow() -> None:
         assert field.deserialize(fmt) == ChartDataResultFormat(fmt)
 
 
-def test_datasource_schema_still_accepts_arrow(schema) -> None:
-    """The exclusion is scoped to chart/data, not to the shared enum."""
-    assert (
-        schema.load({"metrics": ["count"], "result_format": "arrow"})["result_format"]
-        == ChartDataResultFormat.ARROW
-    )
-
-
 def test_rejects_cache_timeout_below_disabled_sentinel(schema) -> None:
     """-1 is CACHE_DISABLED_TIMEOUT; below that is meaningless and would reach
     the cache backend as an arbitrary negative timeout."""

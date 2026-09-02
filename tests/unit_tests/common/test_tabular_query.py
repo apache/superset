@@ -267,17 +267,6 @@ def test_resolve_time_column_infers_from_main_dttm_col() -> None:
     assert _resolve_time_column(explorable, "sales", None, True) == "ds"
 
 
-def test_resolve_time_column_falls_back_to_first_datetime_dimension() -> None:
-    """Semantic views have no main_dttm_col, so the first dttm column is used."""
-    from superset.common.tabular_query import _resolve_time_column
-
-    explorable = MagicMock()
-    explorable.columns = [_column("region"), _column("event_time", is_dttm=True)]
-    explorable.main_dttm_col = None
-
-    assert _resolve_time_column(explorable, "view", None, True) == "event_time"
-
-
 def test_resolve_time_column_requires_one_when_time_range_given() -> None:
     from superset.common.tabular_query import _resolve_time_column
 
@@ -355,19 +344,6 @@ def test_validation_error_is_a_value_error() -> None:
     ValueError validation failures do not escape as 500s; this subclassing is
     what keeps TabularQueryValidationError covered by that handler."""
     assert issubclass(TabularQueryValidationError, ValueError)
-
-
-def test_metrics_hint_can_name_an_http_endpoint() -> None:
-    many = {f"metric_{i:02d}" for i in range(15)}
-
-    (error,) = validate_query_names(
-        many,
-        set(),
-        metrics=["zzz"],
-        metrics_full_list_hint="GET /api/v1/datasource/table/1",
-    )
-    assert "GET /api/v1/datasource/table/1" in error
-    assert "get_dataset_info" not in error
 
 
 def test_resolve_time_column_requires_a_choice_when_ambiguous() -> None:

@@ -63,7 +63,6 @@ class ResolvedExplorable:
     valid_dimensions: set[str]
     valid_metrics: set[str]
     dttm_columns: set[str] = field(default_factory=set)
-    warnings: list[str] = field(default_factory=list)
 
     def resolve_grain_column(
         self, time_column: str | None, dimensions: Sequence[Column] | None
@@ -351,10 +350,8 @@ def build_query_dict(
             {
                 "label": grain_column,
                 "sqlExpression": grain_column,
-                # Required by the semantic-layer mapper: `_normalize_column`
-                # rejects any adhoc column without it, so a semantic view would
-                # raise on every time_grain query. Datasets resolve the
-                # expression against column metadata either way.
+                # `_normalize_column` rejects adhoc dimensions without this,
+                # so semantic views would raise on every time_grain query.
                 "isColumnReference": True,
                 "columnType": "BASE_AXIS",
                 "timeGrain": time_grain,
@@ -376,8 +373,6 @@ def build_query_dict(
     if time_column:
         query_dict["granularity"] = time_column
     if time_grain:
-        # Consumed by the semantic-layer mapper, which matches it against each
-        # dimension's exposed grains.
         query_dict["extras"] = {"time_grain_sqla": time_grain}
     if order:
         # QueryObject.orderby is (name, ascending); the wire carries per-column
