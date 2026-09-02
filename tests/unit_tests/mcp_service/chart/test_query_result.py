@@ -159,6 +159,11 @@ class _ProjectedResponse(BaseModel):
     value: str
 
 
+class _UTCProjectedResponse(BaseModel):
+    timestamp: datetime
+    value: str
+
+
 @pytest.mark.parametrize(
     "result",
     [
@@ -972,6 +977,22 @@ def test_complete_response_accepts_exact_aggregate_boundary_and_rejects_one_byte
     failure = response_json_failure(oversized)
     assert failure is not None
     assert "response exceeds the total JSON-encoded byte limit" in failure.error
+
+
+def test_complete_response_counts_pydantic_utc_z_wire_spelling_exactly() -> None:
+    empty = _UTCProjectedResponse(
+        timestamp=datetime(2026, 9, 2, tzinfo=timezone.utc), value=""
+    )
+    assert '"timestamp":"2026-09-02T00:00:00Z"' in empty.model_dump_json()
+    filler = "x" * (
+        MAX_QUERY_RESULT_VALUE_BYTES - len(empty.model_dump_json().encode())
+    )
+    boundary = _UTCProjectedResponse(timestamp=empty.timestamp, value=filler)
+    oversized = _UTCProjectedResponse(timestamp=empty.timestamp, value=filler + "x")
+
+    assert len(boundary.model_dump_json().encode()) == MAX_QUERY_RESULT_VALUE_BYTES
+    assert response_json_failure(boundary) is None
+    assert response_json_failure(oversized) is not None
 
 
 def test_timedelta_envelope_uses_exact_json_boundary(

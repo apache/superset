@@ -222,6 +222,44 @@ test('handles an empty query result without crashing', () => {
   expect(max).toBeGreaterThan(min);
 });
 
+test('coerces grouped categories with JavaScript String semantics', () => {
+  const props = new ChartProps({
+    width: 800,
+    height: 400,
+    formData: { ...formData, groupby: ['state'] },
+    theme: supersetTheme,
+    queriesData: [
+      {
+        data: [
+          { state: null, sum__num: 1 },
+          { state: '', sum__num: 2 },
+          { state: true, sum__num: 3 },
+          { state: false, sum__num: 4 },
+          { state: 12.0, sum__num: 5 },
+          { state: 12.5, sum__num: 6 },
+          { state: -0, sum__num: 7 },
+          { state: '2026-09-02T03:04:05Z', sum__num: 8 },
+          { state: '12345678-1234-5678-1234-567812345678', sum__num: 9 },
+        ],
+      },
+    ],
+    hooks: {},
+  }) as unknown as EchartsBulletChartProps;
+  const { echartOptions } = transformProps(props);
+  const { data } = (echartOptions as { yAxis: { data: string[] } }).yAxis;
+  expect(data).toEqual([
+    'null',
+    '',
+    'true',
+    'false',
+    '12',
+    '12.5',
+    '0',
+    '2026-09-02T03:04:05Z',
+    '12345678-1234-5678-1234-567812345678',
+  ]);
+});
+
 test('splits into one bullet row per group value with shared markers', () => {
   const props = new ChartProps({
     width: 800,

@@ -21,15 +21,18 @@ Unit tests for update_chart_preview MCP tool
 
 import importlib
 from typing import Any
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 from fastmcp import Client
+from pydantic import RootModel
 
 from superset.extensions import feature_flag_manager
 from superset.mcp_service.app import mcp
 from superset.mcp_service.chart.chart_utils import map_big_number_config
+from superset.mcp_service.chart.query_result import MAX_QUERY_RESULT_VALUE_BYTES
 from superset.mcp_service.chart.schemas import (
+    ASCIIPreview,
     AxisConfig,
     BigNumberChartConfig,
     ColumnRef,
@@ -84,6 +87,73 @@ def _mock_dataset(id: int = 1) -> Mock:
     dataset.metrics = []
     dataset.database = database
     return dataset
+
+
+def test_update_chart_preview_entrypoint_exact_limit_and_plus_one() -> None:
+    config = TableChartConfig(chart_type="table", columns=[ColumnRef(name="region")])
+    request = UpdateChartPreviewRequest(
+        dataset_id=3,
+        config=config,
+        generate_preview=True,
+        preview_formats=["ascii"],
+    )
+    dataset = _mock_dataset(id=3)
+
+    def run(content: str) -> dict[str, Any]:
+        user = Mock(id=1, username="admin", roles=[], groups=[])
+        with (
+            patch("superset.mcp_service.auth.get_user_from_request", return_value=user),
+            patch.object(
+                update_chart_preview_module, "_find_dataset", return_value=dataset
+            ),
+            patch(
+                "superset.mcp_service.chart.validation.dataset_validator."
+                "build_dataset_context_from_orm",
+                return_value=MagicMock(),
+            ),
+            patch(
+                "superset.mcp_service.chart.validation.dataset_validator."
+                "DatasetValidator.normalize_column_names",
+                return_value=config,
+            ),
+            patch.object(
+                update_chart_preview_module,
+                "validate_and_compile",
+                return_value=Mock(success=True),
+            ),
+            patch.object(
+                update_chart_preview_module,
+                "generate_explore_link",
+                return_value=(
+                    "http://localhost/explore/?form_data_key=bounded-preview-key"
+                ),
+            ),
+            patch.object(
+                update_chart_preview_module,
+                "generate_preview_from_form_data",
+                return_value=ASCIIPreview(ascii_content=content, width=80, height=20),
+            ),
+            patch.object(update_chart_preview_module.time, "time", return_value=1.0),
+        ):
+            return update_chart_preview_module.update_chart_preview(
+                request=request, ctx=MagicMock()
+            )
+
+    empty = run("")
+    empty_size = len(RootModel[dict[str, Any]](empty).model_dump_json().encode())
+    filler = "x" * (MAX_QUERY_RESULT_VALUE_BYTES - empty_size)
+    boundary = run(filler)
+    oversized = run(filler + "x")
+
+    assert (
+        len(RootModel[dict[str, Any]](boundary).model_dump_json().encode())
+        == MAX_QUERY_RESULT_VALUE_BYTES
+    )
+    assert boundary["success"] is True
+    assert oversized["success"] is False
+    error = oversized["error"]
+    assert isinstance(error, dict)
+    assert error["error_code"] == "CHART_RESPONSE_TOO_LARGE"
 
 
 class TestUpdateChartPreview:

@@ -41,6 +41,7 @@ from superset.mcp_service.chart.chart_helpers import (
 )
 from superset.mcp_service.chart.chart_utils import validate_chart_dataset
 from superset.mcp_service.chart.query_result import safe_exception_message
+from superset.mcp_service.chart.response_preflight import preflight_chart_response
 from superset.mcp_service.chart.schemas import (
     AccessibilityMetadata,
     ASCIIPreview,
@@ -1208,7 +1209,7 @@ class PreviewFormatGenerator:
             )
 
         strategy = strategy_class(self.chart, self.request)
-        return strategy.generate()
+        return preflight_chart_response(strategy.generate())
 
 
 async def _get_chart_preview_internal(  # noqa: C901
@@ -1544,7 +1545,7 @@ async def _get_chart_preview_internal(  # noqa: C901
             performance=performance,
         )
 
-        return result
+        return preflight_chart_response(result)
 
     except SQLAlchemyError as e:
         # Catch DetachedInstanceError and other SQLAlchemy errors that can
@@ -1644,23 +1645,27 @@ async def get_chart_preview(
                 % (result.error_type, result.error)
             )
 
-        return result
+        return preflight_chart_response(result)
     except OAuth2RedirectError as ex:
         await ctx.warning(
             "Chart preview requires OAuth authentication: identifier=%s"
             % request.identifier
         )
-        return ChartError(
-            error=build_oauth2_redirect_message(ex),
-            error_type="OAUTH2_REDIRECT",
+        return preflight_chart_response(
+            ChartError(
+                error=build_oauth2_redirect_message(ex),
+                error_type="OAUTH2_REDIRECT",
+            )
         )
     except OAuth2Error:
         await ctx.error(
             "OAuth2 configuration error: identifier=%s" % request.identifier
         )
-        return ChartError(
-            error=OAUTH2_CONFIG_ERROR_MESSAGE,
-            error_type="OAUTH2_REDIRECT_ERROR",
+        return preflight_chart_response(
+            ChartError(
+                error=OAUTH2_CONFIG_ERROR_MESSAGE,
+                error_type="OAUTH2_REDIRECT_ERROR",
+            )
         )
     except (
         SupersetException,
@@ -1677,7 +1682,9 @@ async def get_chart_preview(
             "Chart preview generation failed: identifier=%s, error=%s"
             % (request.identifier, error_text)
         )
-        return ChartError(
-            error=f"Failed to generate chart preview: {error_text}",
-            error_type="InternalError",
+        return preflight_chart_response(
+            ChartError(
+                error=f"Failed to generate chart preview: {error_text}",
+                error_type="InternalError",
+            )
         )

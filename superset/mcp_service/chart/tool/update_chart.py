@@ -47,6 +47,9 @@ from superset.mcp_service.chart.chart_utils import (
     validate_merged_bullet_form_data,
 )
 from superset.mcp_service.chart.compile import validate_and_compile
+from superset.mcp_service.chart.response_preflight import (
+    preflight_generate_chart_response,
+)
 from superset.mcp_service.chart.schemas import (
     AccessibilityMetadata,
     ColumnRef,
@@ -65,6 +68,13 @@ from superset.utils import json
 logger = logging.getLogger(__name__)
 
 
+def _bounded_update_response(payload: object) -> GenerateChartResponse:
+    """Validate and preflight one complete update-chart response."""
+    return preflight_generate_chart_response(
+        GenerateChartResponse.model_validate(payload)
+    )
+
+
 def _get_existing_form_data(chart: Any) -> dict[str, Any]:
     """Return a chart's saved form data, treating malformed params as empty."""
     if not getattr(chart, "params", None):
@@ -80,7 +90,7 @@ def _get_existing_form_data(chart: Any) -> dict[str, Any]:
 
 
 def _validation_error_response(message: str, details: str) -> GenerateChartResponse:
-    return GenerateChartResponse.model_validate(
+    return _bounded_update_response(
         {
             "chart": None,
             "error": {
@@ -376,7 +386,7 @@ def _validate_update_against_dataset(
             if dataset_id is not None
             else getattr(chart, "datasource_id", None)
         )
-        return GenerateChartResponse.model_validate(
+        return _bounded_update_response(
             {
                 "chart": None,
                 "error": {
@@ -420,7 +430,7 @@ def _validate_update_against_dataset(
             "error_code": compile_result.error_code,
             "suggestions": [],
         }
-    return GenerateChartResponse.model_validate(
+    return _bounded_update_response(
         {
             "chart": None,
             "error": error_payload,
@@ -597,7 +607,7 @@ async def update_chart(  # noqa: C901
                 f"No chart found with identifier: {display_id}."
                 " Use list_charts to get valid chart IDs."
             )
-            return GenerateChartResponse.model_validate(
+            return _bounded_update_response(
                 {
                     "chart": None,
                     "error": {
@@ -620,7 +630,7 @@ async def update_chart(  # noqa: C901
         validation_result = check_chart_data_access(chart)
         if not validation_result.is_valid:
             error_msg = validation_result.error or "Chart's dataset is not accessible"
-            return GenerateChartResponse.model_validate(
+            return _bounded_update_response(
                 {
                     "chart": None,
                     "error": {
@@ -873,14 +883,14 @@ async def update_chart(  # noqa: C901
             "schema_version": "2.0",
             "api_version": "v1",
         }
-        return GenerateChartResponse.model_validate(result)
+        return _bounded_update_response(result)
 
     except OAuth2RedirectError as ex:
         await ctx.warning(
             "Chart update requires OAuth authentication: identifier=%s"
             % request.identifier
         )
-        return GenerateChartResponse.model_validate(
+        return _bounded_update_response(
             {
                 "chart": None,
                 "success": False,
@@ -893,7 +903,7 @@ async def update_chart(  # noqa: C901
         )
     except OAuth2Error:
         await ctx.error("OAuth2 configuration error: chart_id=%s" % request.identifier)
-        return GenerateChartResponse.model_validate(
+        return _bounded_update_response(
             {
                 "chart": None,
                 "success": False,
@@ -920,7 +930,7 @@ async def update_chart(  # noqa: C901
                 "Database rollback failed during error handling", exc_info=True
             )
         execution_time = int((time.time() - start_time) * 1000)
-        return GenerateChartResponse.model_validate(
+        return _bounded_update_response(
             {
                 "chart": None,
                 "error": {

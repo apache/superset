@@ -21,7 +21,7 @@ Unit tests for update_chart MCP tool
 
 import importlib
 from typing import Any
-from unittest.mock import Mock, patch
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
 from fastmcp import Client
@@ -30,6 +30,7 @@ from pydantic import ValidationError
 from superset.mcp_service.app import mcp
 from superset.mcp_service.chart.chart_helpers import find_chart_by_identifier
 from superset.mcp_service.chart.chart_utils import DatasetValidationResult
+from superset.mcp_service.chart.query_result import MAX_QUERY_RESULT_VALUE_BYTES
 from superset.mcp_service.chart.schemas import (
     AxisConfig,
     ColumnRef,
@@ -103,6 +104,87 @@ class TestUpdateChart:
         assert xy_request.config.x.name == "date"
         assert xy_request.config.y[0].aggregate == "SUM"
         assert xy_request.config.kind == "line"
+
+    @pytest.mark.asyncio
+    async def test_update_chart_preview_first_exact_limit_and_plus_one(self) -> None:
+        config = TableChartConfig(
+            chart_type="table", columns=[ColumnRef(name="region")]
+        )
+        request = UpdateChartRequest(identifier=1, config=config)
+        chart = Mock(
+            id=1,
+            datasource_id=10,
+            datasource_type="table",
+            slice_name="Existing",
+            viz_type="table",
+            uuid="abc-123",
+            params='{"viz_type":"table","datasource":"10__table"}',
+        )
+        access = DatasetValidationResult(
+            is_valid=True,
+            dataset_id=10,
+            dataset_name="dataset",
+            warnings=[],
+        )
+        ctx = MagicMock()
+        ctx.info = AsyncMock()
+        ctx.debug = AsyncMock()
+        ctx.warning = AsyncMock()
+        ctx.error = AsyncMock()
+
+        async def run(warning: str) -> GenerateChartResponse:
+            user = Mock(id=1, username="admin", roles=[], groups=[])
+            with (
+                patch(
+                    "superset.mcp_service.auth.get_user_from_request",
+                    return_value=user,
+                ),
+                patch.object(
+                    update_chart_module,
+                    "find_chart_by_identifier",
+                    return_value=chart,
+                ),
+                patch(
+                    "superset.mcp_service.auth.check_chart_data_access",
+                    return_value=access,
+                ),
+                patch(
+                    "superset.mcp_service.chart.validation.dataset_validator."
+                    "DatasetValidator.normalize_column_names",
+                    return_value=config,
+                ),
+                patch.object(
+                    update_chart_module,
+                    "_validate_update_against_dataset",
+                    return_value=None,
+                ),
+                patch.object(
+                    update_chart_module,
+                    "_create_preview_url",
+                    return_value=(
+                        "http://localhost/explore/?form_data_key=bounded-key",
+                        "bounded-key",
+                        [warning],
+                    ),
+                ),
+                patch.object(update_chart_module.time, "time", return_value=1.0),
+            ):
+                return await update_chart_module.update_chart(request, ctx=ctx)
+
+        empty = await run("")
+        filler = "x" * (
+            MAX_QUERY_RESULT_VALUE_BYTES - len(empty.model_dump_json().encode())
+        )
+        boundary = await run(filler)
+        oversized = await run(filler + "x")
+
+        assert len(boundary.model_dump_json().encode()) == (
+            MAX_QUERY_RESULT_VALUE_BYTES
+        )
+        assert boundary.success is True
+        assert oversized.success is False
+        assert oversized.error is not None
+        assert oversized.error.error_code == "CHART_RESPONSE_TOO_LARGE"
 
     @pytest.mark.asyncio
     async def test_update_chart_with_chart_name(self):
