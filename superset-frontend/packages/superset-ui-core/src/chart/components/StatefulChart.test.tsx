@@ -750,6 +750,80 @@ test('resolves async (202) responses via the injected handleAsyncChartData hook'
   });
 });
 
+test('forced async read-back re-sends force with per-query task ids as nonces', async () => {
+  mockChartClient.client.post
+    .mockResolvedValueOnce({
+      response: { status: 202 } as Response,
+      json: { task_ids: ['task-1', 'task-2'] },
+    })
+    .mockResolvedValueOnce({
+      response: { status: 200 } as Response,
+      json: [{ data: 'cached' }],
+    });
+  // The handler resolves by re-issuing the request with the task ids (the
+  // force nonces), mirroring how the app-level async middleware calls refetch.
+  const handleAsyncChartData = jest.fn(
+    async (
+      _response: Response,
+      _json: unknown,
+      refetch: (nonces?: string[]) => Promise<QueryData[]>,
+    ) => refetch(['task-1', 'task-2']),
+  );
+
+  render(
+    <StatefulChart
+      formData={mockFormData}
+      chartType="test_chart"
+      force
+      hooks={{ handleAsyncChartData }}
+    />,
+  );
+
+  await waitFor(() => {
+    expect(mockChartClient.client.post).toHaveBeenCalledTimes(2);
+  });
+  const { jsonPayload } = mockChartClient.client.post.mock.calls[1][0];
+  // Read-back re-forces so the marker can suppress recompute, stamps each query
+  // with its task id, and resolves inline (no async_mode).
+  expect(jsonPayload.force).toBe(true);
+  expect(jsonPayload.queries[0].force_nonce).toBe('task-1');
+  expect(jsonPayload.async_mode).toBeUndefined();
+});
+
+test('non-forced async read-back carries neither force nor a nonce', async () => {
+  mockChartClient.client.post
+    .mockResolvedValueOnce({
+      response: { status: 202 } as Response,
+      json: { task_ids: ['task-1'] },
+    })
+    .mockResolvedValueOnce({
+      response: { status: 200 } as Response,
+      json: [{ data: 'cached' }],
+    });
+  const handleAsyncChartData = jest.fn(
+    async (
+      _response: Response,
+      _json: unknown,
+      refetch: (nonces?: string[]) => Promise<QueryData[]>,
+    ) => refetch(['task-1']),
+  );
+
+  render(
+    <StatefulChart
+      formData={mockFormData}
+      chartType="test_chart"
+      hooks={{ handleAsyncChartData }}
+    />,
+  );
+
+  await waitFor(() => {
+    expect(mockChartClient.client.post).toHaveBeenCalledTimes(2);
+  });
+  const { jsonPayload } = mockChartClient.client.post.mock.calls[1][0];
+  expect(jsonPayload.force).not.toBe(true);
+  expect(jsonPayload.queries[0].force_nonce).toBeUndefined();
+});
+
 test('requests async_mode and the tab id when opting in and 202 is handled', async () => {
   mockChartClient.client.post.mockResolvedValue({
     response: { status: 200 } as Response,

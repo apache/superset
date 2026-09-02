@@ -71,12 +71,16 @@ export type Hooks = {
    * Injected by the app so components in this package (e.g. Matrixify's
    * StatefulChart) can await async results without importing app-level
    * async-event middleware. `refetch` re-issues the request synchronously once
-   * the query tasks have succeeded. Returns the resolved query results.
+   * the query tasks have succeeded; it receives the per-query task ids, which
+   * double as forced-refresh idempotency nonces (see `requestChartDataResolved`)
+   * so a forced read-back reads the result its task cached instead of recomputing
+   * — and does not serve stale data if that result was not persisted. Returns the
+   * resolved query results.
    */
   handleAsyncChartData?: (
     response: Response,
     json: JsonObject,
-    refetch: () => Promise<QueryData[]>,
+    refetch: (queryForceNonces?: string[]) => Promise<QueryData[]>,
     signal?: AbortSignal,
   ) => Promise<QueryData[]> | QueryData[];
   /**

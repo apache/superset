@@ -122,11 +122,34 @@ export function useTabId() {
 
   useEffect(() => {
     if (!isStorageAvailable()) {
-      if (!tabId) {
-        setTabId(getTabId());
-      }
-      return;
+      setTabId(prev => prev ?? getTabId());
+      return undefined;
     }
+
+    const channel = getChannel();
+    // The id this tab currently claims. A mutable local (not the render-captured
+    // `tabId` state) so the message handler always compares against the live value
+    // — otherwise a TAB_ID_DENIED that arrives before the state/effect updates
+    // (e.g. on the very first render, when `tabId` is still undefined) is dropped,
+    // leaving two tabs sharing an id and colliding on the backend per-tab consumer
+    // key (`<principal>:<tab_id>`).
+    let currentId: string | undefined;
+
+    const handler = (messageEvent: MessageEvent<TabIdChannelMessage>) => {
+      if (messageEvent.data.tabId !== currentId) return;
+      if (messageEvent.data.type === 'REQUESTING_TAB_ID') {
+        channel.postMessage({ type: 'TAB_ID_DENIED', tabId: currentId });
+      } else if (messageEvent.data.type === 'TAB_ID_DENIED') {
+        currentId = createTabId();
+        setTabId(currentId);
+        // The id was reassigned; tell consumers that pinned the old one (e.g. the
+        // realtime socket's per-tab channel) to re-sync.
+        notifyTabIdChange();
+      }
+    };
+    // Install the listener BEFORE broadcasting, so a peer's immediate denial of a
+    // duplicated id can't race ahead of us subscribing.
+    channel.addEventListener('message', handler);
 
     let storedTabId;
     try {
@@ -135,32 +158,16 @@ export function useTabId() {
       // continue regardless of error
     }
     if (storedTabId) {
-      getChannel().postMessage({
-        type: 'REQUESTING_TAB_ID',
-        tabId: storedTabId,
-      });
+      currentId = storedTabId;
       setTabId(storedTabId);
+      channel.postMessage({ type: 'REQUESTING_TAB_ID', tabId: storedTabId });
     } else {
-      setTabId(createTabId());
+      currentId = createTabId();
+      setTabId(currentId);
     }
 
-    getChannel().onmessage = messageEvent => {
-      if (messageEvent.data.tabId === tabId) {
-        if (messageEvent.data.type === 'REQUESTING_TAB_ID') {
-          const message: TabIdChannelMessage = {
-            type: 'TAB_ID_DENIED',
-            tabId: messageEvent.data.tabId,
-          };
-          getChannel().postMessage(message);
-        } else if (messageEvent.data.type === 'TAB_ID_DENIED') {
-          setTabId(createTabId());
-          // The id was reassigned; tell consumers that pinned the old one (e.g.
-          // the realtime socket's per-tab channel) to re-sync.
-          notifyTabIdChange();
-        }
-      }
-    };
-  }, [tabId]);
+    return () => channel.removeEventListener('message', handler);
+  }, []);
 
   return tabId;
 }
