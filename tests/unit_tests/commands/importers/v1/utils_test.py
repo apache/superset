@@ -18,7 +18,7 @@
 
 import gzip
 import io
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pandas as pd
 import pytest
@@ -304,7 +304,7 @@ class TestLoadConfigs:
         return {"databases/": DatabaseSchema()}
 
     @patch("superset.commands.importers.v1.utils.db")
-    def test_missing_uuid_appends_validation_error(self, mock_db: object) -> None:
+    def test_missing_uuid_appends_validation_error(self, mock_db: MagicMock) -> None:
         """A databases config missing `uuid` must not raise a raw KeyError;
         it should be excluded from the returned configs and a ValidationError
         appended to the exceptions list instead."""
@@ -340,7 +340,7 @@ class TestLoadConfigs:
         assert "databases/bad.yaml" in exceptions[0].messages
 
     @patch("superset.commands.importers.v1.utils.db")
-    def test_uuid_present_loads_successfully(self, mock_db: object) -> None:
+    def test_uuid_present_loads_successfully(self, mock_db: MagicMock) -> None:
         """Control: a well-formed databases config loads with no exceptions."""
         from marshmallow.exceptions import ValidationError
 
