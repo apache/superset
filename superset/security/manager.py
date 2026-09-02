@@ -4647,9 +4647,12 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 # dashboard leg below can never authorize it. Grant datasource
                 # access when the guest token was issued for this very chart and
                 # the request is for that chart's own datasource.
+                # Resolve the guest user before touching the database: without
+                # one the chart grant can never hold, so the lookup below would
+                # be a query issued on every datasource check for nothing.
                 if not (
                     is_feature_enabled("EMBEDDED_SUPERSET")
-                    and self.is_guest_user()
+                    and self.get_current_guest_user_if_guest()
                     and form_data
                     and form_data.get("type") != "NATIVE_FILTER"
                     and (embedded_slice_id := form_data.get("slice_id"))
