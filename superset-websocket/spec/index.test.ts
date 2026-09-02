@@ -194,6 +194,36 @@ describe('server', () => {
       expect(endMock).toHaveBeenCalledTimes(1);
       expect(endMock).toHaveBeenLastCalledWith('Not Found');
     });
+
+    const readyResponse = () => {
+      const endMock = vi.fn();
+      const writeHeadMock = vi.fn();
+      server.httpRequest(
+        {
+          url: '/ready',
+          method: 'GET',
+          headers: { host: 'example.com' },
+        } as unknown as http.IncomingMessage,
+        {
+          writeHead: writeHeadMock,
+          end: endMock,
+        } as unknown as http.ServerResponse<http.IncomingMessage>,
+      );
+      return { writeHeadMock, endMock };
+    };
+
+    test('readiness is 200 while the subscriber is healthy', () => {
+      // resetState() (beforeEach) leaves the server healthy.
+      const { writeHeadMock } = readyResponse();
+      expect(writeHeadMock).toHaveBeenLastCalledWith(200);
+    });
+
+    test('readiness is 503 while the subscriber is unhealthy', () => {
+      server.markSubscriberUnhealthy('test drop');
+      const { writeHeadMock, endMock } = readyResponse();
+      expect(writeHeadMock).toHaveBeenLastCalledWith(503);
+      expect(endMock).toHaveBeenLastCalledWith('SUBSCRIBER_UNAVAILABLE');
+    });
   });
 
   describe('redisUrlFromConfig', () => {

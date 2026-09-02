@@ -736,8 +736,21 @@ export const httpRequest = (
   const headers = request.headers || {};
   const url = new URL(rawUrl as string, `http://${headers.host}`);
   if (url.pathname === '/health' && ['GET', 'HEAD'].includes(method)) {
+    // Liveness: the process is up. Deliberately independent of subscriber health
+    // (see /ready) so a transient Redis blip doesn't get the pod restarted.
     response.writeHead(200);
     response.end('OK');
+  } else if (url.pathname === '/ready' && ['GET', 'HEAD'].includes(method)) {
+    // Readiness: healthy only while the Redis subscriber is connected+subscribed,
+    // so a load balancer can drain a pod whose transport is degraded (upgrade
+    // refusal + socket close still cover correctness on their own).
+    if (subscriberHealthy) {
+      response.writeHead(200);
+      response.end('OK');
+    } else {
+      response.writeHead(503);
+      response.end('SUBSCRIBER_UNAVAILABLE');
+    }
   } else {
     logger.info(`Received unexpected request: ${method} ${rawUrl}`);
     response.writeHead(404);
