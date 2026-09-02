@@ -676,6 +676,139 @@ class TestValidateAndCompileTier2:
             assert result.error_obj is not None
             assert bad_field in result.error_obj.message
 
+    @pytest.mark.parametrize(
+        ("form_data", "columns", "metrics", "missing_role"),
+        [
+            (
+                {
+                    "viz_type": "deck_path",
+                    "line_column": "route",
+                    "dimension": "route_type",
+                    "tooltip_contents": ["missing_owner"],
+                    "metric": "color_metric",
+                    "line_width": {"type": "metric", "value": "width_metric"},
+                    "breakpoint_metric": "break_metric",
+                },
+                ["route", "route_type"],
+                ["color_metric", "width_metric", "break_metric"],
+                "missing_owner",
+            ),
+            (
+                {
+                    "viz_type": "deck_path",
+                    "line_column": "route",
+                    "tooltip_contents": ["owner"],
+                    "line_width": {
+                        "type": "metric",
+                        "value": "missing_width_metric",
+                    },
+                },
+                ["route", "owner"],
+                ["width_metric"],
+                "missing_width_metric",
+            ),
+            (
+                {
+                    "viz_type": "deck_path",
+                    "line_column": "route",
+                    "breakpoint_metric": "missing_break_metric",
+                },
+                ["route"],
+                ["break_metric"],
+                "missing_break_metric",
+            ),
+            (
+                {
+                    "viz_type": "deck_geojson",
+                    "geojson": "geom",
+                    "cross_filter_column": "missing_region",
+                    "tooltip_contents": ["name"],
+                },
+                ["geom", "name"],
+                [],
+                "missing_region",
+            ),
+            (
+                {
+                    "viz_type": "deck_polygon",
+                    "line_column": "polygon",
+                    "cross_filter_column": "region",
+                    "tooltip_contents": ["missing_owner"],
+                    "metric": "value_metric",
+                },
+                ["polygon", "region"],
+                ["value_metric"],
+                "missing_owner",
+            ),
+            (
+                {
+                    "viz_type": "deck_hex",
+                    "spatial": {
+                        "type": "latlong",
+                        "lonCol": "lon",
+                        "latCol": "missing_lat",
+                    },
+                    "size": "weight_metric",
+                },
+                ["lon"],
+                ["weight_metric"],
+                "missing_lat",
+            ),
+        ],
+    )
+    @patch("superset.mcp_service.chart.compile._compile_chart")
+    def test_deck_rebind_fails_closed_for_every_renderer_role(
+        self,
+        mock_compile: Mock,
+        form_data: dict[str, Any],
+        columns: list[str],
+        metrics: list[str],
+        missing_role: str,
+    ) -> None:
+        result = validate_and_compile(
+            None,
+            form_data,
+            _orm_dataset(column_names=columns, metric_names=metrics),
+            run_compile_check=True,
+        )
+
+        assert not result.success
+        assert result.error_obj is not None
+        assert result.error_obj.error_type == "invalid_native_chart_reference"
+        assert missing_role in result.error_obj.message
+        mock_compile.assert_not_called()
+
+    @patch("superset.mcp_service.chart.compile._compile_chart")
+    def test_deck_path_rebind_accepts_complete_renderer_contract(
+        self, mock_compile: Mock
+    ) -> None:
+        mock_compile.return_value = CompileResult(success=True)
+        form_data = {
+            "viz_type": "deck_path",
+            "line_column": "route",
+            "dimension": "route_type",
+            "tooltip_contents": [
+                "owner",
+                {"item_type": "column", "column_name": "city"},
+            ],
+            "metric": "color_metric",
+            "line_width": {"type": "metric", "value": "width_metric"},
+            "breakpoint_metric": "break_metric",
+        }
+
+        result = validate_and_compile(
+            None,
+            form_data,
+            _orm_dataset(
+                column_names=["route", "route_type", "owner", "city"],
+                metric_names=["color_metric", "width_metric", "break_metric"],
+            ),
+            run_compile_check=True,
+        )
+
+        assert result.success
+        mock_compile.assert_called_once()
+
 
 def test_compile_chart_executes_final_ungrouped_timeseries_query(
     monkeypatch: pytest.MonkeyPatch,
@@ -750,7 +883,6 @@ def test_compile_chart_executes_final_big_number_trendline_query(
 
     from superset.common.query_object import QueryObject
     from superset.mcp_service.chart.compile import _compile_chart
-    from superset.utils.core import DTTM_ALIAS
 
     factory_module = __import__(
         "superset.common.query_context_factory", fromlist=["QueryContextFactory"]
@@ -779,12 +911,12 @@ def test_compile_chart_executes_final_big_number_trendline_query(
             processed = trend.exec_post_processing(
                 pd.DataFrame(
                     {
-                        DTTM_ALIAS: pd.to_datetime(["2024-01-01", "2024-02-01"]),
+                        "event_time": pd.to_datetime(["2024-01-01", "2024-02-01"]),
                         "Gross revenue": [10.0, 15.0],
                     }
                 )
             )
-            assert list(processed.columns) == [DTTM_ALIAS, "Gross revenue"]
+            assert list(processed.columns) == ["event_time", "Gross revenue"]
             assert raw.columns == []
             assert raw.is_timeseries is False
             assert raw.post_processing == []
@@ -793,7 +925,7 @@ def test_compile_chart_executes_final_big_number_trendline_query(
                     {
                         "data": [
                             {
-                                DTTM_ALIAS: row[DTTM_ALIAS].isoformat(),
+                                "event_time": row["event_time"].isoformat(),
                                 "Gross revenue": row["Gross revenue"],
                             }
                             for row in processed.to_dict("records")
@@ -825,6 +957,7 @@ def test_compile_chart_executes_final_big_number_trendline_query(
         {
             "viz_type": "big_number",
             "metric": metric,
+            "x_axis": "event_time",
             "granularity_sqla": "event_time",
             "time_grain_sqla": "P1M",
             "aggregation": "raw",
@@ -834,12 +967,21 @@ def test_compile_chart_executes_final_big_number_trendline_query(
 
     assert result.success
     trend, raw = cast(list[dict[str, Any]], captured["queries"])
-    assert trend["columns"] == []
+    assert trend["columns"] == [
+        {
+            "timeGrain": "P1M",
+            "columnType": "BASE_AXIS",
+            "sqlExpression": "event_time",
+            "label": "event_time",
+            "expressionType": "SQL",
+            "isColumnReference": True,
+        }
+    ]
     assert trend["series_columns"] == []
     assert trend["metrics"] == [metric]
-    assert trend["is_timeseries"] is True
+    assert "is_timeseries" not in trend
     assert trend["post_processing"][0]["options"] == {
-        "index": [DTTM_ALIAS],
+        "index": ["event_time"],
         "columns": [],
         "aggregates": {"Gross revenue": {"operator": "mean"}},
         "drop_missing_columns": True,
