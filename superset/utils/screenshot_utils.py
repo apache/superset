@@ -166,6 +166,12 @@ if TYPE_CHECKING:
 CHART_HOLDER_SELECTOR = (
     r'.dashboard-component-chart-holder[class*="dashboard-chart-id-"]'
 )
+VISIBLE_CHART_HOLDER_COUNT_JS = f"""() => Array.from(
+    document.querySelectorAll('{CHART_HOLDER_SELECTOR}')
+).filter(holder => {{
+    const rect = holder.getBoundingClientRect();
+    return rect.bottom > 0 && rect.top < window.innerHeight;
+}}).length"""
 SLICE_CONTAINER_SELECTOR = r".slice_container"
 LOADING_SELECTOR = r".loading"
 ALERT_SELECTOR = r'[role="alert"]'
@@ -784,6 +790,9 @@ def take_tiled_screenshot(  # noqa: C901
                     context_suffix,
                 )
             readiness_wait_elapsed = time.monotonic() - tile_wait_start
+            visible_chart_holders = page.evaluate(VISIBLE_CHART_HOLDER_COUNT_JS)
+            if not isinstance(visible_chart_holders, int):
+                visible_chart_holders = 0
 
             # Wait for chart animations (e.g. ECharts) to finish after spinner clears.
             # The global animation wait before tiling only covers the first tile;
@@ -914,15 +923,17 @@ def take_tiled_screenshot(  # noqa: C901
                         raise
                 else:
                     capture_elapsed = time.monotonic() - capture_started_at
-                    is_blank, dominant_ratio = is_screenshot_nearly_uniform(candidate)
+                    is_uniform, dominant_ratio = is_screenshot_nearly_uniform(candidate)
+                    is_blank = is_uniform and visible_chart_holders > 0
                     logger.debug(
                         "Captured tile %s/%s attempt %s/%s in %.2fs "
-                        "(dominant_pixel_ratio=%.5f)%s",
+                        "(visible_chart_holders=%s dominant_pixel_ratio=%.5f)%s",
                         i + 1,
                         num_tiles,
                         capture_attempt,
                         TILED_SCREENSHOT_MAX_CAPTURE_ATTEMPTS,
                         capture_elapsed,
+                        visible_chart_holders,
                         dominant_ratio,
                         context_suffix,
                     )
@@ -932,12 +943,14 @@ def take_tiled_screenshot(  # noqa: C901
                     blank_tile_retries += 1
                     logger.warning(
                         "report_capture_blank_tile tile=%s/%s attempt=%s/%s "
-                        "capture_elapsed_seconds=%.2f dominant_pixel_ratio=%.5f%s",
+                        "capture_elapsed_seconds=%.2f visible_chart_holders=%s "
+                        "dominant_pixel_ratio=%.5f%s",
                         i + 1,
                         num_tiles,
                         capture_attempt,
                         TILED_SCREENSHOT_MAX_CAPTURE_ATTEMPTS,
                         capture_elapsed,
+                        visible_chart_holders,
                         dominant_ratio,
                         context_suffix,
                     )

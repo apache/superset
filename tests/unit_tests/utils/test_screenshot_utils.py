@@ -270,6 +270,8 @@ class TestTakeTiledScreenshot:
         def evaluate(script):
             if "scrollWidth" in script:
                 return element_info
+            if "getBoundingClientRect" in script:
+                return 1
             if "requestAnimationFrame" in script or "window.scrollTo" in script:
                 return None
             return [{"chartId": "7", "state": "rendered"}]
@@ -305,6 +307,8 @@ class TestTakeTiledScreenshot:
         def evaluate(script):
             if "scrollWidth" in script:
                 return element_info
+            if "getBoundingClientRect" in script:
+                return 1
             if "requestAnimationFrame" in script or "window.scrollTo" in script:
                 return None
             return [{"chartId": "7", "state": "rendered"}]
@@ -323,6 +327,31 @@ class TestTakeTiledScreenshot:
         assert result is None
         assert mock_page.screenshot.call_count == 3
         assert isinstance(mock_logger.exception.call_args.args[1], BlankScreenshotError)
+
+    def test_uniform_tile_without_visible_charts_is_allowed(self, mock_page):
+        element_info = {"height": 1000, "top": 0, "left": 0, "width": 800}
+
+        def evaluate(script):
+            if "scrollWidth" in script:
+                return element_info
+            if "getBoundingClientRect" in script:
+                return 0
+            if "window.scrollTo" in script:
+                return None
+            return []
+
+        mock_page.evaluate.side_effect = evaluate
+        mock_page.screenshot.return_value = _png(800, 1000, "white")
+
+        with patch(
+            "superset.utils.screenshot_utils.combine_screenshot_tiles",
+            return_value=b"combined",
+        ):
+            result = take_tiled_screenshot(mock_page, "dashboard", tile_height=2000)
+
+        assert result == b"combined"
+        assert mock_page.screenshot.call_count == 1
+        mock_page.bring_to_front.assert_not_called()
 
     @staticmethod
     def _create_chart_like_tile() -> bytes:
