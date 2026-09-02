@@ -23,6 +23,7 @@ import time
 from typing import Any, cast, ClassVar, Sequence, TYPE_CHECKING
 
 import pandas as pd
+import pyarrow as pa
 from flask import current_app
 from flask_babel import gettext as _
 
@@ -440,8 +441,6 @@ class QueryContextProcessor:
         Arrow and JSON requests for the same query share cache entries and no
         cache-key versioning is needed.
         """
-        import pyarrow as pa
-
         table = pa.Table.from_pandas(df, preserve_index=False)
         sink = pa.BufferOutputStream()
         with pa.ipc.new_stream(sink, table.schema) as writer:
