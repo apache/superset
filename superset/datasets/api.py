@@ -86,11 +86,6 @@ from superset.datasets.schemas import (
     GetOrCreateDatasetSchema,
     openapi_spec_methods_override,
 )
-from superset.db_engine_specs.exceptions import (
-    SupersetDBAPIConnectionError,
-    SupersetDBAPIDatabaseError,
-    SupersetDBAPIOperationalError,
-)
 from superset.exceptions import (
     OAuth2RedirectError,
     SupersetSyntaxErrorException,
@@ -538,18 +533,14 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
                 exc_info=True,
             )
             return self.response_422(message=str(ex))
-        except (
-            SupersetTimeoutException,
-            SupersetDBAPIConnectionError,
-            SupersetDBAPIOperationalError,
-            SupersetDBAPIDatabaseError,
-        ) as ex:
-            # ``CreateDatasetCommand`` deliberately re-raises these infra-level
-            # failures (unreachable database, query timeout) unchanged instead
-            # of coercing them into a 422 "invalid table"/"invalid sql" error;
-            # surface them here with their own status instead of letting the
-            # broad ``except Exception`` below flatten them into an opaque 500
-            # "Fatal error".
+        except SupersetTimeoutException as ex:
+            # ``CreateDatasetCommand`` deliberately re-raises this, along with
+            # other infra-level failures, unchanged instead of coercing it
+            # into a 422 "invalid table"/"invalid sql" error. Of that group,
+            # only the timeout has a status (408) worth surfacing distinctly;
+            # the ``SupersetDBAPIError`` subclasses inherit the base class's
+            # 500 and fall through to the broad ``except Exception`` below so
+            # their raw driver/connection text isn't echoed to the client.
             logger.warning("Error creating dataset: %s", ex, exc_info=True)
             return self.response(ex.status, message=str(ex))
         except Exception:  # pylint: disable=broad-except

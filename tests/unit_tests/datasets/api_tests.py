@@ -363,6 +363,48 @@ def test_post_dataset_timeout_propagates_own_status(
     assert "Connection timed out" in response.json["message"]
 
 
+def test_post_dataset_dbapi_connection_error_returns_sanitized_500(
+    session: Session,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """Unlike ``SupersetTimeoutException``, ``SupersetDBAPIConnectionError`` and
+    its sibling ``SupersetDBAPIError`` subclasses (aside from
+    ``SupersetDBAPIProgrammingError``) inherit the base 500 status, so there is
+    no distinct status to surface for them. They must fall through to the same
+    sanitized "Fatal error" response as any other unexpected exception, not
+    echo the raw driver/connection text ``CreateDatasetCommand`` re-raises them
+    with.
+    """
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.db_engine_specs.exceptions import SupersetDBAPIConnectionError
+    from superset.models.core import Database
+
+    SqlaTable.metadata.create_all(db.session.get_bind())
+
+    database = Database(database_name="dbapi_error_db", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    secret = "postgresql://admin:s3cr3t@internal-db.example.com/prod"  # noqa: S105
+    with patch(
+        "superset.datasets.api.CreateDatasetCommand.run",
+        side_effect=SupersetDBAPIConnectionError(secret),
+    ):
+        response = client.post(
+            "/api/v1/dataset/",
+            json={
+                "database": database.id,
+                "schema": "main",
+                "table_name": "dbapi_error_table",
+            },
+        )
+
+    assert response.status_code == 500
+    assert response.json == {"message": "Fatal error"}
+    assert secret not in response.get_data(as_text=True)
+
+
 def test_post_dataset_unexpected_error_returns_sanitized_500(
     session: Session,
     client: Any,
