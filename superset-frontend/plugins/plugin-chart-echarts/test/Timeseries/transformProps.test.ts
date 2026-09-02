@@ -3132,6 +3132,44 @@ test('applies gridlines to the value axis after a horizontal orientation swaps i
   expect((echartOptions.xAxis as any).splitLine.show).toBe(false);
 });
 
+test('#39899 - horizontal orientation does not over-thin the time axis labels', () => {
+  // The spacing formatter estimates label collisions using horizontal plot
+  // geometry (width, 7px/char). A horizontal chart swaps the time axis onto
+  // the side of the chart, where that geometry no longer applies, so the
+  // spacing formatter must not be used there.
+  const monthData = Array.from({ length: 24 }, (_, i) => ({
+    __timestamp: Date.UTC(2020, i, 1),
+    sales: i,
+  }));
+  const { echartOptions } = transformProps(
+    createTestChartProps({
+      formData: {
+        granularity_sqla: 'ds',
+        timeGrainSqla: TimeGranularity.MONTH,
+        xAxisTimeFormat: '%Y-%m',
+        seriesType: EchartsTimeseriesSeriesType.Bar,
+        orientation: OrientationType.Horizontal,
+      },
+      width: 800,
+      queriesData: [
+        createTestQueryData(monthData, {
+          colnames: ['__timestamp', 'sales'],
+          coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+        }),
+      ],
+    }),
+  );
+  // Horizontal swaps the axes, so the time axis ends up as yAxis.
+  const { axisLabel } = echartOptions.yAxis as Record<string, any>;
+  const labels = monthData.map(({ __timestamp }) =>
+    axisLabel.formatter(__timestamp),
+  );
+
+  // Every month is a distinct label, so none should be blanked by the
+  // spacing/dedup formatter on a horizontal chart.
+  expect(labels.filter(label => label === '')).toHaveLength(0);
+});
+
 test('boundary label alignment is dropped when the orientation moves the time axis to the side', () => {
   // The alignments position labels against the left and right edges of a
   // bottom axis. A horizontal chart swaps the axes, so applying them there
