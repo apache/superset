@@ -356,9 +356,19 @@ def _build_update_payload(  # noqa: C901
             additive_payload["datasource_type"] = "table"
         return additive_payload
 
-    # Dataset-only update: rebind chart to a different dataset without changing viz
+    # Dataset-only update: scrub roles only when the datasource actually changes.
+    # Re-sending the existing dataset ID is an idempotent update and must not erase
+    # any saved dataset-bound configuration.
     if request.dataset_id is not None:
-        return _build_dataset_rebind_payload(request, chart)
+        if _is_dataset_rebind(request, chart):
+            return _build_dataset_rebind_payload(request, chart)
+        payload = {
+            "datasource_id": request.dataset_id,
+            "datasource_type": getattr(chart, "datasource_type", "table"),
+        }
+        if request.chart_name:
+            payload["slice_name"] = request.chart_name
+        return payload
 
     # Name-only update: keep existing visualization, just rename
     if not request.chart_name:
@@ -415,7 +425,7 @@ def _build_preview_form_data(
             return _missing_config_or_name_error()
         merged = (
             scrub_dataset_bound_form_data(existing_form_data)
-            if request.dataset_id is not None
+            if _is_dataset_rebind(request, chart)
             else dict(existing_form_data)
         )
 
@@ -837,19 +847,27 @@ async def update_chart(  # noqa: C901
                 # Validation canonicalizes preserved native Sunburst references.
                 payload_or_error["params"] = json.dumps(new_form_data)
             elif request.dataset_id is not None:
-                # Dataset-only rebind: verify the target dataset exists before
-                # writing. Skip compile check — there is no new chart config to
-                # execute against the new dataset.
+                # Dataset-only updates still validate and compile the actual final
+                # state. For a true rebind this is the scrubbed target state; for an
+                # idempotent same-dataset update it is the preserved saved state.
+                final_form_data = (
+                    new_form_data
+                    if new_form_data is not None
+                    else _build_preview_form_data(request, chart, parsed_config)
+                )
+                if isinstance(final_form_data, GenerateChartResponse):
+                    return final_form_data
                 with event_logger.log_context(action="mcp.update_chart.validation"):
                     validation_error = _validate_update_against_dataset(
                         None,
-                        {},
+                        final_form_data,
                         chart,
                         dataset_id=request.dataset_id,
-                        run_compile_check=False,
                     )
                 if validation_error is not None:
                     return validation_error
+                if "params" in payload_or_error:
+                    payload_or_error["params"] = json.dumps(final_form_data)
 
             with event_logger.log_context(action="mcp.update_chart.db_write"):
                 command = UpdateChartCommand(chart.id, payload_or_error)
@@ -875,15 +893,14 @@ async def update_chart(  # noqa: C901
                 if validation_error is not None:
                     return validation_error
             elif request.dataset_id is not None:
-                # Dataset-only rebind: verify the target dataset exists before
-                # caching. Skip compile check — no new config to execute.
+                # Compile the exact state that will be cached, including preserved
+                # same-dataset roles or the scrubbed state for a true rebind.
                 with event_logger.log_context(action="mcp.update_chart.validation"):
                     validation_error = _validate_update_against_dataset(
                         None,
-                        {},
+                        preview_or_error,
                         chart,
                         dataset_id=request.dataset_id,
-                        run_compile_check=False,
                     )
                 if validation_error is not None:
                     return validation_error

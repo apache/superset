@@ -17,7 +17,8 @@
 
 """Helpers for interpreting ChartDataCommand result envelopes."""
 
-from datetime import date, datetime, time
+import math
+from datetime import date, datetime, time, timedelta
 from decimal import Decimal
 from typing import Any
 from uuid import UUID
@@ -42,8 +43,14 @@ MAX_QUERY_RESULT_ROWS = 500_000
 MAX_QUERY_RESULT_COLUMNS = 10_000
 MAX_RESULT_VALUE_ITEMS = 10_000
 MAX_RESULT_VALUE_DEPTH = 6
-MAX_RESULT_STRING_LENGTH = 1_000_000
+MAX_RESULT_STRING_LENGTH = 65_536
+MAX_RESULT_INTEGER_BITS = 4_096
+MAX_RESULT_INTEGER_DIGITS = 1_000
+MAX_RESULT_DECIMAL_DIGITS = 1_000
+MAX_RESULT_DECIMAL_MAGNITUDE = 1_000
 MAX_QUERY_RESULT_ROWCOUNT = 2**63 - 1
+MAX_QUERY_RESULT_CACHE_TIMEOUT = 2**31 - 1
+MAX_QUERY_RESULT_TIMESTAMP_LENGTH = 64
 
 _SAFE_RESULT_ENUM_TYPES = frozenset(
     {
@@ -62,27 +69,65 @@ def _safe_enum_value(value: Any) -> Any | None:
     return object.__getattribute__(value, "_value_")
 
 
-def _is_bounded_result_value(value: Any, *, depth: int = 0) -> bool:
+def _is_bounded_exact_int(value: Any) -> bool:
+    """Bound exact integers before any decimal conversion can allocate."""
+    if type(value) is not int:
+        return False
+    if int.bit_length(value) > MAX_RESULT_INTEGER_BITS:
+        return False
+    return len(str(abs(value))) <= MAX_RESULT_INTEGER_DIGITS
+
+
+def _is_bounded_exact_decimal(value: Any) -> bool:
+    """Accept only finite Decimals with bounded precision and magnitude."""
+    if type(value) is not Decimal or not Decimal.is_finite(value):
+        return False
+    parts = Decimal.as_tuple(value)
+    exponent = parts.exponent
+    if not isinstance(exponent, int):
+        return False
+    return (
+        len(parts.digits) <= MAX_RESULT_DECIMAL_DIGITS
+        and abs(exponent) <= MAX_RESULT_DECIMAL_MAGNITUDE
+        and abs(Decimal.adjusted(value)) <= MAX_RESULT_DECIMAL_MAGNITUDE
+    )
+
+
+def _is_bounded_result_value(  # noqa: C901
+    value: Any,
+    *,
+    depth: int = 0,
+    enum_types: tuple[type[Any], ...] = (),
+) -> bool:
     """Accept safe result scalars and exact, bounded builtin containers."""
     if depth > MAX_RESULT_VALUE_DEPTH:
         return False
-    if type(value) in {type(None), bool, int, float, str, bytes}:  # noqa: E721
-        return not isinstance(value, (str, bytes)) or len(value) <= (
-            MAX_RESULT_STRING_LENGTH
-        )
-    if type(value) in {date, datetime, time, Decimal, UUID}:  # noqa: E721
+    if type(value) in {type(None), bool}:  # noqa: E721
         return True
-    if type(value) in _SAFE_RESULT_ENUM_TYPES:
-        return _is_bounded_result_value(_safe_enum_value(value), depth=depth + 1)
+    if type(value) is int:
+        return _is_bounded_exact_int(value)
+    if type(value) is float:
+        return math.isfinite(value)
+    if type(value) is str:
+        return len(value) <= MAX_RESULT_STRING_LENGTH
+    if type(value) is Decimal:
+        return _is_bounded_exact_decimal(value)
+    if type(value) in {date, datetime, time, UUID}:  # noqa: E721
+        return True
+    if type(value) in enum_types and type(value) in _SAFE_RESULT_ENUM_TYPES:
+        return _is_bounded_result_value(
+            _safe_enum_value(value), depth=depth + 1, enum_types=enum_types
+        )
     if type(value) is list:
         return len(value) <= MAX_RESULT_VALUE_ITEMS and all(
-            _is_bounded_result_value(item, depth=depth + 1) for item in value
+            _is_bounded_result_value(item, depth=depth + 1, enum_types=enum_types)
+            for item in value
         )
     if type(value) is dict:
         return len(value) <= MAX_RESULT_VALUE_ITEMS and all(
             type(key) is str
             and len(key) <= MAX_RESULT_STRING_LENGTH
-            and _is_bounded_result_value(item, depth=depth + 1)
+            and _is_bounded_result_value(item, depth=depth + 1, enum_types=enum_types)
             for key, item in value.items()
         )
     return False
@@ -102,8 +147,6 @@ def _query_error_text(value: Any) -> str | None:
         return "; ".join(parts[:3]) or None
     if type(value) is str:
         return value[:2000] or None
-    if type(value) is bytes:
-        return repr(value[:2000]) or None
     if type(value) in {bool, int, float, date, datetime, time, Decimal, UUID}:
         text = str(value)
         return text[:2000] if text else None
@@ -135,12 +178,23 @@ def _payload_metadata_is_bounded(payload: dict[str, Any], *, skip: str) -> bool:
     """Validate an exact result mapping before any field-specific access."""
     if len(payload) > MAX_RESULT_VALUE_ITEMS:
         return False
-    return all(
-        type(key) is str
-        and len(key) <= MAX_RESULT_STRING_LENGTH
-        and (key == skip or _is_bounded_result_value(value))
-        for key, value in payload.items()
-    )
+    enum_slots: dict[str, tuple[type[Any], ...]] = {
+        "status": (QueryStatus,),
+        "coltypes": (GenericDataType,),
+        "applied_filters": (ExtraFiltersTimeColumnType,),
+        "rejected_filters": (
+            ExtraFiltersReasonType,
+            ExtraFiltersTimeColumnType,
+        ),
+    }
+    for key, value in payload.items():
+        if type(key) is not str or len(key) > MAX_RESULT_STRING_LENGTH:
+            return False
+        if key != skip and not _is_bounded_result_value(
+            value, enum_types=enum_slots.get(key, ())
+        ):
+            return False
+    return True
 
 
 def _payload_metadata_error(
@@ -246,6 +300,30 @@ def _is_bounded_wire_string(value: Any, *enum_types: type[Any]) -> bool:
             and len(enum_value) <= MAX_RESULT_STRING_LENGTH
         )
     return False
+
+
+def _is_canonical_timestamp(value: Any) -> bool:
+    """Validate the producer's bounded, timezone-aware UTC timestamp wire shape."""
+    if value is None:
+        return True
+    if (
+        type(value) is not str
+        or not value
+        or len(value) > MAX_QUERY_RESULT_TIMESTAMP_LENGTH
+    ):
+        return False
+    normalized = f"{value[:-1]}+00:00" if value.endswith("Z") else value
+    try:
+        parsed = datetime.fromisoformat(normalized)
+    except ValueError:
+        return False
+    return parsed.tzinfo is not None and parsed.utcoffset() == timedelta(0)
+
+
+def _is_cache_timeout(value: Any) -> bool:
+    return value is None or (
+        type(value) is int and 0 <= value <= MAX_QUERY_RESULT_CACHE_TIMEOUT
+    )
 
 
 def _is_valid_filter_metadata(value: Any, *, rejected: bool) -> bool:
@@ -402,12 +480,11 @@ def validate_query_result_envelope(  # noqa: C901
                 error_type="InvalidQueryResult",
             )
         if colnames_present:
-            column_contract = set(colnames)
-            if any(set(row) != column_contract for row in data):
+            if any(list(row) != colnames for row in data):
                 return ChartError(
                     error=(
-                        f"Chart query {index} returned rows that do not match "
-                        "declared columns."
+                        f"Chart query {index} returned rows that do not match the "
+                        "declared column order."
                     ),
                     error_type="InvalidQueryResult",
                 )
@@ -434,11 +511,12 @@ def validate_query_result_envelope(  # noqa: C901
             query["cache_key"] is None or _is_bounded_wire_string(query["cache_key"])
         ):
             return _invalid_metadata(f"Chart query {index}")
-        if "cache_dttm" in query and not (
-            query["cache_dttm"] is None
-            or type(query["cache_dttm"]) is datetime
-            or _is_bounded_wire_string(query["cache_dttm"])
-        ):
+        for timestamp_key in ("cached_dttm", "cache_dttm", "queried_dttm"):
+            if timestamp_key in query and not _is_canonical_timestamp(
+                query[timestamp_key]
+            ):
+                return _invalid_metadata(f"Chart query {index}")
+        if "cache_timeout" in query and not _is_cache_timeout(query["cache_timeout"]):
             return _invalid_metadata(f"Chart query {index}")
         if "applied_filters" in query and not _is_valid_filter_metadata(
             query["applied_filters"], rejected=False

@@ -1886,16 +1886,26 @@ def test_compile_proves_numeric_metric_by_resolved_alias(
 
 
 @pytest.mark.parametrize(
-    "data",
+    "data,expected_error_code",
     [
-        [{"region": "A", "country": "B"}],
-        [{"region": "A", "country": "B", "Sales": "four"}],
-        [{"region": "A", "country": "B", "Sales": float("nan")}],
-        [{"region": "A", "country": "B", "Sales": float("inf")}],
+        ([{"region": "A", "country": "B"}], "INVALID_SUNBURST_RESULT"),
+        (
+            [{"region": "A", "country": "B", "Sales": "four"}],
+            "INVALID_SUNBURST_RESULT",
+        ),
+        (
+            [{"region": "A", "country": "B", "Sales": float("nan")}],
+            "CHART_COMPILE_FAILED",
+        ),
+        (
+            [{"region": "A", "country": "B", "Sales": float("inf")}],
+            "CHART_COMPILE_FAILED",
+        ),
     ],
 )
 def test_compile_rejects_invalid_sunburst_metric_results(
     data: list[dict[str, object]],
+    expected_error_code: str,
 ) -> None:
     form_data = map_config_to_form_data(_config())
     factory = MagicMock()
@@ -1919,7 +1929,7 @@ def test_compile_rejects_invalid_sunburst_metric_results(
         result = _compile_chart(form_data, 7)
 
     assert result.success is False
-    assert result.error_code == "INVALID_SUNBURST_RESULT"
+    assert result.error_code == expected_error_code
 
 
 def test_compile_allows_legitimate_empty_sunburst_result() -> None:

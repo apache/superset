@@ -26,6 +26,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from superset.common.db_query_status import QueryStatus
 from superset.mcp_service.chart.schemas import (
     AccessibilityMetadata,
     ASCIIPreview,
@@ -198,6 +199,7 @@ def test_saved_preview_seeding_keeps_strict_first_query_result_validation(
 
     assert isinstance(result, ChartError)
     assert result.error_type == "InvalidQueryResult"
+    assert result.error_type == "InvalidQueryResult"
 
 
 @pytest.mark.parametrize(
@@ -245,6 +247,61 @@ def test_saved_previews_validate_hostile_secondary_results_without_hooks(
         result = strategy_class(
             chart,
             GetChartPreviewRequest(identifier=19, format=preview_format),
+        ).generate()
+
+    assert isinstance(result, ChartError)
+
+
+@pytest.mark.parametrize(
+    "strategy_class,preview_format",
+    [
+        (ASCIIPreviewStrategy, "ascii"),
+        (TablePreviewStrategy, "table"),
+        (VegaLitePreviewStrategy, "vega_lite"),
+    ],
+)
+@pytest.mark.parametrize(
+    "value",
+    [10**5000, float("nan"), float("inf"), b"\xff", QueryStatus.SUCCESS],
+    ids=["huge-int", "nan", "infinity", "bytes", "query-status"],
+)
+def test_saved_previews_reject_noncanonical_scalars_before_rendering(
+    strategy_class: type[PreviewFormatStrategy], preview_format: str, value: Any
+) -> None:
+    command = MagicMock()
+    command.run.return_value = {
+        "queries": [
+            {
+                "data": [{"value": value}],
+                "colnames": ["value"],
+                "coltypes": [0],
+            }
+        ]
+    }
+    chart = SimpleNamespace(
+        id=20,
+        slice_name="Invalid scalar",
+        viz_type="table",
+        datasource_id=9,
+        datasource_type="table",
+        params=utils_json.dumps({"viz_type": "table", "all_columns": ["value"]}),
+    )
+
+    with (
+        patch(
+            "superset.mcp_service.chart.tool.get_chart_preview."
+            "build_query_context_from_form_data",
+            return_value=MagicMock(),
+        ),
+        patch("superset.charts.data.form_data.set_query_context_form_data"),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand",
+            return_value=command,
+        ),
+    ):
+        result = strategy_class(
+            chart,
+            GetChartPreviewRequest(identifier=20, format=preview_format),
         ).generate()
 
     assert isinstance(result, ChartError)

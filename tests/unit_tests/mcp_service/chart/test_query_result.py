@@ -15,7 +15,9 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from decimal import Decimal
 from enum import Enum
+from typing import Any
 
 import pytest
 
@@ -317,6 +319,14 @@ class IntSubclass(int):
     pass
 
 
+class HostileScalarInt(int):
+    def __str__(self) -> str:
+        raise AssertionError("hostile scalar string hook executed")
+
+    def __hash__(self) -> int:
+        raise AssertionError("hostile scalar hash hook executed")
+
+
 @pytest.mark.parametrize(
     "rowcount",
     [True, False, -1, 1.0, float("inf"), {}, IntSubclass(1), 2**63],
@@ -389,3 +399,129 @@ def test_cache_and_filter_metadata_rejects_non_wire_shapes(metadata):
 
     assert error is not None
     assert error.error_type == "InvalidQueryResult"
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        10**5000,
+        float("nan"),
+        float("inf"),
+        float("-inf"),
+        Decimal("NaN"),
+        Decimal("Infinity"),
+        Decimal("1e5000"),
+        b"\xff",
+        bytearray(b"unsafe"),
+        memoryview(b"unsafe"),
+        QueryStatus.SUCCESS,
+        HostileScalarInt(1),
+    ],
+    ids=[
+        "huge-int",
+        "nan",
+        "positive-infinity",
+        "negative-infinity",
+        "decimal-nan",
+        "decimal-infinity",
+        "decimal-magnitude",
+        "bytes",
+        "bytearray",
+        "memoryview",
+        "query-status",
+        "hostile-int-subclass",
+    ],
+)
+def test_row_scalars_are_exact_finite_bounded_primitives(value: Any) -> None:
+    error = validate_query_result_envelope(
+        {
+            "queries": [
+                {
+                    "data": [{"value": value}],
+                    "colnames": ["value"],
+                    "coltypes": [0],
+                }
+            ]
+        }
+    )
+
+    assert error is not None
+    assert error.error_type == "InvalidQueryResult"
+
+
+def test_exact_known_status_enum_is_allowed_only_in_status_slot() -> None:
+    assert (
+        validate_query_result_envelope(
+            {"queries": [{"status": QueryStatus.SUCCESS, "data": []}]}
+        )
+        is None
+    )
+    error = validate_query_result_envelope(
+        {"queries": [{"data": [], "metadata": QueryStatus.SUCCESS}]}
+    )
+    assert error is not None
+    assert error.error_type == "InvalidQueryResult"
+
+
+def test_row_keys_must_match_declared_column_order() -> None:
+    error = validate_query_result_envelope(
+        {
+            "queries": [
+                {
+                    "data": [{"second": 2, "first": 1}],
+                    "colnames": ["first", "second"],
+                    "coltypes": [0, 0],
+                }
+            ]
+        }
+    )
+
+    assert error is not None
+    assert error.error_type == "InvalidQueryResult"
+    assert "column order" in error.error
+
+
+class StringSubclass(str):
+    pass
+
+
+@pytest.mark.parametrize(
+    "metadata",
+    [
+        {"cached_dttm": "not-a-timestamp"},
+        {"cached_dttm": "2026-09-02T00:00:00"},
+        {"cached_dttm": "2026-09-02T01:00:00+01:00"},
+        {"cached_dttm": "2" * 1000},
+        {"cached_dttm": StringSubclass("2026-09-02T00:00:00+00:00")},
+        {"queried_dttm": -1},
+        {"queried_dttm": "2026-09-02T00:00:00"},
+        {"cache_timeout": -1},
+        {"cache_timeout": 2**31},
+        {"cache_timeout": IntSubclass(1)},
+        {"cache_key": StringSubclass("key")},
+    ],
+)
+def test_cache_timestamp_and_timeout_metadata_is_canonical(metadata: Any) -> None:
+    error = validate_query_result_envelope({"queries": [{"data": [], **metadata}]})
+
+    assert error is not None
+    assert error.error_type == "InvalidQueryResult"
+
+
+def test_canonical_and_bounded_legacy_cache_metadata_are_accepted() -> None:
+    assert (
+        validate_query_result_envelope(
+            {
+                "queries": [
+                    {
+                        "data": [],
+                        "cached_dttm": "2026-09-02T00:00:00+00:00",
+                        "cache_dttm": "2026-09-01T00:00:00Z",
+                        "queried_dttm": "2026-09-02T00:00:00Z",
+                        "cache_timeout": 300,
+                    }
+                ]
+            }
+        )
+        is None
+    )

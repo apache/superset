@@ -84,11 +84,11 @@ def test_get_cache_status_from_result_reflects_force_refresh_flag() -> None:
 
 
 def test_get_cache_status_from_result_parses_iso_string_cache_age() -> None:
-    """Should compute cache_age_seconds from an ISO-formatted cache_dttm string."""
+    """Should compute cache age from the producer's canonical timestamp key."""
     cache_dt: datetime = datetime.now(timezone.utc) - timedelta(seconds=120)
     result: dict[str, Any] = {
         "is_cached": True,
-        "cache_dttm": cache_dt.isoformat(),
+        "cached_dttm": cache_dt.isoformat(),
     }
 
     status = get_cache_status_from_result(result)
@@ -108,6 +108,34 @@ def test_get_cache_status_from_result_parses_z_suffixed_string() -> None:
 
     assert status.cache_age_seconds is not None
     assert status.cache_age_seconds > 0
+
+
+def test_get_cache_status_canonical_timestamp_precedes_legacy_alias() -> None:
+    canonical = datetime.now(timezone.utc) - timedelta(seconds=30)
+    legacy = datetime.now(timezone.utc) - timedelta(days=3)
+
+    status = get_cache_status_from_result(
+        {
+            "is_cached": True,
+            "cached_dttm": canonical.isoformat(),
+            "cache_dttm": legacy.isoformat(),
+        }
+    )
+
+    assert status.cache_age_seconds is not None
+    assert 29 <= status.cache_age_seconds < 120
+
+
+def test_explicit_canonical_null_is_not_overridden_by_legacy_alias() -> None:
+    status = get_cache_status_from_result(
+        {
+            "is_cached": True,
+            "cached_dttm": None,
+            "cache_dttm": "2020-01-01T00:00:00Z",
+        }
+    )
+
+    assert status.cache_age_seconds is None
 
 
 def test_get_cache_status_from_result_parses_datetime_object_cache_age() -> None:

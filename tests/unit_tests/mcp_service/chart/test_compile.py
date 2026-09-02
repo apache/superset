@@ -27,6 +27,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 
+from superset.common.db_query_status import QueryStatus
 from superset.mcp_service.chart.compile import (
     CompileResult,
     validate_and_compile,
@@ -683,3 +684,38 @@ def test_compile_chart_rejects_hostile_enum_without_dispatching_hooks(
     assert not result.success
     assert result.error_code == "CHART_COMPILE_FAILED"
     assert "hostile" in (result.error or "").lower()
+
+
+@pytest.mark.parametrize(
+    "value",
+    [10**5000, float("nan"), float("inf"), b"\xff", QueryStatus.SUCCESS],
+    ids=["huge-int", "nan", "infinity", "bytes", "query-status"],
+)
+@patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
+@patch("superset.common.query_context_factory.QueryContextFactory")
+@patch("superset.charts.data.form_data.set_query_context_form_data")
+def test_compile_chart_rejects_unbounded_or_noncanonical_scalars(
+    mock_set_form_data, mock_factory, mock_cmd_cls, value
+):
+    from superset.mcp_service.chart.compile import _compile_chart
+
+    mock_factory.return_value.create.return_value = Mock()
+    mock_cmd_cls.return_value.run.return_value = {
+        "queries": [
+            {
+                "data": [{"value": value}],
+                "colnames": ["value"],
+                "coltypes": [0],
+            }
+        ]
+    }
+
+    result = _compile_chart(
+        {"metrics": [{"label": "count", "expressionType": "SIMPLE"}]},
+        dataset_id=42,
+    )
+
+    assert not result.success
+    assert result.error_code == "CHART_COMPILE_FAILED"
+    assert result.error_obj is not None
+    assert result.error_obj.error_type == "compile_error"

@@ -21,7 +21,10 @@ MCP tool: get_chart_data
 
 import logging
 import time
+from datetime import date, datetime, time as datetime_time
+from decimal import Decimal
 from typing import Any, Dict, List, TYPE_CHECKING
+from uuid import UUID
 
 from fastmcp import Context
 from flask import current_app
@@ -170,6 +173,68 @@ _VIZ_CATEGORY: dict[str, str] = {
 }
 
 _MAX_RECOMMENDATIONS = 4
+_MAX_COLUMN_PROFILE_CELLS = 100_000
+
+
+def _canonical_profile_key(value: Any) -> tuple[Any, ...]:
+    """Build a hashable key from already-validated exact result primitives."""
+    value_type = type(value)
+    if value_type in {type(None), bool, int, float, str}:  # noqa: E721
+        return (value_type.__name__, value)
+    if value_type is Decimal:
+        return ("decimal", Decimal.as_tuple(value))
+    if value_type in {date, datetime, datetime_time}:  # noqa: E721
+        return (value_type.__name__, value.isoformat())
+    if value_type is UUID:
+        return ("uuid", value.int)
+    if value_type is list:
+        return ("list", *(_canonical_profile_key(item) for item in value))
+    if value_type is dict:
+        return (
+            "dict",
+            *((key, _canonical_profile_key(item)) for key, item in value.items()),
+        )
+    raise TypeError("query result value was not canonicalized")
+
+
+def _build_data_columns(
+    data: list[dict[str, Any]],
+    raw_columns: list[str],
+    coltypes: list[Any] | None = None,
+) -> list[DataColumn]:
+    """Profile bounded canonical rows without string or hash dispatch hooks."""
+    column_count = max(len(raw_columns), 1)
+    profile_row_limit = max(3, _MAX_COLUMN_PROFILE_CELLS // column_count)
+    profile_rows = data[:profile_row_limit]
+    columns: list[DataColumn] = []
+    for idx, col_name in enumerate(raw_columns):
+        values = [row.get(col_name) for row in profile_rows]
+        sample_values = [value for value in values[:3] if value is not None]
+        data_type = "string"
+        if coltypes:
+            data_type = _GENERIC_TYPE_MAP.get(coltypes[idx], "string")
+        elif sample_values:
+            if all(type(value) is bool for value in sample_values):
+                data_type = "boolean"
+            elif all(type(value) in {int, float, Decimal} for value in sample_values):
+                data_type = "numeric"
+        columns.append(
+            DataColumn(
+                name=col_name,
+                display_name=col_name.replace("_", " ").title(),
+                data_type=data_type,
+                sample_values=sample_values,
+                null_count=sum(value is None for value in values),
+                unique_count=len({_canonical_profile_key(value) for value in values}),
+                statistics=(
+                    {"sampled_rows": len(profile_rows)}
+                    if len(profile_rows) < len(data)
+                    else None
+                ),
+                semantic_type=None,
+            )
+        )
+    return columns
 
 
 def _compute_effective_force(request: GetChartDataRequest) -> bool:
@@ -846,38 +911,10 @@ async def get_chart_data(  # noqa: C901
                     error=f"No data available for chart {chart.id}", error_type="NoData"
                 )
 
-            # Create rich column metadata
-            coltypes = query_result.get("coltypes", [])
-            columns = []
-            for idx, col_name in enumerate(raw_columns):
-                # Sample some values for metadata
-                sample_values = [
-                    row.get(col_name)
-                    for row in data[:3]
-                    if row.get(col_name) is not None
-                ]
-
-                # Use SQL-derived GenericDataType when available,
-                # fall back to Python isinstance heuristic
-                data_type = "string"
-                if coltypes:
-                    data_type = _GENERIC_TYPE_MAP.get(coltypes[idx], "string")
-                elif sample_values:
-                    if all(isinstance(v, bool) for v in sample_values):
-                        data_type = "boolean"
-                    elif all(isinstance(v, (int, float)) for v in sample_values):
-                        data_type = "numeric"
-
-                columns.append(
-                    DataColumn(
-                        name=col_name,
-                        display_name=col_name.replace("_", " ").title(),
-                        data_type=data_type,
-                        sample_values=sample_values[:3],
-                        null_count=sum(1 for row in data if row.get(col_name) is None),
-                        unique_count=len({str(row.get(col_name)) for row in data}),
-                    )
-                )
+            # Create rich column metadata from a bounded cross-column sample.
+            columns = _build_data_columns(
+                data, raw_columns, query_result.get("coltypes", [])
+            )
 
             # Cache status information using utility function
             cache_status = get_cache_status_from_result(
@@ -1193,26 +1230,9 @@ async def _query_from_form_data(  # noqa: C901
                 error_type="NoData",
             )
 
-        columns = []
-        for col_name in raw_columns:
-            sample_values = [
-                row.get(col_name) for row in data[:3] if row.get(col_name) is not None
-            ]
-            data_type = "string"
-            if sample_values and all(
-                isinstance(v, (int, float)) for v in sample_values
-            ):
-                data_type = "numeric"
-            columns.append(
-                DataColumn(
-                    name=col_name,
-                    display_name=col_name.replace("_", " ").title(),
-                    data_type=data_type,
-                    sample_values=sample_values[:3],
-                    null_count=sum(1 for row in data if row.get(col_name) is None),
-                    unique_count=len({str(row.get(col_name)) for row in data}),
-                )
-            )
+        columns = _build_data_columns(
+            data, raw_columns, query_result.get("coltypes", [])
+        )
 
         cache_status = get_cache_status_from_result(
             query_result, force_refresh=request.force_refresh

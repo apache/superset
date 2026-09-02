@@ -28,6 +28,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from superset.common.db_query_status import QueryStatus
 from superset.mcp_service.chart.schemas import (
     ChartData,
     ChartError,
@@ -36,6 +37,7 @@ from superset.mcp_service.chart.schemas import (
     PerformanceMetadata,
 )
 from superset.mcp_service.chart.tool.get_chart_data import (
+    _build_data_columns,
     _build_query_results,
     _coerce_row_limit,
     _GENERIC_TYPE_MAP,
@@ -498,15 +500,74 @@ class _AsyncContext:
         pass
 
 
+def test_data_column_profiling_is_bounded_and_handles_nested_primitives(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    module = importlib.import_module("superset.mcp_service.chart.tool.get_chart_data")
+    monkeypatch.setattr(module, "_MAX_COLUMN_PROFILE_CELLS", 3)
+    data = [{"value": [index, {"nested": index % 2}]} for index in range(10)]
+
+    columns = _build_data_columns(data, ["value"])
+
+    assert columns[0].sample_values == [
+        [0, {"nested": 0}],
+        [1, {"nested": 1}],
+        [2, {"nested": 0}],
+    ]
+    assert columns[0].unique_count == 3
+    assert columns[0].statistics == {"sampled_rows": 3}
+
+
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     "query_payload",
     [
         {"data": [], "coltypes": [0]},
         {"data": [{"value": 1}], "colnames": ["other"], "coltypes": [0]},
+        {
+            "data": [{"value": 10**5000}],
+            "colnames": ["value"],
+            "coltypes": [0],
+        },
+        {
+            "data": [{"value": float("nan")}],
+            "colnames": ["value"],
+            "coltypes": [0],
+        },
+        {
+            "data": [{"value": b"\xff"}],
+            "colnames": ["value"],
+            "coltypes": [1],
+        },
+        {
+            "data": [{"value": QueryStatus.SUCCESS}],
+            "colnames": ["value"],
+            "coltypes": [1],
+        },
+        {
+            "data": [{"second": 2, "first": 1}],
+            "colnames": ["first", "second"],
+            "coltypes": [0, 0],
+        },
+        {"data": [], "cached_dttm": {}},
+        {"data": [], "cache_timeout": -1},
         {"data": [], "rowcount": {}},
         {"data": [], "is_cached": {}},
         {"data": [], "metadata": HostileResultEnum.VALUE},
+    ],
+    ids=[
+        "misaligned-coltypes",
+        "mismatched-columns",
+        "huge-int",
+        "nan",
+        "bytes",
+        "query-status-row",
+        "ordered-keys",
+        "bad-canonical-cache-timestamp",
+        "negative-cache-timeout",
+        "bad-rowcount",
+        "bad-is-cached",
+        "hostile-metadata-enum",
     ],
 )
 async def test_unsaved_get_data_rejects_invalid_result_before_consumers(
@@ -552,9 +613,50 @@ async def test_unsaved_get_data_rejects_invalid_result_before_consumers(
     [
         {"data": [], "coltypes": [0]},
         {"data": [{"value": 1}], "colnames": ["other"], "coltypes": [0]},
+        {
+            "data": [{"value": 10**5000}],
+            "colnames": ["value"],
+            "coltypes": [0],
+        },
+        {
+            "data": [{"value": float("inf")}],
+            "colnames": ["value"],
+            "coltypes": [0],
+        },
+        {
+            "data": [{"value": b"\xff"}],
+            "colnames": ["value"],
+            "coltypes": [1],
+        },
+        {
+            "data": [{"value": QueryStatus.SUCCESS}],
+            "colnames": ["value"],
+            "coltypes": [1],
+        },
+        {
+            "data": [{"second": 2, "first": 1}],
+            "colnames": ["first", "second"],
+            "coltypes": [0, 0],
+        },
+        {"data": [], "cached_dttm": {}},
+        {"data": [], "cache_timeout": -1},
         {"data": [], "rowcount": {}},
         {"data": [], "is_cached": {}},
         {"data": [], "status": HostileResultEnum.VALUE},
+    ],
+    ids=[
+        "misaligned-coltypes",
+        "mismatched-columns",
+        "huge-int",
+        "infinity",
+        "bytes",
+        "query-status-row",
+        "ordered-keys",
+        "bad-canonical-cache-timestamp",
+        "negative-cache-timeout",
+        "bad-rowcount",
+        "bad-is-cached",
+        "hostile-status-enum",
     ],
 )
 async def test_saved_get_data_rejects_invalid_result_before_consumers(

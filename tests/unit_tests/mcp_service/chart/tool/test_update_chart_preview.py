@@ -188,6 +188,81 @@ class TestUpdateChartPreview:
         assert "old_region" not in str(generated)
         assert "old_revenue" not in str(generated)
 
+    @patch.object(update_chart_preview_module, "validate_and_compile")
+    @patch.object(update_chart_preview_module, "has_dataset_access", return_value=True)
+    @patch.object(update_chart_preview_module, "analyze_chart_semantics")
+    @patch.object(update_chart_preview_module, "analyze_chart_capabilities")
+    @patch.object(update_chart_preview_module, "generate_explore_link")
+    @patch.object(update_chart_preview_module, "_get_previous_form_data")
+    @patch.object(update_chart_preview_module, "_find_dataset")
+    @patch("superset.mcp_service.auth.get_user_from_request")
+    def test_cached_same_dataset_preserves_populated_table_state(
+        self,
+        mock_get_user_from_request,
+        mock_find_dataset,
+        mock_get_previous_form_data,
+        mock_generate_explore_link,
+        mock_analyze_chart_capabilities,
+        mock_analyze_chart_semantics,
+        unused_access_mock,
+        mock_validate_and_compile,
+    ) -> None:
+        """Cached iteration does not treat the same datasource as a rebind."""
+        mock_get_user_from_request.return_value = Mock(id=1, username="admin")
+        dataset = _mock_dataset(id=99)
+        mock_find_dataset.return_value = dataset
+        mock_get_previous_form_data.return_value = {
+            "viz_type": "table",
+            "datasource": "99__table",
+            "query_mode": "aggregate",
+            "groupby": ["region"],
+            "metrics": ["revenue"],
+            "order_by_cols": ['["revenue", false]'],
+            "column_config": {"revenue": {"visible": False}},
+            "adhoc_filters": [{"subject": "region"}],
+        }
+        mock_generate_explore_link.return_value = (
+            "http://localhost:8088/explore/?form_data_key=new_key"
+        )
+        mock_analyze_chart_capabilities.return_value = None
+        mock_analyze_chart_semantics.return_value = None
+        mock_validate_and_compile.return_value = Mock(success=True)
+        config = TableChartConfig(
+            chart_type="table",
+            query_mode="aggregate",
+            columns=[
+                ColumnRef(name="region"),
+                ColumnRef(name="revenue", saved_metric=True),
+            ],
+            sort_by=["revenue"],
+        )
+        request = UpdateChartPreviewRequest(
+            form_data_key="old_key",
+            dataset_id=99,
+            config=config,
+            generate_preview=False,
+        )
+
+        with patch(
+            "superset.mcp_service.chart.validation.dataset_validator."
+            "DatasetValidator.normalize_column_names",
+            side_effect=lambda config, *_args, **_kwargs: config,
+        ):
+            result = update_chart_preview_module.update_chart_preview(
+                request=request, ctx=Mock()
+            )
+
+        assert result["success"] is True
+        generated = mock_generate_explore_link.call_args.args[1]
+        assert generated["datasource"] == "99__table"
+        assert generated["groupby"] == ["region"]
+        assert generated["metrics"] == ["revenue"]
+        assert generated["order_by_cols"]
+        assert generated["column_config"] == {"revenue": {"visible": False}}
+        assert generated["adhoc_filters"] == [{"subject": "region"}]
+        compile_form_data = mock_validate_and_compile.call_args.args[1]
+        assert compile_form_data == generated
+
     @pytest.mark.asyncio
     async def test_update_chart_preview_dataset_id_types(self):
         """Test that dataset_id can be int or string (UUID)."""

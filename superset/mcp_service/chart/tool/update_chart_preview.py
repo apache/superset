@@ -220,11 +220,6 @@ def update_chart_preview(  # noqa: C901
             )
 
             dataset_context = build_dataset_context_from_orm(dataset)
-            static_result = validate_and_compile(
-                config, {}, dataset, run_compile_check=False
-            )
-            if not static_result.success:
-                return _validation_error_result(static_result)
             config = DatasetValidator.normalize_column_names(
                 config,
                 dataset.id,
