@@ -56,6 +56,87 @@ def _query_context_stub(form_data: dict[str, Any] | None = None) -> Any:
     return SimpleNamespace(form_data=form_data or {}, queries=[])
 
 
+def test_saved_timeseries_preview_executes_final_frontend_query_contract(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from superset.common.query_object import QueryObject
+
+    query_context_factory_module = importlib.import_module(
+        "superset.common.query_context_factory"
+    )
+    command_module = importlib.import_module(
+        "superset.commands.chart.data.get_data_command"
+    )
+    captured: dict[str, Any] = {}
+
+    class _Factory:
+        def create(self, **kwargs: Any) -> Any:
+            captured.update(kwargs)
+            return SimpleNamespace(
+                form_data=kwargs["form_data"],
+                queries=[QueryObject(**query) for query in kwargs["queries"]],
+            )
+
+    class _Command:
+        def __init__(self, query_context: Any) -> None:
+            self.query_context = query_context
+
+        def validate(self) -> None: ...
+
+        def run(self) -> dict[str, Any]:
+            return {
+                "queries": [
+                    {
+                        "data": [{"event_time": "2024-01-01", "revenue": 1}],
+                        "colnames": ["event_time", "revenue"],
+                    }
+                ]
+            }
+
+    monkeypatch.setattr(query_context_factory_module, "QueryContextFactory", _Factory)
+    monkeypatch.setattr(command_module, "ChartDataCommand", _Command)
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda *_args: "base",
+    )
+    chart = SimpleNamespace(
+        id=105,
+        slice_name="Ungrouped Timeseries",
+        viz_type="echarts_timeseries_bar",
+        datasource_id=1,
+        datasource_type="table",
+        params=utils_json.dumps(
+            {
+                "viz_type": "echarts_timeseries_bar",
+                "x_axis": "event_time",
+                "groupby": [],
+                "metrics": ["revenue"],
+                "timeseries_limit_metric": "ranking",
+                "x_axis_sort": "ranking",
+                "x_axis_sort_asc": True,
+                "contributionMode": "row",
+            }
+        ),
+    )
+
+    preview = ASCIIPreviewStrategy(
+        chart, GetChartPreviewRequest(identifier=105, format="ascii")
+    ).generate()
+
+    assert isinstance(preview, ASCIIPreview)
+    query = captured["queries"][0]
+    assert query["series_columns"] == []
+    assert query["metrics"] == ["revenue", "ranking"]
+    assert query["series_limit_metric"] == "ranking"
+    assert query["post_processing"][0]["options"]["columns"] == []
+    assert [item["operation"] for item in query["post_processing"]] == [
+        "pivot",
+        "contribution",
+        "sort",
+        "flatten",
+    ]
+
+
 @pytest.mark.parametrize("strategy_name", ["ascii", "table", "vega_lite"])
 def test_saved_preview_paths_seed_virtual_dataset_jinja_before_run(
     monkeypatch: pytest.MonkeyPatch,

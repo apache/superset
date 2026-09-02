@@ -23,6 +23,7 @@ path so fast-path tools (``generate_explore_link``, ``update_chart_preview``)
 that only use Tier-1 validation are exercised end-to-end.
 """
 
+from typing import Any, cast
 from unittest.mock import Mock, patch
 
 import pytest
@@ -551,6 +552,193 @@ class TestValidateAndCompileTier2:
 
         assert not result.success
         mock_compile.assert_not_called()
+
+    @patch("superset.mcp_service.chart.compile._compile_chart")
+    def test_timeseries_rebind_rejects_missing_saved_ranking_metric_even_when_hidden(
+        self, mock_compile
+    ) -> None:
+        """An explicit orderby keeps normalizeOrderBy from emitting the raw role."""
+        result = validate_and_compile(
+            None,
+            {
+                "viz_type": "echarts_timeseries_bar",
+                "x_axis": "ds",
+                "groupby": [],
+                "metrics": ["sum_boys", "sum_girls"],
+                "timeseries_limit_metric": "missing_rank",
+                "x_axis_sort": "missing_rank",
+                "x_axis_sort_asc": True,
+                "orderby": [["sum_boys", False]],
+            },
+            _orm_dataset(),
+            run_compile_check=True,
+        )
+
+        assert not result.success
+        assert result.error_obj is not None
+        assert "timeseries_limit_metric" in result.error_obj.message
+        mock_compile.assert_not_called()
+
+    @pytest.mark.parametrize(
+        "ranking_field", ["timeseries_limit_metric", "series_limit_metric"]
+    )
+    @patch("superset.mcp_service.chart.compile._compile_chart")
+    def test_timeseries_rebind_accepts_compatible_saved_ranking_roles(
+        self, mock_compile, ranking_field
+    ) -> None:
+        mock_compile.return_value = CompileResult(success=True)
+        form_data = {
+            "viz_type": "echarts_timeseries_bar",
+            "x_axis": "ds",
+            "groupby": [],
+            "metrics": ["sum_boys", "sum_girls"],
+            ranking_field: "sum_girls",
+            "x_axis_sort": "sum_girls",
+            "x_axis_sort_asc": False,
+        }
+
+        result = validate_and_compile(
+            None, form_data, _orm_dataset(), run_compile_check=True
+        )
+
+        assert result.success
+        mock_compile.assert_called_once_with(form_data, 3)
+
+    @patch("superset.mcp_service.chart.compile._compile_chart")
+    def test_timeseries_rebind_validates_physical_ranking_metric_column(
+        self, mock_compile
+    ) -> None:
+        mock_compile.return_value = CompileResult(success=True)
+        ranking = {
+            "expressionType": "SIMPLE",
+            "column": {"column_name": "num"},
+            "aggregate": "MAX",
+            "label": "MAX(num)",
+        }
+        compatible = {
+            "viz_type": "echarts_timeseries_line",
+            "x_axis": "ds",
+            "metrics": ["sum_boys"],
+            "timeseries_limit_metric": ranking,
+            "x_axis_sort": "MAX(num)",
+            "x_axis_sort_asc": True,
+        }
+
+        result = validate_and_compile(
+            None, compatible, _orm_dataset(), run_compile_check=True
+        )
+        assert result.success
+
+        incompatible = {
+            **compatible,
+            "timeseries_limit_metric": {
+                **ranking,
+                "column": {"column_name": "missing_num"},
+            },
+        }
+        result = validate_and_compile(
+            None, incompatible, _orm_dataset(), run_compile_check=True
+        )
+        assert not result.success
+        assert result.error_obj is not None
+        assert "missing_num" in result.error_obj.message
+
+    @patch("superset.mcp_service.chart.compile._compile_chart")
+    def test_mixed_rebind_validates_primary_and_secondary_roles_independently(
+        self, mock_compile
+    ) -> None:
+        mock_compile.return_value = CompileResult(success=True)
+        compatible = {
+            "viz_type": "mixed_timeseries",
+            "x_axis": "ds",
+            "groupby": ["gender"],
+            "metrics": ["sum_boys", "sum_girls"],
+            "timeseries_limit_metric": "sum_boys",
+            "groupby_b": ["name"],
+            "metrics_b": ["sum_girls", "sum_boys"],
+            "timeseries_limit_metric_b": "sum_girls",
+        }
+
+        result = validate_and_compile(
+            None, compatible, _orm_dataset(), run_compile_check=True
+        )
+        assert result.success
+
+        for bad_field in ("metrics", "metrics_b", "timeseries_limit_metric_b"):
+            incompatible = {**compatible, bad_field: ["missing_metric"]}
+            if bad_field == "timeseries_limit_metric_b":
+                incompatible[bad_field] = "missing_metric"
+            result = validate_and_compile(
+                None, incompatible, _orm_dataset(), run_compile_check=True
+            )
+            assert not result.success, bad_field
+            assert result.error_obj is not None
+            assert bad_field in result.error_obj.message
+
+
+def test_compile_chart_executes_final_ungrouped_timeseries_query(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from types import SimpleNamespace
+
+    from superset.common.query_object import QueryObject
+    from superset.mcp_service.chart.compile import _compile_chart
+
+    factory_module = __import__(
+        "superset.common.query_context_factory", fromlist=["QueryContextFactory"]
+    )
+    command_module = __import__(
+        "superset.commands.chart.data.get_data_command", fromlist=["ChartDataCommand"]
+    )
+    captured: dict[str, Any] = {}
+
+    class _Factory:
+        def create(self, **kwargs: Any) -> Any:
+            captured.update(kwargs)
+            return SimpleNamespace(
+                form_data=kwargs["form_data"],
+                queries=[QueryObject(**query) for query in kwargs["queries"]],
+            )
+
+    class _Command:
+        def __init__(self, query_context: Any) -> None:
+            self.query_context = query_context
+
+        def validate(self) -> None: ...
+
+        def run(self) -> dict[str, Any]:
+            return {"queries": [{"data": [], "colnames": []}]}
+
+    monkeypatch.setattr(factory_module, "QueryContextFactory", _Factory)
+    monkeypatch.setattr(command_module, "ChartDataCommand", _Command)
+    monkeypatch.setattr(
+        "superset.charts.data.form_data.set_query_context_form_data",
+        lambda *_args, **_kwargs: None,
+    )
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda *_args: "base",
+    )
+
+    result = _compile_chart(
+        {
+            "viz_type": "echarts_timeseries_line",
+            "x_axis": "ds",
+            "groupby": [],
+            "metrics": ["sum_boys", "sum_girls"],
+            "timeseries_limit_metric": "sum_girls",
+            "x_axis_sort": "sum_girls",
+            "x_axis_sort_asc": True,
+        },
+        3,
+    )
+
+    assert result.success
+    query = cast(list[dict[str, Any]], captured["queries"])[0]
+    assert query["series_columns"] == []
+    assert query["post_processing"][0]["options"]["columns"] == []
+    assert query["metrics"] == ["sum_boys", "sum_girls"]
+    assert query["series_limit_metric"] == "sum_girls"
 
 
 @patch("superset.charts.data.form_data.set_query_context_form_data")

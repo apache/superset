@@ -524,6 +524,8 @@ def test_query_result_rejects_custom_timezone_without_invoking_it() -> None:
         ("total_rows", "1"),
         ("cache_key", _HostileStr("key")),
         ("cache_key", "x" * 5000),
+        ("cached_dttm", _HostileStr("2024-01-01")),
+        ("cached_dttm", "x" * 5000),
         ("cache_dttm", _HostileStr("2024-01-01")),
         ("cache_dttm", "x" * 5000),
     ],
@@ -558,12 +560,13 @@ def test_query_result_accepts_bounded_cache_metadata_and_integral_float_count() 
     data, failure = query_result_data(
         {
             "cache_key": "top",
-            "cache_dttm": datetime(2024, 1, 1, tzinfo=timezone.utc),
+            "cached_dttm": datetime(2024, 1, 1, tzinfo=timezone.utc),
             "rowcount": 1.0,
             "queries": [
                 {
                     "data": [],
                     "cache_key": "query",
+                    "cached_dttm": "2024-01-01T00:00:00+00:00",
                     "cache_dttm": "2024-01-01T00:00:00+00:00",
                     "rowcount": 0.0,
                     "total_rows": 0,
@@ -593,7 +596,7 @@ def test_query_result_cache_datetime_rejects_hostile_timezone_without_hooks() ->
             "queries": [
                 {
                     "data": [],
-                    "cache_dttm": datetime(2024, 1, 1, tzinfo=_HostileTimezone()),
+                    "cached_dttm": datetime(2024, 1, 1, tzinfo=_HostileTimezone()),
                 }
             ]
         }

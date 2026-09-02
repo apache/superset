@@ -25,7 +25,7 @@ import struct
 import time
 from datetime import date, datetime, time as datetime_time, timedelta, timezone
 from decimal import Decimal
-from typing import Any, cast, Dict, List, TYPE_CHECKING
+from typing import Any, Dict, List, TYPE_CHECKING
 from uuid import UUID
 from zoneinfo import ZoneInfo
 
@@ -455,32 +455,12 @@ def _decimal_identity(value: Decimal) -> tuple[Any, ...]:  # noqa: C901
     return ("finite_numeric", numerator, denominator)
 
 
-def _trusted_utc_offset(value: datetime | datetime_time) -> timedelta | None:
-    """Read an offset only from exact, non-overridable timezone types."""
-    tzinfo = value.tzinfo
-    if tzinfo is None or not any(
-        type(tzinfo) is type_ for type_ in _TRUSTED_TZINFO_TYPES
-    ):
-        return None
-    offset = (
-        datetime.utcoffset(cast(datetime, value))
-        if type(value) is datetime
-        else datetime_time.utcoffset(cast(datetime_time, value))
-    )
-    return offset if type(offset) is timedelta else None
-
-
 def _has_trusted_timezone(value: datetime | datetime_time) -> bool:
     """Check timezone trust by exact type without invoking timezone hooks."""
     tzinfo = value.tzinfo
     return tzinfo is not None and any(
         type(tzinfo) is type_ for type_ in _TRUSTED_TZINFO_TYPES
     )
-
-
-def _timedelta_microseconds(value: timedelta) -> int:
-    """Convert an exact bounded timedelta to integer microseconds."""
-    return value.days * 86_400_000_000 + value.seconds * 1_000_000 + value.microseconds
 
 
 def _safe_value_identity(value: Any) -> tuple[Any, ...]:  # noqa: C901
@@ -520,54 +500,36 @@ def _safe_value_identity(value: Any) -> tuple[Any, ...]:  # noqa: C901
     if value_type is Decimal:
         return _decimal_identity(value)
     if value_type is datetime:
-        civil_microseconds = (
-            date.toordinal(value) * 86_400_000_000
-            + value.hour * 3_600_000_000
-            + value.minute * 60_000_000
-            + value.second * 1_000_000
-            + value.microsecond
-        )
-        offset = _trusted_utc_offset(value)
-        if offset is not None:
-            return (
-                "aware_datetime",
-                civil_microseconds - _timedelta_microseconds(offset),
-            )
         if value.tzinfo is None or _has_trusted_timezone(value):
-            return ("naive_datetime", civil_microseconds)
+            # Exact datetime plus exact builtin/ZoneInfo timezone objects can
+            # safely delegate to CPython's equality/hash implementation. This
+            # retains its subtle same-zone fold and inter-zone ambiguity rules
+            # instead of reducing every aware value to a UTC instant.
+            return ("trusted_datetime", value)
         # A custom tzinfo may execute arbitrary code. Keep its values distinct
         # without calling it; repeated values using the same timezone object
         # still receive a stable identity within the metadata computation.
         return (
             "opaque_datetime",
-            civil_microseconds,
+            date.toordinal(value),
+            value.hour,
+            value.minute,
+            value.second,
+            value.microsecond,
             value.fold,
             id(value.tzinfo),
         )
     if value_type is date:
         return (date, date.toordinal(value))
     if value_type is datetime_time:
-        civil_microseconds = (
-            value.hour * 3_600_000_000
-            + value.minute * 60_000_000
-            + value.second * 1_000_000
-            + value.microsecond
-        )
-        offset = _trusted_utc_offset(value)
-        if offset is not None:
-            return (
-                "aware_time",
-                civil_microseconds - _timedelta_microseconds(offset),
-            )
-        # A time carrying an exact ZoneInfo has no date with which to resolve
-        # an offset, so ZoneInfo.utcoffset(time) returns None. Python compares
-        # that value as a naive time; use the same identity (including ignoring
-        # fold) rather than treating the trusted ZoneInfo as opaque.
         if value.tzinfo is None or _has_trusted_timezone(value):
-            return ("naive_time", civil_microseconds)
+            return ("trusted_time", value)
         return (
             "opaque_time",
-            civil_microseconds,
+            value.hour,
+            value.minute,
+            value.second,
+            value.microsecond,
             value.fold,
             id(value.tzinfo),
         )

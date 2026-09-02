@@ -510,6 +510,31 @@ def _x_axis_query_field(form_data: dict[str, Any]) -> Any | None:
     return None
 
 
+def _normalized_x_axis_query_field(form_data: dict[str, Any]) -> Any | None:
+    """Mirror ``buildQueryContext.normalizeTimeColumn`` for a set x-axis."""
+    x_axis = _x_axis_query_field(form_data)
+    if x_axis is None:
+        return None
+    time_grain = form_data.get("time_grain_sqla")
+    if isinstance(x_axis, str):
+        normalized = {
+            "columnType": "BASE_AXIS",
+            "sqlExpression": x_axis,
+            "label": x_axis,
+            "expressionType": "SQL",
+            "isColumnReference": True,
+        }
+        if time_grain is not None:
+            normalized["timeGrain"] = time_grain
+        return normalized
+    normalized = {"columnType": "BASE_AXIS", **x_axis}
+    # The original adhoc column's grain overrides the common control, matching
+    # the frontend spread order.
+    if "timeGrain" not in normalized and time_grain is not None:
+        normalized["timeGrain"] = time_grain
+    return normalized
+
+
 def resolve_big_number_columns(form_data: dict[str, Any]) -> list[Any]:
     """Resolve Big Number's x-axis or legacy physical granularity column."""
     if (x_axis := _x_axis_query_field(form_data)) is not None:
@@ -554,6 +579,52 @@ def _metric_label(metric: Any) -> str | None:
         if name and metric.get("aggregate"):
             return f"{metric['aggregate']}({name})"
     return metric.get("sqlExpression")
+
+
+def _is_query_form_metric(value: Any) -> bool:
+    """Mirror the frontend's ``isQueryFormMetric`` type guard."""
+    return isinstance(value, str) or (
+        isinstance(value, dict) and value.get("expressionType") in {"SIMPLE", "SQL"}
+    )
+
+
+def _timeseries_base_metrics(form_data: dict[str, Any]) -> list[Any]:
+    """Return metrics extracted by the common frontend query-field aliases."""
+    metrics = list(_as_list(form_data.get("metrics")))
+    if (size := form_data.get("size")) is not None:
+        metrics.append(size)
+    return _dedupe_query_fields(metrics, _metric_label)
+
+
+def _timeseries_extra_metrics(form_data: dict[str, Any]) -> list[Any]:
+    """Mirror ``extractExtraMetrics`` for ungrouped x-axis sorting."""
+    if _as_list(form_data.get("groupby")):
+        return []
+    limit_metrics = _as_list(form_data.get("timeseries_limit_metric"))
+    if not limit_metrics:
+        return []
+    limit_metric = limit_metrics[0]
+    limit_label = _metric_label(limit_metric)
+    if not limit_label or limit_label != form_data.get("x_axis_sort"):
+        return []
+    if any(
+        _metric_label(metric) == form_data.get("x_axis_sort")
+        for metric in _as_list(form_data.get("metrics"))
+    ):
+        return []
+    return [limit_metric]
+
+
+def _query_series_columns(query: dict[str, Any]) -> list[Any]:
+    """Resolve pivot columns with JavaScript's array-truthiness semantics.
+
+    JavaScript treats an explicitly empty array as truthy, so
+    ``series_columns: []`` must not fall through to the query's x-axis column.
+    Only an absent/null series-columns field falls back to ``columns``.
+    """
+    if "series_columns" in query and query["series_columns"] is not None:
+        return _as_list(query["series_columns"])
+    return _as_list(query.get("columns"))
 
 
 def _dedupe_query_fields(values: list[Any], labeler: Any) -> list[Any]:
@@ -727,11 +798,25 @@ def _time_comparison(form_data: dict[str, Any], metrics: list[Any]) -> bool:
     )
 
 
-def _timeseries_post_processing(
-    form_data: dict[str, Any], query: dict[str, Any]
+def _timeseries_post_processing(  # noqa: C901
+    form_data: dict[str, Any],
+    query: dict[str, Any],
+    *,
+    operator_metrics: list[Any] | None = None,
+    complete_timeseries_contract: bool = False,
 ) -> list[dict[str, Any]]:
-    """Build the Mixed/Timeseries pivot-resample-roll-compare-rename-flatten chain."""
-    metrics = query.get("metrics") or []
+    """Build the frontend Mixed/Timeseries post-processing contract.
+
+    Timeseries passes its pre-extra-metric QueryObject to every operator, while
+    adding ``extractExtraMetrics`` only to its final query and normal pivot.
+    Mixed passes each layer QueryObject and implements the smaller operator set
+    in its own frontend builder.
+    """
+    metrics = (
+        list(operator_metrics)
+        if operator_metrics is not None
+        else list(query.get("metrics") or [])
+    )
     metric_labels = [label for metric in metrics if (label := _metric_label(metric))]
     x_axis = form_data.get("x_axis")
     x_label = (
@@ -739,7 +824,7 @@ def _timeseries_post_processing(
         if x_axis
         else ("__timestamp" if form_data.get("granularity_sqla") else None)
     )
-    series = query.get("series_columns") or query.get("columns") or []
+    series = _query_series_columns(query)
     series_labels = [label for column in series if (label := _column_label(column))]
     offsets = _as_list(form_data.get("time_compare"))
     comparison = _time_comparison(form_data, metrics)
@@ -747,7 +832,20 @@ def _timeseries_post_processing(
         f"{metric}__{offset}": metric for metric in metric_labels for offset in offsets
     }
     pivot_metrics = (
-        [*offset_map.values(), *offset_map.keys()] if comparison else metric_labels
+        [*offset_map.values(), *offset_map.keys()]
+        if comparison
+        else [
+            *metric_labels,
+            *(
+                [
+                    label
+                    for metric in _timeseries_extra_metrics(form_data)
+                    if (label := _metric_label(metric))
+                ]
+                if complete_timeseries_contract
+                else []
+            ),
+        ]
     )
     chain: list[dict[str, Any] | None] = []
     if x_label and pivot_metrics:
@@ -819,6 +917,16 @@ def _timeseries_post_processing(
                 },
             }
         )
+    if complete_timeseries_contract and form_data.get("contributionMode"):
+        chain.append(
+            {
+                "operation": "contribution",
+                "options": {
+                    "orientation": form_data["contributionMode"],
+                    "time_shifts": offsets if comparison else [],
+                },
+            }
+        )
     if comparison:
         rename: dict[str, str | None] = {}
         for shifted, metric in offset_map.items():
@@ -855,7 +963,67 @@ def _timeseries_post_processing(
                 },
             }
         )
+    if complete_timeseries_contract:
+        x_axis_sort = form_data.get("x_axis_sort")
+        x_axis_sort_asc = form_data.get("x_axis_sort_asc")
+        sortable_labels = [
+            label
+            for label in [
+                x_label,
+                *(
+                    _metric_label(metric)
+                    for metric in _as_list(form_data.get("metrics"))
+                ),
+                *(
+                    _metric_label(metric)
+                    for metric in _timeseries_extra_metrics(form_data)
+                ),
+            ]
+            if label
+        ]
+        if (
+            x_axis_sort is not None
+            and x_axis_sort_asc is not None
+            and x_axis_sort in sortable_labels
+            and not _as_list(form_data.get("groupby"))
+        ):
+            options: dict[str, Any] = {"ascending": x_axis_sort_asc}
+            if x_axis_sort == x_label:
+                options["is_sort_index"] = True
+            else:
+                options["by"] = x_axis_sort
+            chain.append({"operation": "sort", "options": options})
     chain.append({"operation": "flatten"})
+
+    if complete_timeseries_contract and form_data.get("forecastEnabled") and x_label:
+        x_axis_grain = (
+            x_axis.get("timeGrain")
+            if isinstance(x_axis, dict)
+            and x_axis.get("expressionType") in {"SIMPLE", "SQL"}
+            else None
+        )
+        time_grain = (
+            x_axis_grain
+            or (query.get("extras") or {}).get("time_grain_sqla")
+            or form_data.get("time_grain_sqla")
+            or "P1D"
+        )
+        chain.append(
+            {
+                "operation": "prophet",
+                "options": {
+                    "time_grain": time_grain,
+                    "periods": int(form_data.get("forecastPeriods", 10)),
+                    "confidence_interval": float(
+                        form_data.get("forecastInterval", 0.8)
+                    ),
+                    "yearly_seasonality": form_data.get("forecastSeasonalityYearly"),
+                    "weekly_seasonality": form_data.get("forecastSeasonalityWeekly"),
+                    "daily_seasonality": form_data.get("forecastSeasonalityDaily"),
+                    "index": x_label,
+                },
+            }
+        )
     return [operator for operator in chain if operator is not None]
 
 
@@ -868,7 +1036,26 @@ def _mixed_layer_form_data(
             key: value for key, value in form_data.items() if not key.endswith("_b")
         }
     layer = {key: value for key, value in form_data.items() if not key.endswith("_b")}
-    for isolated_key in ("metrics", "groupby", "orderby"):
+    for isolated_key in (
+        "metrics",
+        "groupby",
+        "orderby",
+        "limit",
+        "series_limit",
+        "timeseries_limit_metric",
+        "series_limit_metric",
+        "order_desc",
+        "row_limit",
+        "truncate_metric",
+        "time_compare",
+        "comparison_type",
+        "resample_method",
+        "resample_rule",
+        "rolling_type",
+        "rolling_periods",
+        "min_periods",
+        "show_empty_columns",
+    ):
         if f"{isolated_key}_b" not in form_data:
             layer.pop(isolated_key, None)
     # Suffixed values are visited first by retainFormDataSuffix and therefore
@@ -959,8 +1146,6 @@ def _build_single_query_dict(  # noqa: C901
         "annotation_layers",
         "row_offset",
         "series_columns",
-        "series_limit",
-        "series_limit_metric",
         "group_others_when_limit_reached",
         "is_timeseries",
         "time_offsets",
@@ -968,6 +1153,20 @@ def _build_single_query_dict(  # noqa: C901
     ):
         if key in form_data and form_data[key] is not None:
             qd[key] = form_data[key]
+
+    # ``buildQueryObject`` keeps the modern series-limit controls, falls back
+    # to their legacy Timeseries names, and defaults the limit to zero.  A
+    # malformed modern metric does not mask a valid legacy metric.
+    series_limit = form_data.get("series_limit")
+    if series_limit is None:
+        series_limit = form_data.get("limit")
+    if series_limit is not None:
+        qd["series_limit"] = series_limit
+    series_limit_metric = form_data.get("series_limit_metric")
+    if not _is_query_form_metric(series_limit_metric):
+        series_limit_metric = form_data.get("timeseries_limit_metric")
+    if series_limit_metric is not None:
+        qd["series_limit_metric"] = series_limit_metric
     apply_form_data_filters_to_query(qd, form_data)
     # Mirror the common ``buildQueryObject``/``extractExtras`` translation used
     # by native frontend plugins. ``granularity_sqla`` is a form-data control,
@@ -1461,7 +1660,7 @@ def build_query_dicts_from_form_data(  # noqa: C901
         from superset.utils.core import split_adhoc_filters_into_base_filters
 
         queries: list[dict[str, Any]] = []
-        x_axis = _x_axis_query_field(form_data)
+        x_axis = _normalized_x_axis_query_field(form_data)
         for secondary in (False, True):
             layer = _mixed_layer_form_data(form_data, secondary=secondary)
             if secondary and form_data.get("adhoc_filters_b") is not None:
@@ -1469,7 +1668,7 @@ def build_query_dicts_from_form_data(  # noqa: C901
                     layer.pop(key, None)
                 layer["adhoc_filters"] = form_data.get("adhoc_filters_b") or []
                 split_adhoc_filters_into_base_filters(layer, engine)
-            layer_metrics = list(layer.get("metrics") or [])
+            layer_metrics = _timeseries_base_metrics(layer)
             layer_groupby = _as_list(layer.get("groupby"))
             columns = [*(_as_list(x_axis) if x_axis else []), *layer_groupby]
             query = _build_single_query_dict(
@@ -1487,19 +1686,25 @@ def build_query_dicts_from_form_data(  # noqa: C901
             query["time_offsets"] = (
                 _as_list(layer.get("time_compare")) if comparison else []
             )
-            query["post_processing"] = _timeseries_post_processing(layer, query)
+            query["post_processing"] = _timeseries_post_processing(
+                layer,
+                query,
+                operator_metrics=layer_metrics,
+            )
             _normalize_orderby(query)
             queries.append(query)
         return queries
 
     if viz_type.startswith("echarts_timeseries") or viz_type == "echarts_area":
-        x_axis = _x_axis_query_field(form_data)
+        x_axis = _normalized_x_axis_query_field(form_data)
+        timeseries_metrics = _timeseries_base_metrics(form_data)
+        extra_metrics = _timeseries_extra_metrics(form_data)
         timeseries_groupby = _as_list(form_data.get("groupby"))
         columns = [*(_as_list(x_axis) if x_axis else []), *timeseries_groupby]
         query = _build_single_query_dict(
             form_data,
             _dedupe_query_fields(columns, _column_label),
-            metrics,
+            [*timeseries_metrics, *extra_metrics],
             row_limit=row_limit,
             order_desc=order_desc,
             orderby=form_data.get("orderby"),
@@ -1507,14 +1712,19 @@ def build_query_dicts_from_form_data(  # noqa: C901
         query["series_columns"] = timeseries_groupby
         if not x_axis:
             query["is_timeseries"] = True
-        comparison = _time_comparison(form_data, metrics)
+        comparison = _time_comparison(form_data, timeseries_metrics)
         query["time_offsets"] = (
             _as_list(form_data.get("time_compare")) if comparison else []
         )
         query["time_compare_full_range"] = bool(
             query["time_offsets"] and form_data.get("time_compare_full_range")
         )
-        query["post_processing"] = _timeseries_post_processing(form_data, query)
+        query["post_processing"] = _timeseries_post_processing(
+            form_data,
+            query,
+            operator_metrics=timeseries_metrics,
+            complete_timeseries_contract=True,
+        )
         _normalize_orderby(query)
         return [query]
 

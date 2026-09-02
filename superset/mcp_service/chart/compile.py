@@ -336,9 +336,25 @@ def _native_column_name(value: Any) -> str | None:
     if not isinstance(value, dict):
         return None
     if value.get("expressionType") == "SQL":
+        reference = value.get("sqlExpression")
+        if value.get("isColumnReference") is True and isinstance(reference, str):
+            return reference or None
         return None
     name = value.get("column_name") or value.get("columnName")
     return name if isinstance(name, str) and name else None
+
+
+def _native_column_label(value: Any) -> str | None:
+    """Return the frontend label for a native column without custom hooks."""
+    if isinstance(value, str):
+        return value
+    if not isinstance(value, dict):
+        return None
+    for key in ("label", "sqlExpression", "column_name", "columnName"):
+        candidate = value.get(key)
+        if isinstance(candidate, str) and candidate:
+            return candidate
+    return None
 
 
 def _native_metric_ref(value: Any) -> tuple[str, str] | None:
@@ -394,7 +410,93 @@ def _native_reference_error(  # noqa: C901
             pass
         return _native_validation_error(role, name)
 
-    metric_labels: set[str] = set()
+    def metric_error(value: Any, role: str) -> ChartGenerationError | None:
+        """Validate one raw or generated metric reference against the target."""
+        ref = _native_metric_ref(value)
+        if ref is None:
+            if isinstance(value, dict) and value.get("expressionType") == "SQL":
+                return None
+            return _native_validation_error(role, repr(value)[:200])
+        kind, name = ref
+        if kind == "saved_metric":
+            matches = [
+                item
+                for item in saved_metrics
+                if item == name or item.casefold() == name.casefold()
+            ]
+            if len(set(matches)) != 1:
+                return _native_validation_error(role, name)
+            return None
+        return column_error(name, f"{role} column")
+
+    # Dataset-only rebind has no typed config to expose these native plugin
+    # roles. Validate the raw controls independently: some are consumed only
+    # while building ordering/post-processing and therefore may be absent from
+    # the final QueryObject (notably an explicit ordering can hide a ranking
+    # metric). Primary and secondary Mixed layers are deliberately separate.
+    viz_type = form_data.get("viz_type")
+    if strict_all_form_refs and (
+        viz_type == "mixed_timeseries"
+        or (
+            isinstance(viz_type, str)
+            and (
+                viz_type.startswith("echarts_timeseries") or viz_type == "echarts_area"
+            )
+        )
+    ):
+        if (raw_x_axis := form_data.get("x_axis")) is not None and (
+            error := column_error(raw_x_axis, "form-data x_axis column")
+        ):
+            return error
+        metric_fields = [
+            "metrics",
+            "size",
+            "timeseries_limit_metric",
+            "series_limit_metric",
+        ]
+        if viz_type == "mixed_timeseries":
+            metric_fields.extend(
+                [
+                    "metrics_b",
+                    "size_b",
+                    "timeseries_limit_metric_b",
+                    "series_limit_metric_b",
+                ]
+            )
+        for field_name in metric_fields:
+            raw_value = form_data.get(field_name)
+            values = raw_value if isinstance(raw_value, list) else [raw_value]
+            for value in values:
+                if value is not None and (
+                    error := metric_error(value, f"form-data {field_name} metric")
+                ):
+                    return error
+
+        layer_suffixes = ("", "_b") if viz_type == "mixed_timeseries" else ("",)
+        for suffix in layer_suffixes:
+            sort_field = f"x_axis_sort{suffix}"
+            if sort_field not in form_data or form_data.get(sort_field) is None:
+                continue
+            x_axis = form_data.get(f"x_axis{suffix}", form_data.get("x_axis"))
+            allowed_labels: set[str] = set()
+            if x_axis_label := _native_column_label(x_axis):
+                allowed_labels.add(x_axis_label)
+            raw_metrics = form_data.get(f"metrics{suffix}")
+            for metric in raw_metrics if isinstance(raw_metrics, list) else []:
+                if label := _metric_label_for_validation(metric):
+                    allowed_labels.add(label)
+            raw_limit_metric = form_data.get(f"timeseries_limit_metric{suffix}")
+            limit_metrics = (
+                raw_limit_metric
+                if isinstance(raw_limit_metric, list)
+                else [raw_limit_metric]
+            )
+            for metric in limit_metrics:
+                if label := _metric_label_for_validation(metric):
+                    allowed_labels.add(label)
+            sort_value = form_data[sort_field]
+            if not isinstance(sort_value, str) or sort_value not in allowed_labels:
+                return _native_validation_error(sort_field, repr(sort_value)[:200])
 
     for filter_ in form_data.get("adhoc_filters") or []:
         if not isinstance(filter_, dict) or filter_.get("expressionType") != "SIMPLE":
@@ -428,6 +530,7 @@ def _native_reference_error(  # noqa: C901
                 return error
 
     for query_index, query in enumerate(queries, 1):
+        metric_labels: set[str] = set()
         for column in query.get("columns") or []:
             if error := column_error(column, f"query {query_index} column"):
                 return error
@@ -445,23 +548,7 @@ def _native_reference_error(  # noqa: C901
         for metric in metrics:
             if label := _metric_label_for_validation(metric):
                 metric_labels.add(label)
-            ref = _native_metric_ref(metric)
-            if ref is None:
-                if isinstance(metric, dict) and metric.get("expressionType") == "SQL":
-                    continue
-                return _native_validation_error(
-                    f"query {query_index} metric", repr(metric)[:200]
-                )
-            kind, name = ref
-            if kind == "saved_metric":
-                matches = [
-                    item
-                    for item in saved_metrics
-                    if item == name or item.casefold() == name.casefold()
-                ]
-                if len(set(matches)) != 1:
-                    return _native_validation_error("saved metric", name)
-            elif error := column_error(name, f"query {query_index} metric column"):
+            if error := metric_error(metric, f"query {query_index} metric"):
                 return error
 
         granularity = query.get("granularity")

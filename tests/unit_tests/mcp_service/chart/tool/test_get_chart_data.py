@@ -733,11 +733,32 @@ class TestUnsavedChartDataQueryConstruction:
 
         queries = captured_query_contexts[0]["queries"]
         assert len(queries) == 2
-        assert queries[0]["columns"] == ["ds", "country"]
+        expected_axis = {
+            "columnType": "BASE_AXIS",
+            "sqlExpression": "ds",
+            "label": "ds",
+            "expressionType": "SQL",
+            "isColumnReference": True,
+        }
+        assert queries[0]["columns"] == [expected_axis, "country"]
         assert queries[0]["metrics"] == ["sum__sales"]
+        assert queries[0]["series_columns"] == ["country"]
+        assert queries[0]["post_processing"][0]["options"] == {
+            "index": ["ds"],
+            "columns": ["country"],
+            "aggregates": {"sum__sales": {"operator": "mean"}},
+            "drop_missing_columns": True,
+        }
         assert queries[0]["row_limit"] == 99
-        assert queries[1]["columns"] == ["ds", "state"]
+        assert queries[1]["columns"] == [expected_axis, "state"]
         assert queries[1]["metrics"] == ["sum__profit"]
+        assert queries[1]["series_columns"] == ["state"]
+        assert queries[1]["post_processing"][0]["options"] == {
+            "index": ["ds"],
+            "columns": ["state"],
+            "aggregates": {"sum__profit": {"operator": "mean"}},
+            "drop_missing_columns": True,
+        }
         assert queries[1]["row_limit"] == 99
 
 
@@ -2422,16 +2443,56 @@ def test_zoneinfo_time_without_offset_uses_python_naive_identity() -> None:
     assert _safe_value_identity(folded) == _safe_value_identity(naive)
 
 
-def test_zoneinfo_datetime_fold_preserves_distinct_instants() -> None:
+def test_zoneinfo_datetime_fold_matches_python_same_zone_semantics() -> None:
     zone = ZoneInfo("America/New_York")
     first = datetime(2024, 11, 3, 1, 30, tzinfo=zone, fold=0)
     second = datetime(2024, 11, 3, 1, 30, tzinfo=zone, fold=1)
 
     assert first.utcoffset() != second.utcoffset()
-    assert _safe_value_identity(first) != _safe_value_identity(second)
-    assert _safe_value_identity(first) == _safe_value_identity(
-        datetime(2024, 11, 3, 5, 30, tzinfo=timezone.utc)
+    assert first == second
+    assert hash(first) == hash(second)
+    assert _safe_value_identity(first) == _safe_value_identity(second)
+
+
+def test_zoneinfo_interzone_ambiguity_matches_python_equality_and_hash() -> None:
+    new_york = ZoneInfo("America/New_York")
+    toronto = ZoneInfo("America/Toronto")
+    ambiguous = datetime(2024, 11, 3, 1, 30, tzinfo=new_york, fold=0)
+    same_utc_instant = datetime(2024, 11, 3, 5, 30, tzinfo=timezone.utc)
+    other_zone = datetime(2024, 11, 3, 1, 30, tzinfo=toronto, fold=0)
+    unambiguous = datetime(2024, 11, 3, 3, 30, tzinfo=new_york)
+    unambiguous_utc = datetime(2024, 11, 3, 8, 30, tzinfo=timezone.utc)
+
+    # PEP 495 makes an offset-dependent ambiguous value unequal across zones,
+    # even when one selected fold denotes the same UTC instant.
+    assert ambiguous != same_utc_instant
+    assert ambiguous != other_zone
+    assert _safe_value_identity(ambiguous) != _safe_value_identity(same_utc_instant)
+    assert _safe_value_identity(ambiguous) != _safe_value_identity(other_zone)
+
+    assert unambiguous == unambiguous_utc
+    assert hash(unambiguous) == hash(unambiguous_utc)
+    assert _safe_value_identity(unambiguous) == _safe_value_identity(unambiguous_utc)
+
+
+def test_time_fold_and_fixed_offset_identity_matches_python() -> None:
+    zone = ZoneInfo("America/New_York")
+    zoned_fold_zero = datetime_time(1, 30, tzinfo=zone, fold=0)
+    zoned_fold_one = datetime_time(1, 30, tzinfo=zone, fold=1)
+    naive = datetime_time(1, 30)
+    utc = datetime_time(12, tzinfo=timezone.utc)
+    plus_one = datetime_time(13, tzinfo=timezone(timedelta(hours=1)))
+
+    assert zoned_fold_zero == zoned_fold_one == naive
+    assert hash(zoned_fold_zero) == hash(zoned_fold_one) == hash(naive)
+    assert (
+        _safe_value_identity(zoned_fold_zero)
+        == _safe_value_identity(zoned_fold_one)
+        == _safe_value_identity(naive)
     )
+    assert utc == plus_one
+    assert hash(utc) == hash(plus_one)
+    assert _safe_value_identity(utc) == _safe_value_identity(plus_one)
 
 
 def test_opaque_timezone_identity_does_not_execute_custom_offset() -> None:
@@ -2541,6 +2602,126 @@ async def test_unsaved_generic_get_data_returns_decimal_metadata(
     assert response.columns[0].data_type == "numeric"
     assert response.columns[0].unique_count == 6
     assert response.columns[0].sample_values == values[:3]
+
+
+@pytest.mark.asyncio
+async def test_unsaved_multi_query_consumes_canonical_cached_dttm(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    module = importlib.import_module("superset.mcp_service.chart.tool.get_chart_data")
+    command_module = importlib.import_module(
+        "superset.commands.chart.data.get_data_command"
+    )
+    cached_dttm = (datetime.now(timezone.utc) - timedelta(minutes=90)).isoformat()
+
+    class _Command:
+        def __init__(self, query_context: Any) -> None: ...
+        def validate(self) -> None: ...
+        def run(self) -> dict[str, Any]:
+            return {
+                "queries": [
+                    {
+                        "data": [{"value": 1}],
+                        "colnames": ["value"],
+                        "rowcount": 1,
+                        "is_cached": True,
+                        "cached_dttm": cached_dttm,
+                    },
+                    {
+                        "data": [{"other": 2}],
+                        "colnames": ["other"],
+                        "rowcount": 1,
+                        "is_cached": True,
+                        "cached_dttm": cached_dttm,
+                    },
+                ]
+            }
+
+    monkeypatch.setattr(
+        module,
+        "build_query_context_from_form_data",
+        lambda *_args, **_kwargs: _query_context_stub(),
+    )
+    monkeypatch.setattr(command_module, "ChartDataCommand", _Command)
+
+    response = await _query_from_form_data(
+        {"datasource": "1__table", "viz_type": "table"},
+        GetChartDataRequest(form_data_key="cached"),
+        _AsyncContext(),
+    )
+
+    assert isinstance(response, ChartData)
+    assert response.cache_status is not None
+    assert response.cache_status.cache_hit is True
+    assert response.cache_status.cache_age_seconds is not None
+    assert response.cache_status.cache_age_seconds >= 5_399
+    assert response.query_results is not None
+    assert len(response.query_results) == 2
+
+
+@pytest.mark.asyncio
+async def test_saved_get_data_uses_production_cache_timestamp_for_insights(
+    mcp_server: Any,
+    mock_auth: Any,
+) -> None:
+    from unittest.mock import patch
+
+    from fastmcp import Client
+
+    module = importlib.import_module("superset.mcp_service.chart.tool.get_chart_data")
+    command_module = importlib.import_module(
+        "superset.commands.chart.data.get_data_command"
+    )
+    chart = SimpleNamespace(
+        id=14,
+        slice_name="Cached producer envelope",
+        viz_type="table",
+        datasource_id=1,
+        datasource_type="table",
+        query_context='{"queries": []}',
+        params='{"viz_type": "table"}',
+    )
+    cached_dttm = (datetime.now(timezone.utc) - timedelta(hours=2)).isoformat()
+
+    class _Command:
+        def __init__(self, query_context: Any) -> None: ...
+        def validate(self) -> None: ...
+        def run(self) -> dict[str, Any]:
+            return {
+                "queries": [
+                    {
+                        "data": [{"value": 1}],
+                        "colnames": ["value"],
+                        "rowcount": 1,
+                        "is_cached": True,
+                        "cached_dttm": cached_dttm,
+                    }
+                ]
+            }
+
+    with (
+        patch.object(module, "find_chart_by_identifier", return_value=chart),
+        patch.object(
+            module,
+            "validate_chart_dataset",
+            return_value=SimpleNamespace(is_valid=True, warnings=[], error=None),
+        ),
+        patch(
+            "superset.charts.schemas.ChartDataQueryContextSchema.load",
+            return_value=_query_context_stub(),
+        ),
+        patch.object(command_module, "ChartDataCommand", _Command),
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_chart_data", {"request": {"identifier": 14}}
+            )
+
+    payload = json.loads(result.content[0].text)
+    assert payload["cache_status"]["cache_hit"] is True
+    assert payload["cache_status"]["cache_age_seconds"] >= 7_199
+    assert any("2h old" in insight for insight in payload["insights"])
+    assert payload["performance"]["cache_status"] == "cache_hit"
 
 
 @pytest.mark.asyncio
