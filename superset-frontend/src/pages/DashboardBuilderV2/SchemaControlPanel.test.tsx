@@ -186,13 +186,12 @@ test('a field edit rejected by backend validation is not committed, and its erro
   expect(provider.getNode(id)?.props?.prefix).toBe('kept');
 });
 
-test('a rejected edit does not linger in the field — the form reverts to the last accepted value', async () => {
-  // JsonForms is uncontrolled past mount, so without an explicit remount a
-  // rejected pick would keep showing in its own field forever, even though
-  // `config.formData` (what sibling controls actually read) is still the
-  // last *accepted* props — the two would disagree until some unrelated
-  // change happened to force a remount.
-  mount('metric-tile', {
+test('a rejected edit stays in its own field rather than reverting — required-together fields can be picked in either order', async () => {
+  // Reverting on every rejection (an earlier fix's own mistake) would undo
+  // each step of building up a fresh widget the moment it's made, since
+  // `dataBinding`'s required fields only ever validate together — see the
+  // dataset/column test above for the deadlock that would cause.
+  const id = mount('metric-tile', {
     dataBinding: { datasetId: 1, metrics: ['count'] },
     prefix: 'kept',
   });
@@ -202,7 +201,9 @@ test('a rejected edit does not linger in the field — the form reverts to the l
   await userEvent.type(screen.getByRole('textbox'), 'x');
   await screen.findByText(/prefix: Too long/);
 
-  await waitFor(() => expect(screen.getByRole('textbox')).toHaveValue('kept'));
+  expect(screen.getByRole('textbox')).toHaveValue('keptx');
+  // The rejected candidate never reached the store.
+  expect(provider.getNode(id)?.props?.prefix).toBe('kept');
 });
 
 test('discovers series from the color dimension (the last dimension by default), not the first', async () => {
@@ -691,6 +692,87 @@ test('picking a dataset writes its id back into dataBinding.datasetId', async ()
     expect(
       (provider.getNode(id)?.props?.dataBinding as DataBindingSpec)?.datasetId,
     ).toBe(9),
+  );
+});
+
+test('a dataset pick rejected for still lacking required metrics is still visible to a sibling column picker — a freshly placed widget can be built up field by field', async () => {
+  // `DataBinding` requires `datasetId` and `metrics` together; a brand-new
+  // widget starts with neither, so its very first pick (just the dataset)
+  // is always rejected on its own. If sibling controls only saw the last
+  // *accepted* props, none of them would ever learn the picked dataset, and
+  // the widget could never be built up at all — this is the deadlock
+  // `config.formData` tracking the live (not just accepted) candidate fixes.
+  postSpy.mockImplementation(
+    ({
+      endpoint,
+      jsonPayload,
+    }: {
+      endpoint: string;
+      jsonPayload?: { control_values?: { dataBinding?: DataBindingSpec } };
+    }) => {
+      if (endpoint.endsWith('/validate')) {
+        const dataBinding = jsonPayload?.control_values?.dataBinding;
+        const errors =
+          dataBinding?.datasetId && dataBinding?.metrics?.length
+            ? []
+            : [{ loc: ['dataBinding'], message: 'Incomplete' }];
+        return Promise.resolve({ json: { result: { errors } } } as never);
+      }
+      return Promise.resolve({
+        json: {
+          result: {
+            type: 'object',
+            properties: {
+              dataBinding: { $ref: '#/$defs/DataBinding' },
+              favoriteColumn: {
+                type: 'string',
+                title: 'Favorite column',
+                'x-control': 'column',
+              },
+            },
+            $defs: {
+              DataBinding: {
+                type: 'object',
+                properties: {
+                  datasetId: { type: 'integer', title: 'Dataset ID' },
+                },
+              },
+            },
+          },
+        },
+      } as never);
+    },
+  );
+  loadDatasetOptionsMock.mockResolvedValue({
+    data: [{ label: 'orders', value: 9, table_name: 'orders' }],
+    totalCount: 1,
+  });
+  getSpy.mockResolvedValue({
+    json: {
+      result: {
+        table_name: 'orders',
+        columns: [{ column_name: 'gender', type_generic: 1 }],
+        metrics: [],
+      },
+    },
+  } as never);
+
+  // A freshly placed widget: no props at all yet.
+  mount('balloons');
+  await screen.findByText('Favorite column');
+
+  await selectOption('orders', 'Dataset ID');
+
+  // Rejected — `metrics` is still missing.
+  await screen.findByTestId('schema-control-panel-validation-errors');
+
+  // ...but the column picker can already query dataset 9's own columns,
+  // because it reads the just-picked (though rejected) datasetId off
+  // `config.formData`, not off the last-committed `node.props`.
+  await waitFor(() =>
+    expect(getSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ endpoint: '/api/v1/dataset/9' }),
+    ),
   );
 });
 

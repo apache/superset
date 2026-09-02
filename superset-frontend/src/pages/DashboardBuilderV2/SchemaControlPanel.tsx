@@ -202,9 +202,14 @@ export default function SchemaControlPanel({ nodeId }: { nodeId: string }) {
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastDepSnapshotRef = useRef<string>('');
 
-  // (Re)fetch the schema when the widget type or discovered series change. The
-  // series change is what carries an x-dynamic dependency (e.g. a new grouping
-  // dimension) through to a re-enriched schema.
+  // (Re)fetch the schema when the selected node, its widget type, or its
+  // discovered series change. `nodeId` has to be here too, not just
+  // `widgetType`/`seriesKey`: selecting a different node of the *same* type
+  // that happens to resolve to the same series (e.g. neither has a color
+  // dimension yet, so both are `[]`) would otherwise skip this effect
+  // entirely and keep rendering the previous node's enriched schema — its
+  // per-metric override controls, discovered series, whatever the enricher
+  // built from props this node never had.
   const seriesKey = JSON.stringify(series);
   useEffect(() => {
     if (!widgetType) return undefined;
@@ -228,7 +233,7 @@ export default function SchemaControlPanel({ nodeId }: { nodeId: string }) {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [widgetType, seriesKey]);
+  }, [nodeId, widgetType, seriesKey]);
 
   // The effect above only reacts to `widgetType`/`series` — an edit to a
   // plain control value (e.g. picking `datasetId`) needs its own trigger so
@@ -297,6 +302,18 @@ export default function SchemaControlPanel({ nodeId }: { nodeId: string }) {
   const propsKey = JSON.stringify(props);
   const mountedRef = useRef(false);
   const selfEditRef = useRef(false);
+  // What sibling controls (e.g. a metric/column picker reading the widget's
+  // `dataBinding.datasetId` off `config.formData`) see as this field's
+  // current value — updated synchronously on every edit, whether or not it
+  // ends up validating. `props` alone can't serve this: `dataBinding` and its
+  // required siblings (`datasetId`, `metrics`) can only ever be committed
+  // together, so a freshly placed widget's very first pick is always
+  // individually rejected — if sibling controls only saw the last *accepted*
+  // props, none of them would ever see that pick and the widget could never
+  // be built up field by field. Reset to `props` on the same external-change
+  // path the resync effect below already distinguishes from a self-triggered
+  // one.
+  const [liveData, setLiveData] = useState<WidgetProps>(props);
   useEffect(() => {
     if (!mountedRef.current) {
       mountedRef.current = true;
@@ -307,6 +324,10 @@ export default function SchemaControlPanel({ nodeId }: { nodeId: string }) {
       return;
     }
     setFormKey(key => key + 1);
+    setLiveData(props);
+    // `propsKey` is `props`'s own stable, value-equality-comparable proxy —
+    // see its own comment just above.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [propsKey]);
 
   const formSchema = useMemo(
@@ -341,7 +362,7 @@ export default function SchemaControlPanel({ nodeId }: { nodeId: string }) {
             data={props}
             renderers={schemaControlRenderers}
             cells={cellRegistryEntries}
-            config={{ refreshingSchema, formData: props }}
+            config={{ refreshingSchema, formData: liveData }}
             validationMode="ValidateAndHide"
             // Column/metric-reference controls need the widget's
             // `dataBinding.datasetId`, which lives outside their own field —
@@ -381,6 +402,13 @@ export default function SchemaControlPanel({ nodeId }: { nodeId: string }) {
                 }
               }
 
+              // Before validation even starts: sibling controls read this
+              // off `config.formData` on every render (unlike `data`, which
+              // JsonForms only reads at mount), so a control depending on
+              // this field sees the pick immediately, regardless of whether
+              // it ends up accepted.
+              setLiveData(next);
+
               validateSeqRef.current += 1;
               const seq = validateSeqRef.current;
               commitWidgetProps(nodeId, widgetType, next, {
@@ -401,19 +429,17 @@ export default function SchemaControlPanel({ nodeId }: { nodeId: string }) {
                 .then(result => {
                   if (validateSeqRef.current !== seq) return;
                   setValidationErrors(result.ok ? [] : result.errors);
-                  if (result.ok) {
-                    maybeRefreshSchema(next);
-                  } else {
-                    // JsonForms is uncontrolled past mount (see the resync
-                    // effect's own comment) — a rejected pick otherwise keeps
-                    // showing in its field forever, while `config.formData`
-                    // (which sibling controls like the column/metric pickers
-                    // read `datasetId` off) is still the last *accepted*
-                    // `props`, since nothing was committed. Remounting from
-                    // `props` snaps the whole form back to what's actually
-                    // stored, so every field agrees again.
-                    setFormKey(key => key + 1);
-                  }
+                  // A rejected pick is deliberately left in place — both in
+                  // JsonForms' own (uncontrolled) field and in `liveData` —
+                  // rather than reverted: `dataBinding`'s required fields can
+                  // only ever validate together, so building up a fresh
+                  // widget means picking one, seeing it rejected, and then
+                  // picking the next one the sibling control can now offer
+                  // (thanks to `liveData` already reflecting the first pick).
+                  // Reverting on every individual rejection would undo each
+                  // step as soon as it's made, and a new widget could never
+                  // reach a valid state at all.
+                  if (result.ok) maybeRefreshSchema(next);
                 })
                 .catch(async e => {
                   if (validateSeqRef.current !== seq) return;

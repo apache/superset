@@ -242,6 +242,88 @@ test('loadDatasetOnlyOptions stops once the underlying result set itself runs ou
   expect(mockedLoadDatasetOptions).toHaveBeenCalledTimes(1);
 });
 
+test('loadDatasetOnlyOptions remembers the backend page it actually reached, so a later call for the same search continues from there instead of re-scanning pages already consumed', async () => {
+  // Backend: page0/1 semantic views, page2 a dataset, page3 another dataset.
+  // pageSize=1, totalCount=4.
+  const view = (n: number) => ({
+    label: `view${n}`,
+    value: `sv:${n}`,
+    table_name: `view${n}`,
+    kind: 'semantic_view',
+  });
+  const dataset = (n: number) => ({
+    label: `sales${n}`,
+    value: `ds:${n}`,
+    table_name: `sales${n}`,
+    kind: 'dataset',
+  });
+
+  mockedLoadDatasetOptions
+    .mockResolvedValueOnce({ data: [view(0)], totalCount: 4 })
+    .mockResolvedValueOnce({ data: [view(1)], totalCount: 4 })
+    .mockResolvedValueOnce({ data: [dataset(2)], totalCount: 4 });
+
+  // AsyncSelect's own first call, for a fresh mount/search: page 0.
+  const first = await loadDatasetOnlyOptions('', 0, 1);
+  expect(first).toEqual({ data: [dataset(2)], totalCount: 4 });
+  expect(mockedLoadDatasetOptions).toHaveBeenCalledTimes(3);
+
+  // AsyncSelect's own next scroll: it only ever saw one prior call (page 0),
+  // so it requests page 1 next — a backend page this function already knows
+  // is empty. Without the cursor, this would re-fetch (and discard) pages 1
+  // and 2 all over again before finally reaching page 3's actual new row.
+  mockedLoadDatasetOptions.mockResolvedValueOnce({
+    data: [dataset(3)],
+    totalCount: 4,
+  });
+  const second = await loadDatasetOnlyOptions('', 1, 1);
+  expect(second).toEqual({ data: [dataset(3)], totalCount: 4 });
+  // Exactly one more backend call — straight to page 3, not pages 1 and 2 again.
+  expect(mockedLoadDatasetOptions).toHaveBeenCalledTimes(4);
+  expect(mockedLoadDatasetOptions).toHaveBeenNthCalledWith(4, '', 3, 1);
+});
+
+test('loadDatasetOnlyOptions resets its cursor when AsyncSelect itself starts the same search over from page 0', async () => {
+  mockedLoadDatasetOptions
+    .mockResolvedValueOnce({
+      data: [
+        {
+          label: 'view',
+          value: 'sv:1',
+          table_name: 'view',
+          kind: 'semantic_view',
+        },
+      ],
+      totalCount: 3,
+    })
+    .mockResolvedValueOnce({
+      data: [
+        { label: 'sales', value: 'ds:2', table_name: 'sales', kind: 'dataset' },
+      ],
+      totalCount: 3,
+    });
+  await loadDatasetOnlyOptions('', 0, 1);
+  expect(mockedLoadDatasetOptions).toHaveBeenCalledTimes(2);
+
+  mockedLoadDatasetOptions.mockClear();
+  mockedLoadDatasetOptions.mockResolvedValueOnce({
+    data: [
+      {
+        label: 'view',
+        value: 'sv:1',
+        table_name: 'view',
+        kind: 'semantic_view',
+      },
+    ],
+    // Last page on its own (regardless of the filtered result being empty),
+    // so this scenario resolves in exactly one call.
+    totalCount: 1,
+  });
+  await loadDatasetOnlyOptions('', 0, 1);
+  // Starts again from backend page 0 — not from the cursor the first search left behind.
+  expect(mockedLoadDatasetOptions).toHaveBeenNthCalledWith(1, '', 0, 1);
+});
+
 test("seriesDefaults reads a not-yet-customized entry's own palette-defaulted color and size", () => {
   expect(
     seriesDefaults(

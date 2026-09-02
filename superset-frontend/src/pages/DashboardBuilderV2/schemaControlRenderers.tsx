@@ -1187,13 +1187,29 @@ export function resolveDatasetPick(
  * current search — this pages forward internally, on the same call,
  * until either a dataset survives the filter or the underlying result set
  * itself runs out.
+ *
+ * `AsyncSelect` tracks its own page counter, advancing it by exactly one
+ * relative to whatever page it last called this with — it has no idea this
+ * function may have privately skipped ahead several backend pages to reach
+ * that result. Left uncorrected, its next scroll-triggered call would
+ * re-request a backend page already known (from the previous call, for the
+ * same search) to be empty or already returned, so the dropdown would
+ * appear to load nothing for as many scrolls as pages were skipped before
+ * catching up. `nextBackendPageBySearch` remembers the backend page actually
+ * reached, keyed by search text, so a later call for the same search
+ * continues from there instead of from `AsyncSelect`'s own oblivious count.
+ * `page === 0` — `AsyncSelect` starting that search over from scratch (a
+ * fresh mount, or the search text itself changing) — always resets it.
  */
+const nextBackendPageBySearch = new Map<string, number>();
+
 export async function loadDatasetOnlyOptions(
   search: string,
   page: number,
   pageSize: number,
 ) {
-  let currentPage = page;
+  let currentPage =
+    page === 0 ? 0 : (nextBackendPageBySearch.get(search) ?? page);
   for (;;) {
     const { data, totalCount } = await loadDatasetOptions(
       search,
@@ -1203,6 +1219,7 @@ export async function loadDatasetOnlyOptions(
     const filtered = data.filter(option => option.kind !== 'semantic_view');
     const isLastPage = (currentPage + 1) * pageSize >= totalCount;
     if (filtered.length > 0 || isLastPage) {
+      nextBackendPageBySearch.set(search, currentPage + 1);
       return { data: filtered, totalCount };
     }
     currentPage += 1;
