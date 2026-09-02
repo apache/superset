@@ -20,11 +20,12 @@
 import os
 import time as system_time
 from collections.abc import Callable
-from datetime import datetime, time as datetime_time, timedelta, timezone, tzinfo
+from datetime import date, datetime, time as datetime_time, timedelta, timezone, tzinfo
 from decimal import Decimal
 from enum import Enum
 from types import SimpleNamespace
 from typing import Any, cast
+from uuid import UUID
 from zoneinfo import ZoneInfo
 
 import numpy as np
@@ -35,6 +36,7 @@ from dateutil import tz as dateutil_tz
 from dateutil.zoneinfo import get_zonefile_instance
 from pydantic import BaseModel
 
+from superset.mcp_service.chart import query_result as query_result_module
 from superset.mcp_service.chart.query_result import (
     _json_string_size,
     _truncate_utf8,
@@ -47,7 +49,6 @@ from superset.mcp_service.chart.query_result import (
     MAX_QUERY_RESULT_STRING_BYTES,
     MAX_QUERY_RESULT_TOTAL_ROWS,
     MAX_QUERY_RESULT_VALUE_BYTES,
-    MAX_QUERY_RESULT_VALUES,
     query_result_data,
     response_json_failure,
     safe_exception_message,
@@ -314,6 +315,29 @@ def test_query_result_normalizes_exact_trusted_numpy_and_pandas_scalars(
     assert failure is None
     assert data == [[{"value": expected}]]
     assert type(data[0][0]["value"]) is type(expected)
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        (date(2024, 1, 2), "2024-01-02"),
+        (timedelta(days=1, seconds=2, microseconds=3), "P1DT2.000003S"),
+        (timedelta(days=-2, seconds=3), "-P1DT23H59M57S"),
+        (
+            UUID("12345678-1234-5678-1234-567812345678"),
+            "12345678-1234-5678-1234-567812345678",
+        ),
+    ],
+)
+def test_query_result_canonicalizes_exact_json_string_scalars(
+    value: object, expected: str
+) -> None:
+    data, failure = query_result_data(
+        {"queries": [{"data": [{"value": value}], "rowcount": 1}]}
+    )
+
+    assert failure is None
+    assert data == [[{"value": expected}]]
 
 
 @pytest.mark.parametrize("timezone_name", ["US/Pacific", "dateutil/US/Pacific"])
@@ -686,6 +710,54 @@ def test_real_dataframe_and_chart_command_canonicalize_numeric_missing_values() 
     ]
 
 
+def test_real_query_processor_does_not_compare_hostile_object_cells() -> None:
+    """Producer cleanup projects first and leaves validation to the consumer."""
+    from superset.common.chart_data import ChartDataResultFormat
+    from superset.common.query_context import QueryContext
+    from superset.common.query_context_processor import QueryContextProcessor
+
+    class HostileEquality:
+        def __eq__(self, _other: object) -> bool:
+            raise AssertionError("hostile object equality must not run")
+
+    hostile = HostileEquality()
+    frame = pd.DataFrame(
+        {
+            "hostile": pd.Series([hostile], dtype=object),
+            "infinite": [np.inf],
+        }
+    )
+    processor_context = SimpleNamespace(
+        datasource=object(), result_format=ChartDataResultFormat.JSON
+    )
+
+    records = QueryContextProcessor(cast(QueryContext, processor_context)).get_data(
+        frame,
+        [GenericDataType.STRING, GenericDataType.NUMERIC],
+    )
+
+    assert type(records) is list
+    assert records[0]["hostile"] is hostile
+    assert records[0]["infinite"] is None
+
+    data, failure = query_result_data(
+        {
+            "queries": [
+                {
+                    "data": records,
+                    "colnames": ["hostile", "infinite"],
+                    "coltypes": [GenericDataType.STRING, GenericDataType.NUMERIC],
+                    "rowcount": 1,
+                }
+            ]
+        }
+    )
+
+    assert data is None
+    assert failure is not None
+    assert "unsupported or subclassed value" in failure.error
+
+
 @pytest.mark.parametrize(
     ("compare_type", "source", "comparison"),
     [
@@ -902,6 +974,59 @@ def test_complete_response_accepts_exact_aggregate_boundary_and_rejects_one_byte
     assert "response exceeds the total JSON-encoded byte limit" in failure.error
 
 
+def test_timedelta_envelope_uses_exact_json_boundary(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    expected = {
+        "queries": [
+            {
+                "data": [{"duration": "P1DT2.000003S"}],
+                "rowcount": 1,
+            }
+        ]
+    }
+    exact_bytes = len(
+        json.dumps(expected, ensure_ascii=False, separators=(",", ":")).encode()
+    )
+    monkeypatch.setattr(
+        query_result_module, "MAX_QUERY_RESULT_VALUE_BYTES", exact_bytes
+    )
+
+    result = {
+        "queries": [
+            {
+                "data": [{"duration": timedelta(days=1, seconds=2, microseconds=3)}],
+                "rowcount": 1,
+            }
+        ]
+    }
+    data, failure = query_result_data(result)
+
+    assert failure is None
+    assert data == [[{"duration": "P1DT2.000003S"}]]
+    assert len(json.dumps(result, separators=(",", ":")).encode()) == exact_bytes
+
+    monkeypatch.setattr(
+        query_result_module, "MAX_QUERY_RESULT_VALUE_BYTES", exact_bytes - 1
+    )
+    data, failure = query_result_data(
+        {
+            "queries": [
+                {
+                    "data": [
+                        {"duration": timedelta(days=1, seconds=2, microseconds=3)}
+                    ],
+                    "rowcount": 1,
+                }
+            ]
+        }
+    )
+
+    assert data is None
+    assert failure is not None
+    assert "total JSON-encoded byte limit" in failure.error
+
+
 def test_query_result_accepts_fifty_thousand_rows_with_twenty_columns() -> None:
     row = {f"column_{index}": index for index in range(20)}
     rows = [row] * MAX_QUERY_RESULT_ROWS
@@ -931,9 +1056,18 @@ def test_query_result_rejects_one_row_beyond_documented_boundary() -> None:
     assert "row limit" in failure.error
 
 
-def test_query_result_enforces_total_value_work_boundary() -> None:
+def test_query_result_enforces_total_value_work_boundary(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    value_limit = 10_000
+    monkeypatch.setattr(query_result_module, "MAX_QUERY_RESULT_VALUES", value_limit)
+    monkeypatch.setattr(
+        query_result_module,
+        "MAX_QUERY_RESULT_WORK",
+        value_limit + query_result_module.MAX_QUERY_RESULT_METADATA_ITEMS,
+    )
     values_per_row = 4096
-    rows_needed = MAX_QUERY_RESULT_VALUES // (values_per_row + 2) + 1
+    rows_needed = value_limit // (values_per_row + 2) + 1
     shared_values = [None] * values_per_row
     rows: list[dict[str, Any]] = [{"values": shared_values} for _ in range(rows_needed)]
 
@@ -1091,16 +1225,21 @@ def test_query_result_enforces_exact_single_metadata_scalar_boundary() -> None:
 
 def test_metadata_scalar_is_also_charged_to_aggregate_json_budget() -> None:
     sql = "SELECT 'café' -- " + "m" * (70 * 1024)
-    values: list[str] = []
+    empty_result = {"queries": [{"data": [{"values": []}], "query": sql}]}
+    empty_size = len(
+        json.dumps(empty_result, ensure_ascii=False, separators=(",", ":")).encode()
+    )
+    # Replacing [] with the first quoted string adds its bytes; every later
+    # string also adds one comma. Leave one partial value for the exact edge.
+    per_full_value = MAX_QUERY_RESULT_STRING_BYTES + 3
+    full_value_count = (MAX_QUERY_RESULT_VALUE_BYTES - empty_size) // per_full_value
+    values = ["x" * MAX_QUERY_RESULT_STRING_BYTES for _ in range(full_value_count)]
     result = {"queries": [{"data": [{"values": values}], "query": sql}]}
-    while True:
-        encoded_size = len(
-            json.dumps(result, ensure_ascii=False, separators=(",", ":")).encode()
-        )
-        remaining = MAX_QUERY_RESULT_VALUE_BYTES - encoded_size
-        if remaining <= MAX_QUERY_RESULT_STRING_BYTES + 3:
-            break
-        values.append("x" * MAX_QUERY_RESULT_STRING_BYTES)
+    encoded_size = len(
+        json.dumps(result, ensure_ascii=False, separators=(",", ":")).encode()
+    )
+    remaining = MAX_QUERY_RESULT_VALUE_BYTES - encoded_size
+    assert 3 <= remaining <= MAX_QUERY_RESULT_STRING_BYTES + 3
     # Appending the final array item costs its quotes and, because the array is
     # nonempty, one comma in addition to its raw bytes.
     values.append("x" * (remaining - 3))

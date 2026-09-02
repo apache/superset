@@ -438,6 +438,34 @@ def _container_json_syntax_size(item_count: int, *, mapping: bool) -> int:
     return 2 + item_count - 1 + (item_count if mapping else 0)
 
 
+def _trusted_timedelta_text(value: timedelta) -> str:
+    """Render an exact timedelta with Pydantic's stable ISO-8601 spelling."""
+    total_microseconds = (
+        value.days * 86_400 + value.seconds
+    ) * 1_000_000 + value.microseconds
+    sign = "-" if total_microseconds < 0 else ""
+    remaining = abs(total_microseconds)
+    days, remaining = divmod(remaining, 86_400 * 1_000_000)
+    years, days = divmod(days, 365)
+    hours, remaining = divmod(remaining, 3_600 * 1_000_000)
+    minutes, remaining = divmod(remaining, 60 * 1_000_000)
+    seconds, microseconds = divmod(remaining, 1_000_000)
+
+    date_parts = [f"{years}Y" if years else "", f"{days}D" if days else ""]
+    time_parts = [f"{hours}H" if hours else "", f"{minutes}M" if minutes else ""]
+    if microseconds:
+        fraction = f"{microseconds:06d}".rstrip("0")
+        time_parts.append(f"{seconds}.{fraction}S")
+    elif seconds:
+        time_parts.append(f"{seconds}S")
+
+    date_text = "".join(date_parts)
+    time_text = "".join(time_parts)
+    if not date_text and not time_text:
+        time_text = "0S"
+    return f"{sign}P{date_text}{'T' if time_text else ''}{time_text}"
+
+
 def _normalized_scalar_json_size(  # noqa: C901
     value: Any, *, max_string_bytes: int = MAX_QUERY_RESULT_STRING_BYTES
 ) -> int:
@@ -469,14 +497,18 @@ def _normalized_scalar_json_size(  # noqa: C901
     if value_type is datetime:
         return 40
     if value_type is date:
-        return 12
-    if value_type is time:
+        text = date.isoformat(value)
+    elif value_type is time:
         return 32
-    if value_type is timedelta:
-        return 40
-    if value_type is UUID:
-        return 38
-    raise AssertionError(f"unaccounted normalized scalar: {value_type!r}")
+    elif value_type is timedelta:
+        text = _trusted_timedelta_text(value)
+    elif value_type is UUID:
+        text = UUID.__str__(value)
+    else:
+        raise AssertionError(f"unaccounted normalized scalar: {value_type!r}")
+    size = _json_string_size(text, MAX_QUERY_RESULT_STRING_BYTES)
+    assert size is not None
+    return size
 
 
 def _charge_json_bytes(
@@ -864,8 +896,12 @@ def _normalize_trusted_scalar(  # noqa: C901
         return _trusted_datetime_text(value)
     if value_type is time:
         return _trusted_time_text(value)
-    if value_type is date or value_type is timedelta or value_type is UUID:
-        return value, None
+    if value_type is date:
+        return date.isoformat(value), None
+    if value_type is timedelta:
+        return _trusted_timedelta_text(value), None
+    if value_type is UUID:
+        return UUID.__str__(value), None
 
     if value_type is _PANDAS_NAT_TYPE or value_type is _PANDAS_NA_TYPE:
         return None, None

@@ -17,6 +17,7 @@
 """Superset utilities for pandas.DataFrame."""
 
 import logging
+import math
 from typing import Any
 
 import numpy as np
@@ -25,6 +26,12 @@ import pandas as pd
 from superset.utils.core import JS_MAX_INTEGER
 
 logger = logging.getLogger(__name__)
+
+_NUMPY_FLOAT_TYPES = frozenset(
+    type(value)
+    for value in (np.float16(0), np.float32(0), np.float64(0), np.longdouble(0))
+)
+_PANDAS_MISSING_TYPES = frozenset((type(pd.NA), type(pd.NaT)))
 
 
 def _convert_big_integers(val: Any) -> Any:
@@ -35,23 +42,19 @@ def _convert_big_integers(val: Any) -> Any:
     :returns: the same value but recast as a string if it was an integer over
         ``JS_MAX_INTEGER``
     """
-    return str(val) if isinstance(val, int) and abs(val) > JS_MAX_INTEGER else val
+    return str(val) if type(val) is int and abs(val) > JS_MAX_INTEGER else val
 
 
-def _is_na(val: Any) -> bool:
-    """
-    Check if a value is NA/NaN for scalar values only.
-
-    pd.isna() raises ValueError for arrays/lists, so we catch that case.
-
-    :param val: the value to check
-    :returns: True if the value is NA/NaN, False otherwise
-    """
-    try:
-        return bool(pd.isna(val))
-    except ValueError:
-        # pd.isna raises ValueError for arrays (e.g., lists, dicts from JSON)
-        return False
+def _is_trusted_missing_or_nonfinite(value: Any) -> bool:
+    """Identify producer nulls without invoking an object's comparison hooks."""
+    value_type = type(value)
+    if value is None or value_type in _PANDAS_MISSING_TYPES:
+        return True
+    if value_type is float:
+        return not math.isfinite(value)
+    if value_type in _NUMPY_FLOAT_TYPES:
+        return not math.isfinite(float(value))
+    return False
 
 
 def df_to_records(
@@ -72,19 +75,17 @@ def df_to_records(
         logger.warning(
             "DataFrame columns are not unique, some columns will be omitted."
         )
-    # Work on a projection so cached/query DataFrames retain their dtypes and
-    # values. Post-processing can introduce infinities after datasource
-    # normalization has already run; turn them into pandas-missing values
-    # before materializing the producer's records.
-    records = dframe.replace([np.inf, -np.inf], np.nan).to_dict(orient="records")
+    # Materialize first. ``DataFrame.replace`` compares its replacement values
+    # against object-dtype cells and can therefore execute an arbitrary
+    # ``__eq__``. The projected records can be normalized by exact trusted type
+    # without changing cached/query DataFrame dtypes or invoking cell hooks.
+    records = dframe.to_dict(orient="records")
 
     for record in records:
         for key in record:
             value = record[key]
-            record[key] = (
-                None
-                if _is_na(value)
-                else (_convert_big_integers(value) if convert_big_integers else value)
-            )
+            record[key] = None if _is_trusted_missing_or_nonfinite(value) else value
+            if convert_big_integers and record[key] is not None:
+                record[key] = _convert_big_integers(record[key])
 
     return records

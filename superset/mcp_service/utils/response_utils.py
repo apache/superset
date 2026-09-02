@@ -336,7 +336,10 @@ def _safe_value_identity(value: Any) -> tuple[Any, ...]:  # noqa: C901
     if value is None or value_type is str:
         return (value_type, value)
     if value_type is bool:
-        return ("finite_numeric", int(value), 1)
+        # Python deliberately compares bools equal to the integers 0 and 1,
+        # but result metadata describes source values rather than dictionary
+        # key semantics. Preserve the distinct JSON scalar identities.
+        return (bool, value)
     if value_type is int:
         return _bounded_integer_identity(value)
     if value_type is float:

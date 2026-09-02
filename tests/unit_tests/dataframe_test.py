@@ -16,8 +16,10 @@
 # under the License.
 # pylint: disable=unused-argument, import-outside-toplevel
 from datetime import datetime
+from enum import Enum
 
 import numpy as np
+import pandas as pd
 import pytest
 from pandas import Timestamp
 from pandas._libs.tslibs import NaT
@@ -264,6 +266,33 @@ def test_df_to_records_with_inf_and_nan() -> None:
     # Normal values should remain unchanged
     assert records[3]["result"] == 0.0
     assert records[4]["result"] == 42.5
+
+
+def test_df_to_records_avoids_object_equality_during_nonfinite_cleanup() -> None:
+    class AcceptedEnum(Enum):
+        VALUE = "accepted"
+
+    class HostileEquality:
+        def __eq__(self, _other: object) -> bool:
+            raise AssertionError("object equality must not run during projection")
+
+    hostile = HostileEquality()
+    enum_value = AcceptedEnum.VALUE
+    frame = pd.DataFrame(
+        {
+            "hostile": pd.Series([hostile], dtype=object),
+            "enum": pd.Series([enum_value], dtype=object),
+            "infinite": [np.inf],
+            "missing": pd.Series([pd.NA], dtype=object),
+        }
+    )
+
+    records = df_to_records(frame, convert_big_integers=False)
+
+    assert records[0]["hostile"] is hostile
+    assert records[0]["enum"] is enum_value
+    assert records[0]["infinite"] is None
+    assert records[0]["missing"] is None
 
 
 def test_df_to_records_nan_json_serialization() -> None:
