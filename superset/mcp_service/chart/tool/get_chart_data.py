@@ -19,7 +19,9 @@
 MCP tool: get_chart_data
 """
 
+import hashlib
 import logging
+import struct
 import time
 from datetime import date, datetime, time as datetime_time, timedelta
 from decimal import Decimal
@@ -343,8 +345,46 @@ def _build_query_results(
     return results
 
 
-def _safe_value_identity(value: Any) -> tuple[Any, ...]:
-    """Build a hashable identity from a strictly validated result value."""
+def _update_integer_digest(digest: Any, value: int) -> None:
+    """Add an exact integer to a digest without decimal-string conversion."""
+    magnitude = abs(value)
+    encoded = magnitude.to_bytes(max(1, (magnitude.bit_length() + 7) // 8), "big")
+    digest.update(b"-" if value < 0 else b"+")
+    digest.update(len(encoded).to_bytes(8, "big"))
+    digest.update(encoded)
+
+
+def _decimal_identity(value: Decimal) -> bytes:
+    """Return a fixed-size identity for every exact Decimal representation.
+
+    ``hash(Decimal("sNaN"))`` raises and quiet NaN hashes are identity-based.
+    Digesting the exact C-level tuple handles finite values, signed zeros,
+    NaNs, signaling NaNs, and infinities without string/float conversion or
+    attacker-controlled hooks.
+    """
+    parts = Decimal.as_tuple(value)
+    digest = hashlib.blake2b(digest_size=32, person=b"mcp-decimal-id")
+    digest.update(b"1" if parts.sign else b"0")
+    exponent = parts.exponent
+    if isinstance(exponent, int):
+        digest.update(b"i")
+        _update_integer_digest(digest, exponent)
+    else:
+        # DecimalTuple uses one-character exact strings for specials: F/n/N.
+        digest.update(b"s")
+        digest.update(exponent.encode("ascii"))
+    digit_buffer = bytearray()
+    for digit in parts.digits:
+        digit_buffer.append(digit)
+        if len(digit_buffer) == 1024:
+            digest.update(digit_buffer)
+            digit_buffer.clear()
+    digest.update(digit_buffer)
+    return digest.digest()
+
+
+def _safe_value_identity(value: Any) -> tuple[Any, ...]:  # noqa: C901
+    """Build a bounded hashable identity from a validated exact result value."""
     if type(value) is list:
         return (
             list,
@@ -361,22 +401,59 @@ def _safe_value_identity(value: Any) -> tuple[Any, ...]:
                 for key, child in sorted(dict.items(value))
             ),
         )
-    if value is None or any(
-        type(value) is type_
-        for type_ in (
-            str,
-            int,
-            float,
-            bool,
-            Decimal,
-            date,
-            datetime,
-            datetime_time,
-            timedelta,
-            UUID,
+    value_type = type(value)
+    if value is None or value_type in (str, int, bool):
+        return (value_type, value)
+    if value_type is float:
+        # Exact IEEE bytes avoid NaN's non-reflexive equality and object-based
+        # hash while retaining infinities and signed values deterministically.
+        return (float, struct.pack(">d", value))
+    if value_type is Decimal:
+        return (Decimal, _decimal_identity(value))
+    if value_type is datetime:
+        # Hashing an aware datetime calls tzinfo.utcoffset(), which may be an
+        # arbitrary user object even when the datetime itself is exact. Civil
+        # components plus a bounded type descriptor are safe metadata identity.
+        timezone = value.tzinfo
+        timezone_name = (
+            ""
+            if timezone is None
+            else type.__getattribute__(type(timezone), "__name__")[:200]
         )
-    ):
-        return (type(value), value)
+        return (
+            datetime,
+            value.year,
+            value.month,
+            value.day,
+            value.hour,
+            value.minute,
+            value.second,
+            value.microsecond,
+            value.fold,
+            timezone_name,
+        )
+    if value_type is date:
+        return (date, date.toordinal(value))
+    if value_type is datetime_time:
+        timezone = value.tzinfo
+        timezone_name = (
+            ""
+            if timezone is None
+            else type.__getattribute__(type(timezone), "__name__")[:200]
+        )
+        return (
+            datetime_time,
+            value.hour,
+            value.minute,
+            value.second,
+            value.microsecond,
+            value.fold,
+            timezone_name,
+        )
+    if value_type is timedelta:
+        return (timedelta, value.days, value.seconds, value.microseconds)
+    if value_type is UUID:
+        return (UUID, value.int)
     # query_result_data rejects this branch before callers inspect rows.
     return (object,)
 

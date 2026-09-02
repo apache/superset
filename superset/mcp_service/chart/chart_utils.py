@@ -25,7 +25,7 @@ generation that can be used by both generate_chart and generate_explore_link too
 import hashlib
 import logging
 import math
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any, Dict, TYPE_CHECKING
 
@@ -1518,8 +1518,206 @@ def merge_update_form_data(  # noqa: C901
     merge_bullet_form_data(existing_form_data, new_form_data)
 
 
+def _currency_form_value(value: CurrencyFormat | None) -> dict[str, str] | None:
+    """Return the native value for an explicitly supplied currency control."""
+    return value.to_form_data() if value is not None else None
+
+
+def _column_names(value: Sequence[ColumnRef] | None) -> list[str | None] | None:
+    """Return a native column-name list while retaining an explicit null."""
+    return [column.name for column in value] if value is not None else None
+
+
+def _table_sort_value(value: Sequence[str | SortByConfig] | None) -> list[str] | None:
+    """Return the native Table sort control for an explicit typed value."""
+    if value is None:
+        return None
+    return [
+        json.dumps(
+            [entry.column, entry.ascending]
+            if isinstance(entry, SortByConfig)
+            else [entry, False]
+        )
+        for entry in value
+    ]
+
+
+def _table_column_config_value(value: Any) -> dict[str, Any] | None:
+    """Return Table column config without losing an explicit null or empty map."""
+    if value is None:
+        return None
+    return {
+        label: column.model_dump(by_alias=True, exclude_unset=True)
+        for label, column in value.items()
+    }
+
+
+# Mappers intentionally omit optional controls so fresh charts use the frontend
+# defaults. During a same-viz update, however, an explicitly supplied false,
+# null, or empty value must block preservation of the saved native key. Keep the
+# typed-to-native relationship declarative so every update path shares it.
+_FormValueConverter = Callable[[Any], Any]
+_FormControlMap = dict[str, tuple[str, _FormValueConverter]]
+
+_COMMON_EXPLICIT_FORM_CONTROLS: _FormControlMap = {
+    "color_scheme": ("color_scheme", lambda value: value),
+    "currency_format": ("currency_format", _currency_form_value),
+    "show_value": ("show_value", lambda value: value),
+}
+
+_CHART_EXPLICIT_FORM_CONTROLS: dict[str, _FormControlMap] = {
+    "table": {
+        "sort_by": ("order_by_cols", _table_sort_value),
+        "column_config": ("column_config", _table_column_config_value),
+    },
+    "xy": {
+        "group_by": ("groupby", _column_names),
+        "series_limit": ("series_limit", lambda value: value),
+        "stacked": ("stack", lambda value: "Stack" if value else None),
+        "orientation": ("orientation", lambda value: value),
+        "legend_orientation": ("legendOrientation", lambda value: value),
+        "x_axis_time_format": ("x_axis_time_format", lambda value: value),
+        "time_grain": ("time_grain_sqla", lambda value: value),
+    },
+    "mixed_timeseries": {
+        "group_by": ("groupby", _column_names),
+        "group_by_secondary": ("groupby_b", _column_names),
+        "currency_format_secondary": (
+            "currency_format_secondary",
+            _currency_form_value,
+        ),
+        "time_grain": ("time_grain_sqla", lambda value: value),
+    },
+    "waterfall": {
+        "time_grain": ("time_grain_sqla", lambda value: value),
+    },
+    "big_number": {
+        "subheader": ("subheader", lambda value: value),
+        "y_axis_format": ("y_axis_format", lambda value: value),
+        "time_grain": ("time_grain_sqla", lambda value: value),
+        "compare_lag": ("compare_lag", lambda value: value),
+        "time_format": ("time_format", lambda value: value),
+        "aggregation": ("aggregation", lambda value: value),
+    },
+    "handlebars": {
+        "style_template": ("styleTemplate", lambda value: value),
+        "columns": ("all_columns", _column_names),
+        "groupby": ("groupby", _column_names),
+        "metrics": ("metrics", _column_names),
+    },
+    "pivot_table": {
+        "date_format": ("date_format", lambda value: value),
+    },
+    "interactive_pivot": {
+        "time_grain": ("time_grain_sqla", lambda value: value),
+        "series_limit": ("series_limit", lambda value: value),
+        "date_format": ("date_format", lambda value: value),
+        "column_sort": ("colOrder", lambda value: value),
+    },
+}
+
+
+def _apply_explicit_form_controls(  # noqa: C901
+    existing_form_data: Mapping[str, Any],
+    new_form_data: Dict[str, Any],
+    config: ChartConfig,
+) -> None:
+    """Apply typed controls whose mapper omission represents a native clear."""
+    explicit_fields = set(getattr(config, "model_fields_set", set()))
+    controls = {
+        **_COMMON_EXPLICIT_FORM_CONTROLS,
+        **_CHART_EXPLICIT_FORM_CONTROLS.get(config.chart_type, {}),
+    }
+    for field_name, (native_key, convert) in controls.items():
+        if field_name in explicit_fields:
+            converted = convert(getattr(config, field_name))
+            is_clear = (
+                converted is None
+                or converted is False
+                or converted == ""
+                or converted in ([], {})
+            )
+            if is_clear:
+                new_form_data[native_key] = converted
+
+    axis_controls = {
+        "xy": (
+            ("x_axis", "x_axis_title", "x_axis_format", None),
+            ("y_axis", "y_axis_title", "y_axis_format", "y_axis_scale"),
+        ),
+        "mixed_timeseries": (
+            ("x_axis", "xAxisTitle", "x_axis_time_format", None),
+            ("y_axis", "yAxisTitle", "y_axis_format", "logAxis"),
+            (
+                "y_axis_secondary",
+                "yAxisTitleSecondary",
+                "y_axis_format_secondary",
+                "logAxisSecondary",
+            ),
+        ),
+    }
+    if config.chart_type in axis_controls:
+        for field_name, title_key, format_key, scale_key in axis_controls[
+            config.chart_type
+        ]:
+            if field_name not in explicit_fields:
+                continue
+            axis = getattr(config, field_name)
+            if axis is None:
+                new_form_data[title_key] = None
+                new_form_data[format_key] = None
+                if scale_key:
+                    new_form_data[scale_key] = None
+                continue
+            axis_fields = set(axis.model_fields_set)
+            if "title" in axis_fields:
+                new_form_data[title_key] = axis.title
+            if "format" in axis_fields:
+                new_form_data[format_key] = axis.format
+            if scale_key and "scale" in axis_fields:
+                new_form_data[scale_key] = axis.scale
+
+        if config.chart_type == "xy" and "legend" in explicit_fields:
+            legend = config.legend
+            if legend is None:
+                new_form_data["show_legend"] = None
+                new_form_data["legendOrientation"] = None
+            else:
+                legend_fields = set(legend.model_fields_set)
+                if "show" in legend_fields:
+                    new_form_data["show_legend"] = legend.show
+                if "position" in legend_fields:
+                    new_form_data["legendOrientation"] = legend.position
+
+    if config.chart_type == "interactive_pivot":
+        if "temporal_column" in explicit_fields and config.temporal_column is None:
+            new_form_data["granularity_sqla"] = None
+            new_form_data["temporal_columns_lookup"] = None
+        if (
+            "series_limit_metric" in explicit_fields
+            and config.series_limit_metric is None
+        ):
+            new_form_data["series_limit_metric"] = None
+        if "comparison_period" in explicit_fields and config.comparison_period is None:
+            new_form_data["time_compare"] = None
+        if "comparison_type" in explicit_fields and config.comparison_type is None:
+            new_form_data["comparison_type"] = None
+
+    # A Waterfall axis replacement cannot inherit a bucket belonging to the old
+    # temporal subject. Grain omission preserves only while the axis is stable;
+    # explicit null is already handled by the declarative control map above.
+    if (
+        config.chart_type == "waterfall"
+        and existing_form_data.get("x_axis") != new_form_data.get("x_axis")
+        and "time_grain" not in explicit_fields
+    ):
+        new_form_data["time_grain_sqla"] = None
+
+
 def merge_same_viz_form_data(
-    existing_form_data: Mapping[str, Any], new_form_data: Dict[str, Any]
+    existing_form_data: Mapping[str, Any],
+    new_form_data: Dict[str, Any],
+    config: ChartConfig,
 ) -> None:
     """Preserve saved controls that the typed mapper does not represent.
 
@@ -1539,6 +1737,8 @@ def merge_same_viz_form_data(
         "viz_type"
     ):
         return
+
+    _apply_explicit_form_controls(existing_form_data, new_form_data, config)
 
     for key, value in existing_form_data.items():
         if key == MCP_DASHBOARD_TIME_FILTER_SUBJECT:
@@ -1612,7 +1812,10 @@ def map_box_plot_config(config: "BoxPlotChartConfig") -> Dict[str, Any]:
     return form_data
 
 
-def map_waterfall_config(config: WaterfallChartConfig) -> Dict[str, Any]:
+def map_waterfall_config(
+    config: WaterfallChartConfig,
+    dataset_id: int | str | None = None,
+) -> Dict[str, Any]:
     """Map waterfall config to Superset form_data (viz_type waterfall).
 
     Matches the frontend Waterfall buildQuery contract: a single ``x_axis``
@@ -1634,14 +1837,16 @@ def map_waterfall_config(config: WaterfallChartConfig) -> Dict[str, Any]:
         "y_axis_format": config.y_axis_format,
         "row_limit": config.row_limit,
     }
+    # A temporal x_axis remains the query granularity even when the caller omits
+    # a grain. This makes an x-axis replacement authoritative before same-viz
+    # state is merged and gives the dashboard-time binder the new subject.
+    x_is_temporal = is_column_truly_temporal(config.x_axis.name or "", dataset_id)
+    form_data["granularity_sqla"] = config.x_axis.name if x_is_temporal else None
+
     # Bucket a temporal x_axis: the grain (time_grain_sqla) needs the temporal
-    # column it applies to (granularity_sqla), mirroring the xy path's
-    # configure_temporal_handling and the frontend buildQuery's
-    # `x_axis || granularity_sqla`. Providing time_grain signals temporal
-    # intent; Superset ignores both for a non-temporal column.
+    # column it applies to (granularity_sqla), mirroring the XY path.
     if config.time_grain:
         form_data["time_grain_sqla"] = config.time_grain
-        form_data["granularity_sqla"] = config.x_axis.name
     elif "time_grain" in config.model_fields_set:
         # An explicit null clears a saved bucket while the x-axis remains the
         # authoritative temporal subject for dashboard filter provenance.

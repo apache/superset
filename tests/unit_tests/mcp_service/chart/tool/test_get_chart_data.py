@@ -21,6 +21,7 @@ Tests for the get_chart_data request schema and chart type fallback handling.
 
 import importlib
 from contextlib import nullcontext
+from decimal import Decimal
 from types import SimpleNamespace
 from typing import Any
 from unittest.mock import MagicMock
@@ -43,6 +44,7 @@ from superset.mcp_service.chart.tool.get_chart_data import (
     _recommend_visualizations,
     _rejected_requested_filter_columns,
     _requested_filter_columns,
+    _safe_value_identity,
 )
 from superset.utils import json
 from superset.utils.core import ExtraFiltersReasonType, GenericDataType
@@ -2359,6 +2361,75 @@ async def test_unsaved_get_data_rejects_hostile_rows_and_scalars(
     assert response.error_type == "MalformedQueryResult"
 
 
+def test_exact_decimal_metadata_identity_is_bounded_and_total() -> None:
+    values = [
+        Decimal("0"),
+        Decimal("-0"),
+        Decimal("1.25"),
+        Decimal("NaN"),
+        Decimal("-NaN42"),
+        Decimal("sNaN"),
+        Decimal("-sNaN7"),
+        Decimal("Infinity"),
+        Decimal("-Infinity"),
+    ]
+
+    identities = [_safe_value_identity(value) for value in values]
+
+    assert len(set(identities)) == len(values)
+    assert all(len(identity[1]) == 32 for identity in identities)
+    assert identities == [_safe_value_identity(value) for value in values]
+
+
+@pytest.mark.asyncio
+async def test_unsaved_generic_get_data_returns_decimal_metadata(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    module = importlib.import_module("superset.mcp_service.chart.tool.get_chart_data")
+    command_module = importlib.import_module(
+        "superset.commands.chart.data.get_data_command"
+    )
+    values = [
+        Decimal("sNaN"),
+        Decimal("NaN"),
+        Decimal("Infinity"),
+        Decimal("-Infinity"),
+        Decimal("1.25"),
+    ]
+
+    class _Command:
+        def __init__(self, query_context: Any) -> None: ...
+        def validate(self) -> None: ...
+        def run(self) -> dict[str, Any]:
+            return {
+                "queries": [
+                    {
+                        "data": [{"value": value} for value in values],
+                        "colnames": ["value"],
+                        "rowcount": len(values),
+                    }
+                ]
+            }
+
+    monkeypatch.setattr(
+        module,
+        "build_query_context_from_form_data",
+        lambda *_args, **_kwargs: _query_context_stub(),
+    )
+    monkeypatch.setattr(command_module, "ChartDataCommand", _Command)
+
+    response = await _query_from_form_data(
+        {"datasource": "1__table", "viz_type": "table"},
+        GetChartDataRequest(form_data_key="decimal"),
+        _AsyncContext(),
+    )
+
+    assert isinstance(response, ChartData)
+    assert response.columns[0].data_type == "numeric"
+    assert response.columns[0].unique_count == len(values)
+    assert response.columns[0].sample_values == values[:3]
+
+
 @pytest.mark.asyncio
 async def test_unsaved_bullet_get_data_uses_strict_render_model(
     monkeypatch: pytest.MonkeyPatch,
@@ -2493,6 +2564,74 @@ async def test_saved_get_data_rejects_hostile_rows_and_scalars(
 
     payload = json.loads(result.content[0].text)
     assert payload["error_type"] == "MalformedQueryResult"
+
+
+@pytest.mark.asyncio
+async def test_saved_generic_get_data_returns_decimal_metadata(
+    mcp_server: Any,
+    mock_auth: Any,
+) -> None:
+    from unittest.mock import patch
+
+    from fastmcp import Client
+
+    module = importlib.import_module("superset.mcp_service.chart.tool.get_chart_data")
+    command_module = importlib.import_module(
+        "superset.commands.chart.data.get_data_command"
+    )
+    chart = SimpleNamespace(
+        id=11,
+        slice_name="Decimal metadata",
+        viz_type="table",
+        datasource_id=1,
+        datasource_type="table",
+        query_context='{"queries": []}',
+        params='{"viz_type": "table"}',
+    )
+    values = [
+        Decimal("sNaN"),
+        Decimal("NaN"),
+        Decimal("Infinity"),
+        Decimal("-Infinity"),
+        Decimal("1.25"),
+    ]
+
+    class _Command:
+        def __init__(self, query_context: Any) -> None: ...
+        def validate(self) -> None: ...
+        def run(self) -> dict[str, Any]:
+            return {
+                "queries": [
+                    {
+                        "data": [{"value": value} for value in values],
+                        "colnames": ["value"],
+                        "rowcount": len(values),
+                    }
+                ]
+            }
+
+    with (
+        patch.object(module, "find_chart_by_identifier", return_value=chart),
+        patch.object(
+            module,
+            "validate_chart_dataset",
+            return_value=SimpleNamespace(is_valid=True, warnings=[], error=None),
+        ),
+        patch(
+            "superset.charts.schemas.ChartDataQueryContextSchema.load",
+            return_value=_query_context_stub(),
+        ),
+        patch.object(command_module, "ChartDataCommand", _Command),
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_chart_data", {"request": {"identifier": 11}}
+            )
+
+    payload = json.loads(result.content[0].text)
+    assert payload["columns"][0]["data_type"] == "numeric"
+    assert payload["columns"][0]["unique_count"] == len(values)
+    assert payload["columns"][0]["sample_values"] == ["sNaN", "NaN", "Infinity"]
 
 
 @pytest.mark.asyncio

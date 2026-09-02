@@ -39,6 +39,7 @@ from superset.mcp_service.chart.schemas import (
     MixedTimeseriesChartConfig,
     TableChartConfig,
     UpdateChartRequest,
+    WaterfallChartConfig,
     XYChartConfig,
 )
 from superset.mcp_service.chart.tool.update_chart import (
@@ -773,6 +774,108 @@ class TestBuildUpdatePayload:
         assert saved["y_axis_format"] == ",.2f"
         assert saved["truncate_metric"] is True
 
+    def test_same_viz_save_honors_explicit_false_and_null_controls(self) -> None:
+        existing = {
+            "viz_type": "mixed_timeseries",
+            "show_value": True,
+            "color_scheme": "lyftColors",
+            "currency_format": {"symbol": "USD", "symbolPosition": "prefix"},
+            "currency_format_secondary": {
+                "symbol": "EUR",
+                "symbolPosition": "suffix",
+            },
+            "yAxisTitle": "Saved title",
+            "y_axis_format": ",.2f",
+            "logAxis": True,
+        }
+        config = MixedTimeseriesChartConfig(
+            x=ColumnRef(name="ds"),
+            y=[ColumnRef(name="sales", aggregate="SUM")],
+            y_secondary=[ColumnRef(name="profit", aggregate="SUM")],
+            show_value=False,
+            color_scheme=None,
+            currency_format=None,
+            currency_format_secondary=None,
+            y_axis=None,
+        )
+        chart = Mock(
+            id=1,
+            datasource_id=7,
+            slice_name="Mixed",
+            params=json.dumps(existing),
+        )
+
+        result = _build_update_payload(
+            UpdateChartRequest(identifier=1, config=config), chart, config
+        )
+
+        assert isinstance(result, dict)
+        saved = json.loads(result["params"])
+        assert saved["show_value"] is False
+        assert saved["color_scheme"] is None
+        assert saved["currency_format"] is None
+        assert saved["currency_format_secondary"] is None
+        assert saved["yAxisTitle"] is None
+        assert saved["y_axis_format"] is None
+        assert saved["logAxis"] is None
+
+    @pytest.mark.parametrize("preview_first", [False, True])
+    def test_waterfall_rebind_clears_old_grain_and_keeps_active_provenance(
+        self, preview_first: bool
+    ) -> None:
+        config = WaterfallChartConfig(
+            x_axis=ColumnRef(name="new_time"),
+            metric=ColumnRef(name="sales", aggregate="SUM"),
+        )
+        chart = Mock(
+            id=1,
+            datasource_id=7,
+            slice_name="Waterfall",
+            params=json.dumps(
+                {
+                    "viz_type": "waterfall",
+                    "x_axis": "old_time",
+                    "granularity_sqla": "old_time",
+                    "time_grain_sqla": "P1M",
+                    "adhoc_filters": [
+                        {
+                            "clause": "WHERE",
+                            "expressionType": "SIMPLE",
+                            "subject": "old_time",
+                            "operator": "TEMPORAL_RANGE",
+                            "comparator": "Last year",
+                        }
+                    ],
+                    "_mcp_dashboard_time_filter_subject": "old_time",
+                }
+            ),
+        )
+        request = UpdateChartRequest(identifier=1, config=config)
+
+        with (
+            patch(
+                "superset.mcp_service.chart.chart_utils.is_column_truly_temporal",
+                return_value=True,
+            ),
+            patch(
+                "superset.mcp_service.chart.chart_utils._find_dataset_by_id_or_uuid",
+                return_value=Mock(main_dttm_col="new_time"),
+            ),
+        ):
+            result = (
+                _build_preview_form_data(request, chart, config)
+                if preview_first
+                else _build_update_payload(request, chart, config)
+            )
+
+        assert isinstance(result, dict)
+        form_data = result if preview_first else json.loads(result["params"])
+        assert form_data["granularity_sqla"] == "new_time"
+        assert form_data["time_grain_sqla"] is None
+        assert form_data["_mcp_dashboard_time_filter_subject"] == "new_time"
+        assert form_data["adhoc_filters"][0]["subject"] == "new_time"
+        assert form_data["adhoc_filters"][0]["comparator"] == "Last year"
+
     def test_add_columns_preserves_existing_columns_and_metrics(self):
         """An additive update does not require reconstructing the table."""
         request = UpdateChartRequest(
@@ -1330,6 +1433,54 @@ class TestBuildPreviewFormData:
         assert result["time_compare"] == ["1 year ago"]
         assert result["comparison_type_b"] == "percentage"
         assert result["y_axis_format"] == ",.2f"
+
+    def test_same_viz_preview_honors_explicit_false_and_null_controls(self) -> None:
+        config = MixedTimeseriesChartConfig(
+            x=ColumnRef(name="ds"),
+            y=[ColumnRef(name="sales", aggregate="SUM")],
+            y_secondary=[ColumnRef(name="profit", aggregate="SUM")],
+            show_value=False,
+            color_scheme=None,
+            currency_format=None,
+            currency_format_secondary=None,
+            y_axis=None,
+        )
+        chart = Mock(
+            id=42,
+            datasource_id=7,
+            slice_name="Mixed",
+            params=json.dumps(
+                {
+                    "viz_type": "mixed_timeseries",
+                    "show_value": True,
+                    "color_scheme": "lyftColors",
+                    "currency_format": {
+                        "symbol": "USD",
+                        "symbolPosition": "prefix",
+                    },
+                    "currency_format_secondary": {
+                        "symbol": "EUR",
+                        "symbolPosition": "suffix",
+                    },
+                    "yAxisTitle": "Saved title",
+                    "y_axis_format": ",.2f",
+                    "logAxis": True,
+                }
+            ),
+        )
+
+        result = _build_preview_form_data(
+            UpdateChartRequest(identifier=42, config=config), chart, config
+        )
+
+        assert isinstance(result, dict)
+        assert result["show_value"] is False
+        assert result["color_scheme"] is None
+        assert result["currency_format"] is None
+        assert result["currency_format_secondary"] is None
+        assert result["yAxisTitle"] is None
+        assert result["y_axis_format"] is None
+        assert result["logAxis"] is None
 
     def test_partial_column_config_merges_saved_ui_settings(self) -> None:
         config = TableChartConfig.model_validate(
@@ -2146,7 +2297,10 @@ class TestBuildUpdatePayloadDatasetId:
         result = _build_update_payload(request, chart)
 
         assert isinstance(result, dict)
-        assert result == {"datasource_id": 42, "datasource_type": "table"}
+        assert result["datasource_id"] == 42
+        assert result["datasource_type"] == "table"
+        assert result["query_context"] is None
+        assert json.loads(result["params"])["datasource"] == "42__table"
 
     def test_dataset_and_name_update(self) -> None:
         """dataset_id + chart_name: payload includes datasource fields
@@ -2158,11 +2312,11 @@ class TestBuildUpdatePayloadDatasetId:
         result = _build_update_payload(request, chart)
 
         assert isinstance(result, dict)
-        assert result == {
-            "datasource_id": 42,
-            "datasource_type": "table",
-            "slice_name": "Renamed",
-        }
+        assert result["datasource_id"] == 42
+        assert result["datasource_type"] == "table"
+        assert result["slice_name"] == "Renamed"
+        assert result["query_context"] is None
+        assert json.loads(result["params"])["datasource"] == "42__table"
 
     def test_dataset_and_config_update_includes_datasource(self):
         """dataset_id + config: payload includes datasource_id and datasource_type."""
@@ -2182,6 +2336,8 @@ class TestBuildUpdatePayloadDatasetId:
         assert result["datasource_type"] == "table"
         assert "params" in result
         assert "viz_type" in result
+        assert json.loads(result["params"])["datasource"] == "99__table"
+        assert result["query_context"] is None
 
     def test_config_without_dataset_does_not_include_datasource(self):
         """When dataset_id is None, payload must NOT include datasource_id."""
