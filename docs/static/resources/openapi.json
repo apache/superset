@@ -821,24 +821,19 @@
       },
       "ChartDataAsyncResponseSchema": {
         "properties": {
-          "channel_id": {
-            "description": "Unique session async channel ID",
+          "task_ids": {
+            "description": "UUIDs of the scheduled GTF tasks (one per QueryObject that missed the cache), in query order. The client polls `/api/v1/task/status_changes`, aggregates these tasks' statuses, and re-issues this request once they all succeed.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "cursor": {
+            "description": "Status-changes recovery cursor captured before any task was created. The client polls `/api/v1/task/status_changes` from it and is guaranteed to observe each task's completion.",
             "type": "string"
           },
-          "job_id": {
-            "description": "Unique async job ID",
-            "type": "string"
-          },
-          "result_url": {
-            "description": "Unique result URL for fetching async query data",
-            "type": "string"
-          },
-          "status": {
-            "description": "Status value for async job",
-            "type": "string"
-          },
-          "user_id": {
-            "description": "Requesting user ID",
+          "tab_id": {
+            "description": "The per-client (e.g. browser-tab) id echoed back when the caller advertised one, so a later cancel detaches exactly that client. Absent when the caller supplied none.",
             "nullable": true,
             "type": "string"
           }
@@ -13679,110 +13674,6 @@
         ]
       }
     },
-    "/api/v1/async_event/": {
-      "get": {
-        "description": "Reads off of the Redis events stream, using the user's JWT token and optional query params for last event received.",
-        "parameters": [
-          {
-            "description": "Last ID received by the client",
-            "in": "query",
-            "name": "last_id",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "result": {
-                      "items": {
-                        "properties": {
-                          "channel_id": {
-                            "type": "string"
-                          },
-                          "errors": {
-                            "items": {
-                              "type": "object"
-                            },
-                            "type": "array"
-                          },
-                          "id": {
-                            "type": "string"
-                          },
-                          "job_id": {
-                            "type": "string"
-                          },
-                          "result_url": {
-                            "type": "string"
-                          },
-                          "status": {
-                            "type": "string"
-                          },
-                          "user_id": {
-                            "type": "integer"
-                          }
-                        },
-                        "type": "object"
-                      },
-                      "type": "array"
-                    }
-                  },
-                  "type": "object"
-                },
-                "example": {
-                  "result": [
-                    {
-                      "channel_id": "string",
-                      "errors": [],
-                      "id": "string",
-                      "job_id": "string",
-                      "result_url": "string",
-                      "status": "string",
-                      "user_id": 1
-                    }
-                  ]
-                }
-              }
-            },
-            "description": "Async event results"
-          },
-          "401": {
-            "$ref": "#/components/responses/401"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
-          }
-        },
-        "security": [
-          {
-            "jwt": []
-          }
-        ],
-        "summary": "Read off of the Redis events stream",
-        "tags": ["AsyncEventsRestApi"],
-        "x-codeSamples": [
-          {
-            "lang": "cURL",
-            "label": "cURL",
-            "source": "curl -X GET \"http://localhost:8088/api/v1/async_event/\" \\\n  -H \"Authorization: Bearer $ACCESS_TOKEN\""
-          },
-          {
-            "lang": "Python",
-            "label": "Python",
-            "source": "import requests\n\nresponse = requests.get(\n    \"http://localhost:8088/api/v1/async_event/\",\n    headers={\"Authorization\": \"Bearer \" + access_token}\n)\nprint(response.json())"
-          },
-          {
-            "lang": "JavaScript",
-            "label": "JavaScript",
-            "source": "const response = await fetch(\n  \"http://localhost:8088/api/v1/async_event/\",\n  {\n    headers: {\n      \"Authorization\": `Bearer ${accessToken}`\n    }\n  }\n);\nconst data = await response.json();\nconsole.log(data);"
-          }
-        ]
-      }
-    },
     "/api/v1/available_domains/": {
       "get": {
         "responses": {
@@ -14377,11 +14268,9 @@
                   "$ref": "#/components/schemas/ChartDataAsyncResponseSchema"
                 },
                 "example": {
-                  "channel_id": "string",
-                  "job_id": "string",
-                  "result_url": "string",
-                  "status": "string",
-                  "user_id": "string"
+                  "task_ids": ["string"],
+                  "cursor": "string",
+                  "tab_id": "string"
                 }
               }
             },
@@ -15320,11 +15209,9 @@
                   "$ref": "#/components/schemas/ChartDataAsyncResponseSchema"
                 },
                 "example": {
-                  "channel_id": "string",
-                  "job_id": "string",
-                  "result_url": "string",
-                  "status": "string",
-                  "user_id": "string"
+                  "task_ids": ["string"],
+                  "cursor": "string",
+                  "tab_id": "string"
                 }
               }
             },
@@ -37554,10 +37441,6 @@
     {
       "name": "Annotation Layers",
       "description": "Manage annotation layers and annotations for charts."
-    },
-    {
-      "name": "AsyncEventsRestApi",
-      "description": "Real-time event streaming via Server-Sent Events (SSE)."
     },
     {
       "name": "Available Domains",

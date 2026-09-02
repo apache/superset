@@ -307,7 +307,7 @@ docker compose --profile websocket up superset-websocket
 
 ## Health check
 
-The WebSocket server supports health checks via one of:
+The WebSocket server supports liveness checks via one of:
 
 ```text
 GET /health
@@ -318,6 +318,20 @@ OR
 ```text
 HEAD /health
 ```
+
+`/health` is a pure liveness probe: it returns `200` whenever the process is up,
+so a transient Redis blip does not churn pods.
+
+For load-balancer draining, use the **readiness** endpoint instead:
+
+```text
+GET /ready
+```
+
+`/ready` returns `200` only while the server's Redis Pub/Sub subscriber is
+connected and subscribed, and `503` when that subscriber has dropped (the server
+can't deliver messages until it reconnects). Wire connection draining to `/ready`,
+not `/health`, so a degraded pod stops receiving new connections while it recovers.
 
 ## Containerization
 

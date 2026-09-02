@@ -152,7 +152,7 @@ Use the tuple format `(current, total)` whenever possible. It provides the riche
 
 #### Payload
 
-The `payload` parameter stores custom metadata that can help users understand what the task is doing. Each call to `update_task()` replaces the previous payload completely.
+The `payload` parameter stores custom metadata that can help users understand what the task is doing. Each call to `update_task()` merges into the existing payload (top-level keys are added or overwritten; keys you don't pass are preserved), so a task can build up its payload incrementally across calls.
 
 In the Task List UI, when a payload is defined, an info icon appears in the **Details** column. Users can hover over it to see the JSON content.
 

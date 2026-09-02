@@ -181,9 +181,10 @@ const fetchStatusChanges = makeApi<
 });
 
 const cancelTask = (taskId: string, tabId: string) => {
-  // Best-effort task abort/unsubscribe. This can prevent pending work from
-  // starting, but chart tasks do not cancel an underlying warehouse query after
-  // execution starts. Failures are non-fatal: the client has stopped waiting.
+  // Best-effort task abort/unsubscribe. This prevents pending work from starting
+  // and, once execution has begun, cancels the underlying warehouse query on a
+  // best-effort, engine-dependent basis (engines that expose a pre-execution
+  // cancel id). Failures are non-fatal: the client has stopped waiting.
   //
   // Send the tab id captured at submit time (not read fresh here) so the backend
   // detaches exactly the tab that subscribed: if another tab of the same user is
