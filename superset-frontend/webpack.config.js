@@ -25,7 +25,6 @@ const { ModuleFederationPlugin } = webpack.container;
 const { BundleAnalyzerPlugin } = require('webpack-bundle-analyzer');
 const CopyPlugin = require('copy-webpack-plugin');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
-const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const MinimizerPlugin = require('minimizer-webpack-plugin');
 const LightningCSS = require('lightningcss');
 const SpeedMeasurePlugin = require('speed-measure-webpack-plugin');
@@ -100,6 +99,10 @@ const output = {
 
 if (!isDevMode) {
   output.clean = true;
+  // CSS extraction for production builds
+  output.cssFilename = '[name].[chunkhash].entry.css';
+  output.cssChunkFilename = '[name].[chunkhash].chunk.css';
+  output.publicPath = MINI_CSS_EXTRACT_PUBLICPATH;
 }
 
 const plugins = [
@@ -217,13 +220,6 @@ if (isDevMode) {
 }
 
 if (!isDevMode) {
-  // CSS extraction for production builds
-  plugins.push(
-    new MiniCssExtractPlugin({
-      filename: '[name].[chunkhash].entry.css',
-      chunkFilename: '[name].[chunkhash].chunk.css',
-    }),
-  );
 }
 
 // TypeScript type checking and .d.ts generation
@@ -338,6 +334,9 @@ const config = {
     spa: addPreamble('src/views/index.tsx'),
     embedded: addPreamble('src/embedded/index.tsx'),
     'service-worker': path.join(APP_DIR, 'src/service-worker.ts'),
+  },
+  experiments: {
+    css: true,
   },
   cache: {
     type: 'filesystem',
@@ -530,22 +529,7 @@ const config = {
       {
         test: /\.css$/,
         include: [APP_DIR, /superset-ui.+\/src/],
-        use: [
-          isDevMode
-            ? 'style-loader'
-            : {
-                loader: MiniCssExtractPlugin.loader,
-                options: {
-                  publicPath: MINI_CSS_EXTRACT_PUBLICPATH,
-                },
-              },
-          {
-            loader: 'css-loader',
-            options: {
-              sourceMap: !isDevMode,
-            },
-          },
-        ],
+        type: 'css/auto',
       },
       /* for css linking images (and viz plugin thumbnails) */
       {

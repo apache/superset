@@ -237,7 +237,6 @@
     "@babel/cli": "^7.29.7",
     "@babel/compat-data": "^7.28.4",
     "@babel/core": "^7.29.7",
-    "@babel/eslint-parser": "^7.29.7",
     "@babel/node": "^7.29.7",
     "@babel/plugin-syntax-dynamic-import": "^7.8.3",
     "@babel/plugin-transform-export-namespace-from": "^7.29.7",
@@ -299,7 +298,6 @@
     "concurrently": "^10.0.5",
     "copy-webpack-plugin": "^14.0.0",
     "cross-env": "^10.1.0",
-    "css-loader": "^7.1.4",
     "eslint": "^10.9.0",
     "eslint-import-resolver-alias": "^1.1.2",
     "eslint-import-resolver-typescript": "^4.4.5",
@@ -327,7 +325,6 @@
     "jsdom": "^30.0.1",
     "lerna": "^10.0.1",
     "lightningcss": "^1.33.0",
-    "mini-css-extract-plugin": "^2.10.2",
     "minimizer-webpack-plugin": "^5.6.1",
     "open-cli": "^9.0.0",
     "oxfmt": "^0.65.0",
@@ -343,7 +340,6 @@
     "source-map-support": "^0.5.21",
     "speed-measure-webpack-plugin": "^1.6.0",
     "storybook": "10.5.10",
-    "style-loader": "^4.0.0",
     "stylelint": "^17.14.1",
     "swc-loader": "^0.2.7",
     "ts-jest": "^29.4.12",
@@ -368,9 +364,6 @@
     "regenerator-runtime": "^0.14.1"
   },
   "overrides": {
-    "@babel/eslint-parser": {
-      "eslint": "$eslint"
-    },
     "@deck.gl/aggregation-layers": "~9.2.5",
     "@deck.gl/core": "~9.2.5",
     "@deck.gl/extensions": "~9.2.5",
