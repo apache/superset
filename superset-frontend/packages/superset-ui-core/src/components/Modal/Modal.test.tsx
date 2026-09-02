@@ -20,7 +20,7 @@
 import { useState } from 'react';
 import { fireEvent, render, screen } from '@superset-ui/core/spec';
 import { Input } from '../Input';
-import { Modal } from './Modal';
+import { mergeResizableConfig, Modal } from './Modal';
 
 const drag = (
   target: Element,
@@ -33,6 +33,46 @@ const drag = (
 };
 
 const isDragged = () => !!document.querySelector('.react-draggable-dragged');
+
+describe('mergeResizableConfig', () => {
+  test('keeps default resize handles when callers pass only min/defaultSize', () => {
+    const config = mergeResizableConfig(false, {
+      minHeight: 512,
+      minWidth: 512,
+      defaultSize: { width: 'auto', height: '75vh' },
+    });
+
+    expect(config.minHeight).toBe(512);
+    expect(config.defaultSize).toEqual({ width: 'auto', height: '75vh' });
+    expect(config.enable).toEqual({
+      bottom: true,
+      bottomLeft: false,
+      bottomRight: true,
+      left: false,
+      top: false,
+      topLeft: false,
+      topRight: false,
+      right: true,
+    });
+  });
+
+  test('allows explicit enable overrides', () => {
+    const config = mergeResizableConfig(undefined, {
+      enable: { top: true },
+    });
+
+    expect(config.enable).toEqual({
+      bottom: true,
+      bottomLeft: false,
+      bottomRight: true,
+      left: false,
+      top: true,
+      topLeft: false,
+      topRight: false,
+      right: true,
+    });
+  });
+});
 
 describe('Modal draggable', () => {
   test('dragging from the title bar moves the modal', () => {
