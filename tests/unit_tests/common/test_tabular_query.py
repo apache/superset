@@ -368,3 +368,29 @@ def test_metrics_hint_can_name_an_http_endpoint() -> None:
     )
     assert "GET /api/v1/datasource/table/1" in error
     assert "get_dataset_info" not in error
+
+
+def test_resolve_time_column_requires_a_choice_when_ambiguous() -> None:
+    from superset.common.tabular_query import _resolve_time_column
+
+    explorable = MagicMock()
+    explorable.columns = [
+        _column("event_time", is_dttm=True),
+        _column("created_at", is_dttm=True),
+    ]
+    explorable.main_dttm_col = None
+
+    with pytest.raises(TabularQueryValidationError, match="multiple datetime"):
+        _resolve_time_column(explorable, "view", None, True)
+
+    assert _resolve_time_column(explorable, "view", "created_at", True) == "created_at"
+
+
+def test_resolve_time_column_still_infers_a_lone_candidate() -> None:
+    from superset.common.tabular_query import _resolve_time_column
+
+    explorable = MagicMock()
+    explorable.columns = [_column("region"), _column("event_time", is_dttm=True)]
+    explorable.main_dttm_col = None
+
+    assert _resolve_time_column(explorable, "view", None, True) == "event_time"

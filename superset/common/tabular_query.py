@@ -134,9 +134,9 @@ def _resolve_time_column(
 ) -> str | None:
     """Resolve and validate the temporal column a time range applies to.
 
-    Datasets carry ``main_dttm_col``; semantic views do not, so fall back to
-    the first datetime dimension. Only inferred when a time range was given —
-    an unfiltered query must not acquire a temporal axis it did not ask for.
+    Datasets carry ``main_dttm_col``; semantic views do not, so a lone datetime
+    dimension is inferred. Only inferred when a time range was given — an
+    unfiltered query must not acquire a temporal axis it did not ask for.
     """
     valid_columns = {column.column_name for column in explorable.columns}
     dttm_columns = [
@@ -145,9 +145,16 @@ def _resolve_time_column(
 
     resolved = time_column
     if resolved is None and has_time_range:
-        resolved = getattr(explorable, "main_dttm_col", None) or (
-            dttm_columns[0] if dttm_columns else None
-        )
+        resolved = getattr(explorable, "main_dttm_col", None)
+        if not resolved and len(dttm_columns) > 1:
+            # A semantic view's dimensions arrive as an unordered set, so
+            # picking one here would vary between processes.
+            raise TabularQueryValidationError(
+                f"'{display_name}' has multiple datetime dimensions "
+                f"({', '.join(sorted(dttm_columns))}). Set time_column to "
+                "choose one."
+            )
+        resolved = resolved or (dttm_columns[0] if dttm_columns else None)
         if not resolved:
             raise TabularQueryValidationError(
                 "time_range was provided but no temporal column is configured "
