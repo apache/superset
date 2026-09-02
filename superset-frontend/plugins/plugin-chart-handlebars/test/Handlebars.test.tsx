@@ -101,6 +101,25 @@ test('renders the CSS as a style block rather than as chart content', async () =
   expect(chartText(container)).toBe('HeaderCell');
 });
 
+test('keeps the CSS intact when the template ends with whitespace control', async () => {
+  const { container } = renderChart({
+    handlebarsTemplate: `${TABLE_TEMPLATE}{{!-- comment --~}}`,
+    styleTemplate: STYLE_TEMPLATE,
+  });
+  expect(await screen.findByText('Cell')).toBeInTheDocument();
+
+  // `~}}` strips every whitespace character that follows it in the compiled
+  // source. When the CSS was joined to the template before compilation, that
+  // erased the separator between them and glued `<style>` back onto the
+  // template's HTML block, so a valid template re-opened the bug above. The
+  // CSS parses as its own document, out of the template's reach.
+  expect(container.querySelector('style')).toHaveProperty(
+    'textContent',
+    STYLE_TEMPLATE,
+  );
+  expect(chartText(container)).toBe('HeaderCell');
+});
+
 test('leaves the template markup untouched when CSS is configured', async () => {
   const { container } = renderChart({
     handlebarsTemplate: '- one\n- two',
@@ -108,9 +127,8 @@ test('leaves the template markup untouched when CSS is configured', async () => 
   });
   expect(await screen.findByText('one')).toBeInTheDocument();
 
-  // The blank line separating the style block from the template is only added
-  // when there is CSS to separate, and it belongs to the style block, so the
-  // list stays tight (no paragraph wrapping its items).
+  // The template renders as its own Markdown document with nothing appended,
+  // so the list stays tight (no paragraph wrapping its items).
   expect(container.querySelectorAll('li p')).toHaveLength(0);
 });
 
