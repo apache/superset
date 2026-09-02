@@ -29,7 +29,10 @@
  * REST wrapper rather than a second, frontend-authored copy of its rules —
  * and only committed to the store once that gate accepts it. A rejected
  * candidate returns its errors and touches nothing: `node.props` is read
- * here, never written to, until validation has already succeeded.
+ * here, never written to, until validation has already succeeded. What
+ * finally lands in the store is the endpoint's own normalized dump of the
+ * candidate, not the raw one this sent — the same value the MCP write path
+ * stores, so the two routes into `node.props` can't quietly disagree.
  */
 import { SupersetClient } from '@superset-ui/core';
 import { provider } from 'src/core/dashboard/store';
@@ -73,13 +76,22 @@ export async function describeError(e: unknown): Promise<string> {
 async function validateControlValues(
   widgetType: string,
   controlValues: Record<string, unknown>,
-): Promise<ControlValidationError[]> {
+): Promise<{
+  errors: ControlValidationError[];
+  values: Record<string, unknown> | null;
+}> {
   const { json } = await SupersetClient.post({
     endpoint: `/api/v1/widgets/type/${widgetType}/validate`,
     jsonPayload: { control_values: controlValues },
   });
-  return (json as { result: { errors: ControlValidationError[] } }).result
-    .errors;
+  return (
+    json as {
+      result: {
+        errors: ControlValidationError[];
+        values: Record<string, unknown> | null;
+      };
+    }
+  ).result;
 }
 
 /**
@@ -103,13 +115,23 @@ export async function commitWidgetProps(
 ): Promise<CommitPropsResult> {
   const node = provider.getNode(nodeId);
   const candidate = { ...node?.props, ...delta };
-  const errors = await validateControlValues(widgetType, candidate);
+  const { errors, values } = await validateControlValues(widgetType, candidate);
   if (errors.length > 0) {
     return { ok: false, errors };
   }
+  // The backend's own Pydantic-normalized candidate (coerced types,
+  // alias-keyed) — not the raw one just sent for validation — so this
+  // commits exactly what `set_widget_control_values` (the MCP write path
+  // through the very same gate) would store, rather than something that can
+  // quietly disagree with it (e.g. a numeric field a `Select` stores as a
+  // string, which Pydantic accepts by coercion but a later reader would not
+  // recognize as the same value). Falls back to the raw candidate only if
+  // the backend genuinely had nothing to normalize (`control_values` itself
+  // was absent).
+  const normalized = values ?? candidate;
   if (options?.onBeforeCommit?.() === false) {
     return { ok: false, errors: [] };
   }
-  provider.updateProps(nodeId, candidate);
-  return { ok: true, values: candidate };
+  provider.updateProps(nodeId, normalized);
+  return { ok: true, values: normalized };
 }

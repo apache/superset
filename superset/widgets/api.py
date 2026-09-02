@@ -243,6 +243,13 @@ class WidgetControlsRestApi(BaseSupersetApi):
         caller can reject a bad edit with an actionable message rather than
         writing a silently-broken widget. Widget-agnostic — the rules live on
         each widget's control model, not here.
+
+        On success also returns ``values``: the candidate as Pydantic actually
+        parsed it (coerced, alias-keyed) rather than the raw request body — the
+        same normalization the ``set_widget_control_values`` MCP tool commits,
+        so a REST caller that commits its own raw candidate instead can end up
+        storing something subtly different from what this endpoint validated
+        (e.g. a numeric field coerced from a string).
         ---
         post:
           summary: Validate control values for a widget type
@@ -276,6 +283,9 @@ class WidgetControlsRestApi(BaseSupersetApi):
                             type: array
                             items:
                               type: object
+                          values:
+                            type: object
+                            nullable: true
             400:
               $ref: '#/components/responses/400'
             404:
@@ -287,5 +297,14 @@ class WidgetControlsRestApi(BaseSupersetApi):
         body = request.get_json(silent=True) or {}
         if not isinstance(body, dict):
             return self.response_400(message="Request body must be a JSON object.")
-        errors = widget.validate_control_values(body.get("control_values"))
-        return self.response(200, result={"errors": errors})
+        control_values = body.get("control_values")
+        if errors := widget.validate_control_values(control_values):
+            return self.response(200, result={"errors": errors, "values": None})
+        values = (
+            widget.controls_class.model_validate(control_values).model_dump(
+                by_alias=True
+            )
+            if control_values is not None
+            else None
+        )
+        return self.response(200, result={"errors": [], "values": values})
