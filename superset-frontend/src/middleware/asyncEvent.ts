@@ -124,6 +124,12 @@ let pollBackoffMaxMs: number;
 // progress (or waiter registration); it resets on any awaited-task change.
 let pollStaleTimeoutMs: number;
 let lastProgressAt: number;
+// WS-mode give-up (see waitForAsyncData): spread the per-waiter deadline by up to
+// this jitter so many charts don't reach it at the same instant, and — after the
+// last-chance catch-up it triggers — wait this grace for that reconciliation to
+// settle the waiter before rejecting.
+const GIVE_UP_JITTER_MS = 5000;
+const GIVE_UP_CATCHUP_GRACE_MS = 3000;
 let pollingTimeoutId: number;
 // Whether the poll loop is running. It stops entirely when no waiters remain (no
 // idle heartbeat) and is restarted by ``ensurePolling`` when a waiter registers.
@@ -512,13 +518,30 @@ export const waitForAsyncData = async <T = unknown[]>(
     if (wsEnabled) {
       // WS is the transport (no polling). Bound a genuinely-lost completion (a
       // dropped socket message with no reconnect) so a chart can't spin forever;
-      // a reconnect catch-up normally settles it well before this fires.
-      waiter.giveUpId = window.setTimeout(() => {
-        settle(
-          waiter,
-          new Error('Timed out waiting for chart-data query results'),
-        );
-      }, pollStaleTimeoutMs);
+      // a reconnect catch-up normally settles it well before this fires. Before
+      // rejecting, do ONE last-chance reconciliation (not a poll): the socket may
+      // have missed a `task.status` while staying open, so run the coalesced
+      // `status_changes` catch-up and reject only if still unresolved a short grace
+      // later (if the catch-up settles the waiter, `unregister` clears this timer).
+      // Jitter the deadline so many dashboard charts don't fire at the same instant.
+      const rejectIfStillPending = () => {
+        if (waiter.taskIds.some(id => waitersByTaskId.get(id)?.has(waiter))) {
+          settle(
+            waiter,
+            new Error('Timed out waiting for chart-data query results'),
+          );
+        }
+      };
+      waiter.giveUpId = window.setTimeout(
+        () => {
+          scheduleCatchUp();
+          waiter.giveUpId = window.setTimeout(
+            rejectIfStillPending,
+            GIVE_UP_CATCHUP_GRACE_MS,
+          );
+        },
+        pollStaleTimeoutMs + Math.random() * GIVE_UP_JITTER_MS,
+      );
     }
     // Wake the poll loop (poll mode only; a no-op under WS).
     ensurePolling();
