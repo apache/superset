@@ -115,6 +115,9 @@ export interface Dashboard {
   changed_by: string;
   changed_on?: string;
   dashboard_title: string;
+  // Title resolved for the viewer's locale (read-only); falls back to
+  // dashboard_title. Present only when asset-metadata translation is enabled.
+  localized_title?: string;
   id: number;
   published: boolean;
   url: string;
@@ -154,6 +157,7 @@ const FlexRowContainer = styled.div`
 const DASHBOARD_COLUMNS_TO_FETCH = [
   'id',
   'dashboard_title',
+  'localized_title',
   'published',
   'url',
   'slug',
@@ -284,6 +288,7 @@ function DashboardList(props: DashboardListProps) {
                 changed_by_name: changedByName,
                 changed_by: changedBy,
                 dashboard_title: dashboardTitle = '',
+                localized_title: localizedTitle,
                 slug = '',
                 description = '',
                 json_metadata: jsonMetadata = '',
@@ -300,6 +305,9 @@ function DashboardList(props: DashboardListProps) {
                 changed_by_name: changedByName,
                 changed_by: changedBy,
                 dashboard_title: dashboardTitle,
+                // Refreshed alongside the canonical title: a translation of the
+                // previous title would otherwise keep displaying over the new one.
+                localized_title: localizedTitle,
                 slug,
                 description,
                 json_metadata: jsonMetadata,
@@ -398,28 +406,32 @@ function DashboardList(props: DashboardListProps) {
           row: {
             original: {
               url,
-              dashboard_title: dashboardTitle,
+              dashboard_title: canonicalTitle,
+              localized_title: localizedTitle,
               certified_by: certifiedBy,
               certification_details: certificationDetails,
               description,
             },
           },
-        }: any) => (
-          <FlexRowContainer>
-            <Link to={url} title={dashboardTitle}>
-              {certifiedBy && (
-                <>
-                  <CertifiedBadge
-                    certifiedBy={certifiedBy}
-                    details={certificationDetails}
-                  />{' '}
-                </>
-              )}
-              {dashboardTitle}
-            </Link>
-            {description && <InfoTooltip tooltip={description} />}
-          </FlexRowContainer>
-        ),
+        }: any) => {
+          const dashboardTitle = localizedTitle ?? canonicalTitle;
+          return (
+            <FlexRowContainer>
+              <Link to={url} title={dashboardTitle}>
+                {certifiedBy && (
+                  <>
+                    <CertifiedBadge
+                      certifiedBy={certifiedBy}
+                      details={certificationDetails}
+                    />{' '}
+                  </>
+                )}
+                {dashboardTitle}
+              </Link>
+              {description && <InfoTooltip tooltip={description} />}
+            </FlexRowContainer>
+          );
+        },
         Header: t('Name'),
         accessor: 'dashboard_title',
         id: 'dashboard_title',

@@ -33,6 +33,7 @@ import os
 import re
 import sys
 from collections import OrderedDict
+from collections.abc import Mapping
 from contextlib import contextmanager
 from datetime import timedelta
 from email.mime.multipart import MIMEMultipart
@@ -681,6 +682,12 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Enables Table V2 (AG Grid) viz plugin
     # @lifecycle: development
     "AG_GRID_TABLE_ENABLED": False,
+    # Enables translation of user-authored asset metadata (chart names,
+    # dashboard titles, axis/metric labels) via the configurable
+    # ``TRANSLATION_HOOK``. Only takes effect when more than one language is
+    # configured in ``LANGUAGES``. See SIP-161.
+    # @lifecycle: development
+    "ENABLE_I18N_ASSET_TRANSLATIONS": False,
     # Enables experimental tabs UI for Alerts and Reports
     # @lifecycle: development
     "ALERT_REPORT_TABS": False,
@@ -2404,6 +2411,45 @@ def SQL_QUERY_MUTATOR(  # pylint: disable=invalid-name,unused-argument  # noqa: 
     sql: str, **kwargs: Any
 ) -> str:
     return sql
+
+
+# Hook for translating user-authored asset metadata (chart names, dashboard
+# titles, labels) into the viewer's locale. Gated by the
+# ``ENABLE_I18N_ASSET_TRANSLATIONS`` feature flag and a multi-language
+# ``LANGUAGES`` config; see SIP-161 and ``superset.utils.i18n``.
+#
+# Superset core does not store these translations -- the hook decides where
+# they come from (a database table, an external translation service, a static
+# map, ...). It receives the default text and the target locale, plus optional
+# keyword context (``model_name``, ``field_name``, ...) to disambiguate
+# identical strings, and returns the translated text -- or a falsy value to
+# fall back to the default.
+#
+# Example:
+#    def TRANSLATION_HOOK(default_text, locale, **kwargs):
+#        return my_translation_store.get(locale, {}).get(default_text)
+#
+# NOTE: keep **kwargs last so new context can be added without breaking
+# existing implementations.
+TRANSLATION_HOOK: Callable[..., str | None] | None = None
+
+# Optional batch counterpart to ``TRANSLATION_HOOK``, for stores where one
+# lookup per string is too expensive (a database table, a remote service).
+# Superset calls it once with every string it is about to render for a given
+# context -- all of a dashboard's chart names, a page of recent activity --
+# instead of calling ``TRANSLATION_HOOK`` per string.
+#
+# It receives the list of default texts and the target locale, plus the same
+# keyword context, and returns a mapping of default text to translation.
+# Missing keys and falsy values fall back to the default text, so a partial
+# result is fine. When set, this fully replaces ``TRANSLATION_HOOK``: single
+# lookups are routed through it as a one-element batch, so configuring both is
+# unnecessary.
+#
+# Example:
+#    def TRANSLATION_BATCH_HOOK(default_texts, locale, **kwargs):
+#        return my_translation_store.get_many(locale, default_texts)
+TRANSLATION_BATCH_HOOK: Callable[..., Mapping[str, str | None] | None] | None = None
 
 
 # A variable that chooses whether to apply the SQL_QUERY_MUTATOR before or after splitting the input query  # noqa: E501

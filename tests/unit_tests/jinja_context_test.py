@@ -3391,3 +3391,44 @@ def test_get_rendered_sql_filter_values_index_error_on_empty_list() -> None:
         match=r"Virtual dataset template error: list object has no element 0",
     ):
         table.get_rendered_sql(processor)
+
+
+def test_i18n_macro_adds_an_extra_cache_key(mocker: MockerFixture) -> None:
+    """A locale-dependent macro must vary the query cache key.
+
+    Without this, a viewer in one locale can populate a cached result holding
+    their translated SQL that a viewer in another locale then receives.
+    """
+    mocker.patch(
+        "superset.jinja_context.i18n_macro",
+        side_effect=lambda text: "Ventes" if text == "Sales" else text,
+    )
+    database = Database(id=1, database_name="my_database", sqlalchemy_uri="sqlite://")
+    extra_cache_keys: list[Any] = []
+    processor = get_template_processor(
+        database=database, extra_cache_keys=extra_cache_keys
+    )
+
+    assert processor.process_template("{{ i18n('Sales') }}") == "Ventes"
+    assert extra_cache_keys == ["Ventes"]
+
+
+def test_i18n_macro_is_detected_as_cache_relevant() -> None:
+    """``ExtraCache.regex`` gates whether a query collects extra cache keys."""
+    assert ExtraCache.regex.search("SELECT '{{ i18n('Sales') }}'")
+
+
+def test_jinja_context_addon_keeps_the_i18n_name(mocker: MockerFixture) -> None:
+    """A deployment that already bound ``i18n`` keeps its own function.
+
+    The macro is new, so an addon of the same name predates it and must not be
+    silently replaced on upgrade.
+    """
+    mocker.patch(
+        "superset.jinja_context.context_addons",
+        return_value={"i18n": lambda text: f"addon:{text}"},
+    )
+    database = Database(id=1, database_name="my_database", sqlalchemy_uri="sqlite://")
+    processor = get_template_processor(database=database)
+
+    assert processor.process_template("{{ i18n('Sales') }}") == "addon:Sales"

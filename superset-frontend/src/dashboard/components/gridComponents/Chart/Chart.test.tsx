@@ -140,6 +140,46 @@ test('should render a SliceHeader', () => {
   expect(container.querySelector('.slice_description')).not.toBeInTheDocument();
 });
 
+test('shows the localized name when the panel is not overridden', () => {
+  const { getByText } = setup(
+    { sliceName: sliceEntities.slices[queryId].slice_name },
+    {
+      sliceEntities: {
+        ...defaultState.sliceEntities,
+        slices: {
+          [queryId]: {
+            ...defaultState.sliceEntities.slices[queryId],
+            localized_name: 'Ventes',
+          },
+        },
+      },
+    },
+  );
+  expect(getByText('Ventes')).toBeInTheDocument();
+});
+
+test('keeps a panel title override instead of the localized name', () => {
+  // The override is authored on this dashboard and has no translation, so the
+  // localized value -- which is resolved from the canonical name, and equals it
+  // when translation is off -- must not replace it.
+  const { getByText, queryByText } = setup(
+    { sliceName: 'Q2 Sales' },
+    {
+      sliceEntities: {
+        ...defaultState.sliceEntities,
+        slices: {
+          [queryId]: {
+            ...defaultState.sliceEntities.slices[queryId],
+            localized_name: 'Ventes',
+          },
+        },
+      },
+    },
+  );
+  expect(getByText('Q2 Sales')).toBeInTheDocument();
+  expect(queryByText('Ventes')).not.toBeInTheDocument();
+});
+
 test('should render a ChartContainer', () => {
   const { getByTestId } = setup();
   expect(getByTestId('chart-container')).toBeInTheDocument();

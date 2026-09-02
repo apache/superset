@@ -758,6 +758,15 @@ const Chart = (props: ChartProps) => {
           props.updateSliceName(props.id, name)
         }
         sliceName={props.sliceName}
+        localizedName={
+          // A panel can override the chart's name for this dashboard, and the
+          // override is what the user authored here -- there is no translation
+          // of it. Only offer the localized name when the panel is showing the
+          // canonical one, otherwise the override would be replaced by it.
+          props.sliceName === slice.slice_name
+            ? slice.localized_name
+            : undefined
+        }
         supersetCanExplore={supersetCanExplore}
         supersetCanShare={supersetCanShare}
         supersetCanDownload={supersetCanDownload}
