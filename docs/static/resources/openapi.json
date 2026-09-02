@@ -3863,7 +3863,12 @@
             "additionalProperties": {},
             "type": "object"
           },
-          "shared_label_colors": {}
+          "shared_label_colors": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
         },
         "type": "object"
       },
