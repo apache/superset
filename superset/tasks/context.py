@@ -71,7 +71,7 @@ class TaskContext(CoreTaskContext):
         self._abort_handlers: list[Callable[[], None]] = []
         self._abort_listener: "SignalListener | None" = None
         self._abort_detected = False
-        self._abort_handlers_completed = False  # Track if all abort handlers finished
+        self._abort_handlers_completed = False
         self._execution_completed = False  # Set by executor after task work completes
         # Elects one abort trigger across the listener/timeout/fence threads so
         # abort handlers run exactly once.
@@ -190,7 +190,6 @@ class TaskContext(CoreTaskContext):
         if progress is not None:
             progress_props = progress_update(progress)
             if progress_props:
-                # Merge progress into cached properties
                 self._properties_cache.update(progress_props)
                 has_updates = True
             else:
@@ -204,7 +203,6 @@ class TaskContext(CoreTaskContext):
 
         # Handle payload updates - always update in-memory cache
         if payload is not None:
-            # Merge payload into cached payload
             self._payload_cache.update(payload)
             has_updates = True
 
@@ -222,7 +220,6 @@ class TaskContext(CoreTaskContext):
                 self._has_pending_updates = False
             return
 
-        # Get throttle interval from config
         throttle_interval = current_app.config["TASK_PROGRESS_UPDATE_THROTTLE_INTERVAL"]
 
         # If throttling is disabled (0), write immediately
@@ -365,7 +362,6 @@ class TaskContext(CoreTaskContext):
         self._abort_handlers.append(handler)
 
         if is_first_handler:
-            # Mark task as abortable in database
             self._set_abortable()
 
             # Auto-start abort listener when first handler is registered
@@ -881,7 +877,6 @@ class TaskContext(CoreTaskContext):
                 self._write_to_db()
                 self._has_pending_updates = False
 
-        # Stop abort listener and timeout timer
         self.stop_abort_polling()
         self.stop_timeout_timer()
 

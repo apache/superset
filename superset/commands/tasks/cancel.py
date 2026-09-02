@@ -86,11 +86,8 @@ class CancelTaskCommand(BaseCommand):
             "cancelled"  # Will be set to 'aborted', 'unsubscribed', or 'detached'
         )
         self._should_publish_abort: bool = False
-        # Set to the terminal status when this cancel drove the task straight to a
-        # terminal state (a queued PENDING task aborts directly to ABORTED, without
-        # a worker to finalize it). Published as completion post-commit so waiters
-        # wake; None when the task only reached ABORTING (the worker finalizes and
-        # publishes completion) or was unsubscribed/detached (still running).
+        # Terminal status when this cancel aborted the task straight to terminal
+        # (see run(), which publishes it as completion); None otherwise.
         self._completed_status: str | None = None
 
     def run(self) -> "Task":
@@ -180,10 +177,8 @@ class CancelTaskCommand(BaseCommand):
         if not task:
             raise TaskNotFoundError()
 
-        # Validate permissions on the fetched task
         self._validate_permissions(task, is_admin)
 
-        # Execute cancel and return updated task
         return self._do_cancel(task, is_admin)
 
     def _validate_permissions(self, task: "Task", is_admin: bool) -> None:
@@ -324,7 +319,6 @@ class CancelTaskCommand(BaseCommand):
             # publish completion, so run() must after commit.
             self._completed_status = result.status
 
-        # Emit stats metric
         stats_logger: BaseStatsLogger = current_app.config["STATS_LOGGER"]
         stats_logger.incr("gtf.task.abort")
 
@@ -369,7 +363,6 @@ class CancelTaskCommand(BaseCommand):
                 "You are not subscribed to this shared task"
             )
 
-        # Emit stats metric
         stats_logger: BaseStatsLogger = current_app.config["STATS_LOGGER"]
         stats_logger.incr("gtf.task.unsubscribe")
 

@@ -76,7 +76,6 @@ function shouldRefetchData(
     return true;
   }
 
-  // If viz_type changed, always refetch
   if (prevFormData.viz_type !== nextFormData.viz_type) {
     return true;
   }
@@ -266,13 +265,11 @@ export default function StatefulChart(props: StatefulChartProps) {
       let finalFormData: QueryFormData;
 
       if (chartId && !propsFormData) {
-        // Load formData from chartId
         finalFormData = await chartClientRef.current!.loadFormData(
           { sliceId: chartId },
           { signal: controller.signal } as RequestConfig,
         );
       } else if (propsFormData) {
-        // Use provided formData
         finalFormData = propsFormData;
       } else {
         throw new Error('Either chartId or formData must be provided');

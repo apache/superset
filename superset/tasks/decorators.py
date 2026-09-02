@@ -145,7 +145,6 @@ def task(
     """
 
     def decorator(f: Callable[P, R]) -> "TaskWrapper[P]":
-        # Use function name if no name provided
         base_task_name = name if name is not None else f.__name__
 
         # Apply ambient context detection for ID prefixing (like MCP decorators)
@@ -174,7 +173,6 @@ def task(
                 f"Use get_context() instead for ambient context access."
             )
 
-        # Register task
         TaskRegistry.register(task_name, f, subscription_policy=subscription_policy)
 
         # Create wrapper with schedule() method, default options, scope, and timeout
@@ -332,7 +330,6 @@ class TaskWrapper(Generic[P]):
             cast(TaskOptions | None, kwargs.pop("options", None))
         )
 
-        # Validate task configuration
         self._validate_task(options)
 
         # Extract task_name and task_key from merged options, scope from decorator
@@ -382,7 +379,6 @@ class TaskWrapper(Generic[P]):
 
         from superset.daos.tasks import TaskDAO
 
-        # Check if already in terminal state
         if task.status in TERMINAL_STATES:
             logger.info(
                 "Joined already-completed task %s (uuid=%s, status=%s)",
@@ -628,7 +624,6 @@ class TaskWrapper(Generic[P]):
         # Update cached status (no DB read needed - we just wrote IN_PROGRESS)
         task.status = TaskStatus.IN_PROGRESS.value
 
-        # Build context with the updated task entity
         ctx = TaskContext(task)
 
         # Start timeout timer if configured
@@ -749,7 +744,6 @@ class TaskWrapper(Generic[P]):
         # Extract and merge options (decorator defaults + call-time overrides)
         merged_options = self._merge_options(options)
 
-        # Validate task configuration
         self._validate_task(merged_options)
 
         # Extract task_name and task_key from merged options, scope from decorator

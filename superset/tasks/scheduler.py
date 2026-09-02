@@ -553,7 +553,6 @@ def _execute_task_body(  # noqa: C901
         )
 
     try:
-        # Get registered executor function
         executor_fn = TaskRegistry.get_executor(task_type)
 
         logger.info(
@@ -585,7 +584,6 @@ def _execute_task_body(  # noqa: C901
                 expected_status=[TaskStatus.IN_PROGRESS, TaskStatus.ABORTING],
                 set_ended_at=True,
             ).run():
-                # Emit stats metric for success
                 stats_logger: BaseStatsLogger = current_app.config["STATS_LOGGER"]
                 stats_logger.incr("gtf.task.success")
                 logger.info(
@@ -633,7 +631,6 @@ def _execute_task_body(  # noqa: C901
                 exc_info=True,
             )
 
-            # Emit stats metric for failure
             stats_logger = current_app.config["STATS_LOGGER"]
             stats_logger.incr("gtf.task.failure")
 

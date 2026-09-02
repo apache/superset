@@ -166,7 +166,7 @@ ctx.update_task(payload={"result_cache_key": key}, immediate=True)
 
 Use this only when another consumer must observe the update as soon as the task finishes — for example, a dependent task that reads a prerequisite's payload the moment the dependency gate releases. For ordinary progress reporting, prefer the default throttled behavior.
 
-#### Task state: public properties, private (debug-only), and results
+#### Task state: public properties, private state, and results
 
 A task's state lives in three tiers:
 
