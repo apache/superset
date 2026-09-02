@@ -22,7 +22,7 @@ import logging
 import re
 import time
 from collections import defaultdict
-from collections.abc import Collection
+from collections.abc import Set as AbstractSet
 from math import ceil
 from types import SimpleNamespace
 from typing import (
@@ -2631,7 +2631,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         self,
         database: "Database",
         catalog: Optional[str],
-        schemas: Collection[str],
+        schemas: AbstractSet[str] | list[str],
         hierarchical: bool = True,
     ) -> set[str]:
         """
@@ -2707,7 +2707,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     def get_catalogs_accessible_by_user(
         self,
         database: "Database",
-        catalogs: Collection[str],
+        catalogs: AbstractSet[str] | list[str],
         hierarchical: bool = True,
     ) -> set[str]:
         """
