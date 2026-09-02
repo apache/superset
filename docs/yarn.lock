@@ -9703,10 +9703,10 @@ js-yaml@4.1.0, js-yaml@=4.3.1, js-yaml@^4.1.0, js-yaml@^4.2.0, js-yaml@^4.3.0:
   dependencies:
     argparse "^2.0.1"
 
-js-yaml@^5.3.0:
-  version "5.3.0"
-  resolved "https://registry.yarnpkg.com/js-yaml/-/js-yaml-5.3.0.tgz#526430a6da31065127528ae695ce168cfc5f91f0"
-  integrity sha512-muutsYr+e2+d3rTgUGslq5rxbBlUy3cJ61IsHag2QNDQV+7zXWjkUpmALIajhrlLlrgRUiymj6U3zUr/TMK84Q==
+js-yaml@^5.4.0:
+  version "5.4.0"
+  resolved "https://registry.yarnpkg.com/js-yaml/-/js-yaml-5.4.0.tgz#246dae8988029a6e9b19963e3ff5a1ff6e41f344"
+  integrity sha512-jE7vUJIebKzYQI5xu4co5CRBDlDEYnHrdzsxs4O2giCz4v2SbVMYKpmt1D9L38OKQAeCWmrOTRiCV93u0UkaJA==
   dependencies:
     argparse "^2.0.1"
 
