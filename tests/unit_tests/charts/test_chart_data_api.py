@@ -96,6 +96,11 @@ def test_should_run_async_requires_async_mode_flag() -> None:
             "superset.charts.data.api.get_current_guest_subscriber_key",
             return_value=None,
         ),
+        # The principal can read task status (covered on its own below).
+        patch(
+            "superset.charts.data.api.security_manager.can_access",
+            return_value=True,
+        ),
     ):
         # A real (non-null) DATA cache backend so async is viable.
         cache_manager.data_cache.cache = MagicMock()
@@ -144,6 +149,11 @@ def test_should_run_async_requires_subscribeable_identity() -> None:
     with (
         patch("superset.charts.data.api.is_feature_enabled", return_value=True),
         patch("superset.charts.data.api.cache_manager") as cache_manager,
+        # The principal can read task status (covered on its own below).
+        patch(
+            "superset.charts.data.api.security_manager.can_access",
+            return_value=True,
+        ),
     ):
         cache_manager.data_cache.cache = MagicMock()
 
@@ -176,6 +186,48 @@ def test_should_run_async_requires_subscribeable_identity() -> None:
             ),
         ):
             assert api._should_run_async({"async_mode": True}, qc) is True
+
+
+def test_should_run_async_requires_task_read_permission() -> None:
+    """Async needs a principal that can observe task status.
+
+    Completion is read from ``status_changes`` (``can_read Task``); a principal that
+    can't — e.g. an embedded guest on the default ``Public`` role — would get a 202
+    it could never resolve, so it falls back to sync. An authenticated Gamma user
+    has ``can_read Task`` by default and keeps async.
+    """
+    api = ChartDataRestApi()
+    qc = MagicMock()
+    qc.result_format = ChartDataResultFormat.JSON
+    qc.result_type = ChartDataResultType.FULL
+    qc.get_cache_timeout.return_value = 300
+
+    with (
+        patch("superset.charts.data.api.is_feature_enabled", return_value=True),
+        patch("superset.charts.data.api.cache_manager") as cache_manager,
+        # An embedded guest has a subscribe-able identity...
+        patch("superset.charts.data.api.get_user_id", return_value=None),
+        patch(
+            "superset.charts.data.api.get_current_guest_subscriber_key",
+            return_value="guest:abc",
+        ),
+    ):
+        cache_manager.data_cache.cache = MagicMock()
+
+        # ...but without `can_read Task` it can't observe completion → sync.
+        with patch(
+            "superset.charts.data.api.security_manager.can_access",
+            return_value=False,
+        ):
+            assert api._should_run_async({"async_mode": True}, qc) is False
+
+        # With the grant → async.
+        with patch(
+            "superset.charts.data.api.security_manager.can_access",
+            return_value=True,
+        ) as can_access:
+            assert api._should_run_async({"async_mode": True}, qc) is True
+            can_access.assert_called_with("can_read", "Task")
 
 
 def test_get_data_sets_g_form_data_without_dashboard_filter() -> None:

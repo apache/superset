@@ -33,6 +33,7 @@ from superset.commands.tasks.exceptions import (
 )
 from superset.extensions import security_manager
 from superset.stats_logger import BaseStatsLogger
+from superset.tasks.constants import TERMINAL_STATES
 from superset.tasks.guest import get_guest_subscriber_key_for
 from superset.tasks.locks import task_lock
 from superset.tasks.registry import TaskRegistry
@@ -85,6 +86,12 @@ class CancelTaskCommand(BaseCommand):
             "cancelled"  # Will be set to 'aborted', 'unsubscribed', or 'detached'
         )
         self._should_publish_abort: bool = False
+        # Set to the terminal status when this cancel drove the task straight to a
+        # terminal state (a queued PENDING task aborts directly to ABORTED, without
+        # a worker to finalize it). Published as completion post-commit so waiters
+        # wake; None when the task only reached ABORTING (the worker finalizes and
+        # publishes completion) or was unsubscribed/detached (still running).
+        self._completed_status: str | None = None
 
     def run(self) -> "Task":
         """
@@ -126,6 +133,15 @@ class CancelTaskCommand(BaseCommand):
         # This prevents race conditions where listeners check DB before commit
         if self._should_publish_abort:
             TaskManager.publish_abort(self._task_uuid)
+
+        # A cancel that drove the task straight to a terminal state (queued
+        # PENDING → ABORTED) has no worker to finalize it, so it must publish
+        # completion itself — otherwise a websocket-mode waiter (which does not
+        # poll) only learns of the cancellation at the stale-timeout give-up.
+        # The ABORTING case is handled by the worker's own completion publish
+        # once its abort handlers finish.
+        if self._completed_status is not None:
+            TaskManager.publish_completion(self._task_uuid, self._completed_status)
 
         # Nudge realtime list views of the abort/cancel state change (post-commit).
         # Abort transitions (→ABORTING/ABORTED) don't go through
@@ -303,6 +319,10 @@ class CancelTaskCommand(BaseCommand):
         # Track if we need to publish abort after commit
         if TaskStatus(result.status) == TaskStatus.ABORTING:
             self._should_publish_abort = True
+        elif result.status in TERMINAL_STATES:
+            # Aborted straight to terminal (queued PENDING task): no worker will
+            # publish completion, so run() must after commit.
+            self._completed_status = result.status
 
         # Emit stats metric
         stats_logger: BaseStatsLogger = current_app.config["STATS_LOGGER"]
@@ -369,6 +389,8 @@ class CancelTaskCommand(BaseCommand):
         """
         Get the action that was taken.
 
-        :returns: 'aborted' or 'unsubscribed'
+        :returns: 'aborted' (task terminated), 'unsubscribed' (principal removed
+            from a shared task that keeps running), or 'detached' (one client of the
+            principal detached while the principal's other clients keep it running)
         """
         return self._action_taken

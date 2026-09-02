@@ -50,7 +50,12 @@ def test_cancel_pending_task_aborts(app_context, get_user) -> None:
 
     try:
         # Cancel the pending task with admin user context
-        with override_user(admin):
+        with (
+            override_user(admin),
+            patch(
+                "superset.tasks.manager.TaskManager.publish_completion"
+            ) as publish_completion,
+        ):
             command = CancelTaskCommand(task_uuid=task.uuid)
             result = command.run()
 
@@ -58,6 +63,11 @@ def test_cancel_pending_task_aborts(app_context, get_user) -> None:
         assert result.uuid == task.uuid
         assert result.status == TaskStatus.ABORTED.value
         assert command.action_taken == "aborted"
+
+        # A queued task aborts straight to a terminal state with no worker to
+        # finalize it, so the command must publish completion itself — otherwise a
+        # websocket-mode waiter (which does not poll) hangs until the give-up.
+        publish_completion.assert_called_once_with(task.uuid, TaskStatus.ABORTED.value)
 
         # Verify in database
         db.session.refresh(task)
@@ -89,6 +99,9 @@ def test_cancel_in_progress_abortable_task_sets_aborting(app_context, get_user) 
         with (
             override_user(admin),
             patch("superset.tasks.manager.TaskManager.publish_abort"),
+            patch(
+                "superset.tasks.manager.TaskManager.publish_completion"
+            ) as publish_completion,
         ):
             command = CancelTaskCommand(task_uuid=task.uuid)
             result = command.run()
@@ -97,6 +110,10 @@ def test_cancel_in_progress_abortable_task_sets_aborting(app_context, get_user) 
         assert result.uuid == task.uuid
         assert result.status == TaskStatus.ABORTING.value
         assert command.action_taken == "aborted"
+
+        # Only ABORTING here: the worker finalizes ABORTED and publishes completion
+        # once its abort handlers run, so the command must not publish it early.
+        publish_completion.assert_not_called()
 
         # Verify in database
         db.session.refresh(task)

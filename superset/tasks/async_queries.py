@@ -347,8 +347,9 @@ def submit_chart_data_query_tasks(
     cursor (the recovery watermark for polling/catch-up), and the tab id the
     subscription policy recorded for this request (echoed so a later cancel detaches
     exactly this tab; omitted when the caller supplied none). Client aborts may
-    unsubscribe from shared work or abort pending work; engine-level query
-    cancellation is outside this chart async path.
+    unsubscribe from shared work or abort pending work; a running query is also
+    cancelled at the engine level on engines that expose a pre-execution cancel id
+    (see ``_capture_query_cancellation``).
     """
     guest_user = security_manager.get_current_guest_user_if_guest()
     guest_token = guest_user.guest_token if guest_user else None

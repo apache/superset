@@ -363,6 +363,8 @@ class TaskRestApi(BaseSupersetModelRestApi):
             The `action` field in the response indicates what happened:
             - `aborted`: Task was terminated
             - `unsubscribed`: User was removed from task (task continues)
+            - `detached`: One client of the user detached (e.g. a browser tab); the
+              task continues for the user's other clients
           parameters:
           - in: path
             schema:
