@@ -498,6 +498,125 @@ def _native_reference_error(  # noqa: C901
             if not isinstance(sort_value, str) or sort_value not in allowed_labels:
                 return _native_validation_error(sort_field, repr(sort_value)[:200])
 
+    if (
+        strict_all_form_refs
+        and isinstance(viz_type, str)
+        and viz_type.startswith("deck_")
+    ):
+        # Deck layers store most query roles outside common columns/metrics.
+        # Validate every renderer-consumed raw control as well as the generated
+        # QueryObject so a dataset-only rebind cannot hide or discard a stale
+        # tooltip, cross-filter, spatial, path, or metric reference.
+        for spatial_field in ("spatial", "start_spatial", "end_spatial"):
+            spatial = form_data.get(spatial_field)
+            if spatial is None:
+                continue
+            if not isinstance(spatial, dict):
+                return _native_validation_error(
+                    f"form-data {spatial_field}", repr(spatial)[:200]
+                )
+            spatial_type = spatial.get("type")
+            if not isinstance(spatial_type, str):
+                return _native_validation_error(
+                    f"form-data {spatial_field} type", repr(spatial_type)[:200]
+                )
+            role_fields = {
+                "latlong": ("lonCol", "latCol"),
+                "delimited": ("lonlatCol",),
+                "geohash": ("geohashCol",),
+            }.get(spatial_type)
+            if role_fields is None:
+                return _native_validation_error(
+                    f"form-data {spatial_field} type", repr(spatial_type)[:200]
+                )
+            for role_field in role_fields:
+                spatial_value = spatial.get(role_field)
+                if spatial_value is None:
+                    return _native_validation_error(
+                        f"form-data {spatial_field}.{role_field} column", "missing"
+                    )
+                if error := column_error(
+                    spatial_value, f"form-data {spatial_field}.{role_field} column"
+                ):
+                    return error
+
+        for field_name in (
+            "line_column",
+            "geojson",
+            "dimension",
+            "cross_filter_column",
+        ):
+            column_value = form_data.get(field_name)
+            if column_value is not None and (
+                error := column_error(column_value, f"form-data {field_name} column")
+            ):
+                return error
+
+        tooltip_contents = form_data.get("tooltip_contents")
+        if tooltip_contents is not None and not isinstance(tooltip_contents, list):
+            return _native_validation_error(
+                "form-data tooltip_contents", repr(tooltip_contents)[:200]
+            )
+        for index, item in enumerate(tooltip_contents or []):
+            tooltip_value: Any = None
+            if isinstance(item, str):
+                tooltip_value = item
+            elif isinstance(item, dict) and item.get("item_type") == "column":
+                tooltip_value = item.get("column_name")
+            if tooltip_value is not None and (
+                error := column_error(
+                    tooltip_value, f"form-data tooltip_contents[{index}] column"
+                )
+            ):
+                return error
+
+        metric_values: list[tuple[str, Any]] = []
+        if viz_type not in {"deck_geojson", "deck_polygon"}:
+            for field_name in ("metrics", "metric", "size"):
+                raw_deck_metrics = form_data.get(field_name)
+                deck_metrics = (
+                    raw_deck_metrics
+                    if isinstance(raw_deck_metrics, list)
+                    else [raw_deck_metrics]
+                )
+                metric_values.extend(
+                    (f"form-data {field_name} metric", deck_metric)
+                    for deck_metric in deck_metrics
+                    if deck_metric is not None
+                )
+        if viz_type == "deck_polygon" and form_data.get("metric") is not None:
+            metric_values.append(("form-data metric metric", form_data.get("metric")))
+        fixed_metric_fields = (
+            ("point_radius_fixed",)
+            if viz_type in {"deck_scatter", "deck_polygon"}
+            else ()
+        ) + (("line_width",) if viz_type == "deck_path" else ())
+        for field_name in fixed_metric_fields:
+            fixed_value = form_data.get(field_name)
+            deck_metric: Any = (
+                fixed_value
+                if (
+                    isinstance(fixed_value, str)
+                    and fixed_value
+                    and viz_type != "deck_polygon"
+                )
+                else None
+            )
+            if isinstance(fixed_value, dict) and fixed_value.get("type") == "metric":
+                deck_metric = fixed_value.get("value")
+            if deck_metric is not None:
+                metric_values.append((f"form-data {field_name} metric", deck_metric))
+        if viz_type == "deck_path" and form_data.get("breakpoint_metric") is not None:
+            metric_values.append(
+                (
+                    "form-data breakpoint_metric metric",
+                    form_data.get("breakpoint_metric"),
+                )
+            )
+        for role, deck_metric in metric_values:
+            if error := metric_error(deck_metric, role):
+                return error
+
     for filter_ in form_data.get("adhoc_filters") or []:
         if not isinstance(filter_, dict) or filter_.get("expressionType") != "SIMPLE":
             continue
@@ -537,6 +656,9 @@ def _native_reference_error(  # noqa: C901
         for column in query.get("series_columns") or []:
             if error := column_error(column, f"query {query_index} series column"):
                 return error
+        for column in query.get("groupby") or []:
+            if error := column_error(column, f"query {query_index} groupby column"):
+                return error
         for level in query.get("grouping_sets") or []:
             for column in level:
                 if error := column_error(
@@ -570,6 +692,8 @@ def _native_reference_error(  # noqa: C901
             if not isinstance(filter_, dict):
                 return _native_validation_error("filter", repr(filter_)[:200])
             column = filter_.get("col")
+            if isinstance(column, str) and column in metric_labels:
+                continue
             if isinstance(column, str) and any(
                 name.casefold() == column.casefold() for name in saved_metrics
             ):

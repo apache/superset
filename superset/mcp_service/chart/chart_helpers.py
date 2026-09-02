@@ -542,7 +542,7 @@ def resolve_big_number_columns(form_data: dict[str, Any]) -> list[Any]:
     backend for a timeseries instead, which yields ``__timestamp``. An explicit
     ``x_axis`` is different: the plugin retains that column in the final query.
     """
-    if (x_axis := _x_axis_query_field(form_data)) is not None:
+    if (x_axis := _normalized_x_axis_query_field(form_data)) is not None:
         return [x_axis]
     return []
 
@@ -642,6 +642,316 @@ def _dedupe_query_fields(values: list[Any], labeler: Any) -> list[Any]:
         seen.add(label)
         result.append(value)
     return result
+
+
+def _deck_tooltip_columns(value: Any) -> list[str]:
+    """Extract the physical tooltip fields accepted by Deck.gl plugins."""
+    if not isinstance(value, list):
+        return []
+    columns: list[str] = []
+    for item in value:
+        column: Any = None
+        if isinstance(item, str):
+            column = item
+        elif isinstance(item, dict) and item.get("item_type") == "column":
+            column = item.get("column_name")
+        if isinstance(column, str) and column and column not in columns:
+            columns.append(column)
+    return columns
+
+
+def _deck_base_query_fields(  # noqa: C901
+    form_data: dict[str, Any],
+) -> tuple[list[Any], list[Any], list[list[Any]] | None]:
+    """Mirror the common fields built before a Deck.gl layer adapter runs."""
+    query_mode = form_data.get("query_mode")
+    columns: list[Any] = []
+    metrics: list[Any] = []
+    raw_orderby: list[Any] = []
+    aliases = {
+        "metric": "metrics",
+        "metric_2": "metrics",
+        "secondary_metric": "metrics",
+        "left_metric": "metrics",
+        "right_metric": "metrics",
+        "x": "metrics",
+        "y": "metrics",
+        "size": "metrics",
+        "all_columns": "columns",
+        "series": "groupby",
+        "order_by_cols": "orderby",
+    }
+    for key, value in form_data.items():
+        if value is None:
+            continue
+        normalized = aliases.get(key, key)
+        if query_mode == "aggregate" and normalized == "columns":
+            continue
+        if query_mode == "raw" and normalized in {"groupby", "metrics"}:
+            continue
+        if normalized == "groupby":
+            normalized = "columns"
+        if normalized == "columns":
+            columns.extend(_as_list(value))
+        elif normalized == "metrics":
+            metrics.extend(_as_list(value))
+        elif normalized == "orderby":
+            raw_orderby.extend(_as_list(value))
+
+    orderby: list[list[Any]] = []
+    if len(raw_orderby) > 100:
+        raise ValueError("Deck orderby must contain at most 100 entries")
+    for index, value in enumerate(raw_orderby):
+        if isinstance(value, str):
+            if len(value) > 1000:
+                raise ValueError(f"Deck orderby[{index}] is too long")
+            from superset.utils import json
+
+            try:
+                value = json.loads(value)
+            except (TypeError, ValueError) as ex:
+                raise ValueError(f"Deck orderby[{index}] is not valid JSON") from ex
+        if (
+            not isinstance(value, (list, tuple))
+            or len(value) != 2
+            or not isinstance(value[1], bool)
+        ):
+            raise ValueError(
+                f"Deck orderby[{index}] must be [field, ascending_boolean]"
+            )
+        orderby.append(list(value))
+
+    return (
+        _dedupe_query_fields(columns, _column_label),
+        _dedupe_query_fields(metrics, _metric_label),
+        orderby or None,
+    )
+
+
+def _deck_add_columns(columns: list[Any], *values: Any) -> list[Any]:
+    """Add layer fields by frontend result label without duplicates."""
+    expanded = list(columns)
+    for value in values:
+        expanded.extend(_as_list(value))
+    return _dedupe_query_fields(expanded, _column_label)
+
+
+def _deck_add_metrics(metrics: list[Any], *values: Any) -> list[Any]:
+    """Add layer metric roles without emitting the same output label twice."""
+    expanded = list(metrics)
+    for value in values:
+        expanded.extend(_as_list(value))
+    return _dedupe_query_fields(expanded, _metric_label)
+
+
+def _deck_fixed_or_metric(
+    value: Any, *, allow_legacy_string: bool = True
+) -> Any | None:
+    """Return the metric stored in a Deck fixed-or-metric control."""
+    if allow_legacy_string and isinstance(value, str) and value:
+        # Legacy Deck controls store the metric key directly as a string.
+        return value
+    if not isinstance(value, dict) or value.get("type") != "metric":
+        return None
+    metric = value.get("value")
+    return (
+        metric if metric is not None and not isinstance(metric, (int, float)) else None
+    )
+
+
+def _deck_spatial_columns(value: Any) -> list[str]:
+    """Resolve one complete frontend Deck spatial configuration."""
+    if not isinstance(value, dict) or not value.get("type"):
+        raise ValueError("Bad spatial key")
+    spatial_type = value["type"]
+    fields = {
+        "latlong": ("lonCol", "latCol"),
+        "delimited": ("lonlatCol",),
+        "geohash": ("geohashCol",),
+    }.get(spatial_type)
+    if fields is None:
+        raise ValueError(f"Unknown spatial type: {spatial_type}")
+    columns: list[str] = []
+    for field in fields:
+        column = value.get(field)
+        if not isinstance(column, str) or not column:
+            raise ValueError(f"Incomplete {spatial_type} spatial configuration")
+        columns.append(column)
+    return columns
+
+
+def _deck_add_null_filters(
+    query: dict[str, Any], columns: list[str], *, include_null_value: bool = False
+) -> None:
+    """Append renderer-required non-null filters, deduplicated by column."""
+    filters = list(query.get("filters") or [])
+    present = {
+        item.get("col")
+        for item in filters
+        if isinstance(item, dict) and item.get("op") == "IS NOT NULL"
+    }
+    for column in columns:
+        if not column or column in present:
+            continue
+        filter_: dict[str, Any] = {"col": column, "op": "IS NOT NULL"}
+        if include_null_value:
+            filter_["val"] = None
+        filters.append(filter_)
+        present.add(column)
+    query["filters"] = filters
+
+
+def _build_deck_query(  # noqa: C901
+    form_data: dict[str, Any],
+    viz_type: str,
+    *,
+    row_limit: int | None,
+    order_desc: bool | None,
+) -> dict[str, Any]:
+    """Build the final QueryObject for one concrete Deck.gl layer plugin."""
+    base_columns, base_metrics, base_orderby = _deck_base_query_fields(form_data)
+    query = _build_single_query_dict(
+        form_data,
+        base_columns,
+        base_metrics,
+        row_limit=row_limit,
+        order_desc=order_desc,
+        orderby=base_orderby,
+    )
+    tooltip_columns = _deck_tooltip_columns(form_data.get("tooltip_contents"))
+
+    if viz_type == "deck_arc":
+        if not form_data.get("start_spatial") or not form_data.get("end_spatial"):
+            raise ValueError(
+                "Start and end spatial configurations are required for Arc charts"
+            )
+        start_columns = _deck_spatial_columns(form_data["start_spatial"])
+        end_columns = _deck_spatial_columns(form_data["end_spatial"])
+        query["columns"] = _deck_add_columns(
+            base_columns,
+            start_columns,
+            end_columns,
+            form_data.get("dimension"),
+            tooltip_columns,
+        )
+        _deck_add_null_filters(
+            query, [*start_columns, *end_columns], include_null_value=True
+        )
+        query["is_timeseries"] = bool(form_data.get("time_grain_sqla"))
+        return query
+
+    if viz_type == "deck_geojson":
+        geojson = form_data.get("geojson")
+        if not isinstance(geojson, str) or not geojson:
+            raise ValueError("GeoJSON column is required for GeoJSON charts")
+        query["columns"] = _deck_add_columns(
+            base_columns,
+            geojson,
+            form_data.get("cross_filter_column"),
+            tooltip_columns,
+        )
+        query["metrics"] = []
+        # Retain the frontend field even though the backend canonicalizes it to
+        # columns; an empty groupby must not replace the renderer columns.
+        query["groupby"] = []
+        if form_data.get("filter_nulls", True):
+            _deck_add_null_filters(query, [geojson])
+        query["is_timeseries"] = False
+        return query
+
+    if viz_type == "deck_scatter":
+        if not form_data.get("spatial"):
+            raise ValueError("Spatial configuration is required for Scatter charts")
+        spatial_columns = _deck_spatial_columns(form_data["spatial"])
+        query["columns"] = _deck_add_columns(
+            base_columns,
+            spatial_columns,
+            form_data.get("dimension"),
+            tooltip_columns,
+        )
+        radius_metric = _deck_fixed_or_metric(form_data.get("point_radius_fixed"))
+        query["metrics"] = _deck_add_metrics(base_metrics, radius_metric)
+        if radius_metric is not None:
+            query["orderby"] = [[_metric_label(radius_metric), False]]
+        _deck_add_null_filters(query, spatial_columns, include_null_value=True)
+        query["is_timeseries"] = False
+        return query
+
+    if viz_type == "deck_polygon":
+        line_column = form_data.get("line_column")
+        if not isinstance(line_column, str) or not line_column:
+            raise ValueError("Polygon column is required for Polygon charts")
+        query["columns"] = _deck_add_columns(
+            base_columns,
+            line_column,
+            form_data.get("cross_filter_column"),
+            tooltip_columns,
+        )
+        metric = form_data.get("metric")
+        elevation_metric = _deck_fixed_or_metric(
+            form_data.get("point_radius_fixed"), allow_legacy_string=False
+        )
+        query["metrics"] = _deck_add_metrics([], metric, elevation_metric)
+        if form_data.get("filter_nulls", True):
+            null_columns = [line_column]
+            if metric is not None and (metric_label := _metric_label(metric)):
+                null_columns.append(metric_label)
+            _deck_add_null_filters(query, null_columns)
+        query["is_timeseries"] = False
+        return query
+
+    if viz_type == "deck_path":
+        line_column = form_data.get("line_column")
+        if not isinstance(line_column, str) or not line_column:
+            raise ValueError("Line column is required for Path charts")
+        metrics = list(base_metrics)
+        metric = form_data.get("metric")
+        metrics = _deck_add_metrics(metrics, metric)
+        width_metric = _deck_fixed_or_metric(form_data.get("line_width"))
+        breakpoint_metric = form_data.get("breakpoint_metric")
+        metrics = _deck_add_metrics(metrics, width_metric, breakpoint_metric)
+
+        columns = list(base_columns)
+        groupby: list[Any] = []
+        if metrics or metric is not None:
+            groupby = _deck_add_columns(groupby, line_column)
+        else:
+            columns = _deck_add_columns(columns, line_column)
+        if width_metric is not None or breakpoint_metric is not None:
+            groupby = _deck_add_columns(groupby, line_column)
+        columns = _deck_add_columns(
+            columns, form_data.get("dimension"), tooltip_columns
+        )
+        groupby = _deck_add_columns(groupby, tooltip_columns)
+        query["columns"] = columns
+        query["metrics"] = metrics
+        query["groupby"] = groupby
+        _deck_add_null_filters(query, [line_column])
+        query["is_timeseries"] = bool(form_data.get("time_grain_sqla"))
+        return query
+
+    if viz_type in {
+        "deck_grid",
+        "deck_hex",
+        "deck_heatmap",
+        "deck_contour",
+        "deck_screengrid",
+    }:
+        if not form_data.get("spatial"):
+            raise ValueError("Spatial configuration is required for this chart")
+        spatial_columns = _deck_spatial_columns(form_data["spatial"])
+        metric = form_data.get("size")
+        query["columns"] = _deck_add_columns(
+            base_columns, spatial_columns, tooltip_columns
+        )
+        query["metrics"] = _deck_add_metrics([], metric)
+        if metric is not None and (metric_label := _metric_label(metric)):
+            query["orderby"] = [[metric_label, False]]
+        _deck_add_null_filters(query, spatial_columns, include_null_value=True)
+        query["is_timeseries"] = False
+        return query
+
+    raise ValueError(f"Unsupported Deck.gl visualization type: {viz_type}")
 
 
 def _parse_orderby(values: Any) -> list[list[Any]]:
@@ -1106,15 +1416,42 @@ def _pivot_grouping_sets(
         or (not prefix and (form_data.get("rowTotals") or needs_columns_collapsed))
         or (prefix and form_data.get("colSubTotals"))
     ]
+
+    if form_data.get("combineMetric"):
+
+        def forced_denominator(row_prefix: list[Any], column_prefix: list[Any]) -> bool:
+            return bool(
+                (needs_rows_collapsed and not row_prefix)
+                or (needs_columns_collapsed and not column_prefix)
+            )
+
+        combinations = [
+            (row_prefix, column_prefix)
+            for row_prefix in row_prefixes
+            for column_prefix in column_prefixes
+            if (
+                (
+                    len(row_prefix) == len(rows)
+                    if form_data.get("metricsLayout") == "ROWS"
+                    else len(column_prefix) == len(columns)
+                )
+                or forced_denominator(row_prefix, column_prefix)
+            )
+        ]
+    else:
+        combinations = [
+            (row_prefix, column_prefix)
+            for row_prefix in row_prefixes
+            for column_prefix in column_prefixes
+        ]
     levels: list[list[str]] = []
-    for row_prefix in row_prefixes:
-        for column_prefix in column_prefixes:
-            labels: list[str] = []
-            for column in [*row_prefix, *column_prefix]:
-                label = _column_label(column)
-                if label and label not in labels:
-                    labels.append(label)
-            levels.append(labels)
+    for row_prefix, column_prefix in combinations:
+        labels: list[str] = []
+        for column in [*row_prefix, *column_prefix]:
+            label = _column_label(column)
+            if label and label not in labels:
+                labels.append(label)
+        levels.append(labels)
     return levels
 
 
@@ -1238,12 +1575,6 @@ def _build_mixed_timeseries_secondary(
             else:
                 qd.pop(clause, None)
     return qd
-
-
-# Deck.gl viz types that conditionally set is_timeseries from time_grain_sqla
-_DECK_TIMESERIES_VIZ_TYPES: frozenset[str] = frozenset(
-    {"deck_arc", "deck_path", "deck_polygon", "deck_scatter", "deck_screengrid"}
-)
 
 
 def build_query_dicts_from_form_data(  # noqa: C901
@@ -1617,43 +1948,28 @@ def build_query_dicts_from_form_data(  # noqa: C901
                 ]
         return [query]
 
-    # Deck.gl charts use spatial column configs rather than the standard
-    # metrics / groupby fields. Extract columns from the spatial controls.
     if viz_type.startswith("deck_"):
-        deck_columns = resolve_deck_gl_columns(form_data)
-        deck_metrics = _resolve_deck_gl_metrics(form_data, viz_type)
-        qd = _build_single_query_dict(
-            form_data,
-            deck_columns,
-            deck_metrics,
-            row_limit=row_limit,
-            order_desc=order_desc,
-            orderby=form_data.get("orderby"),
-            include_common_temporal=False,
-        )
-        if deck_metrics:
-            # Mirror BaseDeckGLViz.query_obj(): order by first metric descending
-            qd["orderby"] = [(deck_metrics[0], not form_data.get("order_desc", True))]
-        if viz_type in _DECK_TIMESERIES_VIZ_TYPES and (
-            time_grain := form_data.get("time_grain_sqla")
-        ):
-            qd["is_timeseries"] = True
-            qd["granularity"] = form_data.get("granularity_sqla")
-            qd.setdefault("extras", {})["time_grain_sqla"] = time_grain
-        if form_data.get("filter_nulls", True):
-            null_filters = _deck_gl_null_filters(form_data)
-            if null_filters:
-                qd["filters"] = [*(qd.get("filters") or []), *null_filters]
-        return [qd]
+        return [
+            _build_deck_query(
+                form_data,
+                viz_type,
+                row_limit=row_limit,
+                order_desc=order_desc,
+            )
+        ]
 
     if viz_type == "waterfall":
-        # Waterfall's frontend buildQuery replaces the generic columns and
-        # ordering with the x/granularity subject followed by breakdown
-        # columns, ordered ascending in that same deterministic sequence.
-        # Keep the raw x-axis value: QueryObject accepts both simple strings
-        # and adhoc column objects.
-        x_axis = form_data.get("x_axis") or form_data.get("granularity_sqla")
-        waterfall_columns = ([x_axis] if x_axis else []) + groupby
+        # normalizeTimeColumn runs after Waterfall's buildQuery callback. It
+        # wraps only the final x-axis column; orderby deliberately retains the
+        # raw control value produced inside the callback.
+        raw_axis = form_data.get("x_axis") or form_data.get("granularity_sqla")
+        query_axis = (
+            _normalized_x_axis_query_field(form_data)
+            if form_data.get("x_axis")
+            else raw_axis
+        )
+        waterfall_columns = ([query_axis] if query_axis else []) + groupby
+        raw_ordering_columns = ([raw_axis] if raw_axis else []) + groupby
         query = _build_single_query_dict(
             form_data,
             waterfall_columns,
@@ -1662,7 +1978,9 @@ def build_query_dicts_from_form_data(  # noqa: C901
             order_desc=order_desc,
             orderby=None,
         )
-        query["orderby"] = [[column, True] for column in waterfall_columns]
+        query["orderby"] = [[column, True] for column in raw_ordering_columns]
+        if form_data.get("x_axis"):
+            query.pop("is_timeseries", None)
         return [query]
 
     if viz_type == "mixed_timeseries":

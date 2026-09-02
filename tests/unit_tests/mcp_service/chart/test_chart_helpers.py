@@ -499,7 +499,23 @@ def test_xy_and_both_mixed_queries_preserve_common_temporal_fields(
                 "groupby": ["region"],
                 "metric": "revenue",
             },
-            [(["event_time", "region"], ["revenue"], [], [])],
+            [
+                (
+                    [
+                        {
+                            "columnType": "BASE_AXIS",
+                            "sqlExpression": "event_time",
+                            "label": "event_time",
+                            "expressionType": "SQL",
+                            "isColumnReference": True,
+                        },
+                        "region",
+                    ],
+                    ["revenue"],
+                    [],
+                    [],
+                )
+            ],
         ),
         (
             "plugin-chart-echarts/src/Gantt/buildQuery.ts",
@@ -1097,7 +1113,15 @@ def test_big_number_raw_frontend_contract_has_isolated_second_query(
         }
     )
 
-    assert trend.columns == ["event_time"]
+    assert trend.columns == [
+        {
+            "columnType": "BASE_AXIS",
+            "sqlExpression": "event_time",
+            "label": "event_time",
+            "expressionType": "SQL",
+            "isColumnReference": True,
+        }
+    ]
     assert trend.series_columns == []
     assert trend.post_processing[0]["options"]["index"] == ["event_time"]
     assert trend.post_processing[0]["options"]["columns"] == []
@@ -1173,7 +1197,20 @@ def test_big_number_trendline_query_and_pandas_metric_alias_parity(
         }
     )
 
-    expected_columns = ["event_time"] if "x_axis" in temporal_form_data else []
+    expected_columns = (
+        [
+            {
+                "timeGrain": "P1D",
+                "columnType": "BASE_AXIS",
+                "sqlExpression": "event_time",
+                "label": "event_time",
+                "expressionType": "SQL",
+                "isColumnReference": True,
+            }
+        ]
+        if "x_axis" in temporal_form_data
+        else []
+    )
     assert trend.columns == expected_columns
     assert trend.series_columns == []
     assert trend.metrics == [metric]
@@ -1338,7 +1375,18 @@ def test_waterfall_final_query_matches_frontend_column_and_ordering_semantics(
         }
     )[0]
 
-    assert query.columns == ["event_time", "region", "channel"]
+    assert query.columns == [
+        {
+            "timeGrain": "P1M",
+            "columnType": "BASE_AXIS",
+            "sqlExpression": "event_time",
+            "label": "event_time",
+            "expressionType": "SQL",
+            "isColumnReference": True,
+        },
+        "region",
+        "channel",
+    ]
     assert query.orderby == [
         ["event_time", True],
         ["region", True],
@@ -1911,11 +1959,11 @@ def test_build_query_dicts_deck_scatter_adds_null_filters_by_default(monkeypatch
 
     queries = build_query_dicts_from_form_data(form_data, 1, "table")
 
-    assert {"col": "lon", "op": "IS NOT NULL", "val": ""} in queries[0]["filters"]
-    assert {"col": "lat", "op": "IS NOT NULL", "val": ""} in queries[0]["filters"]
+    assert {"col": "lon", "op": "IS NOT NULL", "val": None} in queries[0]["filters"]
+    assert {"col": "lat", "op": "IS NOT NULL", "val": None} in queries[0]["filters"]
 
 
-def test_build_query_dicts_deck_scatter_filter_nulls_false(monkeypatch):
+def test_build_query_dicts_deck_scatter_always_filters_spatial_nulls(monkeypatch):
     monkeypatch.setattr(
         "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
         lambda datasource_id, datasource_type: "base",
@@ -1932,7 +1980,10 @@ def test_build_query_dicts_deck_scatter_filter_nulls_false(monkeypatch):
     null_filters = [
         f for f in queries[0].get("filters", []) if f.get("op") == "IS NOT NULL"
     ]
-    assert null_filters == []
+    assert null_filters == [
+        {"col": "lon", "op": "IS NOT NULL", "val": None},
+        {"col": "lat", "op": "IS NOT NULL", "val": None},
+    ]
 
 
 def test_build_query_dicts_deck_scatter_point_radius_fixed_metric(monkeypatch):
@@ -1976,8 +2027,8 @@ def test_build_query_dicts_deck_geojson_scalar_size_produces_no_metrics(monkeypa
     assert queries[0]["metrics"] == []
 
 
-def test_build_query_dicts_deck_path_scalar_size_produces_no_metrics(monkeypatch):
-    # deck_path fixture also has size='100' — scalar must not become a metric.
+def test_build_query_dicts_deck_path_preserves_common_size_metric(monkeypatch):
+    # Common buildQueryObject aliases size to metrics before Path's adapter.
     monkeypatch.setattr(
         "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
         lambda datasource_id, datasource_type: "base",
@@ -1991,7 +2042,7 @@ def test_build_query_dicts_deck_path_scalar_size_produces_no_metrics(monkeypatch
 
     queries = build_query_dicts_from_form_data(form_data, 1, "table")
 
-    assert queries[0]["metrics"] == []
+    assert queries[0]["metrics"] == ["100"]
 
 
 def test_build_query_dicts_deck_geojson_adds_geojson_null_filter(monkeypatch):
@@ -2008,9 +2059,7 @@ def test_build_query_dicts_deck_geojson_adds_geojson_null_filter(monkeypatch):
 
     queries = build_query_dicts_from_form_data(form_data, 1, "table")
 
-    assert {"col": "geometry_col", "op": "IS NOT NULL", "val": ""} in queries[0][
-        "filters"
-    ]
+    assert {"col": "geometry_col", "op": "IS NOT NULL"} in queries[0]["filters"]
 
 
 def test_build_query_dicts_deck_hex_string_metric(monkeypatch):
@@ -2055,7 +2104,12 @@ def test_build_query_dicts_deck_hex_orderby_when_metrics_present(monkeypatch):
         "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
         lambda datasource_id, datasource_type: "base",
     )
-    metric = {"expressionType": "SIMPLE", "aggregate": "COUNT", "column": None}
+    metric = {
+        "expressionType": "SIMPLE",
+        "aggregate": "COUNT",
+        "column": None,
+        "label": "record_count",
+    }
     form_data = {
         "viz_type": "deck_hex",
         "spatial": {"type": "geohash", "geohashCol": "geo"},
@@ -2065,7 +2119,7 @@ def test_build_query_dicts_deck_hex_orderby_when_metrics_present(monkeypatch):
 
     queries = build_query_dicts_from_form_data(form_data, 1, "table")
 
-    assert queries[0]["orderby"] == [(metric, False)]
+    assert queries[0]["orderby"] == [["record_count", False]]
 
 
 def test_build_query_dicts_deck_scatter_no_orderby_without_metrics(monkeypatch):
@@ -2093,7 +2147,11 @@ def test_build_query_dicts_deck_arc_time_grain(monkeypatch):
     )
     form_data = {
         "viz_type": "deck_arc",
-        "spatial": {"type": "latlong", "lonCol": "start_lon", "latCol": "start_lat"},
+        "start_spatial": {
+            "type": "latlong",
+            "lonCol": "start_lon",
+            "latCol": "start_lat",
+        },
         "end_spatial": {
             "type": "latlong",
             "lonCol": "end_lon",
@@ -2111,8 +2169,9 @@ def test_build_query_dicts_deck_arc_time_grain(monkeypatch):
     assert queries[0].get("extras", {}).get("time_grain_sqla") == "P1D"
 
 
-def test_build_query_dicts_deck_geojson_ignores_time_grain(monkeypatch):
-    # deck_geojson is not in _DECK_TIMESERIES_VIZ_TYPES; time grain fields not added
+def test_build_query_dicts_deck_geojson_preserves_grain_but_is_not_timeseries(
+    monkeypatch,
+):
     monkeypatch.setattr(
         "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
         lambda datasource_id, datasource_type: "base",
@@ -2127,8 +2186,305 @@ def test_build_query_dicts_deck_geojson_ignores_time_grain(monkeypatch):
 
     queries = build_query_dicts_from_form_data(form_data, 1, "table")
 
-    assert "is_timeseries" not in queries[0]
-    assert queries[0].get("extras", {}).get("time_grain_sqla") is None
+    assert queries[0]["is_timeseries"] is False
+    assert queries[0]["granularity"] == "ts"
+    assert queries[0]["extras"]["time_grain_sqla"] == "P1D"
+
+
+def test_deck_path_final_query_includes_renderer_columns_and_metric_roles(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda *_args: "base",
+    )
+    width_metric = {
+        "expressionType": "SIMPLE",
+        "column": {"column_name": "width_value"},
+        "aggregate": "MAX",
+        "label": "path_width",
+    }
+    breakpoint_metric = {
+        "expressionType": "SIMPLE",
+        "column": {"column_name": "break_value"},
+        "aggregate": "AVG",
+        "label": "path_break",
+    }
+    query = build_query_dicts_from_form_data(
+        {
+            "viz_type": "deck_path",
+            "line_column": "route",
+            "groupby": ["base_group"],
+            "metrics": ["existing_metric"],
+            "metric": "color_metric",
+            "dimension": "route_type",
+            "tooltip_contents": [
+                "owner",
+                {"item_type": "column", "column_name": "city"},
+                "owner",
+            ],
+            "line_width": {"type": "metric", "value": width_metric},
+            "breakpoint_metric": breakpoint_metric,
+            "time_grain_sqla": "P1D",
+            "granularity_sqla": "event_time",
+            "row_limit": 25,
+            "adhoc_filters": [],
+        },
+        1,
+        "table",
+    )[0]
+
+    assert query["columns"] == [
+        "base_group",
+        "route_type",
+        "owner",
+        "city",
+    ]
+    assert query["groupby"] == ["route", "owner", "city"]
+    assert query["metrics"] == [
+        "existing_metric",
+        "color_metric",
+        width_metric,
+        breakpoint_metric,
+    ]
+    assert query["filters"] == [{"col": "route", "op": "IS NOT NULL"}]
+    assert query["is_timeseries"] is True
+    assert query["granularity"] == "event_time"
+    assert query["extras"]["time_grain_sqla"] == "P1D"
+    assert query["row_limit"] == 25
+    assert "orderby" not in query
+
+
+def test_deck_geojson_final_query_includes_cross_filter_and_tooltip_columns(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda *_args: "base",
+    )
+    query = build_query_dicts_from_form_data(
+        {
+            "viz_type": "deck_geojson",
+            "geojson": "geom",
+            "cross_filter_column": "region",
+            "tooltip_contents": ["name", "region"],
+            "metric": "ignored_metric",
+            "adhoc_filters": [],
+        },
+        1,
+        "table",
+    )[0]
+
+    assert query["columns"] == ["geom", "region", "name"]
+    assert query["metrics"] == []
+    assert query["groupby"] == []
+    assert query["filters"] == [{"col": "geom", "op": "IS NOT NULL"}]
+    assert query["is_timeseries"] is False
+
+
+def test_deck_polygon_final_query_has_cross_filter_tooltip_and_metric_null_filter(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda *_args: "base",
+    )
+    elevation = {
+        "expressionType": "SIMPLE",
+        "column": {"column_name": "height"},
+        "aggregate": "MAX",
+        "label": "height_metric",
+    }
+    query = build_query_dicts_from_form_data(
+        {
+            "viz_type": "deck_polygon",
+            "line_column": "polygon",
+            "metric": "value_metric",
+            "point_radius_fixed": {"type": "metric", "value": elevation},
+            "cross_filter_column": "district",
+            "tooltip_contents": ["owner", "district"],
+            "adhoc_filters": [],
+        },
+        1,
+        "table",
+    )[0]
+
+    assert query["columns"] == ["polygon", "district", "owner"]
+    assert query["metrics"] == ["value_metric", elevation]
+    assert query["filters"] == [
+        {"col": "polygon", "op": "IS NOT NULL"},
+        {"col": "value_metric", "op": "IS NOT NULL"},
+    ]
+    assert query["is_timeseries"] is False
+
+
+@pytest.mark.parametrize(
+    "viz_type",
+    [
+        "deck_grid",
+        "deck_hex",
+        "deck_heatmap",
+        "deck_contour",
+        "deck_screengrid",
+    ],
+)
+def test_spatial_deck_layers_share_frontend_metric_tooltip_and_order_contract(
+    monkeypatch: pytest.MonkeyPatch,
+    viz_type: str,
+) -> None:
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda *_args: "base",
+    )
+    metric = {
+        "expressionType": "SIMPLE",
+        "column": {"column_name": "weight"},
+        "aggregate": "SUM",
+        "label": "weight_metric",
+    }
+    query = build_query_dicts_from_form_data(
+        {
+            "viz_type": viz_type,
+            "spatial": {"type": "latlong", "lonCol": "lon", "latCol": "lat"},
+            "size": metric,
+            "tooltip_contents": ["owner"],
+            "time_grain_sqla": "P1D",
+            "granularity_sqla": "event_time",
+            "adhoc_filters": [],
+        },
+        1,
+        "table",
+    )[0]
+
+    assert query["columns"] == ["lon", "lat", "owner"]
+    assert query["metrics"] == [metric]
+    assert query["orderby"] == [["weight_metric", False]]
+    assert query["filters"] == [
+        {"col": "lon", "op": "IS NOT NULL", "val": None},
+        {"col": "lat", "op": "IS NOT NULL", "val": None},
+    ]
+    assert query["is_timeseries"] is False
+    assert query["granularity"] == "event_time"
+    assert query["extras"]["time_grain_sqla"] == "P1D"
+
+
+def test_pivot_combine_metric_rows_keeps_only_full_row_dimension_sets(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda *_args: "base",
+    )
+    query = _query_objects(
+        {
+            "viz_type": "pivot_table_v2",
+            "groupbyRows": ["region", "country"],
+            "groupbyColumns": ["channel", "segment"],
+            "metrics": ["average_revenue"],
+            "combineMetric": True,
+            "metricsLayout": "ROWS",
+            "rowTotals": True,
+            "colTotals": True,
+            "rowSubTotals": True,
+            "colSubTotals": True,
+            "series_limit_metric": "rank_metric",
+            "order_desc": False,
+            "row_limit": 50,
+        }
+    )[0]
+
+    assert query.grouping_sets == [
+        ["region", "country"],
+        ["region", "country", "channel"],
+        ["region", "country", "channel", "segment"],
+    ]
+    assert query.orderby == [["rank_metric", True]]
+    assert query.row_limit == 50
+
+
+def test_pivot_combine_metric_columns_keeps_only_full_column_dimension_sets(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda *_args: "base",
+    )
+    query = _query_objects(
+        {
+            "viz_type": "pivot_table_v2",
+            "groupbyRows": ["region", "country"],
+            "groupbyColumns": ["channel", "segment"],
+            "metrics": ["average_revenue"],
+            "combineMetric": True,
+            "metricsLayout": "COLUMNS",
+            "rowTotals": True,
+            "colTotals": True,
+            "rowSubTotals": True,
+            "colSubTotals": True,
+        }
+    )[0]
+
+    assert query.grouping_sets == [
+        ["channel", "segment"],
+        ["region", "channel", "segment"],
+        ["region", "country", "channel", "segment"],
+    ]
+
+
+@pytest.mark.parametrize(
+    ("show_values_as", "expected"),
+    [
+        (
+            "percent_col",
+            [
+                ["channel", "segment"],
+                ["region", "country", "channel", "segment"],
+            ],
+        ),
+        (
+            "percent_row",
+            [
+                ["region", "country"],
+                ["region", "country", "channel", "segment"],
+            ],
+        ),
+        (
+            "percent_total",
+            [
+                [],
+                ["channel", "segment"],
+                ["region", "country"],
+                ["region", "country", "channel", "segment"],
+            ],
+        ),
+    ],
+)
+def test_pivot_combine_metric_preserves_percent_denominator_levels(
+    monkeypatch: pytest.MonkeyPatch,
+    show_values_as: str,
+    expected: list[list[str]],
+) -> None:
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda *_args: "base",
+    )
+    query = _query_objects(
+        {
+            "viz_type": "pivot_table_v2",
+            "groupbyRows": ["region", "country"],
+            "groupbyColumns": ["channel", "segment"],
+            "metrics": ["average_revenue"],
+            "combineMetric": True,
+            "metricsLayout": "ROWS",
+            "showValuesAs": show_values_as,
+            "rowTotals": False,
+            "colTotals": False,
+            "rowSubTotals": False,
+            "colSubTotals": False,
+        }
+    )[0]
+
+    assert query.grouping_sets == expected
 
 
 def test_resolve_metrics_plural():

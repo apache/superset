@@ -573,9 +573,92 @@ class _AsyncContext:
 
 class TestUnsavedChartDataQueryConstruction:
     @pytest.mark.asyncio
+    async def test_cached_deck_path_uses_layer_query_adapter(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        chart_data_module = importlib.import_module(
+            "superset.mcp_service.chart.tool.get_chart_data"
+        )
+        query_context_factory_module = importlib.import_module(
+            "superset.common.query_context_factory"
+        )
+        get_data_command_module = importlib.import_module(
+            "superset.commands.chart.data.get_data_command"
+        )
+        captured: list[dict[str, Any]] = []
+
+        class QueryContextFactory:
+            def create(self, **kwargs: Any) -> object:
+                captured.append(kwargs)
+                return _query_context_stub(kwargs.get("form_data"))
+
+        class ChartDataCommand:
+            def __init__(self, query_context: object) -> None:
+                self.query_context = query_context
+
+            def validate(self) -> None: ...
+
+            def run(self) -> dict[str, Any]:
+                return {
+                    "queries": [
+                        {
+                            "data": [{"route": "LINESTRING(...)"}],
+                            "colnames": ["route"],
+                            "rowcount": 1,
+                        }
+                    ]
+                }
+
+        monkeypatch.setattr(
+            query_context_factory_module, "QueryContextFactory", QueryContextFactory
+        )
+        monkeypatch.setattr(
+            get_data_command_module, "ChartDataCommand", ChartDataCommand
+        )
+        monkeypatch.setattr(
+            chart_data_module,
+            "event_logger",
+            SimpleNamespace(log_context=lambda **kwargs: nullcontext()),
+        )
+        monkeypatch.setattr(
+            "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+            lambda *_args: "base",
+        )
+
+        await _query_from_form_data(
+            {
+                "datasource": "1__table",
+                "viz_type": "deck_path",
+                "line_column": "route",
+                "dimension": "route_type",
+                "tooltip_contents": ["owner"],
+                "metric": "color_metric",
+                "line_width": {"type": "metric", "value": "width_metric"},
+                "breakpoint_metric": "break_metric",
+            },
+            GetChartDataRequest(form_data_key="cached-key", limit=20),
+            _AsyncContext(),
+        )
+
+        query = captured[0]["queries"][0]
+        assert query["columns"] == ["route_type", "owner"]
+        assert query["groupby"] == ["route", "owner"]
+        assert query["metrics"] == [
+            "color_metric",
+            "width_metric",
+            "break_metric",
+        ]
+        assert query["filters"] == [{"col": "route", "op": "IS NOT NULL"}]
+        assert query["row_limit"] == 20
+        assert "orderby" not in query
+
+    @pytest.mark.parametrize("explicit_axis", [False, True])
+    @pytest.mark.asyncio
     async def test_cached_big_number_uses_timestamp_pivot_and_raw_overall_query(
         self,
         monkeypatch: pytest.MonkeyPatch,
+        explicit_axis: bool,
     ) -> None:
         """The cached/unsaved get-data path uses the final frontend contract."""
         chart_data_module = importlib.import_module(
@@ -601,11 +684,12 @@ class TestUnsavedChartDataQueryConstruction:
             def validate(self) -> None: ...
 
             def run(self) -> dict[str, Any]:
+                time_column = "event_time" if explicit_axis else "__timestamp"
                 return {
                     "queries": [
                         {
-                            "data": [{"__timestamp": "2024-01-01", "Net revenue": 1.0}],
-                            "colnames": ["__timestamp", "Net revenue"],
+                            "data": [{time_column: "2024-01-01", "Net revenue": 1.0}],
+                            "colnames": [time_column, "Net revenue"],
                         },
                         {
                             "data": [{"Net revenue": 1.0}],
@@ -634,27 +718,49 @@ class TestUnsavedChartDataQueryConstruction:
             "sqlExpression": "SUM(revenue) - SUM(cost)",
             "label": "Net revenue",
         }
+        temporal_form_data = (
+            {"x_axis": "event_time", "granularity_sqla": "event_time"}
+            if explicit_axis
+            else {"granularity_sqla": "event_time"}
+        )
 
         await _query_from_form_data(
             {
                 "datasource": "1__table",
                 "viz_type": "big_number",
                 "metric": metric,
-                "granularity_sqla": "event_time",
                 "time_grain_sqla": "P1D",
                 "aggregation": "raw",
+                **temporal_form_data,
             },
             GetChartDataRequest(form_data_key="cached-key"),
             _AsyncContext(),
         )
 
         trend, raw = captured_query_contexts[0]["queries"]
-        assert trend["columns"] == []
+        expected_columns = (
+            [
+                {
+                    "timeGrain": "P1D",
+                    "columnType": "BASE_AXIS",
+                    "sqlExpression": "event_time",
+                    "label": "event_time",
+                    "expressionType": "SQL",
+                    "isColumnReference": True,
+                }
+            ]
+            if explicit_axis
+            else []
+        )
+        assert trend["columns"] == expected_columns
         assert trend["series_columns"] == []
         assert trend["metrics"] == [metric]
-        assert trend["is_timeseries"] is True
+        if explicit_axis:
+            assert "is_timeseries" not in trend
+        else:
+            assert trend["is_timeseries"] is True
         assert trend["post_processing"][0]["options"] == {
-            "index": ["__timestamp"],
+            "index": ["event_time" if explicit_axis else "__timestamp"],
             "columns": [],
             "aggregates": {"Net revenue": {"operator": "mean"}},
             "drop_missing_columns": True,

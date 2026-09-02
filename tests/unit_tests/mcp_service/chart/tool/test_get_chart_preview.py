@@ -143,7 +143,6 @@ def test_saved_big_number_preview_executes_timestamp_pivot_without_series(
     app_context: None,
 ) -> None:
     from superset.common.query_object import QueryObject
-    from superset.utils.core import DTTM_ALIAS
 
     query_context_factory_module = importlib.import_module(
         "superset.common.query_context_factory"
@@ -172,20 +171,20 @@ def test_saved_big_number_preview_executes_timestamp_pivot_without_series(
             processed = query.exec_post_processing(
                 pd.DataFrame(
                     {
-                        DTTM_ALIAS: pd.to_datetime(["2024-01-01", "2024-02-01"]),
+                        "event_time": pd.to_datetime(["2024-01-01", "2024-02-01"]),
                         "saved_revenue": [1.0, 2.0],
                     }
                 )
             )
-            assert list(processed.columns) == [DTTM_ALIAS, "saved_revenue"]
+            assert list(processed.columns) == ["event_time", "saved_revenue"]
             return {
                 "queries": [
                     {
                         "data": [
-                            {DTTM_ALIAS: "2024-01-01", "saved_revenue": 1.0},
-                            {DTTM_ALIAS: "2024-02-01", "saved_revenue": 2.0},
+                            {"event_time": "2024-01-01", "saved_revenue": 1.0},
+                            {"event_time": "2024-02-01", "saved_revenue": 2.0},
                         ],
-                        "colnames": [DTTM_ALIAS, "saved_revenue"],
+                        "colnames": ["event_time", "saved_revenue"],
                     }
                 ]
             }
@@ -206,6 +205,7 @@ def test_saved_big_number_preview_executes_timestamp_pivot_without_series(
             {
                 "viz_type": "big_number",
                 "metric": "saved_revenue",
+                "x_axis": "event_time",
                 "granularity_sqla": "event_time",
                 "time_grain_sqla": "P1M",
             }
@@ -218,15 +218,102 @@ def test_saved_big_number_preview_executes_timestamp_pivot_without_series(
 
     assert isinstance(preview, ASCIIPreview)
     query = captured["queries"][0]
-    assert query["columns"] == []
+    assert query["columns"] == [
+        {
+            "timeGrain": "P1M",
+            "columnType": "BASE_AXIS",
+            "sqlExpression": "event_time",
+            "label": "event_time",
+            "expressionType": "SQL",
+            "isColumnReference": True,
+        }
+    ]
     assert query["series_columns"] == []
-    assert query["is_timeseries"] is True
+    assert "is_timeseries" not in query
     assert query["post_processing"][0]["options"] == {
-        "index": [DTTM_ALIAS],
+        "index": ["event_time"],
         "columns": [],
         "aggregates": {"saved_revenue": {"operator": "mean"}},
         "drop_missing_columns": True,
     }
+
+
+def test_saved_deck_geojson_preview_uses_layer_query_adapter(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from superset.common.query_object import QueryObject
+
+    query_context_factory_module = importlib.import_module(
+        "superset.common.query_context_factory"
+    )
+    command_module = importlib.import_module(
+        "superset.commands.chart.data.get_data_command"
+    )
+    captured: dict[str, Any] = {}
+
+    class _Factory:
+        def create(self, **kwargs: Any) -> Any:
+            captured.update(kwargs)
+            return SimpleNamespace(
+                form_data=kwargs["form_data"],
+                queries=[QueryObject(**query) for query in kwargs["queries"]],
+            )
+
+    class _Command:
+        def __init__(self, query_context: Any) -> None:
+            self.query_context = query_context
+
+        def validate(self) -> None: ...
+
+        def run(self) -> dict[str, Any]:
+            return {
+                "queries": [
+                    {
+                        "data": [
+                            {
+                                "geom": '{"type":"Point","coordinates":[0,0]}',
+                                "region": "North",
+                                "name": "HQ",
+                            }
+                        ],
+                        "colnames": ["geom", "region", "name"],
+                    }
+                ]
+            }
+
+    monkeypatch.setattr(query_context_factory_module, "QueryContextFactory", _Factory)
+    monkeypatch.setattr(command_module, "ChartDataCommand", _Command)
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda *_args: "base",
+    )
+    chart = SimpleNamespace(
+        id=107,
+        slice_name="Regions",
+        viz_type="deck_geojson",
+        datasource_id=1,
+        datasource_type="table",
+        params=utils_json.dumps(
+            {
+                "viz_type": "deck_geojson",
+                "geojson": "geom",
+                "cross_filter_column": "region",
+                "tooltip_contents": ["name"],
+            }
+        ),
+    )
+
+    preview = TablePreviewStrategy(
+        chart, GetChartPreviewRequest(identifier=107, format="table")
+    ).generate()
+
+    assert isinstance(preview, TablePreview)
+    query = captured["queries"][0]
+    assert query["columns"] == ["geom", "region", "name"]
+    assert query["metrics"] == []
+    assert query["groupby"] == []
+    assert query["filters"] == [{"col": "geom", "op": "IS NOT NULL"}]
+    assert query["is_timeseries"] is False
 
 
 @pytest.mark.parametrize("strategy_name", ["ascii", "table", "vega_lite"])

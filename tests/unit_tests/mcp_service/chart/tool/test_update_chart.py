@@ -1552,13 +1552,26 @@ class TestBuildPreviewFormData:
         chart.id = 5
         chart.datasource_id = 3
         chart.slice_name = "Old"
-        chart.params = '{"viz_type": "big_number", "metric": "count"}'
+        chart.params = json.dumps(
+            {
+                "viz_type": "big_number",
+                "metric": "count",
+                "x_axis": "event_time",
+                "granularity_sqla": "event_time",
+                "time_grain_sqla": "P1D",
+                "aggregation": "raw",
+            }
+        )
 
         result = _build_preview_form_data(request, chart)
 
         assert isinstance(result, dict)
         assert result["viz_type"] == "big_number"
         assert result["metric"] == "count"
+        assert result["x_axis"] == "event_time"
+        assert result["granularity_sqla"] == "event_time"
+        assert result["time_grain_sqla"] == "P1D"
+        assert result["aggregation"] == "raw"
         assert result["slice_name"] == "Brand New Name"
         assert result["slice_id"] == 5
 
