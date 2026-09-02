@@ -87,8 +87,10 @@ from superset.datasets.schemas import (
     openapi_spec_methods_override,
 )
 from superset.exceptions import (
+    OAuth2RedirectError,
     SupersetSyntaxErrorException,
     SupersetTemplateException,
+    SupersetTimeoutException,
 )
 from superset.jinja_context import BaseTemplateProcessor, get_template_processor
 from superset.subjects.filters import FilterRelatedSubjects, subject_type_filter
@@ -459,7 +461,6 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
 
     @expose("/", methods=("POST",))
     @protect()
-    @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.post",
@@ -514,6 +515,12 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
                 data=new_model.data,
                 uuid=new_model.uuid,
             )
+        except OAuth2RedirectError:
+            # Must reach the client unchanged to start the OAuth2 dance;
+            # ``@safe`` isn't used on this endpoint since it would otherwise
+            # swallow this into an opaque 500 that drops the ``url``/``tab_id``
+            # extras the frontend needs.
+            raise
         except DatasetSoftDeletedTwinExistsError as ex:
             return self.response_422(message=str(ex))
         except DatasetInvalidError as ex:
@@ -526,6 +533,24 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
                 exc_info=True,
             )
             return self.response_422(message=str(ex))
+        except SupersetTimeoutException as ex:
+            # ``CreateDatasetCommand`` deliberately re-raises this, along with
+            # other infra-level failures, unchanged instead of coercing it
+            # into a 422 "invalid table"/"invalid sql" error. Of that group,
+            # only the timeout has a status (408) worth surfacing distinctly;
+            # the ``SupersetDBAPIError`` subclasses inherit the base class's
+            # 500 and fall through to the broad ``except Exception`` below so
+            # their raw driver/connection text isn't echoed to the client.
+            logger.warning("Error creating dataset: %s", ex, exc_info=True)
+            return self.response(ex.status, message=str(ex))
+        except Exception:  # pylint: disable=broad-except
+            # ``@safe`` isn't used on this endpoint (it would swallow the
+            # ``OAuth2RedirectError`` re-raised above into an opaque 500), so
+            # replicate its behavior here for any other unexpected exception:
+            # log the full error server-side, but don't echo internal details
+            # (ORM/driver error text, connection info) back to the caller.
+            logger.exception("Unexpected error in DatasetRestApi.post")
+            return self.response_500(message="Fatal error")
 
     @expose("/<pk>", methods=("PUT",))
     @protect()
