@@ -126,6 +126,7 @@ const RowBreak = styled.li`
 export type TimeseriesLegendProps = TimeseriesCustomLegend & {
   maxHeight: number;
   onAll: () => void;
+  onHover?: (name: string | null) => void;
   onInverse: () => void;
   onToggle: (name: string) => void;
 };
@@ -134,6 +135,7 @@ function TimeseriesLegend({
   items,
   maxHeight,
   onAll,
+  onHover,
   onInverse,
   onToggle,
   showSelectors,
@@ -173,6 +175,8 @@ function TimeseriesLegend({
                     onToggle(item.name);
                   }
                 }}
+                onMouseEnter={() => onHover?.(item.name)}
+                onMouseLeave={() => onHover?.(null)}
               >
                 <Swatch
                   aria-hidden

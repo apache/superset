@@ -811,7 +811,7 @@ export default function EchartsTimeseries({
   };
 
   const dispatchLegendAction = useCallback(
-    (action: { name?: string; type: string }) => {
+    (action: { name?: string; seriesName?: string; type: string }) => {
       echartRef.current?.getEchartInstance()?.dispatchAction(action);
     },
     [],
@@ -870,6 +870,12 @@ export default function EchartsTimeseries({
               {...customLegend}
               maxHeight={customLegendMaxHeight}
               onAll={() => dispatchLegendAction({ type: 'legendAllSelect' })}
+              onHover={name =>
+                dispatchLegendAction({
+                  seriesName: name ?? undefined,
+                  type: name === null ? 'downplay' : 'highlight',
+                })
+              }
               onInverse={() =>
                 dispatchLegendAction({ type: 'legendInverseSelect' })
               }
