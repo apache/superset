@@ -353,11 +353,33 @@ export default function StatefulChart(props: StatefulChartProps) {
               'the async handler or disable GLOBAL_ASYNC_QUERIES for this chart.',
           );
         }
-        // Re-issue from the warm per-query cache (force off) and extract rows.
-        const refetch = async (): Promise<QueryData[]> => {
+        // Re-issue synchronously from the warm per-query cache and extract rows.
+        // A forced request re-sends `force: true` and stamps each query's task id
+        // (passed by the async handler) as its `force_nonce`, so the backend serves
+        // the result that task cached rather than recomputing — and re-forces
+        // (instead of serving stale) if that result was not persisted. Non-forced
+        // reads carry neither. `async_mode` is intentionally omitted so the read-back
+        // resolves inline instead of returning another 202.
+        const refetch = async (
+          queryForceNonces?: string[],
+        ): Promise<QueryData[]> => {
+          const nonces = force ? queryForceNonces : undefined;
+          const readBackContext = nonces?.length
+            ? {
+                ...queryContext,
+                queries: queryContext.queries.map((query, index) =>
+                  nonces[index]
+                    ? { ...query, force_nonce: nonces[index] }
+                    : query,
+                ),
+              }
+            : queryContext;
           const cached = await chartClientRef.current!.client.post({
             ...requestConfig,
-            jsonPayload: queryContext,
+            jsonPayload: {
+              ...readBackContext,
+              ...(force && { force: true }),
+            },
           });
           return extractRows(cached.json);
         };
