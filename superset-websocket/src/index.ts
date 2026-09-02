@@ -496,9 +496,10 @@ export const routeRedisMessage = (
  * every browser-bound message (broadcast and targeted, distinguished by each
  * envelope's scope).
  *
- * Pub/Sub is lossy and not replayable, so there is no server-side catch-up: a
- * message published while a socket was away is simply gone, and the browser's
- * interval poll is the correctness backstop.
+ * Pub/Sub is best-effort and not replayable, so there is no server-side catch-up:
+ * a message published while a socket was away is simply gone. The browser recovers
+ * by reconciling through the authorized REST API — a ``status_changes`` catch-up on
+ * (re)connect and a last-chance read before giving up — not an interval poll.
  *
  * Failure to subscribe at all is observable and self-healing rather than silent:
  * if the initial ``subscribe`` rejects (e.g. Redis unreachable at startup) it is

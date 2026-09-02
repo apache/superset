@@ -80,12 +80,14 @@ class CoordinationService:
       that connection instead of the shared coordinator.
     - **Await / notify** — ``notify`` (signal) plus ``wait_for_signal``
       (blocking) and ``listen_for_signal`` (background), combining a channel with a
-      caller-supplied predicate. Signals ride Redis Streams; because stream entries
-      are persisted, a waiter that reads slightly late, reconnects, or fails over
-      still receives them. With a backend the waiter blocks on the stream and wakes
-      when a signal lands (event-driven, no polling); without a backend it polls the
-      predicate. The predicate is the source of truth, so a duplicate or already-seen
-      signal is harmless.
+      caller-supplied predicate. Signals ride Redis Streams rather than pub/sub:
+      stream entries are persisted, so — unlike at-most-once pub/sub, which a waiter
+      that subscribed slightly late or reconnected would simply miss — a waiter that
+      reads slightly late, reconnects, or fails over still receives them. With a
+      backend the waiter blocks on the stream and wakes when a signal lands
+      (event-driven, no polling); without a backend it polls the predicate. The
+      predicate is the source of truth, so a duplicate or already-seen signal is
+      harmless.
 
     All methods are class-level: the service is app-global. Calls resolve the shared
     coordination backend from ``DISTRIBUTED_COORDINATION_CONFIG`` on each call, except

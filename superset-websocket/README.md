@@ -41,8 +41,10 @@ same browser-visible host.
 
 Realtime events are published to a single Redis **Pub/Sub** channel, `realtime`,
 by the Superset Flask app (`superset/tasks/manager.py`). Pub/Sub is intentionally
-lossy (fire-and-forget): a missed message must be reconciled by a frontend poll or
-REST refetch.
+best-effort (fire-and-forget, at-most-once — no replay): it accelerates each
+feature's authoritative REST/poll path rather than guaranteeing delivery, so a
+message missed during a disconnect is reconciled by a frontend catch-up / REST
+refetch.
 
 Each Redis message is a self-describing envelope that separates **what** a message
 is from **who** receives it:
@@ -72,7 +74,7 @@ is from **who** receives it:
 
 The two topics in use:
 
-1. **`entity.changed`** (`scope: authenticated_global`). A lossy "an entity
+1. **`entity.changed`** (`scope: authenticated_global`). An "an entity
    changed" broadcast whose payload carries only opaque ids
    (`{entity_type, id}`) — no status or sensitive data — so a list view can learn
    that an entity of a type it renders changed and re-fetch just the affected rows
@@ -134,7 +136,7 @@ previous key configured on the websocket service until old cookies and open
 sockets have aged out, then remove it.
 
 The service is stateless apart from process-local live socket handles. Each
-replica subscribes to the same Redis Pub/Sub channel, receives the same lossy
+replica subscribes to the same Redis Pub/Sub channel, receives the same
 events, and forwards only to matching sockets connected to that replica. Sticky
 sessions are not required; reconnecting to another replica reuses the JWT cookie
 and binds the socket to the same principal channel. Short websocket JWT

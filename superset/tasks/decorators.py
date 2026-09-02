@@ -251,8 +251,9 @@ class TaskWrapper(Generic[P]):
         """
         Merge decorator defaults with call-time overrides.
 
-        Call-time options take precedence over decorator defaults.
-        For timeout, an explicit None in TaskOptions disables the decorator timeout.
+        Call-time options take precedence over decorator defaults. A call-time
+        ``timeout`` overrides only when set to a concrete value; ``None`` inherits
+        the decorator's timeout.
 
         Args:
             override_options: Options provided at call time, or None
@@ -268,9 +269,9 @@ class TaskWrapper(Generic[P]):
                 depends_on=self.default_options.depends_on,
             )
 
-        # Merge: use override if provided, otherwise use default
-        # For timeout: if override_options.timeout is explicitly set (even to None),
-        # use it; otherwise fall back to decorator default
+        # Merge: use override if provided, otherwise use default.
+        # For timeout: use the override only when it is a concrete value; ``None``
+        # (the default) falls back to the decorator timeout — it does not disable it.
         return TaskOptions(
             task_key=override_options.task_key or self.default_options.task_key,
             task_name=override_options.task_name or self.default_options.task_name,

@@ -792,7 +792,7 @@ test('WS mode: an in-flight catch-up does not clobber a cursor rewound mid-fligh
 
 test('WS mode: a genuinely lost completion gives up after the timeout', async () => {
   jest.useFakeTimers();
-  queueStatuses(); // nothing ever reports success
+  queueStatuses(); // nothing ever reports success (neither catch-up finds it)
   asyncEvent.init({
     ...wsConfig,
     GLOBAL_ASYNC_QUERIES_POLLING_STALE_TIMEOUT: 1000,
@@ -805,7 +805,33 @@ test('WS mode: a genuinely lost completion gives up after the timeout', async ()
   // Attach the rejection handler before the give-up timer fires.
   const expectation = expect(promise).rejects.toThrow('Timed out');
 
-  await jest.advanceTimersByTimeAsync(1000);
+  // Past the jittered deadline (+ up to GIVE_UP_JITTER_MS); the awaited last-chance
+  // catch-up finds nothing, so the waiter is rejected.
+  await jest.advanceTimersByTimeAsync(1000 + 5000 + 200);
   await expectation;
+  jest.useRealTimers();
+});
+
+test('WS mode: the last-chance catch-up before give-up recovers a missed completion', async () => {
+  jest.useFakeTimers();
+  // Registration catch-up consumes the empty baseline; by give-up time the task
+  // has completed, so the give-up's one-shot catch-up picks it up and the waiter
+  // resolves instead of rejecting (the "message missed but socket stayed open" case).
+  queueStatuses({ 'task-1': { status: 'success' } });
+  asyncEvent.init({
+    ...wsConfig,
+    GLOBAL_ASYNC_QUERIES_POLLING_STALE_TIMEOUT: 1000,
+  });
+
+  const refetch = jest.fn().mockResolvedValue([{ rows: 1 }]);
+  const promise = asyncEvent.waitForAsyncData(
+    { task_ids: ['task-1'] },
+    refetch,
+  );
+
+  // Reach the give-up deadline (+ jitter); its catch-up finds the completion.
+  await jest.advanceTimersByTimeAsync(1000 + 5000 + 200);
+  expect(await promise).toEqual([{ rows: 1 }]);
+  expect(refetch).toHaveBeenCalledTimes(1);
   jest.useRealTimers();
 });
