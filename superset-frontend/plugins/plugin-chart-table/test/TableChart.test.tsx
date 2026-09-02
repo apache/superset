@@ -2815,6 +2815,88 @@ describe('plugin-chart-table', () => {
     }
   });
 
+  test.each([
+    {
+      eventOrder: 'compositionend before blur',
+      leaveInput: (searchInput: HTMLElement) => {
+        fireEvent.compositionEnd(searchInput, {
+          target: { value: 'nihao' },
+        });
+        fireEvent.blur(searchInput);
+      },
+    },
+    {
+      eventOrder: 'blur without compositionend',
+      leaveInput: (searchInput: HTMLElement) => {
+        fireEvent.blur(searchInput);
+      },
+    },
+  ])(
+    'searches the input value after blur mid-composition ($eventOrder)',
+    async ({ leaveInput }) => {
+      jest.useFakeTimers();
+      try {
+        const setDataMask = jest.fn();
+        const props = transformProps({
+          ...testData.raw,
+          rawFormData: {
+            ...testData.raw.rawFormData,
+            server_pagination: true,
+            include_search: true,
+          },
+          hooks: { setDataMask },
+          queriesData: [
+            {
+              ...testData.raw.queriesData[0],
+              colnames: ['name'],
+              coltypes: [GenericDataType.String],
+              data: [{ name: 'Michael' }, { name: 'John' }],
+            },
+          ],
+        });
+        render(
+          ProviderWrapper({
+            children: (
+              <TableChart {...props} setDataMask={setDataMask} sticky={false} />
+            ),
+          }),
+        );
+
+        const searchInput = screen.getByRole('textbox');
+        const searchCalls = () =>
+          setDataMask.mock.calls.filter(([mask]) =>
+            Object.prototype.hasOwnProperty.call(
+              mask?.ownState ?? {},
+              'searchText',
+            ),
+          );
+
+        fireEvent.compositionStart(searchInput);
+        fireEvent.change(searchInput, { target: { value: 'nihao' } });
+
+        await act(async () => {
+          jest.advanceTimersByTime(50);
+        });
+        leaveInput(searchInput);
+        expect(searchCalls()).toHaveLength(0);
+
+        await act(async () => {
+          jest.advanceTimersByTime(300);
+        });
+        await act(async () => {
+          jest.advanceTimersByTime(900);
+        });
+
+        expect(searchInput).toHaveValue('nihao');
+        const calls = searchCalls();
+        expect(calls).toHaveLength(1);
+        expect(calls[0][0].ownState.searchText).toBe('nihao');
+      } finally {
+        jest.useRealTimers();
+      }
+    },
+  );
+
   test(
     'should read the totals row from the correct query when percent metrics ' +
       'use the "all records" calculation mode',
