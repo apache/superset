@@ -29,7 +29,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 import numpy as np
 import pandas as pd
 import pytz
-from dateutil import tz as dateutil_tz
+from dateutil import tz as dateutil_tz, zoneinfo as dateutil_zoneinfo
 
 from superset.common.chart_data import ChartDataResultFormat
 from superset.common.db_query_status import QueryStatus
@@ -105,6 +105,9 @@ _PANDAS_NAT_TYPE = type(pd.NaT)
 _PANDAS_NA_TYPE = type(pd.NA)
 _DATEUTIL_FIXED_TIMEZONE_TYPES = frozenset(
     {type(dateutil_tz.tzoffset(None, 0)), type(dateutil_tz.tzutc())}
+)
+_DATEUTIL_NAMED_TIMEZONE_TYPES = frozenset(
+    {dateutil_tz.tzfile, dateutil_zoneinfo.tzfile}
 )
 _PYTZ_FIXED_TIMEZONE_TYPES = frozenset({type(pytz.FixedOffset(1))})
 
@@ -202,16 +205,21 @@ def _type_mro(value_type: type[Any]) -> tuple[type[Any], ...]:
     return mro if type(mro) is tuple else ()
 
 
-def _timezone_name_without_hooks(tzinfo: Any) -> str | None:
+def _timezone_name_without_hooks(tzinfo: Any) -> str | None:  # noqa: C901
     """Read common pytz/dateutil zone state without dispatching timezone hooks."""
-    for base in _type_mro(type(tzinfo)):
-        try:
-            namespace = type.__getattribute__(base, "__dict__")
-        except (AttributeError, TypeError):  # pragma: no cover
-            continue
-        zone = namespace.get("zone")
-        if type(zone) is str and _bounded_utf8_length(zone, 256) is not None:
-            return zone
+    value_mro = _type_mro(type(tzinfo))
+    if any(base is pytz.tzinfo.BaseTzInfo for base in value_mro):
+        for base in value_mro:
+            try:
+                namespace = type.__getattribute__(base, "__dict__")
+            except (AttributeError, TypeError):  # pragma: no cover
+                continue
+            zone = namespace.get("zone")
+            if type(zone) is str and _bounded_utf8_length(zone, 256) is not None:
+                return zone
+
+    if type(tzinfo) not in _DATEUTIL_NAMED_TIMEZONE_TYPES:
+        return None
 
     try:
         namespace = object.__getattribute__(tzinfo, "__dict__")
@@ -219,17 +227,19 @@ def _timezone_name_without_hooks(tzinfo: Any) -> str | None:
         return None
     if type(namespace) is not dict:
         return None
-    zone = dict.get(namespace, "zone")
-    if type(zone) is str and _bounded_utf8_length(zone, 256) is not None:
-        return zone
     filename = dict.get(namespace, "_filename")
     if type(filename) is not str or _bounded_utf8_length(filename, 4_096) is None:
         return None
     marker = "/zoneinfo/"
-    offset = str.find(filename, marker)
-    if offset < 0:
+    if (offset := str.find(filename, marker)) >= 0:
+        name = str.__getitem__(filename, slice(offset + len(marker), None))
+    elif not str.startswith(filename, "/") and str.find(filename, "\\") < 0:
+        name = filename
+    else:
         return None
-    name = str.__getitem__(filename, slice(offset + len(marker), None))
+    parts = str.split(name, "/")
+    if not parts or any(part in {"", ".", ".."} for part in parts):
+        return None
     return name if _bounded_utf8_length(name, 256) is not None else None
 
 

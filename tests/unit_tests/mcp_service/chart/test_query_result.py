@@ -26,7 +26,7 @@ import numpy as np
 import pandas as pd
 import pytest
 import pytz
-from dateutil import tz as dateutil_tz
+from dateutil import tz as dateutil_tz, zoneinfo as dateutil_zoneinfo
 
 from superset.commands.chart.data.get_data_command import ChartDataCommand
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
@@ -682,6 +682,10 @@ def test_pandas_timestamp_preserves_fold_offset() -> None:
         (dateutil_tz.tzoffset("IST", 19_800), "2024-01-02T03:04:05+05:30"),
         (pytz.FixedOffset(-240), "2024-01-02T03:04:05-04:00"),
         (dateutil_tz.gettz("US/Pacific"), "2024-01-02T03:04:05-08:00"),
+        (
+            dateutil_zoneinfo.get_zonefile_instance().get("America/Los_Angeles"),
+            "2024-01-02T03:04:05-08:00",
+        ),
     ],
 )
 def test_pandas_timestamp_accepts_safe_producer_timezones(
