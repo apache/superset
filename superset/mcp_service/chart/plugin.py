@@ -31,6 +31,7 @@ from collections.abc import Mapping
 from typing import Any, ClassVar, Protocol, runtime_checkable
 
 from superset.common.form_data_query_context import (
+    MIXED_TIMESERIES_SECONDARY_QUERY_KEYS,
     SHARED_FORM_DATA_QUERY_ROLE_KEYS,
 )
 from superset.mcp_service.chart.schemas import ColumnRef
@@ -50,16 +51,29 @@ from superset.mcp_service.common.error_schemas import ChartGenerationError
 # the union because the server fallback also sees a single form-data mapping;
 # a role left by another viz must never become an accidental query input.
 _REGISTERED_PRIMARY_QUERY_ROLE_KEYS = frozenset(
-    {"column", "groupbyColumns", "groupbyRows", "percent_metrics", "x_axis"}
+    {
+        "column",
+        "entity",
+        "groupbyColumns",
+        "groupbyRows",
+        "percent_metrics",
+        "series_columns",
+        "x_axis",
+    }
 )
-REGISTERED_PLUGIN_QUERY_ROLE_KEYS = _REGISTERED_PRIMARY_QUERY_ROLE_KEYS | {
-    # Mixed Timeseries constructs query B by retaining every ``*_b`` key and
-    # removing its suffix before calling the shared builder.  Deriving these
-    # names from the primary contract prevents the secondary vocabulary from
-    # drifting when a shared or registered role is added.
-    f"{key}_b"
-    for key in SHARED_FORM_DATA_QUERY_ROLE_KEYS | _REGISTERED_PRIMARY_QUERY_ROLE_KEYS
-}
+REGISTERED_PLUGIN_QUERY_ROLE_KEYS = (
+    _REGISTERED_PRIMARY_QUERY_ROLE_KEYS
+    | {
+        # Mixed Timeseries constructs query B by retaining every ``*_b`` key and
+        # removing its suffix before calling the shared builder.  Deriving these
+        # names from the primary contract prevents the secondary vocabulary from
+        # drifting when a shared or registered role is added.
+        f"{key}_b"
+        for key in SHARED_FORM_DATA_QUERY_ROLE_KEYS
+        | _REGISTERED_PRIMARY_QUERY_ROLE_KEYS
+    }
+    | MIXED_TIMESERIES_SECONDARY_QUERY_KEYS
+)
 QUERY_ROLE_KEYS = SHARED_FORM_DATA_QUERY_ROLE_KEYS | REGISTERED_PLUGIN_QUERY_ROLE_KEYS
 
 

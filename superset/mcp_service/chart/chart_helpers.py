@@ -545,82 +545,6 @@ def extract_x_axis_col(form_data: dict[str, Any]) -> str | None:
     return None
 
 
-def _build_single_query_dict(
-    form_data: dict[str, Any],
-    columns: list[Any],
-    metrics: list[Any],
-    row_limit: int | None = None,
-    order_desc: bool | None = None,
-) -> dict[str, Any]:
-    """Build one query entry for QueryContextFactory from form_data fields."""
-    qd: dict[str, Any] = {"columns": columns, "metrics": metrics}
-    effective_row_limit = row_limit
-    if effective_row_limit is None:
-        effective_row_limit = form_data.get("row_limit")
-    if effective_row_limit is not None:
-        qd["row_limit"] = effective_row_limit
-    if order_desc is not None:
-        qd["order_desc"] = order_desc
-    apply_form_data_filters_to_query(qd, form_data)
-    return qd
-
-
-def _apply_sunburst_query_transforms(
-    query: dict[str, Any], form_data: dict[str, Any]
-) -> None:
-    """Mirror the frontend-only transformations in Sunburst/buildQuery.ts."""
-    if form_data.get("sort_by_metric") and form_data.get("metric"):
-        query["orderby"] = [[form_data["metric"], False]]
-    if granularity := form_data.get("granularity_sqla"):
-        query["granularity"] = granularity
-    if time_grain := form_data.get("time_grain_sqla"):
-        query.setdefault("extras", {})["time_grain_sqla"] = time_grain
-
-
-def _build_mixed_timeseries_secondary(
-    form_data: dict[str, Any],
-    x_axis_col: str | None,
-    engine: str,
-    row_limit: int | None = None,
-    order_desc: bool | None = None,
-) -> dict[str, Any]:
-    """Build the secondary query dict for the ``mixed_timeseries`` viz type."""
-    # avoid circular import
-    from superset.utils.core import split_adhoc_filters_into_base_filters
-
-    metrics_b: list[Any] = list(form_data.get("metrics_b") or [])
-    raw_b = form_data.get("groupby_b") or []
-    groupby_b: list[Any] = [raw_b] if isinstance(raw_b, str) else list(raw_b)
-    if x_axis_col and x_axis_col not in groupby_b:
-        groupby_b = [x_axis_col] + groupby_b
-
-    qd = _build_single_query_dict(
-        form_data,
-        groupby_b,
-        metrics_b,
-        row_limit=row_limit,
-        order_desc=order_desc,
-    )
-    if time_range_b := form_data.get("time_range_b"):
-        qd["time_range"] = time_range_b
-    if row_limit is None and (row_limit_b := form_data.get("row_limit_b")) is not None:
-        qd["row_limit"] = row_limit_b
-
-    if adhoc_filters_b := form_data.get("adhoc_filters_b"):
-        secondary_fd: dict[str, Any] = {"adhoc_filters": adhoc_filters_b}
-        split_adhoc_filters_into_base_filters(secondary_fd, engine)
-        if secondary_filters := secondary_fd.get("filters"):
-            qd["filters"] = secondary_filters
-        else:
-            qd.pop("filters", None)
-        for clause in ("where", "having"):
-            if secondary_clause := secondary_fd.get(clause):
-                qd[clause] = secondary_clause
-            else:
-                qd.pop(clause, None)
-    return qd
-
-
 # Deck.gl viz types that conditionally set is_timeseries from time_grain_sqla
 _DECK_TIMESERIES_VIZ_TYPES: frozenset[str] = frozenset(
     {"deck_arc", "deck_path", "deck_polygon", "deck_scatter", "deck_screengrid"}
@@ -649,7 +573,18 @@ def build_query_dicts_from_form_data(
     row_limit: int | None = None,
     order_desc: bool | None = None,
 ) -> list[dict[str, Any]]:
-    """Build chart-type-aware query dicts from Explore form_data."""
+    """Build chart-type-aware query dicts from Explore form_data.
+
+    The field extraction and registered-viz adapters live in
+    ``superset.common.form_data_query_context``. This production entry point
+    only performs server filter normalization and the legacy Deck.gl spatial
+    augmentation before delegating to that shared frontend-equivalent contract.
+    """
+    from superset.common.form_data_query_context import (
+        build_query_objects_from_form_data,
+        retain_mixed_timeseries_secondary_form_data,
+    )
+
     viz_type: str = (
         form_data.get("viz_type")
         or (getattr(chart, "viz_type", "") if chart else "")
@@ -658,6 +593,11 @@ def build_query_dicts_from_form_data(
     _validate_sunburst_simple_filter_clauses(form_data, viz_type)
 
     engine = resolve_datasource_engine(datasource_id, datasource_type)
+    secondary_form_data = (
+        retain_mixed_timeseries_secondary_form_data(form_data)
+        if viz_type == "mixed_timeseries"
+        else None
+    )
     prepare_form_data_for_query(
         form_data,
         datasource_id,
@@ -665,67 +605,57 @@ def build_query_dicts_from_form_data(
         extra_form_data,
         datasource_engine=engine,
     )
+    if secondary_form_data is not None:
+        prepare_form_data_for_query(
+            secondary_form_data,
+            datasource_id,
+            datasource_type,
+            extra_form_data,
+            datasource_engine=engine,
+        )
 
-    metrics, groupby = resolve_metrics_and_groupby(form_data, chart)
     # Deck.gl charts use spatial column configs rather than the standard
     # metrics / groupby fields. Extract columns from the spatial controls.
     if viz_type.startswith("deck_"):
-        deck_columns = resolve_deck_gl_columns(form_data)
-        deck_metrics = _resolve_deck_gl_metrics(form_data, viz_type)
-        qd = _build_single_query_dict(
+        qd = build_query_objects_from_form_data(
             form_data,
-            deck_columns,
-            deck_metrics,
+            viz_type=viz_type,
             row_limit=row_limit,
             order_desc=order_desc,
-        )
+            filters_prepared=True,
+        )[0]
+        deck_columns = resolve_deck_gl_columns(form_data)
+        deck_metrics = _resolve_deck_gl_metrics(form_data, viz_type)
+        qd["columns"] = deck_columns
+        qd["metrics"] = deck_metrics
         if deck_metrics:
             # Mirror BaseDeckGLViz.query_obj(): order by first metric descending
             qd["orderby"] = [(deck_metrics[0], not form_data.get("order_desc", True))]
+        else:
+            qd.pop("orderby", None)
         if viz_type in _DECK_TIMESERIES_VIZ_TYPES and (
             time_grain := form_data.get("time_grain_sqla")
         ):
             qd["is_timeseries"] = True
             qd["granularity"] = form_data.get("granularity_sqla")
             qd.setdefault("extras", {})["time_grain_sqla"] = time_grain
+        elif extras := qd.get("extras"):
+            extras.pop("time_grain_sqla", None)
+            if not extras:
+                qd.pop("extras", None)
         if form_data.get("filter_nulls", True):
             null_filters = _deck_gl_null_filters(form_data)
             if null_filters:
                 qd["filters"] = [*(qd.get("filters") or []), *null_filters]
         return [qd]
-
-    is_timeseries = (
-        viz_type.startswith("echarts_timeseries") or viz_type == "mixed_timeseries"
-    )
-
-    x_axis_col: str | None = None
-    if is_timeseries:
-        x_axis_col = extract_x_axis_col(form_data)
-        if x_axis_col and x_axis_col not in groupby:
-            groupby = [x_axis_col] + groupby
-
-    query = _build_single_query_dict(
+    return build_query_objects_from_form_data(
         form_data,
-        groupby,
-        metrics,
+        viz_type=viz_type,
         row_limit=row_limit,
         order_desc=order_desc,
+        filters_prepared=True,
+        secondary_form_data=secondary_form_data,
     )
-    if viz_type == "sunburst_v2":
-        _apply_sunburst_query_transforms(query, form_data)
-
-    queries = [query]
-    if viz_type == "mixed_timeseries":
-        queries.append(
-            _build_mixed_timeseries_secondary(
-                form_data,
-                x_axis_col,
-                engine,
-                row_limit=row_limit,
-                order_desc=order_desc,
-            )
-        )
-    return queries
 
 
 def resolve_form_data_datasource(

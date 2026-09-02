@@ -966,6 +966,9 @@ def _add_xy_limits(form_data: Dict[str, Any], config: XYChartConfig) -> None:
     form_data["row_limit"] = config.row_limit
     if config.series_limit is not None:
         form_data["series_limit"] = config.series_limit
+        metrics = form_data.get("metrics") or []
+        if metrics:
+            form_data["series_limit_metric"] = metrics[0]
 
 
 def map_xy_config(  # noqa: C901
@@ -1583,6 +1586,34 @@ def merge_form_data_for_update(  # noqa: C901
             if key not in query_role_keys
         }
         merged.update(new_form_data)
+        if new_form_data.get("viz_type") == "mixed_timeseries" and not dataset_rebind:
+            from superset.common.form_data_query_context import (
+                MIXED_TIMESERIES_SECONDARY_QUERY_KEYS,
+            )
+
+            # Query B inherits unsuffixed controls only when the suffixed key is
+            # absent. Preserve explicit native clears for controls the typed
+            # mapper did not replace, so []/None never turns into accidental
+            # inheritance from query A. Valid comparison state is also retained;
+            # malformed/stale dataset roles remain fail-closed and are dropped.
+            for key in MIXED_TIMESERIES_SECONDARY_QUERY_KEYS:
+                if key in new_form_data or key not in existing_form_data:
+                    continue
+                value = existing_form_data[key]
+                is_explicit_clear = value is None or value in ([], {}, "")
+                is_valid_comparison = key == "comparison_type_b" and value in {
+                    "values",
+                    "difference",
+                    "percentage",
+                    "ratio",
+                }
+                is_valid_list_state = key in {
+                    "adhoc_filters_b",
+                    "annotation_layers_b",
+                    "time_compare_b",
+                } and isinstance(value, list)
+                if is_explicit_clear or is_valid_comparison or is_valid_list_state:
+                    merged[key] = value
     else:
         merged = _merge_allowlisted_form_data(existing_form_data, new_form_data)
 
@@ -1674,17 +1705,76 @@ _DATASET_BOUND_FORM_DATA_KEYS = frozenset(
     }
 )
 
+_GANTT_DATASET_ROLE_KEYS = frozenset(
+    {
+        "end_time",
+        "order_by_cols",
+        "series",
+        "series_columns",
+        "start_time",
+        "tooltip_columns",
+        "tooltip_metrics",
+        "y_axis",
+    }
+)
+_DATASET_REBIND_EXTRA_ROLE_CONTRACTS: dict[str, frozenset[str]] = {
+    # ``gantt_chart`` is the native ECharts viz type. Keep ``gantt`` for
+    # compatibility with pre-release payloads produced by the MCP adapter.
+    "gantt_chart": _GANTT_DATASET_ROLE_KEYS,
+    "gantt": _GANTT_DATASET_ROLE_KEYS,
+    "country_map": frozenset({"entity", "metric", "series_columns"}),
+    "world_map": frozenset({"entity", "metric", "secondary_metric", "series_columns"}),
+}
+_DECK_DATASET_ROLE_KEYS = frozenset(
+    {
+        "cross_filter_column",
+        "dimension",
+        "end_spatial",
+        "entity",
+        "geojson",
+        "line_column",
+        "metric",
+        "point_radius_fixed",
+        "series_columns",
+        "size",
+        "spatial",
+        "start_spatial",
+        "tooltip_columns",
+        "tooltip_contents",
+    }
+)
+
+
+def _dataset_rebind_query_roles(form_data: Mapping[str, Any]) -> frozenset[str]:
+    """Return the complete query-role contract or fail closed for an unknown viz."""
+    from superset.mcp_service.chart.plugin import QUERY_ROLE_KEYS
+    from superset.mcp_service.chart.registry import query_role_keys_for_viz_type
+
+    viz_type = str(form_data.get("viz_type") or "")
+    if registered_roles := query_role_keys_for_viz_type(viz_type):
+        return QUERY_ROLE_KEYS | registered_roles
+    if viz_type.startswith("deck_"):
+        return QUERY_ROLE_KEYS | _DECK_DATASET_ROLE_KEYS
+    if viz_type in _DATASET_REBIND_EXTRA_ROLE_CONTRACTS:
+        return QUERY_ROLE_KEYS | _DATASET_REBIND_EXTRA_ROLE_CONTRACTS[viz_type]
+    if not viz_type and not (
+        set(form_data) & (QUERY_ROLE_KEYS | _DATASET_BOUND_FORM_DATA_KEYS)
+    ):
+        # Empty/minimal params occur on old charts and carry no stale dataset
+        # references. Canonical identity can be rebound safely.
+        return QUERY_ROLE_KEYS
+    raise ValueError(
+        "Dataset-only rebind is unsupported for visualization "
+        f"{viz_type or '<missing>'!r}: no complete dataset role contract is "
+        "registered. Provide a typed chart config with the dataset update."
+    )
+
 
 def scrub_dataset_bound_form_data(
     form_data: Mapping[str, Any],
 ) -> Dict[str, Any]:
     """Remove saved values that can reference columns from another dataset."""
-    from superset.mcp_service.chart.plugin import QUERY_ROLE_KEYS
-    from superset.mcp_service.chart.registry import query_role_keys_for_viz_type
-
-    query_roles = QUERY_ROLE_KEYS | query_role_keys_for_viz_type(
-        str(form_data.get("viz_type", ""))
-    )
+    query_roles = _dataset_rebind_query_roles(form_data)
     return {
         key: value
         for key, value in form_data.items()
@@ -2008,7 +2098,7 @@ def _add_mixed_axis_config(
     )
 
 
-def map_mixed_timeseries_config(
+def map_mixed_timeseries_config(  # noqa: C901
     config: MixedTimeseriesChartConfig,
     dataset_id: int | str | None = None,
 ) -> Dict[str, Any]:
@@ -2074,6 +2164,56 @@ def map_mixed_timeseries_config(
     _add_mixed_axis_config(form_data, config)
 
     _add_adhoc_filters(form_data, config.filters)
+
+    fields_set = config.model_fields_set
+    if "adhoc_filters_b" in fields_set:
+        form_data["adhoc_filters_b"] = config.adhoc_filters_b
+    elif "filters_secondary" in fields_set:
+        form_data["adhoc_filters_b"] = [
+            {
+                "clause": "WHERE",
+                "expressionType": "SIMPLE",
+                "subject": filter_config.column,
+                "operator": map_filter_operator(filter_config.op),
+                "comparator": filter_config.value,
+            }
+            for filter_config in config.filters_secondary or []
+        ]
+
+    secondary_controls = {
+        "time_range_b": config.time_range_b,
+        "granularity_sqla_b": config.granularity_sqla_b,
+        "time_grain_sqla_b": (
+            config.time_grain_sqla_b.value if config.time_grain_sqla_b else None
+        ),
+        "temporal_columns_lookup_b": config.temporal_columns_lookup_b,
+        "orderby_b": config.orderby_b,
+        "order_desc_b": config.order_desc_b,
+        "row_limit_b": config.row_limit_b,
+        "row_offset_b": config.row_offset_b,
+        "limit_b": config.limit_b,
+        "series_limit_b": config.series_limit_b,
+        "series_limit_metric_b": (
+            create_metric_object(config.series_limit_metric_b)
+            if config.series_limit_metric_b
+            else None
+        ),
+        "timeseries_limit_metric_b": (
+            create_metric_object(config.timeseries_limit_metric_b)
+            if config.timeseries_limit_metric_b
+            else None
+        ),
+        "annotation_layers_b": config.annotation_layers_b,
+        "time_compare_b": config.time_compare_b,
+        "rolling_type_b": config.rolling_type_b,
+        "rolling_periods_b": config.rolling_periods_b,
+        "min_periods_b": config.min_periods_b,
+        "resample_rule_b": config.resample_rule_b,
+        "resample_method_b": config.resample_method_b,
+    }
+    for key, value in secondary_controls.items():
+        if key in fields_set:
+            form_data[key] = value
 
     return form_data
 

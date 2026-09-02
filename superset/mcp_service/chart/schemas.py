@@ -1919,6 +1919,37 @@ class MixedTimeseriesChartConfig(BaseChartConfig):
         description="Structured filters (column/op/value). "
         "Do NOT use adhoc_filters or raw SQL expressions.",
     )
+    filters_secondary: List[FilterConfig] | None = Field(
+        None,
+        description="Structured filters for Query B; [] explicitly clears them",
+        validation_alias=AliasChoices("filters_secondary", "filters_b"),
+    )
+    adhoc_filters_b: list[dict[str, object]] | None = Field(
+        None,
+        description=(
+            "Native Query B filter state returned by Superset. Key presence, "
+            "including [] or null, overrides Query A during native round trips."
+        ),
+    )
+    time_range_b: str | None = None
+    granularity_sqla_b: str | None = None
+    time_grain_sqla_b: TimeGrain | None = None
+    temporal_columns_lookup_b: dict[str, bool] | None = None
+    orderby_b: list[tuple[object, bool]] | None = None
+    order_desc_b: bool | None = None
+    row_limit_b: int | None = Field(None, ge=1, le=50000)
+    row_offset_b: int | None = Field(None, ge=0)
+    limit_b: int | None = Field(None, ge=0, le=50000)
+    series_limit_b: int | None = Field(None, ge=0, le=50000)
+    series_limit_metric_b: ColumnRef | None = None
+    timeseries_limit_metric_b: ColumnRef | None = None
+    annotation_layers_b: list[dict[str, object]] | None = None
+    time_compare_b: list[str] | None = None
+    rolling_type_b: str | None = None
+    rolling_periods_b: int | None = None
+    min_periods_b: int | None = None
+    resample_rule_b: str | None = None
+    resample_method_b: str | None = None
     row_limit: int = Field(10000, description="Max data points", ge=1, le=50000)
 
     @field_validator("group_by", "group_by_secondary", mode="before")
@@ -1929,6 +1960,16 @@ class MixedTimeseriesChartConfig(BaseChartConfig):
     @model_validator(mode="after")
     def reject_sql_expression_on_dimensions(self) -> "MixedTimeseriesChartConfig":
         """sql_expression is metric-only; reject it on x and group_by lists."""
+        if (
+            "filters_secondary" in self.model_fields_set
+            and "adhoc_filters_b" in self.model_fields_set
+            and self.filters_secondary is not None
+            and self.adhoc_filters_b is not None
+        ):
+            raise ValueError(
+                "Use either filters_secondary/filters_b or native "
+                "adhoc_filters_b, not both"
+            )
         _reject_sql_expression_on_dimension(self.x, "x")
         for field_name, group in (
             ("group_by", self.group_by),
@@ -2379,7 +2420,7 @@ class XYChartConfig(BaseChartConfig):
             "X-axis column. If omitted, defaults to the dataset's "
             "primary datetime column (main_dttm_col)."
         ),
-        validation_alias=AliasChoices("x", "x_axis", "x_column"),
+        validation_alias=AliasChoices("x", "x_column"),
     )
     y: List[ColumnRef] = Field(
         ...,
@@ -2472,8 +2513,16 @@ class XYChartConfig(BaseChartConfig):
     @field_validator("y", mode="before")
     @classmethod
     def coerce_y_column_names(cls, v: Any) -> Any:
-        """Accept bare strings or a single entry for the y-axis metrics."""
-        return _normalize_group_by_input(v)
+        """Accept typed and native SIMPLE/SQL y-axis metrics."""
+        values = _normalize_group_by_input(v)
+        if values is None:
+            return values
+        return [
+            SunburstChartConfig._coerce_native_metric(value)
+            if isinstance(value, dict) and "expressionType" in value
+            else value
+            for value in values
+        ]
 
     @field_validator("legend", mode="before")
     @classmethod
@@ -2867,7 +2916,7 @@ _VIZ_TYPE_TO_CHART_TYPE: dict[str, tuple[str, str | None]] = {
 }
 
 
-def _normalize_chart_request_input(data: Any) -> Any:
+def _normalize_chart_request_input(data: Any) -> Any:  # noqa: C901
     """Accept common Superset REST/form_data vocabulary in chart requests.
 
     LLM clients reliably reach for Superset's public field names —
@@ -2905,6 +2954,131 @@ def _normalize_chart_request_input(data: Any) -> Any:
                 config.pop("viz_type", None)
         elif config.get("chart_type") != "table":
             config.pop("viz_type", None)
+
+        if config.get("chart_type") == "xy":
+            # Native Timeseries form data uses ``x_axis`` for the semantic
+            # query column, while the typed MCP contract uses the same spelling
+            # for AxisConfig presentation state. Disambiguate before the
+            # discriminated union runs: scalars and native query-column objects
+            # become ``x``; title/format/scale mappings remain ``x_axis``.
+            if "x_axis" in config and config["x_axis"] is not None:
+                native_x_axis = config["x_axis"]
+                is_native_column = not isinstance(native_x_axis, dict) or bool(
+                    {
+                        "column",
+                        "column_name",
+                        "columnName",
+                        "expressionType",
+                        "sqlExpression",
+                    }
+                    & set(native_x_axis)
+                )
+                if is_native_column:
+                    if "x" in config:
+                        raise ValueError(
+                            "XY config cannot provide both semantic x and native "
+                            "x_axis query columns"
+                        )
+                    if isinstance(native_x_axis, dict):
+                        allowed_x_axis_keys = {
+                            "column",
+                            "column_name",
+                            "columnName",
+                            "columnType",
+                            "expressionType",
+                            "label",
+                            "sqlExpression",
+                            "timeGrain",
+                        }
+                        if unknown := set(native_x_axis) - allowed_x_axis_keys:
+                            raise ValueError(
+                                "Unknown XY native x_axis field(s): "
+                                + ", ".join(sorted(unknown))
+                            )
+                        expression_type = native_x_axis.get("expressionType")
+                        if expression_type == "SIMPLE":
+                            column = native_x_axis.get("column")
+                            if isinstance(column, dict):
+                                column = SunburstNativeMetricColumn.model_validate(
+                                    column
+                                ).column_name
+                            native_x_axis = {
+                                "name": native_x_axis.get("column_name")
+                                or native_x_axis.get("columnName")
+                                or column,
+                            }
+                        elif (
+                            expression_type == "SQL"
+                            and native_x_axis.get("columnType") == "BASE_AXIS"
+                        ):
+                            native_x_axis = {
+                                "name": native_x_axis.get("sqlExpression"),
+                                "label": native_x_axis.get("label"),
+                            }
+                        elif expression_type == "SQL":
+                            native_x_axis = {
+                                "sql_expression": native_x_axis.get("sqlExpression"),
+                                "label": native_x_axis.get("label"),
+                            }
+                        elif "column_name" in native_x_axis:
+                            native_x_axis = {
+                                **native_x_axis,
+                                "name": native_x_axis.get("column_name"),
+                            }
+                    config["x"] = native_x_axis
+                    config.pop("x_axis", None)
+
+            def collect_axis_config(
+                field_name: str,
+                native_keys: dict[str, str],
+            ) -> None:
+                axis = config.get(field_name)
+                axis_state = dict(axis) if isinstance(axis, dict) else {}
+                found = isinstance(axis, dict)
+                for native_key, typed_key in native_keys.items():
+                    if native_key in config:
+                        axis_state[typed_key] = config.pop(native_key)
+                        found = True
+                if found:
+                    config[field_name] = axis_state
+
+            collect_axis_config(
+                "x_axis",
+                {"x_axis_title": "title", "x_axis_format": "format"},
+            )
+            collect_axis_config(
+                "y_axis",
+                {
+                    "y_axis_title": "title",
+                    "y_axis_format": "format",
+                    "y_axis_scale": "scale",
+                },
+            )
+            if "legendOrientation" in config:
+                config["legend_orientation"] = config.pop("legendOrientation")
+
+            # These native query/presentation values are deterministically
+            # reconstructed from semantic x plus dataset temporal metadata.
+            config.pop("granularity_sqla", None)
+            config.pop("x_axis_sort_series_type", None)
+            config.pop("x_axis_sort_series_ascending", None)
+
+            # Saved metrics are string references; native SIMPLE/SQL objects
+            # carry expressionType metadata. Typed ``y`` strings keep their
+            # existing column-with-default-SUM semantics.
+            if "y" not in config and "metrics" in config:
+                raw_metrics = config.pop("metrics")
+                metrics = (
+                    raw_metrics if isinstance(raw_metrics, list) else [raw_metrics]
+                )
+                config["y"] = [
+                    (
+                        {"name": metric, "saved_metric": True}
+                        if isinstance(metric, str)
+                        else SunburstChartConfig._coerce_native_metric(metric)
+                    )
+                    for metric in metrics
+                ]
     return data
 
 
