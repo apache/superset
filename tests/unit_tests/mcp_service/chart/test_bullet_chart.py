@@ -963,6 +963,15 @@ _MALFORMED_QUERY_ENVELOPES: list[object] = [
     {"queries": [{}]},
     {"queries": [{"data": None}]},
     {"queries": [{"data": []}, {"data": "not-an-array"}]},
+    {
+        "queries": [
+            {
+                "data": [{"Revenue": 12}],
+                "colnames": ["Revenue"],
+                "coltypes": [],
+            }
+        ]
+    },
 ]
 
 

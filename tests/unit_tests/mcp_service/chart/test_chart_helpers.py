@@ -15,8 +15,12 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from typing import Any
 from unittest.mock import MagicMock, patch
 
+import pytest
+
+from superset.common.query_object import QueryObject
 from superset.mcp_service.chart.chart_helpers import (
     _deck_gl_null_filters,
     _is_metric_ref,
@@ -33,6 +37,12 @@ from superset.mcp_service.chart.chart_helpers import (
     resolve_metrics,
     resolve_metrics_and_groupby,
 )
+
+
+def _query_objects(form_data: dict[str, Any]) -> list[QueryObject]:
+    """Build the concrete objects consumed by ChartDataCommand."""
+    query_dicts = build_query_dicts_from_form_data(form_data, 1, "table")
+    return [QueryObject(**query_dict) for query_dict in query_dicts]
 
 
 def test_extract_form_data_key_from_url_with_key():
@@ -294,6 +304,167 @@ def test_build_query_dicts_preserves_native_orderby_for_single_query(monkeypatch
             "orderby": orderby,
         }
     ]
+
+
+@pytest.mark.parametrize(
+    "viz_type",
+    [
+        "echarts_timeseries_line",
+        "table",
+        "pie",
+        "big_number",
+        "gantt",
+        "sunburst_v2",
+        "bullet",
+    ],
+)
+def test_common_temporal_fields_reach_final_non_deck_query_objects(
+    monkeypatch: pytest.MonkeyPatch, viz_type: str
+) -> None:
+    """Common frontend time controls survive QueryObject construction."""
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda *_args: "base",
+    )
+    query = _query_objects(
+        {
+            "viz_type": viz_type,
+            "metric": "count",
+            "metrics": ["count"],
+            "groupby": ["region"],
+            "granularity_sqla": "event_time",
+            "time_grain_sqla": "P1D",
+            "adhoc_filters": [],
+        }
+    )[0]
+
+    assert query.granularity == "event_time"
+    assert query.extras["time_grain_sqla"] == "P1D"
+
+
+@pytest.mark.parametrize(
+    "form_data",
+    [
+        {"viz_type": "table", "metrics": ["count"], "groupby": ["region"]},
+        {
+            "viz_type": "table",
+            "metrics": ["count"],
+            "groupby": ["region"],
+            "granularity_sqla": None,
+            "time_grain_sqla": None,
+            "extras": {"time_grain_sqla": "P1Y"},
+        },
+    ],
+)
+def test_omitted_and_cleared_grains_stay_absent_from_final_query_object(
+    monkeypatch: pytest.MonkeyPatch, form_data: dict[str, Any]
+) -> None:
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda *_args: "base",
+    )
+
+    query = _query_objects(form_data)[0]
+
+    assert query.granularity is None
+    assert "time_grain_sqla" not in query.extras
+
+
+def test_xy_and_both_mixed_queries_preserve_common_temporal_fields(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda *_args: "base",
+    )
+    common = {
+        "x_axis": "event_time",
+        "granularity_sqla": "event_time",
+        "time_grain_sqla": "P1M",
+        "adhoc_filters": [],
+    }
+
+    xy = _query_objects(
+        {
+            **common,
+            "viz_type": "echarts_timeseries_bar",
+            "metrics": ["sales"],
+            "groupby": ["region"],
+        }
+    )
+    mixed = _query_objects(
+        {
+            **common,
+            "viz_type": "mixed_timeseries",
+            "metrics": ["sales"],
+            "metrics_b": ["orders"],
+            "groupby": ["region"],
+            "groupby_b": ["channel"],
+            "orderby": [["sales", False]],
+        }
+    )
+
+    assert [(q.granularity, q.extras["time_grain_sqla"]) for q in xy] == [
+        ("event_time", "P1M")
+    ]
+    assert [(q.granularity, q.extras["time_grain_sqla"]) for q in mixed] == [
+        ("event_time", "P1M"),
+        ("event_time", "P1M"),
+    ]
+    assert mixed[0].orderby == [["sales", False]]
+    assert mixed[1].orderby == []
+
+
+def test_waterfall_final_query_matches_frontend_column_and_ordering_semantics(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda *_args: "base",
+    )
+    query = _query_objects(
+        {
+            "viz_type": "waterfall",
+            "x_axis": "event_time",
+            "granularity_sqla": "event_time",
+            "time_grain_sqla": "P1M",
+            "metric": "revenue",
+            "groupby": ["region", "channel"],
+            # Waterfall's plugin intentionally replaces generic orderby.
+            "orderby": [["revenue", False]],
+            "adhoc_filters": [],
+        }
+    )[0]
+
+    assert query.columns == ["event_time", "region", "channel"]
+    assert query.orderby == [
+        ["event_time", True],
+        ["region", True],
+        ["channel", True],
+    ]
+    assert query.granularity == "event_time"
+    assert query.extras["time_grain_sqla"] == "P1M"
+
+
+def test_waterfall_uses_granularity_subject_when_x_axis_is_absent(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda *_args: "base",
+    )
+    query = _query_objects(
+        {
+            "viz_type": "waterfall",
+            "granularity_sqla": "event_time",
+            "metric": "revenue",
+            "groupby": ["region"],
+            "adhoc_filters": [],
+        }
+    )[0]
+
+    assert query.columns == ["event_time", "region"]
+    assert query.orderby == [["event_time", True], ["region", True]]
 
 
 def test_merge_form_data_filters_into_query_applies_regular_overrides():
