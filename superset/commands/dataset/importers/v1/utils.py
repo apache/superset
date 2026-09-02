@@ -555,19 +555,29 @@ def import_dataset(  # noqa: C901
         except SupersetSecurityException as ex:
             raise DatasetAccessDeniedError() from ex
 
-    try:
-        table_exists = dataset.database.has_table(
-            Table(dataset.table_name, dataset.schema, dataset.catalog),
-        )
-    except Exception:  # pylint: disable=broad-except
-        # MySQL doesn't play nice with GSheets table names
-        logger.warning(
-            "Couldn't check if table %s exists, assuming it does", dataset.table_name
-        )
-        table_exists = True
+    # `has_table` opens a live connection to the target database to run a
+    # schema-introspection query. Its result is only ever consulted below to
+    # decide whether to call `load_data`, which itself is a no-op unless
+    # `data_uri` is set - so for imports that don't carry inline data (the
+    # common case when bulk-importing dataset *metadata*, e.g. hundreds of
+    # datasets at once), this was an unconditional, unnecessary round trip
+    # to every target database on every single dataset, and a major
+    # contributor to bulk imports timing out.
+    if data_uri:
+        try:
+            table_exists = dataset.database.has_table(
+                Table(dataset.table_name, dataset.schema, dataset.catalog),
+            )
+        except Exception:  # pylint: disable=broad-except
+            # MySQL doesn't play nice with GSheets table names
+            logger.warning(
+                "Couldn't check if table %s exists, assuming it does",
+                dataset.table_name,
+            )
+            table_exists = True
 
-    if data_uri and (not table_exists or force_data):
-        load_data(data_uri, dataset, dataset.database)
+        if not table_exists or force_data:
+            load_data(data_uri, dataset, dataset.database)
 
     if user:
         from superset.subjects.utils import get_user_subject
