@@ -17,8 +17,10 @@
 
 """Adversarial tests for the shared chart query-result envelope contract."""
 
+import os
+import time as system_time
 from collections.abc import Callable
-from datetime import datetime, timedelta, timezone, tzinfo
+from datetime import datetime, time as datetime_time, timedelta, timezone, tzinfo
 from decimal import Decimal
 from enum import Enum
 from types import SimpleNamespace
@@ -31,6 +33,7 @@ import pytest
 import pytz
 from dateutil import tz as dateutil_tz
 from dateutil.zoneinfo import get_zonefile_instance
+from pydantic import BaseModel
 
 from superset.mcp_service.chart.query_result import (
     _json_string_size,
@@ -46,6 +49,7 @@ from superset.mcp_service.chart.query_result import (
     MAX_QUERY_RESULT_VALUE_BYTES,
     MAX_QUERY_RESULT_VALUES,
     query_result_data,
+    response_json_failure,
     safe_exception_message,
 )
 from superset.utils import json
@@ -148,6 +152,10 @@ class _UnsupportedEnum(Enum):
 class _ResultEnum(Enum):
     TEXT = "value"
     NUMBER = 7
+
+
+class _ProjectedResponse(BaseModel):
+    value: str
 
 
 @pytest.mark.parametrize(
@@ -395,11 +403,213 @@ def test_fixed_offset_canonicalization_never_calls_source_timezone_hooks(
     assert data == [[{"value": "2024-01-01T00:00:00+01:00"}]]
 
 
+def test_object_dataframe_canonicalizes_python_temporals_and_tzlocal_timestamp() -> (
+    None
+):
+    pacific = dateutil_tz.gettz("US/Pacific")
+    packaged = get_zonefile_instance().get("America/Los_Angeles")
+    assert pacific is not None
+    assert packaged is not None
+    localized = pytz.timezone("US/Pacific").localize(
+        datetime(2024, 11, 3, 1, 30), is_dst=False
+    )
+    values = [
+        datetime(2024, 11, 3, 1, 30, tzinfo=pacific, fold=1),
+        datetime(2024, 1, 2, 3, 4, 5, tzinfo=packaged),
+        localized,
+        datetime(2024, 1, 2, 3, 4, 5, tzinfo=pytz.UTC),
+        datetime(2024, 1, 2, 3, 4, 5, tzinfo=dateutil_tz.tzlocal()),
+        datetime(2024, 1, 2, 3, 4, 5, tzinfo=dateutil_tz.tzoffset("east", 19_800)),
+        datetime(2024, 1, 2, 3, 4, 5, tzinfo=pytz.FixedOffset(-450)),
+        datetime(2024, 1, 2, 3, 4, 5, tzinfo=dateutil_tz.UTC),
+    ]
+    clock_values = [
+        datetime_time(3, 4, 5, tzinfo=dateutil_tz.tzoffset("east", 19_800)),
+        datetime_time(3, 4, 5, tzinfo=pytz.FixedOffset(-450)),
+        datetime_time(3, 4, 5, tzinfo=pytz.UTC),
+        datetime_time(3, 4, 5, tzinfo=packaged),
+        datetime_time(3, 4, 5, tzinfo=dateutil_tz.tzlocal()),
+        datetime_time(3, 4, 5, tzinfo=pacific),
+        datetime_time(3, 4, 5, tzinfo=localized.tzinfo),
+        datetime_time(3, 4, 5, tzinfo=dateutil_tz.UTC),
+    ]
+    frame = pd.DataFrame(
+        {
+            "event_time": pd.Series(values, dtype=object),
+            "clock_time": pd.Series(clock_values, dtype=object),
+        }
+    )
+    records = frame.to_dict("records")
+    tzlocal_timestamp = pd.Timestamp(
+        datetime(2024, 1, 2, 3, 4, 5, tzinfo=dateutil_tz.tzlocal())
+    )
+    records[0]["local_timestamp"] = tzlocal_timestamp
+
+    data, failure = query_result_data(
+        {"queries": [{"data": records, "rowcount": len(records)}]}
+    )
+
+    assert failure is None
+    assert data is not None
+    assert [row["event_time"] for row in data[0]] == [
+        value.isoformat() for value in values
+    ]
+    assert [row["clock_time"] for row in data[0]] == [
+        value.isoformat() for value in clock_values
+    ]
+    assert data[0][0]["local_timestamp"] == tzlocal_timestamp.isoformat()
+
+
+def test_python_and_timestamp_timezone_canonicalization_avoids_source_hooks(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    dateutil_named = dateutil_tz.gettz("US/Pacific")
+    assert dateutil_named is not None
+    pytz_named = (
+        pytz.timezone("US/Pacific")
+        .localize(datetime(2024, 11, 3, 1, 30), is_dst=False)
+        .tzinfo
+    )
+    local = dateutil_tz.tzlocal()
+    values: list[datetime | datetime_time | pd.Timestamp] = [
+        datetime(2024, 11, 3, 1, 30, tzinfo=dateutil_named, fold=1),
+        datetime(2024, 11, 3, 1, 30, tzinfo=pytz_named),
+        datetime(2024, 1, 2, 3, 4, 5, tzinfo=local),
+        datetime_time(3, 4, 5, tzinfo=dateutil_named),
+        datetime_time(3, 4, 5, tzinfo=pytz_named),
+        datetime_time(3, 4, 5, tzinfo=local),
+        pd.Timestamp(datetime(2024, 1, 2, 3, 4, 5, tzinfo=local)),
+    ]
+    expected = [value.isoformat() for value in values]
+    for timezone_type in {type(value.tzinfo) for value in values}:
+        for method_name in ("utcoffset", "dst", "tzname"):
+            monkeypatch.setattr(timezone_type, method_name, _hostile_call)
+
+    data, failure = query_result_data(
+        {
+            "queries": [
+                {
+                    "data": [
+                        {f"value_{index}": value for index, value in enumerate(values)}
+                    ]
+                }
+            ]
+        }
+    )
+
+    assert failure is None
+    assert data == [[{f"value_{index}": value for index, value in enumerate(expected)}]]
+
+
+@pytest.mark.skipif(not hasattr(system_time, "tzset"), reason="requires POSIX tzset")
+def test_dateutil_local_datetime_preserves_ambiguous_fold_offsets() -> None:
+    original_timezone = os.environ.get("TZ")
+    try:
+        os.environ["TZ"] = "America/New_York"
+        system_time.tzset()
+        local = dateutil_tz.tzlocal()
+        values = [
+            datetime(2024, 11, 3, 1, 30, tzinfo=local, fold=fold) for fold in (0, 1)
+        ]
+        expected = [value.isoformat() for value in values]
+
+        data, failure = query_result_data(
+            {"queries": [{"data": [{"value": value} for value in values]}]}
+        )
+
+        assert failure is None
+        assert data == [[{"value": value} for value in expected]]
+        assert expected == [
+            "2024-11-03T01:30:00-04:00",
+            "2024-11-03T01:30:00-05:00",
+        ]
+    finally:
+        if original_timezone is None:
+            os.environ.pop("TZ", None)
+        else:
+            os.environ["TZ"] = original_timezone
+        system_time.tzset()
+
+
+def test_shared_dataframe_object_container_is_normalized_for_every_occurrence() -> None:
+    shared = [np.float64(1.5), pd.NA]
+    records = pd.DataFrame(
+        {
+            "left": pd.Series([shared], dtype=object),
+            "right": pd.Series([shared], dtype=object),
+        }
+    ).to_dict("records")
+    assert records[0]["left"] is records[0]["right"]
+
+    data, failure = query_result_data({"queries": [{"data": records, "rowcount": 1}]})
+
+    assert failure is None
+    assert data == [[{"left": [1.5, None], "right": [1.5, None]}]]
+    assert data[0][0]["left"] is data[0][0]["right"]
+
+
+def test_shared_row_and_metadata_containers_are_recharged_at_each_occurrence(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    shared_row_value = ["escaped\nvalue"]
+    shared_metadata = {"value": [1, 2, 3]}
+    result = {
+        "metadata": [shared_metadata, shared_metadata],
+        "queries": [
+            {
+                "data": [
+                    {"left": shared_row_value, "right": shared_row_value},
+                ],
+                "rowcount": 1,
+            }
+        ],
+    }
+    exact_size = len(json.dumps(result, separators=(",", ":")).encode())
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.query_result.MAX_QUERY_RESULT_VALUE_BYTES",
+        exact_size,
+    )
+
+    data, failure = query_result_data(result)
+
+    assert failure is None
+    assert data is not None
+
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.query_result.MAX_QUERY_RESULT_VALUE_BYTES",
+        exact_size - 1,
+    )
+    data, failure = query_result_data(result)
+
+    assert data is None
+    assert failure is not None
+    assert "total JSON-encoded byte limit" in failure.error
+
+
+@pytest.mark.parametrize("location", ["row", "metadata"])
+def test_query_result_rejects_genuine_container_cycles(location: str) -> None:
+    cycle: list[Any] = []
+    cycle.append(cycle)
+    result = (
+        {"queries": [{"data": [{"value": cycle}]}]}
+        if location == "row"
+        else {"metadata": cycle, "queries": [{"data": []}]}
+    )
+
+    data, failure = query_result_data(result)
+
+    assert data is None
+    assert failure is not None
+    assert "cyclic containers" in failure.error
+
+
 @pytest.mark.parametrize(
     "value",
-    [float("nan"), float("inf"), Decimal("NaN"), Decimal("Infinity"), np.inf],
+    [float("inf"), Decimal("NaN"), Decimal("Infinity"), np.inf],
 )
-def test_query_result_rejects_non_finite_numeric_values(value: object) -> None:
+def test_query_result_rejects_non_finite_non_missing_numeric_values(
+    value: object,
+) -> None:
     data, failure = query_result_data(
         {"queries": [{"data": [{"value": value}], "rowcount": 1}]}
     )
@@ -407,6 +617,84 @@ def test_query_result_rejects_non_finite_numeric_values(value: object) -> None:
     assert data is None
     assert failure is not None
     assert failure.error_type == "MalformedQueryResult"
+
+
+@pytest.mark.parametrize(
+    "value",
+    [float("nan"), np.float16("nan"), np.float32("nan"), np.float64("nan")],
+)
+def test_query_result_canonicalizes_exact_numeric_missing_values(value: object) -> None:
+    data, failure = query_result_data(
+        {"queries": [{"data": [{"value": value}], "rowcount": 1}]}
+    )
+
+    assert failure is None
+    assert data == [[{"value": None}]]
+
+
+def test_real_dataframe_and_chart_command_canonicalize_numeric_missing_values() -> None:
+    """Pandas leaves NaN records after Superset converts infinities to NaN."""
+    from superset.commands.chart.data.get_data_command import ChartDataCommand
+    from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
+    from superset.common.query_context import QueryContext
+    from superset.common.query_context_processor import QueryContextProcessor
+
+    frame = pd.DataFrame(
+        {
+            "builtin_missing": [float("nan")],
+            "numpy_missing": [np.float64("nan")],
+            "nullable_missing": pd.Series([pd.NA], dtype="Float64"),
+        }
+    )
+    processor_context = SimpleNamespace(
+        datasource=object(), result_format=ChartDataResultFormat.JSON
+    )
+    records = QueryContextProcessor(cast(QueryContext, processor_context)).get_data(
+        frame,
+        [GenericDataType.NUMERIC] * 3,
+    )
+    assert type(records) is list
+    assert all(pd.isna(value) for value in records[0].values())
+
+    class _Context:
+        result_type = ChartDataResultType.FULL
+
+        def get_payload(self, **_kwargs: Any) -> dict[str, Any]:
+            return {
+                "queries": [
+                    {
+                        "data": records,
+                        "colnames": list(frame.columns),
+                        "coltypes": [GenericDataType.NUMERIC] * 3,
+                        "rowcount": 1,
+                    }
+                ]
+            }
+
+    result = ChartDataCommand(_Context()).run()  # type: ignore[arg-type]
+    data, failure = query_result_data(result)
+
+    assert failure is None
+    assert data == [
+        [
+            {
+                "builtin_missing": None,
+                "numpy_missing": None,
+                "nullable_missing": None,
+            }
+        ]
+    ]
+
+
+def test_query_result_rejects_infinity_outside_the_producer_boundary() -> None:
+    """Superset replaces infinities with NaN; an injected infinity is malformed."""
+    data, failure = query_result_data(
+        {"queries": [{"data": [{"value": float("-inf")}], "rowcount": 1}]}
+    )
+
+    assert data is None
+    assert failure is not None
+    assert "non-finite" in failure.error
 
 
 @pytest.mark.parametrize(
@@ -487,6 +775,24 @@ def test_query_result_rejects_one_row_beyond_aggregate_multi_query_budget() -> N
     assert data is None
     assert failure is not None
     assert "total row limit" in failure.error
+
+
+def test_complete_response_accepts_exact_aggregate_boundary_and_rejects_one_byte() -> (
+    None
+):
+    prefix = 'quote " newline\n slash\\ café'
+    prefix_response = _ProjectedResponse(value=prefix)
+    filler_size = MAX_QUERY_RESULT_VALUE_BYTES - len(
+        prefix_response.model_dump_json().encode()
+    )
+    boundary = _ProjectedResponse(value=prefix + "x" * filler_size)
+    oversized = _ProjectedResponse(value=boundary.value + "x")
+
+    assert len(boundary.model_dump_json().encode()) == MAX_QUERY_RESULT_VALUE_BYTES
+    assert response_json_failure(boundary) is None
+    failure = response_json_failure(oversized)
+    assert failure is not None
+    assert "response exceeds the total JSON-encoded byte limit" in failure.error
 
 
 def test_query_result_accepts_fifty_thousand_rows_with_twenty_columns() -> None:
@@ -1045,17 +1351,15 @@ def test_query_result_rejects_custom_timezone_without_invoking_it() -> None:
         def tzname(self, _value: datetime | None) -> str | None:
             raise AssertionError("custom timezone hook must not run")
 
-    data, failure = query_result_data(
-        {
-            "queries": [
-                {"data": [{"value": datetime(2024, 1, 1, tzinfo=_HostileTimezone())}]}
-            ]
-        }
-    )
+    for value in (
+        datetime(2024, 1, 1, tzinfo=_HostileTimezone()),
+        datetime_time(12, tzinfo=_HostileTimezone()),
+    ):
+        data, failure = query_result_data({"queries": [{"data": [{"value": value}]}]})
 
-    assert data is None
-    assert failure is not None
-    assert failure.error_type == "MalformedQueryResult"
+        assert data is None
+        assert failure is not None
+        assert failure.error_type == "MalformedQueryResult"
 
 
 @pytest.mark.parametrize(

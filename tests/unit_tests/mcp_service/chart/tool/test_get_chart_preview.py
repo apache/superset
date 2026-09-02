@@ -20,6 +20,7 @@ Unit tests for get_chart_preview MCP tool
 """
 
 import importlib
+from datetime import datetime
 from types import SimpleNamespace
 from typing import Any
 from unittest.mock import MagicMock, patch
@@ -172,20 +173,40 @@ def test_saved_big_number_preview_executes_timestamp_pivot_without_series(
             processed = query.exec_post_processing(
                 pd.DataFrame(
                     {
-                        "event_time": pd.to_datetime(["2024-01-01", "2024-02-01"]),
+                        "event_time": pd.Series(
+                            [
+                                datetime(
+                                    2024,
+                                    1,
+                                    1,
+                                    tzinfo=dateutil_tz.gettz("US/Pacific"),
+                                ),
+                                datetime(
+                                    2024,
+                                    2,
+                                    1,
+                                    tzinfo=dateutil_tz.gettz("US/Pacific"),
+                                ),
+                            ],
+                            dtype=object,
+                        ),
                         "saved_revenue": [1.0, 2.0],
                     }
                 )
             )
             assert list(processed.columns) == ["event_time", "saved_revenue"]
-            return {
+            records = processed.to_dict("records")
+            records[0]["numeric_missing"] = float("nan")
+            result = {
                 "queries": [
                     {
-                        "data": processed.to_dict("records"),
+                        "data": records,
                         "colnames": ["event_time", "saved_revenue"],
                     }
                 ]
             }
+            captured["result"] = result
+            return result
 
     monkeypatch.setattr(query_context_factory_module, "QueryContextFactory", _Factory)
     monkeypatch.setattr(command_module, "ChartDataCommand", _Command)
@@ -215,6 +236,11 @@ def test_saved_big_number_preview_executes_timestamp_pivot_without_series(
     ).generate()
 
     assert isinstance(preview, ASCIIPreview)
+    assert all(
+        type(row["event_time"]) is str
+        for row in captured["result"]["queries"][0]["data"]
+    )
+    assert captured["result"]["queries"][0]["data"][0]["numeric_missing"] is None
     query = captured["queries"][0]
     assert query["columns"] == [
         {

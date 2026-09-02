@@ -443,3 +443,30 @@ def format_data_columns(
             )
         )
     return columns
+
+
+def format_data_quality(columns: list[DataColumn], row_count: int) -> dict[str, Any]:
+    """Build completeness from the same exact or sampled rows as null counts."""
+    sampled_rows = row_count
+    for column in columns:
+        statistics = column.statistics
+        if statistics is not None:
+            candidate = statistics.get("sampled_rows")
+            if type(candidate) is int:
+                sampled_rows = min(sampled_rows, candidate)
+
+    denominator = sampled_rows * len(columns)
+    completeness = (
+        1.0
+        if denominator == 0
+        else 1.0 - sum(column.null_count for column in columns) / denominator
+    )
+    quality: dict[str, Any] = {"completeness": completeness}
+    if sampled_rows < row_count:
+        quality.update(
+            {
+                "completeness_is_approximate": True,
+                "sampled_rows": sampled_rows,
+            }
+        )
+    return quality

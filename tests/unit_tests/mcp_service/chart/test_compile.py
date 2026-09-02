@@ -24,6 +24,7 @@ that only use Tier-1 validation are exercised end-to-end.
 """
 
 import importlib
+from datetime import datetime
 from typing import Any, cast
 from unittest.mock import Mock, patch
 
@@ -1058,12 +1059,30 @@ def test_compile_accepts_timestamped_dataframe_result_shapes(
         def run(self) -> dict[str, Any]:
             records = pd.DataFrame(
                 {
-                    "event_time": pd.to_datetime(["2024-01-01", "2024-02-01"]),
+                    "event_time": pd.Series(
+                        [
+                            datetime(
+                                2024,
+                                1,
+                                1,
+                                tzinfo=dateutil_tz.gettz("US/Pacific"),
+                            ),
+                            datetime(
+                                2024,
+                                2,
+                                1,
+                                tzinfo=dateutil_tz.gettz("US/Pacific"),
+                            ),
+                        ],
+                        dtype=object,
+                    ),
                     "revenue": [10.0, 15.0],
                     "profit": [4.0, 6.0],
                     "region": ["North", "South"],
                 }
             ).to_dict("records")
+            for row in records:
+                row["numeric_missing"] = float("nan")
             result = {
                 "queries": [
                     {"data": [dict(row) for row in records], "rowcount": 2}
@@ -1085,6 +1104,10 @@ def test_compile_accepts_timestamped_dataframe_result_shapes(
     assert result.success
     assert all(
         type(query["data"][0]["event_time"]) is str
+        for query in captured["result"]["queries"]
+    )
+    assert all(
+        query["data"][0]["numeric_missing"] is None
         for query in captured["result"]["queries"]
     )
 

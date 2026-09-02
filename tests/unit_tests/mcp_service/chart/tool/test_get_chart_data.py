@@ -24,10 +24,11 @@ from contextlib import nullcontext
 from datetime import datetime, time as datetime_time, timedelta, timezone, tzinfo
 from decimal import Decimal
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, cast
 from unittest.mock import MagicMock
 from zoneinfo import ZoneInfo
 
+import numpy as np
 import pandas as pd
 import pytest
 import pytz
@@ -49,6 +50,8 @@ from superset.mcp_service.chart.tool.get_chart_data import (
     _build_data_columns,
     _build_query_results,
     _coerce_row_limit,
+    _export_data_as_csv,
+    _export_data_as_excel,
     _GENERIC_TYPE_MAP,
     _MAX_RECOMMENDATIONS,
     _query_from_form_data,
@@ -507,6 +510,47 @@ class TestChartDataValuePreservation:
         assert result.data[0]["url"] == ("https://example.com/in-row-data")
         assert result.data[0]["schema"] == ("customer-provided schema text")
         assert result.csv_data == ("region,amount\nEMEA,120\nLATAM,95\n")
+
+    def test_real_csv_export_allows_derived_string_over_cell_cap(self) -> None:
+        chart = cast(
+            Any, SimpleNamespace(id=7, slice_name="Large CSV", viz_type="table")
+        )
+        rows = [{"value": f"{index}:" + "x" * 700} for index in range(105)]
+
+        result = _export_data_as_csv(
+            chart,
+            rows,
+            ["value"],
+            None,
+            PerformanceMetadata(query_duration_ms=1, cache_status="fresh"),
+        )
+
+        assert isinstance(result, ChartData)
+        assert result.csv_data is not None
+        assert len(result.csv_data.encode()) > 70 * 1024
+        assert len(result.model_dump_json().encode()) < MAX_QUERY_RESULT_VALUE_BYTES
+
+    def test_real_excel_export_allows_reasonable_base64_over_cell_cap(self) -> None:
+        chart = cast(
+            Any, SimpleNamespace(id=8, slice_name="Large Excel", viz_type="table")
+        )
+        rows = [
+            {"index": index, "value": f"row-{index}-" + "x" * 120}
+            for index in range(3500)
+        ]
+
+        result = _export_data_as_excel(
+            chart,
+            rows,
+            ["index", "value"],
+            None,
+            PerformanceMetadata(query_duration_ms=1, cache_status="fresh"),
+        )
+
+        assert isinstance(result, ChartData)
+        assert result.excel_data is not None
+        assert len(result.excel_data.encode()) > 64 * 1024
+        assert len(result.model_dump_json().encode()) < MAX_QUERY_RESULT_VALUE_BYTES
 
     def test_chart_data_preserves_column_sample_values(self) -> None:
         """Column sample values remain exact even when they look operational."""
@@ -2917,6 +2961,55 @@ async def test_unsaved_generic_get_data_returns_finite_decimal_metadata(
 
 
 @pytest.mark.asyncio
+async def test_unsaved_get_data_reports_sampled_all_null_completeness(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    module = importlib.import_module("superset.mcp_service.chart.tool.get_chart_data")
+    command_module = importlib.import_module(
+        "superset.commands.chart.data.get_data_command"
+    )
+    row_count = 10_000
+
+    class _Command:
+        def __init__(self, query_context: Any) -> None: ...
+        def validate(self) -> None: ...
+        def run(self) -> dict[str, Any]:
+            return {
+                "queries": [
+                    {
+                        "data": [{"value": float("nan")} for _ in range(row_count)],
+                        "colnames": ["value"],
+                        "coltypes": [GenericDataType.NUMERIC],
+                        "rowcount": row_count,
+                    }
+                ]
+            }
+
+    monkeypatch.setattr(
+        module,
+        "build_query_context_from_form_data",
+        lambda *_args, **_kwargs: _query_context_stub(),
+    )
+    monkeypatch.setattr(command_module, "ChartDataCommand", _Command)
+
+    response = await _query_from_form_data(
+        {"datasource": "1__table", "viz_type": "table"},
+        GetChartDataRequest(form_data_key="nulls"),
+        _AsyncContext(),
+    )
+
+    assert isinstance(response, ChartData)
+    assert response.columns[0].null_count == 5000
+    assert response.columns[0].statistics == {"sampled_rows": 5000}
+    assert response.data_quality == {
+        "completeness": 0.0,
+        "completeness_is_approximate": True,
+        "sampled_rows": 5000,
+    }
+    assert all(row["value"] is None for row in response.data)
+
+
+@pytest.mark.asyncio
 async def test_unsaved_get_data_round_trips_temporal_and_boolean_coltypes(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -2934,26 +3027,35 @@ async def test_unsaved_get_data_round_trips_temporal_and_boolean_coltypes(
                     {
                         "data": [
                             {
-                                "event_time": pd.Timestamp(
-                                    datetime(
-                                        2024,
-                                        1,
-                                        1,
-                                        2,
-                                        3,
-                                        4,
-                                        tzinfo=dateutil_tz.tzoffset(
-                                            "east", 5 * 3600 + 30 * 60
-                                        ),
-                                    )
+                                "event_time": datetime(
+                                    2024,
+                                    1,
+                                    1,
+                                    2,
+                                    3,
+                                    4,
+                                    tzinfo=dateutil_tz.tzoffset(
+                                        "east", 5 * 3600 + 30 * 60
+                                    ),
+                                ),
+                                "clock_time": datetime_time(
+                                    2, 3, 4, tzinfo=pytz.FixedOffset(-450)
                                 ),
                                 "enabled": True,
+                                "missing": np.float64("nan"),
                             }
                         ],
-                        "colnames": ["event_time", "enabled"],
+                        "colnames": [
+                            "event_time",
+                            "clock_time",
+                            "enabled",
+                            "missing",
+                        ],
                         "coltypes": [
                             GenericDataType.TEMPORAL,
+                            GenericDataType.TEMPORAL,
                             GenericDataType.BOOLEAN,
+                            GenericDataType.NUMERIC,
                         ],
                         "rowcount": 1,
                     }
@@ -2976,10 +3078,17 @@ async def test_unsaved_get_data_round_trips_temporal_and_boolean_coltypes(
     assert isinstance(response, ChartData)
     assert [column.data_type for column in response.columns] == [
         "temporal",
+        "temporal",
         "boolean",
+        "numeric",
     ]
     assert response.data == [
-        {"event_time": "2024-01-01T02:03:04+05:30", "enabled": True}
+        {
+            "event_time": "2024-01-01T02:03:04+05:30",
+            "clock_time": "02:03:04-07:30",
+            "enabled": True,
+            "missing": None,
+        }
     ]
 
 

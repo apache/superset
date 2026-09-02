@@ -3308,7 +3308,12 @@ class ChartData(BaseModel):
     # LLM-friendly summaries
     summary: str = Field(description="Human-readable data summary")
     insights: List[str] = Field(description="Key patterns discovered in the data")
-    data_quality: Dict[str, Any] = Field(description="Data quality assessment")
+    data_quality: Dict[str, Any] = Field(
+        description=(
+            "Data quality assessment. Sampled completeness includes "
+            "completeness_is_approximate=true and sampled_rows."
+        )
+    )
     recommended_visualizations: List[str] = Field(
         description="Suggested chart types for this data"
     )

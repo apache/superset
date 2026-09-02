@@ -66,6 +66,7 @@ from superset.mcp_service.utils.oauth2_utils import (
 from superset.mcp_service.utils.response_utils import (
     _safe_value_identity as safe_value_identity,
     format_data_columns,
+    format_data_quality,
     GENERIC_DATA_TYPE_NAMES,
 )
 
@@ -957,10 +958,8 @@ async def get_chart_data(  # noqa: C901
             await ctx.report_progress(4, 4, "Building response")
 
             # Calculate data quality metrics
-            data_completeness = 1.0 - (
-                sum(col.null_count for col in columns)
-                / max(len(data) * len(columns), 1)
-            )
+            data_quality = format_data_quality(columns, len(data))
+            data_completeness = data_quality["completeness"]
 
             await ctx.info(
                 "Chart data retrieval completed successfully: chart_id=%s, "
@@ -988,7 +987,7 @@ async def get_chart_data(  # noqa: C901
                 total_rows=query_result.get("rowcount"),
                 summary=summary,
                 insights=insights,
-                data_quality={"completeness": data_completeness},
+                data_quality=data_quality,
                 recommended_visualizations=recommended_visualizations,
                 data_freshness=None,  # Add missing field
                 performance=performance,
@@ -1186,13 +1185,7 @@ async def _query_from_form_data(  # noqa: C901
             total_rows=query_result.get("rowcount"),
             summary=summary,
             insights=["This is an unsaved chart queried from cached form_data."],
-            data_quality={
-                "completeness": 1.0
-                - (
-                    sum(col.null_count for col in columns)
-                    / max(len(data) * len(columns), 1)
-                )
-            },
+            data_quality=format_data_quality(columns, len(data)),
             recommended_visualizations=[],
             data_freshness=None,
             performance=PerformanceMetadata(
