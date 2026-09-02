@@ -682,7 +682,7 @@ def test_query_context_sidecar_is_exempt_without_hook_dispatch() -> None:
         (float("nan"), None),
         (np.float64("nan"), None),
         (np.bool_(True), True),
-        (Decimal("1.2300"), "1.2300"),
+        (Decimal("1.2300"), Decimal("1.2300")),
         (date(2024, 1, 2), "2024-01-02"),
         (time(3, 4, 5), "03:04:05"),
         (datetime(2024, 1, 2, 3, 4, 5), "2024-01-02T03:04:05"),
@@ -693,7 +693,7 @@ def test_query_context_sidecar_is_exempt_without_hook_dispatch() -> None:
         ),
     ],
 )
-def test_trusted_dataframe_scalars_are_json_native(value: Any, expected: Any) -> None:
+def test_trusted_dataframe_scalars_are_json_safe(value: Any, expected: Any) -> None:
     result = _producer_result({"data": [{"value": value}]})
 
     data, error = first_query_data(result)
@@ -701,6 +701,27 @@ def test_trusted_dataframe_scalars_are_json_native(value: Any, expected: Any) ->
     assert error is None
     assert data == [{"value": expected}]
     assert type(data[0]["value"]) is type(expected)
+
+
+def test_exact_decimal_keeps_numeric_identity_and_json_precision() -> None:
+    """Trusted Decimal stays numeric until Pydantic performs wire serialization."""
+    from pydantic import BaseModel
+
+    class DecimalResponse(BaseModel):
+        data: list[dict[str, Any]]
+
+    value = Decimal("0.10000000000000000000000000000000000001")
+    result = _producer_result({"data": [{"value": value}]})
+
+    data, error = first_query_data(result)
+
+    assert error is None
+    assert data is not None
+    assert data[0]["value"] is value
+    response = DecimalResponse(data=data)
+    assert response.model_dump_json() == (
+        '{"data":[{"value":"0.10000000000000000000000000000000000001"}]}'
+    )
 
 
 def test_real_dataframe_processor_and_chart_command_normalize_nan() -> None:

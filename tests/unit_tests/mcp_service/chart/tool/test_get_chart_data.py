@@ -21,6 +21,7 @@ Tests for the get_chart_data request schema and chart type fallback handling.
 
 import importlib
 from contextlib import nullcontext
+from decimal import Decimal
 from enum import Enum
 from types import SimpleNamespace
 from typing import Any, cast
@@ -551,6 +552,127 @@ class TestChartDataValuePreservation:
 class _AsyncContext:
     async def report_progress(self, *args: Any, **kwargs: Any) -> None:
         pass
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("saved", [False, True], ids=["unsaved", "saved"])
+async def test_decimal_sunburst_get_data_is_numeric_and_json_safe(
+    app: Any,
+    mcp_server: Any,
+    mock_auth: Any,
+    monkeypatch: pytest.MonkeyPatch,
+    saved: bool,
+) -> None:
+    """Saved and unsaved get-data preserve exact Decimal until serialization."""
+    module = importlib.import_module("superset.mcp_service.chart.tool.get_chart_data")
+    command_module = importlib.import_module(
+        "superset.commands.chart.data.get_data_command"
+    )
+    form_data = {
+        "datasource_id": 7,
+        "datasource_type": "table",
+        "datasource": "7__table",
+        "viz_type": "sunburst_v2",
+        "columns": ["region", "country"],
+        "metric": "Sales",
+        "secondary_metric": "Profit",
+    }
+
+    class _Command:
+        def __init__(self, query_context: Any) -> None: ...
+        def validate(self) -> None: ...
+        def run(self) -> dict[str, Any]:
+            return chart_data_command_result(
+                [
+                    {
+                        "region": "Americas",
+                        "country": "Brazil",
+                        "Sales": Decimal("12.50"),
+                        "Profit": Decimal("0.10000000000000000001"),
+                    }
+                ],
+                columns=["region", "country", "Sales", "Profit"],
+                coltypes=[
+                    GenericDataType.STRING,
+                    GenericDataType.STRING,
+                    GenericDataType.NUMERIC,
+                    GenericDataType.NUMERIC,
+                ],
+            )
+
+    monkeypatch.setattr(command_module, "ChartDataCommand", _Command)
+    monkeypatch.setattr(
+        "superset.mcp_service.auth.get_user_from_request",
+        lambda: SimpleNamespace(id=1, username="admin", roles=[], groups=[]),
+    )
+    monkeypatch.setattr(
+        module,
+        "build_query_context_from_form_data",
+        lambda *_args, **_kwargs: SimpleNamespace(queries=[], form_data={}),
+    )
+    monkeypatch.setattr(
+        module,
+        "event_logger",
+        SimpleNamespace(log_context=lambda **_kwargs: nullcontext()),
+    )
+    monkeypatch.setattr(module, "set_query_context_form_data", lambda *_args: None)
+
+    if saved:
+        chart = SimpleNamespace(
+            id=9,
+            slice_name="Decimal hierarchy",
+            viz_type="sunburst_v2",
+            datasource_id=7,
+            datasource_type="table",
+            query_context=json.dumps(
+                {"datasource": {"id": 7, "type": "table"}, "queries": []}
+            ),
+            params=json.dumps(form_data),
+        )
+        monkeypatch.setattr(
+            module, "find_chart_by_identifier", lambda *_args, **_kwargs: chart
+        )
+        monkeypatch.setattr(
+            module,
+            "validate_chart_dataset",
+            lambda *_args, **_kwargs: SimpleNamespace(
+                is_valid=True, warnings=[], error=None
+            ),
+        )
+        monkeypatch.setattr(module.guest_scope, "is_guest_read", lambda: False)
+        monkeypatch.setattr(
+            module.guest_scope, "guest_dashboard_id", lambda _chart: None
+        )
+        monkeypatch.setattr(
+            "superset.charts.schemas.ChartDataQueryContextSchema.load",
+            lambda self, payload: SimpleNamespace(queries=[], form_data=payload),
+        )
+        from fastmcp import Client
+
+        async with Client(mcp_server) as client:
+            tool_result = await client.call_tool(
+                "get_chart_data", {"request": {"identifier": 9}}
+            )
+        wire_response = tool_result.structured_content.get(
+            "result", tool_result.structured_content
+        )
+        assert wire_response["data"][0]["Sales"] == "12.50"
+        assert wire_response["data"][0]["Profit"] == "0.10000000000000000001"
+        return
+    else:
+        response = await _query_from_form_data(
+            form_data,
+            GetChartDataRequest(form_data_key="decimal-sunburst"),
+            _AsyncContext(),
+        )
+
+    assert isinstance(response, ChartData)
+    assert response.data[0]["Sales"] == Decimal("12.50")
+    assert type(response.data[0]["Sales"]) is Decimal
+    assert response.data[0]["Profit"] == Decimal("0.10000000000000000001")
+    wire_data = response.model_dump(mode="json")["data"]
+    assert wire_data[0]["Sales"] == "12.50"
+    assert wire_data[0]["Profit"] == "0.10000000000000000001"
 
 
 def test_data_column_profiling_is_bounded_and_handles_nested_primitives(

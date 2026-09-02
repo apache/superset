@@ -18,6 +18,7 @@
 """Product-path coverage for typed MCP Sunburst support."""
 
 from copy import deepcopy
+from decimal import Decimal
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
@@ -54,6 +55,7 @@ from superset.mcp_service.chart.preview_utils import (
     _generate_vega_lite_preview_from_data,
     generate_preview_from_form_data,
 )
+from superset.mcp_service.chart.query_result import first_query_data
 from superset.mcp_service.chart.registry import display_name_for_viz_type, get_registry
 from superset.mcp_service.chart.schemas import (
     BigNumberChartConfig,
@@ -1859,16 +1861,15 @@ def test_compile_proves_numeric_metric_by_resolved_alias(
     factory = MagicMock()
     factory.create.return_value = object()
     command = MagicMock()
-    command.run.return_value = {
-        "queries": [
-            {
-                "status": "success",
-                "data": [
-                    {"region": "A", "country": "B", result_label: 4.5},
-                ],
-            }
-        ]
-    }
+    command.run.return_value = chart_data_command_result(
+        [{"region": "A", "country": "B", result_label: Decimal("4.50")}],
+        columns=["region", "country", result_label],
+        coltypes=[
+            GenericDataType.STRING,
+            GenericDataType.STRING,
+            GenericDataType.NUMERIC,
+        ],
+    )
     with (
         patch(
             "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
@@ -1889,12 +1890,70 @@ def test_compile_proves_numeric_metric_by_resolved_alias(
     assert result.row_count == 1
 
 
+def test_real_decimal_producer_preserves_sunburst_numeric_provenance() -> None:
+    """The full producer envelope keeps exact numerics for Sunburst consumers."""
+    value = Decimal("0.10000000000000000000000000000000000001")
+    form_data = map_config_to_form_data(_config())
+    result = chart_data_command_result(
+        [{"region": "A", "country": "B", "Sales": value}],
+        columns=["region", "country", "Sales"],
+        coltypes=[
+            GenericDataType.STRING,
+            GenericDataType.STRING,
+            GenericDataType.NUMERIC,
+        ],
+    )
+
+    data, result_error = first_query_data(result)
+    roles, sunburst_error = validate_sunburst_result_data(data, form_data)
+
+    assert result_error is None
+    assert sunburst_error is None
+    assert roles is not None
+    assert data is not None
+    assert data[0]["Sales"] is value
+
+
+@pytest.mark.parametrize(
+    "value",
+    [Decimal("9" * 1024), Decimal("1e4096"), Decimal("1e-4096")],
+    ids=["digit-limit", "positive-exponent-limit", "negative-exponent-limit"],
+)
+def test_compile_accepts_finite_decimal_boundaries(value: Decimal) -> None:
+    form_data = map_config_to_form_data(_config())
+    command = MagicMock()
+    command.run.return_value = chart_data_command_result(
+        [{"region": "A", "country": "B", "Sales": value}],
+        columns=["region", "country", "Sales"],
+        coltypes=[
+            GenericDataType.STRING,
+            GenericDataType.STRING,
+            GenericDataType.NUMERIC,
+        ],
+    )
+    with (
+        patch(
+            "superset.mcp_service.chart.chart_helpers."
+            "build_query_context_from_form_data",
+            return_value=object(),
+        ),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand",
+            return_value=command,
+        ),
+    ):
+        result = _compile_chart(form_data, 7)
+
+    assert result.success is True
+    assert result.row_count == 1
+
+
 @pytest.mark.parametrize(
     "data,expected_error_code",
     [
         ([{"region": "A", "country": "B"}], "INVALID_SUNBURST_RESULT"),
         (
-            [{"region": "A", "country": "B", "Sales": "four"}],
+            [{"region": "A", "country": "B", "Sales": "12.50"}],
             "INVALID_SUNBURST_RESULT",
         ),
         (
@@ -1903,6 +1962,26 @@ def test_compile_proves_numeric_metric_by_resolved_alias(
         ),
         (
             [{"region": "A", "country": "B", "Sales": float("inf")}],
+            "CHART_COMPILE_FAILED",
+        ),
+        (
+            [{"region": "A", "country": "B", "Sales": Decimal("NaN")}],
+            "CHART_COMPILE_FAILED",
+        ),
+        (
+            [{"region": "A", "country": "B", "Sales": Decimal("Infinity")}],
+            "CHART_COMPILE_FAILED",
+        ),
+        (
+            [{"region": "A", "country": "B", "Sales": Decimal("1e4097")}],
+            "CHART_COMPILE_FAILED",
+        ),
+        (
+            [{"region": "A", "country": "B", "Sales": Decimal("1e-4097")}],
+            "CHART_COMPILE_FAILED",
+        ),
+        (
+            [{"region": "A", "country": "B", "Sales": Decimal("9" * 1025)}],
             "CHART_COMPILE_FAILED",
         ),
     ],
@@ -2048,6 +2127,78 @@ def test_sunburst_table_is_validated_and_vega_is_explicitly_unsupported() -> Non
     assert "region" in table.table_data
     assert isinstance(vega, ChartError)
     assert vega.error_type == "UnsupportedFormat"
+
+
+@pytest.mark.parametrize("saved", [False, True], ids=["unsaved", "saved"])
+@pytest.mark.parametrize("preview_format", ["ascii", "table"])
+def test_decimal_sunburst_saved_and_unsaved_previews(
+    saved: bool, preview_format: str
+) -> None:
+    """Every executable Sunburst preview mode accepts producer Decimals."""
+    form_data = map_config_to_form_data(
+        _config(secondary_metric={"name": "profit", "aggregate": "SUM"})
+    )
+    command = MagicMock()
+    command.run.return_value = chart_data_command_result(
+        [
+            {
+                "region": "Americas",
+                "country": "Brazil",
+                "Sales": Decimal("12.50"),
+                "SUM(profit)": Decimal("1.25"),
+            }
+        ],
+        columns=["region", "country", "Sales", "SUM(profit)"],
+        coltypes=[
+            GenericDataType.STRING,
+            GenericDataType.STRING,
+            GenericDataType.NUMERIC,
+            GenericDataType.NUMERIC,
+        ],
+    )
+    with (
+        patch("superset.extensions.db.session.get", return_value=Mock(id=7)),
+        patch(
+            "superset.mcp_service.chart.chart_helpers."
+            "build_query_context_from_form_data",
+            return_value=object(),
+        ),
+        patch(
+            "superset.mcp_service.chart.tool.get_chart_preview."
+            "build_query_context_from_form_data",
+            return_value=object(),
+        ),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand",
+            return_value=command,
+        ),
+    ):
+        if saved:
+            chart = Mock(
+                id=11,
+                slice_name="Hierarchy",
+                viz_type="sunburst_v2",
+                datasource_id=7,
+                datasource_type="table",
+                params=json.dumps(form_data),
+            )
+            strategy = (
+                ASCIIPreviewStrategy
+                if preview_format == "ascii"
+                else TablePreviewStrategy
+            )
+            preview = strategy(
+                chart, GetChartPreviewRequest(identifier=11, format=preview_format)
+            ).generate()
+        else:
+            preview = generate_preview_from_form_data(form_data, 7, preview_format)
+
+    assert not isinstance(preview, ChartError)
+    preview_text = (
+        preview.ascii_content if preview_format == "ascii" else preview.table_data
+    )
+    assert "12.50" in preview_text
+    assert "1.25" in preview_text
 
 
 @pytest.mark.parametrize(

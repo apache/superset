@@ -199,7 +199,7 @@ def _container_json_syntax_size(item_count: int, *, mapping: bool) -> int:
 
 
 def _normalized_scalar_json_size(value: Any) -> int:
-    """Return exact compact JSON size for a normalized primitive."""
+    """Return exact compact JSON size for a normalized scalar."""
     value_type = type(value)
     if value is None:
         return 4
@@ -213,6 +213,13 @@ def _normalized_scalar_json_size(value: Any) -> int:
         return _integer_json_size(value)
     if value_type is float:
         return len(float.__repr__(value))
+    if value_type is Decimal:
+        # Pydantic serializes Decimal values as JSON strings so their exact
+        # finite value survives the wire projection without binary rounding.
+        text = Decimal.__str__(value)
+        size = _json_string_size(text, MAX_RESULT_STRING_LENGTH)
+        assert size is not None
+        return size
     raise AssertionError("result scalar was not normalized")
 
 
@@ -566,7 +573,7 @@ def _canonical_timestamp(value: pd.Timestamp) -> tuple[str | None, str | None]:
 
 
 def _normalize_scalar(value: Any) -> tuple[Any, str | None]:  # noqa: C901
-    """Convert one exact trusted producer scalar to a JSON-native primitive."""
+    """Convert one exact trusted producer scalar to a JSON-safe scalar."""
     value_type = type(value)
     if value is None or value_type is bool or value_type is str:
         return value, None
@@ -577,9 +584,7 @@ def _normalize_scalar(value: Any) -> tuple[Any, str | None]:  # noqa: C901
             return None, None
         return (value, None) if math.isfinite(value) else (None, "a non-finite number")
     if value_type is Decimal:
-        if reason := _decimal_failure(value):
-            return None, reason
-        return Decimal.__str__(value), None
+        return value, _decimal_failure(value)
     if value_type is datetime:
         return _canonical_datetime(value)
     if value_type is time:

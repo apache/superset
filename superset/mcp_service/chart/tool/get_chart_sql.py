@@ -480,10 +480,11 @@ def _extract_sql_from_result(  # noqa: C901
             errors.append(f"Query {idx}: {query_error}")
 
     if not sql_parts and errors:
-        return ChartError(
+        response = ChartError(
             error="SQL generation failed: " + "; ".join(errors),
             error_type="QueryGenerationFailed",
         )
+        return response_json_failure(response) or response
 
     response = ChartSql(
         chart_id=chart_id,
@@ -542,21 +543,22 @@ async def get_chart_sql(
     )
 
     try:
-        return await _handle_chart_sql_request(request, ctx)
+        response = await _handle_chart_sql_request(request, ctx)
     except SupersetException as e:
         error_text = _safe_exception_message(e)
         logger.error("Superset error in get_chart_sql: %s", error_text)
-        return ChartError(
+        response = ChartError(
             error=f"Superset error: {error_text}",
             error_type="SupersetError",
         )
     except (ValueError, TypeError) as e:
         error_text = _safe_exception_message(e)
         logger.error("Unexpected error in get_chart_sql: %s", error_text)
-        return ChartError(
+        response = ChartError(
             error=f"Failed to generate chart SQL: {error_text}",
             error_type="QueryGenerationFailed",
         )
+    return response_json_failure(response) or response
 
 
 async def _handle_chart_sql_request(

@@ -20,7 +20,7 @@ Unit tests for get_chart_sql MCP tool
 """
 
 import importlib
-from unittest.mock import Mock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
@@ -324,6 +324,83 @@ def test_extract_sql_enforces_query_count_and_aggregate_source_bytes() -> None:
     assert too_many.error_type == "MalformedQueryResult"
     assert isinstance(oversized, ChartError)
     assert oversized.error_type == "MalformedQueryResult"
+
+
+@pytest.mark.parametrize(
+    ("extra_bytes", "expected_error_type"),
+    [(0, "InvalidQueryResult"), (1, "MalformedQueryResult")],
+    ids=["exact-16-mib", "16-mib-plus-one"],
+)
+def test_error_only_sql_result_is_bounded_at_exact_source_limit(
+    extra_bytes: int, expected_error_type: str
+) -> None:
+    """A source-sized error cannot double into an oversized final response."""
+    output = _extract_sql_from_result(
+        {
+            "queries": [
+                {
+                    "query": "",
+                    "error": "x" * (MAX_QUERY_RESULT_VALUE_BYTES + extra_bytes),
+                }
+            ]
+        },
+        1,
+        "chart",
+        "dataset",
+    )
+
+    assert isinstance(output, ChartError)
+    assert output.error_type == expected_error_type
+    assert len(output.model_dump_json().encode()) <= MAX_QUERY_RESULT_VALUE_BYTES
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "handler_result",
+    [
+        ChartError(error="warehouse parser rejected query", error_type="QueryError"),
+        ChartError(error="x" * MAX_QUERY_RESULT_VALUE_BYTES, error_type="QueryError"),
+    ],
+    ids=["realistic", "hostile-oversized"],
+)
+async def test_get_chart_sql_preflights_every_returned_chart_error_once(
+    handler_result: ChartError,
+) -> None:
+    """The public finalizer bounds ChartError without recursively preflighting."""
+    from fastmcp import Client
+
+    from superset.mcp_service.app import mcp
+
+    original_preflight = _get_chart_sql_mod.response_json_failure
+    with (
+        patch(
+            "superset.mcp_service.auth.get_user_from_request",
+            return_value=Mock(id=1, username="admin", roles=[], groups=[]),
+        ),
+        patch.object(
+            _get_chart_sql_mod,
+            "_handle_chart_sql_request",
+            AsyncMock(return_value=handler_result),
+        ),
+        patch.object(
+            _get_chart_sql_mod,
+            "response_json_failure",
+            wraps=original_preflight,
+        ) as preflight,
+    ):
+        async with Client(mcp) as client:
+            result = await client.call_tool(
+                "get_chart_sql", {"request": {"identifier": 1}}
+            )
+
+    assert preflight.call_count == 1
+    output = result.structured_content.get("result", result.structured_content)
+    assert len(str(output).encode()) <= MAX_QUERY_RESULT_VALUE_BYTES
+    if len(handler_result.model_dump_json().encode()) > MAX_QUERY_RESULT_VALUE_BYTES:
+        assert output["error_type"] == "InvalidQueryResult"
+    else:
+        assert output["error_type"] == handler_result.error_type
+        assert output["error"] == handler_result.error
 
 
 def test_extract_sql_accepts_multi_query_and_near_response_boundary() -> None:

@@ -21,7 +21,6 @@ import math
 from collections.abc import Mapping
 from dataclasses import dataclass
 from decimal import Decimal
-from numbers import Real
 from typing import Any
 
 from superset.mcp_service.chart.schemas import ChartError
@@ -144,13 +143,15 @@ def resolve_sunburst_result_roles(
 
 
 def _finite_number(value: Any) -> bool:
-    """Return whether a database value is a real, finite numeric value."""
-    if isinstance(value, bool) or not isinstance(value, (Real, Decimal)):
-        return False
-    try:
-        return math.isfinite(float(value))
-    except (OverflowError, TypeError, ValueError):
-        return False
+    """Return whether a normalized database value is exactly numeric and finite."""
+    value_type = type(value)
+    if value_type is int:
+        return True
+    if value_type is float:
+        return math.isfinite(value)
+    if value_type is Decimal:
+        return Decimal.is_finite(value)
+    return False
 
 
 def _valid_hierarchy_value(value: Any) -> bool:
