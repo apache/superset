@@ -35,6 +35,7 @@ from typing import Any, TYPE_CHECKING
 
 from superset.charts.data.form_data import set_query_context_form_data
 from superset.common.chart_data import ChartDataResultFormat
+from superset.common.utils.time_range_utils import get_since_until_from_time_range
 from superset.daos.datasource import DatasourceDAO
 from superset.superset_typing import Column, Metric
 from superset.utils.core import DatasourceType, FilterOperator
@@ -278,6 +279,38 @@ def validate_query_names(
     return errors
 
 
+def _time_range_filters(time_column: str, time_range: str) -> list[dict[str, Any]]:
+    """Express *time_range* as filters the semantic-layer mapper can consume.
+
+    A one-sided range becomes an explicit comparison rather than
+    ``TEMPORAL_RANGE``, for two reasons. ``_apply_granularity`` deletes every
+    filter on the granularity column once any ``TEMPORAL_RANGE`` filter is
+    present, and the mapper's ``_get_time_filter`` emits nothing unless both
+    bounds resolve — so the range would vanish and the query would scan the
+    whole view. Two-sided ranges keep ``TEMPORAL_RANGE``, which also resolves
+    relative strings and carries time-offset shifting that fixed bounds cannot.
+    """
+    since, until = get_since_until_from_time_range(time_range=time_range)
+    if since and until:
+        return [
+            {
+                "col": time_column,
+                "op": FilterOperator.TEMPORAL_RANGE.value,
+                "val": time_range,
+            }
+        ]
+
+    bounds = (
+        (FilterOperator.GREATER_THAN_OR_EQUALS, since),
+        (FilterOperator.LESS_THAN, until),
+    )
+    return [
+        {"col": time_column, "op": operator.value, "val": value.isoformat(sep=" ")}
+        for operator, value in bounds
+        if value
+    ]
+
+
 def build_query_dict(
     *,
     time_column: str | None = None,
@@ -301,13 +334,7 @@ def build_query_dict(
     """
     query_filters: list[dict[str, Any]] = list(filters or [])
     if time_range and time_column:
-        query_filters.append(
-            {
-                "col": time_column,
-                "op": FilterOperator.TEMPORAL_RANGE.value,
-                "val": time_range,
-            }
-        )
+        query_filters.extend(_time_range_filters(time_column, time_range))
 
     query_columns: list[Column] = list(dimensions or [])
     if time_grain and grain_column:

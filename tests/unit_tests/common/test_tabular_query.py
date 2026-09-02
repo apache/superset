@@ -394,3 +394,38 @@ def test_resolve_time_column_still_infers_a_lone_candidate() -> None:
     explorable.main_dttm_col = None
 
     assert _resolve_time_column(explorable, "view", None, True) == "event_time"
+
+
+def test_two_sided_range_stays_a_temporal_range_filter() -> None:
+    (clause,) = build_query_dict(
+        time_column="ds", metrics=["count"], time_range="1965-01-01 : 1968-01-01"
+    )["filters"]
+
+    assert clause["op"] == "TEMPORAL_RANGE"
+    assert clause["val"] == "1965-01-01 : 1968-01-01"
+
+
+def test_one_sided_range_becomes_an_explicit_comparison() -> None:
+    """A TEMPORAL_RANGE filter is deleted by ``_apply_granularity`` once
+    ``granularity`` is set, and the mapper emits no filter unless both bounds
+    resolve — so a one-sided range would scan the whole datasource.
+    """
+    for time_range, op, value in [
+        ("1966-01-01 : ", ">=", "1966-01-01 00:00:00"),
+        (" : 1966-01-01", "<", "1966-01-01 00:00:00"),
+    ]:
+        (clause,) = build_query_dict(
+            time_column="ds", metrics=["count"], time_range=time_range
+        )["filters"]
+
+        assert clause == {"col": "ds", "op": op, "val": value}
+
+
+def test_one_sided_bound_uses_a_space_separator() -> None:
+    """``isoformat()`` would emit ``1966-01-01T00:00:00``, which sorts after
+    stored ``1966-01-01 00:00:00`` values and moves the boundary."""
+    (clause,) = build_query_dict(
+        time_column="ds", metrics=["count"], time_range="1966-01-01 : "
+    )["filters"]
+
+    assert "T" not in clause["val"]
