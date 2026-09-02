@@ -354,6 +354,23 @@ async def test_query_dataset_uses_authoritative_coltypes_and_late_samples(
 
 
 @pytest.mark.asyncio
+async def test_query_dataset_metadata_distinguishes_boolean_integer_identity(
+    mcp_server: FastMCP,
+) -> None:
+    payload = await _call_query_dataset_with_result(
+        mcp_server,
+        _mock_command_result(
+            data=[{"value": value} for value in (True, 1, False, 0)],
+            colnames=["value"],
+            coltypes=[GenericDataType.BOOLEAN],
+        ),
+    )
+
+    assert payload["columns"][0]["data_type"] == "boolean"
+    assert payload["columns"][0]["unique_count"] == 4
+
+
+@pytest.mark.asyncio
 async def test_query_dataset_preserves_typed_columns_for_empty_data(
     mcp_server: FastMCP,
 ) -> None:

@@ -399,6 +399,29 @@ async def test_get_table_uses_authoritative_coltypes_and_late_samples(
 
 
 @pytest.mark.asyncio
+async def test_get_table_metadata_distinguishes_boolean_integer_identity(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    values = (True, 1, False, 0)
+    response = await _run_with_command_result(
+        monkeypatch,
+        {
+            "queries": [
+                {
+                    "data": [{"value": value} for value in values],
+                    "colnames": ["value"],
+                    "coltypes": [GenericDataType.BOOLEAN],
+                    "rowcount": len(values),
+                }
+            ]
+        },
+    )
+
+    assert response.columns[0].data_type == "boolean"
+    assert response.columns[0].unique_count == 4
+
+
+@pytest.mark.asyncio
 async def test_get_table_preserves_typed_columns_for_empty_data(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

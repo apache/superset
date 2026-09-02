@@ -109,6 +109,14 @@ class TestFormatDataColumns:
         assert column.null_count == 1
         assert column.unique_count == 2
 
+    def test_unique_count_keeps_booleans_distinct_from_equal_integers(self) -> None:
+        data = [{"value": value} for value in (True, 1, False, 0)]
+
+        column = format_data_columns(data, ["value"], [GenericDataType.BOOLEAN])[0]
+
+        assert column.data_type == "boolean"
+        assert column.unique_count == 4
+
     def test_authoritative_coltypes_apply_to_empty_data(self) -> None:
         columns = format_data_columns(
             [],

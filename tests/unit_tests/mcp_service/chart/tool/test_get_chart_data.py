@@ -2556,19 +2556,30 @@ def _multi_query_chart_data(
     )
 
 
-def test_complete_response_budget_charges_multi_query_first_leg_alias() -> None:
+def test_complete_response_budget_charges_multi_query_first_leg_alias(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     row = {f"c{index}": 0 for index in range(20)}
-    rows = [row] * 50_000
+    rows = [row] * 100
     query_results = [
         {"colnames": list(row), "data": rows, "rowcount": len(rows)},
         {"colnames": list(row), "data": rows, "rowcount": len(rows)},
     ]
+    source = {"queries": query_results}
+    source_bytes = len(json.dumps(source, separators=(",", ":")).encode())
+    monkeypatch.setattr(
+        importlib.import_module("superset.mcp_service.chart.query_result"),
+        "MAX_QUERY_RESULT_VALUE_BYTES",
+        source_bytes,
+    )
 
-    data, source_failure = query_result_data({"queries": query_results})
+    data, source_failure = query_result_data(source)
     assert source_failure is None
     assert data == [rows, rows]
 
-    response_failure = response_json_failure(_multi_query_chart_data(query_results))
+    response = _multi_query_chart_data(query_results)
+    assert len(response.model_dump_json().encode()) > source_bytes
+    response_failure = response_json_failure(response)
 
     assert response_failure is not None
     assert "response exceeds the total JSON-encoded byte limit" in (
@@ -2789,6 +2800,49 @@ async def test_unsaved_get_data_rejects_hostile_rows_and_scalars(
 
     assert isinstance(response, ChartError)
     assert response.error_type == "MalformedQueryResult"
+
+
+@pytest.mark.asyncio
+async def test_chart_metadata_distinguishes_booleans_from_equal_integers(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    module = importlib.import_module("superset.mcp_service.chart.tool.get_chart_data")
+    command_module = importlib.import_module(
+        "superset.commands.chart.data.get_data_command"
+    )
+
+    class _Command:
+        def __init__(self, query_context: Any) -> None: ...
+        def validate(self) -> None: ...
+        def run(self) -> dict[str, Any]:
+            values = (True, 1, False, 0)
+            return {
+                "queries": [
+                    {
+                        "data": [{"value": value} for value in values],
+                        "colnames": ["value"],
+                        "coltypes": [GenericDataType.BOOLEAN],
+                        "rowcount": len(values),
+                    }
+                ]
+            }
+
+    monkeypatch.setattr(
+        module,
+        "build_query_context_from_form_data",
+        lambda *_args, **_kwargs: _query_context_stub(),
+    )
+    monkeypatch.setattr(command_module, "ChartDataCommand", _Command)
+
+    response = await _query_from_form_data(
+        {"datasource": "1__table", "viz_type": "table"},
+        GetChartDataRequest(form_data_key="boolean-identity"),
+        _AsyncContext(),
+    )
+
+    assert isinstance(response, ChartData)
+    assert response.columns[0].data_type == "boolean"
+    assert response.columns[0].unique_count == 4
 
 
 def test_numeric_metadata_identity_matches_bounded_value_semantics() -> None:
