@@ -110,3 +110,18 @@ def test_download_missing_object_raises_file_not_found(
 
     with pytest.raises(FileNotFoundError):
         S3ExportStorage().download("my-bucket", "gone.xlsx")
+
+
+@patch("boto3.client")
+def test_download_unrelated_client_error_propagates(
+    mock_client_fn: MagicMock,
+) -> None:
+    import botocore.exceptions
+
+    client = mock_client_fn.return_value
+    client.get_object.side_effect = botocore.exceptions.ClientError(
+        {"Error": {"Code": "AccessDenied"}}, "GetObject"
+    )
+
+    with pytest.raises(botocore.exceptions.ClientError):
+        S3ExportStorage().download("my-bucket", "exports/1/abc.xlsx")
