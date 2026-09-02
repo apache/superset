@@ -38,6 +38,13 @@ from superset.mcp_service.chart.chart_helpers import (
     resolve_metrics,
     resolve_metrics_and_groupby,
 )
+from superset.mcp_service.chart.chart_utils import map_big_number_config
+from superset.mcp_service.chart.schemas import (
+    BigNumberChartConfig,
+    ColumnRef,
+    FilterConfig,
+)
+from superset.utils.core import DTTM_ALIAS
 
 
 def _query_objects(form_data: dict[str, Any]) -> list[QueryObject]:
@@ -1091,10 +1098,188 @@ def test_big_number_raw_frontend_contract_has_isolated_second_query(
     )
 
     assert trend.columns == ["event_time"]
+    assert trend.series_columns == []
+    assert trend.post_processing[0]["options"]["index"] == ["event_time"]
+    assert trend.post_processing[0]["options"]["columns"] == []
     assert trend.post_processing[-1]["operation"] == "flatten"
     assert raw.columns == []
+    assert raw.series_columns == []
     assert raw.is_timeseries is False
     assert raw.post_processing == []
+
+
+@pytest.mark.parametrize(
+    "metric, metric_label, temporal_form_data, axis_label",
+    [
+        (
+            "saved_revenue",
+            "saved_revenue",
+            {"x_axis": "event_time"},
+            "event_time",
+        ),
+        (
+            {
+                "expressionType": "SIMPLE",
+                "column": {"column_name": "revenue"},
+                "aggregate": "SUM",
+                "label": "Gross revenue",
+            },
+            "Gross revenue",
+            {"granularity_sqla": "event_time"},
+            DTTM_ALIAS,
+        ),
+        (
+            {
+                "expressionType": "SQL",
+                "sqlExpression": "SUM(revenue) - SUM(cost)",
+                "label": "Net revenue",
+            },
+            "Net revenue",
+            {"granularity_sqla": "event_time"},
+            DTTM_ALIAS,
+        ),
+    ],
+)
+def test_big_number_trendline_query_and_pandas_metric_alias_parity(
+    monkeypatch: pytest.MonkeyPatch,
+    app_context: None,
+    metric: Any,
+    metric_label: str,
+    temporal_form_data: dict[str, Any],
+    axis_label: str,
+) -> None:
+    """Pin saved/SIMPLE/SQL aliases through final pandas post-processing."""
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda *_args: "base",
+    )
+    trend, raw = _query_objects(
+        {
+            "viz_type": "big_number",
+            "metric": metric,
+            "aggregation": "raw",
+            "time_grain_sqla": "P1D",
+            "time_range": "Last week",
+            "adhoc_filters": [
+                {
+                    "clause": "WHERE",
+                    "expressionType": "SIMPLE",
+                    "subject": "region",
+                    "operator": "==",
+                    "comparator": "North",
+                }
+            ],
+            **temporal_form_data,
+        }
+    )
+
+    expected_columns = ["event_time"] if "x_axis" in temporal_form_data else []
+    assert trend.columns == expected_columns
+    assert trend.series_columns == []
+    assert trend.metrics == [metric]
+    assert trend.granularity == temporal_form_data.get("granularity_sqla")
+    assert trend.extras["time_grain_sqla"] == "P1D"
+    assert trend.time_range == "Last week"
+    assert trend.filter == [{"col": "region", "op": "==", "val": "North"}]
+    assert trend.post_processing[0]["options"] == {
+        "index": [axis_label],
+        "columns": [],
+        "aggregates": {metric_label: {"operator": "mean"}},
+        "drop_missing_columns": True,
+    }
+
+    result = trend.exec_post_processing(
+        pd.DataFrame(
+            {
+                axis_label: pd.to_datetime(["2024-01-01", "2024-01-02"]),
+                metric_label: [10.0, 12.5],
+            }
+        )
+    )
+    assert list(result.columns) == [axis_label, metric_label]
+    assert result[metric_label].tolist() == [10.0, 12.5]
+
+    assert raw.columns == []
+    assert raw.series_columns == []
+    assert raw.metrics == [metric]
+    assert raw.is_timeseries is False
+    assert raw.post_processing == []
+
+
+def test_typed_big_number_temporal_mapping_uses_backend_timestamp_only(
+    monkeypatch: pytest.MonkeyPatch,
+    app_context: None,
+) -> None:
+    """Typed temporal_column maps to granularity without a redundant raw field."""
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda *_args: "base",
+    )
+    form_data = map_big_number_config(
+        BigNumberChartConfig(
+            chart_type="big_number",
+            metric=ColumnRef(
+                name="revenue",
+                aggregate="SUM",
+                label="Typed revenue",
+            ),
+            temporal_column="event_time",
+            time_grain="P1M",
+            show_trendline=True,
+            aggregation="sum",
+            filters=[FilterConfig(column="region", op="=", value="North")],
+        )
+    )
+
+    assert "x_axis" not in form_data
+    query = _query_objects(form_data)[0]
+    assert query.columns == []
+    assert query.series_columns == []
+    assert query.granularity == "event_time"
+    assert query.is_timeseries is True
+    assert query.extras["time_grain_sqla"] == "P1M"
+    assert query.post_processing[0]["options"]["index"] == [DTTM_ALIAS]
+    assert query.post_processing[0]["options"]["columns"] == []
+
+    # The backend timeseries alias is sufficient; the physical event_time field
+    # is deliberately absent from the dataframe returned by the raw SQL query.
+    result = query.exec_post_processing(
+        pd.DataFrame(
+            {
+                DTTM_ALIAS: pd.to_datetime(["2024-01-01", "2024-02-01"]),
+                "Typed revenue": [20.0, 30.0],
+            }
+        )
+    )
+    assert list(result.columns) == [DTTM_ALIAS, "Typed revenue"]
+    assert result["Typed revenue"].tolist() == [20.0, 30.0]
+
+
+def test_big_number_total_query_remains_non_timeseries_and_unprocessed(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda *_args: "base",
+    )
+    metric = {
+        "expressionType": "SQL",
+        "sqlExpression": "SUM(revenue)",
+        "label": "Total revenue",
+    }
+    query = _query_objects(
+        {
+            "viz_type": "big_number_total",
+            "metric": metric,
+            "granularity_sqla": "event_time",
+        }
+    )[0]
+
+    assert query.columns == []
+    assert query.metrics == [metric]
+    assert query.series_columns == []
+    assert query.is_timeseries is False
+    assert query.post_processing == []
 
 
 @pytest.mark.parametrize(
