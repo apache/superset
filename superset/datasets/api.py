@@ -2153,11 +2153,12 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         """Return the activity stream for a dataset.
         ---
         get:
-          summary: Activity stream — dataset's own edits only.
-            Datasets have no transitive layer in V2 — chart and
-            dashboard edits that touch this dataset do NOT appear here.
-            ``?include=self`` and ``?include=all`` return the dataset's
-            own edits; ``?include=related`` returns an empty stream
+          summary: Get a dataset's activity stream
+          description: >-
+            A dataset's own edits only. Datasets have no transitive layer in
+            V2 — chart and dashboard edits that touch this dataset do NOT
+            appear here. ``?include=self`` and ``?include=all`` return the
+            dataset's own edits; ``?include=related`` returns an empty stream
             (a dataset has no related entities to fan out to).
           parameters:
           - in: path
