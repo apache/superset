@@ -112,6 +112,16 @@ let wsEnabled = false;
 let catchUpScheduled = false;
 let catchUpInFlight = false;
 let catchUpQueued = false;
+// Resolvers awaiting the completion of a catch-up that observed their request (see
+// catchUpAndWait) — flushed when the coalesced run chain drains. Lets the WS
+// give-up await the last-chance reconciliation exactly, rather than racing a timer.
+let catchUpCompletionResolvers: (() => void)[] = [];
+
+const flushCatchUpResolvers = () => {
+  const resolvers = catchUpCompletionResolvers;
+  catchUpCompletionResolvers = [];
+  resolvers.forEach(resolve => resolve());
+};
 let pollingDelayMs: number;
 // Backoff state: the poll starts eager (`pollingDelayMs`), degrades — doubling up
 // to `pollBackoffMaxMs` — while awaited tasks are quiet, and snaps back to eager
@@ -125,11 +135,9 @@ let pollBackoffMaxMs: number;
 let pollStaleTimeoutMs: number;
 let lastProgressAt: number;
 // WS-mode give-up (see waitForAsyncData): spread the per-waiter deadline by up to
-// this jitter so many charts don't reach it at the same instant, and — after the
-// last-chance catch-up it triggers — wait this grace for that reconciliation to
-// settle the waiter before rejecting.
+// this jitter so many charts don't reach it at the same instant. After the
+// last-chance catch-up it triggers, the waiter is rejected only if still unresolved.
 const GIVE_UP_JITTER_MS = 5000;
-const GIVE_UP_CATCHUP_GRACE_MS = 3000;
 let pollingTimeoutId: number;
 // Whether the poll loop is running. It stops entirely when no waiters remain (no
 // idle heartbeat) and is restarted by ``ensurePolling`` when a waiter registers.
@@ -355,7 +363,10 @@ const ensurePolling = () => {
 // coalesced (see scheduleCatchUp) rather than each firing their own request.
 const runCatchUp = async () => {
   catchUpScheduled = false;
-  if (!wsEnabled || !waitersByTaskId.size) return;
+  if (!wsEnabled || !waitersByTaskId.size) {
+    flushCatchUpResolvers();
+    return;
+  }
   catchUpInFlight = true;
   try {
     // Capture the cursor this fetch starts from; a waiter registering mid-flight
@@ -385,6 +396,9 @@ const runCatchUp = async () => {
       catchUpQueued = false;
       catchUpScheduled = true;
       Promise.resolve().then(runCatchUp);
+    } else {
+      // Chain drained: wake anyone awaiting a catch-up that observed their request.
+      flushCatchUpResolvers();
     }
   }
 };
@@ -402,6 +416,20 @@ const scheduleCatchUp = () => {
   if (catchUpScheduled) return;
   catchUpScheduled = true;
   Promise.resolve().then(runCatchUp);
+};
+
+// Trigger a coalesced catch-up and resolve once a run that observed this call has
+// completed. Used by the WS give-up for an exact last-chance reconciliation (await
+// the actual reconciliation rather than racing a fixed grace timer). A no-op run
+// (WS off / no waiters) still resolves.
+const catchUpAndWait = (): Promise<void> => {
+  // scheduleCatchUp is a no-op when WS is off (it would never schedule a run, so
+  // no resolver would ever flush); resolve immediately in that case.
+  if (!wsEnabled) return Promise.resolve();
+  return new Promise<void>(resolve => {
+    catchUpCompletionResolvers.push(resolve);
+    scheduleCatchUp();
+  });
 };
 
 subscribeRealtimeOpen(scheduleCatchUp);
@@ -520,25 +548,25 @@ export const waitForAsyncData = async <T = unknown[]>(
       // dropped socket message with no reconnect) so a chart can't spin forever;
       // a reconnect catch-up normally settles it well before this fires. Before
       // rejecting, do ONE last-chance reconciliation (not a poll): the socket may
-      // have missed a `task.status` while staying open, so run the coalesced
-      // `status_changes` catch-up and reject only if still unresolved a short grace
-      // later (if the catch-up settles the waiter, `unregister` clears this timer).
-      // Jitter the deadline so many dashboard charts don't fire at the same instant.
-      const rejectIfStillPending = () => {
-        if (waiter.taskIds.some(id => waitersByTaskId.get(id)?.has(waiter))) {
-          settle(
-            waiter,
-            new Error('Timed out waiting for chart-data query results'),
-          );
-        }
-      };
+      // have missed a `task.status` while staying open. Await the coalesced
+      // `status_changes` catch-up (exact — no timer race even if the endpoint is
+      // slow), then reject only if still unresolved (if the catch-up settled the
+      // waiter, it's been unregistered and this is a no-op). Jitter the deadline so
+      // many dashboard charts don't fire at the same instant.
       waiter.giveUpId = window.setTimeout(
         () => {
-          scheduleCatchUp();
-          waiter.giveUpId = window.setTimeout(
-            rejectIfStillPending,
-            GIVE_UP_CATCHUP_GRACE_MS,
-          );
+          catchUpAndWait()
+            .then(() => {
+              if (
+                waiter.taskIds.some(id => waitersByTaskId.get(id)?.has(waiter))
+              ) {
+                settle(
+                  waiter,
+                  new Error('Timed out waiting for chart-data query results'),
+                );
+              }
+            })
+            .catch(() => {});
         },
         pollStaleTimeoutMs + Math.random() * GIVE_UP_JITTER_MS,
       );

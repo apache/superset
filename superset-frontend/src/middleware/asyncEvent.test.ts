@@ -805,9 +805,9 @@ test('WS mode: a genuinely lost completion gives up after the timeout', async ()
   // Attach the rejection handler before the give-up timer fires.
   const expectation = expect(promise).rejects.toThrow('Timed out');
 
-  // Past the jittered deadline (+ up to GIVE_UP_JITTER_MS) and the post-catch-up
-  // grace: the last-chance catch-up finds nothing, so the waiter is rejected.
-  await jest.advanceTimersByTimeAsync(1000 + 5000 + 3000 + 200);
+  // Past the jittered deadline (+ up to GIVE_UP_JITTER_MS); the awaited last-chance
+  // catch-up finds nothing, so the waiter is rejected.
+  await jest.advanceTimersByTimeAsync(1000 + 5000 + 200);
   await expectation;
   jest.useRealTimers();
 });
