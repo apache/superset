@@ -519,7 +519,11 @@ class TestTaskApi(SupersetTestCase):
             )
             db.session.commit()
             try:
-                task = db.session.query(Task).filter_by(created_by_fk=admin.id).first()
+                task = (
+                    db.session.query(Task)
+                    .filter_by(created_by_fk=admin.id, task_type="test_type")
+                    .first()
+                )
                 assert task is not None
                 task.set_status(TaskStatus.IN_PROGRESS)
                 db.session.commit()
