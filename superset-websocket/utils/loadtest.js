@@ -23,29 +23,40 @@ const redis = new Redis(config.redis);
 
 const numClients = 256;
 
-// The Pub/Sub channels the server tails; a fixed wire-protocol contract with the
-// Superset producer, mirrored from superset-websocket/src/index.ts.
-const entityChangesChannel = 'entity-changes:task';
-const taskStatusChannel = 'task-status';
+// The single Pub/Sub channel the server tails; a fixed wire-protocol contract
+// with the Superset producer, mirrored from superset-websocket/src/index.ts.
+// Every browser-bound message rides this channel as a self-describing
+// `{topic, scope, routes, payload}` envelope.
+const realtimeChannel = 'realtime';
+
+let entityId = 0;
 
 function pushData() {
   const taskId = randomUUID();
+  entityId += 1;
 
-  // Tier 1: one broadcast entity-change nudge, carrying only opaque ids.
+  // Broadcast entity-change nudge (scope `authenticated_global`), carrying only
+  // opaque ids; forwarded to every authenticated socket.
   redis.publish(
-    entityChangesChannel,
-    JSON.stringify({ entity_type: 'task', id: taskId }),
+    realtimeChannel,
+    JSON.stringify({
+      topic: 'entity.changed',
+      scope: 'authenticated_global',
+      payload: { entity_type: 'task', id: entityId },
+    }),
   );
 
-  // Tier 2: one targeted task-status message per simulated client, each fanned
-  // out by the server to that principal's sockets only.
+  // Targeted task-status message per simulated client (scope `principal`), each
+  // routed by the server to that principal's sockets only. Routing keys use the
+  // principal-channel format (`user:<id>`) from superset.tasks.subscription.
   for (let i = 0; i < numClients; i++) {
     redis.publish(
-      taskStatusChannel,
+      realtimeChannel,
       JSON.stringify({
-        task_id: taskId,
-        status: 'running',
-        subscribers: [{ principal_type: 'user', sub: String(i) }],
+        topic: 'task.status',
+        scope: 'principal',
+        routes: [`user:${i}`],
+        payload: { task_id: taskId, status: 'running' },
       }),
     );
   }
