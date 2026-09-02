@@ -58,4 +58,5 @@ def test_spark_metadata() -> None:
     ],
 )
 def test_time_grain_expressions(time_grain: str | None, expected: str) -> None:
-    assert SparkEngineSpec._time_grain_expressions[time_grain].format(col="ts") == expected
+    actual = SparkEngineSpec._time_grain_expressions[time_grain].format(col="ts")
+    assert actual == expected

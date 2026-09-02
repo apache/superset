@@ -27,7 +27,8 @@ def test_teradata_properties() -> None:
 
 def test_teradata_metadata() -> None:
     metadata = TeradataEngineSpec.metadata
-    assert "Teradata is an enterprise data warehouse platform" in metadata["description"]
+    desc = metadata["description"]
+    assert "Teradata is an enterprise data warehouse platform" in desc
     assert metadata["logo"] == "teradata.png"
     assert "teradatasqlalchemy" in metadata["pypi_packages"]
     assert metadata["default_port"] == 1025
@@ -51,4 +52,5 @@ def test_teradata_epoch_to_dttm() -> None:
     ],
 )
 def test_time_grain_expressions(time_grain: str | None, expected: str) -> None:
-    assert TeradataEngineSpec._time_grain_expressions[time_grain].format(col="ts") == expected
+    actual = TeradataEngineSpec._time_grain_expressions[time_grain].format(col="ts")
+    assert actual == expected

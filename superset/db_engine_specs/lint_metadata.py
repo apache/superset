@@ -103,7 +103,10 @@ def check_pypi_package(package_name: str, timeout: float = 5.0) -> bool:
     if base_name in _pypi_cache:
         return _pypi_cache[base_name]
 
-    url = f"https://pypi.org/pypi/{base_name}/json"
+    import urllib.parse
+
+    safe_base_name = urllib.parse.quote(base_name, safe="")
+    url = f"https://pypi.org/pypi/{safe_base_name}/json"
     try:
         req = urllib.request.Request(  # noqa: S310
             url, headers={"User-Agent": "superset-lint/1.0"}
@@ -276,7 +279,10 @@ def get_all_engine_specs_ast() -> list[dict[str, Any]]:  # noqa: C901
                                     has_non_empty_engine = bool(item.value.value)
                                 break
                     elif isinstance(item, ast.AnnAssign):
-                        if isinstance(item.target, ast.Name) and item.target.id == "engine":
+                        if (
+                            isinstance(item.target, ast.Name)
+                            and item.target.id == "engine"
+                        ):
                             if isinstance(item.value, ast.Constant):
                                 has_non_empty_engine = bool(item.value.value)
                             break
@@ -307,7 +313,9 @@ def get_all_engine_specs_ast() -> list[dict[str, Any]]:  # noqa: C901
                             if item.target.id == "engine_name":
                                 if isinstance(item.value, ast.Constant):
                                     engine_name = item.value.value
-                            elif item.target.id == "metadata" and item.value is not None:
+                            elif (
+                                item.target.id == "metadata" and item.value is not None
+                            ):
                                 try:
                                     metadata = _eval_ast_dict(item.value)
                                 except Exception:
@@ -352,9 +360,13 @@ def _eval_ast_value(node: Any) -> Any:  # noqa: C901
 
     if isinstance(node, ast.Constant):
         return node.value
-    elif hasattr(ast, "Str") and isinstance(node, getattr(ast, "Str")):  # Python <3.8 compat
+    elif hasattr(ast, "Str") and isinstance(
+        node, getattr(ast, "Str")
+    ):  # Python <3.8 compat
         return getattr(node, "s")
-    elif hasattr(ast, "Num") and isinstance(node, getattr(ast, "Num")):  # Python <3.8 compat
+    elif hasattr(ast, "Num") and isinstance(
+        node, getattr(ast, "Num")
+    ):  # Python <3.8 compat
         return getattr(node, "n")
     elif isinstance(node, ast.List):
         return [_eval_ast_value(e) for e in node.elts]

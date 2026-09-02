@@ -122,7 +122,8 @@ class AuroraMySQLEngineSpec(MySQLEngineSpec):
 
     metadata = {
         "description": (
-            "Amazon Aurora MySQL is a fully managed, MySQL-compatible relational database."
+            "Amazon Aurora MySQL is a fully managed, "
+            "MySQL-compatible relational database."
         ),
         "logo": "aws-aurora.jpg",
         "homepage_url": "https://aws.amazon.com/rds/aurora/",
@@ -158,7 +159,8 @@ class AuroraPostgresEngineSpec(PostgresEngineSpec):
 
     metadata = {
         "description": (
-            "Amazon Aurora PostgreSQL is a fully managed, PostgreSQL-compatible relational database."
+            "Amazon Aurora PostgreSQL is a fully managed, "
+            "PostgreSQL-compatible relational database."
         ),
         "logo": "aws-aurora.jpg",
         "homepage_url": "https://aws.amazon.com/rds/aurora/",
