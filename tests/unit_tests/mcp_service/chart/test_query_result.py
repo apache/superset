@@ -639,9 +639,9 @@ def test_query_metadata_sql_has_independent_aggregate_byte_limit() -> None:
 
 
 def test_source_cell_string_keeps_independent_64_kib_limit() -> None:
-    result = _producer_result(
-        {"data": [{"value": "x" * (MAX_RESULT_STRING_LENGTH + 1)}]}
-    )
+    oversized_cell = "x" * 65_537
+    assert len(oversized_cell.encode()) == MAX_RESULT_STRING_LENGTH + 1
+    result = _producer_result({"data": [{"value": oversized_cell}]})
 
     error = validate_query_result_envelope(result)
 
