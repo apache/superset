@@ -1045,6 +1045,43 @@ def test_download_link_records_the_upload_backend(mocks: dict[str, Any]) -> None
     assert kwargs["backend"] == (f"{backend_cls.__module__}.{backend_cls.__qualname__}")
 
 
+def test_missing_dashboard_records_failure(mocks: dict[str, Any]) -> None:
+    """A dashboard deleted between enqueue and execution fails cleanly:
+    failure recorded for pollers, lock released."""
+    mocks[
+        "db"
+    ].session.query.return_value.filter_by.return_value.one_or_none.return_value = None
+
+    with pytest.raises(ValueError, match="not found"):
+        _run(JOB_ID_FAIL)
+
+    mocks["mark_export_failed"].assert_called_once()
+    mocks["ReleaseDistributedLock"].return_value.run.assert_called_once_with()
+
+
+def test_multi_query_chart_gets_indexed_sheet_names(mocks: dict[str, Any]) -> None:
+    """A chart whose result carries several queries yields one sheet per
+    query, disambiguated by the query index suffix."""
+    mocks["get_charts_in_layout_order"].return_value = [_chart(10, "Multi")]
+    mocks["ChartDataCommand"].return_value.run.return_value = {
+        "queries": [
+            {"colnames": ["a"], "data": [{"a": 1}]},
+            {"colnames": ["b"], "data": [{"b": 2}]},
+        ]
+    }
+
+    uploaded: dict[str, Any] = {}
+
+    def _capture(path: str, bucket: str, key: str) -> None:
+        uploaded["sheets"] = _read_sheets(path)
+
+    mocks["storage_backend"].upload_file.side_effect = _capture
+
+    _run()
+
+    assert list(uploaded["sheets"].keys()) == ["10 - Multi", "10.1 - Multi"]
+
+
 def test_lock_released_and_failure_recorded_when_user_resolution_fails(
     mocks: dict[str, Any],
 ) -> None:

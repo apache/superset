@@ -600,3 +600,68 @@ test('a "running" status restarts the wait window, so queue delay is not counted
     );
   });
 });
+
+test('a transient poll failure keeps polling and still downloads', async () => {
+  jest.useFakeTimers();
+  mockSupersetClient.post.mockResolvedValue({
+    json: { job_id: 'abc' },
+  } as never);
+  mockSupersetClient.get
+    .mockRejectedValueOnce(new Error('network blip'))
+    .mockResolvedValueOnce({
+      json: {
+        status: 'ready',
+        download_url: '/api/v1/dashboard/export_xlsx/download/abc/',
+      },
+    } as never);
+
+  render(<MenuWrapper />, { useRedux: true, initialState: loggedInState });
+
+  await userEvent.click(screen.getByText('Export Data to Excel'));
+  await waitFor(() => expect(mockSupersetClient.post).toHaveBeenCalled());
+
+  await act(async () => {
+    jest.advanceTimersByTime(3000);
+  });
+  await waitFor(() => expect(mockSupersetClient.get).toHaveBeenCalledTimes(1));
+  expect(mockAddDangerToast).not.toHaveBeenCalled();
+
+  await act(async () => {
+    jest.advanceTimersByTime(3000);
+  });
+  await waitFor(() => {
+    expect(mockSupersetClient.get).toHaveBeenCalledTimes(2);
+    expect(mockRedirect).toHaveBeenCalledWith(
+      '/api/v1/dashboard/export_xlsx/download/abc/',
+    );
+  });
+});
+
+test('poll failures past the deadline give up with an error toast', async () => {
+  jest.useFakeTimers();
+  mockSupersetClient.post.mockResolvedValue({
+    json: { job_id: 'abc' },
+  } as never);
+  mockSupersetClient.get.mockRejectedValue(new Error('server down'));
+
+  render(<MenuWrapper />, { useRedux: true, initialState: loggedInState });
+
+  await userEvent.click(screen.getByText('Export Data to Excel'));
+  await waitFor(() => expect(mockSupersetClient.post).toHaveBeenCalled());
+
+  await act(async () => {
+    jest.advanceTimersByTime(3000);
+  });
+  await waitFor(() => expect(mockSupersetClient.get).toHaveBeenCalledTimes(1));
+
+  // Jump past the 12 minute deadline; the next failing poll must give up.
+  await act(async () => {
+    jest.advanceTimersByTime(13 * 60 * 1000);
+  });
+  await waitFor(() => {
+    expect(mockAddDangerToast).toHaveBeenCalledWith(
+      'Sorry, something went wrong. Try again later.',
+    );
+  });
+  expect(mockRedirect).not.toHaveBeenCalled();
+});

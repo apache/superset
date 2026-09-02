@@ -104,3 +104,17 @@ def test_missing_sdk_raises_actionable_error() -> None:
         pytest.raises(ImportError, match="excel-export-gcs"),
     ):
         GCSExportStorage().upload_file("exports/out.xlsx", "my-bucket", "k")
+
+
+def test_get_client_uses_installed_sdk() -> None:
+    from superset.utils.gcs import _get_client
+
+    storage_mod = ModuleType("google.cloud.storage")
+    storage_mod.Client = MagicMock(return_value="client-instance")  # type: ignore[attr-defined]
+    cloud_mod = ModuleType("google.cloud")
+    cloud_mod.storage = storage_mod  # type: ignore[attr-defined]
+    with patch.dict(
+        sys.modules,
+        {"google.cloud": cloud_mod, "google.cloud.storage": storage_mod},
+    ):
+        assert _get_client() == "client-instance"
