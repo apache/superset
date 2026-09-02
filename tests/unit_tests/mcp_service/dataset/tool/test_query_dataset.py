@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import importlib
 from collections.abc import Generator
+from decimal import Decimal
 from types import SimpleNamespace
 from typing import Any
 from unittest.mock import MagicMock, Mock, patch
@@ -270,19 +271,19 @@ async def test_query_dataset_uses_authoritative_coltypes_and_late_samples(
             {
                 "event_time": pd.Timestamp("2024-01-02T03:04:05Z"),
                 "enabled": True,
-                "amount": 1,
+                "amount": Decimal("1.00"),
                 "identity": True,
             },
             {
                 "event_time": None,
                 "enabled": False,
-                "amount": 1.0,
+                "amount": Decimal("1.0"),
                 "identity": 1,
             },
             {
                 "event_time": None,
                 "enabled": True,
-                "amount": "1",
+                "amount": Decimal("2.00"),
                 "identity": False,
             },
             {

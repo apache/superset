@@ -596,7 +596,19 @@ async def test_decimal_sunburst_get_data_is_numeric_and_json_safe(
                         "country": "Brazil",
                         "Sales": Decimal("12.50"),
                         "Profit": Decimal("0.10000000000000000001"),
-                    }
+                    },
+                    {
+                        "region": "Americas",
+                        "country": "Argentina",
+                        "Sales": Decimal("12.500"),
+                        "Profit": Decimal("0.100000000000000000010"),
+                    },
+                    {
+                        "region": "Europe",
+                        "country": "France",
+                        "Sales": Decimal("13.00"),
+                        "Profit": Decimal("0.2"),
+                    },
                 ],
                 columns=["region", "country", "Sales", "Profit"],
                 coltypes=[
@@ -701,6 +713,9 @@ async def test_decimal_sunburst_get_data_is_numeric_and_json_safe(
     else:
         assert wire_response["data"][0]["Sales"] == "12.50"
         assert wire_response["data"][0]["Profit"] == "0.10000000000000000001"
+        columns = {column["name"]: column for column in wire_response["columns"]}
+        assert columns["Sales"]["unique_count"] == 2
+        assert columns["Profit"]["unique_count"] == 2
     assert validated_values == [(Decimal("12.50"), Decimal("0.10000000000000000001"))]
 
 

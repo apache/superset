@@ -52,6 +52,9 @@ from superset.mcp_service.chart.preview_utils import (
     generate_preview_from_form_data,
     SUPPORTED_FORM_DATA_PREVIEW_FORMATS,
 )
+from superset.mcp_service.chart.response_preflight import (
+    finalize_update_chart_preview_response,
+)
 from superset.mcp_service.chart.schemas import (
     AccessibilityMetadata,
     ChartError,
@@ -66,6 +69,12 @@ from superset.mcp_service.utils.oauth2_utils import (
 from superset.utils import json as utils_json
 
 logger = logging.getLogger(__name__)
+
+
+def _finalize_response(response: Dict[str, Any]) -> Dict[str, Any]:
+    """Preflight every public update-preview response."""
+    return finalize_update_chart_preview_response(response)
+
 
 INVALID_FORM_DATA_KEY_WARNING = (
     "Previous cached chart state could not be loaded from the previous "
@@ -176,42 +185,47 @@ def update_chart_preview(  # noqa: C901
             dataset = _find_dataset(request.dataset_id)
 
             if dataset is not None and not has_dataset_access(dataset):
-                return {
-                    "chart": None,
-                    "error": {
-                        "error_type": "DatasetNotAccessible",
-                        "message": f"Dataset not found: {request.dataset_id}",
-                        "details": (
-                            f"Dataset {request.dataset_id} is missing or inaccessible."
-                        ),
-                    },
-                    "success": False,
-                    "schema_version": "2.0",
-                    "api_version": "v1",
-                }
+                return _finalize_response(
+                    {
+                        "chart": None,
+                        "error": {
+                            "error_type": "DatasetNotAccessible",
+                            "message": f"Dataset not found: {request.dataset_id}",
+                            "details": (
+                                f"Dataset {request.dataset_id} is missing or "
+                                "inaccessible."
+                            ),
+                        },
+                        "success": False,
+                        "schema_version": "2.0",
+                        "api_version": "v1",
+                    }
+                )
 
             if not dataset:
-                return {
-                    "chart": None,
-                    "error": {
-                        "error_type": "dataset_not_found",
-                        "message": (f"Dataset not found: {request.dataset_id}"),
-                        "details": (
-                            f"No dataset found with identifier "
-                            f"'{request.dataset_id}'. This could "
-                            f"be an invalid ID/UUID or a "
-                            f"permissions issue."
-                        ),
-                        "suggestions": [
-                            "Verify the dataset ID or UUID",
-                            "Check dataset access permissions",
-                            "Use list_datasets to find available datasets",
-                        ],
-                    },
-                    "success": False,
-                    "schema_version": "2.0",
-                    "api_version": "v1",
-                }
+                return _finalize_response(
+                    {
+                        "chart": None,
+                        "error": {
+                            "error_type": "dataset_not_found",
+                            "message": (f"Dataset not found: {request.dataset_id}"),
+                            "details": (
+                                f"No dataset found with identifier "
+                                f"'{request.dataset_id}'. This could "
+                                f"be an invalid ID/UUID or a "
+                                f"permissions issue."
+                            ),
+                            "suggestions": [
+                                "Verify the dataset ID or UUID",
+                                "Check dataset access permissions",
+                                "Use list_datasets to find available datasets",
+                            ],
+                        },
+                        "success": False,
+                        "schema_version": "2.0",
+                        "api_version": "v1",
+                    }
+                )
 
         with event_logger.log_context(action="mcp.update_chart_preview.form_data"):
             from superset.mcp_service.chart.validation.dataset_validator import (
@@ -293,7 +307,7 @@ def update_chart_preview(  # noqa: C901
                     "update_chart_preview validation failed: %s",
                     compile_result.error,
                 )
-                return _validation_error_result(compile_result)
+                return _finalize_response(_validation_error_result(compile_result))
 
             # Generate new explore link with updated form_data. This preview flow
             # extracts and re-caches the form_data_key, so force that URL shape.
@@ -304,17 +318,19 @@ def update_chart_preview(  # noqa: C901
         # Extract new form_data_key from the explore URL
         new_form_data_key = extract_form_data_key_from_url(explore_url)
         if not new_form_data_key:
-            return {
-                "chart": None,
-                "error": {
-                    "error_type": "PreviewError",
-                    "message": "Failed to generate preview: missing form_data_key",
-                    "details": "The explore URL did not contain a form_data_key",
-                },
-                "success": False,
-                "schema_version": "2.0",
-                "api_version": "v1",
-            }
+            return _finalize_response(
+                {
+                    "chart": None,
+                    "error": {
+                        "error_type": "PreviewError",
+                        "message": "Failed to generate preview: missing form_data_key",
+                        "details": "The explore URL did not contain a form_data_key",
+                    },
+                    "success": False,
+                    "schema_version": "2.0",
+                    "api_version": "v1",
+                }
+            )
 
         with event_logger.log_context(action="mcp.update_chart_preview.metadata"):
             # Generate semantic analysis
@@ -403,27 +419,31 @@ def update_chart_preview(  # noqa: C901
             "schema_version": "2.0",
             "api_version": "v1",
         }
-        return result
+        return _finalize_response(result)
 
     except OAuth2RedirectError as ex:
         logger.warning(
             "Chart preview update requires OAuth authentication: form_data_key=%s",
             request.form_data_key,
         )
-        return {
-            "chart": None,
-            "error": build_oauth2_redirect_message(ex),
-            "success": False,
-        }
+        return _finalize_response(
+            {
+                "chart": None,
+                "error": build_oauth2_redirect_message(ex),
+                "success": False,
+            }
+        )
     except OAuth2Error:
         logger.warning(
             "OAuth2 configuration error: form_data_key=%s", request.form_data_key
         )
-        return {
-            "chart": None,
-            "error": OAUTH2_CONFIG_ERROR_MESSAGE,
-            "success": False,
-        }
+        return _finalize_response(
+            {
+                "chart": None,
+                "error": OAUTH2_CONFIG_ERROR_MESSAGE,
+                "success": False,
+            }
+        )
     except (
         SupersetException,
         CommandException,
@@ -434,15 +454,17 @@ def update_chart_preview(  # noqa: C901
         AttributeError,
     ) as e:
         execution_time = int((time.time() - start_time) * 1000)
-        return {
-            "chart": None,
-            "error": f"Chart preview update failed: {str(e)}",
-            "performance": {
-                "query_duration_ms": execution_time,
-                "cache_status": "error",
-                "optimization_suggestions": [],
-            },
-            "success": False,
-            "schema_version": "2.0",
-            "api_version": "v1",
-        }
+        return _finalize_response(
+            {
+                "chart": None,
+                "error": f"Chart preview update failed: {str(e)}",
+                "performance": {
+                    "query_duration_ms": execution_time,
+                    "cache_status": "error",
+                    "optimization_suggestions": [],
+                },
+                "success": False,
+                "schema_version": "2.0",
+                "api_version": "v1",
+            }
+        )

@@ -45,6 +45,7 @@ from superset.mcp_service.chart.preview_utils import (
     _generate_table_preview_from_data,
 )
 from superset.mcp_service.chart.query_result import first_query_data
+from superset.mcp_service.chart.response_preflight import finalize_chart_response
 from superset.mcp_service.chart.schemas import (
     AccessibilityMetadata,
     ASCIIPreview,
@@ -66,6 +67,13 @@ from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.superset_typing import Column, Metric
 
 logger = logging.getLogger(__name__)
+
+
+def _finalize_response(
+    response: ChartPreview | ChartError,
+) -> ChartPreview | ChartError:
+    """Preflight every public preview response without changing its schema."""
+    return finalize_chart_response(response)
 
 
 class ChartLike(Protocol):
@@ -1500,23 +1508,27 @@ async def get_chart_preview(
                 % (result.error_type, result.error)
             )
 
-        return result
+        return _finalize_response(result)
     except OAuth2RedirectError as ex:
         await ctx.warning(
             "Chart preview requires OAuth authentication: identifier=%s"
             % request.identifier
         )
-        return ChartError(
-            error=build_oauth2_redirect_message(ex),
-            error_type="OAUTH2_REDIRECT",
+        return _finalize_response(
+            ChartError(
+                error=build_oauth2_redirect_message(ex),
+                error_type="OAUTH2_REDIRECT",
+            )
         )
     except OAuth2Error:
         await ctx.error(
             "OAuth2 configuration error: identifier=%s" % request.identifier
         )
-        return ChartError(
-            error=OAUTH2_CONFIG_ERROR_MESSAGE,
-            error_type="OAUTH2_REDIRECT_ERROR",
+        return _finalize_response(
+            ChartError(
+                error=OAUTH2_CONFIG_ERROR_MESSAGE,
+                error_type="OAUTH2_REDIRECT_ERROR",
+            )
         )
     except (
         SupersetException,
@@ -1535,7 +1547,9 @@ async def get_chart_preview(
                 type(e).__name__,
             )
         )
-        return ChartError(
-            error=f"Failed to generate chart preview: {str(e)}",
-            error_type="InternalError",
+        return _finalize_response(
+            ChartError(
+                error=f"Failed to generate chart preview: {str(e)}",
+                error_type="InternalError",
+            )
         )

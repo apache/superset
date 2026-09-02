@@ -59,6 +59,7 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass
 from datetime import datetime
+from decimal import Decimal
 from typing import Any, Dict, TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -181,6 +182,8 @@ _GENERIC_DATA_TYPE_NAMES: dict[int, str] = {
     GenericDataType.BOOLEAN: "boolean",
 }
 _MAX_PROFILE_INTEGER_BITS = 4_096
+_MAX_PROFILE_DECIMAL_DIGITS = 1_024
+_MAX_PROFILE_DECIMAL_EXPONENT = 4_096
 _MAX_PROFILE_STRING_LENGTH = 65_536
 
 
@@ -196,6 +199,51 @@ def data_column_stats_row_limit(row_count: int, column_count: int) -> int:
     if row_count <= 0 or column_count <= 0:
         return 0
     return min(row_count, STATS_ROW_CAP, STATS_TOTAL_WORK_CAP // column_count)
+
+
+def _decimal_profile_identity(
+    value: Decimal, budget: _ColumnStatsBudget
+) -> tuple[Any, ...] | None:
+    """Return the exact reduced rational identity for a finite Decimal.
+
+    The same ``("number", numerator, denominator)`` token is used for trusted
+    integers and floats, making numeric equality explicit across those exact
+    builtin types. Decimal digit work and powers of ten are bounded; values
+    outside the producer limits stop metadata sampling instead of invoking
+    user hooks or allocating an unbounded integer.
+    """
+    if not Decimal.is_finite(value):
+        return ("nonfinite_decimal", Decimal.__str__(value))
+
+    parts = Decimal.as_tuple(value)
+    digits = parts.digits
+    exponent = parts.exponent
+    digit_count = tuple.__len__(digits)
+    if (
+        type(exponent) is not int
+        or digit_count > _MAX_PROFILE_DECIMAL_DIGITS
+        or abs(exponent) > _MAX_PROFILE_DECIMAL_EXPONENT
+    ):
+        return None
+
+    budget.nodes += digit_count
+    if budget.nodes > STATS_TOTAL_WORK_CAP:
+        return None
+
+    coefficient = 0
+    for digit in digits:
+        coefficient = coefficient * 10 + digit
+    if parts.sign:
+        coefficient = -coefficient
+    if coefficient == 0:
+        return ("number", 0, 1)
+
+    if exponent >= 0:
+        return ("number", coefficient * 10**exponent, 1)
+
+    denominator = 10 ** (-exponent)
+    divisor = math.gcd(coefficient, denominator)
+    return ("number", coefficient // divisor, denominator // divisor)
 
 
 def _profile_value_identity(  # noqa: C901
@@ -270,6 +318,11 @@ def _profile_value_identity(  # noqa: C901
                 tokens.append(("number", numerator, denominator))
             else:
                 tokens.append(("nonfinite_float", float.__repr__(item)))
+        elif value_type is Decimal:
+            decimal_identity = _decimal_profile_identity(item, budget)
+            if decimal_identity is None:
+                return None
+            tokens.append(decimal_identity)
         elif value_type is str:
             tokens.append(
                 ("string", item)
@@ -331,7 +384,7 @@ def format_data_columns(  # noqa: C901
             if sample_values and all(type(value) is bool for value in sample_values):
                 data_type = "boolean"
             elif sample_values and all(
-                type(value) in {int, float} for value in sample_values
+                type(value) in {int, float, Decimal} for value in sample_values
             ):
                 data_type = "numeric"
 

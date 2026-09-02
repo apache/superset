@@ -19,6 +19,7 @@
 Unit tests for MCP service response utilities.
 """
 
+from decimal import Decimal
 from typing import Any
 
 import pytest
@@ -179,6 +180,61 @@ class TestFormatDataColumns:
         columns = format_data_columns(data, ["region", "revenue"])
 
         assert [c.name for c in columns] == ["region", "revenue"]
+
+    def test_decimal_cardinality_uses_exact_cross_numeric_value_semantics(
+        self,
+    ) -> None:
+        """Equal/scale-equivalent Decimals share exact numeric identities."""
+        values = [
+            Decimal("1.00"),
+            Decimal("1.0"),
+            1,
+            1.0,
+            Decimal("0.5"),
+            0.5,
+            Decimal("0.1"),
+            0.1,
+            Decimal("2.000"),
+            Decimal("2"),
+        ]
+
+        column = format_data_columns([{"value": value} for value in values], ["value"])[
+            0
+        ]
+
+        # 1/1, 1/2 and 2/1 coalesce across exact builtin numeric types.
+        # Decimal 1/10 and the binary float 0.1 remain distinct exact values.
+        assert column.unique_count == 5
+        assert column.data_type == "numeric"
+
+    @pytest.mark.parametrize(
+        "value",
+        [Decimal("1e4097"), Decimal("1" * 1025)],
+        ids=["extreme-exponent", "extreme-digits"],
+    )
+    def test_extreme_decimal_identity_stops_with_bounded_sampling(
+        self, value: Decimal
+    ) -> None:
+        column = format_data_columns([{"value": value}], ["value"])[0]
+
+        assert column.sample_values == []
+        assert column.unique_count == 0
+        assert column.statistics == {"sampled_rows": 0}
+
+    def test_decimal_subclass_hooks_are_not_executed(self) -> None:
+        class HostileDecimal(Decimal):
+            def __hash__(self) -> int:
+                raise AssertionError("Decimal hash hook executed")
+
+            def __eq__(self, other: object) -> bool:
+                raise AssertionError("Decimal equality hook executed")
+
+        values = [HostileDecimal("1"), HostileDecimal("1")]
+        column = format_data_columns([{"value": value} for value in values], ["value"])[
+            0
+        ]
+
+        assert column.unique_count == 2
 
     def test_wide_sparse_metadata_uses_shared_row_column_work_budget(self) -> None:
         row_count = 50_000

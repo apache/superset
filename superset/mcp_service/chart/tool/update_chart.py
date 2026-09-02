@@ -47,6 +47,9 @@ from superset.mcp_service.chart.chart_utils import (
     scrub_dataset_bound_form_data,
 )
 from superset.mcp_service.chart.compile import validate_and_compile
+from superset.mcp_service.chart.response_preflight import (
+    finalize_generate_chart_response,
+)
 from superset.mcp_service.chart.schemas import (
     AccessibilityMetadata,
     ChartError,
@@ -65,6 +68,13 @@ from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.utils import json
 
 logger = logging.getLogger(__name__)
+
+
+def _finalize_response(payload: object) -> GenerateChartResponse:
+    """Validate and preflight every public update response."""
+    return finalize_generate_chart_response(
+        GenerateChartResponse.model_validate(payload)
+    )
 
 
 def _get_existing_form_data(chart: Any) -> dict[str, Any]:
@@ -738,7 +748,7 @@ async def update_chart(  # noqa: C901
                 f"No chart found with identifier: {display_id}."
                 " Use list_charts to get valid chart IDs."
             )
-            return GenerateChartResponse.model_validate(
+            return _finalize_response(
                 {
                     "chart": None,
                     "error": {
@@ -761,7 +771,7 @@ async def update_chart(  # noqa: C901
         validation_result = check_chart_data_access(chart)
         if not validation_result.is_valid:
             error_msg = validation_result.error or "Chart's dataset is not accessible"
-            return GenerateChartResponse.model_validate(
+            return _finalize_response(
                 {
                     "chart": None,
                     "error": {
@@ -824,7 +834,7 @@ async def update_chart(  # noqa: C901
 
             payload_or_error = _build_update_payload(request, chart, parsed_config)
             if isinstance(payload_or_error, GenerateChartResponse):
-                return payload_or_error
+                return _finalize_response(payload_or_error)
 
             # Extract form_data — present only for config updates, None for renames.
             if "params" in payload_or_error:
@@ -843,7 +853,7 @@ async def update_chart(  # noqa: C901
                         dataset_id=request.dataset_id,
                     )
                 if validation_error is not None:
-                    return validation_error
+                    return _finalize_response(validation_error)
                 # Validation canonicalizes preserved native Sunburst references.
                 payload_or_error["params"] = json.dumps(new_form_data)
             elif request.dataset_id is not None:
@@ -856,7 +866,7 @@ async def update_chart(  # noqa: C901
                     else _build_preview_form_data(request, chart, parsed_config)
                 )
                 if isinstance(final_form_data, GenerateChartResponse):
-                    return final_form_data
+                    return _finalize_response(final_form_data)
                 with event_logger.log_context(action="mcp.update_chart.validation"):
                     validation_error = _validate_update_against_dataset(
                         None,
@@ -865,7 +875,7 @@ async def update_chart(  # noqa: C901
                         dataset_id=request.dataset_id,
                     )
                 if validation_error is not None:
-                    return validation_error
+                    return _finalize_response(validation_error)
                 if "params" in payload_or_error:
                     payload_or_error["params"] = json.dumps(final_form_data)
 
@@ -879,7 +889,7 @@ async def update_chart(  # noqa: C901
         else:
             preview_or_error = _build_preview_form_data(request, chart, parsed_config)
             if isinstance(preview_or_error, GenerateChartResponse):
-                return preview_or_error
+                return _finalize_response(preview_or_error)
 
             # Validate before caching the form_data — same rationale as above.
             if validation_config is not None:
@@ -891,7 +901,7 @@ async def update_chart(  # noqa: C901
                         dataset_id=request.dataset_id,
                     )
                 if validation_error is not None:
-                    return validation_error
+                    return _finalize_response(validation_error)
             elif request.dataset_id is not None:
                 # Compile the exact state that will be cached, including preserved
                 # same-dataset roles or the scrubbed state for a true rebind.
@@ -903,7 +913,7 @@ async def update_chart(  # noqa: C901
                         dataset_id=request.dataset_id,
                     )
                 if validation_error is not None:
-                    return validation_error
+                    return _finalize_response(validation_error)
 
             with event_logger.log_context(action="mcp.update_chart.preview_link"):
                 explore_url, form_data_key, warnings = _create_preview_url(
@@ -1035,14 +1045,14 @@ async def update_chart(  # noqa: C901
             "schema_version": "2.0",
             "api_version": "v1",
         }
-        return GenerateChartResponse.model_validate(result)
+        return _finalize_response(result)
 
     except OAuth2RedirectError as ex:
         await ctx.warning(
             "Chart update requires OAuth authentication: identifier=%s"
             % request.identifier
         )
-        return GenerateChartResponse.model_validate(
+        return _finalize_response(
             {
                 "chart": None,
                 "success": False,
@@ -1055,7 +1065,7 @@ async def update_chart(  # noqa: C901
         )
     except OAuth2Error:
         await ctx.error("OAuth2 configuration error: chart_id=%s" % request.identifier)
-        return GenerateChartResponse.model_validate(
+        return _finalize_response(
             {
                 "chart": None,
                 "success": False,
@@ -1082,7 +1092,7 @@ async def update_chart(  # noqa: C901
                 "Database rollback failed during error handling", exc_info=True
             )
         execution_time = int((time.time() - start_time) * 1000)
-        return GenerateChartResponse.model_validate(
+        return _finalize_response(
             {
                 "chart": None,
                 "error": {
