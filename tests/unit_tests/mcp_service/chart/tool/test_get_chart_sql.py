@@ -48,6 +48,16 @@ _get_chart_sql_mod = importlib.import_module(
 )
 
 
+def _base_axis(column: str) -> dict[str, object]:
+    return {
+        "columnType": "BASE_AXIS",
+        "sqlExpression": column,
+        "label": column,
+        "expressionType": "SQL",
+        "isColumnReference": True,
+    }
+
+
 def test_get_chart_sql_requires_sql_lab_execute_permission():
     """Rendered SQL should not be exposed through basic chart read permission."""
     assert getattr(get_chart_sql, CLASS_PERMISSION_ATTR) == "SQLLab"
@@ -614,7 +624,7 @@ class TestBuildQueryContextTimeseriesAndMixed:
 
         queries = mock_factory.create.call_args[1]["queries"]
         assert len(queries) == 1
-        assert queries[0]["columns"][0] == "ds"
+        assert queries[0]["columns"][0] == _base_axis("ds")
         assert "region" in queries[0]["columns"]
 
     @patch("superset.common.query_context_factory.QueryContextFactory")
@@ -675,7 +685,7 @@ class TestBuildQueryContextTimeseriesAndMixed:
             _build_query_context_from_form_data(form_data, chart=None)
 
         queries = mock_factory.create.call_args[1]["queries"]
-        assert queries[0]["columns"].count("ds") == 1
+        assert queries[0]["columns"] == [_base_axis("ds")]
 
     @patch("superset.common.query_context_factory.QueryContextFactory")
     @patch("superset.daos.datasource.DatasourceDAO.get_datasource")
@@ -737,13 +747,13 @@ class TestBuildQueryContextTimeseriesAndMixed:
         assert len(queries) == 2
 
         # Primary query
-        assert "ds" in queries[0]["columns"]
+        assert _base_axis("ds") in queries[0]["columns"]
         assert "country" in queries[0]["columns"]
         assert queries[0]["metrics"] == ["sum__revenue"]
         assert queries[0]["time_range"] == "Last 30 days"
 
         # Secondary query
-        assert "ds" in queries[1]["columns"]
+        assert _base_axis("ds") in queries[1]["columns"]
         assert "channel" in queries[1]["columns"]
         assert queries[1]["metrics"] == ["count"]
         assert queries[1]["time_range"] == "Last 30 days"
@@ -778,12 +788,14 @@ class TestBuildQueryContextTimeseriesAndMixed:
             _build_query_context_from_form_data(form_data, chart=None)
 
         queries = mock_factory.create.call_args[1]["queries"]
-        assert queries[1]["columns"].count("ds") == 1
+        assert queries[1]["columns"] == [_base_axis("ds")]
 
     @patch("superset.common.query_context_factory.QueryContextFactory")
     @patch("superset.daos.datasource.DatasourceDAO.get_datasource")
-    def test_mixed_timeseries_empty_secondary(self, mock_get_ds, mock_factory_cls):
-        """mixed_timeseries with no metrics_b/groupby_b still produces two queries."""
+    def test_mixed_timeseries_absent_secondary_inherits_primary(
+        self, mock_get_ds, mock_factory_cls
+    ):
+        """Absent B controls inherit primary values like the frontend helper."""
         mock_ds = Mock()
         mock_ds.database.db_engine_spec.engine = "postgresql"
         mock_get_ds.return_value = mock_ds
@@ -807,7 +819,8 @@ class TestBuildQueryContextTimeseriesAndMixed:
 
         queries = mock_factory.create.call_args[1]["queries"]
         assert len(queries) == 2
-        assert queries[1]["metrics"] == []
+        assert queries[1]["metrics"] == ["count"]
+        assert queries[1]["columns"] == [_base_axis("ds")]
 
     @patch("superset.common.query_context_factory.QueryContextFactory")
     @patch("superset.daos.datasource.DatasourceDAO.get_datasource")

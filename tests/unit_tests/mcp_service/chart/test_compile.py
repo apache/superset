@@ -619,3 +619,31 @@ def test_compile_chart_seeds_form_data_before_query_execution(
     assert result.success, result.error
     mock_set_form_data.assert_called_once_with(query_context, 42, "table")
     assert call_order == ["seed", "run"]
+
+
+@patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
+@patch("superset.common.query_context_factory.QueryContextFactory")
+@patch("superset.charts.data.form_data.set_query_context_form_data")
+def test_compile_chart_strictly_validates_every_query_result(
+    mock_set_form_data, mock_factory, mock_cmd_cls
+):
+    """A valid primary result cannot hide hostile secondary query data."""
+    from superset.mcp_service.chart.compile import _compile_chart
+
+    class HostileList(list):
+        def __iter__(self):
+            raise AssertionError("hostile secondary list hook executed")
+
+    mock_factory.return_value.create.return_value = Mock()
+    mock_cmd_cls.return_value.run.return_value = {
+        "queries": [{"data": [{"value": 1}]}, {"data": HostileList()}]
+    }
+
+    result = _compile_chart(
+        {"metrics": [{"label": "count", "expressionType": "SIMPLE"}]},
+        dataset_id=42,
+    )
+
+    assert not result.success
+    assert result.error_code == "CHART_COMPILE_FAILED"
+    assert "query 2 result data" in (result.error or "").lower()

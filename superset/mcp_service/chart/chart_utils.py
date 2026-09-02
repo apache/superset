@@ -1727,12 +1727,14 @@ _DATASET_REBIND_EXTRA_ROLE_CONTRACTS: dict[str, frozenset[str]] = {
 }
 _DECK_DATASET_ROLE_KEYS = frozenset(
     {
+        "breakpoint_metric",
         "cross_filter_column",
         "dimension",
         "end_spatial",
         "entity",
         "geojson",
         "line_column",
+        "line_width",
         "metric",
         "point_radius_fixed",
         "series_columns",

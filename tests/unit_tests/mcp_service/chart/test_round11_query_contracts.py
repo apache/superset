@@ -98,7 +98,7 @@ def test_big_number_legacy_axis_matches_frontend_for_every_metric_shape(
     ids=["physical", "adhoc"],
 )
 def test_big_number_explicit_x_axis_remains_a_query_column(
-    x_axis: object, expected_label: str
+    x_axis: str | dict[str, object], expected_label: str
 ) -> None:
     query = build_query_objects_from_form_data(
         {
@@ -109,7 +109,18 @@ def test_big_number_explicit_x_axis_remains_a_query_column(
         }
     )[0]
 
-    assert query["columns"] == [x_axis]
+    expected_axis = (
+        {
+            "columnType": "BASE_AXIS",
+            "sqlExpression": x_axis,
+            "label": x_axis,
+            "expressionType": "SQL",
+            "isColumnReference": True,
+        }
+        if isinstance(x_axis, str)
+        else {"columnType": "BASE_AXIS", **x_axis}
+    )
+    assert query["columns"] == [expected_axis]
     assert "is_timeseries" not in query
     assert query["post_processing"][0]["options"]["index"] == [expected_label]
 

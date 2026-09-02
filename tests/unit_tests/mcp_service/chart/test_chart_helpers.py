@@ -782,11 +782,11 @@ def test_build_query_dicts_deck_scatter_adds_null_filters_by_default(monkeypatch
 
     queries = build_query_dicts_from_form_data(form_data, 1, "table")
 
-    assert {"col": "lon", "op": "IS NOT NULL", "val": ""} in queries[0]["filters"]
-    assert {"col": "lat", "op": "IS NOT NULL", "val": ""} in queries[0]["filters"]
+    assert {"col": "lon", "op": "IS NOT NULL", "val": None} in queries[0]["filters"]
+    assert {"col": "lat", "op": "IS NOT NULL", "val": None} in queries[0]["filters"]
 
 
-def test_build_query_dicts_deck_scatter_filter_nulls_false(monkeypatch):
+def test_build_query_dicts_deck_scatter_ignores_legacy_filter_nulls(monkeypatch):
     monkeypatch.setattr(
         "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
         lambda datasource_id, datasource_type: "base",
@@ -800,10 +800,10 @@ def test_build_query_dicts_deck_scatter_filter_nulls_false(monkeypatch):
 
     queries = build_query_dicts_from_form_data(form_data, 1, "table")
 
-    null_filters = [
-        f for f in queries[0].get("filters", []) if f.get("op") == "IS NOT NULL"
+    assert queries[0]["filters"] == [
+        {"col": "lon", "op": "IS NOT NULL", "val": None},
+        {"col": "lat", "op": "IS NOT NULL", "val": None},
     ]
-    assert null_filters == []
 
 
 def test_build_query_dicts_deck_scatter_point_radius_fixed_metric(monkeypatch):
@@ -847,8 +847,9 @@ def test_build_query_dicts_deck_geojson_scalar_size_produces_no_metrics(monkeypa
     assert queries[0]["metrics"] == []
 
 
-def test_build_query_dicts_deck_path_scalar_size_produces_no_metrics(monkeypatch):
-    # deck_path fixture also has size='100' — scalar must not become a metric.
+def test_build_query_dicts_deck_path_preserves_shared_size_metric(monkeypatch):
+    # The shared extractor treats every string size value as a metric before
+    # Path's native adapter runs, including stale values from another layer.
     monkeypatch.setattr(
         "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
         lambda datasource_id, datasource_type: "base",
@@ -862,7 +863,7 @@ def test_build_query_dicts_deck_path_scalar_size_produces_no_metrics(monkeypatch
 
     queries = build_query_dicts_from_form_data(form_data, 1, "table")
 
-    assert queries[0]["metrics"] == []
+    assert queries[0]["metrics"] == ["100"]
 
 
 def test_build_query_dicts_deck_geojson_adds_geojson_null_filter(monkeypatch):
@@ -879,9 +880,7 @@ def test_build_query_dicts_deck_geojson_adds_geojson_null_filter(monkeypatch):
 
     queries = build_query_dicts_from_form_data(form_data, 1, "table")
 
-    assert {"col": "geometry_col", "op": "IS NOT NULL", "val": ""} in queries[0][
-        "filters"
-    ]
+    assert {"col": "geometry_col", "op": "IS NOT NULL"} in queries[0]["filters"]
 
 
 def test_build_query_dicts_deck_hex_string_metric(monkeypatch):
@@ -936,7 +935,7 @@ def test_build_query_dicts_deck_hex_orderby_when_metrics_present(monkeypatch):
 
     queries = build_query_dicts_from_form_data(form_data, 1, "table")
 
-    assert queries[0]["orderby"] == [(metric, False)]
+    assert queries[0]["orderby"] == [[metric, False]]
 
 
 def test_build_query_dicts_deck_scatter_no_orderby_without_metrics(monkeypatch):
@@ -953,7 +952,7 @@ def test_build_query_dicts_deck_scatter_no_orderby_without_metrics(monkeypatch):
 
     queries = build_query_dicts_from_form_data(form_data, 1, "table")
 
-    assert "orderby" not in queries[0]
+    assert queries[0]["orderby"] == []
 
 
 def test_build_query_dicts_deck_arc_time_grain(monkeypatch):
@@ -964,7 +963,11 @@ def test_build_query_dicts_deck_arc_time_grain(monkeypatch):
     )
     form_data = {
         "viz_type": "deck_arc",
-        "spatial": {"type": "latlong", "lonCol": "start_lon", "latCol": "start_lat"},
+        "start_spatial": {
+            "type": "latlong",
+            "lonCol": "start_lon",
+            "latCol": "start_lat",
+        },
         "end_spatial": {
             "type": "latlong",
             "lonCol": "end_lon",
@@ -982,8 +985,8 @@ def test_build_query_dicts_deck_arc_time_grain(monkeypatch):
     assert queries[0].get("extras", {}).get("time_grain_sqla") == "P1D"
 
 
-def test_build_query_dicts_deck_geojson_ignores_time_grain(monkeypatch):
-    # deck_geojson is not in _DECK_TIMESERIES_VIZ_TYPES; time grain fields not added
+def test_build_query_dicts_deck_geojson_retains_shared_time_grain(monkeypatch):
+    # GeoJSON forces non-timeseries execution but retains shared query extras.
     monkeypatch.setattr(
         "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
         lambda datasource_id, datasource_type: "base",
@@ -998,8 +1001,8 @@ def test_build_query_dicts_deck_geojson_ignores_time_grain(monkeypatch):
 
     queries = build_query_dicts_from_form_data(form_data, 1, "table")
 
-    assert "is_timeseries" not in queries[0]
-    assert queries[0].get("extras", {}).get("time_grain_sqla") is None
+    assert queries[0]["is_timeseries"] is False
+    assert queries[0]["extras"]["time_grain_sqla"] == "P1D"
 
 
 def test_resolve_metrics_plural():

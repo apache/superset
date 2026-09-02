@@ -22,8 +22,10 @@ Tests for preview_utils query context column building.
 import ast
 import inspect
 from pathlib import Path
+from unittest.mock import MagicMock, patch
 
 from superset.mcp_service.chart import preview_utils
+from superset.mcp_service.chart.schemas import ChartError
 
 
 def _imports_chart_data_command(node: ast.Import | ast.ImportFrom) -> bool:
@@ -213,8 +215,6 @@ def test_build_query_columns_empty_columns_key_keeps_groupby():
 
 def test_generate_preview_seeds_form_data_before_query_execution():
     """Preview execution seeds the form data consumed by virtual-dataset Jinja."""
-    from unittest.mock import MagicMock, patch
-
     with (
         patch(
             "superset.charts.data.form_data.set_query_context_form_data"
@@ -239,3 +239,34 @@ def test_generate_preview_seeds_form_data_before_query_execution():
         )
 
     mock_set_form_data.assert_called_once_with(query_context, 12, "table")
+
+
+def test_unsaved_previews_strictly_validate_secondary_query_results():
+    class HostileList(list):
+        def __iter__(self):
+            raise AssertionError("hostile secondary list hook executed")
+
+    with (
+        patch("superset.charts.data.form_data.set_query_context_form_data"),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand"
+        ) as mock_cmd_cls,
+        patch("superset.common.query_context_factory.QueryContextFactory"),
+        patch("superset.extensions.db") as mock_db,
+    ):
+        mock_db.session.get.return_value = MagicMock(id=12)
+        mock_cmd_cls.return_value.run.return_value = {
+            "queries": [
+                {"data": [{"value": 1}]},
+                {"data": HostileList()},
+            ]
+        }
+
+        result = preview_utils.generate_preview_from_form_data(
+            form_data={"metrics": [{"label": "count"}]},
+            dataset_id=12,
+            preview_format="table",
+        )
+
+    assert isinstance(result, ChartError)
+    assert result.error_type == "InvalidQueryResult"

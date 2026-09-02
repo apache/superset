@@ -200,6 +200,57 @@ def test_saved_preview_seeding_keeps_strict_first_query_result_validation(
     assert result.error_type == "InvalidQueryResult"
 
 
+@pytest.mark.parametrize(
+    "strategy_class,preview_format",
+    [
+        (ASCIIPreviewStrategy, "ascii"),
+        (TablePreviewStrategy, "table"),
+        (VegaLitePreviewStrategy, "vega_lite"),
+    ],
+)
+def test_saved_previews_validate_hostile_secondary_results_without_hooks(
+    strategy_class: type[PreviewFormatStrategy], preview_format: str
+) -> None:
+    class HostileList(list[object]):
+        def __iter__(self):
+            raise AssertionError("hostile secondary list hook executed")
+
+    command = MagicMock()
+    command.run.return_value = {
+        "queries": [{"data": [{"region": "North"}]}, {"data": HostileList()}]
+    }
+    chart = SimpleNamespace(
+        id=19,
+        slice_name="Hostile secondary result",
+        viz_type="table",
+        datasource_id=9,
+        datasource_type="table",
+        params=utils_json.dumps(
+            {"viz_type": "table", "groupby": ["region"], "metrics": ["count"]}
+        ),
+    )
+
+    with (
+        patch(
+            "superset.mcp_service.chart.tool.get_chart_preview."
+            "build_query_context_from_form_data",
+            return_value=MagicMock(),
+        ),
+        patch("superset.charts.data.form_data.set_query_context_form_data"),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand",
+            return_value=command,
+        ),
+    ):
+        result = strategy_class(
+            chart,
+            GetChartPreviewRequest(identifier=19, format=preview_format),
+        ).generate()
+
+    assert isinstance(result, ChartError)
+    assert result.error_type == "InvalidQueryResult"
+
+
 class TestPreviewXAxisInQueryContext:
     """Tests for x_axis inclusion in preview query context columns.
 

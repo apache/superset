@@ -44,7 +44,6 @@ from superset.errors import SupersetErrorType
 from superset.mcp_service.chart.chart_helpers import canonicalize_operation_form_data
 from superset.mcp_service.chart.query_result import (
     first_query_data,
-    query_result_failure,
 )
 from superset.mcp_service.chart.schemas import ChartError
 from superset.mcp_service.chart.sunburst import validate_sunburst_result_data
@@ -157,16 +156,6 @@ def _compile_chart(  # noqa: C901
         command = ChartDataCommand(query_context)
         command.validate()
         result = command.run()
-
-        if query_failure := query_result_failure(result):
-            error_str = query_failure.error
-            return CompileResult(
-                success=False,
-                error=error_str,
-                error_code="CHART_COMPILE_FAILED",
-                tier="compile",
-                error_obj=_build_compile_error(error_str),
-            )
 
         data, result_error = first_query_data(result)
         if result_error is not None:

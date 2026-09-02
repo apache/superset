@@ -647,10 +647,17 @@ class TestUnsavedChartDataQueryConstruction:
 
         queries = captured_query_contexts[0]["queries"]
         assert len(queries) == 2
-        assert queries[0]["columns"] == ["ds", "country"]
+        time_axis = {
+            "columnType": "BASE_AXIS",
+            "sqlExpression": "ds",
+            "label": "ds",
+            "expressionType": "SQL",
+            "isColumnReference": True,
+        }
+        assert queries[0]["columns"] == [time_axis, "country"]
         assert queries[0]["metrics"] == ["sum__sales"]
         assert queries[0]["row_limit"] == 99
-        assert queries[1]["columns"] == ["ds", "state"]
+        assert queries[1]["columns"] == [time_axis, "state"]
         assert queries[1]["metrics"] == ["sum__profit"]
         assert queries[1]["row_limit"] == 99
 

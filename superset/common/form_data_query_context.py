@@ -605,7 +605,7 @@ def _base_query_object(  # noqa: C901
 
 
 def _temporalized_columns(form_data: dict[str, Any], columns: list[Any]) -> list[Any]:
-    """Apply the table/pivot/box BASE_AXIS temporal-column contract."""
+    """Apply the pivot BASE_AXIS temporal-column contract."""
     time_grain = form_data.get("time_grain_sqla")
     temporal_lookup = form_data.get("temporal_columns_lookup") or {}
     result: list[Any] = []
@@ -630,6 +630,28 @@ def _temporalized_columns(form_data: dict[str, Any], columns: list[Any]) -> list
         else:
             result.append(column)
     return result
+
+
+def _box_temporalized_columns(
+    form_data: dict[str, Any], columns: list[Any]
+) -> list[Any]:
+    """Convert only physical columns confirmed temporal by Box Plot metadata."""
+    time_grain = form_data.get("time_grain_sqla")
+    temporal_lookup = form_data.get("temporal_columns_lookup")
+    if not time_grain or not isinstance(temporal_lookup, Mapping):
+        return columns
+    return [
+        {
+            "timeGrain": time_grain,
+            "columnType": "BASE_AXIS",
+            "sqlExpression": column,
+            "label": column,
+            "expressionType": "SQL",
+        }
+        if isinstance(column, str) and temporal_lookup.get(column) is True
+        else column
+        for column in columns
+    ]
 
 
 def _table_temporalized_columns(
@@ -702,7 +724,7 @@ def _box_plot_query(form_data: dict[str, Any], query: dict[str, Any]) -> None:
     if not distributed and form_data.get("granularity_sqla"):
         distributed = [form_data["granularity_sqla"]]
     groupby = _as_list(form_data.get("groupby"))
-    query["columns"] = [*_temporalized_columns(form_data, distributed), *groupby]
+    query["columns"] = [*_box_temporalized_columns(form_data, distributed), *groupby]
     query["series_columns"] = groupby
     whisker = form_data.get("whiskerOptions")
     if not whisker:
@@ -875,7 +897,9 @@ _TIME_COMPARISON_TYPES = frozenset({"values", "difference", "percentage", "ratio
 
 
 def _metric_offset_map(
-    form_data: dict[str, Any], metric_labels: list[str]
+    form_data: dict[str, Any],
+    metric_labels: list[str],
+    offsets: list[Any] | None = None,
 ) -> dict[str, str]:
     """Return the frontend time-comparison metric label map."""
     if form_data.get("comparison_type") not in _TIME_COMPARISON_TYPES:
@@ -883,8 +907,26 @@ def _metric_offset_map(
     return {
         f"{metric}__{offset}": metric
         for metric in metric_labels
-        for offset in _as_list(form_data.get("time_compare"))
+        for offset in (
+            offsets if offsets is not None else _as_list(form_data.get("time_compare"))
+        )
     }
+
+
+def _table_time_offsets(form_data: dict[str, Any]) -> list[Any]:
+    """Resolve Table custom/inherited shifts like its frontend query adapter."""
+    raw_offsets = _as_list(form_data.get("time_compare"))
+    offsets = [offset for offset in raw_offsets if offset not in {"custom", "inherit"}]
+    if "custom" in raw_offsets and form_data.get("start_date_offset") is not None:
+        offsets.append(form_data["start_date_offset"])
+    if "inherit" in raw_offsets:
+        offsets.append("inherit")
+    extra_form_data = form_data.get("extra_form_data")
+    if isinstance(extra_form_data, Mapping) and extra_form_data.get("time_compare"):
+        inherited = extra_form_data["time_compare"]
+        if inherited not in offsets:
+            offsets = [inherited]
+    return offsets
 
 
 def _x_axis_column(form_data: Mapping[str, Any]) -> Any | None:
@@ -917,6 +959,61 @@ def _frontend_x_axis_column(form_data: Mapping[str, Any]) -> Any | None:
     ):
         return x_axis
     return None
+
+
+def normalize_time_column(
+    form_data: Mapping[str, Any], query: dict[str, Any]
+) -> dict[str, Any]:
+    """Apply the final shared frontend ``normalizeTimeColumn`` mutator."""
+    x_axis = _frontend_x_axis_column(form_data)
+    columns = query.get("columns")
+    if x_axis is None or not isinstance(columns, list):
+        return query
+
+    axis_index: int | None = None
+    for index, column in enumerate(columns):
+        if isinstance(x_axis, str) and isinstance(column, str) and column == x_axis:
+            axis_index = index
+            break
+        if (
+            isinstance(x_axis, Mapping)
+            and isinstance(column, Mapping)
+            and column.get("sqlExpression") == x_axis.get("sqlExpression")
+        ):
+            axis_index = index
+            break
+    if axis_index is None:
+        return query
+
+    normalized = dict(query)
+    normalized_columns = list(columns)
+    grain = (query.get("extras") or {}).get("time_grain_sqla")
+    if isinstance(columns[axis_index], Mapping):
+        normalized_axis = {
+            "columnType": "BASE_AXIS",
+            **({"timeGrain": grain} if grain is not None else {}),
+            **columns[axis_index],
+        }
+    else:
+        normalized_axis = {
+            "columnType": "BASE_AXIS",
+            "sqlExpression": x_axis,
+            "label": x_axis,
+            "expressionType": "SQL",
+            "isColumnReference": True,
+            **({"timeGrain": grain} if grain is not None else {}),
+        }
+    normalized_columns[axis_index] = normalized_axis
+    normalized["columns"] = normalized_columns
+    normalized.pop("is_timeseries", None)
+    return normalized
+
+
+def _finalize_query_objects(
+    form_data: Mapping[str, Any], queries: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
+    """Run shared query-context mutators after every visualization adapter."""
+    return [normalize_time_column(form_data, query) for query in queries]
 
 
 def _x_axis_label(
@@ -1284,9 +1381,28 @@ def _table_queries(  # noqa: C901
     query["metrics"] = metrics
     query["orderby"] = orderby_from_form_data(form_data, metrics, "table")
     post_processing: list[dict[str, Any]] = []
+    resolved_offsets = _table_time_offsets(form_data)
+    comparison_enabled = (
+        form_data.get("comparison_type") in _TIME_COMPARISON_TYPES
+        and bool(metrics)
+        and bool(_as_list(form_data.get("time_compare")))
+    )
     contribution: dict[str, Any] | None = None
     if percent_metrics:
-        labels = [_label(metric, metric=True) for metric in percent_metrics]
+        base_labels = [_label(metric, metric=True) for metric in percent_metrics]
+        labels = [
+            label
+            for metric_label in base_labels
+            for label in (
+                [
+                    metric_label,
+                    *(f"{metric_label}__{offset}" for offset in resolved_offsets),
+                ]
+                if comparison_enabled
+                else [metric_label]
+            )
+        ]
+        labels = list(dict.fromkeys(labels))
         contribution = {
             "operation": "contribution",
             "options": {
@@ -1297,8 +1413,8 @@ def _table_queries(  # noqa: C901
         post_processing.append(contribution)
 
     metric_labels = [_label(metric, metric=True) for metric in metrics]
-    offset_map = _metric_offset_map(form_data, metric_labels)
-    time_offsets = _as_list(form_data.get("time_compare")) if offset_map else []
+    offset_map = _metric_offset_map(form_data, metric_labels, resolved_offsets)
+    time_offsets = resolved_offsets if offset_map else []
     if offset_map and form_data.get("comparison_type") != "values":
         post_processing.append(
             {
@@ -1426,7 +1542,7 @@ def build_query_objects_from_form_data(  # noqa: C901
     )
 
     if effective_viz in {"table", "ag-grid-table"}:
-        return _table_queries(form_data, query)
+        return _finalize_query_objects(form_data, _table_queries(form_data, query))
     if effective_viz == "histogram_v2":
         _histogram_query(form_data, query)
     elif effective_viz == "box_plot":
@@ -1443,7 +1559,7 @@ def build_query_objects_from_form_data(  # noqa: C901
     }:
         _timeseries_query(form_data, query)
     elif effective_viz == "big_number":
-        return _big_number_queries(form_data, query)
+        return _finalize_query_objects(form_data, _big_number_queries(form_data, query))
     elif effective_viz == "big_number_total":
         query["columns"] = []
     elif effective_viz == "handlebars":
@@ -1470,19 +1586,11 @@ def build_query_objects_from_form_data(  # noqa: C901
         )
 
     if effective_viz != "mixed_timeseries":
-        return [query]
+        return _finalize_query_objects(form_data, [query])
 
     secondary = secondary_form_data or retain_mixed_timeseries_secondary_form_data(
         form_data
     )
-    # MCP's established Mixed Timeseries contract treats an absent B metric or
-    # group-by control as an empty secondary query. The frontend suffix helper
-    # otherwise inherits the primary values, which would unexpectedly execute
-    # query A twice for older saved charts that predate query B.
-    if "metrics_b" not in form_data:
-        secondary["metrics"] = []
-    if "groupby_b" not in form_data:
-        secondary["groupby"] = []
     query_b = _base_query_object(
         secondary,
         row_limit=row_limit,
@@ -1493,7 +1601,7 @@ def build_query_objects_from_form_data(  # noqa: C901
     # Query B's suffixed vocabulary does not include an independent x-axis.
     secondary["x_axis"] = form_data.get("x_axis")
     _timeseries_query(secondary, query_b)
-    return [query, query_b]
+    return _finalize_query_objects(form_data, [query, query_b])
 
 
 def build_query_context_from_form_data(

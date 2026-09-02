@@ -185,6 +185,22 @@ def test_product_query_context_uses_registered_frontend_adapters(
 
     queries = factory.create.call_args.kwargs["queries"]
     assert len(queries) == expected_queries
+    if (
+        isinstance(form_data.get("x_axis"), str)
+        and form_data["x_axis"] in expected_columns
+    ):
+        expected_columns = [
+            {
+                "columnType": "BASE_AXIS",
+                "sqlExpression": form_data["x_axis"],
+                "label": form_data["x_axis"],
+                "expressionType": "SQL",
+                "isColumnReference": True,
+            }
+            if column == form_data["x_axis"]
+            else column
+            for column in expected_columns
+        ]
     assert queries[0]["columns"] == expected_columns
     assert queries[0]["metrics"] == expected_metrics
 
@@ -205,7 +221,16 @@ def test_product_query_context_uses_registered_frontend_adapters(
         assert queries[0]["series_columns"] == ["team"]
         assert queries[0]["orderby"] == [["started_at", True]]
     if form_data["viz_type"] == "mixed_timeseries":
-        assert queries[1]["columns"] == ["ds", "product"]
+        assert queries[1]["columns"] == [
+            {
+                "columnType": "BASE_AXIS",
+                "sqlExpression": "ds",
+                "label": "ds",
+                "expressionType": "SQL",
+                "isColumnReference": True,
+            },
+            "product",
+        ]
         assert queries[1]["metrics"] == ["profit"]
 
 

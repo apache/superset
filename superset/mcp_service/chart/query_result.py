@@ -25,6 +25,7 @@ from typing import Any
 from uuid import UUID
 
 from superset.mcp_service.chart.schemas import ChartError
+from superset.utils.core import GenericDataType
 
 FAILED_QUERY_STATUSES = frozenset(
     {"error", "failed", "stopped", "timed_out", "cancelled", "canceled"}
@@ -118,20 +119,34 @@ def _failure_for_query_payload(
 
 def query_result_failure(result: Any) -> ChartError | None:
     """Return a structured failure embedded anywhere in a query result."""
-    if not isinstance(result, Mapping):
+    if type(result) is not dict:
         return ChartError(
             error="Chart query returned a malformed result envelope.",
             error_type="InvalidQueryResult",
         )
 
+    for key in ("error", "errors", "error_message", "message", "status"):
+        if key in result and not _is_bounded_result_value(result[key]):
+            return ChartError(
+                error="Chart query returned hostile or oversized metadata.",
+                error_type="InvalidQueryResult",
+            )
     if failure := _failure_for_query_payload(result, "Chart query"):
         return failure
     queries = result.get("queries")
-    if isinstance(queries, list):
+    if type(queries) is list:
         for index, query in enumerate(queries, start=1):
-            if not isinstance(query, Mapping):
+            if type(query) is not dict:
                 return ChartError(
                     error=f"Chart query {index} returned a malformed result envelope.",
+                    error_type="InvalidQueryResult",
+                )
+            if any(
+                key in query and not _is_bounded_result_value(query[key])
+                for key in ("error", "errors", "error_message", "message", "status")
+            ):
+                return ChartError(
+                    error=f"Chart query {index} returned hostile metadata.",
                     error_type="InvalidQueryResult",
                 )
             if failure := _failure_for_query_payload(query, f"Chart query {index}"):
@@ -139,7 +154,16 @@ def query_result_failure(result: Any) -> ChartError | None:
     return None
 
 
-def validate_query_result_envelope(result: Any) -> ChartError | None:  # noqa: C901
+def _is_supported_coltype(value: Any) -> bool:
+    """Accept only exact wire integers or the canonical generic-type enum."""
+    if type(value) is GenericDataType:
+        return True
+    return type(value) is int and value in {member.value for member in GenericDataType}
+
+
+def validate_query_result_envelope(  # noqa: C901
+    result: Any, *, none_as_empty: bool = False
+) -> ChartError | None:
     """Strictly validate a ChartDataCommand result before consuming it.
 
     Exact builtin containers prevent overridden ``get``/iteration/slicing
@@ -201,6 +225,8 @@ def validate_query_result_envelope(result: Any) -> ChartError | None:  # noqa: C
 
     for index, query in enumerate(queries, start=1):
         data = query.get("data")
+        if data is None and none_as_empty:
+            data = []
         if type(data) is not list:
             return ChartError(
                 error=f"Chart query {index} result data is not an array of rows.",
@@ -230,27 +256,37 @@ def validate_query_result_envelope(result: Any) -> ChartError | None:  # noqa: C
                     error_type="InvalidQueryResult",
                 )
 
+        colnames_present = "colnames" in query
         colnames = query.get("colnames", [])
         if (
             type(colnames) is not list
             or len(colnames) > MAX_QUERY_RESULT_COLUMNS
             or not all(
-                type(column) is str and len(column) <= MAX_RESULT_STRING_LENGTH
+                type(column) is str
+                and bool(column)
+                and len(column) <= MAX_RESULT_STRING_LENGTH
                 for column in colnames
             )
+            or len(set(colnames)) != len(colnames)
         ):
             return ChartError(
                 error=f"Chart query {index} returned malformed column metadata.",
                 error_type="InvalidQueryResult",
             )
+        coltypes_present = "coltypes" in query
         coltypes = query.get("coltypes", [])
         if (
             type(coltypes) is not list
             or len(coltypes) > MAX_QUERY_RESULT_COLUMNS
-            or not all(_is_bounded_result_value(value) for value in coltypes)
+            or not all(_is_supported_coltype(value) for value in coltypes)
         ):
             return ChartError(
                 error=f"Chart query {index} returned malformed column type metadata.",
+                error_type="InvalidQueryResult",
+            )
+        if colnames_present and coltypes_present and len(colnames) != len(coltypes):
+            return ChartError(
+                error=(f"Chart query {index} returned misaligned column metadata."),
                 error_type="InvalidQueryResult",
             )
         for key in (
@@ -277,31 +313,11 @@ def first_query_data(
     ``none_as_empty`` preserves legacy empty-result behavior for generic saved
     previews. Role-sensitive previews such as Sunburst keep strict validation.
     """
-    if failure := query_result_failure(result):
+    if failure := validate_query_result_envelope(result, none_as_empty=none_as_empty):
         return None, failure
-    if not isinstance(result, Mapping):  # Defensive; handled above.
-        return None, ChartError(
-            error="Chart query returned a malformed result envelope.",
-            error_type="InvalidQueryResult",
-        )
     queries = result.get("queries")
-    if not isinstance(queries, list) or not queries:
-        return None, ChartError(
-            error="Chart query returned no query result envelope.",
-            error_type="InvalidQueryResult",
-        )
     first_query = queries[0]
-    if not isinstance(first_query, Mapping):  # Defensive; handled above.
-        return None, ChartError(
-            error="Chart query 1 returned a malformed result envelope.",
-            error_type="InvalidQueryResult",
-        )
     data = first_query.get("data")
     if data is None and none_as_empty:
         return [], None
-    if not isinstance(data, list):
-        return None, ChartError(
-            error="Chart query 1 result data is not an array of rows.",
-            error_type="InvalidQueryResult",
-        )
     return data, None

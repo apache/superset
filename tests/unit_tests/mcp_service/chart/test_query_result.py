@@ -103,6 +103,11 @@ class HostileDict(dict[str, object]):
         raise AssertionError("hostile mapping iteration executed")
 
 
+class HostileColumnType(int):
+    def __hash__(self):
+        raise AssertionError("hostile column type hash hook executed")
+
+
 @pytest.mark.parametrize(
     "payload",
     [
@@ -147,6 +152,75 @@ def test_strict_result_validation_accepts_bounded_multi_query_data():
                 "queries": [
                     {"data": [{"value": 1}], "colnames": ["value"]},
                     {"data": [{"total": 1}], "colnames": ["total"]},
+                ]
+            }
+        )
+        is None
+    )
+
+
+def test_first_query_data_validates_secondary_queries_before_returning_rows():
+    data, error = first_query_data(
+        {
+            "queries": [
+                {"data": [{"value": 1}], "colnames": ["value"], "coltypes": [0]},
+                {"data": HostileList()},
+            ]
+        }
+    )
+
+    assert data is None
+    assert error is not None
+    assert error.error_type == "InvalidQueryResult"
+
+
+def test_first_query_data_none_as_empty_still_validates_all_queries() -> None:
+    data, error = first_query_data(
+        {
+            "queries": [
+                {"data": None},
+                {"data": [{"value": object()}]},
+            ]
+        },
+        none_as_empty=True,
+    )
+
+    assert data is None
+    assert error is not None
+
+
+@pytest.mark.parametrize(
+    "metadata",
+    [
+        {"colnames": ["value", "value"]},
+        {"colnames": [""]},
+        {"colnames": ["value"], "coltypes": []},
+        {"colnames": ["value"], "coltypes": [[0]]},
+        {"colnames": ["value"], "coltypes": [{"value": 0}]},
+        {"colnames": ["value"], "coltypes": [99]},
+        {"colnames": ["value"], "coltypes": [HostileColumnType(0)]},
+    ],
+)
+def test_strict_result_validation_rejects_malformed_column_metadata(metadata):
+    error = validate_query_result_envelope(
+        {"queries": [{"data": [{"value": 1}], **metadata}]}
+    )
+
+    assert error is not None
+    assert error.error_type == "InvalidQueryResult"
+
+
+def test_strict_result_validation_accepts_aligned_optional_column_metadata():
+    assert (
+        validate_query_result_envelope(
+            {
+                "queries": [
+                    {
+                        "data": [{"value": 1}],
+                        "colnames": ["value"],
+                        "coltypes": [0],
+                    },
+                    {"data": [{"secondary": "x"}], "colnames": ["secondary"]},
                 ]
             }
         )
