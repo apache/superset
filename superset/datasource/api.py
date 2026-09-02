@@ -691,6 +691,21 @@ class DatasourceRestApi(BaseSupersetApi):
         self, resolved: ResolvedExplorable, payload: dict[str, Any]
     ) -> FlaskResponse:
         """Run the query and render it in the requested result format."""
+        database = getattr(resolved.explorable, "database", None)
+        if (
+            payload["offset"]
+            and database
+            and not database.db_engine_spec.supports_offset
+        ):
+            # get_sqla_query drops row_offset for these engines, so the request
+            # would return the first page again under a 200.
+            return self.response_400(
+                message=(
+                    f"{database.db_engine_spec.engine} does not support offset "
+                    "pagination."
+                )
+            )
+
         grain_column = resolved.resolve_grain_column(
             payload["time_column"], payload["dimensions"]
         )

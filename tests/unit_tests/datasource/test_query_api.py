@@ -17,6 +17,8 @@
 
 """Unit tests for the datasource query endpoint's schema and wiring."""
 
+from typing import Any
+
 import pandas as pd
 import pytest
 from marshmallow import ValidationError
@@ -226,3 +228,25 @@ def test_semantic_views_advertise_only_mapper_supported_operators() -> None:
     assert SUPPORTED_FILTER_OPERATORS < {op.value for op in FilterOperator}
     assert FilterOperator.TEMPORAL_RANGE.value in SUPPORTED_FILTER_OPERATORS
     assert FilterOperator.CONTAINS_ANY.value not in SUPPORTED_FILTER_OPERATORS
+
+
+def test_offset_rejected_when_engine_cannot_paginate(app) -> None:
+    from unittest.mock import MagicMock, patch
+
+    from superset.datasource.api import DatasourceRestApi
+
+    resolved = MagicMock()
+    resolved.explorable.database.db_engine_spec.supports_offset = False
+    resolved.explorable.database.db_engine_spec.engine = "elasticsearch"
+    payload: dict[str, Any] = {
+        "offset": 10,
+        "time_grain": None,
+        "time_column": None,
+        "dimensions": [],
+    }
+
+    api = DatasourceRestApi()
+    with patch.object(api, "response_400", side_effect=AssertionError("rejected")) as m:
+        with pytest.raises(AssertionError):
+            api._execute_and_respond(resolved, payload)
+    assert "offset" in m.call_args.kwargs["message"]
