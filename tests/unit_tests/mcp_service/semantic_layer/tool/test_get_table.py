@@ -29,6 +29,8 @@ from unittest.mock import AsyncMock, MagicMock, Mock, patch
 import numpy as np
 import pandas as pd
 import pytest
+import pytz
+from dateutil import tz as dateutil_tz
 from fastmcp import Client, FastMCP
 
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -257,6 +259,71 @@ async def test_get_table_builtin_happy_path(mcp_server: FastMCP) -> None:
 
 
 @pytest.mark.asyncio
+async def test_get_table_normalizes_supported_producer_timezones(
+    mcp_server: FastMCP,
+) -> None:
+    mock_ds = _make_dataset(42)
+    query_result = chart_data_command_result(
+        [
+            {
+                "created_at": pd.Timestamp(
+                    2024, 1, 2, 3, 4, 5, tz=dateutil_tz.tzoffset("IST", 19_800)
+                ),
+                "revenue": 1,
+            },
+            {
+                "created_at": pd.Timestamp(
+                    2024, 1, 2, 3, 4, 5, tz=pytz.FixedOffset(-240)
+                ),
+                "revenue": 2,
+            },
+            {
+                "created_at": pd.Timestamp(
+                    2024, 1, 2, 3, 4, 5, tz=dateutil_tz.gettz("US/Pacific")
+                ),
+                "revenue": 3,
+            },
+        ],
+        columns=["created_at", "revenue"],
+        coltypes=[GenericDataType.TEMPORAL, GenericDataType.NUMERIC],
+    )
+
+    with (
+        patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=mock_ds),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand"
+        ) as mock_command_cls,
+        patch(
+            "superset.common.query_context_factory.QueryContextFactory"
+        ) as mock_factory_cls,
+    ):
+        mock_command_cls.return_value.run.return_value = query_result
+        mock_factory_cls.return_value.create.return_value = MagicMock()
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_table",
+                {
+                    "request": {
+                        "dataset_id": 42,
+                        "metrics": ["revenue"],
+                        "dimensions": ["created_at"],
+                    }
+                },
+            )
+        data = json.loads(result.content[0].text)
+
+    assert data["success"] is True
+    assert data["data"] == [
+        {"created_at": "2024-01-02T03:04:05+05:30", "revenue": 1},
+        {"created_at": "2024-01-02T03:04:05-04:00", "revenue": 2},
+        {"created_at": "2024-01-02T03:04:05-08:00", "revenue": 3},
+    ]
+    assert data["performance"]["cache_status"] == "fresh"
+    assert data["cache_status"]["cache_hit"] is False
+
+
+@pytest.mark.asyncio
 async def test_get_table_rejects_nonfinite_producer_data(mcp_server: FastMCP) -> None:
     mock_ds = _make_dataset(42)
     query_result = chart_data_command_result(
@@ -292,6 +359,74 @@ async def test_get_table_rejects_nonfinite_producer_data(mcp_server: FastMCP) ->
     data = json.loads(result.content[0].text)
     assert data["success"] is False
     assert data["error_type"] == "InvalidQueryResult"
+
+
+@pytest.mark.asyncio
+async def test_get_table_rejects_hostile_data_before_generic_consumers(
+    mcp_server: FastMCP,
+) -> None:
+    class HostileValue:
+        def __str__(self) -> str:
+            raise AssertionError("hostile formatter hook executed")
+
+    mock_ds = _make_dataset(42)
+    query_result = {
+        "query_context": object(),
+        "queries": [
+            {
+                "data": [{"region": "west", "revenue": 1}],
+                "colnames": ["region", "revenue"],
+                "coltypes": [GenericDataType.STRING, GenericDataType.NUMERIC],
+                "is_cached": False,
+            },
+            {
+                "data": [{"danger": HostileValue()}],
+                "colnames": ["danger"],
+                "coltypes": [GenericDataType.STRING],
+                "is_cached": False,
+            },
+        ],
+    }
+
+    with (
+        patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=mock_ds),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand"
+        ) as mock_command_cls,
+        patch(
+            "superset.common.query_context_factory.QueryContextFactory"
+        ) as mock_factory_cls,
+        patch.object(
+            get_table_module,
+            "format_data_columns",
+            side_effect=AssertionError("generic formatter was called"),
+        ) as mock_formatter,
+        patch.object(
+            get_table_module,
+            "get_cache_status_from_result",
+            side_effect=AssertionError("cache formatter was called"),
+        ) as mock_cache_formatter,
+    ):
+        mock_command_cls.return_value.run.return_value = query_result
+        mock_factory_cls.return_value.create.return_value = MagicMock()
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_table",
+                {
+                    "request": {
+                        "dataset_id": 42,
+                        "metrics": ["revenue"],
+                        "dimensions": ["region"],
+                    }
+                },
+            )
+
+    data = json.loads(result.content[0].text)
+    assert data["success"] is False
+    assert data["error_type"] == "InvalidQueryResult"
+    mock_formatter.assert_not_called()
+    mock_cache_formatter.assert_not_called()
 
 
 @pytest.mark.asyncio

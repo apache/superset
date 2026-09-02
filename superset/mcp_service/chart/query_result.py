@@ -609,9 +609,7 @@ def _filter_metadata_is_valid(value: Any, *, rejected: bool) -> bool:
     return True
 
 
-def _validate_query_metadata(
-    query: dict[str, Any], data: list[Any], index: int
-) -> ChartError | None:
+def _validate_query_metadata(query: dict[str, Any], index: int) -> ChartError | None:
     label = f"Chart query {index}"
     colnames_present = "colnames" in query
     coltypes_present = "coltypes" in query
@@ -638,13 +636,6 @@ def _validate_query_metadata(
         or list.__len__(colnames) != list.__len__(coltypes)
     ):
         return _invalid_result(f"misaligned column metadata for query {index}")
-    if colnames_present and any(list(dict.keys(row)) != colnames for row in data):
-        return ChartError(
-            error=(
-                f"{label} returned rows that do not match the declared column order."
-            ),
-            error_type="InvalidQueryResult",
-        )
     if "applied_filters" in query and not _filter_metadata_is_valid(
         dict.__getitem__(query, "applied_filters"), rejected=False
     ):
@@ -741,16 +732,46 @@ def validate_query_result_envelope(  # noqa: C901
         if reason := _charge_value(budget):
             return _invalid_result(reason)
 
+        if error := _validate_query_metadata(query, index):
+            return error
+        declared_columns = (
+            dict.__getitem__(query, "colnames") if "colnames" in query else None
+        )
+
+        # Check declared order in the same capped pass that normalizes cells.
+        # A width mismatch fails before comparing names, so empty rows cannot
+        # multiply work by the maximum declared column count.
         for row_offset in range(data_length):
             row = list.__getitem__(data, row_offset)
             if type(row) is not dict or dict.__len__(row) > MAX_QUERY_RESULT_COLUMNS:
                 return _invalid_result(f"a malformed data row for query {index}")
             if reason := _charge_value(budget):
                 return _invalid_result(reason)
-            for column, value in list(dict.items(row)):
+            row_items = list(dict.items(row))
+            if declared_columns is not None and list.__len__(row_items) != list.__len__(
+                declared_columns
+            ):
+                return ChartError(
+                    error=(
+                        f"Chart query {index} returned rows that do not match the "
+                        "declared column order."
+                    ),
+                    error_type="InvalidQueryResult",
+                )
+            for column_offset, (column, value) in enumerate(row_items):
                 if type(column) is not str:
                     return _invalid_result(
                         f"hostile or oversized row data for query {index}"
+                    )
+                if declared_columns is not None and column != list.__getitem__(
+                    declared_columns, column_offset
+                ):
+                    return ChartError(
+                        error=(
+                            f"Chart query {index} returned rows that do not match "
+                            "the declared column order."
+                        ),
+                        error_type="InvalidQueryResult",
                     )
                 if reason := _charge_text(column, budget, key=True):
                     return _invalid_result(reason)
@@ -762,8 +783,6 @@ def validate_query_result_envelope(  # noqa: C901
                 if normalized is not value:
                     dict.__setitem__(row, column, normalized)
 
-        if error := _validate_query_metadata(query, data, index):
-            return error
     return None
 
 

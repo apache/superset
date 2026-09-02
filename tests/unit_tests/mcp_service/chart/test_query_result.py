@@ -33,6 +33,8 @@ from superset.common.chart_data import ChartDataResultFormat, ChartDataResultTyp
 from superset.common.db_query_status import QueryStatus
 from superset.mcp_service.chart.query_result import (
     first_query_data,
+    MAX_QUERY_RESULT_COLUMNS,
+    MAX_QUERY_RESULT_ROWS_PER_QUERY,
     MAX_QUERY_RESULTS,
     query_result_failure,
     validate_query_result_envelope,
@@ -734,6 +736,35 @@ def test_aggregate_rows_accept_boundary_and_reject_one_beyond(monkeypatch) -> No
     error = validate_query_result_envelope(beyond)
     assert error is not None
     assert "aggregate rows" in error.error
+
+
+def test_two_queries_accept_the_full_per_query_row_volume() -> None:
+    result: dict[str, Any] = {
+        "queries": [
+            {"data": [{} for _ in range(MAX_QUERY_RESULT_ROWS_PER_QUERY)]},
+            {"data": [{} for _ in range(MAX_QUERY_RESULT_ROWS_PER_QUERY)]},
+        ]
+    }
+
+    assert validate_query_result_envelope(result) is None
+
+
+def test_empty_rows_do_not_multiply_declared_column_validation_work() -> None:
+    columns = [f"column_{index}" for index in range(MAX_QUERY_RESULT_COLUMNS)]
+    result = {
+        "queries": [
+            {
+                "data": [{} for _ in range(MAX_QUERY_RESULT_ROWS_PER_QUERY)],
+                "colnames": columns,
+                "coltypes": [GenericDataType.STRING] * len(columns),
+            }
+        ]
+    }
+
+    error = validate_query_result_envelope(result)
+
+    assert error is not None
+    assert "declared column order" in error.error
 
 
 def test_per_query_row_limit_is_independent_of_aggregate_limit(monkeypatch) -> None:
