@@ -451,7 +451,7 @@ def _safe_enum_backing(value: Any) -> Any:
 
 
 def _decimal_javascript_string(value: Decimal) -> str:
-    """Render a finite exact Decimal with JavaScript Number string thresholds."""
+    """Render an exact binary64 spelling with JavaScript Number thresholds."""
     sign, digits_tuple, exponent = Decimal.as_tuple(value)
     if type(exponent) is not int:  # finite Decimals always have an integer exponent
         raise BulletOutputError("Bullet dimension contains a non-finite Decimal")
@@ -477,6 +477,41 @@ def _decimal_javascript_string(value: Decimal) -> str:
     coefficient = digits[0] + (f".{fraction}" if fraction else "")
     exponent_text = f"+{adjusted}" if adjusted >= 0 else str(adjusted)
     return f"{prefix}{coefficient}e{exponent_text}"
+
+
+def _javascript_number_string(value: int | float | Decimal) -> str:
+    """Apply JSON-number -> IEEE-754 Number -> JavaScript String semantics.
+
+    Exact result scalars can retain precision that the frontend cannot: JSON
+    parsing first rounds a numeric token to binary64, and ``String`` then emits
+    the shortest round-tripping decimal with fixed notation for exponents in
+    [-6, 20].  Converting exact builtin scalars to an exact builtin float keeps
+    the path hook-free.  Python and JavaScript use the same shortest
+    round-tripping binary64 digits; ``_decimal_javascript_string`` only adjusts
+    the notation thresholds and exponent spelling.
+
+    A finite integer or Decimal outside binary64's range becomes an infinity
+    after JSON parsing, matching JavaScript.  Non-finite source values are
+    rejected by the trusted scalar normalizer before this helper is called.
+    """
+    value_type = type(value)
+    if value_type not in {int, float, Decimal}:
+        raise BulletOutputError("Bullet dimension contains an unsupported number")
+    if value_type is float and not math.isfinite(value):
+        raise BulletOutputError("Bullet dimension contains a non-finite number")
+    if isinstance(value, Decimal) and not Decimal.is_finite(value):
+        raise BulletOutputError("Bullet dimension contains a non-finite Decimal")
+    try:
+        number = float(value)
+    except OverflowError:
+        number = -math.inf if value < 0 else math.inf
+
+    if math.isinf(number):
+        return "-Infinity" if number < 0 else "Infinity"
+    if number == 0:
+        # String(-0) is "0" even though JSON.parse preserves negative zero.
+        return "0"
+    return _decimal_javascript_string(Decimal(float.__repr__(number)))
 
 
 def _bullet_category_value(  # noqa: C901
@@ -513,16 +548,8 @@ def _bullet_category_value(  # noqa: C901
         text = normalized
     elif value_type is bool:
         text = "true" if normalized else "false"
-    elif value_type is int:
-        text = str(normalized)
-    elif value_type is float:
-        if not math.isfinite(normalized):  # defensive; the normalizer rejects this
-            raise BulletOutputError(
-                f"Bullet dimension {dimension!r} row {row_index} is not finite"
-            )
-        text = _decimal_javascript_string(Decimal(float.__repr__(normalized)))
-    elif value_type is Decimal:
-        text = _decimal_javascript_string(normalized)
+    elif value_type is int or value_type is float or value_type is Decimal:
+        text = _javascript_number_string(normalized)
     else:
         raise BulletOutputError(
             f"Bullet dimension {dimension!r} row {row_index} has an "
@@ -1047,8 +1074,6 @@ def _generate_bullet_vega_lite_preview(  # noqa: C901
     data: List[Dict[str, Any]], form_data: Dict[str, Any]
 ) -> VegaLitePreview:
     """Build a horizontal layered preview from the shared strict model."""
-    from superset.utils import json as utils_json
-
     model = resolve_bullet_render_model(data, form_data)
 
     category_field = _unique_bullet_category_field(model.rows)
@@ -1261,19 +1286,6 @@ def _generate_bullet_vega_lite_preview(  # noqa: C901
                 else {}
             ),
             "data": {"values": values},
-            "transform": [
-                {
-                    "calculate": (
-                        " + ', ' + ".join(
-                            f"toString(datum[{utils_json.dumps(field)}])"
-                            for field in model.dimensions
-                        )
-                        if model.dimensions
-                        else "''"
-                    ),
-                    "as": category_field,
-                }
-            ],
             "layer": layers,
             "resolve": {"scale": {"color": "independent"}},
             "usermeta": {

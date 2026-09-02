@@ -44,6 +44,7 @@ from superset.mcp_service.chart.compile import _compile_chart
 from superset.mcp_service.chart.preview_utils import (
     _generate_ascii_preview_from_data,
     _generate_vega_lite_preview_from_data,
+    _javascript_number_string,
     BulletOutputError,
     generate_preview_from_form_data,
     resolve_bullet_render_model,
@@ -1147,13 +1148,102 @@ def test_bullet_vega_internal_category_key_avoids_adversarial_row_aliases() -> N
         form_data,
     )
     specification = preview.specification
-    category_field = specification["transform"][0]["as"]
-    assert category_field == "__mcp_bullet_category_2"
-    assert specification["data"]["values"][0][category_field] == "North"
     bar = next(
         layer for layer in specification["layer"] if layer["mark"]["type"] == "bar"
     )
+    category_field = bar["encoding"]["y"]["field"]
+    assert category_field == "__mcp_bullet_category_2"
+    assert specification["data"]["values"][0][category_field] == "North"
     assert bar["encoding"]["y"]["field"] == category_field
+    assert "transform" not in specification
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        (9007199254740993, "9007199254740992"),
+        (9007199254740995, "9007199254740996"),
+        (Decimal("1.0000000000000001"), "1"),
+        (Decimal("1.0000000000000002"), "1.0000000000000002"),
+        (Decimal("1e20"), "100000000000000000000"),
+        (Decimal("1e21"), "1e+21"),
+        (Decimal("1e-6"), "0.000001"),
+        (Decimal("1e-7"), "1e-7"),
+        (Decimal("1.7976931348623157e308"), "1.7976931348623157e+308"),
+        (Decimal("1.7976931348623159e308"), "Infinity"),
+        (Decimal("-1e309"), "-Infinity"),
+        (10**400, "Infinity"),
+        (Decimal("-0"), "0"),
+    ],
+)
+def test_bullet_number_categories_match_node_ieee754_string_semantics(
+    value: int | Decimal, expected: str
+) -> None:
+    assert _javascript_number_string(value) == expected
+
+
+@pytest.mark.parametrize(
+    "value",
+    [float("inf"), Decimal("NaN"), Decimal("Infinity")],
+)
+def test_bullet_number_categories_reject_nonfinite_source_values(value: object) -> None:
+    with pytest.raises(BulletOutputError, match="non-finite"):
+        resolve_bullet_render_model(
+            [{"Category": value, "Revenue": 1}],
+            {"metric": "Revenue", "groupby": ["Category"]},
+        )
+
+
+def test_bullet_nan_category_retains_shared_null_normalization() -> None:
+    model = resolve_bullet_render_model(
+        [{"Category": float("nan"), "Revenue": 1}],
+        {"metric": "Revenue", "groupby": ["Category"]},
+    )
+    assert model.rows[0]["Category"] is None
+
+
+def test_bullet_number_category_boundaries_flow_through_ascii_and_vega() -> None:
+    form_data = {
+        "viz_type": "bullet",
+        "metric": "Revenue",
+        "groupby": ["Category"],
+    }
+    values = [
+        9007199254740993,
+        Decimal("1.0000000000000001"),
+        Decimal("1e20"),
+        Decimal("1e21"),
+        Decimal("1e-7"),
+        Decimal("1.7976931348623159e308"),
+        Decimal("-0"),
+    ]
+    expected = [
+        "9007199254740992",
+        "1",
+        "100000000000000000000",
+        "1e+21",
+        "1e-7",
+        "Infinity",
+        "0",
+    ]
+    data = [
+        {"Category": value, "Revenue": index + 1} for index, value in enumerate(values)
+    ]
+
+    vega = _generate_vega_lite_preview_from_data(data, form_data).specification
+    category_field = next(
+        layer for layer in vega["layer"] if layer["mark"]["type"] == "bar"
+    )["encoding"]["y"]["field"]
+    assert [row[category_field] for row in vega["data"]["values"]] == expected
+    assert "transform" not in vega
+    # Raw normalized dimensions stay available for tooltips and inspection;
+    # the derived category is the only frontend-coerced copy.
+    assert vega["data"]["values"][0]["Category"] == 9007199254740993
+    assert vega["data"]["values"][1]["Category"] == Decimal("1.0000000000000001")
+
+    ascii_preview = _generate_ascii_preview_from_data(data, form_data)
+    for category in ("9007199254740992", "1e+21", "1e-7", "Infinity"):
+        assert category in ascii_preview.ascii_content
 
 
 def test_bullet_categories_match_frontend_string_coercion_and_preserve_values() -> None:
@@ -1735,8 +1825,10 @@ def test_bullet_saved_preview_uses_native_roles_aliases_and_overlays() -> None:
         [{"Region": "North", "Team": "Blue", "Total Revenue": 123}]
     )
 
-    assert "Region" in specification["transform"][0]["calculate"]
-    assert "Team" in specification["transform"][0]["calculate"]
+    assert specification["data"]["values"][0]["__mcp_bullet_category"] == (
+        "North, Blue"
+    )
+    assert "transform" not in specification
     bar_layer = next(
         layer for layer in specification["layer"] if layer["mark"]["type"] == "bar"
     )
