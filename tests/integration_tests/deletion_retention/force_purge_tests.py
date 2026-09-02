@@ -30,6 +30,10 @@ from superset.commands.deletion_retention.force_purge import (
     AmbiguousPurgeTargetError,
     ForcePurgeCommand,
 )
+from superset.commands.deletion_retention.purge_impact import (
+    collect_dataset_purge_impact,
+    PurgeImpactChangedError,
+)
 from superset.connectors.sqla.models import SqlaTable
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
@@ -101,6 +105,35 @@ class TestForcePurge(DeletionRetentionTestBase):
         audit = db.session.query(PurgeAuditLog).filter_by(entity_uuid=ds_uuid).one()
         assert audit.affected_referrers
         assert chart_uuid in audit.affected_referrers
+
+    def test_dataset_impact_drift_fails_audit_without_mutation(self) -> None:
+        """The locked recheck records a failed no-op when impact changed."""
+        reviewed_chart: Slice = self.make_chart("impact_reviewed", dataset=self.dataset)
+        dataset_id: int = self.dataset.id
+        dataset_uuid: str = str(self.dataset.uuid)
+        reviewed_token: str = collect_dataset_purge_impact(
+            db.session, dataset_id
+        ).impact_token
+        changed_chart: Slice = self.make_chart("impact_changed", dataset=self.dataset)
+        reviewed_chart_id: int = reviewed_chart.id
+        changed_chart_id: int = changed_chart.id
+
+        with pytest.raises(PurgeImpactChangedError):
+            ForcePurgeCommand(
+                dataset_uuid,
+                model_cls=SqlaTable,
+                confirmed_impact_token=reviewed_token,
+            ).run()
+
+        assert self.exists(SqlaTable, dataset_id)
+        assert self.exists(Slice, reviewed_chart_id)
+        assert self.exists(Slice, changed_chart_id)
+        audit_row: PurgeAuditLog = (
+            db.session.query(PurgeAuditLog).filter_by(entity_uuid=dataset_uuid).one()
+        )
+        assert audit_row.status == audit.STATUS_FAILED
+        assert audit_row.removed_dashboard_slices == 0
+        assert audit_row.affected_referrers is None
 
     def test_force_purge_counts_removed_dashboard_slices_before_db_cascade(
         self,

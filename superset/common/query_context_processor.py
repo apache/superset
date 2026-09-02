@@ -23,6 +23,7 @@ import time
 from typing import Any, cast, ClassVar, Sequence, TYPE_CHECKING
 
 import pandas as pd
+import pyarrow as pa
 from flask import current_app
 from flask_babel import gettext as _
 
@@ -540,6 +541,9 @@ class QueryContextProcessor:
     def get_data(
         self, df: pd.DataFrame, coltypes: list[GenericDataType]
     ) -> str | bytes | list[dict[str, Any]]:
+        if self._query_context.result_format == ChartDataResultFormat.ARROW:
+            return self._to_arrow_ipc(df)
+
         if self._query_context.result_format in ChartDataResultFormat.table_like():
             include_index = not isinstance(df.index, pd.RangeIndex)
             columns = list(df.columns)
@@ -565,6 +569,20 @@ class QueryContextProcessor:
             return result or ""
 
         return df.to_dict(orient="records")
+
+    @staticmethod
+    def _to_arrow_ipc(df: pd.DataFrame) -> bytes:
+        """Serialize to an Arrow IPC stream for throughput-sensitive callers.
+
+        Serialization happens at response time rather than in the cache, so
+        Arrow and JSON requests for the same query share cache entries and no
+        cache-key versioning is needed.
+        """
+        table = pa.Table.from_pandas(df, preserve_index=False)
+        sink = pa.BufferOutputStream()
+        with pa.ipc.new_stream(sink, table.schema) as writer:
+            writer.write_table(table)
+        return sink.getvalue().to_pybytes()
 
     def ensure_totals_available(
         self,
