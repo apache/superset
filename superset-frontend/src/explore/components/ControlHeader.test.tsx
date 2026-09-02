@@ -16,40 +16,115 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen, userEvent } from 'spec/helpers/testing-library';
-import ControlHeader, {
-  ControlHeaderProps,
-} from 'src/explore/components/ControlHeader';
+import {
+  render,
+  screen,
+  userEvent,
+  fireEvent,
+} from 'spec/helpers/testing-library';
+import ControlHeader from './ControlHeader';
 
-const defaultProps: ControlHeaderProps = {
-  name: 'time_range',
-  label: 'Time Range',
-  description: 'Filter dataset by temporal boundaries',
-};
+const description = 'This control filters the whole chart.';
 
-test('renders control label without description icon when not hovered', () => {
-  render(<ControlHeader {...defaultProps} hovered={false} />);
-  expect(screen.getByText('Time Range')).toBeInTheDocument();
+test('does not render the description icon until the control is hovered', () => {
+  const { rerender } = render(
+    <ControlHeader
+      name="time_range"
+      label="Date Range"
+      description={description}
+    />,
+  );
+
   expect(
-    screen.queryByRole('button', { name: /info-circle/i }),
+    screen.queryByRole('button', { name: 'Show info tooltip' }),
   ).not.toBeInTheDocument();
+
+  rerender(
+    <ControlHeader
+      name="time_range"
+      label="Date Range"
+      description={description}
+      hovered
+    />,
+  );
+
+  expect(
+    screen.getByRole('button', { name: 'Show info tooltip' }),
+  ).toBeInTheDocument();
+});
+
+test('notifies onDescriptionHoverChange when the info icon is hovered', async () => {
+  const onDescriptionHoverChange = jest.fn();
+  render(
+    <ControlHeader
+      name="time_range"
+      label="Date Range"
+      description={description}
+      hovered
+      onDescriptionHoverChange={onDescriptionHoverChange}
+    />,
+  );
+
+  const infoIcon = screen.getByRole('button', { name: 'Show info tooltip' });
+  await userEvent.hover(infoIcon);
+  expect(onDescriptionHoverChange).toHaveBeenCalledWith(true);
+
+  await userEvent.unhover(infoIcon);
+  expect(onDescriptionHoverChange).toHaveBeenCalledWith(false);
+});
+
+test('notifies onDescriptionHoverChange when the info icon is focused', () => {
+  const onDescriptionHoverChange = jest.fn();
+  render(
+    <ControlHeader
+      name="time_range"
+      label="Date Range"
+      description={description}
+      hovered
+      onDescriptionHoverChange={onDescriptionHoverChange}
+    />,
+  );
+
+  const infoIcon = screen.getByRole('button', { name: 'Show info tooltip' });
+  fireEvent.focus(infoIcon);
+  expect(onDescriptionHoverChange).toHaveBeenCalledWith(true);
+
+  fireEvent.blur(infoIcon);
+  expect(onDescriptionHoverChange).toHaveBeenCalledWith(false);
+});
+
+test('activates tooltipOnClick from the keyboard', () => {
+  const tooltipOnClick = jest.fn();
+  render(
+    <ControlHeader
+      name="time_range"
+      label="Date Range"
+      description={description}
+      hovered
+      tooltipOnClick={tooltipOnClick}
+    />,
+  );
+
+  fireEvent.keyDown(screen.getByRole('button', { name: 'Show info tooltip' }), {
+    key: 'Enter',
+  });
+  expect(tooltipOnClick).toHaveBeenCalledTimes(1);
 });
 
 test('renders description icon outside label when hovered', async () => {
-  render(<ControlHeader {...defaultProps} hovered />);
-  const label = screen.getByText('Time Range');
-  const infoIcon = screen.getByRole('button', { name: /info-circle/i });
+  render(
+    <ControlHeader
+      name="time_range"
+      label="Date Range"
+      description={description}
+      hovered
+    />,
+  );
+  const label = screen.getByText('Date Range');
+  const infoIcon = screen.getByRole('button', { name: 'Show info tooltip' });
   expect(infoIcon).toBeInTheDocument();
   // Ensure info icon is not a descendant of FormLabel / label
   const formLabel = label.closest('label');
   expect(formLabel).not.toContainElement(infoIcon);
 });
 
-test('shows description tooltip when info icon is hovered', async () => {
-  render(<ControlHeader {...defaultProps} hovered />);
-  const infoIcon = screen.getByRole('button', { name: /info-circle/i });
-  await userEvent.hover(infoIcon);
-  expect(
-    await screen.findByText('Filter dataset by temporal boundaries'),
-  ).toBeInTheDocument();
-});

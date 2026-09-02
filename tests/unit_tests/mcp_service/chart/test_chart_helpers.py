@@ -252,8 +252,11 @@ def test_merge_form_data_filters_into_query_applies_regular_overrides():
     ]
     assert query["time_range"] == "No filter"
     assert query["granularity"] == "updated_at"
-    assert query["time_grain"] == "P1D"
-    assert query["time_grain_sqla"] == "P1D"
+    # time_grain_sqla is an extras field on the query object, not a top-level one.
+    assert query["extras"]["time_grain_sqla"] == "P1D"
+    # time_grain is not a query object field, so the merge leaves whatever the
+    # saved query context already had rather than writing a key the schema drops.
+    assert query["time_grain"] == "P1Y"
     assert query["where"] == "(region = 'NA') AND (name IS NOT NULL)"
     assert query["having"] == "(SUM(num) > 10) AND (COUNT(*) > 1)"
 
@@ -303,7 +306,45 @@ def test_merge_extra_form_data_filters_into_query_adds_only_extra_predicates(
     ]
     assert query["time_range"] == "No filter"
     assert query["granularity"] == "updated_at"
-    assert query["time_grain_sqla"] == "P1D"
+    # The grain belongs in extras: a top-level time_grain_sqla is dropped by
+    # ChartDataQueryObjectSchema (unknown = EXCLUDE) and never reaches the query.
+    assert query["extras"]["time_grain_sqla"] == "P1D"
+
+
+def test_merge_extra_form_data_time_grain_override_lands_in_extras(monkeypatch):
+    """A time_grain_sqla override must reach the query object.
+
+    Regression test: the override used to be written as a top-level query key,
+    where ChartDataQueryObjectSchema silently discarded it, so callers passing
+    a grain through extra_form_data got the chart's original grain back.
+    """
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda datasource_id, datasource_type: "base",
+    )
+    query: dict = {"columns": ["country"], "metrics": ["count"], "filters": []}
+
+    merge_extra_form_data_filters_into_query(
+        query, {"time_grain_sqla": "P1M"}, 1, "table"
+    )
+
+    assert query["extras"]["time_grain_sqla"] == "P1M"
+
+
+def test_merge_extra_form_data_time_grain_preserves_existing_extras(monkeypatch):
+    """Routing the grain into extras must not clobber other extras."""
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda datasource_id, datasource_type: "base",
+    )
+    query: dict = {"filters": [], "extras": {"where": "country = 'US'"}}
+
+    merge_extra_form_data_filters_into_query(
+        query, {"time_grain_sqla": "P1M"}, 1, "table"
+    )
+
+    assert query["extras"]["time_grain_sqla"] == "P1M"
+    assert query["extras"]["where"] == "country = 'US'"
 
 
 # ---------------------------------------------------------------------------

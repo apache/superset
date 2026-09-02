@@ -964,6 +964,7 @@ class AnnotationDatasource(BaseDatasource):
         limit: int = 10000,
         denormalize_column: bool = False,
         array_elements: bool = False,
+        search: str | None = None,
     ) -> list[Any]:
         raise NotImplementedError()
 
