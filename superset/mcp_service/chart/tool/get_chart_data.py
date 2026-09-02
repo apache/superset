@@ -1515,7 +1515,7 @@ def _create_excel_chart_data(
     excel_b64: str,
     performance: Any,
     cache_status: Any,
-) -> "ChartData":
+) -> "ChartData | ChartError":
     """Create ChartData response for Excel export (openpyxl)."""
     from superset.mcp_service.chart.schemas import ChartData
 
@@ -1549,7 +1549,7 @@ def _create_excel_chart_data_xlsxwriter(
     excel_b64: str,
     performance: Any,
     cache_status: Any,
-) -> "ChartData":
+) -> "ChartData | ChartError":
     """Create ChartData response for Excel export (xlsxwriter)."""
     from superset.mcp_service.chart.schemas import ChartData
 
