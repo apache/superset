@@ -673,7 +673,10 @@ async def get_chart_data(  # noqa: C901
                     query_datasource = query_context_json.get("datasource", {})
                     query_form_data = query_context_json.get("form_data")
                     if isinstance(query_form_data, dict):
-                        effective_form_data = dict(query_form_data)
+                        effective_form_data = {
+                            **effective_form_data,
+                            **query_form_data,
+                        }
                         effective_form_data.setdefault("viz_type", chart.viz_type or "")
                     query_datasource_id = query_datasource.get(
                         "id", chart.datasource_id
