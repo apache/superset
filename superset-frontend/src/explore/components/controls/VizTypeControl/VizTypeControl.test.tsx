@@ -303,10 +303,10 @@ describe('VizTypeControl', () => {
     ).not.toBeInTheDocument();
   });
 
-  test('anchors the Featured badge to the bottom of the thumbnail image', async () => {
+  test('anchors the Featured badge to the bottom-right of the thumbnail image', async () => {
     // The badge is positioned relative to the thumbnail image only (not the
-    // whole tile), so it must hang off the image's bottom edge rather than
-    // its top edge.
+    // whole tile), so it must hang off the image's bottom-right corner
+    // rather than its top edge.
     await waitForRenderWrapper();
     userEvent.click(screen.getByRole('tab', { name: 'All charts' }));
 
@@ -317,7 +317,9 @@ describe('VizTypeControl', () => {
     const badgeWrapper = image.nextElementSibling as HTMLElement;
 
     expect(badgeWrapper).toHaveStyleRule('bottom', '4px');
-    expect(badgeWrapper).not.toHaveStyleRule('top');
+    expect(badgeWrapper).toHaveStyleRule('right', '4px');
+    expect(badgeWrapper).not.toHaveStyleRule('top', expect.anything());
+    expect(within(badgeWrapper).getByText('FEATURED')).toBeInTheDocument();
   });
 
   test('Thumbnail labels expose the full chart name via a title tooltip', async () => {
