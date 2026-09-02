@@ -146,6 +146,25 @@ def test_query_role_keys_resolve_from_registered_native_viz_type():
     assert query_role_keys_for_viz_type("unknown_viz") == frozenset()
 
 
+def test_query_role_contract_covers_shared_and_registered_builder_vocabulary():
+    assert {
+        "order_by_cols",
+        "metric_2",
+        "left_metric",
+        "right_metric",
+        "x",
+        "y",
+        "size",
+        "series_limit_metric",
+        "timeseries_limit_metric",
+        "column",
+        "groupbyColumns",
+        "groupbyRows",
+        "percent_metrics",
+        "x_axis",
+    } <= QUERY_ROLE_KEYS
+
+
 def test_display_name_searches_all_plugins():
     register(_FakePlugin())
     register(_AnotherPlugin())

@@ -43,6 +43,7 @@ class HistogramChartPlugin(BaseChartPlugin):
     native_viz_types: ClassVar[Mapping[str, str]] = {
         "histogram_v2": "Histogram",
     }
+    query_role_keys = BaseChartPlugin.query_role_keys | {"column"}
 
     def pre_validate(
         self,
@@ -146,7 +147,7 @@ class HistogramChartPlugin(BaseChartPlugin):
         return "histogram_v2"
 
     def normalize_column_refs(self, config: Any, dataset_context: Any) -> Any:
-        config_dict = config.model_dump()
+        config_dict = config.model_dump(exclude_unset=True)
 
         column = config_dict.get("column")
         if column and not column.get("sql_expression"):

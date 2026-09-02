@@ -1197,6 +1197,179 @@ _SUNBURST_UPDATE_FIELD_KEYS: dict[str, str] = {
 }
 
 
+# Presentation controls emitted sparsely by chart mappers need three-way update
+# semantics: omitted preserves saved native state, an explicit value replaces
+# it, and explicit ``None``/``False`` clears a truthy saved value when the mapper
+# has no canonical false/null representation.  Query roles are intentionally
+# absent: a replacement config always owns those through the plugin contract.
+# Paths below also cover nested axis/legend models so an omitted nested property
+# is not mistaken for an explicit clear of the whole control.
+_MODELED_UPDATE_CONTROL_PATHS: dict[str, dict[str, tuple[tuple[str, ...], ...]]] = {
+    "PieChartConfig": {
+        "color_scheme": (("color_scheme",),),
+        "show_labels": (("show_labels",),),
+        "show_legend": (("show_legend",),),
+        "legendOrientation": (("legend_orientation",),),
+        "label_type": (("label_type",),),
+        "number_format": (("number_format",),),
+        "date_format": (("date_format",),),
+        "sort_by_metric": (("sort_by_metric",),),
+        "row_limit": (("row_limit",),),
+        "donut": (("donut",),),
+        "show_total": (("show_total",),),
+        "labels_outside": (("labels_outside",),),
+        "outerRadius": (("outer_radius",),),
+        "innerRadius": (("inner_radius",),),
+        "currency_format": (("currency_format",),),
+    },
+    "TableChartConfig": {
+        "row_limit": (("row_limit",),),
+        "color_scheme": (("color_scheme",),),
+        "column_config": (("column_config",),),
+    },
+    "XYChartConfig": {
+        "row_limit": (("row_limit",),),
+        "series_limit": (("series_limit",),),
+        "stack": (("stacked",),),
+        "orientation": (("orientation",),),
+        "x_axis_title": (("x_axis", "title"),),
+        "x_axis_format": (("x_axis", "format"),),
+        "y_axis_title": (("y_axis", "title"),),
+        "y_axis_format": (("y_axis", "format"),),
+        "y_axis_scale": (("y_axis", "scale"),),
+        "show_legend": (("legend", "show"),),
+        "legendOrientation": (("legend", "position"), ("legend_orientation",)),
+        "x_axis_time_format": (("x_axis_time_format",),),
+        "show_value": (("show_value",),),
+        "currency_format": (("currency_format",),),
+        "color_scheme": (("color_scheme",),),
+    },
+    "HistogramChartConfig": {
+        "bins": (("bins",),),
+        "normalize": (("normalize",),),
+        "cumulative": (("cumulative",),),
+        "row_limit": (("row_limit",),),
+    },
+    "BoxPlotChartConfig": {
+        "whiskerOptions": (
+            ("whisker_type",),
+            ("percentile_low",),
+            ("percentile_high",),
+        ),
+        "row_limit": (("row_limit",),),
+        "number_format": (("number_format",),),
+        "date_format": (("date_format",),),
+    },
+    "WaterfallChartConfig": {
+        "show_total": (("show_total",),),
+        "show_legend": (("show_legend",),),
+        "increase_label": (("increase_label",),),
+        "decrease_label": (("decrease_label",),),
+        "total_label": (("total_label",),),
+        "x_axis_time_format": (("x_axis_time_format",),),
+        "y_axis_format": (("y_axis_format",),),
+        "currency_format": (("currency_format",),),
+        "row_limit": (("row_limit",),),
+    },
+    "BigNumberChartConfig": {
+        "subheader": (("subheader",),),
+        "y_axis_format": (("y_axis_format",),),
+        "time_format": (("time_format",),),
+        "currency_format": (("currency_format",),),
+        "color_scheme": (("color_scheme",),),
+        "start_y_axis_at_zero": (("start_y_axis_at_zero",),),
+        "compare_lag": (("compare_lag",),),
+        "aggregation": (("aggregation",),),
+    },
+    "HandlebarsChartConfig": {
+        "row_limit": (("row_limit",),),
+        "order_desc": (("order_desc",),),
+        "styleTemplate": (("style_template",),),
+    },
+    "PivotTableChartConfig": {
+        "aggregateFunction": (("aggregate_function",),),
+        "rowTotals": (("show_row_totals",),),
+        "colTotals": (("show_column_totals",),),
+        "transposePivot": (("transpose",),),
+        "combineMetric": (("combine_metric",),),
+        "valueFormat": (("value_format",),),
+        "date_format": (("date_format",),),
+        "currency_format": (("currency_format",),),
+        "row_limit": (("row_limit",),),
+    },
+    "InteractivePivotChartConfig": {
+        "order_desc": (("sort_descending",),),
+        "row_limit": (("row_limit",),),
+        "rowGroupCounts": (("show_row_group_counts",),),
+        "rowTotals": (("show_row_totals",),),
+        "colTotals": (("show_column_totals",),),
+        "colSubTotals": (("show_column_subtotals",),),
+        "valueFormat": (("value_format",),),
+        "date_format": (("date_format",),),
+        "currency_format": (("currency_format",),),
+        "colOrder": (("column_sort",),),
+        "allow_render_html": (("allow_render_html",),),
+        "expand_pivot_groups": (("expand_pivot_groups",),),
+        "time_compare": (("comparison_period",),),
+        "comparison_type": (("comparison_type",),),
+    },
+    "MixedTimeseriesChartConfig": {
+        "seriesType": (("primary_kind",),),
+        "area": (("primary_kind",),),
+        "seriesTypeB": (("secondary_kind",),),
+        "areaB": (("secondary_kind",),),
+        "show_legend": (("show_legend",),),
+        "legendOrientation": (("legend_orientation",),),
+        "show_value": (("show_value",),),
+        "color_scheme": (("color_scheme",),),
+        "currency_format": (("currency_format",),),
+        "currency_format_secondary": (("currency_format_secondary",),),
+        "xAxisTitle": (("x_axis", "title"),),
+        "x_axis_time_format": (("x_axis", "format"),),
+        "yAxisTitle": (("y_axis", "title"),),
+        "y_axis_format": (("y_axis", "format"),),
+        "logAxis": (("y_axis", "scale"),),
+        "yAxisTitleSecondary": (("y_axis_secondary", "title"),),
+        "y_axis_format_secondary": (("y_axis_secondary", "format"),),
+        "logAxisSecondary": (("y_axis_secondary", "scale"),),
+        "row_limit": (("row_limit",),),
+    },
+}
+
+
+def _model_path_was_set(config: Any, path: tuple[str, ...]) -> bool:
+    """Return whether every component of a Pydantic model path was supplied."""
+    current = config
+    for field_name in path:
+        if field_name not in getattr(current, "model_fields_set", set()):
+            return False
+        current = getattr(current, field_name, None)
+        if current is None:
+            # An explicit null parent clears all of its mapped descendants.
+            return True
+    return True
+
+
+def _apply_modeled_update_semantics(
+    existing_form_data: Mapping[str, Any],
+    new_form_data: Dict[str, Any],
+    config: Any,
+) -> set[str]:
+    """Preserve truly omitted modeled controls and return explicit clears."""
+    explicit_clears: set[str] = set()
+    controls = _MODELED_UPDATE_CONTROL_PATHS.get(type(config).__name__, {})
+    for form_key, paths in controls.items():
+        if any(_model_path_was_set(config, path) for path in paths):
+            if form_key not in new_form_data:
+                explicit_clears.add(form_key)
+            continue
+        if form_key in existing_form_data:
+            new_form_data[form_key] = existing_form_data[form_key]
+        else:
+            new_form_data.pop(form_key, None)
+    return explicit_clears
+
+
 _TEMPORAL_FORM_DATA_KEYS = frozenset(
     {
         "granularity",
@@ -1374,6 +1547,8 @@ def merge_form_data_for_update(  # noqa: C901
     existing_form_data: Dict[str, Any],
     new_form_data: Dict[str, Any],
     config: Any,
+    *,
+    dataset_rebind: bool = False,
 ) -> Dict[str, Any]:
     """Merge mapped updates without leaking query roles across visualizations.
 
@@ -1381,7 +1556,15 @@ def merge_form_data_for_update(  # noqa: C901
     starting from saved form data. Cross-viz updates remain bounded by the
     shared preservation registry. Explicit clears are applied last.
     """
+    if dataset_rebind:
+        existing_form_data = scrub_dataset_bound_form_data(existing_form_data)
+
     same_viz = existing_form_data.get("viz_type") == new_form_data.get("viz_type")
+    explicit_control_clears = (
+        _apply_modeled_update_semantics(existing_form_data, new_form_data, config)
+        if same_viz
+        else set()
+    )
     if same_viz:
         from superset.mcp_service.chart.registry import (
             query_role_keys_for_viz_type,
@@ -1402,6 +1585,9 @@ def merge_form_data_for_update(  # noqa: C901
         merged.update(new_form_data)
     else:
         merged = _merge_allowlisted_form_data(existing_form_data, new_form_data)
+
+    for key in explicit_control_clears:
+        merged.pop(key, None)
 
     fields_set: set[str] = getattr(config, "model_fields_set", set())
     if getattr(config, "filters", None) == []:
@@ -1469,6 +1655,41 @@ def merge_form_data_for_update(  # noqa: C901
     # cached update paths instead of letting the query builder silently ignore
     # a request that cannot be represented by the frontend contract.
     return merged
+
+
+_DATASET_BOUND_FORM_DATA_KEYS = frozenset(
+    {
+        *_TEMPORAL_FORM_DATA_KEYS,
+        MCP_DASHBOARD_TIME_FILTER_SUBJECT,
+        "adhoc_filters",
+        "annotation_layers",
+        "column_config",
+        "conditional_formatting",
+        "extra_filters",
+        "extra_form_data",
+        "filters",
+        "pivot_table_state",
+        "standardizedFormData",
+        "temporal_columns_lookup",
+    }
+)
+
+
+def scrub_dataset_bound_form_data(
+    form_data: Mapping[str, Any],
+) -> Dict[str, Any]:
+    """Remove saved values that can reference columns from another dataset."""
+    from superset.mcp_service.chart.plugin import QUERY_ROLE_KEYS
+    from superset.mcp_service.chart.registry import query_role_keys_for_viz_type
+
+    query_roles = QUERY_ROLE_KEYS | query_role_keys_for_viz_type(
+        str(form_data.get("viz_type", ""))
+    )
+    return {
+        key: value
+        for key, value in form_data.items()
+        if key not in query_roles and key not in _DATASET_BOUND_FORM_DATA_KEYS
+    }
 
 
 def map_histogram_config(config: "HistogramChartConfig") -> Dict[str, Any]:

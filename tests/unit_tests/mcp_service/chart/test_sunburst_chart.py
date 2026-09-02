@@ -45,6 +45,9 @@ from superset.mcp_service.chart.compile import (
     CompileResult,
     validate_and_compile,
 )
+from superset.mcp_service.chart.plugins.interactive_pivot import (
+    map_interactive_pivot_config,
+)
 from superset.mcp_service.chart.preview_utils import (
     _generate_ascii_preview_from_data,
     _generate_table_preview_from_data,
@@ -63,6 +66,7 @@ from superset.mcp_service.chart.schemas import (
     GetChartPreviewRequest,
     HandlebarsChartConfig,
     HistogramChartConfig,
+    InteractivePivotChartConfig,
     MixedTimeseriesChartConfig,
     PieChartConfig,
     PivotTableChartConfig,
@@ -314,6 +318,10 @@ def test_sunburst_cross_viz_rebind_owns_target_identity(
                 "viz_type": "sunburst_v2",
                 "columns": ["region", "country"],
                 "metric": "SavedSales",
+                "order_by_cols": ['["country", false]'],
+                "adhoc_filters": [{"subject": "region"}],
+                "column_config": {"region": {"columnWidth": 120}},
+                "show_labels": True,
                 "datasource": "10__table",
                 "slice_id": 777,
             }
@@ -598,7 +606,11 @@ def test_registered_same_viz_updates_preserve_native_plugin_controls(config) -> 
         "superset.mcp_service.chart.chart_utils.is_column_truly_temporal",
         return_value=True,
     ):
-        mapped = map_config_to_form_data(config)
+        mapped = (
+            map_interactive_pivot_config(config)
+            if isinstance(config, InteractivePivotChartConfig)
+            else map_config_to_form_data(config)
+        )
 
     existing = {
         "viz_type": mapped["viz_type"],
@@ -613,6 +625,179 @@ def test_registered_same_viz_updates_preserve_native_plugin_controls(config) -> 
         config,
     )
     assert "native_plugin_control" not in cross_viz
+
+
+@pytest.mark.parametrize(
+    "config,existing_key,existing_value,expected",
+    [
+        (
+            PieChartConfig(
+                dimension=ColumnRef(name="region"),
+                metric=ColumnRef(name="sales", aggregate="SUM"),
+                show_total=False,
+            ),
+            "show_total",
+            True,
+            False,
+        ),
+        (
+            HistogramChartConfig(column=ColumnRef(name="sales"), normalize=False),
+            "normalize",
+            True,
+            False,
+        ),
+        (
+            PivotTableChartConfig(
+                rows=[ColumnRef(name="region")],
+                metrics=[ColumnRef(name="sales", aggregate="SUM")],
+                combine_metric=False,
+            ),
+            "combineMetric",
+            True,
+            False,
+        ),
+        (
+            InteractivePivotChartConfig(
+                rows=[ColumnRef(name="region")],
+                metrics=[ColumnRef(name="sales", aggregate="SUM")],
+                show_column_totals=False,
+            ),
+            "colTotals",
+            True,
+            False,
+        ),
+        (
+            WaterfallChartConfig(
+                x_axis=ColumnRef(name="order_date"),
+                metric=ColumnRef(name="sales", aggregate="SUM"),
+                show_legend=False,
+            ),
+            "show_legend",
+            True,
+            False,
+        ),
+        (
+            HandlebarsChartConfig(
+                chart_type="handlebars",
+                handlebars_template="{{ data }}",
+                query_mode="raw",
+                columns=[ColumnRef(name="region")],
+                style_template=None,
+            ),
+            "styleTemplate",
+            "old css",
+            None,
+        ),
+        (
+            BigNumberChartConfig(
+                chart_type="big_number",
+                metric=ColumnRef(name="sales", aggregate="SUM"),
+                subheader=None,
+            ),
+            "subheader",
+            "old subtitle",
+            None,
+        ),
+        (
+            TableChartConfig(columns=[ColumnRef(name="region")], color_scheme=None),
+            "color_scheme",
+            "old scheme",
+            None,
+        ),
+    ],
+    ids=[
+        "pie-false",
+        "histogram-false",
+        "pivot-false",
+        "interactive-pivot-false",
+        "waterfall-false",
+        "handlebars-null",
+        "big-number-null",
+        "table-null",
+    ],
+)
+def test_explicit_sparse_controls_replace_same_viz_preservation(
+    config: ChartConfig,
+    existing_key: str,
+    existing_value: object,
+    expected: object,
+) -> None:
+    """Explicit false/null wins for every sparse mapper family."""
+    with patch(
+        "superset.mcp_service.chart.chart_utils._find_dataset_by_id_or_uuid",
+        return_value=None,
+    ):
+        mapped = (
+            map_interactive_pivot_config(config)
+            if isinstance(config, InteractivePivotChartConfig)
+            else map_config_to_form_data(config)
+        )
+    existing = {"viz_type": mapped["viz_type"], existing_key: existing_value}
+    merged = merge_form_data_for_update(existing, mapped, config)
+    if expected is None:
+        assert existing_key not in merged
+    else:
+        assert merged[existing_key] == expected
+
+
+def test_xy_explicit_false_clears_immediate_preview_and_cached_state() -> None:
+    config = XYChartConfig(
+        x=ColumnRef(name="order_date"),
+        y=[ColumnRef(name="sales", aggregate="SUM")],
+        stacked=False,
+        show_value=False,
+    )
+    chart = Mock(
+        id=19,
+        datasource_id=7,
+        datasource_type="table",
+        slice_name="Saved XY",
+        params=json.dumps(
+            {
+                "viz_type": "echarts_timeseries_line",
+                "x_axis": "old_date",
+                "metrics": ["old_metric"],
+                "stack": "Stack",
+                "show_value": True,
+            }
+        ),
+    )
+    request = UpdateChartRequest(identifier=19, config=config)
+    with patch(
+        "superset.mcp_service.chart.chart_utils.is_column_truly_temporal",
+        return_value=True,
+    ):
+        mapped = map_config_to_form_data(config)
+        cached = merge_form_data_for_update(json.loads(chart.params), mapped, config)
+        immediate = _build_update_payload(request, chart, parsed_config=config)
+        preview = _build_preview_form_data(request, chart, parsed_config=config)
+    assert isinstance(immediate, dict)
+    assert isinstance(preview, dict)
+    for state in (cached, json.loads(immediate["params"]), preview):
+        assert "stack" not in state
+        assert "show_value" not in state
+
+
+@pytest.mark.parametrize("viz_type", ["table", "ag-grid-table"])
+def test_table_explicit_empty_sort_removes_saved_order_by_cols(
+    viz_type: str,
+) -> None:
+    config = TableChartConfig(
+        viz_type=viz_type,
+        columns=[ColumnRef(name="region")],
+        sort_by=[],
+    )
+    mapped = map_config_to_form_data(config)
+    merged = merge_form_data_for_update(
+        {
+            "viz_type": viz_type,
+            "all_columns": ["old_region"],
+            "order_by_cols": ['["old_region", false]'],
+        },
+        mapped,
+        config,
+    )
+    assert "order_by_cols" not in merged
 
 
 @pytest.mark.parametrize(
@@ -641,24 +826,23 @@ def test_registered_same_viz_role_registry_is_complete_across_update_products(
 
     role_keys = get_registry().query_role_keys_for_viz_type(mapped["viz_type"])
     assert role_keys
-    stale_roles: dict[str, object] = {
-        "all_columns": ["stale_raw"],
-        "column": "stale_histogram",
-        "columns": ["stale_columns"],
-        "entity": "stale_entity",
-        "groupby": ["stale_group"],
-        "groupby_b": ["stale_secondary_group"],
-        "groupbyColumns": ["stale_pivot_column"],
-        "groupbyRows": ["stale_pivot_row"],
-        "metric": "stale_singular_metric",
-        "metrics": ["stale_plural_metric"],
-        "metrics_b": ["stale_secondary_metric"],
-        "query_mode": "raw",
-        "secondary_metric": "stale_secondary_singular_metric",
-        "series": "stale_series",
-        "x_axis": "stale_x_axis",
+    list_roles = {
+        "all_columns",
+        "columns",
+        "groupby",
+        "groupby_b",
+        "groupbyColumns",
+        "groupbyRows",
+        "metrics",
+        "metrics_b",
+        "orderby",
+        "order_by_cols",
+        "percent_metrics",
     }
-    assert set(stale_roles) == set(role_keys)
+    stale_roles: dict[str, object] = {
+        key: [f"stale_{key}"] if key in list_roles else f"stale_{key}"
+        for key in role_keys
+    }
     existing = {
         "viz_type": mapped["viz_type"],
         **stale_roles,
@@ -763,6 +947,31 @@ def test_registered_same_viz_role_registry_is_complete_across_update_products(
         assert plugin is not None
         enabled_viz_types.update(plugin.native_viz_types)
     assert covered_viz_types == enabled_viz_types
+
+
+@pytest.mark.parametrize(
+    "config",
+    _registered_query_role_matrix(),
+    ids=lambda config: f"{config.chart_type}-fields-set",
+)
+def test_registered_normalizers_preserve_explicit_field_sets(
+    config: ChartConfig,
+) -> None:
+    """Canonical column casing must not materialize omitted control defaults."""
+    context = DatasetContext(
+        id=7,
+        table_name="sales",
+        schema="analytics",
+        database_name="main",
+        available_columns=[
+            {"name": name, "type": "DOUBLE", "is_temporal": name == "order_date"}
+            for name in ("region", "country", "sales", "profit", "order_date")
+        ],
+    )
+    plugin = get_registry().get(config.chart_type)
+    assert plugin is not None
+    normalized = plugin.normalize_column_refs(config, context)
+    assert normalized.model_fields_set == config.model_fields_set
 
 
 def test_generate_request_accepts_native_viz_type_alias() -> None:
@@ -2260,6 +2469,10 @@ def test_dataset_only_rebind_rewrites_saved_sunburst_params() -> None:
                 "viz_type": "sunburst_v2",
                 "columns": ["region", "country"],
                 "metric": "SavedSales",
+                "order_by_cols": ['["country", false]'],
+                "adhoc_filters": [{"subject": "region"}],
+                "column_config": {"region": {"columnWidth": 120}},
+                "show_labels": True,
                 "datasource": "10__table",
                 "slice_id": 777,
             }
@@ -2280,6 +2493,14 @@ def test_dataset_only_rebind_rewrites_saved_sunburst_params() -> None:
     persisted = json.loads(payload["params"])
     assert persisted["slice_id"] == 19
     assert persisted["datasource"] == "99__table"
+    assert persisted["show_labels"] is True
+    assert {
+        "adhoc_filters",
+        "column_config",
+        "columns",
+        "metric",
+        "order_by_cols",
+    }.isdisjoint(persisted)
     assert resolve_form_data_datasource(persisted) == (99, "table")
 
 
@@ -3308,6 +3529,7 @@ def test_cached_mixed_timeseries_update_preserves_native_controls() -> None:
         x=ColumnRef(name="OrderDate"),
         y=[ColumnRef(name="Sales", aggregate="SUM")],
         y_secondary=[ColumnRef(name="Profit", aggregate="SUM")],
+        show_value=False,
     )
     request = UpdateChartPreviewRequest(
         form_data_key="mixed-key",
@@ -3351,6 +3573,7 @@ def test_cached_mixed_timeseries_update_preserves_native_controls() -> None:
                 "series": "OldSeries",
                 "time_compare": ["1 year ago"],
                 "comparison_type_b": "percentage",
+                "show_value": True,
                 "y_axis_format": ",.2f",
             },
         ),
@@ -3375,6 +3598,7 @@ def test_cached_mixed_timeseries_update_preserves_native_controls() -> None:
     assert captured["time_compare"] == ["1 year ago"]
     assert captured["comparison_type_b"] == "percentage"
     assert captured["y_axis_format"] == ",.2f"
+    assert "show_value" not in captured
     assert captured["metrics"] != ["OldSales"]
     assert captured["metrics_b"] != ["OldProfit"]
     assert {

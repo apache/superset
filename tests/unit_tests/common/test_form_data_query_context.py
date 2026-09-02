@@ -20,9 +20,53 @@ from superset.common.form_data_query_context import (
     adhoc_filters_to_query_filters,
     build_query_context_from_form_data,
     columns_from_form_data,
+    FORM_DATA_QUERY_FIELD_ALIASES,
+    query_fields_from_form_data,
 )
 
 DATASOURCE = {"id": 7, "type": "table"}
+
+
+@pytest.mark.parametrize(
+    "alias,target",
+    FORM_DATA_QUERY_FIELD_ALIASES.items(),
+)
+def test_shared_query_field_aliases_match_frontend_extraction(
+    alias: str, target: str
+) -> None:
+    """Every extractQueryFields.ts alias reaches its canonical query bucket."""
+    value: object = '["region", true]' if target == "orderby" else "revenue"
+    columns, metrics, orderby = query_fields_from_form_data({alias: value})
+    target = "columns" if target == "groupby" else target
+    expected = {
+        "columns": ["revenue"],
+        "metrics": ["revenue"],
+        "orderby": [["region", True]],
+    }
+    assert {"columns": columns, "metrics": metrics, "orderby": orderby}[target] == (
+        expected[target]
+    )
+
+
+def test_shared_query_field_extraction_honors_frontend_query_modes() -> None:
+    aggregate = query_fields_from_form_data(
+        {
+            "query_mode": "aggregate",
+            "all_columns": ["raw"],
+            "groupby": ["region"],
+            "metric_2": "revenue",
+        }
+    )
+    raw = query_fields_from_form_data(
+        {
+            "query_mode": "raw",
+            "all_columns": ["raw"],
+            "groupby": ["region"],
+            "metric_2": "revenue",
+        }
+    )
+    assert aggregate == (["region"], ["revenue"], [])
+    assert raw == (["raw"], [], [])
 
 
 def test_adhoc_filters_converts_simple_and_drops_custom_sql() -> None:

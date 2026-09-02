@@ -34,6 +34,7 @@ from superset.mcp_service.auth import has_dataset_access
 from superset.mcp_service.chart.chart_helpers import (
     canonicalize_operation_form_data,
     extract_form_data_key_from_url,
+    resolve_form_data_datasource,
 )
 from superset.mcp_service.chart.chart_utils import (
     analyze_chart_capabilities,
@@ -250,8 +251,17 @@ def update_chart_preview(  # noqa: C901
             if previous_form_data:
                 merge_table_column_config(previous_form_data, new_form_data)
                 merge_interactive_pivot_ui_config(previous_form_data, new_form_data)
+                previous_dataset_id, _ = resolve_form_data_datasource(
+                    previous_form_data
+                )
                 new_form_data = merge_form_data_for_update(
-                    previous_form_data, new_form_data, config
+                    previous_form_data,
+                    new_form_data,
+                    config,
+                    dataset_rebind=(
+                        previous_dataset_id is not None
+                        and str(previous_dataset_id) != str(dataset.id)
+                    ),
                 )
                 if getattr(config, "filters", None) == []:
                     new_form_data.pop("adhoc_filters", None)

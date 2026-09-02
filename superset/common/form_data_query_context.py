@@ -46,7 +46,112 @@ from __future__ import annotations
 from typing import Any
 
 from superset.utils import json
-from superset.utils.core import as_list, get_metric_name
+from superset.utils.core import as_list, get_column_name, get_metric_name
+
+# Keep this mapping identical to ``queryFieldAliases`` in
+# ``superset-ui-core/src/query/extractQueryFields.ts``.  It is the shared
+# frontend contract for every form-data key that can contribute a metric,
+# column, or ordering expression to a QueryObject.  Server-side consumers and
+# MCP replacement cleanup import this contract rather than maintaining partial
+# chart-specific copies.
+FORM_DATA_QUERY_FIELD_ALIASES: dict[str, str] = {
+    "metric": "metrics",
+    "metric_2": "metrics",
+    "secondary_metric": "metrics",
+    "left_metric": "metrics",
+    "right_metric": "metrics",
+    "x": "metrics",
+    "y": "metrics",
+    "size": "metrics",
+    "all_columns": "columns",
+    "series": "groupby",
+    "order_by_cols": "orderby",
+}
+
+# ``query_mode`` changes which roles the shared extractor honors.  The two
+# series-limit names are consumed directly by buildQueryObject (the latter is
+# the legacy spelling), so they belong to the same authoritative vocabulary
+# even though they do not pass through extractQueryFields.
+SHARED_FORM_DATA_QUERY_ROLE_KEYS = frozenset(
+    {
+        *FORM_DATA_QUERY_FIELD_ALIASES,
+        *FORM_DATA_QUERY_FIELD_ALIASES.values(),
+        "query_mode",
+        "series_limit_metric",
+        "timeseries_limit_metric",
+    }
+)
+
+
+def query_fields_from_form_data(  # noqa: C901
+    form_data: dict[str, Any],
+    aliases: dict[str, str] | None = None,
+) -> tuple[list[Any], list[Any], list[list[Any]]]:
+    """Extract columns, metrics, and ordering using the frontend contract.
+
+    This is the Python equivalent of ``extractQueryFields.ts``.  Registered
+    chart builders may add or replace fields afterward, but the shared alias,
+    query-mode, concatenation, de-duplication, and JSON-ordering behavior stays
+    consistent across frontend and backend query construction.
+    """
+    query_aliases = {**FORM_DATA_QUERY_FIELD_ALIASES, **(aliases or {})}
+    query_mode = form_data.get("query_mode")
+    columns: list[Any] = []
+    metrics: list[Any] = []
+    orderby: list[Any] = []
+
+    def append_values(target: list[Any], value: Any) -> None:
+        target.extend(value if isinstance(value, list) else [value])
+
+    for key, value in form_data.items():
+        if key == "query_mode" or value is None:
+            continue
+        normalized = query_aliases.get(key, key)
+        if query_mode == "aggregate" and normalized == "columns":
+            continue
+        if query_mode == "raw" and normalized in {"groupby", "metrics"}:
+            continue
+        if normalized == "groupby":
+            normalized = "columns"
+        if normalized == "metrics":
+            append_values(metrics, value)
+        elif normalized == "columns":
+            append_values(columns, value)
+        elif normalized == "orderby":
+            append_values(orderby, value)
+
+    def deduplicate(values: list[Any], labeler: Any) -> list[Any]:
+        result: list[Any] = []
+        labels: list[Any] = []
+        for value in values:
+            if value == "":
+                continue
+            try:
+                label = labeler(value)
+            except (AttributeError, KeyError, TypeError, ValueError):
+                label = value
+            if label in labels:
+                continue
+            labels.append(label)
+            result.append(value)
+        return result
+
+    parsed_orderby: list[list[Any]] = []
+    for value in orderby:
+        if isinstance(value, str):
+            try:
+                value = json.loads(value)
+            except (TypeError, ValueError) as ex:
+                raise ValueError("Found invalid orderby options") from ex
+        if isinstance(value, (list, tuple)):
+            parsed_orderby.append(list(value))
+
+    return (
+        deduplicate(columns, get_column_name),
+        deduplicate(metrics, get_metric_name),
+        parsed_orderby,
+    )
+
 
 # Suffix Pie's contribution operator appends when renaming the metric column,
 # mirroring ``CONTRIBUTION_SUFFIX`` in
@@ -144,17 +249,7 @@ def columns_from_form_data(form_data: dict[str, Any]) -> list[Any]:
     or adhoc column), and ``groupby`` dimensions, de-duplicating while preserving
     order.
     """
-    if form_data.get("query_mode") == "raw" and (
-        form_data.get("all_columns") or form_data.get("columns")
-    ):
-        return list(form_data.get("all_columns") or form_data.get("columns") or [])
-
-    groupby_columns: list[Any] = form_data.get("groupby") or []
-    raw_columns: list[Any] = form_data.get("columns") or []
-    # Prefer explicit raw columns only when they are actually present; a stale
-    # empty ``columns: []`` key must not shadow the group-by dimensions (which
-    # would silently drop the grouping and change the aggregation).
-    columns = raw_columns.copy() if raw_columns else groupby_columns.copy()
+    columns, _, _ = query_fields_from_form_data(form_data)
 
     x_axis = form_data.get("x_axis")
     if isinstance(x_axis, str) and x_axis and x_axis not in columns:
@@ -200,17 +295,17 @@ def orderby_from_form_data(
     """
     if is_raw_query_mode(form_data):
         parsed: list[list[Any]] = []
-        for col in form_data.get("order_by_cols") or []:
-            if isinstance(col, str):
+        for entry in form_data.get("order_by_cols") or []:
+            if isinstance(entry, str):
                 try:
-                    col = json.loads(col)
+                    entry = json.loads(entry)
                 except (TypeError, ValueError):
                     continue
-            # Anything that isn't a ``[column, ascending]`` pair (a stray null, a
-            # bare column, an over-long tuple) would append junk to ``orderby``
-            # and fail the query; drop it like an unparseable entry.
-            if isinstance(col, (list, tuple)) and len(col) == 2:
-                parsed.append(list(col))
+            # The frontend rejects malformed ordering JSON.  The best-effort
+            # server fallback instead drops only the malformed entry so an old
+            # saved chart remains executable.
+            if isinstance(entry, (list, tuple)) and len(entry) == 2:
+                parsed.append(list(entry))
         return parsed
 
     if not metrics:
@@ -256,11 +351,7 @@ def _columns_and_metrics(
         columns = list(form_data.get("all_columns") or form_data.get("columns") or [])
         return columns, []
 
-    metrics = list(form_data.get("metrics") or [])
-    # Single-metric charts (e.g. Big Number) store ``metric`` rather than
-    # ``metrics``.
-    if not metrics and form_data.get("metric"):
-        metrics = [form_data["metric"]]
+    columns, metrics, _ = query_fields_from_form_data(form_data)
     # Sunburst's frontend standardized controls promote both singular metric
     # controls into the query. The secondary metric is not presentation-only:
     # transformProps reads it to color nodes by secondary/primary ratio.
@@ -268,7 +359,14 @@ def _columns_and_metrics(
         secondary_metric = form_data["secondary_metric"]
         if secondary_metric not in metrics:
             metrics.append(secondary_metric)
-    columns = columns_from_form_data(form_data)
+    # Plugin builders add x_axis outside the shared extractor.
+    x_axis = form_data.get("x_axis")
+    if isinstance(x_axis, str) and x_axis and x_axis not in columns:
+        columns.insert(0, x_axis)
+    elif isinstance(x_axis, dict):
+        col_name = x_axis.get("column_name")
+        if col_name and col_name not in columns:
+            columns.insert(0, col_name)
     # Only a Big Number *with a trendline* (viz_type ``big_number``) groups by its
     # time column; ``big_number_total`` is a single aggregate and must not be
     # grouped, or it would return one row per timestamp instead of a total.

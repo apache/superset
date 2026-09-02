@@ -44,6 +44,7 @@ from superset.mcp_service.chart.chart_utils import (
     merge_form_data_for_update,
     merge_interactive_pivot_ui_config,
     merge_table_column_config,
+    scrub_dataset_bound_form_data,
 )
 from superset.mcp_service.chart.compile import validate_and_compile
 from superset.mcp_service.chart.schemas import (
@@ -201,14 +202,16 @@ def _merge_replacement_config(
     existing_form_data: dict[str, Any],
     new_form_data: dict[str, Any],
     parsed_config: Any,
+    *,
+    dataset_rebind: bool = False,
 ) -> dict[str, Any]:
     """Merge a replacement config, honoring an explicit empty filter list."""
-    merge_source = {
-        key: value
-        for key, value in existing_form_data.items()
-        if key != "column_config"
-    }
-    merged = merge_form_data_for_update(merge_source, new_form_data, parsed_config)
+    merged = merge_form_data_for_update(
+        existing_form_data,
+        new_form_data,
+        parsed_config,
+        dataset_rebind=dataset_rebind,
+    )
     if getattr(parsed_config, "filters", None) == []:
         merged.pop("adhoc_filters", None)
     return merged
@@ -225,7 +228,7 @@ def _build_dataset_rebind_payload(
     }
     existing_form_data = _get_existing_form_data(chart)
     canonical_form_data = canonicalize_operation_form_data(
-        existing_form_data,
+        scrub_dataset_bound_form_data(existing_form_data),
         datasource_id=request.dataset_id,
         chart_id=chart.id,
     )
@@ -266,7 +269,13 @@ def _build_update_payload(
         # changes cannot inherit source query roles; same-viz Sunburst updates
         # additionally preserve explicitly omitted native presentation state.
         new_form_data = _merge_replacement_config(
-            existing_form_data, new_form_data, parsed_config
+            existing_form_data,
+            new_form_data,
+            parsed_config,
+            dataset_rebind=(
+                request.dataset_id is not None
+                and str(request.dataset_id) != str(chart.datasource_id)
+            ),
         )
         new_form_data = canonicalize_operation_form_data(
             new_form_data,
@@ -367,7 +376,13 @@ def _build_preview_form_data(
         # In the preview, an explicit filters list, including [], replaces saved
         # filters. An omitted filters field preserves them through the shallow merge.
         merged = _merge_replacement_config(
-            existing_form_data, new_form_data, parsed_config
+            existing_form_data,
+            new_form_data,
+            parsed_config,
+            dataset_rebind=(
+                request.dataset_id is not None
+                and str(request.dataset_id) != str(chart.datasource_id)
+            ),
         )
     elif request.add_columns is not None:
         patched = _append_table_columns(existing_form_data, request.add_columns)
