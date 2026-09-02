@@ -274,7 +274,10 @@ class ASCIIPreviewStrategy(PreviewFormatStrategy):
             command.validate()
             result = command.run()
 
-            queries_data, failure = query_result_data(result)
+            queries_data, failure = query_result_data(
+                result,
+                temporal_json_numbers=self.chart.viz_type == "bullet",
+            )
             if failure is not None:
                 return failure
 
@@ -366,7 +369,10 @@ class TablePreviewStrategy(PreviewFormatStrategy):
 
             from superset.mcp_service.chart.query_result import query_result_data
 
-            queries_data, failure = query_result_data(result)
+            queries_data, failure = query_result_data(
+                result,
+                temporal_json_numbers=self.chart.viz_type == "bullet",
+            )
             if failure is not None:
                 return failure
 
@@ -472,7 +478,10 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
             command.validate()
             result = command.run()
 
-            queries_data, failure = query_result_data(result)
+            queries_data, failure = query_result_data(
+                result,
+                temporal_json_numbers=self.chart.viz_type == "bullet",
+            )
             if failure is not None:
                 return failure
 

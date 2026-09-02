@@ -734,7 +734,10 @@ async def get_chart_data(  # noqa: C901
                 command.validate()
                 result = command.run()
 
-            queries_data, query_failure = query_result_data(result)
+            queries_data, query_failure = query_result_data(
+                result,
+                temporal_json_numbers=chart.viz_type == "bullet",
+            )
             if query_failure is not None:
                 return query_failure
 
@@ -1065,7 +1068,10 @@ async def _query_from_form_data(  # noqa: C901
             command.validate()
             result = command.run()
 
-        queries_data, query_failure = query_result_data(result)
+        queries_data, query_failure = query_result_data(
+            result,
+            temporal_json_numbers=viz_type == "bullet",
+        )
         if query_failure is not None:
             return query_failure
 
@@ -1172,7 +1178,7 @@ def _export_data_as_csv(
     # Create CSV content
     output = io.StringIO()
 
-    if data and columns:
+    if columns:
         writer = csv.DictWriter(output, fieldnames=columns)
         writer.writeheader()
 
@@ -1248,7 +1254,7 @@ def _create_excel_with_openpyxl(
     ws = wb.active
     ws.title = chart.slice_name[:31] if chart.slice_name else "Chart Data"
 
-    if data and columns:
+    if columns:
         _write_excel_headers(ws, columns)
         _write_excel_data(ws, data, columns)
 
@@ -1327,7 +1333,7 @@ def _create_excel_with_xlsxwriter(
     sheet_name = chart.slice_name[:31] if chart.slice_name else "Chart Data"
     worksheet = workbook.add_worksheet(sheet_name)
 
-    if data and columns:
+    if columns:
         _write_xlsxwriter_data(worksheet, data, columns)
 
     workbook.close()

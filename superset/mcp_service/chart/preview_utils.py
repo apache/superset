@@ -25,6 +25,7 @@ from form data without requiring a saved chart object.
 import logging
 import math
 from dataclasses import dataclass
+from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
 from enum import Enum
 from typing import Any, Dict, List
@@ -142,7 +143,10 @@ def _generate_preview_from_form_data(
         command.validate()
         result = command.run()
 
-        queries_data, failure = query_result_data(result)
+        queries_data, failure = query_result_data(
+            result,
+            temporal_json_numbers=form_data.get("viz_type") == "bullet",
+        )
         if failure is not None:
             return failure
 
@@ -520,20 +524,26 @@ def _bullet_category_value(  # noqa: C901
     """Return a JSON-safe value and bounded frontend ``String(value)`` text.
 
     The trusted scalar normalizer is type-exact and does not dispatch through
-    application hooks.  Keeping its normalized value in Vega data preserves
-    temporal, numeric, boolean, and null provenance; only the derived category
-    key and ASCII label use the JavaScript-compatible text.
+    application hooks.  Vega data retains the normalized Chart Data wire value
+    (including epoch-ms temporal numbers); only the derived category key and
+    ASCII label use the JavaScript-compatible text.
     """
     from superset.mcp_service.chart.query_result import (
         _bounded_utf8_length,
+        _chart_data_temporal_number,
         _normalize_trusted_scalar,
     )
 
-    normalized, reason = _normalize_trusted_scalar(
-        value, max_string_bytes=_MAX_BULLET_TEXT_BYTES
-    )
+    normalized: Any
+    reason: str | None
+    if type(value) in {date, datetime}:
+        normalized, reason = _chart_data_temporal_number(value)
+    else:
+        normalized, reason = _normalize_trusted_scalar(
+            value, max_string_bytes=_MAX_BULLET_TEXT_BYTES
+        )
     if reason is not None:
-        if "unsupported" in reason:
+        if reason == "contains an unsupported or subclassed value":
             reason = "has an unsupported value type"
         elif "oversized string" in reason:
             reason = "exceeds the size limit"
@@ -1097,7 +1107,11 @@ def _generate_bullet_vega_lite_preview(  # noqa: C901
         "sort": None,
     }
     tooltip = [
-        *({"field": field, "type": "nominal"} for field in model.dimensions),
+        {
+            "field": category_field,
+            "type": "nominal",
+            "title": ", ".join(model.dimensions) if model.dimensions else None,
+        },
         {
             "field": model.metric_field,
             "type": "quantitative",
