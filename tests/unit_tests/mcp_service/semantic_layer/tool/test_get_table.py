@@ -21,10 +21,13 @@ from __future__ import annotations
 
 import importlib
 from collections.abc import Generator
-from types import ModuleType
+from contextlib import nullcontext
+from types import ModuleType, SimpleNamespace
 from typing import Any
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
+import numpy as np
+import pandas as pd
 import pytest
 from fastmcp import Client, FastMCP
 
@@ -32,6 +35,10 @@ from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
 from superset.mcp_service.app import mcp
 from superset.utils import json
+from superset.utils.core import GenericDataType
+from tests.unit_tests.mcp_service.chart.query_result_fixtures import (
+    chart_data_command_result,
+)
 
 get_table_module: ModuleType = importlib.import_module(
     "superset.mcp_service.semantic_layer.tool.get_table"
@@ -117,18 +124,146 @@ def _access_denied_exc(message: str = "Access denied") -> SupersetSecurityExcept
 
 
 @pytest.mark.asyncio
+async def test_get_table_seeds_virtual_dataset_jinja_before_command_construction(
+    app_context: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The final semantic query exposes URL and filter macros to virtual SQL."""
+    from flask import current_app
+
+    from superset.common.query_object import QueryObject
+    from superset.jinja_context import ExtraCache
+    from superset.mcp_service.semantic_layer.schemas import GetTableRequest
+
+    command_module = importlib.import_module(
+        "superset.commands.chart.data.get_data_command"
+    )
+    observed: dict[str, Any] = {}
+
+    class _Factory:
+        def create(self, **kwargs: Any) -> Any:
+            return SimpleNamespace(
+                form_data=kwargs["form_data"],
+                queries=[QueryObject(**query) for query in kwargs["queries"]],
+            )
+
+    class _Command:
+        def __init__(self, _query_context: Any) -> None:
+            macros = ExtraCache()
+            observed["url_param"] = macros.url_param("tenant")
+            observed["filter_values"] = macros.filter_values("region")
+            observed["get_filters"] = macros.get_filters("region")
+
+        def validate(self) -> None: ...
+
+        def run(self) -> dict[str, Any]:
+            return {
+                "queries": [
+                    {
+                        "data": [{"region": "North", "revenue": 10}],
+                        "colnames": ["region", "revenue"],
+                        "coltypes": [1, 0],
+                        "rowcount": 1,
+                    }
+                ]
+            }
+
+    monkeypatch.setattr(
+        get_table_module,
+        "_resolve_builtin_dataset",
+        lambda _request: get_table_module._ResolvedDatasource(
+            "virtual_sales", None, {"region"}, {"revenue"}
+        ),
+    )
+    monkeypatch.setattr(
+        get_table_module,
+        "event_logger",
+        SimpleNamespace(log_context=lambda **_kwargs: nullcontext()),
+    )
+    monkeypatch.setattr(
+        importlib.import_module("superset.common.query_context_factory"),
+        "QueryContextFactory",
+        _Factory,
+    )
+    monkeypatch.setattr(command_module, "ChartDataCommand", _Command)
+
+    request = GetTableRequest(
+        dataset_id=42,
+        metrics=["revenue"],
+        dimensions=["region"],
+        filters=[{"col": "region", "op": "IN", "val": ["North"]}],
+    )
+    with current_app.test_request_context("/?tenant=acme"):
+        response = await get_table_module._run_get_table_query(
+            request,
+            AsyncMock(),
+            is_builtin=True,
+            datasource_id=42,
+            datasource_type="table",
+        )
+
+    assert response.success is True
+    assert observed == {
+        "url_param": "acme",
+        "filter_values": ["North"],
+        "get_filters": [{"col": "region", "op": "IN", "val": ["North"]}],
+    }
+
+
+@pytest.mark.asyncio
 async def test_get_table_builtin_happy_path(mcp_server: FastMCP) -> None:
     """get_table returns tabular data for a built-in dataset."""
     mock_ds = _make_dataset(42)
-    query_result = {
-        "queries": [
+    query_result = chart_data_command_result(
+        [
             {
-                "data": [{"region": "west", "revenue": 100}],
-                "colnames": ["region", "revenue"],
-                "rowcount": 1,
+                "created_at": pd.Timestamp("2026-09-02T10:11:12Z"),
+                "revenue": np.int64(100),
             }
-        ]
-    }
+        ],
+        columns=["created_at", "revenue"],
+        coltypes=[GenericDataType.TEMPORAL, GenericDataType.NUMERIC],
+    )
+
+    with (
+        patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=mock_ds),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand"
+        ) as mock_command_cls,
+        patch(
+            "superset.common.query_context_factory.QueryContextFactory"
+        ) as mock_factory_cls,
+    ):
+        mock_command_cls.return_value.run.return_value = query_result
+        mock_factory_cls.return_value.create.return_value = MagicMock()
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_table",
+                {
+                    "request": {
+                        "dataset_id": 42,
+                        "metrics": ["revenue"],
+                        "dimensions": ["created_at"],
+                    }
+                },
+            )
+        data = json.loads(result.content[0].text)
+
+    assert data["success"] is True
+    assert data["row_count"] == 1
+    assert data["source"] == "builtin"
+    assert data["dataset_id"] == 42
+    assert data["data"] == [{"created_at": "2026-09-02T10:11:12+00:00", "revenue": 100}]
+
+
+@pytest.mark.asyncio
+async def test_get_table_rejects_nonfinite_producer_data(mcp_server: FastMCP) -> None:
+    mock_ds = _make_dataset(42)
+    query_result = chart_data_command_result(
+        [{"region": "west", "revenue": float("nan")}],
+        columns=["region", "revenue"],
+        coltypes=[GenericDataType.STRING, GenericDataType.NUMERIC],
+    )
 
     with (
         patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=mock_ds),
@@ -153,12 +288,10 @@ async def test_get_table_builtin_happy_path(mcp_server: FastMCP) -> None:
                     }
                 },
             )
-        data = json.loads(result.content[0].text)
 
-    assert data["success"] is True
-    assert data["row_count"] == 1
-    assert data["source"] == "builtin"
-    assert data["dataset_id"] == 42
+    data = json.loads(result.content[0].text)
+    assert data["success"] is False
+    assert data["error_type"] == "InvalidQueryResult"
 
 
 @pytest.mark.asyncio
@@ -404,6 +537,7 @@ async def test_get_table_unknown_filter_operator_passes_through(
             {
                 "data": [{"region": "west", "revenue": 100}],
                 "colnames": ["region", "revenue"],
+                "coltypes": [1, 0],
                 "rowcount": 1,
             }
         ]
@@ -456,6 +590,7 @@ async def test_get_table_unicode_filter_value_passes_through(
             {
                 "data": [{"region": "west", "revenue": 100}],
                 "colnames": ["region", "revenue"],
+                "coltypes": [1, 0],
                 "rowcount": 1,
             }
         ]

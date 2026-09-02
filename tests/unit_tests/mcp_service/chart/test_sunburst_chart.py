@@ -103,6 +103,10 @@ from superset.mcp_service.chart.validation.runtime.chart_type_suggester import (
 )
 from superset.mcp_service.common.error_schemas import DatasetContext
 from superset.utils import json
+from superset.utils.core import GenericDataType
+from tests.unit_tests.mcp_service.chart.query_result_fixtures import (
+    chart_data_command_result,
+)
 
 
 @pytest.fixture(autouse=True)
@@ -3449,7 +3453,8 @@ def test_update_chart_preview_product_path_preserves_cached_sunburst_state() -> 
         form_data_key="saved-sunburst-key",
         dataset_id=7,
         config=config,
-        generate_preview=False,
+        generate_preview=True,
+        preview_formats=["table"],
     )
     dataset = _dataset()
     cached_form_data = {
@@ -3476,6 +3481,16 @@ def test_update_chart_preview_product_path_preserves_cached_sunburst_state() -> 
         "plugin_only_ui_state": {"kept": True},
     }
     captured_form_data: dict[str, object] = {}
+    command = MagicMock()
+    command.run.return_value = chart_data_command_result(
+        [{"Region": "Americas", "Country": "Brazil", "Sales": 10}],
+        columns=["Region", "Country", "Sales"],
+        coltypes=[
+            GenericDataType.STRING,
+            GenericDataType.STRING,
+            GenericDataType.NUMERIC,
+        ],
+    )
 
     def generate_link(
         dataset_id: int | str,
@@ -3515,10 +3530,21 @@ def test_update_chart_preview_product_path_preserves_cached_sunburst_state() -> 
             "generate_explore_link",
             side_effect=generate_link,
         ),
+        patch(
+            "superset.mcp_service.chart.chart_helpers."
+            "build_query_context_from_form_data",
+            return_value=object(),
+        ),
+        patch("superset.extensions.db.session.get", return_value=dataset),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand",
+            return_value=command,
+        ),
     ):
         result = update_chart_preview(request, ctx=MagicMock())
 
     assert result["success"] is True
+    assert result["previews"]["table"]["row_count"] == 1
     assert result["form_data_key"] == "new-sunburst-key"
     assert result["chart"]["viz_type"] == "sunburst_v2"
     assert captured_form_data["columns"] == ["Region", "Country"]

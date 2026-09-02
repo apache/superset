@@ -26,6 +26,8 @@ from types import SimpleNamespace
 from typing import Any
 from unittest.mock import MagicMock
 
+import numpy as np
+import pandas as pd
 import pytest
 
 from superset.common.db_query_status import QueryStatus
@@ -49,6 +51,9 @@ from superset.mcp_service.chart.tool.get_chart_data import (
 )
 from superset.utils import json
 from superset.utils.core import ExtraFiltersReasonType, GenericDataType
+from tests.unit_tests.mcp_service.chart.query_result_fixtures import (
+    chart_data_command_result,
+)
 
 
 class HostileResultEnum(Enum):
@@ -504,7 +509,10 @@ def test_data_column_profiling_is_bounded_and_handles_nested_primitives(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     module = importlib.import_module("superset.mcp_service.chart.tool.get_chart_data")
-    monkeypatch.setattr(module, "_MAX_COLUMN_PROFILE_CELLS", 3)
+    # Each nested value consumes seven iterative profile events. The single
+    # shared budget therefore profiles exactly three rows, rather than charging
+    # only the outer cell and recursively bypassing the cap.
+    monkeypatch.setattr(module, "_MAX_COLUMN_PROFILE_CELLS", 21)
     data = [{"value": [index, {"nested": index % 2}]} for index in range(10)]
 
     columns = _build_data_columns(data, ["value"])
@@ -516,6 +524,19 @@ def test_data_column_profiling_is_bounded_and_handles_nested_primitives(
     ]
     assert columns[0].unique_count == 3
     assert columns[0].statistics == {"sampled_rows": 3}
+
+
+def test_data_column_profiling_shares_budget_across_columns(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    module = importlib.import_module("superset.mcp_service.chart.tool.get_chart_data")
+    monkeypatch.setattr(module, "_MAX_COLUMN_PROFILE_CELLS", 4)
+    data = [{"left": index, "right": index} for index in range(10)]
+
+    columns = _build_data_columns(data, ["left", "right"])
+
+    assert [column.unique_count for column in columns] == [2, 2]
+    assert all(column.statistics == {"sampled_rows": 2} for column in columns)
 
 
 @pytest.mark.asyncio
@@ -752,16 +773,21 @@ class TestUnsavedChartDataQueryConstruction:
                 pass
 
             def run(self) -> dict[str, Any]:
-                return {
-                    "queries": [
+                return chart_data_command_result(
+                    [
                         {
-                            "data": [{"gender": "boy", "count": 1}],
-                            "colnames": ["gender", "count"],
-                            "coltypes": [0, 0],
-                            "rowcount": 1,
+                            "gender": "boy",
+                            "event_time": pd.Timestamp("2026-09-02T10:11:12Z"),
+                            "count": np.int64(1),
                         }
-                    ]
-                }
+                    ],
+                    columns=["gender", "event_time", "count"],
+                    coltypes=[
+                        GenericDataType.STRING,
+                        GenericDataType.TEMPORAL,
+                        GenericDataType.NUMERIC,
+                    ],
+                )
 
         monkeypatch.setattr(
             query_context_factory_module,
@@ -785,7 +811,7 @@ class TestUnsavedChartDataQueryConstruction:
             "comparator": "boy",
         }
 
-        await _query_from_form_data(
+        response = await _query_from_form_data(
             {
                 "datasource_id": 1,
                 "datasource_type": "table",
@@ -802,6 +828,16 @@ class TestUnsavedChartDataQueryConstruction:
         query = captured_query_contexts[0]["queries"][0]
         assert query["filters"] == [{"col": "gender", "op": "==", "val": "boy"}]
         assert "adhoc_filters" not in query
+        assert isinstance(response, ChartData)
+        assert response.data == [
+            {
+                "gender": "boy",
+                "event_time": "2026-09-02T10:11:12+00:00",
+                "count": 1,
+            }
+        ]
+        # Every supported producer scalar is native before Pydantic/JSON output.
+        assert response.model_dump(mode="json")["data"] == response.data
 
     @pytest.mark.asyncio
     async def test_form_data_key_mixed_timeseries_builds_secondary_query(
@@ -1760,23 +1796,19 @@ class TestSavedChartExtraFormDataFilters:
                 # Mirror the payload ChartDataCommand actually returns:
                 # _materialize_full_payload has already converted
                 # rejected_filter_columns into rejected_filters entries.
-                return {
-                    "queries": [
-                        {
-                            "data": [{"country": "USA"}],
-                            "colnames": ["country"],
-                            "coltypes": [0],
-                            "rowcount": 1,
-                            "rejected_filters": [
-                                {
-                                    "reason": ExtraFiltersReasonType.COL_NOT_IN_DATASOURCE,  # noqa: E501
-                                    "column": column,
-                                }
-                                for column in rejected_filter_columns or []
-                            ],
-                        }
-                    ]
-                }
+                result = chart_data_command_result(
+                    [{"country": "USA"}],
+                    columns=["country"],
+                    coltypes=[GenericDataType.STRING],
+                )
+                result["queries"][0]["rejected_filters"] = [
+                    {
+                        "reason": ExtraFiltersReasonType.COL_NOT_IN_DATASOURCE,
+                        "column": column,
+                    }
+                    for column in rejected_filter_columns or []
+                ]
+                return result
 
         with (
             patch.object(

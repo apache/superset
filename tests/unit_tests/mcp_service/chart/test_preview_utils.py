@@ -26,6 +26,9 @@ from unittest.mock import MagicMock, patch
 
 from superset.mcp_service.chart import preview_utils
 from superset.mcp_service.chart.schemas import ChartError
+from tests.unit_tests.mcp_service.chart.query_result_fixtures import (
+    chart_data_command_result,
+)
 
 
 def _imports_chart_data_command(node: ast.Import | ast.ImportFrom) -> bool:
@@ -230,7 +233,9 @@ def test_generate_preview_seeds_form_data_before_query_execution():
         mock_db.session.get.return_value = MagicMock(id=12)
         query_context = MagicMock()
         mock_factory.return_value.create.return_value = query_context
-        mock_cmd_cls.return_value.run.return_value = {"queries": [{"data": []}]}
+        mock_cmd_cls.return_value.run.return_value = chart_data_command_result(
+            rows=[], columns=["value"]
+        )
 
         preview_utils.generate_preview_from_form_data(
             form_data={"metrics": [{"label": "count"}]},

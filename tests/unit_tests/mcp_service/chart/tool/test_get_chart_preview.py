@@ -51,6 +51,10 @@ from superset.mcp_service.chart.tool.get_chart_preview import (
     VegaLitePreviewStrategy,
 )
 from superset.utils import json as utils_json
+from superset.utils.core import GenericDataType
+from tests.unit_tests.mcp_service.chart.query_result_fixtures import (
+    chart_data_command_result,
+)
 
 
 @pytest.mark.parametrize(
@@ -104,7 +108,11 @@ def test_saved_virtual_dataset_previews_seed_all_jinja_form_data_macros(
 
         def run(self) -> dict[str, Any]:
             events.append("run")
-            return {"queries": [{"data": [{"region": "North", "count": 1}]}]}
+            return chart_data_command_result(
+                [{"region": "North", "count": 1}],
+                columns=["region", "count"],
+                coltypes=[GenericDataType.STRING, GenericDataType.NUMERIC],
+            )
 
     chart = SimpleNamespace(
         id=17,
@@ -629,16 +637,11 @@ class TestGetChartPreview:
                 pass
 
             def run(self) -> dict[str, Any]:
-                return {
-                    "queries": [
-                        {
-                            "data": [{"gender": "boy", "count": 1}],
-                            "colnames": ["gender", "count"],
-                            "coltypes": [0, 0],
-                            "rowcount": 1,
-                        }
-                    ]
-                }
+                return chart_data_command_result(
+                    [{"gender": "boy", "count": 1}],
+                    columns=["gender", "count"],
+                    coltypes=[GenericDataType.STRING, GenericDataType.NUMERIC],
+                )
 
         monkeypatch.setattr(
             query_context_factory_module,

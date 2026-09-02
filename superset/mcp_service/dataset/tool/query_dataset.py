@@ -35,6 +35,7 @@ from superset.charts.data.form_data import set_query_context_form_data
 from superset.commands.exceptions import CommandException
 from superset.exceptions import OAuth2Error, OAuth2RedirectError, SupersetException
 from superset.extensions import event_logger
+from superset.mcp_service.chart.query_result import validate_query_result_envelope
 from superset.mcp_service.chart.schemas import DataColumn, PerformanceMetadata
 from superset.mcp_service.dataset.dataset_utils import resolve_dataset
 from superset.mcp_service.dataset.schemas import (
@@ -320,11 +321,11 @@ async def query_dataset(  # noqa: C901
 
         query_duration_ms = int((time.time() - start_time) * 1000)
 
-        if not result or "queries" not in result or len(result["queries"]) == 0:
-            await ctx.warning("Query returned no results for dataset %s" % dataset.id)
+        if result_error := validate_query_result_envelope(result):
+            await ctx.warning("Query returned an invalid result envelope")
             return DatasetError.create(
-                error="Query returned no results.",
-                error_type="EmptyQuery",
+                error=result_error.error,
+                error_type=result_error.error_type,
             )
 
         # ------------------------------------------------------------------

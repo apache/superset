@@ -25,6 +25,8 @@ that only use Tier-1 validation are exercised end-to-end.
 
 from unittest.mock import Mock, patch
 
+import numpy as np
+import pandas as pd
 import pytest
 
 from superset.common.db_query_status import QueryStatus
@@ -43,6 +45,10 @@ from superset.mcp_service.chart.schemas import (
 )
 from superset.mcp_service.chart.validation.dataset_validator import (
     build_dataset_context_from_orm,
+)
+from superset.utils.core import GenericDataType
+from tests.unit_tests.mcp_service.chart.query_result_fixtures import (
+    chart_data_command_result,
 )
 
 
@@ -608,8 +614,13 @@ def test_compile_chart_seeds_form_data_before_query_execution(
     mock_cmd_cls.return_value.validate.return_value = None
     call_order: list[str] = []
     mock_set_form_data.side_effect = lambda *args: call_order.append("seed")
+    producer_result = chart_data_command_result(
+        [{"event_time": pd.Timestamp("2026-09-02T10:11:12Z"), "value": np.int64(1)}],
+        columns=["event_time", "value"],
+        coltypes=[GenericDataType.TEMPORAL, GenericDataType.NUMERIC],
+    )
     mock_cmd_cls.return_value.run.side_effect = lambda: (
-        call_order.append("run") or {"queries": [{"data": []}]}
+        call_order.append("run") or producer_result
     )
 
     result = _compile_chart(

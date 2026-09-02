@@ -15,14 +15,23 @@
 # specific language governing permissions and limitations
 # under the License.
 
-"""Helpers for interpreting ChartDataCommand result envelopes."""
+"""Canonicalize and validate ``ChartDataCommand`` result envelopes."""
 
 import math
-from datetime import date, datetime, time, timedelta
+from dataclasses import dataclass
+from datetime import date, datetime, time, timedelta, timezone
 from decimal import Decimal
+from enum import Enum
 from typing import Any
 from uuid import UUID
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
+import numpy as np
+import pandas as pd
+import pytz
+from dateutil import tz as dateutil_tz
+
+from superset.common.chart_data import ChartDataResultFormat
 from superset.common.db_query_status import QueryStatus
 from superset.mcp_service.chart.schemas import ChartError
 from superset.utils.core import (
@@ -35,136 +44,85 @@ FAILED_QUERY_STATUSES = frozenset(
     {"error", "failed", "stopped", "timed_out", "cancelled", "canceled"}
 )
 
-# ChartDataCommand results cross a trust boundary before MCP response shaping.
-# Keep every container and traversal bounded so a malformed command result
-# cannot trigger user-defined sequence/mapping hooks or unbounded work.
+# These are aggregate envelope limits, not per-query allowances. In particular,
+# splitting a result across the maximum number of queries must not multiply the
+# permitted rows, nodes, or encoded bytes.
 MAX_QUERY_RESULTS = 32
-MAX_QUERY_RESULT_ROWS = 500_000
-MAX_QUERY_RESULT_COLUMNS = 10_000
-MAX_RESULT_VALUE_ITEMS = 10_000
-MAX_RESULT_VALUE_DEPTH = 6
+MAX_QUERY_RESULT_ROWS_PER_QUERY = 50_000
+MAX_QUERY_RESULT_ROWS = 100_000
+MAX_QUERY_RESULT_COLUMNS = 4_096
+MAX_QUERY_RESULT_VALUES = 2_500_000
+MAX_QUERY_RESULT_VALUE_BYTES = 16 * 1024 * 1024
+MAX_RESULT_VALUE_ITEMS = 4_096
+MAX_RESULT_VALUE_DEPTH = 32
 MAX_RESULT_STRING_LENGTH = 65_536
+MAX_RESULT_KEY_LENGTH = 4_096
 MAX_RESULT_INTEGER_BITS = 4_096
-MAX_RESULT_INTEGER_DIGITS = 1_000
-MAX_RESULT_DECIMAL_DIGITS = 1_000
-MAX_RESULT_DECIMAL_MAGNITUDE = 1_000
+MAX_RESULT_INTEGER_DIGITS = 1_234
+MAX_RESULT_DECIMAL_DIGITS = 1_024
+MAX_RESULT_DECIMAL_MAGNITUDE = 4_096
+MAX_RESULT_DECIMAL_STORAGE = 2_048
 MAX_QUERY_RESULT_ROWCOUNT = 2**63 - 1
 MAX_QUERY_RESULT_CACHE_TIMEOUT = 2**31 - 1
 MAX_QUERY_RESULT_TIMESTAMP_LENGTH = 64
 
+_ERROR_KEYS = ("error", "errors", "error_message", "message", "detail")
+_MAX_ERROR_TEXT_BYTES = 2_000
+_TRUSTED_TIMEZONE_TYPES = (timezone, ZoneInfo)
 _SAFE_RESULT_ENUM_TYPES = frozenset(
     {
+        ChartDataResultFormat,
         QueryStatus,
         ExtraFiltersReasonType,
         ExtraFiltersTimeColumnType,
         GenericDataType,
     }
 )
-
-
-def _safe_enum_value(value: Any) -> Any | None:
-    """Read only explicitly trusted enum storage without dispatching hooks."""
-    if type(value) not in _SAFE_RESULT_ENUM_TYPES:
-        return None
-    return object.__getattribute__(value, "_value_")
-
-
-def _is_bounded_exact_int(value: Any) -> bool:
-    """Bound exact integers before any decimal conversion can allocate."""
-    if type(value) is not int:
-        return False
-    if int.bit_length(value) > MAX_RESULT_INTEGER_BITS:
-        return False
-    return len(str(abs(value))) <= MAX_RESULT_INTEGER_DIGITS
-
-
-def _is_bounded_exact_decimal(value: Any) -> bool:
-    """Accept only finite Decimals with bounded precision and magnitude."""
-    if type(value) is not Decimal or not Decimal.is_finite(value):
-        return False
-    parts = Decimal.as_tuple(value)
-    exponent = parts.exponent
-    if not isinstance(exponent, int):
-        return False
-    return (
-        len(parts.digits) <= MAX_RESULT_DECIMAL_DIGITS
-        and abs(exponent) <= MAX_RESULT_DECIMAL_MAGNITUDE
-        and abs(Decimal.adjusted(value)) <= MAX_RESULT_DECIMAL_MAGNITUDE
+_RESULT_FORMAT_VALUES = frozenset(
+    object.__getattribute__(member, "_value_") for member in ChartDataResultFormat
+)
+_COLTYPE_VALUES = frozenset(
+    object.__getattribute__(member, "_value_") for member in GenericDataType
+)
+_NUMPY_INTEGER_TYPES = frozenset(
+    type(value)
+    for value in (
+        np.int8(0),
+        np.int16(0),
+        np.int32(0),
+        np.int64(0),
+        np.uint8(0),
+        np.uint16(0),
+        np.uint32(0),
+        np.uint64(0),
     )
+)
+_NUMPY_FLOAT_TYPES = frozenset(
+    type(value)
+    for value in (np.float16(0), np.float32(0), np.float64(0), np.longdouble(0))
+)
+_PANDAS_NAT_TYPE = type(pd.NaT)
+_PANDAS_NA_TYPE = type(pd.NA)
+_DATEUTIL_FIXED_TIMEZONE_TYPES = frozenset(
+    {type(dateutil_tz.tzoffset(None, 0)), type(dateutil_tz.tzutc())}
+)
+_PYTZ_FIXED_TIMEZONE_TYPES = frozenset({type(pytz.FixedOffset(1))})
 
 
-def _is_bounded_result_value(  # noqa: C901
-    value: Any,
-    *,
-    depth: int = 0,
-    enum_types: tuple[type[Any], ...] = (),
-) -> bool:
-    """Accept safe result scalars and exact, bounded builtin containers."""
-    if depth > MAX_RESULT_VALUE_DEPTH:
-        return False
-    if type(value) in {type(None), bool}:  # noqa: E721
-        return True
-    if type(value) is int:
-        return _is_bounded_exact_int(value)
-    if type(value) is float:
-        return math.isfinite(value)
-    if type(value) is str:
-        return len(value) <= MAX_RESULT_STRING_LENGTH
-    if type(value) is Decimal:
-        return _is_bounded_exact_decimal(value)
-    if type(value) in {date, datetime, time, UUID}:  # noqa: E721
-        return True
-    if type(value) in enum_types and type(value) in _SAFE_RESULT_ENUM_TYPES:
-        return _is_bounded_result_value(
-            _safe_enum_value(value), depth=depth + 1, enum_types=enum_types
-        )
-    if type(value) is list:
-        return len(value) <= MAX_RESULT_VALUE_ITEMS and all(
-            _is_bounded_result_value(item, depth=depth + 1, enum_types=enum_types)
-            for item in value
-        )
-    if type(value) is dict:
-        return len(value) <= MAX_RESULT_VALUE_ITEMS and all(
-            type(key) is str
-            and len(key) <= MAX_RESULT_STRING_LENGTH
-            and _is_bounded_result_value(item, depth=depth + 1, enum_types=enum_types)
-            for key, item in value.items()
-        )
-    return False
+@dataclass
+class _ResultBudget:
+    """Aggregate counters shared by every query and metadata value."""
+
+    rows: int = 0
+    values: int = 0
+    encoded_bytes: int = 0
 
 
-def _query_error_text(value: Any) -> str | None:
-    """Convert a bounded query error payload into a useful message."""
-    if value is None or value is False:
-        return None
-    if type(value) is dict:
-        for key in ("error", "error_message", "message", "detail"):
-            if text := _query_error_text(value.get(key)):
-                return text
-        return None
-    if type(value) is list:
-        parts = [text for item in value if (text := _query_error_text(item))]
-        return "; ".join(parts[:3]) or None
-    if type(value) is str:
-        return value[:2000] or None
-    if type(value) in {bool, int, float, date, datetime, time, Decimal, UUID}:
-        text = str(value)
-        return text[:2000] if text else None
-    if type(value) in _SAFE_RESULT_ENUM_TYPES:
-        return _query_error_text(_safe_enum_value(value))
-    return None
-
-
-def _status_text(value: Any) -> str | None:
-    """Return a status wire value without invoking user-defined conversion."""
-    if value is None:
-        return ""
-    if type(value) is str:
-        return value
-    if type(value) is QueryStatus:
-        enum_value = _safe_enum_value(value)
-        return enum_value if type(enum_value) is str else None
-    return None
+def _invalid_result(message: str) -> ChartError:
+    return ChartError(
+        error=f"Chart query returned {message}.",
+        error_type="InvalidQueryResult",
+    )
 
 
 def _invalid_metadata(label: str) -> ChartError:
@@ -174,378 +132,647 @@ def _invalid_metadata(label: str) -> ChartError:
     )
 
 
-def _payload_metadata_is_bounded(payload: dict[str, Any], *, skip: str) -> bool:
-    """Validate an exact result mapping before any field-specific access."""
-    if len(payload) > MAX_RESULT_VALUE_ITEMS:
-        return False
-    enum_slots: dict[str, tuple[type[Any], ...]] = {
-        "status": (QueryStatus,),
-        "coltypes": (GenericDataType,),
-        "applied_filters": (ExtraFiltersTimeColumnType,),
-        "rejected_filters": (
-            ExtraFiltersReasonType,
-            ExtraFiltersTimeColumnType,
-        ),
-    }
-    for key, value in payload.items():
-        if type(key) is not str or len(key) > MAX_RESULT_STRING_LENGTH:
-            return False
-        if key != skip and not _is_bounded_result_value(
-            value, enum_types=enum_slots.get(key, ())
-        ):
-            return False
-    return True
+def _safe_enum_value(value: Any, expected: frozenset[type[Any]]) -> Any | None:
+    """Read trusted enum storage without invoking public conversion hooks."""
+    if type(value) not in expected or type(value) not in _SAFE_RESULT_ENUM_TYPES:
+        return None
+    return object.__getattribute__(value, "_value_")
 
 
-def _payload_metadata_error(
-    payload: dict[str, Any], *, label: str, skip: str
-) -> ChartError | None:
-    """Return a structured error for metadata that cannot be read safely."""
-    if not _payload_metadata_is_bounded(payload, skip=skip):
-        return _invalid_metadata(label)
-    if "status" in payload and _status_text(payload["status"]) is None:
-        return _invalid_metadata(label)
-    if "success" in payload and type(payload["success"]) is not bool:
-        return _invalid_metadata(label)
+def _bounded_utf8_length(value: str, maximum: int) -> int | None:
+    """Return the exact UTF-8 size while bounding pre-encoding work."""
+    if str.__len__(value) > maximum:
+        return None
+    try:
+        encoded = str.encode(value, "utf-8", errors="strict")
+    except UnicodeEncodeError:
+        return None
+    size = bytes.__len__(encoded)
+    return size if size <= maximum else None
+
+
+def _charge_value(budget: _ResultBudget) -> str | None:
+    budget.values += 1
+    if budget.values > MAX_QUERY_RESULT_VALUES:
+        return "too many aggregate values"
     return None
 
 
-def _failure_for_query_payload(
-    payload: dict[str, Any], label: str
-) -> ChartError | None:
-    """Extract one failure from a top-level or per-query payload."""
+def _charge_text(value: str, budget: _ResultBudget, *, key: bool = False) -> str | None:
+    maximum = MAX_RESULT_KEY_LENGTH if key else MAX_RESULT_STRING_LENGTH
+    size = _bounded_utf8_length(value, maximum)
+    if size is None:
+        return "an invalid or oversized object key" if key else "invalid text data"
+    budget.encoded_bytes += size
+    if budget.encoded_bytes > MAX_QUERY_RESULT_VALUE_BYTES:
+        return "too many aggregate UTF-8 bytes"
+    return None
+
+
+def _integer_failure(value: int) -> str | None:
+    bits = int.bit_length(value)
+    if bits > MAX_RESULT_INTEGER_BITS:
+        return "an oversized integer"
+    digits = 1 if bits == 0 else ((bits - 1) * 30103) // 100000 + 1
+    if digits > MAX_RESULT_INTEGER_DIGITS:
+        return "an oversized integer"
+    return None
+
+
+def _decimal_failure(value: Decimal) -> str | None:
+    if Decimal.__sizeof__(value) > MAX_RESULT_DECIMAL_STORAGE:
+        return "an oversized Decimal"
+    if not Decimal.is_finite(value):
+        return "a non-finite Decimal"
+    parts = Decimal.as_tuple(value)
+    if tuple.__len__(parts.digits) > MAX_RESULT_DECIMAL_DIGITS:
+        return "an oversized Decimal"
+    exponent = parts.exponent
+    if type(exponent) is not int or abs(exponent) > MAX_RESULT_DECIMAL_MAGNITUDE:
+        return "an oversized Decimal"
+    return None
+
+
+def _type_mro(value_type: type[Any]) -> tuple[type[Any], ...]:
+    """Read a concrete type's MRO without consulting metaclass overrides."""
+    try:
+        mro = type.__getattribute__(value_type, "__mro__")
+    except (AttributeError, TypeError):  # pragma: no cover - defensive metaclass
+        return ()
+    return mro if type(mro) is tuple else ()
+
+
+def _timezone_name_without_hooks(tzinfo: Any) -> str | None:
+    """Read common pytz/dateutil zone state without dispatching timezone hooks."""
+    for base in _type_mro(type(tzinfo)):
+        try:
+            namespace = type.__getattribute__(base, "__dict__")
+        except (AttributeError, TypeError):  # pragma: no cover
+            continue
+        zone = namespace.get("zone")
+        if type(zone) is str and _bounded_utf8_length(zone, 256) is not None:
+            return zone
+
+    try:
+        namespace = object.__getattribute__(tzinfo, "__dict__")
+    except (AttributeError, TypeError):
+        return None
+    if type(namespace) is not dict:
+        return None
+    zone = dict.get(namespace, "zone")
+    if type(zone) is str and _bounded_utf8_length(zone, 256) is not None:
+        return zone
+    filename = dict.get(namespace, "_filename")
+    if type(filename) is not str or _bounded_utf8_length(filename, 4_096) is None:
+        return None
+    marker = "/zoneinfo/"
+    offset = str.find(filename, marker)
+    if offset < 0:
+        return None
+    name = str.__getitem__(filename, slice(offset + len(marker), None))
+    return name if _bounded_utf8_length(name, 256) is not None else None
+
+
+def _canonical_timezone(tzinfo: Any) -> timezone | ZoneInfo | None:  # noqa: C901
+    if any(type(tzinfo) is trusted for trusted in _TRUSTED_TIMEZONE_TYPES):
+        return tzinfo
+    if zone_name := _timezone_name_without_hooks(tzinfo):
+        try:
+            return ZoneInfo(zone_name)
+        except (KeyError, ValueError, ZoneInfoNotFoundError):
+            return None
+    if type(tzinfo) in _DATEUTIL_FIXED_TIMEZONE_TYPES:
+        try:
+            namespace = object.__getattribute__(tzinfo, "__dict__")
+        except (AttributeError, TypeError):
+            return timezone.utc if type(tzinfo) is type(dateutil_tz.tzutc()) else None
+        if type(namespace) is not dict:
+            return None
+        offset = dict.get(namespace, "_offset")
+        if type(offset) is not timedelta:
+            return timezone.utc if type(tzinfo) is type(dateutil_tz.tzutc()) else None
+        if abs(offset) >= timedelta(days=1):
+            return None
+        return timezone(offset)
+    if type(tzinfo) in _PYTZ_FIXED_TIMEZONE_TYPES:
+        try:
+            namespace = object.__getattribute__(tzinfo, "__dict__")
+        except (AttributeError, TypeError):
+            return None
+        if type(namespace) is not dict:
+            return None
+        minutes = dict.get(namespace, "_minutes")
+        if type(minutes) is not int or not -1_440 < minutes < 1_440:
+            return None
+        return timezone(timedelta(minutes=minutes))
+    return None
+
+
+def _canonical_timestamp(value: pd.Timestamp) -> tuple[str | None, str | None]:
+    """Preserve a trusted timestamp's instant, offset, nanoseconds, and fold."""
+    try:
+        tzinfo = value.tzinfo
+        if tzinfo is not None and not any(
+            type(tzinfo) is trusted for trusted in _TRUSTED_TIMEZONE_TYPES
+        ):
+            canonical_tz = _canonical_timezone(tzinfo)
+            if canonical_tz is None:
+                return None, "a timestamp with an unsupported timezone"
+            raw_value = value.asm8.view("i8")
+            value = pd.Timestamp(raw_value, unit=value.unit, tz="UTC").tz_convert(
+                canonical_tz
+            )
+        return pd.Timestamp.isoformat(value), None
+    except (KeyError, OverflowError, TypeError, ValueError):
+        return None, "an invalid timestamp"
+
+
+def _normalize_scalar(value: Any) -> tuple[Any, str | None]:  # noqa: C901
+    """Convert one exact trusted producer scalar to a JSON-native primitive."""
+    value_type = type(value)
+    if value is None or value_type is bool or value_type is str:
+        return value, None
+    if value_type is int:
+        return value, _integer_failure(value)
+    if value_type is float:
+        return (value, None) if math.isfinite(value) else (None, "a non-finite number")
+    if value_type is Decimal:
+        if reason := _decimal_failure(value):
+            return None, reason
+        return Decimal.__str__(value), None
+    if value_type is datetime or value_type is time:
+        tzinfo = value.tzinfo
+        if tzinfo is not None and not any(
+            type(tzinfo) is trusted for trusted in _TRUSTED_TIMEZONE_TYPES
+        ):
+            return None, "a temporal value with an unsupported timezone"
+        try:
+            method = datetime.isoformat if value_type is datetime else time.isoformat
+            return method(value), None
+        except (OverflowError, ValueError):
+            return None, "an invalid temporal value"
+    if value_type is date:
+        return date.isoformat(value), None
+    if value_type is timedelta:
+        try:
+            return pd.Timedelta(value).isoformat(), None
+        except (OverflowError, TypeError, ValueError):
+            return None, "an invalid duration"
+    if value_type is UUID:
+        return UUID.__str__(value), None
+
+    if value_type is _PANDAS_NAT_TYPE or value_type is _PANDAS_NA_TYPE:
+        return None, None
+    if value_type is pd.Timestamp:
+        return _canonical_timestamp(value)
+    if value_type is pd.Timedelta:
+        if pd.isna(value):
+            return None, None
+        try:
+            return pd.Timedelta.isoformat(value), None
+        except (OverflowError, TypeError, ValueError):
+            return None, "an invalid pandas duration"
+    if value_type in _NUMPY_INTEGER_TYPES:
+        normalized = int(value)
+        return normalized, _integer_failure(normalized)
+    if value_type in _NUMPY_FLOAT_TYPES:
+        normalized_float = float(value)
+        return (
+            (normalized_float, None)
+            if math.isfinite(normalized_float)
+            else (None, "a non-finite NumPy number")
+        )
+    if value_type is np.bool_:
+        return bool(value), None
+    if value_type is np.str_:
+        return str(value), None
+    if value_type is np.datetime64:
+        if np.isnat(value):
+            return None, None
+        try:
+            return _canonical_timestamp(pd.Timestamp(value))
+        except (OverflowError, TypeError, ValueError):
+            return None, "an invalid NumPy timestamp"
+    if value_type is np.timedelta64:
+        if np.isnat(value):
+            return None, None
+        try:
+            return pd.Timedelta(value).isoformat(), None
+        except (OverflowError, TypeError, ValueError):
+            return None, "an invalid NumPy duration"
+    return None, "an unsupported or subclassed value"
+
+
+def _normalize_value(  # noqa: C901
+    value: Any,
+    budget: _ResultBudget,
+    *,
+    enum_types: frozenset[type[Any]] = frozenset(),
+) -> tuple[Any, str | None]:
+    """Iteratively normalize one bounded exact-container value tree."""
+    stack: list[
+        tuple[Any, list[Any] | dict[str, Any] | None, int | str | None, int]
+    ] = [(value, None, None, 0)]
+    seen: set[int] = set()
+    root = value
+
+    while stack:
+        item, parent, slot, depth = stack.pop()
+        if depth > MAX_RESULT_VALUE_DEPTH:
+            return None, "excessively nested data"
+        if reason := _charge_value(budget):
+            return None, reason
+
+        if type(item) is list:
+            identity = id(item)
+            if identity in seen:
+                return None, "repeated or cyclic containers"
+            seen.add(identity)
+            width = list.__len__(item)
+            if width > MAX_RESULT_VALUE_ITEMS:
+                return None, "an oversized array"
+            stack.extend(
+                (list.__getitem__(item, index), item, index, depth + 1)
+                for index in range(width - 1, -1, -1)
+            )
+            continue
+
+        if type(item) is dict:
+            identity = id(item)
+            if identity in seen:
+                return None, "repeated or cyclic containers"
+            seen.add(identity)
+            if dict.__len__(item) > MAX_RESULT_VALUE_ITEMS:
+                return None, "an oversized object"
+            children: list[tuple[Any, dict[str, Any], str, int]] = []
+            for key, child in dict.items(item):
+                if type(key) is not str:
+                    return None, "a non-string object key"
+                if reason := _charge_text(key, budget, key=True):
+                    return None, reason
+                children.append((child, item, key, depth + 1))
+            stack.extend(reversed(children))
+            continue
+
+        source_item = item
+        if type(item) in enum_types:
+            normalized = _safe_enum_value(item, enum_types)
+            if normalized is None:
+                return None, "an unsupported enum"
+            item = normalized
+        elif any(base is Enum for base in _type_mro(type(item))):
+            return None, "an enum outside its expected metadata slot"
+
+        normalized, reason = _normalize_scalar(item)
+        if reason is not None:
+            return None, reason
+        if type(normalized) is str:
+            if reason := _charge_text(normalized, budget):
+                return None, reason
+        if parent is None:
+            root = normalized
+        elif normalized is not source_item:
+            if type(parent) is list:
+                assert type(slot) is int
+                list.__setitem__(parent, slot, normalized)
+            else:
+                assert type(parent) is dict
+                assert type(slot) is str
+                dict.__setitem__(parent, slot, normalized)
+    return root, None
+
+
+def _normalize_metadata_value(
+    payload: dict[str, Any], key: str, budget: _ResultBudget
+) -> str | None:
+    enum_slots: dict[str, frozenset[type[Any]]] = {
+        "status": frozenset({QueryStatus}),
+        "result_format": frozenset({ChartDataResultFormat}),
+        "coltypes": frozenset({GenericDataType}),
+        "applied_filters": frozenset({ExtraFiltersTimeColumnType}),
+        "rejected_filters": frozenset(
+            {ExtraFiltersReasonType, ExtraFiltersTimeColumnType}
+        ),
+    }
+    value = dict.__getitem__(payload, key)
+    normalized, reason = _normalize_value(
+        value, budget, enum_types=enum_slots.get(key, frozenset())
+    )
+    if reason is None and normalized is not value:
+        dict.__setitem__(payload, key, normalized)
+    return reason
+
+
+def _error_text(value: Any) -> str | None:
+    """Extract a bounded error from an already validated primitive tree."""
+    stack: list[Any] = [value]
+    parts: list[str] = []
+    used = 0
+    while stack and len(parts) < 3 and used < _MAX_ERROR_TEXT_BYTES:
+        item = stack.pop()
+        if type(item) is dict:
+            stack.extend(
+                reversed(
+                    [dict.__getitem__(item, key) for key in _ERROR_KEYS if key in item]
+                )
+            )
+            continue
+        if type(item) is list:
+            stack.extend(
+                list.__getitem__(item, index)
+                for index in range(list.__len__(item) - 1, -1, -1)
+            )
+            continue
+        if item is None or item is False:
+            continue
+        if type(item) is str:
+            remaining = _MAX_ERROR_TEXT_BYTES - used - (2 if parts else 0)
+            encoded = str.encode(item, "utf-8")[:remaining]
+            text = bytes.decode(encoded, "utf-8", errors="ignore")
+            if text:
+                parts.append(text)
+                used += bytes.__len__(encoded) + (2 if len(parts) > 1 else 0)
+    return "; ".join(parts) or None
+
+
+def _failure_for_payload(payload: dict[str, Any], label: str) -> ChartError | None:
     for key in ("error", "errors", "error_message"):
-        if message := _query_error_text(payload.get(key)):
+        if key in payload and (message := _error_text(dict.__getitem__(payload, key))):
             return ChartError(
                 error=f"{label} failed: {message}", error_type="QueryError"
             )
 
-    raw_status = payload.get("status")
-    status = _status_text(raw_status)
-    if status is None:
-        return _invalid_metadata(label)
+    raw_status = dict.get(payload, "status")
+    status = raw_status if type(raw_status) is str else ""
     normalized_status = status.strip().casefold().replace("-", "_").replace(" ", "_")
     if normalized_status in FAILED_QUERY_STATUSES:
         message = (
-            _query_error_text(payload.get("message"))
-            or _query_error_text(payload.get("error_message"))
+            _error_text(dict.get(payload, "message"))
+            or _error_text(dict.get(payload, "error_message"))
             or normalized_status
         )
         return ChartError(error=f"{label} failed: {message}", error_type="QueryError")
-    if payload.get("success") is False:
-        message = _query_error_text(payload.get("message")) or "request failed"
+    if dict.get(payload, "success") is False:
+        message = _error_text(dict.get(payload, "message")) or "request failed"
         return ChartError(error=f"{label} failed: {message}", error_type="QueryError")
-    if (
-        raw_status is None
-        and "data" not in payload
-        and "queries" not in payload
-        and (message := _query_error_text(payload.get("message")))
-    ):
-        return ChartError(error=f"{label} failed: {message}", error_type="QueryError")
+    if raw_status is None and "data" not in payload and "queries" not in payload:
+        if message := _error_text(dict.get(payload, "message")):
+            return ChartError(
+                error=f"{label} failed: {message}", error_type="QueryError"
+            )
     return None
 
 
-def query_result_failure(result: Any) -> ChartError | None:
-    """Return a structured failure embedded anywhere in a query result."""
-    if type(result) is not dict:
-        return ChartError(
-            error="Chart query returned a malformed result envelope.",
-            error_type="InvalidQueryResult",
-        )
-
-    if error := _payload_metadata_error(result, label="Chart query", skip="queries"):
-        return error
-
-    if failure := _failure_for_query_payload(result, "Chart query"):
-        return failure
-    queries = result.get("queries")
-    if "queries" in result and (
-        type(queries) is not list or len(queries) > MAX_QUERY_RESULTS
+def _metadata_shape_error(  # noqa: C901
+    payload: dict[str, Any], label: str
+) -> ChartError | None:
+    if "success" in payload and type(dict.__getitem__(payload, "success")) is not bool:
+        return _invalid_metadata(label)
+    if "status" in payload and type(dict.__getitem__(payload, "status")) is not str:
+        return _invalid_metadata(label)
+    if (
+        "result_format" in payload
+        and dict.__getitem__(payload, "result_format") not in _RESULT_FORMAT_VALUES
     ):
-        return _invalid_metadata("Chart query")
-    if type(queries) is list:
-        for index, query in enumerate(queries, start=1):
-            if type(query) is not dict:
-                return ChartError(
-                    error=f"Chart query {index} returned a malformed result envelope.",
-                    error_type="InvalidQueryResult",
-                )
-            if error := _payload_metadata_error(
-                query, label=f"Chart query {index}", skip="data"
+        return _invalid_metadata(label)
+    for count_key in ("rowcount", "sql_rowcount", "total_rows"):
+        if count_key in payload:
+            count = dict.__getitem__(payload, count_key)
+            if count is not None and not (
+                type(count) is int and 0 <= count <= MAX_QUERY_RESULT_ROWCOUNT
             ):
-                return error
-            if failure := _failure_for_query_payload(query, f"Chart query {index}"):
-                return failure
+                return _invalid_metadata(label)
+    if "is_cached" in payload:
+        cached = dict.__getitem__(payload, "is_cached")
+        if cached is None:
+            dict.__setitem__(payload, "is_cached", False)
+        elif type(cached) is not bool:
+            return _invalid_metadata(label)
+    if "cache_timeout" in payload:
+        timeout = dict.__getitem__(payload, "cache_timeout")
+        if timeout is not None and not (
+            type(timeout) is int and 0 <= timeout <= MAX_QUERY_RESULT_CACHE_TIMEOUT
+        ):
+            return _invalid_metadata(label)
+    if "cache_key" in payload:
+        cache_key = dict.__getitem__(payload, "cache_key")
+        if cache_key is not None and (type(cache_key) is not str or not cache_key):
+            return _invalid_metadata(label)
+    for timestamp_key in ("cached_dttm", "cache_dttm", "queried_dttm"):
+        if timestamp_key not in payload:
+            continue
+        timestamp = dict.__getitem__(payload, timestamp_key)
+        if timestamp is None:
+            continue
+        if (
+            type(timestamp) is not str
+            or not timestamp
+            or len(timestamp) > MAX_QUERY_RESULT_TIMESTAMP_LENGTH
+        ):
+            return _invalid_metadata(label)
+        normalized = f"{timestamp[:-1]}+00:00" if timestamp.endswith("Z") else timestamp
+        try:
+            parsed = datetime.fromisoformat(normalized)
+        except ValueError:
+            return _invalid_metadata(label)
+        if parsed.tzinfo is None or parsed.utcoffset() != timedelta(0):
+            return _invalid_metadata(label)
+        dict.__setitem__(
+            payload,
+            timestamp_key,
+            parsed.astimezone(timezone.utc).isoformat(),
+        )
     return None
 
 
-def _is_supported_coltype(value: Any) -> bool:
-    """Accept only exact wire integers or the canonical generic-type enum."""
-    if type(value) is GenericDataType:
-        return True
-    return type(value) is int and value in {
-        _safe_enum_value(member) for member in GenericDataType
-    }
-
-
-def _is_bounded_wire_string(value: Any, *enum_types: type[Any]) -> bool:
-    """Validate a string or one exact trusted string enum."""
-    if type(value) is str:
-        return bool(value) and len(value) <= MAX_RESULT_STRING_LENGTH
-    if type(value) in enum_types:
-        enum_value = _safe_enum_value(value)
-        return (
-            type(enum_value) is str
-            and bool(enum_value)
-            and len(enum_value) <= MAX_RESULT_STRING_LENGTH
-        )
-    return False
-
-
-def _is_canonical_timestamp(value: Any) -> bool:
-    """Validate the producer's bounded, timezone-aware UTC timestamp wire shape."""
-    if value is None:
-        return True
-    if (
-        type(value) is not str
-        or not value
-        or len(value) > MAX_QUERY_RESULT_TIMESTAMP_LENGTH
-    ):
+def _filter_metadata_is_valid(value: Any, *, rejected: bool) -> bool:
+    if type(value) is not list or list.__len__(value) > MAX_RESULT_VALUE_ITEMS:
         return False
-    normalized = f"{value[:-1]}+00:00" if value.endswith("Z") else value
-    try:
-        parsed = datetime.fromisoformat(normalized)
-    except ValueError:
-        return False
-    return parsed.tzinfo is not None and parsed.utcoffset() == timedelta(0)
-
-
-def _is_cache_timeout(value: Any) -> bool:
-    return value is None or (
-        type(value) is int and 0 <= value <= MAX_QUERY_RESULT_CACHE_TIMEOUT
-    )
-
-
-def _is_valid_filter_metadata(value: Any, *, rejected: bool) -> bool:
-    """Validate the filter metadata shapes read by get-chart-data consumers."""
-    if type(value) is not list or len(value) > MAX_RESULT_VALUE_ITEMS:
-        return False
-    expected_keys = {"column", "reason"} if rejected else {"column"}
+    expected = {"column", "reason"} if rejected else {"column"}
     for entry in value:
-        if type(entry) is not dict or set(entry) != expected_keys:
+        if type(entry) is not dict or set(dict.keys(entry)) != expected:
             return False
-        if not _is_bounded_wire_string(entry["column"], ExtraFiltersTimeColumnType):
+        if type(dict.__getitem__(entry, "column")) is not str:
             return False
-        if rejected and not _is_bounded_wire_string(
-            entry["reason"], ExtraFiltersReasonType
-        ):
+        if rejected and type(dict.__getitem__(entry, "reason")) is not str:
             return False
     return True
 
 
-def _is_valid_string_list(value: Any) -> bool:
-    return (
-        type(value) is list
-        and len(value) <= MAX_RESULT_VALUE_ITEMS
-        and all(_is_bounded_wire_string(item) for item in value)
-    )
+def _validate_query_metadata(
+    query: dict[str, Any], data: list[Any], index: int
+) -> ChartError | None:
+    label = f"Chart query {index}"
+    colnames_present = "colnames" in query
+    coltypes_present = "coltypes" in query
+    colnames = dict.get(query, "colnames", [])
+    coltypes = dict.get(query, "coltypes", [])
+    if (
+        type(colnames) is not list
+        or list.__len__(colnames) > MAX_QUERY_RESULT_COLUMNS
+        or any(type(column) is not str or not column for column in colnames)
+        or len(set(colnames)) != len(colnames)
+    ):
+        return _invalid_result(f"malformed column metadata for query {index}")
+    if (
+        type(coltypes) is not list
+        or list.__len__(coltypes) > MAX_QUERY_RESULT_COLUMNS
+        or any(
+            type(value) is not int or value not in _COLTYPE_VALUES for value in coltypes
+        )
+    ):
+        return _invalid_result(f"malformed column type metadata for query {index}")
+    if (colnames_present or coltypes_present) and (
+        not colnames_present
+        or not coltypes_present
+        or list.__len__(colnames) != list.__len__(coltypes)
+    ):
+        return _invalid_result(f"misaligned column metadata for query {index}")
+    if colnames_present and any(list(dict.keys(row)) != colnames for row in data):
+        return ChartError(
+            error=(
+                f"{label} returned rows that do not match the declared column order."
+            ),
+            error_type="InvalidQueryResult",
+        )
+    if "applied_filters" in query and not _filter_metadata_is_valid(
+        dict.__getitem__(query, "applied_filters"), rejected=False
+    ):
+        return _invalid_metadata(label)
+    if "rejected_filters" in query and not _filter_metadata_is_valid(
+        dict.__getitem__(query, "rejected_filters"), rejected=True
+    ):
+        return _invalid_metadata(label)
+    if "rejected_filter_columns" in query:
+        rejected_columns = dict.__getitem__(query, "rejected_filter_columns")
+        if type(rejected_columns) is not list or any(
+            type(column) is not str for column in rejected_columns
+        ):
+            return _invalid_metadata(label)
+    return None
 
 
 def validate_query_result_envelope(  # noqa: C901
     result: Any, *, none_as_empty: bool = False
 ) -> ChartError | None:
-    """Strictly validate a ChartDataCommand result before consuming it.
+    """Canonicalize and strictly validate one real command result in place.
 
-    Exact builtin containers prevent overridden ``get``/iteration/slicing
-    hooks, while the size and value checks bound every later row and metadata
-    operation performed by the multi-query get-data response builder.
+    ``ChartDataCommand.run`` adds a live ``query_context`` sidecar. It is
+    intentionally exempted without access or traversal: MCP consumers only use
+    the wire query payload, and inspecting the sidecar would cross arbitrary
+    datasource/query hooks. Every wire value is charged against one aggregate
+    row/node/UTF-8 budget shared by all queries.
     """
     if type(result) is not dict:
-        return ChartError(
-            error="Chart query returned a malformed result envelope.",
-            error_type="InvalidQueryResult",
-        )
+        return _invalid_result("a malformed result envelope")
 
-    if not _payload_metadata_is_bounded(result, skip="queries"):
-        return _invalid_metadata("Chart query")
-    if "status" in result and _status_text(result["status"]) is None:
-        return _invalid_metadata("Chart query")
-    if "success" in result and type(result["success"]) is not bool:
-        return ChartError(
-            error="Chart query returned malformed success metadata.",
-            error_type="InvalidQueryResult",
-        )
+    budget = _ResultBudget()
+    if reason := _charge_value(budget):
+        return _invalid_result(reason)
+    for key in list(dict.keys(result)):
+        if type(key) is not str:
+            return _invalid_metadata("Chart query")
+        if reason := _charge_text(key, budget, key=True):
+            return _invalid_result(reason)
+        if key in {"queries", "query_context"}:
+            continue
+        if reason := _normalize_metadata_value(result, key, budget):
+            return _invalid_metadata("Chart query")
 
-    queries = result.get("queries")
-    if type(queries) is not list or not queries:
-        if failure := query_result_failure(result):
-            return failure
-        return ChartError(
-            error="Chart query returned no query result envelope.",
-            error_type="InvalidQueryResult",
-        )
-    if len(queries) > MAX_QUERY_RESULTS:
-        return ChartError(
-            error="Chart query returned too many query result envelopes.",
-            error_type="InvalidQueryResult",
-        )
-
-    for index, query in enumerate(queries, start=1):
-        if type(query) is not dict:
-            return ChartError(
-                error=f"Chart query {index} returned a malformed result envelope.",
-                error_type="InvalidQueryResult",
-            )
-        if not _payload_metadata_is_bounded(query, skip="data"):
-            return _invalid_metadata(f"Chart query {index}")
-        if "status" in query and _status_text(query["status"]) is None:
-            return _invalid_metadata(f"Chart query {index}")
-        if "success" in query and type(query["success"]) is not bool:
-            return ChartError(
-                error=f"Chart query {index} returned malformed success metadata.",
-                error_type="InvalidQueryResult",
-            )
-
-    if failure := query_result_failure(result):
+    if error := _metadata_shape_error(result, "Chart query"):
+        return error
+    if failure := _failure_for_payload(result, "Chart query"):
         return failure
+    if not dict.__contains__(result, "queries"):
+        return _invalid_result("no query result envelope")
+    queries = dict.__getitem__(result, "queries")
+    if type(queries) is not list or not queries:
+        return _invalid_result("no query result envelope")
+    if list.__len__(queries) > MAX_QUERY_RESULTS:
+        return _invalid_result("too many query result envelopes")
+    if reason := _charge_value(budget):
+        return _invalid_result(reason)
 
-    for index, query in enumerate(queries, start=1):
-        data = query.get("data")
+    for offset in range(list.__len__(queries)):
+        index = offset + 1
+        query = list.__getitem__(queries, offset)
+        if type(query) is not dict:
+            return _invalid_result(f"a malformed query {index} result envelope")
+        if reason := _charge_value(budget):
+            return _invalid_result(reason)
+        for key in list(dict.keys(query)):
+            if type(key) is not str:
+                return _invalid_metadata(f"Chart query {index}")
+            if reason := _charge_text(key, budget, key=True):
+                return _invalid_result(reason)
+            if key == "data":
+                continue
+            if reason := _normalize_metadata_value(query, key, budget):
+                return _invalid_metadata(f"Chart query {index}")
+
+        if error := _metadata_shape_error(query, f"Chart query {index}"):
+            return error
+        if failure := _failure_for_payload(query, f"Chart query {index}"):
+            return failure
+        if not dict.__contains__(query, "data"):
+            return _invalid_result(f"query {index} result data is not an array of rows")
+        data = dict.__getitem__(query, "data")
         if data is None and none_as_empty:
             data = []
+            dict.__setitem__(query, "data", data)
         if type(data) is not list:
-            return ChartError(
-                error=f"Chart query {index} result data is not an array of rows.",
-                error_type="InvalidQueryResult",
-            )
-        if len(data) > MAX_QUERY_RESULT_ROWS:
-            return ChartError(
-                error=f"Chart query {index} returned too many rows.",
-                error_type="InvalidQueryResult",
-            )
-        for row in data:
-            if type(row) is not dict or len(row) > MAX_QUERY_RESULT_COLUMNS:
-                return ChartError(
-                    error=f"Chart query {index} returned a malformed data row.",
-                    error_type="InvalidQueryResult",
-                )
-            if not all(
-                type(column) is str
-                and len(column) <= MAX_RESULT_STRING_LENGTH
-                and _is_bounded_result_value(value)
-                for column, value in row.items()
-            ):
-                return ChartError(
-                    error=(
-                        f"Chart query {index} returned hostile or oversized row data."
-                    ),
-                    error_type="InvalidQueryResult",
-                )
+            return _invalid_result(f"query {index} result data is not an array of rows")
+        data_length = list.__len__(data)
+        if data_length > MAX_QUERY_RESULT_ROWS_PER_QUERY:
+            return _invalid_result(f"too many rows for query {index}")
+        budget.rows += data_length
+        if budget.rows > MAX_QUERY_RESULT_ROWS:
+            return _invalid_result("too many aggregate rows")
+        if reason := _charge_value(budget):
+            return _invalid_result(reason)
 
-        colnames_present = "colnames" in query
-        colnames = query.get("colnames", [])
-        if (
-            type(colnames) is not list
-            or len(colnames) > MAX_QUERY_RESULT_COLUMNS
-            or not all(
-                type(column) is str
-                and bool(column)
-                and len(column) <= MAX_RESULT_STRING_LENGTH
-                for column in colnames
-            )
-            or len(set(colnames)) != len(colnames)
-        ):
-            return ChartError(
-                error=f"Chart query {index} returned malformed column metadata.",
-                error_type="InvalidQueryResult",
-            )
-        coltypes_present = "coltypes" in query
-        coltypes = query.get("coltypes", [])
-        if (
-            type(coltypes) is not list
-            or len(coltypes) > MAX_QUERY_RESULT_COLUMNS
-            or not all(_is_supported_coltype(value) for value in coltypes)
-        ):
-            return ChartError(
-                error=f"Chart query {index} returned malformed column type metadata.",
-                error_type="InvalidQueryResult",
-            )
-        if (colnames_present or coltypes_present) and (
-            not colnames_present
-            or not coltypes_present
-            or len(colnames) != len(coltypes)
-        ):
-            return ChartError(
-                error=(f"Chart query {index} returned misaligned column metadata."),
-                error_type="InvalidQueryResult",
-            )
-        if colnames_present:
-            if any(list(row) != colnames for row in data):
-                return ChartError(
-                    error=(
-                        f"Chart query {index} returned rows that do not match the "
-                        "declared column order."
-                    ),
-                    error_type="InvalidQueryResult",
-                )
+        for row_offset in range(data_length):
+            row = list.__getitem__(data, row_offset)
+            if type(row) is not dict or dict.__len__(row) > MAX_QUERY_RESULT_COLUMNS:
+                return _invalid_result(f"a malformed data row for query {index}")
+            if reason := _charge_value(budget):
+                return _invalid_result(reason)
+            for column, value in list(dict.items(row)):
+                if type(column) is not str:
+                    return _invalid_result(
+                        f"hostile or oversized row data for query {index}"
+                    )
+                if reason := _charge_text(column, budget, key=True):
+                    return _invalid_result(reason)
+                normalized, reason = _normalize_value(value, budget)
+                if reason is not None:
+                    return _invalid_result(
+                        f"hostile or oversized row data for query {index}: {reason}"
+                    )
+                if normalized is not value:
+                    dict.__setitem__(row, column, normalized)
 
-        if "rowcount" in query and not (
-            query["rowcount"] is None
-            or (
-                type(query["rowcount"]) is int
-                and 0 <= query["rowcount"] <= MAX_QUERY_RESULT_ROWCOUNT
-            )
-        ):
-            return _invalid_metadata(f"Chart query {index}")
-        if "sql_rowcount" in query and not (
-            query["sql_rowcount"] is None
-            or (
-                type(query["sql_rowcount"]) is int
-                and 0 <= query["sql_rowcount"] <= MAX_QUERY_RESULT_ROWCOUNT
-            )
-        ):
-            return _invalid_metadata(f"Chart query {index}")
-        if "is_cached" in query and type(query["is_cached"]) is not bool:
-            return _invalid_metadata(f"Chart query {index}")
-        if "cache_key" in query and not (
-            query["cache_key"] is None or _is_bounded_wire_string(query["cache_key"])
-        ):
-            return _invalid_metadata(f"Chart query {index}")
-        for timestamp_key in ("cached_dttm", "cache_dttm", "queried_dttm"):
-            if timestamp_key in query and not _is_canonical_timestamp(
-                query[timestamp_key]
-            ):
-                return _invalid_metadata(f"Chart query {index}")
-        if "cache_timeout" in query and not _is_cache_timeout(query["cache_timeout"]):
-            return _invalid_metadata(f"Chart query {index}")
-        if "applied_filters" in query and not _is_valid_filter_metadata(
-            query["applied_filters"], rejected=False
-        ):
-            return _invalid_metadata(f"Chart query {index}")
-        if "rejected_filters" in query and not _is_valid_filter_metadata(
-            query["rejected_filters"], rejected=True
-        ):
-            return _invalid_metadata(f"Chart query {index}")
-        if "rejected_filter_columns" in query and not _is_valid_string_list(
-            query["rejected_filter_columns"]
-        ):
-            return _invalid_metadata(f"Chart query {index}")
+        if error := _validate_query_metadata(query, data, index):
+            return error
     return None
+
+
+def query_result_failure(result: Any) -> ChartError | None:
+    """Return an embedded failure or malformed-envelope error."""
+    return validate_query_result_envelope(result)
 
 
 def first_query_data(
     result: Any, *, none_as_empty: bool = False
 ) -> tuple[list[Any] | None, ChartError | None]:
-    """Validate the result envelope and return the first query's data array.
+    """Validate the full result and return its first canonical data array.
 
-    ``none_as_empty`` preserves legacy empty-result behavior for generic saved
-    previews. Role-sensitive previews such as Sunburst keep strict validation.
+    ``none_as_empty`` preserves generic saved-preview behavior. Sunburst calls
+    this with the strict default so hierarchy input can never silently become an
+    empty visualization.
     """
     if failure := validate_query_result_envelope(result, none_as_empty=none_as_empty):
         return None, failure
-    queries = result.get("queries")
-    first_query = queries[0]
-    data = first_query.get("data")
-    if data is None and none_as_empty:
-        return [], None
-    return data, None
+    queries = dict.__getitem__(result, "queries")
+    first_query = list.__getitem__(queries, 0)
+    return dict.__getitem__(first_query, "data"), None

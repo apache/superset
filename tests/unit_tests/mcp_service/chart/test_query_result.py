@@ -15,18 +15,29 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from datetime import date, datetime, time, timedelta, timezone, tzinfo
 from decimal import Decimal
 from enum import Enum
 from typing import Any
+from uuid import UUID
+from zoneinfo import ZoneInfo
 
+import numpy as np
+import pandas as pd
 import pytest
+import pytz
+from dateutil import tz as dateutil_tz
 
+from superset.commands.chart.data.get_data_command import ChartDataCommand
+from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.common.db_query_status import QueryStatus
 from superset.mcp_service.chart.query_result import (
     first_query_data,
+    MAX_QUERY_RESULTS,
     query_result_failure,
     validate_query_result_envelope,
 )
+from superset.utils.core import GenericDataType
 
 
 class UppercaseStatus(Enum):
@@ -172,7 +183,8 @@ def test_strict_result_validation_rejects_oversized_multi_query_data(monkeypatch
 
     assert error is not None
     assert error.error_type == "InvalidQueryResult"
-    assert "too many rows" in error.error
+    assert "too many" in error.error
+    assert "rows" in error.error
 
 
 def test_strict_result_validation_accepts_bounded_multi_query_data():
@@ -350,7 +362,7 @@ def test_rowcount_accepts_exact_bounded_values(rowcount):
     )
 
 
-@pytest.mark.parametrize("is_cached", [0, 1, None, {}, IntSubclass(1)])
+@pytest.mark.parametrize("is_cached", [0, 1, {}, IntSubclass(1)])
 def test_is_cached_requires_exact_bool(is_cached):
     error = validate_query_result_envelope(
         {"queries": [{"data": [], "is_cached": is_cached}]}
@@ -358,6 +370,13 @@ def test_is_cached_requires_exact_bool(is_cached):
 
     assert error is not None
     assert error.error_type == "InvalidQueryResult"
+
+
+def test_real_fresh_is_cached_null_is_canonicalized() -> None:
+    result: dict[str, Any] = {"queries": [{"data": [], "is_cached": None}]}
+
+    assert validate_query_result_envelope(result) is None
+    assert result["queries"][0]["is_cached"] is False
 
 
 def test_cache_and_filter_metadata_exact_shapes_are_accepted():
@@ -509,19 +528,267 @@ def test_cache_timestamp_and_timeout_metadata_is_canonical(metadata: Any) -> Non
 
 
 def test_canonical_and_bounded_legacy_cache_metadata_are_accepted() -> None:
-    assert (
-        validate_query_result_envelope(
+    result = {
+        "queries": [
             {
-                "queries": [
-                    {
-                        "data": [],
-                        "cached_dttm": "2026-09-02T00:00:00+00:00",
-                        "cache_dttm": "2026-09-01T00:00:00Z",
-                        "queried_dttm": "2026-09-02T00:00:00Z",
-                        "cache_timeout": 300,
-                    }
-                ]
+                "data": [],
+                "cached_dttm": "2026-09-02T00:00:00+00:00",
+                "cache_dttm": "2026-09-01T00:00:00Z",
+                "queried_dttm": "2026-09-02T00:00:00Z",
+                "cache_timeout": 300,
             }
+        ]
+    }
+
+    assert validate_query_result_envelope(result) is None
+    assert result["queries"][0] == {
+        "data": [],
+        "cached_dttm": "2026-09-02T00:00:00+00:00",
+        "cache_dttm": "2026-09-01T00:00:00+00:00",
+        "queried_dttm": "2026-09-02T00:00:00+00:00",
+        "cache_timeout": 300,
+    }
+
+
+class FakeQueryContext:
+    """Minimal real ``ChartDataCommand.run`` producer for boundary tests."""
+
+    result_type = ChartDataResultType.FULL
+    result_format = ChartDataResultFormat.JSON
+
+    def __init__(self, query: dict[str, Any]) -> None:
+        self.query = query
+
+    def get_payload(self, **_kwargs: Any) -> dict[str, Any]:
+        return {"queries": [self.query]}
+
+
+def _producer_result(query: dict[str, Any]) -> dict[str, Any]:
+    return ChartDataCommand(FakeQueryContext(query)).run()  # type: ignore[arg-type]
+
+
+def test_actual_chart_data_command_envelope_is_canonicalized_by_both_consumers() -> (
+    None
+):
+    query = {
+        "data": [{"event_time": pd.Timestamp("2026-09-02T10:11:12Z"), "value": 7}],
+        "colnames": ["event_time", "value"],
+        "coltypes": [GenericDataType.TEMPORAL, GenericDataType.NUMERIC],
+        "status": QueryStatus.SUCCESS,
+        "result_format": ChartDataResultFormat.JSON,
+        "is_cached": None,
+        "cache_key": None,
+        "cached_dttm": None,
+        "queried_dttm": None,
+        "cache_timeout": 300,
+        "rowcount": 1,
+        "sql_rowcount": 1,
+        "from_dttm": datetime(2026, 9, 1, tzinfo=timezone.utc),
+        "to_dttm": datetime(2026, 9, 2, tzinfo=timezone.utc),
+        "label_map": {"value": ["value"]},
+        "applied_filters": [],
+        "rejected_filters": [],
+    }
+
+    validated = _producer_result(query.copy())
+    assert "query_context" in validated
+    sidecar = validated["query_context"]
+    assert validate_query_result_envelope(validated) is None
+    assert validated["query_context"] is sidecar
+    assert validated["queries"][0]["result_format"] == "json"
+    assert validated["queries"][0]["is_cached"] is False
+    assert validated["queries"][0]["data"] == [
+        {"event_time": "2026-09-02T10:11:12+00:00", "value": 7}
+    ]
+
+    consumed = _producer_result(query.copy())
+    data, error = first_query_data(consumed)
+    assert error is None
+    assert data == [{"event_time": "2026-09-02T10:11:12+00:00", "value": 7}]
+
+
+def test_query_context_sidecar_is_exempt_without_hook_dispatch() -> None:
+    class HostileSidecar:
+        def __getattribute__(self, name: str) -> Any:
+            raise AssertionError(f"sidecar hook executed for {name}")
+
+    sidecar = HostileSidecar()
+    result = {"query_context": sidecar, "queries": [{"data": []}]}
+
+    assert validate_query_result_envelope(result) is None
+    assert dict.__getitem__(result, "query_context") is sidecar
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        (
+            pd.Timestamp("2024-01-02T03:04:05.123456789"),
+            "2024-01-02T03:04:05.123456789",
+        ),
+        (pd.Timedelta("1 day 2 seconds"), "P1DT0H0M2S"),
+        (pd.NaT, None),
+        (pd.NA, None),
+        (np.datetime64("2024-01-02T03:04:05"), "2024-01-02T03:04:05"),
+        (np.timedelta64(1500, "ms"), "P0DT0H0M1.5S"),
+        (np.int64(7), 7),
+        (np.uint64(8), 8),
+        (np.float32(1.5), 1.5),
+        (np.bool_(True), True),
+        (Decimal("1.2300"), "1.2300"),
+        (date(2024, 1, 2), "2024-01-02"),
+        (time(3, 4, 5), "03:04:05"),
+        (datetime(2024, 1, 2, 3, 4, 5), "2024-01-02T03:04:05"),
+        (timedelta(seconds=2), "P0DT0H0M2S"),
+        (
+            UUID("12345678-1234-5678-1234-567812345678"),
+            "12345678-1234-5678-1234-567812345678",
+        ),
+    ],
+)
+def test_trusted_dataframe_scalars_are_json_native(value: Any, expected: Any) -> None:
+    result = _producer_result({"data": [{"value": value}]})
+
+    data, error = first_query_data(result)
+
+    assert error is None
+    assert data == [{"value": expected}]
+    assert type(data[0]["value"]) is type(expected)
+
+
+def test_pandas_timestamp_preserves_fold_offset() -> None:
+    folded = pd.Timestamp(
+        datetime(
+            2024,
+            11,
+            3,
+            1,
+            30,
+            tzinfo=ZoneInfo("America/New_York"),
+            fold=1,
         )
-        is None
     )
+    result = _producer_result({"data": [{"value": folded}]})
+
+    data, error = first_query_data(result)
+
+    assert error is None
+    assert data == [{"value": "2024-11-03T01:30:00-05:00"}]
+
+
+@pytest.mark.parametrize(
+    ("timezone_value", "expected"),
+    [
+        (dateutil_tz.tzoffset("IST", 19_800), "2024-01-02T03:04:05+05:30"),
+        (pytz.FixedOffset(-240), "2024-01-02T03:04:05-04:00"),
+        (dateutil_tz.gettz("US/Pacific"), "2024-01-02T03:04:05-08:00"),
+    ],
+)
+def test_pandas_timestamp_accepts_safe_producer_timezones(
+    timezone_value: tzinfo, expected: str
+) -> None:
+    result = _producer_result(
+        {"data": [{"value": pd.Timestamp(2024, 1, 2, 3, 4, 5, tz=timezone_value)}]}
+    )
+
+    data, error = first_query_data(result)
+
+    assert error is None
+    assert data == [{"value": expected}]
+
+
+class HostileTimezone(tzinfo):
+    def utcoffset(self, dt):
+        raise AssertionError("timezone hook executed")
+
+    def dst(self, dt):
+        raise AssertionError("timezone hook executed")
+
+    def tzname(self, dt):
+        raise AssertionError("timezone hook executed")
+
+
+def test_exact_datetime_rejects_untrusted_timezone_without_hooks() -> None:
+    result = _producer_result(
+        {"data": [{"value": datetime(2024, 1, 1, tzinfo=HostileTimezone())}]}
+    )
+
+    error = validate_query_result_envelope(result)
+
+    assert error is not None
+    assert error.error_type == "InvalidQueryResult"
+
+
+def test_aggregate_rows_accept_boundary_and_reject_one_beyond(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.query_result.MAX_QUERY_RESULT_ROWS", 2
+    )
+    boundary: dict[str, Any] = {"queries": [{"data": [{}]}, {"data": [{}]}]}
+    beyond: dict[str, Any] = {"queries": [{"data": [{}]}, {"data": [{}, {}]}]}
+
+    assert validate_query_result_envelope(boundary) is None
+    error = validate_query_result_envelope(beyond)
+    assert error is not None
+    assert "aggregate rows" in error.error
+
+
+def test_per_query_row_limit_is_independent_of_aggregate_limit(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.query_result.MAX_QUERY_RESULT_ROWS_PER_QUERY", 1
+    )
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.query_result.MAX_QUERY_RESULT_ROWS", 3
+    )
+    boundary: dict[str, Any] = {"queries": [{"data": [{}]}, {"data": [{}]}]}
+    beyond: dict[str, Any] = {"queries": [{"data": [{}, {}]}]}
+
+    assert validate_query_result_envelope(boundary) is None
+    error = validate_query_result_envelope(beyond)
+    assert error is not None
+    assert "too many rows for query 1" in error.error
+
+
+def test_aggregate_nested_nodes_accept_boundary_and_reject_one_beyond(
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.query_result.MAX_QUERY_RESULT_VALUES", 10
+    )
+    boundary = {"queries": [{"data": [{"x": 1}]}, {"data": [{"x": 2}]}]}
+    beyond = {"queries": [{"data": [{"x": 1}]}, {"data": [{"x": [2]}]}]}
+
+    assert validate_query_result_envelope(boundary) is None
+    error = validate_query_result_envelope(beyond)
+    assert error is not None
+    assert "aggregate values" in error.error
+
+
+def test_aggregate_utf8_bytes_accept_boundary_and_reject_one_beyond(
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.query_result.MAX_QUERY_RESULT_VALUE_BYTES", 19
+    )
+    boundary = {"queries": [{"data": [{"x": "a"}]}, {"data": [{"x": "a"}]}]}
+    beyond = {"queries": [{"data": [{"x": "a"}]}, {"data": [{"x": "aa"}]}]}
+
+    assert validate_query_result_envelope(boundary) is None
+    error = validate_query_result_envelope(beyond)
+    assert error is not None
+    assert "UTF-8 bytes" in error.error
+
+
+def test_max_query_count_cannot_multiply_the_shared_nested_budget(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.query_result.MAX_QUERY_RESULT_VALUES", 100
+    )
+    result = {
+        "queries": [
+            {"data": [{"value": [None, None]}]} for _ in range(MAX_QUERY_RESULTS)
+        ]
+    }
+
+    error = validate_query_result_envelope(result)
+
+    assert error is not None
+    assert "aggregate values" in error.error

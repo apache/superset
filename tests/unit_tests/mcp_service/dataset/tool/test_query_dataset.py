@@ -32,7 +32,11 @@ from superset.mcp_service.app import mcp
 from superset.mcp_service.auth import is_tool_visible_to_current_user
 from superset.mcp_service.privacy import tool_requires_data_model_metadata_access
 from superset.utils import json
+from superset.utils.core import GenericDataType
 from superset.utils.date_parser import get_since_until
+from tests.unit_tests.mcp_service.chart.query_result_fixtures import (
+    chart_data_command_result,
+)
 
 query_dataset_module = importlib.import_module(
     "superset.mcp_service.dataset.tool.query_dataset"
@@ -123,19 +127,14 @@ def _mock_command_result(
         {"category": "Clothing", "count": 17},
     ]
     colnames = colnames or ["category", "count"]
-    return {
-        "queries": [
-            {
-                "data": data,
-                "colnames": colnames,
-                "rowcount": len(data),
-                "cache_key": "abc123",
-                "is_cached": False,
-                "cached_dttm": None,
-                "cache_timeout": 300,
-            }
-        ]
-    }
+    return chart_data_command_result(
+        data,
+        columns=colnames,
+        coltypes=[
+            GenericDataType.STRING if column == "category" else GenericDataType.NUMERIC
+            for column in colnames
+        ],
+    )
 
 
 @pytest.mark.asyncio
@@ -180,6 +179,47 @@ async def test_query_dataset_success(mcp_server: FastMCP) -> None:
     assert data["row_count"] == 2
     assert len(data["data"]) == 2
     assert data["data"][0]["category"] == "Electronics"
+
+
+@pytest.mark.asyncio
+async def test_query_dataset_rejects_nonfinite_producer_data(
+    mcp_server: FastMCP,
+) -> None:
+    dataset = _make_dataset()
+    result_data = chart_data_command_result(
+        [{"category": "Electronics", "count": float("inf")}],
+        columns=["category", "count"],
+        coltypes=[GenericDataType.STRING, GenericDataType.NUMERIC],
+    )
+
+    with (
+        patch.object(query_dataset_module, "resolve_dataset", return_value=dataset),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand.validate"
+        ),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand.run",
+            return_value=result_data,
+        ),
+        patch(
+            "superset.common.query_context_factory.QueryContextFactory.create",
+            return_value=MagicMock(),
+        ),
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "query_dataset",
+                {
+                    "request": {
+                        "dataset_id": 1,
+                        "metrics": ["count"],
+                        "columns": ["category"],
+                    }
+                },
+            )
+
+    data = json.loads(result.content[0].text)
+    assert data["error_type"] == "InvalidQueryResult"
 
 
 @pytest.mark.asyncio
@@ -488,18 +528,7 @@ async def test_query_dataset_with_filters(mcp_server: FastMCP) -> None:
 async def test_query_dataset_empty_results(mcp_server: FastMCP) -> None:
     """Query that returns no data gives a response with row_count=0."""
     dataset = _make_dataset()
-    empty_result = {
-        "queries": [
-            {
-                "data": [],
-                "colnames": [],
-                "rowcount": 0,
-                "is_cached": False,
-                "cached_dttm": None,
-                "cache_timeout": 300,
-            }
-        ]
-    }
+    empty_result = chart_data_command_result(rows=[], columns=[])
 
     with (
         patch.object(
