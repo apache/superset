@@ -122,8 +122,8 @@ class TiledScreenshotBudgetExceededError(ScreenshotTaskBudgetExceededError):
     """Raised when the tiled-screenshot time budget runs out mid-capture."""
 
 
-class BlankScreenshotError(RuntimeError):
-    """Raised when Chromium repeatedly returns a uniformly blank tile."""
+class ScreenshotCaptureTimeoutError(RuntimeError):
+    """Raised when Chromium repeatedly times out while capturing a tile."""
 
 
 def is_screenshot_nearly_uniform(screenshot: bytes) -> tuple[bool, float]:
@@ -133,7 +133,7 @@ def is_screenshot_nearly_uniform(screenshot: bytes) -> tuple[bool, float]:
         with Image.open(io.BytesIO(screenshot)) as image:
             sample = image.convert("RGB")
             sample.thumbnail((256, 256))
-            colors = sample.getcolors(maxcolors=sample.width * sample.height)
+            colors = sample.getcolors(maxcolors=256)
             if not colors:
                 return False, 0.0
             dominant_pixels = max(count for count, _color in colors)
@@ -166,17 +166,21 @@ if TYPE_CHECKING:
 CHART_HOLDER_SELECTOR = (
     r'.dashboard-component-chart-holder[class*="dashboard-chart-id-"]'
 )
-VISIBLE_CHART_HOLDER_COUNT_JS = f"""() => Array.from(
-    document.querySelectorAll('{CHART_HOLDER_SELECTOR}')
-).filter(holder => {{
-    const rect = holder.getBoundingClientRect();
-    return rect.bottom > 0 && rect.top < window.innerHeight;
-}}).length"""
 SLICE_CONTAINER_SELECTOR = r".slice_container"
 LOADING_SELECTOR = r".loading"
 ALERT_SELECTOR = r'[role="alert"]'
-EMPTY_SELECTOR = r".ant-empty"
+EMPTY_SELECTOR = r".ant-empty, .ag-overlay-no-rows-wrapper:not(.ag-hidden)"
 MISSING_CHART_SELECTOR = r".missing-chart-container"
+CONTENTFUL_CHART_HOLDERS_IN_CLIP_JS = f"""clip => Array.from(
+    document.querySelectorAll('{CHART_HOLDER_SELECTOR}')
+).filter(holder => {{
+    const rect = holder.getBoundingClientRect();
+    const intersectsClip = rect.bottom > clip.top && rect.top < clip.bottom;
+    const isEmptyOrError = holder.querySelector(
+        '{ALERT_SELECTOR}, {EMPTY_SELECTOR}, {MISSING_CHART_SELECTOR}'
+    ) !== null;
+    return intersectsClip && !isEmptyOrError;
+}}).length"""
 TERMINAL_MARKER_SELECTOR = (
     f"{SLICE_CONTAINER_SELECTOR}, {ALERT_SELECTOR}, {EMPTY_SELECTOR}, "
     f"{MISSING_CHART_SELECTOR}"
@@ -386,9 +390,14 @@ CHART_CONTAINER_READY_JS = f"""
     return chart !== null
         && chart.querySelector('{LOADING_SELECTOR}') === null
         && chart.querySelector('{TERMINAL_MARKER_SELECTOR}') !== null
-        && chart.querySelector('{ECHARTS_UNPAINTED_HOST_SELECTOR}') === null
-        && !Array.from(chart.querySelectorAll('{AG_GRID_HOST_SELECTOR}')).some(
-            grid => grid._agGridFirstDataRendered !== true
+        && (
+            chart.querySelector('{CHART_ERROR_OR_EMPTY_SELECTOR}') !== null
+            || (
+                chart.querySelector('{ECHARTS_UNPAINTED_HOST_SELECTOR}') === null
+                && !Array.from(
+                    chart.querySelectorAll('{AG_GRID_HOST_SELECTOR}')
+                ).some(grid => grid._agGridFirstDataRendered !== true)
+            )
         );
 }}
 """
@@ -401,6 +410,9 @@ CHART_CONTAINER_STATE_JS = f"""
     const chart = document.querySelector('.chart-container');
     if (chart === null) {{ return 'missing'; }}
     if (chart.querySelector('{LOADING_SELECTOR}') !== null) {{ return 'loading'; }}
+    if (chart.querySelector('{CHART_ERROR_OR_EMPTY_SELECTOR}') !== null) {{
+        return 'terminal';
+    }}
     if (chart.querySelector('{ECHARTS_UNPAINTED_HOST_SELECTOR}') !== null) {{
         return 'mounted_unpainted';
     }}
@@ -790,9 +802,6 @@ def take_tiled_screenshot(  # noqa: C901
                     context_suffix,
                 )
             readiness_wait_elapsed = time.monotonic() - tile_wait_start
-            visible_chart_holders = page.evaluate(VISIBLE_CHART_HOLDER_COUNT_JS)
-            if not isinstance(visible_chart_holders, int):
-                visible_chart_holders = 0
 
             # Wait for chart animations (e.g. ECharts) to finish after spinner clears.
             # The global animation wait before tiling only covers the first tile;
@@ -880,22 +889,39 @@ def take_tiled_screenshot(  # noqa: C901
                 "height": clip_height,
             }
 
-            # Take screenshot with clipping to capture only this tile's content
-            capture_timeout = (
-                _timeout_seconds(
-                    "screenshot_capture",
-                    requested_seconds=TILED_SCREENSHOT_CAPTURE_TIMEOUT_SECONDS,
-                    reserve_seconds=(
-                        report_execution_context.post_capture_reserve_seconds
-                        if report_execution_context
-                        else 0.0
-                    ),
+            try:
+                contentful_chart_holders = page.evaluate(
+                    CONTENTFUL_CHART_HOLDERS_IN_CLIP_JS,
+                    {"top": clip_y, "bottom": clip_y + clip_height},
                 )
-                if report_execution_context or task_budget is not None
-                else None
-            )
+                if not isinstance(contentful_chart_holders, int):
+                    contentful_chart_holders = 0
+            except Exception:  # noqa: BLE001
+                logger.warning(
+                    "Unable to count chart holders intersecting tile %s/%s%s",
+                    i + 1,
+                    num_tiles,
+                    context_suffix,
+                    exc_info=True,
+                )
+                contentful_chart_holders = 0
+
+            # Take screenshot with clipping to capture only this tile's content
             tile_screenshot: bytes | None = None
             for capture_attempt in range(1, TILED_SCREENSHOT_MAX_CAPTURE_ATTEMPTS + 1):
+                capture_timeout = (
+                    _timeout_seconds(
+                        "screenshot_capture",
+                        requested_seconds=TILED_SCREENSHOT_CAPTURE_TIMEOUT_SECONDS,
+                        reserve_seconds=(
+                            report_execution_context.post_capture_reserve_seconds
+                            if report_execution_context
+                            else 0.0
+                        ),
+                    )
+                    if report_execution_context or task_budget is not None
+                    else None
+                )
                 capture_started_at = time.monotonic()
                 try:
                     candidate = page.screenshot(
@@ -907,7 +933,7 @@ def take_tiled_screenshot(  # noqa: C901
                             else {}
                         ),
                     )
-                except PlaywrightTimeout:
+                except PlaywrightTimeout as ex:
                     capture_elapsed = time.monotonic() - capture_started_at
                     logger.warning(
                         "report_capture_tile_timeout tile=%s/%s attempt=%s/%s "
@@ -920,20 +946,23 @@ def take_tiled_screenshot(  # noqa: C901
                         context_suffix,
                     )
                     if capture_attempt == TILED_SCREENSHOT_MAX_CAPTURE_ATTEMPTS:
-                        raise
+                        raise ScreenshotCaptureTimeoutError(
+                            f"Chromium timed out capturing tile {i + 1}/{num_tiles} "
+                            f"after {capture_attempt} attempts"
+                        ) from ex
                 else:
                     capture_elapsed = time.monotonic() - capture_started_at
                     is_uniform, dominant_ratio = is_screenshot_nearly_uniform(candidate)
-                    is_blank = is_uniform and visible_chart_holders > 0
+                    is_blank = is_uniform and contentful_chart_holders > 0
                     logger.debug(
                         "Captured tile %s/%s attempt %s/%s in %.2fs "
-                        "(visible_chart_holders=%s dominant_pixel_ratio=%.5f)%s",
+                        "(contentful_chart_holders=%s dominant_pixel_ratio=%.5f)%s",
                         i + 1,
                         num_tiles,
                         capture_attempt,
                         TILED_SCREENSHOT_MAX_CAPTURE_ATTEMPTS,
                         capture_elapsed,
-                        visible_chart_holders,
+                        contentful_chart_holders,
                         dominant_ratio,
                         context_suffix,
                     )
@@ -943,22 +972,31 @@ def take_tiled_screenshot(  # noqa: C901
                     blank_tile_retries += 1
                     logger.warning(
                         "report_capture_blank_tile tile=%s/%s attempt=%s/%s "
-                        "capture_elapsed_seconds=%.2f visible_chart_holders=%s "
+                        "capture_elapsed_seconds=%.2f contentful_chart_holders=%s "
                         "dominant_pixel_ratio=%.5f%s",
                         i + 1,
                         num_tiles,
                         capture_attempt,
                         TILED_SCREENSHOT_MAX_CAPTURE_ATTEMPTS,
                         capture_elapsed,
-                        visible_chart_holders,
+                        contentful_chart_holders,
                         dominant_ratio,
                         context_suffix,
                     )
                     if capture_attempt == TILED_SCREENSHOT_MAX_CAPTURE_ATTEMPTS:
-                        raise BlankScreenshotError(
-                            f"Chromium returned a blank screenshot for tile "
-                            f"{i + 1}/{num_tiles} after {capture_attempt} attempts"
+                        tile_screenshot = candidate
+                        logger.warning(
+                            "report_capture_uniform_tile_retained tile=%s/%s "
+                            "attempts=%s contentful_chart_holders=%s "
+                            "dominant_pixel_ratio=%.5f%s",
+                            i + 1,
+                            num_tiles,
+                            capture_attempt,
+                            contentful_chart_holders,
+                            dominant_ratio,
+                            context_suffix,
                         )
+                        break
 
                 _raise_if_budget_exhausted()
                 page.bring_to_front()
@@ -971,10 +1009,7 @@ def take_tiled_screenshot(  # noqa: C901
                     })"""
                 )
 
-            if tile_screenshot is None:
-                raise BlankScreenshotError(
-                    f"No usable screenshot returned for tile {i + 1}/{num_tiles}"
-                )
+            assert tile_screenshot is not None
             screenshot_tiles.append(tile_screenshot)
 
             logger.debug(
@@ -1043,10 +1078,10 @@ def take_tiled_screenshot(  # noqa: C901
             context_suffix,
         )
         raise
-    except BlankScreenshotError:
-        # Preserve the explicit blank-tile reason for the report execution
+    except ScreenshotCaptureTimeoutError:
+        # Preserve the explicit capture-timeout reason for report execution
         # history instead of degrading it to an anonymous None screenshot.
-        logger.exception("Tiled screenshot rejected blank pixels%s", context_suffix)
+        logger.exception("Tiled screenshot capture rejected%s", context_suffix)
         raise
     except Exception as e:
         if readiness_timeout:
