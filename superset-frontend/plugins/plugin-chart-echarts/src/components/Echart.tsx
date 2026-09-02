@@ -138,6 +138,15 @@ export function isReportScreenshotMode(): boolean {
   }
 }
 
+// Report-screenshot readiness contract (see superset/utils/screenshot_utils.py).
+// `echarts-host` marks the canvas host element; `echarts-render-finished` is
+// toggled OFF before each setOption and ON in the ECharts `finished` event --
+// the only signal that the canvas is fully painted (chartStatus/onRenderSuccess
+// both fire pre-paint). The readiness gate treats a host that lacks
+// `echarts-render-finished` as not-yet-painted so it never captures a blank chart.
+export const ECHARTS_HOST_CLASS = 'echarts-host';
+export const ECHARTS_RENDER_FINISHED_CLASS = 'echarts-render-finished';
+
 function Echart(
   {
     width,
@@ -200,6 +209,11 @@ function Echart(
           locale,
           width,
           height,
+        });
+        // Paint marker for the report-screenshot readiness gate. `finished`
+        // is the only event that guarantees the canvas is fully drawn.
+        chartRef.current.on('finished', () => {
+          divRef.current?.classList.add(ECHARTS_RENDER_FINISHED_CLASS);
         });
       }
       // did mount
@@ -321,6 +335,9 @@ function Echart(
             }
           )?.dataZoom
         : undefined;
+      // Clear the paint marker before (re)drawing; the `finished` handler
+      // re-adds it once the new frame is fully rendered.
+      divRef.current?.classList.remove(ECHARTS_RENDER_FINISHED_CLASS);
       chartRef.current?.setOption(themedEchartOptions, {
         notMerge,
         replaceMerge: notMerge ? undefined : ['series'],
@@ -412,7 +429,14 @@ function Echart(
     handleSizeChange({ width, height });
   }, [width, height, handleSizeChange]);
 
-  return <Styles ref={divRef} height={height} width={width} />;
+  return (
+    <Styles
+      ref={divRef}
+      className={ECHARTS_HOST_CLASS}
+      height={height}
+      width={width}
+    />
+  );
 }
 
 export default forwardRef(Echart);

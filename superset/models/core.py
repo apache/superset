@@ -729,8 +729,6 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
                 if cached := _ENGINE_CACHE.get(cache_key):
                     return cached
         try:
-            if "future" not in engine_kwargs:
-                engine_kwargs["future"] = True
             engine = create_engine(sqlalchemy_url, **engine_kwargs)
         except Exception as ex:
             raise self.db_engine_spec.get_dbapi_mapped_exception(ex) from ex
@@ -1040,7 +1038,7 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
             if engine.dialect.identifier_preparer._double_percents:  # noqa
                 sql = sql.replace("%%", "%")
 
-        # for nwo we only optimize queries on virtual datasources, since the only
+        # for now we only optimize queries on virtual datasources, since the only
         # optimization available is predicate pushdown
         if is_feature_enabled("OPTIMIZE_SQL") and is_virtual:
             script = SQLScript(sql, self.db_engine_spec.engine).optimize()

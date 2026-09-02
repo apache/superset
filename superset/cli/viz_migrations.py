@@ -160,7 +160,7 @@ def migrate_by_id(ids: tuple[int, ...], is_downgrade: bool = False) -> None:
     """
     Migrate a subset of charts by IDs.
 
-    :param id: Tuple of chart IDs to migrate
+    :param ids: Tuple of chart IDs to migrate
     :param is_downgrade: Whether to downgrade the charts. Default is upgrade.
     """
     slices = db.session.query(Slice).filter(Slice.id.in_(ids))

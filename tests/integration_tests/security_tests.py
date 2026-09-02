@@ -1758,6 +1758,10 @@ class TestRolePermission(SupersetTestCase):
             # reachable with no session at all, since it is clicked from a
             # plain email link.
             ["DashboardRestApi", "download_xlsx"],
+            # Language pack endpoint serves JS bundle translations, no auth
+            # needed; embedded dashboards fetch this without a guest-token
+            # header, so it must be reachable unauthenticated.
+            ["Superset", "language_pack"],
         ]
         unsecured_views = []
         for view_class in appbuilder.baseviews:

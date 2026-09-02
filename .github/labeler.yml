@@ -29,7 +29,7 @@
 "dependencies:python":
 - changed-files:
   - any-glob-to-any-file:
-    - 'superset/requirements/**'
+    - 'requirements/**'
     - 'superset/translations/requirements.txt'
     - 'RELEASING/requirements.txt'
 
