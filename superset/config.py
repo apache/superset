@@ -3154,6 +3154,14 @@ EXTRA_RAISE_FOR_ACCESS_BYPASS: Callable[..., bool] | None = None
 EXTRA_EDITORS_RESOLVER: Callable[..., list[Any]] | None = None
 # Post-create hook for charts/dashboards. Receives (model, asset_type).
 AFTER_ASSET_CREATE: Callable[[Any, str], None] | None = None
+# Contribute extra fields to a chart or dashboard export. Receives
+# (model, asset_type) and returns a mapping serialised under the "extra" key of
+# the exported YAML. Lets deployments carry their own metadata through
+# export/import without forking the export commands.
+EXTRA_ASSET_EXPORT_FIELDS: Callable[[Any, str], dict[str, Any]] | None = None
+# Consume the "extra" mapping when importing a chart or dashboard. Receives
+# (model, asset_type, extra) once the asset exists.
+EXTRA_ASSET_IMPORT_HANDLER: Callable[[Any, str, dict[str, Any]], None] | None = None
 
 
 # The migrations that add catalog permissions might take a considerably long time
