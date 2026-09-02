@@ -320,6 +320,8 @@ pyopenssl==26.4.0
     #   shillelagh
 pyparsing==3.3.2
     # via apache-superset (pyproject.toml)
+pypdf==6.16.2
+    # via apache-superset (pyproject.toml)
 python-calamine==0.8.2
     # via pandas
 python-dateutil==2.9.0.post0

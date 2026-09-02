@@ -98,6 +98,7 @@ dependencies = [
     "polyline>=2.0.4, <3.0",
     "pydantic>=2.8.0",
     "pyparsing>=3.3.2, <4",
+    "pypdf>=6.16.2, <7",  # multi-tab PDF merge for browser-print PDF reports
     "python-dateutil",
     "python-dotenv", # optional dependencies for Flask but required for Superset, see https://flask.palletsprojects.com/en/stable/installation/#optional-dependencies
     "pygeohash",
