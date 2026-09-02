@@ -536,11 +536,15 @@ def _normalized_x_axis_query_field(form_data: dict[str, Any]) -> Any | None:
 
 
 def resolve_big_number_columns(form_data: dict[str, Any]) -> list[Any]:
-    """Resolve Big Number's x-axis or legacy physical granularity column."""
+    """Resolve only Big Number's explicit x-axis query column.
+
+    The frontend keeps ``granularity_sqla`` out of ``columns`` and asks the
+    backend for a timeseries instead, which yields ``__timestamp``. An explicit
+    ``x_axis`` is different: the plugin retains that column in the final query.
+    """
     if (x_axis := _x_axis_query_field(form_data)) is not None:
         return [x_axis]
-    granularity = form_data.get("granularity_sqla")
-    return [granularity] if isinstance(granularity, str) and granularity else []
+    return []
 
 
 def _as_list(value: Any) -> list[Any]:
@@ -1593,6 +1597,11 @@ def build_query_dicts_from_form_data(  # noqa: C901
             orderby=form_data.get("orderby"),
         )
         if viz_type == "big_number":
+            # Big Number has no series dimension. Its frontend pivot receives
+            # the common base QueryObject (whose columns are empty), not the
+            # final QueryObject after the explicit x-axis is added. Preserve
+            # that distinction instead of falling back to the final columns.
+            query["series_columns"] = []
             if not form_data.get("x_axis"):
                 query["is_timeseries"] = True
             query["post_processing"] = _timeseries_post_processing(form_data, query)

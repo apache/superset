@@ -24,6 +24,7 @@ from types import SimpleNamespace
 from typing import Any
 from unittest.mock import MagicMock, patch
 
+import pandas as pd
 import pytest
 
 from superset.mcp_service.chart.schemas import (
@@ -135,6 +136,97 @@ def test_saved_timeseries_preview_executes_final_frontend_query_contract(
         "sort",
         "flatten",
     ]
+
+
+def test_saved_big_number_preview_executes_timestamp_pivot_without_series(
+    monkeypatch: pytest.MonkeyPatch,
+    app_context: None,
+) -> None:
+    from superset.common.query_object import QueryObject
+    from superset.utils.core import DTTM_ALIAS
+
+    query_context_factory_module = importlib.import_module(
+        "superset.common.query_context_factory"
+    )
+    command_module = importlib.import_module(
+        "superset.commands.chart.data.get_data_command"
+    )
+    captured: dict[str, Any] = {}
+
+    class _Factory:
+        def create(self, **kwargs: Any) -> Any:
+            captured.update(kwargs)
+            return SimpleNamespace(
+                form_data=kwargs["form_data"],
+                queries=[QueryObject(**query) for query in kwargs["queries"]],
+            )
+
+    class _Command:
+        def __init__(self, query_context: Any) -> None:
+            self.query_context = query_context
+
+        def validate(self) -> None: ...
+
+        def run(self) -> dict[str, Any]:
+            query = self.query_context.queries[0]
+            processed = query.exec_post_processing(
+                pd.DataFrame(
+                    {
+                        DTTM_ALIAS: pd.to_datetime(["2024-01-01", "2024-02-01"]),
+                        "saved_revenue": [1.0, 2.0],
+                    }
+                )
+            )
+            assert list(processed.columns) == [DTTM_ALIAS, "saved_revenue"]
+            return {
+                "queries": [
+                    {
+                        "data": [
+                            {DTTM_ALIAS: "2024-01-01", "saved_revenue": 1.0},
+                            {DTTM_ALIAS: "2024-02-01", "saved_revenue": 2.0},
+                        ],
+                        "colnames": [DTTM_ALIAS, "saved_revenue"],
+                    }
+                ]
+            }
+
+    monkeypatch.setattr(query_context_factory_module, "QueryContextFactory", _Factory)
+    monkeypatch.setattr(command_module, "ChartDataCommand", _Command)
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda *_args: "base",
+    )
+    chart = SimpleNamespace(
+        id=106,
+        slice_name="Revenue trend",
+        viz_type="big_number",
+        datasource_id=1,
+        datasource_type="table",
+        params=utils_json.dumps(
+            {
+                "viz_type": "big_number",
+                "metric": "saved_revenue",
+                "granularity_sqla": "event_time",
+                "time_grain_sqla": "P1M",
+            }
+        ),
+    )
+
+    preview = ASCIIPreviewStrategy(
+        chart, GetChartPreviewRequest(identifier=106, format="ascii")
+    ).generate()
+
+    assert isinstance(preview, ASCIIPreview)
+    query = captured["queries"][0]
+    assert query["columns"] == []
+    assert query["series_columns"] == []
+    assert query["is_timeseries"] is True
+    assert query["post_processing"][0]["options"] == {
+        "index": [DTTM_ALIAS],
+        "columns": [],
+        "aggregates": {"saved_revenue": {"operator": "mean"}},
+        "drop_missing_columns": True,
+    }
 
 
 @pytest.mark.parametrize("strategy_name", ["ascii", "table", "vega_lite"])

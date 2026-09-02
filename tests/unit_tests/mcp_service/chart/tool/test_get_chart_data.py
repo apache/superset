@@ -573,6 +573,98 @@ class _AsyncContext:
 
 class TestUnsavedChartDataQueryConstruction:
     @pytest.mark.asyncio
+    async def test_cached_big_number_uses_timestamp_pivot_and_raw_overall_query(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """The cached/unsaved get-data path uses the final frontend contract."""
+        chart_data_module = importlib.import_module(
+            "superset.mcp_service.chart.tool.get_chart_data"
+        )
+        query_context_factory_module = importlib.import_module(
+            "superset.common.query_context_factory"
+        )
+        get_data_command_module = importlib.import_module(
+            "superset.commands.chart.data.get_data_command"
+        )
+        captured_query_contexts: list[dict[str, Any]] = []
+
+        class QueryContextFactory:
+            def create(self, **kwargs: Any) -> object:
+                captured_query_contexts.append(kwargs)
+                return _query_context_stub(kwargs.get("form_data"))
+
+        class ChartDataCommand:
+            def __init__(self, query_context: object) -> None:
+                self.query_context = query_context
+
+            def validate(self) -> None: ...
+
+            def run(self) -> dict[str, Any]:
+                return {
+                    "queries": [
+                        {
+                            "data": [{"__timestamp": "2024-01-01", "Net revenue": 1.0}],
+                            "colnames": ["__timestamp", "Net revenue"],
+                        },
+                        {
+                            "data": [{"Net revenue": 1.0}],
+                            "colnames": ["Net revenue"],
+                        },
+                    ]
+                }
+
+        monkeypatch.setattr(
+            query_context_factory_module, "QueryContextFactory", QueryContextFactory
+        )
+        monkeypatch.setattr(
+            get_data_command_module, "ChartDataCommand", ChartDataCommand
+        )
+        monkeypatch.setattr(
+            chart_data_module,
+            "event_logger",
+            SimpleNamespace(log_context=lambda **kwargs: nullcontext()),
+        )
+        monkeypatch.setattr(
+            "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+            lambda *_args: "base",
+        )
+        metric = {
+            "expressionType": "SQL",
+            "sqlExpression": "SUM(revenue) - SUM(cost)",
+            "label": "Net revenue",
+        }
+
+        await _query_from_form_data(
+            {
+                "datasource": "1__table",
+                "viz_type": "big_number",
+                "metric": metric,
+                "granularity_sqla": "event_time",
+                "time_grain_sqla": "P1D",
+                "aggregation": "raw",
+            },
+            GetChartDataRequest(form_data_key="cached-key"),
+            _AsyncContext(),
+        )
+
+        trend, raw = captured_query_contexts[0]["queries"]
+        assert trend["columns"] == []
+        assert trend["series_columns"] == []
+        assert trend["metrics"] == [metric]
+        assert trend["is_timeseries"] is True
+        assert trend["post_processing"][0]["options"] == {
+            "index": ["__timestamp"],
+            "columns": [],
+            "aggregates": {"Net revenue": {"operator": "mean"}},
+            "drop_missing_columns": True,
+        }
+        assert raw["columns"] == []
+        assert raw["series_columns"] == []
+        assert raw["is_timeseries"] is False
+        assert raw["post_processing"] == []
+
+    @pytest.mark.asyncio
     async def test_form_data_key_adhoc_filters_become_query_filters(
         self,
         monkeypatch: pytest.MonkeyPatch,

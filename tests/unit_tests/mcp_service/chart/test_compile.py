@@ -26,6 +26,7 @@ that only use Tier-1 validation are exercised end-to-end.
 from typing import Any, cast
 from unittest.mock import Mock, patch
 
+import pandas as pd
 import pytest
 
 from superset.mcp_service.chart.compile import (
@@ -739,6 +740,114 @@ def test_compile_chart_executes_final_ungrouped_timeseries_query(
     assert query["post_processing"][0]["options"]["columns"] == []
     assert query["metrics"] == ["sum_boys", "sum_girls"]
     assert query["series_limit_metric"] == "sum_girls"
+
+
+def test_compile_chart_executes_final_big_number_trendline_query(
+    monkeypatch: pytest.MonkeyPatch,
+    app_context: None,
+) -> None:
+    from types import SimpleNamespace
+
+    from superset.common.query_object import QueryObject
+    from superset.mcp_service.chart.compile import _compile_chart
+    from superset.utils.core import DTTM_ALIAS
+
+    factory_module = __import__(
+        "superset.common.query_context_factory", fromlist=["QueryContextFactory"]
+    )
+    command_module = __import__(
+        "superset.commands.chart.data.get_data_command", fromlist=["ChartDataCommand"]
+    )
+    captured: dict[str, Any] = {}
+
+    class _Factory:
+        def create(self, **kwargs: Any) -> Any:
+            captured.update(kwargs)
+            return SimpleNamespace(
+                form_data=kwargs["form_data"],
+                queries=[QueryObject(**query) for query in kwargs["queries"]],
+            )
+
+    class _Command:
+        def __init__(self, query_context: Any) -> None:
+            self.query_context = query_context
+
+        def validate(self) -> None: ...
+
+        def run(self) -> dict[str, Any]:
+            trend, raw = self.query_context.queries
+            processed = trend.exec_post_processing(
+                pd.DataFrame(
+                    {
+                        DTTM_ALIAS: pd.to_datetime(["2024-01-01", "2024-02-01"]),
+                        "Gross revenue": [10.0, 15.0],
+                    }
+                )
+            )
+            assert list(processed.columns) == [DTTM_ALIAS, "Gross revenue"]
+            assert raw.columns == []
+            assert raw.is_timeseries is False
+            assert raw.post_processing == []
+            return {
+                "queries": [
+                    {
+                        "data": [
+                            {
+                                DTTM_ALIAS: row[DTTM_ALIAS].isoformat(),
+                                "Gross revenue": row["Gross revenue"],
+                            }
+                            for row in processed.to_dict("records")
+                        ],
+                        "colnames": [],
+                    },
+                    {"data": [{"Gross revenue": 25.0}], "colnames": []},
+                ]
+            }
+
+    monkeypatch.setattr(factory_module, "QueryContextFactory", _Factory)
+    monkeypatch.setattr(command_module, "ChartDataCommand", _Command)
+    monkeypatch.setattr(
+        "superset.charts.data.form_data.set_query_context_form_data",
+        lambda *_args, **_kwargs: None,
+    )
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda *_args: "base",
+    )
+    metric = {
+        "expressionType": "SIMPLE",
+        "column": {"column_name": "revenue"},
+        "aggregate": "SUM",
+        "label": "Gross revenue",
+    }
+
+    result = _compile_chart(
+        {
+            "viz_type": "big_number",
+            "metric": metric,
+            "granularity_sqla": "event_time",
+            "time_grain_sqla": "P1M",
+            "aggregation": "raw",
+        },
+        3,
+    )
+
+    assert result.success
+    trend, raw = cast(list[dict[str, Any]], captured["queries"])
+    assert trend["columns"] == []
+    assert trend["series_columns"] == []
+    assert trend["metrics"] == [metric]
+    assert trend["is_timeseries"] is True
+    assert trend["post_processing"][0]["options"] == {
+        "index": [DTTM_ALIAS],
+        "columns": [],
+        "aggregates": {"Gross revenue": {"operator": "mean"}},
+        "drop_missing_columns": True,
+    }
+    assert raw["columns"] == []
+    assert raw["series_columns"] == []
+    assert raw["is_timeseries"] is False
+    assert raw["post_processing"] == []
 
 
 @patch("superset.charts.data.form_data.set_query_context_form_data")
