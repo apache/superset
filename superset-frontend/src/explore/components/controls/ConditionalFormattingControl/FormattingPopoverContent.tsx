@@ -69,8 +69,10 @@ const targetValueValidator =
   (targetValue: number | string) =>
   (_: any, compareValue: number | string) => {
     if (
-      !targetValue ||
-      !compareValue ||
+      targetValue === null ||
+      targetValue === undefined ||
+      compareValue === null ||
+      compareValue === undefined ||
       compare(Number(targetValue), Number(compareValue))
     ) {
       return Promise.resolve();
@@ -104,16 +106,31 @@ const isOperatorMultiValue = (operator?: Comparator) =>
 const isOperatorNone = (operator?: Comparator) =>
   !operator || operator === Comparator.None;
 
-const BOUNDABLE_OPERATORS = [
-  Comparator.None,
-  Comparator.GreaterThan,
-  Comparator.LessThan,
-  Comparator.GreaterOrEqual,
-  Comparator.LessOrEqual,
-];
+type BoundVisibility = { showMin: boolean; showMax: boolean };
 
-const isOperatorBoundable = (operator?: Comparator) =>
-  !operator || BOUNDABLE_OPERATORS.includes(operator);
+// getColorFunction only reads maxBound for `>`/`>=` and minBound for `<`/`<=`
+// (the other end of the scale comes from targetValue), so only the bound(s)
+// that actually affect rendering are shown for each operator.
+const getBoundVisibility = (operator?: Comparator): BoundVisibility => {
+  if (isOperatorNone(operator)) {
+    return { showMin: true, showMax: true };
+  }
+  if (
+    operator === Comparator.GreaterThan ||
+    operator === Comparator.GreaterOrEqual
+  ) {
+    return { showMin: false, showMax: true };
+  }
+  if (operator === Comparator.LessThan || operator === Comparator.LessOrEqual) {
+    return { showMin: true, showMax: false };
+  }
+  return { showMin: false, showMax: false };
+};
+
+const isOperatorBoundable = (operator?: Comparator) => {
+  const { showMin, showMax } = getBoundVisibility(operator);
+  return showMin || showMax;
+};
 
 const rulesRequired = [{ required: true, message: t('Required') }];
 
@@ -153,13 +170,18 @@ const maxBoundDeps = ['minBound'];
 const shouldFormItemUpdate = (
   prevValues: ConditionalFormattingConfig,
   currentValues: ConditionalFormattingConfig,
-) =>
-  isOperatorNone(prevValues.operator) !==
-    isOperatorNone(currentValues.operator) ||
-  isOperatorMultiValue(prevValues.operator) !==
-    isOperatorMultiValue(currentValues.operator) ||
-  isOperatorBoundable(prevValues.operator) !==
-    isOperatorBoundable(currentValues.operator);
+) => {
+  const prevBounds = getBoundVisibility(prevValues.operator);
+  const currentBounds = getBoundVisibility(currentValues.operator);
+  return (
+    isOperatorNone(prevValues.operator) !==
+      isOperatorNone(currentValues.operator) ||
+    isOperatorMultiValue(prevValues.operator) !==
+      isOperatorMultiValue(currentValues.operator) ||
+    prevBounds.showMin !== currentBounds.showMin ||
+    prevBounds.showMax !== currentBounds.showMax
+  );
+};
 
 const renderOperator = ({
   showOnlyNone,
@@ -192,40 +214,55 @@ const renderOperator = ({
   );
 };
 
-const renderBoundFields = () => (
-  <Row gutter={12}>
-    <Col span={12}>
-      <FormItem
-        name="minBound"
-        label={t('Min bound')}
-        rules={rulesMinBound}
-        dependencies={minBoundDeps}
-        validateTrigger="onBlur"
-        trigger="onBlur"
-        tooltip={t(
-          'Overrides the lowest value used for coloring. Leave blank to use the lowest value in the data.',
-        )}
-      >
-        <FullWidthInputNumber />
-      </FormItem>
-    </Col>
-    <Col span={12}>
-      <FormItem
-        name="maxBound"
-        label={t('Max bound')}
-        rules={rulesMaxBound}
-        dependencies={maxBoundDeps}
-        validateTrigger="onBlur"
-        trigger="onBlur"
-        tooltip={t(
-          'Overrides the highest value used for coloring. Leave blank to use the highest value in the data.',
-        )}
-      >
-        <FullWidthInputNumber />
-      </FormItem>
-    </Col>
-  </Row>
-);
+const renderBoundFields = (operator?: Comparator) => {
+  const { showMin, showMax } = getBoundVisibility(operator);
+  if (!showMin && !showMax) {
+    return null;
+  }
+  // Cross-field validation only makes sense when both bounds are user-facing;
+  // when only one bound renders for the operator, there is nothing to
+  // cross-validate it against.
+  const useCrossFieldRules = showMin && showMax;
+
+  return (
+    <Row gutter={12}>
+      {showMin && (
+        <Col span={showMax ? 12 : 24}>
+          <FormItem
+            name="minBound"
+            label={t('Min bound')}
+            rules={useCrossFieldRules ? rulesMinBound : undefined}
+            dependencies={useCrossFieldRules ? minBoundDeps : undefined}
+            validateTrigger="onBlur"
+            trigger="onBlur"
+            tooltip={t(
+              'Overrides the lowest value used for coloring. Leave blank to use the lowest value in the data.',
+            )}
+          >
+            <FullWidthInputNumber />
+          </FormItem>
+        </Col>
+      )}
+      {showMax && (
+        <Col span={showMin ? 12 : 24}>
+          <FormItem
+            name="maxBound"
+            label={t('Max bound')}
+            rules={useCrossFieldRules ? rulesMaxBound : undefined}
+            dependencies={useCrossFieldRules ? maxBoundDeps : undefined}
+            validateTrigger="onBlur"
+            trigger="onBlur"
+            tooltip={t(
+              'Overrides the highest value used for coloring. Leave blank to use the highest value in the data.',
+            )}
+          >
+            <FullWidthInputNumber />
+          </FormItem>
+        </Col>
+      )}
+    </Row>
+  );
+};
 
 const renderOperatorFields = (
   { getFieldValue }: GetFieldValue,
@@ -260,7 +297,7 @@ const renderOperatorFields = (
       <Row gutter={12}>
         <Col span={operatorColSpan}>{renderOperator({ columnType })}</Col>
       </Row>
-      {showBoundFields && renderBoundFields()}
+      {showBoundFields && renderBoundFields(operator)}
     </>
   ) : isOperatorMultiValue(operator) ? (
     <Row gutter={12}>
@@ -304,7 +341,7 @@ const renderOperatorFields = (
           </FormItem>
         </Col>
       </Row>
-      {showBoundFields && renderBoundFields()}
+      {showBoundFields && renderBoundFields(operator)}
     </>
   );
 };

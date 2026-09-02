@@ -57,6 +57,18 @@ const extraColorChoices = [
   },
 ];
 
+// This form uses `requiredMark="optional"`, so antd appends a literal
+// "(optional)" suffix inside the <label> of any non-required field (see
+// antd's FormItemLabel.js). Min bound/Max bound are intentionally optional,
+// so every label query for them — positive or negative — needs `exact: false`
+// to match regardless of that suffix.
+const boundLabelOptions = { exact: false };
+
+const getBoundInputs = () => ({
+  minBoundInput: screen.getByLabelText('Min bound', boundLabelOptions),
+  maxBoundInput: screen.getByLabelText('Max bound', boundLabelOptions),
+});
+
 test('renders FormattingPopoverContent component', () => {
   render(
     <FormattingPopoverContent
@@ -342,6 +354,7 @@ test('should not display tooltip when extraColorChoices is not provided', async 
   const colorSchemeFormItem = screen
     .getByText('Color scheme')
     .closest('.ant-form-item');
+  expect(colorSchemeFormItem).toBeInTheDocument();
   const tooltipIcon = colorSchemeFormItem?.querySelector(
     '.ant-form-item-tooltip',
   );
@@ -349,7 +362,7 @@ test('should not display tooltip when extraColorChoices is not provided', async 
 });
 
 test('should display tooltip icon when extraColorChoices is provided', () => {
-  const { container } = render(
+  render(
     <FormattingPopoverContent
       onChange={mockOnChange}
       columns={columns}
@@ -357,7 +370,14 @@ test('should display tooltip icon when extraColorChoices is provided', () => {
     />,
   );
 
-  const tooltipIcon = container.querySelector('.ant-form-item-tooltip');
+  const colorSchemeFormItem = screen
+    .getByText('Color scheme')
+    .closest('.ant-form-item');
+  expect(colorSchemeFormItem).toBeInTheDocument();
+
+  const tooltipIcon = colorSchemeFormItem?.querySelector(
+    '.ant-form-item-tooltip',
+  );
   expect(tooltipIcon).toBeInTheDocument();
 
   const questionIcon = tooltipIcon?.querySelector(
@@ -378,6 +398,7 @@ test('should not display tooltip icon when extraColorChoices is empty', () => {
   const colorSchemeFormItem = screen
     .getByText('Color scheme')
     .closest('.ant-form-item');
+  expect(colorSchemeFormItem).toBeInTheDocument();
   const tooltipIcon = colorSchemeFormItem?.querySelector(
     '.ant-form-item-tooltip',
   );
@@ -393,15 +414,12 @@ test('shows min/max bound fields for the default None operator on a numeric colu
     />,
   );
 
-  expect(
-    screen.getByLabelText('Min bound', { exact: false }),
-  ).toBeInTheDocument();
-  expect(
-    screen.getByLabelText('Max bound', { exact: false }),
-  ).toBeInTheDocument();
+  const { minBoundInput, maxBoundInput } = getBoundInputs();
+  expect(minBoundInput).toBeInTheDocument();
+  expect(maxBoundInput).toBeInTheDocument();
 });
 
-test('shows min/max bound fields when a boundable operator is selected', async () => {
+test('shows only the Max bound field when a greater-than operator is selected', async () => {
   render(
     <FormattingPopoverContent
       onChange={mockOnChange}
@@ -416,12 +434,39 @@ test('shows min/max bound fields when a boundable operator is selected', async (
   fireEvent.click(await screen.findByTitle('>'));
 
   expect(await screen.findByLabelText('Target value')).toBeInTheDocument();
+  // getColorFunction only reads maxBound for `>`, so minBound is not
+  // user-facing (and would have no effect) for this operator.
   expect(
-    screen.getByLabelText('Min bound', { exact: false }),
+    screen.getByLabelText('Max bound', boundLabelOptions),
   ).toBeInTheDocument();
   expect(
-    screen.getByLabelText('Max bound', { exact: false }),
+    screen.queryByLabelText('Min bound', boundLabelOptions),
+  ).not.toBeInTheDocument();
+});
+
+test('shows only the Min bound field when a less-than operator is selected', async () => {
+  render(
+    <FormattingPopoverContent
+      onChange={mockOnChange}
+      columns={columns}
+      extraColorChoices={extraColorChoices}
+    />,
+  );
+
+  fireEvent.change(screen.getAllByLabelText('Operator')[0], {
+    target: { value: Comparator.LessThan },
+  });
+  fireEvent.click(await screen.findByTitle('<'));
+
+  expect(await screen.findByLabelText('Target value')).toBeInTheDocument();
+  // getColorFunction only reads minBound for `<`, so maxBound is not
+  // user-facing (and would have no effect) for this operator.
+  expect(
+    screen.getByLabelText('Min bound', boundLabelOptions),
   ).toBeInTheDocument();
+  expect(
+    screen.queryByLabelText('Max bound', boundLabelOptions),
+  ).not.toBeInTheDocument();
 });
 
 test('hides min/max bound fields for operators that already take two values', async () => {
@@ -439,8 +484,12 @@ test('hides min/max bound fields for operators that already take two values', as
   fireEvent.click(await screen.findByTitle('< x <'));
 
   expect(await screen.findByLabelText('Left value')).toBeInTheDocument();
-  expect(screen.queryByLabelText('Min bound')).not.toBeInTheDocument();
-  expect(screen.queryByLabelText('Max bound')).not.toBeInTheDocument();
+  expect(
+    screen.queryByLabelText('Min bound', boundLabelOptions),
+  ).not.toBeInTheDocument();
+  expect(
+    screen.queryByLabelText('Max bound', boundLabelOptions),
+  ).not.toBeInTheDocument();
 });
 
 test('hides min/max bound fields on string columns', () => {
@@ -452,8 +501,12 @@ test('hides min/max bound fields on string columns', () => {
     />,
   );
 
-  expect(screen.queryByLabelText('Min bound')).not.toBeInTheDocument();
-  expect(screen.queryByLabelText('Max bound')).not.toBeInTheDocument();
+  expect(
+    screen.queryByLabelText('Min bound', boundLabelOptions),
+  ).not.toBeInTheDocument();
+  expect(
+    screen.queryByLabelText('Max bound', boundLabelOptions),
+  ).not.toBeInTheDocument();
 });
 
 test('shows no validation error for a valid min/max bound pair', async () => {
@@ -465,8 +518,7 @@ test('shows no validation error for a valid min/max bound pair', async () => {
     />,
   );
 
-  const minBoundInput = screen.getByLabelText('Min bound', { exact: false });
-  const maxBoundInput = screen.getByLabelText('Max bound', { exact: false });
+  const { minBoundInput, maxBoundInput } = getBoundInputs();
 
   await userEvent.type(minBoundInput, '5');
   fireEvent.blur(minBoundInput);
@@ -497,8 +549,7 @@ test('shows a validation error when min bound is greater than max bound', async 
     />,
   );
 
-  const minBoundInput = screen.getByLabelText('Min bound', { exact: false });
-  const maxBoundInput = screen.getByLabelText('Max bound', { exact: false });
+  const { minBoundInput, maxBoundInput } = getBoundInputs();
 
   await userEvent.type(minBoundInput, '10');
   fireEvent.blur(minBoundInput);
@@ -518,4 +569,39 @@ test('shows a validation error when min bound is greater than max bound', async 
   expect(
     screen.getByText('Max bound should be greater than min bound'),
   ).toBeInTheDocument();
+});
+
+test('submits typed minBound/maxBound values to onChange with the correct field names', async () => {
+  render(
+    <FormattingPopoverContent
+      onChange={mockOnChange}
+      columns={columns}
+      extraColorChoices={extraColorChoices}
+    />,
+  );
+
+  const { minBoundInput, maxBoundInput } = getBoundInputs();
+
+  await userEvent.type(minBoundInput, '5');
+  fireEvent.blur(minBoundInput);
+  await userEvent.type(maxBoundInput, '10');
+  fireEvent.blur(maxBoundInput);
+
+  fireEvent.click(screen.getByText('Apply'));
+
+  await waitFor(() => {
+    expect(mockOnChange).toHaveBeenCalled();
+  });
+
+  // The underlying InputNumber may hand back its value as a numeric string
+  // (the same reason targetValueValidator above defensively wraps its inputs
+  // in Number(...)), so compare numerically rather than asserting a specific
+  // JS type. The point of this test is to catch a typo in the `minBound`/
+  // `maxBound` field names — if either were misspelled, the corresponding
+  // property would be `undefined` and `Number(undefined)` is `NaN`, which
+  // fails the assertion below.
+  const lastCallPayload =
+    mockOnChange.mock.calls[mockOnChange.mock.calls.length - 1][0];
+  expect(Number(lastCallPayload.minBound)).toBe(5);
+  expect(Number(lastCallPayload.maxBound)).toBe(10);
 });

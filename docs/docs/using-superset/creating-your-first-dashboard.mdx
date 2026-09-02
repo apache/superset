@@ -328,6 +328,8 @@ Conditional formatting rules highlight cells based on their values. Rules can be
 
 Each rule has a **"Use gradient"** toggle: enabled applies a varying opacity (lighter = further from threshold), disabled applies a solid fill at full opacity regardless of value.
 
+For numeric rules, the optional **"Min bound"** / **"Max bound"** fields let you override the auto-detected color range with fixed values instead of relying on the minimum/maximum found in the data — useful when you want consistent coloring across dashboards or data refreshes.
+
 Each rule's color is set with a full color picker rather than a fixed dropdown of presets. Pick any custom color, or use the **Colors** preset swatches, which reference theme tokens (success, warning, error, and their background variants) so a rule's color updates automatically if the active theme changes, including switching between light and dark mode.
 
 When a rule targets a column with an active time comparison, a **Trend colors** preset also appears, letting you color cells green for an increase and red for a decrease (or the reverse).
