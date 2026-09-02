@@ -28,6 +28,7 @@ export interface FieldsetProps {
   item?: Record<string, any>;
   title?: ReactNode;
   compact?: boolean;
+  renderWarning?: (item: Record<string, any>) => ReactNode;
 }
 
 type fieldKeyType = string | number;
@@ -38,6 +39,7 @@ export default function Fieldset({
   item = {},
   title = null,
   compact = false,
+  renderWarning,
 }: FieldsetProps) {
   // Controls report their edits asynchronously - TextControl debounces by
   // FAST_DEBOUNCE - so the callback that eventually fires was built during an
@@ -78,6 +80,7 @@ export default function Fieldset({
         </Typography.Title>
       )}
 
+      {renderWarning?.(item)}
       {recurseReactClone(children, Field, propExtender)}
     </Form>
   );

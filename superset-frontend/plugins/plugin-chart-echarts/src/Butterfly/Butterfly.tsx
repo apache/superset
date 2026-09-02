@@ -16,15 +16,44 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { allEventHandlers, type Event } from '../utils/eventHandlers';
 import Echart from '../components/Echart';
-import { ButterflyTransformedProps } from './types';
 import { EventHandlers } from '../types';
+import { ButterflyTransformedProps } from './types';
+
+type ButterflyChartEvent = {
+  name?: string;
+  data?: { name?: string };
+  event?: Event['event'];
+};
+
+function getCategoryKey(params: ButterflyChartEvent): string {
+  return params.data?.name ?? params.name ?? '';
+}
 
 export default function Butterfly(props: ButterflyTransformedProps) {
-  const { height, width, echartOptions, refs, onLegendStateChanged, formData } =
-    props;
+  const {
+    height,
+    width,
+    echartOptions,
+    selectedValues,
+    refs,
+    onLegendStateChanged,
+    formData,
+  } = props;
+
+  const { click, contextmenu } = allEventHandlers(props);
 
   const eventHandlers: EventHandlers = {
+    click: (params: ButterflyChartEvent) => {
+      click({ name: getCategoryKey(params) });
+    },
+    contextmenu: (params: ButterflyChartEvent) => {
+      contextmenu({
+        ...params,
+        name: getCategoryKey(params),
+      });
+    },
     legendselectchanged: payload => {
       onLegendStateChanged?.(payload.selected);
     },
@@ -43,6 +72,7 @@ export default function Butterfly(props: ButterflyTransformedProps) {
       width={width}
       echartOptions={echartOptions}
       eventHandlers={eventHandlers}
+      selectedValues={selectedValues}
       vizType={formData.vizType}
     />
   );
