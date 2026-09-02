@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
+import re
 from datetime import date, datetime, timedelta, timezone
 from types import SimpleNamespace
 from typing import Any, Optional
@@ -921,28 +922,74 @@ def test_clickhouse_column_type(series: pd.Series, expected: str) -> None:
     assert ClickHouseConnectEngineSpec._clickhouse_column_type(series) == expected
 
 
+# Sentinel for rows that were in a table before the upload started, so a test
+# can tell "the original data survived" from "something new was written here".
+PRE_EXISTING = object()
+
+
 class FakeClickHouseClient:
-    """A stand-in for the native ``clickhouse_connect`` client."""
+    """A stand-in for the native ``clickhouse_connect`` client.
+
+    Tracks which tables exist and what each one holds, so the replace path can
+    be asserted on its outcome -- "does the user still have their data?" --
+    rather than only on the order of the statements issued.
+    """
+
+    _CREATE = re.compile(r"^CREATE TABLE (?P<name>.+?) \(")
+    _DROP = re.compile(r"^DROP TABLE (?:IF EXISTS )?(?P<name>.+)$")
+    _EXISTS = re.compile(r"^EXISTS TABLE (?P<name>.+)$")
+    _EXCHANGE = re.compile(r"^EXCHANGE TABLES (?P<left>.+) AND (?P<right>.+)$")
+    _RENAME = re.compile(r"^RENAME TABLE (?P<source>.+) TO (?P<target>.+)$")
 
     def __init__(self, exists: bool = False) -> None:
         self.commands: list[str] = []
         self.inserts: list[tuple[str, pd.DataFrame, Optional[str]]] = []
-        self.exists = exists
+        # Maps a qualified table name to the rows it holds. Tables that existed
+        # before the upload are seeded with a sentinel so they can be told
+        # apart from anything this upload created.
+        self.tables: dict[str, Any] = {"`t`": PRE_EXISTING} if exists else {}
+        # Failures to simulate.
+        self.insert_error: Optional[Exception] = None
+        self.exchange_error: Optional[Exception] = None
+
+    @property
+    def exists(self) -> bool:
+        return "`t`" in self.tables
+
+    @exists.setter
+    def exists(self, value: bool) -> None:
+        if value:
+            self.tables["`t`"] = PRE_EXISTING
+        else:
+            self.tables.pop("`t`", None)
 
     def command(self, sql: str) -> Any:
         self.commands.append(sql)
-        if sql.startswith("EXISTS TABLE"):
-            return 1 if self.exists else 0
-        if sql.startswith("DROP TABLE"):
-            self.exists = False
-        elif sql.startswith("CREATE TABLE"):
-            self.exists = True
+        if match := self._EXISTS.match(sql):
+            return 1 if match.group("name") in self.tables else 0
+        if match := self._CREATE.match(sql):
+            self.tables[match.group("name")] = None
+        elif match := self._DROP.match(sql):
+            self.tables.pop(match.group("name"), None)
+        elif match := self._EXCHANGE.match(sql):
+            if self.exchange_error:
+                raise self.exchange_error
+            left, right = match.group("left"), match.group("right")
+            self.tables[left], self.tables[right] = (
+                self.tables[right],
+                self.tables[left],
+            )
+        elif match := self._RENAME.match(sql):
+            self.tables[match.group("target")] = self.tables.pop(match.group("source"))
         return None
 
     def insert_df(
         self, table: str, df: pd.DataFrame, database: Optional[str] = None
     ) -> None:
+        if self.insert_error:
+            raise self.insert_error
         self.inserts.append((table, df, database))
+        self.tables[table] = df
 
     # -- assertion helpers -------------------------------------------------
     @property
@@ -951,6 +998,9 @@ class FakeClickHouseClient:
 
     def commands_of(self, verb: str) -> list[str]:
         return [sql for sql in self.commands if sql.startswith(verb)]
+
+    def staging_tables(self) -> list[str]:
+        return [name for name in self.tables if "__superset_staging_" in name]
 
 
 @pytest.fixture()
@@ -1005,7 +1055,7 @@ def test_connect_df_to_sql_creates_mergetree_and_bulk_loads(
     # Rows are loaded via insert_df, never pandas' to_sql.
     assert len(upload_mocks.client.inserts) == 1
     name, inserted, database = upload_mocks.client.inserts[0]
-    assert name == "t"
+    assert name == "`t`"
     assert database is None
     pd.testing.assert_frame_equal(inserted, df)
 
@@ -1025,7 +1075,131 @@ def test_connect_df_to_sql_qualifies_and_quotes_schema(upload_mocks: Any) -> Non
     assert upload_mocks.client.create_statement.startswith(
         "CREATE TABLE `my_schema`.`t` ("
     )
-    assert upload_mocks.client.inserts[0][2] == "my_schema"
+    assert upload_mocks.client.inserts[0][0] == "`my_schema`.`t`"
+
+
+@pytest.mark.parametrize(
+    "table_name,schema,expected",
+    [
+        ("t", None, "`t`"),
+        ("t", "my_schema", "`my_schema`.`t`"),
+        # A dotted name is the case the bare name got wrong: the driver only
+        # quotes a table name with no dot in it, and reads a dotted one as
+        # ``database.table`` while ignoring its own ``database`` argument, so
+        # these rows would have been written to table `2024` of database
+        # `sales` -- silently, if such a table happened to exist.
+        ("sales.2024", None, "`sales.2024`"),
+        ("sales.2024", "my_schema", "`my_schema`.`sales.2024`"),
+    ],
+)
+def test_connect_df_to_sql_inserts_into_the_qualified_name(
+    upload_mocks: Any, table_name: str, schema: Optional[str], expected: str
+) -> None:
+    """
+    ``insert_df`` targets the same quoted, schema-qualified identifier the DDL
+    used, so the rows cannot land in a different table than the one created.
+    """
+    upload_mocks.spec.df_to_sql(
+        Mock(),
+        Table(table_name, schema),
+        pd.DataFrame({"a": [1]}),
+        {"if_exists": "fail"},
+    )
+
+    assert upload_mocks.client.create_statement.startswith(f"CREATE TABLE {expected} (")
+    assert upload_mocks.client.inserts[0][0] == expected
+
+
+def test_connect_df_to_sql_renders_string_columns_as_text(upload_mocks: Any) -> None:
+    """
+    A column declared ``Nullable(String)`` is handed to the driver holding only
+    strings and NULLs. A mixed column -- a numeric ID with one ``N/A`` cell, say
+    -- is the common case: the driver's String writer calls ``encode()`` on
+    every value, so a stray int would fail the insert after the CREATE.
+    """
+    df = pd.DataFrame({"zip": [12345, 90210, "N/A", None], "n": [1, 2, 3, 4]})
+
+    upload_mocks.spec.df_to_sql(Mock(), Table("t"), df, {"if_exists": "fail"})
+
+    assert upload_mocks.client.create_statement == (
+        "CREATE TABLE `t` (`zip` Nullable(String), `n` Nullable(Int64)) "
+        "ENGINE = MergeTree ORDER BY tuple()"
+    )
+    inserted = upload_mocks.client.inserts[0][1]
+    assert inserted["zip"].tolist()[:3] == ["12345", "90210", "N/A"]
+    assert inserted["zip"].isna().tolist() == [False, False, False, True]
+    # Columns with an exact type are untouched.
+    assert inserted["n"].tolist() == [1, 2, 3, 4]
+
+
+def test_connect_df_to_sql_normalizes_date_objects(upload_mocks: Any) -> None:
+    """
+    An object column holding ``datetime.date`` is declared ``DateTime64(6)``,
+    so it has to reach the driver as real timestamps: the driver's DateTime64
+    writer calls ``timestamp()``, which ``date`` does not have (only
+    ``datetime`` does).
+    """
+    df = pd.DataFrame({"d": [date(1965, 3, 4), datetime(2021, 1, 2, 3, 4, 5), None]})
+
+    upload_mocks.spec.df_to_sql(Mock(), Table("t"), df, {"if_exists": "fail"})
+
+    assert upload_mocks.client.create_statement == (
+        "CREATE TABLE `t` (`d` Nullable(DateTime64(6))) "
+        "ENGINE = MergeTree ORDER BY tuple()"
+    )
+    inserted = upload_mocks.client.inserts[0][1]["d"]
+    assert pd.api.types.is_datetime64_any_dtype(inserted.dtype)
+    assert inserted.tolist() == [
+        pd.Timestamp("1965-03-04"),
+        pd.Timestamp("2021-01-02 03:04:05"),
+        pd.NaT,
+    ]
+
+
+def test_connect_df_to_sql_prepares_the_frame_before_dropping(
+    upload_mocks: Any,
+) -> None:
+    """
+    Replacing a table is not recoverable -- ClickHouse has no transactional
+    DDL -- so anything that can fail on the data has to fail first. A frame
+    that cannot be coerced to its declared types must leave the existing table
+    standing.
+    """
+    upload_mocks.client.exists = True
+    # datetime64[ns] tops out in 2262, so this date cannot be normalized.
+    df = pd.DataFrame({"d": [date(9999, 12, 31)]})
+
+    with pytest.raises(pd.errors.OutOfBoundsDatetime):
+        upload_mocks.spec.df_to_sql(Mock(), Table("t"), df, {"if_exists": "replace"})
+
+    assert upload_mocks.client.commands_of("DROP TABLE") == []
+    assert upload_mocks.client.commands_of("CREATE TABLE") == []
+    assert upload_mocks.client.inserts == []
+
+
+def test_connect_df_to_sql_does_not_mutate_the_callers_frame(
+    upload_mocks: Any,
+) -> None:
+    """Coercing to text must not rewrite the DataFrame the uploader still holds."""
+    df = pd.DataFrame({"zip": [12345, "N/A"]})
+
+    upload_mocks.spec.df_to_sql(Mock(), Table("t"), df, {"if_exists": "fail"})
+
+    assert df["zip"].tolist() == [12345, "N/A"]
+
+
+def test_connect_df_to_sql_appends_without_coercing(upload_mocks: Any) -> None:
+    """
+    Appending to an existing table declares nothing, so the frame is passed
+    through as-is: the server's schema governs the types, not our inference.
+    """
+    upload_mocks.client.exists = True
+    df = pd.DataFrame({"zip": [12345, "N/A"]})
+
+    upload_mocks.spec.df_to_sql(Mock(), Table("t"), df, {"if_exists": "append"})
+
+    assert upload_mocks.client.commands_of("CREATE TABLE") == []
+    pd.testing.assert_frame_equal(upload_mocks.client.inserts[0][1], df)
 
 
 def test_connect_df_to_sql_escapes_identifiers(upload_mocks: Any) -> None:
@@ -1071,16 +1245,136 @@ def test_connect_df_to_sql_defaults_to_fail(upload_mocks: Any) -> None:
         upload_mocks.spec.df_to_sql(Mock(), Table("t"), pd.DataFrame({"a": [1]}), {})
 
 
-def test_connect_df_to_sql_replace_drops_first(upload_mocks: Any) -> None:
-    """``if_exists='replace'`` drops the existing table before recreating it."""
+def test_connect_df_to_sql_replace_swaps_a_loaded_staging_table_in(
+    upload_mocks: Any,
+) -> None:
+    """
+    ``if_exists='replace'`` loads a staging table and swaps it in atomically,
+    rather than dropping the target and hoping the load succeeds: ClickHouse
+    has no transactional DDL, so a drop-first replace cannot be undone.
+    """
     upload_mocks.client.exists = True
     df = pd.DataFrame({"a": [1]})
 
     upload_mocks.spec.df_to_sql(Mock(), Table("t"), df, {"if_exists": "replace"})
 
-    assert upload_mocks.client.commands_of("DROP TABLE") == ["DROP TABLE `t`"]
-    assert len(upload_mocks.client.commands_of("CREATE TABLE")) == 1
-    assert len(upload_mocks.client.inserts) == 1
+    staged = upload_mocks.client.inserts[0][0]
+    assert "__superset_staging_" in staged
+    # Nothing touches the target until the rows are loaded, and the swap is the
+    # atomic EXCHANGE rather than a drop.
+    assert upload_mocks.client.create_statement.startswith(f"CREATE TABLE {staged} (")
+    assert upload_mocks.client.commands_of("EXCHANGE TABLES") == [
+        f"EXCHANGE TABLES `t` AND {staged}"
+    ]
+    assert upload_mocks.client.commands_of("DROP TABLE") == [
+        f"DROP TABLE IF EXISTS {staged}"
+    ]
+    # The target holds the new rows and the staging table is cleaned up.
+    pd.testing.assert_frame_equal(upload_mocks.client.tables["`t`"], df)
+    assert upload_mocks.client.staging_tables() == []
+
+
+def test_connect_df_to_sql_replace_keeps_the_old_table_when_loading_fails(
+    upload_mocks: Any,
+) -> None:
+    """
+    The point of staging: if the load fails, the table the user already had is
+    still there with its original data, and no staging table is left behind.
+    """
+    upload_mocks.client.exists = True
+    upload_mocks.client.insert_error = RuntimeError("connection reset")
+
+    with pytest.raises(RuntimeError, match="connection reset"):
+        upload_mocks.spec.df_to_sql(
+            Mock(), Table("t"), pd.DataFrame({"a": [1]}), {"if_exists": "replace"}
+        )
+
+    assert upload_mocks.client.tables["`t`"] is PRE_EXISTING
+    assert upload_mocks.client.staging_tables() == []
+
+
+def test_connect_df_to_sql_replace_keeps_the_old_table_when_the_swap_fails(
+    upload_mocks: Any,
+) -> None:
+    """A failing EXCHANGE is not swallowed, and still leaves the original intact."""
+    upload_mocks.client.exists = True
+    upload_mocks.client.exchange_error = RuntimeError("TOO_MANY_SIMULTANEOUS_QUERIES")
+
+    with pytest.raises(RuntimeError, match="TOO_MANY_SIMULTANEOUS_QUERIES"):
+        upload_mocks.spec.df_to_sql(
+            Mock(), Table("t"), pd.DataFrame({"a": [1]}), {"if_exists": "replace"}
+        )
+
+    assert upload_mocks.client.tables["`t`"] is PRE_EXISTING
+    assert upload_mocks.client.staging_tables() == []
+
+
+def test_connect_df_to_sql_replace_falls_back_when_exchange_is_unsupported(
+    upload_mocks: Any,
+) -> None:
+    """
+    ``EXCHANGE TABLES`` needs the Atomic database engine (the default since
+    ClickHouse 20.10). On a legacy Ordinary database it reports NOT_IMPLEMENTED,
+    and the replace falls back to drop-and-rename -- still with the rows already
+    loaded, so only the swap itself is exposed.
+    """
+    upload_mocks.client.exists = True
+    upload_mocks.client.exchange_error = RuntimeError("Code: 48. NOT_IMPLEMENTED")
+    df = pd.DataFrame({"a": [1]})
+
+    upload_mocks.spec.df_to_sql(Mock(), Table("t"), df, {"if_exists": "replace"})
+
+    staged = upload_mocks.client.inserts[0][0]
+    assert upload_mocks.client.commands_of("RENAME TABLE") == [
+        f"RENAME TABLE {staged} TO `t`"
+    ]
+    pd.testing.assert_frame_equal(upload_mocks.client.tables["`t`"], df)
+    assert upload_mocks.client.staging_tables() == []
+
+
+def test_connect_df_to_sql_replace_keeps_the_loaded_rows_if_the_rename_fails(
+    upload_mocks: Any,
+) -> None:
+    """
+    On the legacy fallback the target is dropped before the rename, so from
+    that point the staging table holds the only copy of the data. A failing
+    rename must not take it down with the error.
+    """
+    client = upload_mocks.client
+    client.exists = True
+    client.exchange_error = RuntimeError("Code: 48. NOT_IMPLEMENTED")
+    real_command = client.command
+
+    def fail_on_rename(sql: str) -> Any:
+        if sql.startswith("RENAME TABLE"):
+            client.commands.append(sql)
+            raise RuntimeError("server went away")
+        return real_command(sql)
+
+    client.command = fail_on_rename
+
+    with pytest.raises(RuntimeError, match="server went away"):
+        upload_mocks.spec.df_to_sql(
+            Mock(), Table("t"), pd.DataFrame({"a": [1]}), {"if_exists": "replace"}
+        )
+
+    assert client.staging_tables() != []
+
+
+def test_connect_df_to_sql_replace_creates_outright_when_absent(
+    upload_mocks: Any,
+) -> None:
+    """
+    ``replace`` against a table that doesn't exist has nothing to protect, so it
+    creates the target directly instead of staging and swapping.
+    """
+    df = pd.DataFrame({"a": [1]})
+
+    upload_mocks.spec.df_to_sql(Mock(), Table("t"), df, {"if_exists": "replace"})
+
+    assert upload_mocks.client.commands_of("EXCHANGE TABLES") == []
+    assert upload_mocks.client.create_statement.startswith("CREATE TABLE `t` (")
+    assert upload_mocks.client.inserts[0][0] == "`t`"
 
 
 def test_connect_df_to_sql_append_reuses_existing_table(upload_mocks: Any) -> None:
