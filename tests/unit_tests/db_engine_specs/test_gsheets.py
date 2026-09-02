@@ -1119,6 +1119,5 @@ def test_gsheets_metadata() -> None:
 
     metadata = GSheetsEngineSpec.metadata
     assert "Google Sheets" in metadata["description"]
-    assert metadata["logo"] == "google-sheets.png"
+    assert metadata["logo"] == "google-sheets.svg"
     assert "shillelagh[gsheetsapi]" in metadata["pypi_packages"]
-

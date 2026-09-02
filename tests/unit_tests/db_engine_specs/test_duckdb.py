@@ -264,7 +264,8 @@ def test_motherduck_metadata() -> None:
     from superset.db_engine_specs.duckdb import MotherDuckEngineSpec
 
     metadata = MotherDuckEngineSpec.metadata
-    assert "MotherDuck is a serverless cloud analytics platform" in metadata["description"]
+    assert (
+        "MotherDuck is a serverless cloud analytics platform" in metadata["description"]
+    )
     assert metadata["logo"] == "motherduck.png"
     assert "duckdb-engine" in metadata["pypi_packages"]
-

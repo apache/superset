@@ -459,4 +459,3 @@ def test_azure_synapse_metadata() -> None:
     assert "Azure Synapse Analytics" in metadata["description"]
     assert metadata["logo"] == "azure.svg"
     assert "pymssql" in metadata["pypi_packages"]
-

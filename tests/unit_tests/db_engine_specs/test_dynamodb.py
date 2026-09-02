@@ -84,5 +84,5 @@ def test_epoch_to_dttm() -> None:
 def test_time_grain_expressions(time_grain: str | None, expected: str) -> None:
     from superset.db_engine_specs.dynamodb import DynamoDBEngineSpec
 
-    assert DynamoDBEngineSpec._time_grain_expressions[time_grain].format(col="ts") == expected
-
+    actual = DynamoDBEngineSpec._time_grain_expressions[time_grain].format(col="ts")
+    assert actual == expected
