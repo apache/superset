@@ -27,7 +27,9 @@ from superset.utils.report_execution import (
     ReportExecutionDeadline,
 )
 from superset.utils.screenshot_utils import (
+    BlankScreenshotError,
     combine_screenshot_tiles,
+    is_screenshot_nearly_uniform,
     resolve_screenshot_task_budget_seconds,
     SCREENSHOT_TASK_BUDGET_MAX_MARGIN_SECONDS,
     ScreenshotTaskBudgetExceededError,
@@ -36,6 +38,37 @@ from superset.utils.screenshot_utils import (
     TILED_SCREENSHOT_TOTAL_WAIT_BUDGET_SECONDS,
     TiledScreenshotBudgetExceededError,
 )
+
+
+def _png(width: int, height: int, color: str) -> bytes:
+    image = Image.new("RGB", (width, height), color)
+    output = io.BytesIO()
+    image.save(output, format="PNG")
+    return output.getvalue()
+
+
+class TestScreenshotBlankDetection:
+    def test_uniform_png_is_blank(self):
+        is_blank, dominant_ratio = is_screenshot_nearly_uniform(_png(100, 100, "white"))
+
+        assert is_blank is True
+        assert dominant_ratio == 1.0
+
+    def test_chart_like_png_is_not_blank(self):
+        image = Image.new("RGB", (100, 100), "white")
+        for x in range(10, 90):
+            for y in range(10, 90):
+                image.putpixel((x, y), (x, y, 100))
+        output = io.BytesIO()
+        image.save(output, format="PNG")
+
+        is_blank, dominant_ratio = is_screenshot_nearly_uniform(output.getvalue())
+
+        assert is_blank is False
+        assert dominant_ratio < 0.995
+
+    def test_non_image_bytes_are_left_for_combination_validation(self):
+        assert is_screenshot_nearly_uniform(b"not an image") == (False, 0.0)
 
 
 def _report_context() -> ReportExecutionContext:
@@ -230,6 +263,76 @@ class TestTakeTiledScreenshot:
 
             # Should have called combine function
             mock_combine.assert_called_once()
+
+    def test_blank_tile_forces_repaint_and_retries(self, mock_page):
+        element_info = {"height": 1000, "top": 0, "left": 0, "width": 800}
+
+        def evaluate(script):
+            if "scrollWidth" in script:
+                return element_info
+            if "requestAnimationFrame" in script or "window.scrollTo" in script:
+                return None
+            return [{"chartId": "7", "state": "rendered"}]
+
+        mock_page.evaluate.side_effect = evaluate
+        mock_page.screenshot.side_effect = [
+            _png(800, 1000, "white"),
+            self._create_chart_like_tile(),
+        ]
+
+        with patch(
+            "superset.utils.screenshot_utils.combine_screenshot_tiles",
+            return_value=b"combined",
+        ):
+            result = take_tiled_screenshot(
+                mock_page,
+                "dashboard",
+                tile_height=2000,
+                report_execution_context=_report_context(),
+            )
+
+        assert result == b"combined"
+        assert mock_page.screenshot.call_count == 2
+        mock_page.bring_to_front.assert_called_once_with()
+        assert any(
+            "requestAnimationFrame" in call.args[0]
+            for call in mock_page.evaluate.call_args_list
+        )
+
+    def test_repeated_blank_tile_aborts_report(self, mock_page):
+        element_info = {"height": 1000, "top": 0, "left": 0, "width": 800}
+
+        def evaluate(script):
+            if "scrollWidth" in script:
+                return element_info
+            if "requestAnimationFrame" in script or "window.scrollTo" in script:
+                return None
+            return [{"chartId": "7", "state": "rendered"}]
+
+        mock_page.evaluate.side_effect = evaluate
+        mock_page.screenshot.return_value = _png(800, 1000, "white")
+
+        with patch("superset.utils.screenshot_utils.logger") as mock_logger:
+            result = take_tiled_screenshot(
+                mock_page,
+                "dashboard",
+                tile_height=2000,
+                report_execution_context=_report_context(),
+            )
+
+        assert result is None
+        assert mock_page.screenshot.call_count == 3
+        assert isinstance(mock_logger.exception.call_args.args[1], BlankScreenshotError)
+
+    @staticmethod
+    def _create_chart_like_tile() -> bytes:
+        image = Image.new("RGB", (800, 1000), "white")
+        for x in range(100, 700):
+            for y in range(100, 900):
+                image.putpixel((x, y), (x % 255, y % 255, 100))
+        output = io.BytesIO()
+        image.save(output, format="PNG")
+        return output.getvalue()
 
     def test_slow_holder_mount_is_polled_before_dimensions_and_capture(
         self,

@@ -23,7 +23,7 @@ import time
 from typing import TYPE_CHECKING
 
 from celery import current_task
-from PIL import Image
+from PIL import Image, UnidentifiedImageError
 
 from superset.utils.report_execution import (
     ReportExecutionBudgetExceededError,
@@ -34,6 +34,13 @@ logger = logging.getLogger(__name__)
 
 # Time to wait after scrolling for content to settle and load (in milliseconds)
 SCROLL_SETTLE_TIMEOUT_MS = 1000
+
+# Chromium can occasionally return a valid but uniformly blank PNG for an
+# off-screen clip. Retry after forcing a compositor frame, but keep each CDP
+# capture bounded so a wedged compositor cannot consume the report deadline.
+TILED_SCREENSHOT_CAPTURE_TIMEOUT_SECONDS = 120
+TILED_SCREENSHOT_MAX_CAPTURE_ATTEMPTS = 3
+TILED_SCREENSHOT_BLANK_DOMINANT_PIXEL_RATIO = 0.995
 
 # Runtime task-budget policy shared with the approach introduced in #42118.
 # Celery exposes the effective per-task hard/soft limits only on the running
@@ -113,6 +120,32 @@ class ScreenshotTaskBudgetExceededError(RuntimeError):
 
 class TiledScreenshotBudgetExceededError(ScreenshotTaskBudgetExceededError):
     """Raised when the tiled-screenshot time budget runs out mid-capture."""
+
+
+class BlankScreenshotError(RuntimeError):
+    """Raised when Chromium repeatedly returns a uniformly blank tile."""
+
+
+def is_screenshot_nearly_uniform(screenshot: bytes) -> tuple[bool, float]:
+    """Return whether one color occupies nearly all sampled screenshot pixels."""
+
+    try:
+        with Image.open(io.BytesIO(screenshot)) as image:
+            sample = image.convert("RGB")
+            sample.thumbnail((256, 256))
+            colors = sample.getcolors(maxcolors=sample.width * sample.height)
+            if not colors:
+                return False, 0.0
+            dominant_pixels = max(count for count, _color in colors)
+            dominant_ratio = dominant_pixels / (sample.width * sample.height)
+            return (
+                dominant_ratio >= TILED_SCREENSHOT_BLANK_DOMINANT_PIXEL_RATIO,
+                dominant_ratio,
+            )
+    except (OSError, UnidentifiedImageError):
+        # Combining the tiles remains responsible for rejecting corrupt image
+        # bytes. This check only identifies valid images with blank pixels.
+        return False, 0.0
 
 
 try:
@@ -613,6 +646,7 @@ def take_tiled_screenshot(  # noqa: C901
         logger.info("Taking %s screenshot tiles%s", num_tiles, context_suffix)
 
         screenshot_tiles: list[bytes] = []
+        blank_tile_retries = 0
 
         def _raise_if_budget_exhausted() -> None:
             elapsed, remaining = _deadline_values()
@@ -841,6 +875,7 @@ def take_tiled_screenshot(  # noqa: C901
             capture_timeout = (
                 _timeout_seconds(
                     "screenshot_capture",
+                    requested_seconds=TILED_SCREENSHOT_CAPTURE_TIMEOUT_SECONDS,
                     reserve_seconds=(
                         report_execution_context.post_capture_reserve_seconds
                         if report_execution_context
@@ -850,15 +885,83 @@ def take_tiled_screenshot(  # noqa: C901
                 if report_execution_context or task_budget is not None
                 else None
             )
-            tile_screenshot = page.screenshot(
-                type="png",
-                clip=clip,
-                **(
-                    {"timeout": capture_timeout * 1000}
-                    if capture_timeout is not None
-                    else {}
-                ),
-            )
+            tile_screenshot: bytes | None = None
+            for capture_attempt in range(1, TILED_SCREENSHOT_MAX_CAPTURE_ATTEMPTS + 1):
+                capture_started_at = time.monotonic()
+                try:
+                    candidate = page.screenshot(
+                        type="png",
+                        clip=clip,
+                        **(
+                            {"timeout": capture_timeout * 1000}
+                            if capture_timeout is not None
+                            else {}
+                        ),
+                    )
+                except PlaywrightTimeout:
+                    capture_elapsed = time.monotonic() - capture_started_at
+                    logger.warning(
+                        "report_capture_tile_timeout tile=%s/%s attempt=%s/%s "
+                        "capture_elapsed_seconds=%.2f%s",
+                        i + 1,
+                        num_tiles,
+                        capture_attempt,
+                        TILED_SCREENSHOT_MAX_CAPTURE_ATTEMPTS,
+                        capture_elapsed,
+                        context_suffix,
+                    )
+                    if capture_attempt == TILED_SCREENSHOT_MAX_CAPTURE_ATTEMPTS:
+                        raise
+                else:
+                    capture_elapsed = time.monotonic() - capture_started_at
+                    is_blank, dominant_ratio = is_screenshot_nearly_uniform(candidate)
+                    logger.debug(
+                        "Captured tile %s/%s attempt %s/%s in %.2fs "
+                        "(dominant_pixel_ratio=%.5f)%s",
+                        i + 1,
+                        num_tiles,
+                        capture_attempt,
+                        TILED_SCREENSHOT_MAX_CAPTURE_ATTEMPTS,
+                        capture_elapsed,
+                        dominant_ratio,
+                        context_suffix,
+                    )
+                    if not is_blank:
+                        tile_screenshot = candidate
+                        break
+                    blank_tile_retries += 1
+                    logger.warning(
+                        "report_capture_blank_tile tile=%s/%s attempt=%s/%s "
+                        "capture_elapsed_seconds=%.2f dominant_pixel_ratio=%.5f%s",
+                        i + 1,
+                        num_tiles,
+                        capture_attempt,
+                        TILED_SCREENSHOT_MAX_CAPTURE_ATTEMPTS,
+                        capture_elapsed,
+                        dominant_ratio,
+                        context_suffix,
+                    )
+                    if capture_attempt == TILED_SCREENSHOT_MAX_CAPTURE_ATTEMPTS:
+                        raise BlankScreenshotError(
+                            f"Chromium returned a blank screenshot for tile "
+                            f"{i + 1}/{num_tiles} after {capture_attempt} attempts"
+                        )
+
+                _raise_if_budget_exhausted()
+                page.bring_to_front()
+                page.evaluate(
+                    """() => new Promise(resolve => {
+                        window.scrollBy(0, 1);
+                        window.scrollBy(0, -1);
+                        requestAnimationFrame(() =>
+                            requestAnimationFrame(() => resolve()));
+                    })"""
+                )
+
+            if tile_screenshot is None:
+                raise BlankScreenshotError(
+                    f"No usable screenshot returned for tile {i + 1}/{num_tiles}"
+                )
             screenshot_tiles.append(tile_screenshot)
 
             logger.debug(
@@ -885,7 +988,8 @@ def take_tiled_screenshot(  # noqa: C901
         elapsed, remaining = _deadline_values()
         logger.info(
             "report_readiness_ready url=%s expected_holders=%s mounted_holders=%s "
-            "ready_holders=%s ag_grid_waited_holders=%s elapsed_seconds=%.2f "
+            "ready_holders=%s ag_grid_waited_holders=%s blank_tile_retries=%s "
+            "elapsed_seconds=%.2f "
             "remaining_seconds=%s%s",
             url,
             (
@@ -896,6 +1000,7 @@ def take_tiled_screenshot(  # noqa: C901
             len(holder_states),
             sum(holder.get("state") in ready_states for holder in holder_states),
             sum(holder.get("agGridWaitObserved") is True for holder in holder_states),
+            blank_tile_retries,
             elapsed,
             f"{remaining:.2f}" if remaining is not None else None,
             context_suffix,
