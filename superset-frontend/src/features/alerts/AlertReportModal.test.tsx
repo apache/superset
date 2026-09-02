@@ -58,6 +58,7 @@ jest.mock('src/features/databases/state.ts', () => ({
 }));
 
 const mockGetChartDataRequest = jest.fn().mockResolvedValue({
+  response: { status: 200 },
   json: { result: [{ data: [] }] },
 });
 jest.mock('src/components/Chart/chartAction', () => ({
@@ -324,6 +325,7 @@ afterEach(() => {
   // Reset chartData mock so stale resolved values don't leak
   mockGetChartDataRequest.mockReset();
   mockGetChartDataRequest.mockResolvedValue({
+    response: { status: 200 },
     json: { result: [{ data: [] }] },
   });
 });
@@ -2744,6 +2746,7 @@ test('selecting filter triggers chart data request with correct params', async (
   fetchMock.get(tabsEndpoint, tabsWithFilters, { name: tabsEndpoint });
 
   mockGetChartDataRequest.mockResolvedValue({
+    response: { status: 200 },
     json: { result: [{ data: [{ country: 'US' }, { country: 'UK' }] }] },
   });
 
@@ -2783,6 +2786,7 @@ test('selected filter excluded from other row dropdowns', async () => {
   fetchMock.get(tabsEndpoint, tabsWithFilters, { name: tabsEndpoint });
 
   mockGetChartDataRequest.mockResolvedValue({
+    response: { status: 200 },
     json: { result: [{ data: [{ country: 'US' }] }] },
   });
 
