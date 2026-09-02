@@ -75,6 +75,15 @@ resolves the `async_mode` it sends from a policy chain — per-dashboard overrid
 deployment default `GLOBAL_ASYNC_QUERIES_DEFAULT` (default `true`) → the feature
 flag — so the UI keeps its existing async behavior by default.
 
+**Embedded (guest token) async requires explicit role grants.** Async chart-data
+completion is observed through `GET /api/v1/task/status_changes` (gated by
+`can_read Task`) and, when the WebSocket transport is enabled, over the socket
+(gated by `can_read Realtime`). An authenticated Gamma user has `can_read Task` by
+default; the default guest role (`Public`) does **not**. So an embedded guest only
+runs async when the operator grants its role `can_read Task` (and `can_read
+Realtime` for the socket) — otherwise the request transparently falls back to the
+synchronous `200` flow rather than returning a `202` the guest could never resolve.
+
 Enabling the realtime WebSocket transport (optional; when enabled it becomes the
 completion transport for async chart-data — see the note on the interval poll):
 

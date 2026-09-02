@@ -1602,12 +1602,13 @@ class ChartDataQueryContextSchema(Schema):
 
     force_nonce = fields.String(
         metadata={
-            "description": "Idempotency token for a forced refresh. Set once per "
-            "user-initiated force refresh and sent on every request of that "
-            "refresh (the async submit and the follow-up read-back). The first "
-            "execution recomputes and records a marker; later requests carrying "
-            "the same nonce read the freshly-cached result instead of recomputing "
-            "it. Ignored when `force` is false."
+            "description": "Forced-refresh idempotency token for a single-query "
+            "request: the async task's UUID (as returned in the 202 `task_ids`). "
+            "Sent on the synchronous read-back of a forced refresh so it reads the "
+            "result the task warmed instead of recomputing; concurrent refreshes "
+            "joining the same shared task read back under the same token. Multi-query "
+            "requests set the per-query `force_nonce` on each query instead. Ignored "
+            "when `force` is false."
         },
         required=False,
         allow_none=True,

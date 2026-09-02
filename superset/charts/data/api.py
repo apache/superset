@@ -367,9 +367,17 @@ class ChartDataRestApi(ChartRestApi):
         per-principal subscription (see ``superset.tasks.subscription``). A fully
         anonymous request (public dashboard viewed directly, no login and no guest
         token) has no principal, so it would schedule a task it could never poll
-        or cancel; those requests run synchronously instead. Public async delivery
-        is supported via guest tokens (embedded dashboards), which do have a
-        principal.
+        or cancel; those requests run synchronously instead.
+
+        The principal must also be able to *observe* task state: chart completion is
+        read from ``GET /api/v1/task/status_changes``, which is gated by
+        ``can_read Task`` (the websocket transport is likewise gated by
+        ``can_read Realtime``). An authenticated Gamma user has ``Task`` by default;
+        an embedded guest on the default ``Public`` role does not, so guest async
+        works only when the operator grants the guest role ``can_read Task`` — and
+        otherwise falls back to sync rather than returning a 202 the guest can never
+        resolve. See ``UPDATING.md`` for the guest-role grants required to enable
+        embedded async.
 
         The eligibility check reads :meth:`QueryContext.get_cache_timeout`, which
         only resolves the explicitly configured chart/dataset/database TTL. That is
@@ -389,6 +397,10 @@ class ChartDataRestApi(ChartRestApi):
                 get_user_id() is not None
                 or get_current_guest_subscriber_key() is not None
             )
+            # The client must be able to read task status to observe completion;
+            # otherwise the 202 is unresolvable (e.g. a guest on the default Public
+            # role). Fall back to sync when it can't.
+            and security_manager.can_access("can_read", "Task")
         )
 
     def _run_async(

@@ -508,12 +508,17 @@ class TaskWrapper(Generic[P]):
             task.uuid,
         )
         # Ensure status is ABORTED (not just ABORTING)
-        InternalStatusTransitionCommand(
+        transitioned = InternalStatusTransitionCommand(
             task_uuid=task.uuid,
             new_status=TaskStatus.ABORTED,
             expected_status=[TaskStatus.PENDING, TaskStatus.ABORTING],
             set_ended_at=True,
         ).run()
+        # Wake waiters (websocket-mode clients don't poll), but only when this path
+        # performed the transition, so a cancel that already published completion
+        # isn't echoed. Mirrors the async pre-execution check in ``scheduler.py``.
+        if transitioned:
+            TaskManager.publish_completion(task.uuid, TaskStatus.ABORTED.value)
         refreshed = TaskDAO.find_one_or_none(uuid=task.uuid, skip_base_filter=True)
         return refreshed if refreshed else task
 

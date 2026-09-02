@@ -410,12 +410,17 @@ def execute_task(
             task_type,
             task_uuid,
         )
-        InternalStatusTransitionCommand(
+        transitioned = InternalStatusTransitionCommand(
             task_uuid=native_uuid,
             new_status=TaskStatus.ABORTED,
             expected_status=[TaskStatus.PENDING, TaskStatus.ABORTING],
             set_ended_at=True,
         ).run()
+        # Wake waiters (websocket-mode chart clients don't poll). Only when this
+        # path performed the transition, so a cancel that already published
+        # completion for the same task isn't echoed.
+        if transitioned:
+            TaskManager.publish_completion(native_uuid, TaskStatus.ABORTED.value)
         return {"status": TaskStatus.ABORTED.value, "task_uuid": task_uuid}
 
     # DAG gate (non-blocking): defer via Celery retry until every prerequisite is
