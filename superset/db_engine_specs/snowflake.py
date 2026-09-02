@@ -34,6 +34,7 @@ from sqlalchemy import text, types
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 from sqlalchemy.exc import DatabaseError as SqlalchemyDatabaseError
+from sqlalchemy.sql import quoted_name
 from sqlalchemy.sql.elements import ColumnElement
 
 from superset import is_feature_enabled, security_manager
@@ -156,6 +157,17 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
     supports_dynamic_schema = True
     supports_catalog = supports_dynamic_catalog = supports_cross_catalog_queries = True
     supports_grouping_sets = True
+
+    @classmethod
+    def prepare_identifier(
+        cls,
+        name: str,
+        normalize_columns: bool = False,
+    ) -> str:
+        """Preserve exact-case physical identifiers when columns are not normalized."""
+        if normalize_columns:
+            return name
+        return quoted_name(name, quote=True)
 
     metadata = {
         "description": "Snowflake is a cloud-native data warehouse.",

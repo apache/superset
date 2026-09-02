@@ -24,6 +24,7 @@ from unittest import mock
 import pytest
 from pytest_mock import MockerFixture
 from sqlalchemy.engine.url import make_url, URL
+from sqlalchemy.sql import quoted_name
 
 from superset.app import SupersetApp
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -31,6 +32,32 @@ from superset.superset_typing import OAuth2ClientConfig
 from superset.utils import json
 from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
 from tests.unit_tests.fixtures.common import dttm  # noqa: F401
+
+
+@pytest.mark.parametrize("name", ["lowercase", "UPPERCASE"])
+def test_prepare_identifier_quotes_exact_case_names(name: str) -> None:
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+
+    identifier = SnowflakeEngineSpec.prepare_identifier(
+        name,
+        normalize_columns=False,
+    )
+
+    assert isinstance(identifier, quoted_name)
+    assert str(identifier) == name
+    assert identifier.quote is True
+
+
+def test_prepare_identifier_preserves_normalized_name() -> None:
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+
+    name = "lowercase"
+    identifier = SnowflakeEngineSpec.prepare_identifier(
+        name,
+        normalize_columns=True,
+    )
+
+    assert identifier is name
 
 
 @pytest.mark.parametrize(
