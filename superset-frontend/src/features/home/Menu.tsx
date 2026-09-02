@@ -113,7 +113,7 @@ const StyledMainNav = styled(MainNav)`
         padding: 0 ${theme.sizeUnit * 4}px;
       }
 
-      [data-icon='caret-down'] {
+      [data-icon='down'] {
         color: ${theme.colorIcon};
         font-size: ${theme.sizeXS}px;
       }
@@ -330,7 +330,7 @@ export function Menu({
       key,
       label,
       ...(isMd && {
-        icon: <Icons.CaretDownOutlined iconSize="xs" />,
+        icon: <Icons.DownOutlined iconSize="xs" />,
         popupOffset: NAVBAR_MENU_POPUP_OFFSET,
       }),
       children: childItems,
