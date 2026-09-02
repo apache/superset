@@ -89,12 +89,12 @@ const targetValueRightValidator = targetValueValidator(
 );
 
 const minBoundValidator = targetValueValidator(
-  (min: number, max: number) => min < max,
+  (max: number, min: number) => min < max,
   t('Min bound should be smaller than max bound'),
 );
 
 const maxBoundValidator = targetValueValidator(
-  (max: number, min: number) => max > min,
+  (min: number, max: number) => max > min,
   t('Max bound should be greater than min bound'),
 );
 

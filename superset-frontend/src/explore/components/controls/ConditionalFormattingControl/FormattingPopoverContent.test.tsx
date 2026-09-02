@@ -455,3 +455,67 @@ test('hides min/max bound fields on string columns', () => {
   expect(screen.queryByLabelText('Min bound')).not.toBeInTheDocument();
   expect(screen.queryByLabelText('Max bound')).not.toBeInTheDocument();
 });
+
+test('shows no validation error for a valid min/max bound pair', async () => {
+  const { container } = render(
+    <FormattingPopoverContent
+      onChange={mockOnChange}
+      columns={columns}
+      extraColorChoices={extraColorChoices}
+    />,
+  );
+
+  const minBoundInput = screen.getByLabelText('Min bound', { exact: false });
+  const maxBoundInput = screen.getByLabelText('Max bound', { exact: false });
+
+  await userEvent.type(minBoundInput, '5');
+  fireEvent.blur(minBoundInput);
+  await userEvent.type(maxBoundInput, '10');
+  fireEvent.blur(maxBoundInput);
+  fireEvent.blur(minBoundInput);
+
+  await waitFor(() => {
+    expect(
+      container.querySelector('.ant-form-item-is-validating'),
+    ).not.toBeInTheDocument();
+  });
+
+  expect(
+    screen.queryByText('Min bound should be smaller than max bound'),
+  ).not.toBeInTheDocument();
+  expect(
+    screen.queryByText('Max bound should be greater than min bound'),
+  ).not.toBeInTheDocument();
+});
+
+test('shows a validation error when min bound is greater than max bound', async () => {
+  const { container } = render(
+    <FormattingPopoverContent
+      onChange={mockOnChange}
+      columns={columns}
+      extraColorChoices={extraColorChoices}
+    />,
+  );
+
+  const minBoundInput = screen.getByLabelText('Min bound', { exact: false });
+  const maxBoundInput = screen.getByLabelText('Max bound', { exact: false });
+
+  await userEvent.type(minBoundInput, '10');
+  fireEvent.blur(minBoundInput);
+  await userEvent.type(maxBoundInput, '5');
+  fireEvent.blur(maxBoundInput);
+  fireEvent.blur(minBoundInput);
+
+  await waitFor(() => {
+    expect(
+      container.querySelector('.ant-form-item-is-validating'),
+    ).not.toBeInTheDocument();
+  });
+
+  expect(
+    screen.getByText('Min bound should be smaller than max bound'),
+  ).toBeInTheDocument();
+  expect(
+    screen.getByText('Max bound should be greater than min bound'),
+  ).toBeInTheDocument();
+});
