@@ -23,6 +23,7 @@ from datetime import datetime
 from pprint import pformat
 from typing import Any, NamedTuple, TYPE_CHECKING
 
+from flask import current_app
 from flask_babel import gettext as _
 from jinja2.exceptions import TemplateError
 from pandas import DataFrame
@@ -195,13 +196,26 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         #   1. 'metric_name'   - name of predefined metric
         #   2. { label: 'label_name' }  - legacy format for a predefined metric
         #   3. { expressionType: 'SIMPLE' | 'SQL', ... } - adhoc metric
-        def is_str_or_adhoc(metric: Metric) -> bool:
-            return isinstance(metric, str) or is_adhoc_metric(metric)
+        # Keys that only ever appear on an ad-hoc metric definition. A dict
+        # carrying one of these but missing `expressionType` is a malformed
+        # ad-hoc metric, not a legacy predefined-metric reference, and must
+        # not be silently collapsed to its label, which would later be
+        # misread as a request for a saved metric of that name.
+        adhoc_metric_keys = {"sqlExpression", "aggregate", "column"}
 
-        self.metrics = metrics and [
-            x if is_str_or_adhoc(x) else x["label"]  # type: ignore
-            for x in metrics
-        ]
+        def normalize_metric(metric: Metric) -> Metric:
+            if isinstance(metric, str) or is_adhoc_metric(metric):
+                return metric
+            if adhoc_metric_keys & metric.keys():
+                raise QueryObjectValidationError(
+                    _(
+                        "Invalid ad-hoc metric %(label)s: `expressionType` is missing",
+                        label=metric.get("label"),
+                    )
+                )
+            return metric["label"]  # type: ignore
+
+        self.metrics = metrics and [normalize_metric(x) for x in metrics]
 
     def _set_post_processing(
         self, post_processing: list[dict[str, Any] | None] | None
@@ -229,16 +243,23 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
 
         Comparing against the signature avoids a hard-coded list of removed
         option names, which would need extending at each release.
+
+        Only the built-in operations in ``pandas_postprocessing.__all__`` are
+        inspected. The module also exposes helpers, imported submodules and
+        typing aliases, none of which are operations; and options belonging to a
+        callable registered through ``EXTRA_PANDAS_POSTPROCESSING_OPS`` are the
+        operator's to manage, so both are passed through untouched.
         """
         operation = post_proc.get("operation")
         function = (
             getattr(pandas_postprocessing, operation, None)
-            if isinstance(operation, str)
+            if isinstance(operation, str) and operation in pandas_postprocessing.__all__
             else None
         )
         if function is None:
-            # A missing or unknown operation is left untouched, so that
-            # exec_post_processing reports it as InvalidPostProcessingError.
+            # A missing, unknown or operator-registered operation is left
+            # untouched, so that exec_post_processing either dispatches it or
+            # reports it as InvalidPostProcessingError.
             return post_proc
 
         parameters = inspect.signature(function).parameters
@@ -623,13 +644,22 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
                     raise InvalidPostProcessingError(
                         _("`operation` property of post processing object undefined")
                     )
-                if not hasattr(pandas_postprocessing, operation):
-                    raise InvalidPostProcessingError(
-                        _(
-                            "Unsupported post processing operation: %(operation)s",
-                            type=operation,
-                        )
+                # ``__all__`` is the authoritative list of built-in operations.
+                # ``hasattr`` would also match module internals (helpers, imported
+                # submodules, typing aliases), shadowing a like-named custom op.
+                if operation in pandas_postprocessing.__all__:
+                    func = getattr(pandas_postprocessing, operation)
+                else:
+                    extra_ops = pandas_postprocessing.build_extra_ops_map(
+                        current_app.config.get("EXTRA_PANDAS_POSTPROCESSING_OPS", [])
                     )
-                options = post_process.get("options", {})
-                df = getattr(pandas_postprocessing, operation)(df, **options)
+                    if operation not in extra_ops:
+                        raise InvalidPostProcessingError(
+                            _(
+                                "Unsupported post processing operation: %(operation)s",
+                                operation=operation,
+                            )
+                        )
+                    func = extra_ops[operation]
+                df = func(df, **post_process.get("options", {}))
             return df

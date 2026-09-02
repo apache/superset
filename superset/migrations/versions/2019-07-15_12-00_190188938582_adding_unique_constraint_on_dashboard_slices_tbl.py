@@ -46,7 +46,7 @@ class DashboardSlices(Base):
 
 def upgrade():
     bind = op.get_bind()
-    session = db.Session(bind=bind, future=True)
+    session = db.Session(bind=bind)
 
     # find dup records in dashboard_slices tbl
     dup_records = (

@@ -38,7 +38,7 @@ from flask_appbuilder.models.filters import BaseFilter
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from pydantic import BaseModel, Field
 from sqlalchemy import asc, cast, desc, false, or_, Text
-from sqlalchemy.exc import SQLAlchemyError, StatementError
+from sqlalchemy.exc import OperationalError, SQLAlchemyError, StatementError
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.inspection import inspect
 from sqlalchemy.orm import ColumnProperty, joinedload, Query, RelationshipProperty
@@ -255,6 +255,11 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
             filter = uuid_column == model_id_or_uuid
         try:
             return query.filter(filter).one_or_none()
+        except OperationalError:
+            # A transient connection-level failure (e.g. the server dropping the
+            # connection mid-query) surfaces as OperationalError, a StatementError
+            # subclass. Let it propagate instead of masking it as a "not found".
+            raise
         except StatementError:
             # can happen if neither uuid nor int is passed
             return None
@@ -341,6 +346,11 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
 
         try:
             return query.filter(column == converted_value).one_or_none()
+        except OperationalError:
+            # A transient connection-level failure (e.g. the server dropping the
+            # connection mid-query) surfaces as OperationalError, a StatementError
+            # subclass. Let it propagate instead of masking it as a "not found".
+            raise
         except StatementError:
             # can happen if int is passed instead of a string or similar
             return None
@@ -433,6 +443,11 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
 
         try:
             results = query.all()
+        except OperationalError:
+            # A transient connection-level failure (e.g. the server dropping the
+            # connection mid-query) surfaces as OperationalError. Let it propagate
+            # as a 5xx instead of masking it as a 400 "record doesn't exist".
+            raise
         except SQLAlchemyError as ex:
             model_name = cls.model_cls.__name__ if cls.model_cls else "Unknown"
             raise DAOFindFailedError(

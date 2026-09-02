@@ -577,7 +577,7 @@ def test_get_sqla_engine(mocker: MockerFixture) -> None:
 
     create_engine_mock = mocker.patch(
         "superset.models.core.create_engine",
-        return_value=create_engine("sqlite://", future=True),
+        return_value=create_engine("sqlite://"),
     )
     listen = mocker.spy(__import__("sqlalchemy").event, "listen")
 
@@ -587,7 +587,6 @@ def test_get_sqla_engine(mocker: MockerFixture) -> None:
     create_engine_mock.assert_called_with(
         make_url("trino:///"),
         connect_args={"source": "Apache Superset"},
-        future=True,
     )
     listen.assert_any_call(
         create_engine_mock.return_value,
@@ -622,7 +621,7 @@ def test_get_sqla_engine_caches_engine_per_url(mocker: MockerFixture) -> None:
     )
     create_engine_mock = mocker.patch(
         "superset.models.core.create_engine",
-        return_value=create_engine("sqlite://", future=True),
+        return_value=create_engine("sqlite://"),
     )
     listen = mocker.spy(__import__("sqlalchemy").event, "listen")
 
@@ -662,7 +661,7 @@ def test_get_sqla_engine_does_not_cache_unsaved_instances(
     )
     create_engine_mock = mocker.patch(
         "superset.models.core.create_engine",
-        return_value=create_engine("sqlite://", future=True),
+        return_value=create_engine("sqlite://"),
     )
     listen = mocker.spy(__import__("sqlalchemy").event, "listen")
 
@@ -736,7 +735,7 @@ def test_get_sqla_engine_user_impersonation(mocker: MockerFixture) -> None:
 
     create_engine_mock = mocker.patch(
         "superset.models.core.create_engine",
-        return_value=create_engine("sqlite://", future=True),
+        return_value=create_engine("sqlite://"),
     )
     listen = mocker.spy(__import__("sqlalchemy").event, "listen")
 
@@ -750,7 +749,6 @@ def test_get_sqla_engine_user_impersonation(mocker: MockerFixture) -> None:
     create_engine_mock.assert_called_with(
         make_url("trino:///"),
         connect_args={"user": "alice", "source": "Apache Superset"},
-        future=True,
     )
     listen.assert_any_call(
         create_engine_mock.return_value,
@@ -801,7 +799,7 @@ def test_get_sqla_engine_user_impersonation_email(mocker: MockerFixture) -> None
 
     create_engine_mock = mocker.patch(
         "superset.models.core.create_engine",
-        return_value=create_engine("sqlite://", future=True),
+        return_value=create_engine("sqlite://"),
     )
     listen = mocker.spy(__import__("sqlalchemy").event, "listen")
 
@@ -815,7 +813,6 @@ def test_get_sqla_engine_user_impersonation_email(mocker: MockerFixture) -> None
     create_engine_mock.assert_called_with(
         make_url("trino:///"),
         connect_args={"user": "alice.doe", "source": "Apache Superset"},
-        future=True,
     )
     listen.assert_any_call(
         create_engine_mock.return_value,
@@ -1333,7 +1330,7 @@ def test_get_schema_access_for_file_upload() -> None:
     try:
         from sqlalchemy import create_engine
 
-        create_engine("gsheets://", future=True)
+        create_engine("gsheets://")
     except Exception:
         pytest.skip("gsheets:// dialect not available (Shillelagh not installed)")
 
@@ -2241,7 +2238,6 @@ def test_prequery_listener_mutation_race_deterministic(
 
     def patched_create_engine(url: Any, **kwargs: Any) -> Any:
         kwargs["creator"] = parking_creator
-        kwargs["future"] = True
         return real_create_engine(url, **kwargs)
 
     mocker.patch(
@@ -2300,3 +2296,26 @@ def test_prequery_listener_mutation_race_deterministic(
     assert not t_b.is_alive(), "thread B deadlocked"
 
     assert not errors, f"deterministic interleaving raised: {errors!r}"
+
+
+def test_function_names_returns_engine_spec_functions(mocker: MockerFixture) -> None:
+    database = Database(database_name="db", sqlalchemy_uri="sqlite://")
+    spec = mocker.MagicMock()
+    spec.get_function_names.return_value = ["abs", "avg", "cardinality"]
+    database.get_db_engine_spec = mocker.MagicMock(return_value=spec)
+
+    assert database.function_names == ["abs", "avg", "cardinality"]
+    spec.get_function_names.assert_called_once_with(database)
+
+
+def test_function_names_returns_empty_list_when_engine_spec_raises(
+    mocker: MockerFixture,
+) -> None:
+    database = Database(database_name="db", sqlalchemy_uri="sqlite://")
+    spec = mocker.MagicMock()
+    spec.get_function_names.side_effect = Exception("Connection refused")
+    database.get_db_engine_spec = mocker.MagicMock(return_value=spec)
+    logger = mocker.patch("superset.models.core.logger")
+
+    assert database.function_names == []
+    assert logger.error.called

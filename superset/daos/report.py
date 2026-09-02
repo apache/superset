@@ -180,16 +180,26 @@ class ReportScheduleDAO(BaseDAO[ReportSchedule]):
 
     @staticmethod
     def validate_unique_creation_method(
-        dashboard_id: int | None = None, chart_id: int | None = None
+        dashboard_id: int | None = None,
+        chart_id: int | None = None,
+        creation_method: str | None = None,
     ) -> bool:
         """
-        Validate if the user already has a chart or dashboard
-        with a report attached form the self subscribe reports
+        Validate if the user already has a chart or dashboard with a report
+        attached that was created via the same creation method as the one
+        being validated. Only reports created through the same method (e.g.
+        two "charts"-sourced reports) compete for the one-per-object slot --
+        an unrelated self-subscribed alert/report (creation method
+        "alerts_reports") on the same chart or dashboard doesn't count
+        against it.
         """
 
         query = db.session.query(ReportSchedule).filter_by(created_by_fk=get_user_id())
         if dashboard_id is not None:
             query = query.filter(ReportSchedule.dashboard_id == dashboard_id)
+
+        if creation_method is not None:
+            query = query.filter(ReportSchedule.creation_method == creation_method)
 
         if chart_id is not None:
             query = query.filter(ReportSchedule.chart_id == chart_id)

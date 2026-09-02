@@ -94,7 +94,7 @@ EVENT_LOGGER = DBEventLogger()
 
 SUPERSET_LOG_VIEW = True
 
-# This config is used to enable/disable the folowing security menu items:
+# This config is used to enable/disable the following security menu items:
 # List Users, List Roles, List Groups
 SUPERSET_SECURITY_VIEW_MENU = True
 
@@ -358,6 +358,17 @@ SQLALCHEMY_ENCRYPTED_FIELD_ENGINE: Literal["aes", "aes-gcm"] = "aes"
 # Extends the default SQLGlot dialects with additional dialects
 SQLGLOT_DIALECTS_EXTENSIONS: DialectExtensions | Callable[[], DialectExtensions] = {}
 
+# Extra pandas post-processing operations to register alongside the built-in ones.
+# Each entry must be a named callable (i.e. have a __name__ attribute) with the
+# signature:
+#   def my_op(df: pandas.DataFrame, **options: Any) -> pandas.DataFrame
+# The function is registered under its __name__ as the operation name. Callables
+# without __name__ (e.g. functools.partial, lambda) are silently ignored.
+# Example:
+#   from mypackage.ops import my_custom_op
+#   EXTRA_PANDAS_POSTPROCESSING_OPS = [my_custom_op]
+EXTRA_PANDAS_POSTPROCESSING_OPS: list[Callable[..., Any]] = []
+
 # The limit of queries fetched for query search
 QUERY_SEARCH_LIMIT = 1000
 
@@ -367,6 +378,9 @@ WTF_CSRF_ENABLED = True
 # Add endpoints that need to be exempt from CSRF protection
 WTF_CSRF_EXEMPT_LIST = [
     "superset.charts.data.api.data",
+    # Headless query endpoint for token-authenticated API clients, exempted for
+    # the same reason as the chart data endpoint above.
+    "superset.datasource.api.query",
     "superset.dashboards.api.cache_dashboard_screenshot",
     "superset.views.core.log",
     "superset.views.datasource.views.samples",
@@ -697,7 +711,7 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # the move-back lever; removed (along with its two gate points —
     # BaseDAO.delete routing and the do_orm_execute visibility listener) once
     # post-flip confidence is established.
-    # @lifecycle: development
+    # @lifecycle: testing
     "SOFT_DELETE": True,
     # Enable semantic layers and show semantic views alongside datasets
     # @lifecycle: development
@@ -731,9 +745,9 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     "TAGGING_SYSTEM": False,
     # Enables the version history panel on Explore and Dashboard pages.
     # History only accrues while ``ENABLE_VERSIONING_CAPTURE`` is also on;
-    # with capture off the panel renders but stays empty, so the two ship
-    # with matching defaults and should be changed together.
-    # @lifecycle: development
+    # with capture off the panel renders empty or stale history, so the two
+    # ship with matching defaults and should be changed together.
+    # @lifecycle: testing
     "VERSION_HISTORY": True,
     # =================================================================
     # IN TESTING
@@ -748,6 +762,9 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # @lifecycle: testing
     # @docs: https://superset.apache.org/docs/configuration/alerts-reports
     "ALERT_REPORTS": False,
+    # Enables automatic retry functionality for failed report executions
+    # @lifecycle: testing
+    "ALERT_REPORTS_RETRY": False,
     # Enables Slack V2 integration for Alerts and Reports.
     # Defaults to True; the legacy Slack v1 path is deprecated and will be removed
     # in the next major release. Operators must grant the Slack bot both the
@@ -1683,17 +1700,9 @@ DATETIME_FORMAT_DETECTION_SAMPLE_SIZE = 1000
 # The limit for the Superset Meta DB when the feature flag ENABLE_SUPERSET_META_DB is on
 SUPERSET_META_DB_LIMIT: int | None = 1000
 
-# Master switch for entity-version-history capture. Capture is enabled by
-# default, so saves write shadow rows and a ``version_transaction`` /
-# ``version_changes`` record. Set this to a falsy value in
-# ``superset_config.py`` (or via the environment variable of the same name) to
-# disable the before-flush listeners while keeping the /versions/ endpoints
-# available read-only.
-# Capture ships on. It is an operational escape hatch — set the environment
-# variable to a falsy value when a versioning-induced regression needs a
-# 30-second recovery instead of revert-and-redeploy — not a feature flag,
-# and it remains permanently as the kill-switch rather than being removed
-# with the rollout toggles.
+# Master switch for entity-version-history capture. A falsy value disables
+# version writes while keeping existing history available read-only through the
+# ``/versions/`` endpoints; Restore is unavailable while capture is disabled.
 ENABLE_VERSIONING_CAPTURE: bool = utils.parse_boolean_string(
     os.environ.get("ENABLE_VERSIONING_CAPTURE", "true")
 )
@@ -2697,7 +2706,7 @@ DATABASE_OAUTH2_CLIENTS: dict[str, dict[str, Any]] = {
     # },
 }
 
-# OAuth2 state is encoded in a JWT using the alogorithm below.
+# OAuth2 state is encoded in a JWT using the algorithm below.
 DATABASE_OAUTH2_JWT_ALGORITHM = "HS256"
 
 # By default the redirect URI points to /api/v1/database/oauth2/ and doesn't have to be
@@ -3145,6 +3154,14 @@ EXTRA_RAISE_FOR_ACCESS_BYPASS: Callable[..., bool] | None = None
 EXTRA_EDITORS_RESOLVER: Callable[..., list[Any]] | None = None
 # Post-create hook for charts/dashboards. Receives (model, asset_type).
 AFTER_ASSET_CREATE: Callable[[Any, str], None] | None = None
+# Contribute extra fields to a chart or dashboard export. Receives
+# (model, asset_type) and returns a mapping serialised under the "extra" key of
+# the exported YAML. Lets deployments carry their own metadata through
+# export/import without forking the export commands.
+EXTRA_ASSET_EXPORT_FIELDS: Callable[[Any, str], dict[str, Any]] | None = None
+# Consume the "extra" mapping when importing a chart or dashboard. Receives
+# (model, asset_type, extra) once the asset exists.
+EXTRA_ASSET_IMPORT_HANDLER: Callable[[Any, str, dict[str, Any]], None] | None = None
 
 
 # The migrations that add catalog permissions might take a considerably long time

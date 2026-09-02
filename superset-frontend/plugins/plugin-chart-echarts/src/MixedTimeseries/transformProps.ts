@@ -59,6 +59,7 @@ import {
   LegendOrientation,
   Refs,
 } from '../types';
+import { BarValueLabelPosition } from '../Timeseries/types';
 import { parseAxisBound } from '../utils/controls';
 import { safeParseEChartOptions } from '../utils/safeEChartOptionsParser';
 import {
@@ -73,6 +74,8 @@ import {
   getLegendProps,
   getMinAndMaxFromBounds,
   getOverMaxHiddenFormatter,
+  getTemporalAxisTickConfig,
+  resolveTemporalTickValues,
 } from '../utils/series';
 import { resolveLegendLayout } from '../utils/legendLayout';
 import {
@@ -80,6 +83,7 @@ import {
   getAnnotationData,
 } from '../utils/annotation';
 import {
+  collapseForecastKeys,
   extractForecastSeriesContext,
   extractForecastValuesFromTooltipParams,
   formatForecastTooltipSeries,
@@ -99,7 +103,9 @@ import {
 import { TIMEGRAIN_TO_TIMESTAMP, TIMESERIES_CONSTANTS } from '../constants';
 import { getDefaultTooltip } from '../utils/tooltip';
 import {
+  createSpacedXAxisFormatter,
   getTooltipTimeFormatter,
+  getXAxisDomain,
   getXAxisFormatter,
   getYAxisFormatter,
 } from '../utils/formatters';
@@ -183,11 +189,15 @@ export default function transformProps(
     opacityB,
     minorSplitLine,
     minorTicks,
+    gridlines,
+    axisTicks,
     seriesType,
     seriesTypeB,
     showLegend,
     showValue,
     showValueB,
+    labelPosition,
+    labelPositionB,
     onlyTotal,
     onlyTotalB,
     stack,
@@ -512,6 +522,7 @@ export default function transformProps(
         areaOpacity: opacity,
         seriesType,
         showValue,
+        valueLabelPosition: BarValueLabelPosition.OutsideEnd,
         onlyTotal,
         stack: Boolean(stack),
         stackIdSuffix: '\na',
@@ -532,6 +543,7 @@ export default function transformProps(
         thresholdValues,
         timeShiftColor,
         theme,
+        labelPosition,
       },
     );
 
@@ -600,6 +612,7 @@ export default function transformProps(
         areaOpacity: opacityB,
         seriesType: seriesTypeB,
         showValue: showValueB,
+        valueLabelPosition: BarValueLabelPosition.OutsideEnd,
         onlyTotal: onlyTotalB,
         stack: Boolean(stackB),
         stackIdSuffix: '\nb',
@@ -620,6 +633,7 @@ export default function transformProps(
         thresholdValues: thresholdValuesB,
         timeShiftColor,
         theme,
+        labelPosition: labelPositionB,
       },
     );
 
@@ -652,44 +666,26 @@ export default function transformProps(
       ? getXAxisFormatter(xAxisTimeFormat, resolvedTimeGrain)
       : String;
 
+  // hideOverlap must stay off so the forced boundary label from showMaxLabel
+  // is never suppressed (#39899). The formatter itself dedupes consecutive
+  // identical labels and thins out labels that would otherwise visually
+  // collide, since hideOverlap can no longer do that for us.
   const showMaxLabel =
     xAxisType === AxisType.Time &&
     xAxisLabelRotation === 0 &&
     !!resolvedTimeGrain;
   const deduplicatedFormatter = showMaxLabel
-    ? (() => {
-        let lastLabel: string | undefined;
-        let lastValue: number | undefined;
-        const wrapper = (value: number | string) => {
-          // ECharts formats the labels in repeated ascending passes. Reset the
-          // dedup state when the sequence restarts so a forced boundary label
-          // (e.g. the min date) isn't blanked by the previous pass's last label
-          // when both format identically (e.g. a May-to-May range).
-          if (
-            typeof value === 'number' &&
-            lastValue !== undefined &&
-            value <= lastValue
-          ) {
-            lastLabel = undefined;
-          }
-          if (typeof value === 'number') {
-            lastValue = value;
-          }
-          const label =
-            typeof xAxisFormatter === 'function'
-              ? (xAxisFormatter as Function)(value)
-              : String(value);
-          if (label === lastLabel) {
-            return '';
-          }
-          lastLabel = label;
-          return label;
-        };
-        if (typeof xAxisFormatter === 'function' && 'id' in xAxisFormatter) {
-          (wrapper as any).id = (xAxisFormatter as any).id;
-        }
-        return wrapper;
-      })()
+    ? createSpacedXAxisFormatter(
+        xAxisFormatter,
+        ...getXAxisDomain(
+          [
+            rebasedDataA as Record<string, unknown>[],
+            rebasedDataB as Record<string, unknown>[],
+          ],
+          xAxisLabel,
+        ),
+        Math.max(width - 2 * TIMESERIES_CONSTANTS.gridOffsetLeft, 0),
+      )
     : xAxisFormatter;
 
   const yAxisTitleMarginPx = convertInteger(yAxisTitleMargin);
@@ -757,6 +753,26 @@ export default function transformProps(
   const { setDataMask = () => {}, onContextMenu } = hooks;
   const alignTicks = yAxisIndex !== yAxisIndexB;
 
+  // Both queries share the axis, so a bucket contributed by either needs a tick.
+  const temporalTickValues = resolveTemporalTickValues(
+    [...rebasedDataA, ...rebasedDataB],
+    xAxisLabel,
+    xAxisType,
+    resolvedTimeGrain,
+    annotationLayers,
+  );
+
+  const temporalAxisTickConfig = getTemporalAxisTickConfig(
+    temporalTickValues,
+    showMaxLabel,
+    xAxisType,
+    xAxisLabelRotation,
+    xAxisLabelInterval,
+    deduplicatedFormatter,
+    false,
+    zoomable,
+  );
+
   const echartOptions: EChartsCoreOption = {
     useUTC: true,
     grid: {
@@ -768,19 +784,13 @@ export default function transformProps(
       name: xAxisTitle,
       nameGap: xAxisTitleMarginPx,
       nameLocation: 'middle',
-      axisLabel: {
-        hideOverlap: !(xAxisType === AxisType.Time && xAxisLabelRotation !== 0),
-        formatter: deduplicatedFormatter,
-        rotate: xAxisLabelRotation,
-        interval: xAxisLabelInterval,
-        ...(showMaxLabel && {
-          showMaxLabel: true,
-          alignMaxLabel: 'right',
-          showMinLabel: true,
-          alignMinLabel: 'left',
-        }),
-      },
+      ...temporalAxisTickConfig,
       minorTick: { show: minorTicks },
+      axisTick: {
+        ...temporalAxisTickConfig.axisTick,
+        show: axisTicks ? 'auto' : false,
+      },
+      ...(gridlines ? {} : { splitLine: { show: false } }),
       minInterval:
         xAxisType === AxisType.Time && resolvedTimeGrain && !forceMaxInterval
           ? (TIMEGRAIN_TO_TIMESTAMP[
@@ -811,6 +821,8 @@ export default function transformProps(
         min: yAxisMin,
         max: yAxisMax,
         minorTick: { show: minorTicks },
+        axisTick: { show: axisTicks ? 'auto' : false },
+        splitLine: { show: gridlines },
         minorSplitLine: { show: minorSplitLine },
         axisLabel: {
           formatter: getYAxisFormatter(
@@ -833,6 +845,7 @@ export default function transformProps(
         min: minSecondary,
         max: maxSecondary,
         minorTick: { show: minorTicks },
+        axisTick: { show: axisTicks ? 'auto' : false },
         splitLine: { show: false },
         minorSplitLine: { show: minorSplitLine },
         axisLabel: {
@@ -861,12 +874,14 @@ export default function transformProps(
           : params.value[0];
         const forecastValue: any[] = richTooltip ? params : [params];
 
-        const sortedKeys = extractTooltipKeys(
-          forecastValue,
-          // horizontal mode is not supported in mixed series chart
-          1,
-          richTooltip,
-          tooltipSortByMetric,
+        const sortedKeys = collapseForecastKeys(
+          extractTooltipKeys(
+            forecastValue,
+            // horizontal mode is not supported in mixed series chart
+            1,
+            richTooltip,
+            tooltipSortByMetric,
+          ),
         );
 
         const rows: string[][] = [];
