@@ -94,7 +94,7 @@ EVENT_LOGGER = DBEventLogger()
 
 SUPERSET_LOG_VIEW = True
 
-# This config is used to enable/disable the folowing security menu items:
+# This config is used to enable/disable the following security menu items:
 # List Users, List Roles, List Groups
 SUPERSET_SECURITY_VIEW_MENU = True
 
@@ -378,6 +378,9 @@ WTF_CSRF_ENABLED = True
 # Add endpoints that need to be exempt from CSRF protection
 WTF_CSRF_EXEMPT_LIST = [
     "superset.charts.data.api.data",
+    # Headless query endpoint for token-authenticated API clients, exempted for
+    # the same reason as the chart data endpoint above.
+    "superset.datasource.api.query",
     "superset.dashboards.api.cache_dashboard_screenshot",
     "superset.views.core.log",
     "superset.views.datasource.views.samples",
@@ -2703,7 +2706,7 @@ DATABASE_OAUTH2_CLIENTS: dict[str, dict[str, Any]] = {
     # },
 }
 
-# OAuth2 state is encoded in a JWT using the alogorithm below.
+# OAuth2 state is encoded in a JWT using the algorithm below.
 DATABASE_OAUTH2_JWT_ALGORITHM = "HS256"
 
 # By default the redirect URI points to /api/v1/database/oauth2/ and doesn't have to be

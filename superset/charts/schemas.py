@@ -30,7 +30,7 @@ from marshmallow import (
     validates,
     ValidationError,
 )
-from marshmallow.validate import Length, Range
+from marshmallow.validate import Length, NoneOf, Range
 from marshmallow_union import Union
 
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
@@ -1588,7 +1588,21 @@ class ChartDataQueryContextSchema(Schema):
     )
 
     result_type = fields.Enum(ChartDataResultType, by_value=True)
-    result_format = fields.Enum(ChartDataResultFormat, by_value=True)
+    result_format = fields.Enum(
+        ChartDataResultFormat,
+        by_value=True,
+        # Arrow is served only by the datasource query endpoint;
+        # ``_send_chart_response`` has no Arrow branch. Rejecting it here fails
+        # fast, rather than executing the query and only then returning
+        # "Unsupported result_format".
+        validate=NoneOf(
+            [ChartDataResultFormat.ARROW],
+            error=(
+                "result_format 'arrow' is not supported by this endpoint; use "
+                "POST /api/v1/datasource/<type>/<id>/query."
+            ),
+        ),
+    )
 
     form_data = fields.Raw(allow_none=True, required=False)
 
