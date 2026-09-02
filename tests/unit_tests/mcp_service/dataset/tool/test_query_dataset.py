@@ -251,9 +251,10 @@ async def test_query_dataset_normalizes_pandas_numpy_result_once(
                     "category": pd.Timestamp("2024-01-02T03:04:05Z"),
                     "count": np.int64(7),
                     "missing": pd.NaT,
+                    "numeric_missing": np.float64("nan"),
                 }
             ],
-            colnames=["category", "count", "missing"],
+            colnames=["category", "count", "missing", "numeric_missing"],
         ),
     )
 
@@ -264,8 +265,30 @@ async def test_query_dataset_normalizes_pandas_numpy_result_once(
             "category": "2024-01-02T03:04:05+00:00",
             "count": 7,
             "missing": None,
+            "numeric_missing": None,
         }
     ]
+
+
+@pytest.mark.asyncio
+async def test_query_dataset_marks_sampled_all_null_numeric_statistics(
+    mcp_server: FastMCP,
+) -> None:
+    row_count = 10_000
+    payload = await _call_query_dataset_with_result(
+        mcp_server,
+        _mock_command_result(
+            data=[{"count": float("nan")} for _ in range(row_count)],
+            colnames=["count"],
+            coltypes=[GenericDataType.NUMERIC],
+        ),
+    )
+
+    assert payload["row_count"] == row_count
+    assert payload["columns"][0]["data_type"] == "numeric"
+    assert payload["columns"][0]["null_count"] == 5000
+    assert payload["columns"][0]["statistics"] == {"sampled_rows": 5000}
+    assert all(row["count"] is None for row in payload["data"])
 
 
 @pytest.mark.asyncio

@@ -25,6 +25,7 @@ from typing import Any
 from superset.mcp_service.utils.response_utils import (
     data_column_stats_row_limit,
     format_data_columns,
+    format_data_quality,
     STATS_ROW_CAP,
     STATS_TOTAL_WORK_CAP,
 )
@@ -177,3 +178,26 @@ class TestFormatDataColumns:
         assert len(columns) == column_count
         assert columns[0].statistics == {"sampled_rows": sampled_rows}
         assert columns[-1].statistics == {"sampled_rows": sampled_rows}
+
+    def test_sampled_all_null_completeness_uses_sample_denominator(self) -> None:
+        for row_count in (10_000, 50_000):
+            rows = [{"value": None} for _ in range(row_count)]
+            columns = format_data_columns(rows, ["value"], [GenericDataType.NUMERIC])
+
+            assert format_data_quality(columns, row_count) == {
+                "completeness": 0.0,
+                "completeness_is_approximate": True,
+                "sampled_rows": STATS_ROW_CAP,
+            }
+
+    def test_exact_mixed_and_empty_completeness(self) -> None:
+        rows: list[dict[str, Any]] = [
+            {"left": 1, "right": None},
+            {"left": None, "right": 2},
+            {"left": 3, "right": 4},
+            {"left": None, "right": None},
+        ]
+        columns = format_data_columns(rows, ["left", "right"])
+
+        assert format_data_quality(columns, len(rows)) == {"completeness": 0.5}
+        assert format_data_quality([], 0) == {"completeness": 1.0}
