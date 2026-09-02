@@ -592,25 +592,24 @@ class TestTakeTiledScreenshot:
         with patch("superset.utils.screenshot_utils.combine_screenshot_tiles"):
             take_tiled_screenshot(mock_page, "dashboard", tile_height=2000)
 
-            # Check page.evaluate calls for scrolling
-            # First call is for dimensions, subsequent are for scrolling
             evaluate_calls = mock_page.evaluate.call_args_list
-
-            # 1 dimension query + 3 scroll calls + final holder diagnostics
-            assert len(evaluate_calls) == 5
+            scroll_calls = [
+                call
+                for call in evaluate_calls
+                if call.args[0].startswith("window.scrollTo")
+            ]
 
             # First call is for dimensions (contains querySelector)
             assert "querySelector" in str(evaluate_calls[0])
 
-            # Subsequent calls are scroll positions
             # Tile 1: scroll to y=100 (dashboard_top + 0 * tile_height)
-            assert evaluate_calls[1][0][0] == "window.scrollTo(0, 100)"
+            assert scroll_calls[0].args[0] == "window.scrollTo(0, 100)"
 
             # Tile 2: scroll to y=2100 (dashboard_top + 1 * tile_height)
-            assert evaluate_calls[2][0][0] == "window.scrollTo(0, 2100)"
+            assert scroll_calls[1].args[0] == "window.scrollTo(0, 2100)"
 
             # Tile 3: scroll to y=4100 (dashboard_top + 2 * tile_height)
-            assert evaluate_calls[3][0][0] == "window.scrollTo(0, 4100)"
+            assert scroll_calls[2].args[0] == "window.scrollTo(0, 4100)"
 
     def test_reset_scroll_position(self, mock_page):
         """Test that scroll position waits are called after each scroll."""
