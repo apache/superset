@@ -20,12 +20,15 @@ Unit tests for get_chart_sql MCP tool
 """
 
 import importlib
+from datetime import datetime, timedelta, timezone
 from typing import Any
 from unittest.mock import Mock, patch
 
 import pytest
 
 from superset.mcp_service.auth import CLASS_PERMISSION_ATTR, METHOD_PERMISSION_ATTR
+from superset.mcp_service.chart import query_result as query_result_module
+from superset.mcp_service.chart.query_result import MAX_QUERY_RESULT_VALUE_BYTES
 from superset.mcp_service.chart.schemas import (
     ChartError,
     ChartSql,
@@ -236,6 +239,58 @@ class TestExtractSqlFromResult:
         assert isinstance(output, ChartError)
         assert output.error_type == "QueryGenerationFailed"
         assert "Unknown column" in output.error
+
+    def test_error_only_result_at_source_cap_returns_bounded_fallback(self) -> None:
+        source_error = "x" * MAX_QUERY_RESULT_VALUE_BYTES
+
+        output = _extract_sql_from_result(
+            {"queries": [{"query": "", "error": source_error}]},
+            chart_id=5,
+            chart_name="Bad Chart",
+            datasource_name="ds",
+        )
+
+        assert isinstance(output, ChartError)
+        assert output.error_type == "MalformedQueryResult"
+        assert "response exceeds the total JSON-encoded byte limit" in output.error
+        assert len(output.model_dump_json().encode()) <= MAX_QUERY_RESULT_VALUE_BYTES
+
+    def test_chart_error_preflight_accepts_exact_limit_and_bounds_plus_one(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        error = 'SQL generation failed: quote " newline\n slash\\ café ' + "x" * 256
+        candidate = ChartError(
+            error=error,
+            error_type="QueryGenerationFailed",
+            timestamp=datetime(
+                2026,
+                9,
+                2,
+                12,
+                34,
+                56,
+                789012,
+                tzinfo=timezone(timedelta(hours=1)),
+            ),
+        )
+        exact_size = len(candidate.model_dump_json().encode())
+
+        monkeypatch.setattr(
+            query_result_module, "MAX_QUERY_RESULT_VALUE_BYTES", exact_size
+        )
+        boundary = query_result_module.response_json_failure(candidate)
+
+        assert boundary is None
+
+        monkeypatch.setattr(
+            query_result_module, "MAX_QUERY_RESULT_VALUE_BYTES", exact_size - 1
+        )
+        oversized = query_result_module.response_json_failure(candidate)
+
+        assert oversized is not None
+        assert oversized.error_type == "MalformedQueryResult"
+        assert "response exceeds the total JSON-encoded byte limit" in oversized.error
+        assert len(oversized.model_dump_json().encode()) <= exact_size - 1
 
     def test_sql_with_error_returns_chart_sql(self):
         """Test that partial SQL with a non-fatal error returns ChartSql with error."""
