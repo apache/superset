@@ -87,9 +87,11 @@ completion transport for async chart-data — see the note on the interval poll)
 > disconnected. The socket accelerates delivery over the authoritative
 > `status_changes` API rather than replacing it: Redis Pub/Sub is best-effort
 > (at-most-once, no replay), so a disconnect is reconciled by the catch-up on
-> reconnect/registration; in the rare case a `task.status` is missed while the
-> socket stays open, completion still resolves on the next reconnect/registration
-> or the per-request give-up (and a page reload re-establishes state).
+> reconnect/registration. In the rare case a `task.status` is missed while the
+> socket stays open, the request's give-up runs one final `status_changes` read
+> before timing out — so a chart whose query actually finished still resolves; only
+> if that read can't confirm completion does the request end in a bounded error (a
+> page reload re-establishes state).
 
 ```python
 WEBSOCKET_ENABLE = True
