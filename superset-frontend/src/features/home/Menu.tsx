@@ -113,6 +113,11 @@ const StyledMainNav = styled(MainNav)`
         padding: 0 ${theme.sizeUnit * 4}px;
       }
 
+      [data-icon='caret-down'] {
+        color: ${theme.colorIcon};
+        font-size: ${theme.sizeXS}px;
+      }
+
       &:hover,
       &.ant-menu-submenu-active {
         .ant-menu-title-content {
@@ -325,7 +330,7 @@ export function Menu({
       key,
       label,
       ...(isMd && {
-        icon: <Icons.DownOutlined iconSize="xs" />,
+        icon: <Icons.CaretDownOutlined iconSize="xs" />,
         popupOffset: NAVBAR_MENU_POPUP_OFFSET,
       }),
       children: childItems,

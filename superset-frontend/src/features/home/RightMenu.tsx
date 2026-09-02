@@ -846,6 +846,10 @@ const RightMenu = ({
                 flex-direction: row-reverse;
                 height: 100%;
               }
+              [data-icon='caret-down'] {
+                color: ${theme.colorIcon};
+                font-size: ${theme.sizeXS}px;
+              }
               &.ant-menu-submenu::after {
                 inset-inline: ${theme.sizeUnit}px;
               }
