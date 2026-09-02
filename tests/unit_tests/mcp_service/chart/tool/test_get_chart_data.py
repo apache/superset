@@ -23,8 +23,9 @@ import importlib
 from contextlib import nullcontext
 from enum import Enum
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, cast
 from unittest.mock import MagicMock
+from uuid import UUID
 
 import numpy as np
 import pandas as pd
@@ -499,6 +500,52 @@ class TestChartDataValuePreservation:
 
         assert malicious_key in result.data[0]
         assert result.data[0][malicious_key] == "value"
+
+    @pytest.mark.parametrize("engine", ["openpyxl", "xlsxwriter"])
+    def test_excel_export_stringifies_uuid_for_both_writers(self, engine: str) -> None:
+        import base64
+        import io
+
+        from openpyxl import load_workbook
+
+        from superset.mcp_service.chart.tool.get_chart_data import (
+            _create_excel_with_openpyxl,
+            _create_excel_with_xlsxwriter,
+        )
+
+        identifier = UUID("12345678-1234-5678-1234-567812345678")
+        chart = cast(
+            Any,
+            SimpleNamespace(id=9, slice_name="UUID export", viz_type="table"),
+        )
+        exporter = (
+            _create_excel_with_openpyxl
+            if engine == "openpyxl"
+            else _create_excel_with_xlsxwriter
+        )
+
+        encoded = exporter(chart, [{"id": identifier}], ["id"])
+        workbook = load_workbook(io.BytesIO(base64.b64decode(encoded)))
+
+        assert workbook.active["A2"].value == str(identifier)
+
+    def test_csv_export_uses_shared_uuid_projection(self) -> None:
+        identifier = UUID("12345678-1234-5678-1234-567812345678")
+        chart = cast(
+            Any,
+            SimpleNamespace(id=10, slice_name="UUID export", viz_type="table"),
+        )
+
+        result = _export_data_as_csv(
+            chart,
+            [{"id": identifier}],
+            ["id"],
+            None,
+            PerformanceMetadata(query_duration_ms=1, cache_status="fresh"),
+        )
+
+        assert isinstance(result, ChartData)
+        assert result.csv_data == f"id\r\n{identifier}\r\n"
 
 
 class _AsyncContext:

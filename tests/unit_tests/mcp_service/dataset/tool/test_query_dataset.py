@@ -370,15 +370,16 @@ async def test_query_dataset_preserves_authoritative_coltypes_for_empty_data(
 
 
 @pytest.mark.asyncio
-async def test_query_dataset_rejects_nonfinite_producer_data(
+async def test_query_dataset_rejects_post_materialization_infinity(
     mcp_server: FastMCP,
 ) -> None:
     dataset = _make_dataset()
     result_data = chart_data_command_result(
-        [{"category": "Electronics", "count": float("inf")}],
+        [{"category": "Electronics", "count": 1.0}],
         columns=["category", "count"],
         coltypes=[GenericDataType.STRING, GenericDataType.NUMERIC],
     )
+    result_data["queries"][0]["data"][0]["count"] = float("inf")
 
     with (
         patch.object(query_dataset_module, "resolve_dataset", return_value=dataset),

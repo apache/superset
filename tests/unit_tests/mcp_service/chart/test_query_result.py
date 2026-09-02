@@ -35,8 +35,10 @@ from superset.common.db_query_status import QueryStatus
 from superset.mcp_service.chart.query_result import (
     first_query_data,
     MAX_QUERY_RESULT_COLUMNS,
+    MAX_QUERY_RESULT_METADATA_BYTES,
     MAX_QUERY_RESULT_ROWS_PER_QUERY,
     MAX_QUERY_RESULTS,
+    MAX_RESULT_STRING_LENGTH,
     query_result_failure,
     validate_query_result_envelope,
 )
@@ -609,6 +611,44 @@ def test_actual_chart_data_command_envelope_is_canonicalized_by_both_consumers()
     assert data == [{"event_time": "2026-09-02T10:11:12+00:00", "value": 7}]
 
 
+@pytest.mark.parametrize("metadata_key", ["query", "sql"])
+def test_actual_full_command_accepts_sql_above_source_cell_limit(
+    metadata_key: str,
+) -> None:
+    sql = 'SELECT "café"\n' + "x" * (MAX_RESULT_STRING_LENGTH + 1)
+    result = _producer_result({"data": [], metadata_key: sql, "rowcount": 0})
+
+    assert validate_query_result_envelope(result) is None
+    assert result["queries"][0][metadata_key] == sql
+
+    consumed = _producer_result({"data": [], metadata_key: sql, "rowcount": 0})
+    data, error = first_query_data(consumed)
+    assert error is None
+    assert data == []
+
+
+def test_query_metadata_sql_has_independent_aggregate_byte_limit() -> None:
+    result = _producer_result(
+        {"data": [], "query": "x" * (MAX_QUERY_RESULT_METADATA_BYTES + 1)}
+    )
+
+    error = validate_query_result_envelope(result)
+
+    assert error is not None
+    assert error.error_type == "InvalidQueryResult"
+
+
+def test_source_cell_string_keeps_independent_64_kib_limit() -> None:
+    result = _producer_result(
+        {"data": [{"value": "x" * (MAX_RESULT_STRING_LENGTH + 1)}]}
+    )
+
+    error = validate_query_result_envelope(result)
+
+    assert error is not None
+    assert "invalid text data" in error.error
+
+
 def test_query_context_sidecar_is_exempt_without_hook_dispatch() -> None:
     class HostileSidecar:
         def __getattribute__(self, name: str) -> Any:
@@ -698,6 +738,77 @@ def test_real_dataframe_processor_and_chart_command_normalize_nan() -> None:
             "nullable_missing": None,
         }
     ]
+
+
+@pytest.mark.parametrize(
+    ("compare_type", "source", "comparison"),
+    [
+        ("ratio", 1.0, 0.0),
+        ("percentage", -1.0, 0.0),
+        ("difference", np.finfo(float).max, -np.finfo(float).max),
+    ],
+)
+def test_real_postprocessing_nonfinite_is_null_at_materialization(
+    compare_type: str, source: float, comparison: float
+) -> None:
+    from superset.common.query_context import QueryContext
+    from superset.common.query_context_processor import QueryContextProcessor
+    from superset.common.query_object import QueryObject
+
+    processed = QueryObject(
+        post_processing=[
+            {
+                "operation": "compare",
+                "options": {
+                    "source_columns": ["source"],
+                    "compare_columns": ["comparison"],
+                    "compare_type": compare_type,
+                },
+            }
+        ]
+    ).exec_post_processing(
+        pd.DataFrame(
+            {
+                "source": [source],
+                "comparison": [comparison],
+                "finite": [3.5],
+                "finite_integer": [2**53 + 1],
+            }
+        )
+    )
+    derived_column = next(
+        column
+        for column in processed.columns
+        if column not in {"source", "comparison", "finite", "finite_integer"}
+    )
+    assert np.isinf(processed[derived_column].iloc[0])
+    dtypes = processed.dtypes.copy()
+    processor_context = SimpleNamespace(
+        datasource=object(), result_format=ChartDataResultFormat.JSON
+    )
+    records = QueryContextProcessor(cast(QueryContext, processor_context)).get_data(
+        processed, [GenericDataType.NUMERIC] * len(processed.columns)
+    )
+
+    assert type(records) is list
+    assert records[0][derived_column] is None
+    assert records[0]["finite"] == 3.5
+    assert records[0]["finite_integer"] == 2**53 + 1
+    pd.testing.assert_series_equal(processed.dtypes, dtypes)
+    assert np.isinf(processed[derived_column].iloc[0])
+
+    result = _producer_result(
+        {
+            "data": records,
+            "colnames": list(processed.columns),
+            "coltypes": [GenericDataType.NUMERIC] * len(processed.columns),
+            "rowcount": 1,
+        }
+    )
+    data, error = first_query_data(result)
+    assert error is None
+    assert data is not None
+    assert data[0][derived_column] is None
 
 
 def test_pandas_timestamp_preserves_fold_offset() -> None:

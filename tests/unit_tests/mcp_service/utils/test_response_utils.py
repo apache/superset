@@ -106,6 +106,7 @@ class TestFormatDataColumns:
         data: list[dict[str, Any]] = [
             {"value": 1},
             {"value": 1.0},
+            {"value": True},
             {"value": "1"},
             {"value": hostile},
             {"value": hostile},
@@ -113,7 +114,7 @@ class TestFormatDataColumns:
 
         column = format_data_columns(data, ["value"])[0]
 
-        assert column.unique_count == 3
+        assert column.unique_count == 4
 
     def test_authoritative_coltypes_apply_to_empty_data(self) -> None:
         columns = format_data_columns(

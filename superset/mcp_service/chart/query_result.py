@@ -55,6 +55,8 @@ MAX_QUERY_RESULT_ROWS = 100_000
 MAX_QUERY_RESULT_COLUMNS = 4_096
 MAX_QUERY_RESULT_VALUES = 2_500_000
 MAX_QUERY_RESULT_VALUE_BYTES = 16 * 1024 * 1024
+MAX_QUERY_RESULT_METADATA_BYTES = 1024 * 1024
+MAX_QUERY_RESULT_METADATA_ITEMS = 32_768
 MAX_RESULT_VALUE_ITEMS = 4_096
 MAX_RESULT_VALUE_DEPTH = 32
 MAX_RESULT_STRING_LENGTH = 65_536
@@ -122,6 +124,8 @@ class _ResultBudget:
     rows: int = 0
     values: int = 0
     json_bytes: int = 0
+    metadata_items: int = 0
+    metadata_bytes: int = 0
 
 
 def _invalid_result(message: str) -> ChartError:
@@ -210,26 +214,48 @@ def _normalized_scalar_json_size(value: Any) -> int:
     raise AssertionError("result scalar was not normalized")
 
 
-def _charge_json_bytes(budget: _ResultBudget, size: int) -> str | None:
+def _charge_json_bytes(
+    budget: _ResultBudget, size: int, *, metadata: bool = False
+) -> str | None:
     budget.json_bytes += size
     if budget.json_bytes > MAX_QUERY_RESULT_VALUE_BYTES:
         return "too many aggregate JSON bytes"
+    if metadata:
+        budget.metadata_bytes += size
+        if budget.metadata_bytes > MAX_QUERY_RESULT_METADATA_BYTES:
+            return "too many aggregate metadata JSON bytes"
     return None
 
 
-def _charge_value(budget: _ResultBudget) -> str | None:
+def _charge_value(budget: _ResultBudget, *, metadata: bool = False) -> str | None:
     budget.values += 1
     if budget.values > MAX_QUERY_RESULT_VALUES:
         return "too many aggregate values"
+    if metadata:
+        budget.metadata_items += 1
+        if budget.metadata_items > MAX_QUERY_RESULT_METADATA_ITEMS:
+            return "too many aggregate metadata values"
     return None
 
 
-def _charge_text(value: str, budget: _ResultBudget, *, key: bool = False) -> str | None:
-    maximum = MAX_RESULT_KEY_LENGTH if key else MAX_RESULT_STRING_LENGTH
+def _charge_text(
+    value: str,
+    budget: _ResultBudget,
+    *,
+    key: bool = False,
+    metadata: bool = False,
+) -> str | None:
+    maximum = (
+        MAX_RESULT_KEY_LENGTH
+        if key
+        else MAX_QUERY_RESULT_METADATA_BYTES
+        if metadata
+        else MAX_RESULT_STRING_LENGTH
+    )
     size = _json_string_size(value, maximum)
     if size is None:
         return "an invalid or oversized object key" if key else "invalid text data"
-    return _charge_json_bytes(budget, size)
+    return _charge_json_bytes(budget, size, metadata=metadata)
 
 
 def _integer_failure(value: int) -> str | None:
@@ -615,6 +641,7 @@ def _normalize_value(  # noqa: C901
     budget: _ResultBudget,
     *,
     enum_types: frozenset[type[Any]] = frozenset(),
+    metadata: bool = False,
 ) -> tuple[Any, str | None]:
     """Iteratively normalize one bounded exact-container value tree."""
     stack: list[
@@ -630,7 +657,7 @@ def _normalize_value(  # noqa: C901
             continue
         if depth > MAX_RESULT_VALUE_DEPTH:
             return None, "excessively nested data"
-        if reason := _charge_value(budget):
+        if reason := _charge_value(budget, metadata=metadata):
             return None, reason
 
         if type(item) is list:
@@ -642,7 +669,9 @@ def _normalize_value(  # noqa: C901
             if width > MAX_RESULT_VALUE_ITEMS:
                 return None, "an oversized array"
             if reason := _charge_json_bytes(
-                budget, _container_json_syntax_size(width, mapping=False)
+                budget,
+                _container_json_syntax_size(width, mapping=False),
+                metadata=metadata,
             ):
                 return None, reason
             stack.append((item, None, None, depth, True))
@@ -661,14 +690,16 @@ def _normalize_value(  # noqa: C901
             if width > MAX_RESULT_VALUE_ITEMS:
                 return None, "an oversized object"
             if reason := _charge_json_bytes(
-                budget, _container_json_syntax_size(width, mapping=True)
+                budget,
+                _container_json_syntax_size(width, mapping=True),
+                metadata=metadata,
             ):
                 return None, reason
             children: list[tuple[Any, dict[str, Any], str, int, bool]] = []
             for key, child in dict.items(item):
                 if type(key) is not str:
                     return None, "a non-string object key"
-                if reason := _charge_text(key, budget, key=True):
+                if reason := _charge_text(key, budget, key=True, metadata=metadata):
                     return None, reason
                 children.append((child, item, key, depth + 1, False))
             stack.append((item, None, None, depth, True))
@@ -687,8 +718,19 @@ def _normalize_value(  # noqa: C901
         normalized, reason = _normalize_scalar(item)
         if reason is not None:
             return None, reason
+        max_string_bytes = (
+            MAX_QUERY_RESULT_METADATA_BYTES if metadata else MAX_RESULT_STRING_LENGTH
+        )
+        if type(normalized) is str:
+            scalar_size = _json_string_size(normalized, max_string_bytes)
+            if scalar_size is None:
+                return None, "invalid text data"
+        else:
+            scalar_size = _normalized_scalar_json_size(normalized)
         if reason := _charge_json_bytes(
-            budget, _normalized_scalar_json_size(normalized)
+            budget,
+            scalar_size,
+            metadata=metadata,
         ):
             return None, reason
         if parent is None:
@@ -718,7 +760,10 @@ def _normalize_metadata_value(
     }
     value = dict.__getitem__(payload, key)
     normalized, reason = _normalize_value(
-        value, budget, enum_types=enum_slots.get(key, frozenset())
+        value,
+        budget,
+        enum_types=enum_slots.get(key, frozenset()),
+        metadata=True,
     )
     if reason is None and normalized is not value:
         dict.__setitem__(payload, key, normalized)
@@ -807,7 +852,9 @@ def _metadata_shape_error(  # noqa: C901
     if "is_cached" in payload:
         cached = dict.__getitem__(payload, "is_cached")
         if cached is None:
-            if reason := _charge_json_bytes(budget, 1):  # ``false`` vs ``null``
+            if reason := _charge_json_bytes(
+                budget, 1, metadata=True
+            ):  # ``false`` vs ``null``
                 return _invalid_result(reason)
             dict.__setitem__(payload, "is_cached", False)
         elif type(cached) is not bool:
@@ -849,7 +896,9 @@ def _metadata_shape_error(  # noqa: C901
         assert original_size is not None
         assert canonical_size is not None
         if canonical_size > original_size and (
-            reason := _charge_json_bytes(budget, canonical_size - original_size)
+            reason := _charge_json_bytes(
+                budget, canonical_size - original_size, metadata=True
+            )
         ):
             return _invalid_result(reason)
         dict.__setitem__(payload, timestamp_key, canonical_timestamp)
@@ -929,7 +978,7 @@ def validate_query_result_envelope(  # noqa: C901
         return _invalid_result("a malformed result envelope")
 
     budget = _ResultBudget()
-    if reason := _charge_value(budget):
+    if reason := _charge_value(budget, metadata=True):
         return _invalid_result(reason)
     top_level_keys = list(dict.keys(result))
     if any(type(key) is not str for key in top_level_keys):
@@ -937,13 +986,15 @@ def validate_query_result_envelope(  # noqa: C901
     has_query_context = any(key == "query_context" for key in top_level_keys)
     wire_item_count = dict.__len__(result) - has_query_context
     if reason := _charge_json_bytes(
-        budget, _container_json_syntax_size(wire_item_count, mapping=True)
+        budget,
+        _container_json_syntax_size(wire_item_count, mapping=True),
+        metadata=True,
     ):
         return _invalid_result(reason)
     for key in top_level_keys:
         if key == "query_context":
             continue
-        if reason := _charge_text(key, budget, key=True):
+        if reason := _charge_text(key, budget, key=True, metadata=True):
             return _invalid_result(reason)
         if key == "queries":
             continue
@@ -979,12 +1030,13 @@ def validate_query_result_envelope(  # noqa: C901
         if reason := _charge_json_bytes(
             budget,
             _container_json_syntax_size(dict.__len__(query), mapping=True),
+            metadata=True,
         ):
             return _invalid_result(reason)
         for key in list(dict.keys(query)):
             if type(key) is not str:
                 return _invalid_metadata(f"Chart query {index}")
-            if reason := _charge_text(key, budget, key=True):
+            if reason := _charge_text(key, budget, key=True, metadata=True):
                 return _invalid_result(reason)
             if key == "data":
                 continue

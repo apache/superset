@@ -256,9 +256,10 @@ def test_df_to_records_with_inf_and_nan() -> None:
     assert records[0]["result"] is None
     assert records[0]["description"] == "division by zero"
 
-    # Infinity values should remain as-is (they're valid JSON)
-    assert records[1]["result"] == np.inf
-    assert records[2]["result"] == -np.inf
+    # Infinity is not a valid strict-JSON number and follows the producer's
+    # missing-value contract.
+    assert records[1]["result"] is None
+    assert records[2]["result"] is None
 
     # Normal values should remain unchanged
     assert records[3]["result"] == 0.0

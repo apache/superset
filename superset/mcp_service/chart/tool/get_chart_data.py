@@ -23,6 +23,7 @@ import logging
 import time
 from dataclasses import dataclass
 from typing import Any, Dict, List, TYPE_CHECKING
+from uuid import UUID
 
 from fastmcp import Context
 from flask import current_app
@@ -1346,14 +1347,7 @@ def _export_data_as_csv(
             # Ensure all values are properly formatted for CSV
             csv_row = {}
             for col in columns:
-                value = row.get(col, "")
-                # Handle None values and convert to string
-                if value is None:
-                    csv_row[col] = ""
-                elif isinstance(value, (list, dict)):
-                    csv_row[col] = str(value)
-                else:
-                    csv_row[col] = value
+                csv_row[col] = _export_scalar(row.get(col, ""))
             writer.writerow(csv_row)
 
     csv_content = output.getvalue()
@@ -1429,16 +1423,26 @@ def _write_excel_headers(ws: Any, columns: List[str]) -> None:
         ws.cell(row=1, column=idx, value=col)
 
 
+def _export_scalar(value: Any) -> Any:
+    """Project a validated result scalar to CSV/Excel writer-safe values."""
+    if value is None:
+        return ""
+    if type(value) is UUID:
+        return UUID.__str__(value)
+    if type(value) is list or type(value) is dict:
+        return str(value)
+    return value
+
+
 def _write_excel_data(ws: Any, data: List[Dict[str, Any]], columns: List[str]) -> None:
     """Write data to Excel worksheet."""
     for row_idx, row in enumerate(data, 2):
         for col_idx, col in enumerate(columns, 1):
-            value = row.get(col, "")
-            if value is None:
-                value = ""
-            elif isinstance(value, (list, dict)):
-                value = str(value)
-            ws.cell(row=row_idx, column=col_idx, value=value)
+            ws.cell(
+                row=row_idx,
+                column=col_idx,
+                value=_export_scalar(row.get(col, "")),
+            )
 
 
 def _try_xlsxwriter_fallback(
@@ -1501,12 +1505,7 @@ def _write_xlsxwriter_data(
     # Write data
     for row_idx, row in enumerate(data):
         for col_idx, col in enumerate(columns):
-            value = row.get(col, "")
-            if value is None:
-                value = ""
-            elif isinstance(value, (list, dict)):
-                value = str(value)
-            worksheet.write(row_idx + 1, col_idx, value)
+            worksheet.write(row_idx + 1, col_idx, _export_scalar(row.get(col, "")))
 
 
 def _create_excel_chart_data(

@@ -256,7 +256,7 @@ def _profile_value_identity(  # noqa: C901
         if item is None:
             tokens.append(("null",))
         elif value_type is bool:
-            tokens.append(("number", int(item), 1))
+            tokens.append(("boolean", item))
         elif value_type is int:
             bit_count = int.bit_length(item)
             tokens.append(
