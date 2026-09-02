@@ -17,7 +17,7 @@
 """Create task_dependencies table and add task_subscribers.guest_key (GTF)
 
 Revision ID: 7e2c9a4f1b83
-Revises: 39097d124752
+Revises: 8f31c5d726ab
 Create Date: 2026-08-21 12:00:00.000000
 
 """
@@ -44,7 +44,7 @@ from superset.migrations.shared.utils import (
 
 # revision identifiers, used by Alembic.
 revision = "7e2c9a4f1b83"
-down_revision = "39097d124752"
+down_revision = "8f31c5d726ab"
 
 TASKS_TABLE = "tasks"
 TASK_DEPENDENCIES_TABLE = "task_dependencies"
