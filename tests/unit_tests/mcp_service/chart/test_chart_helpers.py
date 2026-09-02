@@ -18,6 +18,7 @@
 from typing import Any
 from unittest.mock import MagicMock, patch
 
+import pandas as pd
 import pytest
 
 from superset.common.query_object import QueryObject
@@ -544,7 +545,16 @@ def test_xy_and_both_mixed_queries_preserve_common_temporal_fields(
             },
             [
                 (
-                    ["event_time", "region"],
+                    [
+                        {
+                            "columnType": "BASE_AXIS",
+                            "sqlExpression": "event_time",
+                            "label": "event_time",
+                            "expressionType": "SQL",
+                            "isColumnReference": True,
+                        },
+                        "region",
+                    ],
                     ["revenue"],
                     ["region"],
                     ["pivot", "flatten"],
@@ -632,7 +642,16 @@ def test_mixed_timeseries_frontend_parity_keeps_suffixed_layers_independent(
         }
     )
 
-    assert primary.columns == ["event_time", "region"]
+    assert primary.columns == [
+        {
+            "columnType": "BASE_AXIS",
+            "sqlExpression": "event_time",
+            "label": "event_time",
+            "expressionType": "SQL",
+            "isColumnReference": True,
+        },
+        "region",
+    ]
     assert primary.series_columns == ["region"]
     assert primary.orderby == [["revenue", False]]
     assert primary.time_offsets == ["1 year ago"]
@@ -644,7 +663,16 @@ def test_mixed_timeseries_frontend_parity_keeps_suffixed_layers_independent(
         "rename",
         "flatten",
     ]
-    assert secondary.columns == ["event_time", "channel"]
+    assert secondary.columns == [
+        {
+            "columnType": "BASE_AXIS",
+            "sqlExpression": "event_time",
+            "label": "event_time",
+            "expressionType": "SQL",
+            "isColumnReference": True,
+        },
+        "channel",
+    ]
     assert secondary.series_columns == ["channel"]
     assert secondary.orderby == [["orders", True]]
     assert secondary.time_offsets == ["1 month ago"]
@@ -655,6 +683,262 @@ def test_mixed_timeseries_frontend_parity_keeps_suffixed_layers_independent(
         "rename",
         "flatten",
     ]
+
+
+def test_ungrouped_timeseries_and_mixed_pivot_on_axis_with_no_series(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """An explicit empty series array is truthy in the frontend builder."""
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda *_args: "base",
+    )
+
+    timeseries = _query_objects(
+        {
+            "viz_type": "echarts_timeseries_line",
+            "x_axis": "event_time",
+            "groupby": [],
+            "metrics": ["revenue"],
+        }
+    )[0]
+    mixed_primary, mixed_secondary = _query_objects(
+        {
+            "viz_type": "mixed_timeseries",
+            "x_axis": "event_time",
+            "groupby": [],
+            "metrics": ["revenue"],
+            "groupby_b": [],
+            "metrics_b": ["orders"],
+        }
+    )
+
+    for query in (timeseries, mixed_primary, mixed_secondary):
+        pivot = query.post_processing[0]
+        assert pivot["operation"] == "pivot"
+        assert pivot["options"]["index"] == ["event_time"]
+        assert pivot["options"]["columns"] == []
+        assert query.series_columns == []
+
+
+def test_ungrouped_timeseries_and_mixed_execute_real_pandas_post_processing(
+    monkeypatch: pytest.MonkeyPatch,
+    app_context: None,
+) -> None:
+    """Execute the generated pivot/flatten chain, not only its dictionary."""
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda *_args: "base",
+    )
+    queries = [
+        _query_objects(
+            {
+                "viz_type": "echarts_timeseries_line",
+                "x_axis": "event_time",
+                "groupby": [],
+                "metrics": ["revenue"],
+            }
+        )[0],
+        *_query_objects(
+            {
+                "viz_type": "mixed_timeseries",
+                "x_axis": "event_time",
+                "groupby": [],
+                "metrics": ["revenue"],
+                "groupby_b": [],
+                "metrics_b": ["orders"],
+            }
+        ),
+    ]
+
+    for query in queries:
+        assert query.metrics
+        metric = query.metrics[0]
+        assert isinstance(metric, str)
+        result = query.exec_post_processing(
+            pd.DataFrame(
+                {
+                    "event_time": pd.to_datetime(["2024-01-01", "2024-01-02"]),
+                    metric: [1.0, 2.0],
+                }
+            )
+        )
+        assert list(result.columns) == ["event_time", metric]
+        assert result[metric].tolist() == [1.0, 2.0]
+
+
+def test_timeseries_complete_frontend_query_and_operator_contract(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda *_args: "base",
+    )
+    revenue = {
+        "expressionType": "SIMPLE",
+        "column": {"column_name": "revenue"},
+        "aggregate": "SUM",
+        "label": "SUM(revenue)",
+    }
+    orders = {
+        "expressionType": "SIMPLE",
+        "column": {"column_name": "orders"},
+        "aggregate": "COUNT",
+        "label": "COUNT(orders)",
+    }
+    rank = {
+        "expressionType": "SIMPLE",
+        "column": {"column_name": "rank_value"},
+        "aggregate": "MAX",
+        "label": "MAX(rank_value)",
+    }
+    query = _query_objects(
+        {
+            "viz_type": "echarts_timeseries_bar",
+            "x_axis": "event_time",
+            "groupby": [],
+            "metrics": [revenue, orders],
+            "size": "size_metric",
+            "timeseries_limit_metric": rank,
+            "x_axis_sort": "MAX(rank_value)",
+            "x_axis_sort_asc": False,
+            "limit": 7,
+            "order_desc": False,
+            "time_compare": ["1 year ago"],
+            "comparison_type": "values",
+            "contributionMode": "row",
+            "resample_method": "zerofill",
+            "resample_rule": "D",
+            "rolling_type": "mean",
+            "rolling_periods": 3,
+            "min_periods": 1,
+            "forecastEnabled": True,
+            "forecastPeriods": "5",
+            "forecastInterval": "0.9",
+            "forecastSeasonalityYearly": True,
+            "forecastSeasonalityWeekly": False,
+            "forecastSeasonalityDaily": None,
+        }
+    )[0]
+
+    assert query.metrics == [revenue, orders, "size_metric", rank]
+    assert query.series_limit == 7
+    assert query.series_limit_metric == rank
+    assert query.order_desc is False
+    assert query.orderby == [[rank, True]]
+    assert query.series_columns == []
+    assert query.time_offsets == ["1 year ago"]
+    assert [operator["operation"] for operator in query.post_processing] == [
+        "pivot",
+        "resample",
+        "rolling",
+        "contribution",
+        "rename",
+        "sort",
+        "flatten",
+        "prophet",
+    ]
+    pivot = query.post_processing[0]["options"]
+    assert pivot["columns"] == []
+    assert set(pivot["aggregates"]) == {
+        "SUM(revenue)",
+        "SUM(revenue)__1 year ago",
+        "COUNT(orders)",
+        "COUNT(orders)__1 year ago",
+        "size_metric",
+        "size_metric__1 year ago",
+    }
+    contribution = query.post_processing[3]
+    assert contribution["options"] == {
+        "orientation": "row",
+        "time_shifts": ["1 year ago"],
+    }
+    assert query.post_processing[5]["options"] == {
+        "by": "MAX(rank_value)",
+        "ascending": False,
+    }
+    assert query.post_processing[-1]["options"] == {
+        "time_grain": "P1D",
+        "periods": 5,
+        "confidence_interval": 0.9,
+        "yearly_seasonality": True,
+        "weekly_seasonality": False,
+        "daily_seasonality": None,
+        "index": "event_time",
+    }
+
+
+def test_grouped_timeseries_keeps_ranking_metric_out_of_value_metrics(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda *_args: "base",
+    )
+    query = _query_objects(
+        {
+            "viz_type": "echarts_timeseries_line",
+            "x_axis": "event_time",
+            "groupby": ["region"],
+            "metrics": ["revenue", "orders"],
+            "timeseries_limit_metric": "ranking",
+            "x_axis_sort": "ranking",
+        }
+    )[0]
+
+    assert query.metrics == ["revenue", "orders"]
+    assert query.series_limit_metric == "ranking"
+    assert query.series_columns == ["region"]
+    assert query.post_processing[0]["options"]["columns"] == ["region"]
+    assert "sort" not in [item["operation"] for item in query.post_processing]
+
+
+def test_mixed_secondary_analytics_and_series_limits_do_not_leak_from_primary(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda *_args: "base",
+    )
+    primary, secondary = _query_objects(
+        {
+            "viz_type": "mixed_timeseries",
+            "x_axis": "event_time",
+            "metrics": ["revenue"],
+            "groupby": ["region"],
+            "limit": 5,
+            "timeseries_limit_metric": "revenue_rank",
+            "order_desc": False,
+            "time_compare": ["1 year ago"],
+            "comparison_type": "difference",
+            "rolling_type": "cumsum",
+            "resample_method": "zerofill",
+            "resample_rule": "D",
+            "metrics_b": ["orders"],
+            "groupby_b": [],
+        }
+    )
+
+    assert primary.series_limit == 5
+    assert primary.series_limit_metric == "revenue_rank"
+    assert primary.time_offsets == ["1 year ago"]
+    assert [item["operation"] for item in primary.post_processing] == [
+        "pivot",
+        "resample",
+        "cum",
+        "compare",
+        "rename",
+        "flatten",
+    ]
+    assert secondary.series_limit == 0
+    assert secondary.series_limit_metric is None
+    assert secondary.order_desc is True
+    assert secondary.time_offsets == []
+    assert [item["operation"] for item in secondary.post_processing] == [
+        "pivot",
+        "flatten",
+    ]
+    assert secondary.post_processing[0]["options"]["columns"] == []
 
 
 def test_frontend_parity_matrix_pins_ordering_and_operator_options(

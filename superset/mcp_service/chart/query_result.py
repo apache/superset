@@ -347,25 +347,28 @@ def _metadata_failure(  # noqa: C901
                 f"{label} cache_key must be a bounded exact string"
             )
 
-    if "cache_dttm" in payload:
-        cache_dttm = dict.__getitem__(payload, "cache_dttm")
+    # ChartData's production schema emits ``cached_dttm``. ``cache_dttm`` was
+    # used by earlier MCP payloads and remains a bounded compatibility alias.
+    # Validate both before cache utilities parse or compare either value.
+    for key in ("cached_dttm", "cache_dttm"):
+        if key not in payload:
+            continue
+        cache_dttm = dict.__getitem__(payload, key)
         if cache_dttm is None:
-            return None
+            continue
         if type(cache_dttm) is str:
             if len(cache_dttm) <= _MAX_CACHE_STRING_LENGTH:
-                return None
-            return _malformed_result(
-                f"{label} cache_dttm must be a bounded exact string"
-            )
+                continue
+            return _malformed_result(f"{label} {key} must be a bounded exact string")
         if type(cache_dttm) is datetime:
             tzinfo = cache_dttm.tzinfo
             if tzinfo is None or any(
                 type(tzinfo) is trusted for trusted in _TRUSTED_TZINFO_TYPES
             ):
-                return None
-            return _malformed_result(f"{label} cache_dttm has an unsupported timezone")
+                continue
+            return _malformed_result(f"{label} {key} has an unsupported timezone")
         return _malformed_result(
-            f"{label} cache_dttm must be a bounded exact string or datetime"
+            f"{label} {key} must be a bounded exact string or datetime"
         )
     return None
 

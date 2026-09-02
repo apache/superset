@@ -614,7 +614,13 @@ class TestBuildQueryContextTimeseriesAndMixed:
 
         queries = mock_factory.create.call_args[1]["queries"]
         assert len(queries) == 1
-        assert queries[0]["columns"][0] == "ds"
+        assert queries[0]["columns"][0] == {
+            "columnType": "BASE_AXIS",
+            "sqlExpression": "ds",
+            "label": "ds",
+            "expressionType": "SQL",
+            "isColumnReference": True,
+        }
         assert "region" in queries[0]["columns"]
 
     @patch("superset.common.query_context_factory.QueryContextFactory")
@@ -645,7 +651,13 @@ class TestBuildQueryContextTimeseriesAndMixed:
             _build_query_context_from_form_data(form_data, chart=None)
 
         queries = mock_factory.create.call_args[1]["queries"]
-        assert queries[0]["columns"][0] == "order_date"
+        assert queries[0]["columns"][0] == {
+            "columnType": "BASE_AXIS",
+            "sqlExpression": "order_date",
+            "label": "order_date",
+            "expressionType": "SQL",
+            "isColumnReference": True,
+        }
 
     @patch("superset.common.query_context_factory.QueryContextFactory")
     @patch("superset.daos.datasource.DatasourceDAO.get_datasource")
@@ -675,7 +687,7 @@ class TestBuildQueryContextTimeseriesAndMixed:
             _build_query_context_from_form_data(form_data, chart=None)
 
         queries = mock_factory.create.call_args[1]["queries"]
-        assert queries[0]["columns"].count("ds") == 1
+        assert [column["sqlExpression"] for column in queries[0]["columns"]] == ["ds"]
 
     @patch("superset.common.query_context_factory.QueryContextFactory")
     @patch("superset.daos.datasource.DatasourceDAO.get_datasource")
@@ -737,13 +749,13 @@ class TestBuildQueryContextTimeseriesAndMixed:
         assert len(queries) == 2
 
         # Primary query
-        assert "ds" in queries[0]["columns"]
+        assert queries[0]["columns"][0]["sqlExpression"] == "ds"
         assert "country" in queries[0]["columns"]
         assert queries[0]["metrics"] == ["sum__revenue"]
         assert queries[0]["time_range"] == "Last 30 days"
 
         # Secondary query
-        assert "ds" in queries[1]["columns"]
+        assert queries[1]["columns"][0]["sqlExpression"] == "ds"
         assert "channel" in queries[1]["columns"]
         assert queries[1]["metrics"] == ["count"]
         assert queries[1]["time_range"] == "Last 30 days"
@@ -778,7 +790,7 @@ class TestBuildQueryContextTimeseriesAndMixed:
             _build_query_context_from_form_data(form_data, chart=None)
 
         queries = mock_factory.create.call_args[1]["queries"]
-        assert queries[1]["columns"].count("ds") == 1
+        assert [column["sqlExpression"] for column in queries[1]["columns"]] == ["ds"]
 
     @patch("superset.common.query_context_factory.QueryContextFactory")
     @patch("superset.daos.datasource.DatasourceDAO.get_datasource")
