@@ -21,6 +21,7 @@ Unit tests for get_chart_preview MCP tool
 
 import importlib
 from datetime import datetime
+from decimal import Decimal
 from types import SimpleNamespace
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -125,6 +126,113 @@ async def test_get_chart_preview_entrypoint_preflights_complete_exact_wire_respo
     else:
         assert isinstance(result, ChartError)
         assert result.error_type == "MalformedQueryResult"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("format_", ["ascii", "vega_lite"])
+async def test_bullet_ieee754_categories_reach_real_mcp_preview_entrypoint(
+    format_: str,
+) -> None:
+    from contextlib import nullcontext
+
+    from fastmcp import Client
+
+    from superset.mcp_service.app import mcp
+
+    preview_module = importlib.import_module(
+        "superset.mcp_service.chart.tool.get_chart_preview"
+    )
+    command_module = importlib.import_module(
+        "superset.commands.chart.data.get_data_command"
+    )
+    form_data = {
+        "viz_type": "bullet",
+        "metric": "Revenue",
+        "groupby": ["Category"],
+    }
+    chart = SimpleNamespace(
+        id=121,
+        slice_name="Number boundaries",
+        viz_type="bullet",
+        datasource_id=1,
+        datasource_type="table",
+        params=utils_json.dumps(form_data),
+    )
+    rows = [
+        {"Category": 9007199254740993, "Revenue": 1},
+        {"Category": Decimal("1.0000000000000001"), "Revenue": 2},
+        {"Category": Decimal("1.7976931348623159e308"), "Revenue": 3},
+    ]
+
+    class _Command:
+        def __init__(self, _query_context: Any) -> None: ...
+
+        def validate(self) -> None: ...
+
+        def run(self) -> dict[str, Any]:
+            return {
+                "queries": [
+                    {
+                        "data": rows,
+                        "colnames": ["Category", "Revenue"],
+                    }
+                ]
+            }
+
+    query_context = SimpleNamespace(
+        form_data={},
+        queries=[SimpleNamespace(metrics=["Revenue"], columns=["Category"])],
+    )
+    user = MagicMock(id=1, username="admin", roles=[], groups=[])
+    with (
+        patch("superset.mcp_service.auth.get_user_from_request", return_value=user),
+        patch("superset.mcp_service.auth.check_tool_permission", return_value=True),
+        patch.object(preview_module, "find_chart_by_identifier", return_value=chart),
+        patch.object(preview_module.db.session, "refresh", return_value=None),
+        patch.object(
+            preview_module,
+            "validate_chart_dataset",
+            return_value=SimpleNamespace(is_valid=True, warnings=[], error=None),
+        ),
+        patch.object(
+            preview_module.event_logger,
+            "log_context",
+            side_effect=lambda **_kwargs: nullcontext(),
+        ),
+        patch.object(
+            preview_module,
+            "build_query_context_from_form_data",
+            return_value=query_context,
+        ),
+        patch.object(preview_module, "set_query_context_form_data", return_value=None),
+        patch.object(command_module, "ChartDataCommand", _Command),
+        patch.object(
+            preview_module, "get_superset_base_url", return_value="http://localhost"
+        ),
+    ):
+        async with Client(mcp) as client:
+            result = await client.call_tool(
+                "get_chart_preview",
+                {"request": {"id": 121, "format": format_}},
+            )
+
+    payload = utils_json.loads(result.content[0].text)
+    if format_ == "ascii":
+        content = payload["content"]["ascii_content"]
+        assert "9007199254740992" in content
+        assert "Infinity" in content
+    else:
+        specification = payload["content"]["specification"]
+        bar = next(
+            layer for layer in specification["layer"] if layer["mark"]["type"] == "bar"
+        )
+        category_field = bar["encoding"]["y"]["field"]
+        assert [row[category_field] for row in specification["data"]["values"]] == [
+            "9007199254740992",
+            "1",
+            "Infinity",
+        ]
+        assert "transform" not in specification
 
 
 def test_ascii_preview_accepts_real_postprocessing_null_and_large_full_sql(

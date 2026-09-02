@@ -260,6 +260,55 @@ test('coerces grouped categories with JavaScript String semantics', () => {
   ]);
 });
 
+test('coerces JSON number boundaries through IEEE-754 before String', () => {
+  const wireNumbers = [
+    '9007199254740993',
+    '9007199254740995',
+    '1.0000000000000001',
+    '1.0000000000000002',
+    '1e20',
+    '1e21',
+    '1e-6',
+    '1e-7',
+    '1.7976931348623157e308',
+    '1.7976931348623159e308',
+    '-1e309',
+    '-0',
+  ].map(value => JSON.parse(value) as number);
+  const props = new ChartProps({
+    width: 800,
+    height: 400,
+    formData: { ...formData, groupby: ['state'] },
+    theme: supersetTheme,
+    queriesData: [
+      {
+        data: wireNumbers.map((state, index) => ({
+          state,
+          sum__num: index + 1,
+        })),
+      },
+    ],
+    hooks: {},
+  }) as unknown as EchartsBulletChartProps;
+
+  const { echartOptions } = transformProps(props);
+  const { data } = (echartOptions as { yAxis: { data: string[] } }).yAxis;
+  expect(data).toEqual([
+    '9007199254740992',
+    '9007199254740996',
+    '1',
+    '1.0000000000000002',
+    '100000000000000000000',
+    '1e+21',
+    '0.000001',
+    '1e-7',
+    '1.7976931348623157e+308',
+    'Infinity',
+    '-Infinity',
+    '0',
+  ]);
+});
+
 test('splits into one bullet row per group value with shared markers', () => {
   const props = new ChartProps({
     width: 800,

@@ -835,7 +835,7 @@ async def get_chart_data(  # noqa: C901
             )
 
             # Check if we have data to work with
-            if not any(queries_data or []):
+            if chart.viz_type != "bullet" and not any(queries_data or []):
                 await ctx.warning("No data in query results: chart_id=%s" % (chart.id,))
                 logger.warning(
                     "get_chart_data: no data in query results for chart_id=%s",
@@ -1152,7 +1152,7 @@ async def _query_from_form_data(  # noqa: C901
                 return bullet_error
             data = strict_data or []
 
-        if not any(queries_data or []):
+        if viz_type != "bullet" and not any(queries_data or []):
             logger.warning(
                 "get_chart_data: no data for unsaved chart (form_data_key=%s)",
                 request.form_data_key,

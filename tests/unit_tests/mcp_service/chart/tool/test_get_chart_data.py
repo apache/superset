@@ -3875,6 +3875,170 @@ async def test_saved_bullet_get_data_uses_strict_render_model(
     payload = json.loads(result.content[0].text)
     assert payload["error_type"] == "MalformedBulletOutput"
 
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("grouped", "format_", "identifier_alias"),
+    [
+        (False, "json", "id"),
+        (True, "json", "chart_id"),
+        (False, "csv", "id"),
+        (True, "excel", "chart_id"),
+    ],
+)
+async def test_saved_empty_bullet_get_data_fastmcp_returns_normalized_rows(
+    mcp_server: Any,
+    mock_auth: Any,
+    grouped: bool,
+    format_: str,
+    identifier_alias: str,
+) -> None:
+    from unittest.mock import patch
+
+    from fastmcp import Client
+
+    module = importlib.import_module("superset.mcp_service.chart.tool.get_chart_data")
+    command_module = importlib.import_module(
+        "superset.commands.chart.data.get_data_command"
+    )
+    form_data: dict[str, Any] = {
+        "viz_type": "bullet",
+        "metric": "Revenue",
+    }
+    if grouped:
+        form_data["groupby"] = ["Region"]
+    raw_columns = ["Revenue", *(["Region"] if grouped else [])]
+    chart = SimpleNamespace(
+        id=21,
+        slice_name="Empty Bullet",
+        viz_type="bullet",
+        datasource_id=1,
+        datasource_type="table",
+        query_context='{"queries": []}',
+        params=json.dumps(form_data),
+    )
+
+    class _Command:
+        def __init__(self, _query_context: Any) -> None: ...
+
+        def validate(self) -> None: ...
+
+        def run(self) -> dict[str, Any]:
+            return {
+                "queries": [
+                    {
+                        "data": [],
+                        "colnames": raw_columns,
+                        "rowcount": 0,
+                    }
+                ]
+            }
+
+    with (
+        patch.object(module, "find_chart_by_identifier", return_value=chart),
+        patch.object(
+            module,
+            "validate_chart_dataset",
+            return_value=SimpleNamespace(is_valid=True, warnings=[], error=None),
+        ),
+        patch(
+            "superset.charts.schemas.ChartDataQueryContextSchema.load",
+            return_value=_query_context_stub(),
+        ),
+        patch.object(command_module, "ChartDataCommand", _Command),
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_chart_data",
+                {
+                    "request": {
+                        identifier_alias: 21,
+                        "format": format_,
+                    }
+                },
+            )
+
+    payload = json.loads(result.content[0].text)
+    assert "error_type" not in payload
+    expected_rows = [] if grouped else [{"Revenue": 0.0}]
+    if format_ == "json":
+        assert payload["data"] == expected_rows
+        assert payload["row_count"] == len(expected_rows)
+    elif format_ == "csv":
+        assert payload["format"] == "csv"
+        assert payload["row_count"] == 1
+        assert payload["csv_data"] == "Revenue\r\n0.0\r\n"
+    else:
+        assert payload["format"] == "excel"
+        assert payload["row_count"] == 0
+        assert payload["excel_data"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("grouped", [False, True])
+async def test_form_data_key_empty_bullet_fastmcp_returns_normalized_rows(
+    mcp_server: Any,
+    mock_auth: Any,
+    grouped: bool,
+) -> None:
+    from unittest.mock import patch
+
+    from fastmcp import Client
+
+    module = importlib.import_module("superset.mcp_service.chart.tool.get_chart_data")
+    command_module = importlib.import_module(
+        "superset.commands.chart.data.get_data_command"
+    )
+    form_data: dict[str, Any] = {
+        "datasource": "1__table",
+        "viz_type": "bullet",
+        "metric": "Revenue",
+    }
+    if grouped:
+        form_data["groupby"] = ["Region"]
+    raw_columns = ["Revenue", *(["Region"] if grouped else [])]
+
+    class _Command:
+        def __init__(self, _query_context: Any) -> None: ...
+
+        def validate(self) -> None: ...
+
+        def run(self) -> dict[str, Any]:
+            return {
+                "queries": [
+                    {
+                        "data": [],
+                        "colnames": raw_columns,
+                        "rowcount": 0,
+                    }
+                ]
+            }
+
+    with (
+        patch.object(
+            module, "get_cached_form_data", return_value=json.dumps(form_data)
+        ),
+        patch.object(
+            module,
+            "build_query_context_from_form_data",
+            return_value=_query_context_stub(),
+        ),
+        patch.object(command_module, "ChartDataCommand", _Command),
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_chart_data",
+                {"request": {"form_data_key": "empty-bullet"}},
+            )
+
+    payload = json.loads(result.content[0].text)
+    expected_rows = [] if grouped else [{"Revenue": 0.0}]
+    assert "error_type" not in payload
+    assert payload["chart_id"] == 0
+    assert payload["chart_type"] == "bullet"
+    assert payload["data"] == expected_rows
+    assert payload["row_count"] == len(expected_rows)
+
     def test_float_total_rows_serializes_without_error(self) -> None:
         import pydantic_core
 
