@@ -1015,8 +1015,8 @@ def test_bullet_compile_returns_stable_error_for_malformed_envelopes(
         ([1], "CHART_COMPILE_FAILED", "compile_error"),
         (
             [{"Revenue": 10**10000}],
-            "MALFORMED_BULLET_OUTPUT",
-            "malformed_bullet_output",
+            "CHART_COMPILE_FAILED",
+            "compile_error",
         ),
     ],
 )
@@ -1342,7 +1342,7 @@ def test_bullet_unsaved_preview_structures_oversized_numeric_output() -> None:
     preview = _unsaved_bullet_preview_with_result(
         {"queries": [{"data": [{"Revenue": 10**10000}]}]}
     )
-    assert preview.error_type == "MalformedBulletOutput"
+    assert preview.error_type == "MalformedQueryResult"
 
 
 def test_bullet_empty_saved_and_unsaved_vega_use_same_no_data_contract() -> None:
@@ -1458,7 +1458,7 @@ def test_bullet_saved_preview_structures_oversized_numeric_output(format_: str) 
     preview = _saved_bullet_preview_with_result(
         {"queries": [{"data": [{"Revenue": 10**10000}]}]}, format_
     )
-    assert preview.error_type == "MalformedBulletOutput"
+    assert preview.error_type == "MalformedQueryResult"
 
 
 @pytest.mark.parametrize(

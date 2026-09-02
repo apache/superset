@@ -23,6 +23,7 @@ path so fast-path tools (``generate_explore_link``, ``update_chart_preview``)
 that only use Tier-1 validation are exercised end-to-end.
 """
 
+import importlib
 from typing import Any, cast
 from unittest.mock import Mock, patch
 
@@ -923,13 +924,10 @@ def test_compile_chart_executes_final_big_number_trendline_query(
             return {
                 "queries": [
                     {
-                        "data": [
-                            {
-                                "event_time": row["event_time"].isoformat(),
-                                "Gross revenue": row["Gross revenue"],
-                            }
-                            for row in processed.to_dict("records")
-                        ],
+                        # QueryContextProcessor's JSON materializer returns
+                        # exact pandas Timestamp values here; the shared MCP
+                        # result boundary owns their canonical conversion.
+                        "data": processed.to_dict("records"),
                         "colnames": [],
                     },
                     {"data": [{"Gross revenue": 25.0}], "colnames": []},
@@ -990,6 +988,102 @@ def test_compile_chart_executes_final_big_number_trendline_query(
     assert raw["series_columns"] == []
     assert raw["is_timeseries"] is False
     assert raw["post_processing"] == []
+
+
+@pytest.mark.parametrize(
+    "form_data",
+    [
+        {
+            "viz_type": "waterfall",
+            "x_axis": "event_time",
+            "granularity_sqla": "event_time",
+            "time_grain_sqla": "P1M",
+            "metric": "revenue",
+            "groupby": ["region"],
+        },
+        {
+            "viz_type": "echarts_timeseries_line",
+            "x_axis": "event_time",
+            "granularity_sqla": "event_time",
+            "time_grain_sqla": "P1M",
+            "metrics": ["revenue"],
+            "groupby": ["region"],
+        },
+        {
+            "viz_type": "mixed_timeseries",
+            "x_axis": "event_time",
+            "granularity_sqla": "event_time",
+            "time_grain_sqla": "P1M",
+            "metrics": ["revenue"],
+            "metrics_b": ["profit"],
+            "groupby": ["region"],
+            "groupby_b": ["region"],
+        },
+    ],
+    ids=["waterfall", "xy", "mixed"],
+)
+def test_compile_accepts_timestamped_dataframe_result_shapes(
+    monkeypatch: pytest.MonkeyPatch,
+    form_data: dict[str, Any],
+    app_context: None,
+) -> None:
+    """Waterfall, XY, and Mixed compile accept real DataFrame timestamps."""
+    from types import SimpleNamespace
+
+    from superset.common.query_object import QueryObject
+    from superset.mcp_service.chart.compile import _compile_chart
+
+    factory_module = importlib.import_module("superset.common.query_context_factory")
+    command_module = importlib.import_module(
+        "superset.commands.chart.data.get_data_command"
+    )
+    captured: dict[str, Any] = {}
+
+    class _Factory:
+        def create(self, **kwargs: Any) -> Any:
+            return SimpleNamespace(
+                form_data=kwargs["form_data"],
+                queries=[QueryObject(**query) for query in kwargs["queries"]],
+            )
+
+    class _Command:
+        def __init__(self, query_context: Any) -> None:
+            self.query_context = query_context
+
+        def validate(self) -> None: ...
+
+        def run(self) -> dict[str, Any]:
+            records = pd.DataFrame(
+                {
+                    "event_time": pd.to_datetime(["2024-01-01", "2024-02-01"]),
+                    "revenue": [10.0, 15.0],
+                    "profit": [4.0, 6.0],
+                    "region": ["North", "South"],
+                }
+            ).to_dict("records")
+            result = {
+                "queries": [
+                    {"data": [dict(row) for row in records], "rowcount": 2}
+                    for _query in self.query_context.queries
+                ]
+            }
+            captured["result"] = result
+            return result
+
+    monkeypatch.setattr(factory_module, "QueryContextFactory", _Factory)
+    monkeypatch.setattr(command_module, "ChartDataCommand", _Command)
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda *_args: "base",
+    )
+
+    result = _compile_chart(form_data, 3)
+
+    assert result.success
+    assert all(
+        type(query["data"][0]["event_time"]) is str
+        for query in captured["result"]["queries"]
+    )
 
 
 @patch("superset.charts.data.form_data.set_query_context_form_data")

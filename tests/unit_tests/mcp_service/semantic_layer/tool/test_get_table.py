@@ -21,9 +21,10 @@ from __future__ import annotations
 
 import importlib
 from collections.abc import Generator
-from types import ModuleType
+from contextlib import nullcontext
+from types import ModuleType, SimpleNamespace
 from typing import Any
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
 from fastmcp import Client, FastMCP
@@ -114,6 +115,91 @@ def _access_denied_exc(message: str = "Access denied") -> SupersetSecurityExcept
             level=ErrorLevel.ERROR,
         )
     )
+
+
+@pytest.mark.asyncio
+async def test_get_table_seeds_virtual_dataset_jinja_before_command_construction(
+    app_context: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The final semantic query exposes URL and filter macros to virtual SQL."""
+    from flask import current_app
+
+    from superset.common.query_object import QueryObject
+    from superset.jinja_context import ExtraCache
+    from superset.mcp_service.semantic_layer.schemas import GetTableRequest
+
+    command_module = importlib.import_module(
+        "superset.commands.chart.data.get_data_command"
+    )
+    observed: dict[str, Any] = {}
+
+    class _Factory:
+        def create(self, **kwargs: Any) -> Any:
+            return SimpleNamespace(
+                form_data=kwargs["form_data"],
+                queries=[QueryObject(**query) for query in kwargs["queries"]],
+            )
+
+    class _Command:
+        def __init__(self, _query_context: Any) -> None:
+            macros = ExtraCache()
+            observed["url_param"] = macros.url_param("tenant")
+            observed["filter_values"] = macros.filter_values("region")
+            observed["get_filters"] = macros.get_filters("region")
+
+        def validate(self) -> None: ...
+
+        def run(self) -> dict[str, Any]:
+            return {
+                "queries": [
+                    {
+                        "data": [{"region": "North", "revenue": 10}],
+                        "colnames": ["region", "revenue"],
+                        "rowcount": 1,
+                    }
+                ]
+            }
+
+    monkeypatch.setattr(
+        get_table_module,
+        "_resolve_builtin_dataset",
+        lambda _request: get_table_module._ResolvedDatasource(
+            "virtual_sales", None, {"region"}, {"revenue"}
+        ),
+    )
+    monkeypatch.setattr(
+        get_table_module,
+        "event_logger",
+        SimpleNamespace(log_context=lambda **_kwargs: nullcontext()),
+    )
+    monkeypatch.setattr(
+        importlib.import_module("superset.common.query_context_factory"),
+        "QueryContextFactory",
+        _Factory,
+    )
+    monkeypatch.setattr(command_module, "ChartDataCommand", _Command)
+
+    request = GetTableRequest(
+        dataset_id=42,
+        metrics=["revenue"],
+        dimensions=["region"],
+        filters=[{"col": "region", "op": "IN", "val": ["North"]}],
+    )
+    with current_app.test_request_context("/?tenant=acme"):
+        response = await get_table_module._run_get_table_query(
+            request,
+            AsyncMock(),
+            is_builtin=True,
+            datasource_id=42,
+            datasource_type="table",
+        )
+
+    assert response.success is True
+    assert observed == {
+        "url_param": "acme",
+        "filter_values": ["North"],
+        "get_filters": [{"col": "region", "op": "IN", "val": ["North"]}],
+    }
 
 
 @pytest.mark.asyncio
